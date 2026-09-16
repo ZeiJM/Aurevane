@@ -53,10 +53,7 @@ export default async function CharacterCreationPage({
       <main className={styles.main}>
         <section className={styles.creationPanel}>
           <div className={styles.creationHeading}>
-            <div>
-              <span>Slot {slotIndex + 1}</span>
-              <h1>Create a new character</h1>
-            </div>
+            <span>Character Creation · Slot {slotIndex + 1}</span>
             <Link href="/game">← Back to Character Select</Link>
           </div>
           <CharacterCreationExperience slotIndex={slotIndex} />

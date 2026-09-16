@@ -1,646 +1,10 @@
+/* This module owns roster and creation-shell geometry; no global roster overrides. */
 .shell {
   position: relative;
   isolation: isolate;
   min-height: 100dvh;
-  background: linear-gradient(180deg, #07111a55, #07111abb);
-  color: var(--av-text);
-}
-
-.header {
-  position: sticky;
-  top: 0;
-  z-index: 700;
-  display: flex;
-  min-height: 3.7rem;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.35rem clamp(0.7rem, 1.8vw, 1.5rem);
-  border-bottom: 1px solid var(--av-border);
-  background: rgba(7, 9, 13, 0.97);
-  backdrop-filter: blur(1rem);
-}
-
-.headerActions {
-  display: flex;
-  min-width: 0;
-  gap: 0.7rem;
-  align-items: center;
-}
-
-.screenIdentity {
-  display: inline-flex;
-  min-width: 0;
-  gap: 0.46rem;
-  align-items: center;
-}
-
-.screenPortrait {
-  position: relative;
-  display: grid;
-  width: 2.05rem;
-  height: 2.05rem;
-  flex: 0 0 auto;
-  place-items: center;
-  overflow: hidden;
-  border: 1px solid rgba(207, 169, 93, 0.62);
-  border-radius: 50%;
-  background: rgba(8, 11, 16, 0.95);
-  box-shadow:
-    0 0 0 2px rgba(207, 169, 93, 0.08),
-    0 0.35rem 0.9rem rgba(0, 0, 0, 0.3);
-}
-
-.screenPortrait::after {
-  position: absolute;
-  inset: 2px;
-  border: 1px solid rgba(238, 219, 173, 0.18);
-  border-radius: 50%;
-  content: '';
-  pointer-events: none;
-}
-
-.screenPortraitImage {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transform: scale(1.08);
-}
-
-.screenLabel {
-  display: inline-flex;
-  min-width: 0;
-  gap: 0.42rem;
-  align-items: center;
-  color: var(--av-verdant-400);
-}
-
-.screenLabel i {
-  width: 0.46rem;
-  height: 0.46rem;
-  flex: 0 0 auto;
-  border: 1px solid rgba(153, 220, 173, 0.7);
-  border-radius: 50%;
-  background: var(--av-verdant-400);
-  box-shadow: 0 0 0.45rem rgba(111, 207, 139, 0.32);
-}
-
-.screenLabel strong {
-  max-width: 10rem;
-  overflow: hidden;
-  color: var(--av-verdant-400);
-  font: 750 0.58rem/1 var(--av-font-mono);
-  letter-spacing: 0.055em;
-  text-overflow: ellipsis;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.main {
-  width: min(100%, 88rem);
-  margin: 0 auto;
-  padding: clamp(0.7rem, 1.6vw, 1.3rem);
-}
-
-.hero {
-  display: grid;
-  justify-items: center;
-  text-align: center;
-  gap: 0.7rem;
-  margin: 1.2rem 0 1.5rem;
-  padding: 1rem;
-  border: 0;
-}
-
-.hero span,
-.creationHeading span {
-  color: var(--av-brass-300);
-  font: 700 0.6875rem/1.25 var(--av-font-mono);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.hero h1,
-.creationHeading h1 {
-  margin: 0.3rem 0 0;
-  font: 500 clamp(1.9rem, 4vw, 3.2rem)/0.96 var(--av-font-display);
-}
-
-.hero p {
-  max-width: 38rem;
-  margin: 0;
-  color: var(--av-text);
-  font-size: 0.85rem;
-  line-height: 1.5;
-}
-
-.slots {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.7rem;
-}
-
-.slot {
-  position: relative;
-  display: grid;
-  grid-template-rows: auto minmax(14rem, 1fr) auto auto auto;
-  min-height: 34rem;
-  padding: 1.1rem;
-  border: 1px solid var(--av-gold-rule);
-  border-radius: 0.2rem;
-  background: var(--av-ink-950);
-  box-shadow: var(--av-shadow-deep);
-  overflow: hidden;
-}
-
-.slot[data-pending-delete] {
-  border-color: rgba(178, 75, 75, 0.55);
-}
-
-.slot[data-locked] {
-  border: 1px solid var(--av-gold-rule);
-  color: var(--av-charcoal);
-  background: linear-gradient(180deg, #e1ded3dd, var(--av-moonstone));
-  box-shadow: var(--av-shadow-deep);
-}
-
-.slot[data-locked] .emptyCrest {
-  border-color: rgba(184, 177, 163, 0.2);
-  color: var(--av-text-dim);
-  background: rgba(255, 255, 255, 0.012);
-}
-
-.slotNumber {
-  z-index: 2;
-  color: var(--av-brass-300);
-  font: 700 0.6875rem/1.25 var(--av-font-mono);
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-}
-
-.portrait {
-  position: relative;
-  min-height: 16rem;
-  margin: 0.75rem -1.1rem 0;
-  overflow: hidden;
-  background: var(--av-ink-950);
-}
-
-.portrait :global(img) {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.identity {
-  padding: 0.3rem 0 0.55rem;
-}
-
-.identity h2,
-.empty h2 {
-  margin: 0.6rem 0;
-  font: 500 2rem/1.1 var(--av-font-display);
-}
-
-.identity p,
-.empty p {
-  margin: 0.25rem 0 0;
-  color: var(--av-text-dim);
-  font-size: 0.68rem;
-  line-height: 1.4;
-}
-
-.primaryAction,
-.deleteAction,
-.pendingDelete button {
-  display: flex;
-  min-height: 2.35rem;
-  align-items: center;
-  justify-content: center;
-  padding: 0.55rem 0.7rem;
-  border-radius: var(--av-radius-sm);
-  font: 750 0.56rem/1 var(--av-font-mono);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  cursor: pointer;
-}
-
-.primaryAction {
-  border: 1px solid var(--av-teal-bright);
-  background: linear-gradient(135deg, var(--av-teal), #0c2b3b);
-  color: var(--av-on-primary);
-  text-decoration: none;
-  font: 500 1.25rem var(--av-font-display);
-  min-height: 2.75rem;
-}
-
-.deleteAction {
-  margin-top: 0.35rem;
-  border: 1px solid rgba(177, 79, 79, 0.45);
-  background: transparent;
-  color: #d59b9b;
-}
-
-.empty {
-  grid-template-rows: auto 1fr auto auto auto;
-  align-items: center;
-  text-align: center;
-}
-
-.emptyCrest {
-  display: grid;
-  width: 5rem;
-  height: 5rem;
-  margin: auto;
-  place-items: center;
-  border: 1px solid var(--av-border-strong);
-  border-radius: 50%;
-  color: var(--av-brass-300);
-  font: 300 2.2rem/1 var(--av-font-display);
-  background: rgba(255, 255, 255, 0.02);
-}
-
-.lockedBadge {
-  display: inline-flex;
-  min-height: 2.25rem;
-  align-items: center;
-  justify-content: center;
-  padding: 0.5rem 0.7rem;
-  border: 1px solid rgba(184, 177, 163, 0.18);
-  border-radius: var(--av-radius-sm);
-  color: var(--av-text-dim);
-  background: rgba(255, 255, 255, 0.015);
-  font: 700 0.6875rem/1.25 var(--av-font-mono);
-  letter-spacing: 0.035em;
-  text-transform: uppercase;
-}
-
-.pendingDelete,
-.swapCooldown {
-  display: grid;
-  gap: 0.28rem;
-  padding: 0.6rem;
-  border-radius: var(--av-radius-sm);
-}
-
-.pendingDelete {
-  border: 1px solid rgba(177, 79, 79, 0.35);
-  background: rgba(112, 37, 37, 0.1);
-}
-
-.pendingDelete strong {
-  color: #e2aaaa;
-}
-
-.pendingDelete b {
-  font: 700 0.64rem/1 var(--av-font-mono);
-  color: #f1d5d5;
-}
-
-.pendingDelete span,
-.swapCooldown small {
-  color: var(--av-text-dim);
-  font-size: 0.62rem;
-  line-height: 1.35;
-}
-
-.swapCooldown {
-  border: 1px solid rgba(207, 169, 93, 0.32);
-  background: rgba(207, 169, 93, 0.055);
-}
-
-.swapCooldown span {
-  color: var(--av-brass-300);
-  font: 700 0.5rem/1 var(--av-font-mono);
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-}
-
-.swapCooldown strong {
-  color: var(--av-text);
-  font: 600 1rem/1 var(--av-font-display);
-}
-
-.message {
-  margin: 0 0 0.65rem;
-  padding: 0.6rem 0.75rem;
-  border: 1px solid var(--av-border);
-  color: var(--av-text-muted);
-  background: rgba(255, 255, 255, 0.02);
-  font-size: 0.74rem;
-}
-
-.creationPanel {
-  display: grid;
-  gap: 0.7rem;
-}
-
-.creationHeading {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.creationHeading a {
-  color: var(--av-brass-300);
-  font: 700 0.56rem/1 var(--av-font-mono);
-  text-decoration: none;
-  text-transform: uppercase;
-}
-
-.modalBackdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 1600;
-  display: grid;
-  place-items: center;
-  padding: 1rem;
-  background: rgba(0, 0, 0, 0.74);
-  backdrop-filter: blur(0.4rem);
-}
-
-.modal {
-  width: min(100%, 34rem);
-  max-height: 90dvh;
-  overflow: auto;
-  padding: 1.5rem;
-  border: 1px solid var(--av-gold-rule);
-  border-radius: 0.25rem;
-  color: var(--av-text);
-  background: var(--av-moonstone);
-  box-shadow: var(--av-shadow-deep);
-}
-
-.modal > span {
-  color: #8b252b;
-  font: 700 0.54rem/1 var(--av-font-mono);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.modal h2 {
-  margin: 0.5rem 0;
-  font: 500 1.7rem/1 var(--av-font-display);
-}
-
-.modal p {
-  color: var(--av-text-muted);
-  font-size: 0.74rem;
-  line-height: 1.5;
-}
-
-.modal label {
-  display: grid;
-  gap: 0.45rem;
-  margin-top: 0.75rem;
-}
-
-.modal label span {
-  font-size: 0.7rem;
-  color: var(--av-text-muted);
-}
-
-.modal input {
-  min-height: 2.75rem;
-  padding: 0.6rem;
-  border: 1px solid var(--av-border-strong);
-  background: var(--av-moonstone-elevated);
-  color: var(--av-text);
-}
-
-.modalActions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-  margin-top: 0.8rem;
-}
-
-.modalActions button {
-  min-height: 2.4rem;
-  padding: 0.55rem 0.75rem;
-  border: 1px solid var(--av-border-strong);
-  border-radius: var(--av-radius-sm);
-  background: transparent;
-  color: var(--av-text-muted);
-  cursor: pointer;
-}
-
-.modalActions .danger {
-  border-color: #a55353;
-  background: #6e2f2f;
-  color: #fff;
-}
-
-.modalActions button:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.modalError {
-  color: #8b252b;
-}
-
-@media (min-width: 901px) {
-  .shell {
-    height: 100dvh;
-    min-height: 0;
-    overflow: hidden;
-  }
-
-  .header {
-    min-height: 3.4rem;
-    padding-block: 0.25rem;
-  }
-
-  .main {
-    display: flex;
-    height: calc(100dvh - 3.4rem);
-    flex-direction: column;
-    overflow: hidden;
-    padding: clamp(0.55rem, 1.2vw, 0.9rem) clamp(0.7rem, 1.6vw, 1.25rem);
-  }
-
-  .hero {
-    flex: 0 0 auto;
-    gap: 1rem;
-    margin-bottom: 0.55rem;
-    padding: 0.3rem 0 0.55rem;
-  }
-
-  .hero h1 {
-    margin-top: 0.2rem;
-    font-size: clamp(1.8rem, 3.3vw, 2.65rem);
-  }
-
-  .hero p {
-    font-size: 0.7rem;
-    line-height: 1.4;
-  }
-
-  .slots {
-    min-height: 0;
-    flex: 1 1 auto;
-  }
-
-  .slot {
-    height: 100%;
-    min-height: 0;
-    grid-template-rows: auto minmax(6rem, 1fr) auto auto auto;
-    padding: 0.6rem;
-  }
-
-  .portrait {
-    min-height: 6rem;
-    margin: 0.4rem -0.05rem;
-  }
-
-  .identity {
-    padding: 0.25rem 0 0.4rem;
-  }
-
-  .identity h2,
-  .empty h2 {
-    font-size: 1.2rem;
-  }
-
-  .primaryAction,
-  .deleteAction,
-  .pendingDelete button,
-  .lockedBadge {
-    min-height: 2.05rem;
-    padding-block: 0.45rem;
-  }
-
-  .deleteAction {
-    margin-top: 0.25rem;
-  }
-
-  .emptyCrest {
-    width: clamp(3.4rem, 7vh, 4.25rem);
-    height: clamp(3.4rem, 7vh, 4.25rem);
-    font-size: 1.8rem;
-  }
-}
-
-@media (max-width: 900px) {
-  .slots {
-    grid-template-columns: 1fr;
-  }
-  .slot {
-    grid-template-columns: 8rem 1fr;
-    grid-template-rows: auto auto 1fr auto auto;
-    min-height: 0;
-    gap: 0.55rem;
-  }
-  .slotNumber {
-    grid-column: 1/-1;
-  }
-  .portrait {
-    grid-row: 2/5;
-    align-self: center;
-    min-height: 10rem;
-    margin: 0;
-  }
-  .identity {
-    align-self: end;
-  }
-  .primaryAction,
-  .deleteAction,
-  .pendingDelete,
-  .swapCooldown {
-    grid-column: 2;
-  }
-  .empty {
-    display: grid;
-    grid-template-columns: 1fr;
-  }
-  .emptyCrest {
-    grid-row: auto;
-  }
-  .hero {
-    grid-template-columns: 1fr;
-    gap: 0.5rem;
-  }
-}
-
-@media (max-width: 700px) {
-  .header :global(.brand__wordmark small) {
-    display: none;
-  }
-  .screenLabel strong {
-    max-width: 7rem;
-  }
-  .screenPortrait {
-    width: 1.8rem;
-    height: 1.8rem;
-  }
-}
-
-@media (max-width: 560px) {
-  .slot.empty {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto;
-    gap: 0.65rem;
-  }
-
-  .empty .emptyCrest {
-    width: 3.25rem;
-    height: 3.25rem;
-    margin: 0.3rem auto;
-    font-size: 1.8rem;
-  }
-
-  .empty > h2 {
-    font-size: 1.25rem;
-    line-height: 1.2;
-  }
-
-  .empty > p {
-    margin: 0;
-  }
-
-  .empty .lockedBadge,
-  .empty .primaryAction {
-    grid-column: 1;
-    justify-self: center;
-  }
-
-  .header {
-    gap: 0.4rem;
-    padding-inline: 0.5rem;
-  }
-  .headerActions {
-    gap: 0.4rem;
-  }
-  .screenPortrait {
-    width: 1.6rem;
-    height: 1.6rem;
-  }
-  .screenLabel strong {
-    max-width: 4.8rem;
-    font-size: 0.46rem;
-  }
-  .main {
-    padding: 0.6rem;
-  }
-  .slot {
-    grid-template-columns: 6.5rem 1fr;
-  }
-  .portrait {
-    min-height: 8.5rem;
-  }
-  .modalActions {
-    display: grid;
-    grid-template-columns: 1fr;
-  }
-  .creationHeading {
-    align-items: start;
-    flex-direction: column;
-  }
-  .hero h1 {
-    font-size: 2.2rem;
-  }
+  color: var(--av-parchment-100);
+  background: linear-gradient(180deg, #07111a55, #07111abf);
 }
 
 .world {
@@ -656,355 +20,562 @@
   object-fit: cover;
 }
 
+.header {
+  position: relative;
+  z-index: 700;
+  display: flex;
+  min-height: 4rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem clamp(0.75rem, 2vw, 2rem);
+  border-bottom: 1px solid var(--av-gold-rule);
+  background: rgba(5, 12, 19, 0.95);
+}
+
+.headerActions,
+.screenIdentity {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.screenPortrait {
+  display: block;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: none;
+  overflow: hidden;
+  border: 1px solid var(--av-gold-rule);
+  background: var(--av-ink-950);
+}
+
+.screenPortraitImage {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.main {
+  width: min(100%, 100rem);
+  margin: 0 auto;
+  padding: clamp(0.75rem, 1.5vw, 1.5rem);
+}
+
+.main[data-roster-stage='true'] {
+  width: min(100%, 76rem);
+}
+
+.hero {
+  display: grid;
+  justify-items: center;
+  gap: 0.4rem;
+  margin: 0 auto 1.15rem;
+  text-align: center;
+}
+
+.hero > span,
+.creationHeading > span {
+  color: var(--av-brass-300);
+  font: 600 0.75rem/1.4 var(--av-font-body);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
 .hero h1 {
-  font: 500 clamp(2rem, 4vw, 3.6rem)/1.1 var(--av-font-display);
-  margin: 0.5rem 0;
+  margin: 0;
+  font: 500 clamp(1.8rem, 3vw, 2.65rem)/1.15 var(--av-font-display);
 }
 
-@media (min-width: 901px) {
-  .shell {
-    height: auto;
-    min-height: 100dvh;
-    overflow: visible;
-  }
-  .main {
-    height: auto;
-    overflow: visible;
-  }
-  .slot {
-    min-height: 33rem;
-    height: auto;
-    grid-template-rows: auto minmax(15rem, 1fr) auto auto auto;
-  }
-  .hero {
-    display: grid;
-    grid-template-columns: 1fr;
-    margin: 1rem 0;
-  }
-  .hero h1 {
-    font-size: 3rem;
-  }
-  .portrait {
-    min-height: 15rem;
-  }
-  .identity h2,
-  .empty h2 {
-    font-size: 2rem;
-  }
-}
-@media (max-width: 900px) {
-  .slot {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto minmax(16rem, 1fr) auto auto auto;
-  }
-  .portrait {
-    grid-row: auto;
-  }
-  .primaryAction,
-  .deleteAction,
-  .pendingDelete,
-  .swapCooldown {
-    grid-column: 1;
-  }
-  .slot[data-locked] {
-    min-height: 18rem;
-    grid-template-rows: auto 1fr auto auto auto;
-  }
+.hero p {
+  max-width: 45rem;
+  margin: 0;
+  color: #c4c6c4;
+  font-size: 0.875rem;
+  line-height: 1.45;
 }
 
-.accountDeleteHeaderControl {
-  position: absolute;
-  left: 50%;
-  z-index: 2;
-  transform: translateX(-50%);
+.slots {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+  gap: clamp(0.65rem, 1.4vw, 1.25rem);
 }
 
-.accountDeleteHeaderButton {
+.slot {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: clamp(0.7rem, 1.3vw, 1.15rem);
+  border: 1px solid rgba(179, 154, 109, 0.62);
+  background: linear-gradient(160deg, #12202aed, #070f18f5);
+  box-shadow: 0 0.75rem 2rem #0006;
+}
+
+.slot[data-selected='true'] {
+  border-color: var(--av-brass-300);
+  box-shadow:
+    0 0 0 1px #d4ba8233 inset,
+    0 0.75rem 2rem #0006;
+}
+
+.slot[data-pending-delete] {
+  border-color: var(--av-danger-400);
+}
+
+.slotNumber {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  color: var(--av-brass-300);
+  font: 500 0.75rem/1.4 var(--av-font-body);
+  letter-spacing: 0.04em;
+}
+
+.slotNumber strong {
+  color: #a8d7c1;
+  font-weight: 500;
+}
+
+.portrait {
+  width: min(100%, clamp(11rem, calc(100dvh - 24rem), 22rem));
+  aspect-ratio: 1;
+  flex: none;
+  align-self: center;
+  overflow: hidden;
+  border: 1px solid var(--av-gold-rule);
+  background: var(--av-ink-950);
+}
+
+.portrait > * {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.identity {
+  min-width: 0;
+  flex: 1;
+  text-align: center;
+}
+
+.identity h2,
+.empty h2 {
+  margin: 0 0 0.35rem;
+  color: var(--av-parchment-100);
+  font: 500 clamp(1.25rem, 1.7vw, 1.8rem)/1.2 var(--av-font-display);
+  overflow-wrap: anywhere;
+}
+
+.identity p,
+.empty p {
+  margin: 0;
+  color: #c4c6c4;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.primaryAction,
+.deleteAction,
+.pendingDelete button,
+.accountDeleteButton {
   display: inline-flex;
-  min-height: 2.2rem;
+  min-height: 2.75rem;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.48rem 0.82rem;
-  border: 1px solid rgba(200, 125, 121, 0.78);
-  border-radius: var(--av-radius-sm);
-  color: #f4d5d3;
-  background: linear-gradient(180deg, rgba(137, 55, 55, 0.94), rgba(92, 38, 38, 0.96));
-  box-shadow: 0 0 0 1px rgba(200, 125, 121, 0.08) inset;
-  font: 750 0.55rem/1 var(--av-font-mono);
-  letter-spacing: 0.055em;
-  text-transform: uppercase;
+  padding: 0.5rem 0.8rem;
+  border: 1px solid var(--av-gold-rule);
+  border-radius: 2px;
+  font: 500 0.875rem/1.3 var(--av-font-body);
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.primaryAction {
+  color: #f5efe2;
+  background: linear-gradient(180deg, #204441, #122d30);
+  font: 500 1.1rem/1.3 var(--av-font-display);
+}
+
+.deleteAction,
+.accountDeleteButton,
+.pendingDelete button {
+  color: #e5b4ae;
+  background: #110f1580;
+  border-color: #be858155;
+}
+
+.deleteAction {
+  min-height: 2.25rem;
+}
+
+.primaryAction:hover,
+.deleteAction:hover,
+.accountDeleteButton:hover,
+.pendingDelete button:hover {
+  border-color: var(--av-brass-300);
+}
+
+.shell :is(a, button, input):focus-visible {
+  outline: 2px solid var(--av-brass-300);
+  outline-offset: 3px;
+}
+
+.empty {
+  text-align: center;
+}
+
+.emptyCrest {
+  display: grid;
+  width: min(100%, clamp(11rem, calc(100dvh - 24rem), 22rem));
+  aspect-ratio: 1;
+  align-self: center;
+  flex: none;
+  place-items: center;
+  border: 1px solid #b39a6d44;
+  color: var(--av-brass-300);
+  background: radial-gradient(ellipse, #b39a6d15, transparent 70%);
+  font: 300 3rem/1 var(--av-font-display);
+}
+
+.empty > p {
+  flex: 1;
+}
+
+.lockedBadge {
+  display: grid;
+  min-height: 2.75rem;
+  place-items: center;
+  margin-top: 0.4rem;
+  padding: 0.5rem;
+  border-top: 1px solid #b39a6d44;
+  color: #c4c6c4;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.pendingDelete,
+.swapCooldown {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.75rem;
+  border: 1px solid #be858155;
+  background: #361b224d;
+}
+
+.pendingDelete strong,
+.pendingDelete b {
+  color: #f0c8c0;
+}
+
+.pendingDelete span,
+.swapCooldown small {
+  color: #c4c6c4;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.swapCooldown {
+  border-color: var(--av-gold-rule);
+  background: #b39a6d0d;
+}
+
+.swapCooldown > span {
+  color: var(--av-brass-300);
+  font-size: 0.8rem;
+}
+
+.swapCooldown strong,
+.pendingDelete b,
+.accountDeleteButton b {
+  font-variant-numeric: tabular-nums;
+}
+
+.message {
+  margin: 0 0 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--av-gold-rule);
+  background: var(--av-ink-950);
+  color: var(--av-parchment-100);
+  font-size: 0.875rem;
+}
+
+.accountActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  border-block: 1px solid #b39a6d44;
+  background: #07111abf;
+}
+
+.accountActions p {
+  display: grid;
+  gap: 0.2rem;
+  margin: 0;
+  color: var(--av-brass-300);
+}
+
+.accountActions p span {
+  color: #c4c6c4;
+  font-size: 0.8rem;
+}
+
+.accountDeleteButton {
+  flex: none;
+  flex-wrap: wrap;
+}
+
+.creationPanel {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.creationHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+}
+
+.creationHeading a {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  color: var(--av-brass-300);
+  font-size: 0.875rem;
+}
+
+.modal {
+  width: min(34rem, calc(100% - 2rem));
+  max-height: calc(100dvh - 2rem);
+  margin: auto;
+  padding: clamp(1rem, 3vw, 1.75rem);
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--av-gold-rule);
+  color: var(--av-parchment-100);
+  background: #0b1722;
+  box-shadow: 0 1rem 5rem #0009;
+}
+
+.modal::backdrop {
+  background: #000b;
+  backdrop-filter: blur(4px);
+}
+
+.modal > span {
+  color: #e5b4ae;
+  font-size: 0.8rem;
+}
+
+.modal h2 {
+  margin: 0.6rem 0;
+  font: 500 1.65rem/1.2 var(--av-font-display);
+  overflow-wrap: anywhere;
+}
+
+.modal p,
+.modal label {
+  color: #d0d4d2;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.modal label {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.modal input {
+  min-width: 0;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.65rem;
+  border: 1px solid var(--av-gold-rule);
+  color: var(--av-parchment-100);
+  background: var(--av-ink-950);
+  font-size: 1rem;
+}
+
+.modalActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  margin-top: 1rem;
+}
+
+.modalActions button {
+  min-height: 2.75rem;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--av-gold-rule);
+  color: var(--av-parchment-100);
+  background: #142b31;
+  font-size: 0.875rem;
   cursor: pointer;
 }
 
-.accountDeleteHeaderButton:hover {
-  border-color: rgba(224, 151, 146, 0.95);
-  background: linear-gradient(180deg, rgba(158, 64, 64, 0.98), rgba(106, 42, 42, 0.98));
+.modalActions .danger {
+  border-color: #b47872;
+  background: #702f35;
+  color: #fff2ef;
 }
 
-.accountDeleteHeaderButton[data-pending='true'] {
-  border-color: rgba(218, 157, 151, 0.9);
-  background: rgba(111, 42, 42, 0.9);
+.modalActions .accountCancelDeletion {
+  border-color: #78b59a;
+  color: #d3f4e6;
 }
 
-.accountDeleteHeaderButton b {
-  color: #fff3f1;
-  font-size: 0.62rem;
-  letter-spacing: 0.04em;
+.modalActions button:disabled,
+.pendingDelete button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.modal .modalError {
+  color: #ffc5b8;
 }
 
 .accountDeleteCountdown {
   display: grid;
-  gap: 0.28rem;
-  margin: 0.85rem 0;
-  padding: 0.8rem;
-  border: 1px solid rgba(200, 125, 121, 0.45);
-  border-radius: var(--av-radius-sm);
-  background: rgba(111, 42, 42, 0.12);
+  gap: 0.4rem;
+  padding: 1rem;
+  border: 1px solid #be858155;
   text-align: center;
 }
 
-.accountDeleteCountdown small {
-  color: var(--av-danger-400);
-  font: 750 0.55rem/1 var(--av-font-mono);
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-}
-
 .accountDeleteCountdown b {
-  color: #84272b;
-  font: 600 1.65rem/1 var(--av-font-display);
-  letter-spacing: 0.04em;
+  color: #f0c8c0;
+  font: 600 1.75rem/1.2 var(--av-font-mono);
 }
 
 .accountDeleteWarning {
-  padding: 0.7rem;
-  border-left: 2px solid var(--av-danger-400);
-  background: rgba(200, 125, 121, 0.075);
-  color: #84272b;
+  padding: 0.8rem;
+  border-left: 2px solid #be8581;
+  background: #be858110;
 }
 
-.accountDeleteModal .accountCancelDeletion {
-  border-color: rgba(120, 181, 154, 0.58);
-  color: #185b43;
-  background: rgba(120, 181, 154, 0.09);
+@media (min-width: 761px) and (max-height: 700px) {
+  .hero {
+    gap: 0.2rem;
+    margin-bottom: 0.75rem;
+  }
+  .hero > span {
+    display: none;
+  }
+  .slot {
+    gap: 0.5rem;
+  }
+  .accountActions {
+    margin-top: 0.75rem;
+    padding-block: 0.5rem;
+  }
 }
 
 @media (max-width: 760px) {
-  .accountDeleteHeaderControl {
-    position: static;
-    margin-left: auto;
-    transform: none;
+  .main {
+    padding: 0.75rem;
   }
-
-  .accountDeleteHeaderButton {
-    min-height: 2rem;
-    padding-inline: 0.55rem;
-    font-size: 0.48rem;
+  .hero {
+    margin-bottom: 1rem;
   }
-
-  .accountDeleteHeaderButton[data-pending='true'] > span {
-    display: none;
+  .slots {
+    grid-template-columns: minmax(0, 1fr);
   }
-}
-
-@media (max-width: 560px) {
-  .headerActions {
-    gap: 0.72rem !important;
-  }
-
-  .accountDeleteHeaderControl {
-    margin-left: 0;
-  }
-
-  .accountDeleteHeaderButton {
-    max-width: 7.5rem;
-  }
-}
-@media (max-width: 420px) {
-  .header {
+  .slot {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 0.55rem;
-    padding: 0.65rem;
+    grid-template-columns: minmax(7rem, 0.8fr) minmax(0, 1.2fr);
+    gap: 0.65rem;
+    padding: 0.75rem;
   }
-  .header > :global(.brand) {
-    grid-column: 1;
-    grid-row: 1;
-    min-width: 0;
-  }
-  .headerActions {
-    grid-column: 2;
-    grid-row: 1;
-  }
-  .accountDeleteHeaderControl {
-    grid-column: 1/-1;
-    grid-row: 2;
-    justify-self: center;
-    margin: 0;
-  }
-  .accountDeleteHeaderButton {
-    min-height: 2.75rem;
-    max-width: none;
-    font-size: 0.7rem;
-  }
-}
-
-/* composition-v3 roster stage */
-@media (min-width: 761px) {
-  .main[data-roster-stage='true'] {
-    position: relative;
-    display: grid !important;
-    grid-template-columns: minmax(17rem, 0.48fr) minmax(0, 1.52fr) !important;
-    grid-template-rows: minmax(0, 1fr) !important;
-    width: calc(100% - 1rem) !important;
-    max-width: 96rem !important;
-    height: calc(100dvh - 4.6rem) !important;
-    min-height: 0 !important;
-    gap: 0.7rem !important;
-    padding: 0.55rem !important;
-    overflow: hidden !important;
-  }
-
-  .main[data-roster-stage='true'] .hero {
-    grid-column: 1 !important;
-    grid-row: 1 !important;
-    height: 100% !important;
-    min-height: 0 !important;
-    align-content: end !important;
-    padding: 1.2rem !important;
-    border: 1px solid var(--av-border-strong);
-    border-radius: 0 !important;
-    color: var(--av-parchment-100);
-    background:
-      linear-gradient(180deg, rgba(6, 13, 21, 0.14), rgba(6, 13, 21, 0.94) 78%),
-      url('/media/art/concept-ui/world-v01.webp') center / cover;
-    box-shadow: var(--av-shadow-deep);
-  }
-
-  .main[data-roster-stage='true'] .hero > p {
-    max-width: 28rem;
-    text-align: left !important;
-  }
-
-  .main[data-roster-stage='true'] .message {
-    position: absolute;
-    z-index: 10;
-    top: 0.85rem;
-    right: 0.85rem;
-    max-width: calc(72% - 2rem);
-  }
-
-  .slots[data-character-slot-board='true'] {
-    grid-column: 2 !important;
-    grid-row: 1 !important;
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-    height: 100% !important;
-    min-height: 0 !important;
-    align-items: stretch !important;
-    gap: 0.65rem !important;
-    padding: 0 !important;
-    overflow: auto !important;
-    scrollbar-width: thin;
-  }
-
-  .slots[data-character-slot-board='true'] .slot {
-    min-height: 0 !important;
-    height: 100% !important;
-    align-content: start !important;
-    border-radius: 0 !important;
-  }
-
-  .slots[data-character-slot-board='true'] .portrait {
-    aspect-ratio: 1 !important;
-    width: min(100%, 13rem) !important;
-    height: auto !important;
-    min-height: 0 !important;
-    justify-self: center;
-  }
-}
-
-@media (max-width: 760px) {
-  .main[data-roster-stage='true'] {
-    display: grid !important;
-    grid-template-columns: minmax(0, 1fr) !important;
-    grid-template-rows: 8.5rem auto auto !important;
-    width: 100% !important;
-    min-height: 0 !important;
-    gap: 0.5rem !important;
-    padding: 0.5rem !important;
-  }
-
-  .main[data-roster-stage='true'] .hero {
-    grid-column: 1 !important;
-    grid-row: 1 !important;
-    min-height: 8.5rem !important;
-    height: 8.5rem !important;
-    align-content: end !important;
-    padding: 0.7rem !important;
-    border: 1px solid var(--av-border-strong);
-    border-radius: 0 !important;
-    color: var(--av-parchment-100);
-    background:
-      linear-gradient(180deg, rgba(6, 13, 21, 0.18), rgba(6, 13, 21, 0.9)),
-      url('/media/art/concept-ui/world-v01.webp') center 45% / cover;
-  }
-
-  .main[data-roster-stage='true'] .hero h1 {
-    margin: 0.15rem 0 !important;
-    font-size: 1.7rem !important;
-  }
-
-  .main[data-roster-stage='true'] .hero > p {
-    display: none;
-  }
-
-  .main[data-roster-stage='true'] .message {
-    grid-column: 1 !important;
-    grid-row: 2 !important;
-    margin: 0 !important;
-  }
-
-  .slots[data-character-slot-board='true'] {
-    grid-column: 1 !important;
-    grid-row: 3 !important;
-    grid-template-columns: minmax(0, 1fr) !important;
-    gap: 0.5rem !important;
-    padding: 0 !important;
-  }
-
-  .slots[data-character-slot-board='true'] .slot {
-    display: grid !important;
-    grid-template-columns: 5.5rem minmax(0, 1fr) !important;
-    grid-template-rows: auto auto auto auto !important;
-    min-height: 0 !important;
-    gap: 0.3rem 0.65rem !important;
-    padding: 0.65rem !important;
-    border-radius: 0 !important;
-  }
-
-  .slots[data-character-slot-board='true'] .slotNumber {
+  .slotNumber {
     grid-column: 1 / -1;
   }
-
-  .slots[data-character-slot-board='true'] .portrait,
-  .slots[data-character-slot-board='true'] .emptyCrest {
-    grid-column: 1 !important;
-    grid-row: 2 / span 3 !important;
-    width: 5.5rem !important;
-    height: 5.5rem !important;
-    min-height: 0 !important;
-    aspect-ratio: 1 !important;
+  .portrait,
+  .emptyCrest {
+    grid-column: 1;
+    grid-row: 2 / span 3;
     align-self: start;
+    width: 100%;
   }
+  .identity,
+  .empty > h2,
+  .empty > p,
+  .primaryAction,
+  .deleteAction,
+  .lockedBadge,
+  .pendingDelete,
+  .swapCooldown {
+    grid-column: 2;
+  }
+  .identity {
+    text-align: left;
+  }
+  .empty {
+    text-align: left;
+  }
+  .empty > h2 {
+    margin: 0;
+  }
+  .emptyCrest {
+    font-size: 2rem;
+  }
+  .deleteAction {
+    min-height: 2.75rem;
+  }
+  .accountActions {
+    align-items: start;
+    flex-direction: column;
+    gap: 0.65rem;
+  }
+  .accountDeleteButton {
+    align-self: stretch;
+  }
+  .header :global(.brand__wordmark small) {
+    display: none;
+  }
+  .screenPortrait {
+    width: 2rem;
+    height: 2rem;
+  }
+  .header,
+  .headerActions {
+    gap: 0.5rem;
+  }
+  .modalActions {
+    flex-direction: column;
+  }
+  .modalActions button {
+    width: 100%;
+  }
+}
 
-  .slots[data-character-slot-board='true'] .identity,
-  .slots[data-character-slot-board='true'] .slot > h2,
-  .slots[data-character-slot-board='true'] .slot > p,
-  .slots[data-character-slot-board='true'] .slot > a,
-  .slots[data-character-slot-board='true'] .slot > button,
-  .slots[data-character-slot-board='true'] .lockedBadge,
-  .slots[data-character-slot-board='true'] .pendingDelete {
-    grid-column: 2 !important;
+@media (max-width: 380px) {
+  .slot {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  }
+  .identity p,
+  .empty p {
+    font-size: 0.8rem;
+  }
+  .pendingDelete,
+  .swapCooldown {
+    grid-column: 1 / -1;
+  }
+  .screenIdentity {
+    display: none;
   }
 }

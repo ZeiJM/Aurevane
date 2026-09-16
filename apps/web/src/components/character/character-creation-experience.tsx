@@ -202,12 +202,27 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
         </div>
       </div>
 
-      <div className={styles.content} data-av-surface="moonstone">
+      <div className={styles.content} data-av-surface="ink">
         <Kicker marker="◆">Create your character</Kicker>
         <div className={styles.progress} aria-label="Character creation progress">
-          <span data-active={step === 'identity'}>01 Identity</span>
-          <span data-active={step === 'discipline'}>02 Discipline</span>
-          <span data-active={step === 'review'}>03 Confirm</span>
+          <span
+            data-active={step === 'identity'}
+            aria-current={step === 'identity' ? 'step' : undefined}
+          >
+            01 Identity
+          </span>
+          <span
+            data-active={step === 'discipline'}
+            aria-current={step === 'discipline' ? 'step' : undefined}
+          >
+            02 Discipline
+          </span>
+          <span
+            data-active={step === 'review'}
+            aria-current={step === 'review' ? 'step' : undefined}
+          >
+            03 Confirm
+          </span>
         </div>
 
         {step === 'identity' ? (
@@ -221,114 +236,45 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
             </p>
 
             <div className={styles.identityWorkspace}>
-              <div className={styles.identityControls}>
-                <label
-                  className={styles.field}
-                  data-invalid={invalidFields.includes('name') || undefined}
-                >
-                  <span>Character name</span>
-                  <input
-                    aria-invalid={invalidFields.includes('name') || undefined}
-                    autoComplete="off"
-                    maxLength={CHARACTER_CREATION_RULES_V1.name.maximumCodePoints}
-                    minLength={CHARACTER_CREATION_RULES_V1.name.minimumCodePoints}
-                    onChange={(event) => {
-                      changed()
-                      setName(event.target.value)
-                    }}
-                    placeholder="Enter a name…"
-                    value={name}
-                  />
-                  <small>
-                    3–24 letters; spaces, apostrophes, and hyphens may separate name parts.
-                  </small>
-                </label>
-
-                <fieldset className={styles.choiceGroup}>
-                  <legend>Presentation</legend>
-                  <div className={styles.presentationChoices}>
-                    {CHARACTER_PRESENTATIONS.map((option) => (
-                      <label key={option.id} className={styles.inlineChoice}>
-                        <input
-                          checked={presentationId === option.id}
-                          name="presentation"
-                          onChange={() => {
-                            changed()
-                            setPresentationId(option.id)
-                          }}
-                          type="radio"
-                        />
-                        <span>{option.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </fieldset>
-
-                <fieldset className={styles.choiceGroup}>
-                  <legend>Choose a starting portrait</legend>
-                  <p className={styles.choiceHint}>
-                    {STARTER_CHARACTER_PORTRAITS.length} starting faces. Portraits use a 1:1 frame
-                    throughout character selection and customization.
-                  </p>
-                  <div className={styles.portraitGrid}>
-                    {STARTER_CHARACTER_PORTRAITS.map((option) => (
-                      <label
-                        key={option.ref}
-                        className={styles.portraitChoice}
-                        data-selected={portraitRef === option.ref}
-                        title={option.label}
-                      >
-                        <input
-                          checked={portraitRef === option.ref}
-                          name="portrait"
-                          onChange={() => {
-                            changed()
-                            setPortraitRef(option.ref)
-                          }}
-                          type="radio"
-                        />
-                        <AurevaneImage
-                          assetId={getStarterPortraitImageAssetId(option.ref)}
-                          sizes="6rem"
-                        />
-                        <span>{option.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </fieldset>
-
-                <fieldset className={styles.choiceGroup}>
-                  <legend>Starter appearance</legend>
-                  <div className={styles.appearanceGrid}>
-                    {STARTER_CHARACTER_APPEARANCES.map((option) => (
-                      <label
-                        key={option.ref}
-                        className={styles.optionCard}
-                        data-selected={starterAppearanceRef === option.ref}
-                      >
-                        <input
-                          checked={starterAppearanceRef === option.ref}
-                          name="appearance"
-                          onChange={() => {
-                            changed()
-                            setStarterAppearanceRef(option.ref)
-                          }}
-                          type="radio"
-                        />
-                        <strong>{option.label}</strong>
-                        <small>Cosmetic only. No hidden combat bonus.</small>
-                      </label>
-                    ))}
-                  </div>
-                </fieldset>
-              </div>
+              <fieldset className={`${styles.choiceGroup} ${styles.portraitLibrary}`}>
+                <legend>Choose a starting portrait</legend>
+                <p className={styles.choiceHint}>
+                  {STARTER_CHARACTER_PORTRAITS.length} starting faces. Portraits use a 1:1 frame
+                  throughout character selection and customization.
+                </p>
+                <div className={styles.portraitGrid}>
+                  {STARTER_CHARACTER_PORTRAITS.map((option) => (
+                    <label
+                      key={option.ref}
+                      className={styles.portraitChoice}
+                      data-selected={portraitRef === option.ref}
+                      title={option.label}
+                    >
+                      <input
+                        checked={portraitRef === option.ref}
+                        name="portrait"
+                        onChange={() => {
+                          changed()
+                          setPortraitRef(option.ref)
+                        }}
+                        type="radio"
+                      />
+                      <AurevaneImage
+                        assetId={getStarterPortraitImageAssetId(option.ref)}
+                        sizes="6rem"
+                      />
+                      <span>{option.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
 
               <aside className={styles.portraitPreview} aria-label="Selected portrait preview">
                 <span className={styles.previewLabel}>Preview</span>
                 <div className={styles.previewFrame}>
                   <AurevaneImage
                     assetId={getStarterPortraitImageAssetId(portraitRef)}
-                    sizes="18rem"
+                    sizes="(min-width: 980px) 24rem, 10rem"
                   />
                 </div>
                 <div className={styles.previewCopy}>
@@ -340,7 +286,73 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
                 </div>
               </aside>
             </div>
+            <div className={styles.identityControls}>
+              <label
+                className={styles.field}
+                data-invalid={invalidFields.includes('name') || undefined}
+              >
+                <span>Character name</span>
+                <input
+                  aria-invalid={invalidFields.includes('name') || undefined}
+                  autoComplete="off"
+                  maxLength={CHARACTER_CREATION_RULES_V1.name.maximumCodePoints}
+                  minLength={CHARACTER_CREATION_RULES_V1.name.minimumCodePoints}
+                  onChange={(event) => {
+                    changed()
+                    setName(event.target.value)
+                  }}
+                  placeholder="Enter a name…"
+                  value={name}
+                />
+                <small>
+                  3–24 letters; spaces, apostrophes, and hyphens may separate name parts.
+                </small>
+              </label>
 
+              <fieldset className={styles.choiceGroup}>
+                <legend>Presentation</legend>
+                <div className={styles.presentationChoices}>
+                  {CHARACTER_PRESENTATIONS.map((option) => (
+                    <label key={option.id} className={styles.inlineChoice}>
+                      <input
+                        checked={presentationId === option.id}
+                        name="presentation"
+                        onChange={() => {
+                          changed()
+                          setPresentationId(option.id)
+                        }}
+                        type="radio"
+                      />
+                      <span>{option.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            </div>
+            <fieldset className={styles.choiceGroup}>
+              <legend>Starter appearance</legend>
+              <div className={styles.appearanceGrid}>
+                {STARTER_CHARACTER_APPEARANCES.map((option) => (
+                  <label
+                    key={option.ref}
+                    className={styles.optionCard}
+                    data-selected={starterAppearanceRef === option.ref}
+                  >
+                    <input
+                      checked={starterAppearanceRef === option.ref}
+                      name="appearance"
+                      onChange={() => {
+                        changed()
+                        setStarterAppearanceRef(option.ref)
+                      }}
+                      type="radio"
+                    />
+                    <strong>{option.label}</strong>
+                    <small>Cosmetic only. No hidden combat bonus.</small>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
             {errorMessage ? (
               <p className={styles.error} role="alert">
                 {errorMessage}
@@ -514,6 +526,15 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
               <div>
                 <dt>Portrait</dt>
                 <dd>{selectedPortrait.label}</dd>
+              </div>
+              <div>
+                <dt>Starter appearance</dt>
+                <dd>
+                  {
+                    STARTER_CHARACTER_APPEARANCES.find((item) => item.ref === starterAppearanceRef)
+                      ?.label
+                  }
+                </dd>
               </div>
               {CHARACTER_ATTRIBUTE_IDS.map((attributeId) => (
                 <div key={attributeId}>

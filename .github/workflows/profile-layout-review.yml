@@ -16,6 +16,9 @@ on:
       - apps/web/e2e/wayfarers-practice.pw.ts
       - apps/web/e2e/pvp-spectator-footer-shape.pw.ts
       - apps/web/src/components/character/**
+      - apps/web/src/app/game/create/**
+      - apps/web/e2e/character-creation.pw.ts
+      - apps/web/e2e/character-deletion.pw.ts
       - apps/web/src/components/social/**
       - apps/web/src/app/game/online/**
       - apps/web/src/components/wayfarers-practice/**
@@ -33,6 +36,9 @@ on:
       - apps/web/e2e/wayfarers-practice.pw.ts
       - apps/web/e2e/pvp-spectator-footer-shape.pw.ts
       - apps/web/src/components/character/**
+      - apps/web/src/app/game/create/**
+      - apps/web/e2e/character-creation.pw.ts
+      - apps/web/e2e/character-deletion.pw.ts
       - apps/web/src/components/social/**
       - apps/web/src/app/game/online/**
       - apps/web/src/components/wayfarers-practice/**
@@ -58,19 +64,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Archive tracked continuation source
-        if: github.ref == 'refs/heads/agent/character-roster-creation-concept-ui'
-        run: |
-          git archive --format=zip --output=/tmp/ui-review-source.zip HEAD -- . ':!*.woff' ':!*.woff2' ':!*.ttf' ':!*.otf' ':!*.mp3' ':!*.ogg' ':!*.wav' ':!*.env' ':!*.env.*'
-          git rev-parse HEAD > /tmp/ui-review-source-commit.txt
-      - uses: actions/upload-artifact@v4
-        if: github.ref == 'refs/heads/agent/character-roster-creation-concept-ui'
-        with:
-          name: ui-review-source
-          path: |
-            /tmp/ui-review-source.zip
-            /tmp/ui-review-source-commit.txt
-          retention-days: 1
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -101,7 +94,7 @@ jobs:
           git rev-parse HEAD > "$LAYOUT_REVIEW_OUTPUT/commit.txt"
           pnpm --filter @aurevane/web build
           review_status=0
-          pnpm --filter @aurevane/web exec playwright test e2e/profile-layout-regression.pw.ts e2e/training-layout-regression.pw.ts e2e/training-concept-layout-regression.pw.ts e2e/wayfarers-practice.pw.ts e2e/hall-layout-regression.pw.ts e2e/hall-controls-layout-regression.pw.ts e2e/pvp-spectator-footer-shape.pw.ts e2e/adventurers-layout-regression.pw.ts e2e/battle-usability.pw.ts || review_status=$?
+          pnpm --filter @aurevane/web exec playwright test e2e/character-layout-regression.pw.ts e2e/character-creation.pw.ts e2e/character-deletion.pw.ts e2e/profile-layout-regression.pw.ts e2e/training-layout-regression.pw.ts e2e/training-concept-layout-regression.pw.ts e2e/wayfarers-practice.pw.ts e2e/hall-layout-regression.pw.ts e2e/hall-controls-layout-regression.pw.ts e2e/pvp-spectator-footer-shape.pw.ts e2e/adventurers-layout-regression.pw.ts e2e/battle-usability.pw.ts || review_status=$?
           pnpm --filter @aurevane/web exec playwright test e2e/desktop-experience.pw.ts --grep "a large desktop character directory" || review_status=$?
           exit "$review_status"
       - uses: actions/upload-artifact@v4

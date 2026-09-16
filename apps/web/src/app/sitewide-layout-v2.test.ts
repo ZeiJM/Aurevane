@@ -5,11 +5,7 @@ import { describe, expect, it } from 'vitest'
 const stylesheetUrl = new URL('./sitewide-layout-v2.css', import.meta.url)
 const layoutUrl = new URL('./layout.tsx', import.meta.url)
 
-const requiredSelectors = [
-  "[data-character-select-page='true']",
-  "[data-testid='account-shell']",
-  "[data-public-concept='true']",
-] as const
+const requiredSelectors = ["[data-testid='account-shell']", "[data-public-concept='true']"] as const
 
 describe('sitewide layout v2', () => {
   it('loads one final global layout layer covering every major shell and hub', () => {
@@ -24,6 +20,7 @@ describe('sitewide layout v2', () => {
     expect(stylesheet).not.toContain('[data-training-concept]')
     expect(stylesheet).not.toContain('[data-hall-concept]')
     expect(stylesheet).not.toContain('[data-online-concept]')
+    expect(stylesheet).not.toContain('[data-character-select-page')
     for (const selector of requiredSelectors) {
       expect(stylesheet).toContain(selector)
     }
