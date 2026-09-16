@@ -6,7 +6,7 @@ on:
       - review/copy-provenance-workbench-20260916
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   verify:
@@ -15,132 +15,97 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ab8ea1586c9da14baca2244195557600d4d70219
-          fetch-depth: 2
+          ref: bafd424a49e3494942ffa40b767f6dbf03130bb7
+          fetch-depth: 3
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Exact test-first source and locked dependencies
-        shell: bash
+      - name: Locked exact-candidate setup
         run: |
-          set -euo pipefail
-          test "$(git rev-parse HEAD)" = ab8ea1586c9da14baca2244195557600d4d70219
-          test "$(git ls-remote origin refs/heads/main | cut -f1)" = 3d8a4d25cb897d0f9ce4871c6972e5d7107d68b0
-          test "$(git ls-remote origin refs/heads/agent/combat-effect-taxonomy-rework | cut -f1)" = 0eecf1f5f776b8b3b9151f503ff7396b8715ec07
-          test "$(git ls-remote origin refs/heads/agent/combat-k4-copy-provenance-20260916 | cut -f1)" = ab8ea1586c9da14baca2244195557600d4d70219
+          set -eu
+          test "$(git rev-parse HEAD)" = bafd424a49e3494942ffa40b767f6dbf03130bb7
+          test "$(git rev-parse HEAD^{tree})" = 8bc41d2922d89eb76a38cba6381746f95f0d6e8b
           corepack enable
           corepack prepare pnpm@11.17.0 --activate
           pnpm install --frozen-lockfile
-      - name: Implement optional numbered-copy identity without altering ordinary IDs
+      - name: Copied identities survive snapshot validation in every supported persistent family
         shell: bash
         run: |
           set -euo pipefail
-          python3 <<'PY'
-          from pathlib import Path
-          file = Path('packages/game-core/src/combat/combat-kernel-types.ts')
-          source = file.read_text()
-          def replace(old, new, count=1):
-              global source
-              assert source.count(old) == count, (old, source.count(old), count)
-              source = source.replace(old, new)
-          replace('  effectOrdinal: number\n  createdRound: number', '  effectOrdinal: number\n  /** Stable zero-based index among copies emitted by this authored effect for this target. */\n  copyOrdinal?: number\n  createdRound: number', 2)
-          helper = '''function effectInstanceIdentity(
-            chainId: string,
-            actionId: string,
-            effectOrdinal: number,
-            targetId: string,
-            copyOrdinal?: number,
-          ): string {
-            if (copyOrdinal === undefined) {
-              return `effect:${chainId}:${actionId}:${effectOrdinal}:${targetId}`
-            }
-            // Separate namespace and tuple encoding preserve legacy IDs without delimiter collisions.
-            return `effect-copy:${JSON.stringify([chainId, actionId, effectOrdinal, targetId, copyOrdinal])}`
+          file=packages/game-core/src/combat/combat-effect-provenance-state.test.ts
+          trap 'git restore --source=HEAD -- "$file"' EXIT
+          cat >> "$file" <<'TEST'
+
+          import { createCombatActionProvenance, createCombatEffectInstanceProvenance } from './combat-kernel-types'
+
+          type CopyReviewFamily = PersistentFamily | 'barrier'
+          const copyReviewFamilies: CopyReviewFamily[] = ['status', 'recovery', 'poison', 'bleed', 'burn', 'barrier']
+          function numberedCopySnapshot(family: CopyReviewFamily, mismatch = false): CombatEncounterState {
+            const state = historicalPersistentState()
+            const actionIds = { status: 'test.k3.status', recovery: 'test.k3.recovery', poison: 'test.k3.poison',
+              bleed: 'test.k3.bleed', burn: 'test.k3.burn', barrier: 'test.k3.barrier' }
+            const action = createCombatActionProvenance({
+              rulesetVersion: state.tactical.battle.rulesVersion, sourceKind: 'discipline-skill',
+              actionDefinitionId: actionIds[family], actionVersion: 1,
+              sourceCombatantId: 'actor', controllerCombatantId: 'actor', triggerChainId: 'chain:copy-snapshot-review',
+            })
+            const good = createCombatEffectInstanceProvenance({ action, targetCombatantId: 'target',
+              effectOrdinal: 0, copyOrdinal: copyReviewFamilies.indexOf(family),
+              createdRound: state.tactical.battle.round, createdTurn: state.tactical.battle.turnNumber,
+              copiedFromInstanceId: 'effect:known-immediate-donor',
+            })
+            const provenance = mismatch ? { ...good, copyOrdinal: 99 } : good
+            if (family === 'status') return { ...state, statusState: state.statusState.map((row) =>
+              row.combatantId === 'target' ? { ...row, statuses: row.statuses.map((entry) => ({ ...entry, provenance })) } : row) }
+            const effects = normalizeCombatEffectState(state.effectState)
+            if (family === 'recovery') return { ...state, effectState: { ...effects,
+              ongoingRecovery: effects.ongoingRecovery.map((entry) => ({ ...entry, provenance })) } }
+            if (family === 'poison') return { ...state, effectState: { ...effects,
+              poison: effects.poison.map((entry) => ({ ...entry, provenance })) } }
+            if (family === 'bleed') return { ...state, effectState: { ...effects,
+              bleed: effects.bleed.map((entry) => ({ ...entry, provenance })) } }
+            if (family === 'burn') return { ...state, effectState: { ...effects,
+              burn: effects.burn.map((entry) => ({ ...entry, provenance })) } }
+            return { ...state, effectState: { ...effects, barriers: [{
+              sourceCombatantId: 'actor', targetCombatantId: 'target', sourceActionId: actionIds.barrier,
+              amount: 3, provenance,
+            }] } }
           }
 
-          '''
-          replace('export function createCombatEffectInstanceProvenance(\n', helper + 'export function createCombatEffectInstanceProvenance(\n')
-          replace("  const instanceId = combatEffectInstanceId(\n    `effect:${input.action.triggerChainId}:${input.action.actionDefinitionId}:${effectOrdinal}:${targetCombatantId}`,\n  )", """  const copyOrdinal =
-              input.copyOrdinal === undefined
-                ? undefined
-                : nonNegativeSafeInteger(input.copyOrdinal, 'Copy ordinal')
-            const instanceId = combatEffectInstanceId(
-              effectInstanceIdentity(
-                input.action.triggerChainId,
-                input.action.actionDefinitionId,
-                effectOrdinal,
-                targetCombatantId,
-                copyOrdinal,
-              ),
-            )""")
-          replace('    effectOrdinal,\n    createdRound,', '    effectOrdinal,\n    ...(copyOrdinal !== undefined ? { copyOrdinal } : {}),\n    createdRound,')
-          replace("  if (ordinalIssue) issues.push(ordinalIssue)\n", """  if (ordinalIssue) issues.push(ordinalIssue)
-            if (input.copyOrdinal !== undefined) {
-              const copyIssue = nonNegativeIntegerIssue(input.copyOrdinal, 'copyOrdinal')
-              if (copyIssue) issues.push(copyIssue)
-            }
-          """)
-          replace('    const expected = `effect:${action.triggerChainId}:${action.actionDefinitionId}:${input.effectOrdinal}:${input.targetCombatantId}`', """    const expected = effectInstanceIdentity(
-                action.triggerChainId,
-                action.actionDefinitionId,
-                input.effectOrdinal,
-                input.targetCombatantId,
-                typeof input.copyOrdinal === 'number' ? input.copyOrdinal : undefined,
-              )""")
-          file.write_text(source)
-          docs = Path('docs/COMBAT.md')
-          docs.write_text(docs.read_text().rstrip() + '''
-
-          ## Copy-instance provenance foundation (staged; no copying command yet)
-
-          A command effect can eventually copy several active effects onto one recipient. Its K3
-          provenance therefore accepts optional `copyOrdinal`, a non-negative safe integer identifying
-          the copy within that authored effect/recipient. `effectOrdinal` remains the original authored
-          operation index. Copy callers must allocate distinct ordinals in deterministic source order.
-
-          Omitting `copyOrdinal` preserves the exact existing `effect:<chain>:<action>:<effect>:<target>`
-          identity and object shape. Supplying it uses the separate `effect-copy:` namespace followed by
-          the JSON tuple `[triggerChainId, actionDefinitionId, effectOrdinal, targetCombatantId,
-          copyOrdinal]`. Tuple encoding avoids ambiguity when identifiers contain delimiter characters.
-          The constructor and persisted-provenance validator share this identity calculation; malformed
-          ordinals and mismatched IDs fail closed. Existing copied/inherited lineage remains explicit.
-          Missing historical source provenance is not replaced with an invented source ID.
-
-          This prerequisite extends identity construction, saved-state validation and trigger-guard
-          compatibility only. It does not implement or publish Amplify/Curse commands, choose copyable
-          effects, transfer durations/stacks/counters, or change any live combat resolution. Those
-          mechanics and their legality/forecast/AI support remain separate implementation gates.
-          ''')
-          PY
-          pnpm exec prettier --write packages/game-core/src/combat/combat-kernel-types.ts
-          git diff --check
-          git diff --exit-code -- packages/game-core/src/combat/combat-copy-provenance.test.ts
-      - name: Focused identity and adjacent combat regressions
-        run: |
+          describe('Review-only copied provenance snapshot integration', () => {
+            it.each(copyReviewFamilies)('accepts numbered %s provenance without modifying its state', (family) => {
+              const state = numberedCopySnapshot(family)
+              const before = JSON.stringify(state)
+              expect(validateCombatEncounterState(state)).toEqual([])
+              expect(JSON.stringify(state)).toBe(before)
+            })
+            it.each(copyReviewFamilies)('preserves numbered %s provenance after saved JSON reload', (family) => {
+              const state = numberedCopySnapshot(family)
+              const restored = JSON.parse(JSON.stringify(state)) as CombatEncounterState
+              expect(validateCombatEncounterState(restored)).toEqual([])
+              expect(restored).toEqual(state)
+              expect(JSON.stringify(restored)).toContain('copyOrdinal')
+              expect(JSON.stringify(restored)).toContain('effect-copy:')
+            })
+            it.each(copyReviewFamilies)('rejects changed copy identity in persisted %s provenance', (family) => {
+              expect(validateCombatEncounterState(numberedCopySnapshot(family, true))).toEqual(
+                expect.arrayContaining([expect.objectContaining({ field: expect.stringMatching(/provenance/i) })]))
+            })
+          })
+          TEST
           pnpm --filter @aurevane/game-core typecheck
-          pnpm --filter @aurevane/game-core exec vitest run src/combat/combat-copy-provenance.test.ts src/combat/combat-kernel-types.test.ts src/combat/combat-effect-provenance.test.ts src/combat/combat-effect-provenance-state.test.ts src/combat/combat-persistent-provenance-threading.test.ts src/combat/combat-persistent-provenance-bleed-replacement.test.ts src/combat/combat-resolution-provenance.test.ts src/combat/combat-reflect.test.ts src/combat/combat-mark-blind.contract.test.ts
-      - name: Full repository verification
-        run: pnpm check
-      - name: Retain verified source only on the isolated ticket branch
+          pnpm --filter @aurevane/game-core exec vitest run src/combat/combat-copy-provenance.test.ts src/combat/combat-kernel-types.test.ts src/combat/combat-effect-provenance.test.ts src/combat/combat-effect-provenance-state.test.ts src/combat/combat-persistent-provenance-threading.test.ts src/combat/combat-persistent-provenance-bleed-replacement.test.ts src/combat/combat-resolution-provenance.test.ts src/combat/combat-reflect.test.ts src/combat/combat-mark-blind.contract.test.ts src/combat/combat-barrier.test.ts
+          git restore --source=HEAD -- "$file"
+          trap - EXIT
+      - name: Verify historical source isolation and unchanged permanent RED contract
         shell: bash
         run: |
           set -euo pipefail
-          python3 <<'PY'
-          import subprocess
-          changed = set(subprocess.check_output(['git', 'diff', '--name-only'], text=True).splitlines())
-          assert changed == {'docs/COMBAT.md', 'packages/game-core/src/combat/combat-kernel-types.ts'}, changed
-          PY
-          git diff --check
-          git diff --exit-code -- packages/game-core/src/combat/combat-copy-provenance.test.ts
-          test "$(git ls-remote origin refs/heads/main | cut -f1)" = 3d8a4d25cb897d0f9ce4871c6972e5d7107d68b0
-          test "$(git ls-remote origin refs/heads/agent/combat-effect-taxonomy-rework | cut -f1)" = 0eecf1f5f776b8b3b9151f503ff7396b8715ec07
-          test "$(git ls-remote origin refs/heads/agent/combat-k4-copy-provenance-20260916 | cut -f1)" = ab8ea1586c9da14baca2244195557600d4d70219
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add docs/COMBAT.md packages/game-core/src/combat/combat-kernel-types.ts
-          git commit -m 'feat(combat): distinguish copied effect instances without rewriting historical provenance'
-          git push origin HEAD:refs/heads/agent/combat-k4-copy-provenance-20260916
-          echo "VERIFIED_SOURCE_SHA=$(git rev-parse HEAD)"
-          echo "VERIFIED_SOURCE_TREE=$(git rev-parse HEAD^{tree})"
+          git diff --exit-code ab8ea1586c9da14baca2244195557600d4d70219 HEAD -- packages/game-core/src/combat/combat-copy-provenance.test.ts
+          git diff --exit-code 0eecf1f5f776b8b3b9151f503ff7396b8715ec07 HEAD -- apps .github package.json pnpm-lock.yaml packages/game-core/src/combat/actions.ts packages/game-core/src/combat/actions-legacy.ts packages/game-core/src/combat/combat-effect-state.ts packages/game-core/src/combat/status-content.ts packages/game-core/src/combat/phase4-roster.ts
+          test "$(git diff --name-only 0eecf1f5f776b8b3b9151f503ff7396b8715ec07 HEAD | wc -l)" = 3
+          git diff --check 0eecf1f5f776b8b3b9151f503ff7396b8715ec07 HEAD
           git diff --exit-code
           test -z "$(git status --porcelain)"
+          echo 'REVIEWED_SOURCE=bafd424a49e3494942ffa40b767f6dbf03130bb7'
