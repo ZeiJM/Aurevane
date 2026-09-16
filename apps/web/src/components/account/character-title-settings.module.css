@@ -101,7 +101,7 @@
 .personal h2,
 .profileImage h2 {
   margin: 0.22rem 0 0;
-  font: 550 clamp(1.2rem, 2.2vw, 1.65rem) / 1.05 var(--av-font-display);
+  font: 550 clamp(1.2rem, 2.2vw, 1.65rem)/1.05 var(--av-font-display);
 }
 
 .current > p,
@@ -342,12 +342,12 @@
 
 .current h2 {
   margin: 0.25rem 0 0;
-  font: 500 clamp(1.55rem, 2.2vw, 2rem) / 1 var(--av-font-display);
+  font: 500 clamp(1.55rem, 2.2vw, 2rem)/1 var(--av-font-display);
 }
 
 .personal h1 {
   margin: 0 0 0.15rem;
-  font: 500 clamp(1.75rem, 3vw, 2.15rem) / 1.05 var(--av-font-display);
+  font: 500 clamp(1.75rem, 3vw, 2.15rem)/1.05 var(--av-font-display);
 }
 
 @media (max-width: 800px) {
