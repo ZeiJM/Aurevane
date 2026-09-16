@@ -1,5 +1,15 @@
 # AUREVANE Combat Design Bible
 
+## P4.K4 player-facing Amplify/Curse forecast boundary — 2026-09-16
+
+The shared battle forecast now presents the authoritative `copy-statuses` projections already produced by the staged Amplify/Curse kernel. Ordinary status rows are humanized from their pinned before/after state, Poison shows its current movement-counter state, Burn shows its current stage transition and Bleed projections remain in the authoritative stable order. These clone projections stay alongside any later authored damage, healing or resource projections in a composed command.
+
+A composed command whose clone block explicitly permits an empty eligible donor produces no clone forecast for that block while retaining independently meaningful later outcomes. Malformed or unsupported copy projection strings fail closed instead of exposing machine projection text. Existing blocked-target and hit-chance behavior is preserved; the presentation does not mutate preview state, consume RNG or replace server legality/commit authority.
+
+Amplify/Curse status cloning is distinct from the separate `Copy` effect approved in the Combat Authoring/DoT/Copy revision. `Copy` grants a random eligible regular battle Skill for the rest of the encounter at half AP cost and requires its own encounter-state, RNG, command-picker, AI and persistence work. The status-clone forecast slice does not implement or publish that mechanic.
+
+Mature Skill publication still rejects `copy-statuses` through `effects.status-copy-staged`. Consecutive-use falloff for clone transfer remains an unresolved Owner rule, so no quantitative/discrete half-clone behavior is invented and no Amplify/Curse Skill is published or deployed by this boundary.
+
 ## P4.K4 Skill accuracy kernel boundary — 2026-09-15
 
 Skills may explicitly opt into `accuracyMode: per-target`; `automatic` or omitted mode retains historical automatic resolution. The existing signed `accuracyModifierBasisPoints` field is validated at authoring, preview and commit within -3000 to +3000. Mature Skill conversion preserves supplied fields and consecutive-use reduction changes potency, not hit chance or AP/MP costs. The historical Basic Attack adapter keeps its existing single-roll behavior and rejects an explicit Skill accuracy mode to prevent double rolling.
