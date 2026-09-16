@@ -1,0 +1,83 @@
+name: Bleed copy workbench
+
+on:
+  push:
+    branches:
+      - review/bleed-copy-296e385
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 502c066a522f4b59d3e30a4be0a621c134c731c6
+          fetch-depth: 3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Exact test source and setup
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = 502c066a522f4b59d3e30a4be0a621c134c731c6
+          test "$(git diff --name-only 296e385ea878d2ca4d26de652084a9e41f8791d4 HEAD)" = packages/game-core/src/combat/combat-bleed-copy.test.ts
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = 3d8a4d25cb897d0f9ce4871c6972e5d7107d68b0
+          test "$(git ls-remote origin refs/heads/agent/combat-effect-taxonomy-rework | cut -f1)" = 296e385ea878d2ca4d26de652084a9e41f8791d4
+          test "$(git ls-remote origin refs/heads/agent/combat-k4-bleed-copy-296e385 | cut -f1)" = 502c066a522f4b59d3e30a4be0a621c134c731c6
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+          pnpm install --frozen-lockfile
+      - name: Normalize and validate permanent test source
+        run: |
+          pnpm exec prettier --write packages/game-core/src/combat/combat-bleed-copy.test.ts
+          pnpm exec prettier --check packages/game-core/src/combat/combat-bleed-copy.test.ts
+          pnpm exec eslint packages/game-core/src/combat/combat-bleed-copy.test.ts
+          pnpm --filter @aurevane/game-core typecheck
+          changed="$(git diff --name-only)"
+          test -z "$changed" || test "$changed" = packages/game-core/src/combat/combat-bleed-copy.test.ts
+          git diff --check
+      - name: Confirm all prior game-core tests remain green
+        run: pnpm --filter @aurevane/game-core exec vitest run --exclude '**/combat-bleed-copy.test.ts'
+      - name: Execute and classify behavioral RED
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          pnpm --filter @aurevane/game-core exec vitest run --reporter=json --outputFile=/tmp/bleed-copy-red.json
+          outcome=$?
+          set -e
+          test "$outcome" -ne 0
+          python3 <<'PY'
+          import json
+          from pathlib import Path
+          data = json.loads(Path('/tmp/bleed-copy-red.json').read_text())
+          failures = [suite for suite in data['testResults'] if suite['status'] == 'failed']
+          assert failures and all(Path(suite['name']).name == 'combat-bleed-copy.test.ts' for suite in failures), [(s['name'], s['status']) for s in failures]
+          assert data['numPassedTests'] >= 1753, data
+          assert data['numFailedTests'] > 0, data
+          print('VALID_RED: prior game-core suite green; only Bleed-copy contract fails')
+          print('passed=', data['numPassedTests'], 'failed=', data['numFailedTests'], 'total=', data['numTotalTests'])
+          PY
+      - name: Retain exact valid RED test source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = 3d8a4d25cb897d0f9ce4871c6972e5d7107d68b0
+          test "$(git ls-remote origin refs/heads/agent/combat-effect-taxonomy-rework | cut -f1)" = 296e385ea878d2ca4d26de652084a9e41f8791d4
+          test "$(git ls-remote origin refs/heads/agent/combat-k4-bleed-copy-296e385 | cut -f1)" = 502c066a522f4b59d3e30a4be0a621c134c731c6
+          if ! git diff --quiet; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add packages/game-core/src/combat/combat-bleed-copy.test.ts
+            git diff --cached --check
+            git commit -m 'style(test): format Bleed copy contract'
+            git push origin HEAD:refs/heads/agent/combat-k4-bleed-copy-296e385
+          fi
+          echo "VALID_RED_SOURCE=$(git rev-parse HEAD)"
+          git diff --exit-code
+          test -z "$(git status --porcelain)"
