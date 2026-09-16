@@ -1,5 +1,17 @@
 # AUREVANE Combat Design Bible
 
+## P4.K4 Reflect kernel boundary — 2026-09-15
+
+The current-kernel `reflectBasisPoints` status field is optional for historical compatibility and requires positive/reactive metadata and an integer from 1 to 10000. Active stacks and definitions combine up to 100% per defender. Reflect aggregates actual hostile direct-command HP loss after incoming mitigation, Barrier and overkill, floors the percentage once per defender, and does not inherit Absorb's minimum-1 recovery rule. Zero results emit no damage event.
+
+Original command receipts are shared with Absorb HP/MP without recycling reaction output. Reflect deals fixed damage to the source attacker without an accuracy roll or another Armor/Ward/modifier pass. The existing first Barrier slice remains direct-command-only: attacker Barrier does not intercept reactive Reflect output in this version. Reflect is excluded from Damage History, Absorb and further Reflect triggers. Periodic damage, Burn backlash, friendly fire, self-cost and system output do not qualify. Unsupported generic self-damage remains rejected.
+
+A defeated defender can return its qualifying damage, allowing mutual KO. The engine-owned post-command reaction boundary runs before the final terminal verdict. Attacker defeat reuses the established defeat/turn transition, removes ongoing recovery and records only the final winner or draw. Positive reflected HP loss breaks Invisible. Each positive defender return consumes one K3 trigger budget at depth 1 with a deterministic relationship identity; an exhausted or previously consumed guard suppresses the reaction, not the ordinary command. No-context public calls retain their four-argument contract and omit resolution metadata.
+
+When Reflect defeats the current actor but the battle continues, the successor receives normal owner-turn-start status expiration. A crossed round applies and consumes scheduled tempo and advances temporary terrain exactly once, using the same upkeep as normal turn endings. The defeated actor's ordinary periodic damage/recovery is not replayed.
+
+This is a kernel primitive, not a published roster or balance change. No published Skill/status catalog, player UI, AI policy, schema or deployment is activated by this slice. Current player forecasts do not yet display reactive returns; forecast/AI integration must be completed before authored Reflect content is published through the later migration and acceptance gates. Existing AP, targeting, direct-damage calculations and historical definitions remain protected.
+
 ## Phase 4 roster and effect implementation — 2026-09-12
 
 The published seventeen-Discipline roster contains 136 regular Skills, 17 pure Essences and all 136 unordered Resonance pairs. Eight learned Skills per mature library remain distinct from four battle selections. Full mixed builds use 1+3, 2+2 or 3+1; Essence and Resonance are exclusive. The gameplay-tag continuation below adds versions of existing Skills without adding selectable slots or rewriting frozen battles. See `PHASE_4_COMPLETENESS_AUDIT.md` and `PHASE_4_TICKETS.md` for candidate verification and live release status.
@@ -422,7 +434,6 @@ The strongest product signal remains voluntary desire to play another battle.
 Chronist implements next-round Initiative scheduling: Hastened +20, Delayed -20, Borrowed Hour +40, capped at ±40 per unit. Tempo is consumed at the round boundary and determines a frozen order for that round only. Base attributes remain unchanged. Stable identity resolves ties. Each living unit receives one turn; lethal turn-end ticks cannot grant a defeated unit a new turn. The next boundary restores base order unless another tempo effect was prepared. These effects do not add AP or grant extra turns.
 
 Rewind Step returns the caster to its authoritative current-turn origin, provided it moved, is not Rooted and the origin is still passable and unoccupied. It restores only position, without restoring HP, MP, AP, movement allowance, facing or commands. Consecutive-repeat rules omit this discrete effect. Existing cleanse lists remain explicitly authored; they are not silently broadened to remove Delayed.
-
 
 ### Approved effect-rework implementation checkpoint (feature branch)
 

@@ -240,6 +240,18 @@ export function validateCombatStatusDefinition(status: CombatStatusDefinition): 
     }
   }
 
+  if (status.reflectBasisPoints !== undefined) {
+    boundedPositiveSafeInteger(
+      status.reflectBasisPoints,
+      1,
+      COMBAT_BASIS_POINTS,
+      'Reflect basis points',
+    )
+    if (status.polarity !== 'positive' || status.reactionClass !== 'reactive') {
+      throw new TypeError('Reflect statuses must be positive and reactive.')
+    }
+  }
+
   if (status.effectCategories !== undefined) {
     if (
       !Array.isArray(status.effectCategories) ||

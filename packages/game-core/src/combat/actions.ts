@@ -1,3 +1,4 @@
+import { applyCommittedReflect } from './combat-reflect'
 import type { CombatDamageScaling } from './damage-scaling'
 import { calculateScaledRawDamage, validateCombatDamageScaling } from './damage-scaling'
 import { applyCommittedAbsorbRecovery } from './combat-absorb-recovery'
@@ -80,31 +81,45 @@ export function executeCombatAction(
   const evaluation = context
     ? legacy.evaluateCombatAction(state, materializedAction, selection, content)
     : null
-  const transition = legacy.executeCombatAction(state, materializedAction, selection, content)
-  const historyState = actorId
-    ? recordCommittedDamageHistory(transition.state, transition.events, {
+  let triggerGuard = context?.triggerGuard
+  const transition = legacy.executeCombatAction(
+    state,
+    materializedAction,
+    selection,
+    content,
+    (committed) => {
+      if (!actorId) return committed
+      const command = { sourceCombatantId: actorId, actionId: action.id }
+      const historyState = recordCommittedDamageHistory(committed.state, committed.events, {
         round,
         commandSourceCombatantId: actorId,
       })
-    : transition.state
-  const recovered = actorId
-    ? applyCommittedAbsorbRecovery(historyState, transition.events, content, {
-        sourceCombatantId: actorId,
-        actionId: action.id,
-      })
-    : { state: historyState, events: transition.events }
-
-  if (!context || !evaluation) {
-    return recovered
-  }
-
+      const recovered = applyCommittedAbsorbRecovery(
+        historyState,
+        committed.events,
+        content,
+        command,
+      )
+      // Both reactions read only original receipts, never each other's output.
+      const reflected = applyCommittedReflect(
+        recovered.state,
+        committed.events,
+        content,
+        command,
+        triggerGuard,
+      )
+      triggerGuard = reflected.triggerGuard
+      return { state: reflected.state, events: [...recovered.events, ...reflected.events] }
+    },
+  )
+  if (!context || !evaluation) return transition
   return {
-    state: attachCombatEffectProvenance(state, recovered.state, action, evaluation, context),
-    events: recovered.events,
+    state: attachCombatEffectProvenance(state, transition.state, action, evaluation, context),
+    events: transition.events,
     resolution: {
       pipelineVersion: COMBAT_RESOLUTION_PIPELINE_VERSION,
       provenance: context.provenance,
-      triggerGuard: context.triggerGuard,
+      triggerGuard: triggerGuard ?? context.triggerGuard,
     },
   }
 }
