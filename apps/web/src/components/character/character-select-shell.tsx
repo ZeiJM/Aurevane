@@ -206,30 +206,6 @@ export function CharacterSelectShell({
           </span>
         </Link>
 
-        <div className={styles.accountDeleteHeaderControl}>
-          <button
-            type="button"
-            className={styles.accountDeleteHeaderButton}
-            data-pending={accountDeletionState ? 'true' : undefined}
-            data-testid="delete-account-button"
-            aria-label={
-              accountDeletionState
-                ? 'Manage permanent deletion countdown'
-                : 'Permanently delete login and game data'
-            }
-            onClick={openAccountDeletionModal}
-          >
-            {accountDeletionState ? (
-              <>
-                <span>Account deletion</span>
-                <Countdown target={accountDeletionState.deleteAfter} />
-              </>
-            ) : (
-              'Delete Account'
-            )}
-          </button>
-        </div>
-
         <div className={styles.headerActions}>
           <div className={styles.screenIdentity} aria-label="Current screen: Character Select">
             {selectedCharacter ? (
@@ -248,7 +224,7 @@ export function CharacterSelectShell({
         </div>
       </header>
 
-      <main className={styles.main} data-roster-stage="true" style={{ width: 'min(94%, 78rem)' }}>
+      <main className={styles.main} data-roster-stage="true">
         <header className={styles.hero}>
           <div>
             <span>Account roster</span>
@@ -275,7 +251,7 @@ export function CharacterSelectShell({
                 <article
                   className={`${styles.slot} ${styles.empty}`}
                   data-locked="true"
-                  data-av-surface="moonstone"
+                  data-slot-index={slotIndex}
                   key={slotIndex}
                 >
                   <span className={styles.slotNumber}>Slot {slotIndex + 1}</span>
@@ -291,7 +267,11 @@ export function CharacterSelectShell({
 
             if (!character) {
               return (
-                <article className={`${styles.slot} ${styles.empty}`} key={slotIndex}>
+                <article
+                  className={`${styles.slot} ${styles.empty}`}
+                  data-slot-index={slotIndex}
+                  key={slotIndex}
+                >
                   <span className={styles.slotNumber}>
                     Slot {slotIndex + 1} · {slotIndex === 0 ? 'Free' : 'Prestige unlocked'}
                   </span>
@@ -317,14 +297,19 @@ export function CharacterSelectShell({
               <article
                 className={styles.slot}
                 key={character.id}
+                data-slot-index={slotIndex}
+                data-selected={selectedCharacter?.id === character.id || undefined}
                 data-pending-delete={pending || undefined}
               >
-                <span className={styles.slotNumber}>Slot {slotIndex + 1} · Unlocked</span>
+                <span className={styles.slotNumber}>
+                  Slot {slotIndex + 1} ·{' '}
+                  {selectedCharacter?.id === character.id ? 'Selected' : 'Unlocked'}
+                </span>
                 <div className={styles.portrait}>
                   <CharacterPortraitImage
                     imageUrl={profileImageUrls[character.id]}
                     fallbackAssetId={getStarterPortraitImageAssetId(character.portraitRef)}
-                    sizes="15rem"
+                    sizes="(max-width: 760px) 9rem, (max-height: 650px) 8rem, 22rem"
                     alt={`${character.name} portrait`}
                   />
                 </div>
@@ -334,39 +319,74 @@ export function CharacterSelectShell({
                     Character Level {character.level} · {discipline?.name ?? 'Adventurer'}
                   </p>
                 </div>
-                {pending && character.deletionExecuteAfter ? (
-                  <div className={styles.pendingDelete}>
-                    <strong>Deletion pending</strong>
-                    <Countdown target={character.deletionExecuteAfter} />
-                    <span>This character cannot be played during the grace period.</span>
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() => void cancelDeletion(character.id)}
-                    >
-                      Cancel deletion
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <CharacterPlayAction character={character} />
-                    <button
-                      className={styles.deleteAction}
-                      type="button"
-                      onClick={() => {
-                        setDeleting(character)
-                        setPhrase('')
-                        setMessage(null)
-                      }}
-                    >
-                      Delete Character
-                    </button>
-                  </>
-                )}
+                <div className={styles.slotActions}>
+                  {pending && character.deletionExecuteAfter ? (
+                    <div className={styles.pendingDelete}>
+                      <strong>Deletion pending</strong>
+                      <Countdown target={character.deletionExecuteAfter} />
+                      <span>This character cannot be played during the grace period.</span>
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void cancelDeletion(character.id)}
+                      >
+                        Cancel deletion
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <CharacterPlayAction character={character} />
+                      <button
+                        className={styles.deleteAction}
+                        type="button"
+                        onClick={() => {
+                          setDeleting(character)
+                          setPhrase('')
+                          setMessage(null)
+                        }}
+                      >
+                        Delete Character
+                      </button>
+                    </>
+                  )}
+                </div>
               </article>
             )
           })}
         </section>
+
+        <footer className={styles.management} aria-label="Account management">
+          <form action="/auth/signout" method="post" className={styles.accountManagement}>
+            <button type="submit" className={styles.switchAccountButton}>
+              Switch account <span aria-hidden="true">→</span>
+            </button>
+            <small>Sign out to enter with a different AUREVANE account.</small>
+          </form>
+          <div className={styles.accountManagement}>
+            <button
+              type="button"
+              className={styles.accountDeleteButton}
+              data-pending={accountDeletionState ? 'true' : undefined}
+              data-testid="delete-account-button"
+              aria-label={
+                accountDeletionState
+                  ? 'Manage permanent deletion countdown'
+                  : 'Permanently delete login and game data'
+              }
+              onClick={openAccountDeletionModal}
+            >
+              {accountDeletionState ? (
+                <>
+                  <span>Account deletion</span>
+                  <Countdown target={accountDeletionState.deleteAfter} />
+                </>
+              ) : (
+                'Delete Account'
+              )}
+            </button>
+            <small>Account removal has a cancellable 24-hour grace period.</small>
+          </div>
+        </footer>
       </main>
 
       {deleting ? (
