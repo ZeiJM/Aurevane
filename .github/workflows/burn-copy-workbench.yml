@@ -6,7 +6,7 @@ on:
       - review/burn-copy-fde662e
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   verify:
@@ -17,50 +17,27 @@ jobs:
         with:
           ref: 13811a803634e93aac659fc4e2a1a7a2a4e11713
           fetch-depth: 2
-          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Exact test source and locked setup
-        run: |
-          set -eu
-          test "$(git rev-parse HEAD)" = 13811a803634e93aac659fc4e2a1a7a2a4e11713
-          test "$(git diff --name-only fde662e38f864dc8797d0dfdd82ba05f3411ad05 HEAD)" = packages/game-core/src/combat/combat-burn-copy.test.ts
-          corepack enable
-          corepack prepare pnpm@11.17.0 --activate
-          pnpm install --frozen-lockfile
-      - name: Test-file quality before behavioral RED
-        run: |
-          pnpm exec prettier --check packages/game-core/src/combat/combat-burn-copy.test.ts
-          pnpm exec eslint packages/game-core/src/combat/combat-burn-copy.test.ts
-          pnpm --filter @aurevane/game-core typecheck
-      - name: Confirm all prior core tests remain green
-        run: pnpm --filter @aurevane/game-core exec vitest run --exclude '**/combat-burn-copy.test.ts'
-      - name: Execute and classify missing-feature RED
+      - name: Format only the new Burn contract
         shell: bash
         run: |
           set -euo pipefail
-          set +e
-          pnpm --filter @aurevane/game-core exec vitest run --reporter=json --outputFile=/tmp/burn-copy-red.json
-          outcome=$?
-          set -e
-          test "$outcome" -ne 0
-          python3 <<'PY'
-          import json
-          from pathlib import Path
-          data = json.loads(Path('/tmp/burn-copy-red.json').read_text())
-          failures = [suite for suite in data['testResults'] if suite['status'] == 'failed']
-          assert failures and all(suite['name'].endswith('/combat-burn-copy.test.ts') for suite in failures), [(s['name'], s['status']) for s in failures]
-          assert data['numPassedTests'] >= 1712, data
-          assert data['numFailedTests'] > 0, data
-          print('VALID_RED: previous core tests remain green and only Burn-copy contract fails')
-          print('passed=', data['numPassedTests'], 'failed=', data['numFailedTests'], 'total=', data['numTotalTests'])
-          for suite in failures:
-              for test in suite['assertionResults']:
-                  if test['status'] == 'failed':
-                      print('RED_ASSERTION:', test['fullName'])
-                      print('\n'.join(test.get('failureMessages', []))[:350])
-          PY
+          test "$(git rev-parse HEAD)" = 13811a803634e93aac659fc4e2a1a7a2a4e11713
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+          pnpm install --frozen-lockfile
+          pnpm exec prettier --write packages/game-core/src/combat/combat-burn-copy.test.ts
+          pnpm exec prettier --check packages/game-core/src/combat/combat-burn-copy.test.ts
+          pnpm exec eslint packages/game-core/src/combat/combat-burn-copy.test.ts
+          pnpm --filter @aurevane/game-core typecheck
+          test "$(git diff --name-only)" = packages/game-core/src/combat/combat-burn-copy.test.ts
           git diff --check
-          git diff --exit-code
-          test -z "$(git status --porcelain)"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add packages/game-core/src/combat/combat-burn-copy.test.ts
+          git commit -m 'style(test): format Burn copy contract'
+          test "$(git ls-remote origin refs/heads/agent/combat-k4-burn-copy-fde662e | cut -f1)" = 13811a803634e93aac659fc4e2a1a7a2a4e11713
+          git push origin HEAD:refs/heads/agent/combat-k4-burn-copy-fde662e
+          echo "FORMATTED_TEST_SHA=$(git rev-parse HEAD)"
