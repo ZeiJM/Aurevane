@@ -48,7 +48,6 @@ export function NewsArticle({ article }: { article: NewsArticleRecord }) {
           sizes="(max-width: 768px) 100vw, 72rem"
         />
         <div className={styles.heroVeil} />
-        <span className={styles.heroMotto}>Same world. Brighter tomorrows.</span>
       </div>
 
       <div className={styles.body} data-testid="news-article-body">
