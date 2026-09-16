@@ -11,7 +11,9 @@ async function settle(page: Page) {
   })
 }
 
-test('Account gateway keeps the desktop entry workspace clear and readable', async ({ page }, info) => {
+test('Account gateway keeps the desktop entry workspace clear and readable', async ({
+  page,
+}, info) => {
   test.skip(info.project.name !== 'desktop-chromium', 'Desktop account composition only')
   await page.setViewportSize({ width: 1366, height: 768 })
   await page.goto('/')
@@ -33,7 +35,9 @@ test('Account gateway keeps the desktop entry workspace clear and readable', asy
   const metrics = await page.evaluate(() => {
     const hero = document.querySelector<HTMLElement>('[aria-labelledby="aurevane-title"]')!
     const card = document.querySelector<HTMLElement>('[data-account-concept="true"]')!
-    const footerElement = document.querySelector<HTMLElement>('[data-testid="account-shell"] > footer')!
+    const footerElement = document.querySelector<HTMLElement>(
+      '[data-testid="account-shell"] > footer',
+    )!
     const submitButton = Array.from(card.querySelectorAll('button')).find((button) =>
       button.textContent?.includes('Enter AUREVANE'),
     )!
@@ -51,10 +55,18 @@ test('Account gateway keeps the desktop entry workspace clear and readable', asy
     }
   })
 
-  expect.soft(metrics.overflow, 'desktop account gateway has no horizontal overflow').toBeLessThanOrEqual(1)
-  expect.soft(metrics.heroRight, 'desktop hero stays left of the account card').toBeLessThanOrEqual(metrics.cardLeft + 1)
-  expect.soft(metrics.cardBottom, 'desktop account card stays above the footer').toBeLessThanOrEqual(metrics.footerTop + 1)
-  expect.soft(metrics.submitBottom, 'desktop submit action stays above the footer').toBeLessThanOrEqual(metrics.footerTop + 1)
+  expect
+    .soft(metrics.overflow, 'desktop account gateway has no horizontal overflow')
+    .toBeLessThanOrEqual(1)
+  expect
+    .soft(metrics.heroRight, 'desktop hero stays left of the account card')
+    .toBeLessThanOrEqual(metrics.cardLeft + 1)
+  expect
+    .soft(metrics.cardBottom, 'desktop account card stays above the footer')
+    .toBeLessThanOrEqual(metrics.footerTop + 1)
+  expect
+    .soft(metrics.submitBottom, 'desktop submit action stays above the footer')
+    .toBeLessThanOrEqual(metrics.footerTop + 1)
   await expect(entryCard).toHaveAttribute('data-av-surface', 'moonstone')
 
   if (process.env.LAYOUT_REVIEW_OUTPUT) {
@@ -89,9 +101,16 @@ test('Account gateway keeps mobile entry controls clear of the footer', async ({
     overflow: document.documentElement.scrollWidth - innerWidth,
     pageScroll: document.documentElement.scrollHeight - innerHeight,
   }))
-  expect.soft(initialMetrics.overflow, 'phone account gateway has no horizontal overflow').toBeLessThanOrEqual(1)
-  expect.soft(initialMetrics.pageScroll, 'phone account gateway uses natural page scroll').toBeGreaterThan(0)
-  await expect(footer, 'footer stays below the fold while entering account credentials').not.toBeInViewport()
+  expect
+    .soft(initialMetrics.overflow, 'phone account gateway has no horizontal overflow')
+    .toBeLessThanOrEqual(1)
+  expect
+    .soft(initialMetrics.pageScroll, 'phone account gateway uses natural page scroll')
+    .toBeGreaterThan(0)
+  await expect(
+    footer,
+    'footer stays below the fold while entering account credentials',
+  ).not.toBeInViewport()
 
   await email.scrollIntoViewIfNeeded()
   await expect(email).toBeInViewport({ ratio: 1 })
