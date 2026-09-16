@@ -11,8 +11,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 6f0efb483fdd28724d6aa6c68eeed482604c22fa
-          fetch-depth: 2
+          ref: 222f5ccddc5ac2c66a5a873bab37fc2d61b3b3b6
+          fetch-depth: 4
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -21,29 +21,65 @@ jobs:
           corepack enable
           corepack prepare pnpm@11.17.0 --activate
           pnpm install --frozen-lockfile
-      - name: Format test-only contract and preserve candidate
+      - name: Correct unsupported fixture and add damage consequence contracts
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = 6f0efb483fdd28724d6aa6c68eeed482604c22fa
-          file=packages/game-core/src/combat/combat-reflect.test.ts
-          pnpm exec prettier --write "$file"
+          test "$(git rev-parse HEAD)" = 222f5ccddc5ac2c66a5a873bab37fc2d61b3b3b6
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('packages/game-core/src/combat/combat-reflect.test.ts')
+          text = p.read_text()
+          start = text.index("  it('does not reflect a self-cost within an otherwise qualifying hostile command'")
+          end = text.index("  it('excludes Burn backlash", start)
+          text = text[:start] + '''  it('preserves the existing rejection of unsupported generic self-damage', () => {
+            const action = hit()
+            action.effects = [{ type: 'damage', recipient: 'actor', amount: 5 }, ...action.effects]
+            const initial = encounter({ actorStatuses: [REFLECT] })
+            const snapshot = JSON.stringify(initial)
+            expect(() => cast(initial, action)).toThrow(/self-damage-deferred/)
+            expect(JSON.stringify(initial)).toBe(snapshot)
+          })
+          it('clears ongoing recovery when reflected damage defeats the attacker', () => {
+            const initial = encounter({ actorHp: 3, allyWitness: true })
+            initial.effectState = {
+              ongoingRecovery: [{ kind: 'hp', sourceCombatantId: 'actor', targetCombatantId: 'actor', sourceActionId: 'test.recovery', amountPerTick: 5, remainingFutureTicks: 2 }],
+              poison: [], bleed: [], burn: [], temporarySkills: [], damageHistory: [],
+            }
+            const result = cast(initial)
+            expect(unit(result, 'actor').hp).toBe(0)
+            expect(result.state.effectState?.ongoingRecovery).toEqual([])
+            expect(validateCombatEncounterState(result.state)).toEqual([])
+          })
+          it('breaks concealment granted to the attacker after the ordinary damage block', () => {
+            const invisible: CombatStatusDefinition = {
+              id: 'test.invisible', version: 1, maximumStacks: 1, durationOwnerTurnStarts: 2,
+              damageTakenMultiplierBasisPoints: 10_000, gameplayTags: ['Invisible'],
+            }
+            const action = hit()
+            action.effects = [...action.effects, { type: 'apply-status', recipient: 'actor', statusId: invisible.id, stacks: 1 }]
+            const result = cast(encounter(), action, [REFLECT, invisible])
+            expect(unit(result, 'actor').hp).toBe(95)
+            expect(result.state.statusState.find((row) => row.combatantId === 'actor')?.statuses).toEqual([])
+          })
+          ''' + text[end:]
+          p.write_text(text)
+          PY
+          pnpm exec prettier --write packages/game-core/src/combat/combat-reflect.test.ts
+          test "$(git diff --name-only)" = packages/game-core/src/combat/combat-reflect.test.ts
           git diff --check
-          if ! git diff --quiet; then
-            test "$(git diff --name-only)" = "$file"
-            git config user.name 'Nicholas JM'
-            git config user.email '283436098+ZeiJM@users.noreply.github.com'
-            git add -- "$file"
-            git commit -m 'test(combat): format Reflect regression contract'
-          fi
+          git config user.name 'Nicholas JM'
+          git config user.email '283436098+ZeiJM@users.noreply.github.com'
+          git add -- packages/game-core/src/combat/combat-reflect.test.ts
+          git commit -m 'test(combat): preserve self-damage legality and cover Reflect defeat cleanup'
           git push origin HEAD:refs/heads/agent/reflect-red-result-20260915
           printf 'REFLECT_RED_SHA=%s\n' "$(git rev-parse HEAD)"
-      - name: Verify formatting lint and types before behavioral RED
+      - name: Verify formatting lint and types
         run: |
           pnpm format:check
           pnpm lint
           pnpm typecheck
-      - name: Execute full game-core suite and classify failures
+      - name: Execute full game-core suite and require assertion-only RED
         shell: bash
         run: |
           set -euo pipefail
@@ -61,18 +97,17 @@ jobs:
               for test in suite['assertionResults']:
                   if test['status'] == 'failed':
                       assert suite['name'].endswith('/combat-reflect.test.ts'), suite['name']
+                      messages = '\n'.join(test.get('failureMessages', []))
+                      assert 'AssertionError:' in messages, (test['fullName'], messages)
                       failed.append(test)
-                      print('EXPECTED RED:', test['fullName'])
-                      for message in test.get('failureMessages', []):
-                          print(re.sub(r'\x1b\[[0-9;]*m', '', message))
-          assert len(failed) > 0, 'Expected missing Reflect behavior to fail'
-          assert report.get('numRuntimeErrorTestSuites', 0) == 0, report
+                      print('EXPECTED ASSERTION RED:', test['fullName'], re.sub(r'\x1b\[[0-9;]*m', '', messages).split('\n')[0])
+          assert len(failed) > 0
+          assert report.get('numRuntimeErrorTestSuites', 0) == 0
           existing = [s for s in report['testResults'] if not s['name'].endswith('/combat-reflect.test.ts')]
-          assert len(existing) == 74, len(existing)
-          assert all(s['status'] == 'passed' for s in existing)
-          print('CLASSIFIED_REFLECT_RED', len(failed), 'failures; passed', report['numPassedTests'], 'existing files', len(existing))
+          assert len(existing) == 74 and all(s['status'] == 'passed' for s in existing)
+          print('VALID_REFLECT_RED', len(failed), 'assertion failures; passed', report['numPassedTests'], 'existing files', len(existing), 'total tests', report['numTotalTests'])
           PY
-      - name: Inspect exact lifecycle seam and source hygiene
+      - name: Inspect shared damage consequences and source hygiene
         shell: bash
         run: |
           set -euo pipefail
@@ -80,18 +115,13 @@ jobs:
           import re
           from pathlib import Path
           text = Path('packages/game-core/src/combat/actions-legacy.ts').read_text()
-          for name in ['completeBattleIfResolved', 'withUpdatedCombatant', 'withBattle', 'resolveActionEffects']:
+          for name in ['removeGameplayTags', 'revealActorForDamagingAttempt']:
               match = re.search(r'^(?:export )?function '+name+r'\(', text, re.M)
               if match:
                   tail = text[match.start():]
                   end = re.search(r'\n(?:export )?function ', tail[1:])
-                  print('\nLIFECYCLE_SOURCE', name, '\n', tail[:end.start()+1] if end else tail[:6000])
-          for path in ['AGENTS.md', 'TASKS.md', 'docs/ROADMAP.md']:
-              lines = Path(path).read_text().splitlines()
-              for index, line in enumerate(lines):
-                  if re.search(r'Reflect|P4\.K4|Combat Kernel', line, re.I):
-                      print('\nAUTHORITY', path, index+1)
-                      print('\n'.join(lines[max(0,index-2):index+7]))
+                  print('\nSOURCE', name, '\n', tail[:end.start()+1] if end else tail[:5000])
+          print('REVEAL EXPORTS', re.findall(r'^export function [^(]*(?:reveal|Reveal)[^(]*', text, re.M))
           PY
           git diff --check c2c41be224d22f532d551506037ac86835452691...HEAD
           test "$(git diff --name-only c2c41be224d22f532d551506037ac86835452691...HEAD)" = packages/game-core/src/combat/combat-reflect.test.ts
