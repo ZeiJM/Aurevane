@@ -1,145 +1,175 @@
-name: Poison copy reconciled GREEN
+name: Poison copy exact-candidate review
 on:
   push:
     branches: [review/poison-copy-reconciled-green-20260916]
 permissions:
-  contents: write
+  contents: read
 jobs:
-  verify:
+  review:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 2c6c7abc4b1a1d65ac4e9361275b62dccb54e0f4
-          fetch-depth: 1
+          ref: ed25b6d42bfc15943fde16e217e4d152c350833f
+          fetch-depth: 5
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Pin inspected assembly and keep original working branches untouched
+      - name: Pin actual PR source and install locked dependencies
+        run: |
+          set -eu
+          test "$(git rev-parse HEAD)" = ed25b6d42bfc15943fde16e217e4d152c350833f
+          test "$(git rev-parse HEAD^{tree})" = f06684e4af432e687ee5a5a7101d3c598b5e1b11
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+          pnpm install --frozen-lockfile
+      - name: Verify additional Poison boundaries on the retained candidate
         shell: bash
         run: |
           set -euo pipefail
-          python3 <<'PY'
-          from pathlib import Path
-          from textwrap import dedent
-          text = Path('.github/workflows/poison-copy-boundary-audit.yml').read_text()
-          steps = text.split('        run: |\n')[1:]
-          assert len(steps) == 3
-          prepare = dedent(steps[0].split('\n      - name:')[0])
-          old = 'cp .github/workflows/poison-copy-boundary-audit.yml /tmp/probe-workflow.txt'
-          assert prepare.count(old) == 1
-          prepare = prepare.replace(old, 'git fetch --depth=1 origin d1855ac00c9a808beb27e4feeda4201ad5e3b902\ngit show d1855ac00c9a808beb27e4feeda4201ad5e3b902:.github/workflows/poison-copy-boundary-audit.yml > /tmp/probe-workflow.txt')
-          assemble = dedent(steps[1].split('\n      - name:')[0])
-          lines = assemble.splitlines()
-          focused = [line for line in lines if line.startswith('pnpm --filter @aurevane/game-core exec vitest run')]
-          assert len(focused) == 1
-          assemble = '\n'.join(line for line in lines if line not in focused) + '\n'
-          Path('/tmp/prepare-copy-review.sh').write_text(prepare)
-          Path('/tmp/assemble-copy-review.sh').write_text(assemble)
-          PY
-          bash /tmp/prepare-copy-review.sh
-          test "$(git rev-parse HEAD)" = 22705eb75ebad809586e570c103b73b46fe73be2
-          test "$(git ls-remote origin refs/heads/main | cut -f1)" = 3d8a4d25cb897d0f9ce4871c6972e5d7107d68b0
-          test "$(git ls-remote origin refs/heads/agent/combat-effect-taxonomy-rework | cut -f1)" = 40da86aec7ef7354ec86078c1eae9e1eb83a952c
-          test "$(git ls-remote origin refs/heads/agent/combat-k4-poison-copy-reviewed-20260916 | cut -f1)" = 22705eb75ebad809586e570c103b73b46fe73be2
-      - name: Retain two compatibility guards and prove the inspected regression
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 <<'PY'
-          from pathlib import Path
-          probe = Path('packages/game-core/src/combat/combat-poison-copy-independent.test.ts').read_text()
-          imported = "import { applyCombatStatusCopies } from './combat-status-copy'\n"
-          assert probe.count(imported) == 1
-          cases = probe.split(imported)[1]
-          path = Path('packages/game-core/src/combat/combat-poison-copy.test.ts')
-          path.write_text(imported + path.read_text().rstrip() + '\n\n' + cases)
-          PY
-          pnpm exec prettier --write packages/game-core/src/combat/combat-poison-copy.test.ts
-          pnpm exec eslint packages/game-core/src/combat/combat-poison-copy.test.ts
-          sha256sum packages/game-core/src/combat/combat-poison-copy.test.ts > /tmp/poison-permanent-test.sha256
-          bash /tmp/assemble-copy-review.sh
-          set +e
-          pnpm --filter @aurevane/game-core exec vitest run src/combat/combat-poison-copy.test.ts src/combat/combat-status-copy.test.ts --reporter=json --outputFile=/tmp/pre-fix.json > /tmp/pre-fix.log 2>&1
-          outcome=$?
-          set -e
-          test "$outcome" -ne 0
-          python3 <<'PY'
-          import json
-          from pathlib import Path
-          data = json.loads(Path('/tmp/pre-fix.json').read_text())
-          assert data['numTotalTests'] == 114 and data['numFailedTests'] == 3, data
-          for suite in data['testResults']:
-              for test in suite['assertionResults']:
-                  if test['status'] == 'failed':
-                      name = test['fullName']
-                      assert 'preserves historical effectState' in name or 'preserves unrelated typed effects' in name, name
-                      print('PROVEN_REGRESSION:', name)
-          print('REGRESSION_RED: all 62 new Poison feature cases pass; three unrelated/historical state guards fail')
-          PY
-      - name: Apply smallest correction and run focused verification
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 <<'PY'
-          from pathlib import Path
-          path = Path('packages/game-core/src/combat/combat-status-copy.ts')
-          text = path.read_text()
-          old = 'state: { ...state, statusState, effectState: nextEffectState }'
-          assert text.count(old) == 1
-          text = text.replace(old, 'state: { ...state, statusState, ...(nextPoison ? { effectState: nextEffectState } : {}) }')
-          text = text.replace('/** Only ordinary status rows are enumerated; typed DoT/resource/terrain state is never inferred. */', '/** Copy ordinary rows and explicitly opted-in Poison; never infer typed eligibility from tags. */')
-          path.write_text(text)
-          docs = Path('docs/COMBAT.md')
-          text = docs.read_text()
-          old = 'This slice enumerates ordinary status rows only. Typed Poison/Burn/Bleed counters, ongoing recovery,'
-          assert text.count(old) == 1
-          text = text.replace(old, 'This slice enumerates ordinary status rows and explicitly copyable typed Poison. Burn/Bleed counters, ongoing recovery,')
-          text += '\nOrdinary status-only copies preserve the prior effectState object and its historical optional shape.\nPoison support does not normalize or replace unrelated effect state when no Poison is copied.\n'
-          docs.write_text(text)
-          PY
-          rm packages/game-core/src/combat/combat-poison-copy-independent.test.ts
-          pnpm exec prettier --write packages/game-core/src/combat/combat-effect-state.ts packages/game-core/src/combat/combat-dots.ts packages/game-core/src/combat/actions-legacy.ts packages/game-core/src/combat/combat-authoring-validation.ts packages/game-core/src/combat/combat-status-copy.ts
-          sha256sum --check /tmp/poison-permanent-test.sha256
+          file=packages/game-core/src/combat/combat-poison-copy.test.ts
+          trap 'git restore --source=HEAD -- "$file"' EXIT
+          cat >> "$file" <<'TEST'
+
+          import { applyCombatStatusCopies } from './combat-status-copy'
+          describe('Read-only extra Poison copy boundaries', () => {
+            it('a second Curse links to the immediate copied donor', () => {
+              const first = cast(poison(world(), 'actor', 4), context()).state
+              const donor = instance(first, 'target')
+              const next = advance(first)
+              const second = executeCombatAction(next, action(), { kind: 'unit', combatantId: 'other' }, CONTENT,
+                context('test.curse', 'target', 'chain:second-curse'))
+              expect(instance(second.state, 'other')).toMatchObject({ sourceCombatantId: 'target',
+                movementRemainder: 4, curseCopyable: true,
+                provenance: { copiedFromInstanceId: donor.provenance?.instanceId, copyOrdinal: 0 } })
+              expect(instance(second.state, 'target')).toBe(instance(next, 'target'))
+              expect(validateCombatEncounterState(second.state)).toEqual([])
+            })
+            it('unflagged historical reapplication clears prior opt-in without resetting progress', () => {
+              const initial = poison(world(), 'actor', 3)
+              const unflagged: CombatActionDefinition = { ...poisonAction(),
+                effects: [{ type: 'poison', recipient: 'primary-unit' }] }
+              const next = executeCombatAction(initial, unflagged, { kind: 'unit', combatantId: 'actor' }, CONTENT).state
+              expect(instance(next)).not.toHaveProperty('curseCopyable')
+              expect(instance(next).movementRemainder).toBe(3)
+              expect(evaluateCombatAction(next, action(), TARGET, CONTENT).legal).toBe(false)
+            })
+            it('cleansing the original does not remove the already copied Poison', () => {
+              const copied = cast(poison(world(), 'actor', 2), context()).state
+              const recipient = instance(copied, 'target')
+              const next = removeCurrentPoisonState(copied, 'actor')
+              expect(currentPoisonInstance(next, 'actor')).toBeNull()
+              expect(instance(next, 'target')).toBe(recipient)
+            })
+            it.each([false, true].flatMap((flag) => [0, 1, 2, 3, 4].map((counter) => ({ flag, counter }))))(
+              'normal movement preserves pinned policy %j', ({ flag, counter }) => {
+                const initial = poison(world(), 'actor', counter, flag)
+                const next = advanceCurrentPoisonMovement(initial, 'actor', 1)
+                expect(instance(next.state)).toMatchObject({ curseCopyable: flag,
+                  movementRemainder: (counter + 1) % 5 })
+              })
+            it.each([{ profileVersion: 2 }, { movementRemainder: 5 }, { movementRemainder: -1 }])(
+              'copy permission cannot bypass invalid Poison state %j', (patch) => {
+                const original = poison(world())
+                const state = { ...original, effectState: { ...original.effectState!,
+                  poison: original.effectState!.poison.map((entry) => ({ ...entry, ...patch })) } }
+                expect(validateCombatEncounterState(state).length).toBeGreaterThan(0)
+                expect(() => cast(state)).toThrow()
+              })
+            it('ordinary status-only copying preserves serialized absence of historical effect state', () => {
+              const initial = world()
+              const state = { ...initial, statusState: initial.statusState.map((row) => row.combatantId === 'actor' ? {
+                ...row, statuses: [{ statusId: 'test.negative', statusVersion: 1, stacks: 1,
+                  remainingOwnerTurnStarts: 2, sourceCombatantId: 'other' }],
+              } : row) }
+              delete state.effectState
+              const copied = applyCombatStatusCopies(state, 'actor', 'target', 'test.curse',
+                { type: 'copy-statuses', recipient: 'primary-unit', mode: 'curse' }, CONTENT)
+              expect(copied.state.effectState).toBeUndefined()
+              expect(JSON.parse(JSON.stringify(copied.state))).not.toHaveProperty('effectState')
+              // Record stricter in-memory presence separately; JSON absence is the saved-state contract.
+              console.log('OPTIONAL_PROPERTY_OBSERVATION', Object.hasOwn(state, 'effectState'), Object.hasOwn(copied.state, 'effectState'))
+            })
+            it('preserves the third combatant Poison object while replacing the intended receiver', () => {
+              const state = poison(poison(poison(world(), 'actor', 4), 'target', 1), 'other', 3, false)
+              const unrelated = instance(state, 'other')
+              const result = cast(state, context())
+              expect(instance(result.state, 'other')).toBe(unrelated)
+              expect(instance(result.state, 'target').movementRemainder).toBe(1)
+              expect(result.state.effectState?.poison).toHaveLength(3)
+            })
+          })
+          TEST
           pnpm --filter @aurevane/game-core typecheck
           pnpm --filter @aurevane/game-core exec vitest run src/combat/combat-poison-copy.test.ts src/combat/combat-status-copy.test.ts src/combat/combat-status-copy-publication.test.ts src/combat/combat-copy-provenance.test.ts src/combat/combat-poison-edges.test.ts src/combat/combat-poison-movement.test.ts src/combat/combat-poison-voluntary-movement.test.ts src/combat/combat-dot-rework.test.ts src/combat/combat-mark-blind.contract.test.ts src/combat/combat-reflect.test.ts src/combat/combat-absorb-mp.test.ts src/combat/combat-effect-provenance-state.test.ts src/combat/combat-persistent-provenance-threading.test.ts src/combat/combat-skill-accuracy.test.ts src/combat/combat-damage-history-runtime.test.ts
-      - name: Full repository quality gate
+          git restore --source=HEAD -- "$file"
+          trap - EXIT
+      - name: Compare complete historical unflagged Poison and ordinary-copy results
         shell: bash
         run: |
           set -euo pipefail
-          if ! pnpm check > /tmp/poison-quality.log 2>&1; then tail -n 180 /tmp/poison-quality.log; exit 1; fi
+          file=packages/game-core/src/combat/combat-poison-copy-compatibility-review.test.ts
+          test ! -e "$file"
           python3 <<'PY'
-          import re
           from pathlib import Path
-          text = re.sub(r'\x1b\[[0-9;]*m', '', Path('/tmp/poison-quality.log').read_text())
-          for line in text.splitlines():
-              if any(term in line for term in ['Test Files', 'Tests ', 'Tasks:', 'Compiled successfully', 'All matched files', 'ℹ tests', 'ℹ pass', 'ℹ fail']): print(line)
-          print('FULL_PNPM_CHECK_EXIT=0')
+          source = Path('packages/game-core/src/combat/combat-poison-copy.test.ts').read_text()
+          marker = "describe('Curse Poison: explicit authored and persisted copy policy'"
+          assert source.count(marker) == 1
+          Path('packages/game-core/src/combat/combat-poison-copy-compatibility-review.test.ts').write_text(source.split(marker)[0])
           PY
-      - name: Retain source only on the isolated corrected ticket after fresh guards
+          cat >> "$file" <<'TEST'
+          import { readFileSync, writeFileSync } from 'node:fs'
+          it('matches 30 full historical unflagged-Poison command and turn sequences', () => {
+            const results: unknown[] = []
+            for (const counter of [0, 1, 2, 3, 4]) for (const accuracy of [0, 5_000, 10_000]) for (const tracked of [false, true]) {
+              const unflagged: CombatActionDefinition = { ...poisonAction(), effects: [{ type: 'poison', recipient: 'primary-unit' }] }
+              let state = world(accuracy)
+              const first = executeCombatAction(state, unflagged, { kind: 'unit', combatantId: 'actor' }, CONTENT)
+              const second = executeCombatAction(first.state, unflagged, TARGET, CONTENT)
+              state = advanceCurrentPoisonMovement(advanceCurrentPoisonMovement(second.state, 'actor', counter).state, 'target', (counter + 2) % 5).state
+              state = { ...state, statusState: state.statusState.map((row) => row.combatantId === 'actor' ? {
+                ...row, statuses: [{ statusId: 'test.negative', statusVersion: 1, stacks: 1,
+                  remainingOwnerTurnStarts: 2, sourceCombatantId: 'other' }],
+              } : row) }
+              const definition = { ...action(), accuracyMode: 'per-target' as const }
+              const forecast = evaluateCombatAction(state, definition, TARGET, CONTENT)
+              const committed = executeCombatAction(state, definition, TARGET, CONTENT, tracked ? context() : undefined)
+              let next = committed.state
+              const turns: unknown[] = []
+              for (let index = 0; index < 4; index += 1) {
+                const turn = endCombatTurn({ ...next, tactical: { ...next.tactical,
+                  battle: selectFinalFacing(next.tactical.battle, 'east').state } }, CONTENT)
+                turns.push(turn)
+                next = turn.state
+              }
+              results.push({ counter, accuracy, tracked, first, second, forecast, committed, turns })
+            }
+            expect(results).toHaveLength(30)
+            const output = JSON.stringify(results)
+            const path = '/tmp/poison-historical-output.json'
+            if (process.env.POISON_CAPTURE === '1') writeFileSync(path, output)
+            else expect(output).toBe(readFileSync(path, 'utf8'))
+          })
+          TEST
+          modules=(packages/game-core/src/combat/combat-effect-state.ts packages/game-core/src/combat/combat-dots.ts packages/game-core/src/combat/actions-legacy.ts packages/game-core/src/combat/combat-authoring-validation.ts packages/game-core/src/combat/combat-status-copy.ts)
+          trap 'git restore --source=HEAD -- "${modules[@]}"; rm -f "$file"' EXIT
+          git restore --source=40da86aec7ef7354ec86078c1eae9e1eb83a952c -- "${modules[@]}"
+          POISON_CAPTURE=1 pnpm --filter @aurevane/game-core exec vitest run src/combat/combat-poison-copy-compatibility-review.test.ts
+          git restore --source=HEAD -- "${modules[@]}"
+          pnpm --filter @aurevane/game-core exec vitest run src/combat/combat-poison-copy-compatibility-review.test.ts
+          rm "$file"
+          trap - EXIT
+          echo 'HISTORICAL_COMPARISONS=30 complete forecasts, command transitions and four turn transitions matched'
+      - name: Verify source scope and cleanup
         shell: bash
         run: |
           set -euo pipefail
-          python3 <<'PY'
-          import subprocess
-          paths = {'docs/COMBAT.md', 'packages/game-core/src/combat/combat-effect-state.ts', 'packages/game-core/src/combat/combat-dots.ts', 'packages/game-core/src/combat/actions-legacy.ts', 'packages/game-core/src/combat/combat-authoring-validation.ts', 'packages/game-core/src/combat/combat-status-copy.ts', 'packages/game-core/src/combat/combat-poison-copy.test.ts'}
-          assert set(subprocess.check_output(['git','diff','--name-only'],text=True).splitlines()) == paths
-          assert not subprocess.check_output(['git','ls-files','--others','--exclude-standard'],text=True).strip()
-          PY
-          sha256sum --check /tmp/poison-permanent-test.sha256
-          git diff --check
-          test "$(git ls-remote origin refs/heads/main | cut -f1)" = 3d8a4d25cb897d0f9ce4871c6972e5d7107d68b0
-          test "$(git ls-remote origin refs/heads/agent/combat-effect-taxonomy-rework | cut -f1)" = 40da86aec7ef7354ec86078c1eae9e1eb83a952c
-          test "$(git ls-remote origin refs/heads/agent/combat-k4-poison-copy-40da86a | cut -f1)" = 22705eb75ebad809586e570c103b73b46fe73be2
-          test "$(git ls-remote origin refs/heads/agent/combat-k4-poison-copy-reviewed-20260916 | cut -f1)" = 22705eb75ebad809586e570c103b73b46fe73be2
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add docs/COMBAT.md packages/game-core/src/combat/combat-effect-state.ts packages/game-core/src/combat/combat-dots.ts packages/game-core/src/combat/actions-legacy.ts packages/game-core/src/combat/combat-authoring-validation.ts packages/game-core/src/combat/combat-status-copy.ts packages/game-core/src/combat/combat-poison-copy.test.ts
-          git diff --cached --check
-          git commit -m 'feat(combat): copy eligible Poison while preserving legacy state and source lineage'
-          git push origin HEAD:refs/heads/agent/combat-k4-poison-copy-reviewed-20260916
-          echo "VERIFIED_SOURCE_SHA=$(git rev-parse HEAD)"
-          echo "VERIFIED_SOURCE_TREE=$(git rev-parse HEAD^{tree})"
+          git diff --exit-code 22705eb75ebad809586e570c103b73b46fe73be2 HEAD -- packages/game-core/src/combat/combat-poison-copy.test.ts
+          git diff --exit-code 40da86aec7ef7354ec86078c1eae9e1eb83a952c HEAD -- apps .github supabase package.json pnpm-lock.yaml packages/game-core/src/combat/actions.ts packages/game-core/src/combat/combat-kernel-types.ts packages/game-core/src/combat/status-content.ts packages/game-core/src/combat/phase4-roster.ts
+          test "$(git diff --name-only 40da86aec7ef7354ec86078c1eae9e1eb83a952c HEAD | wc -l)" = 7
+          git diff --check 40da86aec7ef7354ec86078c1eae9e1eb83a952c HEAD
           git diff --exit-code
           test -z "$(git status --porcelain)"
+          echo 'REVIEWED_SOURCE=ed25b6d42bfc15943fde16e217e4d152c350833f; NO_PRODUCTION_WRITES'
