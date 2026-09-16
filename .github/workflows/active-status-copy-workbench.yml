@@ -6,7 +6,7 @@ on:
       - review/active-status-copy-b7ad993
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   verify:
@@ -15,120 +15,196 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 42185f1ac47db18b6782a56a2dd7f4b472e3528e
-          fetch-depth: 1
+          ref: c5523f409922a1956714ccc0a8a62d333296546f
+          fetch-depth: 4
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Pin recipe and exact test-only source
-        shell: bash
+      - name: Exact candidate and locked setup
         run: |
-          set -euo pipefail
-          cp scripts/active-status-copy-implementation.py /tmp/active-status-copy-implementation.py
-          git fetch --depth=3 origin 0152285c38ba56978cbcb591604d9d05e452624f
-          git checkout --detach 0152285c38ba56978cbcb591604d9d05e452624f
-          test "$(git rev-parse HEAD)" = 0152285c38ba56978cbcb591604d9d05e452624f
-          test "$(git ls-remote origin refs/heads/main | cut -f1)" = 3d8a4d25cb897d0f9ce4871c6972e5d7107d68b0
-          test "$(git ls-remote origin refs/heads/agent/combat-effect-taxonomy-rework | cut -f1)" = b7ad993209afe1348c0a14030ee81026eb646dbd
-          test "$(git ls-remote origin refs/heads/agent/combat-k4-active-status-copy-b7ad993 | cut -f1)" = 0152285c38ba56978cbcb591604d9d05e452624f
+          set -eu
+          test "$(git rev-parse HEAD)" = c5523f409922a1956714ccc0a8a62d333296546f
+          test "$(git rev-parse HEAD^{tree})" = f82e6ce78fbd0e07f2edbe94b2a612f2f56fab3f
           corepack enable
           corepack prepare pnpm@11.17.0 --activate
           pnpm install --frozen-lockfile
-      - name: Prove additional description tests fail for missing behavior
+      - name: Extra transfer boundaries on real candidate
         shell: bash
         run: |
           set -euo pipefail
-          pnpm exec prettier --check apps/web/src/components/character/skill-status-copy-description.test.ts
-          pnpm --filter @aurevane/web exec eslint src/components/character/skill-status-copy-description.test.ts
-          set +e
-          pnpm --filter @aurevane/web exec vitest run src/components/character/skill-status-copy-description.test.ts --reporter=json --outputFile=/tmp/copy-description-red.json
-          outcome=$?
-          set -e
-          test "$outcome" -ne 0
-          python3 <<'PY'
-          import json
-          from pathlib import Path
-          data = json.loads(Path('/tmp/copy-description-red.json').read_text())
-          assert data['numTotalTests'] == 2 and data['numFailedTests'] == 2, data
-          print('DESCRIPTION_RED: both new directional description expectations fail on undefined output')
-          for suite in data['testResults']:
-              for test in suite['assertionResults']:
-                  print(test['fullName'], '\n'.join(test.get('failureMessages', []))[:250])
-          PY
-      - name: Implement copying with explicit repeat-use and description handling
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 /tmp/active-status-copy-implementation.py
-          python3 <<'PY'
-          from pathlib import Path
-          path = Path('packages/game-core/src/combat/pv1f-action-economy.ts')
-          text = path.read_text()
-          old = '    const stacks = Math.floor(effect.stacks / 2)'
-          assert text.count(old) == 1
-          path.write_text(text.replace(old, """    if (effect.type === 'copy-statuses') {
-                throw new TypeError('effects.status-copy-staged: repeat-use copying is not yet supported.')
-              }
-          """ + old))
-          path = Path('apps/web/src/components/character/skill-detail-presentation.ts')
-          text = path.read_text()
-          old = "    case 'remove-status':"
-          assert text.count(old) == 1
-          path.write_text(text.replace(old, """    case 'copy-statuses':
-                return effect.mode === 'amplify'
-                  ? 'Copy eligible positive active statuses from the selected unit onto yourself. The selected unit keeps its statuses; copied stacks respect caps and remaining durations are not restarted.'
-                  : 'Copy eligible negative active statuses from yourself onto the selected unit. You keep the original statuses; copied stacks respect caps and remaining durations are not restarted.'
-          """ + old))
-          PY
-          pnpm exec prettier --write packages/game-core/src/combat/combat-status-copy.ts packages/game-core/src/combat/actions-legacy.ts packages/game-core/src/combat/actions.ts packages/game-core/src/combat/combat-effect-provenance.ts packages/game-core/src/combat/combat-authoring-validation.ts packages/game-core/src/combat/mature-skills.ts packages/game-core/src/combat/pv1f-action-economy.ts apps/web/src/components/character/skill-detail-presentation.ts
-          git diff --check
-          git diff --exit-code -- packages/game-core/src/combat/combat-status-copy.test.ts packages/game-core/src/combat/combat-status-copy-publication.test.ts apps/web/src/components/character/skill-status-copy-description.test.ts
-      - name: Typecheck and focused behavioral verification
-        run: |
+          file=packages/game-core/src/combat/combat-status-copy.test.ts
+          trap 'git restore --source=HEAD -- "$file"' EXIT
+          cat >> "$file" <<'TEST'
+
+          describe('Review-only active status copying boundaries', () => {
+            const vectors = [1, 2, 3].flatMap((incoming) => [0, 1, 2, 3].flatMap((existing) =>
+              [1, 4].flatMap((donorTicks) => [1, 4].map((receiverTicks) => ({ incoming, existing, donorTicks, receiverTicks })))))
+            it.each(vectors)('preserves bounded copied state for %j', ({ incoming, existing, donorTicks, receiverTicks }) => {
+              const state = world([
+                { combatantId: 'target', statuses: [row(POSITIVE, { stacks: incoming, remainingOwnerTurnStarts: donorTicks })] },
+                { combatantId: 'actor', statuses: existing ? [row(POSITIVE, { stacks: existing, remainingOwnerTurnStarts: receiverTicks })] : [] },
+              ])
+              const before = JSON.stringify(state)
+              const result = cast(state, 'amplify', CONTENT, context())
+              expect(statuses(result.state, 'actor')[0]).toMatchObject({
+                stacks: Math.min(3, incoming + existing), remainingOwnerTurnStarts: Math.max(donorTicks, existing ? receiverTicks : 0),
+                sourceCombatantId: 'actor', statusVersion: 1,
+              })
+              expect(statuses(result.state, 'target')).toEqual(statuses(state, 'target'))
+              expect(JSON.stringify(state)).toBe(before)
+              expect(validateCombatEncounterState(JSON.parse(JSON.stringify(result.state)))).toEqual([])
+            })
+            it.each([{ statusVersion: 2 }, { stacks: 4 }, { remainingOwnerTurnStarts: 5 }])('rejects malformed receiver state %j', (patch) => {
+              const state = world([{ combatantId: 'target', statuses: [row(POSITIVE)] },
+                { combatantId: 'actor', statuses: [row(POSITIVE, patch)] }])
+              expect(() => cast(state, 'amplify')).toThrow()
+            })
+            it('merges safe-integer maximum stacks without an overflowing intermediate sum', () => {
+              const definition = { ...POSITIVE, maximumStacks: Number.MAX_SAFE_INTEGER, damageTakenMultiplierBasisPoints: 10_000 }
+              const state = world([{ combatantId: 'target', statuses: [row(definition, { stacks: Number.MAX_SAFE_INTEGER })] },
+                { combatantId: 'actor', statuses: [row(definition, { stacks: Number.MAX_SAFE_INTEGER })] }])
+              expect(statuses(cast(state, 'amplify', { statuses: [definition] }).state, 'actor')[0]?.stacks).toBe(Number.MAX_SAFE_INTEGER)
+            })
+            it('a copy of a copy names the immediate donor and prior recipient', () => {
+              const donor = row(POSITIVE, { provenance: origin('target') })
+              const first = cast(world([{ combatantId: 'target', statuses: [donor] }]), 'amplify', CONTENT, context())
+              const firstCopy = statuses(first.state, 'actor')[0]
+              const next = advance(first.state)
+              const action = copying('amplify')
+              const result = executeCombatAction(next, action, { kind: 'unit', combatantId: 'actor' }, CONTENT,
+                context(action.id, 'target', 'chain:second-copy'))
+              expect(statuses(result.state, 'target')[0]?.provenance).toMatchObject({
+                copiedFromInstanceId: firstCopy?.provenance?.instanceId,
+                inheritedFromInstanceId: donor.provenance?.instanceId,
+              })
+              expect(validateCombatEncounterState(result.state)).toEqual([])
+            })
+            it('chooses stable Mark lineage on tied source durations without reattributing another receiver source', () => {
+              const first = row(MARK, { sourceCombatantId: 'other', provenance: origin('actor', 0, 'chain:mark-other') })
+              const targetOrigin = createCombatEffectInstanceProvenance({ action: context('test.original', 'target', 'chain:mark-target').provenance,
+                targetCombatantId: 'actor', effectOrdinal: 0, createdRound: 1, createdTurn: 1 })
+              const second = row(MARK, { sourceCombatantId: 'target', provenance: targetOrigin })
+              const retained = row(MARK, { provenance: origin('target', 0, 'chain:retained') })
+              const state = world([{ combatantId: 'actor', statuses: [second, first] }, { combatantId: 'target', statuses: [retained] }])
+              const result = cast(state, 'curse', CONTENT, context('test.curse'))
+              expect(statuses(result.state, 'target').find((entry) => entry.sourceCombatantId === 'actor')?.provenance?.copiedFromInstanceId).toBe(first.provenance?.instanceId)
+              expect(statuses(result.state, 'target').find((entry) => entry.sourceCombatantId === 'other')).toBe(statuses(state, 'target')[0])
+            })
+            it('copied HP/MP Absorb and Reflect work together without firing during the copy itself', () => {
+              const hp: CombatStatusDefinition = { ...POSITIVE, id: 'test.absorb-hp', maximumStacks: 1,
+                damageTakenMultiplierBasisPoints: 10_000, reactionClass: 'reactive', absorbHpBasisPoints: 2_500 }
+              const mp: CombatStatusDefinition = { ...hp, id: 'test.absorb-mp', absorbHpBasisPoints: undefined, absorbMpBasisPoints: 2_500 }
+              const content = { statuses: [hp, mp, REFLECT] }
+              const state = world([{ combatantId: 'target', statuses: [row(hp), row(mp), row(REFLECT)] }])
+              const copied = cast(state, 'amplify', content, context())
+              expect(copied.events.some((event) => event.event === 'damage_applied' || event.event === 'healing_applied')).toBe(false)
+              expect(new Set(statuses(copied.state, 'actor').map((entry) => entry.provenance?.instanceId)).size).toBe(3)
+              const result = executeCombatAction(advance(copied.state, content), attack(), { kind: 'unit', combatantId: 'actor' }, content)
+              expect(result.state.tactical.battle.combatants.find((unit) => unit.id === 'actor')).toMatchObject({ hp: 85, mp: 21 })
+              expect(result.state.tactical.battle.combatants.find((unit) => unit.id === 'target')?.hp).toBe(95)
+            })
+            it('a copied legacy-periodic status retains its remaining ticks and expires normally', () => {
+              const definition: CombatStatusDefinition = { ...POSITIVE, id: 'test.legacy-recovery', maximumStacks: 1,
+                damageTakenMultiplierBasisPoints: 10_000, reactionClass: 'periodic', endOfTurn: { type: 'healing', amount: 4 } }
+              const content = { statuses: [definition] }
+              const base = world([{ combatantId: 'target', statuses: [row(definition)] }])
+              const state = { ...base, tactical: { ...base.tactical, battle: { ...base.tactical.battle,
+                combatants: base.tactical.battle.combatants.map((unit) => unit.id === 'actor' ? { ...unit, hp: 80 } : unit) } } }
+              let next = cast(state, 'amplify', content, context()).state
+              next = advance(next, content)
+              expect(statuses(next, 'actor')[0]?.remainingOwnerTurnStarts).toBe(1)
+              for (let index = 0; index < 3; index += 1) next = advance(next, content)
+              expect(statuses(next, 'actor')).toEqual([])
+              expect(next.tactical.battle.combatants.find((unit) => unit.id === 'actor')?.hp).toBe(88)
+            })
+            it('per-target copying from an ally does not roll hostile accuracy', () => {
+              const state = world([{ combatantId: 'other', statuses: [row(POSITIVE)] }], 0)
+              const action = copying('amplify', { accuracyMode: 'per-target' })
+              const result = executeCombatAction(state, action, { kind: 'unit', combatantId: 'other' }, CONTENT, context(action.id))
+              expect(statuses(result.state, 'actor')).toHaveLength(1)
+              expect(result.state.tactical.battle.rng).toEqual(state.tactical.battle.rng)
+            })
+            it('does not ignore a missing donor catalog entry', () => {
+              const state = world([{ combatantId: 'target', statuses: [row(POSITIVE), row(REFLECT)] }])
+              expect(() => cast(state, 'amplify', { statuses: [REFLECT] })).toThrow()
+            })
+            it.each(['amplify', 'curse'] as const)('respects disallowed team selection for %s', (mode) => {
+              const donorId = mode === 'amplify' ? 'target' : 'actor'
+              const definition = mode === 'amplify' ? POSITIVE : NEGATIVE
+              const state = world([{ combatantId: donorId, statuses: [row(definition)] }])
+              const action = copying(mode, { target: { ...attack().target, teamPolicy: 'ally', friendlyFire: 'allies-only' } })
+              const before = JSON.stringify(state)
+              expect(evaluateCombatAction(state, action, TARGET, CONTENT).legal).toBe(false)
+              expect(() => executeCombatAction(state, action, TARGET, CONTENT)).toThrow()
+              expect(JSON.stringify(state)).toBe(before)
+            })
+          })
+          TEST
           pnpm --filter @aurevane/game-core typecheck
           pnpm --filter @aurevane/game-core exec vitest run src/combat/combat-status-copy.test.ts src/combat/combat-status-copy-publication.test.ts src/combat/combat-copy-provenance.test.ts src/combat/combat-mark-blind.contract.test.ts src/combat/combat-reflect.test.ts src/combat/combat-absorb-hp.test.ts src/combat/combat-absorb-mp.test.ts src/combat/combat-effect-provenance.test.ts src/combat/combat-effect-provenance-state.test.ts src/combat/combat-skill-accuracy.test.ts src/combat/actions.test.ts src/combat/mature-skills.test.ts src/combat/pv1f-action-economy.test.ts src/combat/mature-skill-lifecycle.test.ts
-          pnpm --filter @aurevane/web exec vitest run src/components/character/skill-status-copy-description.test.ts src/components/character/skill-detail-presentation.test.ts
-      - name: Full repository check
+          git restore --source=HEAD -- "$file"
+          trap - EXIT
+      - name: Compare complete historical forecasts and subsequent turns against the prior shared source
         shell: bash
         run: |
           set -euo pipefail
-          if ! pnpm check > /tmp/status-copy-quality.log 2>&1; then
-            tail -n 160 /tmp/status-copy-quality.log
-            exit 1
-          fi
+          file=packages/game-core/src/combat/combat-status-copy-compatibility-review.test.ts
+          test ! -e "$file"
           python3 <<'PY'
-          import re
           from pathlib import Path
-          text = re.sub(r'\x1b\[[0-9;]*m', '', Path('/tmp/status-copy-quality.log').read_text())
-          for line in text.splitlines():
-              if any(term in line for term in ['Test Files', 'Tests ', 'Tasks:', 'Compiled successfully', 'All matched files', 'ℹ tests', 'ℹ pass', 'ℹ fail']):
-                  print(line)
-          print('FULL_PNPM_CHECK_EXIT=0: formatting, lint, all workspace typechecks, tests and production build')
+          original = Path('packages/game-core/src/combat/combat-status-copy.test.ts').read_text()
+          header = original.split("describe('Amplify Curse active-status copying: public command contract'")[0]
+          Path('packages/game-core/src/combat/combat-status-copy-compatibility-review.test.ts').write_text(header)
           PY
-      - name: Retain verified source only after fresh refs and source checks
+          cat >> "$file" <<'TEST'
+          import { readFileSync, writeFileSync } from 'node:fs'
+          import { executeStatDrivenAttack, forecastStatDrivenAttack } from './stat-driven-combat'
+          it('matches full historical output for 45 ordinary command and turn sequences', () => {
+            const results: unknown[] = []
+            for (const accuracy of [0, 1_500, 5_000, 8_500, 10_000]) {
+              for (const variant of ['plain', 'guard', 'mark']) {
+                for (const mode of ['automatic', 'per-target', 'basic']) {
+                  const initial = variant === 'plain' ? [] : [{ combatantId: 'target', statuses: [variant === 'guard'
+                    ? row(POSITIVE) : row(MARK, { sourceCombatantId: 'actor' })] }]
+                  const state = world(initial, accuracy)
+                  const action: CombatActionDefinition = mode === 'basic' ? { ...attack(), sourceType: 'basic-attack' }
+                    : { ...attack(), accuracyMode: mode === 'automatic' ? 'automatic' : 'per-target' }
+                  const forecast = mode === 'basic' ? forecastStatDrivenAttack(state, action, TARGET, CONTENT)
+                    : evaluateCombatAction(state, action, TARGET, CONTENT)
+                  const transition = mode === 'basic' ? executeStatDrivenAttack(state, action, TARGET, CONTENT)
+                    : executeCombatAction(state, action, TARGET, CONTENT, context(action.id, 'actor', 'chain:compatibility'))
+                  let next: CombatEncounterState = transition.state
+                  const turns: unknown[] = []
+                  for (let index = 0; index < 4; index += 1) { next = advance(next); turns.push(next) }
+                  results.push({ accuracy, variant, mode, forecast, transition, turns })
+                }
+              }
+            }
+            expect(results).toHaveLength(45)
+            const output = JSON.stringify(results)
+            const path = '/tmp/active-copy-historical-output.json'
+            if (process.env.COPY_REVIEW_CAPTURE === '1') writeFileSync(path, output)
+            else expect(output).toBe(readFileSync(path, 'utf8'))
+          })
+          TEST
+          modules=(packages/game-core/src/combat/actions-legacy.ts packages/game-core/src/combat/actions.ts packages/game-core/src/combat/combat-authoring-validation.ts packages/game-core/src/combat/combat-effect-provenance.ts packages/game-core/src/combat/mature-skills.ts packages/game-core/src/combat/pv1f-action-economy.ts)
+          trap 'git restore --source=HEAD -- "${modules[@]}"; rm -f "$file"' EXIT
+          git restore --source=b7ad993209afe1348c0a14030ee81026eb646dbd -- "${modules[@]}"
+          COPY_REVIEW_CAPTURE=1 pnpm --filter @aurevane/game-core exec vitest run src/combat/combat-status-copy-compatibility-review.test.ts
+          git restore --source=HEAD -- "${modules[@]}"
+          pnpm --filter @aurevane/game-core exec vitest run src/combat/combat-status-copy-compatibility-review.test.ts
+          rm "$file"
+          trap - EXIT
+          echo 'HISTORICAL_COMPARISONS=45 matched complete forecast, command output and four following turn states'
+      - name: Confirm unchanged source and restricted scope after review
         shell: bash
         run: |
           set -euo pipefail
-          python3 <<'PY'
-          import subprocess
-          expected = {'docs/COMBAT.md', 'packages/game-core/src/combat/actions-legacy.ts', 'packages/game-core/src/combat/actions.ts', 'packages/game-core/src/combat/combat-effect-provenance.ts', 'packages/game-core/src/combat/combat-authoring-validation.ts', 'packages/game-core/src/combat/mature-skills.ts', 'packages/game-core/src/combat/pv1f-action-economy.ts', 'apps/web/src/components/character/skill-detail-presentation.ts'}
-          changed = set(subprocess.check_output(['git', 'diff', '--name-only'], text=True).splitlines())
-          assert changed == expected, changed
-          untracked = set(subprocess.check_output(['git', 'ls-files', '--others', '--exclude-standard'], text=True).splitlines())
-          assert untracked == {'packages/game-core/src/combat/combat-status-copy.ts'}, untracked
-          PY
-          git diff --check
-          git diff --exit-code -- packages/game-core/src/combat/combat-status-copy.test.ts packages/game-core/src/combat/combat-status-copy-publication.test.ts apps/web/src/components/character/skill-status-copy-description.test.ts
-          test "$(git ls-remote origin refs/heads/main | cut -f1)" = 3d8a4d25cb897d0f9ce4871c6972e5d7107d68b0
-          test "$(git ls-remote origin refs/heads/agent/combat-effect-taxonomy-rework | cut -f1)" = b7ad993209afe1348c0a14030ee81026eb646dbd
-          test "$(git ls-remote origin refs/heads/agent/combat-k4-active-status-copy-b7ad993 | cut -f1)" = 0152285c38ba56978cbcb591604d9d05e452624f
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add docs/COMBAT.md packages/game-core/src/combat/actions-legacy.ts packages/game-core/src/combat/actions.ts packages/game-core/src/combat/combat-effect-provenance.ts packages/game-core/src/combat/combat-authoring-validation.ts packages/game-core/src/combat/mature-skills.ts packages/game-core/src/combat/pv1f-action-economy.ts packages/game-core/src/combat/combat-status-copy.ts apps/web/src/components/character/skill-detail-presentation.ts
-          git diff --cached --check
-          git commit -m 'feat(combat): copy eligible active statuses with bounded state and K3 lineage'
-          git push origin HEAD:refs/heads/agent/combat-k4-active-status-copy-b7ad993
-          echo "VERIFIED_SOURCE_SHA=$(git rev-parse HEAD)"
-          echo "VERIFIED_SOURCE_TREE=$(git rev-parse HEAD^{tree})"
+          git diff --exit-code 0152285c38ba56978cbcb591604d9d05e452624f HEAD -- packages/game-core/src/combat/combat-status-copy.test.ts packages/game-core/src/combat/combat-status-copy-publication.test.ts apps/web/src/components/character/skill-status-copy-description.test.ts
+          git diff --exit-code b7ad993209afe1348c0a14030ee81026eb646dbd HEAD -- .github pnpm-lock.yaml package.json supabase packages/game-core/src/combat/combat-kernel-types.ts packages/game-core/src/combat/combat-effect-state.ts packages/game-core/src/combat/status-content.ts packages/game-core/src/combat/phase4-roster.ts
+          test "$(git diff --name-only b7ad993209afe1348c0a14030ee81026eb646dbd HEAD | wc -l)" = 12
+          git diff --check b7ad993209afe1348c0a14030ee81026eb646dbd HEAD
           git diff --exit-code
           test -z "$(git status --porcelain)"
+          echo 'REVIEWED_SOURCE=c5523f409922a1956714ccc0a8a62d333296546f'
