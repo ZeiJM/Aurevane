@@ -6,7 +6,7 @@ on:
       - review/burn-copy-fde662e
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   verify:
@@ -15,51 +15,65 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 15cb61ab7f4b308c6c0b93f1dc818522a3869d38
-          fetch-depth: 3
-          persist-credentials: false
+          fetch-depth: 4
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Exact valid test source and locked setup
-        run: |
-          set -eu
-          test "$(git rev-parse HEAD)" = 15cb61ab7f4b308c6c0b93f1dc818522a3869d38
-          test "$(git diff --name-only fde662e38f864dc8797d0dfdd82ba05f3411ad05 HEAD)" = packages/game-core/src/combat/combat-burn-copy.test.ts
-          corepack enable
-          corepack prepare pnpm@11.17.0 --activate
-          pnpm install --frozen-lockfile
-      - name: Verify test quality and prior suite
-        run: |
-          pnpm exec prettier --check packages/game-core/src/combat/combat-burn-copy.test.ts
-          pnpm exec eslint packages/game-core/src/combat/combat-burn-copy.test.ts
-          pnpm --filter @aurevane/game-core typecheck
-          pnpm --filter @aurevane/game-core exec vitest run --exclude '**/combat-burn-copy.test.ts'
-      - name: Execute and classify behavioral RED
+      - name: Pin implementation recipe and exact valid RED source
         shell: bash
         run: |
           set -euo pipefail
-          set +e
-          pnpm --filter @aurevane/game-core exec vitest run --reporter=json --outputFile=/tmp/burn-copy-red.json
-          outcome=$?
-          set -e
-          test "$outcome" -ne 0
+          cp scripts/burn-copy-implementation.py /tmp/burn-copy-implementation.py
+          git fetch --depth=4 origin 15cb61ab7f4b308c6c0b93f1dc818522a3869d38
+          git checkout --detach 15cb61ab7f4b308c6c0b93f1dc818522a3869d38
+          test "$(git rev-parse HEAD)" = 15cb61ab7f4b308c6c0b93f1dc818522a3869d38
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = 3d8a4d25cb897d0f9ce4871c6972e5d7107d68b0
+          test "$(git ls-remote origin refs/heads/agent/combat-effect-taxonomy-rework | cut -f1)" = fde662e38f864dc8797d0dfdd82ba05f3411ad05
+          test "$(git ls-remote origin refs/heads/agent/combat-k4-burn-copy-fde662e | cut -f1)" = 15cb61ab7f4b308c6c0b93f1dc818522a3869d38
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+          pnpm install --frozen-lockfile
+      - name: Implement and format Burn copying
+        run: |
+          python3 /tmp/burn-copy-implementation.py
+          pnpm exec prettier --write packages/game-core/src/combat/combat-effect-state.ts packages/game-core/src/combat/combat-dots.ts packages/game-core/src/combat/actions-legacy.ts packages/game-core/src/combat/combat-authoring-validation.ts packages/game-core/src/combat/combat-status-copy.ts
+          git diff --check
+          git diff --exit-code -- packages/game-core/src/combat/combat-burn-copy.test.ts
+      - name: Focused GREEN verification
+        run: |
+          pnpm --filter @aurevane/game-core typecheck
+          pnpm --filter @aurevane/game-core exec vitest run src/combat/combat-burn-copy.test.ts src/combat/combat-burn-rework.test.ts src/combat/combat-burn-backlash.test.ts src/combat/combat-status-copy.test.ts src/combat/combat-status-copy-publication.test.ts src/combat/combat-poison-copy.test.ts src/combat/combat-copy-provenance.test.ts src/combat/combat-effect-provenance-state.test.ts src/combat/combat-dot-rework.test.ts src/combat/combat-mark-blind.contract.test.ts
+      - name: Full repository verification
+        run: pnpm check
+      - name: Retain only the verified candidate
+        shell: bash
+        run: |
+          set -euo pipefail
           python3 <<'PY'
-          import json
-          from pathlib import Path
-          data = json.loads(Path('/tmp/burn-copy-red.json').read_text())
-          failures = [suite for suite in data['testResults'] if suite['status'] == 'failed']
-          assert failures and all(Path(suite['name']).name == 'combat-burn-copy.test.ts' for suite in failures), [(s['name'], s['status']) for s in failures]
-          assert data['numPassedTests'] >= 1712, data
-          assert data['numFailedTests'] > 0, data
-          print('VALID_RED: prior core suite green; only Burn-copy contract fails')
-          print('passed=', data['numPassedTests'], 'failed=', data['numFailedTests'], 'total=', data['numTotalTests'])
-          for suite in failures:
-              for test in suite['assertionResults']:
-                  if test['status'] == 'failed':
-                      print('RED_ASSERTION:', test['fullName'])
-                      print('\n'.join(test.get('failureMessages', []))[:300])
+          import subprocess
+          expected = {
+            'docs/COMBAT.md',
+            'packages/game-core/src/combat/actions-legacy.ts',
+            'packages/game-core/src/combat/combat-authoring-validation.ts',
+            'packages/game-core/src/combat/combat-dots.ts',
+            'packages/game-core/src/combat/combat-effect-state.ts',
+            'packages/game-core/src/combat/combat-status-copy.ts',
+          }
+          changed = set(subprocess.check_output(['git', 'diff', '--name-only'], text=True).splitlines())
+          assert changed == expected, changed
           PY
           git diff --check
+          git diff --exit-code -- packages/game-core/src/combat/combat-burn-copy.test.ts
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = 3d8a4d25cb897d0f9ce4871c6972e5d7107d68b0
+          test "$(git ls-remote origin refs/heads/agent/combat-effect-taxonomy-rework | cut -f1)" = fde662e38f864dc8797d0dfdd82ba05f3411ad05
+          test "$(git ls-remote origin refs/heads/agent/combat-k4-burn-copy-fde662e | cut -f1)" = 15cb61ab7f4b308c6c0b93f1dc818522a3869d38
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/COMBAT.md packages/game-core/src/combat/actions-legacy.ts packages/game-core/src/combat/combat-authoring-validation.ts packages/game-core/src/combat/combat-dots.ts packages/game-core/src/combat/combat-effect-state.ts packages/game-core/src/combat/combat-status-copy.ts
+          git diff --cached --check
+          git commit -m 'feat(combat): copy Burn stage with pinned reapplication and K3 lineage'
+          git push origin HEAD:refs/heads/agent/combat-k4-burn-copy-fde662e
+          echo "VERIFIED_SOURCE_SHA=$(git rev-parse HEAD)"
+          echo "VERIFIED_SOURCE_TREE=$(git rev-parse HEAD^{tree})"
           git diff --exit-code
           test -z "$(git status --porcelain)"
