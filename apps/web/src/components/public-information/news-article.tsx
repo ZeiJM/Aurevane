@@ -17,11 +17,7 @@ function formatPublicDate(value: string) {
 
 export function NewsArticle({ article }: { article: NewsArticleRecord }) {
   return (
-    <article
-      className={styles.article}
-      data-testid="news-article"
-      data-news-article-surface="ink"
-    >
+    <article className={styles.article} data-testid="news-article" data-news-article-surface="ink">
       <nav className={styles.breadcrumbs} aria-label="News breadcrumb">
         <Link href="/news">All News</Link>
         <span aria-hidden="true">›</span>
