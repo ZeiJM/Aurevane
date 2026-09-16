@@ -8,8 +8,7 @@
   border: 1px solid var(--av-border);
   border-radius: var(--av-radius-md);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.018), transparent 10rem),
-    var(--av-surface-quiet);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.018), transparent 10rem), var(--av-surface-quiet);
   box-shadow: inset 0 1px 0 rgba(212, 186, 130, 0.05);
 }
 .intro {
