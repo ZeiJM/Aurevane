@@ -20,21 +20,42 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Pin implementation recipe and exact valid RED source
+      - name: Pin recipe and exact test-only source
         shell: bash
         run: |
           set -euo pipefail
           cp scripts/active-status-copy-implementation.py /tmp/active-status-copy-implementation.py
-          git fetch --depth=2 origin aa7680cbd5fcfcc799143a8ea8789d4aca1c6f65
-          git checkout --detach aa7680cbd5fcfcc799143a8ea8789d4aca1c6f65
-          test "$(git rev-parse HEAD)" = aa7680cbd5fcfcc799143a8ea8789d4aca1c6f65
+          git fetch --depth=3 origin 0152285c38ba56978cbcb591604d9d05e452624f
+          git checkout --detach 0152285c38ba56978cbcb591604d9d05e452624f
+          test "$(git rev-parse HEAD)" = 0152285c38ba56978cbcb591604d9d05e452624f
           test "$(git ls-remote origin refs/heads/main | cut -f1)" = 3d8a4d25cb897d0f9ce4871c6972e5d7107d68b0
           test "$(git ls-remote origin refs/heads/agent/combat-effect-taxonomy-rework | cut -f1)" = b7ad993209afe1348c0a14030ee81026eb646dbd
-          test "$(git ls-remote origin refs/heads/agent/combat-k4-active-status-copy-b7ad993 | cut -f1)" = aa7680cbd5fcfcc799143a8ea8789d4aca1c6f65
+          test "$(git ls-remote origin refs/heads/agent/combat-k4-active-status-copy-b7ad993 | cut -f1)" = 0152285c38ba56978cbcb591604d9d05e452624f
           corepack enable
           corepack prepare pnpm@11.17.0 --activate
           pnpm install --frozen-lockfile
-      - name: Implement the proven missing status-copy contract
+      - name: Prove additional description tests fail for missing behavior
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm exec prettier --check apps/web/src/components/character/skill-status-copy-description.test.ts
+          pnpm --filter @aurevane/web exec eslint src/components/character/skill-status-copy-description.test.ts
+          set +e
+          pnpm --filter @aurevane/web exec vitest run src/components/character/skill-status-copy-description.test.ts --reporter=json --outputFile=/tmp/copy-description-red.json
+          outcome=$?
+          set -e
+          test "$outcome" -ne 0
+          python3 <<'PY'
+          import json
+          from pathlib import Path
+          data = json.loads(Path('/tmp/copy-description-red.json').read_text())
+          assert data['numTotalTests'] == 2 and data['numFailedTests'] == 2, data
+          print('DESCRIPTION_RED: both new directional description expectations fail on undefined output')
+          for suite in data['testResults']:
+              for test in suite['assertionResults']:
+                  print(test['fullName'], '\n'.join(test.get('failureMessages', []))[:250])
+          PY
+      - name: Implement copying with explicit repeat-use and description handling
         shell: bash
         run: |
           set -euo pipefail
@@ -45,41 +66,65 @@ jobs:
           text = path.read_text()
           old = '    const stacks = Math.floor(effect.stacks / 2)'
           assert text.count(old) == 1
-          text = text.replace(old, """    if (effect.type === 'copy-statuses') {
+          path.write_text(text.replace(old, """    if (effect.type === 'copy-statuses') {
                 throw new TypeError('effects.status-copy-staged: repeat-use copying is not yet supported.')
               }
-          """ + old)
-          path.write_text(text)
+          """ + old))
+          path = Path('apps/web/src/components/character/skill-detail-presentation.ts')
+          text = path.read_text()
+          old = "    case 'remove-status':"
+          assert text.count(old) == 1
+          path.write_text(text.replace(old, """    case 'copy-statuses':
+                return effect.mode === 'amplify'
+                  ? 'Copy eligible positive active statuses from the selected unit onto yourself. The selected unit keeps its statuses; copied stacks respect caps and remaining durations are not restarted.'
+                  : 'Copy eligible negative active statuses from yourself onto the selected unit. You keep the original statuses; copied stacks respect caps and remaining durations are not restarted.'
+          """ + old))
           PY
-          pnpm exec prettier --write packages/game-core/src/combat/combat-status-copy.ts packages/game-core/src/combat/actions-legacy.ts packages/game-core/src/combat/actions.ts packages/game-core/src/combat/combat-effect-provenance.ts packages/game-core/src/combat/combat-authoring-validation.ts packages/game-core/src/combat/mature-skills.ts packages/game-core/src/combat/pv1f-action-economy.ts
+          pnpm exec prettier --write packages/game-core/src/combat/combat-status-copy.ts packages/game-core/src/combat/actions-legacy.ts packages/game-core/src/combat/actions.ts packages/game-core/src/combat/combat-effect-provenance.ts packages/game-core/src/combat/combat-authoring-validation.ts packages/game-core/src/combat/mature-skills.ts packages/game-core/src/combat/pv1f-action-economy.ts apps/web/src/components/character/skill-detail-presentation.ts
           git diff --check
-          git diff --exit-code -- packages/game-core/src/combat/combat-status-copy.test.ts packages/game-core/src/combat/combat-status-copy-publication.test.ts
+          git diff --exit-code -- packages/game-core/src/combat/combat-status-copy.test.ts packages/game-core/src/combat/combat-status-copy-publication.test.ts apps/web/src/components/character/skill-status-copy-description.test.ts
       - name: Typecheck and focused behavioral verification
         run: |
           pnpm --filter @aurevane/game-core typecheck
           pnpm --filter @aurevane/game-core exec vitest run src/combat/combat-status-copy.test.ts src/combat/combat-status-copy-publication.test.ts src/combat/combat-copy-provenance.test.ts src/combat/combat-mark-blind.contract.test.ts src/combat/combat-reflect.test.ts src/combat/combat-absorb-hp.test.ts src/combat/combat-absorb-mp.test.ts src/combat/combat-effect-provenance.test.ts src/combat/combat-effect-provenance-state.test.ts src/combat/combat-skill-accuracy.test.ts src/combat/actions.test.ts src/combat/mature-skills.test.ts src/combat/pv1f-action-economy.test.ts src/combat/mature-skill-lifecycle.test.ts
+          pnpm --filter @aurevane/web exec vitest run src/components/character/skill-status-copy-description.test.ts src/components/character/skill-detail-presentation.test.ts
       - name: Full repository check
-        run: pnpm check
-      - name: Retain verified source only after protected-ref freshness checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! pnpm check > /tmp/status-copy-quality.log 2>&1; then
+            tail -n 160 /tmp/status-copy-quality.log
+            exit 1
+          fi
+          python3 <<'PY'
+          import re
+          from pathlib import Path
+          text = re.sub(r'\x1b\[[0-9;]*m', '', Path('/tmp/status-copy-quality.log').read_text())
+          for line in text.splitlines():
+              if any(term in line for term in ['Test Files', 'Tests ', 'Tasks:', 'Compiled successfully', 'All matched files', 'ℹ tests', 'ℹ pass', 'ℹ fail']):
+                  print(line)
+          print('FULL_PNPM_CHECK_EXIT=0: formatting, lint, all workspace typechecks, tests and production build')
+          PY
+      - name: Retain verified source only after fresh refs and source checks
         shell: bash
         run: |
           set -euo pipefail
           python3 <<'PY'
           import subprocess
-          expected = {'docs/COMBAT.md', 'packages/game-core/src/combat/actions-legacy.ts', 'packages/game-core/src/combat/actions.ts', 'packages/game-core/src/combat/combat-effect-provenance.ts', 'packages/game-core/src/combat/combat-authoring-validation.ts', 'packages/game-core/src/combat/mature-skills.ts', 'packages/game-core/src/combat/pv1f-action-economy.ts'}
+          expected = {'docs/COMBAT.md', 'packages/game-core/src/combat/actions-legacy.ts', 'packages/game-core/src/combat/actions.ts', 'packages/game-core/src/combat/combat-effect-provenance.ts', 'packages/game-core/src/combat/combat-authoring-validation.ts', 'packages/game-core/src/combat/mature-skills.ts', 'packages/game-core/src/combat/pv1f-action-economy.ts', 'apps/web/src/components/character/skill-detail-presentation.ts'}
           changed = set(subprocess.check_output(['git', 'diff', '--name-only'], text=True).splitlines())
           assert changed == expected, changed
           untracked = set(subprocess.check_output(['git', 'ls-files', '--others', '--exclude-standard'], text=True).splitlines())
           assert untracked == {'packages/game-core/src/combat/combat-status-copy.ts'}, untracked
           PY
           git diff --check
-          git diff --exit-code -- packages/game-core/src/combat/combat-status-copy.test.ts packages/game-core/src/combat/combat-status-copy-publication.test.ts
+          git diff --exit-code -- packages/game-core/src/combat/combat-status-copy.test.ts packages/game-core/src/combat/combat-status-copy-publication.test.ts apps/web/src/components/character/skill-status-copy-description.test.ts
           test "$(git ls-remote origin refs/heads/main | cut -f1)" = 3d8a4d25cb897d0f9ce4871c6972e5d7107d68b0
           test "$(git ls-remote origin refs/heads/agent/combat-effect-taxonomy-rework | cut -f1)" = b7ad993209afe1348c0a14030ee81026eb646dbd
-          test "$(git ls-remote origin refs/heads/agent/combat-k4-active-status-copy-b7ad993 | cut -f1)" = aa7680cbd5fcfcc799143a8ea8789d4aca1c6f65
+          test "$(git ls-remote origin refs/heads/agent/combat-k4-active-status-copy-b7ad993 | cut -f1)" = 0152285c38ba56978cbcb591604d9d05e452624f
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add docs/COMBAT.md packages/game-core/src/combat/actions-legacy.ts packages/game-core/src/combat/actions.ts packages/game-core/src/combat/combat-effect-provenance.ts packages/game-core/src/combat/combat-authoring-validation.ts packages/game-core/src/combat/mature-skills.ts packages/game-core/src/combat/pv1f-action-economy.ts packages/game-core/src/combat/combat-status-copy.ts
+          git add docs/COMBAT.md packages/game-core/src/combat/actions-legacy.ts packages/game-core/src/combat/actions.ts packages/game-core/src/combat/combat-effect-provenance.ts packages/game-core/src/combat/combat-authoring-validation.ts packages/game-core/src/combat/mature-skills.ts packages/game-core/src/combat/pv1f-action-economy.ts packages/game-core/src/combat/combat-status-copy.ts apps/web/src/components/character/skill-detail-presentation.ts
           git diff --cached --check
           git commit -m 'feat(combat): copy eligible active statuses with bounded state and K3 lineage'
           git push origin HEAD:refs/heads/agent/combat-k4-active-status-copy-b7ad993
