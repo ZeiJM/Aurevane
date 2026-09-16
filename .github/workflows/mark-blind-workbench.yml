@@ -42,6 +42,17 @@ jobs:
           for old, new in corrections:
               assert s.count(old) == 1
               s = s.replace(old, new)
+          expiry_lines = [line for line in s.splitlines() if line.startswith("replace('actions-legacy.ts', \"      events.push({ event: 'status_expired'")]
+          assert len(expiry_lines) == 1
+          s = s.replace(expiry_lines[0], '''p = ROOT / 'actions-legacy.ts'
+          s = p.read_text()
+          begin = s.index('function expireOwnerTurnStartStatuses(')
+          end = s.index('function removeStatuses(', begin)
+          segment = s[begin:end]
+          old = "events.push({ event: 'status_expired', combatantId, statusId: status.statusId })"
+          new = "events.push({ event: 'status_expired', combatantId, statusId: status.statusId, ...(status.sourceScopedMark === true ? { sourceCombatantId: status.sourceCombatantId } : {}) })"
+          assert segment.count(old) == 1
+          p.write_text(s[:begin] + segment.replace(old, new) + s[end:])''')
           p.write_text(s)
           PY
           python3 /tmp/mark-blind-green.py
