@@ -11,74 +11,55 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 42046848fb84b76ddd88705542032c2809df24a1
-          fetch-depth: 2
+          ref: 9a2b8184384d20212ad721209b0f058ed26670d1
+          fetch-depth: 3
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Exact source, protected refs and locked setup
+      - name: Correct table-driven malformed-array fixture and classify RED
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = 42046848fb84b76ddd88705542032c2809df24a1
-          test "$(git ls-remote origin refs/heads/main | cut -f1)" = 3d8a4d25cb897d0f9ce4871c6972e5d7107d68b0
-          test "$(git ls-remote origin refs/heads/agent/combat-effect-taxonomy-rework | cut -f1)" = 40da86aec7ef7354ec86078c1eae9e1eb83a952c
+          test "$(git rev-parse HEAD)" = 9a2b8184384d20212ad721209b0f058ed26670d1
           corepack enable
           corepack prepare pnpm@11.17.0 --activate
           pnpm install --frozen-lockfile
-      - name: Prepare test-only runtime-negative boundaries and verify baseline
-        shell: bash
-        run: |
-          set -euo pipefail
           python3 <<'PY'
           from pathlib import Path
           path = Path('packages/game-core/src/combat/combat-poison-copy.test.ts')
           text = path.read_text()
-          old = "return { ...action(), id: 'test.poison', cost: { spendsAction: false, mp: 0 }, effects: [effect] }"
-          assert text.count(old) == 1
-          text = text.replace(old, old + ' as unknown as CombatActionDefinition')
-          old = 'const changed: CombatEncounterState = { ...state, effectState: { ...state.effectState!,\n      poison: state.effectState!.poison.map((entry) => ({ ...entry, curseCopyable: flag })) } }'
-          assert text.count(old) == 1
-          text = text.replace(old, old.replace('const changed: CombatEncounterState', 'const changed') + ' as unknown as CombatEncounterState')
-          path.write_text(text)
+          assert text.count('it.each(malformed)') == 2
+          path.write_text(text.replace('it.each(malformed)', 'it.each(malformed.map((flag) => [flag]))'))
           PY
           pnpm exec prettier --write packages/game-core/src/combat/combat-poison-copy.test.ts
           pnpm exec eslint packages/game-core/src/combat/combat-poison-copy.test.ts
           pnpm --filter @aurevane/game-core typecheck
-          pnpm --filter @aurevane/game-core exec vitest run --exclude '**/combat-poison-copy.test.ts' > /tmp/poison-baseline.log 2>&1
-          tail -n 7 /tmp/poison-baseline.log
-      - name: Execute and classify RED before any production change
-        shell: bash
-        run: |
-          set -euo pipefail
           set +e
-          pnpm --filter @aurevane/game-core exec vitest run --reporter=json --outputFile=/tmp/poison-copy-red.json > /tmp/poison-copy-red.log 2>&1
+          pnpm --filter @aurevane/game-core exec vitest run --reporter=json --outputFile=/tmp/red.json > /tmp/red.log 2>&1
           outcome=$?
           set -e
           test "$outcome" -ne 0
           python3 <<'PY'
           import json
           from pathlib import Path
-          data = json.loads(Path('/tmp/poison-copy-red.json').read_text())
+          data = json.loads(Path('/tmp/red.json').read_text())
           failures = [suite for suite in data['testResults'] if suite['status'] == 'failed']
           assert len(failures) == 1 and failures[0]['name'].endswith('/combat-poison-copy.test.ts')
           assert data['numPassedTests'] >= 1650 and data['numFailedTests'] > 0
-          print('VALID_RED: all 1650 prior tests remain green; only new Poison copy contract fails')
-          print('passed=', data['numPassedTests'], 'failed=', data['numFailedTests'], 'total=', data['numTotalTests'])
+          print('VALID_RED:', data['numPassedTests'], 'passed;', data['numFailedTests'], 'failed;', data['numTotalTests'], 'total')
           for test in failures[0]['assertionResults']:
               if test['status'] == 'failed':
-                  print('RED_ASSERTION:', test['fullName'])
-                  print('\n'.join(test.get('failureMessages', []))[:200])
+                  print(test['fullName'], '\n'.join(test.get('failureMessages', []))[:170])
           PY
           test "$(git diff --name-only)" = packages/game-core/src/combat/combat-poison-copy.test.ts
           git diff --check
           test "$(git ls-remote origin refs/heads/main | cut -f1)" = 3d8a4d25cb897d0f9ce4871c6972e5d7107d68b0
           test "$(git ls-remote origin refs/heads/agent/combat-effect-taxonomy-rework | cut -f1)" = 40da86aec7ef7354ec86078c1eae9e1eb83a952c
-          test "$(git ls-remote origin refs/heads/agent/combat-k4-poison-copy-40da86a | cut -f1)" = 42046848fb84b76ddd88705542032c2809df24a1
+          test "$(git ls-remote origin refs/heads/agent/combat-k4-poison-copy-40da86a | cut -f1)" = 9a2b8184384d20212ad721209b0f058ed26670d1
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add packages/game-core/src/combat/combat-poison-copy.test.ts
-          git commit -m 'test(combat): verify formatted Poison copy RED and runtime-negative input guards'
+          git commit -m 'test(combat): retain malformed arrays in Poison copy contract inputs'
           git push origin HEAD:refs/heads/agent/combat-k4-poison-copy-40da86a
           echo "VALID_RED_SOURCE=$(git rev-parse HEAD)"
           git diff --exit-code
