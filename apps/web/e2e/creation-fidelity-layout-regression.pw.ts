@@ -50,10 +50,7 @@ test('Creation keeps the desktop portrait gallery and selected preview in delibe
     const minimumPreviewWidth = size.height <= 800 ? 208 : 280
 
     expect
-      .soft(
-        metrics.previewWidth,
-        `${label}: preview remains a substantial desktop focal point`,
-      )
+      .soft(metrics.previewWidth, `${label}: preview remains a substantial desktop focal point`)
       .toBeGreaterThanOrEqual(minimumPreviewWidth)
     expect
       .soft(
