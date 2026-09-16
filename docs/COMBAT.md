@@ -481,13 +481,11 @@ An optional `CombatResolutionContext` carries immutable command provenance and t
 
 Historical snapshots may omit K3 provenance. Omitted provenance remains valid; if provenance is present, it is validated fail-closed. K3 does not alter damage values, AP/MP costs, targeting, accuracy, DoT values, durations, published content, or battle UX, and it does not by itself implement Barrier, Reflect, Absorb, lifesteal, redirect/interception, or other K4 mechanics. Those mechanics must consume this shared versioned pipeline and provenance model rather than create competing resolver or provenance paths.
 
-
 ## Current Mark and Blind accuracy kernel (staged; not published)
 
 Following the approved September 12 reactive-effects design, new status definitions may opt into
 `markAccuracyBonusBasisPoints` or `blindAccuracyPenaltyBasisPoints`. The baseline is 1500 basis
-points (15 percentage points); this first authoring policy accepts integer magnitudes from 1 to
-3000. They are separate, single-stack, negative, ordinary accuracy statuses. Other status behaviors
+points (15 percentage points); this first authoring policy accepts integer magnitudes from 1 to 3000. They are separate, single-stack, negative, ordinary accuracy statuses. Other status behaviors
 must remain separate definitions so source-specific Mark instances cannot multiply unrelated effects.
 
 Current Mark instances use optional `sourceScopedMark: true` in the existing status-state rows.
@@ -582,3 +580,23 @@ records the immediate donor in `copiedFromInstanceId`, and records a replaced re
 `inheritedFromInstanceId`. Without K3 context no donor provenance is silently reused. Amplify never
 copies Poison in this slice. Burn/Bleed typed state, repeat-use/publication, AI and broader copying
 remain separate gates; no published Skill is activated here.
+
+## Curse Burn copy state (staged typed-effect extension)
+
+Current Burn authoring may explicitly set `curseCopyable: true | false`. The optional policy is
+persisted with the Burn instance; omitted historical Burn remains valid and non-copyable, and
+malformed authoring or saved values fail closed. Normal Burn reapplication continues to replace the
+single current Burn and restart at stage 0, including replacing an earlier copy-policy value.
+
+A pure single-unit Curse can copy an explicitly eligible Burn from caster to target while leaving the
+donor unchanged. When the target is not already burning, the copied Burn preserves the donor's exact
+current stage in the 4→3→2 sequence. If the target already has Burn, normal pinned reapplication rules
+win: the target Burn is replaced and restarts at stage 0. The new instance rebinds source combatant
+and source action to Curse and remains explicitly copyable. Copying Burn causes no immediate damage
+or backlash; normal end-turn Burn ticks, cleanse and damaging-command backlash apply afterward.
+
+K3 assigns Burn after ordinary status copies and Poison in the shared deterministic copy ordinal
+sequence. `copiedFromInstanceId` names the immediate donor Burn; replacing an existing target Burn
+uses `inheritedFromInstanceId` when that instance had provenance. No-context execution does not reuse
+or invent donor provenance. Amplify never copies Burn in this slice. Bleed typed-state copying,
+repeat-use/publication, AI and broader copying remain separate gates; no published Skill is activated.
