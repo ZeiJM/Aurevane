@@ -2,11 +2,7 @@ import { notFound } from 'next/navigation'
 
 import { NewsArticle as NewsArticleView } from '@/components/public-information/news-article'
 import { PublicInformationShell } from '@/components/public-information/public-information-shell'
-import {
-  findNewsArticle,
-  newsArticles,
-  type NewsArticle as NewsArticleRecord,
-} from '@/content/public-information'
+import { findNewsArticle, type NewsArticle as NewsArticleRecord } from '@/content/public-information'
 
 const NEWS_ARTICLE_LAYOUT_PREVIEW: NewsArticleRecord = {
   id: 'news.layout-preview',
@@ -33,10 +29,6 @@ const NEWS_ARTICLE_LAYOUT_PREVIEW: NewsArticleRecord = {
       ],
     },
   ],
-}
-
-export function generateStaticParams() {
-  return newsArticles.map((article) => ({ slug: article.slug }))
 }
 
 export default async function NewsArticlePage({ params }: { params: Promise<{ slug: string }> }) {
