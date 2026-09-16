@@ -3,16 +3,17 @@ on:
   push:
     branches: [agent/reflect-lifecycle-workbench-20260915]
 permissions:
-  contents: write
+  contents: read
 jobs:
-  lifecycle-green:
+  final-boundaries:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: df825910e89d64f46c22d7d6c2d1b7c69d41b8f5
-          fetch-depth: 8
+          ref: ded3a8b11060760486a8972cf4209ac2a8f2dd17
+          fetch-depth: 10
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -21,191 +22,122 @@ jobs:
           corepack enable
           corepack prepare pnpm@11.17.0 --activate
           pnpm install --frozen-lockfile
-      - name: Preserve and re-prove the exact lifecycle RED tests
+      - name: Differential normal turns and full Reflect boundary review
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = df825910e89d64f46c22d7d6c2d1b7c69d41b8f5
-          git fetch --no-tags origin ea1d100ad522fb594e99178f5dd7755c4fff6245
+          test "$(git rev-parse HEAD)" = ded3a8b11060760486a8972cf4209ac2a8f2dd17
+          test "$(git rev-parse HEAD^{tree})" = 54813341e63028217d0181a6151c64d6269d49b4
+          git fetch --no-tags origin 73a7fff80e39527f839cbd7b0e960bb1c9c8650f
           python3 - <<'PY'
           from pathlib import Path
           import subprocess,textwrap
-          workflow=subprocess.check_output(['git','show','ea1d100ad522fb594e99178f5dd7755c4fff6245:.github/workflows/reflect-lifecycle-review.yml'],text=True)
-          marker='          cat >> "$file" <<\'TEST\'\n'
-          assert workflow.count(marker)==1
-          tests=textwrap.dedent(workflow.split(marker)[1].split('          TEST\n')[0])
-          p=Path('packages/game-core/src/combat/combat-reflect.test.ts')
-          p.write_text(p.read_text()+tests)
-          PY
-          pnpm exec prettier --write packages/game-core/src/combat/combat-reflect.test.ts
-          pnpm --filter @aurevane/game-core typecheck
-          pnpm exec eslint packages/game-core/src/combat/combat-reflect.test.ts
-          set +e
-          pnpm --filter @aurevane/game-core exec vitest run --reporter=json --outputFile=/tmp/lifecycle-red.json >/tmp/lifecycle-red.log 2>&1
-          code=$?
-          set -e
-          test "$code" -ne 0
-          python3 - <<'PY'
-          import json,re
-          r=json.load(open('/tmp/lifecycle-red.json'))
-          failed=[]
-          for s in r['testResults']:
-              for t in s['assertionResults']:
-                  if t['status']!='failed': continue
-                  msg='\n'.join(t.get('failureMessages',[]))
-                  assert 'Reflect successor lifecycle regression' in t['fullName'] and 'AssertionError:' in msg, (t['fullName'],msg)
-                  failed.append(t)
-                  print('EXPECTED RED',t['fullName'],re.sub(r'\x1b\[[0-9;]*m','',msg).split('\n')[0])
-          assert len(failed)==4 and r['numPassedTests']==1374 and r['numTotalTests']==1378, r
-          print('VALID_LIFECYCLE_RED 4 failures; 1374 passing')
-          PY
-          test "$(git diff --name-only)" = packages/game-core/src/combat/combat-reflect.test.ts
-          git diff --check
-          git config user.name 'Nicholas JM'
-          git config user.email '283436098+ZeiJM@users.noreply.github.com'
-          git add -- packages/game-core/src/combat/combat-reflect.test.ts
-          git commit -m 'test(combat): guard Reflect successor status and round upkeep'
-          git rev-parse HEAD > /tmp/lifecycle-red-sha
-      - name: Reuse encounter turn and round upkeep for Reflect defeat
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          import subprocess
           root=Path('packages/game-core/src/combat')
-          for name,sha in {'actions-legacy.ts':'deed3d55195757ec761e3c25cc1242079f132573','combat-reflect.ts':'33aacea327b0'}.items():
-              actual=subprocess.check_output(['git','rev-parse',f'HEAD:{root/name}'],text=True).strip()
-              if name=='actions-legacy.ts': assert actual==sha,(name,actual)
-          p=root/'actions-legacy.ts'
-          text=p.read_text()
-          assert 'function defeatCombatActionActor(' not in text
-          assert 'function collectNextRoundInitiativeModifiers(' not in text
-          assert 'function applyCombatRoundBoundary(' not in text
-          a=text.index('  const roundModifiers = state.statusState.flatMap(')
-          b=text.index('  const outgoingId',a)
-          modifier_body=text[a:b].replace('  const roundModifiers = ','  return ',1)
-          text=text[:a]+'  const roundModifiers = collectNextRoundInitiativeModifiers(state, content)\n'+text[b:]
-          a=text.index('  if (ended.state.round !== state.tactical.battle.round) {')
-          b=text.index('  // Resolve the outgoing unit',a)
-          block=text[a:b].splitlines()
-          assert block[-1]=='  }',block[-1]
-          inner='\n'.join(line[2:] for line in block[1:-1])+'\n'
-          text=text[:a]+'''  const boundary = applyCombatRoundBoundary(nextState, state.tactical.battle.round, content)
-            nextState = boundary.state
-            events.push(...boundary.events)
-          '''+text[b:]
-          helpers='''/** Encounter upkeep for a reaction knockout; the defeated actor receives no extra periodic tick. */
-          export function defeatCombatActionActor(
-            state: CombatEncounterState,
-            actorId: string,
-            content: CombatContentCatalog,
-          ): CombatResolutionTransition {
-            const defeated = defeatCurrentCombatant(
-              state.tactical.battle,
-              actorId,
-              collectNextRoundInitiativeModifiers(state, content),
-            )
-            const boundary = applyCombatRoundBoundary(
-              withBattle(state, defeated.state), state.tactical.battle.round, content,
-            )
-            const successorId = boundary.state.tactical.battle.currentTurn?.combatantId
-            const successor = successorId
-              ? expireOwnerTurnStartStatuses(boundary.state, successorId, content)
-              : { state: boundary.state, events: [] }
-            return {
-              state: successor.state,
-              events: [...defeated.events, ...boundary.events, ...successor.events],
+          tests=root/'combat-reflect.test.ts'
+          legacy=root/'actions-legacy.ts'
+          saved_tests=tests.read_bytes()
+          saved_legacy=legacy.read_bytes()
+          before=subprocess.check_output(['git','show','df825910e89d64f46c22d7d6c2d1b7c69d41b8f5:packages/game-core/src/combat/actions-legacy.ts'],text=True)
+          start=before.index('export function endCombatTurn(')
+          end=before.index('\nexport function resolveTargetShapeTiles(',start)
+          baseline=before[start:end].replace('export function endCombatTurn(', 'export function reviewBaselineEndCombatTurn(',1)
+          workflow=subprocess.check_output(['git','show','73a7fff80e39527f839cbd7b0e960bb1c9c8650f:.github/workflows/reflect-workbench.yml'],text=True)
+          marker="          additions = '''\n"
+          assert workflow.count(marker)==1
+          old_review=textwrap.dedent(workflow.split(marker)[1].split("          '''\n")[0])
+          additions='''
+          import { reviewBaselineEndCombatTurn } from './actions-legacy'
+
+          const turnVectors = [false, true].flatMap((wraps) =>
+            [-20, 20].flatMap((tempoAmount) =>
+              ['none', 'damage', 'healing'].flatMap((periodicKind) =>
+                [1, 2].map((duration) => ({ wraps, tempoAmount, periodicKind, duration })))))
+          it.each(turnVectors)('review unchanged ordinary turn %j', ({ wraps, tempoAmount, periodicKind, duration }) => {
+            let initial = wraps ? roundEndReflectEncounter() : encounter({ actorHp: 3, allyWitness: true })
+            const tempo: CombatStatusDefinition = {
+              id: 'review.tempo', version: 1, maximumStacks: 1, durationOwnerTurnStarts: 2,
+              damageTakenMultiplierBasisPoints: 10_000, nextRoundInitiative: tempoAmount,
             }
-          }
-
-          function collectNextRoundInitiativeModifiers(
-            state: CombatEncounterState,
-            content: CombatContentCatalog,
-          ): NonNullable<BattleState['roundInitiativeModifiers']> {
-          '''+modifier_body+''' }
-
-          function applyCombatRoundBoundary(
-            state: CombatEncounterState,
-            previousRound: number,
-            content: CombatContentCatalog,
-          ): CombatResolutionTransition {
-            if (state.tactical.battle.round === previousRound) return { state, events: [] }
-            let nextState = state
-            const events: CombatResolutionEvent[] = []
-          '''+inner+'''  return { state: nextState, events }
-          }
-
+            const periodic: CombatStatusDefinition = {
+              id: 'review.periodic', version: 1, maximumStacks: 1, durationOwnerTurnStarts: 2,
+              damageTakenMultiplierBasisPoints: 10_000,
+              ...(periodicKind === 'damage' ? { endOfTurn: { type: 'damage' as const, amount: 1 } }
+                : periodicKind === 'healing' ? { endOfTurn: { type: 'healing' as const, amount: 4 } } : {}),
+            }
+            const content = { statuses: [REFLECT, tempo, periodic] }
+            initial.statusState = initial.statusState.map((row) => ({
+              ...row,
+              statuses: row.combatantId === 'target' ? row.statuses.map((status) => ({ ...status, remainingOwnerTurnStarts: duration }))
+                : [{ statusId: row.combatantId === 'witness' ? tempo.id : periodic.id, statusVersion: 1,
+                    stacks: 1, remainingOwnerTurnStarts: duration, sourceCombatantId: row.combatantId }],
+            }))
+            initial = setTerrainOverlay(initial, { x: 0, y: 0 }, 'frozen', 'actor', 'review.terrain').state
+            initial = { ...initial, tactical: selectCurrentFinalFacing(initial.tactical, 'east').state }
+            const snapshot = JSON.stringify(initial)
+            const baseline = reviewBaselineEndCombatTurn(initial, content)
+            const current = legacy.endCombatTurn(initial, content)
+            expect(current).toEqual(baseline)
+            expect(validateCombatEncounterState(current.state)).toEqual([])
+            expect(JSON.stringify(initial)).toBe(snapshot)
+          })
+          it('review no outgoing periodic tick is replayed after Reflect defeats the actor', () => {
+            const periodic: CombatStatusDefinition = {
+              id: 'review.dead-periodic', version: 1, maximumStacks: 1, durationOwnerTurnStarts: 2,
+              damageTakenMultiplierBasisPoints: 10_000, endOfTurn: { type: 'healing', amount: 50 },
+            }
+            const result = cast(encounter({ actorHp: 3, allyWitness: true, actorStatuses: [periodic] }), hit(), [REFLECT, periodic])
+            expect(unit(result, 'actor').hp).toBe(0)
+            expect(result.events.filter((event) => event.event === 'healing_applied')).toEqual([])
+            expect(result.events.filter((event) => event.event === 'damage_applied')).toHaveLength(2)
+            expect(result.state.tactical.battle.currentTurn?.combatantId).toBe('target')
+          })
+          it('review terminal Reflect does not start a successor status clock or round', () => {
+            const initial = encounter({ actorHp: 3, duel: true })
+            const result = cast(initial)
+            expect(result.state.tactical.battle.currentTurn).toBeNull()
+            expect(result.events.filter((event) => ['turn_started', 'round_started', 'status_expired'].includes(event.event))).toEqual([])
+            expect(result.state.statusState).toEqual(initial.statusState)
+          })
+          it('review non-wrapping Reflect defeat leaves queued tempo and terrain for their real boundary', () => {
+            const tempo: CombatStatusDefinition = {
+              id: 'review.queued-tempo', version: 1, maximumStacks: 1, durationOwnerTurnStarts: 2,
+              damageTakenMultiplierBasisPoints: 10_000, nextRoundInitiative: 20,
+            }
+            let initial = encounter({ actorHp: 3, allyWitness: true })
+            initial.statusState = initial.statusState.map((row) => row.combatantId !== 'witness' ? row : {
+              ...row, statuses: [{ statusId: tempo.id, statusVersion: 1, stacks: 1, remainingOwnerTurnStarts: 2, sourceCombatantId: 'witness' }],
+            })
+            initial = setTerrainOverlay(initial, { x: 0, y: 0 }, 'frozen', 'actor', 'review.queued-terrain').state
+            const result = cast(initial, hit(), [REFLECT, tempo])
+            expect(result.state.tactical.battle.round).toBe(1)
+            expect(result.state.tactical.battle.currentTurn?.combatantId).toBe('target')
+            expect(result.state.statusState.find((row) => row.combatantId === 'witness')).toEqual(initial.statusState.find((row) => row.combatantId === 'witness'))
+            expect(terrainOverlayAt(result.state, { x: 0, y: 0 })?.remainingRoundBoundaries).toBe(2)
+            expect(result.events.filter((event) => event.event === 'status_expired')).toEqual([])
+          })
           '''
-          point=text.index('export function endCombatTurn(')
-          text=text[:point]+helpers+text[point:]
-          p.write_text(text)
-          p=root/'combat-reflect.ts'
-          text=p.read_text()
-          old="import { removeGameplayTags } from './actions-legacy'\nimport { defeatCurrentCombatant } from './battle-state'"
-          assert text.count(old)==1
-          text=text.replace(old,"import { defeatCombatActionActor, removeGameplayTags } from './actions-legacy'")
-          a=text.index('    // Reuse the established defeat/turn transition;')
-          b=text.index('    const revealed = ',a)
-          text=text[:a]+'''    // Run encounter upkeep as well as selecting the next living combatant.
-              const defeated = hpAfter === 0 ? defeatCombatActionActor(nextState, attacker.id, content) : null
-              nextState = defeated?.state ?? clearDefeatedRecovery({
-                ...nextState,
-                tactical: createTacticalBattleState({
-                  ...nextState.tactical,
-                  battle: {
-                    ...nextState.tactical.battle,
-                    combatants: nextState.tactical.battle.combatants.map((unit) =>
-                      unit.id === attacker.id ? { ...unit, hp: hpAfter } : unit,
-                    ),
-                  },
-                }),
-              })
-          '''+text[b:]
-          p.write_text(text)
-          doc=Path('docs/COMBAT.md')
-          text=doc.read_text()
-          marker='This is a kernel primitive, not a published roster or balance change.'
-          assert text.count(marker)==1
-          text=text.replace(marker,"When Reflect defeats the current actor but the battle continues, the successor receives normal owner-turn-start status expiration. A crossed round applies and consumes scheduled tempo and advances temporary terrain exactly once, using the same upkeep as normal turn endings. The defeated actor's ordinary periodic damage/recovery is not replayed.\n\n"+marker)
-          doc.write_text(text)
+          try:
+              legacy.write_bytes(saved_legacy+b'\n'+baseline.encode())
+              tests.write_bytes(saved_tests+b'\n'+old_review.encode()+additions.encode())
+              subprocess.run(['pnpm','--filter','@aurevane/game-core','typecheck'],check=True)
+              subprocess.run(['pnpm','--filter','@aurevane/game-core','exec','vitest','run',
+                'src/combat/combat-reflect.test.ts','src/combat/combat-absorb-mp.test.ts',
+                'src/combat/combat-absorb-hp.test.ts','src/combat/combat-absorb-hp-command.test.ts',
+                'src/combat/combat-barrier.test.ts','src/combat/combat-damage-history-runtime.test.ts',
+                'src/combat/combat-resolution-provenance.test.ts','src/combat/combat-burn-backlash.test.ts',
+                'src/combat/combat-dot-rework.test.ts'],check=True)
+          finally:
+              legacy.write_bytes(saved_legacy)
+              tests.write_bytes(saved_tests)
           PY
-          pnpm exec prettier --write packages/game-core/src/combat/actions-legacy.ts packages/game-core/src/combat/combat-reflect.ts docs/COMBAT.md
-          git diff --check
-      - name: Focused and full repository GREEN
-        shell: bash
-        run: |
-          set -euo pipefail
-          pnpm --filter @aurevane/game-core exec vitest run src/combat/combat-reflect.test.ts src/combat/combat-absorb-mp.test.ts src/combat/combat-absorb-hp.test.ts src/combat/combat-absorb-hp-command.test.ts src/combat/combat-barrier.test.ts src/combat/combat-damage-history-runtime.test.ts src/combat/combat-resolution-provenance.test.ts src/combat/combat-burn-backlash.test.ts src/combat/combat-dot-rework.test.ts
-          pnpm --filter @aurevane/game-core typecheck
-          if ! pnpm check > /tmp/lifecycle-quality.log 2>&1; then tail -200 /tmp/lifecycle-quality.log; exit 1; fi
-          python3 - <<'PY'
-          import re
-          text=re.sub(r'\x1b\[[0-9;]*m','',open('/tmp/lifecycle-quality.log').read())
-          for line in text.splitlines():
-              if any(k in line for k in ['Test Files','Tests ','successful,','Compiled successfully','All matched files','ℹ pass','ℹ fail']): print(line)
-          print('FULL_PNPM_CHECK_PASSED')
-          PY
-      - name: Scope review and source-only candidate
-        shell: bash
-        run: |
-          set -euo pipefail
-          git diff --check
-          git diff --exit-code -- packages/game-core/src/combat/combat-reflect.test.ts apps .github pnpm-lock.yaml
-          python3 - <<'PY'
-          import subprocess
-          expected={'packages/game-core/src/combat/actions-legacy.ts','packages/game-core/src/combat/combat-reflect.ts','docs/COMBAT.md'}
-          changed=set(subprocess.check_output(['git','diff','--name-only'],text=True).splitlines())
-          assert changed==expected,changed
-          assert not subprocess.check_output(['git','ls-files','--others','--exclude-standard'],text=True).strip()
-          PY
-          git diff --stat
-          git diff -- packages/game-core/src/combat/actions-legacy.ts packages/game-core/src/combat/combat-reflect.ts
-          git add -- packages/game-core/src/combat/actions-legacy.ts packages/game-core/src/combat/combat-reflect.ts docs/COMBAT.md
-          git commit -m 'fix(combat): preserve encounter upkeep after Reflect knockout' -m 'Four assertion-only regressions confirmed on df825910. Reuse normal successor expiration, scheduled tempo and terrain round-boundary handling without replaying dead-actor periodic effects. Original Reflect/Absorb contracts and full pnpm check pass. No publication or deployment.'
-          git diff --check df825910e89d64f46c22d7d6c2d1b7c69d41b8f5...HEAD
           git diff --exit-code
           test -z "$(git status --porcelain)"
-          test -z "$(git ls-remote origin refs/heads/agent/reflect-lifecycle-green-20260915)"
-          git push origin HEAD:refs/heads/agent/reflect-lifecycle-green-20260915
-          printf 'RED_SHA=%s\nGREEN_SHA=%s\nGREEN_TREE=%s\n' "$(cat /tmp/lifecycle-red-sha)" "$(git rev-parse HEAD)" "$(git rev-parse HEAD^{tree})"
+      - name: Verify restricted source and publication scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check c2c41be224d22f532d551506037ac86835452691...HEAD
+          git diff --exit-code c2c41be224d22f532d551506037ac86835452691...HEAD -- apps .github pnpm-lock.yaml packages/game-core/src/combat/status-content.ts packages/game-core/src/combat/battle-state.ts packages/game-core/src/combat/stat-driven-combat.ts packages/game-core/src/combat/combat-effect-provenance.ts
+          test "$(git rev-parse HEAD)" = ded3a8b11060760486a8972cf4209ac2a8f2dd17
+          test "$(git rev-parse HEAD^{tree})" = 54813341e63028217d0181a6151c64d6269d49b4
+          git diff --exit-code
