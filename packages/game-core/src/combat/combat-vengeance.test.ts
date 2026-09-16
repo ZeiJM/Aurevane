@@ -432,13 +432,15 @@ describe('Vengeance authoring boundary', () => {
       )
     },
   )
-  it.each([
-    null,
-    4,
-    [],
-    {},
-    { conversionBasisPoints: 5_000, maximumDamage: 50, script: 'not permitted' },
-  ])('rejects malformed profile %j', (profile) => {
+  it.each(
+    [
+      null,
+      4,
+      [],
+      {},
+      { conversionBasisPoints: 5_000, maximumDamage: 50, script: 'not permitted' },
+    ].map((profile) => ({ profile })),
+  )('rejects malformed profile %j', ({ profile }) => {
     const effect = { ...vengeance(), vengeance: profile } as unknown as VengeanceEffect
     expect(() => validateCombatActionDefinition(action(effect))).toThrow(/Vengeance/)
   })
