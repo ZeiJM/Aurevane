@@ -33,9 +33,7 @@ jobs:
           path = Path('packages/game-core/src/combat/combat-burn-copy.test.ts')
           text = path.read_text()
           old = '    expect(instance(state).curseCopyable).toBe(flag)'
-          new = """    expect(
-      (instance(state) as ReturnType<typeof instance> & { curseCopyable?: boolean }).curseCopyable,
-    ).toBe(flag)"""
+          new = '    expect((instance(state) as ReturnType<typeof instance> & { curseCopyable?: boolean }).curseCopyable).toBe(flag)'
           assert text.count(old) == 1
           path.write_text(text.replace(old, new))
           PY
