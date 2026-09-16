@@ -1,0 +1,30 @@
+name: Titles format diagnostic
+
+on:
+  push:
+    branches:
+      - agent/titles-profile-fidelity
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install locked dependencies
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+          pnpm install --frozen-lockfile
+      - name: Print exact Prettier rewrite
+        run: |
+          pnpm exec prettier --write apps/web/e2e/titles-layout-regression.pw.ts apps/web/src/components/account/character-title-settings.module.css
+          git diff -- apps/web/e2e/titles-layout-regression.pw.ts apps/web/src/components/account/character-title-settings.module.css
