@@ -9,13 +9,13 @@ permissions:
   contents: write
 
 jobs:
-  verify-red:
+  verify-green:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 2e2ceb8f1dd10f95e77ea0dae42d3acba2d01a2a
+          ref: ebaf5159c841d26e8daf3ba7501865490e412678
           fetch-depth: 1
       - uses: actions/setup-node@v4
         with:
@@ -26,31 +26,250 @@ jobs:
           corepack prepare pnpm@11.17.0 --activate
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile
-      - name: Format only the new RED test and preserve a separate result branch
+      - name: Implement shared committed-damage HP and MP recovery after classified RED
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = 2e2ceb8f1dd10f95e77ea0dae42d3acba2d01a2a
-          file=packages/game-core/src/combat/combat-absorb-mp.test.ts
-          pnpm exec prettier --write "$file"
+          test "$(git rev-parse HEAD)" = ebaf5159c841d26e8daf3ba7501865490e412678
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess
+
+          root = Path('packages/game-core/src/combat')
+          expected = {
+              'actions.ts': '0d2858b5c745c4ed3d95eec19ff924d4ef18c260',
+              'combat-absorb-hp.ts': '9323776dea2c3166d07dd488ff2533e39d58cdd4',
+              'combat-authoring-validation.ts': '7d28bb948e4ac40752a0bd370fc7ae82a03f9aa1',
+              'combat-effect-state.ts': '6d2e9c4103858b99bc1ae2f39131e5a2e305b9f4',
+          }
+          for name, sha in expected.items():
+              actual = subprocess.check_output(['git', 'rev-parse', f'HEAD:{root / name}'], text=True).strip()
+              assert actual == sha, (name, actual)
+          references = subprocess.check_output(
+              ['git', 'grep', '-l', 'applyCommittedAbsorbHp', '--', '*.ts', '*.tsx'], text=True
+          ).splitlines()
+          assert set(references) == {str(root / 'actions.ts'), str(root / 'combat-absorb-hp.ts')}, references
+
+          def replace_once(name, old, new):
+              path = root / name
+              text = path.read_text()
+              assert text.count(old) == 1, (name, old)
+              path.write_text(text.replace(old, new))
+
+          replace_once('actions.ts',
+              "import { applyCommittedAbsorbHp } from './combat-absorb-hp'",
+              "import { applyCommittedAbsorbRecovery } from './combat-absorb-recovery'")
+          replace_once('actions.ts',
+              'applyCommittedAbsorbHp(historyState, transition.events, content, {',
+              'applyCommittedAbsorbRecovery(historyState, transition.events, content, {')
+          replace_once('combat-effect-state.ts',
+              '    absorbHpBasisPoints?: number\n',
+              '    absorbHpBasisPoints?: number\n    absorbMpBasisPoints?: number\n')
+          replace_once('combat-authoring-validation.ts',
+              '  if (status.effectCategories !== undefined) {',
+              '''  if (status.absorbMpBasisPoints !== undefined) {
+              boundedPositiveSafeInteger(
+                status.absorbMpBasisPoints,
+                1,
+                COMBAT_BASIS_POINTS,
+                'Absorb MP basis points',
+              )
+              if (status.polarity !== 'positive' || status.reactionClass !== 'reactive') {
+                throw new TypeError('Absorb MP statuses must be positive and reactive.')
+              }
+            }
+
+            if (status.effectCategories !== undefined) {''')
+
+          new = root / 'combat-absorb-recovery.ts'
+          assert not new.exists()
+          new.write_text('''import type {
+            CombatContentCatalog,
+            CombatEncounterState,
+            CombatResolutionEvent,
+            CombatResolutionTransition,
+          } from './actions'
+          import { validateCombatStatusDefinition } from './combat-authoring-validation'
+
+          const ABSORB_BASIS_POINTS = 10_000
+          const ABSORB_HP_ACTION_ID = 'status.absorb-hp.current.v1'
+          const ABSORB_MP_ACTION_ID = 'status.absorb-mp.current.v1'
+
+          /** Consume only the original command's committed events, never reactive output. */
+          export function applyCommittedAbsorbRecovery(
+            state: CombatEncounterState,
+            events: readonly CombatResolutionEvent[],
+            content: CombatContentCatalog,
+            command: { sourceCombatantId: string; actionId: string },
+          ): CombatResolutionTransition {
+            const battle = state.tactical.battle
+            const combatants = new Map(battle.combatants.map((unit) => [unit.id, unit]))
+            const source = combatants.get(command.sourceCombatantId)
+            if (!source) return { state, events }
+
+            const damageByTarget = new Map<string, number>()
+            for (const event of events) {
+              if (
+                event.event !== 'damage_applied' ||
+                event.amount <= 0 ||
+                event.sourceCombatantId !== source.id ||
+                event.actionId !== command.actionId
+              ) {
+                continue
+              }
+              const target = combatants.get(event.targetCombatantId)
+              if (!target || target.teamId === source.teamId || target.hp <= 0) continue
+
+              const total = (damageByTarget.get(target.id) ?? 0) + event.amount
+              if (!Number.isSafeInteger(total)) {
+                throw new RangeError('Absorb committed damage must remain a safe integer.')
+              }
+              damageByTarget.set(target.id, total)
+            }
+
+            const recoveredPools = new Map<string, { hp: number; mp: number }>()
+            const recoveryEvents: CombatResolutionEvent[] = []
+            for (const [targetId, damage] of damageByTarget) {
+              const target = combatants.get(targetId)
+              if (!target) continue
+              const rates = activeAbsorbBasisPoints(state, content, targetId)
+              // Both resources use original HP damage, never the net loss after healing.
+              const hpRecovery = recoveryAmount(damage, rates.hp, target.maxHp - target.hp)
+              const mpRecovery = recoveryAmount(damage, rates.mp, target.maxMp - target.mp)
+              if (hpRecovery === 0 && mpRecovery === 0) continue
+
+              const hpAfter = target.hp + hpRecovery
+              const mpAfter = target.mp + mpRecovery
+              recoveredPools.set(targetId, { hp: hpAfter, mp: mpAfter })
+              if (hpRecovery > 0) {
+                recoveryEvents.push({
+                  event: 'healing_applied',
+                  actionId: ABSORB_HP_ACTION_ID,
+                  sourceCombatantId: targetId,
+                  targetCombatantId: targetId,
+                  amount: hpRecovery,
+                  hpBefore: target.hp,
+                  hpAfter,
+                })
+              }
+              if (mpRecovery > 0) {
+                recoveryEvents.push({
+                  event: 'resource_changed',
+                  actionId: ABSORB_MP_ACTION_ID,
+                  sourceCombatantId: targetId,
+                  targetCombatantId: targetId,
+                  resource: 'mp',
+                  delta: mpRecovery,
+                  before: target.mp,
+                  after: mpAfter,
+                })
+              }
+            }
+
+            if (recoveryEvents.length === 0) return { state, events }
+
+            return {
+              state: {
+                ...state,
+                tactical: {
+                  ...state.tactical,
+                  battle: {
+                    ...battle,
+                    combatants: battle.combatants.map((unit) => {
+                      const pools = recoveredPools.get(unit.id)
+                      return pools === undefined ? unit : { ...unit, ...pools }
+                    }),
+                  },
+                },
+              },
+              // One bounded pass: emitted healing/restoration never feeds back into this input.
+              events: [...events, ...recoveryEvents],
+            }
+          }
+
+          function recoveryAmount(damage: number, basisPoints: number, capacity: number): number {
+            if (basisPoints === 0 || capacity <= 0) return 0
+            // Integer arithmetic keeps the percentage floor exact before the minimum-1 rule.
+            const requested = Math.max(
+              1,
+              Number((BigInt(damage) * BigInt(basisPoints)) / BigInt(ABSORB_BASIS_POINTS)),
+            )
+            return Math.min(capacity, requested)
+          }
+
+          function activeAbsorbBasisPoints(
+            state: CombatEncounterState,
+            content: CombatContentCatalog,
+            targetId: string,
+          ): { hp: number; mp: number } {
+            const statuses = state.statusState.find((row) => row.combatantId === targetId)?.statuses ?? []
+            let hp = 0
+            let mp = 0
+            for (const instance of statuses) {
+              if (instance.remainingOwnerTurnStarts <= 0 || instance.stacks <= 0) continue
+              const definition = content.statuses.find(
+                (status) => status.id === instance.statusId && status.version === instance.statusVersion,
+              )
+              if (
+                !definition ||
+                (definition.absorbHpBasisPoints === undefined && definition.absorbMpBasisPoints === undefined)
+              ) continue
+              validateCombatStatusDefinition(definition)
+              hp = Math.min(ABSORB_BASIS_POINTS, hp + (definition.absorbHpBasisPoints ?? 0) * instance.stacks)
+              mp = Math.min(ABSORB_BASIS_POINTS, mp + (definition.absorbMpBasisPoints ?? 0) * instance.stacks)
+            }
+            return { hp, mp }
+          }
+          ''')
+          (root / 'combat-absorb-hp.ts').unlink()
+          PY
+          pnpm exec prettier --write \
+            packages/game-core/src/combat/actions.ts \
+            packages/game-core/src/combat/combat-absorb-recovery.ts \
+            packages/game-core/src/combat/combat-authoring-validation.ts \
+            packages/game-core/src/combat/combat-effect-state.ts
           git diff --check
-          git diff -- "$file"
-          if ! git diff --quiet; then
-            test "$(git diff --name-only)" = "$file"
-            git config user.name 'Nicholas JM'
-            git config user.email '283436098+ZeiJM@users.noreply.github.com'
-            git add -- "$file"
-            git commit -m 'test(combat): normalize Absorb MP RED contract with repository formatter'
-          fi
-          git push origin HEAD:refs/heads/agent/absorb-mp-red-formatted-20260915
-          printf 'VERIFIED_RED_CANDIDATE=%s\n' "$(git rev-parse HEAD)"
-      - name: Verify repository formatting lint and types
+      - name: Verify focused GREEN and existing HP contracts
         run: |
-          pnpm format:check
-          pnpm lint
-          pnpm typecheck
-      - name: Observe game-core behavioral RED
-        run: pnpm --filter @aurevane/game-core test
-      - name: Verify tracked-source cleanliness
-        if: always()
-        run: git diff --exit-code
+          pnpm --filter @aurevane/game-core exec vitest run \
+            src/combat/combat-absorb-mp.test.ts \
+            src/combat/combat-absorb-hp.test.ts \
+            src/combat/combat-absorb-hp-command.test.ts \
+            src/combat/combat-damage-history-runtime.test.ts \
+            src/combat/combat-barrier.test.ts \
+            src/combat/combat-resolution-provenance.test.ts \
+            src/combat/combat-burn-backlash.test.ts \
+            src/combat/combat-dot-rework.test.ts
+          pnpm --filter @aurevane/game-core typecheck
+      - name: Verify complete repository quality gates
+        run: pnpm check
+      - name: Verify scope and preserve verified source-only candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git diff --exit-code -- apps .github packages/game-core/src/combat/actions-legacy.ts
+          python3 - <<'PY'
+          import subprocess
+          tracked = subprocess.check_output(['git', 'diff', '--name-only'], text=True).splitlines()
+          untracked = subprocess.check_output(['git', 'ls-files', '--others', '--exclude-standard'], text=True).splitlines()
+          prefix = 'packages/game-core/src/combat/'
+          expected = {prefix + name for name in [
+            'actions.ts', 'combat-absorb-hp.ts', 'combat-absorb-recovery.ts',
+            'combat-authoring-validation.ts', 'combat-effect-state.ts',
+          ]}
+          assert set(tracked + untracked) == expected, (tracked, untracked)
+          PY
+          git config user.name 'Nicholas JM'
+          git config user.email '283436098+ZeiJM@users.noreply.github.com'
+          git add -- packages/game-core/src/combat/actions.ts \
+            packages/game-core/src/combat/combat-absorb-hp.ts \
+            packages/game-core/src/combat/combat-absorb-recovery.ts \
+            packages/game-core/src/combat/combat-authoring-validation.ts \
+            packages/game-core/src/combat/combat-effect-state.ts
+          git commit -m 'feat(combat): resolve Absorb MP alongside HP from committed damage' \
+            -m 'Extend the verified Absorb engine without duplicating qualification or rounding. Preserve original damage history, independent HP/MP caps, K3 metadata, legacy public action calls and all existing HP contracts. No deployment.' \
+            -m 'Test-first RED ebaf5159: 32 expected MP failures; 1291 passing tests in 73 other game-core files. Focused GREEN, game-core typecheck and full pnpm check passed before this candidate commit.'
+          git diff --exit-code
+          git push origin HEAD:refs/heads/agent/absorb-mp-green-result-20260915
+          printf 'VERIFIED_GREEN_CANDIDATE=%s\n' "$(git rev-parse HEAD)"
