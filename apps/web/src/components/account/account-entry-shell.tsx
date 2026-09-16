@@ -107,7 +107,7 @@ export function AccountEntryShell({ authConfig, sessionNotice }: AccountEntryShe
         </Surface>
       </main>
 
-      <footer className={styles.footer} style={{ position: 'sticky', bottom: 0, zIndex: 650 }}>
+      <footer className={styles.footer}>
         <span>Server-authoritative account boundary</span>
       </footer>
     </div>
