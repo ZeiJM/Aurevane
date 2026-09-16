@@ -368,7 +368,7 @@ describe('Curse Bleed: stable donor state and receiver cap semantics', () => {
     ])
     expect(copied.map((stack) => stack.applicationOrder)).toEqual([4, 5, 6])
     expect(copied).toEqual(
-      copied.map((stack) =>
+      copied.map(() =>
         expect.objectContaining({
           targetCombatantId: 'target',
           sourceCombatantId: 'actor',
@@ -387,14 +387,7 @@ describe('Curse Bleed: stable donor state and receiver cap semantics', () => {
   it.each([1, 2])('fills a receiver starting with %s stack(s) without exceeding three', (count) => {
     let state = applyBleed(world(), 'actor', 3, 2, true, 'test.donor-single')
     for (let index = 0; index < count; index += 1) {
-      state = applyBleed(
-        state,
-        'target',
-        2,
-        index + 2,
-        false,
-        `test.receiver-${index}`,
-      )
+      state = applyBleed(state, 'target', 2, index + 2, false, `test.receiver-${index}`)
     }
     const result = cast(state)
     expect(stacks(result.state, 'target')).toHaveLength(count + 1)
@@ -406,7 +399,9 @@ describe('Curse Bleed: stable donor state and receiver cap semantics', () => {
     const result = cast(state)
     const final = stacks(result.state, 'target')
     expect(final).toHaveLength(3)
-    expect(final.map((stack) => [stack.damagePerTick, stack.remainingTicks, stack.applicationOrder])).toEqual([
+    expect(
+      final.map((stack) => [stack.damagePerTick, stack.remainingTicks, stack.applicationOrder]),
+    ).toEqual([
       [2, 4, 6],
       [3, 3, 7],
       [2, 4, 9],
@@ -447,12 +442,9 @@ describe('Curse Bleed: stable donor state and receiver cap semantics', () => {
       effects: [{ type: 'remove-status', recipient: 'primary-unit', statusIds: ['bleed'] }],
     }
     const targetTurn = advanceTo(copied, 'target')
-    const result = executeCombatAction(
-      targetTurn,
-      action,
-      TARGET,
-      { statuses: [...CONTENT.statuses, BLEED_REMOVAL_STATUS] },
-    )
+    const result = executeCombatAction(targetTurn, action, TARGET, {
+      statuses: [...CONTENT.statuses, BLEED_REMOVAL_STATUS],
+    })
     expect(stacks(result.state, 'target')).toEqual([])
   })
 })
@@ -617,8 +609,14 @@ describe('Curse Bleed: K3 lineage and copy ordering', () => {
     const result = cast(state, context())
     const targetStatus = result.state.statusState.find((row) => row.combatantId === 'target')
     expect(targetStatus?.statuses[0]?.provenance?.copyOrdinal).toBe(0)
-    expect(result.state.effectState?.poison.find((row) => row.targetCombatantId === 'target')?.provenance?.copyOrdinal).toBe(1)
-    expect(result.state.effectState?.burn.find((row) => row.targetCombatantId === 'target')?.provenance?.copyOrdinal).toBe(2)
+    expect(
+      result.state.effectState?.poison.find((row) => row.targetCombatantId === 'target')?.provenance
+        ?.copyOrdinal,
+    ).toBe(1)
+    expect(
+      result.state.effectState?.burn.find((row) => row.targetCombatantId === 'target')?.provenance
+        ?.copyOrdinal,
+    ).toBe(2)
     expect(copiedStacks(result.state).map((stack) => stack.provenance?.copyOrdinal)).toEqual([3, 4])
   })
 
