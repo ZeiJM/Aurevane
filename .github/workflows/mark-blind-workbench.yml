@@ -3,7 +3,7 @@ on:
   push:
     branches: [review/mark-blind-workbench-20260915]
 permissions:
-  contents: write
+  contents: read
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -11,80 +11,199 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 11a5cb6d6177b530ecd98bbe1249a0af0cc936aa
-          fetch-depth: 3
+          ref: 0a75b69faca6e0807fc3df47d079e6282e58630c
+          fetch-depth: 4
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Locked setup
+      - name: Locked setup and exact candidate identity
         run: |
+          test "$(git rev-parse HEAD)" = 0a75b69faca6e0807fc3df47d079e6282e58630c
+          test "$(git rev-parse HEAD^{tree})" = 5ea17cefa15b8136f2d20b15fe9ba0bd52866da4
           corepack enable
           corepack prepare pnpm@11.17.0 --activate
           pnpm install --frozen-lockfile
-      - name: Apply scoped implementation to exact RED
+      - name: Execute complete baseline versus candidate behavioral comparisons
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = 11a5cb6d6177b530ecd98bbe1249a0af0cc936aa
-          node -e 'if(require("./apps/web/vercel.json").git.deploymentEnabled["**"] !== false) process.exit(1)'
-          git fetch --depth=1 --no-tags origin aaacc4f942047ef49a95b87f6b9b68ab34e6b3f1
-          git show aaacc4f942047ef49a95b87f6b9b68ab34e6b3f1:.github/mark-blind-green.py > /tmp/mark-blind-green.py
+          file=packages/game-core/src/combat/combat-mark-blind-history-review.test.ts
+          test ! -e "$file"
+          trap 'git restore --source=HEAD -- packages/game-core/src/combat; rm -f "$file"' EXIT
           python3 <<'PY'
           from pathlib import Path
-          p = Path('/tmp/mark-blind-green.py')
-          s = p.read_text()
-          corrections = [
-              ("replace('actions-legacy.ts', 'const existing = getStatus(state, recipientId, effect.statusId)', 'const existing = getStatus(state, recipientId, effect.statusId, actorId)')",
-               "replace('actions-legacy.ts', 'const oldStatus = getStatus(before, recipientId, effect.statusId)', 'const oldStatus = getStatus(before, recipientId, effect.statusId, actorId)')\nreplace('actions-legacy.ts', 'const newStatus = getStatus(nextState, recipientId, effect.statusId)', 'const newStatus = getStatus(nextState, recipientId, effect.statusId, actorId)')"),
-              ("replace('actions-legacy.ts', 'const status = getStatus(nextState, recipientId, effect.statusId)!', 'const status = getStatus(nextState, recipientId, effect.statusId, actorId)!')",
-               "replace('actions-legacy.ts', 'const existingStatus = getStatus(state, recipientId, effect.statusId)', 'const existingStatus = getStatus(state, recipientId, effect.statusId, actorId)')\nreplace('actions-legacy.ts', 'const status = getStatus(nextState, recipientId, effect.statusId)', 'const status = getStatus(nextState, recipientId, effect.statusId, actorId)')"),
-          ]
-          for old, new in corrections:
-              assert s.count(old) == 1
-              s = s.replace(old, new)
-          expiry_lines = [line for line in s.splitlines() if line.startswith("replace('actions-legacy.ts', \"      events.push({ event: 'status_expired'")]
-          assert len(expiry_lines) == 1
-          s = s.replace(expiry_lines[0], '''p = ROOT / 'actions-legacy.ts'
-          s = p.read_text()
-          begin = s.index('function expireOwnerTurnStartStatuses(')
-          end = s.index('function removeStatuses(', begin)
-          segment = s[begin:end]
-          old = "events.push({ event: 'status_expired', combatantId, statusId: status.statusId })"
-          new = "events.push({ event: 'status_expired', combatantId, statusId: status.statusId, ...(status.sourceScopedMark === true ? { sourceCombatantId: status.sourceCombatantId } : {}) })"
-          assert segment.count(old) == 1
-          p.write_text(s[:begin] + segment.replace(old, new) + s[end:])''')
-          p.write_text(s)
+          root = Path('packages/game-core/src/combat')
+          permanent = (root / 'combat-mark-blind.contract.test.ts').read_text()
+          prefix = permanent[:permanent.index("describe('Mark and Blind: public-entry contract'")]
+          tail = permanent[permanent.index('// The public turn transition requires an explicit final-facing selection.'):]
+          extra = '''
+          import { readFileSync, writeFileSync } from 'node:fs'
+          const comparisonCases = [1, 7, 19, 53, 101, 997].flatMap((seed) =>
+            ['automatic', 'per-target', 'basic'].flatMap((mode) =>
+              ['plain', 'historical-mark', 'guard'].map((variant) => ({ seed, mode, variant }))))
+          const recorded: Record<string, unknown> = {}
+          const baselineMode = process.env.AUREVANE_REVIEW_MODE === 'baseline'
+          const expected = baselineMode ? {} : JSON.parse(readFileSync('/tmp/mark-blind-previous.json', 'utf8'))
+          it.each(comparisonCases)('complete prior-versus-candidate comparison %j', ({ seed, mode, variant }) => {
+            const initial = world(6_000, 1_000, seed)
+            let state: CombatEncounterState = initial
+            if (variant === 'historical-mark') {
+              state = apply(state, 'marked', 'target', PV1F_COMBAT_CONTENT)
+              state = apply(advanceTo(state, 'ally', PV1F_COMBAT_CONTENT), 'marked', 'target', PV1F_COMBAT_CONTENT)
+            }
+            if (variant === 'guard') state = apply(state, 'guarded', 'target', PV1F_COMBAT_CONTENT)
+            const action: CombatActionDefinition = mode === 'basic'
+              ? { ...attack(), sourceType: 'basic-attack', accuracyMode: undefined }
+              : { ...attack(), accuracyMode: mode as 'automatic' | 'per-target' }
+            const bridged = reattachStatDrivenCombatBridge(state, initial.statBridge)
+            const before = JSON.stringify(bridged)
+            const preview = mode === 'basic'
+              ? forecastStatDrivenAttack(bridged, action, TARGET, PV1F_COMBAT_CONTENT)
+              : evaluateCombatAction(bridged, action, TARGET, PV1F_COMBAT_CONTENT)
+            const committed = mode === 'basic'
+              ? executeStatDrivenAttack(bridged, action, TARGET, PV1F_COMBAT_CONTENT)
+              : executeCombatAction(bridged, action, TARGET, PV1F_COMBAT_CONTENT)
+            let turnState = committed.state
+            const turns = []
+            for (let index = 0; index < 4; index += 1) {
+              const ended = endCombatTurn(turnState, PV1F_COMBAT_CONTENT)
+              turns.push(ended)
+              turnState = ended.state
+            }
+            const value = { preview, committed, turns }
+            const key = JSON.stringify({ seed, mode, variant })
+            expect(JSON.stringify(bridged)).toBe(before)
+            if (baselineMode) recorded[key] = value
+            else expect(value).toEqual(expected[key])
+          })
+          afterAll(() => {
+            if (baselineMode) writeFileSync('/tmp/mark-blind-previous.json', JSON.stringify(recorded))
+          })
+          '''
+          (root / 'combat-mark-blind-history-review.test.ts').write_text("import { afterAll } from 'vitest'\n" + prefix + tail + extra)
           PY
-          python3 /tmp/mark-blind-green.py
-          git diff --name-only
-          git grep -n -E 'forecastCombatSkillAccuracy|rollCombatSkillAccuracy' -- packages apps
-          pnpm exec prettier --write packages/game-core/src/combat/combat-accuracy-status.ts packages/game-core/src/combat/combat-effect-state.ts packages/game-core/src/combat/combat-authoring-validation.ts packages/game-core/src/combat/actions-legacy.ts packages/game-core/src/combat/actions.ts packages/game-core/src/combat/combat-effect-provenance.ts packages/game-core/src/combat/combat-skill-accuracy.ts packages/game-core/src/combat/stat-driven-combat.ts
-      - name: Focused tests and type safety
+          original_paths=(actions-legacy.ts actions.ts combat-authoring-validation.ts combat-effect-provenance.ts combat-effect-state.ts combat-skill-accuracy.ts stat-driven-combat.ts)
+          for name in "${original_paths[@]}"; do
+            git restore --source=01ff5307478bb06f6fd35aa6442070afb237379d -- "packages/game-core/src/combat/$name"
+          done
+          AUREVANE_REVIEW_MODE=baseline pnpm --filter @aurevane/game-core exec vitest run src/combat/combat-mark-blind-history-review.test.ts
+          git restore --source=HEAD -- packages/game-core/src/combat
+          AUREVANE_REVIEW_MODE=candidate pnpm --filter @aurevane/game-core exec vitest run src/combat/combat-mark-blind-history-review.test.ts
+          rm "$file"
+          trap - EXIT
+      - name: Additional source identity and recovery-of-accuracy boundary probes
         shell: bash
         run: |
           set -euo pipefail
-          pnpm --filter @aurevane/game-core exec vitest run src/combat/combat-mark-blind.contract.test.ts src/combat/combat-skill-accuracy.test.ts src/combat/combat-vengeance.test.ts src/combat/combat-reflect.test.ts src/combat/combat-absorb-mp.test.ts src/combat/combat-absorb-hp.test.ts src/combat/combat-absorb-hp-command.test.ts src/combat/combat-barrier.test.ts src/combat/combat-damage-history-runtime.test.ts src/combat/combat-resolution-provenance.test.ts src/combat/combat-displacement-tempo-rework.test.ts src/combat/actions.test.ts src/combat/stat-driven-combat.test.ts src/combat/gameplay-tags.test.ts src/combat/combat-authoring-validation.test.ts src/combat/combat-effect-provenance-state.test.ts
+          file=packages/game-core/src/combat/combat-mark-blind.contract.test.ts
+          trap 'git restore --source=HEAD -- "$file"' EXIT
+          cat >> "$file" <<'TEST'
+
+          describe('Supplemental Mark Blind review-only boundaries', () => {
+            it('reports second-source application as new and its next application as a refresh', () => {
+              const first = apply(world(), MARK.id)
+              const state = advanceTo(first, 'ally')
+              const created = executeCombatAction(state, statusAction(MARK.id), TARGET, CONTENT)
+              expect(created.events.find((event) => event.event === 'status_applied')).toMatchObject({
+                sourceCombatantId: 'ally', refreshed: false, stacked: false,
+              })
+              const refreshed = executeCombatAction(created.state, statusAction(MARK.id), TARGET, CONTENT)
+              expect(refreshed.events.find((event) => event.event === 'status_applied')).toMatchObject({
+                sourceCombatantId: 'ally', refreshed: true, stacked: false,
+              })
+              expect(statuses(refreshed.state)).toHaveLength(2)
+            })
+            it('refreshes only its own K3 provenance and preserves the other source object', () => {
+              const first = apply(world(), MARK.id, 'target', CONTENT, context('actor', 'chain:original'))
+              const both = apply(advanceTo(first, 'ally'), MARK.id, 'target', CONTENT, context('ally', 'chain:other'))
+              const ownTurn = advanceTo(both, 'actor')
+              const other = statuses(ownTurn).find((status) => status.sourceCombatantId === 'ally')
+              const refreshed = apply(ownTurn, MARK.id, 'target', CONTENT, context('actor', 'chain:refresh'))
+              expect(statuses(refreshed).find((status) => status.sourceCombatantId === 'ally')).toBe(other)
+              const priorOwn = statuses(ownTurn).find((status) => status.sourceCombatantId === 'actor')
+              const nextOwn = statuses(refreshed).find((status) => status.sourceCombatantId === 'actor')
+              expect(nextOwn?.provenance).toBeDefined()
+              expect(nextOwn?.provenance?.instanceId).not.toBe(priorOwn?.provenance?.instanceId)
+            })
+            it.each([false, null, 0, 1, 'true'])('rejects malformed scope marker %j at state and command boundaries', (marker) => {
+              const marked = apply(world(), MARK.id)
+              const invalid = withStatuses(marked, statuses(marked).map((status) => ({ ...status, sourceScopedMark: marker })))
+              expect(validateCombatEncounterState(invalid).length).toBeGreaterThan(0)
+              expect(() => chance(invalid)).toThrow()
+              expect(() => executeCombatAction(invalid, attack(), TARGET, CONTENT)).toThrow()
+            })
+            it('lets an unexpired weaker Mark resume after the stronger one expires', () => {
+              const stronger: CombatStatusDefinition = { ...MARK, id: 'test.strong', markAccuracyBonusBasisPoints: 3_000, durationOwnerTurnStarts: 1 }
+              const content = { statuses: [MARK, BLIND, stronger] }
+              const state = apply(apply(world(), MARK.id, 'target', content), stronger.id, 'target', content)
+              expect(chance(state, content)).toBe(8_000)
+              const next = advanceTo(advanceTo(state, 'ally', content), 'actor', content)
+              expect(chance(next, content)).toBe(6_500)
+              expect(statuses(next).map((status) => status.statusId)).toEqual([MARK.id])
+            })
+            it('lets an unexpired weaker Blind resume after the stronger one expires', () => {
+              const stronger: CombatStatusDefinition = { ...BLIND, id: 'test.strong', blindAccuracyPenaltyBasisPoints: 3_000, durationOwnerTurnStarts: 1 }
+              const content = { statuses: [MARK, BLIND, stronger] }
+              const state = apply(apply(world(), BLIND.id, 'actor', content), stronger.id, 'actor', content)
+              expect(chance(state, content)).toBe(2_000)
+              const next = advanceTo(advanceTo(state, 'ally', content), 'actor', content)
+              expect(chance(next, content)).toBe(3_500)
+            })
+            it('clears the Blind penalty after its last owner-start tick', () => {
+              const content = { statuses: [MARK, { ...BLIND, durationOwnerTurnStarts: 1 }] }
+              const state = apply(world(), BLIND.id, 'actor', content)
+              expect(chance(state, content)).toBe(3_500)
+              expect(chance(advanceTo(advanceTo(state, 'ally', content), 'actor', content), content)).toBe(5_000)
+            })
+            it('uses Mark minus Blind for Basic Attack without an extra roll', () => {
+              const initial = world()
+              const state = reattachStatDrivenCombatBridge(apply(apply(initial, MARK.id), BLIND.id, 'actor'), initial.statBridge)
+              expect(forecastStatDrivenAttack(state, basic(), TARGET, CONTENT).hitChanceBasisPoints).toBe(5_000)
+              const result = executeStatDrivenAttack(state, basic(), TARGET, CONTENT)
+              expect(result.events[0]).toMatchObject({ hitChanceBasisPoints: 5_000 })
+              expect(result.state.tactical.battle.rng).toEqual(advanceBattleRng(state.tactical.battle.rng).state)
+            })
+            it('charges resources and resolves self-effects despite a blinded guaranteed miss', () => {
+              const state = apply(world(0, 0), BLIND.id, 'actor')
+              const action: CombatActionDefinition = { ...attack(), cost: { spendsAction: true, mp: 4 }, effects: [
+                ...attack().effects,
+                { type: 'resource-change', recipient: 'actor', resource: 'mp', delta: 2 },
+                { type: 'apply-status', recipient: 'primary-unit', statusId: MARK.id, stacks: 1 },
+              ] }
+              const result = executeCombatAction(state, action, TARGET, CONTENT)
+              expect(result.state.tactical.battle.combatants.find((unit) => unit.id === 'actor')?.mp).toBe(18)
+              expect(result.state.tactical.battle.combatants.find((unit) => unit.id === 'target')?.hp).toBe(100)
+              expect(statuses(result.state)).toEqual([])
+              expect(result.state.tactical.battle.currentTurn?.actionState).toBe('spent')
+            })
+            it('does not add a current Mark if its attack missed a target with another source Mark', () => {
+              const first = apply(world(0, 0), MARK.id, 'target', CONTENT, context('actor', 'chain:retained'))
+              const state = advanceTo(first, 'ally')
+              const action: CombatActionDefinition = { ...attack(), effects: [
+                ...attack().effects,
+                { type: 'apply-status', recipient: 'primary-unit', statusId: MARK.id, stacks: 1 },
+              ] }
+              const ctx = context('ally', 'chain:missed')
+              ctx.provenance = { ...ctx.provenance, actionDefinitionId: action.id }
+              const result = executeCombatAction(state, action, TARGET, CONTENT, ctx)
+              expect(statuses(result.state)).toEqual(statuses(state))
+              expect(result.events.some((event) => event.event === 'status_applied')).toBe(false)
+            })
+          })
+          TEST
           pnpm --filter @aurevane/game-core typecheck
-      - name: Full repository quality gate
-        run: pnpm check
-      - name: Preserve exact tested source-only candidate
+          pnpm --filter @aurevane/game-core exec vitest run src/combat/combat-mark-blind.contract.test.ts src/combat/combat-skill-accuracy.test.ts src/combat/combat-vengeance.test.ts src/combat/combat-reflect.test.ts src/combat/combat-absorb-mp.test.ts src/combat/combat-absorb-hp.test.ts src/combat/combat-absorb-hp-command.test.ts src/combat/combat-barrier.test.ts src/combat/combat-damage-history-runtime.test.ts src/combat/combat-resolution-provenance.test.ts src/combat/combat-displacement-tempo-rework.test.ts src/combat/actions.test.ts src/combat/stat-driven-combat.test.ts src/combat/gameplay-tags.test.ts src/combat/combat-authoring-validation.test.ts src/combat/combat-effect-provenance-state.test.ts
+          git restore --source=HEAD -- "$file"
+          trap - EXIT
+      - name: Source-only hygiene and publication boundary
         shell: bash
         run: |
           set -euo pipefail
-          git diff --exit-code HEAD -- packages/game-core/src/combat/combat-mark-blind.contract.test.ts
-          git diff --exit-code 01ff5307478bb06f6fd35aa6442070afb237379d -- apps .github packages/game-core/src/combat/status-content.ts packages/game-core/src/combat/phase4-roster.ts pnpm-lock.yaml package.json
-          git diff --check
-          test "$(git ls-remote origin refs/heads/main | cut -f1)" = 3d8a4d25cb897d0f9ce4871c6972e5d7107d68b0
-          test "$(git ls-remote origin refs/heads/agent/combat-effect-taxonomy-rework | cut -f1)" = 01ff5307478bb06f6fd35aa6442070afb237379d
-          test -z "$(git ls-remote origin refs/heads/review/mark-blind-green-source-20260915)"
-          git add docs/COMBAT.md packages/game-core/src/combat/combat-accuracy-status.ts packages/game-core/src/combat/combat-effect-state.ts packages/game-core/src/combat/combat-authoring-validation.ts packages/game-core/src/combat/actions-legacy.ts packages/game-core/src/combat/actions.ts packages/game-core/src/combat/combat-effect-provenance.ts packages/game-core/src/combat/combat-skill-accuracy.ts packages/game-core/src/combat/stat-driven-combat.ts
-          test "$(git diff --cached --name-only | wc -l)" = 9
+          git diff --exit-code 11a5cb6d6177b530ecd98bbe1249a0af0cc936aa HEAD -- packages/game-core/src/combat/combat-mark-blind.contract.test.ts
+          git diff --exit-code 01ff5307478bb06f6fd35aa6442070afb237379d HEAD -- apps .github packages/game-core/src/combat/status-content.ts packages/game-core/src/combat/phase4-roster.ts pnpm-lock.yaml package.json
+          test "$(git diff --name-only 01ff5307478bb06f6fd35aa6442070afb237379d HEAD | wc -l)" = 10
+          git diff --check 01ff5307478bb06f6fd35aa6442070afb237379d HEAD
           git diff --exit-code
-          git config user.name 'AUREVANE coding agent'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'feat(combat): add source-specific Mark and non-stacking Blind accuracy'
-          git push origin HEAD:refs/heads/review/mark-blind-green-source-20260915
-          echo "GREEN_COMMIT=$(git rev-parse HEAD)"
-          echo "GREEN_TREE=$(git rev-parse HEAD^{tree})"
-          git diff --stat 01ff5307478bb06f6fd35aa6442070afb237379d...HEAD
           test -z "$(git status --porcelain)"
+          echo 'EXACT_REVIEW_CANDIDATE=0a75b69faca6e0807fc3df47d079e6282e58630c'
