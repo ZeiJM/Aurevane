@@ -66,6 +66,8 @@ export interface CombatPoisonInstance {
   sourceActionId: string
   profileVersion: number
   movementRemainder: number
+  /** Explicit current Curse eligibility; omitted historical Poison remains non-copyable. */
+  curseCopyable?: boolean
   provenance?: CombatEffectInstanceProvenance
 }
 

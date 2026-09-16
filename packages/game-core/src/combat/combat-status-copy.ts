@@ -10,6 +10,8 @@ import type {
   CombatStatusInstance,
 } from './actions'
 import { compareCombatStatusInstances } from './combat-accuracy-status'
+import { currentPoisonInstance } from './combat-dots'
+import { normalizeCombatEffectState, type CombatPoisonInstance } from './combat-effect-state'
 import { createCombatEffectInstanceProvenance } from './combat-kernel-types'
 
 export interface CombatStatusCopyEffect {
@@ -77,6 +79,17 @@ interface StatusCopy {
   next: CombatStatusInstance
 }
 
+interface PoisonCopy {
+  donor: CombatPoisonInstance
+  previous: CombatPoisonInstance | undefined
+}
+
+interface CombatCopyPlan {
+  receiverId: string
+  copies: readonly StatusCopy[]
+  poison: PoisonCopy | undefined
+}
+
 /** Only ordinary status rows are enumerated; typed DoT/resource/terrain state is never inferred. */
 export function planCombatStatusCopies(
   state: CombatEncounterState,
@@ -84,10 +97,10 @@ export function planCombatStatusCopies(
   selectedId: string,
   effect: CombatStatusCopyEffect,
   content: CombatContentCatalog,
-): { receiverId: string; copies: readonly StatusCopy[] } {
+): CombatCopyPlan {
   const donorId = effect.mode === 'amplify' ? selectedId : actorId
   const receiverId = effect.mode === 'amplify' ? actorId : selectedId
-  if (donorId === receiverId) return { receiverId, copies: [] }
+  if (donorId === receiverId) return { receiverId, copies: [], poison: undefined }
   const donors = state.statusState.find((row) => row.combatantId === donorId)?.statuses ?? []
   const receiver = state.statusState.find((row) => row.combatantId === receiverId)?.statuses ?? []
   const definitions = new Map(content.statuses.map((definition) => [definition.id, definition]))
@@ -128,7 +141,12 @@ export function planCombatStatusCopies(
     }
     return { donor, previous, next }
   })
-  return { receiverId, copies }
+  const donorPoison = effect.mode === 'curse' ? currentPoisonInstance(state, donorId) : null
+  const poison =
+    donorPoison?.curseCopyable === true
+      ? { donor: donorPoison, previous: currentPoisonInstance(state, receiverId) ?? undefined }
+      : undefined
+  return { receiverId, copies, poison }
 }
 
 function statusSummary(status: CombatStatusInstance | undefined): string {
@@ -143,26 +161,52 @@ export function applyCombatStatusCopies(
   effect: CombatStatusCopyEffect,
   content: CombatContentCatalog,
 ): CombatResolutionTransition & { projections: CombatEffectProjection[] } {
-  const { receiverId, copies } = planCombatStatusCopies(state, actorId, selectedId, effect, content)
-  if (copies.length === 0) throw new Error('Status copying requires eligible active statuses.')
+  const { receiverId, copies, poison } = planCombatStatusCopies(
+    state,
+    actorId,
+    selectedId,
+    effect,
+    content,
+  )
+  if (copies.length === 0 && !poison)
+    throw new Error('Status copying requires eligible active statuses.')
   const replaced = new Set(
     copies.map((copy) => copy.previous).filter((entry) => entry !== undefined),
   )
+  const statusState = state.statusState.map((row) =>
+    row.combatantId === receiverId
+      ? {
+          ...row,
+          statuses: [
+            ...row.statuses.filter((status) => !replaced.has(status)),
+            ...copies.map((copy) => copy.next),
+          ].sort(compareCombatStatusInstances),
+        }
+      : row,
+  )
+  const nextPoison = poison
+    ? {
+        targetCombatantId: receiverId,
+        sourceCombatantId: actorId,
+        sourceActionId: actionId,
+        profileVersion: poison.donor.profileVersion,
+        movementRemainder: poison.previous?.movementRemainder ?? poison.donor.movementRemainder,
+        curseCopyable: true as const,
+      }
+    : undefined
+  const effectState = nextPoison ? normalizeCombatEffectState(state.effectState) : undefined
+  const nextEffectState =
+    nextPoison && effectState
+      ? {
+          ...effectState,
+          poison: [
+            ...effectState.poison.filter((entry) => entry.targetCombatantId !== receiverId),
+            nextPoison,
+          ].sort((left, right) => left.targetCombatantId.localeCompare(right.targetCombatantId)),
+        }
+      : state.effectState
   return {
-    state: {
-      ...state,
-      statusState: state.statusState.map((row) =>
-        row.combatantId === receiverId
-          ? {
-              ...row,
-              statuses: [
-                ...row.statuses.filter((status) => !replaced.has(status)),
-                ...copies.map((copy) => copy.next),
-              ].sort(compareCombatStatusInstances),
-            }
-          : row,
-      ),
-    },
+    state: { ...state, statusState, effectState: nextEffectState },
     events: copies.map(({ previous, next }) => ({
       event: 'status_applied',
       actionId,
@@ -174,12 +218,24 @@ export function applyCombatStatusCopies(
       refreshed: previous !== undefined,
       stacked: previous !== undefined && next.stacks > previous.stacks,
     })),
-    projections: copies.map(({ previous, next }) => ({
-      effectType: 'copy-statuses',
-      combatantId: receiverId,
-      before: statusSummary(previous),
-      after: statusSummary(next),
-    })),
+    projections: [
+      ...copies.map(({ previous, next }) => ({
+        effectType: 'copy-statuses' as const,
+        combatantId: receiverId,
+        before: statusSummary(previous),
+        after: statusSummary(next),
+      })),
+      ...(nextPoison
+        ? [
+            {
+              effectType: 'copy-statuses' as const,
+              combatantId: receiverId,
+              before: poison?.previous ? `poison:${poison.previous.movementRemainder}` : 'none',
+              after: `poison:${nextPoison.movementRemainder}`,
+            },
+          ]
+        : []),
+    ],
   }
 }
 
@@ -193,7 +249,7 @@ export function attachCombatStatusCopyProvenance(
   content: CombatContentCatalog,
   context: CombatResolutionContext,
 ): CombatEncounterState {
-  const { receiverId, copies } = planCombatStatusCopies(
+  const { receiverId, copies, poison } = planCombatStatusCopies(
     before,
     actorId,
     selectedId,
@@ -203,29 +259,50 @@ export function attachCombatStatusCopyProvenance(
   const assignments = new Map(
     copies.map((copy, copyOrdinal) => [copy.next.statusId, { copy, copyOrdinal }]),
   )
+  const statusState = after.statusState.map((row) =>
+    row.combatantId === receiverId
+      ? {
+          ...row,
+          statuses: row.statuses.map((status) => {
+            const assigned = assignments.get(status.statusId)
+            if (!assigned || status.sourceCombatantId !== actorId) return status
+            const provenance = createCombatEffectInstanceProvenance({
+              action: context.provenance,
+              targetCombatantId: receiverId,
+              effectOrdinal: 0,
+              copyOrdinal: assigned.copyOrdinal,
+              createdRound: before.tactical.battle.round,
+              createdTurn: before.tactical.battle.turnNumber,
+              copiedFromInstanceId: assigned.copy.donor.provenance?.instanceId,
+              inheritedFromInstanceId: assigned.copy.previous?.provenance?.instanceId,
+            })
+            return { ...status, provenance }
+          }),
+        }
+      : row,
+  )
+  if (!poison) return { ...after, statusState }
+  const provenance = createCombatEffectInstanceProvenance({
+    action: context.provenance,
+    targetCombatantId: receiverId,
+    effectOrdinal: 0,
+    copyOrdinal: copies.length,
+    createdRound: before.tactical.battle.round,
+    createdTurn: before.tactical.battle.turnNumber,
+    copiedFromInstanceId: poison.donor.provenance?.instanceId,
+    inheritedFromInstanceId: poison.previous?.provenance?.instanceId,
+  })
+  const effectState = normalizeCombatEffectState(after.effectState)
   return {
     ...after,
-    statusState: after.statusState.map((row) =>
-      row.combatantId === receiverId
-        ? {
-            ...row,
-            statuses: row.statuses.map((status) => {
-              const assigned = assignments.get(status.statusId)
-              if (!assigned || status.sourceCombatantId !== actorId) return status
-              const provenance = createCombatEffectInstanceProvenance({
-                action: context.provenance,
-                targetCombatantId: receiverId,
-                effectOrdinal: 0,
-                copyOrdinal: assigned.copyOrdinal,
-                createdRound: before.tactical.battle.round,
-                createdTurn: before.tactical.battle.turnNumber,
-                copiedFromInstanceId: assigned.copy.donor.provenance?.instanceId,
-                inheritedFromInstanceId: assigned.copy.previous?.provenance?.instanceId,
-              })
-              return { ...status, provenance }
-            }),
-          }
-        : row,
-    ),
+    statusState,
+    effectState: {
+      ...effectState,
+      poison: effectState.poison.map((entry) =>
+        entry.targetCombatantId === receiverId && entry.sourceCombatantId === actorId
+          ? { ...entry, provenance }
+          : entry,
+      ),
+    },
   }
 }

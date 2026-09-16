@@ -561,3 +561,24 @@ operation packages, area copies and the old Basic Attack path are rejected rathe
 executed. The mature-Skill boundary blocks this staged operation from publication/repeat adapters
 with `effects.status-copy-staged` until the remaining mechanics, repeat-use, player forecasts and
 AI gates are implemented. No live catalog or published Skill is changed. K4 remains incomplete.
+
+## Curse Poison copy state (staged typed-effect extension)
+
+Current Poison authoring may explicitly set `curseCopyable: true | false`. The flag is copied into
+its persistent Poison row so later Curse legality does not infer eligibility from the display name.
+Historical Poison rows which omit this optional field remain valid and are not Curse-copyable.
+Malformed authored or persisted values fail closed.
+
+A pure single-unit Curse can copy an explicitly eligible Poison from the caster to its selected
+recipient while leaving the original Poison unchanged. A new recipient Poison preserves the donor's
+current movement remainder. If the recipient already has Poison, the normal single-instance rule
+wins and the recipient's own movement remainder is retained rather than reset to donor progress.
+The copied instance rebinds source combatant/action to the Curse command and becomes explicitly
+copyable. No Poison damage fires merely because it was copied; existing movement/end-turn Poison
+processing continues afterward.
+
+With K3 context the copy uses the shared `copyOrdinal` sequence after any copied ordinary statuses,
+records the immediate donor in `copiedFromInstanceId`, and records a replaced recipient instance in
+`inheritedFromInstanceId`. Without K3 context no donor provenance is silently reused. Amplify never
+copies Poison in this slice. Burn/Bleed typed state, repeat-use/publication, AI and broader copying
+remain separate gates; no published Skill is activated here.

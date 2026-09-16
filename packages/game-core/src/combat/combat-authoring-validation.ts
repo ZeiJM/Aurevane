@@ -3,7 +3,7 @@ import { validateCombatAccuracyDefinition } from './combat-skill-accuracy'
 import { validateVengeanceActionDefinition } from './combat-vengeance'
 import { validateBarrierEffect } from './combat-barrier'
 import { validateRecoveryEffect } from './combat-recovery'
-import { validateCurrentBleedEffect } from './combat-dots'
+import { validateCurrentBleedEffect, validateCurrentPoisonEffect } from './combat-dots'
 import { validateCombatEffectCategory } from './combat-effect-categories'
 import { validateCombatAccuracyStatusDefinition } from './combat-accuracy-status'
 import type {
@@ -131,6 +131,7 @@ export function validateCombatActionDefinition(
     if (effect.type === 'damage' || effect.type === 'healing') {
       nonNegativeSafeInteger(effect.amount, `${effect.type} amount`)
     }
+    if (effect.type === 'poison') validateCurrentPoisonEffect(effect)
     if (effect.type === 'bleed') validateCurrentBleedEffect(effect)
     if (effect.type === 'damage' && effect.scaling !== undefined) {
       const scalingIssues = validateCombatDamageScaling(effect.scaling)

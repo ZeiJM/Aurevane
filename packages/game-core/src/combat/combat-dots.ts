@@ -18,6 +18,13 @@ export const CURRENT_BURN_BACKLASH_DAMAGE = 2 as const
 export interface CurrentPoisonEffect {
   type: 'poison'
   recipient: CombatEffectRecipient
+  curseCopyable?: boolean
+}
+
+export function validateCurrentPoisonEffect(effect: { curseCopyable?: unknown }): void {
+  if (effect.curseCopyable !== undefined && typeof effect.curseCopyable !== 'boolean') {
+    throw new TypeError('Poison curseCopyable must be boolean when supplied.')
+  }
 }
 
 export function currentPoisonInstance(
@@ -47,7 +54,9 @@ export function applyCurrentPoisonState(
   sourceCombatantId: string,
   targetCombatantId: string,
   sourceActionId: string,
+  curseCopyable?: boolean,
 ): CombatEncounterState {
+  validateCurrentPoisonEffect({ curseCopyable })
   const effectState = normalizeCombatEffectState(state.effectState)
   const existing = effectState.poison.find(
     (instance) => instance.targetCombatantId === targetCombatantId,
@@ -58,6 +67,7 @@ export function applyCurrentPoisonState(
     sourceActionId,
     profileVersion: CURRENT_POISON_PROFILE_VERSION,
     movementRemainder: existing?.movementRemainder ?? 0,
+    ...(curseCopyable !== undefined ? { curseCopyable } : {}),
   }
 
   return {
@@ -355,6 +365,7 @@ function validateCurrentPoisonState(state: CombatEncounterState): readonly Comba
       instance.sourceActionId.length === 0 ||
       instance.sourceActionId.trim() !== instance.sourceActionId ||
       instance.profileVersion !== CURRENT_POISON_PROFILE_VERSION ||
+      (instance.curseCopyable !== undefined && typeof instance.curseCopyable !== 'boolean') ||
       !Number.isSafeInteger(instance.movementRemainder) ||
       instance.movementRemainder < 0 ||
       instance.movementRemainder > 4 ||
@@ -372,7 +383,7 @@ function validateCurrentPoisonState(state: CombatEncounterState): readonly Comba
         {
           field: 'effectState.poison',
           message:
-            'Poison state must contain one valid current-profile instance per target, sorted by target ID, with movement progress from 0 to 4.',
+            'Poison state must contain one valid current-profile instance per target, sorted by target ID, with movement progress from 0 to 4 and optional boolean copy policy.',
         },
       ]
     : []
