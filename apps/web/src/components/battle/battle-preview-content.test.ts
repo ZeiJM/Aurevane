@@ -146,7 +146,7 @@ describe('copy-statuses player forecast presentation', () => {
       ]),
     )
 
-    expect(result).toContain('Copied Hexed · 1 stack · 2 turns')
+    expect(result).toContain('Copied Hex · 1 stack · 2 turns')
     expect(result).toContain('7 dmg')
   })
 
@@ -249,17 +249,14 @@ describe('copy-statuses player forecast presentation', () => {
 
   it('leaves non-clone action preview chips unchanged', () => {
     const result = labels(
-      actionPreview(
-        [{ effectType: 'damage', combatantId: 'target', before: 100, after: 83 }],
-        {
-          actionEconomyCost: 30,
-          actionEconomyAfter: 70,
-          hitChanceBasisPoints: 6900,
-          defenseKind: 'armor',
-          defenseRating: 5,
-          mitigatedBaseDamage: 17,
-        },
-      ),
+      actionPreview([{ effectType: 'damage', combatantId: 'target', before: 100, after: 83 }], {
+        actionEconomyCost: 30,
+        actionEconomyAfter: 70,
+        hitChanceBasisPoints: 6900,
+        defenseKind: 'armor',
+        defenseRating: 5,
+        mitigatedBaseDamage: 17,
+      }),
     )
 
     expect(result).toEqual(['30 AP', '70 AP left', 'Hit 69%', 'On hit 17 dmg'])
