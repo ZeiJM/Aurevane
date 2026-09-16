@@ -45,6 +45,7 @@ import {
   removeCurrentPoisonState,
   validateCombatDotState,
   validateCurrentBleedEffect,
+  validateCurrentPoisonEffect,
 } from './combat-dots'
 import type { CombatEffectState } from './combat-effect-state'
 import {
@@ -161,7 +162,7 @@ export type CombatEffectDefinition =
       direction?: 'push' | 'pull'
       distance: number
     }
-  | { type: 'poison'; recipient: CombatEffectRecipient }
+  | { type: 'poison'; recipient: CombatEffectRecipient; curseCopyable?: boolean }
   | { type: 'burn'; recipient: CombatEffectRecipient }
   | {
       type: 'bleed'
@@ -682,8 +683,10 @@ export function evaluateCombatAction(
   if (issues.length === 0 && copyEffect?.type === 'copy-statuses' && target.combatantId) {
     if (
       target.combatantId === actorId ||
-      planCombatStatusCopies(state, actorId, target.combatantId, copyEffect, content).copies
-        .length === 0
+      (() => {
+        const plan = planCombatStatusCopies(state, actorId, target.combatantId, copyEffect, content)
+        return plan.copies.length === 0 && !plan.poison
+      })()
     ) {
       issues.push({
         code: 'requirement-not-met',
@@ -1668,7 +1671,7 @@ function applyEffect(
     return applyDisplacement(state, actorId, recipientId, actionId, effect, content)
   if (effect.type === 'poison') {
     return {
-      state: applyCurrentPoisonState(state, actorId, recipientId, actionId),
+      state: applyCurrentPoisonState(state, actorId, recipientId, actionId, effect.curseCopyable),
       events: [],
     }
   }
@@ -2528,6 +2531,7 @@ function validateCombatActionDefinition(
     if (effect.type === 'damage' || effect.type === 'healing') {
       assertNonNegativeSafeInteger(effect.amount, `${effect.type} amount`)
     }
+    if (effect.type === 'poison') validateCurrentPoisonEffect(effect)
     if (effect.type === 'bleed') validateCurrentBleedEffect(effect)
     if (effect.type === 'damage' && effect.defenseKind !== undefined)
       assertKnownString(effect.defenseKind, ['armor', 'ward'], 'damage defense kind')
