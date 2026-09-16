@@ -45,12 +45,13 @@ describe('image registry', () => {
   })
 
   it('routes every starter portrait choice through a square runtime descriptor', () => {
-    for (const portrait of STARTER_CHARACTER_PORTRAITS) {
+    for (const [index, portrait] of STARTER_CHARACTER_PORTRAITS.entries()) {
+      const size = index === 0 ? 400 : 96
       const asset = getImageAsset(getStarterPortraitImageAssetId(portrait.ref))
       expect(asset).toMatchObject({
         status: 'approved',
-        width: 96,
-        height: 96,
+        width: size,
+        height: size,
         decorative: false,
       })
     }

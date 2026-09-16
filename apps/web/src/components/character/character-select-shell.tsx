@@ -6,6 +6,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 
+import { CharacterDeletionDialog } from './character-deletion-dialog'
+
 import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
 import { AccountMenu } from '@/components/shell/account-menu'
 import { getStarterPortraitImageAssetId } from '@/media/character'
@@ -390,164 +392,143 @@ export function CharacterSelectShell({
       </main>
 
       {deleting ? (
-        <div
-          className={styles.modalBackdrop}
-          role="presentation"
-          onMouseDown={(event) => {
-            if (event.currentTarget === event.target && !busy) setDeleting(null)
-          }}
+        <CharacterDeletionDialog
+          titleId="delete-character-title"
+          busy={busy}
+          onDismiss={() => setDeleting(null)}
         >
-          <section
-            className={styles.modal}
-            data-av-surface="moonstone"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="delete-character-title"
-          >
-            <span>24-hour deletion grace period</span>
-            <h2 id="delete-character-title">Schedule deletion of {deleting.name}?</h2>
-            <p>
-              This does not delete the character immediately. The slot stays locked for 24 hours and
-              you can cancel during that time. After the deadline the deletion becomes irreversible.
+          <span>24-hour deletion grace period</span>
+          <h2 id="delete-character-title">Schedule deletion of {deleting.name}?</h2>
+          <p>
+            This does not delete the character immediately. The slot stays locked for 24 hours and
+            you can cancel during that time. After the deadline the deletion becomes irreversible.
+          </p>
+          <label>
+            <span>
+              Type exactly: <strong>DELETE {deleting.name}</strong>
+            </span>
+            <input
+              autoFocus
+              value={phrase}
+              onChange={(event) => setPhrase(event.target.value)}
+              disabled={busy}
+            />
+          </label>
+          {message ? (
+            <p className={styles.modalError} role="alert">
+              {message}
             </p>
-            <label>
-              <span>
-                Type exactly: <strong>DELETE {deleting.name}</strong>
-              </span>
-              <input
-                autoFocus
-                value={phrase}
-                onChange={(event) => setPhrase(event.target.value)}
-                disabled={busy}
-              />
-            </label>
-            {message ? (
-              <p className={styles.modalError} role="alert">
-                {message}
-              </p>
-            ) : null}
-            <div className={styles.modalActions}>
-              <button type="button" onClick={() => setDeleting(null)} disabled={busy}>
-                Cancel
-              </button>
-              <button
-                type="button"
-                className={styles.danger}
-                onClick={() => void requestDeletion()}
-                disabled={busy || phrase !== `DELETE ${deleting.name}`}
-              >
-                {busy ? 'Scheduling…' : 'Start 24-hour deletion'}
-              </button>
-            </div>
-          </section>
-        </div>
+          ) : null}
+          <div className={styles.modalActions}>
+            <button type="button" onClick={() => setDeleting(null)} disabled={busy}>
+              Cancel
+            </button>
+            <button
+              type="button"
+              className={styles.danger}
+              onClick={() => void requestDeletion()}
+              disabled={busy || phrase !== `DELETE ${deleting.name}`}
+            >
+              {busy ? 'Scheduling…' : 'Start 24-hour deletion'}
+            </button>
+          </div>
+        </CharacterDeletionDialog>
       ) : null}
 
       {accountModalOpen ? (
-        <div
-          className={styles.modalBackdrop}
-          role="presentation"
-          onMouseDown={(event) => {
-            if (event.currentTarget === event.target && !accountBusy) setAccountModalOpen(false)
-          }}
+        <CharacterDeletionDialog
+          titleId="delete-account-title"
+          busy={accountBusy}
+          onDismiss={() => setAccountModalOpen(false)}
+          className={styles.accountDeleteModal}
         >
-          <section
-            className={`${styles.modal} ${styles.accountDeleteModal}`}
-            data-av-surface="moonstone"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="delete-account-title"
-          >
-            {accountDeletionState ? (
-              <>
-                <span>Account deletion scheduled</span>
-                <h2 id="delete-account-title">Your account is in its 24-hour grace period.</h2>
-                <div className={styles.accountDeleteCountdown} aria-live="polite">
-                  <small>Permanent deletion in</small>
-                  <Countdown target={accountDeletionState.deleteAfter} />
-                </div>
-                <p>
-                  When this timer expires, your AUREVANE login email and authentication identity,
-                  characters, progression, settings, training data, battle records, PvP data, and
-                  other account-owned game records are permanently deleted. Recovery is not possible
-                  after finalization.
+          {accountDeletionState ? (
+            <>
+              <span>Account deletion scheduled</span>
+              <h2 id="delete-account-title">Your account is in its 24-hour grace period.</h2>
+              <div className={styles.accountDeleteCountdown} aria-live="polite">
+                <small>Permanent deletion in</small>
+                <Countdown target={accountDeletionState.deleteAfter} />
+              </div>
+              <p>
+                When this timer expires, your AUREVANE login email and authentication identity,
+                characters, progression, settings, training data, battle records, PvP data, and
+                other account-owned game records are permanently deleted. Recovery is not possible
+                after finalization.
+              </p>
+              <p>You can still change your mind now. Cancelling immediately removes the request.</p>
+              {accountError ? (
+                <p className={styles.modalError} role="alert">
+                  {accountError}
                 </p>
-                <p>
-                  You can still change your mind now. Cancelling immediately removes the request.
+              ) : null}
+              <div className={styles.modalActions}>
+                <button
+                  type="button"
+                  onClick={() => setAccountModalOpen(false)}
+                  disabled={accountBusy}
+                >
+                  Keep deletion scheduled
+                </button>
+                <button
+                  type="button"
+                  className={styles.accountCancelDeletion}
+                  onClick={() => void cancelAccountDeletion()}
+                  disabled={accountBusy}
+                >
+                  {accountBusy ? 'Cancelling…' : 'Cancel account deletion'}
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <span>Permanent account deletion</span>
+              <h2 id="delete-account-title">Delete your entire AUREVANE account?</h2>
+              <p className={styles.accountDeleteWarning}>
+                This action becomes irreversible after the 24-hour grace period. Final deletion
+                removes your login email and authentication identity plus all AUREVANE data owned by
+                this account. It cannot be restored from the game database afterward.
+              </p>
+              <p>
+                To start the countdown, verify that you are the account owner by entering your
+                current account password. Nothing is deleted when you open this warning.
+              </p>
+              <label>
+                <span>Current account password</span>
+                <input
+                  autoFocus
+                  type="password"
+                  autoComplete="current-password"
+                  value={accountPassword}
+                  onChange={(event) => setAccountPassword(event.target.value)}
+                  disabled={accountBusy}
+                />
+              </label>
+              {accountError ? (
+                <p className={styles.modalError} role="alert">
+                  {accountError}
                 </p>
-                {accountError ? (
-                  <p className={styles.modalError} role="alert">
-                    {accountError}
-                  </p>
-                ) : null}
-                <div className={styles.modalActions}>
-                  <button
-                    type="button"
-                    onClick={() => setAccountModalOpen(false)}
-                    disabled={accountBusy}
-                  >
-                    Keep deletion scheduled
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.accountCancelDeletion}
-                    onClick={() => void cancelAccountDeletion()}
-                    disabled={accountBusy}
-                  >
-                    {accountBusy ? 'Cancelling…' : 'Cancel account deletion'}
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <span>Permanent account deletion</span>
-                <h2 id="delete-account-title">Delete your entire AUREVANE account?</h2>
-                <p className={styles.accountDeleteWarning}>
-                  This action becomes irreversible after the 24-hour grace period. Final deletion
-                  removes your login email and authentication identity plus all AUREVANE data owned
-                  by this account. It cannot be restored from the game database afterward.
-                </p>
-                <p>
-                  To start the countdown, verify that you are the account owner by entering your
-                  current account password. Nothing is deleted when you open this warning.
-                </p>
-                <label>
-                  <span>Current account password</span>
-                  <input
-                    autoFocus
-                    type="password"
-                    autoComplete="current-password"
-                    value={accountPassword}
-                    onChange={(event) => setAccountPassword(event.target.value)}
-                    disabled={accountBusy}
-                  />
-                </label>
-                {accountError ? (
-                  <p className={styles.modalError} role="alert">
-                    {accountError}
-                  </p>
-                ) : null}
-                <div className={styles.modalActions}>
-                  <button
-                    type="button"
-                    onClick={() => setAccountModalOpen(false)}
-                    disabled={accountBusy}
-                  >
-                    Never mind
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.danger}
-                    onClick={() => void startAccountDeletion()}
-                    disabled={accountBusy || accountPassword.length === 0}
-                  >
-                    {accountBusy ? 'Verifying…' : 'Start 24-hour account deletion'}
-                  </button>
-                </div>
-              </>
-            )}
-          </section>
-        </div>
+              ) : null}
+              <div className={styles.modalActions}>
+                <button
+                  type="button"
+                  onClick={() => setAccountModalOpen(false)}
+                  disabled={accountBusy}
+                >
+                  Never mind
+                </button>
+                <button
+                  type="button"
+                  className={styles.danger}
+                  onClick={() => void startAccountDeletion()}
+                  disabled={accountBusy || accountPassword.length === 0}
+                >
+                  {accountBusy ? 'Verifying…' : 'Start 24-hour account deletion'}
+                </button>
+              </div>
+            </>
+          )}
+        </CharacterDeletionDialog>
       ) : null}
     </div>
   )

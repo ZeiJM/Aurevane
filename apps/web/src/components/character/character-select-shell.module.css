@@ -415,11 +415,25 @@
 
 .modalBackdrop {
   position: fixed;
-  z-index: 1600;
   inset: 0;
+  display: none;
+  width: 100%;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: 1rem;
+  overflow: hidden;
+  border: 0;
+  background: transparent;
+}
+
+.modalBackdrop[open] {
   display: grid;
   place-items: center;
-  padding: 1rem;
+}
+
+.modalBackdrop::backdrop {
   background: #000000bd;
   backdrop-filter: blur(0.4rem);
 }
