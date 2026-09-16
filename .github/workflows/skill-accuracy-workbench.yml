@@ -1,0 +1,43 @@
+name: Skill accuracy workbench
+on:
+  push:
+    branches: [review/skill-accuracy-workbench-20260915]
+permissions:
+  contents: read
+jobs:
+  baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: aff99544a68173437469573907b0f36e1687e9bf
+          fetch-depth: 2
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install and verify exact baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = aff99544a68173437469573907b0f36e1687e9bf
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+          pnpm install --frozen-lockfile
+          pnpm --filter @aurevane/game-core typecheck
+          pnpm --filter @aurevane/game-core exec vitest run --reporter=json --outputFile=/tmp/baseline.json >/tmp/baseline.log 2>&1 || { cat /tmp/baseline.log; exit 1; }
+          python3 - <<'PY'
+          import json
+          r=json.load(open('/tmp/baseline.json'))
+          print('BASELINE',r['numPassedTests'],'passed;',r['numFailedTests'],'failed')
+          assert r['numPassedTests']==1438 and r['numFailedTests']==0
+          PY
+          git diff --exit-code
+      - name: Inspect existing accuracy authoring and consumers
+        shell: bash
+        run: |
+          set -euo pipefail
+          git grep -n -e accuracyMode -e accuracyModifierBasisPoints -- packages apps docs/COMBAT.md docs/superpowers/specs/2026-09-12-reactive-effects-accuracy-discipline-rebalance-design.md
+          sed -n '7,75p' AGENTS.md
+          sed -n '470,650p' packages/game-core/src/combat/pv1f-action-economy.ts
