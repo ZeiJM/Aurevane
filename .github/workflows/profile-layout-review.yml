@@ -3,14 +3,59 @@ name: UI layout review
 on:
   push:
     branches:
+      - main
+      - agent/profile-layout-repair
+      - agent/training-concept-ui
+      - agent/battle-hall-concept-ui
+      - agent/adventurers-concept-ui
+      - agent/character-roster-hq-continuation
+      - agent/creation-workspace-repair
       - agent/controls-keybinds-fidelity
     paths:
       - .github/workflows/profile-layout-review.yml
-      - apps/web/e2e/controls-layout-regression.pw.ts
+      - apps/web/e2e/*layout-regression.pw.ts
+      - apps/web/e2e/pv1f-test-helpers.ts
+      - apps/web/e2e/account-entry.pw.ts
+      - apps/web/e2e/wayfarers-practice.pw.ts
+      - apps/web/e2e/pvp-spectator-footer-shape.pw.ts
+      - apps/web/src/components/account/**
+      - apps/web/src/components/character/**
+      - apps/web/src/components/settings/**
+      - apps/web/src/components/social/**
+      - apps/web/src/app/game/online/**
+      - apps/web/src/app/game/create/**
+      - apps/web/src/app/game/settings/**
+      - apps/web/src/media/**
+      - apps/web/src/components/wayfarers-practice/**
+      - apps/web/src/components/battle/battle-launch*
+      - apps/web/src/components/battle/pvp-lobby-modal*
+      - apps/web/src/components/shell/**
+      - apps/web/src/app/*.css
+      - apps/web/src/app/layout.tsx
+      - packages/ui/**
   pull_request:
     paths:
       - .github/workflows/profile-layout-review.yml
-      - apps/web/e2e/controls-layout-regression.pw.ts
+      - apps/web/e2e/*layout-regression.pw.ts
+      - apps/web/e2e/pv1f-test-helpers.ts
+      - apps/web/e2e/account-entry.pw.ts
+      - apps/web/e2e/wayfarers-practice.pw.ts
+      - apps/web/e2e/pvp-spectator-footer-shape.pw.ts
+      - apps/web/src/components/account/**
+      - apps/web/src/components/character/**
+      - apps/web/src/components/settings/**
+      - apps/web/src/components/social/**
+      - apps/web/src/app/game/online/**
+      - apps/web/src/app/game/create/**
+      - apps/web/src/app/game/settings/**
+      - apps/web/src/media/**
+      - apps/web/src/components/wayfarers-practice/**
+      - apps/web/src/components/battle/battle-launch*
+      - apps/web/src/components/battle/pvp-lobby-modal*
+      - apps/web/src/components/shell/**
+      - apps/web/src/app/*.css
+      - apps/web/src/app/layout.tsx
+      - packages/ui/**
 
 permissions:
   contents: read
@@ -22,7 +67,7 @@ concurrency:
 jobs:
   review:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
@@ -30,10 +75,42 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Print exact Controls Prettier diff
+      - name: Install locked dependencies
         run: |
           corepack enable
           corepack prepare pnpm@11.17.0 --activate
           pnpm install --frozen-lockfile
-          pnpm exec prettier --write apps/web/e2e/controls-layout-regression.pw.ts
-          git diff -- apps/web/e2e/controls-layout-regression.pw.ts
+          pnpm --filter @aurevane/web exec playwright install --with-deps chromium
+      - name: Start disposable local database
+        run: |
+          pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
+          pnpm exec supabase db reset --local
+      - name: Build and inspect real authenticated pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          source .github/scripts/auth-test-helpers.sh
+          load_test_auth
+          echo "::add-mask::$TEST_AUTH_ADMIN_KEY"
+          export AUREVANE_ENV=local
+          export NEXT_PUBLIC_AUREVANE_ENV=local
+          export NEXT_PUBLIC_SUPABASE_URL="$TEST_AUTH_API_URL"
+          export NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY"
+          export SUPABASE_SECRET_KEY="$TEST_AUTH_ADMIN_KEY"
+          export LAYOUT_REVIEW_OUTPUT=/tmp/ui-layout-review
+          mkdir -p "$LAYOUT_REVIEW_OUTPUT"
+          git rev-parse HEAD > "$LAYOUT_REVIEW_OUTPUT/commit.txt"
+          pnpm --filter @aurevane/web build
+          review_status=0
+          pnpm --filter @aurevane/web exec playwright test e2e/character-roster-dialog-layout-regression.pw.ts e2e/creation-layout-regression.pw.ts e2e/account-entry.pw.ts e2e/character-roster-layout-regression.pw.ts e2e/character-creation.pw.ts e2e/character-deletion.pw.ts e2e/profile-layout-regression.pw.ts e2e/titles-layout-regression.pw.ts e2e/controls-layout-regression.pw.ts e2e/training-layout-regression.pw.ts e2e/training-concept-layout-regression.pw.ts e2e/wayfarers-practice.pw.ts e2e/hall-layout-regression.pw.ts e2e/hall-controls-layout-regression.pw.ts e2e/pvp-spectator-footer-shape.pw.ts e2e/adventurers-layout-regression.pw.ts e2e/battle-usability.pw.ts || review_status=$?
+          pnpm --filter @aurevane/web exec playwright test e2e/desktop-experience.pw.ts --grep "a large desktop character directory" || review_status=$?
+          exit "$review_status"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ui-layout-review
+          path: /tmp/ui-layout-review
+          retention-days: 3
+      - name: Stop disposable database
+        if: always()
+        run: pnpm exec supabase stop --no-backup
