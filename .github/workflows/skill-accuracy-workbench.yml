@@ -3,16 +3,17 @@ on:
   push:
     branches: [review/skill-accuracy-workbench-20260915]
 permissions:
-  contents: write
+  contents: read
 jobs:
-  accuracy-green:
+  accuracy-review:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: c091f40c7396ce7972c71ce99800379be6396f43
-          fetch-depth: 4
+          ref: e3ed624e97a7472aa0f7fc3ad0ea2f97b729059d
+          fetch-depth: 5
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -21,300 +22,162 @@ jobs:
           corepack enable
           corepack prepare pnpm@11.17.0 --activate
           pnpm install --frozen-lockfile
-      - name: Implement the isolated accuracy kernel slice
+      - name: Review exact candidate without retaining synthetic tests
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = c091f40c7396ce7972c71ce99800379be6396f43
+          test "$(git rev-parse HEAD)" = e3ed624e97a7472aa0f7fc3ad0ea2f97b729059d
+          test "$(git rev-parse HEAD^{tree})" = 0e0c6e6eb67d32bf67745fe9384251d75b328ac6
           python3 - <<'PY'
           from pathlib import Path
           import subprocess
           root=Path('packages/game-core/src/combat')
-          expected={
-            'actions.ts':'fbba0c0b517cae708a7012a54e365718a8142da9',
-            'actions-legacy.ts':'4bc55cd29207f643d37d4b20677a162bd7526177',
-            'combat-authoring-validation.ts':'0a7a9cb02593c49e882e78668b54b620bbfd992a',
-            'mature-skills.ts':'1b9df28b4fe98544bc628ba8f5cb3967fcdae793',
-            'stat-driven-combat.ts':'39bb71df847e813aba04081d87b1d4ad71d4ab54',
-          }
-          for name,sha in expected.items():
-              actual=subprocess.check_output(['git','rev-parse',f'HEAD:{root/name}'],text=True).strip()
-              assert actual==sha,(name,actual)
-          def replace_once(path,old,new):
-              text=path.read_text()
-              assert text.count(old)==1,(str(path),old,text.count(old))
-              path.write_text(text.replace(old,new))
-          plan=Path('docs/superpowers/plans/2026-09-15-skill-accuracy-kernel.md')
-          assert not plan.exists()
-          plan.parent.mkdir(parents=True,exist_ok=True)
-          plan.write_text('''# Skill Accuracy Kernel Implementation Plan
+          tests=root/'combat-skill-accuracy.test.ts'
+          original=tests.read_bytes()
+          old_actions=root/'actions-accuracy-review-baseline.ts'
+          old_stats=root/'stat-driven-accuracy-review-baseline.ts'
+          assert not old_actions.exists() and not old_stats.exists()
+          additions='''
+          import * as historicalActions from './actions-accuracy-review-baseline'
+          import * as historicalStats from './stat-driven-accuracy-review-baseline'
+          import { executeStatDrivenAttack, forecastStatDrivenAttack } from './stat-driven-combat'
+          import type { CombatStatusDefinition } from './actions'
 
-          > For agentic workers: use superpowers:executing-plans. This is the first independently verified slice of the approved accuracy / Mark / Blind group.
-
-          **Goal:** Resolve opted-in Skills using one deterministic roll per hostile unit while preserving existing command effects, costs, reactions and historical behavior.
-
-          **Architecture:** A shared probability helper reads committed stat profiles. The public wrapper validates and resolves target rolls; an engine-owned recipient filter skips missed hostile recipients inside the existing effect sequence. No second damage resolver or authored hit-result override is introduced.
-
-          **Tech Stack:** Existing TypeScript, Vitest, pnpm and GitHub Actions; no dependency changes.
-
-          **Spec:** `docs/superpowers/specs/2026-09-12-reactive-effects-accuracy-discipline-rebalance-design.md`, section 9. Mark/Blind status mechanics and complete presentation/AI publication remain following slices.
-
-          ## Global constraints
-
-          Server-owned state and deterministic RNG; optional backward-compatible fields; immutable published catalogs; no deployment; never merge diagnostic workbench branches. Use the exact verified shared base and expected-head merge locks. Ordinary automatic behavior and the Basic Attack adapter remain compatible.
-
-          ## Task 1: Per-target accuracy runtime
-
-          - [x] Verify shared baseline and read command, authoring, provenance and mature Skill entry points.
-          - [x] Write public-entry-point tests; correct the fixture type annotation; observe 40 assertion-only RED failures with 1,443 passing tests.
-          - [ ] Add `combat-skill-accuracy.ts`: common authoring validation, pure hit probability, stable hostile recipient forecasts and deterministic rolls.
-          - [ ] Wire public `actions.ts` and the engine-owned commit recipient filter in `actions-legacy.ts`; exclude missed recipients from K3 provenance assignment.
-          - [ ] Forward optional fields through `mature-skills.ts`; reuse probability math in the existing Basic Attack adapter without changing its execution behavior.
-          - [ ] Run focused tests, typecheck and full `pnpm check`; inspect exact source/file scope and retain the source-only candidate.
-          - [ ] Review and pass all exact-head PR workflows, merge into shared combat, then verify exact merge-head Quality and Database checks. PR receipts record this integration stage.
-
-          ## Interfaces and follow-on boundary
-
-          `CombatAccuracyAuthoring` defines optional accuracy mode and modifier. `forecastCombatSkillAccuracy` adds `targetHitChances` and `projectionsAssumeHits` only to legal opted-in previews. `rollCombatSkillAccuracy` consumes the same chances and returns immutable RNG state, accuracy receipts and missed recipient IDs. `calculateHitChanceBasisPoints` remains the shared arithmetic function also re-exported by the historical Basic Attack module.
-
-          Mark/Blind requires separate source-specific state, refresh/nonstack validation, historical Mark compatibility and integration into this same probability function. Player-facing conditional forecasts, AI expected-value scoring and content publication are not certified by this kernel ticket.
-          '''.replace('\n          ','\n'))
-          helper=root/'combat-skill-accuracy.ts'
-          assert not helper.exists()
-          helper.write_text('''import { advanceBattleRng } from './battle-state'
-          import type { CombatActionDefinition, CombatActionEvaluation, CombatEncounterState } from './actions'
-
-          const BASIS_POINTS = 10_000
-          export const COMBAT_SKILL_ACCURACY_RULES_VERSION = 1 as const
-
-          export interface CombatAccuracyAuthoring {
-            readonly accuracyMode?: 'automatic' | 'per-target'
-            readonly accuracyModifierBasisPoints?: number
-          }
-
-          export interface CombatTargetHitChance {
-            targetCombatantId: string
-            hitChanceBasisPoints: number
-          }
-
-          export interface CombatSkillAccuracyResolvedEvent extends CombatTargetHitChance {
-            event: 'combat_accuracy_resolved'
-            actionId: string
-            sourceCombatantId: string
-            rollBasisPoints: number
-            hit: boolean
-            accuracyRulesVersion: typeof COMBAT_SKILL_ACCURACY_RULES_VERSION
-          }
-
-          export function validateCombatAccuracyDefinition(
-            definition: CombatAccuracyAuthoring & { readonly sourceType?: string },
-          ): void {
-            if (definition.accuracyMode !== undefined &&
-                definition.accuracyMode !== 'automatic' && definition.accuracyMode !== 'per-target') {
-              throw new TypeError('Combat accuracy mode is not supported.')
-            }
-            if (definition.accuracyModifierBasisPoints !== undefined &&
-                (!Number.isSafeInteger(definition.accuracyModifierBasisPoints) ||
-                 Math.abs(definition.accuracyModifierBasisPoints) > 3_000)) {
-              throw new RangeError('Combat accuracy modifier must be an integer within +/-3000 basis points.')
-            }
-            if (definition.sourceType === 'basic-attack' && definition.accuracyMode !== undefined) {
-              throw new TypeError('Basic Attack retains its existing accuracy adapter; explicit Skill accuracy mode is not supported.')
-            }
-          }
-
-          /** Shared arithmetic only. Callers validate committed ratings and authored modifiers. */
-          export function calculateHitChanceBasisPoints(
-            actor: { accuracy: number },
-            target: { evasion: number },
-            modifierBasisPoints = 0,
-          ): number {
-            return Math.max(0, Math.min(BASIS_POINTS, actor.accuracy - target.evasion + modifierBasisPoints))
-          }
-
-          /** Forecasts outcomes conditional on hits, never samples or exposes the next RNG draw. */
-          export function forecastCombatSkillAccuracy(
-            state: CombatEncounterState,
-            action: CombatActionDefinition,
-            evaluation: CombatActionEvaluation,
-          ): CombatActionEvaluation {
-            validateCombatAccuracyDefinition(action)
-            if (!evaluation.legal || !evaluation.actorId || action.accuracyMode !== 'per-target') return evaluation
-            const actorId = evaluation.actorId
-            const actor = state.tactical.battle.combatants.find((unit) => unit.id === actorId)
-            if (!actor) throw new TypeError('Combat accuracy requires the committed acting combatant.')
-            const recipients = new Set<string>()
-            for (const effect of action.effects) {
-              if (effect.type === 'create-terrain' || effect.recipient === 'actor') continue
-              if (effect.recipient === 'primary-unit') {
-                if (evaluation.primaryCombatantId) recipients.add(evaluation.primaryCombatantId)
-              } else {
-                for (const id of evaluation.affectedCombatantIds) recipients.add(id)
-              }
-            }
-            const hostileIds = [...recipients].filter((id) => {
-              const target = state.tactical.battle.combatants.find((unit) => unit.id === id)
-              if (!target) throw new TypeError('Combat accuracy requires a committed recipient.')
-              return target.hp > 0 && target.teamId !== actor.teamId
-            }).sort((left, right) => left < right ? -1 : left > right ? 1 : 0)
-            const targetHitChances = hostileIds.length === 0 ? [] : (() => {
-              const accuracy = committedRating(state, actorId, 'accuracy')
-              return hostileIds.map((targetCombatantId) => ({
-                targetCombatantId,
-                hitChanceBasisPoints: calculateHitChanceBasisPoints(
-                  { accuracy },
-                  { evasion: committedRating(state, targetCombatantId, 'evasion') },
-                  action.accuracyModifierBasisPoints ?? 0,
-                ),
-              }))
-            })()
-            return { ...evaluation, targetHitChances, projectionsAssumeHits: true }
-          }
-
-          /** Called only with server-owned state after ordinary legality. Results are never authored. */
-          export function rollCombatSkillAccuracy(
-            state: CombatEncounterState,
-            action: CombatActionDefinition,
-            evaluation: CombatActionEvaluation | null,
-          ): { state: CombatEncounterState; events: readonly CombatSkillAccuracyResolvedEvent[]; missedCombatantIds: ReadonlySet<string> } {
-            const missedCombatantIds = new Set<string>()
-            const events: CombatSkillAccuracyResolvedEvent[] = []
-            if (!evaluation?.legal || !evaluation.actorId || action.accuracyMode !== 'per-target') {
-              return { state, events, missedCombatantIds }
-            }
-            const forecast = forecastCombatSkillAccuracy(state, action, evaluation)
-            let rng = state.tactical.battle.rng
-            for (const chance of forecast.targetHitChances ?? []) {
-              const draw = advanceBattleRng(rng)
-              rng = draw.state
-              const rollBasisPoints = draw.value % BASIS_POINTS
-              const hit = rollBasisPoints < chance.hitChanceBasisPoints
-              if (!hit) missedCombatantIds.add(chance.targetCombatantId)
-              events.push({ event: 'combat_accuracy_resolved', actionId: action.id,
-                sourceCombatantId: evaluation.actorId, ...chance, rollBasisPoints, hit,
-                accuracyRulesVersion: COMBAT_SKILL_ACCURACY_RULES_VERSION })
-            }
-            return {
-              state: events.length === 0 ? state : {
-                ...state, tactical: { ...state.tactical, battle: { ...state.tactical.battle, rng } },
-              },
-              events,
-              missedCombatantIds,
-            }
-          }
-
-          function committedRating(state: CombatEncounterState, combatantId: string, field: 'accuracy' | 'evasion'): number {
-            const profiles = state.statBridge?.combatants
-            if (!profiles || !Array.isArray(profiles)) throw new TypeError('Combat accuracy requires committed stat profiles.')
-            const matches = profiles.filter((row) => row.combatantId === combatantId)
-            if (matches.length !== 1) throw new TypeError('Combat accuracy requires exactly one committed profile per recipient.')
-            const value = matches[0]?.[field]
-            if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0 || value > BASIS_POINTS) {
-              throw new RangeError(`Combat accuracy ${field} must be an integer between 0 and 10000 basis points.`)
-            }
-            return value
-          }
-          '''.replace('\n          ','\n'))
-          p=root/'actions.ts'
-          p.write_text("import { validateCombatAccuracyDefinition, forecastCombatSkillAccuracy, rollCombatSkillAccuracy, type CombatAccuracyAuthoring, type CombatTargetHitChance } from './combat-skill-accuracy'\n"+p.read_text())
-          replace_once(p,"extends Omit<legacy.CombatActionDefinition, 'effects'> {","extends Omit<legacy.CombatActionDefinition, 'effects'>, CombatAccuracyAuthoring {")
-          replace_once(p,'      mysticPower?: number\n','      mysticPower?: number\n      accuracy?: number\n      evasion?: number\n')
-          replace_once(p,'  vengeanceBasis?: readonly CombatVengeanceBasis[]\n','  vengeanceBasis?: readonly CombatVengeanceBasis[]\n  targetHitChances?: readonly CombatTargetHitChance[]\n  projectionsAssumeHits?: true\n')
-          replace_once(p,'  const materialized = materializeVengeanceDamage(state, action)','  validateCombatAccuracyDefinition(action)\n  const materialized = materializeVengeanceDamage(state, action)')
-          replace_once(p,"  return evaluation.legal && materialized.basis.length > 0\n    ? { ...evaluation, vengeanceBasis: materialized.basis }\n    : evaluation","  const preview = evaluation.legal && materialized.basis.length > 0\n    ? { ...evaluation, vengeanceBasis: materialized.basis }\n    : evaluation\n  return forecastCombatSkillAccuracy(state, action, preview)")
-          replace_once(p,'  const round = state.tactical.battle.round\n  const actorId','  validateCombatAccuracyDefinition(action)\n  const round = state.tactical.battle.round\n  const actorId')
-          replace_once(p,'  const evaluation = context\n','  const evaluation = context || action.accuracyMode === \'per-target\'\n')
-          replace_once(p,'  let triggerGuard = context?.triggerGuard','  const accuracy = rollCombatSkillAccuracy(state, action, evaluation)\n  let triggerGuard = context?.triggerGuard')
-          replace_once(p,'  const transition = legacy.executeCombatAction(\n    state,','  const committedTransition = legacy.executeCombatAction(\n    accuracy.state,')
-          replace_once(p,'    },\n  )\n  if (!context || !evaluation) return transition',"    },\n    accuracy.missedCombatantIds,\n  )\n  const transition = accuracy.events.length > 0\n    ? { ...committedTransition, events: [...accuracy.events, ...committedTransition.events] }\n    : committedTransition\n  if (!context || !evaluation) return transition\n  // A miss must not reattribute an existing status or persistent effect.\n  const provenanceEvaluation = accuracy.missedCombatantIds.size === 0 ? evaluation : {\n    ...evaluation,\n    primaryCombatantId: evaluation.primaryCombatantId && accuracy.missedCombatantIds.has(evaluation.primaryCombatantId)\n      ? null : evaluation.primaryCombatantId,\n    affectedCombatantIds: evaluation.affectedCombatantIds.filter((id) => !accuracy.missedCombatantIds.has(id)),\n  }")
-          replace_once(p,'attachCombatEffectProvenance(state, transition.state, action, evaluation, context)','attachCombatEffectProvenance(state, transition.state, action, provenanceEvaluation, context)')
-          p=root/'actions-legacy.ts'
-          p.write_text("import type { CombatSkillAccuracyResolvedEvent } from './combat-skill-accuracy'\n"+p.read_text())
-          replace_once(p,'export type CombatResolutionEvent =\n  | TacticalBattleEvent','export type CombatResolutionEvent =\n  | CombatSkillAccuracyResolvedEvent\n  | TacticalBattleEvent')
-          replace_once(p,'  ) => CombatResolutionTransition,\n): CombatResolutionTransition {\n  const evaluation = evaluateCombatAction','  ) => CombatResolutionTransition,\n  missedCombatantIds?: ReadonlySet<string>,\n): CombatResolutionTransition {\n  const evaluation = evaluateCombatAction')
-          replace_once(p,'    evaluation.affectedTiles,\n    action,\n    content,\n  )','    evaluation.affectedTiles,\n    action,\n    content,\n    missedCombatantIds,\n  )')
-          replace_once(p,'  affectedTiles: readonly GridPosition[],\n  action: CombatActionDefinition,\n  content: CombatContentCatalog,\n): CombatResolutionTransition & {','  affectedTiles: readonly GridPosition[],\n  action: CombatActionDefinition,\n  content: CombatContentCatalog,\n  missedCombatantIds?: ReadonlySet<string>,\n): CombatResolutionTransition & {')
-          replace_once(p,'    )) {\n      const before = nextState','    )) {\n      // Engine-owned target roll gates every unit effect, not just damage packets.\n      if (missedCombatantIds?.has(recipientId)) continue\n      const before = nextState')
-          p=root/'combat-authoring-validation.ts'
-          p.write_text("import { validateCombatAccuracyDefinition } from './combat-skill-accuracy'\n"+p.read_text())
-          replace_once(p,"declare module './actions' {\n  interface CombatActionDefinition {\n    accuracyMode?: 'automatic' | 'per-target'\n    accuracyModifierBasisPoints?: number\n  }\n}\n\n",'')
-          replace_once(p,"  if (action.accuracyMode !== undefined) {\n    knownString(action.accuracyMode, ['automatic', 'per-target'], 'accuracy mode')\n  }\n  if (action.accuracyModifierBasisPoints !== undefined) {\n    signedSafeIntegerWithin(\n      action.accuracyModifierBasisPoints,\n      3_000,\n      'accuracy modifier basis points',\n    )\n  }","  validateCombatAccuracyDefinition(action)")
-          replace_once(p,"function signedSafeIntegerWithin(value: unknown, maximumMagnitude: number, field: string): void {\n  if (!Number.isSafeInteger(value) || Math.abs(value as number) > maximumMagnitude) {\n    throw new RangeError(`${field} must be within +/-${maximumMagnitude}.`)\n  }\n}\n\n",'')
-          p=root/'mature-skills.ts'
-          p.write_text("import { validateCombatAccuracyDefinition, type CombatAccuracyAuthoring } from './combat-skill-accuracy'\n"+p.read_text())
-          replace_once(p,'export interface MatureSkillDefinition {','export interface MatureSkillDefinition extends CombatAccuracyAuthoring {')
-          replace_once(p,'  try {\n    validateGameplayActionMetadata(definition)','  try {\n    validateCombatAccuracyDefinition(definition)\n    validateGameplayActionMetadata(definition)')
-          replace_once(p,'    effects: resolved.effects,\n  }\n}',"    effects: resolved.effects,\n    ...(resolved.accuracyMode !== undefined ? { accuracyMode: resolved.accuracyMode } : {}),\n    ...(resolved.accuracyModifierBasisPoints !== undefined\n      ? { accuracyModifierBasisPoints: resolved.accuracyModifierBasisPoints } : {}),\n  }\n}")
-          p=root/'stat-driven-combat.ts'
-          p.write_text("import { calculateHitChanceBasisPoints } from './combat-skill-accuracy'\nexport { calculateHitChanceBasisPoints } from './combat-skill-accuracy'\n"+p.read_text())
-          replace_once(p,'export function calculateHitChanceBasisPoints(\n  actor: StatDrivenCombatProfileV1,\n  target: StatDrivenCombatProfileV1,\n): number {\n  return Math.max(0, Math.min(COMBAT_BASIS_POINTS, actor.accuracy - target.evasion))\n}\n\n','')
-          p=Path('docs/COMBAT.md')
-          heading='# AUREVANE Combat Design Bible\n'
-          assert p.read_text().startswith(heading)
-          boundary='''
-
-          ## P4.K4 Skill accuracy kernel boundary — 2026-09-15
-
-          Skills may explicitly opt into `accuracyMode: per-target`; `automatic` or omitted mode retains historical automatic resolution. The existing signed `accuracyModifierBasisPoints` field is validated at authoring, preview and commit within -3000 to +3000. Mature Skill conversion preserves supplied fields and consecutive-use reduction changes potency, not hit chance or AP/MP costs. The historical Basic Attack adapter keeps its existing single-roll behavior and rejects an explicit Skill accuracy mode to prevent double rolling.
-
-          The current slice calculates `clamp(actor Accuracy - target Evasion + Skill modifier, 0, 10000)` from committed profiles. It requires exactly one valid relevant profile and integer ratings within 0–10000. Only living hostile recipients of actual unit effect blocks are rolled, once each in stable ID order, including 0% and 100% endpoints. Repeated packets share their target's result. Geometry alone, allies, self effects and terrain do not introduce extra unit rolls. Mark/Blind's versioned state and modifiers are the next slice, not inferred from existing names or tags.
-
-          A miss skips every unit effect for that hostile recipient in the existing ordered effect resolver, including damage, status, cleansing, displacement, DoTs, recovery and Barrier. Costs, action-use records, cooldown rules, caster effects, attack reveal and Burn backlash retain their ordinary behavior. Tile operations keep their independent existing sequence; this is not a terrain accuracy system. Misses do not consume defender Barrier, write damage history, trigger Absorb/Reflect or reattribute an existing persistent effect. Successful effects retain existing damage math, reaction ordering and K3 provenance.
-
-          Legal opted-in kernel previews expose `targetHitChances` and `projectionsAssumeHits: true`; their ordinary projections are conditional on successful hits, not guaranteed or probability-weighted outcomes. Preview never advances RNG or reveals future rolls. Commit recomputes chances from its snapshot and emits versioned `combat_accuracy_resolved` receipts before ordinary command events. Missed target IDs are an engine-owned transient argument, never an authored or persisted hit override.
-
-          No published Skill catalog opts into rolled accuracy in this ticket. Mark/Blind, full reactive/conditional player forecasts, AI expected-value scoring, presentation tags and controlled content migration remain publication gates. This is not a player-interface release or a completed accuracy/Mark/Blind group. No schema, dependency or deployment change is included.
-          '''.replace('\n          ','\n')
-          p.write_text(heading+boundary+p.read_text()[len(heading):])
+          const reviewSeeds = [1, 2, 3, 17, 53, 77, 1000, 4_294_967_295]
+          const reviewVectors = reviewSeeds.flatMap((seed) => [-1500, 0, 1500].map((modifier) => ({ seed, modifier })))
+          it.each(reviewVectors)('review seeded intermediate probability resolves exactly %j', ({ seed, modifier }) => {
+            const initial = world(6000, 1000, seed)
+            const before = JSON.stringify(initial)
+            const command = { ...action(), accuracyModifierBasisPoints: modifier }
+            const draw = advanceBattleRng(initial.tactical.battle.rng)
+            const expectedChance = 5000 + modifier
+            const expectedHit = draw.value % 10000 < expectedChance
+            const preview = evaluateCombatAction(initial, command, SELECT, CONTENT)
+            const result = cast(initial, command)
+            expect(preview.targetHitChances).toEqual([{ targetCombatantId: 'target', hitChanceBasisPoints: expectedChance }])
+            expect(rolls(result.events)).toEqual([{ event: 'combat_accuracy_resolved', actionId: command.id,
+              sourceCombatantId: 'actor', targetCombatantId: 'target', hitChanceBasisPoints: expectedChance,
+              rollBasisPoints: draw.value % 10000, hit: expectedHit, accuracyRulesVersion: 1 }])
+            expect(unit(result.state).hp).toBe(expectedHit ? 80 : 100)
+            expect(result.state.statusState.find((row) => row.combatantId === 'target')?.statuses.length).toBe(expectedHit ? 1 : 0)
+            expect(result.state.tactical.battle.rng).toEqual(draw.state)
+            expect(JSON.stringify(initial)).toBe(before)
+            expect(cast(initial, command)).toEqual(result)
+            expect(() => JSON.stringify(result)).not.toThrow()
+            expect(result.state).not.toHaveProperty('missedCombatantIds')
+          })
+          it('review target sorting is independent of primary-recipient insertion order', () => {
+            const initial = world(10000, 10000)
+            const command = action([{ type: 'damage', recipient: 'primary-unit', amount: 20 },
+              { type: 'damage', recipient: 'affected-units', amount: 7 }])
+            command.target = { ...command.target, shape: { kind: 'circle', radius: 1 } }
+            const result = executeCombatAction(initial, command, { kind: 'unit', combatantId: 'z-target' }, CONTENT)
+            expect(rolls(result.events).map((event) => [event.targetCombatantId, event.hit])).toEqual([['target', false], ['z-target', true]])
+            expect(unit(result.state).hp).toBe(100)
+            expect(unit(result.state, 'z-target').hp).toBe(73)
+          })
+          it('review a mixed-hit area only stamps provenance on the successful enemy', () => {
+            const initial = existingDebuff(world(10000, 10000))
+            const before = initial.statusState.find((row) => row.combatantId === 'target')
+            const command = action([{ type: 'apply-status', recipient: 'affected-units', statusId: 'test.debuff', stacks: 1 }])
+            command.target = { ...command.target, shape: { kind: 'circle', radius: 1 } }
+            const result = cast(initial, command, context())
+            expect(result.state.statusState.find((row) => row.combatantId === 'target')).toEqual(before)
+            expect(result.state.statusState.find((row) => row.combatantId === 'z-target')?.statuses[0]?.provenance)
+              .toMatchObject({ effectOrdinal: 0, targetCombatantId: 'z-target' })
+          })
+          it('review a successful Barrier-blocked hit still applies its debuff', () => {
+            const initial: CombatEncounterState = world(10000, 0)
+            initial.effectState = { ...normalizeCombatEffectState(undefined), barriers: [{ targetCombatantId: 'target', sourceCombatantId: 'target', sourceActionId: 'review.barrier', amount: 20 }] }
+            const result = cast(initial)
+            expect(unit(result.state).hp).toBe(100)
+            expect(result.state.statusState.find((row) => row.combatantId === 'target')?.statuses[0]?.statusId).toBe('test.debuff')
+            expect(rolls(result.events)[0]).toMatchObject({ hit: true })
+          })
+          it.each([0, 10000])('review only a successful roll can trigger HP/MP Absorb and Reflect at chance %s', (accuracy) => {
+            const base = world(accuracy, 0)
+            const reactive: CombatStatusDefinition = { id: 'review.reactive', version: 1, maximumStacks: 1,
+              durationOwnerTurnStarts: 2, damageTakenMultiplierBasisPoints: 10000, polarity: 'positive', reactionClass: 'reactive',
+              absorbHpBasisPoints: 2500, absorbMpBasisPoints: 2500, reflectBasisPoints: 2500 }
+            const initial: CombatEncounterState = { ...base, statusState: base.statusState.map((row) => row.combatantId === 'target'
+              ? { ...row, statuses: [{ statusId: reactive.id, statusVersion: 1, stacks: 1, remainingOwnerTurnStarts: 2, sourceCombatantId: 'target' }] } : row) }
+            const result = executeCombatAction(initial, action(), SELECT, { statuses: [...CONTENT.statuses, reactive] })
+            expect(unit(result.state)).toMatchObject({ hp: accuracy ? 85 : 100, mp: accuracy ? 25 : 20 })
+            expect(unit(result.state, 'actor').hp).toBe(accuracy ? 55 : 60)
+            expect(result.state.effectState?.damageHistory ?? []).toEqual(accuracy ? [{ combatantId: 'target', round: 1, amount: 20 }] : [])
+            expect(rolls(result.events)).toHaveLength(1)
+          })
+          it.each([0, 10000])('review capped Vengeance shares probability without changing its starting history at %s', (accuracy) => {
+            const initial: CombatEncounterState = world(accuracy, 0)
+            initial.effectState = { ...normalizeCombatEffectState(undefined), damageHistory: [{ combatantId: 'actor', round: 1, amount: 40 }] }
+            const command = action([{ type: 'damage', recipient: 'primary-unit', amount: 0,
+              vengeance: { conversionBasisPoints: 5000, maximumDamage: 13 } }])
+            const preview = evaluateCombatAction(initial, command, SELECT, CONTENT)
+            expect(preview.vengeanceBasis?.[0]?.rawDamage).toBe(13)
+            expect(preview.targetHitChances).toEqual([{ targetCombatantId: 'target', hitChanceBasisPoints: accuracy }])
+            const result = cast(initial, command)
+            expect(unit(result.state).hp).toBe(accuracy ? 87 : 100)
+            expect(result.state.effectState?.damageHistory.filter((row) => row.combatantId === 'actor')).toEqual(initial.effectState.damageHistory)
+          })
+          const badRatings = [undefined, NaN, Infinity, -1, 0.5, 10001].flatMap((value) =>
+            (['accuracy', 'evasion'] as const).map((field) => ({ value, field })))
+          it.each(badRatings)('review invalid relevant committed rating fails closed %j', ({ value, field }) => {
+            const initial: CombatEncounterState = world()
+            const profiles = initial.statBridge?.combatants
+            if (!profiles) throw new Error('Missing review profiles')
+            const id = field === 'accuracy' ? 'actor' : 'target'
+            initial.statBridge = { ...initial.statBridge, combatants: profiles.map((row) => row.combatantId === id ? { ...row, [field]: value } : row) }
+            const before = JSON.stringify(initial)
+            expect(() => cast(initial)).toThrow(/accuracy/i)
+            expect(JSON.stringify(initial)).toBe(before)
+          })
+          it('review duplicate relevant profiles cannot choose a convenient rating', () => {
+            const initial: CombatEncounterState = world()
+            const profiles = initial.statBridge?.combatants
+            if (!profiles?.[0]) throw new Error('Missing review profiles')
+            initial.statBridge = { ...initial.statBridge, combatants: [...profiles, { ...profiles[0], accuracy: 10000 }] }
+            expect(() => cast(initial)).toThrow(/accuracy/i)
+          })
+          const ordinaryVectors = [0, 1, 20, 150].flatMap((amount) =>
+            (['automatic', undefined] as const).flatMap((accuracyMode) => [false, true].map((withContext) => ({ amount, accuracyMode, withContext }))))
+          it.each(ordinaryVectors)('review full historical ordinary transition remains identical %j', ({ amount, accuracyMode, withContext }) => {
+            const initial = world()
+            const command = { ...action([{ type: 'damage', recipient: 'primary-unit', amount }, { type: 'healing', recipient: 'actor', amount: 5 }]), accuracyMode }
+            const ctx = withContext ? context() : undefined
+            expect(evaluateCombatAction(initial, command, SELECT, CONTENT)).toEqual(historicalActions.evaluateCombatAction(initial, command, SELECT, CONTENT))
+            expect(executeCombatAction(initial, command, SELECT, CONTENT, ctx)).toEqual(historicalActions.executeCombatAction(initial, command, SELECT, CONTENT, ctx))
+          })
+          const basicVectors = reviewSeeds.flatMap((seed) => [0, 6000, 10000].map((accuracy) => ({ seed, accuracy })))
+          it.each(basicVectors)('review historical Basic Attack preview and complete result remain identical %j', ({ seed, accuracy }) => {
+            const initial = world(accuracy, 0, seed)
+            const command: CombatActionDefinition = { ...action([{ type: 'damage', recipient: 'primary-unit', amount: 20 }]),
+              sourceType: 'basic-attack', accuracyMode: undefined, cost: { spendsAction: true, mp: 0 } }
+            expect(forecastStatDrivenAttack(initial, command, SELECT, CONTENT)).toEqual(historicalStats.forecastStatDrivenAttack(initial, command, SELECT, CONTENT))
+            expect(executeStatDrivenAttack(initial, command, SELECT, CONTENT)).toEqual(historicalStats.executeStatDrivenAttack(initial, command, SELECT, CONTENT))
+          })
+          '''
+          try:
+              for path,source_name in [(old_actions,'actions.ts'),(old_stats,'stat-driven-combat.ts')]:
+                  path.write_bytes(subprocess.check_output(['git','show',f'aff99544a68173437469573907b0f36e1687e9bf:packages/game-core/src/combat/{source_name}']))
+              tests.write_text(original.decode()+additions)
+              subprocess.run(['pnpm','--filter','@aurevane/game-core','typecheck'],check=True)
+              subprocess.run(['pnpm','--filter','@aurevane/game-core','exec','vitest','run',
+                *['src/combat/'+name for name in ['combat-skill-accuracy.test.ts','combat-vengeance.test.ts','combat-reflect.test.ts',
+                'combat-absorb-mp.test.ts','combat-absorb-hp.test.ts','combat-absorb-hp-command.test.ts','combat-barrier.test.ts',
+                'combat-damage-history-runtime.test.ts','combat-resolution-provenance.test.ts','pv1f-action-economy.test.ts',
+                'actions-stat-scaled-damage.test.ts','combat-burn-backlash.test.ts','stat-driven-combat.test.ts','mature-skills.test.ts','combat-authoring-validation.test.ts']]],check=True)
+          finally:
+              tests.write_bytes(original)
+              old_actions.unlink(missing_ok=True)
+              old_stats.unlink(missing_ok=True)
           PY
-          pnpm exec prettier --write packages/game-core/src/combat/combat-skill-accuracy.ts packages/game-core/src/combat/actions.ts packages/game-core/src/combat/actions-legacy.ts packages/game-core/src/combat/combat-authoring-validation.ts packages/game-core/src/combat/mature-skills.ts packages/game-core/src/combat/stat-driven-combat.ts docs/COMBAT.md docs/superpowers/plans/2026-09-15-skill-accuracy-kernel.md
-          git diff --check
-      - name: Verify focused and full repository GREEN
+          git diff --exit-code
+          test -z "$(git status --porcelain)"
+      - name: Verify original contract, restricted source and unchanged catalogs
         shell: bash
         run: |
           set -euo pipefail
-          pnpm --filter @aurevane/game-core typecheck
-          pnpm --filter @aurevane/game-core exec vitest run src/combat/combat-skill-accuracy.test.ts src/combat/combat-vengeance.test.ts src/combat/combat-reflect.test.ts src/combat/combat-absorb-mp.test.ts src/combat/combat-absorb-hp.test.ts src/combat/combat-absorb-hp-command.test.ts src/combat/combat-barrier.test.ts src/combat/combat-damage-history-runtime.test.ts src/combat/combat-resolution-provenance.test.ts src/combat/pv1f-action-economy.test.ts src/combat/actions-stat-scaled-damage.test.ts src/combat/combat-burn-backlash.test.ts src/combat/stat-driven-combat.test.ts src/combat/mature-skills.test.ts src/combat/combat-authoring-validation.test.ts
-          pnpm check >/tmp/accuracy-check.log 2>&1 || { cat /tmp/accuracy-check.log; exit 1; }
-          python3 - <<'PY'
-          import re
-          text=re.sub(r'\x1b\[[0-9;]*m','',open('/tmp/accuracy-check.log').read())
-          for line in text.splitlines():
-              if any(term in line for term in ['Tests ', 'Test Files ', 'Tasks:', 'Compiled successfully', 'All matched', 'ℹ pass', 'ℹ fail']): print(line)
-          print('FULL_PNPM_CHECK_PASSED')
-          PY
-      - name: Inspect scope and retain source-only GREEN
-        shell: bash
-        run: |
-          set -euo pipefail
-          git diff --exit-code -- packages/game-core/src/combat/combat-skill-accuracy.test.ts apps .github packages/game-core/src/combat/pv1f-action-economy.ts packages/game-core/src/combat/combat-effect-provenance.ts packages/game-core/src/combat/combat-damage-history.ts
-          python3 - <<'PY'
-          import subprocess
-          from pathlib import Path
-          names=set(subprocess.check_output(['git','diff','--name-only'],text=True).splitlines()) | set(subprocess.check_output(['git','ls-files','--others','--exclude-standard'],text=True).splitlines())
-          expected={'docs/COMBAT.md','docs/superpowers/plans/2026-09-15-skill-accuracy-kernel.md',*[f'packages/game-core/src/combat/{name}' for name in ['actions.ts','actions-legacy.ts','combat-skill-accuracy.ts','combat-authoring-validation.ts','mature-skills.ts','stat-driven-combat.ts']]}
-          assert names==expected,(names,expected)
-          old=subprocess.check_output(['git','show','aff99544a68173437469573907b0f36e1687e9bf:packages/game-core/src/combat/mature-skills.ts'],text=True)
-          new=Path('packages/game-core/src/combat/mature-skills.ts').read_text()
-          start='export const P33_REPRESENTATIVE_DISCIPLINE_SKILLS = ['
-          end='] as const satisfies readonly MatureSkillDefinition[]'
-          assert old.split(start)[1].split(end)[0]==new.split(start)[1].split(end)[0]
-          p=Path('docs/superpowers/plans/2026-09-15-skill-accuracy-kernel.md')
-          text=p.read_text()
-          for label in ['Add `combat-skill-accuracy.ts`','Wire public `actions.ts`','Forward optional fields','Run focused tests']:
-              assert text.count('- [ ] '+label)==1
-              text=text.replace('- [ ] '+label,'- [x] '+label)
-          p.write_text(text)
-          PY
-          git diff --check
-          git diff --stat
-          git diff -- packages/game-core/src/combat/actions.ts packages/game-core/src/combat/actions-legacy.ts
-          test "$(git ls-remote origin refs/heads/main | cut -f1)" = 3d8a4d25cb897d0f9ce4871c6972e5d7107d68b0
-          test "$(git ls-remote origin refs/heads/agent/combat-effect-taxonomy-rework | cut -f1)" = aff99544a68173437469573907b0f36e1687e9bf
-          test -z "$(git ls-remote origin refs/heads/review/skill-accuracy-green-source-20260915)"
-          git config user.name 'Nicholas JM'
-          git config user.email '283436098+ZeiJM@users.noreply.github.com'
-          git add -- docs/COMBAT.md docs/superpowers/plans/2026-09-15-skill-accuracy-kernel.md packages/game-core/src/combat/actions.ts packages/game-core/src/combat/actions-legacy.ts packages/game-core/src/combat/combat-skill-accuracy.ts packages/game-core/src/combat/combat-authoring-validation.ts packages/game-core/src/combat/mature-skills.ts packages/game-core/src/combat/stat-driven-combat.ts
-          git commit -m 'feat(combat): resolve per-target Skill accuracy through shared commands'
-          git push origin HEAD:refs/heads/review/skill-accuracy-green-source-20260915
-          printf 'GREEN_SHA=%s\nGREEN_TREE=%s\n' "$(git rev-parse HEAD)" "$(git rev-parse HEAD^{tree})"
+          git diff --check aff99544a68173437469573907b0f36e1687e9bf...HEAD
+          git diff --exit-code c091f40c7396ce7972c71ce99800379be6396f43...HEAD -- packages/game-core/src/combat/combat-skill-accuracy.test.ts
+          git diff --exit-code aff99544a68173437469573907b0f36e1687e9bf...HEAD -- apps .github packages/game-core/src/combat/pv1f-action-economy.ts packages/game-core/src/combat/combat-damage-history.ts packages/game-core/src/combat/combat-effect-provenance.ts packages/game-core/src/combat/advanced-discipline-content.ts packages/game-core/src/combat/foundation-trio-skills.ts packages/game-core/src/combat/ironfist-skills.ts
+          test "$(git diff --name-only aff99544a68173437469573907b0f36e1687e9bf...HEAD | wc -l)" -eq 9
