@@ -34,9 +34,19 @@ export function validateCurrentPoisonEffect(effect: { curseCopyable?: unknown })
 )
 replace(
     dots,
-    "  sourceActionId: string,\n): CombatEncounterState {",
-    "  sourceActionId: string,\n  curseCopyable?: boolean,\n): CombatEncounterState {",
-    1,
+    """export function applyCurrentPoisonState(
+  state: CombatEncounterState,
+  sourceCombatantId: string,
+  targetCombatantId: string,
+  sourceActionId: string,
+): CombatEncounterState {""",
+    """export function applyCurrentPoisonState(
+  state: CombatEncounterState,
+  sourceCombatantId: string,
+  targetCombatantId: string,
+  sourceActionId: string,
+  curseCopyable?: boolean,
+): CombatEncounterState {""",
 )
 replace(
     dots,
@@ -312,7 +322,6 @@ new_return = """  const statusState = after.statusState.map((row) =>
   }"""
 replace(copy, old_return, new_return)
 
-# Existing legality should consider explicitly copyable Poison as part of the same pure operation.
 replace(
     legacy,
     """      planCombatStatusCopies(state, actorId, target.combatantId, copyEffect, content).copies.length ===
