@@ -14,10 +14,7 @@ import {
 import { createPendingBattle, startBattle } from './battle-state'
 import { createTacticalBattleState } from './board'
 import { validateCombatActionDefinition } from './combat-authoring-validation'
-import {
-  createCombatActionProvenance,
-  createCombatTriggerGuard,
-} from './combat-kernel-types'
+import { createCombatActionProvenance, createCombatTriggerGuard } from './combat-kernel-types'
 import { createStatDrivenCombatEncounterState } from './stat-driven-combat'
 
 const POSITIVE: CombatStatusDefinition = {
@@ -175,8 +172,7 @@ function composed(
     { type: 'damage', recipient: 'primary-unit', amount: 7 },
   ],
 ): CombatActionDefinition {
-  const clone =
-    arguments.length >= 2 ? copyEffect(mode, allowNoEligibleEffects) : copyEffect(mode)
+  const clone = arguments.length >= 2 ? copyEffect(mode, allowNoEligibleEffects) : copyEffect(mode)
   return action(mode, [clone, ...trailing])
 }
 
@@ -214,7 +210,9 @@ describe('Amplify/Curse composed-command authoring boundary', () => {
   })
 
   it('keeps pure copy commands valid without no-op opt-in', () => {
-    expect(() => validateCombatActionDefinition(action('amplify', [copyEffect('amplify')]))).not.toThrow()
+    expect(() =>
+      validateCombatActionDefinition(action('amplify', [copyEffect('amplify')])),
+    ).not.toThrow()
   })
 
   it('rejects a copy block that is not the first authored effect in this bounded slice', () => {
@@ -258,7 +256,12 @@ describe('Amplify/Curse composed-command legality and execution', () => {
     const preview = evaluateCombatAction(state, definition, TARGET, CONTENT)
     expect(preview.legal).toBe(true)
     expect(preview.projectedEffects).toEqual([
-      expect.objectContaining({ effectType: 'damage', combatantId: 'target', before: 60, after: 53 }),
+      expect.objectContaining({
+        effectType: 'damage',
+        combatantId: 'target',
+        before: 60,
+        after: 53,
+      }),
     ])
     const result = executeCombatAction(state, definition, TARGET, CONTENT)
     expect(combatant(result.state, 'target').hp).toBe(53)
@@ -271,9 +274,7 @@ describe('Amplify/Curse composed-command legality and execution', () => {
     ])
     const definition = composed('amplify')
     const result = executeCombatAction(state, definition, TARGET, CONTENT)
-    expect(statuses(result.state, 'actor')).toEqual([
-      status(POSITIVE, 'actor', { stacks: 2 }),
-    ])
+    expect(statuses(result.state, 'actor')).toEqual([status(POSITIVE, 'actor', { stacks: 2 })])
     expect(statuses(result.state, 'target')).toEqual(statuses(state, 'target'))
     expect(combatant(result.state, 'target').hp).toBe(53)
   })
@@ -288,11 +289,7 @@ describe('Amplify/Curse composed-command legality and execution', () => {
   })
 
   it('a hostile miss gates copy and target damage together but preserves a later actor effect', () => {
-    const state = world(
-      [{ combatantId: 'target', statuses: [status(POSITIVE)] }],
-      0,
-      10_000,
-    )
+    const state = world([{ combatantId: 'target', statuses: [status(POSITIVE)] }], 0, 10_000)
     const definition = composed('amplify', undefined, [
       { type: 'damage', recipient: 'primary-unit', amount: 7 },
       { type: 'resource-change', recipient: 'actor', resource: 'mp', delta: 3 },
