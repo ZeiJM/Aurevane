@@ -1,3 +1,4 @@
+import { combatAccuracyStatusModifier } from './combat-accuracy-status'
 import { calculateHitChanceBasisPoints } from './combat-skill-accuracy'
 export { calculateHitChanceBasisPoints } from './combat-skill-accuracy'
 import { mitigateDamageByDefense } from './damage-mitigation'
@@ -343,7 +344,11 @@ export function forecastStatDrivenAttack(
 
   return {
     evaluation,
-    hitChanceBasisPoints: calculateHitChanceBasisPoints(actor, target),
+    hitChanceBasisPoints: calculateHitChanceBasisPoints(
+      actor,
+      target,
+      combatAccuracyStatusModifier(state, baseline.actorId, baseline.primaryCombatantId, content),
+    ),
     defenseKind,
     defenseRating,
     mitigatedBaseDamage: firstDamageAmount(mitigatedAction),

@@ -1,8 +1,10 @@
 import { advanceBattleRng } from './battle-state'
+import { combatAccuracyStatusModifier } from './combat-accuracy-status'
 import type {
   CombatActionDefinition,
   CombatActionEvaluation,
   CombatEncounterState,
+  CombatContentCatalog,
 } from './actions'
 
 const BASIS_POINTS = 10_000
@@ -65,6 +67,7 @@ export function forecastCombatSkillAccuracy(
   state: CombatEncounterState,
   action: CombatActionDefinition,
   evaluation: CombatActionEvaluation,
+  content: CombatContentCatalog,
 ): CombatActionEvaluation {
   validateCombatAccuracyDefinition(action)
   if (!evaluation.legal || !evaluation.actorId || action.accuracyMode !== 'per-target')
@@ -98,7 +101,8 @@ export function forecastCombatSkillAccuracy(
             hitChanceBasisPoints: calculateHitChanceBasisPoints(
               { accuracy },
               { evasion: committedRating(state, targetCombatantId, 'evasion') },
-              action.accuracyModifierBasisPoints ?? 0,
+              (action.accuracyModifierBasisPoints ?? 0) +
+                combatAccuracyStatusModifier(state, actorId, targetCombatantId, content),
             ),
           }))
         })()
@@ -110,6 +114,7 @@ export function rollCombatSkillAccuracy(
   state: CombatEncounterState,
   action: CombatActionDefinition,
   evaluation: CombatActionEvaluation | null,
+  content: CombatContentCatalog,
 ): {
   state: CombatEncounterState
   events: readonly CombatSkillAccuracyResolvedEvent[]
@@ -120,7 +125,7 @@ export function rollCombatSkillAccuracy(
   if (!evaluation?.legal || !evaluation.actorId || action.accuracyMode !== 'per-target') {
     return { state, events, missedCombatantIds }
   }
-  const forecast = forecastCombatSkillAccuracy(state, action, evaluation)
+  const forecast = forecastCombatSkillAccuracy(state, action, evaluation, content)
   let rng = state.tactical.battle.rng
   for (const chance of forecast.targetHitChances ?? []) {
     const draw = advanceBattleRng(rng)
