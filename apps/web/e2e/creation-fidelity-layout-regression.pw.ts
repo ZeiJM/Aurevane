@@ -49,9 +49,17 @@ test('Creation keeps the desktop portrait gallery and selected preview in delibe
     const label = `${info.project.name}-${size.width}x${size.height}`
     const minimumPreviewWidth = size.height <= 800 ? 208 : 280
 
-    expect.soft(metrics.previewWidth, `${label}: preview remains a substantial desktop focal point`).toBeGreaterThanOrEqual(minimumPreviewWidth)
     expect
-      .soft(metrics.libraryWidth / metrics.previewWidth, `${label}: gallery does not overpower preview`)
+      .soft(
+        metrics.previewWidth,
+        `${label}: preview remains a substantial desktop focal point`,
+      )
+      .toBeGreaterThanOrEqual(minimumPreviewWidth)
+    expect
+      .soft(
+        metrics.libraryWidth / metrics.previewWidth,
+        `${label}: gallery does not overpower preview`,
+      )
       .toBeLessThanOrEqual(3.2)
     expect
       .soft(metrics.previewWidth / metrics.previewHeight, `${label}: preview stays square`)
