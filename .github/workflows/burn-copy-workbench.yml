@@ -6,7 +6,7 @@ on:
       - review/burn-copy-fde662e
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   verify:
@@ -15,38 +15,51 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 13811a803634e93aac659fc4e2a1a7a2a4e11713
-          fetch-depth: 2
+          ref: 15cb61ab7f4b308c6c0b93f1dc818522a3869d38
+          fetch-depth: 3
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Correct test-only typing and format the Burn contract
-        shell: bash
+      - name: Exact valid test source and locked setup
         run: |
-          set -euo pipefail
-          test "$(git rev-parse HEAD)" = 13811a803634e93aac659fc4e2a1a7a2a4e11713
+          set -eu
+          test "$(git rev-parse HEAD)" = 15cb61ab7f4b308c6c0b93f1dc818522a3869d38
+          test "$(git diff --name-only fde662e38f864dc8797d0dfdd82ba05f3411ad05 HEAD)" = packages/game-core/src/combat/combat-burn-copy.test.ts
           corepack enable
           corepack prepare pnpm@11.17.0 --activate
           pnpm install --frozen-lockfile
-          python3 <<'PY'
-          from pathlib import Path
-          path = Path('packages/game-core/src/combat/combat-burn-copy.test.ts')
-          text = path.read_text()
-          old = '    expect(instance(state).curseCopyable).toBe(flag)'
-          new = '    expect((instance(state) as ReturnType<typeof instance> & { curseCopyable?: boolean }).curseCopyable).toBe(flag)'
-          assert text.count(old) == 1
-          path.write_text(text.replace(old, new))
-          PY
-          pnpm exec prettier --write packages/game-core/src/combat/combat-burn-copy.test.ts
+      - name: Verify test quality and prior suite
+        run: |
           pnpm exec prettier --check packages/game-core/src/combat/combat-burn-copy.test.ts
           pnpm exec eslint packages/game-core/src/combat/combat-burn-copy.test.ts
           pnpm --filter @aurevane/game-core typecheck
-          test "$(git diff --name-only)" = packages/game-core/src/combat/combat-burn-copy.test.ts
+          pnpm --filter @aurevane/game-core exec vitest run --exclude '**/combat-burn-copy.test.ts'
+      - name: Execute and classify behavioral RED
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          pnpm --filter @aurevane/game-core exec vitest run --reporter=json --outputFile=/tmp/burn-copy-red.json
+          outcome=$?
+          set -e
+          test "$outcome" -ne 0
+          python3 <<'PY'
+          import json
+          from pathlib import Path
+          data = json.loads(Path('/tmp/burn-copy-red.json').read_text())
+          failures = [suite for suite in data['testResults'] if suite['status'] == 'failed']
+          assert failures and all(Path(suite['name']).name == 'combat-burn-copy.test.ts' for suite in failures), [(s['name'], s['status']) for s in failures]
+          assert data['numPassedTests'] >= 1712, data
+          assert data['numFailedTests'] > 0, data
+          print('VALID_RED: prior core suite green; only Burn-copy contract fails')
+          print('passed=', data['numPassedTests'], 'failed=', data['numFailedTests'], 'total=', data['numTotalTests'])
+          for suite in failures:
+              for test in suite['assertionResults']:
+                  if test['status'] == 'failed':
+                      print('RED_ASSERTION:', test['fullName'])
+                      print('\n'.join(test.get('failureMessages', []))[:300])
+          PY
           git diff --check
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add packages/game-core/src/combat/combat-burn-copy.test.ts
-          git commit -m 'test(combat): make Burn copy contract valid test-first source'
-          test "$(git ls-remote origin refs/heads/agent/combat-k4-burn-copy-fde662e | cut -f1)" = 13811a803634e93aac659fc4e2a1a7a2a4e11713
-          git push origin HEAD:refs/heads/agent/combat-k4-burn-copy-fde662e
-          echo "VALID_TEST_SOURCE=$(git rev-parse HEAD)"
+          git diff --exit-code
+          test -z "$(git status --porcelain)"
