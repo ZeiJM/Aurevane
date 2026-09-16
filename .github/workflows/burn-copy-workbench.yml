@@ -11,7 +11,7 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
@@ -19,11 +19,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Pin implementation recipe and corrected RED source
+      - name: Pin helper-fix script and corrected RED source
         shell: bash
         run: |
           set -euo pipefail
-          cp scripts/burn-copy-implementation.py /tmp/burn-copy-implementation.py
+          cp scripts/burn-copy-test-fixtures.py /tmp/burn-copy-test-fixtures.py
           git fetch --depth=5 origin a13937991d938bfd8287ad0df9ca7966482de620
           git checkout --detach a13937991d938bfd8287ad0df9ca7966482de620
           test "$(git rev-parse HEAD)" = a13937991d938bfd8287ad0df9ca7966482de620
@@ -33,47 +33,48 @@ jobs:
           corepack enable
           corepack prepare pnpm@11.17.0 --activate
           pnpm install --frozen-lockfile
-      - name: Implement and format Burn copying
+      - name: Correct explicit undefined fixture semantics only
         run: |
-          python3 /tmp/burn-copy-implementation.py
-          pnpm exec prettier --write docs/COMBAT.md packages/game-core/src/combat/actions-legacy.ts packages/game-core/src/combat/combat-authoring-validation.ts packages/game-core/src/combat/combat-dots.ts packages/game-core/src/combat/combat-effect-state.ts packages/game-core/src/combat/combat-status-copy.ts
-          git diff --check
-          git diff --exit-code -- packages/game-core/src/combat/combat-burn-copy.test.ts
-      - name: Focused GREEN verification
-        run: |
+          python3 /tmp/burn-copy-test-fixtures.py
+          pnpm exec prettier --write packages/game-core/src/combat/combat-burn-copy.test.ts
+          pnpm exec prettier --check packages/game-core/src/combat/combat-burn-copy.test.ts
+          pnpm exec eslint packages/game-core/src/combat/combat-burn-copy.test.ts
           pnpm --filter @aurevane/game-core typecheck
-          pnpm --filter @aurevane/game-core exec vitest run src/combat/combat-burn-copy.test.ts src/combat/combat-burn-rework.test.ts src/combat/combat-burn-backlash.test.ts src/combat/combat-status-copy.test.ts src/combat/combat-status-copy-publication.test.ts src/combat/combat-poison-copy.test.ts src/combat/combat-copy-provenance.test.ts src/combat/combat-effect-provenance-state.test.ts src/combat/combat-dot-rework.test.ts src/combat/combat-mark-blind.contract.test.ts
-      - name: Full repository verification
-        run: pnpm check
-      - name: Retain only the verified candidate
+          test "$(git diff --name-only)" = packages/game-core/src/combat/combat-burn-copy.test.ts
+          git diff --check
+      - name: Re-prove behavioral RED
         shell: bash
         run: |
           set -euo pipefail
+          pnpm --filter @aurevane/game-core exec vitest run --exclude '**/combat-burn-copy.test.ts'
+          set +e
+          pnpm --filter @aurevane/game-core exec vitest run --reporter=json --outputFile=/tmp/burn-copy-red.json
+          outcome=$?
+          set -e
+          test "$outcome" -ne 0
           python3 <<'PY'
-          import subprocess
-          expected = {
-            'docs/COMBAT.md',
-            'packages/game-core/src/combat/actions-legacy.ts',
-            'packages/game-core/src/combat/combat-authoring-validation.ts',
-            'packages/game-core/src/combat/combat-dots.ts',
-            'packages/game-core/src/combat/combat-effect-state.ts',
-            'packages/game-core/src/combat/combat-status-copy.ts',
-          }
-          changed = set(subprocess.check_output(['git', 'diff', '--name-only'], text=True).splitlines())
-          assert changed == expected, changed
+          import json
+          from pathlib import Path
+          data = json.loads(Path('/tmp/burn-copy-red.json').read_text())
+          failures = [suite for suite in data['testResults'] if suite['status'] == 'failed']
+          assert failures and all(Path(suite['name']).name == 'combat-burn-copy.test.ts' for suite in failures)
+          assert data['numPassedTests'] >= 1712
+          assert data['numFailedTests'] > 0
+          print('FINAL_VALID_RED', data['numPassedTests'], data['numFailedTests'], data['numTotalTests'])
           PY
-          git diff --check
-          git diff --exit-code -- packages/game-core/src/combat/combat-burn-copy.test.ts
+      - name: Retain final test-only RED source
+        shell: bash
+        run: |
+          set -euo pipefail
           test "$(git ls-remote origin refs/heads/main | cut -f1)" = 3d8a4d25cb897d0f9ce4871c6972e5d7107d68b0
           test "$(git ls-remote origin refs/heads/agent/combat-effect-taxonomy-rework | cut -f1)" = fde662e38f864dc8797d0dfdd82ba05f3411ad05
           test "$(git ls-remote origin refs/heads/agent/combat-k4-burn-copy-fde662e | cut -f1)" = a13937991d938bfd8287ad0df9ca7966482de620
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add docs/COMBAT.md packages/game-core/src/combat/actions-legacy.ts packages/game-core/src/combat/combat-authoring-validation.ts packages/game-core/src/combat/combat-dots.ts packages/game-core/src/combat/combat-effect-state.ts packages/game-core/src/combat/combat-status-copy.ts
+          git add packages/game-core/src/combat/combat-burn-copy.test.ts
           git diff --cached --check
-          git commit -m 'feat(combat): copy Burn stage with pinned reapplication and K3 lineage'
+          git commit -m 'test(combat): preserve explicit undefined Burn copy policy in fixtures'
           git push origin HEAD:refs/heads/agent/combat-k4-burn-copy-fde662e
-          echo "VERIFIED_SOURCE_SHA=$(git rev-parse HEAD)"
-          echo "VERIFIED_SOURCE_TREE=$(git rev-parse HEAD^{tree})"
+          echo "FINAL_RED_SOURCE=$(git rev-parse HEAD)"
           git diff --exit-code
           test -z "$(git status --porcelain)"
