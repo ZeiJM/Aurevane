@@ -25,6 +25,9 @@ jobs:
           mkdir -p "$RUNNER_TEMP/roster-source"
           git rev-parse HEAD > "$RUNNER_TEMP/roster-source/commit.txt"
           git archive --format=zip --output="$RUNNER_TEMP/roster-source/source.zip" HEAD
+      - name: Export the pinned standalone formatter
+        shell: bash
+        run: npm pack --ignore-scripts prettier@3.9.6 --pack-destination "$RUNNER_TEMP/roster-source"
       - uses: actions/upload-artifact@v4
         with:
           name: character-roster-source
