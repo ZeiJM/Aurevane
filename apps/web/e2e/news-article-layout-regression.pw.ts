@@ -18,7 +18,6 @@ test('News article matches the desktop editorial layout', async ({ page }, info)
 
   const article = page.getByTestId('news-article')
   const hero = page.getByTestId('news-article-hero')
-  const body = page.getByTestId('news-article-body')
   const back = article.getByRole('link', { name: 'All News' })
   const manual = article.getByRole('link', { name: 'Manual' })
   const rules = article.getByRole('link', { name: 'Rules' })
