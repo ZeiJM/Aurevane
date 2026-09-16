@@ -1,0 +1,83 @@
+name: Copy AI workbench
+
+on:
+  push:
+    branches:
+      - review/copy-ai-75f4633
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: eeefa8854ad915c15e8ea8a704d9dec0e490d4ec
+          fetch-depth: 3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Exact test source and locked setup
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = eeefa8854ad915c15e8ea8a704d9dec0e490d4ec
+          test "$(git diff --name-only 75f4633e3dfc0e074616299915fb23c1489b811f HEAD)" = packages/game-core/src/combat/recruit-ai-copy-utility.test.ts
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = 3d8a4d25cb897d0f9ce4871c6972e5d7107d68b0
+          test "$(git ls-remote origin refs/heads/agent/combat-effect-taxonomy-rework | cut -f1)" = 75f4633e3dfc0e074616299915fb23c1489b811f
+          test "$(git ls-remote origin refs/heads/agent/combat-k4-copy-ai-75f4633 | cut -f1)" = eeefa8854ad915c15e8ea8a704d9dec0e490d4ec
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+          pnpm install --frozen-lockfile
+      - name: Normalize and validate permanent test source
+        run: |
+          pnpm exec prettier --write packages/game-core/src/combat/recruit-ai-copy-utility.test.ts
+          pnpm exec prettier --check packages/game-core/src/combat/recruit-ai-copy-utility.test.ts
+          pnpm exec eslint packages/game-core/src/combat/recruit-ai-copy-utility.test.ts
+          pnpm --filter @aurevane/game-core typecheck
+          changed="$(git diff --name-only)"
+          test -z "$changed" || test "$changed" = packages/game-core/src/combat/recruit-ai-copy-utility.test.ts
+          git diff --check
+      - name: Confirm all prior game-core tests remain green
+        run: pnpm --filter @aurevane/game-core exec vitest run --exclude '**/recruit-ai-copy-utility.test.ts'
+      - name: Execute and classify behavioral RED
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          pnpm --filter @aurevane/game-core exec vitest run --reporter=json --outputFile=/tmp/copy-ai-red.json
+          outcome=$?
+          set -e
+          test "$outcome" -ne 0
+          python3 <<'PY'
+          import json
+          from pathlib import Path
+          data = json.loads(Path('/tmp/copy-ai-red.json').read_text())
+          failures = [suite for suite in data['testResults'] if suite['status'] == 'failed']
+          assert failures and all(Path(suite['name']).name == 'recruit-ai-copy-utility.test.ts' for suite in failures), [(s['name'], s['status']) for s in failures]
+          assert data['numPassedTests'] >= 1809, data
+          assert data['numFailedTests'] > 0, data
+          print('VALID_RED: prior core suite green; only clone-aware AI utility contract fails')
+          print('passed=', data['numPassedTests'], 'failed=', data['numFailedTests'], 'total=', data['numTotalTests'])
+          PY
+      - name: Retain exact valid RED source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = 3d8a4d25cb897d0f9ce4871c6972e5d7107d68b0
+          test "$(git ls-remote origin refs/heads/agent/combat-effect-taxonomy-rework | cut -f1)" = 75f4633e3dfc0e074616299915fb23c1489b811f
+          test "$(git ls-remote origin refs/heads/agent/combat-k4-copy-ai-75f4633 | cut -f1)" = eeefa8854ad915c15e8ea8a704d9dec0e490d4ec
+          if ! git diff --quiet; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add packages/game-core/src/combat/recruit-ai-copy-utility.test.ts
+            git diff --cached --check
+            git commit -m 'style(test): format clone-aware AI utility contract'
+            git push origin HEAD:refs/heads/agent/combat-k4-copy-ai-75f4633
+          fi
+          echo "VALID_RED_SOURCE=$(git rev-parse HEAD)"
+          git diff --exit-code
+          test -z "$(git status --porcelain)"
