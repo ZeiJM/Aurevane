@@ -568,3 +568,120 @@ describe('Reflect committed-command contract', () => {
     expect(() => validateCombatStatusDefinition(reflectStatus(2_500, overrides))).toThrow(/Reflect/)
   })
 })
+
+import { setTerrainOverlay, terrainOverlayAt } from './terrain-overlays'
+
+function roundEndReflectEncounter(): CombatEncounterState {
+  const initial = encounter({ actorHp: 3, allyWitness: true })
+  const turn = initial.tactical.battle.currentTurn
+  if (!turn) throw new Error('Missing fixture turn')
+  return {
+    ...initial,
+    tactical: createTacticalBattleState({
+      ...initial.tactical,
+      battle: {
+        ...initial.tactical.battle,
+        combatants: initial.tactical.battle.combatants.map((combatant) => ({
+          ...combatant,
+          initiative: combatant.id === 'actor' ? 10 : combatant.id === 'target' ? 30 : 20,
+        })),
+        initiativeOrder: ['target', 'witness', 'actor'],
+        turnNumber: 3,
+        currentTurn: { ...turn, initiativeIndex: 2 },
+      },
+    }),
+  }
+}
+
+describe('Reflect successor lifecycle regression', () => {
+  it('decrements the surviving successor status exactly once after attacker defeat', () => {
+    const initial = encounter({ actorHp: 3, allyWitness: true })
+    const result = cast(initial)
+    expect(result.state.tactical.battle.currentTurn?.combatantId).toBe('target')
+    expect(
+      result.state.statusState.find((row) => row.combatantId === 'target')?.statuses[0]
+        ?.remainingOwnerTurnStarts,
+    ).toBe(1)
+    expect(validateCombatEncounterState(result.state)).toEqual([])
+  })
+  it('expires the successor final status tick only after its earned reflection', () => {
+    const initial = encounter({ actorHp: 3, allyWitness: true })
+    initial.statusState = initial.statusState.map((row) => ({
+      ...row,
+      statuses: row.statuses.map((status) => ({ ...status, remainingOwnerTurnStarts: 1 })),
+    }))
+    const result = cast(initial)
+    expect(reflected(result)).toEqual([expect.objectContaining({ amount: 3 })])
+    expect(result.state.statusState.find((row) => row.combatantId === 'target')?.statuses).toEqual(
+      [],
+    )
+    expect(result.events.filter((event) => event.event === 'status_expired')).toEqual([
+      { event: 'status_expired', combatantId: 'target', statusId: REFLECT.id },
+    ])
+  })
+  it('preserves durations when reflection does not advance the turn', () => {
+    const result = cast(encounter({ allyWitness: true }))
+    expect(result.state.tactical.battle.currentTurn?.combatantId).toBe('actor')
+    expect(
+      result.state.statusState.find((row) => row.combatantId === 'target')?.statuses[0]
+        ?.remainingOwnerTurnStarts,
+    ).toBe(2)
+    expect(result.events.filter((event) => event.event === 'status_expired')).toEqual([])
+  })
+  it('applies and consumes scheduled tempo when reflected defeat wraps the round', () => {
+    const initial = roundEndReflectEncounter()
+    const tempo: CombatStatusDefinition = {
+      id: 'test.reflect-successor-tempo',
+      version: 1,
+      maximumStacks: 1,
+      durationOwnerTurnStarts: 2,
+      damageTakenMultiplierBasisPoints: 10_000,
+      nextRoundInitiative: 20,
+    }
+    initial.statusState = initial.statusState.map((row) =>
+      row.combatantId !== 'witness'
+        ? row
+        : {
+            ...row,
+            statuses: [
+              {
+                statusId: tempo.id,
+                statusVersion: 1,
+                stacks: 1,
+                remainingOwnerTurnStarts: 2,
+                sourceCombatantId: 'witness',
+              },
+            ],
+          },
+    )
+    expect(validateCombatEncounterState(initial)).toEqual([])
+    const result = cast(initial, hit(), [REFLECT, tempo])
+    expect(result.state.tactical.battle.round).toBe(2)
+    expect(result.state.tactical.battle.currentTurn?.combatantId).toBe('witness')
+    expect(result.state.tactical.battle.roundInitiativeModifiers).toEqual([
+      { combatantId: 'witness', amount: 20 },
+    ])
+    expect(result.state.statusState.find((row) => row.combatantId === 'witness')?.statuses).toEqual(
+      [],
+    )
+    expect(result.events).toContainEqual({
+      event: 'status_expired',
+      combatantId: 'witness',
+      statusId: tempo.id,
+    })
+    expect(validateCombatEncounterState(result.state)).toEqual([])
+  })
+  it('advances temporary terrain lifetime on a reflected round boundary', () => {
+    const initial = setTerrainOverlay(
+      roundEndReflectEncounter(),
+      { x: 0, y: 0 },
+      'frozen',
+      'actor',
+      'test.reflect-terrain',
+    ).state
+    const result = cast(initial)
+    expect(result.state.tactical.battle.round).toBe(2)
+    expect(terrainOverlayAt(result.state, { x: 0, y: 0 })?.remainingRoundBoundaries).toBe(1)
+    expect(validateCombatEncounterState(result.state)).toEqual([])
+  })
+})
