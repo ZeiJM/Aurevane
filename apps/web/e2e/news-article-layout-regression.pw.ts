@@ -25,6 +25,7 @@ test('News article matches the desktop editorial layout', async ({ page }, info)
   await expect(article).toBeVisible()
   await expect(article).toHaveAttribute('data-news-article-surface', 'ink')
   await expect(hero).toBeVisible()
+  await expect(hero).not.toContainText('Same world. Brighter tomorrows.')
   await expect(
     page.getByRole('heading', { level: 1, name: 'News Article Layout Preview' }),
   ).toBeVisible()
