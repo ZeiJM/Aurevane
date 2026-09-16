@@ -28,24 +28,45 @@ export interface CombatStatusCopyEffect {
   type: 'copy-statuses'
   recipient: 'primary-unit'
   mode: 'amplify' | 'curse'
+  /** Composed commands may explicitly permit an empty clone block while later effects still matter. */
+  allowNoEligibleEffects?: boolean
 }
 
-/** Copying is staged as a pure, single-unit command until composition/repeat/AI gates exist. */
+/** Copying remains single-unit and copy-first while composition is introduced incrementally. */
 export function validateCombatStatusCopyAction(action: CombatActionDefinition): void {
-  for (const effect of action.effects) {
-    if (effect.type !== 'copy-statuses') continue
-    if (
-      action.effects.length !== 1 ||
-      action.sourceType === 'basic-attack' ||
-      action.target.kind !== 'unit' ||
-      action.target.shape.kind !== 'single' ||
-      effect.recipient !== 'primary-unit' ||
-      (effect.mode !== 'amplify' && effect.mode !== 'curse')
-    ) {
-      throw new TypeError(
-        'Status copying requires one pure, single-unit Amplify or Curse operation, never Basic Attack.',
-      )
-    }
+  const copyEntries = action.effects
+    .map((effect, index) => ({ effect, index }))
+    .filter(
+      (entry): entry is { effect: CombatStatusCopyEffect; index: number } =>
+        entry.effect.type === 'copy-statuses',
+    )
+  if (copyEntries.length === 0) return
+  if (copyEntries.length !== 1) {
+    throw new TypeError('Status copying supports exactly one copy operation per command.')
+  }
+
+  const entry = copyEntries[0]!
+  const effect = entry.effect
+  if (
+    effect.allowNoEligibleEffects !== undefined &&
+    typeof effect.allowNoEligibleEffects !== 'boolean'
+  ) {
+    throw new TypeError('Status copy allowNoEligibleEffects must be boolean when supplied.')
+  }
+  if (effect.allowNoEligibleEffects === true && action.effects.length === 1) {
+    throw new TypeError('Status copy no-op permission is only valid on a composed command.')
+  }
+  if (
+    entry.index !== 0 ||
+    action.sourceType === 'basic-attack' ||
+    action.target.kind !== 'unit' ||
+    action.target.shape.kind !== 'single' ||
+    effect.recipient !== 'primary-unit' ||
+    (effect.mode !== 'amplify' && effect.mode !== 'curse')
+  ) {
+    throw new TypeError(
+      'Status copying requires one copy-first, single-unit Amplify or Curse operation, never Basic Attack.',
+    )
   }
 }
 
@@ -284,8 +305,12 @@ export function applyCombatStatusCopies(
     effect,
     content,
   )
-  if (copies.length === 0 && !poison && !burn && bleed.length === 0)
+  if (copies.length === 0 && !poison && !burn && bleed.length === 0) {
+    if (effect.allowNoEligibleEffects === true) {
+      return { state, events: [], projections: [] }
+    }
     throw new Error('Status copying requires eligible active statuses.')
+  }
   const replaced = new Set(
     copies.map((copy) => copy.previous).filter((entry) => entry !== undefined),
   )

@@ -475,10 +475,10 @@ describe('Status copying: fail-closed eligibility and staged scope', () => {
     expect(() => validateCombatActionDefinition(action, CONTENT)).toThrow()
     expect(() => executeCombatAction(world(), action, TARGET, CONTENT)).toThrow()
   })
-  it('rejects mixed effect packages until ordered copying has a tested contract', () => {
+  it('rejects copy blocks placed after another authored effect', () => {
     const action = {
       ...copying('amplify'),
-      effects: [...copying('amplify').effects, ...attack().effects],
+      effects: [...attack().effects, ...copying('amplify').effects],
     }
     expect(() => validateCombatActionDefinition(action, CONTENT)).toThrow()
   })
