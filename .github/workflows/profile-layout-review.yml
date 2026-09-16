@@ -81,6 +81,10 @@ jobs:
           corepack prepare pnpm@11.17.0 --activate
           pnpm install --frozen-lockfile
           pnpm --filter @aurevane/web exec playwright install --with-deps chromium
+      - name: Print Controls Prettier diff
+        run: |
+          pnpm exec prettier --write apps/web/e2e/controls-layout-regression.pw.ts
+          git diff -- apps/web/e2e/controls-layout-regression.pw.ts
       - name: Start disposable local database
         run: |
           pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
