@@ -3,7 +3,7 @@ on:
   push:
     branches: [review/mark-blind-workbench-20260915]
 permissions:
-  contents: read
+  contents: write
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -13,7 +13,6 @@ jobs:
         with:
           ref: 01ff5307478bb06f6fd35aa6442070afb237379d
           fetch-depth: 0
-          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -22,25 +21,57 @@ jobs:
           corepack enable
           corepack prepare pnpm@11.17.0 --activate
           pnpm install --frozen-lockfile
-      - name: Exact baseline and source preflight
+      - name: Prepare only the test-first source
         shell: bash
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = 01ff5307478bb06f6fd35aa6442070afb237379d
           node -e 'if(require("./apps/web/vercel.json").git.deploymentEnabled["**"] !== false) process.exit(1)'
-          git ls-remote origin refs/heads/main refs/heads/agent/combat-effect-taxonomy-rework
-          git log --oneline -6
-          echo '--- ACTIVE ROADMAP ---'
-          grep -n -E 'K4|K5|accuracy|Mark|Blind' docs/ROADMAP_C4_AUDIT_COMBAT_KERNEL_V2.md docs/ROADMAP.md TASKS.md || true
-          echo '--- APPROVED ACCURACY CONTRACT ---'
-          sed -n '/## 7. Mark rework/,/## 10. Reflect/p' docs/superpowers/specs/2026-09-12-reactive-effects-accuracy-discipline-rebalance-design.md
-          echo '--- STATUS EXECUTION SEAMS ---'
-          grep -n -E 'apply-status|function applyStatusState|function validateCombatEncounterState|validateCombatContentCatalog|collectPersistentProvenanceIssues|status_expired' packages/game-core/src/combat/actions-legacy.ts
-          echo '--- HISTORICAL MARK SEAMS ---'
-          git grep -n -E 'marked|Marked' -- packages/game-core/src/combat/damage-modifiers.ts packages/game-core/src/combat/gameplay-tags.ts packages/game-core/src/combat/phase4-effects.ts
-          echo '--- STATUS PROVENANCE VALIDATION ---'
-          git grep -n 'collectPersistentProvenanceIssues' -- packages/game-core/src/combat
+          test ! -e packages/game-core/src/combat/combat-mark-blind.contract.test.ts
+          git show 463199148555ee662da2fc22a088b9f8f76a5b85:.github/mark-blind-contract.txt > packages/game-core/src/combat/combat-mark-blind.contract.test.ts
+          pnpm exec prettier --write packages/game-core/src/combat/combat-mark-blind.contract.test.ts
+          pnpm exec eslint packages/game-core/src/combat/combat-mark-blind.contract.test.ts --max-warnings=0
           pnpm --filter @aurevane/game-core typecheck
-          pnpm --filter @aurevane/game-core test
+          pnpm format:check
+      - name: Execute and classify behavioral RED
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          pnpm --filter @aurevane/game-core exec vitest run --reporter=json --outputFile=/tmp/mark-blind-red.json
+          code=$?
+          set -e
+          test "$code" = 1
+          node <<'JS'
+          const fs = require('node:fs')
+          const r = JSON.parse(fs.readFileSync('/tmp/mark-blind-red.json', 'utf8'))
+          let failures = 0
+          for (const suite of r.testResults) {
+            if (suite.status === 'failed' && !suite.name.endsWith('combat-mark-blind.contract.test.ts')) throw new Error('Existing suite regression: ' + suite.name)
+            for (const test of suite.assertionResults) {
+              if (test.status !== 'failed') continue
+              failures++
+              console.log('RED:', test.fullName)
+              console.log(test.failureMessages.join('\n'))
+            }
+          }
+          console.log('RED_TOTALS', JSON.stringify({ tests: r.numTotalTests, passed: r.numPassedTests, failed: r.numFailedTests, failures, suites: r.numTotalTestSuites }))
+          if (failures < 1 || failures !== r.numFailedTests || r.numPassedTests < 1483) throw new Error('RED classification incomplete')
+          JS
+      - name: Retain formatted test-only RED without workbench files
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = 3d8a4d25cb897d0f9ce4871c6972e5d7107d68b0
+          test "$(git ls-remote origin refs/heads/agent/combat-effect-taxonomy-rework | cut -f1)" = 01ff5307478bb06f6fd35aa6442070afb237379d
+          test -z "$(git ls-remote origin refs/heads/review/mark-blind-red-source-20260915)"
           git diff --exit-code
-          test -z "$(git status --porcelain)"
+          git add packages/game-core/src/combat/combat-mark-blind.contract.test.ts
+          test "$(git diff --cached --name-only)" = packages/game-core/src/combat/combat-mark-blind.contract.test.ts
+          git config user.name 'AUREVANE coding agent'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'test(combat): define source-specific Mark and non-stacking Blind'
+          git push origin HEAD:refs/heads/review/mark-blind-red-source-20260915
+          echo "RED_COMMIT=$(git rev-parse HEAD)"
+          echo "RED_TREE=$(git rev-parse HEAD^{tree})"
+          git status --porcelain
