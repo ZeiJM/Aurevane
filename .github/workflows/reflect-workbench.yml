@@ -3,16 +3,17 @@ on:
   push:
     branches: [agent/reflect-workbench-20260915]
 permissions:
-  contents: write
+  contents: read
 jobs:
-  verify-green:
+  review-boundaries:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 12fdd410373c27316fba184893a7a15050f12587
+          ref: df825910e89d64f46c22d7d6c2d1b7c69d41b8f5
           fetch-depth: 6
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -21,296 +22,147 @@ jobs:
           corepack enable
           corepack prepare pnpm@11.17.0 --activate
           pnpm install --frozen-lockfile
-      - name: Implement committed reactions before terminal completion
+      - name: Verify additional outcomes on the unchanged candidate
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = 12fdd410373c27316fba184893a7a15050f12587
+          test "$(git rev-parse HEAD)" = df825910e89d64f46c22d7d6c2d1b7c69d41b8f5
+          test "$(git rev-parse HEAD^{tree})" = c1b439bc550e06335eb64e1c055706f8c341325c
           python3 - <<'PY'
           from pathlib import Path
           import subprocess
-          root = Path('packages/game-core/src/combat')
-          expected = {
-            'actions.ts': '4360bafe4f35a90edd0a1d177e33320aa804b3f1',
-            'actions-legacy.ts': '1fe5d0ce7da20c7270a064b7f5dd5c65a6ce56f3',
-            'combat-absorb-recovery.ts': '2d42c8a7a5ae5333b9cb3febd04a0b04750fbe9b',
-            'combat-authoring-validation.ts': '709753e7219ea0d4609b43bd6630cffc6cc920c3',
-            'combat-effect-state.ts': '8e8d1fd4dd1666b90da94c62c2351fc7925d6591',
-          }
-          for name, sha in expected.items():
-              actual = subprocess.check_output(['git', 'rev-parse', f'HEAD:{root / name}'], text=True).strip()
-              assert actual == sha, (name, actual)
-          def replace_once(name, old, new):
-              p = root / name
-              text = p.read_text()
-              assert text.count(old) == 1, (name, old)
-              p.write_text(text.replace(old, new))
-          replace_once('combat-effect-state.ts', '    absorbMpBasisPoints?: number\n', '    absorbMpBasisPoints?: number\n    reflectBasisPoints?: number\n')
-          replace_once('combat-authoring-validation.ts', '  if (status.effectCategories !== undefined) {', '''  if (status.reflectBasisPoints !== undefined) {
-            boundedPositiveSafeInteger(status.reflectBasisPoints, 1, COMBAT_BASIS_POINTS, 'Reflect basis points')
-            if (status.polarity !== 'positive' || status.reactionClass !== 'reactive') {
-              throw new TypeError('Reflect statuses must be positive and reactive.')
+          p = Path('packages/game-core/src/combat/combat-reflect.test.ts')
+          original = p.read_bytes()
+          additions = '''
+          import { applyCommittedReflect } from './combat-reflect'
+          import { applyCommittedAbsorbRecovery } from './combat-absorb-recovery'
+          import { collectCommittedHostileCommandDamage } from './combat-committed-damage'
+          import { createStatDrivenCombatEncounterState, executeStatDrivenAttack, validateStatDrivenCombatEncounterState } from './stat-driven-combat'
+
+          const outcomeVectors = [1, 250, 2_500, 6_000, 10_000].flatMap((rate) =>
+            [0, 1, 3, 7, 20, 99, 200].flatMap((damage) =>
+              [1, 3, 5, 100].flatMap((actorHp) =>
+                [1, 20, 100].map((targetHp) => ({ rate, damage, actorHp, targetHp })))))
+          it.each(outcomeVectors)('review outcome matrix %j', ({ rate, damage, actorHp, targetHp }) => {
+            const definition = reflectStatus(rate)
+            const initial = encounter({ actorHp, targetHp, duel: true, targetStatuses: [definition] })
+            const snapshot = JSON.stringify(initial)
+            const result = cast(initial, hit(damage), [definition])
+            const actual = Math.min(targetHp, damage)
+            const returned = Math.min(actorHp, Math.floor(actual * rate / 10_000))
+            const expectedActor = actorHp - returned
+            const expectedTarget = targetHp - actual
+            expect(unit(result, 'actor').hp).toBe(expectedActor)
+            expect(unit(result, 'target').hp).toBe(expectedTarget)
+            expect(reflected(result)).toHaveLength(returned > 0 ? 1 : 0)
+            expect(reflected(result).reduce((sum, event) => sum + (event.event === 'damage_applied' ? event.amount : 0), 0)).toBe(returned)
+            expect(result.state.effectState?.damageHistory ?? []).toEqual(actual > 0 ? [{ combatantId: 'target', round: 1, amount: actual }] : [])
+            const terminal = expectedActor === 0 || expectedTarget === 0
+            expect(completion(result)).toEqual(terminal ? [{ event: 'battle_completed', winningTeamId: expectedActor === 0 ? (expectedTarget === 0 ? null : 'enemies') : 'players' }] : [])
+            expect(result.state.tactical.battle.lifecycle).toBe(terminal ? 'completed' : 'active')
+            expect(validateCombatEncounterState(result.state)).toEqual([])
+            expect(JSON.stringify(initial)).toBe(snapshot)
+            expect(result.state.tactical.battle.rng).toEqual(initial.tactical.battle.rng)
+          })
+          it.each([0, 10_000])('review stat-driven attack hit/miss accuracy %s', (accuracy) => {
+            const base = encounter({ actorHp: 3, duel: true })
+            const initial = createStatDrivenCombatEncounterState(base, base.tactical.battle.combatants.map((combatant) => ({
+              combatantId: combatant.id, provenance: { kind: 'scenario', sourceId: `review:${combatant.id}`, sourceRulesVersion: 1 },
+              accuracy, evasion: 0, armor: 0, ward: 0, jump: 0,
+            })))
+            const before = JSON.stringify(initial)
+            const action: CombatActionDefinition = { ...hit(), sourceType: 'basic-attack', cost: { spendsAction: true, mp: 0 } }
+            const result = executeStatDrivenAttack(initial, action, { kind: 'unit', combatantId: 'target' }, { statuses: [REFLECT] })
+            expect(result.state.tactical.battle.combatants.find((row) => row.id === 'actor')?.hp).toBe(accuracy === 0 ? 3 : 0)
+            expect(result.state.tactical.battle.combatants.find((row) => row.id === 'target')?.hp).toBe(accuracy === 0 ? 100 : 80)
+            expect(result.events.filter((event) => event.event === 'damage_applied' && event.actionId === 'status.reflect.current.v1')).toHaveLength(accuracy === 0 ? 0 : 1)
+            expect(result.events.filter((event) => event.event === 'battle_completed')).toEqual(accuracy === 0 ? [] : [{ event: 'battle_completed', winningTeamId: 'enemies' }])
+            expect(validateStatDrivenCombatEncounterState(result.state)).toEqual([])
+            expect(JSON.stringify(initial)).toBe(before)
+          })
+          it('review helper does not accept unrelated source/action/system-shaped events', () => {
+            const initial = encounter({ actorStatuses: [REFLECT, ABSORB] })
+            const content = { statuses: [REFLECT, ABSORB] }
+            const action = hit()
+            const committed = legacy.executeCombatAction(initial, action, { kind: 'unit', combatantId: 'target' }, content)
+            const event = committed.events.find((candidate) => candidate.event === 'damage_applied')
+            if (!event || event.event !== 'damage_applied') throw new Error('Missing committed damage')
+            const command = { sourceCombatantId: 'actor', actionId: action.id }
+            const exclusions = [
+              { ...event, actionId: 'status.reflect.current.v1' },
+              { ...event, actionId: 'status.system.damage' },
+              { ...event, actionId: 'status.burn.backlash.current.v1' },
+              { ...event, sourceCombatantId: 'witness' },
+              { ...event, targetCombatantId: 'actor' },
+              { ...event, targetCombatantId: 'missing' },
+              { ...event, amount: 0 },
+            ]
+            expect([...collectCommittedHostileCommandDamage(committed.state, exclusions, command)]).toEqual([])
+            const guard = createCombatTriggerGuard({ triggerChainId: 'review:filter' })
+            const filtered = applyCommittedReflect(committed.state, exclusions, content, command, guard)
+            expect(filtered.state).toBe(committed.state)
+            expect(filtered.events).toEqual([])
+            expect(filtered.triggerGuard).toBe(guard)
+            const reflected = applyCommittedReflect(committed.state, committed.events, content, command, guard)
+            expect(unit(reflected, 'actor')).toMatchObject({ hp: 95, mp: 10 })
+            const repeat = applyCommittedReflect(reflected.state, reflected.events, content, command)
+            expect(repeat.state).toBe(reflected.state)
+            expect(repeat.events).toEqual([])
+            expect(applyCommittedAbsorbRecovery(reflected.state, reflected.events, content, command).state).toBe(reflected.state)
+            expect(applyCommittedReflect(committed.state, committed.events, content, { ...command, sourceCombatantId: 'missing' }, guard).state).toBe(committed.state)
+          })
+          it('review shared collector rejects non-integer or overflowing trusted receipts', () => {
+            const state = encounter()
+            const action = hit()
+            const committed = legacy.executeCombatAction(state, action, { kind: 'unit', combatantId: 'target' }, { statuses: [REFLECT] })
+            const event = committed.events.find((candidate) => candidate.event === 'damage_applied')
+            if (!event || event.event !== 'damage_applied') throw new Error('Missing committed damage')
+            const command = { sourceCombatantId: 'actor', actionId: action.id }
+            for (const amount of [0.5, NaN, Infinity]) {
+              expect(() => collectCommittedHostileCommandDamage(committed.state, [{ ...event, amount }], command)).toThrow(/safe integer/)
             }
-          }
-
-          if (status.effectCategories !== undefined) {''')
-          collector = root / 'combat-committed-damage.ts'
-          assert not collector.exists()
-          collector.write_text('''import type { CombatEncounterState, CombatResolutionEvent } from './actions'
-
-          export interface CommittedCombatCommand {
-            sourceCombatantId: string
-            actionId: string
-          }
-
-          /** Only original command receipts qualify; callers must not feed reactive output back in. */
-          export function collectCommittedHostileCommandDamage(
-            state: CombatEncounterState,
-            events: readonly CombatResolutionEvent[],
-            command: CommittedCombatCommand,
-          ): ReadonlyMap<string, number> {
-            const combatants = new Map(state.tactical.battle.combatants.map((unit) => [unit.id, unit]))
-            const source = combatants.get(command.sourceCombatantId)
-            const damageByTarget = new Map<string, number>()
-            if (!source) return damageByTarget
-            for (const event of events) {
-              if (
-                event.event !== 'damage_applied' || event.amount <= 0 ||
-                event.sourceCombatantId !== source.id || event.actionId !== command.actionId
-              ) continue
-              const target = combatants.get(event.targetCombatantId)
-              if (!target || target.teamId === source.teamId) continue
-              const total = (damageByTarget.get(target.id) ?? 0) + event.amount
-              if (!Number.isSafeInteger(total)) {
-                throw new RangeError('Committed hostile damage must remain a safe integer.')
-              }
-              damageByTarget.set(target.id, total)
-            }
-            return damageByTarget
-          }
-          ''')
-          p = root / 'combat-absorb-recovery.ts'
-          text = p.read_text()
-          text = "import { collectCommittedHostileCommandDamage } from './combat-committed-damage'\n" + text
-          start = text.index('  const source = combatants.get(command.sourceCombatantId)')
-          end = text.index('  const recoveredPools', start)
-          text = text[:start] + '  const damageByTarget = collectCommittedHostileCommandDamage(state, events, command)\n\n' + text[end:]
-          assert text.count('    if (!target) continue') == 1
-          text = text.replace('    if (!target) continue', '    if (!target || target.hp <= 0) continue')
-          p.write_text(text)
-          reflect = root / 'combat-reflect.ts'
-          assert not reflect.exists()
-          reflect.write_text('''import type {
-            CombatContentCatalog, CombatEncounterState, CombatResolutionEvent, CombatResolutionTransition,
-          } from './actions'
-          import { removeGameplayTags } from './actions-legacy'
-          import { defeatCurrentCombatant } from './battle-state'
-          import { createTacticalBattleState } from './board'
-          import { validateCombatStatusDefinition } from './combat-authoring-validation'
-          import { collectCommittedHostileCommandDamage, type CommittedCombatCommand } from './combat-committed-damage'
-          import { consumeCombatTrigger, createCombatTriggerGuard, type CombatTriggerGuard } from './combat-kernel-types'
-          import { clearDefeatedRecovery } from './combat-recovery'
-
-          const REFLECT_ACTION_ID = 'status.reflect.current.v1'
-          const REFLECT_BASIS_POINTS = 10_000
-
-          /** One bounded pass over original damage receipts. Returns additional events only. */
-          export function applyCommittedReflect(
-            state: CombatEncounterState,
-            committedEvents: readonly CombatResolutionEvent[],
-            content: CombatContentCatalog,
-            command: CommittedCombatCommand,
-            guard?: CombatTriggerGuard,
-          ): CombatResolutionTransition & { triggerGuard: CombatTriggerGuard } {
-            const battle = state.tactical.battle
-            let triggerGuard = guard ?? createCombatTriggerGuard({
-              triggerChainId: JSON.stringify(['reflect', battle.battleId, battle.round, battle.turnNumber, command.sourceCombatantId, command.actionId]),
-            })
-            const attacker = battle.combatants.find((unit) => unit.id === command.sourceCombatantId)
-            if (battle.lifecycle !== 'active' || !attacker || attacker.hp <= 0 || battle.currentTurn?.combatantId !== attacker.id) {
-              return { state, events: [], triggerGuard }
-            }
-            const damageByTarget = collectCommittedHostileCommandDamage(state, committedEvents, command)
-            const ordered = [...damageByTarget].sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
-            let nextState = state
-            const events: CombatResolutionEvent[] = []
-            for (const [defenderId, damage] of ordered) {
-              const currentAttacker = nextState.tactical.battle.combatants.find((unit) => unit.id === attacker.id)
-              if (!currentAttacker || currentAttacker.hp <= 0) break
-              const rate = activeReflectBasisPoints(state, content, defenderId)
-              // Reflect floors once per defender, with no Absorb-specific minimum-1 rule.
-              const requested = Number(BigInt(damage) * BigInt(rate) / BigInt(REFLECT_BASIS_POINTS))
-              const amount = Math.min(currentAttacker.hp, requested)
-              if (amount === 0) continue
-              const attempted = consumeCombatTrigger(triggerGuard, {
-                instanceId: `reflect:${JSON.stringify([triggerGuard.triggerChainId, command.actionId, attacker.id, defenderId])}`,
-                depth: 1,
-              })
-              if (!attempted.accepted) continue
-              triggerGuard = attempted.guard
-              const hpAfter = currentAttacker.hp - amount
-              events.push({
-                event: 'damage_applied', actionId: REFLECT_ACTION_ID,
-                sourceCombatantId: defenderId, targetCombatantId: attacker.id,
-                amount, hpBefore: currentAttacker.hp, hpAfter,
-              })
-              // Reuse the established defeat/turn transition; never persist a dead current actor.
-              const defeated = hpAfter === 0 ? defeatCurrentCombatant(nextState.tactical.battle, attacker.id) : null
-              const nextBattle = defeated?.state ?? {
-                ...nextState.tactical.battle,
-                combatants: nextState.tactical.battle.combatants.map((unit) => unit.id === attacker.id ? { ...unit, hp: hpAfter } : unit),
-              }
-              nextState = clearDefeatedRecovery({
-                ...nextState,
-                tactical: createTacticalBattleState({ ...nextState.tactical, battle: nextBattle }),
-              })
-              const revealed = removeGameplayTags(nextState, defenderId, attacker.id, REFLECT_ACTION_ID, ['Invisible'], content)
-              nextState = revealed.state
-              events.push(...revealed.events)
-              if (defeated) events.push(...defeated.events)
-            }
-            return { state: nextState, events, triggerGuard }
-          }
-
-          function activeReflectBasisPoints(state: CombatEncounterState, content: CombatContentCatalog, defenderId: string): number {
-            const statuses = state.statusState.find((row) => row.combatantId === defenderId)?.statuses ?? []
-            let rate = 0
-            for (const instance of statuses) {
-              if (instance.remainingOwnerTurnStarts <= 0 || instance.stacks <= 0) continue
-              const definition = content.statuses.find((status) => status.id === instance.statusId && status.version === instance.statusVersion)
-              if (definition?.reflectBasisPoints === undefined) continue
-              validateCombatStatusDefinition(definition)
-              rate = Math.min(REFLECT_BASIS_POINTS, rate + definition.reflectBasisPoints * instance.stacks)
-            }
-            return rate
-          }
-          ''')
-          p = root / 'actions-legacy.ts'
-          text = p.read_text()
-          start = text.index('export function executeCombatAction(')
-          end = text.index('\nexport function waitCurrentTurn(', start)
-          function = text[start:end]
-          old = '  content: CombatContentCatalog,\n): CombatResolutionTransition {'
-          assert function.count(old) == 1
-          function = function.replace(old, '''  content: CombatContentCatalog,
-            resolveCommittedReactions?: (transition: CombatResolutionTransition) => CombatResolutionTransition,
-          ): CombatResolutionTransition {''')
-          assert function.count('  const events: CombatResolutionEvent[] = []') == 1
-          function = function.replace('  const events: CombatResolutionEvent[] = []', '  let events: CombatResolutionEvent[] = []')
-          old = '  const completion = completeBattleIfResolved(nextState)'
-          assert function.count(old) == 1
-          function = function.replace(old, '''  // Engine-owned reaction seam: committed effects first, terminal verdict last.
-          // Omitted by historical four-argument callers; never populated by authored scripts.
-          if (resolveCommittedReactions) {
-            const reacted = resolveCommittedReactions({ state: nextState, events })
-            nextState = reacted.state
-            events = [...reacted.events]
-          }
-
-          const completion = completeBattleIfResolved(nextState)''')
-          p.write_text(text[:start] + function + text[end:])
-          p = root / 'actions.ts'
-          text = "import { applyCommittedReflect } from './combat-reflect'\n" + p.read_text()
-          start = text.index('  const transition = legacy.executeCombatAction(state, materializedAction, selection, content)')
-          end = text.index('\nexport function endCombatTurn(', start)
-          text = text[:start] + '''  let triggerGuard = context?.triggerGuard
-          const transition = legacy.executeCombatAction(
-            state, materializedAction, selection, content,
-            (committed) => {
-              if (!actorId) return committed
-              const command = { sourceCombatantId: actorId, actionId: action.id }
-              const historyState = recordCommittedDamageHistory(committed.state, committed.events, {
-                round, commandSourceCombatantId: actorId,
-              })
-              const recovered = applyCommittedAbsorbRecovery(historyState, committed.events, content, command)
-              // Both reactions read only original receipts, never each other's output.
-              const reflected = applyCommittedReflect(recovered.state, committed.events, content, command, triggerGuard)
-              triggerGuard = reflected.triggerGuard
-              return { state: reflected.state, events: [...recovered.events, ...reflected.events] }
-            },
-          )
-          if (!context || !evaluation) return transition
-          return {
-            state: attachCombatEffectProvenance(state, transition.state, action, evaluation, context),
-            events: transition.events,
-            resolution: {
-              pipelineVersion: COMBAT_RESOLUTION_PIPELINE_VERSION,
-              provenance: context.provenance,
-              triggerGuard: triggerGuard ?? context.triggerGuard,
-            },
-          }
-          }
-          ''' + text[end:]
-          p.write_text(text)
-          doc = Path('docs/COMBAT.md')
-          text = doc.read_text()
-          heading = '# AUREVANE Combat Design Bible\n'
-          assert text.startswith(heading)
-          doc.write_text(heading + '''
-          ## P4.K4 Reflect kernel boundary — 2026-09-15
-
-          The current-kernel `reflectBasisPoints` status field is optional for historical compatibility and requires positive/reactive metadata and an integer from 1 to 10000. Active stacks and definitions combine up to 100% per defender. Reflect aggregates actual hostile direct-command HP loss after incoming mitigation, Barrier and overkill, floors the percentage once per defender, and does not inherit Absorb's minimum-1 recovery rule. Zero results emit no damage event.
-
-          Original command receipts are shared with Absorb HP/MP without recycling reaction output. Reflect deals fixed damage to the source attacker without an accuracy roll or another Armor/Ward/modifier pass. The existing first Barrier slice remains direct-command-only: attacker Barrier does not intercept reactive Reflect output in this version. Reflect is excluded from Damage History, Absorb and further Reflect triggers. Periodic damage, Burn backlash, friendly fire, self-cost and system output do not qualify. Unsupported generic self-damage remains rejected.
-
-          A defeated defender can return its qualifying damage, allowing mutual KO. The engine-owned post-command reaction boundary runs before the final terminal verdict. Attacker defeat reuses the established defeat/turn transition, removes ongoing recovery and records only the final winner or draw. Positive reflected HP loss breaks Invisible. Each positive defender return consumes one K3 trigger budget at depth 1 with a deterministic relationship identity; an exhausted or previously consumed guard suppresses the reaction, not the ordinary command. No-context public calls retain their four-argument contract and omit resolution metadata.
-
-          This is a kernel primitive, not a published roster or balance change. No published Skill/status catalog, player UI, AI policy, schema or deployment is activated by this slice. Current player forecasts do not yet display reactive returns; forecast/AI integration must be completed before authored Reflect content is published through the later migration and acceptance gates. Existing AP, targeting, direct-damage calculations and historical definitions remain protected.
-          
-          ''' + text[len(heading):])
+            expect(() => collectCommittedHostileCommandDamage(committed.state, [{ ...event, amount: Number.MAX_SAFE_INTEGER }, { ...event, amount: 1 }], command)).toThrow(/safe integer/)
+          })
+          it('review reflection preserves new status provenance when the attacker dies', () => {
+            const mark: CombatStatusDefinition = { id: 'review.mark', version: 1, maximumStacks: 1, durationOwnerTurnStarts: 2, damageTakenMultiplierBasisPoints: 10_000 }
+            const action = hit()
+            action.effects = [...action.effects, { type: 'apply-status', recipient: 'primary-unit', statusId: mark.id, stacks: 1 }]
+            const original = context()
+            const result = cast(encounter({ actorHp: 3, allyWitness: true }), action, [REFLECT, mark], original)
+            const applied = result.state.statusState.find((row) => row.combatantId === 'target')?.statuses.find((status) => status.statusId === mark.id)
+            expect(applied?.provenance).toMatchObject({ action: original.provenance, effectOrdinal: 1, createdRound: 1, createdTurn: 1, targetCombatantId: 'target' })
+            expect(result.resolution?.triggerGuard.remainingReactionBudget).toBe(31)
+            expect(validateCombatEncounterState(result.state)).toEqual([])
+          })
+          it('review ordinary healing does not shrink the original reflection basis', () => {
+            const action = hit()
+            action.effects = [...action.effects, { type: 'healing', recipient: 'primary-unit', amount: 20 }]
+            const result = cast(encounter(), action)
+            expect(unit(result, 'target').hp).toBe(100)
+            expect(unit(result, 'actor').hp).toBe(95)
+            expect(result.state.effectState?.damageHistory).toEqual([{ combatantId: 'target', round: 1, amount: 20 }])
+          })
+          '''
+          try:
+              p.write_bytes(original + additions.encode())
+              subprocess.run(['pnpm','--filter','@aurevane/game-core','typecheck'], check=True)
+              subprocess.run(['pnpm','--filter','@aurevane/game-core','exec','vitest','run',
+                'src/combat/combat-reflect.test.ts','src/combat/combat-absorb-mp.test.ts',
+                'src/combat/combat-absorb-hp.test.ts','src/combat/combat-absorb-hp-command.test.ts',
+                'src/combat/combat-barrier.test.ts','src/combat/combat-damage-history-runtime.test.ts',
+                'src/combat/combat-resolution-provenance.test.ts','src/combat/combat-burn-backlash.test.ts',
+                'src/combat/combat-dot-rework.test.ts'], check=True)
+          finally:
+              p.write_bytes(original)
           PY
-          pnpm exec prettier --write packages/game-core/src/combat/actions.ts packages/game-core/src/combat/actions-legacy.ts packages/game-core/src/combat/combat-absorb-recovery.ts packages/game-core/src/combat/combat-committed-damage.ts packages/game-core/src/combat/combat-reflect.ts packages/game-core/src/combat/combat-authoring-validation.ts packages/game-core/src/combat/combat-effect-state.ts docs/COMBAT.md
-          git diff --check
-      - name: Verify focused Reflect and existing reactive contracts
-        run: |
-          pnpm --filter @aurevane/game-core exec vitest run src/combat/combat-reflect.test.ts src/combat/combat-absorb-mp.test.ts src/combat/combat-absorb-hp.test.ts src/combat/combat-absorb-hp-command.test.ts src/combat/combat-barrier.test.ts src/combat/combat-damage-history-runtime.test.ts src/combat/combat-resolution-provenance.test.ts src/combat/combat-burn-backlash.test.ts src/combat/combat-dot-rework.test.ts
-          pnpm --filter @aurevane/game-core typecheck
-      - name: Full repository verification
-        shell: bash
-        run: |
-          set -euo pipefail
-          if ! pnpm check >/tmp/reflect-quality.log 2>&1; then
-            tail -200 /tmp/reflect-quality.log
-            exit 1
-          fi
-          python3 - <<'PY'
-          import re
-          text = re.sub(r'\x1b\[[0-9;]*m', '', open('/tmp/reflect-quality.log').read())
-          for line in text.splitlines():
-              if any(word in line for word in ['Test Files', 'Tests ', 'successful,', 'Compiled successfully', 'All matched files', 'ℹ fail', 'ℹ pass']):
-                  print(line)
-          print('FULL_PNPM_CHECK_PASSED')
-          PY
-      - name: Verify scope and preserve source-only candidate
-        shell: bash
-        run: |
-          set -euo pipefail
-          git diff --check
-          git diff --exit-code -- apps .github packages/game-core/src/combat/combat-reflect.test.ts pnpm-lock.yaml
-          python3 - <<'PY'
-          import subprocess
-          from pathlib import Path
-          changed = subprocess.check_output(['git','diff','--name-only'], text=True).splitlines()
-          new = subprocess.check_output(['git','ls-files','--others','--exclude-standard'], text=True).splitlines()
-          prefix = 'packages/game-core/src/combat/'
-          expected = {prefix + name for name in ['actions.ts','actions-legacy.ts','combat-absorb-recovery.ts','combat-committed-damage.ts','combat-reflect.ts','combat-authoring-validation.ts','combat-effect-state.ts']}
-          expected.add('docs/COMBAT.md')
-          assert set(changed + new) == expected, (changed,new)
-          before = subprocess.check_output(['git','show','HEAD:packages/game-core/src/combat/actions-legacy.ts'], text=True)
-          after = Path(prefix + 'actions-legacy.ts').read_text()
-          for text in [before, after]:
-              start = text.index('export function executeCombatAction(')
-              end = text.index('\nexport function waitCurrentTurn(', start)
-              stripped = text[:start] + text[end:]
-              if text is before: baseline = stripped
-              else: assert stripped == baseline, 'Unexpected legacy resolver modification'
-          PY
-          git diff --stat
-          git diff -- packages/game-core/src/combat/actions.ts packages/game-core/src/combat/actions-legacy.ts
-          git config user.name 'Nicholas JM'
-          git config user.email '283436098+ZeiJM@users.noreply.github.com'
-          git add -- packages/game-core/src/combat/actions.ts packages/game-core/src/combat/actions-legacy.ts packages/game-core/src/combat/combat-absorb-recovery.ts packages/game-core/src/combat/combat-committed-damage.ts packages/game-core/src/combat/combat-reflect.ts packages/game-core/src/combat/combat-authoring-validation.ts packages/game-core/src/combat/combat-effect-state.ts docs/COMBAT.md
-          git commit -m 'feat(combat): resolve bounded Reflect before terminal outcomes' -m 'Test-first 50-case Reflect contract: 40 classified behavioral assertions failed on 12fdd410 while all 74 existing core suites passed. Preserve direct damage math, legacy callers, independent Absorb pools and original damage history; reuse K3 trigger guarding and established defeat cleanup. No publication or deployment.'
           git diff --exit-code
-          git push origin HEAD:refs/heads/agent/reflect-green-result-20260915
-          printf 'REFLECT_GREEN_SHA=%s\nREFLECT_GREEN_TREE=%s\n' "$(git rev-parse HEAD)" "$(git rev-parse HEAD^{tree})"
+          test -z "$(git status --porcelain)"
+      - name: Review source and publication boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check c2c41be224d22f532d551506037ac86835452691...HEAD
+          git diff --exit-code c2c41be224d22f532d551506037ac86835452691...HEAD -- apps .github pnpm-lock.yaml packages/game-core/src/combat/status-content.ts packages/game-core/src/combat/stat-driven-combat.ts packages/game-core/src/combat/battle-state.ts packages/game-core/src/combat/combat-effect-provenance.ts
+          test "$(git rev-parse HEAD)" = df825910e89d64f46c22d7d6c2d1b7c69d41b8f5
+          test "$(git rev-parse HEAD^{tree})" = c1b439bc550e06335eb64e1c055706f8c341325c
+          git diff --exit-code
