@@ -174,6 +174,7 @@ export function executeCombatAction(
       action,
       provenanceEvaluation,
       context,
+      content,
     ),
     events: transition.events,
     resolution: {

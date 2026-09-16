@@ -54,6 +54,10 @@ export function skillEffectDescription(effect: CombatEffectDefinition): string {
       return `Grant up to ${effect.amount} Barrier to ${target}.`
     case 'resource-change':
       return `${effect.delta >= 0 ? 'Restore up to' : 'Remove'} ${Math.abs(effect.delta)} MP ${effect.delta >= 0 ? 'to' : 'from'} ${target}.${effect.delta >= 0 ? recoveryTiming(effect.ticks) : ''}`
+    case 'copy-statuses':
+      return effect.mode === 'amplify'
+        ? 'Copy eligible positive active statuses from the selected unit onto yourself. The selected unit keeps its statuses; copied stacks respect caps and remaining durations are not restarted.'
+        : 'Copy eligible negative active statuses from yourself onto the selected unit. You keep the original statuses; copied stacks respect caps and remaining durations are not restarted.'
     case 'remove-status':
       return `Remove ${effect.statusIds.map((id) => combatStatusDetails(id).name).join(', ')} from ${target}.`
     case 'apply-status': {

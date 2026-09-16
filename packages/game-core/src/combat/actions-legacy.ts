@@ -1,4 +1,10 @@
 import {
+  applyCombatStatusCopies,
+  planCombatStatusCopies,
+  validateCombatStatusCopyAction,
+  type CombatStatusCopyEffect,
+} from './combat-status-copy'
+import {
   assertValidCombatAccuracyStatusState,
   collectCombatStatusIdentityIssues,
   compareCombatStatusInstances,
@@ -138,6 +144,7 @@ export interface FacingDamageModifiers {
 }
 
 export type CombatEffectDefinition =
+  | CombatStatusCopyEffect
   | {
       type: 'damage'
       recipient: CombatEffectRecipient
@@ -669,6 +676,20 @@ export function evaluateCombatAction(
             (effect.type === 'damage' && effect.element !== undefined),
         ),
     )
+  }
+
+  const copyEffect = action.effects[0]
+  if (issues.length === 0 && copyEffect?.type === 'copy-statuses' && target.combatantId) {
+    if (
+      target.combatantId === actorId ||
+      planCombatStatusCopies(state, actorId, target.combatantId, copyEffect, content).copies
+        .length === 0
+    ) {
+      issues.push({
+        code: 'requirement-not-met',
+        message: 'Status copying requires eligible active statuses on a different combatant.',
+      })
+    }
   }
 
   let projectedEffects: CombatEffectProjection[] = []
@@ -1515,6 +1536,20 @@ function resolveActionEffects(
     )) {
       // Engine-owned target roll gates every unit effect, not just damage packets.
       if (missedCombatantIds?.has(recipientId)) continue
+      if (effect.type === 'copy-statuses') {
+        const copied = applyCombatStatusCopies(
+          nextState,
+          actorId,
+          recipientId,
+          action.id,
+          effect,
+          content,
+        )
+        nextState = copied.state
+        events.push(...copied.events)
+        projections.push(...copied.projections)
+        continue
+      }
       const before = nextState
       const applied = applyEffect(
         nextState,
@@ -1625,7 +1660,7 @@ function applyEffect(
   actorId: string,
   recipientId: string,
   actionId: string,
-  effect: Exclude<CombatEffectDefinition, { type: 'create-terrain' }>,
+  effect: Exclude<CombatEffectDefinition, { type: 'create-terrain' | 'copy-statuses' }>,
   content: CombatContentCatalog,
   stormRecipients: Set<string>,
 ): CombatResolutionTransition {
@@ -2377,6 +2412,7 @@ function validateCombatActionDefinition(
   action: CombatActionDefinition,
   content?: CombatContentCatalog,
 ): void {
+  validateCombatStatusCopyAction(action)
   validateGameplayActionMetadata(action)
   collectRequiredIdentity(action.id, 'action id')
   assertPositiveSafeInteger(action.version, 'action version')
@@ -2474,6 +2510,7 @@ function validateCombatActionDefinition(
         'bleed',
         'burn',
         'barrier-change',
+        'copy-statuses',
       ],
       'effect type',
     )

@@ -533,3 +533,31 @@ This prerequisite extends identity construction, saved-state validation and trig
 compatibility only. It does not implement or publish Amplify/Curse commands, choose copyable
 effects, transfer durations/stacks/counters, or change any live combat resolution. Those
 mechanics and their legality/forecast/AI support remain separate implementation gates.
+
+## Amplify/Curse active-status copying (staged single-unit kernel slice)
+
+The `copy-statuses` operation now supports pure, single-unit Amplify and Curse commands.
+Amplify copies eligible positive status rows from the selected unit to the caster. Curse copies
+eligible negative status rows from the caster to the selected unit. Originals are not removed.
+Eligibility requires explicit copy permission and matching polarity; system/self-cost states and
+unclassified or excluded effects cannot become copy targets merely through names or display tags.
+Existing range, team, visibility, living-target, resource and per-target accuracy checks still apply.
+Self-copy and an empty eligible donor are illegal before spending anything. A missed hostile copy
+still spends its ordinary costs but neither copies nor reattributes a status. Automatic Hit and
+preview RNG purity are unchanged.
+
+The receiving status uses the pinned definition, copied remaining duration, and bounded stacks.
+An existing receiver status combines stacks up to its cap and retains the longer of its current
+and incoming remaining duration; no copy refills the definition's full timer. Source-scoped Marks
+rebind to the Curse caster and preserve other receiver sources. Donor Marks that become one
+relationship after rebinding are deduplicated, taking the longest remaining duration and stable
+source order for ties. Copied/inherited K3 lineage identifies the selected donor and prior receiver
+instance. Missing historical lineage remains absent. Distinct copies reuse the merged tuple-based
+`copyOrdinal` identity; no alternate identity format is introduced.
+
+This slice enumerates ordinary status rows only. Typed Poison/Burn/Bleed counters, ongoing recovery,
+Barrier pools, terrain, resources, build state and temporary Skills are not copied here. Mixed
+operation packages, area copies and the old Basic Attack path are rejected rather than partially
+executed. The mature-Skill boundary blocks this staged operation from publication/repeat adapters
+with `effects.status-copy-staged` until the remaining mechanics, repeat-use, player forecasts and
+AI gates are implemented. No live catalog or published Skill is changed. K4 remains incomplete.
