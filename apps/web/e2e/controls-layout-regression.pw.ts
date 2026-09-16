@@ -48,7 +48,7 @@ test('Controls keeps all bindings reachable inside a dark desktop workspace', as
 
   const metrics = await page.evaluate(() => {
     const root = document.querySelector<HTMLElement>('[data-character-concept="controls"]')!
-    const outer = root.closest('[data-av-surface]') as HTMLElement
+    const outer = root.parentElement!.closest('[data-av-surface]') as HTMLElement
     const grid = document.querySelector('[data-testid="keybind-inspect"]')!.parentElement!
     const actions = Array.from(root.querySelectorAll('button')).find((button) =>
       button.textContent?.includes('Reset defaults'),
@@ -63,7 +63,7 @@ test('Controls keeps all bindings reachable inside a dark desktop workspace', as
       outerSurface: outer.dataset.avSurface ?? null,
       background: getComputedStyle(root).backgroundColor,
       outerBackground: getComputedStyle(outer).backgroundColor,
-      headingColor: getComputedStyle(root.closest('[data-av-surface]')!.querySelector('h1')!).color,
+      headingColor: getComputedStyle(outer.querySelector('h1')!).color,
       gridOverflowY: getComputedStyle(grid).overflowY,
       gridClientHeight: grid.clientHeight,
       gridScrollHeight: grid.scrollHeight,
@@ -143,7 +143,7 @@ test('Controls stays a natural single-column scroll on phone', async ({ page }, 
 
   const metrics = await page.evaluate(() => {
     const root = document.querySelector<HTMLElement>('[data-character-concept="controls"]')!
-    const outer = root.closest('[data-av-surface]') as HTMLElement
+    const outer = root.parentElement!.closest('[data-av-surface]') as HTMLElement
     const grid = document.querySelector('[data-testid="keybind-inspect"]')!.parentElement!
     return {
       surface: root.dataset.avSurface ?? null,
