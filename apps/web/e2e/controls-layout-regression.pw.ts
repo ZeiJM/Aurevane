@@ -34,7 +34,6 @@ test('Controls keeps all bindings reachable inside a dark desktop workspace', as
 
   const concept = page.locator('[data-character-concept="controls"]')
   const heading = page.getByRole('heading', { name: 'Controls & Keybinds' })
-  const outerSurface = heading.locator('xpath=ancestor::*[@data-av-surface][1]')
   const rows = page.locator('[data-testid^="keybind-"]')
   const list = page.getByTestId('keybind-inspect').locator('..')
   const reset = page.getByRole('button', { name: 'Reset defaults' })
@@ -51,9 +50,9 @@ test('Controls keeps all bindings reachable inside a dark desktop workspace', as
     const root = document.querySelector<HTMLElement>('[data-character-concept="controls"]')!
     const outer = root.closest('[data-av-surface]') as HTMLElement
     const grid = document.querySelector('[data-testid="keybind-inspect"]')!.parentElement!
-    const actions = Array.from(root.querySelectorAll('button'))
-      .find((button) => button.textContent?.includes('Reset defaults'))!
-      .parentElement!
+    const actions = Array.from(root.querySelectorAll('button')).find((button) =>
+      button.textContent?.includes('Reset defaults'),
+    )!.parentElement!
     const footer = document
       .querySelector('[data-testid="authenticated-shell"] > footer')!
       .getBoundingClientRect()
@@ -81,18 +80,29 @@ test('Controls keeps all bindings reachable inside a dark desktop workspace', as
   expect.soft(metrics.outerSurface, 'outer Controls workspace uses the dark surface').toBe('ink')
   expect.soft(maxRgbChannel(metrics.background), 'Controls panel stays dark').toBeLessThan(90)
   expect.soft(maxRgbChannel(metrics.outerBackground), 'outer workspace stays dark').toBeLessThan(90)
-  expect.soft(maxRgbChannel(metrics.headingColor), 'Controls heading remains readable').toBeGreaterThanOrEqual(160)
+  expect
+    .soft(maxRgbChannel(metrics.headingColor), 'Controls heading remains readable')
+    .toBeGreaterThanOrEqual(160)
   expect.soft(['auto', 'scroll']).toContain(metrics.gridOverflowY)
   expect
-    .soft(metrics.gridScrollHeight - metrics.gridClientHeight, 'desktop binding library scrolls internally')
+    .soft(
+      metrics.gridScrollHeight - metrics.gridClientHeight,
+      'desktop binding library scrolls internally',
+    )
     .toBeGreaterThan(24)
-  expect.soft(metrics.gridBottom, 'binding library ends before actions').toBeLessThanOrEqual(metrics.actionsTop + 1)
-  expect.soft(metrics.actionsBottom, 'Controls actions stay above footer').toBeLessThanOrEqual(metrics.footerTop + 1)
+  expect
+    .soft(metrics.gridBottom, 'binding library ends before actions')
+    .toBeLessThanOrEqual(metrics.actionsTop + 1)
+  expect
+    .soft(metrics.actionsBottom, 'Controls actions stay above footer')
+    .toBeLessThanOrEqual(metrics.footerTop + 1)
 
   const lastBinding = page.getByTestId('keybind-combatLog')
   await lastBinding.scrollIntoViewIfNeeded()
   await expect(lastBinding).toBeInViewport({ ratio: 1 })
-  expect.soft(await list.evaluate((element) => element.scrollTop), 'last binding uses list scroll').toBeGreaterThan(0)
+  expect
+    .soft(await list.evaluate((element) => element.scrollTop), 'last binding uses list scroll')
+    .toBeGreaterThan(0)
 
   const inspectChange = page.getByRole('button', { name: 'Change Inspect keybind' })
   await inspectChange.scrollIntoViewIfNeeded()
@@ -125,8 +135,6 @@ test('Controls stays a natural single-column scroll on phone', async ({ page }, 
   await page.goto('/game/settings/controls')
 
   const concept = page.locator('[data-character-concept="controls"]')
-  const heading = page.getByRole('heading', { name: 'Controls & Keybinds' })
-  const outerSurface = heading.locator('xpath=ancestor::*[@data-av-surface][1]')
   const rows = page.locator('[data-testid^="keybind-"]')
   const list = page.getByTestId('keybind-inspect').locator('..')
   await expect(concept).toBeVisible()
@@ -153,16 +161,23 @@ test('Controls stays a natural single-column scroll on phone', async ({ page }, 
   expect.soft(metrics.surface, 'phone Controls uses the dark surface token contract').toBe('ink')
   expect.soft(metrics.outerSurface, 'phone outer workspace uses the dark surface').toBe('ink')
   expect.soft(maxRgbChannel(metrics.background), 'phone Controls panel stays dark').toBeLessThan(90)
-  expect.soft(maxRgbChannel(metrics.outerBackground), 'phone outer workspace stays dark').toBeLessThan(90)
+  expect
+    .soft(maxRgbChannel(metrics.outerBackground), 'phone outer workspace stays dark')
+    .toBeLessThan(90)
   expect.soft(metrics.gridOverflowY, 'phone binding list uses natural page scroll').not.toBe('auto')
   expect
-    .soft(metrics.gridScrollHeight - metrics.gridClientHeight, 'phone does not trap bindings internally')
+    .soft(
+      metrics.gridScrollHeight - metrics.gridClientHeight,
+      'phone does not trap bindings internally',
+    )
     .toBeLessThanOrEqual(1)
 
   const lastBinding = page.getByTestId('keybind-combatLog')
   await lastBinding.scrollIntoViewIfNeeded()
   await expect(lastBinding).toBeInViewport({ ratio: 1 })
-  expect.soft(await list.evaluate((element) => element.scrollTop), 'phone list itself does not scroll').toBe(0)
+  expect
+    .soft(await list.evaluate((element) => element.scrollTop), 'phone list itself does not scroll')
+    .toBe(0)
 
   const reset = page.getByRole('button', { name: 'Reset defaults' })
   const save = page.getByRole('button', { name: 'Save Controls' })
@@ -171,7 +186,7 @@ test('Controls stays a natural single-column scroll on phone', async ({ page }, 
   await reset.click({ trial: true })
   await save.scrollIntoViewIfNeeded()
   await expect(save).toBeInViewport({ ratio: 1 })
-  await save.click({ trial: true })
+  await expect(save).toBeDisabled()
 
   if (process.env.LAYOUT_REVIEW_OUTPUT) {
     await mkdir(process.env.LAYOUT_REVIEW_OUTPUT, { recursive: true })
