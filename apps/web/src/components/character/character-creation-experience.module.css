@@ -592,15 +592,44 @@
 
 @media (min-width: 981px) {
   .identityWorkspace {
-    grid-template-columns: minmax(0, 1.45fr) minmax(18rem, 1fr);
+    grid-template-columns: minmax(0, 0.95fr) minmax(18rem, 1fr);
   }
 
   .portraitGrid {
-    max-height: min(28rem, 52dvh);
+    max-height: min(24rem, 38dvh);
   }
 
   .previewFrame {
-    width: min(100%, 25rem);
+    width: min(100%, clamp(17rem, 33dvh, 22rem));
+  }
+}
+
+@media (min-width: 981px) and (max-height: 800px) {
+  .identityWorkspace {
+    grid-template-columns: minmax(0, 0.62fr) minmax(18rem, 1fr);
+  }
+
+  .portraitGrid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    max-height: 11rem;
+  }
+
+  .portraitPreview {
+    grid-template-columns: minmax(0, 12rem) minmax(0, 1fr);
+    align-items: center;
+    justify-items: stretch;
+  }
+
+  .previewLabel {
+    grid-column: 1 / -1;
+  }
+
+  .previewFrame {
+    width: 100%;
+  }
+
+  .previewCopy {
+    text-align: left;
   }
 }
 
