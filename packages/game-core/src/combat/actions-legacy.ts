@@ -749,6 +749,9 @@ export function executeCombatAction(
   action: CombatActionDefinition,
   selection: CombatTargetSelection,
   content: CombatContentCatalog,
+  resolveCommittedReactions?: (
+    transition: CombatResolutionTransition,
+  ) => CombatResolutionTransition,
 ): CombatResolutionTransition {
   const evaluation = evaluateCombatAction(state, action, selection, content)
   if (!evaluation.legal || !evaluation.actorId) {
@@ -763,7 +766,7 @@ export function executeCombatAction(
   const actorId = evaluation.actorId
   const burnBacklashApplies = shouldApplyCurrentBurnBacklash(state, actorId, action)
   let nextState = state
-  const events: CombatResolutionEvent[] = []
+  let events: CombatResolutionEvent[] = []
 
   if (action.cost.spendsAction) {
     const spent = spendAction(nextState.tactical.battle)
@@ -813,6 +816,14 @@ export function executeCombatAction(
     const backlash = applyCurrentBurnBacklash(nextState, actorId)
     nextState = backlash.state
     events.push(...backlash.events)
+  }
+
+  // Engine-owned reaction seam: committed effects first, terminal verdict last.
+  // Omitted by historical four-argument callers; never populated by authored scripts.
+  if (resolveCommittedReactions) {
+    const reacted = resolveCommittedReactions({ state: nextState, events })
+    nextState = reacted.state
+    events = [...reacted.events]
   }
 
   const completion = completeBattleIfResolved(nextState)

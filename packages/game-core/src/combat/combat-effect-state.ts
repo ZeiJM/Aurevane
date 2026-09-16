@@ -15,6 +15,7 @@ declare module './actions' {
     effectCategories?: readonly CombatEffectCategory[]
     absorbHpBasisPoints?: number
     absorbMpBasisPoints?: number
+    reflectBasisPoints?: number
   }
 }
 

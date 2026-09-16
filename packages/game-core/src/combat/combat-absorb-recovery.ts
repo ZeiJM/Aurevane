@@ -1,3 +1,4 @@
+import { collectCommittedHostileCommandDamage } from './combat-committed-damage'
 import type {
   CombatContentCatalog,
   CombatEncounterState,
@@ -19,34 +20,13 @@ export function applyCommittedAbsorbRecovery(
 ): CombatResolutionTransition {
   const battle = state.tactical.battle
   const combatants = new Map(battle.combatants.map((unit) => [unit.id, unit]))
-  const source = combatants.get(command.sourceCombatantId)
-  if (!source) return { state, events }
-
-  const damageByTarget = new Map<string, number>()
-  for (const event of events) {
-    if (
-      event.event !== 'damage_applied' ||
-      event.amount <= 0 ||
-      event.sourceCombatantId !== source.id ||
-      event.actionId !== command.actionId
-    ) {
-      continue
-    }
-    const target = combatants.get(event.targetCombatantId)
-    if (!target || target.teamId === source.teamId || target.hp <= 0) continue
-
-    const total = (damageByTarget.get(target.id) ?? 0) + event.amount
-    if (!Number.isSafeInteger(total)) {
-      throw new RangeError('Absorb committed damage must remain a safe integer.')
-    }
-    damageByTarget.set(target.id, total)
-  }
+  const damageByTarget = collectCommittedHostileCommandDamage(state, events, command)
 
   const recoveredPools = new Map<string, { hp: number; mp: number }>()
   const recoveryEvents: CombatResolutionEvent[] = []
   for (const [targetId, damage] of damageByTarget) {
     const target = combatants.get(targetId)
-    if (!target) continue
+    if (!target || target.hp <= 0) continue
     const rates = activeAbsorbBasisPoints(state, content, targetId)
     // Both resources use original HP damage, never the net loss after healing.
     const hpRecovery = recoveryAmount(damage, rates.hp, target.maxHp - target.hp)
