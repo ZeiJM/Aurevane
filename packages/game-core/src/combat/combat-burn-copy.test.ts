@@ -43,7 +43,6 @@ const BURN_REMOVAL_STATUS: CombatStatusDefinition = {
   durationOwnerTurnStarts: 1,
   damageTakenMultiplierBasisPoints: 10_000,
 }
-const DEFAULT_COPY_POLICY = Symbol('default-burn-copy-policy')
 
 function world(seed = 103): CombatEncounterState {
   const ids = ['actor', 'target', 'other']
@@ -151,12 +150,13 @@ function amplifyAction(): CombatActionDefinition {
 function applyBurn(
   state: CombatEncounterState,
   targetId: string,
-  copyable: unknown = DEFAULT_COPY_POLICY,
+  copyable?: unknown,
   actionId = 'test.apply-burn',
 ): CombatEncounterState {
+  const authoredCopyable = arguments.length >= 3 ? copyable : true
   return executeCombatAction(
     state,
-    burnAction(copyable === DEFAULT_COPY_POLICY ? true : copyable, actionId),
+    burnAction(authoredCopyable, actionId),
     { kind: 'unit', combatantId: targetId },
     CONTENT,
   ).state
@@ -183,10 +183,11 @@ function burn(
   state: CombatEncounterState,
   targetId = 'actor',
   stage = 0,
-  copyable: unknown = DEFAULT_COPY_POLICY,
+  copyable?: unknown,
   actionId = 'test.apply-burn',
 ): CombatEncounterState {
-  return withStage(applyBurn(state, targetId, copyable, actionId), targetId, stage)
+  const authoredCopyable = arguments.length >= 4 ? copyable : true
+  return withStage(applyBurn(state, targetId, authoredCopyable, actionId), targetId, stage)
 }
 
 function instance(state: CombatEncounterState, targetId = 'actor') {
