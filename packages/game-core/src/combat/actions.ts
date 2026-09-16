@@ -1,3 +1,8 @@
+import {
+  materializeVengeanceDamage,
+  type CombatVengeanceDefinition,
+  type CombatVengeanceBasis,
+} from './combat-vengeance'
 import { applyCommittedReflect } from './combat-reflect'
 import type { CombatDamageScaling } from './damage-scaling'
 import { calculateScaledRawDamage, validateCombatDamageScaling } from './damage-scaling'
@@ -17,7 +22,7 @@ type LegacyDamageEffect = Extract<legacy.CombatEffectDefinition, { type: 'damage
 
 export type CombatEffectDefinition =
   | Exclude<legacy.CombatEffectDefinition, { type: 'damage' }>
-  | (LegacyDamageEffect & { scaling?: CombatDamageScaling })
+  | (LegacyDamageEffect & { scaling?: CombatDamageScaling; vengeance?: CombatVengeanceDefinition })
 
 export interface CombatActionDefinition extends Omit<legacy.CombatActionDefinition, 'effects'> {
   effects: readonly CombatEffectDefinition[]
@@ -33,6 +38,10 @@ export interface CombatEncounterState extends Omit<legacy.CombatEncounterState, 
       mysticPower?: number
     }[]
   }
+}
+
+export interface CombatActionEvaluation extends legacy.CombatActionEvaluation {
+  vengeanceBasis?: readonly CombatVengeanceBasis[]
 }
 
 export interface CombatResolutionContext {
@@ -59,13 +68,17 @@ export function evaluateCombatAction(
   action: CombatActionDefinition,
   selection: legacy.CombatTargetSelection,
   content: legacy.CombatContentCatalog,
-): legacy.CombatActionEvaluation {
-  return legacy.evaluateCombatAction(
+): CombatActionEvaluation {
+  const materialized = materializeVengeanceDamage(state, action)
+  const evaluation = legacy.evaluateCombatAction(
     state,
-    materializeStatScaledDamage(state, action),
+    materializeStatScaledDamage(state, materialized.action),
     selection,
     content,
   )
+  return evaluation.legal && materialized.basis.length > 0
+    ? { ...evaluation, vengeanceBasis: materialized.basis }
+    : evaluation
 }
 
 export function executeCombatAction(
@@ -77,7 +90,10 @@ export function executeCombatAction(
 ): CombatResolutionTransition {
   const round = state.tactical.battle.round
   const actorId = state.tactical.battle.currentTurn?.combatantId ?? null
-  const materializedAction = materializeStatScaledDamage(state, action)
+  const materializedAction = materializeStatScaledDamage(
+    state,
+    materializeVengeanceDamage(state, action).action,
+  )
   const evaluation = context
     ? legacy.evaluateCombatAction(state, materializedAction, selection, content)
     : null

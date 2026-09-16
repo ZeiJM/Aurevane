@@ -1,3 +1,4 @@
+import { validateVengeanceActionDefinition } from './combat-vengeance'
 import { validateBarrierEffect } from './combat-barrier'
 import { validateRecoveryEffect } from './combat-recovery'
 import { validateCurrentBleedEffect } from './combat-dots'
@@ -25,6 +26,7 @@ export function validateCombatActionDefinition(
   action: CombatActionDefinition,
   content?: CombatContentCatalog,
 ): void {
+  validateVengeanceActionDefinition(action)
   validateGameplayActionMetadata(action)
   requiredIdentity(action.id, 'action id')
   positiveSafeInteger(action.version, 'action version')
