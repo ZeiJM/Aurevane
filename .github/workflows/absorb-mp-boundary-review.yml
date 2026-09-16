@@ -1,0 +1,185 @@
+name: Absorb MP boundary review
+
+on:
+  push:
+    branches:
+      - review/absorb-mp-boundaries-20260915
+
+permissions:
+  contents: read
+
+jobs:
+  boundary-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: a681375b4f3fdd5b1a1de2913e25a220c1831383
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install locked dependencies
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+          pnpm install --frozen-lockfile
+      - name: Verify exact candidate and independent recovery boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = a681375b4f3fdd5b1a1de2913e25a220c1831383
+          test_file=packages/game-core/src/combat/combat-absorb-review-only.test.ts
+          test ! -e "$test_file"
+          trap 'rm -f "$test_file"' EXIT
+          cat > "$test_file" <<'TEST'
+          import { describe, expect, it } from 'vitest'
+          import {
+            createCombatEncounterState,
+            executeCombatAction,
+            type CombatActionDefinition,
+            type CombatEncounterState,
+            type CombatResolutionEvent,
+            type CombatStatusDefinition,
+          } from './actions'
+          import { createPendingBattle, startBattle } from './battle-state'
+          import { createTacticalBattleState } from './board'
+          import { applyCommittedAbsorbRecovery } from './combat-absorb-recovery'
+
+          const ACTION_ID = 'test.absorb-boundary-hit'
+          const COMMAND = { sourceCombatantId: 'actor', actionId: ACTION_ID }
+          function status(hpRate = 2_500, mpRate = 2_500): CombatStatusDefinition {
+            return {
+              id: 'test.absorb-both-pools', version: 1, maximumStacks: 3,
+              durationOwnerTurnStarts: 2, damageTakenMultiplierBasisPoints: 10_000,
+              polarity: 'positive', reactionClass: 'reactive',
+              absorbHpBasisPoints: hpRate, absorbMpBasisPoints: mpRate,
+            }
+          }
+          function fixture(definition: CombatStatusDefinition, hp = 100, mp = 0, stacks = 1): CombatEncounterState {
+            const ids = ['actor', 'target', 'other']
+            const battle = startBattle(createPendingBattle({
+              battleId: 'battle:absorb-boundary-review', rulesVersion: 2, contentVersion: 2, rngSeed: 47,
+              combatants: ids.map((id, index) => ({
+                id, teamId: id === 'target' ? 'enemies' : 'players', initiative: 20 - index,
+                baseMovementBudget: 3, hp: id === 'target' ? hp : 100, maxHp: 100,
+                mp: id === 'target' ? mp : 10, maxMp: 100,
+              })),
+            })).state
+            return createCombatEncounterState(createTacticalBattleState({
+              battle, width: 3, height: 1,
+              terrains: [{ id: 'open', traversalCost: 1 }],
+              tiles: ids.map((_, x) => ({ position: { x, y: 0 }, elevation: 0, terrainId: 'open' })),
+              movementProfiles: [{ id: 'ground', maxElevationStep: 0, terrainCostOverrides: [] }],
+              placements: ids.map((combatantId, x) => ({ combatantId, position: { x, y: 0 }, facing: 'east', movementProfileId: 'ground' })),
+            }), [{ combatantId: 'target', statuses: [{
+              statusId: definition.id, statusVersion: definition.version, stacks,
+              remainingOwnerTurnStarts: 2, sourceCombatantId: 'other',
+            }] }])
+          }
+          function damage(amount = 20, actionId = ACTION_ID, sourceCombatantId = 'actor'): CombatResolutionEvent {
+            return { event: 'damage_applied', actionId, sourceCombatantId,
+              targetCombatantId: 'target', amount, hpBefore: 100, hpAfter: 100 - amount }
+          }
+          function target(state: CombatEncounterState) {
+            const unit = state.tactical.battle.combatants.find((candidate) => candidate.id === 'target')
+            if (!unit) throw new Error('Missing fixture target')
+            return unit
+          }
+          function cast(definition: CombatStatusDefinition, mp = 0, heal = 0) {
+            const action: CombatActionDefinition = {
+              id: ACTION_ID, version: 1, sourceType: 'test', tags: [],
+              target: { kind: 'unit', teamPolicy: 'enemy', shape: { kind: 'single' },
+                minimumRange: 1, maximumRange: 1, requiresLineOfSight: false,
+                maximumElevationDifference: 0, friendlyFire: 'enemies-only' },
+              cost: { spendsAction: false, mp: 0 }, requirements: [],
+              effects: [{ type: 'damage', recipient: 'primary-unit', amount: 20 },
+                { type: 'healing', recipient: 'primary-unit', amount: heal }],
+            }
+            return executeCombatAction(fixture(definition, 100, mp), action,
+              { kind: 'unit', combatantId: 'target' }, { statuses: [definition] })
+          }
+          describe('Independent Absorb review: actual candidate code', () => {
+            it('allows one status to restore both pools at independent 100% ceilings', () => {
+              const result = cast(status(10_000, 10_000))
+              expect(target(result.state)).toMatchObject({ hp: 100, mp: 20 })
+              expect(result.state.effectState?.damageHistory).toEqual([{ combatantId: 'target', round: 1, amount: 20 }])
+            })
+            it('does not let full MP suppress HP recovery', () => {
+              const result = cast(status(), 100)
+              expect(target(result.state)).toMatchObject({ hp: 85, mp: 100 })
+              expect(result.events.filter((event) => event.event === 'resource_changed')).toEqual([])
+            })
+            it('does not let fully healed HP suppress MP recovery from the same status', () => {
+              const result = cast(status(), 0, 20)
+              expect(target(result.state)).toMatchObject({ hp: 100, mp: 5 })
+              expect(result.events.filter((event) => event.event === 'healing_applied' && event.actionId === 'status.absorb-hp.current.v1')).toEqual([])
+            })
+            it('caps stacks separately for the two pools', () => {
+              const definition = status(6_000, 2_500)
+              const state = fixture(definition, 80, 0, 2)
+              const result = applyCommittedAbsorbRecovery(state, [damage()], { statuses: [definition] }, COMMAND)
+              expect(target(result.state)).toMatchObject({ hp: 100, mp: 10 })
+            })
+            it.each(['status.reflect.current.v1', 'status.burn.backlash.current.v1', 'status.system.damage'])('excludes non-command event action %s', (actionId) => {
+              const definition = status()
+              const state = fixture(definition, 80)
+              const events = [damage(20, actionId)]
+              const result = applyCommittedAbsorbRecovery(state, events, { statuses: [definition] }, COMMAND)
+              expect(result.state).toBe(state)
+              expect(result.events).toBe(events)
+            })
+            it('does not credit a different hostile source even if its action ID matches', () => {
+              const definition = status()
+              const state = fixture(definition, 80)
+              const result = applyCommittedAbsorbRecovery(state, [damage(20, ACTION_ID, 'other')], { statuses: [definition] }, COMMAND)
+              expect(result.state).toBe(state)
+            })
+            it('does not feed its own recovery-only output into further recovery', () => {
+              const definition = status()
+              const state = fixture(definition, 80)
+              const original = [damage()]
+              const first = applyCommittedAbsorbRecovery(state, original, { statuses: [definition] }, COMMAND)
+              expect(target(first.state)).toMatchObject({ hp: 85, mp: 5 })
+              const emitted = first.events.slice(original.length)
+              expect(emitted).toHaveLength(2)
+              const second = applyCommittedAbsorbRecovery(first.state, emitted, { statuses: [definition] }, COMMAND)
+              expect(second.state).toBe(first.state)
+              expect(second.events).toBe(emitted)
+            })
+            const vectors = [1, 10, 999, 2_500, 6_000, 10_000].flatMap((rate) =>
+              [1, 2, 3, 7, 20, 99].flatMap((amount) =>
+                [0, 1, 2, 5, 20, 100].map((capacity) => ({ rate, amount, capacity }))))
+            it.each(vectors)('matches bounded integer recovery for %j', ({ rate, amount, capacity }) => {
+              const definition = status(rate, rate)
+              const state = fixture(definition, 100 - amount, 100 - capacity)
+              const before = JSON.stringify(state)
+              const events = [damage(amount)]
+              const eventSnapshot = JSON.stringify(events)
+              const result = applyCommittedAbsorbRecovery(state, events, { statuses: [definition] }, COMMAND)
+              const expected = Math.max(1, Math.floor(amount * rate / 10_000))
+              expect(target(result.state)).toMatchObject({ hp: 100 - amount + expected,
+                mp: 100 - capacity + Math.min(capacity, expected) })
+              expect(JSON.stringify(state)).toBe(before)
+              expect(JSON.stringify(events)).toBe(eventSnapshot)
+            })
+          })
+          TEST
+          pnpm --filter @aurevane/game-core typecheck
+          pnpm --filter @aurevane/game-core exec vitest run src/combat/combat-absorb-review-only.test.ts src/combat/combat-absorb-mp.test.ts src/combat/combat-absorb-hp.test.ts src/combat/combat-absorb-hp-command.test.ts src/combat/combat-barrier.test.ts src/combat/combat-damage-history-runtime.test.ts src/combat/combat-resolution-provenance.test.ts src/combat/combat-burn-backlash.test.ts src/combat/combat-dot-rework.test.ts
+          rm "$test_file"
+          trap - EXIT
+      - name: Verify unchanged source and restricted feature scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check 5043b840c4524dc8b4a81979c477caf42a626309...HEAD
+          git diff --exit-code 5043b840c4524dc8b4a81979c477caf42a626309...HEAD -- packages/game-core/src/combat/actions-legacy.ts apps .github
+          git diff --exit-code
+          test -z "$(git status --porcelain)"
+          if git grep -n -e applyCommittedAbsorbHp -e "./combat-absorb-hp'" -- packages apps; then
+            echo 'Unexpected obsolete helper caller remains'
+            exit 1
+          fi
