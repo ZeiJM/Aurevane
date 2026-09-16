@@ -46,8 +46,18 @@ describe('full layout composition v3', () => {
       const stylesheetSource = source(stylesheet)
 
       for (const marker of markers) expect(componentSource).toContain(marker)
-      expect(stylesheetSource).toContain('@media (max-width: 760px)')
-      expect(stylesheetSource).toContain('composition-v3')
+      if (component.endsWith('/character-select-shell.tsx')) {
+        // Character entry has replaced the historical composition-v3 side banner.
+        // Its owning module must retain three desktop slots and a deliberate narrow stack.
+        expect(stylesheetSource).toContain(".main[data-roster-stage='true']")
+        expect(stylesheetSource).toContain('grid-template-columns: repeat(3, minmax(0, 1fr))')
+        const narrowRules = stylesheetSource.split('@media (max-width: 900px)')[1]
+        expect(narrowRules).toBeDefined()
+        expect(narrowRules).toMatch(/\.slots\s*\{[^}]*grid-template-columns: minmax\(0, 1fr\)/)
+      } else {
+        expect(stylesheetSource).toContain('@media (max-width: 760px)')
+        expect(stylesheetSource).toContain('composition-v3')
+      }
     },
   )
 

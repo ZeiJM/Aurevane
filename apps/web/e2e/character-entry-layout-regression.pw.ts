@@ -52,7 +52,8 @@ test('approved entry composition preserves the real portrait library and creatio
   // Every registered catalog image must load, including entries initially outside the scrollport.
   for (let index = 0; index < 40; index += 1) {
     const label = portraits.nth(index).locator('..')
-    await label.scrollIntoViewIfNeeded()
+    await expect(label, `portrait ${index + 1} remains visible`).toBeVisible()
+    await label.scrollIntoViewIfNeeded({ timeout: 10_000 })
     await expect
       .poll(() =>
         label.locator('img').evaluate((image: HTMLImageElement) => {
@@ -61,14 +62,14 @@ test('approved entry composition preserves the real portrait library and creatio
       )
       .toBe(true)
   }
-  await portraits.last().check()
+  await portraits.last().locator('..').click()
   await portraits.last().focus()
   await page.keyboard.press('ArrowLeft')
   await expect(portraits.nth(38)).toBeChecked()
   await page.keyboard.press('ArrowRight')
   await expect(portraits.last()).toBeChecked()
   await creation.locator('input[name="presentation"]').first().check()
-  await creation.locator('input[name="appearance"]').last().check()
+  await creation.locator('input[name="appearance"]').last().locator('..').click()
 
   // Local validation must reject an invalid name without submitting authoritative state.
   await page.getByLabel('Character name').fill('123')
@@ -102,6 +103,9 @@ test('approved entry composition preserves the real portrait library and creatio
     await page.evaluate(async () => {
       await document.fonts.ready
       window.scrollTo(0, 0)
+      document.querySelectorAll<HTMLElement>('[data-entry-body]').forEach((body) => {
+        body.scrollTop = 0
+      })
     })
     const metrics = await creation.evaluate((root) => {
       const gallery = root.querySelector('input[name="portrait"]')!.closest('fieldset')!
@@ -133,6 +137,7 @@ test('approved entry composition preserves the real portrait library and creatio
     await capture(page, info, `discipline-${size}`, { step: 'discipline' })
     await page.getByRole('button', { name: 'Review character' }).click()
     await expect(creation.getByText(/pronouns?/i)).toHaveCount(0)
+    await expect(creation.getByText('Portrait', { exact: true })).toBeVisible()
     await capture(page, info, `confirm-${size}`, { step: 'review' })
     await page.getByRole('button', { name: 'Back', exact: true }).click()
     await page.getByRole('button', { name: 'Back', exact: true }).click()
@@ -163,7 +168,9 @@ test('approved entry composition preserves the real portrait library and creatio
     const metrics = await page.locator('[data-roster-stage]').evaluate((root) => {
       const hero = root.querySelector(':scope > header')!.getBoundingClientRect()
       const board = root.querySelector('[data-character-slot-board]')!.getBoundingClientRect()
-      const portrait = root.querySelector('[data-character-slot-board] img')!.getBoundingClientRect()
+      const portrait = root
+        .querySelector('[data-character-slot-board] img')!
+        .getBoundingClientRect()
       return {
         heroBottom: hero.bottom,
         boardTop: board.top,
@@ -174,7 +181,8 @@ test('approved entry composition preserves the real portrait library and creatio
     })
     const size = `${viewport.width}x${viewport.height}`
     await capture(page, info, `roster-${size}`, metrics)
-    expect.soft(metrics.heroBottom, `${size}: heading above roster, not a tall side banner`)
+    expect
+      .soft(metrics.heroBottom, `${size}: heading above roster, not a tall side banner`)
       .toBeLessThanOrEqual(metrics.boardTop + 1)
     expect.soft(metrics.overflowX).toBeLessThanOrEqual(1)
     expect.soft(Math.abs(metrics.portraitWidth - metrics.portraitHeight)).toBeLessThanOrEqual(1)
@@ -182,8 +190,9 @@ test('approved entry composition preserves the real portrait library and creatio
     await page.getByTestId('delete-account-button').click()
     const accountDialog = page.getByRole('dialog', { name: 'Delete your entire AUREVANE account?' })
     await expect(accountDialog).toBeVisible()
-    await expect(accountDialog.getByRole('button', { name: 'Start 24-hour account deletion' }))
-      .toBeDisabled()
+    await expect(
+      accountDialog.getByRole('button', { name: 'Start 24-hour account deletion' }),
+    ).toBeDisabled()
     await accountDialog.getByRole('button', { name: 'Never mind' }).click()
   }
   await page.getByRole('button', { name: 'Delete Character', exact: true }).click()
