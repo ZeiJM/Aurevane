@@ -1,0 +1,62 @@
+name: Vengeance workbench
+on:
+  push:
+    branches: [review/vengeance-workbench-20260915]
+permissions:
+  contents: read
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: a8ca06ce4f886b58304a94d8e4d0536186b7cc1f
+          fetch-depth: 2
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install locked dependencies
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+          pnpm install --frozen-lockfile
+      - name: Verify baseline and inspect integration boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = a8ca06ce4f886b58304a94d8e4d0536186b7cc1f
+          pnpm --filter @aurevane/game-core exec vitest run > /tmp/vengeance-baseline.log 2>&1
+          tail -8 /tmp/vengeance-baseline.log
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          for file in ['AGENTS.md','docs/ENGINEERING_EXECUTION_STANDARD.md','docs/CONCURRENT_AGENT_WORKFLOW.md','docs/ROADMAP_C4_AUDIT_COMBAT_KERNEL_V2.md','docs/ROADMAP.md','docs/PHASE_4_TICKETS.md']:
+              text=Path(file).read_text()
+              print('AUTHORITY',file)
+              if file=='AGENTS.md': print(text[text.index('## 9.'):text.index('## 11.')])
+              elif 'CONCURRENT' in file: print(text[text.index('## 7.'):text.index('## 10.')])
+              elif 'ENGINEERING' in file: print(text[text.index('## 27.'):])
+              else:
+                  for line in text.splitlines():
+                      if re.search(r'Vengeance|P4.K4|P4.K[0-9]|Absorb|Reflect',line,re.I): print(line)
+          root=Path('packages/game-core/src/combat')
+          for name in ['combat-effect-state.ts','actions-legacy.ts']:
+              text=(root/name).read_text()
+              if name=='combat-effect-state.ts': print('SOURCE',name,'\n',text)
+              else:
+                  a=text.index('export interface CombatActionEvaluation')
+                  b=text.index('export ',a+10)
+                  print('EVALUATION TYPE',text[a:b])
+          for path in root.glob('*.ts'):
+              if path.name.endswith('.test.ts'): continue
+              text=path.read_text()
+              if 'coefficientBasisPoints' not in text or path.name in ['actions.ts','damage-scaling.ts']: continue
+              lines=text.splitlines()
+              print('SCALING CALLER',path.name)
+              for i,line in enumerate(lines):
+                  if 'coefficientBasisPoints' in line: print('\n'.join(f'{j+1}: {lines[j]}' for j in range(max(0,i-28),min(len(lines),i+24))))
+          PY
+          git diff --exit-code
+          test -z "$(git status --porcelain)"
