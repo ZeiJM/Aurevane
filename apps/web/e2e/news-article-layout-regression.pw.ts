@@ -82,55 +82,58 @@ test('News article preview uses the approved editorial composition on desktop', 
   }
 })
 
-test('News article preview stays a natural single-column read on mobile', async ({ page }, info) => {
-  test.skip(info.project.name !== 'mobile-chromium', 'Phone News article composition only')
-  await page.setViewportSize({ width: 390, height: 844 })
-  await page.goto('/news/__layout-preview')
+test(
+  'News article preview stays a natural single-column read on mobile',
+  async ({ page }, info) => {
+    test.skip(info.project.name !== 'mobile-chromium', 'Phone News article composition only')
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto('/news/__layout-preview')
 
-  const article = page.getByTestId('news-article')
-  const body = page.getByTestId('news-article-body')
-  const manual = article.getByRole('link', { name: 'Manual' })
-  const rules = article.getByRole('link', { name: 'Rules' })
+    const article = page.getByTestId('news-article')
+    const body = page.getByTestId('news-article-body')
+    const manual = article.getByRole('link', { name: 'Manual' })
+    const rules = article.getByRole('link', { name: 'Rules' })
 
-  await expect(article).toBeVisible()
-  await body.scrollIntoViewIfNeeded()
-  await expect(body).toBeVisible()
-  await manual.scrollIntoViewIfNeeded()
-  await expect(manual).toBeInViewport({ ratio: 0.95 })
-  await expect(rules).toBeVisible()
-  await settle(page)
+    await expect(article).toBeVisible()
+    await body.scrollIntoViewIfNeeded()
+    await expect(body).toBeVisible()
+    await manual.scrollIntoViewIfNeeded()
+    await expect(manual).toBeInViewport({ ratio: 0.95 })
+    await expect(rules).toBeVisible()
+    await settle(page)
 
-  const metrics = await page.evaluate(() => {
-    const articleElement = document.querySelector<HTMLElement>('[data-testid="news-article"]')!
-    const bodyElement = document.querySelector<HTMLElement>('[data-testid="news-article-body"]')!
-    const articleBox = articleElement.getBoundingClientRect()
-    return {
-      overflow: document.documentElement.scrollWidth - innerWidth,
-      pageScroll: document.documentElement.scrollHeight - innerHeight,
-      articleWidth: articleBox.width,
-      bodyOverflowY: getComputedStyle(bodyElement).overflowY,
-    }
-  })
-
-  expect
-    .soft(metrics.overflow, 'phone News article has no horizontal overflow')
-    .toBeLessThanOrEqual(1)
-  expect
-    .soft(metrics.pageScroll, 'phone News article scrolls naturally as a page')
-    .toBeGreaterThan(0)
-  expect
-    .soft(metrics.articleWidth, 'article respects phone viewport width')
-    .toBeLessThanOrEqual(390)
-  expect(['auto', 'scroll']).not.toContain(metrics.bodyOverflowY)
-
-  if (process.env.LAYOUT_REVIEW_OUTPUT) {
-    await mkdir(process.env.LAYOUT_REVIEW_OUTPUT, { recursive: true })
-    await page.screenshot({
-      path: path.join(process.env.LAYOUT_REVIEW_OUTPUT, 'news-article-mobile-390x844.png'),
-      fullPage: true,
+    const metrics = await page.evaluate(() => {
+      const articleElement = document.querySelector<HTMLElement>('[data-testid="news-article"]')!
+      const bodyElement = document.querySelector<HTMLElement>('[data-testid="news-article-body"]')!
+      const articleBox = articleElement.getBoundingClientRect()
+      return {
+        overflow: document.documentElement.scrollWidth - innerWidth,
+        pageScroll: document.documentElement.scrollHeight - innerHeight,
+        articleWidth: articleBox.width,
+        bodyOverflowY: getComputedStyle(bodyElement).overflowY,
+      }
     })
-  }
-})
+
+    expect
+      .soft(metrics.overflow, 'phone News article has no horizontal overflow')
+      .toBeLessThanOrEqual(1)
+    expect
+      .soft(metrics.pageScroll, 'phone News article scrolls naturally as a page')
+      .toBeGreaterThan(0)
+    expect
+      .soft(metrics.articleWidth, 'article respects phone viewport width')
+      .toBeLessThanOrEqual(390)
+    expect(['auto', 'scroll']).not.toContain(metrics.bodyOverflowY)
+
+    if (process.env.LAYOUT_REVIEW_OUTPUT) {
+      await mkdir(process.env.LAYOUT_REVIEW_OUTPUT, { recursive: true })
+      await page.screenshot({
+        path: path.join(process.env.LAYOUT_REVIEW_OUTPUT, 'news-article-mobile-390x844.png'),
+        fullPage: true,
+      })
+    }
+  },
+)
 
 test('unpublished News slugs still return the not-found surface', async ({ page }) => {
   const response = await page.goto('/news/definitely-not-published')
