@@ -1,0 +1,31 @@
+name: Controls format diagnostic
+
+on:
+  push:
+    branches:
+      - agent/controls-keybinds-fidelity
+    paths:
+      - apps/web/e2e/controls-layout-regression.pw.ts
+      - .github/workflows/controls-format-diagnostic.yml
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+          pnpm install --frozen-lockfile
+      - name: Print exact Prettier diff
+        run: |
+          pnpm exec prettier --write apps/web/e2e/controls-layout-regression.pw.ts
+          git diff -- apps/web/e2e/controls-layout-regression.pw.ts
