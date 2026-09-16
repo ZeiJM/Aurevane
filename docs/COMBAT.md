@@ -513,3 +513,23 @@ The published `marked` definition still uses historical source-only damage vulne
 catalog, battle schema, player-facing UI, AI policy, database or deployment is changed here. This is
 kernel support only: full player forecasts, AI expected-value integration and controlled versioned
 content publication remain separate gates. K4 and the wider overhaul remain unfinished.
+
+## Copy-instance provenance foundation (staged; no copying command yet)
+
+A command effect can eventually copy several active effects onto one recipient. Its K3
+provenance therefore accepts optional `copyOrdinal`, a non-negative safe integer identifying
+the copy within that authored effect/recipient. `effectOrdinal` remains the original authored
+operation index. Copy callers must allocate distinct ordinals in deterministic source order.
+
+Omitting `copyOrdinal` preserves the exact existing `effect:<chain>:<action>:<effect>:<target>`
+identity and object shape. Supplying it uses the separate `effect-copy:` namespace followed by
+the JSON tuple `[triggerChainId, actionDefinitionId, effectOrdinal, targetCombatantId,
+copyOrdinal]`. Tuple encoding avoids ambiguity when identifiers contain delimiter characters.
+The constructor and persisted-provenance validator share this identity calculation; malformed
+ordinals and mismatched IDs fail closed. Existing copied/inherited lineage remains explicit.
+Missing historical source provenance is not replaced with an invented source ID.
+
+This prerequisite extends identity construction, saved-state validation and trigger-guard
+compatibility only. It does not implement or publish Amplify/Curse commands, choose copyable
+effects, transfer durations/stacks/counters, or change any live combat resolution. Those
+mechanics and their legality/forecast/AI support remain separate implementation gates.

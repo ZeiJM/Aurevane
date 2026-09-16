@@ -117,6 +117,8 @@ export interface CombatEffectInstanceProvenance {
   action: CombatActionProvenance
   targetCombatantId: CombatantId
   effectOrdinal: number
+  /** Stable zero-based index among copies emitted by this authored effect for this target. */
+  copyOrdinal?: number
   createdRound: number
   createdTurn: number
   copiedFromInstanceId?: CombatEffectInstanceId
@@ -127,6 +129,8 @@ export interface CreateCombatEffectInstanceProvenanceInput {
   action: CombatActionProvenance
   targetCombatantId: string
   effectOrdinal: number
+  /** Stable zero-based index among copies emitted by this authored effect for this target. */
+  copyOrdinal?: number
   createdRound: number
   createdTurn: number
   copiedFromInstanceId?: string
@@ -293,6 +297,20 @@ export function createCombatActionProvenance(
   }
 }
 
+function effectInstanceIdentity(
+  chainId: string,
+  actionId: string,
+  effectOrdinal: number,
+  targetId: string,
+  copyOrdinal?: number,
+): string {
+  if (copyOrdinal === undefined) {
+    return `effect:${chainId}:${actionId}:${effectOrdinal}:${targetId}`
+  }
+  // Separate namespace and tuple encoding preserve legacy IDs without delimiter collisions.
+  return `effect-copy:${JSON.stringify([chainId, actionId, effectOrdinal, targetId, copyOrdinal])}`
+}
+
 export function createCombatEffectInstanceProvenance(
   input: CreateCombatEffectInstanceProvenanceInput,
 ): CombatEffectInstanceProvenance {
@@ -300,8 +318,18 @@ export function createCombatEffectInstanceProvenance(
   const effectOrdinal = nonNegativeSafeInteger(input.effectOrdinal, 'Effect ordinal')
   const createdRound = positiveSafeInteger(input.createdRound, 'Created round')
   const createdTurn = positiveSafeInteger(input.createdTurn, 'Created turn')
+  const copyOrdinal =
+    input.copyOrdinal === undefined
+      ? undefined
+      : nonNegativeSafeInteger(input.copyOrdinal, 'Copy ordinal')
   const instanceId = combatEffectInstanceId(
-    `effect:${input.action.triggerChainId}:${input.action.actionDefinitionId}:${effectOrdinal}:${targetCombatantId}`,
+    effectInstanceIdentity(
+      input.action.triggerChainId,
+      input.action.actionDefinitionId,
+      effectOrdinal,
+      targetCombatantId,
+      copyOrdinal,
+    ),
   )
 
   return {
@@ -309,6 +337,7 @@ export function createCombatEffectInstanceProvenance(
     action: input.action,
     targetCombatantId,
     effectOrdinal,
+    ...(copyOrdinal !== undefined ? { copyOrdinal } : {}),
     createdRound,
     createdTurn,
     ...(input.copiedFromInstanceId !== undefined
@@ -331,6 +360,10 @@ export function validateCombatEffectInstanceProvenance(value: unknown): readonly
   if (targetIssue) issues.push(targetIssue)
   const ordinalIssue = nonNegativeIntegerIssue(input.effectOrdinal, 'effectOrdinal')
   if (ordinalIssue) issues.push(ordinalIssue)
+  if (input.copyOrdinal !== undefined) {
+    const copyIssue = nonNegativeIntegerIssue(input.copyOrdinal, 'copyOrdinal')
+    if (copyIssue) issues.push(copyIssue)
+  }
   const roundIssue = positiveIntegerIssue(input.createdRound, 'createdRound')
   if (roundIssue) issues.push(roundIssue)
   const turnIssue = positiveIntegerIssue(input.createdTurn, 'createdTurn')
@@ -383,7 +416,13 @@ export function validateCombatEffectInstanceProvenance(value: unknown): readonly
     typeof action.triggerChainId === 'string' &&
     typeof action.actionDefinitionId === 'string'
   ) {
-    const expected = `effect:${action.triggerChainId}:${action.actionDefinitionId}:${input.effectOrdinal}:${input.targetCombatantId}`
+    const expected = effectInstanceIdentity(
+      action.triggerChainId,
+      action.actionDefinitionId,
+      input.effectOrdinal,
+      input.targetCombatantId,
+      typeof input.copyOrdinal === 'number' ? input.copyOrdinal : undefined,
+    )
     if (input.instanceId !== expected) {
       issues.push('instanceId must match the deterministic action/effect/target identity.')
     }
