@@ -73,6 +73,19 @@ jobs:
           assert text.count(wrong_old_message) == 1, text.count(wrong_old_message)
           assert text.count(wrong_new_message) == 1, text.count(wrong_new_message)
           text = text.replace(wrong_old_message, actual_old_message).replace(wrong_new_message, actual_new_message)
+          wrong_poison = '\n'.join([
+              '  const poison = donorPoison?.curseCopyable === true',
+              '    ? { donor: donorPoison, previous: currentPoisonInstance(state, receiverId) ?? undefined }',
+              '    : undefined',
+          ])
+          actual_poison = '\n'.join([
+              '  const poison =',
+              '    donorPoison?.curseCopyable === true',
+              '      ? { donor: donorPoison, previous: currentPoisonInstance(state, receiverId) ?? undefined }',
+              '      : undefined',
+          ])
+          assert text.count(wrong_poison) == 2, text.count(wrong_poison)
+          text = text.replace(wrong_poison, actual_poison)
           path.write_text(text)
           PY
           git fetch --depth=4 origin 15cb61ab7f4b308c6c0b93f1dc818522a3869d38
