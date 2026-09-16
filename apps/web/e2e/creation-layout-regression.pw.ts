@@ -43,6 +43,7 @@ test('Creation exposes its forty portraits and preserves the complete authentica
   const decoded = await library.locator('img').evaluateAll(async (images) => {
     return Promise.all(
       images.map(async (image) => {
+        if (!(image instanceof HTMLImageElement)) throw new Error('Expected a portrait image.')
         image.loading = 'eager'
         try {
           await image.decode()
