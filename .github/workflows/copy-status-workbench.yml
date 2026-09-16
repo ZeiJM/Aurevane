@@ -11,25 +11,45 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 0eecf1f5f776b8b3b9151f503ff7396b8715ec07
-          fetch-depth: 1
+          ref: 53e1c8840077efbab5f66789857ac4afc3e3590b
+          fetch-depth: 6
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Locked baseline
+      - name: Locked test-only source and static checks
         run: |
-          test "$(git rev-parse HEAD)" = 0eecf1f5f776b8b3b9151f503ff7396b8715ec07
+          test "$(git rev-parse HEAD)" = 53e1c8840077efbab5f66789857ac4afc3e3590b
           corepack enable
           corepack prepare pnpm@11.17.0 --activate
           pnpm install --frozen-lockfile
           pnpm --filter @aurevane/game-core typecheck
-          pnpm --filter @aurevane/game-core test
-      - name: Inspect existing copy, validation and authored resolution seams
+          pnpm exec eslint packages/game-core/src/combat/combat-status-copy*.test.ts
+          pnpm format:check
+          git diff --exit-code 0eecf1f5f776b8b3b9151f503ff7396b8715ec07 HEAD -- ':!packages/game-core/src/combat/combat-status-copy.test.ts' ':!packages/game-core/src/combat/combat-status-copy-publication.test.ts'
+      - name: Classify behavioral RED across the complete core suite
+        shell: bash
         run: |
-          git grep -n -i -E 'amplify|curse|copy-effect|copy-status' -- packages/game-core/src docs/superpowers/plans || true
-          sed -n '1330,1610p' packages/game-core/src/combat/actions-legacy.ts
-          sed -n '2350,2470p' packages/game-core/src/combat/actions-legacy.ts
-          sed -n '310,410p' packages/game-core/src/combat/combat-kernel-types.ts
-          git grep -n -E 'scale.*Effect|effect\.type|assertNever' -- packages/game-core/src/combat/technique-repeat-use.ts packages/game-core/src/combat/combat-effect-categories.ts || true
+          set +e
+          pnpm --filter @aurevane/game-core exec vitest run --reporter=json --outputFile=/tmp/red.json > /tmp/red-output.txt 2>&1
+          code=$?
+          set -e
+          cat /tmp/red-output.txt
+          test "$code" = 1
+          python3 <<'PY'
+          import json
+          result=json.load(open('/tmp/red.json'))
+          print('TOTAL',result['numTotalTests'],'PASSED',result['numPassedTests'],'FAILED',result['numFailedTests'])
+          assert result['numFailedTests'] > 0
+          for suite in result['testResults']:
+              failures=[a for a in suite['assertionResults'] if a['status']=='failed']
+              if not failures:
+                  continue
+              assert suite['name'].endswith(('combat-status-copy.test.ts','combat-status-copy-publication.test.ts')), suite['name']
+              print('RED_SUITE',suite['name'])
+              for a in failures:
+                  print(a['fullName'])
+                  print('\n'.join(a['failureMessages'])[:1500])
+          assert result['numPassedTests'] >= 1559
+          PY
           git diff --exit-code
