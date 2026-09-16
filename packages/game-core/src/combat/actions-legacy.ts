@@ -1,3 +1,4 @@
+import type { CombatSkillAccuracyResolvedEvent } from './combat-skill-accuracy'
 import {
   absorbDirectDamageWithBarrier,
   currentBarrierAmount,
@@ -293,6 +294,7 @@ export interface CombatActionEvaluation {
 }
 
 export type CombatResolutionEvent =
+  | CombatSkillAccuracyResolvedEvent
   | TacticalBattleEvent
   | CombatTerrainEvent
   | {
@@ -752,6 +754,7 @@ export function executeCombatAction(
   resolveCommittedReactions?: (
     transition: CombatResolutionTransition,
   ) => CombatResolutionTransition,
+  missedCombatantIds?: ReadonlySet<string>,
 ): CombatResolutionTransition {
   const evaluation = evaluateCombatAction(state, action, selection, content)
   if (!evaluation.legal || !evaluation.actorId) {
@@ -798,6 +801,7 @@ export function executeCombatAction(
     evaluation.affectedTiles,
     action,
     content,
+    missedCombatantIds,
   )
   nextState = applied.state
   events.push(...applied.events)
@@ -1460,6 +1464,7 @@ function resolveActionEffects(
   affectedTiles: readonly GridPosition[],
   action: CombatActionDefinition,
   content: CombatContentCatalog,
+  missedCombatantIds?: ReadonlySet<string>,
 ): CombatResolutionTransition & {
   projections: CombatEffectProjection[]
   terrain: CombatTerrainProjection[]
@@ -1519,6 +1524,8 @@ function resolveActionEffects(
       affectedCombatantIds,
       effect.recipient,
     )) {
+      // Engine-owned target roll gates every unit effect, not just damage packets.
+      if (missedCombatantIds?.has(recipientId)) continue
       const before = nextState
       const applied = applyEffect(
         nextState,

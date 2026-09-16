@@ -1,3 +1,7 @@
+import {
+  validateCombatAccuracyDefinition,
+  type CombatAccuracyAuthoring,
+} from './combat-skill-accuracy'
 import { validateGameplayActionMetadata } from './gameplay-tags'
 import { ADVANCED_DISCIPLINE_SKILLS } from './advanced-discipline-content'
 import { FOUNDATION_TRIO_DISCIPLINE_SKILLS } from './foundation-trio-skills'
@@ -40,7 +44,7 @@ export interface MatureSkillAuthoringMetadata {
   readonly validationTags: readonly string[]
 }
 
-export interface MatureSkillDefinition {
+export interface MatureSkillDefinition extends CombatAccuracyAuthoring {
   readonly id: string
   readonly contentVersion: number
   readonly enabled: boolean
@@ -503,6 +507,7 @@ export function validateMatureSkillDefinition(
 ): readonly string[] {
   const issues: string[] = []
   try {
+    validateCombatAccuracyDefinition(definition)
     validateGameplayActionMetadata(definition)
   } catch {
     issues.push('combatDefinition')
@@ -617,6 +622,10 @@ export function toCombatActionDefinition(
     requirements: resolved.requirements,
     cooldown: resolved.cooldown,
     effects: resolved.effects,
+    ...(resolved.accuracyMode !== undefined ? { accuracyMode: resolved.accuracyMode } : {}),
+    ...(resolved.accuracyModifierBasisPoints !== undefined
+      ? { accuracyModifierBasisPoints: resolved.accuracyModifierBasisPoints }
+      : {}),
   }
 }
 

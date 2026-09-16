@@ -1,5 +1,17 @@
 # AUREVANE Combat Design Bible
 
+## P4.K4 Skill accuracy kernel boundary — 2026-09-15
+
+Skills may explicitly opt into `accuracyMode: per-target`; `automatic` or omitted mode retains historical automatic resolution. The existing signed `accuracyModifierBasisPoints` field is validated at authoring, preview and commit within -3000 to +3000. Mature Skill conversion preserves supplied fields and consecutive-use reduction changes potency, not hit chance or AP/MP costs. The historical Basic Attack adapter keeps its existing single-roll behavior and rejects an explicit Skill accuracy mode to prevent double rolling.
+
+The current slice calculates `clamp(actor Accuracy - target Evasion + Skill modifier, 0, 10000)` from committed profiles. It requires exactly one valid relevant profile and integer ratings within 0–10000. Only living hostile recipients of actual unit effect blocks are rolled, once each in stable ID order, including 0% and 100% endpoints. Repeated packets share their target's result. Geometry alone, allies, self effects and terrain do not introduce extra unit rolls. Mark/Blind's versioned state and modifiers are the next slice, not inferred from existing names or tags.
+
+A miss skips every unit effect for that hostile recipient in the existing ordered effect resolver, including damage, status, cleansing, displacement, DoTs, recovery and Barrier. Costs, action-use records, cooldown rules, caster effects, attack reveal and Burn backlash retain their ordinary behavior. Tile operations keep their independent existing sequence; this is not a terrain accuracy system. Misses do not consume defender Barrier, write damage history, trigger Absorb/Reflect or reattribute an existing persistent effect. Successful effects retain existing damage math, reaction ordering and K3 provenance.
+
+Legal opted-in kernel previews expose `targetHitChances` and `projectionsAssumeHits: true`; their ordinary projections are conditional on successful hits, not guaranteed or probability-weighted outcomes. Preview never advances RNG or reveals future rolls. Commit recomputes chances from its snapshot and emits versioned `combat_accuracy_resolved` receipts before ordinary command events. Missed target IDs are an engine-owned transient argument, never an authored or persisted hit override.
+
+No published Skill catalog opts into rolled accuracy in this ticket. Mark/Blind, full reactive/conditional player forecasts, AI expected-value scoring, presentation tags and controlled content migration remain publication gates. This is not a player-interface release or a completed accuracy/Mark/Blind group. No schema, dependency or deployment change is included.
+
 ## P4.K4 Vengeance kernel boundary — 2026-09-15
 
 Vengeance is an optional typed `vengeance` profile on an ordinary damage block, not a reactive status or a second damage resolver. Author `conversionBasisPoints` as a positive safe integer, optional nonnegative `minimumDamage`, and required positive finite safe-integer `maximumDamage`. The minimum cannot exceed the maximum. Conversion may exceed 100%, but the explicit maximum always bounds the derived raw potency. The block uses `amount: 0` and cannot also author offensive-stat scaling; ordinary extra damage belongs in a separate block. Unknown profile fields, invalid values and Vengeance on non-damage operations are rejected. The historical Basic Attack adapter does not accept this metadata.

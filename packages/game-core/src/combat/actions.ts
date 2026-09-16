@@ -1,4 +1,11 @@
 import {
+  validateCombatAccuracyDefinition,
+  forecastCombatSkillAccuracy,
+  rollCombatSkillAccuracy,
+  type CombatAccuracyAuthoring,
+  type CombatTargetHitChance,
+} from './combat-skill-accuracy'
+import {
   materializeVengeanceDamage,
   type CombatVengeanceDefinition,
   type CombatVengeanceBasis,
@@ -24,7 +31,8 @@ export type CombatEffectDefinition =
   | Exclude<legacy.CombatEffectDefinition, { type: 'damage' }>
   | (LegacyDamageEffect & { scaling?: CombatDamageScaling; vengeance?: CombatVengeanceDefinition })
 
-export interface CombatActionDefinition extends Omit<legacy.CombatActionDefinition, 'effects'> {
+export interface CombatActionDefinition
+  extends Omit<legacy.CombatActionDefinition, 'effects'>, CombatAccuracyAuthoring {
   effects: readonly CombatEffectDefinition[]
 }
 
@@ -36,12 +44,16 @@ export interface CombatEncounterState extends Omit<legacy.CombatEncounterState, 
       ward: number
       physicalPower?: number
       mysticPower?: number
+      accuracy?: number
+      evasion?: number
     }[]
   }
 }
 
 export interface CombatActionEvaluation extends legacy.CombatActionEvaluation {
   vengeanceBasis?: readonly CombatVengeanceBasis[]
+  targetHitChances?: readonly CombatTargetHitChance[]
+  projectionsAssumeHits?: true
 }
 
 export interface CombatResolutionContext {
@@ -69,6 +81,7 @@ export function evaluateCombatAction(
   selection: legacy.CombatTargetSelection,
   content: legacy.CombatContentCatalog,
 ): CombatActionEvaluation {
+  validateCombatAccuracyDefinition(action)
   const materialized = materializeVengeanceDamage(state, action)
   const evaluation = legacy.evaluateCombatAction(
     state,
@@ -76,9 +89,11 @@ export function evaluateCombatAction(
     selection,
     content,
   )
-  return evaluation.legal && materialized.basis.length > 0
-    ? { ...evaluation, vengeanceBasis: materialized.basis }
-    : evaluation
+  const preview =
+    evaluation.legal && materialized.basis.length > 0
+      ? { ...evaluation, vengeanceBasis: materialized.basis }
+      : evaluation
+  return forecastCombatSkillAccuracy(state, action, preview)
 }
 
 export function executeCombatAction(
@@ -88,18 +103,21 @@ export function executeCombatAction(
   content: legacy.CombatContentCatalog,
   context?: CombatResolutionContext,
 ): CombatResolutionTransition {
+  validateCombatAccuracyDefinition(action)
   const round = state.tactical.battle.round
   const actorId = state.tactical.battle.currentTurn?.combatantId ?? null
   const materializedAction = materializeStatScaledDamage(
     state,
     materializeVengeanceDamage(state, action).action,
   )
-  const evaluation = context
-    ? legacy.evaluateCombatAction(state, materializedAction, selection, content)
-    : null
+  const evaluation =
+    context || action.accuracyMode === 'per-target'
+      ? legacy.evaluateCombatAction(state, materializedAction, selection, content)
+      : null
+  const accuracy = rollCombatSkillAccuracy(state, action, evaluation)
   let triggerGuard = context?.triggerGuard
-  const transition = legacy.executeCombatAction(
-    state,
+  const committedTransition = legacy.executeCombatAction(
+    accuracy.state,
     materializedAction,
     selection,
     content,
@@ -127,10 +145,36 @@ export function executeCombatAction(
       triggerGuard = reflected.triggerGuard
       return { state: reflected.state, events: [...recovered.events, ...reflected.events] }
     },
+    accuracy.missedCombatantIds,
   )
+  const transition =
+    accuracy.events.length > 0
+      ? { ...committedTransition, events: [...accuracy.events, ...committedTransition.events] }
+      : committedTransition
   if (!context || !evaluation) return transition
+  // A miss must not reattribute an existing status or persistent effect.
+  const provenanceEvaluation =
+    accuracy.missedCombatantIds.size === 0
+      ? evaluation
+      : {
+          ...evaluation,
+          primaryCombatantId:
+            evaluation.primaryCombatantId &&
+            accuracy.missedCombatantIds.has(evaluation.primaryCombatantId)
+              ? null
+              : evaluation.primaryCombatantId,
+          affectedCombatantIds: evaluation.affectedCombatantIds.filter(
+            (id) => !accuracy.missedCombatantIds.has(id),
+          ),
+        }
   return {
-    state: attachCombatEffectProvenance(state, transition.state, action, evaluation, context),
+    state: attachCombatEffectProvenance(
+      state,
+      transition.state,
+      action,
+      provenanceEvaluation,
+      context,
+    ),
     events: transition.events,
     resolution: {
       pipelineVersion: COMBAT_RESOLUTION_PIPELINE_VERSION,
