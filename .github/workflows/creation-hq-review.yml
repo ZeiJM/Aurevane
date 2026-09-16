@@ -1,0 +1,68 @@
+name: Character Creation HQ review
+
+on:
+  push:
+    branches: [agent/character-creation-hq]
+  pull_request:
+    paths:
+      - apps/web/src/components/character/character-creation-experience*
+      - apps/web/src/app/game/create/**
+      - apps/web/src/media/generated-starter-portraits-*.ts
+      - apps/web/src/media/starter-portrait-restoration.json
+      - apps/web/e2e/creation-layout-regression.pw.ts
+      - .github/workflows/creation-hq-review.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: creation-hq-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install locked dependencies
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+          pnpm install --frozen-lockfile
+          pnpm --filter @aurevane/web exec playwright install --with-deps chromium
+      - name: Start disposable local database
+        run: |
+          pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
+          pnpm exec supabase db reset --local
+      - name: Build and verify Creation plus existing UI flows
+        shell: bash
+        run: |
+          set -euo pipefail
+          source .github/scripts/auth-test-helpers.sh
+          load_test_auth
+          echo "::add-mask::$TEST_AUTH_ADMIN_KEY"
+          export AUREVANE_ENV=local
+          export NEXT_PUBLIC_AUREVANE_ENV=local
+          export NEXT_PUBLIC_SUPABASE_URL="$TEST_AUTH_API_URL"
+          export NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY"
+          export SUPABASE_SECRET_KEY="$TEST_AUTH_ADMIN_KEY"
+          export LAYOUT_REVIEW_OUTPUT=/tmp/creation-hq-review
+          mkdir -p "$LAYOUT_REVIEW_OUTPUT"
+          git rev-parse HEAD > "$LAYOUT_REVIEW_OUTPUT/commit.txt"
+          pnpm --filter @aurevane/web build
+          pnpm --filter @aurevane/web exec playwright test e2e/creation-layout-regression.pw.ts e2e/account-entry.pw.ts e2e/character-roster-layout-regression.pw.ts e2e/character-creation.pw.ts e2e/character-deletion.pw.ts e2e/profile-layout-regression.pw.ts e2e/training-layout-regression.pw.ts e2e/training-concept-layout-regression.pw.ts e2e/wayfarers-practice.pw.ts e2e/hall-layout-regression.pw.ts e2e/hall-controls-layout-regression.pw.ts e2e/pvp-spectator-footer-shape.pw.ts e2e/adventurers-layout-regression.pw.ts e2e/battle-usability.pw.ts
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: creation-hq-review
+          path: /tmp/creation-hq-review
+          retention-days: 3
+      - name: Stop disposable database
+        if: always()
+        run: pnpm exec supabase stop --no-backup
