@@ -20,7 +20,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Format only the new Burn contract
+      - name: Correct test-only typing and format the Burn contract
         shell: bash
         run: |
           set -euo pipefail
@@ -28,6 +28,17 @@ jobs:
           corepack enable
           corepack prepare pnpm@11.17.0 --activate
           pnpm install --frozen-lockfile
+          python3 <<'PY'
+          from pathlib import Path
+          path = Path('packages/game-core/src/combat/combat-burn-copy.test.ts')
+          text = path.read_text()
+          old = '    expect(instance(state).curseCopyable).toBe(flag)'
+          new = """    expect(
+      (instance(state) as ReturnType<typeof instance> & { curseCopyable?: boolean }).curseCopyable,
+    ).toBe(flag)"""
+          assert text.count(old) == 1
+          path.write_text(text.replace(old, new))
+          PY
           pnpm exec prettier --write packages/game-core/src/combat/combat-burn-copy.test.ts
           pnpm exec prettier --check packages/game-core/src/combat/combat-burn-copy.test.ts
           pnpm exec eslint packages/game-core/src/combat/combat-burn-copy.test.ts
@@ -37,7 +48,7 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add packages/game-core/src/combat/combat-burn-copy.test.ts
-          git commit -m 'style(test): format Burn copy contract'
+          git commit -m 'test(combat): make Burn copy contract valid test-first source'
           test "$(git ls-remote origin refs/heads/agent/combat-k4-burn-copy-fde662e | cut -f1)" = 13811a803634e93aac659fc4e2a1a7a2a4e11713
           git push origin HEAD:refs/heads/agent/combat-k4-burn-copy-fde662e
-          echo "FORMATTED_TEST_SHA=$(git rev-parse HEAD)"
+          echo "VALID_TEST_SOURCE=$(git rev-parse HEAD)"
