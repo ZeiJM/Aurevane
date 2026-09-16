@@ -3,16 +3,17 @@ on:
   push:
     branches: [review/vengeance-workbench-20260915]
 permissions:
-  contents: write
+  contents: read
 jobs:
-  vengeance-green:
+  vengeance-review:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: a29b940c62366b1c59ae0abf67bb5a6319e29c03
-          fetch-depth: 4
+          ref: b02e3fb63cc85856e2a53caf8ae061bb229653b8
+          fetch-depth: 5
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -21,28 +22,111 @@ jobs:
           corepack enable
           corepack prepare pnpm@11.17.0 --activate
           pnpm install --frozen-lockfile
-      - name: Reproduce RED, apply exact patch and run all GREEN gates
+      - name: Check actual candidate with temporary compatibility and boundary probes
         shell: bash
         run: |
           set -euo pipefail
-          git fetch --no-tags origin cc66e1de9652a581a18c033785d0b532fd138857
+          test "$(git rev-parse HEAD)" = b02e3fb63cc85856e2a53caf8ae061bb229653b8
+          test "$(git rev-parse HEAD^{tree})" = a09af15e5d2b0c4b01a1a628a069445af4adbe64
           python3 - <<'PY'
-          import re, subprocess, textwrap
-          source=subprocess.check_output(['git','show','cc66e1de9652a581a18c033785d0b532fd138857:.github/workflows/vengeance-workbench.yml'],text=True)
-          parts=re.split(r'(?m)^      - name: ',source)[1:]
-          scripts={part.split('\n',1)[0]:textwrap.dedent(part.split('        run: |\n',1)[1]) for part in parts if '        run: |\n' in part}
-          implementation=scripts['Implement bounded Vengeance without changing direct damage resolution']
-          fixes={
-              "old='''  return legacy.evaluateCombatAction(\n  state,\n  materializeStatScaledDamage(state, action),\n  selection,\n  content,\n)'''":
-              "old='''  return legacy.evaluateCombatAction(\n    state,\n    materializeStatScaledDamage(state, action),\n    selection,\n    content,\n  )'''",
-              "old='''  return {\n  prepared,\n  action,\n  cost: resolved.apCost,\n  evaluation: evaluateCombatAction(prepared, action, target, PV1F_COMBAT_CONTENT),\n  repeatPenaltyApplied,\n}'''":
-              "old='''  return {\n    prepared,\n    action,\n    cost: resolved.apCost,\n    evaluation: evaluateCombatAction(prepared, action, target, PV1F_COMBAT_CONTENT),\n    repeatPenaltyApplied,\n  }'''",
-          }
-          for old,new in fixes.items():
-              assert implementation.count(old)==1,old
-              implementation=implementation.replace(old,new)
-          scripts['Implement bounded Vengeance without changing direct damage resolution']=implementation
-          for name in ['Preserve RED with a literal array malformed-profile fixture','Implement bounded Vengeance without changing direct damage resolution','Verify focused and full repository GREEN','Review restricted scope and preserve a source-only candidate']:
-              print('EXECUTING_STAGE',name,flush=True)
-              subprocess.run(['bash','-euo','pipefail','-c',scripts[name]],check=True)
+          from pathlib import Path
+          import subprocess
+          root=Path('packages/game-core/src/combat')
+          tests=root/'combat-vengeance.test.ts'
+          baseline=root/'actions-review-baseline.ts'
+          assert not baseline.exists()
+          original=tests.read_bytes()
+          baseline_source=subprocess.check_output(['git','show','a8ca06ce4f886b58304a94d8e4d0536186b7cc1f:packages/game-core/src/combat/actions.ts'])
+          additions='''
+          import * as baselineActions from './actions-review-baseline'
+          import { materializeVengeanceDamage } from './combat-vengeance'
+
+          it('review exact large-number conversion without a hiding low cap', () => {
+            const initial = encounter([{ combatantId: 'actor', round: 4, amount: Number.MAX_SAFE_INTEGER }])
+            const profile = vengeance({ conversionBasisPoints: 9_000, maximumDamage: Number.MAX_SAFE_INTEGER })
+            const materialized = materializeVengeanceDamage(initial, action(profile))
+            expect(materialized.basis[0]?.rawDamage).toBe(8_106_479_329_266_891)
+            expect(() => JSON.stringify(materialized.basis)).not.toThrow()
+          })
+          it('review sparse history has a bounded explicit zero-filled preview', () => {
+            const preview = evaluateCombatAction(encounter([{ combatantId: 'actor', round: 4, amount: 5 }]), action(), SELECT, { statuses: [] })
+            expect(preview.vengeanceBasis).toEqual([{ effectOrdinal: 0, sourceCombatantId: 'actor', windowStartRound: 2,
+              windowEndRound: 4, damageByRound: [{ round: 2, amount: 0 }, { round: 3, amount: 0 }, { round: 4, amount: 5 }], rawDamage: 2 }])
+          })
+          it('review omitted optional profile preserves original action identity', () => {
+            const command = action({ type: 'damage', recipient: 'primary-unit', amount: 9, vengeance: undefined })
+            expect(materializeVengeanceDamage(encounter(), command)).toEqual({ action: command, basis: [] })
+            expect(materializeVengeanceDamage(encounter(), command).action).toBe(command)
+            expect(dealt(cast(encounter(), command))).toBe(9)
+          })
+          it('review raw cap precedes an ordinary vulnerability modifier', () => {
+            const vulnerable = status('review.vulnerable', { damageTakenMultiplierBasisPoints: 15_000 })
+            const result = cast(withStatus(encounter(), 'target', vulnerable), action(vengeance({ maximumDamage: 10 })), [vulnerable])
+            expect(dealt(result)).toBe(15)
+          })
+          const ordinaryVectors = [0, 1, 9, 100].flatMap((amount) => [[], ACTOR_HISTORY].map((history) => ({ amount, history })))
+          it.each(ordinaryVectors)('review full ordinary transition remains identical %j', ({ amount, history }) => {
+            const initial = encounter(history)
+            const command = action({ type: 'damage', recipient: 'primary-unit', amount })
+            const before = JSON.stringify(initial)
+            expect(evaluateCombatAction(initial, command, SELECT, { statuses: [] })).toEqual(
+              baselineActions.evaluateCombatAction(initial, command, SELECT, { statuses: [] }))
+            expect(executeCombatAction(initial, command, SELECT, { statuses: [] })).toEqual(
+              baselineActions.executeCombatAction(initial, command, SELECT, { statuses: [] }))
+            expect(JSON.stringify(initial)).toBe(before)
+          })
+          '''
+          mature_additions='''  it('review mature preview retains the original window and reduced capped potency', () => {
+            const { state, skill } = fixture({ maximumDamage: 13 })
+            const firstPreview = evaluatePv1fMatureSkill(state, skill, SELECT)
+            const first = executePv1fMatureSkill(state, skill, SELECT)
+            const repeated = evaluatePv1fMatureSkill(first.state, skill, SELECT)
+            expect(firstPreview.evaluation.vengeanceBasis?.[0]).toMatchObject({ rawDamage: 13, windowStartRound: 2, windowEndRound: 4 })
+            expect(repeated.evaluation.vengeanceBasis?.[0]).toMatchObject({ rawDamage: 6, windowStartRound: 2, windowEndRound: 4 })
+            expect(repeated.evaluation.vengeanceBasis?.[0]?.damageByRound).toEqual(firstPreview.evaluation.vengeanceBasis?.[0]?.damageByRound)
+            expect(() => JSON.stringify(repeated.evaluation)).not.toThrow()
+          })
+          it('review repeated zero potency stays zero rather than becoming minimum-one damage', () => {
+            const { state, skill } = fixture({}, [])
+            const first = executePv1fMatureSkill(state, skill, SELECT)
+            const second = executePv1fMatureSkill(first.state, skill, SELECT)
+            expect(second.events.filter((event) => event.event === 'damage_applied' && event.amount > 0)).toEqual([])
+            expect(evaluatePv1fMatureSkill(first.state, skill, SELECT).evaluation.vengeanceBasis?.[0]?.rawDamage).toBe(0)
+          })
+          it('review intervening Skill resets the Vengeance consecutive-use penalty', () => {
+            const { state, skill } = fixture()
+            const first = executePv1fMatureSkill(state, skill, SELECT)
+            const other: MatureSkillDefinition = { ...skill, id: 'test.intervening', effects: [{ type: 'healing', recipient: 'actor', amount: 1 }] }
+            const intervening = executePv1fMatureSkill(first.state, other, SELECT)
+            const preview = evaluatePv1fMatureSkill(intervening.state, skill, SELECT)
+            expect(preview.repeatPenaltyApplied).toBe(false)
+            expect(preview.evaluation.vengeanceBasis?.[0]?.rawDamage).toBe(20)
+          })
+          '''
+          marker="  it('halves capped Vengeance potency on a consecutive repeat at unchanged AP/MP cost', () => {"
+          text=original.decode()
+          assert text.count(marker)==1
+          try:
+              baseline.write_bytes(baseline_source)
+              tests.write_text(text.replace(marker,mature_additions+marker)+additions)
+              subprocess.run(['pnpm','--filter','@aurevane/game-core','typecheck'],check=True)
+              subprocess.run(['pnpm','--filter','@aurevane/game-core','exec','vitest','run',
+                'src/combat/combat-vengeance.test.ts','src/combat/combat-reflect.test.ts','src/combat/combat-absorb-mp.test.ts',
+                'src/combat/combat-absorb-hp.test.ts','src/combat/combat-absorb-hp-command.test.ts','src/combat/combat-barrier.test.ts',
+                'src/combat/combat-damage-history-runtime.test.ts','src/combat/combat-resolution-provenance.test.ts',
+                'src/combat/pv1f-action-economy.test.ts','src/combat/actions-stat-scaled-damage.test.ts','src/combat/combat-burn-backlash.test.ts'],check=True)
+          finally:
+              tests.write_bytes(original)
+              baseline.unlink(missing_ok=True)
           PY
+          git diff --exit-code
+          test -z "$(git status --porcelain)"
+      - name: Verify scope and unchanged legacy math, catalogs and deployment boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check a8ca06ce4f886b58304a94d8e4d0536186b7cc1f...HEAD
+          git diff --exit-code a8ca06ce4f886b58304a94d8e4d0536186b7cc1f...HEAD -- apps .github pnpm-lock.yaml packages/game-core/src/combat/actions-legacy.ts packages/game-core/src/combat/status-content.ts packages/game-core/src/combat/stat-driven-combat.ts packages/game-core/src/combat/combat-reflect.ts packages/game-core/src/combat/combat-damage-history.ts
+          test "$(git rev-parse HEAD)" = b02e3fb63cc85856e2a53caf8ae061bb229653b8
+          test "$(git rev-parse HEAD^{tree})" = a09af15e5d2b0c4b01a1a628a069445af4adbe64
+          git diff --exit-code
