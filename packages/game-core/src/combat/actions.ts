@@ -1,6 +1,6 @@
 import type { CombatDamageScaling } from './damage-scaling'
 import { calculateScaledRawDamage, validateCombatDamageScaling } from './damage-scaling'
-import { applyCommittedAbsorbHp } from './combat-absorb-hp'
+import { applyCommittedAbsorbRecovery } from './combat-absorb-recovery'
 import { recordCommittedDamageHistory } from './combat-damage-history'
 import { attachCombatEffectProvenance } from './combat-effect-provenance'
 import {
@@ -88,7 +88,7 @@ export function executeCombatAction(
       })
     : transition.state
   const recovered = actorId
-    ? applyCommittedAbsorbHp(historyState, transition.events, content, {
+    ? applyCommittedAbsorbRecovery(historyState, transition.events, content, {
         sourceCombatantId: actorId,
         actionId: action.id,
       })
