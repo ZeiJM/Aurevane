@@ -66,6 +66,13 @@ jobs:
           wrong_instance = '  const nextInstance: CombatBurnInstance = {'
           assert text.count(wrong_instance) == 2, text.count(wrong_instance)
           text = text.replace(wrong_instance, '  const instance: CombatBurnInstance = {')
+          wrong_old_message = 'Burn state must contain one valid current-profile stage from 0 to 2 per target, sorted by target ID.'
+          actual_old_message = 'Burn state must contain one valid current-profile instance per target, sorted by target ID, with canonical stage 0 through 2.'
+          wrong_new_message = 'Burn state must contain one valid current-profile stage from 0 to 2 per target, sorted by target ID, with optional boolean copy policy.'
+          actual_new_message = 'Burn state must contain one valid current-profile instance per target, sorted by target ID, with canonical stage 0 through 2 and optional boolean copy policy.'
+          assert text.count(wrong_old_message) == 1, text.count(wrong_old_message)
+          assert text.count(wrong_new_message) == 1, text.count(wrong_new_message)
+          text = text.replace(wrong_old_message, actual_old_message).replace(wrong_new_message, actual_new_message)
           path.write_text(text)
           PY
           git fetch --depth=4 origin 15cb61ab7f4b308c6c0b93f1dc818522a3869d38
