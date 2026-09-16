@@ -17,7 +17,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Preserve the exact review scripts and correct only the temporary logging import
+      - name: Preserve review assertions and omit the unsupported diagnostic logger
         shell: bash
         run: |
           set -euo pipefail
@@ -30,11 +30,10 @@ jobs:
           for index, block in enumerate(steps):
               script = dedent(block.split('\n      - name:')[0])
               if index == 1:
-                  old = "import { applyCombatStatusCopies } from './combat-status-copy'"
-                  assert script.count(old) == 1
-                  script = script.replace(old, "import { log } from 'node:console'\n" + old)
-                  assert script.count('console.log(') == 1
-                  script = script.replace('console.log(', 'log(')
+                  lines = script.splitlines()
+                  diagnostic = [line for line in lines if "console.log('OPTIONAL_PROPERTY_OBSERVATION'" in line]
+                  assert len(diagnostic) == 1
+                  script = '\n'.join(line for line in lines if line not in diagnostic) + '\n'
               Path(f'/tmp/poison-candidate-review-{index}.sh').write_text(script)
           PY
           git fetch --depth=5 origin ed25b6d42bfc15943fde16e217e4d152c350833f
