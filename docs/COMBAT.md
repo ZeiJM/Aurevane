@@ -636,3 +636,18 @@ independently meaningful; in that case the empty clone step is a no-op and later
 The opt-in is boolean-only and invalid on a pure copy command. Consecutive-use scaling for cloning is
 still staged because the approved repeat rule does not yet classify clone transfer as quantitative or
 discrete; no half-copy behavior is invented here. No published Skill is activated by this boundary.
+
+## Amplify/Curse Recruit AI forecast utility (staged K4 acceptance)
+
+Build-aware Recruit AI scores cloning only from the same legal authoritative preview projections
+used by player forecast/commit. Each changed `copy-statuses` projection uses the existing ordinary
+status utility magnitude: Amplify is beneficial when the projected recipient is allied with the
+actor, while Curse is beneficial when the projected recipient is hostile. An unchanged projection
+or an explicitly allowed empty clone block contributes no cloning utility; independently meaningful
+later effects retain their existing utility. The mode is read from the typed authored clone block,
+never inferred from status names, projection text, or hidden state. Preview scoring consumes no RNG
+and does not bypass target legality, copy eligibility, or the existing committed-build boundary.
+
+This adds AI expected-value support for the already integrated clone kernel only. It does not publish
+Amplify/Curse Skills, remove the `effects.status-copy-staged` publication guard, define consecutive-use
+falloff for cloning, add area/multi-source copying, or deploy content.
