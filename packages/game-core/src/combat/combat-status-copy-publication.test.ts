@@ -26,11 +26,22 @@ describe('Status copying: staged publication boundary', () => {
   })
   it('does not permit the old Basic Attack path to carry a copy command', () => {
     const action = {
-      id: 'test.copy-basic', version: 1, sourceType: 'basic-attack', tags: [],
-      target: { kind: 'unit', teamPolicy: 'enemy', shape: { kind: 'single' },
-        minimumRange: 1, maximumRange: 3, requiresLineOfSight: false,
-        maximumElevationDifference: null, friendlyFire: 'enemies-only' },
-      cost: { spendsAction: true, mp: 0 }, requirements: [],
+      id: 'test.copy-basic',
+      version: 1,
+      sourceType: 'basic-attack',
+      tags: [],
+      target: {
+        kind: 'unit',
+        teamPolicy: 'enemy',
+        shape: { kind: 'single' },
+        minimumRange: 1,
+        maximumRange: 3,
+        requiresLineOfSight: false,
+        maximumElevationDifference: null,
+        friendlyFire: 'enemies-only',
+      },
+      cost: { spendsAction: true, mp: 0 },
+      requirements: [],
       effects: stagedSkill().effects,
     } as CombatActionDefinition
     expect(() => validateCombatActionDefinition(action)).toThrow()
