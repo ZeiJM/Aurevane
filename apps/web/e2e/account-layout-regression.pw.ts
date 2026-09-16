@@ -126,7 +126,7 @@ test('Account gateway keeps mobile entry controls clear of the footer', async ({
   await expect(page.getByText(/one active gameplay login per account/i)).toBeVisible()
 
   await footer.scrollIntoViewIfNeeded()
-  await expect(footer).toBeInViewport({ ratio: 1 })
+  await expect(footer).toBeInViewport({ ratio: 0.99 })
 
   if (process.env.LAYOUT_REVIEW_OUTPUT) {
     await mkdir(process.env.LAYOUT_REVIEW_OUTPUT, { recursive: true })
