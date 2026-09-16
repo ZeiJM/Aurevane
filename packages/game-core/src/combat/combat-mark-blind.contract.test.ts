@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   createCombatEncounterState,
-  endCombatTurn,
+  endCombatTurn as commitEndCombatTurn,
   evaluateCombatAction,
   executeCombatAction,
   validateCombatEncounterState,
@@ -11,7 +11,12 @@ import {
   type CombatResolutionContext,
   type CombatStatusDefinition,
 } from './actions'
-import { advanceBattleRng, createPendingBattle, startBattle } from './battle-state'
+import {
+  advanceBattleRng,
+  createPendingBattle,
+  selectFinalFacing,
+  startBattle,
+} from './battle-state'
 import { createTacticalBattleState } from './board'
 import { createCombatActionProvenance, createCombatTriggerGuard } from './combat-kernel-types'
 import {
@@ -628,8 +633,8 @@ describe('Mark and Blind: command and lifecycle interactions', () => {
     expect(preview.projectedEffects).toContainEqual({
       effectType: 'apply-status',
       combatantId: 'target',
-      before: 0,
-      after: 1,
+      before: 'none',
+      after: `${MARK.id}:1`,
     })
   })
   it('keeps alternate-target Mark modifiers independent in an area command', () => {
@@ -716,3 +721,17 @@ describe('Mark and Blind: command and lifecycle interactions', () => {
     expect(ally.state.tactical.battle.combatants.find((unit) => unit.id === 'target')?.hp).toBe(80)
   })
 })
+
+// The public turn transition requires an explicit final-facing selection.
+function endCombatTurn(state: CombatEncounterState, content: CombatContentCatalog) {
+  return commitEndCombatTurn(
+    {
+      ...state,
+      tactical: {
+        ...state.tactical,
+        battle: selectFinalFacing(state.tactical.battle, 'east').state,
+      },
+    },
+    content,
+  )
+}
