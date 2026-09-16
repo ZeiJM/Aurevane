@@ -600,3 +600,24 @@ sequence. `copiedFromInstanceId` names the immediate donor Burn; replacing an ex
 uses `inheritedFromInstanceId` when that instance had provenance. No-context execution does not reuse
 or invent donor provenance. Amplify never copies Burn in this slice. Bleed typed-state copying,
 repeat-use/publication, AI and broader copying remain separate gates; no published Skill is activated.
+
+## Curse Bleed copy state (staged typed-effect extension)
+
+Current Bleed authoring may explicitly set `curseCopyable: true | false` per independent stack.
+The optional policy persists with that stack; omitted historical Bleed remains valid and non-copyable,
+and malformed authoring or saved values fail closed.
+
+A pure single-unit Curse copies every explicitly eligible donor Bleed stack in stable donor
+application order while leaving the donor unchanged. Each copy preserves the donor's current damage
+per tick and remaining ticks, rebinds source combatant/action to Curse, and is explicitly copyable.
+Each receiver insertion uses the existing canonical maximum-three-stack rule: when full, replace the
+fewest-remaining stack and break ties by oldest application order. Because copies are inserted
+sequentially, a later donor may replace an earlier same-command copy. Copying itself causes no damage;
+normal independent end-turn ticks, expiry and Cleanse continue afterward.
+
+K3 reserves Bleed copy ordinals after ordinary statuses, Poison and Burn, one ordinal for every
+eligible donor attempt in donor order even when an attempted copy is later replaced. Final surviving
+rows link to their immediate donor through `copiedFromInstanceId`; `inheritedFromInstanceId` is used
+only when the replaced receiver row actually carried provenance at insertion time, never for an
+unpersisted same-command transient copy. Amplify does not copy Bleed in this slice. Repeat-use,
+publication, AI and broader composition remain separate gates; no published Skill is activated.
