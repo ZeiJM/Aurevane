@@ -12,7 +12,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: 11a5cb6d6177b530ecd98bbe1249a0af0cc936aa
-          fetch-depth: 0
+          fetch-depth: 3
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -27,8 +27,17 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = 11a5cb6d6177b530ecd98bbe1249a0af0cc936aa
           node -e 'if(require("./apps/web/vercel.json").git.deploymentEnabled["**"] !== false) process.exit(1)'
-          git fetch --no-tags origin aaacc4f942047ef49a95b87f6b9b68ab34e6b3f1
+          git fetch --depth=1 --no-tags origin aaacc4f942047ef49a95b87f6b9b68ab34e6b3f1
           git show aaacc4f942047ef49a95b87f6b9b68ab34e6b3f1:.github/mark-blind-green.py > /tmp/mark-blind-green.py
+          python3 <<'PY'
+          from pathlib import Path
+          p = Path('/tmp/mark-blind-green.py')
+          s = p.read_text()
+          old = "replace('actions-legacy.ts', 'const existing = getStatus(state, recipientId, effect.statusId)', 'const existing = getStatus(state, recipientId, effect.statusId, actorId)')"
+          new = "replace('actions-legacy.ts', 'const oldStatus = getStatus(before, recipientId, effect.statusId)', 'const oldStatus = getStatus(before, recipientId, effect.statusId, actorId)')\nreplace('actions-legacy.ts', 'const newStatus = getStatus(nextState, recipientId, effect.statusId)', 'const newStatus = getStatus(nextState, recipientId, effect.statusId, actorId)')"
+          assert s.count(old) == 1
+          p.write_text(s.replace(old, new))
+          PY
           python3 /tmp/mark-blind-green.py
           git diff --name-only
           git grep -n -E 'forecastCombatSkillAccuracy|rollCombatSkillAccuracy' -- packages apps
