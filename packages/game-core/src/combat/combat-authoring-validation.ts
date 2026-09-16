@@ -1,3 +1,4 @@
+import { validateCombatAccuracyDefinition } from './combat-skill-accuracy'
 import { validateVengeanceActionDefinition } from './combat-vengeance'
 import { validateBarrierEffect } from './combat-barrier'
 import { validateRecoveryEffect } from './combat-recovery'
@@ -14,13 +15,6 @@ import { validateGameplayActionMetadata, validateGameplayTag } from './gameplay-
 import { validateSkillCooldownDefinition } from './skill-cooldowns'
 
 const COMBAT_BASIS_POINTS = 10_000
-
-declare module './actions' {
-  interface CombatActionDefinition {
-    accuracyMode?: 'automatic' | 'per-target'
-    accuracyModifierBasisPoints?: number
-  }
-}
 
 export function validateCombatActionDefinition(
   action: CombatActionDefinition,
@@ -69,16 +63,7 @@ export function validateCombatActionDefinition(
   }
   nonNegativeSafeInteger(action.cost.mp, 'MP cost')
 
-  if (action.accuracyMode !== undefined) {
-    knownString(action.accuracyMode, ['automatic', 'per-target'], 'accuracy mode')
-  }
-  if (action.accuracyModifierBasisPoints !== undefined) {
-    signedSafeIntegerWithin(
-      action.accuracyModifierBasisPoints,
-      3_000,
-      'accuracy modifier basis points',
-    )
-  }
+  validateCombatAccuracyDefinition(action)
 
   const tagSet = new Set<string>()
   for (const tag of action.tags) {
@@ -377,12 +362,6 @@ function boundedPositiveSafeInteger(
 ): asserts value is number {
   if (!Number.isSafeInteger(value) || (value as number) < minimum || (value as number) > maximum) {
     throw new RangeError(`${field} must be an integer between ${minimum} and ${maximum}.`)
-  }
-}
-
-function signedSafeIntegerWithin(value: unknown, maximumMagnitude: number, field: string): void {
-  if (!Number.isSafeInteger(value) || Math.abs(value as number) > maximumMagnitude) {
-    throw new RangeError(`${field} must be within +/-${maximumMagnitude}.`)
   }
 }
 

@@ -1,3 +1,5 @@
+import { calculateHitChanceBasisPoints } from './combat-skill-accuracy'
+export { calculateHitChanceBasisPoints } from './combat-skill-accuracy'
 import { mitigateDamageByDefense } from './damage-mitigation'
 export { mitigateDamageByDefense } from './damage-mitigation'
 import type { DerivedStatSnapshot } from '../character/derived-stats'
@@ -310,13 +312,6 @@ export function getStatDrivenOffensivePower(
     throw new TypeError('Scaled damage requires complete v2 offensive stat ratings.')
   }
   return kind === 'physical-power' ? profile.physicalPower : profile.mysticPower
-}
-
-export function calculateHitChanceBasisPoints(
-  actor: StatDrivenCombatProfileV1,
-  target: StatDrivenCombatProfileV1,
-): number {
-  return Math.max(0, Math.min(COMBAT_BASIS_POINTS, actor.accuracy - target.evasion))
 }
 
 export function forecastStatDrivenAttack(
