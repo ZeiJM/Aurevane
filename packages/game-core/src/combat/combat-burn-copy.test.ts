@@ -22,6 +22,7 @@ import {
   createCombatTriggerGuard,
 } from './combat-kernel-types'
 import { validateCombatActionDefinition } from './combat-authoring-validation'
+import { createStatDrivenCombatEncounterState } from './stat-driven-combat'
 
 const NEGATIVE: CombatStatusDefinition = {
   id: 'test.copyable-negative',
@@ -35,6 +36,14 @@ const NEGATIVE: CombatStatusDefinition = {
 }
 const CONTENT: CombatContentCatalog = { statuses: [NEGATIVE] }
 const TARGET = { kind: 'unit' as const, combatantId: 'target' }
+const BURN_REMOVAL_STATUS: CombatStatusDefinition = {
+  id: 'burn',
+  version: 1,
+  maximumStacks: 1,
+  durationOwnerTurnStarts: 1,
+  damageTakenMultiplierBasisPoints: 10_000,
+}
+const DEFAULT_COPY_POLICY = Symbol('default-burn-copy-policy')
 
 function world(seed = 103): CombatEncounterState {
   const ids = ['actor', 'target', 'other']
@@ -142,12 +151,12 @@ function amplifyAction(): CombatActionDefinition {
 function applyBurn(
   state: CombatEncounterState,
   targetId: string,
-  copyable: unknown = true,
+  copyable: unknown = DEFAULT_COPY_POLICY,
   actionId = 'test.apply-burn',
 ): CombatEncounterState {
   return executeCombatAction(
     state,
-    burnAction(copyable, actionId),
+    burnAction(copyable === DEFAULT_COPY_POLICY ? true : copyable, actionId),
     { kind: 'unit', combatantId: targetId },
     CONTENT,
   ).state
@@ -174,7 +183,7 @@ function burn(
   state: CombatEncounterState,
   targetId = 'actor',
   stage = 0,
-  copyable: unknown = true,
+  copyable: unknown = DEFAULT_COPY_POLICY,
   actionId = 'test.apply-burn',
 ): CombatEncounterState {
   return withStage(applyBurn(state, targetId, copyable, actionId), targetId, stage)
@@ -257,6 +266,27 @@ function withProvenance(
       ),
     },
   }
+}
+
+function withAccuracyProfiles(state: CombatEncounterState): CombatEncounterState {
+  return createStatDrivenCombatEncounterState(
+    state,
+    state.tactical.battle.combatants.map((unit) => ({
+      combatantId: unit.id,
+      provenance: {
+        kind: 'scenario' as const,
+        sourceId: `scenario:${unit.id}`,
+        sourceRulesVersion: 2,
+      },
+      accuracy: unit.id === 'actor' ? 0 : 5_000,
+      evasion: unit.id === 'target' ? 10_000 : 0,
+      armor: 0,
+      ward: 0,
+      jump: 0,
+      physicalPower: 30,
+      mysticPower: 30,
+    })),
+  )
 }
 
 function damageAction(): CombatActionDefinition {
@@ -431,7 +461,7 @@ describe('Curse Burn: current stage and replacement semantics', () => {
       targetTurn,
       action,
       { kind: 'unit', combatantId: 'target' },
-      CONTENT,
+      { statuses: [...CONTENT.statuses, BURN_REMOVAL_STATUS] },
     )
     expect(currentBurnInstance(cleared.state, 'target')).toBeNull()
   })
@@ -454,7 +484,7 @@ describe('Curse Burn: legality, accuracy and immutability', () => {
   })
 
   it('a hostile miss spends ordinary MP but does not copy or reattribute Burn', () => {
-    const state = burn(world(1), 'actor', 2, true)
+    const state = burn(withAccuracyProfiles(world(1)), 'actor', 2, true)
     const action = copyAction('per-target', { spendsAction: false, mp: 3 })
     const draw = advanceBattleRng(state.tactical.battle.rng)
     const result = executeCombatAction(state, action, TARGET, CONTENT)
