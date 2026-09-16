@@ -21,9 +21,9 @@ test('News article preview uses the approved editorial composition on desktop', 
   const article = page.getByTestId('news-article')
   const hero = page.getByTestId('news-article-hero')
   const body = page.getByTestId('news-article-body')
-  const back = page.getByRole('link', { name: 'All News' })
-  const manual = page.getByRole('link', { name: 'Manual' })
-  const rules = page.getByRole('link', { name: 'Rules' })
+  const back = article.getByRole('link', { name: 'All News' })
+  const manual = article.getByRole('link', { name: 'Manual' })
+  const rules = article.getByRole('link', { name: 'Rules' })
 
   await expect(article).toBeVisible()
   await expect(article).toHaveAttribute('data-news-article-surface', 'ink')
@@ -77,8 +77,8 @@ test('News article preview stays a natural single-column read on mobile', async 
 
   const article = page.getByTestId('news-article')
   const body = page.getByTestId('news-article-body')
-  const manual = page.getByRole('link', { name: 'Manual' })
-  const rules = page.getByRole('link', { name: 'Rules' })
+  const manual = article.getByRole('link', { name: 'Manual' })
+  const rules = article.getByRole('link', { name: 'Rules' })
 
   await expect(article).toBeVisible()
   await body.scrollIntoViewIfNeeded()
