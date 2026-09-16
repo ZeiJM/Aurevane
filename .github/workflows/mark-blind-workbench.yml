@@ -1,0 +1,46 @@
+name: Mark Blind workbench
+on:
+  push:
+    branches: [review/mark-blind-workbench-20260915]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 01ff5307478bb06f6fd35aa6442070afb237379d
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Locked setup
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+          pnpm install --frozen-lockfile
+      - name: Exact baseline and source preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = 01ff5307478bb06f6fd35aa6442070afb237379d
+          node -e 'if(require("./apps/web/vercel.json").git.deploymentEnabled["**"] !== false) process.exit(1)'
+          git ls-remote origin refs/heads/main refs/heads/agent/combat-effect-taxonomy-rework
+          git log --oneline -6
+          echo '--- ACTIVE ROADMAP ---'
+          grep -n -E 'K4|K5|accuracy|Mark|Blind' docs/ROADMAP_C4_AUDIT_COMBAT_KERNEL_V2.md docs/ROADMAP.md TASKS.md || true
+          echo '--- APPROVED ACCURACY CONTRACT ---'
+          sed -n '/## 7. Mark rework/,/## 10. Reflect/p' docs/superpowers/specs/2026-09-12-reactive-effects-accuracy-discipline-rebalance-design.md
+          echo '--- STATUS EXECUTION SEAMS ---'
+          grep -n -E 'apply-status|function applyStatusState|function validateCombatEncounterState|validateCombatContentCatalog|collectPersistentProvenanceIssues|status_expired' packages/game-core/src/combat/actions-legacy.ts
+          echo '--- HISTORICAL MARK SEAMS ---'
+          git grep -n -E 'marked|Marked' -- packages/game-core/src/combat/damage-modifiers.ts packages/game-core/src/combat/gameplay-tags.ts packages/game-core/src/combat/phase4-effects.ts
+          echo '--- STATUS PROVENANCE VALIDATION ---'
+          git grep -n 'collectPersistentProvenanceIssues' -- packages/game-core/src/combat
+          pnpm --filter @aurevane/game-core typecheck
+          pnpm --filter @aurevane/game-core test
+          git diff --exit-code
+          test -z "$(git status --porcelain)"
