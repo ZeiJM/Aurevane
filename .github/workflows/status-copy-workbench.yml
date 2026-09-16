@@ -1,0 +1,34 @@
+name: Status copy workbench
+on:
+  push:
+    branches: [review/status-copy-workbench-20260916]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 0eecf1f5f776b8b3b9151f503ff7396b8715ec07
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Verify baseline and integration seams
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = 0eecf1f5f776b8b3b9151f503ff7396b8715ec07
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+          pnpm install --frozen-lockfile
+          pnpm --filter @aurevane/game-core typecheck
+          pnpm --filter @aurevane/game-core test
+          echo '=== COPY / EXHAUSTIVE HANDLERS ==='
+          git grep -n -E 'amplify|curse|case .apply-status.|case .barrier-change.' -- packages/game-core/src apps/web/src | head -120 || true
+          echo '=== REPEAT USE SCALING ==='
+          git grep -n -E 'effectiveness|scale.*Effect|scale.*effect' -- packages/game-core/src/combat | head -80 || true
+          git diff --exit-code
+          test -z "$(git status --porcelain)"
