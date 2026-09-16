@@ -33,10 +33,16 @@ jobs:
           from pathlib import Path
           p = Path('/tmp/mark-blind-green.py')
           s = p.read_text()
-          old = "replace('actions-legacy.ts', 'const existing = getStatus(state, recipientId, effect.statusId)', 'const existing = getStatus(state, recipientId, effect.statusId, actorId)')"
-          new = "replace('actions-legacy.ts', 'const oldStatus = getStatus(before, recipientId, effect.statusId)', 'const oldStatus = getStatus(before, recipientId, effect.statusId, actorId)')\nreplace('actions-legacy.ts', 'const newStatus = getStatus(nextState, recipientId, effect.statusId)', 'const newStatus = getStatus(nextState, recipientId, effect.statusId, actorId)')"
-          assert s.count(old) == 1
-          p.write_text(s.replace(old, new))
+          corrections = [
+              ("replace('actions-legacy.ts', 'const existing = getStatus(state, recipientId, effect.statusId)', 'const existing = getStatus(state, recipientId, effect.statusId, actorId)')",
+               "replace('actions-legacy.ts', 'const oldStatus = getStatus(before, recipientId, effect.statusId)', 'const oldStatus = getStatus(before, recipientId, effect.statusId, actorId)')\nreplace('actions-legacy.ts', 'const newStatus = getStatus(nextState, recipientId, effect.statusId)', 'const newStatus = getStatus(nextState, recipientId, effect.statusId, actorId)')"),
+              ("replace('actions-legacy.ts', 'const status = getStatus(nextState, recipientId, effect.statusId)!', 'const status = getStatus(nextState, recipientId, effect.statusId, actorId)!')",
+               "replace('actions-legacy.ts', 'const existingStatus = getStatus(state, recipientId, effect.statusId)', 'const existingStatus = getStatus(state, recipientId, effect.statusId, actorId)')\nreplace('actions-legacy.ts', 'const status = getStatus(nextState, recipientId, effect.statusId)', 'const status = getStatus(nextState, recipientId, effect.statusId, actorId)')"),
+          ]
+          for old, new in corrections:
+              assert s.count(old) == 1
+              s = s.replace(old, new)
+          p.write_text(s)
           PY
           python3 /tmp/mark-blind-green.py
           git diff --name-only
