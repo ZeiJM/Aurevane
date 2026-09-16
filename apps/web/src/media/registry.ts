@@ -159,8 +159,9 @@ const IMAGE_ASSETS = [
     decorative: false,
     alt: portrait.alt,
     src: portrait.src,
-    width: 96,
-    height: 96,
+    // The matching large HQ preview is available for the first identity.
+    width: index === 0 ? 400 : 96,
+    height: index === 0 ? 400 : 96,
   })),
   ...generatedStarterPortraits.slice(4).map((portrait) => ({
     id: portrait.id,
