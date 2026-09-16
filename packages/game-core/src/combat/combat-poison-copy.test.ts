@@ -230,7 +230,7 @@ describe('Curse Poison: explicit authored and persisted copy policy', () => {
     )
   })
   const malformed = [null, 0, 1, 'true', {}, [], NaN]
-  it.each(malformed)(
+  it.each(malformed.map((flag) => [flag]))(
     'rejects malformed authored copy permission %j at both action boundaries',
     (flag) => {
       const definition = poisonAction(flag)
@@ -239,18 +239,21 @@ describe('Curse Poison: explicit authored and persisted copy policy', () => {
       expect(() => executeCombatAction(world(), definition, TARGET, CONTENT)).toThrow()
     },
   )
-  it.each(malformed)('rejects malformed persisted Poison copy permission %j', (flag) => {
-    const state = poison(world())
-    const changed = {
-      ...state,
-      effectState: {
-        ...state.effectState!,
-        poison: state.effectState!.poison.map((entry) => ({ ...entry, curseCopyable: flag })),
-      },
-    } as unknown as CombatEncounterState
-    expect(validateCombatEncounterState(changed).length).toBeGreaterThan(0)
-    expect(() => cast(changed)).toThrow()
-  })
+  it.each(malformed.map((flag) => [flag]))(
+    'rejects malformed persisted Poison copy permission %j',
+    (flag) => {
+      const state = poison(world())
+      const changed = {
+        ...state,
+        effectState: {
+          ...state.effectState!,
+          poison: state.effectState!.poison.map((entry) => ({ ...entry, curseCopyable: flag })),
+        },
+      } as unknown as CombatEncounterState
+      expect(validateCombatEncounterState(changed).length).toBeGreaterThan(0)
+      expect(() => cast(changed)).toThrow()
+    },
+  )
 })
 
 describe('Curse Poison: real command and saved-state behavior', () => {
