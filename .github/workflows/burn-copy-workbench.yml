@@ -15,129 +15,151 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 4
+          ref: 15cb61ab7f4b308c6c0b93f1dc818522a3869d38
+          fetch-depth: 3
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Pin implementation recipe and exact valid RED source
+      - name: Correct test fixtures only
         shell: bash
         run: |
           set -euo pipefail
-          cp scripts/burn-copy-implementation.py /tmp/burn-copy-implementation.py
-          python3 <<'PY'
-          from pathlib import Path
-          path = Path('/tmp/burn-copy-implementation.py')
-          text = path.read_text()
-          old = '\n'.join([
-              "replace(",
-              "    dots,",
-              "    \"\"\"export interface CurrentBurnEffect {",
-              "  type: 'burn'",
-              "  recipient: CombatEffectRecipient",
-              "}\"\"\",",
-              "    \"\"\"export interface CurrentBurnEffect {",
-              "  type: 'burn'",
-              "  recipient: CombatEffectRecipient",
-              "  curseCopyable?: boolean",
-              "}",
-              "",
-              "export function validateCurrentBurnEffect(effect: { curseCopyable?: unknown }): void {",
-              "  if (effect.curseCopyable !== undefined && typeof effect.curseCopyable !== 'boolean') {",
-              "    throw new TypeError('Burn curseCopyable must be boolean when supplied.')",
-              "  }",
-              "}\"\"\",",
-              ")",
-          ])
-          new = '\n'.join([
-              "replace(",
-              "    dots,",
-              "    \"export function currentBurnInstance(\",",
-              "    \"\"\"export function validateCurrentBurnEffect(effect: { curseCopyable?: unknown }): void {",
-              "  if (effect.curseCopyable !== undefined && typeof effect.curseCopyable !== 'boolean') {",
-              "    throw new TypeError('Burn curseCopyable must be boolean when supplied.')",
-              "  }",
-              "}",
-              "",
-              "export function currentBurnInstance(\"\"\",",
-              ")",
-          ])
-          assert text.count(old) == 1, text.count(old)
-          text = text.replace(old, new)
-          wrong_instance = '  const nextInstance: CombatBurnInstance = {'
-          assert text.count(wrong_instance) == 2, text.count(wrong_instance)
-          text = text.replace(wrong_instance, '  const instance: CombatBurnInstance = {')
-          wrong_old_message = 'Burn state must contain one valid current-profile stage from 0 to 2 per target, sorted by target ID.'
-          actual_old_message = 'Burn state must contain one valid current-profile instance per target, sorted by target ID, with canonical stage 0 through 2.'
-          wrong_new_message = 'Burn state must contain one valid current-profile stage from 0 to 2 per target, sorted by target ID, with optional boolean copy policy.'
-          actual_new_message = 'Burn state must contain one valid current-profile instance per target, sorted by target ID, with canonical stage 0 through 2 and optional boolean copy policy.'
-          assert text.count(wrong_old_message) == 1, text.count(wrong_old_message)
-          assert text.count(wrong_new_message) == 1, text.count(wrong_new_message)
-          text = text.replace(wrong_old_message, actual_old_message).replace(wrong_new_message, actual_new_message)
-          wrong_poison = '\n'.join([
-              '  const poison = donorPoison?.curseCopyable === true',
-              '    ? { donor: donorPoison, previous: currentPoisonInstance(state, receiverId) ?? undefined }',
-              '    : undefined',
-          ])
-          actual_poison = '\n'.join([
-              '  const poison =',
-              '    donorPoison?.curseCopyable === true',
-              '      ? { donor: donorPoison, previous: currentPoisonInstance(state, receiverId) ?? undefined }',
-              '      : undefined',
-          ])
-          assert text.count(wrong_poison) == 2, text.count(wrong_poison)
-          text = text.replace(wrong_poison, actual_poison)
-          path.write_text(text)
-          PY
-          git fetch --depth=4 origin 15cb61ab7f4b308c6c0b93f1dc818522a3869d38
-          git checkout --detach 15cb61ab7f4b308c6c0b93f1dc818522a3869d38
-          test "$(git rev-parse HEAD)" = 15cb61ab7f4b308c6c0b93f1dc818522a3869d38
-          test "$(git ls-remote origin refs/heads/main | cut -f1)" = 3d8a4d25cb897d0f9ce4871c6972e5d7107d68b0
-          test "$(git ls-remote origin refs/heads/agent/combat-effect-taxonomy-rework | cut -f1)" = fde662e38f864dc8797d0dfdd82ba05f3411ad05
-          test "$(git ls-remote origin refs/heads/agent/combat-k4-burn-copy-fde662e | cut -f1)" = 15cb61ab7f4b308c6c0b93f1dc818522a3869d38
           corepack enable
           corepack prepare pnpm@11.17.0 --activate
           pnpm install --frozen-lockfile
-      - name: Implement and format Burn copying
-        run: |
-          python3 /tmp/burn-copy-implementation.py
-          pnpm exec prettier --write packages/game-core/src/combat/combat-effect-state.ts packages/game-core/src/combat/combat-dots.ts packages/game-core/src/combat/actions-legacy.ts packages/game-core/src/combat/combat-authoring-validation.ts packages/game-core/src/combat/combat-status-copy.ts
-          git diff --check
-          git diff --exit-code -- packages/game-core/src/combat/combat-burn-copy.test.ts
-      - name: Focused GREEN verification
-        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          path = Path('packages/game-core/src/combat/combat-burn-copy.test.ts')
+          text = path.read_text()
+          anchor = "import { validateCombatActionDefinition } from './combat-authoring-validation'"
+          assert text.count(anchor) == 1
+          text = text.replace(anchor, anchor + "\nimport { createStatDrivenCombatEncounterState } from './stat-driven-combat'")
+          anchor = "const TARGET = { kind: 'unit' as const, combatantId: 'target' }"
+          addition = """
+          const BURN_REMOVAL_STATUS: CombatStatusDefinition = {
+            id: 'burn',
+            version: 1,
+            maximumStacks: 1,
+            durationOwnerTurnStarts: 1,
+            damageTakenMultiplierBasisPoints: 10_000,
+          }
+          const DEFAULT_COPY_POLICY = Symbol('default-burn-copy-policy')
+          """
+          assert text.count(anchor) == 1
+          text = text.replace(anchor, anchor + addition)
+          old = """function applyBurn(
+  state: CombatEncounterState,
+  targetId: string,
+  copyable: unknown = true,
+  actionId = 'test.apply-burn',
+): CombatEncounterState {
+  return executeCombatAction(
+    state,
+    burnAction(copyable, actionId),"""
+          new = """function applyBurn(
+  state: CombatEncounterState,
+  targetId: string,
+  copyable: unknown = DEFAULT_COPY_POLICY,
+  actionId = 'test.apply-burn',
+): CombatEncounterState {
+  return executeCombatAction(
+    state,
+    burnAction(copyable === DEFAULT_COPY_POLICY ? true : copyable, actionId),"""
+          assert text.count(old) == 1
+          text = text.replace(old, new)
+          old = """function burn(
+  state: CombatEncounterState,
+  targetId = 'actor',
+  stage = 0,
+  copyable: unknown = true,"""
+          new = """function burn(
+  state: CombatEncounterState,
+  targetId = 'actor',
+  stage = 0,
+  copyable: unknown = DEFAULT_COPY_POLICY,"""
+          assert text.count(old) == 1
+          text = text.replace(old, new)
+          anchor = "function damageAction(): CombatActionDefinition {"
+          helper = """function withAccuracyProfiles(state: CombatEncounterState): CombatEncounterState {
+  return createStatDrivenCombatEncounterState(
+    state,
+    state.tactical.battle.combatants.map((unit) => ({
+      combatantId: unit.id,
+      provenance: { kind: 'scenario' as const, sourceId: `scenario:${unit.id}`, sourceRulesVersion: 2 },
+      accuracy: unit.id === 'actor' ? 0 : 5_000,
+      evasion: unit.id === 'target' ? 10_000 : 0,
+      armor: 0,
+      ward: 0,
+      jump: 0,
+      physicalPower: 30,
+      mysticPower: 30,
+    })),
+  )
+}
+
+"""
+          assert text.count(anchor) == 1
+          text = text.replace(anchor, helper + anchor)
+          old = """    const cleared = executeCombatAction(
+      targetTurn,
+      action,
+      { kind: 'unit', combatantId: 'target' },
+      CONTENT,
+    )"""
+          new = """    const cleared = executeCombatAction(
+      targetTurn,
+      action,
+      { kind: 'unit', combatantId: 'target' },
+      { statuses: [...CONTENT.statuses, BURN_REMOVAL_STATUS] },
+    )"""
+          assert text.count(old) == 1
+          text = text.replace(old, new)
+          old = "    const state = burn(world(1), 'actor', 2, true)"
+          new = "    const state = burn(withAccuracyProfiles(world(1)), 'actor', 2, true)"
+          assert text.count(old) == 1
+          text = text.replace(old, new)
+          path.write_text(text)
+          PY
+          pnpm exec prettier --write packages/game-core/src/combat/combat-burn-copy.test.ts
+          pnpm exec prettier --check packages/game-core/src/combat/combat-burn-copy.test.ts
+          pnpm exec eslint packages/game-core/src/combat/combat-burn-copy.test.ts
           pnpm --filter @aurevane/game-core typecheck
-          pnpm --filter @aurevane/game-core exec vitest run src/combat/combat-burn-copy.test.ts src/combat/combat-burn-rework.test.ts src/combat/combat-burn-backlash.test.ts src/combat/combat-status-copy.test.ts src/combat/combat-status-copy-publication.test.ts src/combat/combat-poison-copy.test.ts src/combat/combat-copy-provenance.test.ts src/combat/combat-effect-provenance-state.test.ts src/combat/combat-dot-rework.test.ts src/combat/combat-mark-blind.contract.test.ts
-      - name: Full repository verification
-        run: pnpm check
-      - name: Retain only the verified candidate
+          test "$(git diff --name-only)" = packages/game-core/src/combat/combat-burn-copy.test.ts
+          git diff --check
+      - name: Re-prove corrected behavioral RED
         shell: bash
         run: |
           set -euo pipefail
+          pnpm --filter @aurevane/game-core exec vitest run --exclude '**/combat-burn-copy.test.ts'
+          set +e
+          pnpm --filter @aurevane/game-core exec vitest run --reporter=json --outputFile=/tmp/burn-copy-red.json
+          outcome=$?
+          set -e
+          test "$outcome" -ne 0
           python3 <<'PY'
-          import subprocess
-          expected = {
-            'docs/COMBAT.md',
-            'packages/game-core/src/combat/actions-legacy.ts',
-            'packages/game-core/src/combat/combat-authoring-validation.ts',
-            'packages/game-core/src/combat/combat-dots.ts',
-            'packages/game-core/src/combat/combat-effect-state.ts',
-            'packages/game-core/src/combat/combat-status-copy.ts',
-          }
-          changed = set(subprocess.check_output(['git', 'diff', '--name-only'], text=True).splitlines())
-          assert changed == expected, changed
+          import json
+          from pathlib import Path
+          data = json.loads(Path('/tmp/burn-copy-red.json').read_text())
+          failures = [suite for suite in data['testResults'] if suite['status'] == 'failed']
+          assert failures and all(Path(suite['name']).name == 'combat-burn-copy.test.ts' for suite in failures), [(s['name'], s['status']) for s in failures]
+          assert data['numPassedTests'] >= 1712, data
+          assert data['numFailedTests'] > 0, data
+          print('CORRECTED_VALID_RED: prior core suite green; only Burn-copy feature assertions fail')
+          print('passed=', data['numPassedTests'], 'failed=', data['numFailedTests'], 'total=', data['numTotalTests'])
           PY
-          git diff --check
-          git diff --exit-code -- packages/game-core/src/combat/combat-burn-copy.test.ts
+      - name: Retain corrected test-only RED source
+        shell: bash
+        run: |
+          set -euo pipefail
           test "$(git ls-remote origin refs/heads/main | cut -f1)" = 3d8a4d25cb897d0f9ce4871c6972e5d7107d68b0
           test "$(git ls-remote origin refs/heads/agent/combat-effect-taxonomy-rework | cut -f1)" = fde662e38f864dc8797d0dfdd82ba05f3411ad05
           test "$(git ls-remote origin refs/heads/agent/combat-k4-burn-copy-fde662e | cut -f1)" = 15cb61ab7f4b308c6c0b93f1dc818522a3869d38
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add docs/COMBAT.md packages/game-core/src/combat/actions-legacy.ts packages/game-core/src/combat/combat-authoring-validation.ts packages/game-core/src/combat/combat-dots.ts packages/game-core/src/combat/combat-effect-state.ts packages/game-core/src/combat/combat-status-copy.ts
+          git add packages/game-core/src/combat/combat-burn-copy.test.ts
           git diff --cached --check
-          git commit -m 'feat(combat): copy Burn stage with pinned reapplication and K3 lineage'
+          git commit -m 'test(combat): correct Burn copy fixtures while preserving behavioral RED'
           git push origin HEAD:refs/heads/agent/combat-k4-burn-copy-fde662e
-          echo "VERIFIED_SOURCE_SHA=$(git rev-parse HEAD)"
-          echo "VERIFIED_SOURCE_TREE=$(git rev-parse HEAD^{tree})"
+          echo "CORRECTED_RED_SOURCE=$(git rev-parse HEAD)"
           git diff --exit-code
           test -z "$(git status --porcelain)"
