@@ -24,6 +24,15 @@ jobs:
         run: |
           set -euo pipefail
           cp scripts/poison-copy-implementation.py /tmp/poison-copy-implementation.py
+          python3 <<'PY'
+          from pathlib import Path
+          path = Path('/tmp/poison-copy-implementation.py')
+          text = path.read_text()
+          old = """      planCombatStatusCopies(state, actorId, target.combatantId, copyEffect, content).copies.length ===\n        0"""
+          new = """      planCombatStatusCopies(state, actorId, target.combatantId, copyEffect, content).copies\n        .length === 0"""
+          assert text.count(old) == 1
+          path.write_text(text.replace(old, new))
+          PY
           git fetch --depth=4 origin 22705eb75ebad809586e570c103b73b46fe73be2
           git checkout --detach 22705eb75ebad809586e570c103b73b46fe73be2
           test "$(git rev-parse HEAD)" = 22705eb75ebad809586e570c103b73b46fe73be2
