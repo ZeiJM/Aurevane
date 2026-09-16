@@ -90,7 +90,9 @@ describe('P4.K4 clone-aware Recruit AI projected utility', () => {
       ),
     ).toBe(16)
     expect(utility()?.(evaluation([]), state(), curse)).toBe(0)
-    expect(utility()?.(evaluation([copyProjection('enemy', 'burn:2', 'burn:2')]), state(), curse)).toBe(0)
+    expect(
+      utility()?.(evaluation([copyProjection('enemy', 'burn:2', 'burn:2')]), state(), curse),
+    ).toBe(0)
   })
 
   it('combines clone utility with ordinary projected damage without changing its existing sign', () => {
