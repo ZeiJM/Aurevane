@@ -124,18 +124,6 @@
     linear-gradient(90deg, rgba(5, 8, 12, 0.14), transparent 58%, rgba(5, 8, 12, 0.28));
 }
 
-.heroMotto {
-  position: absolute;
-  right: clamp(0.9rem, 2.4vw, 1.8rem);
-  bottom: clamp(0.75rem, 2vw, 1.35rem);
-  max-width: 18rem;
-  color: rgba(245, 231, 201, 0.72);
-  font: 650 clamp(0.5rem, 0.9vw, 0.64rem) / 1.4 var(--av-font-mono);
-  letter-spacing: 0.16em;
-  text-align: right;
-  text-transform: uppercase;
-}
-
 .body {
   width: min(100%, 58rem);
   margin: 0 auto;
@@ -231,13 +219,6 @@
 
   .hero {
     min-height: 13rem;
-  }
-
-  .heroMotto {
-    left: 0.85rem;
-    right: 0.85rem;
-    max-width: none;
-    text-align: left;
   }
 
   .body {
