@@ -54,46 +54,50 @@ jobs:
           literal = "effectType: 'copy-statuses',"
           assert text.count(literal) == 2
           text = text.replace(literal, "effectType: 'copy-statuses' as const,")
-          old = """  const effectState = normalizeCombatEffectState(state.effectState)
-  const nextPoison = poison
-    ? {
-        targetCombatantId: receiverId,
-        sourceCombatantId: actorId,
-        sourceActionId: actionId,
-        profileVersion: poison.donor.profileVersion,
-        movementRemainder: poison.previous?.movementRemainder ?? poison.donor.movementRemainder,
-        curseCopyable: true as const,
-      }
-    : undefined
-  const nextEffectState = nextPoison
-    ? {
-        ...effectState,
-        poison: [
-          ...effectState.poison.filter((entry) => entry.targetCombatantId !== receiverId),
-          nextPoison,
-        ].sort((left, right) => left.targetCombatantId.localeCompare(right.targetCombatantId)),
-      }
-    : effectState"""
-          new = """  const nextPoison = poison
-    ? {
-        targetCombatantId: receiverId,
-        sourceCombatantId: actorId,
-        sourceActionId: actionId,
-        profileVersion: poison.donor.profileVersion,
-        movementRemainder: poison.previous?.movementRemainder ?? poison.donor.movementRemainder,
-        curseCopyable: true as const,
-      }
-    : undefined
-  const effectState = nextPoison ? normalizeCombatEffectState(state.effectState) : undefined
-  const nextEffectState = nextPoison && effectState
-    ? {
-        ...effectState,
-        poison: [
-          ...effectState.poison.filter((entry) => entry.targetCombatantId !== receiverId),
-          nextPoison,
-        ].sort((left, right) => left.targetCombatantId.localeCompare(right.targetCombatantId)),
-      }
-    : state.effectState"""
+          old = '\n'.join([
+              '  const effectState = normalizeCombatEffectState(state.effectState)',
+              '  const nextPoison = poison',
+              '    ? {',
+              '        targetCombatantId: receiverId,',
+              '        sourceCombatantId: actorId,',
+              '        sourceActionId: actionId,',
+              '        profileVersion: poison.donor.profileVersion,',
+              '        movementRemainder: poison.previous?.movementRemainder ?? poison.donor.movementRemainder,',
+              '        curseCopyable: true as const,',
+              '      }',
+              '    : undefined',
+              '  const nextEffectState = nextPoison',
+              '    ? {',
+              '        ...effectState,',
+              '        poison: [',
+              '          ...effectState.poison.filter((entry) => entry.targetCombatantId !== receiverId),',
+              '          nextPoison,',
+              '        ].sort((left, right) => left.targetCombatantId.localeCompare(right.targetCombatantId)),',
+              '      }',
+              '    : effectState',
+          ])
+          new = '\n'.join([
+              '  const nextPoison = poison',
+              '    ? {',
+              '        targetCombatantId: receiverId,',
+              '        sourceCombatantId: actorId,',
+              '        sourceActionId: actionId,',
+              '        profileVersion: poison.donor.profileVersion,',
+              '        movementRemainder: poison.previous?.movementRemainder ?? poison.donor.movementRemainder,',
+              '        curseCopyable: true as const,',
+              '      }',
+              '    : undefined',
+              '  const effectState = nextPoison ? normalizeCombatEffectState(state.effectState) : undefined',
+              '  const nextEffectState = nextPoison && effectState',
+              '    ? {',
+              '        ...effectState,',
+              '        poison: [',
+              '          ...effectState.poison.filter((entry) => entry.targetCombatantId !== receiverId),',
+              '          nextPoison,',
+              '        ].sort((left, right) => left.targetCombatantId.localeCompare(right.targetCombatantId)),',
+              '      }',
+              '    : state.effectState',
+          ])
           assert text.count(old) == 1
           path.write_text(text.replace(old, new))
           PY
