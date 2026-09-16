@@ -5,7 +5,7 @@ def replace(path: str, old: str, new: str, count: int = 1) -> None:
     file = Path(path)
     text = file.read_text()
     actual = text.count(old)
-    assert actual == count, (path, old[:120], actual, count)
+    assert actual == count, (path, old[:160], actual, count)
     file.write_text(text.replace(old, new))
 
 
@@ -35,21 +35,14 @@ replace(
 dots = 'packages/game-core/src/combat/combat-dots.ts'
 replace(
     dots,
-    """export interface CurrentBurnEffect {
-  type: 'burn'
-  recipient: CombatEffectRecipient
-}""",
-    """export interface CurrentBurnEffect {
-  type: 'burn'
-  recipient: CombatEffectRecipient
-  curseCopyable?: boolean
-}
-
-export function validateCurrentBurnEffect(effect: { curseCopyable?: unknown }): void {
+    "export function currentBurnInstance(",
+    """export function validateCurrentBurnEffect(effect: { curseCopyable?: unknown }): void {
   if (effect.curseCopyable !== undefined && typeof effect.curseCopyable !== 'boolean') {
     throw new TypeError('Burn curseCopyable must be boolean when supplied.')
   }
-}""",
+}
+
+export function currentBurnInstance(""",
 )
 replace(
     dots,
@@ -69,17 +62,11 @@ replace(
 )
 replace(
     dots,
-    """  sourceActionId: string,
-  curseCopyable?: boolean,
-): CombatEncounterState {
+    """  const effectState = normalizeCombatEffectState(state.effectState)
+  const instance: CombatBurnInstance = {""",
+    """  validateCurrentBurnEffect({ curseCopyable })
   const effectState = normalizeCombatEffectState(state.effectState)
-  const nextInstance: CombatBurnInstance = {""",
-    """  sourceActionId: string,
-  curseCopyable?: boolean,
-): CombatEncounterState {
-  validateCurrentBurnEffect({ curseCopyable })
-  const effectState = normalizeCombatEffectState(state.effectState)
-  const nextInstance: CombatBurnInstance = {""",
+  const instance: CombatBurnInstance = {""",
 )
 replace(
     dots,
@@ -104,9 +91,9 @@ replace(
 replace(
     dots,
     """          message:
-            'Burn state must contain one valid current-profile stage from 0 to 2 per target, sorted by target ID.',""",
+            'Burn state must contain one valid current-profile instance per target, sorted by target ID, with canonical stage 0 through 2.',""",
     """          message:
-            'Burn state must contain one valid current-profile stage from 0 to 2 per target, sorted by target ID, with optional boolean copy policy.',""",
+            'Burn state must contain one valid current-profile instance per target, sorted by target ID, with canonical stage 0 through 2 and optional boolean copy policy.',""",
     1,
 )
 
@@ -139,9 +126,17 @@ replace(
 )
 replace(
     legacy,
-    "    if (effect.type === 'poison') validateCurrentPoisonEffect(effect)",
-    "    if (effect.type === 'poison') validateCurrentPoisonEffect(effect)\n    if (effect.type === 'burn') validateCurrentBurnEffect(effect)",
+    """    if (effect.type === 'poison') validateCurrentPoisonEffect(effect)
+    if (effect.type === 'bleed') validateCurrentBleedEffect(effect)""",
+    """    if (effect.type === 'poison') validateCurrentPoisonEffect(effect)
+    if (effect.type === 'burn') validateCurrentBurnEffect(effect)
+    if (effect.type === 'bleed') validateCurrentBleedEffect(effect)""",
     1,
+)
+replace(
+    legacy,
+    "return plan.copies.length === 0 && !plan.poison",
+    "return plan.copies.length === 0 && !plan.poison && !plan.burn",
 )
 
 validation = 'packages/game-core/src/combat/combat-authoring-validation.ts'
@@ -152,8 +147,11 @@ replace(
 )
 replace(
     validation,
-    "    if (effect.type === 'poison') validateCurrentPoisonEffect(effect)",
-    "    if (effect.type === 'poison') validateCurrentPoisonEffect(effect)\n    if (effect.type === 'burn') validateCurrentBurnEffect(effect)",
+    """    if (effect.type === 'poison') validateCurrentPoisonEffect(effect)
+    if (effect.type === 'bleed') validateCurrentBleedEffect(effect)""",
+    """    if (effect.type === 'poison') validateCurrentPoisonEffect(effect)
+    if (effect.type === 'burn') validateCurrentBurnEffect(effect)
+    if (effect.type === 'bleed') validateCurrentBleedEffect(effect)""",
 )
 
 copy = 'packages/game-core/src/combat/combat-status-copy.ts'
@@ -193,17 +191,20 @@ replace(
 )
 replace(
     copy,
-    """  const poison = donorPoison?.curseCopyable === true
-    ? { donor: donorPoison, previous: currentPoisonInstance(state, receiverId) ?? undefined }
-    : undefined
+    """  const poison =
+    donorPoison?.curseCopyable === true
+      ? { donor: donorPoison, previous: currentPoisonInstance(state, receiverId) ?? undefined }
+      : undefined
   return { receiverId, copies, poison }""",
-    """  const poison = donorPoison?.curseCopyable === true
-    ? { donor: donorPoison, previous: currentPoisonInstance(state, receiverId) ?? undefined }
-    : undefined
+    """  const poison =
+    donorPoison?.curseCopyable === true
+      ? { donor: donorPoison, previous: currentPoisonInstance(state, receiverId) ?? undefined }
+      : undefined
   const donorBurn = effect.mode === 'curse' ? currentBurnInstance(state, donorId) : null
-  const burn = donorBurn?.curseCopyable === true
-    ? { donor: donorBurn, previous: currentBurnInstance(state, receiverId) ?? undefined }
-    : undefined
+  const burn =
+    donorBurn?.curseCopyable === true
+      ? { donor: donorBurn, previous: currentBurnInstance(state, receiverId) ?? undefined }
+      : undefined
   return { receiverId, copies, poison, burn }""",
 )
 replace(
@@ -318,11 +319,15 @@ replace(
     """  if (!poison) return { ...after, statusState }
   const provenance = createCombatEffectInstanceProvenance({""",
     """  if (!poison && !burn) return { ...after, statusState }
-  const poisonProvenance = poison ? createCombatEffectInstanceProvenance({""",
+  const poisonProvenance = poison
+    ? createCombatEffectInstanceProvenance({""",
 )
 replace(
     copy,
-    """    copyOrdinal: copies.length,
+    """    action: context.provenance,
+    targetCombatantId: receiverId,
+    effectOrdinal: 0,
+    copyOrdinal: copies.length,
     createdRound: before.tactical.battle.round,
     createdTurn: before.tactical.battle.turnNumber,
     copiedFromInstanceId: poison.donor.provenance?.instanceId,
@@ -341,22 +346,28 @@ replace(
       ),
     },
   }""",
-    """    copyOrdinal: copies.length,
-    createdRound: before.tactical.battle.round,
-    createdTurn: before.tactical.battle.turnNumber,
-    copiedFromInstanceId: poison.donor.provenance?.instanceId,
-    inheritedFromInstanceId: poison.previous?.provenance?.instanceId,
-  }) : undefined
-  const burnProvenance = burn ? createCombatEffectInstanceProvenance({
-    action: context.provenance,
-    targetCombatantId: receiverId,
-    effectOrdinal: 0,
-    copyOrdinal: copies.length + (poison ? 1 : 0),
-    createdRound: before.tactical.battle.round,
-    createdTurn: before.tactical.battle.turnNumber,
-    copiedFromInstanceId: burn.donor.provenance?.instanceId,
-    inheritedFromInstanceId: burn.previous?.provenance?.instanceId,
-  }) : undefined
+    """        action: context.provenance,
+        targetCombatantId: receiverId,
+        effectOrdinal: 0,
+        copyOrdinal: copies.length,
+        createdRound: before.tactical.battle.round,
+        createdTurn: before.tactical.battle.turnNumber,
+        copiedFromInstanceId: poison.donor.provenance?.instanceId,
+        inheritedFromInstanceId: poison.previous?.provenance?.instanceId,
+      })
+    : undefined
+  const burnProvenance = burn
+    ? createCombatEffectInstanceProvenance({
+        action: context.provenance,
+        targetCombatantId: receiverId,
+        effectOrdinal: 0,
+        copyOrdinal: copies.length + (poison ? 1 : 0),
+        createdRound: before.tactical.battle.round,
+        createdTurn: before.tactical.battle.turnNumber,
+        copiedFromInstanceId: burn.donor.provenance?.instanceId,
+        inheritedFromInstanceId: burn.previous?.provenance?.instanceId,
+      })
+    : undefined
   const effectState = normalizeCombatEffectState(after.effectState)
   return {
     ...after,
@@ -379,11 +390,6 @@ replace(
         : effectState.burn,
     },
   }""",
-)
-replace(
-    legacy,
-    "return plan.copies.length === 0 && !plan.poison",
-    "return plan.copies.length === 0 && !plan.poison && !plan.burn",
 )
 
 docs = Path('docs/COMBAT.md')
