@@ -11,8 +11,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 01ff5307478bb06f6fd35aa6442070afb237379d
-          fetch-depth: 0
+          ref: 428829cc741862b38143249bf9af37aa011c751a
+          fetch-depth: 1
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -21,19 +21,31 @@ jobs:
           corepack enable
           corepack prepare pnpm@11.17.0 --activate
           pnpm install --frozen-lockfile
-      - name: Prepare only the test-first source
+      - name: Correct only draft test fixtures
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = 01ff5307478bb06f6fd35aa6442070afb237379d
-          node -e 'if(require("./apps/web/vercel.json").git.deploymentEnabled["**"] !== false) process.exit(1)'
-          test ! -e packages/game-core/src/combat/combat-mark-blind.contract.test.ts
-          git show 463199148555ee662da2fc22a088b9f8f76a5b85:.github/mark-blind-contract.txt > packages/game-core/src/combat/combat-mark-blind.contract.test.ts
+          test "$(git rev-parse HEAD)" = 428829cc741862b38143249bf9af37aa011c751a
+          python3 <<'PY'
+          from pathlib import Path
+          p = Path('packages/game-core/src/combat/combat-mark-blind.contract.test.ts')
+          s = p.read_text()
+          replacements = [
+              ('  endCombatTurn,\n', '  endCombatTurn as commitEndCombatTurn,\n'),
+              ('createPendingBattle, startBattle', 'createPendingBattle, selectFinalFacing, startBattle'),
+              ('      before: 0,\n      after: 1,', "      before: 'none',\n      after: `${MARK.id}:1`,"),
+          ]
+          for old, new in replacements:
+              assert s.count(old) == 1, repr(old)
+              s = s.replace(old, new)
+          s += '''\n// The public turn transition requires an explicit final-facing selection.\nfunction endCombatTurn(state: CombatEncounterState, content: CombatContentCatalog) {\n  return commitEndCombatTurn({ ...state, tactical: { ...state.tactical,\n    battle: selectFinalFacing(state.tactical.battle, 'east').state,\n  } }, content)\n}\n'''
+          p.write_text(s)
+          PY
           pnpm exec prettier --write packages/game-core/src/combat/combat-mark-blind.contract.test.ts
           pnpm exec eslint packages/game-core/src/combat/combat-mark-blind.contract.test.ts --max-warnings=0
           pnpm --filter @aurevane/game-core typecheck
           pnpm format:check
-      - name: Execute and classify behavioral RED
+      - name: Execute assertion-only RED against unchanged production
         shell: bash
         run: |
           set -euo pipefail
@@ -51,27 +63,27 @@ jobs:
             for (const test of suite.assertionResults) {
               if (test.status !== 'failed') continue
               failures++
-              console.log('RED:', test.fullName)
-              console.log(test.failureMessages.join('\n'))
+              console.log('RED:', test.fullName, test.failureMessages.map(m => m.split('\n')[0]).join('; '))
+              if (!test.failureMessages.every(m => m.startsWith('AssertionError:'))) throw new Error('Non-assertion failure requires fixture classification')
             }
           }
-          console.log('RED_TOTALS', JSON.stringify({ tests: r.numTotalTests, passed: r.numPassedTests, failed: r.numFailedTests, failures, suites: r.numTotalTestSuites }))
+          console.log('RED_TOTALS', JSON.stringify({ tests: r.numTotalTests, passed: r.numPassedTests, failed: r.numFailedTests, failures }))
           if (failures < 1 || failures !== r.numFailedTests || r.numPassedTests < 1483) throw new Error('RED classification incomplete')
           JS
-      - name: Retain formatted test-only RED without workbench files
+      - name: Retain corrected source-only RED as a normal fast-forward
         shell: bash
         run: |
           set -euo pipefail
           test "$(git ls-remote origin refs/heads/main | cut -f1)" = 3d8a4d25cb897d0f9ce4871c6972e5d7107d68b0
           test "$(git ls-remote origin refs/heads/agent/combat-effect-taxonomy-rework | cut -f1)" = 01ff5307478bb06f6fd35aa6442070afb237379d
-          test -z "$(git ls-remote origin refs/heads/review/mark-blind-red-source-20260915)"
-          git diff --exit-code
+          test "$(git ls-remote origin refs/heads/review/mark-blind-red-source-20260915 | cut -f1)" = 428829cc741862b38143249bf9af37aa011c751a
+          test "$(git diff --name-only)" = packages/game-core/src/combat/combat-mark-blind.contract.test.ts
+          git diff --check
           git add packages/game-core/src/combat/combat-mark-blind.contract.test.ts
-          test "$(git diff --cached --name-only)" = packages/game-core/src/combat/combat-mark-blind.contract.test.ts
           git config user.name 'AUREVANE coding agent'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'test(combat): define source-specific Mark and non-stacking Blind'
+          git commit -m 'test(combat): use legal final facing and existing status projection shape'
           git push origin HEAD:refs/heads/review/mark-blind-red-source-20260915
           echo "RED_COMMIT=$(git rev-parse HEAD)"
           echo "RED_TREE=$(git rev-parse HEAD^{tree})"
-          git status --porcelain
+          test -z "$(git status --porcelain)"
