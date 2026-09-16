@@ -1,6 +1,10 @@
 import { terrainOverlayAiUtility, terrainOverlayAt } from './terrain-overlays'
 import { combatStatusDetails } from './status-content'
-import type { CombatActionEvaluation, CombatTargetSelection } from './actions'
+import type {
+  CombatActionEvaluation,
+  CombatEffectDefinition,
+  CombatTargetSelection,
+} from './actions'
 import { readBattleAuthorityCombatBuildSnapshot } from './battle-authority-build-snapshot'
 import { resolveEssenceForBuild } from './essence'
 import { resolveMatureSkillVersion, type MatureSkillDefinition } from './mature-skills'
@@ -172,7 +176,7 @@ function buildSkillCandidates(
         // action difficulty adjustment so higher difficulties do not suppress Skills.
         definition.ai.baseUtility +
         (profile.attackUtility - RECRUIT_EASY_PROFILE.attackUtility) +
-        projectedEffectUtility(evaluated.evaluation, state) +
+        projectedCombatEffectUtility(evaluated.evaluation, state, definition.effects) +
         terrainOverlayAiUtility(state, evaluated.evaluation) +
         resonanceUtility,
       stableKey: `${definition.id}:${targetKey(target)}`,
@@ -196,10 +200,12 @@ function targetSelections(
     .map((tile) => ({ kind: 'tile' as const, position: { ...tile.position } }))
 }
 
-function projectedEffectUtility(
+export function projectedCombatEffectUtility(
   evaluation: CombatActionEvaluation,
   state: StatDrivenCombatEncounterState,
+  effects: readonly CombatEffectDefinition[],
 ): number {
+  const copyMode = effects.find((effect) => effect.type === 'copy-statuses')?.mode
   const actorTeam = state.tactical.battle.combatants.find(
     (unit) => unit.id === evaluation.actorId,
   )?.teamId
@@ -210,6 +216,12 @@ function projectedEffectUtility(
     const sign = ally ? 1 : -1
     if (typeof effect.before !== 'number' || typeof effect.after !== 'number') {
       if (effect.before === effect.after) return utility
+      if (effect.effectType === 'copy-statuses') {
+        if (!copyMode) return utility
+        // Clone projections already passed authoritative legality/eligibility. Reuse the
+        // ordinary status utility magnitude and score only the actual projected recipient.
+        return utility + (copyMode === 'amplify' ? 8 * sign : -8 * sign)
+      }
       if (effect.effectType === 'remove-status')
         return utility + (effect.before === 'none' ? 0 : 8 * sign)
       if (effect.effectType === 'apply-status' && typeof effect.after === 'string') {
