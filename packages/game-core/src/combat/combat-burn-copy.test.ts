@@ -153,7 +153,11 @@ function applyBurn(
   ).state
 }
 
-function withStage(state: CombatEncounterState, targetId: string, stage: number): CombatEncounterState {
+function withStage(
+  state: CombatEncounterState,
+  targetId: string,
+  stage: number,
+): CombatEncounterState {
   const effectState = normalizeCombatEffectState(state.effectState)
   return {
     ...state,
@@ -201,11 +205,7 @@ function context(
   }
 }
 
-function cast(
-  state: CombatEncounterState,
-  ctx?: CombatResolutionContext,
-  action = copyAction(),
-) {
+function cast(state: CombatEncounterState, ctx?: CombatResolutionContext, action = copyAction()) {
   return executeCombatAction(state, action, TARGET, CONTENT, ctx)
 }
 
@@ -242,7 +242,11 @@ function origin(targetId: string, actionId = 'test.origin-burn') {
   })
 }
 
-function withProvenance(state: CombatEncounterState, targetId: string, provenance = origin(targetId)) {
+function withProvenance(
+  state: CombatEncounterState,
+  targetId: string,
+  provenance = origin(targetId),
+) {
   const effectState = normalizeCombatEffectState(state.effectState)
   return {
     ...state,
@@ -274,13 +278,22 @@ describe('Curse Burn: explicit authored and persisted copy policy', () => {
   it.each([true, false])('accepts explicit authored copy policy %s', (flag) => {
     expect(() => validateCombatActionDefinition(burnAction(flag))).not.toThrow()
     const state = applyBurn(world(), 'actor', flag)
-    expect(instance(state).curseCopyable).toBe(flag)
+    expect(
+      (instance(state) as ReturnType<typeof instance> & { curseCopyable?: boolean }).curseCopyable,
+    ).toBe(flag)
     expect(validateCombatEncounterState(state)).toEqual([])
   })
 
   it.each(malformedPolicies)('rejects malformed authored copy policy %j', (value) => {
     expect(() => validateCombatActionDefinition(burnAction(value))).toThrow(/curseCopyable/i)
-    expect(() => executeCombatAction(world(), burnAction(value), { kind: 'unit', combatantId: 'actor' }, CONTENT)).toThrow(/curseCopyable/i)
+    expect(() =>
+      executeCombatAction(
+        world(),
+        burnAction(value),
+        { kind: 'unit', combatantId: 'actor' },
+        CONTENT,
+      ),
+    ).toThrow(/curseCopyable/i)
   })
 
   it('keeps historical omitted Burn state valid and non-copyable', () => {
@@ -308,7 +321,10 @@ describe('Curse Burn: explicit authored and persisted copy policy', () => {
   it('unflagged reapplication removes a previous explicit opt-in and restarts Burn normally', () => {
     const state = burn(world(), 'actor', 2, true)
     const reapplied = applyBurn(state, 'actor', undefined, 'test.reapply-unflagged')
-    expect(instance(reapplied)).toMatchObject({ stage: 0, sourceActionId: 'test.reapply-unflagged' })
+    expect(instance(reapplied)).toMatchObject({
+      stage: 0,
+      sourceActionId: 'test.reapply-unflagged',
+    })
     expect(instance(reapplied)).not.toHaveProperty('curseCopyable')
     expect(evaluateCombatAction(reapplied, copyAction(), TARGET, CONTENT).legal).toBe(false)
   })
@@ -329,40 +345,56 @@ describe('Curse Burn: current stage and replacement semantics', () => {
     expect(JSON.stringify(state)).toBe(before)
   })
 
-  it.each([0, 1, 2])('restarts an already-burning target at stage zero when donor is stage %s', (stage) => {
-    const state = burn(burn(world(), 'actor', stage), 'target', 2, false, 'test.existing-target-burn')
-    const old = instance(state, 'target')
-    const result = cast(state)
-    expect(instance(result.state, 'target')).toMatchObject({
-      stage: 0,
-      sourceCombatantId: 'actor',
-      sourceActionId: 'test.curse-burn',
-      curseCopyable: true,
-    })
-    expect(instance(result.state, 'target')).not.toEqual(old)
-    expect(instance(result.state)).toEqual(instance(state))
-  })
+  it.each([0, 1, 2])(
+    'restarts an already-burning target at stage zero when donor is stage %s',
+    (stage) => {
+      const state = burn(
+        burn(world(), 'actor', stage),
+        'target',
+        2,
+        false,
+        'test.existing-target-burn',
+      )
+      const old = instance(state, 'target')
+      const result = cast(state)
+      expect(instance(result.state, 'target')).toMatchObject({
+        stage: 0,
+        sourceCombatantId: 'actor',
+        sourceActionId: 'test.curse-burn',
+        curseCopyable: true,
+      })
+      expect(instance(result.state, 'target')).not.toEqual(old)
+      expect(instance(result.state)).toEqual(instance(state))
+    },
+  )
 
   it.each([
     [0, 4, 1],
     [1, 3, 2],
     [2, 2, null],
-  ] as const)('copied stage %s deals %s on its next target end-turn and advances to %s', (stage, damage, nextStage) => {
-    let state = cast(burn(world(), 'actor', stage)).state
-    state = advanceTo(state, 'target')
-    const hpBefore = state.tactical.battle.combatants.find((unit) => unit.id === 'target')!.hp
-    const transition = advanceCurrentBurnEndTurn(state, 'target')
-    expect(transition.damage).toBe(damage)
-    expect(transition.state.tactical.battle.combatants.find((unit) => unit.id === 'target')!.hp).toBe(hpBefore)
-    const next = currentBurnInstance(transition.state, 'target')
-    expect(nextStage === null ? next : next?.stage).toBe(nextStage)
-  })
+  ] as const)(
+    'copied stage %s deals %s on its next target end-turn and advances to %s',
+    (stage, damage, nextStage) => {
+      let state = cast(burn(world(), 'actor', stage)).state
+      state = advanceTo(state, 'target')
+      const hpBefore = state.tactical.battle.combatants.find((unit) => unit.id === 'target')!.hp
+      const transition = advanceCurrentBurnEndTurn(state, 'target')
+      expect(transition.damage).toBe(damage)
+      expect(
+        transition.state.tactical.battle.combatants.find((unit) => unit.id === 'target')!.hp,
+      ).toBe(hpBefore)
+      const next = currentBurnInstance(transition.state, 'target')
+      expect(nextStage === null ? next : next?.stage).toBe(nextStage)
+    },
+  )
 
   it('copying Burn causes no immediate Burn damage or backlash', () => {
     const state = burn(world(), 'actor', 1)
     const before = state.tactical.battle.combatants.map((unit) => ({ id: unit.id, hp: unit.hp }))
     const result = cast(state)
-    expect(result.state.tactical.battle.combatants.map((unit) => ({ id: unit.id, hp: unit.hp }))).toEqual(before)
+    expect(
+      result.state.tactical.battle.combatants.map((unit) => ({ id: unit.id, hp: unit.hp })),
+    ).toEqual(before)
     expect(result.events.filter((event) => event.event === 'damage_applied')).toEqual([])
   })
 
@@ -395,7 +427,12 @@ describe('Curse Burn: current stage and replacement semantics', () => {
       effects: [{ type: 'remove-status', recipient: 'primary-unit', statusIds: ['burn'] }],
     }
     const targetTurn = advanceTo(copied, 'target')
-    const cleared = executeCombatAction(targetTurn, action, { kind: 'unit', combatantId: 'target' }, CONTENT)
+    const cleared = executeCombatAction(
+      targetTurn,
+      action,
+      { kind: 'unit', combatantId: 'target' },
+      CONTENT,
+    )
     expect(currentBurnInstance(cleared.state, 'target')).toBeNull()
   })
 })
@@ -421,7 +458,9 @@ describe('Curse Burn: legality, accuracy and immutability', () => {
     const action = copyAction('per-target', { spendsAction: false, mp: 3 })
     const draw = advanceBattleRng(state.tactical.battle.rng)
     const result = executeCombatAction(state, action, TARGET, CONTENT)
-    expect(result.events).toContainEqual(expect.objectContaining({ event: 'combat_accuracy_resolved', hit: false }))
+    expect(result.events).toContainEqual(
+      expect.objectContaining({ event: 'combat_accuracy_resolved', hit: false }),
+    )
     expect(currentBurnInstance(result.state, 'target')).toBeNull()
     expect(instance(result.state)).toEqual(instance(state))
     expect(result.state.tactical.battle.combatants.find((unit) => unit.id === 'actor')?.mp).toBe(17)
@@ -440,7 +479,11 @@ describe('Curse Burn: legality, accuracy and immutability', () => {
     const preview = evaluateCombatAction(state, copyAction(), TARGET, CONTENT)
     expect(preview.legal).toBe(true)
     expect(preview.projectedEffects).toContainEqual(
-      expect.objectContaining({ effectType: 'copy-statuses', combatantId: 'target', after: 'burn:2' }),
+      expect.objectContaining({
+        effectType: 'copy-statuses',
+        combatantId: 'target',
+        after: 'burn:2',
+      }),
     )
     expect(JSON.stringify(state)).toBe(before)
   })
@@ -570,7 +613,13 @@ describe('Curse Burn: K3 lineage and copy ordering', () => {
     expect(status?.provenance?.copyOrdinal).toBe(0)
     expect(poison?.provenance?.copyOrdinal).toBe(1)
     expect(instance(result.state, 'target').provenance?.copyOrdinal).toBe(2)
-    expect(new Set([status?.provenance?.instanceId, poison?.provenance?.instanceId, instance(result.state, 'target').provenance?.instanceId]).size).toBe(3)
+    expect(
+      new Set([
+        status?.provenance?.instanceId,
+        poison?.provenance?.instanceId,
+        instance(result.state, 'target').provenance?.instanceId,
+      ]).size,
+    ).toBe(3)
   })
 
   it('round-trips copied Burn provenance and stage through JSON', () => {
