@@ -15,111 +15,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 15cb61ab7f4b308c6c0b93f1dc818522a3869d38
-          fetch-depth: 3
+          fetch-depth: 4
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Correct test fixtures only
+      - name: Pin fixture script and exact test-only source
         shell: bash
         run: |
           set -euo pipefail
+          cp scripts/burn-copy-test-fixtures.py /tmp/burn-copy-test-fixtures.py
+          git fetch --depth=4 origin 15cb61ab7f4b308c6c0b93f1dc818522a3869d38
+          git checkout --detach 15cb61ab7f4b308c6c0b93f1dc818522a3869d38
+          test "$(git rev-parse HEAD)" = 15cb61ab7f4b308c6c0b93f1dc818522a3869d38
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = 3d8a4d25cb897d0f9ce4871c6972e5d7107d68b0
+          test "$(git ls-remote origin refs/heads/agent/combat-effect-taxonomy-rework | cut -f1)" = fde662e38f864dc8797d0dfdd82ba05f3411ad05
+          test "$(git ls-remote origin refs/heads/agent/combat-k4-burn-copy-fde662e | cut -f1)" = 15cb61ab7f4b308c6c0b93f1dc818522a3869d38
           corepack enable
           corepack prepare pnpm@11.17.0 --activate
           pnpm install --frozen-lockfile
-          python3 <<'PY'
-          from pathlib import Path
-          path = Path('packages/game-core/src/combat/combat-burn-copy.test.ts')
-          text = path.read_text()
-          anchor = "import { validateCombatActionDefinition } from './combat-authoring-validation'"
-          assert text.count(anchor) == 1
-          text = text.replace(anchor, anchor + "\nimport { createStatDrivenCombatEncounterState } from './stat-driven-combat'")
-          anchor = "const TARGET = { kind: 'unit' as const, combatantId: 'target' }"
-          addition = """
-          const BURN_REMOVAL_STATUS: CombatStatusDefinition = {
-            id: 'burn',
-            version: 1,
-            maximumStacks: 1,
-            durationOwnerTurnStarts: 1,
-            damageTakenMultiplierBasisPoints: 10_000,
-          }
-          const DEFAULT_COPY_POLICY = Symbol('default-burn-copy-policy')
-          """
-          assert text.count(anchor) == 1
-          text = text.replace(anchor, anchor + addition)
-          old = """function applyBurn(
-  state: CombatEncounterState,
-  targetId: string,
-  copyable: unknown = true,
-  actionId = 'test.apply-burn',
-): CombatEncounterState {
-  return executeCombatAction(
-    state,
-    burnAction(copyable, actionId),"""
-          new = """function applyBurn(
-  state: CombatEncounterState,
-  targetId: string,
-  copyable: unknown = DEFAULT_COPY_POLICY,
-  actionId = 'test.apply-burn',
-): CombatEncounterState {
-  return executeCombatAction(
-    state,
-    burnAction(copyable === DEFAULT_COPY_POLICY ? true : copyable, actionId),"""
-          assert text.count(old) == 1
-          text = text.replace(old, new)
-          old = """function burn(
-  state: CombatEncounterState,
-  targetId = 'actor',
-  stage = 0,
-  copyable: unknown = true,"""
-          new = """function burn(
-  state: CombatEncounterState,
-  targetId = 'actor',
-  stage = 0,
-  copyable: unknown = DEFAULT_COPY_POLICY,"""
-          assert text.count(old) == 1
-          text = text.replace(old, new)
-          anchor = "function damageAction(): CombatActionDefinition {"
-          helper = """function withAccuracyProfiles(state: CombatEncounterState): CombatEncounterState {
-  return createStatDrivenCombatEncounterState(
-    state,
-    state.tactical.battle.combatants.map((unit) => ({
-      combatantId: unit.id,
-      provenance: { kind: 'scenario' as const, sourceId: `scenario:${unit.id}`, sourceRulesVersion: 2 },
-      accuracy: unit.id === 'actor' ? 0 : 5_000,
-      evasion: unit.id === 'target' ? 10_000 : 0,
-      armor: 0,
-      ward: 0,
-      jump: 0,
-      physicalPower: 30,
-      mysticPower: 30,
-    })),
-  )
-}
-
-"""
-          assert text.count(anchor) == 1
-          text = text.replace(anchor, helper + anchor)
-          old = """    const cleared = executeCombatAction(
-      targetTurn,
-      action,
-      { kind: 'unit', combatantId: 'target' },
-      CONTENT,
-    )"""
-          new = """    const cleared = executeCombatAction(
-      targetTurn,
-      action,
-      { kind: 'unit', combatantId: 'target' },
-      { statuses: [...CONTENT.statuses, BURN_REMOVAL_STATUS] },
-    )"""
-          assert text.count(old) == 1
-          text = text.replace(old, new)
-          old = "    const state = burn(world(1), 'actor', 2, true)"
-          new = "    const state = burn(withAccuracyProfiles(world(1)), 'actor', 2, true)"
-          assert text.count(old) == 1
-          text = text.replace(old, new)
-          path.write_text(text)
-          PY
+      - name: Correct and validate test fixtures only
+        run: |
+          python3 /tmp/burn-copy-test-fixtures.py
           pnpm exec prettier --write packages/game-core/src/combat/combat-burn-copy.test.ts
           pnpm exec prettier --check packages/game-core/src/combat/combat-burn-copy.test.ts
           pnpm exec eslint packages/game-core/src/combat/combat-burn-copy.test.ts
@@ -141,13 +57,12 @@ jobs:
           from pathlib import Path
           data = json.loads(Path('/tmp/burn-copy-red.json').read_text())
           failures = [suite for suite in data['testResults'] if suite['status'] == 'failed']
-          assert failures and all(Path(suite['name']).name == 'combat-burn-copy.test.ts' for suite in failures), [(s['name'], s['status']) for s in failures]
-          assert data['numPassedTests'] >= 1712, data
-          assert data['numFailedTests'] > 0, data
-          print('CORRECTED_VALID_RED: prior core suite green; only Burn-copy feature assertions fail')
-          print('passed=', data['numPassedTests'], 'failed=', data['numFailedTests'], 'total=', data['numTotalTests'])
+          assert failures and all(Path(suite['name']).name == 'combat-burn-copy.test.ts' for suite in failures)
+          assert data['numPassedTests'] >= 1712
+          assert data['numFailedTests'] > 0
+          print('CORRECTED_VALID_RED', data['numPassedTests'], data['numFailedTests'], data['numTotalTests'])
           PY
-      - name: Retain corrected test-only RED source
+      - name: Retain corrected test-only source
         shell: bash
         run: |
           set -euo pipefail
