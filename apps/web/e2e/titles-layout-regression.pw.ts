@@ -70,13 +70,23 @@ test('Titles keeps the approved dark two-column account composition at normal de
       profileImage: rect('section[aria-labelledby="profile-image-heading"]'),
       save: { y: saveBox.y, bottom: saveBox.bottom },
       footerTop: footer.top,
+      surface: root.dataset.avSurface ?? null,
       background: getComputedStyle(root).backgroundColor,
+      personalHeadingColor: getComputedStyle(root.querySelector('h1')!).color,
+      profileHeadingColor: getComputedStyle(root.querySelector('#profile-image-heading')!).color,
       overflow: document.documentElement.scrollWidth - innerWidth,
     }
   })
 
   expect.soft(metrics.overflow, 'no horizontal overflow').toBeLessThanOrEqual(1)
+  expect.soft(metrics.surface, 'Titles uses the dark surface token contract').toBe('ink')
   expect.soft(maxRgbChannel(metrics.background), 'dark Titles workspace').toBeLessThan(90)
+  expect
+    .soft(maxRgbChannel(metrics.personalHeadingColor), 'personal-title heading remains readable')
+    .toBeGreaterThanOrEqual(160)
+  expect
+    .soft(maxRgbChannel(metrics.profileHeadingColor), 'profile-image heading remains readable')
+    .toBeGreaterThanOrEqual(160)
   expect.soft(metrics.personal.x, 'title workflow is left').toBeLessThan(metrics.current.x)
   expect
     .soft(
@@ -137,7 +147,9 @@ test('Titles stacks cleanly on phone without inventing desktop-only overflow', a
     }
     const root = document.querySelector<HTMLElement>('[data-character-concept="titles"]')!
     return {
+      surface: root.dataset.avSurface ?? null,
       rootBackground: getComputedStyle(root).backgroundColor,
+      personalHeadingColor: getComputedStyle(root.querySelector('h1')!).color,
       current: rect('section[aria-labelledby="current-title-heading"]'),
       personal: rect('section[aria-labelledby="personal-title-heading"]'),
       profileImage: rect('section[aria-labelledby="profile-image-heading"]'),
@@ -146,7 +158,11 @@ test('Titles stacks cleanly on phone without inventing desktop-only overflow', a
   })
 
   expect.soft(metrics.overflow, 'phone has no horizontal overflow').toBeLessThanOrEqual(1)
+  expect.soft(metrics.surface, 'phone Titles uses the dark surface token contract').toBe('ink')
   expect.soft(maxRgbChannel(metrics.rootBackground), 'phone workspace stays dark').toBeLessThan(90)
+  expect
+    .soft(maxRgbChannel(metrics.personalHeadingColor), 'phone title heading remains readable')
+    .toBeGreaterThanOrEqual(160)
   expect
     .soft(Math.abs(metrics.current.x - metrics.personal.x), 'phone sections share one column')
     .toBeLessThanOrEqual(2)
