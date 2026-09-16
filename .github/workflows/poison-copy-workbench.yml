@@ -2,7 +2,8 @@ name: Poison copy workbench
 
 on:
   push:
-    branches: [review/poison-copy-40da86a]
+    branches:
+      - review/poison-copy-40da86a
 
 permissions:
   contents: write
@@ -14,15 +15,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 22705eb75ebad809586e570c103b73b46fe73be2
-          fetch-depth: 3
+          fetch-depth: 4
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Exact valid RED source and locked setup
+      - name: Pin recipe and exact valid RED source
         shell: bash
         run: |
           set -euo pipefail
+          cp scripts/poison-copy-implementation.py /tmp/poison-copy-implementation.py
+          git fetch --depth=4 origin 22705eb75ebad809586e570c103b73b46fe73be2
+          git checkout --detach 22705eb75ebad809586e570c103b73b46fe73be2
           test "$(git rev-parse HEAD)" = 22705eb75ebad809586e570c103b73b46fe73be2
           test "$(git ls-remote origin refs/heads/main | cut -f1)" = 3d8a4d25cb897d0f9ce4871c6972e5d7107d68b0
           test "$(git ls-remote origin refs/heads/agent/combat-effect-taxonomy-rework | cut -f1)" = 40da86aec7ef7354ec86078c1eae9e1eb83a952c
@@ -30,303 +33,9 @@ jobs:
           corepack enable
           corepack prepare pnpm@11.17.0 --activate
           pnpm install --frozen-lockfile
-      - name: Implement explicit Poison copy policy, transfer and K3 lineage
-        shell: bash
+      - name: Implement and format Poison copying
         run: |
-          set -euo pipefail
-          python3 <<'PY'
-          from pathlib import Path
-
-          def replace(path, old, new, count=1):
-              p = Path(path)
-              text = p.read_text()
-              actual = text.count(old)
-              assert actual == count, (path, old[:120], actual, count)
-              p.write_text(text.replace(old, new))
-
-          state = 'packages/game-core/src/combat/combat-effect-state.ts'
-          replace(state,
-            "  movementRemainder: number\n  provenance?: CombatEffectInstanceProvenance",
-            "  movementRemainder: number\n  /** Explicit current Curse eligibility; omitted historical Poison remains non-copyable. */\n  curseCopyable?: boolean\n  provenance?: CombatEffectInstanceProvenance")
-
-          dots = 'packages/game-core/src/combat/combat-dots.ts'
-          replace(dots,
-            "export interface CurrentPoisonEffect {\n  type: 'poison'\n  recipient: CombatEffectRecipient\n}",
-            """export interface CurrentPoisonEffect {
-  type: 'poison'
-  recipient: CombatEffectRecipient
-  curseCopyable?: boolean
-}
-
-export function validateCurrentPoisonEffect(effect: { curseCopyable?: unknown }): void {
-  if (effect.curseCopyable !== undefined && typeof effect.curseCopyable !== 'boolean') {
-    throw new TypeError('Poison curseCopyable must be boolean when supplied.')
-  }
-}""")
-          replace(dots,
-            "  sourceActionId: string,\n): CombatEncounterState {",
-            "  sourceActionId: string,\n  curseCopyable?: boolean,\n): CombatEncounterState {", 1)
-          replace(dots,
-            "  const effectState = normalizeCombatEffectState(state.effectState)\n  const existing = effectState.poison.find(",
-            "  validateCurrentPoisonEffect({ curseCopyable })\n  const effectState = normalizeCombatEffectState(state.effectState)\n  const existing = effectState.poison.find(", 1)
-          replace(dots,
-            "    movementRemainder: existing?.movementRemainder ?? 0,\n  }",
-            "    movementRemainder: existing?.movementRemainder ?? 0,\n    ...(curseCopyable !== undefined ? { curseCopyable } : {}),\n  }", 1)
-          replace(dots,
-            "      !Number.isSafeInteger(instance.movementRemainder) ||\n      instance.movementRemainder < 0 ||",
-            "      (instance.curseCopyable !== undefined && typeof instance.curseCopyable !== 'boolean') ||\n      !Number.isSafeInteger(instance.movementRemainder) ||\n      instance.movementRemainder < 0 ||", 1)
-          replace(dots,
-            "            'Poison state must contain one valid current-profile instance per target, sorted by target ID, with movement progress from 0 to 4.',",
-            "            'Poison state must contain one valid current-profile instance per target, sorted by target ID, with movement progress from 0 to 4 and optional boolean copy policy.',", 1)
-
-          legacy = 'packages/game-core/src/combat/actions-legacy.ts'
-          replace(legacy,
-            "  validateCombatDotState,\n  validateCurrentBleedEffect,",
-            "  validateCombatDotState,\n  validateCurrentBleedEffect,\n  validateCurrentPoisonEffect,")
-          replace(legacy,
-            "  | { type: 'poison'; recipient: CombatEffectRecipient }",
-            "  | { type: 'poison'; recipient: CombatEffectRecipient; curseCopyable?: boolean }")
-          replace(legacy,
-            "      state: applyCurrentPoisonState(state, actorId, recipientId, actionId),",
-            "      state: applyCurrentPoisonState(\n        state,\n        actorId,\n        recipientId,\n        actionId,\n        effect.curseCopyable,\n      ),")
-          replace(legacy,
-            "    if (effect.type === 'bleed') validateCurrentBleedEffect(effect)",
-            "    if (effect.type === 'poison') validateCurrentPoisonEffect(effect)\n    if (effect.type === 'bleed') validateCurrentBleedEffect(effect)", 1)
-
-          validation = 'packages/game-core/src/combat/combat-authoring-validation.ts'
-          replace(validation,
-            "import { validateCurrentBleedEffect } from './combat-dots'",
-            "import { validateCurrentBleedEffect, validateCurrentPoisonEffect } from './combat-dots'")
-          replace(validation,
-            "    if (effect.type === 'bleed') validateCurrentBleedEffect(effect)",
-            "    if (effect.type === 'poison') validateCurrentPoisonEffect(effect)\n    if (effect.type === 'bleed') validateCurrentBleedEffect(effect)")
-
-          copy = 'packages/game-core/src/combat/combat-status-copy.ts'
-          replace(copy,
-            "import { compareCombatStatusInstances } from './combat-accuracy-status'\nimport { createCombatEffectInstanceProvenance } from './combat-kernel-types'",
-            """import { compareCombatStatusInstances } from './combat-accuracy-status'
-import { currentPoisonInstance } from './combat-dots'
-import { normalizeCombatEffectState, type CombatPoisonInstance } from './combat-effect-state'
-import { createCombatEffectInstanceProvenance } from './combat-kernel-types'""")
-          replace(copy,
-            "interface StatusCopy {\n  donor: CombatStatusInstance\n  previous: CombatStatusInstance | undefined\n  next: CombatStatusInstance\n}",
-            """interface StatusCopy {
-  donor: CombatStatusInstance
-  previous: CombatStatusInstance | undefined
-  next: CombatStatusInstance
-}
-
-interface PoisonCopy {
-  donor: CombatPoisonInstance
-  previous: CombatPoisonInstance | undefined
-}
-
-interface CombatCopyPlan {
-  receiverId: string
-  copies: readonly StatusCopy[]
-  poison: PoisonCopy | undefined
-}""")
-          replace(copy,
-            "): { receiverId: string; copies: readonly StatusCopy[] } {",
-            "): CombatCopyPlan {")
-          replace(copy,
-            "  if (donorId === receiverId) return { receiverId, copies: [] }",
-            "  if (donorId === receiverId) return { receiverId, copies: [], poison: undefined }")
-          replace(copy,
-            "  const copies = [...selected.values()].map(({ donor, definition }): StatusCopy => {",
-            "  const copies = [...selected.values()].map(({ donor, definition }): StatusCopy => {")
-          replace(copy,
-            "  return { receiverId, copies }\n}",
-            """  const donorPoison = effect.mode === 'curse' ? currentPoisonInstance(state, donorId) : null
-  const poison = donorPoison?.curseCopyable === true
-    ? { donor: donorPoison, previous: currentPoisonInstance(state, receiverId) ?? undefined }
-    : undefined
-  return { receiverId, copies, poison }
-}""", 1)
-          replace(copy,
-            "  const { receiverId, copies } = planCombatStatusCopies(state, actorId, selectedId, effect, content)\n  if (copies.length === 0) throw new Error('Status copying requires eligible active statuses.')",
-            """  const { receiverId, copies, poison } = planCombatStatusCopies(state, actorId, selectedId, effect, content)
-  if (copies.length === 0 && !poison) throw new Error('Status copying requires eligible active statuses.')""")
-          replace(copy,
-            "  return {\n    state: {\n      ...state,\n      statusState:",
-            """  const statusState =""")
-          # Replace the former status-only state body up to events with explicit status + Poison handling.
-          old_block = """state.statusState.map((row) =>
-        row.combatantId === receiverId
-          ? {
-              ...row,
-              statuses: [
-                ...row.statuses.filter((status) => !replaced.has(status)),
-                ...copies.map((copy) => copy.next),
-              ].sort(compareCombatStatusInstances),
-            }
-          : row,
-      ),
-    },
-    events:"""
-          new_block = """state.statusState.map((row) =>
-    row.combatantId === receiverId
-      ? {
-          ...row,
-          statuses: [
-            ...row.statuses.filter((status) => !replaced.has(status)),
-            ...copies.map((copy) => copy.next),
-          ].sort(compareCombatStatusInstances),
-        }
-      : row,
-  )
-  const effectState = normalizeCombatEffectState(state.effectState)
-  const nextPoison = poison
-    ? {
-        targetCombatantId: receiverId,
-        sourceCombatantId: actorId,
-        sourceActionId: actionId,
-        profileVersion: poison.donor.profileVersion,
-        movementRemainder: poison.previous?.movementRemainder ?? poison.donor.movementRemainder,
-        curseCopyable: true as const,
-      }
-    : undefined
-  const nextEffectState = nextPoison
-    ? {
-        ...effectState,
-        poison: [
-          ...effectState.poison.filter((entry) => entry.targetCombatantId !== receiverId),
-          nextPoison,
-        ].sort((left, right) => left.targetCombatantId.localeCompare(right.targetCombatantId)),
-      }
-    : effectState
-  return {
-    state: { ...state, statusState, effectState: nextEffectState },
-    events:"""
-          replace(copy, old_block, new_block)
-          replace(copy,
-            "    projections: copies.map(({ previous, next }) => ({\n      effectType: 'copy-statuses',\n      combatantId: receiverId,\n      before: statusSummary(previous),\n      after: statusSummary(next),\n    })),",
-            """    projections: [
-      ...copies.map(({ previous, next }) => ({
-        effectType: 'copy-statuses',
-        combatantId: receiverId,
-        before: statusSummary(previous),
-        after: statusSummary(next),
-      })),
-      ...(nextPoison
-        ? [{
-            effectType: 'copy-statuses',
-            combatantId: receiverId,
-            before: poison?.previous ? `poison:${poison.previous.movementRemainder}` : 'none',
-            after: `poison:${nextPoison.movementRemainder}`,
-          }]
-        : []),
-    ],""")
-          replace(copy,
-            "  const { receiverId, copies } = planCombatStatusCopies(\n",
-            "  const { receiverId, copies, poison } = planCombatStatusCopies(\n")
-          # Replace the return with staged status + poison provenance attachment.
-          old_return = """  return {
-    ...after,
-    statusState: after.statusState.map((row) =>
-      row.combatantId === receiverId
-        ? {
-            ...row,
-            statuses: row.statuses.map((status) => {
-              const assigned = assignments.get(status.statusId)
-              if (!assigned || status.sourceCombatantId !== actorId) return status
-              const provenance = createCombatEffectInstanceProvenance({
-                action: context.provenance,
-                targetCombatantId: receiverId,
-                effectOrdinal: 0,
-                copyOrdinal: assigned.copyOrdinal,
-                createdRound: before.tactical.battle.round,
-                createdTurn: before.tactical.battle.turnNumber,
-                copiedFromInstanceId: assigned.copy.donor.provenance?.instanceId,
-                inheritedFromInstanceId: assigned.copy.previous?.provenance?.instanceId,
-              })
-              return { ...status, provenance }
-            }),
-          }
-        : row,
-    ),
-  }"""
-          new_return = """  const statusState = after.statusState.map((row) =>
-    row.combatantId === receiverId
-      ? {
-          ...row,
-          statuses: row.statuses.map((status) => {
-            const assigned = assignments.get(status.statusId)
-            if (!assigned || status.sourceCombatantId !== actorId) return status
-            const provenance = createCombatEffectInstanceProvenance({
-              action: context.provenance,
-              targetCombatantId: receiverId,
-              effectOrdinal: 0,
-              copyOrdinal: assigned.copyOrdinal,
-              createdRound: before.tactical.battle.round,
-              createdTurn: before.tactical.battle.turnNumber,
-              copiedFromInstanceId: assigned.copy.donor.provenance?.instanceId,
-              inheritedFromInstanceId: assigned.copy.previous?.provenance?.instanceId,
-            })
-            return { ...status, provenance }
-          }),
-        }
-      : row,
-  )
-  if (!poison) return { ...after, statusState }
-  const provenance = createCombatEffectInstanceProvenance({
-    action: context.provenance,
-    targetCombatantId: receiverId,
-    effectOrdinal: 0,
-    copyOrdinal: copies.length,
-    createdRound: before.tactical.battle.round,
-    createdTurn: before.tactical.battle.turnNumber,
-    copiedFromInstanceId: poison.donor.provenance?.instanceId,
-    inheritedFromInstanceId: poison.previous?.provenance?.instanceId,
-  })
-  const effectState = normalizeCombatEffectState(after.effectState)
-  return {
-    ...after,
-    statusState,
-    effectState: {
-      ...effectState,
-      poison: effectState.poison.map((entry) =>
-        entry.targetCombatantId === receiverId && entry.sourceCombatantId === actorId
-          ? { ...entry, provenance }
-          : entry,
-      ),
-    },
-  }"""
-          replace(copy, old_return, new_return)
-
-          # Legality recognizes copyable Poison alongside ordinary statuses.
-          replace(legacy,
-            "      planCombatStatusCopies(state, actorId, target.combatantId, copyEffect, content).copies.length ===\n        0",
-            """      (() => {
-        const plan = planCombatStatusCopies(state, actorId, target.combatantId, copyEffect, content)
-        return plan.copies.length === 0 && !plan.poison
-      })()""")
-
-          docs = Path('docs/COMBAT.md')
-          docs.write_text(docs.read_text().rstrip() + '''
-
-## Curse Poison copy state (staged typed-effect extension)
-
-Current Poison authoring may explicitly set `curseCopyable: true | false`. The flag is copied into
-its persistent Poison row so later Curse legality does not infer eligibility from the display name.
-Historical Poison rows which omit this optional field remain valid and are not Curse-copyable.
-Malformed authored or persisted values fail closed.
-
-A pure single-unit Curse can copy an explicitly eligible Poison from the caster to its selected
-recipient while leaving the original Poison unchanged. A new recipient Poison preserves the donor's
-current movement remainder. If the recipient already has Poison, the normal single-instance rule
-wins and the recipient's own movement remainder is retained rather than reset to donor progress.
-The copied instance rebinds source combatant/action to the Curse command and becomes explicitly
-copyable. No Poison damage fires merely because it was copied; existing movement/end-turn Poison
-processing continues afterward.
-
-With K3 context the copy uses the shared `copyOrdinal` sequence after any copied ordinary statuses,
-records the immediate donor in `copiedFromInstanceId`, and records a replaced recipient instance in
-`inheritedFromInstanceId`. Without K3 context no donor provenance is silently reused. Amplify never
-copies Poison in this slice. Burn/Bleed typed state, repeat-use/publication, AI and broader copying
-remain separate gates; no published Skill is activated here.
-''')
-          PY
+          python3 /tmp/poison-copy-implementation.py
           pnpm exec prettier --write packages/game-core/src/combat/combat-effect-state.ts packages/game-core/src/combat/combat-dots.ts packages/game-core/src/combat/actions-legacy.ts packages/game-core/src/combat/combat-authoring-validation.ts packages/game-core/src/combat/combat-status-copy.ts
           git diff --check
           git diff --exit-code -- packages/game-core/src/combat/combat-poison-copy.test.ts
@@ -334,21 +43,9 @@ remain separate gates; no published Skill is activated here.
         run: |
           pnpm --filter @aurevane/game-core typecheck
           pnpm --filter @aurevane/game-core exec vitest run src/combat/combat-poison-copy.test.ts src/combat/combat-status-copy.test.ts src/combat/combat-status-copy-publication.test.ts src/combat/combat-copy-provenance.test.ts src/combat/combat-poison-movement.test.ts src/combat/combat-poison-voluntary-movement.test.ts src/combat/combat-poison-edges.test.ts src/combat/combat-dot-rework.test.ts src/combat/combat-effect-provenance-state.test.ts src/combat/combat-mark-blind.contract.test.ts
-      - name: Full repository check
-        shell: bash
-        run: |
-          set -euo pipefail
-          pnpm check > /tmp/poison-copy-check.log 2>&1 || { tail -n 180 /tmp/poison-copy-check.log; exit 1; }
-          python3 <<'PY'
-          import re
-          from pathlib import Path
-          text = re.sub(r'\x1b\[[0-9;]*m', '', Path('/tmp/poison-copy-check.log').read_text())
-          for line in text.splitlines():
-              if any(token in line for token in ['Test Files', 'Tests ', 'Tasks:', 'Compiled successfully', 'All matched files', 'ℹ tests', 'ℹ pass', 'ℹ fail']):
-                  print(line)
-          print('FULL_PNPM_CHECK_EXIT=0')
-          PY
-      - name: Retain exact verified candidate only after freshness and scope checks
+      - name: Full repository verification
+        run: pnpm check
+      - name: Retain only the verified candidate
         shell: bash
         run: |
           set -euo pipefail
