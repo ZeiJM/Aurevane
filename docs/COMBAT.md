@@ -8,6 +8,8 @@ Original command receipts are shared with Absorb HP/MP without recycling reactio
 
 A defeated defender can return its qualifying damage, allowing mutual KO. The engine-owned post-command reaction boundary runs before the final terminal verdict. Attacker defeat reuses the established defeat/turn transition, removes ongoing recovery and records only the final winner or draw. Positive reflected HP loss breaks Invisible. Each positive defender return consumes one K3 trigger budget at depth 1 with a deterministic relationship identity; an exhausted or previously consumed guard suppresses the reaction, not the ordinary command. No-context public calls retain their four-argument contract and omit resolution metadata.
 
+When Reflect defeats the current actor but the battle continues, the successor receives normal owner-turn-start status expiration. A crossed round applies and consumes scheduled tempo and advances temporary terrain exactly once, using the same upkeep as normal turn endings. The defeated actor's ordinary periodic damage/recovery is not replayed.
+
 This is a kernel primitive, not a published roster or balance change. No published Skill/status catalog, player UI, AI policy, schema or deployment is activated by this slice. Current player forecasts do not yet display reactive returns; forecast/AI integration must be completed before authored Reflect content is published through the later migration and acceptance gates. Existing AP, targeting, direct-damage calculations and historical definitions remain protected.
 
 ## Phase 4 roster and effect implementation — 2026-09-12

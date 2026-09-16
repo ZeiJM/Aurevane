@@ -4,8 +4,7 @@ import type {
   CombatResolutionEvent,
   CombatResolutionTransition,
 } from './actions'
-import { removeGameplayTags } from './actions-legacy'
-import { defeatCurrentCombatant } from './battle-state'
+import { defeatCombatActionActor, removeGameplayTags } from './actions-legacy'
 import { createTacticalBattleState } from './board'
 import { validateCombatStatusDefinition } from './combat-authoring-validation'
 import {
@@ -82,19 +81,22 @@ export function applyCommittedReflect(
       hpBefore: currentAttacker.hp,
       hpAfter,
     })
-    // Reuse the established defeat/turn transition; never persist a dead current actor.
-    const defeated =
-      hpAfter === 0 ? defeatCurrentCombatant(nextState.tactical.battle, attacker.id) : null
-    const nextBattle = defeated?.state ?? {
-      ...nextState.tactical.battle,
-      combatants: nextState.tactical.battle.combatants.map((unit) =>
-        unit.id === attacker.id ? { ...unit, hp: hpAfter } : unit,
-      ),
-    }
-    nextState = clearDefeatedRecovery({
-      ...nextState,
-      tactical: createTacticalBattleState({ ...nextState.tactical, battle: nextBattle }),
-    })
+    // Run encounter upkeep as well as selecting the next living combatant.
+    const defeated = hpAfter === 0 ? defeatCombatActionActor(nextState, attacker.id, content) : null
+    nextState =
+      defeated?.state ??
+      clearDefeatedRecovery({
+        ...nextState,
+        tactical: createTacticalBattleState({
+          ...nextState.tactical,
+          battle: {
+            ...nextState.tactical.battle,
+            combatants: nextState.tactical.battle.combatants.map((unit) =>
+              unit.id === attacker.id ? { ...unit, hp: hpAfter } : unit,
+            ),
+          },
+        }),
+      })
     const revealed = removeGameplayTags(
       nextState,
       defenderId,

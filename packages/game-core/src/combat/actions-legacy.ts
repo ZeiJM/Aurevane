@@ -854,19 +854,37 @@ export function waitCurrentTurn(
   }
 }
 
-export function endCombatTurn(
+/** Encounter upkeep for a reaction knockout; the defeated actor receives no extra periodic tick. */
+export function defeatCombatActionActor(
+  state: CombatEncounterState,
+  actorId: string,
+  content: CombatContentCatalog,
+): CombatResolutionTransition {
+  const defeated = defeatCurrentCombatant(
+    state.tactical.battle,
+    actorId,
+    collectNextRoundInitiativeModifiers(state, content),
+  )
+  const boundary = applyCombatRoundBoundary(
+    withBattle(state, defeated.state),
+    state.tactical.battle.round,
+    content,
+  )
+  const successorId = boundary.state.tactical.battle.currentTurn?.combatantId
+  const successor = successorId
+    ? expireOwnerTurnStartStatuses(boundary.state, successorId, content)
+    : { state: boundary.state, events: [] }
+  return {
+    state: successor.state,
+    events: [...defeated.events, ...boundary.events, ...successor.events],
+  }
+}
+
+function collectNextRoundInitiativeModifiers(
   state: CombatEncounterState,
   content: CombatContentCatalog,
-  outgoingDefeatedAtTurnEnd = false,
-): CombatResolutionTransition {
-  assertValidCombatEncounterState(state)
-  validateCombatContentCatalog(content)
-
-  if (state.tactical.battle.lifecycle !== 'active') {
-    throw new Error('End Turn requires an active battle.')
-  }
-
-  const roundModifiers = state.statusState.flatMap((row) => {
+): NonNullable<BattleState['roundInitiativeModifiers']> {
+  return state.statusState.flatMap((row) => {
     const amount = Math.max(
       -40,
       Math.min(
@@ -882,6 +900,55 @@ export function endCombatTurn(
     )
     return amount === 0 ? [] : [{ combatantId: row.combatantId, amount }]
   })
+}
+
+function applyCombatRoundBoundary(
+  state: CombatEncounterState,
+  previousRound: number,
+  content: CombatContentCatalog,
+): CombatResolutionTransition {
+  if (state.tactical.battle.round === previousRound) return { state, events: [] }
+  let nextState = state
+  const events: CombatResolutionEvent[] = []
+  const expiredTerrain = expireTerrainOverlays(nextState)
+  nextState = expiredTerrain.state
+  events.push(...expiredTerrain.events)
+  // Consume scheduled tempo once. The committed order remains frozen for the full round.
+  for (const row of nextState.statusState) {
+    const consumed = row.statuses.filter(
+      (status) =>
+        getStatusDefinition(content, status.statusId, status.statusVersion).nextRoundInitiative !==
+        undefined,
+    )
+    nextState = removeStatuses(
+      nextState,
+      row.combatantId,
+      consumed.map((status) => status.statusId),
+    )
+    events.push(
+      ...consumed.map((status) => ({
+        event: 'status_expired' as const,
+        combatantId: row.combatantId,
+        statusId: status.statusId,
+      })),
+    )
+  }
+  return { state: nextState, events }
+}
+
+export function endCombatTurn(
+  state: CombatEncounterState,
+  content: CombatContentCatalog,
+  outgoingDefeatedAtTurnEnd = false,
+): CombatResolutionTransition {
+  assertValidCombatEncounterState(state)
+  validateCombatContentCatalog(content)
+
+  if (state.tactical.battle.lifecycle !== 'active') {
+    throw new Error('End Turn requires an active battle.')
+  }
+
+  const roundModifiers = collectNextRoundInitiativeModifiers(state, content)
   const outgoingId = state.tactical.battle.currentTurn!.combatantId
   const outgoing = getCombatant(state.tactical.battle, outgoingId)
   // Predict the existing deterministic ticks for selection only. They are committed below.
@@ -908,31 +975,9 @@ export function endCombatTurn(
   )
   let nextState = withBattle(state, ended.state)
   const events: CombatResolutionEvent[] = [...ended.events]
-  if (ended.state.round !== state.tactical.battle.round) {
-    const expiredTerrain = expireTerrainOverlays(nextState)
-    nextState = expiredTerrain.state
-    events.push(...expiredTerrain.events)
-    // Consume scheduled tempo once. The committed order remains frozen for the full round.
-    for (const row of nextState.statusState) {
-      const consumed = row.statuses.filter(
-        (status) =>
-          getStatusDefinition(content, status.statusId, status.statusVersion)
-            .nextRoundInitiative !== undefined,
-      )
-      nextState = removeStatuses(
-        nextState,
-        row.combatantId,
-        consumed.map((status) => status.statusId),
-      )
-      events.push(
-        ...consumed.map((status) => ({
-          event: 'status_expired' as const,
-          combatantId: row.combatantId,
-          statusId: status.statusId,
-        })),
-      )
-    }
-  }
+  const boundary = applyCombatRoundBoundary(nextState, state.tactical.battle.round, content)
+  nextState = boundary.state
+  events.push(...boundary.events)
   // Resolve the outgoing unit's periodic effects after advancing initiative. This permits
   // lethal ticks without ever persisting a defeated combatant as the current actor.
   const periodic = resolveEndOfTurnStatuses(nextState, outgoingId, content)
