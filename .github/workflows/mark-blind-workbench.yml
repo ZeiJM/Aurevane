@@ -185,7 +185,7 @@ jobs:
                 { type: 'apply-status', recipient: 'primary-unit', statusId: MARK.id, stacks: 1 },
               ] }
               const ctx = context('ally', 'chain:missed')
-              ctx.provenance = { ...ctx.provenance, actionDefinitionId: action.id }
+              ctx.provenance = createCombatActionProvenance({ ...ctx.provenance, actionDefinitionId: action.id })
               const result = executeCombatAction(state, action, TARGET, CONTENT, ctx)
               expect(statuses(result.state)).toEqual(statuses(state))
               expect(result.events.some((event) => event.event === 'status_applied')).toBe(false)
