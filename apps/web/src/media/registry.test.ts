@@ -1,3 +1,5 @@
+import { Buffer } from 'node:buffer'
+import { createHash } from 'node:crypto'
 import { STARTER_CHARACTER_PORTRAITS } from '@aurevane/game-core/character/starter-options'
 import { describe, expect, it } from 'vitest'
 
@@ -55,6 +57,21 @@ describe('image registry', () => {
         decorative: false,
       })
     }
+  })
+
+  it('uses the artifact-free approved portrait 07 derivative', () => {
+    const asset = getImageAsset('character.creation.portrait-07')
+    expect(asset).toMatchObject({
+      status: 'approved',
+      width: 96,
+      height: 96,
+      decorative: false,
+    })
+    expect(asset.src).toMatch(/^data:image\/webp;base64,/)
+    const payload = Buffer.from(asset.src!.replace(/^data:image\/webp;base64,/, ''), 'base64')
+    expect(createHash('sha256').update(payload).digest('hex')).toBe(
+      '6172c4abdd64f8e694adddcbae8375c9e6816e6f8e83497c17c8e4a64ff9e29b',
+    )
   })
 
   it('describes the visible traits distinguishing each starter portrait', () => {
