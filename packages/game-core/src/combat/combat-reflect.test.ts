@@ -388,12 +388,57 @@ describe('Reflect committed-command contract', () => {
     action.target = { ...action.target, teamPolicy: 'any', friendlyFire: 'all-units' }
     expect(reflected(cast(encounter({ friendly: true }), action))).toEqual([])
   })
-  it('does not reflect a self-cost within an otherwise qualifying hostile command', () => {
+  it('preserves the existing rejection of unsupported generic self-damage', () => {
     const action = hit()
     action.effects = [{ type: 'damage', recipient: 'actor', amount: 5 }, ...action.effects]
-    const result = cast(encounter({ actorStatuses: [REFLECT] }), action)
-    expect(unit(result, 'actor').hp).toBe(90)
-    expect(reflected(result)).toHaveLength(1)
+    const initial = encounter({ actorStatuses: [REFLECT] })
+    const snapshot = JSON.stringify(initial)
+    expect(() => cast(initial, action)).toThrow(/self-damage-deferred/)
+    expect(JSON.stringify(initial)).toBe(snapshot)
+  })
+  it('clears ongoing recovery when reflected damage defeats the attacker', () => {
+    const initial = encounter({ actorHp: 3, allyWitness: true })
+    initial.effectState = {
+      ongoingRecovery: [
+        {
+          kind: 'hp',
+          sourceCombatantId: 'actor',
+          targetCombatantId: 'actor',
+          sourceActionId: 'test.recovery',
+          amountPerTick: 5,
+          remainingFutureTicks: 2,
+        },
+      ],
+      poison: [],
+      bleed: [],
+      burn: [],
+      temporarySkills: [],
+      damageHistory: [],
+    }
+    const result = cast(initial)
+    expect(unit(result, 'actor').hp).toBe(0)
+    expect(result.state.effectState?.ongoingRecovery).toEqual([])
+    expect(validateCombatEncounterState(result.state)).toEqual([])
+  })
+  it('breaks concealment granted to the attacker after the ordinary damage block', () => {
+    const invisible: CombatStatusDefinition = {
+      id: 'test.invisible',
+      version: 1,
+      maximumStacks: 1,
+      durationOwnerTurnStarts: 2,
+      damageTakenMultiplierBasisPoints: 10_000,
+      gameplayTags: ['Invisible'],
+    }
+    const action = hit()
+    action.effects = [
+      ...action.effects,
+      { type: 'apply-status', recipient: 'actor', statusId: invisible.id, stacks: 1 },
+    ]
+    const result = cast(encounter(), action, [REFLECT, invisible])
+    expect(unit(result, 'actor').hp).toBe(95)
+    expect(result.state.statusState.find((row) => row.combatantId === 'actor')?.statuses).toEqual(
+      [],
+    )
   })
   it('excludes Burn backlash from the reflection basis', () => {
     const statuses = [...PHASE4_STATUSES, REFLECT]
