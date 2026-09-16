@@ -62,7 +62,11 @@ jobs:
               ")",
           ])
           assert text.count(old) == 1, text.count(old)
-          path.write_text(text.replace(old, new))
+          text = text.replace(old, new)
+          wrong_instance = '  const nextInstance: CombatBurnInstance = {'
+          assert text.count(wrong_instance) == 2, text.count(wrong_instance)
+          text = text.replace(wrong_instance, '  const instance: CombatBurnInstance = {')
+          path.write_text(text)
           PY
           git fetch --depth=4 origin 15cb61ab7f4b308c6c0b93f1dc818522a3869d38
           git checkout --detach 15cb61ab7f4b308c6c0b93f1dc818522a3869d38
