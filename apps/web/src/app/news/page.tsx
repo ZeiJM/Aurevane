@@ -36,8 +36,8 @@ export default function NewsPage() {
               <h2 id="latest-news-title">No public posts yet.</h2>
               <p>
                 The chronicle is quiet for now. Real patch notes, maintenance notices, testing
-                updates, and release communication will appear here when there is something
-                truthful to publish.
+                updates, and release communication will appear here when there is something truthful
+                to publish.
               </p>
               <nav className={styles.links} aria-label="Continue reading">
                 <Link href="/manual">Open the Manual</Link>
