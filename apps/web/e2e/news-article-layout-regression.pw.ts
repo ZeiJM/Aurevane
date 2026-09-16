@@ -28,7 +28,9 @@ test('News article preview uses the approved editorial composition on desktop', 
   await expect(article).toBeVisible()
   await expect(article).toHaveAttribute('data-news-article-surface', 'ink')
   await expect(hero).toBeVisible()
-  await expect(page.getByRole('heading', { level: 1, name: 'News Article Layout Preview' })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'News Article Layout Preview' }),
+  ).toBeVisible()
   await expect(page.getByText('Layout preview', { exact: true })).toBeVisible()
   await expect(page.getByText('Sep 16, 2026', { exact: true })).toBeVisible()
   await expect(back).toBeVisible()
@@ -54,11 +56,21 @@ test('News article preview uses the approved editorial composition on desktop', 
     }
   })
 
-  expect.soft(metrics.overflow, 'desktop News article has no horizontal overflow').toBeLessThanOrEqual(1)
-  expect.soft(metrics.articleLeft, 'article keeps breathing room at the left edge').toBeGreaterThan(8)
-  expect.soft(metrics.articleRight, 'article keeps breathing room at the right edge').toBeLessThan(1358)
-  expect.soft(metrics.bodyTop, 'reading body follows the scenic editorial hero').toBeGreaterThan(metrics.heroBottom - 1)
-  expect.soft(metrics.bodyWidth, 'desktop prose stays comfortably readable').toBeLessThanOrEqual(960)
+  expect
+    .soft(metrics.overflow, 'desktop News article has no horizontal overflow')
+    .toBeLessThanOrEqual(1)
+  expect
+    .soft(metrics.articleLeft, 'article keeps breathing room at the left edge')
+    .toBeGreaterThan(8)
+  expect
+    .soft(metrics.articleRight, 'article keeps breathing room at the right edge')
+    .toBeLessThan(1358)
+  expect
+    .soft(metrics.bodyTop, 'reading body follows the scenic editorial hero')
+    .toBeGreaterThan(metrics.heroBottom - 1)
+  expect
+    .soft(metrics.bodyWidth, 'desktop prose stays comfortably readable')
+    .toBeLessThanOrEqual(960)
   expect(['auto', 'scroll']).not.toContain(metrics.bodyOverflowY)
 
   if (process.env.LAYOUT_REVIEW_OUTPUT) {
@@ -100,9 +112,15 @@ test('News article preview stays a natural single-column read on mobile', async 
     }
   })
 
-  expect.soft(metrics.overflow, 'phone News article has no horizontal overflow').toBeLessThanOrEqual(1)
-  expect.soft(metrics.pageScroll, 'phone News article scrolls naturally as a page').toBeGreaterThan(0)
-  expect.soft(metrics.articleWidth, 'article respects phone viewport width').toBeLessThanOrEqual(390)
+  expect
+    .soft(metrics.overflow, 'phone News article has no horizontal overflow')
+    .toBeLessThanOrEqual(1)
+  expect
+    .soft(metrics.pageScroll, 'phone News article scrolls naturally as a page')
+    .toBeGreaterThan(0)
+  expect
+    .soft(metrics.articleWidth, 'article respects phone viewport width')
+    .toBeLessThanOrEqual(390)
   expect(['auto', 'scroll']).not.toContain(metrics.bodyOverflowY)
 
   if (process.env.LAYOUT_REVIEW_OUTPUT) {
