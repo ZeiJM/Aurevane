@@ -93,7 +93,7 @@ export function evaluateCombatAction(
     evaluation.legal && materialized.basis.length > 0
       ? { ...evaluation, vengeanceBasis: materialized.basis }
       : evaluation
-  return forecastCombatSkillAccuracy(state, action, preview)
+  return forecastCombatSkillAccuracy(state, action, preview, content)
 }
 
 export function executeCombatAction(
@@ -114,7 +114,7 @@ export function executeCombatAction(
     context || action.accuracyMode === 'per-target'
       ? legacy.evaluateCombatAction(state, materializedAction, selection, content)
       : null
-  const accuracy = rollCombatSkillAccuracy(state, action, evaluation)
+  const accuracy = rollCombatSkillAccuracy(state, action, evaluation, content)
   let triggerGuard = context?.triggerGuard
   const committedTransition = legacy.executeCombatAction(
     accuracy.state,

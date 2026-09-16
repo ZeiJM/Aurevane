@@ -115,7 +115,11 @@ export function attachCombatEffectProvenance(
         statusState = statusState.map((row) => {
           if (row.combatantId !== targetCombatantId) return row
           const statuses = row.statuses.map((status) => {
-            if (status.statusId !== effect.statusId) return status
+            if (
+              status.statusId !== effect.statusId ||
+              (status.sourceScopedMark === true && status.sourceCombatantId !== actorId)
+            )
+              return status
             updated = true
             return { ...status, provenance }
           })

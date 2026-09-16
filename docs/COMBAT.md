@@ -480,3 +480,36 @@ Trigger chains are bounded and deterministic. Current infrastructure defaults ar
 An optional `CombatResolutionContext` carries immutable command provenance and the trigger guard through authoritative execution. The historical four-argument `executeCombatAction(...)` shape remains valid and does not add provenance fields to historical state. When a K3 context is supplied, newly committed persistent status, ongoing recovery, Poison, Bleed, and Burn rows receive deterministic `CombatEffectInstanceProvenance` after the existing authoritative resolver completes. Provenance identifies the originating command/ruleset/controller/trigger chain, target, zero-based effect ordinal, and pre-command round/turn, with reserved copied/inherited lineage links for later typed Copy/Mirror work.
 
 Historical snapshots may omit K3 provenance. Omitted provenance remains valid; if provenance is present, it is validated fail-closed. K3 does not alter damage values, AP/MP costs, targeting, accuracy, DoT values, durations, published content, or battle UX, and it does not by itself implement Barrier, Reflect, Absorb, lifesteal, redirect/interception, or other K4 mechanics. Those mechanics must consume this shared versioned pipeline and provenance model rather than create competing resolver or provenance paths.
+
+
+## Current Mark and Blind accuracy kernel (staged; not published)
+
+Following the approved September 12 reactive-effects design, new status definitions may opt into
+`markAccuracyBonusBasisPoints` or `blindAccuracyPenaltyBasisPoints`. The baseline is 1500 basis
+points (15 percentage points); this first authoring policy accepts integer magnitudes from 1 to
+3000. They are separate, single-stack, negative, ordinary accuracy statuses. Other status behaviors
+must remain separate definitions so source-specific Mark instances cannot multiply unrelated effects.
+
+Current Mark instances use optional `sourceScopedMark: true` in the existing status-state rows.
+A source/target/definition relationship refreshes independently. Different sources coexist in stable
+status-ID/source-ID order; ordinary historical status IDs remain unique. Catalog-bound validation
+checks the marker, pinned version, stack count and remaining duration. Explicit removal by status ID
+cleanses every matching source. Current Mark expiry receipts include the expiring source; historical
+expiry event shapes are unchanged. K3 provenance refreshes only the applying source's Mark.
+
+Skill and Basic Attack hit chance share the same additive adjustment: actor Accuracy minus target
+Evasion, plus the Skill modifier and the actor's eligible Mark, minus the actor's Blind, then clamp
+to 0–100%. Alternate definitions cannot stack magnitudes: use the strongest applicable Mark for
+that source/target and the strongest Blind on the actor. Their independent remaining durations
+are preserved; weaker effects may contribute after a stronger definition expires or is removed.
+Mark does not benefit allies. A target being Blind does not reduce its attacker's accuracy.
+
+Forecast and commit read the pre-command state. A Mark inflicted by a strike does not improve that
+same strike's roll. Per-target hostile packages retain their single coherent hit/miss decision,
+stable RNG ordering and ordinary costs. Automatic Hit remains automatic, and previews never sample
+RNG. Basic Attack keeps its existing resolution path and consumes no second accuracy roll.
+
+The published `marked` definition still uses historical source-only damage vulnerability. No live
+catalog, battle schema, player-facing UI, AI policy, database or deployment is changed here. This is
+kernel support only: full player forecasts, AI expected-value integration and controlled versioned
+content publication remain separate gates. K4 and the wider overhaul remain unfinished.

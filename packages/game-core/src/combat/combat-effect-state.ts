@@ -16,6 +16,8 @@ declare module './actions' {
     absorbHpBasisPoints?: number
     absorbMpBasisPoints?: number
     reflectBasisPoints?: number
+    markAccuracyBonusBasisPoints?: number
+    blindAccuracyPenaltyBasisPoints?: number
   }
 }
 

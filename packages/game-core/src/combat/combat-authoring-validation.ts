@@ -4,6 +4,7 @@ import { validateBarrierEffect } from './combat-barrier'
 import { validateRecoveryEffect } from './combat-recovery'
 import { validateCurrentBleedEffect } from './combat-dots'
 import { validateCombatEffectCategory } from './combat-effect-categories'
+import { validateCombatAccuracyStatusDefinition } from './combat-accuracy-status'
 import type {
   CombatActionDefinition,
   CombatContentCatalog,
@@ -179,6 +180,7 @@ export function validateCombatActionDefinition(
 }
 
 export function validateCombatStatusDefinition(status: CombatStatusDefinition): void {
+  validateCombatAccuracyStatusDefinition(status)
   requiredIdentity(status.id, 'status id')
   positiveSafeInteger(status.version, 'status version')
   positiveSafeInteger(status.maximumStacks, 'status maximum stacks')

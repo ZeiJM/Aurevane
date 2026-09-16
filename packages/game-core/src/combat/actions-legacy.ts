@@ -1,3 +1,9 @@
+import {
+  assertValidCombatAccuracyStatusState,
+  collectCombatStatusIdentityIssues,
+  compareCombatStatusInstances,
+  validateCombatAccuracyStatusDefinition,
+} from './combat-accuracy-status'
 import type { CombatSkillAccuracyResolvedEvent } from './combat-skill-accuracy'
 import {
   absorbDirectDamageWithBarrier,
@@ -218,6 +224,8 @@ export interface CombatContentCatalog {
 }
 
 export interface CombatStatusInstance {
+  /** Only current accuracy Mark definitions use independent source/target identities. */
+  sourceScopedMark?: true
   statusId: string
   statusVersion: number
   stacks: number
@@ -385,7 +393,7 @@ export type CombatResolutionEvent =
       amountPerTick: number
       remainingFutureTicks: number
     }
-  | { event: 'status_expired'; combatantId: string; statusId: string }
+  | { event: 'status_expired'; combatantId: string; statusId: string; sourceCombatantId?: string }
   | {
       event: 'status_removed'
       actionId: string
@@ -523,7 +531,7 @@ export function createCombatEncounterState(
       combatantId: combatant.id,
       statuses: [...(byCombatantId.get(combatant.id) ?? [])]
         .map((status) => ({ ...status }))
-        .sort((left, right) => compareStableString(left.statusId, right.statusId)),
+        .sort(compareCombatStatusInstances),
     }))
     .sort((left, right) => compareStableString(left.combatantId, right.combatantId))
 
@@ -545,6 +553,7 @@ export function evaluateCombatAction(
 ): CombatActionEvaluation {
   assertValidCombatEncounterState(state)
   validateCombatContentCatalog(content)
+  assertValidCombatAccuracyStatusState(state, content)
   validateCombatActionDefinition(action, content)
 
   const issues: CombatActionIssue[] = []
@@ -844,6 +853,7 @@ export function waitCurrentTurn(
 ): CombatResolutionTransition {
   assertValidCombatEncounterState(state)
   validateCombatContentCatalog(content)
+  assertValidCombatAccuracyStatusState(state, content)
 
   const turn = state.tactical.battle.currentTurn
   if (state.tactical.battle.lifecycle !== 'active' || !turn) {
@@ -947,6 +957,7 @@ export function endCombatTurn(
 ): CombatResolutionTransition {
   assertValidCombatEncounterState(state)
   validateCombatContentCatalog(content)
+  assertValidCombatAccuracyStatusState(state, content)
 
   if (state.tactical.battle.lifecycle !== 'active') {
     throw new Error('End Turn requires an active battle.')
@@ -1115,7 +1126,7 @@ export function validateCombatEncounterState(
     }
     rowIds.add(row.combatantId)
 
-    const statusIds = new Set<string>()
+    issues.push(...collectCombatStatusIdentityIssues(row.statuses, `${prefix}.statuses`))
     for (const [statusIndex, status] of row.statuses.entries()) {
       const statusPrefix = `${prefix}.statuses.${statusIndex}`
       collectIdentityIssue(issues, status.statusId, `${statusPrefix}.statusId`)
@@ -1133,28 +1144,6 @@ export function validateCombatEncounterState(
           message: 'Status source must reference a combatant in this encounter.',
         })
       }
-      if (statusIds.has(status.statusId)) {
-        issues.push({
-          field: `${statusPrefix}.statusId`,
-          message: 'A combatant cannot have duplicate status identities.',
-        })
-      }
-      statusIds.add(status.statusId)
-    }
-
-    const sortedStatusIds = [...row.statuses]
-      .map((status) => status.statusId)
-      .sort(compareStableString)
-    if (
-      !arraysEqual(
-        row.statuses.map((status) => status.statusId),
-        sortedStatusIds,
-      )
-    ) {
-      issues.push({
-        field: `${prefix}.statuses`,
-        message: 'Statuses must use stable status ID ordering.',
-      })
     }
   }
 
@@ -1591,8 +1580,8 @@ function resolveActionEffects(
         beforeValue = [...new Set(removedStatusIds)].sort(compareStableString).join(',') || 'none'
         afterValue = 'none'
       } else {
-        const oldStatus = getStatus(before, recipientId, effect.statusId)
-        const newStatus = getStatus(nextState, recipientId, effect.statusId)
+        const oldStatus = getStatus(before, recipientId, effect.statusId, actorId)
+        const newStatus = getStatus(nextState, recipientId, effect.statusId, actorId)
         beforeValue = oldStatus ? `${oldStatus.statusId}:${oldStatus.stacks}` : 'none'
         afterValue = newStatus ? `${newStatus.statusId}:${newStatus.stacks}` : 'none'
       }
@@ -1810,7 +1799,7 @@ function applyEffect(
     }
   }
 
-  const existingStatus = getStatus(state, recipientId, effect.statusId)
+  const existingStatus = getStatus(state, recipientId, effect.statusId, actorId)
   const nextState = applyStatusState(
     state,
     actorId,
@@ -1819,7 +1808,7 @@ function applyEffect(
     effect.stacks,
     content,
   )
-  const status = getStatus(nextState, recipientId, effect.statusId)
+  const status = getStatus(nextState, recipientId, effect.statusId, actorId)
   if (!status) {
     throw new Error(`Status ${effect.statusId} was not applied.`)
   }
@@ -1913,8 +1902,7 @@ function applyStatusState(
 ): CombatEncounterState {
   assertPositiveSafeInteger(stacks, 'status stacks')
   const definition = getStatusDefinitionById(content, statusId)
-  const row = getStatusRow(state, recipientId)
-  const existing = row.statuses.find((status) => status.statusId === statusId)
+  const existing = getStatus(state, recipientId, statusId, sourceCombatantId)
   const nextStacks = existing
     ? addClampedSafeInteger(existing.stacks, stacks, 1, definition.maximumStacks)
     : Math.min(definition.maximumStacks, stacks)
@@ -1926,6 +1914,9 @@ function applyStatusState(
         sourceCombatantId,
       }
     : {
+        ...(definition.markAccuracyBonusBasisPoints !== undefined
+          ? { sourceScopedMark: true as const }
+          : {}),
         statusId: definition.id,
         statusVersion: definition.version,
         stacks: nextStacks,
@@ -1938,9 +1929,9 @@ function applyStatusState(
       ? {
           ...candidate,
           statuses: [
-            ...candidate.statuses.filter((status) => status.statusId !== statusId),
+            ...candidate.statuses.filter((status) => status !== existing),
             nextStatus,
-          ].sort((left, right) => compareStableString(left.statusId, right.statusId)),
+          ].sort(compareCombatStatusInstances),
         }
       : candidate,
   )
@@ -1966,7 +1957,14 @@ function expireOwnerTurnStartStatuses(
     }
     const remaining = status.remainingOwnerTurnStarts - 1
     if (remaining <= 0) {
-      events.push({ event: 'status_expired', combatantId, statusId: status.statusId })
+      events.push({
+        event: 'status_expired',
+        combatantId,
+        statusId: status.statusId,
+        ...(status.sourceScopedMark === true
+          ? { sourceCombatantId: status.sourceCombatantId }
+          : {}),
+      })
     } else {
       kept.push({ ...status, remainingOwnerTurnStarts: remaining })
     }
@@ -2244,9 +2242,16 @@ function getStatus(
   state: CombatEncounterState,
   combatantId: string,
   statusId: string,
+  sourceCombatantId?: string,
 ): CombatStatusInstance | null {
   return (
-    getStatusRow(state, combatantId).statuses.find((status) => status.statusId === statusId) ?? null
+    getStatusRow(state, combatantId).statuses.find(
+      (status) =>
+        status.statusId === statusId &&
+        (status.sourceScopedMark !== true ||
+          sourceCombatantId === undefined ||
+          status.sourceCombatantId === sourceCombatantId),
+    ) ?? null
   )
 }
 
@@ -2550,6 +2555,7 @@ function validateAttackProfile(profile: CombatAttackProfile): void {
 function validateCombatContentCatalog(content: CombatContentCatalog): void {
   const ids = new Set<string>()
   for (const status of content.statuses) {
+    validateCombatAccuracyStatusDefinition(status)
     collectRequiredIdentity(status.id, 'status id')
     assertPositiveSafeInteger(status.version, 'status version')
     assertPositiveSafeInteger(status.maximumStacks, 'status maximum stacks')
