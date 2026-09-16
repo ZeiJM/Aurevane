@@ -261,9 +261,8 @@
   [data-testid='account-shell'] footer {
     font-size: 0.66rem;
   }
-  /* Character select uses large artwork,
-:where(body:not(:has([data-character-concept]))) so its copy can grow without increasing card height. */
-  [data-character-select-page='true'] main p {
+  /* Legacy roster typography. Concept entry screens own their readable type scale. */
+  :where(body:not(:has([data-character-concept]))) [data-character-select-page='true'] main p {
     font-size: 0.82rem;
     line-height: 1.45;
   }
@@ -615,9 +614,8 @@
   [data-testid='account-shell'] footer {
     font-size: 0.66rem;
   }
-  /* Character select uses large artwork,
-:where(body:not(:has([data-character-concept]))) so its copy can grow without increasing card height. */
-  [data-character-select-page='true'] main p {
+  /* Legacy roster typography. Concept entry screens own their readable type scale. */
+  :where(body:not(:has([data-character-concept]))) [data-character-select-page='true'] main p {
     font-size: 0.82rem;
     line-height: 1.45;
   }

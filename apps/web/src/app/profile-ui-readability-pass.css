@@ -40,11 +40,8 @@ section[aria-label='Attribute redistribution'] > button:first-child {
   text-transform: none;
 }
 
-/* Pronouns remain an internal creation-contract default, not a player-facing choice. */
-[data-step='identity'] fieldset:nth-of-type(2),
-[data-step='review'] dl > div:nth-child(5) {
-  display: none !important;
-}
+/* Character creation omits pronouns in its markup. Positional hiding rules are
+   intentionally absent: fieldset and review order must not hide real controls. */
 
 @media (min-width: 1200px) and (max-height: 900px) {
   /* Prefer trimming decorative whitespace over type at normal desktop zoom. */

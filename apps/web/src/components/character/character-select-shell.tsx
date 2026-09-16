@@ -206,30 +206,6 @@ export function CharacterSelectShell({
           </span>
         </Link>
 
-        <div className={styles.accountDeleteHeaderControl}>
-          <button
-            type="button"
-            className={styles.accountDeleteHeaderButton}
-            data-pending={accountDeletionState ? 'true' : undefined}
-            data-testid="delete-account-button"
-            aria-label={
-              accountDeletionState
-                ? 'Manage permanent deletion countdown'
-                : 'Permanently delete login and game data'
-            }
-            onClick={openAccountDeletionModal}
-          >
-            {accountDeletionState ? (
-              <>
-                <span>Account deletion</span>
-                <Countdown target={accountDeletionState.deleteAfter} />
-              </>
-            ) : (
-              'Delete Account'
-            )}
-          </button>
-        </div>
-
         <div className={styles.headerActions}>
           <div className={styles.screenIdentity} aria-label="Current screen: Character Select">
             {selectedCharacter ? (
@@ -248,7 +224,7 @@ export function CharacterSelectShell({
         </div>
       </header>
 
-      <main className={styles.main} data-roster-stage="true" style={{ width: 'min(94%, 78rem)' }}>
+      <main className={styles.main} data-roster-stage="true">
         <header className={styles.hero}>
           <div>
             <span>Account roster</span>
@@ -275,7 +251,6 @@ export function CharacterSelectShell({
                 <article
                   className={`${styles.slot} ${styles.empty}`}
                   data-locked="true"
-                  data-av-surface="moonstone"
                   key={slotIndex}
                 >
                   <span className={styles.slotNumber}>Slot {slotIndex + 1}</span>
@@ -318,8 +293,12 @@ export function CharacterSelectShell({
                 className={styles.slot}
                 key={character.id}
                 data-pending-delete={pending || undefined}
+                data-selected={selectedCharacter?.id === character.id || undefined}
               >
-                <span className={styles.slotNumber}>Slot {slotIndex + 1} · Unlocked</span>
+                <span className={styles.slotNumber}>
+                  Slot {slotIndex + 1} ·{' '}
+                  {selectedCharacter?.id === character.id ? 'Current' : 'Unlocked'}
+                </span>
                 <div className={styles.portrait}>
                   <CharacterPortraitImage
                     imageUrl={profileImageUrls[character.id]}
@@ -367,6 +346,34 @@ export function CharacterSelectShell({
             )
           })}
         </section>
+        <footer className={styles.accountControls} aria-label="Account management">
+          <p>
+            {characters.length} of {displaySlots.length} character slots occupied
+          </p>
+          <div className={styles.accountDeleteControl}>
+            <button
+              type="button"
+              className={styles.accountDeleteButton}
+              data-pending={accountDeletionState ? 'true' : undefined}
+              data-testid="delete-account-button"
+              aria-label={
+                accountDeletionState
+                  ? 'Manage permanent deletion countdown'
+                  : 'Permanently delete login and game data'
+              }
+              onClick={openAccountDeletionModal}
+            >
+              {accountDeletionState ? (
+                <>
+                  <span>Account deletion</span>
+                  <Countdown target={accountDeletionState.deleteAfter} />
+                </>
+              ) : (
+                'Delete Account'
+              )}
+            </button>
+          </div>
+        </footer>
       </main>
 
       {deleting ? (
