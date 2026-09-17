@@ -9,6 +9,7 @@ import {
 } from '@aurevane/game-core/character/discipline-atlas'
 
 import { FoundationDisciplineSigil } from '@/components/character/foundation-discipline-sigil'
+import { AurevaneImage } from '@/components/media/aurevane-image'
 
 import styles from './discipline-atlas-guide.module.css'
 
@@ -54,6 +55,19 @@ const BAND_COPY: Readonly<
       'The third Rekindling is the last planned Discipline gate. Further Rekindlings can still expand Veteran Edge, prestige and personal history without adding another vertical class tier.',
   },
 }
+
+const ATLAS_TOC = [
+  ['overview', 'Overview'],
+  ['mastery', 'Mastery'],
+  ['class-budget', 'Class budget'],
+  ['phase-4-testing', 'Phase-4 testing rule'],
+  ['foundation', 'The six Foundations'],
+  ['first-journey', 'Branches of the first journey'],
+  ['rekindling-1', 'Veteran traditions'],
+  ['rekindling-2', 'Deep-horizon study'],
+  ['rekindling-3', 'Apex study'],
+  ['rekindling-memory', 'Rekindling & memory'],
+] as const
 
 function publicPath(discipline: DisciplineAtlasEntry): string {
   if (discipline.disclosure === 'secret') {
@@ -146,10 +160,16 @@ export function DisciplineAtlasGuide() {
   const secret = DISCIPLINE_ATLAS.filter((discipline) => discipline.disclosure === 'secret')
 
   return (
-    <article className={styles.guide}>
-      <Link className={styles.back} href={'/manual' as Route}>
-        ← Adventurer’s Guide
-      </Link>
+    <article
+      className={styles.guide}
+      data-testid="manual-atlas-article"
+      data-manual-article-surface="ink"
+    >
+      <nav className={styles.breadcrumb} aria-label="Manual breadcrumb">
+        <Link href={'/manual' as Route}>Manual</Link>
+        <span aria-hidden="true">›</span>
+        <span>Character</span>
+      </nav>
 
       <header className={styles.hero}>
         <div>
@@ -171,218 +191,250 @@ export function DisciplineAtlasGuide() {
         </aside>
       </header>
 
-      <section className={styles.principle}>
-        <span className={styles.eyebrow}>The important part</span>
-        <h2>This is a map of knowledge, not a ladder of replacements.</h2>
-        <div className={styles.principleGrid}>
-          <div>
-            <strong>Vanguard does not become Bastion.</strong>
-            <p>
-              Studying Vanguard can reveal Bastion, but Vanguard remains its own complete tradition
-              with different strengths, Essence choices and Resonance partners.
-            </p>
-          </div>
-          <div>
-            <strong>Late does not mean strictly stronger.</strong>
-            <p>
-              Advanced Disciplines spend more of their budget on unusual rules, setup and execution.
-              Foundations spend more on reliability and clean turns. Both belong at endgame.
-            </p>
-          </div>
-          <div>
-            <strong>Your history changes the map.</strong>
-            <p>
-              Mastery, Rekindling, authored rites and discoveries can all reveal paths. Some secret
-              traditions are not meant to announce themselves in a creation menu.
-            </p>
-          </div>
-        </div>
-      </section>
+      <div className={styles.heroMedia} data-testid="manual-atlas-hero-media" aria-hidden="true">
+        <AurevaneImage
+          assetId="environment.archive.interior"
+          className={styles.heroMediaImage}
+          sizes="(max-width: 768px) 100vw, 76rem"
+        />
+        <span className={styles.heroMediaVeil} />
+      </div>
 
-      <section className={styles.masterySection}>
-        <div className={styles.sectionHeading}>
-          <div>
-            <span className={styles.eyebrow}>Mastery</span>
-            <h2>Experience is necessary. Proof matters too.</h2>
-          </div>
-          <p>
-            Mastery measures understanding of a combat tradition. Character Level measures the
-            character as a whole; the two systems deliberately do different jobs.
-          </p>
-        </div>
+      <div className={styles.articleLayout}>
+        <nav className={styles.articleNav} data-testid="manual-atlas-toc" aria-label="In this article">
+          <span>In this article</span>
+          <ul>
+            {ATLAS_TOC.map(([id, label]) => (
+              <li key={id}>
+                <a href={`#${id}`}>{label}</a>
+              </li>
+            ))}
+          </ul>
+        </nav>
 
-        <div className={styles.masteryTrack}>
-          <div>
-            <span>0 XP</span>
-            <strong>Initiate</strong>
-            <p>Learn the basic language of the Discipline.</p>
-          </div>
-          <div>
-            <span>100 XP</span>
-            <strong>Practiced</strong>
-            <p>Demonstrate normal tools instead of merely having them equipped.</p>
-          </div>
-          <div>
-            <span>300 XP</span>
-            <strong>Adept</strong>
-            <p>Show the Discipline’s core principle under a real objective.</p>
-          </div>
-          <div>
-            <span>600 XP</span>
-            <strong>Expert</strong>
-            <p>Adapt when the obvious game plan is deliberately disrupted.</p>
-          </div>
-          <div>
-            <span>1,000 XP</span>
-            <strong>Master</strong>
-            <p>
-              Demonstrate all eight regular Skills. Named Mastery Rites are planned future content.
-            </p>
-          </div>
-        </div>
-
-        <div className={styles.trialGuidance}>
-          <h3>Earn Mastery in the current test</h3>
-          <p>
-            Enter a Standard or High Mastery Trial. Win without a player timeout after using two
-            different regular Primary Skills across at least three Primary Skill commands, then
-            choose Claim Mastery to receive up to 50 XP once.
-          </p>
-          <p>Ordinary sparring grants no Mastery XP.</p>
-          <p>
-            Your personal Atlas is inside Profile → Discipline Management → Discipline Atlas &amp;
-            Mastery. It shows earned progress, unmet prerequisites and separate testing access.
-          </p>
-          <Link href={'/manual/battle-hall#mastery-trials' as Route}>Mastery Trial guide</Link>
-        </div>
-
-        <div className={styles.noteGrid}>
-          <div>
-            <h3>Eight learned Techniques, four selected</h3>
-            <p>
-              A mature Discipline teaches eight regular Techniques. Your battle build selects up to
-              four at a time. Advanced libraries currently teach four at Initiate, two more at
-              Practiced and two more at Adept so the later Mastery journey is about using the
-              toolbox, not waiting months to receive it.
-            </p>
-          </div>
-          <div>
-            <h3>Master is not “+20% damage”</h3>
-            <p>
-              Mastery opens Secondary eligibility, Atlas branches, rites, recognition and future
-              progression. It should not turn partially mastered players into numerically invalid
-              characters.
-            </p>
-          </div>
-          <div>
-            <h3>Passive study has a ceiling</h3>
-            <p>
-              A future Discipline Focus may contribute bounded numerical practice, but it cannot
-              demonstrate Techniques, clear trials or create a Master while the player never uses
-              the Discipline.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section className={styles.budgetSection}>
-        <div className={styles.sectionHeading}>
-          <div>
-            <span className={styles.eyebrow}>Class budget</span>
-            <h2>More difficult classes receive different tools, not a bigger budget.</h2>
-          </div>
-          <p>
-            The five marks shown on Atlas cards are an identity profile, not a tier list. A fifth
-            mark in Rule Access means the class breaks or bends more normal combat assumptions; it
-            does not mean “five-star strength.”
-          </p>
-        </div>
-        <div className={styles.budgetExamples}>
-          <article>
-            <span>Foundation example</span>
-            <h3>Vanguard</h3>
-            <strong>Reliable answers, low setup.</strong>
-            <p>
-              Good positioning and action efficiency are valuable in almost every fight. Its
-              strength is that it asks fewer conditions before doing useful work.
-            </p>
-          </article>
-          <article>
-            <span>Advanced example</span>
-            <h3>Chronist</h3>
-            <strong>More rules, more ways to misplay.</strong>
-            <p>
-              Initiative manipulation can create exceptional turns, but it requires planning and
-              does not simply add a larger damage coefficient to Aetherist spells.
-            </p>
-          </article>
-          <article>
-            <span>Apex example</span>
-            <h3>Spellwright</h3>
-            <strong>Metamagic instead of bigger fireballs.</strong>
-            <p>
-              Its prize is the ability to manipulate spell structure. The price is setup, execution
-              and dependence on understanding several magical traditions first.
-            </p>
-          </article>
-        </div>
-      </section>
-
-      <section className={styles.testingSection}>
-        <span className={styles.eyebrow}>Phase-4 testing rule</span>
-        <h2>The doors are open while we build.</h2>
-        <p>
-          During development, every <strong>published</strong> Discipline remains available for
-          testing even when your character has not yet satisfied its eventual release prerequisites.
-          That convenience is a testing entitlement, not earned Mastery. Planned Disciplines do not
-          become selectable until their Skills, Essence, Resonances and authoritative combat content
-          actually exist.
-        </p>
-        <p>
-          When AUREVANE reaches the point where normal acquisition is enabled, the testing overlay
-          can be turned off and the same Atlas requirements become the real gates. Test access is
-          kept separate from earned Mastery so months of development do not accidentally pre-master
-          every launch character.
-        </p>
-      </section>
-
-      {BAND_ORDER.map((band) => {
-        const copy = BAND_COPY[band]
-        const entries = DISCIPLINE_ATLAS.filter((discipline) => discipline.band === band)
-        return (
-          <section className={styles.atlasBand} key={band}>
-            <div className={styles.sectionHeading}>
+        <div className={styles.articleContent} data-testid="manual-atlas-content">
+          <section className={styles.principle} id="overview">
+            <span className={styles.eyebrow}>The important part</span>
+            <h2>This is a map of knowledge, not a ladder of replacements.</h2>
+            <div className={styles.principleGrid}>
               <div>
-                <span className={styles.eyebrow}>{copy.eyebrow}</span>
-                <h2>{copy.title}</h2>
+                <strong>Vanguard does not become Bastion.</strong>
+                <p>
+                  Studying Vanguard can reveal Bastion, but Vanguard remains its own complete
+                  tradition with different strengths, Essence choices and Resonance partners.
+                </p>
               </div>
-              <p>{copy.description}</p>
-            </div>
-            <div className={styles.disciplineGrid}>
-              {entries.map((discipline) => (
-                <DisciplineCard discipline={discipline} key={discipline.id} />
-              ))}
+              <div>
+                <strong>Late does not mean strictly stronger.</strong>
+                <p>
+                  Advanced Disciplines spend more of their budget on unusual rules, setup and
+                  execution. Foundations spend more on reliability and clean turns. Both belong at
+                  endgame.
+                </p>
+              </div>
+              <div>
+                <strong>Your history changes the map.</strong>
+                <p>
+                  Mastery, Rekindling, authored rites and discoveries can all reveal paths. Some
+                  secret traditions are not meant to announce themselves in a creation menu.
+                </p>
+              </div>
             </div>
           </section>
-        )
-      })}
 
-      <section className={styles.rekindlingSection}>
-        <span className={styles.eyebrow}>Rekindling &amp; memory</span>
-        <h2>You may rebuild. Your history does not disappear.</h2>
-        <p>
-          Rekindling is meant to change the journey, not erase it. Historical Mastery belongs in the
-          character’s long-term record even when a later cycle asks them to rebuild current-cycle
-          proficiency. Veteran Echo Routes can replace repeated beginner lessons with shorter,
-          harder examinations for traditions the character has already mastered before.
-        </p>
-        <p>
-          Breadth and depth are both legitimate identities. A character who masters many Disciplines
-          gains more build paths; a lifelong Vanguard specialist should still earn meaningful
-          Vanguard-specific achievements, Essence accomplishments and prestige without being forced
-          to collect every class for raw stats.
-        </p>
-      </section>
+          <section className={styles.masterySection} id="mastery">
+            <div className={styles.sectionHeading}>
+              <div>
+                <span className={styles.eyebrow}>Mastery</span>
+                <h2>Experience is necessary. Proof matters too.</h2>
+              </div>
+              <p>
+                Mastery measures understanding of a combat tradition. Character Level measures the
+                character as a whole; the two systems deliberately do different jobs.
+              </p>
+            </div>
+
+            <div className={styles.masteryTrack}>
+              <div>
+                <span>0 XP</span>
+                <strong>Initiate</strong>
+                <p>Learn the basic language of the Discipline.</p>
+              </div>
+              <div>
+                <span>100 XP</span>
+                <strong>Practiced</strong>
+                <p>Demonstrate normal tools instead of merely having them equipped.</p>
+              </div>
+              <div>
+                <span>300 XP</span>
+                <strong>Adept</strong>
+                <p>Show the Discipline’s core principle under a real objective.</p>
+              </div>
+              <div>
+                <span>600 XP</span>
+                <strong>Expert</strong>
+                <p>Adapt when the obvious game plan is deliberately disrupted.</p>
+              </div>
+              <div>
+                <span>1,000 XP</span>
+                <strong>Master</strong>
+                <p>
+                  Demonstrate all eight regular Skills. Named Mastery Rites are planned future
+                  content.
+                </p>
+              </div>
+            </div>
+
+            <div className={styles.trialGuidance}>
+              <h3>Earn Mastery in the current test</h3>
+              <p>
+                Enter a Standard or High Mastery Trial. Win without a player timeout after using two
+                different regular Primary Skills across at least three Primary Skill commands, then
+                choose Claim Mastery to receive up to 50 XP once.
+              </p>
+              <p>Ordinary sparring grants no Mastery XP.</p>
+              <p>
+                Your personal Atlas is inside Profile → Discipline Management → Discipline Atlas
+                &amp; Mastery. It shows earned progress, unmet prerequisites and separate testing
+                access.
+              </p>
+              <Link href={'/manual/battle-hall#mastery-trials' as Route}>Mastery Trial guide</Link>
+            </div>
+
+            <div className={styles.noteGrid}>
+              <div>
+                <h3>Eight learned Techniques, four selected</h3>
+                <p>
+                  A mature Discipline teaches eight regular Techniques. Your battle build selects up
+                  to four at a time. Advanced libraries currently teach four at Initiate, two more at
+                  Practiced and two more at Adept so the later Mastery journey is about using the
+                  toolbox, not waiting months to receive it.
+                </p>
+              </div>
+              <div>
+                <h3>Master is not “+20% damage”</h3>
+                <p>
+                  Mastery opens Secondary eligibility, Atlas branches, rites, recognition and future
+                  progression. It should not turn partially mastered players into numerically
+                  invalid characters.
+                </p>
+              </div>
+              <div>
+                <h3>Passive study has a ceiling</h3>
+                <p>
+                  A future Discipline Focus may contribute bounded numerical practice, but it cannot
+                  demonstrate Techniques, clear trials or create a Master while the player never uses
+                  the Discipline.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <section className={styles.budgetSection} id="class-budget">
+            <div className={styles.sectionHeading}>
+              <div>
+                <span className={styles.eyebrow}>Class budget</span>
+                <h2>More difficult classes receive different tools, not a bigger budget.</h2>
+              </div>
+              <p>
+                The five marks shown on Atlas cards are an identity profile, not a tier list. A fifth
+                mark in Rule Access means the class breaks or bends more normal combat assumptions;
+                it does not mean “five-star strength.”
+              </p>
+            </div>
+            <div className={styles.budgetExamples}>
+              <article>
+                <span>Foundation example</span>
+                <h3>Vanguard</h3>
+                <strong>Reliable answers, low setup.</strong>
+                <p>
+                  Good positioning and action efficiency are valuable in almost every fight. Its
+                  strength is that it asks fewer conditions before doing useful work.
+                </p>
+              </article>
+              <article>
+                <span>Advanced example</span>
+                <h3>Chronist</h3>
+                <strong>More rules, more ways to misplay.</strong>
+                <p>
+                  Initiative manipulation can create exceptional turns, but it requires planning and
+                  does not simply add a larger damage coefficient to Aetherist spells.
+                </p>
+              </article>
+              <article>
+                <span>Apex example</span>
+                <h3>Spellwright</h3>
+                <strong>Metamagic instead of bigger fireballs.</strong>
+                <p>
+                  Its prize is the ability to manipulate spell structure. The price is setup,
+                  execution and dependence on understanding several magical traditions first.
+                </p>
+              </article>
+            </div>
+          </section>
+
+          <section className={styles.testingSection} id="phase-4-testing">
+            <span className={styles.eyebrow}>Phase-4 testing rule</span>
+            <h2>The doors are open while we build.</h2>
+            <p>
+              During development, every <strong>published</strong> Discipline remains available for
+              testing even when your character has not yet satisfied its eventual release
+              prerequisites. That convenience is a testing entitlement, not earned Mastery. Planned
+              Disciplines do not become selectable until their Skills, Essence, Resonances and
+              authoritative combat content actually exist.
+            </p>
+            <p>
+              When AUREVANE reaches the point where normal acquisition is enabled, the testing
+              overlay can be turned off and the same Atlas requirements become the real gates. Test
+              access is kept separate from earned Mastery so months of development do not
+              accidentally pre-master every launch character.
+            </p>
+          </section>
+
+          {BAND_ORDER.map((band) => {
+            const copy = BAND_COPY[band]
+            const entries = DISCIPLINE_ATLAS.filter((discipline) => discipline.band === band)
+            return (
+              <section className={styles.atlasBand} id={band} key={band}>
+                <div className={styles.sectionHeading}>
+                  <div>
+                    <span className={styles.eyebrow}>{copy.eyebrow}</span>
+                    <h2>{copy.title}</h2>
+                  </div>
+                  <p>{copy.description}</p>
+                </div>
+                <div className={styles.disciplineGrid}>
+                  {entries.map((discipline) => (
+                    <DisciplineCard discipline={discipline} key={discipline.id} />
+                  ))}
+                </div>
+              </section>
+            )
+          })}
+
+          <section className={styles.rekindlingSection} id="rekindling-memory">
+            <span className={styles.eyebrow}>Rekindling &amp; memory</span>
+            <h2>You may rebuild. Your history does not disappear.</h2>
+            <p>
+              Rekindling is meant to change the journey, not erase it. Historical Mastery belongs in
+              the character’s long-term record even when a later cycle asks them to rebuild
+              current-cycle proficiency. Veteran Echo Routes can replace repeated beginner lessons
+              with shorter, harder examinations for traditions the character has already mastered
+              before.
+            </p>
+            <p>
+              Breadth and depth are both legitimate identities. A character who masters many
+              Disciplines gains more build paths; a lifelong Vanguard specialist should still earn
+              meaningful Vanguard-specific achievements, Essence accomplishments and prestige
+              without being forced to collect every class for raw stats.
+            </p>
+          </section>
+        </div>
+      </div>
+
+      <Link className={styles.back} href={'/manual' as Route}>
+        ← Back to the Manual
+      </Link>
     </article>
   )
 }
