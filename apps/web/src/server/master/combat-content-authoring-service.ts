@@ -160,13 +160,7 @@ function validateSkillDefinition(definition: unknown): CombatContentValidationRe
     for (const context of ['pve', 'pvp'] as const) {
       try {
         const action = toCombatActionDefinition(candidate, context)
-        for (const issue of validateCombatActionDefinition(action)) {
-          issues.push({
-            path: `${context}.${issue.field}`,
-            code: 'INVALID_COMBAT_ACTION',
-            message: issue.message,
-          })
-        }
+        validateCombatActionDefinition(action)
       } catch (error) {
         issues.push({
           path: context,
