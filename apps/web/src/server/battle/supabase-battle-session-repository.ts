@@ -142,7 +142,7 @@ export function createSupabaseBattleSessionRepository(): BattleSessionRepository
 
     async commitBattleIntent(input) {
       const supabase = createSupabaseAdminClient()
-      const { data, error } = await supabase.rpc('commit_battle_intent_v2', {
+      const { data, error } = await supabase.rpc('commit_battle_intent_v3', {
         p_actor_key: input.actorKey,
         p_idempotency_key: input.idempotencyKey,
         p_request_fingerprint: input.requestFingerprint,
@@ -151,6 +151,9 @@ export function createSupabaseBattleSessionRepository(): BattleSessionRepository
         p_expected_battle_version: input.expectedBattleVersion,
         p_next_snapshot: input.nextSnapshot,
         p_events: input.events,
+        // CSR-0 records current commands as public. CSR-1/CSR-3 can supply explicit
+        // resolver-time visibility decisions without exposing provenance to browsers.
+        p_privacy_journal: null,
       })
 
       if (error) throwRpcError(error)
