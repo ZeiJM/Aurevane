@@ -81,8 +81,9 @@ def insert_public_privacy(text: str, path: str) -> tuple[str, int]:
             line_start = text.rfind('\n', 0, end) + 1
             closing_indent = text[line_start:end]
             property_indent = closing_indent + '  '
-            text = text[:end] + f'\n{property_indent}privacyJournal: null,' + text[end:]
-            end += len(f'\n{property_indent}privacyJournal: null,')
+            insertion = f'\n{property_indent}privacyJournal: null,'
+            text = text[:end] + insertion + text[end:]
+            end += len(insertion)
             count += 1
         offset = end + 1
     return text, count
@@ -141,11 +142,12 @@ event_replacement = "        const event = decisionEvent(decision, turn.combatan
 if event_anchor not in text:
     raise RuntimeError('battle-recruit-ai-service event anchor missing')
 text = text.replace(event_anchor, event_replacement, 1)
-old = "          events: [event, ...resolved.events],\n          privacyJournal: null,"
-new = "          events,\n          privacyJournal,"
-if old not in text:
-    raise RuntimeError('battle-recruit-ai-service commit placeholder missing')
-text = text.replace(old, new, 1)
+if text.count('events: [event, ...resolved.events],') != 1:
+    raise RuntimeError('Expected one Recruit AI event-batch expression')
+text = text.replace('events: [event, ...resolved.events],', 'events,', 1)
+if text.count('privacyJournal: null,') != 1:
+    raise RuntimeError('Expected one Recruit AI privacy placeholder')
+text = text.replace('privacyJournal: null,', 'privacyJournal,', 1)
 path.write_text(text)
 
 print('CSR-3 commit privacy patch applied')
