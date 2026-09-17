@@ -133,7 +133,7 @@ export class InMemoryCombatContentRepository implements CombatContentRepository 
     if (existing) {
       assertContentIdentity(input.contentKey, input.contentKind, existing.contentKind)
     }
-    this.#assertKnownOrExternalBootstrapVersion(
+    this.#assertKnownOrExternalFallbackVersion(
       input.contentKey,
       input.contentKind,
       input.baseVersion,
@@ -185,11 +185,6 @@ export class InMemoryCombatContentRepository implements CombatContentRepository 
             `but current version is ${current.contentVersion}.`,
         )
       }
-    } else if (versions[0]) {
-      throw new CombatContentConflictError(
-        'COMBAT_CONTENT_PUBLICATION_INVALID',
-        `Immutable history for ${input.contentKey} exists without a current publication pointer.`,
-      )
     }
 
     const highestStoredVersion = versions.reduce(
@@ -266,17 +261,16 @@ export class InMemoryCombatContentRepository implements CombatContentRepository 
     })
   }
 
-  #assertKnownOrExternalBootstrapVersion(
+  #assertKnownOrExternalFallbackVersion(
     contentKey: string,
     contentKind: CombatContentKind,
     version: number | null,
   ): void {
-    if (version === null) return
+    if (version === null || !this.#publications.has(contentKey)) return
 
-    const versions = this.#versions.get(contentKey) ?? []
-    if (versions.length === 0) return
-
-    const known = versions.find((candidate) => candidate.contentVersion === version)
+    const known = (this.#versions.get(contentKey) ?? []).find(
+      (candidate) => candidate.contentVersion === version,
+    )
     if (!known) {
       throw new CombatContentConflictError(
         'COMBAT_CONTENT_BASE_VERSION_NOT_FOUND',
