@@ -1,0 +1,129 @@
+.page {
+  min-height: 100dvh;
+  padding: clamp(1rem, 3vw, 3rem);
+  background:
+    radial-gradient(circle at 80% 0%, rgba(128, 113, 172, 0.13), transparent 34rem),
+    radial-gradient(circle at 10% 90%, rgba(185, 154, 92, 0.08), transparent 30rem),
+    var(--av-ink-950);
+}
+
+.frame {
+  width: min(92rem, 100%);
+  margin: 0 auto;
+}
+
+.masthead {
+  display: flex;
+  gap: var(--av-space-5);
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--av-space-5);
+  padding: 0.8rem 0 1rem;
+  border-bottom: 1px solid var(--av-border);
+}
+
+.brand {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.brand strong {
+  font-family: var(--av-font-display);
+  font-size: 1.1rem;
+  font-weight: 550;
+  letter-spacing: 0.12em;
+}
+
+.brand span,
+.operator {
+  color: var(--av-text-dim);
+  font: 650 0.6rem/1.3 var(--av-font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.operator {
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--av-border);
+  border-radius: 999px;
+}
+
+.overview {
+  padding: clamp(1.2rem, 2.5vw, 2rem);
+  border: 1px solid var(--av-border-strong);
+  border-radius: var(--av-radius-lg);
+  background: rgba(10, 13, 19, 0.9);
+  box-shadow: var(--av-shadow-deep);
+}
+
+.overview h1 {
+  margin: 0;
+  font: 500 clamp(2.2rem, 5vw, 4.4rem) / 0.95 var(--av-font-display);
+}
+
+.overview > p {
+  max-width: 52rem;
+  margin: 1rem 0 0;
+  color: var(--av-text-dim);
+  line-height: 1.7;
+}
+
+.moduleGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--av-space-3);
+  margin-top: var(--av-space-6);
+}
+
+.module {
+  display: grid;
+  gap: 0.45rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius-md);
+  background: rgba(255, 255, 255, 0.025);
+  transition:
+    border-color 120ms ease,
+    background 120ms ease;
+}
+
+.module:hover {
+  border-color: var(--av-border-strong);
+  background: rgba(185, 154, 92, 0.055);
+}
+
+.module strong {
+  color: var(--av-text);
+  font-family: var(--av-font-display);
+  font-size: 1.2rem;
+  font-weight: 550;
+}
+
+.module span {
+  color: var(--av-text-dim);
+  font-size: 0.75rem;
+  line-height: 1.55;
+}
+
+.breadcrumb {
+  display: inline-flex;
+  margin-bottom: var(--av-space-4);
+  color: var(--av-text-dim);
+  font: 650 0.64rem/1.3 var(--av-font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.breadcrumb:hover {
+  color: var(--av-brass-300);
+}
+
+@media (max-width: 760px) {
+  .page {
+    padding: var(--av-space-3);
+  }
+
+  .masthead {
+    align-items: start;
+  }
+}
