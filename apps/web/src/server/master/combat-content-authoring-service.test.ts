@@ -10,8 +10,6 @@ import {
   resolveMatureSkillVersion,
   type MatureSkillDefinition,
 } from '@aurevane/game-core/combat/mature-skills'
-import { AurevaneError } from '@aurevane/game-core/errors'
-
 import type { CombatContentResolver } from '@/server/combat/combat-content-resolver'
 
 import {
@@ -95,7 +93,7 @@ describe('combat content authoring service', () => {
         baseVersion: 2,
         expectedDraftVersion: null,
       }),
-    ).rejects.toMatchObject<AurevaneError>({ code: 'FORBIDDEN' })
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' })
   })
 
   it.each([
@@ -210,7 +208,7 @@ describe('combat content authoring service', () => {
         actorUserId: OUTSIDER,
         definition: staticSkill(),
       }),
-    ).rejects.toMatchObject<AurevaneError>({ code: 'FORBIDDEN' })
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' })
 
     store.operators.set(OWNER, 'owner')
     await expect(
@@ -218,7 +216,7 @@ describe('combat content authoring service', () => {
         actorUserId: OWNER,
         definition: invalid,
       }),
-    ).rejects.toMatchObject<AurevaneError>({ code: 'INVALID_REQUEST' })
+    ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
   })
 
   it('returns a stable semantic field diff without presentation-only noise', () => {
@@ -251,7 +249,7 @@ describe('combat content authoring service', () => {
         definition: staticSkill(),
         expectedBaseVersion: 2,
       }),
-    ).rejects.toMatchObject<AurevaneError>({ code: 'STALE_VERSION' })
+    ).rejects.toMatchObject({ code: 'STALE_VERSION' })
   })
 
   it('refuses to publish a definition that fails combat validation', async () => {
@@ -267,7 +265,7 @@ describe('combat content authoring service', () => {
         definition: invalid,
         expectedBaseVersion: 2,
       }),
-    ).rejects.toMatchObject<AurevaneError>({ code: 'INVALID_REQUEST' })
+    ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
     expect(await store.findPublished('vanguard.forceful-strike')).toBeNull()
   })
 
