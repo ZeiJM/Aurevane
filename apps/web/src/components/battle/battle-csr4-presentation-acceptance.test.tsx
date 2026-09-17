@@ -100,7 +100,7 @@ describe('CSR-4 battle presentation acceptance', () => {
     expect(covert).toContain('3 turns remaining')
     expect(covert).toContain('data-battle-effect-kind="Buff"')
     expect(covert).toContain('positive')
-    expect(covert).toContain('opposing')
+    expect(covert).toContain('Opposing')
     expect(covert).not.toContain('untargetable')
 
     const revealed = renderToStaticMarkup(
