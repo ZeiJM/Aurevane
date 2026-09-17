@@ -528,6 +528,7 @@ function presentAction(group: ActionGroup, options: PresentationOptions): Presen
   const waited = findEntry(group, 'combatant_waited')
   const resource = findEntry(group, 'resource_changed') ?? findEntry(group, 'mp_spent')
   const actionUsed = findEntry(group, 'combat_action_used')
+  const hiddenAction = findEntry(group, 'hidden_combat_action')
   const actionLabel = usefulActionLabel(group.entries)
 
   let primary: readonly BattleLogSegment[]
@@ -561,6 +562,11 @@ function presentAction(group: ActionGroup, options: PresentationOptions): Presen
     secondary = statusApplicationSecondary(group, options, consumed, timeout.actorCombatantId)
     kind = 'turn'
     consumed.add('timed out')
+  } else if (hiddenAction) {
+    const actor = combatantName(hiddenAction.actorCombatantId, options) ?? 'Combatant'
+    primary = [segment(actor, 'actor'), segment(' performed an action.')]
+    secondary = statusApplicationSecondary(group, options, consumed)
+    kind = hiddenAction.kind
   } else if (resolved?.templateValues.outcome === 'MISSED') {
     const actor = combatantName(resolved.actorCombatantId, options)
     const target = combatantName(resolved.targetCombatantId, options)

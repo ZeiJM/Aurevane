@@ -209,6 +209,21 @@ export const CLEANSE_STATUS_IDS = [
   'challenged',
 ] as const
 
+const csrDescriptions: Record<string, Pick<NamedCombatStatus, 'name' | 'kind' | 'description'>> = {
+  covert: {
+    name: 'Covert',
+    kind: 'Buff',
+    description:
+      'Opposing viewers cannot see your positive active effects or covered action details while Covert. Covert does not change targeting or tactical-board visibility.',
+  },
+  revealed: {
+    name: 'Revealed',
+    kind: 'Debuff',
+    description:
+      'Qualifying Skill AP costs are doubled and Covert cannot be gained while Revealed.',
+  },
+}
+
 const legacyDescriptions: Record<
   string,
   Pick<NamedCombatStatus, 'name' | 'kind' | 'description'>
@@ -236,6 +251,7 @@ export function combatStatusDetails(
 ): Pick<NamedCombatStatus, 'name' | 'kind' | 'description'> {
   return (
     PHASE4_STATUSES.find((status) => status.id === id) ??
+    csrDescriptions[id] ??
     legacyDescriptions[id] ?? {
       name: id
         .replace(/^(buff|debuff)\./, '')
