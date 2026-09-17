@@ -156,11 +156,10 @@ function encounter(currentAp = 100) {
 
 describe('CSR-1 Recruit AI Revealed AP parity', () => {
   it('spends the same doubled mature-Skill AP cost as player execution', () => {
-    const result = executeBuildAwareRecruitAiAction(
-      encounter(),
-      'vanguard.forceful-strike',
-      { kind: 'unit', combatantId: targetId },
-    )
+    const result = executeBuildAwareRecruitAiAction(encounter(), 'vanguard.forceful-strike', {
+      kind: 'unit',
+      combatantId: targetId,
+    })
 
     expect(readPv1fActionEconomy(result.state, actorId)?.current).toBe(20)
     expect(result.events).toContainEqual(
