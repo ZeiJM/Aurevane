@@ -42,8 +42,8 @@ export interface CombatContentPreviewOptions {
 }
 
 function assertPreviewSeed(seed: number): void {
-  if (!Number.isSafeInteger(seed) || seed < 0) {
-    throw new RangeError('Combat content preview seed must be a non-negative safe integer.')
+  if (!Number.isSafeInteger(seed) || seed < 1 || seed > 0xffff_ffff) {
+    throw new RangeError('Combat content preview seed must be a non-zero unsigned 32-bit integer.')
   }
 }
 
@@ -112,8 +112,8 @@ function profile(
     },
     accuracy: overrides.accuracy ?? 7_000,
     evasion: overrides.evasion ?? 0,
-    armor: 5,
-    ward: 5,
+    armor: 0,
+    ward: 0,
     jump: 1,
     physicalPower: 30,
     mysticPower: 30,
