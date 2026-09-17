@@ -304,6 +304,7 @@ function effectPresentationTags(effect: PresentationEffect): readonly string[] {
     curse: 'Curse',
     cleanse: 'Cleanse',
     dispel: 'Dispel',
+    sensory: 'Sensory',
     'apply-burn': 'Burn (Scorched)',
     'apply-bleed': 'Bleed (Bleeding)',
     'apply-poison': 'Poison (Poisoned)',
