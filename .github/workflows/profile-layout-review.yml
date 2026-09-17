@@ -17,6 +17,7 @@ on:
       - agent/manual-index-fidelity
       - agent/manual-article-fidelity
       - agent/rules-fidelity
+      - agent/creation-discipline-subject-reconciliation
     paths:
       - .github/workflows/profile-layout-review.yml
       - apps/web/e2e/*layout-regression.pw.ts
