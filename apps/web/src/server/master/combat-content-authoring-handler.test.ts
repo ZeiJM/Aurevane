@@ -92,6 +92,30 @@ describe('combat content authoring handler', () => {
     })
   })
 
+  it('routes deterministic preview through the protected service', async () => {
+    const service = serviceMock()
+    vi.mocked(service.previewSkillDefinition).mockResolvedValue({} as never)
+
+    const response = await handleCombatContentAuthoringRequest(
+      post({
+        operation: 'preview',
+        definition: { id: 'vanguard.forceful-strike' },
+        seed: 0x4d415354,
+        combatContext: 'pvp',
+      }),
+      dependencies(service),
+    )
+
+    expect(response.status).toBe(200)
+    expect(service.previewSkillDefinition).toHaveBeenCalledWith({
+      actorUserId: ACTOR,
+      definition: { id: 'vanguard.forceful-strike' },
+      seed: 0x4d415354,
+      combatContext: 'pvp',
+    })
+    await expect(response.json()).resolves.toEqual({ preview: {} })
+  })
+
   it('injects the authenticated actor into draft writes', async () => {
     const service = serviceMock()
 
