@@ -10,6 +10,11 @@ import {
 } from './resonance'
 import { PHASE4_STATUSES } from './status-content'
 import {
+  createCovertStatusDefinition,
+  createRevealedStatusDefinition,
+  revealedSkillApCost,
+} from './covert-sensory-revealed'
+import {
   createBasicAttackDefinition,
   createCombatEncounterState,
   endCombatTurn,
@@ -97,6 +102,7 @@ export const PV1F_GUARDED_STATUS: CombatStatusDefinition = {
   maximumStacks: PV1F_STATUS_MAXIMUM_STACKS,
   durationOwnerTurnStarts: 2,
   damageTakenMultiplierBasisPoints: 8_500,
+  polarity: 'positive',
 }
 
 // Lowered Guard is a one-turn anti-timeout debuff. A combatant who times out again can receive
@@ -107,6 +113,7 @@ export const PV1F_LOWERED_GUARD_STATUS: CombatStatusDefinition = {
   maximumStacks: PV1F_STATUS_MAXIMUM_STACKS,
   durationOwnerTurnStarts: 1,
   damageTakenMultiplierBasisPoints: 25_000,
+  polarity: 'negative',
 }
 
 export const PV1F_EXPOSED_STATUS: CombatStatusDefinition = {
@@ -115,13 +122,19 @@ export const PV1F_EXPOSED_STATUS: CombatStatusDefinition = {
   maximumStacks: 1,
   durationOwnerTurnStarts: 2,
   damageTakenMultiplierBasisPoints: 11_500,
+  polarity: 'negative',
 }
+
+export const PV1F_COVERT_STATUS = createCovertStatusDefinition(4)
+export const PV1F_REVEALED_STATUS = createRevealedStatusDefinition(4)
 
 export const PV1F_COMBAT_CONTENT: CombatContentCatalog = {
   statuses: [
     PV1F_GUARDED_STATUS,
     PV1F_LOWERED_GUARD_STATUS,
     PV1F_EXPOSED_STATUS,
+    PV1F_COVERT_STATUS,
+    PV1F_REVEALED_STATUS,
     ...PHASE4_STATUSES,
   ],
 }
@@ -581,7 +594,7 @@ export function evaluatePv1fMatureSkill(
   return {
     prepared,
     action,
-    cost: resolved.apCost,
+    cost: revealedSkillApCost(prepared, actorId, resolved.apCost),
     evaluation:
       evaluation.legal && vengeance.basis.length > 0
         ? {
@@ -938,14 +951,15 @@ function scaleRepeatedMatureSkillEffects(
       scaled.push({ ...effect, damagePerTick: halfPositiveMagnitude(effect.damagePerTick) })
       continue
     }
-    // Removal is discrete: a consecutive repeat cannot remove a full status again.
+    // Removal and Sensory are discrete: a consecutive repeat cannot resolve a half-strength copy.
     if (
       effect.type === 'remove-status' ||
       effect.type === 'return-to-turn-start' ||
       effect.type === 'create-terrain' ||
       effect.type === 'displace' ||
       effect.type === 'poison' ||
-      effect.type === 'burn'
+      effect.type === 'burn' ||
+      effect.type === 'sensory'
     )
       continue
     if (effect.type === 'copy-statuses') {
