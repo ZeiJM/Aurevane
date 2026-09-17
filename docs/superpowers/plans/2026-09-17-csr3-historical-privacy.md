@@ -86,3 +86,7 @@ Additional commit call sites receive explicit public privacy only when compilati
 ## Verification gate
 
 RED intended behavior -> minimal implementation -> targeted green -> full formatting/lint/typecheck/tests/build -> database rebuild/privacy regression -> Browser smoke -> exact PR diff/reviews/comments -> refresh shared -> exact candidate merge -> verify merge parents/tree -> post-merge shared checks -> confirm `main` untouched.
+
+## Current checkpoint
+
+The pure commit-time metadata and version-batch history projection RED contracts are implemented, including hidden action collapse, public Sensory reveal overrides, legacy fallback, and hidden action-ID stripping. Exact repository Prettier output has been applied. Full CI must be green on a human-authored head before persistence/database wiring begins.
