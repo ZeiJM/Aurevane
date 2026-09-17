@@ -16,9 +16,7 @@ export class CombatContentAuthoringClientError extends Error {
   }
 }
 
-export async function postCombatContentAuthoring<T extends JsonObject>(
-  body: JsonObject,
-): Promise<T> {
+export async function postCombatContentAuthoring<T>(body: JsonObject): Promise<T> {
   const response = await fetch('/api/master/combat-content', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
