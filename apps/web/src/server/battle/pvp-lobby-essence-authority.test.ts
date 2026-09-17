@@ -23,6 +23,9 @@ vi.mock('@/server/character/supabase-character-build-repository', () => ({
 vi.mock('@/server/character/supabase-character-repository', () => ({
   createSupabaseCharacterRepository: vi.fn(),
 }))
+vi.mock('@/server/combat/combat-content-resolver', () => ({
+  createServerCombatContentResolver: vi.fn(),
+}))
 
 import type { CharacterCommittedBuildSnapshotRecord } from '@/server/character/character-build-service'
 
