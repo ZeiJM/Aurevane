@@ -3,6 +3,10 @@ import { expect, test } from '@playwright/test'
 import { createVerifiedAccountAndSignIn } from './pv1f-test-helpers'
 
 async function reachDiscipline(page: Parameters<typeof createVerifiedAccountAndSignIn>[0]['page']) {
+  const suffix = String(Date.now())
+    .split('')
+    .map((digit) => String.fromCharCode(65 + Number(digit)))
+    .join('')
   await createVerifiedAccountAndSignIn({
     page,
     email: `creation-subject-${Date.now()}-${Math.random()}@example.test`,
@@ -10,7 +14,7 @@ async function reachDiscipline(page: Parameters<typeof createVerifiedAccountAndS
   })
   await page.getByRole('link', { name: 'Create Character', exact: true }).click()
   const creation = page.getByTestId('character-creation')
-  await creation.getByLabel('Character name', { exact: true }).fill(`Subject ${Date.now()}`)
+  await creation.getByLabel('Character name', { exact: true }).fill(`Subject ${suffix}`)
   await creation.getByRole('button', { name: 'Choose your discipline', exact: true }).click()
   await expect(creation).toHaveAttribute('data-step', 'discipline')
   return creation
