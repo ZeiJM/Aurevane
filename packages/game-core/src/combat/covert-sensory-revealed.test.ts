@@ -220,9 +220,7 @@ describe('CSR-1 Covert and Revealed definitions', () => {
   it('keeps Covert single-stack and refreshes its pinned duration on reapplication', () => {
     const once = executeCombatAction(encounter(), covertAction(), { kind: 'self' }, content)
     const twice = executeCombatAction(once.state, covertAction(), { kind: 'self' }, content)
-    const active = statuses(twice.state, 'wayfarer').filter(
-      (entry) => entry.statusId === 'covert',
-    )
+    const active = statuses(twice.state, 'wayfarer').filter((entry) => entry.statusId === 'covert')
 
     expect(active).toHaveLength(1)
     expect(active[0]).toMatchObject({ stacks: 1, remainingOwnerTurnStarts: 3 })
@@ -262,63 +260,54 @@ describe('CSR-1 Sensory', () => {
     expect(plain.projectedEffects).toEqual(hidden.projectedEffects)
   })
 
-  it(
-    'no-ops the Sensory block on a non-Covert target while later authored effects continue',
-    () => {
-      const transition = executeCombatAction(
-        encounter(),
-        sensoryAction(),
-        { kind: 'unit', combatantId: 'recruit' },
-        content,
-      )
-      const recruit = transition.state.tactical.battle.combatants.find(
-        (unit) => unit.id === 'recruit',
-      )
+  it('no-ops the Sensory block on a non-Covert target while later authored effects continue', () => {
+    const transition = executeCombatAction(
+      encounter(),
+      sensoryAction(),
+      { kind: 'unit', combatantId: 'recruit' },
+      content,
+    )
+    const recruit = transition.state.tactical.battle.combatants.find(
+      (unit) => unit.id === 'recruit',
+    )
 
-      expect(recruit?.hp).toBe(95)
-      expect(statuses(transition.state, 'recruit')).toEqual([])
-      expect(transition.events).not.toContainEqual(
+    expect(recruit?.hp).toBe(95)
+    expect(statuses(transition.state, 'recruit')).toEqual([])
+    expect(transition.events).not.toContainEqual(
+      expect.objectContaining({ event: 'status_applied', statusId: 'revealed' }),
+    )
+  })
+
+  it('purges definition-classified positive statuses, removes Covert, preserves negatives and applies Revealed', () => {
+    const transition = executeCombatAction(
+      encounter([
+        status('covert', 'recruit', 3),
+        status('guarded', 'recruit', 2),
+        status('inspired', 'recruit', 2),
+        status('exposed', 'wayfarer', 2),
+      ]),
+      sensoryAction(),
+      { kind: 'unit', combatantId: 'recruit' },
+      content,
+    )
+
+    expect(statuses(transition.state, 'recruit').map((entry) => entry.statusId)).toEqual([
+      'exposed',
+      'revealed',
+    ])
+    expect(transition.events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ event: 'status_removed', statusId: 'covert' }),
+        expect.objectContaining({ event: 'status_removed', statusId: 'guarded' }),
+        expect.objectContaining({ event: 'status_removed', statusId: 'inspired' }),
         expect.objectContaining({ event: 'status_applied', statusId: 'revealed' }),
-      )
-    },
-  )
-
-  it(
-    'purges definition-classified positive statuses, removes Covert, preserves negatives and applies Revealed',
-    () => {
-      const transition = executeCombatAction(
-        encounter([
-          status('covert', 'recruit', 3),
-          status('guarded', 'recruit', 2),
-          status('inspired', 'recruit', 2),
-          status('exposed', 'wayfarer', 2),
-        ]),
-        sensoryAction(),
-        { kind: 'unit', combatantId: 'recruit' },
-        content,
-      )
-
-      expect(statuses(transition.state, 'recruit').map((entry) => entry.statusId)).toEqual([
-        'exposed',
-        'revealed',
-      ])
-      expect(transition.events).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ event: 'status_removed', statusId: 'covert' }),
-          expect.objectContaining({ event: 'status_removed', statusId: 'guarded' }),
-          expect.objectContaining({ event: 'status_removed', statusId: 'inspired' }),
-          expect.objectContaining({ event: 'status_applied', statusId: 'revealed' }),
-          expect.objectContaining({ event: 'damage_applied', amount: 5 }),
-        ]),
-      )
-    },
-  )
+        expect.objectContaining({ event: 'damage_applied', amount: 5 }),
+      ]),
+    )
+  })
 
   it('does not reveal or purge on a miss', () => {
-    const state = encounter([
-      status('covert', 'recruit', 3),
-      status('guarded', 'recruit', 2),
-    ])
+    const state = encounter([status('covert', 'recruit', 3), status('guarded', 'recruit', 2)])
     const withRatings: CombatEncounterState = {
       ...state,
       statBridge: {
