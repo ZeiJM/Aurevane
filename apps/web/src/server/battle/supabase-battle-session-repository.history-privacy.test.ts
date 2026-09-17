@@ -98,9 +98,7 @@ describe('CSR-3 history privacy repository', () => {
               actorTeamId: 'team:b',
               eventCount: 2,
               commandVisibility: { kind: 'team-only', teamId: 'team:b' },
-              eventVisibilityOverrides: [
-                { eventIndex: 1, visibility: { kind: 'public' } },
-              ],
+              eventVisibilityOverrides: [{ eventIndex: 1, visibility: { kind: 'public' } }],
             },
           ],
         },
@@ -138,9 +136,7 @@ describe('CSR-3 history privacy repository', () => {
               actorTeamId: 'team:b',
               eventCount: 1,
               commandVisibility: { kind: 'team-only', teamId: 'team:b' },
-              eventVisibilityOverrides: [
-                { eventIndex: 1, visibility: { kind: 'public' } },
-              ],
+              eventVisibilityOverrides: [{ eventIndex: 1, visibility: { kind: 'public' } }],
             },
           ],
         },
@@ -149,7 +145,9 @@ describe('CSR-3 history privacy repository', () => {
     })
 
     const repository = createSupabaseBattleSessionRepository()
-    await expect(repository.findBattleHistoryPrivacy(USER_ID, SESSION_ID, [9])).rejects.toMatchObject({
+    await expect(
+      repository.findBattleHistoryPrivacy(USER_ID, SESSION_ID, [9]),
+    ).rejects.toMatchObject({
       code: 'PERSISTENCE_UNAVAILABLE',
     })
   })

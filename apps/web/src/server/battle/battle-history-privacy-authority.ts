@@ -5,10 +5,7 @@ import {
   type StatDrivenCombatEncounterState,
 } from '@aurevane/game-core/combat/stat-driven-combat'
 
-import type {
-  BattleHistoryPrivacyJournal,
-  BattlePrivacyVisibility,
-} from './battle-history-privacy'
+import type { BattleHistoryPrivacyJournal, BattlePrivacyVisibility } from './battle-history-privacy'
 import {
   createSpectatorBattleViewerEntitlement,
   deriveParticipantBattleViewerEntitlement,
@@ -75,7 +72,8 @@ function journal(value: unknown): BattleHistoryPrivacyJournal | null {
     return null
   }
 
-  const eventVisibilityOverrides: BattleHistoryPrivacyJournal['eventVisibilityOverrides'][number][] = []
+  const eventVisibilityOverrides: BattleHistoryPrivacyJournal['eventVisibilityOverrides'][number][] =
+    []
   const seenIndexes = new Set<number>()
 
   for (const value of rawOverrides) {
@@ -110,7 +108,11 @@ export function parseBattleHistoryPrivacyAuthorityRow(
   value: unknown,
 ): BattleHistoryPrivacyAuthority | null {
   const record = objectValue(value)
-  if (!record || !Array.isArray(record.controlled_combatant_ids) || !Array.isArray(record.journals)) {
+  if (
+    !record ||
+    !Array.isArray(record.controlled_combatant_ids) ||
+    !Array.isArray(record.journals)
+  ) {
     return null
   }
 

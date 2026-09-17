@@ -215,12 +215,16 @@ export function createSupabaseBattleSessionRepository(): BattleSessionRepository
 
       if (error) throwRpcError(error)
       if (!Array.isArray(data) || data.length !== 1) {
-        throw persistenceUnavailable('The server returned invalid battle-history privacy authority.')
+        throw persistenceUnavailable(
+          'The server returned invalid battle-history privacy authority.',
+        )
       }
 
       const authority = parseBattleHistoryPrivacyAuthorityRow(data[0])
       if (!authority) {
-        throw persistenceUnavailable('The server returned invalid battle-history privacy authority.')
+        throw persistenceUnavailable(
+          'The server returned invalid battle-history privacy authority.',
+        )
       }
 
       const requestedVersions = new Set(versions)
