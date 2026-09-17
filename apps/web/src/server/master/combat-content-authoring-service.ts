@@ -96,6 +96,40 @@ function readSkillId(definition: unknown): string | null {
   return typeof definition.id === 'string' && definition.id.length > 0 ? definition.id : null
 }
 
+function forbiddenDraftFieldIssues(
+  value: unknown,
+  path = '$',
+  seen = new WeakSet<object>(),
+): CombatContentValidationIssue[] {
+  if (Array.isArray(value)) {
+    return value.flatMap((entry, index) =>
+      forbiddenDraftFieldIssues(entry, `${path}[${index}]`, seen),
+    )
+  }
+  if (!isRecord(value) || seen.has(value)) return []
+  seen.add(value)
+
+  const issues: CombatContentValidationIssue[] = []
+  for (const [field, nested] of Object.entries(value)) {
+    const fieldPath = path === '$' ? field : `${path}.${field}`
+    if (FORBIDDEN_DRAFT_FIELDS.has(field)) {
+      issues.push({
+        path: fieldPath,
+        code:
+          field === 'presentationTags' || field === 'derivedTags'
+            ? 'DERIVED_PRESENTATION_FIELD'
+            : 'ARBITRARY_SCRIPT_FIELD',
+        message:
+          field === 'presentationTags' || field === 'derivedTags'
+            ? 'Presentation tags are derived from canonical target and effect semantics.'
+            : 'Combat content cannot contain arbitrary executable script fields.',
+      })
+    }
+    issues.push(...forbiddenDraftFieldIssues(nested, fieldPath, seen))
+  }
+  return issues
+}
+
 function draftShapeIssues(definition: unknown): CombatContentValidationIssue[] {
   if (!isRecord(definition)) {
     return [
@@ -107,22 +141,7 @@ function draftShapeIssues(definition: unknown): CombatContentValidationIssue[] {
     ]
   }
 
-  const issues: CombatContentValidationIssue[] = []
-  for (const field of FORBIDDEN_DRAFT_FIELDS) {
-    if (Object.hasOwn(definition, field)) {
-      issues.push({
-        path: field,
-        code:
-          field === 'presentationTags' || field === 'derivedTags'
-            ? 'DERIVED_PRESENTATION_FIELD'
-            : 'ARBITRARY_SCRIPT_FIELD',
-        message:
-          field === 'presentationTags' || field === 'derivedTags'
-            ? 'Presentation tags are derived from canonical target and effect semantics.'
-            : 'Combat content cannot contain arbitrary executable script fields.',
-      })
-    }
-  }
+  const issues = forbiddenDraftFieldIssues(definition)
   if (!readSkillId(definition)) {
     issues.push({ path: 'id', code: 'INVALID_SKILL_ID', message: 'Skill id is required.' })
   }

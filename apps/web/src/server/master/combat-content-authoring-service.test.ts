@@ -214,6 +214,30 @@ describe('combat content authoring service', () => {
     expect(result.issues.length).toBeGreaterThan(0)
   })
 
+  it('rejects nested script-like fields before draft or publish persistence', () => {
+    const { service } = serviceFixture()
+    const invalid = invalidVariant((value) => {
+      value.effects = [
+        {
+          type: 'damage',
+          recipient: 'primary-unit',
+          amount: 1,
+          script: 'return true',
+        },
+      ]
+    })
+
+    const result = service.validateSkillDefinition(invalid)
+
+    expect(result.valid).toBe(false)
+    expect(result.issues).toContainEqual(
+      expect.objectContaining({
+        path: 'effects[0].script',
+        code: 'ARBITRARY_SCRIPT_FIELD',
+      }),
+    )
+  })
+
   it('authorizes and previews a validated Skill definition without persisting it', async () => {
     const { store, service } = serviceFixture()
     store.operators.set(OWNER, 'owner')
