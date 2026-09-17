@@ -151,9 +151,7 @@ export function createSupabaseBattleSessionRepository(): BattleSessionRepository
         p_expected_battle_version: input.expectedBattleVersion,
         p_next_snapshot: input.nextSnapshot,
         p_events: input.events,
-        // CSR-0 records current commands as public. CSR-1/CSR-3 can supply explicit
-        // resolver-time visibility decisions without exposing provenance to browsers.
-        p_privacy_journal: null,
+        p_privacy_journal: input.privacyJournal,
       })
 
       if (error) throwRpcError(error)
