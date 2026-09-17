@@ -41,6 +41,7 @@ export interface CombatContentSemanticDiff {
 }
 
 export interface CombatContentAuthoringService {
+  requireOperator(actorUserId: string): Promise<MasterPanelOperatorRole>
   validateSkillDefinition(definition: unknown): CombatContentValidationResult
   diffSkillDefinitions(before: unknown, after: unknown): CombatContentSemanticDiff
   saveSkillDraft(input: {
@@ -99,9 +100,10 @@ function draftShapeIssues(definition: unknown): CombatContentValidationIssue[] {
     if (Object.hasOwn(definition, field)) {
       issues.push({
         path: field,
-        code: field === 'presentationTags' || field === 'derivedTags'
-          ? 'DERIVED_PRESENTATION_FIELD'
-          : 'ARBITRARY_SCRIPT_FIELD',
+        code:
+          field === 'presentationTags' || field === 'derivedTags'
+            ? 'DERIVED_PRESENTATION_FIELD'
+            : 'ARBITRARY_SCRIPT_FIELD',
         message:
           field === 'presentationTags' || field === 'derivedTags'
             ? 'Presentation tags are derived from canonical target and effect semantics.'
@@ -221,7 +223,7 @@ function mapRepositoryConflict(error: unknown): never {
   throw error
 }
 
-async function requireOperator(
+async function authorizeOperator(
   store: CombatContentAuthoringStore,
   actorUserId: string,
 ): Promise<MasterPanelOperatorRole> {
@@ -244,6 +246,10 @@ export function createCombatContentAuthoringService({
   resolver,
 }: Dependencies): CombatContentAuthoringService {
   return {
+    requireOperator(actorUserId) {
+      return authorizeOperator(store, actorUserId)
+    },
+
     validateSkillDefinition,
 
     diffSkillDefinitions(before, after) {
@@ -251,7 +257,7 @@ export function createCombatContentAuthoringService({
     },
 
     async saveSkillDraft(input) {
-      await requireOperator(store, input.actorUserId)
+      await authorizeOperator(store, input.actorUserId)
       assertDraftShape(input.definition)
       const skillId = readSkillId(input.definition)!
       try {
@@ -269,7 +275,7 @@ export function createCombatContentAuthoringService({
     },
 
     async publishSkill(input) {
-      await requireOperator(store, input.actorUserId)
+      await authorizeOperator(store, input.actorUserId)
       const validation = validateSkillDefinition(input.definition)
       if (!validation.valid) {
         throw new AurevaneError(
@@ -301,7 +307,7 @@ export function createCombatContentAuthoringService({
     },
 
     async rollbackSkill(input) {
-      await requireOperator(store, input.actorUserId)
+      await authorizeOperator(store, input.actorUserId)
       if (!Number.isSafeInteger(input.targetVersion) || input.targetVersion < 1) {
         throw new AurevaneError('INVALID_REQUEST', 'Rollback target must be a positive version.')
       }
