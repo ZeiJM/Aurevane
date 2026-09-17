@@ -1,4 +1,6 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+
+vi.mock('server-only', () => ({}))
 
 import {
   resolveMatureSkillVersion,
@@ -75,7 +77,14 @@ function loadout(): CharacterDisciplineSkillLoadoutView {
 }
 
 function committedSnapshot(): CharacterCommittedBuildSnapshotRecord {
-  const forceful = staticSkill('vanguard.forceful-strike')
+  const skillIds = [
+    'vanguard.forceful-strike',
+    'vanguard.rally',
+    'vanguard.brace',
+    'lifebinder.barrier',
+  ] as const
+  const skills = skillIds.map(staticSkill)
+
   return {
     schemaVersion: 3,
     buildVersion: 41,
@@ -84,17 +93,22 @@ function committedSnapshot(): CharacterCommittedBuildSnapshotRecord {
       definitionVersion: 1,
       profileVersion: 1,
     },
-    secondary: null,
-    disciplineSkills: [
-      {
-        slotIndex: 1,
-        skillId: forceful.id,
-        contentVersion: forceful.contentVersion,
-        sourceDisciplineId: forceful.sourceDisciplineId,
-      },
-    ],
+    secondary: {
+      disciplineId: 'lifebinder',
+      definitionVersion: 1,
+    },
+    disciplineSkills: skills.map((definition, index) => ({
+      slotIndex: index + 1,
+      skillId: definition.id,
+      contentVersion: definition.contentVersion,
+      sourceDisciplineId: definition.sourceDisciplineId,
+    })),
     extensions: {
-      resonance: null,
+      resonance: {
+        resonanceId: 'resonance.lifebinder-vanguard.mercys-edge',
+        contentVersion: 1,
+        disciplinePair: ['lifebinder', 'vanguard'],
+      },
       essence: null,
       equipmentSkills: [],
       supernatural: null,
