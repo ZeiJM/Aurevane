@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { createCombatEncounterState, executeCombatAction, type CombatActionDefinition } from './actions'
+import {
+  createCombatEncounterState,
+  executeCombatAction,
+  type CombatActionDefinition,
+} from './actions'
 import { createPendingBattle, startBattle } from './battle-state'
 import { createTacticalBattleState } from './board'
 import {
@@ -159,7 +163,9 @@ describe('CSR-1 Revealed refresh boundary', () => {
         sourceCombatantId: 'actor',
       },
     ])
-    expect(transition.state.effectState?.ongoingRecovery).toEqual(before.effectState.ongoingRecovery)
+    expect(transition.state.effectState?.ongoingRecovery).toEqual(
+      before.effectState.ongoingRecovery,
+    )
     expect(transition.events).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ event: 'status_removed', statusId: 'covert' }),
