@@ -71,6 +71,14 @@ export class CombatContentConflictError extends Error {
 const cloneDefinition = (definition: CombatContentDefinition): CombatContentDefinition =>
   structuredClone(definition) as CombatContentDefinition
 
+const versionDefinition = (
+  definition: CombatContentDefinition,
+  contentVersion: number,
+): CombatContentDefinition => {
+  const clone = cloneDefinition(definition)
+  return Object.hasOwn(clone, 'contentVersion') ? { ...clone, contentVersion } : clone
+}
+
 const cloneDraft = (draft: CombatContentDraftRecord): CombatContentDraftRecord => ({
   ...draft,
   definition: cloneDefinition(draft.definition),
@@ -94,6 +102,15 @@ const assertContentIdentity = (
   }
 }
 
+const assertOptionalPositiveVersion = (version: number | null, label: string): void => {
+  if (version !== null && (!Number.isSafeInteger(version) || version < 1)) {
+    throw new CombatContentConflictError(
+      'COMBAT_CONTENT_VERSION_INVALID',
+      `${label} must be null or a positive safe integer.`,
+    )
+  }
+}
+
 export class InMemoryCombatContentRepository implements CombatContentRepository {
   readonly #drafts = new Map<string, CombatContentDraftRecord>()
   readonly #versions = new Map<string, CombatContentVersionRecord[]>()
@@ -105,13 +122,18 @@ export class InMemoryCombatContentRepository implements CombatContentRepository 
   }
 
   async saveDraft(input: SaveCombatContentDraftInput): Promise<CombatContentDraftRecord> {
+    assertOptionalPositiveVersion(input.baseVersion, 'Draft base version')
     const existing = this.#drafts.get(input.contentKey)
     const actualDraftVersion = existing?.draftVersion ?? null
 
     if (existing) {
       assertContentIdentity(input.contentKey, input.contentKind, existing.contentKind)
     }
-    this.#assertKnownVersion(input.contentKey, input.contentKind, input.baseVersion)
+    this.#assertKnownOrExternalBootstrapVersion(
+      input.contentKey,
+      input.contentKind,
+      input.baseVersion,
+    )
 
     if (input.expectedDraftVersion !== actualDraftVersion) {
       throw new CombatContentConflictError(
@@ -136,38 +158,48 @@ export class InMemoryCombatContentRepository implements CombatContentRepository 
   }
 
   async publish(input: PublishCombatContentInput): Promise<CombatContentVersionRecord> {
+    assertOptionalPositiveVersion(input.expectedBaseVersion, 'Expected base version')
     const versions = this.#versions.get(input.contentKey) ?? []
     const publication = this.#publications.get(input.contentKey)
     const current = publication
       ? versions.find((version) => version.id === publication.versionId) ?? null
       : null
 
-    if (current) {
-      assertContentIdentity(input.contentKey, input.contentKind, current.contentKind)
-    } else if (versions[0]) {
-      assertContentIdentity(input.contentKey, input.contentKind, versions[0].contentKind)
-    }
-
-    const actualBaseVersion = current?.contentVersion ?? null
-    if (input.expectedBaseVersion !== actualBaseVersion) {
+    if (publication && !current) {
       throw new CombatContentConflictError(
-        'COMBAT_CONTENT_BASE_VERSION_CONFLICT',
-        `Expected published base version ${String(input.expectedBaseVersion)} for ${input.contentKey}, ` +
-          `but current version is ${String(actualBaseVersion)}.`,
+        'COMBAT_CONTENT_PUBLICATION_INVALID',
+        `Current publication for ${input.contentKey} does not reference immutable history.`,
       )
     }
 
-    const nextVersion = versions.reduce(
+    if (current) {
+      assertContentIdentity(input.contentKey, input.contentKind, current.contentKind)
+      if (input.expectedBaseVersion !== current.contentVersion) {
+        throw new CombatContentConflictError(
+          'COMBAT_CONTENT_BASE_VERSION_CONFLICT',
+          `Expected published base version ${String(input.expectedBaseVersion)} for ${input.contentKey}, ` +
+            `but current version is ${current.contentVersion}.`,
+        )
+      }
+    } else if (versions[0]) {
+      throw new CombatContentConflictError(
+        'COMBAT_CONTENT_PUBLICATION_INVALID',
+        `Immutable history for ${input.contentKey} exists without a current publication pointer.`,
+      )
+    }
+
+    const highestStoredVersion = versions.reduce(
       (highest, version) => Math.max(highest, version.contentVersion),
       0,
-    ) + 1
+    )
+    const nextVersion = Math.max(highestStoredVersion, input.expectedBaseVersion ?? 0) + 1
     const now = new Date().toISOString()
     const version: CombatContentVersionRecord = {
       id: randomUUID(),
       contentKey: input.contentKey,
       contentKind: input.contentKind,
       contentVersion: nextVersion,
-      definition: cloneDefinition(input.definition),
+      definition: versionDefinition(input.definition, nextVersion),
       publishedBy: input.actorUserId,
       publishedAt: now,
     }
@@ -225,16 +257,17 @@ export class InMemoryCombatContentRepository implements CombatContentRepository 
     })
   }
 
-  #assertKnownVersion(
+  #assertKnownOrExternalBootstrapVersion(
     contentKey: string,
     contentKind: CombatContentKind,
     version: number | null,
   ): void {
     if (version === null) return
 
-    const known = this.#versions
-      .get(contentKey)
-      ?.find((candidate) => candidate.contentVersion === version)
+    const versions = this.#versions.get(contentKey) ?? []
+    if (versions.length === 0) return
+
+    const known = versions.find((candidate) => candidate.contentVersion === version)
     if (!known) {
       throw new CombatContentConflictError(
         'COMBAT_CONTENT_BASE_VERSION_NOT_FOUND',
