@@ -44,6 +44,26 @@ function readPositiveInteger(value: unknown, field: string): number {
   return parsed
 }
 
+function readOptionalPreviewSeed(value: unknown): number | undefined {
+  if (value === undefined) return undefined
+  if (
+    !Number.isSafeInteger(value) ||
+    (value as number) < 1 ||
+    (value as number) > 0xffff_ffff
+  ) {
+    return invalid('seed must be a non-zero uint32 integer.')
+  }
+  return value as number
+}
+
+function readOptionalCombatContext(value: unknown): 'pve' | 'pvp' | undefined {
+  if (value === undefined) return undefined
+  if (value !== 'pve' && value !== 'pvp') {
+    return invalid('combatContext must be pve or pvp.')
+  }
+  return value
+}
+
 function requiredString(value: unknown, field: string): string {
   if (typeof value !== 'string' || value.length === 0 || value.trim() !== value) {
     return invalid(`${field} must be a non-empty string.`)
@@ -106,6 +126,19 @@ export async function handleCombatContentAuthoringRequest(
       const before = requireProperty(body, 'before')
       const after = requireProperty(body, 'after')
       return success({ diff: service.diffSkillDefinitions(before, after) })
+    }
+
+    if (operation === 'preview') {
+      const definition = requireProperty(body, 'definition')
+      const seed = readOptionalPreviewSeed(body.seed)
+      const combatContext = readOptionalCombatContext(body.combatContext)
+      const preview = await service.previewSkillDefinition({
+        actorUserId: actor.userId,
+        definition,
+        ...(seed === undefined ? {} : { seed }),
+        ...(combatContext === undefined ? {} : { combatContext }),
+      })
+      return success({ preview })
     }
 
     if (operation === 'save-draft') {
