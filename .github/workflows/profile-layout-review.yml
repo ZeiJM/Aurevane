@@ -16,6 +16,7 @@ on:
       - agent/news-article-fidelity
       - agent/manual-index-fidelity
       - agent/manual-article-fidelity
+      - agent/rules-fidelity
     paths:
       - .github/workflows/profile-layout-review.yml
       - apps/web/e2e/*layout-regression.pw.ts
@@ -30,6 +31,7 @@ on:
       - apps/web/src/components/public-information/**
       - apps/web/src/app/news/**
       - apps/web/src/app/manual/**
+      - apps/web/src/app/rules/**
       - apps/web/src/app/game/online/**
       - apps/web/src/app/game/create/**
       - apps/web/src/app/game/settings/**
@@ -56,6 +58,7 @@ on:
       - apps/web/src/components/public-information/**
       - apps/web/src/app/news/**
       - apps/web/src/app/manual/**
+      - apps/web/src/app/rules/**
       - apps/web/src/app/game/online/**
       - apps/web/src/app/game/create/**
       - apps/web/src/app/game/settings/**
@@ -113,7 +116,7 @@ jobs:
           git rev-parse HEAD > "$LAYOUT_REVIEW_OUTPUT/commit.txt"
           pnpm --filter @aurevane/web build
           review_status=0
-          pnpm --filter @aurevane/web exec playwright test e2e/character-roster-dialog-layout-regression.pw.ts e2e/creation-layout-regression.pw.ts e2e/account-entry.pw.ts e2e/account-layout-regression.pw.ts e2e/news-index-layout-regression.pw.ts e2e/news-article-layout-regression.pw.ts e2e/manual-index-layout-regression.pw.ts e2e/manual-article-layout-regression.pw.ts e2e/character-roster-layout-regression.pw.ts e2e/character-creation.pw.ts e2e/character-deletion.pw.ts e2e/profile-layout-regression.pw.ts e2e/titles-layout-regression.pw.ts e2e/controls-layout-regression.pw.ts e2e/training-layout-regression.pw.ts e2e/training-concept-layout-regression.pw.ts e2e/wayfarers-practice.pw.ts e2e/hall-layout-regression.pw.ts e2e/hall-controls-layout-regression.pw.ts e2e/pvp-spectator-footer-shape.pw.ts e2e/adventurers-layout-regression.pw.ts e2e/battle-usability.pw.ts || review_status=$?
+          pnpm --filter @aurevane/web exec playwright test e2e/character-roster-dialog-layout-regression.pw.ts e2e/creation-layout-regression.pw.ts e2e/account-entry.pw.ts e2e/account-layout-regression.pw.ts e2e/news-index-layout-regression.pw.ts e2e/news-article-layout-regression.pw.ts e2e/manual-index-layout-regression.pw.ts e2e/manual-article-layout-regression.pw.ts e2e/rules-layout-regression.pw.ts e2e/character-roster-layout-regression.pw.ts e2e/character-creation.pw.ts e2e/character-deletion.pw.ts e2e/profile-layout-regression.pw.ts e2e/titles-layout-regression.pw.ts e2e/controls-layout-regression.pw.ts e2e/training-layout-regression.pw.ts e2e/training-concept-layout-regression.pw.ts e2e/wayfarers-practice.pw.ts e2e/hall-layout-regression.pw.ts e2e/hall-controls-layout-regression.pw.ts e2e/pvp-spectator-footer-shape.pw.ts e2e/adventurers-layout-regression.pw.ts e2e/battle-usability.pw.ts || review_status=$?
           pnpm --filter @aurevane/web exec playwright test e2e/desktop-experience.pw.ts --grep "a large desktop character directory" || review_status=$?
           exit "$review_status"
       - uses: actions/upload-artifact@v4
