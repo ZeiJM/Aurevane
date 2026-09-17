@@ -26,9 +26,7 @@ function commitInput(): CommitBattleIntentInput {
     privacyJournal: {
       schemaVersion: 1,
       commandVisibility: { kind: 'team-only', teamId: 'team:a' },
-      eventVisibilityOverrides: [
-        { eventIndex: 0, visibility: { kind: 'public' } },
-      ],
+      eventVisibilityOverrides: [{ eventIndex: 0, visibility: { kind: 'public' } }],
     },
   }
 }
