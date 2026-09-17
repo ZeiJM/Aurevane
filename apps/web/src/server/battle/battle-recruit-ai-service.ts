@@ -2,6 +2,10 @@ import 'server-only'
 
 import { createHash, randomUUID } from 'node:crypto'
 
+import {
+  buildBattlePrivacyJournalInput,
+  type BattlePrivacyCommandKind,
+} from './battle-history-privacy'
 import type { BattleSessionRepository } from '@aurevane/db/battle-session'
 import {
   executeBuildAwareRecruitAiAction,
@@ -67,6 +71,13 @@ export interface RecruitTieBreakSeedInput {
 
 export interface BattleRecruitAiService {
   runTurn(command: RunRecruitTurnCommand): Promise<RecruitTurnView>
+}
+
+function recruitIntentPrivacyKind(kind: RecruitAiIntent['kind']): BattlePrivacyCommandKind {
+  if (kind === 'action') return 'action'
+  if (kind === 'move') return 'move'
+  if (kind === 'face') return 'face'
+  return 'system'
 }
 
 function battleUnavailable(): AurevaneError {
@@ -269,6 +280,13 @@ export function createBattleRecruitAiService(
         const resolved = resolveRecruitIntent(state, decision.intent)
         const nextState = preserveFrozenBuildMetadata(state, resolved.state)
         const event = decisionEvent(decision, turn.combatantId)
+        const events = [event, ...resolved.events]
+        const privacyJournal = buildBattlePrivacyJournalInput({
+          before: state,
+          after: nextState,
+          commandKind: recruitIntentPrivacyKind(decision.intent.kind),
+          events,
+        })
         const requestFingerprint = fingerprint({
           command: 'battle.recruit-ai.v2',
           battleSessionId: initial.battleSessionId,
@@ -290,7 +308,9 @@ export function createBattleRecruitAiService(
           battleSessionId: initial.battleSessionId,
           expectedBattleVersion: battleVersion,
           nextSnapshot: nextState,
-          events: [event, ...resolved.events],
+          events,
+
+          privacyJournal,
         })
 
         battleVersion = committed.result.battleVersion

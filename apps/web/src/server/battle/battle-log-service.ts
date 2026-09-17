@@ -8,6 +8,9 @@ import type {
   BattleEventRepository,
 } from '@aurevane/db/battle-session'
 
+import type { BattleHistoryPrivacyRepository } from './battle-history-privacy-authority'
+import { projectBattleHistoryForViewer } from './battle-history-privacy'
+
 export type BattleLogKind =
   'offense' | 'movement' | 'defense' | 'recovery' | 'status' | 'resource' | 'turn' | 'system'
 
@@ -206,6 +209,16 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
   }
 
   switch (eventType) {
+    case 'hidden_combat_action': {
+      const actorCombatantId = stringValue(event.actorCombatantId)
+      return createEntry(record, eventType, {
+        message: `${combatantLabel(actorCombatantId)} performed an action.`,
+        messageTemplate: '{actor} performed an action.',
+        actorCombatantId,
+        kind: 'offense',
+        headline: 'Action',
+      })
+    }
     case 'combatant_moved': {
       const actorCombatantId = stringValue(event.combatantId)
       const origin = positionLabel(event.from)
@@ -705,6 +718,29 @@ export function createBattleLogService(repository: BattleEventRepository): Battl
           : repository.findBattleEvents(userId, battleSessionId, pageSize),
       )
       return buildBattleLogView(battleSessionId, records)
+    },
+  }
+}
+
+export function createViewerSafeBattleLogService(
+  repository: BattleEventRepository,
+  privacyRepository: BattleHistoryPrivacyRepository,
+): BattleLogService {
+  return {
+    async getLog(userId, battleSessionId) {
+      const records = await collectBattleEventHistory((pageSize, before) =>
+        before
+          ? repository.findBattleEvents(userId, battleSessionId, pageSize, before)
+          : repository.findBattleEvents(userId, battleSessionId, pageSize),
+      )
+      const battleVersions = [...new Set(records.map((record) => record.battleVersion))]
+      const authority = await privacyRepository.findBattleHistoryPrivacy(
+        userId,
+        battleSessionId,
+        battleVersions,
+      )
+      const projected = projectBattleHistoryForViewer(records, authority.journals, authority.viewer)
+      return buildBattleLogView(battleSessionId, projected)
     },
   }
 }
