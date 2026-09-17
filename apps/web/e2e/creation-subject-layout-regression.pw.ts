@@ -27,12 +27,11 @@ test('Discipline follows its own subject reference hierarchy on desktop', async 
   await page.setViewportSize({ width: 1366, height: 768 })
   const creation = await reachDiscipline(page)
 
-  const step = creation.getByTestId('creation-discipline-step')
-  const choices = creation.getByTestId('creation-discipline-choice')
-  const table = creation.getByTestId('creation-attribute-table')
-  const rows = creation.getByTestId('creation-attribute-row')
+  const choices = creation.locator('label:has(input[name="discipline"])')
+  const table = creation.locator('fieldset:has(input[name="discipline"]) + div + div')
+  const rows = table.locator(':scope > div')
 
-  await expect(step).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Choose your first Discipline.' })).toBeVisible()
   await expect(choices).toHaveCount(6)
   await expect(table).toBeVisible()
   await expect(rows).toHaveCount(6)
@@ -55,6 +54,12 @@ test('Discipline follows its own subject reference hierarchy on desktop', async 
   )
   expect(rowBoxes.every((box) => box.width > box.height * 5)).toBe(true)
 
+  const surface = await creation.evaluate((node) => {
+    const content = node.children[1] as HTMLElement
+    return getComputedStyle(content).backgroundColor
+  })
+  expect(surface).not.toBe('rgba(9, 15, 23, 0.949)')
+
   const metrics = await page.evaluate(() => ({
     overflow: document.documentElement.scrollWidth - innerWidth,
   }))
@@ -65,10 +70,13 @@ test('Discipline keeps all real choices and natural scrolling on phone', async (
   test.skip(info.project.name !== 'mobile-chromium', 'Phone subject reconciliation only')
   await page.setViewportSize({ width: 390, height: 844 })
   const creation = await reachDiscipline(page)
+  const choices = creation.locator('label:has(input[name="discipline"])')
+  const table = creation.locator('fieldset:has(input[name="discipline"]) + div + div')
+  const rows = table.locator(':scope > div')
 
-  await expect(creation.getByTestId('creation-discipline-choice')).toHaveCount(6)
-  await expect(creation.getByTestId('creation-attribute-row')).toHaveCount(6)
-  const lastRow = creation.getByTestId('creation-attribute-row').last()
+  await expect(choices).toHaveCount(6)
+  await expect(rows).toHaveCount(6)
+  const lastRow = rows.last()
   await lastRow.scrollIntoViewIfNeeded()
   await expect(lastRow).toBeInViewport({ ratio: 0.8 })
 
