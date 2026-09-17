@@ -53,6 +53,7 @@ initial_snapshot="$(jq -cn \
         lifecycle: "active",
         turnNumber: 1,
         currentTurn: { combatantId: $player },
+        rng: { algorithm: "xorshift32-v1", seed: 17, state: 17, draws: 0 },
         combatants: [
           { id: $player, teamId: "players" },
           { id: $opponent, teamId: "opponents" }
