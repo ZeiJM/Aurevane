@@ -17,6 +17,12 @@ import { applyCommittedAbsorbRecovery } from './combat-absorb-recovery'
 import { recordCommittedDamageHistory } from './combat-damage-history'
 import { attachCombatEffectProvenance } from './combat-effect-provenance'
 import {
+  filterBlockedCovertApplication,
+  materializeCsrCommittedAction,
+  materializeCsrPreviewAction,
+  type CombatSensoryEffect,
+} from './covert-sensory-revealed'
+import {
   COMBAT_RESOLUTION_PIPELINE_VERSION,
   type CombatActionProvenance,
   type CombatTriggerGuard,
@@ -30,6 +36,7 @@ type LegacyDamageEffect = Extract<legacy.CombatEffectDefinition, { type: 'damage
 export type CombatEffectDefinition =
   | Exclude<legacy.CombatEffectDefinition, { type: 'damage' }>
   | (LegacyDamageEffect & { scaling?: CombatDamageScaling; vengeance?: CombatVengeanceDefinition })
+  | CombatSensoryEffect
 
 export interface CombatActionDefinition
   extends Omit<legacy.CombatActionDefinition, 'effects'>, CombatAccuracyAuthoring {
@@ -82,7 +89,8 @@ export function evaluateCombatAction(
   content: legacy.CombatContentCatalog,
 ): CombatActionEvaluation {
   validateCombatAccuracyDefinition(action)
-  const materialized = materializeVengeanceDamage(state, action)
+  const csrPreviewAction = materializeCsrPreviewAction(action)
+  const materialized = materializeVengeanceDamage(state, csrPreviewAction)
   const evaluation = legacy.evaluateCombatAction(
     state,
     materializeStatScaledDamage(state, materialized.action),
@@ -106,38 +114,54 @@ export function executeCombatAction(
   validateCombatAccuracyDefinition(action)
   const round = state.tactical.battle.round
   const actorId = state.tactical.battle.currentTurn?.combatantId ?? null
-  const materializedAction = materializeStatScaledDamage(
+  const previewAction = materializeCsrPreviewAction(action)
+  const previewMaterializedAction = materializeStatScaledDamage(
     state,
-    materializeVengeanceDamage(state, action).action,
+    materializeVengeanceDamage(state, previewAction).action,
   )
-  const evaluation =
-    context || action.accuracyMode === 'per-target'
-      ? legacy.evaluateCombatAction(state, materializedAction, selection, content)
-      : null
+  const requiresEvaluation =
+    Boolean(context) ||
+    action.accuracyMode === 'per-target' ||
+    action.effects.some((effect) => effect.type === 'sensory')
+  const evaluation = requiresEvaluation
+    ? legacy.evaluateCombatAction(state, previewMaterializedAction, selection, content)
+    : null
   const accuracy = rollCombatSkillAccuracy(state, action, evaluation, content)
+  const csr = materializeCsrCommittedAction({
+    state: accuracy.state,
+    action,
+    selection,
+    evaluation,
+    content,
+    missedCombatantIds: accuracy.missedCombatantIds,
+  })
+  const materializedAction = materializeStatScaledDamage(
+    accuracy.state,
+    materializeVengeanceDamage(accuracy.state, csr.action).action,
+  )
   let triggerGuard = context?.triggerGuard
-  const committedTransition = legacy.executeCombatAction(
+  const committed = legacy.executeCombatAction(
     accuracy.state,
     materializedAction,
     selection,
-    content,
-    (committed) => {
-      if (!actorId) return committed
+    csr.content,
+    (resolved) => {
+      if (!actorId) return resolved
       const command = { sourceCombatantId: actorId, actionId: action.id }
-      const historyState = recordCommittedDamageHistory(committed.state, committed.events, {
+      const historyState = recordCommittedDamageHistory(resolved.state, resolved.events, {
         round,
         commandSourceCombatantId: actorId,
       })
       const recovered = applyCommittedAbsorbRecovery(
         historyState,
-        committed.events,
+        resolved.events,
         content,
         command,
       )
       // Both reactions read only original receipts, never each other's output.
       const reflected = applyCommittedReflect(
         recovered.state,
-        committed.events,
+        resolved.events,
         content,
         command,
         triggerGuard,
@@ -147,6 +171,16 @@ export function executeCombatAction(
     },
     accuracy.missedCombatantIds,
   )
+  const covertFiltered = filterBlockedCovertApplication({
+    before: accuracy.state,
+    after: committed.state,
+    events: committed.events,
+  })
+  const committedTransition: CombatResolutionTransition = {
+    ...committed,
+    state: covertFiltered.state,
+    events: covertFiltered.events as legacy.CombatResolutionEvent[],
+  }
   const transition =
     accuracy.events.length > 0
       ? { ...committedTransition, events: [...accuracy.events, ...committedTransition.events] }
@@ -171,10 +205,10 @@ export function executeCombatAction(
     state: attachCombatEffectProvenance(
       state,
       transition.state,
-      action,
+      csr.action,
       provenanceEvaluation,
       context,
-      content,
+      csr.content,
     ),
     events: transition.events,
     resolution: {
@@ -220,6 +254,9 @@ function materializeStatScaledDamage(
       : null
 
   const effects: legacy.CombatEffectDefinition[] = action.effects.map((effect) => {
+    if (effect.type === 'sensory') {
+      throw new TypeError('Sensory must be materialized before legacy effect resolution.')
+    }
     if (effect.type !== 'damage') return effect
 
     const { scaling, ...legacyEffect } = effect
