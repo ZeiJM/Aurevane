@@ -31,20 +31,24 @@ function commitInput(): CommitBattleIntentInput {
   }
 }
 
+function commitResult() {
+  return {
+    data: [
+      {
+        battle_session_id: SESSION_ID,
+        battle_version: 5,
+        snapshot: { state: 'next' },
+        committed_at: '2026-09-17T12:00:00.000Z',
+        replayed: false,
+      },
+    ],
+    error: null,
+  }
+}
+
 describe('CSR-3 battle privacy persistence', () => {
   it('passes caller visibility metadata unchanged to commit_battle_intent_v3', async () => {
-    rpc.mockResolvedValueOnce({
-      data: [
-        {
-          battle_session_id: SESSION_ID,
-          battle_version: 5,
-          snapshot: { state: 'next' },
-          committed_at: '2026-09-17T12:00:00.000Z',
-          replayed: false,
-        },
-      ],
-      error: null,
-    })
+    rpc.mockResolvedValueOnce(commitResult())
 
     const repository = createSupabaseBattleSessionRepository()
     const input = commitInput()
@@ -54,6 +58,21 @@ describe('CSR-3 battle privacy persistence', () => {
       'commit_battle_intent_v3',
       expect.objectContaining({
         p_privacy_journal: input.privacyJournal,
+      }),
+    )
+  })
+
+  it('preserves an explicit null privacy journal for legacy/public commits', async () => {
+    rpc.mockResolvedValueOnce(commitResult())
+
+    const repository = createSupabaseBattleSessionRepository()
+    const input = { ...commitInput(), privacyJournal: null }
+    await repository.commitBattleIntent(input)
+
+    expect(rpc).toHaveBeenCalledWith(
+      'commit_battle_intent_v3',
+      expect.objectContaining({
+        p_privacy_journal: null,
       }),
     )
   })
