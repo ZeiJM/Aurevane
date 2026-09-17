@@ -1,6 +1,9 @@
 import type { BattleSessionCommitRecord } from '@aurevane/db/battle-session'
 import type { TransactionalCommandResult } from '@aurevane/db/transactional-command'
-import { createCombatEncounterState, type CombatStatusInstance } from '@aurevane/game-core/combat/actions'
+import {
+  createCombatEncounterState,
+  type CombatStatusInstance,
+} from '@aurevane/game-core/combat/actions'
 import { createPendingBattle, startBattle } from '@aurevane/game-core/combat/battle-state'
 import { createTacticalBattleState } from '@aurevane/game-core/combat/board'
 import {
@@ -45,7 +48,11 @@ function status(
 function profile(combatantId: string): StatDrivenCombatProfile {
   return {
     combatantId,
-    provenance: { kind: 'scenario', sourceId: `scenario:${combatantId}`, sourceRulesVersion: 2 },
+    provenance: {
+      kind: 'scenario',
+      sourceId: `scenario:${combatantId}`,
+      sourceRulesVersion: 2,
+    },
     accuracy: 10_000,
     evasion: 0,
     armor: 0,
@@ -120,11 +127,16 @@ function encounter(): StatDrivenCombatEncounterState {
   )
 }
 
-function rowStatuses(state: { statusState: StatDrivenCombatEncounterState['statusState'] }, id: string) {
+function rowStatuses(
+  state: { statusState: StatDrivenCombatEncounterState['statusState'] },
+  id: string,
+) {
   return state.statusState.find((row) => row.combatantId === id)?.statuses ?? []
 }
 
-function committed(snapshot: StatDrivenCombatEncounterState): TransactionalCommandResult<BattleSessionCommitRecord> {
+function committed(
+  snapshot: StatDrivenCombatEncounterState,
+): TransactionalCommandResult<BattleSessionCommitRecord> {
   return {
     replayed: false,
     result: {
@@ -153,7 +165,9 @@ describe('CSR-2 live viewer-relative status projection', () => {
       'guarded',
     ])
     expect(rowStatuses(projected, ENEMY).map((entry) => entry.statusId)).toEqual(['exposed'])
-    expect(rowStatuses(projected, PLAIN_ENEMY).map((entry) => entry.statusId)).toEqual(['guarded'])
+    expect(rowStatuses(projected, PLAIN_ENEMY).map((entry) => entry.statusId)).toEqual([
+      'guarded',
+    ])
     expect(authoritative.statusState).toEqual(before)
     expect(projected.tactical.battle).not.toHaveProperty('rng')
   })
@@ -178,7 +192,9 @@ describe('CSR-2 live viewer-relative status projection', () => {
 
     expect(rowStatuses(view.battle.snapshot, PLAYER)).toEqual([])
     expect(rowStatuses(view.battle.snapshot, ALLY)).toEqual([])
-    expect(rowStatuses(view.battle.snapshot, ENEMY).map((entry) => entry.statusId)).toEqual(['exposed'])
+    expect(rowStatuses(view.battle.snapshot, ENEMY).map((entry) => entry.statusId)).toEqual([
+      'exposed',
+    ])
     expect(rowStatuses(view.battle.snapshot, PLAIN_ENEMY).map((entry) => entry.statusId)).toEqual([
       'guarded',
     ])
