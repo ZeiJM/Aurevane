@@ -70,6 +70,9 @@ export function CombatContentReviewPanel({
     preview?.projections?.effects
       ?.map((effect) => effect.effectType)
       .filter((type): type is string => typeof type === 'string' && type.length > 0) ?? []
+  const defaultRollback = [...history]
+    .filter((entry) => !entry.current)
+    .sort((left, right) => right.contentVersion - left.contentVersion)[0]
 
   return (
     <section className={styles.reviewPanel} aria-labelledby="combat-review-heading">
@@ -112,6 +115,13 @@ export function CombatContentReviewPanel({
         </button>
         <button type="button" disabled={!canPublish} onClick={onRequestPublish}>
           Publish
+        </button>
+        <button
+          type="button"
+          disabled={busy || !defaultRollback}
+          onClick={() => defaultRollback && onRequestRollback(defaultRollback.contentVersion)}
+        >
+          Rollback
         </button>
       </div>
 

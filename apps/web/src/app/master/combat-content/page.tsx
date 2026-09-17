@@ -34,11 +34,31 @@ export default async function MasterCombatContentPage() {
   const options = (
     await Promise.all(
       catalog.map(async (staticDefinition): Promise<CombatContentEditorSkillOption | null> => {
-        const [current, draft] = await Promise.all([
+        const [current, draft, publishedVersions] = await Promise.all([
           resolver.resolveCurrentSkillDefinition(staticDefinition.id),
           store.findDraft(staticDefinition.id),
+          store.listPublishedVersions(staticDefinition.id),
         ])
         if (!current) return null
+
+        const historyByVersion = new Map<
+          number,
+          NonNullable<CombatContentEditorSkillOption['history']>[number]
+        >()
+        historyByVersion.set(staticDefinition.contentVersion, {
+          contentVersion: staticDefinition.contentVersion,
+          source: 'static-baseline',
+          current: current.contentVersion === staticDefinition.contentVersion,
+          publishedAt: null,
+        })
+        for (const version of publishedVersions) {
+          historyByVersion.set(version.contentVersion, {
+            contentVersion: version.contentVersion,
+            source: 'published',
+            current: current.contentVersion === version.contentVersion,
+            publishedAt: version.publishedAt,
+          })
+        }
 
         return {
           id: current.id,
@@ -49,6 +69,9 @@ export default async function MasterCombatContentPage() {
           draftVersion: draft?.draftVersion ?? null,
           derivedTags: [...deriveSkillPresentationTags(current)],
           definition: structuredClone(current),
+          history: [...historyByVersion.values()].sort(
+            (left, right) => left.contentVersion - right.contentVersion,
+          ),
         }
       }),
     )
@@ -73,7 +96,16 @@ export default async function MasterCombatContentPage() {
         <Link className={styles.breadcrumb} href="/master">
           ← Master Panel
         </Link>
-        <CombatContentEditor skills={options} initialSkillId={options[0]?.id} />
+        <CombatContentEditor
+          key={options
+            .map(
+              (option) =>
+                `${option.id}:${option.currentVersion}:${option.draftVersion ?? 'none'}:${option.history?.map((entry) => `${entry.contentVersion}=${entry.current ? 'current' : 'old'}`).join(',') ?? ''}`,
+            )
+            .join('|')}
+          skills={options}
+          initialSkillId={options[0]?.id}
+        />
       </div>
     </main>
   )
