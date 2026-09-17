@@ -24,29 +24,6 @@ jobs:
           corepack enable
           corepack prepare pnpm@11.17.0 --activate
           pnpm install --frozen-lockfile
-      - name: Narrow known PvP duplicate seam
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          path = Path('.github/scripts/csr3-wire-callers.py')
-          text = path.read_text(encoding='utf-8')
-          old = """def replace_once(text: str, old: str, new: str, label: str):
-    if text.count(old) != 1:
-        raise SystemExit(f'{label}: expected one seam, found {text.count(old)}')
-    return text.replace(old, new, 1)
-"""
-          new = """def replace_once(text: str, old: str, new: str, label: str):
-    count = text.count(old)
-    if count < 1:
-        raise SystemExit(f'{label}: seam not found')
-    if count > 1 and label != 'pvp timeout commit':
-        raise SystemExit(f'{label}: expected one seam, found {count}')
-    return text.replace(old, new, 1)
-"""
-          if old not in text:
-              raise SystemExit('replace_once helper changed')
-          path.write_text(text.replace(old, new, 1), encoding='utf-8')
-          PY
       - run: python .github/scripts/csr3-wire-callers.py
       - run: pnpm exec prettier --write apps/web/src/server/battle/*.ts
       - run: pnpm --filter @aurevane/web typecheck
