@@ -386,7 +386,11 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
         ) : null}
 
         {step === 'discipline' ? (
-          <div className={styles.step}>
+          <div
+            className={`${styles.step} ${styles.disciplineStep}`}
+            data-testid="creation-discipline-workspace"
+            data-creation-surface="moonstone"
+          >
             <h1 ref={stepHeading} tabIndex={-1}>
               Choose your first Discipline.
             </h1>
@@ -407,6 +411,7 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
                     key={discipline.id}
                     className={styles.optionCard}
                     data-selected={foundationDisciplineId === discipline.id}
+                    data-testid="creation-discipline-choice"
                   >
                     <input
                       checked={foundationDisciplineId === discipline.id}
@@ -453,6 +458,7 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
                 return (
                   <div
                     className={styles.attributeCard}
+                    data-testid="creation-attribute-row"
                     key={attributeId}
                     data-invalid={
                       invalidFields.some((field) => field.includes(attributeId)) || undefined
@@ -513,7 +519,11 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
         ) : null}
 
         {step === 'review' ? (
-          <div className={styles.step}>
+          <div
+            className={`${styles.step} ${styles.reviewStep}`}
+            data-testid="creation-confirm-workspace"
+            data-creation-surface="moonstone"
+          >
             <h1 ref={stepHeading} tabIndex={-1}>
               Confirm this character.
             </h1>
@@ -522,55 +532,70 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
               personal points are ready for the road ahead.
             </p>
             <div className={styles.reviewWorkspace}>
-              <div className={styles.reviewPortrait}>
+              <div className={styles.reviewPortrait} data-testid="creation-confirm-portrait">
                 <AurevaneImage
                   assetId={getStarterPortraitImageAssetId(portraitRef)}
                   sizes="14rem"
                 />
               </div>
-              <dl className={styles.reviewGrid}>
-                <div>
-                  <dt>Slot</dt>
-                  <dd>{slotIndex + 1}</dd>
+              <div className={styles.reviewSummary} data-testid="creation-confirm-summary">
+                <div
+                  className={styles.reviewDisciplineMark}
+                  data-testid="creation-confirm-discipline-sigil"
+                >
+                  <FoundationDisciplineSigil
+                    disciplineId={selectedDiscipline.id}
+                    className={styles.reviewDisciplineSigil}
+                  />
+                  <span>
+                    <small>Discipline</small>
+                    <strong>{selectedDiscipline.name}</strong>
+                  </span>
                 </div>
-                <div>
-                  <dt>Name</dt>
-                  <dd>{name}</dd>
-                </div>
-                <div>
-                  <dt>Discipline</dt>
-                  <dd>{selectedDiscipline.name}</dd>
-                </div>
-                <div>
-                  <dt>Presentation</dt>
-                  <dd>
-                    {CHARACTER_PRESENTATIONS.find((item) => item.id === presentationId)?.label}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Portrait</dt>
-                  <dd>{selectedPortrait.label}</dd>
-                </div>
-                <div>
-                  <dt>Starter appearance</dt>
-                  <dd>
-                    {
-                      STARTER_CHARACTER_APPEARANCES.find(
-                        (item) => item.ref === starterAppearanceRef,
-                      )?.label
-                    }
-                  </dd>
-                </div>
-                {CHARACTER_ATTRIBUTE_IDS.map((attributeId) => (
-                  <div key={attributeId}>
-                    <dt>{attributeId[0].toUpperCase() + attributeId.slice(1)}</dt>
+                <dl className={styles.reviewGrid}>
+                  <div>
+                    <dt>Slot</dt>
+                    <dd>{slotIndex + 1}</dd>
+                  </div>
+                  <div>
+                    <dt>Name</dt>
+                    <dd>{name}</dd>
+                  </div>
+                  <div>
+                    <dt>Discipline</dt>
+                    <dd>{selectedDiscipline.name}</dd>
+                  </div>
+                  <div>
+                    <dt>Presentation</dt>
                     <dd>
-                      {selectedDiscipline.baseAttributes[attributeId] +
-                        attributeBonuses[attributeId]}
+                      {CHARACTER_PRESENTATIONS.find((item) => item.id === presentationId)?.label}
                     </dd>
                   </div>
-                ))}
-              </dl>
+                  <div>
+                    <dt>Portrait</dt>
+                    <dd>{selectedPortrait.label}</dd>
+                  </div>
+                  <div>
+                    <dt>Starter appearance</dt>
+                    <dd>
+                      {
+                        STARTER_CHARACTER_APPEARANCES.find(
+                          (item) => item.ref === starterAppearanceRef,
+                        )?.label
+                      }
+                    </dd>
+                  </div>
+                  {CHARACTER_ATTRIBUTE_IDS.map((attributeId) => (
+                    <div key={attributeId}>
+                      <dt>{attributeId[0].toUpperCase() + attributeId.slice(1)}</dt>
+                      <dd>
+                        {selectedDiscipline.baseAttributes[attributeId] +
+                          attributeBonuses[attributeId]}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
             </div>
             {errorMessage ? (
               <p className={styles.error} role="alert">
