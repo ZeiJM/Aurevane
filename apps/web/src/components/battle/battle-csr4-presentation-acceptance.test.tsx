@@ -154,11 +154,14 @@ describe('CSR-4 battle presentation acceptance', () => {
     const selection = renderToStaticMarkup(
       <BattleActionPreview preview={null} pending={false} skill={sensorySkill} />,
     )
+    const effectDetails = sensorySkill.effectDescriptions.join(' ')
+
     expect(selection).toContain('Sensory')
-    expect(selection).toContain('On a successful hit against Covert')
-    expect(selection).toContain('Revealed for 2 owner-turn starts')
-    expect(selection).not.toContain('currently Covert')
-    expect(selection).not.toContain('target is Covert')
+    expect(selection).toContain('Skill details')
+    expect(effectDetails).toContain('On a successful hit against Covert')
+    expect(effectDetails).toContain('Revealed for 2 owner-turn starts')
+    expect(effectDetails).not.toContain('currently Covert')
+    expect(effectDetails).not.toContain('target is Covert')
 
     const exact = renderToStaticMarkup(
       <BattleActionPreview preview={revealedPreview} pending={false} skill={sensorySkill} />,
