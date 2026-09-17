@@ -7,7 +7,7 @@ import type {
   BattleHistoryPrivacyAuthority,
   BattleHistoryPrivacyRepository,
 } from './battle-history-privacy-authority'
-import { createBattleLogService } from './battle-log-service'
+import { createViewerSafeBattleLogService } from './battle-log-service'
 import { deriveParticipantBattleViewerEntitlement } from './battle-viewer-entitlement'
 
 const USER_ID = '11111111-1111-4111-8111-111111111111'
@@ -97,10 +97,10 @@ describe('CSR-3 battle log privacy integration', () => {
       findBattleHistoryPrivacy: vi.fn(async () => authority),
     }
 
-    const result = await createBattleLogService(eventRepository, privacyRepository).getLog(
-      USER_ID,
-      SESSION_ID,
-    )
+    const result = await createViewerSafeBattleLogService(
+      eventRepository,
+      privacyRepository,
+    ).getLog(USER_ID, SESSION_ID)
 
     expect(privacyRepository.findBattleHistoryPrivacy).toHaveBeenCalledWith(
       USER_ID,

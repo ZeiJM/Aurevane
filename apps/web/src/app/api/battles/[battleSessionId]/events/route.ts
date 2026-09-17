@@ -1,6 +1,6 @@
 import { getAuthenticatedActor } from '@/server/auth/actor'
 import { handleBattleLogRequest } from '@/server/battle/battle-log-handler'
-import { createBattleLogService } from '@/server/battle/battle-log-service'
+import { createViewerSafeBattleLogService } from '@/server/battle/battle-log-service'
 import { createSupabaseBattleSessionRepository } from '@/server/battle/supabase-battle-session-repository'
 
 export async function GET(
@@ -8,8 +8,9 @@ export async function GET(
   context: { params: Promise<{ battleSessionId: string }> },
 ) {
   const { battleSessionId } = await context.params
+  const repository = createSupabaseBattleSessionRepository()
   return handleBattleLogRequest(battleSessionId, {
     getActor: getAuthenticatedActor,
-    service: createBattleLogService(createSupabaseBattleSessionRepository()),
+    service: createViewerSafeBattleLogService(repository, repository),
   })
 }
