@@ -46,10 +46,6 @@ test('standard Manual article uses the dark desktop reading frame', async ({ pag
   expect(bodyBox).not.toBeNull()
   expect(tocBox!.x + tocBox!.width).toBeLessThan(bodyBox!.x)
 
-  await toc.getByRole('link', { name: 'Identity choices', exact: true }).click()
-  await expect(page).toHaveURL(/#identity$/)
-  await expect(page.getByRole('heading', { level: 2, name: 'Identity choices' })).toBeVisible()
-
   const metrics = await page.evaluate(() => {
     const tocElement = document.querySelector<HTMLElement>('[data-testid="manual-article-toc"]')!
     return {
@@ -62,12 +58,15 @@ test('standard Manual article uses the dark desktop reading frame', async ({ pag
 
   if (process.env.LAYOUT_REVIEW_OUTPUT) {
     await mkdir(process.env.LAYOUT_REVIEW_OUTPUT, { recursive: true })
-    await page.evaluate(() => window.scrollTo(0, 0))
     await settle(page)
     await page.screenshot({
       path: path.join(process.env.LAYOUT_REVIEW_OUTPUT, 'manual-article-desktop-1366x768.png'),
     })
   }
+
+  await toc.getByRole('link', { name: 'Identity choices', exact: true }).click()
+  await expect(page).toHaveURL(/#identity$/)
+  await expect(page.getByRole('heading', { level: 2, name: 'Identity choices' })).toBeVisible()
 })
 
 test('standard Manual article preserves anchors on mobile', async ({ page }, info) => {
@@ -134,12 +133,6 @@ test('Atlas keeps real content in the Manual article frame', async ({ page }, in
   expect(contentBox).not.toBeNull()
   expect(tocBox!.x + tocBox!.width).toBeLessThan(contentBox!.x)
 
-  await toc.getByRole('link', { name: 'Mastery', exact: true }).click()
-  await expect(page).toHaveURL(/#mastery$/)
-  await expect(
-    page.getByRole('heading', { level: 2, name: /Experience is necessary/ }),
-  ).toBeVisible()
-
   const metrics = await page.evaluate(() => ({
     overflow: document.documentElement.scrollWidth - innerWidth,
     pageScroll: document.documentElement.scrollHeight - innerHeight,
@@ -148,12 +141,17 @@ test('Atlas keeps real content in the Manual article frame', async ({ page }, in
   expect(metrics.pageScroll).toBeGreaterThan(0)
 
   if (process.env.LAYOUT_REVIEW_OUTPUT) {
-    await page.evaluate(() => window.scrollTo(0, 0))
     await settle(page)
     await page.screenshot({
       path: path.join(process.env.LAYOUT_REVIEW_OUTPUT, 'manual-atlas-desktop-1366x768.png'),
     })
   }
+
+  await toc.getByRole('link', { name: 'Mastery', exact: true }).click()
+  await expect(page).toHaveURL(/#mastery$/)
+  await expect(
+    page.getByRole('heading', { level: 2, name: /Experience is necessary/ }),
+  ).toBeVisible()
 })
 
 test('Atlas stacks its contents rail on mobile', async ({ page }, info) => {
