@@ -174,7 +174,9 @@ test('Atlas stacks its contents rail on mobile', async ({ page }, info) => {
   expect(tocBox!.y + tocBox!.height).toBeLessThan(contentBox!.y)
 
   const metrics = await page.evaluate(() => {
-    const articleElement = document.querySelector<HTMLElement>('[data-testid="manual-atlas-article"]')!
+    const articleElement = document.querySelector<HTMLElement>(
+      '[data-testid="manual-atlas-article"]',
+    )!
     return {
       overflow: document.documentElement.scrollWidth - innerWidth,
       pageScroll: document.documentElement.scrollHeight - innerHeight,
