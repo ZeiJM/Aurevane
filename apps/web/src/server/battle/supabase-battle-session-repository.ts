@@ -18,6 +18,11 @@ import {
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
+import {
+  parseBattleHistoryPrivacyAuthorityRow,
+  type BattleHistoryPrivacyRepository,
+} from './battle-history-privacy-authority'
+
 function persistenceUnavailable(message: string): AurevaneError {
   return new AurevaneError('PERSISTENCE_UNAVAILABLE', message)
 }
@@ -48,7 +53,8 @@ function throwRpcError(error: { code?: string; message?: string }): never {
 }
 
 export function createSupabaseBattleSessionRepository(): BattleSessionRepository &
-  BattleEventRepository {
+  BattleEventRepository &
+  BattleHistoryPrivacyRepository {
   return {
     async createBattleSession(input) {
       const supabase = createSupabaseAdminClient()
@@ -192,6 +198,37 @@ export function createSupabaseBattleSessionRepository(): BattleSessionRepository
         event: row.event,
         createdAt: row.created_at,
       }))
+    },
+
+    async findBattleHistoryPrivacy(userId, battleSessionId, battleVersions) {
+      const versions = [...new Set(battleVersions)]
+      if (versions.some((version) => !Number.isSafeInteger(version) || version < 1)) {
+        throw persistenceUnavailable('The server received invalid battle-history versions.')
+      }
+
+      const supabase = createSupabaseAdminClient()
+      const { data, error } = await supabase.rpc('get_battle_history_privacy_v1', {
+        p_user_id: userId,
+        p_battle_session_id: battleSessionId,
+        p_battle_versions: versions,
+      })
+
+      if (error) throwRpcError(error)
+      if (!Array.isArray(data) || data.length !== 1) {
+        throw persistenceUnavailable('The server returned invalid battle-history privacy authority.')
+      }
+
+      const authority = parseBattleHistoryPrivacyAuthorityRow(data[0])
+      if (!authority) {
+        throw persistenceUnavailable('The server returned invalid battle-history privacy authority.')
+      }
+
+      const requestedVersions = new Set(versions)
+      if (authority.journals.some((journal) => !requestedVersions.has(journal.battleVersion))) {
+        throw persistenceUnavailable('The server returned unexpected battle-history privacy data.')
+      }
+
+      return authority
     },
   }
 }
