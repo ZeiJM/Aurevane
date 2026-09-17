@@ -201,7 +201,11 @@ export function DisciplineAtlasGuide() {
       </div>
 
       <div className={styles.articleLayout}>
-        <nav className={styles.articleNav} data-testid="manual-atlas-toc" aria-label="In this article">
+        <nav
+          className={styles.articleNav}
+          data-testid="manual-atlas-toc"
+          aria-label="In this article"
+        >
           <span>In this article</span>
           <ul>
             {ATLAS_TOC.map(([id, label]) => (
@@ -306,8 +310,8 @@ export function DisciplineAtlasGuide() {
                 <h3>Eight learned Techniques, four selected</h3>
                 <p>
                   A mature Discipline teaches eight regular Techniques. Your battle build selects up
-                  to four at a time. Advanced libraries currently teach four at Initiate, two more at
-                  Practiced and two more at Adept so the later Mastery journey is about using the
+                  to four at a time. Advanced libraries currently teach four at Initiate, two more
+                  at Practiced and two more at Adept so the later Mastery journey is about using the
                   toolbox, not waiting months to receive it.
                 </p>
               </div>
@@ -323,8 +327,8 @@ export function DisciplineAtlasGuide() {
                 <h3>Passive study has a ceiling</h3>
                 <p>
                   A future Discipline Focus may contribute bounded numerical practice, but it cannot
-                  demonstrate Techniques, clear trials or create a Master while the player never uses
-                  the Discipline.
+                  demonstrate Techniques, clear trials or create a Master while the player never
+                  uses the Discipline.
                 </p>
               </div>
             </div>
@@ -337,9 +341,9 @@ export function DisciplineAtlasGuide() {
                 <h2>More difficult classes receive different tools, not a bigger budget.</h2>
               </div>
               <p>
-                The five marks shown on Atlas cards are an identity profile, not a tier list. A fifth
-                mark in Rule Access means the class breaks or bends more normal combat assumptions;
-                it does not mean “five-star strength.”
+                The five marks shown on Atlas cards are an identity profile, not a tier list. A
+                fifth mark in Rule Access means the class breaks or bends more normal combat
+                assumptions; it does not mean “five-star strength.”
               </p>
             </div>
             <div className={styles.budgetExamples}>
