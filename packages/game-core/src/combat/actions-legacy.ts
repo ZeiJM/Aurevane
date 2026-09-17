@@ -1675,10 +1675,7 @@ function applyEffect(
   actorId: string,
   recipientId: string,
   actionId: string,
-  effect: Exclude<
-    CombatEffectDefinition,
-    { type: 'create-terrain' | 'copy-statuses' | 'sensory' }
-  >,
+  effect: Exclude<CombatEffectDefinition, { type: 'create-terrain' | 'copy-statuses' | 'sensory' }>,
   content: CombatContentCatalog,
   stormRecipients: Set<string>,
 ): CombatResolutionTransition {

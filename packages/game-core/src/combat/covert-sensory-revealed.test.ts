@@ -285,10 +285,7 @@ describe('CSR-1 Covert and Revealed definitions', () => {
   })
 
   it('uses the existing owner-turn-start lifecycle for Covert and Revealed expiry', () => {
-    const state = encounter(
-      [status('covert', 'wayfarer', 1)],
-      [status('revealed', 'recruit', 1)],
-    )
+    const state = encounter([status('covert', 'wayfarer', 1)], [status('revealed', 'recruit', 1)])
     const recruitTurn = endCombatTurn(state, content)
     const wayfarerTurn = endCombatTurn(recruitTurn.state, content)
 
@@ -300,7 +297,11 @@ describe('CSR-1 Covert and Revealed definitions', () => {
     )
     expect([...recruitTurn.events, ...wayfarerTurn.events]).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ event: 'status_expired', combatantId: 'recruit', statusId: 'covert' }),
+        expect.objectContaining({
+          event: 'status_expired',
+          combatantId: 'recruit',
+          statusId: 'covert',
+        }),
         expect.objectContaining({
           event: 'status_expired',
           combatantId: 'wayfarer',
