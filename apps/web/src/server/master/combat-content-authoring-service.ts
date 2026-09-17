@@ -12,11 +12,17 @@ import { combatActionPresentationTags } from '@aurevane/game-core/combat/gamepla
 import {
   toCombatActionDefinition,
   validateMatureSkillDefinition,
+  type MatureSkillCombatContext,
   type MatureSkillDefinition,
 } from '@aurevane/game-core/combat/mature-skills'
 import { AurevaneError } from '@aurevane/game-core/errors'
 
 import type { CombatContentResolver } from '@/server/combat/combat-content-resolver'
+
+import {
+  previewCombatContentDefinition,
+  type CombatContentPreviewResult,
+} from './combat-content-preview'
 
 export type MasterPanelOperatorRole = 'owner' | 'content-staff'
 
@@ -55,6 +61,12 @@ export interface CombatContentSkillAuthoringState {
 export interface CombatContentAuthoringService {
   requireOperator(actorUserId: string): Promise<MasterPanelOperatorRole>
   validateSkillDefinition(definition: unknown): CombatContentValidationResult
+  previewSkillDefinition(input: {
+    actorUserId: string
+    definition: unknown
+    seed?: number
+    combatContext?: MatureSkillCombatContext
+  }): Promise<CombatContentPreviewResult>
   diffSkillDefinitions(before: unknown, after: unknown): CombatContentSemanticDiff
   loadSkillAuthoringState(input: {
     actorUserId: string
@@ -268,6 +280,22 @@ export function createCombatContentAuthoringService({
 
     validateSkillDefinition,
 
+    async previewSkillDefinition(input) {
+      await authorizeOperator(store, input.actorUserId)
+      const validation = validateSkillDefinition(input.definition)
+      if (!validation.valid) {
+        throw new AurevaneError(
+          'INVALID_REQUEST',
+          `Combat content validation failed: ${validation.issues[0]?.message ?? 'invalid Skill definition.'}`,
+        )
+      }
+
+      return previewCombatContentDefinition(input.definition as MatureSkillDefinition, {
+        ...(input.seed === undefined ? {} : { seed: input.seed }),
+        ...(input.combatContext === undefined ? {} : { combatContext: input.combatContext }),
+      })
+    },
+
     diffSkillDefinitions(before, after) {
       return { changedPaths: semanticChangedPaths(before, after) }
     },
@@ -290,7 +318,10 @@ export function createCombatContentAuthoringService({
         currentDefinition.id !== input.skillId ||
         !currentDefinition.enabled
       ) {
-        throw new AurevaneError('INVALID_REQUEST', 'That Skill does not have an enabled current definition.')
+        throw new AurevaneError(
+          'INVALID_REQUEST',
+          'That Skill does not have an enabled current definition.',
+        )
       }
 
       const editableDefinition = draft?.definition ?? currentDefinition
