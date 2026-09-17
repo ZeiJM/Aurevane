@@ -1,0 +1,179 @@
+from pathlib import Path
+
+helper = Path('apps/web/src/server/battle/battle-live-viewer-projection.ts')
+helper.write_text(
+    """import 'server-only'
+
+import { combatStatusMetadata } from '@aurevane/game-core/combat/combat-effect-state'
+import {
+  PV1F_COMBAT_CONTENT,
+  PV1F_COVERT_STATUS,
+} from '@aurevane/game-core/combat/pv1f-action-economy'
+import type { StatDrivenCombatEncounterState } from '@aurevane/game-core/combat/stat-driven-combat'
+
+import {
+  battleViewerRelationship,
+  type BattleViewerEntitlement,
+} from './battle-viewer-entitlement'
+
+type BattleStatusState = StatDrivenCombatEncounterState['statusState']
+
+function statusDefinitionKey(statusId: string, statusVersion: number): string {
+  return `${statusId}@${statusVersion}`
+}
+
+const STATUS_DEFINITION_BY_KEY = new Map(
+  PV1F_COMBAT_CONTENT.statuses.map(
+    (definition) => [statusDefinitionKey(definition.id, definition.version), definition] as const,
+  ),
+)
+
+export function projectBattleStatusStateForViewer(
+  state: Pick<StatDrivenCombatEncounterState, 'statusState' | 'tactical'>,
+  viewer: BattleViewerEntitlement,
+): BattleStatusState {
+  const combatantById = new Map(
+    state.tactical.battle.combatants.map((combatant) => [combatant.id, combatant] as const),
+  )
+
+  return state.statusState.map((row) => {
+    const combatant = combatantById.get(row.combatantId)
+    if (!combatant) return { ...row, statuses: [] }
+
+    const relationship = battleViewerRelationship(viewer, combatant)
+    if (relationship === 'self' || relationship === 'ally') return row
+
+    const covert = row.statuses.some((status) => status.statusId === PV1F_COVERT_STATUS.id)
+    if (!covert) return row
+
+    return {
+      ...row,
+      statuses: row.statuses.filter((status) => {
+        const definition = STATUS_DEFINITION_BY_KEY.get(
+          statusDefinitionKey(status.statusId, status.statusVersion),
+        )
+        if (!definition) return false
+        return combatStatusMetadata(definition).polarity !== 'positive'
+      }),
+    }
+  })
+}
+""",
+    encoding='utf-8',
+)
+
+session_path = Path('apps/web/src/server/battle/battle-session-service.ts')
+session = session_path.read_text(encoding='utf-8')
+old = "import { battleActionResourceIssue } from './battle-action-resource-availability'\n"
+new = old + "import { projectBattleStatusStateForViewer } from './battle-live-viewer-projection'\n"
+if session.count(old) != 1:
+    raise SystemExit('battle-session import seam changed')
+session = session.replace(old, new, 1)
+old = """  // CSR-0 establishes the mandatory viewer-aware server projection contract while preserving
+  // the current payload. CSR-2 will apply relationship-specific redaction through this seam.
+  void viewer
+  const battle = state.tactical.battle
+  return {
+    ...state,
+    tactical: {
+"""
+new = """  const battle = state.tactical.battle
+  return {
+    ...state,
+    statusState: projectBattleStatusStateForViewer(state, viewer),
+    tactical: {
+"""
+if session.count(old) != 1:
+    raise SystemExit('battle-session projection seam changed')
+session = session.replace(old, new, 1)
+session_path.write_text(session, encoding='utf-8')
+
+pvp_path = Path('apps/web/src/server/battle/pvp-lobby-service.ts')
+pvp = pvp_path.read_text(encoding='utf-8')
+old = "import { createBattleBuildAuthoritySnapshot } from './battle-build-authority'\n"
+new = old + "import { projectBattleStatusStateForViewer } from './battle-live-viewer-projection'\n"
+if pvp.count(old) != 1:
+    raise SystemExit('pvp helper import seam changed')
+pvp = pvp.replace(old, new, 1)
+old = """} from './battle-session-service'
+
+const PVP_RULES_VERSION = 2
+"""
+new = """} from './battle-session-service'
+import { createSpectatorBattleViewerEntitlement } from './battle-viewer-entitlement'
+
+const PVP_RULES_VERSION = 2
+"""
+if pvp.count(old) != 1:
+    raise SystemExit('pvp entitlement import seam changed')
+pvp = pvp.replace(old, new, 1)
+old = """  if (issues.length > 0) throw unavailable('The stored PvP battle is invalid.')
+  const battle = candidate.tactical.battle
+  return {
+    ...candidate,
+    tactical: {
+"""
+new = """  if (issues.length > 0) throw unavailable('The stored PvP battle is invalid.')
+  const viewer = createSpectatorBattleViewerEntitlement()
+  const battle = candidate.tactical.battle
+  return {
+    ...candidate,
+    statusState: projectBattleStatusStateForViewer(candidate, viewer),
+    tactical: {
+"""
+if pvp.count(old) != 1:
+    raise SystemExit('pvp projection seam changed')
+pvp = pvp.replace(old, new, 1)
+pvp_path.write_text(pvp, encoding='utf-8')
+
+test_path = Path('apps/web/src/server/battle/battle-live-viewer-projection.test.ts')
+test = test_path.read_text(encoding='utf-8')
+old = "import { projectCommittedBattleSession } from './battle-session-service'\n"
+new = """import { projectBattleStatusStateForViewer } from './battle-live-viewer-projection'
+import { projectCommittedBattleSession } from './battle-session-service'
+import { createSpectatorBattleViewerEntitlement } from './battle-viewer-entitlement'
+"""
+if test.count(old) != 1:
+    raise SystemExit('test import seam changed')
+test = test.replace(old, new, 1)
+old = """          status('exposed', PLAYER),
+          status('future-positive', ENEMY),
+"""
+new = """          status('exposed', PLAYER),
+          { ...status('revealed', PLAYER), statusVersion: 999 },
+          status('future-positive', ENEMY),
+"""
+if test.count(old) != 1:
+    raise SystemExit('test status seam changed')
+test = test.replace(old, new, 1)
+old = """    expect(authoritative.statusState).toEqual(before)
+    expect(projected.tactical.battle).not.toHaveProperty('rng')
+  })
+})
+"""
+new = """    expect(authoritative.statusState).toEqual(before)
+    expect(projected.tactical.battle).not.toHaveProperty('rng')
+  })
+
+  it('treats spectators as unprivileged without hiding positives on non-Covert units', () => {
+    const authoritative = encounter()
+    const before = structuredClone(authoritative.statusState)
+    const projected = {
+      statusState: projectBattleStatusStateForViewer(
+        authoritative,
+        createSpectatorBattleViewerEntitlement(),
+      ),
+    }
+
+    expect(rowStatuses(projected, PLAYER)).toEqual([])
+    expect(rowStatuses(projected, ALLY)).toEqual([])
+    expect(rowStatuses(projected, ENEMY).map((entry) => entry.statusId)).toEqual(['exposed'])
+    expect(rowStatuses(projected, PLAIN_ENEMY).map((entry) => entry.statusId)).toEqual(['guarded'])
+    expect(authoritative.statusState).toEqual(before)
+  })
+})
+"""
+if test.count(old) != 1:
+    raise SystemExit('test append seam changed')
+test = test.replace(old, new, 1)
+test_path.write_text(test, encoding='utf-8')
