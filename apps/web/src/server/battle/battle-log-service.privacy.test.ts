@@ -3,7 +3,10 @@ import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
 
-import type { BattleHistoryPrivacyRepository } from './battle-history-privacy-authority'
+import type {
+  BattleHistoryPrivacyAuthority,
+  BattleHistoryPrivacyRepository,
+} from './battle-history-privacy-authority'
 import { createBattleLogService } from './battle-log-service'
 import { deriveParticipantBattleViewerEntitlement } from './battle-viewer-entitlement'
 
@@ -67,30 +70,31 @@ describe('CSR-3 battle log privacy integration', () => {
     const eventRepository: BattleEventRepository = {
       findBattleEvents: vi.fn(async () => records),
     }
-    const privacyRepository: BattleHistoryPrivacyRepository = {
-      findBattleHistoryPrivacy: vi.fn(async () => ({
-        viewer: deriveParticipantBattleViewerEntitlement(
-          [
-            { id: ACTOR, teamId: 'team:a' },
-            { id: TARGET, teamId: 'team:b' },
-          ],
-          [TARGET],
-        ),
-        journals: [
-          {
-            schemaVersion: 1,
-            battleVersion: 9,
-            actorCombatantId: ACTOR,
-            actorTeamId: 'team:a',
-            eventCount: 4,
-            commandVisibility: { kind: 'team-only', teamId: 'team:a' },
-            eventVisibilityOverrides: [
-              { eventIndex: 2, visibility: { kind: 'public' } },
-              { eventIndex: 3, visibility: { kind: 'public' } },
-            ],
-          },
+    const authority: BattleHistoryPrivacyAuthority = {
+      viewer: deriveParticipantBattleViewerEntitlement(
+        [
+          { id: ACTOR, teamId: 'team:a' },
+          { id: TARGET, teamId: 'team:b' },
         ],
-      })),
+        [TARGET],
+      ),
+      journals: [
+        {
+          schemaVersion: 1,
+          battleVersion: 9,
+          actorCombatantId: ACTOR,
+          actorTeamId: 'team:a',
+          eventCount: 4,
+          commandVisibility: { kind: 'team-only', teamId: 'team:a' },
+          eventVisibilityOverrides: [
+            { eventIndex: 2, visibility: { kind: 'public' } },
+            { eventIndex: 3, visibility: { kind: 'public' } },
+          ],
+        },
+      ],
+    }
+    const privacyRepository: BattleHistoryPrivacyRepository = {
+      findBattleHistoryPrivacy: vi.fn(async () => authority),
     }
 
     const result = await createBattleLogService(eventRepository, privacyRepository).getLog(
