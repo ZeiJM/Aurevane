@@ -44,8 +44,13 @@ describe('combat content authoring migration', () => {
     const sql = readFileSync(migrationPath, 'utf8')
 
     expect(sql).toContain('draft_version bigint not null default 1')
-    expect(sql).toContain(
-      'foreign key (version_id, content_key, content_kind)',
-    )
+    expect(sql).toContain('foreign key (version_id, content_key, content_kind)')
+  })
+
+  it('allows a draft to base on a static fallback version before DB publication exists', () => {
+    const sql = readFileSync(migrationPath, 'utf8')
+
+    expect(sql).not.toContain('foreign key (content_key, base_version)')
+    expect(sql).toContain('base_version integer check (base_version is null or base_version > 0)')
   })
 })
