@@ -95,6 +95,8 @@ jobs:
           corepack enable
           corepack prepare pnpm@11.17.0 --activate
           pnpm install --frozen-lockfile
+          pnpm exec prettier apps/web/e2e/creation-subject-layout-regression.pw.ts > /tmp/creation-subject.formatted.ts
+          diff -u apps/web/e2e/creation-subject-layout-regression.pw.ts /tmp/creation-subject.formatted.ts || true
           pnpm --filter @aurevane/web exec playwright install --with-deps chromium
       - name: Start disposable local database
         run: |
