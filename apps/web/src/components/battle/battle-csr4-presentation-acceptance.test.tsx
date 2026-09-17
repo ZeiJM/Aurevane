@@ -2,10 +2,10 @@ import type { CombatStatusInstance } from '@aurevane/game-core/combat/actions'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 
-import { skillEffectDescription } from '@/components/character/skill-detail-presentation'
 import type { BattleActionPreview as ActionPreview } from '@/server/battle/battle-preview-service'
 import type { BattleLogEntry } from '@/server/battle/battle-log-service'
 
+import { skillEffectDescription } from '../character/skill-detail-presentation'
 import { BattleActionPreview } from './battle-action-preview'
 import { BattleCombatantEffects } from './battle-combatant-effects'
 import { buildBattleLogPresentation } from './battle-log-presentation'
