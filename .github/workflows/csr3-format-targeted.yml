@@ -26,6 +26,24 @@ jobs:
           corepack prepare pnpm@11.17.0 --activate
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Fix CSR-3 package export seam
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('apps/web/src/server/battle/battle-history-privacy.ts')
+          text = path.read_text(encoding='utf-8')
+          text = text.replace(
+              "import {\n  COVERT_STATUS_ID,\n  REVEALED_STATUS_ID,\n} from '@aurevane/game-core/combat/covert-sensory-revealed'\n",
+              "",
+          )
+          text = text.replace(
+              "  PV1F_COMBAT_CONTENT,\n} from '@aurevane/game-core/combat/pv1f-action-economy'",
+              "  PV1F_COMBAT_CONTENT,\n  PV1F_COVERT_STATUS,\n  PV1F_REVEALED_STATUS,\n} from '@aurevane/game-core/combat/pv1f-action-economy'",
+          )
+          text = text.replace('COVERT_STATUS_ID', 'PV1F_COVERT_STATUS.id')
+          text = text.replace('REVEALED_STATUS_ID', 'PV1F_REVEALED_STATUS.id')
+          path.write_text(text, encoding='utf-8')
+          PY
       - name: Format CSR-3 files
         run: |
           pnpm exec prettier --write \
