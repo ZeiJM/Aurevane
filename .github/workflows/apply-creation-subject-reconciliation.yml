@@ -32,273 +32,56 @@ jobs:
           css_path = Path('apps/web/src/components/character/character-creation-experience.module.css')
           text = tsx_path.read_text()
 
-          old_discipline = '''            <fieldset
-              className={styles.choiceGroup}
-              data-invalid={invalidFields.includes('foundationDisciplineId') || undefined}
-            >
-              <legend>Discipline</legend>
-              <div className={styles.disciplineGrid}>
-                {FOUNDATION_DISCIPLINES.map((discipline) => (
-                  <label
-                    key={discipline.id}
-                    className={styles.optionCard}
+          def replace_once(old: str, new: str) -> None:
+              global text
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'expected one match, found {count}: {old[:80]!r}')
+              text = text.replace(old, new, 1)
+
+          replace_once(
+              "        {step === 'discipline' ? (\n          <div className={styles.step}>",
+              """        {step === 'discipline' ? (
+          <div
+            className={`${styles.step} ${styles.disciplineStep}`}
+            data-testid="creation-discipline-workspace"
+            data-creation-surface="moonstone"
+          >""",
+          )
+          replace_once(
+              """                    className={styles.optionCard}
                     data-selected={foundationDisciplineId === discipline.id}
-                  >
-                    <input
-                      checked={foundationDisciplineId === discipline.id}
-                      name="discipline"
-                      onChange={() => {
-                        changed()
-                        setFoundationDisciplineId(discipline.id)
-                        setAttributeBonuses(starterBonusesForDiscipline(discipline.id))
-                      }}
-                      type="radio"
-                    />
-                    <FoundationDisciplineSigil
-                      disciplineId={discipline.id}
-                      className={styles.disciplineSigil}
-                    />
-                    <strong>{discipline.name}</strong>
-                    <small>{discipline.summary}</small>
-                  </label>
-                ))}
-              </div>
-            </fieldset>
-
-            <div className={styles.attributeHeader}>
-              <div>
-                <h2>Starting Core Stats</h2>
-                <p>
-                  {selectedDiscipline.name} supplies a fixed{' '}
-                  {CHARACTER_CREATION_RULES_V1.attributes.disciplineBaseTotal}-point base profile.
-                  You also receive {CHARACTER_CREATION_RULES_V1.attributes.bonusBudget} personal
-                  points to distribute as you see fit. Those personal points—and every point earned
-                  from later Levels—stay with your character when Primary changes.
-                </p>
-              </div>
-              <strong data-testid="attribute-points">
-                {remainingPoints} personal points remaining
-              </strong>
-            </div>
-
-            <div className={styles.attributeGrid}>
-              {CHARACTER_ATTRIBUTE_IDS.map((attributeId) => {
-                const bonus = attributeBonuses[attributeId]
-                const base = selectedDiscipline.baseAttributes[attributeId]
-                const total = base + bonus
-                return (
-                  <div
-                    className={styles.attributeCard}
-                    key={attributeId}
-                    data-invalid={
-                      invalidFields.some((field) => field.includes(attributeId)) || undefined
-                    }
-                  >
-                    <div>
-                      <strong>{attributeId[0].toUpperCase() + attributeId.slice(1)}</strong>
-                      <small>{attributeCopy[attributeId]}</small>
-                      <small>
-                        Discipline base {base} · Personal +{bonus} · Total {total}
-                      </small>
-                    </div>
-                    <div className={styles.attributeControl}>
-                      <button
-                        aria-label={`Decrease ${attributeId} bonus`}
-                        disabled={bonus === 0}
-                        onClick={() => changeAttribute(attributeId, -1)}
-                        type="button"
-                      >
-                        −
-                      </button>
-                      <output aria-label={`${attributeId} bonus`}>+{bonus}</output>
-                      <button
-                        aria-label={`Increase ${attributeId} bonus`}
-                        disabled={
-                          remainingPoints === 0 ||
-                          bonus === CHARACTER_CREATION_RULES_V1.attributes.maximumBonusPerAttribute
-                        }
-                        onClick={() => changeAttribute(attributeId, 1)}
-                        type="button"
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>'''
-
-          new_discipline = '''            <div
-              className={styles.disciplineWorkspace}
-              data-testid="creation-discipline-workspace"
-              data-creation-surface="moonstone"
-            >
-              <fieldset
-                className={styles.choiceGroup}
-                data-invalid={invalidFields.includes('foundationDisciplineId') || undefined}
-              >
-                <legend>Discipline</legend>
-                <div className={styles.disciplineGrid}>
-                  {FOUNDATION_DISCIPLINES.map((discipline) => (
-                    <label
-                      key={discipline.id}
-                      className={styles.optionCard}
-                      data-selected={foundationDisciplineId === discipline.id}
-                      data-testid="creation-discipline-choice"
-                    >
-                      <input
-                        checked={foundationDisciplineId === discipline.id}
-                        name="discipline"
-                        onChange={() => {
-                          changed()
-                          setFoundationDisciplineId(discipline.id)
-                          setAttributeBonuses(starterBonusesForDiscipline(discipline.id))
-                        }}
-                        type="radio"
-                      />
-                      <FoundationDisciplineSigil
-                        disciplineId={discipline.id}
-                        className={styles.disciplineSigil}
-                      />
-                      <strong>{discipline.name}</strong>
-                      <small>{discipline.summary}</small>
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
-
-              <div className={styles.attributeHeader}>
-                <div>
-                  <h2>Starting Core Stats</h2>
-                  <p>
-                    {selectedDiscipline.name} supplies a fixed{' '}
-                    {CHARACTER_CREATION_RULES_V1.attributes.disciplineBaseTotal}-point base profile.
-                    You also receive {CHARACTER_CREATION_RULES_V1.attributes.bonusBudget} personal
-                    points to distribute as you see fit. Those personal points—and every point
-                    earned from later Levels—stay with your character when Primary changes.
-                  </p>
-                </div>
-                <strong data-testid="attribute-points">
-                  {remainingPoints} personal points remaining
-                </strong>
-              </div>
-
-              <div className={styles.attributeGrid}>
-                {CHARACTER_ATTRIBUTE_IDS.map((attributeId) => {
-                  const bonus = attributeBonuses[attributeId]
-                  const base = selectedDiscipline.baseAttributes[attributeId]
-                  const total = base + bonus
-                  return (
-                    <div
-                      className={styles.attributeCard}
-                      data-testid="creation-attribute-row"
-                      key={attributeId}
-                      data-invalid={
-                        invalidFields.some((field) => field.includes(attributeId)) || undefined
-                      }
-                    >
-                      <div>
-                        <strong>{attributeId[0].toUpperCase() + attributeId.slice(1)}</strong>
-                        <small>{attributeCopy[attributeId]}</small>
-                        <small>
-                          Discipline base {base} · Personal +{bonus} · Total {total}
-                        </small>
-                      </div>
-                      <div className={styles.attributeControl}>
-                        <button
-                          aria-label={`Decrease ${attributeId} bonus`}
-                          disabled={bonus === 0}
-                          onClick={() => changeAttribute(attributeId, -1)}
-                          type="button"
-                        >
-                          −
-                        </button>
-                        <output aria-label={`${attributeId} bonus`}>+{bonus}</output>
-                        <button
-                          aria-label={`Increase ${attributeId} bonus`}
-                          disabled={
-                            remainingPoints === 0 ||
-                            bonus ===
-                              CHARACTER_CREATION_RULES_V1.attributes.maximumBonusPerAttribute
-                          }
-                          onClick={() => changeAttribute(attributeId, 1)}
-                          type="button"
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>'''
-
-          old_review = '''            <div className={styles.reviewWorkspace}>
-              <div className={styles.reviewPortrait}>
-                <AurevaneImage
-                  assetId={getStarterPortraitImageAssetId(portraitRef)}
-                  sizes="14rem"
-                />
-              </div>
-              <dl className={styles.reviewGrid}>
-                <div>
-                  <dt>Slot</dt>
-                  <dd>{slotIndex + 1}</dd>
-                </div>
-                <div>
-                  <dt>Name</dt>
-                  <dd>{name}</dd>
-                </div>
-                <div>
-                  <dt>Discipline</dt>
-                  <dd>{selectedDiscipline.name}</dd>
-                </div>
-                <div>
-                  <dt>Presentation</dt>
-                  <dd>
-                    {CHARACTER_PRESENTATIONS.find((item) => item.id === presentationId)?.label}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Portrait</dt>
-                  <dd>{selectedPortrait.label}</dd>
-                </div>
-                <div>
-                  <dt>Starter appearance</dt>
-                  <dd>
-                    {
-                      STARTER_CHARACTER_APPEARANCES.find(
-                        (item) => item.ref === starterAppearanceRef,
-                      )?.label
-                    }
-                  </dd>
-                </div>
-                {CHARACTER_ATTRIBUTE_IDS.map((attributeId) => (
-                  <div key={attributeId}>
-                    <dt>{attributeId[0].toUpperCase() + attributeId.slice(1)}</dt>
-                    <dd>
-                      {selectedDiscipline.baseAttributes[attributeId] +
-                        attributeBonuses[attributeId]}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
-            </div>'''
-
-          new_review = '''            <div
-              className={styles.reviewWorkspace}
-              data-testid="creation-confirm-workspace"
-              data-creation-surface="moonstone"
-            >
-              <div className={styles.reviewPortrait} data-testid="creation-confirm-portrait">
-                <AurevaneImage
-                  assetId={getStarterPortraitImageAssetId(portraitRef)}
-                  sizes="14rem"
-                />
-              </div>
-              <div className={styles.reviewSummary} data-testid="creation-confirm-summary">
+                  >""",
+              """                    className={styles.optionCard}
+                    data-selected={foundationDisciplineId === discipline.id}
+                    data-testid="creation-discipline-choice"
+                  >""",
+          )
+          replace_once(
+              """                    className={styles.attributeCard}
+                    key={attributeId}""",
+              """                    className={styles.attributeCard}
+                    data-testid="creation-attribute-row"
+                    key={attributeId}""",
+          )
+          replace_once(
+              "        {step === 'review' ? (\n          <div className={styles.step}>",
+              """        {step === 'review' ? (
+          <div
+            className={`${styles.step} ${styles.reviewStep}`}
+            data-testid="creation-confirm-workspace"
+            data-creation-surface="moonstone"
+          >""",
+          )
+          replace_once(
+              '<div className={styles.reviewPortrait}>',
+              '<div className={styles.reviewPortrait} data-testid="creation-confirm-portrait">',
+          )
+          replace_once(
+              '              <dl className={styles.reviewGrid}>',
+              """              <div className={styles.reviewSummary} data-testid="creation-confirm-summary">
                 <div
-                  className={styles.reviewDiscipline}
+                  className={styles.reviewDisciplineMark}
                   data-testid="creation-confirm-discipline-sigil"
                 >
                   <FoundationDisciplineSigil
@@ -310,314 +93,269 @@ jobs:
                     <strong>{selectedDiscipline.name}</strong>
                   </span>
                 </div>
-                <dl className={styles.reviewGrid}>
-                  <div>
-                    <dt>Slot</dt>
-                    <dd>{slotIndex + 1}</dd>
-                  </div>
-                  <div>
-                    <dt>Name</dt>
-                    <dd>{name}</dd>
-                  </div>
-                  <div>
-                    <dt>Discipline</dt>
-                    <dd>{selectedDiscipline.name}</dd>
-                  </div>
-                  <div>
-                    <dt>Presentation</dt>
-                    <dd>
-                      {CHARACTER_PRESENTATIONS.find((item) => item.id === presentationId)?.label}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Portrait</dt>
-                    <dd>{selectedPortrait.label}</dd>
-                  </div>
-                  <div>
-                    <dt>Starter appearance</dt>
-                    <dd>
-                      {
-                        STARTER_CHARACTER_APPEARANCES.find(
-                          (item) => item.ref === starterAppearanceRef,
-                        )?.label
-                      }
-                    </dd>
-                  </div>
-                  {CHARACTER_ATTRIBUTE_IDS.map((attributeId) => (
-                    <div key={attributeId}>
-                      <dt>{attributeId[0].toUpperCase() + attributeId.slice(1)}</dt>
-                      <dd>
-                        {selectedDiscipline.baseAttributes[attributeId] +
-                          attributeBonuses[attributeId]}
-                      </dd>
-                    </div>
-                  ))}
-                </dl>
+                <dl className={styles.reviewGrid}>""",
+          )
+          replace_once(
+              """              </dl>
+            </div>
+            {errorMessage ? (""",
+              """                </dl>
               </div>
-            </div>'''
-
-          if text.count(old_discipline) != 1:
-              raise SystemExit(f'discipline block match count: {text.count(old_discipline)}')
-          if text.count(old_review) != 1:
-              raise SystemExit(f'review block match count: {text.count(old_review)}')
-          text = text.replace(old_discipline, new_discipline).replace(old_review, new_review)
+            </div>
+            {errorMessage ? (""",
+          )
           tsx_path.write_text(text)
 
           css = css_path.read_text()
-          marker = '/* Subject reconciliation: Discipline and Confirm use their own approved reference compositions. */'
+          marker = '/* Subject reconciliation: exact Discipline and Confirm subjects. */'
           if marker in css:
               raise SystemExit('subject reconciliation CSS already present')
           css += r'''
 
-/* Subject reconciliation: Discipline and Confirm use their own approved reference compositions. */
-.disciplineWorkspace,
-.reviewWorkspace[data-creation-surface='moonstone'] {
-  border: 1px solid rgba(99, 78, 47, 0.28);
-  border-radius: 0.28rem;
-  color: #24211d;
-  background-color: #eee6d4;
-  background-image:
-    radial-gradient(circle at 12% 0%, rgba(255, 255, 255, 0.78), transparent 24rem),
-    linear-gradient(180deg, rgba(255, 252, 243, 0.68), rgba(231, 221, 199, 0.84));
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.38),
-    0 1.25rem 3rem rgba(0, 0, 0, 0.22);
-}
+          /* Subject reconciliation: exact Discipline and Confirm subjects. */
+          .disciplineStep,
+          .reviewStep {
+            padding: clamp(1rem, 2vw, 1.5rem);
+            border: 1px solid rgba(99, 78, 47, 0.28);
+            border-radius: 0.28rem;
+            color: #24211d;
+            background-color: #eee6d4;
+            background-image:
+              radial-gradient(circle at 12% 0%, rgba(255, 255, 255, 0.78), transparent 24rem),
+              linear-gradient(180deg, rgba(255, 252, 243, 0.68), rgba(231, 221, 199, 0.84));
+            box-shadow:
+              inset 0 0 0 1px rgba(255, 255, 255, 0.38),
+              0 1.25rem 3rem rgba(0, 0, 0, 0.22);
+          }
 
-.disciplineWorkspace {
-  display: grid;
-  gap: 1rem;
-  padding: clamp(0.9rem, 1.8vw, 1.35rem);
-}
+          .disciplineStep h1,
+          .reviewStep h1,
+          .disciplineStep :is(legend, h2, strong),
+          .reviewStep :is(dt, dd, strong) {
+            color: #211f1b;
+          }
 
-.disciplineWorkspace :is(legend, h2, strong) {
-  color: #211f1b;
-}
+          .disciplineStep .intro,
+          .reviewStep .intro,
+          .disciplineStep .choiceHint,
+          .disciplineStep .optionCard small,
+          .disciplineStep .attributeHeader p,
+          .disciplineStep .attributeCard small,
+          .reviewStep dt {
+            color: #655f54;
+          }
 
-.disciplineWorkspace .choiceHint,
-.disciplineWorkspace .optionCard small,
-.disciplineWorkspace .attributeHeader p,
-.disciplineWorkspace .attributeCard small {
-  color: #655f54;
-}
+          .disciplineStep .disciplineGrid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.65rem;
+          }
 
-.disciplineWorkspace .disciplineGrid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.65rem;
-}
+          .disciplineStep .optionCard {
+            min-height: 8.4rem;
+            border-color: rgba(105, 82, 46, 0.24);
+            color: #25221d;
+            background: rgba(255, 253, 247, 0.64);
+            box-shadow: inset 0 1px rgba(255, 255, 255, 0.66);
+          }
 
-.disciplineWorkspace .optionCard {
-  min-height: 8.4rem;
-  border-color: rgba(105, 82, 46, 0.24);
-  color: #25221d;
-  background: rgba(255, 253, 247, 0.64);
-  box-shadow: inset 0 1px rgba(255, 255, 255, 0.66);
-}
+          .disciplineStep .optionCard[data-selected='true'] {
+            border-color: rgba(111, 83, 35, 0.72);
+            background:
+              radial-gradient(circle at 50% 0%, rgba(196, 161, 90, 0.18), transparent 70%),
+              rgba(255, 252, 241, 0.92);
+            box-shadow:
+              inset 0 0 0 1px rgba(150, 112, 48, 0.24),
+              0 0.5rem 1.2rem rgba(78, 58, 30, 0.09);
+          }
 
-.disciplineWorkspace .optionCard[data-selected='true'] {
-  border-color: rgba(111, 83, 35, 0.72);
-  background:
-    radial-gradient(circle at 50% 0%, rgba(196, 161, 90, 0.18), transparent 70%),
-    rgba(255, 252, 241, 0.92);
-  box-shadow:
-    inset 0 0 0 1px rgba(150, 112, 48, 0.24),
-    0 0.5rem 1.2rem rgba(78, 58, 30, 0.09);
-}
+          .disciplineStep .disciplineSigil {
+            color: #7d6539;
+          }
 
-.disciplineWorkspace .disciplineSigil {
-  color: #7d6539;
-}
+          .disciplineStep .attributeHeader {
+            padding-top: 0.9rem;
+            border-top: 1px solid rgba(97, 78, 49, 0.22);
+          }
 
-.disciplineWorkspace .attributeHeader {
-  padding-top: 0.9rem;
-  border-top: 1px solid rgba(97, 78, 49, 0.22);
-}
+          .disciplineStep .attributeHeader > strong {
+            border-color: rgba(104, 82, 48, 0.28);
+            color: #5d4a2d;
+            background: rgba(255, 253, 247, 0.72);
+          }
 
-.disciplineWorkspace .attributeHeader > strong {
-  border-color: rgba(104, 82, 48, 0.28);
-  color: #5d4a2d;
-  background: rgba(255, 253, 247, 0.72);
-}
+          .disciplineStep .attributeGrid {
+            grid-template-columns: 1fr;
+            gap: 0;
+            overflow: hidden;
+            border: 1px solid rgba(98, 78, 48, 0.2);
+            border-radius: 0.22rem;
+            background: rgba(255, 253, 247, 0.54);
+          }
 
-.disciplineWorkspace .attributeGrid {
-  grid-template-columns: 1fr;
-  gap: 0;
-  overflow: hidden;
-  border: 1px solid rgba(98, 78, 48, 0.2);
-  border-radius: 0.22rem;
-  background: rgba(255, 253, 247, 0.54);
-}
+          .disciplineStep .attributeCard {
+            grid-template-columns: minmax(0, 1fr) auto;
+            min-height: 4.1rem;
+            gap: 1rem;
+            align-items: center;
+            padding: 0.72rem 0.85rem;
+            border: 0;
+            border-top: 1px solid rgba(98, 78, 48, 0.14);
+            border-radius: 0;
+            color: #29251f;
+            background: transparent;
+          }
 
-.disciplineWorkspace .attributeCard {
-  grid-template-columns: minmax(0, 1fr) auto;
-  min-height: 4.1rem;
-  gap: 1rem;
-  align-items: center;
-  padding: 0.72rem 0.85rem;
-  border: 0;
-  border-top: 1px solid rgba(98, 78, 48, 0.14);
-  border-radius: 0;
-  color: #29251f;
-  background: transparent;
-}
+          .disciplineStep .attributeCard:first-child {
+            border-top: 0;
+          }
 
-.disciplineWorkspace .attributeCard:first-child {
-  border-top: 0;
-}
+          .disciplineStep .attributeCard > div:first-child {
+            grid-template-columns: minmax(7.5rem, 0.45fr) minmax(16rem, 1.3fr) minmax(13rem, 0.8fr);
+            gap: 0.8rem;
+            align-items: center;
+          }
 
-.disciplineWorkspace .attributeCard > div:first-child {
-  grid-template-columns: minmax(7.5rem, 0.45fr) minmax(16rem, 1.3fr) minmax(13rem, 0.8fr);
-  gap: 0.8rem;
-  align-items: center;
-}
+          .disciplineStep .attributeControl button {
+            border-color: rgba(95, 74, 42, 0.3);
+            color: #48391f;
+            background: rgba(255, 252, 244, 0.82);
+          }
 
-.disciplineWorkspace .attributeControl button {
-  border-color: rgba(95, 74, 42, 0.3);
-  color: #48391f;
-  background: rgba(255, 252, 244, 0.82);
-}
+          .disciplineStep .attributeControl output {
+            color: #5d4827;
+          }
 
-.disciplineWorkspace .attributeControl output {
-  color: #5d4827;
-}
+          .reviewStep .reviewWorkspace {
+            grid-template-columns: minmax(12rem, 15rem) minmax(0, 1fr);
+            gap: clamp(1.2rem, 2.5vw, 2rem);
+            align-items: stretch;
+            padding: 0;
+            border: 0;
+            background: transparent;
+          }
 
-.reviewWorkspace[data-creation-surface='moonstone'] {
-  grid-template-columns: minmax(12rem, 15rem) minmax(0, 1fr);
-  gap: clamp(1.2rem, 2.5vw, 2rem);
-  align-items: stretch;
-  padding: clamp(1rem, 2vw, 1.5rem);
-}
+          .reviewStep .reviewPortrait {
+            min-height: 18rem;
+            overflow: hidden;
+            border: 1px solid rgba(96, 76, 46, 0.32);
+            border-radius: 0.22rem;
+            background: #15171a;
+            box-shadow: 0 0.8rem 1.7rem rgba(0, 0, 0, 0.16);
+          }
 
-.reviewWorkspace[data-creation-surface='moonstone'] .reviewPortrait {
-  min-height: 18rem;
-  overflow: hidden;
-  border: 1px solid rgba(96, 76, 46, 0.32);
-  border-radius: 0.22rem;
-  background: #15171a;
-  box-shadow: 0 0.8rem 1.7rem rgba(0, 0, 0, 0.16);
-}
+          .reviewSummary {
+            display: grid;
+            gap: 0.85rem;
+            align-content: start;
+            min-width: 0;
+          }
 
-.reviewSummary {
-  display: grid;
-  gap: 0.85rem;
-  align-content: start;
-  min-width: 0;
-}
+          .reviewDisciplineMark {
+            display: flex;
+            gap: 0.8rem;
+            align-items: center;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid rgba(96, 76, 46, 0.18);
+          }
 
-.reviewDiscipline {
-  display: flex;
-  gap: 0.8rem;
-  align-items: center;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid rgba(96, 76, 46, 0.18);
-}
+          .reviewDisciplineSigil {
+            width: 3.25rem;
+            height: 3.25rem;
+            flex: 0 0 auto;
+            color: #6e5730;
+          }
 
-.reviewDisciplineSigil {
-  width: 3.25rem;
-  height: 3.25rem;
-  flex: 0 0 auto;
-  color: #6e5730;
-}
+          .reviewDisciplineMark > span {
+            display: grid;
+            gap: 0.18rem;
+          }
 
-.reviewDiscipline > span {
-  display: grid;
-  gap: 0.18rem;
-}
+          .reviewDisciplineMark small {
+            color: #776d5f;
+            font: 700 0.58rem/1 var(--av-font-mono);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+          }
 
-.reviewDiscipline small {
-  color: #776d5f;
-  font: 700 0.58rem/1 var(--av-font-mono);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
+          .reviewDisciplineMark strong {
+            color: #28231c;
+            font: 500 1.25rem/1.1 var(--av-font-display);
+          }
 
-.reviewDiscipline strong {
-  color: #28231c;
-  font: 500 1.25rem/1.1 var(--av-font-display);
-}
+          .reviewStep .reviewGrid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0;
+            overflow: hidden;
+            border: 1px solid rgba(98, 78, 48, 0.18);
+            border-radius: 0.22rem;
+            background: rgba(255, 253, 247, 0.5);
+          }
 
-.reviewWorkspace[data-creation-surface='moonstone'] .reviewGrid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0;
-  overflow: hidden;
-  border: 1px solid rgba(98, 78, 48, 0.18);
-  border-radius: 0.22rem;
-  background: rgba(255, 253, 247, 0.5);
-}
+          .reviewStep .reviewGrid > div {
+            min-height: 3.25rem;
+            padding: 0.65rem 0.75rem;
+            border-top: 1px solid rgba(98, 78, 48, 0.12);
+            border-left: 1px solid rgba(98, 78, 48, 0.12);
+          }
 
-.reviewWorkspace[data-creation-surface='moonstone'] .reviewGrid > div {
-  min-height: 3.25rem;
-  padding: 0.65rem 0.75rem;
-  border-top: 1px solid rgba(98, 78, 48, 0.12);
-  border-left: 1px solid rgba(98, 78, 48, 0.12);
-}
+          .reviewStep .reviewGrid > div:nth-child(-n + 2) {
+            border-top: 0;
+          }
 
-.reviewWorkspace[data-creation-surface='moonstone'] .reviewGrid > div:nth-child(-n + 2) {
-  border-top: 0;
-}
+          .reviewStep .reviewGrid > div:nth-child(odd) {
+            border-left: 0;
+          }
 
-.reviewWorkspace[data-creation-surface='moonstone'] .reviewGrid > div:nth-child(odd) {
-  border-left: 0;
-}
+          @media (max-width: 760px) {
+            .disciplineStep .disciplineGrid {
+              grid-template-columns: 1fr;
+            }
 
-.reviewWorkspace[data-creation-surface='moonstone'] .reviewGrid dt {
-  color: #776d5f;
-}
+            .disciplineStep .attributeCard > div:first-child {
+              grid-template-columns: 1fr;
+              gap: 0.25rem;
+            }
 
-.reviewWorkspace[data-creation-surface='moonstone'] .reviewGrid dd {
-  color: #29241d;
-}
+            .reviewStep .reviewWorkspace {
+              grid-template-columns: 1fr;
+            }
 
-@media (max-width: 760px) {
-  .disciplineWorkspace .disciplineGrid {
-    grid-template-columns: 1fr;
-  }
+            .reviewStep .reviewPortrait {
+              width: min(100%, 16rem);
+              min-height: 0;
+              aspect-ratio: 1;
+              margin: 0 auto;
+            }
 
-  .disciplineWorkspace .attributeCard > div:first-child {
-    grid-template-columns: 1fr;
-    gap: 0.25rem;
-  }
+            .reviewStep .reviewGrid {
+              grid-template-columns: 1fr;
+            }
 
-  .reviewWorkspace[data-creation-surface='moonstone'] {
-    grid-template-columns: 1fr;
-  }
+            .reviewStep .reviewGrid > div,
+            .reviewStep .reviewGrid > div:nth-child(-n + 2),
+            .reviewStep .reviewGrid > div:nth-child(odd) {
+              border-top: 1px solid rgba(98, 78, 48, 0.12);
+              border-left: 0;
+            }
 
-  .reviewWorkspace[data-creation-surface='moonstone'] .reviewPortrait {
-    width: min(100%, 16rem);
-    min-height: 0;
-    aspect-ratio: 1;
-    margin: 0 auto;
-  }
-
-  .reviewWorkspace[data-creation-surface='moonstone'] .reviewGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .reviewWorkspace[data-creation-surface='moonstone'] .reviewGrid > div,
-  .reviewWorkspace[data-creation-surface='moonstone'] .reviewGrid > div:nth-child(-n + 2),
-  .reviewWorkspace[data-creation-surface='moonstone'] .reviewGrid > div:nth-child(odd) {
-    border-top: 1px solid rgba(98, 78, 48, 0.12);
-    border-left: 0;
-  }
-
-  .reviewWorkspace[data-creation-surface='moonstone'] .reviewGrid > div:first-child {
-    border-top: 0;
-  }
-}
-'''
+            .reviewStep .reviewGrid > div:first-child {
+              border-top: 0;
+            }
+          }
+          '''
           css_path.write_text(css)
           PY
           pnpm exec prettier --write \
             apps/web/src/components/character/character-creation-experience.tsx \
             apps/web/src/components/character/character-creation-experience.module.css
-      - name: Verify only bounded production files changed
+      - name: Verify bounded diff
         shell: bash
         run: |
           set -euo pipefail
           changed="$(git diff --name-only)"
           printf '%s\n' "$changed"
           test "$changed" = $'apps/web/src/components/character/character-creation-experience.module.css\napps/web/src/components/character/character-creation-experience.tsx'
-      - name: Commit bounded correction
+      - name: Commit correction
         shell: bash
         run: |
           git config user.name 'Nicholas JM'
