@@ -125,7 +125,7 @@ test('Atlas keeps real content in the Manual article frame', async ({ page }, in
   await expect(article).toHaveAttribute('data-manual-article-surface', 'ink')
   await expect(page.getByRole('heading', { level: 1, name: 'The Discipline Atlas' })).toBeVisible()
   await expect(page.getByText('36 planned traditions')).toBeVisible()
-  await expect(page.getByText('Phase-4 testing rule')).toBeVisible()
+  await expect(content.getByText('Phase-4 testing rule', { exact: true })).toBeVisible()
   await expectDecodedImage(page, 'manual-atlas-hero-media')
 
   const tocBox = await toc.boundingBox()
