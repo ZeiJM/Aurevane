@@ -24,9 +24,7 @@ async function expectDecodedImage(page: Page, testId: string) {
     .toBe(true)
 }
 
-test('standard Manual article uses the dark editorial reading composition on desktop', async ({
-  page,
-}, info) => {
+test('standard Manual article uses the dark desktop reading frame', async ({ page }, info) => {
   test.skip(info.project.name !== 'desktop-chromium', 'Desktop Manual article composition only')
   await page.setViewportSize({ width: 1366, height: 768 })
   await page.goto('/manual/character-creation')
@@ -72,9 +70,7 @@ test('standard Manual article uses the dark editorial reading composition on des
   }
 })
 
-test('standard Manual article keeps deep anchors and natural mobile page scrolling', async ({
-  page,
-}, info) => {
+test('standard Manual article preserves anchors on mobile', async ({ page }, info) => {
   test.skip(info.project.name !== 'mobile-chromium', 'Phone Manual article composition only')
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/manual/wayfarers-practice#guardrails')
@@ -116,9 +112,7 @@ test('standard Manual article keeps deep anchors and natural mobile page scrolli
   }
 })
 
-test('Discipline Atlas keeps its real content inside the Manual article reading system', async ({
-  page,
-}, info) => {
+test('Atlas keeps real content in the Manual article frame', async ({ page }, info) => {
   test.skip(info.project.name !== 'desktop-chromium', 'Desktop Atlas composition only')
   await page.setViewportSize({ width: 1366, height: 768 })
   await page.goto('/manual/disciplines-mastery')
@@ -142,7 +136,9 @@ test('Discipline Atlas keeps its real content inside the Manual article reading 
 
   await toc.getByRole('link', { name: 'Mastery', exact: true }).click()
   await expect(page).toHaveURL(/#mastery$/)
-  await expect(page.getByRole('heading', { level: 2, name: /Experience is necessary/ })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { level: 2, name: /Experience is necessary/ }),
+  ).toBeVisible()
 
   const metrics = await page.evaluate(() => ({
     overflow: document.documentElement.scrollWidth - innerWidth,
@@ -160,7 +156,7 @@ test('Discipline Atlas keeps its real content inside the Manual article reading 
   }
 })
 
-test('Discipline Atlas stacks its contents rail above the article on mobile', async ({ page }, info) => {
+test('Atlas stacks its contents rail on mobile', async ({ page }, info) => {
   test.skip(info.project.name !== 'mobile-chromium', 'Phone Atlas composition only')
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/manual/disciplines-mastery')
