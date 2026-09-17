@@ -99,9 +99,13 @@ test('Manual index stays a natural single-column guide on mobile', async ({ page
     }
   })
 
-  expect.soft(metrics.overflow, 'phone Manual index has no horizontal overflow').toBeLessThanOrEqual(1)
+  expect
+    .soft(metrics.overflow, 'phone Manual index has no horizontal overflow')
+    .toBeLessThanOrEqual(1)
   expect.soft(metrics.pageScroll, 'phone Manual index scrolls as a page').toBeGreaterThan(0)
-  expect.soft(metrics.directoryWidth, 'directory respects phone viewport width').toBeLessThanOrEqual(390)
+  expect
+    .soft(metrics.directoryWidth, 'directory respects phone viewport width')
+    .toBeLessThanOrEqual(390)
   expect(['auto', 'scroll']).not.toContain(metrics.directoryOverflowY)
 
   if (process.env.LAYOUT_REVIEW_OUTPUT) {
