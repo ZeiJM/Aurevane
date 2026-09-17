@@ -56,6 +56,7 @@ function shapeForKind(
 }
 
 export function SkillTargetingEditor({ value, onChange }: SkillTargetingEditorProps) {
+  const shape = value.shape
   const invalidRange = value.minimumRange > value.maximumRange
 
   return (
@@ -107,13 +108,13 @@ export function SkillTargetingEditor({ value, onChange }: SkillTargetingEditorPr
           <span>Shape</span>
           <select
             aria-label="Target shape"
-            value={value.shape.kind}
+            value={shape.kind}
             onChange={(event) =>
               onChange({
                 ...value,
                 shape: shapeForKind(
                   event.currentTarget.value as CombatTargetShape['kind'],
-                  value.shape,
+                  shape,
                 ),
               })
             }
@@ -124,20 +125,20 @@ export function SkillTargetingEditor({ value, onChange }: SkillTargetingEditorPr
           </select>
         </label>
 
-        {value.shape.kind === 'circle' ? (
+        {shape.kind === 'circle' ? (
           <label className={styles.field}>
             <span>Circle radius</span>
             <input
               aria-label="Circle radius"
               type="number"
               min={0}
-              value={value.shape.radius}
+              value={shape.radius}
               onChange={(event) =>
                 onChange({
                   ...value,
                   shape: {
                     kind: 'circle',
-                    radius: integer(event.currentTarget.value, value.shape.radius),
+                    radius: integer(event.currentTarget.value, shape.radius),
                   },
                 })
               }
@@ -145,20 +146,20 @@ export function SkillTargetingEditor({ value, onChange }: SkillTargetingEditorPr
           </label>
         ) : null}
 
-        {value.shape.kind === 'line' ? (
+        {shape.kind === 'line' ? (
           <label className={styles.field}>
             <span>Line length</span>
             <input
               aria-label="Line length"
               type="number"
               min={1}
-              value={value.shape.length}
+              value={shape.length}
               onChange={(event) =>
                 onChange({
                   ...value,
                   shape: {
                     kind: 'line',
-                    length: integer(event.currentTarget.value, value.shape.length),
+                    length: integer(event.currentTarget.value, shape.length),
                   },
                 })
               }
