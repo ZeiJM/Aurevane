@@ -26,7 +26,7 @@ jobs:
           corepack prepare pnpm@11.17.0 --activate
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Fix CSR-3 package export seam
+      - name: Harden CSR-3 projection seam
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -37,11 +37,28 @@ jobs:
               "",
           )
           text = text.replace(
-              "  PV1F_COMBAT_CONTENT,\n} from '@aurevane/game-core/combat/pv1f-action-economy'",
-              "  PV1F_COMBAT_CONTENT,\n  PV1F_COVERT_STATUS,\n  PV1F_REVEALED_STATUS,\n} from '@aurevane/game-core/combat/pv1f-action-economy'",
+              "import { PV1F_COMBAT_CONTENT } from '@aurevane/game-core/combat/pv1f-action-economy'",
+              "import {\n  PV1F_COMBAT_CONTENT,\n  PV1F_COVERT_STATUS,\n  PV1F_REVEALED_STATUS,\n} from '@aurevane/game-core/combat/pv1f-action-economy'",
           )
           text = text.replace('COVERT_STATUS_ID', 'PV1F_COVERT_STATUS.id')
           text = text.replace('REVEALED_STATUS_ID', 'PV1F_REVEALED_STATUS.id')
+          old = """    visible.push({ sortIndex: record.eventIndex, record })
+"""
+          new = """    const event = objectValue(record.event)
+    const visibleRecord =
+      !commandAllowed && event
+        ? {
+            ...record,
+            event: Object.fromEntries(
+              Object.entries(event).filter(([key]) => key !== 'actionId'),
+            ),
+          }
+        : record
+    visible.push({ sortIndex: record.eventIndex, record: visibleRecord })
+"""
+          if old not in text:
+              raise SystemExit('history projection insertion seam changed')
+          text = text.replace(old, new, 1)
           path.write_text(text, encoding='utf-8')
           PY
       - name: Format CSR-3 files
@@ -60,5 +77,5 @@ jobs:
             apps/web/src/server/battle/battle-history-privacy.test.ts \
             .github/workflows/csr3-format-targeted.yml
           git diff --cached --check
-          git commit -m 'style(combat): format CSR-3 history privacy authority'
+          git commit -m 'feat(combat): harden CSR-3 history privacy projection'
           git push origin HEAD:agent/combat-csr3-historical-privacy-20260917
