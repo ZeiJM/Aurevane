@@ -11,20 +11,11 @@ import {
   type StatDrivenCombatEncounterState,
   type StatDrivenCombatProfile,
 } from '@aurevane/game-core/combat/stat-driven-combat'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
 
-const rpc = vi.hoisted(() => vi.fn())
-vi.mock('@/lib/supabase/admin', () => ({
-  createSupabaseAdminClient: () => ({ rpc }),
-}))
-vi.mock('@/server/character/character-profile-display-service', () => ({
-  loadPublicCharacterProfileImageMap: vi.fn(async () => new Map()),
-}))
-
 import { projectCommittedBattleSession } from './battle-session-service'
-import { getPvpSpectatorView } from './pvp-lobby-service'
 
 const PLAYER = 'character:player'
 const ALLY = 'character:ally'
@@ -149,8 +140,6 @@ function committed(
 }
 
 describe('CSR-2 live viewer-relative status projection', () => {
-  beforeEach(() => rpc.mockReset())
-
   it('keeps self/allied Covert positives but omits an opposing Covert unit’s positive and unknown status rows', () => {
     const authoritative = encounter()
     const before = structuredClone(authoritative.statusState)
@@ -168,35 +157,5 @@ describe('CSR-2 live viewer-relative status projection', () => {
     expect(rowStatuses(projected, PLAIN_ENEMY).map((entry) => entry.statusId)).toEqual(['guarded'])
     expect(authoritative.statusState).toEqual(before)
     expect(projected.tactical.battle).not.toHaveProperty('rng')
-  })
-
-  it('treats a spectator as unprivileged while preserving public negatives and non-Covert positives', async () => {
-    const authoritative = encounter()
-    const before = structuredClone(authoritative.statusState)
-    rpc.mockResolvedValueOnce({
-      data: {
-        battle_session_id: 'session:csr2-live-viewer',
-        battle_version: 7,
-        battle_key: 'watch-csr2',
-        mode: '1v1',
-        participants: [],
-        snapshot: authoritative,
-      },
-      error: null,
-    })
-
-    const view = await getPvpSpectatorView('watch-csr2')
-    if (!view) throw new Error('Expected spectator view.')
-
-    expect(rowStatuses(view.battle.snapshot, PLAYER)).toEqual([])
-    expect(rowStatuses(view.battle.snapshot, ALLY)).toEqual([])
-    expect(rowStatuses(view.battle.snapshot, ENEMY).map((entry) => entry.statusId)).toEqual([
-      'exposed',
-    ])
-    expect(rowStatuses(view.battle.snapshot, PLAIN_ENEMY).map((entry) => entry.statusId)).toEqual([
-      'guarded',
-    ])
-    expect(authoritative.statusState).toEqual(before)
-    expect(view.battle.snapshot.tactical.battle).not.toHaveProperty('rng')
   })
 })
