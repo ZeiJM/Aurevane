@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   createCombatEncounterState,
+  endCombatTurn,
   evaluateCombatAction,
   executeCombatAction,
   type CombatActionDefinition,
@@ -156,6 +157,28 @@ function covertAction(): CombatActionDefinition {
   }
 }
 
+function directDamageAction(): CombatActionDefinition {
+  return {
+    id: 'test.direct-damage',
+    version: 1,
+    sourceType: 'test',
+    tags: ['test'],
+    target: {
+      kind: 'unit',
+      teamPolicy: 'enemy',
+      shape: { kind: 'single' },
+      minimumRange: 1,
+      maximumRange: 1,
+      requiresLineOfSight: false,
+      maximumElevationDifference: 1,
+      friendlyFire: 'enemies-only',
+    },
+    cost: { spendsAction: false, mp: 0 },
+    requirements: [],
+    effects: [{ type: 'damage', recipient: 'primary-unit', amount: 5 }],
+  }
+}
+
 function sensoryAction(
   accuracyMode: 'automatic' | 'per-target' = 'automatic',
 ): CombatActionDefinition {
@@ -235,6 +258,55 @@ describe('CSR-1 Covert and Revealed definitions', () => {
     ])
     expect(transition.events).not.toContainEqual(
       expect.objectContaining({ event: 'status_applied', statusId: 'covert' }),
+    )
+  })
+
+  it('keeps Covert targetable by ordinary hostile direct-unit actions', () => {
+    const state = encounter([status('covert', 'recruit', 3)])
+    const evaluation = evaluateCombatAction(
+      state,
+      directDamageAction(),
+      { kind: 'unit', combatantId: 'recruit' },
+      content,
+    )
+    const transition = executeCombatAction(
+      state,
+      directDamageAction(),
+      { kind: 'unit', combatantId: 'recruit' },
+      content,
+    )
+
+    expect(evaluation.legal).toBe(true)
+    expect(evaluation.issues).toEqual([])
+    expect(
+      transition.state.tactical.battle.combatants.find((unit) => unit.id === 'recruit')?.hp,
+    ).toBe(95)
+    expect(statuses(transition.state, 'recruit').map((entry) => entry.statusId)).toContain('covert')
+  })
+
+  it('uses the existing owner-turn-start lifecycle for Covert and Revealed expiry', () => {
+    const state = encounter(
+      [status('covert', 'wayfarer', 1)],
+      [status('revealed', 'recruit', 1)],
+    )
+    const recruitTurn = endCombatTurn(state, content)
+    const wayfarerTurn = endCombatTurn(recruitTurn.state, content)
+
+    expect(statuses(recruitTurn.state, 'recruit').map((entry) => entry.statusId)).not.toContain(
+      'covert',
+    )
+    expect(statuses(wayfarerTurn.state, 'wayfarer').map((entry) => entry.statusId)).not.toContain(
+      'revealed',
+    )
+    expect([...recruitTurn.events, ...wayfarerTurn.events]).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ event: 'status_expired', combatantId: 'recruit', statusId: 'covert' }),
+        expect.objectContaining({
+          event: 'status_expired',
+          combatantId: 'wayfarer',
+          statusId: 'revealed',
+        }),
+      ]),
     )
   })
 })
