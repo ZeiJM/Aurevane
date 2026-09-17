@@ -11,10 +11,12 @@ async function settle(page: Page) {
   })
 }
 
-async function loadScenicHero(page: Page) {
+async function loadScenicHero(page: Page, scrollIntoView = true) {
   const hero = page.getByTestId('news-article-hero')
   const image = hero.locator('img')
-  await hero.scrollIntoViewIfNeeded()
+  if (scrollIntoView) {
+    await hero.scrollIntoViewIfNeeded()
+  }
   await expect(image).toBeVisible()
   await image.evaluate((element: HTMLImageElement) => element.decode())
   const naturalWidth = await image.evaluate((element: HTMLImageElement) => element.naturalWidth)
@@ -47,7 +49,7 @@ test('News article matches the desktop editorial layout', async ({ page }, info)
   await expect(back).toBeVisible()
   await expect(manual).toBeVisible()
   await expect(rules).toBeVisible()
-  await loadScenicHero(page)
+  await loadScenicHero(page, false)
   await settle(page)
 
   const metrics = await page.evaluate(() => {
@@ -88,8 +90,9 @@ test('News article matches the desktop editorial layout', async ({ page }, info)
   if (process.env.LAYOUT_REVIEW_OUTPUT) {
     await mkdir(process.env.LAYOUT_REVIEW_OUTPUT, { recursive: true })
     await settle(page)
-    await article.screenshot({
+    await page.screenshot({
       path: path.join(process.env.LAYOUT_REVIEW_OUTPUT, 'news-article-desktop-1366x768.png'),
+      fullPage: true,
     })
   }
 })
