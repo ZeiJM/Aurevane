@@ -133,12 +133,17 @@ test('Atlas keeps real content in the Manual article frame', async ({ page }, in
   expect(contentBox).not.toBeNull()
   expect(tocBox!.x + tocBox!.width).toBeLessThan(contentBox!.x)
 
-  const metrics = await page.evaluate(() => ({
-    overflow: document.documentElement.scrollWidth - innerWidth,
-    pageScroll: document.documentElement.scrollHeight - innerHeight,
-  }))
+  const metrics = await page.evaluate(() => {
+    const articleElement = document.querySelector<HTMLElement>(
+      '[data-testid="manual-atlas-article"]',
+    )!
+    return {
+      overflow: document.documentElement.scrollWidth - innerWidth,
+      articleOverflowY: getComputedStyle(articleElement).overflowY,
+    }
+  })
   expect(metrics.overflow).toBeLessThanOrEqual(1)
-  expect(metrics.pageScroll).toBeGreaterThan(0)
+  expect(['auto', 'scroll']).not.toContain(metrics.articleOverflowY)
 
   if (process.env.LAYOUT_REVIEW_OUTPUT) {
     await settle(page)
@@ -146,6 +151,10 @@ test('Atlas keeps real content in the Manual article frame', async ({ page }, in
       path: path.join(process.env.LAYOUT_REVIEW_OUTPUT, 'manual-atlas-desktop-1366x768.png'),
     })
   }
+
+  const finalSection = page.locator('#rekindling-memory')
+  await finalSection.scrollIntoViewIfNeeded()
+  await expect(finalSection).toBeInViewport({ ratio: 0.5 })
 
   await toc.getByRole('link', { name: 'Mastery', exact: true }).click()
   await expect(page).toHaveURL(/#mastery$/)
