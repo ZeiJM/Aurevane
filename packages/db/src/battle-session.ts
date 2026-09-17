@@ -47,8 +47,7 @@ export interface BattleEventCursor {
 }
 
 export type BattlePrivacyVisibility =
-  | { readonly kind: 'public' }
-  | { readonly kind: 'team-only'; readonly teamId: string }
+  { readonly kind: 'public' } | { readonly kind: 'team-only'; readonly teamId: string }
 
 export interface BattlePrivacyEventOverride {
   readonly eventIndex: number
