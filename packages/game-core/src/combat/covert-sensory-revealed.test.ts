@@ -11,7 +11,7 @@ import {
   type CombatStatusInstance,
 } from './actions'
 import { createPendingBattle, startBattle } from './battle-state'
-import { createTacticalBattleState } from './board'
+import { createTacticalBattleState, selectCurrentFinalFacing } from './board'
 import {
   createCovertStatusDefinition,
   createRevealedStatusDefinition,
@@ -286,8 +286,13 @@ describe('CSR-1 Covert and Revealed definitions', () => {
 
   it('uses the existing owner-turn-start lifecycle for Covert and Revealed expiry', () => {
     const state = encounter([status('covert', 'wayfarer', 1)], [status('revealed', 'recruit', 1)])
-    const recruitTurn = endCombatTurn(state, content)
-    const wayfarerTurn = endCombatTurn(recruitTurn.state, content)
+    const recruitFacing = selectCurrentFinalFacing(state.tactical, 'east')
+    const recruitTurn = endCombatTurn({ ...state, tactical: recruitFacing.state }, content)
+    const wayfarerFacing = selectCurrentFinalFacing(recruitTurn.state.tactical, 'west')
+    const wayfarerTurn = endCombatTurn(
+      { ...recruitTurn.state, tactical: wayfarerFacing.state },
+      content,
+    )
 
     expect(statuses(recruitTurn.state, 'recruit').map((entry) => entry.statusId)).not.toContain(
       'covert',
