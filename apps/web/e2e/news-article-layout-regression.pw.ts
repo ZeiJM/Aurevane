@@ -29,7 +29,7 @@ test('News article matches the desktop editorial layout', async ({ page }, info)
   await expect(
     page.getByRole('heading', { level: 1, name: 'News Article Layout Preview' }),
   ).toBeVisible()
-  await expect(page.getByText('Layout preview', { exact: true })).toBeVisible()
+  await expect(article.locator('header').getByText('Layout preview', { exact: true })).toBeVisible()
   await expect(page.getByText('Sep 16, 2026', { exact: true })).toBeVisible()
   await expect(back).toBeVisible()
   await expect(manual).toBeVisible()
