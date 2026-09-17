@@ -151,13 +151,16 @@ begin
   end if;
 
   if p_privacy_journal is not null then
-    if jsonb_typeof(p_privacy_journal) <> 'object'
-      or jsonb_typeof(p_privacy_journal -> 'schemaVersion') <> 'number'
-      or p_privacy_journal ->> 'schemaVersion' <> '1'
-      or not app_private.is_battle_privacy_visibility_v1(
+    if not coalesce(
+      jsonb_typeof(p_privacy_journal) = 'object'
+      and jsonb_typeof(p_privacy_journal -> 'schemaVersion') = 'number'
+      and p_privacy_journal ->> 'schemaVersion' = '1'
+      and app_private.is_battle_privacy_visibility_v1(
         p_privacy_journal -> 'commandVisibility'
       )
-      or jsonb_typeof(p_privacy_journal -> 'eventVisibilityOverrides') <> 'array' then
+      and jsonb_typeof(p_privacy_journal -> 'eventVisibilityOverrides') = 'array',
+      false
+    ) then
       raise exception using errcode = '22023', message = 'BATTLE_PRIVACY_JOURNAL_INVALID';
     end if;
 
@@ -168,10 +171,13 @@ begin
       select item.value
       from jsonb_array_elements(v_event_visibility_overrides) item(value)
     loop
-      if jsonb_typeof(v_override) <> 'object'
-        or jsonb_typeof(v_override -> 'eventIndex') <> 'number'
-        or (v_override ->> 'eventIndex') !~ '^[0-9]+$'
-        or not app_private.is_battle_privacy_visibility_v1(v_override -> 'visibility') then
+      if not coalesce(
+        jsonb_typeof(v_override) = 'object'
+        and jsonb_typeof(v_override -> 'eventIndex') = 'number'
+        and (v_override ->> 'eventIndex') ~ '^[0-9]+$'
+        and app_private.is_battle_privacy_visibility_v1(v_override -> 'visibility'),
+        false
+      ) then
         raise exception using errcode = '22023', message = 'BATTLE_PRIVACY_JOURNAL_INVALID';
       end if;
 
