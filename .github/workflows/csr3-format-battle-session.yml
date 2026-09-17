@@ -1,0 +1,47 @@
+name: CSR3 format battle session
+
+on:
+  push:
+    branches:
+      - agent/csr3-history-privacy-integration-20260917
+    paths:
+      - .github/workflows/csr3-format-battle-session.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/csr3-history-privacy-integration-20260917
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Format exact failing file
+        run: pnpm exec prettier --write packages/db/src/battle-session.ts
+      - name: Verify bounded diff and commit
+        run: |
+          git diff --check
+          git diff --exit-code -- . ':!packages/db/src/battle-session.ts' || {
+            echo 'Unexpected files changed' >&2
+            exit 1
+          }
+          if git diff --quiet -- packages/db/src/battle-session.ts; then
+            echo 'No formatting change produced' >&2
+            exit 1
+          fi
+          git config user.name "Nicholas JM"
+          git config user.email "283436098+ZeiJM@users.noreply.github.com"
+          git add packages/db/src/battle-session.ts
+          git commit -m "style(db): format CSR-3 battle session contract"
+          git push origin HEAD:agent/csr3-history-privacy-integration-20260917
