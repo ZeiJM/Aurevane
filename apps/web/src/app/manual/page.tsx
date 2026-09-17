@@ -4,10 +4,7 @@ import { PublicInformationShell } from '@/components/public-information/public-i
 import { currentManualArticles } from '@/content/current-manual'
 import type { ImageAssetId } from '@/media/registry'
 
-import {
-  ManualIndexDirectory,
-  type ManualIndexEntry,
-} from './manual-index-directory'
+import { ManualIndexDirectory, type ManualIndexEntry } from './manual-index-directory'
 
 export const metadata: Metadata = {
   title: 'Adventurer’s Guide | AUREVANE',
