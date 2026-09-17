@@ -39,9 +39,7 @@ test('Creation Discipline follows its own subject composition without losing rea
   await expect(workspace).toHaveAttribute('data-creation-surface', 'moonstone')
   await expect(choices).toHaveCount(6)
   await expect(rows).toHaveCount(6)
-  await expect(creation.getByTestId('attribute-points')).toContainText(
-    'personal points remaining',
-  )
+  await expect(creation.getByTestId('attribute-points')).toContainText('personal points remaining')
 
   const metrics = await page.evaluate(() => {
     const workspaceElement = document.querySelector<HTMLElement>(
