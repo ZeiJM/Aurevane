@@ -173,6 +173,11 @@ export type CombatEffectDefinition =
       curseCopyable?: boolean
     }
   | { type: 'barrier-change'; recipient: CombatEffectRecipient; amount: number }
+  | {
+      type: 'sensory'
+      recipient: 'primary-unit'
+      revealedDurationOwnerTurnStarts: number
+    }
   | { type: 'healing'; recipient: CombatEffectRecipient; amount: number; ticks?: number }
   | { type: 'return-to-turn-start'; recipient: 'actor' }
   | { type: 'remove-status'; recipient: CombatEffectRecipient; statusIds: readonly string[] }
@@ -1504,6 +1509,9 @@ function resolveActionEffects(
     events.push(...revealed.events)
   }
   for (const effect of action.effects) {
+    if (effect.type === 'sensory') {
+      throw new TypeError('Sensory must be materialized before legacy effect resolution.')
+    }
     if (
       effect.type === 'create-terrain' ||
       (effect.type === 'damage' && effect.element === 'fire')
@@ -1667,7 +1675,10 @@ function applyEffect(
   actorId: string,
   recipientId: string,
   actionId: string,
-  effect: Exclude<CombatEffectDefinition, { type: 'create-terrain' | 'copy-statuses' }>,
+  effect: Exclude<
+    CombatEffectDefinition,
+    { type: 'create-terrain' | 'copy-statuses' | 'sensory' }
+  >,
   content: CombatContentCatalog,
   stormRecipients: Set<string>,
 ): CombatResolutionTransition {
