@@ -1,0 +1,42 @@
+name: CSR3 Wire Callers Run
+
+on:
+  push:
+    branches:
+      - agent/combat-csr3-historical-privacy-20260917
+    paths:
+      - .github/workflows/csr3-wire-callers-run.yml
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/combat-csr3-historical-privacy-20260917
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+          pnpm install --frozen-lockfile
+      - run: python .github/scripts/csr3-wire-callers.py
+      - run: pnpm exec prettier --write apps/web/src/server/battle/*.ts
+      - run: pnpm --filter @aurevane/web typecheck
+      - run: |
+          pnpm --filter @aurevane/web exec vitest run \
+            src/server/battle/battle-history-privacy.test.ts \
+            src/server/battle/supabase-battle-session-repository.privacy.test.ts
+      - name: Commit tested caller wiring
+        run: |
+          rm .github/scripts/csr3-wire-callers.py .github/workflows/csr3-wire-callers-run.yml
+          git config user.name 'Nicholas JM'
+          git config user.email '283436098+ZeiJM@users.noreply.github.com'
+          git add apps/web/src/server/battle .github/scripts/csr3-wire-callers.py .github/workflows/csr3-wire-callers-run.yml
+          git diff --cached --check
+          git commit -m 'feat(combat): wire CSR-3 commit privacy metadata'
+          git push origin HEAD:agent/combat-csr3-historical-privacy-20260917
