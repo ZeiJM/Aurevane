@@ -48,6 +48,7 @@ export default async function MasterCombatContentPage() {
           baseVersion: draft?.baseVersion ?? current.contentVersion,
           draftVersion: draft?.draftVersion ?? null,
           derivedTags: [...deriveSkillPresentationTags(current)],
+          definition: structuredClone(current),
         }
       }),
     )
