@@ -112,9 +112,7 @@ function encounter(
       { position: { x: 0, y: 0 }, elevation: 0, terrainId: 'open' },
       { position: { x: 1, y: 0 }, elevation: 0, terrainId: 'open' },
     ],
-    movementProfiles: [
-      { id: 'ground', maxElevationStep: 1, terrainCostOverrides: [] },
-    ],
+    movementProfiles: [{ id: 'ground', maxElevationStep: 1, terrainCostOverrides: [] }],
     placements: [
       {
         combatantId: 'wayfarer',
@@ -178,7 +176,7 @@ function sensoryAction(accuracyMode: 'automatic' | 'per-target' = 'automatic'): 
     requirements: [],
     accuracyMode,
     effects: [
-      { type: 'sensory', recipient: 'primary-unit' },
+      { type: 'sensory', recipient: 'primary-unit', revealedDurationOwnerTurnStarts: 2 },
       { type: 'damage', recipient: 'primary-unit', amount: 5 },
     ],
   }
