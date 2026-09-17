@@ -177,11 +177,7 @@ describe('published combat content consumption', () => {
       apCost: 37,
     })
     await expect(
-      resolveBattleDisciplineSkillDefinition(
-        authority,
-        COMBATANT_ID,
-        'vanguard.forceful-strike',
-      ),
+      resolveBattleDisciplineSkillDefinition(authority, COMBATANT_ID, 'vanguard.forceful-strike'),
     ).resolves.toBeNull()
   })
 })
