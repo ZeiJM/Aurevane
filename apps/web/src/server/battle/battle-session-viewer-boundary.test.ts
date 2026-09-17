@@ -55,21 +55,18 @@ describe('battle session viewer-entitlement projection boundary', () => {
       }),
     }
 
-    let createInput: CreateBattleSessionInput | null = null
+    const createBattleSession = vi.fn(async (input: CreateBattleSessionInput) => ({
+      replayed: false,
+      result: {
+        battleSessionId: SESSION_ID,
+        battleVersion: 1,
+        snapshot: input.initialSnapshot,
+        createdAt: CREATED_AT,
+      },
+    }))
     const findBattleSession = vi.fn(async (): Promise<BattleSessionRecord | null> => null)
     const battles: BattleSessionRepository = {
-      createBattleSession: vi.fn(async (input) => {
-        createInput = input
-        return {
-          replayed: false,
-          result: {
-            battleSessionId: SESSION_ID,
-            battleVersion: 1,
-            snapshot: input.initialSnapshot,
-            createdAt: CREATED_AT,
-          },
-        }
-      }),
+      createBattleSession,
       findBattleSession,
       findBattleIntentReplay: vi.fn(async (): Promise<BattleSessionCommitRecord | null> => null),
       commitBattleIntent: vi.fn(async () => {
@@ -84,6 +81,7 @@ describe('battle session viewer-entitlement projection boundary', () => {
       idempotencyKey: '44444444-4444-4444-8444-444444444444',
     })
 
+    const createInput = createBattleSession.mock.calls[0]?.[0]
     if (!createInput) throw new Error('Expected battle creation input.')
     const snapshot = createInput.initialSnapshot as StatDrivenCombatEncounterState
     const battle = snapshot.tactical.battle
