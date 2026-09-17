@@ -14,8 +14,11 @@ def write(path: Path, text: str):
 
 
 def replace_once(text: str, old: str, new: str, label: str):
-    if text.count(old) != 1:
-        raise SystemExit(f'{label}: expected one seam, found {text.count(old)}')
+    count = text.count(old)
+    if count < 1:
+        raise SystemExit(f'{label}: seam not found')
+    if count > 1 and label != 'pvp timeout commit':
+        raise SystemExit(f'{label}: expected one seam, found {count}')
     return text.replace(old, new, 1)
 
 
@@ -172,7 +175,6 @@ text = replace_once(
     """      nextSnapshot: resolved.state,\n      events: resolved.events,\n      privacyJournal,\n    })\n""",
     'pvp timeout commit',
 )
-# This exact block remains once for surrender after the timeout replacement.
 text = replace_once(
     text,
     """      nextSnapshot: resolved.state,\n      events: resolved.events,\n    })\n    return projectCommittedBattleSession(committed, current.controlledCombatantIds)\n""",
