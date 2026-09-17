@@ -14,7 +14,7 @@ const ACTOR = '11111111-1111-4111-8111-111111111111'
 
 function serviceMock(): CombatContentAuthoringService {
   return {
-    requireOperator: vi.fn(async () => 'owner'),
+    requireOperator: vi.fn(async () => 'owner' as const),
     validateSkillDefinition: vi.fn(() => ({ valid: true, issues: [], derivedTags: [] })),
     previewSkillDefinition: vi.fn(async () => {
       throw new Error('Not used by handler tests yet.')
@@ -22,7 +22,7 @@ function serviceMock(): CombatContentAuthoringService {
     diffSkillDefinitions: vi.fn(() => ({ changedPaths: [] })),
     saveSkillDraft: vi.fn(async () => ({
       contentKey: 'vanguard.forceful-strike',
-      contentKind: 'skill',
+      contentKind: 'skill' as const,
       definition: { id: 'vanguard.forceful-strike' },
       baseVersion: 2,
       draftVersion: 1,
@@ -32,7 +32,7 @@ function serviceMock(): CombatContentAuthoringService {
     publishSkill: vi.fn(async () => ({
       id: '22222222-2222-4222-8222-222222222222',
       contentKey: 'vanguard.forceful-strike',
-      contentKind: 'skill',
+      contentKind: 'skill' as const,
       contentVersion: 3,
       definition: { id: 'vanguard.forceful-strike', contentVersion: 3 },
       publishedBy: ACTOR,
