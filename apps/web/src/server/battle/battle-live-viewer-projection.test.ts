@@ -165,9 +165,7 @@ describe('CSR-2 live viewer-relative status projection', () => {
       'guarded',
     ])
     expect(rowStatuses(projected, ENEMY).map((entry) => entry.statusId)).toEqual(['exposed'])
-    expect(rowStatuses(projected, PLAIN_ENEMY).map((entry) => entry.statusId)).toEqual([
-      'guarded',
-    ])
+    expect(rowStatuses(projected, PLAIN_ENEMY).map((entry) => entry.statusId)).toEqual(['guarded'])
     expect(authoritative.statusState).toEqual(before)
     expect(projected.tactical.battle).not.toHaveProperty('rng')
   })
