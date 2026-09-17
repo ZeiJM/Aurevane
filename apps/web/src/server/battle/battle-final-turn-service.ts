@@ -12,6 +12,7 @@ import {
 import { AurevaneError, StaleBattleVersionError } from '@aurevane/game-core/errors'
 import { createBattleSessionChangedInvalidation } from '@aurevane/realtime'
 
+import { buildBattlePrivacyJournalInput } from './battle-history-privacy'
 import type { BattleSessionProjection, BattleSessionView } from './battle-session-service'
 
 type BuildExtendedEncounterState = StatDrivenCombatEncounterState & {
@@ -214,6 +215,7 @@ export function createBattleFinalTurnService(
           expectedBattleVersion: command.expectedBattleVersion,
           nextSnapshot: current.snapshot,
           events: [],
+          privacyJournal: null,
         })
         return {
           battleSessionId: replayOrStale.result.battleSessionId,
@@ -239,6 +241,12 @@ export function createBattleFinalTurnService(
       assertControlledTurn(state, current.controlledCombatantIds)
       const resolved = resolveFinalTurn(state, command.facing)
       const nextState = preserveFrozenBuildMetadata(state, resolved.state)
+      const privacyJournal = buildBattlePrivacyJournalInput({
+        before: state,
+        after: resolved.state,
+        commandKind: 'system',
+        events: resolved.events,
+      })
       const committed = await battles.commitBattleIntent({
         actorKey: command.userId,
         idempotencyKey: command.idempotencyKey,
@@ -248,6 +256,7 @@ export function createBattleFinalTurnService(
         expectedBattleVersion: command.expectedBattleVersion,
         nextSnapshot: nextState,
         events: resolved.events,
+        privacyJournal,
       })
 
       return {

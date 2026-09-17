@@ -307,6 +307,7 @@ export function createGuidedTrainingCompletionService(
           },
           { event: 'battle_completed', winningTeamId: 'players', completionKind: 'training' },
         ],
+        privacyJournal: null,
       })
 
       return {

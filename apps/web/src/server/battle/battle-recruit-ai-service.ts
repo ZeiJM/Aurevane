@@ -24,6 +24,7 @@ import {
   type BattleSessionChangedInvalidation,
 } from '@aurevane/realtime'
 
+import { buildBattlePrivacyJournalInput } from './battle-history-privacy'
 const MAX_RECRUIT_DECISIONS_PER_REQUEST = 16
 
 type ProjectedBattleState = Omit<StatDrivenCombatEncounterState['tactical']['battle'], 'rng'>
@@ -269,6 +270,18 @@ export function createBattleRecruitAiService(
         const resolved = resolveRecruitIntent(state, decision.intent)
         const nextState = preserveFrozenBuildMetadata(state, resolved.state)
         const event = decisionEvent(decision, turn.combatantId)
+        const committedEvents = [event, ...resolved.events]
+        const privacyJournal = buildBattlePrivacyJournalInput({
+          before: state,
+          after: resolved.state,
+          commandKind:
+            decision.intent.kind === 'action'
+              ? 'action'
+              : decision.intent.kind === 'move'
+                ? 'move'
+                : 'system',
+          events: committedEvents,
+        })
         const requestFingerprint = fingerprint({
           command: 'battle.recruit-ai.v2',
           battleSessionId: initial.battleSessionId,
@@ -290,7 +303,8 @@ export function createBattleRecruitAiService(
           battleSessionId: initial.battleSessionId,
           expectedBattleVersion: battleVersion,
           nextSnapshot: nextState,
-          events: [event, ...resolved.events],
+          events: committedEvents,
+          privacyJournal,
         })
 
         battleVersion = committed.result.battleVersion

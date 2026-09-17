@@ -18,6 +18,7 @@ import type { PvpTurnTimerSeconds } from '@aurevane/validation/combat/pvp'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createSupabaseCharacterRepository } from '@/server/character/supabase-character-repository'
 
+import { buildBattlePrivacyJournalInput } from './battle-history-privacy'
 import {
   createBattleSessionService,
   projectCommittedBattleSession,
@@ -172,6 +173,12 @@ export async function tickPvpTurnClock(
   const consecutive = await previousTurnWasMissed(userId, battleSessionId, turn.combatantId)
   if (!consecutive) state = resetPvpMissedTurnStreak(state)
   const resolved = timeoutPvpTurn(state)
+  const privacyJournal = buildBattlePrivacyJournalInput({
+    before: state,
+    after: resolved.state,
+    commandKind: 'system',
+    events: resolved.events,
+  })
   const timeoutIdentity = {
     command: 'pvp.timeout.v1',
     battleSessionId,
@@ -192,6 +199,7 @@ export async function tickPvpTurnClock(
       expectedBattleVersion: current.battleVersion,
       nextSnapshot: resolved.state,
       events: resolved.events,
+      privacyJournal,
     })
   } catch (error) {
     if (!(error instanceof StaleBattleVersionError)) throw error
@@ -237,6 +245,7 @@ export async function surrenderPvpBattle(
       expectedBattleVersion: current.battleVersion,
       nextSnapshot: resolved.state,
       events: resolved.events,
+      privacyJournal: null,
     })
     return projectCommittedBattleSession(committed, current.controlledCombatantIds)
   } catch (error) {

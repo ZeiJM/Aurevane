@@ -160,6 +160,7 @@ export function createBattleAbortService(battles: BattleSessionRepository): Batt
           expectedBattleVersion: command.expectedBattleVersion,
           nextSnapshot: current.snapshot,
           events: [],
+          privacyJournal: null,
         })
         return {
           battleSessionId: replayOrStale.result.battleSessionId,
@@ -193,6 +194,7 @@ export function createBattleAbortService(battles: BattleSessionRepository): Batt
         expectedBattleVersion: command.expectedBattleVersion,
         nextSnapshot: resolved.state,
         events: resolved.events,
+        privacyJournal: null,
       })
 
       return {
