@@ -94,9 +94,7 @@ export function validateCsrActionDefinition(
     if (effect.type === 'sensory') {
       sensoryCount += 1
       if (effect.recipient !== 'primary-unit' || action.target.kind !== 'unit') {
-        throw new TypeError(
-          'Sensory requires a primary-unit effect on a unit-targeting Skill.',
-        )
+        throw new TypeError('Sensory requires a primary-unit effect on a unit-targeting Skill.')
       }
       validateCsrDuration(effect.revealedDurationOwnerTurnStarts, 'Sensory Revealed duration')
     }
@@ -142,13 +140,7 @@ export function materializeCsrCommittedAction(input: {
     if (
       !primaryCombatantId ||
       missedCombatantIds.has(primaryCombatantId) ||
-      !primaryWouldBeCovertAtEffect(
-        state,
-        action,
-        evaluation,
-        primaryCombatantId,
-        effectIndex,
-      )
+      !primaryWouldBeCovertAtEffect(state, action, evaluation, primaryCombatantId, effectIndex)
     ) {
       continue
     }
@@ -159,9 +151,7 @@ export function materializeCsrCommittedAction(input: {
       .map((status) => status.id)
       .sort(compareIdentity)
     if (!purgeIds.includes(COVERT_STATUS_ID)) {
-      throw new TypeError(
-        'Sensory requires Covert to be an explicitly positive removable status.',
-      )
+      throw new TypeError('Sensory requires Covert to be an explicitly positive removable status.')
     }
 
     for (let index = 0; index < purgeIds.length; index += 8) {
