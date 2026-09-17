@@ -117,6 +117,39 @@ describe('combat content authoring service', () => {
     expect(draft.draftVersion).toBe(1)
   })
 
+  it('loads the authoritative current Skill, draft, history, validation and diff for an operator', async () => {
+    const { store, service } = serviceFixture()
+    store.operators.set(OWNER, 'owner')
+
+    await service.publishSkill({
+      actorUserId: OWNER,
+      definition: { ...staticSkill(), apCost: 41 },
+      expectedBaseVersion: 2,
+    })
+    await service.saveSkillDraft({
+      actorUserId: OWNER,
+      definition: { ...staticSkill(), contentVersion: 3, apCost: 42 },
+      baseVersion: 3,
+      expectedDraftVersion: null,
+    })
+
+    const state = await service.loadSkillAuthoringState({
+      actorUserId: OWNER,
+      skillId: 'vanguard.forceful-strike',
+    })
+
+    expect(state.skillId).toBe('vanguard.forceful-strike')
+    expect(state.currentSource).toBe('published')
+    expect(state.baseVersion).toBe(3)
+    expect(state.currentDefinition).toMatchObject({ contentVersion: 3, apCost: 41 })
+    expect(state.draft?.definition).toMatchObject({ contentVersion: 3, apCost: 42 })
+    expect(state.draft?.draftVersion).toBe(1)
+    expect(state.publishedVersions.map((version) => version.contentVersion)).toEqual([3])
+    expect(state.validation.valid).toBe(true)
+    expect(state.diff.changedPaths).toEqual(['apCost'])
+    expect(state.draftIsStale).toBe(false)
+  })
+
   it('returns derived presentation tags for a valid Skill definition', () => {
     const { service } = serviceFixture()
 
