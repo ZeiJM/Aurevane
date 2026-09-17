@@ -1,0 +1,324 @@
+name: Apply Creation subject reconciliation v2
+
+on:
+  push:
+    branches:
+      - agent/creation-subject-reconciliation
+    paths:
+      - .github/workflows/apply-creation-subject-reconciliation-v2.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/creation-subject-reconciliation
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: corepack enable && corepack prepare pnpm@11.17.0 --activate
+      - run: pnpm install --frozen-lockfile
+      - name: Patch Creation markup with guarded literals
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('apps/web/src/components/character/character-creation-experience.tsx')
+          text = path.read_text()
+
+          def once(old: str, new: str) -> None:
+              global text
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'expected one match, found {count}: {old!r}')
+              text = text.replace(old, new, 1)
+
+          once(
+              "        {step === 'discipline' ? (\n          <div className={styles.step}>",
+              "        {step === 'discipline' ? (\n          <div\n            className={`${styles.step} ${styles.disciplineStep}`}\n            data-testid=\"creation-discipline-workspace\"\n            data-creation-surface=\"moonstone\"\n          >",
+          )
+          once(
+              "                    data-selected={foundationDisciplineId === discipline.id}\n                  >",
+              "                    data-selected={foundationDisciplineId === discipline.id}\n                    data-testid=\"creation-discipline-choice\"\n                  >",
+          )
+          once(
+              "                    className={styles.attributeCard}\n                    key={attributeId}",
+              "                    className={styles.attributeCard}\n                    data-testid=\"creation-attribute-row\"\n                    key={attributeId}",
+          )
+          once(
+              "        {step === 'review' ? (\n          <div className={styles.step}>",
+              "        {step === 'review' ? (\n          <div\n            className={`${styles.step} ${styles.reviewStep}`}\n            data-testid=\"creation-confirm-workspace\"\n            data-creation-surface=\"moonstone\"\n          >",
+          )
+          once(
+              "              <div className={styles.reviewPortrait}>",
+              "              <div className={styles.reviewPortrait} data-testid=\"creation-confirm-portrait\">",
+          )
+          once(
+              "              <dl className={styles.reviewGrid}>",
+              "              <div className={styles.reviewSummary} data-testid=\"creation-confirm-summary\">\n                <div\n                  className={styles.reviewDisciplineMark}\n                  data-testid=\"creation-confirm-discipline-sigil\"\n                >\n                  <FoundationDisciplineSigil\n                    disciplineId={selectedDiscipline.id}\n                    className={styles.reviewDisciplineSigil}\n                  />\n                  <span>\n                    <small>Discipline</small>\n                    <strong>{selectedDiscipline.name}</strong>\n                  </span>\n                </div>\n                <dl className={styles.reviewGrid}>",
+          )
+          once(
+              "              </dl>\n            </div>\n            {errorMessage ? (",
+              "                </dl>\n              </div>\n            </div>\n            {errorMessage ? (",
+          )
+          path.write_text(text)
+          PY
+      - name: Append subject-specific styles
+        shell: bash
+        run: |
+          css='apps/web/src/components/character/character-creation-experience.module.css'
+          ! grep -q 'Subject reconciliation: exact Discipline and Confirm subjects.' "$css"
+          cat >> "$css" <<'CSS'
+
+          /* Subject reconciliation: exact Discipline and Confirm subjects. */
+          .disciplineStep,
+          .reviewStep {
+            padding: clamp(1rem, 2vw, 1.5rem);
+            border: 1px solid rgba(99, 78, 47, 0.28);
+            border-radius: 0.28rem;
+            color: #24211d;
+            background-color: #eee6d4;
+            background-image:
+              radial-gradient(circle at 12% 0%, rgba(255, 255, 255, 0.78), transparent 24rem),
+              linear-gradient(180deg, rgba(255, 252, 243, 0.68), rgba(231, 221, 199, 0.84));
+            box-shadow:
+              inset 0 0 0 1px rgba(255, 255, 255, 0.38),
+              0 1.25rem 3rem rgba(0, 0, 0, 0.22);
+          }
+
+          .disciplineStep h1,
+          .reviewStep h1,
+          .disciplineStep :is(legend, h2, strong),
+          .reviewStep :is(dt, dd, strong) {
+            color: #211f1b;
+          }
+
+          .disciplineStep .intro,
+          .reviewStep .intro,
+          .disciplineStep .optionCard small,
+          .disciplineStep .attributeHeader p,
+          .disciplineStep .attributeCard small,
+          .reviewStep dt {
+            color: #655f54;
+          }
+
+          .disciplineStep .disciplineGrid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.65rem;
+          }
+
+          .disciplineStep .optionCard {
+            min-height: 8.4rem;
+            border-color: rgba(105, 82, 46, 0.24);
+            color: #25221d;
+            background: rgba(255, 253, 247, 0.64);
+            box-shadow: inset 0 1px rgba(255, 255, 255, 0.66);
+          }
+
+          .disciplineStep .optionCard[data-selected='true'] {
+            border-color: rgba(111, 83, 35, 0.72);
+            background:
+              radial-gradient(circle at 50% 0%, rgba(196, 161, 90, 0.18), transparent 70%),
+              rgba(255, 252, 241, 0.92);
+            box-shadow:
+              inset 0 0 0 1px rgba(150, 112, 48, 0.24),
+              0 0.5rem 1.2rem rgba(78, 58, 30, 0.09);
+          }
+
+          .disciplineStep .disciplineSigil {
+            color: #7d6539;
+          }
+
+          .disciplineStep .attributeHeader {
+            padding-top: 0.9rem;
+            border-top: 1px solid rgba(97, 78, 49, 0.22);
+          }
+
+          .disciplineStep .attributeHeader > strong {
+            border-color: rgba(104, 82, 48, 0.28);
+            color: #5d4a2d;
+            background: rgba(255, 253, 247, 0.72);
+          }
+
+          .disciplineStep .attributeGrid {
+            grid-template-columns: 1fr;
+            gap: 0;
+            overflow: hidden;
+            border: 1px solid rgba(98, 78, 48, 0.2);
+            border-radius: 0.22rem;
+            background: rgba(255, 253, 247, 0.54);
+          }
+
+          .disciplineStep .attributeCard {
+            grid-template-columns: minmax(0, 1fr) auto;
+            min-height: 4.1rem;
+            gap: 1rem;
+            align-items: center;
+            padding: 0.72rem 0.85rem;
+            border: 0;
+            border-top: 1px solid rgba(98, 78, 48, 0.14);
+            border-radius: 0;
+            color: #29251f;
+            background: transparent;
+          }
+
+          .disciplineStep .attributeCard:first-child {
+            border-top: 0;
+          }
+
+          .disciplineStep .attributeCard > div:first-child {
+            grid-template-columns: minmax(7.5rem, 0.45fr) minmax(16rem, 1.3fr) minmax(13rem, 0.8fr);
+            gap: 0.8rem;
+            align-items: center;
+          }
+
+          .disciplineStep .attributeControl button {
+            border-color: rgba(95, 74, 42, 0.3);
+            color: #48391f;
+            background: rgba(255, 252, 244, 0.82);
+          }
+
+          .disciplineStep .attributeControl output {
+            color: #5d4827;
+          }
+
+          .reviewStep .reviewWorkspace {
+            grid-template-columns: minmax(12rem, 15rem) minmax(0, 1fr);
+            gap: clamp(1.2rem, 2.5vw, 2rem);
+            align-items: stretch;
+          }
+
+          .reviewStep .reviewPortrait {
+            min-height: 18rem;
+            overflow: hidden;
+            border: 1px solid rgba(96, 76, 46, 0.32);
+            border-radius: 0.22rem;
+            background: #15171a;
+            box-shadow: 0 0.8rem 1.7rem rgba(0, 0, 0, 0.16);
+          }
+
+          .reviewSummary {
+            display: grid;
+            gap: 0.85rem;
+            align-content: start;
+            min-width: 0;
+          }
+
+          .reviewDisciplineMark {
+            display: flex;
+            gap: 0.8rem;
+            align-items: center;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid rgba(96, 76, 46, 0.18);
+          }
+
+          .reviewDisciplineSigil {
+            width: 3.25rem;
+            height: 3.25rem;
+            flex: 0 0 auto;
+            color: #6e5730;
+          }
+
+          .reviewDisciplineMark > span {
+            display: grid;
+            gap: 0.18rem;
+          }
+
+          .reviewDisciplineMark small {
+            color: #776d5f;
+            font: 700 0.58rem/1 var(--av-font-mono);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+          }
+
+          .reviewDisciplineMark strong {
+            color: #28231c;
+            font: 500 1.25rem/1.1 var(--av-font-display);
+          }
+
+          .reviewStep .reviewGrid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0;
+            overflow: hidden;
+            border: 1px solid rgba(98, 78, 48, 0.18);
+            border-radius: 0.22rem;
+            background: rgba(255, 253, 247, 0.5);
+          }
+
+          .reviewStep .reviewGrid > div {
+            min-height: 3.25rem;
+            padding: 0.65rem 0.75rem;
+            border-top: 1px solid rgba(98, 78, 48, 0.12);
+            border-left: 1px solid rgba(98, 78, 48, 0.12);
+          }
+
+          .reviewStep .reviewGrid > div:nth-child(-n + 2) {
+            border-top: 0;
+          }
+
+          .reviewStep .reviewGrid > div:nth-child(odd) {
+            border-left: 0;
+          }
+
+          @media (max-width: 760px) {
+            .disciplineStep .disciplineGrid {
+              grid-template-columns: 1fr;
+            }
+
+            .disciplineStep .attributeCard > div:first-child {
+              grid-template-columns: 1fr;
+              gap: 0.25rem;
+            }
+
+            .reviewStep .reviewWorkspace {
+              grid-template-columns: 1fr;
+            }
+
+            .reviewStep .reviewPortrait {
+              width: min(100%, 16rem);
+              min-height: 0;
+              aspect-ratio: 1;
+              margin: 0 auto;
+            }
+
+            .reviewStep .reviewGrid {
+              grid-template-columns: 1fr;
+            }
+
+            .reviewStep .reviewGrid > div,
+            .reviewStep .reviewGrid > div:nth-child(-n + 2),
+            .reviewStep .reviewGrid > div:nth-child(odd) {
+              border-top: 1px solid rgba(98, 78, 48, 0.12);
+              border-left: 0;
+            }
+
+            .reviewStep .reviewGrid > div:first-child {
+              border-top: 0;
+            }
+          }
+          CSS
+          pnpm exec prettier --write \
+            apps/web/src/components/character/character-creation-experience.tsx \
+            apps/web/src/components/character/character-creation-experience.module.css
+      - name: Verify bounded diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          changed="$(git diff --name-only)"
+          printf '%s\n' "$changed"
+          test "$changed" = $'apps/web/src/components/character/character-creation-experience.module.css\napps/web/src/components/character/character-creation-experience.tsx'
+      - name: Commit correction
+        shell: bash
+        run: |
+          git config user.name 'Nicholas JM'
+          git config user.email '283436098+ZeiJM@users.noreply.github.com'
+          git add \
+            apps/web/src/components/character/character-creation-experience.tsx \
+            apps/web/src/components/character/character-creation-experience.module.css
+          git commit -m 'ui: reconcile Creation Discipline and Confirm subjects'
+          git push origin HEAD:agent/creation-subject-reconciliation
