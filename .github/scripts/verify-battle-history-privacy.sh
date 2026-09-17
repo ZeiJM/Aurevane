@@ -1,19 +1,29 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+expect_eq() {
+  local actual="$1"
+  local expected="$2"
+  local label="$3"
+  if [[ "$actual" != "$expected" ]]; then
+    printf '%s mismatch\nexpected: %q\nactual:   %q\n' "$label" "$expected" "$actual" >&2
+    exit 1
+  fi
+}
+
 db_container="$(docker ps --filter 'name=supabase_db_' --format '{{.Names}}' | head -n 1)"
 test -n "$db_container"
 
 history_rpc="$(docker exec "$db_container" psql -U postgres -d postgres -Atqc "
   select (to_regprocedure('public.get_battle_history_privacy_v1(uuid,uuid,bigint[])') is not null)::text;")"
-test "$history_rpc" = 'true'
+expect_eq "$history_rpc" 'true' 'history RPC existence'
 
 history_privileges="$(docker exec "$db_container" psql -U postgres -d postgres -Atqc "
   select
     has_function_privilege('anon','public.get_battle_history_privacy_v1(uuid,uuid,bigint[])','EXECUTE')::text || '|' ||
     has_function_privilege('authenticated','public.get_battle_history_privacy_v1(uuid,uuid,bigint[])','EXECUTE')::text || '|' ||
     has_function_privilege('service_role','public.get_battle_history_privacy_v1(uuid,uuid,bigint[])','EXECUTE')::text;")"
-test "$history_privileges" = 'false|false|true'
+expect_eq "$history_privileges" 'false|false|true' 'history RPC privileges'
 
 # The existing CSR-0 regression created one committed version with a journal and deliberately
 # left version 1 without a row. CSR-3 must return only the requested private row while deriving
@@ -31,7 +41,7 @@ test -n "$participant_session"
 test -n "$participant_user"
 test -n "$participant_combatant"
 
-participant_authority="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -AtF '|' -c "
+participant_authority="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -AtqF '|' -c "
   set role service_role;
   select
     viewer_kind,
@@ -43,7 +53,7 @@ participant_authority="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U 
     '$participant_session'::uuid,
     array[1, 2]::bigint[]
   );")"
-test "$participant_authority" = "participant|$participant_combatant|1|2"
+expect_eq "$participant_authority" "participant|$participant_combatant|1|2" 'participant history authority'
 
 # Browser roles never receive direct access to private history provenance.
 if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
@@ -75,7 +85,7 @@ IFS='|' read -r spectator_user spectator_session <<< "$spectator_row"
 test -n "$spectator_user"
 test -n "$spectator_session"
 
-spectator_authority="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -AtF '|' -c "
+spectator_authority="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -AtqF '|' -c "
   set role service_role;
   select viewer_kind, cardinality(controlled_combatant_ids)::text
   from public.get_battle_history_privacy_v1(
@@ -83,7 +93,7 @@ spectator_authority="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U po
     '$spectator_session'::uuid,
     array[1]::bigint[]
   );")"
-test "$spectator_authority" = 'spectator|0'
+expect_eq "$spectator_authority" 'spectator|0' 'spectator history authority'
 
 docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   set role service_role;
@@ -100,6 +110,6 @@ participant_result_shape="$(docker exec "$db_container" psql -U postgres -d post
   select pg_get_function_result(
     'public.get_battle_events_v3(uuid,uuid,integer,bigint,integer)'::regprocedure
   );")"
-test "$participant_result_shape" = 'TABLE(battle_version bigint, event_index integer, event jsonb, created_at timestamp with time zone)'
+expect_eq "$participant_result_shape" 'TABLE(battle_version bigint, event_index integer, event jsonb, created_at timestamp with time zone)' 'public event RPC shape'
 
 echo 'CSR-3 battle history privacy authority checks passed.'
