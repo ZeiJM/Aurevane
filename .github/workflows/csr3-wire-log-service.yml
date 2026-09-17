@@ -45,3 +45,5 @@ jobs:
           git diff --cached --check
           git commit -m 'feat(combat): project CSR-3 battle logs by viewer'
           git push origin HEAD:agent/combat-csr3-historical-privacy-20260917
+
+# rerun after typed authority fixture
