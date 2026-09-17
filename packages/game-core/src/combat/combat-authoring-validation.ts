@@ -10,6 +10,7 @@ import {
 } from './combat-dots'
 import { validateCombatEffectCategory } from './combat-effect-categories'
 import { validateCombatAccuracyStatusDefinition } from './combat-accuracy-status'
+import { validateCsrActionDefinition } from './covert-sensory-revealed'
 import type {
   CombatActionDefinition,
   CombatContentCatalog,
@@ -28,6 +29,7 @@ export function validateCombatActionDefinition(
 ): void {
   validateCombatStatusCopyAction(action)
   validateVengeanceActionDefinition(action)
+  validateCsrActionDefinition(action)
   validateGameplayActionMetadata(action)
   requiredIdentity(action.id, 'action id')
   positiveSafeInteger(action.version, 'action version')
@@ -122,6 +124,7 @@ export function validateCombatActionDefinition(
         'burn',
         'barrier-change',
         'copy-statuses',
+        'sensory',
       ],
       'effect type',
     )
@@ -131,6 +134,7 @@ export function validateCombatActionDefinition(
     if (effect.type === 'displace' && content) statusById(content, 'displaced')
 
     knownString(effect.recipient, ['actor', 'primary-unit', 'affected-units'], 'effect recipient')
+    if (effect.type === 'sensory') continue
 
     if (effect.type === 'damage' || effect.type === 'healing') {
       nonNegativeSafeInteger(effect.amount, `${effect.type} amount`)
