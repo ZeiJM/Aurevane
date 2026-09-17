@@ -18,13 +18,12 @@ create table app_private.combat_content_drafts (
   content_key text primary key check (char_length(content_key) between 3 and 160),
   content_kind text not null check (content_kind in ('skill','status','effect-profile')),
   definition jsonb not null check (jsonb_typeof(definition) = 'object'),
+  -- Before the first DB publication this may point at the immutable static fallback
+  -- version shipped with the server, so it intentionally is not a DB foreign key.
   base_version integer check (base_version is null or base_version > 0),
   draft_version bigint not null default 1 check (draft_version > 0),
   updated_by uuid not null references auth.users(id),
-  updated_at timestamptz not null default clock_timestamp(),
-  foreign key (content_key, base_version)
-    references app_private.combat_content_versions(content_key, content_version)
-    on update restrict on delete restrict
+  updated_at timestamptz not null default clock_timestamp()
 );
 
 create table app_private.combat_content_publications (
@@ -75,7 +74,7 @@ before update or delete on app_private.combat_content_versions
 for each row execute function app_private.prevent_combat_content_version_mutation_v1();
 
 comment on table app_private.combat_content_drafts is
-  'Mutable server-only Master Panel combat drafts with optimistic draft_version concurrency.';
+  'Mutable server-only Master Panel combat drafts with optimistic draft_version concurrency; base_version may initially reference the server static fallback lineage.';
 comment on table app_private.combat_content_versions is
   'Immutable published combat-content definitions. Historical rows are never updated or deleted.';
 comment on table app_private.combat_content_publications is
