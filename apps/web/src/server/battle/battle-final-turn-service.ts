@@ -214,6 +214,8 @@ export function createBattleFinalTurnService(
           expectedBattleVersion: command.expectedBattleVersion,
           nextSnapshot: current.snapshot,
           events: [],
+
+          privacyJournal: null,
         })
         return {
           battleSessionId: replayOrStale.result.battleSessionId,
@@ -248,6 +250,8 @@ export function createBattleFinalTurnService(
         expectedBattleVersion: command.expectedBattleVersion,
         nextSnapshot: nextState,
         events: resolved.events,
+
+        privacyJournal: null,
       })
 
       return {
