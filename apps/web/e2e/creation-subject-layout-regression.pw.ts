@@ -2,7 +2,9 @@ import { expect, test } from '@playwright/test'
 
 import { createVerifiedAccountAndSignIn } from './pv1f-test-helpers'
 
-async function reachDiscipline(page: Parameters<typeof createVerifiedAccountAndSignIn>[0]['page']) {
+async function reachDiscipline(
+  page: Parameters<typeof createVerifiedAccountAndSignIn>[0]['page'],
+) {
   const suffix = String(Date.now())
     .split('')
     .map((digit) => String.fromCharCode(65 + Number(digit)))
