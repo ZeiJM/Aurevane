@@ -17,6 +17,17 @@ function serviceMock(): CombatContentAuthoringService {
     requireOperator: vi.fn(async () => 'owner'),
     validateSkillDefinition: vi.fn(() => ({ valid: true, issues: [], derivedTags: [] })),
     diffSkillDefinitions: vi.fn(() => ({ changedPaths: [] })),
+    loadSkillAuthoringState: vi.fn(async () => ({
+      skillId: 'vanguard.forceful-strike',
+      currentSource: 'static',
+      baseVersion: 2,
+      currentDefinition: { id: 'vanguard.forceful-strike', contentVersion: 2 } as never,
+      draft: null,
+      publishedVersions: [],
+      validation: { valid: true, issues: [], derivedTags: ['Enemy', 'Single', 'Dmg'] },
+      diff: { changedPaths: [] },
+      draftIsStale: false,
+    })),
     saveSkillDraft: vi.fn(async () => ({
       contentKey: 'vanguard.forceful-strike',
       contentKind: 'skill',
@@ -86,6 +97,29 @@ describe('combat content authoring handler', () => {
     expect(response.status).toBe(200)
     await expect(response.json()).resolves.toEqual({
       validation: { valid: true, issues: [], derivedTags: ['Enemy', 'Single', 'Dmg'] },
+    })
+  })
+
+  it('loads authoritative Skill authoring state through the protected handler', async () => {
+    const service = serviceMock()
+
+    const response = await handleCombatContentAuthoringRequest(
+      post({ operation: 'load', skillId: 'vanguard.forceful-strike' }),
+      dependencies(service),
+    )
+
+    expect(response.status).toBe(200)
+    await expect(response.json()).resolves.toMatchObject({
+      state: {
+        skillId: 'vanguard.forceful-strike',
+        currentSource: 'static',
+        baseVersion: 2,
+        draftIsStale: false,
+      },
+    })
+    expect(service.loadSkillAuthoringState).toHaveBeenCalledWith({
+      actorUserId: ACTOR,
+      skillId: 'vanguard.forceful-strike',
     })
   })
 
