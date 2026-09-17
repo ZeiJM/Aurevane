@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import type { BattleActionPreview as ActionPreview } from '@/server/battle/battle-preview-service'
 import { BattleActionPreview } from './battle-action-preview'
+import { previewChips } from './battle-preview-content'
 import type { BattleSkillForecastPresentation } from './battle-runtime'
 
 const barrier: BattleSkillForecastPresentation = {
@@ -161,36 +162,45 @@ describe('current selection forecast', () => {
     }
   })
 
-  it('keeps copied status, damage, healing and resource projections together in forecast details', () => {
+  it('keeps the compact forecast bounded while preserving every mixed projection for Forecast details', () => {
+    const mixedPreview: ActionPreview = {
+      ...attack,
+      actionId: 'test.copy-statuses.mixed',
+      hitChanceBasisPoints: null,
+      defenseKind: null,
+      defenseRating: null,
+      mitigatedBaseDamage: null,
+      projectedEffects: [
+        {
+          effectType: 'copy-statuses',
+          combatantId: 'you',
+          before: 'none',
+          after: 'status.inspired:1:2',
+        },
+        { effectType: 'damage', combatantId: 'enemy', before: 40, after: 33 },
+        { effectType: 'healing', combatantId: 'you', before: 20, after: 25 },
+        { effectType: 'resource-change', combatantId: 'you', before: 4, after: 6 },
+      ],
+    }
     const markup = renderToStaticMarkup(
-      <BattleActionPreview
-        preview={{
-          ...attack,
-          actionId: 'test.copy-statuses.mixed',
-          hitChanceBasisPoints: null,
-          defenseKind: null,
-          defenseRating: null,
-          mitigatedBaseDamage: null,
-          projectedEffects: [
-            {
-              effectType: 'copy-statuses',
-              combatantId: 'you',
-              before: 'none',
-              after: 'status.inspired:1:2',
-            },
-            { effectType: 'damage', combatantId: 'enemy', before: 40, after: 33 },
-            { effectType: 'healing', combatantId: 'you', before: 20, after: 25 },
-            { effectType: 'resource-change', combatantId: 'you', before: 4, after: 6 },
-          ],
-        }}
-        pending={false}
-      />,
+      <BattleActionPreview preview={mixedPreview} pending={false} />,
     )
 
-    for (const label of ['Copied Inspire · 1 stack · 2 turns', '7 dmg', 'Heal +5', 'Resource +2']) {
+    for (const label of ['Copied Inspire · 1 stack · 2 turns', '7 dmg', 'Heal +5']) {
       expect(markup).toContain(label)
     }
+    expect(markup).toContain('aria-label="Forecast details"')
     expect(markup).not.toContain('status.inspired:1:2')
+
+    const detailLabels = previewChips(mixedPreview).map((chip) => chip.label)
+    for (const label of [
+      'Copied Inspire · 1 stack · 2 turns',
+      '7 dmg',
+      'Heal +5',
+      'Resource +2',
+    ]) {
+      expect(detailLabels).toContain(label)
+    }
   })
 
   it('replaces a previous projection while a new target is pending', () => {
