@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react'
 
 import styles from './combat-content-editor.module.css'
 import { SkillEconomyEditor, type SkillEconomyDraft } from './skill-economy-editor'
+import { SkillEffectListEditor } from './skill-effect-list-editor'
 import { SkillTargetingEditor } from './skill-targeting-editor'
 
 export interface CombatContentEditorSkillOption {
@@ -182,6 +183,10 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
               onChange={(economy: SkillEconomyDraft) =>
                 updateSelectedDraft({ ...selectedDraft, ...economy })
               }
+            />
+            <SkillEffectListEditor
+              value={selectedDraft.effects}
+              onChange={(effects) => updateSelectedDraft({ ...selectedDraft, effects })}
             />
           </div>
         ) : (
