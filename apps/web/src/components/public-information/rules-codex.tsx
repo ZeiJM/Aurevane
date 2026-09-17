@@ -82,7 +82,7 @@ export function RulesCodex() {
             >
               <header className={styles.ruleHeader}>
                 <span className={styles.ruleNumber} aria-hidden="true">
-                  {String(index + 1).padStart(2, '0')}
+                  <span>{String(index + 1).padStart(2, '0')}</span>
                 </span>
                 <div>
                   <h2>{section.title}</h2>
