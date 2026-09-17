@@ -22,7 +22,10 @@ const OWNER = '11111111-1111-4111-8111-111111111111'
 const STAFF = '22222222-2222-4222-8222-222222222222'
 const OUTSIDER = '33333333-3333-4333-8333-333333333333'
 
-function staticSkill(skillId = 'vanguard.forceful-strike', version?: number): MatureSkillDefinition {
+function staticSkill(
+  skillId = 'vanguard.forceful-strike',
+  version?: number,
+): MatureSkillDefinition {
   const definition = resolveMatureSkillVersion(skillId, version)
   if (!definition) throw new Error(`Missing static Skill ${skillId}@${String(version)}.`)
   return structuredClone(definition)
@@ -55,7 +58,8 @@ function resolverFor(store: MemoryAuthoringStore): CombatContentResolver {
   return {
     async resolveCurrentSkillDefinition(skillId) {
       const published = await store.findPublished(skillId)
-      if (published) return structuredClone(published.definition) as unknown as MatureSkillDefinition
+      if (published)
+        return structuredClone(published.definition) as unknown as MatureSkillDefinition
       const fallback = resolveMatureSkillVersion(skillId)
       return fallback ? structuredClone(fallback) : null
     },
@@ -63,7 +67,8 @@ function resolverFor(store: MemoryAuthoringStore): CombatContentResolver {
       const published = (await store.listPublishedVersions(skillId)).find(
         (candidate) => candidate.contentVersion === version,
       )
-      if (published) return structuredClone(published.definition) as unknown as MatureSkillDefinition
+      if (published)
+        return structuredClone(published.definition) as unknown as MatureSkillDefinition
       const fallback = resolveMatureSkillVersion(skillId, version)
       return fallback ? structuredClone(fallback) : null
     },
@@ -126,50 +131,81 @@ describe('combat content authoring service', () => {
   })
 
   it.each([
-    ['impossible target range', (value: Record<string, unknown>) => {
-      value.target = { ...(value.target as Record<string, unknown>), maximumRange: -1 }
-    }],
-    ['invalid Push/Pull distance', (value: Record<string, unknown>) => {
-      value.effects = [{ type: 'displace', recipient: 'primary-unit', direction: 'push', distance: 0 }]
-    }],
-    ['recovery tick overflow', (value: Record<string, unknown>) => {
-      value.effects = [{ type: 'healing', recipient: 'primary-unit', amount: 3, ticks: 5 }]
-    }],
-    ['Bleed budget overflow', (value: Record<string, unknown>) => {
-      value.effects = [{ type: 'bleed', recipient: 'primary-unit', damagePerTick: 6, ticks: 2 }]
-    }],
-    ['invalid Sensory routing', (value: Record<string, unknown>) => {
-      value.effects = [{ type: 'sensory', recipient: 'actor', revealedDurationOwnerTurnStarts: 2 }]
-    }],
-    ['invalid Copy targeting', (value: Record<string, unknown>) => {
-      value.target = {
-        kind: 'self',
-        teamPolicy: 'self',
-        shape: { kind: 'single' },
-        minimumRange: 0,
-        maximumRange: 0,
-        requiresLineOfSight: false,
-        maximumElevationDifference: null,
-        friendlyFire: 'allies-only',
-      }
-      value.effects = [{ type: 'copy-statuses', recipient: 'primary-unit', mode: 'amplify' }]
-    }],
-    ['uncapped Vengeance', (value: Record<string, unknown>) => {
-      value.effects = [
-        {
-          type: 'damage',
-          recipient: 'primary-unit',
-          amount: 0,
-          vengeance: { conversionBasisPoints: 5000 },
-        },
-      ]
-    }],
-    ['unknown effect type', (value: Record<string, unknown>) => {
-      value.effects = [{ type: 'teleport-everyone', recipient: 'primary-unit' }]
-    }],
-    ['manual presentation tags', (value: Record<string, unknown>) => {
-      value.presentationTags = ['Enemy', 'Single', 'Dmg']
-    }],
+    [
+      'impossible target range',
+      (value: Record<string, unknown>) => {
+        value.target = { ...(value.target as Record<string, unknown>), maximumRange: -1 }
+      },
+    ],
+    [
+      'invalid Push/Pull distance',
+      (value: Record<string, unknown>) => {
+        value.effects = [
+          { type: 'displace', recipient: 'primary-unit', direction: 'push', distance: 0 },
+        ]
+      },
+    ],
+    [
+      'recovery tick overflow',
+      (value: Record<string, unknown>) => {
+        value.effects = [{ type: 'healing', recipient: 'primary-unit', amount: 3, ticks: 5 }]
+      },
+    ],
+    [
+      'Bleed budget overflow',
+      (value: Record<string, unknown>) => {
+        value.effects = [{ type: 'bleed', recipient: 'primary-unit', damagePerTick: 6, ticks: 2 }]
+      },
+    ],
+    [
+      'invalid Sensory routing',
+      (value: Record<string, unknown>) => {
+        value.effects = [
+          { type: 'sensory', recipient: 'actor', revealedDurationOwnerTurnStarts: 2 },
+        ]
+      },
+    ],
+    [
+      'invalid Copy targeting',
+      (value: Record<string, unknown>) => {
+        value.target = {
+          kind: 'self',
+          teamPolicy: 'self',
+          shape: { kind: 'single' },
+          minimumRange: 0,
+          maximumRange: 0,
+          requiresLineOfSight: false,
+          maximumElevationDifference: null,
+          friendlyFire: 'allies-only',
+        }
+        value.effects = [{ type: 'copy-statuses', recipient: 'primary-unit', mode: 'amplify' }]
+      },
+    ],
+    [
+      'uncapped Vengeance',
+      (value: Record<string, unknown>) => {
+        value.effects = [
+          {
+            type: 'damage',
+            recipient: 'primary-unit',
+            amount: 0,
+            vengeance: { conversionBasisPoints: 5000 },
+          },
+        ]
+      },
+    ],
+    [
+      'unknown effect type',
+      (value: Record<string, unknown>) => {
+        value.effects = [{ type: 'teleport-everyone', recipient: 'primary-unit' }]
+      },
+    ],
+    [
+      'manual presentation tags',
+      (value: Record<string, unknown>) => {
+        value.presentationTags = ['Enemy', 'Single', 'Dmg']
+      },
+    ],
   ] as const)('rejects %s through the canonical validation boundary', (_label, mutate) => {
     const { service } = serviceFixture()
     const result = service.validateSkillDefinition(invalidVariant(mutate))

@@ -29,10 +29,7 @@ describe('Master Panel Skill effect editor', () => {
     ],
     ['return-to-turn-start', { type: 'return-to-turn-start', recipient: 'actor' }],
     ['create-terrain', { type: 'create-terrain', recipient: 'affected-tiles', terrain: 'frozen' }],
-    [
-      'displace',
-      { type: 'displace', recipient: 'primary-unit', direction: 'pull', distance: 2 },
-    ],
+    ['displace', { type: 'displace', recipient: 'primary-unit', direction: 'pull', distance: 2 }],
     ['poison', { type: 'poison', recipient: 'primary-unit', curseCopyable: true }],
     [
       'bleed',
@@ -46,14 +43,8 @@ describe('Master Panel Skill effect editor', () => {
     ],
     ['burn', { type: 'burn', recipient: 'primary-unit', curseCopyable: true }],
     ['barrier-change', { type: 'barrier-change', recipient: 'actor', amount: 10 }],
-    [
-      'copy-statuses',
-      { type: 'copy-statuses', recipient: 'primary-unit', mode: 'curse' },
-    ],
-    [
-      'sensory',
-      { type: 'sensory', recipient: 'primary-unit', revealedDurationOwnerTurnStarts: 3 },
-    ],
+    ['copy-statuses', { type: 'copy-statuses', recipient: 'primary-unit', mode: 'curse' }],
+    ['sensory', { type: 'sensory', recipient: 'primary-unit', revealedDurationOwnerTurnStarts: 3 }],
   ] satisfies readonly [CombatEffectDefinition['type'], CombatEffectDefinition][])(
     'has an explicit %s editor branch',
     (type, effect) => {

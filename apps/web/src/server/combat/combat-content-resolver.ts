@@ -189,16 +189,15 @@ export function createCombatContentResolver(
   }
 }
 
-export function deriveSkillPresentationTags(
-  definition: MatureSkillDefinition,
-): readonly string[] {
+export function deriveSkillPresentationTags(definition: MatureSkillDefinition): readonly string[] {
   return combatActionPresentationTags(toCombatActionDefinition(definition, 'pve'))
 }
 
 export function createServerCombatContentResolver(): CombatContentResolver {
   const client = createSupabaseAdminClient()
-  const source = new RpcPublishedCombatContentSource((functionName, parameters) =>
-    client.rpc(functionName, parameters) as unknown as PromiseLike<RpcResult>,
+  const source = new RpcPublishedCombatContentSource(
+    (functionName, parameters) =>
+      client.rpc(functionName, parameters) as unknown as PromiseLike<RpcResult>,
   )
   return createCombatContentResolver(source)
 }

@@ -14,9 +14,7 @@ function rpcResult(data: unknown, error: { code?: string; message?: string } | n
 
 describe('RpcCombatContentAuthoringStore', () => {
   it('reads the explicit enabled operator role', async () => {
-    const rpc = vi.fn(() =>
-      rpcResult([{ user_id: ACTOR, role: 'owner', enabled: true }]),
-    )
+    const rpc = vi.fn(() => rpcResult([{ user_id: ACTOR, role: 'owner', enabled: true }]))
     const store = new RpcCombatContentAuthoringStore(rpc, ACTOR)
 
     await expect(store.getOperatorRole(ACTOR)).resolves.toBe('owner')

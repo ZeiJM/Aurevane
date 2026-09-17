@@ -76,7 +76,10 @@ function parseDraftRow(data: unknown): CombatContentDraftRecord | null {
     !requiredString(row.updated_by) ||
     !requiredString(row.updated_at)
   ) {
-    throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'The server returned an invalid combat draft.')
+    throw new AurevaneError(
+      'PERSISTENCE_UNAVAILABLE',
+      'The server returned an invalid combat draft.',
+    )
   }
   return {
     contentKey: row.content_key,
@@ -267,9 +270,7 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
     return parseSingleVersion(data)
   }
 
-  async listPublishedVersions(
-    contentKey: string,
-  ): Promise<readonly CombatContentVersionRecord[]> {
+  async listPublishedVersions(contentKey: string): Promise<readonly CombatContentVersionRecord[]> {
     const { data, error } = await this.#rpc('list_combat_content_versions_v1', {
       p_actor_user_id: this.#actorUserId,
       p_content_key: contentKey,

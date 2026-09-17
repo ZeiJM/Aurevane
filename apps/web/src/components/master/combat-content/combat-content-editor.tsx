@@ -76,7 +76,9 @@ function versionLabel(prefix: 'v' | 'd', version: number | null): string {
   return version === null ? 'None' : `${prefix}${version}`
 }
 
-function fallbackHistory(skill: CombatContentEditorSkillOption): readonly CombatContentVersionHistoryEntry[] {
+function fallbackHistory(
+  skill: CombatContentEditorSkillOption,
+): readonly CombatContentVersionHistoryEntry[] {
   return [
     {
       contentVersion: skill.currentVersion,
@@ -130,7 +132,9 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
   )
   const selectedSkill =
     disciplineSkills.find((skill) => skill.id === skillId) ?? disciplineSkills[0] ?? null
-  const selectedDraft = selectedSkill ? (drafts[selectedSkill.id] ?? selectedSkill.definition) : null
+  const selectedDraft = selectedSkill
+    ? (drafts[selectedSkill.id] ?? selectedSkill.definition)
+    : null
   const selectedReview = selectedSkill
     ? (reviews[selectedSkill.id] ?? emptyCombatContentReview())
     : emptyCombatContentReview()

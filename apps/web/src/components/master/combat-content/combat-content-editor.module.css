@@ -6,8 +6,7 @@
   border: 1px solid var(--av-border-strong);
   border-radius: var(--av-radius-lg);
   background:
-    linear-gradient(180deg, rgba(20, 25, 35, 0.96), rgba(8, 11, 16, 0.98)),
-    var(--av-ink-900);
+    linear-gradient(180deg, rgba(20, 25, 35, 0.96), rgba(8, 11, 16, 0.98)), var(--av-ink-900);
   box-shadow: var(--av-shadow-deep);
 }
 
@@ -299,7 +298,6 @@
   gap: var(--av-space-4);
 }
 
-
 .effectList {
   display: grid;
   gap: var(--av-space-4);
@@ -425,7 +423,6 @@
     justify-content: start;
   }
 }
-
 
 .reviewPanel {
   display: grid;

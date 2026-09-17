@@ -166,7 +166,7 @@ export class InMemoryCombatContentRepository implements CombatContentRepository 
     const versions = this.#versions.get(input.contentKey) ?? []
     const publication = this.#publications.get(input.contentKey)
     const current = publication
-      ? versions.find((version) => version.id === publication.versionId) ?? null
+      ? (versions.find((version) => version.id === publication.versionId) ?? null)
       : null
 
     if (publication && !current) {

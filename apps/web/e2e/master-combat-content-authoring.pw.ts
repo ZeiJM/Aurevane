@@ -40,11 +40,7 @@ function pinnedSkillVersion(payload: unknown, skillId: string): number {
   for (const combatant of authority.combatants) {
     if (!isRecord(combatant) || !Array.isArray(combatant.disciplineSkills)) continue
     for (const skill of combatant.disciplineSkills) {
-      if (
-        isRecord(skill) &&
-        skill.skillId === skillId &&
-        positiveInteger(skill.contentVersion)
-      ) {
+      if (isRecord(skill) && skill.skillId === skillId && positiveInteger(skill.contentVersion)) {
         return skill.contentVersion
       }
     }
@@ -67,7 +63,8 @@ function publishedVersion(payload: unknown): number {
 function currentVersionFromText(value: string | null): number {
   const match = value?.match(/Current version\s*v(\d+)/)
   const version = match ? Number(match[1]) : Number.NaN
-  if (!positiveInteger(version)) throw new TypeError('Master Panel did not render a current version.')
+  if (!positiveInteger(version))
+    throw new TypeError('Master Panel did not render a current version.')
   return version
 }
 
@@ -195,8 +192,7 @@ async function equipAuthoringSkill(page: Page): Promise<void> {
 
 function isBattleCreateResponse(response: Response): boolean {
   return (
-    response.request().method() === 'POST' &&
-    new URL(response.url()).pathname === '/api/battles'
+    response.request().method() === 'POST' && new URL(response.url()).pathname === '/api/battles'
   )
 }
 
@@ -280,9 +276,7 @@ async function runMasterOperation(
   operation: string,
   buttonName: string,
 ): Promise<unknown> {
-  const pending = page.waitForResponse((response) =>
-    isMasterOperationResponse(response, operation),
-  )
+  const pending = page.waitForResponse((response) => isMasterOperationResponse(response, operation))
   await page.getByRole('button', { name: buttonName, exact: true }).click()
   const response = await pending
   expect(response.status()).toBe(200)

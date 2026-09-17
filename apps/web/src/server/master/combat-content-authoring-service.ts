@@ -235,7 +235,10 @@ async function authorizeOperator(
 ): Promise<MasterPanelOperatorRole> {
   const role = await store.getOperatorRole(actorUserId)
   if (role !== 'owner' && role !== 'content-staff') {
-    throw new AurevaneError('FORBIDDEN', 'Master Panel combat authoring is not available to this account.')
+    throw new AurevaneError(
+      'FORBIDDEN',
+      'Master Panel combat authoring is not available to this account.',
+    )
   }
   return role
 }
@@ -336,7 +339,10 @@ export function createCombatContentAuthoringService({
 
       const target = await resolver.resolvePinnedSkillDefinition(input.skillId, input.targetVersion)
       if (!target || target.id !== input.skillId || !target.enabled) {
-        throw new AurevaneError('INVALID_REQUEST', 'That rollback target is not an enabled Skill version.')
+        throw new AurevaneError(
+          'INVALID_REQUEST',
+          'That rollback target is not an enabled Skill version.',
+        )
       }
 
       const stored = (await store.listPublishedVersions(input.skillId)).some(

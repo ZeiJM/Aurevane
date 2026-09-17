@@ -17,7 +17,9 @@ describe('Master Panel combat authoring migration', () => {
     expect(sql).toContain('create table app_private.master_panel_operators')
     expect(sql).toContain("role in ('owner','content-staff')")
     expect(sql).toContain('enabled boolean not null default true')
-    expect(sql).toContain('alter table app_private.master_panel_operators enable row level security')
+    expect(sql).toContain(
+      'alter table app_private.master_panel_operators enable row level security',
+    )
     expect(sql).toContain('from public, anon, authenticated')
   })
 
@@ -61,7 +63,9 @@ describe('Master Panel combat authoring migration', () => {
     const sql = readFileSync(migrationPath, 'utf8')
 
     expect(sql).toContain('app_private.assert_master_panel_operator_v1')
-    expect(sql.match(/perform app_private\.assert_master_panel_operator_v1\(p_actor_user_id\)/gi)?.length)
-      .toBeGreaterThanOrEqual(3)
+    expect(
+      sql.match(/perform app_private\.assert_master_panel_operator_v1\(p_actor_user_id\)/gi)
+        ?.length,
+    ).toBeGreaterThanOrEqual(3)
   })
 })

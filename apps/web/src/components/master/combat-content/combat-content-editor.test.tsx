@@ -2,10 +2,7 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 
-import {
-  CombatContentEditor,
-  type CombatContentEditorSkillOption,
-} from './combat-content-editor'
+import { CombatContentEditor, type CombatContentEditorSkillOption } from './combat-content-editor'
 
 const skills: readonly CombatContentEditorSkillOption[] = [
   {

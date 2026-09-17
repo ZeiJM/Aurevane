@@ -5,10 +5,7 @@ import {
   type CombatTargetSelection,
 } from '@aurevane/game-core/combat/actions'
 import { createPendingBattle, startBattle } from '@aurevane/game-core/combat/battle-state'
-import {
-  createTacticalBattleState,
-  type GridPosition,
-} from '@aurevane/game-core/combat/board'
+import { createTacticalBattleState, type GridPosition } from '@aurevane/game-core/combat/board'
 import { normalizeCombatEffectState } from '@aurevane/game-core/combat/combat-effect-state'
 import { combatActionPresentationTags } from '@aurevane/game-core/combat/gameplay-tags'
 import {
@@ -331,7 +328,9 @@ export function previewCombatContentDefinition(
             },
           ]),
     ],
-    derivedTags: [...combatActionPresentationTags(toCombatActionDefinition(definition, combatContext))],
+    derivedTags: [
+      ...combatActionPresentationTags(toCombatActionDefinition(definition, combatContext)),
+    ],
     simulation: {
       seed,
       actorCombatantId: ACTOR_ID,
@@ -359,7 +358,9 @@ export function previewCombatContentDefinition(
       terrain: evaluated.evaluation.projectedTerrain.map((terrain) => structuredClone(terrain)),
       events: evaluated.evaluation.projectedEvents.map((event) => structuredClone(event)),
     },
-    vengeanceBasis: (evaluated.evaluation.vengeanceBasis ?? []).map((basis) => structuredClone(basis)),
+    vengeanceBasis: (evaluated.evaluation.vengeanceBasis ?? []).map((basis) =>
+      structuredClone(basis),
+    ),
     conditionalEffects: sensoryConditions(definition),
     repeatPenaltyApplied: evaluated.repeatPenaltyApplied,
   }

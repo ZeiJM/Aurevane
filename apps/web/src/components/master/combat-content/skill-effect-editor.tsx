@@ -46,10 +46,7 @@ function recipientField(
   )
 }
 
-function curseCopyableField(
-  value: boolean | undefined,
-  onChange: (next: boolean) => void,
-) {
+function curseCopyableField(value: boolean | undefined, onChange: (next: boolean) => void) {
   return (
     <label className={styles.checkField}>
       <input
@@ -97,11 +94,7 @@ function damageEditor(value: DamageEffect, onChange: (next: CombatEffectDefiniti
           onChange={(event) => {
             const defenseKind = event.currentTarget.value
             const { defenseKind: _discard, ...rest } = value
-            onChange(
-              defenseKind
-                ? { ...rest, defenseKind: defenseKind as 'armor' | 'ward' }
-                : rest,
-            )
+            onChange(defenseKind ? { ...rest, defenseKind: defenseKind as 'armor' | 'ward' } : rest)
           }}
         >
           <option value="">None</option>
@@ -271,10 +264,7 @@ function damageEditor(value: DamageEffect, onChange: (next: CombatEffectDefiniti
                   ...value,
                   vengeance: {
                     ...vengeance,
-                    minimumDamage: integer(
-                      event.currentTarget.value,
-                      vengeance.minimumDamage ?? 0,
-                    ),
+                    minimumDamage: integer(event.currentTarget.value, vengeance.minimumDamage ?? 0),
                   },
                 })
               }}
@@ -581,11 +571,7 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
               onChange={(event) => {
                 const direction = event.currentTarget.value
                 const { direction: _discard, ...rest } = value
-                onChange(
-                  direction
-                    ? { ...rest, direction: direction as 'push' | 'pull' }
-                    : rest,
-                )
+                onChange(direction ? { ...rest, direction: direction as 'push' | 'pull' } : rest)
               }}
             >
               <option value="">Engine default</option>
@@ -664,7 +650,9 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
                 onChange({ ...value, ticks: integer(event.currentTarget.value, value.ticks) })
               }
             />
-            <small className={styles.fieldHint}>Per-stack raw total may not exceed 10 damage.</small>
+            <small className={styles.fieldHint}>
+              Per-stack raw total may not exceed 10 damage.
+            </small>
           </label>
           {curseCopyableField(value.curseCopyable, (curseCopyable) =>
             onChange({ ...value, curseCopyable }),

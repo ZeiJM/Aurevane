@@ -112,10 +112,7 @@ export function SkillTargetingEditor({ value, onChange }: SkillTargetingEditorPr
             onChange={(event) =>
               onChange({
                 ...value,
-                shape: shapeForKind(
-                  event.currentTarget.value as CombatTargetShape['kind'],
-                  shape,
-                ),
+                shape: shapeForKind(event.currentTarget.value as CombatTargetShape['kind'], shape),
               })
             }
           >
@@ -215,10 +212,7 @@ export function SkillTargetingEditor({ value, onChange }: SkillTargetingEditorPr
                 maximumElevationDifference:
                   event.currentTarget.value === ''
                     ? null
-                    : integer(
-                        event.currentTarget.value,
-                        value.maximumElevationDifference ?? 0,
-                      ),
+                    : integer(event.currentTarget.value, value.maximumElevationDifference ?? 0),
               })
             }
           />

@@ -5,9 +5,7 @@ import { AurevaneError } from '@aurevane/game-core/errors'
 import { getAuthenticatedActor } from '@/server/auth/actor'
 import { toServerErrorResponse } from '@/server/http/error-response'
 
-import {
-  createServerCombatContentAuthoringService,
-} from './combat-content-authoring-server'
+import { createServerCombatContentAuthoringService } from './combat-content-authoring-server'
 import type { CombatContentAuthoringService } from './combat-content-authoring-service'
 
 export interface CombatContentAuthoringHandlerDependencies {
@@ -46,11 +44,7 @@ function readPositiveInteger(value: unknown, field: string): number {
 
 function readOptionalPreviewSeed(value: unknown): number | undefined {
   if (value === undefined) return undefined
-  if (
-    !Number.isSafeInteger(value) ||
-    (value as number) < 1 ||
-    (value as number) > 0xffff_ffff
-  ) {
+  if (!Number.isSafeInteger(value) || (value as number) < 1 || (value as number) > 0xffff_ffff) {
     return invalid('seed must be a non-zero uint32 integer.')
   }
   return value as number

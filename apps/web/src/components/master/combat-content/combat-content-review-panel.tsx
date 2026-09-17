@@ -83,7 +83,9 @@ export function CombatContentReviewPanel({
         </div>
         <div
           className={styles.reviewState}
-          data-review-state={validation === null ? 'not-validated' : validation.valid ? 'valid' : 'invalid'}
+          data-review-state={
+            validation === null ? 'not-validated' : validation.valid ? 'valid' : 'invalid'
+          }
         >
           <span>Validation</span>
           <strong>

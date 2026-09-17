@@ -25,7 +25,9 @@ describe('combat content authoring migration', () => {
     const sql = readFileSync(migrationPath, 'utf8')
 
     expect(sql).toContain('alter table app_private.combat_content_drafts enable row level security')
-    expect(sql).toContain('alter table app_private.combat_content_versions enable row level security')
+    expect(sql).toContain(
+      'alter table app_private.combat_content_versions enable row level security',
+    )
     expect(sql).toContain(
       'alter table app_private.combat_content_publications enable row level security',
     )

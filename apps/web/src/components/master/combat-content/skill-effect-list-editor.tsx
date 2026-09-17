@@ -140,7 +140,11 @@ export function SkillEffectListEditor({ value, onChange }: SkillEffectListEditor
             <SkillEffectEditor
               value={effect}
               onChange={(nextEffect) =>
-                onChange(value.map((candidate, effectIndex) => (effectIndex === index ? nextEffect : candidate)))
+                onChange(
+                  value.map((candidate, effectIndex) =>
+                    effectIndex === index ? nextEffect : candidate,
+                  ),
+                )
               }
             />
           </article>
