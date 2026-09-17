@@ -55,7 +55,11 @@ export interface CombatContentRepository {
   publish(input: PublishCombatContentInput): Promise<CombatContentVersionRecord>
   findPublished(contentKey: string): Promise<CombatContentVersionRecord | null>
   listPublishedVersions(contentKey: string): Promise<readonly CombatContentVersionRecord[]>
-  setCurrentPublication(contentKey: string, version: number, actorUserId: string): Promise<void>
+  setCurrentPublication(
+    contentKey: string,
+    version: number | null,
+    actorUserId: string,
+  ): Promise<void>
 }
 
 export class CombatContentConflictError extends Error {
@@ -234,9 +238,14 @@ export class InMemoryCombatContentRepository implements CombatContentRepository 
 
   async setCurrentPublication(
     contentKey: string,
-    version: number,
+    version: number | null,
     actorUserId: string,
   ): Promise<void> {
+    if (version === null) {
+      this.#publications.delete(contentKey)
+      return
+    }
+
     const target = this.#versions
       .get(contentKey)
       ?.find((candidate) => candidate.contentVersion === version)
