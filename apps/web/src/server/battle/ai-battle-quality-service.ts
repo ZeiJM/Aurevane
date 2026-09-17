@@ -16,6 +16,7 @@ import { AurevaneError, StaleBattleVersionError } from '@aurevane/game-core/erro
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createSupabaseCharacterRepository } from '@/server/character/supabase-character-repository'
 
+import { buildBattlePrivacyJournalInput } from './battle-history-privacy'
 import { createBattleSessionService, type BattleSessionView } from './battle-session-service'
 import { createSupabaseBattleSessionRepository } from './supabase-battle-session-repository'
 
@@ -171,6 +172,12 @@ export async function tickAiTurnClock(
   if (!consecutive) state = resetAiMissedTurnStreak(state)
   const resolved = timeoutAiTurn(state)
   const nextState = preserveFrozenBuildMetadata(initialState, resolved.state)
+  const privacyJournal = buildBattlePrivacyJournalInput({
+    before: state,
+    after: resolved.state,
+    commandKind: 'system',
+    events: resolved.events,
+  })
 
   try {
     await repository.commitBattleIntent({
@@ -188,6 +195,7 @@ export async function tickAiTurnClock(
       expectedBattleVersion: current.battleVersion,
       nextSnapshot: nextState,
       events: resolved.events,
+      privacyJournal,
     })
   } catch (error) {
     if (!(error instanceof StaleBattleVersionError)) throw error

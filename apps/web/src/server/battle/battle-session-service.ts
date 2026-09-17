@@ -55,6 +55,7 @@ import type {
   CharacterBuildRepository,
 } from '../character/character-build-service'
 import { loadCharacterCommittedBuildSnapshot } from '../character/character-build-service'
+import { buildBattlePrivacyJournalInput } from './battle-history-privacy'
 import { battleActionResourceIssue } from './battle-action-resource-availability'
 import { projectBattleStatusStateForViewer } from './battle-live-viewer-projection'
 import {
@@ -683,6 +684,19 @@ export function createBattleSessionService({
 
       assertPlayerControlledTurn(state, current.controlledCombatantIds)
       const resolved = resolveIntent(state, command.intent)
+      const privacyJournal = buildBattlePrivacyJournalInput({
+        before: state,
+        after: resolved.state,
+        commandKind:
+          command.intent.kind === 'action'
+            ? 'action'
+            : command.intent.kind === 'move'
+              ? 'move'
+              : command.intent.kind === 'face'
+                ? 'face'
+                : 'system',
+        events: resolved.events,
+      })
       const committed = await battles.commitBattleIntent({
         actorKey: command.userId,
         idempotencyKey: command.idempotencyKey,
@@ -692,6 +706,7 @@ export function createBattleSessionService({
         expectedBattleVersion: command.expectedBattleVersion,
         nextSnapshot: resolved.state,
         events: resolved.events,
+        privacyJournal,
       })
 
       return projectCommittedBattleSession(committed, current.controlledCombatantIds)
