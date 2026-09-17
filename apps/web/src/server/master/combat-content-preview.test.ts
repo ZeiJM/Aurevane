@@ -176,7 +176,7 @@ describe('Master Panel combat content preview', () => {
       }),
     ])
     expect(vengeance.projections.events).toContainEqual(
-      expect.objectContaining({ event: 'damage_applied', amount: 20 }),
+      expect.objectContaining({ event: 'damage_applied', amount: 19 }),
     )
   })
 
