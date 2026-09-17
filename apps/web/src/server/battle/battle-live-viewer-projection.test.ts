@@ -15,7 +15,9 @@ import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
 
+import { projectBattleStatusStateForViewer } from './battle-live-viewer-projection'
 import { projectCommittedBattleSession } from './battle-session-service'
+import { createSpectatorBattleViewerEntitlement } from './battle-viewer-entitlement'
 
 const PLAYER = 'character:player'
 const ALLY = 'character:ally'
@@ -109,6 +111,7 @@ function encounter(): StatDrivenCombatEncounterState {
           status('covert', ENEMY, 3),
           status('guarded', ENEMY),
           status('exposed', PLAYER),
+          { ...status('revealed', PLAYER), statusVersion: 999 },
           status('future-positive', ENEMY),
         ],
       },
@@ -157,5 +160,22 @@ describe('CSR-2 live viewer-relative status projection', () => {
     expect(rowStatuses(projected, PLAIN_ENEMY).map((entry) => entry.statusId)).toEqual(['guarded'])
     expect(authoritative.statusState).toEqual(before)
     expect(projected.tactical.battle).not.toHaveProperty('rng')
+  })
+
+  it('treats spectators as unprivileged without hiding positives on non-Covert units', () => {
+    const authoritative = encounter()
+    const before = structuredClone(authoritative.statusState)
+    const projected = {
+      statusState: projectBattleStatusStateForViewer(
+        authoritative,
+        createSpectatorBattleViewerEntitlement(),
+      ),
+    }
+
+    expect(rowStatuses(projected, PLAYER)).toEqual([])
+    expect(rowStatuses(projected, ALLY)).toEqual([])
+    expect(rowStatuses(projected, ENEMY).map((entry) => entry.statusId)).toEqual(['exposed'])
+    expect(rowStatuses(projected, PLAIN_ENEMY).map((entry) => entry.statusId)).toEqual(['guarded'])
+    expect(authoritative.statusState).toEqual(before)
   })
 })
