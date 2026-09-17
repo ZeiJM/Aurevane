@@ -17,9 +17,8 @@ async function loadScenicHero(page: Page) {
   await hero.scrollIntoViewIfNeeded()
   await expect(image).toBeVisible()
   await image.evaluate((element: HTMLImageElement) => element.decode())
-  expect(
-    await image.evaluate((element: HTMLImageElement) => element.naturalWidth),
-  ).toBeGreaterThan(0)
+  const naturalWidth = await image.evaluate((element: HTMLImageElement) => element.naturalWidth)
+  expect(naturalWidth).toBeGreaterThan(0)
 }
 
 test('News article matches the desktop editorial layout', async ({ page }, info) => {
