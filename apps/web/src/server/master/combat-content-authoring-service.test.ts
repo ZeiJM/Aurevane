@@ -180,6 +180,47 @@ describe('combat content authoring service', () => {
     expect(result.issues.length).toBeGreaterThan(0)
   })
 
+  it('authorizes and previews a validated Skill definition without persisting it', async () => {
+    const { store, service } = serviceFixture()
+    store.operators.set(OWNER, 'owner')
+
+    const preview = await service.previewSkillDefinition({
+      actorUserId: OWNER,
+      definition: staticSkill(),
+      seed: 0x4d415354,
+    })
+
+    expect(preview).toMatchObject({
+      actionId: 'vanguard.forceful-strike',
+      legal: true,
+      simulation: { seed: 0x4d415354, rngConsumed: false },
+    })
+    expect(await store.findDraft('vanguard.forceful-strike')).toBeNull()
+    expect(await store.findPublished('vanguard.forceful-strike')).toBeNull()
+  })
+
+  it('refuses to preview invalid or unauthorized draft content', async () => {
+    const { store, service } = serviceFixture()
+    const invalid = invalidVariant((value) => {
+      value.target = { ...(value.target as Record<string, unknown>), maximumRange: -1 }
+    })
+
+    await expect(
+      service.previewSkillDefinition({
+        actorUserId: OUTSIDER,
+        definition: staticSkill(),
+      }),
+    ).rejects.toMatchObject<AurevaneError>({ code: 'FORBIDDEN' })
+
+    store.operators.set(OWNER, 'owner')
+    await expect(
+      service.previewSkillDefinition({
+        actorUserId: OWNER,
+        definition: invalid,
+      }),
+    ).rejects.toMatchObject<AurevaneError>({ code: 'INVALID_REQUEST' })
+  })
+
   it('returns a stable semantic field diff without presentation-only noise', () => {
     const { service } = serviceFixture()
     const before = staticSkill()
