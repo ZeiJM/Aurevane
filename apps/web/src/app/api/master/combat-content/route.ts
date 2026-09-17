@@ -1,5 +1,5 @@
 import { handleCombatContentAuthoringRequest } from '@/server/master/combat-content-authoring-handler'
 
-export function POST(request: Request): Promise<Response> {
+export async function POST(request: Request) {
   return handleCombatContentAuthoringRequest(request)
 }
