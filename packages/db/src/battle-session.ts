@@ -46,6 +46,21 @@ export interface BattleEventCursor {
   eventIndex: number
 }
 
+export type BattlePrivacyVisibility =
+  | { readonly kind: 'public' }
+  | { readonly kind: 'team-only'; readonly teamId: string }
+
+export interface BattlePrivacyEventOverride {
+  readonly eventIndex: number
+  readonly visibility: BattlePrivacyVisibility
+}
+
+export interface BattlePrivacyJournalInput {
+  readonly schemaVersion: 1
+  readonly commandVisibility: BattlePrivacyVisibility
+  readonly eventVisibilityOverrides: readonly BattlePrivacyEventOverride[]
+}
+
 interface BattleIdempotentInput {
   actorKey: string
   idempotencyKey: string
@@ -70,6 +85,7 @@ export interface CommitBattleIntentInput extends FindBattleIntentReplayInput {
   expectedBattleVersion: number
   nextSnapshot: unknown
   events: readonly unknown[]
+  privacyJournal: BattlePrivacyJournalInput | null
 }
 
 export interface BattleSessionRepository {
