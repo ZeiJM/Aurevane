@@ -87,11 +87,9 @@ test('News article matches the desktop editorial layout', async ({ page }, info)
 
   if (process.env.LAYOUT_REVIEW_OUTPUT) {
     await mkdir(process.env.LAYOUT_REVIEW_OUTPUT, { recursive: true })
-    await page.evaluate(() => window.scrollTo(0, 0))
     await settle(page)
-    await page.screenshot({
+    await article.screenshot({
       path: path.join(process.env.LAYOUT_REVIEW_OUTPUT, 'news-article-desktop-1366x768.png'),
-      fullPage: true,
     })
   }
 })
