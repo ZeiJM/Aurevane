@@ -60,6 +60,27 @@ describe('RpcCombatContentAuthoringStore', () => {
     )
   })
 
+  it('normalizes string-encoded bigint draft versions from PostgREST', async () => {
+    const rpc = vi.fn(() =>
+      rpcResult([
+        {
+          content_key: 'vanguard.forceful-strike',
+          content_kind: 'skill',
+          definition: { id: 'vanguard.forceful-strike', contentVersion: 2 },
+          base_version: 2,
+          draft_version: '2',
+          updated_by: ACTOR,
+          updated_at: '2026-09-17T22:00:00.000Z',
+        },
+      ]),
+    )
+    const store = new RpcCombatContentAuthoringStore(rpc, ACTOR)
+
+    await expect(store.findDraft('vanguard.forceful-strike')).resolves.toMatchObject({
+      draftVersion: 2,
+    })
+  })
+
   it('maps transactional stale-base errors to repository conflicts', async () => {
     const rpc = vi.fn(() =>
       rpcResult(null, { code: '40001', message: 'COMBAT_CONTENT_BASE_VERSION_CONFLICT' }),
