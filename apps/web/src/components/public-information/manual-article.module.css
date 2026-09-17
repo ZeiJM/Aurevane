@@ -112,12 +112,7 @@
   inset: 0;
   background:
     linear-gradient(180deg, rgba(4, 7, 11, 0.08), rgba(4, 7, 11, 0.42)),
-    linear-gradient(
-      90deg,
-      rgba(7, 10, 15, 0.28),
-      transparent 35%,
-      rgba(7, 10, 15, 0.15)
-    );
+    linear-gradient(90deg, rgba(7, 10, 15, 0.28), transparent 35%, rgba(7, 10, 15, 0.15));
 }
 
 .layout {
@@ -169,8 +164,7 @@
   padding: clamp(0.2rem, 1vw, 0.6rem) clamp(0rem, 1vw, 0.5rem);
   color: #bcb7ad;
   background:
-    linear-gradient(90deg, rgba(211, 183, 115, 0.04), transparent 12rem),
-    rgba(6, 10, 15, 0.22);
+    linear-gradient(90deg, rgba(211, 183, 115, 0.04), transparent 12rem), rgba(6, 10, 15, 0.22);
   border-top: 1px solid rgba(211, 183, 115, 0.1);
 }
 
