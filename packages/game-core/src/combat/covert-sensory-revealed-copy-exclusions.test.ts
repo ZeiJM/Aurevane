@@ -50,7 +50,9 @@ describe('CSR-1 status-copy exclusions', () => {
       content,
     )
 
+    expect(amplify.receiverId).toBe('actor')
     expect(amplify.copies).toEqual([])
+    expect(curse.receiverId).toBe('target')
     expect(curse.copies).toEqual([])
   })
 })
