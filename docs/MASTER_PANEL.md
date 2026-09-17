@@ -618,3 +618,97 @@ The future Combat Content / Skill editor must edit the existing typed `SkillNarr
 The editor must provide an allow-listed token picker for `{actor}`, `{target}`, `{ability}`, and `{damage}`, sample preview, unknown-token validation, generic fallback preview, Draft -> Preview -> Publish -> Rollback, version history, and audit provenance. Narration is presentation metadata attached to versioned Skill content and is never read by combat resolution.
 
 Status authoring should likewise expose plain-language lifecycle/effect descriptions only for mechanics that actually exist. Do not build stacking-status authoring UI until a released status supports stacking behavior that players need to understand.
+
+---
+
+## 22. Current Combat Content Authoring Slice (2026-09-17)
+
+The first operational Combat Content module now implements the protected, versioned Skill-authoring
+path at `/master/combat-content`. This is a bounded current capability, not a claim that every
+future Master Panel module from this specification is complete.
+
+### Authorization and persistence
+
+- Access requires an authenticated account with an explicit enabled row in
+  `app_private.master_panel_operators`.
+- The current bounded operator roles are `owner` and `content-staff`; no account is implicitly
+  privileged and the temporary buildcraft/testing allowlist is not Master Panel authorization.
+- Browser code never writes combat-content tables directly. Private draft/version/publication state
+  stays under RLS with browser roles revoked; server composition uses service-role access and
+  protected RPCs.
+- Mutation RPCs repeat the operator check in SQL as defense in depth. Draft writes use optimistic
+  `draft_version` concurrency and publication uses a per-content advisory transaction lock.
+- Published version rows are immutable. Rollback changes only the current publication pointer (or
+  clears that pointer when returning to a valid static fallback); historical rows are retained.
+
+### Typed Skill workflow
+
+The current Skill editor uses the canonical `packages/game-core` Skill/effect contracts and
+validation. It exposes typed targeting, Action Economy/MP, accuracy and currently implemented effect
+fields rather than arbitrary executable handlers. Stable identity/source fields remain locked, and
+derived presentation tags are read-only output from mechanics rather than manually authored truth.
+
+The review path is:
+
+```text
+EDIT
+  ↓
+VALIDATE
+  ↓
+DIFF
+  ↓
+DETERMINISTIC PREVIEW
+  ↓
+PUBLISH
+  ↓
+IMMUTABLE VERSION HISTORY
+  ↓
+ROLLBACK / REPOINT WHEN NEEDED
+```
+
+Mutable draft storage and optimistic draft versions exist server-side and are hydrated when present.
+Validation, semantic diff, preview, publish and rollback all cross the authenticated server boundary.
+Canonical validation rejects unknown effects, script-like fields, manually supplied derived
+presentation fields, and invalid combat constraints rather than letting the browser define rules.
+
+Preview uses an isolated deterministic combat fixture and canonical combat evaluation. It does not
+save a battle, mutate a player's battle, consume production battle RNG, or change draft/publication
+state. Sensory preview describes its authored conditional rule without revealing whether a selected
+target secretly has Covert.
+
+### Version lineage and gameplay consumption
+
+Database publication continues the static version lineage; it never starts an unrelated database
+counter at v1. If static current content is v2, the first database publication is v3. If immutable
+database history already contains v3/v4 and rollback restores static v2, the next publication is v5.
+
+Current server resolution checks the database publication pointer first and validates that exact
+definition with canonical game-core rules. Static current content is the fallback only when no
+database publication exists. Invalid stored published content fails closed instead of silently
+changing semantics by falling back to static content.
+
+New battles resolve current published Skill definitions and pin the exact content versions into
+their authoritative build snapshot. Existing battles keep the versions with which they started.
+Player-facing current Skill detail reads use the same server resolver, so publication does not
+rewrite a character's persisted loadout references.
+
+### Copy boundary
+
+`copy-statuses` is the existing Amplify/Curse active-status cloning operation. Its runtime/editor
+support does **not** make it publishable: the mature-Skill publication guard
+`effects.status-copy-staged` remains authoritative until the remaining clone gates are approved.
+
+The separately designed random temporary-Skill **Copy** mechanic is not the same operation.
+`temporarySkills` in encounter effect state is only supporting state; the current combat effect
+union does not provide a complete authorable/committable random-Skill Copy operation. The Master
+Panel must not simulate, publish, or imply support for that mechanic until the authoritative combat
+runtime exists.
+
+### Audit scope
+
+The current combat-content slice records actor/timestamp provenance on draft, publication and
+immutable version records. The broader searchable Master Panel audit log, granular permission
+system, re-authentication/break-glass workflows and other future operational modules remain governed
+by the later phases of this specification; this slice must not pretend those wider systems already
+exist.
+
