@@ -1,0 +1,46 @@
+name: CSR3 Format Targeted
+
+on:
+  push:
+    branches:
+      - agent/combat-csr3-historical-privacy-20260917
+    paths:
+      - .github/workflows/csr3-format-targeted.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/combat-csr3-historical-privacy-20260917
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Format CSR-3 files
+        run: |
+          pnpm exec prettier --write \
+            apps/web/src/server/battle/battle-history-privacy.ts \
+            apps/web/src/server/battle/battle-history-privacy.test.ts
+      - name: Targeted CSR-3 test
+        run: pnpm --filter @aurevane/web exec vitest run src/server/battle/battle-history-privacy.test.ts
+      - name: Commit exact formatter output
+        run: |
+          rm .github/workflows/csr3-format-targeted.yml
+          git config user.name 'Nicholas JM'
+          git config user.email '283436098+ZeiJM@users.noreply.github.com'
+          git add apps/web/src/server/battle/battle-history-privacy.ts \
+            apps/web/src/server/battle/battle-history-privacy.test.ts \
+            .github/workflows/csr3-format-targeted.yml
+          git diff --cached --check
+          git commit -m 'style(combat): format CSR-3 history privacy authority'
+          git push origin HEAD:agent/combat-csr3-historical-privacy-20260917
