@@ -17,6 +17,10 @@ test('Passive Training requires an explicit plan and freezes a server-timed rewa
   page,
 }, testInfo) => {
   test.slow()
+  const host = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://invalid').hostname
+  if (!['127.0.0.1', 'localhost'].includes(host)) {
+    throw new Error('Training authority review requires disposable local Supabase.')
+  }
 
   const projectSlug = testInfo.project.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()
   const email = `a2-training-${projectSlug}-${Date.now()}@example.com`
@@ -29,7 +33,7 @@ test('Passive Training requires an explicit plan and freezes a server-timed rewa
   const planner = page.getByTestId('practice-plan-card')
   await expect(planner).toBeVisible()
   await expect(planner).toContainText('Choose a training duration.')
-  await expect(planner).not.toContainText('Training Plan')
+  await expect(planner).toContainText('Training Plan')
   await expect(planner).toContainText('Idle')
   await expect(planner).toContainText('Short')
   await expect(planner).toContainText('3h 0m')

@@ -1,11 +1,11 @@
 'use client'
 
 import { passiveTrainingWindowLabel } from '@aurevane/game-core/character/wayfarers-practice'
-import { GameButton, Kicker } from '@aurevane/ui'
+import { GameButton } from '@aurevane/ui'
 import { useRouter } from 'next/navigation'
 import { useRef, useState } from 'react'
 
-import styles from './training-report-card.module.css'
+import styles from './training-workspace.module.css'
 
 export type TrainingReportPracticeWindow = 'short' | 'overnight' | 'extended'
 
@@ -69,18 +69,20 @@ export function TrainingReportCard({ report }: TrainingReportCardProps) {
 
   return (
     <section
-      className={styles.report}
+      className={styles.panel}
       data-testid="training-report"
-      data-training-surface="moonstone"
-      data-av-surface="moonstone"
+      data-training-surface="ink"
+      data-av-surface="ink"
     >
-      <div className={styles.heading}>
+      <header className={styles.heading}>
         <div>
-          <Kicker marker="◇">{passive ? 'Passive Training' : 'Legacy Training'}</Kicker>
+          <span className={styles.eyebrow}>03 / Training Report</span>
           <h2>{passive ? 'Training Complete' : 'Training Report'}</h2>
         </div>
-        <span>{planLabel ? `${planLabel} complete` : 'Legacy report'}</span>
-      </div>
+        <span className={styles.badge}>
+          {planLabel ? `${planLabel} complete` : 'Legacy report'}
+        </span>
+      </header>
 
       {passive ? (
         <>
@@ -129,7 +131,12 @@ export function TrainingReportCard({ report }: TrainingReportCardProps) {
       )}
 
       <div className={styles.actions}>
-        <GameButton disabled={submitting} onClick={claimTraining} type="button">
+        <GameButton
+          className={styles.startButton}
+          disabled={submitting}
+          onClick={claimTraining}
+          type="button"
+        >
           {submitting ? 'Claiming…' : 'Claim Training'}
         </GameButton>
         <span>Claims are idempotent: refreshing or retrying cannot duplicate the reward.</span>

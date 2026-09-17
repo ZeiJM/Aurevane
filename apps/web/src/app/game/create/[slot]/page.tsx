@@ -9,6 +9,7 @@ import { getAuthenticatedActor } from '@/server/auth/actor'
 import { isCharacterSlotIndex, loadCharacterSlots } from '@/server/character/character-slot-service'
 
 import styles from '@/components/character/character-select-shell.module.css'
+import creationStyles from '@/components/character/character-creation-experience.module.css'
 
 export const dynamic = 'force-dynamic'
 
@@ -50,13 +51,10 @@ export default async function CharacterCreationPage({
         <AccountMenu />
       </header>
 
-      <main className={styles.main}>
+      <main className={creationStyles.pageMain}>
         <section className={styles.creationPanel}>
-          <div className={styles.creationHeading}>
-            <div>
-              <span>Slot {slotIndex + 1}</span>
-              <h1>Create a new character</h1>
-            </div>
+          <div className={creationStyles.pageNavigation}>
+            <span>Slot {slotIndex + 1}</span>
             <Link href="/game">← Back to Character Select</Link>
           </div>
           <CharacterCreationExperience slotIndex={slotIndex} />

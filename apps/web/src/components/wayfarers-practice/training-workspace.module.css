@@ -1,0 +1,447 @@
+/* Shared Training panel grammar, scoped to the actual three-panel workspace. */
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 0.85fr);
+  min-width: 0;
+  min-height: 0;
+  gap: 0.65rem;
+}
+
+.panel {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: clamp(0.75rem, 1vw, 1rem);
+  overflow: auto;
+  border: 1px solid var(--av-border-strong);
+  border-top-color: var(--av-brass-300);
+  border-radius: 0;
+  color: var(--av-parchment-100);
+  background: #09141d;
+  background-image: linear-gradient(135deg, #18263333, transparent 65%);
+  scrollbar-width: thin;
+  scroll-margin-top: 7rem;
+}
+
+.panel:target,
+.reportWorkspace:target > .panel {
+  border-color: var(--av-teal-bright);
+}
+
+.heading {
+  display: flex;
+  flex-wrap: wrap;
+  min-width: 0;
+  gap: 0.55rem;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 0.7rem;
+  border-bottom: 1px solid var(--av-border-strong);
+}
+
+.eyebrow {
+  color: var(--av-brass-300);
+  font: 600 0.65rem/1.4 var(--av-font-body);
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.heading h2 {
+  margin: 0.2rem 0 0;
+  color: var(--av-brass-100);
+  font: 500 clamp(1.25rem, 1.6vw, 1.7rem) / 1.15 var(--av-font-display);
+  letter-spacing: 0.025em;
+}
+
+.badge {
+  padding: 0.3rem 0.45rem;
+  border: 1px solid #4c776d;
+  color: #b2dbcb;
+  background: #122b27;
+  font: 600 0.6875rem/1.3 var(--av-font-body);
+}
+
+.intro,
+.window p,
+.rules p,
+.emptyState p,
+.footnote,
+.actions > span,
+.capNote {
+  margin: 0;
+  color: var(--av-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.windowGrid {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.window {
+  display: grid;
+  grid-template-columns: 2.3rem minmax(0, 1fr) auto;
+  min-width: 0;
+  gap: 0.3rem 0.6rem;
+  align-items: center;
+  padding: 0.55rem;
+  border: 1px solid #5b5545;
+  background: #0c1922;
+}
+
+.window[data-active] {
+  border-color: var(--av-teal-bright);
+  background: #102b30;
+}
+
+.windowNumber {
+  display: grid;
+  width: 2.3rem;
+  height: 2.3rem;
+  grid-column: 1;
+  grid-row: 1 / 4;
+  place-items: center;
+  border: 1px solid var(--av-border-strong);
+  color: var(--av-brass-300);
+  background: #101f2a;
+  font: 500 1rem var(--av-font-display);
+}
+
+.windowHeading {
+  display: flex;
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.6rem;
+  align-items: baseline;
+}
+
+.windowHeading strong {
+  color: var(--av-brass-100);
+  font: 500 1.3rem/1.1 var(--av-font-display);
+}
+
+.windowHeading span {
+  color: var(--av-text-muted);
+  font-size: 0.75rem;
+}
+
+.columns .window > p {
+  grid-column: 2;
+  grid-row: 2;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.window .startButton {
+  grid-column: 3;
+  grid-row: 1 / 4;
+}
+
+.rewardLine {
+  display: flex;
+  grid-column: 2;
+  grid-row: 3;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.7rem;
+  justify-content: flex-start;
+  margin: 0;
+}
+
+.rewardLine > div {
+  display: flex;
+  gap: 0.45rem;
+  align-items: baseline;
+}
+
+.rewardLine dt {
+  color: var(--av-text-dim);
+  font-size: 0.75rem;
+}
+
+.rewardLine dd {
+  margin: 0;
+  color: var(--av-brass-100);
+  font-size: 0.8125rem;
+  font-weight: 650;
+}
+
+.panel .startButton {
+  min-height: 2.75rem;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid #d5b579;
+  color: #201a12;
+  background: linear-gradient(#ead4a8, #c0a06b);
+  font: 650 0.75rem/1.25 var(--av-font-body);
+  text-align: center;
+}
+
+.panel .startButton:hover:not(:disabled) {
+  color: #080f15;
+  background: #f0dfb9;
+}
+
+.panel .startButton:disabled {
+  border-color: #566667;
+  color: #acb8b8;
+  background: #19282d;
+  opacity: 1;
+}
+
+.rules {
+  margin-top: auto;
+  border-top: 1px solid var(--av-border);
+}
+
+.rules summary {
+  min-height: 2.75rem;
+  padding-top: 0.8rem;
+  color: var(--av-brass-300);
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.statusDot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--av-stone-500);
+}
+
+.statusDot[data-active] {
+  background: #79d6b2;
+  box-shadow: 0 0 0.75rem #79d6b266;
+}
+
+.activityBody {
+  display: grid;
+  gap: 0.75rem;
+  align-content: start;
+  text-align: center;
+}
+
+.activitySummary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-width: 0;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.7rem 0;
+  text-align: left;
+}
+
+.activitySummary > div:first-child {
+  display: grid;
+  min-width: 0;
+  gap: 0.55rem;
+}
+
+.activityBody h3,
+.emptyState h3 {
+  margin: 0;
+  color: var(--av-brass-100);
+  font: 500 clamp(1.15rem, 1.45vw, 1.5rem) / 1.2 var(--av-font-display);
+}
+
+.countdown {
+  display: grid;
+  gap: 0.4rem;
+  margin-top: 0;
+  text-align: right;
+}
+
+.countdown span {
+  color: var(--av-text-muted);
+  font-size: 0.75rem;
+}
+
+.countdown strong {
+  color: var(--av-parchment-100);
+  font: 500 clamp(1.8rem, 2vw, 2.3rem) / 1.2 var(--av-font-display);
+  font-variant-numeric: tabular-nums;
+}
+
+.progressTrack {
+  height: 0.6rem;
+  overflow: hidden;
+  border: 1px solid var(--av-border-strong);
+  background: #050b11;
+}
+
+.progressTrack > span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #b58b48, #ecce91);
+}
+
+.progressLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  justify-content: space-between;
+  color: var(--av-text-dim);
+  font-size: 0.6875rem;
+}
+
+.rewards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-width: 0;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.rewards > div {
+  display: grid;
+  min-width: 0;
+  gap: 0.55rem;
+  padding: 0.75rem 0.45rem;
+  border: 1px solid var(--av-border-strong);
+  background: #0b1923;
+  text-align: center;
+}
+
+.rewards dt {
+  color: var(--av-text-muted);
+  font-size: 0.75rem;
+}
+
+.rewards dd {
+  margin: 0;
+  color: var(--av-brass-100);
+  font: 500 1.3rem/1.2 var(--av-font-display);
+  overflow-wrap: anywhere;
+}
+
+.panel .stopButton {
+  min-height: 2.75rem;
+  color: #efd4cc;
+  border-color: #906157;
+  background: #302326;
+}
+
+.panel .stopButton:hover:not(:disabled) {
+  background: #493036;
+}
+
+.reportWorkspace {
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  scroll-margin-top: 7rem;
+}
+
+.reportScene {
+  width: 100%;
+  height: 5.5rem;
+  object-fit: cover;
+  object-position: center 55%;
+  border: 1px solid var(--av-border);
+}
+
+.emptyState {
+  display: grid;
+  gap: 0.9rem;
+  justify-items: center;
+  padding-block: 0.75rem;
+  text-align: center;
+}
+
+.footnote {
+  margin-top: auto;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--av-border-strong);
+  font-style: italic;
+}
+
+.actions {
+  display: grid;
+  gap: 0.75rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--av-border-strong);
+}
+
+.error {
+  margin: 0;
+  color: #ffc3b5;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 1199px) {
+  .columns {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  .reportWorkspace {
+    grid-column: 1 / -1;
+  }
+
+  .panel {
+    overflow: visible;
+  }
+}
+
+@media (max-width: 760px) {
+  .columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .columns[data-training-active] > .activity {
+    grid-row: 1;
+  }
+
+  .panel {
+    gap: 0.9rem;
+    padding: 0.85rem;
+  }
+
+  .heading h2 {
+    font-size: 1.5rem;
+  }
+
+  .window {
+    grid-template-columns: 2rem minmax(0, 1fr) auto;
+    gap: 0.55rem;
+    padding: 0.65rem;
+  }
+
+  .windowNumber {
+    width: 2rem;
+    height: 2rem;
+    grid-row: 1;
+  }
+
+  .windowHeading {
+    display: grid;
+  }
+
+  .columns .window > p {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .window .startButton {
+    grid-row: 1;
+  }
+
+  .rewardLine {
+    grid-column: 1 / -1;
+    justify-content: space-between;
+    padding-top: 0.45rem;
+    border-top: 1px solid var(--av-border);
+  }
+
+  .activitySummary {
+    gap: 0.5rem;
+  }
+
+  .panel .startButton {
+    padding-inline: 0.6rem;
+  }
+}

@@ -47,7 +47,7 @@ export default async function ControlsSettingsPage() {
       backHref="/game/character"
       backLabel="Back to Character Profile"
     >
-      <Surface className={styles.surface} tone="elevated" data-av-surface="moonstone">
+      <Surface className={styles.surface} tone="elevated" data-av-surface="ink">
         <Kicker marker="◇">Settings</Kicker>
         <h1>Controls &amp; Keybinds</h1>
         <CombatControlsSettings initialBindings={combatKeybinds} />

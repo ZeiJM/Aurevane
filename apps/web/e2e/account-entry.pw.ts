@@ -102,9 +102,7 @@ test('a new account persists its private profile across refresh, sign-out, and s
   ).toBeVisible()
   await expect(page.getByText('Available later', { exact: true })).toBeVisible()
 
-  await page.getByRole('button', { name: 'Account' }).click()
-  await page.getByRole('menuitem', { name: 'Sign out' }).click()
-  await expect(page).toHaveURL(/\/$/)
+  await signOutFromAccountMenu(page)
   await expect(page.getByTestId('account-shell')).toBeVisible()
 
   await page.getByLabel('Email').fill(email)

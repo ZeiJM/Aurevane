@@ -1,15 +1,46 @@
-name: Profile layout review
+name: UI layout review
 
 on:
   push:
     branches:
       - main
       - agent/profile-layout-repair
+      - agent/training-concept-ui
+      - agent/battle-hall-concept-ui
+      - agent/adventurers-concept-ui
+      - agent/character-roster-hq-continuation
+      - agent/creation-workspace-repair
+      - agent/controls-keybinds-fidelity
+      - agent/account-gateway-fidelity
+      - agent/news-index-fidelity
+      - agent/news-article-fidelity
+      - agent/manual-index-fidelity
+      - agent/manual-article-fidelity
+      - agent/rules-fidelity
+      - agent/creation-subject-reconciliation
     paths:
       - .github/workflows/profile-layout-review.yml
-      - apps/web/e2e/profile-layout-regression.pw.ts
+      - apps/web/e2e/*layout-regression.pw.ts
+      - apps/web/e2e/creation-subject-reconciliation.pw.ts
       - apps/web/e2e/pv1f-test-helpers.ts
+      - apps/web/e2e/account-entry.pw.ts
+      - apps/web/e2e/wayfarers-practice.pw.ts
+      - apps/web/e2e/pvp-spectator-footer-shape.pw.ts
+      - apps/web/src/components/account/**
       - apps/web/src/components/character/**
+      - apps/web/src/components/settings/**
+      - apps/web/src/components/social/**
+      - apps/web/src/components/public-information/**
+      - apps/web/src/app/news/**
+      - apps/web/src/app/manual/**
+      - apps/web/src/app/rules/**
+      - apps/web/src/app/game/online/**
+      - apps/web/src/app/game/create/**
+      - apps/web/src/app/game/settings/**
+      - apps/web/src/media/**
+      - apps/web/src/components/wayfarers-practice/**
+      - apps/web/src/components/battle/battle-launch*
+      - apps/web/src/components/battle/pvp-lobby-modal*
       - apps/web/src/components/shell/**
       - apps/web/src/app/*.css
       - apps/web/src/app/layout.tsx
@@ -17,9 +48,27 @@ on:
   pull_request:
     paths:
       - .github/workflows/profile-layout-review.yml
-      - apps/web/e2e/profile-layout-regression.pw.ts
+      - apps/web/e2e/*layout-regression.pw.ts
+      - apps/web/e2e/creation-subject-reconciliation.pw.ts
       - apps/web/e2e/pv1f-test-helpers.ts
+      - apps/web/e2e/account-entry.pw.ts
+      - apps/web/e2e/wayfarers-practice.pw.ts
+      - apps/web/e2e/pvp-spectator-footer-shape.pw.ts
+      - apps/web/src/components/account/**
       - apps/web/src/components/character/**
+      - apps/web/src/components/settings/**
+      - apps/web/src/components/social/**
+      - apps/web/src/components/public-information/**
+      - apps/web/src/app/news/**
+      - apps/web/src/app/manual/**
+      - apps/web/src/app/rules/**
+      - apps/web/src/app/game/online/**
+      - apps/web/src/app/game/create/**
+      - apps/web/src/app/game/settings/**
+      - apps/web/src/media/**
+      - apps/web/src/components/wayfarers-practice/**
+      - apps/web/src/components/battle/battle-launch*
+      - apps/web/src/components/battle/pvp-lobby-modal*
       - apps/web/src/components/shell/**
       - apps/web/src/app/*.css
       - apps/web/src/app/layout.tsx
@@ -29,7 +78,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: profile-layout-${{ github.ref }}
+  group: ui-layout-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -65,16 +114,19 @@ jobs:
           export NEXT_PUBLIC_SUPABASE_URL="$TEST_AUTH_API_URL"
           export NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY"
           export SUPABASE_SECRET_KEY="$TEST_AUTH_ADMIN_KEY"
-          export LAYOUT_REVIEW_OUTPUT=/tmp/profile-review
+          export LAYOUT_REVIEW_OUTPUT=/tmp/ui-layout-review
           mkdir -p "$LAYOUT_REVIEW_OUTPUT"
           git rev-parse HEAD > "$LAYOUT_REVIEW_OUTPUT/commit.txt"
           pnpm --filter @aurevane/web build
-          pnpm --filter @aurevane/web exec playwright test e2e/profile-layout-regression.pw.ts
+          review_status=0
+          pnpm --filter @aurevane/web exec playwright test e2e/character-roster-dialog-layout-regression.pw.ts e2e/creation-layout-regression.pw.ts e2e/creation-subject-reconciliation.pw.ts e2e/account-entry.pw.ts e2e/account-layout-regression.pw.ts e2e/news-index-layout-regression.pw.ts e2e/news-article-layout-regression.pw.ts e2e/manual-index-layout-regression.pw.ts e2e/manual-article-layout-regression.pw.ts e2e/rules-layout-regression.pw.ts e2e/character-roster-layout-regression.pw.ts e2e/character-creation.pw.ts e2e/character-deletion.pw.ts e2e/profile-layout-regression.pw.ts e2e/titles-layout-regression.pw.ts e2e/controls-layout-regression.pw.ts e2e/training-layout-regression.pw.ts e2e/training-concept-layout-regression.pw.ts e2e/wayfarers-practice.pw.ts e2e/hall-layout-regression.pw.ts e2e/hall-controls-layout-regression.pw.ts e2e/pvp-spectator-footer-shape.pw.ts e2e/adventurers-layout-regression.pw.ts e2e/battle-usability.pw.ts || review_status=$?
+          pnpm --filter @aurevane/web exec playwright test e2e/desktop-experience.pw.ts --grep "a large desktop character directory" || review_status=$?
+          exit "$review_status"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: profile-layout-review
-          path: /tmp/profile-review
+          name: ui-layout-review
+          path: /tmp/ui-layout-review
           retention-days: 3
       - name: Stop disposable database
         if: always()

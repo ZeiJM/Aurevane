@@ -1,33 +1,28 @@
-.layout {
-  display: grid;
-  gap: 0.6rem;
-  align-content: start;
-  width: 100%;
-  min-width: 0;
-  margin: 0 auto;
-}
-
+/* Replaces the composition-v3 overrides; this module owns the Training stage. */
 .layout[data-training-concept='true'] {
-  padding: clamp(0.65rem, 1.4vw, 1.1rem);
-  border: 1px solid rgba(116, 96, 59, 0.22);
-  border-radius: var(--av-radius-lg);
-  color: var(--av-charcoal);
-  background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.42), transparent 38%), rgba(243, 239, 229, 0.97);
-  box-shadow: 0 1rem 2.4rem rgba(2, 9, 14, 0.14);
+  display: grid;
+  grid-template-rows: clamp(6.5rem, 12vh, 8.5rem) auto minmax(0, 1fr);
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  gap: 0.65rem;
+  background: transparent;
 }
 
 .hero {
   position: relative;
   isolation: isolate;
-  min-height: 9.5rem;
-  overflow: hidden;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  gap: 1rem;
   align-items: center;
-  padding: clamp(0.75rem, 1.35vw, 1rem);
-  border-color: rgba(212, 186, 130, 0.42);
-  background: var(--av-ink-850);
+  justify-content: space-between;
+  overflow: hidden;
+  padding: 0.65rem clamp(1rem, 2vw, 2rem);
+  border: 1px solid var(--av-border-strong);
+  background: var(--av-ink-950);
 }
 
 .heroMedia,
@@ -39,141 +34,139 @@
 }
 
 .heroMedia {
-  z-index: 0;
+  z-index: -2;
   object-fit: cover;
-  object-position: center 44%;
-  filter: saturate(0.84) contrast(1.05);
+  object-position: center 40%;
 }
 
 .heroShade {
-  z-index: 1;
-  background:
-    linear-gradient(90deg, rgba(6, 10, 15, 0.9), rgba(8, 13, 19, 0.55) 58%, rgba(8, 13, 19, 0.74)),
-    linear-gradient(0deg, rgba(6, 10, 15, 0.82), transparent 62%);
+  z-index: -1;
+  background: linear-gradient(90deg, #050d16eb, #050d1638 65%, #050d16d9);
 }
 
-.heroCopy {
-  position: relative;
-  z-index: 2;
+.heroCopy,
+.heroIdentity {
   min-width: 0;
 }
 
 .heroCopy h1 {
+  margin: 0.4rem 0 0.25rem;
+  color: var(--av-brass-100);
+  font: 500 clamp(1.7rem, 2.4vw, 2.7rem) / 1.05 var(--av-font-display);
+  letter-spacing: 0.08em;
+}
+
+.heroCopy p {
   margin: 0;
-  font: 500 clamp(1.8rem, 3.4vw, 2.65rem) / 0.98 var(--av-font-display);
+  color: var(--av-parchment-100);
+  font: italic 1rem/1.5 var(--av-font-display);
+  letter-spacing: 0.04em;
 }
 
-.layout[data-training-concept='true'] .practiceGrid {
-  color: var(--av-charcoal);
-}
-
-.practiceGrid {
+.heroIdentity {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 0.6rem;
+  gap: 0.5rem;
+  max-width: 20rem;
+  padding-left: 1.2rem;
+  border-left: 1px solid var(--av-border-strong);
+  text-align: right;
+}
+
+.heroIdentity span {
+  color: var(--av-brass-300);
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+}
+
+.heroIdentity strong {
+  color: var(--av-parchment-100);
+  font: 500 1.5rem/1.2 var(--av-font-display);
+  overflow-wrap: anywhere;
+}
+
+.heroIdentity small {
+  color: var(--av-text-muted);
+  line-height: 1.4;
+}
+
+.sectionNavigation {
+  display: flex;
   min-width: 0;
+  gap: 0.25rem;
+  border-bottom: 1px solid var(--av-border-strong);
 }
 
-.practiceGrid[data-has-report] {
-  grid-template-columns: minmax(0, 1.45fr) minmax(17rem, 0.65fr);
-  align-items: start;
+.sectionNavigation a {
+  display: inline-flex;
+  min-width: 0;
+  min-height: 2.75rem;
+  gap: 0.6rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1.2rem;
+  border: 1px solid var(--av-border-strong);
+  border-bottom: 0;
+  color: var(--av-brass-100);
+  background: #09151de6;
+  font: 500 0.95rem/1.25 var(--av-font-display);
 }
 
-@media (min-width: 900px) and (min-height: 700px) {
-  .practiceGrid {
-    min-height: 0;
-  }
+.sectionNavigation a:hover,
+.sectionNavigation a:focus-visible {
+  color: white;
+  background: var(--av-teal);
 }
 
-@media (max-width: 900px) {
-  .practiceGrid[data-has-report] {
-    grid-template-columns: 1fr;
-  }
+.sectionNavigation a:focus-visible {
+  outline: 2px solid var(--av-focus);
+  outline-offset: -3px;
 }
 
-@media (max-width: 560px) {
+.sectionNavigation span {
+  color: var(--av-brass-300);
+}
+
+.workspace {
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+}
+
+@media (max-width: 1199px) {
   .layout[data-training-concept='true'] {
-    padding: 0.5rem;
-  }
-
-  .hero {
-    min-height: 10rem;
-    padding: 0.65rem;
-  }
-}
-
-/* composition-v3 training split */
-@media (min-width: 761px) {
-  .layout[data-training-concept='true'] {
-    grid-template-columns: minmax(17rem, 0.72fr) minmax(0, 1.28fr) !important;
-    grid-template-rows: minmax(0, 1fr) !important;
-    height: 100% !important;
-    min-height: 0 !important;
-    gap: 0.7rem !important;
-    padding: 0.7rem !important;
-    border-radius: 0 !important;
-  }
-
-  .hero[data-training-scene='true'] {
-    grid-column: 1 !important;
-    grid-row: 1 !important;
-    height: 100% !important;
-    min-height: 0 !important;
-    align-items: end !important;
-    padding: 1rem !important;
-    border-radius: 0 !important;
-  }
-
-  .hero[data-training-scene='true'] .heroMedia {
-    object-position: 52% center !important;
-  }
-
-  .practiceGrid[data-training-workspace='true'] {
-    grid-column: 2 !important;
-    grid-row: 1 !important;
-    height: 100% !important;
-    min-height: 0 !important;
-    align-content: start !important;
-    padding: 0.75rem !important;
-    overflow: auto !important;
-    border: 1px solid var(--av-gold-rule);
-    border-radius: 0 !important;
-    background: rgba(251, 248, 240, 0.97);
-    scrollbar-width: thin;
+    height: auto;
+    grid-template-rows: 10rem auto auto;
+    align-content: start;
   }
 }
 
 @media (max-width: 760px) {
   .layout[data-training-concept='true'] {
-    grid-template-columns: minmax(0, 1fr) !important;
-    grid-template-rows: 9rem auto !important;
-    height: auto !important;
-    gap: 0.5rem !important;
-    padding: 0 !important;
-    border: 0 !important;
-    border-radius: 0 !important;
-    background: transparent !important;
-    box-shadow: none !important;
+    grid-template-rows: minmax(9rem, auto) auto auto;
+    gap: 0.6rem;
   }
 
-  .hero[data-training-scene='true'] {
-    grid-column: 1 !important;
-    grid-row: 1 !important;
-    width: 100% !important;
-    min-height: 9rem !important;
-    height: 9rem !important;
-    padding: 0.7rem !important;
-    border-radius: 0 !important;
+  .hero {
+    padding: 1rem;
   }
 
-  .practiceGrid[data-training-workspace='true'] {
-    grid-column: 1 !important;
-    grid-row: 2 !important;
-    min-height: 0 !important;
-    padding: 0.55rem !important;
-    border: 1px solid var(--av-gold-rule);
-    border-radius: 0 !important;
-    color: var(--av-charcoal);
-    background: rgba(251, 248, 240, 0.98);
+  .heroIdentity {
+    display: none;
+  }
+
+  .heroCopy h1 {
+    font-size: clamp(1.7rem, 7vw, 2.4rem);
+    letter-spacing: 0.035em;
+  }
+
+  .sectionNavigation a {
+    flex: 1;
+    padding: 0.5rem 0.25rem;
+    font-size: 0.8rem;
+    text-align: center;
+  }
+
+  .sectionNavigation span {
+    display: none;
   }
 }

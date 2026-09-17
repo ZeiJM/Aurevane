@@ -7,10 +7,10 @@ import {
 } from '@aurevane/game-core/character/wayfarers-practice'
 import { GameButton } from '@aurevane/ui'
 import { useRouter } from 'next/navigation'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 
 import { formatPracticeDuration } from './training-report-card'
-import styles from './practice-plan-card.module.css'
+import styles from './training-workspace.module.css'
 
 export type PracticePlanWindow = 'short' | 'overnight' | 'extended'
 
@@ -29,9 +29,11 @@ export interface PracticePlanCardData {
 
 interface PracticePlanCardProps {
   practice: PracticePlanCardData
+  report?: ReactNode
+  hasReport?: boolean
 }
 
-export function PracticePlanCard({ practice }: PracticePlanCardProps) {
+export function PracticePlanCard({ practice, report, hasReport = false }: PracticePlanCardProps) {
   const router = useRouter()
   const [submittingWindow, setSubmittingWindow] = useState<PracticePlanWindow | null>(null)
   const [stopping, setStopping] = useState(false)
@@ -78,17 +80,17 @@ export function PracticePlanCard({ practice }: PracticePlanCardProps) {
     {
       window: 'short',
       seconds: practice.shortWindowSeconds,
-      description: 'Best hourly return for a shorter AFK window.',
+      description: 'Best hourly return.',
     },
     {
       window: 'overnight',
       seconds: practice.overnightWindowSeconds,
-      description: 'Moderate return for a medium training block.',
+      description: 'Moderate hourly return.',
     },
     {
       window: 'extended',
       seconds: practice.extendedWindowSeconds,
-      description: 'Lowest hourly return for a long unattended block.',
+      description: 'Lowest hourly return.',
     },
   ]
 
@@ -148,96 +150,189 @@ export function PracticePlanCard({ practice }: PracticePlanCardProps) {
     }
   }
 
+  const progressPercent =
+    trainingActive && practice.plannedWindowSeconds
+      ? Math.max(
+          0,
+          Math.min(
+            100,
+            ((practice.plannedWindowSeconds - remainingSeconds) / practice.plannedWindowSeconds) *
+              100,
+          ),
+        )
+      : 0
+
   return (
-    <section
-      className={styles.card}
-      data-testid="practice-plan-card"
-      data-training-surface="moonstone"
-      data-av-surface="moonstone"
-      aria-labelledby="practice-plan-title"
-    >
-      <div className={styles.heading}>
-        <h2 id="practice-plan-title">Choose a training duration.</h2>
-        <span>{trainingActive ? 'Training active' : 'Idle'}</span>
-      </div>
-
-      {trainingActive && practice.plannedWindow ? (
-        <div className={styles.activeTraining} data-testid="passive-training-active">
+    <div className={styles.columns} data-training-active={trainingActive || undefined}>
+      <section
+        className={styles.panel}
+        id="training-plan"
+        data-testid="practice-plan-card"
+        data-training-surface="ink"
+        data-av-surface="ink"
+        aria-labelledby="practice-plan-title"
+        tabIndex={-1}
+      >
+        <header className={styles.heading}>
           <div>
-            <span>Training now</span>
-            <strong>{passiveTrainingWindowLabel(practice.plannedWindow)}</strong>
+            <span className={styles.eyebrow}>01 / Choose your pace</span>
+            <h2 id="practice-plan-title">Training Plan</h2>
           </div>
-          <div>
-            <span>Time remaining</span>
-            <strong>{formatCountdown(remainingSeconds)}</strong>
-          </div>
-          <div>
-            <span>Completion reward</span>
-            <strong>+{calculatePassiveTrainingXp(practice.plannedWindow)} XP</strong>
-          </div>
-          <GameButton
-            type="button"
-            variant="quiet"
-            disabled={stopping}
-            onClick={() => void stopTraining()}
-          >
-            {stopping ? 'Stopping…' : 'Stop Training'}
-          </GameButton>
-        </div>
-      ) : null}
-
-      <div className={styles.windowGrid} aria-label="Passive Training durations">
-        {windows.map((option) => {
-          const rate = getPassiveTrainingXpPerHour(option.window)
-          const reward = calculatePassiveTrainingXp(option.window)
-          const selected = practice.plannedWindow === option.window
-          return (
-            <div className={styles.window} key={option.window} data-active={selected || undefined}>
-              <div>
-                <strong>{passiveTrainingWindowLabel(option.window)}</strong>
-                <span>{formatPracticeDuration(option.seconds)}</span>
-              </div>
-              <p>{option.description}</p>
-              <dl className={styles.rewardLine}>
-                <div>
-                  <dt>Rate</dt>
-                  <dd>{rate} XP/hr</dd>
-                </div>
-                <div>
-                  <dt>Complete</dt>
-                  <dd>+{reward} XP</dd>
-                </div>
-              </dl>
-              <GameButton
-                type="button"
-                variant={selected ? 'quiet' : 'primary'}
-                disabled={submittingWindow !== null || stopping || trainingActive}
-                onClick={() => void setPlan(option.window)}
+          <span className={styles.badge}>{trainingActive ? 'Training active' : 'Idle'}</span>
+        </header>
+        <p className={styles.intro}>Choose a training duration.</p>
+        <div className={styles.windowGrid} aria-label="Passive Training durations">
+          {windows.map((option, index) => {
+            const rate = getPassiveTrainingXpPerHour(option.window)
+            const reward = calculatePassiveTrainingXp(option.window)
+            const selected = practice.plannedWindow === option.window
+            return (
+              <div
+                className={styles.window}
+                key={option.window}
+                data-active={selected || undefined}
               >
-                {submittingWindow === option.window
-                  ? 'Starting…'
-                  : selected
-                    ? 'Training now'
-                    : `Start ${passiveTrainingWindowLabel(option.window)}`}
-              </GameButton>
+                <span className={styles.windowNumber} aria-hidden="true">
+                  0{index + 1}
+                </span>
+                <div className={styles.windowHeading}>
+                  <strong>{passiveTrainingWindowLabel(option.window)}</strong>
+                  <span>{formatPracticeDuration(option.seconds)}</span>
+                </div>
+                <GameButton
+                  className={styles.startButton}
+                  type="button"
+                  variant={selected ? 'quiet' : 'primary'}
+                  disabled={submittingWindow !== null || stopping || trainingActive}
+                  onClick={() => void setPlan(option.window)}
+                >
+                  {submittingWindow === option.window
+                    ? 'Starting…'
+                    : selected
+                      ? 'Training now'
+                      : `Start ${passiveTrainingWindowLabel(option.window)}`}
+                </GameButton>
+                <p>{option.description}</p>
+                <dl className={styles.rewardLine}>
+                  <div>
+                    <dt>Rate</dt>
+                    <dd>{rate} XP/hr</dd>
+                  </div>
+                  <div>
+                    <dt>Complete</dt>
+                    <dd>+{reward} XP</dd>
+                  </div>
+                </dl>
+              </div>
+            )
+          })}
+        </div>
+        <details className={styles.rules}>
+          <summary>How Passive Training works</summary>
+          <p>
+            While training is active, new Battle Hall fights are disabled. Profile, account,
+            reference pages, Online Users, and social/chat surfaces remain available. If you stop
+            early, the server awards XP for the completed fraction of the training time.
+          </p>
+        </details>
+        {errorMessage ? (
+          <p className={styles.error} role="status">
+            {errorMessage}
+          </p>
+        ) : null}
+      </section>
+
+      <section
+        className={`${styles.panel} ${styles.activity}`}
+        id="training-current"
+        data-av-surface="ink"
+        data-testid={trainingActive ? 'passive-training-active' : undefined}
+        aria-label="Current training activity"
+        tabIndex={-1}
+      >
+        <header className={styles.heading}>
+          <div>
+            <span className={styles.eyebrow}>02 / In the stillness</span>
+            <h2>Current Training</h2>
+          </div>
+          <span
+            className={styles.statusDot}
+            data-active={trainingActive || undefined}
+            aria-hidden="true"
+          />
+        </header>
+        <div className={styles.activityBody}>
+          <div className={styles.activitySummary}>
+            <div>
+              <span className={styles.eyebrow}>CHARACTER XP</span>
+              <h3>
+                {trainingActive
+                  ? `${passiveTrainingWindowLabel(practice.plannedWindow!)} Training`
+                  : hasReport
+                    ? 'A chapter completed'
+                    : 'Ready when you are'}
+              </h3>
             </div>
-          )
-        })}
-      </div>
-
-      <p className={styles.note}>
-        While training is active, new Battle Hall fights are disabled. Profile, account, reference
-        pages, Online Users, and social/chat surfaces remain available. If you stop early, the
-        server awards the XP earned for the completed fraction of the training time; the unfinished
-        fraction earns nothing.
-      </p>
-
-      {errorMessage ? (
-        <p className={styles.error} role="status" aria-live="polite">
-          {errorMessage}
+            <div className={styles.countdown}>
+              <span>{trainingActive ? 'Time remaining' : 'No active session'}</span>
+              <strong>{trainingActive ? formatCountdown(remainingSeconds) : '— : — : —'}</strong>
+            </div>
+          </div>
+          <p className={styles.intro}>
+            {trainingActive
+              ? 'Training in progress. Your discipline continues while you are away.'
+              : hasReport
+                ? 'Your Training Report is ready. Claim your earned progress in the next panel.'
+                : 'Choose Short, Medium or Extended to begin. Your training continues while you are away.'}
+          </p>
+          <div
+            className={styles.progressTrack}
+            role="progressbar"
+            aria-label="Training progress"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.floor(progressPercent)}
+          >
+            <span style={{ width: `${progressPercent}%` }} />
+          </div>
+          <div className={styles.progressLegend}>
+            <span>{Math.floor(progressPercent)}% complete</span>
+            <span>{trainingActive ? 'Server-timed session' : 'Ready when you are'}</span>
+          </div>
+          <dl className={styles.rewards}>
+            <div>
+              <dt>Completion reward</dt>
+              <dd>
+                {trainingActive
+                  ? `+${calculatePassiveTrainingXp(practice.plannedWindow!)} XP`
+                  : '—'}
+              </dd>
+            </div>
+            <div>
+              <dt>Training duration</dt>
+              <dd>
+                {trainingActive ? formatPracticeDuration(practice.plannedWindowSeconds!) : '—'}
+              </dd>
+            </div>
+          </dl>
+          {trainingActive ? (
+            <GameButton
+              className={styles.stopButton}
+              type="button"
+              variant="quiet"
+              disabled={stopping}
+              onClick={() => void stopTraining()}
+            >
+              {stopping ? 'Stopping…' : 'Stop Training'}
+            </GameButton>
+          ) : null}
+        </div>
+        <p className={styles.footnote}>
+          The server keeps time. This page does not need to stay open.
         </p>
-      ) : null}
-    </section>
+      </section>
+      {report}
+    </div>
   )
 }
 
