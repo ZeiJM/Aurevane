@@ -12,7 +12,7 @@
 
 CSR-0 creates two reusable authority seams and intentionally stops there.
 
-First, a pure server-side viewer-entitlement helper derives `self | ally | opponent | spectator` relationships from authoritative combatant teams plus the participant's persisted controlled combatants. Spectators remain unprivileged. CSR-2 will wire this helper into player, reconnect, PvP, and spectator live projections; CSR-0 does not yet redact statuses or change browser-visible battle state.
+First, a pure server-side viewer-entitlement helper derives `self | ally | opponent | spectator` relationships from authoritative combatant teams plus the participant's persisted controlled combatants. Spectators remain unprivileged. The existing participant session projection now requires this entitlement before producing the same browser payload, including committed PvP surrender results; CSR-0 still performs no relationship-specific redaction and exposes no new browser fields. CSR-2 will apply viewer-relative redaction consistently across player, reconnect, PvP, and spectator live projections.
 
 Second, every fresh battle commit goes through `commit_battle_intent_v3`, which preserves the hardened v2 commit semantics and atomically appends one server-private journal row beside the new snapshot/event batch. Actor identity and team are stamped from the immutable command-start snapshot inside PostgreSQL rather than trusted from the caller. Current commands pass no explicit privacy decision, so v3 records a public baseline. Later CSR resolution can pass explicit command/event visibility decisions without changing the public event/session RPC shapes.
 
@@ -32,6 +32,8 @@ A missing journal row means pre-CSR legacy/public history. Exact idempotent repl
 
 - `apps/web/src/server/battle/battle-viewer-entitlement.ts` — pure entitlement authority.
 - `apps/web/src/server/battle/battle-viewer-entitlement.test.ts` — relationship and fail-closed tests.
+- `apps/web/src/server/battle/battle-session-service.ts` — makes participant projection require validated viewer entitlement while preserving the current payload.
+- `apps/web/src/server/battle/pvp-battle-quality-service.ts` — passes persisted viewer control through the shared committed-session projection after surrender.
 - `apps/web/src/server/battle/supabase-battle-session-repository.ts` — route current commits through v3 with a null/public-baseline privacy decision.
 - `supabase/migrations/20260916140000_battle_privacy_journal_foundation.sql` — private journal table, visibility validator, and v3 commit wrapper.
 - `.github/scripts/verify-battle-privacy-journal.sh` — database authority, atomicity, replay, legacy, and non-leak regression.
@@ -45,7 +47,9 @@ A missing journal row means pre-CSR legacy/public history. Exact idempotent repl
 - [x] Derive participant friendliness only from authoritative `BattleCombatant.teamId` values.
 - [x] Fail closed for empty, missing, duplicate, or cross-team controlled combatants.
 - [x] Keep spectators explicitly unprivileged.
-- [x] Leave live projection wiring for CSR-2 so CSR-0 remains a behavior-preserving foundation.
+- [x] Require validated viewer entitlement at the existing participant session projection boundary without changing the projected payload.
+- [x] Preserve PvP surrender compatibility by passing its persisted controlled combatant IDs through the same committed-session projection.
+- [x] Leave relationship-specific redaction and spectator/PvP-specific privacy projection behavior for CSR-2.
 
 Expected interface:
 
@@ -152,7 +156,7 @@ The Battle Session DB regression must prove:
 ## Deferred by design
 
 - **CSR-1:** typed Covert/Revealed statuses, Sensory effect, successful reveal/no-op/miss semantics, purge and Revealed AP transform.
-- **CSR-2:** wire viewer entitlement into live player/reconnect/PvP/spectator projections and perform positive-status redaction.
+- **CSR-2:** apply relationship-specific redaction consistently across live player/reconnect/PvP/spectator projections, including spectator-specific entitlement handling and positive-status redaction.
 - **CSR-3:** consume persisted privacy decisions for hidden-command collapsing, positive lifecycle suppression, Sensory Reveal boundary, and no retroactive disclosure.
 - **CSR-4:** battle presentation, inspect/log/spectator/reconnect browser acceptance and final readiness.
 
