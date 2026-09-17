@@ -5,11 +5,8 @@ import { AurevaneError } from '@aurevane/game-core/errors'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
-import {
-  buildBattleLogView,
-  collectBattleEventHistory,
-  type BattleLogView,
-} from './battle-log-service'
+import { createViewerSafeBattleLogService, type BattleLogView } from './battle-log-service'
+import { createSupabaseBattleSessionRepository } from './supabase-battle-session-repository'
 
 export interface PvpBattleChatMessageView {
   id: number
@@ -198,10 +195,8 @@ export async function getPvpBattleLog(
   userId: string,
   battleSessionId: string,
 ): Promise<BattleLogView> {
-  const records = await collectBattleEventHistory((pageSize, before) =>
-    findPvpBattleEvents(userId, battleSessionId, pageSize, before),
-  )
-  return buildBattleLogView(battleSessionId, records)
+  const repository = createSupabaseBattleSessionRepository()
+  return createViewerSafeBattleLogService(repository, repository).getLog(userId, battleSessionId)
 }
 
 export async function findPvpBattleEvents(
