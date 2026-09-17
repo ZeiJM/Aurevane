@@ -22,13 +22,28 @@ async function capture(page: Page, testInfo: TestInfo, name: string): Promise<vo
   await testInfo.attach(name, { body: await page.screenshot(), contentType: 'image/png' })
 }
 
-async function expectReachableControl(locator: Locator): Promise<void> {
+async function expectAboveFooter(page: Page, locator: Locator): Promise<void> {
+  // Profile owns an internally scrollable sheet on desktop; scroll the actual target, not window.
   await locator.scrollIntoViewIfNeeded()
-  await expect(locator).toBeVisible()
+  await settleLayout(page)
+  const footer = await page.locator('[data-testid="authenticated-shell"] > footer').boundingBox()
+  const box = await locator.boundingBox()
+  expect(footer).not.toBeNull()
+  expect(box).not.toBeNull()
+  expect(box!.y).toBeGreaterThanOrEqual(0)
+  expect(box!.y + box!.height).toBeLessThanOrEqual(footer!.y + 1)
   await locator.click({ trial: true })
 }
 
 async function expectHallFits(page: Page, label: string): Promise<void> {
+  // Field interaction may legitimately scroll the natural-height Hall on short windows.
+  // Measure the layout's baseline, not the previous input's auto-scrolled viewport.
+  // Real clicks above/below these checks still prove the controls are reachable.
+  await page.evaluate(() => {
+    if (document.querySelector('[data-hall-concept]')) {
+      document.getElementById('game-main')?.scrollTo({ top: 0, behavior: 'instant' })
+    }
+  })
   await settleLayout(page)
   const metrics = await page.evaluate(() => {
     const main = document.querySelector<HTMLElement>('#game-main')!
@@ -112,9 +127,17 @@ test('desktop Profile and all Battle Hall setups fit without clipped controls or
     await expect(page.getByTestId('character-profile')).toBeVisible()
     await settleLayout(page)
     const reset = page.getByRole('button', { name: 'Reset Attributes' })
-    // Current Profile columns own bounded internal scrolling; the user-facing invariant is that
-    // the lower action remains reachable and operable at every supported desktop viewport.
-    await expectReachableControl(reset)
+    await expectAboveFooter(page, reset)
+    const profileBottom = await page
+      .locator('section[aria-label="Attribute redistribution"]')
+      .boundingBox()
+    const profileFooter = await page
+      .locator('[data-testid="authenticated-shell"] > footer')
+      .boundingBox()
+    expect(
+      profileBottom!.y + profileBottom!.height,
+      `Profile lower section ${size}`,
+    ).toBeLessThanOrEqual(profileFooter!.y + 1)
     await capture(page, testInfo, `profile-${size}`)
     await reset.click()
     const dialog = page.getByRole('dialog', { name: 'Redistribute Attributes', exact: true })
@@ -136,14 +159,8 @@ test('desktop Profile and all Battle Hall setups fit without clipped controls or
     for (const mode of ['1v1', '2v2', '3v3', '1v1v1', 'flex-teams']) {
       await page.locator('#pvp-mode').selectOption(mode)
       if (mode === 'flex-teams') {
-        await page
-          .locator('[data-pvp-create-card] > div:has(select) select')
-          .nth(0)
-          .selectOption('3')
-        await page
-          .locator('[data-pvp-create-card] > div:has(select) select')
-          .nth(1)
-          .selectOption('3')
+        await page.locator('[data-pvp-team-sizes] select').nth(0).selectOption('3')
+        await page.locator('[data-pvp-team-sizes] select').nth(1).selectOption('3')
       }
       await expectHallFits(page, `${mode} ${size}`)
     }
@@ -157,6 +174,7 @@ test('desktop Profile and all Battle Hall setups fit without clipped controls or
     await expect(
       page.getByRole('button', { name: '120 second turn timer', exact: true }),
     ).toHaveAttribute('aria-pressed', 'true')
+    await page.getByRole('button', { name: 'Join by Key', exact: true }).click()
     await page.locator('#lobby-key').fill('avlabcd1234')
     await expect(page.locator('#lobby-key')).toHaveValue('AVL-ABCD-1234')
     await expect(page.getByRole('button', { name: 'Join Battle Lobby', exact: true })).toBeEnabled()
@@ -199,7 +217,7 @@ test('phone Battle Hall keeps its existing scrolling layout and functional tabs'
   const tabs = page.getByRole('navigation', { name: 'Battle Hall sections' })
   for (const tone of ['ai', 'pvp', 'spectate']) {
     await tabs.locator(`button[data-tone="${tone}"]`).click()
-    await expect(page.locator(`#battle-launch > section[data-tone="${tone}"]`)).toBeVisible()
+    await expect(page.locator(`[data-hall-workspace="${tone}"]`)).toBeVisible()
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
       await page.evaluate(() => document.documentElement.clientWidth + 1),
     )
@@ -231,16 +249,15 @@ test('mobile page panels clear the navigation bar at the end of scrolling', asyn
         page.evaluate(() => {
           const main = document.querySelector('#game-main')!
           const footer = document.querySelector('[data-testid="authenticated-shell"] > footer')!
-          const primaryDock = document.querySelector<HTMLElement>('[data-av-primary-dock="true"]')!
           const mainRect = main.getBoundingClientRect()
           const footerRect = footer.getBoundingClientRect()
-          const dockRect = primaryDock.getBoundingClientRect()
+          const dockRect = document.querySelector('[data-av-game-rail]')!.getBoundingClientRect()
           return {
+            dockTop: dockRect.top,
+            dockBottom: dockRect.bottom,
             mainBottom: mainRect.bottom,
             footerTop: footerRect.top,
             footerBottom: footerRect.bottom,
-            dockTop: dockRect.top,
-            dockBottom: dockRect.bottom,
             viewportHeight: innerHeight,
             overflowX: document.documentElement.scrollWidth - innerWidth,
             bottomPadding: parseFloat(getComputedStyle(main).paddingBottom),
@@ -256,7 +273,7 @@ test('mobile page panels clear the navigation bar at the end of scrolling', asyn
       ).toBeGreaterThanOrEqual(8)
       expect(
         metrics.footerBottom,
-        `${path}: presence footer stays above the fixed primary navigation dock`,
+        `${path}: Online Users clears the bottom dock`,
       ).toBeLessThanOrEqual(metrics.dockTop + 1)
       expect(Math.abs(metrics.dockBottom - metrics.viewportHeight)).toBeLessThanOrEqual(1)
       expect(metrics.overflowX).toBeLessThanOrEqual(1)
