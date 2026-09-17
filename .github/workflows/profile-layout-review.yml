@@ -97,7 +97,7 @@ jobs:
           pnpm install --frozen-lockfile
           pnpm exec prettier apps/web/e2e/creation-subject-layout-regression.pw.ts > /tmp/creation-subject.formatted.ts
           diff -u apps/web/e2e/creation-subject-layout-regression.pw.ts /tmp/creation-subject.formatted.ts || true
-          pnpm --filter @aurevane/web exec playwright install --with-deps chromium
+          exit 1
       - name: Start disposable local database
         run: |
           pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
