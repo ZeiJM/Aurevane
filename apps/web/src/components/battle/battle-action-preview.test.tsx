@@ -43,15 +43,18 @@ const attack: ActionPreview = {
 }
 
 describe('current selection forecast', () => {
-  it('shows the authored Discipline skill context before a target without inventing an outcome', () => {
-    const markup = renderToStaticMarkup(
-      <BattleActionPreview preview={null} pending={false} skill={barrier} />,
-    )
-    for (const label of ['40 AP', 'Ally', '1–3 tiles', 'Guarded', 'Skill details'])
-      expect(markup).toContain(label)
-    expect(markup).not.toContain('Success 100%')
-    expect(markup).not.toContain('Forecast details')
-  })
+  it(
+    'shows the authored Discipline skill context before a target without inventing an outcome',
+    () => {
+      const markup = renderToStaticMarkup(
+        <BattleActionPreview preview={null} pending={false} skill={barrier} />,
+      )
+      for (const label of ['40 AP', 'Ally', '1–3 tiles', 'Guarded', 'Skill details'])
+        expect(markup).toContain(label)
+      expect(markup).not.toContain('Success 100%')
+      expect(markup).not.toContain('Forecast details')
+    },
+  )
 
   it('never presents the previous skill projection after switching Discipline choices', () => {
     const markup = renderToStaticMarkup(
