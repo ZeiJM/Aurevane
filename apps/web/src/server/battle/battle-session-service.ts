@@ -63,10 +63,6 @@ import {
   resolveBattleEssenceDefinition,
   type BattleBuildAuthoritySnapshot,
 } from './battle-build-authority'
-import {
-  deriveParticipantBattleViewerEntitlement,
-  type BattleViewerEntitlement,
-} from './battle-viewer-entitlement'
 
 const PV1F_RULES_VERSION = 2
 const PV1F_CONTENT_VERSION = 2
@@ -327,13 +323,7 @@ function readPersistedEncounter(snapshot: unknown): BattleAuthoritativeEncounter
   }
 }
 
-function projectBattleSnapshot(
-  state: BattleAuthoritativeEncounterState,
-  viewer: BattleViewerEntitlement,
-): BattleSessionProjection {
-  // CSR-0 makes viewer authority mandatory at the projection boundary. CSR-2 will use
-  // this entitlement to redact viewer-relative state without changing this call shape.
-  void viewer
+function projectBattleSnapshot(state: BattleAuthoritativeEncounterState): BattleSessionProjection {
   const battle = state.tactical.battle
   return {
     ...state,
@@ -358,30 +348,13 @@ function projectBattleSnapshot(
   }
 }
 
-function deriveBattleViewerEntitlement(
-  state: BattleAuthoritativeEncounterState,
-  controlledCombatantIds: readonly string[],
-): BattleViewerEntitlement {
-  try {
-    return deriveParticipantBattleViewerEntitlement(
-      state.tactical.battle.combatants,
-      controlledCombatantIds,
-    )
-  } catch {
-    throw persistenceInvalid()
-  }
-}
-
 export function projectCommittedBattleSession(
   committed: TransactionalCommandResult<BattleSessionCommitRecord>,
-  controlledCombatantIds: readonly string[],
 ): BattleSessionView {
-  const state = readPersistedEncounter(committed.result.snapshot)
-  const viewer = deriveBattleViewerEntitlement(state, controlledCombatantIds)
   return {
     battleSessionId: committed.result.battleSessionId,
     battleVersion: committed.result.battleVersion,
-    snapshot: projectBattleSnapshot(state, viewer),
+    snapshot: projectBattleSnapshot(readPersistedEncounter(committed.result.snapshot)),
     replayed: committed.replayed,
     invalidation: createBattleSessionChangedInvalidation({
       battleSessionId: committed.result.battleSessionId,
@@ -389,6 +362,23 @@ export function projectCommittedBattleSession(
       occurredAt: committed.result.committedAt,
       reason: 'state_changed',
     }),
+  }
+}
+
+function assertControlledCombatantProjection(
+  state: BattleAuthoritativeEncounterState,
+  controlledCombatantIds: readonly string[],
+): void {
+  if (
+    controlledCombatantIds.length === 0 ||
+    new Set(controlledCombatantIds).size !== controlledCombatantIds.length
+  ) {
+    throw persistenceInvalid()
+  }
+  for (const combatantId of controlledCombatantIds) {
+    if (!state.tactical.battle.combatants.some((combatant) => combatant.id === combatantId)) {
+      throw persistenceInvalid()
+    }
   }
 }
 
@@ -600,13 +590,11 @@ export function createBattleSessionService({
           },
         ],
       })
-      const persistedState = readPersistedEncounter(persisted.result.snapshot)
-      const viewer = deriveBattleViewerEntitlement(persistedState, [`character:${character.id}`])
 
       return {
         battleSessionId: persisted.result.battleSessionId,
         battleVersion: persisted.result.battleVersion,
-        snapshot: projectBattleSnapshot(persistedState, viewer),
+        snapshot: projectBattleSnapshot(readPersistedEncounter(persisted.result.snapshot)),
         replayed: persisted.replayed,
         invalidation: createBattleSessionChangedInvalidation({
           battleSessionId: persisted.result.battleSessionId,
@@ -628,11 +616,11 @@ export function createBattleSessionService({
       ) {
         throw persistenceInvalid()
       }
-      const viewer = deriveBattleViewerEntitlement(snapshot, persisted.controlledCombatantIds)
+      assertControlledCombatantProjection(snapshot, persisted.controlledCombatantIds)
       return {
         battleSessionId: persisted.battleSessionId,
         battleVersion: persisted.battleVersion,
-        snapshot: projectBattleSnapshot(snapshot, viewer),
+        snapshot: projectBattleSnapshot(snapshot),
         replayed: false,
         invalidation: null,
       }
@@ -642,7 +630,7 @@ export function createBattleSessionService({
       const current = await battles.findBattleSession(command.userId, command.battleSessionId)
       if (!current) throw battleUnavailable()
       const state = readPersistedEncounter(current.snapshot)
-      deriveBattleViewerEntitlement(state, current.controlledCombatantIds)
+      assertControlledCombatantProjection(state, current.controlledCombatantIds)
       const requestFingerprint = fingerprint({
         command: 'battle.intent.v3',
         battleSessionId: command.battleSessionId,
@@ -662,16 +650,11 @@ export function createBattleSessionService({
         if (!replay) {
           throw new StaleBattleVersionError(current.battleVersion)
         }
-        const replayState = readPersistedEncounter(replay.snapshot)
-        const replayViewer = deriveBattleViewerEntitlement(
-          replayState,
-          current.controlledCombatantIds,
-        )
 
         return {
           battleSessionId: replay.battleSessionId,
           battleVersion: replay.battleVersion,
-          snapshot: projectBattleSnapshot(replayState, replayViewer),
+          snapshot: projectBattleSnapshot(readPersistedEncounter(replay.snapshot)),
           replayed: true,
           invalidation: createBattleSessionChangedInvalidation({
             battleSessionId: replay.battleSessionId,
@@ -695,7 +678,7 @@ export function createBattleSessionService({
         events: resolved.events,
       })
 
-      return projectCommittedBattleSession(committed, current.controlledCombatantIds)
+      return projectCommittedBattleSession(committed)
     },
   }
 }

@@ -238,7 +238,7 @@ export async function surrenderPvpBattle(
       nextSnapshot: resolved.state,
       events: resolved.events,
     })
-    return projectCommittedBattleSession(committed, current.controlledCombatantIds)
+    return projectCommittedBattleSession(committed)
   } catch (error) {
     if (!(error instanceof StaleBattleVersionError)) throw error
   }
