@@ -43,18 +43,15 @@ const attack: ActionPreview = {
 }
 
 describe('current selection forecast', () => {
-  it(
-    'shows the authored Discipline skill context before a target without inventing an outcome',
-    () => {
-      const markup = renderToStaticMarkup(
-        <BattleActionPreview preview={null} pending={false} skill={barrier} />,
-      )
-      for (const label of ['40 AP', 'Ally', '1–3 tiles', 'Guarded', 'Skill details'])
-        expect(markup).toContain(label)
-      expect(markup).not.toContain('Success 100%')
-      expect(markup).not.toContain('Forecast details')
-    },
-  )
+  it('shows the authored Discipline skill context before a target without inventing an outcome', () => {
+    const markup = renderToStaticMarkup(
+      <BattleActionPreview preview={null} pending={false} skill={barrier} />,
+    )
+    for (const label of ['40 AP', 'Ally', '1–3 tiles', 'Guarded', 'Skill details'])
+      expect(markup).toContain(label)
+    expect(markup).not.toContain('Success 100%')
+    expect(markup).not.toContain('Forecast details')
+  })
 
   it('never presents the previous skill projection after switching Discipline choices', () => {
     const markup = renderToStaticMarkup(
@@ -97,120 +94,109 @@ describe('current selection forecast', () => {
     expect(markup).toContain('aria-label="Forecast details"')
   })
 
-  it(
-    'renders authoritative copied ordinary, Poison, Burn and Bleed status forecasts without machine encodings',
-    () => {
-      const cases: Array<{
-        effect: ActionPreview['projectedEffects'][number]
-        label: string
-        machineText: string
-      }> = [
-        {
-          effect: {
-            effectType: 'copy-statuses',
-            combatantId: 'you',
-            before: 'none',
-            after: 'status.guard:1:3',
-          },
-          label: 'Copied Guard · 1 stack · 3 turns',
-          machineText: 'status.guard:1:3',
+  it('renders authoritative copied ordinary, Poison, Burn and Bleed status forecasts without machine encodings', () => {
+    const cases: Array<{
+      effect: ActionPreview['projectedEffects'][number]
+      label: string
+      machineText: string
+    }> = [
+      {
+        effect: {
+          effectType: 'copy-statuses',
+          combatantId: 'you',
+          before: 'none',
+          after: 'status.guard:1:3',
         },
-        {
-          effect: {
-            effectType: 'copy-statuses',
-            combatantId: 'enemy',
-            before: 'none',
-            after: 'poison:3',
-          },
-          label: 'Copied Poison (Poisoned) · movement progress 3',
-          machineText: 'poison:3',
+        label: 'Copied Guard · 1 stack · 3 turns',
+        machineText: 'status.guard:1:3',
+      },
+      {
+        effect: {
+          effectType: 'copy-statuses',
+          combatantId: 'enemy',
+          before: 'none',
+          after: 'poison:3',
         },
-        {
-          effect: {
-            effectType: 'copy-statuses',
-            combatantId: 'enemy',
-            before: 'burn:2',
-            after: 'burn:0',
-          },
-          label: 'Copied Burn (Scorched) · stage 2→0',
-          machineText: 'burn:2',
+        label: 'Copied Poison (Poisoned) · movement progress 3',
+        machineText: 'poison:3',
+      },
+      {
+        effect: {
+          effectType: 'copy-statuses',
+          combatantId: 'enemy',
+          before: 'burn:2',
+          after: 'burn:0',
         },
-        {
-          effect: {
-            effectType: 'copy-statuses',
-            combatantId: 'enemy',
-            before: 'bleed:1:1',
-            after: 'bleed:3:2',
-          },
-          label: 'Copied Bleed (Bleeding) · 1 dmg × 1 tick → 3 dmg × 2 ticks',
-          machineText: 'bleed:1:1',
+        label: 'Copied Burn (Scorched) · stage 2→0',
+        machineText: 'burn:2',
+      },
+      {
+        effect: {
+          effectType: 'copy-statuses',
+          combatantId: 'enemy',
+          before: 'bleed:1:1',
+          after: 'bleed:3:2',
         },
-      ]
+        label: 'Copied Bleed (Bleeding) · 1 dmg × 1 tick → 3 dmg × 2 ticks',
+        machineText: 'bleed:1:1',
+      },
+    ]
 
-      for (const { effect, label, machineText } of cases) {
-        const markup = renderToStaticMarkup(
-          <BattleActionPreview
-            preview={{
-              ...attack,
-              actionId: 'test.copy-statuses',
-              hitChanceBasisPoints: null,
-              defenseKind: null,
-              defenseRating: null,
-              mitigatedBaseDamage: null,
-              projectedEffects: [effect],
-            }}
-            pending={false}
-          />,
-        )
-        expect(markup).toContain(label)
-        expect(markup).not.toContain(machineText)
-      }
-    },
-  )
-
-  it(
-    'keeps the compact forecast bounded while preserving every mixed projection for Forecast details',
-    () => {
-      const mixedPreview: ActionPreview = {
-        ...attack,
-        actionId: 'test.copy-statuses.mixed',
-        hitChanceBasisPoints: null,
-        defenseKind: null,
-        defenseRating: null,
-        mitigatedBaseDamage: null,
-        projectedEffects: [
-          {
-            effectType: 'copy-statuses',
-            combatantId: 'you',
-            before: 'none',
-            after: 'status.inspired:1:2',
-          },
-          { effectType: 'damage', combatantId: 'enemy', before: 40, after: 33 },
-          { effectType: 'healing', combatantId: 'you', before: 20, after: 25 },
-          { effectType: 'resource-change', combatantId: 'you', before: 4, after: 6 },
-        ],
-      }
+    for (const { effect, label, machineText } of cases) {
       const markup = renderToStaticMarkup(
-        <BattleActionPreview preview={mixedPreview} pending={false} />,
+        <BattleActionPreview
+          preview={{
+            ...attack,
+            actionId: 'test.copy-statuses',
+            hitChanceBasisPoints: null,
+            defenseKind: null,
+            defenseRating: null,
+            mitigatedBaseDamage: null,
+            projectedEffects: [effect],
+          }}
+          pending={false}
+        />,
       )
+      expect(markup).toContain(label)
+      expect(markup).not.toContain(machineText)
+    }
+  })
 
-      for (const label of ['Copied Inspire · 1 stack · 2 turns', '7 dmg', 'Heal +5']) {
-        expect(markup).toContain(label)
-      }
-      expect(markup).toContain('aria-label="Forecast details"')
-      expect(markup).not.toContain('status.inspired:1:2')
+  it('keeps the compact forecast bounded while preserving every mixed projection for Forecast details', () => {
+    const mixedPreview: ActionPreview = {
+      ...attack,
+      actionId: 'test.copy-statuses.mixed',
+      hitChanceBasisPoints: null,
+      defenseKind: null,
+      defenseRating: null,
+      mitigatedBaseDamage: null,
+      projectedEffects: [
+        {
+          effectType: 'copy-statuses',
+          combatantId: 'you',
+          before: 'none',
+          after: 'status.inspired:1:2',
+        },
+        { effectType: 'damage', combatantId: 'enemy', before: 40, after: 33 },
+        { effectType: 'healing', combatantId: 'you', before: 20, after: 25 },
+        { effectType: 'resource-change', combatantId: 'you', before: 4, after: 6 },
+      ],
+    }
+    const markup = renderToStaticMarkup(
+      <BattleActionPreview preview={mixedPreview} pending={false} />,
+    )
 
-      const detailLabels = previewChips(mixedPreview).map((chip) => chip.label)
-      for (const label of [
-        'Copied Inspire · 1 stack · 2 turns',
-        '7 dmg',
-        'Heal +5',
-        'Resource +2',
-      ]) {
-        expect(detailLabels).toContain(label)
-      }
-    },
-  )
+    for (const label of ['Copied Inspire · 1 stack · 2 turns', '7 dmg', 'Heal +5']) {
+      expect(markup).toContain(label)
+    }
+    expect(markup).toContain('aria-label="Forecast details"')
+    expect(markup).not.toContain('status.inspired:1:2')
+
+    const detailLabels = previewChips(mixedPreview).map((chip) => chip.label)
+    for (const label of ['Copied Inspire · 1 stack · 2 turns', '7 dmg', 'Heal +5', 'Resource +2']) {
+      expect(detailLabels).toContain(label)
+    }
+  })
 
   it('replaces a previous projection while a new target is pending', () => {
     const markup = renderToStaticMarkup(<BattleActionPreview preview={attack} pending />)
