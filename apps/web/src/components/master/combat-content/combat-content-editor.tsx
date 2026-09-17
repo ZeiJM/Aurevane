@@ -1,8 +1,11 @@
 'use client'
 
+import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
 import { useMemo, useState } from 'react'
 
 import styles from './combat-content-editor.module.css'
+import { SkillEconomyEditor, type SkillEconomyDraft } from './skill-economy-editor'
+import { SkillTargetingEditor } from './skill-targeting-editor'
 
 export interface CombatContentEditorSkillOption {
   readonly id: string
@@ -12,6 +15,7 @@ export interface CombatContentEditorSkillOption {
   readonly baseVersion: number | null
   readonly draftVersion: number | null
   readonly derivedTags: readonly string[]
+  readonly definition?: MatureSkillDefinition
 }
 
 export interface CombatContentEditorProps {
@@ -46,6 +50,13 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
   const first = initialSelection(skills, initialSkillId)
   const [disciplineId, setDisciplineId] = useState(first?.sourceDisciplineId ?? '')
   const [skillId, setSkillId] = useState(first?.id ?? '')
+  const [drafts, setDrafts] = useState<Record<string, MatureSkillDefinition>>(() =>
+    Object.fromEntries(
+      skills.flatMap((skill) =>
+        skill.definition ? [[skill.id, structuredClone(skill.definition)] as const] : [],
+      ),
+    ),
+  )
 
   const disciplineIds = useMemo(
     () => [...new Set(skills.map((skill) => skill.sourceDisciplineId))],
@@ -57,6 +68,12 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
   )
   const selectedSkill =
     disciplineSkills.find((skill) => skill.id === skillId) ?? disciplineSkills[0] ?? null
+  const selectedDraft = selectedSkill ? (drafts[selectedSkill.id] ?? selectedSkill.definition) : null
+
+  function updateSelectedDraft(next: MatureSkillDefinition) {
+    if (!selectedSkill) return
+    setDrafts((current) => ({ ...current, [selectedSkill.id]: next }))
+  }
 
   function changeDiscipline(nextDisciplineId: string) {
     setDisciplineId(nextDisciplineId)
@@ -148,10 +165,30 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
           <h2 id="draft-workspace-heading">{selectedSkill.label}</h2>
           <code>{selectedSkill.id}</code>
         </div>
-        <p className={styles.placeholder}>
-          Targeting, Action Economy, and typed effect controls arrive in the next bounded authoring
-          tasks.
-        </p>
+
+        {selectedDraft ? (
+          <div className={styles.authoringStack}>
+            <SkillTargetingEditor
+              value={selectedDraft.target}
+              onChange={(target) => updateSelectedDraft({ ...selectedDraft, target })}
+            />
+            <SkillEconomyEditor
+              value={{
+                apCost: selectedDraft.apCost,
+                mpCost: selectedDraft.mpCost,
+                accuracyMode: selectedDraft.accuracyMode,
+                accuracyModifierBasisPoints: selectedDraft.accuracyModifierBasisPoints,
+              }}
+              onChange={(economy: SkillEconomyDraft) =>
+                updateSelectedDraft({ ...selectedDraft, ...economy })
+              }
+            />
+          </div>
+        ) : (
+          <p className={styles.placeholder}>
+            This Skill has not loaded an editable typed definition yet.
+          </p>
+        )}
       </section>
 
       <section className={styles.tags} aria-labelledby="derived-tags-heading">
