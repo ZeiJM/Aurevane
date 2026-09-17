@@ -12,8 +12,7 @@ import type { StatDrivenCombatEncounterState } from '@aurevane/game-core/combat/
 import type { BattleViewerEntitlement } from './battle-viewer-entitlement'
 
 export type BattlePrivacyVisibility =
-  | { readonly kind: 'public' }
-  | { readonly kind: 'team-only'; readonly teamId: string }
+  { readonly kind: 'public' } | { readonly kind: 'team-only'; readonly teamId: string }
 
 export interface BattlePrivacyEventOverride {
   readonly eventIndex: number
@@ -74,9 +73,7 @@ function visibilityAllowed(
 }
 
 const STATUS_DEFINITIONS_BY_ID = new Map(
-  PV1F_COMBAT_CONTENT.statuses.map(
-    (definition) => [definition.id, definition] as const,
-  ),
+  PV1F_COMBAT_CONTENT.statuses.map((definition) => [definition.id, definition] as const),
 )
 
 function statusPolarity(identity: Pick<StatusIdentity, 'statusId' | 'statusVersion'>) {
@@ -250,12 +247,7 @@ function statusLifecycleIdentityBeforeOrAfter(input: {
     stringValue(input.event.sourceCombatantId) ?? stringValue(input.event.combatantId)
 
   if (input.event.event === 'status_applied') {
-    return appliedStatusIdentity(
-      input.after,
-      input.targetCombatantId,
-      statusId,
-      sourceCombatantId,
-    )
+    return appliedStatusIdentity(input.after, input.targetCombatantId, statusId, sourceCombatantId)
   }
 
   const row = input.statusesByCombatant.get(input.targetCombatantId) ?? []
@@ -306,9 +298,7 @@ export function buildBattlePrivacyJournalInput(input: {
       (combatant) => [combatant.id, combatant.teamId] as const,
     ),
   )
-  const actorWasCovert = actor
-    ? hasCovert(statusesByCombatant, actor.actorCombatantId)
-    : false
+  const actorWasCovert = actor ? hasCovert(statusesByCombatant, actor.actorCombatantId) : false
   const commandVisibility =
     input.commandKind === 'action' && actor?.actorTeamId && actorWasCovert
       ? teamVisibility(actor.actorTeamId)
@@ -379,17 +369,14 @@ function projectVersion(
   if (journal.eventCount !== records.length) {
     throw new Error('Battle history privacy journal event count does not match persisted history.')
   }
-  const indexes = records
-    .map((record) => record.eventIndex)
-    .sort((left, right) => left - right)
+  const indexes = records.map((record) => record.eventIndex).sort((left, right) => left - right)
   if (indexes.some((eventIndex, expected) => eventIndex !== expected)) {
     throw new Error('Battle history privacy journal indexes do not match persisted history.')
   }
 
   const overrides = eventOverrideMap(journal)
   const commandAllowed = visibilityAllowed(journal.commandVisibility, viewer)
-  const sourceAscending =
-    records.length < 2 || records[0]!.eventIndex < records.at(-1)!.eventIndex
+  const sourceAscending = records.length < 2 || records[0]!.eventIndex < records.at(-1)!.eventIndex
   const visible: Array<{ sortIndex: number; record: BattleEventRecord }> = []
   let filtered = false
 
@@ -404,9 +391,7 @@ function projectVersion(
       !commandAllowed && event
         ? {
             ...record,
-            event: Object.fromEntries(
-              Object.entries(event).filter(([key]) => key !== 'actionId'),
-            ),
+            event: Object.fromEntries(Object.entries(event).filter(([key]) => key !== 'actionId')),
           }
         : record
     visible.push({ sortIndex: record.eventIndex, record: visibleRecord })
