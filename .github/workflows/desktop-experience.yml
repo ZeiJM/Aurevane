@@ -8,6 +8,7 @@ on:
       - 'apps/web/src/app/desktop-*.css'
       - 'apps/web/src/app/layout.tsx'
       - 'apps/web/src/app/news/**'
+      - 'apps/web/src/app/manual/**'
       - 'apps/web/src/components/shell/**'
       - 'apps/web/src/components/character/**'
       - 'apps/web/src/components/account/**'
