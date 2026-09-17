@@ -17,6 +17,7 @@ import type { CombatContentResolver } from '@/server/combat/combat-content-resol
 import {
   createBattleBuildAuthoritySnapshot,
   createResolvedBattleBuildAuthoritySnapshot,
+  resolveBattleDisciplineSkillDefinition,
 } from './battle-build-authority'
 
 const CHARACTER_ID = '00000000-0000-4000-8000-000000009901'
@@ -43,6 +44,9 @@ function resolver(): CombatContentResolver {
       return resolveMatureSkillVersion(skillId)
     },
     async resolvePinnedSkillDefinition(skillId, contentVersion) {
+      if (skillId === 'vanguard.forceful-strike' && contentVersion === 7) {
+        return publishedForcefulStrike()
+      }
       return resolveMatureSkillVersion(skillId, contentVersion)
     },
   }
@@ -150,5 +154,34 @@ describe('published combat content consumption', () => {
     expect(existingBattle.combatants[0]!.disciplineSkills[0]!.contentVersion).toBe(oldVersion)
     expect(newBattle.catalogVersion).toBe(3)
     expect(newBattle.combatants[0]!.disciplineSkills[0]!.contentVersion).toBe(7)
+  })
+
+  it('resolves the exact pinned publication for catalog-v3 battle execution without static fallback', async () => {
+    const snapshot = committedSnapshot()
+    const authority = await createResolvedBattleBuildAuthoritySnapshot(
+      'pve',
+      [{ combatantId: COMBATANT_ID, characterId: CHARACTER_ID, snapshot }],
+      resolver(),
+    )
+
+    const resolved = await resolveBattleDisciplineSkillDefinition(
+      authority,
+      COMBATANT_ID,
+      'vanguard.forceful-strike',
+      resolver(),
+    )
+
+    expect(resolved).toMatchObject({
+      id: 'vanguard.forceful-strike',
+      contentVersion: 7,
+      apCost: 37,
+    })
+    await expect(
+      resolveBattleDisciplineSkillDefinition(
+        authority,
+        COMBATANT_ID,
+        'vanguard.forceful-strike',
+      ),
+    ).resolves.toBeNull()
   })
 })

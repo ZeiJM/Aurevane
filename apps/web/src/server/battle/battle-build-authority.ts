@@ -16,6 +16,7 @@ import {
 import {
   resolveMatureSkillVersion,
   type MatureSkillCombatContext,
+  type MatureSkillDefinition,
 } from '@aurevane/game-core/combat/mature-skills'
 import {
   resonanceSnapshotReference,
@@ -459,6 +460,27 @@ export function battleBuildAuthorityForCombatant(
   combatantId: string,
 ): BattleBuildAuthorityCombatantSnapshot | null {
   return authority?.combatants.find((candidate) => candidate.combatantId === combatantId) ?? null
+}
+
+export async function resolveBattleDisciplineSkillDefinition(
+  authority: BattleBuildAuthoritySnapshot | null | undefined,
+  combatantId: string,
+  skillId: string,
+  resolver?: CombatContentResolver,
+): Promise<MatureSkillDefinition | null> {
+  const build = battleBuildAuthorityForCombatant(authority, combatantId)
+  const reference = build?.disciplineSkills.find((skill) => skill.skillId === skillId)
+  if (!reference) return null
+
+  const definition =
+    authority?.catalogVersion === 3
+      ? resolver
+        ? await resolver.resolvePinnedSkillDefinition(reference.skillId, reference.contentVersion)
+        : null
+      : resolveMatureSkillVersion(reference.skillId, reference.contentVersion)
+
+  if (!definition || definition.sourceDisciplineId !== reference.sourceDisciplineId) return null
+  return structuredClone(definition)
 }
 
 export function resolveBattleEssenceDefinition(

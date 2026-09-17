@@ -55,6 +55,7 @@ import type {
   CharacterBuildRepository,
 } from '../character/character-build-service'
 import { loadCharacterCommittedBuildSnapshot } from '../character/character-build-service'
+import type { CombatContentResolver } from '@/server/combat/combat-content-resolver'
 import { battleActionResourceIssue } from './battle-action-resource-availability'
 import {
   buildBattlePrivacyJournalInput,
@@ -64,7 +65,9 @@ import { projectBattleStatusStateForViewer } from './battle-live-viewer-projecti
 import {
   battleBuildAuthorityForCombatant,
   createBattleBuildAuthoritySnapshot,
+  createResolvedBattleBuildAuthoritySnapshot,
   parseBattleBuildAuthoritySnapshot,
+  resolveBattleDisciplineSkillDefinition,
   resolveBattleEssenceDefinition,
   type BattleBuildAuthoritySnapshot,
 } from './battle-build-authority'
@@ -135,6 +138,7 @@ interface Dependencies {
   characters: CharacterRepository
   battles: BattleSessionRepository
   builds?: CharacterBuildRepository
+  combatContentResolver?: CombatContentResolver
 }
 
 function battleIntentPrivacyKind(kind: BattleIntent['kind']): BattlePrivacyCommandKind {
@@ -429,10 +433,11 @@ function preserveBuildAuthority(
   }
 }
 
-function resolveIntent(
+async function resolveIntent(
   state: BattleAuthoritativeEncounterState,
   intent: BattleIntent,
-): { state: BattleAuthoritativeEncounterState; events: readonly unknown[] } {
+  combatContentResolver?: CombatContentResolver,
+): Promise<{ state: BattleAuthoritativeEncounterState; events: readonly unknown[] }> {
   try {
     if (intent.kind === 'move') {
       return preserveBuildAuthority(state, executePv1fMovement(state, intent.path))
@@ -462,11 +467,14 @@ function resolveIntent(
         (reference) => reference.skillId === intent.actionId,
       )
       if (taggedTechnique && state.buildAuthority) {
-        const definition = resolveMatureSkillVersion(
+        const definition = await resolveBattleDisciplineSkillDefinition(
+          state.buildAuthority,
+          actorId ?? '',
           taggedTechnique.skillId,
-          taggedTechnique.contentVersion,
+          combatContentResolver,
         )
-        if (!definition || definition.sourceDisciplineId !== taggedTechnique.sourceDisciplineId) {
+        if (!definition) {
+          if (state.buildAuthority.catalogVersion === 3) throw persistenceInvalid()
           throw invalidBattleIntent('That tagged Technique is no longer available.')
         }
         return preserveBuildAuthority(
@@ -513,6 +521,7 @@ export function createBattleSessionService({
   characters,
   battles,
   builds,
+  combatContentResolver,
 }: Dependencies): BattleSessionService {
   return {
     async createSession(command) {
@@ -571,13 +580,25 @@ export function createBattleSessionService({
         }
         encounter = {
           ...baseEncounter,
-          buildAuthority: createBattleBuildAuthoritySnapshot('pve', [
-            {
-              combatantId: `character:${character.id}`,
-              characterId: character.id,
-              snapshot: committedBuildSnapshot,
-            },
-          ]),
+          buildAuthority: combatContentResolver
+            ? await createResolvedBattleBuildAuthoritySnapshot(
+                'pve',
+                [
+                  {
+                    combatantId: `character:${character.id}`,
+                    characterId: character.id,
+                    snapshot: committedBuildSnapshot,
+                  },
+                ],
+                combatContentResolver,
+              )
+            : createBattleBuildAuthoritySnapshot('pve', [
+                {
+                  combatantId: `character:${character.id}`,
+                  characterId: character.id,
+                  snapshot: committedBuildSnapshot,
+                },
+              ]),
         }
       }
       const battle = encounter.tactical.battle
@@ -693,7 +714,7 @@ export function createBattleSessionService({
       }
 
       assertPlayerControlledTurn(state, current.controlledCombatantIds)
-      const resolved = resolveIntent(state, command.intent)
+      const resolved = await resolveIntent(state, command.intent, combatContentResolver)
       const privacyJournal = buildBattlePrivacyJournalInput({
         before: state,
         after: resolved.state,
