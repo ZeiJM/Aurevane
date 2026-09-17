@@ -332,7 +332,9 @@ export function parseBattleBuildAuthoritySnapshot(
   if (
     !isRecord(value) ||
     value.schemaVersion !== BATTLE_BUILD_AUTHORITY_SCHEMA_VERSION ||
-    (value.catalogVersion !== undefined && value.catalogVersion !== 2 && value.catalogVersion !== 3) ||
+    (value.catalogVersion !== undefined &&
+      value.catalogVersion !== 2 &&
+      value.catalogVersion !== 3) ||
     (value.combatContext !== 'pve' && value.combatContext !== 'pvp') ||
     !Array.isArray(value.combatants) ||
     value.combatants.length === 0
