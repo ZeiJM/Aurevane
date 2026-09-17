@@ -1,0 +1,1 @@
+Temporary branch-hygiene note created only to force connector tool discovery in this session; safe to remove immediately.
