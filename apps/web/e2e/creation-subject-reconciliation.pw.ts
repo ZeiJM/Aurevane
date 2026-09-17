@@ -39,14 +39,20 @@ test('Creation Discipline follows its own subject composition without losing rea
   await expect(workspace).toHaveAttribute('data-creation-surface', 'moonstone')
   await expect(choices).toHaveCount(6)
   await expect(rows).toHaveCount(6)
-  await expect(creation.getByTestId('attribute-points')).toContainText('personal points remaining')
+  await expect(creation.getByTestId('attribute-points')).toContainText(
+    'personal points remaining',
+  )
 
   const metrics = await page.evaluate(() => {
     const workspaceElement = document.querySelector<HTMLElement>(
       '[data-testid="creation-discipline-workspace"]',
     )!
-    const firstRow = document.querySelectorAll<HTMLElement>('[data-testid="creation-attribute-row"]')[0]
-    const secondRow = document.querySelectorAll<HTMLElement>('[data-testid="creation-attribute-row"]')[1]
+    const firstRow = document.querySelectorAll<HTMLElement>(
+      '[data-testid="creation-attribute-row"]',
+    )[0]
+    const secondRow = document.querySelectorAll<HTMLElement>(
+      '[data-testid="creation-attribute-row"]',
+    )[1]
     const background = getComputedStyle(workspaceElement).backgroundColor
     return {
       background,
@@ -99,7 +105,9 @@ test('Creation Confirm follows its own subject composition and keeps genuine sub
   await expect(creation.getByTestId('creation-confirm-discipline-sigil')).toBeVisible()
   await expect(creation).not.toContainText(/pronouns/i)
   await expect(creation.getByRole('button', { name: 'Back', exact: true })).toBeEnabled()
-  await expect(creation.getByRole('button', { name: 'Create character', exact: true })).toBeEnabled()
+  await expect(
+    creation.getByRole('button', { name: 'Create character', exact: true }),
+  ).toBeEnabled()
 
   const geometry = await page.evaluate(() => {
     const portraitElement = document.querySelector<HTMLElement>(
