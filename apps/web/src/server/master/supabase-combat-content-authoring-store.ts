@@ -39,6 +39,14 @@ function positiveInteger(value: unknown): value is number {
   return Number.isSafeInteger(value) && (value as number) > 0
 }
 
+function positiveBigintAsNumber(value: unknown): number | null {
+  if (positiveInteger(value)) return value
+  if (typeof value !== 'string' || !/^[1-9]\d*$/.test(value)) return null
+
+  const parsed = Number(value)
+  return Number.isSafeInteger(parsed) ? parsed : null
+}
+
 function combatContentKind(value: unknown): CombatContentKind | null {
   return value === 'skill' || value === 'status' || value === 'effect-profile' ? value : null
 }
@@ -58,12 +66,13 @@ function parseDraftRow(data: unknown): CombatContentDraftRecord | null {
   const kind = combatContentKind(row.content_kind)
   const definition = parseDefinition(row.definition)
   const baseVersion = row.base_version === null ? null : row.base_version
+  const draftVersion = positiveBigintAsNumber(row.draft_version)
   if (
     !requiredString(row.content_key) ||
     !kind ||
     !definition ||
     (baseVersion !== null && !positiveInteger(baseVersion)) ||
-    !positiveInteger(row.draft_version) ||
+    draftVersion === null ||
     !requiredString(row.updated_by) ||
     !requiredString(row.updated_at)
   ) {
@@ -74,7 +83,7 @@ function parseDraftRow(data: unknown): CombatContentDraftRecord | null {
     contentKind: kind,
     definition,
     baseVersion,
-    draftVersion: row.draft_version,
+    draftVersion,
     updatedBy: row.updated_by,
     updatedAt: row.updated_at,
   }
