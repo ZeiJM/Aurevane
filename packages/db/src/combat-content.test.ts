@@ -47,6 +47,22 @@ describe('InMemoryCombatContentRepository', () => {
     )
   })
 
+  it('allows a draft to reference an external static base version before the first DB publication', async () => {
+    const repository = new InMemoryCombatContentRepository()
+
+    const draft = await repository.saveDraft({
+      contentKey: 'vanguard.forceful-strike',
+      contentKind: 'skill',
+      definition: skillDefinition('Forceful Strike'),
+      baseVersion: 2,
+      expectedDraftVersion: null,
+      actorUserId: ACTOR,
+    })
+
+    expect(draft.baseVersion).toBe(2)
+    expect(draft.draftVersion).toBe(1)
+  })
+
   it('rejects a stale draft save', async () => {
     const repository = new InMemoryCombatContentRepository()
 
@@ -98,6 +114,21 @@ describe('InMemoryCombatContentRepository', () => {
     expect((await repository.findPublished(first.contentKey))?.definition).toEqual(
       skillDefinition('Water Lance', 3),
     )
+  })
+
+  it('continues version numbering from an external static base on first publication', async () => {
+    const repository = new InMemoryCombatContentRepository()
+
+    const published = await repository.publish({
+      contentKey: 'vanguard.forceful-strike',
+      contentKind: 'skill',
+      definition: skillDefinition('Forceful Strike'),
+      expectedBaseVersion: 2,
+      actorUserId: ACTOR,
+    })
+
+    expect(published.contentVersion).toBe(3)
+    expect((await repository.findPublished('vanguard.forceful-strike'))?.contentVersion).toBe(3)
   })
 
   it('rolls the current pointer back without deleting immutable history', async () => {
