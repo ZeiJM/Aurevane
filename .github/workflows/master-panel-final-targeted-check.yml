@@ -1,0 +1,48 @@
+name: Master Panel final targeted check
+
+on:
+  push:
+    branches:
+      - agent/master-panel-final-check-helper-20260917
+
+permissions:
+  contents: write
+
+jobs:
+  targeted:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Format hardening files
+        run: |
+          pnpm exec prettier --write \
+            apps/web/src/server/master/combat-content-authoring-service.ts \
+            apps/web/src/server/master/combat-content-authoring-service.test.ts
+      - name: Run focused Master Panel regressions
+        run: |
+          pnpm --filter @aurevane/web exec vitest run \
+            src/server/master/combat-content-authoring-service.test.ts \
+            src/server/battle/combat-content-publication-consumption.test.ts
+      - name: Commit formatter output when needed
+        run: |
+          if git diff --quiet; then
+            echo "No formatter changes required."
+            exit 0
+          fi
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            apps/web/src/server/master/combat-content-authoring-service.ts \
+            apps/web/src/server/master/combat-content-authoring-service.test.ts
+          git commit -m "chore: format Master Panel hardening"
+          git push
