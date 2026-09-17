@@ -31,6 +31,7 @@ export function projectBattleStatusStateForViewer(
 
   return state.statusState.map((row) => {
     const combatant = combatantById.get(row.combatantId)
+    // Validated snapshots should always resolve this row; omission is safer than disclosure if they do not.
     if (!combatant) return { ...row, statuses: [] }
 
     const relationship = battleViewerRelationship(viewer, combatant)
@@ -45,6 +46,7 @@ export function projectBattleStatusStateForViewer(
         const definition = STATUS_DEFINITION_BY_KEY.get(
           statusDefinitionKey(status.statusId, status.statusVersion),
         )
+        // Unknown or mismatched pinned status versions fail closed for unauthorized Covert viewers.
         if (!definition) return false
         return combatStatusMetadata(definition).polarity !== 'positive'
       }),
