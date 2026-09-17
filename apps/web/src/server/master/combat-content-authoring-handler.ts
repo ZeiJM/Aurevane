@@ -108,6 +108,15 @@ export async function handleCombatContentAuthoringRequest(
     const body = await readBody(request)
     const operation = requiredString(body.operation, 'operation')
 
+    if (operation === 'load') {
+      const skillId = requiredString(body.skillId, 'skillId')
+      const state = await service.loadSkillAuthoringState({
+        actorUserId: actor.userId,
+        skillId,
+      })
+      return success({ state })
+    }
+
     if (operation === 'validate') {
       const definition = requireProperty(body, 'definition')
       return success({ validation: service.validateSkillDefinition(definition) })
