@@ -28,11 +28,11 @@ as $$
 declare
   v_role text;
 begin
-  select operator.role
+  select mp_operator.role
   into v_role
-  from app_private.master_panel_operators as operator
-  where operator.user_id = p_actor_user_id
-    and operator.enabled = true;
+  from app_private.master_panel_operators as mp_operator
+  where mp_operator.user_id = p_actor_user_id
+    and mp_operator.enabled = true;
 
   if v_role is null then
     raise exception using
@@ -60,10 +60,10 @@ stable
 security definer
 set search_path = pg_catalog, public, app_private
 as $$
-  select operator.user_id, operator.role, operator.enabled
-  from app_private.master_panel_operators as operator
-  where operator.user_id = p_user_id
-    and operator.enabled = true
+  select mp_operator.user_id, mp_operator.role, mp_operator.enabled
+  from app_private.master_panel_operators as mp_operator
+  where mp_operator.user_id = p_user_id
+    and mp_operator.enabled = true
   limit 1;
 $$;
 
