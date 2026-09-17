@@ -40,10 +40,26 @@ export interface CombatContentSemanticDiff {
   readonly changedPaths: readonly string[]
 }
 
+export interface CombatContentSkillAuthoringState {
+  readonly skillId: string
+  readonly currentSource: 'static' | 'published'
+  readonly baseVersion: number
+  readonly currentDefinition: MatureSkillDefinition
+  readonly draft: CombatContentDraftRecord | null
+  readonly publishedVersions: readonly CombatContentVersionRecord[]
+  readonly validation: CombatContentValidationResult
+  readonly diff: CombatContentSemanticDiff
+  readonly draftIsStale: boolean
+}
+
 export interface CombatContentAuthoringService {
   requireOperator(actorUserId: string): Promise<MasterPanelOperatorRole>
   validateSkillDefinition(definition: unknown): CombatContentValidationResult
   diffSkillDefinitions(before: unknown, after: unknown): CombatContentSemanticDiff
+  loadSkillAuthoringState(input: {
+    actorUserId: string
+    skillId: string
+  }): Promise<CombatContentSkillAuthoringState>
   saveSkillDraft(input: {
     actorUserId: string
     definition: unknown
@@ -254,6 +270,54 @@ export function createCombatContentAuthoringService({
 
     diffSkillDefinitions(before, after) {
       return { changedPaths: semanticChangedPaths(before, after) }
+    },
+
+    async loadSkillAuthoringState(input) {
+      await authorizeOperator(store, input.actorUserId)
+      if (!input.skillId || input.skillId.trim() !== input.skillId) {
+        throw new AurevaneError('INVALID_REQUEST', 'Skill id must be a non-empty canonical id.')
+      }
+
+      const [currentDefinition, published, draft, publishedVersions] = await Promise.all([
+        resolver.resolveCurrentSkillDefinition(input.skillId),
+        store.findPublished(input.skillId),
+        store.findDraft(input.skillId),
+        store.listPublishedVersions(input.skillId),
+      ])
+
+      if (
+        !currentDefinition ||
+        currentDefinition.id !== input.skillId ||
+        !currentDefinition.enabled
+      ) {
+        throw new AurevaneError('INVALID_REQUEST', 'That Skill does not have an enabled current definition.')
+      }
+
+      const editableDefinition = draft?.definition ?? currentDefinition
+      return {
+        skillId: input.skillId,
+        currentSource: published ? 'published' : 'static',
+        baseVersion: currentDefinition.contentVersion,
+        currentDefinition: structuredClone(currentDefinition),
+        draft: draft
+          ? {
+              ...draft,
+              definition: structuredClone(draft.definition),
+            }
+          : null,
+        publishedVersions: publishedVersions.map((version) => ({
+          ...version,
+          definition: structuredClone(version.definition),
+        })),
+        validation: validateSkillDefinition(editableDefinition),
+        diff: {
+          changedPaths: draft
+            ? semanticChangedPaths(currentDefinition, draft.definition)
+            : [],
+        },
+        draftIsStale:
+          draft !== null && draft.baseVersion !== currentDefinition.contentVersion,
+      }
     },
 
     async saveSkillDraft(input) {
