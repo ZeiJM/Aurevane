@@ -159,6 +159,27 @@ describe('InMemoryCombatContentRepository', () => {
     ).toEqual([1, 2])
   })
 
+  it('can clear the DB publication pointer to restore static fallback without deleting DB history', async () => {
+    const repository = new InMemoryCombatContentRepository()
+
+    await repository.publish({
+      contentKey: 'vanguard.forceful-strike',
+      contentKind: 'skill',
+      definition: skillDefinition('Forceful Strike'),
+      expectedBaseVersion: 2,
+      actorUserId: ACTOR,
+    })
+
+    await repository.setCurrentPublication('vanguard.forceful-strike', null, OTHER_ACTOR)
+
+    expect(await repository.findPublished('vanguard.forceful-strike')).toBeNull()
+    expect(
+      (await repository.listPublishedVersions('vanguard.forceful-strike')).map(
+        (version) => version.contentVersion,
+      ),
+    ).toEqual([3])
+  })
+
   it('rejects publishing from a stale base version', async () => {
     const repository = new InMemoryCombatContentRepository()
 
