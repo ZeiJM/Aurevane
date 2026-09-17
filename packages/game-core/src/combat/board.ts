@@ -273,6 +273,20 @@ export function evaluateCurrentMovementPath(
   }
 }
 
+/** Read an entered tile's movement cost using the combatant's pinned movement profile. */
+export function movementTraversalCostAt(
+  state: TacticalBattleState,
+  combatantId: string,
+  position: GridPosition,
+): number | null {
+  const placement = getPlacement(state, combatantId)
+  return getTraversalCost(
+    state,
+    getTile(state, position).terrainId,
+    getMovementProfile(state, placement.movementProfileId),
+  )
+}
+
 export function moveCurrentCombatant(
   state: TacticalBattleState,
   path: readonly GridPosition[],

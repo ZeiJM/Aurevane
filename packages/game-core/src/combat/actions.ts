@@ -1,2420 +1,289 @@
 import {
-  hasGameplayTag,
-  statusIdsForGameplayTag,
-  validateGameplayTag,
-  validateGameplayActionMetadata,
-  type GameplayTag,
-  type CombatElement,
-} from './gameplay-tags'
+  validateCombatAccuracyDefinition,
+  forecastCombatSkillAccuracy,
+  rollCombatSkillAccuracy,
+  type CombatAccuracyAuthoring,
+  type CombatTargetHitChance,
+} from './combat-skill-accuracy'
 import {
-  terrainOverlayAt,
-  setTerrainOverlay,
-  expireTerrainOverlays,
-  validateTerrainOverlays,
-  type CombatTerrainOverlay,
-  type CombatTerrainProjection,
-  type CombatTerrainEvent,
-} from './terrain-overlays'
-import { mitigateDamageByDefense } from './damage-mitigation'
-import type { SkillNarrationTemplate } from './battle-narration'
+  materializeVengeanceDamage,
+  type CombatVengeanceDefinition,
+  type CombatVengeanceBasis,
+} from './combat-vengeance'
+import { applyCommittedReflect } from './combat-reflect'
+import type { CombatDamageScaling } from './damage-scaling'
+import { calculateScaledRawDamage, validateCombatDamageScaling } from './damage-scaling'
+import { applyCommittedAbsorbRecovery } from './combat-absorb-recovery'
+import { recordCommittedDamageHistory } from './combat-damage-history'
+import { attachCombatEffectProvenance } from './combat-effect-provenance'
 import {
-  conditionalDamageMultiplier,
-  validateDamageModifiers,
-  type CombatDamageModifier,
-} from './damage-modifiers'
+  filterBlockedCovertApplication,
+  materializeCsrCommittedAction,
+  materializeCsrPreviewAction,
+  type CombatSensoryEffect,
+} from './covert-sensory-revealed'
 import {
-  applySkillCooldown,
-  readSkillCooldown,
-  validateSkillCooldownDefinition,
-  type SkillCooldownDefinition,
-  type SkillCooldownEvent,
-} from './skill-cooldowns'
-import { endTurn, spendAction, type BattleCombatant, type BattleState } from './battle-state'
-import {
-  classifyFacingRelation,
-  createTacticalBattleState,
-  validateTacticalBattleState,
-  type CombatPlacement,
-  type CombatTile,
-  type GridPosition,
-  type TacticalBattleEvent,
-  type TacticalBattleState,
-} from './board'
+  COMBAT_RESOLUTION_PIPELINE_VERSION,
+  type CombatActionProvenance,
+  type CombatTriggerGuard,
+} from './combat-kernel-types'
+import * as legacy from './actions-legacy'
 
-export const COMBAT_ENCOUNTER_SCHEMA_VERSION = 1 as const
-export const COMBAT_BASIS_POINTS = 10_000 as const
+export * from './actions-legacy'
 
-export type CombatActionSourceType =
-  'basic-attack' | 'basic-action' | 'discipline-skill' | 'scenario' | 'test'
-export type CombatTargetKind = 'self' | 'unit' | 'ground-tile' | 'empty-tile'
-export type CombatTargetTeamPolicy = 'self' | 'ally' | 'enemy' | 'any'
-export type CombatFriendlyFirePolicy =
-  'enemies-only' | 'allies-only' | 'all-units' | 'all-except-actor'
-export type CombatEffectRecipient = 'actor' | 'primary-unit' | 'affected-units'
-
-export type CombatTargetShape =
-  { kind: 'single' } | { kind: 'circle'; radius: number } | { kind: 'line'; length: number }
-
-export interface CombatTargetSpec {
-  kind: CombatTargetKind
-  teamPolicy: CombatTargetTeamPolicy
-  shape: CombatTargetShape
-  minimumRange: number
-  maximumRange: number
-  requiresLineOfSight: boolean
-  maximumElevationDifference: number | null
-  friendlyFire: CombatFriendlyFirePolicy
-}
-
-export interface CombatActionCost {
-  spendsAction: boolean
-  mp: number
-}
-
-export type CombatUseRequirement =
-  | { kind: 'actor-status-present'; statusId: string }
-  | { kind: 'actor-status-absent'; statusId: string }
-  | { kind: 'target-status-present'; statusId: string }
-  | { kind: 'actor-hp-at-most'; basisPoints: number }
-  | { kind: 'actor-tag-present' | 'actor-tag-absent' | 'target-tag-present'; tag: GameplayTag }
-
-export interface FacingDamageModifiers {
-  front: number
-  side: number
-  rear: number
-}
+type LegacyDamageEffect = Extract<legacy.CombatEffectDefinition, { type: 'damage' }>
 
 export type CombatEffectDefinition =
-  | {
-      type: 'damage'
-      recipient: CombatEffectRecipient
-      amount: number
-      defenseKind?: 'armor' | 'ward'
-      element?: CombatElement
-      facingModifiersBasisPoints?: FacingDamageModifiers
-    }
-  | { type: 'create-terrain'; recipient: 'affected-tiles'; terrain: 'frozen' }
-  | { type: 'displace'; recipient: Exclude<CombatEffectRecipient, 'actor'>; distance: 1 }
-  | { type: 'healing'; recipient: CombatEffectRecipient; amount: number }
-  | { type: 'return-to-turn-start'; recipient: 'actor' }
-  | { type: 'remove-status'; recipient: CombatEffectRecipient; statusIds: readonly string[] }
-  | { type: 'resource-change'; recipient: CombatEffectRecipient; resource: 'mp'; delta: number }
-  | {
-      type: 'apply-status'
-      recipient: CombatEffectRecipient
-      statusId: string
-      stacks: number
-    }
+  | Exclude<legacy.CombatEffectDefinition, { type: 'damage' }>
+  | (LegacyDamageEffect & { scaling?: CombatDamageScaling; vengeance?: CombatVengeanceDefinition })
+  | CombatSensoryEffect
 
-export interface CombatActionDefinition {
-  id: string
-  version: number
-  sourceType: CombatActionSourceType
-  tags: readonly string[]
-  target: CombatTargetSpec
-  cost: CombatActionCost
-  requirements: readonly CombatUseRequirement[]
-  cooldown?: SkillCooldownDefinition
-  narration?: SkillNarrationTemplate
+export interface CombatActionDefinition
+  extends Omit<legacy.CombatActionDefinition, 'effects'>, CombatAccuracyAuthoring {
   effects: readonly CombatEffectDefinition[]
 }
 
-export interface CombatAttackProfile {
-  id: string
-  version: number
-  damage: number
-  minimumRange: number
-  maximumRange: number
-  requiresLineOfSight: boolean
-  maximumElevationDifference: number | null
-  facingModifiersBasisPoints: FacingDamageModifiers
-}
-
-export interface CombatStatusDefinition {
-  id: string
-  version: number
-  maximumStacks: number
-  durationOwnerTurnStarts: number
-  damageTakenMultiplierBasisPoints: number
-  /** Additional bounded modifiers; omitted by immutable legacy status definitions. */
-  damageModifiers?: readonly CombatDamageModifier[]
-  gameplayTags?: readonly GameplayTag[]
-  endOfTurn?: { type: 'damage' | 'healing'; amount: number }
-  movement?: { blocked?: boolean; additionalApPerTile?: number }
-  /** Consumed at the next round boundary; never adds or skips turns. */
-  nextRoundInitiative?: number
-}
-
-export interface CombatContentCatalog {
-  statuses: readonly CombatStatusDefinition[]
-}
-
-export interface CombatStatusInstance {
-  statusId: string
-  statusVersion: number
-  stacks: number
-  remainingOwnerTurnStarts: number
-  sourceCombatantId: string
-}
-
-export interface CombatantStatusState {
-  combatantId: string
-  statuses: readonly CombatStatusInstance[]
-}
-
-export interface CombatEncounterState {
-  schemaVersion: typeof COMBAT_ENCOUNTER_SCHEMA_VERSION
-  tactical: TacticalBattleState
-  statBridge?: { combatants: readonly { combatantId: string; armor: number; ward: number }[] }
-  statusState: readonly CombatantStatusState[]
-  terrainOverlays?: readonly CombatTerrainOverlay[]
-  turnOrigin?: { combatantId: string; turnNumber: number; position: GridPosition }
-}
-
-export type CombatTargetSelection =
-  | { kind: 'self' }
-  | { kind: 'unit'; combatantId: string }
-  | { kind: 'tile'; position: GridPosition }
-
-export type CombatActionIssueCode =
-  | 'battle-not-active'
-  | 'action-already-spent'
-  | 'insufficient-mp'
-  | 'cooldown-active'
-  | 'invalid-target-kind'
-  | 'target-not-found'
-  | 'target-defeated'
-  | 'target-invisible'
-  | 'target-team-not-allowed'
-  | 'target-tile-occupied'
-  | 'target-out-of-range'
-  | 'target-elevation-invalid'
-  | 'line-of-sight-blocked'
-  | 'shape-invalid'
-  | 'requirement-not-met'
-  | 'effect-target-missing'
-  | 'self-damage-deferred'
-
-export interface CombatActionIssue {
-  code: CombatActionIssueCode
-  message: string
-}
-
-export interface CombatEffectProjection {
-  effectType: CombatEffectDefinition['type']
-  combatantId: string
-  before: number | string
-  after: number | string
-}
-
-export interface CombatActionEvaluation {
-  legal: boolean
-  actionId: string
-  actorId: string | null
-  primaryPosition: GridPosition | null
-  primaryCombatantId: string | null
-  affectedTiles: readonly GridPosition[]
-  affectedCombatantIds: readonly string[]
-  projectedEffects: readonly CombatEffectProjection[]
-  projectedTerrain: readonly CombatTerrainProjection[]
-  projectedEvents: readonly CombatResolutionEvent[]
-  mpCost: number
-  spendsAction: boolean
-  issues: readonly CombatActionIssue[]
-}
-
-export type CombatResolutionEvent =
-  | TacticalBattleEvent
-  | CombatTerrainEvent
-  | {
-      event: 'combatant_displaced'
-      actionId: string
-      sourceCombatantId: string
+export interface CombatEncounterState extends Omit<legacy.CombatEncounterState, 'statBridge'> {
+  statBridge?: {
+    combatants: readonly {
       combatantId: string
-      from: GridPosition
-      to: GridPosition
-    }
-  | {
-      event: 'displacement_failed'
-      actionId: string
-      sourceCombatantId: string
-      combatantId: string
-      reason: DisplacementFailureReason
-      position: GridPosition
-    }
-  | SkillCooldownEvent
-  | { event: 'combat_action_used'; actionId: string; actorId: string }
-  | { event: 'mp_spent'; combatantId: string; amount: number; remaining: number }
-  | {
-      event: 'damage_applied'
-      actionId: string
-      sourceCombatantId: string
-      targetCombatantId: string
-      amount: number
-      hpBefore: number
-      hpAfter: number
-    }
-  | {
-      event: 'healing_applied'
-      actionId: string
-      sourceCombatantId: string
-      targetCombatantId: string
-      amount: number
-      hpBefore: number
-      hpAfter: number
-    }
-  | {
-      event: 'resource_changed'
-      actionId: string
-      sourceCombatantId: string
-      targetCombatantId: string
-      resource: 'mp'
-      delta: number
-      before: number
-      after: number
-    }
-  | {
-      event: 'status_applied'
-      actionId: string
-      sourceCombatantId: string
-      targetCombatantId: string
-      statusId: string
-      stacks: number
-      remainingOwnerTurnStarts: number
-      refreshed: boolean
-      stacked: boolean
-    }
-  | { event: 'status_expired'; combatantId: string; statusId: string }
-  | {
-      event: 'status_removed'
-      actionId: string
-      sourceCombatantId: string
-      targetCombatantId: string
-      statusId: string
-    }
-  | {
-      event: 'combatant_rewound'
-      actionId: string
-      combatantId: string
-      from: GridPosition
-      to: GridPosition
-    }
-  | { event: 'combatant_waited'; combatantId: string }
-  | { event: 'battle_completed'; winningTeamId: string | null }
+      armor: number
+      ward: number
+      physicalPower?: number
+      mysticPower?: number
+      accuracy?: number
+      evasion?: number
+    }[]
+  }
+}
 
-export type DisplacementFailureReason =
-  | 'status-restricted'
-  | 'out-of-bounds'
-  | 'blocked-terrain'
-  | 'occupied-tile'
-  | 'elevation-step-too-high'
-  | 'direction-undefined'
-  | 'target-defeated'
+export interface CombatActionEvaluation extends legacy.CombatActionEvaluation {
+  vengeanceBasis?: readonly CombatVengeanceBasis[]
+  targetHitChances?: readonly CombatTargetHitChance[]
+  projectionsAssumeHits?: true
+}
 
-export interface CombatResolutionTransition {
+export interface CombatResolutionContext {
+  provenance: CombatActionProvenance
+  triggerGuard: CombatTriggerGuard
+}
+
+export interface CombatResolutionMetadata {
+  pipelineVersion: typeof COMBAT_RESOLUTION_PIPELINE_VERSION
+  provenance: CombatActionProvenance
+  triggerGuard: CombatTriggerGuard
+}
+
+export interface CombatResolutionTransition extends Omit<
+  legacy.CombatResolutionTransition,
+  'state'
+> {
   state: CombatEncounterState
-  events: readonly CombatResolutionEvent[]
-}
-
-export interface CombatEncounterIssue {
-  field: string
-  message: string
-}
-
-export const P2_3_GUARDED_STATUS: CombatStatusDefinition = {
-  id: 'guarded',
-  version: 1,
-  maximumStacks: 3,
-  durationOwnerTurnStarts: 1,
-  damageTakenMultiplierBasisPoints: 8_000,
-}
-
-export const P2_3_COMBAT_CONTENT: CombatContentCatalog = {
-  statuses: [P2_3_GUARDED_STATUS],
-}
-
-export const P2_3_GUARD_ACTION: CombatActionDefinition = {
-  id: 'basic.guard',
-  version: 1,
-  sourceType: 'basic-action',
-  tags: ['basic', 'defensive'],
-  target: {
-    kind: 'self',
-    teamPolicy: 'self',
-    shape: { kind: 'single' },
-    minimumRange: 0,
-    maximumRange: 0,
-    requiresLineOfSight: false,
-    maximumElevationDifference: null,
-    friendlyFire: 'allies-only',
-  },
-  cost: { spendsAction: true, mp: 0 },
-  requirements: [],
-  effects: [{ type: 'apply-status', recipient: 'actor', statusId: 'guarded', stacks: 1 }],
-}
-
-export const P2_3_UNARMED_ATTACK_PROFILE: CombatAttackProfile = {
-  id: 'unarmed.basic',
-  version: 1,
-  damage: 16,
-  minimumRange: 1,
-  maximumRange: 1,
-  requiresLineOfSight: false,
-  maximumElevationDifference: 1,
-  facingModifiersBasisPoints: {
-    front: 10_000,
-    side: 11_000,
-    rear: 12_500,
-  },
-}
-
-export function createBasicAttackDefinition(profile: CombatAttackProfile): CombatActionDefinition {
-  validateAttackProfile(profile)
-
-  return {
-    id: `basic.attack.${profile.id}`,
-    version: profile.version,
-    sourceType: 'basic-attack',
-    tags: ['attack', 'basic'],
-    target: {
-      kind: 'unit',
-      teamPolicy: 'enemy',
-      shape: { kind: 'single' },
-      minimumRange: profile.minimumRange,
-      maximumRange: profile.maximumRange,
-      requiresLineOfSight: profile.requiresLineOfSight,
-      maximumElevationDifference: profile.maximumElevationDifference,
-      friendlyFire: 'enemies-only',
-    },
-    cost: { spendsAction: true, mp: 0 },
-    requirements: [],
-    effects: [
-      {
-        type: 'damage',
-        recipient: 'primary-unit',
-        amount: profile.damage,
-        facingModifiersBasisPoints: profile.facingModifiersBasisPoints,
-      },
-    ],
-  }
-}
-
-export function createCombatEncounterState(
-  tactical: TacticalBattleState,
-  statusState: readonly CombatantStatusState[] = [],
-): CombatEncounterState {
-  const combatantIds = new Set(tactical.battle.combatants.map((combatant) => combatant.id))
-  const suppliedRows = new Set<string>()
-
-  for (const row of statusState) {
-    if (!combatantIds.has(row.combatantId)) {
-      throw new Error(`Unknown status-state combatant ${row.combatantId}.`)
-    }
-    if (suppliedRows.has(row.combatantId)) {
-      throw new Error(`Duplicate status-state row for combatant ${row.combatantId}.`)
-    }
-    suppliedRows.add(row.combatantId)
-  }
-
-  const byCombatantId = new Map(statusState.map((row) => [row.combatantId, row.statuses]))
-  const normalizedStatusState = tactical.battle.combatants
-    .map((combatant) => ({
-      combatantId: combatant.id,
-      statuses: [...(byCombatantId.get(combatant.id) ?? [])]
-        .map((status) => ({ ...status }))
-        .sort((left, right) => compareStableString(left.statusId, right.statusId)),
-    }))
-    .sort((left, right) => compareStableString(left.combatantId, right.combatantId))
-
-  const state: CombatEncounterState = {
-    schemaVersion: COMBAT_ENCOUNTER_SCHEMA_VERSION,
-    tactical,
-    statusState: normalizedStatusState,
-  }
-
-  assertValidCombatEncounterState(state)
-  return state
+  resolution?: CombatResolutionMetadata
 }
 
 export function evaluateCombatAction(
   state: CombatEncounterState,
   action: CombatActionDefinition,
-  selection: CombatTargetSelection,
-  content: CombatContentCatalog,
+  selection: legacy.CombatTargetSelection,
+  content: legacy.CombatContentCatalog,
 ): CombatActionEvaluation {
-  assertValidCombatEncounterState(state)
-  validateCombatContentCatalog(content)
-  validateCombatActionDefinition(action, content)
-
-  const issues: CombatActionIssue[] = []
-  const battle = state.tactical.battle
-  const turn = battle.currentTurn
-  const actorId = battle.lifecycle === 'active' && turn ? turn.combatantId : null
-
-  if (!actorId || !turn) {
-    issues.push({ code: 'battle-not-active', message: 'Combat action requires an active turn.' })
-    return emptyEvaluation(action, actorId, issues)
-  }
-
-  if (action.cost.spendsAction && turn.actionState !== 'ready') {
-    issues.push({
-      code: 'action-already-spent',
-      message: 'The actor has already spent its Action this turn.',
-    })
-  }
-
-  const actor = getCombatant(battle, actorId)
-  if (action.cooldown) {
-    const cooldown = readSkillCooldown(actor, action.cooldown)
-    if (cooldown.active) {
-      issues.push({
-        code: 'cooldown-active',
-        message: `That Skill is cooling down (${cooldown.ticksRemaining} owner-turn tick${cooldown.ticksRemaining === 1 ? '' : 's'} remain).`,
-      })
-    }
-  }
-  if (actor.mp < action.cost.mp) {
-    issues.push({ code: 'insufficient-mp', message: 'The actor does not have enough MP.' })
-  }
-
-  const target = resolvePrimaryTarget(state, actorId, action.target, selection, content, issues)
-  if (target.position) {
-    collectSpatialTargetIssues(state, actorId, action.target, target.position, issues)
-  }
-  collectRequirementIssues(state, actorId, target.combatantId, action.requirements, content, issues)
-  if (action.effects.some((effect) => effect.type === 'return-to-turn-start')) {
-    const origin = state.turnOrigin
-    const placement = getPlacement(state.tactical, actorId)
-    const tile =
-      origin && state.tactical.tiles.find((tile) => samePosition(tile.position, origin.position))
-    if (
-      !origin ||
-      origin.combatantId !== actorId ||
-      origin.turnNumber !== battle.turnNumber ||
-      samePosition(origin.position, placement.position) ||
-      !tile ||
-      state.tactical.terrains.find((terrain) => terrain.id === tile.terrainId)?.traversalCost ==
-        null ||
-      state.tactical.placements.some(
-        (unit) => unit.combatantId !== actorId && samePosition(unit.position, origin.position),
-      )
-    ) {
-      issues.push({
-        code: 'requirement-not-met',
-        message:
-          'Rewind Step requires a vacant, passable tile where you started this turn, after moving away.',
-      })
-    }
-    if (
-      getStatusRow(state, actorId).statuses.some(
-        (status) =>
-          getStatusDefinition(content, status.statusId, status.statusVersion).movement?.blocked,
-      )
-    )
-      issues.push({ code: 'requirement-not-met', message: 'Root prevents Rewind Step.' })
-  }
-
-  const affectedTiles =
-    target.position && issues.length === 0
-      ? resolveTargetShapeTiles(
-          state.tactical,
-          getPlacement(state.tactical, actorId).position,
-          target.position,
-          action.target.shape,
-        )
-      : []
-
-  if (target.position && issues.length === 0 && affectedTiles.length === 0) {
-    issues.push({
-      code: 'shape-invalid',
-      message: 'The target shape resolves to no legal board tiles.',
-    })
-  }
-
-  const affectedCombatantIds =
-    issues.length === 0
-      ? resolveAffectedCombatants(state, actorId, target.combatantId, action.target, affectedTiles)
-      : []
-
-  if (issues.length === 0) {
-    collectSelfDamageIssues(
-      action.effects,
-      actorId,
-      target.combatantId,
-      affectedCombatantIds,
-      issues,
-    )
-  }
-
-  if (issues.length === 0) {
-    collectEffectRecipientIssues(
-      action.effects,
-      target.combatantId,
-      affectedCombatantIds,
-      issues,
-      (action.target.kind === 'ground-tile' || action.target.kind === 'empty-tile') &&
-        action.effects.some(
-          (effect) =>
-            effect.type === 'create-terrain' ||
-            (effect.type === 'damage' && effect.element !== undefined),
-        ),
-    )
-  }
-
-  let projectedEffects: CombatEffectProjection[] = []
-  let projectedTerrain: CombatTerrainProjection[] = []
-  let projectedEvents: readonly CombatResolutionEvent[] = []
-  if (issues.length === 0) {
-    const projectionState =
-      action.cost.mp > 0
-        ? withUpdatedCombatant(state, actorId, {
-            ...actor,
-            mp: actor.mp - action.cost.mp,
-          })
-        : state
-    const projection = resolveActionEffects(
-      projectionState,
-      actorId,
-      target.combatantId,
-      affectedCombatantIds,
-      affectedTiles,
-      action,
-      content,
-    )
-    projectedEffects = projection.projections
-    projectedEvents = projection.events
-    projectedTerrain = projection.terrain
-  }
-
-  return {
-    legal: issues.length === 0,
-    actionId: action.id,
-    actorId,
-    primaryPosition: target.position ? { ...target.position } : null,
-    primaryCombatantId: target.combatantId,
-    affectedTiles,
-    affectedCombatantIds,
-    projectedEffects,
-    projectedTerrain,
-    projectedEvents,
-    mpCost: action.cost.mp,
-    spendsAction: action.cost.spendsAction,
-    issues,
-  }
+  validateCombatAccuracyDefinition(action)
+  const csrPreviewAction = materializeCsrPreviewAction(action)
+  const materialized = materializeVengeanceDamage(state, csrPreviewAction)
+  const evaluation = legacy.evaluateCombatAction(
+    state,
+    materializeStatScaledDamage(state, materialized.action),
+    selection,
+    content,
+  )
+  const preview =
+    evaluation.legal && materialized.basis.length > 0
+      ? { ...evaluation, vengeanceBasis: materialized.basis }
+      : evaluation
+  return forecastCombatSkillAccuracy(state, action, preview, content)
 }
 
 export function executeCombatAction(
   state: CombatEncounterState,
   action: CombatActionDefinition,
-  selection: CombatTargetSelection,
-  content: CombatContentCatalog,
+  selection: legacy.CombatTargetSelection,
+  content: legacy.CombatContentCatalog,
+  context?: CombatResolutionContext,
 ): CombatResolutionTransition {
-  const evaluation = evaluateCombatAction(state, action, selection, content)
-  if (!evaluation.legal || !evaluation.actorId) {
-    const issue = evaluation.issues[0]
-    throw new Error(
-      issue
-        ? `Illegal combat action: ${issue.code}: ${issue.message}`
-        : 'Illegal combat action without a validation reason.',
-    )
-  }
-
-  const actorId = evaluation.actorId
-  let nextState = state
-  const events: CombatResolutionEvent[] = []
-
-  if (action.cost.spendsAction) {
-    const spent = spendAction(nextState.tactical.battle)
-    nextState = withBattle(nextState, spent.state)
-    events.push(...spent.events)
-  }
-
-  if (action.cost.mp > 0) {
-    const actor = getCombatant(nextState.tactical.battle, actorId)
-    nextState = withUpdatedCombatant(nextState, actorId, {
-      ...actor,
-      mp: actor.mp - action.cost.mp,
-    })
-    events.push({
-      event: 'mp_spent',
-      combatantId: actorId,
-      amount: action.cost.mp,
-      remaining: actor.mp - action.cost.mp,
-    })
-  }
-
-  events.push({ event: 'combat_action_used', actionId: action.id, actorId })
-
-  const applied = resolveActionEffects(
-    nextState,
-    actorId,
-    evaluation.primaryCombatantId,
-    evaluation.affectedCombatantIds,
-    evaluation.affectedTiles,
-    action,
-    content,
+  validateCombatAccuracyDefinition(action)
+  const round = state.tactical.battle.round
+  const actorId = state.tactical.battle.currentTurn?.combatantId ?? null
+  const previewAction = materializeCsrPreviewAction(action)
+  const previewMaterializedAction = materializeStatScaledDamage(
+    state,
+    materializeVengeanceDamage(state, previewAction).action,
   )
-  nextState = applied.state
-  events.push(...applied.events)
-
-  if (action.cooldown) {
-    const cooldown = applySkillCooldown(
-      getCombatant(nextState.tactical.battle, actorId),
-      action.cooldown,
-      { actionId: action.id, definitionVersion: action.version },
-    )
-    nextState = withUpdatedCombatant(nextState, actorId, cooldown.combatant)
-    events.push(...cooldown.events)
+  const requiresEvaluation =
+    Boolean(context) ||
+    action.accuracyMode === 'per-target' ||
+    action.effects.some((effect) => effect.type === 'sensory')
+  const evaluation = requiresEvaluation
+    ? legacy.evaluateCombatAction(state, previewMaterializedAction, selection, content)
+    : null
+  const accuracy = rollCombatSkillAccuracy(state, action, evaluation, content)
+  const csr = materializeCsrCommittedAction({
+    state: accuracy.state,
+    action,
+    selection,
+    evaluation,
+    content,
+    missedCombatantIds: accuracy.missedCombatantIds,
+  })
+  const materializedAction = materializeStatScaledDamage(
+    accuracy.state,
+    materializeVengeanceDamage(accuracy.state, csr.action).action,
+  )
+  let triggerGuard = context?.triggerGuard
+  const committed = legacy.executeCombatAction(
+    accuracy.state,
+    materializedAction,
+    selection,
+    csr.content,
+    (resolved) => {
+      if (!actorId) return resolved
+      const command = { sourceCombatantId: actorId, actionId: action.id }
+      const historyState = recordCommittedDamageHistory(resolved.state, resolved.events, {
+        round,
+        commandSourceCombatantId: actorId,
+      })
+      const recovered = applyCommittedAbsorbRecovery(
+        historyState,
+        resolved.events,
+        content,
+        command,
+      )
+      // Both reactions read only original receipts, never each other's output.
+      const reflected = applyCommittedReflect(
+        recovered.state,
+        resolved.events,
+        content,
+        command,
+        triggerGuard,
+      )
+      triggerGuard = reflected.triggerGuard
+      return { state: reflected.state, events: [...recovered.events, ...reflected.events] }
+    },
+    accuracy.missedCombatantIds,
+  )
+  const covertFiltered = filterBlockedCovertApplication({
+    before: accuracy.state,
+    after: committed.state,
+    events: committed.events,
+  })
+  const committedTransition: CombatResolutionTransition = {
+    ...committed,
+    state: covertFiltered.state,
+    events: covertFiltered.events as legacy.CombatResolutionEvent[],
   }
-
-  const completion = completeBattleIfResolved(nextState)
-  nextState = completion.state
-  events.push(...completion.events)
-
-  assertValidCombatEncounterState(nextState)
-  return { state: nextState, events }
-}
-
-export function waitCurrentTurn(
-  state: CombatEncounterState,
-  content: CombatContentCatalog,
-): CombatResolutionTransition {
-  assertValidCombatEncounterState(state)
-  validateCombatContentCatalog(content)
-
-  const turn = state.tactical.battle.currentTurn
-  if (state.tactical.battle.lifecycle !== 'active' || !turn) {
-    throw new Error('Wait requires an active combat turn.')
-  }
-
-  const actorId = turn.combatantId
-  const ended = endCombatTurn(state, content)
+  const transition =
+    accuracy.events.length > 0
+      ? { ...committedTransition, events: [...accuracy.events, ...committedTransition.events] }
+      : committedTransition
+  if (!context || !evaluation) return transition
+  // A miss must not reattribute an existing status or persistent effect.
+  const provenanceEvaluation =
+    accuracy.missedCombatantIds.size === 0
+      ? evaluation
+      : {
+          ...evaluation,
+          primaryCombatantId:
+            evaluation.primaryCombatantId &&
+            accuracy.missedCombatantIds.has(evaluation.primaryCombatantId)
+              ? null
+              : evaluation.primaryCombatantId,
+          affectedCombatantIds: evaluation.affectedCombatantIds.filter(
+            (id) => !accuracy.missedCombatantIds.has(id),
+          ),
+        }
   return {
-    state: ended.state,
-    events: [{ event: 'combatant_waited', combatantId: actorId }, ...ended.events],
+    state: attachCombatEffectProvenance(
+      state,
+      transition.state,
+      csr.action,
+      provenanceEvaluation,
+      context,
+      csr.content,
+    ),
+    events: transition.events,
+    resolution: {
+      pipelineVersion: COMBAT_RESOLUTION_PIPELINE_VERSION,
+      provenance: context.provenance,
+      triggerGuard: triggerGuard ?? context.triggerGuard,
+    },
   }
 }
 
 export function endCombatTurn(
   state: CombatEncounterState,
-  content: CombatContentCatalog,
+  content: legacy.CombatContentCatalog,
   outgoingDefeatedAtTurnEnd = false,
 ): CombatResolutionTransition {
-  assertValidCombatEncounterState(state)
-  validateCombatContentCatalog(content)
-
-  if (state.tactical.battle.lifecycle !== 'active') {
-    throw new Error('End Turn requires an active battle.')
+  const round = state.tactical.battle.round
+  const transition = legacy.endCombatTurn(state, content, outgoingDefeatedAtTurnEnd)
+  return {
+    state: recordCommittedDamageHistory(transition.state, transition.events, { round }),
+    events: transition.events,
   }
+}
 
-  const roundModifiers = state.statusState.flatMap((row) => {
-    const amount = Math.max(
-      -40,
-      Math.min(
-        40,
-        row.statuses.reduce(
-          (sum, status) =>
-            sum +
-            (getStatusDefinition(content, status.statusId, status.statusVersion)
-              .nextRoundInitiative ?? 0),
-          0,
-        ),
-      ),
+export function waitCurrentTurn(
+  state: CombatEncounterState,
+  content: legacy.CombatContentCatalog,
+): CombatResolutionTransition {
+  const round = state.tactical.battle.round
+  const transition = legacy.waitCurrentTurn(state, content)
+  return {
+    state: recordCommittedDamageHistory(transition.state, transition.events, { round }),
+    events: transition.events,
+  }
+}
+
+function materializeStatScaledDamage(
+  state: CombatEncounterState,
+  action: CombatActionDefinition,
+): legacy.CombatActionDefinition {
+  const actorId =
+    state.tactical.battle.lifecycle === 'active'
+      ? (state.tactical.battle.currentTurn?.combatantId ?? null)
+      : null
+
+  const effects: legacy.CombatEffectDefinition[] = action.effects.map((effect) => {
+    if (effect.type === 'sensory') {
+      throw new TypeError('Sensory must be materialized before legacy effect resolution.')
+    }
+    if (effect.type !== 'damage') return effect
+
+    const { scaling, ...legacyEffect } = effect
+    if (!scaling) return legacyEffect
+
+    const issues = validateCombatDamageScaling(scaling)
+    if (issues.length > 0) {
+      throw new TypeError(`Invalid damage scaling: ${issues[0].field}: ${issues[0].message}`)
+    }
+
+    // Let the legacy evaluator report an inactive/invalid turn before requiring actor stats.
+    if (!actorId) return legacyEffect
+
+    const profile = state.statBridge?.combatants.find(
+      (candidate) => candidate.combatantId === actorId,
     )
-    return amount === 0 ? [] : [{ combatantId: row.combatantId, amount }]
+    const offensivePower =
+      scaling.source === 'physical-power' ? profile?.physicalPower : profile?.mysticPower
+    if (offensivePower === undefined) {
+      throw new TypeError('Scaled Skill damage requires attacker offensive power.')
+    }
+
+    return {
+      ...legacyEffect,
+      amount: calculateScaledRawDamage(effect.amount, scaling, offensivePower),
+    }
   })
-  const outgoingId = state.tactical.battle.currentTurn!.combatantId
-  const outgoing = getCombatant(state.tactical.battle, outgoingId)
-  // Predict the existing deterministic ticks for selection only. They are committed below.
-  // A last actor moved to first by tempo must not receive a turn after a lethal tick.
-  const outgoingHpAfterTicks = getStatusRow(state, outgoingId).statuses.reduce((hp, status) => {
-    const periodic = getStatusDefinition(content, status.statusId, status.statusVersion).endOfTurn
-    if (!periodic || hp <= 0) return hp
-    const amount = periodic.amount * status.stacks
-    return periodic.type === 'damage'
-      ? Math.max(0, hp - amount)
-      : Math.min(outgoing.maxHp, hp + incomingHealingAmount(state, outgoingId, amount, content))
-  }, outgoing.hp)
-  const ended = endTurn(
-    state.tactical.battle,
-    roundModifiers,
-    outgoingDefeatedAtTurnEnd || outgoingHpAfterTicks === 0,
-  )
-  let nextState = withBattle(state, ended.state)
-  const events: CombatResolutionEvent[] = [...ended.events]
-  if (ended.state.round !== state.tactical.battle.round) {
-    const expiredTerrain = expireTerrainOverlays(nextState)
-    nextState = expiredTerrain.state
-    events.push(...expiredTerrain.events)
-    // Consume scheduled tempo once. The committed order remains frozen for the full round.
-    for (const row of nextState.statusState) {
-      const consumed = row.statuses.filter(
-        (status) =>
-          getStatusDefinition(content, status.statusId, status.statusVersion)
-            .nextRoundInitiative !== undefined,
-      )
-      nextState = removeStatuses(
-        nextState,
-        row.combatantId,
-        consumed.map((status) => status.statusId),
-      )
-      events.push(
-        ...consumed.map((status) => ({
-          event: 'status_expired' as const,
-          combatantId: row.combatantId,
-          statusId: status.statusId,
-        })),
-      )
-    }
-  }
-  // Resolve the outgoing unit's periodic effects after advancing initiative. This permits
-  // lethal ticks without ever persisting a defeated combatant as the current actor.
-  const periodic = resolveEndOfTurnStatuses(nextState, outgoingId, content)
-  nextState = periodic.state
-  events.push(...periodic.events)
-  const completed = completeBattleIfResolved(nextState)
-  nextState = completed.state
-  events.push(...completed.events)
-  const nextActorId = nextState.tactical.battle.currentTurn?.combatantId
 
-  if (nextActorId) {
-    const expiration = expireOwnerTurnStartStatuses(nextState, nextActorId, content)
-    nextState = expiration.state
-    events.push(...expiration.events)
-  }
-
-  return { state: nextState, events }
-}
-
-export function resolveTargetShapeTiles(
-  tactical: TacticalBattleState,
-  origin: GridPosition,
-  selected: GridPosition,
-  shape: CombatTargetShape,
-): readonly GridPosition[] {
-  assertGridPosition(origin, 'origin')
-  assertGridPosition(selected, 'selected')
-
-  if (shape.kind === 'single') {
-    return isWithinBoard(tactical, selected) ? [{ ...selected }] : []
-  }
-
-  if (shape.kind === 'circle') {
-    assertNonNegativeSafeInteger(shape.radius, 'circle radius')
-    const radiusSquared = BigInt(shape.radius) * BigInt(shape.radius)
-
-    return tactical.tiles
-      .filter((tile) => {
-        const dx = BigInt(tile.position.x - selected.x)
-        const dy = BigInt(tile.position.y - selected.y)
-        return dx * dx + dy * dy <= radiusSquared
-      })
-      .map((tile) => ({ ...tile.position }))
-  }
-
-  assertPositiveSafeInteger(shape.length, 'line length')
-  const dx = selected.x - origin.x
-  const dy = selected.y - origin.y
-  if ((dx === 0) === (dy === 0)) {
-    return []
-  }
-
-  const distance = Math.abs(dx) + Math.abs(dy)
-  if (!Number.isSafeInteger(distance) || distance > shape.length) {
-    return []
-  }
-
-  const stepX = Math.sign(dx)
-  const stepY = Math.sign(dy)
-  const tiles: GridPosition[] = []
-  for (let step = 1; step <= distance; step += 1) {
-    const position = { x: origin.x + stepX * step, y: origin.y + stepY * step }
-    if (!isWithinBoard(tactical, position)) return []
-    tiles.push(position)
-  }
-  return tiles
-}
-
-export function validateCombatEncounterState(
-  state: CombatEncounterState,
-): readonly CombatEncounterIssue[] {
-  const issues: CombatEncounterIssue[] = [...validateTerrainOverlays(state)]
-
-  if (state.schemaVersion !== COMBAT_ENCOUNTER_SCHEMA_VERSION) {
-    issues.push({ field: 'schemaVersion', message: 'Unsupported combat-encounter schema version.' })
-  }
-
-  for (const issue of validateTacticalBattleState(state.tactical)) {
-    issues.push({ field: `tactical.${issue.field}`, message: issue.message })
-  }
-
-  const expectedCombatantIds = [...state.tactical.battle.combatants]
-    .map((combatant) => combatant.id)
-    .sort(compareStableString)
-  if (state.turnOrigin) {
-    const origin = state.turnOrigin
-    if (
-      !expectedCombatantIds.includes(origin.combatantId) ||
-      !Number.isSafeInteger(origin.turnNumber) ||
-      origin.turnNumber < 1 ||
-      origin.turnNumber > state.tactical.battle.turnNumber ||
-      !Number.isSafeInteger(origin.position.x) ||
-      !Number.isSafeInteger(origin.position.y) ||
-      !isWithinBoard(state.tactical, origin.position)
-    ) {
-      issues.push({
-        field: 'turnOrigin',
-        message: 'Turn origin must reference a valid combatant, committed turn and board position.',
-      })
-    }
-  }
-  const actualCombatantIds = state.statusState.map((row) => row.combatantId)
-  if (!arraysEqual(actualCombatantIds, expectedCombatantIds)) {
-    issues.push({
-      field: 'statusState',
-      message: 'Status rows must cover every combatant exactly once in stable ID order.',
-    })
-  }
-
-  const rowIds = new Set<string>()
-  for (const [rowIndex, row] of state.statusState.entries()) {
-    const prefix = `statusState.${rowIndex}`
-    collectIdentityIssue(issues, row.combatantId, `${prefix}.combatantId`)
-    if (rowIds.has(row.combatantId)) {
-      issues.push({
-        field: `${prefix}.combatantId`,
-        message: 'Status row combatant IDs must be unique.',
-      })
-    }
-    rowIds.add(row.combatantId)
-
-    const statusIds = new Set<string>()
-    for (const [statusIndex, status] of row.statuses.entries()) {
-      const statusPrefix = `${prefix}.statuses.${statusIndex}`
-      collectIdentityIssue(issues, status.statusId, `${statusPrefix}.statusId`)
-      collectIdentityIssue(issues, status.sourceCombatantId, `${statusPrefix}.sourceCombatantId`)
-      collectPositiveIntegerIssue(issues, status.statusVersion, `${statusPrefix}.statusVersion`)
-      collectPositiveIntegerIssue(issues, status.stacks, `${statusPrefix}.stacks`)
-      collectPositiveIntegerIssue(
-        issues,
-        status.remainingOwnerTurnStarts,
-        `${statusPrefix}.remainingOwnerTurnStarts`,
-      )
-      if (!expectedCombatantIds.includes(status.sourceCombatantId)) {
-        issues.push({
-          field: `${statusPrefix}.sourceCombatantId`,
-          message: 'Status source must reference a combatant in this encounter.',
-        })
-      }
-      if (statusIds.has(status.statusId)) {
-        issues.push({
-          field: `${statusPrefix}.statusId`,
-          message: 'A combatant cannot have duplicate status identities.',
-        })
-      }
-      statusIds.add(status.statusId)
-    }
-
-    const sortedStatusIds = [...row.statuses]
-      .map((status) => status.statusId)
-      .sort(compareStableString)
-    if (
-      !arraysEqual(
-        row.statuses.map((status) => status.statusId),
-        sortedStatusIds,
-      )
-    ) {
-      issues.push({
-        field: `${prefix}.statuses`,
-        message: 'Statuses must use stable status ID ordering.',
-      })
-    }
-  }
-
-  return issues
-}
-
-function resolvePrimaryTarget(
-  state: CombatEncounterState,
-  actorId: string,
-  spec: CombatTargetSpec,
-  selection: CombatTargetSelection,
-  content: CombatContentCatalog,
-  issues: CombatActionIssue[],
-): { position: GridPosition | null; combatantId: string | null } {
-  const actorPlacement = getPlacement(state.tactical, actorId)
-
-  if (spec.kind === 'self') {
-    if (selection.kind !== 'self') {
-      issues.push({ code: 'invalid-target-kind', message: 'This action targets only the actor.' })
-    }
-    return { position: { ...actorPlacement.position }, combatantId: actorId }
-  }
-
-  if (spec.kind === 'unit') {
-    if (selection.kind !== 'unit') {
-      issues.push({ code: 'invalid-target-kind', message: 'This action requires a unit target.' })
-      return { position: null, combatantId: null }
-    }
-
-    const target = state.tactical.battle.combatants.find(
-      (combatant) => combatant.id === selection.combatantId,
-    )
-    if (!target) {
-      issues.push({ code: 'target-not-found', message: 'The selected combatant does not exist.' })
-      return { position: null, combatantId: null }
-    }
-    if (target.hp <= 0) {
-      issues.push({
-        code: 'target-defeated',
-        message: 'The selected combatant is already defeated.',
-      })
-    }
-
-    const actor = getCombatant(state.tactical.battle, actorId)
-    if (actor.teamId !== target.teamId && hasGameplayTag(state, target.id, 'Invisible', content)) {
-      issues.push({
-        code: 'target-invisible',
-        message: 'Invisible prevents hostile direct unit targeting; ground effects can still hit.',
-      })
-    }
-    if (!isTeamPolicyAllowed(actor, target, spec.teamPolicy)) {
-      issues.push({
-        code: 'target-team-not-allowed',
-        message: 'The selected combatant does not satisfy the action team policy.',
-      })
-    }
-
-    return {
-      position: { ...getPlacement(state.tactical, target.id).position },
-      combatantId: target.id,
-    }
-  }
-
-  if (selection.kind !== 'tile') {
-    issues.push({ code: 'invalid-target-kind', message: 'This action requires a tile target.' })
-    return { position: null, combatantId: null }
-  }
-
-  if (!isWithinBoard(state.tactical, selection.position)) {
-    issues.push({ code: 'target-not-found', message: 'The selected tile is outside the board.' })
-    return { position: null, combatantId: null }
-  }
-
-  const occupant = getOccupantId(state.tactical, selection.position)
-  if (spec.kind === 'empty-tile' && occupant !== null) {
-    issues.push({
-      code: 'target-tile-occupied',
-      message: 'This action requires an empty target tile.',
-    })
-  }
-
-  return { position: { ...selection.position }, combatantId: occupant }
-}
-
-function collectSpatialTargetIssues(
-  state: CombatEncounterState,
-  actorId: string,
-  spec: CombatTargetSpec,
-  targetPosition: GridPosition,
-  issues: CombatActionIssue[],
-): void {
-  const actorPosition = getPlacement(state.tactical, actorId).position
-  const distance = manhattanDistance(actorPosition, targetPosition)
-  if (distance < spec.minimumRange || distance > spec.maximumRange) {
-    issues.push({
-      code: 'target-out-of-range',
-      message: 'The selected target is outside the action range.',
-    })
-  }
-
-  if (spec.maximumElevationDifference !== null) {
-    const actorTile = getTile(state.tactical, actorPosition)
-    const targetTile = getTile(state.tactical, targetPosition)
-    if (Math.abs(actorTile.elevation - targetTile.elevation) > spec.maximumElevationDifference) {
-      issues.push({
-        code: 'target-elevation-invalid',
-        message: 'The elevation difference exceeds the action target limit.',
-      })
-    }
-  }
-
-  if (spec.requiresLineOfSight && !hasBaselineLineOfSight(state, actorPosition, targetPosition)) {
-    issues.push({
-      code: 'line-of-sight-blocked',
-      message: 'Blocking terrain interrupts line of sight to the selected target.',
-    })
-  }
-}
-
-function collectRequirementIssues(
-  state: CombatEncounterState,
-  actorId: string,
-  targetId: string | null,
-  requirements: readonly CombatUseRequirement[],
-  content: CombatContentCatalog,
-  issues: CombatActionIssue[],
-): void {
-  const actor = getCombatant(state.tactical.battle, actorId)
-
-  for (const requirement of requirements) {
-    if ('tag' in requirement) {
-      const ownerId = requirement.kind === 'target-tag-present' ? targetId : actorId
-      const present = !!ownerId && hasGameplayTag(state, ownerId, requirement.tag, content)
-      if (requirement.kind === 'actor-tag-absent' ? present : !present)
-        issues.push({
-          code: 'requirement-not-met',
-          message: `${requirement.kind === 'target-tag-present' ? 'Target' : 'Actor'} ${requirement.kind === 'actor-tag-absent' ? 'must not have' : 'requires'} ${requirement.tag}.`,
-        })
-      continue
-    }
-    if (requirement.kind === 'actor-status-present') {
-      if (!hasStatus(state, actorId, requirement.statusId)) {
-        issues.push({
-          code: 'requirement-not-met',
-          message: `Actor requires status ${requirement.statusId}.`,
-        })
-      }
-      continue
-    }
-
-    if (requirement.kind === 'actor-status-absent') {
-      if (hasStatus(state, actorId, requirement.statusId)) {
-        issues.push({
-          code: 'requirement-not-met',
-          message: `Actor must not already have status ${requirement.statusId}.`,
-        })
-      }
-      continue
-    }
-
-    if (requirement.kind === 'target-status-present') {
-      if (!targetId || !hasStatus(state, targetId, requirement.statusId)) {
-        issues.push({
-          code: 'requirement-not-met',
-          message: `Target requires status ${requirement.statusId}.`,
-        })
-      }
-      continue
-    }
-
-    const hpBasisPoints = scaleRatioToBasisPoints(actor.hp, actor.maxHp)
-    if (hpBasisPoints > requirement.basisPoints) {
-      issues.push({
-        code: 'requirement-not-met',
-        message: 'Actor HP is above the action requirement threshold.',
-      })
-    }
-  }
-}
-
-function resolveAffectedCombatants(
-  state: CombatEncounterState,
-  actorId: string,
-  primaryCombatantId: string | null,
-  spec: CombatTargetSpec,
-  affectedTiles: readonly GridPosition[],
-): string[] {
-  const actor = getCombatant(state.tactical.battle, actorId)
-
-  if (spec.shape.kind === 'single') {
-    if (!primaryCombatantId) return []
-    const target = getCombatant(state.tactical.battle, primaryCombatantId)
-    return target.hp > 0 && isFriendlyFireAllowed(actor, target, spec.friendlyFire)
-      ? [primaryCombatantId]
-      : []
-  }
-
-  return state.tactical.placements
-    .filter((placement) =>
-      affectedTiles.some((position) => positionsEqual(position, placement.position)),
-    )
-    .filter((placement) => {
-      const target = getCombatant(state.tactical.battle, placement.combatantId)
-      return target.hp > 0 && isFriendlyFireAllowed(actor, target, spec.friendlyFire)
-    })
-    .map((placement) => placement.combatantId)
-    .sort(compareStableString)
-}
-
-function collectSelfDamageIssues(
-  effects: readonly CombatEffectDefinition[],
-  actorId: string,
-  primaryCombatantId: string | null,
-  affectedCombatantIds: readonly string[],
-  issues: CombatActionIssue[],
-): void {
-  for (const effect of effects) {
-    if (effect.type !== 'damage') continue
-    const recipients = resolveEffectRecipients(
-      actorId,
-      primaryCombatantId,
-      affectedCombatantIds,
-      effect.recipient,
-    )
-    if (recipients.includes(actorId)) {
-      issues.push({
-        code: 'self-damage-deferred',
-        message: 'P2.3 self-damage is deferred until the self-defeat lifecycle is defined.',
-      })
-      return
-    }
-  }
-}
-
-function collectEffectRecipientIssues(
-  effects: readonly CombatEffectDefinition[],
-  primaryCombatantId: string | null,
-  affectedCombatantIds: readonly string[],
-  issues: CombatActionIssue[],
-  allowsEmptyArea: boolean,
-): void {
-  for (const effect of effects) {
-    if (effect.recipient === 'primary-unit' && !primaryCombatantId) {
-      issues.push({
-        code: 'effect-target-missing',
-        message: 'An effect requires a primary unit target that is not available.',
-      })
-    }
-    if (
-      effect.recipient === 'affected-units' &&
-      affectedCombatantIds.length === 0 &&
-      !allowsEmptyArea
-    ) {
-      issues.push({
-        code: 'effect-target-missing',
-        message: 'An area effect resolves to no affected combatants.',
-      })
-    }
-  }
-}
-
-/** Preview and commit run this exact immutable sequence, including consumptions and failed pushes. */
-function resolveActionEffects(
-  state: CombatEncounterState,
-  actorId: string,
-  primaryCombatantId: string | null,
-  affectedCombatantIds: readonly string[],
-  affectedTiles: readonly GridPosition[],
-  action: CombatActionDefinition,
-  content: CombatContentCatalog,
-): CombatResolutionTransition & {
-  projections: CombatEffectProjection[]
-  terrain: CombatTerrainProjection[]
-} {
-  let nextState = state
-  const events: CombatResolutionEvent[] = []
-  const projections: CombatEffectProjection[] = []
-  const terrain: CombatTerrainProjection[] = []
-  const stormRecipients = new Set<string>()
-  if (action.effects.some((effect) => effect.type === 'damage' && effect.amount > 0)) {
-    const revealed = removeGameplayTags(
-      nextState,
-      actorId,
-      actorId,
-      action.id,
-      ['Invisible'],
-      content,
-    )
-    nextState = revealed.state
-    events.push(...revealed.events)
-  }
-  for (const effect of action.effects) {
-    if (
-      effect.type === 'create-terrain' ||
-      (effect.type === 'damage' && effect.element === 'fire')
-    ) {
-      for (const position of affectedTiles) {
-        if (
-          effect.type !== 'create-terrain' &&
-          terrainOverlayAt(nextState, position)?.kind !== 'frozen'
-        )
-          continue
-        const changed = setTerrainOverlay(
-          nextState,
-          position,
-          effect.type === 'create-terrain' ? 'frozen' : 'steam',
-          actorId,
-          action.id,
-        )
-        nextState = changed.state
-        events.push(...changed.events)
-        for (const event of changed.events)
-          if (event.event === 'terrain_overlay_changed') {
-            terrain.push({
-              position: event.position,
-              before: event.before,
-              after: event.after,
-              remainingRoundBoundaries: event.remainingRoundBoundaries,
-            })
-          }
-      }
-      if (effect.type === 'create-terrain') continue
-    }
-    for (const recipientId of resolveEffectRecipients(
-      actorId,
-      primaryCombatantId,
-      affectedCombatantIds,
-      effect.recipient,
-    )) {
-      const before = nextState
-      const applied = applyEffect(
-        nextState,
-        actorId,
-        recipientId,
-        action.id,
-        effect,
-        content,
-        stormRecipients,
-      )
-      nextState = applied.state
-      events.push(...applied.events)
-      let beforeValue: number | string
-      let afterValue: number | string
-      if (
-        effect.type === 'damage' ||
-        effect.type === 'healing' ||
-        effect.type === 'resource-change'
-      ) {
-        const resource = effect.type === 'resource-change' ? 'mp' : 'hp'
-        beforeValue = getCombatant(before.tactical.battle, recipientId)[resource]
-        afterValue = getCombatant(nextState.tactical.battle, recipientId)[resource]
-      } else if (effect.type === 'return-to-turn-start' || effect.type === 'displace') {
-        const from = getPlacement(before.tactical, recipientId).position
-        const to = getPlacement(nextState.tactical, recipientId).position
-        beforeValue = `${from.x},${from.y}`
-        afterValue = `${to.x},${to.y}`
-      } else if (effect.type === 'remove-status') {
-        beforeValue =
-          getStatusRow(before, recipientId)
-            .statuses.filter((status) => effect.statusIds.includes(status.statusId))
-            .map((status) => status.statusId)
-            .join(',') || 'none'
-        afterValue = 'none'
-      } else {
-        const oldStatus = getStatus(before, recipientId, effect.statusId)
-        const newStatus = getStatus(nextState, recipientId, effect.statusId)
-        beforeValue = oldStatus ? `${oldStatus.statusId}:${oldStatus.stacks}` : 'none'
-        afterValue = newStatus ? `${newStatus.statusId}:${newStatus.stacks}` : 'none'
-      }
-      projections.push({
-        effectType: effect.type,
-        combatantId: recipientId,
-        before: beforeValue,
-        after: afterValue,
-      })
-    }
-  }
-  return { state: nextState, events, projections, terrain }
-}
-
-/** Also used by the stat-driven miss path: a damaging command reveals its holder even on a miss. */
-export function removeGameplayTags(
-  state: CombatEncounterState,
-  actorId: string,
-  recipientId: string,
-  actionId: string,
-  tags: readonly GameplayTag[],
-  content: CombatContentCatalog,
-): CombatResolutionTransition {
-  const ids = [
-    ...new Set(tags.flatMap((tag) => statusIdsForGameplayTag(state, recipientId, tag, content))),
-  ]
-  return {
-    state: removeStatuses(state, recipientId, ids),
-    events: ids.map((statusId) => ({
-      event: 'status_removed',
-      actionId,
-      sourceCombatantId: actorId,
-      targetCombatantId: recipientId,
-      statusId,
-    })),
-  }
-}
-
-function applyEffect(
-  state: CombatEncounterState,
-  actorId: string,
-  recipientId: string,
-  actionId: string,
-  effect: Exclude<CombatEffectDefinition, { type: 'create-terrain' }>,
-  content: CombatContentCatalog,
-  stormRecipients: Set<string>,
-): CombatResolutionTransition {
-  if (effect.type === 'displace')
-    return applyDisplacement(state, actorId, recipientId, actionId, content)
-  if (effect.type === 'return-to-turn-start') {
-    const from = getPlacement(state.tactical, actorId).position
-    const to = state.turnOrigin!.position
-    return {
-      state: rewindToTurnOrigin(state, actorId),
-      events: [
-        {
-          event: 'combatant_rewound',
-          actionId,
-          combatantId: actorId,
-          from: { ...from },
-          to: { ...to },
-        },
-      ],
-    }
-  }
-
-  if (effect.type === 'damage') {
-    const target = getCombatant(state.tactical.battle, recipientId)
-    const stormBonus =
-      effect.element === 'storm' &&
-      !stormRecipients.has(recipientId) &&
-      (hasGameplayTag(state, recipientId, 'Wet', content) ||
-        hasGameplayTag(state, recipientId, 'Conductive', content))
-    const amount = resolveDamageAmount(
-      state,
-      actorId,
-      recipientId,
-      effect,
-      content,
-      stormBonus ? 12_000 : 10_000,
-    )
-    if (stormBonus && amount > 0) stormRecipients.add(recipientId)
-    const hpAfter = Math.max(0, target.hp - amount)
-    const updated = withUpdatedCombatant(state, recipientId, { ...target, hp: hpAfter })
-    const removed =
-      hpAfter < target.hp
-        ? removeGameplayTags(
-            updated,
-            actorId,
-            recipientId,
-            actionId,
-            [
-              'Invisible',
-              ...(effect.element === 'fire' ? (['Wet', 'Frozen'] as const) : []),
-              ...(stormBonus ? (['Conductive'] as const) : []),
-            ],
-            content,
-          )
-        : { state: updated, events: [] }
-    return {
-      state: removed.state,
-      events: [
-        {
-          event: 'damage_applied',
-          actionId,
-          sourceCombatantId: actorId,
-          targetCombatantId: recipientId,
-          amount: target.hp - hpAfter,
-          hpBefore: target.hp,
-          hpAfter,
-        },
-        ...removed.events,
-      ],
-    }
-  }
-
-  if (effect.type === 'healing') {
-    const target = getCombatant(state.tactical.battle, recipientId)
-    const hpAfter =
-      target.hp <= 0
-        ? target.hp
-        : addClampedSafeInteger(
-            target.hp,
-            incomingHealingAmount(state, recipientId, effect.amount, content),
-            0,
-            target.maxHp,
-          )
-    return {
-      state: withUpdatedCombatant(state, recipientId, { ...target, hp: hpAfter }),
-      events: [
-        {
-          event: 'healing_applied',
-          actionId,
-          sourceCombatantId: actorId,
-          targetCombatantId: recipientId,
-          amount: hpAfter - target.hp,
-          hpBefore: target.hp,
-          hpAfter,
-        },
-      ],
-    }
-  }
-
-  if (effect.type === 'resource-change') {
-    const target = getCombatant(state.tactical.battle, recipientId)
-    const mpAfter = addClampedSafeInteger(target.mp, effect.delta, 0, target.maxMp)
-    return {
-      state: withUpdatedCombatant(state, recipientId, { ...target, mp: mpAfter }),
-      events: [
-        {
-          event: 'resource_changed',
-          actionId,
-          sourceCombatantId: actorId,
-          targetCombatantId: recipientId,
-          resource: 'mp',
-          delta: mpAfter - target.mp,
-          before: target.mp,
-          after: mpAfter,
-        },
-      ],
-    }
-  }
-
-  if (effect.type === 'remove-status') {
-    return {
-      state: removeStatuses(state, recipientId, effect.statusIds),
-      events: getStatusRow(state, recipientId)
-        .statuses.filter((status) => effect.statusIds.includes(status.statusId))
-        .map((status) => ({
-          event: 'status_removed' as const,
-          actionId,
-          sourceCombatantId: actorId,
-          targetCombatantId: recipientId,
-          statusId: status.statusId,
-        })),
-    }
-  }
-
-  const existingStatus = getStatus(state, recipientId, effect.statusId)
-  const nextState = applyStatusState(
-    state,
-    actorId,
-    recipientId,
-    effect.statusId,
-    effect.stacks,
-    content,
-  )
-  const status = getStatus(nextState, recipientId, effect.statusId)
-  if (!status) {
-    throw new Error(`Status ${effect.statusId} was not applied.`)
-  }
-
-  return {
-    state: nextState,
-    events: [
-      {
-        event: 'status_applied',
-        actionId,
-        sourceCombatantId: actorId,
-        targetCombatantId: recipientId,
-        statusId: status.statusId,
-        stacks: status.stacks,
-        remainingOwnerTurnStarts: status.remainingOwnerTurnStarts,
-        refreshed: existingStatus !== null,
-        stacked: existingStatus !== null && status.stacks > existingStatus.stacks,
-      },
-    ],
-  }
-}
-
-function rewindToTurnOrigin(state: CombatEncounterState, actorId: string): CombatEncounterState {
-  return {
-    ...state,
-    tactical: {
-      ...state.tactical,
-      placements: state.tactical.placements.map((unit) =>
-        unit.combatantId === actorId
-          ? { ...unit, position: { ...state.turnOrigin!.position } }
-          : unit,
-      ),
-    },
-  }
-}
-
-function resolveDamageAmount(
-  state: CombatEncounterState,
-  actorId: string,
-  recipientId: string,
-  effect: Extract<CombatEffectDefinition, { type: 'damage' }>,
-  content: CombatContentCatalog,
-  elementalMultiplier = 10_000,
-): number {
-  let amount = effect.amount
-  if (effect.defenseKind && amount > 0) {
-    const defense = state.statBridge?.combatants.find((unit) => unit.combatantId === recipientId)?.[
-      effect.defenseKind
-    ]
-    if (defense === undefined)
-      throw new TypeError('Stat-driven Skill damage requires recipient defenses.')
-    amount = mitigateDamageByDefense(amount, defense)
-  }
-
-  if (effect.facingModifiersBasisPoints && actorId !== recipientId) {
-    const actorPlacement = getPlacement(state.tactical, actorId)
-    const targetPlacement = getPlacement(state.tactical, recipientId)
-    const relation = classifyFacingRelation(
-      targetPlacement.position,
-      targetPlacement.facing,
-      actorPlacement.position,
-    )
-    amount = scaleByBasisPoints(amount, effect.facingModifiersBasisPoints[relation])
-  }
-
-  for (const status of getStatusRow(state, recipientId).statuses) {
-    const definition = getStatusDefinition(content, status.statusId, status.statusVersion)
-    for (let stack = 0; stack < status.stacks; stack += 1) {
-      amount = scaleByBasisPoints(amount, definition.damageTakenMultiplierBasisPoints)
-    }
-  }
-
-  amount = scaleByBasisPoints(
-    amount,
-    conditionalDamageMultiplier(state, actorId, recipientId, content, elementalMultiplier),
-  )
-
-  return amount
-}
-
-function applyStatusState(
-  state: CombatEncounterState,
-  sourceCombatantId: string,
-  recipientId: string,
-  statusId: string,
-  stacks: number,
-  content: CombatContentCatalog,
-): CombatEncounterState {
-  assertPositiveSafeInteger(stacks, 'status stacks')
-  const definition = getStatusDefinitionById(content, statusId)
-  const row = getStatusRow(state, recipientId)
-  const existing = row.statuses.find((status) => status.statusId === statusId)
-  const nextStacks = existing
-    ? addClampedSafeInteger(existing.stacks, stacks, 1, definition.maximumStacks)
-    : Math.min(definition.maximumStacks, stacks)
-  const nextStatus: CombatStatusInstance = existing
-    ? {
-        ...existing,
-        stacks: nextStacks,
-        remainingOwnerTurnStarts: definition.durationOwnerTurnStarts,
-        sourceCombatantId,
-      }
-    : {
-        statusId: definition.id,
-        statusVersion: definition.version,
-        stacks: nextStacks,
-        remainingOwnerTurnStarts: definition.durationOwnerTurnStarts,
-        sourceCombatantId,
-      }
-
-  const statusState = state.statusState.map((candidate) =>
-    candidate.combatantId === recipientId
-      ? {
-          ...candidate,
-          statuses: [
-            ...candidate.statuses.filter((status) => status.statusId !== statusId),
-            nextStatus,
-          ].sort((left, right) => compareStableString(left.statusId, right.statusId)),
-        }
-      : candidate,
-  )
-  const nextState = { ...state, statusState }
-  assertValidCombatEncounterState(nextState)
-  return nextState
-}
-
-function expireOwnerTurnStartStatuses(
-  state: CombatEncounterState,
-  combatantId: string,
-  content: CombatContentCatalog,
-): CombatResolutionTransition {
-  const row = getStatusRow(state, combatantId)
-  const kept: CombatStatusInstance[] = []
-  const events: CombatResolutionEvent[] = []
-
-  for (const status of row.statuses) {
-    const definition = getStatusDefinition(content, status.statusId, status.statusVersion)
-    if (definition.endOfTurn || definition.nextRoundInitiative !== undefined) {
-      kept.push(status)
-      continue
-    }
-    const remaining = status.remainingOwnerTurnStarts - 1
-    if (remaining <= 0) {
-      events.push({ event: 'status_expired', combatantId, statusId: status.statusId })
-    } else {
-      kept.push({ ...status, remainingOwnerTurnStarts: remaining })
-    }
-  }
-
-  const statusState = state.statusState.map((candidate) =>
-    candidate.combatantId === combatantId ? { ...candidate, statuses: kept } : candidate,
-  )
-  const nextState = { ...state, statusState }
-  assertValidCombatEncounterState(nextState)
-  return { state: nextState, events }
-}
-
-function removeStatuses(
-  state: CombatEncounterState,
-  recipientId: string,
-  statusIds: readonly string[],
-): CombatEncounterState {
-  return {
-    ...state,
-    statusState: state.statusState.map((row) =>
-      row.combatantId === recipientId
-        ? {
-            ...row,
-            statuses: row.statuses.filter((status) => !statusIds.includes(status.statusId)),
-          }
-        : row,
-    ),
-  }
-}
-
-function resolveEndOfTurnStatuses(
-  state: CombatEncounterState,
-  combatantId: string,
-  content: CombatContentCatalog,
-): CombatResolutionTransition {
-  let nextState = state
-  const events: CombatResolutionEvent[] = []
-  for (const status of getStatusRow(state, combatantId).statuses) {
-    const definition = getStatusDefinition(content, status.statusId, status.statusVersion)
-    if (!definition.endOfTurn) continue
-    // Periodic values are fixed, do not roll accuracy, and do not trigger ordinary on-hit modifiers.
-    const target = getCombatant(nextState.tactical.battle, combatantId)
-    if (target.hp > 0) {
-      const amount = definition.endOfTurn.amount * status.stacks
-      const hpAfter =
-        definition.endOfTurn.type === 'damage'
-          ? Math.max(0, target.hp - amount)
-          : Math.min(
-              target.maxHp,
-              target.hp + incomingHealingAmount(nextState, combatantId, amount, content),
-            )
-      nextState = withUpdatedCombatant(nextState, combatantId, { ...target, hp: hpAfter })
-      events.push({
-        event: definition.endOfTurn.type === 'damage' ? 'damage_applied' : 'healing_applied',
-        actionId: `status.${status.statusId}`,
-        sourceCombatantId: status.sourceCombatantId,
-        targetCombatantId: combatantId,
-        amount: Math.abs(target.hp - hpAfter),
-        hpBefore: target.hp,
-        hpAfter,
-      })
-    }
-    if (definition.endOfTurn.type === 'damage' && target.hp > 0) {
-      const revealed = removeGameplayTags(
-        nextState,
-        status.sourceCombatantId,
-        combatantId,
-        `status.${status.statusId}`,
-        ['Invisible'],
-        content,
-      )
-      nextState = revealed.state
-      events.push(...revealed.events)
-    }
-    const remaining = status.remainingOwnerTurnStarts - 1
-    if (remaining === 0) {
-      nextState = removeStatuses(nextState, combatantId, [status.statusId])
-      events.push({ event: 'status_expired', combatantId, statusId: status.statusId })
-    } else {
-      nextState = {
-        ...nextState,
-        statusState: nextState.statusState.map((row) =>
-          row.combatantId === combatantId
-            ? {
-                ...row,
-                statuses: row.statuses.map((current) =>
-                  current.statusId === status.statusId
-                    ? { ...current, remainingOwnerTurnStarts: remaining }
-                    : current,
-                ),
-              }
-            : row,
-        ),
-      }
-    }
-  }
-  return { state: nextState, events }
-}
-
-function completeBattleIfResolved(state: CombatEncounterState): CombatResolutionTransition {
-  if (state.tactical.battle.lifecycle !== 'active') {
-    return { state, events: [] }
-  }
-
-  const activeTeams = new Set(
-    state.tactical.battle.combatants
-      .filter((combatant) => combatant.hp > 0)
-      .map((combatant) => combatant.teamId),
-  )
-  if (activeTeams.size > 1) {
-    return { state, events: [] }
-  }
-
-  const winningTeamId = [...activeTeams][0] ?? null
-  const battle: BattleState = {
-    ...state.tactical.battle,
-    lifecycle: 'completed',
-    currentTurn: null,
-  }
-  const nextState = withBattle(state, battle)
-  return { state: nextState, events: [{ event: 'battle_completed', winningTeamId }] }
-}
-
-function withBattle(state: CombatEncounterState, battle: BattleState): CombatEncounterState {
-  const tactical = createTacticalBattleState({ ...state.tactical, battle })
-  const nextState = { ...state, tactical }
-  assertValidCombatEncounterState(nextState)
-  return nextState
-}
-
-function withUpdatedCombatant(
-  state: CombatEncounterState,
-  combatantId: string,
-  combatant: BattleCombatant,
-): CombatEncounterState {
-  const battle: BattleState = {
-    ...state.tactical.battle,
-    combatants: state.tactical.battle.combatants.map((candidate) =>
-      candidate.id === combatantId ? combatant : candidate,
-    ),
-  }
-
-  if (
-    battle.lifecycle === 'active' &&
-    battle.currentTurn?.combatantId === combatantId &&
-    combatant.hp <= 0
-  ) {
-    throw new Error('P2.3 does not permit the current actor to defeat itself during its Action.')
-  }
-
-  return withBattle(state, battle)
-}
-
-function resolveEffectRecipients(
-  actorId: string,
-  primaryCombatantId: string | null,
-  affectedCombatantIds: readonly string[],
-  recipient: CombatEffectRecipient,
-): string[] {
-  if (recipient === 'actor') return [actorId]
-  if (recipient === 'primary-unit') return primaryCombatantId ? [primaryCombatantId] : []
-  return [...affectedCombatantIds]
-}
-
-function hasStatus(state: CombatEncounterState, combatantId: string, statusId: string): boolean {
-  return getStatus(state, combatantId, statusId) !== null
-}
-
-function getStatus(
-  state: CombatEncounterState,
-  combatantId: string,
-  statusId: string,
-): CombatStatusInstance | null {
-  return (
-    getStatusRow(state, combatantId).statuses.find((status) => status.statusId === statusId) ?? null
-  )
-}
-
-function getStatusRow(state: CombatEncounterState, combatantId: string): CombatantStatusState {
-  const row = state.statusState.find((candidate) => candidate.combatantId === combatantId)
-  if (!row) throw new Error(`Missing status state for combatant ${combatantId}.`)
-  return row
-}
-
-function getStatusDefinitionById(
-  content: CombatContentCatalog,
-  statusId: string,
-): CombatStatusDefinition {
-  const definition = content.statuses.find((status) => status.id === statusId)
-  if (!definition) throw new Error(`Unknown combat status definition ${statusId}.`)
-  return definition
-}
-
-function getStatusDefinition(
-  content: CombatContentCatalog,
-  statusId: string,
-  version: number,
-): CombatStatusDefinition {
-  const definition = getStatusDefinitionById(content, statusId)
-  if (definition.version !== version) {
-    throw new Error(`Combat status ${statusId} version does not match the pinned status instance.`)
-  }
-  return definition
-}
-
-function getCombatant(battle: BattleState, combatantId: string): BattleCombatant {
-  const combatant = battle.combatants.find((candidate) => candidate.id === combatantId)
-  if (!combatant) throw new Error(`Unknown combatant ${combatantId}.`)
-  return combatant
-}
-
-function getPlacement(tactical: TacticalBattleState, combatantId: string): CombatPlacement {
-  const placement = tactical.placements.find((candidate) => candidate.combatantId === combatantId)
-  if (!placement) throw new Error(`Missing tactical placement for combatant ${combatantId}.`)
-  return placement
-}
-
-function getTile(tactical: TacticalBattleState, position: GridPosition): CombatTile {
-  const tile = tactical.tiles.find((candidate) => positionsEqual(candidate.position, position))
-  if (!tile) throw new Error(`No tactical tile exists at ${position.x},${position.y}.`)
-  return tile
-}
-
-function getOccupantId(tactical: TacticalBattleState, position: GridPosition): string | null {
-  return (
-    tactical.placements.find((placement) => positionsEqual(placement.position, position))
-      ?.combatantId ?? null
-  )
-}
-
-function isTeamPolicyAllowed(
-  actor: BattleCombatant,
-  target: BattleCombatant,
-  policy: CombatTargetTeamPolicy,
-): boolean {
-  if (policy === 'any') return true
-  if (policy === 'self') return actor.id === target.id
-  if (policy === 'ally') return actor.teamId === target.teamId
-  return actor.teamId !== target.teamId
-}
-
-function isFriendlyFireAllowed(
-  actor: BattleCombatant,
-  target: BattleCombatant,
-  policy: CombatFriendlyFirePolicy,
-): boolean {
-  if (policy === 'all-units') return true
-  if (policy === 'all-except-actor') return actor.id !== target.id
-  if (policy === 'allies-only') return actor.teamId === target.teamId
-  return actor.teamId !== target.teamId
-}
-
-function hasBaselineLineOfSight(
-  state: CombatEncounterState,
-  origin: GridPosition,
-  target: GridPosition,
-): boolean {
-  const tactical = state.tactical
-  const points = bresenhamLine(origin, target)
-  for (let index = 1; index < points.length - 1; index += 1) {
-    const tile = getTile(tactical, points[index])
-    const terrain = tactical.terrains.find((candidate) => candidate.id === tile.terrainId)
-    if (!terrain) throw new Error(`Unknown terrain ${tile.terrainId}.`)
-    if (terrain.traversalCost === null || terrainOverlayAt(state, points[index])?.kind === 'steam')
-      return false
-  }
-  return true
-}
-
-function bresenhamLine(origin: GridPosition, target: GridPosition): GridPosition[] {
-  const points: GridPosition[] = []
-  let x = origin.x
-  let y = origin.y
-  const dx = Math.abs(target.x - origin.x)
-  const sx = origin.x < target.x ? 1 : -1
-  const dy = -Math.abs(target.y - origin.y)
-  const sy = origin.y < target.y ? 1 : -1
-  let error = dx + dy
-
-  while (true) {
-    points.push({ x, y })
-    if (x === target.x && y === target.y) break
-    const doubled = error * 2
-    if (doubled >= dy) {
-      error += dy
-      x += sx
-    }
-    if (doubled <= dx) {
-      error += dx
-      y += sy
-    }
-  }
-
-  return points
-}
-
-function validateCombatActionDefinition(
-  action: CombatActionDefinition,
-  content?: CombatContentCatalog,
-): void {
-  validateGameplayActionMetadata(action)
-  collectRequiredIdentity(action.id, 'action id')
-  assertPositiveSafeInteger(action.version, 'action version')
-  if (action.cooldown) {
-    const cooldownIssues = validateSkillCooldownDefinition(action.cooldown)
-    if (cooldownIssues.length > 0) {
-      throw new TypeError(`Invalid action cooldown definition: ${cooldownIssues.join(', ')}.`)
-    }
-  }
-  assertKnownString(
-    action.sourceType,
-    ['basic-attack', 'basic-action', 'discipline-skill', 'scenario', 'test'],
-    'action source type',
-  )
-  assertKnownString(
-    action.target.kind,
-    ['self', 'unit', 'ground-tile', 'empty-tile'],
-    'target kind',
-  )
-  assertKnownString(
-    action.target.teamPolicy,
-    ['self', 'ally', 'enemy', 'any'],
-    'target team policy',
-  )
-  assertKnownString(
-    action.target.friendlyFire,
-    ['enemies-only', 'allies-only', 'all-units', 'all-except-actor'],
-    'friendly-fire policy',
-  )
-  assertKnownString(action.target.shape.kind, ['single', 'circle', 'line'], 'target shape kind')
-  assertBoolean(action.target.requiresLineOfSight, 'requiresLineOfSight')
-  assertBoolean(action.cost.spendsAction, 'spendsAction')
-  assertNonNegativeSafeInteger(action.target.minimumRange, 'minimum range')
-  assertNonNegativeSafeInteger(action.target.maximumRange, 'maximum range')
-  if (action.target.minimumRange > action.target.maximumRange) {
-    throw new RangeError('Action minimum range cannot exceed maximum range.')
-  }
-  if (action.target.maximumElevationDifference !== null) {
-    assertNonNegativeSafeInteger(
-      action.target.maximumElevationDifference,
-      'maximum elevation difference',
-    )
-  }
-  if (action.target.shape.kind === 'circle') {
-    assertNonNegativeSafeInteger(action.target.shape.radius, 'circle radius')
-  }
-  if (action.target.shape.kind === 'line') {
-    assertPositiveSafeInteger(action.target.shape.length, 'line length')
-  }
-  assertNonNegativeSafeInteger(action.cost.mp, 'MP cost')
-
-  const tagSet = new Set<string>()
-  for (const tag of action.tags) {
-    collectRequiredIdentity(tag, 'action tag')
-    if (tagSet.has(tag)) throw new Error(`Duplicate action tag ${tag}.`)
-    tagSet.add(tag)
-  }
-
-  for (const requirement of action.requirements) {
-    assertKnownString(
-      requirement.kind,
-      [
-        'actor-status-present',
-        'actor-status-absent',
-        'target-status-present',
-        'actor-hp-at-most',
-        'actor-tag-present',
-        'actor-tag-absent',
-        'target-tag-present',
-      ],
-      'requirement kind',
-    )
-    if ('statusId' in requirement)
-      collectRequiredIdentity(requirement.statusId, 'requirement status ID')
-    if (requirement.kind === 'actor-hp-at-most') {
-      assertBasisPoints(requirement.basisPoints, 'actor HP threshold')
-    }
-  }
-
-  for (const effect of action.effects) {
-    assertKnownString(
-      effect.type,
-      [
-        'damage',
-        'healing',
-        'resource-change',
-        'apply-status',
-        'remove-status',
-        'return-to-turn-start',
-        'create-terrain',
-        'displace',
-      ],
-      'effect type',
-    )
-    if (effect.type === 'create-terrain') {
-      continue
-    }
-    if (effect.type === 'displace') {
-      if (content) getStatusDefinitionById(content, 'displaced')
-    }
-    assertKnownString(
-      effect.recipient,
-      ['actor', 'primary-unit', 'affected-units'],
-      'effect recipient',
-    )
-    if (effect.type === 'damage' || effect.type === 'healing') {
-      assertNonNegativeSafeInteger(effect.amount, `${effect.type} amount`)
-    }
-    if (effect.type === 'damage' && effect.defenseKind !== undefined)
-      assertKnownString(effect.defenseKind, ['armor', 'ward'], 'damage defense kind')
-    if (effect.type === 'damage' && effect.facingModifiersBasisPoints) {
-      // Historical Perfect Opening v1 authors 220%; Skill facing is separate from basic/conditional caps.
-      assertBasisPoints(effect.facingModifiersBasisPoints.front, 'front damage modifier', 22_000)
-      assertBasisPoints(effect.facingModifiersBasisPoints.side, 'side damage modifier', 22_000)
-      assertBasisPoints(effect.facingModifiersBasisPoints.rear, 'rear damage modifier', 22_000)
-    }
-    if (effect.type === 'resource-change') {
-      assertKnownString(effect.resource, ['mp'], 'effect resource')
-      if (!Number.isSafeInteger(effect.delta)) {
-        throw new RangeError('Resource delta must be a safe integer.')
-      }
-    }
-    if (effect.type === 'remove-status') {
-      if (
-        !Array.isArray(effect.statusIds) ||
-        effect.statusIds.length < 1 ||
-        effect.statusIds.length > 8 ||
-        new Set(effect.statusIds).size !== effect.statusIds.length
-      )
-        throw new TypeError('Status removal requires one to eight distinct IDs.')
-      for (const id of effect.statusIds) {
-        collectRequiredIdentity(id, 'removed status ID')
-        if (content) getStatusDefinitionById(content, id)
-      }
-    }
-    if (
-      effect.type === 'return-to-turn-start' &&
-      (effect.recipient !== 'actor' || action.target.kind !== 'self')
-    )
-      throw new TypeError('Rewind is a self-only effect.')
-    if (effect.type === 'apply-status') {
-      collectRequiredIdentity(effect.statusId, 'effect status ID')
-      assertPositiveSafeInteger(effect.stacks, 'effect status stacks')
-      if (content) getStatusDefinitionById(content, effect.statusId)
-    }
-  }
-}
-
-function validateAttackProfile(profile: CombatAttackProfile): void {
-  collectRequiredIdentity(profile.id, 'attack profile id')
-  assertPositiveSafeInteger(profile.version, 'attack profile version')
-  assertNonNegativeSafeInteger(profile.damage, 'attack profile damage')
-  assertNonNegativeSafeInteger(profile.minimumRange, 'attack profile minimum range')
-  assertNonNegativeSafeInteger(profile.maximumRange, 'attack profile maximum range')
-  if (profile.minimumRange > profile.maximumRange) {
-    throw new RangeError('Attack profile minimum range cannot exceed maximum range.')
-  }
-  if (profile.maximumElevationDifference !== null) {
-    assertNonNegativeSafeInteger(
-      profile.maximumElevationDifference,
-      'attack profile maximum elevation difference',
-    )
-  }
-  assertBasisPoints(profile.facingModifiersBasisPoints.front, 'front damage modifier', 20_000)
-  assertBasisPoints(profile.facingModifiersBasisPoints.side, 'side damage modifier', 20_000)
-  assertBasisPoints(profile.facingModifiersBasisPoints.rear, 'rear damage modifier', 20_000)
-}
-
-function validateCombatContentCatalog(content: CombatContentCatalog): void {
-  const ids = new Set<string>()
-  for (const status of content.statuses) {
-    collectRequiredIdentity(status.id, 'status id')
-    assertPositiveSafeInteger(status.version, 'status version')
-    assertPositiveSafeInteger(status.maximumStacks, 'status maximum stacks')
-    assertPositiveSafeInteger(status.durationOwnerTurnStarts, 'status duration')
-    assertBasisPoints(status.damageTakenMultiplierBasisPoints, 'damage taken multiplier', 25_000)
-    validateDamageModifiers(status.damageModifiers)
-    if (status.gameplayTags !== undefined) {
-      if (
-        !Array.isArray(status.gameplayTags) ||
-        status.gameplayTags.length > 16 ||
-        new Set(status.gameplayTags).size !== status.gameplayTags.length
-      )
-        throw new TypeError('Invalid gameplay tags.')
-      for (const tag of status.gameplayTags) validateGameplayTag(tag)
-    }
-    if (status.damageModifiers?.length && status.maximumStacks !== 1)
-      throw new TypeError('Conditional damage statuses must be single-stack.')
-    if (
-      status.nextRoundInitiative !== undefined &&
-      (!Number.isSafeInteger(status.nextRoundInitiative) ||
-        Math.abs(status.nextRoundInitiative) > 40 ||
-        status.nextRoundInitiative === 0 ||
-        status.maximumStacks !== 1 ||
-        status.endOfTurn)
-    )
-      throw new RangeError(
-        'Round initiative status must be single-stack, non-periodic and bounded to +/-40.',
-      )
-    if (status.endOfTurn) {
-      assertKnownString(status.endOfTurn.type, ['damage', 'healing'], 'periodic effect')
-      assertPositiveSafeInteger(status.endOfTurn.amount, 'periodic amount')
-      if (status.endOfTurn.amount > 100 || status.maximumStacks > 3)
-        throw new RangeError('Periodic status exceeds its bounded magnitude.')
-    }
-    if (status.movement) {
-      if (status.movement.blocked !== undefined && typeof status.movement.blocked !== 'boolean')
-        throw new TypeError('Invalid movement restriction.')
-      const ap = status.movement.additionalApPerTile ?? 0
-      assertNonNegativeSafeInteger(ap, 'movement AP surcharge')
-      if (ap > 20) throw new RangeError('Movement surcharge exceeds 20 AP per tile.')
-    }
-    if (ids.has(status.id)) throw new Error(`Duplicate combat status definition ${status.id}.`)
-    ids.add(status.id)
-  }
-}
-
-function emptyEvaluation(
-  action: CombatActionDefinition,
-  actorId: string | null,
-  issues: readonly CombatActionIssue[],
-): CombatActionEvaluation {
-  return {
-    legal: false,
-    actionId: action.id,
-    actorId,
-    primaryPosition: null,
-    primaryCombatantId: null,
-    affectedTiles: [],
-    affectedCombatantIds: [],
-    projectedEffects: [],
-    projectedTerrain: [],
-    projectedEvents: [],
-    mpCost: action.cost.mp,
-    spendsAction: action.cost.spendsAction,
-    issues,
-  }
-}
-
-function scaleByBasisPoints(value: number, basisPoints: number): number {
-  assertNonNegativeSafeInteger(value, 'combat value')
-  assertNonNegativeSafeInteger(basisPoints, 'combat basis points')
-  const scaled = (BigInt(value) * BigInt(basisPoints)) / BigInt(COMBAT_BASIS_POINTS)
-  if (scaled > BigInt(Number.MAX_SAFE_INTEGER)) {
-    throw new RangeError('Scaled combat value exceeds the safe integer range.')
-  }
-  return Number(scaled)
-}
-
-function scaleRatioToBasisPoints(current: number, maximum: number): number {
-  assertNonNegativeSafeInteger(current, 'ratio current')
-  assertPositiveSafeInteger(maximum, 'ratio maximum')
-  if (current > maximum) {
-    throw new RangeError('Ratio current cannot exceed its maximum.')
-  }
-  const scaled = (BigInt(current) * BigInt(COMBAT_BASIS_POINTS)) / BigInt(maximum)
-  return Number(scaled)
-}
-
-function addClampedSafeInteger(
-  current: number,
-  delta: number,
-  minimum: number,
-  maximum: number,
-): number {
-  if (
-    !Number.isSafeInteger(current) ||
-    !Number.isSafeInteger(delta) ||
-    !Number.isSafeInteger(minimum) ||
-    !Number.isSafeInteger(maximum) ||
-    minimum > maximum
-  ) {
-    throw new RangeError('Combat resource arithmetic requires safe integer bounds and values.')
-  }
-
-  const candidate = BigInt(current) + BigInt(delta)
-  const lower = BigInt(minimum)
-  const upper = BigInt(maximum)
-  if (candidate < lower) return minimum
-  if (candidate > upper) return maximum
-  return Number(candidate)
-}
-
-function manhattanDistance(left: GridPosition, right: GridPosition): number {
-  const distance = Math.abs(left.x - right.x) + Math.abs(left.y - right.y)
-  if (!Number.isSafeInteger(distance)) {
-    throw new RangeError('Combat target distance exceeds the safe integer range.')
-  }
-  return distance
-}
-
-function positionsEqual(left: GridPosition, right: GridPosition): boolean {
-  return left.x === right.x && left.y === right.y
-}
-
-function isWithinBoard(tactical: TacticalBattleState, position: GridPosition): boolean {
-  return (
-    position.x >= 0 &&
-    position.y >= 0 &&
-    position.x < tactical.width &&
-    position.y < tactical.height
-  )
-}
-
-function assertValidCombatEncounterState(state: CombatEncounterState): void {
-  const issues = validateCombatEncounterState(state)
-  if (issues.length > 0) {
-    throw new Error(`Invalid combat encounter state: ${issues[0].field}: ${issues[0].message}`)
-  }
-}
-
-function assertGridPosition(position: GridPosition, field: string): void {
-  if (!Number.isSafeInteger(position.x) || !Number.isSafeInteger(position.y)) {
-    throw new RangeError(`${field} must contain safe integer coordinates.`)
-  }
-}
-
-function collectIdentityIssue(issues: CombatEncounterIssue[], value: string, field: string): void {
-  if (typeof value !== 'string' || value.length === 0 || value.trim() !== value) {
-    issues.push({ field, message: 'Identity must be a non-empty trimmed string.' })
-  }
-}
-
-function collectPositiveIntegerIssue(
-  issues: CombatEncounterIssue[],
-  value: number,
-  field: string,
-): void {
-  if (!Number.isSafeInteger(value) || value <= 0) {
-    issues.push({ field, message: 'Value must be a positive safe integer.' })
-  }
-}
-
-function collectRequiredIdentity(value: string, field: string): void {
-  if (typeof value !== 'string' || value.length === 0 || value.trim() !== value) {
-    throw new TypeError(`${field} must be a non-empty trimmed string.`)
-  }
-}
-
-function assertKnownString(value: unknown, allowed: readonly string[], field: string): void {
-  if (typeof value !== 'string' || !allowed.includes(value)) {
-    throw new TypeError(`${field} is not supported.`)
-  }
-}
-
-function assertBoolean(value: unknown, field: string): void {
-  if (typeof value !== 'boolean') {
-    throw new TypeError(`${field} must be a boolean.`)
-  }
-}
-
-function assertPositiveSafeInteger(value: number, field: string): void {
-  if (!Number.isSafeInteger(value) || value <= 0) {
-    throw new RangeError(`${field} must be a positive safe integer.`)
-  }
-}
-
-function assertNonNegativeSafeInteger(value: number, field: string): void {
-  if (!Number.isSafeInteger(value) || value < 0) {
-    throw new RangeError(`${field} must be a non-negative safe integer.`)
-  }
-}
-
-function assertBasisPoints(
-  value: number,
-  field: string,
-  maximum: number = COMBAT_BASIS_POINTS,
-): void {
-  if (!Number.isSafeInteger(value) || value < 0 || value > maximum) {
-    throw new RangeError(`${field} must be an integer between 0 and ${maximum}.`)
-  }
-}
-
-function arraysEqual<T>(left: readonly T[], right: readonly T[]): boolean {
-  return left.length === right.length && left.every((value, index) => value === right[index])
-}
-
-function compareStableString(left: string, right: string): number {
-  if (left < right) return -1
-  if (left > right) return 1
-  return 0
-}
-
-function samePosition(a: GridPosition, b: GridPosition): boolean {
-  return a.x === b.x && a.y === b.y
-}
-
-function incomingHealingAmount(
-  state: CombatEncounterState,
-  recipientId: string,
-  amount: number,
-  content: CombatContentCatalog,
-): number {
-  return hasGameplayTag(state, recipientId, 'Hexed', content)
-    ? scaleByBasisPoints(amount, 7_500)
-    : amount
-}
-
-function applyDisplacement(
-  state: CombatEncounterState,
-  actorId: string,
-  recipientId: string,
-  actionId: string,
-  content: CombatContentCatalog,
-): CombatResolutionTransition {
-  const source = getPlacement(state.tactical, actorId).position
-  const placement = getPlacement(state.tactical, recipientId)
-  const from = placement.position
-  const dx = from.x - source.x
-  const dy = from.y - source.y
-  // Cardinal push away from the caster; equal diagonals use the horizontal axis.
-  const to =
-    Math.abs(dx) >= Math.abs(dy)
-      ? { x: from.x + Math.sign(dx), y: from.y }
-      : { x: from.x, y: from.y + Math.sign(dy) }
-  const profile = state.tactical.movementProfiles.find(
-    (row) => row.id === placement.movementProfileId,
-  )!
-  const tile = state.tactical.tiles.find((tile) => samePosition(tile.position, to))
-  const override =
-    tile && profile.terrainCostOverrides.find((row) => row.terrainId === tile.terrainId)
-  const terrainCost = tile
-    ? override
-      ? override.traversalCost
-      : state.tactical.terrains.find((row) => row.id === tile.terrainId)?.traversalCost
-    : null
-  let reason: DisplacementFailureReason | null = null
-  if (getCombatant(state.tactical.battle, recipientId).hp <= 0) reason = 'target-defeated'
-  else if (
-    getStatusRow(state, recipientId).statuses.some(
-      (status) =>
-        getStatusDefinition(content, status.statusId, status.statusVersion).movement?.blocked,
-    )
-  )
-    reason = 'status-restricted'
-  else if (!dx && !dy) reason = 'direction-undefined'
-  else if (!tile) reason = 'out-of-bounds'
-  else if (terrainCost == null) reason = 'blocked-terrain'
-  else if (state.tactical.placements.some((unit) => samePosition(unit.position, to)))
-    reason = 'occupied-tile'
-  else if (
-    Math.abs(tile.elevation - getTile(state.tactical, from).elevation) > profile.maxElevationStep
-  )
-    reason = 'elevation-step-too-high'
-  if (reason)
-    return {
-      state,
-      events: [
-        {
-          event: 'displacement_failed',
-          actionId,
-          sourceCombatantId: actorId,
-          combatantId: recipientId,
-          reason,
-          position: { ...from },
-        },
-      ],
-    }
-  const moved = {
-    ...state,
-    tactical: {
-      ...state.tactical,
-      placements: state.tactical.placements.map((unit) =>
-        unit.combatantId === recipientId ? { ...unit, position: to } : unit,
-      ),
-    },
-  }
-  const marked = applyEffect(
-    moved,
-    actorId,
-    recipientId,
-    actionId,
-    { type: 'apply-status', recipient: 'primary-unit', statusId: 'displaced', stacks: 1 },
-    content,
-    new Set(),
-  )
-  return {
-    state: marked.state,
-    events: [
-      {
-        event: 'combatant_displaced',
-        actionId,
-        sourceCombatantId: actorId,
-        combatantId: recipientId,
-        from: { ...from },
-        to: { ...to },
-      },
-      ...marked.events,
-    ],
-  }
+  return { ...action, effects }
 }

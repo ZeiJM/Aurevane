@@ -1,15 +1,11 @@
-import { combatStatusDetails } from '@aurevane/game-core/combat/status-content'
+import { combatStatusPresentationTag } from '@aurevane/game-core/combat/gameplay-tags'
 import {
   COMBAT_TERRAIN_OVERLAY_DETAILS,
   type CombatTerrainOverlay,
 } from '@aurevane/game-core/combat/terrain-overlays'
 
 export function gameplayStatusName(id: string): string {
-  const alias = (
-    { burn: 'Scorched', bleed: 'Bleeding', poison: 'Poisoned' } as Record<string, string>
-  )[id]
-  const name = combatStatusDetails(id).name
-  return alias ? `${name} (${alias})` : name
+  return combatStatusPresentationTag(id === 'lowered.guard' ? 'lowered-guard' : id)
 }
 
 export function terrainOverlayDescription(
@@ -68,14 +64,17 @@ export function combatInteractionDescription(event: object): string | null {
     return `${COMBAT_TERRAIN_OVERLAY_DETAILS[data.kind].name} expired at tile ${position}; base terrain remains.`
   }
   if (data.event === 'combatant_displaced' && tile(data.from) && tile(data.to)) {
-    return `Target pushed one tile: ${tile(data.from)} → ${tile(data.to)}. AP and Movement unchanged.`
+    const verb = data.direction === 'pull' ? 'pulled' : 'pushed'
+    const distance = data.distance ?? 1
+    if (!Number.isSafeInteger(distance) || (distance as number) < 1) return null
+    return `Target ${verb} ${distance === 1 ? 'one tile' : `${distance} tiles`}: ${tile(data.from)} → ${tile(data.to)}. AP and Movement unchanged.`
   }
   if (
     data.event === 'displacement_failed' &&
     typeof data.reason === 'string' &&
     PUSH_FAILURES[data.reason]
   ) {
-    return `Push failed: ${PUSH_FAILURES[data.reason]}; normal action costs apply, no refund.`
+    return `${data.direction === 'pull' ? 'Pull' : 'Push'} failed: ${PUSH_FAILURES[data.reason]}; normal action costs apply, no refund.`
   }
   if (data.event === 'status_removed' && typeof data.statusId === 'string') {
     return `${gameplayStatusName(data.statusId)} removed.`

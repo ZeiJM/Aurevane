@@ -3,8 +3,8 @@ import { createClient } from '@supabase/supabase-js'
 
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
-const rosterPanelSelector = "[data-directory-roster='true']"
-const directoryListSelector = "[data-directory-list='true']"
+const rosterListSelector =
+  "[data-character-directory] > section > div:last-child:has(> button):not([role='status'])"
 
 const desktopSizes = [
   // CSS viewport for a 1920 × 1080 display at 80% browser zoom.
@@ -54,7 +54,7 @@ async function fit(page: Page, label: string, testInfo: TestInfo) {
     return {
       concept: Boolean(
         document.querySelector(
-          '[data-character-concept], [data-training-concept], [data-hall-concept], [data-battle-concept], [data-online-concept]',
+          '[data-character-concept], [data-training-concept], [data-hall-concept], [data-battle-concept]',
         ),
       ),
       viewport: [innerWidth, innerHeight],
@@ -72,7 +72,7 @@ async function fit(page: Page, label: string, testInfo: TestInfo) {
       ),
       overflow: getComputedStyle(document.documentElement).overflowY,
     }
-  }, rosterPanelSelector)
+  }, rosterListSelector)
   console.log('desktop-experience-fit', label, JSON.stringify(metrics))
   await testInfo.attach(label, { body: await page.screenshot(), contentType: 'image/png' })
   expect
@@ -92,7 +92,7 @@ async function fit(page: Page, label: string, testInfo: TestInfo) {
     expect
       .soft(list.bottom, `${label}: list overlaps footer`)
       .toBeLessThanOrEqual(metrics.footerTop)
-    const minimumListHeight = 80
+    const minimumListHeight = metrics.viewport[1]! <= 600 ? 80 : 120
     expect.soft(list.height, `${label}: usable list area`).toBeGreaterThanOrEqual(minimumListHeight)
     expect.soft(list.overflowY, `${label}: list must remain scrollable`).toBe('auto')
   }
@@ -147,21 +147,20 @@ test('desktop Profile and every Battle Hall tab fit without sacrificing readable
     await expect(tabs.getByRole('button', { pressed: true })).toHaveCount(1)
     expect(await tabs.innerText()).not.toMatch(/\b0[123]\b|[›>]/)
     for (const button of await tabs.getByRole('button').all()) {
-      expect(await button.evaluate((element) => getComputedStyle(element).textAlign)).toBe('left')
+      expect(await button.evaluate((element) => getComputedStyle(element).textAlign)).toBe('center')
     }
     if (size.width >= 1440) {
       const panel = await page.locator('#battle-launch').boundingBox()
-      const main = await page.locator('#game-main').boundingBox()
-      expect(panel).not.toBeNull()
-      expect(main).not.toBeNull()
-      expect(panel!.width).toBeLessThanOrEqual(main!.width + 1)
-      expect(panel!.width).toBeGreaterThanOrEqual(main!.width * 0.9)
       if (await page.locator('#battle-launch[data-hall-concept]').count()) {
+        const main = await page.locator('#game-main').boundingBox()
+        expect(panel!.x).toBeGreaterThanOrEqual(main!.x)
+        expect(panel!.x + panel!.width).toBeLessThanOrEqual(main!.x + main!.width + 1)
         expect(
           panel!.height,
           'The authored Battle Hall concept must render content',
         ).toBeGreaterThan(0)
       } else {
+        expect(panel!.width).toBeLessThanOrEqual(1248)
         expect(
           panel!.height,
           'An empty selection must not stretch into a blank full-height card',
@@ -564,9 +563,9 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
         } else {
           expect(portrait.width).toBeGreaterThan(0)
           expect(portrait.height).toBeGreaterThan(0)
-          expect(identity.width).toBeGreaterThan(0)
-          expect(identity.height).toBeGreaterThan(0)
-          expect(portrait.x + portrait.width).toBeLessThanOrEqual(identity.x + 1)
+          expect(identity.x).toBeGreaterThanOrEqual(portrait.x + portrait.width - 1)
+          expect(identity.y + identity.height).toBeGreaterThan(portrait.y)
+          expect(portrait.y + portrait.height).toBeGreaterThan(identity.y)
         }
         await testInfo.attach(`phone-hero-${width}-${mixed}`, {
           body: await page.screenshot(),
@@ -739,7 +738,7 @@ test('a large desktop character directory stays inside the page and every entry 
     await page.setViewportSize(size)
     await page.goto('/game/online')
     await page.getByRole('button', { name: 'Show all characters' }).click()
-    const list = page.locator(directoryListSelector)
+    const list = page.locator(rosterListSelector)
     await expect(list.getByRole('button')).toHaveCount(60)
     await fit(page, `Directory-60-${size.width}x${size.height}`, testInfo)
     await readable(page.getByRole('button', { name: 'Show online only' }), 12)
@@ -748,21 +747,9 @@ test('a large desktop character directory stays inside the page and every entry 
       .toBeGreaterThan(0)
     const last = list.getByRole('button').last()
     await expect(last.locator('strong')).toHaveText('Adventurer 60')
-    const roster = page.locator(rosterPanelSelector)
-    await roster.evaluate((element) => {
-      element.scrollTop = 0
-    })
-    await list.evaluate((element) => {
-      element.scrollTop = 0
-    })
-    await last.scrollIntoViewIfNeeded()
-    await expect(last).toBeVisible()
-    await last.click({ trial: true })
-    const [rosterScrollTop, listScrollTop] = await Promise.all([
-      roster.evaluate((element) => element.scrollTop),
-      list.evaluate((element) => element.scrollTop),
-    ])
-    expect(rosterScrollTop + listScrollTop).toBeGreaterThan(0)
+    await list.hover()
+    await page.mouse.wheel(0, 100_000)
+    await expect(last).toBeInViewport({ ratio: 1 })
     const scroll = await page.evaluate(() => window.scrollY)
     expect(scroll).toBe(0)
     await last.click()
@@ -770,11 +757,9 @@ test('a large desktop character directory stays inside the page and every entry 
     await expect(dialog).toBeVisible()
     await page.getByRole('button', { name: 'Close public character profile' }).click()
     await expect(dialog).toBeHidden()
-    // Focusing a card must make it the active keyboard target and keep it visible.
-    const first = list.getByRole('button').first()
-    await first.focus()
-    await expect(first).toBeFocused()
-    await expect(first).toBeVisible()
+    // Focusing a card must also reveal it to keyboard users in the internal scroller.
+    await list.getByRole('button').first().focus()
+    await expect(list.getByRole('button').first()).toBeInViewport({ ratio: 1 })
     await page.getByRole('combobox').first().selectOption('vanguard')
     await expect(list.getByRole('button')).toHaveCount(30)
     await fit(page, `Directory-filtered-${size.width}x${size.height}`, testInfo)

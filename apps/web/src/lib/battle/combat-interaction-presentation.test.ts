@@ -59,3 +59,22 @@ it('does not advertise unit statuses when a legal empty-ground action affects no
   expect(statusWasProjected('slow', [{ event: 'status_applied', statusId: 'slow' }])).toBe(true)
   expect(statusWasProjected('slow', undefined)).toBe(true)
 })
+
+it('reports Pull distance and failed Pull without calling it a Push', () => {
+  expect(
+    combatInteractionDescription({
+      event: 'combatant_displaced',
+      direction: 'pull',
+      distance: 3,
+      from: { x: 4, y: 1 },
+      to: { x: 1, y: 1 },
+    }),
+  ).toContain('pulled 3 tiles')
+  expect(
+    combatInteractionDescription({
+      event: 'displacement_failed',
+      direction: 'pull',
+      reason: 'occupied-tile',
+    }),
+  ).toContain('Pull failed')
+})

@@ -192,6 +192,8 @@ export async function tickPvpTurnClock(
       expectedBattleVersion: current.battleVersion,
       nextSnapshot: resolved.state,
       events: resolved.events,
+
+      privacyJournal: null,
     })
   } catch (error) {
     if (!(error instanceof StaleBattleVersionError)) throw error
@@ -237,8 +239,10 @@ export async function surrenderPvpBattle(
       expectedBattleVersion: current.battleVersion,
       nextSnapshot: resolved.state,
       events: resolved.events,
+
+      privacyJournal: null,
     })
-    return projectCommittedBattleSession(committed)
+    return projectCommittedBattleSession(committed, current.controlledCombatantIds)
   } catch (error) {
     if (!(error instanceof StaleBattleVersionError)) throw error
   }

@@ -188,6 +188,8 @@ export async function tickAiTurnClock(
       expectedBattleVersion: current.battleVersion,
       nextSnapshot: nextState,
       events: resolved.events,
+
+      privacyJournal: null,
     })
   } catch (error) {
     if (!(error instanceof StaleBattleVersionError)) throw error

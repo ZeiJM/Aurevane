@@ -1,3 +1,4 @@
+import { combatActionPresentationTags } from '@aurevane/game-core/combat/gameplay-tags'
 import { gameplayStatusName } from '../../lib/battle/combat-interaction-presentation'
 import {
   combatStatusDetails,
@@ -38,13 +39,27 @@ export function skillEffectDescription(effect: CombatEffectDefinition): string {
     case 'create-terrain':
       return 'Create Frozen terrain on affected tiles for two round boundaries. Both teams pay 10 extra AP per entered tile; Airborne ignores this surcharge. Fire converts Frozen to Steam, which blocks line of sight.'
     case 'displace':
-      return `Push ${target} one tile away if the destination is vacant, passable and within legal elevation. Root prevents displacement. Failure grants no refund.`
+      return `${effect.direction === 'pull' ? 'Pull' : 'Push'} ${target} up to ${effect.distance} ${effect.distance === 1 ? 'tile' : 'tiles'} ${effect.direction === 'pull' ? 'toward you' : 'away'}, one legal tile at a time. Stops before occupied, blocked or illegal-elevation tiles. Pull never enters your tile. Root prevents displacement. Failure grants no refund.`
+    case 'poison':
+      return `Apply Poison (Poisoned) to ${target}.`
+    case 'burn':
+      return `Apply Burn (Scorched) to ${target}. Burn deals 4, then 3, then 2 fixed damage at the target's next three end-turn boundaries; reapplication restarts the sequence.`
+    case 'bleed':
+      return `Apply Bleed (Bleeding) to ${target} for ${effect.ticks} ${effect.ticks === 1 ? 'end-turn tick' : 'end-turn ticks'} at ${effect.damagePerTick} damage per tick. Bleed stacks independently up to three times.`
     case 'return-to-turn-start':
       return 'Return to the vacant tile where you started this turn. Root blocks the return. No HP, MP, AP, Movement or past action is refunded.'
     case 'healing':
-      return `Restore up to ${effect.amount} HP to ${target}.`
+      return `Restore up to ${effect.amount} HP to ${target}.${recoveryTiming(effect.ticks)}`
+    case 'barrier-change':
+      return `Grant up to ${effect.amount} Barrier to ${target}.`
     case 'resource-change':
-      return `${effect.delta >= 0 ? 'Restore up to' : 'Remove'} ${Math.abs(effect.delta)} MP ${effect.delta >= 0 ? 'to' : 'from'} ${target}.`
+      return `${effect.delta >= 0 ? 'Restore up to' : 'Remove'} ${Math.abs(effect.delta)} MP ${effect.delta >= 0 ? 'to' : 'from'} ${target}.${effect.delta >= 0 ? recoveryTiming(effect.ticks) : ''}`
+    case 'copy-statuses':
+      return effect.mode === 'amplify'
+        ? 'Copy eligible positive active statuses from the selected unit onto yourself. The selected unit keeps its statuses; copied stacks respect caps and remaining durations are not restarted.'
+        : 'Copy eligible negative active statuses from yourself onto the selected unit. You keep the original statuses; copied stacks respect caps and remaining durations are not restarted.'
+    case 'sensory':
+      return `Attempt Sensory on ${target}. On a successful hit against Covert, remove eligible positive statuses and Covert, then apply Revealed for ${effect.revealedDurationOwnerTurnStarts} owner-turn starts. Otherwise the Sensory block has no effect.`
     case 'remove-status':
       return `Remove ${effect.statusIds.map((id) => combatStatusDetails(id).name).join(', ')} from ${target}.`
     case 'apply-status': {
@@ -74,57 +89,7 @@ export function skillRequirementDescription(requirement: CombatUseRequirement): 
 }
 
 export function skillTargetTags(skill: MatureSkillDefinition): readonly string[] {
-  const { target } = skill
-  const kind =
-    target.kind === 'self'
-      ? 'Self'
-      : target.kind === 'ground-tile'
-        ? 'Ground tile'
-        : target.kind === 'empty-tile'
-          ? 'Empty tile'
-          : target.teamPolicy === 'enemy'
-            ? 'Enemy'
-            : target.teamPolicy === 'ally'
-              ? target.minimumRange === 0
-                ? 'Self or ally'
-                : 'Ally'
-              : 'Any unit'
-  const shape =
-    target.shape.kind === 'single'
-      ? 'Single target'
-      : target.shape.kind === 'circle'
-        ? `Area · radius ${target.shape.radius}`
-        : `Line · ${target.shape.length} tiles`
-  const effectTags = [
-    ...new Set(
-      skill.effects.map((effect) => {
-        const label =
-          effect.type === 'damage'
-            ? effect.element
-              ? `${title(effect.element)} damage`
-              : 'Damage'
-            : effect.type === 'healing'
-              ? 'Healing'
-              : effect.type === 'resource-change'
-                ? effect.delta < 0
-                  ? 'MP Drain'
-                  : 'MP Restore'
-                : effect.type === 'remove-status'
-                  ? effect.statusIds.every((id) => combatStatusDetails(id).kind === 'Buff')
-                    ? 'Dispel'
-                    : 'Cleanse'
-                  : effect.type === 'return-to-turn-start'
-                    ? 'Return to start'
-                    : effect.type === 'create-terrain'
-                      ? 'Frozen terrain'
-                      : effect.type === 'displace'
-                        ? 'Push one tile'
-                        : gameplayStatusName(effect.statusId)
-        return `${label}${effect.recipient === 'actor' && skill.target.kind !== 'self' ? ' · Self' : ''}`
-      }),
-    ),
-  ]
-  return [kind, shape, ...effectTags]
+  return combatActionPresentationTags(skill)
 }
 
 export function skillRangeDescription(skill: MatureSkillDefinition): string {
@@ -161,6 +126,11 @@ function unitAffectedDescription(skill: MatureSkillDefinition): string {
     case 'all-except-actor':
       return 'All units except yourself, including allies'
   }
+}
+
+function recoveryTiming(ticks: number | undefined): string {
+  if (ticks === undefined || ticks <= 1) return ''
+  return ` ${ticks} total applications: once immediately, then once at each of the recipient's next ${ticks - 1} end-of-turn boundaries. Amount is per application; recovery cannot revive a defeated unit.`
 }
 
 export function skillDisplayName(skill: MatureSkillDefinition): string {

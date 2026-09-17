@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto'
+
 import { STARTER_CHARACTER_PORTRAITS } from '@aurevane/game-core/character/starter-options'
 import { describe, expect, it } from 'vitest'
 
@@ -10,6 +12,12 @@ import {
   validateImageRegistry,
   validateRegisteredImageAssets,
 } from './registry'
+
+function dataImageSha256(src: string | undefined): string {
+  const payload = src?.match(/^data:image\/webp;base64,(.+)$/)?.[1]
+  expect(payload).toBeTruthy()
+  return createHash('sha256').update(Buffer.from(payload!, 'base64')).digest('hex')
+}
 
 describe('image registry', () => {
   it('keeps approved artwork traceable with valid runtime descriptors', () => {
@@ -45,15 +53,22 @@ describe('image registry', () => {
   })
 
   it('routes every starter portrait choice through a square runtime descriptor', () => {
-    for (const portrait of STARTER_CHARACTER_PORTRAITS) {
+    for (const [index, portrait] of STARTER_CHARACTER_PORTRAITS.entries()) {
+      const size = index === 0 ? 400 : 96
       const asset = getImageAsset(getStarterPortraitImageAssetId(portrait.ref))
       expect(asset).toMatchObject({
         status: 'approved',
-        width: 96,
-        height: 96,
+        width: size,
+        height: size,
         decorative: false,
       })
     }
+  })
+
+  it('uses the deterministic approved-sheet recovery for portrait 07', () => {
+    expect(dataImageSha256(getImageAsset('character.creation.portrait-07').src)).toBe(
+      '6172c4abdd64f8e694adddcbae8375c9e6816e6f8e83497c17c8e4a64ff9e29b',
+    )
   })
 
   it('describes the visible traits distinguishing each starter portrait', () => {

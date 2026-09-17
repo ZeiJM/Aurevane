@@ -78,8 +78,10 @@ export async function surrenderAiBattle(
       expectedBattleVersion,
       nextSnapshot: current.snapshot,
       events: [],
+
+      privacyJournal: null,
     })
-    return projectCommittedBattleSession(committed)
+    return projectCommittedBattleSession(committed, current.controlledCombatantIds)
   }
 
   if (state.tactical.battle.lifecycle !== 'active') {
@@ -102,7 +104,9 @@ export async function surrenderAiBattle(
     expectedBattleVersion,
     nextSnapshot: resolved.state,
     events: translateSurrenderEvents(resolved.events),
+
+    privacyJournal: null,
   })
 
-  return projectCommittedBattleSession(committed)
+  return projectCommittedBattleSession(committed, current.controlledCombatantIds)
 }

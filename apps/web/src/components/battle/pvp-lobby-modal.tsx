@@ -75,6 +75,7 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
   const [pending, setPending] = useState(false)
   const [copyNotice, setCopyNotice] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const dialogRef = useRef<HTMLDialogElement>(null)
   const startLock = useRef(false)
   const lobbyMutationGeneration = useRef(0)
   const lobbyMutationPending = useRef(false)
@@ -89,6 +90,15 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
   const teams = teamCount(lobby)
   const required = lobby.teamSizes.reduce((total, size) => total + size, 0)
   const canMoveSeats = required > 2 && lobby.status === 'waiting'
+
+  useEffect(() => {
+    const dialog = dialogRef.current
+    if (!dialog) return
+    // Native modal containment keeps keyboard focus and pointer input in the lobby.
+    // Closing the presentation never substitutes for the explicit server-side Leave action.
+    dialog.showModal()
+    return () => dialog.close()
+  }, [])
 
   const startBattle = useCallback(async () => {
     if (startLock.current || lobby.status !== 'waiting' || !lobby.readyToStart) return
@@ -299,32 +309,49 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
     settings.turnTimerSeconds === null ? 'No timer' : `${settings.turnTimerSeconds} seconds`
 
   return (
-    <div className={styles.backdrop} role="presentation">
-      <section
-        className={styles.modal}
-        data-lobby-concept="true"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="pvp-lobby-title"
-      >
-        <header className={styles.header}>
-          <div>
-            <span>Battle Hall · PvP Staging</span>
-            <h2 id="pvp-lobby-title">The arena is waiting.</h2>
-            <p>
-              {lobby.mode.toUpperCase()} · Assemble the roster, settle the teams, ready every
-              combatant, then battle begins automatically.
-            </p>
-          </div>
-          <div className={styles.keyStack}>
-            <button type="button" onClick={() => void copyValue(lobby.lobbyKey, 'Lobby key')}>
-              <small>Lobby Key · click to copy</small>
-              <strong>{lobby.lobbyKey}</strong>
-            </button>
-            {copyNotice ? <span>{copyNotice}</span> : null}
-          </div>
-        </header>
+    <dialog
+      ref={dialogRef}
+      className={styles.modal}
+      data-lobby-concept="true"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="pvp-lobby-title"
+      aria-describedby="pvp-lobby-description"
+      onCancel={(event) => event.preventDefault()}
+      onKeyDown={(event) => {
+        if (event.key !== 'Tab') return
+        const buttons =
+          event.currentTarget.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')
+        const first = buttons[0]
+        const last = buttons[buttons.length - 1]
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault()
+          last?.focus()
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault()
+          first?.focus()
+        }
+      }}
+    >
+      <header className={styles.header}>
+        <div>
+          <span>Battle Hall · PvP Staging</span>
+          <h2 id="pvp-lobby-title">The arena is waiting.</h2>
+          <p id="pvp-lobby-description">
+            {lobby.mode.toUpperCase()} · Assemble the roster, settle the teams, ready every
+            combatant, then battle begins automatically.
+          </p>
+        </div>
+        <div className={styles.keyStack}>
+          <button type="button" onClick={() => void copyValue(lobby.lobbyKey, 'Lobby key')}>
+            <small>Lobby Key · click to copy</small>
+            <strong>{lobby.lobbyKey}</strong>
+          </button>
+          <span role="status">{copyNotice ?? 'Share this key with your challengers.'}</span>
+        </div>
+      </header>
 
+      <div className={styles.body}>
         <div className={styles.arenaLine}>
           <span>
             {filled}/{required} combatants seated
@@ -335,63 +362,22 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
           </span>
         </div>
 
-        <section
-          aria-label="Locked PvP battle settings"
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(6.5rem, 1fr))',
-            gap: '0.45rem',
-          }}
-        >
+        <section className={styles.settings} aria-label="Locked PvP battle settings">
           {[
             ['Map size', mapSizeLabel],
             ['Elevation', settings.elevationBias],
             ['Difficult ground', settings.terrainBias],
             ['Turn timer', turnTimerLabel],
           ].map(([label, value]) => (
-            <div
-              key={label}
-              style={{
-                display: 'grid',
-                gap: '0.25rem',
-                minWidth: 0,
-                padding: '0.45rem 0.55rem',
-                border: '1px solid rgba(207, 169, 93, 0.22)',
-                borderRadius: '0.35rem',
-                background: 'rgba(255, 255, 255, 0.025)',
-              }}
-            >
-              <span
-                style={{
-                  color: 'var(--av-text-dim)',
-                  fontSize: '0.52rem',
-                }}
-              >
-                {label}
-              </span>
-              <strong
-                style={{
-                  color: 'var(--av-text)',
-                  fontSize: '0.68rem',
-                  fontWeight: 650,
-                  textTransform: 'capitalize',
-                }}
-              >
-                {value}
-              </strong>
+            <div className={styles.setting} key={label}>
+              <span>{label}</span>
+              <strong>{value}</strong>
             </div>
           ))}
         </section>
 
         {canMoveSeats ? (
-          <p
-            style={{
-              margin: 0,
-              color: 'var(--av-text-dim)',
-              fontSize: '0.52rem',
-              textAlign: 'center',
-            }}
-          >
+          <p className={styles.seatHelp}>
             Click your occupied seat to step out of formation. Click an open seat to rejoin; while
             seated, clicking another occupied seat swaps positions. Any seat change clears every
             Ready state.
@@ -438,15 +424,6 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
                                 : `Swap into Team ${teamIndex + 1}, seat ${seatIndex + 1}`
                             : undefined
                         }
-                        style={{
-                          width: '100%',
-                          color: 'inherit',
-                          textAlign: 'left',
-                          cursor:
-                            canMoveSeats && (!occupiedWhileUnseated || ownSeat)
-                              ? 'pointer'
-                              : 'default',
-                        }}
                       >
                         <div className={styles.portraitFrame}>
                           <Portrait member={member} />
@@ -479,12 +456,6 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
                             ? `Move to Team ${teamIndex + 1}, seat ${seatIndex + 1}`
                             : undefined
                         }
-                        style={{
-                          width: '100%',
-                          color: 'inherit',
-                          textAlign: 'left',
-                          cursor: canMoveSeats ? 'pointer' : 'default',
-                        }}
                       >
                         <div>◇</div>
                         <strong>Open combat seat</strong>
@@ -499,54 +470,15 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
         </div>
 
         {unseatedMembers.length > 0 ? (
-          <section
-            aria-label="Combatants choosing a seat"
-            style={{
-              display: 'grid',
-              gap: '0.4rem',
-              padding: '0.5rem',
-              border: '1px solid rgba(207, 169, 93, 0.22)',
-              borderRadius: '0.45rem',
-              background: 'rgba(255, 255, 255, 0.018)',
-            }}
-          >
-            <span
-              style={{
-                color: 'var(--av-brass-300)',
-                font: '750 0.45rem/1 var(--av-font-mono)',
-                letterSpacing: '0.06em',
-                textTransform: 'uppercase',
-              }}
-            >
-              Choosing a seat
-            </span>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(11rem, 1fr))',
-                gap: '0.35rem',
-              }}
-            >
+          <section className={styles.unseated} aria-label="Combatants choosing a seat">
+            <h3>Choosing a seat</h3>
+            <div className={styles.unseatedList}>
               {unseatedMembers.map((member) => (
-                <div
-                  key={member.characterId}
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: '2rem minmax(0, 1fr)',
-                    gap: '0.45rem',
-                    alignItems: 'center',
-                    padding: '0.35rem',
-                    border: '1px solid rgba(255,255,255,.06)',
-                    borderRadius: '0.35rem',
-                    background: 'rgba(5,8,12,.72)',
-                  }}
-                >
+                <div className={styles.unseatedMember} key={member.characterId}>
                   <Portrait member={member} />
-                  <span style={{ display: 'grid', gap: '0.12rem', minWidth: 0 }}>
-                    <strong style={{ fontSize: '0.62rem' }}>{member.characterName}</strong>
-                    <small style={{ color: 'var(--av-text-dim)', fontSize: '0.48rem' }}>
-                      Select an open team seat{member.isHost ? ' · Host' : ''}
-                    </small>
+                  <span>
+                    <strong>{member.characterName}</strong>
+                    <small>Select an open team seat{member.isHost ? ' · Host' : ''}</small>
                   </span>
                 </div>
               ))}
@@ -559,58 +491,55 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
             {error}
           </p>
         ) : null}
-
-        <footer className={styles.footer}>
-          <div>
-            <span>
-              {lobby.readyToStart
-                ? 'All combatants ready — opening the arena…'
-                : localMember && !localMember.seated
-                  ? 'Choose an open combat seat before marking Ready.'
-                  : 'Battle begins when every required seat is filled and ready.'}
-            </span>
-            {lobby.status === 'cancelled' ? (
-              <button type="button" onClick={onLeave}>
-                Return to Battle Hall
-              </button>
-            ) : null}
-          </div>
-          <div className={styles.actions}>
-            <button
-              type="button"
-              className={styles.lobbyChat}
-              aria-disabled="true"
-              title="Lobby chat will be enabled in a later update."
-            >
-              Chat
+      </div>
+      <footer className={styles.footer}>
+        <div>
+          <span>
+            {lobby.readyToStart
+              ? 'All combatants ready — opening the arena…'
+              : localMember && !localMember.seated
+                ? 'Choose an open combat seat before marking Ready.'
+                : 'Battle begins when every required seat is filled and ready.'}
+          </span>
+          {lobby.status === 'cancelled' ? (
+            <button type="button" onClick={onLeave}>
+              Return to Battle Hall
             </button>
-            <button
-              type="button"
-              className={styles.leave}
-              onClick={() => void leaveLobby()}
-              disabled={pending || lobby.status !== 'waiting'}
-            >
-              {localMember?.isHost ? 'Close Lobby' : 'Leave Lobby'}
-            </button>
-            <button
-              type="button"
-              className={styles.ready}
-              data-ready={localMember?.ready || undefined}
-              onClick={() => void toggleReady()}
-              disabled={
-                pending || !localMember || !localMember.seated || lobby.status !== 'waiting'
-              }
-            >
-              <span>{localMember?.ready ? '✓' : '○'}</span>
-              {localMember?.ready
-                ? 'Ready — click to stand down'
-                : localMember && !localMember.seated
-                  ? 'Choose a seat first'
-                  : 'Mark Ready'}
-            </button>
-          </div>
-        </footer>
-      </section>
-    </div>
+          ) : null}
+        </div>
+        <div className={styles.actions}>
+          <button
+            type="button"
+            className={styles.lobbyChat}
+            disabled
+            title="Lobby chat will be enabled in a later update."
+          >
+            Chat
+          </button>
+          <button
+            type="button"
+            className={styles.leave}
+            onClick={() => void leaveLobby()}
+            disabled={pending || lobby.status !== 'waiting'}
+          >
+            {localMember?.isHost ? 'Close Lobby' : 'Leave Lobby'}
+          </button>
+          <button
+            type="button"
+            className={styles.ready}
+            data-ready={localMember?.ready || undefined}
+            onClick={() => void toggleReady()}
+            disabled={pending || !localMember || !localMember.seated || lobby.status !== 'waiting'}
+          >
+            <span>{localMember?.ready ? '✓' : '○'}</span>
+            {localMember?.ready
+              ? 'Ready — click to stand down'
+              : localMember && !localMember.seated
+                ? 'Choose a seat first'
+                : 'Mark Ready'}
+          </button>
+        </div>
+      </footer>
+    </dialog>
   )
 }

@@ -138,6 +138,10 @@ describe('authoritative movement highlights', () => {
   it.each([
     [[], true, 20, false],
     [['slow'], false, 20, false],
+    [['haste'], false, 10, true],
+    [['haste', 'slow'], false, 19, false],
+    [['haste', 'slow'], false, 20, true],
+    [['haste', 'airborne'], true, 10, true],
     [['root'], false, 100, false],
     [['airborne'], true, 20, true],
     [['airborne', 'slow'], true, 20, false],

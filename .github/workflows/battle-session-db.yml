@@ -8,6 +8,8 @@ on:
       - '.github/scripts/verify-battle-session-concurrency.sh'
       - '.github/scripts/verify-battle-session-http.sh'
       - '.github/scripts/verify-battle-event-read.sh'
+      - '.github/scripts/verify-battle-privacy-journal.sh'
+      - '.github/scripts/verify-battle-history-privacy.sh'
       - '.github/scripts/verify-pv1-combat-validation-events.sh'
       - '.github/scripts/verify-pvp-authority.sh'
       - '.github/scripts/verify-pvp-lobby-seating.sh'
@@ -23,6 +25,8 @@ on:
       - '.github/scripts/verify-battle-session-concurrency.sh'
       - '.github/scripts/verify-battle-session-http.sh'
       - '.github/scripts/verify-battle-event-read.sh'
+      - '.github/scripts/verify-battle-privacy-journal.sh'
+      - '.github/scripts/verify-battle-history-privacy.sh'
       - '.github/scripts/verify-pv1-combat-validation-events.sh'
       - '.github/scripts/verify-pvp-authority.sh'
       - '.github/scripts/verify-pvp-lobby-seating.sh'
@@ -70,6 +74,9 @@ jobs:
       - name: Verify service-only battle event reads
         run: bash .github/scripts/verify-battle-event-read.sh
 
+      - name: Verify battle privacy journal authority
+        run: bash .github/scripts/verify-battle-privacy-journal.sh
+
       - name: Verify PV-1 combat validation telemetry authority
         run: bash .github/scripts/verify-pv1-combat-validation-events.sh
 
@@ -81,6 +88,9 @@ jobs:
 
       - name: Verify PvP spectator join and repeat join
         run: bash .github/scripts/verify-pvp-spectator-join.sh
+
+      - name: Verify CSR-3 historical privacy authority
+        run: bash .github/scripts/verify-battle-history-privacy.sh
 
       - name: Verify authenticated battle API journey
         run: bash .github/scripts/verify-battle-session-http.sh

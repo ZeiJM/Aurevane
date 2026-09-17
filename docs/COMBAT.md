@@ -1,5 +1,51 @@
 # AUREVANE Combat Design Bible
 
+## P4.K4 player-facing Amplify/Curse forecast boundary — 2026-09-16
+
+The shared battle forecast now presents the authoritative `copy-statuses` projections already produced by the staged Amplify/Curse kernel. Ordinary status rows are humanized from their pinned before/after state, Poison shows its current movement-counter state, Burn shows its current stage transition and Bleed projections remain in the authoritative stable order. These clone projections stay alongside any later authored damage, healing or resource projections in a composed command.
+
+A composed command whose clone block explicitly permits an empty eligible donor produces no clone forecast for that block while retaining independently meaningful later outcomes. Malformed or unsupported copy projection strings fail closed instead of exposing machine projection text. Existing blocked-target and hit-chance behavior is preserved; the presentation does not mutate preview state, consume RNG or replace server legality/commit authority.
+
+Amplify/Curse status cloning is distinct from the separate `Copy` effect approved in the Combat Authoring/DoT/Copy revision. `Copy` grants a random eligible regular battle Skill for the rest of the encounter at half AP cost and requires its own encounter-state, RNG, command-picker, AI and persistence work. The status-clone forecast slice does not implement or publish that mechanic.
+
+Mature Skill publication still rejects `copy-statuses` through `effects.status-copy-staged`. Consecutive-use falloff for clone transfer remains an unresolved Owner rule, so no quantitative/discrete half-clone behavior is invented and no Amplify/Curse Skill is published or deployed by this boundary.
+
+## P4.K4 Skill accuracy kernel boundary — 2026-09-15
+
+Skills may explicitly opt into `accuracyMode: per-target`; `automatic` or omitted mode retains historical automatic resolution. The existing signed `accuracyModifierBasisPoints` field is validated at authoring, preview and commit within -3000 to +3000. Mature Skill conversion preserves supplied fields and consecutive-use reduction changes potency, not hit chance or AP/MP costs. The historical Basic Attack adapter keeps its existing single-roll behavior and rejects an explicit Skill accuracy mode to prevent double rolling.
+
+The current slice calculates `clamp(actor Accuracy - target Evasion + Skill modifier, 0, 10000)` from committed profiles. It requires exactly one valid relevant profile and integer ratings within 0–10000. Only living hostile recipients of actual unit effect blocks are rolled, once each in stable ID order, including 0% and 100% endpoints. Repeated packets share their target's result. Geometry alone, allies, self effects and terrain do not introduce extra unit rolls. Mark/Blind's versioned state and modifiers are the next slice, not inferred from existing names or tags.
+
+A miss skips every unit effect for that hostile recipient in the existing ordered effect resolver, including damage, status, cleansing, displacement, DoTs, recovery and Barrier. Costs, action-use records, cooldown rules, caster effects, attack reveal and Burn backlash retain their ordinary behavior. Tile operations keep their independent existing sequence; this is not a terrain accuracy system. Misses do not consume defender Barrier, write damage history, trigger Absorb/Reflect or reattribute an existing persistent effect. Successful effects retain existing damage math, reaction ordering and K3 provenance.
+
+Legal opted-in kernel previews expose `targetHitChances` and `projectionsAssumeHits: true`; their ordinary projections are conditional on successful hits, not guaranteed or probability-weighted outcomes. Preview never advances RNG or reveals future rolls. Commit recomputes chances from its snapshot and emits versioned `combat_accuracy_resolved` receipts before ordinary command events. Missed target IDs are an engine-owned transient argument, never an authored or persisted hit override.
+
+No published Skill catalog opts into rolled accuracy in this ticket. Mark/Blind, full reactive/conditional player forecasts, AI expected-value scoring, presentation tags and controlled content migration remain publication gates. This is not a player-interface release or a completed accuracy/Mark/Blind group. No schema, dependency or deployment change is included.
+
+## P4.K4 Vengeance kernel boundary — 2026-09-15
+
+Vengeance is an optional typed `vengeance` profile on an ordinary damage block, not a reactive status or a second damage resolver. Author `conversionBasisPoints` as a positive safe integer, optional nonnegative `minimumDamage`, and required positive finite safe-integer `maximumDamage`. The minimum cannot exceed the maximum. Conversion may exceed 100%, but the explicit maximum always bounds the derived raw potency. The block uses `amount: 0` and cannot also author offensive-stat scaling; ordinary extra damage belongs in a separate block. Unknown profile fields, invalid values and Vengeance on non-damage operations are rejected. The historical Basic Attack adapter does not accept this metadata.
+
+The user’s authoritative current-round plus previous-two-round Damage History is read once from the command-start snapshot. Old unpruned rows, future rows and other combatants do not contribute. Each actor/round row is unique and contains a nonnegative safe integer; invalid relevant values or duplicates fail closed. The engine sums and converts using exact integer arithmetic, floors once, applies the authored minimum and maximum, and only then converts back to a safe numeric raw-damage value. There is no implicit Absorb minimum-one rule. Missing historical effect state means zero qualifying history. Casting and healing do not consume or erase the history.
+
+The ordinary pipeline then applies targeting, Armor/Ward, tactical and damage modifiers, Barrier, actual-HP/overkill clamping, Damage History and bounded reactions. `maximumDamage` caps the history-derived raw potency, not the subsequent ordinary modifier stage. Pierce retains its existing mitigation-only meaning. Vengeance is direct command damage and may trigger eligible defender Absorb/Reflect; reflected output does not feed the user’s history. Existing hostile direct/periodic history recording and self/backlash/system exclusions are unchanged.
+
+Kernel evaluation and commit share the same materializer. A legal Vengeance evaluation includes `vengeanceBasis` with the source, effect ordinal, window bounds, at most three per-round amounts and derived raw potency; illegal evaluations do not expose that basis. Evaluation does not advance RNG or mutate the snapshot. Commit recomputes from its current snapshot; existing expected-battle-version protection remains authoritative. Mature Skills materialize before the existing consecutive-use reduction, so the capped potency is halved at unchanged AP/MP cost, retaining the established minimum-one repeat rule only for already-positive potency.
+
+This ticket supplies kernel calculation, validation and forecast data, not published Vengeance Skills or a player-interface release. Generalized Skill accuracy, complete reactive forecasts, AI policy, compact-tag/presentation wiring and content publication remain their separate migration/acceptance gates. Published catalogs, historical direct-damage behavior, schemas and deployment configuration are unchanged. No deployment is authorized by this checkpoint.
+
+## P4.K4 Reflect kernel boundary — 2026-09-15
+
+The current-kernel `reflectBasisPoints` status field is optional for historical compatibility and requires positive/reactive metadata and an integer from 1 to 10000. Active stacks and definitions combine up to 100% per defender. Reflect aggregates actual hostile direct-command HP loss after incoming mitigation, Barrier and overkill, floors the percentage once per defender, and does not inherit Absorb's minimum-1 recovery rule. Zero results emit no damage event.
+
+Original command receipts are shared with Absorb HP/MP without recycling reaction output. Reflect deals fixed damage to the source attacker without an accuracy roll or another Armor/Ward/modifier pass. The existing first Barrier slice remains direct-command-only: attacker Barrier does not intercept reactive Reflect output in this version. Reflect is excluded from Damage History, Absorb and further Reflect triggers. Periodic damage, Burn backlash, friendly fire, self-cost and system output do not qualify. Unsupported generic self-damage remains rejected.
+
+A defeated defender can return its qualifying damage, allowing mutual KO. The engine-owned post-command reaction boundary runs before the final terminal verdict. Attacker defeat reuses the established defeat/turn transition, removes ongoing recovery and records only the final winner or draw. Positive reflected HP loss breaks Invisible. Each positive defender return consumes one K3 trigger budget at depth 1 with a deterministic relationship identity; an exhausted or previously consumed guard suppresses the reaction, not the ordinary command. No-context public calls retain their four-argument contract and omit resolution metadata.
+
+When Reflect defeats the current actor but the battle continues, the successor receives normal owner-turn-start status expiration. A crossed round applies and consumes scheduled tempo and advances temporary terrain exactly once, using the same upkeep as normal turn endings. The defeated actor's ordinary periodic damage/recovery is not replayed.
+
+This is a kernel primitive, not a published roster or balance change. No published Skill/status catalog, player UI, AI policy, schema or deployment is activated by this slice. Current player forecasts do not yet display reactive returns; forecast/AI integration must be completed before authored Reflect content is published through the later migration and acceptance gates. Existing AP, targeting, direct-damage calculations and historical definitions remain protected.
+
 ## Phase 4 roster and effect implementation — 2026-09-12
 
 The published seventeen-Discipline roster contains 136 regular Skills, 17 pure Essences and all 136 unordered Resonance pairs. Eight learned Skills per mature library remain distinct from four battle selections. Full mixed builds use 1+3, 2+2 or 3+1; Essence and Resonance are exclusive. The gameplay-tag continuation below adds versions of existing Skills without adding selectable slots or rewriting frozen battles. See `PHASE_4_COMPLETENESS_AUDIT.md` and `PHASE_4_TICKETS.md` for candidate verification and live release status.
@@ -11,6 +57,16 @@ Periodic HP effects tick at affected turn end, before completion; they cannot re
 Normal advanced acquisition uses listed Foundation Mastery prerequisites and 4/2/2 learned milestones at Initiate/Practiced/Adept. Mastery Trials on Standard/High award up to 50 XP for an eligible victory using two different Primary regular Skills across at least three Primary Skill commands and no player timeout. The database checks immutable origin/build and committed events; claims are atomic and idempotent. Stages are 100/300/600/1,000 XP, with all eight regular Skills demonstrated for normal Master. Owner-authorized testing access permits immediate published-roster testing independently of earned XP, stage and release eligibility. Ordinary sparring grants no Mastery XP. The 36-identity Discipline Atlas is inside Profile → Discipline Management; unpublished nodes and later authored Mastery Rites remain planned.
 
 World acquisition, full equipment catalogs and supernatural systems retain their later roadmap boundaries. Illustrated masters, recorded SFX and independent human balance/media acceptance remain explicitly tracked; automated authored coverage is not that acceptance.
+
+### P4.K2 Stat-Scaled Potency v2 boundary
+
+Damage effects may optionally opt into one authoritative offensive rating using deterministic basis-point math:
+
+```text
+RawDamage = AuthoredBasePower + floor(SelectedOffensivePower * ScalingCoefficientBasisPoints / 10000)
+```
+
+`SelectedOffensivePower` is explicitly authored as Physical Power or Mystic Power for that damage effect. Scaling is opt-in; omitted scaling preserves authored-base-only behavior. The current published Discipline Skills, pure Essence Skills and Basic Attack remain unscaled by K2, and Basic Attack keeps its existing independent derived-damage formula. After optional scaling, the existing Armor/Ward mitigation, facing, target-status and bounded conditional modifier stages still resolve in their established order. Historical stat-bridge v1 encounters remain valid for unscaled content; a scaled effect requires a complete v2 offensive-stat bridge and fails closed if those ratings are absent. Broad coefficient assignment, roster rebalance and tuning belong to the later controlled content migration and Balance Harness work rather than this foundation ticket.
 
 ### Gameplay tags and temporary terrain continuation
 
@@ -412,3 +468,196 @@ The strongest product signal remains voluntary desire to play another battle.
 Chronist implements next-round Initiative scheduling: Hastened +20, Delayed -20, Borrowed Hour +40, capped at ±40 per unit. Tempo is consumed at the round boundary and determines a frozen order for that round only. Base attributes remain unchanged. Stable identity resolves ties. Each living unit receives one turn; lethal turn-end ticks cannot grant a defeated unit a new turn. The next boundary restores base order unless another tempo effect was prepared. These effects do not add AP or grant extra turns.
 
 Rewind Step returns the caster to its authoritative current-turn origin, provided it moved, is not Rooted and the origin is still passable and unoccupied. It restores only position, without restoring HP, MP, AP, movement allowance, facing or commands. Consecutive-repeat rules omit this discrete effect. Existing cleanse lists remain explicitly authored; they are not silently broadened to remove Delayed.
+
+### Approved effect-rework implementation checkpoint (feature branch)
+
+The Owner-approved specifications under `docs/superpowers/specs/2026-09-12-*` supersede older design values as their new immutable content versions are introduced. This checkpoint does not claim that all new content is published.
+
+The feature branch currently supports explicit `displace.direction` (`push` or `pull`) and a positive safe-integer `distance`. It resolves one legal tile at a time, recomputing the dominant axis after each step and breaking ties horizontally. Pull stops before the caster; blocked movement retains prior legal steps. Successful displacement applies Displaced. Historical directionless displacement remains Push 1.
+
+Haste changes entered-tile AP by -10 and Slow by +10. Terrain and Frozen apply first; legal entered tiles cost at least 10 AP. Haste does not alter the separate Movement allowance or historical initiative-based Hastened. Board reachability and authoritative execution share the entered-tile cost helper.
+
+Healing and positive MP recovery accept `ticks` from 1 to 4. One application is immediate; the rest occur at the recipient's end of turn. Amounts are per application, caps apply each time, and Hex affects HP recovery at each tick, not MP. Reapplication replaces the same recipient/resource/action schedule; distinct actions coexist. Defeat clears future recovery and cannot be reversed by a scheduled tick. Current ordinary Cleanse/Dispel does not erase these schedules. Future amounts retain cast-time repeat-use scaling. Omitted duration preserves a single immediate application, and historical Regeneration remains unchanged.
+
+New persistent Poison, independent Bleed stacks, decaying Burn/backlash, the remaining new effects, roster version migration, Covert viewer security, and Master Panel publishing are still pending. Do not infer their availability from this intermediate runtime checkpoint.
+
+## P4.K3 Combat Kernel provenance boundary — 2026-09-15
+
+P4.K3 defines the behavior-preserving deterministic resolution/provenance substrate used by later advanced combat mechanics. `COMBAT_RESOLUTION_PIPELINE_VERSION = 1` fixes the following stage order: `command-validation`, `legality`, `target-context`, `accuracy`, `pre-hit-reactions`, `raw-potency`, `defense`, `tactical-modifiers`, `damage-modifiers`, `barrier-redirect`, `commit-mutation`, `after-damage-triggers`, `bounded-reactions`, `consequences`, `battle-state-checks`, `metadata`. Changing the semantic order requires a versioned contract change rather than silently reinterpreting V1.
+
+Trigger chains are bounded and deterministic. Current infrastructure defaults are maximum depth 8, reaction budget 32, and triggered damage policy `non-reactive`; an effect instance may execute at most once per chain under the duplicate-instance guard. These are kernel safety ceilings, not a claim that every future reactive mechanic is implemented.
+
+An optional `CombatResolutionContext` carries immutable command provenance and the trigger guard through authoritative execution. The historical four-argument `executeCombatAction(...)` shape remains valid and does not add provenance fields to historical state. When a K3 context is supplied, newly committed persistent status, ongoing recovery, Poison, Bleed, and Burn rows receive deterministic `CombatEffectInstanceProvenance` after the existing authoritative resolver completes. Provenance identifies the originating command/ruleset/controller/trigger chain, target, zero-based effect ordinal, and pre-command round/turn, with reserved copied/inherited lineage links for later typed Copy/Mirror work.
+
+Historical snapshots may omit K3 provenance. Omitted provenance remains valid; if provenance is present, it is validated fail-closed. K3 does not alter damage values, AP/MP costs, targeting, accuracy, DoT values, durations, published content, or battle UX, and it does not by itself implement Barrier, Reflect, Absorb, lifesteal, redirect/interception, or other K4 mechanics. Those mechanics must consume this shared versioned pipeline and provenance model rather than create competing resolver or provenance paths.
+
+## Current Mark and Blind accuracy kernel (staged; not published)
+
+Following the approved September 12 reactive-effects design, new status definitions may opt into
+`markAccuracyBonusBasisPoints` or `blindAccuracyPenaltyBasisPoints`. The baseline is 1500 basis
+points (15 percentage points); this first authoring policy accepts integer magnitudes from 1 to 3000. They are separate, single-stack, negative, ordinary accuracy statuses. Other status behaviors
+must remain separate definitions so source-specific Mark instances cannot multiply unrelated effects.
+
+Current Mark instances use optional `sourceScopedMark: true` in the existing status-state rows.
+A source/target/definition relationship refreshes independently. Different sources coexist in stable
+status-ID/source-ID order; ordinary historical status IDs remain unique. Catalog-bound validation
+checks the marker, pinned version, stack count and remaining duration. Explicit removal by status ID
+cleanses every matching source. Current Mark expiry receipts include the expiring source; historical
+expiry event shapes are unchanged. K3 provenance refreshes only the applying source's Mark.
+
+Skill and Basic Attack hit chance share the same additive adjustment: actor Accuracy minus target
+Evasion, plus the Skill modifier and the actor's eligible Mark, minus the actor's Blind, then clamp
+to 0–100%. Alternate definitions cannot stack magnitudes: use the strongest applicable Mark for
+that source/target and the strongest Blind on the actor. Their independent remaining durations
+are preserved; weaker effects may contribute after a stronger definition expires or is removed.
+Mark does not benefit allies. A target being Blind does not reduce its attacker's accuracy.
+
+Forecast and commit read the pre-command state. A Mark inflicted by a strike does not improve that
+same strike's roll. Per-target hostile packages retain their single coherent hit/miss decision,
+stable RNG ordering and ordinary costs. Automatic Hit remains automatic, and previews never sample
+RNG. Basic Attack keeps its existing resolution path and consumes no second accuracy roll.
+
+The published `marked` definition still uses historical source-only damage vulnerability. No live
+catalog, battle schema, player-facing UI, AI policy, database or deployment is changed here. This is
+kernel support only: full player forecasts, AI expected-value integration and controlled versioned
+content publication remain separate gates. K4 and the wider overhaul remain unfinished.
+
+## Copy-instance provenance foundation (staged; no copying command yet)
+
+A command effect can eventually copy several active effects onto one recipient. Its K3
+provenance therefore accepts optional `copyOrdinal`, a non-negative safe integer identifying
+the copy within that authored effect/recipient. `effectOrdinal` remains the original authored
+operation index. Copy callers must allocate distinct ordinals in deterministic source order.
+
+Omitting `copyOrdinal` preserves the exact existing `effect:<chain>:<action>:<effect>:<target>`
+identity and object shape. Supplying it uses the separate `effect-copy:` namespace followed by
+the JSON tuple `[triggerChainId, actionDefinitionId, effectOrdinal, targetCombatantId,
+copyOrdinal]`. Tuple encoding avoids ambiguity when identifiers contain delimiter characters.
+The constructor and persisted-provenance validator share this identity calculation; malformed
+ordinals and mismatched IDs fail closed. Existing copied/inherited lineage remains explicit.
+Missing historical source provenance is not replaced with an invented source ID.
+
+This prerequisite extends identity construction, saved-state validation and trigger-guard
+compatibility only. It does not implement or publish Amplify/Curse commands, choose copyable
+effects, transfer durations/stacks/counters, or change any live combat resolution. Those
+mechanics and their legality/forecast/AI support remain separate implementation gates.
+
+## Amplify/Curse active-status copying (staged single-unit kernel slice)
+
+The `copy-statuses` operation now supports pure, single-unit Amplify and Curse commands.
+Amplify copies eligible positive status rows from the selected unit to the caster. Curse copies
+eligible negative status rows from the caster to the selected unit. Originals are not removed.
+Eligibility requires explicit copy permission and matching polarity; system/self-cost states and
+unclassified or excluded effects cannot become copy targets merely through names or display tags.
+Existing range, team, visibility, living-target, resource and per-target accuracy checks still apply.
+Self-copy and an empty eligible donor are illegal before spending anything. A missed hostile copy
+still spends its ordinary costs but neither copies nor reattributes a status. Automatic Hit and
+preview RNG purity are unchanged.
+
+The receiving status uses the pinned definition, copied remaining duration, and bounded stacks.
+An existing receiver status combines stacks up to its cap and retains the longer of its current
+and incoming remaining duration; no copy refills the definition's full timer. Source-scoped Marks
+rebind to the Curse caster and preserve other receiver sources. Donor Marks that become one
+relationship after rebinding are deduplicated, taking the longest remaining duration and stable
+source order for ties. Copied/inherited K3 lineage identifies the selected donor and prior receiver
+instance. Missing historical lineage remains absent. Distinct copies reuse the merged tuple-based
+`copyOrdinal` identity; no alternate identity format is introduced.
+
+This slice enumerates ordinary status rows only. Typed Poison/Burn/Bleed counters, ongoing recovery,
+Barrier pools, terrain, resources, build state and temporary Skills are not copied here. Mixed
+operation packages, area copies and the old Basic Attack path are rejected rather than partially
+executed. The mature-Skill boundary blocks this staged operation from publication/repeat adapters
+with `effects.status-copy-staged` until the remaining mechanics, repeat-use, player forecasts and
+AI gates are implemented. No live catalog or published Skill is changed. K4 remains incomplete.
+
+## Curse Poison copy state (staged typed-effect extension)
+
+Current Poison authoring may explicitly set `curseCopyable: true | false`. The flag is copied into
+its persistent Poison row so later Curse legality does not infer eligibility from the display name.
+Historical Poison rows which omit this optional field remain valid and are not Curse-copyable.
+Malformed authored or persisted values fail closed.
+
+A pure single-unit Curse can copy an explicitly eligible Poison from the caster to its selected
+recipient while leaving the original Poison unchanged. A new recipient Poison preserves the donor's
+current movement remainder. If the recipient already has Poison, the normal single-instance rule
+wins and the recipient's own movement remainder is retained rather than reset to donor progress.
+The copied instance rebinds source combatant/action to the Curse command and becomes explicitly
+copyable. No Poison damage fires merely because it was copied; existing movement/end-turn Poison
+processing continues afterward.
+
+With K3 context the copy uses the shared `copyOrdinal` sequence after any copied ordinary statuses,
+records the immediate donor in `copiedFromInstanceId`, and records a replaced recipient instance in
+`inheritedFromInstanceId`. Without K3 context no donor provenance is silently reused. Amplify never
+copies Poison in this slice. Burn/Bleed typed state, repeat-use/publication, AI and broader copying
+remain separate gates; no published Skill is activated here.
+
+## Curse Burn copy state (staged typed-effect extension)
+
+Current Burn authoring may explicitly set `curseCopyable: true | false`. The optional policy is
+persisted with the Burn instance; omitted historical Burn remains valid and non-copyable, and
+malformed authoring or saved values fail closed. Normal Burn reapplication continues to replace the
+single current Burn and restart at stage 0, including replacing an earlier copy-policy value.
+
+A pure single-unit Curse can copy an explicitly eligible Burn from caster to target while leaving the
+donor unchanged. When the target is not already burning, the copied Burn preserves the donor's exact
+current stage in the 4→3→2 sequence. If the target already has Burn, normal pinned reapplication rules
+win: the target Burn is replaced and restarts at stage 0. The new instance rebinds source combatant
+and source action to Curse and remains explicitly copyable. Copying Burn causes no immediate damage
+or backlash; normal end-turn Burn ticks, cleanse and damaging-command backlash apply afterward.
+
+K3 assigns Burn after ordinary status copies and Poison in the shared deterministic copy ordinal
+sequence. `copiedFromInstanceId` names the immediate donor Burn; replacing an existing target Burn
+uses `inheritedFromInstanceId` when that instance had provenance. No-context execution does not reuse
+or invent donor provenance. Amplify never copies Burn in this slice. Bleed typed-state copying,
+repeat-use/publication, AI and broader copying remain separate gates; no published Skill is activated.
+
+## Curse Bleed copy state (staged typed-effect extension)
+
+Current Bleed authoring may explicitly set `curseCopyable: true | false` per independent stack.
+The optional policy persists with that stack; omitted historical Bleed remains valid and non-copyable,
+and malformed authoring or saved values fail closed.
+
+A pure single-unit Curse copies every explicitly eligible donor Bleed stack in stable donor
+application order while leaving the donor unchanged. Each copy preserves the donor's current damage
+per tick and remaining ticks, rebinds source combatant/action to Curse, and is explicitly copyable.
+Each receiver insertion uses the existing canonical maximum-three-stack rule: when full, replace the
+fewest-remaining stack and break ties by oldest application order. Because copies are inserted
+sequentially, a later donor may replace an earlier same-command copy. Copying itself causes no damage;
+normal independent end-turn ticks, expiry and Cleanse continue afterward.
+
+K3 reserves Bleed copy ordinals after ordinary statuses, Poison and Burn, one ordinal for every
+eligible donor attempt in donor order even when an attempted copy is later replaced. Final surviving
+rows link to their immediate donor through `copiedFromInstanceId`; `inheritedFromInstanceId` is used
+only when the replaced receiver row actually carried provenance at insertion time, never for an
+unpersisted same-command transient copy. Amplify does not copy Bleed in this slice. Repeat-use,
+publication and AI remain separate gates; no published Skill is activated.
+
+## Amplify / Curse copy-first composition boundary
+
+One `copy-statuses` block may now be the first effect in an otherwise ordinary single-unit command.
+The copy block keeps its existing Amplify/Curse donor direction, current-state clone rules, hit gating
+and K3 copy ordinals. Later authored effects resolve in their normal order after the clone block and
+retain their own authored effect ordinals for K3 provenance. Multiple copy blocks, copy blocks placed
+later in the effect list, Basic Attack cloning and area/multi-source cloning remain rejected.
+
+Pure copy commands still fail fast when their donor has no eligible effect. A composed command may
+explicitly author `allowNoEligibleEffects: true` on its first copy block when later effects are
+independently meaningful; in that case the empty clone step is a no-op and later effects still resolve.
+The opt-in is boolean-only and invalid on a pure copy command. Consecutive-use scaling for cloning is
+still staged because the approved repeat rule does not yet classify clone transfer as quantitative or
+discrete; no half-copy behavior is invented here. No published Skill is activated by this boundary.
+
+## Amplify/Curse Recruit AI forecast utility (staged K4 acceptance)
+
+Build-aware Recruit AI scores cloning only from the same legal authoritative preview projections
+used by player forecast/commit. Each changed `copy-statuses` projection uses the existing ordinary
+status utility magnitude: Amplify is beneficial when the projected recipient is allied with the
+actor, while Curse is beneficial when the projected recipient is hostile. An unchanged projection
+or an explicitly allowed empty clone block contributes no cloning utility; independently meaningful
+later effects retain their existing utility. The mode is read from the typed authored clone block,
+never inferred from status names, projection text, or hidden state. Preview scoring consumes no RNG
+and does not bypass target legality, copy eligibility, or the existing committed-build boundary.
+
+This adds AI expected-value support for the already integrated clone kernel only. It does not publish
+Amplify/Curse Skills, remove the `effects.status-copy-staged` publication guard, define consecutive-use
+falloff for cloning, add area/multi-source copying, or deploy content.

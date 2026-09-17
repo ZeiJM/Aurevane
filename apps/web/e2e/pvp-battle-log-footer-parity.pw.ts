@@ -30,6 +30,7 @@ test('keeps the desktop PvP battle flow beside compact commands without resizing
   const password = 'AurevaneTest!42'
   const hostIdentity = uniqueIdentity('LogHost')
   const guestIdentity = uniqueIdentity('LogGuest')
+  const spectatorIdentity = uniqueIdentity('LogSpectator')
   const hostContext = await browser.newContext({
     baseURL: 'http://127.0.0.1:3100',
     viewport: { width: 1536, height: 614 },
@@ -38,8 +39,13 @@ test('keeps the desktop PvP battle flow beside compact commands without resizing
     baseURL: 'http://127.0.0.1:3100',
     viewport: { width: 1536, height: 614 },
   })
+  const spectatorContext = await browser.newContext({
+    baseURL: 'http://127.0.0.1:3100',
+    viewport: { width: 1536, height: 614 },
+  })
   const host = await hostContext.newPage()
   const guest = await guestContext.newPage()
+  const spectator = await spectatorContext.newPage()
 
   try {
     await provisionAccountAndEnterCharacter({
@@ -53,6 +59,12 @@ test('keeps the desktop PvP battle flow beside compact commands without resizing
       email: guestIdentity.email,
       password,
       characterName: guestIdentity.characterName,
+    })
+    await provisionAccountAndEnterCharacter({
+      page: spectator,
+      email: spectatorIdentity.email,
+      password,
+      characterName: spectatorIdentity.characterName,
     })
 
     await host.goto('/game/battle')
@@ -79,6 +91,42 @@ test('keeps the desktop PvP battle flow beside compact commands without resizing
     await expect(host).toHaveURL(/\/game\/battle\/[0-9a-f-]+$/i, { timeout: 20_000 })
 
     const root = host.locator("main[data-pvp-battle='true']")
+    const spectatorKey = (
+      await root.locator("[data-pvp-spectator-key='true'] strong").textContent()
+    )?.trim()
+    expect(spectatorKey).toMatch(/^AVB-[A-Z0-9]{4}-[A-Z0-9]{4}$/)
+
+    await spectator.goto('/game/battle')
+    await spectator.getByRole('button', { name: 'Spectate', exact: true }).click()
+    await spectator.getByLabel('Battle Key').fill(spectatorKey!)
+    await spectator.getByRole('button', { name: 'Spectate Battle' }).click()
+    await expect(spectator).toHaveURL(
+      new RegExp(`/game/battle/spectate/${spectatorKey!.replaceAll('-', '\\-')}$`),
+      { timeout: 20_000 },
+    )
+
+    const spectatorRoot = spectator.locator("main[data-pvp-spectator='true']")
+    await expect(spectatorRoot).toBeVisible()
+    const spectatorChatTab = spectator.getByRole('tab', { name: 'Battle Chat' })
+    const spectatorLogTab = spectator.getByRole('tab', { name: 'Battle Log' })
+    await expect(spectatorLogTab).toHaveAttribute('aria-selected', 'true')
+    await spectatorChatTab.click()
+    await expect(spectatorChatTab).toHaveAttribute('aria-selected', 'true')
+
+    const spectatorLogResponse = spectator.waitForResponse((response) => {
+      const url = new URL(response.url())
+      return (
+        url.pathname.startsWith('/api/pvp/battles/') &&
+        url.pathname.endsWith('/chat') &&
+        url.searchParams.get('includeLog') === '1' &&
+        response.ok()
+      )
+    })
+    await spectatorLogTab.click()
+    await spectatorLogResponse
+    await expect(spectatorLogTab).toHaveAttribute('aria-selected', 'true')
+    await expect(spectator.getByText('Recent 4 turns · actions · outcomes')).toBeVisible()
+
     const combatLog = root.locator('[data-battle-flow] > button')
     if ((await combatLog.getAttribute('aria-expanded')) !== 'true') await combatLog.click()
     await expectMapKey(host)
@@ -100,6 +148,6 @@ test('keeps the desktop PvP battle flow beside compact commands without resizing
     await host.getByRole('region', { name: 'Battle flow', exact: true }).getByRole('button').click()
     await expectBattleReferenceLayout(host, testInfo, 'combat-pvp-flow-reopened')
   } finally {
-    await Promise.all([hostContext.close(), guestContext.close()])
+    await Promise.all([hostContext.close(), guestContext.close(), spectatorContext.close()])
   }
 })

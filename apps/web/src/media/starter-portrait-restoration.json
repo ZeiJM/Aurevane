@@ -1,0 +1,142 @@
+{
+  "sourceFilename": "aurevane_character_creation_screen.png",
+  "sourceSha256": "33e1f6d4e0015a77962693ed8b90261edc67ff807ba8445a6afa9f0dd9f1d72f",
+  "sourceDimensions": [1672, 941],
+  "sourceOrigin": "Owner-provided UI handover references/current-hq/aurevane_character_creation_screen.png",
+  "operation": "Mechanical crop and WebP encoding. Portrait 01 uses its larger matching preview; 07, 22 and 25-40 repair damaged encoded derivatives. All IDs are retained.",
+  "restored": [
+    {
+      "id": "character.creation.portrait-01",
+      "sourceBox": [1052, 224, 1452, 624],
+      "width": 400,
+      "height": 400,
+      "sha256": "52ccf2550c6480d48210a88baf318e258d93b245f527fa552a4ccdbb437809e3"
+    },
+    {
+      "id": "character.creation.portrait-07",
+      "sourceBox": [831, 227, 911, 307],
+      "width": 96,
+      "height": 96,
+      "sha256": "6172c4abdd64f8e694adddcbae8375c9e6816e6f8e83497c17c8e4a64ff9e29b"
+    },
+    {
+      "id": "character.creation.portrait-22",
+      "sourceBox": [741, 407, 821, 487],
+      "width": 96,
+      "height": 96,
+      "sha256": "7dc7d6143dd60cc5cdb102cc4dacdfaebafdbbb7cc13403ebc58c5f251e3d069"
+    },
+    {
+      "id": "character.creation.portrait-25",
+      "sourceBox": [291, 497, 371, 577],
+      "width": 96,
+      "height": 96,
+      "sha256": "eb3636431b5686770e9ca0336dac54a9ab16068d51961ac5b0dcdb3fef1f4219"
+    },
+    {
+      "id": "character.creation.portrait-26",
+      "sourceBox": [381, 497, 461, 577],
+      "width": 96,
+      "height": 96,
+      "sha256": "19ed3af2c1c2059c032781023d25176f32680c23e836ebaeb0928358f38dd9eb"
+    },
+    {
+      "id": "character.creation.portrait-27",
+      "sourceBox": [471, 497, 551, 577],
+      "width": 96,
+      "height": 96,
+      "sha256": "07c659a2cc6aaf2463f5628fdb7c429e19f8aec4d7f00c46cdf899250f1d4857"
+    },
+    {
+      "id": "character.creation.portrait-28",
+      "sourceBox": [561, 497, 641, 577],
+      "width": 96,
+      "height": 96,
+      "sha256": "11395d93dfc3f26e8fee71f642668c5a66789ea97ee6e5cd86bbc51102368fdc"
+    },
+    {
+      "id": "character.creation.portrait-29",
+      "sourceBox": [651, 497, 731, 577],
+      "width": 96,
+      "height": 96,
+      "sha256": "9b8d7434ca13fefc45698fabb0160782bc5de6e2cbfca719715cf50756bfadf6"
+    },
+    {
+      "id": "character.creation.portrait-30",
+      "sourceBox": [741, 497, 821, 577],
+      "width": 96,
+      "height": 96,
+      "sha256": "7fd01e30ab299beb58846edbba5847aa8e44db4a0a9ecde6835fcf3c50eab849"
+    },
+    {
+      "id": "character.creation.portrait-31",
+      "sourceBox": [831, 497, 911, 577],
+      "width": 96,
+      "height": 96,
+      "sha256": "ced8de849a9ac974d01763fc11cf099a698767581dae00fb50a89fe001218131"
+    },
+    {
+      "id": "character.creation.portrait-32",
+      "sourceBox": [921, 497, 1001, 577],
+      "width": 96,
+      "height": 96,
+      "sha256": "dab94c84929242a7b2ba8764459acdb7515d7dcec89839a4b9020cc7b16c12a7"
+    },
+    {
+      "id": "character.creation.portrait-33",
+      "sourceBox": [291, 587, 371, 667],
+      "width": 96,
+      "height": 96,
+      "sha256": "2f7bebf2cf6368f15e732e20d7016d3c69d2ac5697ac7241de267bb7c268d161"
+    },
+    {
+      "id": "character.creation.portrait-34",
+      "sourceBox": [381, 587, 461, 667],
+      "width": 96,
+      "height": 96,
+      "sha256": "6a9ede6cfa49d3ccb8356e45c05761d16bee650f22415f4eeccb6c6701a9454a"
+    },
+    {
+      "id": "character.creation.portrait-35",
+      "sourceBox": [471, 587, 551, 667],
+      "width": 96,
+      "height": 96,
+      "sha256": "bd12df7561caf552d409a02124e0816829182108f4ed1a7b669c9b61e4706851"
+    },
+    {
+      "id": "character.creation.portrait-36",
+      "sourceBox": [561, 587, 641, 667],
+      "width": 96,
+      "height": 96,
+      "sha256": "92dc82ca739bec640dd0cd87bef4996bbc94ee0a8af20b8a0e45fddbd2ee3b2a"
+    },
+    {
+      "id": "character.creation.portrait-37",
+      "sourceBox": [651, 587, 731, 667],
+      "width": 96,
+      "height": 96,
+      "sha256": "97d7c4061a0eb69a50bb61f78a997272ca34ed03125c30a7c1b4d4354cd3aa7b"
+    },
+    {
+      "id": "character.creation.portrait-38",
+      "sourceBox": [741, 587, 821, 667],
+      "width": 96,
+      "height": 96,
+      "sha256": "ac66c288e47e4a51b5f399f68b7de5d8eb987e56e0b3cab286046938d92da9f1"
+    },
+    {
+      "id": "character.creation.portrait-39",
+      "sourceBox": [831, 587, 911, 667],
+      "width": 96,
+      "height": 96,
+      "sha256": "ae42999dbe9c0fdda9e3420160991dc8e0d2139d323d401f6e031a0b217b03a0"
+    },
+    {
+      "id": "character.creation.portrait-40",
+      "sourceBox": [921, 587, 1001, 667],
+      "width": 96,
+      "height": 96,
+      "sha256": "d1ba806daff51690aa3ff65955c4721304d50671254b425a052b45096afdf1c3"
+    }
+  ]
+}

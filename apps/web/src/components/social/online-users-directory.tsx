@@ -13,20 +13,11 @@ import {
   readableIdentity,
   type LastSeenSortOrder,
 } from './online-users-directory-utils'
+import { PublicCharacterPortrait, PublicCharacterProfile } from './public-character-profile'
 import styles from './online-users-directory.module.css'
 
 type PresenceCharacter = OnlineCharacter | CharacterPresenceDirectoryEntry
 type DirectorySortOrder = LastSeenSortOrder | 'alphabetical'
-
-function publicIdentityTags(
-  character: PresenceCharacter,
-): Array<{ kind: 'Discipline' | 'Personal Title'; label: string }> {
-  const discipline = readableIdentity(character.disciplineId)
-  const tags: Array<{ kind: 'Discipline' | 'Personal Title'; label: string }> = []
-  if (discipline) tags.push({ kind: 'Discipline', label: discipline })
-  if (character.personalTitle) tags.push({ kind: 'Personal Title', label: character.personalTitle })
-  return tags
-}
 
 function onlineNameBucket(name: string): number {
   const first = name.trim().charAt(0)
@@ -43,33 +34,6 @@ function compareNames(left: PresenceCharacter, right: PresenceCharacter): number
 
 function isOnline(character: PresenceCharacter): boolean {
   return 'isOnline' in character ? character.isOnline : true
-}
-
-function Portrait({ character, large = false }: { character: PresenceCharacter; large?: boolean }) {
-  const [failed, setFailed] = useState(false)
-  const className = large ? styles.heroPortrait : styles.avatar
-
-  if (character.imageUrl && !failed) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        className={className}
-        src={character.imageUrl}
-        alt={`${character.name} portrait`}
-        referrerPolicy="no-referrer"
-        onError={() => setFailed(true)}
-      />
-    )
-  }
-
-  return (
-    <span
-      className={`${className} ${styles.fallbackPortrait}`}
-      aria-label={`${character.name} portrait`}
-    >
-      {character.name.slice(0, 1).toUpperCase()}
-    </span>
-  )
 }
 
 export function OnlineUsersDirectory({ characters }: { characters: OnlineCharacter[] }) {
@@ -106,15 +70,6 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
       return compareNames(left, right)
     })
   }, [characters, classFilter, directory, showAll, sortOrder])
-
-  useEffect(() => {
-    if (!selected) return
-    const close = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setSelected(null)
-    }
-    window.addEventListener('keydown', close)
-    return () => window.removeEventListener('keydown', close)
-  }, [selected])
 
   useEffect(() => {
     if (!showAll) return
@@ -165,13 +120,11 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
         ? 'Loading…'
         : 'Directory'
     : `${characters.length} online`
-  const selectedTags = selected ? publicIdentityTags(selected) : []
-  const selectedOnline = selected ? isOnline(selected) : false
 
   return (
     <>
       <div className={styles.toolbar} data-directory-controls="true">
-        <span className={styles.toolbarSpacer} />
+        <p>Different paths. A shared world.</p>
         <button
           type="button"
           className={`${styles.toggleButton} ${showAll ? styles.toggleButtonActive : ''}`}
@@ -185,6 +138,8 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
       <section
         className={styles.rosterPanel}
         data-directory-roster="true"
+        data-directory-table="true"
+        data-av-surface="ink"
         aria-label={showAll ? 'All character directory' : 'Online character roster'}
       >
         <header className={styles.rosterHeader}>
@@ -193,16 +148,18 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
               ◇
             </span>
             <div>
-              <span className={styles.rosterKicker}>{showAll ? 'Directory' : 'Live roster'}</span>
+              <span className={styles.rosterKicker}>{showAll ? 'The realm' : 'Live presence'}</span>
               <strong>{showAll ? 'Known adventurers' : 'Active adventurers'}</strong>
               <small>
                 {showAll
-                  ? 'Browse the realm by class or recent activity.'
-                  : 'Characters with an active presence heartbeat.'}
+                  ? 'Browse public identities by class or recent activity.'
+                  : 'Select an adventurer to view their public profile.'}
               </small>
             </div>
           </div>
-          <span className={styles.rosterCount}>{rosterCount}</span>
+          <span className={styles.rosterCount} aria-live="polite">
+            {rosterCount}
+          </span>
         </header>
 
         {showAll && directory ? (
@@ -236,7 +193,9 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
         ) : null}
 
         {showAll && loadingDirectory ? (
-          <p className={styles.loading}>Loading character directory…</p>
+          <p className={styles.loading} role="status">
+            Loading character directory…
+          </p>
         ) : null}
         {showAll && directoryError ? (
           <div className={styles.error} role="status">
@@ -247,7 +206,9 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
           </div>
         ) : null}
 
-        {!loadingDirectory && !directoryError && orderedCharacters.length === 0 ? (
+        {!(showAll && loadingDirectory) &&
+        !(showAll && directoryError) &&
+        orderedCharacters.length === 0 ? (
           <p className={styles.empty}>
             {showAll
               ? 'No characters match the selected filters.'
@@ -255,6 +216,14 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
           </p>
         ) : null}
 
+        {orderedCharacters.length > 0 ? (
+          <div className={styles.columnHeadings} aria-hidden="true">
+            <span>Character</span>
+            <span>Level</span>
+            <span>Discipline</span>
+            <span>Presence</span>
+          </div>
+        ) : null}
         {orderedCharacters.length > 0 ? (
           <div className={styles.list} data-directory-list="true">
             {orderedCharacters.map((character) => {
@@ -264,25 +233,38 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
               return (
                 <button
                   type="button"
-                  className={`${styles.characterCard} ${online ? styles.characterCardOnline : ''}`}
+                  className={styles.characterRow}
+                  data-directory-character="true"
+                  data-online={online || undefined}
+                  aria-haspopup="dialog"
                   key={character.characterId}
                   onClick={() => setSelected(character)}
                 >
                   <span className={styles.avatarWrap}>
-                    <Portrait character={character} />
+                    <PublicCharacterPortrait character={character} />
                     <i
-                      className={`${styles.presenceDot} ${online ? '' : styles.presenceDotOffline}`}
+                      className={styles.presenceDot}
+                      data-online={online || undefined}
                       aria-hidden="true"
                     />
                   </span>
                   <span className={styles.identity}>
                     <strong>{character.name}</strong>
+                    {character.personalTitle ? (
+                      <span className={styles.personalTitle}>{character.personalTitle}</span>
+                    ) : null}
                     <small>
                       Level {character.level}
                       {discipline ? ` · ${discipline}` : ''}
                     </small>
                   </span>
-                  <span className={online ? styles.online : styles.lastSeen}>
+                  <span className={styles.level} aria-hidden="true">
+                    {character.level}
+                  </span>
+                  <span className={styles.discipline} aria-hidden="true">
+                    {discipline ?? 'Not displayed'}
+                  </span>
+                  <span className={styles.presence} data-online={online || undefined}>
                     {online ? 'Online' : lastSeen}
                   </span>
                 </button>
@@ -293,94 +275,11 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
       </section>
 
       {selected ? (
-        <div className={styles.backdrop} onPointerDown={() => setSelected(null)}>
-          <section
-            className={styles.profileCard}
-            data-av-surface="moonstone"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="online-profile-name"
-            onPointerDown={(event) => event.stopPropagation()}
-          >
-            <button
-              type="button"
-              className={styles.close}
-              aria-label="Close public character profile"
-              onClick={() => setSelected(null)}
-            >
-              ×
-            </button>
-            <div className={styles.portraitStage}>
-              <Portrait character={selected} large />
-              <span className={selectedOnline ? styles.liveBadge : styles.offlineBadge}>
-                {selectedOnline ? '● Online' : '○ Offline'}
-              </span>
-            </div>
-            <div className={styles.profileCopy}>
-              <div className={styles.profileHeading}>
-                <div className={styles.profileEyebrow}>
-                  <span aria-hidden="true">◇</span>
-                  Public character profile
-                </div>
-                <h2 id="online-profile-name">{selected.name}</h2>
-                <div className={styles.identityTags} aria-label="Character identity tags">
-                  <span className={styles.identityLabel}>Identity</span>
-                  <div className={styles.tagList}>
-                    {selectedTags.length > 0 ? (
-                      selectedTags.map((tag) => (
-                        <span
-                          key={`${tag.kind}:${tag.label}`}
-                          className={
-                            tag.kind === 'Personal Title' ? styles.titleTag : styles.disciplineTag
-                          }
-                          title={tag.kind}
-                        >
-                          {tag.label}
-                        </span>
-                      ))
-                    ) : (
-                      <span className={styles.noTags}>No public identity tags are set.</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <dl>
-                <div className={styles.profileStat}>
-                  <dt>Character Level</dt>
-                  <dd>{selected.level}</dd>
-                </div>
-                <div
-                  className={`${styles.profileStat} ${selectedOnline ? styles.profileStatOnline : ''}`}
-                >
-                  <dt>Presence</dt>
-                  <dd>
-                    {selectedOnline
-                      ? 'Online now'
-                      : formatLastSeenAt(selected.lastSeenAt, currentNow)}
-                  </dd>
-                </div>
-              </dl>
-
-              <p className={styles.privacyNote}>
-                Public profiles intentionally omit combat stats, inventory, currencies, account
-                identity, and other private character data.
-              </p>
-              <div className={styles.futureActions} aria-label="Planned social actions">
-                <button
-                  type="button"
-                  disabled
-                  title="Direct messages arrive with the social phase."
-                >
-                  Send Direct Message · Planned
-                </button>
-                <button type="button" disabled title="Friends arrive with the social phase.">
-                  Add Friend · Planned
-                </button>
-              </div>
-            </div>
-          </section>
-        </div>
+        <PublicCharacterProfile
+          character={selected}
+          nowMs={currentNow}
+          onClose={() => setSelected(null)}
+        />
       ) : null}
     </>
   )

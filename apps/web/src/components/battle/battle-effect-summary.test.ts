@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   aggregateBattleStatusStacks,
+  statusLabel,
   formatStatusStackCount,
   summarizeBattleEffects,
 } from './battle-effect-summary'
@@ -42,4 +43,16 @@ describe('battle effect summary', () => {
     expect(formatStatusStackCount('guarded', 3)).toBe('×3')
     expect(formatStatusStackCount('lowered-guard', 3)).toBe('×3')
   })
+})
+
+it.each([
+  ['guarded', 'Guard'],
+  ['lowered-guard', 'Off-guard'],
+  ['exposed', 'Expose'],
+  ['hexed', 'Hex'],
+  ['inspired', 'Inspire'],
+  ['invisible', 'Ghost'],
+  ['summoned', 'Summon'],
+])('shows compact active-status label for %s', (id, label) => {
+  expect(statusLabel(id)).toBe(label)
 })

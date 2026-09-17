@@ -157,7 +157,7 @@ export function CombatControlsSettings({ initialBindings }: CombatControlsSettin
     <section
       className={styles.panel}
       data-character-concept="controls"
-      data-av-surface="moonstone"
+      data-av-surface="ink"
       aria-label="Combat controls settings"
     >
       <p className={styles.intro}>

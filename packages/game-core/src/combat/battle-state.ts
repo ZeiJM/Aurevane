@@ -95,6 +95,7 @@ export type BattleEvent =
   | { event: 'action_spent'; combatantId: string }
   | { event: 'final_facing_selected'; combatantId: string; facing: BattleFacing }
   | { event: 'turn_ended'; round: number; turnNumber: number; combatantId: string }
+  | { event: 'battle_completed'; winningTeamId: string | null }
 
 export interface BattleTransition {
   state: BattleState
@@ -344,6 +345,82 @@ export function endTurn(
     combatantId: next.combatant.id,
   })
 
+  return { state: nextState, events }
+}
+
+export function defeatCurrentCombatant(
+  state: BattleState,
+  combatantId: string,
+  nextRoundModifiers: NonNullable<BattleState['roundInitiativeModifiers']> = [],
+): BattleTransition {
+  const turn = requireActiveTurn(state)
+  if (turn.combatantId !== combatantId) {
+    throw new Error('Only the active combatant can be defeated through this transition.')
+  }
+
+  const current = state.combatants.find((combatant) => combatant.id === combatantId)
+  if (!current) throw new Error(`Unknown combatant ${combatantId}.`)
+  if (current.hp <= 0) throw new Error('The active combatant is already defeated.')
+
+  const defeatedState: BattleState = {
+    ...state,
+    combatants: state.combatants.map((combatant) =>
+      combatant.id === combatantId ? { ...combatant, hp: 0 } : combatant,
+    ),
+  }
+  const events: BattleEvent[] = [
+    {
+      event: 'turn_ended',
+      round: state.round,
+      turnNumber: state.turnNumber,
+      combatantId,
+    },
+  ]
+  const activeTeams = collectActiveTeams(defeatedState)
+  if (activeTeams.size <= 1) {
+    const winningTeamId = [...activeTeams][0] ?? null
+    const nextState: BattleState = {
+      ...defeatedState,
+      lifecycle: 'completed',
+      currentTurn: null,
+    }
+    assertValidBattleState(nextState)
+    events.push({ event: 'battle_completed', winningTeamId })
+    return { state: nextState, events }
+  }
+
+  let next = findNextEligibleCombatant(defeatedState, turn.initiativeIndex, combatantId)
+  if (!next) throw new Error('No eligible combatant is available after the active defeat.')
+
+  const wrappedRound = next.initiativeIndex <= turn.initiativeIndex
+  const nextRound = wrappedRound ? state.round + 1 : state.round
+  const nextTurnNumber = state.turnNumber + 1
+  const roundState = wrappedRound
+    ? {
+        ...defeatedState,
+        initiativeOrder: createInitiativeOrder(defeatedState.combatants, nextRoundModifiers),
+        ...(nextRoundModifiers.length || state.roundInitiativeModifiers
+          ? { roundInitiativeModifiers: nextRoundModifiers.map((modifier) => ({ ...modifier })) }
+          : {}),
+      }
+    : defeatedState
+  if (wrappedRound) next = findFirstEligibleCombatant(roundState, combatantId)!
+
+  const nextState: BattleState = {
+    ...roundState,
+    round: nextRound,
+    turnNumber: nextTurnNumber,
+    currentTurn: createFreshTurn(next.combatant, next.initiativeIndex),
+  }
+  assertValidBattleState(nextState)
+
+  if (wrappedRound) events.push({ event: 'round_started', round: nextRound })
+  events.push({
+    event: 'turn_started',
+    round: nextRound,
+    turnNumber: nextTurnNumber,
+    combatantId: next.combatant.id,
+  })
   return { state: nextState, events }
 }
 

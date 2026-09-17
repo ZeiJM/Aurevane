@@ -133,7 +133,7 @@ export async function provisionAccountAndEnterCharacter(input: {
 }
 
 export async function signOutFromAccountMenu(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'Account' }).click()
+  await page.getByRole('button', { name: 'Account', exact: true }).click()
   await page.getByRole('menuitem', { name: 'Sign out' }).click()
   await expect(page).toHaveURL(/\/$/)
 }

@@ -7,6 +7,7 @@ import type { BattlePreviewView } from '@/server/battle/battle-preview-service'
 import type { BattleSkillForecastPresentation } from './battle-runtime'
 type IntentPreview = BattlePreviewView['preview']
 type ActionPreview = Extract<IntentPreview, { kind: 'action' }>
+type ProjectedEffect = ActionPreview['projectedEffects'][number]
 export interface PreviewChip {
   label: string
   tone: 'chance' | 'damage' | 'heal' | 'effect' | 'cost' | 'blocked'
@@ -37,9 +38,116 @@ function humanizeStatus(value: string): string {
     .replace(/\b\w/g, (letter) => letter.toUpperCase())
 }
 
-function numericEffectDelta(effect: ActionPreview['projectedEffects'][number]): number | null {
+function numericEffectDelta(effect: ProjectedEffect): number | null {
   if (typeof effect.before !== 'number' || typeof effect.after !== 'number') return null
   return effect.after - effect.before
+}
+
+function parseProjectedInteger(value: string): number | null {
+  if (!/^\d+$/.test(value)) return null
+  const parsed = Number(value)
+  return Number.isSafeInteger(parsed) ? parsed : null
+}
+
+function countLabel(value: number, singular: string): string {
+  return `${value} ${singular}${value === 1 ? '' : 's'}`
+}
+
+function countTransition(before: number | null, after: number, singular: string): string {
+  if (before === null || before === after) return countLabel(after, singular)
+  return `${before}→${after} ${singular}${after === 1 ? '' : 's'}`
+}
+
+function parseOrdinaryCopyState(value: string): {
+  statusId: string
+  stacks: number
+  duration: number
+} | null {
+  const parts = value.split(':')
+  if (parts.length !== 3) return null
+  const [encodedStatusId, encodedStacks, encodedDuration] = parts
+  if (!encodedStatusId || !encodedStacks || !encodedDuration) return null
+  if (['poison', 'burn', 'bleed'].includes(encodedStatusId)) return null
+
+  const stacks = parseProjectedInteger(encodedStacks)
+  const duration = parseProjectedInteger(encodedDuration)
+  if (stacks === null || duration === null) return null
+
+  return {
+    statusId: encodedStatusId.replace(/^status\./, ''),
+    stacks,
+    duration,
+  }
+}
+
+function typedCopyParts(value: string, type: 'poison' | 'burn'): number | null {
+  const parts = value.split(':')
+  if (parts.length !== 2 || parts[0] !== type || !parts[1]) return null
+  return parseProjectedInteger(parts[1])
+}
+
+function parseBleedCopyState(value: string): { damage: number; ticks: number } | null {
+  const parts = value.split(':')
+  if (parts.length !== 3 || parts[0] !== 'bleed' || !parts[1] || !parts[2]) return null
+  const damage = parseProjectedInteger(parts[1])
+  const ticks = parseProjectedInteger(parts[2])
+  return damage === null || ticks === null ? null : { damage, ticks }
+}
+
+function bleedStateLabel(state: { damage: number; ticks: number }): string {
+  return `${state.damage} dmg × ${state.ticks} tick${state.ticks === 1 ? '' : 's'}`
+}
+
+function copyStatusPreviewChip(effect: ProjectedEffect): PreviewChip | null {
+  if (
+    effect.effectType !== 'copy-statuses' ||
+    typeof effect.before !== 'string' ||
+    typeof effect.after !== 'string'
+  ) {
+    return null
+  }
+
+  const ordinaryAfter = parseOrdinaryCopyState(effect.after)
+  if (ordinaryAfter) {
+    const ordinaryBefore = effect.before === 'none' ? null : parseOrdinaryCopyState(effect.before)
+    const matchingBefore =
+      ordinaryBefore?.statusId === ordinaryAfter.statusId ? ordinaryBefore : null
+    return {
+      label: `Copied ${gameplayStatusName(ordinaryAfter.statusId)} · ${countTransition(matchingBefore?.stacks ?? null, ordinaryAfter.stacks, 'stack')} · ${countTransition(matchingBefore?.duration ?? null, ordinaryAfter.duration, 'turn')}`,
+      tone: 'effect',
+    }
+  }
+
+  const poisonAfter = typedCopyParts(effect.after, 'poison')
+  if (poisonAfter !== null) {
+    const poisonBefore = effect.before === 'none' ? null : typedCopyParts(effect.before, 'poison')
+    return {
+      label: `Copied ${gameplayStatusName('poison')} · movement progress ${poisonBefore === null || poisonBefore === poisonAfter ? poisonAfter : `${poisonBefore}→${poisonAfter}`}`,
+      tone: 'effect',
+    }
+  }
+
+  const burnAfter = typedCopyParts(effect.after, 'burn')
+  if (burnAfter !== null) {
+    const burnBefore = effect.before === 'none' ? null : typedCopyParts(effect.before, 'burn')
+    return {
+      label: `Copied ${gameplayStatusName('burn')} · stage ${burnBefore === null || burnBefore === burnAfter ? burnAfter : `${burnBefore}→${burnAfter}`}`,
+      tone: 'effect',
+    }
+  }
+
+  const bleedAfter = parseBleedCopyState(effect.after)
+  if (bleedAfter) {
+    const bleedBefore = effect.before === 'none' ? null : parseBleedCopyState(effect.before)
+    const afterLabel = bleedStateLabel(bleedAfter)
+    const beforeLabel = bleedBefore ? bleedStateLabel(bleedBefore) : null
+    return {
+      label: `Copied ${gameplayStatusName('bleed')} · ${beforeLabel === null || beforeLabel === afterLabel ? afterLabel : `${beforeLabel} → ${afterLabel}`}`,
+      tone: 'effect',
+    }
+  }
+
+  return null
 }
 
 function actionPreviewChips(preview: ActionPreview): PreviewChip[] {
@@ -59,6 +167,11 @@ function actionPreviewChips(preview: ActionPreview): PreviewChip[] {
         : `Hit ${Math.round(preview.hitChanceBasisPoints / 100)}%`,
     tone: 'chance',
   })
+
+  for (const effect of preview.projectedEffects) {
+    const copyChip = copyStatusPreviewChip(effect)
+    if (copyChip) chips.push(copyChip)
+  }
 
   if (preview.mitigatedBaseDamage !== null) {
     chips.push({ label: `On hit ${preview.mitigatedBaseDamage} dmg`, tone: 'damage' })

@@ -1,4 +1,6 @@
+import { materializeVengeanceDamage } from './combat-vengeance'
 import { hasGameplayTag } from './gameplay-tags'
+import { CURRENT_POISON_DAMAGE, advanceCurrentPoisonMovement } from './combat-dots'
 import { terrainOverlayAt, COMBAT_TERRAIN_OVERLAY_DETAILS } from './terrain-overlays'
 import { readBattleAuthorityCombatBuildSnapshot } from './battle-authority-build-snapshot'
 import {
@@ -8,14 +10,21 @@ import {
 } from './resonance'
 import { PHASE4_STATUSES } from './status-content'
 import {
+  createCovertStatusDefinition,
+  createRevealedStatusDefinition,
+  revealedSkillApCost,
+} from './covert-sensory-revealed'
+import {
   createBasicAttackDefinition,
   createCombatEncounterState,
   endCombatTurn,
   evaluateCombatAction,
   executeCombatAction,
+  resolveCombatMovementStepEffects,
   type CombatActionDefinition,
   type CombatActionEvaluation,
   type CombatContentCatalog,
+  type CombatEncounterState,
   type CombatEffectDefinition,
   type CombatStatusDefinition,
   type CombatTargetSelection,
@@ -36,6 +45,7 @@ import {
 } from './skill-cooldowns'
 import {
   evaluateCurrentMovementPath,
+  movementTraversalCostAt,
   moveCurrentCombatant,
   selectCurrentFinalFacing,
   type GridPosition,
@@ -45,7 +55,7 @@ import {
   PV1F_BASIC_ATTACK_ID,
   PV1F_GUARD_ACTION_ID,
   PV1F_GUARD_COST,
-  PV1F_MOVEMENT_COST_PER_TERRAIN_POINT,
+  movementApCostForTile,
   PV1F_MP_RECOVER_ACTION_ID,
   PV1F_RECOVER_ACTION_ID,
   pv1fFlatActionCost,
@@ -92,6 +102,7 @@ export const PV1F_GUARDED_STATUS: CombatStatusDefinition = {
   maximumStacks: PV1F_STATUS_MAXIMUM_STACKS,
   durationOwnerTurnStarts: 2,
   damageTakenMultiplierBasisPoints: 8_500,
+  polarity: 'positive',
 }
 
 // Lowered Guard is a one-turn anti-timeout debuff. A combatant who times out again can receive
@@ -102,6 +113,7 @@ export const PV1F_LOWERED_GUARD_STATUS: CombatStatusDefinition = {
   maximumStacks: PV1F_STATUS_MAXIMUM_STACKS,
   durationOwnerTurnStarts: 1,
   damageTakenMultiplierBasisPoints: 25_000,
+  polarity: 'negative',
 }
 
 export const PV1F_EXPOSED_STATUS: CombatStatusDefinition = {
@@ -110,13 +122,19 @@ export const PV1F_EXPOSED_STATUS: CombatStatusDefinition = {
   maximumStacks: 1,
   durationOwnerTurnStarts: 2,
   damageTakenMultiplierBasisPoints: 11_500,
+  polarity: 'negative',
 }
+
+export const PV1F_COVERT_STATUS = createCovertStatusDefinition(4)
+export const PV1F_REVEALED_STATUS = createRevealedStatusDefinition(4)
 
 export const PV1F_COMBAT_CONTENT: CombatContentCatalog = {
   statuses: [
     PV1F_GUARDED_STATUS,
     PV1F_LOWERED_GUARD_STATUS,
     PV1F_EXPOSED_STATUS,
+    PV1F_COVERT_STATUS,
+    PV1F_REVEALED_STATUS,
     ...PHASE4_STATUSES,
   ],
 }
@@ -406,10 +424,28 @@ function spendPv1fActionEconomyForActor(
   cost: number,
 ): StatDrivenCombatEncounterState {
   if (state.tactical.battle.lifecycle === 'active') {
-    if (state.tactical.battle.currentTurn?.combatantId !== combatantId) {
+    if (state.tactical.battle.currentTurn?.combatantId === combatantId) {
+      return spendPv1fActionEconomy(state, cost)
+    }
+    const defeatedActor = getCombatant(state, combatantId)
+    if (defeatedActor.hp > 0) {
       throw new Error('Action Economy can only be spent by the active combatant.')
     }
-    return spendPv1fActionEconomy(state, cost)
+    if (!Number.isSafeInteger(cost) || cost < 0 || cost > PV1F_ACTION_ECONOMY_MAXIMUM) {
+      throw new RangeError('Action Economy cost must be a safe integer from 0 to 100.')
+    }
+    const economy = defeatedActor.temporaryResources.find(
+      (resource) => resource.key === PV1F_ACTION_ECONOMY_RESOURCE_KEY,
+    )
+    if (!economy || economy.current < cost) {
+      throw new Error('Not enough Action Economy remains for that command.')
+    }
+    return withCombatant(state, {
+      ...defeatedActor,
+      temporaryResources: replaceResources(defeatedActor.temporaryResources, [
+        { ...economy, current: economy.current - cost },
+      ]),
+    })
   }
 
   if (state.tactical.battle.lifecycle !== 'completed') {
@@ -540,10 +576,12 @@ export function evaluatePv1fMatureSkill(
   if (resonance?.forecast.willActivate)
     baseAction.effects = [...baseAction.effects, ...resonance.forecast.bonusEffects]
   const repeatPenaltyApplied = lastMatureSkillId(prepared, actorId) === definition.id
-  const defendedEffects: readonly CombatEffectDefinition[] = baseAction.effects.map((effect) =>
-    effect.type === 'damage'
-      ? { ...effect, defenseKind: definition.tags.includes('mystic') ? 'ward' : 'armor' }
-      : effect,
+  const vengeance = materializeVengeanceDamage(prepared, baseAction)
+  const defendedEffects: readonly CombatEffectDefinition[] = vengeance.action.effects.map(
+    (effect) =>
+      effect.type === 'damage'
+        ? { ...effect, defenseKind: definition.tags.includes('mystic') ? 'ward' : 'armor' }
+        : effect,
   )
   const action: CombatActionDefinition = {
     ...baseAction,
@@ -552,11 +590,23 @@ export function evaluatePv1fMatureSkill(
       ? scaleRepeatedMatureSkillEffects(defendedEffects)
       : defendedEffects,
   }
+  const evaluation = evaluateCombatAction(prepared, action, target, PV1F_COMBAT_CONTENT)
   return {
     prepared,
     action,
-    cost: resolved.apCost,
-    evaluation: evaluateCombatAction(prepared, action, target, PV1F_COMBAT_CONTENT),
+    cost: revealedSkillApCost(prepared, actorId, resolved.apCost),
+    evaluation:
+      evaluation.legal && vengeance.basis.length > 0
+        ? {
+            ...evaluation,
+            vengeanceBasis: vengeance.basis.map((basis) => ({
+              ...basis,
+              rawDamage: repeatPenaltyApplied
+                ? halfPositiveMagnitude(basis.rawDamage)
+                : basis.rawDamage,
+            })),
+          }
+        : evaluation,
     repeatPenaltyApplied,
   }
 }
@@ -694,12 +744,50 @@ export function pv1fMovementModifiers(
   }
 }
 
+export interface Pv1fPoisonMovementForecast {
+  traversedTiles: number
+  triggeredTicks: number
+  damage: number
+  willDefeat: boolean
+}
+
+function forecastPv1fPoisonMovement(
+  state: StatDrivenCombatEncounterState,
+  path: readonly GridPosition[],
+): Pv1fPoisonMovementForecast {
+  const actorId = state.tactical.battle.currentTurn?.combatantId
+  if (!actorId) return { traversedTiles: 0, triggeredTicks: 0, damage: 0, willDefeat: false }
+  const actor = getCombatant(state, actorId)
+  let shadow = state as CombatEncounterState
+  let hp = actor.hp
+  let traversedTiles = 0
+  let triggeredTicks = 0
+
+  for (let index = 1; index < path.length; index += 1) {
+    const advanced = advanceCurrentPoisonMovement(shadow, actorId, 1)
+    shadow = advanced.state
+    traversedTiles += 1
+    triggeredTicks += advanced.triggeredTicks
+    if (advanced.triggeredTicks > 0) {
+      hp = Math.max(0, hp - advanced.triggeredTicks * CURRENT_POISON_DAMAGE)
+      if (hp === 0) break
+    }
+  }
+
+  return {
+    traversedTiles,
+    triggeredTicks,
+    damage: actor.hp - hp,
+    willDefeat: actor.hp > 0 && hp === 0,
+  }
+}
+
 export function evaluatePv1fMovement(
   state: StatDrivenCombatEncounterState,
   path: readonly GridPosition[],
 ) {
   const prepared = preparePv1fTurnEconomy(state)
-  const movement = evaluateCurrentMovementPath(prepared.tactical, path)
+  let movement = evaluateCurrentMovementPath(prepared.tactical, path)
   const modifiers = pv1fMovementModifiers(prepared)
   if (modifiers.blocked) {
     movement.legal = false
@@ -712,17 +800,31 @@ export function evaluatePv1fMovement(
       },
     ]
   }
-  const economyCost =
-    movement.cost * PV1F_MOVEMENT_COST_PER_TERRAIN_POINT +
-    path.slice(1).reduce((sum, position) => sum + modifiers.additionalApAt(position), 0)
-  return { prepared, movement, economyCost }
+
+  const poisonForecast = movement.legal
+    ? forecastPv1fPoisonMovement(prepared, path)
+    : { traversedTiles: 0, triggeredTicks: 0, damage: 0, willDefeat: false }
+  if (movement.legal && poisonForecast.traversedTiles < path.length - 1) {
+    movement = evaluateCurrentMovementPath(
+      prepared.tactical,
+      path.slice(0, poisonForecast.traversedTiles + 1),
+    )
+  }
+  const economyCost = movement.legal
+    ? movement.path.slice(1).reduce((sum, position) => {
+        const traversal = movementTraversalCostAt(prepared.tactical, movement.combatantId, position)
+        if (traversal === null) throw new Error('Legal movement cannot enter blocked terrain.')
+        return sum + movementApCostForTile(traversal, modifiers.additionalApAt(position))
+      }, 0)
+    : 0
+  return { prepared, movement, economyCost, poisonForecast }
 }
 
 export function executePv1fMovement(
   state: StatDrivenCombatEncounterState,
   path: readonly GridPosition[],
 ): Pv1fTransition {
-  const { prepared, movement, economyCost } = evaluatePv1fMovement(state, path)
+  const { prepared, movement, economyCost, poisonForecast } = evaluatePv1fMovement(state, path)
   if (!movement.legal)
     throw new Error(movement.issues[0]?.message ?? 'That movement path is not legal.')
   if (!canAffordPv1fEconomy(prepared, economyCost)) {
@@ -730,18 +832,26 @@ export function executePv1fMovement(
   }
   const actorId = prepared.tactical.battle.currentTurn?.combatantId
   if (!actorId) throw new Error('PV-1F movement requires an active turn.')
-  const moved = moveCurrentCombatant(prepared.tactical, path)
-  const encounter = reattachStatDrivenCombatBridge(
+  const moved = moveCurrentCombatant(prepared.tactical, movement.path)
+  let next = reattachStatDrivenCombatBridge(
     { ...prepared, ...createCombatEncounterState(moved.state, prepared.statusState) },
     prepared.statBridge,
   )
-  let next = spendPv1fActionEconomy(encounter, economyCost)
+  const movementEffectEvents: unknown[] = []
+  for (let index = 0; index < poisonForecast.traversedTiles; index += 1) {
+    const resolved = resolveCombatMovementStepEffects(next, actorId, PV1F_COMBAT_CONTENT)
+    next = reattachStatDrivenCombatBridge(resolved.state, prepared.statBridge)
+    movementEffectEvents.push(...resolved.events)
+    if (getCombatant(next, actorId).hp <= 0) break
+  }
+  next = spendPv1fActionEconomyForActor(next, actorId, economyCost)
   next = clearLastMatureSkill(next, actorId)
   const remaining = readPv1fActionEconomy(next, actorId)?.current ?? 0
   return {
     state: next,
     events: [
       ...moved.events,
+      ...movementEffectEvents,
       { event: 'action_economy_spent', combatantId: actorId, amount: economyCost, remaining },
     ],
   }
@@ -829,7 +939,7 @@ function scaleRepeatedMatureSkillEffects(
 ): readonly CombatEffectDefinition[] {
   const scaled: CombatEffectDefinition[] = []
   for (const effect of effects) {
-    if (effect.type === 'damage' || effect.type === 'healing') {
+    if (effect.type === 'damage' || effect.type === 'healing' || effect.type === 'barrier-change') {
       scaled.push({ ...effect, amount: halfPositiveMagnitude(effect.amount) })
       continue
     }
@@ -837,14 +947,24 @@ function scaleRepeatedMatureSkillEffects(
       scaled.push({ ...effect, delta: halfSignedMagnitude(effect.delta) })
       continue
     }
-    // Removal is discrete: a consecutive repeat cannot remove a full status again.
+    if (effect.type === 'bleed') {
+      scaled.push({ ...effect, damagePerTick: halfPositiveMagnitude(effect.damagePerTick) })
+      continue
+    }
+    // Removal and Sensory are discrete: a consecutive repeat cannot resolve a half-strength copy.
     if (
       effect.type === 'remove-status' ||
       effect.type === 'return-to-turn-start' ||
       effect.type === 'create-terrain' ||
-      effect.type === 'displace'
+      effect.type === 'displace' ||
+      effect.type === 'poison' ||
+      effect.type === 'burn' ||
+      effect.type === 'sensory'
     )
       continue
+    if (effect.type === 'copy-statuses') {
+      throw new TypeError('effects.status-copy-staged: repeat-use copying is not yet supported.')
+    }
     const stacks = Math.floor(effect.stacks / 2)
     if (stacks > 0) scaled.push({ ...effect, stacks })
   }

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { calculateDerivedStats } from '../character/derived-stats'
 import { createPendingBattle, startBattle } from './battle-state'
 import {
   createCombatEncounterState,
@@ -9,13 +10,19 @@ import {
 } from './actions'
 import { createTacticalBattleState } from './board'
 import {
+  STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_V1,
+  STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_VERSION,
   calculateHitChanceBasisPoints,
+  createCharacterDerivedCombatProfile,
   createStatDrivenCombatEncounterState,
   executeStatDrivenAttack,
   forecastStatDrivenAttack,
+  getStatDrivenOffensivePower,
   mitigateDamageByDefense,
   validateStatDrivenCombatEncounterState,
+  type StatDrivenCombatEncounterState,
   type StatDrivenCombatProfile,
+  type StatDrivenCombatProfileV1,
 } from './stat-driven-combat'
 
 const attack = createBasicAttackDefinition(P2_3_UNARMED_ATTACK_PROFILE)
@@ -23,7 +30,10 @@ const attack = createBasicAttackDefinition(P2_3_UNARMED_ATTACK_PROFILE)
 function profile(
   combatantId: string,
   overrides: Partial<
-    Pick<StatDrivenCombatProfile, 'accuracy' | 'evasion' | 'armor' | 'ward' | 'jump'>
+    Pick<
+      StatDrivenCombatProfile,
+      'accuracy' | 'evasion' | 'armor' | 'ward' | 'jump' | 'physicalPower' | 'mysticPower'
+    >
   > = {},
 ): StatDrivenCombatProfile {
   return {
@@ -38,7 +48,21 @@ function profile(
     armor: 0,
     ward: 0,
     jump: 0,
+    physicalPower: 40,
+    mysticPower: 35,
     ...overrides,
+  }
+}
+
+function historicalProfile(current: StatDrivenCombatProfile): StatDrivenCombatProfileV1 {
+  return {
+    combatantId: current.combatantId,
+    provenance: { ...current.provenance },
+    accuracy: current.accuracy,
+    evasion: current.evasion,
+    armor: current.armor,
+    ward: current.ward,
+    jump: current.jump,
   }
 }
 
@@ -123,6 +147,76 @@ describe('stat-driven Phase 2 combat bridge', () => {
     expect(mitigateDamageByDefense(16, 40)).toBe(11)
   })
 
+  it('creates current v2 profiles from the existing authoritative derived-stat snapshot', () => {
+    const derived = calculateDerivedStats({
+      attributes: {
+        might: 8,
+        finesse: 4,
+        vitality: 7,
+        agility: 5,
+        intellect: 9,
+        resolve: 6,
+      },
+      level: 12,
+    })
+
+    const current = createCharacterDerivedCombatProfile('player', 'character-1', derived)
+
+    expect(current.physicalPower).toBe(derived.stats.physicalPower.value)
+    expect(current.mysticPower).toBe(derived.stats.mysticPower.value)
+  })
+
+  it('creates new encounters with the v2 stat bridge and exposes offensive power', () => {
+    const state = encounter(profile('player', { physicalPower: 47, mysticPower: 53 }))
+
+    expect(state.statBridge.schemaVersion).toBe(STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_VERSION)
+    expect(STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_VERSION).toBe(2)
+    expect(getStatDrivenOffensivePower(state, 'player', 'physical-power')).toBe(47)
+    expect(getStatDrivenOffensivePower(state, 'player', 'mystic-power')).toBe(53)
+  })
+
+  it('fails closed when a newly-created v2 profile omits offensive ratings', () => {
+    const incomplete = {
+      combatantId: 'player',
+      provenance: {
+        kind: 'character-derived',
+        sourceId: 'character:test-player',
+        sourceRulesVersion: 1,
+      },
+      accuracy: 10_000,
+      evasion: 0,
+      armor: 0,
+      ward: 0,
+      jump: 0,
+    } as unknown as StatDrivenCombatProfile
+
+    expect(() => encounter(incomplete)).toThrow(/offensive ratings/i)
+  })
+
+  it('rejects partially populated offensive ratings instead of downgrading them to v1', () => {
+    const incompletePlayer = profile('player', { mysticPower: undefined })
+    const incompleteRecruit = profile('recruit', { armor: 23, mysticPower: undefined })
+
+    expect(() => encounter(incompletePlayer, incompleteRecruit)).toThrow(/offensive ratings/i)
+  })
+
+  it('continues to validate exact historical v1 bridges without inventing offensive ratings', () => {
+    const state = encounter()
+    const historical: StatDrivenCombatEncounterState = {
+      ...state,
+      statBridge: {
+        schemaVersion: STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_V1,
+        rulesVersion: 1,
+        combatants: state.statBridge.combatants.map(historicalProfile),
+      },
+    }
+
+    expect(validateStatDrivenCombatEncounterState(historical)).toEqual([])
+    expect(() => getStatDrivenOffensivePower(historical, 'player', 'physical-power')).toThrow(
+      /schema version 2/i,
+    )
+  })
+
   it('forecasts Armor mitigation without consuming authoritative RNG', () => {
     const state = encounter()
     const forecast = forecastStatDrivenAttack(
@@ -159,7 +253,7 @@ describe('stat-driven Phase 2 combat bridge', () => {
           hit: true,
           hitChanceBasisPoints: 10_000,
           defenseRating: 23,
-          rulesVersion: 1,
+          rulesVersion: 2,
         }),
         expect.objectContaining({ event: 'damage_applied', amount: 13 }),
       ]),

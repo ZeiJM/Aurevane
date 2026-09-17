@@ -60,7 +60,7 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
   await expect(palm).toContainText('1 tile')
   await expect(palm.getByRole('checkbox')).not.toBeChecked()
   const sweep = list.locator('article').filter({ hasText: 'Sweep' })
-  await expect(sweep).toContainText('Area · radius 1')
+  await expect(sweep).toContainText('Circle 1')
   for (const name of ['Rising Fist', 'Sweep', 'Breakfall', 'Counter Palm']) {
     await list.locator('article').filter({ hasText: name }).getByRole('checkbox').check()
   }

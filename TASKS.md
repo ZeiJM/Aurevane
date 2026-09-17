@@ -252,3 +252,19 @@ Owner instruction: “Take what ever authorizations you need and implement.” T
 Validation and deployment results are recorded below when completed. Historical counts and release records earlier in this document refer to their original sixteen-Discipline snapshots.
 
 Release checkpoint: local `pnpm check` passed (1,095 tests including the six report tests). Automatic review blocked publishing to public `ZeiJM/Aurevane`; explicit destination approval is required. See `docs/PHASE_4_TICKETS.md` for remaining CI, earned-Mastery UI and coordinated migration/deployment steps. No live-release completion is claimed.
+
+
+## Combat effect overhaul — intermediate movement/recovery checkpoint
+
+- [x] Variable Push/Pull runtime and diagonal/collision safety, with Displaced only on successful movement.
+- [x] Haste/Slow movement AP and shared per-tile minimum-cost calculation; Movement allowance unchanged.
+- [x] Heal X / MP Rec X scheduled-recovery runtime, validation, preview parity, persistence-shaped state and defeat cleanup.
+- [x] Connect compact tag vocabulary to shared Skill/status presentation; update displacement and recovery descriptions.
+- [ ] Publish rebalanced immutable Discipline Skill versions and retire current legacy applications.
+- [x] New Poison/Bleed/Burn runtime identities plus the landed K4 Absorb HP/MP, Reflect, Vengeance and generalized Skill-accuracy kernel slices are implemented and verified at their current engine boundaries.
+- [x] Staged Amplify/Curse integration now covers authoritative status-copy legality/commit/provenance, Recruit AI forecast utility and player-facing clone forecasts; no clone Skill is published.
+- [ ] Implement the separate `Copy` mechanic that grants a random eligible regular battle Skill for the remainder of battle at half AP cost, including encounter state/RNG, UI, AI and persistence integration.
+- [ ] Implement Covert/Sensory/Revealed at their approved authority and presentation boundaries.
+- [ ] Ship the real protected Master Panel Combat Content editor with typed validation, diff/preview and immutable publication; do not substitute hard-coded source edits or speculative UI.
+- [ ] Resolve the Owner rule for consecutive-use Amplify/Curse clone transfer. Until then keep `effects.status-copy-staged` and do not publish clone Skills.
+- [ ] Full end-to-end browser acceptance and explicit release decision. No production deployment is included in this checkpoint.

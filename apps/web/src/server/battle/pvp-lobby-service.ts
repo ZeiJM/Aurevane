@@ -41,11 +41,13 @@ import { createSupabaseCharacterBuildRepository } from '@/server/character/supab
 import { createSupabaseCharacterRepository } from '@/server/character/supabase-character-repository'
 
 import { createBattleBuildAuthoritySnapshot } from './battle-build-authority'
+import { projectBattleStatusStateForViewer } from './battle-live-viewer-projection'
 import type {
   BattleAuthoritativeEncounterState,
   BattleSessionProjection,
   BattleSessionView,
 } from './battle-session-service'
+import { createSpectatorBattleViewerEntitlement } from './battle-viewer-entitlement'
 
 const PVP_RULES_VERSION = 2
 const PVP_CONTENT_VERSION = 2
@@ -470,9 +472,11 @@ function projectSnapshot(input: unknown): BattleSessionProjection {
   const candidate = input as unknown as StatDrivenCombatEncounterState
   const issues = validateStatDrivenCombatEncounterState(candidate)
   if (issues.length > 0) throw unavailable('The stored PvP battle is invalid.')
+  const viewer = createSpectatorBattleViewerEntitlement()
   const battle = candidate.tactical.battle
   return {
     ...candidate,
+    statusState: projectBattleStatusStateForViewer(candidate, viewer),
     tactical: {
       ...candidate.tactical,
       battle: {

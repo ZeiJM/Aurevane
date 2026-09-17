@@ -251,7 +251,7 @@ test('keeps requested PvE presentation parity on desktop and mobile', async ({
       .first()
       .evaluate((el) => parseFloat(getComputedStyle(el).fontSize)),
   ).toBeGreaterThanOrEqual(12)
-  await expect(preview).toContainText(/Guarded/i)
+  await expect(preview).toContainText(/Guard/i)
   await expectBattlePreviewFits(page)
   await testInfo.attach('combat-guard-forecast', {
     body: await page.screenshot({ path: testInfo.outputPath('combat-guard-forecast.png') }),

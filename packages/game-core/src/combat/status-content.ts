@@ -27,6 +27,7 @@ function status(
     maximumStacks: 1,
     durationOwnerTurnStarts: 2,
     damageTakenMultiplierBasisPoints: 10_000,
+    polarity: kind === 'Buff' ? 'positive' : kind === 'Debuff' ? 'negative' : 'neutral',
     ...rules,
   }
 }
@@ -87,8 +88,15 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
     'displaced',
     'Displaced',
     'Effect',
-    'Records a successful one-tile push. Grants no turn, AP or Movement refund.',
+    'Records a successful forced move. Grants no turn, AP or Movement refund.',
     { gameplayTags: ['Displaced'], durationOwnerTurnStarts: 1 },
+  ),
+  status(
+    'haste',
+    'Haste',
+    'Buff',
+    'Movement costs 10 less AP per entered tile, to a minimum of 10 AP. Movement allowance is unchanged.',
+    { movement: { additionalApPerTile: -10 } },
   ),
   status(
     'hastened',
