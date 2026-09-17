@@ -1,0 +1,361 @@
+name: CSR3 Wire Commit Privacy
+
+on:
+  push:
+    branches:
+      - agent/combat-csr3-historical-privacy-20260917
+    paths:
+      - .github/workflows/csr3-wire-commit-privacy.yml
+
+permissions:
+  contents: write
+
+jobs:
+  wire-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/combat-csr3-historical-privacy-20260917
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Wire CSR-3 privacy metadata into commit callers
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          ROOT = Path('apps/web/src/server/battle')
+          IMPORT = "import { buildBattlePrivacyJournalInput } from './battle-history-privacy'\n"
+
+          def read(name):
+              path = ROOT / name
+              return path, path.read_text(encoding='utf-8')
+
+          def write(path, text):
+              path.write_text(text, encoding='utf-8')
+
+          def add_import(text, marker):
+              if IMPORT in text:
+                  return text
+              if marker not in text:
+                  raise SystemExit(f'import marker changed: {marker!r}')
+              return text.replace(marker, IMPORT + marker, 1)
+
+          # AI timeout: public command, but lifecycle overrides still protect Covert positives.
+          path, text = read('ai-battle-quality-service.ts')
+          text = add_import(text, "import { createBattleSessionService, type BattleSessionView } from './battle-session-service'\n")
+          old = """  const resolved = timeoutAiTurn(state)
+  const nextState = preserveFrozenBuildMetadata(initialState, resolved.state)
+
+  try {
+"""
+          new = """  const resolved = timeoutAiTurn(state)
+  const nextState = preserveFrozenBuildMetadata(initialState, resolved.state)
+  const privacyJournal = buildBattlePrivacyJournalInput({
+    before: state,
+    after: resolved.state,
+    commandKind: 'system',
+    events: resolved.events,
+  })
+
+  try {
+"""
+          if old not in text: raise SystemExit('ai timeout seam changed')
+          text = text.replace(old, new, 1)
+          old = """      nextSnapshot: nextState,
+      events: resolved.events,
+    })
+"""
+          new = """      nextSnapshot: nextState,
+      events: resolved.events,
+      privacyJournal,
+    })
+"""
+          if old not in text: raise SystemExit('ai timeout commit seam changed')
+          text = text.replace(old, new, 1)
+          write(path, text)
+
+          # AI surrender: stale/replay probe and surrender itself are explicitly public.
+          path, text = read('ai-battle-surrender-service.ts')
+          old = """      nextSnapshot: current.snapshot,
+      events: [],
+    })
+"""
+          new = """      nextSnapshot: current.snapshot,
+      events: [],
+      privacyJournal: null,
+    })
+"""
+          if old not in text: raise SystemExit('ai surrender replay seam changed')
+          text = text.replace(old, new, 1)
+          old = """    nextSnapshot: resolved.state,
+    events: translateSurrenderEvents(resolved.events),
+  })
+"""
+          new = """    nextSnapshot: resolved.state,
+    events: translateSurrenderEvents(resolved.events),
+    privacyJournal: null,
+  })
+"""
+          if old not in text: raise SystemExit('ai surrender commit seam changed')
+          text = text.replace(old, new, 1)
+          write(path, text)
+
+          # Practice abort: public system command; replay probe is explicitly public too.
+          path, text = read('battle-abort-service.ts')
+          old = """          nextSnapshot: current.snapshot,
+          events: [],
+        })
+"""
+          new = """          nextSnapshot: current.snapshot,
+          events: [],
+          privacyJournal: null,
+        })
+"""
+          if old not in text: raise SystemExit('abort replay seam changed')
+          text = text.replace(old, new, 1)
+          old = """        nextSnapshot: resolved.state,
+        events: resolved.events,
+      })
+"""
+          new = """        nextSnapshot: resolved.state,
+        events: resolved.events,
+        privacyJournal: null,
+      })
+"""
+          if old not in text: raise SystemExit('abort commit seam changed')
+          text = text.replace(old, new, 1)
+          write(path, text)
+
+          # Final-turn can expire/refresh statuses, so run the lifecycle privacy builder.
+          path, text = read('battle-final-turn-service.ts')
+          text = add_import(text, "import type { BattleSessionProjection, BattleSessionView } from './battle-session-service'\n")
+          old = """          nextSnapshot: current.snapshot,
+          events: [],
+        })
+"""
+          new = """          nextSnapshot: current.snapshot,
+          events: [],
+          privacyJournal: null,
+        })
+"""
+          if old not in text: raise SystemExit('final-turn replay seam changed')
+          text = text.replace(old, new, 1)
+          old = """      const resolved = resolveFinalTurn(state, command.facing)
+      const nextState = preserveFrozenBuildMetadata(state, resolved.state)
+      const committed = await battles.commitBattleIntent({
+"""
+          new = """      const resolved = resolveFinalTurn(state, command.facing)
+      const nextState = preserveFrozenBuildMetadata(state, resolved.state)
+      const privacyJournal = buildBattlePrivacyJournalInput({
+        before: state,
+        after: resolved.state,
+        commandKind: 'system',
+        events: resolved.events,
+      })
+      const committed = await battles.commitBattleIntent({
+"""
+          if old not in text: raise SystemExit('final-turn resolve seam changed')
+          text = text.replace(old, new, 1)
+          old = """        nextSnapshot: nextState,
+        events: resolved.events,
+      })
+"""
+          new = """        nextSnapshot: nextState,
+        events: resolved.events,
+        privacyJournal,
+      })
+"""
+          if old not in text: raise SystemExit('final-turn commit seam changed')
+          text = text.replace(old, new, 1)
+          write(path, text)
+
+          # Recruit AI: action privacy is Covert-aware; movement/turn commands remain public.
+          path, text = read('battle-recruit-ai-service.ts')
+          text = add_import(text, 'const MAX_RECRUIT_DECISIONS_PER_REQUEST = 16\n')
+          old = """        const nextState = preserveFrozenBuildMetadata(state, resolved.state)
+        const event = decisionEvent(decision, turn.combatantId)
+        const requestFingerprint = fingerprint({
+"""
+          new = """        const nextState = preserveFrozenBuildMetadata(state, resolved.state)
+        const event = decisionEvent(decision, turn.combatantId)
+        const committedEvents = [event, ...resolved.events]
+        const privacyJournal = buildBattlePrivacyJournalInput({
+          before: state,
+          after: resolved.state,
+          commandKind:
+            decision.intent.kind === 'action'
+              ? 'action'
+              : decision.intent.kind === 'move'
+                ? 'move'
+                : 'system',
+          events: committedEvents,
+        })
+        const requestFingerprint = fingerprint({
+"""
+          if old not in text: raise SystemExit('recruit resolve seam changed')
+          text = text.replace(old, new, 1)
+          old = """          nextSnapshot: nextState,
+          events: [event, ...resolved.events],
+        })
+"""
+          new = """          nextSnapshot: nextState,
+          events: committedEvents,
+          privacyJournal,
+        })
+"""
+          if old not in text: raise SystemExit('recruit commit seam changed')
+          text = text.replace(old, new, 1)
+          write(path, text)
+
+          # Normal player intent is the primary Covert command-identity authority.
+          path, text = read('battle-session-service.ts')
+          text = add_import(text, "import { battleActionResourceIssue } from './battle-action-resource-availability'\n")
+          old = """      assertPlayerControlledTurn(state, current.controlledCombatantIds)
+      const resolved = resolveIntent(state, command.intent)
+      const committed = await battles.commitBattleIntent({
+"""
+          new = """      assertPlayerControlledTurn(state, current.controlledCombatantIds)
+      const resolved = resolveIntent(state, command.intent)
+      const privacyJournal = buildBattlePrivacyJournalInput({
+        before: state,
+        after: resolved.state,
+        commandKind:
+          command.intent.kind === 'action'
+            ? 'action'
+            : command.intent.kind === 'move'
+              ? 'move'
+              : command.intent.kind === 'face'
+                ? 'face'
+                : 'system',
+        events: resolved.events,
+      })
+      const committed = await battles.commitBattleIntent({
+"""
+          if old not in text: raise SystemExit('session resolve seam changed')
+          text = text.replace(old, new, 1)
+          old = """        nextSnapshot: resolved.state,
+        events: resolved.events,
+      })
+"""
+          new = """        nextSnapshot: resolved.state,
+        events: resolved.events,
+        privacyJournal,
+      })
+"""
+          if old not in text: raise SystemExit('session commit seam changed')
+          text = text.replace(old, new, 1)
+          write(path, text)
+
+          # Guided completion is a public system commit with no hidden action identity.
+          path, text = read('guided-training-completion-service.ts')
+          old = """        events: [
+          {
+            event: 'guided_training_completed',
+            combatantId: controlled,
+            criteria: [...GUIDED_TRAINING_CRITERIA],
+          },
+          { event: 'battle_completed', winningTeamId: 'players', completionKind: 'training' },
+        ],
+      })
+"""
+          new = """        events: [
+          {
+            event: 'guided_training_completed',
+            combatantId: controlled,
+            criteria: [...GUIDED_TRAINING_CRITERIA],
+          },
+          { event: 'battle_completed', winningTeamId: 'players', completionKind: 'training' },
+        ],
+        privacyJournal: null,
+      })
+"""
+          if old not in text: raise SystemExit('guided completion seam changed')
+          text = text.replace(old, new, 1)
+          write(path, text)
+
+          # PvP timeout can process lifecycle statuses; surrender remains explicitly public.
+          path, text = read('pvp-battle-quality-service.ts')
+          text = add_import(text, "import {\n  createBattleSessionService,\n  projectCommittedBattleSession,\n  type BattleSessionView,\n} from './battle-session-service'\n")
+          old = """  const resolved = timeoutPvpTurn(state)
+  const timeoutIdentity = {
+"""
+          new = """  const resolved = timeoutPvpTurn(state)
+  const privacyJournal = buildBattlePrivacyJournalInput({
+    before: state,
+    after: resolved.state,
+    commandKind: 'system',
+    events: resolved.events,
+  })
+  const timeoutIdentity = {
+"""
+          if old not in text: raise SystemExit('pvp timeout resolve seam changed')
+          text = text.replace(old, new, 1)
+          old = """      nextSnapshot: resolved.state,
+      events: resolved.events,
+    })
+"""
+          new = """      nextSnapshot: resolved.state,
+      events: resolved.events,
+      privacyJournal,
+    })
+"""
+          if old not in text: raise SystemExit('pvp timeout commit seam changed')
+          text = text.replace(old, new, 1)
+          old = """      nextSnapshot: resolved.state,
+      events: resolved.events,
+    })
+    return projectCommittedBattleSession(committed, current.controlledCombatantIds)
+"""
+          new = """      nextSnapshot: resolved.state,
+      events: resolved.events,
+      privacyJournal: null,
+    })
+    return projectCommittedBattleSession(committed, current.controlledCombatantIds)
+"""
+          if old not in text: raise SystemExit('pvp surrender commit seam changed')
+          text = text.replace(old, new, 1)
+          write(path, text)
+
+          # AI quality service commit is a public system path.
+          path, text = read('ai-battle-quality-service.ts')
+          # Already handled above; no-op marker keeps the expected caller count explicit.
+          if text.count('privacyJournal') < 1:
+              raise SystemExit('ai quality privacy wiring missing')
+
+          # Remaining AI-quality direct action service is public/system in this ticket.
+          path, text = read('ai-battle-quality-service.ts')
+          write(path, text)
+          PY
+          pnpm exec prettier --write \
+            apps/web/src/server/battle/ai-battle-quality-service.ts \
+            apps/web/src/server/battle/ai-battle-surrender-service.ts \
+            apps/web/src/server/battle/battle-abort-service.ts \
+            apps/web/src/server/battle/battle-final-turn-service.ts \
+            apps/web/src/server/battle/battle-recruit-ai-service.ts \
+            apps/web/src/server/battle/battle-session-service.ts \
+            apps/web/src/server/battle/guided-training-completion-service.ts \
+            apps/web/src/server/battle/pvp-battle-quality-service.ts
+      - name: Web typecheck
+        run: pnpm --filter @aurevane/web typecheck
+      - name: Focused privacy tests
+        run: |
+          pnpm --filter @aurevane/web exec vitest run \
+            src/server/battle/battle-history-privacy.test.ts \
+            src/server/battle/supabase-battle-session-repository.privacy.test.ts
+      - name: Commit tested caller wiring
+        run: |
+          rm .github/workflows/csr3-wire-commit-privacy.yml
+          git config user.name 'Nicholas JM'
+          git config user.email '283436098+ZeiJM@users.noreply.github.com'
+          git add apps/web/src/server/battle packages/db/src/battle-session.ts .github/workflows/csr3-wire-commit-privacy.yml
+          git diff --cached --check
+          git commit -m 'feat(combat): wire CSR-3 commit privacy metadata'
+          git push origin HEAD:agent/combat-csr3-historical-privacy-20260917
