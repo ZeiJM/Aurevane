@@ -209,10 +209,7 @@ export const CLEANSE_STATUS_IDS = [
   'challenged',
 ] as const
 
-const csrDescriptions: Record<
-  string,
-  Pick<NamedCombatStatus, 'name' | 'kind' | 'description'>
-> = {
+const csrDescriptions: Record<string, Pick<NamedCombatStatus, 'name' | 'kind' | 'description'>> = {
   covert: {
     name: 'Covert',
     kind: 'Buff',
