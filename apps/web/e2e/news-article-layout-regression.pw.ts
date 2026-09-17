@@ -11,6 +11,15 @@ async function settle(page: Page) {
   })
 }
 
+async function loadScenicHero(page: Page) {
+  const hero = page.getByTestId('news-article-hero')
+  const image = hero.locator('img')
+  await hero.scrollIntoViewIfNeeded()
+  await expect(image).toBeVisible()
+  await image.evaluate((element: HTMLImageElement) => element.decode())
+  expect(await image.evaluate((element: HTMLImageElement) => element.naturalWidth)).toBeGreaterThan(0)
+}
+
 test('News article matches the desktop editorial layout', async ({ page }, info) => {
   test.skip(info.project.name !== 'desktop-chromium', 'Desktop News article composition only')
   await page.setViewportSize({ width: 1366, height: 768 })
@@ -37,6 +46,7 @@ test('News article matches the desktop editorial layout', async ({ page }, info)
   await expect(back).toBeVisible()
   await expect(manual).toBeVisible()
   await expect(rules).toBeVisible()
+  await loadScenicHero(page)
   await settle(page)
 
   const metrics = await page.evaluate(() => {
@@ -76,6 +86,8 @@ test('News article matches the desktop editorial layout', async ({ page }, info)
 
   if (process.env.LAYOUT_REVIEW_OUTPUT) {
     await mkdir(process.env.LAYOUT_REVIEW_OUTPUT, { recursive: true })
+    await page.evaluate(() => window.scrollTo(0, 0))
+    await settle(page)
     await page.screenshot({
       path: path.join(process.env.LAYOUT_REVIEW_OUTPUT, 'news-article-desktop-1366x768.png'),
       fullPage: true,
@@ -94,6 +106,7 @@ test('News article scrolls naturally on mobile', async ({ page }, info) => {
   const rules = article.getByRole('link', { name: 'Rules' })
 
   await expect(article).toBeVisible()
+  await loadScenicHero(page)
   await body.scrollIntoViewIfNeeded()
   await expect(body).toBeVisible()
   await manual.scrollIntoViewIfNeeded()
@@ -126,6 +139,8 @@ test('News article scrolls naturally on mobile', async ({ page }, info) => {
 
   if (process.env.LAYOUT_REVIEW_OUTPUT) {
     await mkdir(process.env.LAYOUT_REVIEW_OUTPUT, { recursive: true })
+    await page.evaluate(() => window.scrollTo(0, 0))
+    await settle(page)
     await page.screenshot({
       path: path.join(process.env.LAYOUT_REVIEW_OUTPUT, 'news-article-mobile-390x844.png'),
       fullPage: true,
