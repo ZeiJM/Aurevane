@@ -15,7 +15,12 @@ async function expectDecodedImage(page: Page, testId: string) {
   const image = page.getByTestId(testId).locator('img')
   await expect(image).toBeVisible()
   await expect
-    .poll(() => image.evaluate((node) => node.complete && node.naturalWidth > 0))
+    .poll(() =>
+      image.evaluate((node) => {
+        const element = node as HTMLImageElement
+        return element.complete && element.naturalWidth > 0
+      }),
+    )
     .toBe(true)
 }
 
