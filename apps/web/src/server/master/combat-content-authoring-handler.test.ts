@@ -16,6 +16,9 @@ function serviceMock(): CombatContentAuthoringService {
   return {
     requireOperator: vi.fn(async () => 'owner'),
     validateSkillDefinition: vi.fn(() => ({ valid: true, issues: [], derivedTags: [] })),
+    previewSkillDefinition: vi.fn(async () => {
+      throw new Error('Not used by handler tests yet.')
+    }),
     diffSkillDefinitions: vi.fn(() => ({ changedPaths: [] })),
     loadSkillAuthoringState: vi.fn(async () => ({
       skillId: 'vanguard.forceful-strike',
