@@ -1005,3 +1005,50 @@
     border-top: 0;
   }
 }
+
+/* Subject reconciliation visual polish. */
+.disciplineStep .attributeCard > div:first-child {
+  grid-template-columns: minmax(6rem, 0.35fr) minmax(12rem, 1fr) minmax(9rem, 0.6fr);
+  gap: 0.65rem;
+}
+
+.disciplineStep .attributeCard > div:first-child > small:last-child {
+  min-width: 0;
+}
+
+.reviewStep .reviewWorkspace {
+  align-items: start;
+}
+
+.reviewStep .reviewPortrait {
+  min-height: 0;
+  aspect-ratio: 1;
+}
+
+.reviewStep .reviewGrid > div {
+  background: rgba(255, 253, 247, 0.62);
+}
+
+.reviewStep .reviewGrid dt {
+  color: #776d5f;
+}
+
+.reviewStep .reviewGrid dd {
+  color: #29241d;
+}
+
+.reviewStep .submitState {
+  color: #655f54;
+}
+
+:is(.disciplineStep, .reviewStep) .actions button:first-child {
+  border-color: rgba(94, 73, 42, 0.28);
+  color: #3d3426;
+  background: rgba(255, 253, 247, 0.62);
+}
+
+@media (max-width: 760px) {
+  .disciplineStep .attributeCard > div:first-child {
+    grid-template-columns: 1fr;
+  }
+}
