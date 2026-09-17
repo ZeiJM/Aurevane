@@ -264,7 +264,7 @@
   font: 700 0.55rem/1 var(--av-font-mono);
 }
 
-.ruleNumber::first-line {
+.ruleNumber > span {
   transform: rotate(-45deg);
 }
 
