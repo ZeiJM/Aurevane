@@ -166,6 +166,23 @@ if commit_v3 \
 fi
 grep -Fq 'BATTLE_PRIVACY_JOURNAL_INVALID' /tmp/csr0-privacy-invalid.err
 
+# Missing mandatory fields must fail closed instead of flowing through SQL NULL semantics.
+incomplete_privacy="$(jq -cn '{
+  schemaVersion: 1,
+  eventVisibilityOverrides: []
+}')"
+if commit_v3 \
+  '00000000-0000-4000-8000-00000000c112' \
+  'csr0:privacy:missing-visibility' \
+  2 \
+  "$third_snapshot" \
+  "'$incomplete_privacy'::jsonb" \
+  >/tmp/csr0-privacy-incomplete.out 2>/tmp/csr0-privacy-incomplete.err; then
+  echo 'Expected incomplete privacy metadata to fail closed.' >&2
+  exit 1
+fi
+grep -Fq 'BATTLE_PRIVACY_JOURNAL_INVALID' /tmp/csr0-privacy-incomplete.err
+
 atomic_counts="$(docker exec "$db_container" psql -U postgres -d postgres -Atqc "
   select
     s.current_version::text || '|' ||
