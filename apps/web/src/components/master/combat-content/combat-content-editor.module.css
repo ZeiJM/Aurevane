@@ -1,0 +1,228 @@
+.editor,
+.empty {
+  width: min(92rem, 100%);
+  margin: 0 auto;
+  padding: clamp(1rem, 2.2vw, 2rem);
+  border: 1px solid var(--av-border-strong);
+  border-radius: var(--av-radius-lg);
+  background:
+    linear-gradient(180deg, rgba(20, 25, 35, 0.96), rgba(8, 11, 16, 0.98)),
+    var(--av-ink-900);
+  box-shadow: var(--av-shadow-deep);
+}
+
+.header {
+  display: flex;
+  gap: var(--av-space-6);
+  align-items: start;
+  justify-content: space-between;
+  padding-bottom: var(--av-space-6);
+  border-bottom: 1px solid var(--av-border);
+}
+
+.eyebrow,
+.sectionLabel {
+  margin: 0 0 0.45rem;
+  color: var(--av-brass-300);
+  font: 650 0.62rem/1.2 var(--av-font-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.header h1,
+.workspace h2,
+.tags h2 {
+  margin: 0;
+  font-family: var(--av-font-display);
+  font-weight: 500;
+  letter-spacing: 0.025em;
+}
+
+.header h1 {
+  font-size: clamp(2rem, 4vw, 3.8rem);
+}
+
+.lead,
+.placeholder,
+.workflow p {
+  max-width: 48rem;
+  margin: 0.7rem 0 0;
+  color: var(--av-text-dim);
+  line-height: 1.65;
+}
+
+.status {
+  min-width: 11rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius-sm);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.status span,
+.versionGrid span,
+.field > span {
+  display: block;
+  color: var(--av-text-dim);
+  font: 650 0.6rem/1.3 var(--av-font-mono);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.status strong {
+  display: block;
+  margin-top: 0.35rem;
+  color: var(--av-text-muted);
+}
+
+.selectorGrid,
+.versionGrid {
+  display: grid;
+  gap: var(--av-space-4);
+  margin-top: var(--av-space-5);
+}
+
+.selectorGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.field {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.field select {
+  width: 100%;
+  min-height: 2.8rem;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid var(--av-border-strong);
+  border-radius: var(--av-radius-sm);
+  color: var(--av-text);
+  background: var(--av-ink-900);
+}
+
+.versionGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.versionGrid > div {
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius-sm);
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.versionGrid strong {
+  display: block;
+  margin-top: 0.3rem;
+  color: var(--av-text);
+  font-family: var(--av-font-mono);
+}
+
+.workspace,
+.tags,
+.workflow {
+  display: grid;
+  gap: var(--av-space-5);
+  margin-top: var(--av-space-5);
+  padding: var(--av-space-5);
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius-md);
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.workspace {
+  grid-template-columns: minmax(14rem, 0.65fr) minmax(18rem, 1.35fr);
+  align-items: center;
+}
+
+.workspace code {
+  display: inline-block;
+  margin-top: 0.55rem;
+  color: var(--av-text-dim);
+  font-family: var(--av-font-mono);
+}
+
+.tags {
+  grid-template-columns: minmax(12rem, 0.45fr) minmax(0, 1.55fr);
+  align-items: center;
+}
+
+.tagList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.tagList span {
+  padding: 0.38rem 0.58rem;
+  border: 1px solid rgba(212, 186, 130, 0.24);
+  border-radius: 999px;
+  color: var(--av-brass-300);
+  background: rgba(185, 154, 92, 0.07);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.workflow {
+  grid-template-columns: minmax(16rem, 1fr) auto;
+  align-items: end;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  justify-content: end;
+}
+
+.actions button {
+  min-height: 2.55rem;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid var(--av-border-strong);
+  border-radius: var(--av-radius-sm);
+  color: var(--av-text-muted);
+  background: rgba(255, 255, 255, 0.035);
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+
+.actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+
+.empty h1 {
+  margin: 0;
+  font-family: var(--av-font-display);
+}
+
+.empty > p:last-child {
+  color: var(--av-text-dim);
+}
+
+@media (max-width: 760px) {
+  .header,
+  .workspace,
+  .tags,
+  .workflow {
+    grid-template-columns: 1fr;
+  }
+
+  .header {
+    display: grid;
+  }
+
+  .status {
+    min-width: 0;
+  }
+
+  .selectorGrid,
+  .versionGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .actions {
+    justify-content: start;
+  }
+}
