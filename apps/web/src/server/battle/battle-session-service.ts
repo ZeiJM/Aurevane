@@ -56,6 +56,7 @@ import type {
 } from '../character/character-build-service'
 import { loadCharacterCommittedBuildSnapshot } from '../character/character-build-service'
 import { battleActionResourceIssue } from './battle-action-resource-availability'
+import { projectBattleStatusStateForViewer } from './battle-live-viewer-projection'
 import {
   battleBuildAuthorityForCombatant,
   createBattleBuildAuthoritySnapshot,
@@ -345,12 +346,10 @@ function projectBattleSnapshot(
   state: BattleAuthoritativeEncounterState,
   viewer: BattleViewerEntitlement,
 ): BattleSessionProjection {
-  // CSR-0 establishes the mandatory viewer-aware server projection contract while preserving
-  // the current payload. CSR-2 will apply relationship-specific redaction through this seam.
-  void viewer
   const battle = state.tactical.battle
   return {
     ...state,
+    statusState: projectBattleStatusStateForViewer(state, viewer),
     tactical: {
       ...state.tactical,
       battle: {
