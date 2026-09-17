@@ -292,3 +292,9 @@
   font-size: 0.68rem;
   line-height: 1.45;
 }
+
+.authoringStack {
+  display: grid;
+  min-width: 0;
+  gap: var(--av-space-4);
+}
