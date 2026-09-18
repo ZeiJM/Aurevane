@@ -87,21 +87,21 @@
 
 .main {
   display: grid;
-  width: min(calc(100% - 2 * clamp(1rem, 3vw, 3rem)), 78rem);
+  width: min(calc(100% - 2 * clamp(1rem, 3vw, 3rem)), 86rem);
   min-width: 0;
-  gap: 1rem;
+  gap: 1.35rem;
   margin-inline: auto;
-  padding-block: clamp(1rem, 2.6vh, 1.7rem) max(1.25rem, env(safe-area-inset-bottom));
+  padding-block: clamp(1.4rem, 3.2vh, 2.2rem) max(1.5rem, env(safe-area-inset-bottom));
 }
 
 .hero {
-  display: flex;
+  display: grid;
   min-width: 0;
-  align-items: end;
-  justify-content: space-between;
-  gap: 1rem;
-  padding-bottom: 0.8rem;
-  border-bottom: 1px solid var(--av-border-strong);
+  justify-items: center;
+  gap: 0.55rem;
+  padding: 0.4rem 1rem 1.15rem;
+  border-bottom: 1px solid rgba(212, 186, 130, 0.35);
+  text-align: center;
 }
 
 .hero span,
@@ -121,20 +121,21 @@
 }
 
 .hero p {
-  max-width: 28rem;
+  max-width: 36rem;
   margin: 0;
-  color: var(--av-text-muted);
-  font-size: 0.875rem;
-  line-height: 1.5;
+  color: #d3d2cc;
+  font-size: 0.9rem;
+  line-height: 1.55;
 }
 
 .slots {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  width: min(100%, 68rem);
+  width: min(100%, 74rem);
   min-width: 0;
   align-items: stretch;
-  gap: 1rem;
+  justify-self: center;
+  gap: clamp(0.85rem, 1.6vw, 1.25rem);
 }
 
 .slot {
@@ -142,22 +143,27 @@
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr) auto;
   min-width: 0;
-  min-height: clamp(23rem, calc(100dvh - 20rem), 34rem);
-  gap: 0.65rem;
-  padding: 0.85rem;
-  border: 1px solid #9b8557;
-  border-radius: 0.15rem;
-  background: #090f17f0;
+  min-height: clamp(31rem, calc(100dvh - 16rem), 42rem);
+  gap: 0.75rem;
+  padding: 0.9rem;
+  overflow: hidden;
+  border: 1px solid rgba(181, 156, 103, 0.78);
+  border-radius: 0.18rem;
+  background:
+    linear-gradient(180deg, rgba(8, 16, 24, 0.88), rgba(5, 10, 16, 0.96)),
+    #090f17f0;
   box-shadow:
-    inset 0 0 0 4px #0c1420,
-    0 0.8rem 2rem #0000004d;
+    inset 0 0 0 3px rgba(12, 20, 32, 0.9),
+    0 1rem 2.4rem rgba(0, 0, 0, 0.38);
 }
 
 .slot[data-selected] {
-  border-color: var(--av-brass-200);
+  border-color: #efd08a;
+  transform: translateY(-0.25rem);
   box-shadow:
-    inset 0 0 0 4px #181a20,
-    0 0.8rem 2rem #0000004d;
+    inset 0 0 0 3px #181a20,
+    0 1.2rem 2.8rem #00000059,
+    0 0 1.65rem rgba(233, 200, 128, 0.2);
 }
 
 .slot[data-pending-delete] {
@@ -170,13 +176,14 @@
 }
 
 .portrait {
-  width: min(100%, clamp(8rem, calc(100dvh - 33rem), 21.5rem));
+  width: 100%;
   min-width: 0;
-  aspect-ratio: 1;
+  aspect-ratio: 4 / 5;
   justify-self: center;
   overflow: hidden;
-  border: 1px solid var(--av-border-strong);
+  border: 1px solid rgba(212, 186, 130, 0.34);
   background: var(--av-ink-950);
+  box-shadow: inset 0 0 1.4rem rgba(0, 0, 0, 0.28);
 }
 
 .portrait > :global(img),
@@ -190,8 +197,9 @@
 .identity {
   min-width: 0;
   align-self: start;
-  padding-top: 0.1rem;
-  border-top: 1px solid var(--av-border);
+  padding: 0.6rem 0.2rem 0;
+  border-top: 1px solid rgba(212, 186, 130, 0.22);
+  text-align: center;
 }
 
 .identity h2,
@@ -671,8 +679,9 @@
     grid-column: 1;
     grid-row: 2;
     width: 100%;
-    max-width: 9rem;
+    max-width: 8rem;
     align-self: start;
+    aspect-ratio: 4 / 5;
   }
 
   .identity {
@@ -742,9 +751,9 @@
 
 /* Ambient motion: slow world life with restrained selected-character emphasis. */
 .world > :global(img) {
-  transform: scale(1.01);
+  transform: scale(1.018);
   transform-origin: 66% 50%;
-  animation: rosterWorldDrift 28s ease-in-out infinite alternate;
+  animation: rosterWorldDrift 18s ease-in-out infinite alternate;
 }
 
 .world::before {
@@ -752,7 +761,7 @@
   z-index: 1;
   inset: -6%;
   pointer-events: none;
-  opacity: 0.14;
+  opacity: 0.28;
   background:
     linear-gradient(
       116deg,
@@ -773,7 +782,7 @@
     21rem 25rem;
   content: '';
   transform: translate3d(0, 0.75rem, 0);
-  animation: rosterAtmosphereDrift 24s linear infinite;
+  animation: rosterAtmosphereDrift 16s linear infinite;
 }
 
 .world::after {
@@ -799,16 +808,16 @@
 }
 
 .slot[data-selected] {
-  animation: rosterSelectedBreath 6.5s ease-in-out infinite;
+  animation: rosterSelectedBreath 5.5s ease-in-out infinite;
 }
 
 @keyframes rosterWorldDrift {
   0% {
-    transform: scale(1.01) translate3d(0, 0, 0);
+    transform: scale(1.018) translate3d(0.35%, 0.15%, 0);
   }
 
   100% {
-    transform: scale(1.022) translate3d(-0.35%, -0.2%, 0);
+    transform: scale(1.045) translate3d(-1.1%, -0.65%, 0);
   }
 }
 
@@ -833,7 +842,7 @@
     box-shadow:
       inset 0 0 0 4px #181a20,
       0 0.8rem 2rem #0000004d,
-      0 0 1rem rgba(212, 186, 130, 0.08);
+      0 0 1.25rem rgba(212, 186, 130, 0.17);
   }
 
   50% {
@@ -841,7 +850,7 @@
     box-shadow:
       inset 0 0 0 4px #181a20,
       0 0.8rem 2rem #0000004d,
-      0 0 1.45rem rgba(212, 186, 130, 0.18);
+      0 0 2.2rem rgba(239, 208, 138, 0.36);
   }
 }
 
