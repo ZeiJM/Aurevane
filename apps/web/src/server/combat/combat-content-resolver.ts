@@ -1,6 +1,7 @@
 import 'server-only'
 
 import type { CombatContentVersionRecord } from '@aurevane/db/combat-content'
+import { validateCombatActionDefinition } from '@aurevane/game-core/combat/combat-authoring-validation'
 import { AurevaneError } from '@aurevane/game-core/errors'
 import {
   resolveMatureSkillVersion,
@@ -163,6 +164,17 @@ function validatePublishedSkill(
       `Published Skill ${expectedSkillId}@${record.contentVersion} failed validation${
         issues.length > 0 ? `: ${issues.join(', ')}` : '.'
       }`,
+    )
+  }
+
+  try {
+    for (const context of ['pve', 'pvp'] as const) {
+      validateCombatActionDefinition(toCombatActionDefinition(candidate, context))
+    }
+  } catch (error) {
+    throw new InvalidPublishedCombatContentError(
+      `Published Skill ${expectedSkillId}@${record.contentVersion} failed combat-action validation.`,
+      { cause: error },
     )
   }
 
