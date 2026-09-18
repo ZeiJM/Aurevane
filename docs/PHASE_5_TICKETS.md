@@ -16,6 +16,7 @@ Phase 4 combat engineering is preserved as the incoming platform. Its remaining 
 - [x] Keep authorization server-side and service-role-only; no browser role value grants authority.
 - [x] Add monotonic access versions so delegated role changes are immediately observable by server authorization reads.
 - [x] Add durable server-only role migration/grant/revoke audit history.
+- [x] Verify single-Owner, multi-role, revocation/versioning, audit, and browser-denial invariants against the rebuilt database.
 - [x] Migrate the legacy `owner | content-staff` operator model without breaking Combat Content authoring.
 - [x] Make `/master` available to all four staff classes while keeping Combat Content limited to Game Owner/Content Staff.
 - [x] Add protected Owner grant/revoke RPC and route foundations for delegated roles.
