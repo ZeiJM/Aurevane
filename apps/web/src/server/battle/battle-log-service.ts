@@ -268,6 +268,31 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
       return null
     case 'action_spent':
       return null
+    case 'temporary_skill_copied': {
+      const actorCombatantId = stringValue(event.combatantId)
+      const sourceCombatantId = stringValue(event.sourceCombatantId)
+      const skillId = stringValue(event.skillId)
+      const contentVersion = numberValue(event.contentVersion)
+      if (!skillId || contentVersion === null) return null
+      const label = actionLabel(skillId)
+      const version = `v${contentVersion}`
+      return createEntry(record, eventType, {
+        message: `${combatantLabel(actorCombatantId)} copied ${label} (${version}) for this battle.`,
+        messageTemplate: '{actor} copied {action} ({version}) for this battle.',
+        templateValues: { action: label, version },
+        actorCombatantId,
+        targetCombatantId: sourceCombatantId,
+        actionId: skillId,
+        actionLabel: label,
+        kind: 'system',
+        headline: 'Copied Skill',
+        tone: 'benefit',
+        facts: [
+          { label, tone: 'benefit' },
+          { label: version, tone: 'neutral' },
+        ],
+      })
+    }
     case 'combat_action_used': {
       const actorCombatantId = stringValue(event.actorId)
       const actionId = stringValue(event.actionId)

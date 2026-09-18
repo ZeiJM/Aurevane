@@ -330,6 +330,51 @@ describe('CSR-3 viewer-relative historical projection', () => {
     expect(projectBattleHistoryForViewer(records, [journal], spectator)).toHaveLength(3)
   })
 
+  it('keeps a hidden Covert Copy grant inside the collapsed command boundary', () => {
+    const hiddenCopyJournal: BattleHistoryPrivacyJournal = {
+      battleVersion: 10,
+      schemaVersion: 1,
+      actorCombatantId: ACTOR,
+      actorTeamId: 'team:a',
+      commandVisibility: { kind: 'team-only', teamId: 'team:a' },
+      eventVisibilityOverrides: [],
+      eventCount: 2,
+    }
+    const copyRecords = [
+      record(10, 0, {
+        event: 'combat_action_used',
+        actionId: 'secret.copy',
+        actorId: ACTOR,
+      }),
+      record(10, 1, {
+        event: 'temporary_skill_copied',
+        combatantId: ACTOR,
+        sourceCombatantId: TARGET,
+        skillId: 'vanguard.forceful-strike',
+        contentVersion: 2,
+      }),
+    ]
+    const opponent = deriveParticipantBattleViewerEntitlement(combatants, [TARGET])
+    const projected = projectBattleHistoryForViewer(
+      copyRecords,
+      [hiddenCopyJournal],
+      opponent,
+    )
+
+    expect(projected).toHaveLength(1)
+    expect(projected[0]?.event).toEqual({
+      event: 'hidden_combat_action',
+      actorCombatantId: ACTOR,
+    })
+    expect(JSON.stringify(projected)).not.toContain('secret.copy')
+    expect(JSON.stringify(projected)).not.toContain('vanguard.forceful-strike')
+
+    const ally = deriveParticipantBattleViewerEntitlement(combatants, [ALLY])
+    expect(projectBattleHistoryForViewer(copyRecords, [hiddenCopyJournal], ally)).toEqual(
+      copyRecords,
+    )
+  })
+
   it('keeps legacy versions public when no journal row exists', () => {
     const opponent = deriveParticipantBattleViewerEntitlement(combatants, [TARGET])
     expect(projectBattleHistoryForViewer(records, [], opponent)).toEqual(records)

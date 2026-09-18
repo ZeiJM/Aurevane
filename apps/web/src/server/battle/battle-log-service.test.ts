@@ -136,6 +136,42 @@ describe('sanitized battle log service', () => {
     expect(serialized).not.toContain('raw')
   })
 
+  it('records the exact pinned temporary copied Skill for authorized battle history', async () => {
+    const repository: BattleEventRepository = {
+      findBattleEvents: vi.fn(async () => [
+        {
+          battleVersion: 12,
+          eventIndex: 0,
+          event: {
+            event: 'temporary_skill_copied',
+            combatantId: 'character:player-1',
+            sourceCombatantId: 'recruit:p2-4-1',
+            skillId: 'vanguard.forceful-strike',
+            contentVersion: 2,
+          },
+          createdAt: '2026-09-18T10:00:00.000Z',
+        },
+      ]),
+    }
+
+    const result = await createBattleLogService(repository).getLog(USER_ID, SESSION_ID)
+
+    expect(result.entries[0]).toEqual(
+      expect.objectContaining({
+        eventType: 'temporary_skill_copied',
+        message: 'Wayfarer copied Vanguard Forceful Strike (v2) for this battle.',
+        actionId: 'vanguard.forceful-strike',
+        actionLabel: 'Vanguard Forceful Strike',
+        headline: 'Copied Skill',
+        tone: 'benefit',
+        facts: [
+          { label: 'Vanguard Forceful Strike', tone: 'benefit' },
+          { label: 'v2', tone: 'neutral' },
+        ],
+      }),
+    )
+  })
+
   it('translates timeout and Lowered Guard internals into player-facing facts', async () => {
     const repository: BattleEventRepository = {
       findBattleEvents: vi.fn(async () => [
