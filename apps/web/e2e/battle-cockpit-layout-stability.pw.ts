@@ -19,6 +19,7 @@ function uniqueIdentity(prefix: string): { email: string; characterName: string 
   }
 }
 
+// Square-media checks here verify frame geometry as well as the existing cockpit stability contract.
 async function expectStableCompactDesktopCockpit(page: Page) {
   const deck = page.locator('section[aria-label="Command Deck"]')
   const commands = deck.locator('[data-command-card]')
