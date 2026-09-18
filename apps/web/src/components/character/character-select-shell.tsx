@@ -209,19 +209,6 @@ export function CharacterSelectShell({
         </Link>
 
         <div className={styles.headerActions}>
-          <div className={styles.screenIdentity} aria-label="Current screen: Character Select">
-            {selectedCharacter ? (
-              <span className={styles.screenPortrait} title={selectedCharacter.name}>
-                <CharacterPortraitImage
-                  imageUrl={profileImageUrls[selectedCharacter.id]}
-                  fallbackAssetId={getStarterPortraitImageAssetId(selectedCharacter.portraitRef)}
-                  className={styles.screenPortraitImage}
-                  sizes="2rem"
-                  alt=""
-                />
-              </span>
-            ) : null}
-          </div>
           <AccountMenu />
         </div>
       </header>
@@ -358,12 +345,6 @@ export function CharacterSelectShell({
         </section>
 
         <footer className={styles.management} aria-label="Account management">
-          <form action="/auth/signout" method="post" className={styles.accountManagement}>
-            <button type="submit" className={styles.switchAccountButton}>
-              Switch account <span aria-hidden="true">→</span>
-            </button>
-            <small>Sign out to enter with a different AUREVANE account.</small>
-          </form>
           <div className={styles.accountManagement}>
             <button
               type="button"
