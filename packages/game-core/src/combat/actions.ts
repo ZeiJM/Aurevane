@@ -33,10 +33,16 @@ export * from './actions-legacy'
 
 type LegacyDamageEffect = Extract<legacy.CombatEffectDefinition, { type: 'damage' }>
 
+export interface CombatSkillCopyEffect {
+  type: 'copy'
+  recipient: 'primary-unit'
+}
+
 export type CombatEffectDefinition =
   | Exclude<legacy.CombatEffectDefinition, { type: 'damage' }>
   | (LegacyDamageEffect & { scaling?: CombatDamageScaling; vengeance?: CombatVengeanceDefinition })
   | CombatSensoryEffect
+  | CombatSkillCopyEffect
 
 export interface CombatActionDefinition
   extends Omit<legacy.CombatActionDefinition, 'effects'>, CombatAccuracyAuthoring {
@@ -256,6 +262,9 @@ function materializeStatScaledDamage(
   const effects: legacy.CombatEffectDefinition[] = action.effects.map((effect) => {
     if (effect.type === 'sensory') {
       throw new TypeError('Sensory must be materialized before legacy effect resolution.')
+    }
+    if (effect.type === 'copy') {
+      throw new TypeError('Copy must be materialized by the mature Skill execution layer.')
     }
     if (effect.type !== 'damage') return effect
 

@@ -48,7 +48,10 @@ import {
   validateCurrentBurnEffect,
   validateCurrentPoisonEffect,
 } from './combat-dots'
-import type { CombatEffectState } from './combat-effect-state'
+import {
+  validateCombatTemporarySkillState,
+  type CombatEffectState,
+} from './combat-effect-state'
 import {
   validateCombatEffectInstanceProvenance,
   type CombatEffectInstanceProvenance,
@@ -1108,6 +1111,7 @@ export function validateCombatEncounterState(
     ...validateOngoingRecoveryState(state),
     ...validateBarrierState(state),
     ...validateCombatDotState(state),
+    ...validateCombatTemporarySkillState(state),
   ]
   collectPersistentProvenanceIssues(state, issues)
 
