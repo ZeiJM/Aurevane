@@ -9,10 +9,7 @@ import {
   evaluatePv1fCopiedSkill,
   evaluatePv1fMatureSkill,
 } from './pv1f-action-economy'
-import {
-  resolveMatureSkillVersion,
-  type MatureSkillDefinition,
-} from './mature-skills'
+import { resolveMatureSkillVersion, type MatureSkillDefinition } from './mature-skills'
 import { createStatDrivenCombatEncounterState } from './stat-driven-combat'
 
 const ACTOR = 'copy:actor'
@@ -208,7 +205,9 @@ describe('PV-1F temporary Skill Copy integration', () => {
 
     expect(result.state.tactical.battle.rng.draws).toBe(1)
     expect(result.state.effectState?.temporarySkills ?? []).toHaveLength(0)
-    expect(result.events).not.toContainEqual(expect.objectContaining({ event: 'temporary_skill_copied' }))
+    expect(result.events).not.toContainEqual(
+      expect.objectContaining({ event: 'temporary_skill_copied' }),
+    )
   })
 
   it('executes a granted copied Skill at half AP rounded up while preserving its MP cost', () => {

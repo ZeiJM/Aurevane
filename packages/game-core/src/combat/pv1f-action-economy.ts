@@ -629,7 +629,7 @@ export function evaluatePv1fMatureSkill(
           ...evaluation.issues,
           {
             code: 'requirement-not-met',
-            message: 'Copy requires the selected unit\'s committed regular Skill snapshot.',
+            message: "Copy requires the selected unit's committed regular Skill snapshot.",
           },
         ],
       }

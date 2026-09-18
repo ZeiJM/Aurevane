@@ -8,10 +8,7 @@ import {
   previewCombatSkillCopy,
 } from './combat-skill-copy'
 import { validateCombatTemporarySkillState } from './combat-effect-state'
-import {
-  resolveMatureSkillVersion,
-  type MatureSkillDefinition,
-} from './mature-skills'
+import { resolveMatureSkillVersion, type MatureSkillDefinition } from './mature-skills'
 import type { StatDrivenCombatEncounterState } from './stat-driven-combat'
 
 const ACTOR = 'combatant:actor'

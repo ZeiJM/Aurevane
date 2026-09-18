@@ -84,8 +84,7 @@ export function eligibleCombatSkillCopies({
   }
 
   return [...unique.values()].sort(
-    (left, right) =>
-      left.id.localeCompare(right.id) || left.contentVersion - right.contentVersion,
+    (left, right) => left.id.localeCompare(right.id) || left.contentVersion - right.contentVersion,
   )
 }
 

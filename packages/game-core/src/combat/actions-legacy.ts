@@ -48,10 +48,7 @@ import {
   validateCurrentBurnEffect,
   validateCurrentPoisonEffect,
 } from './combat-dots'
-import {
-  validateCombatTemporarySkillState,
-  type CombatEffectState,
-} from './combat-effect-state'
+import { validateCombatTemporarySkillState, type CombatEffectState } from './combat-effect-state'
 import {
   validateCombatEffectInstanceProvenance,
   type CombatEffectInstanceProvenance,

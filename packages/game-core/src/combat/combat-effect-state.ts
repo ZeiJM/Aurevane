@@ -142,7 +142,6 @@ export function normalizeCombatEffectState(value: unknown): CombatEffectState {
   }
 }
 
-
 export interface CombatTemporarySkillStateIssue {
   field: string
   message: string
