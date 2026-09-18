@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { resolveMatureSkillVersion } from './mature-skills'
+import { resolveMatureSkillVersion, type MatureSkillDefinition } from './mature-skills'
 
 import { createCombatEncounterState } from './actions'
 import { createPendingBattle, startBattle } from './battle-state'
+import { normalizeCombatEffectState } from './combat-effect-state'
 import { createTacticalBattleState } from './board'
 import {
   createPv1fTemporaryResources,
@@ -296,5 +297,143 @@ describe('P3.3 mature Skill Action Economy integration', () => {
     const repeated = evaluatePv1fMatureSkill(reconnected, definition, { kind: 'self' })
     expect(repeated.evaluation.legal).toBe(true)
     expect(repeated.repeatPenaltyApplied).toBe(true)
+  })
+
+  it('treats a repeated pure Curse as a legal full-cost no-op clone', () => {
+    const base = resolveMatureSkillVersion('chronist.slow')
+    if (!base) throw new Error('Expected current Chronist Slow fixture.')
+    const definition = {
+      ...base,
+      apCost: 20,
+      effects: [{ type: 'copy-statuses', recipient: 'primary-unit', mode: 'curse' }],
+    } as unknown as MatureSkillDefinition
+
+    const initial = lethalEncounter('player')
+    const effectState = normalizeCombatEffectState(initial.effectState)
+    const prepared: StatDrivenCombatEncounterState = {
+      ...initial,
+      effectState: {
+        ...effectState,
+        poison: [
+          ...effectState.poison,
+          {
+            targetCombatantId: 'player',
+            sourceCombatantId: 'recruit',
+            sourceActionId: 'test.repeat.pure-poison',
+            profileVersion: 1,
+            movementRemainder: 2,
+            curseCopyable: true,
+          },
+        ],
+      },
+    }
+    const target = { kind: 'unit' as const, combatantId: 'recruit' }
+
+    const first = executePv1fMatureSkill(prepared, definition, target)
+    const firstPoison = normalizeCombatEffectState(first.state.effectState).poison.find(
+      (instance) => instance.targetCombatantId === 'recruit',
+    )
+    expect(firstPoison).toBeDefined()
+
+    const repeated = evaluatePv1fMatureSkill(first.state, definition, target)
+    expect(repeated.repeatPenaltyApplied).toBe(true)
+    expect(repeated.evaluation.legal).toBe(true)
+    expect(repeated.action.effects).toEqual([])
+    expect(repeated.evaluation.projectedEffects).toEqual([])
+
+    const second = executePv1fMatureSkill(first.state, definition, target)
+    const secondPoison = normalizeCombatEffectState(second.state.effectState).poison.find(
+      (instance) => instance.targetCombatantId === 'recruit',
+    )
+    expect(secondPoison).toEqual(firstPoison)
+    expect(readPv1fActionEconomy(second.state, 'player')?.current).toBe(60)
+    expect(second.events).toContainEqual(
+      expect.objectContaining({
+        event: 'skill_repeat_penalty_applied',
+        combatantId: 'player',
+        actionId: definition.id,
+        effectivenessBasisPoints: 5_000,
+      }),
+    )
+  })
+
+  it('omits discrete Curse cloning on a consecutive use while later damage still halves', () => {
+    const base = resolveMatureSkillVersion('chronist.slow')
+    if (!base) throw new Error('Expected current Chronist Slow fixture.')
+    const definition = {
+      ...base,
+      apCost: 20,
+      effects: [
+        { type: 'copy-statuses', recipient: 'primary-unit', mode: 'curse' },
+        { type: 'damage', recipient: 'primary-unit', amount: 8 },
+      ],
+    } as unknown as MatureSkillDefinition
+
+    const initial = lethalEncounter('player')
+    const recruit = initial.tactical.battle.combatants.find(
+      (combatant) => combatant.id === 'recruit',
+    )
+    if (!recruit) throw new Error('Expected recruit combatant.')
+    recruit.hp = 50
+
+    const effectState = normalizeCombatEffectState(initial.effectState)
+    const prepared: StatDrivenCombatEncounterState = {
+      ...initial,
+      effectState: {
+        ...effectState,
+        poison: [
+          ...effectState.poison,
+          {
+            targetCombatantId: 'player',
+            sourceCombatantId: 'recruit',
+            sourceActionId: 'test.repeat.poison',
+            profileVersion: 1,
+            movementRemainder: 3,
+            curseCopyable: true,
+          },
+        ],
+      },
+    }
+    const target = { kind: 'unit' as const, combatantId: 'recruit' }
+
+    const first = executePv1fMatureSkill(prepared, definition, target)
+    const firstRecruit = first.state.tactical.battle.combatants.find(
+      (combatant) => combatant.id === 'recruit',
+    )
+    const firstPoison = normalizeCombatEffectState(first.state.effectState).poison.find(
+      (instance) => instance.targetCombatantId === 'recruit',
+    )
+    expect(firstRecruit?.hp).toBe(42)
+    expect(firstPoison).toBeDefined()
+
+    const repeated = evaluatePv1fMatureSkill(first.state, definition, target)
+    expect(repeated.repeatPenaltyApplied).toBe(true)
+    expect(repeated.evaluation.legal).toBe(true)
+    expect(repeated.action.effects).toHaveLength(1)
+    expect(repeated.action.effects[0]).toMatchObject({
+      type: 'damage',
+      recipient: 'primary-unit',
+      amount: 4,
+    })
+    expect(repeated.action.effects.some((effect) => effect.type === 'copy-statuses')).toBe(false)
+
+    const second = executePv1fMatureSkill(first.state, definition, target)
+    const secondRecruit = second.state.tactical.battle.combatants.find(
+      (combatant) => combatant.id === 'recruit',
+    )
+    const secondPoison = normalizeCombatEffectState(second.state.effectState).poison.find(
+      (instance) => instance.targetCombatantId === 'recruit',
+    )
+    expect(secondRecruit?.hp).toBe(38)
+    expect(secondPoison).toEqual(firstPoison)
+    expect(readPv1fActionEconomy(second.state, 'player')?.current).toBe(60)
+    expect(second.events).toContainEqual(
+      expect.objectContaining({
+        event: 'skill_repeat_penalty_applied',
+        combatantId: 'player',
+        actionId: definition.id,
+        effectivenessBasisPoints: 5_000,
+      }),
+    )
   })
 })

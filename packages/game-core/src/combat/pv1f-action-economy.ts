@@ -115,6 +115,8 @@ export const PV1F_GUARDED_STATUS: CombatStatusDefinition = {
   durationOwnerTurnStarts: 2,
   damageTakenMultiplierBasisPoints: 8_500,
   polarity: 'positive',
+  amplifyCopyable: true,
+  reactionClass: 'ordinary',
 }
 
 // Lowered Guard is a one-turn anti-timeout debuff. A combatant who times out again can receive
@@ -126,6 +128,8 @@ export const PV1F_LOWERED_GUARD_STATUS: CombatStatusDefinition = {
   durationOwnerTurnStarts: 1,
   damageTakenMultiplierBasisPoints: 25_000,
   polarity: 'negative',
+  curseCopyable: false,
+  reactionClass: 'system',
 }
 
 export const PV1F_EXPOSED_STATUS: CombatStatusDefinition = {
@@ -135,6 +139,8 @@ export const PV1F_EXPOSED_STATUS: CombatStatusDefinition = {
   durationOwnerTurnStarts: 2,
   damageTakenMultiplierBasisPoints: 11_500,
   polarity: 'negative',
+  curseCopyable: true,
+  reactionClass: 'ordinary',
 }
 
 export const PV1F_COVERT_STATUS = createCovertStatusDefinition(4)
@@ -1165,7 +1171,7 @@ function scaleRepeatedMatureSkillEffects(
       scaled.push({ ...effect, damagePerTick: halfPositiveMagnitude(effect.damagePerTick) })
       continue
     }
-    // Removal and Sensory are discrete: a consecutive repeat cannot resolve a half-strength copy.
+    // These effects are discrete: a consecutive repeat cannot resolve a half-strength copy.
     if (
       effect.type === 'remove-status' ||
       effect.type === 'return-to-turn-start' ||
@@ -1174,12 +1180,10 @@ function scaleRepeatedMatureSkillEffects(
       effect.type === 'poison' ||
       effect.type === 'burn' ||
       effect.type === 'copy' ||
+      effect.type === 'copy-statuses' ||
       effect.type === 'sensory'
     )
       continue
-    if (effect.type === 'copy-statuses') {
-      throw new TypeError('effects.status-copy-staged: repeat-use copying is not yet supported.')
-    }
     const stacks = Math.floor(effect.stacks / 2)
     if (stacks > 0) scaled.push({ ...effect, stacks })
   }

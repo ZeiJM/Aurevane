@@ -101,6 +101,12 @@ For deterministic integer effects:
 - discrete status stacks: 50%, rounded down; a one-stack application therefore contributes zero stacks on the repeated use and is omitted;
 - later effect types must define an explicit deterministic 50% interpretation before they can participate in this system.
 
+### Amplify / Curse clone-transfer ruling — 2026-09-18
+
+`copy-statuses` clone transfer is classified as a **discrete effect** for consecutive-use falloff. The first use resolves its eligible Amplify/Curse copies normally. A consecutive repeat omits the clone-transfer block entirely rather than inventing fractional duration, stacks, Poison movement state, Burn stage, Bleed stacks, or provenance. Later independently meaningful effects in the same Skill still use their ordinary 50% repeat interpretation.
+
+A pure Amplify/Curse Skill therefore remains a legal command on a consecutive repeat but its discrete clone transfer is a no-op. The normal authored AP/MP cost is still paid, the repeat chain remains authoritative, and preview/AI must observe the same omitted clone block as commit.
+
 Targeting, requirements, AP affordability, friendly-fire rules, PvP normalization, and all other legality checks remain unchanged.
 
 Forecasts/previews must use the same scaled effect list as execution so the client never previews full value and then receives half value unexpectedly.

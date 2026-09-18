@@ -305,6 +305,11 @@ function effectPresentationTags(effect: PresentationEffect): readonly string[] {
   if (effect.type === 'apply-status' && typeof effect.statusId === 'string') {
     return [combatStatusPresentationTag(effect.statusId)]
   }
+  if (effect.type === 'copy-statuses') {
+    if (effect.mode === 'amplify') return ['Amplify']
+    if (effect.mode === 'curse') return ['Curse']
+    return []
+  }
 
   const directLabels: Readonly<Record<string, string>> = {
     'barrier-change': 'Barrier',

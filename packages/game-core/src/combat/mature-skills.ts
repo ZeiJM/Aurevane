@@ -857,9 +857,6 @@ export function validateMatureSkillDefinition(
   } catch {
     issues.push('combatDefinition')
   }
-  if (definition.effects.some((effect) => effect.type === 'copy-statuses')) {
-    issues.push('effects.status-copy-staged')
-  }
   const idPattern = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/
   if (!idPattern.test(definition.id)) issues.push('id')
   if (!Number.isSafeInteger(definition.contentVersion) || definition.contentVersion < 1) {
