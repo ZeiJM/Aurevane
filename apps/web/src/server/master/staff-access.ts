@@ -11,7 +11,11 @@ export const MASTER_PANEL_ROLES = [
 
 export type MasterPanelRole = (typeof MASTER_PANEL_ROLES)[number]
 
-export const DELEGATED_MASTER_PANEL_ROLES = ['moderator', 'content-staff', 'event-staff'] as const
+export const DELEGATED_MASTER_PANEL_ROLES = [
+  'moderator',
+  'content-staff',
+  'event-staff',
+] as const
 
 export type DelegatedMasterPanelRole = (typeof DELEGATED_MASTER_PANEL_ROLES)[number]
 
