@@ -174,9 +174,9 @@
 }
 
 .portrait {
-  width: min(100%, clamp(11rem, calc(100dvh - 31rem), 18rem));
+  width: min(100%, clamp(10rem, calc(100dvh - 33rem), 17rem));
   min-width: 0;
-  aspect-ratio: 4 / 5;
+  aspect-ratio: 1 / 1;
   justify-self: center;
   overflow: hidden;
   border: 1px solid rgba(212, 186, 130, 0.34);
@@ -372,17 +372,20 @@
   min-width: 0;
   flex-wrap: wrap;
   align-items: start;
-  justify-content: space-between;
+  justify-content: center;
   gap: 1rem;
-  padding-top: 0.25rem;
+  padding-top: 0;
+  text-align: center;
 }
 
 .accountManagement {
   display: grid;
-  width: min(100%, 28rem);
+  width: min(100%, 30rem);
   min-width: 0;
   gap: 0.4rem;
-  margin: 0;
+  justify-items: center;
+  margin: 0 auto;
+  text-align: center;
 }
 
 .accountManagement small {
@@ -393,10 +396,11 @@
 
 .switchAccountButton,
 .accountDeleteButton {
-  justify-content: space-between;
+  justify-content: center;
   border-color: #8b7957;
   color: var(--av-brass-100);
   background: #080e17eb;
+  text-align: center;
 }
 
 .accountDeleteButton {
@@ -679,7 +683,7 @@
     width: 100%;
     max-width: 8rem;
     align-self: start;
-    aspect-ratio: 4 / 5;
+    aspect-ratio: 1 / 1;
   }
 
   .identity {
@@ -927,5 +931,60 @@
   .primaryAction,
   .deleteAction {
     transition: none;
+  }
+}
+
+
+@media (min-width: 761px) {
+  .main {
+    gap: 0.7rem;
+    padding-block: 0.65rem;
+  }
+
+  .hero {
+    gap: 0.3rem;
+    padding: 0.2rem 1rem 0.6rem;
+  }
+
+  .hero h1 {
+    margin-top: 0.1rem;
+  }
+
+  .slots {
+    gap: clamp(0.7rem, 1.2vw, 1rem);
+  }
+
+  .slot {
+    height: clamp(21rem, calc(100dvh - 14.5rem), 34rem);
+    min-height: 0;
+    gap: 0.5rem;
+    padding: 0.7rem;
+  }
+
+  .identity {
+    padding-top: 0.4rem;
+  }
+
+  .identity p,
+  .empty p {
+    margin-top: 0.3rem;
+  }
+
+  .slotActions {
+    gap: 0.28rem;
+  }
+
+  .primaryAction,
+  .deleteAction {
+    min-height: 2.45rem;
+    padding-block: 0.45rem;
+  }
+
+  .management {
+    min-height: 3.5rem;
+  }
+
+  .accountManagement small {
+    text-align: center;
   }
 }
