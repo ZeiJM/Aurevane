@@ -51,6 +51,7 @@ jobs:
           db_container="$(docker ps --filter 'name=supabase_db_' --format '{{.Names}}' | head -n 1)"
           docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "set role service_role; select public.activate_phase4_combat_interactions_v2();"
 
+          set +e
           AUREVANE_ENV=local \
           NEXT_PUBLIC_AUREVANE_ENV=local \
           NEXT_PUBLIC_SUPABASE_URL="$api_url" \
@@ -59,6 +60,16 @@ jobs:
           pnpm --filter @aurevane/web exec playwright test \
             e2e/master-combat-content-authoring.pw.ts \
             --project=desktop-chromium
+          test_status=$?
+          set -e
+          if [ "$test_status" -ne 0 ]; then
+            echo "===== Supabase REST diagnostics ====="
+            rest_container="$(docker ps --filter 'name=supabase_rest_' --format '{{.Names}}' | head -n 1)"
+            if [ -n "$rest_container" ]; then docker logs --tail 250 "$rest_container" 2>&1 || true; fi
+            echo "===== Supabase DB diagnostics ====="
+            docker logs --tail 250 "$db_container" 2>&1 || true
+            exit "$test_status"
+          fi
       - name: Stop local Supabase services
         if: always()
         run: pnpm exec supabase stop --no-backup
