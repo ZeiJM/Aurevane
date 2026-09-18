@@ -52,7 +52,7 @@ export function AccountEntryShell({ authConfig, sessionNotice }: AccountEntryShe
         </nav>
 
         <div className={railStyles.utility}>
-          <span className={styles.environmentMark}>Account gateway</span>
+          <span className={styles.environmentMark}>The Threshold</span>
           <AudioSettingsMenu />
         </div>
       </header>
@@ -62,16 +62,16 @@ export function AccountEntryShell({ authConfig, sessionNotice }: AccountEntryShe
           <AurevaneImage assetId="ui.foundation.vista" className={styles.heroMedia} />
           <div className={styles.heroShade} aria-hidden="true" />
           <div className={styles.heroContent}>
-            <Kicker marker="◆">One account // one persistent history</Kicker>
+            <Kicker marker="◆">The gates remember // every road begins here</Kicker>
             <h1 id="aurevane-title">AUREVANE</h1>
             <p>
-              Enter the account that will anchor your character, settings, and history across a
-              persistent tactical fantasy world.
+              Beyond these gates, moonlit roads lead toward old powers, rival ambitions, and
+              legends still unwritten. Return to your journey—or begin one.
             </p>
             <div className={styles.identityNotes} aria-label="Account foundations">
-              <span>Verified sessions</span>
-              <span>Private account profile</span>
-              <span>Character identity stays distinct</span>
+              <span>Your deeds endure</span>
+              <span>Many paths await</span>
+              <span>The world remembers</span>
             </div>
           </div>
         </section>
@@ -82,14 +82,14 @@ export function AccountEntryShell({ authConfig, sessionNotice }: AccountEntryShe
           data-av-surface="moonstone"
           data-account-concept="true"
         >
-          <Kicker marker="◇">Account entry</Kicker>
+          <Kicker marker="◇">Cross the threshold</Kicker>
           <h2>Begin or return.</h2>
           <AccountAccessPanel authConfig={authConfig} initialMessage={sessionNotice} />
         </Surface>
       </main>
 
       <footer className={styles.footer}>
-        <span>Server-authoritative account boundary</span>
+        <span>Your legend waits beyond the threshold</span>
       </footer>
     </div>
   )
