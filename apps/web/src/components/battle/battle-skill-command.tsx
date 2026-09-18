@@ -203,6 +203,7 @@ export function BattleSkillCommand({
           className={`${styles.artwork} ${artworkFitStyles.frame}`}
           data-battle-command-artwork="static"
           data-av-square-media="true"
+          data-av-square-media-fit="contain"
           aria-hidden="true"
         >
           <Image
