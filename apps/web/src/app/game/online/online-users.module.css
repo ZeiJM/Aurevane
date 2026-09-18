@@ -1,4 +1,4 @@
-/* The page reserves one scenic hero row plus the bounded roster workspace. */
+/* Replaces composition-v3: the page reserves one scenic hero row plus the bounded roster workspace. */
 .page {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
