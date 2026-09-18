@@ -371,9 +371,7 @@ export function createMasterPanelStaffAccessService(
       if (
         targetAccess?.roles.includes(input.role) &&
         targetAccess.specialCapabilities.length > 0 &&
-        !targetAccess.roles.some(
-          (role) => role !== input.role && isDelegatedMasterPanelRole(role),
-        )
+        !targetAccess.roles.some((role) => role !== input.role && isDelegatedMasterPanelRole(role))
       ) {
         throw new AurevaneError(
           'INVALID_REQUEST',

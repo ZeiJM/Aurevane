@@ -36,11 +36,7 @@ interface StaffManagementProps {
   readonly capabilityOptions: readonly CapabilityOption[]
 }
 
-type MutationOperation =
-  | 'grant-role'
-  | 'revoke-role'
-  | 'grant-capability'
-  | 'revoke-capability'
+type MutationOperation = 'grant-role' | 'revoke-role' | 'grant-capability' | 'revoke-capability'
 
 function responseMessage(payload: unknown): string {
   if (
@@ -57,11 +53,7 @@ function responseMessage(payload: unknown): string {
   return 'The staff authority request could not be completed.'
 }
 
-export function StaffManagement({
-  staff,
-  roleOptions,
-  capabilityOptions,
-}: StaffManagementProps) {
+export function StaffManagement({ staff, roleOptions, capabilityOptions }: StaffManagementProps) {
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [resolved, setResolved] = useState<ResolvedAccount | null>(null)
@@ -189,8 +181,8 @@ export function StaffManagement({
         >
           <h4>Special capabilities</h4>
           <p>
-            These are explicit account grants. They never create another role and never include
-            root Master Panel access or staff management.
+            These are explicit account grants. They never create another role and never include root
+            Master Panel access or staff management.
           </p>
           {!hasDelegatedRole ? (
             <p className={styles.ownerNote}>
@@ -210,9 +202,7 @@ export function StaffManagement({
                   </div>
                   <button
                     type="button"
-                    disabled={
-                      !canMutate || busyKey !== null || (!active && !hasDelegatedRole)
-                    }
+                    disabled={!canMutate || busyKey !== null || (!active && !hasDelegatedRole)}
                     onClick={() => mutate(operation, member.userId, 'capability', option.id)}
                   >
                     {busyKey === actionKey ? 'Working…' : active ? 'Revoke' : 'Grant'}

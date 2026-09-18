@@ -1,10 +1,7 @@
 import Link from 'next/link'
 
 import { requireMasterPanelPageAccess } from '@/server/master/master-panel-page-access'
-import {
-  hasMasterPanelCapability,
-  masterPanelAuthorityLabel,
-} from '@/server/master/staff-access'
+import { hasMasterPanelCapability, masterPanelAuthorityLabel } from '@/server/master/staff-access'
 
 import styles from './master.module.css'
 

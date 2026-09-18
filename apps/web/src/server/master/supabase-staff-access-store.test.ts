@@ -87,7 +87,9 @@ describe('RpcMasterPanelStaffAccessStore', () => {
       ]),
     )
 
-    await expect(new RpcMasterPanelStaffAccessStore(unknownRole).readAccess(STAFF)).rejects.toMatchObject({
+    await expect(
+      new RpcMasterPanelStaffAccessStore(unknownRole).readAccess(STAFF),
+    ).rejects.toMatchObject({
       code: 'PERSISTENCE_UNAVAILABLE',
     })
     await expect(

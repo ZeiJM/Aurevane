@@ -126,9 +126,13 @@ function mapRpcError(error: RpcError): never {
     message.includes('MASTER_PANEL_REASON_REQUIRED') ||
     message.includes('MASTER_PANEL_ACCOUNT_EMAIL_INVALID')
   ) {
-    throw new AurevaneError('INVALID_REQUEST', 'That Master Panel authority change is not allowed.', {
-      cause: error,
-    })
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'That Master Panel authority change is not allowed.',
+      {
+        cause: error,
+      },
+    )
   }
   throw new AurevaneError(
     'PERSISTENCE_UNAVAILABLE',
