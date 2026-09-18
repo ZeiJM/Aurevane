@@ -35,6 +35,7 @@ const STATUS_TAG_ALIASES: Readonly<Record<string, GameplayTag>> = {
   wet: 'Wet',
   bleed: 'Bleeding',
   bleeding: 'Bleeding',
+  mark: 'Marked',
   marked: 'Marked',
   guarded: 'Guarded',
   inspired: 'Inspired',
@@ -69,6 +70,7 @@ const STATUS_PRESENTATION_TAGS: Readonly<Record<string, string>> = {
   reckless: 'Reckless',
   fortified: 'Fortified',
   challenged: 'Challenged',
+  mark: 'Marked',
   marked: 'Marked',
   warded: 'Warded',
   'lowered-guard': 'Off-guard',
@@ -138,11 +140,21 @@ export function combatActionPresentationTags(
 }
 
 export function combatantGameplayTags(
-  state: Pick<CombatEncounterState, 'statusState'>,
+  state: Pick<CombatEncounterState, 'statusState'> &
+    Partial<Pick<CombatEncounterState, 'effectState'>>,
   combatantId: string,
   content: CombatContentCatalog,
 ): readonly GameplayTag[] {
   const tags = new Set<GameplayTag>()
+  if (state.effectState?.burn.some((instance) => instance.targetCombatantId === combatantId)) {
+    tags.add('Scorched')
+  }
+  if (state.effectState?.bleed.some((stack) => stack.targetCombatantId === combatantId)) {
+    tags.add('Bleeding')
+  }
+  if (state.effectState?.poison.some((instance) => instance.targetCombatantId === combatantId)) {
+    tags.add('Poisoned')
+  }
   for (const status of state.statusState.find((row) => row.combatantId === combatantId)?.statuses ??
     []) {
     const alias = STATUS_TAG_ALIASES[status.statusId]
@@ -156,7 +168,8 @@ export function combatantGameplayTags(
 }
 
 export function hasGameplayTag(
-  state: Pick<CombatEncounterState, 'statusState'>,
+  state: Pick<CombatEncounterState, 'statusState'> &
+    Partial<Pick<CombatEncounterState, 'effectState'>>,
   combatantId: string,
   tag: GameplayTag,
   content: CombatContentCatalog,

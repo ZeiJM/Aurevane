@@ -182,6 +182,7 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
       ],
     },
   ),
+  // Historical v1 Mark remains immutable for already-pinned battles.
   status(
     'marked',
     'Marked',
@@ -191,6 +192,18 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
       damageModifiers: [
         modifier('incoming', 12_000, { kind: 'opponent-is-source', matches: true }),
       ],
+    },
+  ),
+  // Current Mark uses a distinct identity so historical marked v1 is never reinterpreted.
+  status(
+    'mark',
+    'Marked',
+    'Debuff',
+    'The source gains +15 percentage points Accuracy against this target. Other attackers gain no benefit.',
+    {
+      reactionClass: 'ordinary',
+      markAccuracyBonusBasisPoints: 1_500,
+      effectCategories: ['Debuff', 'Mark'],
     },
   ),
   status('warded', 'Warded', 'Buff', 'Take 20% less damage from opponents affected by Burn.', {
@@ -205,6 +218,7 @@ export const CLEANSE_STATUS_IDS = [
   'slow',
   'root',
   'exposed',
+  'mark',
   'marked',
   'challenged',
 ] as const
