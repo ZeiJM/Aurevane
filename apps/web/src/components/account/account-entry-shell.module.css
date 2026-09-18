@@ -720,7 +720,7 @@
   }
 }
 
-/* Final mobile ambient-visibility pass: a slow moonlight band that reads clearly without flashing. */
+/* Final ambient-motion visibility pass: a slow moonlight band that reads clearly without flashing. */
 .heroShade::after {
   position: absolute;
   inset: -24% -55%;
