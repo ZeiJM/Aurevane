@@ -71,9 +71,7 @@ function snapshot(): CombatBuildSnapshot {
   }
 }
 
-function committedSnapshot(
-  value: CombatBuildSnapshot,
-): CharacterCommittedBuildSnapshotRecord {
+function committedSnapshot(value: CombatBuildSnapshot): CharacterCommittedBuildSnapshotRecord {
   return {
     schemaVersion: value.sourceBuildSchemaVersion,
     buildVersion: value.sourceBuildVersion,
@@ -340,5 +338,4 @@ describe('P3.7 live Recruit AI shared build snapshot', () => {
       expect.objectContaining({ combatantId: AI_ID, skillId: copied.id }),
     )
   })
-
 })

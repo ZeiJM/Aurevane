@@ -81,9 +81,9 @@ export function chooseBuildAwareRecruitAiDecision(input: {
       ),
     ),
   ].sort((left, right) => {
-      if (left.utility !== right.utility) return right.utility - left.utility
-      return left.stableKey.localeCompare(right.stableKey)
-    })
+    if (left.utility !== right.utility) return right.utility - left.utility
+    return left.stableKey.localeCompare(right.stableKey)
+  })
   const selected = skillCandidates[0]
   if (!selected || selected.utility <= baseline.utility) {
     return {
@@ -126,9 +126,9 @@ export function executeBuildAwareRecruitAiAction(
     return executePv1fCopiedSkill(state, copied, target, 'pve', copyContext)
   }
 
-  const definition = (
-    skillOptions.committedSkills ?? committedMatureSkills(state, actorId)
-  ).find((candidate) => candidate.id === actionId)
+  const definition = (skillOptions.committedSkills ?? committedMatureSkills(state, actorId)).find(
+    (candidate) => candidate.id === actionId,
+  )
   if (definition) {
     const copyContext =
       definition.effects.some((effect) => effect.type === 'copy') && target.kind === 'unit'

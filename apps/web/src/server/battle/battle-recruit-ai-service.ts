@@ -159,12 +159,7 @@ function resolveRecruitIntent(
   try {
     if (intent.kind === 'move') return executePv1fMovement(state, intent.path)
     if (intent.kind === 'action') {
-      return executeBuildAwareRecruitAiAction(
-        state,
-        intent.actionId,
-        intent.target,
-        skillOptions,
-      )
+      return executeBuildAwareRecruitAiAction(state, intent.actionId, intent.target, skillOptions)
     }
     if (intent.kind === 'face') return finishPv1fTurn(state, intent.facing)
 
@@ -187,9 +182,11 @@ async function resolveRecruitSkillOptions(
 ): Promise<BuildAwareRecruitAiSkillOptions> {
   const authority = state.buildAuthority
   if (!authority) {
-    if (normalizeCombatEffectState(state.effectState).temporarySkills.some(
-      (grant) => grant.combatantId === actorId,
-    )) {
+    if (
+      normalizeCombatEffectState(state.effectState).temporarySkills.some(
+        (grant) => grant.combatantId === actorId,
+      )
+    ) {
       throw persistenceInvalid('Temporary copied Skills require frozen battle build authority.')
     }
     return {}
@@ -210,15 +207,13 @@ async function resolveRecruitSkillOptions(
   }
 
   const all = [...committedSkills, ...copiedSkills]
-  const copyContextsBySource: Record<string, Awaited<ReturnType<typeof resolveBattleSkillCopyContext>>> = {}
+  const copyContextsBySource: Record<
+    string,
+    Awaited<ReturnType<typeof resolveBattleSkillCopyContext>>
+  > = {}
   if (all.some((definition) => definition.effects.some((effect) => effect.type === 'copy'))) {
     for (const source of state.tactical.battle.combatants) {
-      const context = await resolveBattleSkillCopyContext(
-        state,
-        actorId,
-        source.id,
-        resolver,
-      )
+      const context = await resolveBattleSkillCopyContext(state, actorId, source.id, resolver)
       if (context === null) throw persistenceInvalid('Stored Copy source build is invalid.')
       copyContextsBySource[source.id] = context
     }
@@ -340,12 +335,9 @@ export function createBattleRecruitAiService(
 
         const difficulty = recruitDifficultyForActor(state, turn.combatantId)
         const resolver =
-          combatContentResolver ?? (state.buildAuthority ? createServerCombatContentResolver() : undefined)
-        const skillOptions = await resolveRecruitSkillOptions(
-          state,
-          turn.combatantId,
-          resolver,
-        )
+          combatContentResolver ??
+          (state.buildAuthority ? createServerCombatContentResolver() : undefined)
+        const skillOptions = await resolveRecruitSkillOptions(state, turn.combatantId, resolver)
         const decision = chooseBuildAwareRecruitAiDecision({
           state,
           profile: getRecruitAiProfile(difficulty),
