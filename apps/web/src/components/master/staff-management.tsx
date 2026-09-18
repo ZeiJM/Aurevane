@@ -144,6 +144,7 @@ export function StaffManagement({
     const current = staffByUserId.get(member.userId)
     const roles = new Set(current?.roles ?? [])
     const capabilities = new Set(current?.specialCapabilities ?? [])
+    const hasDelegatedRole = roles.size > 0
     const identity = member.email ?? member.userId
 
     if (roles.has('game-owner')) {
@@ -191,6 +192,11 @@ export function StaffManagement({
             These are explicit account grants. They never create another role and never include
             root Master Panel access or staff management.
           </p>
+          {!hasDelegatedRole ? (
+            <p className={styles.ownerNote}>
+              Grant at least one delegated staff role before adding a special capability.
+            </p>
+          ) : null}
           <div className={styles.controlList}>
             {capabilityOptions.map((option) => {
               const active = capabilities.has(option.id)
@@ -204,7 +210,9 @@ export function StaffManagement({
                   </div>
                   <button
                     type="button"
-                    disabled={!canMutate || busyKey !== null}
+                    disabled={
+                      !canMutate || busyKey !== null || (!active && !hasDelegatedRole)
+                    }
                     onClick={() => mutate(operation, member.userId, 'capability', option.id)}
                   >
                     {busyKey === actionKey ? 'Working…' : active ? 'Revoke' : 'Grant'}

@@ -319,6 +319,10 @@ export function createMasterPanelStaffAccessService(
     }
   }
 
+  function hasDelegatedRole(access: MasterPanelAccess | null): boolean {
+    return access?.roles.some(isDelegatedMasterPanelRole) ?? false
+  }
+
   return {
     readAccess,
     requireCapability,
@@ -362,6 +366,21 @@ export function createMasterPanelStaffAccessService(
           'The Game Owner identity cannot be revoked through delegated staff controls.',
         )
       }
+
+      const targetAccess = await readAccess(input.targetUserId)
+      if (
+        targetAccess?.roles.includes(input.role) &&
+        targetAccess.specialCapabilities.length > 0 &&
+        !targetAccess.roles.some(
+          (role) => role !== input.role && isDelegatedMasterPanelRole(role),
+        )
+      ) {
+        throw new AurevaneError(
+          'INVALID_REQUEST',
+          'Revoke special capabilities before removing this account’s final delegated staff role.',
+        )
+      }
+
       return store.revokeRole({
         actorUserId: input.actorUserId,
         targetUserId: input.targetUserId,
@@ -377,6 +396,12 @@ export function createMasterPanelStaffAccessService(
         throw new AurevaneError(
           'INVALID_REQUEST',
           'Only approved special capabilities can be delegated.',
+        )
+      }
+      if (!hasDelegatedRole(await readAccess(input.targetUserId))) {
+        throw new AurevaneError(
+          'INVALID_REQUEST',
+          'Grant a delegated staff role before adding special capabilities.',
         )
       }
       return store.grantCapability({

@@ -121,6 +121,8 @@ function mapRpcError(error: RpcError): never {
     message.includes('MASTER_PANEL_TARGET_NOT_FOUND') ||
     message.includes('MASTER_PANEL_CAPABILITY_INVALID') ||
     message.includes('MASTER_PANEL_ROOT_CAPABILITY_PROTECTED') ||
+    message.includes('MASTER_PANEL_STAFF_ROLE_REQUIRED') ||
+    message.includes('MASTER_PANEL_ROLE_REQUIRED_FOR_CAPABILITY') ||
     message.includes('MASTER_PANEL_REASON_REQUIRED') ||
     message.includes('MASTER_PANEL_ACCOUNT_EMAIL_INVALID')
   ) {

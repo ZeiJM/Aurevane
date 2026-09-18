@@ -91,7 +91,7 @@ begin
   where grant_row.user_id = p_user_id
     and grant_row.enabled = true;
 
-  if cardinality(v_roles) = 0 and cardinality(v_special_capabilities) = 0 then
+  if cardinality(v_roles) = 0 then
     return;
   end if;
 
@@ -125,13 +125,9 @@ begin
 
   return query
   with staff_users as (
-    select assignment.user_id
+    select distinct assignment.user_id
     from app_private.master_panel_role_assignments as assignment
     where assignment.enabled = true
-    union
-    select grant_row.user_id
-    from app_private.master_panel_capability_grants as grant_row
-    where grant_row.enabled = true
   )
   select
     account.id,
@@ -337,6 +333,33 @@ begin
     raise exception using errcode = '22023', message = 'MASTER_PANEL_REASON_REQUIRED';
   end if;
 
+  if exists (
+    select 1
+    from app_private.master_panel_role_assignments as current_role
+    where current_role.user_id = p_target_user_id
+      and current_role.role = p_role
+      and current_role.enabled = true
+  )
+    and exists (
+      select 1
+      from app_private.master_panel_capability_grants as grant_row
+      where grant_row.user_id = p_target_user_id
+        and grant_row.enabled = true
+    )
+    and not exists (
+      select 1
+      from app_private.master_panel_role_assignments as other_role
+      where other_role.user_id = p_target_user_id
+        and other_role.role in ('moderator','content-staff','event-staff')
+        and other_role.role <> p_role
+        and other_role.enabled = true
+    )
+  then
+    raise exception using
+      errcode = '22023',
+      message = 'MASTER_PANEL_ROLE_REQUIRED_FOR_CAPABILITY';
+  end if;
+
   update app_private.master_panel_role_assignments as assignment
   set
     enabled = false,
@@ -420,6 +443,15 @@ begin
   end if;
   if not exists (select 1 from auth.users as account where account.id = p_target_user_id) then
     raise exception using errcode = '22023', message = 'MASTER_PANEL_TARGET_NOT_FOUND';
+  end if;
+  if not exists (
+    select 1
+    from app_private.master_panel_role_assignments as assignment
+    where assignment.user_id = p_target_user_id
+      and assignment.role in ('moderator','content-staff','event-staff')
+      and assignment.enabled = true
+  ) then
+    raise exception using errcode = '22023', message = 'MASTER_PANEL_STAFF_ROLE_REQUIRED';
   end if;
   if p_note is null
     or char_length(p_note) < 3

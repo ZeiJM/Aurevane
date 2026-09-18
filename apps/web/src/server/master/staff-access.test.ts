@@ -194,9 +194,10 @@ describe('Master Panel staff access', () => {
     ])
   })
 
-  it('grants and revokes only approved special capabilities', async () => {
+  it('grants and revokes only approved special capabilities for delegated staff', async () => {
     const store = new MemoryStaffAccessStore()
     store.access.set(OWNER, access(OWNER, ['game-owner']))
+    store.access.set(STAFF, access(STAFF, ['event-staff']))
     const service = createMasterPanelStaffAccessService(store)
 
     await expect(
@@ -229,6 +230,41 @@ describe('Master Panel staff access', () => {
       `grant-capability:${OWNER}:${STAFF}:events.global_scope`,
       `revoke-capability:${OWNER}:${STAFF}:events.global_scope`,
     ])
+  })
+
+  it('requires a delegated staff role before granting a special capability', async () => {
+    const store = new MemoryStaffAccessStore()
+    store.access.set(OWNER, access(OWNER, ['game-owner']))
+    const service = createMasterPanelStaffAccessService(store)
+
+    await expect(
+      service.grantCapability({
+        actorUserId: OWNER,
+        targetUserId: OUTSIDER,
+        capability: 'events.global_scope',
+        reason: 'Global event operations',
+      }),
+    ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+
+    expect(store.mutations).toEqual([])
+  })
+
+  it('blocks removal of the final delegated role while special grants remain', async () => {
+    const store = new MemoryStaffAccessStore()
+    store.access.set(OWNER, access(OWNER, ['game-owner']))
+    store.access.set(STAFF, access(STAFF, ['event-staff'], ['events.global_scope']))
+    const service = createMasterPanelStaffAccessService(store)
+
+    await expect(
+      service.revokeRole({
+        actorUserId: OWNER,
+        targetUserId: STAFF,
+        role: 'event-staff',
+        reason: 'Role rotation',
+      }),
+    ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+
+    expect(store.mutations).toEqual([])
   })
 
   it('blocks delegated staff management and all Owner self-grants', async () => {

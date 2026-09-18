@@ -59,6 +59,19 @@ resolved_staff="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgre
   from public.resolve_master_panel_account_v1('$owner_id'::uuid, '$staff_email');")"
 test "$resolved_staff" = "$staff_id|$staff_email"
 
+if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+  set role service_role;
+  select public.grant_master_panel_capability_v1(
+    '$owner_id'::uuid,
+    '$other_id'::uuid,
+    'events.global_scope',
+    'CI roleless capability probe'
+  );" >/tmp/p51-roleless-capability.out 2>/tmp/p51-roleless-capability.err; then
+  echo 'Expected a capability grant without a delegated staff role to fail.' >&2
+  exit 1
+fi
+grep -Fq 'MASTER_PANEL_STAFF_ROLE_REQUIRED' /tmp/p51-roleless-capability.err
+
 grant_moderator="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   set role service_role;
   select public.grant_master_panel_role_v1(
@@ -233,6 +246,19 @@ staff_after_role_revoke="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -
     array_to_string(special_capabilities, ',')
   from public.read_master_panel_access_v1('$staff_id'::uuid);")"
 test "$staff_after_role_revoke" = '4|content-staff|events.global_scope'
+
+if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+  set role service_role;
+  select public.revoke_master_panel_role_v1(
+    '$owner_id'::uuid,
+    '$staff_id'::uuid,
+    'content-staff',
+    'CI last role with capability probe'
+  );" >/tmp/p51-last-role-capability.out 2>/tmp/p51-last-role-capability.err; then
+  echo 'Expected last delegated role removal with an active special capability to fail.' >&2
+  exit 1
+fi
+grep -Fq 'MASTER_PANEL_ROLE_REQUIRED_FOR_CAPABILITY' /tmp/p51-last-role-capability.err
 
 revoke_capability="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   set role service_role;
