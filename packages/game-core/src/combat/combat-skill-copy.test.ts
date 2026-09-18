@@ -17,7 +17,7 @@ const SOURCE = 'combatant:source'
 function skill(id: string, version?: number): MatureSkillDefinition {
   const definition = resolveMatureSkillVersion(id, version)
   if (!definition) throw new Error(`Missing Skill fixture ${id}@${String(version)}.`)
-  return structuredClone(definition)
+  return definition
 }
 
 function state(seed = 0x1234_5678): StatDrivenCombatEncounterState {

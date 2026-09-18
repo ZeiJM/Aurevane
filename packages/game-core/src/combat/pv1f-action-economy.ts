@@ -1153,6 +1153,7 @@ function scaleRepeatedMatureSkillEffects(
       effect.type === 'displace' ||
       effect.type === 'poison' ||
       effect.type === 'burn' ||
+      effect.type === 'copy' ||
       effect.type === 'sensory'
     )
       continue

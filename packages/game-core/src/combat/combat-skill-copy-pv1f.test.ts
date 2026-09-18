@@ -18,7 +18,7 @@ const SOURCE = 'copy:source'
 function staticSkill(id: string, version?: number): MatureSkillDefinition {
   const definition = resolveMatureSkillVersion(id, version)
   if (!definition) throw new Error(`Missing Skill fixture ${id}@${String(version)}.`)
-  return structuredClone(definition)
+  return definition
 }
 
 function copySkill(overrides: Partial<MatureSkillDefinition> = {}): MatureSkillDefinition {

@@ -145,8 +145,14 @@ export interface FacingDamageModifiers {
   rear: number
 }
 
+export interface CombatSkillCopyEffect {
+  type: 'copy'
+  recipient: 'primary-unit'
+}
+
 export type CombatEffectDefinition =
   | CombatStatusCopyEffect
+  | CombatSkillCopyEffect
   | {
       type: 'damage'
       recipient: CombatEffectRecipient
@@ -1513,6 +1519,9 @@ function resolveActionEffects(
     if (effect.type === 'sensory') {
       throw new TypeError('Sensory must be materialized before legacy effect resolution.')
     }
+    if (effect.type === 'copy') {
+      throw new TypeError('Copy must be materialized before legacy effect resolution.')
+    }
     if (
       effect.type === 'create-terrain' ||
       (effect.type === 'damage' && effect.element === 'fire')
@@ -1676,7 +1685,10 @@ function applyEffect(
   actorId: string,
   recipientId: string,
   actionId: string,
-  effect: Exclude<CombatEffectDefinition, { type: 'create-terrain' | 'copy-statuses' | 'sensory' }>,
+  effect: Exclude<
+    CombatEffectDefinition,
+    { type: 'create-terrain' | 'copy-statuses' | 'copy' | 'sensory' }
+  >,
   content: CombatContentCatalog,
   stormRecipients: Set<string>,
 ): CombatResolutionTransition {
@@ -2528,10 +2540,17 @@ function validateCombatActionDefinition(
         'burn',
         'barrier-change',
         'copy-statuses',
+        'copy',
       ],
       'effect type',
     )
     if (effect.type === 'create-terrain') {
+      continue
+    }
+    if (effect.type === 'copy') {
+      if (effect.recipient !== 'primary-unit') {
+        throw new TypeError('Copy requires the selected primary unit.')
+      }
       continue
     }
     if (effect.type === 'displace') {
