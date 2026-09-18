@@ -321,7 +321,7 @@ begin
     v_version_id,
     p_actor_user_id
   )
-  on conflict (content_key) do update
+  on conflict on constraint combat_content_publications_pkey do update
   set
     content_kind = excluded.content_kind,
     version_id = excluded.version_id,
@@ -395,7 +395,7 @@ begin
     v_version_id,
     p_actor_user_id
   )
-  on conflict (content_key) do update
+  on conflict on constraint combat_content_publications_pkey do update
   set
     content_kind = excluded.content_kind,
     version_id = excluded.version_id,

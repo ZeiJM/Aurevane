@@ -50,6 +50,14 @@ describe('Master Panel combat authoring migration', () => {
     expect(sql).toContain("jsonb_set(p_definition, '{contentVersion}'")
   })
 
+  it('uses an unambiguous publication upsert conflict target', () => {
+    const sql = readFileSync(migrationPath, 'utf8')
+
+    expect(sql.match(/on conflict on constraint combat_content_publications_pkey do update/gi))
+      .toHaveLength(2)
+    expect(sql).not.toContain('on conflict (content_key) do update')
+  })
+
   it('rolls back by pointer only and can clear the DB pointer to restore static fallback', () => {
     const sql = readFileSync(migrationPath, 'utf8')
 
