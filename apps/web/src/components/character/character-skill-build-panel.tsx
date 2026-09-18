@@ -521,6 +521,7 @@ export function CharacterSkillBuildPanel({
                                 <span
                                   className={styles.artFrame}
                                   data-av-square-media="true"
+                                  data-av-square-media-fit="contain"
                                   aria-hidden="true"
                                 >
                                   <Image
