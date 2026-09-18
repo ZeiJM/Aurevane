@@ -32,7 +32,17 @@ export interface PublishedSkillContract {
 // Independent, hand-checked outcomes for the published roster on the fixture's flat board.
 // These values do not call the effect resolver or copy its projections. A recipient-routing,
 // omitted-effect, cost, repeat-scaling or execution-order regression must change an outcome.
-const cleanse = ['burn', 'bleed', 'poison', 'slow', 'root', 'exposed', 'mark', 'marked', 'challenged']
+const cleanse = [
+  'burn',
+  'bleed',
+  'poison',
+  'slow',
+  'root',
+  'exposed',
+  'mark',
+  'marked',
+  'challenged',
+]
 const enemy = (first: number, repeat: number): ResourceDeltas => ({ enemy: [first, repeat] })
 const enemies = (first: number, repeat: number): ResourceDeltas => ({
   enemy: [first, repeat],

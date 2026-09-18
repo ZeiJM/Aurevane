@@ -186,12 +186,12 @@ describe('Chronist authoritative tempo', () => {
     }).state
 
     expect(state.tactical.battle.initiativeOrder).toEqual(['actor', 'enemy', 'other', 'ally'])
-    expect(
-      state.statusState.find((row) => row.combatantId === 'ally')?.statuses,
-    ).toContainEqual(expect.objectContaining({ statusId: 'haste' }))
-    expect(
-      state.statusState.find((row) => row.combatantId === 'enemy')?.statuses,
-    ).toContainEqual(expect.objectContaining({ statusId: 'slow' }))
+    expect(state.statusState.find((row) => row.combatantId === 'ally')?.statuses).toContainEqual(
+      expect.objectContaining({ statusId: 'haste' }),
+    )
+    expect(state.statusState.find((row) => row.combatantId === 'enemy')?.statuses).toContainEqual(
+      expect.objectContaining({ statusId: 'slow' }),
+    )
 
     const followingRound = nextRound(state)
     expect(followingRound.state.tactical.battle.initiativeOrder).toEqual([

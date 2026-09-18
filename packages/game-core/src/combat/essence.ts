@@ -376,8 +376,7 @@ function createPhase4RebalancedEssence(definition: EssenceDefinition): EssenceDe
   }
 }
 
-const PHASE4_REBALANCED_ESSENCES =
-  PRE_PHASE4_REBALANCE_ESSENCES.map(createPhase4RebalancedEssence)
+const PHASE4_REBALANCED_ESSENCES = PRE_PHASE4_REBALANCE_ESSENCES.map(createPhase4RebalancedEssence)
 
 export const P36_REPRESENTATIVE_ESSENCES = [
   ...PRE_PHASE4_REBALANCE_ESSENCES,

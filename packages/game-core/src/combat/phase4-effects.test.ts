@@ -728,9 +728,7 @@ describe('Every published Technique and Essence executes its authored recipient 
                       poison: effectState.poison.filter(
                         (instance) => instance.targetCombatantId !== owner,
                       ),
-                      bleed: effectState.bleed.filter(
-                        (stack) => stack.targetCombatantId !== owner,
-                      ),
+                      bleed: effectState.bleed.filter((stack) => stack.targetCombatantId !== owner),
                       burn: effectState.burn.filter(
                         (instance) => instance.targetCombatantId !== owner,
                       ),
