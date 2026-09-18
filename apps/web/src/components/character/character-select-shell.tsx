@@ -294,7 +294,7 @@ export function CharacterSelectShell({
                   Slot {slotIndex + 1} ·{' '}
                   {selectedCharacter?.id === character.id ? 'Selected' : 'Unlocked'}
                 </span>
-                <div className={styles.portrait}>
+                <div className={styles.portrait} data-av-square-media="true">
                   <CharacterPortraitImage
                     imageUrl={profileImageUrls[character.id]}
                     fallbackAssetId={getStarterPortraitImageAssetId(character.portraitRef)}
