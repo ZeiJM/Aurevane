@@ -740,7 +740,7 @@
   }
 }
 
-/* Ambient motion: slow world life and a restrained selected-character emphasis. */
+/* Ambient motion: slow world life with restrained selected-character emphasis. */
 .world > :global(img) {
   transform: scale(1.01);
   transform-origin: 66% 50%;
