@@ -53,8 +53,9 @@ describe('Master Panel combat authoring migration', () => {
   it('uses an unambiguous publication upsert conflict target', () => {
     const sql = readFileSync(migrationPath, 'utf8')
 
-    expect(sql.match(/on conflict on constraint combat_content_publications_pkey do update/gi))
-      .toHaveLength(2)
+    expect(
+      sql.match(/on conflict on constraint combat_content_publications_pkey do update/gi),
+    ).toHaveLength(2)
     expect(sql).not.toContain('on conflict (content_key) do update')
   })
 
