@@ -96,6 +96,21 @@ test('Account gateway keeps the desktop entry workspace clear and readable', asy
   expect.soft(ambientMotion.rune, 'account hero has a slow rune breath').not.toBe('none')
   expect.soft(ambientMotion.motes, 'account hero has sparse ambient motes').not.toBe('none')
 
+  const moonlightStart = await page.evaluate(() => {
+    const hero = document.querySelector<HTMLElement>('[aria-labelledby="aurevane-title"]')!
+    const shade = hero.children[1] as HTMLElement
+    return getComputedStyle(shade, '::after').transform
+  })
+  await page.waitForTimeout(600)
+  const moonlightAfter = await page.evaluate(() => {
+    const hero = document.querySelector<HTMLElement>('[aria-labelledby="aurevane-title"]')!
+    const shade = hero.children[1] as HTMLElement
+    return getComputedStyle(shade, '::after').transform
+  })
+  expect
+    .soft(moonlightAfter, 'account moonlight transform actually advances')
+    .not.toBe(moonlightStart)
+
   await page.emulateMedia({ reducedMotion: 'reduce' })
   const reducedMotion = await page.evaluate(() => {
     const hero = document.querySelector<HTMLElement>('[aria-labelledby="aurevane-title"]')!
