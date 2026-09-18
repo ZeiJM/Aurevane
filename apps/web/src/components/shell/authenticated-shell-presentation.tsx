@@ -96,12 +96,12 @@ export function AuthenticatedShellPresentation({
                 aria-label={`Current character: ${character.name}`}
               >
                 {characterPortrait}
-                <strong>{character.name}</strong>
               </div>
             ) : null}
             <AccountMenu
               activeSessionHref={activeSessionHref}
               activeSessionLabel={activeSessionLabel}
+              characterName={character?.name ?? null}
             />
           </div>
         </header>
