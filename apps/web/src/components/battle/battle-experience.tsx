@@ -259,12 +259,16 @@ export function BattleExperience({
     BATTLE_SKILL_CATEGORIES,
   )
   const selectedHealActionId = selectedSkillId('heal')
-  const attackTechniques =
-    runtime.techniques?.filter((technique) => technique.category === 'attack') ?? []
-  const defenseTechniques =
-    runtime.techniques?.filter((technique) => technique.category === 'defense') ?? []
-  const healTechniques =
-    runtime.techniques?.filter((technique) => technique.category === 'heal') ?? []
+  const selectableTechniques = [...(runtime.techniques ?? []), ...(runtime.copiedSkills ?? [])]
+  const attackTechniques = selectableTechniques.filter(
+    (technique) => technique.category === 'attack',
+  )
+  const defenseTechniques = selectableTechniques.filter(
+    (technique) => technique.category === 'defense',
+  )
+  const healTechniques = selectableTechniques.filter((technique) => technique.category === 'heal')
+  const skillArtworkId = (technique: (typeof selectableTechniques)[number]) =>
+    'sourceSkillId' in technique ? technique.sourceSkillId : technique.id
   const [selectedAttackActionId, setSelectedAttackActionId] = useState<string>(BASIC_ATTACK_ID)
   const [selectedDefenseActionId, setSelectedDefenseActionId] = useState<string>(GUARD_ID)
   const [selectedTechniqueHealId, setSelectedTechniqueHealId] = useState<string | null>(null)
@@ -280,7 +284,7 @@ export function BattleExperience({
       id: technique.id,
       label: technique.name,
       cost: `${technique.apCost} AP`,
-      artworkSrc: battleSkillArtwork(technique.id),
+      artworkSrc: battleSkillArtwork(skillArtworkId(technique)),
       tags: technique.tags,
     })),
     ...(runtime.essence
@@ -307,7 +311,7 @@ export function BattleExperience({
       id: technique.id,
       label: technique.name,
       cost: `${technique.apCost} AP`,
-      artworkSrc: battleSkillArtwork(technique.id),
+      artworkSrc: battleSkillArtwork(skillArtworkId(technique)),
       tags: technique.tags,
     })),
   ]
@@ -317,7 +321,7 @@ export function BattleExperience({
       id: technique.id,
       label: technique.name,
       cost: `${technique.apCost} AP`,
-      artworkSrc: battleSkillArtwork(technique.id),
+      artworkSrc: battleSkillArtwork(skillArtworkId(technique)),
       tags: technique.tags,
     })),
   ]
@@ -373,12 +377,12 @@ export function BattleExperience({
   const selectedAttackCost = Number.parseInt(selectedAttack.cost, 10)
   const selectedDefenseCost = Number.parseInt(selectedDefense.cost, 10)
   const selectedAttackTechnique =
-    runtime.techniques?.find((technique) => technique.id === selectedAttackActionId) ??
+    selectableTechniques.find((technique) => technique.id === selectedAttackActionId) ??
     (runtime.essence?.id === selectedAttackActionId ? runtime.essence : undefined)
-  const selectedDefenseTechnique = runtime.techniques?.find(
+  const selectedDefenseTechnique = selectableTechniques.find(
     (technique) => technique.id === selectedDefenseActionId,
   )
-  const selectedHealTechnique = runtime.techniques?.find(
+  const selectedHealTechnique = selectableTechniques.find(
     (technique) => technique.id === effectiveHealActionId,
   )
   const activeTechnique =
@@ -775,6 +779,17 @@ export function BattleExperience({
           return
         }
 
+        const priorCopiedSkills = new Set(
+          (before.snapshot.effectState?.temporarySkills ?? [])
+            .filter((grant) => grant.combatantId === localCombatantId)
+            .map((grant) => `${grant.skillId}@${grant.contentVersion}`),
+        )
+        const gainedCopiedSkill = (body.battle.snapshot.effectState?.temporarySkills ?? []).some(
+          (grant) =>
+            grant.combatantId === localCombatantId &&
+            !priorCopiedSkills.has(`${grant.skillId}@${grant.contentVersion}`),
+        )
+
         battleRef.current = body.battle
         setBattle(body.battle)
         const nextLocalCombatant = localCombatantId
@@ -862,6 +877,7 @@ export function BattleExperience({
             setNotice(`Recovered ${restored} MP. ${remaining} AP remains.`)
           }
         }
+        if (gainedCopiedSkill) router.refresh()
       } catch (error) {
         setNotice(error instanceof Error ? error.message : 'That action could not be committed.')
       } finally {
@@ -876,6 +892,7 @@ export function BattleExperience({
       handleApiFailure,
       localCombatantId,
       localTurn,
+      router,
       runtime.kind,
       viewModel,
     ],
@@ -901,7 +918,7 @@ export function BattleExperience({
     (nextMode: 'attack' | 'guard' | 'recover', actionId: string) => {
       if (planningDisabled) return
       const skill =
-        runtime.techniques?.find((item) => item.id === actionId) ??
+        selectableTechniques.find((item) => item.id === actionId) ??
         (runtime.essence?.id === actionId ? runtime.essence : undefined)
       // Preserve only a target the player already chose. Changing a skill invalidates its old
       // forecast, while the preview endpoint remains the authority for the new action.
@@ -950,6 +967,7 @@ export function BattleExperience({
       requestPreview,
       runtime.essence,
       runtime.techniques,
+      runtime.copiedSkills,
       selectedUnitId,
     ],
   )

@@ -1,5 +1,8 @@
 import { isStarterCharacterPortraitRef } from '@aurevane/game-core/character/starter-options'
-import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
+import {
+  copiedSkillApCost,
+  copiedSkillCommandId,
+} from '@aurevane/game-core/combat/combat-skill-copy'
 import { isAurevaneError } from '@aurevane/game-core/errors'
 import { parseBattleSessionId } from '@aurevane/validation/combat/battle-session'
 import { headers } from 'next/headers'
@@ -19,14 +22,17 @@ import { getCurrentAccountServicesReadiness } from '@/server/account/account-ser
 import { getAuthenticatedActor } from '@/server/auth/actor'
 import {
   battleBuildAuthorityForCombatant,
+  resolveBattleDisciplineSkillDefinition,
   resolveBattleEssenceDefinition,
   resolveBattleResonanceDefinition,
+  resolveBattleTemporarySkillDefinition,
 } from '@/server/battle/battle-build-authority'
 import { createBattleSessionService } from '@/server/battle/battle-session-service'
 import { getPvpBattleMetadata } from '@/server/battle/pvp-lobby-service'
 import { createSupabaseBattleSessionRepository } from '@/server/battle/supabase-battle-session-repository'
 import { loadCharacterProfileDisplay } from '@/server/character/character-profile-display-service'
 import { createSupabaseCharacterRepository } from '@/server/character/supabase-character-repository'
+import { createServerCombatContentResolver } from '@/server/combat/combat-content-resolver'
 
 export const dynamic = 'force-dynamic'
 
@@ -55,7 +61,7 @@ function techniqueCategory(tags: readonly string[]): BattleTechniqueCategory {
   return 'attack'
 }
 
-function battleBuildExtensions(
+async function battleBuildExtensions(
   battle: Awaited<ReturnType<ReturnType<typeof createBattleSessionService>['getSession']>>,
   combatantId: string,
 ) {
@@ -64,39 +70,84 @@ function battleBuildExtensions(
   const resonanceDefinition = resolveBattleResonanceDefinition(authority, combatantId)
   const essenceDefinition = resolveBattleEssenceDefinition(authority, combatantId)
   const combatContext = authority?.combatContext
+  const resolver = createServerCombatContentResolver()
   const essenceOverride = combatContext
     ? essenceDefinition?.skill.overrides[combatContext]
     : undefined
-  const techniques = (build?.disciplineSkills ?? []).flatMap((reference) => {
-    const definition = resolveMatureSkillVersion(reference.skillId, reference.contentVersion)
-    if (!definition || definition.sourceDisciplineId !== reference.sourceDisciplineId) return []
-    const override = combatContext ? definition.overrides[combatContext] : undefined
-    const tail = definition.id.includes('.')
-      ? definition.id.slice(definition.id.indexOf('.') + 1)
-      : definition.id
-    return [
-      {
-        id: definition.id,
-        contentVersion: definition.contentVersion,
-        sourceDisciplineId: definition.sourceDisciplineId,
-        name: titleCase(tail),
-        apCost: override?.apCost ?? definition.apCost,
-        mpCost: definition.mpCost ?? 0,
-        cooldownOwnerTurns: override?.cooldownOwnerTurns ?? definition.cooldown.ownerTurns,
-        category: techniqueCategory(definition.tags),
-        targetKind: definition.target.kind,
-        targetTeamPolicy: definition.target.teamPolicy,
-        minimumRange: definition.target.minimumRange,
-        maximumRange: definition.target.maximumRange,
-        tags: skillTargetTags(definition),
-        effectDescriptions: definition.effects.map(skillEffectDescription),
-        requirementDescriptions: definition.requirements.map(skillRequirementDescription),
-      },
-    ]
-  })
+
+  const techniques = (
+    await Promise.all(
+      (build?.disciplineSkills ?? []).map(async (reference) => {
+        const definition = await resolveBattleDisciplineSkillDefinition(
+          authority,
+          combatantId,
+          reference.skillId,
+          resolver,
+        )
+        if (!definition || definition.sourceDisciplineId !== reference.sourceDisciplineId) return null
+        const override = combatContext ? definition.overrides[combatContext] : undefined
+        return {
+          id: definition.id,
+          contentVersion: definition.contentVersion,
+          sourceDisciplineId: definition.sourceDisciplineId,
+          name: titleCase(definition.id.includes('.') ? definition.id.slice(definition.id.indexOf('.') + 1) : definition.id),
+          apCost: override?.apCost ?? definition.apCost,
+          mpCost: definition.mpCost ?? 0,
+          cooldownOwnerTurns: override?.cooldownOwnerTurns ?? definition.cooldown.ownerTurns,
+          category: techniqueCategory(definition.tags),
+          targetKind: definition.target.kind,
+          targetTeamPolicy: definition.target.teamPolicy,
+          minimumRange: definition.target.minimumRange,
+          maximumRange: definition.target.maximumRange,
+          tags: skillTargetTags(definition),
+          effectDescriptions: definition.effects.map(skillEffectDescription),
+          requirementDescriptions: definition.requirements.map(skillRequirementDescription),
+        }
+      }),
+    )
+  ).filter((entry): entry is NonNullable<typeof entry> => entry !== null)
+
+  const copiedSkills = authority
+    ? (
+        await Promise.all(
+          (battle.snapshot.effectState?.temporarySkills ?? [])
+            .filter((grant) => grant.combatantId === combatantId)
+            .map(async (grant) => {
+              const definition = await resolveBattleTemporarySkillDefinition(
+                authority,
+                grant,
+                resolver,
+              )
+              if (!definition) return null
+              return {
+                id: copiedSkillCommandId(definition.id, definition.contentVersion),
+                sourceSkillId: definition.id,
+                contentVersion: definition.contentVersion,
+                sourceDisciplineId: definition.sourceDisciplineId,
+                name: titleCase(
+                  definition.id.includes('.')
+                    ? definition.id.slice(definition.id.indexOf('.') + 1)
+                    : definition.id,
+                ),
+                apCost: copiedSkillApCost(definition, authority.combatContext),
+                mpCost: definition.mpCost ?? 0,
+                category: techniqueCategory(definition.tags),
+                targetKind: definition.target.kind,
+                targetTeamPolicy: definition.target.teamPolicy,
+                minimumRange: definition.target.minimumRange,
+                maximumRange: definition.target.maximumRange,
+                tags: [...skillTargetTags(definition), 'Copied'],
+                effectDescriptions: definition.effects.map(skillEffectDescription),
+                requirementDescriptions: definition.requirements.map(skillRequirementDescription),
+              }
+            }),
+        )
+      ).filter((entry): entry is NonNullable<typeof entry> => entry !== null)
+    : []
 
   return {
     techniques,
+    copiedSkills,
     resonance: resonanceDefinition
       ? {
           id: resonanceDefinition.id,
@@ -182,7 +233,7 @@ export default async function BattleSessionPage({
     )
     if (!localParticipant || !isStarterCharacterPortraitRef(localParticipant.portraitRef))
       redirect('/game/battle')
-    const buildExtensions = battleBuildExtensions(battle, localParticipant.combatantId)
+    const buildExtensions = await battleBuildExtensions(battle, localParticipant.combatantId)
 
     return (
       <BattleAudioGate>
@@ -192,6 +243,7 @@ export default async function BattleSessionPage({
             kind: 'pvp',
             playerName: localParticipant.characterName,
             techniques: buildExtensions.techniques,
+            copiedSkills: buildExtensions.copiedSkills,
             resonance: buildExtensions.resonance,
             essence: buildExtensions.essence,
             metadata: pvpMetadata,
@@ -221,7 +273,7 @@ export default async function BattleSessionPage({
     : [null, null]
   if (!character || !isStarterCharacterPortraitRef(character.portraitRef)) redirect('/game/battle')
 
-  const buildExtensions = battleBuildExtensions(battle, `character:${character.id}`)
+  const buildExtensions = await battleBuildExtensions(battle, `character:${character.id}`)
 
   return (
     <BattleAudioGate>
@@ -231,6 +283,7 @@ export default async function BattleSessionPage({
           kind: 'pve',
           playerName: character.name,
           techniques: buildExtensions.techniques,
+          copiedSkills: buildExtensions.copiedSkills,
           resonance: buildExtensions.resonance,
           essence: buildExtensions.essence,
           playerLevel: character.level,
