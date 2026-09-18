@@ -249,5 +249,4 @@ describe('battle build authority mixed Technique source capacity', () => {
       ),
     ).resolves.toBeNull()
   })
-
 })

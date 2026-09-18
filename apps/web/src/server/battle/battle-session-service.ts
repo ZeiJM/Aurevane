@@ -373,9 +373,7 @@ function projectBattleSnapshot(
   return {
     ...state,
     statusState: projectBattleStatusStateForViewer(state, viewer),
-    ...(state.effectState
-      ? { effectState: projectBattleEffectStateForViewer(state, viewer) }
-      : {}),
+    ...(state.effectState ? { effectState: projectBattleEffectStateForViewer(state, viewer) } : {}),
     tactical: {
       ...state.tactical,
       battle: {

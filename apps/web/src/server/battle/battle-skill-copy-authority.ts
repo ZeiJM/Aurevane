@@ -47,11 +47,7 @@ export async function resolveBattleCopiedSkillCommand(
   if (!grant) return null
   return {
     grant,
-    definition: await resolveBattleTemporarySkillDefinition(
-      state.buildAuthority,
-      grant,
-      resolver,
-    ),
+    definition: await resolveBattleTemporarySkillDefinition(state.buildAuthority, grant, resolver),
   }
 }
 

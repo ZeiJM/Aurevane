@@ -286,9 +286,7 @@ describe('PV-1F temporary Skill Copy integration', () => {
       'pve',
     )
     expect(evaluated.cost).toBe(13)
-    expect(evaluated.action.id).toBe(
-      copiedSkillCommandId(definition.id, definition.contentVersion),
-    )
+    expect(evaluated.action.id).toBe(copiedSkillCommandId(definition.id, definition.contentVersion))
     expect(evaluated.evaluation.actionId).toBe(
       copiedSkillCommandId(definition.id, definition.contentVersion),
     )
@@ -306,10 +304,7 @@ describe('PV-1F temporary Skill Copy integration', () => {
     const definition = copySkill()
     const copyContext = {
       sourceCombatantId: SOURCE,
-      sourceSkills: [
-        staticSkill('vanguard.cleave', 1),
-        staticSkill('vanguard.guard-break', 1),
-      ],
+      sourceSkills: [staticSkill('vanguard.cleave', 1), staticSkill('vanguard.guard-break', 1)],
     }
     const first = executePv1fMatureSkill(
       state(),
@@ -335,5 +330,4 @@ describe('PV-1F temporary Skill Copy integration', () => {
       expect.objectContaining({ event: 'skill_repeat_penalty_applied' }),
     )
   })
-
 })

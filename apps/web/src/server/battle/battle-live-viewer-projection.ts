@@ -57,7 +57,6 @@ export function projectBattleStatusStateForViewer(
   })
 }
 
-
 export function projectBattleEffectStateForViewer(
   state: Pick<StatDrivenCombatEncounterState, 'effectState' | 'tactical'>,
   viewer: BattleViewerEntitlement,

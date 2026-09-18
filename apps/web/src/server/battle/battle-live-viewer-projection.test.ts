@@ -226,5 +226,4 @@ describe('CSR-2 live viewer-relative status projection', () => {
     expect(spectator?.temporarySkills).toEqual([])
     expect(authoritative.effectState).toEqual(before)
   })
-
 })

@@ -530,8 +530,7 @@ export async function resolveBattleTemporarySkillDefinition(
   const sourceBuild = battleBuildAuthorityForCombatant(authority, grant.sourceCombatantId)
   const sourceReference = sourceBuild?.disciplineSkills.find(
     (reference) =>
-      reference.skillId === grant.skillId &&
-      reference.contentVersion === grant.contentVersion,
+      reference.skillId === grant.skillId && reference.contentVersion === grant.contentVersion,
   )
   if (!sourceReference) return null
 
@@ -541,7 +540,8 @@ export async function resolveBattleTemporarySkillDefinition(
     grant.contentVersion,
     resolver,
   )
-  if (!definition || definition.sourceDisciplineId !== sourceReference.sourceDisciplineId) return null
+  if (!definition || definition.sourceDisciplineId !== sourceReference.sourceDisciplineId)
+    return null
   return definition
 }
 
