@@ -1,7 +1,6 @@
 'use client'
 
 import type { Route } from 'next'
-import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
@@ -38,8 +37,6 @@ function NavigationIcon({ name }: { name: (typeof gameNavigation)[number]['icon'
 export interface GameRailProps {
   activeSessionHref?: Route | null
   activeSessionLabel?: string | null
-  character?: { name: string; level?: number } | null
-  characterPortrait?: ReactNode
 }
 
 export function GameRail({ activeSessionHref, activeSessionLabel }: GameRailProps) {
