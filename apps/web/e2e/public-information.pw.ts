@@ -116,7 +116,9 @@ test('an authenticated character keeps a direct return path while reading the Ma
   const gameHeader = page.getByTestId('authenticated-shell').locator('header')
   const gameNewsLink = gameHeader.getByRole('link', { name: 'News', exact: true })
   await expect(gameHeader).toBeVisible()
-  await expect(gameHeader.locator('.brand__wordmark small')).toHaveText('Persistent tactical fantasy')
+  await expect(gameHeader.locator('.brand__wordmark small')).toHaveText(
+    'Persistent tactical fantasy',
+  )
   const gameHeaderStyle = await gameHeader.evaluate((element) => {
     const style = getComputedStyle(element)
     const rect = element.getBoundingClientRect()
