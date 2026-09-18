@@ -108,7 +108,12 @@ export function SkillMediaEditor({ value, onChange }: SkillMediaEditorProps) {
         <div className={styles.mediaAudioPreview}>
           {audio?.available && audio.sampleSrc ? (
             <>
-              <audio aria-label="Battle audio preview" controls preload="none" src={audio.sampleSrc} />
+              <audio
+                aria-label="Battle audio preview"
+                controls
+                preload="none"
+                src={audio.sampleSrc}
+              />
               <code>{audio.sampleAssetId}</code>
             </>
           ) : (
