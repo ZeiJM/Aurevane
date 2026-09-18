@@ -22,7 +22,9 @@ Phase 4 combat engineering is preserved as the incoming platform. Its remaining 
 - [x] Add protected Owner grant/revoke RPC and route foundations for delegated roles.
 - [x] Add Owner-facing staff-management UI, WORLDWRIGHT Owner presentation, and explicit special-capability grants without creating new role names.
 
-P5.1 closeout: staff authority changes require an explicit reason and confirmation at the authenticated server boundary; exact-email account lookup and staff listing are Owner-only; root access/staff-management capabilities are not delegable special grants; role/capability mutations share monotonic access versioning and durable audit history.\n\n### P5.2 — Persistent event kernel
+P5.1 closeout: staff authority changes require an explicit reason and confirmation at the authenticated server boundary; exact-email account lookup and staff listing are Owner-only; root access/staff-management capabilities are not delegable special grants; special capabilities only augment an existing delegated staff role; the final delegated role cannot be removed while special grants remain; role/capability mutations share monotonic access versioning and durable audit history.
+
+### P5.2 — Persistent event kernel
 
 - [ ] Versioned Event Template / Event Definition.
 - [ ] Event Run / Phase / Objective state.
