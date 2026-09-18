@@ -132,7 +132,6 @@ it.each(['regeneration', 'hastened', 'borrowed-hour'])(
   },
 )
 
-
 describe('current effect-state gameplay tags', () => {
   it('projects current Burn, Bleed and Poison without legacy status rows', () => {
     const tags = combatantGameplayTags(
