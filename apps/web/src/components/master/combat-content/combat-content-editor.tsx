@@ -21,6 +21,7 @@ import {
 } from './combat-content-workflow'
 import { SkillEconomyEditor, type SkillEconomyDraft } from './skill-economy-editor'
 import { SkillEffectListEditor } from './skill-effect-list-editor'
+import { SkillMediaEditor } from './skill-media-editor'
 import { SkillTargetingEditor } from './skill-targeting-editor'
 
 export interface CombatContentEditorSkillOption {
@@ -471,6 +472,10 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
               onChange={(economy: SkillEconomyDraft) =>
                 updateSelectedDraft({ ...selectedDraft, ...economy })
               }
+            />
+            <SkillMediaEditor
+              value={selectedDraft.media}
+              onChange={(media) => updateSelectedDraft({ ...selectedDraft, media })}
             />
             <SkillEffectListEditor
               value={selectedDraft.effects}

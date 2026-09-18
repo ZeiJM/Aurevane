@@ -1,4 +1,5 @@
 import { createElement } from 'react'
+import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -88,6 +89,22 @@ describe('Master Panel combat content editor shell', () => {
     }
     expect(markup).toContain('>Publish</button>')
     expect(markup).toContain('disabled=""')
+  })
+
+  it('mounts the typed media editor for a loaded Skill definition', () => {
+    const definition = resolveMatureSkillVersion('vanguard.forceful-strike', 2)
+    if (!definition) throw new Error('Expected Vanguard Forceful Strike.')
+    const markup = renderToStaticMarkup(
+      createElement(CombatContentEditor, {
+        skills: [{ ...skills[0]!, definition }],
+        initialSkillId: definition.id,
+      }),
+    )
+
+    expect(markup).toContain('<legend>Media</legend>')
+    expect(markup).toContain('aria-label="Skill artwork hook"')
+    expect(markup).toContain('aria-label="Skill audio hook"')
+    expect(markup).toContain('data-media-hook-readonly="vfx"')
   })
 
   it('renders derived tags as read-only output rather than an editable gameplay-tag field', () => {

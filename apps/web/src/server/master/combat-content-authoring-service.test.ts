@@ -216,11 +216,14 @@ describe('combat content authoring service', () => {
 
   it('accepts registered cross-Skill media hooks and rejects arbitrary media identities', () => {
     const { service } = serviceFixture()
-    const valid = staticSkill()
-    valid.media = {
-      ...valid.media,
-      iconKey: 'skill.lifebinder.mend.icon',
-      audioCueKey: 'skill.ironfist.breakfall.audio',
+    const validBase = staticSkill()
+    const valid: MatureSkillDefinition = {
+      ...validBase,
+      media: {
+        ...validBase.media,
+        iconKey: 'skill.lifebinder.mend.icon',
+        audioCueKey: 'skill.ironfist.breakfall.audio',
+      },
     }
     expect(service.validateSkillDefinition(valid)).toMatchObject({ valid: true, issues: [] })
 
@@ -228,8 +231,11 @@ describe('combat content authoring service', () => {
       ['iconKey', 'skill.unregistered.icon'],
       ['audioCueKey', 'skill.unregistered.audio'],
     ] as const) {
-      const invalid = staticSkill()
-      invalid.media = { ...invalid.media, [field]: value }
+      const invalidBase = staticSkill()
+      const invalid: MatureSkillDefinition = {
+        ...invalidBase,
+        media: { ...invalidBase.media, [field]: value },
+      }
       expect(service.validateSkillDefinition(invalid)).toMatchObject({
         valid: false,
         issues: [
