@@ -1,4 +1,8 @@
 /* composition-v3: this module owns the roster, including short-window and phone layouts. */
+:global(html):has([data-character-select-page='true']) {
+  scrollbar-gutter: stable both-edges;
+}
+
 .shell {
   position: relative;
   isolation: isolate;
