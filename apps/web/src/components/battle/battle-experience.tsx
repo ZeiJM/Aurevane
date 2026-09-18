@@ -2088,6 +2088,7 @@ function DesktopBattleRail({
               <button
                 type="button"
                 className={railStyles.portraitButton}
+                data-av-square-media="true"
                 data-desktop-inspect-combatant={participant.combatantId}
                 aria-label={`Inspect ${participant.name}`}
               >

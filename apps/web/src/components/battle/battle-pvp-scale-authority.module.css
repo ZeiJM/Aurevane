@@ -438,8 +438,8 @@
     aspect-ratio: 1 !important;
   }
 
-  /* A lone combatant uses the full rail for a portrait-forward card. Keep this rule in the
-     shared scale authority so the geometry survives the later PvP/PvE bridge selectors. */
+  /* A lone combatant may still use the full rail for supporting status content, but the
+     portrait media frame itself follows the shared square-media contract. */
   :global(
     main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind][data-battle-layout='map-first']
       [data-unified-combatant-rail]
@@ -469,8 +469,9 @@
     grid-column: 1 !important;
     grid-row: 2 !important;
     width: 100% !important;
-    height: 100% !important;
-    aspect-ratio: auto !important;
+    height: auto !important;
+    aspect-ratio: 1 / 1 !important;
+    align-self: start !important;
   }
   :global(
     main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind][data-battle-layout='map-first']

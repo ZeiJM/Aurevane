@@ -19,6 +19,7 @@ function uniqueIdentity(prefix: string): { email: string; characterName: string 
   }
 }
 
+// Square-media checks here verify frame geometry as well as the existing cockpit stability contract.
 async function expectStableCompactDesktopCockpit(page: Page) {
   const deck = page.locator('section[aria-label="Command Deck"]')
   const commands = deck.locator('[data-command-card]')
@@ -27,6 +28,24 @@ async function expectStableCompactDesktopCockpit(page: Page) {
   await expect(deck).toBeVisible()
   await expect(commands).toHaveCount(6)
   await expect(facingPad).toBeHidden()
+
+  const squareArtwork = deck.locator('[data-av-square-media="true"]')
+  expect(await squareArtwork.count()).toBeGreaterThanOrEqual(6)
+  const artworkGeometry = await squareArtwork.evaluateAll((frames) =>
+    frames.map((frame) => {
+      const rect = frame.getBoundingClientRect()
+      const image = frame.querySelector('img')
+      return {
+        width: rect.width,
+        height: rect.height,
+        fit: image ? getComputedStyle(image).objectFit : null,
+      }
+    }),
+  )
+  for (const artwork of artworkGeometry) {
+    expect(Math.abs(artwork.width - artwork.height)).toBeLessThanOrEqual(1)
+    if (artwork.fit) expect(artwork.fit).toBe('contain')
+  }
 
   const before = await commands.evaluateAll((cards) =>
     cards.map((card) => card.getBoundingClientRect().height),
@@ -123,6 +142,26 @@ test('keeps the shared PvP desktop cockpit at the same compact scale', async ({
     await guestDialog.getByRole('button', { name: 'Mark Ready' }).click()
     await hostDialog.getByRole('button', { name: 'Mark Ready' }).click()
     await expect(host).toHaveURL(/\/game\/battle\/[0-9a-f-]+$/i, { timeout: 20_000 })
+
+    const sidePortraits = host.locator(
+      '[data-unified-combatant-rail="true"] [data-av-square-media="true"]',
+    )
+    await expect(sidePortraits).toHaveCount(2)
+    const portraitGeometry = await sidePortraits.evaluateAll((frames) =>
+      frames.map((frame) => {
+        const rect = frame.getBoundingClientRect()
+        const image = frame.querySelector('img')
+        return {
+          width: rect.width,
+          height: rect.height,
+          fit: image ? getComputedStyle(image).objectFit : null,
+        }
+      }),
+    )
+    for (const portrait of portraitGeometry) {
+      expect(Math.abs(portrait.width - portrait.height)).toBeLessThanOrEqual(1)
+      if (portrait.fit) expect(portrait.fit).toBe('cover')
+    }
 
     await expectStableCompactDesktopCockpit(host)
   } finally {

@@ -134,9 +134,7 @@ export async function AuthenticatedShellFrame({
       backHref={backHref}
       backLabel={backLabel}
       layout={layout}
-      character={
-        activeCharacter ? { name: activeCharacter.name, level: activeCharacter.level } : null
-      }
+      character={activeCharacter ? { name: activeCharacter.name } : null}
       characterPortrait={
         activeCharacter && activeUserId ? (
           <Suspense

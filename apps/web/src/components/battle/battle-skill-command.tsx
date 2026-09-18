@@ -202,6 +202,8 @@ export function BattleSkillCommand({
         <span
           className={`${styles.artwork} ${artworkFitStyles.frame}`}
           data-battle-command-artwork="static"
+          data-av-square-media="true"
+          data-av-square-media-fit="contain"
           aria-hidden="true"
         >
           <Image
@@ -251,6 +253,8 @@ export function BattleSkillCommand({
           ref={artworkRef}
           type="button"
           className={styles.artworkTrigger}
+          data-av-square-media="true"
+          data-av-square-media-fit="contain"
           data-battle-skill-selector-category={selector.categoryLabel}
           data-battle-selected-skill-id={selector.selectedId}
           aria-haspopup="listbox"

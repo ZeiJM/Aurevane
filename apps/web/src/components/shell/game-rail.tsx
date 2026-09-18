@@ -3,7 +3,6 @@
 import type { Route } from 'next'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import type { ReactNode } from 'react'
 
 import { gameNavigation } from './game-navigation'
 import styles from './authenticated-game-shell.module.css'
@@ -38,16 +37,9 @@ function NavigationIcon({ name }: { name: (typeof gameNavigation)[number]['icon'
 export interface GameRailProps {
   activeSessionHref?: Route | null
   activeSessionLabel?: string | null
-  character?: { name: string; level: number } | null
-  characterPortrait?: ReactNode
 }
 
-export function GameRail({
-  activeSessionHref,
-  activeSessionLabel,
-  character,
-  characterPortrait,
-}: GameRailProps) {
+export function GameRail({ activeSessionHref, activeSessionLabel }: GameRailProps) {
   const pathname = usePathname()
   const restricted = Boolean(activeSessionHref)
   return (
@@ -92,18 +84,6 @@ export function GameRail({
         <Link className={styles.railSession} href={activeSessionHref}>
           {activeSessionLabel ?? 'Return to Active Session'}
         </Link>
-      ) : null}
-      {character ? (
-        <div
-          className={styles.railIdentity}
-          aria-label={`Current character: ${character.name}, Level ${character.level}`}
-        >
-          {characterPortrait}
-          <div>
-            <strong>{character.name}</strong>
-            <small>Level {character.level}</small>
-          </div>
-        </div>
       ) : null}
     </aside>
   )

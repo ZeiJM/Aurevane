@@ -356,7 +356,12 @@ export function CharacterSkillBuildPanel({
                         <span className={styles.eyebrow}>{signatureLabel}</span>
                         {initialResonance ? (
                           <article className={polish.signatureCard}>
-                            <span className={polish.signatureArtFrame} aria-hidden="true">
+                            <span
+                              className={polish.signatureArtFrame}
+                              data-av-square-media="true"
+                              data-av-square-media-fit="contain"
+                              aria-hidden="true"
+                            >
                               <Image
                                 width={64}
                                 height={64}
@@ -390,7 +395,12 @@ export function CharacterSkillBuildPanel({
                         ) : null}
                         {initialEssence ? (
                           <article className={polish.signatureCard}>
-                            <span className={polish.signatureArtFrame} aria-hidden="true">
+                            <span
+                              className={polish.signatureArtFrame}
+                              data-av-square-media="true"
+                              data-av-square-media-fit="contain"
+                              aria-hidden="true"
+                            >
                               <Image
                                 width={64}
                                 height={64}
@@ -451,13 +461,19 @@ export function CharacterSkillBuildPanel({
                             <span className={styles.slotNumber}>{index + 1}</span>
                             {entry ? (
                               <>
-                                <Image
-                                  src={battleSkillArtwork(entry.definition.id)}
-                                  width={200}
-                                  height={120}
-                                  unoptimized
-                                  alt=""
-                                />
+                                <span
+                                  className={styles.selectedLoadoutArt}
+                                  data-av-square-media="true"
+                                  data-av-square-media-fit="contain"
+                                >
+                                  <Image
+                                    src={battleSkillArtwork(entry.definition.id)}
+                                    width={200}
+                                    height={200}
+                                    unoptimized
+                                    alt=""
+                                  />
+                                </span>
                                 <strong>{skillDisplayName(entry.definition)}</strong>
                               </>
                             ) : (
@@ -502,7 +518,12 @@ export function CharacterSkillBuildPanel({
                                   disabled={disabled}
                                   onChange={() => toggle(entry)}
                                 />
-                                <span className={styles.artFrame} aria-hidden="true">
+                                <span
+                                  className={styles.artFrame}
+                                  data-av-square-media="true"
+                                  data-av-square-media-fit="contain"
+                                  aria-hidden="true"
+                                >
                                   <Image
                                     width={64}
                                     height={64}

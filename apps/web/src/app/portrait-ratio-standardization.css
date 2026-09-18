@@ -1,3 +1,32 @@
+/* Shared media-frame contract: gameplay image frames marked square stay 1:1 everywhere. */
+[data-av-square-media='true'] {
+  aspect-ratio: 1 / 1 !important;
+  height: auto !important;
+  min-height: 0 !important;
+  overflow: hidden;
+}
+
+[data-av-square-media='true']
+  > :is(img, .character-portrait-media, [data-media-status], [role='img']) {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  object-position: 50% 50%;
+}
+
+img[data-av-square-media='true'] {
+  aspect-ratio: 1 / 1 !important;
+  height: auto !important;
+  object-fit: cover !important;
+}
+
+[data-av-square-media='true'][data-av-square-media-fit='contain']
+  > :is(img, [data-media-status], [role='img']),
+img[data-av-square-media='true'][data-av-square-media-fit='contain'] {
+  object-fit: contain !important;
+  object-position: 50% 50% !important;
+}
+
 /*
  * Character portrait presentation contract.
  *

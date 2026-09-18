@@ -147,9 +147,9 @@ test('keeps three portrait and status cards accessible in each desktop PvP rail'
         ).toBeGreaterThan(firstHeight * 2)
         expect(geometry.singleCard.bottom).toBeLessThanOrEqual(geometry.rail.bottom + 1)
         expect(
-          geometry.singlePortrait.height,
-          'A one-on-one rail should use a tall character portrait.',
-        ).toBeGreaterThan(geometry.singlePortrait.width * 1.1)
+          Math.abs(geometry.singlePortrait.width - geometry.singlePortrait.height),
+          'A one-on-one rail portrait must remain square.',
+        ).toBeLessThanOrEqual(1)
         expect(firstHeight).toBeLessThanOrEqual(geometry.rail.height / 3)
 
         for (const {

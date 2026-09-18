@@ -1,7 +1,6 @@
 import type { Route } from 'next'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
-import { StatusMark } from '@aurevane/ui'
 
 import { PvpBattleKeyInputAssist } from '@/components/battle/pvp-battle-key-input-assist'
 import { getImageAsset } from '@/media/registry'
@@ -21,6 +20,8 @@ export interface AuthenticatedShellPresentationProps extends GameRailProps {
   backHref?: '/game' | '/game/character'
   backLabel?: string
   layout?: 'standard' | 'battlefield'
+  character?: { name: string; level?: number } | null
+  characterPortrait?: ReactNode
   activeBattleHref?: Route | null
   activeSpectatingHref?: Route | null
 }
@@ -28,7 +29,6 @@ export interface AuthenticatedShellPresentationProps extends GameRailProps {
 /** Resolved presentation only. Authentication and session authority stay in AuthenticatedShellFrame. */
 export function AuthenticatedShellPresentation({
   children,
-  sessionLabel = 'Character Profile',
   layout = 'standard',
   character,
   characterPortrait,
@@ -80,34 +80,7 @@ export function AuthenticatedShellPresentation({
             <Link href="/rules">Rules</Link>
           </nav>
 
-          <div className={railStyles.utility}>
-            <AccountMenu
-              activeSessionHref={activeSessionHref}
-              activeSessionLabel={activeSessionLabel}
-            />
-          </div>
-        </header>
-
-        <GameRail
-          activeSessionHref={activeSessionHref}
-          activeSessionLabel={activeSessionLabel}
-          character={character}
-          characterPortrait={characterPortrait}
-        />
-
-        <section
-          className={styles.contextBar}
-          data-av-context-strip="true"
-          data-av-surface="ink"
-          aria-label={`Current screen: ${sessionLabel}`}
-        >
-          <div className={styles.contextHeading}>
-            <StatusMark />
-            <span>Current workspace</span>
-            <strong>{sessionLabel}</strong>
-          </div>
-
-          <div className={styles.contextUtility}>
+          <div className={`${railStyles.utility} ${styles.mastheadUtility}`}>
             {activeBattleHref ? (
               <Link className={styles.activeBattleLink} href={activeBattleHref}>
                 <span aria-hidden="true">●</span> IN BATTLE
@@ -117,21 +90,23 @@ export function AuthenticatedShellPresentation({
                 <span aria-hidden="true">●</span> SPECTATING
               </Link>
             ) : null}
-
             {character ? (
               <div
-                className={styles.contextCharacter}
-                aria-label={`Current character: ${character.name}, Level ${character.level}`}
+                className={styles.headerCharacter}
+                aria-label={`Current character: ${character.name}`}
               >
                 {characterPortrait}
-                <div>
-                  <strong>{character.name}</strong>
-                  <small>Level {character.level}</small>
-                </div>
+                <strong>{character.name}</strong>
               </div>
             ) : null}
+            <AccountMenu
+              activeSessionHref={activeSessionHref}
+              activeSessionLabel={activeSessionLabel}
+            />
           </div>
-        </section>
+        </header>
+
+        <GameRail activeSessionHref={activeSessionHref} activeSessionLabel={activeSessionLabel} />
 
         <main className={styles.main} id="game-main" tabIndex={-1}>
           {children}

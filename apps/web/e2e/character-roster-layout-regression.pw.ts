@@ -26,6 +26,8 @@ test('Character Select keeps its heading above three readable, reachable roster 
     characterName,
   })
   await page.goto('/game')
+  await expect(page.locator('[data-character-select-page] > header img')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Switch account', exact: true })).toHaveCount(0)
   const board = page.locator('[data-character-slot-board]')
   const cards = board.locator(':scope > article')
   await expect(cards).toHaveCount(3)
@@ -102,6 +104,8 @@ test('Character Select keeps its heading above three readable, reachable roster 
       const hero = document.querySelector('[data-roster-stage] > header')!
       const accountDelete = document.querySelector('[data-testid="delete-account-button"]')!
       const locked = node.querySelector('[data-locked="true"]')!
+      const deleteStyle = getComputedStyle(accountDelete)
+      const deleteSupport = accountDelete.parentElement?.querySelector('small')
       return {
         board: rect(node),
         hero: rect(hero),
@@ -113,6 +117,11 @@ test('Character Select keeps its heading above three readable, reachable roster 
         nameFont: parseFloat(getComputedStyle(first.querySelector('h2')!).fontSize),
         buttonFont: parseFloat(getComputedStyle(first.querySelector('a')!).fontSize),
         documentOverflow: document.documentElement.scrollWidth - innerWidth,
+        documentScroll: document.documentElement.scrollHeight - innerHeight,
+        deleteJustify: deleteStyle.justifyContent,
+        deleteTextAlign: deleteStyle.textAlign,
+        deleteSupportAlign: deleteSupport ? getComputedStyle(deleteSupport).textAlign : '',
+        viewportCenter: innerWidth / 2,
       }
     })
     results.push({ viewport: size, ...metrics })
@@ -132,14 +141,27 @@ test('Character Select keeps its heading above three readable, reachable roster 
       .toBeLessThanOrEqual(metrics.board.y + 1)
     expect.soft(metrics.documentOverflow, `${label}: no horizontal overflow`).toBeLessThanOrEqual(1)
     expect
-      .soft(metrics.portrait.width / metrics.portrait.height, `${label}: cinematic portrait ratio`)
-      .toBeCloseTo(0.8, 1)
+      .soft(metrics.portrait.width / metrics.portrait.height, `${label}: square portrait ratio`)
+      .toBeCloseTo(1, 2)
     expect.soft(metrics.nameFont, `${label}: readable name`).toBeGreaterThanOrEqual(16)
     expect.soft(metrics.buttonFont, `${label}: readable primary action`).toBeGreaterThanOrEqual(14)
     expect.soft(metrics.play.height, `${label}: usable primary action`).toBeGreaterThanOrEqual(40)
     expect
       .soft(metrics.accountDelete.y, `${label}: account management follows the roster`)
       .toBeGreaterThanOrEqual(metrics.board.bottom - 1)
+    expect
+      .soft(
+        Math.abs(
+          metrics.accountDelete.x + metrics.accountDelete.width / 2 - metrics.viewportCenter,
+        ),
+        `${label}: Delete Account is horizontally centered`,
+      )
+      .toBeLessThanOrEqual(2)
+    expect.soft(metrics.deleteJustify, `${label}: Delete Account content centered`).toBe('center')
+    expect.soft(metrics.deleteTextAlign, `${label}: Delete Account text centered`).toBe('center')
+    expect
+      .soft(metrics.deleteSupportAlign, `${label}: deletion support text centered`)
+      .toBe('center')
     expect
       .soft(
         Math.max(...(metrics.lockedBackground.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number)),
@@ -150,6 +172,12 @@ test('Character Select keeps its heading above three readable, reachable roster 
       expect
         .soft(metrics.play.bottom, `${label}: play fits at normal zoom`)
         .toBeLessThanOrEqual(size.height)
+      expect
+        .soft(metrics.accountDelete.bottom, `${label}: account controls fit at normal zoom`)
+        .toBeLessThanOrEqual(size.height)
+      expect
+        .soft(metrics.documentScroll, `${label}: full roster fits without desktop page scroll`)
+        .toBeLessThanOrEqual(1)
     }
     await play.scrollIntoViewIfNeeded()
     await expect(play).toBeInViewport({ ratio: 1 })
@@ -164,10 +192,9 @@ test('Character Select keeps its heading above three readable, reachable roster 
       path.join(process.env.LAYOUT_REVIEW_OUTPUT, `character-roster-${info.project.name}.json`),
       JSON.stringify(results, null, 2),
     )
-  // Exercise the real footer sign-out, not a mocked navigation.
-  await page.getByRole('button', { name: 'Switch account', exact: true }).click()
-  await expect(page).toHaveURL(/\/$/)
-  await page.goto('/game')
+  // Sign-out remains available through Account; it no longer occupies roster page content.
+  await page.getByRole('button', { name: /Account/ }).click()
+  await page.getByRole('menuitem', { name: 'Sign out', exact: true }).click()
   await expect(page).toHaveURL(/\/$/)
   expect(pageErrors).toEqual([])
 })

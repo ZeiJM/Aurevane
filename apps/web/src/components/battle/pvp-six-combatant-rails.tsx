@@ -98,6 +98,7 @@ function RailCard({
       <button
         type="button"
         className={styles.portraitButton}
+        data-av-square-media="true"
         data-desktop-inspect-combatant={participant.combatantId}
         aria-label={`Inspect ${participant.characterName}`}
         title={`Use Inspect to view ${participant.characterName}`}
