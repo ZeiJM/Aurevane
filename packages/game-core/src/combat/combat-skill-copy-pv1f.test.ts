@@ -156,6 +156,51 @@ describe('PV-1F temporary Skill Copy integration', () => {
     expect(before.tactical.battle.rng.draws).toBe(0)
   })
 
+  it('forecasts and rolls Copy-only per-target accuracy without revealing the Copy roll', () => {
+    const before = state()
+    const definition = copySkill({
+      accuracyMode: 'per-target',
+      accuracyModifierBasisPoints: 0,
+    })
+    const options = {
+      copyContext: {
+        sourceCombatantId: SOURCE,
+        sourceSkills: [staticSkill('vanguard.cleave', 1)],
+      },
+    }
+
+    const evaluated = evaluatePv1fMatureSkill(
+      before,
+      definition,
+      { kind: 'unit', combatantId: SOURCE },
+      'pve',
+      options,
+    )
+    expect(evaluated.evaluation.targetHitChances).toEqual([
+      { targetCombatantId: SOURCE, hitChanceBasisPoints: 10_000 },
+    ])
+    expect(before.tactical.battle.rng.draws).toBe(0)
+
+    const committed = executePv1fMatureSkill(
+      before,
+      definition,
+      { kind: 'unit', combatantId: SOURCE },
+      'pve',
+      options,
+    )
+    expect(committed.state.tactical.battle.rng.draws).toBe(2)
+    expect(committed.events).toContainEqual(
+      expect.objectContaining({
+        event: 'combat_accuracy_resolved',
+        targetCombatantId: SOURCE,
+        hit: true,
+      }),
+    )
+    expect(committed.events).toContainEqual(
+      expect.objectContaining({ event: 'temporary_skill_copied' }),
+    )
+  })
+
   it('commits exactly one deterministic Copy draw and persists the selected pinned Skill', () => {
     const result = executePv1fMatureSkill(
       state(),

@@ -4,8 +4,11 @@ import {
   copiedSkillApCost,
   copiedSkillUsageKey,
   previewCombatSkillCopy,
-  type CombatSkillCopyInput,
 } from './combat-skill-copy'
+import {
+  forecastCombatSkillAccuracyForTarget,
+  rollCombatSkillAccuracyForTarget,
+} from './combat-skill-accuracy'
 import { normalizeCombatEffectState } from './combat-effect-state'
 import { hasGameplayTag } from './gameplay-tags'
 import { CURRENT_POISON_DAMAGE, advanceCurrentPoisonMovement } from './combat-dots'
@@ -618,6 +621,31 @@ export function evaluatePv1fMatureSkill(
       : defendedEffects,
   }
   let evaluation = evaluateCombatAction(prepared, action, target, PV1F_COMBAT_CONTENT)
+  if (
+    copyEffect &&
+    evaluation.legal &&
+    evaluation.primaryCombatantId &&
+    !(evaluation.targetHitChances ?? []).some(
+      (chance) => chance.targetCombatantId === evaluation.primaryCombatantId,
+    )
+  ) {
+    const copyHitChance = forecastCombatSkillAccuracyForTarget(
+      prepared,
+      action,
+      actorId,
+      evaluation.primaryCombatantId,
+      PV1F_COMBAT_CONTENT,
+    )
+    if (copyHitChance) {
+      evaluation = {
+        ...evaluation,
+        targetHitChances: [...(evaluation.targetHitChances ?? []), copyHitChance].sort((left, right) =>
+          left.targetCombatantId.localeCompare(right.targetCombatantId),
+        ),
+        projectionsAssumeHits: true,
+      }
+    }
+  }
   if (copyEffect && evaluation.legal) {
     const primary = evaluation.primaryCombatantId
     const copyContext = options.copyContext
@@ -703,14 +731,39 @@ export function executePv1fMatureSkill(
   const actorId = prepared.tactical.battle.currentTurn?.combatantId
   if (!actorId) throw new Error('Mature Skill execution requires an active turn.')
   const resonance = committedResonanceForecast(prepared, definition, target)
-  const resolved = executeCombatAction(prepared, action, target, PV1F_COMBAT_CONTENT)
+
+  const copySourceId = evaluation.skillCopy?.sourceCombatantId ?? null
+  const ordinaryAccuracyCoversCopy =
+    copySourceId !== null &&
+    action.accuracyMode === 'per-target' &&
+    evaluateCombatAction(prepared, action, target, PV1F_COMBAT_CONTENT).targetHitChances?.some(
+      (chance) => chance.targetCombatantId === copySourceId,
+    ) === true
+  const dedicatedCopyAccuracy =
+    copySourceId && action.accuracyMode === 'per-target' && !ordinaryAccuracyCoversCopy
+      ? rollCombatSkillAccuracyForTarget(
+          prepared,
+          action,
+          actorId,
+          copySourceId,
+          PV1F_COMBAT_CONTENT,
+        )
+      : { state: prepared, event: null }
+  const executionState = reattachStatDrivenCombatBridge(
+    dedicatedCopyAccuracy.state,
+    prepared.statBridge,
+  )
+  const resolved = executeCombatAction(executionState, action, target, PV1F_COMBAT_CONTENT)
+  const resolutionEvents = dedicatedCopyAccuracy.event
+    ? [dedicatedCopyAccuracy.event, ...resolved.events]
+    : resolved.events
   let next = reattachStatDrivenCombatBridge(resolved.state, prepared.statBridge)
   next = spendPv1fActionEconomyForActor(next, actorId, cost)
   next = markLastMatureSkill(next, actorId, options.repeatHistoryKey ?? definition.id)
 
   let copyEvent: unknown = null
   if (evaluation.skillCopy && options.copyContext) {
-    const missed = resolved.events.some(
+    const missed = resolutionEvents.some(
       (event) =>
         typeof event === 'object' &&
         event !== null &&
@@ -755,7 +808,7 @@ export function executePv1fMatureSkill(
   return {
     state: next,
     events: [
-      ...resolved.events,
+      ...resolutionEvents,
       ...(resonance?.forecast.willActivate
         ? [
             {
