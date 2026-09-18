@@ -257,9 +257,19 @@ function positionPlayerAdjacent(state: BattleAuthoritativeEncounterState) {
       placement.combatantId === PLAYER_ID ? { ...placement, position: { x: 3, y: 1 } } : placement,
     ),
   }
+  const deterministicBridge = {
+    ...state.statBridge,
+    combatants: state.statBridge.combatants.map((profile) =>
+      profile.combatantId === PLAYER_ID
+        ? { ...profile, accuracy: 10_000 }
+        : profile.combatantId === 'recruit:p2-4-1'
+          ? { ...profile, evasion: 0 }
+          : profile,
+    ),
+  }
   const base = reattachStatDrivenCombatBridge(
     createCombatEncounterState(tactical, state.statusState),
-    state.statBridge,
+    deterministicBridge,
   )
   return state.buildAuthority ? { ...base, buildAuthority: state.buildAuthority } : base
 }
