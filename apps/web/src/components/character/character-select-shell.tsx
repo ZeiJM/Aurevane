@@ -244,11 +244,13 @@ export function CharacterSelectShell({
                   key={slotIndex}
                 >
                   <span className={styles.slotNumber}>Slot {slotIndex + 1}</span>
-                  <div className={styles.emptyCrest} aria-hidden="true">
-                    ◇
+                  <div className={styles.emptyBody}>
+                    <div className={styles.emptyCrest} aria-hidden="true">
+                      ◇
+                    </div>
+                    <h2>{lock.title}</h2>
+                    <p>{lock.body}</p>
                   </div>
-                  <h2>{lock.title}</h2>
-                  <p>{lock.body}</p>
                   <span className={styles.lockedBadge}>{lock.badge}</span>
                 </article>
               )
@@ -264,15 +266,17 @@ export function CharacterSelectShell({
                   <span className={styles.slotNumber}>
                     Slot {slotIndex + 1} · {slotIndex === 0 ? 'Free' : 'Prestige unlocked'}
                   </span>
-                  <div className={styles.emptyCrest} aria-hidden="true">
-                    +
+                  <div className={styles.emptyBody}>
+                    <div className={styles.emptyCrest} aria-hidden="true">
+                      +
+                    </div>
+                    <h2>Open character slot</h2>
+                    <p>
+                      {slotIndex === 2
+                        ? 'Your first Prestige Rebirth earned this extra character slot for free.'
+                        : 'Create your adventurer with their own identity, progression, and build.'}
+                    </p>
                   </div>
-                  <h2>Open character slot</h2>
-                  <p>
-                    {slotIndex === 2
-                      ? 'Your first Prestige Rebirth earned this extra character slot for free.'
-                      : 'Create your adventurer with their own identity, progression, and build.'}
-                  </p>
                   <Link className={styles.primaryAction} href={`/game/create/${slotIndex}`}>
                     Create Character
                   </Link>
