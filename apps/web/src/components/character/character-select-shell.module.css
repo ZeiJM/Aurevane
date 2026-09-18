@@ -866,22 +866,21 @@
 }
 
 @keyframes rosterSelectedSheen {
-  0%,
-  12% {
-    opacity: 0;
+  0% {
+    opacity: 0.2;
     transform: translate3d(0, 0, 0) skewX(-10deg);
   }
 
-  24% {
-    opacity: 0.7;
+  16% {
+    opacity: 0.72;
   }
 
-  54% {
-    opacity: 0.85;
+  58% {
+    opacity: 0.88;
     transform: translate3d(390%, 0, 0) skewX(-10deg);
   }
 
-  66%,
+  72%,
   100% {
     opacity: 0;
     transform: translate3d(390%, 0, 0) skewX(-10deg);
