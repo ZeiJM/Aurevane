@@ -19,8 +19,12 @@ function serviceMock(): MasterPanelStaffAccessService {
     requireCapability: vi.fn(async () => {
       throw new Error('Not used directly by handler tests.')
     }),
+    listStaff: vi.fn(async () => []),
+    resolveAccountByEmail: vi.fn(async () => ({ userId: STAFF, email: 'staff@example.com' })),
     grantRole: vi.fn(async () => 2),
     revokeRole: vi.fn(async () => 3),
+    grantCapability: vi.fn(async () => 4),
+    revokeCapability: vi.fn(async () => 5),
   }
 }
 
@@ -40,14 +44,29 @@ function post(body: unknown): Request {
 }
 
 describe('staff access handler', () => {
-  it('injects the authenticated Owner identity into grants', async () => {
+  it('resolves an exact account through the authenticated Owner context', async () => {
+    const service = serviceMock()
+    const response = await handleStaffAccessRequest(
+      post({ operation: 'resolve-account', email: 'staff@example.com' }),
+      dependencies(service),
+    )
+
+    expect(response.status).toBe(200)
+    expect(service.resolveAccountByEmail).toHaveBeenCalledWith(OWNER, 'staff@example.com')
+    await expect(response.json()).resolves.toEqual({
+      account: { userId: STAFF, email: 'staff@example.com' },
+    })
+  })
+
+  it('injects the authenticated Owner identity into confirmed role grants', async () => {
     const service = serviceMock()
     const response = await handleStaffAccessRequest(
       post({
         operation: 'grant-role',
         targetUserId: STAFF,
         role: 'content-staff',
-        note: 'Combat content',
+        reason: 'Combat content',
+        confirmed: true,
         actorUserId: STAFF,
       }),
       dependencies(service),
@@ -58,44 +77,87 @@ describe('staff access handler', () => {
       actorUserId: OWNER,
       targetUserId: STAFF,
       role: 'content-staff',
-      note: 'Combat content',
+      reason: 'Combat content',
     })
     await expect(response.json()).resolves.toEqual({ accessVersion: 2 })
   })
 
-  it('routes revocation through the protected service', async () => {
+  it('routes confirmed special-capability revocation through the protected service', async () => {
     const service = serviceMock()
     const response = await handleStaffAccessRequest(
       post({
-        operation: 'revoke-role',
+        operation: 'revoke-capability',
         targetUserId: STAFF,
-        role: 'event-staff',
+        capability: 'events.global_scope',
+        reason: 'Scope removed',
+        confirmed: true,
       }),
       dependencies(service),
     )
 
     expect(response.status).toBe(200)
-    expect(service.revokeRole).toHaveBeenCalledWith({
+    expect(service.revokeCapability).toHaveBeenCalledWith({
       actorUserId: OWNER,
       targetUserId: STAFF,
-      role: 'event-staff',
-      note: null,
+      capability: 'events.global_scope',
+      reason: 'Scope removed',
     })
   })
 
-  it('rejects attempts to mutate the protected Game Owner role', async () => {
+  it('requires both a reason and explicit confirmation for authority mutation', async () => {
     const service = serviceMock()
-    const response = await handleStaffAccessRequest(
+
+    const noConfirmation = await handleStaffAccessRequest(
       post({
         operation: 'grant-role',
         targetUserId: STAFF,
-        role: 'game-owner',
+        role: 'event-staff',
+        reason: 'Live events',
+      }),
+      dependencies(service),
+    )
+    const noReason = await handleStaffAccessRequest(
+      post({
+        operation: 'grant-role',
+        targetUserId: STAFF,
+        role: 'event-staff',
+        confirmed: true,
       }),
       dependencies(service),
     )
 
-    expect(response.status).toBe(400)
+    expect(noConfirmation.status).toBe(400)
+    expect(noReason.status).toBe(400)
     expect(service.grantRole).not.toHaveBeenCalled()
+  })
+
+  it('rejects protected role/capability identities before mutation', async () => {
+    const service = serviceMock()
+    const ownerRole = await handleStaffAccessRequest(
+      post({
+        operation: 'grant-role',
+        targetUserId: STAFF,
+        role: 'game-owner',
+        reason: 'Should fail',
+        confirmed: true,
+      }),
+      dependencies(service),
+    )
+    const rootCapability = await handleStaffAccessRequest(
+      post({
+        operation: 'grant-capability',
+        targetUserId: STAFF,
+        capability: 'staff.manage',
+        reason: 'Should fail',
+        confirmed: true,
+      }),
+      dependencies(service),
+    )
+
+    expect(ownerRole.status).toBe(400)
+    expect(rootCapability.status).toBe(400)
+    expect(service.grantRole).not.toHaveBeenCalled()
+    expect(service.grantCapability).not.toHaveBeenCalled()
   })
 
   it('preserves authorization failures from the staff service', async () => {
@@ -109,6 +171,8 @@ describe('staff access handler', () => {
         operation: 'grant-role',
         targetUserId: STAFF,
         role: 'moderator',
+        reason: 'Moderation duty',
+        confirmed: true,
       }),
       dependencies(service),
     )

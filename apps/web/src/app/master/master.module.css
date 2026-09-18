@@ -127,3 +127,17 @@
     align-items: start;
   }
 }
+
+.worldwright {
+  border-color: rgba(185, 154, 92, 0.55);
+  background: linear-gradient(135deg, rgba(185, 154, 92, 0.12), rgba(100, 76, 145, 0.14));
+  color: var(--av-brass-300);
+}
+
+.operatorIcon {
+  margin-right: 0.35rem;
+}
+
+.moduleSpacing {
+  margin-top: var(--av-space-4);
+}

@@ -5,7 +5,11 @@ import { AurevaneError } from '@aurevane/game-core/errors'
 import { getAuthenticatedActor } from '@/server/auth/actor'
 import { toServerErrorResponse } from '@/server/http/error-response'
 
-import { isDelegatedMasterPanelRole, type MasterPanelStaffAccessService } from './staff-access'
+import {
+  isDelegatedMasterPanelRole,
+  isMasterPanelSpecialCapability,
+  type MasterPanelStaffAccessService,
+} from './staff-access'
 import { createServerMasterPanelStaffAccessService } from './staff-access-server'
 
 export interface StaffAccessHandlerDependencies {
@@ -41,7 +45,7 @@ async function readBody(request: Request): Promise<JsonObject> {
 
 function requiredString(value: unknown, field: string): string {
   if (typeof value !== 'string' || value.length === 0 || value.trim() !== value) {
-    return invalid(`${field} must be a non-empty string.`)
+    return invalid(field + ' must be a non-empty string.')
   }
   return value
 }
@@ -54,11 +58,16 @@ function requiredUserId(value: unknown): string {
   return userId
 }
 
-function optionalNote(value: unknown): string | null {
-  if (value === undefined || value === null) return null
-  const note = requiredString(value, 'note')
-  if (note.length > 240) return invalid('note must be 240 characters or fewer.')
-  return note
+function requiredReason(value: unknown): string {
+  const reason = requiredString(value, 'reason')
+  if (reason.length < 3 || reason.length > 240) {
+    return invalid('reason must be 3–240 characters.')
+  }
+  return reason
+}
+
+function requireConfirmation(value: unknown): void {
+  if (value !== true) return invalid('confirmed must be true for staff authority changes.')
 }
 
 function success(body: unknown): Response {
@@ -80,37 +89,64 @@ export async function handleStaffAccessRequest(
     const service = dependencies.createService()
     const body = await readBody(request)
     const operation = requiredString(body.operation, 'operation')
+
+    if (operation === 'resolve-account') {
+      const email = requiredString(body.email, 'email')
+      const account = await service.resolveAccountByEmail(actor.userId, email)
+      return success({ account })
+    }
+
+    if (
+      operation !== 'grant-role' &&
+      operation !== 'revoke-role' &&
+      operation !== 'grant-capability' &&
+      operation !== 'revoke-capability'
+    ) {
+      throw new AurevaneError('INVALID_REQUEST', 'Unsupported Master Panel staff operation.')
+    }
+
+    requireConfirmation(body.confirmed)
     const targetUserId = requiredUserId(body.targetUserId)
-    const role = requiredString(body.role, 'role')
-    if (!isDelegatedMasterPanelRole(role)) {
+    const reason = requiredReason(body.reason)
+
+    if (operation === 'grant-role' || operation === 'revoke-role') {
+      const role = requiredString(body.role, 'role')
+      if (!isDelegatedMasterPanelRole(role)) {
+        throw new AurevaneError(
+          'INVALID_REQUEST',
+          'role must be moderator, content-staff, or event-staff.',
+        )
+      }
+      const accessVersion =
+        operation === 'grant-role'
+          ? await service.grantRole({ actorUserId: actor.userId, targetUserId, role, reason })
+          : await service.revokeRole({ actorUserId: actor.userId, targetUserId, role, reason })
+      return success({ accessVersion })
+    }
+
+    const capability = requiredString(body.capability, 'capability')
+    if (!isMasterPanelSpecialCapability(capability)) {
       throw new AurevaneError(
         'INVALID_REQUEST',
-        'role must be moderator, content-staff, or event-staff.',
+        'capability must be an approved special capability.',
       )
     }
-    const note = optionalNote(body.note)
 
-    if (operation === 'grant-role') {
-      const accessVersion = await service.grantRole({
-        actorUserId: actor.userId,
-        targetUserId,
-        role,
-        note,
-      })
-      return success({ accessVersion })
-    }
-
-    if (operation === 'revoke-role') {
-      const accessVersion = await service.revokeRole({
-        actorUserId: actor.userId,
-        targetUserId,
-        role,
-        note,
-      })
-      return success({ accessVersion })
-    }
-
-    throw new AurevaneError('INVALID_REQUEST', 'Unsupported Master Panel staff operation.')
+    const accessVersion =
+      operation === 'grant-capability'
+        ? await service.grantCapability({
+            actorUserId: actor.userId,
+            targetUserId,
+            capability,
+            reason,
+          })
+        : await service.revokeCapability({
+            actorUserId: actor.userId,
+            targetUserId,
+            capability,
+            reason,
+          })
+    return success({ accessVersion })
   } catch (error) {
     return toServerErrorResponse(error)
   }
