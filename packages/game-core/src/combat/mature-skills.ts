@@ -543,6 +543,11 @@ function currentRequirement(requirement: CombatUseRequirement): CombatUseRequire
 }
 
 function currentEffect(effect: CombatEffectDefinition): CombatEffectDefinition {
+  if (effect.type === 'remove-status') {
+    return effect.statusIds.includes('marked') && !effect.statusIds.includes('mark')
+      ? { ...effect, statusIds: [...effect.statusIds, 'mark'] }
+      : effect
+  }
   if (effect.type !== 'apply-status') return effect
 
   if (effect.statusId === 'hastened') {

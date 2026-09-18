@@ -218,7 +218,6 @@ export const CLEANSE_STATUS_IDS = [
   'slow',
   'root',
   'exposed',
-  'mark',
   'marked',
   'challenged',
 ] as const
