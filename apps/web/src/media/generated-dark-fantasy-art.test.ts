@@ -12,7 +12,14 @@ import {
 describe('complete dark-fantasy artwork coverage', () => {
   it('covers all skills, essences, resonances and class sigils without duplicate sources', () => {
     const skills = latestEnabledMatureSkills().map((skill) => skill.id)
-    const essences = P36_REPRESENTATIVE_ESSENCES.filter((x) => x.enabled).map((x) => x.essenceId)
+    const essences = [
+      ...new Map(
+        P36_REPRESENTATIVE_ESSENCES.filter((x) => x.enabled).map((x) => [
+          x.essenceId,
+          x,
+        ]),
+      ).keys(),
+    ]
     const resonances = P35_REPRESENTATIVE_RESONANCES.filter((x) => x.enabled).map((x) => x.id)
     const skillArt = skills.map((id) => darkFantasySkillArtwork(id))
     const essenceArt = essences.map((id) => darkFantasySkillArtwork(id))
