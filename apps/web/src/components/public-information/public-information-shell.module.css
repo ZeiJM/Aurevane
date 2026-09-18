@@ -94,12 +94,12 @@
   align-items: center;
   justify-content: center;
   padding: 0.65rem 0.9rem;
-  border: 1px solid var(--av-border-strong);
-  border-radius: var(--av-radius-sm);
-  color: var(--av-text-muted);
-  background: rgba(255, 255, 255, 0.025);
-  font: 600 0.8rem/1.2 var(--av-font-body);
-  letter-spacing: 0.06em;
+  border: 1px solid rgba(212, 186, 130, 0.48);
+  border-radius: 0.2rem;
+  color: #c2c7c6;
+  background: rgba(255, 255, 255, 0.024);
+  font: 600 0.75rem/1.2 var(--av-font-body);
+  letter-spacing: 0.025em;
   text-decoration: none;
   text-transform: none;
 }
