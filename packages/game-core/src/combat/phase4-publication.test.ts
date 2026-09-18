@@ -24,6 +24,7 @@ import {
   type StatDrivenCombatEncounterState,
 } from './stat-driven-combat'
 import {
+  P33_REPRESENTATIVE_DISCIPLINE_SKILLS,
   latestEnabledMatureSkills,
   resolveMatureSkillVersion,
   type MatureSkillDefinition,
