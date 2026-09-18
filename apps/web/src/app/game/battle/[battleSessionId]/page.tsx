@@ -96,6 +96,7 @@ async function battleBuildExtensions(
               ? definition.id.slice(definition.id.indexOf('.') + 1)
               : definition.id,
           ),
+          iconKey: definition.media.iconKey,
           apCost: override?.apCost ?? definition.apCost,
           mpCost: definition.mpCost ?? 0,
           cooldownOwnerTurns: override?.cooldownOwnerTurns ?? definition.cooldown.ownerTurns,
@@ -134,6 +135,7 @@ async function battleBuildExtensions(
                     ? definition.id.slice(definition.id.indexOf('.') + 1)
                     : definition.id,
                 ),
+                iconKey: definition.media.iconKey,
                 apCost: copiedSkillApCost(definition, authority.combatContext),
                 mpCost: definition.mpCost ?? 0,
                 category: techniqueCategory(definition.tags),
@@ -167,6 +169,7 @@ async function battleBuildExtensions(
           contentVersion: essenceDefinition.contentVersion,
           name: essenceDefinition.name,
           description: essenceDefinition.description,
+          iconKey: essenceDefinition.skill.media.iconKey,
           apCost: essenceOverride?.apCost ?? essenceDefinition.skill.apCost,
           mpCost: essenceDefinition.skill.mpCost ?? 0,
           targetKind: essenceDefinition.skill.target.kind,

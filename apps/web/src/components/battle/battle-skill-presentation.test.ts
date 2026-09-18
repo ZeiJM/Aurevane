@@ -51,6 +51,15 @@ describe('battle skill artwork presentation', () => {
     expect(battleSkillArtwork(PV1F_MP_RECOVER_ACTION_ID)).toBe('/media/skills/mp-recovery.svg')
   })
 
+  it('lets a published Skill media hook replace artwork without changing the action id', () => {
+    expect(battleSkillArtwork('vanguard.forceful-strike', 'skill.lifebinder.mend.icon')).toBe(
+      '/media/art/concept-ui/skill-lifebinder-mend-v01.webp',
+    )
+    expect(battleSkillArtwork('vanguard.forceful-strike', 'skill.unknown.icon')).toBe(
+      PHASE_3_COMBAT_ARTWORK['vanguard.forceful-strike'],
+    )
+  })
+
   it('gives every Phase 3 action distinct generated dark-fantasy art', () => {
     const resolvedArtwork = PHASE_3_COMBAT_ACTION_IDS.map((actionId) => {
       const artwork = battleSkillArtwork(actionId)
@@ -81,7 +90,7 @@ describe('battle skill artwork presentation', () => {
       'lifebinder.mend',
       'lifebinder.renew',
     ]
-    const paths = ids.map(battleSkillArtwork)
+    const paths = ids.map((id) => battleSkillArtwork(id))
     expect(new Set(paths).size).toBe(ids.length)
     for (const path of paths) {
       expect(path).toMatch(/^\/media\/art\/concept-ui\/skill-.+\.webp$/)

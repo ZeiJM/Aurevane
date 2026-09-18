@@ -762,13 +762,22 @@ export function executePv1fMatureSkill(
   const resolutionEvents = dedicatedCopyAccuracy.event
     ? [dedicatedCopyAccuracy.event, ...resolved.events]
     : resolved.events
+  const mediaResolutionEvents = resolutionEvents.map((event) =>
+    definition.media.audioCueKey &&
+    typeof event === 'object' &&
+    event !== null &&
+    'event' in event &&
+    event.event === 'combat_action_used'
+      ? { ...event, audioCueKey: definition.media.audioCueKey }
+      : event,
+  )
   let next = reattachStatDrivenCombatBridge(resolved.state, prepared.statBridge)
   next = spendPv1fActionEconomyForActor(next, actorId, cost)
   next = markLastMatureSkill(next, actorId, options.repeatHistoryKey ?? definition.id)
 
   let copyEvent: unknown = null
   if (evaluation.skillCopy && options.copyContext) {
-    const missed = resolutionEvents.some(
+    const missed = mediaResolutionEvents.some(
       (event) =>
         typeof event === 'object' &&
         event !== null &&
@@ -813,7 +822,7 @@ export function executePv1fMatureSkill(
   return {
     state: next,
     events: [
-      ...resolutionEvents,
+      ...mediaResolutionEvents,
       ...(resonance?.forecast.willActivate
         ? [
             {

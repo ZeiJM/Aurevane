@@ -621,7 +621,7 @@ Status authoring should likewise expose plain-language lifecycle/effect descript
 
 ---
 
-## 22. Current Combat Content Authoring Slice (2026-09-17)
+## 22. Current Combat Content Authoring Slice (updated 2026-09-18)
 
 The first operational Combat Content module now implements the protected, versioned Skill-authoring
 path at `/master/combat-content`. This is a bounded current capability, not a claim that every
@@ -669,7 +669,31 @@ ROLLBACK / REPOINT WHEN NEEDED
 Mutable draft storage and optimistic draft versions exist server-side and are hydrated when present.
 Validation, semantic diff, preview, publish and rollback all cross the authenticated server boundary.
 Canonical validation rejects unknown effects, script-like fields, manually supplied derived
-presentation fields, and invalid combat constraints rather than letting the browser define rules.
+presentation fields, invalid combat constraints, malformed media hook identities and unregistered
+artwork/audio hooks rather than letting the browser define rules.
+
+### Skill media hooks
+
+Versioned Skill definitions already carry canonical `media.iconKey`, `media.audioCueKey` and
+`media.vfxKey` fields. The current Combat Content editor now exposes the first operational media
+slice without pretending the later full Asset Studio is complete:
+
+- **Artwork** uses an allow-listed stable hook selector with a visual preview. Raw URLs and arbitrary
+  file paths are not authorable.
+- **Battle audio** uses an allow-listed stable hook selector. Produced approved cues can be
+  auditioned in the editor. Existing reserved hooks whose runtime audio has not yet been produced
+  remain visible honestly instead of being presented as playable media.
+- **VFX** remains visible but read-only until the approved VFX registry/runtime exists.
+- Artwork/audio relationships are part of the immutable Skill definition, so publication/version
+  pinning governs them together with mechanics. New battles consume the current published hooks;
+  existing battles continue resolving their pinned Skill version.
+- Runtime battle artwork resolves the pinned Skill's icon hook, including temporary copied Skills.
+  Committed Skill action receipts carry the pinned audio hook so the Audio Director can use the
+  approved cue while retaining action-ID fallback for historical/basic actions.
+
+Uploads, generation, approval queues, bulk asset operations and the full reusable Asset Studio remain
+later media-operations work governed by `docs/ROADMAP_MEDIA_OPERATIONS.md` and
+`docs/ASSET_STUDIO_AND_MEDIA_OPERATIONS.md`.
 
 Preview uses an isolated deterministic combat fixture and canonical combat evaluation. It does not
 save a battle, mutate a player's battle, consume production battle RNG, or change draft/publication
@@ -698,11 +722,13 @@ rewrite a character's persisted loadout references.
 support does **not** make it publishable: the mature-Skill publication guard
 `effects.status-copy-staged` remains authoritative until the remaining clone gates are approved.
 
-The separately designed random temporary-Skill **Copy** mechanic is not the same operation.
-`temporarySkills` in encounter effect state is only supporting state; the current combat effect
-union does not provide a complete authorable/committable random-Skill Copy operation. The Master
-Panel must not simulate, publish, or imply support for that mechanic until the authoritative combat
-runtime exists.
+The separately designed random temporary-Skill **Copy** mechanic is not the same operation. It is
+now implemented as the typed `copy` effect with server-authoritative deterministic RNG,
+battle-only `temporarySkills` persistence, frozen source-build eligibility, half-AP copied
+execution, viewer-relative privacy, copied-Skill cockpit presentation and Recruit AI support. The
+Combat Content editor may author that typed effect and canonical validation enforces its targeting
+boundary. This does not relax or imply completion of the separate Amplify/Curse
+`copy-statuses` publication gate.
 
 ### Audit scope
 

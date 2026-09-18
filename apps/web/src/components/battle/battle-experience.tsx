@@ -270,8 +270,11 @@ export function BattleExperience({
     (technique) => technique.category === 'defense',
   )
   const healTechniques = selectableTechniques.filter((technique) => technique.category === 'heal')
-  const skillArtworkId = (technique: (typeof selectableTechniques)[number]) =>
-    'sourceSkillId' in technique ? technique.sourceSkillId : technique.id
+  const skillArtwork = (technique: (typeof selectableTechniques)[number]) =>
+    battleSkillArtwork(
+      'sourceSkillId' in technique ? technique.sourceSkillId : technique.id,
+      technique.iconKey,
+    )
   const [selectedAttackActionId, setSelectedAttackActionId] = useState<string>(BASIC_ATTACK_ID)
   const [selectedDefenseActionId, setSelectedDefenseActionId] = useState<string>(GUARD_ID)
   const [selectedTechniqueHealId, setSelectedTechniqueHealId] = useState<string | null>(null)
@@ -287,7 +290,7 @@ export function BattleExperience({
       id: technique.id,
       label: technique.name,
       cost: `${technique.apCost} AP`,
-      artworkSrc: battleSkillArtwork(skillArtworkId(technique)),
+      artworkSrc: skillArtwork(technique),
       tags: technique.tags,
     })),
     ...(runtime.essence
@@ -296,7 +299,7 @@ export function BattleExperience({
             id: runtime.essence.id,
             label: runtime.essence.name,
             cost: `${runtime.essence.apCost} AP`,
-            artworkSrc: battleSkillArtwork(runtime.essence.id),
+            artworkSrc: battleSkillArtwork(runtime.essence.id, runtime.essence.iconKey),
             tags: runtime.essence.tags,
           },
         ]
@@ -314,7 +317,7 @@ export function BattleExperience({
       id: technique.id,
       label: technique.name,
       cost: `${technique.apCost} AP`,
-      artworkSrc: battleSkillArtwork(skillArtworkId(technique)),
+      artworkSrc: skillArtwork(technique),
       tags: technique.tags,
     })),
   ]
@@ -324,7 +327,7 @@ export function BattleExperience({
       id: technique.id,
       label: technique.name,
       cost: `${technique.apCost} AP`,
-      artworkSrc: battleSkillArtwork(skillArtworkId(technique)),
+      artworkSrc: skillArtwork(technique),
       tags: technique.tags,
     })),
   ]

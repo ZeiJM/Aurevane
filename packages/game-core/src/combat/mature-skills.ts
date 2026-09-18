@@ -551,6 +551,18 @@ export function validateMatureSkillDefinition(
     issues.push('unlockRequirement.grantId')
   }
   if (!Number.isFinite(definition.ai.baseUtility)) issues.push('ai.baseUtility')
+  const media = definition.media as MatureSkillMediaHooks | null | undefined
+  if (!media || typeof media !== 'object') {
+    issues.push('media')
+  } else {
+    const mediaKeyPattern = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/u
+    for (const field of ['iconKey', 'audioCueKey', 'vfxKey'] as const) {
+      const value = media[field]
+      if (value !== null && (typeof value !== 'string' || !mediaKeyPattern.test(value))) {
+        issues.push(`media.${field}`)
+      }
+    }
+  }
   if (definition.authoring.schemaVersion !== MATURE_SKILL_SCHEMA_VERSION) {
     issues.push('authoring.schemaVersion')
   }
