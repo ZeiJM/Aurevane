@@ -21,11 +21,12 @@
   }
 
   [data-testid='account-shell'] > main {
-    display: block !important;
-    grid-template-columns: none !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1.35fr) minmax(24rem, 0.65fr) !important;
     width: 100% !important;
     max-width: 104rem !important;
     min-height: 0;
+    gap: 0.65rem !important;
     margin-inline: auto !important;
     padding: 0.65rem !important;
     overflow: hidden;
@@ -39,12 +40,11 @@
 
   [data-testid='account-shell'] [data-account-concept='true'] {
     min-height: 0;
-    max-height: calc(100% - 18rem);
-    align-self: auto;
+    max-height: none;
+    align-self: center;
     padding: clamp(0.9rem, 1.5vw, 1.35rem) !important;
-    overflow: auto;
+    overflow: visible;
     border-radius: 0 !important;
-    scrollbar-width: thin;
   }
 
   [data-testid='account-shell'] > footer {
