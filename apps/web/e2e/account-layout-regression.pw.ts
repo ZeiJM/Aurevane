@@ -47,8 +47,13 @@ test('Account gateway keeps the desktop entry workspace clear and readable', asy
     const footerBox = footerElement.getBoundingClientRect()
     return {
       overflow: document.documentElement.scrollWidth - innerWidth,
+      heroLeft: heroBox.left,
       heroRight: heroBox.right,
+      heroTop: heroBox.top,
+      heroBottom: heroBox.bottom,
       cardLeft: cardBox.left,
+      cardRight: cardBox.right,
+      cardTop: cardBox.top,
       cardBottom: cardBox.bottom,
       submitBottom: submitBox.bottom,
       footerTop: footerBox.top,
@@ -59,8 +64,17 @@ test('Account gateway keeps the desktop entry workspace clear and readable', asy
     .soft(metrics.overflow, 'desktop account gateway has no horizontal overflow')
     .toBeLessThanOrEqual(1)
   expect
-    .soft(metrics.heroRight, 'desktop hero stays left of the account card')
-    .toBeLessThanOrEqual(metrics.cardLeft + 1)
+    .soft(metrics.cardLeft, 'desktop account card stays inside the cinematic stage')
+    .toBeGreaterThanOrEqual(metrics.heroLeft)
+  expect
+    .soft(metrics.cardRight, 'desktop account card stays inside the cinematic stage')
+    .toBeLessThanOrEqual(metrics.heroRight)
+  expect
+    .soft(metrics.cardTop, 'desktop account card overlays the cinematic hero')
+    .toBeGreaterThan(metrics.heroTop)
+  expect
+    .soft(metrics.cardBottom, 'desktop account card stays within the cinematic hero')
+    .toBeLessThanOrEqual(metrics.heroBottom + 1)
   expect
     .soft(metrics.cardBottom, 'desktop account card stays above the footer')
     .toBeLessThanOrEqual(metrics.footerTop + 1)

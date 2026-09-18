@@ -74,37 +74,37 @@ export function AccountEntryShell({ authConfig, sessionNotice }: AccountEntryShe
               <span>Character identity stays distinct</span>
             </div>
           </div>
+
+          <Surface
+            className={styles.entryCard}
+            tone="elevated"
+            data-av-surface="moonstone"
+            data-account-concept="true"
+          >
+            <Kicker marker="◇">Account entry</Kicker>
+            <h2>Begin or return.</h2>
+            <p className={styles.entryLead}>
+              Sign in to resume your account, or create the account that will carry your AUREVANE
+              history forward.
+            </p>
+
+            <AccountAccessPanel authConfig={authConfig} initialMessage={sessionNotice} />
+
+            <details className={styles.help}>
+              <summary>Account &amp; Security</summary>
+              <div>
+                <p>
+                  AUREVANE allows one active gameplay login per account. Signing in elsewhere hands
+                  control to the newer login and safely closes any active battle on the older one.
+                </p>
+                <p>
+                  Your email is authentication data, not your character name. Sign out when using a
+                  shared device.
+                </p>
+              </div>
+            </details>
+          </Surface>
         </section>
-
-        <Surface
-          className={styles.entryCard}
-          tone="elevated"
-          data-av-surface="moonstone"
-          data-account-concept="true"
-        >
-          <Kicker marker="◇">Account entry</Kicker>
-          <h2>Begin or return.</h2>
-          <p className={styles.entryLead}>
-            Sign in to resume your account, or create the account that will carry your AUREVANE
-            history forward.
-          </p>
-
-          <AccountAccessPanel authConfig={authConfig} initialMessage={sessionNotice} />
-
-          <details className={styles.help}>
-            <summary>Account &amp; Security</summary>
-            <div>
-              <p>
-                AUREVANE allows one active gameplay login per account. Signing in elsewhere hands
-                control to the newer login and safely closes any active battle on the older one.
-              </p>
-              <p>
-                Your email is authentication data, not your character name. Sign out when using a
-                shared device.
-              </p>
-            </div>
-          </details>
-        </Surface>
       </main>
 
       <footer className={styles.footer}>
