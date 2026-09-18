@@ -1,0 +1,69 @@
+name: Isolated Skill media editor gate
+
+on:
+  push:
+    branches:
+      - agent/master-skill-media-ui-helper-20260918
+
+permissions:
+  contents: write
+
+jobs:
+  gate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Format Skill media editor slice
+        run: |
+          pnpm exec prettier --write \
+            packages/game-core/src/combat/mature-skills.ts \
+            packages/game-core/src/combat/mature-skills.test.ts \
+            apps/web/src/server/master/combat-content-authoring-service.ts \
+            apps/web/src/server/master/combat-content-authoring-service.test.ts \
+            apps/web/src/components/master/combat-content/combat-content-editor.tsx \
+            apps/web/src/components/master/combat-content/combat-content-editor.test.tsx \
+            apps/web/src/components/master/combat-content/combat-content-editor.module.css \
+            apps/web/src/components/master/combat-content/skill-media-editor.tsx \
+            apps/web/src/components/master/combat-content/skill-media-editor.test.tsx
+      - name: Focused tests
+        run: |
+          pnpm --filter @aurevane/game-core exec vitest run src/combat/mature-skills.test.ts
+          pnpm --filter @aurevane/web exec vitest run \
+            src/media/skill-media-hooks.test.ts \
+            src/components/master/combat-content/skill-media-editor.test.tsx \
+            src/components/master/combat-content/combat-content-editor.test.tsx \
+            src/server/master/combat-content-authoring-service.test.ts
+      - name: Typecheck touched workspaces
+        run: |
+          pnpm --filter @aurevane/game-core typecheck
+          pnpm --filter @aurevane/web typecheck
+      - name: Commit formatter output
+        run: |
+          if git diff --quiet; then
+            echo "No formatter changes required."
+            exit 0
+          fi
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            packages/game-core/src/combat/mature-skills.ts \
+            packages/game-core/src/combat/mature-skills.test.ts \
+            apps/web/src/server/master/combat-content-authoring-service.ts \
+            apps/web/src/server/master/combat-content-authoring-service.test.ts \
+            apps/web/src/components/master/combat-content/combat-content-editor.tsx \
+            apps/web/src/components/master/combat-content/combat-content-editor.test.tsx \
+            apps/web/src/components/master/combat-content/combat-content-editor.module.css \
+            apps/web/src/components/master/combat-content/skill-media-editor.tsx \
+            apps/web/src/components/master/combat-content/skill-media-editor.test.tsx
+          git commit -m "chore: format Skill media editor"
+          git push
