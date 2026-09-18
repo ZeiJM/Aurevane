@@ -74,9 +74,8 @@ export function AccountEntryShell({ authConfig, sessionNotice }: AccountEntryShe
               <span>Character identity stays distinct</span>
             </div>
           </div>
-        </section>
 
-        <Surface
+          <Surface
           className={styles.entryCard}
           tone="elevated"
           data-av-surface="moonstone"
@@ -104,7 +103,8 @@ export function AccountEntryShell({ authConfig, sessionNotice }: AccountEntryShe
               </p>
             </div>
           </details>
-        </Surface>
+          </Surface>
+        </section>
       </main>
 
       <footer className={styles.footer}>
