@@ -147,17 +147,26 @@ function grantLocalMasterOperator(email: string): void {
   }
 
   queryLocalDatabase(`
-    insert into app_private.master_panel_operators (user_id, role, enabled, note)
+    insert into app_private.master_panel_role_assignments (
+      user_id,
+      role,
+      enabled,
+      note
+    )
     values (
       '${userId}'::uuid,
-      'owner',
+      'game-owner',
       true,
-      'Task 10 local browser verification'
+      'Phase 5 local browser verification'
     )
-    on conflict (user_id) do update
-    set role = excluded.role,
-        enabled = excluded.enabled,
+    on conflict (user_id, role) do update
+    set enabled = excluded.enabled,
+        updated_at = clock_timestamp(),
         note = excluded.note;
+
+    insert into app_private.master_panel_access_versions (user_id, access_version)
+    values ('${userId}'::uuid, 1)
+    on conflict (user_id) do nothing;
   `)
 }
 
@@ -346,7 +355,7 @@ test('Master combat authoring publishes versioned content, pins battles, and rol
 
   await page.goto('/master')
   await expect(page.getByRole('heading', { name: 'Operational control' })).toBeVisible()
-  await expect(page.getByText('owner', { exact: true })).toBeVisible()
+  await expect(page.getByText('GAME OWNER', { exact: true })).toBeVisible()
 
   await equipAuthoringSkill(page)
 

@@ -10,6 +10,7 @@ import {
   deriveSkillPresentationTags,
 } from '@/server/combat/combat-content-resolver'
 import { requireMasterPanelPageAccess } from '@/server/master/master-panel-page-access'
+import { masterPanelRoleLabel } from '@/server/master/staff-access'
 import { createSupabaseCombatContentAuthoringStore } from '@/server/master/supabase-combat-content-authoring-store'
 
 import styles from '../master.module.css'
@@ -38,7 +39,8 @@ function titleSkill(skillId: string): string {
 }
 
 export default async function MasterCombatContentPage() {
-  const { actor, role } = await requireMasterPanelPageAccess()
+  const { actor, access } = await requireMasterPanelPageAccess('content.combat.author')
+  const roleSummary = access.roles.map(masterPanelRoleLabel).join(' · ')
   const resolver = createServerCombatContentResolver()
   const store = createSupabaseCombatContentAuthoringStore(actor.userId)
   const catalog = latestEnabledMatureSkills()
@@ -105,7 +107,7 @@ export default async function MasterCombatContentPage() {
             <strong>AUREVANE</strong>
             <span>Master Panel · Combat Content</span>
           </div>
-          <span className={styles.operator}>{role}</span>
+          <span className={styles.operator}>{roleSummary}</span>
         </header>
         <Link className={styles.breadcrumb} href="/master">
           ← Master Panel
