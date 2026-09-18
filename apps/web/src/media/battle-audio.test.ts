@@ -58,13 +58,13 @@ describe('committed battle audio', () => {
         [
           record({
             event: 'combat_action_used',
-            actionId: 'temporary.copy.vanguard.forceful-strike.v2',
+            actionId: 'temporary.copy.ironfist.breakfall.v1',
           }),
         ],
         8,
         now,
       ),
-    ).toEqual([{ assetId: 'audio.phase4.vanguard-action-v01-3', priority: 70 }])
+    ).toEqual([{ assetId: 'audio.phase4.ironfist-action-v01-3', priority: 70 }])
   })
 
   it('coalesces periodic area consequences and varies subsequent renders', () => {
