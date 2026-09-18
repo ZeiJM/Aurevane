@@ -16,7 +16,12 @@ vi.mock('@/components/battle/pvp-battle-key-input-assist', () => ({
   PvpBattleKeyInputAssist: () => null,
 }))
 vi.mock('./account-menu', () => ({
-  AccountMenu: () => createElement('div', { 'data-testid': 'account-menu' }, 'Account'),
+  AccountMenu: ({ characterName }: { characterName?: string | null }) =>
+    createElement(
+      'div',
+      { 'data-testid': 'account-menu' },
+      characterName ? `Welcome back, ${characterName}.` : 'Account',
+    ),
 }))
 vi.mock('./game-rail', () => ({
   GameRail: () => createElement('aside', { 'data-testid': 'game-rail' }, 'Rail'),
@@ -57,7 +62,8 @@ describe('authenticated shell presentation', () => {
 
     expect(markup).not.toContain('data-av-context-strip="true"')
     expect(markup).not.toContain('Current workspace')
-    expect(markup).toContain('Aster')
+    expect(markup).toContain('Welcome back, Aster.')
+    expect(markup).not.toContain('<strong>Aster</strong>')
     expect(markup).not.toContain('Level 12')
     expect(markup).toContain('data-testid="portrait"')
     expect(markup).toContain('data-testid="account-menu"')
