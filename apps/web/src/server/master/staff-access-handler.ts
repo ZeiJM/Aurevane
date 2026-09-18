@@ -5,10 +5,7 @@ import { AurevaneError } from '@aurevane/game-core/errors'
 import { getAuthenticatedActor } from '@/server/auth/actor'
 import { toServerErrorResponse } from '@/server/http/error-response'
 
-import {
-  isDelegatedMasterPanelRole,
-  type MasterPanelStaffAccessService,
-} from './staff-access'
+import { isDelegatedMasterPanelRole, type MasterPanelStaffAccessService } from './staff-access'
 import { createServerMasterPanelStaffAccessService } from './staff-access-server'
 
 export interface StaffAccessHandlerDependencies {
@@ -51,11 +48,7 @@ function requiredString(value: unknown, field: string): string {
 
 function requiredUserId(value: unknown): string {
   const userId = requiredString(value, 'targetUserId')
-  if (
-    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-      userId,
-    )
-  ) {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(userId)) {
     return invalid('targetUserId must be a valid UUID.')
   }
   return userId

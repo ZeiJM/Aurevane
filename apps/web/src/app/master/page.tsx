@@ -1,10 +1,7 @@
 import Link from 'next/link'
 
 import { requireMasterPanelPageAccess } from '@/server/master/master-panel-page-access'
-import {
-  hasMasterPanelCapability,
-  masterPanelRoleLabel,
-} from '@/server/master/staff-access'
+import { hasMasterPanelCapability, masterPanelRoleLabel } from '@/server/master/staff-access'
 
 import styles from './master.module.css'
 
@@ -44,7 +41,9 @@ export default async function MasterPanelPage() {
             ) : (
               <div className={styles.module}>
                 <strong>Staff access active</strong>
-                <span>No operational module is enabled for this role in the current phase yet.</span>
+                <span>
+                  No operational module is enabled for this role in the current phase yet.
+                </span>
               </div>
             )}
           </nav>
