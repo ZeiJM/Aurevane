@@ -139,10 +139,12 @@ export function validateCombatActionDefinition(
     if (effect.type === 'copy') {
       if (
         effect.recipient !== 'primary-unit' ||
-        action.target.kind !== 'unit' ||
+        (action.target.kind !== 'unit' && action.target.kind !== 'ground-tile') ||
         action.target.teamPolicy === 'self'
       ) {
-        throw new TypeError('Copy requires one selected non-self unit as its Skill source.')
+        throw new TypeError(
+          'Copy requires a selected non-self unit or an occupied ground tile as its Skill source.',
+        )
       }
       continue
     }
