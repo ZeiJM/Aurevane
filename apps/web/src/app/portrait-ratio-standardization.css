@@ -20,6 +20,14 @@ img[data-av-square-media='true'] {
   object-fit: cover !important;
 }
 
+
+[data-av-square-media='true'][data-av-square-media-fit='contain']
+  > :is(img, [data-media-status], [role='img']),
+img[data-av-square-media='true'][data-av-square-media-fit='contain'] {
+  object-fit: contain !important;
+  object-position: 50% 50% !important;
+}
+
 /*
  * Character portrait presentation contract.
  *
