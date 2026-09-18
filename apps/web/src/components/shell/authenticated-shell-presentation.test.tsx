@@ -44,7 +44,7 @@ describe('authenticated shell presentation', () => {
     expect(markup).not.toContain('>Navigation<')
   })
 
-  it('renders a dedicated context strip with current screen and character identity', () => {
+  it('renders character identity beside Account without the retired workspace strip or level', () => {
     const markup = renderToStaticMarkup(
       <AuthenticatedShellPresentation
         sessionLabel="Battle Hall"
@@ -55,10 +55,11 @@ describe('authenticated shell presentation', () => {
       </AuthenticatedShellPresentation>,
     )
 
-    expect(markup).toContain('data-av-context-strip="true"')
-    expect(markup).toContain('Battle Hall')
+    expect(markup).not.toContain('data-av-context-strip="true"')
+    expect(markup).not.toContain('Current workspace')
     expect(markup).toContain('Aster')
-    expect(markup).toContain('Level 12')
+    expect(markup).not.toContain('Level 12')
     expect(markup).toContain('data-testid="portrait"')
+    expect(markup).toContain('data-testid="account-menu"')
   })
 })
