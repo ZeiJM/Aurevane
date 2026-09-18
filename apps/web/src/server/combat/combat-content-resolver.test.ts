@@ -115,6 +115,24 @@ describe('combat content resolver', () => {
     )
   })
 
+  it('resolves a stored clone definition that passes canonical action validation', async () => {
+    const source = new MemoryPublishedCombatContentSource()
+    const definition = {
+      ...staticSkill('chronist.slow'),
+      contentVersion: 12,
+      effects: [{ type: 'copy-statuses', recipient: 'primary-unit', mode: 'curse' }],
+    } as unknown as MatureSkillDefinition
+    source.current.set(definition.id, publishedSkill(definition))
+
+    const resolver = createCombatContentResolver(source)
+    const resolved = await resolver.resolveCurrentSkillDefinition(definition.id)
+
+    expect(resolved?.contentVersion).toBe(12)
+    expect(resolved?.effects).toEqual([
+      { type: 'copy-statuses', recipient: 'primary-unit', mode: 'curse' },
+    ])
+  })
+
   it('rejects a stored clone definition that fails canonical action validation', async () => {
     const source = new MemoryPublishedCombatContentSource()
     const invalid = {
