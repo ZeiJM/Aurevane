@@ -45,9 +45,9 @@ test('account entry is responsive, focusable, stable, and media-safe', async ({ 
   const titleDocumentYAfterModeChange = await title.evaluate(
     (element) => element.getBoundingClientRect().top + window.scrollY,
   )
-  expect(Math.abs(titleDocumentYAfterModeChange - titleDocumentYBeforeModeChange)).toBeLessThanOrEqual(
-    1,
-  )
+  expect(
+    Math.abs(titleDocumentYAfterModeChange - titleDocumentYBeforeModeChange),
+  ).toBeLessThanOrEqual(1)
 
   const audioTrigger = page.getByRole('button', { name: 'Sound settings' })
   const audioDialog = page.getByRole('dialog', { name: 'Audio settings' })
