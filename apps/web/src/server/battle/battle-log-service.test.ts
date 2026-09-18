@@ -172,6 +172,51 @@ describe('sanitized battle log service', () => {
     )
   })
 
+  it('presents copied command events as their original Skill identity', () => {
+    const result = buildBattleLogView(SESSION_ID, [
+      {
+        battleVersion: 13,
+        eventIndex: 0,
+        event: {
+          event: 'combat_action_used',
+          actorId: 'character:player-1',
+          actionId: 'temporary.copy.vanguard.forceful-strike.v2',
+        },
+        createdAt: '2026-09-18T10:01:00.000Z',
+      },
+      {
+        battleVersion: 13,
+        eventIndex: 1,
+        event: {
+          event: 'damage_applied',
+          actionId: 'temporary.copy.vanguard.forceful-strike.v2',
+          sourceCombatantId: 'character:player-1',
+          targetCombatantId: 'recruit:p2-4-1',
+          amount: 12,
+          hpBefore: 80,
+          hpAfter: 68,
+        },
+        createdAt: '2026-09-18T10:01:00.000Z',
+      },
+    ])
+
+    expect(result.entries).toEqual([
+      expect.objectContaining({
+        eventType: 'combat_action_used',
+        actionId: 'vanguard.forceful-strike',
+        actionLabel: 'Vanguard Forceful Strike',
+        headline: 'Vanguard Forceful Strike',
+      }),
+      expect.objectContaining({
+        eventType: 'damage_applied',
+        actionId: 'vanguard.forceful-strike',
+        actionLabel: 'Vanguard Forceful Strike',
+        headline: 'Vanguard Forceful Strike',
+      }),
+    ])
+    expect(JSON.stringify(result)).not.toContain('Temporary Copy')
+  })
+
   it('translates timeout and Lowered Guard internals into player-facing facts', async () => {
     const repository: BattleEventRepository = {
       findBattleEvents: vi.fn(async () => [

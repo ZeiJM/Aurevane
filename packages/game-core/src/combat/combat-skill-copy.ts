@@ -41,8 +41,28 @@ function pinnedSkillIdentity(skillId: string, contentVersion: number): string {
   return `${skillId}@${contentVersion}`
 }
 
+export interface CopiedSkillCommandReference {
+  skillId: string
+  contentVersion: number
+}
+
 export function copiedSkillCommandId(skillId: string, contentVersion: number): string {
   return `temporary.copy.${skillId}.v${contentVersion}`
+}
+
+export function parseCopiedSkillCommandId(actionId: string): CopiedSkillCommandReference | null {
+  const match = /^temporary\.copy\.(.+)\.v([1-9]\d*)$/u.exec(actionId)
+  if (!match) return null
+  const skillId = match[1]!
+  const contentVersion = Number(match[2])
+  if (
+    !/^[a-z0-9]+(?:[._-][a-z0-9]+)*$/u.test(skillId) ||
+    !Number.isSafeInteger(contentVersion) ||
+    contentVersion < 1
+  ) {
+    return null
+  }
+  return { skillId, contentVersion }
 }
 
 export function copiedSkillUsageKey(skillId: string, contentVersion: number): string {

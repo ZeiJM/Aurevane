@@ -4,7 +4,9 @@ import { createBattleRngState } from './battle-state'
 import {
   commitCombatSkillCopy,
   copiedSkillApCost,
+  copiedSkillCommandId,
   eligibleCombatSkillCopies,
+  parseCopiedSkillCommandId,
   previewCombatSkillCopy,
 } from './combat-skill-copy'
 import { validateCombatTemporarySkillState } from './combat-effect-state'
@@ -143,6 +145,18 @@ describe('random temporary Skill Copy', () => {
       }),
     ).toThrow(/no eligible/u)
     expect(before.tactical.battle.rng.draws).toBe(0)
+  })
+
+  it('round-trips the pinned copied command identity and rejects malformed presentation IDs', () => {
+    const commandId = copiedSkillCommandId('vanguard.forceful-strike', 2)
+    expect(commandId).toBe('temporary.copy.vanguard.forceful-strike.v2')
+    expect(parseCopiedSkillCommandId(commandId)).toEqual({
+      skillId: 'vanguard.forceful-strike',
+      contentVersion: 2,
+    })
+    expect(parseCopiedSkillCommandId('temporary.copy...v2')).toBeNull()
+    expect(parseCopiedSkillCommandId('temporary.copy.vanguard.forceful-strike.v0')).toBeNull()
+    expect(parseCopiedSkillCommandId('../../vanguard.forceful-strike')).toBeNull()
   })
 
   it('halves only AP with ceiling semantics', () => {

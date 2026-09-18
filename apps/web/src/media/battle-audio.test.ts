@@ -52,6 +52,21 @@ describe('committed battle audio', () => {
       ),
     ).toEqual([])
   })
+  it('uses the original Skill audio family for version-pinned copied commands', () => {
+    expect(
+      selectBattleAudioCues(
+        [
+          record({
+            event: 'combat_action_used',
+            actionId: 'temporary.copy.vanguard.forceful-strike.v2',
+          }),
+        ],
+        8,
+        now,
+      ),
+    ).toEqual([{ assetId: 'audio.phase4.vanguard-action-v01-3', priority: 70 }])
+  })
+
   it('coalesces periodic area consequences and varies subsequent renders', () => {
     const tick = { event: 'damage_applied', actionId: 'status.burn', amount: 3 }
     expect(selectBattleAudioCues([record(tick), record(tick)], 8, now)).toHaveLength(1)
