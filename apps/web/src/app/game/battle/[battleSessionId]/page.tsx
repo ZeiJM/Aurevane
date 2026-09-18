@@ -84,13 +84,18 @@ async function battleBuildExtensions(
           reference.skillId,
           resolver,
         )
-        if (!definition || definition.sourceDisciplineId !== reference.sourceDisciplineId) return null
+        if (!definition || definition.sourceDisciplineId !== reference.sourceDisciplineId)
+          return null
         const override = combatContext ? definition.overrides[combatContext] : undefined
         return {
           id: definition.id,
           contentVersion: definition.contentVersion,
           sourceDisciplineId: definition.sourceDisciplineId,
-          name: titleCase(definition.id.includes('.') ? definition.id.slice(definition.id.indexOf('.') + 1) : definition.id),
+          name: titleCase(
+            definition.id.includes('.')
+              ? definition.id.slice(definition.id.indexOf('.') + 1)
+              : definition.id,
+          ),
           apCost: override?.apCost ?? definition.apCost,
           mpCost: definition.mpCost ?? 0,
           cooldownOwnerTurns: override?.cooldownOwnerTurns ?? definition.cooldown.ownerTurns,

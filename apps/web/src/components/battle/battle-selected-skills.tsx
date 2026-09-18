@@ -68,7 +68,9 @@ export function BattleSelectedSkills({
                 />
                 <span>
                   <strong>{skill.name}</strong>
-                  <small>{skill.apCost} AP · {skill.mpCost} MP</small>
+                  <small>
+                    {skill.apCost} AP · {skill.mpCost} MP
+                  </small>
                 </span>
               </button>
             ))}
