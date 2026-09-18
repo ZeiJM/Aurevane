@@ -12,11 +12,13 @@ import styles from './account-menu.module.css'
 interface AccountMenuProps {
   activeSessionHref?: Route | null
   activeSessionLabel?: string | null
+  characterName?: string | null
 }
 
 export function AccountMenu({
   activeSessionHref = null,
   activeSessionLabel = null,
+  characterName = null,
 }: AccountMenuProps) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
@@ -51,6 +53,12 @@ export function AccountMenu({
       </button>
       {open ? (
         <div className={styles.menu} role="menu" aria-label="Account menu">
+          {characterName ? (
+            <div className={styles.characterGreeting}>
+              <span>Current character</span>
+              <strong>Welcome back, {characterName}.</strong>
+            </div>
+          ) : null}
           <div className={styles.audio}>
             <span>Audio</span>
             <AudioSettingsMenu />
