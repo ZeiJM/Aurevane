@@ -46,9 +46,7 @@ describe('Master Panel Skill media editor', () => {
       }),
     )
 
-    expect(markup).toContain(
-      'Forceful Strike · vanguard · runtime audio not produced yet</option>',
-    )
+    expect(markup).toContain('Forceful Strike · vanguard · runtime audio not produced yet</option>')
     expect(markup).toContain(
       'This hook is reserved, but no approved runtime audio is available yet.',
     )

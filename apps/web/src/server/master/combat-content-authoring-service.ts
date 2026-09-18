@@ -18,10 +18,7 @@ import {
 import { AurevaneError } from '@aurevane/game-core/errors'
 
 import type { CombatContentResolver } from '@/server/combat/combat-content-resolver'
-import {
-  isRegisteredSkillAudioCueHook,
-  isRegisteredSkillIconHook,
-} from '@/media/skill-media-hooks'
+import { isRegisteredSkillAudioCueHook, isRegisteredSkillIconHook } from '@/media/skill-media-hooks'
 
 import {
   previewCombatContentDefinition,

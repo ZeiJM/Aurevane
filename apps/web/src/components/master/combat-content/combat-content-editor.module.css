@@ -639,7 +639,6 @@
   }
 }
 
-
 .mediaGrid {
   display: grid;
   grid-template-columns: minmax(14rem, 1fr) minmax(10rem, 0.75fr);
