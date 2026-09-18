@@ -200,7 +200,7 @@ describe('PV-1F temporary Skill Copy integration', () => {
     expect(committed.events).toContainEqual(
       expect.objectContaining({
         event: 'combat_action_used',
-        audioCueKey: 'skill.test.copy-skill.audio',
+        audioCueKey: 'skill.vanguard.forceful-strike.audio',
       }),
     )
     expect(committed.events).toContainEqual(
