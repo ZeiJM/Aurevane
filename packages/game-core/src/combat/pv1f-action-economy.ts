@@ -1165,7 +1165,7 @@ function scaleRepeatedMatureSkillEffects(
       scaled.push({ ...effect, damagePerTick: halfPositiveMagnitude(effect.damagePerTick) })
       continue
     }
-    // Removal and Sensory are discrete: a consecutive repeat cannot resolve a half-strength copy.
+    // These effects are discrete: a consecutive repeat cannot resolve a half-strength copy.
     if (
       effect.type === 'remove-status' ||
       effect.type === 'return-to-turn-start' ||
@@ -1174,12 +1174,10 @@ function scaleRepeatedMatureSkillEffects(
       effect.type === 'poison' ||
       effect.type === 'burn' ||
       effect.type === 'copy' ||
+      effect.type === 'copy-statuses' ||
       effect.type === 'sensory'
     )
       continue
-    if (effect.type === 'copy-statuses') {
-      throw new TypeError('effects.status-copy-staged: repeat-use copying is not yet supported.')
-    }
     const stacks = Math.floor(effect.stacks / 2)
     if (stacks > 0) scaled.push({ ...effect, stacks })
   }
