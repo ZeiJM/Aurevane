@@ -18,6 +18,10 @@ import {
 import { AurevaneError } from '@aurevane/game-core/errors'
 
 import type { CombatContentResolver } from '@/server/combat/combat-content-resolver'
+import {
+  isRegisteredSkillAudioCueHook,
+  isRegisteredSkillIconHook,
+} from '@/media/skill-media-hooks'
 
 import {
   previewCombatContentDefinition,
@@ -173,6 +177,23 @@ function validateSkillDefinition(definition: unknown): CombatContentValidationRe
       code: 'INVALID_MATURE_SKILL_SHAPE',
       message: normalizeMessage(error),
     })
+  }
+
+  if (issues.length === 0) {
+    if (!isRegisteredSkillIconHook(candidate.media.iconKey)) {
+      issues.push({
+        path: 'media.iconKey',
+        code: 'UNKNOWN_MEDIA_HOOK',
+        message: 'Skill artwork must use a registered approved media hook.',
+      })
+    }
+    if (!isRegisteredSkillAudioCueHook(candidate.media.audioCueKey)) {
+      issues.push({
+        path: 'media.audioCueKey',
+        code: 'UNKNOWN_MEDIA_HOOK',
+        message: 'Skill audio must use a registered media hook.',
+      })
+    }
   }
 
   if (issues.length === 0) {

@@ -214,6 +214,34 @@ describe('combat content authoring service', () => {
     expect(result.issues.length).toBeGreaterThan(0)
   })
 
+  it('accepts registered cross-Skill media hooks and rejects arbitrary media identities', () => {
+    const { service } = serviceFixture()
+    const valid = staticSkill()
+    valid.media = {
+      ...valid.media,
+      iconKey: 'skill.lifebinder.mend.icon',
+      audioCueKey: 'skill.ironfist.breakfall.audio',
+    }
+    expect(service.validateSkillDefinition(valid)).toMatchObject({ valid: true, issues: [] })
+
+    for (const [field, value] of [
+      ['iconKey', 'skill.unregistered.icon'],
+      ['audioCueKey', 'skill.unregistered.audio'],
+    ] as const) {
+      const invalid = staticSkill()
+      invalid.media = { ...invalid.media, [field]: value }
+      expect(service.validateSkillDefinition(invalid)).toMatchObject({
+        valid: false,
+        issues: [
+          expect.objectContaining({
+            path: `media.${field}`,
+            code: 'UNKNOWN_MEDIA_HOOK',
+          }),
+        ],
+      })
+    }
+  })
+
   it('rejects nested script-like fields before draft or publish persistence', () => {
     const { service } = serviceFixture()
     const invalid = invalidVariant((value) => {
