@@ -355,7 +355,7 @@ export function DesktopBattleCombatantInspect({
             </button>
 
             <div className={styles.identityRow}>
-              <div className={styles.portrait}>
+              <div className={styles.portrait} data-av-square-media="true">
                 {selected.fallbackAssetId ? (
                   <CharacterPortraitImage
                     imageUrl={selected.imageUrl}
