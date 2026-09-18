@@ -740,7 +740,6 @@
   }
 }
 
-
 /* Ambient motion: slow world life and a restrained selected-character emphasis. */
 .world > :global(img) {
   transform: scale(1.01);

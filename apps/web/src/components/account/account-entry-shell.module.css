@@ -531,7 +531,6 @@
   }
 }
 
-
 /* Ambient motion: keep the account gateway alive without competing with authentication tasks. */
 .masthead :global(.brand__wordmark) {
   position: relative;

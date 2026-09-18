@@ -33,11 +33,17 @@ test('Character Select keeps its heading above three readable, reachable roster 
   const selectedCard = board.locator('article[data-selected="true"]')
   await expect(selectedCard).toHaveCount(1)
   expect
-    .soft(await selectedCard.evaluate((node) => getComputedStyle(node).animationName), 'selected character has a calm living glow')
+    .soft(
+      await selectedCard.evaluate((node) => getComputedStyle(node).animationName),
+      'selected character has a calm living glow',
+    )
     .not.toBe('none')
   await page.emulateMedia({ reducedMotion: 'reduce' })
   expect
-    .soft(await selectedCard.evaluate((node) => getComputedStyle(node).animationName), 'reduced motion disables selected-character glow')
+    .soft(
+      await selectedCard.evaluate((node) => getComputedStyle(node).animationName),
+      'reduced motion disables selected-character glow',
+    )
     .toBe('none')
   await page.emulateMedia({ reducedMotion: 'no-preference' })
   const play = board.getByRole('link', { name: `Play ${characterName}`, exact: true })
