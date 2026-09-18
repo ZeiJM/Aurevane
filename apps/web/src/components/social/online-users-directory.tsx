@@ -1,5 +1,6 @@
 'use client'
 
+import { Kicker } from '@aurevane/ui'
 import { useEffect, useMemo, useState } from 'react'
 
 import type {
@@ -113,27 +114,71 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
   }
 
   const currentNow = nowMs
-  const rosterCount = showAll
-    ? directory
-      ? `${orderedCharacters.length} shown`
-      : loadingDirectory
-        ? 'Loading…'
-        : 'Directory'
-    : `${characters.length} online`
 
   return (
     <>
-      <div className={styles.toolbar} data-directory-controls="true">
-        <p>Different paths. A shared world.</p>
-        <button
-          type="button"
-          className={`${styles.toggleButton} ${showAll ? styles.toggleButtonActive : ''}`}
-          aria-pressed={showAll}
-          onClick={toggleDirectory}
+      <header className={styles.heading} data-online-users-heading="true">
+        <div className={styles.headingCopy}>
+          <Kicker marker="◇">The realm, together</Kicker>
+          <h1>Online Users</h1>
+          <p>Real adventurers. A shared journey.</p>
+        </div>
+
+        <div
+          className={`${styles.heroControls} ${showAll && directory ? styles.heroControlsExpanded : ''}`}
+          data-directory-controls="true"
         >
-          {showAll ? 'Show online only' : 'Show all characters'}
-        </button>
-      </div>
+          {showAll && directory ? (
+            <div className={styles.filters} aria-label="Character directory filters">
+              <label>
+                <span>Class</span>
+                <select
+                  value={classFilter}
+                  onChange={(event) => setClassFilter(event.target.value)}
+                >
+                  <option value="all">All classes</option>
+                  {classOptions.map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>Sort</span>
+                <select
+                  value={sortOrder}
+                  onChange={(event) => setSortOrder(event.target.value as DirectorySortOrder)}
+                >
+                  <option value="recent">Last seen: most recent</option>
+                  <option value="oldest">Last seen: least recent</option>
+                  <option value="alphabetical">Alphabetical: A to Z</option>
+                </select>
+              </label>
+              <span className={styles.directorySummary} aria-live="polite">
+                {orderedCharacters.length} shown
+              </span>
+              <button
+                type="button"
+                className={`${styles.toggleButton} ${styles.toggleButtonCompact}`}
+                aria-pressed={showAll}
+                onClick={toggleDirectory}
+              >
+                Show online only
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className={`${styles.toggleButton} ${showAll ? styles.toggleButtonActive : ''}`}
+              aria-pressed={showAll}
+              onClick={toggleDirectory}
+            >
+              {showAll ? 'Show online only' : 'Show all characters'}
+            </button>
+          )}
+        </div>
+      </header>
 
       <section
         className={styles.rosterPanel}
@@ -142,54 +187,19 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
         data-av-surface="ink"
         aria-label={showAll ? 'All character directory' : 'Online character roster'}
       >
-        <header className={styles.rosterHeader}>
-          <div className={styles.rosterHeading}>
-            <span className={styles.rosterMarker} aria-hidden="true">
-              ◇
-            </span>
-            <div>
-              <span className={styles.rosterKicker}>{showAll ? 'The realm' : 'Live presence'}</span>
-              <strong>{showAll ? 'Known adventurers' : 'Active adventurers'}</strong>
-              <small>
-                {showAll
-                  ? 'Browse public identities by class or recent activity.'
-                  : 'Select an adventurer to view their public profile.'}
-              </small>
+        {!showAll ? (
+          <header className={styles.rosterHeader}>
+            <div className={styles.rosterHeading}>
+              <span className={styles.rosterMarker} aria-hidden="true">
+                ◇
+              </span>
+              <div>
+                <span className={styles.rosterKicker}>Live presence</span>
+                <strong>Active adventurers</strong>
+                <small>Select an adventurer to view their public profile.</small>
+              </div>
             </div>
-          </div>
-          <span className={styles.rosterCount} aria-live="polite">
-            {rosterCount}
-          </span>
-        </header>
-
-        {showAll && directory ? (
-          <div className={styles.filters} aria-label="Character directory filters">
-            <label>
-              <span>Class</span>
-              <select value={classFilter} onChange={(event) => setClassFilter(event.target.value)}>
-                <option value="all">All classes</option>
-                {classOptions.map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              <span>Sort</span>
-              <select
-                value={sortOrder}
-                onChange={(event) => setSortOrder(event.target.value as DirectorySortOrder)}
-              >
-                <option value="recent">Last seen: most recent</option>
-                <option value="oldest">Last seen: least recent</option>
-                <option value="alphabetical">Alphabetical: A to Z</option>
-              </select>
-            </label>
-            <span className={styles.directorySummary}>
-              {orderedCharacters.length} of {directory.length} characters
-            </span>
-          </div>
+          </header>
         ) : null}
 
         {showAll && loadingDirectory ? (

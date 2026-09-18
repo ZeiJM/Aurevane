@@ -1,5 +1,4 @@
 import { isAurevaneError } from '@aurevane/game-core/errors'
-import { Kicker } from '@aurevane/ui'
 import { redirect } from 'next/navigation'
 
 import { AuthenticatedShellFrame } from '@/components/shell/authenticated-game-shell'
@@ -42,18 +41,6 @@ export default async function OnlineUsersPage() {
         data-online-concept="true"
         data-directory-stage="true"
       >
-        <header className={styles.heading}>
-          <div>
-            <Kicker marker="◇">The realm, together</Kicker>
-            <h1>Online Users</h1>
-            <p>Real adventurers. A shared journey.</p>
-          </div>
-          <span className={styles.onlineCount}>
-            <i aria-hidden="true" />
-            {online.length} online
-          </span>
-        </header>
-
         <OnlineUsersDirectory characters={online} />
       </section>
     </AuthenticatedShellFrame>
