@@ -33,7 +33,8 @@ interface CharacterCreationExperienceProps {
 
 const attributeCopy = {
   might: 'Strength behind the blow: physical power, armor, and forceful movement.',
-  finesse: 'A steady hand and exact technique: accuracy, critical precision, and refined physical output.',
+  finesse:
+    'A steady hand and exact technique: accuracy, critical precision, and refined physical output.',
   vitality: 'The body’s staying power: health, toughness, and endurance under pressure.',
   agility: 'Speed of foot and reflex: movement, evasion, initiative, and nimble jumps.',
   intellect: 'Command of the unseen: mystic power, MP, warding, and precision.',
@@ -397,9 +398,8 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
               Choose the Discipline that answers you.
             </h1>
             <p className={styles.intro}>
-              Your Primary Discipline shapes the foundation of your starting attributes while it
-              is equipped. Your personal points remain your own, even if you later walk another
-              path.
+              Your Primary Discipline shapes the foundation of your starting attributes while it is
+              equipped. Your personal points remain your own, even if you later walk another path.
             </p>
 
             <fieldset
@@ -530,8 +530,8 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
               Seal this beginning.
             </h1>
             <p className={styles.intro}>
-              In Slot {slotIndex + 1}, this name, visage, Discipline, and chosen strengths are
-              ready to enter AUREVANE.
+              In Slot {slotIndex + 1}, this name, visage, Discipline, and chosen strengths are ready
+              to enter AUREVANE.
             </p>
             <div className={styles.reviewWorkspace}>
               <div className={styles.reviewPortrait} data-testid="creation-confirm-portrait">
