@@ -73,9 +73,7 @@ export function forecastCombatSkillAccuracyForTarget(
   if (action.accuracyMode !== 'per-target') return null
 
   const actor = state.tactical.battle.combatants.find((unit) => unit.id === actorId)
-  const target = state.tactical.battle.combatants.find(
-    (unit) => unit.id === targetCombatantId,
-  )
+  const target = state.tactical.battle.combatants.find((unit) => unit.id === targetCombatantId)
   if (!actor || !target) {
     throw new TypeError('Combat accuracy requires committed actor and target combatants.')
   }

@@ -639,8 +639,8 @@ export function evaluatePv1fMatureSkill(
     if (copyHitChance) {
       evaluation = {
         ...evaluation,
-        targetHitChances: [...(evaluation.targetHitChances ?? []), copyHitChance].sort((left, right) =>
-          left.targetCombatantId.localeCompare(right.targetCombatantId),
+        targetHitChances: [...(evaluation.targetHitChances ?? []), copyHitChance].sort(
+          (left, right) => left.targetCombatantId.localeCompare(right.targetCombatantId),
         ),
         projectionsAssumeHits: true,
       }
