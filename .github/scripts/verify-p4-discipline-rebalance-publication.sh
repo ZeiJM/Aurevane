@@ -54,17 +54,13 @@ begin
     from app_private.phase4_discipline_rebalance_skill_versions
   ), 'Rebalance manifest is captured only at activation';
   assert (
-    select count(*) = 4
+    select count(*) = 17
+      and count(distinct source_discipline_id) = 17
     from app_private.essence_definitions
     where content_version = 2
+      and skill_content_version = 2
       and enabled = false
-      and essence_id in (
-        'essence.chronist.borrowed-hour',
-        'essence.ravager.red-tempest',
-        'essence.cinderweaver.phoenix-wake',
-        'essence.tidecaller.tidal-crown'
-      )
-  ), 'Four rebalance Essence versions are staged disabled';
+  ), 'Seventeen audited Essence v2 versions are staged disabled';
   assert (
     app_private.resolve_essence_reference_v1('chronist', null) ->> 'contentVersion'
   ) = '1', 'Staged Chronist Essence does not become current early';
@@ -228,7 +224,7 @@ begin
   assert (receipt - 'replayed') = (repeated - 'replayed'),
     'Rebalance replay preserves original receipt';
   assert receipt ->> 'updatedCatalogSkills' = '136'
-    and receipt ->> 'enabledEssences' = '4',
+    and receipt ->> 'enabledEssences' = '17',
     'Receipt records exact rebalance release size';
 
   assert (
@@ -300,17 +296,13 @@ begin
   assert audit_count = 1, 'Exactly one complete Task 10 loadout audit';
 
   assert (
-    select count(*) = 4
+    select count(*) = 17
+      and count(distinct source_discipline_id) = 17
     from app_private.essence_definitions
     where content_version = 2
+      and skill_content_version = 2
       and enabled
-      and essence_id in (
-        'essence.chronist.borrowed-hour',
-        'essence.ravager.red-tempest',
-        'essence.cinderweaver.phoenix-wake',
-        'essence.tidecaller.tidal-crown'
-      )
-  ), 'Four affected Essence v2 rows become enabled atomically';
+  ), 'Seventeen audited Essence v2 rows become enabled atomically';
 
   assert (
     app_private.resolve_essence_reference_v1('chronist', null) ->> 'contentVersion'

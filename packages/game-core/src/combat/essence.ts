@@ -180,7 +180,24 @@ function rebalanceEssencePurposeTags(
   return [...new Set([...definition.skill.ai.purposeTags, ...additions])]
 }
 
-function createPhase4RebalancedEssence(definition: EssenceDefinition): EssenceDefinition | null {
+function currentEssenceAccuracyMode(
+  definition: EssenceDefinition,
+): NonNullable<MatureSkillDefinition['accuracyMode']> {
+  const skill = definition.skill
+  if (skill.target.kind !== 'unit') return 'automatic'
+  if (skill.target.teamPolicy !== 'enemy' && skill.target.teamPolicy !== 'any') return 'automatic'
+  return skill.effects.some((effect) => {
+    if (!('recipient' in effect) || effect.recipient === 'actor') return false
+    if (effect.type === 'healing') return false
+    if (effect.type === 'resource-change') return effect.delta < 0
+    if (effect.type === 'barrier-change') return effect.amount < 0
+    return effect.type !== 'create-terrain'
+  })
+    ? 'per-target'
+    : 'automatic'
+}
+
+function createPhase4RebalancedEssence(definition: EssenceDefinition): EssenceDefinition {
   const version = definition.contentVersion + 1
   const authoring = {
     ...definition.authoring,
@@ -325,15 +342,28 @@ function createPhase4RebalancedEssence(definition: EssenceDefinition): EssenceDe
           authoring: skillAuthoring,
         },
       }
-    default:
-      return null
+    default: {
+      const accuracyMode = currentEssenceAccuracyMode(definition)
+      return {
+        ...definition,
+        contentVersion: version,
+        authoring,
+        skill: {
+          ...definition.skill,
+          contentVersion: version,
+          accuracyMode,
+          ...(accuracyMode === 'per-target'
+            ? { accuracyModifierBasisPoints: definition.skill.accuracyModifierBasisPoints ?? 0 }
+            : { accuracyModifierBasisPoints: undefined }),
+          authoring: skillAuthoring,
+        },
+      }
+    }
   }
 }
 
-const PHASE4_REBALANCED_ESSENCES = PRE_PHASE4_REBALANCE_ESSENCES.flatMap((definition) => {
-  const rebalanced = createPhase4RebalancedEssence(definition)
-  return rebalanced ? [rebalanced] : []
-})
+const PHASE4_REBALANCED_ESSENCES =
+  PRE_PHASE4_REBALANCE_ESSENCES.map(createPhase4RebalancedEssence)
 
 export const P36_REPRESENTATIVE_ESSENCES = [
   ...PRE_PHASE4_REBALANCE_ESSENCES,

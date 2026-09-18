@@ -32,8 +32,8 @@ to service_role;
 insert into app_private.phase4_discipline_rebalance_publication(release_id)
 values ('phase4-discipline-rebalance-v1');
 
--- Stage affected Essence versions disabled. They become current only in the same
--- activation transaction as the regular-Skill catalog upgrade.
+-- Stage all 17 audited Essence v2 references disabled. Four definitions change mechanics;
+-- the other thirteen gain explicit current accuracy/authoring semantics in the application.
 insert into app_private.essence_definitions (
   essence_id,
   content_version,
@@ -43,47 +43,26 @@ insert into app_private.essence_definitions (
   name,
   description,
   enabled
-) values
-  (
-    'essence.chronist.borrowed-hour',
-    2,
-    'chronist',
-    'essence.chronist.borrowed-hour',
-    2,
-    'Borrowed Hour',
-    'Restore an ally over two applications and grant movement Haste. No extra turn, AP or battle reset.',
-    false
-  ),
-  (
-    'essence.ravager.red-tempest',
-    2,
-    'ravager',
-    'essence.ravager.red-tempest',
-    2,
-    'Red Tempest',
-    'Strike nearby enemies and open bleeding wounds. Spacing limits the sweep.',
-    false
-  ),
-  (
-    'essence.cinderweaver.phoenix-wake',
-    2,
-    'cinderweaver',
-    'essence.cinderweaver.phoenix-wake',
-    2,
-    'Phoenix Wake',
-    'Burn enemies in an immediate fiery burst. Spread out to limit its impact.',
-    false
-  ),
-  (
-    'essence.tidecaller.tidal-crown',
-    2,
-    'tidecaller',
-    'essence.tidecaller.tidal-crown',
-    2,
-    'Tidal Crown',
-    'Cleanse and restore allies in a small area, then continue restoring them over time.',
-    false
-  );
+)
+select
+  definition.essence_id,
+  2,
+  definition.source_discipline_id,
+  definition.skill_id,
+  2,
+  definition.name,
+  case definition.essence_id
+    when 'essence.chronist.borrowed-hour' then
+      'Restore an ally over two applications and grant movement Haste. No extra turn, AP or battle reset.'
+    when 'essence.tidecaller.tidal-crown' then
+      'Cleanse and restore allies in a small area, then continue restoring them over time.'
+    else definition.description
+  end,
+  false
+from app_private.essence_definitions definition
+where definition.content_version = 1
+  and definition.enabled
+order by definition.essence_id;
 
 -- Service-role-only release command. It refuses to run unless the earlier
 -- Phase-4 interaction release is already active, then snapshots the exact
@@ -240,13 +219,14 @@ begin
     from app_private.essence_definitions definition
     where definition.content_version = 2
       and definition.enabled = false
-      and (definition.essence_id, definition.source_discipline_id, definition.skill_content_version) in (
-        ('essence.chronist.borrowed-hour', 'chronist', 2),
-        ('essence.ravager.red-tempest', 'ravager', 2),
-        ('essence.cinderweaver.phoenix-wake', 'cinderweaver', 2),
-        ('essence.tidecaller.tidal-crown', 'tidecaller', 2)
-      )
-  ) <> 4 then
+      and definition.skill_content_version = 2
+  ) <> 17
+     or (
+       select count(distinct source_discipline_id)
+       from app_private.essence_definitions definition
+       where definition.content_version = 2
+         and definition.enabled = false
+     ) <> 17 then
     raise exception using
       errcode = '22023',
       message = 'PHASE4_DISCIPLINE_REBALANCE_ESSENCE_MISMATCH';
@@ -373,16 +353,10 @@ begin
   update app_private.essence_definitions definition
   set enabled = true
   where definition.content_version = 2
-    and definition.enabled = false
-    and definition.essence_id in (
-      'essence.chronist.borrowed-hour',
-      'essence.ravager.red-tempest',
-      'essence.cinderweaver.phoenix-wake',
-      'essence.tidecaller.tidal-crown'
-    );
+    and definition.enabled = false;
 
   get diagnostics v_essence_count = row_count;
-  if v_essence_count <> 4 then
+  if v_essence_count <> 17 then
     raise exception using
       errcode = '22023',
       message = 'PHASE4_DISCIPLINE_REBALANCE_ESSENCE_ACTIVATION_MISMATCH';

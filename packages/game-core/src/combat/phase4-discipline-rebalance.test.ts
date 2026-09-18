@@ -101,6 +101,12 @@ describe('Phase 4 current Discipline Skill rebalance', () => {
     for (const definition of current) {
       expect(validateEssenceDefinition(definition), definition.essenceId).toEqual([])
       expect(retiredCurrentReferences(definition.skill), definition.essenceId).toEqual([])
+      expect(definition.skill.accuracyMode, definition.essenceId).toMatch(
+        /^(automatic|per-target)$/u,
+      )
+      if (definition.skill.accuracyMode === 'per-target') {
+        expect(definition.skill.accuracyModifierBasisPoints, definition.essenceId).toBe(0)
+      }
       for (const context of ['pve', 'pvp'] as const) {
         const action = toCombatActionDefinition(definition.skill, context)
         expect(
