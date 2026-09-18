@@ -90,7 +90,7 @@ describe('battle skill artwork presentation', () => {
       'lifebinder.mend',
       'lifebinder.renew',
     ]
-    const paths = ids.map(battleSkillArtwork)
+    const paths = ids.map((id) => battleSkillArtwork(id))
     expect(new Set(paths).size).toBe(ids.length)
     for (const path of paths) {
       expect(path).toMatch(/^\/media\/art\/concept-ui\/skill-.+\.webp$/)
