@@ -1,7 +1,4 @@
-import {
-  PHASE4_AUDIO_DISCIPLINES,
-  audioAssetRegistry,
-} from '@aurevane/audio'
+import { PHASE4_AUDIO_DISCIPLINES, audioAssetRegistry } from '@aurevane/audio'
 import { latestEnabledMatureSkills } from '@aurevane/game-core/combat/mature-skills'
 
 import { darkFantasySkillArtwork } from './generated-dark-fantasy-art'
@@ -52,13 +49,15 @@ export const skillIconHookOptions: readonly SkillIconHookOption[] = currentSkill
     const key = definition.media.iconKey
     const previewSrc = registeredSkillArtworkSource(definition.id)
     if (!key || !previewSrc) return []
-    return [{
-      key,
-      skillId: definition.id,
-      sourceDisciplineId: definition.sourceDisciplineId,
-      label: `${titleSkill(definition.id)} · ${definition.sourceDisciplineId}`,
-      previewSrc,
-    }]
+    return [
+      {
+        key,
+        skillId: definition.id,
+        sourceDisciplineId: definition.sourceDisciplineId,
+        label: `${titleSkill(definition.id)} · ${definition.sourceDisciplineId}`,
+        previewSrc,
+      },
+    ]
   })
   .sort(
     (left, right) =>
@@ -68,10 +67,8 @@ export const skillIconHookOptions: readonly SkillIconHookOption[] = currentSkill
 
 const iconHookByKey = new Map(skillIconHookOptions.map((option) => [option.key, option] as const))
 
-export function resolveSkillIconHook(
-  key: string | null | undefined,
-): SkillIconHookOption | null {
-  return key ? iconHookByKey.get(key) ?? null : null
+export function resolveSkillIconHook(key: string | null | undefined): SkillIconHookOption | null {
+  return key ? (iconHookByKey.get(key) ?? null) : null
 }
 
 export function isRegisteredSkillIconHook(key: string | null | undefined): boolean {
@@ -89,16 +86,18 @@ export const skillAudioCueHookOptions: readonly SkillAudioCueHookOption[] = curr
       ? `audio.phase4.${definition.sourceDisciplineId}-action-v01-1`
       : null
     const sample = sampleAssetId ? audioAssetRegistry.get(sampleAssetId) : undefined
-    return [{
-      key,
-      skillId: definition.id,
-      sourceDisciplineId: definition.sourceDisciplineId,
-      label: `${titleSkill(definition.id)} · ${definition.sourceDisciplineId}`,
-      available: Boolean(available && sample),
-      audioFamily: available ? definition.sourceDisciplineId : null,
-      sampleAssetId: sample?.id ?? null,
-      sampleSrc: sample?.src ?? null,
-    }]
+    return [
+      {
+        key,
+        skillId: definition.id,
+        sourceDisciplineId: definition.sourceDisciplineId,
+        label: `${titleSkill(definition.id)} · ${definition.sourceDisciplineId}`,
+        available: Boolean(available && sample),
+        audioFamily: available ? definition.sourceDisciplineId : null,
+        sampleAssetId: sample?.id ?? null,
+        sampleSrc: sample?.src ?? null,
+      },
+    ]
   })
   .sort(
     (left, right) =>
@@ -113,7 +112,7 @@ const audioHookByKey = new Map(
 export function resolveSkillAudioCueHook(
   key: string | null | undefined,
 ): SkillAudioCueHookOption | null {
-  return key ? audioHookByKey.get(key) ?? null : null
+  return key ? (audioHookByKey.get(key) ?? null) : null
 }
 
 export function isRegisteredSkillAudioCueHook(key: string | null | undefined): boolean {

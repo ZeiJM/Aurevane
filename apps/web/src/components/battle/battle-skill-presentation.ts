@@ -6,10 +6,7 @@ import {
 } from '@aurevane/game-core/combat/pv1f-skills'
 
 import { darkFantasyResonanceArtwork } from '../../media/generated-dark-fantasy-art'
-import {
-  registeredSkillArtworkSource,
-  resolveSkillIconHook,
-} from '../../media/skill-media-hooks'
+import { registeredSkillArtworkSource, resolveSkillIconHook } from '../../media/skill-media-hooks'
 
 export const BATTLE_COMMAND_ARTWORK = {
   inspect: '/media/skills/inspect.webp',
