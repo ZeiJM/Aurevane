@@ -52,9 +52,9 @@ describe('battle skill artwork presentation', () => {
   })
 
   it('lets a published Skill media hook replace artwork without changing the action id', () => {
-    expect(
-      battleSkillArtwork('vanguard.forceful-strike', 'skill.lifebinder.mend.icon'),
-    ).toBe('/media/art/concept-ui/skill-lifebinder-mend-v01.webp')
+    expect(battleSkillArtwork('vanguard.forceful-strike', 'skill.lifebinder.mend.icon')).toBe(
+      '/media/art/concept-ui/skill-lifebinder-mend-v01.webp',
+    )
     expect(battleSkillArtwork('vanguard.forceful-strike', 'skill.unknown.icon')).toBe(
       PHASE_3_COMBAT_ARTWORK['vanguard.forceful-strike'],
     )
