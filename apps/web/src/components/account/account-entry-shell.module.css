@@ -160,6 +160,8 @@
   justify-self: center;
   width: min(31rem, calc(100% - 2rem));
   min-width: 0;
+  height: fit-content;
+  min-height: 0;
   max-height: calc(100% - 18rem);
   margin-bottom: clamp(1.3rem, 3.2vh, 2.4rem);
   padding: clamp(1rem, 2vw, 1.45rem);
