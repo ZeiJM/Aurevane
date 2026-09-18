@@ -121,16 +121,10 @@ export function commitCombatSkillCopy(input: CombatSkillCopyInput): {
   definition: MatureSkillDefinition
 } {
   const battle = input.state.tactical.battle
-  if (
-    battle.lifecycle !== 'active' ||
-    battle.currentTurn?.combatantId !== input.actorCombatantId
-  ) {
-    throw new Error('Copy requires the active combatant as its authoritative actor.')
-  }
   const actor = battle.combatants.find((combatant) => combatant.id === input.actorCombatantId)
   const source = battle.combatants.find((combatant) => combatant.id === input.sourceCombatantId)
-  if (!actor || actor.hp <= 0 || !source || source.hp <= 0) {
-    throw new Error('Copy requires living actor and source combatants.')
+  if (!actor || !source) {
+    throw new Error('Copy actor and source must belong to the authoritative battle.')
   }
 
   const eligible = eligibleCombatSkillCopies(input)
