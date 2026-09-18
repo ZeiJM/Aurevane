@@ -36,6 +36,23 @@ jobs:
       - name: Audit production dependencies
         run: pnpm audit --prod --audit-level=high
 
+      - name: Print exact staff-management Prettier diff
+        run: |
+          pnpm exec prettier --write \
+            apps/web/src/app/master/page.tsx \
+            apps/web/src/components/master/staff-management.tsx \
+            apps/web/src/server/master/staff-access.ts \
+            apps/web/src/server/master/supabase-staff-access-store.test.ts \
+            apps/web/src/server/master/supabase-staff-access-store.ts
+          echo 'FORMAT_DIFF_BEGIN'
+          git diff -- \
+            apps/web/src/app/master/page.tsx \
+            apps/web/src/components/master/staff-management.tsx \
+            apps/web/src/server/master/staff-access.ts \
+            apps/web/src/server/master/supabase-staff-access-store.test.ts \
+            apps/web/src/server/master/supabase-staff-access-store.ts
+          echo 'FORMAT_DIFF_END'
+
       - name: Run quality gates
         run: pnpm check
 
