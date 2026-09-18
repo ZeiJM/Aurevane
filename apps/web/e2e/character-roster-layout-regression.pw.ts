@@ -38,6 +38,19 @@ test('Character Select keeps its heading above three readable, reachable roster 
       'selected character has a calm living glow',
     )
     .not.toBe('none')
+
+  const atmosphere = page.locator('[data-character-select-page] > [aria-hidden="true"]').first()
+  const atmosphereStart = await atmosphere.evaluate(
+    (node) => getComputedStyle(node, '::before').transform,
+  )
+  await page.waitForTimeout(600)
+  const atmosphereAfter = await atmosphere.evaluate(
+    (node) => getComputedStyle(node, '::before').transform,
+  )
+  expect
+    .soft(atmosphereAfter, 'character-select ambient layer actually advances')
+    .not.toBe(atmosphereStart)
+
   await page.emulateMedia({ reducedMotion: 'reduce' })
   expect
     .soft(
