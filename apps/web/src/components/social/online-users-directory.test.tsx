@@ -30,6 +30,8 @@ describe('Adventurers roster composition', () => {
     expect(markup).toContain('The Patient Flame')
     expect(markup).toContain('Vanguard')
     expect(markup).toContain('Show all characters')
+    expect(markup).toContain('data-online-users-heading="true"')
+    expect(markup).not.toContain('Different paths. A shared world.')
     expect(markup).not.toContain(character.email)
     expect(markup).not.toContain(character.currency)
     expect(markup).not.toContain('data-av-surface="moonstone"')
