@@ -44,8 +44,23 @@ async function equipMist(page: Page) {
       response.request().method() === 'PUT',
   )
   await skills.getByRole('button', { name: 'Commit Selected Techniques', exact: true }).click()
-  expect((await saved).status()).toBe(200)
+  const savedResponse = await saved
+  expect(savedResponse.status()).toBe(200)
+  const savedBody = (await savedResponse.json()) as {
+    context: {
+      disciplineSkills: {
+        equippedSkills: Array<{
+          definition: { id: string; contentVersion: number }
+        }>
+      }
+    }
+  }
+  const mistVersion = savedBody.context.disciplineSkills.equippedSkills.find(
+    (entry) => entry.definition.id === 'frostweaver.chilling-mist',
+  )?.definition.contentVersion
+  expect(mistVersion).toBeGreaterThan(0)
   await skills.getByRole('button', { name: 'Close', exact: true }).click()
+  return mistVersion!
 }
 
 async function castOnEmptyGround(page: Page, name: string, testInfo: TestInfo) {
@@ -289,7 +304,7 @@ test('PvP ground Skill uses the same forecast and spectator terrain inspection',
     const guest = await guestContext.newPage()
     const spectator = await spectatorContext.newPage()
     const name = await provision(page, 'GroundHost', testInfo)
-    await equipMist(page)
+    const committedMistVersion = await equipMist(page)
     await provision(guest, 'GroundGuest', testInfo)
     await provision(spectator, 'GroundWatch', testInfo)
     await page.goto('/game/battle')
@@ -326,7 +341,10 @@ test('PvP ground Skill uses the same forecast and spectator terrain inspection',
         expect.objectContaining({
           primary: expect.objectContaining({ disciplineId: 'frostweaver' }),
           disciplineSkills: expect.arrayContaining([
-            expect.objectContaining({ skillId: 'frostweaver.chilling-mist', contentVersion: 3 }),
+            expect.objectContaining({
+              skillId: 'frostweaver.chilling-mist',
+              contentVersion: committedMistVersion,
+            }),
           ]),
         }),
       ]),
