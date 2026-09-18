@@ -48,7 +48,7 @@ describe('Master Panel combat content editor shell', () => {
     )
 
     expect(markup).toContain('aria-label="Discipline"')
-    expect(markup).toContain('<option value="vanguard">Vanguard</option>')
+    expect(markup).toContain('<option value="vanguard" selected="">Vanguard</option>')
     expect(markup).toContain('<option value="lifebinder">Lifebinder</option>')
     expect(markup).toContain('aria-label="Skill"')
     expect(markup).toContain(
