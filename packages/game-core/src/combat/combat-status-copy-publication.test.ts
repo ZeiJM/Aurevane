@@ -10,7 +10,9 @@ import type { CombatActionDefinition } from './actions'
 import { PV1F_COMBAT_CONTENT } from './pv1f-action-economy'
 
 function cloneSkill(mode: 'amplify' | 'curse' = 'amplify'): MatureSkillDefinition {
-  const previous = latestEnabledMatureSkills().find((definition) => definition.id === 'chronist.slow')
+  const previous = latestEnabledMatureSkills().find(
+    (definition) => definition.id === 'chronist.slow',
+  )
   if (!previous) throw new Error('Expected current Chronist Slow fixture.')
   return {
     ...previous,
