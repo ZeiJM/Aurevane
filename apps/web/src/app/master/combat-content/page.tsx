@@ -16,6 +16,18 @@ import styles from '../master.module.css'
 
 export const dynamic = 'force-dynamic'
 
+async function mapInBatches<T, R>(
+  values: readonly T[],
+  batchSize: number,
+  project: (value: T) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = []
+  for (let index = 0; index < values.length; index += batchSize) {
+    results.push(...(await Promise.all(values.slice(index, index + batchSize).map(project))))
+  }
+  return results
+}
+
 function titleSkill(skillId: string): string {
   const tail = skillId.includes('.') ? skillId.slice(skillId.indexOf('.') + 1) : skillId
   return tail
@@ -32,8 +44,10 @@ export default async function MasterCombatContentPage() {
   const catalog = latestEnabledMatureSkills()
 
   const options = (
-    await Promise.all(
-      catalog.map(async (staticDefinition): Promise<CombatContentEditorSkillOption | null> => {
+    await mapInBatches(
+      catalog,
+      4,
+      async (staticDefinition): Promise<CombatContentEditorSkillOption | null> => {
         const [current, draft, publishedVersions] = await Promise.all([
           resolver.resolveCurrentSkillDefinition(staticDefinition.id),
           store.findDraft(staticDefinition.id),
@@ -73,7 +87,7 @@ export default async function MasterCombatContentPage() {
             (left, right) => left.contentVersion - right.contentVersion,
           ),
         }
-      }),
+      },
     )
   )
     .filter((option): option is CombatContentEditorSkillOption => option !== null)
