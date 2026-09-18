@@ -67,7 +67,7 @@ describe('Status copying: mature Skill publication boundary', () => {
       })
     }
 
-    for (const id of ['exposed', 'hexed', 'slow', 'root']) {
+    for (const id of ['exposed', 'hexed', 'slow', 'root', 'mark']) {
       expect(status(id), id).toMatchObject({
         polarity: 'negative',
         curseCopyable: true,
