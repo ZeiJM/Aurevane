@@ -30,6 +30,13 @@ test('Account gateway keeps the desktop entry workspace clear and readable', asy
   await expect(entryHeading).toBeVisible()
   await expect(submit).toBeVisible()
   await expect(footer).toBeVisible()
+  await expect(
+    page.getByText(/Sign in to resume your account, or create the account/i),
+  ).toHaveCount(0)
+  await expect(
+    page.getByText('Your account identity stays separate from your future character identity.'),
+  ).toHaveCount(0)
+  await expect(page.getByText('Account & Security', { exact: true })).toHaveCount(0)
   await settle(page)
 
   const email = page.getByLabel('Email')
@@ -164,7 +171,6 @@ test('Account gateway keeps mobile entry controls clear of the footer', async ({
   const email = page.getByLabel('Email')
   const password = page.getByLabel('Password')
   const submit = page.getByRole('button', { name: 'Enter AUREVANE' })
-  const security = page.getByText('Account & Security', { exact: true })
 
   await expect(shell).toBeVisible()
   await expect(page.getByRole('link', { name: 'News' })).toBeVisible()
@@ -181,12 +187,12 @@ test('Account gateway keeps mobile entry controls clear of the footer', async ({
     .soft(initialMetrics.overflow, 'phone account gateway has no horizontal overflow')
     .toBeLessThanOrEqual(1)
   expect
-    .soft(initialMetrics.pageScroll, 'phone account gateway uses natural page scroll')
-    .toBeGreaterThan(0)
+    .soft(initialMetrics.pageScroll, 'phone account gateway never reports negative scroll range')
+    .toBeGreaterThanOrEqual(0)
+  await expect(page.getByText('Account & Security', { exact: true })).toHaveCount(0)
   await expect(
-    footer,
-    'footer stays below the fold while entering account credentials',
-  ).not.toBeInViewport()
+    page.getByText('Your account identity stays separate from your future character identity.'),
+  ).toHaveCount(0)
 
   await email.scrollIntoViewIfNeeded()
   await expect(email).toBeInViewport({ ratio: 1 })
@@ -194,12 +200,19 @@ test('Account gateway keeps mobile entry controls clear of the footer', async ({
   await password.fill('AurevaneTest!42')
   await submit.scrollIntoViewIfNeeded()
   await expect(submit).toBeInViewport({ ratio: 1 })
-  await expect(footer, 'footer does not cover the mobile submit action').not.toBeInViewport()
-
-  await security.scrollIntoViewIfNeeded()
-  await expect(security).toBeInViewport({ ratio: 1 })
-  await security.click()
-  await expect(page.getByText(/one active gameplay login per account/i)).toBeVisible()
+  const overlap = await page.evaluate(() => {
+    const submit = Array.from(document.querySelectorAll('button')).find((button) =>
+      button.textContent?.includes('Enter AUREVANE'),
+    )!
+    const footer = document.querySelector<HTMLElement>('[data-testid="account-shell"] > footer')!
+    const submitRect = submit.getBoundingClientRect()
+    const footerRect = footer.getBoundingClientRect()
+    return Math.max(
+      0,
+      Math.min(submitRect.bottom, footerRect.bottom) - Math.max(submitRect.top, footerRect.top),
+    )
+  })
+  expect.soft(overlap, 'footer does not cover the mobile submit action').toBe(0)
 
   await footer.scrollIntoViewIfNeeded()
   await expect(footer).toBeInViewport({ ratio: 0.99 })
