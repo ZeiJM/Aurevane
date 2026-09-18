@@ -11,6 +11,7 @@ export type BattleTechniqueCategory = 'attack' | 'defense' | 'heal'
 export interface BattleSkillForecastPresentation {
   id: string
   name: string
+  iconKey?: string | null
   apCost: number
   mpCost: number
   targetKind: CombatTargetKind
