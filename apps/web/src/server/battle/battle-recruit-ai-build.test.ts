@@ -266,7 +266,6 @@ describe('P3.7 live Recruit AI shared build snapshot', () => {
           sourceDisciplineId: copied.sourceDisciplineId,
         },
       ],
-      extensions: { ...snapshot().extensions, essence: null },
     }
     const base = encounter()
     const state: StatDrivenCombatEncounterState & { buildAuthority?: unknown } = {
