@@ -44,6 +44,7 @@ describe('Master Panel Skill effect editor', () => {
     ['burn', { type: 'burn', recipient: 'primary-unit', curseCopyable: true }],
     ['barrier-change', { type: 'barrier-change', recipient: 'actor', amount: 10 }],
     ['copy-statuses', { type: 'copy-statuses', recipient: 'primary-unit', mode: 'curse' }],
+    ['copy', { type: 'copy', recipient: 'primary-unit' }],
     ['sensory', { type: 'sensory', recipient: 'primary-unit', revealedDurationOwnerTurnStarts: 3 }],
   ] satisfies readonly [CombatEffectDefinition['type'], CombatEffectDefinition][])(
     'has an explicit %s editor branch',
@@ -136,6 +137,12 @@ describe('Master Panel Skill effect editor', () => {
     expect(copy).toContain('<option value="amplify" selected="">Amplify</option>')
     expect(copy).toContain('<option value="curse">Curse</option>')
     expect(copy).toContain('aria-label="Allow empty status copy"')
+
+    const skillCopy = render({ type: 'copy', recipient: 'primary-unit' })
+    expect(skillCopy).toContain('Temporary Skill Copy')
+    expect(skillCopy).toContain('Selected primary unit')
+    expect(skillCopy).toContain('half AP rounded up')
+    expect(skillCopy).not.toContain('Status copy mode')
 
     const sensory = render({
       type: 'sensory',

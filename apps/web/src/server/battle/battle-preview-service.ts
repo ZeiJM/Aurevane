@@ -86,7 +86,7 @@ export interface BattleActionPreview {
   defenseKind: CombatDefenseKind | null
   defenseRating: number | null
   mitigatedBaseDamage: number | null
-  skillCopy: {
+  skillCopy?: {
     sourceCombatantId: string
     random: true
     eligibleSkills: readonly { skillId: string; contentVersion: number }[]
