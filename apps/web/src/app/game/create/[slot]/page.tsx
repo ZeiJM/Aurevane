@@ -45,7 +45,7 @@ export default async function CharacterCreationPage({
           </span>
           <span className="brand__wordmark">
             <strong>AUREVANE</strong>
-            <small>Character Creation</small>
+            <small>Begin Your Legend</small>
           </span>
         </Link>
         <AccountMenu />
