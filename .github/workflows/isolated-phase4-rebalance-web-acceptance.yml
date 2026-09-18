@@ -1,0 +1,63 @@
+name: Isolated Phase 4 rebalance web acceptance
+
+on:
+  push:
+    branches:
+      - agent/phase4-rebalance-test-helper-20260918
+
+permissions:
+  contents: write
+
+jobs:
+  gate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - run: pnpm install --frozen-lockfile
+      - name: Format touched web files
+        run: |
+          pnpm exec prettier --write \
+            apps/web/src/media/generated-dark-fantasy-art.test.ts \
+            apps/web/src/components/battle/phase4-combat-art.ts \
+            apps/web/src/components/character/skill-detail-presentation.test.ts \
+            apps/web/src/server/battle/battle-build-authority-mixed-source-cap.test.ts \
+            apps/web/src/server/character/character-build-essence.test.ts \
+            apps/web/src/server/combat/combat-content-resolver.test.ts \
+            apps/web/src/server/master/combat-content-authoring-service.test.ts
+      - name: Focused web tests
+        run: |
+          pnpm --filter @aurevane/web exec vitest run \
+            src/media/generated-dark-fantasy-art.test.ts \
+            src/components/battle/phase4-combat-art.test.ts \
+            src/components/character/skill-detail-presentation.test.ts \
+            src/server/battle/battle-build-authority-mixed-source-cap.test.ts \
+            src/server/character/character-build-essence.test.ts \
+            src/server/combat/combat-content-resolver.test.ts \
+            src/server/master/combat-content-authoring-service.test.ts
+      - name: Web typecheck
+        run: pnpm --filter @aurevane/web typecheck
+      - name: Commit formatter output
+        run: |
+          if git diff --quiet; then
+            echo "No formatter changes required."
+            exit 0
+          fi
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            apps/web/src/media/generated-dark-fantasy-art.test.ts \
+            apps/web/src/components/battle/phase4-combat-art.ts \
+            apps/web/src/components/character/skill-detail-presentation.test.ts \
+            apps/web/src/server/battle/battle-build-authority-mixed-source-cap.test.ts \
+            apps/web/src/server/character/character-build-essence.test.ts \
+            apps/web/src/server/combat/combat-content-resolver.test.ts \
+            apps/web/src/server/master/combat-content-authoring-service.test.ts
+          git commit -m "chore: format rebalance web acceptance"
+          git push
