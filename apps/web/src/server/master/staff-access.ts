@@ -91,7 +91,8 @@ export function isMasterPanelRole(value: unknown): value is MasterPanelRole {
 
 export function isDelegatedMasterPanelRole(value: unknown): value is DelegatedMasterPanelRole {
   return (
-    typeof value === 'string' && (DELEGATED_MASTER_PANEL_ROLES as readonly string[]).includes(value)
+    typeof value === 'string' &&
+    (DELEGATED_MASTER_PANEL_ROLES as readonly string[]).includes(value)
   )
 }
 
