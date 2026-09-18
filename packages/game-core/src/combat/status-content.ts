@@ -60,15 +60,19 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
     'Inspired',
     'Buff',
     'Deal 10% more damage within the combined damage-modifier cap.',
-    { gameplayTags: ['Inspired'] },
+    { gameplayTags: ['Inspired'], amplifyCopyable: true, reactionClass: 'ordinary' },
   ),
-  status('hexed', 'Hexed', 'Debuff', 'Receive 25% less healing.', { gameplayTags: ['Hexed'] }),
+  status('hexed', 'Hexed', 'Debuff', 'Receive 25% less healing.', {
+    gameplayTags: ['Hexed'],
+    curseCopyable: true,
+    reactionClass: 'ordinary',
+  }),
   status(
     'invisible',
     'Invisible',
     'Buff',
     'Cannot be selected by hostile direct unit actions. Ground effects can hit. A damaging action or taking damage breaks Invisible.',
-    { gameplayTags: ['Invisible'] },
+    { gameplayTags: ['Invisible'], amplifyCopyable: true, reactionClass: 'ordinary' },
   ),
   status(
     'summoned',
@@ -96,7 +100,11 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
     'Haste',
     'Buff',
     'Movement costs 10 less AP per entered tile, to a minimum of 10 AP. Movement allowance is unchanged.',
-    { movement: { additionalApPerTile: -10 } },
+    {
+      movement: { additionalApPerTile: -10 },
+      amplifyCopyable: true,
+      reactionClass: 'ordinary',
+    },
   ),
   status(
     'hastened',
@@ -152,10 +160,16 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
     'Slow',
     'Debuff',
     'Movement costs 10 extra AP per tile. Your Movement allowance is unchanged.',
-    { movement: { additionalApPerTile: 10 } },
+    {
+      movement: { additionalApPerTile: 10 },
+      curseCopyable: true,
+      reactionClass: 'ordinary',
+    },
   ),
   status('root', 'Root', 'Debuff', 'Cannot move. Attacks, Skills and facing remain available.', {
     movement: { blocked: true },
+    curseCopyable: true,
+    reactionClass: 'ordinary',
   }),
   status(
     'reckless',
