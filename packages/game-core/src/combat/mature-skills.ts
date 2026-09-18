@@ -506,9 +506,7 @@ function currentAccuracyMode(
   return hostileRecipient ? 'per-target' : 'automatic'
 }
 
-function currentRequirement(
-  requirement: CombatUseRequirement,
-): CombatUseRequirement {
+function currentRequirement(requirement: CombatUseRequirement): CombatUseRequirement {
   if (!('statusId' in requirement)) return requirement
 
   const dotTag =
@@ -597,9 +595,7 @@ function rebalancePurposeTags(
   return [...new Set([...definition.ai.purposeTags, ...additions])]
 }
 
-function applyNamedPhase4Rebalance(
-  definition: MatureSkillDefinition,
-): MatureSkillDefinition {
+function applyNamedPhase4Rebalance(definition: MatureSkillDefinition): MatureSkillDefinition {
   switch (definition.id) {
     case 'chronist.haste':
       return {
@@ -616,9 +612,7 @@ function applyNamedPhase4Rebalance(
       return {
         ...definition,
         apCost: 25,
-        effects: [
-          { type: 'apply-status', recipient: 'primary-unit', statusId: 'slow', stacks: 1 },
-        ],
+        effects: [{ type: 'apply-status', recipient: 'primary-unit', statusId: 'slow', stacks: 1 }],
         ai: {
           ...definition.ai,
           purposeTags: rebalancePurposeTags(definition, ['movement', 'slow']),
@@ -792,9 +786,7 @@ function applyNamedPhase4Rebalance(
     case 'wildwarden.hunters-mark':
       return {
         ...definition,
-        effects: [
-          { type: 'apply-status', recipient: 'primary-unit', statusId: 'mark', stacks: 1 },
-        ],
+        effects: [{ type: 'apply-status', recipient: 'primary-unit', statusId: 'mark', stacks: 1 }],
         ai: {
           ...definition.ai,
           purposeTags: rebalancePurposeTags(definition, ['mark', 'accuracy', 'setup']),
@@ -805,9 +797,7 @@ function applyNamedPhase4Rebalance(
   }
 }
 
-function createPhase4RebalancedSkill(
-  definition: MatureSkillDefinition,
-): MatureSkillDefinition {
+function createPhase4RebalancedSkill(definition: MatureSkillDefinition): MatureSkillDefinition {
   const accuracyMode = currentAccuracyMode(definition)
   const current = applyNamedPhase4Rebalance({
     ...definition,

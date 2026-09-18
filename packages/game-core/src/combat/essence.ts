@@ -180,9 +180,7 @@ function rebalanceEssencePurposeTags(
   return [...new Set([...definition.skill.ai.purposeTags, ...additions])]
 }
 
-function createPhase4RebalancedEssence(
-  definition: EssenceDefinition,
-): EssenceDefinition | null {
+function createPhase4RebalancedEssence(definition: EssenceDefinition): EssenceDefinition | null {
   const version = definition.contentVersion + 1
   const authoring = {
     ...definition.authoring,
@@ -193,10 +191,7 @@ function createPhase4RebalancedEssence(
   const skillAuthoring = {
     ...definition.skill.authoring,
     validationTags: [
-      ...new Set([
-        ...definition.skill.authoring.validationTags,
-        'phase4-discipline-rebalance',
-      ]),
+      ...new Set([...definition.skill.authoring.validationTags, 'phase4-discipline-rebalance']),
     ],
   }
 
@@ -229,11 +224,7 @@ function createPhase4RebalancedEssence(
           ],
           ai: {
             ...definition.skill.ai,
-            purposeTags: rebalanceEssencePurposeTags(definition, [
-              'heal',
-              'recovery',
-              'haste',
-            ]),
+            purposeTags: rebalanceEssencePurposeTags(definition, ['heal', 'recovery', 'haste']),
           },
           authoring: skillAuthoring,
         },
@@ -339,12 +330,10 @@ function createPhase4RebalancedEssence(
   }
 }
 
-const PHASE4_REBALANCED_ESSENCES = PRE_PHASE4_REBALANCE_ESSENCES.flatMap(
-  (definition) => {
-    const rebalanced = createPhase4RebalancedEssence(definition)
-    return rebalanced ? [rebalanced] : []
-  },
-)
+const PHASE4_REBALANCED_ESSENCES = PRE_PHASE4_REBALANCE_ESSENCES.flatMap((definition) => {
+  const rebalanced = createPhase4RebalancedEssence(definition)
+  return rebalanced ? [rebalanced] : []
+})
 
 export const P36_REPRESENTATIVE_ESSENCES = [
   ...PRE_PHASE4_REBALANCE_ESSENCES,

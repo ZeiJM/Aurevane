@@ -15,12 +15,7 @@ import {
   type MatureSkillDefinition,
 } from './mature-skills'
 
-const RETIRED_CURRENT_STATUS_IDS = new Set([
-  'hastened',
-  'delayed',
-  'borrowed-hour',
-  'regeneration',
-])
+const RETIRED_CURRENT_STATUS_IDS = new Set(['hastened', 'delayed', 'borrowed-hour', 'regeneration'])
 
 function currentSkill(skillId: string): MatureSkillDefinition {
   const definition = resolveMatureSkillVersion(skillId)
@@ -37,9 +32,7 @@ function latestEssences(): readonly EssenceDefinition[] {
       latest.set(definition.essenceId, definition)
     }
   }
-  return [...latest.values()].sort((left, right) =>
-    left.essenceId.localeCompare(right.essenceId),
-  )
+  return [...latest.values()].sort((left, right) => left.essenceId.localeCompare(right.essenceId))
 }
 
 function retiredCurrentReferences(definition: MatureSkillDefinition): string[] {
@@ -83,7 +76,10 @@ describe('Phase 4 current Discipline Skill rebalance', () => {
 
       for (const context of ['pve', 'pvp'] as const) {
         const action = toCombatActionDefinition(definition, context)
-        expect(() => validateCombatActionDefinition(action), `${definition.id}:${context}`).not.toThrow()
+        expect(
+          () => validateCombatActionDefinition(action),
+          `${definition.id}:${context}`,
+        ).not.toThrow()
         expect(combatActionPresentationTags(action).length, definition.id).toBeGreaterThan(0)
       }
     }
@@ -107,7 +103,10 @@ describe('Phase 4 current Discipline Skill rebalance', () => {
       expect(retiredCurrentReferences(definition.skill), definition.essenceId).toEqual([])
       for (const context of ['pve', 'pvp'] as const) {
         const action = toCombatActionDefinition(definition.skill, context)
-        expect(() => validateCombatActionDefinition(action), `${definition.essenceId}:${context}`).not.toThrow()
+        expect(
+          () => validateCombatActionDefinition(action),
+          `${definition.essenceId}:${context}`,
+        ).not.toThrow()
         expect(combatActionPresentationTags(action).length, definition.essenceId).toBeGreaterThan(0)
       }
     }
