@@ -113,6 +113,39 @@ test('an authenticated character keeps a direct return path while reading the Ma
 
   await createAccountAndEnterCharacter({ page, email, password, characterName })
 
+  const gameHeader = page.getByTestId('authenticated-shell').locator('header')
+  const gameNewsLink = gameHeader.getByRole('link', { name: 'News', exact: true })
+  await expect(gameHeader).toBeVisible()
+  await expect(gameHeader.locator('.brand__wordmark small')).toHaveText('Persistent tactical fantasy')
+  const gameHeaderStyle = await gameHeader.evaluate((element) => {
+    const style = getComputedStyle(element)
+    const rect = element.getBoundingClientRect()
+    return {
+      height: rect.height,
+      backgroundColor: style.backgroundColor,
+      borderBottomColor: style.borderBottomColor,
+      paddingTop: style.paddingTop,
+      paddingRight: style.paddingRight,
+      paddingBottom: style.paddingBottom,
+      paddingLeft: style.paddingLeft,
+    }
+  })
+  const gameNewsStyle = await gameNewsLink.evaluate((element) => {
+    const style = getComputedStyle(element)
+    return {
+      fontFamily: style.fontFamily,
+      fontSize: style.fontSize,
+      fontWeight: style.fontWeight,
+      letterSpacing: style.letterSpacing,
+      textTransform: style.textTransform,
+      minHeight: style.minHeight,
+      paddingTop: style.paddingTop,
+      paddingRight: style.paddingRight,
+      paddingBottom: style.paddingBottom,
+      paddingLeft: style.paddingLeft,
+    }
+  })
+
   const accountButton = page.getByRole('button', { name: 'Account', exact: true })
   await expect(accountButton).toBeVisible()
   const accountStyle = await accountButton.evaluate((element) => {
@@ -139,6 +172,43 @@ test('an authenticated character keeps a direct return path while reading the Ma
   await expect(page).toHaveURL(/\/manual$/)
   await expect(page.getByRole('heading', { level: 1, name: 'Manual' })).toBeVisible()
   await expect(page.getByLabel('Current screen: Manual')).toHaveCount(0)
+
+  const publicHeader = page.getByTestId('public-information-shell').locator('header')
+  const publicNewsLink = publicHeader.getByRole('link', { name: 'News', exact: true })
+  await expect(publicHeader.locator('.brand__wordmark small')).toHaveText(
+    'Persistent tactical fantasy',
+  )
+  const publicHeaderStyle = await publicHeader.evaluate((element) => {
+    const style = getComputedStyle(element)
+    const rect = element.getBoundingClientRect()
+    return {
+      height: rect.height,
+      backgroundColor: style.backgroundColor,
+      borderBottomColor: style.borderBottomColor,
+      paddingTop: style.paddingTop,
+      paddingRight: style.paddingRight,
+      paddingBottom: style.paddingBottom,
+      paddingLeft: style.paddingLeft,
+    }
+  })
+  const publicNewsStyle = await publicNewsLink.evaluate((element) => {
+    const style = getComputedStyle(element)
+    return {
+      fontFamily: style.fontFamily,
+      fontSize: style.fontSize,
+      fontWeight: style.fontWeight,
+      letterSpacing: style.letterSpacing,
+      textTransform: style.textTransform,
+      minHeight: style.minHeight,
+      paddingTop: style.paddingTop,
+      paddingRight: style.paddingRight,
+      paddingBottom: style.paddingBottom,
+      paddingLeft: style.paddingLeft,
+    }
+  })
+  expect(publicHeaderStyle).toEqual(gameHeaderStyle)
+  expect(publicNewsStyle).toEqual(gameNewsStyle)
+
   const returnToGame = page.getByRole('link', { name: 'Return to Game', exact: true })
   await expect(returnToGame).toBeVisible()
   const returnStyle = await returnToGame.evaluate((element) => {

@@ -37,7 +37,7 @@ test('Account gateway keeps the desktop entry workspace clear and readable', asy
     page.getByText('Your account identity stays separate from your future character identity.'),
   ).toHaveCount(0)
   await expect(page.getByText('Account & Security', { exact: true })).toHaveCount(0)
-  await expect(page.getByText('The Gatehouse', { exact: true })).toBeVisible()
+  await expect(page.getByText('The Gatehouse', { exact: true })).toHaveCount(0)
   await expect(page.getByText('The Threshold', { exact: true })).toHaveCount(0)
   await settle(page)
 

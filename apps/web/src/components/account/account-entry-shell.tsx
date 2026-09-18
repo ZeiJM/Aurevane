@@ -52,7 +52,6 @@ export function AccountEntryShell({ authConfig, sessionNotice }: AccountEntryShe
         </nav>
 
         <div className={railStyles.utility}>
-          <span className={styles.environmentMark}>The Gatehouse</span>
           <AudioSettingsMenu />
         </div>
       </header>
