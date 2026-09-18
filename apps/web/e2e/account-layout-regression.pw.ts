@@ -69,6 +69,34 @@ test('Account gateway keeps the desktop entry workspace clear and readable', asy
     .toBeLessThanOrEqual(metrics.footerTop + 1)
   await expect(entryCard).toHaveAttribute('data-av-surface', 'moonstone')
 
+  const ambientMotion = await page.evaluate(() => {
+    const hero = document.querySelector<HTMLElement>('[aria-labelledby="aurevane-title"]')!
+    const wordmark = document.querySelector<HTMLElement>('.brand__wordmark')!
+    return {
+      brand: getComputedStyle(wordmark, '::after').animationName,
+      rune: getComputedStyle(hero, '::before').animationName,
+      motes: getComputedStyle(hero, '::after').animationName,
+    }
+  })
+  expect.soft(ambientMotion.brand, 'account wordmark has a restrained light sweep').not.toBe('none')
+  expect.soft(ambientMotion.rune, 'account hero has a slow rune breath').not.toBe('none')
+  expect.soft(ambientMotion.motes, 'account hero has sparse ambient motes').not.toBe('none')
+
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  const reducedMotion = await page.evaluate(() => {
+    const hero = document.querySelector<HTMLElement>('[aria-labelledby="aurevane-title"]')!
+    const wordmark = document.querySelector<HTMLElement>('.brand__wordmark')!
+    return {
+      brand: getComputedStyle(wordmark, '::after').animationName,
+      rune: getComputedStyle(hero, '::before').animationName,
+      motes: getComputedStyle(hero, '::after').animationName,
+    }
+  })
+  expect.soft(reducedMotion.brand, 'reduced motion disables the wordmark sweep').toBe('none')
+  expect.soft(reducedMotion.rune, 'reduced motion disables the rune breath').toBe('none')
+  expect.soft(reducedMotion.motes, 'reduced motion disables ambient mote drift').toBe('none')
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
+
   if (process.env.LAYOUT_REVIEW_OUTPUT) {
     await mkdir(process.env.LAYOUT_REVIEW_OUTPUT, { recursive: true })
     await page.screenshot({

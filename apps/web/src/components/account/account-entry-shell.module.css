@@ -530,3 +530,160 @@
     transition: none;
   }
 }
+
+/* Ambient motion: keep the account gateway alive without competing with authentication tasks. */
+.masthead :global(.brand__wordmark) {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.masthead :global(.brand__wordmark)::after {
+  position: absolute;
+  inset: -35% -45%;
+  pointer-events: none;
+  background: linear-gradient(
+    108deg,
+    transparent 40%,
+    rgba(211, 237, 229, 0.04) 46%,
+    rgba(234, 216, 169, 0.2) 50%,
+    rgba(211, 237, 229, 0.05) 54%,
+    transparent 60%
+  );
+  content: '';
+  mix-blend-mode: screen;
+  transform: translate3d(-72%, 0, 0);
+  animation: accountBrandSweep 11s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+.heroMedia {
+  z-index: 0;
+}
+
+.heroShade {
+  z-index: 1;
+}
+
+.hero::before,
+.hero::after {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  content: '';
+}
+
+.hero::before {
+  top: 8%;
+  left: 16%;
+  width: clamp(12rem, 31vw, 28rem);
+  aspect-ratio: 1;
+  border: 1px solid rgba(212, 186, 130, 0.12);
+  border-radius: 50%;
+  opacity: 0.16;
+  background:
+    repeating-conic-gradient(
+      from 7deg,
+      rgba(212, 186, 130, 0.07) 0deg 0.65deg,
+      transparent 0.65deg 15deg
+    ),
+    radial-gradient(circle, transparent 54%, rgba(178, 218, 207, 0.045) 55%, transparent 57%);
+  box-shadow:
+    0 0 2.8rem rgba(212, 186, 130, 0.055),
+    inset 0 0 2.4rem rgba(178, 218, 207, 0.035);
+  transform: scale(0.985);
+  animation: accountRuneBreath 8s ease-in-out infinite;
+}
+
+.hero::after {
+  inset: -1.5rem;
+  opacity: 0.18;
+  background-image:
+    radial-gradient(circle, rgba(209, 231, 223, 0.48) 0 1px, transparent 1.4px),
+    radial-gradient(circle, rgba(225, 198, 139, 0.42) 0 0.8px, transparent 1.3px),
+    radial-gradient(circle, rgba(168, 214, 204, 0.34) 0 0.7px, transparent 1.2px);
+  background-position:
+    0 0,
+    4.5rem 7rem,
+    9rem 2.5rem;
+  background-size:
+    13rem 17rem,
+    17rem 19rem,
+    19rem 23rem;
+  transform: translate3d(0, 0.6rem, 0);
+  animation: accountMotesDrift 20s linear infinite;
+}
+
+.heroContent {
+  z-index: 3;
+}
+
+@keyframes accountBrandSweep {
+  0%,
+  63% {
+    transform: translate3d(-72%, 0, 0);
+    opacity: 0;
+  }
+
+  70% {
+    opacity: 0.72;
+  }
+
+  82% {
+    opacity: 0.35;
+  }
+
+  94%,
+  100% {
+    transform: translate3d(72%, 0, 0);
+    opacity: 0;
+  }
+}
+
+@keyframes accountRuneBreath {
+  0%,
+  100% {
+    opacity: 0.11;
+    transform: scale(0.985) rotate(-0.25deg);
+  }
+
+  50% {
+    opacity: 0.2;
+    transform: scale(1.012) rotate(0.25deg);
+  }
+}
+
+@keyframes accountMotesDrift {
+  0% {
+    transform: translate3d(0, 0.6rem, 0);
+  }
+
+  50% {
+    transform: translate3d(0.45rem, -0.2rem, 0);
+  }
+
+  100% {
+    transform: translate3d(-0.25rem, -1rem, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .masthead :global(.brand__wordmark)::after,
+  .hero::before,
+  .hero::after {
+    animation: none;
+  }
+
+  .masthead :global(.brand__wordmark)::after {
+    opacity: 0;
+  }
+
+  .hero::before {
+    opacity: 0.12;
+    transform: none;
+  }
+
+  .hero::after {
+    opacity: 0.1;
+    transform: none;
+  }
+}

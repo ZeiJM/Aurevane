@@ -739,3 +739,131 @@
     width: 100%;
   }
 }
+
+/* Ambient motion: slow world life with restrained selected-character emphasis. */
+.world > :global(img) {
+  transform: scale(1.01);
+  transform-origin: 66% 50%;
+  animation: rosterWorldDrift 28s ease-in-out infinite alternate;
+}
+
+.world::before {
+  position: absolute;
+  z-index: 1;
+  inset: -6%;
+  pointer-events: none;
+  opacity: 0.14;
+  background:
+    linear-gradient(
+      116deg,
+      transparent 28%,
+      rgba(178, 218, 207, 0.035) 41%,
+      rgba(218, 200, 155, 0.04) 47%,
+      transparent 58%
+    ),
+    radial-gradient(circle, rgba(199, 229, 219, 0.48) 0 0.9px, transparent 1.35px),
+    radial-gradient(circle, rgba(225, 198, 139, 0.34) 0 0.7px, transparent 1.2px);
+  background-position:
+    center,
+    0 0,
+    7rem 11rem;
+  background-size:
+    100% 100%,
+    15rem 19rem,
+    21rem 25rem;
+  content: '';
+  transform: translate3d(0, 0.75rem, 0);
+  animation: rosterAtmosphereDrift 24s linear infinite;
+}
+
+.world::after {
+  z-index: 2;
+}
+
+.slot,
+.primaryAction,
+.deleteAction {
+  transition:
+    border-color 200ms ease,
+    box-shadow 200ms ease,
+    background-color 200ms ease,
+    color 200ms ease;
+}
+
+.slot:not([data-locked]):hover {
+  border-color: #bda66f;
+  box-shadow:
+    inset 0 0 0 4px #0c1420,
+    0 0.8rem 2rem #0000004d,
+    0 0 1.15rem rgba(212, 186, 130, 0.08);
+}
+
+.slot[data-selected] {
+  animation: rosterSelectedBreath 6.5s ease-in-out infinite;
+}
+
+@keyframes rosterWorldDrift {
+  0% {
+    transform: scale(1.01) translate3d(0, 0, 0);
+  }
+
+  100% {
+    transform: scale(1.022) translate3d(-0.35%, -0.2%, 0);
+  }
+}
+
+@keyframes rosterAtmosphereDrift {
+  0% {
+    transform: translate3d(0, 0.75rem, 0);
+  }
+
+  50% {
+    transform: translate3d(0.55rem, -0.1rem, 0);
+  }
+
+  100% {
+    transform: translate3d(-0.35rem, -1.05rem, 0);
+  }
+}
+
+@keyframes rosterSelectedBreath {
+  0%,
+  100% {
+    border-color: var(--av-brass-200);
+    box-shadow:
+      inset 0 0 0 4px #181a20,
+      0 0.8rem 2rem #0000004d,
+      0 0 1rem rgba(212, 186, 130, 0.08);
+  }
+
+  50% {
+    border-color: #dfc98f;
+    box-shadow:
+      inset 0 0 0 4px #181a20,
+      0 0.8rem 2rem #0000004d,
+      0 0 1.45rem rgba(212, 186, 130, 0.18);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .world > :global(img),
+  .world::before,
+  .slot[data-selected] {
+    animation: none;
+  }
+
+  .world > :global(img) {
+    transform: none;
+  }
+
+  .world::before {
+    opacity: 0.08;
+    transform: none;
+  }
+
+  .slot,
+  .primaryAction,
+  .deleteAction {
+    transition: none;
+  }
+}

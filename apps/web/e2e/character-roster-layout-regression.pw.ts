@@ -30,6 +30,22 @@ test('Character Select keeps its heading above three readable, reachable roster 
   const cards = board.locator(':scope > article')
   await expect(cards).toHaveCount(3)
   await expect(board.locator('[data-locked="true"]')).toHaveCount(2)
+  const selectedCard = board.locator('article[data-selected="true"]')
+  await expect(selectedCard).toHaveCount(1)
+  expect
+    .soft(
+      await selectedCard.evaluate((node) => getComputedStyle(node).animationName),
+      'selected character has a calm living glow',
+    )
+    .not.toBe('none')
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  expect
+    .soft(
+      await selectedCard.evaluate((node) => getComputedStyle(node).animationName),
+      'reduced motion disables selected-character glow',
+    )
+    .toBe('none')
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
   const play = board.getByRole('link', { name: `Play ${characterName}`, exact: true })
   await expect(play).toHaveAttribute('href', /\/game\/select\/[0-9a-f-]+$/)
   await expect(board.getByRole('button', { name: 'Delete Character', exact: true })).toBeVisible()
