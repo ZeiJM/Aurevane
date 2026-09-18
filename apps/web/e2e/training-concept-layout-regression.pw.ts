@@ -36,7 +36,7 @@ test('training uses the approved dark three-panel composition without losing mob
       report: bounds(report),
       plannerColor: getComputedStyle(planner).color,
       plannerBackground: getComputedStyle(planner).backgroundColor,
-      context: bounds(document.querySelector('[data-av-context-strip]'))!,
+      context: bounds(document.querySelector('[data-av-context-strip]')),
       overflowX: document.documentElement.scrollWidth - innerWidth,
     }
   })
@@ -46,9 +46,7 @@ test('training uses the approved dark three-panel composition without losing mob
   expect.soft(Math.min(...rgb(metrics.plannerColor)), 'readable light text').toBeGreaterThan(150)
   expect.soft(metrics.overflowX, 'no sideways page clipping').toBeLessThanOrEqual(1)
   if (!mobile) {
-    expect
-      .soft(metrics.context.height, 'workspace strip does not consume the page')
-      .toBeLessThan(65)
+    expect.soft(metrics.context, 'retired workspace strip stays absent').toBeNull()
     if (metrics.status && metrics.report) {
       expect.soft(metrics.status.x).toBeGreaterThanOrEqual(metrics.planner.right)
       expect.soft(metrics.report.x).toBeGreaterThanOrEqual(metrics.status.right)
