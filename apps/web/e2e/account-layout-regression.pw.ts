@@ -32,6 +32,11 @@ test('Account gateway keeps the desktop entry workspace clear and readable', asy
   await expect(footer).toBeVisible()
   await settle(page)
 
+  const email = page.getByLabel('Email')
+  const password = page.getByLabel('Password')
+  await email.fill('layout@example.com')
+  await password.fill('AurevaneTest!42')
+
   const metrics = await page.evaluate(() => {
     const hero = document.querySelector<HTMLElement>('[aria-labelledby="aurevane-title"]')!
     const card = document.querySelector<HTMLElement>('[data-account-concept="true"]')!
@@ -41,22 +46,32 @@ test('Account gateway keeps the desktop entry workspace clear and readable', asy
     const submitButton = Array.from(card.querySelectorAll('button')).find((button) =>
       button.textContent?.includes('Enter AUREVANE'),
     )!
+    const emailInput = card.querySelector<HTMLInputElement>('input[type="email"]')!
+    const heading = hero.querySelector('h1')!
     const heroBox = hero.getBoundingClientRect()
+    const headingBox = heading.getBoundingClientRect()
     const cardBox = card.getBoundingClientRect()
     const submitBox = submitButton.getBoundingClientRect()
     const footerBox = footerElement.getBoundingClientRect()
+    const inputStyle = getComputedStyle(emailInput)
+    const cardStyle = getComputedStyle(card)
     return {
       overflow: document.documentElement.scrollWidth - innerWidth,
       heroLeft: heroBox.left,
       heroRight: heroBox.right,
       heroTop: heroBox.top,
       heroBottom: heroBox.bottom,
+      headingTop: headingBox.top,
       cardLeft: cardBox.left,
       cardRight: cardBox.right,
       cardTop: cardBox.top,
       cardBottom: cardBox.bottom,
+      cardScroll: card.scrollHeight - card.clientHeight,
+      cardOverflowY: cardStyle.overflowY,
       submitBottom: submitBox.bottom,
       footerTop: footerBox.top,
+      inputColor: inputStyle.color,
+      inputFillColor: inputStyle.webkitTextFillColor,
     }
   })
 
@@ -64,66 +79,64 @@ test('Account gateway keeps the desktop entry workspace clear and readable', asy
     .soft(metrics.overflow, 'desktop account gateway has no horizontal overflow')
     .toBeLessThanOrEqual(1)
   expect
-    .soft(metrics.cardLeft, 'desktop account card stays inside the cinematic stage')
-    .toBeGreaterThanOrEqual(metrics.heroLeft)
-  expect
-    .soft(metrics.cardRight, 'desktop account card stays inside the cinematic stage')
-    .toBeLessThanOrEqual(metrics.heroRight)
-  expect
-    .soft(metrics.cardTop, 'desktop account card overlays the cinematic hero')
-    .toBeGreaterThan(metrics.heroTop)
-  expect
-    .soft(metrics.cardBottom, 'desktop account card stays within the cinematic hero')
-    .toBeLessThanOrEqual(metrics.heroBottom + 1)
+    .soft(metrics.heroRight, 'desktop hero stays to the left of account entry')
+    .toBeLessThanOrEqual(metrics.cardLeft + 1)
   expect
     .soft(metrics.cardBottom, 'desktop account card stays above the footer')
     .toBeLessThanOrEqual(metrics.footerTop + 1)
   expect
     .soft(metrics.submitBottom, 'desktop submit action stays above the footer')
     .toBeLessThanOrEqual(metrics.footerTop + 1)
+  expect.soft(metrics.cardScroll, 'desktop account card has no internal scroll').toBeLessThanOrEqual(1)
+  expect.soft(metrics.cardOverflowY, 'desktop account card is not a scroll box').not.toMatch(/auto|scroll/)
+  expect
+    .soft(metrics.headingTop, 'AUREVANE title is restored to the lower hero composition')
+    .toBeGreaterThan(metrics.heroTop + (metrics.heroBottom - metrics.heroTop) * 0.45)
+  expect.soft(metrics.inputColor, 'typed account text is white and readable').toBe('rgb(255, 253, 247)')
+  expect
+    .soft(metrics.inputFillColor, 'browser text fill stays white and readable')
+    .toBe('rgb(255, 253, 247)')
   await expect(entryCard).toHaveAttribute('data-av-surface', 'moonstone')
 
-  const ambientMotion = await page.evaluate(() => {
+  const aetherMotion = await page.evaluate(() => {
     const hero = document.querySelector<HTMLElement>('[aria-labelledby="aurevane-title"]')!
-    const wordmark = document.querySelector<HTMLElement>('.brand__wordmark')!
+    const shade = hero.children[1] as HTMLElement
     return {
-      brand: getComputedStyle(wordmark, '::after').animationName,
-      rune: getComputedStyle(hero, '::before').animationName,
+      teal: getComputedStyle(shade, '::before').animationName,
+      gold: getComputedStyle(shade, '::after').animationName,
       motes: getComputedStyle(hero, '::after').animationName,
     }
   })
-  expect.soft(ambientMotion.brand, 'account wordmark has a restrained light sweep').not.toBe('none')
-  expect.soft(ambientMotion.rune, 'account hero has a slow rune breath').not.toBe('none')
-  expect.soft(ambientMotion.motes, 'account hero has sparse ambient motes').not.toBe('none')
+  expect.soft(aetherMotion.teal, 'login has a flowing teal aether current').not.toBe('none')
+  expect.soft(aetherMotion.gold, 'login has a flowing gold aether current').not.toBe('none')
+  expect.soft(aetherMotion.motes, 'login has sparse drifting aether motes').not.toBe('none')
 
-  const moonlightStart = await page.evaluate(() => {
+  const aetherStart = await page.evaluate(() => {
     const hero = document.querySelector<HTMLElement>('[aria-labelledby="aurevane-title"]')!
     const shade = hero.children[1] as HTMLElement
-    return getComputedStyle(shade, '::after').transform
+    return getComputedStyle(shade, '::before').transform
   })
   await page.waitForTimeout(600)
-  const moonlightAfter = await page.evaluate(() => {
+  const aetherAfter = await page.evaluate(() => {
     const hero = document.querySelector<HTMLElement>('[aria-labelledby="aurevane-title"]')!
     const shade = hero.children[1] as HTMLElement
-    return getComputedStyle(shade, '::after').transform
+    return getComputedStyle(shade, '::before').transform
   })
-  expect
-    .soft(moonlightAfter, 'account moonlight transform actually advances')
-    .not.toBe(moonlightStart)
+  expect.soft(aetherAfter, 'login aether current actually advances').not.toBe(aetherStart)
 
   await page.emulateMedia({ reducedMotion: 'reduce' })
   const reducedMotion = await page.evaluate(() => {
     const hero = document.querySelector<HTMLElement>('[aria-labelledby="aurevane-title"]')!
-    const wordmark = document.querySelector<HTMLElement>('.brand__wordmark')!
+    const shade = hero.children[1] as HTMLElement
     return {
-      brand: getComputedStyle(wordmark, '::after').animationName,
-      rune: getComputedStyle(hero, '::before').animationName,
+      teal: getComputedStyle(shade, '::before').animationName,
+      gold: getComputedStyle(shade, '::after').animationName,
       motes: getComputedStyle(hero, '::after').animationName,
     }
   })
-  expect.soft(reducedMotion.brand, 'reduced motion disables the wordmark sweep').toBe('none')
-  expect.soft(reducedMotion.rune, 'reduced motion disables the rune breath').toBe('none')
-  expect.soft(reducedMotion.motes, 'reduced motion disables ambient mote drift').toBe('none')
+  expect.soft(reducedMotion.teal, 'reduced motion disables teal aether flow').toBe('none')
+  expect.soft(reducedMotion.gold, 'reduced motion disables gold aether flow').toBe('none')
+  expect.soft(reducedMotion.motes, 'reduced motion disables aether motes').toBe('none')
   await page.emulateMedia({ reducedMotion: 'no-preference' })
 
   if (process.env.LAYOUT_REVIEW_OUTPUT) {
