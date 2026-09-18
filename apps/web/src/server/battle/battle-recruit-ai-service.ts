@@ -10,7 +10,9 @@ import type { BattleSessionRepository } from '@aurevane/db/battle-session'
 import {
   executeBuildAwareRecruitAiAction,
   chooseBuildAwareRecruitAiDecision,
+  type BuildAwareRecruitAiSkillOptions,
 } from '@aurevane/game-core/combat/recruit-ai-build'
+import { normalizeCombatEffectState } from '@aurevane/game-core/combat/combat-effect-state'
 import {
   getRecruitAiProfile,
   type RecruitAiDecision,
@@ -23,6 +25,16 @@ import {
   type StatDrivenCombatEncounterState,
 } from '@aurevane/game-core/combat/stat-driven-combat'
 import { AurevaneError, StaleBattleVersionError } from '@aurevane/game-core/errors'
+import type { CombatContentResolver } from '@/server/combat/combat-content-resolver'
+import { createServerCombatContentResolver } from '@/server/combat/combat-content-resolver'
+import {
+  resolveBattleDisciplineSkillDefinitions,
+  resolveBattleEssenceDefinition,
+  resolveBattleTemporarySkillDefinition,
+  type BattleBuildAuthoritySnapshot,
+} from './battle-build-authority'
+import { resolveBattleSkillCopyContext } from './battle-skill-copy-authority'
+
 import {
   createBattleSessionChangedInvalidation,
   type BattleSessionChangedInvalidation,
@@ -38,7 +50,7 @@ type RecruitBattleProjection = Omit<StatDrivenCombatEncounterState, 'tactical'> 
   tactical: ProjectedTacticalState
 }
 type BuildExtendedEncounterState = StatDrivenCombatEncounterState & {
-  readonly buildAuthority?: unknown
+  readonly buildAuthority?: BattleBuildAuthoritySnapshot
   readonly buildBridge?: unknown
 }
 
@@ -142,11 +154,17 @@ function projectBattleSnapshot(state: StatDrivenCombatEncounterState): RecruitBa
 function resolveRecruitIntent(
   state: StatDrivenCombatEncounterState,
   intent: RecruitAiIntent,
+  skillOptions: BuildAwareRecruitAiSkillOptions,
 ): { state: StatDrivenCombatEncounterState; events: readonly unknown[] } {
   try {
     if (intent.kind === 'move') return executePv1fMovement(state, intent.path)
     if (intent.kind === 'action') {
-      return executeBuildAwareRecruitAiAction(state, intent.actionId, intent.target)
+      return executeBuildAwareRecruitAiAction(
+        state,
+        intent.actionId,
+        intent.target,
+        skillOptions,
+      )
     }
     if (intent.kind === 'face') return finishPv1fTurn(state, intent.facing)
 
@@ -159,6 +177,61 @@ function resolveRecruitIntent(
   } catch (error) {
     if (error instanceof AurevaneError) throw error
     throw persistenceInvalid('Recruit AI produced a command rejected by shared combat legality.')
+  }
+}
+
+async function resolveRecruitSkillOptions(
+  state: BuildExtendedEncounterState,
+  actorId: string,
+  resolver: CombatContentResolver | undefined,
+): Promise<BuildAwareRecruitAiSkillOptions> {
+  const authority = state.buildAuthority
+  if (!authority) {
+    if (normalizeCombatEffectState(state.effectState).temporarySkills.some(
+      (grant) => grant.combatantId === actorId,
+    )) {
+      throw persistenceInvalid('Temporary copied Skills require frozen battle build authority.')
+    }
+    return {}
+  }
+  if (!resolver) throw persistenceInvalid('Published combat content resolver is unavailable.')
+
+  const regular = await resolveBattleDisciplineSkillDefinitions(authority, actorId, resolver)
+  if (regular === null) return { committedSkills: [] }
+
+  const essence = resolveBattleEssenceDefinition(authority, actorId)
+  const committedSkills = essence ? [...regular, essence.skill] : [...regular]
+  const copiedSkills = []
+  for (const grant of normalizeCombatEffectState(state.effectState).temporarySkills) {
+    if (grant.combatantId !== actorId) continue
+    const definition = await resolveBattleTemporarySkillDefinition(authority, grant, resolver)
+    if (!definition) throw persistenceInvalid('Stored temporary Skill grant is invalid.')
+    copiedSkills.push(definition)
+  }
+
+  const all = [...committedSkills, ...copiedSkills]
+  const copyContextsBySource: Record<string, Awaited<ReturnType<typeof resolveBattleSkillCopyContext>>> = {}
+  if (all.some((definition) => definition.effects.some((effect) => effect.type === 'copy'))) {
+    for (const source of state.tactical.battle.combatants) {
+      const context = await resolveBattleSkillCopyContext(
+        state,
+        actorId,
+        source.id,
+        resolver,
+      )
+      if (context === null) throw persistenceInvalid('Stored Copy source build is invalid.')
+      copyContextsBySource[source.id] = context
+    }
+  }
+
+  return {
+    committedSkills,
+    copiedSkills,
+    copyContextsBySource: Object.fromEntries(
+      Object.entries(copyContextsBySource).filter(
+        (entry): entry is [string, NonNullable<(typeof entry)[1]>] => entry[1] !== null,
+      ),
+    ),
   }
 }
 
@@ -211,6 +284,7 @@ function decisionEvent(decision: RecruitAiDecision, combatantId: string) {
 
 export function createBattleRecruitAiService(
   battles: BattleSessionRepository,
+  combatContentResolver?: CombatContentResolver,
 ): BattleRecruitAiService {
   return {
     async runTurn(command) {
@@ -265,6 +339,13 @@ export function createBattleRecruitAiService(
         }
 
         const difficulty = recruitDifficultyForActor(state, turn.combatantId)
+        const resolver =
+          combatContentResolver ?? (state.buildAuthority ? createServerCombatContentResolver() : undefined)
+        const skillOptions = await resolveRecruitSkillOptions(
+          state,
+          turn.combatantId,
+          resolver,
+        )
         const decision = chooseBuildAwareRecruitAiDecision({
           state,
           profile: getRecruitAiProfile(difficulty),
@@ -276,8 +357,9 @@ export function createBattleRecruitAiService(
             step,
             combatantId: turn.combatantId,
           }),
+          skillOptions,
         })
-        const resolved = resolveRecruitIntent(state, decision.intent)
+        const resolved = resolveRecruitIntent(state, decision.intent, skillOptions)
         const nextState = preserveFrozenBuildMetadata(state, resolved.state)
         const event = decisionEvent(decision, turn.combatantId)
         const events = [event, ...resolved.events]
