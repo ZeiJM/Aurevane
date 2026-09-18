@@ -65,8 +65,8 @@ export function AccountEntryShell({ authConfig, sessionNotice }: AccountEntryShe
             <Kicker marker="◆">The gates remember // every road begins here</Kicker>
             <h1 id="aurevane-title">AUREVANE</h1>
             <p>
-              Beyond these gates, moonlit roads lead toward old powers, rival ambitions, and
-              legends still unwritten. Return to your journey—or begin one.
+              Beyond these gates, moonlit roads lead toward old powers, rival ambitions, and legends
+              still unwritten. Return to your journey—or begin one.
             </p>
             <div className={styles.identityNotes} aria-label="Account foundations">
               <span>Your deeds endure</span>
