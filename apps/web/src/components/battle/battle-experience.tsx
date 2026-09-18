@@ -259,7 +259,10 @@ export function BattleExperience({
     BATTLE_SKILL_CATEGORIES,
   )
   const selectedHealActionId = selectedSkillId('heal')
-  const selectableTechniques = [...(runtime.techniques ?? []), ...(runtime.copiedSkills ?? [])]
+  const selectableTechniques = useMemo(
+    () => [...(runtime.techniques ?? []), ...(runtime.copiedSkills ?? [])],
+    [runtime.copiedSkills, runtime.techniques],
+  )
   const attackTechniques = selectableTechniques.filter(
     (technique) => technique.category === 'attack',
   )
@@ -966,8 +969,7 @@ export function BattleExperience({
       previewCombatants,
       requestPreview,
       runtime.essence,
-      runtime.techniques,
-      runtime.copiedSkills,
+      selectableTechniques,
       selectedUnitId,
     ],
   )
