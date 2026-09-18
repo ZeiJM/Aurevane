@@ -33,14 +33,21 @@ test('account entry is responsive, focusable, stable, and media-safe', async ({ 
   await email.click()
   await expect(email).toBeFocused()
 
-  const titleDocumentYBeforeHelp = await title.evaluate(
+  const titleDocumentYBeforeModeChange = await title.evaluate(
     (element) => element.getBoundingClientRect().top + window.scrollY,
   )
-  await page.getByText('Account & Security', { exact: true }).click()
-  const titleDocumentYAfterHelp = await title.evaluate(
+  await expect(page.getByText('Account & Security', { exact: true })).toHaveCount(0)
+  await expect(
+    page.getByText('Your account identity stays separate from your future character identity.'),
+  ).toHaveCount(0)
+  await page.getByRole('button', { name: 'Create account', exact: true }).click()
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+  const titleDocumentYAfterModeChange = await title.evaluate(
     (element) => element.getBoundingClientRect().top + window.scrollY,
   )
-  expect(Math.abs(titleDocumentYAfterHelp - titleDocumentYBeforeHelp)).toBeLessThanOrEqual(1)
+  expect(Math.abs(titleDocumentYAfterModeChange - titleDocumentYBeforeModeChange)).toBeLessThanOrEqual(
+    1,
+  )
 
   const audioTrigger = page.getByRole('button', { name: 'Sound settings' })
   const audioDialog = page.getByRole('dialog', { name: 'Audio settings' })
