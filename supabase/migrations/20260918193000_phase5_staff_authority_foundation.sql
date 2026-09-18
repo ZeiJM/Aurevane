@@ -76,6 +76,13 @@ set
   updated_at = excluded.updated_at,
   note = excluded.note;
 
+create unique index master_panel_single_enabled_game_owner_uq
+  on app_private.master_panel_role_assignments (role)
+  where role = 'game-owner' and enabled = true;
+
+comment on index app_private.master_panel_single_enabled_game_owner_uq is
+  'Enforces at most one enabled Game Owner while allowing historical disabled Owner assignments.';
+
 insert into app_private.master_panel_access_versions (user_id, access_version)
 select distinct assignment.user_id, 1
 from app_private.master_panel_role_assignments as assignment
@@ -405,6 +412,9 @@ begin
   end if;
   if p_role not in ('moderator','content-staff','event-staff') then
     raise exception using errcode = '22023', message = 'MASTER_PANEL_ROLE_INVALID';
+  end if;
+  if not exists (select 1 from auth.users as account where account.id = p_target_user_id) then
+    raise exception using errcode = '22023', message = 'MASTER_PANEL_TARGET_NOT_FOUND';
   end if;
   if p_note is not null and (
     char_length(p_note) < 1

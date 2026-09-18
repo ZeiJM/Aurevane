@@ -19,7 +19,7 @@ Phase 4 combat engineering is preserved as the incoming platform. Its remaining 
 - [x] Migrate the legacy `owner | content-staff` operator model without breaking Combat Content authoring.
 - [x] Make `/master` available to all four staff classes while keeping Combat Content limited to Game Owner/Content Staff.
 - [x] Add protected Owner grant/revoke RPC and route foundations for delegated roles.
-- [ ] Add Owner-facing staff-management UI and explicit special-capability grants without creating new role names.
+- [ ] Add Owner-facing staff-management UI, WORLDWRIGHT Owner presentation, and explicit special-capability grants without creating new role names.
 
 ### P5.2 — Persistent event kernel
 
