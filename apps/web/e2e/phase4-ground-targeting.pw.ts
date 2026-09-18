@@ -326,7 +326,7 @@ test('PvP ground Skill uses the same forecast and spectator terrain inspection',
         expect.objectContaining({
           primary: expect.objectContaining({ disciplineId: 'frostweaver' }),
           disciplineSkills: expect.arrayContaining([
-            expect.objectContaining({ skillId: 'frostweaver.chilling-mist', contentVersion: 2 }),
+            expect.objectContaining({ skillId: 'frostweaver.chilling-mist', contentVersion: 3 }),
           ]),
         }),
       ]),
