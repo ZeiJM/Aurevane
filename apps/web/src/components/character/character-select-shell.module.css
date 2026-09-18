@@ -757,30 +757,32 @@
 .world::before {
   position: absolute;
   z-index: 1;
-  inset: -6%;
+  inset: -18% -24%;
   pointer-events: none;
-  opacity: 0.28;
+  opacity: 0.58;
+  will-change: transform;
   background:
     linear-gradient(
-      116deg,
-      transparent 28%,
-      rgba(178, 218, 207, 0.035) 41%,
-      rgba(218, 200, 155, 0.04) 47%,
-      transparent 58%
+      112deg,
+      transparent 30%,
+      rgba(185, 222, 214, 0.04) 39%,
+      rgba(210, 235, 228, 0.18) 49%,
+      rgba(232, 205, 148, 0.11) 54%,
+      transparent 65%
     ),
-    radial-gradient(circle, rgba(199, 229, 219, 0.48) 0 0.9px, transparent 1.35px),
-    radial-gradient(circle, rgba(225, 198, 139, 0.34) 0 0.7px, transparent 1.2px);
+    radial-gradient(circle, rgba(199, 229, 219, 0.58) 0 1px, transparent 1.45px),
+    radial-gradient(circle, rgba(225, 198, 139, 0.46) 0 0.85px, transparent 1.3px);
   background-position:
     center,
     0 0,
     7rem 11rem;
   background-size:
     100% 100%,
-    15rem 19rem,
-    21rem 25rem;
+    14rem 18rem,
+    20rem 24rem;
   content: '';
-  transform: translate3d(0, 0.75rem, 0);
-  animation: rosterAtmosphereDrift 16s linear infinite;
+  transform: translate3d(-7%, 2%, 0);
+  animation: rosterAtmosphereDrift 10s ease-in-out infinite alternate;
 }
 
 .world::after {
@@ -806,7 +808,37 @@
 }
 
 .slot[data-selected] {
+  isolation: isolate;
   animation: rosterSelectedBreath 5.5s ease-in-out infinite;
+}
+
+.slot[data-selected]::before {
+  position: absolute;
+  z-index: 4;
+  top: -40%;
+  left: -58%;
+  width: 46%;
+  height: 180%;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    rgba(223, 239, 232, 0.05) 26%,
+    rgba(242, 216, 157, 0.52) 50%,
+    rgba(191, 228, 217, 0.14) 67%,
+    transparent 100%
+  );
+  content: '';
+  mix-blend-mode: screen;
+  opacity: 0;
+  transform: skewX(-10deg);
+  will-change: transform, opacity;
+  animation: rosterSelectedSheen 6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+.slot[data-selected] > * {
+  position: relative;
+  z-index: 1;
 }
 
 @keyframes rosterWorldDrift {
@@ -821,15 +853,37 @@
 
 @keyframes rosterAtmosphereDrift {
   0% {
-    transform: translate3d(0, 0.75rem, 0);
+    transform: translate3d(-7%, 2%, 0);
   }
 
   50% {
-    transform: translate3d(0.55rem, -0.1rem, 0);
+    transform: translate3d(0%, -1%, 0);
   }
 
   100% {
-    transform: translate3d(-0.35rem, -1.05rem, 0);
+    transform: translate3d(7%, -3%, 0);
+  }
+}
+
+@keyframes rosterSelectedSheen {
+  0% {
+    opacity: 0.2;
+    transform: translate3d(0, 0, 0) skewX(-10deg);
+  }
+
+  16% {
+    opacity: 0.72;
+  }
+
+  58% {
+    opacity: 0.88;
+    transform: translate3d(390%, 0, 0) skewX(-10deg);
+  }
+
+  72%,
+  100% {
+    opacity: 0;
+    transform: translate3d(390%, 0, 0) skewX(-10deg);
   }
 }
 
@@ -855,7 +909,8 @@
 @media (prefers-reduced-motion: reduce) {
   .world > :global(img),
   .world::before,
-  .slot[data-selected] {
+  .slot[data-selected],
+  .slot[data-selected]::before {
     animation: none;
   }
 

@@ -719,3 +719,45 @@
     transform: none;
   }
 }
+
+/* Final ambient-motion visibility pass: a slow moonlight band that reads clearly without flashing. */
+.heroShade::after {
+  position: absolute;
+  inset: -24% -55%;
+  pointer-events: none;
+  will-change: transform;
+  background: linear-gradient(
+    112deg,
+    transparent 34%,
+    rgba(184, 222, 214, 0.04) 42%,
+    rgba(218, 238, 231, 0.16) 49%,
+    rgba(235, 208, 153, 0.1) 54%,
+    transparent 64%
+  );
+  content: '';
+  mix-blend-mode: screen;
+  opacity: 0.86;
+  transform: translate3d(-28%, 0, 0);
+  animation: accountMoonSweep 9s ease-in-out infinite;
+}
+
+@keyframes accountMoonSweep {
+  0% {
+    transform: translate3d(-28%, 0, 0);
+  }
+
+  50% {
+    transform: translate3d(0%, 0, 0);
+  }
+
+  100% {
+    transform: translate3d(28%, 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .heroShade::after {
+    animation: none;
+    opacity: 0.08;
+  }
+}
