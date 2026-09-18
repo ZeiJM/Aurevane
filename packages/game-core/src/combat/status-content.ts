@@ -216,6 +216,7 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
     'The source gains +15 percentage points Accuracy against this target. Other attackers gain no benefit.',
     {
       reactionClass: 'ordinary',
+      curseCopyable: true,
       markAccuracyBonusBasisPoints: 1_500,
       effectCategories: ['Debuff', 'Mark'],
     },
