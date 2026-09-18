@@ -358,7 +358,6 @@ export function DesktopBattleCombatantInspect({
               <div
                 className={styles.portrait}
                 data-av-square-media="true"
-                data-av-square-media-fit="contain"
               >
                 {selected.fallbackAssetId ? (
                   <CharacterPortraitImage
