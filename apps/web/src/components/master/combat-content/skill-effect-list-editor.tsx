@@ -22,6 +22,7 @@ const EFFECT_TYPES: readonly { value: CombatEffectType; label: string }[] = [
   { value: 'burn', label: 'Burn' },
   { value: 'barrier-change', label: 'Barrier' },
   { value: 'copy-statuses', label: 'Amplify / Curse status copy' },
+  { value: 'copy', label: 'Temporary Skill Copy' },
   { value: 'sensory', label: 'Sensory / Revealed' },
 ]
 
@@ -57,6 +58,8 @@ export function createDefaultCombatEffect(type: CombatEffectType): CombatEffectD
       return { type, recipient: 'actor', amount: 1 }
     case 'copy-statuses':
       return { type, recipient: 'primary-unit', mode: 'amplify' }
+    case 'copy':
+      return { type, recipient: 'primary-unit' }
     case 'sensory':
       return { type, recipient: 'primary-unit', revealedDurationOwnerTurnStarts: 2 }
     default:

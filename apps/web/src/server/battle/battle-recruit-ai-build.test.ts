@@ -13,6 +13,11 @@ import {
 } from '@aurevane/game-core/combat/build-snapshot'
 import { createPv1fTemporaryResources } from '@aurevane/game-core/combat/pv1f-action-economy'
 import {
+  copiedSkillApCost,
+  copiedSkillCommandId,
+} from '@aurevane/game-core/combat/combat-skill-copy'
+import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
+import {
   createStatDrivenCombatEncounterState,
   type StatDrivenCombatEncounterState,
   type StatDrivenCombatProfile,
@@ -21,6 +26,9 @@ import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
 
+import type { CombatContentResolver } from '@/server/combat/combat-content-resolver'
+import { createResolvedBattleBuildAuthoritySnapshot } from './battle-build-authority'
+import type { CharacterCommittedBuildSnapshotRecord } from '../character/character-build-service'
 import { createBattleRecruitAiService } from './battle-recruit-ai-service'
 
 const USER_ID = '00000000-0000-4000-8000-000000003741'
@@ -56,6 +64,28 @@ function snapshot(): CombatBuildSnapshot {
         skillId: 'essence.vanguard.unbroken-strike',
         skillContentVersion: 1,
       },
+      equipmentSkills: [],
+      supernatural: null,
+      prestige: null,
+    },
+  }
+}
+
+function committedSnapshot(value: CombatBuildSnapshot): CharacterCommittedBuildSnapshotRecord {
+  return {
+    schemaVersion: value.sourceBuildSchemaVersion,
+    buildVersion: value.sourceBuildVersion,
+    primary: { ...value.primary },
+    secondary: value.secondary ? { ...value.secondary } : null,
+    disciplineSkills: value.disciplineSkills.map((skill) => ({ ...skill })),
+    extensions: {
+      resonance: value.extensions.resonance
+        ? {
+            ...value.extensions.resonance,
+            disciplinePair: [...value.extensions.resonance.disciplinePair] as [string, string],
+          }
+        : null,
+      essence: value.extensions.essence ? { ...value.extensions.essence } : null,
       equipmentSkills: [],
       supernatural: null,
       prestige: null,
@@ -217,6 +247,95 @@ describe('P3.7 live Recruit AI shared build snapshot', () => {
     )
     expect(readCombatBuildSnapshot(fixture.currentState(), AI_ID)?.fingerprint).toBe(
       snapshot().fingerprint,
+    )
+  })
+  it('uses an exact pinned temporary copied Skill at half AP through server authority', async () => {
+    const copiedBase = resolveMatureSkillVersion('vanguard.cleave', 1)
+    if (!copiedBase) throw new Error('Expected Cleave fixture.')
+    const copied = { ...copiedBase, ai: { ...copiedBase.ai, baseUtility: 500 } }
+    const aiSnapshot = snapshot()
+    const playerSnapshot: CombatBuildSnapshot = {
+      ...snapshot(),
+      disciplineSkills: [
+        {
+          slotIndex: 1,
+          skillId: copied.id,
+          contentVersion: copied.contentVersion,
+          sourceDisciplineId: copied.sourceDisciplineId,
+        },
+      ],
+    }
+    const resolver: CombatContentResolver = {
+      async resolveCurrentSkillDefinition(skillId) {
+        if (skillId === copied.id) return copied
+        return resolveMatureSkillVersion(skillId)
+      },
+      async resolvePinnedSkillDefinition(skillId, version) {
+        if (skillId === copied.id && version === copied.contentVersion) return copied
+        return resolveMatureSkillVersion(skillId, version)
+      },
+    }
+    const authority = await createResolvedBattleBuildAuthoritySnapshot(
+      'pve',
+      [
+        {
+          combatantId: AI_ID,
+          characterId: AI_CHARACTER_ID,
+          snapshot: committedSnapshot(aiSnapshot),
+        },
+        {
+          combatantId: PLAYER_ID,
+          characterId: PLAYER_CHARACTER_ID,
+          snapshot: committedSnapshot(playerSnapshot),
+        },
+      ],
+      resolver,
+    )
+    const base = encounter()
+    const state: StatDrivenCombatEncounterState & { buildAuthority?: unknown } = {
+      ...base,
+      buildAuthority: authority,
+      effectState: {
+        ongoingRecovery: [],
+        poison: [],
+        bleed: [],
+        burn: [],
+        damageHistory: [],
+        temporarySkills: [
+          {
+            combatantId: AI_ID,
+            sourceCombatantId: PLAYER_ID,
+            skillId: copied.id,
+            contentVersion: copied.contentVersion,
+          },
+        ],
+      },
+    }
+    const fixture = repository(state)
+
+    const result = await createBattleRecruitAiService(fixture.battles, resolver).runTurn({
+      userId: USER_ID,
+      battleSessionId: SESSION_ID,
+      expectedBattleVersion: 1,
+    })
+
+    const copiedCommandId = copiedSkillCommandId(copied.id, copied.contentVersion)
+    expect(fixture.commits[0]?.events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          event: 'combat_action_used',
+          actionId: copiedCommandId,
+          actorId: AI_ID,
+        }),
+        expect.objectContaining({
+          event: 'action_economy_spent',
+          combatantId: AI_ID,
+          amount: copiedSkillApCost(copied, 'pve'),
+        }),
+      ]),
+    )
+    expect(result.snapshot.effectState?.temporarySkills).toContainEqual(
+      expect.objectContaining({ combatantId: AI_ID, skillId: copied.id }),
     )
   })
 })

@@ -14,6 +14,8 @@ import {
   createBattleBuildAuthoritySnapshot,
   createResolvedBattleBuildAuthoritySnapshot,
   parseBattleBuildAuthoritySnapshot,
+  resolveBattleDisciplineSkillDefinitions,
+  resolveBattleTemporarySkillDefinition,
 } from './battle-build-authority'
 
 function productionShapeMixedSnapshot(): CharacterCommittedBuildSnapshotRecord {
@@ -171,5 +173,80 @@ describe('battle build authority mixed Technique source capacity', () => {
         resolver,
       ),
     ).rejects.toThrow(/source Discipline/u)
+  })
+  it('resolves exact pinned regular pools and validates temporary grants against the source build', async () => {
+    const resolver: CombatContentResolver = {
+      async resolveCurrentSkillDefinition(skillId) {
+        const definition = currentStaticSkill(skillId)
+        if (!definition) return null
+        return skillId === 'vanguard.forceful-strike'
+          ? { ...structuredClone(definition), contentVersion: 7, apCost: 44 }
+          : structuredClone(definition)
+      },
+      async resolvePinnedSkillDefinition(skillId, version) {
+        const definition = currentStaticSkill(skillId)
+        if (!definition) return null
+        if (skillId === 'vanguard.forceful-strike' && version === 7) {
+          return { ...structuredClone(definition), contentVersion: 7, apCost: 44 }
+        }
+        return resolveMatureSkillVersion(skillId, version)
+      },
+    }
+    const sourceId = 'character:00000000-0000-4000-8000-000000004302'
+    const actorId = 'character:00000000-0000-4000-8000-000000004303'
+    const authority = await createResolvedBattleBuildAuthoritySnapshot(
+      'pvp',
+      [
+        {
+          combatantId: sourceId,
+          characterId: '00000000-0000-4000-8000-000000004302',
+          snapshot: productionShapeMixedSnapshot(),
+        },
+        {
+          combatantId: actorId,
+          characterId: '00000000-0000-4000-8000-000000004303',
+          snapshot: productionShapeMixedSnapshot(),
+        },
+      ],
+      resolver,
+    )
+
+    const pool = await resolveBattleDisciplineSkillDefinitions(authority, sourceId, resolver)
+    expect(pool?.map((definition) => [definition.id, definition.contentVersion])).toEqual([
+      ['vanguard.forceful-strike', 7],
+      ['vanguard.rally', 1],
+      ['vanguard.brace', 1],
+      ['lifebinder.barrier', 1],
+    ])
+
+    await expect(
+      resolveBattleTemporarySkillDefinition(
+        authority,
+        {
+          combatantId: actorId,
+          sourceCombatantId: sourceId,
+          skillId: 'vanguard.forceful-strike',
+          contentVersion: 7,
+        },
+        resolver,
+      ),
+    ).resolves.toMatchObject({
+      id: 'vanguard.forceful-strike',
+      contentVersion: 7,
+      apCost: 44,
+    })
+
+    await expect(
+      resolveBattleTemporarySkillDefinition(
+        authority,
+        {
+          combatantId: actorId,
+          sourceCombatantId: sourceId,
+          skillId: 'vanguard.forceful-strike',
+          contentVersion: 6,
+        },
+        resolver,
+      ),
+    ).resolves.toBeNull()
   })
 })

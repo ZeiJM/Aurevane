@@ -150,6 +150,53 @@ describe('combat authoring validation boundary', () => {
     ).not.toThrow()
   })
 
+  it('accepts direct-unit and ground-targeted Copy while rejecting self/empty targeting', () => {
+    const copyEffect = { type: 'copy' as const, recipient: 'primary-unit' as const }
+    const unitTarget = {
+      ...P2_3_GUARD_ACTION.target,
+      kind: 'unit' as const,
+      teamPolicy: 'enemy' as const,
+      minimumRange: 1,
+      maximumRange: 3,
+      friendlyFire: 'enemies-only' as const,
+    }
+    const groundTarget = {
+      ...unitTarget,
+      kind: 'ground-tile' as const,
+      teamPolicy: 'any' as const,
+      friendlyFire: 'all-units' as const,
+    }
+
+    expect(() =>
+      validateCombatActionDefinition({
+        ...P2_3_GUARD_ACTION,
+        target: unitTarget,
+        effects: [copyEffect],
+      }),
+    ).not.toThrow()
+    expect(() =>
+      validateCombatActionDefinition({
+        ...P2_3_GUARD_ACTION,
+        target: groundTarget,
+        effects: [copyEffect],
+      }),
+    ).not.toThrow()
+
+    expect(() =>
+      validateCombatActionDefinition({
+        ...P2_3_GUARD_ACTION,
+        effects: [copyEffect],
+      }),
+    ).toThrow(/Copy requires/i)
+    expect(() =>
+      validateCombatActionDefinition({
+        ...P2_3_GUARD_ACTION,
+        target: { ...groundTarget, kind: 'empty-tile' },
+        effects: [copyEffect],
+      }),
+    ).toThrow(/Copy requires/i)
+  })
+
   it('rejects malformed accuracy authoring', () => {
     expect(() =>
       validateCombatActionDefinition({

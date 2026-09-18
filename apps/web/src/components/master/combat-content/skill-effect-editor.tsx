@@ -745,6 +745,26 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
       )
       break
 
+    case 'copy':
+      controls = (
+        <div className={styles.effectStaticGrid}>
+          <div className={styles.effectStatic}>
+            <span>Effect</span>
+            <strong>Temporary Skill Copy</strong>
+          </div>
+          <div className={styles.effectStatic}>
+            <span>Source</span>
+            <strong>Selected primary unit</strong>
+          </div>
+          <p className={styles.effectNote}>
+            On a successful resolution, the server randomly grants one eligible committed regular
+            Skill from the selected unit for this battle. The copied Skill keeps its original MP,
+            targeting, effects, and requirements and costs half AP rounded up.
+          </p>
+        </div>
+      )
+      break
+
     case 'sensory':
       controls = (
         <div className={styles.typedGrid}>
