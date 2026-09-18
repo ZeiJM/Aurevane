@@ -95,7 +95,7 @@ describe('combat content authoring service', () => {
       service.saveSkillDraft({
         actorUserId: OUTSIDER,
         definition: staticSkill(),
-        baseVersion: 2,
+        baseVersion: 3,
         expectedDraftVersion: null,
       }),
     ).rejects.toMatchObject({ code: 'FORBIDDEN' })
@@ -111,12 +111,12 @@ describe('combat content authoring service', () => {
     const draft = await service.saveSkillDraft({
       actorUserId,
       definition: staticSkill(),
-      baseVersion: 2,
+      baseVersion: 3,
       expectedDraftVersion: null,
     })
 
     expect(draft.contentKey).toBe('vanguard.forceful-strike')
-    expect(draft.baseVersion).toBe(2)
+    expect(draft.baseVersion).toBe(3)
     expect(draft.draftVersion).toBe(1)
   })
 
@@ -328,20 +328,20 @@ describe('combat content authoring service', () => {
     const published = await service.publishSkill({
       actorUserId: OWNER,
       definition: staticSkill(),
-      expectedBaseVersion: 2,
+      expectedBaseVersion: 3,
     })
 
-    expect(published.contentVersion).toBe(3)
+    expect(published.contentVersion).toBe(4)
     expect(published.definition).toMatchObject({
       id: 'vanguard.forceful-strike',
-      contentVersion: 3,
+      contentVersion: 4,
     })
 
     await expect(
       service.publishSkill({
         actorUserId: OWNER,
         definition: staticSkill(),
-        expectedBaseVersion: 2,
+        expectedBaseVersion: 3,
       }),
     ).rejects.toMatchObject({ code: 'STALE_VERSION' })
   })
@@ -357,7 +357,7 @@ describe('combat content authoring service', () => {
       service.publishSkill({
         actorUserId: OWNER,
         definition: invalid,
-        expectedBaseVersion: 2,
+        expectedBaseVersion: 3,
       }),
     ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
     expect(await store.findPublished('vanguard.forceful-strike')).toBeNull()
@@ -370,31 +370,31 @@ describe('combat content authoring service', () => {
     await service.publishSkill({
       actorUserId: OWNER,
       definition: staticSkill(),
-      expectedBaseVersion: 2,
+      expectedBaseVersion: 3,
     })
     await service.publishSkill({
       actorUserId: OWNER,
       definition: { ...staticSkill(), apCost: 41 },
-      expectedBaseVersion: 3,
+      expectedBaseVersion: 4,
     })
+
+    await service.rollbackSkill({
+      actorUserId: OWNER,
+      skillId: 'vanguard.forceful-strike',
+      targetVersion: 4,
+    })
+    expect((await store.findPublished('vanguard.forceful-strike'))?.contentVersion).toBe(4)
 
     await service.rollbackSkill({
       actorUserId: OWNER,
       skillId: 'vanguard.forceful-strike',
       targetVersion: 3,
     })
-    expect((await store.findPublished('vanguard.forceful-strike'))?.contentVersion).toBe(3)
-
-    await service.rollbackSkill({
-      actorUserId: OWNER,
-      skillId: 'vanguard.forceful-strike',
-      targetVersion: 2,
-    })
     expect(await store.findPublished('vanguard.forceful-strike')).toBeNull()
     expect(
       (await store.listPublishedVersions('vanguard.forceful-strike')).map(
         (version) => version.contentVersion,
       ),
-    ).toEqual([3, 4])
+    ).toEqual([4, 5])
   })
 })

@@ -271,6 +271,9 @@ jobs:
       - name: Verify staged Phase 4 combat publication
         run: bash .github/scripts/verify-p4-combat-publication.sh
 
+      - name: Verify staged Phase 4 Discipline rebalance publication
+        run: bash .github/scripts/verify-p4-discipline-rebalance-publication.sh
+
       - name: Build and verify PV-2 Profile flow
         shell: bash
         run: |
@@ -290,10 +293,14 @@ jobs:
           AUREVANE_PV2_TEST_MODE=1 \
           pnpm --filter @aurevane/web build
 
-          # Disposable local CI database only: publication verifier above rolls back.
-          # The app bundle now contains v2; browser scenarios must receive real v2 builds.
+          # Disposable local CI database only: both publication verifiers above roll back.
+          # Browser scenarios must receive the same current versions as the rebalance app bundle.
           db_container="$(docker ps --filter 'name=supabase_db_' --format '{{.Names}}' | head -n 1)"
-          docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "set role service_role; select public.activate_phase4_combat_interactions_v2();"
+          docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+            set role service_role;
+            select public.activate_phase4_combat_interactions_v2();
+            select public.activate_phase4_discipline_rebalance_v1();
+          "
 
           AUREVANE_ENV=local \
           NEXT_PUBLIC_AUREVANE_ENV=local \

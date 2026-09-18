@@ -412,9 +412,9 @@ test('Chronist provisions its full testing library, Essence artwork and explicit
   await expect
     .poll(() => artwork.evaluate((image: HTMLImageElement) => image.naturalWidth))
     .toBeGreaterThan(0)
-  const haste = list.locator('article').filter({ has: page.getByText('Haste', { exact: true }) })
+  const haste = list.locator('article').filter({ hasText: /^HasteChronist30 AP/ })
   await haste.locator('summary').click()
-  await expect(haste).toContainText('next round')
+  await expect(haste).toContainText('Movement costs 10 less AP per entered tile')
   const rewind = list.locator('article').filter({ hasText: 'Rewind Step' })
   await rewind.locator('summary').click()
   await expect(rewind).toContainText('turn')

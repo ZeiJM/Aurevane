@@ -57,7 +57,8 @@ it('describes source-specific modifiers, cleansing and periodic timing', () => {
   const mark = resolveMatureSkillVersion('wildwarden.hunters-mark')!
   expect(skillEffectDescription(mark.effects[0]!)).toContain('Other attackers gain no benefit')
   const burn = resolveMatureSkillVersion('cinderweaver.cinder-bolt')!
-  expect(skillEffectDescription(burn.effects[1]!)).toContain('end-of-turn ticks')
+  expect(skillEffectDescription(burn.effects[1]!)).toContain('4, then 3, then 2')
+  expect(skillEffectDescription(burn.effects[1]!)).toContain('end-turn boundaries')
   expect(skillTargetTags(resolveMatureSkillVersion('runeblade.unbinding-rune')!)).toContain(
     'Cleanse',
   )

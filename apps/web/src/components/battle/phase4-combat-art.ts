@@ -47,6 +47,7 @@ const effectGlyphs: Readonly<Record<string, string>> = {
   regeneration: '<path d="M12 2v20M2 12h20"/>',
   root: '<path d="M12 1v12l-8 9M12 13l8 9M12 9 3 5M12 7l9-3M4 22l-2-7M20 22l2-7"/>',
   slow: '<circle cx="12" cy="12" r="10"/><path d="M12 5v8l5 3"/>',
+  haste: '<path d="M3 15h8M5 10h10M8 5h11"/><path d="m15 15 6-6m0 0h-5m5 0v5"/>',
   hastened: '<circle cx="10" cy="14" r="8"/><path d="M10 9v6l4-3M16 2h6v6M22 2l-7 7"/>',
   delayed: '<path d="M5 2h14M5 22h14M7 2c0 8 10 12 10 20M17 2C17 10 7 14 7 22M9 10h6"/>',
   wet: '<path d="M12 2C9 7 4 12 4 16a8 8 0 0 0 16 0c0-4-5-9-8-14ZM8 16c0 2 2 4 4 4"/>',
@@ -55,6 +56,7 @@ const effectGlyphs: Readonly<Record<string, string>> = {
   fortified: '<path d="M3 3h5v5h8V3h5v19H3Z"/>',
   reckless: '<path d="m2 22 20-20M4 3l17 18M16 4l6-2-2 6M3 15l7 7"/>',
   challenged: '<path d="M12 2v13M12 20v2"/><circle cx="12" cy="12" r="11"/>',
+  mark: '<circle cx="12" cy="12" r="8"/><path d="M12 0v7m0 10v7M0 12h7m10 0h7"/><circle cx="12" cy="12" r="2"/>',
   marked: '<circle cx="12" cy="12" r="8"/><path d="M12 0v7m0 10v7M0 12h7m10 0h7"/>',
   warded: '<path d="M3 4 12 1l9 3v8c0 5-5 9-9 11-4-2-9-6-9-11Z"/><path d="M8 10h8M12 6v9"/>',
   exposed: '<path d="m2 2 20 20M22 2 2 22"/><circle cx="12" cy="12" r="9"/>',
@@ -95,14 +97,19 @@ export function phase4SkillArtwork(actionId: string): string | null {
     if (identity?.startsWith('/media/')) return identity.replace('-128-', '-256-')
   }
   const status = skill.effects.find((effect) => effect.type === 'apply-status')
+  const typedDot = skill.effects.find(
+    (effect) => effect.type === 'burn' || effect.type === 'bleed' || effect.type === 'poison',
+  )
   const icon =
     status?.type === 'apply-status'
       ? (effectGlyphs[status.statusId] ?? '<path d="m12 2 10 10-10 10L2 12Z"/>')
-      : skill.effects.some((effect) => effect.type === 'remove-status')
-        ? '<path d="m3 13 6 6L22 3M3 3l3 3M19 20l3 3"/>'
-        : skill.effects.some((effect) => effect.type === 'healing')
-          ? effectGlyphs.regeneration
-          : '<path d="M2 21 21 2M13 2h8v8"/>'
+      : typedDot?.type === 'burn' || typedDot?.type === 'bleed' || typedDot?.type === 'poison'
+        ? effectGlyphs[typedDot.type]
+        : skill.effects.some((effect) => effect.type === 'remove-status')
+          ? '<path d="m3 13 6 6L22 3M3 3l3 3M19 20l3 3"/>'
+          : skill.effects.some((effect) => effect.type === 'healing')
+            ? effectGlyphs.regeneration
+            : '<path d="M2 21 21 2M13 2h8v8"/>'
   const shape =
     skill.target.shape.kind === 'circle'
       ? '<circle cx="20" cy="20" r="8"/>'

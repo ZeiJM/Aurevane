@@ -24,6 +24,7 @@ import {
   type StatDrivenCombatEncounterState,
 } from './stat-driven-combat'
 import {
+  P33_REPRESENTATIVE_DISCIPLINE_SKILLS,
   latestEnabledMatureSkills,
   resolveMatureSkillVersion,
   type MatureSkillDefinition,
@@ -180,16 +181,41 @@ function tag(
 }
 
 describe('Versioned Phase 4 published interactions', () => {
-  const changed = latestEnabledMatureSkills().filter(
-    (definition) => definition.contentVersion === 2 && !definition.id.startsWith('vanguard.'),
+  const currentSkills = latestEnabledMatureSkills()
+  const currentEssences = P36_REPRESENTATIVE_ESSENCES.filter(
+    (definition, index, definitions) =>
+      !definitions.some(
+        (candidate, candidateIndex) =>
+          candidateIndex !== index &&
+          candidate.essenceId === definition.essenceId &&
+          candidate.contentVersion > definition.contentVersion,
+      ),
   )
-  it('selects 136 unique current Skills while retaining every changed v1', () => {
-    expect(latestEnabledMatureSkills()).toHaveLength(136)
-    expect(changed).toHaveLength(20)
-    for (const definition of changed) {
-      expect(skill(definition.id, 1).contentVersion).toBe(1)
+
+  it('selects 136 unique current Skills while retaining immutable historical versions', () => {
+    expect(currentSkills).toHaveLength(136)
+    for (const definition of currentSkills) {
       expect(skill(definition.id)).toBe(definition)
-      expect(latestEnabledMatureSkills([definition, skill(definition.id, 1)])).toEqual([definition])
+      const historical = P33_REPRESENTATIVE_DISCIPLINE_SKILLS.filter(
+        (candidate) =>
+          candidate.id === definition.id &&
+          candidate.enabled &&
+          candidate.contentVersion < definition.contentVersion,
+      )
+      expect(historical.length, definition.id).toBeGreaterThan(0)
+      for (const previous of historical) {
+        expect(skill(definition.id, previous.contentVersion)).toBe(previous)
+      }
+
+      const disabledHistory = P33_REPRESENTATIVE_DISCIPLINE_SKILLS.filter(
+        (candidate) =>
+          candidate.id === definition.id &&
+          !candidate.enabled &&
+          candidate.contentVersion < definition.contentVersion,
+      )
+      for (const previous of disabledHistory) {
+        expect(resolveMatureSkillVersion(definition.id, previous.contentVersion)).toBeNull()
+      }
     }
   })
   for (const context of ['pve', 'pvp'] as const) {
@@ -333,7 +359,7 @@ describe('Versioned Phase 4 published interactions', () => {
       state = cast(state, skill('dawnshield.judgment'), enemy, context).state
       expect(before - hp(state)).toBe(17)
     })
-    it.each(P36_REPRESENTATIVE_ESSENCES)(
+    it.each(currentEssences)(
       `${context}: $essenceId forecasts, executes and reloads its actual pure build`,
       (essence) => {
         const library = latestEnabledMatureSkills()

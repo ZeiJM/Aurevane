@@ -131,7 +131,7 @@ function representativeAuthoring(...validationTags: string[]): MatureSkillAuthor
   }
 }
 
-export const P33_REPRESENTATIVE_DISCIPLINE_SKILLS = [
+const PRE_PHASE4_REBALANCE_DISCIPLINE_SKILLS = [
   {
     id: 'vanguard.forceful-strike',
     contentVersion: 1,
@@ -486,6 +486,351 @@ export const P33_REPRESENTATIVE_DISCIPLINE_SKILLS = [
   ...FOUNDATION_TRIO_DISCIPLINE_SKILLS,
   ...IRONFIST_SKILLS,
   ...ADVANCED_DISCIPLINE_SKILLS,
+] as const satisfies readonly MatureSkillDefinition[]
+
+function currentAccuracyMode(
+  definition: MatureSkillDefinition,
+): NonNullable<MatureSkillDefinition['accuracyMode']> {
+  if (definition.target.kind !== 'unit') return 'automatic'
+  if (definition.target.teamPolicy !== 'enemy' && definition.target.teamPolicy !== 'any') {
+    return 'automatic'
+  }
+
+  const hostileRecipient = definition.effects.some((effect) => {
+    if (!('recipient' in effect) || effect.recipient === 'actor') return false
+    if (effect.type === 'healing') return false
+    if (effect.type === 'resource-change') return effect.delta < 0
+    if (effect.type === 'barrier-change') return effect.amount < 0
+    return effect.type !== 'create-terrain'
+  })
+  return hostileRecipient ? 'per-target' : 'automatic'
+}
+
+function currentRequirement(requirement: CombatUseRequirement): CombatUseRequirement {
+  if (!('statusId' in requirement)) return requirement
+
+  const dotTag =
+    requirement.statusId === 'burn'
+      ? 'Scorched'
+      : requirement.statusId === 'bleed'
+        ? 'Bleeding'
+        : requirement.statusId === 'poison'
+          ? 'Poisoned'
+          : null
+
+  if (dotTag) {
+    if (requirement.kind === 'target-status-present') {
+      return { kind: 'target-tag-present', tag: dotTag }
+    }
+    if (requirement.kind === 'actor-status-present') {
+      return { kind: 'actor-tag-present', tag: dotTag }
+    }
+    if (requirement.kind === 'actor-status-absent') {
+      return { kind: 'actor-tag-absent', tag: dotTag }
+    }
+  }
+
+  if (requirement.statusId === 'delayed') {
+    return { ...requirement, statusId: 'slow' }
+  }
+  if (requirement.statusId === 'hastened') {
+    return { ...requirement, statusId: 'haste' }
+  }
+  if (requirement.statusId === 'marked') {
+    return { ...requirement, statusId: 'mark' }
+  }
+  return requirement
+}
+
+function currentEffect(effect: CombatEffectDefinition): CombatEffectDefinition {
+  if (effect.type === 'remove-status') {
+    return effect.statusIds.includes('marked') && !effect.statusIds.includes('mark')
+      ? { ...effect, statusIds: [...effect.statusIds, 'mark'] }
+      : effect
+  }
+  if (effect.type !== 'apply-status') return effect
+
+  if (effect.statusId === 'hastened') {
+    return { ...effect, statusId: 'haste' }
+  }
+  if (effect.statusId === 'delayed') {
+    return { ...effect, statusId: 'slow' }
+  }
+  if (effect.statusId === 'marked') {
+    return { ...effect, statusId: 'mark' }
+  }
+  if (effect.statusId === 'regeneration') {
+    return {
+      type: 'healing',
+      recipient: effect.recipient,
+      amount: 4,
+      ticks: 2,
+    }
+  }
+  if (effect.statusId === 'poison') {
+    return {
+      type: 'poison',
+      recipient: effect.recipient,
+      curseCopyable: true,
+    }
+  }
+  if (effect.statusId === 'bleed') {
+    return {
+      type: 'bleed',
+      recipient: effect.recipient,
+      damagePerTick: 3,
+      ticks: 3,
+      curseCopyable: true,
+    }
+  }
+  if (effect.statusId === 'burn') {
+    return {
+      type: 'burn',
+      recipient: effect.recipient,
+      curseCopyable: true,
+    }
+  }
+  return effect
+}
+
+function rebalancePurposeTags(
+  definition: MatureSkillDefinition,
+  additions: readonly string[] = [],
+): readonly string[] {
+  return [...new Set([...definition.ai.purposeTags, ...additions])]
+}
+
+function applyNamedPhase4Rebalance(definition: MatureSkillDefinition): MatureSkillDefinition {
+  switch (definition.id) {
+    case 'chronist.haste':
+      return {
+        ...definition,
+        effects: [
+          { type: 'apply-status', recipient: 'primary-unit', statusId: 'haste', stacks: 1 },
+        ],
+        ai: {
+          ...definition.ai,
+          purposeTags: rebalancePurposeTags(definition, ['movement', 'haste']),
+        },
+      }
+    case 'chronist.delay':
+      return {
+        ...definition,
+        apCost: 25,
+        effects: [{ type: 'apply-status', recipient: 'primary-unit', statusId: 'slow', stacks: 1 }],
+        ai: {
+          ...definition.ai,
+          purposeTags: rebalancePurposeTags(definition, ['movement', 'slow']),
+        },
+      }
+    case 'chronist.time-lock':
+      return {
+        ...definition,
+        effects: [
+          { type: 'apply-status', recipient: 'primary-unit', statusId: 'root', stacks: 1 },
+          { type: 'apply-status', recipient: 'primary-unit', statusId: 'slow', stacks: 1 },
+        ],
+        ai: {
+          ...definition.ai,
+          purposeTags: rebalancePurposeTags(definition, ['root', 'slow']),
+        },
+      }
+    case 'chronist.temporal-ward':
+      return {
+        ...definition,
+        effects: [
+          { type: 'apply-status', recipient: 'actor', statusId: 'guarded', stacks: 1 },
+          { type: 'apply-status', recipient: 'actor', statusId: 'haste', stacks: 1 },
+        ],
+        ai: {
+          ...definition.ai,
+          purposeTags: rebalancePurposeTags(definition, ['defense', 'haste']),
+        },
+      }
+    case 'chronist.stolen-moment':
+      return {
+        ...definition,
+        requirements: [{ kind: 'target-status-present', statusId: 'slow' }],
+        ai: {
+          ...definition.ai,
+          purposeTags: rebalancePurposeTags(definition, ['slow', 'payoff']),
+        },
+      }
+    case 'tidecaller.undertow':
+      return {
+        ...definition,
+        effects: [
+          { type: 'damage', recipient: 'primary-unit', amount: 5 },
+          {
+            type: 'displace',
+            recipient: 'primary-unit',
+            direction: 'pull',
+            distance: 2,
+          },
+        ],
+        ai: {
+          ...definition.ai,
+          purposeTags: rebalancePurposeTags(definition, ['pull', 'forced-movement']),
+        },
+      }
+    case 'tidecaller.springwater':
+      return {
+        ...definition,
+        effects: [{ type: 'healing', recipient: 'primary-unit', amount: 3, ticks: 3 }],
+        ai: {
+          ...definition.ai,
+          purposeTags: rebalancePurposeTags(definition, ['heal', 'recovery']),
+        },
+      }
+    case 'wildwarden.venom-shot':
+      return {
+        ...definition,
+        apCost: 50,
+        target: {
+          ...definition.target,
+          kind: 'ground-tile',
+          teamPolicy: 'enemy',
+          shape: { kind: 'circle', radius: 1 },
+          friendlyFire: 'enemies-only',
+        },
+        effects: [
+          { type: 'damage', recipient: 'affected-units', amount: 3 },
+          { type: 'poison', recipient: 'affected-units', curseCopyable: true },
+        ],
+        ai: {
+          ...definition.ai,
+          purposeTags: rebalancePurposeTags(definition, ['poison', 'area', 'ground']),
+        },
+      }
+    case 'wildwarden.renewing-herbs':
+      return {
+        ...definition,
+        apCost: 35,
+        effects: [
+          { type: 'healing', recipient: 'primary-unit', amount: 4, ticks: 2 },
+          { type: 'apply-status', recipient: 'primary-unit', statusId: 'summoned', stacks: 1 },
+        ],
+        ai: {
+          ...definition.ai,
+          purposeTags: rebalancePurposeTags(definition, ['heal', 'recovery', 'summon']),
+        },
+      }
+    case 'edgedancer.severing-cut':
+      return {
+        ...definition,
+        apCost: 45,
+        target: {
+          ...definition.target,
+          maximumRange: 2,
+          shape: { kind: 'line', length: 2 },
+        },
+        effects: [
+          { type: 'damage', recipient: 'affected-units', amount: 4 },
+          {
+            type: 'bleed',
+            recipient: 'affected-units',
+            damagePerTick: 3,
+            ticks: 3,
+            curseCopyable: true,
+          },
+        ],
+        ai: {
+          ...definition.ai,
+          purposeTags: rebalancePurposeTags(definition, ['bleed', 'line', 'area']),
+        },
+      }
+    case 'cinderweaver.flame-burst':
+      return {
+        ...definition,
+        apCost: 50,
+        target: {
+          ...definition.target,
+          kind: 'ground-tile',
+          shape: { kind: 'circle', radius: 1 },
+        },
+        effects: [
+          {
+            type: 'damage',
+            recipient: 'affected-units',
+            amount: 5,
+            element: 'fire',
+          },
+          { type: 'burn', recipient: 'affected-units', curseCopyable: true },
+        ],
+        ai: {
+          ...definition.ai,
+          purposeTags: rebalancePurposeTags(definition, ['burn', 'area', 'ground']),
+        },
+      }
+    case 'dawnshield.renewal':
+      return {
+        ...definition,
+        effects: [
+          { type: 'healing', recipient: 'actor', amount: 4, ticks: 2 },
+          {
+            type: 'remove-status',
+            recipient: 'actor',
+            statusIds: [
+              'burn',
+              'bleed',
+              'poison',
+              'slow',
+              'root',
+              'exposed',
+              'mark',
+              'marked',
+              'challenged',
+            ],
+          },
+        ],
+        ai: {
+          ...definition.ai,
+          purposeTags: rebalancePurposeTags(definition, ['heal', 'recovery', 'cleanse']),
+        },
+      }
+    case 'wildwarden.hunters-mark':
+      return {
+        ...definition,
+        effects: [{ type: 'apply-status', recipient: 'primary-unit', statusId: 'mark', stacks: 1 }],
+        ai: {
+          ...definition.ai,
+          purposeTags: rebalancePurposeTags(definition, ['mark', 'accuracy', 'setup']),
+        },
+      }
+    default:
+      return definition
+  }
+}
+
+function createPhase4RebalancedSkill(definition: MatureSkillDefinition): MatureSkillDefinition {
+  const accuracyMode = currentAccuracyMode(definition)
+  const current = applyNamedPhase4Rebalance({
+    ...definition,
+    contentVersion: definition.contentVersion + 1,
+    requirements: definition.requirements.map(currentRequirement),
+    effects: definition.effects.map(currentEffect),
+    accuracyMode,
+    ...(accuracyMode === 'per-target'
+      ? { accuracyModifierBasisPoints: definition.accuracyModifierBasisPoints ?? 0 }
+      : { accuracyModifierBasisPoints: undefined }),
+    authoring: {
+      ...definition.authoring,
+      validationTags: [
+        ...new Set([...definition.authoring.validationTags, 'phase4-discipline-rebalance']),
+      ],
+    },
+  })
+
+  return current
+}
+
+const PHASE4_REBALANCED_DISCIPLINE_SKILLS = latestEnabledMatureSkills(
+  PRE_PHASE4_REBALANCE_DISCIPLINE_SKILLS,
+).map(createPhase4RebalancedSkill)
+
+export const P33_REPRESENTATIVE_DISCIPLINE_SKILLS = [
+  ...PRE_PHASE4_REBALANCE_DISCIPLINE_SKILLS,
+  ...PHASE4_REBALANCED_DISCIPLINE_SKILLS,
 ] as const satisfies readonly MatureSkillDefinition[]
 
 /** Current selection catalog; the full registry above also retains explicit battle history. */
