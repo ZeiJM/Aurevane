@@ -23,6 +23,7 @@ import {
   calculatePv1fBasicAttackDamage,
   createPv1fTemporaryResources,
   executePv1fAction,
+  executePv1fCopiedSkill,
   executePv1fMatureSkill,
   executePv1fMovement,
   finishPv1fTurn,
@@ -78,6 +79,10 @@ import {
   deriveParticipantBattleViewerEntitlement,
   type BattleViewerEntitlement,
 } from './battle-viewer-entitlement'
+import {
+  resolveBattleCopiedSkillCommand,
+  resolveBattleSkillCopyContext,
+} from './battle-skill-copy-authority'
 
 const PV1F_RULES_VERSION = 2
 const PV1F_CONTENT_VERSION = 2
@@ -455,6 +460,38 @@ async function resolveIntent(
       const actorId = state.tactical.battle.currentTurn?.combatantId
       const build = actorId ? battleBuildAuthorityForCombatant(state.buildAuthority, actorId) : null
       const essence = actorId ? resolveBattleEssenceDefinition(state.buildAuthority, actorId) : null
+      const copiedCommand = actorId
+        ? await resolveBattleCopiedSkillCommand(
+            state,
+            actorId,
+            intent.actionId,
+            combatContentResolver,
+          )
+        : null
+      if (copiedCommand) {
+        if (!copiedCommand.definition || !state.buildAuthority) throw persistenceInvalid()
+        const copyContext =
+          copiedCommand.definition.effects.some((effect) => effect.type === 'copy') &&
+          intent.target.kind === 'unit'
+            ? await resolveBattleSkillCopyContext(
+                state,
+                actorId ?? '',
+                intent.target.combatantId,
+                combatContentResolver,
+              )
+            : undefined
+        if (copyContext === null) throw persistenceInvalid()
+        return preserveBuildAuthority(
+          state,
+          executePv1fCopiedSkill(
+            state,
+            copiedCommand.definition,
+            intent.target,
+            state.buildAuthority.combatContext,
+            copyContext,
+          ),
+        )
+      }
       if (build && essence && intent.actionId === essence.skill.id && state.buildAuthority) {
         return preserveBuildAuthority(
           state,
@@ -483,6 +520,17 @@ async function resolveIntent(
           if (state.buildAuthority.catalogVersion === 3) throw persistenceInvalid()
           throw invalidBattleIntent('That tagged Technique is no longer available.')
         }
+        const copyContext =
+          definition.effects.some((effect) => effect.type === 'copy') &&
+          intent.target.kind === 'unit'
+            ? await resolveBattleSkillCopyContext(
+                state,
+                actorId ?? '',
+                intent.target.combatantId,
+                combatContentResolver,
+              )
+            : undefined
+        if (copyContext === null) throw persistenceInvalid()
         return preserveBuildAuthority(
           state,
           executePv1fMatureSkill(
@@ -490,6 +538,7 @@ async function resolveIntent(
             definition,
             intent.target,
             state.buildAuthority.combatContext,
+            copyContext ? { copyContext } : {},
           ),
         )
       }
