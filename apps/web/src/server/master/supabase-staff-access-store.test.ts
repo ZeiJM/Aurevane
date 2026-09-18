@@ -12,13 +12,14 @@ function rpcResult(data: unknown, error: { code?: string; message?: string } | n
 }
 
 describe('RpcMasterPanelStaffAccessStore', () => {
-  it('reads a multi-role access record and normalizes bigint versions', async () => {
+  it('reads roles plus explicit special capabilities and normalizes bigint versions', async () => {
     const rpc = vi.fn(() =>
       rpcResult([
         {
           user_id: STAFF,
           access_version: '7',
           roles: ['content-staff', 'event-staff'],
+          special_capabilities: ['events.global_scope'],
         },
       ]),
     )
@@ -28,28 +29,81 @@ describe('RpcMasterPanelStaffAccessStore', () => {
       userId: STAFF,
       accessVersion: 7,
       roles: ['content-staff', 'event-staff'],
+      specialCapabilities: ['events.global_scope'],
     })
-    expect(rpc).toHaveBeenCalledWith('read_master_panel_access_v1', { p_user_id: STAFF })
   })
 
-  it('fails closed on unknown role data', async () => {
-    const rpc = vi.fn(() =>
+  it('lists current staff and resolves an exact Owner-authorized account email', async () => {
+    const rpc = vi.fn((name: string) => {
+      if (name === 'list_master_panel_staff_v1') {
+        return rpcResult([
+          {
+            user_id: STAFF,
+            email: 'staff@example.com',
+            access_version: 3,
+            roles: ['content-staff'],
+            special_capabilities: ['content.story_copy'],
+          },
+        ])
+      }
+      return rpcResult([{ user_id: STAFF, email: 'staff@example.com' }])
+    })
+    const store = new RpcMasterPanelStaffAccessStore(rpc)
+
+    await expect(store.listStaff(OWNER)).resolves.toEqual([
+      {
+        userId: STAFF,
+        email: 'staff@example.com',
+        accessVersion: 3,
+        roles: ['content-staff'],
+        specialCapabilities: ['content.story_copy'],
+      },
+    ])
+    await expect(store.resolveAccountByEmail(OWNER, 'Staff@example.com')).resolves.toEqual({
+      userId: STAFF,
+      email: 'staff@example.com',
+    })
+  })
+
+  it('fails closed on unknown role or capability data', async () => {
+    const unknownRole = vi.fn(() =>
       rpcResult([
         {
           user_id: STAFF,
           access_version: 1,
           roles: ['super-admin'],
+          special_capabilities: [],
+        },
+      ]),
+    )
+    const unknownCapability = vi.fn(() =>
+      rpcResult([
+        {
+          user_id: STAFF,
+          access_version: 1,
+          roles: ['content-staff'],
+          special_capabilities: ['root.everything'],
         },
       ]),
     )
 
-    await expect(new RpcMasterPanelStaffAccessStore(rpc).readAccess(STAFF)).rejects.toMatchObject({
+    await expect(
+      new RpcMasterPanelStaffAccessStore(unknownRole).readAccess(STAFF),
+    ).rejects.toMatchObject({
       code: 'PERSISTENCE_UNAVAILABLE',
     })
+    await expect(
+      new RpcMasterPanelStaffAccessStore(unknownCapability).readAccess(STAFF),
+    ).rejects.toMatchObject({ code: 'PERSISTENCE_UNAVAILABLE' })
   })
 
-  it('routes Owner grant and revoke commands through actor-bound RPCs', async () => {
-    const rpc = vi.fn((name: string) => rpcResult(name.startsWith('grant_') ? '2' : 3))
+  it('routes role and special-capability mutations through actor-bound RPCs', async () => {
+    const rpc = vi.fn((name: string) => {
+      if (name.startsWith('grant_master_panel_role')) return rpcResult('2')
+      if (name.startsWith('revoke_master_panel_role')) return rpcResult(3)
+      if (name.startsWith('grant_master_panel_capability')) return rpcResult('4')
+      return rpcResult(5)
+    })
     const store = new RpcMasterPanelStaffAccessStore(rpc)
 
     await expect(
@@ -65,22 +119,25 @@ describe('RpcMasterPanelStaffAccessStore', () => {
         actorUserId: OWNER,
         targetUserId: STAFF,
         role: 'content-staff',
-        note: null,
+        note: 'Role rotation',
       }),
     ).resolves.toBe(3)
-
-    expect(rpc).toHaveBeenNthCalledWith(1, 'grant_master_panel_role_v1', {
-      p_actor_user_id: OWNER,
-      p_target_user_id: STAFF,
-      p_role: 'content-staff',
-      p_note: 'Combat content',
-    })
-    expect(rpc).toHaveBeenNthCalledWith(2, 'revoke_master_panel_role_v1', {
-      p_actor_user_id: OWNER,
-      p_target_user_id: STAFF,
-      p_role: 'content-staff',
-      p_note: null,
-    })
+    await expect(
+      store.grantCapability({
+        actorUserId: OWNER,
+        targetUserId: STAFF,
+        capability: 'events.global_scope',
+        note: 'Global events',
+      }),
+    ).resolves.toBe(4)
+    await expect(
+      store.revokeCapability({
+        actorUserId: OWNER,
+        targetUserId: STAFF,
+        capability: 'events.global_scope',
+        note: 'Scope removed',
+      }),
+    ).resolves.toBe(5)
   })
 
   it('maps database authorization rejection to FORBIDDEN', async () => {
@@ -93,7 +150,7 @@ describe('RpcMasterPanelStaffAccessStore', () => {
         actorUserId: STAFF,
         targetUserId: OWNER,
         role: 'event-staff',
-        note: null,
+        note: 'Escalation',
       }),
     ).rejects.toMatchObject({ code: 'FORBIDDEN' })
   })

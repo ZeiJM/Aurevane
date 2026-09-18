@@ -10,7 +10,7 @@ import {
   deriveSkillPresentationTags,
 } from '@/server/combat/combat-content-resolver'
 import { requireMasterPanelPageAccess } from '@/server/master/master-panel-page-access'
-import { masterPanelRoleLabel } from '@/server/master/staff-access'
+import { masterPanelAuthorityLabel } from '@/server/master/staff-access'
 import { createSupabaseCombatContentAuthoringStore } from '@/server/master/supabase-combat-content-authoring-store'
 
 import styles from '../master.module.css'
@@ -40,7 +40,8 @@ function titleSkill(skillId: string): string {
 
 export default async function MasterCombatContentPage() {
   const { actor, access } = await requireMasterPanelPageAccess('content.combat.author')
-  const roleSummary = access.roles.map(masterPanelRoleLabel).join(' · ')
+  const owner = access.roles.includes('game-owner')
+  const authorityLabel = masterPanelAuthorityLabel(access.roles)
   const resolver = createServerCombatContentResolver()
   const store = createSupabaseCombatContentAuthoringStore(actor.userId)
   const catalog = latestEnabledMatureSkills()
@@ -107,7 +108,16 @@ export default async function MasterCombatContentPage() {
             <strong>AUREVANE</strong>
             <span>Master Panel · Combat Content</span>
           </div>
-          <span className={styles.operator}>{roleSummary}</span>
+          <span
+            className={[styles.operator, owner ? styles.worldwright : ''].filter(Boolean).join(' ')}
+          >
+            {owner ? (
+              <span className={styles.operatorIcon} aria-hidden="true">
+                ✦
+              </span>
+            ) : null}
+            {authorityLabel}
+          </span>
         </header>
         <Link className={styles.breadcrumb} href="/master">
           ← Master Panel

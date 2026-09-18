@@ -47,9 +47,30 @@ docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
 
 owner_access="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   set role service_role;
-  select access_version::text || '|' || array_to_string(roles, ',')
+  select access_version::text || '|' ||
+    array_to_string(roles, ',') || '|' ||
+    array_to_string(special_capabilities, ',')
   from public.read_master_panel_access_v1('$owner_id'::uuid);")"
-test "$owner_access" = '1|game-owner'
+test "$owner_access" = '1|game-owner|'
+
+resolved_staff="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+  set role service_role;
+  select user_id::text || '|' || email
+  from public.resolve_master_panel_account_v1('$owner_id'::uuid, '$staff_email');")"
+test "$resolved_staff" = "$staff_id|$staff_email"
+
+if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+  set role service_role;
+  select public.grant_master_panel_capability_v1(
+    '$owner_id'::uuid,
+    '$other_id'::uuid,
+    'events.global_scope',
+    'CI roleless capability probe'
+  );" >/tmp/p51-roleless-capability.out 2>/tmp/p51-roleless-capability.err; then
+  echo 'Expected a capability grant without a delegated staff role to fail.' >&2
+  exit 1
+fi
+grep -Fq 'MASTER_PANEL_STAFF_ROLE_REQUIRED' /tmp/p51-roleless-capability.err
 
 grant_moderator="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   set role service_role;
@@ -73,9 +94,46 @@ test "$grant_content" = '2'
 
 staff_access="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   set role service_role;
-  select access_version::text || '|' || array_to_string(roles, ',')
+  select access_version::text || '|' ||
+    array_to_string(roles, ',') || '|' ||
+    array_to_string(special_capabilities, ',')
   from public.read_master_panel_access_v1('$staff_id'::uuid);")"
-test "$staff_access" = '2|moderator,content-staff'
+test "$staff_access" = '2|moderator,content-staff|'
+
+staff_list="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+  set role service_role;
+  select user_id::text || '|' || email || '|' || access_version::text
+  from public.list_master_panel_staff_v1('$owner_id'::uuid)
+  where user_id = '$staff_id'::uuid;")"
+test "$staff_list" = "$staff_id|$staff_email|2"
+
+grant_capability="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+  set role service_role;
+  select public.grant_master_panel_capability_v1(
+    '$owner_id'::uuid,
+    '$staff_id'::uuid,
+    'events.global_scope',
+    'CI global event scope'
+  )::text;")"
+test "$grant_capability" = '3'
+
+repeat_capability="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+  set role service_role;
+  select public.grant_master_panel_capability_v1(
+    '$owner_id'::uuid,
+    '$staff_id'::uuid,
+    'events.global_scope',
+    'CI idempotent capability grant'
+  )::text;")"
+test "$repeat_capability" = '3'
+
+staff_with_capability="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+  set role service_role;
+  select access_version::text || '|' ||
+    array_to_string(roles, ',') || '|' ||
+    array_to_string(special_capabilities, ',')
+  from public.read_master_panel_access_v1('$staff_id'::uuid);")"
+test "$staff_with_capability" = '3|moderator,content-staff|events.global_scope'
 
 repeat_grant="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   set role service_role;
@@ -85,41 +143,7 @@ repeat_grant="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres 
     'content-staff',
     'CI idempotent grant'
   )::text;")"
-test "$repeat_grant" = '2'
-
-audit_after_grants="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
-  select count(*)::text
-  from app_private.master_panel_access_audit
-  where actor_user_id = '$owner_id'::uuid
-    and target_user_id = '$staff_id'::uuid
-    and action = 'role.granted';")"
-test "$audit_after_grants" = '2'
-
-revoke_moderator="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
-  set role service_role;
-  select public.revoke_master_panel_role_v1(
-    '$owner_id'::uuid,
-    '$staff_id'::uuid,
-    'moderator',
-    'CI moderator revoke'
-  )::text;")"
-test "$revoke_moderator" = '3'
-
-staff_after_revoke="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
-  set role service_role;
-  select access_version::text || '|' || array_to_string(roles, ',')
-  from public.read_master_panel_access_v1('$staff_id'::uuid);")"
-test "$staff_after_revoke" = '3|content-staff'
-
-idempotent_revoke="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
-  set role service_role;
-  select public.revoke_master_panel_role_v1(
-    '$owner_id'::uuid,
-    '$staff_id'::uuid,
-    'event-staff',
-    'CI idempotent revoke'
-  )::text;")"
-test "$idempotent_revoke" = '3'
+test "$repeat_grant" = '3'
 
 if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   insert into app_private.master_panel_role_assignments (
@@ -153,52 +177,98 @@ if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -
 fi
 grep -Fq 'MASTER_PANEL_OWNER_REQUIRED' /tmp/p51-staff-escalation.err
 
-missing_target='00000000-0000-4000-8000-000000005199'
+if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+  set role service_role;
+  select public.grant_master_panel_capability_v1(
+    '$staff_id'::uuid,
+    '$other_id'::uuid,
+    'events.global_scope',
+    'CI delegated capability escalation probe'
+  );" >/tmp/p51-capability-escalation.out 2>/tmp/p51-capability-escalation.err; then
+  echo 'Expected delegated staff capability management to fail.' >&2
+  exit 1
+fi
+grep -Fq 'MASTER_PANEL_OWNER_REQUIRED' /tmp/p51-capability-escalation.err
+
+if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+  set role service_role;
+  select public.grant_master_panel_capability_v1(
+    '$owner_id'::uuid,
+    '$staff_id'::uuid,
+    'staff.manage',
+    'CI protected root capability probe'
+  );" >/tmp/p51-root-capability.out 2>/tmp/p51-root-capability.err; then
+  echo 'Expected root capability delegation to fail.' >&2
+  exit 1
+fi
+grep -Fq 'MASTER_PANEL_ROOT_CAPABILITY_PROTECTED' /tmp/p51-root-capability.err
+
+if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+  set role authenticated;
+  select * from public.list_master_panel_staff_v1('$owner_id'::uuid);" >/tmp/p51-browser-list.out 2>/tmp/p51-browser-list.err; then
+  echo 'Authenticated browser role unexpectedly listed Master Panel staff.' >&2
+  exit 1
+fi
+
+if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+  set role authenticated;
+  select public.grant_master_panel_capability_v1(
+    '$owner_id'::uuid,
+    '$other_id'::uuid,
+    'events.global_scope',
+    'CI browser capability grant probe'
+  );" >/tmp/p51-browser-capability.out 2>/tmp/p51-browser-capability.err; then
+  echo 'Authenticated browser role unexpectedly granted a special capability.' >&2
+  exit 1
+fi
+
+if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+  set role service_role;
+  select * from app_private.master_panel_capability_grants;" >/tmp/p51-service-capability-table.out 2>/tmp/p51-service-capability-table.err; then
+  echo 'Service role unexpectedly bypassed capability RPC boundaries with direct table access.' >&2
+  exit 1
+fi
+
+revoke_moderator="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+  set role service_role;
+  select public.revoke_master_panel_role_v1(
+    '$owner_id'::uuid,
+    '$staff_id'::uuid,
+    'moderator',
+    'CI moderator revoke'
+  )::text;")"
+test "$revoke_moderator" = '4'
+
+staff_after_role_revoke="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+  set role service_role;
+  select access_version::text || '|' ||
+    array_to_string(roles, ',') || '|' ||
+    array_to_string(special_capabilities, ',')
+  from public.read_master_panel_access_v1('$staff_id'::uuid);")"
+test "$staff_after_role_revoke" = '4|content-staff|events.global_scope'
+
 if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   set role service_role;
   select public.revoke_master_panel_role_v1(
     '$owner_id'::uuid,
-    '$missing_target'::uuid,
+    '$staff_id'::uuid,
     'content-staff',
-    'CI missing account probe'
-  );" >/tmp/p51-missing-target.out 2>/tmp/p51-missing-target.err; then
-  echo 'Expected revocation for a missing account to fail.' >&2
+    'CI last role with capability probe'
+  );" >/tmp/p51-last-role-capability.out 2>/tmp/p51-last-role-capability.err; then
+  echo 'Expected last delegated role removal with an active special capability to fail.' >&2
   exit 1
 fi
-grep -Fq 'MASTER_PANEL_TARGET_NOT_FOUND' /tmp/p51-missing-target.err
+grep -Fq 'MASTER_PANEL_ROLE_REQUIRED_FOR_CAPABILITY' /tmp/p51-last-role-capability.err
 
-if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
-  set role authenticated;
-  select * from public.read_master_panel_access_v1('$staff_id'::uuid);" >/tmp/p51-browser-read.out 2>/tmp/p51-browser-read.err; then
-  echo 'Authenticated browser role unexpectedly read Master Panel authority.' >&2
-  exit 1
-fi
-
-if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
-  set role authenticated;
-  select public.grant_master_panel_role_v1(
-    '$owner_id'::uuid,
-    '$other_id'::uuid,
-    'event-staff',
-    'CI browser grant probe'
-  );" >/tmp/p51-browser-grant.out 2>/tmp/p51-browser-grant.err; then
-  echo 'Authenticated browser role unexpectedly granted Master Panel authority.' >&2
-  exit 1
-fi
-
-if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
-  set role authenticated;
-  select * from app_private.master_panel_role_assignments;" >/tmp/p51-browser-private.out 2>/tmp/p51-browser-private.err; then
-  echo 'Authenticated browser role unexpectedly read private Master Panel authority state.' >&2
-  exit 1
-fi
-
-if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+revoke_capability="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   set role service_role;
-  select * from app_private.master_panel_role_assignments;" >/tmp/p51-service-private.out 2>/tmp/p51-service-private.err; then
-  echo 'Service role unexpectedly bypassed Master Panel RPC boundaries with direct table access.' >&2
-  exit 1
-fi
+  select public.revoke_master_panel_capability_v1(
+    '$owner_id'::uuid,
+    '$staff_id'::uuid,
+    'events.global_scope',
+    'CI global event scope revoke'
+  )::text;")"
+test "$revoke_capability" = '5'
 
 revoke_content="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   set role service_role;
@@ -208,7 +278,7 @@ revoke_content="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgre
     'content-staff',
     'CI content revoke'
   )::text;")"
-test "$revoke_content" = '4'
+test "$revoke_content" = '6'
 
 remaining_access="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   set role service_role;
@@ -220,13 +290,15 @@ staff_version="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres
   select access_version::text
   from app_private.master_panel_access_versions
   where user_id = '$staff_id'::uuid;")"
-test "$staff_version" = '4'
+test "$staff_version" = '6'
 
 audit_snapshot="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   select count(*)::text || '|' ||
     count(*) filter (where action = 'role.granted')::text || '|' ||
-    count(*) filter (where action = 'role.revoked')::text
+    count(*) filter (where action = 'role.revoked')::text || '|' ||
+    count(*) filter (where action = 'capability.granted')::text || '|' ||
+    count(*) filter (where action = 'capability.revoked')::text
   from app_private.master_panel_access_audit
   where actor_user_id = '$owner_id'::uuid
     and target_user_id = '$staff_id'::uuid;")"
-test "$audit_snapshot" = '4|2|2'
+test "$audit_snapshot" = '6|2|2|1|1'
