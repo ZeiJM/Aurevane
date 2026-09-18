@@ -472,7 +472,7 @@
 .skillArt {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .artFrame em {
@@ -853,7 +853,7 @@
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 .selectedLoadout strong {
   display: block;
