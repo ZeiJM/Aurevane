@@ -32,12 +32,12 @@ interface CharacterCreationExperienceProps {
 }
 
 const attributeCopy = {
-  might: 'Physical force: heavy impacts, physical power, armor, and vertical force.',
-  finesse: 'Precision and technique: accuracy, critical precision, and refined physical output.',
-  vitality: 'Endurance: maximum health, physical toughness, and sustained frontline pressure.',
-  agility: 'Mobility and reflex: movement, evasion, initiative, and agile jumping.',
-  intellect: 'Mystic understanding: magical potency, MP, warding support, and precision.',
-  resolve: 'Willpower: MP support, ward, initiative steadiness, and status resistance.',
+  might: 'Strength behind the blow: physical power, armor, and forceful movement.',
+  finesse: 'A steady hand and exact technique: accuracy, critical precision, and refined physical output.',
+  vitality: 'The body’s staying power: health, toughness, and endurance under pressure.',
+  agility: 'Speed of foot and reflex: movement, evasion, initiative, and nimble jumps.',
+  intellect: 'Command of the unseen: mystic power, MP, warding, and precision.',
+  resolve: 'Strength of will: MP, ward, initiative, and resistance against hostile effects.',
 } as const
 
 function starterBonusesForDiscipline(disciplineId: string): CharacterAttributeBonuses {
@@ -228,7 +228,7 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
             >
               <b aria-hidden="true">{String(index + 1).padStart(2, '0')}</b>
               <span>
-                {item === 'review' ? 'Confirm' : item === 'identity' ? 'Identity' : 'Discipline'}
+                {item === 'review' ? 'Begin' : item === 'identity' ? 'Name & Visage' : 'Discipline'}
               </span>
             </li>
           ))}
@@ -237,19 +237,19 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
         {step === 'identity' ? (
           <div className={styles.step}>
             <h1 ref={stepHeading} tabIndex={-1}>
-              Create your legend.
+              Give your legend a face.
             </h1>
             <p className={styles.intro}>
-              Choose the face, name, and presentation that begin this character’s story. Portraits
-              are cosmetic.
+              Choose the name, visage, and bearing by which AUREVANE will know you. These choices
+              shape identity, not combat power.
             </p>
 
             <div className={styles.identityWorkspace}>
               <fieldset className={styles.choiceGroup} data-portrait-library="true">
-                <legend>Choose a starting portrait</legend>
+                <legend>Choose your visage</legend>
                 <p className={styles.choiceHint}>
-                  {STARTER_CHARACTER_PORTRAITS.length} starting faces. Portraits use a 1:1 frame
-                  throughout character selection and customization.
+                  {STARTER_CHARACTER_PORTRAITS.length} faces await. Choose the likeness that will
+                  represent this character throughout AUREVANE.
                 </p>
                 <div className={styles.portraitGrid} data-portrait-grid="true">
                   {STARTER_CHARACTER_PORTRAITS.map((option) => (
@@ -279,7 +279,7 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
                 </div>
               </fieldset>
               <aside className={styles.portraitPreview} aria-label="Selected portrait preview">
-                <span className={styles.previewLabel}>Preview</span>
+                <span className={styles.previewLabel}>Your likeness</span>
                 <div className={styles.previewFrame}>
                   <AurevaneImage
                     assetId={getStarterPortraitImageAssetId(portraitRef)}
@@ -287,7 +287,7 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
                   />
                 </div>
                 <div className={styles.previewCopy}>
-                  <strong>{name.trim() || 'Your character'}</strong>
+                  <strong>{name.trim() || 'Unnamed wayfarer'}</strong>
                   <span>{selectedPortrait.label}</span>
                   <small>
                     {CHARACTER_PRESENTATIONS.find((option) => option.id === presentationId)?.label}
@@ -300,10 +300,10 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
                 className={styles.field}
                 data-invalid={invalidFields.includes('name') || undefined}
               >
-                <span id="creation-name-label">Character name</span>
+                <span id="creation-name-label">Name carried into AUREVANE</span>
                 <input
                   id="creation-name"
-                  aria-labelledby="creation-name-label"
+                  aria-label="Character name"
                   aria-describedby="creation-name-hint"
                   aria-invalid={invalidFields.includes('name') || undefined}
                   autoComplete="off"
@@ -317,11 +317,11 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
                   value={name}
                 />
                 <small id="creation-name-hint">
-                  3–24 letters; spaces, apostrophes, and hyphens may separate name parts.
+                  3–24 letters. Spaces, apostrophes, and hyphens may bind the parts of a name.
                 </small>
               </label>
               <fieldset className={styles.choiceGroup}>
-                <legend>Presentation</legend>
+                <legend>Bearing</legend>
                 <div className={styles.presentationChoices}>
                   {CHARACTER_PRESENTATIONS.map((option) => (
                     <label key={option.id} className={styles.inlineChoice}>
@@ -340,8 +340,10 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
                 </div>
               </fieldset>
               <fieldset className={styles.choiceGroup}>
-                <legend>Starter appearance</legend>
-                <p className={styles.choiceHint}>Cosmetic only. No hidden combat bonus.</p>
+                <legend>First appearance</legend>
+                <p className={styles.choiceHint}>
+                  A matter of appearance only; no hidden strength lies here.
+                </p>
                 <div className={styles.appearanceGrid}>
                   {STARTER_CHARACTER_APPEARANCES.map((option) => (
                     <label
@@ -392,19 +394,19 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
             data-creation-surface="moonstone"
           >
             <h1 ref={stepHeading} tabIndex={-1}>
-              Choose your first Discipline.
+              Choose the Discipline that answers you.
             </h1>
             <p className={styles.intro}>
-              Your Primary Discipline supplies a permanent class-owned Core Stat base while it is
-              equipped. Your personal points sit on top of that base and remain yours if you change
-              Primary later.
+              Your Primary Discipline shapes the foundation of your starting attributes while it
+              is equipped. Your personal points remain your own, even if you later walk another
+              path.
             </p>
 
             <fieldset
               className={styles.choiceGroup}
               data-invalid={invalidFields.includes('foundationDisciplineId') || undefined}
             >
-              <legend>Discipline</legend>
+              <legend>Disciplines of AUREVANE</legend>
               <div className={styles.disciplineGrid}>
                 {FOUNDATION_DISCIPLINES.map((discipline) => (
                   <label
@@ -436,13 +438,13 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
 
             <div className={styles.attributeHeader}>
               <div>
-                <h2>Starting Core Stats</h2>
+                <h2>Shape your starting attributes</h2>
                 <p>
-                  {selectedDiscipline.name} supplies a fixed{' '}
-                  {CHARACTER_CREATION_RULES_V1.attributes.disciplineBaseTotal}-point base profile.
-                  You also receive {CHARACTER_CREATION_RULES_V1.attributes.bonusBudget} personal
-                  points to distribute as you see fit. Those personal points—and every point earned
-                  from later Levels—stay with your character when Primary changes.
+                  {selectedDiscipline.name} lends{' '}
+                  {CHARACTER_CREATION_RULES_V1.attributes.disciplineBaseTotal} points to its base
+                  profile. You hold {CHARACTER_CREATION_RULES_V1.attributes.bonusBudget} personal
+                  points to shape as you wish. Those points—and every point earned through later
+                  Levels—remain yours if your Primary Discipline changes.
                 </p>
               </div>
               <strong data-testid="attribute-points">
@@ -525,11 +527,11 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
             data-creation-surface="moonstone"
           >
             <h1 ref={stepHeading} tabIndex={-1}>
-              Confirm this character.
+              Seal this beginning.
             </h1>
             <p className={styles.intro}>
-              Create this character in Slot {slotIndex + 1}. Your chosen identity, Discipline, and
-              personal points are ready for the road ahead.
+              In Slot {slotIndex + 1}, this name, visage, Discipline, and chosen strengths are
+              ready to enter AUREVANE.
             </p>
             <div className={styles.reviewWorkspace}>
               <div className={styles.reviewPortrait} data-testid="creation-confirm-portrait">
@@ -603,7 +605,7 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
               </p>
             ) : null}
             <p className={styles.submitState} aria-live="polite">
-              {submitting ? 'Reserving the name and creating the character…' : 'Ready to create.'}
+              {submitting ? 'Binding the name and shaping your character…' : 'The path is ready.'}
             </p>
             <div className={styles.actions}>
               <GameButton
