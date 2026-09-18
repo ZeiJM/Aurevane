@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { createCombatEncounterState } from './actions'
 import { createPendingBattle, startBattle } from './battle-state'
+import { copiedSkillCommandId } from './combat-skill-copy'
 import { createTacticalBattleState } from './board'
 import {
   executePv1fCopiedSkill,
@@ -285,6 +286,12 @@ describe('PV-1F temporary Skill Copy integration', () => {
       'pve',
     )
     expect(evaluated.cost).toBe(13)
+    expect(evaluated.action.id).toBe(
+      copiedSkillCommandId(definition.id, definition.contentVersion),
+    )
+    expect(evaluated.evaluation.actionId).toBe(
+      copiedSkillCommandId(definition.id, definition.contentVersion),
+    )
     expect(evaluated.evaluation.mpCost).toBe(3)
 
     const result = executePv1fCopiedSkill(
@@ -295,4 +302,38 @@ describe('PV-1F temporary Skill Copy integration', () => {
     )
     expect(result.state.effectState?.temporarySkills).toHaveLength(1)
   })
+  it('omits the discrete Copy grant on a consecutive repeat', () => {
+    const definition = copySkill()
+    const copyContext = {
+      sourceCombatantId: SOURCE,
+      sourceSkills: [
+        staticSkill('vanguard.cleave', 1),
+        staticSkill('vanguard.guard-break', 1),
+      ],
+    }
+    const first = executePv1fMatureSkill(
+      state(),
+      definition,
+      { kind: 'unit', combatantId: SOURCE },
+      'pve',
+      { copyContext },
+    )
+
+    const repeated = executePv1fMatureSkill(
+      first.state,
+      definition,
+      { kind: 'unit', combatantId: SOURCE },
+      'pve',
+      { copyContext },
+    )
+
+    expect(repeated.state.effectState?.temporarySkills).toHaveLength(1)
+    expect(repeated.events).not.toContainEqual(
+      expect.objectContaining({ event: 'temporary_skill_copied' }),
+    )
+    expect(repeated.events).toContainEqual(
+      expect.objectContaining({ event: 'skill_repeat_penalty_applied' }),
+    )
+  })
+
 })

@@ -574,6 +574,7 @@ export interface Pv1fMatureSkillCopyContext {
 
 export interface Pv1fMatureSkillOptions {
   apCostOverride?: number
+  actionIdOverride?: string
   repeatHistoryKey?: string
   copyContext?: Pv1fMatureSkillCopyContext
 }
@@ -597,15 +598,18 @@ export function evaluatePv1fMatureSkill(
   const resolved = resolveMatureSkillForContext(definition, combatContext)
   const resonance = committedResonanceForecast(prepared, definition, target)
   const authoredAction = toCombatActionDefinition(definition, combatContext)
-  const copyEffect = authoredAction.effects.find((effect) => effect.type === 'copy')
+  const usageKey = options.repeatHistoryKey ?? definition.id
+  const repeatPenaltyApplied = lastMatureSkillId(prepared, actorId) === usageKey
+  const copyEffect = repeatPenaltyApplied
+    ? undefined
+    : authoredAction.effects.find((effect) => effect.type === 'copy')
   const baseAction: CombatActionDefinition = {
     ...authoredAction,
+    id: options.actionIdOverride ?? authoredAction.id,
     effects: authoredAction.effects.filter((effect) => effect.type !== 'copy'),
   }
   if (resonance?.forecast.willActivate)
     baseAction.effects = [...baseAction.effects, ...resonance.forecast.bonusEffects]
-  const usageKey = options.repeatHistoryKey ?? definition.id
-  const repeatPenaltyApplied = lastMatureSkillId(prepared, actorId) === usageKey
   const vengeance = materializeVengeanceDamage(prepared, baseAction)
   const defendedEffects: readonly CombatEffectDefinition[] = vengeance.action.effects.map(
     (effect) =>
@@ -865,6 +869,7 @@ export function evaluatePv1fCopiedSkill(
   definition: MatureSkillDefinition,
   target: CombatTargetSelection,
   combatContext: MatureSkillCombatContext = 'pve',
+  copyContext?: Pv1fMatureSkillCopyContext,
 ) {
   const actorId = state.tactical.battle.currentTurn?.combatantId
   if (!actorId) throw new Error('Copied Skill evaluation requires an active turn.')
@@ -877,7 +882,9 @@ export function evaluatePv1fCopiedSkill(
   if (!held) throw new Error('That copied Skill is not granted to the active combatant.')
   return evaluatePv1fMatureSkill(state, definition, target, combatContext, {
     apCostOverride: copiedSkillApCost(definition, combatContext),
+    actionIdOverride: copiedSkillCommandId(definition.id, definition.contentVersion),
     repeatHistoryKey: copiedSkillUsageKey(definition.id, definition.contentVersion),
+    ...(copyContext ? { copyContext } : {}),
   })
 }
 
@@ -886,6 +893,7 @@ export function executePv1fCopiedSkill(
   definition: MatureSkillDefinition,
   target: CombatTargetSelection,
   combatContext: MatureSkillCombatContext = 'pve',
+  copyContext?: Pv1fMatureSkillCopyContext,
 ): Pv1fTransition {
   const actorId = state.tactical.battle.currentTurn?.combatantId
   if (!actorId) throw new Error('Copied Skill execution requires an active turn.')
@@ -898,7 +906,9 @@ export function executePv1fCopiedSkill(
   if (!held) throw new Error('That copied Skill is not granted to the active combatant.')
   return executePv1fMatureSkill(state, definition, target, combatContext, {
     apCostOverride: copiedSkillApCost(definition, combatContext),
+    actionIdOverride: copiedSkillCommandId(definition.id, definition.contentVersion),
     repeatHistoryKey: copiedSkillUsageKey(definition.id, definition.contentVersion),
+    ...(copyContext ? { copyContext } : {}),
   })
 }
 
