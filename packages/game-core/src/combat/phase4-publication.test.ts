@@ -199,11 +199,22 @@ describe('Versioned Phase 4 published interactions', () => {
       const historical = P33_REPRESENTATIVE_DISCIPLINE_SKILLS.filter(
         (candidate) =>
           candidate.id === definition.id &&
+          candidate.enabled &&
           candidate.contentVersion < definition.contentVersion,
       )
       expect(historical.length, definition.id).toBeGreaterThan(0)
       for (const previous of historical) {
         expect(skill(definition.id, previous.contentVersion)).toBe(previous)
+      }
+
+      const disabledHistory = P33_REPRESENTATIVE_DISCIPLINE_SKILLS.filter(
+        (candidate) =>
+          candidate.id === definition.id &&
+          !candidate.enabled &&
+          candidate.contentVersion < definition.contentVersion,
+      )
+      for (const previous of disabledHistory) {
+        expect(resolveMatureSkillVersion(definition.id, previous.contentVersion)).toBeNull()
       }
     }
   })
