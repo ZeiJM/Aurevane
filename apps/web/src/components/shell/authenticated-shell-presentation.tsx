@@ -29,7 +29,6 @@ export interface AuthenticatedShellPresentationProps extends GameRailProps {
 /** Resolved presentation only. Authentication and session authority stay in AuthenticatedShellFrame. */
 export function AuthenticatedShellPresentation({
   children,
-  sessionLabel = 'Character Profile',
   layout = 'standard',
   character,
   characterPortrait,
