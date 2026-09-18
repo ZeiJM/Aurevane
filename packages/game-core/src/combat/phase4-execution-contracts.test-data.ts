@@ -4,6 +4,14 @@ export type ContractCombatant = 'actor' | 'enemy' | 'other' | 'ally'
 type ResourceDeltas = Partial<Record<ContractCombatant, readonly [number, number]>>
 type StatusChanges = Partial<Record<ContractCombatant, readonly string[]>>
 
+export interface DynamicEffectExpectation {
+  poison?: true
+  burn?: true
+  bleed?: { damagePerTick: number; ticks: number }
+  recovery?: { kind: 'hp' | 'mp'; amountPerTick: number; remainingFutureTicks: number }
+}
+type DynamicEffectChanges = Partial<Record<ContractCombatant, DynamicEffectExpectation>>
+
 export interface PublishedSkillContract {
   id: string
   contentVersion?: number
@@ -17,13 +25,14 @@ export interface PublishedSkillContract {
   repeatRemoved?: StatusChanges
   repeatBlocked?: CombatActionIssueCode
   positions?: Partial<Record<ContractCombatant, { x: number; y: number }>>
+  dynamic?: DynamicEffectChanges
   frozenTiles?: readonly { x: number; y: number }[]
 }
 
 // Independent, hand-checked outcomes for the published roster on the fixture's flat board.
 // These values do not call the effect resolver or copy its projections. A recipient-routing,
 // omitted-effect, cost, repeat-scaling or execution-order regression must change an outcome.
-const cleanse = ['burn', 'bleed', 'poison', 'slow', 'root', 'exposed', 'marked', 'challenged']
+const cleanse = ['burn', 'bleed', 'poison', 'slow', 'root', 'exposed', 'mark', 'marked', 'challenged']
 const enemy = (first: number, repeat: number): ResourceDeltas => ({ enemy: [first, repeat] })
 const enemies = (first: number, repeat: number): ResourceDeltas => ({
   enemy: [first, repeat],
@@ -128,12 +137,12 @@ export const PUBLISHED_SKILL_CONTRACTS: readonly PublishedSkillContract[] = [
   { id: 'ironfist.last-stand', cost: [40, 0], hp: actor(12, 6), applied: { actor: ['guarded'] } },
 
   { id: 'chronist.temporal-bolt', cost: [35, 2], hp: enemy(-10, -5) },
-  { id: 'chronist.haste', cost: [30, 2], applied: { ally: ['hastened'] } },
+  { id: 'chronist.haste', cost: [30, 2], applied: { ally: ['haste'] } },
   { id: 'chronist.slow', cost: [35, 2], hp: enemy(-4, -2), applied: { enemy: ['slow'] } },
-  { id: 'chronist.delay', cost: [35, 2], applied: { enemy: ['delayed'] } },
+  { id: 'chronist.delay', cost: [25, 2], applied: { enemy: ['slow'] } },
   { id: 'chronist.rewind-step', cost: [40, 2], positions: { actor: { x: 1, y: 1 } } },
-  { id: 'chronist.time-lock', cost: [50, 3], applied: { enemy: ['root', 'delayed'] } },
-  { id: 'chronist.temporal-ward', cost: [40, 2], applied: { actor: ['guarded', 'hastened'] } },
+  { id: 'chronist.time-lock', cost: [50, 3], applied: { enemy: ['root', 'slow'] } },
+  { id: 'chronist.temporal-ward', cost: [40, 2], applied: { actor: ['guarded', 'haste'] } },
   { id: 'chronist.stolen-moment', cost: [45, 3], hp: enemy(-17, -8), mp: actor(3, 1) },
 
   { id: 'bastion.shield-bash', cost: [35, 0], hp: enemy(-6, -3), applied: { enemy: ['slow'] } },
@@ -151,7 +160,12 @@ export const PUBLISHED_SKILL_CONTRACTS: readonly PublishedSkillContract[] = [
   },
 
   { id: 'ravager.frenzy', cost: [30, 0], applied: { actor: ['reckless'] } },
-  { id: 'ravager.gash', cost: [35, 0], hp: enemy(-6, -3), applied: { enemy: ['bleed'] } },
+  {
+    id: 'ravager.gash',
+    cost: [35, 0],
+    hp: enemy(-6, -3),
+    dynamic: { enemy: { bleed: { damagePerTick: 3, ticks: 3 } } },
+  },
   { id: 'ravager.cleaving-blow', cost: [45, 0], hp: enemies(-8, -4) },
   { id: 'ravager.blood-rush', cost: [35, 0], hp: actor(12, 6) },
   { id: 'ravager.war-roar', cost: [35, 0], applied: { enemy: ['exposed'], other: ['exposed'] } },
@@ -167,15 +181,23 @@ export const PUBLISHED_SKILL_CONTRACTS: readonly PublishedSkillContract[] = [
   { id: 'edgedancer.flanking-cut', cost: [45, 0], hp: enemy(-9, -4) },
   {
     id: 'edgedancer.severing-cut',
-    cost: [40, 0],
-    hp: enemy(-7, -3),
-    applied: { enemy: ['bleed'] },
+    cost: [45, 0],
+    hp: enemies(-4, -2),
+    dynamic: {
+      enemy: { bleed: { damagePerTick: 3, ticks: 3 } },
+      other: { bleed: { damagePerTick: 3, ticks: 3 } },
+    },
   },
   { id: 'edgedancer.finishing-thrust', cost: [45, 0], hp: enemy(-20, -10) },
 
   { id: 'wildwarden.snare', cost: [40, 0], applied: { enemy: ['root'] } },
-  { id: 'wildwarden.hunters-mark', cost: [25, 0], applied: { enemy: ['marked'] } },
-  { id: 'wildwarden.venom-shot', cost: [40, 0], hp: enemy(-5, -2), applied: { enemy: ['poison'] } },
+  { id: 'wildwarden.hunters-mark', cost: [25, 0], applied: { enemy: ['mark'] } },
+  {
+    id: 'wildwarden.venom-shot',
+    cost: [50, 0],
+    hp: enemies(-3, -1),
+    dynamic: { enemy: { poison: true }, other: { poison: true } },
+  },
   { id: 'wildwarden.field-remedy', cost: [35, 0], hp: actor(5, 2), removed: { actor: cleanse } },
   {
     id: 'wildwarden.thorn-line',
@@ -186,8 +208,12 @@ export const PUBLISHED_SKILL_CONTRACTS: readonly PublishedSkillContract[] = [
   { id: 'wildwarden.pursuit-shot', cost: [40, 0], hp: enemy(-14, -7) },
   {
     id: 'wildwarden.renewing-herbs',
-    cost: [30, 0],
-    applied: { ally: ['regeneration', 'summoned'] },
+    cost: [35, 0],
+    hp: { ally: [4, 2] },
+    applied: { ally: ['summoned'] },
+    dynamic: {
+      ally: { recovery: { kind: 'hp', amountPerTick: 4, remainingFutureTicks: 1 } },
+    },
   },
   { id: 'wildwarden.close-quarry', cost: [35, 0], hp: enemy(-10, -5), mp: actor(3, 1) },
 
@@ -233,8 +259,11 @@ export const PUBLISHED_SKILL_CONTRACTS: readonly PublishedSkillContract[] = [
   {
     id: 'dawnshield.renewal',
     cost: [35, 0],
-    applied: { actor: ['regeneration'] },
+    hp: actor(4, 2),
     removed: { actor: cleanse },
+    dynamic: {
+      actor: { recovery: { kind: 'hp', amountPerTick: 4, remainingFutureTicks: 1 } },
+    },
   },
   { id: 'dawnshield.judgment', cost: [45, 3], hp: enemy(-16, -8) },
   { id: 'dawnshield.last-light', cost: [40, 0], hp: actor(16, 8) },
@@ -243,14 +272,19 @@ export const PUBLISHED_SKILL_CONTRACTS: readonly PublishedSkillContract[] = [
     id: 'cinderweaver.cinder-bolt',
     cost: [35, 2],
     hp: enemy(-6, -3),
-    applied: { enemy: ['burn'] },
+    dynamic: { enemy: { burn: true } },
   },
-  { id: 'cinderweaver.flame-burst', cost: [45, 3], hp: enemies(-8, -4) },
+  {
+    id: 'cinderweaver.flame-burst',
+    cost: [50, 3],
+    hp: enemies(-5, -2),
+    dynamic: { enemy: { burn: true }, other: { burn: true } },
+  },
   {
     id: 'cinderweaver.ember-line',
     cost: [45, 3],
     hp: enemies(-5, -2),
-    applied: { enemy: ['burn'], other: ['burn'] },
+    dynamic: { enemy: { burn: true }, other: { burn: true } },
   },
   { id: 'cinderweaver.scorch', cost: [40, 2], hp: enemy(-16, -8) },
   { id: 'cinderweaver.ash-ward', cost: [30, 0], applied: { actor: ['warded'] } },
@@ -261,7 +295,12 @@ export const PUBLISHED_SKILL_CONTRACTS: readonly PublishedSkillContract[] = [
     applied: { enemy: ['exposed'] },
   },
   { id: 'cinderweaver.banked-embers', cost: [35, 0], hp: actor(4, 2), mp: actor(8, 4) },
-  { id: 'cinderweaver.blistering-heat', cost: [40, 0], applied: { enemy: ['burn', 'slow'] } },
+  {
+    id: 'cinderweaver.blistering-heat',
+    cost: [40, 0],
+    applied: { enemy: ['slow'] },
+    dynamic: { enemy: { burn: true } },
+  },
 
   {
     id: 'frostweaver.ice-lance',
@@ -338,7 +377,13 @@ export const PUBLISHED_SKILL_CONTRACTS: readonly PublishedSkillContract[] = [
 
   { id: 'tidecaller.water-lance', cost: [35, 2], hp: enemy(-10, -5), applied: { enemy: ['wet'] } },
   { id: 'tidecaller.mist-veil', cost: [30, 0], applied: { ally: ['guarded'] } },
-  { id: 'tidecaller.undertow', cost: [40, 2], hp: enemy(-5, -2), applied: { enemy: ['slow'] } },
+  {
+    id: 'tidecaller.undertow',
+    cost: [40, 2],
+    hp: enemy(-5, -2),
+    applied: { enemy: ['displaced'] },
+    positions: { enemy: { x: 2, y: 1 } },
+  },
   {
     id: 'tidecaller.cleansing-rain',
     cost: [50, 0],
@@ -351,7 +396,14 @@ export const PUBLISHED_SKILL_CONTRACTS: readonly PublishedSkillContract[] = [
     hp: enemies(-7, -3),
     applied: { enemy: ['slow', 'wet'], other: ['slow', 'wet'] },
   },
-  { id: 'tidecaller.springwater', cost: [35, 0], applied: { ally: ['regeneration'] } },
+  {
+    id: 'tidecaller.springwater',
+    cost: [35, 0],
+    hp: { ally: [3, 1] },
+    dynamic: {
+      ally: { recovery: { kind: 'hp', amountPerTick: 3, remainingFutureTicks: 2 } },
+    },
+  },
   { id: 'tidecaller.still-water', cost: [35, 0], hp: actor(6, 3), mp: actor(5, 2) },
   { id: 'tidecaller.crushing-wave', cost: [45, 3], hp: enemy(-15, -7) },
 
@@ -364,8 +416,11 @@ export const PUBLISHED_SKILL_CONTRACTS: readonly PublishedSkillContract[] = [
   {
     id: 'essence.chronist.borrowed-hour',
     cost: [60, 4, 65],
-    hp: { ally: [10, 5] },
-    applied: { ally: ['borrowed-hour'] },
+    hp: { ally: [5, 2] },
+    applied: { ally: ['haste'] },
+    dynamic: {
+      ally: { recovery: { kind: 'hp', amountPerTick: 5, remainingFutureTicks: 1 } },
+    },
   },
   {
     id: 'essence.bastion.last-bastion',
@@ -377,7 +432,10 @@ export const PUBLISHED_SKILL_CONTRACTS: readonly PublishedSkillContract[] = [
     id: 'essence.ravager.red-tempest',
     cost: [65, 0, 70],
     hp: enemies(-13, -6),
-    applied: { enemy: ['bleed'], other: ['bleed'] },
+    dynamic: {
+      enemy: { bleed: { damagePerTick: 3, ticks: 3 } },
+      other: { bleed: { damagePerTick: 3, ticks: 3 } },
+    },
   },
   { id: 'essence.edgedancer.sevenfold-cut', cost: [65, 0, 70], hp: enemy(-21, -7) },
   {
@@ -403,7 +461,7 @@ export const PUBLISHED_SKILL_CONTRACTS: readonly PublishedSkillContract[] = [
     id: 'essence.cinderweaver.phoenix-wake',
     cost: [65, 4, 70],
     hp: enemies(-10, -5),
-    applied: { enemy: ['burn'], other: ['burn'] },
+    dynamic: { enemy: { burn: true }, other: { burn: true } },
   },
   {
     id: 'essence.frostweaver.absolute-winter',
@@ -415,9 +473,12 @@ export const PUBLISHED_SKILL_CONTRACTS: readonly PublishedSkillContract[] = [
   {
     id: 'essence.tidecaller.tidal-crown',
     cost: [65, 0, 70],
-    hp: allies(10, 5),
+    hp: allies(14, 7),
     removed: { actor: cleanse, ally: cleanse },
-    applied: { actor: ['regeneration'], ally: ['regeneration'] },
+    dynamic: {
+      actor: { recovery: { kind: 'hp', amountPerTick: 4, remainingFutureTicks: 1 } },
+      ally: { recovery: { kind: 'hp', amountPerTick: 4, remainingFutureTicks: 1 } },
+    },
   },
 ]
 
@@ -445,16 +506,31 @@ const historicalOverrides: Record<string, Partial<PublishedSkillContract>> = {
     removed: undefined,
     repeatBlocked: undefined,
   },
-  'cinderweaver.cinder-bolt': {},
-  'cinderweaver.flame-burst': {},
-  'cinderweaver.ember-line': {},
+  'cinderweaver.cinder-bolt': {
+    dynamic: undefined,
+    applied: { enemy: ['burn'] },
+  },
+  'cinderweaver.flame-burst': {
+    cost: [45, 3],
+    hp: enemies(-8, -4),
+    dynamic: undefined,
+  },
+  'cinderweaver.ember-line': {
+    dynamic: undefined,
+    applied: { enemy: ['burn'], other: ['burn'] },
+  },
   'frostweaver.ice-lance': { applied: { enemy: ['slow'] } },
   'frostweaver.chilling-mist': {
     applied: { enemy: ['slow'], other: ['slow'] },
     frozenTiles: undefined,
   },
   'frostweaver.shatter': {},
-  'wildwarden.renewing-herbs': { applied: { ally: ['regeneration'] } },
+  'wildwarden.renewing-herbs': {
+    cost: [30, 0],
+    hp: undefined,
+    dynamic: undefined,
+    applied: { ally: ['regeneration'] },
+  },
   'runeblade.sigil-brand': { applied: { enemy: ['exposed'] } },
   'runeblade.aether-cut': { hp: enemy(-12, -6), removed: undefined },
   'dawnshield.sacred-guard': { applied: { ally: ['guarded'] } },
