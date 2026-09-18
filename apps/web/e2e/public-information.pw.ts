@@ -113,9 +113,52 @@ test('an authenticated character keeps a direct return path while reading the Ma
 
   await createAccountAndEnterCharacter({ page, email, password, characterName })
 
+  const accountButton = page.getByRole('button', { name: 'Account', exact: true })
+  await expect(accountButton).toBeVisible()
+  const accountStyle = await accountButton.evaluate((element) => {
+    const style = getComputedStyle(element)
+    return {
+      minHeight: style.minHeight,
+      paddingTop: style.paddingTop,
+      paddingRight: style.paddingRight,
+      paddingBottom: style.paddingBottom,
+      paddingLeft: style.paddingLeft,
+      borderRadius: style.borderRadius,
+      borderColor: style.borderTopColor,
+      backgroundColor: style.backgroundColor,
+      color: style.color,
+      fontFamily: style.fontFamily,
+      fontSize: style.fontSize,
+      fontWeight: style.fontWeight,
+      letterSpacing: style.letterSpacing,
+      textTransform: style.textTransform,
+    }
+  })
+
   await page.goto('/manual')
   await expect(page).toHaveURL(/\/manual$/)
   await expect(page.getByRole('heading', { level: 1, name: 'Manual' })).toBeVisible()
   await expect(page.getByLabel('Current screen: Manual')).toHaveCount(0)
-  await expect(page.getByRole('link', { name: 'Return to Game' })).toBeVisible()
+  const returnToGame = page.getByRole('link', { name: 'Return to Game', exact: true })
+  await expect(returnToGame).toBeVisible()
+  const returnStyle = await returnToGame.evaluate((element) => {
+    const style = getComputedStyle(element)
+    return {
+      minHeight: style.minHeight,
+      paddingTop: style.paddingTop,
+      paddingRight: style.paddingRight,
+      paddingBottom: style.paddingBottom,
+      paddingLeft: style.paddingLeft,
+      borderRadius: style.borderRadius,
+      borderColor: style.borderTopColor,
+      backgroundColor: style.backgroundColor,
+      color: style.color,
+      fontFamily: style.fontFamily,
+      fontSize: style.fontSize,
+      fontWeight: style.fontWeight,
+      letterSpacing: style.letterSpacing,
+      textTransform: style.textTransform,
+    }
+  })
+  expect(returnStyle).toEqual(accountStyle)
 })

@@ -67,7 +67,6 @@
 }
 
 .navLink,
-.playLink,
 .compactLinks a {
   display: inline-flex;
   min-height: 2.1rem;
@@ -90,9 +89,25 @@
 }
 
 .playLink {
-  border: 1px solid rgba(212, 186, 130, 0.3);
-  color: var(--av-brass-300);
-  background: rgba(212, 186, 130, 0.07);
+  display: inline-flex;
+  min-height: 2.7rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid var(--av-border-strong);
+  border-radius: var(--av-radius-sm);
+  color: var(--av-text-muted);
+  background: rgba(255, 255, 255, 0.025);
+  font: 600 0.8rem/1.2 var(--av-font-body);
+  letter-spacing: 0.06em;
+  text-decoration: none;
+  text-transform: none;
+}
+
+.playLink:hover,
+.playLink:focus-visible {
+  border-color: rgba(207, 169, 93, 0.65);
+  color: var(--av-brass-200);
 }
 
 .navLink:focus-visible,
