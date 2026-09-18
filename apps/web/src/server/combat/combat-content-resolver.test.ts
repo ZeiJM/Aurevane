@@ -115,6 +115,32 @@ describe('combat content resolver', () => {
     )
   })
 
+  it('rejects a stored clone definition that fails canonical action validation', async () => {
+    const source = new MemoryPublishedCombatContentSource()
+    const invalid = {
+      ...staticSkill('vanguard.forceful-strike', 2),
+      contentVersion: 11,
+      target: {
+        kind: 'self',
+        teamPolicy: 'self',
+        shape: { kind: 'single' },
+        minimumRange: 0,
+        maximumRange: 0,
+        requiresLineOfSight: false,
+        maximumElevationDifference: null,
+        friendlyFire: 'allies-only',
+      },
+      effects: [{ type: 'copy-statuses', recipient: 'primary-unit', mode: 'amplify' }],
+    } as unknown as MatureSkillDefinition
+    source.current.set(invalid.id, publishedSkill(invalid))
+
+    const resolver = createCombatContentResolver(source)
+
+    await expect(resolver.resolveCurrentSkillDefinition(invalid.id)).rejects.toBeInstanceOf(
+      InvalidPublishedCombatContentError,
+    )
+  })
+
   it('rejects stored identity/version mismatches instead of changing requested semantics', async () => {
     const source = new MemoryPublishedCombatContentSource()
     const definition = {
