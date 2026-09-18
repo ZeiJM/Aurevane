@@ -355,11 +355,7 @@ describe('CSR-3 viewer-relative historical projection', () => {
       }),
     ]
     const opponent = deriveParticipantBattleViewerEntitlement(combatants, [TARGET])
-    const projected = projectBattleHistoryForViewer(
-      copyRecords,
-      [hiddenCopyJournal],
-      opponent,
-    )
+    const projected = projectBattleHistoryForViewer(copyRecords, [hiddenCopyJournal], opponent)
 
     expect(projected).toHaveLength(1)
     expect(projected[0]?.event).toEqual({
