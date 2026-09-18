@@ -757,9 +757,10 @@
 .world::before {
   position: absolute;
   z-index: 1;
-  inset: -6%;
+  inset: -18% -24%;
   pointer-events: none;
-  opacity: 0.52;
+  opacity: 0.58;
+  will-change: transform;
   background:
     linear-gradient(
       112deg,
@@ -772,15 +773,16 @@
     radial-gradient(circle, rgba(199, 229, 219, 0.58) 0 1px, transparent 1.45px),
     radial-gradient(circle, rgba(225, 198, 139, 0.46) 0 0.85px, transparent 1.3px);
   background-position:
-    135% 0,
+    center,
     0 0,
     7rem 11rem;
   background-size:
-    190% 100%,
+    100% 100%,
     14rem 18rem,
     20rem 24rem;
   content: '';
-  animation: rosterAtmosphereDrift 12s linear infinite;
+  transform: translate3d(-7%, 2%, 0);
+  animation: rosterAtmosphereDrift 10s ease-in-out infinite alternate;
 }
 
 .world::after {
@@ -806,12 +808,13 @@
 }
 
 .slot[data-selected] {
+  isolation: isolate;
   animation: rosterSelectedBreath 5.5s ease-in-out infinite;
 }
 
 .slot[data-selected]::before {
   position: absolute;
-  z-index: 0;
+  z-index: 4;
   top: -40%;
   left: -58%;
   width: 46%;
@@ -829,7 +832,8 @@
   mix-blend-mode: screen;
   opacity: 0;
   transform: skewX(-10deg);
-  animation: rosterSelectedSheen 7s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  will-change: transform, opacity;
+  animation: rosterSelectedSheen 6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
 
 .slot[data-selected] > * {
@@ -849,24 +853,15 @@
 
 @keyframes rosterAtmosphereDrift {
   0% {
-    background-position:
-      135% 0,
-      0 0,
-      7rem 11rem;
+    transform: translate3d(-7%, 2%, 0);
   }
 
   50% {
-    background-position:
-      58% 0,
-      0.55rem -0.65rem,
-      6.4rem 10.2rem;
+    transform: translate3d(0%, -1%, 0);
   }
 
   100% {
-    background-position:
-      -20% 0,
-      -0.4rem -1.25rem,
-      7.4rem 9.35rem;
+    transform: translate3d(7%, -3%, 0);
   }
 }
 
