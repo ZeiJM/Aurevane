@@ -720,7 +720,6 @@
   }
 }
 
-
 /* Final ambient-visibility pass: a slow moonlight band that reads clearly without flashing. */
 .heroShade::after {
   position: absolute;
