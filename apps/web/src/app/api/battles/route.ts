@@ -7,6 +7,7 @@ import { createBattleSessionService } from '@/server/battle/battle-session-servi
 import { createSupabaseBattleSessionRepository } from '@/server/battle/supabase-battle-session-repository'
 import { createSupabaseCharacterBuildRepository } from '@/server/character/supabase-character-build-repository'
 import { createSupabaseCharacterRepository } from '@/server/character/supabase-character-repository'
+import { createServerCombatContentResolver } from '@/server/combat/combat-content-resolver'
 import { toServerErrorResponse } from '@/server/http/error-response'
 import { createSupabaseWayfarersPracticeRepository } from '@/server/wayfarers-practice/supabase-wayfarers-practice-repository'
 import {
@@ -46,6 +47,7 @@ export async function POST(request: Request) {
       characters: createSupabaseCharacterRepository(),
       battles: createSupabaseBattleSessionRepository(),
       builds: createSupabaseCharacterBuildRepository(),
+      combatContentResolver: createServerCombatContentResolver(),
     }).createSession({
       userId: actor.userId,
       characterId: parsed.characterId,

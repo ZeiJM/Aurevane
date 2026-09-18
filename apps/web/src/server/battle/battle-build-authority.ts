@@ -16,6 +16,7 @@ import {
 import {
   resolveMatureSkillVersion,
   type MatureSkillCombatContext,
+  type MatureSkillDefinition,
 } from '@aurevane/game-core/combat/mature-skills'
 import {
   resonanceSnapshotReference,
@@ -25,6 +26,7 @@ import {
 } from '@aurevane/game-core/combat/resonance'
 
 import type { CharacterCommittedBuildSnapshotRecord } from '@/server/character/character-build-service'
+import type { CombatContentResolver } from '@/server/combat/combat-content-resolver'
 
 export const BATTLE_BUILD_AUTHORITY_SCHEMA_VERSION = 1 as const
 
@@ -46,7 +48,7 @@ export interface BattleBuildAuthorityCombatantSnapshot {
 
 export interface BattleBuildAuthoritySnapshot {
   /** Absent on frozen pre-Phase-4 battles, where Ironfist had no signatures. */
-  catalogVersion?: 2
+  catalogVersion?: 2 | 3
   schemaVersion: typeof BATTLE_BUILD_AUTHORITY_SCHEMA_VERSION
   combatContext: MatureSkillCombatContext
   combatants: readonly BattleBuildAuthorityCombatantSnapshot[]
@@ -171,11 +173,15 @@ function fingerprintCombatSnapshot(snapshot: Omit<CombatBuildSnapshot, 'fingerpr
   return `sha256:${createHash('sha256').update(JSON.stringify(snapshot)).digest('hex')}`
 }
 
-function validateCanonicalCombatSnapshot(snapshot: CombatBuildSnapshot): boolean {
+function validateCanonicalCombatSnapshot(
+  snapshot: CombatBuildSnapshot,
+  allowPublishedSkillVersions = false,
+): boolean {
   if (validateCombatBuildSnapshot(snapshot).length > 0) return false
   for (const skill of snapshot.disciplineSkills) {
     const definition = resolveMatureSkillVersion(skill.skillId, skill.contentVersion)
-    if (!definition || definition.sourceDisciplineId !== skill.sourceDisciplineId) return false
+    if (definition && definition.sourceDisciplineId !== skill.sourceDisciplineId) return false
+    if (!definition && !allowPublishedSkillVersions) return false
   }
   return (
     fingerprintCombatSnapshot({
@@ -193,6 +199,7 @@ function validateCanonicalCombatSnapshot(snapshot: CombatBuildSnapshot): boolean
 function parseCombatant(
   value: unknown,
   legacyCatalog: boolean,
+  allowPublishedSkillVersions: boolean,
 ): BattleBuildAuthorityCombatantSnapshot | null {
   if (!isRecord(value) || !isRecord(value.primary) || !isRecord(value.extensions)) return null
   if (
@@ -251,7 +258,7 @@ function parseCombatant(
       prestige: null,
     },
   }
-  if (!validateCanonicalCombatSnapshot(combatSnapshot)) return null
+  if (!validateCanonicalCombatSnapshot(combatSnapshot, allowPublishedSkillVersions)) return null
 
   const secondaryDisciplineId = secondary?.disciplineId ?? null
   // Preserve old server-owned snapshots exactly; never inject newly authored content.
@@ -326,7 +333,9 @@ export function parseBattleBuildAuthoritySnapshot(
   if (
     !isRecord(value) ||
     value.schemaVersion !== BATTLE_BUILD_AUTHORITY_SCHEMA_VERSION ||
-    (value.catalogVersion !== undefined && value.catalogVersion !== 2) ||
+    (value.catalogVersion !== undefined &&
+      value.catalogVersion !== 2 &&
+      value.catalogVersion !== 3) ||
     (value.combatContext !== 'pve' && value.combatContext !== 'pvp') ||
     !Array.isArray(value.combatants) ||
     value.combatants.length === 0
@@ -337,7 +346,11 @@ export function parseBattleBuildAuthoritySnapshot(
   const combatants: BattleBuildAuthorityCombatantSnapshot[] = []
   const seen = new Set<string>()
   for (const candidate of value.combatants) {
-    const combatant = parseCombatant(candidate, value.catalogVersion === undefined)
+    const combatant = parseCombatant(
+      candidate,
+      value.catalogVersion === undefined,
+      value.catalogVersion === 3,
+    )
     if (!combatant || seen.has(combatant.combatantId)) return null
     seen.add(combatant.combatantId)
     combatants.push(combatant)
@@ -345,19 +358,24 @@ export function parseBattleBuildAuthoritySnapshot(
 
   return {
     schemaVersion: BATTLE_BUILD_AUTHORITY_SCHEMA_VERSION,
-    ...(value.catalogVersion === 2 ? { catalogVersion: 2 as const } : {}),
+    ...(value.catalogVersion === 2
+      ? { catalogVersion: 2 as const }
+      : value.catalogVersion === 3
+        ? { catalogVersion: 3 as const }
+        : {}),
     combatContext: value.combatContext,
     combatants,
   }
 }
 
-export function createBattleBuildAuthoritySnapshot(
+function createBattleBuildAuthoritySnapshotForCatalog(
   combatContext: MatureSkillCombatContext,
   inputs: readonly BattleBuildAuthorityInput[],
+  catalogVersion: 2 | 3,
 ): BattleBuildAuthoritySnapshot {
   const value = {
     schemaVersion: BATTLE_BUILD_AUTHORITY_SCHEMA_VERSION,
-    catalogVersion: 2,
+    catalogVersion,
     combatContext,
     combatants: inputs.map(({ combatantId, characterId, snapshot }) => {
       const combatSnapshot = combatSnapshotFromCommitted(snapshot)
@@ -393,11 +411,76 @@ export function createBattleBuildAuthoritySnapshot(
   return parsed
 }
 
+export function createBattleBuildAuthoritySnapshot(
+  combatContext: MatureSkillCombatContext,
+  inputs: readonly BattleBuildAuthorityInput[],
+): BattleBuildAuthoritySnapshot {
+  return createBattleBuildAuthoritySnapshotForCatalog(combatContext, inputs, 2)
+}
+
+export async function createResolvedBattleBuildAuthoritySnapshot(
+  combatContext: MatureSkillCombatContext,
+  inputs: readonly BattleBuildAuthorityInput[],
+  resolver: CombatContentResolver,
+): Promise<BattleBuildAuthoritySnapshot> {
+  const resolvedInputs: BattleBuildAuthorityInput[] = []
+
+  for (const input of inputs) {
+    const disciplineSkills: CharacterCommittedBuildSnapshotRecord['disciplineSkills'][number][] = []
+    for (const skill of input.snapshot.disciplineSkills) {
+      const definition = await resolver.resolveCurrentSkillDefinition(skill.skillId)
+      if (!definition || !definition.enabled) {
+        throw new TypeError(`Skill ${skill.skillId} has no enabled current combat definition.`)
+      }
+      if (definition.sourceDisciplineId !== skill.sourceDisciplineId) {
+        throw new TypeError(
+          `Published Skill ${skill.skillId} changed source Discipline from ${skill.sourceDisciplineId} to ${definition.sourceDisciplineId}.`,
+        )
+      }
+      disciplineSkills.push({
+        ...skill,
+        contentVersion: definition.contentVersion,
+      })
+    }
+
+    resolvedInputs.push({
+      ...input,
+      snapshot: {
+        ...input.snapshot,
+        disciplineSkills,
+      },
+    })
+  }
+
+  return createBattleBuildAuthoritySnapshotForCatalog(combatContext, resolvedInputs, 3)
+}
+
 export function battleBuildAuthorityForCombatant(
   authority: BattleBuildAuthoritySnapshot | null | undefined,
   combatantId: string,
 ): BattleBuildAuthorityCombatantSnapshot | null {
   return authority?.combatants.find((candidate) => candidate.combatantId === combatantId) ?? null
+}
+
+export async function resolveBattleDisciplineSkillDefinition(
+  authority: BattleBuildAuthoritySnapshot | null | undefined,
+  combatantId: string,
+  skillId: string,
+  resolver?: CombatContentResolver,
+): Promise<MatureSkillDefinition | null> {
+  const build = battleBuildAuthorityForCombatant(authority, combatantId)
+  const reference = build?.disciplineSkills.find((skill) => skill.skillId === skillId)
+  if (!reference) return null
+
+  const definition =
+    authority?.catalogVersion === 3
+      ? resolver
+        ? await resolver.resolvePinnedSkillDefinition(reference.skillId, reference.contentVersion)
+        : null
+      : resolveMatureSkillVersion(reference.skillId, reference.contentVersion)
+
+  if (!definition || definition.sourceDisciplineId !== reference.sourceDisciplineId) return null
+  return structuredClone(definition)
 }
 
 export function resolveBattleEssenceDefinition(

@@ -18,13 +18,15 @@ import {
   type CombatDefenseKind,
   type StatDrivenCombatEncounterState,
 } from '@aurevane/game-core/combat/stat-driven-combat'
-import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 import { AurevaneError, StaleBattleVersionError } from '@aurevane/game-core/errors'
 import type { BattleIntent } from '@aurevane/validation/combat/battle-session'
+
+import type { CombatContentResolver } from '@/server/combat/combat-content-resolver'
 
 import { battleActionResourceIssue } from './battle-action-resource-availability'
 import {
   battleBuildAuthorityForCombatant,
+  resolveBattleDisciplineSkillDefinition,
   resolveBattleEssenceDefinition,
   type BattleBuildAuthoritySnapshot,
 } from './battle-build-authority'
@@ -165,10 +167,11 @@ function issue(code: string, message: string): BattlePreviewIssue {
   return { code, message }
 }
 
-function previewIntent(
+async function previewIntent(
   state: StatDrivenCombatEncounterState,
   intent: BattleIntent,
-): BattleIntentPreview {
+  combatContentResolver?: CombatContentResolver,
+): Promise<BattleIntentPreview> {
   if (intent.kind === 'move') {
     const { prepared, movement, economyCost } = evaluatePv1fMovement(state, intent.path)
     const economy = readPv1fActionEconomy(prepared)
@@ -212,9 +215,16 @@ function previewIntent(
     const taggedTechnique = build?.disciplineSkills.find(
       (reference) => reference.skillId === intent.actionId,
     )
-    const matureDefinition = taggedTechnique
-      ? resolveMatureSkillVersion(taggedTechnique.skillId, taggedTechnique.contentVersion)
-      : null
+    const matureDefinition =
+      taggedTechnique && actorId
+        ? await resolveBattleDisciplineSkillDefinition(
+            authority,
+            actorId,
+            taggedTechnique.skillId,
+            combatContentResolver,
+          )
+        : null
+    if (taggedTechnique && !matureDefinition) throw persistenceInvalid()
     const resolved =
       essence && essence.skill.id === intent.actionId && authority
         ? evaluatePv1fMatureSkill(state, essence.skill, intent.target, authority.combatContext)
@@ -310,7 +320,10 @@ function previewIntent(
   }
 }
 
-export function createBattlePreviewService(battles: BattleSessionRepository): BattlePreviewService {
+export function createBattlePreviewService(
+  battles: BattleSessionRepository,
+  combatContentResolver?: CombatContentResolver,
+): BattlePreviewService {
   return {
     async previewIntent(command) {
       const record = await battles.findBattleSession(command.userId, command.battleSessionId)
@@ -323,7 +336,7 @@ export function createBattlePreviewService(battles: BattleSessionRepository): Ba
       return {
         battleSessionId: record.battleSessionId,
         battleVersion: record.battleVersion,
-        preview: previewIntent(state, command.intent),
+        preview: await previewIntent(state, command.intent, combatContentResolver),
       }
     },
   }

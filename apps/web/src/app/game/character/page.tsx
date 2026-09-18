@@ -16,10 +16,12 @@ import { loadCharacterAttributeAllocation } from '@/server/character/character-a
 import { loadCharacterBuildContext } from '@/server/character/character-build-service'
 import { loadCharacterProfileDisplay } from '@/server/character/character-profile-display-service'
 import { loadCharacterTitleState } from '@/server/character/character-title-service'
+import { resolveCurrentCharacterSkillDetails } from '@/server/character/current-skill-detail-loader'
 import { isPv2BuildcraftTestKitEnabled } from '@/server/character/pv2-buildcraft-test-kit'
 import { loadSelectedCharacter } from '@/server/character/selected-character'
 import { createSupabaseCharacterAttributeRepository } from '@/server/character/supabase-character-attribute-repository'
 import { createSupabaseCharacterBuildRepository } from '@/server/character/supabase-character-build-repository'
+import { createServerCombatContentResolver } from '@/server/combat/combat-content-resolver'
 import { serverLogger } from '@/server/logging'
 import { loadLevelProgressionCurve } from '@/server/progression/progression-service'
 import { createSupabaseProgressionRepository } from '@/server/progression/supabase-progression-repository'
@@ -136,6 +138,18 @@ export default async function CharacterProfilePage() {
 
   const levelCurve = levelCurveResult.value
   const disciplineBuild = disciplineBuildResult.value
+  let currentDisciplineSkills
+  try {
+    currentDisciplineSkills = await resolveCurrentCharacterSkillDetails(
+      disciplineBuild.disciplineSkills,
+      createServerCombatContentResolver(),
+    )
+  } catch (error) {
+    if (isPersistenceUnavailable(error)) {
+      return renderPersistenceRecovery('discipline_build')
+    }
+    throw error
+  }
   const attributeAllocation = attributeAllocationResult.value
   const personalTitle =
     titleStateResult.status === 'fulfilled' ? titleStateResult.value.personalTitle : null
@@ -155,10 +169,10 @@ export default async function CharacterProfilePage() {
         availableSecondaries: disciplineBuild.availableSecondaries,
         attunement: disciplineBuild.attunement,
         disciplineSkills: {
-          capacity: disciplineBuild.disciplineSkills.capacity,
-          learnedSkills: disciplineBuild.disciplineSkills.learnedSkills,
-          equippedSkills: disciplineBuild.disciplineSkills.equippedSkills,
-          extensions: disciplineBuild.disciplineSkills.extensions,
+          capacity: currentDisciplineSkills.capacity,
+          learnedSkills: currentDisciplineSkills.learnedSkills,
+          equippedSkills: currentDisciplineSkills.equippedSkills,
+          extensions: currentDisciplineSkills.extensions,
         },
       }}
       personalTitle={personalTitle}

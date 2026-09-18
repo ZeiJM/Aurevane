@@ -661,3 +661,45 @@ and does not bypass target legality, copy eligibility, or the existing committed
 This adds AI expected-value support for the already integrated clone kernel only. It does not publish
 Amplify/Curse Skills, remove the `effects.status-copy-staged` publication guard, define consecutive-use
 falloff for cloning, add area/multi-source copying, or deploy content.
+
+## Versioned Skill publication authority (Master Panel)
+
+The current Master Panel Combat Content slice adds a server-only versioned publication layer for
+mature Skill definitions without replacing the static combat catalog.
+
+Resolution rules are explicit:
+
+1. a current database publication, when present, is loaded and validated with canonical game-core
+   authoring validation;
+2. if no database publication exists, the static current definition is the fallback;
+3. invalid stored database content fails closed and must not silently fall back to different static
+   semantics;
+4. exact historical database versions remain addressable, while existing static historical versions
+   retain their original meaning.
+
+Database versions continue the static content lineage. Static v2 publishes first as v3, not database
+v1. Publication always advances beyond both the expected current base and the highest immutable
+database history. Therefore a rollback that clears the publication pointer back to static v2 after
+database v3/v4 history still produces v5 on the next publish.
+
+New battle construction resolves the current Skill definitions server-side and pins those exact
+versions into the battle build-authority snapshot. Published-definition snapshots use the versioned
+catalog authority path; old snapshots retain their historical catalog interpretation. Publication
+or rollback never retargets an already-created battle. Current character Skill-detail reads also
+resolve through the publication layer without rewriting the character's persisted Skill references.
+
+Rollback is pointer movement, not history mutation. A database historical version can become current
+again by repointing the publication row. A valid static fallback can become current again by clearing
+the database publication pointer. Immutable database version rows are never updated or deleted.
+
+Master authoring preview is deterministic and isolated from real battles. It uses canonical combat
+evaluation but does not consume production RNG or reveal hidden Covert truth through Sensory;
+Sensory is presented as a conditional authored rule.
+
+The existing `copy-statuses` operation remains the staged Amplify/Curse status-cloning mechanic.
+Its publication guard `effects.status-copy-staged` remains in force. It must not be confused with
+the separately designed random temporary-Skill **Copy** mechanic: encounter `temporarySkills`
+state exists, but the current combat effect union does not yet implement the complete deterministic
+random-Skill selection/grant/half-AP runtime. Master authoring therefore does not fake or publish that
+separate mechanic.
+

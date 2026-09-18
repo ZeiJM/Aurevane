@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   selectedCharacter: vi.fn(),
   levelCurve: vi.fn(),
   disciplineBuild: vi.fn(),
+  currentSkillDetails: vi.fn(),
   attributeAllocation: vi.fn(),
   titleState: vi.fn(),
   displayState: vi.fn(),
@@ -42,6 +43,12 @@ vi.mock('@/server/progression/progression-service', () => ({
 }))
 vi.mock('@/server/character/character-build-service', () => ({
   loadCharacterBuildContext: mocks.disciplineBuild,
+}))
+vi.mock('@/server/character/current-skill-detail-loader', () => ({
+  resolveCurrentCharacterSkillDetails: mocks.currentSkillDetails,
+}))
+vi.mock('@/server/combat/combat-content-resolver', () => ({
+  createServerCombatContentResolver: () => ({}),
 }))
 vi.mock('@/server/character/character-attribute-service', () => ({
   loadCharacterAttributeAllocation: mocks.attributeAllocation,
@@ -198,6 +205,7 @@ describe('Profile persistence recovery diagnostics', () => {
       cumulativeXpByLevel: Array.from({ length: 50 }, (_, index) => index * 100),
     })
     mocks.disciplineBuild.mockResolvedValue(disciplineBuild)
+    mocks.currentSkillDetails.mockImplementation(async (skills) => skills)
     mocks.attributeAllocation.mockResolvedValue(attributeAllocation)
     mocks.titleState.mockResolvedValue({ personalTitle: null, personalTitleSetAt: null })
     mocks.displayState.mockResolvedValue({ imageUrl: null })
