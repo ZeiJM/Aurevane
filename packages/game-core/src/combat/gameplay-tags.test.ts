@@ -99,6 +99,17 @@ describe('compact combat presentation tags', () => {
   })
 
   it.each([
+    ['amplify', 'Amplify'],
+    ['curse', 'Curse'],
+  ] as const)('derives the real %s clone block label', (mode, label) => {
+    expect(
+      tags({ kind: 'unit', teamPolicy: 'enemy' }, [
+        { type: 'copy-statuses', recipient: 'primary-unit', mode },
+      ]),
+    ).toEqual(['Enemy', 'Single', label])
+  })
+
+  it.each([
     ['guarded', 'Guard'],
     ['exposed', 'Expose'],
     ['inspired', 'Inspire'],
