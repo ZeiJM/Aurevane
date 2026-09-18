@@ -51,6 +51,12 @@ test('Adventurers roster preserves browsing and public-profile privacy in the ne
   const pageErrors: string[] = []
   page.on('pageerror', (error) => pageErrors.push(error.message))
   await enter(page, info)
+  const hero = page.locator('[data-online-users-heading="true"]')
+  await expect(
+    hero.getByRole('button', { name: 'Show all characters', exact: true }),
+  ).toBeVisible()
+  await expect(page.getByText('Different paths. A shared world.', { exact: true })).toHaveCount(0)
+  await expect(page.getByText(/^\d+ online$/)).toHaveCount(0)
   await capture(page, info, 'online')
   // The initial authenticated roster is real. Only the public directory response is a cosmetic
   // fixture so titles, missing images, stale presence and large rosters are deterministic.
@@ -74,7 +80,16 @@ test('Adventurers roster preserves browsing and public-profile privacy in the ne
   const roster = page.getByRole('region', { name: 'All character directory' })
   const list = roster.locator('[data-directory-list]')
   await expect(list.locator('[data-directory-character]')).toHaveCount(60)
-  await roster.getByRole('combobox', { name: 'Sort', exact: true }).selectOption('alphabetical')
+  await expect(hero.getByRole('combobox', { name: 'Class', exact: true })).toBeVisible()
+  await expect(hero.getByRole('combobox', { name: 'Sort', exact: true })).toBeVisible()
+  await expect(hero.getByText('60 shown', { exact: true })).toBeVisible()
+  await expect(page.getByText('The realm', { exact: true })).toHaveCount(0)
+  await expect(page.getByText('Known adventurers', { exact: true })).toHaveCount(0)
+  await expect(
+    page.getByText('Browse public identities by class or recent activity.', { exact: true }),
+  ).toHaveCount(0)
+  await expect(page.getByText('60 of 60 characters', { exact: true })).toHaveCount(0)
+  await hero.getByRole('combobox', { name: 'Sort', exact: true }).selectOption('alphabetical')
   const metrics = await roster.evaluate((node) => {
     const list = node.querySelector('[data-directory-list]')!
     const first = list.querySelector('button')!
@@ -105,8 +120,8 @@ test('Adventurers roster preserves browsing and public-profile privacy in the ne
       await page.setViewportSize(shortViewport)
       const shortList = await list.boundingBox()
       expect(shortList!.height, 'short windows retain a usable roster').toBeGreaterThanOrEqual(80)
-      await expect(roster.getByRole('combobox', { name: 'Class', exact: true })).toBeVisible()
-      await expect(roster.getByRole('combobox', { name: 'Sort', exact: true })).toBeVisible()
+      await expect(hero.getByRole('combobox', { name: 'Class', exact: true })).toBeVisible()
+      await expect(hero.getByRole('combobox', { name: 'Sort', exact: true })).toBeVisible()
       const last = list.getByRole('button').last()
       await last.scrollIntoViewIfNeeded()
       await expect(last).toBeInViewport({ ratio: 1 })
@@ -144,11 +159,11 @@ test('Adventurers roster preserves browsing and public-profile privacy in the ne
   await expect(lastDialog.getByText('Never seen', { exact: true })).toBeVisible()
   await lastDialog.getByRole('button', { name: 'Close public character profile' }).click()
   await expect(lastDialog).toHaveCount(0)
-  await roster.getByRole('combobox', { name: 'Class', exact: true }).selectOption('vanguard')
+  await hero.getByRole('combobox', { name: 'Class', exact: true }).selectOption('vanguard')
   await expect(list.getByRole('button')).toHaveCount(30)
-  await roster.getByRole('combobox', { name: 'Sort', exact: true }).selectOption('oldest')
+  await hero.getByRole('combobox', { name: 'Sort', exact: true }).selectOption('oldest')
   await expect(list.getByRole('button').first().locator('strong')).toHaveText('Adventurer 59')
-  await roster.getByRole('combobox', { name: 'Sort', exact: true }).selectOption('recent')
+  await hero.getByRole('combobox', { name: 'Sort', exact: true }).selectOption('recent')
   await expect(list.getByRole('button').first().locator('strong')).toHaveText('Adventurer 01')
   if (process.env.LAYOUT_REVIEW_OUTPUT)
     await writeFile(
