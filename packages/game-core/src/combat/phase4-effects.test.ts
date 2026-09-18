@@ -715,11 +715,28 @@ describe('Every published Technique and Essence executes its authored recipient 
             }
           } else {
             const owner = requirement.kind.startsWith('actor-') ? 'actor' : 'enemy'
+            const effectState = normalizeCombatEffectState(state.effectState)
             unmet = {
               ...state,
               statusState: state.statusState.map((row) =>
                 row.combatantId === owner ? { ...row, statuses: [] } : row,
               ),
+              ...('tag' in requirement
+                ? {
+                    effectState: {
+                      ...effectState,
+                      poison: effectState.poison.filter(
+                        (instance) => instance.targetCombatantId !== owner,
+                      ),
+                      bleed: effectState.bleed.filter(
+                        (stack) => stack.targetCombatantId !== owner,
+                      ),
+                      burn: effectState.burn.filter(
+                        (instance) => instance.targetCombatantId !== owner,
+                      ),
+                    },
+                  }
+                : {}),
             }
           }
           const before = JSON.stringify(unmet)

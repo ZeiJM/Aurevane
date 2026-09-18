@@ -180,6 +180,19 @@ function rebalanceEssencePurposeTags(
   return [...new Set([...definition.skill.ai.purposeTags, ...additions])]
 }
 
+function currentEssenceEffect(
+  effect: MatureSkillDefinition['effects'][number],
+): MatureSkillDefinition['effects'][number] {
+  if (
+    effect.type === 'remove-status' &&
+    effect.statusIds.includes('marked') &&
+    !effect.statusIds.includes('mark')
+  ) {
+    return { ...effect, statusIds: [...effect.statusIds, 'mark'] }
+  }
+  return effect
+}
+
 function currentEssenceAccuracyMode(
   definition: EssenceDefinition,
 ): NonNullable<MatureSkillDefinition['accuracyMode']> {
@@ -352,6 +365,7 @@ function createPhase4RebalancedEssence(definition: EssenceDefinition): EssenceDe
           ...definition.skill,
           contentVersion: version,
           accuracyMode,
+          effects: definition.skill.effects.map(currentEssenceEffect),
           ...(accuracyMode === 'per-target'
             ? { accuracyModifierBasisPoints: definition.skill.accuracyModifierBasisPoints ?? 0 }
             : { accuracyModifierBasisPoints: undefined }),
