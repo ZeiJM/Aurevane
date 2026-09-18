@@ -285,7 +285,7 @@ async function runMasterOperation(
 
 async function selectAuthoringSkill(page: Page): Promise<void> {
   await page.getByLabel('Discipline').selectOption('vanguard')
-  await page.getByLabel('Skill').selectOption(SKILL_ID)
+  await page.getByLabel('Skill', { exact: true }).selectOption(SKILL_ID)
   await expect(page.getByRole('heading', { name: 'Forceful Strike' })).toBeVisible()
 }
 
