@@ -64,26 +64,16 @@
 }
 
 .headerCharacter {
-  display: grid;
+  display: flex;
   min-width: 2.75rem;
-  justify-items: center;
-  gap: 0.18rem;
-  padding-inline: 0.35rem;
-  border-inline: 1px solid var(--av-border-strong);
+  align-items: center;
+  justify-content: center;
+  padding-inline: 0.1rem;
 }
 
 .headerCharacter .screenPortrait {
-  width: 2.15rem;
-  height: 2.15rem;
-}
-
-.headerCharacter strong {
-  max-width: 6rem;
-  overflow: hidden;
-  color: var(--av-parchment-100);
-  font: 600 0.55rem/1 var(--av-font-body);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  width: 2.5rem;
+  height: 2.5rem;
 }
 
 .activeBattleLink {
@@ -713,17 +703,12 @@
   }
 
   .headerCharacter {
-    min-width: 2rem;
-    padding-inline: 0.2rem;
+    min-width: 2.1rem;
+    padding-inline: 0;
   }
 
   .headerCharacter .screenPortrait {
-    width: 1.75rem;
-    height: 1.75rem;
-  }
-
-  .headerCharacter strong {
-    max-width: 4rem;
-    font-size: 0.48rem;
+    width: 2rem;
+    height: 2rem;
   }
 }

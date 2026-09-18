@@ -177,20 +177,9 @@
   color: #f3ead5;
 }
 
-.entryCard[data-account-concept='true'] .entryLead {
-  color: var(--av-text-muted);
-}
-
 .entryCard h2 {
   margin: 0.35rem 0 0.35rem;
   font: 500 clamp(1.45rem, 2.5vw, 2rem) / 1.05 var(--av-font-display);
-}
-
-.entryLead {
-  margin: 0 0 0.65rem;
-  color: var(--av-text-muted);
-  font-size: 0.72rem;
-  line-height: 1.45;
 }
 
 .accessPanel {
@@ -357,42 +346,6 @@
   font-weight: 650;
 }
 
-.help {
-  margin-top: 0.7rem;
-  border-top: 1px solid var(--av-border);
-  color: var(--av-text-dim);
-}
-
-.entryCard[data-account-concept='true'] .help {
-  border-top-color: rgba(212, 186, 130, 0.2);
-  color: var(--av-text-dim);
-}
-
-.entryCard[data-account-concept='true'] .help summary {
-  color: var(--av-text-muted);
-}
-
-.help summary {
-  padding: 0.55rem 0 0;
-  color: var(--av-text-muted);
-  font-size: 0.62rem;
-  font-weight: 650;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.help div {
-  display: grid;
-  gap: 0.4rem;
-  padding-top: 0.45rem;
-}
-
-.help p {
-  margin: 0;
-  font-size: 0.61rem;
-  line-height: 1.45;
-}
-
 .footer {
   display: flex;
   min-height: 2.1rem;
@@ -519,12 +472,6 @@
   }
   .identityNotes {
     display: none;
-  }
-  .entryLead {
-    margin-bottom: 0.45rem;
-  }
-  .help {
-    margin-top: 0.45rem;
   }
 }
 

@@ -55,9 +55,27 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
     await expect(shell.locator('[data-av-game-rail] .character-portrait-media')).toHaveCount(0)
     await expect(headerIdentity).toHaveCount(1)
     await expect(headerIdentity.locator('.character-portrait-media')).toHaveCount(1)
-    await expect(headerIdentity.getByText(characterName, { exact: true })).toBeVisible()
+    await expect(headerIdentity.getByText(characterName, { exact: true })).toHaveCount(0)
     await expect(headerIdentity.getByText(/^Level /)).toHaveCount(0)
-    await expect(masthead.getByRole('button', { name: /Account/ })).toBeVisible()
+    const separatorMetrics = await headerIdentity.evaluate((element) => {
+      const identity = getComputedStyle(element)
+      const utility = getComputedStyle(element.parentElement!)
+      return {
+        identityLeft: identity.borderLeftWidth,
+        identityRight: identity.borderRightWidth,
+        utilityLeft: utility.borderLeftWidth,
+      }
+    })
+    expect(separatorMetrics.identityLeft).toBe('0px')
+    expect(separatorMetrics.identityRight).toBe('0px')
+    expect(separatorMetrics.utilityLeft).toBe('1px')
+    const accountButton = masthead.getByRole('button', { name: /Account/ })
+    await expect(accountButton).toBeVisible()
+    await accountButton.click()
+    await expect(
+      page.getByRole('menu', { name: 'Account menu' }).getByText(`Welcome back, ${characterName}.`),
+    ).toBeVisible()
+    await accountButton.click()
 
     if (viewport.width > 760) {
       const rail = shell.locator('[data-av-game-rail]')

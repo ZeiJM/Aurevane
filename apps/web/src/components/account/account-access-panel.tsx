@@ -204,14 +204,16 @@ export function AccountAccessPanel({ authConfig, initialMessage = '' }: AccountA
         </GameButton>
       </form>
 
-      <p
-        className={styles.formMessage}
-        aria-live="polite"
-        data-testid="account-message"
-        data-tone={messageTone}
-      >
-        {message || 'Your account identity stays separate from your future character identity.'}
-      </p>
+      {message ? (
+        <p
+          className={styles.formMessage}
+          aria-live="polite"
+          data-testid="account-message"
+          data-tone={messageTone}
+        >
+          {message}
+        </p>
+      ) : null}
     </div>
   )
 }
