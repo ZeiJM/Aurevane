@@ -15,7 +15,10 @@ import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
 
-import { projectBattleStatusStateForViewer } from './battle-live-viewer-projection'
+import {
+  projectBattleEffectStateForViewer,
+  projectBattleStatusStateForViewer,
+} from './battle-live-viewer-projection'
 import { projectCommittedBattleSession } from './battle-session-service'
 import { createSpectatorBattleViewerEntitlement } from './battle-viewer-entitlement'
 
@@ -95,7 +98,7 @@ function encounter(): StatDrivenCombatEncounterState {
       movementProfileId: 'ground',
     })),
   })
-  return createStatDrivenCombatEncounterState(
+  const state = createStatDrivenCombatEncounterState(
     createCombatEncounterState(tactical, [
       {
         combatantId: PLAYER,
@@ -119,6 +122,34 @@ function encounter(): StatDrivenCombatEncounterState {
     ]),
     [PLAYER, ALLY, ENEMY, PLAIN_ENEMY].map(profile),
   )
+  state.effectState = {
+    ongoingRecovery: [],
+    poison: [],
+    bleed: [],
+    burn: [],
+    damageHistory: [],
+    temporarySkills: [
+      {
+        combatantId: PLAYER,
+        skillId: 'vanguard.forceful-strike',
+        contentVersion: 2,
+        sourceCombatantId: ENEMY,
+      },
+      {
+        combatantId: ALLY,
+        skillId: 'vanguard.cleave',
+        contentVersion: 1,
+        sourceCombatantId: ENEMY,
+      },
+      {
+        combatantId: ENEMY,
+        skillId: 'vanguard.guard-break',
+        contentVersion: 1,
+        sourceCombatantId: PLAYER,
+      },
+    ],
+  }
+  return state
 }
 
 function rowStatuses(
@@ -178,4 +209,22 @@ describe('CSR-2 live viewer-relative status projection', () => {
     expect(rowStatuses(projected, PLAIN_ENEMY).map((entry) => entry.statusId)).toEqual(['guarded'])
     expect(authoritative.statusState).toEqual(before)
   })
+  it('projects temporary copied Skill identities only to friendly viewers', () => {
+    const authoritative = encounter()
+    const before = structuredClone(authoritative.effectState)
+    const projected = projectCommittedBattleSession(committed(authoritative), [PLAYER]).snapshot
+
+    expect(projected.effectState?.temporarySkills).toEqual([
+      expect.objectContaining({ combatantId: PLAYER, skillId: 'vanguard.forceful-strike' }),
+      expect.objectContaining({ combatantId: ALLY, skillId: 'vanguard.cleave' }),
+    ])
+
+    const spectator = projectBattleEffectStateForViewer(
+      authoritative,
+      createSpectatorBattleViewerEntitlement(),
+    )
+    expect(spectator?.temporarySkills).toEqual([])
+    expect(authoritative.effectState).toEqual(before)
+  })
+
 })

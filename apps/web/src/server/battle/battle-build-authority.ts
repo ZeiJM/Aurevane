@@ -18,6 +18,7 @@ import {
   type MatureSkillCombatContext,
   type MatureSkillDefinition,
 } from '@aurevane/game-core/combat/mature-skills'
+import type { CombatTemporarySkillGrant } from '@aurevane/game-core/combat/combat-effect-state'
 import {
   resonanceSnapshotReference,
   resolveResonanceForPair,
@@ -462,6 +463,21 @@ export function battleBuildAuthorityForCombatant(
   return authority?.combatants.find((candidate) => candidate.combatantId === combatantId) ?? null
 }
 
+async function resolvePinnedBattleSkillDefinition(
+  authority: BattleBuildAuthoritySnapshot | null | undefined,
+  skillId: string,
+  contentVersion: number,
+  resolver?: CombatContentResolver,
+): Promise<MatureSkillDefinition | null> {
+  const definition =
+    authority?.catalogVersion === 3
+      ? resolver
+        ? await resolver.resolvePinnedSkillDefinition(skillId, contentVersion)
+        : null
+      : resolveMatureSkillVersion(skillId, contentVersion)
+  return definition ? structuredClone(definition) : null
+}
+
 export async function resolveBattleDisciplineSkillDefinition(
   authority: BattleBuildAuthoritySnapshot | null | undefined,
   combatantId: string,
@@ -472,15 +488,61 @@ export async function resolveBattleDisciplineSkillDefinition(
   const reference = build?.disciplineSkills.find((skill) => skill.skillId === skillId)
   if (!reference) return null
 
-  const definition =
-    authority?.catalogVersion === 3
-      ? resolver
-        ? await resolver.resolvePinnedSkillDefinition(reference.skillId, reference.contentVersion)
-        : null
-      : resolveMatureSkillVersion(reference.skillId, reference.contentVersion)
-
+  const definition = await resolvePinnedBattleSkillDefinition(
+    authority,
+    reference.skillId,
+    reference.contentVersion,
+    resolver,
+  )
   if (!definition || definition.sourceDisciplineId !== reference.sourceDisciplineId) return null
-  return structuredClone(definition)
+  return definition
+}
+
+export async function resolveBattleDisciplineSkillDefinitions(
+  authority: BattleBuildAuthoritySnapshot | null | undefined,
+  combatantId: string,
+  resolver?: CombatContentResolver,
+): Promise<readonly MatureSkillDefinition[] | null> {
+  const build = battleBuildAuthorityForCombatant(authority, combatantId)
+  if (!build) return null
+
+  const definitions: MatureSkillDefinition[] = []
+  for (const reference of [...build.disciplineSkills].sort(
+    (left, right) => left.slotIndex - right.slotIndex,
+  )) {
+    const definition = await resolvePinnedBattleSkillDefinition(
+      authority,
+      reference.skillId,
+      reference.contentVersion,
+      resolver,
+    )
+    if (!definition || definition.sourceDisciplineId !== reference.sourceDisciplineId) return null
+    definitions.push(definition)
+  }
+  return definitions
+}
+
+export async function resolveBattleTemporarySkillDefinition(
+  authority: BattleBuildAuthoritySnapshot | null | undefined,
+  grant: CombatTemporarySkillGrant,
+  resolver?: CombatContentResolver,
+): Promise<MatureSkillDefinition | null> {
+  const sourceBuild = battleBuildAuthorityForCombatant(authority, grant.sourceCombatantId)
+  const sourceReference = sourceBuild?.disciplineSkills.find(
+    (reference) =>
+      reference.skillId === grant.skillId &&
+      reference.contentVersion === grant.contentVersion,
+  )
+  if (!sourceReference) return null
+
+  const definition = await resolvePinnedBattleSkillDefinition(
+    authority,
+    grant.skillId,
+    grant.contentVersion,
+    resolver,
+  )
+  if (!definition || definition.sourceDisciplineId !== sourceReference.sourceDisciplineId) return null
+  return definition
 }
 
 export function resolveBattleEssenceDefinition(

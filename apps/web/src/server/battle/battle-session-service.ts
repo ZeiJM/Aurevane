@@ -61,7 +61,10 @@ import {
   buildBattlePrivacyJournalInput,
   type BattlePrivacyCommandKind,
 } from './battle-history-privacy'
-import { projectBattleStatusStateForViewer } from './battle-live-viewer-projection'
+import {
+  projectBattleEffectStateForViewer,
+  projectBattleStatusStateForViewer,
+} from './battle-live-viewer-projection'
 import {
   battleBuildAuthorityForCombatant,
   createBattleBuildAuthoritySnapshot,
@@ -365,6 +368,9 @@ function projectBattleSnapshot(
   return {
     ...state,
     statusState: projectBattleStatusStateForViewer(state, viewer),
+    ...(state.effectState
+      ? { effectState: projectBattleEffectStateForViewer(state, viewer) }
+      : {}),
     tactical: {
       ...state.tactical,
       battle: {
