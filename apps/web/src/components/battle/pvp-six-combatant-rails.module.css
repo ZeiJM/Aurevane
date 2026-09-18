@@ -308,8 +308,9 @@
     grid-column: 1;
     grid-row: 2;
     width: 100% !important;
-    height: 100% !important;
-    aspect-ratio: auto !important;
+    height: auto !important;
+    aspect-ratio: 1 / 1 !important;
+    align-self: start;
   }
   :global(main[data-unified-battle='true'][data-battle-layout='map-first'])
     .stack[data-count='1']

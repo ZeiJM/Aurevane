@@ -143,7 +143,9 @@ test('keeps the shared PvP desktop cockpit at the same compact scale', async ({
     await hostDialog.getByRole('button', { name: 'Mark Ready' }).click()
     await expect(host).toHaveURL(/\/game\/battle\/[0-9a-f-]+$/i, { timeout: 20_000 })
 
-    const sidePortraits = host.locator('[data-pvp-combatant-panel] [data-av-square-media="true"]')
+    const sidePortraits = host.locator(
+      '[data-six-combatant-rail="true"] [data-av-square-media="true"]',
+    )
     await expect(sidePortraits).toHaveCount(2)
     const portraitGeometry = await sidePortraits.evaluateAll((frames) =>
       frames.map((frame) => {
@@ -158,7 +160,7 @@ test('keeps the shared PvP desktop cockpit at the same compact scale', async ({
     )
     for (const portrait of portraitGeometry) {
       expect(Math.abs(portrait.width - portrait.height)).toBeLessThanOrEqual(1)
-      if (portrait.fit) expect(portrait.fit).toBe('contain')
+      if (portrait.fit) expect(portrait.fit).toBe('cover')
     }
 
     await expectStableCompactDesktopCockpit(host)
