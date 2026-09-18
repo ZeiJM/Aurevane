@@ -60,6 +60,28 @@ function publishedVersion(payload: unknown): number {
   return payload.published.contentVersion
 }
 
+function publishedMediaHooks(payload: unknown): {
+  iconKey: string | null
+  audioCueKey: string | null
+} {
+  if (
+    !isRecord(payload) ||
+    !isRecord(payload.published) ||
+    !isRecord(payload.published.definition) ||
+    !isRecord(payload.published.definition.media)
+  ) {
+    throw new TypeError('Publish response is missing the Skill media definition.')
+  }
+  const { iconKey, audioCueKey } = payload.published.definition.media
+  if (
+    (iconKey !== null && typeof iconKey !== 'string') ||
+    (audioCueKey !== null && typeof audioCueKey !== 'string')
+  ) {
+    throw new TypeError('Publish response contains invalid Skill media hooks.')
+  }
+  return { iconKey, audioCueKey }
+}
+
 function currentVersionFromText(value: string | null): number {
   const match = value?.match(/Current version\s*v(\d+)/)
   const version = match ? Number(match[1]) : Number.NaN
@@ -345,11 +367,25 @@ test('Master combat authoring publishes versioned content, pins battles, and rol
   const nextAp = originalAp === 100 ? 99 : originalAp + 1
   await apInput.fill(String(nextAp))
 
+  await page.getByLabel('Skill artwork hook').selectOption('skill.lifebinder.mend.icon')
+  await expect(page.getByLabel('Skill artwork preview').locator('img')).toHaveAttribute(
+    'src',
+    /skill-lifebinder-mend-v01\.webp$/,
+  )
+  await page.getByLabel('Skill audio hook').selectOption('skill.ironfist.breakfall.audio')
+  await expect(page.getByLabel('Battle audio preview')).toHaveAttribute(
+    'src',
+    /ironfist-action-v01-1\.mp3$/,
+  )
+
   await runMasterOperation(page, 'validate', 'Validate')
   await expect(page.locator('[data-validation-state="valid"]')).toContainText('Validated')
 
   await runMasterOperation(page, 'diff', 'Diff')
-  await expect(page.locator('section[aria-label="Semantic diff"]')).toContainText('apCost')
+  const diff = page.locator('section[aria-label="Semantic diff"]')
+  await expect(diff).toContainText('apCost')
+  await expect(diff).toContainText('media.iconKey')
+  await expect(diff).toContainText('media.audioCueKey')
 
   await runMasterOperation(page, 'preview', 'Preview')
   const preview = page.locator('section[aria-label="Deterministic preview"]')
@@ -365,6 +401,10 @@ test('Master combat authoring publishes versioned content, pins battles, and rol
   const publishPayload = await runMasterOperation(page, 'publish', 'Confirm publish')
   const newVersion = publishedVersion(publishPayload)
   expect(newVersion).toBe(expectedPublishedVersion)
+  expect(publishedMediaHooks(publishPayload)).toEqual({
+    iconKey: 'skill.lifebinder.mend.icon',
+    audioCueKey: 'skill.ironfist.breakfall.audio',
+  })
 
   await expect
     .poll(async () => currentVersionFromText(await versionState.textContent()))
@@ -383,6 +423,11 @@ test('Master combat authoring publishes versioned content, pins battles, and rol
   const newBattlePayload = await launchRecruitBattle(page)
   const newBattle = battleIdentity(newBattlePayload)
   expect(pinnedSkillVersion(newBattlePayload, SKILL_ID)).toBe(newVersion)
+  const publishedSkillButton = page.getByRole('button', { name: /Selected Forceful Strike/ })
+  await expect(publishedSkillButton.locator('img')).toHaveAttribute(
+    'src',
+    /skill-lifebinder-mend-v01\.webp$/,
+  )
 
   await page.goto('/master/combat-content')
   await selectAuthoringSkill(page)
