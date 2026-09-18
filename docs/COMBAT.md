@@ -702,7 +702,7 @@ The `copy-statuses` operation is a supported typed Amplify/Curse authoring block
 validation still routes the resulting PvE/PvP definitions through canonical combat-action validation,
 so invalid self/area/non-first/multi-copy configurations fail closed. Current ordinary copy policy is
 explicit rather than inferred from names: Guard/Haste/Inspire/Invisible are Amplify-copyable, while
-Expose/Hex/Slow/Root are Curse-copyable; mixed/system/historical states remain excluded unless a
+Expose/Hex/Slow/Root/current Mark are Curse-copyable; historical `marked`, mixed and system states remain excluded unless a
 versioned definition explicitly opts in. The former `effects.status-copy-staged` publication guard
 has been retired after the discrete repeat-use ruling.
 
