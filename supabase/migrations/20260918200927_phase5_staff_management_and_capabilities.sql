@@ -335,10 +335,10 @@ begin
 
   if exists (
     select 1
-    from app_private.master_panel_role_assignments as current_role
-    where current_role.user_id = p_target_user_id
-      and current_role.role = p_role
-      and current_role.enabled = true
+    from app_private.master_panel_role_assignments as current_assignment
+    where current_assignment.user_id = p_target_user_id
+      and current_assignment.role = p_role
+      and current_assignment.enabled = true
   )
     and exists (
       select 1
