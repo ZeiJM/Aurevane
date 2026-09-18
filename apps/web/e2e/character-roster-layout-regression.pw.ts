@@ -119,8 +119,8 @@ test('Character Select keeps its heading above three readable, reachable roster 
       .toBeLessThanOrEqual(metrics.board.y + 1)
     expect.soft(metrics.documentOverflow, `${label}: no horizontal overflow`).toBeLessThanOrEqual(1)
     expect
-      .soft(metrics.portrait.width / metrics.portrait.height, `${label}: square portrait`)
-      .toBeCloseTo(1, 2)
+      .soft(metrics.portrait.width / metrics.portrait.height, `${label}: cinematic portrait ratio`)
+      .toBeCloseTo(0.8, 1)
     expect.soft(metrics.nameFont, `${label}: readable name`).toBeGreaterThanOrEqual(16)
     expect.soft(metrics.buttonFont, `${label}: readable primary action`).toBeGreaterThanOrEqual(14)
     expect.soft(metrics.play.height, `${label}: usable primary action`).toBeGreaterThanOrEqual(40)
