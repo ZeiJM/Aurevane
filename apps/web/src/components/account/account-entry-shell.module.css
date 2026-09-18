@@ -172,8 +172,7 @@
   color: var(--av-text);
   border-color: rgba(212, 186, 130, 0.62);
   background:
-    linear-gradient(145deg, rgba(26, 45, 48, 0.42), rgba(5, 10, 16, 0.9) 45%),
-    rgba(5, 10, 16, 0.88);
+    linear-gradient(145deg, rgba(26, 45, 48, 0.42), rgba(5, 10, 16, 0.9) 45%), rgba(5, 10, 16, 0.88);
   box-shadow:
     0 1.75rem 4rem rgba(0, 0, 0, 0.5),
     0 0 1.75rem rgba(212, 186, 130, 0.08),
