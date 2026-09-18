@@ -121,7 +121,7 @@ test('Character Select keeps its heading above three readable, reachable roster 
         deleteJustify: deleteStyle.justifyContent,
         deleteTextAlign: deleteStyle.textAlign,
         deleteSupportAlign: deleteSupport ? getComputedStyle(deleteSupport).textAlign : '',
-        viewportCenter: document.documentElement.clientWidth / 2,
+        viewportCenter: innerWidth / 2,
       }
     })
     results.push({ viewport: size, ...metrics })
