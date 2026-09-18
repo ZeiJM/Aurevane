@@ -52,12 +52,8 @@ test('Adventurers roster preserves browsing and public-profile privacy in the ne
   page.on('pageerror', (error) => pageErrors.push(error.message))
   await enter(page, info)
   const hero = page.locator('[data-online-users-heading="true"]')
-  await expect(
-    hero.getByRole('button', { name: 'Show all characters', exact: true }),
-  ).toBeVisible()
-  await expect(
-    page.getByText('Different paths. A shared world.', { exact: true }),
-  ).toHaveCount(0)
+  await expect(hero.getByRole('button', { name: 'Show all characters', exact: true })).toBeVisible()
+  await expect(page.getByText('Different paths. A shared world.', { exact: true })).toHaveCount(0)
   await expect(page.getByText(/^\d+ online$/)).toHaveCount(0)
   await capture(page, info, 'online')
   // The initial authenticated roster is real. Only the public directory response is a cosmetic
