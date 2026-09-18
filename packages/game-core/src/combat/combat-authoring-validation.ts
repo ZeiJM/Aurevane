@@ -185,10 +185,10 @@ export function validateCombatActionDefinition(
       if (
         !Array.isArray(effect.statusIds) ||
         effect.statusIds.length < 1 ||
-        effect.statusIds.length > 8 ||
+        effect.statusIds.length > 16 ||
         new Set(effect.statusIds).size !== effect.statusIds.length
       ) {
-        throw new TypeError('Status removal requires one to eight distinct IDs.')
+        throw new TypeError('Status removal requires one to sixteen distinct IDs.')
       }
       for (const id of effect.statusIds) {
         requiredIdentity(id, 'removed status ID')

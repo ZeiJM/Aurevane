@@ -48,6 +48,12 @@ function retiredCurrentReferences(definition: MatureSkillDefinition): string[] {
     if (effect.type === 'apply-status' && RETIRED_CURRENT_STATUS_IDS.has(effect.statusId)) {
       references.push(`effect:${effect.statusId}`)
     }
+    if (
+      effect.type === 'apply-status' &&
+      (effect.statusId === 'burn' || effect.statusId === 'bleed' || effect.statusId === 'poison')
+    ) {
+      references.push(`legacy-dot:${effect.statusId}`)
+    }
   }
   for (const requirement of definition.requirements) {
     if ('statusId' in requirement && RETIRED_CURRENT_STATUS_IDS.has(requirement.statusId)) {
@@ -70,6 +76,10 @@ describe('Phase 4 current Discipline Skill rebalance', () => {
 
       expect(validateMatureSkillDefinition(definition), definition.id).toEqual([])
       expect(retiredCurrentReferences(definition), definition.id).toEqual([])
+      expect(definition.accuracyMode, definition.id).toMatch(/^(automatic|per-target)$/u)
+      if (definition.accuracyMode === 'per-target') {
+        expect(definition.accuracyModifierBasisPoints, definition.id).toBe(0)
+      }
 
       for (const context of ['pve', 'pvp'] as const) {
         const action = toCombatActionDefinition(definition, context)
