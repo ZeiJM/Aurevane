@@ -23,9 +23,7 @@ export const MASTER_PANEL_CAPABILITIES = [
 
 export type MasterPanelCapability = (typeof MASTER_PANEL_CAPABILITIES)[number]
 
-const ROLE_CAPABILITIES: Readonly<
-  Record<MasterPanelRole, readonly MasterPanelCapability[]>
-> = {
+const ROLE_CAPABILITIES: Readonly<Record<MasterPanelRole, readonly MasterPanelCapability[]>> = {
   'game-owner': ['master.access', 'staff.manage', 'content.combat.author'],
   moderator: ['master.access'],
   'content-staff': ['master.access', 'content.combat.author'],
@@ -60,10 +58,7 @@ export interface MasterPanelStaffAccessStore {
 
 export interface MasterPanelStaffAccessService {
   readAccess(userId: string): Promise<MasterPanelAccess | null>
-  requireCapability(
-    userId: string,
-    capability: MasterPanelCapability,
-  ): Promise<MasterPanelAccess>
+  requireCapability(userId: string, capability: MasterPanelCapability): Promise<MasterPanelAccess>
   grantRole(input: {
     actorUserId: string
     targetUserId: string
@@ -79,10 +74,7 @@ export interface MasterPanelStaffAccessService {
 }
 
 export function isMasterPanelRole(value: unknown): value is MasterPanelRole {
-  return (
-    typeof value === 'string' &&
-    (MASTER_PANEL_ROLES as readonly string[]).includes(value)
-  )
+  return typeof value === 'string' && (MASTER_PANEL_ROLES as readonly string[]).includes(value)
 }
 
 export function isDelegatedMasterPanelRole(value: unknown): value is DelegatedMasterPanelRole {
@@ -153,10 +145,7 @@ export function createMasterPanelStaffAccessService(
   ): Promise<MasterPanelAccess> {
     const access = await readAccess(userId)
     if (!access || !hasMasterPanelCapability(access, capability)) {
-      throw new AurevaneError(
-        'FORBIDDEN',
-        'Master Panel access is not available to this account.',
-      )
+      throw new AurevaneError('FORBIDDEN', 'Master Panel access is not available to this account.')
     }
     return access
   }
