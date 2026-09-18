@@ -63,7 +63,7 @@ export async function PublicInformationShell({ active, children }: PublicInforma
         Skip to public information
       </a>
 
-      <header className={`${styles.masthead} ${railStyles.masthead}`}>
+      <header className={railStyles.masthead}>
         <Link
           className="brand"
           href={gameHref}
@@ -74,18 +74,14 @@ export async function PublicInformationShell({ active, children }: PublicInforma
           </span>
           <span className="brand__wordmark">
             <strong>AUREVANE</strong>
-            <small>Public field guide</small>
+            <small>Persistent tactical fantasy</small>
           </span>
         </Link>
 
-        <nav
-          className={`${styles.mastheadNav} ${railStyles.navigation}`}
-          aria-label="Public information"
-        >
+        <nav className={railStyles.navigation} aria-label="Public information">
           {navigation.map((item) => (
             <Link
               key={item.section}
-              className={styles.navLink}
               href={item.href}
               aria-current={active === item.section ? 'page' : undefined}
             >

@@ -48,6 +48,11 @@
   text-decoration: none;
 }
 
+/* Keep shared masthead navigation typography identical across public and authenticated shells. */
+.masthead .navigation a {
+  letter-spacing: 0.025em;
+}
+
 .navigation a:hover,
 .navigation a[aria-current='page'] {
   color: var(--av-teal-bright);
