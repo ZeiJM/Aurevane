@@ -16,11 +16,12 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
   const suffix = `${Date.now()}${info.workerIndex}`.replace(/\d/g, (digit) =>
     String.fromCharCode(65 + Number(digit)),
   )
+  const characterName = `Wayfarer ${suffix}`
   await provisionAccountAndEnterCharacter({
     page,
     email: `layout-${suffix.toLowerCase()}@example.com`,
     password: 'Disposable-layout-review-2026!',
-    characterName: `Wayfarer ${suffix}`,
+    characterName,
   })
 
   const viewports =
@@ -46,6 +47,30 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
     await page.setViewportSize(viewport)
     await page.goto('/game/character')
     await expect(page.getByTestId('character-profile')).toBeVisible()
+
+    const shell = page.getByTestId('authenticated-shell')
+    const masthead = shell.locator('header').first()
+    const headerIdentity = masthead.locator('[aria-label^="Current character:"]')
+    await expect(shell.locator('[data-av-context-strip]')).toHaveCount(0)
+    await expect(shell.locator('[data-av-game-rail] .character-portrait-media')).toHaveCount(0)
+    await expect(headerIdentity).toHaveCount(1)
+    await expect(headerIdentity.locator('.character-portrait-media')).toHaveCount(1)
+    await expect(headerIdentity.getByText(characterName, { exact: true })).toBeVisible()
+    await expect(headerIdentity.getByText(/^Level /)).toHaveCount(0)
+    await expect(masthead.getByRole('button', { name: /Account/ })).toBeVisible()
+
+    if (viewport.width > 760) {
+      const rail = shell.locator('[data-av-game-rail]')
+      const railAnimation = await rail.evaluate(
+        (node) => getComputedStyle(node, '::before').animationName,
+      )
+      expect.soft(railAnimation, 'desktop game rail has subtle aether motion').not.toBe('none')
+      const railStart = await rail.evaluate((node) => getComputedStyle(node, '::before').transform)
+      await page.waitForTimeout(500)
+      const railAfter = await rail.evaluate((node) => getComputedStyle(node, '::before').transform)
+      expect.soft(railAfter, 'game rail aether physically advances').not.toBe(railStart)
+    }
+
     await page.evaluate(async () => {
       await document.fonts.ready
     })
@@ -221,6 +246,26 @@ test('a populated hybrid loadout keeps all four Techniques and management action
   await management.getByRole('button', { name: 'Close', exact: true }).click()
   await page.locator('[data-testid="skill-build-panel"] > button').click()
   const techniques = page.getByRole('dialog', { name: 'Techniques', exact: true })
+  await expect(techniques).toBeVisible()
+
+  const squareFrames = techniques.locator('[data-av-square-media="true"]')
+  expect(await squareFrames.count()).toBeGreaterThan(0)
+  const frameMetrics = await squareFrames.evaluateAll((frames) =>
+    frames.map((frame) => {
+      const rect = frame.getBoundingClientRect()
+      const image = frame.querySelector('img')
+      return {
+        width: rect.width,
+        height: rect.height,
+        fit: image ? getComputedStyle(image).objectFit : null,
+      }
+    }),
+  )
+  for (const metric of frameMetrics) {
+    expect(Math.abs(metric.width - metric.height)).toBeLessThanOrEqual(1)
+    if (metric.fit) expect(metric.fit).toBe('contain')
+  }
+
   const choices = techniques
     .getByTestId('learned-skill-list')
     .locator('input[type="checkbox"]:enabled')
