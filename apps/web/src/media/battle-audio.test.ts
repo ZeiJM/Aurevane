@@ -52,6 +52,22 @@ describe('committed battle audio', () => {
       ),
     ).toEqual([])
   })
+  it('uses the committed Skill audio hook before action-id fallback', () => {
+    expect(
+      selectBattleAudioCues(
+        [
+          record({
+            event: 'combat_action_used',
+            actionId: 'vanguard.forceful-strike',
+            audioCueKey: 'skill.ironfist.breakfall.audio',
+          }),
+        ],
+        8,
+        now,
+      ),
+    ).toEqual([{ assetId: 'audio.phase4.ironfist-action-v01-3', priority: 70 }])
+  })
+
   it('uses the original Skill audio family for version-pinned copied commands', () => {
     expect(
       selectBattleAudioCues(
