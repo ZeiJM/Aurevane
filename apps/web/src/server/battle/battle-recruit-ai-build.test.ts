@@ -27,7 +27,7 @@ import { describe, expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
 
 import type { CombatContentResolver } from '@/server/combat/combat-content-resolver'
-import { createBattleBuildAuthoritySnapshot } from './battle-build-authority'
+import { createResolvedBattleBuildAuthoritySnapshot } from './battle-build-authority'
 import type { CharacterCommittedBuildSnapshotRecord } from '../character/character-build-service'
 import { createBattleRecruitAiService } from './battle-recruit-ai-service'
 
@@ -267,17 +267,36 @@ describe('P3.7 live Recruit AI shared build snapshot', () => {
         },
       ],
     }
-    const base = encounter()
-    const state: StatDrivenCombatEncounterState & { buildAuthority?: unknown } = {
-      ...base,
-      buildAuthority: createBattleBuildAuthoritySnapshot('pve', [
-        { combatantId: AI_ID, characterId: AI_CHARACTER_ID, snapshot: committedSnapshot(aiSnapshot) },
+    const resolver: CombatContentResolver = {
+      async resolveCurrentSkillDefinition(skillId) {
+        if (skillId === copied.id) return copied
+        return resolveMatureSkillVersion(skillId)
+      },
+      async resolvePinnedSkillDefinition(skillId, version) {
+        if (skillId === copied.id && version === copied.contentVersion) return copied
+        return resolveMatureSkillVersion(skillId, version)
+      },
+    }
+    const authority = await createResolvedBattleBuildAuthoritySnapshot(
+      'pve',
+      [
+        {
+          combatantId: AI_ID,
+          characterId: AI_CHARACTER_ID,
+          snapshot: committedSnapshot(aiSnapshot),
+        },
         {
           combatantId: PLAYER_ID,
           characterId: PLAYER_CHARACTER_ID,
           snapshot: committedSnapshot(playerSnapshot),
         },
-      ]),
+      ],
+      resolver,
+    )
+    const base = encounter()
+    const state: StatDrivenCombatEncounterState & { buildAuthority?: unknown } = {
+      ...base,
+      buildAuthority: authority,
       effectState: {
         ongoingRecovery: [],
         poison: [],
@@ -292,15 +311,6 @@ describe('P3.7 live Recruit AI shared build snapshot', () => {
             contentVersion: copied.contentVersion,
           },
         ],
-      },
-    }
-    const resolver: CombatContentResolver = {
-      async resolveCurrentSkillDefinition(skillId) {
-        return resolveMatureSkillVersion(skillId)
-      },
-      async resolvePinnedSkillDefinition(skillId, version) {
-        if (skillId === copied.id && version === copied.contentVersion) return copied
-        return resolveMatureSkillVersion(skillId, version)
       },
     }
     const fixture = repository(state)
