@@ -74,7 +74,8 @@
 
 .portrait {
   position: relative;
-  min-height: 6.1rem;
+  min-height: 0;
+  aspect-ratio: 1 / 1;
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--combatant-accent) 55%, var(--av-border));
   border-radius: var(--av-radius-sm);
@@ -200,9 +201,6 @@
     width: 8rem;
   }
 
-  .portrait {
-    min-height: 5.15rem;
-  }
 }
 
 @media (max-width: 880px) {
@@ -249,7 +247,8 @@
     grid-row: 1 / span 2;
     width: 3.7rem;
     min-height: 0;
-    height: 3.9rem;
+    height: auto;
+    aspect-ratio: 1 / 1;
   }
 
   .effects {
@@ -299,7 +298,8 @@
 
   .portrait {
     width: 3.15rem;
-    height: 3.45rem;
+    height: auto;
+    aspect-ratio: 1 / 1;
   }
 
   .heading span {
