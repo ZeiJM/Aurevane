@@ -28,6 +28,7 @@ vi.mock('server-only', () => ({}))
 
 import type { CombatContentResolver } from '@/server/combat/combat-content-resolver'
 import { createBattleBuildAuthoritySnapshot } from './battle-build-authority'
+import type { CharacterCommittedBuildSnapshotRecord } from '../character/character-build-service'
 import { createBattleRecruitAiService } from './battle-recruit-ai-service'
 
 const USER_ID = '00000000-0000-4000-8000-000000003741'
@@ -63,6 +64,30 @@ function snapshot(): CombatBuildSnapshot {
         skillId: 'essence.vanguard.unbroken-strike',
         skillContentVersion: 1,
       },
+      equipmentSkills: [],
+      supernatural: null,
+      prestige: null,
+    },
+  }
+}
+
+function committedSnapshot(
+  value: CombatBuildSnapshot,
+): CharacterCommittedBuildSnapshotRecord {
+  return {
+    schemaVersion: value.sourceBuildSchemaVersion,
+    buildVersion: value.sourceBuildVersion,
+    primary: { ...value.primary },
+    secondary: value.secondary ? { ...value.secondary } : null,
+    disciplineSkills: value.disciplineSkills.map((skill) => ({ ...skill })),
+    extensions: {
+      resonance: value.extensions.resonance
+        ? {
+            ...value.extensions.resonance,
+            disciplinePair: [...value.extensions.resonance.disciplinePair] as [string, string],
+          }
+        : null,
+      essence: value.extensions.essence ? { ...value.extensions.essence } : null,
       equipmentSkills: [],
       supernatural: null,
       prestige: null,
@@ -247,11 +272,11 @@ describe('P3.7 live Recruit AI shared build snapshot', () => {
     const state: StatDrivenCombatEncounterState & { buildAuthority?: unknown } = {
       ...base,
       buildAuthority: createBattleBuildAuthoritySnapshot('pve', [
-        { combatantId: AI_ID, characterId: AI_CHARACTER_ID, snapshot: aiSnapshot },
+        { combatantId: AI_ID, characterId: AI_CHARACTER_ID, snapshot: committedSnapshot(aiSnapshot) },
         {
           combatantId: PLAYER_ID,
           characterId: PLAYER_CHARACTER_ID,
-          snapshot: playerSnapshot,
+          snapshot: committedSnapshot(playerSnapshot),
         },
       ]),
       effectState: {
