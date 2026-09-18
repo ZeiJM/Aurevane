@@ -174,7 +174,7 @@
 }
 
 .portrait {
-  width: min(100%, clamp(12rem, calc(100dvh - 28rem), 19.5rem));
+  width: min(100%, clamp(11rem, calc(100dvh - 31rem), 18.5rem));
   min-width: 0;
   aspect-ratio: 4 / 5;
   justify-self: center;
