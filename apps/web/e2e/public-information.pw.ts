@@ -113,7 +113,7 @@ test('an authenticated character keeps a direct return path while reading the Ma
 
   await createAccountAndEnterCharacter({ page, email, password, characterName })
 
-  const gameHeader = page.getByTestId('authenticated-shell').locator('header')
+  const gameHeader = page.getByTestId('authenticated-shell').locator(':scope > header')
   const gameNewsLink = gameHeader.getByRole('link', { name: 'News', exact: true })
   await expect(gameHeader).toBeVisible()
   await expect(gameHeader.locator('.brand__wordmark small')).toHaveText(
@@ -175,7 +175,7 @@ test('an authenticated character keeps a direct return path while reading the Ma
   await expect(page.getByRole('heading', { level: 1, name: 'Manual' })).toBeVisible()
   await expect(page.getByLabel('Current screen: Manual')).toHaveCount(0)
 
-  const publicHeader = page.getByTestId('public-information-shell').locator('header')
+  const publicHeader = page.getByTestId('public-information-shell').locator(':scope > header')
   const publicNewsLink = publicHeader.getByRole('link', { name: 'News', exact: true })
   await expect(publicHeader.locator('.brand__wordmark small')).toHaveText(
     'Persistent tactical fantasy',
