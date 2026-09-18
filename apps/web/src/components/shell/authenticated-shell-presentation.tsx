@@ -20,7 +20,7 @@ export interface AuthenticatedShellPresentationProps extends GameRailProps {
   backHref?: '/game' | '/game/character'
   backLabel?: string
   layout?: 'standard' | 'battlefield'
-  character?: { name: string } | null
+  character?: { name: string; level?: number } | null
   characterPortrait?: ReactNode
   activeBattleHref?: Route | null
   activeSpectatingHref?: Route | null
