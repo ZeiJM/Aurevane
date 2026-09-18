@@ -159,7 +159,7 @@ test('keeps the shared PvP desktop cockpit at the same compact scale', async ({
     )
     for (const portrait of portraitGeometry) {
       expect(Math.abs(portrait.width - portrait.height)).toBeLessThanOrEqual(1)
-      if (portrait.fit) expect(portrait.fit).toBe('cover')
+      if (portrait.fit) expect(portrait.fit).toBe('contain')
     }
 
     await expectStableCompactDesktopCockpit(host)
