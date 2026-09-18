@@ -115,6 +115,8 @@ export const PV1F_GUARDED_STATUS: CombatStatusDefinition = {
   durationOwnerTurnStarts: 2,
   damageTakenMultiplierBasisPoints: 8_500,
   polarity: 'positive',
+  amplifyCopyable: true,
+  reactionClass: 'ordinary',
 }
 
 // Lowered Guard is a one-turn anti-timeout debuff. A combatant who times out again can receive
@@ -126,6 +128,8 @@ export const PV1F_LOWERED_GUARD_STATUS: CombatStatusDefinition = {
   durationOwnerTurnStarts: 1,
   damageTakenMultiplierBasisPoints: 25_000,
   polarity: 'negative',
+  curseCopyable: false,
+  reactionClass: 'system',
 }
 
 export const PV1F_EXPOSED_STATUS: CombatStatusDefinition = {
@@ -135,6 +139,8 @@ export const PV1F_EXPOSED_STATUS: CombatStatusDefinition = {
   durationOwnerTurnStarts: 2,
   damageTakenMultiplierBasisPoints: 11_500,
   polarity: 'negative',
+  curseCopyable: true,
+  reactionClass: 'ordinary',
 }
 
 export const PV1F_COVERT_STATUS = createCovertStatusDefinition(4)
