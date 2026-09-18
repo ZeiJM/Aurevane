@@ -1,0 +1,64 @@
+name: Master Panel focused E2E
+
+on:
+  push:
+    branches:
+      - agent/master-panel-e2e-check-20260917
+
+permissions:
+  contents: read
+
+jobs:
+  master-e2e:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      TURBO_TELEMETRY_DISABLED: 1
+      NEXT_TELEMETRY_DISABLED: 1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Install Chromium
+        run: pnpm --filter @aurevane/web exec playwright install --with-deps chromium
+      - name: Start local Supabase stack
+        run: pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
+      - name: Run focused Master authoring flow
+        shell: bash
+        run: |
+          set -euo pipefail
+          status_env="$(pnpm exec supabase status -o env)"
+          eval "$(printf '%s\n' "$status_env" | grep -E '^(ANON_KEY|SERVICE_ROLE_KEY|SECRET_KEY)=')"
+          test -n "${ANON_KEY:-}"
+          server_key="${SECRET_KEY:-${SERVICE_ROLE_KEY:-}}"
+          test -n "$server_key"
+          api_url='http://127.0.0.1:54321'
+
+          AUREVANE_ENV=local \
+          NEXT_PUBLIC_AUREVANE_ENV=local \
+          NEXT_PUBLIC_SUPABASE_URL="$api_url" \
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY" \
+          SUPABASE_SECRET_KEY="$server_key" \
+          pnpm --filter @aurevane/web build
+
+          db_container="$(docker ps --filter 'name=supabase_db_' --format '{{.Names}}' | head -n 1)"
+          docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "set role service_role; select public.activate_phase4_combat_interactions_v2();"
+
+          AUREVANE_ENV=local \
+          NEXT_PUBLIC_AUREVANE_ENV=local \
+          NEXT_PUBLIC_SUPABASE_URL="$api_url" \
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY" \
+          SUPABASE_SECRET_KEY="$server_key" \
+          pnpm --filter @aurevane/web exec playwright test \
+            e2e/master-combat-content-authoring.pw.ts \
+            --project=desktop-chromium
+      - name: Stop local Supabase services
+        if: always()
+        run: pnpm exec supabase stop --no-backup
