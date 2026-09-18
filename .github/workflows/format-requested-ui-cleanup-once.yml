@@ -1,0 +1,55 @@
+name: One-shot format requested UI cleanup
+
+on:
+  push:
+    branches:
+      - agent/requested-ui-cleanup-aether-square-media-20260918
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/requested-ui-cleanup-aether-square-media-20260918
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+          pnpm install --frozen-lockfile
+      - run: |
+          pnpm exec prettier --write \
+            apps/web/e2e/account-layout-regression.pw.ts \
+            apps/web/e2e/character-roster-layout-regression.pw.ts \
+            apps/web/e2e/profile-layout-regression.pw.ts \
+            apps/web/src/app/portrait-ratio-standardization.css \
+            apps/web/src/app/sitewide-layout-v2.css \
+            apps/web/src/components/account/account-entry-shell.module.css \
+            apps/web/src/components/account/account-entry-shell.tsx \
+            apps/web/src/components/battle/battle-skill-command.tsx \
+            apps/web/src/components/battle/desktop-battle-combatant-inspect.module.css \
+            apps/web/src/components/battle/desktop-battle-combatant-inspect.tsx \
+            apps/web/src/components/battle/pvp-battle-combatant-panels.module.css \
+            apps/web/src/components/battle/pvp-battle-combatant-panels.tsx \
+            apps/web/src/components/character/character-select-shell.module.css \
+            apps/web/src/components/character/character-select-shell.tsx \
+            apps/web/src/components/character/character-skill-build-panel-polish.module.css \
+            apps/web/src/components/character/character-skill-build-panel.module.css \
+            apps/web/src/components/character/character-skill-build-panel.tsx \
+            apps/web/src/components/shell/authenticated-game-shell.module.css \
+            apps/web/src/components/shell/authenticated-game-shell.tsx \
+            apps/web/src/components/shell/authenticated-shell-presentation.tsx \
+            apps/web/src/components/shell/game-rail.tsx
+          rm .github/workflows/format-requested-ui-cleanup-once.yml
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/web .github/workflows/format-requested-ui-cleanup-once.yml
+          git commit -m "chore: format requested UI cleanup"
+          git push origin HEAD:agent/requested-ui-cleanup-aether-square-media-20260918
