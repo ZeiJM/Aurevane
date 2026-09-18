@@ -17,9 +17,9 @@ function renderRail(props: Parameters<typeof GameRail>[0] = {}) {
 }
 
 describe('shared game rail', () => {
-  it('exposes the three primary destinations and selected character identity', () => {
+  it('exposes the three primary destinations without duplicating character identity', () => {
     navigationState.pathname = '/game/character'
-    const markup = renderRail({ character: { name: 'Aster', level: 12 } })
+    const markup = renderRail()
     const destinations = [
       ['/game/character', 'Profile'],
       ['/game/battle', 'Battle Hall'],
@@ -32,7 +32,8 @@ describe('shared game rail', () => {
     expect(markup).not.toContain('href="/game/online"')
     expect(markup).not.toContain('Adventurers')
     expect(markup).toContain('aria-current="page"')
-    expect(markup).toContain('Current character: Aster, Level 12')
+    expect(markup).not.toContain('Current character:')
+    expect(markup).not.toContain('Aster')
   })
 
   it.each([
