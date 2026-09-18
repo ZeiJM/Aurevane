@@ -69,6 +69,7 @@ function Panel({
       <div
         className={styles.portrait}
         data-av-square-media="true"
+        data-av-square-media-fit="contain"
       >
         <CharacterPortraitImage
           imageUrl={participant.profileImageUrl}
