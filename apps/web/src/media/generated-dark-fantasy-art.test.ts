@@ -14,10 +14,7 @@ describe('complete dark-fantasy artwork coverage', () => {
     const skills = latestEnabledMatureSkills().map((skill) => skill.id)
     const essences = [
       ...new Map(
-        P36_REPRESENTATIVE_ESSENCES.filter((x) => x.enabled).map((x) => [
-          x.essenceId,
-          x,
-        ]),
+        P36_REPRESENTATIVE_ESSENCES.filter((x) => x.enabled).map((x) => [x.essenceId, x]),
       ).keys(),
     ]
     const resonances = P35_REPRESENTATIVE_RESONANCES.filter((x) => x.enabled).map((x) => x.id)
