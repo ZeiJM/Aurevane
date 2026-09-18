@@ -5,18 +5,24 @@ import { redirect } from 'next/navigation'
 
 import { getAuthenticatedActor } from '@/server/auth/actor'
 
-import { createServerCombatContentAuthoringService } from './combat-content-authoring-server'
+import type { MasterPanelCapability } from './staff-access'
+import { createServerMasterPanelStaffAccessService } from './staff-access-server'
 
-export async function requireMasterPanelPageAccess() {
+export async function requireMasterPanelPageAccess(
+  capability: MasterPanelCapability = 'master.access',
+) {
   try {
     const actor = await getAuthenticatedActor()
-    const role = await createServerCombatContentAuthoringService(actor.userId).requireOperator(
+    const access = await createServerMasterPanelStaffAccessService().requireCapability(
       actor.userId,
+      capability,
     )
-    return { actor, role } as const
+    return { actor, access } as const
   } catch (error) {
     if (isAurevaneError(error) && error.code === 'UNAUTHENTICATED') redirect('/')
-    if (isAurevaneError(error) && error.code === 'FORBIDDEN') redirect('/game')
+    if (isAurevaneError(error) && error.code === 'FORBIDDEN') {
+      redirect(capability === 'master.access' ? '/game' : '/master')
+    }
     throw error
   }
 }
