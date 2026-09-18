@@ -30,7 +30,8 @@ describe('Status copying: mature Skill publication boundary', () => {
     (mode) => {
       const definition = cloneSkill(mode)
       expect(validateMatureSkillDefinition(definition)).toEqual([])
-      expect(() => toCombatActionDefinition(definition, 'pve')).not.toThrow()
+      const action = toCombatActionDefinition(definition, 'pve')
+      expect(() => validateCombatActionDefinition(action)).not.toThrow()
     },
   )
 
