@@ -1,4 +1,4 @@
-/* Shared media-frame contract: gameplay image containers marked square stay 1:1 everywhere. */
+/* Shared media-frame contract: gameplay image frames marked square stay 1:1 everywhere. */
 [data-av-square-media='true'] {
   aspect-ratio: 1 / 1 !important;
   height: auto !important;
