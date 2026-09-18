@@ -93,7 +93,8 @@ function damageEditor(value: DamageEffect, onChange: (next: CombatEffectDefiniti
           value={value.defenseKind ?? ''}
           onChange={(event) => {
             const defenseKind = event.currentTarget.value
-            const { defenseKind: _discard, ...rest } = value
+            const rest = { ...value }
+            Reflect.deleteProperty(rest, 'defenseKind')
             onChange(defenseKind ? { ...rest, defenseKind: defenseKind as 'armor' | 'ward' } : rest)
           }}
         >
@@ -110,7 +111,8 @@ function damageEditor(value: DamageEffect, onChange: (next: CombatEffectDefiniti
           value={value.element ?? ''}
           onChange={(event) => {
             const element = event.currentTarget.value
-            const { element: _discard, ...rest } = value
+            const rest = { ...value }
+            Reflect.deleteProperty(rest, 'element')
             onChange(element ? { ...rest, element: element as CombatElement } : rest)
           }}
         >
@@ -145,7 +147,8 @@ function damageEditor(value: DamageEffect, onChange: (next: CombatEffectDefiniti
               })
               return
             }
-            const { scaling: _discard, ...rest } = value
+            const rest = { ...value }
+            Reflect.deleteProperty(rest, 'scaling')
             onChange(rest)
           }}
         />
@@ -206,7 +209,8 @@ function damageEditor(value: DamageEffect, onChange: (next: CombatEffectDefiniti
           checked={vengeance !== undefined}
           onChange={(event) => {
             if (event.currentTarget.checked) {
-              const { scaling: _discard, ...rest } = value
+              const rest = { ...value }
+              Reflect.deleteProperty(rest, 'scaling')
               onChange({
                 ...rest,
                 amount: 0,
@@ -214,7 +218,8 @@ function damageEditor(value: DamageEffect, onChange: (next: CombatEffectDefiniti
               })
               return
             }
-            const { vengeance: _discard, ...rest } = value
+            const rest = { ...value }
+            Reflect.deleteProperty(rest, 'vengeance')
             onChange(rest)
           }}
         />
@@ -256,7 +261,8 @@ function damageEditor(value: DamageEffect, onChange: (next: CombatEffectDefiniti
               placeholder="0"
               onChange={(event) => {
                 if (event.currentTarget.value === '') {
-                  const { minimumDamage: _discard, ...nextVengeance } = vengeance
+                  const nextVengeance = { ...vengeance }
+                  Reflect.deleteProperty(nextVengeance, 'minimumDamage')
                   onChange({ ...value, vengeance: nextVengeance })
                   return
                 }
@@ -305,7 +311,8 @@ function damageEditor(value: DamageEffect, onChange: (next: CombatEffectDefiniti
               })
               return
             }
-            const { facingModifiersBasisPoints: _discard, ...rest } = value
+            const rest = { ...value }
+            Reflect.deleteProperty(rest, 'facingModifiersBasisPoints')
             onChange(rest)
           }}
         />
@@ -390,7 +397,8 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
               placeholder="Immediate"
               onChange={(event) => {
                 if (event.currentTarget.value === '') {
-                  const { ticks: _discard, ...rest } = value
+                  const rest = { ...value }
+                  Reflect.deleteProperty(rest, 'ticks')
                   onChange(rest)
                   return
                 }
@@ -435,7 +443,8 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
               placeholder="Immediate"
               onChange={(event) => {
                 if (event.currentTarget.value === '') {
-                  const { ticks: _discard, ...rest } = value
+                  const rest = { ...value }
+                  Reflect.deleteProperty(rest, 'ticks')
                   onChange(rest)
                   return
                 }
@@ -570,7 +579,8 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
               value={value.direction ?? ''}
               onChange={(event) => {
                 const direction = event.currentTarget.value
-                const { direction: _discard, ...rest } = value
+                const rest = { ...value }
+                Reflect.deleteProperty(rest, 'direction')
                 onChange(direction ? { ...rest, direction: direction as 'push' | 'pull' } : rest)
               }}
             >

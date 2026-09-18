@@ -57,8 +57,9 @@ export function emptyCombatContentReview(): CombatContentReviewState {
 }
 
 export function invalidateCombatContentReview(
-  _current: CombatContentReviewState,
+  current: CombatContentReviewState,
 ): CombatContentReviewState {
+  void current
   return emptyCombatContentReview()
 }
 
