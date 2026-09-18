@@ -131,6 +131,24 @@ describe('combat content authoring service', () => {
   })
 
   it.each([
+    ['amplify', 'Amplify'],
+    ['curse', 'Curse'],
+  ] as const)('validates a publishable %s clone block with derived tags', (mode, label) => {
+    const { service } = serviceFixture()
+    const base = staticSkill()
+    const definition: MatureSkillDefinition = {
+      ...base,
+      effects: [{ type: 'copy-statuses', recipient: 'primary-unit', mode }],
+    }
+
+    expect(service.validateSkillDefinition(definition)).toEqual({
+      valid: true,
+      issues: [],
+      derivedTags: ['Enemy', 'Single', label],
+    })
+  })
+
+  it.each([
     [
       'impossible target range',
       (value: Record<string, unknown>) => {
