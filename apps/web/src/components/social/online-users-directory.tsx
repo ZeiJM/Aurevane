@@ -121,19 +121,19 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
         <div className={styles.headingCopy}>
           <Kicker marker="◇">The realm, together</Kicker>
           <h1>Online Users</h1>
-          <p>Real adventurers. A shared journey.</p>
         </div>
 
         <div
-          className={`${styles.heroControls} ${showAll && directory ? styles.heroControlsExpanded : ''}`}
+          className={`${styles.heroControls} ${showAll ? styles.heroControlsExpanded : ''}`}
           data-directory-controls="true"
         >
-          {showAll && directory ? (
+          {showAll ? (
             <div className={styles.filters} aria-label="Character directory filters">
               <label>
                 <span>Class</span>
                 <select
                   value={classFilter}
+                  disabled={!directory}
                   onChange={(event) => setClassFilter(event.target.value)}
                 >
                   <option value="all">All classes</option>
@@ -148,6 +148,7 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
                 <span>Sort</span>
                 <select
                   value={sortOrder}
+                  disabled={!directory}
                   onChange={(event) => setSortOrder(event.target.value as DirectorySortOrder)}
                 >
                   <option value="recent">Last seen: most recent</option>
@@ -156,7 +157,11 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
                 </select>
               </label>
               <span className={styles.directorySummary} aria-live="polite">
-                {orderedCharacters.length} shown
+                {directory
+                  ? `${orderedCharacters.length} shown`
+                  : loadingDirectory
+                    ? 'Loading…'
+                    : 'Unavailable'}
               </span>
               <button
                 type="button"
@@ -170,11 +175,11 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
           ) : (
             <button
               type="button"
-              className={`${styles.toggleButton} ${showAll ? styles.toggleButtonActive : ''}`}
+              className={styles.toggleButton}
               aria-pressed={showAll}
               onClick={toggleDirectory}
             >
-              {showAll ? 'Show online only' : 'Show all characters'}
+              Show all characters
             </button>
           )}
         </div>
@@ -187,21 +192,6 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
         data-av-surface="ink"
         aria-label={showAll ? 'All character directory' : 'Online character roster'}
       >
-        {!showAll ? (
-          <header className={styles.rosterHeader}>
-            <div className={styles.rosterHeading}>
-              <span className={styles.rosterMarker} aria-hidden="true">
-                ◇
-              </span>
-              <div>
-                <span className={styles.rosterKicker}>Live presence</span>
-                <strong>Active adventurers</strong>
-                <small>Select an adventurer to view their public profile.</small>
-              </div>
-            </div>
-          </header>
-        ) : null}
-
         {showAll && loadingDirectory ? (
           <p className={styles.loading} role="status">
             Loading character directory…
