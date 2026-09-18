@@ -113,6 +113,7 @@ function withStatus<T extends CombatEncounterState>(
 }
 
 const skill = (id: string) => resolveMatureSkillVersion(id)!
+const historicalSkill = (id: string) => resolveMatureSkillVersion(id, 1)!
 function nextRound(state: StatDrivenCombatEncounterState) {
   const round = state.tactical.battle.round
   const actors: string[] = []
@@ -123,8 +124,8 @@ function nextRound(state: StatDrivenCombatEncounterState) {
   return { state, actors }
 }
 describe('Chronist authoritative tempo', () => {
-  it('freezes each round, consumes tempo once, returns to base order without duplicate turns', () => {
-    let state = executePv1fMatureSkill(encounter(), skill('chronist.haste'), {
+  it('keeps historical v1 next-round Haste behavior pinned without duplicate turns', () => {
+    let state = executePv1fMatureSkill(encounter(), historicalSkill('chronist.haste'), {
       kind: 'unit',
       combatantId: 'ally',
     }).state
@@ -148,20 +149,20 @@ describe('Chronist authoritative tempo', () => {
     ])
     expect(validateBattleState(round2.state.tactical.battle)).toEqual([])
   })
-  it('does not spend AP or change ordering in previews; repeated discrete tempo is omitted', () => {
+  it('keeps historical v1 Delay preview-safe and discrete on consecutive use', () => {
     const state = encounter(),
       saved = JSON.stringify(state)
-    const preview = evaluatePv1fMatureSkill(state, skill('chronist.delay'), {
+    const preview = evaluatePv1fMatureSkill(state, historicalSkill('chronist.delay'), {
       kind: 'unit',
       combatantId: 'enemy',
     })
     expect(preview.evaluation.legal).toBe(true)
     expect(JSON.stringify(state)).toBe(saved)
-    const first = executePv1fMatureSkill(state, skill('chronist.delay'), {
+    const first = executePv1fMatureSkill(state, historicalSkill('chronist.delay'), {
       kind: 'unit',
       combatantId: 'enemy',
     })
-    const repeat = evaluatePv1fMatureSkill(first.state, skill('chronist.delay'), {
+    const repeat = evaluatePv1fMatureSkill(first.state, historicalSkill('chronist.delay'), {
       kind: 'unit',
       combatantId: 'enemy',
     })
@@ -174,6 +175,33 @@ describe('Chronist authoritative tempo', () => {
       'enemy',
     ])
   })
+  it('uses current Haste/Slow movement statuses without changing initiative order', () => {
+    let state = executePv1fMatureSkill(encounter(), skill('chronist.haste'), {
+      kind: 'unit',
+      combatantId: 'ally',
+    }).state
+    state = executePv1fMatureSkill(state, skill('chronist.delay'), {
+      kind: 'unit',
+      combatantId: 'enemy',
+    }).state
+
+    expect(state.tactical.battle.initiativeOrder).toEqual(['actor', 'enemy', 'other', 'ally'])
+    expect(
+      state.statusState.find((row) => row.combatantId === 'ally')?.statuses,
+    ).toContainEqual(expect.objectContaining({ statusId: 'haste' }))
+    expect(
+      state.statusState.find((row) => row.combatantId === 'enemy')?.statuses,
+    ).toContainEqual(expect.objectContaining({ statusId: 'slow' }))
+
+    const followingRound = nextRound(state)
+    expect(followingRound.state.tactical.battle.initiativeOrder).toEqual([
+      'actor',
+      'enemy',
+      'other',
+      'ally',
+    ])
+  })
+
   it('caps combined tempo and ignores defeated units when selecting turns', () => {
     let state = withStatus(withStatus(encounter(), 'ally', 'hastened'), 'ally', 'borrowed-hour')
     state = {

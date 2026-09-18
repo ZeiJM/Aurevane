@@ -114,8 +114,9 @@ describe('P3.3 mature Skill schema', () => {
 
   it('fails closed for stale or disabled versions and resolves the latest enabled version', () => {
     expect(resolveMatureSkillVersion('vanguard.forceful-strike', 1)).toBeNull()
+    expect(resolveMatureSkillVersion('vanguard.forceful-strike', 2)?.contentVersion).toBe(2)
     expect(resolveMatureSkillVersion('vanguard.forceful-strike', 999)).toBeNull()
-    expect(resolveMatureSkillVersion('vanguard.forceful-strike')?.contentVersion).toBe(2)
+    expect(resolveMatureSkillVersion('vanguard.forceful-strike')?.contentVersion).toBe(3)
   })
 
   it('uses existing combat target, requirement, and effect authority instead of a parallel engine', () => {

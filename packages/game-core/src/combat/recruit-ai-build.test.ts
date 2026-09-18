@@ -2,7 +2,13 @@ import { ADVANCED_DISCIPLINES } from '../character/advanced-disciplines'
 import { latestEnabledMatureSkills, resolveMatureSkillVersion } from './mature-skills'
 import { resolveEssenceForBuild, essenceSnapshotReference } from './essence'
 import { resolveResonanceForPair, resonanceSnapshotReference } from './resonance'
-import { finishPv1fTurn } from './pv1f-action-economy'
+import {
+  finishPv1fTurn,
+  PV1F_BASIC_ATTACK_ID,
+  PV1F_GUARD_ACTION_ID,
+  PV1F_MP_RECOVER_ACTION_ID,
+  PV1F_RECOVER_ACTION_ID,
+} from './pv1f-action-economy'
 import { copiedSkillCommandId } from './combat-skill-copy'
 import { describe, expect, it } from 'vitest'
 
@@ -372,9 +378,14 @@ describe('Phase 4 advanced AI through committed builds', () => {
       })
       expect(decision.intent.kind).toBe('action')
       if (decision.intent.kind !== 'action') throw new Error('Expected a committed Skill choice')
-      expect([...library.map((skill) => skill.id), essence.skill.id]).toContain(
-        decision.intent.actionId,
-      )
+      expect([
+        ...library.map((skill) => skill.id),
+        essence.skill.id,
+        PV1F_BASIC_ATTACK_ID,
+        PV1F_GUARD_ACTION_ID,
+        PV1F_RECOVER_ACTION_ID,
+        PV1F_MP_RECOVER_ACTION_ID,
+      ]).toContain(decision.intent.actionId)
       const before = JSON.stringify(state)
       const result = executeBuildAwareRecruitAiAction(
         state,
