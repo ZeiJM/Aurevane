@@ -24,12 +24,6 @@
   font: 500 clamp(1.9rem, 2.5vw, 2.8rem) / 1.1 var(--av-font-display);
   letter-spacing: 0.07em;
 }
-.heading p {
-  margin: 0;
-  color: #c5cdd1;
-  font-size: 0.875rem;
-  line-height: 1.4;
-}
 .heroControls {
   display: flex;
   min-width: 0;
@@ -50,11 +44,6 @@
   background: #12232d;
   font: 600 0.8125rem/1.3 var(--av-font-body);
   cursor: pointer;
-}
-.toggleButtonActive {
-  border-color: #8eb6a3;
-  color: #d6f1e4;
-  background: #16352f;
 }
 .toggleButtonCompact {
   min-height: 2.5rem;
@@ -87,42 +76,6 @@
 .rosterPanel > :not(.list) {
   flex: 0 0 auto;
 }
-.rosterHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.85rem 1rem;
-  border-bottom: 1px solid #9a835961;
-}
-.rosterHeading {
-  display: flex;
-  gap: 0.75rem;
-  align-items: center;
-}
-.rosterMarker {
-  font-size: 1.5rem;
-  color: #d6b97f;
-}
-.rosterHeading > div {
-  display: grid;
-  gap: 0.25rem;
-}
-.rosterKicker {
-  color: #c9ae7f;
-  font-size: 0.6875rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-.rosterHeading strong {
-  color: #ebddc3;
-  font: 500 1.4rem/1.2 var(--av-font-display);
-}
-.rosterHeading small {
-  color: #bdc8ce;
-  font-size: 0.8125rem;
-  line-height: 1.4;
-}
 .filters {
   display: grid;
   width: 100%;
@@ -152,6 +105,11 @@
   color: #eee8da;
   background: #14232c;
   font: 400 0.875rem/1.4 var(--av-font-body);
+}
+
+.filters select:disabled {
+  opacity: 0.65;
+  cursor: progress;
 }
 .directorySummary {
   align-self: center;
@@ -334,13 +292,6 @@
   .heading h1 {
     margin: 0 0 0.2rem;
   }
-  .rosterHeader {
-    padding: 0.55rem 0.85rem;
-  }
-  .rosterKicker,
-  .rosterHeading small {
-    display: none;
-  }
   .filters {
     gap: 0.45rem;
     padding: 0.45rem;
@@ -382,20 +333,6 @@
   }
   .rosterPanel {
     overflow: visible;
-  }
-  .rosterHeader {
-    padding: 0.85rem;
-    gap: 0.5rem;
-    align-items: start;
-  }
-  .rosterMarker {
-    display: none;
-  }
-  .rosterHeading strong {
-    font-size: 1.2rem;
-  }
-  .rosterHeading small {
-    font-size: 0.8125rem;
   }
   .filters {
     grid-template-columns: repeat(2, minmax(0, 1fr));
