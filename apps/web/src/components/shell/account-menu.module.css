@@ -61,6 +61,26 @@
 .menu form {
   margin: 0;
 }
+.characterGreeting {
+  display: grid;
+  gap: 0.22rem;
+  padding: 0.7rem 0.8rem 0.75rem;
+  border-bottom: 1px solid var(--av-border);
+}
+.characterGreeting span {
+  color: var(--av-text-dim);
+  font: 650 0.54rem/1.1 var(--av-font-body);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.characterGreeting strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--av-brass-100);
+  font: 500 1rem/1.25 var(--av-font-display);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .audio {
   display: grid;
   grid-template-columns: 1fr auto;
