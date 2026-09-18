@@ -151,13 +151,17 @@ test('Character Select keeps its heading above three readable, reachable roster 
       .toBeGreaterThanOrEqual(metrics.board.bottom - 1)
     expect
       .soft(
-        Math.abs(metrics.accountDelete.x + metrics.accountDelete.width / 2 - metrics.viewportCenter),
+        Math.abs(
+          metrics.accountDelete.x + metrics.accountDelete.width / 2 - metrics.viewportCenter,
+        ),
         `${label}: Delete Account is horizontally centered`,
       )
       .toBeLessThanOrEqual(2)
     expect.soft(metrics.deleteJustify, `${label}: Delete Account content centered`).toBe('center')
     expect.soft(metrics.deleteTextAlign, `${label}: Delete Account text centered`).toBe('center')
-    expect.soft(metrics.deleteSupportAlign, `${label}: deletion support text centered`).toBe('center')
+    expect
+      .soft(metrics.deleteSupportAlign, `${label}: deletion support text centered`)
+      .toBe('center')
     expect
       .soft(
         Math.max(...(metrics.lockedBackground.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number)),

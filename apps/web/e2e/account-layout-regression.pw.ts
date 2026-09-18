@@ -87,12 +87,18 @@ test('Account gateway keeps the desktop entry workspace clear and readable', asy
   expect
     .soft(metrics.submitBottom, 'desktop submit action stays above the footer')
     .toBeLessThanOrEqual(metrics.footerTop + 1)
-  expect.soft(metrics.cardScroll, 'desktop account card has no internal scroll').toBeLessThanOrEqual(1)
-  expect.soft(metrics.cardOverflowY, 'desktop account card is not a scroll box').not.toMatch(/auto|scroll/)
+  expect
+    .soft(metrics.cardScroll, 'desktop account card has no internal scroll')
+    .toBeLessThanOrEqual(1)
+  expect
+    .soft(metrics.cardOverflowY, 'desktop account card is not a scroll box')
+    .not.toMatch(/auto|scroll/)
   expect
     .soft(metrics.headingTop, 'AUREVANE title is restored to the lower hero composition')
     .toBeGreaterThan(metrics.heroTop + (metrics.heroBottom - metrics.heroTop) * 0.45)
-  expect.soft(metrics.inputColor, 'typed account text is white and readable').toBe('rgb(255, 253, 247)')
+  expect
+    .soft(metrics.inputColor, 'typed account text is white and readable')
+    .toBe('rgb(255, 253, 247)')
   expect
     .soft(metrics.inputFillColor, 'browser text fill stays white and readable')
     .toBe('rgb(255, 253, 247)')

@@ -356,7 +356,12 @@ export function CharacterSkillBuildPanel({
                         <span className={styles.eyebrow}>{signatureLabel}</span>
                         {initialResonance ? (
                           <article className={polish.signatureCard}>
-                            <span className={polish.signatureArtFrame} data-av-square-media="true" data-av-square-media-fit="contain" aria-hidden="true">
+                            <span
+                              className={polish.signatureArtFrame}
+                              data-av-square-media="true"
+                              data-av-square-media-fit="contain"
+                              aria-hidden="true"
+                            >
                               <Image
                                 width={64}
                                 height={64}
@@ -390,7 +395,12 @@ export function CharacterSkillBuildPanel({
                         ) : null}
                         {initialEssence ? (
                           <article className={polish.signatureCard}>
-                            <span className={polish.signatureArtFrame} data-av-square-media="true" data-av-square-media-fit="contain" aria-hidden="true">
+                            <span
+                              className={polish.signatureArtFrame}
+                              data-av-square-media="true"
+                              data-av-square-media-fit="contain"
+                              aria-hidden="true"
+                            >
                               <Image
                                 width={64}
                                 height={64}

@@ -25,8 +25,7 @@
   --av-shell-footer-height: 2.5rem;
   display: grid;
   grid-template-columns: var(--av-shell-rail-width) minmax(0, 1fr);
-  grid-template-rows:
-    var(--av-shell-header-height) minmax(0, 1fr) var(--av-shell-footer-height);
+  grid-template-rows: var(--av-shell-header-height) minmax(0, 1fr) var(--av-shell-footer-height);
   width: calc(100% - clamp(0.5rem, 1.2vw, 1.25rem));
   height: 100dvh;
   min-width: 0;
@@ -164,7 +163,6 @@
   white-space: nowrap;
 }
 
-
 @media (min-width: 761px) {
   .rail::before,
   .rail::after {
@@ -181,7 +179,12 @@
     height: 190%;
     opacity: 0.28;
     background:
-      radial-gradient(ellipse at 46% 52%, rgba(76, 218, 207, 0.22) 0 6%, rgba(51, 138, 142, 0.08) 22%, transparent 50%),
+      radial-gradient(
+        ellipse at 46% 52%,
+        rgba(76, 218, 207, 0.22) 0 6%,
+        rgba(51, 138, 142, 0.08) 22%,
+        transparent 50%
+      ),
       radial-gradient(ellipse at 64% 35%, rgba(232, 198, 124, 0.14) 0 4%, transparent 32%);
     filter: blur(12px);
     will-change: transform, opacity;

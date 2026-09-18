@@ -91,7 +91,10 @@ export function AuthenticatedShellPresentation({
               </Link>
             ) : null}
             {character ? (
-              <div className={styles.headerCharacter} aria-label={`Current character: ${character.name}`}>
+              <div
+                className={styles.headerCharacter}
+                aria-label={`Current character: ${character.name}`}
+              >
                 {characterPortrait}
                 <strong>{character.name}</strong>
               </div>
@@ -103,10 +106,7 @@ export function AuthenticatedShellPresentation({
           </div>
         </header>
 
-        <GameRail
-          activeSessionHref={activeSessionHref}
-          activeSessionLabel={activeSessionLabel}
-        />
+        <GameRail activeSessionHref={activeSessionHref} activeSessionLabel={activeSessionLabel} />
 
         <main className={styles.main} id="game-main" tabIndex={-1}>
           {children}
