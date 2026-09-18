@@ -109,6 +109,7 @@ test('Character Select keeps its heading above three readable, reachable roster 
       return {
         board: rect(node),
         hero: rect(hero),
+        card: rect(first),
         portrait: rect(first.querySelector('img')!),
         name: rect(first.querySelector('h2')!),
         play: rect(first.querySelector('a')!),
@@ -143,6 +144,13 @@ test('Character Select keeps its heading above three readable, reachable roster 
     expect
       .soft(metrics.portrait.width / metrics.portrait.height, `${label}: square portrait ratio`)
       .toBeCloseTo(1, 2)
+    if (size.width >= 1280 && size.height >= 768)
+      expect
+        .soft(
+          metrics.portrait.width / metrics.card.width,
+          `${label}: portrait makes strong use of the character card`,
+        )
+        .toBeGreaterThanOrEqual(0.68)
     expect.soft(metrics.nameFont, `${label}: readable name`).toBeGreaterThanOrEqual(16)
     expect.soft(metrics.buttonFont, `${label}: readable primary action`).toBeGreaterThanOrEqual(14)
     expect.soft(metrics.play.height, `${label}: usable primary action`).toBeGreaterThanOrEqual(40)
