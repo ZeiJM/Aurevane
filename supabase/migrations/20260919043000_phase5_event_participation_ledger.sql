@@ -333,9 +333,9 @@ begin
   );
 
   v_new_progress := least(
-    v_objective.target,
-    (v_objective.progress::numeric + p_amount::numeric)::bigint
-  );
+    v_objective.target::numeric,
+    v_objective.progress::numeric + p_amount::numeric
+  )::bigint;
   v_new_status := case
     when v_new_progress >= v_objective.target then 'completed'
     else v_objective.objective_status
