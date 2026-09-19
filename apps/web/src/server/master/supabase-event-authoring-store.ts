@@ -136,7 +136,9 @@ function parseTransition(data: unknown): EventRunTransitionRecord {
   return { runId, lifecycleStatus, stateVersion, replayed: row.replayed }
 }
 
-function unavailable(message = 'Event Builder persistence is unavailable right now.'): AurevaneError {
+function unavailable(
+  message = 'Event Builder persistence is unavailable right now.',
+): AurevaneError {
   return new AurevaneError('PERSISTENCE_UNAVAILABLE', message)
 }
 

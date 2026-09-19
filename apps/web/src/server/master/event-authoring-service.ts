@@ -116,10 +116,7 @@ export interface EventAuthoringService {
     phaseId?: string
     testClock?: string
   }): Promise<EventDefinitionPreview>
-  loadWorkspace(input: {
-    actorUserId: string
-    eventKey: string
-  }): Promise<{
+  loadWorkspace(input: { actorUserId: string; eventKey: string }): Promise<{
     draft: EventDefinitionDraftRecord | null
     current: EventDefinitionVersionRecord | null
     versions: readonly EventDefinitionVersionRecord[]
@@ -187,7 +184,8 @@ function forbiddenIssues(
       issues.push({
         path: next,
         code: 'ARBITRARY_EXECUTION_FIELD',
-        message: 'Event definitions cannot contain arbitrary script, SQL, handler or source-code fields.',
+        message:
+          'Event definitions cannot contain arbitrary script, SQL, handler or source-code fields.',
       })
     }
     issues.push(...forbiddenIssues(nested, next, seen))
@@ -223,7 +221,9 @@ function validateDefinition(definition: unknown): EventDefinitionValidationResul
   return { valid: issues.length === 0, issues }
 }
 
-function assertValidDefinition(definition: unknown): asserts definition is PersistentEventDefinition {
+function assertValidDefinition(
+  definition: unknown,
+): asserts definition is PersistentEventDefinition {
   const validation = validateDefinition(definition)
   if (!validation.valid) {
     throw new AurevaneError(
