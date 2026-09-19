@@ -256,6 +256,16 @@ declare
   v_next_version bigint;
 begin
   select *
+  into v_run
+  from app_private.event_runs as run
+  where run.id = p_run_id
+  for update;
+
+  if not found then
+    raise exception using errcode = '22023', message = 'EVENT_RUN_NOT_FOUND';
+  end if;
+
+  select *
   into v_receipt
   from app_private.event_run_transitions as receipt
   where receipt.run_id = p_run_id
@@ -269,16 +279,6 @@ begin
     return query
     select p_run_id, v_receipt.to_status, v_receipt.resulting_state_version, true;
     return;
-  end if;
-
-  select *
-  into v_run
-  from app_private.event_runs as run
-  where run.id = p_run_id
-  for update;
-
-  if not found then
-    raise exception using errcode = '22023', message = 'EVENT_RUN_NOT_FOUND';
   end if;
 
   if v_run.state_version <> p_expected_state_version then
