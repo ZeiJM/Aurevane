@@ -334,7 +334,9 @@ test('a populated hybrid loadout keeps all four Techniques and management action
   await page.goto('/game/arsenal')
   await expect(page.getByTestId('secondary-discipline-chip')).toHaveText('Lifebinder')
   const loadout = page.locator('[data-arsenal-workspace]')
-  await expect(loadout.locator('[aria-label="Equipped Discipline Skills"] > article')).toHaveCount(4)
+  await expect(loadout.locator('[aria-label="Equipped Discipline Skills"] > article')).toHaveCount(
+    4,
+  )
   await expect(page.locator('[aria-labelledby="arsenal-attunement-heading"]')).toContainText(
     'Resonance',
   )
