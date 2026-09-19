@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
+vi.mock('server-only', () => ({}))
+
 import { AurevaneError } from '@aurevane/game-core/errors'
 
 import {
