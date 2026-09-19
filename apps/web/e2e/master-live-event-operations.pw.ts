@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process'
 
 import { expect, test, type Page, type Response } from '@playwright/test'
 
-import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
+import { createVerifiedAccountAndSignIn } from './pv1f-test-helpers'
 
 function escapeSqlLiteral(value: string): string {
   return value.replaceAll("'", "''")
@@ -238,11 +238,10 @@ test('Event Staff operates a run, completes cleanup and archives Chronicle safel
 
   const now = Date.now()
   const email = `event-ops-${now}@example.com`
-  await provisionAccountAndEnterCharacter({
+  await createVerifiedAccountAndSignIn({
     page,
     email,
     password: 'Event-ops-browser-2026!',
-    characterName: `Operator ${String(now).slice(-6)}`,
   })
 
   const userId = grantEventStaff(email)
