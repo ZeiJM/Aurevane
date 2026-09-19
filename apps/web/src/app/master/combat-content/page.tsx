@@ -102,14 +102,14 @@ export default async function MasterCombatContentPage() {
       description="Create and refine typed, versioned Skills without stepping outside the canonical combat engine."
     >
       <CombatContentEditor
-          key={options
-            .map(
-              (option) =>
-                `${option.id}:${option.currentVersion}:${option.draftVersion ?? 'none'}:${option.history?.map((entry) => `${entry.contentVersion}=${entry.current ? 'current' : 'old'}`).join(',') ?? ''}`,
-            )
-            .join('|')}
-          skills={options}
-          initialSkillId={options[0]?.id}
+        key={options
+          .map(
+            (option) =>
+              `${option.id}:${option.currentVersion}:${option.draftVersion ?? 'none'}:${option.history?.map((entry) => `${entry.contentVersion}=${entry.current ? 'current' : 'old'}`).join(',') ?? ''}`,
+          )
+          .join('|')}
+        skills={options}
+        initialSkillId={options[0]?.id}
       />
     </MasterPanelShell>
   )
