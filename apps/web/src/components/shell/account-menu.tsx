@@ -13,12 +13,14 @@ interface AccountMenuProps {
   activeSessionHref?: Route | null
   activeSessionLabel?: string | null
   characterName?: string | null
+  masterPanelHref?: Route | null
 }
 
 export function AccountMenu({
   activeSessionHref = null,
   activeSessionLabel = null,
   characterName = null,
+  masterPanelHref = null,
 }: AccountMenuProps) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
@@ -80,6 +82,17 @@ export function AccountMenu({
           ) : pathname !== '/game' ? (
             <Link href="/game" role="menuitem" onClick={() => setOpen(false)}>
               Switch Character
+            </Link>
+          ) : null}
+          {masterPanelHref && !pathname.startsWith('/master') ? (
+            <Link
+              className={styles.masterPanelLink}
+              href={masterPanelHref}
+              role="menuitem"
+              onClick={() => setOpen(false)}
+            >
+              <span aria-hidden="true">✦</span>
+              Master Panel
             </Link>
           ) : null}
           <form action="/auth/signout" method="post">
