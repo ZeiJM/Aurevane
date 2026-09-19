@@ -28,7 +28,11 @@ vi.mock('./account-menu', () => ({
       { 'data-testid': 'account-menu' },
       characterName ? `Welcome back, ${characterName}.` : 'Account',
       masterPanelHref
-        ? createElement('a', { href: masterPanelHref, 'data-testid': 'master-panel-link' }, 'Master Panel')
+        ? createElement(
+            'a',
+            { href: masterPanelHref, 'data-testid': 'master-panel-link' },
+            'Master Panel',
+          )
         : null,
     ),
 }))
