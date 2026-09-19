@@ -12,8 +12,10 @@ export default async function MasterPanelPage() {
   const canManageStaff = hasMasterPanelCapability(access, 'staff.manage')
   const canAuthorCombat = hasMasterPanelCapability(access, 'content.combat.author')
   const canAuthorEvents = hasMasterPanelCapability(access, 'events.author')
+  const canOperateEvents = hasMasterPanelCapability(access, 'events.operate')
   const owner = access.roles.includes('game-owner')
-  const hasOperationalModule = canManageStaff || canAuthorCombat || canAuthorEvents
+  const hasOperationalModule =
+    canManageStaff || canAuthorCombat || canAuthorEvents || canOperateEvents
 
   return (
     <main className={styles.page}>
@@ -66,6 +68,15 @@ export default async function MasterPanelPage() {
                 <span>
                   Draft, validate, preview, publish and schedule typed persistent Events without
                   arbitrary scripts or SQL.
+                </span>
+              </Link>
+            ) : null}
+            {canOperateEvents ? (
+              <Link className={styles.module} href="/master/events/live">
+                <strong>Live Event Operations</strong>
+                <span>
+                  Run authoritative Event phases, participant progress, reward claims, cleanup,
+                  recovery and Chronicle closure.
                 </span>
               </Link>
             ) : null}

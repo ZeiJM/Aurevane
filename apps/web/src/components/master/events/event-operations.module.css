@@ -1,0 +1,200 @@
+.operations {
+  display: grid;
+  gap: 1rem;
+}
+
+.toolbar,
+.selector,
+.card,
+.controls {
+  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  border-radius: 0.9rem;
+  background: color-mix(in srgb, Canvas 94%, transparent);
+  padding: 1rem;
+}
+
+.toolbar,
+.selector,
+.actionRow,
+.sectionHeading {
+  display: flex;
+  gap: 0.8rem;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.toolbar h1,
+.card h2,
+.controls h2 {
+  margin: 0;
+}
+
+.toolbar p {
+  margin: 0.35rem 0 0;
+  max-width: 58rem;
+}
+
+.eyebrow {
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.72;
+}
+
+.selector label {
+  display: grid;
+  gap: 0.35rem;
+  min-width: min(100%, 30rem);
+}
+
+.selector select,
+.actionRow button,
+.itemList button,
+.toolbar button {
+  min-height: 2.4rem;
+}
+
+.status {
+  font-size: 0.9rem;
+}
+
+.summaryGrid,
+.phaseGrid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+}
+
+.card dl {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0.8rem 0 0;
+}
+
+.card dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.card dt {
+  opacity: 0.72;
+}
+
+.card dd {
+  margin: 0;
+  text-align: right;
+}
+
+.controls {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.approvalField {
+  display: grid;
+  gap: 0.35rem;
+  max-width: 48rem;
+  font-size: 0.9rem;
+}
+
+.approvalField textarea {
+  min-height: 5rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  border-radius: 0.65rem;
+  background: color-mix(in srgb, Canvas 88%, transparent);
+  color: inherit;
+  font: inherit;
+  resize: vertical;
+}
+
+.approvalCheck {
+  display: flex;
+  gap: 0.55rem;
+  align-items: center;
+  width: fit-content;
+  font-size: 0.9rem;
+}
+
+.approvalCheck input {
+  width: 1rem;
+  height: 1rem;
+}
+
+.actionRow {
+  justify-content: flex-start;
+}
+
+.danger {
+  border-color: currentColor;
+  font-weight: 700;
+}
+
+.notice {
+  margin: 0;
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+
+.phase {
+  display: grid;
+  gap: 0.65rem;
+  border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+  border-radius: 0.75rem;
+  padding: 0.8rem;
+}
+
+.phase header,
+.objective,
+.itemList > div {
+  display: flex;
+  gap: 0.65rem;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.objective {
+  border-top: 1px solid color-mix(in srgb, currentColor 10%, transparent);
+  padding-top: 0.55rem;
+}
+
+.itemList {
+  display: grid;
+  gap: 0.6rem;
+  margin-top: 0.8rem;
+}
+
+.itemList > div {
+  border-top: 1px solid color-mix(in srgb, currentColor 10%, transparent);
+  padding-top: 0.6rem;
+}
+
+.card pre {
+  overflow: auto;
+  max-height: 24rem;
+  white-space: pre-wrap;
+  font-size: 0.8rem;
+}
+
+@media (max-width: 640px) {
+  .toolbar,
+  .selector,
+  .phase header,
+  .objective,
+  .itemList > div {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .card dl div {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .card dd {
+    text-align: left;
+  }
+}
