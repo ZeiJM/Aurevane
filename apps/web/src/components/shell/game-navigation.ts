@@ -1,10 +1,17 @@
 export const gameNavigation = [
   {
     href: '/game/character',
-    label: 'Profile',
-    detail: 'Character sheet and build',
+    label: 'Character',
+    detail: 'Character profile and attributes',
     symbol: '◇',
     icon: 'profile',
+  },
+  {
+    href: '/game/arsenal',
+    label: 'Arsenal',
+    detail: 'Disciplines, Techniques, and Attunement',
+    symbol: '✦',
+    icon: 'arsenal',
   },
   {
     href: '/game/battle',
@@ -19,5 +26,13 @@ export const gameNavigation = [
     detail: 'Start a timed background training plan',
     symbol: '◷',
     icon: 'training',
+  },
+  {
+    href: '/game/items',
+    label: 'Items',
+    detail: 'Equipment and Items are coming soon',
+    symbol: '□',
+    icon: 'items',
+    disabled: true,
   },
 ] as const
