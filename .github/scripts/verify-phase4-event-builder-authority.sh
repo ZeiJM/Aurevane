@@ -46,4 +46,81 @@ if [ -n "$run_id" ]; then
   grep -Fq 'permission denied for table event_run_phases' /tmp/p413-direct-phase.err
 fi
 
+if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+  select app_private.assert_event_definition_shape_v1(
+    'event.p413-invalid-effect',
+    jsonb_build_object(
+      'schemaVersion',1,
+      'eventKey','event.p413-invalid-effect',
+      'templateKey','template.p413-invalid',
+      'contentVersion',1,
+      'title','Invalid effect probe',
+      'summary','CI rejects non-canonical effect types.',
+      'internalNotes','CI only.',
+      'family','regional-event',
+      'scope',jsonb_build_object('type','region','key','region.frostmere'),
+      'phases',jsonb_build_array(
+        jsonb_build_object(
+          'id','phase-one',
+          'name','Phase One',
+          'objectives',jsonb_build_array(),
+          'effects',jsonb_build_array(
+            jsonb_build_object(
+              'type','arbitrary-script-effect',
+              'referenceKey','effect.invalid',
+              'enabled',true
+            )
+          ),
+          'cleanupEffects',jsonb_build_array(),
+          'transition',jsonb_build_object('type','manual')
+        )
+      ),
+      'rewardPackageRefs',jsonb_build_array(),
+      'aftermathRefs',jsonb_build_array()
+    )
+  );" >/tmp/p413-invalid-effect.out 2>/tmp/p413-invalid-effect.err; then
+  echo 'Expected an unknown Event effect type to fail in the database validator.' >&2
+  exit 1
+fi
+grep -Fq 'EVENT_DEFINITION_EFFECT_INVALID' /tmp/p413-invalid-effect.err
+
+if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+  select app_private.assert_event_definition_shape_v1(
+    'event.p413-invalid-objective',
+    jsonb_build_object(
+      'schemaVersion',1,
+      'eventKey','event.p413-invalid-objective',
+      'templateKey','template.p413-invalid',
+      'contentVersion',1,
+      'title','Invalid objective probe',
+      'summary','CI rejects non-canonical objective types.',
+      'internalNotes','CI only.',
+      'family','regional-event',
+      'scope',jsonb_build_object('type','region','key','region.frostmere'),
+      'phases',jsonb_build_array(
+        jsonb_build_object(
+          'id','phase-one',
+          'name','Phase One',
+          'objectives',jsonb_build_array(
+            jsonb_build_object(
+              'id','objective-one',
+              'type','arbitrary-objective',
+              'referenceKey','objective.invalid',
+              'target',1
+            )
+          ),
+          'effects',jsonb_build_array(),
+          'cleanupEffects',jsonb_build_array(),
+          'transition',jsonb_build_object('type','manual')
+        )
+      ),
+      'rewardPackageRefs',jsonb_build_array(),
+      'aftermathRefs',jsonb_build_array()
+    )
+  );" >/tmp/p413-invalid-objective.out 2>/tmp/p413-invalid-objective.err; then
+  echo 'Expected an unknown Event objective type to fail in the database validator.' >&2
+  exit 1
+fi
+grep -Fq 'EVENT_DEFINITION_OBJECTIVE_INVALID' /tmp/p413-invalid-objective.err
+
 echo 'Phase 4 Event Builder direct-write authority boundary verified.'
