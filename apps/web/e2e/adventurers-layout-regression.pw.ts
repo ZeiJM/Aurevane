@@ -120,6 +120,8 @@ test('Adventurers roster preserves browsing and public-profile privacy in the ne
   await expect(showOnlineOnlyButton).toBeVisible()
   const showOnlineOnlyButtonBox = await showOnlineOnlyButton.boundingBox()
   expect(showOnlineOnlyButtonBox).not.toBeNull()
+  expect(showOnlineOnlyButtonBox!.x).toBeCloseTo(showAllButtonBox!.x, 0)
+  expect(showOnlineOnlyButtonBox!.y).toBeCloseTo(showAllButtonBox!.y, 0)
   expect(showOnlineOnlyButtonBox!.width).toBeCloseTo(showAllButtonBox!.width, 0)
   expect(showOnlineOnlyButtonBox!.height).toBeCloseTo(showAllButtonBox!.height, 0)
   await expect(hero.getByText(/^\d+ shown$/)).toHaveCount(0)
