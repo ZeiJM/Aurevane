@@ -49,7 +49,9 @@ function oneRow(data: unknown): JsonObject | null {
   return object(data[0])
 }
 
-function unavailable(message = 'Event operations persistence is unavailable right now.'): AurevaneError {
+function unavailable(
+  message = 'Event operations persistence is unavailable right now.',
+): AurevaneError {
   return new AurevaneError('PERSISTENCE_UNAVAILABLE', message)
 }
 
