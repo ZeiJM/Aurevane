@@ -21,10 +21,13 @@ test "$privileges" = 'false|true'
 fixture="$(docker exec "$db_container" psql -U postgres -d postgres -AtF '|' -c "
   select
     build.character_id::text,
+    character.foundation_discipline_id,
     build.primary_discipline_id,
     definition.discipline_id,
     definition.definition_version::text
   from app_private.character_active_builds as build
+  join public.characters as character
+    on character.id = build.character_id
   cross join lateral (
     select
       candidate.discipline_id,
@@ -36,12 +39,15 @@ fixture="$(docker exec "$db_container" psql -U postgres -d postgres -AtF '|' -c 
     limit 1
   ) as definition
   where build.secondary_discipline_id is null
+    and build.primary_discipline_id <> character.foundation_discipline_id
   order by build.updated_at desc, build.character_id
   limit 1;")"
 
-IFS='|' read -r character_id primary_discipline secondary_discipline secondary_version <<<"$fixture"
+IFS='|' read -r character_id foundation_discipline primary_discipline secondary_discipline secondary_version <<<"$fixture"
 test -n "$character_id"
+test -n "$foundation_discipline"
 test -n "$primary_discipline"
+test "$primary_discipline" != "$foundation_discipline"
 test -n "$secondary_discipline"
 test -n "$secondary_version"
 
