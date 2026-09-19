@@ -215,6 +215,11 @@ function isOperationResponse(response: Response, operation: string): boolean {
   }
 }
 
+async function confirmOperation(page: Page, reason: string): Promise<void> {
+  await page.getByLabel('Operation reason').fill(reason)
+  await page.getByLabel('Confirm live operation').check()
+}
+
 async function clickOperation(page: Page, operation: string, buttonName: string): Promise<void> {
   const pending = page.waitForResponse((response) => isOperationResponse(response, operation))
   await page.getByRole('button', { name: buttonName, exact: true }).click()
@@ -260,14 +265,17 @@ test('Event Staff operates a run, completes cleanup and archives Chronicle safel
   await expect(page.getByText('scheduled', { exact: true }).first()).toBeVisible()
   await expect(page.getByRole('button', { name: 'Emergency stop', exact: true })).toHaveCount(0)
 
+  await confirmOperation(page, 'Start browser-verified Event run')
   await clickOperation(page, 'operate', 'Start due run')
   await expect(page.getByText('live', { exact: true }).first()).toBeVisible()
   await expect(page.getByText('announcement.browser-ops')).toBeVisible()
   await expect(page.getByText('community')).toBeVisible()
 
+  await confirmOperation(page, 'Pause browser-verified Event run')
   await clickOperation(page, 'operate', 'Pause')
   await expect(page.getByText('paused', { exact: true }).first()).toBeVisible()
 
+  await confirmOperation(page, 'Resume browser-verified Event run')
   await clickOperation(page, 'operate', 'Resume')
   await expect(page.getByText('live', { exact: true }).first()).toBeVisible()
 
@@ -277,14 +285,17 @@ test('Event Staff operates a run, completes cleanup and archives Chronicle safel
   await page.getByLabel('Event Run').selectOption(runId)
   await expect(page.getByRole('button', { name: 'Emergency stop', exact: true })).toBeVisible()
 
+  await confirmOperation(page, 'Emergency stop browser-verified Event run')
   await clickOperation(page, 'operate', 'Emergency stop')
   await expect(page.getByText('emergency-stopped', { exact: true }).first()).toBeVisible()
   await expect(page.getByText('node.browser-ops')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Archive', exact: true })).toBeDisabled()
 
+  await confirmOperation(page, 'Confirm browser-verified typed cleanup')
   await clickOperation(page, 'complete-cleanup', 'Confirm cleanup completed')
   await expect(page.getByRole('button', { name: 'Archive', exact: true })).toBeEnabled()
 
+  await confirmOperation(page, 'Archive browser-verified Event run')
   await clickOperation(page, 'operate', 'Archive')
   await expect(page.getByText('archived', { exact: true }).first()).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Chronicle snapshot' })).toBeVisible()
