@@ -229,7 +229,7 @@ export function CharacterArsenalShell({
                 ) : null}
 
                 {!anomaly ? (
-                  <article className={styles.lockedAttunement} aria-disabled="true">
+                  <article className={styles.lockedAttunement} data-disabled="true">
                     <div className={styles.mediaTile} data-arsenal-media="true">
                       <span aria-hidden="true">⌑</span>
                     </div>
@@ -252,7 +252,7 @@ export function CharacterArsenalShell({
             <section
               className={[styles.panel, styles.itemsPanel].join(' ')}
               aria-labelledby="arsenal-items-heading"
-              aria-disabled="true"
+              data-disabled="true"
             >
               <header className={styles.sectionHeading}>
                 <div>
