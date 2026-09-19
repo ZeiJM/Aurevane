@@ -1,8 +1,8 @@
 .editor,
 .empty {
-  width: min(92rem, 100%);
-  margin: 0 auto;
-  padding: clamp(1rem, 2.2vw, 2rem);
+  width: 100%;
+  margin: 0;
+  padding: clamp(0.8rem, 1.4vw, 1.25rem);
   border: 1px solid var(--av-border-strong);
   border-radius: var(--av-radius-lg);
   background:
@@ -12,10 +12,10 @@
 
 .header {
   display: flex;
-  gap: var(--av-space-6);
+  gap: var(--av-space-4);
   align-items: start;
   justify-content: space-between;
-  padding-bottom: var(--av-space-6);
+  padding-bottom: var(--av-space-4);
   border-bottom: 1px solid var(--av-border);
 }
 
@@ -38,7 +38,7 @@
 }
 
 .header h1 {
-  font-size: clamp(2rem, 4vw, 3.8rem);
+  font-size: clamp(1.55rem, 2.8vw, 2.65rem);
 }
 
 .lead,
@@ -77,12 +77,12 @@
 .selectorGrid,
 .versionGrid {
   display: grid;
-  gap: var(--av-space-4);
-  margin-top: var(--av-space-5);
+  gap: 0.75rem;
+  margin-top: 0.85rem;
 }
 
 .selectorGrid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
 }
 
 .field {
@@ -105,7 +105,7 @@
 }
 
 .versionGrid > div {
-  padding: 0.85rem 1rem;
+  padding: 0.65rem 0.75rem;
   border: 1px solid var(--av-border);
   border-radius: var(--av-radius-sm);
   background: rgba(255, 255, 255, 0.018);
@@ -122,17 +122,17 @@
 .tags,
 .workflow {
   display: grid;
-  gap: var(--av-space-5);
-  margin-top: var(--av-space-5);
-  padding: var(--av-space-5);
+  gap: 0.9rem;
+  margin-top: 0.85rem;
+  padding: 0.9rem;
   border: 1px solid var(--av-border);
   border-radius: var(--av-radius-md);
   background: rgba(255, 255, 255, 0.018);
 }
 
 .workspace {
-  grid-template-columns: minmax(14rem, 0.65fr) minmax(18rem, 1.35fr);
-  align-items: center;
+  grid-template-columns: minmax(11rem, 0.34fr) minmax(0, 1.66fr);
+  align-items: start;
 }
 
 .workspace code {
@@ -230,7 +230,7 @@
 .typedGroup {
   min-width: 0;
   margin: 0;
-  padding: var(--av-space-5);
+  padding: 0.9rem;
   border: 1px solid var(--av-border);
   border-radius: var(--av-radius-md);
   background: rgba(255, 255, 255, 0.018);
@@ -426,9 +426,9 @@
 
 .reviewPanel {
   display: grid;
-  gap: var(--av-space-4);
-  margin-top: var(--av-space-5);
-  padding: var(--av-space-5);
+  gap: 0.85rem;
+  margin-top: 0.85rem;
+  padding: 0.9rem;
   border: 1px solid var(--av-border-strong);
   border-radius: var(--av-radius-md);
   background: rgba(7, 10, 15, 0.72);
