@@ -137,7 +137,9 @@
 
 .row {
   display: grid;
-  grid-template-columns: minmax(7rem, 1fr) minmax(8rem, 1fr) minmax(10rem, 1.4fr) minmax(5rem, 0.55fr) auto;
+  grid-template-columns:
+    minmax(7rem, 1fr) minmax(8rem, 1fr) minmax(10rem, 1.4fr) minmax(5rem, 0.55fr)
+    auto;
   gap: 0.55rem;
   align-items: center;
 }
