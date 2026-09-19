@@ -188,7 +188,8 @@ begin
   v_cleanup_completed_at := v_run.cleanup_completed_at;
 
   if p_to_status in ('ended','cancelled','emergency-stopped')
-    and v_run.run_mode = 'production' then
+    and v_run.run_mode = 'production'
+    and v_run.started_at is not null then
     select version.definition
     into v_definition
     from app_private.event_definition_versions as version
