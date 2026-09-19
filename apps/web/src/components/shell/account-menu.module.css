@@ -58,6 +58,29 @@
   background: rgba(207, 169, 93, 0.08);
   color: var(--av-brass-200);
 }
+.menu > a.masterPanelLink {
+  gap: 0.55rem;
+  margin-top: 0.25rem;
+  border: 1px solid rgba(205, 169, 96, 0.4);
+  color: var(--av-brass-200);
+  background:
+    linear-gradient(90deg, rgba(185, 154, 92, 0.12), rgba(52, 121, 126, 0.08)),
+    rgba(255, 255, 255, 0.018);
+}
+
+.menu > a.masterPanelLink:hover,
+.menu > a.masterPanelLink:focus-visible {
+  border-color: rgba(205, 169, 96, 0.7);
+  color: var(--av-parchment-100);
+  background:
+    linear-gradient(90deg, rgba(185, 154, 92, 0.2), rgba(52, 121, 126, 0.14)),
+    rgba(255, 255, 255, 0.03);
+}
+
+.masterPanelLink > span {
+  color: var(--av-brass-300);
+}
+
 .menu form {
   margin: 0;
 }
