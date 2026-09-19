@@ -293,9 +293,11 @@ test('Event Staff operates a run, completes cleanup and archives Chronicle safel
 
   await confirmOperation(page, 'Confirm browser-verified typed cleanup')
   await clickOperation(page, 'complete-cleanup', 'Confirm cleanup completed')
-  await expect(page.getByRole('button', { name: 'Archive', exact: true })).toBeEnabled()
+  await expect(page.getByText(/node\.browser-ops · completed/)).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Archive', exact: true })).toBeDisabled()
 
   await confirmOperation(page, 'Archive browser-verified Event run')
+  await expect(page.getByRole('button', { name: 'Archive', exact: true })).toBeEnabled()
   await clickOperation(page, 'operate', 'Archive')
   await expect(page.getByText('archived', { exact: true }).first()).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Chronicle snapshot' })).toBeVisible()
