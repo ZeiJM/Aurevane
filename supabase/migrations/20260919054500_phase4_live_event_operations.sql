@@ -566,6 +566,7 @@ set search_path = pg_catalog, public, app_private
 as $$
 declare
   v_run app_private.event_runs%rowtype;
+  v_operation_receipt app_private.event_run_transitions%rowtype;
   v_transition record;
   v_to_status text;
 begin
@@ -607,6 +608,23 @@ begin
     raise exception using
       errcode = '22023',
       message = 'EVENT_OPERATION_COMMAND_INVALID';
+  end if;
+
+  select *
+  into v_operation_receipt
+  from app_private.event_run_transitions as receipt
+  where receipt.run_id = p_run_id
+    and receipt.idempotency_key = p_idempotency_key;
+
+  if found
+    and (
+      v_operation_receipt.to_status <> v_to_status
+      or v_operation_receipt.reason <> p_reason
+      or v_operation_receipt.resulting_state_version <> p_expected_state_version + 1
+    ) then
+    raise exception using
+      errcode = '22023',
+      message = 'EVENT_OPERATION_IDEMPOTENCY_CONFLICT';
   end if;
 
   if p_command = 'start'
@@ -720,7 +738,8 @@ begin
     and receipt.idempotency_key = p_idempotency_key;
 
   if found then
-    if v_existing.reason <> p_reason then
+    if v_existing.reason <> p_reason
+      or v_existing.resulting_state_version <> p_expected_state_version + 1 then
       raise exception using
         errcode = '22023',
         message = 'EVENT_PHASE_ADVANCE_IDEMPOTENCY_CONFLICT';
