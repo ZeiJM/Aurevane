@@ -15,7 +15,7 @@ staff_id="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d p
   select target_user_id::text
   from app_private.master_panel_access_audit
   where actor_user_id = '$owner_id'::uuid
-  order by occurred_at, id
+  order by created_at, id
   limit 1;")"
 test -n "$staff_id"
 test "$staff_id" != "$owner_id"
