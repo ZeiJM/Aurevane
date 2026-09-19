@@ -84,10 +84,9 @@ test('Adventurers roster preserves browsing and public-profile privacy in the ne
       expect(headingBox, `${label} heading geometry`).not.toBeNull()
       expect(rowBox, `${label} value geometry`).not.toBeNull()
       expect(
-        headingBox!.x - rowBox!.x,
-        `${label} heading uses the requested rightward optical alignment`,
-      ).toBeGreaterThanOrEqual(8)
-      expect(headingBox!.x - rowBox!.x).toBeLessThanOrEqual(11)
+        Math.abs(headingBox!.x - rowBox!.x),
+        `${label} heading aligns with its row values`,
+      ).toBeLessThanOrEqual(1)
     }
 
     const presenceHeadingBox = await headingCells.nth(3).boundingBox()
