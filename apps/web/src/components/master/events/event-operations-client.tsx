@@ -123,12 +123,20 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
   const [selectedRunId, setSelectedRunId] = useState('')
   const [dashboard, setDashboard] = useState<Dashboard | null>(null)
   const [message, setMessage] = useState('Loading Event operations…')
+  const [operationReason, setOperationReason] = useState('')
+  const [operationConfirmed, setOperationConfirmed] = useState(false)
   const [busy, setBusy] = useState(false)
 
   const selectedRun = useMemo(
     () => runs.find((run) => run.runId === selectedRunId) ?? null,
     [runs, selectedRunId],
   )
+
+  const operationReady =
+    operationConfirmed &&
+    operationReason.length >= 3 &&
+    operationReason.length <= 240 &&
+    operationReason.trim() === operationReason
 
   async function loadRuns(preferredRunId?: string) {
     const payload = await post({ operation: 'list' })
@@ -180,6 +188,7 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
     try {
       await post(body)
       await refresh(dashboard.run.runId)
+      setOperationConfirmed(false)
       setMessage(success)
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Event operation failed.')
@@ -197,7 +206,8 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
         expectedStateVersion: dashboard.run.stateVersion,
         idempotencyKey: crypto.randomUUID(),
         command,
-        reason: `Master Panel ${label}`,
+        reason: operationReason,
+        confirmed: operationConfirmed,
       },
       `${label} completed.`,
     )
@@ -211,7 +221,8 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
         runId: dashboard.run.runId,
         expectedStateVersion: dashboard.run.stateVersion,
         idempotencyKey: crypto.randomUUID(),
-        reason: 'Master Panel phase advance',
+        reason: operationReason,
+        confirmed: operationConfirmed,
       },
       'Event phase advanced.',
     )
@@ -230,7 +241,8 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
         phaseId,
         effectOrdinal,
         completionKey: crypto.randomUUID(),
-        note: `Confirmed typed cleanup for ${referenceKey}`,
+        reason: operationReason,
+        confirmed: operationConfirmed,
       },
       'Cleanup requirement completed.',
     )
@@ -251,7 +263,7 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
             Chronicle history.
           </p>
         </div>
-        <button type="button" onClick={() => void refresh()} disabled={busy}>
+        <button type="button" onClick={() => void refresh()} disabled={busy || !operationReady}>
           Refresh
         </button>
       </header>
@@ -307,28 +319,49 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
           </section>
 
           <section className={styles.controls}>
+            <h2>Live operation confirmation</h2>
+            <label className={styles.approvalField}>
+              Operation reason
+              <textarea
+                value={operationReason}
+                maxLength={240}
+                onChange={(event) => {
+                  setOperationReason(event.target.value)
+                  setOperationConfirmed(false)
+                }}
+                placeholder="Why is this live Event operation being performed?"
+              />
+            </label>
+            <label className={styles.approvalCheck}>
+              <input
+                type="checkbox"
+                checked={operationConfirmed}
+                onChange={(event) => setOperationConfirmed(event.target.checked)}
+              />
+              Confirm live operation
+            </label>
             <h2>Lifecycle controls</h2>
             <div className={styles.actionRow}>
               {status === 'scheduled' ? (
-                <button type="button" onClick={() => void operate('start', 'start')} disabled={busy}>
+                <button type="button" onClick={() => void operate('start', 'start')} disabled={busy || !operationReady}>
                   Start due run
                 </button>
               ) : null}
               {status === 'live' ? (
                 <>
-                  <button type="button" onClick={() => void operate('pause', 'pause')} disabled={busy}>Pause</button>
-                  <button type="button" onClick={() => void advancePhase()} disabled={busy}>Advance phase</button>
-                  <button type="button" onClick={() => void operate('stop', 'graceful stop')} disabled={busy}>Stop / resolve</button>
+                  <button type="button" onClick={() => void operate('pause', 'pause')} disabled={busy || !operationReady}>Pause</button>
+                  <button type="button" onClick={() => void advancePhase()} disabled={busy || !operationReady}>Advance phase</button>
+                  <button type="button" onClick={() => void operate('stop', 'graceful stop')} disabled={busy || !operationReady}>Stop / resolve</button>
                 </>
               ) : null}
               {status === 'paused' ? (
                 <>
-                  <button type="button" onClick={() => void operate('resume', 'resume')} disabled={busy}>Resume</button>
-                  <button type="button" onClick={() => void operate('stop', 'graceful stop')} disabled={busy}>Stop / resolve</button>
+                  <button type="button" onClick={() => void operate('resume', 'resume')} disabled={busy || !operationReady}>Resume</button>
+                  <button type="button" onClick={() => void operate('stop', 'graceful stop')} disabled={busy || !operationReady}>Stop / resolve</button>
                 </>
               ) : null}
               {status === 'resolving' ? (
-                <button type="button" onClick={() => void operate('end', 'end')} disabled={busy}>End run</button>
+                <button type="button" onClick={() => void operate('end', 'end')} disabled={busy || !operationReady}>End run</button>
               ) : null}
               {['scheduled', 'live', 'paused', 'resolving'].includes(status) && canEmergencyStop ? (
                 <button
@@ -344,7 +377,7 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
                 <button
                   type="button"
                   onClick={() => void operate('archive', 'archive')}
-                  disabled={busy || cleanupPending}
+                  disabled={busy || cleanupPending || !operationReady}
                 >
                   Archive
                 </button>
@@ -439,7 +472,7 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
                           cleanup.referenceKey,
                         )
                       }
-                      disabled={busy}
+                      disabled={busy || !operationReady}
                     >
                       Confirm cleanup completed
                     </button>
