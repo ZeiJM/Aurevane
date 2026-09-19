@@ -41,7 +41,10 @@ export function NavigationMenu({
       activeSessionHref
         ? []
         : navigation.filter(
-            (item) => pathname !== item.href && !pathname.startsWith(`${item.href}/`),
+            (item) =>
+              item.href &&
+              pathname !== item.href &&
+              !pathname.startsWith(item.href + '/'),
           ),
     [activeSessionHref, pathname],
   )
@@ -59,7 +62,7 @@ export function NavigationMenu({
     if (menu?.matches(':popover-open')) menu.hidePopover()
   }
 
-  function prefetchDestination(href: (typeof navigation)[number]['href']) {
+  function prefetchDestination(href: Exclude<(typeof navigation)[number]['href'], null>) {
     router.prefetch(href)
   }
 
