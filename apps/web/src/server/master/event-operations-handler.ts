@@ -111,10 +111,7 @@ export async function handleEventOperationsRequest(
       const result = await service.operate({
         actorUserId: actor.userId,
         runId: requiredString(body.runId, 'runId'),
-        expectedStateVersion: positiveInteger(
-          body.expectedStateVersion,
-          'expectedStateVersion',
-        ),
+        expectedStateVersion: positiveInteger(body.expectedStateVersion, 'expectedStateVersion'),
         idempotencyKey: requiredString(body.idempotencyKey, 'idempotencyKey'),
         command: operationCommand(body.command),
         reason: requiredString(body.reason, 'reason'),
@@ -127,10 +124,7 @@ export async function handleEventOperationsRequest(
       const result = await service.advancePhase({
         actorUserId: actor.userId,
         runId: requiredString(body.runId, 'runId'),
-        expectedStateVersion: positiveInteger(
-          body.expectedStateVersion,
-          'expectedStateVersion',
-        ),
+        expectedStateVersion: positiveInteger(body.expectedStateVersion, 'expectedStateVersion'),
         idempotencyKey: requiredString(body.idempotencyKey, 'idempotencyKey'),
         reason: requiredString(body.reason, 'reason'),
         confirmed: requiredBoolean(body.confirmed, 'confirmed'),
