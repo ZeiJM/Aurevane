@@ -2,4 +2,6 @@ import { handleEventOperationsRequest } from '@/server/master/event-operations-h
 
 export const dynamic = 'force-dynamic'
 
-export const POST = handleEventOperationsRequest
+export async function POST(request: Request) {
+  return handleEventOperationsRequest(request)
+}
