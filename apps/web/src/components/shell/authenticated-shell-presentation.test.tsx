@@ -16,11 +16,20 @@ vi.mock('@/components/battle/pvp-battle-key-input-assist', () => ({
   PvpBattleKeyInputAssist: () => null,
 }))
 vi.mock('./account-menu', () => ({
-  AccountMenu: ({ characterName }: { characterName?: string | null }) =>
+  AccountMenu: ({
+    characterName,
+    masterPanelHref,
+  }: {
+    characterName?: string | null
+    masterPanelHref?: string | null
+  }) =>
     createElement(
       'div',
       { 'data-testid': 'account-menu' },
       characterName ? `Welcome back, ${characterName}.` : 'Account',
+      masterPanelHref
+        ? createElement('a', { href: masterPanelHref, 'data-testid': 'master-panel-link' }, 'Master Panel')
+        : null,
     ),
 }))
 vi.mock('./game-rail', () => ({
@@ -47,6 +56,17 @@ describe('authenticated shell presentation', () => {
     expect(markup).toContain('Online Users')
     expect(markup).not.toContain('aria-label="Back to game"')
     expect(markup).not.toContain('>Navigation<')
+  })
+
+  it('forwards server-authorized Master Panel access into the Account menu', () => {
+    const markup = renderToStaticMarkup(
+      <AuthenticatedShellPresentation masterPanelHref="/master">
+        <section>Page content</section>
+      </AuthenticatedShellPresentation>,
+    )
+
+    expect(markup).toContain('data-testid="master-panel-link"')
+    expect(markup).toContain('href="/master"')
   })
 
   it('renders character identity beside Account without the retired workspace strip or level', () => {
