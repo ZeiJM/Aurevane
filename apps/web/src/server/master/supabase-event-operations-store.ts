@@ -65,6 +65,13 @@ function mapRpcError(error: RpcError): never {
       cause: error,
     })
   }
+  if (message.includes('EVENT_OPERATIONS_AUDIT_CONFLICT')) {
+    throw new AurevaneError(
+      'IDEMPOTENCY_CONFLICT',
+      'That live Event action key was already used for a different operation.',
+      { cause: error },
+    )
+  }
   if (
     error.code === '22023' ||
     message.includes('EVENT_OPERATION_') ||
@@ -203,13 +210,14 @@ export function createSupabaseEventOperationsStore(): EventOperationsStore {
 
     async operate(input) {
       const supabase = createSupabaseAdminClient()
-      const { data, error } = await supabase.rpc('operate_event_run_v1', {
+      const { data, error } = await supabase.rpc('operate_event_run_v2', {
         p_actor_user_id: input.actorUserId,
         p_run_id: input.runId,
         p_expected_state_version: input.expectedStateVersion,
         p_idempotency_key: input.idempotencyKey,
         p_command: input.command,
         p_reason: input.reason,
+        p_confirmed: input.confirmed,
       })
       if (error) mapRpcError(error)
       return parseRunMutation(data)
@@ -217,12 +225,13 @@ export function createSupabaseEventOperationsStore(): EventOperationsStore {
 
     async advancePhase(input) {
       const supabase = createSupabaseAdminClient()
-      const { data, error } = await supabase.rpc('advance_event_run_phase_v1', {
+      const { data, error } = await supabase.rpc('advance_event_run_phase_v2', {
         p_actor_user_id: input.actorUserId,
         p_run_id: input.runId,
         p_expected_state_version: input.expectedStateVersion,
         p_idempotency_key: input.idempotencyKey,
         p_reason: input.reason,
+        p_confirmed: input.confirmed,
       })
       if (error) mapRpcError(error)
       return parseAdvance(data)
@@ -230,13 +239,14 @@ export function createSupabaseEventOperationsStore(): EventOperationsStore {
 
     async completeCleanup(input) {
       const supabase = createSupabaseAdminClient()
-      const { data, error } = await supabase.rpc('complete_event_cleanup_requirement_v1', {
+      const { data, error } = await supabase.rpc('complete_event_cleanup_requirement_v2', {
         p_actor_user_id: input.actorUserId,
         p_run_id: input.runId,
         p_phase_id: input.phaseId,
         p_effect_ordinal: input.effectOrdinal,
         p_completion_key: input.completionKey,
-        p_note: input.note,
+        p_reason: input.reason,
+        p_confirmed: input.confirmed,
       })
       if (error) mapRpcError(error)
       return parseCleanup(data)
