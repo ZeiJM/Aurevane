@@ -47,6 +47,22 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
     await page.setViewportSize(viewport)
     await page.goto('/game/character')
     await expect(page.getByTestId('character-profile')).toBeVisible()
+    await expect(page.locator('[data-profile-loadout]')).toHaveCount(0)
+    await expect(page.getByTestId('current-path-coming-soon')).toBeVisible()
+    await expect(
+      page.getByRole('navigation', { name: 'Primary game navigation' }).getByRole('link', {
+        name: 'Arsenal',
+        exact: true,
+      }),
+    ).toBeVisible()
+    await expect(
+      page.getByRole('navigation', { name: 'Primary game navigation' }).getByRole('button', {
+        name: 'Items',
+        exact: true,
+      }),
+    ).toBeDisabled()
+    await expect(page.locator('[data-character-resource="hp"]')).toBeVisible()
+    await expect(page.locator('[data-character-resource="mp"]')).toBeVisible()
 
     const shell = page.getByTestId('authenticated-shell')
     const masthead = shell.locator('header').first()
