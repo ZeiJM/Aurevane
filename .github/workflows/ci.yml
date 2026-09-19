@@ -88,6 +88,9 @@ jobs:
       - name: Verify Phase 5 persistent event kernel
         run: bash .github/scripts/verify-phase5-event-kernel.sh
 
+      - name: Verify Phase 5 Event participation ledger
+        run: bash .github/scripts/verify-phase5-event-participation.sh
+
       - name: Verify player profile provisioning and privacy
         run: bash .github/scripts/verify-player-profile.sh
 
