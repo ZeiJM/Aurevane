@@ -100,6 +100,8 @@ describe('Master Panel staff access', () => {
       'master.access',
       'staff.manage',
       'content.combat.author',
+      'events.author',
+      'events.operate',
       ...MASTER_PANEL_SPECIAL_CAPABILITIES,
     ])
     expect(effectiveMasterPanelCapabilities(['content-staff'])).toEqual([
@@ -108,6 +110,8 @@ describe('Master Panel staff access', () => {
     ])
     expect(effectiveMasterPanelCapabilities(['moderator', 'event-staff'])).toEqual([
       'master.access',
+      'events.author',
+      'events.operate',
     ])
   })
 
