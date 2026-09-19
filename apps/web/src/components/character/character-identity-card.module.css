@@ -21,8 +21,12 @@
   content: '';
 }
 
-.card::before { top: 0.45rem; }
-.card::after { bottom: 0.45rem; }
+.card::before {
+  top: 0.45rem;
+}
+.card::after {
+  bottom: 0.45rem;
+}
 
 .portraitFrame {
   position: relative;
@@ -43,8 +47,12 @@
   transform: translateX(-50%) rotate(45deg);
 }
 
-.portraitFrame::before { top: -0.55rem; }
-.portraitFrame::after { bottom: -0.55rem; }
+.portraitFrame::before {
+  top: -0.55rem;
+}
+.portraitFrame::after {
+  bottom: -0.55rem;
+}
 
 .portrait {
   width: 100%;
@@ -95,7 +103,7 @@
   padding: 0.25rem 0.45rem;
   border: 1px solid rgba(212, 186, 130, 0.58);
   color: #eee4d0;
-  background: rgba(255,255,255,0.025);
+  background: rgba(255, 255, 255, 0.025);
   font-size: 0.7rem;
 }
 
@@ -153,7 +161,7 @@
 
 .resource > div {
   display: grid;
-  grid-template-columns: auto auto minmax(0,1fr);
+  grid-template-columns: auto auto minmax(0, 1fr);
   gap: 0.45rem;
   align-items: center;
   color: #eee4d0;
@@ -178,12 +186,16 @@
   height: 100%;
 }
 
-.resource[data-character-resource='hp'] > div > span { color: #ff6c75; }
+.resource[data-character-resource='hp'] > div > span {
+  color: #ff6c75;
+}
 .resource[data-character-resource='hp'] > i > span {
   background: linear-gradient(90deg, #ff5c6c, #d93d52);
 }
 
-.resource[data-character-resource='mp'] > div > span { color: #5bb7ff; }
+.resource[data-character-resource='mp'] > div > span {
+  color: #5bb7ff;
+}
 .resource[data-character-resource='mp'] > i > span {
   background: linear-gradient(90deg, #43a8ff, #258bdc);
 }
@@ -208,14 +220,30 @@
     grid-template-columns: 12rem minmax(0, 1fr);
     align-items: start;
   }
-  .portraitFrame { grid-row: 1 / span 5; }
-  .identity { justify-items: start; text-align: left; }
-  .tags { justify-content: flex-start; }
-  .summary { text-align: left; }
-  .ornament { display: none; }
+  .portraitFrame {
+    grid-row: 1 / span 5;
+  }
+  .identity {
+    justify-items: start;
+    text-align: left;
+  }
+  .tags {
+    justify-content: flex-start;
+  }
+  .summary {
+    text-align: left;
+  }
+  .ornament {
+    display: none;
+  }
 }
 
 @media (max-width: 760px) {
-  .card { padding: 0.8rem; }
-  .portraitFrame { width: min(18rem, 100%); justify-self: center; }
+  .card {
+    padding: 0.8rem;
+  }
+  .portraitFrame {
+    width: min(18rem, 100%);
+    justify-self: center;
+  }
 }
