@@ -87,6 +87,16 @@ run_id="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d pos
   returning id::text;")"
 test -n "$run_id"
 
+if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+  set role service_role;
+  update app_private.event_runs
+  set lifecycle_status = 'live'
+  where id = '$run_id'::uuid;" >/tmp/p52-direct-run-update.out 2>/tmp/p52-direct-run-update.err; then
+  echo 'Service role unexpectedly bypassed the event run lifecycle RPC.' >&2
+  exit 1
+fi
+grep -Fq 'permission denied for table event_runs' /tmp/p52-direct-run-update.err
+
 docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   insert into app_private.event_run_phases (run_id, phase_id, ordinal, phase_status)
   values
