@@ -70,7 +70,13 @@ describe('persistent event definition', () => {
 
     const invalidTransition = structuredClone(definition()) as any
     invalidTransition.phases[0].transition.objectiveId = 'missing'
-    expect(() => validatePersistentEventDefinition(invalidTransition)).toThrow(/defined objective/i)
+    expect(() => validatePersistentEventDefinition(invalidTransition)).toThrow(/same phase/i)
+  })
+
+  it('rejects a transition tied to an objective from another phase', () => {
+    const invalid = structuredClone(definition()) as any
+    invalid.phases[1].transition = { type: 'objective-threshold', objectiveId: 'survey' }
+    expect(() => validatePersistentEventDefinition(invalid)).toThrow(/same phase/i)
   })
 
   it('enforces the approved lifecycle transition graph', () => {
