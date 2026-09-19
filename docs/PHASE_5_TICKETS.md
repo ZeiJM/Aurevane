@@ -31,9 +31,11 @@ P5.1 closeout: staff authority changes require an explicit reason and confirmati
 - [x] Explicit global / region / node / cohort scope.
 - [x] Authoritative lifecycle clock and restart recovery.
 - [x] Typed Event Effect references only; no arbitrary scripts or SQL.
-- [ ] Participant ledger, idempotent contribution and claim boundaries.
+- [x] Participant ledger, idempotent contribution and claim boundaries.
 - [ ] Reward Package references through normal reward services.
 - [ ] Cleanup / end / archive invariants.
+
+P5.2 participation boundary: Event participation is isolated per immutable Event Run and character/account. Contributions are service-only, tied to an active run objective, deduplicated by authoritative source identity, provenance-bearing, and idempotent under duplicate delivery. Reward claims currently stop at an idempotent reservation against Reward Package references pinned by that run's immutable Event Definition; this slice does not execute or mint rewards. Browser roles cannot read or write the private ledger or invoke contribution/claim authority directly.
 
 ### P5.3 — Event Builder MVP
 
