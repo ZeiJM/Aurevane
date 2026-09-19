@@ -159,9 +159,9 @@ operate() {
       '$version'::bigint,
       '$key'::uuid,
       '$command',
-      '$reason'
-    ,
-    true);"
+      '$reason',
+      true
+    );"
 }
 
 test "$(operate 1 '00000000-0000-4000-8000-000000004401' 'start' 'P4.14 start run')" = 'live|2|false'
@@ -257,9 +257,9 @@ advance="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d po
     '$run_id'::uuid,
     4,
     '00000000-0000-4000-8000-000000004404'::uuid,
-    'P4.14 advance to aftermath'
-  ,
-  true);")"
+    'P4.14 advance to aftermath',
+    true
+  );")"
 test "$advance" = 'aftermath|5|false'
 
 advance_replay="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
@@ -270,9 +270,9 @@ advance_replay="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgre
     '$run_id'::uuid,
     4,
     '00000000-0000-4000-8000-000000004404'::uuid,
-    'P4.14 advance to aftermath'
-  ,
-  true);")"
+    'P4.14 advance to aftermath',
+    true
+  );")"
 test "$advance_replay" = 'aftermath|5|true'
 
 if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
@@ -282,9 +282,9 @@ if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -
     '$run_id'::uuid,
     5,
     '00000000-0000-4000-8000-000000004404'::uuid,
-    'P4.14 advance to aftermath'
-  ,
-  true);" >/tmp/p414-advance-key-conflict.out 2>/tmp/p414-advance-key-conflict.err; then
+    'P4.14 advance to aftermath',
+    true
+  );" >/tmp/p414-advance-key-conflict.out 2>/tmp/p414-advance-key-conflict.err; then
   echo 'Expected phase-advance key reuse with a different expected state version to fail.' >&2
   exit 1
 fi
@@ -353,9 +353,9 @@ cleanup="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d po
     'mobilization',
     0,
     '00000000-0000-4000-8000-000000004408'::uuid,
-    'P4.14 typed cleanup verified'
-  ,
-  true);")"
+    'P4.14 typed cleanup verified',
+    true
+  );")"
 test "$cleanup" = 'completed|8|false'
 
 cleanup_replay="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
@@ -367,9 +367,9 @@ cleanup_replay="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgre
     'mobilization',
     0,
     '00000000-0000-4000-8000-000000004408'::uuid,
-    'P4.14 typed cleanup verified'
-  ,
-  true);")"
+    'P4.14 typed cleanup verified',
+    true
+  );")"
 test "$cleanup_replay" = 'completed|8|true'
 
 test "$(operate 8 '00000000-0000-4000-8000-000000004409' 'archive' 'P4.14 archive run')" = 'archived|9|false'
@@ -447,9 +447,9 @@ if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -
     1,
     '00000000-0000-4000-8000-000000004420'::uuid,
     'emergency-stop',
-    'P4.14 emergency denial'
-  ,
-  true);" >/tmp/p414-emergency-denied.out 2>/tmp/p414-emergency-denied.err; then
+    'P4.14 emergency denial',
+    true
+  );" >/tmp/p414-emergency-denied.out 2>/tmp/p414-emergency-denied.err; then
   echo 'Expected emergency stop without explicit capability to fail.' >&2
   exit 1
 fi
@@ -474,9 +474,9 @@ emergency="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d 
     1,
     '00000000-0000-4000-8000-000000004421'::uuid,
     'emergency-stop',
-    'P4.14 emergency stop'
-  ,
-  true);")"
+    'P4.14 emergency stop',
+    true
+  );")"
 test "$emergency" = 'emergency-stopped|2'
 
 emergency_cleanup="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
@@ -548,9 +548,9 @@ if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -
     1,
     '00000000-0000-4000-8000-000000004430'::uuid,
     'start',
-    'P4.14 expired window start'
-  ,
-  true);" >/tmp/p414-expired-start.out 2>/tmp/p414-expired-start.err; then
+    'P4.14 expired window start',
+    true
+  );" >/tmp/p414-expired-start.out 2>/tmp/p414-expired-start.err; then
   echo 'Expected an expired scheduled Event Run to reject manual start.' >&2
   exit 1
 fi
@@ -634,9 +634,9 @@ if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -
     '$elapsed_run'::uuid,
     1,
     '00000000-0000-4000-8000-000000004431'::uuid,
-    'P4.14 illegal manual elapsed advance'
-  ,
-  true);" >/tmp/p414-nonmanual-advance.out 2>/tmp/p414-nonmanual-advance.err; then
+    'P4.14 illegal manual elapsed advance',
+    true
+  );" >/tmp/p414-nonmanual-advance.out 2>/tmp/p414-nonmanual-advance.err; then
   echo 'Expected manual phase advance to reject a non-manual transition.' >&2
   exit 1
 fi
