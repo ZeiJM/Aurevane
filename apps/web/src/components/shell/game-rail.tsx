@@ -61,11 +61,13 @@ export function GameRail({ activeSessionHref, activeSessionLabel }: GameRailProp
     >
       <nav className={styles.railNavigation} aria-label="Primary game navigation">
         {gameNavigation.map((item) => {
-          const active = pathname === item.href || pathname.startsWith(`${item.href}/`)
-          const unavailable = 'disabled' in item && item.disabled
+          const active = item.href
+            ? pathname === item.href || pathname.startsWith(item.href + '/')
+            : false
+          const unavailable = ('disabled' in item && item.disabled) || !item.href
           return restricted || unavailable ? (
             <button
-              key={item.href}
+              key={item.href ?? item.label}
               className={styles.railLink}
               type="button"
               disabled
