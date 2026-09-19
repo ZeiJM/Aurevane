@@ -156,25 +156,16 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
                   <option value="alphabetical">Alphabetical: A to Z</option>
                 </select>
               </label>
-              <button
-                type="button"
-                className={styles.toggleButton}
-                aria-pressed={showAll}
-                onClick={toggleDirectory}
-              >
-                Show online only
-              </button>
             </div>
-          ) : (
-            <button
-              type="button"
-              className={styles.toggleButton}
-              aria-pressed={showAll}
-              onClick={toggleDirectory}
-            >
-              Show all characters
-            </button>
-          )}
+          ) : null}
+          <button
+            type="button"
+            className={styles.toggleButton}
+            aria-pressed={showAll}
+            onClick={toggleDirectory}
+          >
+            {showAll ? 'Show online only' : 'Show all characters'}
+          </button>
         </div>
       </header>
 
