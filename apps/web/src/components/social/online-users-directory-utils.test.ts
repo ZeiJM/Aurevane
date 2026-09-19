@@ -3,12 +3,19 @@ import { describe, expect, it } from 'vitest'
 import {
   compareLastSeenAt,
   formatLastSeenAt,
+  readableDisciplinePair,
   readableIdentity,
 } from './online-users-directory-utils'
 
 describe('online users directory helpers', () => {
   it('formats the canonical discipline id for the class filter', () => {
     expect(readableIdentity('starter.aetherist')).toBe('Aetherist')
+  })
+
+  it('formats Primary and Secondary Disciplines together', () => {
+    expect(readableDisciplinePair('vanguard', 'aetherist')).toBe('Vanguard + Aetherist')
+    expect(readableDisciplinePair('cinderweaver', null)).toBe('Cinderweaver')
+    expect(readableDisciplinePair(null, null)).toBeNull()
   })
 
   it('reports elapsed presence time in minutes', () => {

@@ -10,6 +10,16 @@ export function readableIdentity(value: string | null): string | null {
     .join(' ')
 }
 
+export function readableDisciplinePair(
+  primaryDisciplineId: string | null,
+  secondaryDisciplineId: string | null,
+): string | null {
+  const primary = readableIdentity(primaryDisciplineId)
+  const secondary = readableIdentity(secondaryDisciplineId)
+  if (primary && secondary) return `${primary} + ${secondary}`
+  return primary ?? secondary
+}
+
 function lastSeenMillis(value: string | null): number | null {
   if (!value) return null
   const parsed = Date.parse(value)

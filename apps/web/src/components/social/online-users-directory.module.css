@@ -131,7 +131,9 @@
   text-transform: uppercase;
 }
 
-.columnHeadings > :is(:nth-child(2), :nth-child(3)) {
+.columnHeadings > :is(:nth-child(2), :nth-child(3)),
+.level,
+.discipline {
   transform: translateX(0.35rem);
 }
 .list {

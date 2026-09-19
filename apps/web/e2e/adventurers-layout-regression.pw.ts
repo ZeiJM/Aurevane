@@ -84,10 +84,9 @@ test('Adventurers roster preserves browsing and public-profile privacy in the ne
       expect(headingBox, `${label} heading geometry`).not.toBeNull()
       expect(rowBox, `${label} value geometry`).not.toBeNull()
       expect(
-        headingBox!.x - rowBox!.x,
-        `${label} heading uses the approved slight rightward optical alignment`,
-      ).toBeGreaterThanOrEqual(4)
-      expect(headingBox!.x - rowBox!.x).toBeLessThanOrEqual(7)
+        Math.abs(headingBox!.x - rowBox!.x),
+        `${label} heading aligns with its row values`,
+      ).toBeLessThanOrEqual(1)
     }
 
     const presenceHeadingBox = await headingCells.nth(3).boundingBox()
@@ -110,6 +109,7 @@ test('Adventurers roster preserves browsing and public-profile privacy in the ne
     lastSeenAt: index === 59 ? null : new Date(Date.now() - index * 60000).toISOString(),
     portraitRef: null,
     disciplineId: index % 2 === 0 ? 'vanguard' : 'lifebinder',
+    secondaryDisciplineId: index === 0 ? 'aetherist' : null,
     personalTitle: index === 0 ? 'Keeper of the Last Light' : null,
     imageUrl: index === 0 ? '/media/art/concept-ui/portrait-01-v01.webp' : null,
     isOnline: index % 3 === 0,
@@ -190,6 +190,8 @@ test('Adventurers roster preserves browsing and public-profile privacy in the ne
   await expect(dialog).toBeVisible()
   expect(await dialog.evaluate((node) => node.matches('dialog:modal'))).toBe(true)
   await expect(dialog.getByText('Keeper of the Last Light', { exact: true })).toBeVisible()
+  await expect(dialog.getByText('Primary · Vanguard', { exact: true })).toBeVisible()
+  await expect(dialog.getByText('Secondary · Aetherist', { exact: true })).toBeVisible()
   await expect(dialog.getByRole('button', { name: /Send Direct Message/ })).toBeDisabled()
   await expect(dialog.getByRole('button', { name: /Add Friend/ })).toBeDisabled()
   await expect(page.locator('body')).not.toContainText('private-account-sentinel')
@@ -212,6 +214,9 @@ test('Adventurers roster preserves browsing and public-profile privacy in the ne
   await expect(lastDialog.getByText('Never seen', { exact: true })).toBeVisible()
   await lastDialog.getByRole('button', { name: 'Close public character profile' }).click()
   await expect(lastDialog).toHaveCount(0)
+  await hero.getByRole('combobox', { name: 'Class', exact: true }).selectOption('aetherist')
+  await expect(list.getByRole('button')).toHaveCount(1)
+  await expect(list.getByRole('button').first()).toContainText('Vanguard + Aetherist')
   await hero.getByRole('combobox', { name: 'Class', exact: true }).selectOption('vanguard')
   await expect(list.getByRole('button')).toHaveCount(30)
   await hero.getByRole('combobox', { name: 'Sort', exact: true }).selectOption('oldest')

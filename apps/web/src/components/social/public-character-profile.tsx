@@ -58,7 +58,8 @@ export function PublicCharacterProfile({
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const online = 'isOnline' in character ? character.isOnline : true
-  const discipline = readableIdentity(character.disciplineId)
+  const primaryDiscipline = readableIdentity(character.disciplineId)
+  const secondaryDiscipline = readableIdentity(character.secondaryDisciplineId)
   useEffect(() => {
     const dialog = dialogRef.current
     if (!dialog) return
@@ -118,11 +119,16 @@ export function PublicCharacterProfile({
           </div>
           <div className={styles.profileCopy}>
             <div className={styles.tags} aria-label="Character identity tags">
-              {discipline ? <span title="Discipline">{discipline}</span> : null}
+              {primaryDiscipline ? (
+                <span title="Primary Discipline">Primary · {primaryDiscipline}</span>
+              ) : null}
+              {secondaryDiscipline ? (
+                <span title="Secondary Discipline">Secondary · {secondaryDiscipline}</span>
+              ) : null}
               {character.personalTitle ? (
                 <span title="Personal Title">{character.personalTitle}</span>
               ) : null}
-              {!discipline && !character.personalTitle ? (
+              {!primaryDiscipline && !secondaryDiscipline && !character.personalTitle ? (
                 <p>No public identity tags are set.</p>
               ) : null}
             </div>

@@ -11,6 +11,7 @@ const character = {
   lastSeenAt: '2026-09-15T12:00:00Z',
   portraitRef: null,
   disciplineId: 'vanguard',
+  secondaryDisciplineId: 'aetherist',
   personalTitle: 'The Patient Flame',
   imageUrl: null,
   // A UI must not expose extra properties even if a future response accidentally includes them.
@@ -28,7 +29,7 @@ describe('Adventurers roster composition', () => {
     expect(markup).toContain('data-av-surface="ink"')
     expect(markup).toContain('Aster Vale')
     expect(markup).toContain('The Patient Flame')
-    expect(markup).toContain('Vanguard')
+    expect(markup).toContain('Vanguard + Aetherist')
     expect(markup).toContain('Show all characters')
     expect(markup).toContain('data-online-users-heading="true"')
     expect(markup).not.toContain('Different paths. A shared world.')

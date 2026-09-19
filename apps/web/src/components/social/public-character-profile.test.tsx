@@ -13,6 +13,7 @@ describe('Public character profile', () => {
       lastSeenAt: null,
       portraitRef: null,
       disciplineId: 'vanguard',
+      secondaryDisciplineId: 'aetherist',
       personalTitle: 'The Patient Flame',
       imageUrl: null,
       isOnline: false,
@@ -26,6 +27,8 @@ describe('Public character profile', () => {
     expect(markup).toContain('<dialog')
     expect(markup).toContain('Aster Vale')
     expect(markup).toContain('The Patient Flame')
+    expect(markup).toContain('Primary · Vanguard')
+    expect(markup).toContain('Secondary · Aetherist')
     expect(markup).toContain('Never seen')
     expect(markup.match(/disabled=""/g)).toHaveLength(2)
     for (const privateValue of [character.pronouns, character.email, ...character.inventory])

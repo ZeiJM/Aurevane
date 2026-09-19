@@ -11,6 +11,7 @@ import type {
 import {
   compareLastSeenAt,
   formatLastSeenAt,
+  readableDisciplinePair,
   readableIdentity,
   type LastSeenSortOrder,
 } from './online-users-directory-utils'
@@ -50,8 +51,10 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
   const classOptions = useMemo(() => {
     const options = new Map<string, string>()
     for (const character of directory ?? []) {
-      const label = readableIdentity(character.disciplineId)
-      if (character.disciplineId && label) options.set(character.disciplineId, label)
+      for (const disciplineId of [character.disciplineId, character.secondaryDisciplineId]) {
+        const label = readableIdentity(disciplineId)
+        if (disciplineId && label) options.set(disciplineId, label)
+      }
     }
     return [...options.entries()].sort((left, right) => left[1].localeCompare(right[1], 'en'))
   }, [directory])
@@ -60,7 +63,11 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
     const source: PresenceCharacter[] = showAll ? (directory ?? []) : characters
     const filtered =
       showAll && classFilter !== 'all'
-        ? source.filter((character) => character.disciplineId === classFilter)
+        ? source.filter(
+            (character) =>
+              character.disciplineId === classFilter ||
+              character.secondaryDisciplineId === classFilter,
+          )
         : source
 
     return [...filtered].sort((left, right) => {
@@ -211,7 +218,10 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
         {orderedCharacters.length > 0 ? (
           <div className={styles.list} data-directory-list="true">
             {orderedCharacters.map((character) => {
-              const discipline = readableIdentity(character.disciplineId)
+              const discipline = readableDisciplinePair(
+                character.disciplineId,
+                character.secondaryDisciplineId,
+              )
               const online = isOnline(character)
               const lastSeen = formatLastSeenAt(character.lastSeenAt, currentNow)
               return (
