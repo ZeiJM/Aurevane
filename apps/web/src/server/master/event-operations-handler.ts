@@ -53,6 +53,11 @@ function nonNegativeInteger(value: unknown, field: string): number {
   return value as number
 }
 
+function requiredBoolean(value: unknown, field: string): boolean {
+  if (typeof value !== 'boolean') return invalid(`${field} must be a boolean.`)
+  return value
+}
+
 function operationCommand(value: unknown): EventOperationCommand {
   const candidate = requiredString(value, 'command')
   if (!(EVENT_OPERATION_COMMANDS as readonly string[]).includes(candidate)) {
@@ -113,6 +118,7 @@ export async function handleEventOperationsRequest(
         idempotencyKey: requiredString(body.idempotencyKey, 'idempotencyKey'),
         command: operationCommand(body.command),
         reason: requiredString(body.reason, 'reason'),
+        confirmed: requiredBoolean(body.confirmed, 'confirmed'),
       })
       return success({ result })
     }
@@ -127,6 +133,7 @@ export async function handleEventOperationsRequest(
         ),
         idempotencyKey: requiredString(body.idempotencyKey, 'idempotencyKey'),
         reason: requiredString(body.reason, 'reason'),
+        confirmed: requiredBoolean(body.confirmed, 'confirmed'),
       })
       return success({ result })
     }
@@ -138,7 +145,8 @@ export async function handleEventOperationsRequest(
         phaseId: requiredString(body.phaseId, 'phaseId'),
         effectOrdinal: nonNegativeInteger(body.effectOrdinal, 'effectOrdinal'),
         completionKey: requiredString(body.completionKey, 'completionKey'),
-        note: requiredString(body.note, 'note'),
+        reason: requiredString(body.reason, 'reason'),
+        confirmed: requiredBoolean(body.confirmed, 'confirmed'),
       })
       return success({ result })
     }
