@@ -176,7 +176,13 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
   }
 
   useEffect(() => {
-    void refresh()
+    let cancelled = false
+    queueMicrotask(() => {
+      if (!cancelled) void refresh()
+    })
+    return () => {
+      cancelled = true
+    }
     // Initial authority/state load only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
