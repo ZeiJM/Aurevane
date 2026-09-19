@@ -108,6 +108,10 @@ begin
     raise exception using errcode = '22023', message = 'EVENT_ACTION_CORRELATION_REQUIRED';
   end if;
 
+  perform pg_advisory_xact_lock(
+    hashtextextended('aurevane:event-authoring-audit:publish:' || p_correlation_key::text, 0)
+  );
+
   select *
   into v_existing
   from app_private.event_authoring_audit as audit
@@ -225,6 +229,10 @@ begin
   if p_idempotency_key is null then
     raise exception using errcode = '22023', message = 'EVENT_ACTION_CORRELATION_REQUIRED';
   end if;
+
+  perform pg_advisory_xact_lock(
+    hashtextextended('aurevane:event-authoring-audit:schedule:' || p_idempotency_key::text, 0)
+  );
 
   select *
   into v_existing
@@ -347,6 +355,10 @@ begin
   if p_idempotency_key is null then
     raise exception using errcode = '22023', message = 'EVENT_ACTION_CORRELATION_REQUIRED';
   end if;
+
+  perform pg_advisory_xact_lock(
+    hashtextextended('aurevane:event-authoring-audit:unschedule:' || p_idempotency_key::text, 0)
+  );
 
   select *
   into v_existing
