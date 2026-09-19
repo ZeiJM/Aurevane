@@ -229,12 +229,18 @@ export class RpcEventAuthoringStore implements EventAuthoringStore {
     eventKey: string
     definition: PersistentEventDefinition
     expectedBaseVersion: number | null
+    correlationKey: string
+    reason: string
+    confirmed: boolean
   }): Promise<EventDefinitionVersionRecord> {
-    const { data, error } = await this.#rpc('publish_event_definition_v1', {
+    const { data, error } = await this.#rpc('publish_event_definition_v2', {
       p_actor_user_id: this.#actorUserId,
       p_event_key: input.eventKey,
       p_definition: input.definition,
       p_expected_base_version: input.expectedBaseVersion,
+      p_correlation_key: input.correlationKey,
+      p_reason: input.reason,
+      p_confirmed: input.confirmed,
     })
     if (error) mapRpcError(error)
     const parsed = parseVersion(data)
@@ -248,14 +254,18 @@ export class RpcEventAuthoringStore implements EventAuthoringStore {
     requestFingerprint: string
     scheduledStartAt: string
     scheduledEndAt: string | null
+    reason: string
+    confirmed: boolean
   }): Promise<ScheduledEventRunRecord> {
-    const { data, error } = await this.#rpc('schedule_event_run_v1', {
+    const { data, error } = await this.#rpc('schedule_event_run_v2', {
       p_actor_user_id: this.#actorUserId,
       p_event_key: input.eventKey,
       p_idempotency_key: input.idempotencyKey,
       p_request_fingerprint: input.requestFingerprint,
       p_scheduled_start_at: input.scheduledStartAt,
       p_scheduled_end_at: input.scheduledEndAt,
+      p_reason: input.reason,
+      p_confirmed: input.confirmed,
     })
     if (error) mapRpcError(error)
     return parseSchedule(data)
@@ -266,13 +276,15 @@ export class RpcEventAuthoringStore implements EventAuthoringStore {
     expectedStateVersion: number
     idempotencyKey: string
     reason: string
+    confirmed: boolean
   }): Promise<EventRunTransitionRecord> {
-    const { data, error } = await this.#rpc('cancel_scheduled_event_run_v1', {
+    const { data, error } = await this.#rpc('cancel_scheduled_event_run_v2', {
       p_actor_user_id: this.#actorUserId,
       p_run_id: input.runId,
       p_expected_state_version: input.expectedStateVersion,
       p_idempotency_key: input.idempotencyKey,
       p_reason: input.reason,
+      p_confirmed: input.confirmed,
     })
     if (error) mapRpcError(error)
     return parseTransition(data)
