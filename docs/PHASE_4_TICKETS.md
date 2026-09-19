@@ -23,7 +23,7 @@ The Owner explicitly corrected the phase boundary on 2026-09-19: staff/event ope
 
 P4.11 is the previously implemented staff-authority work from PRs #557/#559, reclassified by Owner decision. It is not evidence that Phase 5 started.
 
-### P4.12 — Persistent event operations kernel — ACTIVE
+### P4.12 — Persistent event operations kernel — COMPLETE
 
 - [x] Versioned immutable Event Template / Event Definition.
 - [x] Event Run / Phase / Objective state pinned to one immutable definition version.
@@ -31,37 +31,50 @@ P4.11 is the previously implemented staff-authority work from PRs #557/#559, rec
 - [x] Authoritative lifecycle clock, optimistic state versioning and restart recovery.
 - [x] Typed Event Effect references only; no arbitrary scripts or SQL.
 - [x] Serialized/idempotent lifecycle transitions with direct service-role mutation/receipt forgery blocked.
-- [ ] Participant ledger, idempotent contribution and claim reservation boundary — implemented in PR #564; exact-head certification/integration pending.
-- [ ] Reward Package execution through existing authoritative reward/progression services.
-- [ ] Cleanup / end / archive execution invariants.
+- [x] Participant ledger with idempotent contribution provenance, source deduplication and run-scoped claim reservation.
+- [x] Immutable Reward Package execution through the existing authoritative Character XP service, with approved XP budgets and idempotent execution receipts.
+- [x] Terminal cleanup obligations, archive blocking and pre-start cancellation isolation.
 
 Contribution authority requires a Production run that is live, the run's exact current phase to have a `live` phase row, and an active objective in that phase. Duplicate delivery and source provenance are deduplicated server-side. Claim reservation alone does not mint rewards.
 
-### P4.13 — Event Builder MVP — NOT STARTED
+P4.12 is integrated through PRs #564, #566 and #567, with later hardening carried by P4.13/P4.14. The persistent kernel, participant ledger, reward execution and cleanup boundaries all pass on the integrated Phase-4 stack.
 
-- [ ] Event Staff draft / validate / preview / publish workflow.
-- [ ] Phase/objective composition.
-- [ ] Approved map markers, encounters, quests/dialogue packages, NPC presentation, vendors, announcements and media references.
-- [ ] Schedule / unschedule and conflict/dependency checks.
-- [ ] Preview-only test clock / phase jump.
-- [ ] Owner-gated permanent canon/world changes.
-- [ ] No arbitrary code editor and no arbitrary SQL editor.
+### P4.13 — Event Builder MVP — COMPLETE
 
-### P4.14 — Live event operations — NOT STARTED
+- [x] Protected `/master/events` Event Staff draft / validate / preview / publish workflow.
+- [x] Private optimistic drafts and immutable published definition history.
+- [x] Structured phase/objective composition and typed active/cleanup Effect references.
+- [x] Reward Package and aftermath references with dependency validation.
+- [x] Schedule / unschedule with scope/time overlap serialization and conflict rejection.
+- [x] Preview-only test clock / phase selection that creates no Production Event state.
+- [x] Production publication requires `events.production_publish`; global publication/scheduling additionally requires `events.global_scope`.
+- [x] Recursive arbitrary script/SQL fields are rejected; there is no arbitrary code/SQL editor.
+- [x] Permanent canon/world mutation is not authorable in the MVP.
 
-- [ ] Live phase/time dashboard.
-- [ ] Participant/progress/objective/claim/active-effect visibility.
-- [ ] Advance / pause / resume / stop controls with P4.11 capability checks.
-- [ ] Emergency stop through the approved special capability.
-- [ ] Restart and duplicate-transition recovery.
-- [ ] Chronicle/participant-history persistence.
-- [ ] Safe cleanup/end/archive behavior.
+PR #569 exact head `f9f0ced6b1b7131350789198d2c4c618a2b68d6b` passed all eight PR workflows and merged to the Phase-4 integration branch as `681d0e7fd65b3bce2f7e4dfb840f5156f5b6a3dc`. All five applicable post-merge push workflows passed.
 
-### Phase 4 extension gate
+### P4.14 — Live event operations — COMPLETE
 
-Before Phase 5 may begin, this extension must be technically complete and verified: authorized staff can define and operate a persistent multi-phase event without routine code deployment; contribution/claim boundaries are authoritative and idempotent; rewards execute only through approved services; restart recovery works; end/archive cleanup is safe; and the Owner explicitly approves moving on.
+- [x] Protected `/master/events/live` authoritative Event Run dashboard.
+- [x] Participant/contribution, phase/objective, reward-claim, active-effect and cleanup visibility.
+- [x] Start due run, pause, resume, graceful stop/resolve, end, archive and manual phase advance with optimistic versions and idempotency receipts.
+- [x] Emergency stop requires the explicit `events.emergency_stop` capability.
+- [x] Sensitive operations require an explicit reason and fresh confirmation.
+- [x] Typed cleanup completion uses immutable receipts; archive remains blocked until pinned cleanup is complete.
+- [x] Immutable archived Chronicle snapshot and durable staff operation history.
+- [x] Browser roles cannot call database Event operations authority directly; service role cannot forge operations history directly.
+- [x] Bounded restart recovery starts due runs, advances authored automatic transitions, cancels missed windows and moves expired live windows toward resolving.
+- [x] Supabase `pg_cron` configuration exists as a release-only helper; the migration does not enable the Production job automatically.
 
-This extension does **not** implement Phase 5's player-facing living-world content, strategic Atlas, settlements/NPCs/quests, supernatural fork, or frontier threshold.
+PR #570 exact head `072c8cc779c26063747994e13fab7fe541ea5e30` passed all eight PR workflows and merged to the Phase-4 integration branch as `8239cc2e2bc004c1db2956e26ad32f91c53cf7cc`. All five applicable post-merge push workflows passed.
+
+### Phase 4 extension gate — TECHNICALLY COMPLETE
+
+The P4.11–P4.14 Operations Extension is technically complete and verified on the dedicated Phase-4 integration branch: authorized staff can define and operate a persistent multi-phase Event without routine code deployment; contribution/claim boundaries are authoritative and idempotent; rewards execute only through approved services; restart recovery works; live operations are audited; and cleanup/Chronicle/archive invariants fail closed.
+
+This technical gate does **not** authorize Production deployment, Production Supabase mutation, Event recovery `pg_cron` activation, or the staged Discipline rebalance. Existing human Phase-4 acceptance items including A03/A04/A07/A10 remain separate.
+
+**Phase 5 remains NOT STARTED.** Moving into player-facing Phase 5 requires a new explicit Owner authorization. This extension does not implement Phase 5's living-world content, strategic Atlas, settlements/NPCs/quests, supernatural fork, or frontier threshold.
 
 ## Previous combat completeness release — PR #459
 
