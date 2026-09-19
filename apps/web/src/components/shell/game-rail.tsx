@@ -15,6 +15,11 @@ function NavigationIcon({ name }: { name: (typeof gameNavigation)[number]['icon'
           <circle cx="12" cy="7" r="3.25" />
           <path d="M5 21v-3a7 7 0 0 1 14 0v3Z" />
         </>
+      ) : name === 'arsenal' ? (
+        <>
+          <path d="m5 4 4 1 10 13-2 2L5 8V4Zm14 0-4 1-5 6M5 18l4-5M3 17l4 4m10 0 4-4" />
+          <circle cx="12" cy="12" r="1.5" />
+        </>
       ) : name === 'battle' ? (
         <>
           <path d="m4 3 4 1 12 15-2 2L4 7V3Zm16 0-4 1-5 6M4 19l5-6M2 17l5 5m10 0 5-5" />
@@ -23,6 +28,11 @@ function NavigationIcon({ name }: { name: (typeof gameNavigation)[number]['icon'
         <>
           <circle cx="12" cy="12" r="9" />
           <path d="M12 6v6l4 2M8 2h8" />
+        </>
+      ) : name === 'items' ? (
+        <>
+          <path d="M6 9h12l-1 11H7L6 9Z" />
+          <path d="M9 9V7a3 3 0 0 1 6 0v2M9 14h6" />
         </>
       ) : (
         <>
@@ -52,13 +62,18 @@ export function GameRail({ activeSessionHref, activeSessionLabel }: GameRailProp
       <nav className={styles.railNavigation} aria-label="Primary game navigation">
         {gameNavigation.map((item) => {
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`)
-          return restricted ? (
+          const unavailable = 'disabled' in item && item.disabled
+          return restricted || unavailable ? (
             <button
               key={item.href}
               className={styles.railLink}
               type="button"
               disabled
-              title="Navigation is restricted until your active session ends"
+              title={
+                unavailable
+                  ? item.detail
+                  : 'Navigation is restricted until your active session ends'
+              }
               aria-label={item.label}
               aria-current={active ? 'page' : undefined}
             >
