@@ -103,6 +103,9 @@ jobs:
       - name: Verify Phase 4 Event Builder
         run: bash .github/scripts/verify-phase4-event-builder.sh
 
+      - name: Verify Phase 4 Event Builder write boundary
+        run: bash .github/scripts/verify-phase4-event-builder-authority.sh
+
       - name: Verify player profile provisioning and privacy
         run: bash .github/scripts/verify-player-profile.sh
 
