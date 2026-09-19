@@ -156,6 +156,12 @@ operate() {
 test "$(operate 1 '00000000-0000-4000-8000-000000004401' 'start' 'P4.14 start run')" = 'live|2|false'
 test "$(operate 1 '00000000-0000-4000-8000-000000004401' 'start' 'P4.14 start run')" = 'live|2|true'
 
+if operate 2 '00000000-0000-4000-8000-000000004401' 'start' 'P4.14 start run' >/tmp/p414-start-key-conflict.out 2>/tmp/p414-start-key-conflict.err; then
+  echo 'Expected lifecycle key reuse with a different expected state version to fail.' >&2
+  exit 1
+fi
+grep -Fq 'EVENT_OPERATION_IDEMPOTENCY_CONFLICT' /tmp/p414-start-key-conflict.err
+
 started_state="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   select
     run.lifecycle_status || '|' ||
@@ -255,6 +261,20 @@ advance_replay="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgre
     'P4.14 advance to aftermath'
   );")"
 test "$advance_replay" = 'aftermath|5|true'
+
+if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+  set role service_role;
+  select * from public.advance_event_run_phase_v1(
+    '$staff_id'::uuid,
+    '$run_id'::uuid,
+    5,
+    '00000000-0000-4000-8000-000000004404'::uuid,
+    'P4.14 advance to aftermath'
+  );" >/tmp/p414-advance-key-conflict.out 2>/tmp/p414-advance-key-conflict.err; then
+  echo 'Expected phase-advance key reuse with a different expected state version to fail.' >&2
+  exit 1
+fi
+grep -Fq 'EVENT_PHASE_ADVANCE_IDEMPOTENCY_CONFLICT' /tmp/p414-advance-key-conflict.err
 
 phase_state="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   select string_agg(
