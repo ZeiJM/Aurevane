@@ -26,11 +26,11 @@ P5.1 closeout: staff authority changes require an explicit reason and confirmati
 
 ### P5.2 — Persistent event kernel
 
-- [ ] Versioned Event Template / Event Definition.
-- [ ] Event Run / Phase / Objective state.
-- [ ] Explicit global / region / node / cohort scope.
-- [ ] Authoritative lifecycle clock and restart recovery.
-- [ ] Typed Event Effect references only; no arbitrary scripts or SQL.
+- [x] Versioned Event Template / Event Definition.
+- [x] Event Run / Phase / Objective state.
+- [x] Explicit global / region / node / cohort scope.
+- [x] Authoritative lifecycle clock and restart recovery.
+- [x] Typed Event Effect references only; no arbitrary scripts or SQL.
 - [ ] Participant ledger, idempotent contribution and claim boundaries.
 - [ ] Reward Package references through normal reward services.
 - [ ] Cleanup / end / archive invariants.

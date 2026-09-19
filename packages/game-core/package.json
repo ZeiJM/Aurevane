@@ -50,7 +50,8 @@
     "./character/advanced-disciplines": "./src/character/advanced-disciplines.ts",
     "./combat/gameplay-tags": "./src/combat/gameplay-tags.ts",
     "./combat/terrain-overlays": "./src/combat/terrain-overlays.ts",
-    "./combat/combat-skill-copy": "./src/combat/combat-skill-copy.ts"
+    "./combat/combat-skill-copy": "./src/combat/combat-skill-copy.ts",
+    "./events/persistent-event": "./src/events/persistent-event.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
