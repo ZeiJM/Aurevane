@@ -24,6 +24,7 @@ export interface CharacterPresenceDirectoryEntry {
   lastSeenAt: string | null
   portraitRef: string | null
   disciplineId: string | null
+  secondaryDisciplineId: string | null
   personalTitle: string | null
   imageUrl: string | null
   isOnline: boolean
