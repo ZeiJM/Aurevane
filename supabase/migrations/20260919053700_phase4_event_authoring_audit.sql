@@ -99,6 +99,10 @@ declare
   v_published record;
 begin
   perform app_private.assert_sensitive_event_action_v1(p_reason, p_confirmed);
+  perform app_private.assert_event_production_publish_v1(
+    p_actor_user_id,
+    p_definition #>> '{scope,type}'
+  );
 
   if p_correlation_key is null then
     raise exception using errcode = '22023', message = 'EVENT_ACTION_CORRELATION_REQUIRED';
@@ -213,8 +217,10 @@ as $$
 declare
   v_existing app_private.event_authoring_audit%rowtype;
   v_scheduled record;
+  v_replay_scope_type text;
 begin
   perform app_private.assert_sensitive_event_action_v1(p_reason, p_confirmed);
+  perform app_private.assert_event_staff_author_v1(p_actor_user_id);
 
   if p_idempotency_key is null then
     raise exception using errcode = '22023', message = 'EVENT_ACTION_CORRELATION_REQUIRED';
@@ -227,6 +233,22 @@ begin
     and audit.correlation_key = p_idempotency_key;
 
   if found then
+    select run.scope_type
+    into v_replay_scope_type
+    from app_private.event_runs as run
+    where run.id = v_existing.run_id;
+
+    if not found then
+      raise exception using
+        errcode = '55000',
+        message = 'EVENT_AUTHORING_AUDIT_RESULT_UNAVAILABLE';
+    end if;
+
+    perform app_private.assert_event_operational_scope_v1(
+      p_actor_user_id,
+      v_replay_scope_type
+    );
+
     if v_existing.event_key <> p_event_key
       or v_existing.actor_user_id <> p_actor_user_id
       or v_existing.reason <> p_reason
@@ -316,9 +338,11 @@ as $$
 declare
   v_existing app_private.event_authoring_audit%rowtype;
   v_event_key text;
+  v_replay_scope_type text;
   v_transition record;
 begin
   perform app_private.assert_sensitive_event_action_v1(p_reason, p_confirmed);
+  perform app_private.assert_event_staff_author_v1(p_actor_user_id);
 
   if p_idempotency_key is null then
     raise exception using errcode = '22023', message = 'EVENT_ACTION_CORRELATION_REQUIRED';
@@ -331,6 +355,22 @@ begin
     and audit.correlation_key = p_idempotency_key;
 
   if found then
+    select run.scope_type
+    into v_replay_scope_type
+    from app_private.event_runs as run
+    where run.id = p_run_id;
+
+    if not found then
+      raise exception using
+        errcode = '55000',
+        message = 'EVENT_AUTHORING_AUDIT_RESULT_UNAVAILABLE';
+    end if;
+
+    perform app_private.assert_event_operational_scope_v1(
+      p_actor_user_id,
+      v_replay_scope_type
+    );
+
     if v_existing.run_id <> p_run_id
       or v_existing.actor_user_id <> p_actor_user_id
       or v_existing.reason <> p_reason

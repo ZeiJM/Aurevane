@@ -455,6 +455,32 @@ audit_total="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -
   where actor_user_id = '$staff_id'::uuid;")"
 test "$audit_total" = '4'
 
+docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+  set role service_role;
+  select public.revoke_master_panel_capability_v1(
+    '$owner_id'::uuid,
+    '$staff_id'::uuid,
+    'events.production_publish',
+    'P4.13 replay reauthorization verification'
+  );
+" >/dev/null
+
+if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+  set role service_role;
+  select * from public.publish_event_definition_v2(
+    '$staff_id'::uuid,
+    'event.p413-global',
+    $global_definition,
+    null,
+    '00000000-0000-4000-8000-000000004310'::uuid,
+    'P4.13 verified global publication',
+    true
+  );" >/tmp/p413-revoked-replay.out 2>/tmp/p413-revoked-replay.err; then
+  echo 'Revoked Event Staff unexpectedly replayed a privileged publication receipt.' >&2
+  exit 1
+fi
+grep -Fq 'EVENT_PRODUCTION_PUBLISH_CAPABILITY_REQUIRED' /tmp/p413-revoked-replay.err
+
 if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   set role authenticated;
   select * from public.save_event_definition_draft_v1(
