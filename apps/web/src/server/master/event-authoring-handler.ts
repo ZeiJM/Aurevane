@@ -160,10 +160,7 @@ export async function handleEventAuthoringRequest(
         idempotencyKey: requiredString(body.idempotencyKey, 'idempotencyKey'),
         requestFingerprint: requiredString(body.requestFingerprint, 'requestFingerprint'),
         scheduledStartAt: requiredString(body.scheduledStartAt, 'scheduledStartAt'),
-        scheduledEndAt: nullableString(
-          requireProperty(body, 'scheduledEndAt'),
-          'scheduledEndAt',
-        ),
+        scheduledEndAt: nullableString(requireProperty(body, 'scheduledEndAt'), 'scheduledEndAt'),
         reason: requiredString(body.reason, 'reason'),
         confirmed: requiredBoolean(body.confirmed, 'confirmed'),
       })
