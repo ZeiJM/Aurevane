@@ -353,13 +353,22 @@ test('Master combat authoring publishes versioned content, pins battles, and rol
 
   grantLocalMasterOperator(email)
 
-  await page.goto('/master')
-  await expect(page.getByRole('heading', { name: 'Operational control' })).toBeVisible()
-  await expect(page.getByText(/WORLDWRIGHT · GAME OWNER/)).toBeVisible()
-  await expect(page.getByRole('link', { name: /Staff & Authority/ })).toBeVisible()
+  await page.goto('/game/character')
+  await page.getByRole('button', { name: /Account/ }).click()
+  await expect(page.getByRole('menuitem', { name: /Master Panel/ })).toBeVisible()
+  await page.getByRole('menuitem', { name: /Master Panel/ }).click()
+  await expect(page).toHaveURL(/\/master$/)
+  await expect(page.getByRole('heading', { name: 'Master Panel' })).toBeVisible()
+  await expect(page.getByTestId('master-panel-authority')).toContainText('WORLDWRIGHT · GAME OWNER')
+  await expect(
+    page
+      .getByRole('navigation', { name: 'Master Panel navigation' })
+      .getByRole('link', { name: /Staff & Authority/ }),
+  ).toBeVisible()
+  await expect(page.getByTestId('master-panel-shell')).toBeVisible()
 
   await page.goto('/master/staff')
-  await expect(page.getByRole('heading', { name: 'Staff authority' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Staff & Authority' })).toBeVisible()
   await expect(page.getByText('WORLDWRIGHT · GAME OWNER', { exact: true })).toBeVisible()
 
   await page.goto('/master')

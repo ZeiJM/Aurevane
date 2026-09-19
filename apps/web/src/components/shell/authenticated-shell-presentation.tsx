@@ -24,6 +24,7 @@ export interface AuthenticatedShellPresentationProps extends GameRailProps {
   characterPortrait?: ReactNode
   activeBattleHref?: Route | null
   activeSpectatingHref?: Route | null
+  masterPanelHref?: Route | null
 }
 
 /** Resolved presentation only. Authentication and session authority stay in AuthenticatedShellFrame. */
@@ -36,6 +37,7 @@ export function AuthenticatedShellPresentation({
   activeSpectatingHref = null,
   activeSessionHref = activeBattleHref ?? activeSpectatingHref,
   activeSessionLabel = null,
+  masterPanelHref = null,
 }: AuthenticatedShellPresentationProps) {
   return (
     <div className={styles.worldFrame}>
@@ -102,6 +104,7 @@ export function AuthenticatedShellPresentation({
               activeSessionHref={activeSessionHref}
               activeSessionLabel={activeSessionLabel}
               characterName={character?.name ?? null}
+              masterPanelHref={masterPanelHref}
             />
           </div>
         </header>

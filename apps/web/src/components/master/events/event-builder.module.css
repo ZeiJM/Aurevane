@@ -1,6 +1,7 @@
 .builder {
   display: grid;
-  gap: 1.25rem;
+  width: 100%;
+  gap: 0.85rem;
 }
 
 .toolbar,
@@ -8,16 +9,17 @@
 .phaseHeader,
 .inlineActions {
   display: flex;
+  gap: 0.75rem;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
 }
 
 .toolbar {
-  padding: 1.25rem;
-  border: 1px solid rgb(255 255 255 / 10%);
-  border-radius: 1rem;
-  background: rgb(8 12 24 / 72%);
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius-md);
+  background:
+    linear-gradient(180deg, rgba(13, 24, 34, 0.9), rgba(7, 14, 22, 0.93)), var(--av-ink-900);
 }
 
 .toolbar h1,
@@ -25,13 +27,22 @@
 .card h2,
 .phaseCard h3 {
   margin: 0;
+  color: var(--av-parchment-100);
+  font-family: var(--av-font-display);
+  font-weight: 520;
+}
+
+.toolbar h1 {
+  font-size: clamp(1.25rem, 2vw, 1.65rem);
 }
 
 .toolbar p,
 .notice,
 .status p {
-  margin: 0.35rem 0 0;
-  color: rgb(226 232 240 / 76%);
+  margin: 0.3rem 0 0;
+  color: var(--av-text-dim);
+  font-size: 0.72rem;
+  line-height: 1.5;
 }
 
 .toolbarActions,
@@ -48,13 +59,22 @@
 }
 
 .builder button {
-  min-height: 2.5rem;
-  padding: 0.55rem 0.85rem;
-  border: 1px solid rgb(255 255 255 / 15%);
-  border-radius: 0.65rem;
-  background: rgb(255 255 255 / 7%);
-  color: inherit;
+  min-height: 2.35rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--av-border-strong);
+  border-radius: var(--av-radius-sm);
+  background: rgba(185, 154, 92, 0.07);
+  color: var(--av-text-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
   cursor: pointer;
+}
+
+.builder button:hover:not(:disabled),
+.builder button:focus-visible:not(:disabled) {
+  border-color: rgba(205, 169, 96, 0.55);
+  color: var(--av-brass-200);
+  background: rgba(185, 154, 92, 0.12);
 }
 
 .builder button:disabled {
@@ -63,76 +83,77 @@
 }
 
 .notice {
-  padding: 0.8rem 1rem;
-  border: 1px solid rgb(250 204 21 / 22%);
-  border-radius: 0.75rem;
-  background: rgb(120 53 15 / 16%);
+  padding: 0.7rem 0.85rem;
+  border: 1px solid rgba(205, 169, 96, 0.26);
+  border-radius: var(--av-radius-sm);
+  color: var(--av-brass-300);
+  background: rgba(120, 83, 28, 0.1);
 }
 
 .grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .card,
 .phaseCard,
 .status {
   display: grid;
-  gap: 0.9rem;
-  padding: 1rem;
-  border: 1px solid rgb(255 255 255 / 10%);
-  border-radius: 0.9rem;
-  background: rgb(8 12 24 / 58%);
+  gap: 0.75rem;
+  padding: 0.85rem;
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius-md);
+  background: rgba(8, 17, 27, 0.78);
 }
 
 .card label,
 .phaseCard label {
   display: grid;
-  gap: 0.35rem;
-  color: rgb(226 232 240 / 82%);
-  font-size: 0.9rem;
+  gap: 0.3rem;
+  color: var(--av-text-muted);
+  font-size: 0.72rem;
 }
 
 .builder input,
 .builder select,
 .builder textarea {
   width: 100%;
-  min-height: 2.55rem;
-  padding: 0.6rem 0.7rem;
-  border: 1px solid rgb(255 255 255 / 12%);
-  border-radius: 0.55rem;
-  background: rgb(2 6 23 / 76%);
-  color: inherit;
+  min-height: 2.4rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--av-border-strong);
+  border-radius: var(--av-radius-sm);
+  background: rgba(3, 10, 17, 0.86);
+  color: var(--av-text);
 }
 
 .builder textarea {
-  min-height: 5.5rem;
+  min-height: 5rem;
   resize: vertical;
 }
 
 .eyebrow {
-  margin: 0 0 0.3rem;
-  font-size: 0.73rem;
-  letter-spacing: 0.13em;
+  margin: 0 0 0.25rem;
+  color: var(--av-brass-300);
+  font: 700 0.55rem/1.2 var(--av-font-body);
+  letter-spacing: 0.11em;
   text-transform: uppercase;
-  color: rgb(196 181 253 / 84%);
 }
 
 .phases {
   display: grid;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .phaseCard {
-  gap: 1rem;
+  gap: 0.8rem;
 }
 
 .compositionGroup {
   display: grid;
-  gap: 0.6rem;
-  padding-top: 0.8rem;
-  border-top: 1px solid rgb(255 255 255 / 8%);
+  gap: 0.55rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--av-border);
 }
 
 .row {
@@ -140,7 +161,7 @@
   grid-template-columns:
     minmax(7rem, 1fr) minmax(8rem, 1fr) minmax(10rem, 1.4fr) minmax(5rem, 0.55fr)
     auto;
-  gap: 0.55rem;
+  gap: 0.5rem;
   align-items: center;
 }
 
@@ -160,11 +181,13 @@
   max-height: 20rem;
   overflow: auto;
   margin: 0;
-  padding: 0.8rem;
-  border-radius: 0.6rem;
-  background: rgb(2 6 23 / 72%);
+  padding: 0.75rem;
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius-sm);
+  background: rgba(2, 7, 13, 0.86);
+  color: var(--av-text-muted);
   white-space: pre-wrap;
-  font-size: 0.78rem;
+  font-size: 0.7rem;
 }
 
 @media (max-width: 900px) {
@@ -180,10 +203,7 @@
     justify-content: flex-start;
   }
 
-  .grid {
-    grid-template-columns: 1fr;
-  }
-
+  .grid,
   .row {
     grid-template-columns: 1fr;
   }

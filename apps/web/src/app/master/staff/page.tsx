@@ -1,11 +1,9 @@
-import Link from 'next/link'
-
+import { MasterPanelShell } from '@/components/master/master-panel-shell'
 import { StaffManagement } from '@/components/master/staff-management'
 import { requireMasterPanelPageAccess } from '@/server/master/master-panel-page-access'
 import {
   DELEGATED_MASTER_PANEL_ROLE_DETAILS,
   MASTER_PANEL_SPECIAL_CAPABILITY_DETAILS,
-  masterPanelAuthorityLabel,
 } from '@/server/master/staff-access'
 import { createServerMasterPanelStaffAccessService } from '@/server/master/staff-access-server'
 
@@ -16,45 +14,32 @@ export const dynamic = 'force-dynamic'
 export default async function MasterStaffPage() {
   const { actor, access } = await requireMasterPanelPageAccess('staff.manage')
   const staff = await createServerMasterPanelStaffAccessService().listStaff(actor.userId)
-  const owner = access.roles.includes('game-owner')
 
   return (
-    <main className={styles.page}>
-      <div className={styles.frame}>
-        <header className={styles.masthead}>
-          <div className={styles.brand}>
-            <strong>AUREVANE</strong>
-            <span>Master Panel · Staff &amp; Authority</span>
-          </div>
-          <span
-            className={[styles.operator, owner ? styles.worldwright : ''].filter(Boolean).join(' ')}
-          >
-            {owner ? (
-              <span className={styles.operatorIcon} aria-hidden="true">
-                ✦
-              </span>
-            ) : null}
-            {masterPanelAuthorityLabel(access.roles)}
-          </span>
-        </header>
-        <Link className={styles.breadcrumb} href="/master">
-          ← Master Panel
-        </Link>
-        <section className={styles.overview}>
-          <h1>Staff authority</h1>
-          <p>
-            Manage the four fixed authority classes and explicit account capabilities. Every change
-            is validated and audited on the server.
-          </p>
-        </section>
-        <div className={styles.moduleSpacing}>
-          <StaffManagement
-            capabilityOptions={MASTER_PANEL_SPECIAL_CAPABILITY_DETAILS}
-            roleOptions={DELEGATED_MASTER_PANEL_ROLE_DETAILS}
-            staff={staff}
-          />
+    <MasterPanelShell
+      access={access}
+      activeSection="staff"
+      title="Staff & Authority"
+      description="Delegate responsibility without weakening AUREVANE’s single protected Game Owner boundary."
+    >
+      <section className={styles.sectionPanel}>
+        <div>
+          <span className={styles.cardKicker}>Authority controls</span>
+          <h2>Roles, capabilities, and audited delegation.</h2>
         </div>
+        <p>
+          Every staff mutation requires server authority, a reason, and explicit confirmation.
+          Protected Game Owner identity cannot be created or removed through delegated controls.
+        </p>
+      </section>
+
+      <div className={styles.moduleSpacing}>
+        <StaffManagement
+          capabilityOptions={MASTER_PANEL_SPECIAL_CAPABILITY_DETAILS}
+          roleOptions={DELEGATED_MASTER_PANEL_ROLE_DETAILS}
+          staff={staff}
+        />
       </div>
-    </main>
+    </MasterPanelShell>
   )
 }
