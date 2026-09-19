@@ -121,6 +121,16 @@ run_id="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d pos
   returning id::text;")"
 test -n "$run_id"
 
+p414_operation_privileges="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+  select
+    has_function_privilege('service_role','public.operate_event_run_v1(uuid,uuid,bigint,uuid,text,text)','EXECUTE')::text || '|' ||
+    has_function_privilege('service_role','public.operate_event_run_v2(uuid,uuid,bigint,uuid,text,text,boolean)','EXECUTE')::text || '|' ||
+    has_function_privilege('service_role','public.advance_event_run_phase_v1(uuid,uuid,bigint,uuid,text)','EXECUTE')::text || '|' ||
+    has_function_privilege('service_role','public.advance_event_run_phase_v2(uuid,uuid,bigint,uuid,text,boolean)','EXECUTE')::text || '|' ||
+    has_function_privilege('service_role','public.complete_event_cleanup_requirement_v1(uuid,uuid,text,integer,uuid,text)','EXECUTE')::text || '|' ||
+    has_function_privilege('service_role','public.complete_event_cleanup_requirement_v2(uuid,uuid,text,integer,uuid,text,boolean)','EXECUTE')::text;")"
+test "$p414_operation_privileges" = 'false|true|false|true|false|true'
+
 docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   insert into app_private.event_run_phases (
     run_id, phase_id, ordinal, phase_status
@@ -143,14 +153,15 @@ operate() {
   docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
     set role service_role;
     select lifecycle_status || '|' || state_version::text || '|' || replayed::text
-    from public.operate_event_run_v1(
+    from public.operate_event_run_v2(
       '$staff_id'::uuid,
       '$run_id'::uuid,
       '$version'::bigint,
       '$key'::uuid,
       '$command',
       '$reason'
-    );"
+    ,
+    true);"
 }
 
 test "$(operate 1 '00000000-0000-4000-8000-000000004401' 'start' 'P4.14 start run')" = 'live|2|false'
@@ -241,36 +252,39 @@ test "$dashboard_live" = 'live|1|4|4|announcement.p414-live'
 advance="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   set role service_role;
   select current_phase_id || '|' || state_version::text || '|' || replayed::text
-  from public.advance_event_run_phase_v1(
+  from public.advance_event_run_phase_v2(
     '$staff_id'::uuid,
     '$run_id'::uuid,
     4,
     '00000000-0000-4000-8000-000000004404'::uuid,
     'P4.14 advance to aftermath'
-  );")"
+  ,
+  true);")"
 test "$advance" = 'aftermath|5|false'
 
 advance_replay="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   set role service_role;
   select current_phase_id || '|' || state_version::text || '|' || replayed::text
-  from public.advance_event_run_phase_v1(
+  from public.advance_event_run_phase_v2(
     '$staff_id'::uuid,
     '$run_id'::uuid,
     4,
     '00000000-0000-4000-8000-000000004404'::uuid,
     'P4.14 advance to aftermath'
-  );")"
+  ,
+  true);")"
 test "$advance_replay" = 'aftermath|5|true'
 
 if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   set role service_role;
-  select * from public.advance_event_run_phase_v1(
+  select * from public.advance_event_run_phase_v2(
     '$staff_id'::uuid,
     '$run_id'::uuid,
     5,
     '00000000-0000-4000-8000-000000004404'::uuid,
     'P4.14 advance to aftermath'
-  );" >/tmp/p414-advance-key-conflict.out 2>/tmp/p414-advance-key-conflict.err; then
+  ,
+  true);" >/tmp/p414-advance-key-conflict.out 2>/tmp/p414-advance-key-conflict.err; then
   echo 'Expected phase-advance key reuse with a different expected state version to fail.' >&2
   exit 1
 fi
@@ -333,27 +347,29 @@ grep -Fq 'EVENT_RUN_CLEANUP_PENDING' /tmp/p414-archive-pending.err
 cleanup="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   set role service_role;
   select cleanup_status || '|' || state_version::text || '|' || replayed::text
-  from public.complete_event_cleanup_requirement_v1(
+  from public.complete_event_cleanup_requirement_v2(
     '$staff_id'::uuid,
     '$run_id'::uuid,
     'mobilization',
     0,
     '00000000-0000-4000-8000-000000004408'::uuid,
     'P4.14 typed cleanup verified'
-  );")"
+  ,
+  true);")"
 test "$cleanup" = 'completed|8|false'
 
 cleanup_replay="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   set role service_role;
   select cleanup_status || '|' || state_version::text || '|' || replayed::text
-  from public.complete_event_cleanup_requirement_v1(
+  from public.complete_event_cleanup_requirement_v2(
     '$staff_id'::uuid,
     '$run_id'::uuid,
     'mobilization',
     0,
     '00000000-0000-4000-8000-000000004408'::uuid,
     'P4.14 typed cleanup verified'
-  );")"
+  ,
+  true);")"
 test "$cleanup_replay" = 'completed|8|true'
 
 test "$(operate 8 '00000000-0000-4000-8000-000000004409' 'archive' 'P4.14 archive run')" = 'archived|9|false'
@@ -425,14 +441,15 @@ docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
 
 if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   set role service_role;
-  select * from public.operate_event_run_v1(
+  select * from public.operate_event_run_v2(
     '$staff_id'::uuid,
     '$emergency_run'::uuid,
     1,
     '00000000-0000-4000-8000-000000004420'::uuid,
     'emergency-stop',
     'P4.14 emergency denial'
-  );" >/tmp/p414-emergency-denied.out 2>/tmp/p414-emergency-denied.err; then
+  ,
+  true);" >/tmp/p414-emergency-denied.out 2>/tmp/p414-emergency-denied.err; then
   echo 'Expected emergency stop without explicit capability to fail.' >&2
   exit 1
 fi
@@ -451,14 +468,15 @@ docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
 emergency="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   set role service_role;
   select lifecycle_status || '|' || state_version::text
-  from public.operate_event_run_v1(
+  from public.operate_event_run_v2(
     '$staff_id'::uuid,
     '$emergency_run'::uuid,
     1,
     '00000000-0000-4000-8000-000000004421'::uuid,
     'emergency-stop',
     'P4.14 emergency stop'
-  );")"
+  ,
+  true);")"
 test "$emergency" = 'emergency-stopped|2'
 
 emergency_cleanup="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
@@ -524,14 +542,15 @@ docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
 
 if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   set role service_role;
-  select * from public.operate_event_run_v1(
+  select * from public.operate_event_run_v2(
     '$staff_id'::uuid,
     '$expired_run'::uuid,
     1,
     '00000000-0000-4000-8000-000000004430'::uuid,
     'start',
     'P4.14 expired window start'
-  );" >/tmp/p414-expired-start.out 2>/tmp/p414-expired-start.err; then
+  ,
+  true);" >/tmp/p414-expired-start.out 2>/tmp/p414-expired-start.err; then
   echo 'Expected an expired scheduled Event Run to reject manual start.' >&2
   exit 1
 fi
@@ -610,13 +629,14 @@ docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
 
 if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   set role service_role;
-  select * from public.advance_event_run_phase_v1(
+  select * from public.advance_event_run_phase_v2(
     '$staff_id'::uuid,
     '$elapsed_run'::uuid,
     1,
     '00000000-0000-4000-8000-000000004431'::uuid,
     'P4.14 illegal manual elapsed advance'
-  );" >/tmp/p414-nonmanual-advance.out 2>/tmp/p414-nonmanual-advance.err; then
+  ,
+  true);" >/tmp/p414-nonmanual-advance.out 2>/tmp/p414-nonmanual-advance.err; then
   echo 'Expected manual phase advance to reject a non-manual transition.' >&2
   exit 1
 fi
