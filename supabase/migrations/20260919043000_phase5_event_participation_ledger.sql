@@ -260,6 +260,17 @@ begin
   end if;
 
   perform 1
+  from app_private.event_run_phases as phase
+  where phase.run_id = p_run_id
+    and phase.phase_id = p_phase_id
+    and phase.phase_status = 'live'
+    and v_run.current_phase_id = p_phase_id;
+
+  if not found then
+    raise exception using errcode = '22023', message = 'EVENT_CONTRIBUTION_PHASE_NOT_LIVE';
+  end if;
+
+  perform 1
   from public.characters as character
   where character.id = p_character_id
     and character.user_id = p_user_id;
