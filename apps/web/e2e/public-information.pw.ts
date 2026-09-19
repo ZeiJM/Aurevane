@@ -253,7 +253,7 @@ test('mobile News, Manual, and Rules keep identical typography between game and 
     .split('')
     .map((digit) => String.fromCharCode(65 + Number(digit)))
     .join('')
-  const characterName = `Guide Mobile ${suffix}`
+  const characterName = `GM ${suffix}`
 
   await createAccountAndEnterCharacter({ page, email, password, characterName })
 
