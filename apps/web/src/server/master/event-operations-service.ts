@@ -74,7 +74,6 @@ export interface EventOperationDashboard {
   }[]
   readonly participants: readonly {
     readonly characterId: string
-    readonly userId: string
     readonly firstParticipatedAt: string
     readonly lastContributedAt: string | null
     readonly contributionCount: number
