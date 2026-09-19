@@ -162,6 +162,9 @@ export function validatePersistentEventDefinition(definition: PersistentEventDef
     throw new TypeError('Unknown event family.')
   }
 
+  if (!['global', 'region', 'node', 'cohort'].includes(definition.scope.type)) {
+    throw new TypeError('Unknown event scope type.')
+  }
   if (definition.scope.type !== 'global') identity(definition.scope.key, 'Event scope key')
 
   if (definition.phases.length < 1 || definition.phases.length > 24) {
@@ -176,6 +179,7 @@ export function validatePersistentEventDefinition(definition: PersistentEventDef
     phaseIds.add(phase.id)
 
     if (phase.objectives.length > 48) throw new RangeError('A phase may define at most 48 objectives.')
+    const phaseObjectiveIds = new Set<string>()
     for (const objective of phase.objectives) {
       identity(objective.id, 'Objective id')
       identity(objective.referenceKey, 'Objective reference')
@@ -187,12 +191,16 @@ export function validatePersistentEventDefinition(definition: PersistentEventDef
         throw new TypeError(`Duplicate event objective ${objective.id}.`)
       }
       objectiveIds.add(objective.id)
+      phaseObjectiveIds.add(objective.id)
     }
 
     for (const effect of [...phase.effects, ...phase.cleanupEffects]) {
       identity(effect.referenceKey, 'Event effect reference')
       if (!(EVENT_EFFECT_TYPES as readonly string[]).includes(effect.type)) {
         throw new TypeError('Unknown event effect type.')
+      }
+      if (typeof effect.enabled !== 'boolean') {
+        throw new TypeError('Event effect enabled must be boolean.')
       }
     }
 
@@ -202,8 +210,10 @@ export function validatePersistentEventDefinition(definition: PersistentEventDef
       isoTimestamp(phase.transition.at, 'Scheduled phase transition')
     } else if (phase.transition.type === 'objective-threshold') {
       identity(phase.transition.objectiveId, 'Transition objective id')
-      if (!objectiveIds.has(phase.transition.objectiveId)) {
-        throw new TypeError('Objective-threshold transition must reference a defined objective.')
+      if (!phaseObjectiveIds.has(phase.transition.objectiveId)) {
+        throw new TypeError(
+          'Objective-threshold transition must reference an objective in the same phase.',
+        )
       }
     }
   }
