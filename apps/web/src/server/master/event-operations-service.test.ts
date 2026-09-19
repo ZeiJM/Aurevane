@@ -130,6 +130,7 @@ describe('live Event operations service', () => {
       idempotencyKey,
       command: 'pause',
       reason: 'Pause for verification',
+      confirmed: true,
     })
 
     expect(result.lifecycleStatus).toBe('paused')
@@ -141,6 +142,25 @@ describe('live Event operations service', () => {
         command: 'pause',
       }),
     )
+  })
+
+  it('requires explicit confirmation for a normal live Event mutation', async () => {
+    const service = createEventOperationsService({
+      store: store(),
+      staffAccess: staffAccess(['master.access', 'events.operate']),
+    })
+
+    await expect(
+      service.operate({
+        actorUserId: 'staff',
+        runId,
+        expectedStateVersion: 3,
+        idempotencyKey,
+        command: 'pause',
+        reason: 'Pause for verification',
+        confirmed: false,
+      }),
+    ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
   })
 
   it('requires explicit emergency-stop capability for emergency shutdown', async () => {
@@ -157,6 +177,7 @@ describe('live Event operations service', () => {
         idempotencyKey,
         command: 'emergency-stop',
         reason: 'Emergency shutdown',
+        confirmed: true,
       }),
     ).rejects.toMatchObject({ code: 'FORBIDDEN' })
   })
@@ -179,6 +200,7 @@ describe('live Event operations service', () => {
       idempotencyKey,
       command: 'emergency-stop',
       reason: 'Emergency shutdown',
+      confirmed: true,
     })
 
     expect(result.lifecycleStatus).toBe('emergency-stopped')
@@ -197,6 +219,7 @@ describe('live Event operations service', () => {
         expectedStateVersion: 0,
         idempotencyKey,
         reason: 'Advance phase',
+        confirmed: true,
       }),
     ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
 
@@ -207,7 +230,8 @@ describe('live Event operations service', () => {
         phaseId: 'mobilization',
         effectOrdinal: -1,
         completionKey: idempotencyKey,
-        note: 'Cleanup complete',
+        reason: 'Cleanup complete',
+        confirmed: true,
       }),
     ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
   })
