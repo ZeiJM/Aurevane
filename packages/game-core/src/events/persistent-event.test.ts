@@ -56,7 +56,18 @@ const definition = (): PersistentEventDefinition => ({
   aftermathRefs: ['aftermath.frostmere-storm'],
 })
 
-const cloneDefinition = (): any => JSON.parse(JSON.stringify(definition()))
+type MalformedEventFixture = {
+  phases: Array<{
+    effects: Array<{ type: string }>
+    transition: { type: string; objectiveId?: string }
+  }>
+}
+
+const cloneDefinition = (): MalformedEventFixture =>
+  JSON.parse(JSON.stringify(definition())) as MalformedEventFixture
+
+const validateMalformedFixture = (fixture: MalformedEventFixture): void =>
+  validatePersistentEventDefinition(fixture as unknown as PersistentEventDefinition)
 
 describe('persistent event definition', () => {
   it('accepts typed scoped multi-phase definitions', () => {
@@ -66,17 +77,17 @@ describe('persistent event definition', () => {
   it('rejects arbitrary effect kinds and unknown objective transition references', () => {
     const invalidEffect = cloneDefinition()
     invalidEffect.phases[0].effects[0].type = 'script'
-    expect(() => validatePersistentEventDefinition(invalidEffect)).toThrow(/effect type/i)
+    expect(() => validateMalformedFixture(invalidEffect)).toThrow(/effect type/i)
 
     const invalidTransition = cloneDefinition()
     invalidTransition.phases[0].transition.objectiveId = 'missing'
-    expect(() => validatePersistentEventDefinition(invalidTransition)).toThrow(/same phase/i)
+    expect(() => validateMalformedFixture(invalidTransition)).toThrow(/same phase/i)
   })
 
   it('rejects a transition tied to an objective from another phase', () => {
     const invalid = cloneDefinition()
     invalid.phases[1].transition = { type: 'objective-threshold', objectiveId: 'survey' }
-    expect(() => validatePersistentEventDefinition(invalid)).toThrow(/same phase/i)
+    expect(() => validateMalformedFixture(invalid)).toThrow(/same phase/i)
   })
 
   it('enforces the approved lifecycle transition graph', () => {
