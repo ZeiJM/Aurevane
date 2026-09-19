@@ -85,6 +85,9 @@ export interface EventAuthoringStore {
     eventKey: string
     definition: PersistentEventDefinition
     expectedBaseVersion: number | null
+    correlationKey: string
+    reason: string
+    confirmed: boolean
   }): Promise<EventDefinitionVersionRecord>
   schedule(input: {
     eventKey: string
@@ -92,12 +95,15 @@ export interface EventAuthoringStore {
     requestFingerprint: string
     scheduledStartAt: string
     scheduledEndAt: string | null
+    reason: string
+    confirmed: boolean
   }): Promise<ScheduledEventRunRecord>
   cancelScheduled(input: {
     runId: string
     expectedStateVersion: number
     idempotencyKey: string
     reason: string
+    confirmed: boolean
   }): Promise<EventRunTransitionRecord>
 }
 
@@ -128,6 +134,9 @@ export interface EventAuthoringService {
     actorUserId: string
     definition: unknown
     expectedBaseVersion: number | null
+    correlationKey: string
+    reason: string
+    confirmed: boolean
   }): Promise<EventDefinitionVersionRecord>
   schedule(input: {
     actorUserId: string
@@ -136,6 +145,8 @@ export interface EventAuthoringService {
     requestFingerprint: string
     scheduledStartAt: string
     scheduledEndAt: string | null
+    reason: string
+    confirmed: boolean
   }): Promise<ScheduledEventRunRecord>
   cancelScheduled(input: {
     actorUserId: string
@@ -143,6 +154,7 @@ export interface EventAuthoringService {
     expectedStateVersion: number
     idempotencyKey: string
     reason: string
+    confirmed: boolean
   }): Promise<EventRunTransitionRecord>
 }
 
@@ -254,6 +266,23 @@ function requiredReason(value: string): string {
   return value
 }
 
+function requiredConfirmation(value: boolean): true {
+  if (value !== true) {
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Confirm this Production Event action before continuing.',
+    )
+  }
+  return true
+}
+
+function requiredUuid(value: string, field: string): string {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)) {
+    throw new AurevaneError('INVALID_REQUEST', `${field} must be a UUID.`)
+  }
+  return value
+}
+
 function validTimestamp(value: string, field: string): string {
   if (!Number.isFinite(Date.parse(value))) {
     throw new AurevaneError('INVALID_REQUEST', `${field} must be an ISO timestamp.`)
@@ -343,15 +372,16 @@ export function createEventAuthoringService({
         eventKey: input.definition.eventKey,
         definition: structuredClone(input.definition),
         expectedBaseVersion: input.expectedBaseVersion,
+        correlationKey: requiredUuid(input.correlationKey, 'correlationKey'),
+        reason: requiredReason(input.reason),
+        confirmed: requiredConfirmation(input.confirmed),
       })
     },
 
     async schedule(input) {
       const access = await staffAccess.requireCapability(input.actorUserId, 'events.operate')
       stableIdentity(input.eventKey, 'eventKey')
-      if (!/^[0-9a-f-]{36}$/i.test(input.idempotencyKey)) {
-        throw new AurevaneError('INVALID_REQUEST', 'idempotencyKey must be a UUID.')
-      }
+      requiredUuid(input.idempotencyKey, 'idempotencyKey')
       if (!input.requestFingerprint || input.requestFingerprint.length > 160) {
         throw new AurevaneError('INVALID_REQUEST', 'requestFingerprint must be 1–160 characters.')
       }
@@ -377,20 +407,20 @@ export function createEventAuthoringService({
         requestFingerprint: input.requestFingerprint,
         scheduledStartAt: start,
         scheduledEndAt: end,
+        reason: requiredReason(input.reason),
+        confirmed: requiredConfirmation(input.confirmed),
       })
     },
 
     async cancelScheduled(input) {
       await staffAccess.requireCapability(input.actorUserId, 'events.operate')
       positiveInteger(input.expectedStateVersion, 'expectedStateVersion')
-      if (!/^[0-9a-f-]{36}$/i.test(input.runId) || !/^[0-9a-f-]{36}$/i.test(input.idempotencyKey)) {
-        throw new AurevaneError('INVALID_REQUEST', 'runId and idempotencyKey must be UUIDs.')
-      }
       return store.cancelScheduled({
-        runId: input.runId,
+        runId: requiredUuid(input.runId, 'runId'),
         expectedStateVersion: input.expectedStateVersion,
-        idempotencyKey: input.idempotencyKey,
+        idempotencyKey: requiredUuid(input.idempotencyKey, 'idempotencyKey'),
         reason: requiredReason(input.reason),
+        confirmed: requiredConfirmation(input.confirmed),
       })
     },
   }
