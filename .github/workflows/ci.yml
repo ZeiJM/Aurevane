@@ -97,6 +97,9 @@ jobs:
       - name: Verify Phase 4 Event terminal cleanup
         run: bash .github/scripts/verify-phase4-event-terminal-cleanup.sh
 
+      - name: Verify Phase 4 pre-start Event cleanup isolation
+        run: bash .github/scripts/verify-phase4-event-prestart-cleanup.sh
+
       - name: Verify Phase 4 Event Builder
         run: bash .github/scripts/verify-phase4-event-builder.sh
 
