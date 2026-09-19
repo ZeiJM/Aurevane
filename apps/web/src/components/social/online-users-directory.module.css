@@ -132,7 +132,7 @@
 }
 
 .columnHeadings > :is(:nth-child(2), :nth-child(3)) {
-  transform: translateX(0.35rem);
+  transform: translateX(0.55rem);
 }
 .list {
   display: grid;
