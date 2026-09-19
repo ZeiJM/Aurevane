@@ -28,7 +28,7 @@ export const gameNavigation = [
     icon: 'training',
   },
   {
-    href: '/game/items',
+    href: null,
     label: 'Items',
     detail: 'Equipment and Items are coming soon',
     symbol: '□',
