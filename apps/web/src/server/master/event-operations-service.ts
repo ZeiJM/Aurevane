@@ -259,7 +259,7 @@ export function createEventOperationsService(input: {
     },
 
     async operate(operation) {
-      const access = await requireOperator(operation.actorUserId)
+      await requireOperator(operation.actorUserId)
       const operationCommand = command(operation.command)
       if (operationCommand === 'emergency-stop') {
         await staffAccess.requireCapability(operation.actorUserId, 'events.emergency_stop')
