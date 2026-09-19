@@ -204,7 +204,9 @@ test('Event Staff uses structured Event Builder without preview state leakage', 
   await expect(page.getByLabel('Event key')).toHaveValue(eventKey)
   await expect(page.getByLabel('Objective reference')).toHaveValue('objective.browser-community')
 
-  await page.getByLabel('Production action reason').fill('Publish browser-verified Event definition')
+  await page
+    .getByLabel('Production action reason')
+    .fill('Publish browser-verified Event definition')
   await page.getByLabel('Confirm Production action').check()
   await expect(publishButton).toBeEnabled()
 
