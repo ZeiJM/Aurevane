@@ -147,7 +147,7 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
         ? preferredRunId
         : selectedRunId && nextRuns.some((run) => run.runId === selectedRunId)
           ? selectedRunId
-          : nextRuns[0]?.runId ?? ''
+          : (nextRuns[0]?.runId ?? '')
     setSelectedRunId(nextSelected)
     if (!nextSelected) {
       setDashboard(null)
@@ -292,24 +292,73 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
             <article className={styles.card}>
               <h2>Run state</h2>
               <dl>
-                <div><dt>Status</dt><dd>{dashboard.run.lifecycleStatus}</dd></div>
-                <div><dt>Version</dt><dd>{dashboard.run.stateVersion}</dd></div>
-                <div><dt>Scope</dt><dd>{dashboard.run.scopeType}{dashboard.run.scopeKey ? ` · ${dashboard.run.scopeKey}` : ''}</dd></div>
-                <div><dt>Current phase</dt><dd>{dashboard.run.currentPhaseId ?? '—'}</dd></div>
-                <div><dt>Scheduled</dt><dd>{when(dashboard.run.scheduledStartAt)}</dd></div>
-                <div><dt>Started</dt><dd>{when(dashboard.run.startedAt)}</dd></div>
-                <div><dt>Cleanup</dt><dd>{dashboard.run.cleanupStatus}</dd></div>
+                <div>
+                  <dt>Status</dt>
+                  <dd>{dashboard.run.lifecycleStatus}</dd>
+                </div>
+                <div>
+                  <dt>Version</dt>
+                  <dd>{dashboard.run.stateVersion}</dd>
+                </div>
+                <div>
+                  <dt>Scope</dt>
+                  <dd>
+                    {dashboard.run.scopeType}
+                    {dashboard.run.scopeKey ? ` · ${dashboard.run.scopeKey}` : ''}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Current phase</dt>
+                  <dd>{dashboard.run.currentPhaseId ?? '—'}</dd>
+                </div>
+                <div>
+                  <dt>Scheduled</dt>
+                  <dd>{when(dashboard.run.scheduledStartAt)}</dd>
+                </div>
+                <div>
+                  <dt>Started</dt>
+                  <dd>{when(dashboard.run.startedAt)}</dd>
+                </div>
+                <div>
+                  <dt>Cleanup</dt>
+                  <dd>{dashboard.run.cleanupStatus}</dd>
+                </div>
               </dl>
             </article>
 
             <article className={styles.card}>
               <h2>Participants &amp; claims</h2>
               <dl>
-                <div><dt>Participants</dt><dd>{dashboard.participants.length}</dd></div>
-                <div><dt>Contributions</dt><dd>{dashboard.participants.reduce((sum, entry) => sum + entry.contributionCount, 0)}</dd></div>
-                <div><dt>Contribution total</dt><dd>{dashboard.participants.reduce((sum, entry) => sum + entry.contributionTotal, 0)}</dd></div>
-                <div><dt>Claim reservations</dt><dd>{dashboard.claims.length}</dd></div>
-                <div><dt>Executed claims</dt><dd>{dashboard.claims.filter((claim) => claim.executed).length}</dd></div>
+                <div>
+                  <dt>Participants</dt>
+                  <dd>{dashboard.participants.length}</dd>
+                </div>
+                <div>
+                  <dt>Contributions</dt>
+                  <dd>
+                    {dashboard.participants.reduce(
+                      (sum, entry) => sum + entry.contributionCount,
+                      0,
+                    )}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Contribution total</dt>
+                  <dd>
+                    {dashboard.participants.reduce(
+                      (sum, entry) => sum + entry.contributionTotal,
+                      0,
+                    )}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Claim reservations</dt>
+                  <dd>{dashboard.claims.length}</dd>
+                </div>
+                <div>
+                  <dt>Executed claims</dt>
+                  <dd>{dashboard.claims.filter((claim) => claim.executed).length}</dd>
+                </div>
               </dl>
             </article>
           </section>
@@ -339,25 +388,65 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
             <h2>Lifecycle controls</h2>
             <div className={styles.actionRow}>
               {status === 'scheduled' ? (
-                <button type="button" onClick={() => void operate('start', 'start')} disabled={busy || !operationReady}>
+                <button
+                  type="button"
+                  onClick={() => void operate('start', 'start')}
+                  disabled={busy || !operationReady}
+                >
                   Start due run
                 </button>
               ) : null}
               {status === 'live' ? (
                 <>
-                  <button type="button" onClick={() => void operate('pause', 'pause')} disabled={busy || !operationReady}>Pause</button>
-                  <button type="button" onClick={() => void advancePhase()} disabled={busy || !operationReady}>Advance phase</button>
-                  <button type="button" onClick={() => void operate('stop', 'graceful stop')} disabled={busy || !operationReady}>Stop / resolve</button>
+                  <button
+                    type="button"
+                    onClick={() => void operate('pause', 'pause')}
+                    disabled={busy || !operationReady}
+                  >
+                    Pause
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void advancePhase()}
+                    disabled={busy || !operationReady}
+                  >
+                    Advance phase
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void operate('stop', 'graceful stop')}
+                    disabled={busy || !operationReady}
+                  >
+                    Stop / resolve
+                  </button>
                 </>
               ) : null}
               {status === 'paused' ? (
                 <>
-                  <button type="button" onClick={() => void operate('resume', 'resume')} disabled={busy || !operationReady}>Resume</button>
-                  <button type="button" onClick={() => void operate('stop', 'graceful stop')} disabled={busy || !operationReady}>Stop / resolve</button>
+                  <button
+                    type="button"
+                    onClick={() => void operate('resume', 'resume')}
+                    disabled={busy || !operationReady}
+                  >
+                    Resume
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void operate('stop', 'graceful stop')}
+                    disabled={busy || !operationReady}
+                  >
+                    Stop / resolve
+                  </button>
                 </>
               ) : null}
               {status === 'resolving' ? (
-                <button type="button" onClick={() => void operate('end', 'end')} disabled={busy || !operationReady}>End run</button>
+                <button
+                  type="button"
+                  onClick={() => void operate('end', 'end')}
+                  disabled={busy || !operationReady}
+                >
+                  End run
+                </button>
               ) : null}
               {['scheduled', 'live', 'paused', 'resolving'].includes(status) && canEmergencyStop ? (
                 <button
@@ -399,7 +488,9 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
                   {phase.objectives.map((objective) => (
                     <div key={objective.objectiveId} className={styles.objective}>
                       <span>{objective.objectiveId}</span>
-                      <strong>{objective.progress} / {objective.target}</strong>
+                      <strong>
+                        {objective.progress} / {objective.target}
+                      </strong>
                       <small>{objective.status}</small>
                     </div>
                   ))}
@@ -429,8 +520,13 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
               {dashboard.participants.map((participant) => (
                 <div key={participant.characterId}>
                   <strong>{participant.characterId.slice(0, 8)}</strong>
-                  <span>{participant.contributionCount} contributions · {participant.contributionTotal} total</span>
-                  <small>{when(participant.lastContributedAt ?? participant.firstParticipatedAt)}</small>
+                  <span>
+                    {participant.contributionCount} contributions · {participant.contributionTotal}{' '}
+                    total
+                  </span>
+                  <small>
+                    {when(participant.lastContributedAt ?? participant.firstParticipatedAt)}
+                  </small>
                 </div>
               ))}
             </div>
@@ -443,8 +539,13 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
               {dashboard.claims.map((claim) => (
                 <div key={claim.reservationId}>
                   <strong>{claim.rewardPackageRef}</strong>
-                  <span>{claim.executed ? 'executed' : 'reserved'} · character {claim.characterId.slice(0, 8)}</span>
-                  <small>{claim.executedAt ? when(claim.executedAt) : when(claim.reservedAt)}</small>
+                  <span>
+                    {claim.executed ? 'executed' : 'reserved'} · character{' '}
+                    {claim.characterId.slice(0, 8)}
+                  </span>
+                  <small>
+                    {claim.executedAt ? when(claim.executedAt) : when(claim.reservedAt)}
+                  </small>
                 </div>
               ))}
             </div>
@@ -457,13 +558,13 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
               {dashboard.cleanupRequirements.map((cleanup) => (
                 <div key={`${cleanup.phaseId}-${cleanup.effectOrdinal}`}>
                   <strong>{cleanup.effectType}</strong>
-                  <span>{cleanup.referenceKey} · {cleanup.status}</span>
+                  <span>
+                    {cleanup.referenceKey} · {cleanup.status}
+                  </span>
                   {cleanup.status === 'pending' ? (
                     <button
                       type="button"
-                      onClick={() =>
-                        void completeCleanup(cleanup.phaseId, cleanup.effectOrdinal)
-                      }
+                      onClick={() => void completeCleanup(cleanup.phaseId, cleanup.effectOrdinal)}
                       disabled={busy || !operationReady}
                     >
                       Confirm cleanup completed
