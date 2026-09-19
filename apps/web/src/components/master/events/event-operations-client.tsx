@@ -66,7 +66,6 @@ interface Dashboard {
   }>
   participants: Array<{
     characterId: string
-    userId: string
     firstParticipatedAt: string
     lastContributedAt: string | null
     contributionCount: number
