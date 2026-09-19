@@ -166,7 +166,7 @@ grant select, insert, update on table app_private.event_publications to service_
 grant select, insert on table app_private.event_runs to service_role;
 grant select, insert, update on table app_private.event_run_phases to service_role;
 grant select, insert, update on table app_private.event_run_objectives to service_role;
-grant select, insert on table app_private.event_run_transitions to service_role;
+grant select on table app_private.event_run_transitions to service_role;
 
 create or replace function public.read_current_event_definition_v1(
   p_event_key text
