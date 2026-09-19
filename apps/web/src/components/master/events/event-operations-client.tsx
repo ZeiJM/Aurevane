@@ -228,11 +228,7 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
     )
   }
 
-  async function completeCleanup(
-    phaseId: string,
-    effectOrdinal: number,
-    referenceKey: string,
-  ) {
+  async function completeCleanup(phaseId: string, effectOrdinal: number) {
     if (!dashboard) return
     await mutate(
       {
@@ -263,7 +259,7 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
             Chronicle history.
           </p>
         </div>
-        <button type="button" onClick={() => void refresh()} disabled={busy || !operationReady}>
+        <button type="button" onClick={() => void refresh()} disabled={busy}>
           Refresh
         </button>
       </header>
@@ -368,7 +364,7 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
                   type="button"
                   className={styles.danger}
                   onClick={() => void operate('emergency-stop', 'emergency stop')}
-                  disabled={busy}
+                  disabled={busy || !operationReady}
                 >
                   Emergency stop
                 </button>
@@ -466,11 +462,7 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
                     <button
                       type="button"
                       onClick={() =>
-                        void completeCleanup(
-                          cleanup.phaseId,
-                          cleanup.effectOrdinal,
-                          cleanup.referenceKey,
-                        )
+                        void completeCleanup(cleanup.phaseId, cleanup.effectOrdinal)
                       }
                       disabled={busy || !operationReady}
                     >
