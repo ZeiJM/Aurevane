@@ -132,6 +132,7 @@ export interface EventOperationsStore {
     idempotencyKey: string
     command: EventOperationCommand
     reason: string
+    confirmed: boolean
   }): Promise<EventRunMutationRecord>
   advancePhase(input: {
     actorUserId: string
@@ -139,6 +140,7 @@ export interface EventOperationsStore {
     expectedStateVersion: number
     idempotencyKey: string
     reason: string
+    confirmed: boolean
   }): Promise<EventPhaseAdvanceRecord>
   completeCleanup(input: {
     actorUserId: string
@@ -146,7 +148,8 @@ export interface EventOperationsStore {
     phaseId: string
     effectOrdinal: number
     completionKey: string
-    note: string
+    reason: string
+    confirmed: boolean
   }): Promise<EventCleanupCompletionRecord>
 }
 
@@ -161,6 +164,7 @@ export interface EventOperationsService {
     idempotencyKey: string
     command: EventOperationCommand
     reason: string
+    confirmed: boolean
   }): Promise<EventRunMutationRecord>
   advancePhase(input: {
     actorUserId: string
@@ -168,6 +172,7 @@ export interface EventOperationsService {
     expectedStateVersion: number
     idempotencyKey: string
     reason: string
+    confirmed: boolean
   }): Promise<EventPhaseAdvanceRecord>
   completeCleanup(input: {
     actorUserId: string
@@ -175,7 +180,8 @@ export interface EventOperationsService {
     phaseId: string
     effectOrdinal: number
     completionKey: string
-    note: string
+    reason: string
+    confirmed: boolean
   }): Promise<EventCleanupCompletionRecord>
 }
 
@@ -211,6 +217,16 @@ function reason(value: string, field: string): string {
     )
   }
   return value
+}
+
+function confirmed(value: boolean): true {
+  if (value !== true) {
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Confirm this live Event operation before continuing.',
+    )
+  }
+  return true
 }
 
 function command(value: string): EventOperationCommand {
@@ -259,6 +275,7 @@ export function createEventOperationsService(input: {
         idempotencyKey: uuid(operation.idempotencyKey, 'idempotencyKey'),
         command: operationCommand,
         reason: reason(operation.reason, 'reason'),
+        confirmed: confirmed(operation.confirmed),
       })
     },
 
@@ -273,6 +290,7 @@ export function createEventOperationsService(input: {
         ),
         idempotencyKey: uuid(operation.idempotencyKey, 'idempotencyKey'),
         reason: reason(operation.reason, 'reason'),
+        confirmed: confirmed(operation.confirmed),
       })
     },
 
@@ -291,7 +309,8 @@ export function createEventOperationsService(input: {
         phaseId: operation.phaseId,
         effectOrdinal: nonNegativeInteger(operation.effectOrdinal, 'effectOrdinal'),
         completionKey: uuid(operation.completionKey, 'completionKey'),
-        note: reason(operation.note, 'note'),
+        reason: reason(operation.reason, 'reason'),
+        confirmed: confirmed(operation.confirmed),
       })
     },
   }
