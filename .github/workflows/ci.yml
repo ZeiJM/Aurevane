@@ -109,6 +109,9 @@ jobs:
       - name: Verify Phase 4 live Event operations
         run: bash .github/scripts/verify-phase4-live-event-operations.sh
 
+      - name: Verify Phase 4 Event recovery
+        run: bash .github/scripts/verify-phase4-event-recovery.sh
+
       - name: Verify player profile provisioning and privacy
         run: bash .github/scripts/verify-player-profile.sh
 
