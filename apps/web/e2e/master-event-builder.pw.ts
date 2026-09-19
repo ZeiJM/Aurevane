@@ -217,8 +217,8 @@ test('Event Staff uses structured Event Builder without preview state leakage', 
 
   const start = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString().slice(0, 16)
   const end = new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString().slice(0, 16)
-  await page.getByLabel('Start').fill(start)
-  await page.getByLabel('End').fill(end)
+  await page.getByRole('textbox', { name: 'Start', exact: true }).fill(start)
+  await page.getByRole('textbox', { name: 'End', exact: true }).fill(end)
   await page.getByLabel('Production action reason').fill('Schedule browser-verified Event run')
   await page.getByLabel('Confirm Production action').check()
 
