@@ -254,7 +254,7 @@ test('Event Staff operates a run, completes cleanup and archives Chronicle safel
 
   await expect(page.getByRole('heading', { name: 'Event operations' })).toBeVisible()
   await expect(page.getByText('P4.14 · LIVE EVENT OPERATIONS')).toBeVisible()
-  await expect(page.getByRole('option', { name: new RegExp(eventKey) })).toBeVisible()
+  await expect(page.getByLabel('Event Run').locator('option', { hasText: eventKey })).toHaveCount(1)
   await page.getByLabel('Event Run').selectOption(runId)
 
   await expect(page.getByText('scheduled', { exact: true }).first()).toBeVisible()
