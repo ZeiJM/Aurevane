@@ -97,9 +97,9 @@ initialize_run_state() {
   docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
     insert into app_private.event_run_phases (
       run_id, phase_id, ordinal, phase_status, started_at
-    ) values (
-      '$run_id'::uuid, 'mobilization', 0, 'live', clock_timestamp()
-    );
+    ) values
+      ('$run_id'::uuid, 'mobilization', 0, 'live', clock_timestamp()),
+      ('$run_id'::uuid, 'future', 1, 'pending', null);
 
     insert into app_private.event_run_objectives (
       run_id,
@@ -108,14 +108,23 @@ initialize_run_state() {
       objective_status,
       progress,
       target
-    ) values (
-      '$run_id'::uuid,
-      'mobilization',
-      'community',
-      'active',
-      0,
-      100
-    );
+    ) values
+      (
+        '$run_id'::uuid,
+        'mobilization',
+        'community',
+        'active',
+        0,
+        100
+      ),
+      (
+        '$run_id'::uuid,
+        'future',
+        'future-community',
+        'active',
+        0,
+        10
+      );
   " >/dev/null
 }
 
@@ -152,6 +161,8 @@ record_contribution() {
   local amount="$5"
   local user_id="${6:-$user_one}"
   local character_id="${7:-$character_one}"
+  local phase_id="${8:-mobilization}"
+  local objective_id="${9:-community}"
 
   docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
     set role service_role;
@@ -170,14 +181,29 @@ record_contribution() {
       '$run_id'::uuid,
       '$user_id'::uuid,
       '$character_id'::uuid,
-      'mobilization',
-      'community',
+      '$phase_id',
+      '$objective_id',
       'combat',
       '$source_reference',
       '$amount'::bigint,
       jsonb_build_object('source','ci','reference','$source_reference')
     );"
 }
+
+if record_contribution \
+  "$run_one" \
+  '00000000-0000-4000-8000-000000005320' \
+  'p52:contribution:future-phase' \
+  'battle.intent:future-phase' \
+  1 \
+  "$user_one" \
+  "$character_one" \
+  'future' \
+  'future-community' >/tmp/p52-future-phase.out 2>/tmp/p52-future-phase.err; then
+  echo 'Expected contribution to a non-live Event phase to fail.' >&2
+  exit 1
+fi
+grep -Fq 'EVENT_CONTRIBUTION_PHASE_NOT_LIVE' /tmp/p52-future-phase.err
 
 docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   create or replace function app_private.delay_p52_event_contribution_for_test()
