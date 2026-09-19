@@ -41,10 +41,7 @@ export function NavigationMenu({
       activeSessionHref
         ? []
         : navigation.filter(
-            (item) =>
-              item.href &&
-              pathname !== item.href &&
-              !pathname.startsWith(item.href + '/'),
+            (item) => item.href && pathname !== item.href && !pathname.startsWith(item.href + '/'),
           ),
     [activeSessionHref, pathname],
   )
