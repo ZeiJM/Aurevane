@@ -35,7 +35,7 @@ P5.1 closeout: staff authority changes require an explicit reason and confirmati
 - [ ] Reward Package references through normal reward services.
 - [ ] Cleanup / end / archive invariants.
 
-P5.2 participation boundary: Event participation is isolated per immutable Event Run and character/account. Contributions are service-only, tied to an active run objective, deduplicated by authoritative source identity, provenance-bearing, and idempotent under duplicate delivery. Reward claims currently stop at an idempotent reservation against Reward Package references pinned by that run's immutable Event Definition; this slice does not execute or mint rewards. Browser roles cannot read or write the private ledger or invoke contribution/claim authority directly.
+P5.2 participation boundary: Event participation is isolated per immutable Event Run and character/account. Contributions are service-only, tied to the run's current live phase and an active objective in that phase, deduplicated by authoritative source identity, provenance-bearing, and idempotent under duplicate delivery. Reward claims currently stop at an idempotent reservation against Reward Package references pinned by that run's immutable Event Definition; this slice does not execute or mint rewards. Browser roles cannot read or write the private ledger or invoke contribution/claim authority directly.
 
 ### P5.3 — Event Builder MVP
 
