@@ -35,7 +35,11 @@ function plan() {
 
 function progressionRepository(replayed = false): ProgressionRepository {
   return {
-    loadCurveForCycle: vi.fn(),
+    loadCurveForCycle: vi.fn(async () => ({
+      version: 1,
+      maxLevel: 100,
+      cumulativeXpByLevel: [0],
+    })),
     grantCharacterXp: vi.fn(async (input) => ({
       replayed,
       result: {
