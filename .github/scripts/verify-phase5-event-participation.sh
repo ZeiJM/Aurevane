@@ -57,7 +57,7 @@ version_id="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d
       'eventKey','event.p52-participation',
       'templateKey','template.community-objective',
       'contentVersion',1,
-      'title','P5.2 Participation Verification',
+      'title','P4.12 Participation Verification',
       'rewardPackageRefs',jsonb_build_array('reward.p52-participation')
     ),
     '$user_one'::uuid
@@ -479,4 +479,4 @@ if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -
   exit 1
 fi
 
-echo 'Phase 5 Event participant ledger and idempotent claim boundaries verified.'
+echo 'Phase 4 Event participant ledger and idempotent claim boundaries verified.'
