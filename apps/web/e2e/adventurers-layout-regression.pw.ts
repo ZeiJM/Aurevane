@@ -78,17 +78,26 @@ test('Adventurers roster preserves browsing and public-profile privacy in the ne
     for (const [headingIndex, rowIndex, label] of [
       [1, 2, 'Level'],
       [2, 3, 'Discipline'],
-      [3, 4, 'Presence'],
     ] as const) {
       const headingBox = await headingCells.nth(headingIndex).boundingBox()
       const rowBox = await rowCells.nth(rowIndex).boundingBox()
       expect(headingBox, `${label} heading geometry`).not.toBeNull()
       expect(rowBox, `${label} value geometry`).not.toBeNull()
       expect(
-        Math.abs(headingBox!.x - rowBox!.x),
-        `${label} heading aligns with its values`,
-      ).toBeLessThanOrEqual(1)
+        headingBox!.x - rowBox!.x,
+        `${label} heading uses the approved slight rightward optical alignment`,
+      ).toBeGreaterThanOrEqual(4)
+      expect(headingBox!.x - rowBox!.x).toBeLessThanOrEqual(7)
     }
+
+    const presenceHeadingBox = await headingCells.nth(3).boundingBox()
+    const presenceValueBox = await rowCells.nth(4).boundingBox()
+    expect(presenceHeadingBox, 'Presence heading geometry').not.toBeNull()
+    expect(presenceValueBox, 'Presence value geometry').not.toBeNull()
+    expect(
+      Math.abs(presenceHeadingBox!.x - presenceValueBox!.x),
+      'Presence heading stays aligned with its values',
+    ).toBeLessThanOrEqual(1)
   }
 
   await capture(page, info, 'online')
@@ -120,6 +129,10 @@ test('Adventurers roster preserves browsing and public-profile privacy in the ne
   await expect(showOnlineOnlyButton).toBeVisible()
   const showOnlineOnlyButtonBox = await showOnlineOnlyButton.boundingBox()
   expect(showOnlineOnlyButtonBox).not.toBeNull()
+  if (!mobile) {
+    expect(showOnlineOnlyButtonBox!.x).toBeCloseTo(showAllButtonBox!.x, 0)
+    expect(showOnlineOnlyButtonBox!.y).toBeCloseTo(showAllButtonBox!.y, 0)
+  }
   expect(showOnlineOnlyButtonBox!.width).toBeCloseTo(showAllButtonBox!.width, 0)
   expect(showOnlineOnlyButtonBox!.height).toBeCloseTo(showAllButtonBox!.height, 0)
   await expect(hero.getByText(/^\d+ shown$/)).toHaveCount(0)

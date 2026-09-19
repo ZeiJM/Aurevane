@@ -33,6 +33,7 @@
 }
 .heroControlsExpanded {
   width: min(46rem, 58vw);
+  gap: 0.55rem;
 }
 .toggleButton,
 .error button {
@@ -76,8 +77,9 @@
 }
 .filters {
   display: grid;
-  width: 100%;
-  grid-template-columns: minmax(9rem, 1fr) minmax(11rem, 1.15fr) auto;
+  min-width: 0;
+  flex: 1 1 auto;
+  grid-template-columns: minmax(9rem, 1fr) minmax(11rem, 1.15fr);
   gap: 0.55rem;
   align-items: end;
   padding: 0.55rem;
@@ -109,9 +111,6 @@
   opacity: 0.65;
   cursor: progress;
 }
-.filters .toggleButton {
-  justify-self: end;
-}
 .columnHeadings,
 .characterRow {
   display: grid;
@@ -130,6 +129,10 @@
   font-size: 0.75rem;
   letter-spacing: 0.075em;
   text-transform: uppercase;
+}
+
+.columnHeadings > :is(:nth-child(2), :nth-child(3)) {
+  transform: translateX(0.35rem);
 }
 .list {
   display: grid;
@@ -269,9 +272,6 @@
   .filters {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .filters .toggleButton {
-    grid-column: 2;
-  }
 }
 
 /* Keep the hero controls and a useful list viewport together on short desktop/tablet screens. */
@@ -312,8 +312,10 @@
     letter-spacing: 0.025em;
   }
   .heroControlsExpanded {
+    display: grid;
     width: 100%;
     grid-column: 1 / -1;
+    grid-template-columns: minmax(0, 1fr) auto;
     justify-self: stretch;
   }
   .toggleButton {
@@ -331,9 +333,6 @@
   }
   .filters select {
     font-size: 0.875rem;
-  }
-  .filters .toggleButton {
-    grid-column: 1 / -1;
   }
   .columnHeadings,
   .level,

@@ -105,10 +105,11 @@
     gap: 0;
   }
 
-  .navigation a {
+  .masthead .navigation a {
     min-height: 2.5rem;
     padding: 0.5rem 0.45rem;
-    font-size: 0.7rem;
+    font: 600 0.75rem/1.2 var(--av-font-body);
+    letter-spacing: 0.025em;
   }
 
   .utility {
@@ -126,9 +127,8 @@
     padding-inline: 0.45rem !important;
   }
 
-  .navigation a {
+  .masthead .navigation a {
     padding-inline: 0.38rem;
-    font-size: 0.66rem;
   }
 
   .utility {

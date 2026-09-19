@@ -234,3 +234,77 @@ test('an authenticated character keeps a direct return path while reading the Ma
   })
   expect(returnStyle).toEqual(accountStyle)
 })
+
+test('mobile News, Manual, and Rules keep identical typography between game and public headers', async ({
+  page,
+}, testInfo) => {
+  test.skip(
+    testInfo.project.name !== 'mobile-chromium',
+    'Mobile header typography is the regression being guarded.',
+  )
+  test.setTimeout(90_000)
+  await page.setViewportSize({ width: 390, height: 844 })
+
+  const now = Date.now()
+  const email = `p17-mobile-header-${now}@example.com`
+  const password = 'P17-mobile-header-2026!'
+  const suffix = now
+    .toString()
+    .split('')
+    .map((digit) => String.fromCharCode(65 + Number(digit)))
+    .join('')
+  const characterName = `GM ${suffix}`
+
+  await createAccountAndEnterCharacter({ page, email, password, characterName })
+
+  async function navTypography(shellTestId: 'authenticated-shell' | 'public-information-shell') {
+    const header = page.getByTestId(shellTestId).locator(':scope > header')
+    await expect(header).toBeVisible()
+    const styles: Record<string, unknown> = {}
+    for (const label of ['News', 'Manual', 'Rules'] as const) {
+      const link = header.getByRole('link', { name: label, exact: true })
+      await expect(link).toBeVisible()
+      styles[label] = await link.evaluate((element) => {
+        const style = getComputedStyle(element)
+        return {
+          fontFamily: style.fontFamily,
+          fontSize: style.fontSize,
+          fontWeight: style.fontWeight,
+          lineHeight: style.lineHeight,
+          letterSpacing: style.letterSpacing,
+          textTransform: style.textTransform,
+          minHeight: style.minHeight,
+          paddingTop: style.paddingTop,
+          paddingRight: style.paddingRight,
+          paddingBottom: style.paddingBottom,
+          paddingLeft: style.paddingLeft,
+        }
+      })
+    }
+    return styles
+  }
+
+  const gameStylesBefore = await navTypography('authenticated-shell')
+  await page
+    .getByTestId('authenticated-shell')
+    .locator(':scope > header')
+    .getByRole('link', { name: 'News', exact: true })
+    .click()
+  await expect(page).toHaveURL(/\/news$/)
+
+  for (const route of publicRoutes) {
+    if (!page.url().endsWith(route.path)) {
+      await page
+        .getByTestId('public-information-shell')
+        .locator(':scope > header')
+        .getByRole('link', { name: route.heading, exact: true })
+        .click()
+      await expect(page).toHaveURL(new RegExp(`${route.path.replace('/', '\\/')}$`))
+    }
+    expect(await navTypography('public-information-shell')).toEqual(gameStylesBefore)
+  }
+
+  await page.getByRole('link', { name: 'Return to Game', exact: true }).click()
+  await expect(page).toHaveURL(/\/game\/character$/)
+  expect(await navTypography('authenticated-shell')).toEqual(gameStylesBefore)
+})
