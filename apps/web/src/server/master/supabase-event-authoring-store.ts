@@ -157,9 +157,17 @@ function mapRpcError(error: RpcError): never {
       cause: error,
     })
   }
+  if (message.includes('EVENT_AUTHORING_IDEMPOTENCY_CONFLICT')) {
+    throw new AurevaneError(
+      'IDEMPOTENCY_CONFLICT',
+      'That Event action key was already used for a different Production request.',
+      { cause: error },
+    )
+  }
   if (
     error.code === '22023' ||
     message.includes('EVENT_DEFINITION_') ||
+    message.includes('EVENT_ACTION_') ||
     message.includes('EVENT_REWARD_PACKAGE_DEPENDENCY_MISSING') ||
     message.includes('EVENT_SCHEDULE_') ||
     message.includes('EVENT_PUBLICATION_REQUIRED')
