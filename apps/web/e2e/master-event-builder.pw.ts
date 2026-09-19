@@ -198,26 +198,36 @@ test('Event Staff uses structured Event Builder without preview state leakage', 
   grantLocalProductionPublish(email)
   await page.reload()
   await expect(page.getByRole('heading', { name: 'Persistent Event Definition' })).toBeVisible()
-  await expect(publishButton).toBeEnabled()
+  await expect(publishButton).toBeDisabled()
 
   await page.getByLabel('Event key').fill(eventKey)
   await runEventOperation(page, 'load', 'Load')
   await expect(page.getByLabel('Event key')).toHaveValue(eventKey)
   await expect(page.getByLabel('Objective reference')).toHaveValue('objective.browser-community')
 
+  await page.getByLabel('Production action reason').fill('Publish browser-verified Event definition')
+  await page.getByLabel('Confirm Production action').check()
+  await expect(publishButton).toBeEnabled()
+
   const published = await runEventOperation(page, 'publish', 'Publish')
   expect(published.published).toBeTruthy()
   await expect(page.getByText(/Published Event definition v\d+\./)).toBeVisible()
+  await expect(page.getByLabel('Confirm Production action')).not.toBeChecked()
 
   const start = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString().slice(0, 16)
   const end = new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString().slice(0, 16)
   await page.getByLabel('Start').fill(start)
   await page.getByLabel('End').fill(end)
+  await page.getByLabel('Production action reason').fill('Schedule browser-verified Event run')
+  await page.getByLabel('Confirm Production action').check()
 
   await runEventOperation(page, 'schedule', 'Schedule')
   await expect(page.getByText(/Scheduled run [0-9a-f-]+\./)).toBeVisible()
   expect(eventRunCount(eventKey)).toBe(runCountBeforePreview + 1)
+  await expect(page.getByLabel('Confirm Production action')).not.toBeChecked()
 
+  await page.getByLabel('Production action reason').fill('Unschedule browser-verified Event run')
+  await page.getByLabel('Confirm Production action').check()
   await runEventOperation(page, 'cancel-scheduled', 'Unschedule')
   await expect(page.getByText('Scheduled run is now cancelled.')).toBeVisible()
 })

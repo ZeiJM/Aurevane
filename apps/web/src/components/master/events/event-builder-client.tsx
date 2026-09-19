@@ -127,6 +127,8 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
   const [testClock, setTestClock] = useState('2026-09-19T12:00')
   const [scheduleStart, setScheduleStart] = useState('')
   const [scheduleEnd, setScheduleEnd] = useState('')
+  const [productionReason, setProductionReason] = useState('')
+  const [productionConfirmed, setProductionConfirmed] = useState(false)
   const [scheduledRun, setScheduledRun] = useState<ScheduledRun | null>(null)
   const [message, setMessage] = useState('Ready.')
   const [details, setDetails] = useState('')
@@ -134,6 +136,12 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
 
   const selectedPhase =
     definition.phases.find((phase) => phase.id === selectedPhaseId) ?? definition.phases[0]
+
+  const productionActionReady =
+    productionConfirmed &&
+    productionReason.length >= 3 &&
+    productionReason.length <= 240 &&
+    productionReason.trim() === productionReason
 
   const globalWarning = useMemo(
     () =>
@@ -267,6 +275,9 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
         operation: 'publish',
         definition,
         expectedBaseVersion: baseVersion,
+        correlationKey: crypto.randomUUID(),
+        reason: productionReason,
+        confirmed: productionConfirmed,
       })
       const published = payload.published as {
         definitionVersion: number
@@ -275,6 +286,7 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
       setBaseVersion(published.definitionVersion)
       setDefinition(published.definition)
       await loadWorkspace()
+      setProductionConfirmed(false)
       setMessage(`Published Event definition v${published.definitionVersion}.`)
     })
   }
@@ -292,9 +304,12 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
         requestFingerprint: `schedule:${definition.eventKey}:${startIso}:${endIso ?? 'open'}`,
         scheduledStartAt: startIso,
         scheduledEndAt: endIso,
+        reason: productionReason,
+        confirmed: productionConfirmed,
       })
       const scheduled = payload.scheduled as ScheduledRun
       setScheduledRun(scheduled)
+      setProductionConfirmed(false)
       setMessage(`Scheduled run ${scheduled.runId}.`)
     })
   }
@@ -307,9 +322,11 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
         runId: scheduledRun.runId,
         expectedStateVersion: scheduledRun.stateVersion,
         idempotencyKey: crypto.randomUUID(),
-        reason: 'Event Builder unschedule',
+        reason: productionReason,
+        confirmed: productionConfirmed,
       })
       const transition = payload.transition as { lifecycleStatus: string }
+      setProductionConfirmed(false)
       setMessage(`Scheduled run is now ${transition.lifecycleStatus}.`)
       setScheduledRun(null)
     })
@@ -331,7 +348,13 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
           <button type="button" onClick={validate} disabled={busy}>Validate</button>
           <button type="button" onClick={preview} disabled={busy}>Preview</button>
           <button type="button" onClick={saveDraft} disabled={busy}>Save draft</button>
-          <button type="button" onClick={publish} disabled={busy || !canPublish}>Publish</button>
+          <button
+            type="button"
+            onClick={publish}
+            disabled={busy || !canPublish || !productionActionReady}
+          >
+            Publish
+          </button>
         </div>
       </div>
 
@@ -454,6 +477,28 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
             <input type="datetime-local" value={testClock} onChange={(event) => setTestClock(event.target.value)} />
           </label>
 
+          <h2>Production action confirmation</h2>
+          <label>
+            Production action reason
+            <textarea
+              value={productionReason}
+              maxLength={240}
+              onChange={(event) => {
+                setProductionReason(event.target.value)
+                setProductionConfirmed(false)
+              }}
+              placeholder="Why is this Production action being performed?"
+            />
+          </label>
+          <label className={styles.checkbox}>
+            <input
+              type="checkbox"
+              checked={productionConfirmed}
+              onChange={(event) => setProductionConfirmed(event.target.checked)}
+            />
+            Confirm Production action
+          </label>
+
           <h2>Schedule</h2>
           <label>
             Start
@@ -464,8 +509,20 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
             <input type="datetime-local" value={scheduleEnd} onChange={(event) => setScheduleEnd(event.target.value)} />
           </label>
           <div className={styles.inlineActions}>
-            <button type="button" onClick={schedule} disabled={busy || baseVersion === null}>Schedule</button>
-            <button type="button" onClick={unschedule} disabled={busy || !scheduledRun}>Unschedule</button>
+            <button
+              type="button"
+              onClick={schedule}
+              disabled={busy || baseVersion === null || !productionActionReady}
+            >
+              Schedule
+            </button>
+            <button
+              type="button"
+              onClick={unschedule}
+              disabled={busy || !scheduledRun || !productionActionReady}
+            >
+              Unschedule
+            </button>
           </div>
         </section>
       </div>

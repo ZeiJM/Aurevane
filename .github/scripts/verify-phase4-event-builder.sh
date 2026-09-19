@@ -182,11 +182,14 @@ grep -Fq 'EVENT_DRAFT_VERSION_CONFLICT' /tmp/p413-stale-draft.err
 
 if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   set role service_role;
-  select * from public.publish_event_definition_v1(
+  select * from public.publish_event_definition_v2(
     '$staff_id'::uuid,
     'event.p413-ci',
     $regional_definition,
-    null
+    null,
+    '00000000-0000-4000-8000-000000004301'::uuid,
+    'P4.13 capability denial publication',
+    true
   );" >/tmp/p413-publish-cap.out 2>/tmp/p413-publish-cap.err; then
   echo 'Expected Event Staff publication without production capability to fail.' >&2
   exit 1
@@ -203,14 +206,49 @@ docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   );
 " >/dev/null
 
+if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+  set role service_role;
+  select * from public.publish_event_definition_v2(
+    '$staff_id'::uuid,
+    'event.p413-ci',
+    $regional_definition,
+    null,
+    '00000000-0000-4000-8000-000000004302'::uuid,
+    'P4.13 missing confirmation verification',
+    false
+  );" >/tmp/p413-confirmation.out 2>/tmp/p413-confirmation.err; then
+  echo 'Expected unconfirmed Event publication to fail.' >&2
+  exit 1
+fi
+grep -Fq 'EVENT_ACTION_CONFIRMATION_REQUIRED' /tmp/p413-confirmation.err
+
+if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+  set role service_role;
+  select * from public.publish_event_definition_v2(
+    '$staff_id'::uuid,
+    'event.p413-ci',
+    $regional_definition,
+    null,
+    '00000000-0000-4000-8000-000000004303'::uuid,
+    'x',
+    true
+  );" >/tmp/p413-reason.out 2>/tmp/p413-reason.err; then
+  echo 'Expected Event publication without a valid reason to fail.' >&2
+  exit 1
+fi
+grep -Fq 'EVENT_ACTION_REASON_REQUIRED' /tmp/p413-reason.err
+
 missing_reward_definition="$(definition_sql 'event.p413-missing-reward' 'region' 'region.frostmere' 'reward.p413-missing')"
 if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   set role service_role;
-  select * from public.publish_event_definition_v1(
+  select * from public.publish_event_definition_v2(
     '$staff_id'::uuid,
     'event.p413-missing-reward',
     $missing_reward_definition,
-    null
+    null,
+    '00000000-0000-4000-8000-000000004304'::uuid,
+    'P4.13 missing reward publication',
+    true
   );" >/tmp/p413-reward-dependency.out 2>/tmp/p413-reward-dependency.err; then
   echo 'Expected publication with a missing Reward Package to fail.' >&2
   exit 1
@@ -220,13 +258,46 @@ grep -Fq 'EVENT_REWARD_PACKAGE_DEPENDENCY_MISSING' /tmp/p413-reward-dependency.e
 published="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   set role service_role;
   select event_key || '|' || definition_version::text
-  from public.publish_event_definition_v1(
+  from public.publish_event_definition_v2(
     '$staff_id'::uuid,
     'event.p413-ci',
     $regional_definition,
-    null
+    null,
+    '00000000-0000-4000-8000-000000004305'::uuid,
+    'P4.13 verified regional publication',
+    true
   );")"
 test "$published" = 'event.p413-ci|1'
+
+published_replay="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+  set role service_role;
+  select event_key || '|' || definition_version::text
+  from public.publish_event_definition_v2(
+    '$staff_id'::uuid,
+    'event.p413-ci',
+    $regional_definition,
+    null,
+    '00000000-0000-4000-8000-000000004305'::uuid,
+    'P4.13 verified regional publication',
+    true
+  );")"
+test "$published_replay" = "$published"
+
+if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+  set role service_role;
+  select * from public.publish_event_definition_v2(
+    '$staff_id'::uuid,
+    'event.p413-ci',
+    $regional_definition || jsonb_build_object('title','Different request'),
+    null,
+    '00000000-0000-4000-8000-000000004305'::uuid,
+    'P4.13 verified regional publication',
+    true
+  );" >/tmp/p413-publish-replay-conflict.out 2>/tmp/p413-publish-replay-conflict.err; then
+  echo 'Expected reused publication correlation key with changed definition to fail.' >&2
+  exit 1
+fi
+grep -Fq 'EVENT_AUTHORING_IDEMPOTENCY_CONFLICT' /tmp/p413-publish-replay-conflict.err
 
 forbidden_definition="$regional_definition || jsonb_build_object('script','select * from secrets')"
 if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
@@ -249,13 +320,15 @@ schedule_end="$(date -u -d '+4 hours' '+%Y-%m-%dT%H:%M:%SZ')"
 scheduled="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   set role service_role;
   select run_id::text || '|' || state_version::text || '|' || replayed::text
-  from public.schedule_event_run_v1(
+  from public.schedule_event_run_v2(
     '$staff_id'::uuid,
     'event.p413-ci',
-    '00000000-0000-4000-8000-000000004301'::uuid,
+    '00000000-0000-4000-8000-000000004311'::uuid,
     'p413:schedule:one',
     '$schedule_start'::timestamptz,
-    '$schedule_end'::timestamptz
+    '$schedule_end'::timestamptz,
+    'P4.13 verified schedule',
+    true
   );")"
 scheduled_run_id="${scheduled%%|*}"
 test -n "$scheduled_run_id"
@@ -263,13 +336,15 @@ test "$(printf '%s' "$scheduled" | cut -d'|' -f2-3)" = '1|false'
 
 if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   set role service_role;
-  select * from public.schedule_event_run_v1(
+  select * from public.schedule_event_run_v2(
     '$staff_id'::uuid,
     'event.p413-ci',
-    '00000000-0000-4000-8000-000000004302'::uuid,
+    '00000000-0000-4000-8000-000000004312'::uuid,
     'p413:schedule:overlap',
     '$schedule_start'::timestamptz,
-    '$schedule_end'::timestamptz
+    '$schedule_end'::timestamptz,
+    'P4.13 overlapping schedule verification',
+    true
   );" >/tmp/p413-scope-conflict.out 2>/tmp/p413-scope-conflict.err; then
   echo 'Expected overlapping Event schedule in the same scope to fail.' >&2
   exit 1
@@ -279,23 +354,71 @@ grep -Fq 'EVENT_SCHEDULE_SCOPE_CONFLICT' /tmp/p413-scope-conflict.err
 cancelled="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   set role service_role;
   select lifecycle_status || '|' || state_version::text
-  from public.cancel_scheduled_event_run_v1(
+  from public.cancel_scheduled_event_run_v2(
     '$staff_id'::uuid,
     '$scheduled_run_id'::uuid,
     1,
-    '00000000-0000-4000-8000-000000004303'::uuid,
-    'P4.13 unschedule verification'
+    '00000000-0000-4000-8000-000000004313'::uuid,
+    'P4.13 unschedule verification',
+    true
   );")"
 test "$cancelled" = 'cancelled|2'
+
+audit_snapshot="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+  select
+    count(*)::text || '|' ||
+    string_agg(action, ',' order by occurred_at, action)
+  from app_private.event_authoring_audit
+  where actor_user_id = '$staff_id'::uuid;")"
+test "$audit_snapshot" = '3|publish,schedule,unschedule'
+
+v1_privileges="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+  select
+    has_function_privilege(
+      'service_role',
+      'public.publish_event_definition_v1(uuid,text,jsonb,integer)',
+      'EXECUTE'
+    )::text || '|' ||
+    has_function_privilege(
+      'service_role',
+      'public.schedule_event_run_v1(uuid,text,uuid,text,timestamptz,timestamptz)',
+      'EXECUTE'
+    )::text || '|' ||
+    has_function_privilege(
+      'service_role',
+      'public.cancel_scheduled_event_run_v1(uuid,uuid,bigint,uuid,text)',
+      'EXECUTE'
+    )::text;")"
+test "$v1_privileges" = 'false|false|false'
+
+if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+  set role service_role;
+  insert into app_private.event_authoring_audit (
+    action, correlation_key, actor_user_id, event_key, reason, result
+  ) values (
+    'publish',
+    '00000000-0000-4000-8000-000000004399'::uuid,
+    '$staff_id'::uuid,
+    'event.p413-forged',
+    'forged audit',
+    jsonb_build_object('forged',true)
+  );" >/tmp/p413-audit-write.out 2>/tmp/p413-audit-write.err; then
+  echo 'Service role unexpectedly forged Event authoring audit history.' >&2
+  exit 1
+fi
+grep -Fq 'permission denied for table event_authoring_audit' /tmp/p413-audit-write.err
 
 global_definition="$(definition_sql 'event.p413-global' 'global' '' 'reward.p413-ci')"
 if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   set role service_role;
-  select * from public.publish_event_definition_v1(
+  select * from public.publish_event_definition_v2(
     '$staff_id'::uuid,
     'event.p413-global',
     $global_definition,
-    null
+    null,
+    '00000000-0000-4000-8000-000000004309'::uuid,
+    'P4.13 global scope denial publication',
+    true
   );" >/tmp/p413-global-cap.out 2>/tmp/p413-global-cap.err; then
   echo 'Expected global Event publication without global-scope capability to fail.' >&2
   exit 1
@@ -315,13 +438,22 @@ docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
 global_published="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   set role service_role;
   select event_key || '|' || definition_version::text
-  from public.publish_event_definition_v1(
+  from public.publish_event_definition_v2(
     '$staff_id'::uuid,
     'event.p413-global',
     $global_definition,
-    null
+    null,
+    '00000000-0000-4000-8000-000000004310'::uuid,
+    'P4.13 verified global publication',
+    true
   );")"
 test "$global_published" = 'event.p413-global|1'
+
+audit_total="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+  select count(*)::text
+  from app_private.event_authoring_audit
+  where actor_user_id = '$staff_id'::uuid;")"
+test "$audit_total" = '4'
 
 if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   set role authenticated;

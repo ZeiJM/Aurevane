@@ -45,6 +45,11 @@ function nullableString(value: unknown, field: string): string | null {
   return requiredString(value, field)
 }
 
+function requiredBoolean(value: unknown, field: string): boolean {
+  if (typeof value !== 'boolean') return invalid(`${field} must be a boolean.`)
+  return value
+}
+
 function nullablePositiveInteger(value: unknown, field: string): number | null {
   if (value === null) return null
   if (!Number.isSafeInteger(value) || (value as number) < 1) {
@@ -141,6 +146,9 @@ export async function handleEventAuthoringRequest(
           requireProperty(body, 'expectedBaseVersion'),
           'expectedBaseVersion',
         ),
+        correlationKey: requiredString(body.correlationKey, 'correlationKey'),
+        reason: requiredString(body.reason, 'reason'),
+        confirmed: requiredBoolean(body.confirmed, 'confirmed'),
       })
       return success({ published })
     }
@@ -156,6 +164,8 @@ export async function handleEventAuthoringRequest(
           requireProperty(body, 'scheduledEndAt'),
           'scheduledEndAt',
         ),
+        reason: requiredString(body.reason, 'reason'),
+        confirmed: requiredBoolean(body.confirmed, 'confirmed'),
       })
       return success({ scheduled })
     }
@@ -167,6 +177,7 @@ export async function handleEventAuthoringRequest(
         expectedStateVersion: positiveInteger(body.expectedStateVersion, 'expectedStateVersion'),
         idempotencyKey: requiredString(body.idempotencyKey, 'idempotencyKey'),
         reason: requiredString(body.reason, 'reason'),
+        confirmed: requiredBoolean(body.confirmed, 'confirmed'),
       })
       return success({ transition })
     }
