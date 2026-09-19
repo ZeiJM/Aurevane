@@ -28,7 +28,9 @@ function access(capabilities: readonly MasterPanelCapability[]): MasterPanelAcce
   }
 }
 
-function staffAccess(capabilities: readonly MasterPanelCapability[]): MasterPanelStaffAccessService {
+function staffAccess(
+  capabilities: readonly MasterPanelCapability[],
+): MasterPanelStaffAccessService {
   const current = access(capabilities)
   return {
     readAccess: vi.fn(async () => current),
@@ -186,11 +188,7 @@ describe('live Event operations service', () => {
     const persistence = store()
     const service = createEventOperationsService({
       store: persistence,
-      staffAccess: staffAccess([
-        'master.access',
-        'events.operate',
-        'events.emergency_stop',
-      ]),
+      staffAccess: staffAccess(['master.access', 'events.operate', 'events.emergency_stop']),
     })
 
     const result = await service.operate({
