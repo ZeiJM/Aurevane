@@ -87,22 +87,32 @@ export function CharacterIdentityCard({
           <div>
             <span aria-hidden="true">♥</span>
             <strong>HP</strong>
-            <b>{maxHp.toLocaleString('en')} / {maxHp.toLocaleString('en')}</b>
+            <b>
+              {maxHp.toLocaleString('en')} / {maxHp.toLocaleString('en')}
+            </b>
           </div>
-          <i><span /></i>
+          <i>
+            <span />
+          </i>
         </div>
         <div className={styles.resource} data-character-resource="mp">
           <div>
             <span aria-hidden="true">◇</span>
             <strong>MP</strong>
-            <b>{maxMp.toLocaleString('en')} / {maxMp.toLocaleString('en')}</b>
+            <b>
+              {maxMp.toLocaleString('en')} / {maxMp.toLocaleString('en')}
+            </b>
           </div>
-          <i><span /></i>
+          <i>
+            <span />
+          </i>
         </div>
       </div>
 
       <p className={styles.summary}>{disciplineSummary}</p>
-      <div className={styles.ornament} aria-hidden="true">◇</div>
+      <div className={styles.ornament} aria-hidden="true">
+        ◇
+      </div>
     </article>
   )
 }
