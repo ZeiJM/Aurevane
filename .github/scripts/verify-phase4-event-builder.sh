@@ -372,6 +372,128 @@ audit_snapshot="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgre
   where actor_user_id = '$staff_id'::uuid;")"
 test "$audit_snapshot" = '3|publish,schedule,unschedule'
 
+# Different Event definitions targeting the same scope must serialize their overlap check.
+# A delay before the run insert makes the race deterministic: without the scope lock both
+# sessions can pass the conflict check before either row becomes visible.
+race_a_definition="$(definition_sql 'event.p413-race-a' 'region' 'region.frostmere' 'reward.p413-ci')"
+race_b_definition="$(definition_sql 'event.p413-race-b' 'region' 'region.frostmere' 'reward.p413-ci')"
+
+docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+  set role service_role;
+  select * from public.publish_event_definition_v2(
+    '$owner_id'::uuid,
+    'event.p413-race-a',
+    $race_a_definition,
+    null,
+    '00000000-0000-4000-8000-000000004314'::uuid,
+    'P4.13 concurrent scope fixture A',
+    true
+  );
+  select * from public.publish_event_definition_v2(
+    '$owner_id'::uuid,
+    'event.p413-race-b',
+    $race_b_definition,
+    null,
+    '00000000-0000-4000-8000-000000004315'::uuid,
+    'P4.13 concurrent scope fixture B',
+    true
+  );
+" >/dev/null
+
+docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+  create or replace function app_private.delay_p413_schedule_insert_for_test()
+  returns trigger
+  language plpgsql
+  as \$\$
+  begin
+    if new.event_key in ('event.p413-race-a','event.p413-race-b') then
+      perform pg_sleep(2);
+    end if;
+    return new;
+  end;
+  \$\$;
+
+  create trigger delay_p413_schedule_insert_for_test
+  before insert on app_private.event_runs
+  for each row execute function app_private.delay_p413_schedule_insert_for_test();
+" >/dev/null
+
+schedule_scope_race() {
+  local event_key="$1"
+  local idempotency_key="$2"
+  local fingerprint="$3"
+
+  docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+    set role service_role;
+    select run_id::text || '|' || state_version::text || '|' || replayed::text
+    from public.schedule_event_run_v2(
+      '$owner_id'::uuid,
+      '$event_key',
+      '$idempotency_key'::uuid,
+      '$fingerprint',
+      '$schedule_start'::timestamptz,
+      '$schedule_end'::timestamptz,
+      'P4.13 concurrent same-scope schedule verification',
+      true
+    );"
+}
+
+schedule_scope_race \
+  'event.p413-race-a' \
+  '00000000-0000-4000-8000-000000004316' \
+  'p413:schedule:race-a' \
+  >/tmp/p413-schedule-race-a.out 2>/tmp/p413-schedule-race-a.err &
+race_a_pid=$!
+
+schedule_scope_race \
+  'event.p413-race-b' \
+  '00000000-0000-4000-8000-000000004317' \
+  'p413:schedule:race-b' \
+  >/tmp/p413-schedule-race-b.out 2>/tmp/p413-schedule-race-b.err &
+race_b_pid=$!
+
+set +e
+wait "$race_a_pid"
+race_a_status=$?
+wait "$race_b_pid"
+race_b_status=$?
+set -e
+
+docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+  drop trigger delay_p413_schedule_insert_for_test on app_private.event_runs;
+  drop function app_private.delay_p413_schedule_insert_for_test();
+" >/dev/null
+
+if [ "$race_a_status" -eq 0 ] && [ "$race_b_status" -ne 0 ]; then
+  race_winner="$(cat /tmp/p413-schedule-race-a.out)"
+  race_error_file=/tmp/p413-schedule-race-b.err
+elif [ "$race_b_status" -eq 0 ] && [ "$race_a_status" -ne 0 ]; then
+  race_winner="$(cat /tmp/p413-schedule-race-b.out)"
+  race_error_file=/tmp/p413-schedule-race-a.err
+else
+  echo 'Expected exactly one concurrent same-scope Event schedule to succeed.' >&2
+  cat /tmp/p413-schedule-race-a.err >&2 || true
+  cat /tmp/p413-schedule-race-b.err >&2 || true
+  exit 1
+fi
+
+grep -Fq 'EVENT_SCHEDULE_SCOPE_CONFLICT' "$race_error_file"
+race_run_id="$(printf '%s' "$race_winner" | cut -d'|' -f1)"
+test -n "$race_run_id"
+test "$(printf '%s' "$race_winner" | cut -d'|' -f2-3)" = '1|false'
+
+docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+  set role service_role;
+  select * from public.cancel_scheduled_event_run_v2(
+    '$owner_id'::uuid,
+    '$race_run_id'::uuid,
+    1,
+    '00000000-0000-4000-8000-000000004318'::uuid,
+    'P4.13 concurrent scope fixture cleanup',
+    true
+  );
+" >/dev/null
+
 v1_privileges="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   select
     has_function_privilege(
