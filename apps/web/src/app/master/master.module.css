@@ -11,8 +11,7 @@
   border: 1px solid var(--av-border);
   border-radius: var(--av-radius-lg);
   background:
-    linear-gradient(180deg, rgba(13, 24, 34, 0.91), rgba(7, 14, 22, 0.94)),
-    var(--av-ink-900);
+    linear-gradient(180deg, rgba(13, 24, 34, 0.91), rgba(7, 14, 22, 0.94)), var(--av-ink-900);
   box-shadow: 0 0.7rem 1.7rem rgba(0, 0, 0, 0.16);
 }
 
