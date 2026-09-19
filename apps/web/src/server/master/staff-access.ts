@@ -33,6 +33,8 @@ export const MASTER_PANEL_CAPABILITIES = [
   'master.access',
   'staff.manage',
   'content.combat.author',
+  'events.author',
+  'events.operate',
   ...MASTER_PANEL_SPECIAL_CAPABILITIES,
 ] as const
 
@@ -116,7 +118,7 @@ const ROLE_CAPABILITIES: Readonly<Record<MasterPanelRole, readonly MasterPanelCa
   'game-owner': MASTER_PANEL_CAPABILITIES,
   moderator: ['master.access'],
   'content-staff': ['master.access', 'content.combat.author'],
-  'event-staff': ['master.access'],
+  'event-staff': ['master.access', 'events.author', 'events.operate'],
 }
 
 export interface MasterPanelAccessRecord {
