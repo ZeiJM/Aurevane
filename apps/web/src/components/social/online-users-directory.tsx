@@ -156,16 +156,9 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
                   <option value="alphabetical">Alphabetical: A to Z</option>
                 </select>
               </label>
-              <span className={styles.directorySummary} aria-live="polite">
-                {directory
-                  ? `${orderedCharacters.length} shown`
-                  : loadingDirectory
-                    ? 'Loading…'
-                    : 'Unavailable'}
-              </span>
               <button
                 type="button"
-                className={`${styles.toggleButton} ${styles.toggleButtonCompact}`}
+                className={styles.toggleButton}
                 aria-pressed={showAll}
                 onClick={toggleDirectory}
               >

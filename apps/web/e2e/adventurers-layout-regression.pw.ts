@@ -52,7 +52,10 @@ test('Adventurers roster preserves browsing and public-profile privacy in the ne
   page.on('pageerror', (error) => pageErrors.push(error.message))
   await enter(page, info)
   const hero = page.locator('[data-online-users-heading="true"]')
-  await expect(hero.getByRole('button', { name: 'Show all characters', exact: true })).toBeVisible()
+  const showAllButton = hero.getByRole('button', { name: 'Show all characters', exact: true })
+  await expect(showAllButton).toBeVisible()
+  const showAllButtonBox = await showAllButton.boundingBox()
+  expect(showAllButtonBox).not.toBeNull()
   await expect(page.getByText('Different paths. A shared world.', { exact: true })).toHaveCount(0)
   await expect(page.getByText(/^\d+ online$/)).toHaveCount(0)
   await expect(page.getByText('Real adventurers. A shared journey.', { exact: true })).toHaveCount(
@@ -63,6 +66,31 @@ test('Adventurers roster preserves browsing and public-profile privacy in the ne
   await expect(
     page.getByText('Select an adventurer to view their public profile.', { exact: true }),
   ).toHaveCount(0)
+
+  if (!mobile) {
+    const onlineRoster = page.getByRole('region', { name: 'Online character roster' })
+    const headings = onlineRoster.locator('div[aria-hidden="true"]').filter({
+      hasText: 'CharacterLevelDisciplinePresence',
+    })
+    const firstRow = onlineRoster.locator('[data-directory-character]').first()
+    const headingCells = headings.locator(':scope > span')
+    const rowCells = firstRow.locator(':scope > span')
+    for (const [headingIndex, rowIndex, label] of [
+      [1, 2, 'Level'],
+      [2, 3, 'Discipline'],
+      [3, 4, 'Presence'],
+    ] as const) {
+      const headingBox = await headingCells.nth(headingIndex).boundingBox()
+      const rowBox = await rowCells.nth(rowIndex).boundingBox()
+      expect(headingBox, `${label} heading geometry`).not.toBeNull()
+      expect(rowBox, `${label} value geometry`).not.toBeNull()
+      expect(
+        Math.abs(headingBox!.x - rowBox!.x),
+        `${label} heading aligns with its values`,
+      ).toBeLessThanOrEqual(1)
+    }
+  }
+
   await capture(page, info, 'online')
   // The initial authenticated roster is real. Only the public directory response is a cosmetic
   // fixture so titles, missing images, stale presence and large rosters are deterministic.
@@ -88,7 +116,13 @@ test('Adventurers roster preserves browsing and public-profile privacy in the ne
   await expect(list.locator('[data-directory-character]')).toHaveCount(60)
   await expect(hero.getByRole('combobox', { name: 'Class', exact: true })).toBeVisible()
   await expect(hero.getByRole('combobox', { name: 'Sort', exact: true })).toBeVisible()
-  await expect(hero.getByText('60 shown', { exact: true })).toBeVisible()
+  const showOnlineOnlyButton = hero.getByRole('button', { name: 'Show online only', exact: true })
+  await expect(showOnlineOnlyButton).toBeVisible()
+  const showOnlineOnlyButtonBox = await showOnlineOnlyButton.boundingBox()
+  expect(showOnlineOnlyButtonBox).not.toBeNull()
+  expect(showOnlineOnlyButtonBox!.width).toBeCloseTo(showAllButtonBox!.width, 0)
+  expect(showOnlineOnlyButtonBox!.height).toBeCloseTo(showAllButtonBox!.height, 0)
+  await expect(hero.getByText(/^\d+ shown$/)).toHaveCount(0)
   await expect(page.getByText('The realm', { exact: true })).toHaveCount(0)
   await expect(page.getByText('Known adventurers', { exact: true })).toHaveCount(0)
   await expect(
