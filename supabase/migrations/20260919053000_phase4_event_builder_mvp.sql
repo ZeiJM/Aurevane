@@ -338,7 +338,7 @@ begin
     p_actor_user_id,
     v_now
   )
-  on conflict (event_key) do update
+  on conflict on constraint event_definition_drafts_pkey do update
   set
     definition = excluded.definition,
     base_version = excluded.base_version,
@@ -474,7 +474,7 @@ begin
     v_family,
     p_actor_user_id
   )
-  on conflict (event_key) do nothing;
+  on conflict on constraint event_templates_pkey do nothing;
 
   select coalesce(max(version.definition_version), 0) + 1
   into v_next_version
@@ -515,7 +515,7 @@ begin
     p_actor_user_id,
     v_now
   )
-  on conflict (event_key) do update
+  on conflict on constraint event_publications_pkey do update
   set
     version_id = excluded.version_id,
     updated_by = excluded.updated_by,
