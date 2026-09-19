@@ -45,9 +45,7 @@ const definition = (): PersistentEventDefinition => ({
           target: 100,
         },
       ],
-      effects: [
-        { type: 'encounter-pool', referenceKey: 'pool.frostmere-storm', enabled: true },
-      ],
+      effects: [{ type: 'encounter-pool', referenceKey: 'pool.frostmere-storm', enabled: true }],
       cleanupEffects: [
         { type: 'encounter-pool', referenceKey: 'pool.frostmere-storm', enabled: false },
       ],

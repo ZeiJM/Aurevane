@@ -178,7 +178,9 @@ export function validatePersistentEventDefinition(definition: PersistentEventDef
     if (phaseIds.has(phase.id)) throw new TypeError(`Duplicate event phase ${phase.id}.`)
     phaseIds.add(phase.id)
 
-    if (phase.objectives.length > 48) throw new RangeError('A phase may define at most 48 objectives.')
+    if (phase.objectives.length > 48) {
+      throw new RangeError('A phase may define at most 48 objectives.')
+    }
     const phaseObjectiveIds = new Set<string>()
     for (const objective of phase.objectives) {
       identity(objective.id, 'Objective id')
