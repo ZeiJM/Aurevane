@@ -67,15 +67,29 @@ docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   insert into app_private.event_publications (event_key, version_id, updated_by)
   values ('event.p412-reward','$version_id'::uuid,'$user_id'::uuid);
 
+  insert into app_private.event_reward_budget_policies (
+    budget_ref,
+    reward_kind,
+    max_per_claim,
+    approved_by
+  ) values (
+    'budget.p412-xp-standard',
+    'character-xp',
+    100,
+    '$user_id'::uuid
+  );
+
   insert into app_private.event_reward_packages (
     reward_package_ref,
     package_version,
+    budget_ref,
     reward_kind,
     amount,
     published_by
   ) values (
     'reward.p412-xp',
     1,
+    'budget.p412-xp-standard',
     'character-xp',
     25,
     '$user_id'::uuid
@@ -92,18 +106,41 @@ fi
 grep -Fq 'EVENT_REWARD_PACKAGE_IMMUTABLE' /tmp/p412-package-update.err
 
 if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+  insert into app_private.event_reward_packages (
+    reward_package_ref,
+    package_version,
+    budget_ref,
+    reward_kind,
+    amount,
+    published_by
+  ) values (
+    'reward.p412-over-budget',
+    1,
+    'budget.p412-xp-standard',
+    'character-xp',
+    101,
+    '$user_id'::uuid
+  );" >/tmp/p412-package-budget.out 2>/tmp/p412-package-budget.err; then
+  echo 'Expected over-budget Event Reward Package to fail.' >&2
+  exit 1
+fi
+grep -Fq 'EVENT_REWARD_BUDGET_EXCEEDED' /tmp/p412-package-budget.err
+
+if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   set role service_role;
   insert into app_private.event_reward_packages (
     reward_package_ref,
     package_version,
+    budget_ref,
     reward_kind,
     amount,
     published_by
   ) values (
     'reward.p412-forged',
     1,
+    'budget.p412-xp-standard',
     'character-xp',
-    999,
+    99,
     '$user_id'::uuid
   );" >/tmp/p412-package-direct.out 2>/tmp/p412-package-direct.err; then
   echo 'Service role unexpectedly published an Event Reward Package directly.' >&2
