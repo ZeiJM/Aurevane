@@ -58,9 +58,7 @@
   overflow: hidden;
   border: 1px solid var(--av-brass-500);
   color: var(--av-parchment-100);
-  background:
-    linear-gradient(180deg, rgba(5, 15, 24, 0.2), rgba(5, 15, 24, 0.96)),
-    #07131d;
+  background: linear-gradient(180deg, rgba(5, 15, 24, 0.2), rgba(5, 15, 24, 0.96)), #07131d;
 }
 
 .storyArt {
