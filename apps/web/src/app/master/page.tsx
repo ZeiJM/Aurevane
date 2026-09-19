@@ -132,7 +132,9 @@ export default async function MasterPanelPage() {
           <section className={styles.statusCard}>
             <span className={styles.cardKicker}>Current authority</span>
             <strong>{masterPanelAuthorityLabel(access.roles)}</strong>
-            <p>Capabilities are derived on the server from the account&apos;s active staff roles.</p>
+            <p>
+              Capabilities are derived on the server from the account&apos;s active staff roles.
+            </p>
           </section>
 
           <section className={styles.statusCard}>
