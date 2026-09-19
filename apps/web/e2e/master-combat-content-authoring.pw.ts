@@ -360,7 +360,11 @@ test('Master combat authoring publishes versioned content, pins battles, and rol
   await expect(page).toHaveURL(/\/master$/)
   await expect(page.getByRole('heading', { name: 'Master Panel' })).toBeVisible()
   await expect(page.getByTestId('master-panel-authority')).toContainText('WORLDWRIGHT · GAME OWNER')
-  await expect(page.getByRole('link', { name: /Staff & Authority/ })).toBeVisible()
+  await expect(
+    page
+      .getByRole('navigation', { name: 'Master Panel navigation' })
+      .getByRole('link', { name: /Staff & Authority/ }),
+  ).toBeVisible()
   await expect(page.getByTestId('master-panel-shell')).toBeVisible()
 
   await page.goto('/master/staff')
