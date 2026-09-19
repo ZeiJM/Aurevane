@@ -163,7 +163,11 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
     })
   }
 
-  function patchObjective(phaseIndex: number, objectiveIndex: number, patch: Partial<EventObjectiveDefinition>) {
+  function patchObjective(
+    phaseIndex: number,
+    objectiveIndex: number,
+    patch: Partial<EventObjectiveDefinition>,
+  ) {
     const phase = definition.phases[phaseIndex]!
     patchPhase(phaseIndex, {
       objectives: phase.objectives.map((entry, candidate) =>
@@ -230,9 +234,7 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
         issues: Array<{ path: string; message: string }>
       }
       setMessage(validation.valid ? 'Definition is valid.' : 'Definition has validation issues.')
-      setDetails(
-        validation.issues.map((issue) => `${issue.path}: ${issue.message}`).join('\n'),
-      )
+      setDetails(validation.issues.map((issue) => `${issue.path}: ${issue.message}`).join('\n'))
     })
   }
 
@@ -344,10 +346,18 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
           </p>
         </div>
         <div className={styles.toolbarActions}>
-          <button type="button" onClick={loadWorkspace} disabled={busy}>Load</button>
-          <button type="button" onClick={validate} disabled={busy}>Validate</button>
-          <button type="button" onClick={preview} disabled={busy}>Preview</button>
-          <button type="button" onClick={saveDraft} disabled={busy}>Save draft</button>
+          <button type="button" onClick={loadWorkspace} disabled={busy}>
+            Load
+          </button>
+          <button type="button" onClick={validate} disabled={busy}>
+            Validate
+          </button>
+          <button type="button" onClick={preview} disabled={busy}>
+            Preview
+          </button>
+          <button type="button" onClick={saveDraft} disabled={busy}>
+            Save draft
+          </button>
           <button
             type="button"
             onClick={publish}
@@ -408,10 +418,14 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
             <select
               value={definition.family}
               onChange={(event) =>
-                patchDefinition({ family: event.target.value as PersistentEventDefinition['family'] })
+                patchDefinition({
+                  family: event.target.value as PersistentEventDefinition['family'],
+                })
               }
             >
-              {EVENT_FAMILIES.map((family) => <option key={family}>{family}</option>)}
+              {EVENT_FAMILIES.map((family) => (
+                <option key={family}>{family}</option>
+              ))}
             </select>
           </label>
           <label>
@@ -452,7 +466,9 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
             Reward Package refs
             <input
               value={csv(definition.rewardPackageRefs)}
-              onChange={(event) => patchDefinition({ rewardPackageRefs: parseCsv(event.target.value) })}
+              onChange={(event) =>
+                patchDefinition({ rewardPackageRefs: parseCsv(event.target.value) })
+              }
               placeholder="reward.event-xp"
             />
           </label>
@@ -468,13 +484,24 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
           <h2>Preview controls</h2>
           <label>
             Preview phase
-            <select value={selectedPhase?.id} onChange={(event) => setSelectedPhaseId(event.target.value)}>
-              {definition.phases.map((phase) => <option key={phase.id} value={phase.id}>{phase.name}</option>)}
+            <select
+              value={selectedPhase?.id}
+              onChange={(event) => setSelectedPhaseId(event.target.value)}
+            >
+              {definition.phases.map((phase) => (
+                <option key={phase.id} value={phase.id}>
+                  {phase.name}
+                </option>
+              ))}
             </select>
           </label>
           <label>
             Test clock
-            <input type="datetime-local" value={testClock} onChange={(event) => setTestClock(event.target.value)} />
+            <input
+              type="datetime-local"
+              value={testClock}
+              onChange={(event) => setTestClock(event.target.value)}
+            />
           </label>
 
           <h2>Production action confirmation</h2>
@@ -502,11 +529,19 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
           <h2>Schedule</h2>
           <label>
             Start
-            <input type="datetime-local" value={scheduleStart} onChange={(event) => setScheduleStart(event.target.value)} />
+            <input
+              type="datetime-local"
+              value={scheduleStart}
+              onChange={(event) => setScheduleStart(event.target.value)}
+            />
           </label>
           <label>
             End
-            <input type="datetime-local" value={scheduleEnd} onChange={(event) => setScheduleEnd(event.target.value)} />
+            <input
+              type="datetime-local"
+              value={scheduleEnd}
+              onChange={(event) => setScheduleEnd(event.target.value)}
+            />
           </label>
           <div className={styles.inlineActions}>
             <button
@@ -564,11 +599,17 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
             <div className={styles.grid}>
               <label>
                 Phase id
-                <input value={phase.id} onChange={(event) => patchPhase(phaseIndex, { id: event.target.value })} />
+                <input
+                  value={phase.id}
+                  onChange={(event) => patchPhase(phaseIndex, { id: event.target.value })}
+                />
               </label>
               <label>
                 Name
-                <input value={phase.name} onChange={(event) => patchPhase(phaseIndex, { name: event.target.value })} />
+                <input
+                  value={phase.name}
+                  onChange={(event) => patchPhase(phaseIndex, { name: event.target.value })}
+                />
               </label>
               <label>
                 Transition
@@ -648,13 +689,56 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
               </div>
               {phase.objectives.map((entry, objectiveIndex) => (
                 <div className={styles.row} key={`${entry.id}-${objectiveIndex}`}>
-                  <input value={entry.id} onChange={(event) => patchObjective(phaseIndex, objectiveIndex, { id: event.target.value })} aria-label="Objective id" />
-                  <select value={entry.type} onChange={(event) => patchObjective(phaseIndex, objectiveIndex, { type: event.target.value as EventObjectiveDefinition['type'] })} aria-label="Objective type">
-                    {EVENT_OBJECTIVE_TYPES.map((type) => <option key={type}>{type}</option>)}
+                  <input
+                    value={entry.id}
+                    onChange={(event) =>
+                      patchObjective(phaseIndex, objectiveIndex, { id: event.target.value })
+                    }
+                    aria-label="Objective id"
+                  />
+                  <select
+                    value={entry.type}
+                    onChange={(event) =>
+                      patchObjective(phaseIndex, objectiveIndex, {
+                        type: event.target.value as EventObjectiveDefinition['type'],
+                      })
+                    }
+                    aria-label="Objective type"
+                  >
+                    {EVENT_OBJECTIVE_TYPES.map((type) => (
+                      <option key={type}>{type}</option>
+                    ))}
                   </select>
-                  <input value={entry.referenceKey} onChange={(event) => patchObjective(phaseIndex, objectiveIndex, { referenceKey: event.target.value })} aria-label="Objective reference" />
-                  <input type="number" min={1} value={entry.target} onChange={(event) => patchObjective(phaseIndex, objectiveIndex, { target: Number(event.target.value) })} aria-label="Objective target" />
-                  <button type="button" onClick={() => patchPhase(phaseIndex, { objectives: phase.objectives.filter((_, index) => index !== objectiveIndex) })}>×</button>
+                  <input
+                    value={entry.referenceKey}
+                    onChange={(event) =>
+                      patchObjective(phaseIndex, objectiveIndex, {
+                        referenceKey: event.target.value,
+                      })
+                    }
+                    aria-label="Objective reference"
+                  />
+                  <input
+                    type="number"
+                    min={1}
+                    value={entry.target}
+                    onChange={(event) =>
+                      patchObjective(phaseIndex, objectiveIndex, {
+                        target: Number(event.target.value),
+                      })
+                    }
+                    aria-label="Objective target"
+                  />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      patchPhase(phaseIndex, {
+                        objectives: phase.objectives.filter((_, index) => index !== objectiveIndex),
+                      })
+                    }
+                  >
+                    ×
+                  </button>
                 </div>
               ))}
             </div>
@@ -672,15 +756,50 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
                 </div>
                 {phase[list].map((entry, effectIndex) => (
                   <div className={styles.row} key={`${entry.referenceKey}-${effectIndex}`}>
-                    <select value={entry.type} onChange={(event) => patchEffect(phaseIndex, list, effectIndex, { type: event.target.value as EventEffectReference['type'] })} aria-label="Effect type">
-                      {EVENT_EFFECT_TYPES.map((type) => <option key={type}>{type}</option>)}
+                    <select
+                      value={entry.type}
+                      onChange={(event) =>
+                        patchEffect(phaseIndex, list, effectIndex, {
+                          type: event.target.value as EventEffectReference['type'],
+                        })
+                      }
+                      aria-label="Effect type"
+                    >
+                      {EVENT_EFFECT_TYPES.map((type) => (
+                        <option key={type}>{type}</option>
+                      ))}
                     </select>
-                    <input value={entry.referenceKey} onChange={(event) => patchEffect(phaseIndex, list, effectIndex, { referenceKey: event.target.value })} aria-label="Effect reference" />
+                    <input
+                      value={entry.referenceKey}
+                      onChange={(event) =>
+                        patchEffect(phaseIndex, list, effectIndex, {
+                          referenceKey: event.target.value,
+                        })
+                      }
+                      aria-label="Effect reference"
+                    />
                     <label className={styles.checkbox}>
-                      <input type="checkbox" checked={entry.enabled} onChange={(event) => patchEffect(phaseIndex, list, effectIndex, { enabled: event.target.checked })} />
+                      <input
+                        type="checkbox"
+                        checked={entry.enabled}
+                        onChange={(event) =>
+                          patchEffect(phaseIndex, list, effectIndex, {
+                            enabled: event.target.checked,
+                          })
+                        }
+                      />
                       enabled
                     </label>
-                    <button type="button" onClick={() => patchPhase(phaseIndex, { [list]: phase[list].filter((_, index) => index !== effectIndex) })}>×</button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        patchPhase(phaseIndex, {
+                          [list]: phase[list].filter((_, index) => index !== effectIndex),
+                        })
+                      }
+                    >
+                      ×
+                    </button>
                   </div>
                 ))}
               </div>
@@ -694,7 +813,10 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
         {details ? <pre>{details}</pre> : null}
         {versions.length > 0 ? (
           <p>
-            Published history: {versions.map((version) => `v${version.definitionVersion}${version.current ? ' current' : ''}`).join(' · ')}
+            Published history:{' '}
+            {versions
+              .map((version) => `v${version.definitionVersion}${version.current ? ' current' : ''}`)
+              .join(' · ')}
           </p>
         ) : null}
       </section>
