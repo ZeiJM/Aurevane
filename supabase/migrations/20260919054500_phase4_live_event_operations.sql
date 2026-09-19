@@ -440,7 +440,6 @@ begin
     jsonb_agg(
       jsonb_build_object(
         'characterId', participant.character_id,
-        'userId', participant.user_id,
         'firstParticipatedAt', participant.first_participated_at,
         'lastContributedAt', participant.last_contributed_at,
         'contributionCount', participant.contribution_count,
