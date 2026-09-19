@@ -39,6 +39,17 @@ jobs:
       - name: Run quality gates
         run: pnpm check
 
+      - name: Show formatting patch on quality-gate failure
+        if: failure()
+        run: |
+          if ! pnpm format:check; then
+            pnpm exec prettier --write \
+              "apps/**/*.{ts,tsx,js,mjs,json,css}" \
+              "packages/**/*.{ts,tsx,js,mjs,json}" \
+              package.json turbo.json pnpm-workspace.yaml .prettierrc.json eslint.config.mjs
+            git --no-pager diff -- .
+          fi
+
       - name: Verify worker boot
         run: pnpm --filter @aurevane/worker check:boot
 
