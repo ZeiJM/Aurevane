@@ -12,6 +12,7 @@ export interface OnlineCharacter {
   lastSeenAt: string
   portraitRef: string | null
   disciplineId: string | null
+  secondaryDisciplineId: string | null
   personalTitle: string | null
   imageUrl: string | null
 }
@@ -66,6 +67,7 @@ function parseOnlineCharacters(data: unknown[]): OnlineCharacter[] {
         lastSeenAt: candidate.last_seen_at,
         portraitRef: null,
         disciplineId: null,
+        secondaryDisciplineId: null,
         personalTitle: null,
         imageUrl: null,
       })
@@ -96,6 +98,63 @@ export async function countOnlineCharacters(): Promise<number> {
   return parseOnlineCharacters(data).length
 }
 
+interface PublicCharacterIdentity {
+  portraitRef: string | null
+  disciplineId: string | null
+  secondaryDisciplineId: string | null
+  personalTitle: string | null
+}
+
+async function loadPublicCharacterIdentityMap(
+  characterIds: readonly string[],
+): Promise<ReadonlyMap<string, PublicCharacterIdentity>> {
+  if (characterIds.length === 0) return new Map()
+
+  const supabase = createSupabaseAdminClient()
+  const [{ data: identities, error: identityError }, { data: builds, error: buildError }] =
+    await Promise.all([
+      supabase
+        .from('characters')
+        .select('id, portrait_ref, personal_title')
+        .in('id', [...characterIds]),
+      supabase.rpc('get_character_public_active_disciplines_v1', {
+        p_character_ids: [...characterIds],
+      }),
+    ])
+
+  const buildMap = new Map<
+    string,
+    { disciplineId: string | null; secondaryDisciplineId: string | null }
+  >()
+  if (!buildError && Array.isArray(builds)) {
+    for (const row of builds) {
+      if (!row || typeof row !== 'object' || typeof row.character_id !== 'string') continue
+      buildMap.set(row.character_id, {
+        disciplineId:
+          typeof row.primary_discipline_id === 'string' ? row.primary_discipline_id : null,
+        secondaryDisciplineId:
+          typeof row.secondary_discipline_id === 'string' ? row.secondary_discipline_id : null,
+      })
+    }
+  }
+
+  const identityMap = new Map<string, PublicCharacterIdentity>()
+  if (!identityError && Array.isArray(identities)) {
+    for (const row of identities) {
+      if (!row || typeof row.id !== 'string') continue
+      const build = buildMap.get(row.id)
+      identityMap.set(row.id, {
+        portraitRef: typeof row.portrait_ref === 'string' ? row.portrait_ref : null,
+        disciplineId: build?.disciplineId ?? null,
+        secondaryDisciplineId: build?.secondaryDisciplineId ?? null,
+        personalTitle: typeof row.personal_title === 'string' ? row.personal_title : null,
+      })
+    }
+  }
+
+  return identityMap
+}
+
 export async function listOnlineCharacters(): Promise<OnlineCharacter[]> {
   const supabase = createSupabaseAdminClient()
   const { data, error } = await supabase.rpc('list_online_characters_v1')
@@ -105,31 +164,13 @@ export async function listOnlineCharacters(): Promise<OnlineCharacter[]> {
   if (base.length === 0) return base
   const ids = base.map((row) => row.characterId)
 
-  // Public online identity is deliberately shallow: portrait/title/discipline only, never stats,
-  // account identifiers, email, currencies, inventory, or private progression data.
-  const [{ data: identities, error: identityError }, imageMap] = await Promise.all([
-    supabase
-      .from('characters')
-      .select('id, portrait_ref, foundation_discipline_id, personal_title')
-      .in('id', ids),
+  // Public online identity is deliberately shallow: portrait/title plus the current committed
+  // Primary/Secondary Discipline pair only. Never expose stats, skills, account identifiers,
+  // currencies, inventory, progression, or other private build data.
+  const [identityMap, imageMap] = await Promise.all([
+    loadPublicCharacterIdentityMap(ids),
     loadPublicCharacterProfileImageMap(ids).catch(() => new Map<string, string>()),
   ])
-
-  const identityMap = new Map<
-    string,
-    { portraitRef: string | null; disciplineId: string | null; personalTitle: string | null }
-  >()
-  if (!identityError && Array.isArray(identities)) {
-    for (const row of identities) {
-      if (!row || typeof row.id !== 'string') continue
-      identityMap.set(row.id, {
-        portraitRef: typeof row.portrait_ref === 'string' ? row.portrait_ref : null,
-        disciplineId:
-          typeof row.foundation_discipline_id === 'string' ? row.foundation_discipline_id : null,
-        personalTitle: typeof row.personal_title === 'string' ? row.personal_title : null,
-      })
-    }
-  }
 
   return base
     .map((row) => {
@@ -138,6 +179,7 @@ export async function listOnlineCharacters(): Promise<OnlineCharacter[]> {
         ...row,
         portraitRef: identity?.portraitRef ?? null,
         disciplineId: identity?.disciplineId ?? null,
+        secondaryDisciplineId: identity?.secondaryDisciplineId ?? null,
         personalTitle: identity?.personalTitle ?? null,
         imageUrl: imageMap.get(row.characterId) ?? null,
       }
@@ -168,6 +210,7 @@ export async function listCharacterPresenceDirectory(): Promise<CharacterPresenc
         lastSeenAt: row.last_seen_at,
         portraitRef: null,
         disciplineId: null,
+        secondaryDisciplineId: null,
         personalTitle: null,
         imageUrl: null,
         isOnline: row.is_online,
@@ -178,29 +221,10 @@ export async function listCharacterPresenceDirectory(): Promise<CharacterPresenc
   if (base.length === 0) return base
   const ids = base.map((row) => row.characterId)
 
-  const [{ data: identities, error: identityError }, imageMap] = await Promise.all([
-    supabase
-      .from('characters')
-      .select('id, portrait_ref, foundation_discipline_id, personal_title')
-      .in('id', ids),
+  const [identityMap, imageMap] = await Promise.all([
+    loadPublicCharacterIdentityMap(ids),
     loadPublicCharacterProfileImageMap(ids).catch(() => new Map<string, string>()),
   ])
-
-  const identityMap = new Map<
-    string,
-    { portraitRef: string | null; disciplineId: string | null; personalTitle: string | null }
-  >()
-  if (!identityError && Array.isArray(identities)) {
-    for (const row of identities) {
-      if (!row || typeof row.id !== 'string') continue
-      identityMap.set(row.id, {
-        portraitRef: typeof row.portrait_ref === 'string' ? row.portrait_ref : null,
-        disciplineId:
-          typeof row.foundation_discipline_id === 'string' ? row.foundation_discipline_id : null,
-        personalTitle: typeof row.personal_title === 'string' ? row.personal_title : null,
-      })
-    }
-  }
 
   return base.map((row) => {
     const identity = identityMap.get(row.characterId)
@@ -208,6 +232,7 @@ export async function listCharacterPresenceDirectory(): Promise<CharacterPresenc
       ...row,
       portraitRef: identity?.portraitRef ?? null,
       disciplineId: identity?.disciplineId ?? null,
+      secondaryDisciplineId: identity?.secondaryDisciplineId ?? null,
       personalTitle: identity?.personalTitle ?? null,
       imageUrl: imageMap.get(row.characterId) ?? null,
     }
