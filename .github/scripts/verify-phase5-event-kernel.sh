@@ -289,4 +289,4 @@ preview_cancel="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgre
   );")"
 test "$preview_cancel" = 'cancelled|2'
 
-echo 'Phase 5 persistent event kernel verification passed.'
+echo 'Phase 4 persistent event kernel verification passed.'

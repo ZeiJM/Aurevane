@@ -85,8 +85,11 @@ jobs:
       - name: Verify Master Panel staff authority
         run: bash .github/scripts/verify-master-panel-staff-authority.sh
 
-      - name: Verify Phase 5 persistent event kernel
+      - name: Verify Phase 4 persistent event kernel
         run: bash .github/scripts/verify-phase5-event-kernel.sh
+
+      - name: Verify Phase 4 Event participation ledger
+        run: bash .github/scripts/verify-phase5-event-participation.sh
 
       - name: Verify player profile provisioning and privacy
         run: bash .github/scripts/verify-player-profile.sh
