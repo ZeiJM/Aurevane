@@ -374,6 +374,7 @@ reward_a="$(cat /tmp/p412-reward-a.out)"
 reward_b="$(cat /tmp/p412-reward-b.out)"
 reward_a_xp="$(printf '%s' "$reward_a" | cut -d'|' -f3)"
 reward_b_xp="$(printf '%s' "$reward_b" | cut -d'|' -f3)"
+reward_a_claim_deduplicated="$(printf '%s' "$reward_a" | cut -d'|' -f7)"
 test -n "$reward_a_xp"
 test "$reward_a_xp" = "$reward_b_xp"
 test "$(printf '%s\n%s\n' "$reward_a" "$reward_b" | cut -d'|' -f4-5 | sort -u)" = '25|25'
@@ -384,7 +385,8 @@ replay="$(execute_reward \
   '00000000-0000-4000-8000-000000004127' \
   'p412:reward:execute-a')"
 test "$(printf '%s' "$replay" | cut -d'|' -f3)" = "$reward_a_xp"
-test "$(printf '%s' "$replay" | cut -d'|' -f6-7)" = 'true|false'
+test "$(printf '%s' "$replay" | cut -d'|' -f6)" = 'true'
+test "$(printf '%s' "$replay" | cut -d'|' -f7)" = "$reward_a_claim_deduplicated"
 
 if execute_reward \
   '00000000-0000-4000-8000-000000004127' \
