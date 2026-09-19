@@ -6,6 +6,9 @@
 
 This addendum is subordinate only to `docs/GAME_MASTER_PLAN.md` and is the current authority for the subjects below.
 
+
+**Owner phase-boundary correction — 2026-09-19:** the staff-authority and persistent-event operational systems described by this addendum execute as the **Phase 4 P4.11–P4.14 operations extension**. This does not authorize or start Phase 5. Phase 5 remains the later player-facing Living World / Supernatural Identity / Frontier phase and requires explicit Owner authorization.
+
 Where this document conflicts with earlier wording in `docs/MASTER_PANEL.md`, `docs/LIVING_ECONOMY_SOCIAL_IDENTITY.md`, `docs/ROADMAP_LIVING_ECONOMY_SOCIAL_IDENTITY.md`, `docs/OFFLINE_PROGRESSION.md`, or other older supporting documents, **this addendum wins for staff role structure, planned Wayfarer's Practice windows, and persistent live-event operations**.
 
 ---
