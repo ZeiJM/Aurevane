@@ -163,7 +163,7 @@ revoke all on table app_private.event_run_transitions from public, anon, authent
 grant select, insert on table app_private.event_templates to service_role;
 grant select, insert on table app_private.event_definition_versions to service_role;
 grant select, insert, update on table app_private.event_publications to service_role;
-grant select, insert, update on table app_private.event_runs to service_role;
+grant select, insert on table app_private.event_runs to service_role;
 grant select, insert, update on table app_private.event_run_phases to service_role;
 grant select, insert, update on table app_private.event_run_objectives to service_role;
 grant select, insert on table app_private.event_run_transitions to service_role;
