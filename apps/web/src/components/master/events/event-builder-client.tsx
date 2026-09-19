@@ -274,8 +274,8 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
       }
       setBaseVersion(published.definitionVersion)
       setDefinition(published.definition)
-      setMessage(`Published Event definition v${published.definitionVersion}.`)
       await loadWorkspace()
+      setMessage(`Published Event definition v${published.definitionVersion}.`)
     })
   }
 
