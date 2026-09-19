@@ -15,6 +15,30 @@ confirm_test_user "$user_id"
 db_container="$(docker ps --filter 'name=supabase_db_' --format '{{.Names}}' | head -n 1)"
 test -n "$db_container"
 
+assert_error_contains() {
+  local pattern="$1"
+  local file="$2"
+  local label="$3"
+
+  if ! grep -Fq "$pattern" "$file"; then
+    echo "Expected $label error containing: $pattern" >&2
+    cat "$file" >&2 || true
+    exit 1
+  fi
+}
+
+wait_for_reward_process() {
+  local pid="$1"
+  local label="$2"
+  local error_file="$3"
+
+  if ! wait "$pid"; then
+    echo "$label Event reward execution failed." >&2
+    cat "$error_file" >&2 || true
+    exit 1
+  fi
+}
+
 character_id="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   set role service_role;
   select id::text
@@ -103,7 +127,7 @@ if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -
   echo 'Expected immutable Event Reward Package update to fail.' >&2
   exit 1
 fi
-grep -Fq 'EVENT_REWARD_PACKAGE_IMMUTABLE' /tmp/p412-package-update.err
+assert_error_contains 'EVENT_REWARD_PACKAGE_IMMUTABLE' /tmp/p412-package-update.err 'immutable package update'
 
 if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   insert into app_private.event_reward_packages (
@@ -124,7 +148,7 @@ if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -
   echo 'Expected over-budget Event Reward Package to fail.' >&2
   exit 1
 fi
-grep -Fq 'EVENT_REWARD_BUDGET_EXCEEDED' /tmp/p412-package-budget.err
+assert_error_contains 'EVENT_REWARD_BUDGET_EXCEEDED' /tmp/p412-package-budget.err 'over-budget package publication'
 
 if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   set role service_role;
@@ -146,7 +170,7 @@ if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -
   echo 'Service role unexpectedly published an Event Reward Package directly.' >&2
   exit 1
 fi
-grep -Fq 'permission denied for table event_reward_packages' /tmp/p412-package-direct.err
+assert_error_contains 'permission denied for table event_reward_packages' /tmp/p412-package-direct.err 'direct service-role package publication'
 
 run_id="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   insert into app_private.event_runs (
@@ -282,7 +306,7 @@ if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -
   echo 'Service role unexpectedly forged an Event reward execution receipt.' >&2
   exit 1
 fi
-grep -Fq 'permission denied for table event_reward_claim_executions' /tmp/p412-execution-direct.err
+assert_error_contains 'permission denied for table event_reward_claim_executions' /tmp/p412-execution-direct.err 'direct service-role execution receipt'
 
 execute_reward() {
   local idempotency_key="$1"
@@ -337,8 +361,8 @@ execute_reward \
   > /tmp/p412-reward-b.out 2>/tmp/p412-reward-b.err &
 reward_b_pid=$!
 
-wait "$reward_a_pid"
-wait "$reward_b_pid"
+wait_for_reward_process "$reward_a_pid" "First concurrent" /tmp/p412-reward-a.err
+wait_for_reward_process "$reward_b_pid" "Second concurrent" /tmp/p412-reward-b.err
 
 docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   drop trigger delay_p412_event_reward_execution_for_test
@@ -368,7 +392,7 @@ if execute_reward \
   echo 'Expected conflicting Event reward execution idempotency fingerprint to fail.' >&2
   exit 1
 fi
-grep -Fq 'EVENT_REWARD_EXECUTION_IDEMPOTENCY_CONFLICT' /tmp/p412-reward-conflict.err
+assert_error_contains 'EVENT_REWARD_EXECUTION_IDEMPOTENCY_CONFLICT' /tmp/p412-reward-conflict.err 'conflicting execution idempotency'
 
 execution_count="$(docker exec "$db_container" psql -U postgres -d postgres -Atqc "
   select count(*) from app_private.event_reward_claim_executions
@@ -392,7 +416,7 @@ if execute_reward \
   echo 'Expected missing Event Reward Package execution to fail closed.' >&2
   exit 1
 fi
-grep -Fq 'EVENT_REWARD_PACKAGE_UNAVAILABLE' /tmp/p412-missing-package.err
+assert_error_contains 'EVENT_REWARD_PACKAGE_UNAVAILABLE' /tmp/p412-missing-package.err 'missing reward package execution'
 
 if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   set role authenticated;
