@@ -101,11 +101,7 @@ before update or delete on app_private.event_reward_packages
 for each row execute function app_private.prevent_event_reward_catalog_mutation_v1();
 
 alter table app_private.event_reward_claim_reservations
-  add column claimed_at timestamptz,
-  add constraint event_reward_claim_package_fk
-    foreign key (reward_package_ref)
-    references app_private.event_reward_packages(reward_package_ref)
-    on update restrict on delete restrict;
+  add column claimed_at timestamptz;
 
 create table app_private.event_reward_claim_execution_entries (
   reservation_id uuid primary key
@@ -684,14 +680,6 @@ begin
     where reward.ref = p_reward_package_ref
   ) then
     raise exception using errcode = '22023', message = 'EVENT_REWARD_PACKAGE_NOT_PINNED';
-  end if;
-
-  perform 1
-  from app_private.event_reward_packages as package
-  where package.reward_package_ref = p_reward_package_ref;
-
-  if not found then
-    raise exception using errcode = '22023', message = 'EVENT_REWARD_PACKAGE_UNAVAILABLE';
   end if;
 
   insert into app_private.event_reward_claim_reservations (
