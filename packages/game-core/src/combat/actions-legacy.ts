@@ -48,7 +48,7 @@ import {
   validateCurrentBurnEffect,
   validateCurrentPoisonEffect,
 } from './combat-dots'
-import type { CombatEffectState } from './combat-effect-state'
+import { validateCombatTemporarySkillState, type CombatEffectState } from './combat-effect-state'
 import {
   validateCombatEffectInstanceProvenance,
   type CombatEffectInstanceProvenance,
@@ -145,8 +145,14 @@ export interface FacingDamageModifiers {
   rear: number
 }
 
+export interface CombatSkillCopyEffect {
+  type: 'copy'
+  recipient: 'primary-unit'
+}
+
 export type CombatEffectDefinition =
   | CombatStatusCopyEffect
+  | CombatSkillCopyEffect
   | {
       type: 'damage'
       recipient: CombatEffectRecipient
@@ -1108,6 +1114,7 @@ export function validateCombatEncounterState(
     ...validateOngoingRecoveryState(state),
     ...validateBarrierState(state),
     ...validateCombatDotState(state),
+    ...validateCombatTemporarySkillState(state),
   ]
   collectPersistentProvenanceIssues(state, issues)
 
@@ -1512,6 +1519,9 @@ function resolveActionEffects(
     if (effect.type === 'sensory') {
       throw new TypeError('Sensory must be materialized before legacy effect resolution.')
     }
+    if (effect.type === 'copy') {
+      throw new TypeError('Copy must be materialized before legacy effect resolution.')
+    }
     if (
       effect.type === 'create-terrain' ||
       (effect.type === 'damage' && effect.element === 'fire')
@@ -1675,7 +1685,10 @@ function applyEffect(
   actorId: string,
   recipientId: string,
   actionId: string,
-  effect: Exclude<CombatEffectDefinition, { type: 'create-terrain' | 'copy-statuses' | 'sensory' }>,
+  effect: Exclude<
+    CombatEffectDefinition,
+    { type: 'create-terrain' | 'copy-statuses' | 'copy' | 'sensory' }
+  >,
   content: CombatContentCatalog,
   stormRecipients: Set<string>,
 ): CombatResolutionTransition {
@@ -2527,10 +2540,17 @@ function validateCombatActionDefinition(
         'burn',
         'barrier-change',
         'copy-statuses',
+        'copy',
       ],
       'effect type',
     )
     if (effect.type === 'create-terrain') {
+      continue
+    }
+    if (effect.type === 'copy') {
+      if (effect.recipient !== 'primary-unit') {
+        throw new TypeError('Copy requires the selected primary unit.')
+      }
       continue
     }
     if (effect.type === 'displace') {
@@ -2565,10 +2585,10 @@ function validateCombatActionDefinition(
       if (
         !Array.isArray(effect.statusIds) ||
         effect.statusIds.length < 1 ||
-        effect.statusIds.length > 8 ||
+        effect.statusIds.length > 16 ||
         new Set(effect.statusIds).size !== effect.statusIds.length
       )
-        throw new TypeError('Status removal requires one to eight distinct IDs.')
+        throw new TypeError('Status removal requires one to sixteen distinct IDs.')
       for (const id of effect.statusIds) {
         collectRequiredIdentity(id, 'removed status ID')
         if (content) getStatusDefinitionById(content, id)

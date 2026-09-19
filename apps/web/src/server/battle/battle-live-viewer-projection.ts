@@ -1,6 +1,9 @@
 import 'server-only'
 
-import { combatStatusMetadata } from '@aurevane/game-core/combat/combat-effect-state'
+import {
+  combatStatusMetadata,
+  type CombatEffectState,
+} from '@aurevane/game-core/combat/combat-effect-state'
 import {
   PV1F_COMBAT_CONTENT,
   PV1F_COVERT_STATUS,
@@ -52,4 +55,24 @@ export function projectBattleStatusStateForViewer(
       }),
     }
   })
+}
+
+export function projectBattleEffectStateForViewer(
+  state: Pick<StatDrivenCombatEncounterState, 'effectState' | 'tactical'>,
+  viewer: BattleViewerEntitlement,
+): CombatEffectState | undefined {
+  if (!state.effectState) return undefined
+
+  const combatantById = new Map(
+    state.tactical.battle.combatants.map((combatant) => [combatant.id, combatant] as const),
+  )
+  return {
+    ...state.effectState,
+    temporarySkills: state.effectState.temporarySkills.filter((grant) => {
+      const holder = combatantById.get(grant.combatantId)
+      if (!holder) return false
+      const relationship = battleViewerRelationship(viewer, holder)
+      return relationship === 'self' || relationship === 'ally'
+    }),
+  }
 }

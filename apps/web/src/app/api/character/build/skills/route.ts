@@ -4,9 +4,12 @@ import { getAuthenticatedActor } from '@/server/auth/actor'
 import {
   loadCharacterBuildContext,
   saveCharacterDisciplineSkills,
+  type CharacterBuildContext,
 } from '@/server/character/character-build-service'
+import { resolveCurrentCharacterSkillDetails } from '@/server/character/current-skill-detail-loader'
 import { loadSelectedCharacter } from '@/server/character/selected-character'
 import { createSupabaseCharacterBuildRepository } from '@/server/character/supabase-character-build-repository'
+import { createServerCombatContentResolver } from '@/server/combat/combat-content-resolver'
 import { toServerErrorResponse } from '@/server/http/error-response'
 
 async function selectedCharacter() {
@@ -16,6 +19,16 @@ async function selectedCharacter() {
     throw new AurevaneError('INVALID_REQUEST', 'Select a character before editing its build.')
   }
   return { actor, character }
+}
+
+async function currentSkillDetails(context: CharacterBuildContext): Promise<CharacterBuildContext> {
+  return {
+    ...context,
+    disciplineSkills: await resolveCurrentCharacterSkillDetails(
+      context.disciplineSkills,
+      createServerCombatContentResolver(),
+    ),
+  }
 }
 
 async function readJson(request: Request): Promise<Record<string, unknown>> {
@@ -36,7 +49,10 @@ export async function GET() {
       character,
       createSupabaseCharacterBuildRepository(),
     )
-    return Response.json({ context }, { headers: { 'Cache-Control': 'private, no-store' } })
+    return Response.json(
+      { context: await currentSkillDetails(context) },
+      { headers: { 'Cache-Control': 'private, no-store' } },
+    )
   } catch (error) {
     return toServerErrorResponse(error)
   }
@@ -62,7 +78,10 @@ export async function PUT(request: Request) {
       { expectedBuildVersion, idempotencyKey, skillIds },
       createSupabaseCharacterBuildRepository(),
     )
-    return Response.json({ context }, { headers: { 'Cache-Control': 'private, no-store' } })
+    return Response.json(
+      { context: await currentSkillDetails(context) },
+      { headers: { 'Cache-Control': 'private, no-store' } },
+    )
   } catch (error) {
     return toServerErrorResponse(error)
   }

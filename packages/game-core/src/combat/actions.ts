@@ -12,6 +12,7 @@ import {
 } from './combat-vengeance'
 import { applyCommittedReflect } from './combat-reflect'
 import type { CombatDamageScaling } from './damage-scaling'
+import type { CombatSkillCopyPreview } from './combat-skill-copy'
 import { calculateScaledRawDamage, validateCombatDamageScaling } from './damage-scaling'
 import { applyCommittedAbsorbRecovery } from './combat-absorb-recovery'
 import { recordCommittedDamageHistory } from './combat-damage-history'
@@ -61,6 +62,7 @@ export interface CombatActionEvaluation extends legacy.CombatActionEvaluation {
   vengeanceBasis?: readonly CombatVengeanceBasis[]
   targetHitChances?: readonly CombatTargetHitChance[]
   projectionsAssumeHits?: true
+  skillCopy?: CombatSkillCopyPreview
 }
 
 export interface CombatResolutionContext {
@@ -256,6 +258,9 @@ function materializeStatScaledDamage(
   const effects: legacy.CombatEffectDefinition[] = action.effects.map((effect) => {
     if (effect.type === 'sensory') {
       throw new TypeError('Sensory must be materialized before legacy effect resolution.')
+    }
+    if (effect.type === 'copy') {
+      throw new TypeError('Copy must be materialized by the mature Skill execution layer.')
     }
     if (effect.type !== 'damage') return effect
 

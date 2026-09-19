@@ -419,6 +419,17 @@ Curse never copies:
 
 A pure Curse Skill targeting a user with no eligible negative effects is illegal and preview explains why.
 
+### 14.4 Consecutive-use clone transfer
+
+Owner ruling, 2026-09-18: Amplify/Curse clone transfer is a **discrete effect** under the approved consecutive-use system.
+
+- first use copies the eligible current state normally;
+- a consecutive repeat omits the `copy-statuses` block completely;
+- no fractional duration, stacks, Poison movement counter, Burn stage, Bleed-stack count, or provenance is created;
+- later effects in a composed Skill still receive their ordinary repeat-use interpretation, including 50% quantitative scaling;
+- a pure clone Skill remains legal on the repeat as a full-cost no-op for the clone transfer;
+- preview, Recruit AI and commit use the same scaled effect list, so omitted repeat cloning contributes no forecast or AI clone utility.
+
 ## 15. Interaction ordering
 
 For a committed Skill command, current ordering is:

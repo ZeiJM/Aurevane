@@ -1,5 +1,8 @@
 import { PHASE4_AUDIO_DISCIPLINES } from '@aurevane/audio'
 import type { BattleEventRecord } from '@aurevane/db/battle-session'
+import { parseCopiedSkillCommandId } from '@aurevane/game-core/combat/combat-skill-copy'
+
+import { resolveSkillAudioCueHook } from './skill-media-hooks'
 
 export interface BattleAudioCue {
   assetId: string
@@ -18,15 +21,18 @@ export function selectBattleAudioCues(
     if (record.battleVersion !== version || !Number.isFinite(age) || age < 0 || age > 5000) continue
     if (!record.event || typeof record.event !== 'object' || Array.isArray(record.event)) continue
     const event = record.event as Record<string, unknown>
-    const action = typeof event.actionId === 'string' ? event.actionId : ''
+    const storedAction = typeof event.actionId === 'string' ? event.actionId : ''
+    const action = parseCopiedSkillCommandId(storedAction)?.skillId ?? storedAction
     let family = ''
     let role = 'action'
     let priority = 20
     if (event.event === 'combat_action_used') {
+      const authoredAudio =
+        typeof event.audioCueKey === 'string' ? resolveSkillAudioCueHook(event.audioCueKey) : null
       const essence = action.startsWith('essence.')
-      const discipline = action.split('.')[essence ? 1 : 0]
-      if (PHASE4_AUDIO_DISCIPLINES.some((id) => id === discipline)) {
-        family = discipline!
+      const discipline = authoredAudio?.audioFamily ?? action.split('.')[essence ? 1 : 0]
+      if (discipline && PHASE4_AUDIO_DISCIPLINES.some((id) => id === discipline)) {
+        family = discipline
         role = essence ? 'essence' : 'action'
         priority = essence ? 90 : 70
       }

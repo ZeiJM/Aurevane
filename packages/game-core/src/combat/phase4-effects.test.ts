@@ -14,6 +14,7 @@ import {
   type CombatTargetSelection,
 } from './actions'
 import { conditionalDamageMultiplier, validateDamageModifiers } from './damage-modifiers'
+import { normalizeCombatEffectState } from './combat-effect-state'
 import {
   createPv1fTemporaryResources,
   executePv1fMatureSkill,
@@ -124,6 +125,9 @@ function withStatus<T extends CombatEncounterState>(
             statuses: [
               ...row.statuses.filter((status) => status.statusId !== statusId),
               {
+                ...(definition.markAccuracyBonusBasisPoints !== undefined
+                  ? { sourceScopedMark: true as const }
+                  : {}),
                 statusId,
                 statusVersion: 1,
                 stacks: 1,
@@ -136,6 +140,74 @@ function withStatus<T extends CombatEncounterState>(
     ),
   }
 }
+function withGameplayTag(
+  state: StatDrivenCombatEncounterState,
+  owner: string,
+  tag: string,
+): StatDrivenCombatEncounterState {
+  const effectState = normalizeCombatEffectState(state.effectState)
+  if (tag === 'Bleeding') {
+    return {
+      ...state,
+      effectState: {
+        ...effectState,
+        bleed: [
+          ...effectState.bleed.filter((stack) => stack.targetCombatantId !== owner),
+          {
+            targetCombatantId: owner,
+            sourceCombatantId: 'actor',
+            sourceActionId: 'test.requirement.bleed',
+            damagePerTick: 3,
+            remainingTicks: 3,
+            applicationOrder: 1,
+            curseCopyable: true,
+          },
+        ],
+      },
+    }
+  }
+  if (tag === 'Scorched') {
+    return {
+      ...state,
+      effectState: {
+        ...effectState,
+        burn: [
+          ...effectState.burn.filter((instance) => instance.targetCombatantId !== owner),
+          {
+            targetCombatantId: owner,
+            sourceCombatantId: 'actor',
+            sourceActionId: 'test.requirement.burn',
+            profileVersion: 1,
+            stage: 0,
+            curseCopyable: true,
+          },
+        ],
+      },
+    }
+  }
+  if (tag === 'Poisoned') {
+    return {
+      ...state,
+      effectState: {
+        ...effectState,
+        poison: [
+          ...effectState.poison.filter((instance) => instance.targetCombatantId !== owner),
+          {
+            targetCombatantId: owner,
+            sourceCombatantId: 'actor',
+            sourceActionId: 'test.requirement.poison',
+            profileVersion: 1,
+            movementRemainder: 0,
+            curseCopyable: true,
+          },
+        ],
+      },
+    }
+  }
+  if (tag === 'Marked') return withStatus(state, owner, 'mark')
+  return withStatus(state, owner, tag.toLowerCase())
+}
+
 function action(effects: readonly CombatEffectDefinition[]): CombatActionDefinition {
   return {
     id: 'test.effects',
@@ -314,11 +386,20 @@ describe('Phase 4 advanced libraries', () => {
   })
 })
 
+const currentEssences = P36_REPRESENTATIVE_ESSENCES.filter(
+  (definition, index, definitions) =>
+    definition.enabled &&
+    !definitions.some(
+      (candidate, candidateIndex) =>
+        candidateIndex !== index &&
+        candidate.essenceId === definition.essenceId &&
+        candidate.contentVersion > definition.contentVersion,
+    ),
+)
+
 const publishedSkills = [
   ...latestEnabledMatureSkills(),
-  ...P36_REPRESENTATIVE_ESSENCES.filter((essence) => essence.enabled).map(
-    (essence) => essence.skill,
-  ),
+  ...currentEssences.map((essence) => essence.skill),
 ]
 const contractCombatants: readonly ContractCombatant[] = ['actor', 'enemy', 'other', 'ally']
 
@@ -341,12 +422,16 @@ function contractEncounter(skill: MatureSkillDefinition, contract: PublishedSkil
         })),
       },
       placements: state.tactical.placements.map((unit) => {
+        if (skill.id === 'tidecaller.undertow') {
+          if (unit.combatantId === 'enemy') return { ...unit, position: { x: 4, y: 1 } }
+          if (unit.combatantId === 'other') return { ...unit, position: { x: 4, y: 2 } }
+        }
         if (unit.combatantId === 'enemy' && skill.target.minimumRange > 1)
           return { ...unit, position: { x: 1 + skill.target.minimumRange, y: 1 } }
         if (
           unit.combatantId === 'other' &&
           (skill.target.minimumRange === 2 ||
-            (skill.id === 'ironfist.pressure-palm' && skill.contentVersion === 2))
+            (skill.id === 'ironfist.pressure-palm' && skill.contentVersion >= 2))
         )
           return { ...unit, position: { x: 4, y: 1 } }
         return unit
@@ -359,11 +444,7 @@ function contractEncounter(skill: MatureSkillDefinition, contract: PublishedSkil
     if (requirement.kind === 'target-status-present')
       state = withStatus(state, 'enemy', requirement.statusId)
     if (requirement.kind === 'target-tag-present')
-      state = withStatus(
-        state,
-        'enemy',
-        requirement.tag === 'Bleeding' ? 'bleed' : requirement.tag.toLowerCase(),
-      )
+      state = withGameplayTag(state, 'enemy', requirement.tag)
   }
   for (const [owner, statuses] of Object.entries(contract.removed ?? {})) {
     // An unrelated beneficial status must survive a named cleanse/dispelling effect.
@@ -376,7 +457,7 @@ function contractEncounter(skill: MatureSkillDefinition, contract: PublishedSkil
     ]).state
   const selection: CombatTargetSelection =
     skill.target.kind === 'ground-tile'
-      ? { kind: 'tile', position: { x: 2, y: 1 } }
+      ? { kind: 'tile', position: { x: 1 + Math.max(1, skill.target.minimumRange), y: 1 } }
       : skill.target.kind === 'self'
         ? { kind: 'self' }
         : {
@@ -443,6 +524,7 @@ function assertContractUse(
         (status) => !removed.includes(status.statusId) && !added.includes(status.statusId),
       ),
       ...added.map((statusId) => ({
+        ...(statusId === 'mark' ? { sourceScopedMark: true as const } : {}),
         statusId,
         statusVersion: 1,
         stacks: 1,
@@ -459,6 +541,42 @@ function assertContractUse(
     expect(
       result.state.tactical.placements.find((unit) => unit.combatantId === id)!.position,
     ).toEqual(use === 0 ? (contract.positions?.[id] ?? position) : position)
+
+    if (use === 0 && contract.dynamic?.[id]) {
+      const expected = contract.dynamic[id]!
+      const effectState = normalizeCombatEffectState(result.state.effectState)
+      if (expected.poison) {
+        expect(effectState.poison, `${id} Poison`).toContainEqual(
+          expect.objectContaining({ targetCombatantId: id, sourceCombatantId: 'actor' }),
+        )
+      }
+      if (expected.burn) {
+        expect(effectState.burn, `${id} Burn`).toContainEqual(
+          expect.objectContaining({ targetCombatantId: id, sourceCombatantId: 'actor', stage: 0 }),
+        )
+      }
+      if (expected.bleed) {
+        expect(effectState.bleed, `${id} Bleed`).toContainEqual(
+          expect.objectContaining({
+            targetCombatantId: id,
+            sourceCombatantId: 'actor',
+            damagePerTick: expected.bleed.damagePerTick,
+            remainingTicks: expected.bleed.ticks,
+          }),
+        )
+      }
+      if (expected.recovery) {
+        expect(effectState.ongoingRecovery, `${id} recovery`).toContainEqual(
+          expect.objectContaining({
+            targetCombatantId: id,
+            sourceCombatantId: 'actor',
+            kind: expected.recovery.kind,
+            amountPerTick: expected.recovery.amountPerTick,
+            remainingFutureTicks: expected.recovery.remainingFutureTicks,
+          }),
+        )
+      }
+    }
   }
   if (use === 1) {
     expect(result.events).not.toContainEqual(expect.objectContaining({ event: 'status_applied' }))
@@ -493,12 +611,14 @@ describe('Every published Technique and Essence executes its authored recipient 
     expect(PUBLISHED_SKILL_CONTRACTS.map((contract) => contract.id).sort()).toEqual(
       publishedSkills.map((skill) => skill.id).sort(),
     )
-    expect(HISTORICAL_SKILL_CONTRACTS.map((contract) => contract.id).sort()).toEqual(
-      latestEnabledMatureSkills()
-        .filter((skill) => skill.contentVersion === 2 && skill.id !== 'vanguard.forceful-strike')
-        .map((skill) => skill.id)
-        .sort(),
-    )
+    for (const contract of HISTORICAL_SKILL_CONTRACTS) {
+      expect(contract.contentVersion).toBeDefined()
+      const historical = resolveMatureSkillVersion(contract.id, contract.contentVersion)
+      const current = resolveMatureSkillVersion(contract.id)
+      expect(historical, contract.id).not.toBeNull()
+      expect(current, contract.id).not.toBeNull()
+      expect(historical!.contentVersion, contract.id).toBeLessThan(current!.contentVersion)
+    }
   })
   for (const context of ['pve', 'pvp'] as const) {
     it.each([...PUBLISHED_SKILL_CONTRACTS, ...HISTORICAL_SKILL_CONTRACTS])(
@@ -595,11 +715,26 @@ describe('Every published Technique and Essence executes its authored recipient 
             }
           } else {
             const owner = requirement.kind.startsWith('actor-') ? 'actor' : 'enemy'
+            const effectState = normalizeCombatEffectState(state.effectState)
             unmet = {
               ...state,
               statusState: state.statusState.map((row) =>
                 row.combatantId === owner ? { ...row, statuses: [] } : row,
               ),
+              ...('tag' in requirement
+                ? {
+                    effectState: {
+                      ...effectState,
+                      poison: effectState.poison.filter(
+                        (instance) => instance.targetCombatantId !== owner,
+                      ),
+                      bleed: effectState.bleed.filter((stack) => stack.targetCombatantId !== owner),
+                      burn: effectState.burn.filter(
+                        (instance) => instance.targetCombatantId !== owner,
+                      ),
+                    },
+                  }
+                : {}),
             }
           }
           const before = JSON.stringify(unmet)

@@ -11,6 +11,7 @@ on:
       - '.github/scripts/verify-p36-essence.sh'
       - '.github/scripts/verify-p37-saved-build-loadouts.sh'
       - '.github/scripts/verify-p38-representative-buildcraft.sh'
+      - '.github/scripts/verify-p4-discipline-rebalance-publication.sh'
       - '.github/workflows/discipline-build-db.yml'
       - 'apps/web/src/server/character/character-build-service.ts'
       - 'apps/web/src/server/character/supabase-character-build-repository.ts'
@@ -31,6 +32,7 @@ on:
       - '.github/scripts/verify-p36-essence.sh'
       - '.github/scripts/verify-p37-saved-build-loadouts.sh'
       - '.github/scripts/verify-p38-representative-buildcraft.sh'
+      - '.github/scripts/verify-p4-discipline-rebalance-publication.sh'
       - '.github/workflows/discipline-build-db.yml'
       - 'apps/web/src/server/character/character-build-service.ts'
       - 'apps/web/src/server/character/supabase-character-build-repository.ts'
@@ -158,6 +160,9 @@ jobs:
           set -E
           trap 'echo "P3.8 verifier failed at line ${BASH_LINENO[0]}." >&2' ERR
           source .github/scripts/verify-p38-representative-buildcraft.sh
+
+      - name: Verify Phase 4 Discipline rebalance publication
+        run: bash .github/scripts/verify-p4-discipline-rebalance-publication.sh
 
       - name: Stop local Supabase services
         if: always()

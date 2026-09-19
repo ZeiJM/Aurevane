@@ -60,15 +60,19 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
     'Inspired',
     'Buff',
     'Deal 10% more damage within the combined damage-modifier cap.',
-    { gameplayTags: ['Inspired'] },
+    { gameplayTags: ['Inspired'], amplifyCopyable: true, reactionClass: 'ordinary' },
   ),
-  status('hexed', 'Hexed', 'Debuff', 'Receive 25% less healing.', { gameplayTags: ['Hexed'] }),
+  status('hexed', 'Hexed', 'Debuff', 'Receive 25% less healing.', {
+    gameplayTags: ['Hexed'],
+    curseCopyable: true,
+    reactionClass: 'ordinary',
+  }),
   status(
     'invisible',
     'Invisible',
     'Buff',
     'Cannot be selected by hostile direct unit actions. Ground effects can hit. A damaging action or taking damage breaks Invisible.',
-    { gameplayTags: ['Invisible'] },
+    { gameplayTags: ['Invisible'], amplifyCopyable: true, reactionClass: 'ordinary' },
   ),
   status(
     'summoned',
@@ -96,7 +100,11 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
     'Haste',
     'Buff',
     'Movement costs 10 less AP per entered tile, to a minimum of 10 AP. Movement allowance is unchanged.',
-    { movement: { additionalApPerTile: -10 } },
+    {
+      movement: { additionalApPerTile: -10 },
+      amplifyCopyable: true,
+      reactionClass: 'ordinary',
+    },
   ),
   status(
     'hastened',
@@ -152,10 +160,16 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
     'Slow',
     'Debuff',
     'Movement costs 10 extra AP per tile. Your Movement allowance is unchanged.',
-    { movement: { additionalApPerTile: 10 } },
+    {
+      movement: { additionalApPerTile: 10 },
+      curseCopyable: true,
+      reactionClass: 'ordinary',
+    },
   ),
   status('root', 'Root', 'Debuff', 'Cannot move. Attacks, Skills and facing remain available.', {
     movement: { blocked: true },
+    curseCopyable: true,
+    reactionClass: 'ordinary',
   }),
   status(
     'reckless',
@@ -182,6 +196,7 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
       ],
     },
   ),
+  // Historical v1 Mark remains immutable for already-pinned battles.
   status(
     'marked',
     'Marked',
@@ -191,6 +206,19 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
       damageModifiers: [
         modifier('incoming', 12_000, { kind: 'opponent-is-source', matches: true }),
       ],
+    },
+  ),
+  // Current Mark uses a distinct identity so historical marked v1 is never reinterpreted.
+  status(
+    'mark',
+    'Marked',
+    'Debuff',
+    'The source gains +15 percentage points Accuracy against this target. Other attackers gain no benefit.',
+    {
+      reactionClass: 'ordinary',
+      curseCopyable: true,
+      markAccuracyBonusBasisPoints: 1_500,
+      effectCategories: ['Debuff', 'Mark'],
     },
   ),
   status('warded', 'Warded', 'Buff', 'Take 20% less damage from opponents affected by Burn.', {

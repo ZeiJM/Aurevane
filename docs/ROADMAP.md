@@ -49,8 +49,8 @@ Performance work never authorizes a gameplay redesign, weakened server authority
 | Phase 1 — Character & Progression Foundation | ✅ Substantially complete | Character/account/profile/progression/equipment foundations exist. |
 | Phase 2 — Tactical Combat & Battle Platform | ✅ Closed / PV-1 passed | Mature combat, AI, direct PvP and spectation foundations are preserved for reuse. |
 | Phase 3 — Signature Buildcraft Foundation | ✅ Implementation complete; Owner-approved closeout | P3.1–P3.8 delivered; final UI/quality release completes the Owner's closure condition. See `PHASE_3_CLOSEOUT.md`. |
-| Phase 4 | Active — published roster, Discipline Atlas/Mastery and media integration; human acceptance open | The live seventeen-Discipline roster includes the approved 36-identity Atlas, earned Mastery, Rekindling gates and separated testing entitlement. PR #459 completes the gameplay-tag and ground-targeting continuation and Arena picker correction; exact-head CI, database activation and live checks passed. Phase-4 engineering is live for testing; human acceptance remains open. Planned Atlas identities remain unavailable until their combat libraries are published. See `PHASE_4_TICKETS.md` and `ROADMAP_DISCIPLINE_ATLAS_MASTERY.md`. |
-| Phase 5+ | Planned | Inherit compatible early work. |
+| Phase 4 | Active — combat/content foundation plus staff/event operations extension; human acceptance open | The live seventeen-Discipline roster and 36-identity Atlas/Mastery platform are preserved. By explicit Owner correction on 2026-09-19, staff authority, persistent-event operations infrastructure, Event Builder and live-event operations are Phase-4 work (P4.11–P4.14), not Phase 5. See `PHASE_4_TICKETS.md` and `ROADMAP_DISCIPLINE_ATLAS_MASTERY.md`. |
+| Phase 5 — Living World, Story & Supernatural Identity | Planned / NOT STARTED | Begins only after explicit Owner authorization; covers the player-facing living world, supernatural fork and frontier threshold. |
 
 ## Current decision boundary
 
@@ -59,6 +59,7 @@ AUREVANE has completed **Phase 3 — Signature Buildcraft Foundation** implement
 Active now:
 
 - complete and verify the active Phase-4 roster/Atlas/Mastery extension, including Profile and Manual presentation;
+- complete the Owner-approved P4.11–P4.14 staff/event operations extension before Phase 5 begins;
 - preserve the delivered P3.1–P3.8 build authority, pure/mixed identities, cooldowns and shared committed snapshots;
 - keep testing entitlement separate from earned Mastery so every published Discipline remains testable without pre-mastering release characters;
 - reuse compatible Phase-1 character/profile foundations and the mature Phase-2 battle platform;
@@ -474,9 +475,23 @@ Each expansion must justify:
 
 **Gate:** multiple builds/routes/maps materially change strategy and content production remains sustainable.
 
+### Phase 4 operations extension
+
+By Owner decision on 2026-09-19, the following work is part of Phase 4 and must be completed before Phase 5 starts:
+
+- P4.11 — staff authority foundation;
+- P4.12 — persistent event operations kernel, participant/contribution/claim boundaries, reward-service integration and safe cleanup;
+- P4.13 — Event Builder MVP;
+- P4.14 — live event operations.
+
+These are operational foundations for later world content. They do not themselves count as Phase 5 Living World progress.
+
+
 ---
 
-## 🔜 Phase 5 — Living World, Story, Supernatural Identity & Frontier Threshold
+## 🔜 Phase 5 — Living World, Story & Supernatural Identity — NOT STARTED
+
+**Authorization boundary:** Phase 5 has not started. It begins only after the Owner explicitly approves moving past the Phase-4 extension gate.
 
 **Goal:** make AUREVANE a living world and introduce the supernatural identity fork plus the first outer-world mystery.
 
@@ -492,7 +507,7 @@ Scope:
 - protected key items;
 - vendors/acquisition links where needed;
 - location-coherent battle scenes;
-- minimum Event/Story/Lore operations tooling;
+- player-facing World Pulse and world-event presentation built on the completed Phase-4 operations platform;
 - early Horizon/world gates.
 
 ### Supernatural fork
@@ -834,6 +849,10 @@ PHASE 3 IMPLEMENTATION COMPLETE
 FINAL UI / QUALITY RELEASE → OWNER-APPROVED PHASE 3 CLOSEOUT
         ↓
 PHASE 4 ACTIVATED — FOLLOW PHASE_4_TICKETS.md
+        ↓
+COMPLETE P4.11–P4.14 OPERATIONS EXTENSION
+        ↓
+OWNER AUTHORIZATION REQUIRED BEFORE PHASE 5
 ```
 
 The immediate development priority is therefore:

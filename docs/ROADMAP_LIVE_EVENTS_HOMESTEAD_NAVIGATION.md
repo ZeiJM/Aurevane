@@ -78,9 +78,11 @@ Validate that:
 
 ---
 
-# Phase 5 — Living World, Story, Map & First Real Staff Operations
+# Phase 4 Operations Extension — Staff & Persistent Event Operations
 
-Phase 5 is the primary foundation for persistent events, Event Staff, early Content Staff operations, map layers, and quest navigation.
+**Owner correction — 2026-09-19:** staff authority, persistent-event infrastructure, Event Builder and live-event operations are Phase-4 work (P4.11–P4.14). Phase 5 remains not started until explicit Owner authorization.
+
+This Phase-4 extension establishes the staff/event operations platform that later Phase-5 living-world content may use.
 
 ## Protected `/master` + fixed roles
 
@@ -107,7 +109,7 @@ Requirements:
 - no raw DB credentials in browser;
 - no self-escalation or staff-created Owner.
 
-Phase 5 emphasis: Event Staff and only the Content Staff surfaces needed by living-world/story/media work. Full Moderator tooling waits for Phase 10.
+Phase-4 extension emphasis: Event Staff and only the Content Staff surfaces needed by event operations. Full Moderator tooling still waits for Phase 10.
 
 ## Persistent Event foundation
 
@@ -192,6 +194,14 @@ Show:
 
 Prove restart recovery, idempotent transitions/contributions/claims, safe cleanup, and Chronicle/participant-history persistence.
 
+**Phase-4 operations extension gate:** Event Staff can run a real persistent multi-phase event without a routine code deployment; events survive restart and clean up safely; contribution/claim authority is idempotent; rewards use approved services; and the Owner explicitly approves moving on.
+
+---
+
+# Phase 5 — Living World, Story, Map & Quest Guidance — NOT STARTED
+
+Phase 5 begins only after explicit Owner authorization. The following are player-facing living-world systems and do not count as Phase-4 operations work.
+
 ## Strategic Map Layers
 
 Implement current-system layers such as:
@@ -227,7 +237,7 @@ Basic objectives may show exact markers/routes/coordinates. Search objectives ma
 
 The journal clearly states when a location is intentionally untracked.
 
-**Phase 5 gate addition:** Event Staff can run a real persistent multi-phase event without a routine code deployment; events survive restart and clean up safely; map complexity is controllable; basic, approximate, and hidden navigation all work without leaking secret content.
+**Phase 5 gate addition:** map complexity is controllable; basic, approximate, and hidden navigation all work without leaking secret content; and the living-world loop is understandable in actual play.
 
 ---
 
@@ -527,8 +537,8 @@ Explicitly test:
 2. Planned training is `Short`, `Overnight`, `Extended` only.
 3. Staff stays simple: Game Owner, Moderator, Content Staff, Event Staff.
 4. Extra powers are direct Owner grants, not extra role names.
-5. Persistent Event tooling begins in Phase 5 with the living world.
-6. Map layers and compass/coordinate quest guidance begin in Phase 5.
+5. Staff authority, Persistent Event tooling, Event Builder and live-event operations are completed in Phase 4 before Phase 5 begins.
+6. Map layers and compass/coordinate quest guidance begin in Phase 5 only after explicit Owner authorization.
 7. Full nation-linked Homesteads launch in Phase 12.
 8. Normal hostile monsters do not spawn inside sovereign nation territory.
 9. Homestead storage/decor/workshop are convenience/identity systems, not mandatory power.

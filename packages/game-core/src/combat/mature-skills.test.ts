@@ -88,10 +88,35 @@ describe('P3.3 mature Skill schema', () => {
     }
   })
 
+  it('validates stable media hook identities without requiring runtime media availability', () => {
+    const definition = resolveMatureSkillVersion('vanguard.forceful-strike', 2)
+    if (!definition) throw new Error('Expected representative Vanguard Skill.')
+
+    expect(
+      validateMatureSkillDefinition({
+        ...definition,
+        media: { ...definition.media, iconKey: null, audioCueKey: null },
+      }),
+    ).toEqual([])
+    expect(
+      validateMatureSkillDefinition({
+        ...definition,
+        media: { ...definition.media, iconKey: '/media/raw/path.webp' },
+      }),
+    ).toContain('media.iconKey')
+    expect(
+      validateMatureSkillDefinition({
+        ...definition,
+        media: { ...definition.media, audioCueKey: 'skill..audio' },
+      }),
+    ).toContain('media.audioCueKey')
+  })
+
   it('fails closed for stale or disabled versions and resolves the latest enabled version', () => {
     expect(resolveMatureSkillVersion('vanguard.forceful-strike', 1)).toBeNull()
+    expect(resolveMatureSkillVersion('vanguard.forceful-strike', 2)?.contentVersion).toBe(2)
     expect(resolveMatureSkillVersion('vanguard.forceful-strike', 999)).toBeNull()
-    expect(resolveMatureSkillVersion('vanguard.forceful-strike')?.contentVersion).toBe(2)
+    expect(resolveMatureSkillVersion('vanguard.forceful-strike')?.contentVersion).toBe(3)
   })
 
   it('uses existing combat target, requirement, and effect authority instead of a parallel engine', () => {

@@ -260,11 +260,11 @@ Release checkpoint: local `pnpm check` passed (1,095 tests including the six rep
 - [x] Haste/Slow movement AP and shared per-tile minimum-cost calculation; Movement allowance unchanged.
 - [x] Heal X / MP Rec X scheduled-recovery runtime, validation, preview parity, persistence-shaped state and defeat cleanup.
 - [x] Connect compact tag vocabulary to shared Skill/status presentation; update displacement and recovery descriptions.
-- [ ] Publish rebalanced immutable Discipline Skill versions and retire current legacy applications.
+- [x] Publish rebalanced immutable Discipline Skill versions and retire current legacy applications — PR #552 exact head `2220b5d1e8d5b71472374bded8c2ca49ad4d81dc` passed all 15 PR workflows and merged to the combat integration branch as `56bba54a494e272152de2e672e043da707bfbe22`; all five applicable post-merge push workflows passed. The activation migration remains staged and has not been executed against Production.
 - [x] New Poison/Bleed/Burn runtime identities plus the landed K4 Absorb HP/MP, Reflect, Vengeance and generalized Skill-accuracy kernel slices are implemented and verified at their current engine boundaries.
-- [x] Staged Amplify/Curse integration now covers authoritative status-copy legality/commit/provenance, Recruit AI forecast utility and player-facing clone forecasts; no clone Skill is published.
-- [ ] Implement the separate `Copy` mechanic that grants a random eligible regular battle Skill for the remainder of battle at half AP cost, including encounter state/RNG, UI, AI and persistence integration.
-- [ ] Implement Covert/Sensory/Revealed at their approved authority and presentation boundaries.
-- [ ] Ship the real protected Master Panel Combat Content editor with typed validation, diff/preview and immutable publication; do not substitute hard-coded source edits or speculative UI.
-- [ ] Resolve the Owner rule for consecutive-use Amplify/Curse clone transfer. Until then keep `effects.status-copy-staged` and do not publish clone Skills.
-- [ ] Full end-to-end browser acceptance and explicit release decision. No production deployment is included in this checkpoint.
+- [x] Amplify/Curse integration covers authoritative status-copy legality/commit/provenance, typed Poison/Burn/Bleed cloning, Recruit AI forecast utility and player-facing clone forecasts.
+- [x] Implement the separate `Copy` mechanic that grants a random eligible regular battle Skill for the remainder of battle at half AP cost, including encounter state/RNG, UI, AI and persistence integration.
+- [x] Implement Covert/Sensory/Revealed at their approved authority and presentation boundaries.
+- [x] Ship the real protected Master Panel Combat Content editor with typed validation, diff/preview and immutable publication; do not substitute hard-coded source edits or speculative UI.
+- [x] Resolve the Owner rule for consecutive-use Amplify/Curse clone transfer — clone transfer is discrete and omitted on a consecutive repeat; later effects retain their normal repeat scaling, pure clone repeats are full-cost no-ops, and the former `effects.status-copy-staged` publication guard is retired. This does not by itself publish or deploy a specific clone Skill.
+- [ ] Owner/human end-to-end acceptance and explicit release decision. Automated exact-head browser, database and repository gates are green through PR #552, but automation does not supply A03/A04/A07/A10 human evidence. No Production deployment or Task 10 activation is included in this checkpoint.

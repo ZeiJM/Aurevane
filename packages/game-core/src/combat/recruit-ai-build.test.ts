@@ -2,7 +2,14 @@ import { ADVANCED_DISCIPLINES } from '../character/advanced-disciplines'
 import { latestEnabledMatureSkills, resolveMatureSkillVersion } from './mature-skills'
 import { resolveEssenceForBuild, essenceSnapshotReference } from './essence'
 import { resolveResonanceForPair, resonanceSnapshotReference } from './resonance'
-import { finishPv1fTurn } from './pv1f-action-economy'
+import {
+  finishPv1fTurn,
+  PV1F_BASIC_ATTACK_ID,
+  PV1F_GUARD_ACTION_ID,
+  PV1F_MP_RECOVER_ACTION_ID,
+  PV1F_RECOVER_ACTION_ID,
+} from './pv1f-action-economy'
+import { copiedSkillCommandId } from './combat-skill-copy'
 import { describe, expect, it } from 'vitest'
 
 import { createCombatEncounterState } from './actions'
@@ -207,6 +214,54 @@ describe('P3.7 build-aware Recruit AI', () => {
     )
   })
 
+  it('chooses and executes a temporary copied Skill through half-AP authority', () => {
+    const copiedBase = resolveMatureSkillVersion('vanguard.cleave', 1)
+    if (!copiedBase) throw new Error('Expected Cleave fixture.')
+    const copied = {
+      ...copiedBase,
+      ai: { ...copiedBase.ai, baseUtility: 500 },
+    }
+    const state = encounter()
+    state.effectState = {
+      ongoingRecovery: [],
+      poison: [],
+      bleed: [],
+      burn: [],
+      damageHistory: [],
+      temporarySkills: [
+        {
+          combatantId: actorId,
+          sourceCombatantId: targetId,
+          skillId: copied.id,
+          contentVersion: copied.contentVersion,
+        },
+      ],
+    }
+
+    const decision = chooseBuildAwareRecruitAiDecision({
+      state,
+      profile: RECRUIT_STANDARD_PROFILE,
+      tieBreakSeed: 73731,
+      skillOptions: { copiedSkills: [copied] },
+    })
+
+    expect(decision.intent).toEqual({
+      kind: 'action',
+      actionId: copiedSkillCommandId(copied.id, copied.contentVersion),
+      target: { kind: 'unit', combatantId: targetId },
+    })
+
+    const before = readPv1fActionEconomy(state, actorId)!.current
+    const result = executeBuildAwareRecruitAiAction(
+      state,
+      decision.intent.kind === 'action' ? decision.intent.actionId : '',
+      decision.intent.kind === 'action' ? decision.intent.target : { kind: 'self' },
+      { copiedSkills: [copied] },
+    )
+    const after = readPv1fActionEconomy(result.state, actorId)!.current
+    expect(before - after).toBe(Math.ceil(copied.apCost / 2))
+  })
+
   it('fails closed when an uncommitted mature Skill is requested', () => {
     expect(() =>
       executeBuildAwareRecruitAiAction(encounter(), 'lifebinder.mending-light', { kind: 'self' }),
@@ -323,9 +378,14 @@ describe('Phase 4 advanced AI through committed builds', () => {
       })
       expect(decision.intent.kind).toBe('action')
       if (decision.intent.kind !== 'action') throw new Error('Expected a committed Skill choice')
-      expect([...library.map((skill) => skill.id), essence.skill.id]).toContain(
-        decision.intent.actionId,
-      )
+      expect([
+        ...library.map((skill) => skill.id),
+        essence.skill.id,
+        PV1F_BASIC_ATTACK_ID,
+        PV1F_GUARD_ACTION_ID,
+        PV1F_RECOVER_ACTION_ID,
+        PV1F_MP_RECOVER_ACTION_ID,
+      ]).toContain(decision.intent.actionId)
       const before = JSON.stringify(state)
       const result = executeBuildAwareRecruitAiAction(
         state,

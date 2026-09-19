@@ -32,7 +32,13 @@ export function BattleSelectedSkills({
             disabled={disabled || actionEconomy < skill.apCost}
             onClick={() => onSelect(skill.id, skill.category)}
           >
-            <Image src={battleSkillArtwork(skill.id)} width={80} height={80} alt="" unoptimized />
+            <Image
+              src={battleSkillArtwork(skill.id, skill.iconKey)}
+              width={80}
+              height={80}
+              alt=""
+              unoptimized
+            />
             <span className={styles.number}>{index + 1}</span>
             <strong>{skill.name}</strong>
           </button>
@@ -43,6 +49,40 @@ export function BattleSelectedSkills({
           </span>
         ))}
       </div>
+      {(runtime.copiedSkills?.length ?? 0) > 0 ? (
+        <details className={styles.copied} data-battle-copied-skills="true">
+          <summary>
+            <strong>Copied Skills</strong>
+            <small>{runtime.copiedSkills!.length} battle-only</small>
+          </summary>
+          <div className={styles.copiedMenu} role="group" aria-label="Copied Skills">
+            {runtime.copiedSkills!.map((skill) => (
+              <button
+                key={skill.id}
+                type="button"
+                data-battle-copied-skill-option={skill.id}
+                aria-pressed={activeId === skill.id}
+                disabled={disabled || actionEconomy < skill.apCost}
+                onClick={() => onSelect(skill.id, skill.category)}
+              >
+                <Image
+                  src={battleSkillArtwork(skill.sourceSkillId, skill.iconKey)}
+                  width={48}
+                  height={48}
+                  alt=""
+                  unoptimized
+                />
+                <span>
+                  <strong>{skill.name}</strong>
+                  <small>
+                    {skill.apCost} AP · {skill.mpCost} MP
+                  </small>
+                </span>
+              </button>
+            ))}
+          </div>
+        </details>
+      ) : null}
       {runtime.essence ? (
         <button
           className={styles.special}
@@ -53,7 +93,7 @@ export function BattleSelectedSkills({
           onClick={() => onSelect(runtime.essence!.id, 'attack')}
         >
           <Image
-            src={battleSkillArtwork(runtime.essence.id)}
+            src={battleSkillArtwork(runtime.essence.id, runtime.essence.iconKey)}
             width={64}
             height={64}
             alt=""

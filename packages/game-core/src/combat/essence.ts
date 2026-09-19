@@ -53,7 +53,7 @@ export interface EssenceAiEvaluation {
   readonly combatEvaluation: CombatActionEvaluation
 }
 
-export const P36_REPRESENTATIVE_ESSENCES = [
+const PRE_PHASE4_REBALANCE_ESSENCES = [
   {
     essenceId: 'essence.vanguard.unbroken-strike',
     contentVersion: 1,
@@ -171,6 +171,216 @@ export const P36_REPRESENTATIVE_ESSENCES = [
   ...FOUNDATION_TRIO_ESSENCES,
   IRONFIST_ESSENCE,
   ...ADVANCED_DISCIPLINE_ESSENCES,
+] as const satisfies readonly EssenceDefinition[]
+
+function rebalanceEssencePurposeTags(
+  definition: EssenceDefinition,
+  additions: readonly string[],
+): readonly string[] {
+  return [...new Set([...definition.skill.ai.purposeTags, ...additions])]
+}
+
+function currentEssenceEffect(
+  effect: MatureSkillDefinition['effects'][number],
+): MatureSkillDefinition['effects'][number] {
+  if (
+    effect.type === 'remove-status' &&
+    effect.statusIds.includes('marked') &&
+    !effect.statusIds.includes('mark')
+  ) {
+    return { ...effect, statusIds: [...effect.statusIds, 'mark'] }
+  }
+  return effect
+}
+
+function currentEssenceAccuracyMode(
+  definition: EssenceDefinition,
+): NonNullable<MatureSkillDefinition['accuracyMode']> {
+  const skill = definition.skill
+  if (skill.target.kind !== 'unit') return 'automatic'
+  if (skill.target.teamPolicy !== 'enemy' && skill.target.teamPolicy !== 'any') return 'automatic'
+  return skill.effects.some((effect) => {
+    if (!('recipient' in effect) || effect.recipient === 'actor') return false
+    if (effect.type === 'healing') return false
+    if (effect.type === 'resource-change') return effect.delta < 0
+    if (effect.type === 'barrier-change') return effect.amount < 0
+    return effect.type !== 'create-terrain'
+  })
+    ? 'per-target'
+    : 'automatic'
+}
+
+function createPhase4RebalancedEssence(definition: EssenceDefinition): EssenceDefinition {
+  const version = definition.contentVersion + 1
+  const authoring = {
+    ...definition.authoring,
+    validationTags: [
+      ...new Set([...definition.authoring.validationTags, 'phase4-discipline-rebalance']),
+    ],
+  }
+  const skillAuthoring = {
+    ...definition.skill.authoring,
+    validationTags: [
+      ...new Set([...definition.skill.authoring.validationTags, 'phase4-discipline-rebalance']),
+    ],
+  }
+
+  switch (definition.essenceId) {
+    case 'essence.chronist.borrowed-hour':
+      return {
+        ...definition,
+        contentVersion: version,
+        description:
+          'Restore an ally over two applications and grant movement Haste. No extra turn, AP or battle reset.',
+        authoring,
+        skill: {
+          ...definition.skill,
+          contentVersion: version,
+          accuracyMode: 'automatic',
+          accuracyModifierBasisPoints: undefined,
+          effects: [
+            {
+              type: 'healing',
+              recipient: 'primary-unit',
+              amount: 5,
+              ticks: 2,
+            },
+            {
+              type: 'apply-status',
+              recipient: 'primary-unit',
+              statusId: 'haste',
+              stacks: 1,
+            },
+          ],
+          ai: {
+            ...definition.skill.ai,
+            purposeTags: rebalanceEssencePurposeTags(definition, ['heal', 'recovery', 'haste']),
+          },
+          authoring: skillAuthoring,
+        },
+      }
+    case 'essence.ravager.red-tempest':
+      return {
+        ...definition,
+        contentVersion: version,
+        authoring,
+        skill: {
+          ...definition.skill,
+          contentVersion: version,
+          accuracyMode: 'per-target',
+          accuracyModifierBasisPoints: 0,
+          effects: [
+            { type: 'damage', recipient: 'affected-units', amount: 13 },
+            {
+              type: 'bleed',
+              recipient: 'affected-units',
+              damagePerTick: 3,
+              ticks: 3,
+              curseCopyable: true,
+            },
+          ],
+          ai: {
+            ...definition.skill.ai,
+            purposeTags: rebalanceEssencePurposeTags(definition, ['bleed', 'area']),
+          },
+          authoring: skillAuthoring,
+        },
+      }
+    case 'essence.cinderweaver.phoenix-wake':
+      return {
+        ...definition,
+        contentVersion: version,
+        authoring,
+        skill: {
+          ...definition.skill,
+          contentVersion: version,
+          accuracyMode: 'per-target',
+          accuracyModifierBasisPoints: 0,
+          effects: [
+            { type: 'damage', recipient: 'affected-units', amount: 10 },
+            { type: 'burn', recipient: 'affected-units', curseCopyable: true },
+          ],
+          ai: {
+            ...definition.skill.ai,
+            purposeTags: rebalanceEssencePurposeTags(definition, ['burn', 'area']),
+          },
+          authoring: skillAuthoring,
+        },
+      }
+    case 'essence.tidecaller.tidal-crown':
+      return {
+        ...definition,
+        contentVersion: version,
+        description:
+          'Cleanse and restore allies in a small area, then continue restoring them over time.',
+        authoring,
+        skill: {
+          ...definition.skill,
+          contentVersion: version,
+          accuracyMode: 'automatic',
+          accuracyModifierBasisPoints: undefined,
+          effects: [
+            {
+              type: 'remove-status',
+              recipient: 'affected-units',
+              statusIds: [
+                'burn',
+                'bleed',
+                'poison',
+                'slow',
+                'root',
+                'exposed',
+                'mark',
+                'marked',
+                'challenged',
+              ],
+            },
+            { type: 'healing', recipient: 'affected-units', amount: 10 },
+            {
+              type: 'healing',
+              recipient: 'affected-units',
+              amount: 4,
+              ticks: 2,
+            },
+          ],
+          ai: {
+            ...definition.skill.ai,
+            purposeTags: rebalanceEssencePurposeTags(definition, [
+              'cleanse',
+              'heal',
+              'recovery',
+              'area',
+            ]),
+          },
+          authoring: skillAuthoring,
+        },
+      }
+    default: {
+      const accuracyMode = currentEssenceAccuracyMode(definition)
+      return {
+        ...definition,
+        contentVersion: version,
+        authoring,
+        skill: {
+          ...definition.skill,
+          contentVersion: version,
+          accuracyMode,
+          effects: definition.skill.effects.map(currentEssenceEffect),
+          ...(accuracyMode === 'per-target'
+            ? { accuracyModifierBasisPoints: definition.skill.accuracyModifierBasisPoints ?? 0 }
+            : { accuracyModifierBasisPoints: undefined }),
+          authoring: skillAuthoring,
+        },
+      }
+    }
+  }
+}
+
+const PHASE4_REBALANCED_ESSENCES = PRE_PHASE4_REBALANCE_ESSENCES.map(createPhase4RebalancedEssence)
+
+export const P36_REPRESENTATIVE_ESSENCES = [
+  ...PRE_PHASE4_REBALANCE_ESSENCES,
+  ...PHASE4_REBALANCED_ESSENCES,
 ] as const satisfies readonly EssenceDefinition[]
 
 const STABLE_ID_PATTERN = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/

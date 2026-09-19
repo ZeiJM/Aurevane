@@ -1,4 +1,5 @@
 import { combatInteractionDescription } from '../../lib/battle/combat-interaction-presentation'
+import { parseCopiedSkillCommandId } from '@aurevane/game-core/combat/combat-skill-copy'
 import { combatStatusDetails, PHASE4_STATUSES } from '@aurevane/game-core/combat/status-content'
 import 'server-only'
 
@@ -63,13 +64,20 @@ function combatantLabel(value: unknown): string {
   return 'Combatant'
 }
 
+function presentationActionId(value: unknown): string | null {
+  const actionId = stringValue(value)
+  if (!actionId) return null
+  return parseCopiedSkillCommandId(actionId)?.skillId ?? actionId
+}
+
 function actionLabel(value: unknown): string {
-  if (value === 'basic.attack.unarmed.basic') return 'Basic Attack'
-  if (value === 'basic.guard') return 'Guard'
-  if (value === 'basic.recover') return 'HP Recovery'
-  if (value === 'basic.recover.mp') return 'MP Recovery'
-  if (typeof value !== 'string' || value.length === 0) return 'Action'
-  return value
+  const actionId = presentationActionId(value)
+  if (actionId === 'basic.attack.unarmed.basic') return 'Basic Attack'
+  if (actionId === 'basic.guard') return 'Guard'
+  if (actionId === 'basic.recover') return 'HP Recovery'
+  if (actionId === 'basic.recover.mp') return 'MP Recovery'
+  if (!actionId) return 'Action'
+  return actionId
     .split(/[._-]+/u)
     .filter(Boolean)
     .map((part) => part[0]?.toUpperCase() + part.slice(1))
@@ -77,8 +85,9 @@ function actionLabel(value: unknown): string {
 }
 
 function actionKind(value: unknown): BattleLogKind {
-  if (value === 'basic.guard') return 'defense'
-  if (value === 'basic.recover' || value === 'basic.recover.mp') return 'recovery'
+  const actionId = presentationActionId(value)
+  if (actionId === 'basic.guard') return 'defense'
+  if (actionId === 'basic.recover' || actionId === 'basic.recover.mp') return 'recovery'
   return 'offense'
 }
 
@@ -195,7 +204,7 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
       messageTemplate: description,
       actorCombatantId: stringValue(event.sourceCombatantId),
       targetCombatantId: stringValue(event.combatantId),
-      actionId: stringValue(event.actionId),
+      actionId: presentationActionId(event.actionId),
       kind: eventType.includes('displace') ? 'movement' : 'status',
       headline:
         eventType === 'displacement_failed'
@@ -268,9 +277,34 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
       return null
     case 'action_spent':
       return null
+    case 'temporary_skill_copied': {
+      const actorCombatantId = stringValue(event.combatantId)
+      const sourceCombatantId = stringValue(event.sourceCombatantId)
+      const skillId = stringValue(event.skillId)
+      const contentVersion = numberValue(event.contentVersion)
+      if (!skillId || contentVersion === null) return null
+      const label = actionLabel(skillId)
+      const version = `v${contentVersion}`
+      return createEntry(record, eventType, {
+        message: `${combatantLabel(actorCombatantId)} copied ${label} (${version}) for this battle.`,
+        messageTemplate: '{actor} copied {action} ({version}) for this battle.',
+        templateValues: { action: label, version },
+        actorCombatantId,
+        targetCombatantId: sourceCombatantId,
+        actionId: skillId,
+        actionLabel: label,
+        kind: 'system',
+        headline: 'Copied Skill',
+        tone: 'benefit',
+        facts: [
+          { label, tone: 'benefit' },
+          { label: version, tone: 'neutral' },
+        ],
+      })
+    }
     case 'combat_action_used': {
       const actorCombatantId = stringValue(event.actorId)
-      const actionId = stringValue(event.actionId)
+      const actionId = presentationActionId(event.actionId)
       const label = actionLabel(actionId)
       return createEntry(record, eventType, {
         message: `${combatantLabel(event.actorId)} used ${label}.`,
@@ -286,7 +320,7 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
     case 'damage_applied': {
       const actorCombatantId = stringValue(event.sourceCombatantId)
       const targetCombatantId = stringValue(event.targetCombatantId)
-      const actionId = stringValue(event.actionId)
+      const actionId = presentationActionId(event.actionId)
       const amount = numberValue(event.amount)
       const hpAfter = numberValue(event.hpAfter)
       return createEntry(record, eventType, {
@@ -309,7 +343,7 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
     case 'healing_applied': {
       const actorCombatantId = stringValue(event.sourceCombatantId)
       const targetCombatantId = stringValue(event.targetCombatantId)
-      const actionId = stringValue(event.actionId)
+      const actionId = presentationActionId(event.actionId)
       const amount = numberValue(event.amount)
       const hpAfter = numberValue(event.hpAfter)
       return createEntry(record, eventType, {
@@ -349,7 +383,7 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
     case 'resource_changed': {
       const actorCombatantId = stringValue(event.sourceCombatantId)
       const targetCombatantId = stringValue(event.targetCombatantId)
-      const actionId = stringValue(event.actionId)
+      const actionId = presentationActionId(event.actionId)
       const delta = numberValue(event.delta)
       const resource = stringValue(event.resource)?.toUpperCase() ?? 'RESOURCE'
       const recovery = actionId === 'basic.recover.mp' && delta !== null && delta > 0
@@ -492,7 +526,7 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
     case 'stat_driven_attack_resolved': {
       const actorCombatantId = stringValue(event.actorId)
       const targetCombatantId = stringValue(event.targetId)
-      const actionId = stringValue(event.actionId) ?? 'basic.attack.unarmed.basic'
+      const actionId = presentationActionId(event.actionId) ?? 'basic.attack.unarmed.basic'
       const label = actionLabel(actionId)
       const hit = event.hit === true
       const chance = numberValue(event.hitChanceBasisPoints)

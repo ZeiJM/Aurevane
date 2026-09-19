@@ -27,6 +27,10 @@ export function validateCombatActionDefinition(
   action: CombatActionDefinition,
   content?: CombatContentCatalog,
 ): void {
+  const copyEffects = action.effects.filter((effect) => effect.type === 'copy')
+  if (copyEffects.length > 1) {
+    throw new TypeError('A combat action may contain at most one Copy effect.')
+  }
   validateCombatStatusCopyAction(action)
   validateVengeanceActionDefinition(action)
   validateCsrActionDefinition(action)
@@ -124,12 +128,26 @@ export function validateCombatActionDefinition(
         'burn',
         'barrier-change',
         'copy-statuses',
+        'copy',
         'sensory',
       ],
       'effect type',
     )
 
     if (effect.type === 'create-terrain') continue
+
+    if (effect.type === 'copy') {
+      if (
+        effect.recipient !== 'primary-unit' ||
+        (action.target.kind !== 'unit' && action.target.kind !== 'ground-tile') ||
+        action.target.teamPolicy === 'self'
+      ) {
+        throw new TypeError(
+          'Copy requires a selected non-self unit or an occupied ground tile as its Skill source.',
+        )
+      }
+      continue
+    }
 
     if (effect.type === 'displace' && content) statusById(content, 'displaced')
 
@@ -167,10 +185,10 @@ export function validateCombatActionDefinition(
       if (
         !Array.isArray(effect.statusIds) ||
         effect.statusIds.length < 1 ||
-        effect.statusIds.length > 8 ||
+        effect.statusIds.length > 16 ||
         new Set(effect.statusIds).size !== effect.statusIds.length
       ) {
-        throw new TypeError('Status removal requires one to eight distinct IDs.')
+        throw new TypeError('Status removal requires one to sixteen distinct IDs.')
       }
       for (const id of effect.statusIds) {
         requiredIdentity(id, 'removed status ID')

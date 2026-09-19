@@ -62,6 +62,76 @@ export function calculateHitChanceBasisPoints(
   return Math.max(0, Math.min(BASIS_POINTS, actor.accuracy - target.evasion + modifierBasisPoints))
 }
 
+export function forecastCombatSkillAccuracyForTarget(
+  state: CombatEncounterState,
+  action: CombatActionDefinition,
+  actorId: string,
+  targetCombatantId: string,
+  content: CombatContentCatalog,
+): CombatTargetHitChance | null {
+  validateCombatAccuracyDefinition(action)
+  if (action.accuracyMode !== 'per-target') return null
+
+  const actor = state.tactical.battle.combatants.find((unit) => unit.id === actorId)
+  const target = state.tactical.battle.combatants.find((unit) => unit.id === targetCombatantId)
+  if (!actor || !target) {
+    throw new TypeError('Combat accuracy requires committed actor and target combatants.')
+  }
+  if (target.hp <= 0 || target.teamId === actor.teamId) return null
+
+  return {
+    targetCombatantId,
+    hitChanceBasisPoints: calculateHitChanceBasisPoints(
+      { accuracy: committedRating(state, actorId, 'accuracy') },
+      { evasion: committedRating(state, targetCombatantId, 'evasion') },
+      (action.accuracyModifierBasisPoints ?? 0) +
+        combatAccuracyStatusModifier(state, actorId, targetCombatantId, content),
+    ),
+  }
+}
+
+export function rollCombatSkillAccuracyForTarget(
+  state: CombatEncounterState,
+  action: CombatActionDefinition,
+  actorId: string,
+  targetCombatantId: string,
+  content: CombatContentCatalog,
+): {
+  state: CombatEncounterState
+  event: CombatSkillAccuracyResolvedEvent | null
+} {
+  const chance = forecastCombatSkillAccuracyForTarget(
+    state,
+    action,
+    actorId,
+    targetCombatantId,
+    content,
+  )
+  if (!chance) return { state, event: null }
+
+  const draw = advanceBattleRng(state.tactical.battle.rng)
+  const rollBasisPoints = draw.value % BASIS_POINTS
+  const event: CombatSkillAccuracyResolvedEvent = {
+    event: 'combat_accuracy_resolved',
+    actionId: action.id,
+    sourceCombatantId: actorId,
+    ...chance,
+    rollBasisPoints,
+    hit: rollBasisPoints < chance.hitChanceBasisPoints,
+    accuracyRulesVersion: COMBAT_SKILL_ACCURACY_RULES_VERSION,
+  }
+  return {
+    state: {
+      ...state,
+      tactical: {
+        ...state.tactical,
+        battle: { ...state.tactical.battle, rng: draw.state },
+      },
+    },
+    event,
+  }
+}
+
 /** Forecasts outcomes conditional on hits, never samples or exposes the next RNG draw. */
 export function forecastCombatSkillAccuracy(
   state: CombatEncounterState,
@@ -91,21 +161,16 @@ export function forecastCombatSkillAccuracy(
       return target.hp > 0 && target.teamId !== actor.teamId
     })
     .sort((left, right) => (left < right ? -1 : left > right ? 1 : 0))
-  const targetHitChances =
-    hostileIds.length === 0
-      ? []
-      : (() => {
-          const accuracy = committedRating(state, actorId, 'accuracy')
-          return hostileIds.map((targetCombatantId) => ({
-            targetCombatantId,
-            hitChanceBasisPoints: calculateHitChanceBasisPoints(
-              { accuracy },
-              { evasion: committedRating(state, targetCombatantId, 'evasion') },
-              (action.accuracyModifierBasisPoints ?? 0) +
-                combatAccuracyStatusModifier(state, actorId, targetCombatantId, content),
-            ),
-          }))
-        })()
+  const targetHitChances = hostileIds.flatMap((targetCombatantId) => {
+    const chance = forecastCombatSkillAccuracyForTarget(
+      state,
+      action,
+      actorId,
+      targetCombatantId,
+      content,
+    )
+    return chance ? [chance] : []
+  })
   return { ...evaluation, targetHitChances, projectionsAssumeHits: true }
 }
 

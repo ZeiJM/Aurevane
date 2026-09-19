@@ -7,24 +7,37 @@ import {
 } from './mature-skills'
 import { validateCombatActionDefinition } from './combat-authoring-validation'
 import type { CombatActionDefinition } from './actions'
+import { PV1F_COMBAT_CONTENT } from './pv1f-action-economy'
 
-function stagedSkill(): MatureSkillDefinition {
-  const previous = latestEnabledMatureSkills()[0]
-  if (!previous) throw new Error('Expected an existing enabled Skill fixture.')
+function cloneSkill(mode: 'amplify' | 'curse' = 'amplify'): MatureSkillDefinition {
+  const previous = latestEnabledMatureSkills().find(
+    (definition) => definition.id === 'chronist.slow',
+  )
+  if (!previous) throw new Error('Expected current Chronist Slow fixture.')
   return {
     ...previous,
-    effects: [{ type: 'copy-statuses', recipient: 'primary-unit', mode: 'amplify' }],
+    effects: [{ type: 'copy-statuses', recipient: 'primary-unit', mode }],
   } as unknown as MatureSkillDefinition
 }
 
-describe('Status copying: staged publication boundary', () => {
-  it('rejects the incomplete copy family at the mature Skill definition boundary', () => {
-    expect(validateMatureSkillDefinition(stagedSkill())).toContain('effects.status-copy-staged')
-  })
-  it('does not bind staged copying to the ordinary repeated-Skill adapter', () => {
-    expect(() => toCombatActionDefinition(stagedSkill(), 'pve')).toThrow(/status-copy-staged/)
-  })
-  it('does not permit the old Basic Attack path to carry a copy command', () => {
+function status(id: string) {
+  const definition = PV1F_COMBAT_CONTENT.statuses.find((candidate) => candidate.id === id)
+  if (!definition) throw new Error(`Missing combat status ${id}.`)
+  return definition
+}
+
+describe('Status copying: mature Skill publication boundary', () => {
+  it.each(['amplify', 'curse'] as const)(
+    'accepts a canonical %s clone block at the mature Skill boundary',
+    (mode) => {
+      const definition = cloneSkill(mode)
+      expect(validateMatureSkillDefinition(definition)).toEqual([])
+      const action = toCombatActionDefinition(definition, 'pve')
+      expect(() => validateCombatActionDefinition(action)).not.toThrow()
+    },
+  )
+
+  it('keeps the old Basic Attack path closed to copy-statuses', () => {
     const action = {
       id: 'test.copy-basic',
       version: 1,
@@ -42,8 +55,31 @@ describe('Status copying: staged publication boundary', () => {
       },
       cost: { spendsAction: true, mp: 0 },
       requirements: [],
-      effects: stagedSkill().effects,
+      effects: cloneSkill().effects,
     } as CombatActionDefinition
     expect(() => validateCombatActionDefinition(action)).toThrow()
+  })
+
+  it('publishes only the explicitly approved ordinary current status copy policy', () => {
+    for (const id of ['guarded', 'haste', 'inspired', 'invisible']) {
+      expect(status(id), id).toMatchObject({
+        polarity: 'positive',
+        amplifyCopyable: true,
+        reactionClass: 'ordinary',
+      })
+    }
+
+    for (const id of ['exposed', 'hexed', 'slow', 'root', 'mark']) {
+      expect(status(id), id).toMatchObject({
+        polarity: 'negative',
+        curseCopyable: true,
+        reactionClass: 'ordinary',
+      })
+    }
+
+    for (const id of ['lowered-guard', 'reckless', 'fortified', 'marked']) {
+      expect(status(id).amplifyCopyable, `${id}:amplify`).not.toBe(true)
+      expect(status(id).curseCopyable, `${id}:curse`).not.toBe(true)
+    }
   })
 })

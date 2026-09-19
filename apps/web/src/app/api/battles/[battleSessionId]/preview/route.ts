@@ -2,6 +2,7 @@ import { getAuthenticatedActor } from '@/server/auth/actor'
 import { handleBattlePreviewRequest } from '@/server/battle/battle-preview-handler'
 import { createBattlePreviewService } from '@/server/battle/battle-preview-service'
 import { createSupabaseBattleSessionRepository } from '@/server/battle/supabase-battle-session-repository'
+import { createServerCombatContentResolver } from '@/server/combat/combat-content-resolver'
 
 export async function POST(
   request: Request,
@@ -10,6 +11,9 @@ export async function POST(
   const { battleSessionId } = await context.params
   return handleBattlePreviewRequest(request, battleSessionId, {
     getActor: getAuthenticatedActor,
-    service: createBattlePreviewService(createSupabaseBattleSessionRepository()),
+    service: createBattlePreviewService(
+      createSupabaseBattleSessionRepository(),
+      createServerCombatContentResolver(),
+    ),
   })
 }

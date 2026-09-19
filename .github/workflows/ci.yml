@@ -39,6 +39,17 @@ jobs:
       - name: Run quality gates
         run: pnpm check
 
+      - name: Show formatting patch on quality-gate failure
+        if: failure()
+        run: |
+          if ! pnpm format:check; then
+            pnpm exec prettier --write \
+              "apps/**/*.{ts,tsx,js,mjs,json,css}" \
+              "packages/**/*.{ts,tsx,js,mjs,json}" \
+              package.json turbo.json pnpm-workspace.yaml .prettierrc.json eslint.config.mjs
+            git --no-pager diff -- .
+          fi
+
       - name: Verify worker boot
         run: pnpm --filter @aurevane/worker check:boot
 
@@ -81,6 +92,36 @@ jobs:
           test -n "$db_container"
           privileges="$(docker exec "$db_container" psql -U postgres -d postgres -Atqc "select has_schema_privilege('anon','app_private','USAGE'), has_schema_privilege('authenticated','app_private','USAGE'), has_schema_privilege('service_role','app_private','USAGE');")"
           test "$privileges" = "f|f|t"
+
+      - name: Verify Master Panel staff authority
+        run: bash .github/scripts/verify-master-panel-staff-authority.sh
+
+      - name: Verify Phase 4 persistent event kernel
+        run: bash .github/scripts/verify-phase5-event-kernel.sh
+
+      - name: Verify Phase 4 Event participation ledger
+        run: bash .github/scripts/verify-phase5-event-participation.sh
+
+      - name: Verify Phase 4 Event reward execution
+        run: bash .github/scripts/verify-phase4-event-rewards.sh
+
+      - name: Verify Phase 4 Event terminal cleanup
+        run: bash .github/scripts/verify-phase4-event-terminal-cleanup.sh
+
+      - name: Verify Phase 4 pre-start Event cleanup isolation
+        run: bash .github/scripts/verify-phase4-event-prestart-cleanup.sh
+
+      - name: Verify Phase 4 Event Builder
+        run: bash .github/scripts/verify-phase4-event-builder.sh
+
+      - name: Verify Phase 4 Event Builder write boundary
+        run: bash .github/scripts/verify-phase4-event-builder-authority.sh
+
+      - name: Verify Phase 4 live Event operations
+        run: bash .github/scripts/verify-phase4-live-event-operations.sh
+
+      - name: Verify Phase 4 Event recovery
+        run: bash .github/scripts/verify-phase4-event-recovery.sh
 
       - name: Verify player profile provisioning and privacy
         run: bash .github/scripts/verify-player-profile.sh

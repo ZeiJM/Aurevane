@@ -6,9 +6,9 @@ The shared battle forecast now presents the authoritative `copy-statuses` projec
 
 A composed command whose clone block explicitly permits an empty eligible donor produces no clone forecast for that block while retaining independently meaningful later outcomes. Malformed or unsupported copy projection strings fail closed instead of exposing machine projection text. Existing blocked-target and hit-chance behavior is preserved; the presentation does not mutate preview state, consume RNG or replace server legality/commit authority.
 
-Amplify/Curse status cloning is distinct from the separate `Copy` effect approved in the Combat Authoring/DoT/Copy revision. `Copy` grants a random eligible regular battle Skill for the rest of the encounter at half AP cost and requires its own encounter-state, RNG, command-picker, AI and persistence work. The status-clone forecast slice does not implement or publish that mechanic.
+Amplify/Curse status cloning is distinct from the separate random temporary-Skill `Copy` effect. `Copy` is implemented as a battle-long grant of one deterministic-random eligible regular battle Skill at half AP cost while preserving the source Skill's other pinned mechanics. Amplify/Curse instead copy eligible active effect state and never grant a command.
 
-Mature Skill publication still rejects `copy-statuses` through `effects.status-copy-staged`. Consecutive-use falloff for clone transfer remains an unresolved Owner rule, so no quantitative/discrete half-clone behavior is invented and no Amplify/Curse Skill is published or deployed by this boundary.
+Owner ruling on 2026-09-18 classifies `copy-statuses` clone transfer as a **discrete** consecutive-use effect. The first use clones normally; a consecutive repeat omits the clone block entirely while any later ordinary effects retain their existing repeat scaling. Pure clone repeats remain legal full-cost no-ops for clone transfer. Mature Skill publication no longer applies the former `effects.status-copy-staged` guard; canonical combat-action validation, typed copy policy, target legality, preview and server commit remain authoritative. This change by itself publishes or deploys no specific Amplify/Curse Skill.
 
 ## P4.K4 Skill accuracy kernel boundary — 2026-09-15
 
@@ -643,9 +643,10 @@ later in the effect list, Basic Attack cloning and area/multi-source cloning rem
 Pure copy commands still fail fast when their donor has no eligible effect. A composed command may
 explicitly author `allowNoEligibleEffects: true` on its first copy block when later effects are
 independently meaningful; in that case the empty clone step is a no-op and later effects still resolve.
-The opt-in is boolean-only and invalid on a pure copy command. Consecutive-use scaling for cloning is
-still staged because the approved repeat rule does not yet classify clone transfer as quantitative or
-discrete; no half-copy behavior is invented here. No published Skill is activated by this boundary.
+The opt-in is boolean-only and invalid on a pure copy command. Clone transfer is now classified as a
+discrete repeat-use effect: on a consecutive use the `copy-statuses` block is omitted entirely, while
+later quantitative effects continue through the ordinary 50% repeat scaler. A pure clone repeat is a
+legal full-cost no-op for clone transfer. No fractional copied state or provenance is invented.
 
 ## Amplify/Curse Recruit AI forecast utility (staged K4 acceptance)
 
@@ -658,6 +659,54 @@ later effects retain their existing utility. The mode is read from the typed aut
 never inferred from status names, projection text, or hidden state. Preview scoring consumes no RNG
 and does not bypass target legality, copy eligibility, or the existing committed-build boundary.
 
-This adds AI expected-value support for the already integrated clone kernel only. It does not publish
-Amplify/Curse Skills, remove the `effects.status-copy-staged` publication guard, define consecutive-use
-falloff for cloning, add area/multi-source copying, or deploy content.
+Recruit AI remains projection-driven: when repeat scaling omits the clone block, there is no clone
+projection or clone utility, while any independently meaningful later effects retain their normal
+utility. Area/multi-source copying remains unsupported. Removing the former publication guard does
+not itself publish or deploy any specific Amplify/Curse Skill.
+
+## Versioned Skill publication authority (Master Panel)
+
+The current Master Panel Combat Content slice adds a server-only versioned publication layer for
+mature Skill definitions without replacing the static combat catalog.
+
+Resolution rules are explicit:
+
+1. a current database publication, when present, is loaded and validated with canonical game-core
+   authoring validation;
+2. if no database publication exists, the static current definition is the fallback;
+3. invalid stored database content fails closed and must not silently fall back to different static
+   semantics;
+4. exact historical database versions remain addressable, while existing static historical versions
+   retain their original meaning.
+
+Database versions continue the static content lineage. Static v2 publishes first as v3, not database
+v1. Publication always advances beyond both the expected current base and the highest immutable
+database history. Therefore a rollback that clears the publication pointer back to static v2 after
+database v3/v4 history still produces v5 on the next publish.
+
+New battle construction resolves the current Skill definitions server-side and pins those exact
+versions into the battle build-authority snapshot. Published-definition snapshots use the versioned
+catalog authority path; old snapshots retain their historical catalog interpretation. Publication
+or rollback never retargets an already-created battle. Current character Skill-detail reads also
+resolve through the publication layer without rewriting the character's persisted Skill references.
+
+Rollback is pointer movement, not history mutation. A database historical version can become current
+again by repointing the publication row. A valid static fallback can become current again by clearing
+the database publication pointer. Immutable database version rows are never updated or deleted.
+
+Master authoring preview is deterministic and isolated from real battles. It uses canonical combat
+evaluation but does not consume production RNG or reveal hidden Covert truth through Sensory;
+Sensory is presented as a conditional authored rule.
+
+The `copy-statuses` operation is a supported typed Amplify/Curse authoring block. Master Panel
+validation still routes the resulting PvE/PvP definitions through canonical combat-action validation,
+so invalid self/area/non-first/multi-copy configurations fail closed. Current ordinary copy policy is
+explicit rather than inferred from names: Guard/Haste/Inspire/Invisible are Amplify-copyable, while
+Expose/Hex/Slow/Root/current Mark are Curse-copyable; historical `marked`, mixed and system states remain excluded unless a
+versioned definition explicitly opts in. The former `effects.status-copy-staged` publication guard
+has been retired after the discrete repeat-use ruling.
+
+This remains distinct from random temporary-Skill **Copy**, whose encounter-state, deterministic RNG,
+half-AP command grant, UI, AI, privacy and persistence behavior are implemented through its separate
+typed effect and synthetic pinned command identity.
+

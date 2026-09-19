@@ -124,6 +124,15 @@ describe('P3.6 versioned pure Essence framework', () => {
 
     expect(essenceSnapshotReference(essence)).toEqual({
       essenceId: essence.essenceId,
+      contentVersion: 2,
+      sourceDisciplineId: 'vanguard',
+      skillId: 'essence.vanguard.unbroken-strike',
+      skillContentVersion: 2,
+    })
+
+    const historical = resolveEssenceForBuild('vanguard', null, 1)
+    expect(historical && essenceSnapshotReference(historical)).toEqual({
+      essenceId: 'essence.vanguard.unbroken-strike',
       contentVersion: 1,
       sourceDisciplineId: 'vanguard',
       skillId: 'essence.vanguard.unbroken-strike',

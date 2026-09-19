@@ -11,6 +11,7 @@ export type BattleTechniqueCategory = 'attack' | 'defense' | 'heal'
 export interface BattleSkillForecastPresentation {
   id: string
   name: string
+  iconKey?: string | null
   apCost: number
   mpCost: number
   targetKind: CombatTargetKind
@@ -29,6 +30,13 @@ export interface BattleTechniquePresentation extends BattleSkillForecastPresenta
   category: BattleTechniqueCategory
 }
 
+export interface BattleCopiedSkillPresentation extends BattleSkillForecastPresentation {
+  contentVersion: number
+  sourceSkillId: string
+  sourceDisciplineId: string
+  category: BattleTechniqueCategory
+}
+
 export interface BattleResonancePresentation {
   id: string
   contentVersion: number
@@ -44,6 +52,7 @@ export interface BattleEssencePresentation extends BattleSkillForecastPresentati
 
 interface BattleBuildPresentation {
   techniques?: readonly BattleTechniquePresentation[]
+  copiedSkills?: readonly BattleCopiedSkillPresentation[]
   resonance?: BattleResonancePresentation | null
   essence?: BattleEssencePresentation | null
 }

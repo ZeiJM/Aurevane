@@ -6,7 +6,12 @@ import {
   type CombatEffectDefinition,
   type CombatTargetSpec,
 } from './actions'
-import { combatActionPresentationTags, combatStatusPresentationTag } from './gameplay-tags'
+import {
+  combatActionPresentationTags,
+  combatantGameplayTags,
+  combatStatusPresentationTag,
+} from './gameplay-tags'
+import { PHASE4_STATUSES } from './status-content'
 
 function tags(
   target: Partial<CombatTargetSpec>,
@@ -94,6 +99,17 @@ describe('compact combat presentation tags', () => {
   })
 
   it.each([
+    ['amplify', 'Amplify'],
+    ['curse', 'Curse'],
+  ] as const)('derives the real %s clone block label', (mode, label) => {
+    expect(
+      tags({ kind: 'unit', teamPolicy: 'enemy' }, [
+        { type: 'copy-statuses', recipient: 'primary-unit', mode },
+      ]),
+    ).toEqual(['Enemy', 'Single', label])
+  })
+
+  it.each([
     ['guarded', 'Guard'],
     ['exposed', 'Expose'],
     ['inspired', 'Inspire'],
@@ -109,6 +125,8 @@ describe('compact combat presentation tags', () => {
     ['displaced', 'Displaced'],
     ['root', 'Root'],
     ['blind', 'Blind'],
+    ['mark', 'Marked'],
+    ['marked', 'Marked'],
   ])('maps %s to %s', (statusId, label) => {
     expect(combatStatusPresentationTag(statusId)).toBe(label)
   })
@@ -124,3 +142,72 @@ it.each(['regeneration', 'hastened', 'borrowed-hour'])(
     ).toContain('Dispel')
   },
 )
+
+describe('current effect-state gameplay tags', () => {
+  it('projects current Burn, Bleed and Poison without legacy status rows', () => {
+    const tags = combatantGameplayTags(
+      {
+        statusState: [{ combatantId: 'target', statuses: [] }],
+        effectState: {
+          ongoingRecovery: [],
+          temporarySkills: [],
+          damageHistory: [],
+          burn: [
+            {
+              targetCombatantId: 'target',
+              sourceCombatantId: 'actor',
+              sourceActionId: 'test.burn',
+              profileVersion: 1,
+              stage: 0,
+            },
+          ],
+          bleed: [
+            {
+              targetCombatantId: 'target',
+              sourceCombatantId: 'actor',
+              sourceActionId: 'test.bleed',
+              damagePerTick: 3,
+              remainingTicks: 3,
+              applicationOrder: 1,
+            },
+          ],
+          poison: [
+            {
+              targetCombatantId: 'target',
+              sourceCombatantId: 'actor',
+              sourceActionId: 'test.poison',
+              profileVersion: 1,
+              movementRemainder: 0,
+            },
+          ],
+        },
+      },
+      'target',
+      { statuses: PHASE4_STATUSES },
+    )
+
+    expect(tags).toEqual(expect.arrayContaining(['Scorched', 'Bleeding', 'Poisoned']))
+  })
+
+  it('keeps historical marked and current source-scoped mark as separate definitions', () => {
+    const historical = PHASE4_STATUSES.find((status) => status.id === 'marked')
+    const current = PHASE4_STATUSES.find((status) => status.id === 'mark')
+
+    expect(historical).toEqual(
+      expect.objectContaining({
+        version: 1,
+        damageTakenMultiplierBasisPoints: 10_000,
+        damageModifiers: [expect.objectContaining({ multiplierBasisPoints: 12_000 })],
+      }),
+    )
+    expect(current).toEqual(
+      expect.objectContaining({
+        version: 1,
+        damageTakenMultiplierBasisPoints: 10_000,
+        markAccuracyBonusBasisPoints: 1_500,
+        reactionClass: 'ordinary',
+      }),
+    )
+    expect(current?.damageModifiers ?? []).toEqual([])
+  })
+})

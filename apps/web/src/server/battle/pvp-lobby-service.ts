@@ -39,8 +39,13 @@ import {
 import { loadPublicCharacterProfileImageMap } from '@/server/character/character-profile-display-service'
 import { createSupabaseCharacterBuildRepository } from '@/server/character/supabase-character-build-repository'
 import { createSupabaseCharacterRepository } from '@/server/character/supabase-character-repository'
+import { createServerCombatContentResolver } from '@/server/combat/combat-content-resolver'
 
-import { createBattleBuildAuthoritySnapshot } from './battle-build-authority'
+import {
+  createBattleBuildAuthoritySnapshot,
+  createResolvedBattleBuildAuthoritySnapshot,
+  type BattleBuildAuthoritySnapshot,
+} from './battle-build-authority'
 import { projectBattleStatusStateForViewer } from './battle-live-viewer-projection'
 import type {
   BattleAuthoritativeEncounterState,
@@ -368,6 +373,7 @@ function spawnFor(
 export function createPvpEncounter(
   roster: readonly PvpEncounterRosterEntry[],
   teamSizes: readonly [number, number, number],
+  buildAuthority?: BattleBuildAuthoritySnapshot,
 ): BattleAuthoritativeEncounterState {
   const arena = getTacticalHallArena('duel-yard')
   const profiles = []
@@ -456,14 +462,16 @@ export function createPvpEncounter(
 
   return {
     ...encounter,
-    buildAuthority: createBattleBuildAuthoritySnapshot(
-      'pvp',
-      roster.map(({ character, buildSnapshot }) => ({
-        combatantId: `character:${character.id}`,
-        characterId: character.id,
-        snapshot: buildSnapshot,
-      })),
-    ),
+    buildAuthority:
+      buildAuthority ??
+      createBattleBuildAuthoritySnapshot(
+        'pvp',
+        roster.map(({ character, buildSnapshot }) => ({
+          combatantId: `character:${character.id}`,
+          characterId: character.id,
+          snapshot: buildSnapshot,
+        })),
+      ),
   }
 }
 
@@ -595,7 +603,16 @@ export async function startPvpLobby(
     roster.push({ member, character, buildSnapshot })
   }
 
-  const encounter = createPvpEncounter(roster, lobby.teamSizes)
+  const buildAuthority = await createResolvedBattleBuildAuthoritySnapshot(
+    'pvp',
+    roster.map(({ character, buildSnapshot }) => ({
+      combatantId: `character:${character.id}`,
+      characterId: character.id,
+      snapshot: buildSnapshot,
+    })),
+    createServerCombatContentResolver(),
+  )
+  const encounter = createPvpEncounter(roster, lobby.teamSizes, buildAuthority)
   const battle = encounter.tactical.battle
   const supabase = createSupabaseAdminClient()
   const { data, error } = await supabase.rpc('create_pvp_battle_session_v1', {

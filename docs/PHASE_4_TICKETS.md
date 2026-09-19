@@ -1,8 +1,80 @@
 # Phase 4 — execution and acceptance ledger
 
+**Post-release engineering integration — 2026-09-18:** Task 10 is closed at the combat-integration level through PR #552. Exact tested head `2220b5d1e8d5b71472374bded8c2ca49ad4d81dc` passed all 15 PR workflows, including Browser Smoke, Representative Buildcraft, Discipline Build DB and full CI, plus an isolated exact-head Phase-4 ground-targeting browser gate. It merged to `agent/final-ui-combat-integration-20260917` as `56bba54a494e272152de2e672e043da707bfbe22`; the merge tree is identical to the tested head, and all five applicable post-merge push workflows passed. The work appends one audited immutable current version for each of the 136 regular Discipline Skills, versions all 17 audited Essences to v2, migrates current tempo/recovery/DoT/Mark/accuracy semantics, and stages the transactional `phase4-discipline-rebalance-v1` activation. **No Production deployment, Production database mutation or Production activation RPC was performed.** The prior live testing release below remains the Production state. PR #555 resolves the Amplify/Curse consecutive-use rule by treating clone transfer as discrete, retires the former publication-stage guard while preserving canonical validation, and does not itself publish or deploy a specific clone Skill. A03/A04/A07/A10 human acceptance remains open.
+
 **Live testing release — 2026-09-12:** PR #461 is merged and released at https://aurevane.vercel.app. It adds visible battle button/picker effect tags, current/historical execution contracts, four effect-badge repairs and Profile recovery diagnostics on top of PR #459. All ten applicable CI workflows passed, production is READY, and live casting/reload checks passed. See `PHASE_4_FINAL_TEST_READINESS.md` for exact evidence and the isolated recovered turn-clock 503 whose underlying cause remains unestablished. Independent human tactical, visual and listening acceptance remains open.
 
 Owner activation: explicit request for full implementation, necessary approvals, and final production deployment; followed by confirmation that Skill targeting/effect tags belong in this work. This supersedes the earlier waiting-for-start notes. It does not manufacture human playtest evidence.
+
+
+## Owner-approved Phase 4 operations extension — 2026-09-19
+
+The Owner explicitly corrected the phase boundary on 2026-09-19: staff/event operations infrastructure belongs to **Phase 4**, and **Phase 5 has not started**. Historical branch names, migration filenames and merged PR titles that contain `phase5` / `Phase 5` remain unchanged where renaming would damage Git/database traceability; they are historical identifiers only and no longer define roadmap ownership.
+
+### P4.11 — Staff authority foundation — COMPLETE
+
+- [x] Exactly four canonical authority classes: Game Owner, Moderator, Content Staff, Event Staff.
+- [x] Multiple delegated roles per account without inventing additional role classes.
+- [x] Protected Game Owner identity; ordinary controls cannot create/remove Owner or self-elevate.
+- [x] Server-side/service-only authorization with monotonic access versions and durable audit history.
+- [x] Legacy `owner | content-staff` operator migration without breaking Combat Content.
+- [x] Protected `/master/staff` Owner surface, exact-email lookup, WORLDWRIGHT presentation and explicit special-capability grants.
+- [x] Role/capability escalation, final-role, root-capability, browser/direct-table and audit/versioning database invariants.
+
+P4.11 is the previously implemented staff-authority work from PRs #557/#559, reclassified by Owner decision. It is not evidence that Phase 5 started.
+
+### P4.12 — Persistent event operations kernel — COMPLETE
+
+- [x] Versioned immutable Event Template / Event Definition.
+- [x] Event Run / Phase / Objective state pinned to one immutable definition version.
+- [x] Explicit global / region / node / cohort scope.
+- [x] Authoritative lifecycle clock, optimistic state versioning and restart recovery.
+- [x] Typed Event Effect references only; no arbitrary scripts or SQL.
+- [x] Serialized/idempotent lifecycle transitions with direct service-role mutation/receipt forgery blocked.
+- [x] Participant ledger with idempotent contribution provenance, source deduplication and run-scoped claim reservation.
+- [x] Immutable Reward Package execution through the existing authoritative Character XP service, with approved XP budgets and idempotent execution receipts.
+- [x] Terminal cleanup obligations, archive blocking and pre-start cancellation isolation.
+
+Contribution authority requires a Production run that is live, the run's exact current phase to have a `live` phase row, and an active objective in that phase. Duplicate delivery and source provenance are deduplicated server-side. Claim reservation alone does not mint rewards.
+
+P4.12 is integrated through PRs #564, #566 and #567, with later hardening carried by P4.13/P4.14. The persistent kernel, participant ledger, reward execution and cleanup boundaries all pass on the integrated Phase-4 stack.
+
+### P4.13 — Event Builder MVP — COMPLETE
+
+- [x] Protected `/master/events` Event Staff draft / validate / preview / publish workflow.
+- [x] Private optimistic drafts and immutable published definition history.
+- [x] Structured phase/objective composition and typed active/cleanup Effect references.
+- [x] Reward Package and aftermath references with dependency validation.
+- [x] Schedule / unschedule with scope/time overlap serialization and conflict rejection.
+- [x] Preview-only test clock / phase selection that creates no Production Event state.
+- [x] Production publication requires `events.production_publish`; global publication/scheduling additionally requires `events.global_scope`.
+- [x] Recursive arbitrary script/SQL fields are rejected; there is no arbitrary code/SQL editor.
+- [x] Permanent canon/world mutation is not authorable in the MVP.
+
+PR #569 exact head `f9f0ced6b1b7131350789198d2c4c618a2b68d6b` passed all eight PR workflows and merged to the Phase-4 integration branch as `681d0e7fd65b3bce2f7e4dfb840f5156f5b6a3dc`. All five applicable post-merge push workflows passed.
+
+### P4.14 — Live event operations — COMPLETE
+
+- [x] Protected `/master/events/live` authoritative Event Run dashboard.
+- [x] Participant/contribution, phase/objective, reward-claim, active-effect and cleanup visibility.
+- [x] Start due run, pause, resume, graceful stop/resolve, end, archive and manual phase advance with optimistic versions and idempotency receipts.
+- [x] Emergency stop requires the explicit `events.emergency_stop` capability.
+- [x] Sensitive operations require an explicit reason and fresh confirmation.
+- [x] Typed cleanup completion uses immutable receipts; archive remains blocked until pinned cleanup is complete.
+- [x] Immutable archived Chronicle snapshot and durable staff operation history.
+- [x] Browser roles cannot call database Event operations authority directly; service role cannot forge operations history directly.
+- [x] Bounded restart recovery starts due runs, advances authored automatic transitions, cancels missed windows and moves expired live windows toward resolving.
+- [x] Supabase `pg_cron` configuration exists as a release-only helper; the migration does not enable the Production job automatically.
+
+PR #570 exact head `072c8cc779c26063747994e13fab7fe541ea5e30` passed all eight PR workflows and merged to the Phase-4 integration branch as `8239cc2e2bc004c1db2956e26ad32f91c53cf7cc`. All five applicable post-merge push workflows passed.
+
+### Phase 4 extension gate — TECHNICALLY COMPLETE
+
+The P4.11–P4.14 Operations Extension is technically complete and verified on the dedicated Phase-4 integration branch: authorized staff can define and operate a persistent multi-phase Event without routine code deployment; contribution/claim boundaries are authoritative and idempotent; rewards execute only through approved services; restart recovery works; live operations are audited; and cleanup/Chronicle/archive invariants fail closed.
+
+This technical gate does **not** authorize Production deployment, Production Supabase mutation, Event recovery `pg_cron` activation, or the staged Discipline rebalance. Existing human Phase-4 acceptance items including A03/A04/A07/A10 remain separate.
+
+**Phase 5 remains NOT STARTED.** Moving into player-facing Phase 5 requires a new explicit Owner authorization. This extension does not implement Phase 5's living-world content, strategic Atlas, settlements/NPCs/quests, supernatural fork, or frontier threshold.
 
 ## Previous combat completeness release — PR #459
 
