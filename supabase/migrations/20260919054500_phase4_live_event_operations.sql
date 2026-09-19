@@ -263,14 +263,14 @@ returns trigger
 language plpgsql
 security definer
 set search_path = pg_catalog, public, app_private
-as $
+as $$
 begin
   if new.to_status = 'archived' then
     perform app_private.materialize_event_chronicle_v1(new.run_id);
   end if;
   return new;
 end;
-$;
+$$;
 
 create trigger capture_event_chronicle_on_transition_v1
 after insert on app_private.event_run_transitions
