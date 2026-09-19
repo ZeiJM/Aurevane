@@ -494,4 +494,132 @@ if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -
 fi
 grep -Fq 'permission denied for table event_run_phase_advances' /tmp/p414-direct-history.err
 
+expired_run="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+  insert into app_private.event_runs (
+    event_key, definition_version_id, run_mode, lifecycle_status,
+    scope_type, scope_key, scheduled_start_at, scheduled_end_at,
+    current_phase_id, created_by
+  ) values (
+    'event.p414-ops',
+    '$version_id'::uuid,
+    'production',
+    'scheduled',
+    'region',
+    'region.frostmere',
+    clock_timestamp() - interval '2 hours',
+    clock_timestamp() - interval '1 hour',
+    'mobilization',
+    '$owner_id'::uuid
+  )
+  returning id::text;")"
+test -n "$expired_run"
+
+docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+  insert into app_private.event_run_phases (
+    run_id, phase_id, ordinal, phase_status
+  ) values (
+    '$expired_run'::uuid,'mobilization',0,'pending'
+  );
+" >/dev/null
+
+if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+  set role service_role;
+  select * from public.operate_event_run_v1(
+    '$staff_id'::uuid,
+    '$expired_run'::uuid,
+    1,
+    '00000000-0000-4000-8000-000000004430'::uuid,
+    'start',
+    'P4.14 expired window start'
+  );" >/tmp/p414-expired-start.out 2>/tmp/p414-expired-start.err; then
+  echo 'Expected an expired scheduled Event Run to reject manual start.' >&2
+  exit 1
+fi
+grep -Fq 'EVENT_OPERATION_WINDOW_ENDED' /tmp/p414-expired-start.err
+
+elapsed_version_id="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+  insert into app_private.event_templates (event_key, event_family, created_by)
+  values ('event.p414-elapsed','regional-event','$owner_id'::uuid);
+
+  insert into app_private.event_definition_versions (
+    event_key, definition_version, definition, published_by
+  ) values (
+    'event.p414-elapsed',
+    1,
+    jsonb_build_object(
+      'schemaVersion',1,
+      'eventKey','event.p414-elapsed',
+      'templateKey','template.p414-elapsed',
+      'contentVersion',1,
+      'title','P4.14 Elapsed Transition',
+      'summary','CI rejects staff manual skip of an elapsed phase.',
+      'internalNotes','CI only.',
+      'family','regional-event',
+      'scope',jsonb_build_object('type','region','key','region.frostmere'),
+      'phases',jsonb_build_array(
+        jsonb_build_object(
+          'id','timed',
+          'name','Timed',
+          'objectives',jsonb_build_array(),
+          'effects',jsonb_build_array(),
+          'cleanupEffects',jsonb_build_array(),
+          'transition',jsonb_build_object('type','elapsed','afterSeconds',3600)
+        ),
+        jsonb_build_object(
+          'id','next',
+          'name','Next',
+          'objectives',jsonb_build_array(),
+          'effects',jsonb_build_array(),
+          'cleanupEffects',jsonb_build_array(),
+          'transition',jsonb_build_object('type','manual')
+        )
+      ),
+      'rewardPackageRefs',jsonb_build_array(),
+      'aftermathRefs',jsonb_build_array()
+    ),
+    '$owner_id'::uuid
+  )
+  returning id::text;")"
+test -n "$elapsed_version_id"
+
+elapsed_run="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+  insert into app_private.event_runs (
+    event_key, definition_version_id, run_mode, lifecycle_status,
+    scope_type, scope_key, current_phase_id, started_at, created_by
+  ) values (
+    'event.p414-elapsed',
+    '$elapsed_version_id'::uuid,
+    'production',
+    'live',
+    'region',
+    'region.frostmere',
+    'timed',
+    clock_timestamp(),
+    '$owner_id'::uuid
+  )
+  returning id::text;")"
+test -n "$elapsed_run"
+
+docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+  insert into app_private.event_run_phases (
+    run_id, phase_id, ordinal, phase_status, started_at
+  ) values
+    ('$elapsed_run'::uuid,'timed',0,'live',clock_timestamp()),
+    ('$elapsed_run'::uuid,'next',1,'pending',null);
+" >/dev/null
+
+if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+  set role service_role;
+  select * from public.advance_event_run_phase_v1(
+    '$staff_id'::uuid,
+    '$elapsed_run'::uuid,
+    1,
+    '00000000-0000-4000-8000-000000004431'::uuid,
+    'P4.14 illegal manual elapsed advance'
+  );" >/tmp/p414-nonmanual-advance.out 2>/tmp/p414-nonmanual-advance.err; then
+  echo 'Expected manual phase advance to reject a non-manual transition.' >&2
+  exit 1
+fi
+grep -Fq 'EVENT_PHASE_ADVANCE_MANUAL_REQUIRED' /tmp/p414-nonmanual-advance.err
+
 echo 'Phase 4 live Event operations authority, recovery and Chronicle verification passed.'
