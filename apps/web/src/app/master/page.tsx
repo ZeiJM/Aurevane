@@ -11,8 +11,9 @@ export default async function MasterPanelPage() {
   const { access } = await requireMasterPanelPageAccess()
   const canManageStaff = hasMasterPanelCapability(access, 'staff.manage')
   const canAuthorCombat = hasMasterPanelCapability(access, 'content.combat.author')
+  const canAuthorEvents = hasMasterPanelCapability(access, 'events.author')
   const owner = access.roles.includes('game-owner')
-  const hasOperationalModule = canManageStaff || canAuthorCombat
+  const hasOperationalModule = canManageStaff || canAuthorCombat || canAuthorEvents
 
   return (
     <main className={styles.page}>
@@ -56,6 +57,15 @@ export default async function MasterPanelPage() {
                 <span>
                   Author typed, versioned Skill targeting, costs, effects, validation, preview,
                   publication, and rollback.
+                </span>
+              </Link>
+            ) : null}
+            {canAuthorEvents ? (
+              <Link className={styles.module} href="/master/events">
+                <strong>Event Builder</strong>
+                <span>
+                  Draft, validate, preview, publish and schedule typed persistent Events without
+                  arbitrary scripts or SQL.
                 </span>
               </Link>
             ) : null}
