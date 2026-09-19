@@ -31,7 +31,7 @@ async function recordMastery(characterId: string, disciplineId: string): Promise
   if (masteryError) throw masteryError
 }
 
-test('Profile equips a mastered Secondary with independent attunement authority', async ({
+test('Arsenal equips a mastered Secondary with independent attunement authority', async ({
   page,
 }, testInfo) => {
   test.skip(
@@ -58,12 +58,15 @@ test('Profile equips a mastered Secondary with independent attunement authority'
   await recordMastery(selectedCharacterCookie.value, 'aetherist')
   await page.reload()
 
+  const maxHpBeforeSecondary = await page.getByTestId('derived-stat-maxHp').locator('strong').innerText()
+  await page.goto('/game/arsenal')
+  await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
+
   const panel = page.getByTestId('primary-build-panel')
   const launcher = panel.getByRole('button', { name: /Manage Primary Discipline/ })
   const primaryDisciplineChip = page.getByTestId('primary-discipline-chip')
   const secondaryDisciplineChip = page.getByTestId('secondary-discipline-chip')
-  const maxHp = page.getByTestId('derived-stat-maxHp').locator('strong')
-  const maxHpBeforeSecondary = await maxHp.innerText()
+  const maxHp = page.locator('[data-character-resource="hp"] b')
   await expect(launcher).toHaveText('Discipline Management')
   const initialLauncherSigils = launcher.locator('img')
   await expect(initialLauncherSigils).toHaveCount(1)
@@ -148,7 +151,7 @@ test('Profile equips a mastered Secondary with independent attunement authority'
   await expect(secondary).toBeEnabled()
 })
 
-test('mobile Profile balances the portrait and centers Discipline Management', async ({
+test('mobile Character keeps its portrait readable and Arsenal centers Discipline Management', async ({
   page,
 }, testInfo) => {
   test.skip(
@@ -168,25 +171,16 @@ test('mobile Profile balances the portrait and centers Discipline Management', a
   const portrait = profile.locator('.character-portrait-media').locator('..')
   await expect(portrait).toBeVisible()
   const portraitBox = await portrait.boundingBox()
-  const identityBox = await profile.locator(':scope > div:last-child').boundingBox()
-  if (!portraitBox || !identityBox) throw new Error('Profile hero geometry is unavailable')
-  const conceptProfile = await page.locator('[data-character-concept="profile"]').count()
-  if (conceptProfile === 0) {
-    expect(
-      Math.abs(portraitBox.y + portraitBox.height / 2 - identityBox.y - identityBox.height / 2),
-    ).toBeLessThanOrEqual(1)
-    expect(Math.abs(portraitBox.width - portraitBox.height)).toBeLessThanOrEqual(1)
-  } else {
-    expect(portraitBox.width).toBeGreaterThan(0)
-    expect(portraitBox.height).toBeGreaterThan(0)
-    expect(identityBox.width).toBeGreaterThan(0)
-    expect(identityBox.height).toBeGreaterThan(0)
-    expect(portraitBox.x + portraitBox.width).toBeLessThanOrEqual(identityBox.x + 1)
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(
-      true,
-    )
-  }
+  if (!portraitBox) throw new Error('Character portrait geometry is unavailable')
+  expect(Math.abs(portraitBox.width - portraitBox.height)).toBeLessThanOrEqual(1)
+  await expect(page.locator('[data-character-resource="hp"]')).toBeVisible()
+  await expect(page.locator('[data-character-resource="mp"]')).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(
+    true,
+  )
 
+  await page.goto('/game/arsenal')
+  await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
   const launcher = page
     .getByTestId('primary-build-panel')
     .getByRole('button', { name: /Manage Primary Discipline/ })
