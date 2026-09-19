@@ -235,7 +235,6 @@ test('an authenticated character keeps a direct return path while reading the Ma
   expect(returnStyle).toEqual(accountStyle)
 })
 
-
 test('mobile News, Manual, and Rules keep identical typography between game and public headers', async ({
   page,
 }, testInfo) => {
