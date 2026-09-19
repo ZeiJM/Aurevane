@@ -137,6 +137,20 @@ if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -
   select * from public.transition_event_run_v1(
     '$run_id'::uuid,
     1,
+    '$transition_key'::uuid,
+    'paused',
+    'CI conflicting replay'
+  );" >/tmp/p52-idempotency-conflict.out 2>/tmp/p52-idempotency-conflict.err; then
+  echo 'Expected conflicting event transition replay to fail.' >&2
+  exit 1
+fi
+grep -Fq 'EVENT_RUN_IDEMPOTENCY_CONFLICT' /tmp/p52-idempotency-conflict.err
+
+if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+  set role service_role;
+  select * from public.transition_event_run_v1(
+    '$run_id'::uuid,
+    1,
     '00000000-0000-4000-8000-000000005202'::uuid,
     'paused',
     'CI stale transition'
@@ -152,5 +166,40 @@ if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -
   echo 'Authenticated browser unexpectedly read private event recovery state.' >&2
   exit 1
 fi
+
+preview_run_id="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+  insert into app_private.event_runs (
+    event_key,
+    definition_version_id,
+    run_mode,
+    lifecycle_status,
+    scope_type,
+    scope_key,
+    current_phase_id,
+    created_by
+  ) values (
+    'event.frostmere-storm',
+    '$version_id'::uuid,
+    'preview',
+    'preview',
+    'region',
+    'region.frostmere',
+    'omen',
+    '$owner_id'::uuid
+  )
+  returning id::text;")"
+test -n "$preview_run_id"
+
+preview_cancel="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+  set role service_role;
+  select lifecycle_status || '|' || state_version::text
+  from public.transition_event_run_v1(
+    '$preview_run_id'::uuid,
+    1,
+    '00000000-0000-4000-8000-000000005203'::uuid,
+    'cancelled',
+    'CI preview cleanup'
+  );")"
+test "$preview_cancel" = 'cancelled|2'
 
 echo 'Phase 5 persistent event kernel verification passed.'
