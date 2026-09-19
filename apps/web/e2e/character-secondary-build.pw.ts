@@ -58,7 +58,10 @@ test('Arsenal equips a mastered Secondary with independent attunement authority'
   await recordMastery(selectedCharacterCookie.value, 'aetherist')
   await page.reload()
 
-  const maxHpBeforeSecondary = await page.getByTestId('derived-stat-maxHp').locator('strong').innerText()
+  const maxHpBeforeSecondary = await page
+    .getByTestId('derived-stat-maxHp')
+    .locator('strong')
+    .innerText()
   await page.goto('/game/arsenal')
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
 
