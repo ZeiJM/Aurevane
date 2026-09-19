@@ -160,6 +160,61 @@ if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -
 fi
 grep -Fq 'EVENT_RUN_STATE_VERSION_CONFLICT' /tmp/p52-stale.err
 
+docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+  create or replace function app_private.delay_p52_event_transition_for_test()
+  returns trigger
+  language plpgsql
+  as \$\$
+  begin
+    if old.id = '$run_id'::uuid and old.state_version = 2 then
+      perform pg_sleep(2);
+    end if;
+    return new;
+  end;
+  \$\$;
+
+  create trigger delay_p52_event_transition_for_test
+  before update on app_private.event_runs
+  for each row execute function app_private.delay_p52_event_transition_for_test();
+" >/dev/null
+
+concurrent_key='00000000-0000-4000-8000-000000005204'
+docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+  set role service_role;
+  select run_id::text || '|' || lifecycle_status || '|' || state_version::text || '|' || replayed::text
+  from public.transition_event_run_v1(
+    '$run_id'::uuid,
+    2,
+    '$concurrent_key'::uuid,
+    'paused',
+    'CI concurrent replay'
+  );" >/tmp/p52-concurrent-a.out 2>/tmp/p52-concurrent-a.err &
+concurrent_a_pid=$!
+
+docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+  set role service_role;
+  select run_id::text || '|' || lifecycle_status || '|' || state_version::text || '|' || replayed::text
+  from public.transition_event_run_v1(
+    '$run_id'::uuid,
+    2,
+    '$concurrent_key'::uuid,
+    'paused',
+    'CI concurrent replay'
+  );" >/tmp/p52-concurrent-b.out 2>/tmp/p52-concurrent-b.err &
+concurrent_b_pid=$!
+
+wait "$concurrent_a_pid"
+wait "$concurrent_b_pid"
+
+docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+  drop trigger delay_p52_event_transition_for_test on app_private.event_runs;
+  drop function app_private.delay_p52_event_transition_for_test();
+" >/dev/null
+
+concurrent_results="$(cat /tmp/p52-concurrent-a.out /tmp/p52-concurrent-b.out | sort)"
+concurrent_expected="$(printf '%s\n%s\n' "$run_id|paused|3|false" "$run_id|paused|3|true" | sort)"
+test "$concurrent_results" = "$concurrent_expected"
+
 if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   set role authenticated;
   select * from public.list_recoverable_event_runs_v1();" >/tmp/p52-browser.out 2>/tmp/p52-browser.err; then
