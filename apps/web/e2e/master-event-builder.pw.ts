@@ -200,6 +200,7 @@ test('Event Staff uses structured Event Builder without preview state leakage', 
   await expect(page.getByRole('heading', { name: 'Persistent Event Definition' })).toBeVisible()
   await expect(publishButton).toBeEnabled()
 
+  await page.getByLabel('Event key').fill(eventKey)
   await runEventOperation(page, 'load', 'Load')
   await expect(page.getByLabel('Event key')).toHaveValue(eventKey)
   await expect(page.getByLabel('Objective reference')).toHaveValue('objective.browser-community')
