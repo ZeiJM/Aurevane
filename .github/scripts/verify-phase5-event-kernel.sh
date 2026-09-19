@@ -97,6 +97,28 @@ if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -
 fi
 grep -Fq 'permission denied for table event_runs' /tmp/p52-direct-run-update.err
 
+if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+  set role service_role;
+  insert into app_private.event_run_transitions (
+    run_id,
+    idempotency_key,
+    from_status,
+    to_status,
+    resulting_state_version,
+    reason
+  ) values (
+    '$run_id'::uuid,
+    '00000000-0000-4000-8000-000000005299'::uuid,
+    'scheduled',
+    'live',
+    2,
+    'CI forged receipt'
+  );" >/tmp/p52-direct-receipt-insert.out 2>/tmp/p52-direct-receipt-insert.err; then
+  echo 'Service role unexpectedly forged an event transition receipt.' >&2
+  exit 1
+fi
+grep -Fq 'permission denied for table event_run_transitions' /tmp/p52-direct-receipt-insert.err
+
 docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   insert into app_private.event_run_phases (run_id, phase_id, ordinal, phase_status)
   values
