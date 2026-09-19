@@ -26,7 +26,7 @@ test('Foundation Discipline sigils resolve to production artwork on desktop and 
 }, testInfo) => {
   test.skip(
     !['desktop-chromium', 'mobile-chromium'].includes(testInfo.project.name),
-    'Profile Discipline artwork is checked at both target viewport classes.',
+    'Arsenal Discipline artwork is checked at both target viewport classes.',
   )
 
   const disciplineArt = FOUNDATION_DISCIPLINES.map((id) => {
@@ -60,6 +60,9 @@ test('Foundation Discipline sigils resolve to production artwork on desktop and 
     expect(artwork.width, `${artwork.id} artwork should decode`).toBeGreaterThan(0)
     expect(artwork.height, `${artwork.id} artwork should decode`).toBeGreaterThan(0)
   }
+
+  await page.goto('/game/arsenal')
+  await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
 
   const launcher = page.getByRole('button', {
     name: /Manage Primary Discipline and Secondary Discipline/,
