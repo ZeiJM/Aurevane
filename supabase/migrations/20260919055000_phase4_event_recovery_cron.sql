@@ -1,5 +1,7 @@
 begin;
 
+create extension if not exists pg_cron with schema pg_catalog;
+
 create table app_private.event_recovery_state (
   singleton boolean primary key default true check (singleton),
   last_started_at timestamptz,
