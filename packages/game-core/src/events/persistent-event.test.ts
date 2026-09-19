@@ -58,23 +58,25 @@ const definition = (): PersistentEventDefinition => ({
   aftermathRefs: ['aftermath.frostmere-storm'],
 })
 
+const cloneDefinition = (): any => JSON.parse(JSON.stringify(definition()))
+
 describe('persistent event definition', () => {
   it('accepts typed scoped multi-phase definitions', () => {
     expect(() => validatePersistentEventDefinition(definition())).not.toThrow()
   })
 
   it('rejects arbitrary effect kinds and unknown objective transition references', () => {
-    const invalidEffect = structuredClone(definition()) as any
+    const invalidEffect = cloneDefinition()
     invalidEffect.phases[0].effects[0].type = 'script'
     expect(() => validatePersistentEventDefinition(invalidEffect)).toThrow(/effect type/i)
 
-    const invalidTransition = structuredClone(definition()) as any
+    const invalidTransition = cloneDefinition()
     invalidTransition.phases[0].transition.objectiveId = 'missing'
     expect(() => validatePersistentEventDefinition(invalidTransition)).toThrow(/same phase/i)
   })
 
   it('rejects a transition tied to an objective from another phase', () => {
-    const invalid = structuredClone(definition()) as any
+    const invalid = cloneDefinition()
     invalid.phases[1].transition = { type: 'objective-threshold', objectiveId: 'survey' }
     expect(() => validatePersistentEventDefinition(invalid)).toThrow(/same phase/i)
   })
