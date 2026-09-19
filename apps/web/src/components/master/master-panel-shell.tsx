@@ -184,6 +184,7 @@ export function MasterPanelShell({
                   className={[styles.operator, owner ? styles.worldwright : '']
                     .filter(Boolean)
                     .join(' ')}
+                  data-testid="master-panel-authority"
                 >
                   {owner ? (
                     <span className={styles.operatorIcon} aria-hidden="true">
