@@ -75,7 +75,10 @@ create table app_private.event_runs (
     or scheduled_end_at > scheduled_start_at
   ),
   check (
-    (run_mode = 'preview' and lifecycle_status = 'preview')
+    (
+      run_mode = 'preview'
+      and lifecycle_status in ('preview','cancelled','archived')
+    )
     or
     (run_mode = 'production' and lifecycle_status <> 'preview')
   )
@@ -224,7 +227,7 @@ as $$
     and (
       run.lifecycle_status <> 'scheduled'
       or run.scheduled_start_at is null
-      or run.scheduled_start_at <= clock_timestamp()
+      or run.scheduled_start_at <= statement_timestamp()
     )
   order by coalesce(run.scheduled_start_at, run.created_at), run.id;
 $$;
@@ -259,6 +262,10 @@ begin
     and receipt.idempotency_key = p_idempotency_key;
 
   if found then
+    if v_receipt.to_status <> p_to_status or v_receipt.reason <> p_reason then
+      raise exception using errcode = '22023', message = 'EVENT_RUN_IDEMPOTENCY_CONFLICT';
+    end if;
+
     return query
     select p_run_id, v_receipt.to_status, v_receipt.resulting_state_version, true;
     return;
