@@ -51,13 +51,17 @@ export function CharacterIdentityCard({
         <h1>{profile.identity.name}</h1>
         <p className={styles.motto}>A quieter blade still changes the tide.</p>
         <div className={styles.tags}>
-          <span>{primary.name}</span>
-          {secondary ? <span>{secondary.name}</span> : null}
+          <span data-testid="primary-discipline-chip">{primary.name}</span>
+          {secondary ? <span data-testid="secondary-discipline-chip">{secondary.name}</span> : null}
           {personalTitle ? <span data-tone="title">{personalTitle}</span> : null}
         </div>
       </div>
 
-      <section className={styles.progress} aria-label="Character progression">
+      <section
+        className={styles.progress}
+        data-testid="level-progress"
+        aria-label="Character progression"
+      >
         <div className={styles.progressLabel}>
           <strong>Level {profile.progression.level}</strong>
           <span>
