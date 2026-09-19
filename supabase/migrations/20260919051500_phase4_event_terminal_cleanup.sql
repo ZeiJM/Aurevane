@@ -231,7 +231,7 @@ begin
       and effect.value ->> 'type' is not null
       and effect.value ->> 'referenceKey' is not null
       and effect.value ? 'enabled'
-    on conflict (run_id, phase_id, effect_ordinal) do nothing;
+    on conflict on constraint event_run_cleanup_requirements_pkey do nothing;
 
     if exists (
       select 1
