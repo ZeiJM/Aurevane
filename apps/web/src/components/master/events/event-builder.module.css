@@ -1,0 +1,188 @@
+.builder {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.toolbar,
+.sectionHeading,
+.phaseHeader,
+.inlineActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.toolbar {
+  padding: 1.25rem;
+  border: 1px solid rgb(255 255 255 / 10%);
+  border-radius: 1rem;
+  background: rgb(8 12 24 / 72%);
+}
+
+.toolbar h1,
+.sectionHeading h2,
+.card h2,
+.phaseCard h3 {
+  margin: 0;
+}
+
+.toolbar p,
+.notice,
+.status p {
+  margin: 0.35rem 0 0;
+  color: rgb(226 232 240 / 76%);
+}
+
+.toolbarActions,
+.inlineActions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.builder button,
+.builder input,
+.builder select,
+.builder textarea {
+  font: inherit;
+}
+
+.builder button {
+  min-height: 2.5rem;
+  padding: 0.55rem 0.85rem;
+  border: 1px solid rgb(255 255 255 / 15%);
+  border-radius: 0.65rem;
+  background: rgb(255 255 255 / 7%);
+  color: inherit;
+  cursor: pointer;
+}
+
+.builder button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.notice {
+  padding: 0.8rem 1rem;
+  border: 1px solid rgb(250 204 21 / 22%);
+  border-radius: 0.75rem;
+  background: rgb(120 53 15 / 16%);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.card,
+.phaseCard,
+.status {
+  display: grid;
+  gap: 0.9rem;
+  padding: 1rem;
+  border: 1px solid rgb(255 255 255 / 10%);
+  border-radius: 0.9rem;
+  background: rgb(8 12 24 / 58%);
+}
+
+.card label,
+.phaseCard label {
+  display: grid;
+  gap: 0.35rem;
+  color: rgb(226 232 240 / 82%);
+  font-size: 0.9rem;
+}
+
+.builder input,
+.builder select,
+.builder textarea {
+  width: 100%;
+  min-height: 2.55rem;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 0.55rem;
+  background: rgb(2 6 23 / 76%);
+  color: inherit;
+}
+
+.builder textarea {
+  min-height: 5.5rem;
+  resize: vertical;
+}
+
+.eyebrow {
+  margin: 0 0 0.3rem;
+  font-size: 0.73rem;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: rgb(196 181 253 / 84%);
+}
+
+.phases {
+  display: grid;
+  gap: 1rem;
+}
+
+.phaseCard {
+  gap: 1rem;
+}
+
+.compositionGroup {
+  display: grid;
+  gap: 0.6rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid rgb(255 255 255 / 8%);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(7rem, 1fr) minmax(8rem, 1fr) minmax(10rem, 1.4fr) minmax(5rem, 0.55fr) auto;
+  gap: 0.55rem;
+  align-items: center;
+}
+
+.checkbox {
+  display: flex !important;
+  grid-auto-flow: column;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.checkbox input {
+  width: auto;
+  min-height: 0;
+}
+
+.status pre {
+  max-height: 20rem;
+  overflow: auto;
+  margin: 0;
+  padding: 0.8rem;
+  border-radius: 0.6rem;
+  background: rgb(2 6 23 / 72%);
+  white-space: pre-wrap;
+  font-size: 0.78rem;
+}
+
+@media (max-width: 900px) {
+  .toolbar,
+  .sectionHeading,
+  .phaseHeader {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .toolbarActions,
+  .inlineActions {
+    justify-content: flex-start;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .row {
+    grid-template-columns: 1fr;
+  }
+}
