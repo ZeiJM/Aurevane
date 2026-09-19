@@ -91,6 +91,9 @@ jobs:
       - name: Verify P3.1 Discipline build authority
         run: bash .github/scripts/verify-p31-discipline-build-authority.sh
 
+      - name: Verify Online Users active Disciplines
+        run: bash .github/scripts/verify-online-users-active-disciplines.sh
+
       - name: Verify PV-1F character deletion lifecycle
         run: bash .github/scripts/verify-pv1f-character-deletion.sh
 
