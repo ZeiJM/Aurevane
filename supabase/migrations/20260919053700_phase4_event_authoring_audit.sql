@@ -114,6 +114,9 @@ begin
     if v_existing.event_key <> p_event_key
       or v_existing.actor_user_id <> p_actor_user_id
       or v_existing.reason <> p_reason
+      or (v_existing.result -> 'request_definition') is distinct from p_definition
+      or (v_existing.result ->> 'expected_base_version') is distinct from
+        coalesce(p_expected_base_version::text, 'null')
     then
       raise exception using
         errcode = '22023',
@@ -171,7 +174,9 @@ begin
     p_reason,
     jsonb_build_object(
       'version_id', v_published.id,
-      'definition_version', v_published.definition_version
+      'definition_version', v_published.definition_version,
+      'request_definition', p_definition,
+      'expected_base_version', coalesce(p_expected_base_version::text, 'null')
     )
   );
 
@@ -225,6 +230,11 @@ begin
     if v_existing.event_key <> p_event_key
       or v_existing.actor_user_id <> p_actor_user_id
       or v_existing.reason <> p_reason
+      or v_existing.result ->> 'request_fingerprint' <> p_request_fingerprint
+      or (v_existing.result ->> 'scheduled_start_at')::timestamptz
+        is distinct from p_scheduled_start_at
+      or (v_existing.result ->> 'scheduled_end_at') is distinct from
+        coalesce(p_scheduled_end_at::text, 'null')
     then
       raise exception using
         errcode = '22023',
@@ -273,7 +283,10 @@ begin
     p_reason,
     jsonb_build_object(
       'run_id', v_scheduled.run_id,
-      'state_version', v_scheduled.state_version
+      'state_version', v_scheduled.state_version,
+      'request_fingerprint', p_request_fingerprint,
+      'scheduled_start_at', p_scheduled_start_at,
+      'scheduled_end_at', coalesce(p_scheduled_end_at::text, 'null')
     )
   );
 
@@ -321,6 +334,8 @@ begin
     if v_existing.run_id <> p_run_id
       or v_existing.actor_user_id <> p_actor_user_id
       or v_existing.reason <> p_reason
+      or (v_existing.result ->> 'expected_state_version')::bigint
+        <> p_expected_state_version
     then
       raise exception using
         errcode = '22023',
@@ -378,7 +393,8 @@ begin
     p_reason,
     jsonb_build_object(
       'lifecycle_status', v_transition.lifecycle_status,
-      'state_version', v_transition.state_version
+      'state_version', v_transition.state_version,
+      'expected_state_version', p_expected_state_version
     )
   );
 
