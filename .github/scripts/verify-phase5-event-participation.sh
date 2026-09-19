@@ -99,7 +99,7 @@ initialize_run_state() {
       run_id, phase_id, ordinal, phase_status, started_at
     ) values
       ('$run_id'::uuid, 'mobilization', 0, 'live', clock_timestamp()),
-      ('$run_id'::uuid, 'future', 1, 'pending', null);
+      ('$run_id'::uuid, 'future', 1, 'live', clock_timestamp());
 
     insert into app_private.event_run_objectives (
       run_id,
@@ -204,6 +204,31 @@ if record_contribution \
   exit 1
 fi
 grep -Fq 'EVENT_CONTRIBUTION_PHASE_NOT_LIVE' /tmp/p52-future-phase.err
+
+docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+  update app_private.event_run_phases
+  set phase_status = 'pending'
+  where run_id = '$run_one'::uuid
+    and phase_id = 'mobilization';
+" >/dev/null
+
+if record_contribution \
+  "$run_one" \
+  '00000000-0000-4000-8000-000000005321' \
+  'p52:contribution:current-phase-not-live' \
+  'battle.intent:current-phase-not-live' \
+  1 >/tmp/p52-current-phase-not-live.out 2>/tmp/p52-current-phase-not-live.err; then
+  echo 'Expected contribution to fail when the current Event phase row is not live.' >&2
+  exit 1
+fi
+grep -Fq 'EVENT_CONTRIBUTION_PHASE_NOT_LIVE' /tmp/p52-current-phase-not-live.err
+
+docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+  update app_private.event_run_phases
+  set phase_status = 'live'
+  where run_id = '$run_one'::uuid
+    and phase_id = 'mobilization';
+" >/dev/null
 
 docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   create or replace function app_private.delay_p52_event_contribution_for_test()
