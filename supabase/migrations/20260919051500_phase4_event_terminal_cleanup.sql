@@ -189,7 +189,15 @@ begin
 
   if p_to_status in ('ended','cancelled','emergency-stopped')
     and v_run.run_mode = 'production'
-    and v_run.started_at is not null then
+    and (
+      v_run.started_at is not null
+      or exists (
+        select 1
+        from app_private.event_run_phases as historical_phase
+        where historical_phase.run_id = p_run_id
+          and historical_phase.phase_status in ('live','completed')
+      )
+    ) then
     select version.definition
     into v_definition
     from app_private.event_definition_versions as version
