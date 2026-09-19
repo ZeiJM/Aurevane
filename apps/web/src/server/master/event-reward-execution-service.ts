@@ -120,7 +120,13 @@ function validatePlan(plan: EventRewardClaimExecutionPlan): EventRewardPackageDe
     throw unavailable()
   }
 
-  const definition = validateEventRewardPackageDefinition(plan.packageDefinition)
+  let definition: EventRewardPackageDefinition
+  try {
+    definition = validateEventRewardPackageDefinition(plan.packageDefinition)
+  } catch {
+    throw unavailable()
+  }
+
   if (definition.rewardPackageRef !== plan.rewardPackageRef) {
     throw unavailable()
   }
