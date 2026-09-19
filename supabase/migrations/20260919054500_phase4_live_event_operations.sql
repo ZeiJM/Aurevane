@@ -636,6 +636,15 @@ begin
       message = 'EVENT_OPERATION_START_NOT_DUE';
   end if;
 
+  if p_command = 'start'
+    and v_run.lifecycle_status = 'scheduled'
+    and v_run.scheduled_end_at is not null
+    and v_run.scheduled_end_at <= statement_timestamp() then
+    raise exception using
+      errcode = '22023',
+      message = 'EVENT_OPERATION_WINDOW_ENDED';
+  end if;
+
   select *
   into v_transition
   from public.transition_event_run_v1(
@@ -709,6 +718,8 @@ declare
   v_existing app_private.event_run_phase_advances%rowtype;
   v_current app_private.event_run_phases%rowtype;
   v_next app_private.event_run_phases%rowtype;
+  v_definition jsonb;
+  v_transition_type text;
   v_next_version bigint;
   v_now timestamptz := clock_timestamp();
 begin
@@ -785,6 +796,30 @@ begin
     raise exception using
       errcode = '22023',
       message = 'EVENT_PHASE_ADVANCE_CURRENT_PHASE_INVALID';
+  end if;
+
+  select version.definition
+  into v_definition
+  from app_private.event_definition_versions as version
+  where version.id = v_run.definition_version_id
+    and version.event_key = v_run.event_key;
+
+  if not found then
+    raise exception using
+      errcode = '55000',
+      message = 'EVENT_RUN_PINNED_DEFINITION_UNAVAILABLE';
+  end if;
+
+  select phase.value #>> '{transition,type}'
+  into v_transition_type
+  from jsonb_array_elements(v_definition -> 'phases') as phase(value)
+  where phase.value ->> 'id' = v_current.phase_id
+  limit 1;
+
+  if v_transition_type <> 'manual' then
+    raise exception using
+      errcode = '22023',
+      message = 'EVENT_PHASE_ADVANCE_MANUAL_REQUIRED';
   end if;
 
   select *
