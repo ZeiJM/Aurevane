@@ -187,7 +187,11 @@ export function CharacterProfileShell({
           />
         </Surface>
 
-        <aside className={styles.story} data-testid="current-path-coming-soon" aria-label="Current Path">
+        <aside
+          className={styles.story}
+          data-testid="current-path-coming-soon"
+          aria-label="Current Path"
+        >
           <div className={styles.storyArt} aria-hidden="true" />
           <div className={styles.storyCopy}>
             <span>Current Path</span>
