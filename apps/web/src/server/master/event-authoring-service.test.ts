@@ -21,7 +21,9 @@ import {
 const EVENT_STAFF = '11111111-1111-4111-8111-111111111111'
 const OWNER = '22222222-2222-4222-8222-222222222222'
 
-const definition = (scope: PersistentEventDefinition['scope'] = { type: 'region', key: 'region.frostmere' }): PersistentEventDefinition => ({
+const definition = (
+  scope: PersistentEventDefinition['scope'] = { type: 'region', key: 'region.frostmere' },
+): PersistentEventDefinition => ({
   schemaVersion: 1,
   eventKey: 'event.frostmere-storm',
   templateKey: 'template.regional-crisis',
@@ -277,9 +279,7 @@ describe('Event Builder authoring service', () => {
   })
 
   it('allows scoped publication with Production publish but separately gates global scope', async () => {
-    const scoped = serviceFor(
-      access(EVENT_STAFF, ['event-staff'], ['events.production_publish']),
-    )
+    const scoped = serviceFor(access(EVENT_STAFF, ['event-staff'], ['events.production_publish']))
 
     await expect(
       scoped.service.publish({
@@ -304,10 +304,7 @@ describe('Event Builder authoring service', () => {
     ).rejects.toMatchObject({ code: 'FORBIDDEN' })
 
     const global = serviceFor(
-      access(EVENT_STAFF, ['event-staff'], [
-        'events.production_publish',
-        'events.global_scope',
-      ]),
+      access(EVENT_STAFF, ['event-staff'], ['events.production_publish', 'events.global_scope']),
     )
     await expect(
       global.service.publish({
