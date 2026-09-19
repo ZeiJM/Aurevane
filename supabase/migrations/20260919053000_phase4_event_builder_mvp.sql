@@ -292,6 +292,10 @@ begin
   perform app_private.assert_event_staff_author_v1(p_actor_user_id);
   perform app_private.assert_event_definition_shape_v1(p_event_key, p_definition);
 
+  perform pg_advisory_xact_lock(
+    hashtextextended('aurevane:event-draft:' || p_event_key, 0)
+  );
+
   select version.definition_version
   into v_current_version
   from app_private.event_publications as publication
@@ -429,6 +433,10 @@ begin
   v_scope_type := p_definition #>> '{scope,type}';
   v_family := p_definition ->> 'family';
   perform app_private.assert_event_production_publish_v1(p_actor_user_id, v_scope_type);
+
+  perform pg_advisory_xact_lock(
+    hashtextextended('aurevane:event-publish:' || p_event_key, 0)
+  );
 
   if exists (
     select 1
@@ -583,6 +591,13 @@ begin
     raise exception using errcode = '22023', message = 'EVENT_SCHEDULE_INVALID';
   end if;
 
+  perform pg_advisory_xact_lock(
+    hashtextextended(
+      'aurevane:event-schedule-idempotency:' || v_actor_key || ':' || p_idempotency_key::text,
+      0
+    )
+  );
+
   select * into v_existing
   from app_private.idempotency_records as receipt
   where receipt.actor_key = v_actor_key
@@ -626,6 +641,13 @@ begin
   if v_first_phase_id is null then
     raise exception using errcode = '22023', message = 'EVENT_FIRST_PHASE_REQUIRED';
   end if;
+
+  perform pg_advisory_xact_lock(
+    hashtextextended(
+      'aurevane:event-schedule-scope:' || v_scope_type || ':' || coalesce(v_scope_key, ''),
+      0
+    )
+  );
 
   if exists (
     select 1
