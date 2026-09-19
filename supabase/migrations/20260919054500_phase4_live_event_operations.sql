@@ -258,24 +258,23 @@ $$;
 revoke all on function app_private.materialize_event_chronicle_v1(uuid)
   from public, anon, authenticated, service_role;
 
-create or replace function app_private.capture_event_chronicle_on_archive_v1()
+create or replace function app_private.capture_event_chronicle_on_transition_v1()
 returns trigger
 language plpgsql
 security definer
 set search_path = pg_catalog, public, app_private
-as $$
+as $
 begin
-  if new.lifecycle_status = 'archived'
-    and old.lifecycle_status is distinct from 'archived' then
-    perform app_private.materialize_event_chronicle_v1(new.id);
+  if new.to_status = 'archived' then
+    perform app_private.materialize_event_chronicle_v1(new.run_id);
   end if;
   return new;
 end;
-$$;
+$;
 
-create trigger capture_event_chronicle_on_archive_v1
-after update of lifecycle_status on app_private.event_runs
-for each row execute function app_private.capture_event_chronicle_on_archive_v1();
+create trigger capture_event_chronicle_on_transition_v1
+after insert on app_private.event_run_transitions
+for each row execute function app_private.capture_event_chronicle_on_transition_v1();
 
 create or replace function public.list_event_operation_runs_v1(
   p_actor_user_id uuid
