@@ -66,6 +66,31 @@ test('Adventurers roster preserves browsing and public-profile privacy in the ne
   await expect(
     page.getByText('Select an adventurer to view their public profile.', { exact: true }),
   ).toHaveCount(0)
+
+  if (!mobile) {
+    const onlineRoster = page.getByRole('region', { name: 'Online character roster' })
+    const headings = onlineRoster.locator('div[aria-hidden="true"]').filter({
+      hasText: 'CharacterLevelDisciplinePresence',
+    })
+    const firstRow = onlineRoster.locator('[data-directory-character]').first()
+    const headingCells = headings.locator(':scope > span')
+    const rowCells = firstRow.locator(':scope > span')
+    for (const [headingIndex, rowIndex, label] of [
+      [1, 2, 'Level'],
+      [2, 3, 'Discipline'],
+      [3, 4, 'Presence'],
+    ] as const) {
+      const headingBox = await headingCells.nth(headingIndex).boundingBox()
+      const rowBox = await rowCells.nth(rowIndex).boundingBox()
+      expect(headingBox, `${label} heading geometry`).not.toBeNull()
+      expect(rowBox, `${label} value geometry`).not.toBeNull()
+      expect(
+        Math.abs(headingBox!.x - rowBox!.x),
+        `${label} heading aligns with its values`,
+      ).toBeLessThanOrEqual(1)
+    }
+  }
+
   await capture(page, info, 'online')
   // The initial authenticated roster is real. Only the public directory response is a cosmetic
   // fixture so titles, missing images, stale presence and large rosters are deterministic.
