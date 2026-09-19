@@ -94,6 +94,9 @@ jobs:
       - name: Verify Phase 4 Event reward execution
         run: bash .github/scripts/verify-phase4-event-rewards.sh
 
+      - name: Verify Phase 4 Event terminal cleanup
+        run: bash .github/scripts/verify-phase4-event-terminal-cleanup.sh
+
       - name: Verify player profile provisioning and privacy
         run: bash .github/scripts/verify-player-profile.sh
 
