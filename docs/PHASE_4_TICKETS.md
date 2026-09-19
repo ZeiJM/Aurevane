@@ -6,6 +6,63 @@
 
 Owner activation: explicit request for full implementation, necessary approvals, and final production deployment; followed by confirmation that Skill targeting/effect tags belong in this work. This supersedes the earlier waiting-for-start notes. It does not manufacture human playtest evidence.
 
+
+## Owner-approved Phase 4 operations extension — 2026-09-19
+
+The Owner explicitly corrected the phase boundary on 2026-09-19: staff/event operations infrastructure belongs to **Phase 4**, and **Phase 5 has not started**. Historical branch names, migration filenames and merged PR titles that contain `phase5` / `Phase 5` remain unchanged where renaming would damage Git/database traceability; they are historical identifiers only and no longer define roadmap ownership.
+
+### P4.11 — Staff authority foundation — COMPLETE
+
+- [x] Exactly four canonical authority classes: Game Owner, Moderator, Content Staff, Event Staff.
+- [x] Multiple delegated roles per account without inventing additional role classes.
+- [x] Protected Game Owner identity; ordinary controls cannot create/remove Owner or self-elevate.
+- [x] Server-side/service-only authorization with monotonic access versions and durable audit history.
+- [x] Legacy `owner | content-staff` operator migration without breaking Combat Content.
+- [x] Protected `/master/staff` Owner surface, exact-email lookup, WORLDWRIGHT presentation and explicit special-capability grants.
+- [x] Role/capability escalation, final-role, root-capability, browser/direct-table and audit/versioning database invariants.
+
+P4.11 is the previously implemented staff-authority work from PRs #557/#559, reclassified by Owner decision. It is not evidence that Phase 5 started.
+
+### P4.12 — Persistent event operations kernel — ACTIVE
+
+- [x] Versioned immutable Event Template / Event Definition.
+- [x] Event Run / Phase / Objective state pinned to one immutable definition version.
+- [x] Explicit global / region / node / cohort scope.
+- [x] Authoritative lifecycle clock, optimistic state versioning and restart recovery.
+- [x] Typed Event Effect references only; no arbitrary scripts or SQL.
+- [x] Serialized/idempotent lifecycle transitions with direct service-role mutation/receipt forgery blocked.
+- [ ] Participant ledger, idempotent contribution and claim reservation boundary — implemented in PR #564; exact-head certification/integration pending.
+- [ ] Reward Package execution through existing authoritative reward/progression services.
+- [ ] Cleanup / end / archive execution invariants.
+
+Contribution authority requires a Production run that is live, the run's exact current phase to have a `live` phase row, and an active objective in that phase. Duplicate delivery and source provenance are deduplicated server-side. Claim reservation alone does not mint rewards.
+
+### P4.13 — Event Builder MVP — NOT STARTED
+
+- [ ] Event Staff draft / validate / preview / publish workflow.
+- [ ] Phase/objective composition.
+- [ ] Approved map markers, encounters, quests/dialogue packages, NPC presentation, vendors, announcements and media references.
+- [ ] Schedule / unschedule and conflict/dependency checks.
+- [ ] Preview-only test clock / phase jump.
+- [ ] Owner-gated permanent canon/world changes.
+- [ ] No arbitrary code editor and no arbitrary SQL editor.
+
+### P4.14 — Live event operations — NOT STARTED
+
+- [ ] Live phase/time dashboard.
+- [ ] Participant/progress/objective/claim/active-effect visibility.
+- [ ] Advance / pause / resume / stop controls with P4.11 capability checks.
+- [ ] Emergency stop through the approved special capability.
+- [ ] Restart and duplicate-transition recovery.
+- [ ] Chronicle/participant-history persistence.
+- [ ] Safe cleanup/end/archive behavior.
+
+### Phase 4 extension gate
+
+Before Phase 5 may begin, this extension must be technically complete and verified: authorized staff can define and operate a persistent multi-phase event without routine code deployment; contribution/claim boundaries are authoritative and idempotent; rewards execute only through approved services; restart recovery works; end/archive cleanup is safe; and the Owner explicitly approves moving on.
+
+This extension does **not** implement Phase 5's player-facing living-world content, strategic Atlas, settlements/NPCs/quests, supernatural fork, or frontier threshold.
+
 ## Previous combat completeness release — PR #459
 
 PR [#459](https://github.com/ZeiJM/Aurevane/pull/459) merged as `f7369a23d745fef9fe6242eb391082f5c2dab0f0`. Its verified head `4ac18af9f8b1831552b27f38a4cd2a3cd5766d6b` and merge share tree `c2ae2239ab9f130890f28983b7c406248fb0e1bc`. All fifteen exact-head CI workflows passed. Whole-branch review and subsequent bounded corrections are approved. The only application release delta was the temporary main deployment switch; the final documentation/configuration commit restores `deploymentEnabled: { "**": false }`.
