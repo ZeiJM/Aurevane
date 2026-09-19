@@ -60,6 +60,65 @@ test('News, Manual, and Rules keep the same header position across public surfac
   }
 })
 
+test('mobile public navigation keeps the account header geometry when opening News, Manual, and Rules', async ({
+  page,
+}, testInfo) => {
+  test.skip(
+    testInfo.project.name !== 'mobile-chromium',
+    'Phone header parity is the regression being guarded.',
+  )
+  await page.setViewportSize({ width: 390, height: 844 })
+
+  async function headerGeometry(testId: 'account-shell' | 'public-information-shell') {
+    const shell = page.getByTestId(testId)
+    const header = shell.locator(':scope > header')
+    const brand = header.locator('.brand')
+    const crest = header.locator('.brand__crest')
+    const wordmark = header.locator('.brand__wordmark strong')
+    const navigation = header.getByRole('navigation', { name: 'Public information', exact: true })
+
+    await expect(header).toBeVisible()
+    const [headerBox, brandBox, crestBox, navigationBox, wordmarkStyle] = await Promise.all([
+      header.boundingBox(),
+      brand.boundingBox(),
+      crest.boundingBox(),
+      navigation.boundingBox(),
+      wordmark.evaluate((element) => {
+        const style = getComputedStyle(element)
+        return {
+          fontSize: style.fontSize,
+          letterSpacing: style.letterSpacing,
+        }
+      }),
+    ])
+
+    expect(headerBox).not.toBeNull()
+    expect(brandBox).not.toBeNull()
+    expect(crestBox).not.toBeNull()
+    expect(navigationBox).not.toBeNull()
+
+    return {
+      headerHeight: headerBox!.height,
+      brandTop: brandBox!.y,
+      brandLeft: brandBox!.x,
+      crestWidth: crestBox!.width,
+      crestHeight: crestBox!.height,
+      navigationTop: navigationBox!.y,
+      navigationLeft: navigationBox!.x,
+      wordmarkStyle,
+    }
+  }
+
+  await page.goto('/')
+  const accountGeometry = await headerGeometry('account-shell')
+
+  for (const route of publicRoutes) {
+    await page.goto(route.path)
+    const publicGeometry = await headerGeometry('public-information-shell')
+    expect(publicGeometry).toEqual(accountGeometry)
+  }
+})
+
 test('News launches with an intentional empty state instead of a fake archive', async ({
   page,
 }) => {
