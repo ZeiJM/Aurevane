@@ -324,14 +324,14 @@
   min-width: 0;
   gap: 0.46rem;
   align-items: center;
-  padding: 0.12rem;
-  border: 1px solid transparent;
+  padding: 0;
+  border: 0;
   background: rgba(255, 255, 255, 0.015);
 }
 
 .techniqueRow[data-equipped='true'] {
-  border-color: rgba(212, 186, 130, 0.2);
   background: rgba(255, 255, 255, 0.035);
+  box-shadow: inset 0 0 0 1px rgba(212, 186, 130, 0.2);
 }
 
 .techniqueRow > div:last-child {
