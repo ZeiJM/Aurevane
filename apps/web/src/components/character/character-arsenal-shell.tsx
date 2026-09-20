@@ -80,7 +80,11 @@ export function CharacterArsenalShell({
           </header>
 
           <div className={styles.topGrid}>
-            <section className={styles.panel} aria-labelledby="arsenal-disciplines-heading">
+            <section
+              className={styles.panel}
+              data-arsenal-panel="disciplines"
+              aria-labelledby="arsenal-disciplines-heading"
+            >
               <header className={styles.sectionHeading}>
                 <div>
                   <span>✦</span>
@@ -114,7 +118,11 @@ export function CharacterArsenalShell({
               />
             </section>
 
-            <section className={styles.panel} aria-labelledby="arsenal-techniques-heading">
+            <section
+              className={styles.panel}
+              data-arsenal-panel="techniques"
+              aria-labelledby="arsenal-techniques-heading"
+            >
               <header className={styles.sectionHeading}>
                 <div>
                   <span>◇</span>
@@ -181,7 +189,11 @@ export function CharacterArsenalShell({
           </div>
 
           <div className={styles.bottomGrid}>
-            <section className={styles.panel} aria-labelledby="arsenal-attunement-heading">
+            <section
+              className={styles.panel}
+              data-arsenal-panel="attunement"
+              aria-labelledby="arsenal-attunement-heading"
+            >
               <header className={styles.sectionHeading}>
                 <div>
                   <span>✧</span>
@@ -257,6 +269,7 @@ export function CharacterArsenalShell({
             <section
               className={[styles.panel, styles.itemsPanel].join(' ')}
               aria-labelledby="arsenal-items-heading"
+              data-arsenal-panel="items"
               data-disabled="true"
             >
               <header className={styles.sectionHeading}>

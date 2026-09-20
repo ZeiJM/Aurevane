@@ -17,7 +17,7 @@ function renderRail(props: Parameters<typeof GameRail>[0] = {}) {
 }
 
 describe('shared game rail', () => {
-  it('exposes Character, Arsenal, Battle Hall, Training, and disabled Items without duplicating identity', () => {
+  it('exposes only Character, Arsenal, Battle Hall, and Training without duplicating identity', () => {
     navigationState.pathname = '/game/character'
     const markup = renderRail()
     const destinations = [
@@ -30,9 +30,10 @@ describe('shared game rail', () => {
       expect(markup).toContain(`href="${href}"`)
       expect(markup).toContain(`aria-label="${label}"`)
     }
-    expect(markup).toContain('aria-label="Items"')
-    expect(markup).toContain('title="Equipment and Items are coming soon"')
+    expect(markup).not.toContain('aria-label="Items"')
     expect(markup).not.toContain('href="/game/items"')
+    expect(markup).toContain('data-nav-icon="arsenal"')
+    expect(markup).toContain('data-nav-icon="battle"')
     expect(markup).not.toContain('href="/game/online"')
     expect(markup).not.toContain('Adventurers')
     expect(markup).toContain('aria-current="page"')
@@ -49,7 +50,7 @@ describe('shared game rail', () => {
       activeSessionHref: href as Route,
       activeSessionLabel: label,
     })
-    expect(markup.match(/disabled=""/g)).toHaveLength(5)
+    expect(markup.match(/disabled=""/g)).toHaveLength(4)
     expect(markup).toContain(`href="${href}"`)
     expect(markup).toContain(label)
     expect(markup).not.toContain('href="/game/character"')

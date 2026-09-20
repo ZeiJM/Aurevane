@@ -60,7 +60,7 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
         name: 'Items',
         exact: true,
       }),
-    ).toBeDisabled()
+    ).toHaveCount(0)
     await expect(page.locator('[data-character-resource="hp"]')).toBeVisible()
     await expect(page.locator('[data-character-resource="mp"]')).toBeVisible()
 
@@ -166,6 +166,9 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
     expect.soft(metrics.overlap, `${label}: portrait must not cover character name`).toBe(0)
     expect.soft(metrics.overflowX, `${label}: no sideways document overflow`).toBeLessThanOrEqual(1)
     expect.soft(metrics.sheetOverflowX, `${label}: no clipped sheet`).toBeLessThanOrEqual(1)
+    expect
+      .soft(metrics.identity.width, `${label}: identity card keeps usable width`)
+      .toBeGreaterThan(250)
     expect.soft(metrics.primaryLinks).toBe(4)
     if (viewport.width >= 1200) {
       expect
@@ -200,7 +203,33 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
     await page.goto('/game/arsenal')
     await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Arsenal', exact: true })).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Items', exact: true })).toBeDisabled()
+    await expect(
+      page.getByRole('navigation', { name: 'Primary game navigation' }).getByRole('button', {
+        name: 'Items',
+        exact: true,
+      }),
+    ).toHaveCount(0)
+    await expect(page.locator('[data-arsenal-panel="items"]')).toBeVisible()
+    const arsenalSections = page.locator('[data-arsenal-panel]')
+    expect(await arsenalSections.count()).toBe(4)
+    const arsenalSectionMetrics = await arsenalSections.evaluateAll((nodes) =>
+      nodes.map((node) => {
+        const rect = node.getBoundingClientRect()
+        const heading = node.querySelector('header')
+        const headingRect = heading?.getBoundingClientRect()
+        return {
+          width: rect.width,
+          height: rect.height,
+          headingOverflow: heading ? heading.scrollWidth - heading.clientWidth : 0,
+          headingBottom: headingRect?.bottom ?? 0,
+        }
+      }),
+    )
+    for (const metric of arsenalSectionMetrics) {
+      expect(metric.width).toBeGreaterThan(250)
+      expect(metric.height).toBeGreaterThan(110)
+      expect(metric.headingOverflow).toBeLessThanOrEqual(1)
+    }
     const arsenalMedia = page.locator('[data-arsenal-media="true"]')
     expect(await arsenalMedia.count()).toBeGreaterThanOrEqual(2)
     const arsenalMetrics = await arsenalMedia.evaluateAll((nodes) =>

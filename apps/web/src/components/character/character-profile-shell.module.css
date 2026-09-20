@@ -13,8 +13,13 @@
   border: 1px solid var(--av-gold-rule);
   border-radius: 0;
   color: var(--av-charcoal);
-  background: var(--av-moonstone);
-  box-shadow: none;
+  background:
+    radial-gradient(circle at 82% 0%, rgba(183, 147, 76, 0.07), transparent 24rem),
+    linear-gradient(180deg, rgba(255, 253, 246, 0.96), rgba(239, 235, 222, 0.98)),
+    var(--av-moonstone);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.45),
+    0 0.7rem 1.8rem rgba(4, 12, 18, 0.1);
 }
 
 .sheetHeading {
@@ -22,7 +27,7 @@
   align-items: end;
   justify-content: space-between;
   gap: 1rem;
-  padding-bottom: 0.65rem;
+  padding: 0.1rem 0.15rem 0.75rem;
   border-bottom: 1px solid var(--av-gold-rule);
 }
 
@@ -59,7 +64,12 @@
   overflow: hidden;
   border: 1px solid var(--av-brass-500);
   color: var(--av-parchment-100);
-  background: linear-gradient(180deg, rgba(5, 15, 24, 0.2), rgba(5, 15, 24, 0.96)), #07131d;
+  background:
+    radial-gradient(circle at 75% 0%, rgba(69, 163, 157, 0.1), transparent 22rem),
+    linear-gradient(180deg, rgba(5, 15, 24, 0.2), rgba(5, 15, 24, 0.96)), #07131d;
+  box-shadow:
+    inset 0 0 0 1px rgba(225, 193, 124, 0.08),
+    0 0.7rem 1.8rem rgba(0, 0, 0, 0.14);
 }
 
 .storyArt {
@@ -111,7 +121,10 @@
 @media (min-width: 1200px) {
   .layout {
     height: 100%;
-    grid-template-columns: minmax(15rem, 0.85fr) minmax(0, 2.05fr) minmax(16rem, 0.9fr);
+    grid-template-columns:
+      clamp(17rem, 20vw, 21rem)
+      minmax(0, 1fr)
+      clamp(18rem, 22vw, 23rem);
     grid-template-rows: minmax(0, 1fr);
     align-content: stretch;
   }
@@ -128,7 +141,7 @@
   }
 
   .storyArt {
-    min-height: 34%;
+    min-height: 38%;
   }
 }
 

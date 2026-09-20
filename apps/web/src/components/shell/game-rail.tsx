@@ -9,7 +9,14 @@ import styles from './authenticated-game-shell.module.css'
 
 function NavigationIcon({ name }: { name: (typeof gameNavigation)[number]['icon'] }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      data-nav-icon={name}
+      aria-hidden="true"
+    >
       {name === 'profile' ? (
         <>
           <circle cx="12" cy="7" r="3.25" />
@@ -17,8 +24,8 @@ function NavigationIcon({ name }: { name: (typeof gameNavigation)[number]['icon'
         </>
       ) : name === 'arsenal' ? (
         <>
-          <path d="m5 4 4 1 10 13-2 2L5 8V4Zm14 0-4 1-5 6M5 18l4-5M3 17l4 4m10 0 4-4" />
-          <circle cx="12" cy="12" r="1.5" />
+          <path d="M12 3 18 5.5v5.2c0 3.7-2.4 7-6 9.3-3.6-2.3-6-5.6-6-9.3V5.5L12 3Z" />
+          <path d="m9 15 6-6M13.8 8.2l2 2M8.3 13.7l2 2" />
         </>
       ) : name === 'battle' ? (
         <>
@@ -28,11 +35,6 @@ function NavigationIcon({ name }: { name: (typeof gameNavigation)[number]['icon'
         <>
           <circle cx="12" cy="12" r="9" />
           <path d="M12 6v6l4 2M8 2h8" />
-        </>
-      ) : name === 'items' ? (
-        <>
-          <path d="M6 9h12l-1 11H7L6 9Z" />
-          <path d="M9 9V7a3 3 0 0 1 6 0v2M9 14h6" />
         </>
       ) : (
         <>
@@ -61,21 +63,14 @@ export function GameRail({ activeSessionHref, activeSessionLabel }: GameRailProp
     >
       <nav className={styles.railNavigation} aria-label="Primary game navigation">
         {gameNavigation.map((item) => {
-          const active = item.href
-            ? pathname === item.href || pathname.startsWith(item.href + '/')
-            : false
-          const unavailable = ('disabled' in item && item.disabled) || !item.href
-          return restricted || unavailable ? (
+          const active = pathname === item.href || pathname.startsWith(item.href + '/')
+          return restricted ? (
             <button
-              key={item.href ?? item.label}
+              key={item.href}
               className={styles.railLink}
               type="button"
               disabled
-              title={
-                unavailable
-                  ? item.detail
-                  : 'Navigation is restricted until your active session ends'
-              }
+              title="Navigation is restricted until your active session ends"
               aria-label={item.label}
               aria-current={active ? 'page' : undefined}
             >
