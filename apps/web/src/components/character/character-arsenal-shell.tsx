@@ -206,6 +206,7 @@ export function CharacterArsenalShell({
                         <article
                           className={styles.techniqueRow}
                           key={definition.id}
+                          data-arsenal-technique-row="true"
                           data-equipped={equippedSkillIds.has(definition.id) ? 'true' : 'false'}
                         >
                           <div className={styles.mediaTile} data-arsenal-media="true">
@@ -224,7 +225,12 @@ export function CharacterArsenalShell({
                         </article>
                       ))}
                       {Array.from({ length: placeholders }, (_, index) => (
-                        <div className={styles.emptyTechnique} key={`${discipline.id}-empty-${index}`}>
+                        <div
+                          className={styles.emptyTechnique}
+                          key={`${discipline.id}-empty-${index}`}
+                          data-arsenal-technique-row="true"
+                          data-equipped="false"
+                        >
                           <div className={styles.mediaTile} data-arsenal-empty-media="true">
                             <span aria-hidden="true">+</span>
                           </div>
