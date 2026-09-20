@@ -71,8 +71,9 @@ export function StaffManagement({ staff, roleOptions, capabilityOptions }: Staff
 
   const selectedStaff = staffByUserId.get(selectedUserId) ?? staff[0] ?? null
   const activeTarget = resolved ?? selectedStaff
-  const activeRoles = selectedStaff?.roles ?? []
-  const activeCapabilities = selectedStaff?.specialCapabilities ?? []
+  const activeStaff = activeTarget ? staffByUserId.get(activeTarget.userId) : null
+  const activeRoles = activeStaff?.roles ?? []
+  const activeCapabilities = activeStaff?.specialCapabilities ?? []
   const canMutate = confirmed && reason.trim() === reason && reason.length >= 3
 
   async function post(body: Record<string, unknown>): Promise<unknown> {
@@ -389,7 +390,7 @@ export function StaffManagement({ staff, roleOptions, capabilityOptions }: Staff
             </div>
             <div>
               <dt>Access version</dt>
-              <dd>{selectedStaff ? `v${selectedStaff.accessVersion}` : '—'}</dd>
+              <dd>{activeStaff ? `v${activeStaff.accessVersion}` : '—'}</dd>
             </div>
           </dl>
         </section>
