@@ -348,7 +348,8 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
     setDetails('')
   }
 
-  const publicationState = baseVersion !== null ? 'Published' : draftVersion !== null ? 'Draft' : 'New'
+  const publicationState =
+    baseVersion !== null ? 'Published' : draftVersion !== null ? 'Draft' : 'New'
 
   return (
     <section className={styles.builder}>
@@ -592,7 +593,9 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
                     value={phase.transition.type}
                     onChange={(event) =>
                       patchPhase(phaseIndex, {
-                        transition: transitionFor(event.target.value as EventPhaseTransition['type']),
+                        transition: transitionFor(
+                          event.target.value as EventPhaseTransition['type'],
+                        ),
                       })
                     }
                   >
@@ -793,8 +796,7 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
               Published history:{' '}
               {versions
                 .map(
-                  (version) =>
-                    `v${version.definitionVersion}${version.current ? ' current' : ''}`,
+                  (version) => `v${version.definitionVersion}${version.current ? ' current' : ''}`,
                 )
                 .join(' · ')}
             </p>
