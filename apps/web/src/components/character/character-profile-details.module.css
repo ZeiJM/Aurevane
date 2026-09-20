@@ -255,10 +255,29 @@
 }
 
 .attributeList button > strong {
-  min-width: 2rem;
-  color: color-mix(in srgb, var(--attribute-color) 82%, #162431);
-  font: 500 1.35rem/1 var(--av-font-display);
-  text-align: right;
+  display: grid;
+  width: 2.45rem;
+  min-width: 2.45rem;
+  height: 2.45rem;
+  place-items: center;
+  justify-self: end;
+  border: 1px solid color-mix(in srgb, var(--attribute-color) 84%, #f4dfaa);
+  border-radius: 50%;
+  color: #fff2cf;
+  background:
+    radial-gradient(
+      circle at 36% 30%,
+      color-mix(in srgb, var(--attribute-color) 28%, #1a2229) 0 18%,
+      #0b151d 68%
+    ),
+    #0b151d;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--attribute-color) 28%, transparent),
+    0 0 0.5rem color-mix(in srgb, var(--attribute-color) 30%, transparent),
+    inset 0 0 0 1px rgba(255, 244, 217, 0.08);
+  font: 600 1.18rem/1 var(--av-font-display);
+  text-align: center;
+  text-shadow: 0 1px 0.12rem rgba(0, 0, 0, 0.72);
 }
 
 .statGroups {
@@ -442,6 +461,13 @@
   .attributeList button {
     grid-template-columns: 2.1rem minmax(5rem, 1fr) auto;
     gap: 0.55rem;
+  }
+
+  .attributeList button > strong {
+    width: 2.25rem;
+    min-width: 2.25rem;
+    height: 2.25rem;
+    font-size: 1.08rem;
   }
 
   .attributeList button > em {
