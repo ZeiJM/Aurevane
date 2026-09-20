@@ -19,8 +19,7 @@
   border: 1px solid var(--av-border);
   border-radius: var(--av-radius-md);
   background:
-    linear-gradient(180deg, rgba(13, 24, 34, 0.9), rgba(7, 14, 22, 0.93)),
-    var(--av-ink-900);
+    linear-gradient(180deg, rgba(13, 24, 34, 0.9), rgba(7, 14, 22, 0.93)), var(--av-ink-900);
 }
 
 .toolbar > div:first-child {
@@ -119,8 +118,7 @@
   border: 1px solid var(--av-border);
   border-radius: var(--av-radius-md);
   background:
-    linear-gradient(180deg, rgba(11, 21, 31, 0.86), rgba(7, 14, 22, 0.9)),
-    var(--av-ink-900);
+    linear-gradient(180deg, rgba(11, 21, 31, 0.86), rgba(7, 14, 22, 0.9)), var(--av-ink-900);
 }
 
 .primaryCard {
