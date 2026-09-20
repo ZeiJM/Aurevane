@@ -333,9 +333,7 @@
   gap: 0.48rem;
   padding: 0.7rem;
   border: 1px solid #5e6668;
-  background:
-    radial-gradient(circle at 50% 0%, rgba(90, 116, 126, 0.12), transparent 60%),
-    #15242b;
+  background: radial-gradient(circle at 50% 0%, rgba(90, 116, 126, 0.12), transparent 60%), #15242b;
 }
 
 .itemSlots > div {
