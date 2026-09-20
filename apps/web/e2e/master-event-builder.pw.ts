@@ -160,7 +160,7 @@ test('Event Staff uses structured Event Builder without preview state leakage', 
 
   await page.goto('/master/events')
   await expect(page.getByRole('heading', { name: 'Persistent Event Definition' })).toBeVisible()
-  await expect(page.getByText('P4.13 · EVENT BUILDER MVP')).toBeVisible()
+  await expect(page.getByText('Event definition', { exact: true })).toBeVisible()
 
   const publishButton = page.getByRole('button', { name: 'Publish', exact: true })
   await expect(publishButton).toBeDisabled()
