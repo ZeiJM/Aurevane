@@ -167,16 +167,17 @@
     left: -70%;
     width: 240%;
     height: 190%;
-    opacity: 0.28;
+    opacity: 0.42;
     background:
       radial-gradient(
         ellipse at 46% 52%,
-        rgba(76, 218, 207, 0.22) 0 6%,
-        rgba(51, 138, 142, 0.08) 22%,
-        transparent 50%
+        rgba(76, 218, 207, 0.38) 0 8%,
+        rgba(51, 138, 142, 0.16) 26%,
+        transparent 54%
       ),
-      radial-gradient(ellipse at 64% 35%, rgba(232, 198, 124, 0.14) 0 4%, transparent 32%);
-    filter: blur(12px);
+      radial-gradient(ellipse at 64% 35%, rgba(232, 198, 124, 0.24) 0 5%, transparent 34%),
+      radial-gradient(ellipse at 30% 72%, rgba(71, 162, 207, 0.15) 0 5%, transparent 30%);
+    filter: blur(10px);
     will-change: transform, opacity;
     animation: railAetherRise 16s ease-in-out infinite alternate;
   }
@@ -184,10 +185,10 @@
   .rail::after {
     z-index: 0;
     inset: -1.5rem;
-    opacity: 0.18;
+    opacity: 0.34;
     background-image:
-      radial-gradient(circle, rgba(180, 241, 229, 0.7) 0 0.8px, transparent 1.2px),
-      radial-gradient(circle, rgba(229, 198, 128, 0.52) 0 0.7px, transparent 1.1px);
+      radial-gradient(circle, rgba(180, 241, 229, 0.92) 0 1px, transparent 1.45px),
+      radial-gradient(circle, rgba(229, 198, 128, 0.76) 0 0.9px, transparent 1.35px);
     background-position:
       0 0,
       2.7rem 5.4rem;
@@ -201,15 +202,15 @@
 
 @keyframes railAetherRise {
   0% {
-    opacity: 0.2;
+    opacity: 0.34;
     transform: translate3d(-8%, 22%, 0) rotate(-4deg);
   }
   50% {
-    opacity: 0.34;
+    opacity: 0.52;
     transform: translate3d(4%, -2%, 0) rotate(2deg);
   }
   100% {
-    opacity: 0.24;
+    opacity: 0.4;
     transform: translate3d(-2%, -24%, 0) rotate(6deg);
   }
 }
