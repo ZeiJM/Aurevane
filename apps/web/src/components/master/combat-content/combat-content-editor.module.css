@@ -1238,3 +1238,379 @@
     grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
   }
 }
+
+/* Approved Combat Content concept implementation */
+.editor {
+  display: grid;
+  grid-template-columns: minmax(15rem, 0.76fr) minmax(0, 2.35fr) minmax(16rem, 0.92fr);
+  gap: 0.55rem;
+  align-items: start;
+}
+
+.skillBrowser {
+  position: sticky;
+  top: 0.45rem;
+  grid-column: 1;
+  grid-row: auto;
+  max-height: calc(100dvh - 11.2rem);
+  overflow: auto;
+  gap: 0.5rem;
+  padding: 0.62rem;
+  scrollbar-width: thin;
+}
+
+.editorMain {
+  display: contents;
+}
+
+.header {
+  display: grid;
+  grid-column: 2;
+  grid-row: auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.62rem;
+  align-items: center;
+  padding: 0.62rem 0.7rem;
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius-md);
+  background:
+    linear-gradient(180deg, rgba(13, 25, 35, 0.93), rgba(7, 15, 23, 0.95)),
+    var(--av-ink-900);
+}
+
+.skillGlyph {
+  display: grid;
+  place-items: center;
+  width: 2.65rem;
+  height: 2.65rem;
+  border: 1px solid rgba(205, 169, 96, 0.58);
+  border-radius: var(--av-radius-sm);
+  color: var(--av-brass-200);
+  background: rgba(185, 154, 92, 0.06);
+  font-size: 0.95rem;
+}
+
+.headerIdentity {
+  display: grid;
+  min-width: 0;
+  gap: 0.08rem;
+}
+
+.headerIdentity .eyebrow {
+  margin-bottom: 0;
+}
+
+.header h1 {
+  color: var(--av-text-dim);
+  font: 700 0.52rem/1.2 var(--av-font-body);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.skillIdentity {
+  margin-top: 0.08rem;
+}
+
+.skillIdentity strong {
+  font-size: 1.08rem;
+}
+
+.status {
+  min-width: 6.8rem;
+  padding: 0.42rem 0.5rem;
+}
+
+.workspaceTabs {
+  display: flex;
+  grid-column: 2;
+  min-height: 2.2rem;
+  gap: 0.15rem;
+  align-items: end;
+  padding: 0 0.35rem;
+  border-bottom: 1px solid var(--av-border);
+}
+
+.workspaceTabs a {
+  position: relative;
+  display: inline-flex;
+  min-height: 2.2rem;
+  align-items: center;
+  padding: 0 0.62rem;
+  color: var(--av-text-dim);
+  font: 700 0.57rem/1 var(--av-font-body);
+  text-decoration: none;
+}
+
+.workspaceTabs a:first-child {
+  color: var(--av-teal-bright);
+}
+
+.workspaceTabs a:first-child::after {
+  position: absolute;
+  right: 0.42rem;
+  bottom: -1px;
+  left: 0.42rem;
+  height: 2px;
+  background: var(--av-teal-bright);
+  content: '';
+}
+
+.versionGrid,
+.workspace,
+.tags {
+  grid-column: 2;
+}
+
+.versionGrid {
+  gap: 0.35rem;
+}
+
+.versionGrid > div {
+  padding: 0.4rem 0.48rem;
+}
+
+.workspace {
+  gap: 0.5rem;
+  padding: 0.62rem;
+}
+
+.workspaceHeading {
+  padding-bottom: 0.4rem;
+}
+
+.workspaceHeading h2 {
+  font-size: 0.86rem;
+}
+
+.tags {
+  padding: 0.5rem 0.58rem;
+}
+
+.reviewPanel {
+  position: sticky;
+  top: 0.45rem;
+  grid-column: 3;
+  grid-row: 1 / span 20;
+  display: grid;
+  align-self: start;
+  gap: 0.5rem;
+  max-height: calc(100dvh - 11.2rem);
+  overflow: auto;
+  margin-top: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  scrollbar-width: thin;
+}
+
+.publicationCard,
+.validationCard,
+.reviewBlock,
+.confirmation,
+.history {
+  padding: 0.58rem;
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius-md);
+  background:
+    linear-gradient(180deg, rgba(11, 22, 32, 0.94), rgba(6, 14, 22, 0.97)),
+    var(--av-ink-900);
+}
+
+.reviewHeader {
+  display: flex;
+  gap: 0.45rem;
+  align-items: start;
+  justify-content: space-between;
+}
+
+.reviewHeader h2,
+.reviewBlock h3,
+.confirmation h3,
+.history h3 {
+  font-size: 0.78rem;
+}
+
+.publicationPill {
+  padding: 0.24rem 0.36rem;
+  border: 1px solid rgba(47, 194, 185, 0.28);
+  border-radius: 999px;
+  color: var(--av-teal-bright);
+  background: rgba(30, 139, 137, 0.08);
+  font: 700 0.5rem/1 var(--av-font-body);
+}
+
+.publicationFacts {
+  display: grid;
+  gap: 0;
+  margin: 0.46rem 0 0;
+}
+
+.publicationFacts > div {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: space-between;
+  padding: 0.34rem 0;
+  border-top: 1px solid rgba(215, 187, 127, 0.08);
+}
+
+.publicationFacts dt,
+.publicationFacts dd {
+  font-size: 0.57rem;
+}
+
+.publicationFacts dt {
+  color: var(--av-text-dim);
+}
+
+.publicationFacts dd {
+  margin: 0;
+  color: var(--av-text);
+}
+
+.dockHeading {
+  display: flex;
+  gap: 0.45rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dockHeading > div {
+  display: grid;
+  gap: 0.08rem;
+}
+
+.dockHeading > span {
+  color: var(--av-teal-bright);
+  font: 700 0.5rem/1 var(--av-font-body);
+}
+
+.reviewState {
+  display: grid;
+  place-items: center;
+  width: 1.7rem;
+  min-width: 1.7rem;
+  height: 1.7rem;
+  padding: 0;
+  border-color: rgba(47, 194, 185, 0.28);
+  color: var(--av-teal-bright);
+}
+
+.reviewState span {
+  color: inherit;
+  font-size: 0.75rem;
+}
+
+.reviewActions,
+.confirmationActions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.3rem;
+  margin-top: 0.45rem;
+}
+
+.reviewActions button,
+.confirmationActions button,
+.historyRow button {
+  min-height: 2.05rem;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.6rem;
+}
+
+.reviewActions button:nth-child(4) {
+  border-color: rgba(205, 169, 96, 0.72);
+  color: #1a1408;
+  background: linear-gradient(180deg, #f0ca79, #c99c4e);
+}
+
+.reviewBlock ul {
+  margin-top: 0.45rem;
+  font-size: 0.58rem;
+  line-height: 1.4;
+}
+
+.previewFacts,
+.confirmationFacts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.3rem;
+  margin-top: 0.45rem;
+}
+
+.previewFacts > div,
+.confirmationFacts span {
+  padding: 0.38rem 0.42rem;
+}
+
+.historyList {
+  gap: 0.28rem;
+  margin-top: 0.42rem;
+}
+
+.historyRow {
+  padding: 0.4rem 0.45rem;
+}
+
+.historyRow span {
+  font-size: 0.54rem;
+}
+
+@media (max-width: 1180px) {
+  .editor {
+    grid-template-columns: minmax(14rem, 0.7fr) minmax(0, 1.8fr);
+  }
+
+  .skillBrowser {
+    grid-column: 1;
+  }
+
+  .header,
+  .workspaceTabs,
+  .versionGrid,
+  .workspace,
+  .tags,
+  .reviewPanel {
+    grid-column: 2;
+    grid-row: auto;
+  }
+
+  .reviewPanel {
+    position: static;
+    max-height: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .editor {
+    grid-template-columns: 1fr;
+  }
+
+  .skillBrowser,
+  .header,
+  .workspaceTabs,
+  .versionGrid,
+  .workspace,
+  .tags,
+  .reviewPanel {
+    position: static;
+    grid-column: 1;
+    max-height: none;
+  }
+
+  .header {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .status {
+    grid-column: 1 / -1;
+  }
+
+  .workspaceTabs {
+    overflow-x: auto;
+  }
+
+  .previewFacts,
+  .confirmationFacts {
+    grid-template-columns: 1fr;
+  }
+}
