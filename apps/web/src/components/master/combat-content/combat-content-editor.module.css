@@ -1386,7 +1386,7 @@
   padding: 0.5rem 0.58rem;
 }
 
-.reviewPanel {
+.editorMain > .reviewPanel {
   position: sticky;
   top: 0.45rem;
   grid-column: 3;
