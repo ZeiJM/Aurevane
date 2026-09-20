@@ -423,8 +423,8 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
             ✦
           </div>
           <div className={styles.eventIdentity}>
-            <p className={styles.eyebrow}>Persistent Event Definition</p>
-            <h1>{definition.title}</h1>
+            <h2 className={styles.definitionHeading}>Persistent Event Definition</h2>
+            <strong className={styles.eventTitle}>{definition.title}</strong>
             <p>
               <code>{definition.eventKey}</code>
               <span>{publicationState}</span>
