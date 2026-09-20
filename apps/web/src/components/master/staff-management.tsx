@@ -302,7 +302,7 @@ export function StaffManagement({ staff, roleOptions, capabilityOptions }: Staff
         </section>
       </aside>
 
-      <main className={styles.authorityWorkspace}>
+      <section className={styles.authorityWorkspace}>
         {error ? (
           <p className={styles.error} role="alert">
             {error}
@@ -375,7 +375,7 @@ export function StaffManagement({ staff, roleOptions, capabilityOptions }: Staff
             <p>Choose a staff member or resolve an exact account email.</p>
           </section>
         )}
-      </main>
+      </section>
 
       <aside className={styles.authorityDock}>
         <section className={styles.statusCard}>
