@@ -175,17 +175,18 @@ export function CharacterProfileShell({
             cycleNumber={profile.progression.cycleNumber}
             attributes={profile.attributes}
             derived={disciplineBuild.current.derived}
-          />
-
-          <CharacterAttributeAllocationPanel
-            initialAllocation={attributeAllocation}
-            portrait={{
-              name: profile.identity.name,
-              imageUrl,
-              assetId: getStarterPortraitImageAssetId(profile.identity.portraitRef),
-            }}
-            focusAttributes={focusAttributes}
-            attributeCaps={attributePolicy?.attributeCaps ?? {}}
+            attributeResetControl={
+              <CharacterAttributeAllocationPanel
+                initialAllocation={attributeAllocation}
+                portrait={{
+                  name: profile.identity.name,
+                  imageUrl,
+                  assetId: getStarterPortraitImageAssetId(profile.identity.portraitRef),
+                }}
+                focusAttributes={focusAttributes}
+                attributeCaps={attributePolicy?.attributeCaps ?? {}}
+              />
+            }
           />
         </Surface>
 
