@@ -432,7 +432,7 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
             </p>
           </div>
           <div className={styles.eventHeaderState}>
-            <span>{message}</span>
+            <span>{publicationState}</span>
           </div>
         </header>
 
