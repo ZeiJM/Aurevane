@@ -369,7 +369,12 @@ test('Master combat authoring publishes versioned content, pins battles, and rol
 
   await page.goto('/master/staff')
   await expect(page.getByRole('heading', { name: 'Staff & Authority' })).toBeVisible()
-  await expect(page.getByText('WORLDWRIGHT · GAME OWNER', { exact: true })).toBeVisible()
+  await expect(
+    page
+      .getByRole('article')
+      .filter({ hasText: email })
+      .getByText('WORLDWRIGHT · GAME OWNER', { exact: true }),
+  ).toBeVisible()
 
   await page.goto('/master')
 
