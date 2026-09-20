@@ -136,6 +136,27 @@
   font: italic 0.66rem/1.25 var(--av-font-display);
 }
 
+.sectionAction {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.sectionAction :global(section[aria-label='Attribute redistribution']) {
+  justify-content: flex-end;
+  padding-top: 0;
+}
+
+.sectionAction :global(section[aria-label='Attribute redistribution'] > button) {
+  min-height: 1.72rem;
+  padding: 0.28rem 0.55rem;
+  border-color: rgba(39, 119, 116, 0.42);
+  color: #285f60;
+  background: rgba(236, 246, 242, 0.72);
+  box-shadow: none;
+  font-size: 0.52rem;
+  letter-spacing: 0.045em;
+}
+
 .attributeList {
   display: grid;
   gap: 0.28rem;
@@ -398,6 +419,13 @@
 }
 
 @media (max-width: 760px) {
+  .sectionAction {
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+    margin-left: 0;
+  }
+
   .identityFacts {
     grid-template-columns: minmax(0, 1fr);
   }
