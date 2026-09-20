@@ -561,20 +561,11 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
         })
         await settle(page)
         const portrait = await hero.locator('.character-portrait-media').locator('..').boundingBox()
-        const identity = await hero.locator(':scope > div:last-child').boundingBox()
+        const identity = await hero.locator('[data-character-identity-copy]').boundingBox()
         if (!portrait || !identity) throw new Error('Profile hero geometry is unavailable')
-        const conceptProfile = await page.locator('[data-character-concept="profile"]').count()
-        if (conceptProfile === 0) {
-          expect(
-            Math.abs(portrait.y + portrait.height / 2 - identity.y - identity.height / 2),
-          ).toBeLessThanOrEqual(1)
-        } else {
-          expect(portrait.width).toBeGreaterThan(0)
-          expect(portrait.height).toBeGreaterThan(0)
-          expect(identity.x).toBeGreaterThanOrEqual(portrait.x + portrait.width - 1)
-          expect(identity.y + identity.height).toBeGreaterThan(portrait.y)
-          expect(portrait.y + portrait.height).toBeGreaterThan(identity.y)
-        }
+        expect(portrait.width).toBeGreaterThan(0)
+        expect(portrait.height).toBeGreaterThan(0)
+        expect(identity.y).toBeGreaterThanOrEqual(portrait.y + portrait.height - 1)
         await testInfo.attach(`phone-hero-${width}-${mixed}`, {
           body: await page.screenshot(),
           contentType: 'image/png',
