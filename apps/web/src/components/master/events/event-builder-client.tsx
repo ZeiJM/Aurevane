@@ -936,4 +936,5 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
         </section>
       </aside>
     </section>
-  )}
+  )
+}
