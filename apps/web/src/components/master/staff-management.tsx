@@ -163,7 +163,11 @@ export function StaffManagement({ staff, roleOptions, capabilityOptions }: Staff
               const operation = active ? 'revoke-role' : 'grant-role'
               const actionKey = [operation, member.userId, option.id].join(':')
               return (
-                <div className={styles.controlRow} data-active={active || undefined} key={option.id}>
+                <div
+                  className={styles.controlRow}
+                  data-active={active || undefined}
+                  key={option.id}
+                >
                   <div>
                     <strong>{option.label}</strong>
                     <span>{option.description}</span>
@@ -201,7 +205,11 @@ export function StaffManagement({ staff, roleOptions, capabilityOptions }: Staff
               const operation = active ? 'revoke-capability' : 'grant-capability'
               const actionKey = [operation, member.userId, option.id].join(':')
               return (
-                <div className={styles.controlRow} data-active={active || undefined} key={option.id}>
+                <div
+                  className={styles.controlRow}
+                  data-active={active || undefined}
+                  key={option.id}
+                >
                   <div>
                     <strong>{option.label}</strong>
                     <span>{option.description}</span>
