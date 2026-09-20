@@ -254,7 +254,11 @@ export function CombatContentReviewPanel({
         </section>
       ) : null}
 
-      <section className={styles.history} aria-labelledby="version-history-heading" id="combat-history">
+      <section
+        className={styles.history}
+        aria-labelledby="version-history-heading"
+        id="combat-history"
+      >
         <div className={styles.dockHeading}>
           <div>
             <p className={styles.sectionLabel}>Recent history</p>
