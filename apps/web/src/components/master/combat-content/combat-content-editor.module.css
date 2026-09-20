@@ -1114,3 +1114,128 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Master Panel compact review dock v2 */
+.reviewPanel {
+  gap: 0.5rem;
+  margin-top: 0;
+  padding: 0.62rem;
+}
+
+.reviewHeader {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.reviewHeader h2,
+.reviewBlock h3,
+.confirmation h3,
+.history h3 {
+  font-size: 0.78rem;
+  line-height: 1.2;
+}
+
+.reviewState {
+  min-width: 0;
+  width: 100%;
+  padding: 0.4rem 0.5rem;
+}
+
+.reviewState strong {
+  margin-top: 0.18rem;
+  font-size: 0.66rem;
+}
+
+.reviewActions,
+.confirmationActions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.3rem;
+}
+
+.reviewActions button,
+.confirmationActions button,
+.historyRow button {
+  min-height: 2.05rem;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.61rem;
+}
+
+.reviewBlock,
+.confirmation,
+.history {
+  padding: 0.5rem;
+}
+
+.reviewBlock ul {
+  margin: 0.45rem 0 0;
+  padding-left: 1rem;
+  font-size: 0.6rem;
+  line-height: 1.4;
+}
+
+.reviewBlock li + li {
+  margin-top: 0.25rem;
+}
+
+.previewFacts,
+.confirmationFacts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.3rem;
+  margin: 0.45rem 0 0;
+}
+
+.previewFacts > div,
+.confirmationFacts span {
+  padding: 0.38rem 0.44rem;
+}
+
+.previewFacts dt {
+  font-size: 0.5rem;
+}
+
+.previewFacts dd {
+  margin-top: 0.16rem;
+  font-size: 0.64rem;
+}
+
+.confirmationDiff {
+  margin-top: 0.45rem;
+}
+
+.confirmationDiff p,
+.confirmation > p:not(.sectionLabel) {
+  margin-block: 0.3rem 0;
+  font-size: 0.6rem;
+  line-height: 1.4;
+}
+
+.confirmationActions {
+  margin-top: 0.5rem;
+}
+
+.historyList {
+  gap: 0.3rem;
+  margin-top: 0.45rem;
+}
+
+.historyRow {
+  gap: 0.35rem;
+  padding: 0.42rem 0.48rem;
+}
+
+.historyRow span {
+  font-size: 0.56rem;
+}
+
+.currentPill {
+  padding: 0.22rem 0.34rem;
+}
+
+@media (max-width: 1180px) {
+  .reviewActions,
+  .confirmationActions {
+    grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  }
+}
