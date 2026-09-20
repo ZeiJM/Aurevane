@@ -41,7 +41,7 @@ export function NavigationMenu({
       activeSessionHref
         ? []
         : navigation.filter(
-            (item) => pathname !== item.href && !pathname.startsWith(`${item.href}/`),
+            (item) => item.href && pathname !== item.href && !pathname.startsWith(item.href + '/'),
           ),
     [activeSessionHref, pathname],
   )
@@ -59,7 +59,7 @@ export function NavigationMenu({
     if (menu?.matches(':popover-open')) menu.hidePopover()
   }
 
-  function prefetchDestination(href: (typeof navigation)[number]['href']) {
+  function prefetchDestination(href: Exclude<(typeof navigation)[number]['href'], null>) {
     router.prefetch(href)
   }
 
@@ -94,23 +94,26 @@ export function NavigationMenu({
             />
           </Link>
         ) : null}
-        {visibleNavigation.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            onPointerEnter={() => prefetchDestination(item.href)}
-            onPointerDown={() => prefetchDestination(item.href)}
-            onFocus={() => prefetchDestination(item.href)}
-            onNavigate={(event) => {
-              event.preventDefault()
-              closeMenu()
-              startTransition(() => router.push(item.href))
-            }}
-            aria-current={pathname === item.href ? 'page' : undefined}
-          >
-            <NavigationLinkCopy label={item.label} detail={item.detail} />
-          </Link>
-        ))}
+        {visibleNavigation.map((item) => {
+          if (!item.href) return null
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              onPointerEnter={() => prefetchDestination(item.href)}
+              onPointerDown={() => prefetchDestination(item.href)}
+              onFocus={() => prefetchDestination(item.href)}
+              onNavigate={(event) => {
+                event.preventDefault()
+                closeMenu()
+                startTransition(() => router.push(item.href))
+              }}
+              aria-current={pathname === item.href ? 'page' : undefined}
+            >
+              <NavigationLinkCopy label={item.label} detail={item.detail} />
+            </Link>
+          )
+        })}
       </nav>
     </div>
   )

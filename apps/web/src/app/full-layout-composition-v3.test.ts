@@ -11,10 +11,15 @@ const compositionContracts = [
     component: '../components/character/character-profile-shell.tsx',
     stylesheet: '../components/character/character-profile-shell.module.css',
     markers: [
-      'data-profile-identity-banner="true"',
+      'data-profile-workspace',
       'data-profile-sheet="true"',
-      'data-profile-loadout="true"',
+      'data-testid="current-path-coming-soon"',
     ],
+  },
+  {
+    component: '../components/character/character-arsenal-shell.tsx',
+    stylesheet: '../components/character/character-arsenal-shell.module.css',
+    markers: ['data-arsenal-workspace', 'data-arsenal-media="true"'],
   },
   {
     component: '../components/battle/battle-launch.tsx',

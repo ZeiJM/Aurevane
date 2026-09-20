@@ -55,6 +55,8 @@ test('mobile mixed-build Technique counters sit below the title without collidin
   await page.reload()
   await expect(page.getByTestId('character-profile')).toBeVisible()
   await closeOpenDialog(page)
+  await page.goto('/game/arsenal')
+  await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
 
   await page
     .getByTestId('primary-build-panel')

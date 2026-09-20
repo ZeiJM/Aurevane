@@ -14,12 +14,12 @@ function uniqueCharacterName(): string {
   return `Primary ${letters}`
 }
 
-test('Profile previews and commits Primary Discipline while preserving personal allocation', async ({
+test('Arsenal previews and commits Primary Discipline while Character preserves personal allocation', async ({
   page,
 }, testInfo) => {
   test.skip(
     testInfo.project.name !== 'desktop-chromium',
-    'One authenticated Chromium proof covers the P3.1 Profile authority flow.',
+    'One authenticated Chromium proof covers the P3.1 Primary authority flow.',
   )
 
   const slug = testInfo.project.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()
@@ -29,14 +29,6 @@ test('Profile previews and commits Primary Discipline while preserving personal 
     password: 'P31-primary-build-2026!',
     characterName: uniqueCharacterName(),
   })
-
-  const panel = page.getByTestId('primary-build-panel')
-  await expect(panel).toBeVisible()
-  const launcher = panel.getByRole('button', { name: /Manage Primary Discipline/ })
-  const primaryDisciplineChip = page.getByTestId('primary-discipline-chip')
-  await expect(launcher).toBeVisible()
-  await expect(launcher).toHaveText('Discipline Management')
-  await expect(primaryDisciplineChip).toHaveText('Vanguard')
 
   const attributesBefore = new Map(
     await Promise.all(
@@ -49,6 +41,8 @@ test('Profile previews and commits Primary Discipline while preserving personal 
       ),
     ),
   )
+  const maxHpBefore = await page.getByTestId('derived-stat-maxHp').locator('strong').innerText()
+
   const vanguard = getFoundationDiscipline('vanguard')
   const aetherist = getFoundationDiscipline('aetherist')
   if (!vanguard || !aetherist) throw new Error('Foundation Primary profiles are unavailable.')
@@ -61,8 +55,16 @@ test('Profile previews and commits Primary Discipline while preserving personal 
     }),
   )
 
-  const maxHp = page.getByTestId('derived-stat-maxHp').locator('strong')
-  const maxHpBefore = await maxHp.innerText()
+  await page.goto('/game/arsenal')
+  await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
+
+  const panel = page.getByTestId('primary-build-panel')
+  await expect(panel).toBeVisible()
+  const launcher = panel.getByRole('button', { name: /Manage Primary Discipline/ })
+  const primaryDisciplineChip = page.getByTestId('primary-discipline-chip')
+  await expect(launcher).toBeVisible()
+  await expect(launcher).toHaveText('Discipline Management')
+  await expect(primaryDisciplineChip).toHaveText('Vanguard')
 
   await launcher.click()
   const dialog = page.getByRole('dialog', { name: 'Discipline Management' })
@@ -103,6 +105,10 @@ test('Profile previews and commits Primary Discipline while preserving personal 
   )
   await expect(launcher).toHaveText('Discipline Management')
   await expect(primaryDisciplineChip).toHaveText('Aetherist')
+  await dialog.getByRole('button', { name: 'Close', exact: true }).click()
+
+  await page.goto('/game/character')
+  await expect(page.getByTestId('character-profile')).toBeVisible()
 
   for (const id of ATTRIBUTE_IDS) {
     const expected = expectedAetheristAttributes.get(id)
@@ -114,9 +120,14 @@ test('Profile previews and commits Primary Discipline while preserving personal 
     expect(after - aetherist.baseAttributes[id]).toBe(before - vanguard.baseAttributes[id])
   }
 
+  const maxHp = page.getByTestId('derived-stat-maxHp').locator('strong')
   await expect(maxHp).not.toHaveText(maxHpBefore)
   const maxHpAfter = await maxHp.innerText()
 
+  await page.goto('/game/arsenal')
+  await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
+  await launcher.click()
+  await expect(dialog).toBeVisible()
   await primary.selectOption('vanguard')
   await expect(preview).toBeVisible()
   await expect(preview).not.toContainText('Build v2')
@@ -126,13 +137,14 @@ test('Profile previews and commits Primary Discipline while preserving personal 
   await expect(dialog).toContainText('Committed Primary')
   await expect(dialog).toContainText('Aetherist')
   await expect(dialog).not.toContainText('Committed Secondary')
+  await page.mouse.click(1, 1)
+  await expect(dialog).toBeHidden()
+
+  await page.goto('/game/character')
   await expect(page.getByTestId('derived-stat-maxHp').locator('strong')).toHaveText(maxHpAfter)
   for (const id of ATTRIBUTE_IDS) {
     const expected = expectedAetheristAttributes.get(id)
     if (!expected) throw new Error(`Missing expected persisted ${id} value.`)
     await expect(page.getByTestId(`profile-attribute-${id}`).locator('strong')).toHaveText(expected)
   }
-
-  await page.mouse.click(1, 1)
-  await expect(dialog).toBeHidden()
 })

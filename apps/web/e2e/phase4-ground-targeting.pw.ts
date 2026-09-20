@@ -22,6 +22,8 @@ async function provision(page: Page, prefix: string, testInfo: TestInfo) {
 }
 
 async function equipMist(page: Page) {
+  await page.goto('/game/arsenal')
+  await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
   await page.getByRole('button', { name: /Manage Primary Discipline/ }).click()
   const management = page.getByRole('dialog', { name: 'Discipline Management', exact: true })
   await management

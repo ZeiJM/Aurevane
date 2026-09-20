@@ -63,6 +63,8 @@ test('legal Vanguard 3 + Lifebinder 1 mixed build can enter AI Sparring with fav
   await page.reload()
   await expect(page.getByTestId('character-profile')).toBeVisible()
   await closeOpenDialog(page)
+  await page.goto('/game/arsenal')
+  await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
 
   const disciplinePanel = page.getByTestId('primary-build-panel')
   await disciplinePanel.getByRole('button', { name: /Manage Primary Discipline/ }).click()
