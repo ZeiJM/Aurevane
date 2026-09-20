@@ -123,9 +123,9 @@
   .layout {
     height: 100%;
     grid-template-columns:
-      clamp(18rem, 21vw, 21rem)
-      minmax(34rem, 1fr)
-      clamp(19rem, 23vw, 24rem);
+      clamp(17rem, 20vw, 21rem)
+      minmax(0, 1fr)
+      clamp(18rem, 22vw, 23rem);
     grid-template-rows: minmax(0, 1fr);
     align-content: stretch;
   }
