@@ -66,8 +66,7 @@
   color: var(--av-parchment-100);
   background:
     radial-gradient(circle at 75% 0%, rgba(69, 163, 157, 0.1), transparent 22rem),
-    linear-gradient(180deg, rgba(5, 15, 24, 0.2), rgba(5, 15, 24, 0.96)),
-    #07131d;
+    linear-gradient(180deg, rgba(5, 15, 24, 0.2), rgba(5, 15, 24, 0.96)), #07131d;
   box-shadow:
     inset 0 0 0 1px rgba(225, 193, 124, 0.08),
     0 0.7rem 1.8rem rgba(0, 0, 0, 0.14);
