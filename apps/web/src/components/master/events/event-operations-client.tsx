@@ -126,11 +126,23 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
   const [operationReason, setOperationReason] = useState('')
   const [operationConfirmed, setOperationConfirmed] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [runQuery, setRunQuery] = useState('')
 
   const selectedRun = useMemo(
     () => runs.find((run) => run.runId === selectedRunId) ?? null,
     [runs, selectedRunId],
   )
+
+  const visibleRuns = useMemo(() => {
+    const query = runQuery.trim().toLowerCase()
+    if (!query) return runs
+    return runs.filter((run) =>
+      [run.eventKey, run.runId, run.lifecycleStatus, run.scopeKey ?? run.scopeType]
+        .join(' ')
+        .toLowerCase()
+        .includes(query),
+    )
+  }, [runQuery, runs])
 
   const operationReady =
     operationConfirmed &&
@@ -253,27 +265,46 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
   const status = dashboard?.run.lifecycleStatus ?? selectedRun?.lifecycleStatus ?? ''
   const cleanupPending =
     dashboard?.cleanupRequirements.some((entry) => entry.status === 'pending') ?? false
+  const cleanupCompleted =
+    dashboard?.cleanupRequirements.filter((entry) => entry.status === 'completed').length ?? 0
+  const lifecycleStages = ['scheduled', 'live', 'resolving', 'ended', 'archived'] as const
+  const lifecycleIndex = Math.max(
+    0,
+    lifecycleStages.indexOf(
+      status === 'paused'
+        ? 'live'
+        : status === 'cancelled' || status === 'emergency-stopped'
+          ? 'ended'
+          : (status as (typeof lifecycleStages)[number]),
+    ),
+  )
 
   return (
     <section className={styles.operations}>
-      <header className={styles.toolbar}>
-        <div>
-          <p className={styles.eyebrow}>Operations console</p>
-          <h1>Event runs</h1>
-          <p>
-            Server-authoritative run state, phase progress, participation, claims, cleanup and
-            Chronicle history.
-          </p>
-        </div>
-        <button type="button" onClick={() => void refresh()} disabled={busy}>
-          Refresh
-        </button>
-      </header>
+      <aside className={styles.runNavigator} aria-label="Event Run navigator">
+        <header className={styles.navigatorHeader}>
+          <div>
+            <p className={styles.eyebrow}>Operations console</p>
+            <h2>Event runs</h2>
+          </div>
+          <button type="button" onClick={() => void refresh()} disabled={busy}>
+            Refresh
+          </button>
+        </header>
 
-      <section className={styles.selector}>
-        <label>
-          Event Run
+        <label className={styles.runSearch}>
+          <span>Search runs</span>
+          <input
+            value={runQuery}
+            onChange={(event) => setRunQuery(event.target.value)}
+            placeholder="Event, run, status…"
+          />
+        </label>
+
+        <label className={styles.runSelect}>
+          <span>Event Run</span>
           <select
+            aria-label="Event Run"
             value={selectedRunId}
             onChange={(event) => {
               const runId = event.target.value
@@ -289,308 +320,421 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
             ))}
           </select>
         </label>
-        <strong className={styles.status}>{message}</strong>
-      </section>
 
-      {dashboard ? (
-        <>
-          <section className={styles.summaryGrid}>
-            <article className={styles.card}>
-              <h2>Run state</h2>
-              <dl>
+        <div className={styles.runList}>
+          {visibleRuns.map((run) => (
+            <button
+              type="button"
+              key={run.runId}
+              className={styles.runRow}
+              data-selected={run.runId === selectedRunId || undefined}
+              onClick={() => {
+                setSelectedRunId(run.runId)
+                void loadDashboard(run.runId)
+              }}
+            >
+              <span className={styles.runGlyph} aria-hidden="true">
+                {run.lifecycleStatus === 'live' ? '✦' : run.lifecycleStatus === 'scheduled' ? '◇' : '✧'}
+              </span>
+              <span className={styles.runIdentity}>
+                <strong>{run.eventKey}</strong>
+                <small>{run.runId.slice(0, 8)} · {when(run.scheduledStartAt ?? run.startedAt)}</small>
+              </span>
+              <span className={styles.runStatus} data-status={run.lifecycleStatus}>
+                {run.lifecycleStatus}
+              </span>
+            </button>
+          ))}
+        </div>
+      </aside>
+
+      <div className={styles.operationWorkspace}>
+        {dashboard ? (
+          <>
+            <header className={styles.runHeader}>
+              <div className={styles.runHeaderIcon} aria-hidden="true">
+                ✦
+              </div>
+              <div className={styles.runHeaderIdentity}>
+                <p className={styles.eyebrow}>Authoritative Event Run</p>
+                <h2>{dashboard.run.eventKey}</h2>
+                <p>
+                  <code>{dashboard.run.runId.slice(0, 12)}</code>
+                  <span data-status={dashboard.run.lifecycleStatus}>{dashboard.run.lifecycleStatus}</span>
+                  <span>State v{dashboard.run.stateVersion}</span>
+                </p>
+              </div>
+              <strong className={styles.workspaceMessage}>{message}</strong>
+            </header>
+
+            <nav className={styles.workspaceTabs} aria-label="Live Event workspace">
+              <a href="#event-overview">Overview</a>
+              <a href="#event-phases">Objectives</a>
+              <a href="#event-participants">Participants</a>
+              <a href="#event-cleanup">Cleanup</a>
+              <a href="#event-rewards">Rewards</a>
+            </nav>
+
+            <section className={styles.overviewPanel} id="event-overview">
+              <div className={styles.overviewFacts}>
                 <div>
-                  <dt>Status</dt>
-                  <dd>{dashboard.run.lifecycleStatus}</dd>
-                </div>
-                <div>
-                  <dt>Version</dt>
-                  <dd>{dashboard.run.stateVersion}</dd>
-                </div>
-                <div>
-                  <dt>Scope</dt>
-                  <dd>
+                  <span>Scope</span>
+                  <strong>
                     {dashboard.run.scopeType}
                     {dashboard.run.scopeKey ? ` · ${dashboard.run.scopeKey}` : ''}
-                  </dd>
+                  </strong>
                 </div>
                 <div>
-                  <dt>Current phase</dt>
-                  <dd>{dashboard.run.currentPhaseId ?? '—'}</dd>
+                  <span>Status</span>
+                  <strong>{dashboard.run.lifecycleStatus}</strong>
                 </div>
                 <div>
-                  <dt>Scheduled</dt>
-                  <dd>{when(dashboard.run.scheduledStartAt)}</dd>
+                  <span>Current phase</span>
+                  <strong>{dashboard.run.currentPhaseId ?? '—'}</strong>
                 </div>
                 <div>
-                  <dt>Started</dt>
-                  <dd>{when(dashboard.run.startedAt)}</dd>
+                  <span>Scheduled</span>
+                  <strong>{when(dashboard.run.scheduledStartAt)}</strong>
                 </div>
                 <div>
-                  <dt>Cleanup</dt>
-                  <dd>{dashboard.run.cleanupStatus}</dd>
+                  <span>Started</span>
+                  <strong>{when(dashboard.run.startedAt)}</strong>
                 </div>
-              </dl>
-            </article>
+                <div>
+                  <span>Cleanup</span>
+                  <strong>{dashboard.run.cleanupStatus}</strong>
+                </div>
+              </div>
 
-            <article className={styles.card}>
-              <h2>Participants &amp; claims</h2>
-              <dl>
-                <div>
-                  <dt>Participants</dt>
-                  <dd>{dashboard.participants.length}</dd>
-                </div>
-                <div>
-                  <dt>Contributions</dt>
-                  <dd>
-                    {dashboard.participants.reduce(
-                      (sum, entry) => sum + entry.contributionCount,
-                      0,
-                    )}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Contribution total</dt>
-                  <dd>
-                    {dashboard.participants.reduce(
-                      (sum, entry) => sum + entry.contributionTotal,
-                      0,
-                    )}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Claim reservations</dt>
-                  <dd>{dashboard.claims.length}</dd>
-                </div>
-                <div>
-                  <dt>Executed claims</dt>
-                  <dd>{dashboard.claims.filter((claim) => claim.executed).length}</dd>
-                </div>
-              </dl>
-            </article>
-          </section>
-
-          <section className={styles.controls}>
-            <h2>Live operation confirmation</h2>
-            <label className={styles.approvalField}>
-              Operation reason
-              <textarea
-                value={operationReason}
-                maxLength={240}
-                onChange={(event) => {
-                  setOperationReason(event.target.value)
-                  setOperationConfirmed(false)
-                }}
-                placeholder="Why is this live Event operation being performed?"
-              />
-            </label>
-            <label className={styles.approvalCheck}>
-              <input
-                type="checkbox"
-                checked={operationConfirmed}
-                onChange={(event) => setOperationConfirmed(event.target.checked)}
-              />
-              Confirm live operation
-            </label>
-            <h2>Lifecycle controls</h2>
-            <div className={styles.actionRow}>
-              {status === 'scheduled' ? (
-                <button
-                  type="button"
-                  onClick={() => void operate('start', 'start')}
-                  disabled={busy || !operationReady}
-                >
-                  Start due run
-                </button>
-              ) : null}
-              {status === 'live' ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => void operate('pause', 'pause')}
-                    disabled={busy || !operationReady}
-                  >
-                    Pause
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void advancePhase()}
-                    disabled={busy || !operationReady}
-                  >
-                    Advance phase
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void operate('stop', 'graceful stop')}
-                    disabled={busy || !operationReady}
-                  >
-                    Stop / resolve
-                  </button>
-                </>
-              ) : null}
-              {status === 'paused' ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => void operate('resume', 'resume')}
-                    disabled={busy || !operationReady}
-                  >
-                    Resume
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void operate('stop', 'graceful stop')}
-                    disabled={busy || !operationReady}
-                  >
-                    Stop / resolve
-                  </button>
-                </>
-              ) : null}
-              {status === 'resolving' ? (
-                <button
-                  type="button"
-                  onClick={() => void operate('end', 'end')}
-                  disabled={busy || !operationReady}
-                >
-                  End run
-                </button>
-              ) : null}
-              {['scheduled', 'live', 'paused', 'resolving'].includes(status) && canEmergencyStop ? (
-                <button
-                  type="button"
-                  className={styles.danger}
-                  onClick={() => void operate('emergency-stop', 'emergency stop')}
-                  disabled={busy || !operationReady}
-                >
-                  Emergency stop
-                </button>
-              ) : null}
-              {['ended', 'cancelled', 'emergency-stopped'].includes(status) ? (
-                <button
-                  type="button"
-                  onClick={() => void operate('archive', 'archive')}
-                  disabled={busy || cleanupPending || !operationReady}
-                >
-                  Archive
-                </button>
-              ) : null}
-            </div>
-            {cleanupPending ? (
-              <p className={styles.notice}>
-                Archive is blocked until every pinned typed cleanup requirement is confirmed.
-              </p>
-            ) : null}
-          </section>
-
-          <section className={styles.card}>
-            <h2>Phases &amp; objectives</h2>
-            <div className={styles.phaseGrid}>
-              {dashboard.phases.map((phase) => (
-                <article key={phase.phaseId} className={styles.phase}>
-                  <header>
-                    <strong>{phase.phaseId}</strong>
-                    <span>{phase.status}</span>
-                  </header>
-                  {phase.objectives.length === 0 ? <p>No objectives.</p> : null}
-                  {phase.objectives.map((objective) => (
-                    <div key={objective.objectiveId} className={styles.objective}>
-                      <span>{objective.objectiveId}</span>
-                      <strong>
-                        {objective.progress} / {objective.target}
-                      </strong>
-                      <small>{objective.status}</small>
+              <div className={styles.lifecycle}>
+                <h3>Event lifecycle</h3>
+                <div className={styles.lifecycleTrack}>
+                  {lifecycleStages.map((stage, index) => (
+                    <div
+                      key={stage}
+                      className={styles.lifecycleStep}
+                      data-active={index === lifecycleIndex || undefined}
+                      data-complete={index < lifecycleIndex || undefined}
+                    >
+                      <span aria-hidden="true">{index < lifecycleIndex ? '✓' : index === lifecycleIndex ? '●' : '○'}</span>
+                      <strong>{stage}</strong>
                     </div>
                   ))}
-                </article>
-              ))}
-            </div>
-          </section>
-
-          <section className={styles.card}>
-            <h2>Active typed effects</h2>
-            {dashboard.activeEffects.length === 0 ? <p>No active effect references.</p> : null}
-            <div className={styles.itemList}>
-              {dashboard.activeEffects.map((effect, index) => (
-                <div key={`${effect.referenceKey ?? 'effect'}-${index}`}>
-                  <strong>{effect.type ?? 'effect'}</strong>
-                  <span>{effect.referenceKey ?? '—'}</span>
-                  <small>{effect.enabled === false ? 'disabled' : 'enabled'}</small>
                 </div>
-              ))}
-            </div>
-          </section>
-
-          <section className={styles.card}>
-            <h2>Participant ledger</h2>
-            {dashboard.participants.length === 0 ? <p>No participants yet.</p> : null}
-            <div className={styles.itemList}>
-              {dashboard.participants.map((participant) => (
-                <div key={participant.characterId}>
-                  <strong>{participant.characterId.slice(0, 8)}</strong>
-                  <span>
-                    {participant.contributionCount} contributions · {participant.contributionTotal}{' '}
-                    total
-                  </span>
-                  <small>
-                    {when(participant.lastContributedAt ?? participant.firstParticipatedAt)}
-                  </small>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className={styles.card}>
-            <h2>Reward claims</h2>
-            {dashboard.claims.length === 0 ? <p>No reward claims reserved.</p> : null}
-            <div className={styles.itemList}>
-              {dashboard.claims.map((claim) => (
-                <div key={claim.reservationId}>
-                  <strong>{claim.rewardPackageRef}</strong>
-                  <span>
-                    {claim.executed ? 'executed' : 'reserved'} · character{' '}
-                    {claim.characterId.slice(0, 8)}
-                  </span>
-                  <small>
-                    {claim.executedAt ? when(claim.executedAt) : when(claim.reservedAt)}
-                  </small>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className={styles.card}>
-            <h2>Cleanup</h2>
-            {dashboard.cleanupRequirements.length === 0 ? <p>No cleanup requirements.</p> : null}
-            <div className={styles.itemList}>
-              {dashboard.cleanupRequirements.map((cleanup) => (
-                <div key={`${cleanup.phaseId}-${cleanup.effectOrdinal}`}>
-                  <strong>{cleanup.effectType}</strong>
-                  <span>
-                    {cleanup.referenceKey} · {cleanup.status}
-                  </span>
-                  {cleanup.status === 'pending' ? (
-                    <button
-                      type="button"
-                      onClick={() => void completeCleanup(cleanup.phaseId, cleanup.effectOrdinal)}
-                      disabled={busy || !operationReady}
-                    >
-                      Confirm cleanup completed
-                    </button>
-                  ) : (
-                    <small>{when(cleanup.completedAt)}</small>
-                  )}
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {dashboard.chronicle ? (
-            <section className={styles.card}>
-              <h2>Chronicle snapshot</h2>
-              <pre>{JSON.stringify(dashboard.chronicle, null, 2)}</pre>
+              </div>
             </section>
+
+            <section className={styles.card} id="event-phases">
+              <div className={styles.cardHeading}>
+                <div>
+                  <p className={styles.eyebrow}>Run progress</p>
+                  <h2>Phases &amp; objectives</h2>
+                </div>
+                <span>{dashboard.phases.length} phases</span>
+              </div>
+              <div className={styles.phaseGrid}>
+                {dashboard.phases.map((phase) => (
+                  <article key={phase.phaseId} className={styles.phase}>
+                    <header>
+                      <strong>{phase.phaseId}</strong>
+                      <span>{phase.status}</span>
+                    </header>
+                    {phase.objectives.length === 0 ? <p>No objectives.</p> : null}
+                    {phase.objectives.map((objective) => (
+                      <div key={objective.objectiveId} className={styles.objective}>
+                        <span>{objective.objectiveId}</span>
+                        <strong>
+                          {objective.progress} / {objective.target}
+                        </strong>
+                        <small>{objective.status}</small>
+                      </div>
+                    ))}
+                  </article>
+                ))}
+              </div>
+            </section>
+
+            <section className={styles.card}>
+              <div className={styles.cardHeading}>
+                <div>
+                  <p className={styles.eyebrow}>Typed runtime</p>
+                  <h2>Active effects</h2>
+                </div>
+                <span>{dashboard.activeEffects.length}</span>
+              </div>
+              {dashboard.activeEffects.length === 0 ? <p>No active effect references.</p> : null}
+              <div className={styles.itemList}>
+                {dashboard.activeEffects.map((effect, index) => (
+                  <div key={`${effect.referenceKey ?? 'effect'}-${index}`}>
+                    <strong>{effect.type ?? 'effect'}</strong>
+                    <span>{effect.referenceKey ?? '—'}</span>
+                    <small>{effect.enabled === false ? 'disabled' : 'enabled'}</small>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section className={styles.card} id="event-participants">
+              <div className={styles.cardHeading}>
+                <div>
+                  <p className={styles.eyebrow}>Participation</p>
+                  <h2>Participant ledger</h2>
+                </div>
+                <span>{dashboard.participants.length}</span>
+              </div>
+              {dashboard.participants.length === 0 ? <p>No participants yet.</p> : null}
+              <div className={styles.itemList}>
+                {dashboard.participants.map((participant) => (
+                  <div key={participant.characterId}>
+                    <strong>{participant.characterId.slice(0, 8)}</strong>
+                    <span>
+                      {participant.contributionCount} contributions · {participant.contributionTotal} total
+                    </span>
+                    <small>{when(participant.lastContributedAt ?? participant.firstParticipatedAt)}</small>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section className={styles.card} id="event-rewards">
+              <div className={styles.cardHeading}>
+                <div>
+                  <p className={styles.eyebrow}>Rewards</p>
+                  <h2>Reward claims</h2>
+                </div>
+                <span>{dashboard.claims.length}</span>
+              </div>
+              {dashboard.claims.length === 0 ? <p>No reward claims reserved.</p> : null}
+              <div className={styles.itemList}>
+                {dashboard.claims.map((claim) => (
+                  <div key={claim.reservationId}>
+                    <strong>{claim.rewardPackageRef}</strong>
+                    <span>
+                      {claim.executed ? 'executed' : 'reserved'} · character {claim.characterId.slice(0, 8)}
+                    </span>
+                    <small>{claim.executedAt ? when(claim.executedAt) : when(claim.reservedAt)}</small>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section className={styles.card} id="event-cleanup">
+              <div className={styles.cardHeading}>
+                <div>
+                  <p className={styles.eyebrow}>Closure</p>
+                  <h2>Cleanup requirements</h2>
+                </div>
+                <span>{cleanupCompleted}/{dashboard.cleanupRequirements.length}</span>
+              </div>
+              {dashboard.cleanupRequirements.length === 0 ? <p>No cleanup requirements.</p> : null}
+              <div className={styles.itemList}>
+                {dashboard.cleanupRequirements.map((cleanup) => (
+                  <div key={`${cleanup.phaseId}-${cleanup.effectOrdinal}`}>
+                    <strong>{cleanup.effectType}</strong>
+                    <span>{cleanup.referenceKey} · {cleanup.status}</span>
+                    {cleanup.status === 'pending' ? (
+                      <button
+                        type="button"
+                        onClick={() => void completeCleanup(cleanup.phaseId, cleanup.effectOrdinal)}
+                        disabled={busy || !operationReady}
+                      >
+                        Confirm cleanup
+                      </button>
+                    ) : (
+                      <small>{when(cleanup.completedAt)}</small>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {dashboard.chronicle ? (
+              <section className={styles.card}>
+                <div className={styles.cardHeading}>
+                  <div>
+                    <p className={styles.eyebrow}>Immutable record</p>
+                    <h2>Chronicle snapshot</h2>
+                  </div>
+                </div>
+                <pre>{JSON.stringify(dashboard.chronicle, null, 2)}</pre>
+              </section>
+            ) : null}
+          </>
+        ) : (
+          <section className={styles.emptyOperations}>
+            <h2>Event runs</h2>
+            <p>{message}</p>
+          </section>
+        )}
+      </div>
+
+      <aside className={styles.operationDock}>
+        <section className={styles.dockCard}>
+          <div className={styles.dockHeading}>
+            <h2>Live monitoring</h2>
+            <span data-status={status}>{status || 'idle'}</span>
+          </div>
+          <div className={styles.metricGrid}>
+            <div>
+              <strong>{dashboard?.participants.length ?? 0}</strong>
+              <span>Participants</span>
+            </div>
+            <div>
+              <strong>{dashboard?.activeEffects.length ?? 0}</strong>
+              <span>Active effects</span>
+            </div>
+            <div>
+              <strong>{dashboard?.phases.filter((phase) => phase.status === 'active').length ?? 0}</strong>
+              <span>Active phases</span>
+            </div>
+            <div>
+              <strong>{dashboard?.claims.filter((claim) => claim.executed).length ?? 0}</strong>
+              <span>Claims executed</span>
+            </div>
+          </div>
+        </section>
+
+        <section className={styles.dockCard}>
+          <div className={styles.dockHeading}>
+            <h2>Safe operator actions</h2>
+            <span>Confirmed</span>
+          </div>
+          <label className={styles.approvalField}>
+            Operation reason
+            <textarea
+              value={operationReason}
+              maxLength={240}
+              onChange={(event) => {
+                setOperationReason(event.target.value)
+                setOperationConfirmed(false)
+              }}
+              placeholder="Why is this live Event operation being performed?"
+            />
+          </label>
+          <label className={styles.approvalCheck}>
+            <input
+              type="checkbox"
+              checked={operationConfirmed}
+              onChange={(event) => setOperationConfirmed(event.target.checked)}
+            />
+            Confirm live operation
+          </label>
+
+          <div className={styles.actionRow}>
+            {status === 'scheduled' ? (
+              <button
+                type="button"
+                onClick={() => void operate('start', 'start')}
+                disabled={busy || !operationReady}
+              >
+                Start due run
+              </button>
+            ) : null}
+            {status === 'live' ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => void operate('pause', 'pause')}
+                  disabled={busy || !operationReady}
+                >
+                  Pause
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void advancePhase()}
+                  disabled={busy || !operationReady}
+                >
+                  Advance phase
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void operate('stop', 'graceful stop')}
+                  disabled={busy || !operationReady}
+                >
+                  Stop / resolve
+                </button>
+              </>
+            ) : null}
+            {status === 'paused' ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => void operate('resume', 'resume')}
+                  disabled={busy || !operationReady}
+                >
+                  Resume
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void operate('stop', 'graceful stop')}
+                  disabled={busy || !operationReady}
+                >
+                  Stop / resolve
+                </button>
+              </>
+            ) : null}
+            {status === 'resolving' ? (
+              <button
+                type="button"
+                onClick={() => void operate('end', 'end')}
+                disabled={busy || !operationReady}
+              >
+                End run
+              </button>
+            ) : null}
+            {['scheduled', 'live', 'paused', 'resolving'].includes(status) && canEmergencyStop ? (
+              <button
+                type="button"
+                className={styles.danger}
+                onClick={() => void operate('emergency-stop', 'emergency stop')}
+                disabled={busy || !operationReady}
+              >
+                Emergency stop
+              </button>
+            ) : null}
+            {['ended', 'cancelled', 'emergency-stopped'].includes(status) ? (
+              <button
+                type="button"
+                onClick={() => void operate('archive', 'archive')}
+                disabled={busy || cleanupPending || !operationReady}
+              >
+                Archive
+              </button>
+            ) : null}
+          </div>
+          {cleanupPending ? (
+            <p className={styles.notice}>
+              Archive is blocked until every pinned typed cleanup requirement is confirmed.
+            </p>
           ) : null}
-        </>
-      ) : null}
+        </section>
+
+        <section className={styles.dockCard}>
+          <div className={styles.dockHeading}>
+            <h2>Cleanup status</h2>
+            <span>{dashboard?.run.cleanupStatus ?? '—'}</span>
+          </div>
+          <dl className={styles.compactFacts}>
+            <div>
+              <dt>Completed</dt>
+              <dd>{cleanupCompleted}</dd>
+            </div>
+            <div>
+              <dt>Pending</dt>
+              <dd>
+                {dashboard?.cleanupRequirements.filter((entry) => entry.status === 'pending').length ?? 0}
+              </dd>
+            </div>
+            <div>
+              <dt>Claims</dt>
+              <dd>{dashboard?.claims.length ?? 0}</dd>
+            </div>
+            <div>
+              <dt>State version</dt>
+              <dd>{dashboard?.run.stateVersion ?? '—'}</dd>
+            </div>
+          </dl>
+        </section>
+      </aside>
     </section>
-  )
-}
+  )}
