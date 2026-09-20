@@ -808,6 +808,8 @@
 
 .controlCard {
   display: grid;
+  grid-column: auto;
+  grid-row: auto;
   gap: 0;
   padding: 0;
 }
