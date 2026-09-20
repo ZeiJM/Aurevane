@@ -266,20 +266,24 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
       .locator(':scope > article, :scope > div')
     const techniqueChrome = await techniqueCards.evaluateAll((cards) =>
       cards.map((card) => {
-        const cardRect = card.getBoundingClientRect()
-        const media = card.querySelector(
-          '[data-arsenal-media="true"], [data-arsenal-empty-media="true"]',
-        )
-        const mediaRect = media?.getBoundingClientRect()
+        const style = getComputedStyle(card)
         return {
-          extraWidth: mediaRect ? cardRect.width - mediaRect.width : 0,
-          extraHeight: mediaRect ? cardRect.height - mediaRect.height : 0,
+          horizontalChrome:
+            Number.parseFloat(style.paddingLeft) +
+            Number.parseFloat(style.paddingRight) +
+            Number.parseFloat(style.borderLeftWidth) +
+            Number.parseFloat(style.borderRightWidth),
+          verticalChrome:
+            Number.parseFloat(style.paddingTop) +
+            Number.parseFloat(style.paddingBottom) +
+            Number.parseFloat(style.borderTopWidth) +
+            Number.parseFloat(style.borderBottomWidth),
         }
       }),
     )
     for (const metric of techniqueChrome) {
-      expect(metric.extraWidth).toBeLessThanOrEqual(20)
-      expect(metric.extraHeight).toBeLessThanOrEqual(36)
+      expect(metric.horizontalChrome).toBeLessThanOrEqual(4)
+      expect(metric.verticalChrome).toBeLessThanOrEqual(8)
     }
 
     const arsenalMedia = page.locator('[data-arsenal-media="true"]')
