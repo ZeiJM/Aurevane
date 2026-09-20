@@ -41,8 +41,7 @@
   border: 1px solid rgba(212, 186, 130, 0.62);
   background:
     linear-gradient(135deg, rgba(212, 186, 130, 0.15), transparent 26%),
-    linear-gradient(315deg, rgba(212, 186, 130, 0.1), transparent 24%),
-    rgba(7, 17, 25, 0.28);
+    linear-gradient(315deg, rgba(212, 186, 130, 0.1), transparent 24%), rgba(7, 17, 25, 0.28);
 }
 
 .portraitFrame::before,
