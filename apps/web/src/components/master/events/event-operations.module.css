@@ -615,8 +615,7 @@
   border: 1px solid var(--av-border);
   border-radius: var(--av-radius-md);
   background:
-    linear-gradient(180deg, rgba(11, 22, 32, 0.95), rgba(6, 14, 22, 0.97)),
-    var(--av-ink-900);
+    linear-gradient(180deg, rgba(11, 22, 32, 0.95), rgba(6, 14, 22, 0.97)), var(--av-ink-900);
   scrollbar-width: thin;
 }
 
@@ -791,8 +790,7 @@
   border: 1px solid var(--av-border);
   border-radius: var(--av-radius-md);
   background:
-    linear-gradient(180deg, rgba(13, 25, 35, 0.93), rgba(7, 15, 23, 0.95)),
-    var(--av-ink-900);
+    linear-gradient(180deg, rgba(13, 25, 35, 0.93), rgba(7, 15, 23, 0.95)), var(--av-ink-900);
 }
 
 .runHeaderIcon {
@@ -884,8 +882,7 @@
   border: 1px solid var(--av-border);
   border-radius: var(--av-radius-md);
   background:
-    linear-gradient(180deg, rgba(11, 21, 31, 0.88), rgba(7, 14, 22, 0.93)),
-    var(--av-ink-900);
+    linear-gradient(180deg, rgba(11, 21, 31, 0.88), rgba(7, 14, 22, 0.93)), var(--av-ink-900);
 }
 
 .operationWorkspace .card {
