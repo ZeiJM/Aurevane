@@ -562,7 +562,7 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
           </>
         ) : (
           <section className={styles.emptyOperations}>
-            <h2>Event runs</h2>
+            <h2>No run selected</h2>
             <p>{message}</p>
           </section>
         )}
