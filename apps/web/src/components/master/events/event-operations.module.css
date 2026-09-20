@@ -1,18 +1,20 @@
 .operations {
   display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
   width: 100%;
-  gap: 0.75rem;
+  gap: 0.7rem;
 }
 
 .toolbar,
 .selector,
 .card,
 .controls {
-  padding: 0.85rem;
+  min-width: 0;
+  padding: 0.75rem;
   border: 1px solid var(--av-border);
   border-radius: var(--av-radius-md);
   background:
-    linear-gradient(180deg, rgba(13, 24, 34, 0.88), rgba(7, 14, 22, 0.92)), var(--av-ink-900);
+    linear-gradient(180deg, rgba(12, 23, 33, 0.88), rgba(7, 14, 22, 0.92)), var(--av-ink-900);
 }
 
 .toolbar,
@@ -21,9 +23,18 @@
 .sectionHeading {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.7rem;
+  gap: 0.65rem;
   align-items: center;
   justify-content: space-between;
+}
+
+.toolbar {
+  grid-column: 1 / -1;
+}
+
+.toolbar > div {
+  display: grid;
+  gap: 0.14rem;
 }
 
 .toolbar h1,
@@ -36,37 +47,43 @@
 }
 
 .toolbar h1 {
-  font-size: clamp(1.25rem, 2vw, 1.65rem);
+  font-size: 1rem;
 }
 
 .toolbar p {
   max-width: 58rem;
-  margin: 0.3rem 0 0;
+  margin: 0;
   color: var(--av-text-dim);
-  font-size: 0.72rem;
-  line-height: 1.5;
+  font-size: 0.67rem;
+  line-height: 1.45;
 }
 
 .eyebrow {
   color: var(--av-teal-bright);
-  font: 700 0.55rem/1.2 var(--av-font-body);
-  letter-spacing: 0.11em;
+  font: 700 0.53rem/1.2 var(--av-font-body);
+  letter-spacing: 0.1em;
   text-transform: uppercase;
+}
+
+.selector {
+  grid-column: 1 / -1;
+  padding: 0.65rem 0.75rem;
 }
 
 .selector label {
   display: grid;
-  gap: 0.3rem;
-  min-width: min(100%, 30rem);
+  grid-template-columns: auto minmax(14rem, 26rem);
+  gap: 0.5rem;
+  align-items: center;
   color: var(--av-text-muted);
-  font-size: 0.7rem;
+  font-size: 0.66rem;
 }
 
 .selector select,
 .actionRow button,
 .itemList button,
 .toolbar button {
-  min-height: 2.35rem;
+  min-height: 2.25rem;
   border: 1px solid var(--av-border-strong);
   border-radius: var(--av-radius-sm);
   background: rgba(255, 255, 255, 0.025);
@@ -74,15 +91,16 @@
 }
 
 .selector select {
-  padding: 0.5rem 0.65rem;
+  padding: 0.48rem 0.58rem;
 }
 
 .actionRow button,
 .itemList button,
 .toolbar button {
-  padding: 0.5rem 0.75rem;
-  font-size: 0.7rem;
+  padding: 0.48rem 0.68rem;
+  font-size: 0.65rem;
   font-weight: 700;
+  cursor: pointer;
 }
 
 .actionRow button:hover:not(:disabled),
@@ -93,60 +111,107 @@
   background: rgba(185, 154, 92, 0.08);
 }
 
-.status {
-  color: var(--av-text-muted);
-  font-size: 0.72rem;
+.actionRow button:disabled,
+.itemList button:disabled,
+.toolbar button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
-.summaryGrid,
+.status {
+  color: var(--av-text-dim);
+  font-size: 0.66rem;
+}
+
+.summaryGrid {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
 .phaseGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
-  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 0.6rem;
+}
+
+.card {
+  grid-column: span 6;
+}
+
+.card:nth-of-type(odd) {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(49, 138, 143, 0.07), transparent 16rem),
+    linear-gradient(180deg, rgba(12, 23, 33, 0.88), rgba(7, 14, 22, 0.92));
+}
+
+.card h2,
+.controls h2 {
+  font-size: 0.92rem;
+}
+
+.card p {
+  margin: 0.45rem 0 0;
+  color: var(--av-text-dim);
+  font-size: 0.66rem;
+  line-height: 1.45;
 }
 
 .card dl {
   display: grid;
-  gap: 0.5rem;
-  margin: 0.7rem 0 0;
+  gap: 0;
+  margin: 0.55rem 0 0;
 }
 
 .card dl div {
   display: flex;
   gap: 1rem;
   justify-content: space-between;
-  padding-bottom: 0.3rem;
+  padding: 0.38rem 0;
   border-bottom: 1px solid rgba(215, 187, 127, 0.08);
 }
 
 .card dt {
   color: var(--av-text-dim);
-  font-size: 0.68rem;
+  font-size: 0.63rem;
 }
 
 .card dd {
   margin: 0;
   color: var(--av-text);
-  font-size: 0.7rem;
+  font-size: 0.66rem;
   text-align: right;
 }
 
 .controls {
   display: grid;
-  gap: 0.7rem;
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(15rem, 1fr) minmax(0, 2fr);
+  gap: 0.65rem 0.8rem;
+  align-items: end;
+}
+
+.controls > h2:first-child {
+  grid-column: 1;
+}
+
+.controls > h2:nth-of-type(2) {
+  grid-column: 2;
+  grid-row: 1;
 }
 
 .approvalField {
   display: grid;
-  gap: 0.3rem;
-  max-width: 48rem;
+  grid-column: 1;
+  gap: 0.28rem;
   color: var(--av-text-muted);
-  font-size: 0.72rem;
+  font-size: 0.67rem;
 }
 
 .approvalField textarea {
-  min-height: 4.5rem;
-  padding: 0.6rem 0.7rem;
+  min-height: 4.2rem;
+  padding: 0.55rem 0.62rem;
   border: 1px solid var(--av-border-strong);
   border-radius: var(--av-radius-sm);
   background: rgba(3, 10, 17, 0.86);
@@ -157,11 +222,12 @@
 
 .approvalCheck {
   display: flex;
-  gap: 0.5rem;
+  grid-column: 1;
+  gap: 0.48rem;
   align-items: center;
   width: fit-content;
   color: var(--av-text-muted);
-  font-size: 0.72rem;
+  font-size: 0.65rem;
 }
 
 .approvalCheck input {
@@ -171,14 +237,10 @@
 }
 
 .actionRow {
+  grid-column: 2;
+  grid-row: 2 / span 2;
+  align-content: start;
   justify-content: flex-start;
-}
-
-.actionRow button:disabled,
-.itemList button:disabled,
-.toolbar button:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
 }
 
 .danger {
@@ -188,19 +250,20 @@
 }
 
 .notice {
+  grid-column: 1 / -1;
   margin: 0;
   color: var(--av-brass-300);
-  font-size: 0.7rem;
-  line-height: 1.5;
+  font-size: 0.66rem;
+  line-height: 1.45;
 }
 
 .phase {
   display: grid;
-  gap: 0.55rem;
-  padding: 0.7rem;
+  gap: 0.5rem;
+  padding: 0.62rem;
   border: 1px solid var(--av-border);
   border-radius: var(--av-radius-sm);
-  background: rgba(255, 255, 255, 0.018);
+  background: rgba(255, 255, 255, 0.014);
 }
 
 .phase header,
@@ -208,36 +271,93 @@
 .itemList > div {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.6rem;
+  gap: 0.55rem;
   align-items: center;
   justify-content: space-between;
 }
 
+.phase header strong,
+.itemList strong {
+  color: var(--av-text);
+  font-size: 0.68rem;
+}
+
+.phase header span,
+.objective span,
+.objective small,
+.itemList span,
+.itemList small {
+  color: var(--av-text-dim);
+  font-size: 0.6rem;
+}
+
 .objective {
-  padding-top: 0.5rem;
-  border-top: 1px solid var(--av-border);
+  padding-top: 0.45rem;
+  border-top: 1px solid rgba(215, 187, 127, 0.08);
+}
+
+.objective strong {
+  color: var(--av-teal-bright);
+  font-size: 0.66rem;
 }
 
 .itemList {
   display: grid;
-  gap: 0.55rem;
-  margin-top: 0.65rem;
+  gap: 0.45rem;
+  margin-top: 0.55rem;
 }
 
 .itemList > div {
-  padding-top: 0.55rem;
-  border-top: 1px solid var(--av-border);
+  padding-top: 0.48rem;
+  border-top: 1px solid rgba(215, 187, 127, 0.08);
 }
 
 .card pre {
-  max-height: 24rem;
+  max-height: 18rem;
   overflow: auto;
+  margin: 0.55rem 0 0;
+  padding: 0.65rem;
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius-sm);
+  background: rgba(2, 7, 13, 0.82);
   color: var(--av-text-muted);
   white-space: pre-wrap;
-  font-size: 0.7rem;
+  font-size: 0.64rem;
+}
+
+@media (max-width: 950px) {
+  .card {
+    grid-column: 1 / -1;
+  }
+
+  .controls {
+    grid-template-columns: 1fr;
+  }
+
+  .controls > h2:first-child,
+  .controls > h2:nth-of-type(2),
+  .approvalField,
+  .approvalCheck,
+  .actionRow {
+    grid-column: 1;
+    grid-row: auto;
+  }
 }
 
 @media (max-width: 640px) {
+  .operations {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .toolbar,
+  .selector,
+  .summaryGrid,
+  .controls,
+  .card {
+    grid-column: 1;
+  }
+
   .toolbar,
   .selector,
   .phase header,
@@ -245,6 +365,14 @@
   .itemList > div {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .selector label {
+    grid-template-columns: 1fr;
+  }
+
+  .summaryGrid {
+    grid-template-columns: 1fr;
   }
 
   .card dl div {

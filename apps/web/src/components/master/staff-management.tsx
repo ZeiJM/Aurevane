@@ -56,6 +56,7 @@ function responseMessage(payload: unknown): string {
 export function StaffManagement({ staff, roleOptions, capabilityOptions }: StaffManagementProps) {
   const router = useRouter()
   const [email, setEmail] = useState('')
+  const [selectedUserId, setSelectedUserId] = useState(staff[0]?.userId ?? '')
   const [resolved, setResolved] = useState<ResolvedAccount | null>(null)
   const [reason, setReason] = useState('')
   const [confirmed, setConfirmed] = useState(false)
@@ -68,6 +69,7 @@ export function StaffManagement({ staff, roleOptions, capabilityOptions }: Staff
     [staff],
   )
 
+  const selectedStaff = staffByUserId.get(selectedUserId) ?? staff[0] ?? null
   const canMutate = confirmed && reason.trim() === reason && reason.length >= 3
 
   async function post(body: Record<string, unknown>): Promise<unknown> {
@@ -218,114 +220,157 @@ export function StaffManagement({ staff, roleOptions, capabilityOptions }: Staff
 
   return (
     <div className={styles.layout}>
-      <section className={styles.guardrail}>
-        <h2>Authority change guardrail</h2>
-        <label>
-          <span>Reason</span>
-          <textarea
-            maxLength={240}
-            onChange={(event) => setReason(event.target.value)}
-            placeholder="Why is this authority required or being removed?"
-            rows={3}
-            value={reason}
-          />
-        </label>
-        <label className={styles.confirmation}>
-          <input
-            checked={confirmed}
-            onChange={(event) => setConfirmed(event.target.checked)}
-            type="checkbox"
-          />
-          <span>I confirm this changes live staff authority for the selected account.</span>
-        </label>
-        <p>
-          Every mutation is re-authorized server-side, versioned for prompt revocation, and written
-          to the staff audit trail.
-        </p>
-      </section>
+      <aside className={styles.rosterPane}>
+        <section className={styles.lookup}>
+          <div>
+            <h2>Find account</h2>
+            <p>Resolve one exact account email without exposing a player directory.</p>
+          </div>
+          <div className={styles.lookupForm}>
+            <label>
+              <span>Account email</span>
+              <input
+                autoComplete="off"
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="staff@example.com"
+                type="email"
+                value={email}
+              />
+            </label>
+            <button
+              type="button"
+              disabled={busyKey !== null || email.length < 3}
+              onClick={resolveAccount}
+            >
+              {busyKey === 'resolve' ? 'Finding…' : 'Find'}
+            </button>
+          </div>
+        </section>
 
-      {error ? (
-        <p className={styles.error} role="alert">
-          {error}
-        </p>
-      ) : null}
-      {notice ? (
-        <p className={styles.notice} role="status">
-          {notice}
-        </p>
-      ) : null}
+        <section className={styles.staffList} aria-label="Current staff">
+          <div className={styles.sectionHeading}>
+            <div>
+              <h2>Staff members</h2>
+              <p>Owner and delegated staff accounts.</p>
+            </div>
+            <span>{staff.length}</span>
+          </div>
 
-      <section className={styles.lookup}>
-        <div>
-          <h2>Add or inspect an account</h2>
-          <p>
-            Resolve one exact account email. The browser never receives a general player directory.
+          <div className={styles.rosterList}>
+            {staff.map((member) => {
+              const selected = selectedStaff?.userId === member.userId
+              const owner = member.roles.includes('game-owner')
+              return (
+                <button
+                  className={styles.rosterRow}
+                  data-selected={selected || undefined}
+                  key={member.userId}
+                  type="button"
+                  onClick={() => {
+                    setSelectedUserId(member.userId)
+                    setResolved(null)
+                  }}
+                >
+                  <span className={styles.rosterIdentity}>
+                    <strong>{member.email ?? 'Account email unavailable'}</strong>
+                    <small>{owner ? 'WORLDWRIGHT · GAME OWNER' : 'Staff account'}</small>
+                  </span>
+                  <span className={styles.rosterAuthority}>
+                    {member.roles[0]?.replaceAll('-', ' ') ?? 'capability-only'}
+                  </span>
+                  <span className={styles.rosterVersion}>v{member.accessVersion}</span>
+                </button>
+              )
+            })}
+          </div>
+        </section>
+      </aside>
+
+      <div className={styles.detailPane}>
+        <section className={styles.guardrail}>
+          <div className={styles.guardrailHeading}>
+            <div>
+              <h2>Authority confirmation</h2>
+              <p>Required for every live staff authority mutation.</p>
+            </div>
+            <span>Audit enforced</span>
+          </div>
+          <div className={styles.guardrailFields}>
+            <label>
+              <span>Reason</span>
+              <textarea
+                maxLength={240}
+                onChange={(event) => setReason(event.target.value)}
+                placeholder="Why is this authority required or being removed?"
+                rows={2}
+                value={reason}
+              />
+            </label>
+            <label className={styles.confirmation}>
+              <input
+                checked={confirmed}
+                onChange={(event) => setConfirmed(event.target.checked)}
+                type="checkbox"
+              />
+              <span>Confirm live authority change</span>
+            </label>
+          </div>
+        </section>
+
+        {error ? (
+          <p className={styles.error} role="alert">
+            {error}
           </p>
-        </div>
-        <div className={styles.lookupForm}>
-          <label>
-            <span>Account email</span>
-            <input
-              autoComplete="off"
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="staff@example.com"
-              type="email"
-              value={email}
-            />
-          </label>
-          <button
-            type="button"
-            disabled={busyKey !== null || email.length < 3}
-            onClick={resolveAccount}
-          >
-            {busyKey === 'resolve' ? 'Finding…' : 'Find account'}
-          </button>
-        </div>
+        ) : null}
+        {notice ? (
+          <p className={styles.notice} role="status">
+            {notice}
+          </p>
+        ) : null}
 
         {resolved ? (
           <article className={styles.resolved}>
-            <div>
-              <span>Resolved account</span>
-              <strong>{resolved.email}</strong>
-            </div>
+            <header>
+              <div>
+                <span>Resolved account</span>
+                <strong>{resolved.email}</strong>
+              </div>
+              <span>New or existing staff target</span>
+            </header>
             {controlsFor(resolved)}
           </article>
-        ) : null}
-      </section>
-
-      <section className={styles.staffList}>
-        <div className={styles.sectionHeading}>
-          <div>
-            <h2>Current staff</h2>
-            <p>Game Owner plus every account with an enabled delegated role or special grant.</p>
-          </div>
-          <span>{staff.length} accounts</span>
-        </div>
-
-        {staff.map((member) => {
-          const owner = member.roles.includes('game-owner')
-          return (
-            <article className={styles.staffCard} key={member.userId}>
-              <header>
-                <div>
-                  <span>{owner ? 'WORLDWRIGHT · GAME OWNER' : 'Staff account'}</span>
-                  <strong>{member.email ?? 'Account email unavailable'}</strong>
-                </div>
-                <span>Access v{member.accessVersion}</span>
-              </header>
-              <div className={styles.chips} aria-label="Current authority">
-                {member.roles.map((role) => (
-                  <span key={role}>{role.replaceAll('-', ' ')}</span>
-                ))}
-                {member.specialCapabilities.map((capability) => (
-                  <span key={capability}>{capability}</span>
-                ))}
+        ) : selectedStaff ? (
+          <article className={styles.staffCard}>
+            <header>
+              <div>
+                <span>
+                  {selectedStaff.roles.includes('game-owner')
+                    ? 'WORLDWRIGHT · GAME OWNER'
+                    : 'Staff account'}
+                </span>
+                <strong>{selectedStaff.email ?? 'Account email unavailable'}</strong>
               </div>
-              {controlsFor(member)}
-            </article>
-          )
-        })}
-      </section>
+              <span>Access v{selectedStaff.accessVersion}</span>
+            </header>
+
+            <div className={styles.chips} aria-label="Current authority">
+              {selectedStaff.roles.map((role) => (
+                <span key={role}>{role.replaceAll('-', ' ')}</span>
+              ))}
+              {selectedStaff.specialCapabilities.map((capability) => (
+                <span key={capability}>{capability}</span>
+              ))}
+            </div>
+
+            {controlsFor(selectedStaff)}
+          </article>
+        ) : (
+          <section className={styles.emptyState}>
+            <h2>No staff account selected</h2>
+            <p>Choose a staff member or resolve an exact account email.</p>
+          </section>
+        )}
+      </div>
     </div>
   )
 }

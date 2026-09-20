@@ -338,7 +338,7 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
     <section className={styles.builder}>
       <div className={styles.toolbar}>
         <div>
-          <p className={styles.eyebrow}>P4.13 · EVENT BUILDER MVP</p>
+          <p className={styles.eyebrow}>Event definition</p>
           <h1>Persistent Event Definition</h1>
           <p>
             Draft, validate, preview, publish and schedule typed Event content. Preview controls
@@ -375,8 +375,8 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
       ) : null}
       {globalWarning ? <p className={styles.notice}>{globalWarning}</p> : null}
 
-      <div className={styles.grid}>
-        <section className={styles.card}>
+      <div className={styles.workspaceGrid}>
+        <section className={`${styles.card} ${styles.primaryCard}`}>
           <h2>Identity &amp; scope</h2>
           <label>
             Event key
@@ -460,7 +460,7 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
           ) : null}
         </section>
 
-        <section className={styles.card}>
+        <section className={`${styles.card} ${styles.controlCard}`}>
           <h2>References</h2>
           <label>
             Reward Package refs

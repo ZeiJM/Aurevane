@@ -357,9 +357,9 @@ test('Master combat authoring publishes versioned content, pins battles, and rol
   await page.getByRole('button', { name: /Account/ }).click()
   await expect(page.getByRole('menuitem', { name: /Master Panel/ })).toBeVisible()
   await page.getByRole('menuitem', { name: /Master Panel/ }).click()
-  await expect(page).toHaveURL(/\/master$/)
-  await expect(page.getByRole('heading', { name: 'Master Panel' })).toBeVisible()
-  await expect(page.getByTestId('master-panel-authority')).toContainText('WORLDWRIGHT · GAME OWNER')
+  await expect(page).toHaveURL(/\/master\/combat-content$/)
+  await expect(page.getByRole('heading', { name: 'Combat Content' })).toBeVisible()
+  await expect(page.getByText('Worldwright control', { exact: true })).toBeVisible()
   await expect(
     page
       .getByRole('navigation', { name: 'Master Panel navigation' })
@@ -369,7 +369,12 @@ test('Master combat authoring publishes versioned content, pins battles, and rol
 
   await page.goto('/master/staff')
   await expect(page.getByRole('heading', { name: 'Staff & Authority' })).toBeVisible()
-  await expect(page.getByText('WORLDWRIGHT · GAME OWNER', { exact: true })).toBeVisible()
+  await expect(
+    page
+      .getByRole('article')
+      .filter({ hasText: email })
+      .getByText('WORLDWRIGHT · GAME OWNER', { exact: true }),
+  ).toBeVisible()
 
   await page.goto('/master')
 

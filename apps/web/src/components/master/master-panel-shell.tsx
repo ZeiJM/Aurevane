@@ -2,17 +2,17 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 
 import { AurevaneImage } from '@/components/media/aurevane-image'
+import { OnlinePresenceLink } from '@/components/shell/online-presence-link'
 import { AccountMenu } from '@/components/shell/account-menu'
 import {
   hasMasterPanelCapability,
-  masterPanelAuthorityLabel,
   type MasterPanelAccess,
   type MasterPanelCapability,
 } from '@/server/master/staff-access'
 
 import styles from './master-panel-shell.module.css'
 
-export type MasterPanelSection = 'overview' | 'combat' | 'staff' | 'events' | 'live-events'
+export type MasterPanelSection = 'combat' | 'staff' | 'events' | 'live-events'
 
 interface MasterPanelShellProps {
   access: MasterPanelAccess
@@ -23,14 +23,6 @@ interface MasterPanelShellProps {
 }
 
 const masterNavigation = [
-  {
-    id: 'overview',
-    href: '/master',
-    label: 'Overview',
-    detail: 'Operational control',
-    icon: '◇',
-    capability: null,
-  },
   {
     id: 'combat',
     href: '/master/combat-content',
@@ -65,23 +57,12 @@ const masterNavigation = [
   },
 ] as const satisfies readonly {
   id: MasterPanelSection
-  href:
-    | '/master'
-    | '/master/combat-content'
-    | '/master/staff'
-    | '/master/events'
-    | '/master/events/live'
+  href: '/master/combat-content' | '/master/staff' | '/master/events' | '/master/events/live'
   label: string
   detail: string
   icon: string
   capability: MasterPanelCapability | null
 }[]
-
-function environmentLabel(): string {
-  if (process.env.VERCEL_ENV === 'production') return 'Production'
-  if (process.env.VERCEL_ENV === 'preview') return 'Preview'
-  return 'Development'
-}
 
 export function MasterPanelShell({
   access,
@@ -91,8 +72,6 @@ export function MasterPanelShell({
   children,
 }: MasterPanelShellProps) {
   const owner = access.roles.includes('game-owner')
-  const authorityLabel = masterPanelAuthorityLabel(access.roles)
-  const environment = environmentLabel()
 
   return (
     <div className={styles.worldFrame}>
@@ -170,54 +149,16 @@ export function MasterPanelShell({
             <AurevaneImage assetId="ui.foundation.vista" className={styles.heroMedia} />
             <div className={styles.heroShade} aria-hidden="true" />
             <div className={styles.heroCopy}>
-              <p className={styles.breadcrumb}>
-                AUREVANE <span>/</span> Master Panel
-                {activeSection !== 'overview' ? (
-                  <>
-                    <span>/</span> {title}
-                  </>
-                ) : null}
-              </p>
-              <div className={styles.titleRow}>
-                <h1 id="master-panel-page-title">{title}</h1>
-                <span
-                  className={[styles.operator, owner ? styles.worldwright : '']
-                    .filter(Boolean)
-                    .join(' ')}
-                  data-testid="master-panel-authority"
-                >
-                  {owner ? (
-                    <span className={styles.operatorIcon} aria-hidden="true">
-                      ✦
-                    </span>
-                  ) : null}
-                  {authorityLabel}
-                </span>
-              </div>
+              <h1 id="master-panel-page-title">{title}</h1>
               <p className={styles.description}>{description}</p>
-              <div className={styles.heroMeta} aria-label="Master Panel context">
-                <span>
-                  <i className={styles.liveDot} aria-hidden="true" />
-                  {environment}
-                </span>
-                <span>Server-authoritative</span>
-                <span>Audited operations</span>
-              </div>
-            </div>
-            <div className={styles.heroMotto} aria-hidden="true">
-              <span>Create</span>
-              <span>Guide</span>
-              <span>Protect</span>
-              <span>Evolve</span>
             </div>
           </section>
 
           <div className={styles.content}>{children}</div>
         </main>
 
-        <footer className={styles.footer}>
-          <span>AUREVANE</span>
-          <span>Master Panel · protected operations</span>
+        <footer className={styles.footer} data-av-surface="ink">
+          <OnlinePresenceLink />
         </footer>
       </div>
     </div>

@@ -258,8 +258,8 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
     <section className={styles.operations}>
       <header className={styles.toolbar}>
         <div>
-          <p className={styles.eyebrow}>P4.14 · LIVE EVENT OPERATIONS</p>
-          <h1>Event operations</h1>
+          <p className={styles.eyebrow}>Operations console</p>
+          <h1>Event runs</h1>
           <p>
             Server-authoritative run state, phase progress, participation, claims, cleanup and
             Chronicle history.

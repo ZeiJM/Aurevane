@@ -101,6 +101,7 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
   const first = initialSelection(skills, initialSkillId)
   const [disciplineId, setDisciplineId] = useState(first?.sourceDisciplineId ?? '')
   const [skillId, setSkillId] = useState(first?.id ?? '')
+  const [skillQuery, setSkillQuery] = useState('')
   const [drafts, setDrafts] = useState<Record<string, MatureSkillDefinition>>(() =>
     Object.fromEntries(
       skills.flatMap((skill) =>
@@ -131,6 +132,16 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
     () => skills.filter((skill) => skill.sourceDisciplineId === disciplineId),
     [disciplineId, skills],
   )
+  const visibleDisciplineSkills = useMemo(() => {
+    const query = skillQuery.trim().toLowerCase()
+    if (!query) return disciplineSkills
+    return disciplineSkills.filter(
+      (skill) =>
+        skill.label.toLowerCase().includes(query) ||
+        skill.id.toLowerCase().includes(query) ||
+        skill.derivedTags.some((tag) => tag.toLowerCase().includes(query)),
+    )
+  }, [disciplineSkills, skillQuery])
   const selectedSkill =
     disciplineSkills.find((skill) => skill.id === skillId) ?? disciplineSkills[0] ?? null
   const selectedDraft = selectedSkill
@@ -372,37 +383,15 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
 
   return (
     <section className={styles.editor} aria-labelledby="combat-content-heading">
-      <header className={styles.header}>
-        <div>
-          <p className={styles.eyebrow}>Combat Content</p>
-          <h1 id="combat-content-heading">Skill authoring</h1>
-          <p className={styles.lead}>
-            Edit typed, versioned combat content through the protected validation and publication
-            workflow.
-          </p>
-        </div>
-        <div
-          className={styles.status}
-          data-validation-state={
-            selectedReview.validation === null
-              ? 'not-validated'
-              : selectedReview.validation.valid
-                ? 'valid'
-                : 'invalid'
-          }
-        >
-          <span>Validation</span>
-          <strong>
-            {selectedReview.validation === null
-              ? 'Not validated'
-              : selectedReview.validation.valid
-                ? 'Validated'
-                : 'Invalid'}
-          </strong>
-        </div>
-      </header>
+      <aside className={styles.skillBrowser}>
+        <header className={styles.skillBrowserHeader}>
+          <div>
+            <p className={styles.eyebrow}>Skills</p>
+            <strong>{disciplineSkills.length} in discipline</strong>
+          </div>
+          <span>{skills.length} total</span>
+        </header>
 
-      <div className={styles.selectorGrid}>
         <label className={styles.field}>
           <span>Discipline</span>
           <select
@@ -419,6 +408,16 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
         </label>
 
         <label className={styles.field}>
+          <span>Search</span>
+          <input
+            aria-label="Search skills"
+            placeholder="Name, id, or tag"
+            value={skillQuery}
+            onChange={(event) => setSkillQuery(event.currentTarget.value)}
+          />
+        </label>
+
+        <label className={styles.field}>
           <span>Skill</span>
           <select
             aria-label="Skill"
@@ -432,100 +431,149 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
             ))}
           </select>
         </label>
-      </div>
 
-      <div className={styles.versionGrid} aria-label="Content version state">
-        <div>
-          <span>Current version</span>
-          <strong>{versionLabel('v', selectedCurrentVersion)}</strong>
-        </div>
-        <div>
-          <span>Draft version</span>
-          <strong>{versionLabel('d', selectedSkill.draftVersion)}</strong>
-        </div>
-        <div>
-          <span>Base version</span>
-          <strong>{versionLabel('v', selectedSkill.baseVersion)}</strong>
-        </div>
-      </div>
-
-      <section className={styles.workspace} aria-labelledby="draft-workspace-heading">
-        <div>
-          <p className={styles.sectionLabel}>Draft workspace</p>
-          <h2 id="draft-workspace-heading">{selectedSkill.label}</h2>
-          <code>{selectedSkill.id}</code>
-        </div>
-
-        {selectedDraft ? (
-          <div className={styles.authoringStack}>
-            <SkillTargetingEditor
-              value={selectedDraft.target}
-              onChange={(target) => updateSelectedDraft({ ...selectedDraft, target })}
-            />
-            <SkillEconomyEditor
-              value={{
-                apCost: selectedDraft.apCost,
-                mpCost: selectedDraft.mpCost,
-                accuracyMode: selectedDraft.accuracyMode,
-                accuracyModifierBasisPoints: selectedDraft.accuracyModifierBasisPoints,
-              }}
-              onChange={(economy: SkillEconomyDraft) =>
-                updateSelectedDraft({ ...selectedDraft, ...economy })
-              }
-            />
-            <SkillMediaEditor
-              value={selectedDraft.media}
-              onChange={(media) => updateSelectedDraft({ ...selectedDraft, media })}
-            />
-            <SkillEffectListEditor
-              value={selectedDraft.effects}
-              onChange={(effects) => updateSelectedDraft({ ...selectedDraft, effects })}
-            />
-          </div>
-        ) : (
-          <p className={styles.placeholder}>
-            This Skill has not loaded an editable typed definition yet.
-          </p>
-        )}
-      </section>
-
-      <section className={styles.tags} aria-labelledby="derived-tags-heading">
-        <div>
-          <p className={styles.sectionLabel}>Read-only projection</p>
-          <h2 id="derived-tags-heading">Derived tags</h2>
-        </div>
-        <output className={styles.tagList} data-derived-tags="readonly">
-          {displayedTags.map((tag) => (
-            <span key={tag}>{tag}</span>
+        <div className={styles.skillList} aria-label="Skill browser">
+          {visibleDisciplineSkills.map((skill) => (
+            <button
+              className={styles.skillRow}
+              data-selected={skill.id === selectedSkill.id || undefined}
+              key={skill.id}
+              type="button"
+              onClick={() => selectSkill(skill.id)}
+            >
+              <span>
+                <strong>{skill.label}</strong>
+                <small>{skill.id}</small>
+              </span>
+              <em>v{skill.currentVersion}</em>
+            </button>
           ))}
-        </output>
-      </section>
+        </div>
+      </aside>
 
-      <CombatContentReviewPanel
-        contentKey={selectedSkill.id}
-        baseVersion={selectedCurrentVersion}
-        nextVersion={selectedNextVersion}
-        validation={selectedReview.validation}
-        diff={selectedReview.diff}
-        preview={selectedReview.preview}
-        history={selectedHistory}
-        busy={busy}
-        publishConfirmationOpen={publishConfirmationSkillId === selectedSkill.id}
-        rollbackTargetVersion={
-          rollbackTarget?.skillId === selectedSkill.id ? rollbackTarget.version : null
-        }
-        errorMessage={errors[selectedSkill.id] ?? null}
-        noticeMessage={notices[selectedSkill.id] ?? null}
-        onValidate={() => void validateSelected()}
-        onDiff={() => void diffSelected()}
-        onPreview={() => void previewSelected()}
-        onRequestPublish={() => setPublishConfirmationSkillId(selectedSkill.id)}
-        onConfirmPublish={() => void publishSelected()}
-        onCancelPublish={() => setPublishConfirmationSkillId(null)}
-        onRequestRollback={(version) => setRollbackTarget({ skillId: selectedSkill.id, version })}
-        onConfirmRollback={() => void rollbackSelected()}
-        onCancelRollback={() => setRollbackTarget(null)}
-      />
+      <div className={styles.editorMain}>
+        <header className={styles.header}>
+          <div>
+            <p className={styles.eyebrow}>Combat Content</p>
+            <h1 id="combat-content-heading">Skill authoring</h1>
+            <div className={styles.skillIdentity}>
+              <strong>{selectedSkill.label}</strong>
+              <code>{selectedSkill.id}</code>
+            </div>
+          </div>
+          <div
+            className={styles.status}
+            data-validation-state={
+              selectedReview.validation === null
+                ? 'not-validated'
+                : selectedReview.validation.valid
+                  ? 'valid'
+                  : 'invalid'
+            }
+          >
+            <span>Validation</span>
+            <strong>
+              {selectedReview.validation === null
+                ? 'Not validated'
+                : selectedReview.validation.valid
+                  ? 'Validated'
+                  : 'Invalid'}
+            </strong>
+          </div>
+        </header>
+
+        <div className={styles.versionGrid} aria-label="Content version state">
+          <div>
+            <span>Current version</span>
+            <strong>{versionLabel('v', selectedCurrentVersion)}</strong>
+          </div>
+          <div>
+            <span>Draft version</span>
+            <strong>{versionLabel('d', selectedSkill.draftVersion)}</strong>
+          </div>
+          <div>
+            <span>Base version</span>
+            <strong>{versionLabel('v', selectedSkill.baseVersion)}</strong>
+          </div>
+        </div>
+
+        <section className={styles.workspace} aria-labelledby="draft-workspace-heading">
+          <div className={styles.workspaceHeading}>
+            <p className={styles.sectionLabel}>Draft workspace</p>
+            <h2 id="draft-workspace-heading">{selectedSkill.label}</h2>
+          </div>
+
+          {selectedDraft ? (
+            <div className={styles.authoringStack}>
+              <SkillTargetingEditor
+                value={selectedDraft.target}
+                onChange={(target) => updateSelectedDraft({ ...selectedDraft, target })}
+              />
+              <SkillEconomyEditor
+                value={{
+                  apCost: selectedDraft.apCost,
+                  mpCost: selectedDraft.mpCost,
+                  accuracyMode: selectedDraft.accuracyMode,
+                  accuracyModifierBasisPoints: selectedDraft.accuracyModifierBasisPoints,
+                }}
+                onChange={(economy: SkillEconomyDraft) =>
+                  updateSelectedDraft({ ...selectedDraft, ...economy })
+                }
+              />
+              <SkillMediaEditor
+                value={selectedDraft.media}
+                onChange={(media) => updateSelectedDraft({ ...selectedDraft, media })}
+              />
+              <SkillEffectListEditor
+                value={selectedDraft.effects}
+                onChange={(effects) => updateSelectedDraft({ ...selectedDraft, effects })}
+              />
+            </div>
+          ) : (
+            <p className={styles.placeholder}>
+              This Skill has not loaded an editable typed definition yet.
+            </p>
+          )}
+        </section>
+
+        <section className={styles.tags} aria-labelledby="derived-tags-heading">
+          <div>
+            <p className={styles.sectionLabel}>Read-only projection</p>
+            <h2 id="derived-tags-heading">Derived tags</h2>
+          </div>
+          <output className={styles.tagList} data-derived-tags="readonly">
+            {displayedTags.map((tag) => (
+              <span key={tag}>{tag}</span>
+            ))}
+          </output>
+        </section>
+
+        <CombatContentReviewPanel
+          contentKey={selectedSkill.id}
+          baseVersion={selectedCurrentVersion}
+          nextVersion={selectedNextVersion}
+          validation={selectedReview.validation}
+          diff={selectedReview.diff}
+          preview={selectedReview.preview}
+          history={selectedHistory}
+          busy={busy}
+          publishConfirmationOpen={publishConfirmationSkillId === selectedSkill.id}
+          rollbackTargetVersion={
+            rollbackTarget?.skillId === selectedSkill.id ? rollbackTarget.version : null
+          }
+          errorMessage={errors[selectedSkill.id] ?? null}
+          noticeMessage={notices[selectedSkill.id] ?? null}
+          onValidate={() => void validateSelected()}
+          onDiff={() => void diffSelected()}
+          onPreview={() => void previewSelected()}
+          onRequestPublish={() => setPublishConfirmationSkillId(selectedSkill.id)}
+          onConfirmPublish={() => void publishSelected()}
+          onCancelPublish={() => setPublishConfirmationSkillId(null)}
+          onRequestRollback={(version) => setRollbackTarget({ skillId: selectedSkill.id, version })}
+          onConfirmRollback={() => void rollbackSelected()}
+          onCancelRollback={() => setRollbackTarget(null)}
+        />
+      </div>
     </section>
   )
 }
