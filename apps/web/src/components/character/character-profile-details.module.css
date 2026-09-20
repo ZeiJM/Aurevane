@@ -219,7 +219,7 @@
   filter: drop-shadow(0 0 0.16rem color-mix(in srgb, var(--attribute-color) 70%, transparent));
 }
 
-.attributeList button > strong {
+.attributeName {
   color: color-mix(in srgb, var(--attribute-color) 74%, #172331);
   font: 600 0.92rem/1.05 var(--av-font-display);
 }
@@ -233,7 +233,7 @@
   white-space: nowrap;
 }
 
-.attributeList button > b {
+.attributeList button > strong {
   min-width: 2rem;
   color: color-mix(in srgb, var(--attribute-color) 82%, #162431);
   font: 500 1.35rem/1 var(--av-font-display);
