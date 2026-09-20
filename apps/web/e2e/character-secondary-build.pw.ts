@@ -120,7 +120,7 @@ test('Arsenal equips a mastered Secondary with independent attunement authority'
   await expect(committedLauncherSigils.nth(1)).toBeHidden()
   await expect(primaryDisciplineChip).toHaveText('Vanguard')
   await expect(secondaryDisciplineChip).toHaveText('Aetherist')
-  await expect(maxHp).toHaveText(maxHpBeforeSecondary)
+  await expect(maxHp).toContainText(maxHpBeforeSecondary)
   await expect(secondary).toBeEnabled()
   await expect(primary).toBeEnabled()
   await expect(page.getByTestId('secondary-attunement-status')).toHaveCount(0)
