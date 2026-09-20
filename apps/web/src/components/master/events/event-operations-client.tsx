@@ -762,4 +762,5 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
         </section>
       </aside>
     </section>
-  )}
+  )
+}
