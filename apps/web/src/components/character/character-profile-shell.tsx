@@ -1,5 +1,3 @@
-import Image from 'next/image'
-
 import { foundationDisciplineAttributePolicy } from '@aurevane/game-core/character/attribute-allocation'
 import type {
   CharacterAttributeId,
@@ -14,22 +12,14 @@ import type { CharacterProfileReadModel } from '@aurevane/game-core/character/pr
 import type { EssenceDefinition } from '@aurevane/game-core/combat/essence'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
 import type { ResonanceDefinition } from '@aurevane/game-core/combat/resonance'
-import { Kicker, Surface } from '@aurevane/ui'
+import { Surface } from '@aurevane/ui'
 
 import { CharacterAttributeAllocationPanel } from '@/components/character/character-attribute-allocation-panel'
-import { CharacterDisciplineBuildPanel } from '@/components/character/character-discipline-build-panel'
+import { CharacterIdentityCard } from '@/components/character/character-identity-card'
 import { CharacterProfileDetails } from '@/components/character/character-profile-details'
-import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
-import { CharacterSkillBuildPanel } from '@/components/character/character-skill-build-panel'
-import {
-  battleResonanceArtwork,
-  battleSkillArtwork,
-} from '@/components/battle/battle-skill-presentation'
 import { AuthenticatedShellFrame } from '@/components/shell/authenticated-game-shell'
-import { FoundationDisciplineSigil } from '@/components/character/foundation-discipline-sigil'
 import { getStarterPortraitImageAssetId } from '@/media/character'
 
-import { skillDisplayName } from './skill-detail-presentation'
 import styles from './character-profile-shell.module.css'
 
 interface PrimaryOption {
@@ -58,7 +48,7 @@ interface AttributeAllocationView {
   serverNow: string
 }
 
-interface CharacterProfileShellProps {
+export interface CharacterWorkspaceProps {
   profile: CharacterProfileReadModel
   attributeAllocation: AttributeAllocationView
   disciplineBuild: {
@@ -102,12 +92,6 @@ interface CharacterProfileShellProps {
   pv2TestKitEnabled?: boolean
 }
 
-interface DisciplineSummaryView {
-  id: string
-  name: string
-  summary: string
-}
-
 const DUAL_DISCIPLINE_PROFILE_SUMMARIES: Readonly<Record<string, string>> = {
   'aetherist+farstrider': 'Mobile arcane pressure with flexible positioning.',
   'aetherist+ironfist': 'Explosive arcane power backed by close-range force.',
@@ -126,12 +110,11 @@ const DUAL_DISCIPLINE_PROFILE_SUMMARIES: Readonly<Record<string, string>> = {
   'shadehand+vanguard': 'Heavy defense paired with deceptive precision.',
 }
 
-function getDisciplineProfileSummary(
-  primary: DisciplineSummaryView,
-  secondary: DisciplineSummaryView | null,
+export function characterDisciplineSummary(
+  primary: { id: string; name: string; summary: string },
+  secondary: { id: string; name: string; summary: string } | null,
 ): string {
   if (!secondary) return primary.summary
-
   const pairKey = [primary.id, secondary.id].sort().join('+')
   return (
     DUAL_DISCIPLINE_PROFILE_SUMMARIES[pairKey] ??
@@ -145,105 +128,30 @@ export function CharacterProfileShell({
   disciplineBuild,
   personalTitle = null,
   imageUrl = null,
-}: CharacterProfileShellProps) {
-  const progress = profile.progression.progress
-  const learnedSkillCatalogKey = disciplineBuild.disciplineSkills.learnedSkills
-    .map((entry) => `${entry.definition.id}@${entry.definition.contentVersion}`)
-    .sort()
-    .join(',')
-  const skillBuildKey = [
-    disciplineBuild.buildVersion,
-    disciplineBuild.current.definition.id,
-    disciplineBuild.currentSecondary?.id ?? 'pure',
-    learnedSkillCatalogKey,
-  ].join(':')
-  const essence = disciplineBuild.disciplineSkills.extensions.essence
-  const resonance = disciplineBuild.disciplineSkills.extensions.resonance
-  const disciplineSummary = getDisciplineProfileSummary(
+}: CharacterWorkspaceProps) {
+  const disciplineSummary = characterDisciplineSummary(
     disciplineBuild.current.definition,
     disciplineBuild.currentSecondary,
   )
   const attributePolicy = foundationDisciplineAttributePolicy(disciplineBuild.current.definition.id)
   const focusAttributes: readonly CharacterAttributeId[] = attributePolicy?.focusAttributes ?? []
   const buildTypeLabel = disciplineBuild.currentSecondary ? 'Hybrid Build' : 'Essence Build'
+  const maxHp = disciplineBuild.current.derived.stats.maxHp.value
+  const maxMp = disciplineBuild.current.derived.stats.maxMp.value
 
   return (
-    <AuthenticatedShellFrame sessionLabel="Character Profile">
+    <AuthenticatedShellFrame sessionLabel="Character">
       <div className={styles.layout} data-profile-workspace data-character-concept="profile">
-        <Surface
-          className={styles.characterCard}
-          tone="quiet"
-          data-av-surface="ink"
-          data-profile-identity-banner="true"
-        >
-          <header className={styles.hero} data-testid="character-profile">
-            <div className={styles.portrait}>
-              <CharacterPortraitImage
-                imageUrl={imageUrl}
-                fallbackAssetId={getStarterPortraitImageAssetId(profile.identity.portraitRef)}
-                sizes="(min-width: 1100px) 28vw, (min-width: 761px) 40vw, 100vw"
-                alt={`${profile.identity.name} portrait`}
-              />
-            </div>
-            <div className={styles.identity}>
-              <div className={styles.nameLine}>
-                <h1>{profile.identity.name}</h1>
-                <div className={styles.nameTags}>
-                  <span className={styles.disciplinePill} data-testid="primary-discipline-chip">
-                    {disciplineBuild.current.definition.name}
-                  </span>
-                  {disciplineBuild.currentSecondary ? (
-                    <span className={styles.disciplinePill} data-testid="secondary-discipline-chip">
-                      {disciplineBuild.currentSecondary.name}
-                    </span>
-                  ) : null}
-                  {personalTitle ? (
-                    <span className={styles.personalTitlePill}>{personalTitle}</span>
-                  ) : null}
-                </div>
-              </div>
-              <div className={styles.levelProgress} data-testid="level-progress">
-                <div>
-                  <span>Character Level {profile.progression.level}</span>
-                  <strong>
-                    {progress.isMaxLevel
-                      ? `${profile.progression.xp.toLocaleString('en')} XP`
-                      : `${profile.progression.xp.toLocaleString('en')} / ${progress.nextLevelThreshold?.toLocaleString('en')} XP`}
-                  </strong>
-                </div>
-                <div
-                  className={styles.track}
-                  role="progressbar"
-                  aria-label="Level progress"
-                  aria-valuemin={0}
-                  aria-valuemax={10000}
-                  aria-valuenow={progress.progressBasisPoints}
-                  aria-valuetext={
-                    progress.isMaxLevel
-                      ? 'Maximum level reached'
-                      : `${progress.progressBasisPoints / 100}% to the next level`
-                  }
-                >
-                  <span style={{ width: `${progress.progressBasisPoints / 100}%` }} />
-                </div>
-              </div>
-            </div>
-          </header>
-
-          <div className={styles.characterSummary}>
-            <p className={styles.discipline}>{disciplineSummary}</p>
-            <dl className={styles.capacity} aria-label="Battle capacity">
-              <div>
-                <dt>Maximum HP</dt>
-                <dd>{disciplineBuild.current.derived.stats.maxHp.value.toLocaleString('en')}</dd>
-              </div>
-              <div>
-                <dt>Maximum MP</dt>
-                <dd>{disciplineBuild.current.derived.stats.maxMp.value.toLocaleString('en')}</dd>
-              </div>
-            </dl>
-          </div>
-        </Surface>
+        <CharacterIdentityCard
+          profile={profile}
+          primary={disciplineBuild.current.definition}
+          secondary={disciplineBuild.currentSecondary}
+          personalTitle={personalTitle}
+          imageUrl={imageUrl}
+          disciplineSummary={disciplineSummary}
+          maxHp={maxHp}
+          maxMp={maxMp}
+        />
 
         <Surface
           className={styles.profile}
@@ -252,7 +160,11 @@ export function CharacterProfileShell({
           data-profile-sheet="true"
         >
           <header className={styles.sheetHeading}>
-            <h2>Discipline shapes what endures.</h2>
+            <div>
+              <span>Identity</span>
+              <h2>Character Overview</h2>
+            </div>
+            <small>Same soul. A wider horizon.</small>
           </header>
 
           <CharacterProfileDetails
@@ -276,114 +188,23 @@ export function CharacterProfileShell({
         </Surface>
 
         <aside
-          className={styles.sidebar}
-          data-profile-loadout="true"
-          aria-label="Combat loadout workspace"
+          className={styles.story}
+          data-testid="current-path-coming-soon"
+          aria-label="Current Path"
         >
-          <Surface className={styles.buildCard} tone="quiet" data-av-surface="ink">
-            <div className={styles.buildHeading}>
-              <Kicker marker="◇">Combat Loadout</Kicker>
-            </div>
-
-            <section className={styles.buildSection} aria-labelledby="build-disciplines-heading">
-              <div className={styles.buildSectionHeader}>
-                <strong id="build-disciplines-heading">Discipline</strong>
-              </div>
-              <div className={styles.disciplineSigils}>
-                {[disciplineBuild.current.definition, disciplineBuild.currentSecondary]
-                  .filter((entry) => entry !== null)
-                  .map((entry) => (
-                    <div key={entry.id}>
-                      <FoundationDisciplineSigil disciplineId={entry.id} />
-                      <span>{entry.name}</span>
-                    </div>
-                  ))}
-              </div>
-              <CharacterDisciplineBuildPanel
-                initialBuildVersion={disciplineBuild.buildVersion}
-                initialCurrent={disciplineBuild.current}
-                initialCurrentSecondary={disciplineBuild.currentSecondary}
-                availablePrimaries={disciplineBuild.availablePrimaries}
-                availableSecondaries={disciplineBuild.availableSecondaries}
-                initialAttunement={disciplineBuild.attunement}
-                coreAttributes={profile.attributes}
-              />
-            </section>
-
-            <section className={styles.buildSection} aria-labelledby="build-techniques-heading">
-              <div className={styles.buildSectionHeader}>
-                <strong id="build-techniques-heading">Techniques</strong>
-              </div>
-              <div className={styles.equippedSkills} aria-label="Equipped Discipline Skills">
-                {disciplineBuild.disciplineSkills.equippedSkills.map(({ definition }) => (
-                  <div key={definition.id} title={skillDisplayName(definition)}>
-                    <Image
-                      src={battleSkillArtwork(definition.id)}
-                      width={160}
-                      height={160}
-                      unoptimized
-                      alt=""
-                    />
-                    <span>{skillDisplayName(definition)}</span>
-                  </div>
-                ))}
-                {disciplineBuild.disciplineSkills.equippedSkills.length === 0 ? (
-                  <p>No Skills selected.</p>
-                ) : null}
-              </div>
-              <CharacterSkillBuildPanel
-                key={skillBuildKey}
-                characterId={attributeAllocation.characterId}
-                initialBuildVersion={disciplineBuild.buildVersion}
-                primaryDiscipline={{
-                  id: disciplineBuild.current.definition.id,
-                  name: disciplineBuild.current.definition.name,
-                }}
-                secondaryDiscipline={
-                  disciplineBuild.currentSecondary
-                    ? {
-                        id: disciplineBuild.currentSecondary.id,
-                        name: disciplineBuild.currentSecondary.name,
-                      }
-                    : null
-                }
-                initialCapacity={disciplineBuild.disciplineSkills.capacity}
-                initialLearnedSkills={disciplineBuild.disciplineSkills.learnedSkills}
-                initialEquippedSkills={disciplineBuild.disciplineSkills.equippedSkills}
-                initialResonance={resonance}
-                initialEssence={essence}
-              />
-            </section>
-
-            <section className={styles.buildIdentity} aria-label="Combat loadout identity">
-              {resonance || essence ? (
-                <span className={styles.buildIdentityArt} aria-hidden="true">
-                  <Image
-                    width={64}
-                    height={64}
-                    unoptimized
-                    src={
-                      resonance
-                        ? battleResonanceArtwork(resonance.id)
-                        : battleSkillArtwork(essence!.skill.id)
-                    }
-                    alt=""
-                  />
-                </span>
-              ) : null}
-              <div className={styles.buildIdentityCopy}>
-                <span>{resonance ? 'Resonance' : 'Essence'}</span>
-                <strong>{resonance?.name ?? essence?.name ?? 'None available'}</strong>
-                <small>
-                  {resonance?.description ??
-                    essence?.description ??
-                    (disciplineBuild.currentSecondary
-                      ? 'No authored Resonance is available for this pair yet.'
-                      : 'No authored Essence is available for this Discipline yet.')}
-                </small>
-              </div>
-            </section>
-          </Surface>
+          <div className={styles.storyArt} aria-hidden="true" />
+          <div className={styles.storyCopy}>
+            <span>Current Path</span>
+            <h2>Story Coming Soon</h2>
+            <p>
+              Your journey through Aurevane will unfold here as authored story paths become
+              available.
+            </p>
+            <button type="button" disabled>
+              View Journey
+            </button>
+            <small>New paths are not found, but remembered.</small>
+          </div>
         </aside>
       </div>
     </AuthenticatedShellFrame>

@@ -47,6 +47,22 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
     await page.setViewportSize(viewport)
     await page.goto('/game/character')
     await expect(page.getByTestId('character-profile')).toBeVisible()
+    await expect(page.locator('[data-profile-loadout]')).toHaveCount(0)
+    await expect(page.getByTestId('current-path-coming-soon')).toBeVisible()
+    await expect(
+      page.getByRole('navigation', { name: 'Primary game navigation' }).getByRole('link', {
+        name: 'Arsenal',
+        exact: true,
+      }),
+    ).toBeVisible()
+    await expect(
+      page.getByRole('navigation', { name: 'Primary game navigation' }).getByRole('button', {
+        name: 'Items',
+        exact: true,
+      }),
+    ).toHaveCount(0)
+    await expect(page.locator('[data-character-resource="hp"]')).toBeVisible()
+    await expect(page.locator('[data-character-resource="mp"]')).toBeVisible()
 
     const shell = page.getByTestId('authenticated-shell')
     const masthead = shell.locator('header').first()
@@ -123,7 +139,6 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
       const portrait = hero.querySelector('img')!
       const heading = hero.querySelector('h1')!
       const sheet = required('[data-profile-sheet]')
-      const loadout = required('[data-profile-loadout]')
       const workspace = required('[data-profile-workspace]')
       const p = rect(portrait),
         h = rect(heading)
@@ -132,14 +147,12 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
         portrait: p,
         name: h,
         sheet: rect(sheet),
-        loadout: rect(loadout),
         workspace: rect(workspace),
         overlap:
           Math.max(0, Math.min(p.right, h.right) - Math.max(p.x, h.x)) *
           Math.max(0, Math.min(p.bottom, h.bottom) - Math.max(p.y, h.y)),
         overflowX: document.documentElement.scrollWidth - window.innerWidth,
         sheetOverflowX: sheet.scrollWidth - sheet.clientWidth,
-        loadoutOverflowX: loadout.scrollWidth - loadout.clientWidth,
         primaryLinks: document.querySelectorAll('[aria-label="Primary game navigation"] a').length,
       }
     })
@@ -153,8 +166,10 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
     expect.soft(metrics.overlap, `${label}: portrait must not cover character name`).toBe(0)
     expect.soft(metrics.overflowX, `${label}: no sideways document overflow`).toBeLessThanOrEqual(1)
     expect.soft(metrics.sheetOverflowX, `${label}: no clipped sheet`).toBeLessThanOrEqual(1)
-    expect.soft(metrics.loadoutOverflowX, `${label}: no clipped loadout`).toBeLessThanOrEqual(1)
-    expect.soft(metrics.primaryLinks).toBe(3)
+    expect
+      .soft(metrics.identity.width, `${label}: identity card keeps usable width`)
+      .toBeGreaterThan(250)
+    expect.soft(metrics.primaryLinks).toBe(4)
     if (viewport.width >= 1200) {
       expect
         .soft(metrics.identity.width, `${label}: no empty full-width banner`)
@@ -165,24 +180,71 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
           `${label}: sheet starts alongside identity`,
         )
         .toBeLessThanOrEqual(2)
-      expect
-        .soft(
-          Math.abs(metrics.loadout.y - metrics.identity.y),
-          `${label}: loadout starts alongside identity`,
-        )
-        .toBeLessThanOrEqual(2)
       expect.soft(metrics.portrait.width, `${label}: readable portrait`).toBeGreaterThanOrEqual(150)
     }
     if (viewport.width <= 760) {
       expect.soft(metrics.sheet.y).toBeGreaterThanOrEqual(metrics.identity.bottom - 1)
-      expect.soft(metrics.loadout.y).toBeGreaterThanOrEqual(metrics.sheet.bottom - 1)
     }
 
-    // Reach and open every existing profile management surface, even when it needs scrolling.
+    // Profile keeps attribute management; combat build management lives on Arsenal.
+    const redistribute = page
+      .locator('section[aria-label="Attribute redistribution"] > button')
+      .first()
+    await redistribute.scrollIntoViewIfNeeded()
+    await redistribute.click()
+    const redistributionDialog = page.getByRole('dialog', {
+      name: 'Redistribute Attributes',
+      exact: true,
+    })
+    await expect(redistributionDialog).toBeVisible()
+    await redistributionDialog.getByRole('button', { name: 'Close', exact: true }).click()
+    await expect(redistributionDialog).toHaveCount(0)
+
+    await page.goto('/game/arsenal')
+    await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Arsenal', exact: true })).toBeVisible()
+    await expect(
+      page.getByRole('navigation', { name: 'Primary game navigation' }).getByRole('button', {
+        name: 'Items',
+        exact: true,
+      }),
+    ).toHaveCount(0)
+    await expect(page.locator('[data-arsenal-panel="items"]')).toBeVisible()
+    const arsenalSections = page.locator('[data-arsenal-panel]')
+    expect(await arsenalSections.count()).toBe(4)
+    const arsenalSectionMetrics = await arsenalSections.evaluateAll((nodes) =>
+      nodes.map((node) => {
+        const rect = node.getBoundingClientRect()
+        const heading = node.querySelector('header')
+        const headingRect = heading?.getBoundingClientRect()
+        return {
+          width: rect.width,
+          height: rect.height,
+          headingOverflow: heading ? heading.scrollWidth - heading.clientWidth : 0,
+          headingBottom: headingRect?.bottom ?? 0,
+        }
+      }),
+    )
+    for (const metric of arsenalSectionMetrics) {
+      expect(metric.width).toBeGreaterThan(250)
+      expect(metric.height).toBeGreaterThan(110)
+      expect(metric.headingOverflow).toBeLessThanOrEqual(1)
+    }
+    const arsenalMedia = page.locator('[data-arsenal-media="true"]')
+    expect(await arsenalMedia.count()).toBeGreaterThanOrEqual(2)
+    const arsenalMetrics = await arsenalMedia.evaluateAll((nodes) =>
+      nodes.map((node) => {
+        const rect = node.getBoundingClientRect()
+        return { width: rect.width, height: rect.height }
+      }),
+    )
+    for (const metric of arsenalMetrics) {
+      expect(Math.abs(metric.width - metric.height)).toBeLessThanOrEqual(1)
+      expect(metric.width).toBeCloseTo(56, 0)
+    }
     for (const [launcher, dialogName] of [
       ['[data-testid="primary-build-panel"] > button', 'Discipline Management'],
       ['[data-testid="skill-build-panel"] > button', 'Techniques'],
-      ['section[aria-label="Attribute redistribution"] > button', 'Redistribute Attributes'],
     ]) {
       const button = page.locator(launcher!).first()
       await button.scrollIntoViewIfNeeded()
@@ -241,6 +303,8 @@ test('a populated hybrid loadout keeps all four Techniques and management action
     password: 'Disposable-layout-review-2026!',
     characterName,
   })
+  await page.goto('/game/arsenal')
+  await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
   await page.locator('[data-testid="primary-build-panel"] > button').click()
   const management = page.getByRole('dialog', { name: 'Discipline Management', exact: true })
   await management
@@ -296,11 +360,15 @@ test('a populated hybrid loadout keeps all four Techniques and management action
   )
   await techniques.getByRole('button', { name: 'Commit Selected Techniques' }).click()
   expect((await skillsSaved).status()).toBe(200)
-  await page.goto('/game/character')
+  await page.goto('/game/arsenal')
   await expect(page.getByTestId('secondary-discipline-chip')).toHaveText('Lifebinder')
-  const loadout = page.locator('[data-profile-loadout]')
-  await expect(loadout.locator('[aria-label="Equipped Discipline Skills"] > div')).toHaveCount(4)
-  await expect(loadout.getByLabel('Combat loadout identity')).toContainText('Resonance')
+  const loadout = page.locator('[data-arsenal-workspace]')
+  await expect(loadout.locator('[aria-label="Equipped Discipline Skills"] > article')).toHaveCount(
+    4,
+  )
+  await expect(page.locator('[aria-labelledby="arsenal-attunement-heading"]')).toContainText(
+    'Resonance',
+  )
   await expect(page.getByText('Pronouns', { exact: true })).toHaveCount(0)
   const screenshot = await page.screenshot({ fullPage: true, scale: 'css' })
   const label = `profile-populated-${viewport.width}x${viewport.height}`

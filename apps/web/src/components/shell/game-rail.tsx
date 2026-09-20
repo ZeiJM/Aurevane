@@ -9,11 +9,23 @@ import styles from './authenticated-game-shell.module.css'
 
 function NavigationIcon({ name }: { name: (typeof gameNavigation)[number]['icon'] }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      data-nav-icon={name}
+      aria-hidden="true"
+    >
       {name === 'profile' ? (
         <>
           <circle cx="12" cy="7" r="3.25" />
           <path d="M5 21v-3a7 7 0 0 1 14 0v3Z" />
+        </>
+      ) : name === 'arsenal' ? (
+        <>
+          <path d="M12 3 18 5.5v5.2c0 3.7-2.4 7-6 9.3-3.6-2.3-6-5.6-6-9.3V5.5L12 3Z" />
+          <path d="m9 15 6-6M13.8 8.2l2 2M8.3 13.7l2 2" />
         </>
       ) : name === 'battle' ? (
         <>
@@ -51,7 +63,7 @@ export function GameRail({ activeSessionHref, activeSessionLabel }: GameRailProp
     >
       <nav className={styles.railNavigation} aria-label="Primary game navigation">
         {gameNavigation.map((item) => {
-          const active = pathname === item.href || pathname.startsWith(`${item.href}/`)
+          const active = pathname === item.href || pathname.startsWith(item.href + '/')
           return restricted ? (
             <button
               key={item.href}

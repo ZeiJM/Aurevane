@@ -196,6 +196,8 @@ test('desktop Profile and every Battle Hall tab fit without sacrificing readable
   await allocation.getByRole('button', { name: 'Close', exact: true }).click()
   await expect(allocation).toBeHidden()
 
+  await page.goto('/game/arsenal')
+  await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
   await page.getByTestId('primary-build-panel').getByRole('button').click()
   const disciplines = page.getByRole('dialog', { name: 'Discipline Management', exact: true })
   await expect(disciplines).toBeVisible()
@@ -229,8 +231,10 @@ test('desktop Profile and every Battle Hall tab fit without sacrificing readable
   })
   await techniques.getByRole('button', { name: 'Close', exact: true }).click()
 
-  // Very short windows may scroll, but cannot trap the Profile controls underneath the footer.
+  // Very short windows may scroll, but cannot trap the Character controls underneath the footer.
   await page.setViewportSize({ width: 1024, height: 576 })
+  await page.goto('/game/character')
+  await expect(page.getByTestId('character-profile')).toBeVisible()
   await reachable(page, page.getByRole('button', { name: 'Reset Attributes' }))
   await page.goto('/game/battle')
   await page
@@ -300,6 +304,8 @@ test('mobile build dialogs keep readable copy and reachable actions', async ({
     password: 'AurevaneTest!42',
     characterName: 'Dialog Wayfarer',
   })
+  await page.goto('/game/arsenal')
+  await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
   for (const [panel, name] of [
     ['primary-build-panel', 'Discipline Management'],
     ['skill-build-panel', 'Techniques'],
@@ -514,6 +520,8 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
     body: await page.screenshot(),
     contentType: 'image/png',
   })
+  await page.goto('/game/arsenal')
+  await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
   for (const mixed of [false, true]) {
     if (mixed) {
       const characterId = (await page.context().cookies()).find(
@@ -555,20 +563,11 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
         })
         await settle(page)
         const portrait = await hero.locator('.character-portrait-media').locator('..').boundingBox()
-        const identity = await hero.locator(':scope > div:last-child').boundingBox()
+        const identity = await hero.locator('[data-character-identity-copy]').boundingBox()
         if (!portrait || !identity) throw new Error('Profile hero geometry is unavailable')
-        const conceptProfile = await page.locator('[data-character-concept="profile"]').count()
-        if (conceptProfile === 0) {
-          expect(
-            Math.abs(portrait.y + portrait.height / 2 - identity.y - identity.height / 2),
-          ).toBeLessThanOrEqual(1)
-        } else {
-          expect(portrait.width).toBeGreaterThan(0)
-          expect(portrait.height).toBeGreaterThan(0)
-          expect(identity.x).toBeGreaterThanOrEqual(portrait.x + portrait.width - 1)
-          expect(identity.y + identity.height).toBeGreaterThan(portrait.y)
-          expect(portrait.y + portrait.height).toBeGreaterThan(identity.y)
-        }
+        expect(portrait.width).toBeGreaterThan(0)
+        expect(portrait.height).toBeGreaterThan(0)
+        expect(identity.y).toBeGreaterThanOrEqual(portrait.y + portrait.height - 1)
         await testInfo.attach(`phone-hero-${width}-${mixed}`, {
           body: await page.screenshot(),
           contentType: 'image/png',

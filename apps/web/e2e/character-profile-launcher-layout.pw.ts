@@ -11,7 +11,7 @@ function uniqueCharacterName(): string {
   return `Launcher ${letters}`
 }
 
-test('Profile build launchers stay centered and typographically matched', async ({
+test('Arsenal build launchers stay centered and typographically matched', async ({
   page,
 }, testInfo) => {
   const characterName = uniqueCharacterName()
@@ -22,42 +22,6 @@ test('Profile build launchers stay centered and typographically matched', async 
     email: `profile-launchers-${slug}-${Date.now()}@example.com`,
     password: 'Profile-launchers-2026!',
     characterName,
-  })
-
-  const disciplineLauncher = page
-    .getByTestId('primary-build-panel')
-    .getByRole('button', { name: /Manage Primary Discipline/ })
-  const techniquesLauncher = page
-    .getByTestId('skill-build-panel')
-    .getByRole('button', { name: /Manage Techniques/ })
-  const disciplineLabel = disciplineLauncher.getByText('Discipline Management', { exact: true })
-  const techniquesLabel = techniquesLauncher.locator('strong')
-
-  await expect(disciplineLauncher).toBeVisible()
-  await expect(techniquesLauncher).toBeVisible()
-  await expect(page.locator('#build-disciplines-heading')).toHaveText('Discipline')
-  await expect(page.locator('#build-techniques-heading')).toHaveText('Techniques')
-  await expect(page.getByText(/\d+ \/ \d+ tagged/)).toHaveCount(0)
-
-  const navigation = page.getByRole('navigation', {
-    name: 'Primary game navigation',
-    exact: true,
-  })
-  await expect(navigation.getByRole('link', { name: 'Profile', exact: true })).toHaveAttribute(
-    'aria-current',
-    'page',
-  )
-  await expect(navigation.getByRole('link', { name: 'Battle Hall', exact: true })).toHaveAttribute(
-    'href',
-    '/game/battle',
-  )
-  expect(
-    await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1),
-    'The profile remains within the viewport with long character names',
-  ).toBe(true)
-  await testInfo.attach(`profile-workspace-${testInfo.project.name}`, {
-    body: await page.screenshot({ fullPage: true }),
-    contentType: 'image/png',
   })
 
   const rekindling = page.getByRole('button', { name: /^Rekindling Cycle / })
@@ -73,6 +37,49 @@ test('Profile build launchers stay centered and typographically matched', async 
   const cycleDialog = page.getByRole('dialog', { name: /^Rekindling Cycle / })
   await expect(cycleDialog).toBeVisible()
   await cycleDialog.getByRole('button', { name: 'Close', exact: true }).click()
+
+  await page.goto('/game/arsenal')
+  await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
+
+  const disciplineLauncher = page
+    .getByTestId('primary-build-panel')
+    .getByRole('button', { name: /Manage Primary Discipline/ })
+  const techniquesLauncher = page
+    .getByTestId('skill-build-panel')
+    .getByRole('button', { name: /Manage Techniques/ })
+  const disciplineLabel = disciplineLauncher.getByText('Discipline Management', { exact: true })
+  const techniquesLabel = techniquesLauncher.locator('strong')
+
+  await expect(disciplineLauncher).toBeVisible()
+  await expect(techniquesLauncher).toBeVisible()
+  await expect(page.locator('#arsenal-disciplines-heading')).toHaveText('Disciplines')
+  await expect(page.locator('#arsenal-techniques-heading')).toHaveText('Techniques')
+  await expect(page.getByText(/\d+ \/ \d+ tagged/)).toHaveCount(0)
+
+  const navigation = page.getByRole('navigation', {
+    name: 'Primary game navigation',
+    exact: true,
+  })
+  await expect(navigation.getByRole('link', { name: 'Arsenal', exact: true })).toHaveAttribute(
+    'aria-current',
+    'page',
+  )
+  await expect(navigation.getByRole('link', { name: 'Character', exact: true })).toHaveAttribute(
+    'href',
+    '/game/character',
+  )
+  await expect(navigation.getByRole('link', { name: 'Battle Hall', exact: true })).toHaveAttribute(
+    'href',
+    '/game/battle',
+  )
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1),
+    'The Arsenal remains within the viewport with long character names',
+  ).toBe(true)
+  await testInfo.attach(`arsenal-workspace-${testInfo.project.name}`, {
+    body: await page.screenshot({ fullPage: true }),
+    contentType: 'image/png',
+  })
 
   const [buttonBox, labelBox] = await Promise.all([
     techniquesLauncher.boundingBox(),
@@ -95,7 +102,7 @@ test('Profile build launchers stay centered and typographically matched', async 
   const serverNavigations: string[] = []
   page.on('request', (request) => {
     const url = new URL(request.url())
-    if (url.pathname === '/game/character' && request.headers().rsc === '1') {
+    if (url.pathname === '/game/arsenal' && request.headers().rsc === '1') {
       serverNavigations.push(request.url())
     }
   })
@@ -114,6 +121,6 @@ test('Profile build launchers stay centered and typographically matched', async 
 
   expect(
     serverNavigations,
-    'Profile management panels should open without an RSC navigation',
+    'Arsenal management panels should open without an RSC navigation',
   ).toEqual([])
 })

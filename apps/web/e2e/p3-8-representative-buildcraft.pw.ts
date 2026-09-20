@@ -31,11 +31,16 @@ async function setSkill(page: Page, name: string, checked: boolean): Promise<voi
   if ((await checkbox.isChecked()) !== checked) await checkbox.click()
 }
 
-async function reloadProfile(page: Page): Promise<void> {
-  await page.reload()
+async function reloadArsenal(page: Page): Promise<void> {
+  if (new URL(page.url()).pathname.startsWith('/game/arsenal')) {
+    await page.reload()
+  } else {
+    await page.goto('/game/arsenal')
+  }
+  await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
   await expect(page.getByTestId('character-profile')).toBeVisible()
 
-  // Profile build panels intentionally persist through refresh via URL state. Confirm that
+  // Arsenal build panels intentionally persist through refresh via URL state. Confirm that
   // persisted panel is restored, then close it so the next buildcraft step can open the other
   // authoritative panel rather than clicking through a modal backdrop.
   const openDialog = page.getByRole('dialog')
@@ -77,7 +82,7 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   expect(prepared.body).toMatchObject({
     result: { masteredDisciplines: 6, learnedSkills: 16 },
   })
-  await reloadProfile(page)
+  await reloadArsenal(page)
 
   await page.getByRole('button', { name: /Manage Techniques/ }).click()
   const techniquesOverlay = page.locator('body > [data-techniques-overlay="true"]')
@@ -98,7 +103,7 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   await expect(page.getByTestId('skill-capacity')).toContainText('4 / 4')
   await page.getByRole('button', { name: 'Commit Selected Techniques' }).click()
   await expect(page.getByRole('status')).toContainText('Selected Techniques committed')
-  await reloadProfile(page)
+  await reloadArsenal(page)
 
   const disciplinePanel = page.getByTestId('primary-build-panel')
   const disciplineLauncher = disciplinePanel.getByRole('button', {
@@ -119,7 +124,7 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   await expect(disciplineDialog).toContainText('Vanguard')
   await expect(disciplineDialog).toContainText('Committed Secondary')
   await expect(disciplineDialog).toContainText('Lifebinder')
-  await reloadProfile(page)
+  await reloadArsenal(page)
 
   await page.getByRole('button', { name: /Manage Techniques/ }).click()
   const mixedCapacity = page.getByTestId('skill-capacity')
@@ -139,7 +144,7 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   await page.getByRole('button', { name: 'Commit Selected Techniques' }).click()
   await expect(page.getByRole('status')).toContainText('Selected Techniques committed')
 
-  await reloadProfile(page)
+  await reloadArsenal(page)
   await page.getByRole('button', { name: /Manage Techniques/ }).click()
   await expect(page.getByTestId('skill-capacity')).toContainText('2 / 2')
   await expect(page.getByTestId('active-resonance')).toContainText("Mercy's Edge")

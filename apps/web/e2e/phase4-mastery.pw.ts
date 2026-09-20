@@ -57,6 +57,8 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
     },
   )
   await page.reload()
+  await page.goto('/game/arsenal')
+  await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
   await page.getByRole('button', { name: /Manage Techniques/ }).click()
   const techniques = page.getByRole('dialog', { name: 'Techniques', exact: true })
   const list = page.getByTestId('learned-skill-list')
@@ -220,7 +222,8 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
     body: await page.screenshot(),
     contentType: 'image/png',
   })
-  await page.goto('/game/character')
+  await page.goto('/game/arsenal')
+  await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
   await page.getByRole('button', { name: /Manage Primary Discipline/ }).click()
   const management = page.getByRole('dialog', { name: 'Discipline Management' })
   const atlasResponse = page.waitForResponse(

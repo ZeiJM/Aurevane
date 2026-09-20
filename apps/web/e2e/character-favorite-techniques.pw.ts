@@ -16,6 +16,10 @@ function skillCard(page: Page, name: string) {
 }
 
 async function openTechniques(page: Page) {
+  if (!new URL(page.url()).pathname.startsWith('/game/arsenal')) {
+    await page.goto('/game/arsenal')
+    await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
+  }
   const dialog = page.getByRole('dialog', { name: 'Techniques' })
   if (!(await dialog.isVisible())) {
     await page.getByRole('button', { name: /Manage Techniques/ }).click()

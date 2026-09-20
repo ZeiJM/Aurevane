@@ -25,6 +25,8 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
     password: 'Phase4-disposable-browser-2026!',
     characterName: `Roster ${suffix}`,
   })
+  await page.goto('/game/arsenal')
+  await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
   await page.getByRole('button', { name: /Manage Primary Discipline/ }).click()
   const management = page.getByRole('dialog', { name: 'Discipline Management' })
   await expect(management).toBeVisible()
@@ -198,6 +200,8 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
     password: 'P4-advanced-disposable-2026!',
     characterName: `Mastery ${suffix}`,
   })
+  await page.goto('/game/arsenal')
+  await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
   await page.getByRole('button', { name: /Manage Primary Discipline/ }).click()
   const management = page.getByRole('dialog', { name: 'Discipline Management' })
   const atlasResponse = page.waitForResponse(
@@ -386,6 +390,8 @@ test('Chronist provisions its full testing library, Essence artwork and explicit
     password: 'P4-chronist-disposable-2026!',
     characterName: `Chronist ${suffix}`,
   })
+  await page.goto('/game/arsenal')
+  await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
   await page.getByRole('button', { name: /Manage Primary Discipline/ }).click()
   const management = page.getByRole('dialog', { name: 'Discipline Management' })
   await management

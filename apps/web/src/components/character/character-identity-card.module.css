@@ -1,0 +1,302 @@
+.card {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  align-content: start;
+  gap: 0.82rem;
+  padding: 1rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+  border: 1px solid var(--av-brass-500);
+  background:
+    radial-gradient(circle at 50% -8%, rgba(82, 194, 183, 0.15), transparent 34%),
+    linear-gradient(180deg, rgba(8, 20, 30, 0.99), rgba(5, 13, 21, 0.995));
+  box-shadow:
+    inset 0 0 0 1px rgba(225, 193, 124, 0.08),
+    0 0.8rem 2rem rgba(0, 0, 0, 0.16);
+  scrollbar-width: thin;
+}
+
+.card::before,
+.card::after {
+  position: absolute;
+  inset-inline: 1rem;
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, var(--av-brass-500), transparent);
+  content: '';
+}
+
+.card::before {
+  top: 0.45rem;
+}
+
+.card::after {
+  bottom: 0.45rem;
+}
+
+.portraitFrame {
+  position: relative;
+  padding: 0.52rem;
+  border: 1px solid rgba(212, 186, 130, 0.62);
+  background:
+    linear-gradient(135deg, rgba(212, 186, 130, 0.15), transparent 26%),
+    linear-gradient(315deg, rgba(212, 186, 130, 0.1), transparent 24%), rgba(7, 17, 25, 0.28);
+}
+
+.portraitFrame::before,
+.portraitFrame::after {
+  position: absolute;
+  left: 50%;
+  width: 1.1rem;
+  height: 1.1rem;
+  border: 1px solid var(--av-brass-400);
+  background: #08131d;
+  content: '';
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.portraitFrame::before {
+  top: -0.58rem;
+}
+
+.portraitFrame::after {
+  bottom: -0.58rem;
+}
+
+.portrait {
+  width: 100%;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 1px solid var(--av-gold-rule);
+  background: var(--av-ink-850);
+  box-shadow: inset 0 0 1.4rem rgba(0, 0, 0, 0.24);
+}
+
+.portrait :global(.character-portrait-media),
+.portrait :global(img) {
+  display: block;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  object-position: 50% 25%;
+}
+
+.identity {
+  display: grid;
+  min-width: 0;
+  justify-items: center;
+  gap: 0.4rem;
+  text-align: center;
+}
+
+.identity h1 {
+  max-width: 100%;
+  margin: 0.28rem 0 0;
+  color: var(--av-parchment-100);
+  font: 500 clamp(1.8rem, 2.55vw, 2.55rem) / 1.03 var(--av-font-display);
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+.motto {
+  max-width: 19rem;
+  margin: 0;
+  color: #c9c5bb;
+  font: italic 0.79rem/1.45 var(--av-font-display);
+}
+
+.tags {
+  display: flex;
+  max-width: 100%;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.34rem;
+}
+
+.tags span {
+  min-width: 0;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid rgba(212, 186, 130, 0.62);
+  color: #eee4d0;
+  background: rgba(255, 255, 255, 0.025);
+  font-size: 0.69rem;
+  overflow-wrap: anywhere;
+}
+
+.tags span[data-tone='title'] {
+  border-color: var(--av-teal);
+  color: var(--av-teal-bright);
+}
+
+.progress {
+  display: grid;
+  min-width: 0;
+  gap: 0.38rem;
+  padding-top: 0.18rem;
+}
+
+.progressLabel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.55rem;
+  align-items: center;
+  color: #eee4d0;
+  font-size: 0.75rem;
+}
+
+.progressLabel strong {
+  min-width: 0;
+}
+
+.progressLabel span {
+  color: var(--av-brass-200);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.xpTrack,
+.resource > i {
+  display: block;
+  height: 0.5rem;
+  overflow: hidden;
+  border: 1px solid rgba(212, 186, 130, 0.35);
+  border-radius: 999px;
+  background: #07111a;
+}
+
+.xpTrack > span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #d4ad67, #efd292);
+}
+
+.resources {
+  display: grid;
+  gap: 0.72rem;
+  padding-block: 0.25rem;
+}
+
+.resource {
+  display: grid;
+  min-width: 0;
+  gap: 0.34rem;
+}
+
+.resource > div {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  min-width: 0;
+  gap: 0.44rem;
+  align-items: center;
+  color: #eee4d0;
+}
+
+.resource > div > span {
+  font-size: 0.88rem;
+}
+
+.resource > div > b {
+  min-width: 0;
+  justify-self: end;
+  overflow: hidden;
+  font: 600 0.86rem/1 var(--av-font-display);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.resource > i {
+  height: 0.54rem;
+}
+
+.resource > i > span {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.resource[data-character-resource='hp'] > div > span {
+  color: #ff6c75;
+}
+
+.resource[data-character-resource='hp'] > i > span {
+  background: linear-gradient(90deg, #ff5c6c, #d93d52);
+}
+
+.resource[data-character-resource='mp'] > div > span {
+  color: #5bb7ff;
+}
+
+.resource[data-character-resource='mp'] > i > span {
+  background: linear-gradient(90deg, #43a8ff, #258bdc);
+}
+
+.summary {
+  margin: 0;
+  padding: 0.78rem 0.25rem 0;
+  border-top: 1px solid rgba(212, 186, 130, 0.34);
+  color: var(--av-text-muted);
+  font: italic 0.77rem/1.5 var(--av-font-display);
+  text-align: center;
+}
+
+.ornament {
+  justify-self: center;
+  color: var(--av-brass-300);
+  font-size: 0.78rem;
+}
+
+@media (max-width: 1199px) and (min-width: 761px) {
+  .card {
+    grid-template-columns: minmax(11.5rem, 13rem) minmax(0, 1fr);
+    align-items: start;
+    overflow: visible;
+  }
+
+  .portraitFrame {
+    grid-row: 1 / span 5;
+  }
+
+  .identity {
+    justify-items: start;
+    text-align: left;
+  }
+
+  .identity h1 {
+    font-size: clamp(1.75rem, 4vw, 2.45rem);
+    text-align: left;
+  }
+
+  .tags {
+    justify-content: flex-start;
+  }
+
+  .summary {
+    text-align: left;
+  }
+
+  .ornament {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .card {
+    padding: 0.82rem;
+    overflow: visible;
+  }
+
+  .portraitFrame {
+    width: min(18rem, 100%);
+    justify-self: center;
+  }
+
+  .identity h1 {
+    font-size: clamp(1.75rem, 9vw, 2.35rem);
+  }
+
+  .progressLabel {
+    font-size: 0.72rem;
+  }
+}

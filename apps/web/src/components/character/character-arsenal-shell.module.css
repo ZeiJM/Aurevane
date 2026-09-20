@@ -1,0 +1,453 @@
+/* composition-v3: this workspace owns desktop, narrow, and mobile composition. */
+.layout {
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  gap: 0.85rem;
+  align-content: start;
+}
+
+.arsenal {
+  min-width: 0;
+  padding: clamp(0.9rem, 1.35vw, 1.15rem);
+  border: 1px solid var(--av-gold-rule);
+  border-radius: 0;
+  color: var(--av-charcoal);
+  background:
+    radial-gradient(circle at 85% 0%, rgba(183, 147, 76, 0.08), transparent 26rem),
+    linear-gradient(180deg, rgba(255, 253, 246, 0.96), rgba(239, 235, 222, 0.98)),
+    var(--av-moonstone);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.45),
+    0 0.7rem 1.8rem rgba(4, 12, 18, 0.12);
+}
+
+.pageHeading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.9rem;
+  align-items: end;
+  padding: 0.15rem 0.25rem 0.9rem;
+  border-bottom: 1px solid var(--av-gold-rule);
+}
+
+.pageHeading > div {
+  display: grid;
+  gap: 0.12rem;
+}
+
+.pageHeading span {
+  color: #826a3d;
+  font-size: 0.64rem;
+  font-weight: 750;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.pageHeading h1 {
+  margin: 0;
+  color: #172936;
+  font: 600 clamp(1.9rem, 2.8vw, 2.7rem) / 1 var(--av-font-display);
+}
+
+.pageHeading p {
+  margin: 0.22rem 0 0;
+  color: #536877;
+  font: italic 0.88rem/1.4 var(--av-font-display);
+}
+
+.pageHeading > small {
+  max-width: 18rem;
+  color: #6b756f;
+  font: italic 0.72rem/1.45 var(--av-font-display);
+  text-align: right;
+}
+
+.topGrid,
+.bottomGrid {
+  display: grid;
+  gap: 0.85rem;
+  margin-top: 0.85rem;
+}
+
+.panel {
+  position: relative;
+  min-width: 0;
+  padding: 0.9rem;
+  overflow: hidden;
+  border: 1px solid rgba(126, 104, 68, 0.42);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.45), rgba(247, 244, 235, 0.7)),
+    rgba(255, 255, 255, 0.18);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.65);
+}
+
+.panel::before {
+  position: absolute;
+  top: 0;
+  right: 0.9rem;
+  left: 0.9rem;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(164, 132, 72, 0.5), transparent);
+  content: '';
+}
+
+.sectionHeading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.18rem 0.65rem;
+  align-items: center;
+  margin-bottom: 0.8rem;
+  min-width: 0;
+}
+
+.sectionHeading > div {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sectionHeading > div > span {
+  flex: 0 0 auto;
+  color: #8b7447;
+  font-size: 0.9rem;
+}
+
+.sectionHeading h2 {
+  min-width: 0;
+  margin: 0;
+  color: #1d3240;
+  font: 600 1.15rem/1.1 var(--av-font-display);
+}
+
+.sectionHeading small {
+  grid-column: 1 / -1;
+  color: #667783;
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1.35;
+  text-transform: none;
+}
+
+[data-arsenal-panel='techniques'] .sectionHeading small,
+[data-arsenal-panel='items'] .sectionHeading small {
+  grid-column: 2;
+  grid-row: 1;
+  color: #846e45;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.disciplineTiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+  margin-bottom: 0.75rem;
+}
+
+.disciplineTile,
+.techniqueTile,
+.emptyTechnique {
+  display: grid;
+  min-width: 0;
+  justify-items: center;
+  gap: 0.3rem;
+  text-align: center;
+}
+
+.disciplineTile {
+  align-content: start;
+  min-height: 8.2rem;
+  padding: 0.6rem 0.45rem;
+  border: 1px solid rgba(151, 127, 82, 0.22);
+  background: rgba(255, 253, 246, 0.52);
+}
+
+.disciplineTile strong,
+.techniqueTile strong {
+  color: #263a46;
+  font: 600 0.76rem/1.15 var(--av-font-display);
+}
+
+.disciplineTile p {
+  max-width: 11.5rem;
+  margin: 0;
+  color: #667783;
+  font-size: 0.67rem;
+  line-height: 1.38;
+}
+
+.mediaTile {
+  display: grid;
+  width: 3.5rem;
+  height: 3.5rem;
+  aspect-ratio: 1;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid #9f875b;
+  background: #0b1c26;
+  box-shadow: 0 0.25rem 0.7rem rgba(11, 28, 38, 0.14);
+}
+
+.mediaTile :is(img, svg) {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.disciplineTile .mediaTile :is(img, svg) {
+  padding: 0.16rem;
+  object-fit: contain;
+}
+
+.techniqueGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(4.25rem, 1fr));
+  gap: 0.65rem;
+  margin-bottom: 0.8rem;
+}
+
+.techniqueTile,
+.emptyTechnique {
+  align-content: start;
+  min-height: 5.9rem;
+  padding: 0.45rem 0.25rem;
+  border: 1px solid rgba(151, 127, 82, 0.2);
+  background: rgba(255, 253, 246, 0.48);
+}
+
+.emptyTechnique {
+  opacity: 0.62;
+}
+
+.emptyTechnique .mediaTile {
+  color: #87908e;
+  background: #d9d8d0;
+  border-style: dashed;
+  box-shadow: none;
+}
+
+.emptyTechnique .mediaTile > span {
+  font-size: 1.45rem;
+}
+
+.emptyTechnique small {
+  color: #738087;
+  font-size: 0.62rem;
+}
+
+.attunementGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.attunementCard,
+.lockedAttunement {
+  display: grid;
+  grid-template-columns: 3.5rem minmax(0, 1fr);
+  gap: 0.7rem;
+  align-items: start;
+  min-width: 0;
+  padding: 0.65rem;
+  border: 1px solid rgba(126, 104, 68, 0.32);
+  background: rgba(255, 253, 246, 0.56);
+}
+
+.attunementCard[data-active='true'] {
+  border-left: 3px solid #258e82;
+  box-shadow: inset 0.15rem 0 rgba(37, 142, 130, 0.08);
+}
+
+.attunementCard > div:last-child,
+.lockedAttunement > div:last-child {
+  display: grid;
+  min-width: 0;
+  gap: 0.2rem;
+}
+
+.attunementCard span,
+.lockedAttunement span {
+  color: #846e45;
+  font-size: 0.61rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.attunementCard strong,
+.lockedAttunement strong {
+  color: #273b47;
+  font: 600 0.92rem/1.15 var(--av-font-display);
+}
+
+.attunementCard p,
+.lockedAttunement p,
+.itemsPanel > p {
+  margin: 0;
+  color: #657783;
+  font-size: 0.69rem;
+  line-height: 1.42;
+}
+
+.lockedAttunement {
+  opacity: 0.58;
+  background: #d8d6cf;
+}
+
+.lockedAttunement .mediaTile {
+  color: #6f7474;
+  background: #aeb1ae;
+  box-shadow: none;
+}
+
+.emptyAttunement {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #657783;
+  font-style: italic;
+}
+
+.itemsPanel {
+  display: grid;
+  gap: 0.75rem;
+  align-content: start;
+  min-height: 15rem;
+  background:
+    linear-gradient(180deg, rgba(218, 220, 217, 0.72), rgba(203, 205, 201, 0.78)),
+    rgba(209, 211, 209, 0.55);
+}
+
+.itemsPanel > p {
+  font-size: 0.72rem;
+}
+
+.itemSlots {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(4rem, 1fr));
+  gap: 0.48rem;
+  padding: 0.7rem;
+  border: 1px solid #5e6668;
+  background: radial-gradient(circle at 50% 0%, rgba(90, 116, 126, 0.12), transparent 60%), #15242b;
+}
+
+.itemSlots > div {
+  display: grid;
+  min-width: 0;
+  aspect-ratio: 1;
+  place-items: center;
+  align-content: center;
+  gap: 0.18rem;
+  border: 1px solid #56646a;
+  color: #7e8789;
+  background: #172932;
+}
+
+.itemSlots > div > span {
+  font-size: 1.15rem;
+}
+
+.itemSlots small {
+  font-size: 0.58rem;
+}
+
+.itemsPanel button {
+  min-height: 2.5rem;
+  border: 1px solid #8c9290;
+  color: #707574;
+  background: #c6c8c4;
+  cursor: not-allowed;
+}
+
+@media (min-width: 1200px) {
+  .layout {
+    height: 100%;
+    grid-template-columns: clamp(18rem, 22vw, 21rem) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    align-content: stretch;
+  }
+
+  .layout > * {
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+
+  .topGrid,
+  .bottomGrid {
+    grid-template-columns: minmax(20rem, 0.95fr) minmax(28rem, 1.35fr);
+  }
+}
+
+@media (min-width: 761px) and (max-width: 1199px) {
+  .topGrid,
+  .bottomGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .attunementGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .layout {
+    gap: 0.6rem;
+  }
+
+  .arsenal {
+    padding: 0.7rem;
+  }
+
+  .pageHeading {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .pageHeading > small {
+    display: none;
+  }
+
+  .sectionHeading {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sectionHeading small,
+  [data-arsenal-panel='techniques'] .sectionHeading small,
+  [data-arsenal-panel='items'] .sectionHeading small {
+    grid-column: 1;
+    grid-row: auto;
+    white-space: normal;
+  }
+
+  .disciplineTiles,
+  .attunementGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .techniqueGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.35rem;
+  }
+
+  .mediaTile {
+    width: min(3.5rem, 18vw);
+    height: min(3.5rem, 18vw);
+  }
+
+  .attunementCard,
+  .lockedAttunement {
+    grid-template-columns: min(3.5rem, 18vw) minmax(0, 1fr);
+  }
+
+  .itemSlots {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    padding: 0.45rem;
+  }
+}

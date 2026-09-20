@@ -192,9 +192,9 @@ test('desktop Profile and all Battle Hall setups fit without clipped controls or
   await page.setViewportSize({ width: 1366, height: 768 })
   await page
     .getByRole('navigation', { name: 'Primary game navigation' })
-    .getByRole('link', { name: /^Profile/ })
+    .getByRole('link', { name: 'Arsenal', exact: true })
     .click()
-  await expect(page).toHaveURL(/\/game\/character$/)
+  await expect(page).toHaveURL(/\/game\/arsenal$/)
   for (const [panel, name] of [
     ['primary-build-panel', 'Discipline Management'],
     ['skill-build-panel', 'Techniques'],
@@ -237,7 +237,7 @@ test('mobile page panels clear the navigation bar at the end of scrolling', asyn
   test.slow()
   await enterTestCharacter(page, 'mobile-footer')
 
-  for (const path of ['/game/character', '/game/battle', '/game/training']) {
+  for (const path of ['/game/character', '/game/arsenal', '/game/battle', '/game/training']) {
     await page.goto(path)
     await expect(page.locator('#game-main')).toBeVisible()
     for (const height of [740, 620]) {
