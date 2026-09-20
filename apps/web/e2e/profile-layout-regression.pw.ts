@@ -166,7 +166,9 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
     expect.soft(metrics.overlap, `${label}: portrait must not cover character name`).toBe(0)
     expect.soft(metrics.overflowX, `${label}: no sideways document overflow`).toBeLessThanOrEqual(1)
     expect.soft(metrics.sheetOverflowX, `${label}: no clipped sheet`).toBeLessThanOrEqual(1)
-    expect.soft(metrics.identity.width, `${label}: identity card keeps usable width`).toBeGreaterThan(250)
+    expect
+      .soft(metrics.identity.width, `${label}: identity card keeps usable width`)
+      .toBeGreaterThan(250)
     expect.soft(metrics.primaryLinks).toBe(4)
     if (viewport.width >= 1200) {
       expect
