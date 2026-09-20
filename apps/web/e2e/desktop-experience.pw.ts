@@ -196,6 +196,8 @@ test('desktop Profile and every Battle Hall tab fit without sacrificing readable
   await allocation.getByRole('button', { name: 'Close', exact: true }).click()
   await expect(allocation).toBeHidden()
 
+  await page.goto('/game/arsenal')
+  await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
   await page.getByTestId('primary-build-panel').getByRole('button').click()
   const disciplines = page.getByRole('dialog', { name: 'Discipline Management', exact: true })
   await expect(disciplines).toBeVisible()
@@ -300,6 +302,8 @@ test('mobile build dialogs keep readable copy and reachable actions', async ({
     password: 'AurevaneTest!42',
     characterName: 'Dialog Wayfarer',
   })
+  await page.goto('/game/arsenal')
+  await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
   for (const [panel, name] of [
     ['primary-build-panel', 'Discipline Management'],
     ['skill-build-panel', 'Techniques'],
@@ -514,6 +518,8 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
     body: await page.screenshot(),
     contentType: 'image/png',
   })
+  await page.goto('/game/arsenal')
+  await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
   for (const mixed of [false, true]) {
     if (mixed) {
       const characterId = (await page.context().cookies()).find(
