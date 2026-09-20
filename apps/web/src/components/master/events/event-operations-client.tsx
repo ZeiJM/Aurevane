@@ -558,7 +558,7 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
                         onClick={() => void completeCleanup(cleanup.phaseId, cleanup.effectOrdinal)}
                         disabled={busy || !operationReady}
                       >
-                        Confirm cleanup
+                        Confirm cleanup completed
                       </button>
                     ) : (
                       <small>{when(cleanup.completedAt)}</small>
