@@ -21,11 +21,13 @@ import styles from './character-arsenal-shell.module.css'
 
 const disciplineConceptCopy: Readonly<Record<string, { description: string; label: string }>> = {
   runeblade: {
-    description: 'Harness ancient marks and turn precision into power. Cut through what others cannot.',
+    description:
+      'Harness ancient marks and turn precision into power. Cut through what others cannot.',
     label: 'Discipline of Marks',
   },
   lifebinder: {
-    description: 'Draw life, sustain allies, and shape a stronger tomorrow. What you protect persists.',
+    description:
+      'Draw life, sustain allies, and shape a stronger tomorrow. What you protect persists.',
     label: 'Discipline of Life',
   },
 }
@@ -135,7 +137,11 @@ export function CharacterArsenalShell({
               {disciplines.map((entry) => {
                 const concept = disciplineConceptCopy[entry.id]
                 return (
-                  <article className={styles.disciplineRow} key={entry.id} data-discipline={entry.id}>
+                  <article
+                    className={styles.disciplineRow}
+                    key={entry.id}
+                    data-discipline={entry.id}
+                  >
                     <div className={styles.mediaTile} data-arsenal-media="true">
                       <FoundationDisciplineSigil disciplineId={entry.id} />
                     </div>
@@ -176,7 +182,8 @@ export function CharacterArsenalShell({
                 <h2 id="arsenal-techniques-heading">Techniques</h2>
               </div>
               <small>
-                Active Techniques {disciplineBuild.disciplineSkills.equippedSkills.length} / {slotCount}
+                Active Techniques {disciplineBuild.disciplineSkills.equippedSkills.length} /{' '}
+                {slotCount}
               </small>
             </header>
 
