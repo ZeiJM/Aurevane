@@ -231,8 +231,10 @@ test('desktop Profile and every Battle Hall tab fit without sacrificing readable
   })
   await techniques.getByRole('button', { name: 'Close', exact: true }).click()
 
-  // Very short windows may scroll, but cannot trap the Profile controls underneath the footer.
+  // Very short windows may scroll, but cannot trap the Character controls underneath the footer.
   await page.setViewportSize({ width: 1024, height: 576 })
+  await page.goto('/game/character')
+  await expect(page.getByTestId('character-profile')).toBeVisible()
   await reachable(page, page.getByRole('button', { name: 'Reset Attributes' }))
   await page.goto('/game/battle')
   await page
