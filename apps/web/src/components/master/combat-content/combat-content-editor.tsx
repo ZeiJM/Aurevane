@@ -453,7 +453,10 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
 
       <div className={styles.editorMain}>
         <header className={styles.header}>
-          <div>
+          <div className={styles.skillGlyph} aria-hidden="true">
+            ⚔
+          </div>
+          <div className={styles.headerIdentity}>
             <p className={styles.eyebrow}>Combat Content</p>
             <h1 id="combat-content-heading">Skill authoring</h1>
             <div className={styles.skillIdentity}>
@@ -481,6 +484,12 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
             </strong>
           </div>
         </header>
+
+        <nav className={styles.workspaceTabs} aria-label="Combat Content workspace">
+          <a href="#draft-workspace-heading">Author</a>
+          <a href="#combat-review">Preview &amp; review</a>
+          <a href="#combat-history">History</a>
+        </nav>
 
         <div className={styles.versionGrid} aria-label="Content version state">
           <div>

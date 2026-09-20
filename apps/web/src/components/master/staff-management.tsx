@@ -70,6 +70,10 @@ export function StaffManagement({ staff, roleOptions, capabilityOptions }: Staff
   )
 
   const selectedStaff = staffByUserId.get(selectedUserId) ?? staff[0] ?? null
+  const activeTarget = resolved ?? selectedStaff
+  const activeStaff = activeTarget ? staffByUserId.get(activeTarget.userId) : null
+  const activeRoles = activeStaff?.roles ?? []
+  const activeCapabilities = activeStaff?.specialCapabilities ?? []
   const canMutate = confirmed && reason.trim() === reason && reason.length >= 3
 
   async function post(body: Record<string, unknown>): Promise<unknown> {
@@ -159,7 +163,11 @@ export function StaffManagement({ staff, roleOptions, capabilityOptions }: Staff
               const operation = active ? 'revoke-role' : 'grant-role'
               const actionKey = [operation, member.userId, option.id].join(':')
               return (
-                <div className={styles.controlRow} key={option.id}>
+                <div
+                  className={styles.controlRow}
+                  data-active={active || undefined}
+                  key={option.id}
+                >
                   <div>
                     <strong>{option.label}</strong>
                     <span>{option.description}</span>
@@ -197,7 +205,11 @@ export function StaffManagement({ staff, roleOptions, capabilityOptions }: Staff
               const operation = active ? 'revoke-capability' : 'grant-capability'
               const actionKey = [operation, member.userId, option.id].join(':')
               return (
-                <div className={styles.controlRow} key={option.id}>
+                <div
+                  className={styles.controlRow}
+                  data-active={active || undefined}
+                  key={option.id}
+                >
                   <div>
                     <strong>{option.label}</strong>
                     <span>{option.description}</span>
@@ -222,10 +234,14 @@ export function StaffManagement({ staff, roleOptions, capabilityOptions }: Staff
     <div className={styles.layout}>
       <aside className={styles.rosterPane}>
         <section className={styles.lookup}>
-          <div>
-            <h2>Find account</h2>
-            <p>Resolve one exact account email without exposing a player directory.</p>
+          <div className={styles.navigatorHeading}>
+            <div>
+              <p className={styles.kicker}>Staff directory</p>
+              <h2>Staff members</h2>
+            </div>
+            <span>{staff.length}</span>
           </div>
+          <p>Find an exact account or select an existing staff member.</p>
           <div className={styles.lookupForm}>
             <label>
               <span>Account email</span>
@@ -248,12 +264,10 @@ export function StaffManagement({ staff, roleOptions, capabilityOptions }: Staff
         </section>
 
         <section className={styles.staffList} aria-label="Current staff">
-          <div className={styles.sectionHeading}>
-            <div>
-              <h2>Staff members</h2>
-              <p>Owner and delegated staff accounts.</p>
-            </div>
-            <span>{staff.length}</span>
+          <div className={styles.rosterFilters} aria-label="Staff filters">
+            <span>All</span>
+            <span>Owner</span>
+            <span>Staff</span>
           </div>
 
           <div className={styles.rosterList}>
@@ -271,6 +285,9 @@ export function StaffManagement({ staff, roleOptions, capabilityOptions }: Staff
                     setResolved(null)
                   }}
                 >
+                  <span className={styles.rosterGlyph} aria-hidden="true">
+                    {owner ? '♛' : '✦'}
+                  </span>
                   <span className={styles.rosterIdentity}>
                     <strong>{member.email ?? 'Account email unavailable'}</strong>
                     <small>{owner ? 'WORLDWRIGHT · GAME OWNER' : 'Staff account'}</small>
@@ -278,7 +295,6 @@ export function StaffManagement({ staff, roleOptions, capabilityOptions }: Staff
                   <span className={styles.rosterAuthority}>
                     {member.roles[0]?.replaceAll('-', ' ') ?? 'capability-only'}
                   </span>
-                  <span className={styles.rosterVersion}>v{member.accessVersion}</span>
                 </button>
               )
             })}
@@ -286,37 +302,7 @@ export function StaffManagement({ staff, roleOptions, capabilityOptions }: Staff
         </section>
       </aside>
 
-      <div className={styles.detailPane}>
-        <section className={styles.guardrail}>
-          <div className={styles.guardrailHeading}>
-            <div>
-              <h2>Authority confirmation</h2>
-              <p>Required for every live staff authority mutation.</p>
-            </div>
-            <span>Audit enforced</span>
-          </div>
-          <div className={styles.guardrailFields}>
-            <label>
-              <span>Reason</span>
-              <textarea
-                maxLength={240}
-                onChange={(event) => setReason(event.target.value)}
-                placeholder="Why is this authority required or being removed?"
-                rows={2}
-                value={reason}
-              />
-            </label>
-            <label className={styles.confirmation}>
-              <input
-                checked={confirmed}
-                onChange={(event) => setConfirmed(event.target.checked)}
-                type="checkbox"
-              />
-              <span>Confirm live authority change</span>
-            </label>
-          </div>
-        </section>
-
+      <section className={styles.authorityWorkspace}>
         {error ? (
           <p className={styles.error} role="alert">
             {error}
@@ -330,18 +316,30 @@ export function StaffManagement({ staff, roleOptions, capabilityOptions }: Staff
 
         {resolved ? (
           <article className={styles.resolved}>
-            <header>
+            <header className={styles.accountHeader}>
+              <div className={styles.accountGlyph} aria-hidden="true">
+                ✦
+              </div>
               <div>
                 <span>Resolved account</span>
                 <strong>{resolved.email}</strong>
+                <small>New or existing staff target</small>
               </div>
-              <span>New or existing staff target</span>
             </header>
+            <nav className={styles.workspaceTabs} aria-label="Staff workspace">
+              <span>Role &amp; capabilities</span>
+              <span>Profile</span>
+              <span>Notes</span>
+              <span>History</span>
+            </nav>
             {controlsFor(resolved)}
           </article>
         ) : selectedStaff ? (
           <article className={styles.staffCard}>
-            <header>
+            <header className={styles.accountHeader}>
+              <div className={styles.accountGlyph} aria-hidden="true">
+                {selectedStaff.roles.includes('game-owner') ? '♛' : '✦'}
+              </div>
               <div>
                 <span>
                   {selectedStaff.roles.includes('game-owner')
@@ -349,9 +347,16 @@ export function StaffManagement({ staff, roleOptions, capabilityOptions }: Staff
                     : 'Staff account'}
                 </span>
                 <strong>{selectedStaff.email ?? 'Account email unavailable'}</strong>
+                <small>Access v{selectedStaff.accessVersion}</small>
               </div>
-              <span>Access v{selectedStaff.accessVersion}</span>
             </header>
+
+            <nav className={styles.workspaceTabs} aria-label="Staff workspace">
+              <span data-active="true">Role &amp; capabilities</span>
+              <span>Profile</span>
+              <span>Notes</span>
+              <span>History</span>
+            </nav>
 
             <div className={styles.chips} aria-label="Current authority">
               {selectedStaff.roles.map((role) => (
@@ -370,7 +375,75 @@ export function StaffManagement({ staff, roleOptions, capabilityOptions }: Staff
             <p>Choose a staff member or resolve an exact account email.</p>
           </section>
         )}
-      </div>
+      </section>
+
+      <aside className={styles.authorityDock}>
+        <section className={styles.statusCard}>
+          <div className={styles.dockHeading}>
+            <h2>Account status</h2>
+            <span>{activeTarget ? 'Active' : 'No selection'}</span>
+          </div>
+          <dl>
+            <div>
+              <dt>Account</dt>
+              <dd>{activeTarget?.email ?? '—'}</dd>
+            </div>
+            <div>
+              <dt>Roles</dt>
+              <dd>{activeRoles.length}</dd>
+            </div>
+            <div>
+              <dt>Capabilities</dt>
+              <dd>{activeCapabilities.length}</dd>
+            </div>
+            <div>
+              <dt>Access version</dt>
+              <dd>{activeStaff ? `v${activeStaff.accessVersion}` : '—'}</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section className={styles.guardrail}>
+          <div className={styles.guardrailHeading}>
+            <div>
+              <h2>Safety &amp; confirmation</h2>
+              <p>Every live authority mutation requires an explicit reason and confirmation.</p>
+            </div>
+            <span>Audit enforced</span>
+          </div>
+          <div className={styles.guardrailFields}>
+            <label>
+              <span>Reason</span>
+              <textarea
+                maxLength={240}
+                onChange={(event) => setReason(event.target.value)}
+                placeholder="Why is this authority required or being removed?"
+                rows={3}
+                value={reason}
+              />
+            </label>
+            <label className={styles.confirmation}>
+              <input
+                checked={confirmed}
+                onChange={(event) => setConfirmed(event.target.checked)}
+                type="checkbox"
+              />
+              <span>Confirm live authority change</span>
+            </label>
+          </div>
+        </section>
+
+        <section className={styles.auditCard}>
+          <div className={styles.dockHeading}>
+            <h2>Authority guardrails</h2>
+            <span>Server enforced</span>
+          </div>
+          <p>
+            Roles stay fixed to the approved staff model. Special capabilities only augment
+            delegated roles, and the protected Game Owner identity cannot be mutated here.
+          </p>
+        </section>
+      </aside>
     </div>
   )
 }

@@ -75,24 +75,36 @@ export function CombatContentReviewPanel({
     .sort((left, right) => right.contentVersion - left.contentVersion)[0]
 
   return (
-    <section className={styles.reviewPanel} aria-labelledby="combat-review-heading">
-      <header className={styles.reviewHeader}>
-        <div>
-          <p className={styles.sectionLabel}>Authoritative review</p>
-          <h2 id="combat-review-heading">Validate, diff, preview, publish</h2>
+    <section
+      className={styles.reviewPanel}
+      id="combat-review"
+      aria-labelledby="combat-review-heading"
+    >
+      <section className={styles.publicationCard}>
+        <div className={styles.reviewHeader}>
+          <div>
+            <p className={styles.sectionLabel}>Publication status</p>
+            <h2 id="combat-review-heading">Authoritative review</h2>
+          </div>
+          <span className={styles.publicationPill}>
+            {history.find((entry) => entry.current) ? `v${baseVersion}` : 'Static'}
+          </span>
         </div>
-        <div
-          className={styles.reviewState}
-          data-review-state={
-            validation === null ? 'not-validated' : validation.valid ? 'valid' : 'invalid'
-          }
-        >
-          <span>Validation</span>
-          <strong>
-            {validation === null ? 'Not validated' : validation.valid ? 'Validated' : 'Invalid'}
-          </strong>
-        </div>
-      </header>
+        <dl className={styles.publicationFacts}>
+          <div>
+            <dt>Current</dt>
+            <dd>v{baseVersion}</dd>
+          </div>
+          <div>
+            <dt>Next publish</dt>
+            <dd>v{nextVersion}</dd>
+          </div>
+          <div>
+            <dt>History</dt>
+            <dd>{history.length} versions</dd>
+          </div>
+        </dl>
+      </section>
 
       {errorMessage ? (
         <p className={styles.workflowError} role="alert">
@@ -105,44 +117,66 @@ export function CombatContentReviewPanel({
         </p>
       ) : null}
 
-      <div className={styles.reviewActions}>
-        <button type="button" disabled={busy} onClick={onValidate}>
-          Validate
-        </button>
-        <button type="button" disabled={!canDiff} onClick={onDiff}>
-          Diff
-        </button>
-        <button type="button" disabled={!canPreview} onClick={onPreview}>
-          Preview
-        </button>
-        <button type="button" disabled={!canPublish} onClick={onRequestPublish}>
-          Publish
-        </button>
-        <button
-          type="button"
-          disabled={busy || !defaultRollback}
-          onClick={() => defaultRollback && onRequestRollback(defaultRollback.contentVersion)}
-        >
-          Rollback
-        </button>
-      </div>
+      <section className={styles.validationCard}>
+        <div className={styles.dockHeading}>
+          <div>
+            <p className={styles.sectionLabel}>Validation</p>
+            <strong>
+              {validation === null ? 'Not validated' : validation.valid ? 'Valid' : 'Invalid'}
+            </strong>
+          </div>
+          <div
+            className={styles.reviewState}
+            data-review-state={
+              validation === null ? 'not-validated' : validation.valid ? 'valid' : 'invalid'
+            }
+          >
+            <span>{validation?.valid ? '✓' : validation === null ? '○' : '!'}</span>
+          </div>
+        </div>
 
-      {validation && !validation.valid ? (
-        <section className={styles.reviewBlock} aria-label="Validation issues">
-          <h3>Validation issues</h3>
-          <ul>
-            {validation.issues.map((issue, index) => (
-              <li key={`${issue.path}:${issue.code}:${index}`}>
-                <code>{issue.path}</code> — {issue.message}
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
+        <div className={styles.reviewActions}>
+          <button type="button" disabled={busy} onClick={onValidate}>
+            Validate
+          </button>
+          <button type="button" disabled={!canDiff} onClick={onDiff}>
+            Diff
+          </button>
+          <button type="button" disabled={!canPreview} onClick={onPreview}>
+            Preview
+          </button>
+          <button type="button" disabled={!canPublish} onClick={onRequestPublish}>
+            Publish
+          </button>
+          <button
+            type="button"
+            disabled={busy || !defaultRollback}
+            onClick={() => defaultRollback && onRequestRollback(defaultRollback.contentVersion)}
+          >
+            Rollback
+          </button>
+        </div>
+
+        {validation && !validation.valid ? (
+          <section className={styles.reviewBlock} aria-label="Validation issues">
+            <h3>Validation issues</h3>
+            <ul>
+              {validation.issues.map((issue, index) => (
+                <li key={`${issue.path}:${issue.code}:${index}`}>
+                  <code>{issue.path}</code> — {issue.message}
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+      </section>
 
       {diff ? (
         <section className={styles.reviewBlock} aria-label="Semantic diff">
-          <h3>Semantic diff</h3>
+          <div className={styles.dockHeading}>
+            <h3>Semantic diff</h3>
+            <span>{diff.changedPaths.length}</span>
+          </div>
           {diff.changedPaths.length > 0 ? (
             <ul>
               {diff.changedPaths.map((path) => (
@@ -159,7 +193,10 @@ export function CombatContentReviewPanel({
 
       {preview ? (
         <section className={styles.reviewBlock} aria-label="Deterministic preview">
-          <h3>Deterministic preview</h3>
+          <div className={styles.dockHeading}>
+            <h3>Deterministic preview</h3>
+            <span>{preview.legal === false ? 'Illegal' : 'Legal'}</span>
+          </div>
           <dl className={styles.previewFacts}>
             <div>
               <dt>Legality</dt>
@@ -217,10 +254,17 @@ export function CombatContentReviewPanel({
         </section>
       ) : null}
 
-      <section className={styles.history} aria-labelledby="version-history-heading">
-        <div>
-          <p className={styles.sectionLabel}>Immutable publication record</p>
-          <h3 id="version-history-heading">Version history</h3>
+      <section
+        className={styles.history}
+        aria-labelledby="version-history-heading"
+        id="combat-history"
+      >
+        <div className={styles.dockHeading}>
+          <div>
+            <p className={styles.sectionLabel}>Recent history</p>
+            <h3 id="version-history-heading">Version history</h3>
+          </div>
+          <span>{history.length}</span>
         </div>
         <div className={styles.historyList}>
           {[...history]

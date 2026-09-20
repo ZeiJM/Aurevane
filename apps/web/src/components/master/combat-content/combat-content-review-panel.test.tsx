@@ -90,7 +90,7 @@ describe('Master Panel combat content review panel', () => {
       }),
     )
 
-    expect(markup).toContain('Validated')
+    expect(markup).toContain('Valid')
     expect(markup).toContain('apCost')
     expect(markup).toContain('effects')
     expect(markup).toContain('40 AP')
