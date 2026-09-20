@@ -313,4 +313,5 @@ export function CombatContentReviewPanel({
         </section>
       ) : null}
     </section>
-  )}
+  )
+}
