@@ -49,9 +49,9 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
     await expect(page.getByTestId('character-profile')).toBeVisible()
     await expect(page.locator('[data-profile-loadout]')).toHaveCount(0)
     await expect(page.getByRole('heading', { name: 'Identity', exact: true })).toBeVisible()
-    await expect(page.getByRole('heading', { name: 'Character Overview', exact: true })).toHaveCount(
-      0,
-    )
+    await expect(
+      page.getByRole('heading', { name: 'Character Overview', exact: true }),
+    ).toHaveCount(0)
     await expect(page.getByTestId('current-path-coming-soon')).toBeVisible()
     await expect(
       page.getByRole('navigation', { name: 'Primary game navigation' }).getByRole('link', {
@@ -178,16 +178,16 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
     expect
       .soft(metrics.identity.width, `${label}: identity card keeps usable width`)
       .toBeGreaterThan(250)
-    expect.soft(metrics.identityOverflowY, `${label}: no identity-card scrollbar`).not.toMatch(
-      /auto|scroll/,
-    )
-    expect.soft(metrics.sheetOverflowY, `${label}: no profile-sheet scrollbar`).not.toMatch(
-      /auto|scroll/,
-    )
+    expect
+      .soft(metrics.identityOverflowY, `${label}: no identity-card scrollbar`)
+      .not.toMatch(/auto|scroll/)
+    expect
+      .soft(metrics.sheetOverflowY, `${label}: no profile-sheet scrollbar`)
+      .not.toMatch(/auto|scroll/)
     expect.soft(metrics.portraitFrameBefore, `${label}: no black top diamond ornament`).toBe('none')
-    expect.soft(metrics.portraitFrameAfter, `${label}: no black bottom diamond ornament`).toBe(
-      'none',
-    )
+    expect
+      .soft(metrics.portraitFrameAfter, `${label}: no black bottom diamond ornament`)
+      .toBe('none')
     expect.soft(metrics.primaryLinks).toBe(4)
     if (viewport.width >= 1200) {
       expect
@@ -238,9 +238,9 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
     ).not.toMatch(/auto|scroll/)
     const arsenalSheet = page.locator('[data-arsenal-sheet="true"]')
     await expect(arsenalSheet).toBeVisible()
-    expect(await arsenalSheet.evaluate((element) => getComputedStyle(element).overflowY)).not.toMatch(
-      /auto|scroll/,
-    )
+    expect(
+      await arsenalSheet.evaluate((element) => getComputedStyle(element).overflowY),
+    ).not.toMatch(/auto|scroll/)
     const arsenalSections = page.locator('[data-arsenal-panel]')
     expect(await arsenalSections.count()).toBe(4)
     const arsenalSectionMetrics = await arsenalSections.evaluateAll((nodes) =>
@@ -267,7 +267,9 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
     const techniqueChrome = await techniqueCards.evaluateAll((cards) =>
       cards.map((card) => {
         const cardRect = card.getBoundingClientRect()
-        const media = card.querySelector('[data-arsenal-media="true"], [data-arsenal-empty-media="true"]')
+        const media = card.querySelector(
+          '[data-arsenal-media="true"], [data-arsenal-empty-media="true"]',
+        )
         const mediaRect = media?.getBoundingClientRect()
         return {
           extraWidth: mediaRect ? cardRect.width - mediaRect.width : 0,
