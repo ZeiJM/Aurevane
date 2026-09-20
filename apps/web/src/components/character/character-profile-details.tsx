@@ -244,9 +244,9 @@ export function CharacterProfileDetails({
                     alt=""
                   />
                 </span>
-                <strong>{attributeLabels[attributeId]}</strong>
+                <span className={styles.attributeName}>{attributeLabels[attributeId]}</span>
                 <em>{attributeDescriptions[attributeId]}</em>
-                <b>{attributes[attributeId]}</b>
+                <strong>{attributes[attributeId]}</strong>
               </button>
             )
           })}
