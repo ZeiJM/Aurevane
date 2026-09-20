@@ -69,7 +69,12 @@ export function CharacterArsenalShell({
           maxMp={maxMp}
         />
 
-        <Surface className={styles.arsenal} tone="elevated" data-av-surface="moonstone">
+        <Surface
+          className={styles.arsenal}
+          tone="elevated"
+          data-av-surface="moonstone"
+          data-arsenal-sheet="true"
+        >
           <header className={styles.pageHeading}>
             <div>
               <span>Combat preparation</span>
