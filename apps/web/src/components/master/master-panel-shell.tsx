@@ -57,11 +57,7 @@ const masterNavigation = [
   },
 ] as const satisfies readonly {
   id: MasterPanelSection
-  href:
-    | '/master/combat-content'
-    | '/master/staff'
-    | '/master/events'
-    | '/master/events/live'
+  href: '/master/combat-content' | '/master/staff' | '/master/events' | '/master/events/live'
   label: string
   detail: string
   icon: string
