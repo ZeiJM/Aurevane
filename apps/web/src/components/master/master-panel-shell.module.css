@@ -174,8 +174,7 @@
   border-left-color: var(--av-teal-bright);
   color: var(--av-teal-bright);
   background:
-    linear-gradient(90deg, rgba(28, 110, 116, 0.42), rgba(10, 27, 38, 0.54)),
-    rgba(8, 18, 28, 0.88);
+    linear-gradient(90deg, rgba(28, 110, 116, 0.42), rgba(10, 27, 38, 0.54)), rgba(8, 18, 28, 0.88);
 }
 
 .railIcon {
@@ -271,7 +270,12 @@
   z-index: -2;
   inset: 0;
   background:
-    linear-gradient(90deg, rgba(4, 12, 20, 0.97) 0 42%, rgba(4, 12, 20, 0.72) 74%, rgba(4, 12, 20, 0.88) 100%),
+    linear-gradient(
+      90deg,
+      rgba(4, 12, 20, 0.97) 0 42%,
+      rgba(4, 12, 20, 0.72) 74%,
+      rgba(4, 12, 20, 0.88) 100%
+    ),
     linear-gradient(180deg, rgba(4, 12, 20, 0.18), rgba(4, 12, 20, 0.9));
 }
 
