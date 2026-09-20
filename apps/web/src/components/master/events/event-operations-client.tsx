@@ -544,9 +544,7 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
                   {cleanupCompleted}/{dashboard.cleanupRequirements.length}
                 </span>
               </div>
-              {dashboard.cleanupRequirements.length === 0 ? (
-                <p>No cleanup requirements.</p>
-              ) : null}
+              {dashboard.cleanupRequirements.length === 0 ? <p>No cleanup requirements.</p> : null}
               <div className={styles.itemList}>
                 {dashboard.cleanupRequirements.map((cleanup) => (
                   <div key={`${cleanup.phaseId}-${cleanup.effectOrdinal}`}>
