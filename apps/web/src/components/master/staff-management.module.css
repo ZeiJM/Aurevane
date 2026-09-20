@@ -1,91 +1,293 @@
 .layout {
   display: grid;
-  gap: var(--av-space-4);
+  grid-template-columns: minmax(17rem, 0.78fr) minmax(0, 1.72fr);
+  gap: 0.75rem;
+  align-items: start;
 }
 
-.guardrail,
+.rosterPane,
+.detailPane {
+  display: grid;
+  min-width: 0;
+  gap: 0.75rem;
+}
+
 .lookup,
-.staffCard {
-  padding: clamp(1rem, 2vw, 1.5rem);
+.staffList,
+.guardrail,
+.staffCard,
+.resolved,
+.emptyState {
   border: 1px solid var(--av-border);
-  border-radius: var(--av-radius-lg);
-  background: rgba(10, 13, 19, 0.9);
+  border-radius: var(--av-radius-md);
+  background:
+    linear-gradient(180deg, rgba(12, 24, 34, 0.88), rgba(7, 14, 22, 0.93)),
+    var(--av-ink-900);
+}
+
+.lookup,
+.guardrail,
+.staffCard,
+.resolved,
+.emptyState {
+  padding: 0.85rem;
+}
+
+.lookup {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.lookup h2,
+.staffList h2,
+.guardrail h2,
+.controlGroup h4,
+.emptyState h2 {
+  margin: 0;
+  color: var(--av-parchment-100);
+  font-family: var(--av-font-display);
+  font-weight: 520;
+}
+
+.lookup h2,
+.staffList h2,
+.guardrail h2,
+.emptyState h2 {
+  font-size: 1rem;
+}
+
+.lookup p,
+.sectionHeading p,
+.guardrailHeading p,
+.controlGroup > p,
+.ownerNote,
+.emptyState p {
+  margin: 0;
+  color: var(--av-text-dim);
+  font-size: 0.68rem;
+  line-height: 1.5;
+}
+
+.lookupForm {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.55rem;
+  align-items: end;
+}
+
+.lookupForm label,
+.guardrailFields label {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.lookupForm label > span,
+.guardrailFields label > span {
+  color: var(--av-text-dim);
+  font: 650 0.56rem/1.2 var(--av-font-body);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.lookupForm input,
+.guardrail textarea {
+  width: 100%;
+  min-height: 2.35rem;
+  padding: 0.52rem 0.62rem;
+  border: 1px solid var(--av-border-strong);
+  border-radius: var(--av-radius-sm);
+  background: rgba(3, 10, 17, 0.86);
+  color: var(--av-text);
+  font: inherit;
+}
+
+.guardrail textarea {
+  min-height: 3.75rem;
+  resize: vertical;
+}
+
+.lookupForm button,
+.controlRow button {
+  min-height: 2.35rem;
+  padding: 0.52rem 0.72rem;
+  border: 1px solid var(--av-border-strong);
+  border-radius: var(--av-radius-sm);
+  background: rgba(185, 154, 92, 0.07);
+  color: var(--av-text-muted);
+  font: 700 0.62rem/1 var(--av-font-body);
+  cursor: pointer;
+}
+
+.lookupForm button:hover:not(:disabled),
+.controlRow button:hover:not(:disabled) {
+  border-color: rgba(205, 169, 96, 0.55);
+  color: var(--av-brass-200);
+  background: rgba(185, 154, 92, 0.12);
+}
+
+.lookupForm button:disabled,
+.controlRow button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.staffList {
+  display: grid;
+  overflow: hidden;
+}
+
+.sectionHeading {
+  display: flex;
+  gap: 0.7rem;
+  align-items: end;
+  justify-content: space-between;
+  padding: 0.75rem 0.8rem;
+  border-bottom: 1px solid var(--av-border);
+}
+
+.sectionHeading > div {
+  display: grid;
+  gap: 0.18rem;
+}
+
+.sectionHeading > span {
+  color: var(--av-brass-300);
+  font: 700 0.58rem/1 var(--av-font-body);
+}
+
+.rosterList {
+  display: grid;
+  max-height: min(58vh, 35rem);
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+.rosterRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 0.55rem;
+  align-items: center;
+  min-width: 0;
+  padding: 0.65rem 0.75rem;
+  border: 0;
+  border-bottom: 1px solid rgba(215, 187, 127, 0.08);
+  border-left: 3px solid transparent;
+  color: var(--av-text-muted);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rosterRow:hover,
+.rosterRow:focus-visible {
+  background: rgba(185, 154, 92, 0.045);
+}
+
+.rosterRow[data-selected='true'] {
+  border-left-color: var(--av-teal-bright);
+  background:
+    linear-gradient(90deg, rgba(23, 100, 106, 0.35), rgba(8, 18, 28, 0.6)),
+    rgba(255, 255, 255, 0.015);
+}
+
+.rosterIdentity {
+  display: grid;
+  min-width: 0;
+  gap: 0.12rem;
+}
+
+.rosterIdentity strong {
+  overflow: hidden;
+  color: var(--av-text);
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rosterIdentity small {
+  overflow: hidden;
+  color: var(--av-text-dim);
+  font-size: 0.54rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rosterAuthority,
+.rosterVersion {
+  color: var(--av-text-dim);
+  font: 650 0.54rem/1.2 var(--av-font-body);
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.rosterAuthority {
+  padding: 0.28rem 0.42rem;
+  border: 1px solid var(--av-border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.025);
 }
 
 .guardrail {
   display: grid;
-  gap: var(--av-space-3);
+  gap: 0.65rem;
   border-color: var(--av-border-strong);
 }
 
-.guardrail h2,
-.lookup h2,
-.staffList h2,
-.controlGroup h4 {
-  margin: 0;
-  font-family: var(--av-font-display);
-  font-weight: 550;
+.guardrailHeading {
+  display: flex;
+  gap: 0.7rem;
+  align-items: start;
+  justify-content: space-between;
 }
 
-.guardrail h2,
-.lookup h2,
-.staffList h2 {
-  font-size: clamp(1.3rem, 2vw, 1.8rem);
-}
-
-.guardrail > p,
-.lookup p,
-.sectionHeading p,
-.controlGroup > p,
-.ownerNote {
-  margin: 0;
-  color: var(--av-text-dim);
-  font-size: 0.78rem;
-  line-height: 1.6;
-}
-
-.guardrail label,
-.lookupForm label {
+.guardrailHeading > div {
   display: grid;
-  gap: 0.45rem;
+  gap: 0.18rem;
 }
 
-.guardrail label > span,
-.lookupForm label > span {
-  color: var(--av-text-dim);
-  font: 650 0.64rem/1.3 var(--av-font-mono);
-  letter-spacing: 0.05em;
+.guardrailHeading > span {
+  padding: 0.28rem 0.45rem;
+  border: 1px solid rgba(185, 154, 92, 0.28);
+  border-radius: 999px;
+  color: var(--av-brass-300);
+  font: 700 0.52rem/1 var(--av-font-body);
+  letter-spacing: 0.04em;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
-.guardrail textarea,
-.lookupForm input {
-  width: 100%;
-  padding: 0.75rem 0.85rem;
-  border: 1px solid var(--av-border);
-  border-radius: var(--av-radius-md);
-  background: rgba(255, 255, 255, 0.035);
-  color: var(--av-text);
-  font: inherit;
+.guardrailFields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.65rem;
+  align-items: end;
 }
 
 .confirmation {
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
+  min-height: 2.35rem;
+  padding: 0.48rem 0.58rem;
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius-sm);
+  color: var(--av-text-muted);
+  background: rgba(255, 255, 255, 0.018);
+  font-size: 0.65rem;
 }
 
 .confirmation input {
   inline-size: 1rem;
   block-size: 1rem;
+  accent-color: var(--av-brass-300);
 }
 
 .error,
 .notice {
   margin: 0;
-  padding: 0.75rem 0.9rem;
+  padding: 0.65rem 0.75rem;
   border: 1px solid var(--av-border);
-  border-radius: var(--av-radius-md);
-  font-size: 0.78rem;
+  border-radius: var(--av-radius-sm);
+  font-size: 0.68rem;
 }
 
 .error {
@@ -98,151 +300,134 @@
   background: rgba(185, 154, 92, 0.08);
 }
 
-.lookup {
-  display: grid;
-  gap: var(--av-space-4);
-}
-
-.lookupForm {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: var(--av-space-3);
-  align-items: end;
-}
-
-.lookupForm button,
-.controlRow button {
-  min-height: 2.5rem;
-  padding: 0.65rem 0.9rem;
-  border: 1px solid var(--av-border-strong);
-  border-radius: var(--av-radius-md);
-  background: rgba(185, 154, 92, 0.08);
-  color: var(--av-text);
-  font: 700 0.66rem/1 var(--av-font-mono);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.lookupForm button:disabled,
-.controlRow button:disabled {
-  cursor: not-allowed;
-  opacity: 0.45;
-}
-
+.staffCard,
 .resolved {
   display: grid;
-  gap: var(--av-space-4);
-  padding-top: var(--av-space-4);
-  border-top: 1px solid var(--av-border);
+  gap: 0.75rem;
 }
 
-.resolved > div:first-child,
-.staffCard > header {
+.staffCard > header,
+.resolved > header {
   display: flex;
-  gap: var(--av-space-3);
+  gap: 0.7rem;
   align-items: center;
   justify-content: space-between;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px solid var(--av-border);
 }
 
-.resolved > div:first-child > div,
-.staffCard > header > div {
+.staffCard > header > div,
+.resolved > header > div {
   display: grid;
-  gap: 0.25rem;
+  gap: 0.18rem;
 }
 
-.resolved span,
 .staffCard header span,
-.sectionHeading > span {
+.resolved header span {
   color: var(--av-text-dim);
-  font: 650 0.62rem/1.3 var(--av-font-mono);
+  font: 650 0.55rem/1.2 var(--av-font-body);
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
-.staffList {
-  display: grid;
-  gap: var(--av-space-3);
-}
-
-.sectionHeading {
-  display: flex;
-  gap: var(--av-space-3);
-  align-items: end;
-  justify-content: space-between;
-}
-
-.staffCard {
-  display: grid;
-  gap: var(--av-space-4);
-}
-
 .staffCard header strong,
 .resolved strong {
-  font-size: 0.95rem;
+  color: var(--av-parchment-100);
+  font: 500 1.05rem/1.15 var(--av-font-display);
 }
 
 .chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
+  gap: 0.35rem;
 }
 
 .chips span {
-  padding: 0.35rem 0.5rem;
+  padding: 0.3rem 0.45rem;
   border: 1px solid var(--av-border);
   border-radius: 999px;
   color: var(--av-text-dim);
-  font: 650 0.58rem/1 var(--av-font-mono);
+  background: rgba(255, 255, 255, 0.018);
+  font: 650 0.54rem/1 var(--av-font-body);
   text-transform: uppercase;
 }
 
 .controls {
   display: grid;
-  gap: var(--av-space-4);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
 }
 
 .controlGroup {
   display: grid;
-  gap: var(--av-space-2);
+  align-content: start;
+  gap: 0.55rem;
+  min-width: 0;
+  padding: 0.75rem;
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius-sm);
+  background: rgba(255, 255, 255, 0.014);
+}
+
+.controlGroup h4 {
+  font-size: 0.88rem;
 }
 
 .controlList {
   display: grid;
-  gap: 0.55rem;
+  gap: 0.4rem;
 }
 
 .controlRow {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: var(--av-space-3);
+  gap: 0.55rem;
   align-items: center;
-  padding: 0.7rem 0;
-  border-top: 1px solid var(--av-border);
+  padding-top: 0.45rem;
+  border-top: 1px solid rgba(215, 187, 127, 0.08);
 }
 
 .controlRow > div {
   display: grid;
-  gap: 0.25rem;
+  gap: 0.18rem;
 }
 
 .controlRow strong {
-  font-size: 0.8rem;
+  color: var(--av-text);
+  font-size: 0.7rem;
 }
 
 .controlRow span {
   color: var(--av-text-dim);
-  font-size: 0.69rem;
-  line-height: 1.45;
+  font-size: 0.6rem;
+  line-height: 1.4;
 }
 
 .ownerNote {
-  padding: 0.75rem;
+  padding: 0.7rem;
   border-left: 2px solid var(--av-brass-300);
+  color: var(--av-text-muted);
   background: rgba(185, 154, 92, 0.05);
+}
+
+.emptyState {
+  text-align: center;
+}
+
+@media (max-width: 1000px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .rosterList {
+    max-height: 22rem;
+  }
 }
 
 @media (max-width: 720px) {
   .lookupForm,
+  .guardrailFields,
+  .controls,
   .controlRow {
     grid-template-columns: 1fr;
   }
@@ -252,10 +437,18 @@
     width: 100%;
   }
 
-  .sectionHeading,
+  .guardrailHeading,
   .staffCard > header,
-  .resolved > div:first-child {
+  .resolved > header {
     align-items: start;
     flex-direction: column;
+  }
+
+  .rosterRow {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .rosterVersion {
+    display: none;
   }
 }
