@@ -47,7 +47,7 @@ export function CharacterIdentityCard({
         </div>
       </div>
 
-      <div className={styles.identity}>
+      <div className={styles.identity} data-character-identity-copy>
         <h1>{profile.identity.name}</h1>
         <p className={styles.motto}>A quieter blade still changes the tide.</p>
         <div className={styles.tags}>
