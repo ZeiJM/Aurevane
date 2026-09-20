@@ -334,11 +334,17 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
               }}
             >
               <span className={styles.runGlyph} aria-hidden="true">
-                {run.lifecycleStatus === 'live' ? '✦' : run.lifecycleStatus === 'scheduled' ? '◇' : '✧'}
+                {run.lifecycleStatus === 'live'
+                  ? '✦'
+                  : run.lifecycleStatus === 'scheduled'
+                    ? '◇'
+                    : '✧'}
               </span>
               <span className={styles.runIdentity}>
                 <strong>{run.eventKey}</strong>
-                <small>{run.runId.slice(0, 8)} · {when(run.scheduledStartAt ?? run.startedAt)}</small>
+                <small>
+                  {run.runId.slice(0, 8)} · {when(run.scheduledStartAt ?? run.startedAt)}
+                </small>
               </span>
               <span className={styles.runStatus} data-status={run.lifecycleStatus}>
                 {run.lifecycleStatus}
@@ -360,7 +366,9 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
                 <h2>{dashboard.run.eventKey}</h2>
                 <p>
                   <code>{dashboard.run.runId.slice(0, 12)}</code>
-                  <span data-status={dashboard.run.lifecycleStatus}>{dashboard.run.lifecycleStatus}</span>
+                  <span data-status={dashboard.run.lifecycleStatus}>
+                    {dashboard.run.lifecycleStatus}
+                  </span>
                   <span>State v{dashboard.run.stateVersion}</span>
                 </p>
               </div>
@@ -416,7 +424,9 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
                       data-active={index === lifecycleIndex || undefined}
                       data-complete={index < lifecycleIndex || undefined}
                     >
-                      <span aria-hidden="true">{index < lifecycleIndex ? '✓' : index === lifecycleIndex ? '●' : '○'}</span>
+                      <span aria-hidden="true">
+                        {index < lifecycleIndex ? '✓' : index === lifecycleIndex ? '●' : '○'}
+                      </span>
                       <strong>{stage}</strong>
                     </div>
                   ))}
@@ -488,9 +498,12 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
                   <div key={participant.characterId}>
                     <strong>{participant.characterId.slice(0, 8)}</strong>
                     <span>
-                      {participant.contributionCount} contributions · {participant.contributionTotal} total
+                      {participant.contributionCount} contributions ·{' '}
+                      {participant.contributionTotal} total
                     </span>
-                    <small>{when(participant.lastContributedAt ?? participant.firstParticipatedAt)}</small>
+                    <small>
+                      {when(participant.lastContributedAt ?? participant.firstParticipatedAt)}
+                    </small>
                   </div>
                 ))}
               </div>
@@ -510,9 +523,12 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
                   <div key={claim.reservationId}>
                     <strong>{claim.rewardPackageRef}</strong>
                     <span>
-                      {claim.executed ? 'executed' : 'reserved'} · character {claim.characterId.slice(0, 8)}
+                      {claim.executed ? 'executed' : 'reserved'} · character{' '}
+                      {claim.characterId.slice(0, 8)}
                     </span>
-                    <small>{claim.executedAt ? when(claim.executedAt) : when(claim.reservedAt)}</small>
+                    <small>
+                      {claim.executedAt ? when(claim.executedAt) : when(claim.reservedAt)}
+                    </small>
                   </div>
                 ))}
               </div>
@@ -524,14 +540,20 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
                   <p className={styles.eyebrow}>Closure</p>
                   <h2>Cleanup requirements</h2>
                 </div>
-                <span>{cleanupCompleted}/{dashboard.cleanupRequirements.length}</span>
+                <span>
+                  {cleanupCompleted}/{dashboard.cleanupRequirements.length}
+                </span>
               </div>
-              {dashboard.cleanupRequirements.length === 0 ? <p>No cleanup requirements.</p> : null}
+              {dashboard.cleanupRequirements.length === 0 ? (
+                <p>No cleanup requirements.</p>
+              ) : null}
               <div className={styles.itemList}>
                 {dashboard.cleanupRequirements.map((cleanup) => (
                   <div key={`${cleanup.phaseId}-${cleanup.effectOrdinal}`}>
                     <strong>{cleanup.effectType}</strong>
-                    <span>{cleanup.referenceKey} · {cleanup.status}</span>
+                    <span>
+                      {cleanup.referenceKey} · {cleanup.status}
+                    </span>
                     {cleanup.status === 'pending' ? (
                       <button
                         type="button"
@@ -584,7 +606,9 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
               <span>Active effects</span>
             </div>
             <div>
-              <strong>{dashboard?.phases.filter((phase) => phase.status === 'active').length ?? 0}</strong>
+              <strong>
+                {dashboard?.phases.filter((phase) => phase.status === 'active').length ?? 0}
+              </strong>
               <span>Active phases</span>
             </div>
             <div>
@@ -722,7 +746,8 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
             <div>
               <dt>Pending</dt>
               <dd>
-                {dashboard?.cleanupRequirements.filter((entry) => entry.status === 'pending').length ?? 0}
+                {dashboard?.cleanupRequirements.filter((entry) => entry.status === 'pending')
+                  .length ?? 0}
               </dd>
             </div>
             <div>
