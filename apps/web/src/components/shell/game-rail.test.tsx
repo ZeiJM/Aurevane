@@ -32,6 +32,8 @@ describe('shared game rail', () => {
     }
     expect(markup).not.toContain('aria-label="Items"')
     expect(markup).not.toContain('href="/game/items"')
+    expect(markup).toContain('data-nav-icon="arsenal"')
+    expect(markup).toContain('data-nav-icon="battle"')
     expect(markup).not.toContain('href="/game/online"')
     expect(markup).not.toContain('Adventurers')
     expect(markup).toContain('aria-current="page"')
