@@ -19,6 +19,8 @@ test('Profile Atlas stays inside Discipline Management and fits each supported v
     password: 'Atlas-disposable-browser-2026!',
     characterName: `Atlas ${suffix}`,
   })
+  await page.goto('/game/arsenal')
+  await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
 
   await page.getByRole('button', { name: /Manage Primary Discipline/ }).click()
   const management = page.getByRole('dialog', { name: 'Discipline Management', exact: true })
