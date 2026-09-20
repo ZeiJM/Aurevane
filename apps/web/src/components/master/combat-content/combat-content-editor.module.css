@@ -882,3 +882,235 @@
     grid-column: auto;
   }
 }
+
+/* Master Panel productivity workspace v2 */
+.editor {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 0.5rem;
+  align-items: start;
+}
+
+.skillBrowser {
+  position: sticky;
+  top: 0.45rem;
+  grid-column: 1 / 4;
+  grid-row: 1 / span 40;
+  gap: 0.5rem;
+  max-height: calc(100dvh - 11.5rem);
+  padding: 0.62rem;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+.editorMain {
+  display: contents;
+}
+
+.header,
+.versionGrid,
+.workspace,
+.tags,
+.editorMain > :last-child {
+  min-width: 0;
+}
+
+.header {
+  grid-column: 4 / 10;
+  grid-row: 1;
+  align-items: center;
+  padding: 0.58rem 0.68rem;
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius-md);
+  background:
+    linear-gradient(180deg, rgba(13, 24, 34, 0.9), rgba(7, 14, 22, 0.94)),
+    var(--av-ink-900);
+}
+
+.header h1 {
+  font-size: 0.78rem;
+}
+
+.skillIdentity {
+  margin-top: 0.18rem;
+}
+
+.skillIdentity strong {
+  font-size: 1.02rem;
+}
+
+.status {
+  min-width: 6.7rem;
+  padding: 0.42rem 0.52rem;
+}
+
+.versionGrid {
+  grid-column: 4 / 10;
+  grid-row: 2;
+  gap: 0.38rem;
+  margin-top: 0;
+}
+
+.versionGrid > div {
+  padding: 0.42rem 0.5rem;
+}
+
+.workspace {
+  grid-column: 4 / 10;
+  grid-row: 3;
+  gap: 0.5rem;
+  margin-top: 0;
+  padding: 0.62rem;
+}
+
+.workspaceHeading {
+  gap: 0.35rem 0.55rem;
+  padding-bottom: 0.4rem;
+}
+
+.workspaceHeading h2 {
+  font-size: 0.88rem;
+}
+
+.tags {
+  grid-column: 4 / 10;
+  grid-row: 4;
+  grid-template-columns: minmax(8rem, 0.32fr) minmax(0, 1.68fr);
+  gap: 0.5rem;
+  margin-top: 0;
+  padding: 0.5rem 0.58rem;
+}
+
+.tags h2 {
+  font-size: 0.78rem;
+}
+
+.tagList {
+  gap: 0.25rem;
+}
+
+.tagList span {
+  padding: 0.22rem 0.34rem;
+  font-size: 0.54rem;
+}
+
+.editorMain > :last-child {
+  position: sticky;
+  top: 0.45rem;
+  grid-column: 10 / -1;
+  grid-row: 1 / span 40;
+  align-self: start;
+  max-height: calc(100dvh - 11.5rem);
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+.skillBrowserHeader {
+  padding-bottom: 0.42rem;
+}
+
+.skillBrowserHeader strong {
+  font-size: 0.82rem;
+}
+
+.field {
+  gap: 0.22rem;
+}
+
+.field select,
+.field input {
+  min-height: 2.08rem;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.66rem;
+}
+
+.skillList {
+  max-height: none;
+}
+
+.skillRow {
+  padding: 0.46rem 0.5rem;
+}
+
+.authoringStack {
+  gap: 0.5rem;
+}
+
+.typedGroup {
+  padding: 0.62rem;
+  border-radius: var(--av-radius-sm);
+}
+
+.typedGroup legend {
+  font-size: 0.82rem;
+}
+
+.typedGrid {
+  gap: 0.5rem;
+}
+
+.field input {
+  min-height: 2.18rem;
+  padding: 0.44rem 0.52rem;
+}
+
+.effectList {
+  gap: 0.5rem;
+}
+
+.effectHeader {
+  padding: 0.56rem 0.62rem;
+}
+
+.effectHeader strong {
+  font-size: 0.84rem;
+}
+
+@media (max-width: 1180px) {
+  .editor {
+    grid-template-columns: minmax(14rem, 0.42fr) minmax(0, 1.58fr);
+  }
+
+  .skillBrowser {
+    grid-column: 1;
+  }
+
+  .header,
+  .versionGrid,
+  .workspace,
+  .tags,
+  .editorMain > :last-child {
+    grid-column: 2;
+    grid-row: auto;
+  }
+
+  .editorMain > :last-child {
+    position: static;
+    max-height: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .editor {
+    grid-template-columns: 1fr;
+  }
+
+  .skillBrowser,
+  .header,
+  .versionGrid,
+  .workspace,
+  .tags,
+  .editorMain > :last-child {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .skillBrowser {
+    position: static;
+    max-height: none;
+  }
+
+  .header,
+  .tags {
+    grid-template-columns: 1fr;
+  }
+}
