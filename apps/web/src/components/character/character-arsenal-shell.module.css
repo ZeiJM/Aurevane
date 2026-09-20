@@ -250,11 +250,7 @@
 
 .disciplinesPanel :global([data-testid='primary-build-panel'] > button)::after,
 .techniquesPanel :global([data-testid='skill-build-panel'] > button)::after {
-  color: inherit;
-  content: 'Manage';
-  font: 700 0.54rem/1 var(--av-font-body);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  content: none;
 }
 
 .disciplinesPanel .sectionHeading,
