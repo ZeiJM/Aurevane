@@ -445,4 +445,5 @@ export function StaffManagement({ staff, roleOptions, capabilityOptions }: Staff
         </section>
       </aside>
     </div>
-  )}
+  )
+}
