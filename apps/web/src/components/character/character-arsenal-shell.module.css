@@ -3,13 +3,13 @@
   display: grid;
   min-width: 0;
   min-height: 0;
-  gap: 0.85rem;
+  gap: 0.75rem;
   align-content: start;
 }
 
 .arsenal {
   min-width: 0;
-  padding: clamp(0.9rem, 1.35vw, 1.15rem);
+  padding: clamp(0.8rem, 1.3vw, 1rem);
   border: 1px solid var(--av-gold-rule);
   border-radius: 0;
   color: var(--av-charcoal);
@@ -47,7 +47,7 @@
 .pageHeading h1 {
   margin: 0;
   color: #172936;
-  font: 600 clamp(1.9rem, 2.8vw, 2.7rem) / 1 var(--av-font-display);
+  font: 600 clamp(1.65rem, 2.15vw, 2.1rem) / 1 var(--av-font-display);
 }
 
 .pageHeading p {
@@ -66,8 +66,8 @@
 .topGrid,
 .bottomGrid {
   display: grid;
-  gap: 0.85rem;
-  margin-top: 0.85rem;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
 }
 
 .panel {
@@ -170,7 +170,11 @@
 .disciplineTile strong,
 .techniqueTile strong {
   color: #263a46;
-  font: 600 0.76rem/1.15 var(--av-font-display);
+  font: 600 0.74rem/1.15 var(--av-font-display);
+}
+
+.techniqueTile strong {
+  max-width: 4.75rem;
 }
 
 .disciplineTile p {
@@ -207,18 +211,18 @@
 
 .techniqueGrid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(4.25rem, 1fr));
-  gap: 0.65rem;
-  margin-bottom: 0.8rem;
+  grid-template-columns: repeat(4, minmax(4rem, 1fr));
+  gap: 0.45rem;
+  margin-bottom: 0.65rem;
 }
 
 .techniqueTile,
 .emptyTechnique {
   align-content: start;
-  min-height: 5.9rem;
-  padding: 0.45rem 0.25rem;
-  border: 1px solid rgba(151, 127, 82, 0.2);
-  background: rgba(255, 253, 246, 0.48);
+  min-height: 0;
+  padding: 0.12rem 0;
+  border: 0;
+  background: transparent;
 }
 
 .emptyTechnique {
@@ -366,22 +370,23 @@
 
 @media (min-width: 1200px) {
   .layout {
-    height: 100%;
-    grid-template-columns: clamp(18rem, 22vw, 21rem) minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr);
-    align-content: stretch;
+    min-height: 100%;
+    grid-template-columns: clamp(17rem, 20vw, 21rem) minmax(0, 1fr);
+    align-items: start;
+    align-content: start;
   }
 
   .layout > * {
     min-height: 0;
-    overflow: auto;
-    overscroll-behavior: contain;
-    scrollbar-width: thin;
+    overflow: visible;
   }
 
-  .topGrid,
+  .topGrid {
+    grid-template-columns: minmax(18rem, 0.82fr) minmax(0, 1.48fr);
+  }
+
   .bottomGrid {
-    grid-template-columns: minmax(20rem, 0.95fr) minmax(28rem, 1.35fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -393,6 +398,10 @@
 
   .attunementGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .techniqueGrid {
+    grid-template-columns: repeat(4, minmax(4rem, 1fr));
   }
 }
 

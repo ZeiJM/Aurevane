@@ -48,6 +48,10 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
     await page.goto('/game/character')
     await expect(page.getByTestId('character-profile')).toBeVisible()
     await expect(page.locator('[data-profile-loadout]')).toHaveCount(0)
+    await expect(page.getByRole('heading', { name: 'Identity', exact: true })).toBeVisible()
+    await expect(
+      page.getByRole('heading', { name: 'Character Overview', exact: true }),
+    ).toHaveCount(0)
     await expect(page.getByTestId('current-path-coming-soon')).toBeVisible()
     await expect(
       page.getByRole('navigation', { name: 'Primary game navigation' }).getByRole('link', {
@@ -137,6 +141,7 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
       const identity = required('[data-profile-identity-banner]')
       const hero = required('[data-testid="character-profile"]')
       const portrait = hero.querySelector('img')!
+      const portraitFrame = portrait.parentElement?.parentElement as HTMLElement
       const heading = hero.querySelector('h1')!
       const sheet = required('[data-profile-sheet]')
       const workspace = required('[data-profile-workspace]')
@@ -153,6 +158,10 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
           Math.max(0, Math.min(p.bottom, h.bottom) - Math.max(p.y, h.y)),
         overflowX: document.documentElement.scrollWidth - window.innerWidth,
         sheetOverflowX: sheet.scrollWidth - sheet.clientWidth,
+        identityOverflowY: getComputedStyle(identity).overflowY,
+        sheetOverflowY: getComputedStyle(sheet).overflowY,
+        portraitFrameBefore: getComputedStyle(portraitFrame, '::before').content,
+        portraitFrameAfter: getComputedStyle(portraitFrame, '::after').content,
         primaryLinks: document.querySelectorAll('[aria-label="Primary game navigation"] a').length,
       }
     })
@@ -169,6 +178,16 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
     expect
       .soft(metrics.identity.width, `${label}: identity card keeps usable width`)
       .toBeGreaterThan(250)
+    expect
+      .soft(metrics.identityOverflowY, `${label}: no identity-card scrollbar`)
+      .not.toMatch(/auto|scroll/)
+    expect
+      .soft(metrics.sheetOverflowY, `${label}: no profile-sheet scrollbar`)
+      .not.toMatch(/auto|scroll/)
+    expect.soft(metrics.portraitFrameBefore, `${label}: no black top diamond ornament`).toBe('none')
+    expect
+      .soft(metrics.portraitFrameAfter, `${label}: no black bottom diamond ornament`)
+      .toBe('none')
     expect.soft(metrics.primaryLinks).toBe(4)
     if (viewport.width >= 1200) {
       expect
@@ -210,6 +229,18 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
       }),
     ).toHaveCount(0)
     await expect(page.locator('[data-arsenal-panel="items"]')).toBeVisible()
+    const arsenalIdentity = page.locator('[data-profile-identity-banner]')
+    const arsenalIdentityBox = await arsenalIdentity.boundingBox()
+    expect(arsenalIdentityBox).not.toBeNull()
+    expect(Math.abs(arsenalIdentityBox!.width - metrics.identity.width)).toBeLessThanOrEqual(2)
+    expect(
+      await arsenalIdentity.evaluate((element) => getComputedStyle(element).overflowY),
+    ).not.toMatch(/auto|scroll/)
+    const arsenalSheet = page.locator('[data-arsenal-sheet="true"]')
+    await expect(arsenalSheet).toBeVisible()
+    expect(
+      await arsenalSheet.evaluate((element) => getComputedStyle(element).overflowY),
+    ).not.toMatch(/auto|scroll/)
     const arsenalSections = page.locator('[data-arsenal-panel]')
     expect(await arsenalSections.count()).toBe(4)
     const arsenalSectionMetrics = await arsenalSections.evaluateAll((nodes) =>
@@ -230,6 +261,31 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
       expect(metric.height).toBeGreaterThan(110)
       expect(metric.headingOverflow).toBeLessThanOrEqual(1)
     }
+    const techniqueCards = page
+      .locator('[aria-label="Equipped Discipline Skills"]')
+      .locator(':scope > article, :scope > div')
+    const techniqueChrome = await techniqueCards.evaluateAll((cards) =>
+      cards.map((card) => {
+        const style = getComputedStyle(card)
+        return {
+          horizontalChrome:
+            Number.parseFloat(style.paddingLeft) +
+            Number.parseFloat(style.paddingRight) +
+            Number.parseFloat(style.borderLeftWidth) +
+            Number.parseFloat(style.borderRightWidth),
+          verticalChrome:
+            Number.parseFloat(style.paddingTop) +
+            Number.parseFloat(style.paddingBottom) +
+            Number.parseFloat(style.borderTopWidth) +
+            Number.parseFloat(style.borderBottomWidth),
+        }
+      }),
+    )
+    for (const metric of techniqueChrome) {
+      expect(metric.horizontalChrome).toBeLessThanOrEqual(4)
+      expect(metric.verticalChrome).toBeLessThanOrEqual(8)
+    }
+
     const arsenalMedia = page.locator('[data-arsenal-media="true"]')
     expect(await arsenalMedia.count()).toBeGreaterThanOrEqual(2)
     const arsenalMetrics = await arsenalMedia.evaluateAll((nodes) =>

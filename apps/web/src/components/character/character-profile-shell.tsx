@@ -161,8 +161,10 @@ export function CharacterProfileShell({
         >
           <header className={styles.sheetHeading}>
             <div>
-              <span>Identity</span>
-              <h2>Character Overview</h2>
+              <span className={styles.sheetMarker} aria-hidden="true">
+                ✧
+              </span>
+              <h2>Identity</h2>
             </div>
             <small>Same soul. A wider horizon.</small>
           </header>
