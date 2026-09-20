@@ -63,7 +63,7 @@ export function CharacterIdentityCard({
         aria-label="Character progression"
       >
         <div className={styles.progressLabel}>
-          <strong>Level {profile.progression.level}</strong>
+          <strong>Character Level {profile.progression.level}</strong>
           <span>
             {progress.isMaxLevel
               ? `${profile.progression.xp.toLocaleString('en')} XP`
