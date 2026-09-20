@@ -155,7 +155,12 @@
   border-left: 3px solid var(--attribute-color);
   color: #263946;
   background:
-    linear-gradient(90deg, rgba(255, 253, 247, 0.94) 0 42%, rgba(255, 253, 247, 0.68) 70%, rgba(255, 253, 247, 0.32)),
+    linear-gradient(
+      90deg,
+      rgba(255, 253, 247, 0.94) 0 42%,
+      rgba(255, 253, 247, 0.68) 70%,
+      rgba(255, 253, 247, 0.32)
+    ),
     linear-gradient(90deg, var(--attribute-tint), var(--attribute-soft)),
     url('/media/art/concept-ui/world-v01.webp') center 44% / cover;
   box-shadow:
