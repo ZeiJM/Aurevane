@@ -49,6 +49,11 @@ export function CharacterArsenalShell({
     disciplineBuild.disciplineSkills.equippedSkills.map((entry) => [entry.slotIndex, entry]),
   )
   const slotCount = Math.max(4, disciplineBuild.disciplineSkills.capacity)
+  const slotOffset = disciplineBuild.disciplineSkills.equippedSkills.some(
+    (entry) => entry.slotIndex === 0,
+  )
+    ? 0
+    : 1
 
   return (
     <AuthenticatedShellFrame sessionLabel="Arsenal">
@@ -122,7 +127,7 @@ export function CharacterArsenalShell({
 
               <div className={styles.techniqueGrid} aria-label="Equipped Discipline Skills">
                 {Array.from({ length: slotCount }, (_, slotIndex) => {
-                  const entry = equippedBySlot.get(slotIndex)
+                  const entry = equippedBySlot.get(slotIndex + slotOffset)
                   if (!entry) {
                     return (
                       <div className={styles.emptyTechnique} key={slotIndex}>
