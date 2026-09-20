@@ -384,3 +384,216 @@
     text-align: left;
   }
 }
+
+/* Master Panel productivity workspace v2 */
+.operations {
+  gap: 0.5rem;
+  align-items: start;
+}
+
+.toolbar,
+.selector,
+.card,
+.controls {
+  padding: 0.62rem;
+}
+
+.toolbar {
+  padding-block: 0.52rem;
+}
+
+.toolbar h1 {
+  font-size: 0.86rem;
+}
+
+.toolbar p {
+  font-size: 0.62rem;
+  line-height: 1.4;
+}
+
+.toolbar button,
+.actionRow button,
+.itemList button {
+  min-height: 2.05rem;
+  padding: 0.4rem 0.56rem;
+  font-size: 0.61rem;
+}
+
+.selector {
+  padding: 0.5rem 0.62rem;
+}
+
+.selector label {
+  grid-template-columns: auto minmax(12rem, 22rem);
+  font-size: 0.62rem;
+}
+
+.selector select {
+  min-height: 2.05rem;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.64rem;
+}
+
+.summaryGrid {
+  position: sticky;
+  top: 0.45rem;
+  grid-column: 1 / 4;
+  grid-row: 3 / span 40;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+  align-self: start;
+  max-height: calc(100dvh - 11.5rem);
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+.summaryGrid .card {
+  grid-column: 1 / -1;
+}
+
+.controls {
+  position: sticky;
+  top: 0.45rem;
+  grid-column: 10 / -1;
+  grid-row: 3 / span 40;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+  align-self: start;
+  max-height: calc(100dvh - 11.5rem);
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+.controls > h2:first-child,
+.controls > h2:nth-of-type(2),
+.approvalField,
+.approvalCheck,
+.actionRow {
+  grid-column: 1;
+  grid-row: auto;
+}
+
+.controls > h2:nth-of-type(2) {
+  margin-top: 0.2rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(215, 187, 127, 0.1);
+}
+
+.approvalField textarea {
+  min-height: 4rem;
+  padding: 0.46rem 0.52rem;
+  font-size: 0.64rem;
+}
+
+.actionRow {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.card {
+  grid-column: 4 / 10;
+  padding: 0.62rem;
+}
+
+.card h2,
+.controls h2 {
+  font-size: 0.8rem;
+}
+
+.card p {
+  font-size: 0.61rem;
+  line-height: 1.4;
+}
+
+.card dl {
+  margin-top: 0.42rem;
+}
+
+.card dl div {
+  padding: 0.3rem 0;
+}
+
+.card dt,
+.card dd {
+  font-size: 0.59rem;
+}
+
+.phaseGrid {
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.42rem;
+}
+
+.phase {
+  gap: 0.38rem;
+  padding: 0.5rem;
+}
+
+.itemList {
+  gap: 0.3rem;
+  margin-top: 0.4rem;
+}
+
+.itemList > div {
+  display: grid;
+  grid-template-columns: minmax(6.5rem, 0.8fr) minmax(0, 1.5fr) auto;
+  gap: 0.45rem;
+  align-items: center;
+  padding-top: 0.36rem;
+}
+
+.card pre {
+  max-height: 13rem;
+  padding: 0.5rem;
+  font-size: 0.58rem;
+}
+
+@media (max-width: 1080px) {
+  .summaryGrid,
+  .controls,
+  .card {
+    position: static;
+    grid-column: 1 / -1;
+    grid-row: auto;
+    max-height: none;
+  }
+
+  .summaryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .controls > h2:first-child,
+  .approvalField,
+  .approvalCheck {
+    grid-column: 1;
+  }
+
+  .controls > h2:nth-of-type(2),
+  .actionRow {
+    grid-column: 2;
+  }
+}
+
+@media (max-width: 640px) {
+  .summaryGrid,
+  .controls,
+  .actionRow {
+    grid-template-columns: 1fr;
+  }
+
+  .controls > h2:first-child,
+  .controls > h2:nth-of-type(2),
+  .approvalField,
+  .approvalCheck,
+  .actionRow {
+    grid-column: 1;
+  }
+
+  .itemList > div {
+    grid-template-columns: 1fr;
+  }
+}
