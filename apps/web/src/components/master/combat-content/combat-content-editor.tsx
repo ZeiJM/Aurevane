@@ -484,15 +484,15 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
 
         <div className={styles.versionGrid} aria-label="Content version state">
           <div>
-            <span>Current</span>
+            <span>Current version</span>
             <strong>{versionLabel('v', selectedCurrentVersion)}</strong>
           </div>
           <div>
-            <span>Draft</span>
+            <span>Draft version</span>
             <strong>{versionLabel('d', selectedSkill.draftVersion)}</strong>
           </div>
           <div>
-            <span>Base</span>
+            <span>Base version</span>
             <strong>{versionLabel('v', selectedSkill.baseVersion)}</strong>
           </div>
         </div>
