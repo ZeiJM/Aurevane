@@ -15,7 +15,7 @@ import {
   DERIVED_STAT_PROFILE_HELP,
 } from '@aurevane/game-core/character/profile-stat-content'
 import Image from 'next/image'
-import { useEffect, useState, type CSSProperties } from 'react'
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 
 import styles from './character-profile-details.module.css'
 
@@ -25,6 +25,7 @@ interface CharacterProfileDetailsProps {
   cycleNumber: number
   attributes: CharacterAttributes
   derived: DerivedStatSnapshot
+  attributeResetControl?: ReactNode
 }
 
 type Detail = { title: string; eyebrow: string; body: string } | null
@@ -123,6 +124,7 @@ export function CharacterProfileDetails({
   cycleNumber,
   attributes,
   derived,
+  attributeResetControl,
 }: CharacterProfileDetailsProps) {
   const [detail, setDetail] = useState<Detail>(null)
 
@@ -265,7 +267,9 @@ export function CharacterProfileDetails({
             </div>
             <i aria-hidden="true" />
           </div>
-          <small>Numbers tell one story. You write the next.</small>
+          {attributeResetControl ? (
+            <div className={styles.sectionAction}>{attributeResetControl}</div>
+          ) : null}
         </header>
 
         <div className={styles.statGroups} data-profile-stat-groups>

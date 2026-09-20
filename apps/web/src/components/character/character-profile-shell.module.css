@@ -30,7 +30,7 @@
   justify-content: space-between;
   gap: 1rem;
   min-height: 2.1rem;
-  padding: 0 7rem 0.42rem 0.08rem;
+  padding: 0 0.08rem 0.42rem;
   border-bottom: 1px solid var(--av-gold-rule);
 }
 
@@ -56,26 +56,6 @@
 .sheetHeading small {
   color: #657681;
   font: italic 0.69rem/1.25 var(--av-font-display);
-}
-
-/* Keep attribute management available without turning the approved read-only sheet into a large editor. */
-.profile :global(section[aria-label='Attribute redistribution']) {
-  position: absolute;
-  top: 0.62rem;
-  right: 0.72rem;
-  z-index: 3;
-  padding: 0;
-}
-
-.profile :global(section[aria-label='Attribute redistribution'] > button) {
-  min-height: 1.72rem;
-  padding: 0.28rem 0.55rem;
-  border-color: rgba(39, 119, 116, 0.42);
-  color: #285f60;
-  background: rgba(236, 246, 242, 0.72);
-  box-shadow: none;
-  font-size: 0.52rem;
-  letter-spacing: 0.045em;
 }
 
 .story {
@@ -301,12 +281,6 @@
 
   .sheetHeading small {
     display: none;
-  }
-
-  .profile :global(section[aria-label='Attribute redistribution']) {
-    position: static;
-    justify-content: flex-end;
-    padding-top: 0.65rem;
   }
 
   .storyArt {
