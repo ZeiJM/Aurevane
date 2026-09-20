@@ -6,12 +6,12 @@ import {
   type CharacterAttributes,
 } from '@aurevane/game-core/character/creation'
 import type {
+  DerivedStatId,
   DerivedStatSnapshot,
   DerivedStatValue,
 } from '@aurevane/game-core/character/derived-stats'
 import {
   ATTRIBUTE_PROFILE_HELP,
-  DERIVED_STAT_PROFILE_GROUPS,
   DERIVED_STAT_PROFILE_HELP,
 } from '@aurevane/game-core/character/profile-stat-content'
 import Image from 'next/image'
@@ -29,19 +29,23 @@ interface CharacterProfileDetailsProps {
 
 type Detail = { title: string; eyebrow: string; body: string } | null
 
-type AttributeSource = {
-  id: CharacterAttributeId
-  weight: number
-}
-
-const attributeLabels = {
+const attributeLabels: Readonly<Record<CharacterAttributeId, string>> = {
   might: 'Might',
   finesse: 'Finesse',
   vitality: 'Vitality',
   agility: 'Agility',
   intellect: 'Intellect',
   resolve: 'Resolve',
-} as const
+}
+
+const attributeDescriptions: Readonly<Record<CharacterAttributeId, string>> = {
+  might: 'Force that breaks. Courage that leads.',
+  finesse: 'Precision in motion. Mastery in detail.',
+  vitality: 'Endurance through all things.',
+  agility: 'Swiftness creates new paths.',
+  intellect: 'Knowledge reveals the unseen.',
+  resolve: 'A steady heart defies the void.',
+}
 
 const attributeIconSources: Readonly<Record<CharacterAttributeId, string>> = {
   might: '/media/profile/might.svg',
@@ -57,54 +61,61 @@ const factIconSources = {
   rekindling: '/media/profile/rekindling.svg',
 } as const
 
-const groupGlyphs = {
-  vitals: '+',
-  tempo: '↗',
-  offense: '×',
-  defense: '◈',
-} as const
-
 const ATTRIBUTE_COLORS: Readonly<
   Record<CharacterAttributeId, { solid: string; tint: string; soft: string }>
 > = {
-  might: { solid: '#ff756e', tint: 'rgba(255, 117, 110, 0.32)', soft: 'rgba(255, 117, 110, 0.17)' },
+  might: { solid: '#b83a36', tint: 'rgba(184, 58, 54, 0.18)', soft: 'rgba(184, 58, 54, 0.08)' },
   finesse: {
-    solid: '#d7dde6',
-    tint: 'rgba(215, 221, 230, 0.28)',
-    soft: 'rgba(215, 221, 230, 0.15)',
+    solid: '#53687d',
+    tint: 'rgba(83, 104, 125, 0.17)',
+    soft: 'rgba(83, 104, 125, 0.07)',
   },
   vitality: {
-    solid: '#78e183',
-    tint: 'rgba(120, 225, 131, 0.32)',
-    soft: 'rgba(120, 225, 131, 0.17)',
+    solid: '#26874d',
+    tint: 'rgba(38, 135, 77, 0.17)',
+    soft: 'rgba(38, 135, 77, 0.07)',
   },
   agility: {
-    solid: '#f6df67',
-    tint: 'rgba(246, 223, 103, 0.32)',
-    soft: 'rgba(246, 223, 103, 0.17)',
+    solid: '#b7862f',
+    tint: 'rgba(183, 134, 47, 0.18)',
+    soft: 'rgba(183, 134, 47, 0.07)',
   },
   intellect: {
-    solid: '#ca8dff',
-    tint: 'rgba(202, 141, 255, 0.32)',
-    soft: 'rgba(202, 141, 255, 0.17)',
+    solid: '#7648a8',
+    tint: 'rgba(118, 72, 168, 0.17)',
+    soft: 'rgba(118, 72, 168, 0.07)',
   },
   resolve: {
-    solid: '#78b0ff',
-    tint: 'rgba(120, 176, 255, 0.32)',
-    soft: 'rgba(120, 176, 255, 0.17)',
+    solid: '#2872a8',
+    tint: 'rgba(40, 114, 168, 0.17)',
+    soft: 'rgba(40, 114, 168, 0.07)',
   },
 }
 
-const DERIVED_STAT_GROUP_ORDER = {
-  vitals: 0,
-  tempo: 3,
-  offense: 1,
-  defense: 2,
-} as const
+const ATTRIBUTE_STAT_GROUPS: Readonly<Record<CharacterAttributeId, readonly DerivedStatId[]>> = {
+  might: ['physicalPower'],
+  finesse: ['accuracy', 'criticalChance'],
+  vitality: ['maxHp', 'armor'],
+  agility: ['initiative', 'movement', 'jump', 'evasion'],
+  intellect: ['maxMp', 'mysticPower'],
+  resolve: ['ward', 'statusResistance'],
+}
 
-const orderedDerivedStatGroups = [...DERIVED_STAT_PROFILE_GROUPS].sort(
-  (left, right) => DERIVED_STAT_GROUP_ORDER[left.id] - DERIVED_STAT_GROUP_ORDER[right.id],
-)
+const statGlyphs: Readonly<Record<DerivedStatId, string>> = {
+  maxHp: '♥',
+  maxMp: '◇',
+  physicalPower: '⚔',
+  mysticPower: '◉',
+  armor: '⬟',
+  ward: '◇',
+  accuracy: '◎',
+  evasion: '↗',
+  criticalChance: '✷',
+  initiative: '⌛',
+  movement: '⌁',
+  jump: '⇈',
+  statusResistance: '❄',
+}
 
 export function CharacterProfileDetails({
   presentationLabel,
@@ -188,17 +199,25 @@ export function CharacterProfileDetails({
       <section className={styles.section} data-profile-section aria-labelledby="attributes-title">
         <header className={styles.sectionHeader} data-profile-section-header>
           <div className={styles.sectionTitleLine}>
-            <h2 id="attributes-title">Core Attributes</h2>
-            <span aria-hidden="true" />
+            <span className={styles.sectionMarker} aria-hidden="true">
+              ✧
+            </span>
+            <div>
+              <h2 id="attributes-title">Core Attributes</h2>
+              <p>Your innate potential, shaping what you can become.</p>
+            </div>
+            <i aria-hidden="true" />
           </div>
-          <small>Foundation of your potential</small>
+          <small>The sixfold nature endures.</small>
         </header>
-        <div className={styles.attributeGrid}>
+
+        <div className={styles.attributeList}>
           {CHARACTER_ATTRIBUTE_IDS.map((attributeId) => {
             const color = ATTRIBUTE_COLORS[attributeId]
             const style = {
               '--attribute-color': color.solid,
               '--attribute-tint': color.tint,
+              '--attribute-soft': color.soft,
             } as CSSProperties
             return (
               <button
@@ -221,15 +240,13 @@ export function CharacterProfileDetails({
                     src={attributeIconSources[attributeId]}
                     width={96}
                     height={96}
-                    sizes="2.25rem"
+                    sizes="2.2rem"
                     alt=""
                   />
                 </span>
-                <span className={styles.attributeCopy}>
-                  <span className={styles.attributeLabel}>{attributeLabels[attributeId]}</span>
-                  <strong>{attributes[attributeId]}</strong>
-                </span>
-                <span className={styles.attributeLineageDot} aria-hidden="true" />
+                <strong>{attributeLabels[attributeId]}</strong>
+                <em>{attributeDescriptions[attributeId]}</em>
+                <b>{attributes[attributeId]}</b>
               </button>
             )
           })}
@@ -239,92 +256,75 @@ export function CharacterProfileDetails({
       <section className={styles.section} data-profile-section aria-labelledby="derived-title">
         <header className={styles.sectionHeader} data-profile-section-header>
           <div className={styles.sectionTitleLine}>
-            <h2 id="derived-title">Combat &amp; Adventure Stats</h2>
-            <span aria-hidden="true" />
+            <span className={styles.sectionMarker} aria-hidden="true">
+              ✧
+            </span>
+            <div>
+              <h2 id="derived-title">Combat &amp; Adventure Stats</h2>
+              <p>Capabilities derived from your attributes, refined through experience.</p>
+            </div>
+            <i aria-hidden="true" />
           </div>
-          <small>Derived from your attributes</small>
+          <small>Numbers tell one story. You write the next.</small>
         </header>
-        <div className={styles.statGroups} data-profile-stat-groups>
-          {orderedDerivedStatGroups.map((group) => (
-            <section
-              className={styles.statGroup}
-              key={group.id}
-              data-profile-stat-group={group.id}
-              aria-label={group.label}
-            >
-              <h3>
-                <span className={styles.groupGlyph} aria-hidden="true">
-                  {groupGlyphs[group.id]}
-                </span>
-                {group.label}
-              </h3>
-              <div>
-                {group.statIds.map((statId) => {
-                  const stat = derived.stats[statId]
-                  const sources = getAttributeSources(stat)
-                  const formattedValue = formatDerivedStat(stat)
-                  const style = {
-                    '--lineage-background': createLineageBackground(sources),
-                    '--lineage-border': createLineageBorder(sources),
-                  } as CSSProperties
-                  const lineageLabel = sources.length
-                    ? `Influenced by ${sources.map((source) => attributeLabels[source.id]).join(' and ')}`
-                    : 'No core attribute influence'
 
-                  return (
-                    <button
-                      key={statId}
-                      type="button"
-                      data-testid={`derived-stat-${statId}`}
-                      data-source-count={sources.length}
-                      style={style}
-                      aria-label={`${stat.label}, ${formattedValue}. ${lineageLabel}. Select for details.`}
-                      onClick={() =>
-                        setDetail({
-                          eyebrow: group.label,
-                          title: stat.label,
-                          body: DERIVED_STAT_PROFILE_HELP[statId],
-                        })
-                      }
-                    >
-                      <span className={styles.statLabel}>{stat.label}</span>
-                      <strong>{formattedValue}</strong>
-                      {sources.length > 0 ? (
-                        <>
-                          <span className={styles.lineage} aria-label={lineageLabel}>
-                            {sources.map((source) => (
-                              <i
-                                key={source.id}
-                                title={attributeLabels[source.id]}
-                                style={
-                                  {
-                                    '--source-color': ATTRIBUTE_COLORS[source.id].solid,
-                                  } as CSSProperties
-                                }
-                              />
-                            ))}
-                          </span>
-                          <span className={styles.lineageRail} aria-hidden="true">
-                            {sources.map((source) => (
-                              <i
-                                key={source.id}
-                                style={
-                                  {
-                                    '--source-color': ATTRIBUTE_COLORS[source.id].solid,
-                                    flexGrow: source.weight,
-                                  } as CSSProperties
-                                }
-                              />
-                            ))}
-                          </span>
-                        </>
-                      ) : null}
-                    </button>
-                  )
-                })}
-              </div>
-            </section>
-          ))}
+        <div className={styles.statGroups} data-profile-stat-groups>
+          {CHARACTER_ATTRIBUTE_IDS.map((attributeId) => {
+            const color = ATTRIBUTE_COLORS[attributeId]
+            const style = {
+              '--attribute-color': color.solid,
+              '--attribute-tint': color.tint,
+              '--attribute-soft': color.soft,
+            } as CSSProperties
+            return (
+              <section
+                className={styles.statGroup}
+                key={attributeId}
+                data-profile-stat-group={attributeId}
+                style={style}
+                aria-label={`${attributeLabels[attributeId]} derived statistics`}
+              >
+                <header>
+                  <span className={styles.statGroupIcon} aria-hidden="true">
+                    <Image
+                      className={styles.attributeIcon}
+                      src={attributeIconSources[attributeId]}
+                      width={72}
+                      height={72}
+                      sizes="1.4rem"
+                      alt=""
+                    />
+                  </span>
+                  <strong>{attributeLabels[attributeId]}</strong>
+                </header>
+                <div>
+                  {ATTRIBUTE_STAT_GROUPS[attributeId].map((statId) => {
+                    const stat = derived.stats[statId]
+                    const formattedValue = formatDerivedStat(stat)
+                    return (
+                      <button
+                        key={statId}
+                        type="button"
+                        data-testid={`derived-stat-${statId}`}
+                        aria-label={`${stat.label}, ${formattedValue}. Select for details.`}
+                        onClick={() =>
+                          setDetail({
+                            eyebrow: `${attributeLabels[attributeId]} capability`,
+                            title: stat.label,
+                            body: DERIVED_STAT_PROFILE_HELP[statId],
+                          })
+                        }
+                      >
+                        <span aria-hidden="true">{statGlyphs[statId]}</span>
+                        <span>{stat.label}</span>
+                        <strong>{formattedValue}</strong>
+                      </button>
+                    )
+                  })}
+                </div>
+              </section>
+            )
+          })}
         </div>
       </section>
 
@@ -349,42 +349,6 @@ export function CharacterProfileDetails({
       ) : null}
     </div>
   )
-}
-
-function getAttributeSources(stat: DerivedStatValue): readonly AttributeSource[] {
-  return stat.contributions
-    .filter((contribution) => contribution.sourceKind === 'attribute')
-    .map((contribution) => {
-      const id = contribution.sourceId.replace('character.attribute.', '') as CharacterAttributeId
-      return { id, weight: Math.abs(contribution.coefficient) }
-    })
-    .filter((source) => CHARACTER_ATTRIBUTE_IDS.includes(source.id) && source.weight > 0)
-    .sort((left, right) => right.weight - left.weight || left.id.localeCompare(right.id))
-}
-
-function createLineageBackground(sources: readonly AttributeSource[]): string {
-  if (sources.length === 0) return '#080b10'
-  if (sources.length === 1) {
-    const color = ATTRIBUTE_COLORS[sources[0].id]
-    return `linear-gradient(145deg, ${color.tint} 0%, ${color.soft} 52%, rgba(8, 11, 16, 0.96) 100%)`
-  }
-
-  const totalWeight = sources.reduce((total, source) => total + source.weight, 0)
-  let cursor = 0
-  const stops: string[] = []
-  for (const source of sources) {
-    const start = cursor
-    cursor += (source.weight / totalWeight) * 100
-    const end = cursor
-    const color = ATTRIBUTE_COLORS[source.id].soft
-    stops.push(`${color} ${start.toFixed(1)}%`, `${color} ${end.toFixed(1)}%`)
-  }
-  return `linear-gradient(135deg, ${stops.join(', ')})`
-}
-
-function createLineageBorder(sources: readonly AttributeSource[]): string {
-  if (sources.length === 0) return 'var(--av-border)'
-  return ATTRIBUTE_COLORS[sources[0].id].solid
 }
 
 function formatDerivedStat(stat: DerivedStatValue): string {
