@@ -288,3 +288,201 @@
     grid-column: auto;
   }
 }
+
+/* Master Panel productivity workspace v2 */
+.builder {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-auto-flow: row dense;
+  gap: 0.5rem;
+  align-items: start;
+}
+
+.toolbar,
+.notice {
+  grid-column: 1 / -1;
+}
+
+.toolbar {
+  padding: 0.55rem 0.65rem;
+}
+
+.toolbar > div:first-child {
+  gap: 0.08rem;
+}
+
+.toolbar h1 {
+  font-size: 0.86rem;
+}
+
+.toolbar p,
+.notice,
+.status p {
+  font-size: 0.62rem;
+  line-height: 1.4;
+}
+
+.toolbarActions {
+  gap: 0.35rem;
+}
+
+.builder button {
+  min-height: 2.05rem;
+  padding: 0.4rem 0.56rem;
+  font-size: 0.61rem;
+}
+
+.notice {
+  padding: 0.48rem 0.6rem;
+}
+
+.workspaceGrid {
+  display: contents;
+}
+
+.primaryCard {
+  position: sticky;
+  top: 0.45rem;
+  grid-column: 1 / 4;
+  grid-template-columns: 1fr;
+  align-self: start;
+  max-height: calc(100dvh - 11.5rem);
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+.primaryCard > h2,
+.primaryCard > label:nth-of-type(4),
+.primaryCard > label:nth-of-type(5) {
+  grid-column: auto;
+}
+
+.phases {
+  grid-column: 4 / 10;
+  gap: 0.5rem;
+}
+
+.controlCard {
+  top: 0.45rem;
+  grid-column: 10 / -1;
+  align-self: start;
+  max-height: calc(100dvh - 11.5rem);
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+.status {
+  grid-column: 4 / 10;
+}
+
+.card,
+.phaseCard,
+.status {
+  gap: 0.5rem;
+  padding: 0.62rem;
+}
+
+.card h2,
+.phaseCard h3,
+.sectionHeading h2,
+.sectionHeading h3 {
+  font-size: 0.8rem;
+}
+
+.controlCard h2:not(:first-child) {
+  margin-top: 0.18rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(215, 187, 127, 0.1);
+}
+
+.card label,
+.phaseCard label {
+  gap: 0.2rem;
+  font-size: 0.62rem;
+}
+
+.builder input,
+.builder select,
+.builder textarea {
+  min-height: 2.08rem;
+  padding: 0.42rem 0.5rem;
+  font-size: 0.65rem;
+}
+
+.builder textarea {
+  min-height: 3.4rem;
+}
+
+.phaseCard {
+  gap: 0.5rem;
+}
+
+.phaseHeader {
+  padding-bottom: 0.35rem;
+}
+
+.compositionGroup {
+  gap: 0.38rem;
+  padding-top: 0.45rem;
+}
+
+.row {
+  grid-template-columns:
+    minmax(6.5rem, 0.9fr) minmax(7.5rem, 1fr) minmax(9rem, 1.4fr) minmax(4.5rem, 0.5fr)
+    auto;
+  gap: 0.34rem;
+}
+
+.status {
+  padding: 0.5rem 0.62rem;
+}
+
+.status pre {
+  max-height: 12rem;
+  padding: 0.5rem;
+  font-size: 0.6rem;
+}
+
+@media (max-width: 1180px) {
+  .builder {
+    grid-template-columns: minmax(0, 1fr) minmax(16rem, 0.42fr);
+  }
+
+  .toolbar,
+  .notice {
+    grid-column: 1 / -1;
+  }
+
+  .primaryCard,
+  .phases,
+  .status {
+    position: static;
+    grid-column: 1;
+    max-height: none;
+  }
+
+  .controlCard {
+    grid-column: 2;
+    grid-row: auto / span 20;
+  }
+}
+
+@media (max-width: 760px) {
+  .builder {
+    grid-template-columns: 1fr;
+  }
+
+  .toolbar,
+  .notice,
+  .primaryCard,
+  .phases,
+  .controlCard,
+  .status {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .controlCard {
+    position: static;
+    max-height: none;
+  }
+}
