@@ -194,18 +194,32 @@ export function CharacterProfileShell({
           data-testid="current-path-coming-soon"
           aria-label="Current Path"
         >
+          <header className={styles.storyHeading}>
+            <div>
+              <span aria-hidden="true">♜</span>
+              <strong>Current Path</strong>
+            </div>
+            <small>Your story continues.</small>
+          </header>
           <div className={styles.storyArt} aria-hidden="true" />
           <div className={styles.storyCopy}>
-            <span>Current Path</span>
-            <h2>Story Coming Soon</h2>
+            <h2>Echoes Beyond the Vale</h2>
             <p>
-              Your journey through Aurevane will unfold here as authored story paths become
-              available.
+              Fragments stir across Aurevane. Follow the threads, sharpen your strength, and uncover
+              what lies beyond the turning skies.
             </p>
+            <div className={styles.storyDivider} aria-hidden="true">
+              ✧
+            </div>
             <button type="button" disabled>
-              View Journey
+              View Journey <span aria-hidden="true">→</span>
             </button>
-            <small>New paths are not found, but remembered.</small>
+            <blockquote>
+              “New paths are not found,
+              <br />
+              but remembered.”
+              <cite>— An Aurevane Proverb</cite>
+            </blockquote>
           </div>
         </aside>
       </div>

@@ -261,9 +261,7 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
       expect(metric.height).toBeGreaterThan(110)
       expect(metric.headingOverflow).toBeLessThanOrEqual(1)
     }
-    const techniqueCards = page
-      .locator('[aria-label="Equipped Discipline Skills"]')
-      .locator(':scope > article, :scope > div')
+    const techniqueCards = page.locator('[data-arsenal-technique-row="true"]')
     const techniqueChrome = await techniqueCards.evaluateAll((cards) =>
       cards.map((card) => {
         const style = getComputedStyle(card)
@@ -419,9 +417,9 @@ test('a populated hybrid loadout keeps all four Techniques and management action
   await page.goto('/game/arsenal')
   await expect(page.getByTestId('secondary-discipline-chip')).toHaveText('Lifebinder')
   const loadout = page.locator('[data-arsenal-workspace]')
-  await expect(loadout.locator('[aria-label="Equipped Discipline Skills"] > article')).toHaveCount(
-    4,
-  )
+  await expect(
+    loadout.locator('[data-arsenal-technique-row="true"][data-equipped="true"]'),
+  ).toHaveCount(4)
   await expect(page.locator('[aria-labelledby="arsenal-attunement-heading"]')).toContainText(
     'Resonance',
   )

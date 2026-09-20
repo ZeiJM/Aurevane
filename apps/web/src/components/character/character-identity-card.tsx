@@ -63,7 +63,10 @@ export function CharacterIdentityCard({
         aria-label="Character progression"
       >
         <div className={styles.progressLabel}>
-          <strong>Character Level {profile.progression.level}</strong>
+          <strong>
+            <span className={styles.srOnly}>Character </span>
+            Level {profile.progression.level}
+          </strong>
           <span>
             {progress.isMaxLevel
               ? `${profile.progression.xp.toLocaleString('en')} XP`
@@ -109,9 +112,9 @@ export function CharacterIdentityCard({
         </div>
       </div>
 
-      <p className={styles.summary}>{disciplineSummary}</p>
-      <div className={styles.ornament} aria-hidden="true">
-        ◇
+      <div className={styles.creed} title={disciplineSummary}>
+        <span>Strength finds</span>
+        <span>brighter ground</span>
       </div>
     </article>
   )
