@@ -334,83 +334,135 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
     })
   }
 
+  function startNewDefinition() {
+    const next = structuredClone(initialDefinition)
+    setDefinition(next)
+    setBaseVersion(null)
+    setDraftVersion(null)
+    setVersions([])
+    setSelectedPhaseId(next.phases[0]!.id)
+    setScheduledRun(null)
+    setProductionReason('')
+    setProductionConfirmed(false)
+    setMessage('New Event workspace ready.')
+    setDetails('')
+  }
+
+  const publicationState = baseVersion !== null ? 'Published' : draftVersion !== null ? 'Draft' : 'New'
+
   return (
     <section className={styles.builder}>
-      <div className={styles.toolbar}>
-        <div>
-          <p className={styles.eyebrow}>Event definition</p>
-          <h1>Persistent Event Definition</h1>
-          <p>
-            Draft, validate, preview, publish and schedule typed Event content. Preview controls
-            never create Production state.
-          </p>
+      <aside className={styles.eventNavigator} aria-label="Event workspace navigator">
+        <div className={styles.navigatorHeading}>
+          <div>
+            <p className={styles.eyebrow}>Event definition</p>
+            <h2>Events</h2>
+          </div>
+          <span>{publicationState}</span>
         </div>
-        <div className={styles.toolbarActions}>
+
+        <label className={styles.navigatorField}>
+          Event key
+          <input
+            value={definition.eventKey}
+            onChange={(event) => patchDefinition({ eventKey: event.target.value })}
+          />
+        </label>
+
+        <div className={styles.navigatorActions}>
           <button type="button" onClick={loadWorkspace} disabled={busy}>
             Load
           </button>
-          <button type="button" onClick={validate} disabled={busy}>
-            Validate
-          </button>
-          <button type="button" onClick={preview} disabled={busy}>
-            Preview
-          </button>
-          <button type="button" onClick={saveDraft} disabled={busy}>
-            Save draft
-          </button>
-          <button
-            type="button"
-            onClick={publish}
-            disabled={busy || !canPublish || !productionActionReady}
-          >
-            Publish
+          <button type="button" onClick={startNewDefinition} disabled={busy}>
+            New Event
           </button>
         </div>
-      </div>
 
-      {!canPublish ? (
-        <p className={styles.notice}>
-          Production publication is disabled for this account. Draft and preview remain available.
-        </p>
-      ) : null}
-      {globalWarning ? <p className={styles.notice}>{globalWarning}</p> : null}
+        <div className={styles.navigatorSummary}>
+          <div>
+            <span>Published</span>
+            <strong>{baseVersion === null ? '—' : `v${baseVersion}`}</strong>
+          </div>
+          <div>
+            <span>Draft</span>
+            <strong>{draftVersion === null ? '—' : `d${draftVersion}`}</strong>
+          </div>
+          <div>
+            <span>Phases</span>
+            <strong>{definition.phases.length}</strong>
+          </div>
+        </div>
 
-      <div className={styles.workspaceGrid}>
-        <section className={`${styles.card} ${styles.primaryCard}`}>
-          <h2>Identity &amp; scope</h2>
-          <label>
-            Event key
-            <input
-              value={definition.eventKey}
-              onChange={(event) => patchDefinition({ eventKey: event.target.value })}
-            />
-          </label>
+        <section className={styles.navigatorHistory} aria-label="Event version history">
+          <div className={styles.miniHeading}>
+            <h3>Recent versions</h3>
+            <span>{versions.length}</span>
+          </div>
+          {versions.length === 0 ? (
+            <p>No published history loaded.</p>
+          ) : (
+            <div className={styles.versionList}>
+              {versions.map((version) => (
+                <div key={version.definitionVersion}>
+                  <span aria-hidden="true">◆</span>
+                  <div>
+                    <strong>v{version.definitionVersion}</strong>
+                    <small>{version.current ? 'Current publication' : 'Published version'}</small>
+                  </div>
+                  <time>{new Date(version.publishedAt).toLocaleDateString()}</time>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      </aside>
+
+      <div className={styles.builderWorkspace}>
+        <header className={styles.eventHeader}>
+          <div className={styles.eventIdentityIcon} aria-hidden="true">
+            ✦
+          </div>
+          <div className={styles.eventIdentity}>
+            <p className={styles.eyebrow}>Persistent Event Definition</p>
+            <h1>{definition.title}</h1>
+            <p>
+              <code>{definition.eventKey}</code>
+              <span>{publicationState}</span>
+            </p>
+          </div>
+          <div className={styles.eventHeaderState}>
+            <span>{message}</span>
+          </div>
+        </header>
+
+        <nav className={styles.workspaceTabs} aria-label="Event Builder workspace">
+          <a href="#event-details">Details</a>
+          <a href="#event-phases">Phases</a>
+          <a href="#event-phases">Objectives</a>
+          <a href="#event-phases">Effects</a>
+          <a href="#event-controls">Schedule</a>
+        </nav>
+
+        {!canPublish ? (
+          <p className={styles.notice}>
+            Production publication is disabled for this account. Draft and preview remain available.
+          </p>
+        ) : null}
+        {globalWarning ? <p className={styles.notice}>{globalWarning}</p> : null}
+
+        <section className={`${styles.card} ${styles.primaryCard}`} id="event-details">
+          <div className={styles.sectionHeading}>
+            <div>
+              <p className={styles.eyebrow}>Details</p>
+              <h2>Basic information</h2>
+            </div>
+          </div>
+
           <label>
             Template key
             <input
               value={definition.templateKey}
               onChange={(event) => patchDefinition({ templateKey: event.target.value })}
-            />
-          </label>
-          <label>
-            Title
-            <input
-              value={definition.title}
-              onChange={(event) => patchDefinition({ title: event.target.value })}
-            />
-          </label>
-          <label>
-            Summary
-            <textarea
-              value={definition.summary}
-              onChange={(event) => patchDefinition({ summary: event.target.value })}
-            />
-          </label>
-          <label>
-            Internal notes
-            <textarea
-              value={definition.internalNotes}
-              onChange={(event) => patchDefinition({ internalNotes: event.target.value })}
             />
           </label>
           <label>
@@ -427,6 +479,13 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
                 <option key={family}>{family}</option>
               ))}
             </select>
+          </label>
+          <label>
+            Title
+            <input
+              value={definition.title}
+              onChange={(event) => patchDefinition({ title: event.target.value })}
+            />
           </label>
           <label>
             Scope
@@ -458,30 +517,305 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
               />
             </label>
           ) : null}
+          <label className={styles.wideField}>
+            Summary
+            <textarea
+              value={definition.summary}
+              onChange={(event) => patchDefinition({ summary: event.target.value })}
+            />
+          </label>
+          <label className={styles.wideField}>
+            Internal notes
+            <textarea
+              value={definition.internalNotes}
+              onChange={(event) => patchDefinition({ internalNotes: event.target.value })}
+            />
+          </label>
         </section>
 
-        <section className={`${styles.card} ${styles.controlCard}`}>
-          <h2>References</h2>
-          <label>
-            Reward Package refs
-            <input
-              value={csv(definition.rewardPackageRefs)}
-              onChange={(event) =>
-                patchDefinition({ rewardPackageRefs: parseCsv(event.target.value) })
-              }
-              placeholder="reward.event-xp"
-            />
-          </label>
-          <label>
-            Aftermath refs
-            <input
-              value={csv(definition.aftermathRefs)}
-              onChange={(event) => patchDefinition({ aftermathRefs: parseCsv(event.target.value) })}
-              placeholder="aftermath.event-result"
-            />
-          </label>
+        <section className={styles.phases} id="event-phases">
+          <div className={styles.sectionHeading}>
+            <div>
+              <p className={styles.eyebrow}>Composition</p>
+              <h2>Phases, objectives &amp; effects</h2>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                const next = blankPhase(definition.phases.length)
+                patchDefinition({ phases: [...definition.phases, next] })
+                setSelectedPhaseId(next.id)
+              }}
+            >
+              Add phase
+            </button>
+          </div>
 
-          <h2>Preview controls</h2>
+          {definition.phases.map((phase, phaseIndex) => (
+            <article className={styles.phaseCard} key={`${phase.id}-${phaseIndex}`}>
+              <div className={styles.phaseHeader}>
+                <div>
+                  <span>Phase {phaseIndex + 1}</span>
+                  <strong>{phase.name}</strong>
+                </div>
+                <button
+                  type="button"
+                  disabled={definition.phases.length === 1}
+                  onClick={() => {
+                    const remaining = definition.phases.filter((_, index) => index !== phaseIndex)
+                    patchDefinition({ phases: remaining })
+                    setSelectedPhaseId(remaining[0]!.id)
+                  }}
+                >
+                  Remove
+                </button>
+              </div>
+
+              <div className={styles.grid}>
+                <label>
+                  Phase id
+                  <input
+                    value={phase.id}
+                    onChange={(event) => patchPhase(phaseIndex, { id: event.target.value })}
+                  />
+                </label>
+                <label>
+                  Name
+                  <input
+                    value={phase.name}
+                    onChange={(event) => patchPhase(phaseIndex, { name: event.target.value })}
+                  />
+                </label>
+                <label>
+                  Transition
+                  <select
+                    value={phase.transition.type}
+                    onChange={(event) =>
+                      patchPhase(phaseIndex, {
+                        transition: transitionFor(event.target.value as EventPhaseTransition['type']),
+                      })
+                    }
+                  >
+                    <option value="manual">manual</option>
+                    <option value="elapsed">elapsed</option>
+                    <option value="scheduled">scheduled</option>
+                    <option value="objective-threshold">objective-threshold</option>
+                  </select>
+                </label>
+                {phase.transition.type === 'elapsed' ? (
+                  <label>
+                    After seconds
+                    <input
+                      type="number"
+                      min={1}
+                      value={phase.transition.afterSeconds}
+                      onChange={(event) =>
+                        patchPhase(phaseIndex, {
+                          transition: { type: 'elapsed', afterSeconds: Number(event.target.value) },
+                        })
+                      }
+                    />
+                  </label>
+                ) : null}
+                {phase.transition.type === 'scheduled' ? (
+                  <label>
+                    At
+                    <input
+                      value={phase.transition.at}
+                      onChange={(event) =>
+                        patchPhase(phaseIndex, {
+                          transition: { type: 'scheduled', at: event.target.value },
+                        })
+                      }
+                    />
+                  </label>
+                ) : null}
+                {phase.transition.type === 'objective-threshold' ? (
+                  <label>
+                    Objective id
+                    <input
+                      value={phase.transition.objectiveId}
+                      onChange={(event) =>
+                        patchPhase(phaseIndex, {
+                          transition: {
+                            type: 'objective-threshold',
+                            objectiveId: event.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </label>
+                ) : null}
+              </div>
+
+              <div className={styles.compositionGroup}>
+                <div className={styles.sectionHeading}>
+                  <h3>Objectives</h3>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      patchPhase(phaseIndex, {
+                        objectives: [...phase.objectives, objective(phase.objectives.length)],
+                      })
+                    }
+                  >
+                    Add objective
+                  </button>
+                </div>
+                {phase.objectives.map((entry, objectiveIndex) => (
+                  <div className={styles.row} key={`${entry.id}-${objectiveIndex}`}>
+                    <input
+                      value={entry.id}
+                      onChange={(event) =>
+                        patchObjective(phaseIndex, objectiveIndex, { id: event.target.value })
+                      }
+                      aria-label="Objective id"
+                    />
+                    <select
+                      value={entry.type}
+                      onChange={(event) =>
+                        patchObjective(phaseIndex, objectiveIndex, {
+                          type: event.target.value as EventObjectiveDefinition['type'],
+                        })
+                      }
+                      aria-label="Objective type"
+                    >
+                      {EVENT_OBJECTIVE_TYPES.map((type) => (
+                        <option key={type}>{type}</option>
+                      ))}
+                    </select>
+                    <input
+                      value={entry.referenceKey}
+                      onChange={(event) =>
+                        patchObjective(phaseIndex, objectiveIndex, {
+                          referenceKey: event.target.value,
+                        })
+                      }
+                      aria-label="Objective reference"
+                    />
+                    <input
+                      type="number"
+                      min={1}
+                      value={entry.target}
+                      onChange={(event) =>
+                        patchObjective(phaseIndex, objectiveIndex, {
+                          target: Number(event.target.value),
+                        })
+                      }
+                      aria-label="Objective target"
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        patchPhase(phaseIndex, {
+                          objectives: phase.objectives.filter(
+                            (_, index) => index !== objectiveIndex,
+                          ),
+                        })
+                      }
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {(['effects', 'cleanupEffects'] as const).map((list) => (
+                <div className={styles.compositionGroup} key={list}>
+                  <div className={styles.sectionHeading}>
+                    <h3>{list === 'effects' ? 'Active effects' : 'Cleanup effects'}</h3>
+                    <button
+                      type="button"
+                      onClick={() => patchPhase(phaseIndex, { [list]: [...phase[list], effect()] })}
+                    >
+                      Add effect
+                    </button>
+                  </div>
+                  {phase[list].map((entry, effectIndex) => (
+                    <div className={styles.row} key={`${entry.referenceKey}-${effectIndex}`}>
+                      <select
+                        value={entry.type}
+                        onChange={(event) =>
+                          patchEffect(phaseIndex, list, effectIndex, {
+                            type: event.target.value as EventEffectReference['type'],
+                          })
+                        }
+                        aria-label="Effect type"
+                      >
+                        {EVENT_EFFECT_TYPES.map((type) => (
+                          <option key={type}>{type}</option>
+                        ))}
+                      </select>
+                      <input
+                        value={entry.referenceKey}
+                        onChange={(event) =>
+                          patchEffect(phaseIndex, list, effectIndex, {
+                            referenceKey: event.target.value,
+                          })
+                        }
+                        aria-label="Effect reference"
+                      />
+                      <label className={styles.checkbox}>
+                        <input
+                          type="checkbox"
+                          checked={entry.enabled}
+                          onChange={(event) =>
+                            patchEffect(phaseIndex, list, effectIndex, {
+                              enabled: event.target.checked,
+                            })
+                          }
+                        />
+                        enabled
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          patchPhase(phaseIndex, {
+                            [list]: phase[list].filter((_, index) => index !== effectIndex),
+                          })
+                        }
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </article>
+          ))}
+        </section>
+
+        <section className={styles.status}>
+          <strong>{message}</strong>
+          {details ? <pre>{details}</pre> : null}
+          {versions.length > 0 ? (
+            <p>
+              Published history:{' '}
+              {versions
+                .map(
+                  (version) =>
+                    `v${version.definitionVersion}${version.current ? ' current' : ''}`,
+                )
+                .join(' · ')}
+            </p>
+          ) : null}
+        </section>
+      </div>
+
+      <aside className={styles.controlCard} id="event-controls">
+        <section className={styles.dockSection}>
+          <p className={styles.eyebrow}>Preview &amp; testing</p>
+          <div className={styles.dockActions}>
+            <button type="button" onClick={validate} disabled={busy}>
+              Validate
+            </button>
+            <button type="button" onClick={preview} disabled={busy}>
+              Preview
+            </button>
+            <button type="button" onClick={saveDraft} disabled={busy}>
+              Save draft
+            </button>
+          </div>
           <label>
             Preview phase
             <select
@@ -503,8 +837,36 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
               onChange={(event) => setTestClock(event.target.value)}
             />
           </label>
+        </section>
 
-          <h2>Production action confirmation</h2>
+        <section className={styles.dockSection}>
+          <p className={styles.eyebrow}>References</p>
+          <label>
+            Reward Package refs
+            <input
+              value={csv(definition.rewardPackageRefs)}
+              onChange={(event) =>
+                patchDefinition({ rewardPackageRefs: parseCsv(event.target.value) })
+              }
+              placeholder="reward.event-xp"
+            />
+          </label>
+          <label>
+            Aftermath refs
+            <input
+              value={csv(definition.aftermathRefs)}
+              onChange={(event) => patchDefinition({ aftermathRefs: parseCsv(event.target.value) })}
+              placeholder="aftermath.event-result"
+            />
+          </label>
+        </section>
+
+        <section className={styles.dockSection}>
+          <p className={styles.eyebrow}>Publication</p>
+          <div className={styles.publicationState}>
+            <span>{publicationState}</span>
+            <strong>{baseVersion === null ? 'Not published' : `v${baseVersion}`}</strong>
+          </div>
           <label>
             Production action reason
             <textarea
@@ -525,8 +887,18 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
             />
             Confirm Production action
           </label>
+          <button
+            type="button"
+            className={styles.primaryAction}
+            onClick={publish}
+            disabled={busy || !canPublish || !productionActionReady}
+          >
+            Publish
+          </button>
+        </section>
 
-          <h2>Schedule</h2>
+        <section className={styles.dockSection}>
+          <p className={styles.eyebrow}>Schedule</p>
           <label>
             Start
             <input
@@ -560,266 +932,6 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
             </button>
           </div>
         </section>
-      </div>
-
-      <section className={styles.phases}>
-        <div className={styles.sectionHeading}>
-          <div>
-            <p className={styles.eyebrow}>COMPOSITION</p>
-            <h2>Phases, objectives &amp; effects</h2>
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              const next = blankPhase(definition.phases.length)
-              patchDefinition({ phases: [...definition.phases, next] })
-              setSelectedPhaseId(next.id)
-            }}
-          >
-            Add phase
-          </button>
-        </div>
-
-        {definition.phases.map((phase, phaseIndex) => (
-          <article className={styles.phaseCard} key={`${phase.id}-${phaseIndex}`}>
-            <div className={styles.phaseHeader}>
-              <strong>Phase {phaseIndex + 1}</strong>
-              <button
-                type="button"
-                disabled={definition.phases.length === 1}
-                onClick={() => {
-                  const remaining = definition.phases.filter((_, index) => index !== phaseIndex)
-                  patchDefinition({ phases: remaining })
-                  setSelectedPhaseId(remaining[0]!.id)
-                }}
-              >
-                Remove
-              </button>
-            </div>
-            <div className={styles.grid}>
-              <label>
-                Phase id
-                <input
-                  value={phase.id}
-                  onChange={(event) => patchPhase(phaseIndex, { id: event.target.value })}
-                />
-              </label>
-              <label>
-                Name
-                <input
-                  value={phase.name}
-                  onChange={(event) => patchPhase(phaseIndex, { name: event.target.value })}
-                />
-              </label>
-              <label>
-                Transition
-                <select
-                  value={phase.transition.type}
-                  onChange={(event) =>
-                    patchPhase(phaseIndex, {
-                      transition: transitionFor(event.target.value as EventPhaseTransition['type']),
-                    })
-                  }
-                >
-                  <option value="manual">manual</option>
-                  <option value="elapsed">elapsed</option>
-                  <option value="scheduled">scheduled</option>
-                  <option value="objective-threshold">objective-threshold</option>
-                </select>
-              </label>
-              {phase.transition.type === 'elapsed' ? (
-                <label>
-                  After seconds
-                  <input
-                    type="number"
-                    min={1}
-                    value={phase.transition.afterSeconds}
-                    onChange={(event) =>
-                      patchPhase(phaseIndex, {
-                        transition: { type: 'elapsed', afterSeconds: Number(event.target.value) },
-                      })
-                    }
-                  />
-                </label>
-              ) : null}
-              {phase.transition.type === 'scheduled' ? (
-                <label>
-                  At
-                  <input
-                    value={phase.transition.at}
-                    onChange={(event) =>
-                      patchPhase(phaseIndex, {
-                        transition: { type: 'scheduled', at: event.target.value },
-                      })
-                    }
-                  />
-                </label>
-              ) : null}
-              {phase.transition.type === 'objective-threshold' ? (
-                <label>
-                  Objective id
-                  <input
-                    value={phase.transition.objectiveId}
-                    onChange={(event) =>
-                      patchPhase(phaseIndex, {
-                        transition: {
-                          type: 'objective-threshold',
-                          objectiveId: event.target.value,
-                        },
-                      })
-                    }
-                  />
-                </label>
-              ) : null}
-            </div>
-
-            <div className={styles.compositionGroup}>
-              <div className={styles.sectionHeading}>
-                <h3>Objectives</h3>
-                <button
-                  type="button"
-                  onClick={() =>
-                    patchPhase(phaseIndex, {
-                      objectives: [...phase.objectives, objective(phase.objectives.length)],
-                    })
-                  }
-                >
-                  Add objective
-                </button>
-              </div>
-              {phase.objectives.map((entry, objectiveIndex) => (
-                <div className={styles.row} key={`${entry.id}-${objectiveIndex}`}>
-                  <input
-                    value={entry.id}
-                    onChange={(event) =>
-                      patchObjective(phaseIndex, objectiveIndex, { id: event.target.value })
-                    }
-                    aria-label="Objective id"
-                  />
-                  <select
-                    value={entry.type}
-                    onChange={(event) =>
-                      patchObjective(phaseIndex, objectiveIndex, {
-                        type: event.target.value as EventObjectiveDefinition['type'],
-                      })
-                    }
-                    aria-label="Objective type"
-                  >
-                    {EVENT_OBJECTIVE_TYPES.map((type) => (
-                      <option key={type}>{type}</option>
-                    ))}
-                  </select>
-                  <input
-                    value={entry.referenceKey}
-                    onChange={(event) =>
-                      patchObjective(phaseIndex, objectiveIndex, {
-                        referenceKey: event.target.value,
-                      })
-                    }
-                    aria-label="Objective reference"
-                  />
-                  <input
-                    type="number"
-                    min={1}
-                    value={entry.target}
-                    onChange={(event) =>
-                      patchObjective(phaseIndex, objectiveIndex, {
-                        target: Number(event.target.value),
-                      })
-                    }
-                    aria-label="Objective target"
-                  />
-                  <button
-                    type="button"
-                    onClick={() =>
-                      patchPhase(phaseIndex, {
-                        objectives: phase.objectives.filter((_, index) => index !== objectiveIndex),
-                      })
-                    }
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            {(['effects', 'cleanupEffects'] as const).map((list) => (
-              <div className={styles.compositionGroup} key={list}>
-                <div className={styles.sectionHeading}>
-                  <h3>{list === 'effects' ? 'Active effects' : 'Cleanup effects'}</h3>
-                  <button
-                    type="button"
-                    onClick={() => patchPhase(phaseIndex, { [list]: [...phase[list], effect()] })}
-                  >
-                    Add effect
-                  </button>
-                </div>
-                {phase[list].map((entry, effectIndex) => (
-                  <div className={styles.row} key={`${entry.referenceKey}-${effectIndex}`}>
-                    <select
-                      value={entry.type}
-                      onChange={(event) =>
-                        patchEffect(phaseIndex, list, effectIndex, {
-                          type: event.target.value as EventEffectReference['type'],
-                        })
-                      }
-                      aria-label="Effect type"
-                    >
-                      {EVENT_EFFECT_TYPES.map((type) => (
-                        <option key={type}>{type}</option>
-                      ))}
-                    </select>
-                    <input
-                      value={entry.referenceKey}
-                      onChange={(event) =>
-                        patchEffect(phaseIndex, list, effectIndex, {
-                          referenceKey: event.target.value,
-                        })
-                      }
-                      aria-label="Effect reference"
-                    />
-                    <label className={styles.checkbox}>
-                      <input
-                        type="checkbox"
-                        checked={entry.enabled}
-                        onChange={(event) =>
-                          patchEffect(phaseIndex, list, effectIndex, {
-                            enabled: event.target.checked,
-                          })
-                        }
-                      />
-                      enabled
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        patchPhase(phaseIndex, {
-                          [list]: phase[list].filter((_, index) => index !== effectIndex),
-                        })
-                      }
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-            ))}
-          </article>
-        ))}
-      </section>
-
-      <section className={styles.status}>
-        <strong>{message}</strong>
-        {details ? <pre>{details}</pre> : null}
-        {versions.length > 0 ? (
-          <p>
-            Published history:{' '}
-            {versions
-              .map((version) => `v${version.definitionVersion}${version.current ? ' current' : ''}`)
-              .join(' · ')}
-          </p>
-        ) : null}
-      </section>
+      </aside>
     </section>
-  )
-}
+  )}
