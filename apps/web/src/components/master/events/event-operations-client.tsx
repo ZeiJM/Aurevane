@@ -281,7 +281,7 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
 
   return (
     <section className={styles.operations}>
-      <aside className={styles.runNavigator} aria-label="Event Run navigator">
+      <aside className={styles.runNavigator} aria-label="Live operations navigator">
         <header className={styles.navigatorHeader}>
           <div>
             <p className={styles.eyebrow}>Operations console</p>
