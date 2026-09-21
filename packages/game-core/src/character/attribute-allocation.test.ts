@@ -20,6 +20,7 @@ import {
   validateDisciplineAttributePolicy,
   type DisciplineAttributePolicy,
 } from './attribute-allocation'
+import { CHARACTER_ATTRIBUTE_IDS } from './creation'
 
 describe('attribute allocation guardrails', () => {
   it('keeps 36 effective points at Level 1 while only five are player-owned', () => {
