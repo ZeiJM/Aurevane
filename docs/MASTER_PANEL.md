@@ -139,8 +139,8 @@ content.disciplines.edit
 content.skills.edit
 content.resonances.edit
 content.essences.edit
-content.soulmarks.edit
-content.mantles.edit
+content.ascensions.edit
+content.severence.edit
 content.items.edit
 content.effects.edit
 content.enemies.edit
