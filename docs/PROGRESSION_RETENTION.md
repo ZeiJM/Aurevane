@@ -14,7 +14,7 @@ Current build terminology applies throughout:
 - Discipline Skills;
 - Resonance for mixed builds;
 - Essence for pure builds;
-- Soulmark or Soul-Severed/Mantle supernatural path.
+- Ascension or Severence supernatural path.
 
 Legacy/Confluence/Art-era terminology is retired from current progression requirements.
 
@@ -32,7 +32,7 @@ The target is not six months of repetitive grinding or empty waiting. It is six 
 - Discipline Mastery;
 - Primary/Secondary experimentation;
 - mixed Resonance and pure Essence build development;
-- Soulmark or Soul-Severed/Mantle progression;
+- Ascension or Severence progression;
 - equipment refinement;
 - world/story progression;
 - lore discovery;
@@ -182,7 +182,7 @@ Do not make the primary urgency system:
 - mandatory hour-scale login windows;
 - hidden surprise timers for core progression;
 - pay-to-avoid-loss mechanics;
-- permanently exclusive meta-defining Disciplines, Resonances, Essence Skills, Soulmarks, Mantles or equipment.
+- permanently exclusive meta-defining Disciplines, Resonances, Essence Skills, Ascensions, Severence powers or equipment.
 
 Prefer memorable presence, cosmetics, titles, history, variants, temporary rule changes, recurring rare rewards, competitive placement and social participation.
 
@@ -247,7 +247,7 @@ It may reset/partially reset:
 
 Never silently delete irreversible purchases, cosmetics, account ownership, identity, social history or permanent achievements.
 
-The Soulmarked versus Soul-Severed supernatural choice **persists across Rekindling** unless a future explicit story system says otherwise.
+The Ascended versus Severed supernatural choice **persists across Rekindling** unless a future explicit story system says otherwise.
 
 ---
 
@@ -279,7 +279,7 @@ Possible examples under the current build model:
 - retain one Discipline Mastery memory/shortcut under bounded prerequisites;
 - retain one known Resonance discovery in the Codex/Archive knowledge layer;
 - retain pure-Discipline Essence knowledge where the system supports persistent discovery;
-- retain one Soulmark branch insight or Mantle-path knowledge consistent with the character's permanent supernatural choice;
+- retain one Ascension branch insight or Severence power-path knowledge consistent with the character's permanent supernatural choice;
 - retain one crafting/Expedition knowledge perk;
 - retain one equipment appearance/heirloom shell without carrying unbalanced stats.
 
@@ -495,7 +495,7 @@ Players should have reasons to ask:
 - What Resonance does the pairing unlock?
 - What changes if I reverse Primary/Secondary and therefore change the base Discipline profile/Skill emphasis?
 - Is this build stronger or more interesting if I stay pure and use its Essence Skill?
-- How does my Soulmark—or Mantle path on a Soul-Severed character—change the plan?
+- How does my Ascension or Severence path change the plan?
 - What equipment/Equipment Skill makes this strategy work?
 
 This replaces the old Legacy/Confluence framing without changing the underlying theorycraft pillar.
@@ -653,7 +653,7 @@ The progression/retention system succeeds when:
 - absence is recoverable rather than catastrophic;
 - Passive Training helps without replacing play;
 - Primary/Secondary/Resonance/Essence experimentation remains compelling;
-- Soulmark vs Soul-Severed/Mantle identity matters without becoming pay-to-win;
+- Ascension vs Severence identity matters without becoming pay-to-win;
 - world events create desirable presence without permanent competitive ruin;
 - Archive/lore discovery becomes a real hobby;
 - Rekindling adds history/flexibility rather than erasing identity;
