@@ -50,7 +50,7 @@ describe('Primary Discipline build calculation', () => {
       primaryDefinition: vanguard,
       primaryProfile: { disciplineId: 'vanguard', profileVersion: 1, statOffsets: {} },
     })
-    expect(result.rulesVersion).toBe(2)
+    expect(result.rulesVersion).toBe(3)
   })
 
   it('is deterministic for the same versioned build inputs', () => {
