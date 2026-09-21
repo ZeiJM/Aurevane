@@ -109,7 +109,7 @@
   scrollbar-width: thin;
 }
 
-.railAetherField {
+.railManaField {
   position: absolute;
   z-index: 0;
   inset: 0;
@@ -118,39 +118,76 @@
   pointer-events: none;
 }
 
-.railAetherBubble {
+.railManaWisp {
   position: absolute;
-  bottom: -1.1rem;
-  left: var(--aether-left);
-  width: var(--aether-size);
-  height: var(--aether-size);
-  border: 1px solid rgb(var(--aether-rgb) / 0.56);
-  border-radius: 50%;
+  bottom: -11rem;
+  left: var(--mana-left);
+  width: var(--mana-width);
+  height: var(--mana-height);
+  border-radius: 52% 48% 58% 42% / 22% 26% 74% 78%;
   opacity: 0;
-  background: radial-gradient(
-    circle at 34% 28%,
-    rgb(244 255 255 / 0.88) 0 8%,
-    rgb(var(--aether-rgb) / 0.5) 22%,
-    rgb(var(--aether-rgb) / 0.22) 48%,
-    rgb(var(--aether-rgb) / 0.06) 66%,
-    transparent 78%
-  );
-  box-shadow:
-    0 0 0.55rem rgb(var(--aether-rgb) / 0.28),
-    inset 0 0 0.25rem rgb(238 255 255 / 0.2);
-  filter: blur(var(--aether-blur));
+  background:
+    radial-gradient(
+      ellipse at 50% 78%,
+      rgb(var(--mana-rgb) / 0.52) 0 12%,
+      rgb(var(--mana-rgb) / 0.22) 38%,
+      transparent 72%
+    ),
+    linear-gradient(
+      180deg,
+      transparent 0%,
+      rgb(var(--mana-rgb) / 0.06) 18%,
+      rgb(var(--mana-rgb) / 0.34) 48%,
+      rgb(var(--mana-rgb) / 0.52) 68%,
+      rgb(var(--mana-rgb) / 0.12) 87%,
+      transparent 100%
+    );
+  box-shadow: 0 0 1rem rgb(var(--mana-rgb) / 0.16);
+  filter: blur(var(--mana-blur));
+  transform-origin: 50% 88%;
   will-change: transform, opacity;
-  animation: railAetherBubbleRiseA var(--aether-duration) linear var(--aether-delay) infinite;
+  animation: railManaFlowA var(--mana-duration) ease-in-out var(--mana-delay) infinite;
 }
 
-.railAetherBubble:nth-child(3n + 2) {
-  animation-name: railAetherBubbleRiseB;
-  animation-timing-function: cubic-bezier(0.36, 0.08, 0.2, 0.96);
+.railManaWisp::before,
+.railManaWisp::after {
+  position: absolute;
+  content: '';
+  pointer-events: none;
 }
 
-.railAetherBubble:nth-child(4n) {
-  animation-name: railAetherBubbleRiseC;
-  animation-timing-function: cubic-bezier(0.42, 0.02, 0.26, 0.98);
+.railManaWisp::before {
+  top: 8%;
+  right: 24%;
+  bottom: 6%;
+  left: 28%;
+  border-radius: 50%;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgb(232 255 253 / 0.08) 24%,
+    rgb(var(--mana-rgb) / 0.36) 62%,
+    transparent 100%
+  );
+  filter: blur(0.35rem);
+}
+
+.railManaWisp::after {
+  right: -45%;
+  bottom: 8%;
+  left: -45%;
+  height: 34%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgb(var(--mana-rgb) / 0.2) 0%, transparent 72%);
+  filter: blur(0.5rem);
+}
+
+.railManaWisp:nth-child(3n + 2) {
+  animation-name: railManaFlowB;
+}
+
+.railManaWisp:nth-child(4n) {
+  animation-name: railManaFlowC;
 }
 
 .railNavigation {
@@ -219,10 +256,10 @@
       radial-gradient(ellipse at 30% 72%, rgba(71, 162, 207, 0.15) 0 5%, transparent 30%);
     filter: blur(10px);
     will-change: transform, opacity;
-    animation: railAetherRise 16s ease-in-out infinite alternate;
+    animation: railAetherRise 22s ease-in-out infinite alternate;
   }
 
-  .railAetherField {
+  .railManaField {
     display: block;
   }
 }
@@ -242,93 +279,93 @@
   }
 }
 
-@keyframes railAetherBubbleRiseA {
+@keyframes railManaFlowA {
   0% {
     opacity: 0;
-    transform: translate3d(0, 1.5rem, 0) scale(0.72);
+    transform: translate3d(0, 2rem, 0) rotate(var(--mana-rotate)) scaleX(0.78);
   }
 
-  10% {
-    opacity: var(--aether-opacity);
+  13% {
+    opacity: var(--mana-opacity);
   }
 
   34% {
-    transform: translate3d(var(--aether-drift-a), -34vh, 0) scale(0.96);
+    transform: translate3d(var(--mana-drift-a), -31vh, 0) rotate(-2deg) scaleX(1.04);
   }
 
-  67% {
-    transform: translate3d(var(--aether-drift-b), -69vh, 0) scale(1.08);
-  }
-
-  88% {
-    opacity: var(--aether-opacity);
-    transform: translate3d(var(--aether-drift-c), -91vh, 0) scale(0.98);
-  }
-
-  100% {
-    opacity: 0;
-    transform: translate3d(var(--aether-drift-a), -114vh, 0) scale(0.82);
-  }
-}
-
-@keyframes railAetherBubbleRiseB {
-  0% {
-    opacity: 0;
-    transform: translate3d(0, 2.4rem, 0) scale(0.8);
-  }
-
-  14% {
-    opacity: var(--aether-opacity);
-  }
-
-  39% {
-    transform: translate3d(var(--aether-drift-b), -29vh, 0) scale(1.04);
-  }
-
-  63% {
-    transform: translate3d(var(--aether-drift-a), -61vh, 0) scale(0.92);
+  61% {
+    transform: translate3d(var(--mana-drift-b), -64vh, 0) rotate(4deg) scaleX(0.9);
   }
 
   84% {
-    opacity: var(--aether-opacity);
-    transform: translate3d(var(--aether-drift-c), -87vh, 0) scale(1.12);
+    opacity: var(--mana-opacity);
+    transform: translate3d(var(--mana-drift-c), -91vh, 0) rotate(-3deg) scaleX(1.08);
   }
 
   100% {
     opacity: 0;
-    transform: translate3d(var(--aether-drift-b), -116vh, 0) scale(0.88);
+    transform: translate3d(var(--mana-drift-a), -118vh, 0) rotate(2deg) scaleX(0.84);
   }
 }
 
-@keyframes railAetherBubbleRiseC {
+@keyframes railManaFlowB {
   0% {
     opacity: 0;
-    transform: translate3d(0, 0.7rem, 0) scale(0.66);
+    transform: translate3d(0, 3rem, 0) rotate(var(--mana-rotate)) scaleX(0.9);
   }
 
-  8% {
-    opacity: var(--aether-opacity);
+  16% {
+    opacity: var(--mana-opacity);
   }
 
-  28% {
-    transform: translate3d(var(--aether-drift-c), -27vh, 0) scale(0.9);
+  41% {
+    transform: translate3d(var(--mana-drift-b), -28vh, 0) rotate(5deg) scaleX(1.12);
   }
 
-  56% {
-    transform: translate3d(var(--aether-drift-b), -58vh, 0) scale(1.13);
+  66% {
+    transform: translate3d(var(--mana-drift-a), -62vh, 0) rotate(-4deg) scaleX(0.86);
   }
 
-  79% {
-    transform: translate3d(var(--aether-drift-a), -83vh, 0) scale(1);
-  }
-
-  92% {
-    opacity: var(--aether-opacity);
+  87% {
+    opacity: var(--mana-opacity);
+    transform: translate3d(var(--mana-drift-c), -88vh, 0) rotate(3deg) scaleX(1.02);
   }
 
   100% {
     opacity: 0;
-    transform: translate3d(var(--aether-drift-c), -112vh, 0) scale(0.76);
+    transform: translate3d(var(--mana-drift-b), -116vh, 0) rotate(-2deg) scaleX(0.8);
+  }
+}
+
+@keyframes railManaFlowC {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 1rem, 0) rotate(var(--mana-rotate)) scaleX(0.82);
+  }
+
+  10% {
+    opacity: var(--mana-opacity);
+  }
+
+  29% {
+    transform: translate3d(var(--mana-drift-c), -25vh, 0) rotate(-5deg) scaleX(1.06);
+  }
+
+  55% {
+    transform: translate3d(var(--mana-drift-b), -57vh, 0) rotate(3deg) scaleX(0.92);
+  }
+
+  80% {
+    transform: translate3d(var(--mana-drift-a), -84vh, 0) rotate(-2deg) scaleX(1.1);
+  }
+
+  91% {
+    opacity: var(--mana-opacity);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--mana-drift-c), -114vh, 0) rotate(4deg) scaleX(0.86);
   }
 }
 
@@ -746,11 +783,11 @@
   }
 
   .rail::before,
-  .railAetherBubble {
+  .railManaWisp {
     animation: none;
   }
 
-  .railAetherField {
+  .railManaField {
     display: none;
   }
 }
