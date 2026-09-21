@@ -54,7 +54,7 @@ import type {
 } from './battle-session-service'
 import { createSpectatorBattleViewerEntitlement } from './battle-viewer-entitlement'
 
-const PVP_RULES_VERSION = 2
+const PVP_RULES_VERSION = 3
 const PVP_CONTENT_VERSION = 2
 const PVP_BASE_MOVEMENT_UNITS = 10
 
