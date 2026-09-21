@@ -202,7 +202,7 @@ export function createCurrentStatDrivenCombatEncounterState(
     ...base,
     statBridge: {
       schemaVersion: STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_VERSION,
-      rulesVersion: state.statBridge.rulesVersion,
+      rulesVersion: STAT_DRIVEN_COMBAT_RULES_VERSION,
       combatants: [...profiles]
         .map(copyCurrentProfile)
         .sort((left, right) => compareStableString(left.combatantId, right.combatantId)),
@@ -414,7 +414,7 @@ export function executeStatDrivenAttack(
     hit,
     defenseKind,
     defenseRating: forecast.defenseRating,
-    rulesVersion: STAT_DRIVEN_COMBAT_RULES_VERSION,
+    rulesVersion: state.statBridge.rulesVersion,
   }
 
   if (hit) {
