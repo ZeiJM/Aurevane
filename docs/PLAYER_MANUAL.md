@@ -16,8 +16,8 @@ Current player-facing terminology is:
 - Skill as the ability umbrella;
 - Resonance for mixed Primary + Secondary builds;
 - Essence / Discipline Essence for pure Primary-only builds;
-- Soulmark for the Soulmarked supernatural path;
-- The Severance / Soul-Severed / Mantle for the mutually exclusive alternative supernatural path;
+- Ascension / Ascended for the soul-enhanced supernatural path;
+- Severence / Severed for the mutually exclusive alternate supernatural path;
 - Battle Hall for the current practice-combat destination;
 - Passive Training for explicit server-timed background progression.
 
@@ -198,7 +198,7 @@ Explain that it requires Primary only/no Secondary, grants one special Essence S
 
 ### Supernatural fork
 
-At the player's legitimate reveal tier, explain Soulmarked characters use Soulmarks while The Severance creates the Soul-Severed permanent alternative path with Mantles. Ordinary rules make the two paths mutually exclusive. Story details remain spoiler-gated.
+At the player's legitimate reveal tier, explain that Ascension creates Ascended characters while Severence creates Severed characters. Ordinary rules make the two paths mutually exclusive. Severence is the intentional AUREVANE spelling. Story details remain spoiler-gated.
 
 ---
 
@@ -282,10 +282,10 @@ Maintain one current glossary including:
 - Equipment Skill;
 - Resonance;
 - Essence / Discipline Essence;
-- Soulmark;
-- The Severance;
-- Soul-Severed;
-- Mantle;
+- Ascension;
+- Ascended;
+- Severence;
+- Severed;
 - Action Economy / AP;
 - Battle Hall;
 - AI Sparring;
