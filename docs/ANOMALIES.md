@@ -40,7 +40,7 @@ SEVERED
 
 Normal progression does not permit a player to naturally obtain both branches at once.
 
-Normal characters must obey the currently approved limits for Ascensions and Severence powers.
+Normal characters must obey the currently approved limits of Ascension and Severence.
 
 The existence of Anomalies does **not** weaken or reinterpret the ordinary rule. It creates an explicit Owner-only exception around it.
 
@@ -88,7 +88,7 @@ SEVERENCE A
 
 ## Dual-Ascension Anomaly
 
-A character possesses two separately identifiable Ascensions at once.
+A character possesses two separately identifiable Ascension identities at once.
 
 Example:
 
@@ -102,7 +102,7 @@ The engine must define how branches, passive effects, Skills, duplicate tags and
 
 ## Dual-Severence Anomaly
 
-A character possesses two Severence powers at once.
+A character possesses two Severence power packages at once.
 
 Example:
 
@@ -112,7 +112,7 @@ SEVERENCE A
 SEVERENCE B
 ```
 
-Possessing two Severence powers does not automatically imply simultaneous manifestation. Manifestation rules, durations, Afterstrain and whether one or both can be active at once must be explicitly represented and reviewed before a specific combination is granted.
+Possessing two Severence power packages does not automatically imply simultaneous manifestation. Manifestation rules, durations, Afterstrain and whether one or both can be active at once must be explicitly represented and reviewed before a specific combination is granted.
 
 ---
 
