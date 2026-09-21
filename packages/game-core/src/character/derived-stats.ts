@@ -294,6 +294,159 @@ export const DERIVED_STAT_RULESET_V2: DerivedStatRuleset = {
   }),
 }
 
+/**
+ * Current Level-100 balance.
+ *
+ * V3 makes the Profile presentation mechanically literal: each Core Attribute feeds only the
+ * Adventure Stats shown under that attribute. Character Level supplies broad maturation and,
+ * critically, a universal offensive floor through both Power ratings so off-focus builds remain
+ * combat-capable without cross-wiring unrelated Core Stats.
+ *
+ * Level growth is stretched across Levels 1-100 so the established Level-50 V2 endgame values
+ * remain approximately the midpoint-to-endpoint tuning reference instead of doubling outright.
+ */
+export const DERIVED_STAT_RULESET_V3: DerivedStatRuleset = {
+  version: 3,
+  rules: [
+    {
+      id: 'maxHp',
+      label: 'Maximum HP',
+      unit: 'points',
+      baseNumerator: 184,
+      perLevelNumerator: 5,
+      attributeWeights: { vitality: 24 },
+      divisor: 2,
+      minimum: 1,
+    },
+    {
+      id: 'maxMp',
+      label: 'Maximum MP',
+      unit: 'points',
+      baseNumerator: 84,
+      perLevelNumerator: 3,
+      attributeWeights: { intellect: 16 },
+      divisor: 2,
+      minimum: 0,
+    },
+    {
+      id: 'physicalPower',
+      label: 'Physical Power',
+      unit: 'rating',
+      baseNumerator: 44,
+      perLevelNumerator: 1,
+      attributeWeights: { might: 4 },
+      divisor: 2,
+      minimum: 0,
+    },
+    {
+      id: 'mysticPower',
+      label: 'Mystic Power',
+      unit: 'rating',
+      baseNumerator: 44,
+      perLevelNumerator: 1,
+      attributeWeights: { intellect: 4 },
+      divisor: 2,
+      minimum: 0,
+    },
+    {
+      id: 'armor',
+      label: 'Armor',
+      unit: 'rating',
+      baseNumerator: 22,
+      perLevelNumerator: 1,
+      attributeWeights: { vitality: 4 },
+      divisor: 2,
+      minimum: 0,
+    },
+    {
+      id: 'ward',
+      label: 'Ward',
+      unit: 'rating',
+      baseNumerator: 22,
+      perLevelNumerator: 1,
+      attributeWeights: { resolve: 4 },
+      divisor: 2,
+      minimum: 0,
+    },
+    {
+      id: 'accuracy',
+      label: 'Accuracy',
+      unit: 'basisPoints',
+      baseNumerator: 6200,
+      perLevelNumerator: 10,
+      attributeWeights: { finesse: 75 },
+      divisor: 1,
+      minimum: 0,
+      maximum: 9500,
+    },
+    {
+      id: 'evasion',
+      label: 'Evasion',
+      unit: 'basisPoints',
+      baseNumerator: 50,
+      perLevelNumerator: 3,
+      attributeWeights: { agility: 20 },
+      divisor: 1,
+      minimum: 0,
+      maximum: 1500,
+    },
+    {
+      id: 'criticalChance',
+      label: 'Critical Chance',
+      unit: 'basisPoints',
+      baseNumerator: 100,
+      perLevelNumerator: 7,
+      attributeWeights: { finesse: 25 },
+      divisor: 1,
+      minimum: 0,
+      maximum: 3000,
+    },
+    {
+      id: 'initiative',
+      label: 'Initiative',
+      unit: 'rating',
+      baseNumerator: 20,
+      perLevelNumerator: 1,
+      attributeWeights: { agility: 6 },
+      divisor: 4,
+      minimum: 0,
+    },
+    {
+      id: 'movement',
+      label: 'Movement',
+      unit: 'steps',
+      baseNumerator: 80,
+      perLevelNumerator: 1,
+      attributeWeights: { agility: 2 },
+      divisor: 50,
+      minimum: 2,
+      maximum: 5,
+    },
+    {
+      id: 'jump',
+      label: 'Jump',
+      unit: 'height',
+      baseNumerator: -20,
+      perLevelNumerator: 1,
+      attributeWeights: { agility: 2 },
+      divisor: 60,
+      minimum: 0,
+      maximum: 3,
+    },
+    {
+      id: 'statusResistance',
+      label: 'Status Resistance',
+      unit: 'basisPoints',
+      baseNumerator: 0,
+      perLevelNumerator: 15,
+      attributeWeights: { resolve: 70 },
+      divisor: 1,
+      minimum: 0,
+      maximum: 7500,
+    },
+  ],
+}
+
 export function validateDerivedStatRuleset(
   ruleset: DerivedStatRuleset,
 ): readonly DerivedStatRulesetIssue[] {
@@ -373,7 +526,7 @@ export function validateDerivedStatRuleset(
 
 export function calculateDerivedStats(
   input: DerivedStatInput,
-  ruleset: DerivedStatRuleset = DERIVED_STAT_RULESET_V2,
+  ruleset: DerivedStatRuleset = DERIVED_STAT_RULESET_V3,
 ): DerivedStatSnapshot {
   const issues = validateDerivedStatRuleset(ruleset)
   if (issues.length > 0) {
