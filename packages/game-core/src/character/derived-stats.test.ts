@@ -108,7 +108,6 @@ describe('derived stat framework', () => {
     )
   })
 
-
   it('keeps every Core Attribute isolated to the Profile Adventure Stats shown beneath it', () => {
     const expectedSources = {
       maxHp: ['vitality'],
