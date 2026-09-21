@@ -566,9 +566,7 @@ function isCurrentProfile(profile: StatDrivenCombatProfile): profile is StatDriv
 
 function isLevelProfile(profile: StatDrivenCombatProfile): profile is StatDrivenCombatProfileV3 {
   return (
-    Number.isSafeInteger(profile.level) &&
-    (profile.level ?? 0) >= 1 &&
-    isCurrentProfile(profile)
+    Number.isSafeInteger(profile.level) && (profile.level ?? 0) >= 1 && isCurrentProfile(profile)
   )
 }
 
