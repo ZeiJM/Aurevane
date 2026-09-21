@@ -518,7 +518,7 @@ OR
 → SEVERED
 ```
 
-Ship a small high-quality proof of both Ascension and Severence so each permanent path has a clear gameplay identity and meaningful payoff. The former Mantle transformation design space belongs inside Severence rather than existing as a third named power family.
+Ship a small high-quality proof of both Ascension and Severence so each permanent path has a clear gameplay identity and meaningful payoff. Temporary transformation design space belongs inside Severence rather than becoming a third supernatural system.
 
 Normal characters obey strict branch exclusivity.
 
@@ -641,7 +641,7 @@ Special modes may explicitly normalize or allow them under transparent rules.
 - expand Disciplines in controlled batches toward the long-term roster;
 - mature eight-Skill libraries;
 - complete Essence/Resonance coverage;
-- expand Ascensions based on quality/data;
+- expand Ascension identities based on quality/data;
 - expand Severence powers only after the first representative Severence implementation proves readable and sustainable;
 - expand enemies/maps/equipment interactions;
 - broaden AI/PvP regression coverage;
