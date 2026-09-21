@@ -4,10 +4,8 @@ import type { DerivedStatId } from './derived-stats'
 export const ATTRIBUTE_PROFILE_HELP: Readonly<Record<CharacterAttributeId, string>> = {
   might:
     'Physical force. Might contributes only to Physical Power; Character Level also matures Physical Power for every build.',
-  finesse:
-    'Precision and technique. Finesse contributes only to Accuracy and Critical Chance.',
-  vitality:
-    'Endurance and bodily resilience. Vitality contributes only to Maximum HP and Armor.',
+  finesse: 'Precision and technique. Finesse contributes only to Accuracy and Critical Chance.',
+  vitality: 'Endurance and bodily resilience. Vitality contributes only to Maximum HP and Armor.',
   agility:
     'Reflexes, footwork, and mobility. Agility contributes only to Initiative, Movement, Jump, and Evasion.',
   intellect:
@@ -19,7 +17,8 @@ export const ATTRIBUTE_PROFILE_HELP: Readonly<Record<CharacterAttributeId, strin
 export const DERIVED_STAT_PROFILE_HELP: Readonly<Record<DerivedStatId, string>> = {
   maxHp: 'Your current maximum health before temporary battle effects.',
   maxMp: 'Your current maximum MP before temporary battle effects.',
-  physicalPower: 'Physical damage rating from Might plus Character Level. Basic Attack and physical damaging Skills read this rating before authored combat modifiers.',
+  physicalPower:
+    'Physical damage rating from Might plus Character Level. Basic Attack and physical damaging Skills read this rating before authored combat modifiers.',
   mysticPower:
     'Mystic damage rating from Intellect plus Character Level. Mystic damaging Skills read this rating before authored combat modifiers.',
   armor:
