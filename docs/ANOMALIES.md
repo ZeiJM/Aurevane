@@ -16,9 +16,9 @@ An **Anomaly** is a character whose supernatural state has been deliberately pla
 
 The intended examples are:
 
-- **Soulmark + Mantle** on the same character;
-- **two Soulmarks** on the same character;
-- **two Mantles** on the same character.
+- **Ascension + Severence** on the same character;
+- **two Ascension identities** on the same character;
+- **two Severence power packages** on the same character.
 
 Future exceptional combinations may be added only by explicit Owner approval and only when the runtime can represent them safely.
 
@@ -33,14 +33,14 @@ For ordinary characters, AUREVANE preserves the canonical fork:
 ```text
 UNAWAKENED
    ↓
-SOULMARKED
+ASCENDED
    OR
-SOUL_SEVERED
+SEVERED
 ```
 
 Normal progression does not permit a player to naturally obtain both branches at once.
 
-Normal characters must obey the currently approved limits for Soulmarks and Mantles.
+Normal characters must obey the currently approved limits for Ascensions and Severence powers.
 
 The existence of Anomalies does **not** weaken or reinterpret the ordinary rule. It creates an explicit Owner-only exception around it.
 
@@ -74,45 +74,45 @@ Rarity is controlled by Owner discretion, not a drop rate.
 
 # 4. Initial supported Anomaly classes
 
-## Cross-Fork Anomaly
+## Cross-Path Anomaly
 
-A character simultaneously possesses a valid Soulmark state and valid Mantle capability despite the ordinary Soulmarked/Soul-Severed exclusivity rule.
+A character simultaneously possesses valid Ascension and Severence capability despite the ordinary Ascended/Severed exclusivity rule.
 
 Example:
 
 ```text
-SOULMARK A
+ASCENSION A
 +
-MANTLE A
+SEVERENCE A
 ```
 
-## Dual-Soulmark Anomaly
+## Dual-Ascension Anomaly
 
-A character possesses two separately identifiable Soulmarks at once.
+A character possesses two separately identifiable Ascensions at once.
 
 Example:
 
 ```text
-SOULMARK A
+ASCENSION A
 +
-SOULMARK B
+ASCENSION B
 ```
 
 The engine must define how branches, passive effects, Skills, duplicate tags and conflicting triggers compose before this state can be enabled.
 
-## Dual-Mantle Anomaly
+## Dual-Severence Anomaly
 
-A character possesses two Mantles at once.
+A character possesses two Severence powers at once.
 
 Example:
 
 ```text
-MANTLE A
+SEVERENCE A
 +
-MANTLE B
+SEVERENCE B
 ```
 
-Possessing two Mantles does not automatically imply simultaneous manifestation. Manifestation rules, durations, Afterstrain and whether one or both can be active at once must be explicitly represented and reviewed before a specific combination is granted.
+Possessing two Severence powers does not automatically imply simultaneous manifestation. Manifestation rules, durations, Afterstrain and whether one or both can be active at once must be explicitly represented and reviewed before a specific combination is granted.
 
 ---
 
@@ -139,7 +139,7 @@ OPEN EXCEPTIONAL STATE / ANOMALY CONSOLE
   ↓
 SELECT ANOMALY CLASS
   ↓
-SELECT REGISTERED SOULMARK / MANTLE COMPONENTS
+SELECT REGISTERED ASCENSION / SEVERENCE COMPONENTS
   ↓
 PREVIEW NORMAL RULES BEING OVERRIDDEN
   ↓
@@ -172,7 +172,7 @@ Every Anomaly must have authoritative metadata equivalent to:
 
 ```text
 is_anomaly = true
-anomaly_type = CROSS_FORK | DUAL_SOULMARK | DUAL_MANTLE | FUTURE_APPROVED_TYPE
+anomaly_type = CROSS_PATH | DUAL_ASCENSION | DUAL_SEVERENCE | FUTURE_APPROVED_TYPE
 anomaly_components = stable registered content IDs
 anomaly_created_by = protected Owner identity
 anomaly_created_at = server timestamp
@@ -199,7 +199,7 @@ The Owner must be able to safely:
 - expire a temporary Anomaly;
 - repair an invalidated combination after content-version changes.
 
-Revocation must be atomic and must not strand ghost Skills, passives, Mantle state, cooldowns, snapshots or equipment interactions.
+Revocation must be atomic and must not strand ghost Skills, passives, Severence state, cooldowns, snapshots or equipment interactions.
 
 ---
 
@@ -207,7 +207,7 @@ Revocation must be atomic and must not strand ghost Skills, passives, Mantle sta
 
 Anomalies do not get a parallel combat engine.
 
-Their Soulmark/Mantle Skills and effects reuse normal:
+Their Ascension/Severence Skills and effects reuse normal:
 
 - targeting;
 - AP costs;
@@ -270,7 +270,7 @@ Possible presentation surfaces include:
 - special title/frame treatment;
 - Chronicle/event description;
 - battle pre-match disclosure in modes where the Anomaly is legal;
-- Inspect/source labels for exceptional Soulmark/Mantle components.
+- Inspect/source labels for exceptional Ascension/Severence components.
 
 A public Anomaly can be intentionally mysterious without making combat state deceptive.
 
@@ -282,7 +282,7 @@ A public Anomaly can be intentionally mysterious without making combat state dec
 
 The Unwritten Reach may contain rare discoveries, legendary explorers, strange lore, Veyr encounters and unstable geography, but it is **not the normal source of Anomalies**.
 
-Do not write future frontier content that rewards players with Cross-Fork, Dual-Soulmark or Dual-Mantle Anomaly states unless the Owner explicitly redesigns this specification.
+Do not write future frontier content that rewards players with Cross-Path, Dual-Ascension or Dual-Severence power Anomaly states unless the Owner explicitly redesigns this specification.
 
 Frontier rarity and Anomaly status are separate systems.
 
@@ -303,7 +303,7 @@ Do not make repeated Rekindling a hidden route to Anomaly status.
 Anomaly support depends on mature supernatural state representation.
 
 - **Phase 3–4:** no Anomaly implementation required; build/combat schemas should remain extensible.
-- **Phase 5:** Soulmark/Severance/Mantle foundations must avoid schema choices that make safe exceptional representation impossible. A minimal Owner-only test override may be built only if needed to verify the supernatural model.
+- **Phase 5:** Ascension/Severence/Severence power foundations must avoid schema choices that make safe exceptional representation impossible. A minimal Owner-only test override may be built only if needed to verify the supernatural model.
 - **Phase 8:** competitive legality policy must recognize exceptional state.
 - **Phase 13:** complete Master Panel Anomaly Console / Owner-only grant, revoke, audit and inspection workflows.
 - **Phase 15:** security, concurrency, migration, analytics, PvP and exploit hardening for exceptional states.
@@ -314,8 +314,8 @@ Anomaly support depends on mature supernatural state representation.
 
 1. Anomaly means **Owner-granted exceptional character state**.
 2. It is not frontier loot, contraband, a hidden quest reward or a random rarity tier.
-3. Normal Soulmark/Severance/Mantle exclusivity remains canonical for ordinary players.
-4. Initial Anomaly forms are Soulmark + Mantle, two Soulmarks, and two Mantles.
+3. Normal Ascension/Severence/Severence power exclusivity remains canonical for ordinary players.
+4. Initial Anomaly forms are Ascension + Severence, two Ascensions, and two Severence powers.
 5. Only the protected Owner may create/revoke Anomalies by default.
 6. Every Anomaly is server-authoritative, atomic, versioned and audited.
 7. Owner override may bypass eligibility, never database integrity.
