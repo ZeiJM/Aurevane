@@ -26,12 +26,8 @@ describe('combat Level matchup scaling', () => {
   })
 
   it('prevents extreme Level gaps from returning to near-even damage', () => {
-    expect(combatLevelDamageModifierBasisPoints(1, 80)).toBe(
-      COMBAT_LEVEL_DAMAGE_MIN_BASIS_POINTS,
-    )
-    expect(combatLevelDamageModifierBasisPoints(80, 1)).toBe(
-      COMBAT_LEVEL_DAMAGE_MAX_BASIS_POINTS,
-    )
+    expect(combatLevelDamageModifierBasisPoints(1, 80)).toBe(COMBAT_LEVEL_DAMAGE_MIN_BASIS_POINTS)
+    expect(combatLevelDamageModifierBasisPoints(80, 1)).toBe(COMBAT_LEVEL_DAMAGE_MAX_BASIS_POINTS)
     expect(COMBAT_LEVEL_DAMAGE_MIN_BASIS_POINTS).toBe(2_500)
     expect(COMBAT_LEVEL_DAMAGE_MAX_BASIS_POINTS).toBe(17_500)
   })
