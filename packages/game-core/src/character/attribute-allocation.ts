@@ -15,7 +15,7 @@ export const ATTRIBUTE_POINTS_PER_LEVEL = 1 as const
 export const ATTRIBUTE_RESET_LIMIT_PER_WINDOW = 5 as const
 export const ATTRIBUTE_RESET_WINDOW_DAYS = 30 as const
 export const MINIMUM_CHARACTER_ATTRIBUTE = 1 as const
-export const FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP = 30 as const
+export const FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP = 40 as const
 export const PERSONAL_STARTING_ATTRIBUTE_POINT_POOL =
   CHARACTER_CREATION_RULES_V1.attributes.bonusBudget
 export const STARTING_ATTRIBUTE_POINT_POOL =
@@ -54,12 +54,12 @@ function offFocusCaps(focusAttributes: readonly CharacterAttributeId[]) {
 /**
  * Foundation identity policy v3. The Primary now owns a fixed 31-point Core Stat base, while all
  * creation/level points remain player-owned. Focus attributes stay uncapped and all non-focus
- * attributes retain the owner-approved 30-point effective ceiling.
+ * attributes use the owner-approved 40-point effective ceiling.
  */
 export const FOUNDATION_DISCIPLINE_ATTRIBUTE_POLICIES: readonly DisciplineAttributePolicy[] =
   FOUNDATION_DISCIPLINES.map((discipline) => ({
     disciplineId: discipline.id,
-    policyVersion: 3,
+    policyVersion: 4,
     baseAttributes: discipline.baseAttributes,
     focusAttributes: discipline.focusAttributes,
     attributeCaps: offFocusCaps(discipline.focusAttributes),
@@ -68,7 +68,7 @@ export const FOUNDATION_DISCIPLINE_ATTRIBUTE_POLICIES: readonly DisciplineAttrib
 export const ADVANCED_DISCIPLINE_ATTRIBUTE_POLICIES: readonly DisciplineAttributePolicy[] =
   ADVANCED_DISCIPLINES.map((discipline) => ({
     disciplineId: discipline.id,
-    policyVersion: 3,
+    policyVersion: 4,
     baseAttributes: discipline.baseAttributes,
     focusAttributes: discipline.focusAttributes,
     attributeCaps: offFocusCaps(discipline.focusAttributes),
