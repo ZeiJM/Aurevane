@@ -390,46 +390,43 @@
   background: var(--attribute-soft);
 }
 
-.backdrop {
+.detailPopover {
   position: fixed;
-  inset: 0;
-  z-index: 10000;
+  z-index: 1250;
   display: grid;
-  place-items: center;
-  padding: 1rem;
-  background: #04101bbb;
-}
-
-.dialog {
-  width: min(28rem, 100%);
-  padding: 1.5rem;
-  border: 1px solid var(--av-gold-rule);
-  background: var(--av-moonstone);
-  color: var(--av-text);
-  box-shadow: var(--av-shadow-deep);
-}
-
-.dialog > span {
+  width: min(20rem, calc(100vw - 1.5rem));
+  gap: 0.35rem;
+  padding: 0.8rem 0.9rem 0.9rem;
+  border: 1px solid var(--av-border-strong);
+  border-radius: var(--av-radius-md);
   color: var(--av-text-muted);
-  font-size: 0.75rem;
+  background: rgba(8, 11, 16, 0.985);
+  box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(1rem);
 }
 
-.dialog h2 {
-  margin: 0.5rem 0;
-  font: 500 1.8rem var(--av-font-display);
+.detailPopover[data-positioned='false'] {
+  visibility: hidden;
 }
 
-.dialog p {
-  font-size: 0.9rem;
-  line-height: 1.6;
+.detailPopover > span {
+  color: var(--av-text-dim);
+  font: 650 0.56rem/1.1 var(--av-font-body);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
-.dialog button {
-  min-height: 2.75rem;
-  padding: 0.5rem 1rem;
-  border: 1px solid var(--av-teal);
-  color: var(--av-on-primary);
-  background: var(--av-teal);
+.detailPopover h2 {
+  margin: 0.08rem 0 0.12rem;
+  color: var(--av-brass-100);
+  font: 500 1.08rem/1.2 var(--av-font-display);
+}
+
+.detailPopover p {
+  margin: 0;
+  color: var(--av-text-muted);
+  font-size: 0.78rem;
+  line-height: 1.5;
 }
 
 @media (max-width: 980px) {
