@@ -298,12 +298,11 @@ export const DERIVED_STAT_RULESET_V2: DerivedStatRuleset = {
  * Current Level-100 balance.
  *
  * V3 makes the Profile presentation mechanically literal: each Core Attribute feeds only the
- * Adventure Stats shown under that attribute. Character Level supplies broad maturation and,
- * critically, a universal offensive floor through both Power ratings so off-focus builds remain
- * combat-capable without cross-wiring unrelated Core Stats.
+ * Adventure Stats shown under that attribute. Physical Power remains Might-driven and Mystic
+ * Power remains Intellect-driven. Character Level is handled separately by combat rules v3 as a
+ * matchup-effectiveness modifier rather than being folded into either Power rating.
  *
- * Level growth is stretched across Levels 1-100 so the established Level-50 V2 endgame values
- * remain approximately the midpoint-to-endpoint tuning reference instead of doubling outright.
+ * Other Adventure Stats may still mature across Levels 1-100; offensive Power itself does not.
  */
 export const DERIVED_STAT_RULESET_V3: DerivedStatRuleset = {
   version: 3,
@@ -333,7 +332,7 @@ export const DERIVED_STAT_RULESET_V3: DerivedStatRuleset = {
       label: 'Physical Power',
       unit: 'rating',
       baseNumerator: 44,
-      perLevelNumerator: 1,
+      perLevelNumerator: 0,
       attributeWeights: { might: 4 },
       divisor: 2,
       minimum: 0,
@@ -343,7 +342,7 @@ export const DERIVED_STAT_RULESET_V3: DerivedStatRuleset = {
       label: 'Mystic Power',
       unit: 'rating',
       baseNumerator: 44,
-      perLevelNumerator: 1,
+      perLevelNumerator: 0,
       attributeWeights: { intellect: 4 },
       divisor: 2,
       minimum: 0,
