@@ -8,7 +8,7 @@
   position: fixed;
   inset: 0;
   z-index: -1;
-  opacity: 0.82;
+  opacity: 0.86;
   pointer-events: none;
 }
 
@@ -124,22 +124,22 @@
   left: var(--orb-left);
   width: var(--orb-size);
   height: var(--orb-size);
-  border: 1px solid rgb(var(--orb-rgb) / 0.18);
+  border: 1px solid rgb(var(--orb-rgb) / 0.22);
   border-radius: 50%;
   opacity: 0;
   background: radial-gradient(
     circle at 50% 50%,
-    rgb(236 255 253 / 0.22) 0 8%,
-    rgb(var(--orb-rgb) / 0.23) 18%,
-    rgb(var(--orb-rgb) / 0.12) 43%,
-    rgb(var(--orb-rgb) / 0.2) 66%,
-    rgb(var(--orb-rgb) / 0.075) 79%,
+    rgb(236 255 253 / 0.26) 0 8%,
+    rgb(var(--orb-rgb) / 0.27) 18%,
+    rgb(var(--orb-rgb) / 0.15) 43%,
+    rgb(var(--orb-rgb) / 0.23) 66%,
+    rgb(var(--orb-rgb) / 0.09) 79%,
     transparent 90%
   );
   box-shadow:
-    0 0 0.52rem rgb(var(--orb-rgb) / 0.21),
-    0 0 1rem rgb(var(--orb-rgb) / 0.095),
-    inset 0 0 0.38rem rgb(229 255 252 / 0.11);
+    0 0 0.56rem rgb(var(--orb-rgb) / 0.24),
+    0 0 1.08rem rgb(var(--orb-rgb) / 0.12),
+    inset 0 0 0.4rem rgb(229 255 252 / 0.13);
   filter: blur(var(--orb-blur));
   will-change: transform, opacity;
   animation: railOrbFloatA var(--orb-duration) ease-in-out var(--orb-delay) infinite;
@@ -157,20 +157,20 @@
   inset: 21%;
   background: radial-gradient(
     circle,
-    rgb(244 255 254 / 0.27) 0 8%,
-    rgb(var(--orb-rgb) / 0.17) 34%,
+    rgb(244 255 254 / 0.31) 0 8%,
+    rgb(var(--orb-rgb) / 0.2) 34%,
     transparent 76%
   );
   filter: blur(0.08rem);
-  opacity: 0.72;
+  opacity: 0.8;
 }
 
 .railAetherOrb::after {
   inset: -42%;
   background: radial-gradient(
     circle,
-    rgb(var(--orb-rgb) / 0.12) 0 18%,
-    rgb(var(--orb-rgb) / 0.055) 36%,
+    rgb(var(--orb-rgb) / 0.14) 0 18%,
+    rgb(var(--orb-rgb) / 0.07) 36%,
     transparent 68%
   );
   filter: blur(0.22rem);
