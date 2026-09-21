@@ -43,8 +43,16 @@ describe('published Manual rule consistency', () => {
     expect(text).toContain('fixed Core Stat base')
     expect(text).not.toContain('each begin at 5')
     expect(text).not.toContain('no more than 4 bonus points')
-    expect(text).toContain(`Primary focus Core Stats currently cap at ${FOUNDATION_FOCUS_ATTRIBUTE_CAP}`)
-    expect(text).toContain(`non-focus Core Stats currently cap at ${FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP}`)
+  })
+
+  it('publishes the current Primary Core Stat caps', () => {
+    const text = articleText('attributes-derived-stats')
+    expect(text).toContain(
+      `Primary focus Core Stats currently cap at ${FOUNDATION_FOCUS_ATTRIBUTE_CAP}`,
+    )
+    expect(text).toContain(
+      `non-focus Core Stats currently cap at ${FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP}`,
+    )
   })
 
   it('distinguishes learned libraries from current selected capacity and repeat-use rules', () => {
