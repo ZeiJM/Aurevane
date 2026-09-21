@@ -14,6 +14,22 @@ export interface CombatDamageScalingIssue {
   message: string
 }
 
+export function currentSkillDamageScaling(
+  source: CombatDamageScalingSource,
+  damageEffectCount: number,
+): CombatDamageScaling {
+  if (!Number.isSafeInteger(damageEffectCount) || damageEffectCount < 1) {
+    throw new RangeError('Skill damage effect count must be a positive safe integer.')
+  }
+  return {
+    source,
+    coefficientBasisPoints: Math.max(
+      1,
+      Math.floor(CURRENT_SKILL_POWER_SCALING_BASIS_POINTS / damageEffectCount),
+    ),
+  }
+}
+
 export function validateCombatDamageScaling(
   scaling: CombatDamageScaling,
 ): readonly CombatDamageScalingIssue[] {
