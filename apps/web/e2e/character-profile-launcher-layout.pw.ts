@@ -48,7 +48,9 @@ test('Arsenal build launchers stay centered and typographically matched', async 
 
   await page.getByTestId('derived-stat-maxHp').click()
   await expect(detailPopover).toHaveCount(1)
-  await expect(detailPopover.getByRole('heading', { name: 'Maximum HP', exact: true })).toBeVisible()
+  await expect(
+    detailPopover.getByRole('heading', { name: 'Maximum HP', exact: true }),
+  ).toBeVisible()
 
   await page.getByRole('button', { name: 'Account', exact: true }).click()
   await expect(detailPopover).toHaveCount(0)
