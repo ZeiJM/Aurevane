@@ -116,7 +116,7 @@ Each released Ascension or Severence power package needs:
 - explicit overlap restrictions with Discipline effects;
 - clear Ascended-versus-Severed readability in combat and spectation.
 
-Ascension should read as persistent soul-enhancement. Severence may use sharper state changes or temporary transformation language where the authored mechanics call for it, but it is not a separate Mantle system.
+Ascension should read as persistent soul-enhancement. Severence may use sharper state changes or temporary transformation language where the authored mechanics call for it, without becoming a third supernatural subsystem.
 
 ## 9. Environment Art
 
