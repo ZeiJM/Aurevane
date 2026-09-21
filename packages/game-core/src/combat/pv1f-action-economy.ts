@@ -1,5 +1,8 @@
 import { materializeVengeanceDamage } from './combat-vengeance'
-import { calculateScaledRawDamage } from './damage-scaling'
+import {
+  calculateScaledRawDamage,
+  currentSkillDamageScaling,
+} from './damage-scaling'
 import {
   commitCombatSkillCopy,
   copiedSkillApCost,
@@ -609,6 +612,11 @@ export function evaluatePv1fMatureSkill(
   const resolved = resolveMatureSkillForContext(definition, combatContext)
   const resonance = committedResonanceForecast(prepared, definition, target)
   const authoredAction = toCombatActionDefinition(definition, combatContext)
+  const powerScaledAuthoredEffects = applyCurrentMatureSkillPowerScaling(
+    prepared,
+    definition,
+    authoredAction.effects,
+  )
   const usageKey = options.repeatHistoryKey ?? definition.id
   const repeatPenaltyApplied = lastMatureSkillId(prepared, actorId) === usageKey
   const copyEffect = repeatPenaltyApplied
@@ -617,7 +625,7 @@ export function evaluatePv1fMatureSkill(
   const baseAction: CombatActionDefinition = {
     ...authoredAction,
     id: options.actionIdOverride ?? authoredAction.id,
-    effects: authoredAction.effects.filter((effect) => effect.type !== 'copy'),
+    effects: powerScaledAuthoredEffects.filter((effect) => effect.type !== 'copy'),
   }
   if (resonance?.forecast.willActivate)
     baseAction.effects = [...baseAction.effects, ...resonance.forecast.bonusEffects]
@@ -1158,12 +1166,48 @@ function markLastMatureSkill(
   return withCombatant(state, { ...combatant, temporaryResources })
 }
 
+function applyCurrentMatureSkillPowerScaling(
+  state: StatDrivenCombatEncounterState,
+  definition: MatureSkillDefinition,
+  effects: readonly CombatEffectDefinition[],
+): readonly CombatEffectDefinition[] {
+  if (state.statBridge.rulesVersion !== 3) return effects
+
+  const unscaledDamageCount = effects.filter(
+    (effect) => effect.type === 'damage' && !effect.scaling,
+  ).length
+  if (unscaledDamageCount === 0) return effects
+
+  const scaling = currentSkillDamageScaling(
+    definition.tags.includes('mystic') ? 'mystic-power' : 'physical-power',
+    unscaledDamageCount,
+  )
+  return effects.map((effect) =>
+    effect.type === 'damage' && !effect.scaling ? { ...effect, scaling } : effect,
+  )
+}
+
 function scaleRepeatedMatureSkillEffects(
   effects: readonly CombatEffectDefinition[],
 ): readonly CombatEffectDefinition[] {
   const scaled: CombatEffectDefinition[] = []
   for (const effect of effects) {
-    if (effect.type === 'damage' || effect.type === 'healing' || effect.type === 'barrier-change') {
+    if (effect.type === 'damage') {
+      scaled.push({
+        ...effect,
+        amount: halfPositiveMagnitude(effect.amount),
+        ...(effect.scaling
+          ? {
+              scaling: {
+                ...effect.scaling,
+                coefficientBasisPoints: Math.floor(effect.scaling.coefficientBasisPoints / 2),
+              },
+            }
+          : {}),
+      })
+      continue
+    }
+    if (effect.type === 'healing' || effect.type === 'barrier-change') {
       scaled.push({ ...effect, amount: halfPositiveMagnitude(effect.amount) })
       continue
     }
