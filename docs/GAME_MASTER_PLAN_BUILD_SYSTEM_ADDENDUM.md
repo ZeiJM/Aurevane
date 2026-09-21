@@ -460,52 +460,53 @@ Rules:
 
 ## 12. The Supernatural Fork
 
-Ascensions and Severence powers are now **mutually exclusive character paths**.
+Ascension and Severence are **mutually exclusive character paths**.
 
 A character eventually reaches a supernatural decision point with three conceptual states:
 
 ```text
 UNAWAKENED
 Has not yet made the permanent supernatural choice.
-Cannot exploit this temporary state for Severence power access.
+Cannot exploit this temporary state for access to either permanent path.
 
 ASCENDED
-Accepted a Ascension.
-Can never become Severed or acquire/manifest a Severence power through ordinary rules.
+Chose Ascension.
+Can never become Severed or use Severence through ordinary rules.
 
 SEVERED
-Underwent Severence.
-Can never acquire/equip a Ascension.
-May pursue Severence powers.
+Chose Severence.
+Can never use Ascension through ordinary rules.
+Receives the authored Severence power path.
 ```
 
 ### Terminology
 
 Approved terminology:
 
-- **Severence** — the irreversible rite/decision;
-- **Severed** — formal state/adjective;
-- **the Severed** — natural shorthand for such characters.
+- **Ascension** — the soul-enhanced supernatural path;
+- **Ascended** — formal state/adjective and natural shorthand for that path;
+- **Severence** — the mutually exclusive alternate supernatural path; this is the intentional AUREVANE spelling;
+- **Severed** — formal state/adjective and natural shorthand for that path.
 
 The choice is explicit, heavily confirmed, server-authoritative, auditable, and not reversible through ordinary respec systems.
 
-Simply not yet owning a Ascension is not the same as being Severed.
+Simply remaining Unawakened is not the same as being Severed.
 
 The Ascension/Severence path remains with the character across Rekindling unless a future explicit story system says otherwise.
 
 ---
 
-## 13. Ascensions — Identity, Not a Fixed Template
+## 13. Ascension — Identity, Not a Fixed Template
 
-Ascensions represent persistent supernatural identity.
+Ascension represents persistent supernatural identity.
 
-A Ascended character may have **one current Ascension**.
+An Ascended character may have **one current Ascension identity**.
 
-Ordinary rules never allow simultaneous Ascensions.
+Ordinary rules never allow multiple Ascension identities at the same time.
 
-If a Ascended character later acquires and chooses to bind a different eligible Ascension, the previous Ascension is permanently lost from that character after a strong confirmation flow. This must not be an accidental one-click operation.
+If an Ascended character later acquires and chooses to bind a different eligible Ascension identity, the previous identity is permanently lost from that character after a strong confirmation flow. This must not be an accidental one-click operation.
 
-Severed characters can never bind a Ascension.
+Severed characters can never use Ascension.
 
 ### Acquisition
 
@@ -686,16 +687,16 @@ Do not author them as reskins of one another.
 
 ## 19. The Severed and Severence
 
-Severence is the permanent alternative to Ascensions.
+Severence is the permanent alternative to Ascension.
 
 Severed characters:
 
-- can never acquire or equip a Ascension;
-- become eligible to pursue Severence powers;
-- do not gain a generic always-on `Severed damage bonus` merely for rejecting Ascensions;
-- receive their supernatural payoff through Severence power access itself.
+- can never use Ascension;
+- receive access to authored Severence power packages;
+- do not gain a generic always-on `Severed damage bonus` merely for choosing Severence;
+- receive their supernatural payoff through Severence itself.
 
-This replaces the earlier concept of Ascensions and Severence powers coexisting on the same character.
+Ascension and Severence do not coexist on ordinary characters.
 
 ---
 
@@ -705,9 +706,9 @@ AUREVANE should expand Severence only after its first representative power packa
 
 Severence may grant temporary, manually manifested combat transformation states to Severed characters who have legitimately earned the relevant power package.
 
-This addendum replaces the old assumption that Severence powers must use a universal Rank I/II/III ladder. The six-Severence power model should be kept simpler unless later playtesting proves ranks are genuinely needed.
+Severence does not require a universal Rank I/II/III ladder or a fixed catalog count. Expand the system only when playtesting justifies the added content.
 
-### Severence power identity
+### Severence power package
 
 A Severence power should:
 
@@ -732,7 +733,7 @@ Valid Afterstrain patterns may include bounded temporary reductions to:
 - resource recovery;
 - Action Economy efficiency;
 - specific resistance or combat properties;
-- other Severence power-specific vulnerabilities.
+- other Severence-specific vulnerabilities.
 
 The weakness must matter, but it must not make using the Severence power feel like self-sabotage.
 
