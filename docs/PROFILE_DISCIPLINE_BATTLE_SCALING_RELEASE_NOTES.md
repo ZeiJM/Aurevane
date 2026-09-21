@@ -1,5 +1,26 @@
 # Profile / Discipline / Battle Scaling Testing Pass
 
+## 2026-09-20 — Level 100 / Adventure Stat / combat-power rewrite
+
+- The current Level cap is restored to **100** through progression curve version 3; existing XP is preserved.
+- Non-focus Core Stats now cap at **40** for current class/Primary identity policies.
+- Derived Stat Ruleset V3 makes Profile grouping mechanically exact:
+  - Might → Physical Power
+  - Finesse → Accuracy + Critical Chance
+  - Vitality → Maximum HP + Armor
+  - Agility → Initiative + Movement + Jump + Evasion
+  - Intellect → Maximum MP + Mystic Power
+  - Resolve → Ward + Status Resistance
+- Level contributes to Physical Power and Mystic Power, giving every class an offensive baseline even without Might/Intellect focus.
+- New battle snapshots use stat-driven combat rules v3.
+- Basic Attack now reads Physical Power rather than reaching directly into Might/Finesse.
+- Damaging regular Skills use Physical Power by default or Mystic Power when tagged `mystic`.
+- The current Skill-wide Power coefficient is 25%, distributed across direct multi-hit damage effects.
+- Repeat-use falloff also halves the Power coefficient.
+- Persisted v1/v2 battle snapshots retain their historical damage behavior.
+
+The sections below record the earlier 2026-09-09 testing pass and remain historical context where superseded by the rules above.
+
 This document records the owner-requested testing changes implemented together on 2026-09-09.
 
 ## Profile Attribute Management
