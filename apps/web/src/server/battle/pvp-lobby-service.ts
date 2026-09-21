@@ -54,7 +54,7 @@ import type {
 } from './battle-session-service'
 import { createSpectatorBattleViewerEntitlement } from './battle-viewer-entitlement'
 
-const PVP_RULES_VERSION = 2
+const PVP_RULES_VERSION = 3
 const PVP_CONTENT_VERSION = 2
 const PVP_BASE_MOVEMENT_UNITS = 10
 
@@ -400,9 +400,7 @@ export function createPvpEncounter(
       maxElevationStep: derived.stats.jump.value,
     }
     const basicDamage = calculatePv1fBasicAttackDamage({
-      level: character.level,
-      might: character.might,
-      finesse: character.finesse,
+      physicalPower: derived.stats.physicalPower.value,
     })
     const spawn = spawnFor(
       member.teamIndex,
@@ -412,7 +410,9 @@ export function createPvpEncounter(
       arena.height,
     )
 
-    profiles.push(createCharacterDerivedCombatProfile(combatantId, character.id, derived))
+    profiles.push(
+      createCharacterDerivedCombatProfile(combatantId, character.id, character.level, derived),
+    )
     movementProfiles.push(movementProfile)
     placements.push({
       combatantId,

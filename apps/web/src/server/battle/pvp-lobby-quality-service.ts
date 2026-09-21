@@ -260,14 +260,14 @@ function createPvpEncounter(
       maxElevationStep: derived.stats.jump.value,
     }
     const basicDamage = calculatePv1fBasicAttackDamage({
-      level: character.level,
-      might: character.might,
-      finesse: character.finesse,
+      physicalPower: derived.stats.physicalPower.value,
     })
     const spawn = spawnRows.find((row) => row.member.characterId === member.characterId)?.spawn
     if (!spawn) throw unavailable('A PvP combatant spawn could not be resolved.')
 
-    profiles.push(createCharacterDerivedCombatProfile(combatantId, character.id, derived))
+    profiles.push(
+      createCharacterDerivedCombatProfile(combatantId, character.id, character.level, derived),
+    )
     movementProfiles.push(movementProfile)
     placements.push({
       combatantId,

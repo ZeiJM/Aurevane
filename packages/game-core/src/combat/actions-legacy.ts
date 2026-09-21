@@ -71,6 +71,7 @@ import {
   type CombatTerrainEvent,
 } from './terrain-overlays'
 import { mitigateDamageByDefense } from './damage-mitigation'
+import { combatLevelDamageModifierBasisPoints } from './combat-level-scaling'
 import type { SkillNarrationTemplate } from './battle-narration'
 import {
   conditionalDamageMultiplier,
@@ -263,7 +264,15 @@ export interface CombatantStatusState {
 export interface CombatEncounterState {
   schemaVersion: typeof COMBAT_ENCOUNTER_SCHEMA_VERSION
   tactical: TacticalBattleState
-  statBridge?: { combatants: readonly { combatantId: string; armor: number; ward: number }[] }
+  statBridge?: {
+    rulesVersion?: number
+    combatants: readonly {
+      combatantId: string
+      armor: number
+      ward: number
+      level?: number
+    }[]
+  }
   statusState: readonly CombatantStatusState[]
   effectState?: CombatEffectState
   terrainOverlays?: readonly CombatTerrainOverlay[]
@@ -1925,6 +1934,18 @@ function resolveDamageAmount(
     if (defense === undefined)
       throw new TypeError('Stat-driven Skill damage requires recipient defenses.')
     amount = mitigateDamageByDefense(amount, defense)
+  }
+
+  if (state.statBridge?.rulesVersion === 3 && actorId !== recipientId && amount > 0) {
+    const attacker = state.statBridge.combatants.find((unit) => unit.combatantId === actorId)
+    const defender = state.statBridge.combatants.find((unit) => unit.combatantId === recipientId)
+    if (attacker?.level === undefined || defender?.level === undefined) {
+      throw new TypeError('Combat rules v3 damage requires attacker and defender Levels.')
+    }
+    amount = scaleByBasisPoints(
+      amount,
+      combatLevelDamageModifierBasisPoints(attacker.level, defender.level),
+    )
   }
 
   if (effect.facingModifiersBasisPoints && actorId !== recipientId) {
