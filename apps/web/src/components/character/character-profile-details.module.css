@@ -56,7 +56,7 @@
   font: 700 0.88rem/1 var(--av-font-display);
 }
 
-.identityFact[data-build-type='Hybrid Build'] .buildGlyph {
+.identityFact[data-build-type='Resonance Build'] .buildGlyph {
   color: var(--av-teal-bright);
   border-color: color-mix(in srgb, var(--av-teal-bright) 58%, #a88a4f);
 }
@@ -76,6 +76,11 @@
   color: #172d3c;
   font: 700 0.92rem/1.18 var(--av-font-display);
   overflow-wrap: anywhere;
+}
+
+.cycleCopy {
+  justify-items: center;
+  text-align: center;
 }
 
 .section {
@@ -390,46 +395,37 @@
   background: var(--attribute-soft);
 }
 
-.backdrop {
+.detailPopover {
   position: fixed;
-  inset: 0;
-  z-index: 10000;
-  display: grid;
-  place-items: center;
-  padding: 1rem;
-  background: #04101bbb;
-}
-
-.dialog {
-  width: min(28rem, 100%);
-  padding: 1.5rem;
-  border: 1px solid var(--av-gold-rule);
-  background: var(--av-moonstone);
+  z-index: 1300;
+  width: min(22rem, calc(100vw - 1.5rem));
+  padding: 0.85rem 0.95rem 0.9rem;
+  border: 1px solid var(--av-border-strong);
+  border-radius: var(--av-radius-md);
   color: var(--av-text);
-  box-shadow: var(--av-shadow-deep);
+  background: rgba(8, 11, 16, 0.985);
+  box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(1rem);
 }
 
-.dialog > span {
+.detailPopover > span {
+  color: var(--av-text-dim);
+  font: 650 0.56rem/1.1 var(--av-font-body);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.detailPopover h2 {
+  margin: 0.28rem 0 0.4rem;
+  color: var(--av-brass-100);
+  font: 600 1.05rem/1.2 var(--av-font-display);
+}
+
+.detailPopover p {
+  margin: 0;
   color: var(--av-text-muted);
-  font-size: 0.75rem;
-}
-
-.dialog h2 {
-  margin: 0.5rem 0;
-  font: 500 1.8rem var(--av-font-display);
-}
-
-.dialog p {
-  font-size: 0.9rem;
-  line-height: 1.6;
-}
-
-.dialog button {
-  min-height: 2.75rem;
-  padding: 0.5rem 1rem;
-  border: 1px solid var(--av-teal);
-  color: var(--av-on-primary);
-  background: var(--av-teal);
+  font-size: 0.78rem;
+  line-height: 1.5;
 }
 
 @media (max-width: 980px) {
