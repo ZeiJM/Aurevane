@@ -471,16 +471,25 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
   await lobby.getByRole('button', { name: 'Close Lobby', exact: true }).click()
   await expect(lobby).toBeHidden()
   await page.goto('/game/character')
-  for (const [trigger, name] of [
-    [page.getByTestId('derived-stat-maxHp'), 'phone-stat-details'],
-    [page.getByRole('button', { name: 'Reset Attributes' }), 'phone-attributes'],
-  ] as const) {
-    await trigger.click()
-    const dialog = page.getByRole('dialog')
-    await expect(dialog).toBeVisible()
-    await testInfo.attach(name, { body: await page.screenshot(), contentType: 'image/png' })
-    await dialog.getByRole('button', { name: 'Close', exact: true }).click()
-  }
+
+  await page.getByTestId('derived-stat-maxHp').click()
+  const statPopover = page.locator('[data-profile-stat-popover="true"]')
+  await expect(statPopover).toBeVisible()
+  await testInfo.attach('phone-stat-details', {
+    body: await page.screenshot(),
+    contentType: 'image/png',
+  })
+  await page.getByRole('heading', { name: 'Core Attributes', exact: true }).click()
+  await expect(statPopover).toHaveCount(0)
+
+  await page.getByRole('button', { name: 'Reset Attributes' }).click()
+  const attributeDialog = page.getByRole('dialog', { name: 'Redistribute Attributes', exact: true })
+  await expect(attributeDialog).toBeVisible()
+  await testInfo.attach('phone-attributes', {
+    body: await page.screenshot(),
+    contentType: 'image/png',
+  })
+  await attributeDialog.getByRole('button', { name: 'Close', exact: true }).click()
   await page.getByRole('button', { name: 'Account', exact: true }).click()
   await testInfo.attach('phone-account-menu', {
     body: await page.screenshot(),
