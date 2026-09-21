@@ -208,8 +208,8 @@ export const manualArticles: readonly ManualArticle[] = [
     title: 'Level & Character XP',
     summary: `The authoritative Level 1–${CURRENT_LEVEL_CAP} Character XP foundation and how levels support your build.`,
     category: 'Progression',
-    lastUpdated: '2026-09-11',
-    rulesVersion: 'Level-50 progression',
+    lastUpdated: '2026-09-20',
+    rulesVersion: 'Level-100 progression',
     body: [
       {
         id: 'xp-authority',
