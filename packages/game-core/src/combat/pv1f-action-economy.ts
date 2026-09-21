@@ -1,8 +1,5 @@
 import { materializeVengeanceDamage } from './combat-vengeance'
-import {
-  calculateScaledRawDamage,
-  currentSkillDamageScaling,
-} from './damage-scaling'
+import { calculateScaledRawDamage, currentSkillDamageScaling } from './damage-scaling'
 import {
   commitCombatSkillCopy,
   copiedSkillApCost,
