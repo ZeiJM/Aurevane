@@ -16,8 +16,8 @@ Current character/build terminology throughout the Master Panel is:
 - Skill / Discipline Skill / Equipment Skill;
 - Resonance;
 - Essence / Discipline Essence;
-- Soulmark;
-- The Severance / Soul-Severed / Mantle;
+- Ascension / Ascended;
+- Severence / Severed;
 - six universal attributes: Might, Finesse, Vitality, Agility, Intellect, Resolve;
 - Battle Hall / AI Sparring;
 - Passive Training.
@@ -208,7 +208,7 @@ The full panel should grow toward:
 - **Overview** — online players, activity, errors, health, events, season.
 - **Live World** — events, schedules, world state, announcements, Chronicle.
 - **Story** — arcs, quests, dialogue, flags, NPC narrative state.
-- **Character Content** — Disciplines, Skills, Resonances, Essences, Soulmarks, Mantles.
+- **Character Content** — Disciplines, Skills, Resonances, Essences, Ascension, Severence.
 - **Items & Effects** — Item Studio, Effect Catalog, equipment/consumables/acquisition.
 - **World Content** — regions, nodes, NPCs, enemies, bosses, encounters, stores.
 - **Expeditions** — templates, rooms, modifiers, bosses, loot.
@@ -299,8 +299,8 @@ Authorized staff can work with versioned current definitions such as:
 - targeting/effects;
 - Resonance triggers/caps/PvE-PvP tuning;
 - Essence Skills;
-- Soulmark branches;
-- Mantle content;
+- Ascension content;
+- Severence power content;
 - equipment/effects;
 - XP/Mastery curves;
 - Passive Training plans/rates;
@@ -400,8 +400,8 @@ Server-enforced audited flags can disable:
 - a specific Skill;
 - a specific Resonance;
 - a specific Essence;
-- a specific Soulmark;
-- a specific Mantle;
+- a specific Ascension identity;
+- a specific Severence power package;
 - a specific item/effect;
 - an AI profile/Battle Hall record;
 - a specific Expedition;
@@ -423,7 +423,7 @@ Authorized support views can inspect appropriate current state such as:
 - Primary/Secondary build state;
 - selected Discipline Skills;
 - resolved Resonance or Essence route;
-- Soulmarked vs Soul-Severed state and legal supernatural configuration;
+- Ascended vs Severed state and legal supernatural configuration;
 - equipment/inventory/currencies;
 - Passive Training state/report history;
 - quests/story/Archive;
@@ -539,7 +539,7 @@ Consolidate/polish:
 
 - comprehensive editors;
 - staff/permission administration;
-- Discipline/Skill/Resonance/Essence/Soulmark/Mantle operations;
+- Discipline/Skill/Resonance/Essence/Ascension/Severence operations;
 - Item Studio/Effect Catalog;
 - Combat Content Studio;
 - Combat AI Lab/Battle Hall configuration;
