@@ -11,7 +11,8 @@
   - Agility → Initiative + Movement + Jump + Evasion
   - Intellect → Maximum MP + Mystic Power
   - Resolve → Ward + Status Resistance
-- Level contributes to Physical Power and Mystic Power, giving every class an offensive baseline even without Might/Intellect focus.
+- Physical Power remains Might-driven and Mystic Power remains Intellect-driven; Level does not inflate either Power rating directly.
+- Relative Level separately modifies direct combat damage. Matchups within ±20 Levels remain near even (about 90–110% damage effectiveness), while larger gaps ramp more sharply and extreme gaps are bounded at 25–175%.
 - New battle snapshots use stat-driven combat rules v3.
 - Basic Attack now reads Physical Power rather than reaching directly into Might/Finesse.
 - Damaging regular Skills use Physical Power by default or Mystic Power when tagged `mystic`.
