@@ -2,6 +2,10 @@ import {
   PURE_DISCIPLINE_SKILL_CAPACITY,
   MIXED_DISCIPLINE_SKILL_CAPACITY,
 } from '@aurevane/game-core/character/discipline-skill-loadout'
+import {
+  FOUNDATION_FOCUS_ATTRIBUTE_CAP,
+  FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
+} from '@aurevane/game-core/character/attribute-allocation'
 import { CHARACTER_CREATION_RULES_V1 } from '@aurevane/game-core/character/creation'
 import { CURRENT_LEVEL_CAP } from '@aurevane/game-core/character/progression'
 import { PV1F_MOVEMENT_COST_PER_TERRAIN_POINT } from '@aurevane/game-core/combat/pv1f-skills'
@@ -39,6 +43,8 @@ describe('published Manual rule consistency', () => {
     expect(text).toContain('fixed Core Stat base')
     expect(text).not.toContain('each begin at 5')
     expect(text).not.toContain('no more than 4 bonus points')
+    expect(text).toContain(`Primary focus Core Stats currently cap at ${FOUNDATION_FOCUS_ATTRIBUTE_CAP}`)
+    expect(text).toContain(`non-focus Core Stats currently cap at ${FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP}`)
   })
 
   it('distinguishes learned libraries from current selected capacity and repeat-use rules', () => {
