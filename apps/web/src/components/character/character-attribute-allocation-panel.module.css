@@ -251,58 +251,268 @@
 }
 .dialog[data-has-portrait='true'] {
   display: grid;
-  grid-template-columns: minmax(12rem, 0.7fr) minmax(0, 1.3fr);
-  width: min(72rem, 96vw);
+  grid-template-columns: minmax(20rem, 0.68fr) minmax(0, 1.32fr);
+  width: min(90rem, 98vw);
+  max-height: 96dvh;
   gap: 1rem 1.5rem;
 }
+
 .dialog[data-has-portrait='true'] > :not(.portrait) {
   grid-column: 2;
 }
+
 .portrait {
   grid-column: 1;
-  grid-row: 1/7;
+  grid-row: 1 / 8;
   position: relative;
+  display: grid;
+  grid-template-rows: auto auto minmax(15rem, 1fr);
   align-self: stretch;
-  min-height: 30rem;
-  overflow: hidden;
-  background: var(--av-ink-950);
+  min-height: 42rem;
   margin: -1.5rem 0 -1.5rem -1.5rem;
+  padding: 1.35rem 1.35rem 0;
+  overflow: hidden;
+  border-right: 1px solid rgba(207, 169, 93, 0.62);
+  color: #f4ead0;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(207, 169, 93, 0.12), transparent 34%),
+    linear-gradient(180deg, #0b1618, #071014 58%, #050b10);
 }
-.portrait > :first-child {
+
+.portrait::before,
+.portrait::after {
   position: absolute;
+  z-index: 4;
+  pointer-events: none;
+  content: '';
+}
+
+.portrait::before {
+  inset: 0.55rem;
+  border: 1px solid rgba(207, 169, 93, 0.42);
+}
+
+.portrait::after {
+  inset: 0.8rem;
+  border: 1px solid rgba(207, 169, 93, 0.12);
+}
+
+.portraitFrame {
+  position: relative;
+  z-index: 5;
+  aspect-ratio: 1 / 1;
+  min-width: 0;
+  margin: 0.85rem 0.75rem 0;
+  padding: 0.3rem;
+  border: 1px solid rgba(226, 193, 112, 0.9);
+  background: #071014;
+  box-shadow:
+    0 0 0 1px rgba(226, 193, 112, 0.18),
+    0 0.9rem 2rem rgba(0, 0, 0, 0.42);
+}
+
+.portraitFrame::before,
+.portraitFrame::after {
+  position: absolute;
+  inset: 0.45rem;
+  z-index: 2;
+  pointer-events: none;
+  border: 1px solid rgba(235, 205, 132, 0.22);
+  content: '';
+}
+
+.portraitFrame::after {
+  inset: 0.18rem;
+  border-color: rgba(235, 205, 132, 0.12);
+}
+
+.portraitImage {
+  display: block;
   width: 100%;
   height: 100%;
+  aspect-ratio: 1 / 1;
   object-fit: cover;
   object-position: 50% 20%;
 }
-.portrait strong {
+
+.portraitCrest {
   position: absolute;
-  bottom: 0;
-  inset-inline: 0;
-  padding: 2rem 1.5rem;
-  color: var(--av-parchment-100);
-  background: linear-gradient(transparent, #07121b);
-  font: 500 2rem var(--av-font-display);
+  z-index: 6;
+  top: -1rem;
+  left: 50%;
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  transform: translateX(-50%);
+  color: #e9cc82;
+  background: #0b1518;
+  font-size: 1.35rem;
+  text-shadow: 0 0 0.8rem rgba(232, 200, 121, 0.72);
 }
+
+.portraitQuote {
+  position: relative;
+  z-index: 5;
+  display: grid;
+  gap: 0.24rem;
+  margin: 0;
+  padding: 1.15rem 1rem 1rem;
+  color: #d9bc72;
+  font: italic 500 0.95rem/1.35 var(--av-font-display);
+  text-align: center;
+}
+
+.portraitQuote::after {
+  display: block;
+  width: min(11rem, 68%);
+  height: 1px;
+  margin: 0.75rem auto 0;
+  background: linear-gradient(90deg, transparent, rgba(221, 188, 107, 0.75), transparent);
+  content: '';
+}
+
+.portraitAtmosphere {
+  position: relative;
+  z-index: 3;
+  min-height: 18rem;
+  margin: 0 -1.35rem;
+  overflow: hidden;
+  border-top: 1px solid rgba(207, 169, 93, 0.2);
+  background:
+    linear-gradient(180deg, rgba(7, 16, 20, 0.08), rgba(4, 10, 14, 0.45) 58%, rgba(4, 10, 14, 0.96)),
+    linear-gradient(90deg, rgba(5, 14, 16, 0.14), rgba(209, 177, 98, 0.08)),
+    url('/media/art/concept-ui/world-v01.webp') center 68% / cover;
+}
+
+.portraitAtmosphere::before {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 78% 22%, rgba(244, 211, 125, 0.24), transparent 17%),
+    radial-gradient(circle at 18% 52%, rgba(192, 231, 204, 0.08), transparent 22%),
+    linear-gradient(90deg, rgba(4, 12, 14, 0.42), transparent 42%);
+  content: '';
+}
+
+.atmosphereOrbital {
+  position: absolute;
+  left: -2.25rem;
+  bottom: 6.6rem;
+  width: 8.5rem;
+  height: 8.5rem;
+  border: 1px solid rgba(222, 187, 103, 0.52);
+  border-radius: 50%;
+  box-shadow:
+    inset 0 0 0 0.8rem rgba(222, 187, 103, 0.04),
+    0 0 1.5rem rgba(216, 177, 88, 0.08);
+}
+
+.atmosphereOrbital::before,
+.atmosphereOrbital::after {
+  position: absolute;
+  inset: 1rem -0.8rem;
+  border: 1px solid rgba(222, 187, 103, 0.32);
+  border-radius: 50%;
+  transform: rotate(58deg);
+  content: '';
+}
+
+.atmosphereOrbital::after {
+  inset: 2rem -1.2rem;
+  transform: rotate(-48deg);
+}
+
+.atmosphereSpark {
+  position: absolute;
+  top: 1rem;
+  left: 50%;
+  color: #e5c471;
+  transform: translateX(-50%);
+  text-shadow: 0 0 1rem rgba(232, 198, 114, 0.82);
+}
+
+.portraitIdentity {
+  position: absolute;
+  z-index: 4;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: grid;
+  gap: 0.55rem;
+  padding: 4.5rem 1.7rem 1.7rem;
+  background: linear-gradient(transparent, rgba(4, 10, 14, 0.97) 62%);
+}
+
+.portraitIdentity strong {
+  color: #f6edd6;
+  font: 500 2rem/1 var(--av-font-display);
+}
+
+.portraitIdentity i {
+  display: block;
+  position: relative;
+  width: 8rem;
+  height: 1px;
+  background: linear-gradient(90deg, #d8b55f 0 70%, transparent);
+}
+
+.portraitIdentity i::after {
+  position: absolute;
+  top: 50%;
+  left: 5.25rem;
+  color: #e2c36f;
+  transform: translate(-50%, -50%);
+  font-style: normal;
+  content: '✦';
+}
+
+.portraitIdentity small {
+  color: #bc9950;
+  font: 700 0.66rem/1.55 var(--av-font-mono);
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
 .attribute > div:first-child > span {
   display: flex;
   align-items: center;
   gap: 0.6rem;
 }
+
 .dialog[data-has-portrait='true'] .grid {
   grid-template-columns: minmax(0, 1fr);
 }
+
 @media (max-width: 760px) {
   .dialog[data-has-portrait='true'] {
     display: block;
     width: 100%;
   }
+
   .portrait {
-    margin: -1.5rem -1.5rem 1rem;
-    min-height: 12rem;
-    height: 12rem;
+    min-height: auto;
+    margin: -1.5rem -1.5rem 1.15rem;
+    padding: 1rem 1rem 0;
+    border-right: 0;
+    border-bottom: 1px solid rgba(207, 169, 93, 0.58);
   }
-  .portrait > :first-child {
-    object-position: 50% 25%;
+
+  .portraitFrame {
+    width: min(22rem, calc(100% - 1.5rem));
+    margin: 0.75rem auto 0;
+  }
+
+  .portraitQuote {
+    padding-block: 1rem 0.85rem;
+  }
+
+  .portraitAtmosphere {
+    min-height: 13rem;
+    margin: 0 -1rem;
+  }
+
+  .portraitIdentity {
+    padding: 3.6rem 1.35rem 1.25rem;
   }
 }
