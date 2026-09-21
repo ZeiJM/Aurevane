@@ -147,14 +147,14 @@ Projected movement is not a commitment. While planning a move, the player may re
 - **Intellect → Maximum MP, Mystic Power**
 - **Resolve → Ward, Status Resistance**
 
-Character Level contributes broad maturation across Levels 1–100. In particular, both Physical Power and Mystic Power receive Level growth so a character does not require a Might- or Intellect-focused Primary Discipline merely to remain offensively relevant.
+Character Level contributes broad maturation across Levels 1–100 for survivability, reliability and mobility. Physical Power and Mystic Power remain Core-Stat ratings: Might owns Physical Power and Intellect owns Mystic Power. Relative Level modifies direct combat damage separately.
 
 Let `L = Level - 1`. Current V3 formulas before Primary Discipline offsets and final clamping are:
 
 - **Maximum HP:** `floor((184 + 5L + 24 × Vitality) / 2)`.
 - **Maximum MP:** `floor((84 + 3L + 16 × Intellect) / 2)`.
-- **Physical Power:** `floor((44 + L + 4 × Might) / 2)`.
-- **Mystic Power:** `floor((44 + L + 4 × Intellect) / 2)`.
+- **Physical Power:** `floor((44 + 4 × Might) / 2)`.
+- **Mystic Power:** `floor((44 + 4 × Intellect) / 2)`.
 - **Armor:** `floor((22 + L + 4 × Vitality) / 2)`.
 - **Ward:** `floor((22 + L + 4 × Resolve) / 2)`.
 - **Accuracy (basis points):** `6200 + 10L + 75 × Finesse`, maximum 9500.
@@ -177,6 +177,7 @@ New combat sessions use stat-driven combat rules v3.
 - Consecutive-repeat falloff halves both the authored damage magnitude and the Power-scaling coefficient.
 - Armor remains the ordinary physical defense channel; Ward remains the ordinary mystic defense channel.
 - Resonance bonus effects keep their separately authored payoff values and are not silently granted another full Power budget.
+- Relative Level applies a separate direct-damage effectiveness modifier: the same Level is 100%; ±20 Levels stays in a 90–110% band; beyond 20 Levels the modifier changes by 1.5 percentage points per additional Level; extreme gaps clamp at 25–175%. This keeps nearby opponents competitive while preventing a very low-Level character from overwhelming a much higher-Level one through raw damage alone.
 
 Persisted stat-bridge v1/v2 battles remain valid historical snapshots and retain their prior damage semantics. The v3 rewrite applies to newly created battle snapshots rather than mutating old battles in place.
 
@@ -202,7 +203,7 @@ The approved current progression pass consists of:
 3. **Profile and creation experience** — available-point allocation, refresh-stable modal redistribution, reset count/renewal visibility, Primary focus-stat presentation, and editable Foundation starting-identity presets.
 4. **Primary swap compatibility** — proposed Primary changes validate the current allocation first; illegal allocations must be redistributed and are never silently clamped.
 5. **Foundation off-identity balance policy** — current Foundation focus attributes remain uncapped by Discipline identity and every non-focus attribute uses the approved **40-point ceiling**.
-6. **Level-range derived scaling** — V3 keeps Core Attribute ownership one-to-one, stretches maturation across Levels 1–100, and gives both offensive Power ratings a universal Level baseline while preserving approved global ceilings.
+6. **Level-range derived scaling** — V3 keeps Core Attribute ownership one-to-one, stretches non-Power maturation across Levels 1–100, and applies relative Level as a separate direct-damage matchup modifier while preserving approved global ceilings.
 7. **Battle Movement authority** — battle creation consumes the committed Primary-derived Movement/Jump snapshot and Movement remains an independent hard limit from AP.
 8. **Testing Discipline access** — every active player character can choose every currently active Discipline in either supported slot while testing, without exposing disabled/future content or bypassing server authority.
 9. **Derived-cap framework** — optional Primary-specific derived ceilings are supported with lower-of-global-and-Primary precedence; current Foundation numeric ceilings remain unchanged.
