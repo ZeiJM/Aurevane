@@ -178,6 +178,7 @@ function recruitScenarioProfile(
   arenaId: TacticalHallArenaId,
   difficulty: BattleAiDifficulty,
   battleHallRecordId: BattleHallRecordId,
+  level: number,
 ): Omit<StatDrivenCombatProfile, 'combatantId'> {
   return {
     provenance: {
@@ -191,6 +192,7 @@ function recruitScenarioProfile(
     armor: 20,
     ward: 20,
     jump: 1,
+    level,
     physicalPower: PV1F_RECRUIT_OFFENSIVE_BENCHMARK.stats.physicalPower.value,
     mysticPower: PV1F_RECRUIT_OFFENSIVE_BENCHMARK.stats.mysticPower.value,
   }
@@ -225,11 +227,12 @@ function createVerticalSliceEncounter(
   const playerProfile = createCharacterDerivedCombatProfile(
     playerCombatantId,
     character.id,
+    character.level,
     derived,
   )
   const recruitProfile: StatDrivenCombatProfile = {
     combatantId: recruitCombatantId,
-    ...recruitScenarioProfile(arenaId, aiDifficulty, battleHallRecordId),
+    ...recruitScenarioProfile(arenaId, aiDifficulty, battleHallRecordId, character.level),
   }
   const playerMovementProfile = {
     ...P2_2_ORDINARY_GROUND_PROFILE,
