@@ -4,6 +4,7 @@ import {
   calculateDerivedStats,
   DERIVED_STAT_RULESET_V1,
   DERIVED_STAT_RULESET_V2,
+  DERIVED_STAT_RULESET_V3,
   validateDerivedStatRuleset,
   type DerivedStatRuleset,
 } from './derived-stats'
@@ -21,7 +22,7 @@ describe('derived stat framework', () => {
   it('calculates the current balanced Level-1 profile without front-loading endgame percentages', () => {
     const snapshot = calculateDerivedStats({ attributes: balancedAttributes, level: 1 })
 
-    expect(snapshot.rulesVersion).toBe(2)
+    expect(snapshot.rulesVersion).toBe(3)
     expect(snapshot.stats.maxHp.value).toBe(164)
     expect(snapshot.stats.maxMp.value).toBe(90)
     expect(snapshot.stats.physicalPower.value).toBe(34)
@@ -55,14 +56,15 @@ describe('derived stat framework', () => {
     const levelOne = calculateDerivedStats({ attributes: balancedAttributes, level: 1 })
     const levelTen = calculateDerivedStats({ attributes: balancedAttributes, level: 10 })
 
-    expect(levelTen.stats.maxHp.value - levelOne.stats.maxHp.value).toBe(45)
-    expect(levelTen.stats.maxMp.value - levelOne.stats.maxMp.value).toBe(27)
-    expect(levelTen.stats.physicalPower.value - levelOne.stats.physicalPower.value).toBe(9)
-    expect(levelTen.stats.armor.value - levelOne.stats.armor.value).toBe(9)
-    expect(levelTen.stats.accuracy.value - levelOne.stats.accuracy.value).toBe(180)
-    expect(levelTen.stats.evasion.value - levelOne.stats.evasion.value).toBe(54)
-    expect(levelTen.stats.criticalChance.value - levelOne.stats.criticalChance.value).toBe(126)
-    expect(levelTen.stats.statusResistance.value - levelOne.stats.statusResistance.value).toBe(270)
+    expect(levelTen.stats.maxHp.value - levelOne.stats.maxHp.value).toBe(22)
+    expect(levelTen.stats.maxMp.value - levelOne.stats.maxMp.value).toBe(13)
+    expect(levelTen.stats.physicalPower.value - levelOne.stats.physicalPower.value).toBe(0)
+    expect(levelTen.stats.mysticPower.value - levelOne.stats.mysticPower.value).toBe(0)
+    expect(levelTen.stats.armor.value - levelOne.stats.armor.value).toBe(4)
+    expect(levelTen.stats.accuracy.value - levelOne.stats.accuracy.value).toBe(90)
+    expect(levelTen.stats.evasion.value - levelOne.stats.evasion.value).toBe(27)
+    expect(levelTen.stats.criticalChance.value - levelOne.stats.criticalChance.value).toBe(63)
+    expect(levelTen.stats.statusResistance.value - levelOne.stats.statusResistance.value).toBe(135)
   })
 
   it('keeps contribution provenance sufficient to reconstruct each unclamped value', () => {
@@ -82,7 +84,7 @@ describe('derived stat framework', () => {
           sourceKind: 'attribute',
           sourceId: 'character.attribute.might',
           inputValue: 6,
-          coefficient: 3,
+          coefficient: 4,
         }),
       ]),
     )
@@ -91,7 +93,7 @@ describe('derived stat framework', () => {
         expect.objectContaining({
           sourceKind: 'level',
           sourceId: 'character.level',
-          coefficient: 6,
+          coefficient: 3,
         }),
       ]),
     )
@@ -101,9 +103,50 @@ describe('derived stat framework', () => {
           sourceKind: 'attribute',
           sourceId: 'character.attribute.agility',
           inputValue: 6,
-          coefficient: 1,
+          coefficient: 2,
         }),
       ]),
+    )
+  })
+
+  it('keeps every Core Attribute isolated to the Profile Adventure Stats shown beneath it', () => {
+    const expectedSources = {
+      maxHp: ['vitality'],
+      maxMp: ['intellect'],
+      physicalPower: ['might'],
+      mysticPower: ['intellect'],
+      armor: ['vitality'],
+      ward: ['resolve'],
+      accuracy: ['finesse'],
+      evasion: ['agility'],
+      criticalChance: ['finesse'],
+      initiative: ['agility'],
+      movement: ['agility'],
+      jump: ['agility'],
+      statusResistance: ['resolve'],
+    } as const
+
+    for (const rule of DERIVED_STAT_RULESET_V3.rules) {
+      expect(Object.keys(rule.attributeWeights).sort(), rule.id).toEqual(
+        [...expectedSources[rule.id]].sort(),
+      )
+    }
+  })
+
+  it('keeps offensive Power tied to Might and Intellect instead of Character Level', () => {
+    const lowOffense = { ...balancedAttributes, might: 2, intellect: 2 }
+    const levelOne = calculateDerivedStats({ attributes: lowOffense, level: 1 })
+    const levelHundred = calculateDerivedStats({ attributes: lowOffense, level: 100 })
+
+    expect(levelOne.stats.physicalPower.value).toBe(26)
+    expect(levelOne.stats.mysticPower.value).toBe(26)
+    expect(levelHundred.stats.physicalPower.value).toBe(26)
+    expect(levelHundred.stats.mysticPower.value).toBe(26)
+    expect(levelHundred.stats.physicalPower.contributions).not.toContainEqual(
+      expect.objectContaining({ sourceKind: 'level' }),
+    )
+    expect(levelHundred.stats.mysticPower.contributions).not.toContainEqual(
+      expect.objectContaining({ sourceKind: 'level' }),
     )
   })
 
@@ -124,17 +167,17 @@ describe('derived stat framework', () => {
     expect(snapshot.stats.jump.value).toBe(0)
   })
 
-  it('allows focused Level-50 builds to mature toward the approved ceilings', () => {
+  it('allows focused Level-100 builds to mature toward the approved ceilings', () => {
     const snapshot = calculateDerivedStats({
       attributes: {
-        might: 30,
+        might: 40,
         finesse: 80,
-        vitality: 30,
+        vitality: 40,
         agility: 80,
-        intellect: 30,
+        intellect: 40,
         resolve: 80,
       },
-      level: 50,
+      level: 100,
     })
 
     expect(snapshot.stats.accuracy.value).toBeLessThanOrEqual(9500)
@@ -158,7 +201,7 @@ describe('derived stat framework', () => {
         intellect: 1000,
         resolve: 1000,
       },
-      level: 50,
+      level: 100,
     })
 
     expect(snapshot.stats.accuracy.value).toBe(9500)
@@ -176,7 +219,7 @@ describe('derived stat framework', () => {
     expect(() => calculateDerivedStats({ attributes: balancedAttributes, level: 0 })).toThrow(
       RangeError,
     )
-    expect(() => calculateDerivedStats({ attributes: balancedAttributes, level: 51 })).toThrow(
+    expect(() => calculateDerivedStats({ attributes: balancedAttributes, level: 101 })).toThrow(
       RangeError,
     )
   })
@@ -184,17 +227,18 @@ describe('derived stat framework', () => {
   it('validates both versioned configurations for completeness and arithmetic safety', () => {
     expect(validateDerivedStatRuleset(DERIVED_STAT_RULESET_V1)).toEqual([])
     expect(validateDerivedStatRuleset(DERIVED_STAT_RULESET_V2)).toEqual([])
+    expect(validateDerivedStatRuleset(DERIVED_STAT_RULESET_V3)).toEqual([])
 
     const duplicateAndMissing: DerivedStatRuleset = {
-      version: 2,
+      version: 3,
       rules: [
-        ...DERIVED_STAT_RULESET_V2.rules.filter((rule) => rule.id !== 'jump'),
-        { ...DERIVED_STAT_RULESET_V2.rules[0] },
+        ...DERIVED_STAT_RULESET_V3.rules.filter((rule) => rule.id !== 'jump'),
+        { ...DERIVED_STAT_RULESET_V3.rules[0] },
       ],
     }
     const unsafeDivisor: DerivedStatRuleset = {
-      version: 2,
-      rules: DERIVED_STAT_RULESET_V2.rules.map((rule) =>
+      version: 3,
+      rules: DERIVED_STAT_RULESET_V3.rules.map((rule) =>
         rule.id === 'movement' ? { ...rule, divisor: 0 } : rule,
       ),
     }

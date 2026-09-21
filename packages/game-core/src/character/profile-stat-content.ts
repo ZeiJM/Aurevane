@@ -3,25 +3,24 @@ import type { DerivedStatId } from './derived-stats'
 
 export const ATTRIBUTE_PROFILE_HELP: Readonly<Record<CharacterAttributeId, string>> = {
   might:
-    'Physical strength and force. It currently contributes to physical power, maximum HP, armor, and jump capability.',
-  finesse:
-    'Precision and weapon control. It currently contributes to physical power, accuracy, and critical chance.',
-  vitality:
-    'Endurance and bodily resilience. It currently contributes strongly to maximum HP and armor.',
+    'Physical force. Might contributes only to Physical Power. Relative Character Level modifies combat damage separately rather than changing this rating.',
+  finesse: 'Precision and technique. Finesse contributes only to Accuracy and Critical Chance.',
+  vitality: 'Endurance and bodily resilience. Vitality contributes only to Maximum HP and Armor.',
   agility:
-    'Reflexes, footwork, and mobility. It currently contributes to evasion, initiative, movement, and jump capability.',
+    'Reflexes, footwork, and mobility. Agility contributes only to Initiative, Movement, Jump, and Evasion.',
   intellect:
-    'Magical potency, healing, and supernatural control. It currently contributes to MP, mystic power, ward, and a smaller part of accuracy.',
+    'Mystic understanding and supernatural potency. Intellect contributes only to Maximum MP and Mystic Power. Relative Character Level modifies combat damage separately rather than changing this rating.',
   resolve:
-    'Mental steadiness and resistance. It currently contributes to MP, mystic power, ward, evasion, initiative, and status resistance.',
+    'Willpower and supernatural steadiness. Resolve contributes only to Ward and Status Resistance.',
 }
 
 export const DERIVED_STAT_PROFILE_HELP: Readonly<Record<DerivedStatId, string>> = {
   maxHp: 'Your current maximum health before temporary battle effects.',
   maxMp: 'Your current maximum MP before temporary battle effects.',
-  physicalPower: 'Baseline rating for physical effectiveness before authored combat modifiers.',
+  physicalPower:
+    'Physical damage rating from Might. Basic Attack and physical damaging Skills read this rating; relative Character Level then modifies direct combat damage separately.',
   mysticPower:
-    'Baseline rating for magical and supernatural effectiveness before authored combat modifiers.',
+    'Mystic damage rating from Intellect. Mystic damaging Skills read this rating; relative Character Level then modifies direct combat damage separately.',
   armor:
     'Baseline physical defense rating before equipment, Disciplines, statuses, and battle effects.',
   ward: 'Baseline mystic defense rating before equipment, Disciplines, statuses, and battle effects.',

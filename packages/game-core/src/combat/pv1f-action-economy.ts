@@ -1,4 +1,5 @@
 import { materializeVengeanceDamage } from './combat-vengeance'
+import { calculateScaledRawDamage, currentSkillDamageScaling } from './damage-scaling'
 import {
   commitCombatSkillCopy,
   copiedSkillApCost,
@@ -107,6 +108,8 @@ export const PV1F_RECOVERY_COOLDOWN: SkillCooldownDefinition = {
 export const PV1F_ACTION_ECONOMY_RESOURCE_KEY = 'pv1f.action-economy' as const
 export const PV1F_ACTION_ECONOMY_TURN_KEY = 'pv1f.action-economy-turn' as const
 export const PV1F_BASIC_ATTACK_DAMAGE_KEY = 'pv1f.basic-attack-damage' as const
+export const PV1F_BASIC_ATTACK_BASE_DAMAGE = 6 as const
+export const PV1F_BASIC_ATTACK_POWER_SCALING_BASIS_POINTS = 2_500 as const
 
 export const PV1F_GUARDED_STATUS: CombatStatusDefinition = {
   id: 'guarded',
@@ -182,17 +185,18 @@ export interface Pv1fTransition {
   events: readonly unknown[]
 }
 
-export function calculatePv1fBasicAttackDamage(input: {
-  level: number
-  might: number
-  finesse: number
-}): number {
-  for (const [field, value] of Object.entries(input)) {
-    if (!Number.isSafeInteger(value) || value < 1) {
-      throw new RangeError(`${field} must be a positive safe integer.`)
-    }
+export function calculatePv1fBasicAttackDamage(input: { physicalPower: number }): number {
+  if (!Number.isSafeInteger(input.physicalPower) || input.physicalPower < 0) {
+    throw new RangeError('physicalPower must be a non-negative safe integer.')
   }
-  return 6 + input.level + Math.floor(input.might * 0.8) + Math.floor(input.finesse * 0.4)
+  return calculateScaledRawDamage(
+    PV1F_BASIC_ATTACK_BASE_DAMAGE,
+    {
+      source: 'physical-power',
+      coefficientBasisPoints: PV1F_BASIC_ATTACK_POWER_SCALING_BASIS_POINTS,
+    },
+    input.physicalPower,
+  )
 }
 
 export function createPv1fBasicAttackDefinition(damage: number): CombatActionDefinition {
@@ -605,6 +609,11 @@ export function evaluatePv1fMatureSkill(
   const resolved = resolveMatureSkillForContext(definition, combatContext)
   const resonance = committedResonanceForecast(prepared, definition, target)
   const authoredAction = toCombatActionDefinition(definition, combatContext)
+  const powerScaledAuthoredEffects = applyCurrentMatureSkillPowerScaling(
+    prepared,
+    definition,
+    authoredAction.effects,
+  )
   const usageKey = options.repeatHistoryKey ?? definition.id
   const repeatPenaltyApplied = lastMatureSkillId(prepared, actorId) === usageKey
   const copyEffect = repeatPenaltyApplied
@@ -613,7 +622,7 @@ export function evaluatePv1fMatureSkill(
   const baseAction: CombatActionDefinition = {
     ...authoredAction,
     id: options.actionIdOverride ?? authoredAction.id,
-    effects: authoredAction.effects.filter((effect) => effect.type !== 'copy'),
+    effects: powerScaledAuthoredEffects.filter((effect) => effect.type !== 'copy'),
   }
   if (resonance?.forecast.willActivate)
     baseAction.effects = [...baseAction.effects, ...resonance.forecast.bonusEffects]
@@ -1154,12 +1163,55 @@ function markLastMatureSkill(
   return withCombatant(state, { ...combatant, temporaryResources })
 }
 
+function applyCurrentMatureSkillPowerScaling(
+  state: StatDrivenCombatEncounterState,
+  definition: MatureSkillDefinition,
+  effects: readonly CombatEffectDefinition[],
+): readonly CombatEffectDefinition[] {
+  if (state.statBridge.rulesVersion !== 3) return effects
+
+  const unscaledDamageCount = effects.filter(
+    (effect) =>
+      effect.type === 'damage' &&
+      !effect.scaling &&
+      !('vengeance' in effect && effect.vengeance !== undefined),
+  ).length
+  if (unscaledDamageCount === 0) return effects
+
+  const scaling = currentSkillDamageScaling(
+    definition.tags.includes('mystic') ? 'mystic-power' : 'physical-power',
+    unscaledDamageCount,
+  )
+  return effects.map((effect) =>
+    effect.type === 'damage' &&
+    !effect.scaling &&
+    !('vengeance' in effect && effect.vengeance !== undefined)
+      ? { ...effect, scaling }
+      : effect,
+  )
+}
+
 function scaleRepeatedMatureSkillEffects(
   effects: readonly CombatEffectDefinition[],
 ): readonly CombatEffectDefinition[] {
   const scaled: CombatEffectDefinition[] = []
   for (const effect of effects) {
-    if (effect.type === 'damage' || effect.type === 'healing' || effect.type === 'barrier-change') {
+    if (effect.type === 'damage') {
+      scaled.push({
+        ...effect,
+        amount: halfPositiveMagnitude(effect.amount),
+        ...(effect.scaling
+          ? {
+              scaling: {
+                ...effect.scaling,
+                coefficientBasisPoints: Math.floor(effect.scaling.coefficientBasisPoints / 2),
+              },
+            }
+          : {}),
+      })
+      continue
+    }
+    if (effect.type === 'healing' || effect.type === 'barrier-change') {
       scaled.push({ ...effect, amount: halfPositiveMagnitude(effect.amount) })
       continue
     }

@@ -2,7 +2,7 @@ import type { CharacterAttributes } from './creation'
 import {
   calculateDerivedStats,
   DERIVED_STAT_IDS,
-  DERIVED_STAT_RULESET_V2,
+  DERIVED_STAT_RULESET_V3,
   type DerivedStatId,
   type DerivedStatRuleset,
   type DerivedStatSnapshot,
@@ -82,7 +82,7 @@ export function validatePrimaryDisciplineBaseProfile(
 
 export function calculateCharacterBuildDerivedStats(
   input: CharacterBuildDerivedStatInput,
-  ruleset: DerivedStatRuleset = DERIVED_STAT_RULESET_V2,
+  ruleset: DerivedStatRuleset = DERIVED_STAT_RULESET_V3,
 ): DerivedStatSnapshot {
   if (validateDisciplineDefinition(input.primaryDefinition).length > 0) {
     throw new TypeError('Primary Discipline definition is invalid.')
@@ -121,7 +121,7 @@ export function calculateCharacterBuildDerivedStats(
 
 export function buildPrimaryDisciplinePreview(
   input: CharacterBuildDerivedStatInput,
-  ruleset: DerivedStatRuleset = DERIVED_STAT_RULESET_V2,
+  ruleset: DerivedStatRuleset = DERIVED_STAT_RULESET_V3,
 ): PrimaryDisciplinePreview {
   return {
     definition: input.primaryDefinition,

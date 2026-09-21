@@ -2,7 +2,7 @@
 
 **Status:** Owner-approved authoritative addendum to `docs/GAME_MASTER_PLAN.md`.
 
-**Direction approved:** 2026-09-06. **Foundation non-focus cap policy approved:** 2026-09-08. **Level-range adventure scaling and Profile presentation approved:** 2026-09-09.
+**Direction approved:** 2026-09-06. **Foundation non-focus cap policy approved:** 2026-09-08. **Level-range adventure scaling and Profile presentation approved:** 2026-09-09. **Level-100 / one-to-one Adventure Stat / combat-power rewrite approved:** 2026-09-20.
 
 This addendum supersedes conflicting earlier wording about the current Level cap, per-Level core-attribute growth, attribute redistribution, Discipline-specific attribute ceilings, and the global Critical Chance / Evasion / Movement / Jump limits.
 
@@ -14,9 +14,9 @@ A full reset refunds the personal pool, including its five creation points; the 
 
 ## 1. Current Level cap
 
-The current production Level cap is **50**.
+The current production Level cap is **100**.
 
-The progression curve remains versioned and server-authoritative. Historical XP above the current cap may be preserved, but current Level resolution cannot exceed 50.
+The progression curve remains versioned and server-authoritative. Curve version 3 restores the original full 100-Level threshold sequence while preserving every character's existing XP exactly. Existing grant history remains pinned to the curve version recorded when it was committed.
 
 ## 2. Core-attribute point growth
 
@@ -24,7 +24,7 @@ Characters gain **1 additional assignable core-attribute point for every Level g
 
 The Level-1 creation pool is the existing six-attribute starting allocation. Those starting points are not permanently locked to their original attributes.
 
-At Level 50, a character therefore has the full Level-1 pool plus 49 earned points available for legal allocation.
+At Level 100, a character therefore has the full Level-1 pool plus 99 earned points available for legal allocation.
 
 Unspent earned points may remain unassigned until the player chooses to spend them.
 
@@ -81,12 +81,12 @@ Choosing a Foundation Discipline at character creation preloads a **recommended 
 
 Current Foundation policies:
 
-- **Vanguard** — Focus: Might and Vitality. Starting bonus spread: **+3 Might, +3 Vitality**. Non-focus cap **30** on Finesse, Agility, Intellect, and Resolve.
-- **Farstrider** — Focus: Finesse and Agility. Starting bonus spread: **+4 Finesse, +2 Agility**. Non-focus cap **30** on Might, Vitality, Intellect, and Resolve.
-- **Shadehand** — Focus: Finesse and Agility. Starting bonus spread: **+2 Finesse, +4 Agility**. Non-focus cap **30** on Might, Vitality, Intellect, and Resolve.
-- **Ironfist** — Focus: Might and Agility. Starting bonus spread: **+4 Might, +2 Agility**. Non-focus cap **30** on Finesse, Vitality, Intellect, and Resolve.
-- **Aetherist** — Focus: Intellect and Resolve. Starting bonus spread: **+4 Intellect, +2 Resolve**. Non-focus cap **30** on Might, Finesse, Vitality, and Agility.
-- **Lifebinder** — Focus: Intellect and Resolve. Starting bonus spread: **+2 Intellect, +4 Resolve**. Non-focus cap **30** on Might, Finesse, Vitality, and Agility.
+- **Vanguard** — Focus: Might and Vitality. Starting bonus spread: **+3 Might, +3 Vitality**. Non-focus cap **40** on Finesse, Agility, Intellect, and Resolve.
+- **Farstrider** — Focus: Finesse and Agility. Starting bonus spread: **+4 Finesse, +2 Agility**. Non-focus cap **40** on Might, Vitality, Intellect, and Resolve.
+- **Shadehand** — Focus: Finesse and Agility. Starting bonus spread: **+2 Finesse, +4 Agility**. Non-focus cap **40** on Might, Vitality, Intellect, and Resolve.
+- **Ironfist** — Focus: Might and Agility. Starting bonus spread: **+4 Might, +2 Agility**. Non-focus cap **40** on Finesse, Vitality, Intellect, and Resolve.
+- **Aetherist** — Focus: Intellect and Resolve. Starting bonus spread: **+4 Intellect, +2 Resolve**. Non-focus cap **40** on Might, Finesse, Vitality, and Agility.
+- **Lifebinder** — Focus: Intellect and Resolve. Starting bonus spread: **+2 Intellect, +4 Resolve**. Non-focus cap **40** on Might, Finesse, Vitality, and Agility.
 
 These starting spreads are **defaults, not caps**. Before creating the character, the player may redistribute the full six-point starting bonus budget however they wish under the active legal rules. Later full attribute resets likewise include these starting points.
 
@@ -136,25 +136,53 @@ The active committed Primary Discipline is part of the derived-stat calculation 
 
 Projected movement is not a commitment. While planning a move, the player may retract the provisional path tile by tile with directional controls or by selecting an earlier point on the projected path. Only the committed path consumes Movement and AP.
 
-## 8. Level-50-aware Adventure Stat scaling
+## 8. Level-100 Adventure Stat scaling
 
-The Level-1 experience must not begin near endgame reliability or mobility. Adventure reliability/mobility therefore uses **Derived Stat Ruleset V2**, while the established hard caps remain unchanged.
+**Derived Stat Ruleset V3** makes the Profile grouping mechanically literal. Each Core Attribute contributes only to the Adventure Stats displayed beneath it:
 
-Ruleset V2 intentionally spreads growth across the Level 1–50 range. Core attributes remain meaningful from Level 1, but Level contributes materially to reliability and mobility so early characters cannot front-load near-cap percentages from the small starting attribute pool.
+- **Might → Physical Power**
+- **Finesse → Accuracy, Critical Chance**
+- **Vitality → Maximum HP, Armor**
+- **Agility → Initiative, Movement, Jump, Evasion**
+- **Intellect → Maximum MP, Mystic Power**
+- **Resolve → Ward, Status Resistance**
 
-Current V2 formulas before Primary Discipline offsets and final clamping are:
+Character Level contributes broad maturation across Levels 1–100 for survivability, reliability and mobility. Physical Power and Mystic Power remain Core-Stat ratings: Might owns Physical Power and Intellect owns Mystic Power. Relative Level modifies direct combat damage separately.
 
-- **Accuracy (basis points):** `6200 + 20 × (Level - 1) + 60 × Finesse + 15 × Intellect`, maximum 9500.
-- **Evasion (basis points):** `50 + 6 × (Level - 1) + 15 × Agility + 5 × Resolve`, maximum 1500.
-- **Critical Chance (basis points):** `100 + 14 × (Level - 1) + 25 × Finesse`, maximum 3000.
-- **Initiative:** `floor((10 + 1 × (Level - 1) + 2 × Agility + Resolve) / 2)`.
-- **Movement:** `floor((40 + 1 × (Level - 1) + Agility) / 25)`, minimum 2, maximum 5.
-- **Jump:** `floor((-20 + 1 × (Level - 1) + Might + Agility) / 30)`, minimum 0, maximum 3.
-- **Status Resistance (basis points):** `30 × (Level - 1) + 70 × Resolve`, maximum 7500.
+Let `L = Level - 1`. Current V3 formulas before Primary Discipline offsets and final clamping are:
 
-Maximum HP, Maximum MP, Physical Power, Mystic Power, Armor, and Ward retain their established formulas because they already scale through Level and core attributes without the same Level-1 percentage-cap compression problem.
+- **Maximum HP:** `floor((184 + 5L + 24 × Vitality) / 2)`.
+- **Maximum MP:** `floor((84 + 3L + 16 × Intellect) / 2)`.
+- **Physical Power:** `floor((44 + 4 × Might) / 2)`.
+- **Mystic Power:** `floor((44 + 4 × Intellect) / 2)`.
+- **Armor:** `floor((22 + L + 4 × Vitality) / 2)`.
+- **Ward:** `floor((22 + L + 4 × Resolve) / 2)`.
+- **Accuracy (basis points):** `6200 + 10L + 75 × Finesse`, maximum 9500.
+- **Evasion (basis points):** `50 + 3L + 20 × Agility`, maximum 1500.
+- **Critical Chance (basis points):** `100 + 7L + 25 × Finesse`, maximum 3000.
+- **Initiative:** `floor((20 + L + 6 × Agility) / 4)`.
+- **Movement:** `floor((80 + L + 2 × Agility) / 50)`, minimum 2, maximum 5.
+- **Jump:** `floor((-20 + L + 2 × Agility) / 60)`, minimum 0, maximum 3.
+- **Status Resistance (basis points):** `15L + 70 × Resolve`, maximum 7500.
 
-Primary Discipline offsets are applied after the base calculation and the final result is re-clamped. They may accelerate a class toward its identity but do not bypass the approved global hard caps.
+The Level coefficients are deliberately stretched over 100 Levels so the familiar early-game values remain stable while Level 100 lands near the former Level-50 endgame band instead of doubling it outright.
+
+### 8.0.1 Current offensive damage bridge
+
+New combat sessions use stat-driven combat rules v3.
+
+- **Basic Attack raw damage:** `6 + floor(Physical Power × 0.25)`.
+- A damaging regular Skill uses **Mystic Power** when it is authored with the `mystic` gameplay tag; otherwise it uses **Physical Power**.
+- A damaging Skill receives a **25% matching-Power coefficient budget** across its direct damage effects. Multi-hit Skills divide that budget across their direct hits so they do not receive the full Power bonus once per hit.
+- Consecutive-repeat falloff halves both the authored damage magnitude and the Power-scaling coefficient.
+- Armor remains the ordinary physical defense channel; Ward remains the ordinary mystic defense channel.
+- Resonance bonus effects keep their separately authored payoff values and are not silently granted another full Power budget.
+- Relative Level applies a separate direct-damage effectiveness modifier: the same Level is 100%; ±20 Levels stays in a 90–110% band; beyond 20 Levels the modifier changes by 1.5 percentage points per additional Level; extreme gaps clamp at 25–175%. This keeps nearby opponents competitive while preventing a very low-Level character from overwhelming a much higher-Level one through raw damage alone.
+
+Persisted stat-bridge v1/v2 battles remain valid historical snapshots and retain their prior damage semantics. The v3 rewrite applies to newly created battle snapshots rather than mutating old battles in place.
+
+Primary Discipline offsets are applied after the base calculation and the final result is re-clamped. They may reinforce a class identity but do not make a Core Attribute feed an unrelated Adventure Stat or bypass global hard caps.
+
 
 ### 8.1 Optional Primary-derived ceilings
 
@@ -170,12 +198,12 @@ The current six Foundation Disciplines receive **no new arbitrary numeric derive
 
 The approved current progression pass consists of:
 
-1. **Authoritative global rules** — Level 50, +1 point per gained Level, global Crit/Evasion/Movement/Jump ceilings, and 20 AP movement cost.
+1. **Authoritative global rules** — Level 100, +1 point per gained Level, global Crit/Evasion/Movement/Jump ceilings, and the current AP movement cost.
 2. **Authoritative allocation persistence** — Level-derived point budget, ordinary point spending, full-pool resets, idempotency, audit history, and five-use 30-day reset-window enforcement.
 3. **Profile and creation experience** — available-point allocation, refresh-stable modal redistribution, reset count/renewal visibility, Primary focus-stat presentation, and editable Foundation starting-identity presets.
 4. **Primary swap compatibility** — proposed Primary changes validate the current allocation first; illegal allocations must be redistributed and are never silently clamped.
-5. **Foundation off-identity balance policy** — current Foundation focus attributes remain uncapped by Discipline identity and all four non-focus attributes use the approved **30-point ceiling**.
-6. **Level-range derived scaling** — V2 reliability/mobility scaling prevents Level-1 builds from starting near Level-50 performance while preserving the approved global ceilings.
+5. **Foundation off-identity balance policy** — current Foundation focus attributes remain uncapped by Discipline identity and every non-focus attribute uses the approved **40-point ceiling**.
+6. **Level-range derived scaling** — V3 keeps Core Attribute ownership one-to-one, stretches non-Power maturation across Levels 1–100, and applies relative Level as a separate direct-damage matchup modifier while preserving approved global ceilings.
 7. **Battle Movement authority** — battle creation consumes the committed Primary-derived Movement/Jump snapshot and Movement remains an independent hard limit from AP.
 8. **Testing Discipline access** — every active player character can choose every currently active Discipline in either supported slot while testing, without exposing disabled/future content or bypassing server authority.
 9. **Derived-cap framework** — optional Primary-specific derived ceilings are supported with lower-of-global-and-Primary precedence; current Foundation numeric ceilings remain unchanged.

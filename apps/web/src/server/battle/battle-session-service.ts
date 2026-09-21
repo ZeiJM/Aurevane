@@ -84,7 +84,7 @@ import {
   resolveBattleSkillCopyContext,
 } from './battle-skill-copy-authority'
 
-const PV1F_RULES_VERSION = 2
+const PV1F_RULES_VERSION = 3
 const PV1F_CONTENT_VERSION = 2
 const PV1F_RECRUIT_MOVEMENT_UNITS = 10
 const PV1F_RECRUIT_OFFENSIVE_BENCHMARK = calculateDerivedStats({
@@ -178,6 +178,7 @@ function recruitScenarioProfile(
   arenaId: TacticalHallArenaId,
   difficulty: BattleAiDifficulty,
   battleHallRecordId: BattleHallRecordId,
+  level: number,
 ): Omit<StatDrivenCombatProfile, 'combatantId'> {
   return {
     provenance: {
@@ -191,6 +192,7 @@ function recruitScenarioProfile(
     armor: 20,
     ward: 20,
     jump: 1,
+    level,
     physicalPower: PV1F_RECRUIT_OFFENSIVE_BENCHMARK.stats.physicalPower.value,
     mysticPower: PV1F_RECRUIT_OFFENSIVE_BENCHMARK.stats.mysticPower.value,
   }
@@ -225,11 +227,12 @@ function createVerticalSliceEncounter(
   const playerProfile = createCharacterDerivedCombatProfile(
     playerCombatantId,
     character.id,
+    character.level,
     derived,
   )
   const recruitProfile: StatDrivenCombatProfile = {
     combatantId: recruitCombatantId,
-    ...recruitScenarioProfile(arenaId, aiDifficulty, battleHallRecordId),
+    ...recruitScenarioProfile(arenaId, aiDifficulty, battleHallRecordId, character.level),
   }
   const playerMovementProfile = {
     ...P2_2_ORDINARY_GROUND_PROFILE,
@@ -237,14 +240,10 @@ function createVerticalSliceEncounter(
     maxElevationStep: derived.stats.jump.value,
   }
   const playerAttackDamage = calculatePv1fBasicAttackDamage({
-    level: character.level,
-    might: character.might,
-    finesse: character.finesse,
+    physicalPower: derived.stats.physicalPower.value,
   })
   const recruitAttackDamage = calculatePv1fBasicAttackDamage({
-    level: 1,
-    might: 5,
-    finesse: 5,
+    physicalPower: PV1F_RECRUIT_OFFENSIVE_BENCHMARK.stats.physicalPower.value,
   })
 
   const battle = startBattle(

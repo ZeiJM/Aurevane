@@ -172,7 +172,7 @@ describe('P2.4 battle session service', () => {
     expect(input).toMatchObject({
       actorKey: USER_ID,
       userId: USER_ID,
-      rulesVersion: 2,
+      rulesVersion: 3,
       contentVersion: 2,
       participants: [
         {
@@ -219,7 +219,7 @@ describe('P2.4 battle session service', () => {
       provenance: {
         kind: 'character-derived',
         sourceId: `character:${CHARACTER_ID}`,
-        sourceRulesVersion: 2,
+        sourceRulesVersion: 3,
       },
       accuracy: 6_650,
       evasion: 170,
@@ -250,7 +250,7 @@ describe('P2.4 battle session service', () => {
       battleVersion: 1,
       replayed: false,
     })
-    expect(result.snapshot.statBridge.rulesVersion).toBe(2)
+    expect(result.snapshot.statBridge.rulesVersion).toBe(3)
     expect(result.snapshot.tactical.battle).not.toHaveProperty('rng')
   })
 
@@ -269,18 +269,18 @@ describe('P2.4 battle session service', () => {
     )
 
     expect(player).toMatchObject({
-      initiative: 13,
+      initiative: 14,
       baseMovementBudget: 2,
-      hp: 162,
-      maxHp: 162,
-      mp: 80,
-      maxMp: 80,
+      hp: 164,
+      maxHp: 164,
+      mp: 82,
+      maxMp: 82,
     })
     expect(profile).toMatchObject({
-      accuracy: 6_815,
-      evasion: 165,
-      armor: 22,
-      ward: 20,
+      accuracy: 6_875,
+      evasion: 170,
+      armor: 23,
+      ward: 21,
       jump: 0,
     })
   })
@@ -299,8 +299,8 @@ describe('P2.4 battle session service', () => {
       (combatant) => combatant.id === 'recruit:p2-4-1',
     )
 
-    expect(player?.baseMovementBudget).toBe(5)
-    expect(persistedSnapshot.tactical.battle.currentTurn?.movementRemaining).toBe(5)
+    expect(player?.baseMovementBudget).toBe(4)
+    expect(persistedSnapshot.tactical.battle.currentTurn?.movementRemaining).toBe(4)
     expect(recruit?.baseMovementBudget).toBe(10)
   })
 
@@ -407,10 +407,10 @@ describe('P2.4 battle session service', () => {
           event: 'stat_driven_attack_resolved',
           actorId: `character:${CHARACTER_ID}`,
           targetId: 'recruit:p2-4-1',
-          hitChanceBasisPoints: 6_830,
+          hitChanceBasisPoints: 6_340,
           defenseKind: 'armor',
           defenseRating: 20,
-          rulesVersion: 2,
+          rulesVersion: 3,
         }),
       ]),
     )

@@ -1,5 +1,6 @@
 export const COMBAT_SCALING_BASIS_POINTS = 10_000 as const
 export const MAX_DAMAGE_SCALING_COEFFICIENT_BASIS_POINTS = 20_000 as const
+export const CURRENT_SKILL_POWER_SCALING_BASIS_POINTS = 2_500 as const
 
 export type CombatDamageScalingSource = 'physical-power' | 'mystic-power'
 
@@ -11,6 +12,22 @@ export interface CombatDamageScaling {
 export interface CombatDamageScalingIssue {
   field: string
   message: string
+}
+
+export function currentSkillDamageScaling(
+  source: CombatDamageScalingSource,
+  damageEffectCount: number,
+): CombatDamageScaling {
+  if (!Number.isSafeInteger(damageEffectCount) || damageEffectCount < 1) {
+    throw new RangeError('Skill damage effect count must be a positive safe integer.')
+  }
+  return {
+    source,
+    coefficientBasisPoints: Math.max(
+      1,
+      Math.floor(CURRENT_SKILL_POWER_SCALING_BASIS_POINTS / damageEffectCount),
+    ),
+  }
 }
 
 export function validateCombatDamageScaling(

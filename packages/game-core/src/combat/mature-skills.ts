@@ -969,6 +969,7 @@ export function toCombatActionDefinition(
   combatContext: MatureSkillCombatContext,
 ): CombatActionDefinition {
   const resolved = resolveMatureSkillForContext(definition, combatContext)
+
   return {
     id: resolved.id,
     version: resolved.contentVersion,

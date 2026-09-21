@@ -19,8 +19,9 @@ describe('published Manual rule consistency', () => {
   it('uses the current progression cap and preserves XP authority', () => {
     const text = articleText('character-xp')
     expect(text).toContain(`Level ${CURRENT_LEVEL_CAP}`)
+    expect(text).toContain(`Level 1–${CURRENT_LEVEL_CAP}`)
+    expect(text).toContain('Level-100 progression')
     expect(text).toContain('retries or concurrent requests do not duplicate')
-    expect(text).not.toMatch(/1[–-]100|Level 100/)
   })
 
   it('explains both movement costs and the independent Movement allowance', () => {

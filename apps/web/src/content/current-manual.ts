@@ -116,15 +116,15 @@ const overrides: Record<string, ManualArticle> = {
     title: 'Attributes & Derived Stats',
     summary: 'How six core attributes feed the current versioned stat framework.',
     category: 'Character',
-    lastUpdated: '2026-09-11',
-    rulesVersion: 'Derived stat rules v2 · Level-50 progression',
+    lastUpdated: '2026-09-20',
+    rulesVersion: 'Derived stat rules v3 · Level-100 progression',
     body: [
       {
         id: 'six-attributes',
         title: 'The six attributes',
         paragraphs: [
           'Might is physical force; Finesse is precision and technique; Vitality is endurance; Agility is mobility and reflex; Intellect is mystic understanding; Resolve is willpower and supernatural steadiness.',
-          'Each attribute can contribute to several derived values. The profile reads authoritative character state and calculates derived values from one versioned ruleset, so browser-only edits cannot change them on the server.',
+          'Each Core Attribute now owns only the Adventure Stats shown beneath it on Profile. The profile reads authoritative character state and calculates derived values from one versioned ruleset, so browser-only edits cannot change them on the server.',
         ],
       },
       {
@@ -146,8 +146,10 @@ const overrides: Record<string, ManualArticle> = {
         id: 'relationships',
         title: 'How the new split works',
         paragraphs: [
-          'Vitality now carries the main maximum-HP and physical-toughness role that previously overloaded Resolve. Agility now carries the main movement, evasion, and reflex role that previously competed inside Finesse.',
-          'Level and attributes both contribute to the current derived stats. Critical Chance caps at 30%, Evasion at 15%, Movement at 5 and Jump at 3.',
+          'Might → Physical Power. Finesse → Accuracy and Critical Chance. Vitality → Maximum HP and Armor. Agility → Initiative, Movement, Jump and Evasion. Intellect → Maximum MP and Mystic Power. Resolve → Ward and Status Resistance.',
+          'Character Level matures survivability, reliability and mobility across Levels 1–100, but it does not increase Physical Power or Mystic Power directly. Instead, relative Level modifies direct combat damage: opponents within 20 Levels stay close to even, while larger gaps ramp more sharply.',
+          'Basic Attack reads Physical Power. Damaging regular Skills use Physical Power unless authored as mystic, in which case they use Mystic Power. The current Skill-wide Power contribution is 25% of the matching Power rating, distributed across multi-hit direct-damage effects before repeat-use falloff. Relative Level then modifies direct damage at roughly 90–110% inside a ±20-Level matchup band; beyond that band the modifier steepens, with extreme gaps bounded near 25–175%.',
+          'Critical Chance caps at 30%, Evasion at 15%, Movement at 5 and Jump at 3. Primary focus attributes remain identity-open; non-focus Core Stats currently cap at 40.',
           'Attribute Management lets you spend earned points or reset your full personal allocation, including creation points. Five resets replenish together 30 days after the first reset in a fresh window. Your Primary’s fixed base remains separate.',
         ],
       },
