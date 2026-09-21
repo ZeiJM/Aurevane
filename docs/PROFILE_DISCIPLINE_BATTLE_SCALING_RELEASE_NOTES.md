@@ -3,7 +3,7 @@
 ## 2026-09-20 — Level 100 / Adventure Stat / combat-power rewrite
 
 - The current Level cap is restored to **100** through progression curve version 3; existing XP is preserved.
-- Non-focus Core Stats now cap at **40** for current class/Primary identity policies.
+- Primary focus Core Stats cap at **60**, while non-focus Core Stats cap at **40**, for current class/Primary identity policies.
 - Derived Stat Ruleset V3 makes Profile grouping mechanically exact:
   - Might → Physical Power
   - Finesse → Accuracy + Critical Chance
