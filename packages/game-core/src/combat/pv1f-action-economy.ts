@@ -1171,7 +1171,10 @@ function applyCurrentMatureSkillPowerScaling(
   if (state.statBridge.rulesVersion !== 3) return effects
 
   const unscaledDamageCount = effects.filter(
-    (effect) => effect.type === 'damage' && !effect.scaling,
+    (effect) =>
+      effect.type === 'damage' &&
+      !effect.scaling &&
+      !('vengeance' in effect && effect.vengeance !== undefined),
   ).length
   if (unscaledDamageCount === 0) return effects
 
@@ -1180,7 +1183,11 @@ function applyCurrentMatureSkillPowerScaling(
     unscaledDamageCount,
   )
   return effects.map((effect) =>
-    effect.type === 'damage' && !effect.scaling ? { ...effect, scaling } : effect,
+    effect.type === 'damage' &&
+    !effect.scaling &&
+    !('vengeance' in effect && effect.vengeance !== undefined)
+      ? { ...effect, scaling }
+      : effect,
   )
 }
 
