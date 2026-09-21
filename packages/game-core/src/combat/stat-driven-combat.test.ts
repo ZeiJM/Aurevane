@@ -34,7 +34,14 @@ function profile(
   overrides: Partial<
     Pick<
       StatDrivenCombatProfile,
-      'accuracy' | 'evasion' | 'armor' | 'ward' | 'jump' | 'physicalPower' | 'mysticPower'
+      | 'accuracy'
+      | 'evasion'
+      | 'armor'
+      | 'ward'
+      | 'jump'
+      | 'physicalPower'
+      | 'mysticPower'
+      | 'level'
     >
   > = {},
 ): StatDrivenCombatProfile {
@@ -50,6 +57,7 @@ function profile(
     armor: 0,
     ward: 0,
     jump: 0,
+    level: 1,
     physicalPower: 40,
     mysticPower: 35,
     ...overrides,
@@ -65,6 +73,20 @@ function historicalProfile(current: StatDrivenCombatProfile): StatDrivenCombatPr
     armor: current.armor,
     ward: current.ward,
     jump: current.jump,
+  }
+}
+
+function historicalV2Profile(current: StatDrivenCombatProfile) {
+  return {
+    combatantId: current.combatantId,
+    provenance: { ...current.provenance },
+    accuracy: current.accuracy,
+    evasion: current.evasion,
+    armor: current.armor,
+    ward: current.ward,
+    jump: current.jump,
+    physicalPower: current.physicalPower!,
+    mysticPower: current.mysticPower!,
   }
 }
 
@@ -162,7 +184,7 @@ describe('stat-driven Phase 2 combat bridge', () => {
       level: 12,
     })
 
-    const current = createCharacterDerivedCombatProfile('player', 'character-1', derived)
+    const current = createCharacterDerivedCombatProfile('player', 'character-1', 12, derived)
 
     expect(current.physicalPower).toBe(derived.stats.physicalPower.value)
     expect(current.mysticPower).toBe(derived.stats.mysticPower.value)
@@ -209,7 +231,7 @@ describe('stat-driven Phase 2 combat bridge', () => {
       statBridge: {
         schemaVersion: STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_V2,
         rulesVersion: STAT_DRIVEN_COMBAT_RULES_V2,
-        combatants: state.statBridge.combatants.map((profile) => ({ ...profile })),
+        combatants: state.statBridge.combatants.map(historicalV2Profile),
       },
     }
 
@@ -231,6 +253,43 @@ describe('stat-driven Phase 2 combat bridge', () => {
     expect(validateStatDrivenCombatEncounterState(historical)).toEqual([])
     expect(() => getStatDrivenOffensivePower(historical, 'player', 'physical-power')).toThrow(
       /schema version 2/i,
+    )
+  })
+
+  it('keeps a 20-Level gap competitive for Basic Attack damage', () => {
+    const state = encounter(
+      profile('player', { level: 60 }),
+      profile('recruit', { level: 80, armor: 23 }),
+    )
+    const forecast = forecastStatDrivenAttack(
+      state,
+      attack,
+      { kind: 'unit', combatantId: 'recruit' },
+      P2_3_COMBAT_CONTENT,
+    )
+
+    expect(forecast.evaluation.projectedEffects).toContainEqual({
+      effectType: 'damage',
+      combatantId: 'recruit',
+      before: 50,
+      after: 39,
+    })
+  })
+
+  it('prevents extreme low-Level Basic Attack damage from overwhelming a high-Level target', () => {
+    const state = encounter(
+      profile('player', { level: 1 }),
+      profile('recruit', { level: 80, armor: 23 }),
+    )
+    const transition = executeStatDrivenAttack(
+      state,
+      attack,
+      { kind: 'unit', combatantId: 'recruit' },
+      P2_3_COMBAT_CONTENT,
+    )
+
+    expect(transition.events).toContainEqual(
+      expect.objectContaining({ event: 'damage_applied', amount: 3 }),
     )
   })
 
