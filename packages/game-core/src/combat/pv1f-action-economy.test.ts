@@ -7,6 +7,7 @@ import { createPendingBattle, startBattle } from './battle-state'
 import { normalizeCombatEffectState } from './combat-effect-state'
 import { createTacticalBattleState } from './board'
 import {
+  calculatePv1fBasicAttackDamage,
   createPv1fTemporaryResources,
   evaluatePv1fAction,
   evaluatePv1fMatureSkill,
@@ -27,6 +28,8 @@ import {
 } from './pv1f-action-economy'
 import {
   createStatDrivenCombatEncounterState,
+  STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_VERSION,
+  STAT_DRIVEN_COMBAT_RULES_VERSION,
   type StatDrivenCombatEncounterState,
   type StatDrivenCombatProfile,
 } from './stat-driven-combat'
@@ -117,6 +120,22 @@ function lethalEncounter(actorId: 'player' | 'recruit'): StatDrivenCombatEncount
   ])
 }
 
+function currentPowerEncounter(): StatDrivenCombatEncounterState {
+  const state = lethalEncounter('player')
+  return {
+    ...state,
+    statBridge: {
+      schemaVersion: STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_VERSION,
+      rulesVersion: STAT_DRIVEN_COMBAT_RULES_VERSION,
+      combatants: state.statBridge.combatants.map((row) => ({
+        ...row,
+        physicalPower: row.combatantId === 'player' ? 40 : 32,
+        mysticPower: row.combatantId === 'player' ? 44 : 32,
+      })),
+    },
+  }
+}
+
 function expectLethalResolution(actorId: 'player' | 'recruit', targetId: 'player' | 'recruit') {
   const transition = executePv1fAction(lethalEncounter(actorId), PV1F_BASIC_ATTACK_ID, {
     kind: 'unit',
@@ -145,6 +164,50 @@ function expectLethalResolution(actorId: 'player' | 'recruit', targetId: 'player
     ]),
   )
 }
+
+describe('Level-100 offensive scaling', () => {
+  it('derives Basic Attack from Physical Power instead of reading Core Stats directly', () => {
+    expect(calculatePv1fBasicAttackDamage({ physicalPower: 34 })).toBe(14)
+    expect(calculatePv1fBasicAttackDamage({ physicalPower: 75 })).toBe(24)
+  })
+
+  it('scales physical and mystic mature Skills from their matching offensive Power', () => {
+    const physical = resolveMatureSkillVersion('vanguard.forceful-strike')
+    const mystic = resolveMatureSkillVersion('lifebinder.vital-sever')
+    if (!physical || !mystic) throw new Error('Expected current offensive Skill fixtures.')
+    const state = currentPowerEncounter()
+    const target = { kind: 'unit' as const, combatantId: 'recruit' }
+
+    const physicalAction = evaluatePv1fMatureSkill(state, physical, target).action
+    const mysticAction = evaluatePv1fMatureSkill(state, mystic, target).action
+    const physicalDamage = physicalAction.effects.find((effect) => effect.type === 'damage')
+    const mysticDamage = mysticAction.effects.find((effect) => effect.type === 'damage')
+
+    expect(physicalDamage).toMatchObject({
+      scaling: { source: 'physical-power', coefficientBasisPoints: 2_500 },
+    })
+    expect(mysticDamage).toMatchObject({
+      scaling: { source: 'mystic-power', coefficientBasisPoints: 2_500 },
+    })
+  })
+
+  it('halves both authored damage and Power scaling on a consecutive repeat', () => {
+    const definition = resolveMatureSkillVersion('vanguard.forceful-strike')
+    if (!definition) throw new Error('Expected current Vanguard Skill fixture.')
+    const target = { kind: 'unit' as const, combatantId: 'recruit' }
+    const first = executePv1fMatureSkill(currentPowerEncounter(), definition, target)
+    const repeated = evaluatePv1fMatureSkill(first.state, definition, target)
+    const damage = repeated.action.effects.find((effect) => effect.type === 'damage')
+
+    expect(repeated.repeatPenaltyApplied).toBe(true)
+    expect(damage).toMatchObject({
+      amount: Math.max(1, Math.floor(
+        (definition.effects.find((effect) => effect.type === 'damage')?.amount ?? 0) / 2,
+      )),
+      scaling: { source: 'physical-power', coefficientBasisPoints: 1_250 },
+    })
+  })
+})
 
 describe('PV-1F lethal Action Economy resolution', () => {
   it('commits a player lethal attack and completes the battle', () => {
