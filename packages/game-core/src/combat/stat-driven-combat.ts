@@ -171,7 +171,9 @@ export function createStatDrivenCombatEncounterState(
 
   const currentCount = profiles.filter(isCurrentProfile).length
   if (currentCount !== 0 && currentCount !== profiles.length) {
-    throw new TypeError('Stat-driven combat profiles cannot mix historical rows with offensive ratings.')
+    throw new TypeError(
+      'Stat-driven combat profiles cannot mix historical rows with offensive ratings.',
+    )
   }
   if (currentCount === profiles.length) {
     return createCurrentStatDrivenCombatEncounterState(
