@@ -34,14 +34,7 @@ function profile(
   overrides: Partial<
     Pick<
       StatDrivenCombatProfile,
-      | 'accuracy'
-      | 'evasion'
-      | 'armor'
-      | 'ward'
-      | 'jump'
-      | 'physicalPower'
-      | 'mysticPower'
-      | 'level'
+      'accuracy' | 'evasion' | 'armor' | 'ward' | 'jump' | 'physicalPower' | 'mysticPower' | 'level'
     >
   > = {},
 ): StatDrivenCombatProfile {
