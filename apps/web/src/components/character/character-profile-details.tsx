@@ -264,13 +264,11 @@ export function CharacterProfileDetails({
     document.addEventListener('pointerdown', closeOnOutside, true)
     document.addEventListener('keydown', closeOnEscape)
     window.addEventListener('resize', closeOnViewportChange)
-    window.addEventListener('scroll', closeOnViewportChange, true)
 
     return () => {
       document.removeEventListener('pointerdown', closeOnOutside, true)
       document.removeEventListener('keydown', closeOnEscape)
       window.removeEventListener('resize', closeOnViewportChange)
-      window.removeEventListener('scroll', closeOnViewportChange, true)
     }
   }, [detail])
 
