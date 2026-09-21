@@ -122,9 +122,7 @@ function lethalEncounter(actorId: 'player' | 'recruit'): StatDrivenCombatEncount
 
 function currentPowerEncounter(): StatDrivenCombatEncounterState {
   const state = lethalEncounter('player')
-  const recruit = state.tactical.battle.combatants.find(
-    (combatant) => combatant.id === 'recruit',
-  )
+  const recruit = state.tactical.battle.combatants.find((combatant) => combatant.id === 'recruit')
   if (!recruit) throw new Error('Expected recruit combatant.')
   recruit.hp = 100
   recruit.maxHp = 100
