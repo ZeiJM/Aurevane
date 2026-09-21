@@ -274,7 +274,7 @@ starter appearance;
 one Foundation Discipline as their starting Primary Discipline;
 small starting attribute distribution across the six universal attributes.
 
-They do not choose a Ascension immediately.
+They do not choose Ascension immediately.
 
 The supernatural fork arrives later through authored progression so players first understand the basic game and the permanence of the Ascended versus Severed decision.
 
@@ -1527,7 +1527,7 @@ Requires the Ascended path; persistent supernatural identity; branch-defined pac
 
 Severence
 
-Requires the Severed path; mutually exclusive with Ascension; provides its own authored supernatural payoff. Severence may include manually manifested temporary combat states, major temporary power/stat/rule shifts, readiness requirements and readable recovery/vulnerability windows where appropriate. The former Mantle design space is absorbed into Severence rather than retained as a third named system.
+Requires the Severed path; mutually exclusive with Ascension; provides its own authored supernatural payoff. Severence may include manually manifested temporary combat states, major temporary power/stat/rule shifts, readiness requirements and readable recovery/vulnerability windows where appropriate. Temporary transformation design space belongs inside Severence rather than becoming a third supernatural system.
 
 Ascension and Severence are mutually exclusive ordinary character paths.
 
