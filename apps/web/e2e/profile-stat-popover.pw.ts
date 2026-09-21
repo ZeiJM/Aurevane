@@ -35,9 +35,7 @@ test('Profile stat help uses a single dismissible non-modal popover', async ({ p
   await expect(
     popover.getByRole('heading', { name: 'Status Resistance', exact: true }),
   ).toBeVisible()
-  await expect(
-    popover.getByRole('heading', { name: 'Physical Power', exact: true }),
-  ).toHaveCount(0)
+  await expect(popover.getByRole('heading', { name: 'Physical Power', exact: true })).toHaveCount(0)
 
   await page.getByRole('heading', { name: 'Core Attributes', exact: true }).click()
   await expect(popover).toHaveCount(0)
