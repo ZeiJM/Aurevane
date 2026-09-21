@@ -152,6 +152,9 @@ test('Arsenal equips a mastered Secondary with independent attunement authority'
   await expect(dialog).toContainText('Aetherist')
   await expect(primary).toBeEnabled()
   await expect(secondary).toBeEnabled()
+
+  await page.goto('/game/character')
+  await expect(page.getByText('Resonance Build', { exact: true })).toBeVisible()
 })
 
 test('mobile Character keeps its portrait readable and Arsenal centers Discipline Management', async ({
