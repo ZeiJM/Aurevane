@@ -133,6 +133,7 @@ function currentPowerEncounter(): StatDrivenCombatEncounterState {
       rulesVersion: STAT_DRIVEN_COMBAT_RULES_VERSION,
       combatants: state.statBridge.combatants.map((row) => ({
         ...row,
+        level: 50,
         physicalPower: row.combatantId === 'player' ? 40 : 32,
         mysticPower: row.combatantId === 'player' ? 44 : 32,
       })),
