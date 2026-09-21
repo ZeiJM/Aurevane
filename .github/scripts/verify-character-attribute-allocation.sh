@@ -241,8 +241,8 @@ IFS='|' read -r _ _ _ _ _ _ _ _ _ renewed_used renewed_remaining _ <<<"$renewed"
 test "$renewed_used" = '1'
 test "$renewed_remaining" = '4'
 
-# A separate Level-100 Aetherist proves the asymmetric cap rule: focus stats remain open while
-# non-focus effective stats are capped at 40.
+# A separate Level-100 Aetherist proves the current cap rule: focus effective stats cap at 60
+# while non-focus effective stats cap at 40.
 cap_character_id="$(create_aetherist 1 '10000000-0000-4000-8000-000000000017' 'attribute-allocation:cap-character' 'Attribute Cap Tester' 'attributecaptester')"
 test -n "$cap_character_id"
 docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
@@ -250,15 +250,22 @@ docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   set level = 100
   where id = '$cap_character_id'::uuid;" >/dev/null
 
-if commit_allocation "$cap_character_id" reset 41 3 4 3 75 9 '10000000-0000-4000-8000-000000000018' 'attribute-allocation:off-focus-cap' >/tmp/attribute-cap.out 2>/tmp/attribute-cap.err; then
+if commit_allocation "$cap_character_id" reset 41 3 4 3 50 34 '10000000-0000-4000-8000-000000000018' 'attribute-allocation:off-focus-cap' >/tmp/attribute-cap.out 2>/tmp/attribute-cap.err; then
   echo 'Expected Aetherist Might 41 to exceed the off-focus Core Stat cap.' >&2
   exit 1
 fi
 grep -Fq 'CHARACTER_ATTRIBUTE_DISCIPLINE_CAP_EXCEEDED' /tmp/attribute-cap.err
 
-focus_open="$(commit_allocation "$cap_character_id" reset 2 3 4 3 114 9 '10000000-0000-4000-8000-000000000019' 'attribute-allocation:focus-open')"
-IFS='|' read -r _ _ _ _ focus_intellect _ focus_unspent focus_personal_spent _ focus_used focus_remaining _ <<<"$focus_open"
-test "$focus_intellect" = '114'
+if commit_allocation "$cap_character_id" reset 20 15 15 15 61 9 '10000000-0000-4000-8000-000000000019' 'attribute-allocation:focus-cap' >/tmp/attribute-focus-cap.out 2>/tmp/attribute-focus-cap.err; then
+  echo 'Expected Aetherist Intellect 61 to exceed the Primary focus Core Stat cap.' >&2
+  exit 1
+fi
+grep -Fq 'CHARACTER_ATTRIBUTE_DISCIPLINE_CAP_EXCEEDED' /tmp/attribute-focus-cap.err
+
+focus_max="$(commit_allocation "$cap_character_id" reset 2 3 4 6 60 60 '10000000-0000-4000-8000-000000000021' 'attribute-allocation:focus-max')"
+IFS='|' read -r _ _ _ _ focus_intellect focus_resolve focus_unspent focus_personal_spent _ focus_used focus_remaining _ <<<"$focus_max"
+test "$focus_intellect" = '60'
+test "$focus_resolve" = '60'
 test "$focus_unspent" = '0'
 test "$focus_personal_spent" = '104'
 test "$focus_used" = '1'
