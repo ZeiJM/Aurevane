@@ -15,6 +15,7 @@ import type {
 import type { SkillCooldownDefinition } from './skill-cooldowns'
 
 export const MATURE_SKILL_SCHEMA_VERSION = 1 as const
+export const DEFAULT_MATURE_SKILL_DAMAGE_SCALING_BASIS_POINTS = 2_500 as const
 export type MatureSkillCombatContext = 'pve' | 'pvp'
 
 export type MatureSkillUnlockRequirement =
@@ -969,6 +970,20 @@ export function toCombatActionDefinition(
   combatContext: MatureSkillCombatContext,
 ): CombatActionDefinition {
   const resolved = resolveMatureSkillForContext(definition, combatContext)
+  const defaultDamageScalingSource = resolved.tags.includes('mystic')
+    ? 'mystic-power'
+    : 'physical-power'
+  const effects = resolved.effects.map((effect): CombatEffectDefinition => {
+    if (effect.type !== 'damage' || effect.scaling) return effect
+    return {
+      ...effect,
+      scaling: {
+        source: defaultDamageScalingSource,
+        coefficientBasisPoints: DEFAULT_MATURE_SKILL_DAMAGE_SCALING_BASIS_POINTS,
+      },
+    }
+  })
+
   return {
     id: resolved.id,
     version: resolved.contentVersion,
@@ -978,7 +993,7 @@ export function toCombatActionDefinition(
     cost: { spendsAction: true, mp: resolved.mpCost ?? 0 },
     requirements: resolved.requirements,
     cooldown: resolved.cooldown,
-    effects: resolved.effects,
+    effects,
     ...(resolved.accuracyMode !== undefined ? { accuracyMode: resolved.accuracyMode } : {}),
     ...(resolved.accuracyModifierBasisPoints !== undefined
       ? { accuracyModifierBasisPoints: resolved.accuracyModifierBasisPoints }
