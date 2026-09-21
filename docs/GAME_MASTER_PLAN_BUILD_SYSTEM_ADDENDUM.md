@@ -1,4 +1,4 @@
-# AUREVANE — Build System Rework: Disciplines, Skills, Resonance, Soulmarks, Severance & Mantles
+# AUREVANE — Build System Rework: Disciplines, Skills, Resonance, Ascension & Severence
 
 ## Phase 4 roster and effect implementation — 2026-09-11
 
@@ -25,7 +25,7 @@ Ordinary authored Techniques and Essence Skills use **50% consecutive-use effect
 
 **Direction approved:** 2026-08-18.
 
-This addendum supersedes conflicting earlier wording for Current/Legacy Disciplines, Arts, Traits, Reactions, Movement Arts, Ultimates, Confluences, Soulmark structure, and Mantle/Soulmark coexistence. Existing server-authority, anti-pay-to-win, PvP readability, Effect Catalog, progression, and Master Panel principles remain in force unless explicitly changed here.
+This addendum supersedes conflicting earlier wording for Current/Legacy Disciplines, Arts, Traits, Reactions, Movement Arts, Ultimates, Confluences, Ascension structure, and Severence power/Ascension coexistence. Existing server-authority, anti-pay-to-win, PvP readability, Effect Catalog, progression, and Master Panel principles remain in force unless explicitly changed here.
 
 The new build-system goal is:
 
@@ -44,7 +44,7 @@ DISCIPLINE SKILLS
 +
 RESONANCE OR PURE-DISCIPLINE ESSENCE
 +
-SOULMARK OR SOUL-SEVERED MANTLE PATH
+ASCENSION OR SEVERED SEVERENCE PATH
 +
 EQUIPMENT + EQUIPMENT SKILLS
 +
@@ -181,9 +181,9 @@ Origin should remain visible through tags/labels such as:
 
 - Discipline Skill;
 - Equipment Skill;
-- Soulmark Skill;
+- Ascension Skill;
 - Essence Skill;
-- Mantle Skill;
+- Severence power Skill;
 - Veteran Edge where applicable.
 
 ---
@@ -222,9 +222,9 @@ Explicitly tagged skills granted by other systems use their own bounded slots/ru
 Examples include:
 
 - pure-path Essence Skill;
-- Soulmark Skills;
+- Ascension Skills;
 - Equipment Skills;
-- temporary Mantle Skills while manifested;
+- temporary Severence Skills while manifested;
 - a future bounded Veteran Edge Technique if one is approved.
 
 This is intentional.
@@ -399,9 +399,9 @@ The following previous player-facing slot concepts are retired:
 
 Their useful design space remains available through simpler systems:
 
-- persistent/conditional passives from Resonance, Soulmarks, equipment, Mantles, or bounded prestige;
+- persistent/conditional passives from Resonance, Ascensions, equipment, Severence powers, or bounded prestige;
 - triggered passive effects through the Effect Catalog;
-- movement-capable Discipline/Equipment/Soulmark/Mantle Skills;
+- movement-capable Discipline/Equipment/Ascension/Severence Skills;
 - powerful cooldown Skills rather than a separate Ultimate subsystem.
 
 Reaction-like effects may still exist as automatic typed triggers, but there is no standalone Reaction slot players must manage.
@@ -442,9 +442,9 @@ Scorch target
 Sequence effects can originate from:
 
 - Resonance;
-- Soulmark branch;
+- Ascension branch;
 - equipment;
-- Mantle state;
+- Severence state;
 - bounded prestige/Veteran Edge.
 
 Rules:
@@ -460,52 +460,53 @@ Rules:
 
 ## 12. The Supernatural Fork
 
-Soulmarks and Mantles are now **mutually exclusive character paths**.
+Ascension and Severence are **mutually exclusive character paths**.
 
 A character eventually reaches a supernatural decision point with three conceptual states:
 
 ```text
 UNAWAKENED
 Has not yet made the permanent supernatural choice.
-Cannot exploit this temporary state for Mantle access.
+Cannot exploit this temporary state for access to either permanent path.
 
-SOULMARKED
-Accepted a Soulmark.
-Can never become Soul-Severed or acquire/manifest a Mantle through ordinary rules.
+ASCENDED
+Chose Ascension.
+Can never become Severed or use Severence through ordinary rules.
 
-SOUL-SEVERED
-Underwent the Severance.
-Can never acquire/equip a Soulmark.
-May pursue Mantles.
+SEVERED
+Chose Severence.
+Can never use Ascension through ordinary rules.
+Receives the authored Severence power path.
 ```
 
 ### Terminology
 
 Approved terminology:
 
-- **The Severance** — the irreversible rite/decision;
-- **Soul-Severed** — formal state/adjective;
-- **the Severed** — natural shorthand for such characters.
+- **Ascension** — the soul-enhanced supernatural path;
+- **Ascended** — formal state/adjective and natural shorthand for that path;
+- **Severence** — the mutually exclusive alternate supernatural path; this is the intentional AUREVANE spelling;
+- **Severed** — formal state/adjective and natural shorthand for that path.
 
 The choice is explicit, heavily confirmed, server-authoritative, auditable, and not reversible through ordinary respec systems.
 
-Simply not yet owning a Soulmark is not the same as being Soul-Severed.
+Simply remaining Unawakened is not the same as being Severed.
 
-The Soulmark/Mantle path remains with the character across Rekindling unless a future explicit story system says otherwise.
+The Ascension/Severence path remains with the character across Rekindling unless a future explicit story system says otherwise.
 
 ---
 
-## 13. Soulmarks — Identity, Not a Fixed Template
+## 13. Ascension — Identity, Not a Fixed Template
 
-Soulmarks represent persistent supernatural identity.
+Ascension represents persistent supernatural identity.
 
-A Soulmarked character may have **one current Soulmark**.
+An Ascended character may have **one current Ascension identity**.
 
-Ordinary rules never allow simultaneous Soulmarks.
+Ordinary rules never allow multiple Ascension identities at the same time.
 
-If a Soulmarked character later acquires and chooses to bind a different eligible Soulmark, the previous Soulmark is permanently lost from that character after a strong confirmation flow. This must not be an accidental one-click operation.
+If an Ascended character later acquires and chooses to bind a different eligible Ascension identity, the previous identity is permanently lost from that character after a strong confirmation flow. This must not be an accidental one-click operation.
 
-Soul-Severed characters can never bind a Soulmark.
+Severed characters can never use Ascension.
 
 ### Acquisition
 
@@ -517,58 +518,58 @@ Potential gameplay acquisition sources include:
 - bosses/Expeditions/rites;
 - other recurring gameplay routes.
 
-The first story awakening may use an authored random roll from an eligible pool, but the result and consequences must be clearly presented before the permanent bind/Severance decision.
+The first story awakening may use an authored random roll from an eligible pool, but the result and consequences must be clearly presented before the permanent bind/Severence decision.
 
 ### Real-money rule
 
 AUREVANE's existing anti-pay-to-win policy remains controlling.
 
-Because Soulmarks have combat effects, **combat Soulmark ownership/power must not be sold as cash-only or premium-only power** under the current monetization philosophy.
+Because Ascensions have combat effects, **combat Ascension ownership/power must not be sold as cash-only or premium-only power** under the current monetization philosophy.
 
-Premium products may sell cosmetic Soulmark presentation variants, VFX, profile treatments, or other non-power expression. Selling gameplay-exclusive combat Soulmarks would require an explicit future Owner decision to overturn the anti-pay-to-win policy and is not approved by this addendum.
+Premium products may sell cosmetic Ascension presentation variants, VFX, profile treatments, or other non-power expression. Selling gameplay-exclusive combat Ascensions would require an explicit future Owner decision to overturn the anti-pay-to-win policy and is not approved by this addendum.
 
 ---
 
-## 14. Soulmark Catalog Size
+## 14. Ascension Catalog Size
 
-The architecture must support **100+ Soulmarks over the lifetime of the game** without schema redesign.
+The architecture must support **100+ Ascensions over the lifetime of the game** without schema redesign.
 
 However, quality matters more than reaching a marketing number at launch.
 
 Recommended content pacing:
 
 - early playable proof: small representative set;
-- first broad release: approximately 24–36 high-quality Soulmarks;
+- first broad release: approximately 24–36 high-quality Ascensions;
 - mature live catalog: approximately 48–72;
-- long-term live-service expansion: 100+ only when each new Soulmark adds real build identity.
+- long-term live-service expansion: 100+ only when each new Ascension adds real build identity.
 
-Because branches multiply content substantially, 50 strong Soulmarks with meaningful branches can create more usable diversity than 120 shallow percentage variants.
+Because branches multiply content substantially, 50 strong Ascensions with meaningful branches can create more usable diversity than 120 shallow percentage variants.
 
 ---
 
-## 15. Soulmark Branches
+## 15. Ascension Branches
 
-Soulmarks do **not** all have three branches.
+Ascensions do **not** all have three branches.
 
 Branch counts vary intentionally:
 
-- some focused Soulmarks have **1 branch/path**;
+- some focused Ascensions have **1 branch/path**;
 - most have **2 branches**;
-- rare/complex Soulmarks may have **3 branches**.
+- rare/complex Ascensions may have **3 branches**.
 
 Branches represent specialization inside the same supernatural identity.
 
-A branch must materially change how the Soulmark is built or used, not merely rename a percentage bonus.
+A branch must materially change how the Ascension is built or used, not merely rename a percentage bonus.
 
-Unless a specific Soulmark is explicitly designed otherwise, switching among legitimately unlocked branches outside combat is not an irreversible character choice. The irreversible choice is the Soulmark identity itself and any later permanent replacement of that Soulmark.
+Unless a specific Ascension is explicitly designed otherwise, switching among legitimately unlocked branches outside combat is not an irreversible character choice. The irreversible choice is the Ascension identity itself and any later permanent replacement of that Ascension.
 
 All branch configuration occurs from the Character Profile/build interface.
 
 ---
 
-## 16. Soulmark Packages May Vary
+## 16. Ascension Packages May Vary
 
-Soulmarks/branches are **not forced into one passive + one active Skill**.
+Ascensions/branches are **not forced into one passive + one active Skill**.
 
 Valid packages include, for example:
 
@@ -581,21 +582,21 @@ Valid packages include, for example:
 1 passive + 2 deliberately smaller Skills
 ```
 
-The exact package must fit the Soulmark's internal balance budget.
+The exact package must fit the Ascension's internal balance budget.
 
 This allows one branch to feel like a permanent mutation, another like a supernatural technique set, and another like a risk/reward curse.
 
-### Extra Soulmark Skills
+### Extra Ascension Skills
 
-Any Soulmark Skill granted by the active branch sits outside the 6/8 Discipline Skill cap.
+Any Ascension Skill granted by the active branch sits outside the 6/8 Discipline Skill cap.
 
-Powerful Soulmark Skills should generally have long cooldowns and clear audiovisual identity.
+Powerful Ascension Skills should generally have long cooldowns and clear audiovisual identity.
 
 ---
 
-## 17. Soulmark Strengths, Weaknesses, and Power Budget
+## 17. Ascension Strengths, Weaknesses, and Power Budget
 
-Soulmarks use an internal **Soulmark Power Budget** rather than being balanced solely by counting passives and Skills.
+Ascensions use an internal **Ascension Power Budget** rather than being balanced solely by counting passives and Skills.
 
 Balance dimensions include:
 
@@ -650,11 +651,11 @@ A weakness may justify a stronger positive benefit, but only if the weakness is 
 
 Do not grant a huge Fire bonus in exchange for a penalty the intended Fire build can trivially ignore.
 
-Drawback-to-power conversion is capped and reviewed. Soulmarks must not become optimization puzzles where players select a fake weakness for free upside.
+Drawback-to-power conversion is capped and reviewed. Ascensions must not become optimization puzzles where players select a fake weakness for free upside.
 
 ---
 
-## 18. Soulmarks Versus Resonance Versus Essence
+## 18. Ascensions Versus Resonance Versus Essence
 
 These systems must remain distinct.
 
@@ -672,51 +673,51 @@ These systems must remain distinct.
 - expresses the pure identity of one Discipline;
 - balanced through damage-versus-effect tradeoff.
 
-### Soulmark
+### Ascension
 
-- requires the character to be Soulmarked rather than Soul-Severed;
+- requires the character to be Ascended rather than Severed;
 - persistent supernatural identity;
 - branch-defined package of passives and/or Skills;
 - may modify tags/combos but is not created by Discipline pairing;
-- one current Soulmark only.
+- one current Ascension only.
 
 Do not author them as reskins of one another.
 
 ---
 
-## 19. The Severed and Mantles
+## 19. The Severed and Severence
 
-The Severance is the permanent alternative to Soulmarks.
+Severence is the permanent alternative to Ascension.
 
-Soul-Severed characters:
+Severed characters:
 
-- can never acquire or equip a Soulmark;
-- become eligible to pursue Mantles;
-- do not gain a generic always-on `Severed damage bonus` merely for rejecting Soulmarks;
-- receive their supernatural payoff through Mantle access itself.
+- can never use Ascension;
+- receive access to authored Severence power packages;
+- do not gain a generic always-on `Severed damage bonus` merely for choosing Severence;
+- receive their supernatural payoff through Severence itself.
 
-This replaces the earlier concept of Soulmarks and Mantles coexisting on the same character.
+Ascension and Severence do not coexist on ordinary characters.
 
 ---
 
-## 20. Mantles — Six Transformation Paths
+## 20. Severence — Transformation Power
 
-AUREVANE's mature target is **six distinct Mantles**.
+AUREVANE should expand Severence only after its first representative power package proves tactically readable, fun and sustainable.
 
-Mantles are temporary, manually manifested combat transformations available only to Soul-Severed characters who have legitimately earned the relevant Mantle.
+Severence may grant temporary, manually manifested combat transformation states to Severed characters who have legitimately earned the relevant power package.
 
-This addendum replaces the old assumption that Mantles must use a universal Rank I/II/III ladder. The six-Mantle model should be kept simpler unless later playtesting proves ranks are genuinely needed.
+Severence does not require a universal Rank I/II/III ladder or a fixed catalog count. Expand the system only when playtesting justifies the added content.
 
-### Mantle identity
+### Severence power package
 
-A Mantle should:
+A Severence power should:
 
 - create a major temporary power/stat/rule shift;
 - scale meaningfully from the character's fundamental attributes/derived stats rather than granting disconnected fixed power;
 - last only a small number of the character's turns/activations;
 - create a meaningful timing decision;
 - visibly transform the character/state;
-- potentially grant temporary Mantle Skills outside the 6/8 Discipline cap;
+- potentially grant temporary Severence Skills outside the 6/8 Discipline cap;
 - end in **Afterstrain** or another clearly readable vulnerability period;
 - never become a permanent always-on stat upgrade.
 
@@ -732,15 +733,15 @@ Valid Afterstrain patterns may include bounded temporary reductions to:
 - resource recovery;
 - Action Economy efficiency;
 - specific resistance or combat properties;
-- other Mantle-specific vulnerabilities.
+- other Severence-specific vulnerabilities.
 
-The weakness must matter, but it must not make using the Mantle feel like self-sabotage.
+The weakness must matter, but it must not make using the Severence power feel like self-sabotage.
 
-### Soulmark versus Mantle balance
+### Ascension versus Severence balance
 
-Soulmarks should generally provide **consistent supernatural identity throughout the battle**.
+Ascension should generally provide **consistent supernatural identity throughout the battle**.
 
-Mantles should provide **higher temporary peak expression followed by vulnerability**.
+Severence may provide **higher temporary peak expression followed by vulnerability** where that expression is part of the authored power.
 
 Neither path should be universally stronger.
 
@@ -766,9 +767,9 @@ CHARACTER PROFILE
 │  ├ Discipline Skills
 │  ├ Resonance / Essence
 ├ Supernatural
-│  ├ Unawakened / Soulmarked / Soul-Severed state
-│  ├ Soulmark + branch OR Mantle
-│  ├ Severance history/confirmation where relevant
+│  ├ Unawakened / Ascended / Severed state
+│  ├ Ascension + branch OR Severence power
+│  ├ Severence history/confirmation where relevant
 ├ Equipment
 │  ├ gear
 │  ├ equipment-granted Skills
@@ -799,7 +800,7 @@ A saved loadout may store:
 - Primary/Secondary selection;
 - Discipline Skill selection;
 - Resonance/Essence result;
-- Soulmark branch or equipped Mantle where legal;
+- Ascension branch or equipped Severence power where legal;
 - equipment;
 - other approved build components.
 
@@ -815,9 +816,9 @@ Rekindling remains AUREVANE's long-horizon prestige system and must not become i
 
 The supernatural identity choice persists:
 
-- a Soulmarked character remains Soulmarked across Rekindling;
-- a Soul-Severed character remains Soul-Severed across Rekindling;
-- Rekindling does not erase the Severance merely to create another optimization cycle.
+- a Ascended character remains Ascended across Rekindling;
+- a Severed character remains Severed across Rekindling;
+- Rekindling does not erase Severence merely to create another optimization cycle.
 
 ### Recommended prestige benefits
 
@@ -877,7 +878,7 @@ The mature Master Panel must support safe, versioned control over:
 - tags/effects/visuals;
 - PvE/PvP tuning.
 
-### Soulmarks
+### Ascensions
 
 - acquisition source/eligibility;
 - branch count;
@@ -893,7 +894,7 @@ The mature Master Panel must support safe, versioned control over:
 - art/audio;
 - analytics.
 
-### Mantles
+### Severence powers
 
 - one of six definitions;
 - acquisition route;
@@ -930,10 +931,10 @@ Therefore:
 - Discipline Skills are capped at 8 pure / 6 mixed;
 - Resonance is passive;
 - Essence grants exactly one pure-path extra Skill;
-- only the current Soulmark branch can grant Soulmark Skills;
-- only one Soulmark can exist on the character at a time;
-- Soulmark and Mantle are mutually exclusive paths;
-- only one Mantle can be equipped/manifested at a time;
+- only the current Ascension branch can grant Ascension Skills;
+- only one Ascension can exist on the character at a time;
+- Ascension and Severence power are mutually exclusive paths;
+- only one Severence power can be equipped/manifested at a time;
 - Equipment Skills come only from bounded equipped sources;
 - only one Veteran Edge slot exists in standard modes;
 - all non-basic usable Skills have cooldowns;

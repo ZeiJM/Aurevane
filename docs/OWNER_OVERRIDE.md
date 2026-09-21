@@ -37,8 +37,8 @@ Through explicit commands, the Owner may eventually grant/revoke or set, where t
 - Primary/Secondary eligibility/state through validated workflows;
 - Skills;
 - Resonance/Essence discovery/state where appropriate;
-- Soulmarks and branch state;
-- Soul-Severed/Mantle state;
+- Ascension identity and branch state;
+- Severence state;
 - quest/story/world flags;
 - region/Expedition/event access;
 - titles/badges/cosmetics;
@@ -64,7 +64,7 @@ Examples:
 - grant high-level gear to a test character;
 - mark a Discipline mastered without normal Mastery XP;
 - grant a Skill without normal unlock;
-- grant a Soulmark before its normal story moment;
+- grant an Ascension before its normal story moment;
 - grant a title/event reward outside its original window;
 - set exact progression state for QA/support;
 - grant retired/internal content where structurally safe.
@@ -167,9 +167,9 @@ An **Anomaly** is a protected Owner-created exceptional character state that byp
 Initial approved forms:
 
 ```text
-CROSS_FORK     = Soulmark + Mantle
-DUAL_SOULMARK  = two Soulmarks
-DUAL_MANTLE    = two Mantles
+CROSS_PATH     = Ascension + Severence power
+DUAL_ASCENSION  = two Ascension identities
+DUAL_SEVERENCE    = two Severence powers
 ```
 
 An Anomaly cannot be earned/found/crafted/traded/purchased/rolled or unlocked through normal gameplay.
@@ -191,7 +191,7 @@ OPEN ANOMALY / EXCEPTIONAL STATE CONSOLE
   ↓
 SELECT ANOMALY TYPE
   ↓
-SELECT REGISTERED SOULMARK / MANTLE COMPONENTS
+SELECT REGISTERED ASCENSION / SEVERENCE COMPONENTS
   ↓
 SHOW NORMAL EXCLUSIVITY BEING OVERRIDDEN
   ↓
@@ -376,7 +376,7 @@ Buildcraft uses authoritative commands/stable IDs/versioning so future exception
 
 ### Phase 5
 
-When Soulmark/Severance/Mantle foundations are built, ensure the representation does not make future safe Owner-created Anomalies impossible. A minimal Owner-only test override may be built only if required to verify the supernatural model.
+When Ascension/Severence/Severence power foundations are built, ensure the representation does not make future safe Owner-created Anomalies impossible. A minimal Owner-only test override may be built only if required to verify the supernatural model.
 
 ### Phase 8
 

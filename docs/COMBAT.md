@@ -109,7 +109,7 @@ Current build terminology follows the Master Plan:
 - Skills as the player-facing ability umbrella;
 - Resonance for the passive mixed-Discipline interaction;
 - Essence for the pure-Discipline special Skill;
-- Soulmark or Soul-Severed/Mantle supernatural path;
+- Ascension or Severence supernatural path;
 - Equipment Skills where equipment grants an active ability.
 
 The former player-facing terms Current Discipline, Legacy Discipline, Art, Confluence, and separate Trait / Reaction / Movement Art / Ultimate slot systems are retired from current design instructions.
@@ -417,7 +417,7 @@ Essence uses the same authoritative AP, targeting, effect, cooldown, forecast, A
 
 ### Extra Skill sources
 
-Equipment Skills, Soulmark Skills, Mantle Skills and other approved bounded source systems sit outside the 6/8 Discipline Skill capacity, but each source remains explicitly bounded.
+Equipment Skills, Ascension Skills, Severence Skills and other approved bounded source systems sit outside the 6/8 Discipline Skill capacity, but each source remains explicitly bounded.
 
 ### Typed triggered behavior
 

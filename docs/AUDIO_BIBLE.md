@@ -18,7 +18,7 @@ The target is not constant cinematic bombast. Quiet moments must exist so import
 
 1. **Gameplay information comes first.** Important combat events must be audible even when music and ambience are active.
 2. **Every sound has a purpose.** Avoid filling the mix with noise merely to make it feel busy.
-3. **Intensity is earned.** Bosses, Confluences, Soulmark awakenings, critical states, ranked victories, and major world events may receive stronger audio treatment.
+3. **Intensity is earned.** Bosses, Confluences, Ascension awakenings, Severence revelations, critical states, ranked victories, and major world events may receive stronger audio treatment.
 4. **Disciplines have sonic identity.** Players should begin recognizing combat styles by sound as well as by visuals.
 5. **Regions have environmental identity.** Wind, wildlife, settlement activity, machinery, water, weather, architecture, and supernatural phenomena define place.
 6. **Music supports long sessions.** Loops must avoid obvious repetition fatigue.
@@ -151,19 +151,19 @@ Avoid merely stacking two full ability sounds at equal volume. Author or mix a d
 
 Major Confluence Arts may receive a short signature stinger layered into the ability SFX, but it must not obscure combat readability.
 
-## 9. Soulmark Audio
+## 9. Ascension & Severence Audio
 
-Soulmarks should sound supernatural and identity-defining, distinct from ordinary Discipline magic.
+Ascension and Severence should sound supernatural and identity-defining, distinct from ordinary Discipline magic and clearly different from one another.
 
-Each Soulmark requires:
+Each released Ascension or Severence power package requires:
 
-- activation signature;
-- passive-state motif where appropriate;
+- activation or reveal signature;
+- persistent-state motif where appropriate;
 - high-power expression;
-- cooldown/availability cue if important;
+- cooldown/readiness cue if important;
 - interaction rules with music and combat SFX.
 
-Soulmark audio may be stranger and more spatial than Discipline audio, but must remain comfortable in headphones.
+Ascension audio may emphasize persistent soul-enhancement and identity. Severence may emphasize rupture, transition, restraint or temporary manifested state where the authored mechanics call for it. Both may be stranger and more spatial than Discipline audio, but must remain comfortable in headphones.
 
 ## 10. Tactical Combat Mix Priority
 
@@ -172,7 +172,7 @@ When many sounds occur simultaneously, priority should generally be:
 1. immediate danger and player-targeted warnings;
 2. confirmed player action;
 3. major enemy action / boss telegraph;
-4. Confluence or Soulmark event;
+4. Confluence, Ascension, or Severence event;
 5. ordinary attacks and impacts;
 6. persistent zones/status loops;
 7. ambience;
@@ -243,7 +243,7 @@ Recommended distinct states:
 - equipment changed;
 - Discipline mastery milestone;
 - Confluence discovered;
-- Soulmark unlocked;
+- Ascension or Severence milestone;
 - matchmaking found;
 - message/party invite;
 - ranked result.
@@ -419,6 +419,6 @@ Before approval:
 
 ## 26. Final Audio Identity
 
-AUREVANE should have a soundscape players can recognize even with their eyes closed: tactile tactical impacts, distinct Discipline identities, uncanny Soulmarks, memorable Confluences, atmospheric regions, restrained but emotionally strong music, and clean UI feedback.
+AUREVANE should have a soundscape players can recognize even with their eyes closed: tactile tactical impacts, distinct Discipline identities, uncanny Ascension/Severence identities, memorable Confluences, atmospheric regions, restrained but emotionally strong music, and clean UI feedback.
 
 The goal is not simply to have music and sound. The goal is to make the browser feel like a living game world.

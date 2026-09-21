@@ -34,7 +34,7 @@ The world should support:
 - different participation paths for solo, party, PvE, PvP, guild, and later nation players;
 - a persistent history of important world outcomes;
 - realtime presentation of active changes while keeping the server authoritative;
-- character-build relevance, so events create interesting reasons to try Disciplines, Confluences, Soulmarks, equipment, and team compositions;
+- character-build relevance, so events create interesting reasons to try Disciplines, Confluences, Ascension, Severence, equipment, and team compositions;
 - long-form foreshadowing where environmental, religious, historical, and event clues can gain new meaning months after the player first encounters them.
 
 The world must not depend on a constantly rendered MMO map. AUREVANE's strategic map, nodes, encounters, instances, UI, event feed, and realtime presence can create the feeling of a living world efficiently.

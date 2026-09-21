@@ -154,7 +154,7 @@ export const manualArticles: readonly ManualArticle[] = [
         id: 'foundation-discipline',
         title: 'Foundation Discipline',
         paragraphs: [
-          'Your Foundation Discipline is an onboarding identity choice at this stage. It does not mean Discipline Mastery, Arts, Traits, Legacy Disciplines, Confluences, or Soulmarks are already implemented.',
+          'Your Foundation Discipline is an onboarding identity choice at this stage. It does not mean Discipline Mastery, Arts, Traits, Legacy Disciplines, Confluences, Ascension, or Severence are already implemented.',
           'A valid new character begins at Level 1 with 0 Character XP and the first progression cycle established by the authoritative creation rules.',
         ],
       },
@@ -255,7 +255,7 @@ export const manualArticles: readonly ManualArticle[] = [
         ],
         bullets: [
           'It cannot complete story, quests, bosses, Expeditions, or event participation.',
-          'It cannot grant PvP rank, Confluences, Soulmarks, Archive discoveries, rare equipment, economy output, or Rekindling eligibility.',
+          'It cannot grant PvP rank, Confluences, Ascension, Severence, Archive discoveries, rare equipment, economy output, or Rekindling eligibility.',
           'It cannot use client-clock changes or repeated claim submissions to farm the same absence window.',
           'Discipline Focus and offline Mastery are not part of the Phase 1 implementation.',
         ],
