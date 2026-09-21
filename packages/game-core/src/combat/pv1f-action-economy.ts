@@ -1,4 +1,5 @@
 import { materializeVengeanceDamage } from './combat-vengeance'
+import { calculateScaledRawDamage } from './damage-scaling'
 import {
   commitCombatSkillCopy,
   copiedSkillApCost,
@@ -107,6 +108,8 @@ export const PV1F_RECOVERY_COOLDOWN: SkillCooldownDefinition = {
 export const PV1F_ACTION_ECONOMY_RESOURCE_KEY = 'pv1f.action-economy' as const
 export const PV1F_ACTION_ECONOMY_TURN_KEY = 'pv1f.action-economy-turn' as const
 export const PV1F_BASIC_ATTACK_DAMAGE_KEY = 'pv1f.basic-attack-damage' as const
+export const PV1F_BASIC_ATTACK_BASE_DAMAGE = 6 as const
+export const PV1F_BASIC_ATTACK_POWER_SCALING_BASIS_POINTS = 2_500 as const
 
 export const PV1F_GUARDED_STATUS: CombatStatusDefinition = {
   id: 'guarded',
@@ -182,17 +185,18 @@ export interface Pv1fTransition {
   events: readonly unknown[]
 }
 
-export function calculatePv1fBasicAttackDamage(input: {
-  level: number
-  might: number
-  finesse: number
-}): number {
-  for (const [field, value] of Object.entries(input)) {
-    if (!Number.isSafeInteger(value) || value < 1) {
-      throw new RangeError(`${field} must be a positive safe integer.`)
-    }
+export function calculatePv1fBasicAttackDamage(input: { physicalPower: number }): number {
+  if (!Number.isSafeInteger(input.physicalPower) || input.physicalPower < 0) {
+    throw new RangeError('physicalPower must be a non-negative safe integer.')
   }
-  return 6 + input.level + Math.floor(input.might * 0.8) + Math.floor(input.finesse * 0.4)
+  return calculateScaledRawDamage(
+    PV1F_BASIC_ATTACK_BASE_DAMAGE,
+    {
+      source: 'physical-power',
+      coefficientBasisPoints: PV1F_BASIC_ATTACK_POWER_SCALING_BASIS_POINTS,
+    },
+    input.physicalPower,
+  )
 }
 
 export function createPv1fBasicAttackDefinition(damage: number): CombatActionDefinition {
