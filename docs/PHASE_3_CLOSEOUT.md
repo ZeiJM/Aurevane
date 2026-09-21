@@ -44,7 +44,7 @@ After the explicit start command, begin by validating the five already-authored 
 
 Before adding content, specify tactical identity, acquisition/mastery, AI use, counterplay, media needs and interaction-test coverage. Grow to 6–8, 12 and 16 only when the previous roster supports meaningful choices and sustainable authoring. Preserve the representative pure/mixed regression suite, security gates and desktop/mobile layout evidence. Collect broader human validation and route latency percentiles when a sufficient cohort exists; low-traffic database averages do not establish scale readiness.
 
-No Phase-4 roster, Soulmark/Mantle, frontier or other future gameplay implementation is part of this release.
+No Phase-4 roster, Ascension/Severence, frontier or other future gameplay implementation is part of this release.
 
 
 ## Pre-Phase-4 readiness audit — 2026-09-11

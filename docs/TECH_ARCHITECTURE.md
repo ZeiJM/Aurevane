@@ -119,7 +119,7 @@ Avoid giant route handlers and `utils.ts` dumping grounds.
 
 ## 6. Game Content
 
-Disciplines, Arts, Traits, Soulmarks, enemies, encounters, items, quests, dialogue, NPC state, world events, event objectives, modifiers, and similar content should be data-driven where practical.
+Disciplines, Arts, Traits, Ascension, Severence, enemies, encounters, items, quests, dialogue, NPC state, world events, event objectives, modifiers, and similar content should be data-driven where practical.
 
 Reusable effect primitives should implement common mechanics such as:
 

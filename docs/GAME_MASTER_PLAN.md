@@ -25,9 +25,9 @@ Discipline Skill
 Equipment Skill
 Resonance
 Essence / Discipline Essence
-Soulmark
-The Severance / Soul-Severed
-Mantle
+Ascension
+Severence / Severed
+Severence power
 
 The previous player-facing terms Current Discipline, Legacy Discipline, Art, Confluence, separate Trait slots, separate Reaction slots, separate Movement Art slots, and separate Ultimate slots are retired. They may be mentioned only when explaining historical migration or retired concepts.
 
@@ -43,7 +43,7 @@ DISCIPLINE SKILLS
 +
 RESONANCE OR PURE-DISCIPLINE ESSENCE
 +
-SOULMARK OR SOUL-SEVERED MANTLE PATH
+ASCENSION OR SEVERED SEVERENCE PATH
 +
 EQUIPMENT + EQUIPMENT SKILLS
 +
@@ -72,7 +72,7 @@ A Sprint is a development milestone, not a promised calendar week. AUREVANE adva
 
 Aurevane is a persistent online tactical fantasy RPG played in the browser.
 
-Players create a permanent character, explore a living shared fantasy world, study numerous combat Disciplines, master them, choose a Primary Discipline, optionally mix in a mastered Secondary Discipline, discover powerful Resonances between mixed styles or pursue a pure-Discipline Essence, awaken or reject supernatural Soulmark power, acquire build-changing equipment, complete solo and cooperative quests, descend into progressively generated Expeditions, compete in 1v1 and 2v2 tactical PvP, form parties and guilds, eventually pledge themselves to nations and participate in large seasonal conflicts.
+Players create a permanent character, explore a living shared fantasy world, study numerous combat Disciplines, master them, choose a Primary Discipline, optionally mix in a mastered Secondary Discipline, discover powerful Resonances between mixed styles or pursue a pure-Discipline Essence, awaken or reject supernatural Ascension power, acquire build-changing equipment, complete solo and cooperative quests, descend into progressively generated Expeditions, compete in 1v1 and 2v2 tactical PvP, form parties and guilds, eventually pledge themselves to nations and participate in large seasonal conflicts.
 
 The game should combine the best qualities of:
 
@@ -210,7 +210,7 @@ Primary retention systems:
 
 Build discovery
 
-There is always another Primary/Secondary pairing, pure Discipline path, Skill configuration, Soulmark/Mantle interaction, or equipment setup to try.
+There is always another Primary/Secondary pairing, pure Discipline path, Skill configuration, Ascension/Severence interaction, or equipment setup to try.
 
 Resonance / Essence discovery
 
@@ -240,7 +240,7 @@ World events
 
 The world changes.
 
-New Disciplines / Soulmarks / Mantle content
+New Disciplines / Ascensions / Severence content
 
 Major updates change build possibilities.
 
@@ -274,9 +274,9 @@ starter appearance;
 one Foundation Discipline as their starting Primary Discipline;
 small starting attribute distribution across the six universal attributes.
 
-They do not choose a Soulmark immediately.
+They do not choose Ascension immediately.
 
-The supernatural fork arrives later through authored progression so players first understand the basic game and the permanence of the Soulmarked versus Soul-Severed decision.
+The supernatural fork arrives later through authored progression so players first understand the basic game and the permanence of the Ascended versus Severed decision.
 
 7. CHARACTER PORTRAITS
 
@@ -389,7 +389,7 @@ An optional mastered combat tradition mixed into the active build. A Secondary D
 
 Skill
 
-The player-facing umbrella term for usable authored combat abilities. Origin remains visible through labels such as Discipline Skill, Equipment Skill, Soulmark Skill, Essence Skill, Mantle Skill, and Veteran Edge where applicable.
+The player-facing umbrella term for usable authored combat abilities. Origin remains visible through labels such as Discipline Skill, Equipment Skill, Ascension Skill, Essence Skill, Severence power Skill, and Veteran Edge where applicable.
 
 Resonance
 
@@ -399,7 +399,7 @@ Essence / Discipline Essence
 
 The pure-Discipline counterpart to Resonance. A build with Primary only and no Secondary may access one special Essence Skill outside its normal Discipline Skill capacity.
 
-Separate player-facing Trait, Reaction, Movement Skill-slot, and Ultimate subsystems are not part of the mature build model. Their useful design space remains available through Skills, typed passive triggers, Resonance, Soulmarks, equipment, Mantles, and bounded prestige.
+Separate player-facing Trait, Reaction, Movement Skill-slot, and Ultimate subsystems are not part of the mature build model. Their useful design space remains available through Skills, typed passive triggers, Resonance, Ascensions, equipment, Severence powers, and bounded prestige.
 
 12. THERE IS NO JP-LIKE CURRENCY
 
@@ -445,7 +445,7 @@ DISCIPLINE SKILLS
 +
 RESONANCE OR PURE-DISCIPLINE ESSENCE
 +
-SOULMARK OR SOUL-SEVERED MANTLE PATH
+ASCENSION OR SEVERED SEVERENCE PATH
 +
 EQUIPMENT + EQUIPMENT SKILLS
 +
@@ -484,7 +484,7 @@ The total-six mixed cap is locked. The exact permitted Primary/Secondary split i
 
 Extra granted Skills
 
-Explicitly tagged Skills from Soulmarks, Equipment, Mantles, Essence, or bounded Veteran Edge rules use their own bounded slots and do not consume the 6/8 Discipline Skill capacity.
+Explicitly tagged Skills from Ascensions, Equipment, Severence powers, Essence, or bounded Veteran Edge rules use their own bounded slots and do not consume the 6/8 Discipline Skill capacity.
 
 Outside the Discipline cap never means unlimited buttons. Each source remains bounded and clearly grouped in the battle UI.
 
@@ -1453,33 +1453,34 @@ A character eventually reaches a permanent supernatural decision point with thre
 
 UNAWAKENED
 
-Has not yet made the permanent supernatural choice. This temporary state cannot be exploited for Mantle access.
+Has not yet made the permanent supernatural choice. This temporary state cannot be exploited for access to either permanent path.
 
-SOULMARKED
+ASCENDED
 
-Accepted a Soulmark. Under ordinary rules, this character can never become Soul-Severed or acquire/manifest a Mantle.
+Chose Ascension. Under ordinary rules, this character can never become Severed or use Severence.
 
-SOUL-SEVERED
+SEVERED
 
-Underwent The Severance. Under ordinary rules, this character can never bind a Soulmark and may instead pursue Mantles.
+Chose Severence. Under ordinary rules, this character can never use Ascension and instead receives the authored Severence power path.
 
 Approved terminology:
 
-The Severance — the irreversible rite/decision.
-Soul-Severed — formal state/adjective.
-the Severed — natural shorthand.
+Ascension — the soul-enhanced supernatural path.
+Ascended — formal state/adjective and natural shorthand for a character on Ascension.
+Severence — the mutually exclusive alternate supernatural path. This is the intentional AUREVANE spelling; do not auto-correct it to "Severance".
+Severed — formal state/adjective and natural shorthand for a character on Severence.
 
 The choice is explicit, heavily confirmed, server-authoritative, auditable, and not reversible through ordinary respec systems.
 
-24. SOULMARKS
+24. ASCENSION
 
-Soulmarks represent persistent supernatural identity unique to the character.
+Ascension represents persistent supernatural identity and enhancement unique to the character.
 
-A Soulmarked character may have one current Soulmark.
+An Ascended character may have one current Ascension identity under ordinary rules.
 
-Soulmark branches are not forced into one universal template. Some focused Soulmarks may have one branch, most may have two, and rare/complex Soulmarks may have three. A branch may grant passives, Skills, or a deliberately balanced combination.
+Ascension branches are not forced into one universal template. Some focused Ascensions may have one branch, most may have two, and rare/complex Ascensions may have three. A branch may grant passives, Skills, or a deliberately balanced combination.
 
-Potential long-term Soulmark identities include concepts such as:
+Potential long-term Ascension identities include concepts such as:
 
 Gravity
 Shadow
@@ -1498,17 +1499,17 @@ Dream
 Spirit
 Rift
 
-The architecture must support 100+ Soulmarks over the lifetime of the game without schema redesign, but quality matters more than reaching a marketing number. A first broad release should prefer a smaller set of strong, distinct identities over shallow percentage variants.
+The architecture must support a broad long-term Ascension catalog without schema redesign, but quality matters more than reaching a marketing number. A first broad release should prefer a smaller set of strong, distinct identities over shallow percentage variants.
 
-Soulmarks are not hereditary.
+Ascension is not hereditary.
 
 No bloodline system.
 
-Soulmark Skills sit outside the 6/8 Discipline Skill cap but remain bounded by the active branch and normal server-authoritative combat legality/cooldowns.
+Ascension Skills sit outside the 6/8 Discipline Skill cap when granted by the active authored package, but remain bounded by normal server-authoritative combat legality and cooldown/readiness rules.
 
-Because Soulmarks have combat effects, combat Soulmark ownership/power is not sold as cash-only or premium-only power under the current anti-pay-to-win policy. Cosmetic Soulmark presentation may be monetized.
+Because Ascension has combat effects, combat Ascension ownership/power is not sold as cash-only or premium-only power under the current anti-pay-to-win policy. Cosmetic Ascension presentation may be monetized.
 
-25. RESONANCE / ESSENCE / SOULMARK / MANTLE DISTINCTION
+25. RESONANCE / ESSENCE / ASCENSION / SEVERENCE DISTINCTION
 
 These systems must remain distinct.
 
@@ -1520,15 +1521,15 @@ Essence
 
 Requires Primary only / no Secondary; grants one special pure-path Skill outside the eight Discipline Skills; expresses the undiluted identity of one Discipline.
 
-Soulmark
+Ascension
 
-Requires the Soulmarked path; persistent supernatural identity; branch-defined package of passives and/or Skills; one current Soulmark only.
+Requires the Ascended path; persistent supernatural identity; branch-defined package of passives and/or Skills; one current Ascension identity under ordinary rules.
 
-Mantle
+Severence
 
-Requires the Soul-Severed path; temporary manually manifested combat transformation; mature target of six distinct Mantles; creates a major temporary power/stat/rule shift followed by a readable Afterstrain/vulnerability period.
+Requires the Severed path; mutually exclusive with Ascension; provides its own authored supernatural payoff. Severence may include manually manifested temporary combat states, major temporary power/stat/rule shifts, readiness requirements and readable recovery/vulnerability windows where appropriate. Temporary transformation design space belongs inside Severence rather than becoming a third supernatural system.
 
-Soulmarks and Mantles are mutually exclusive ordinary character paths.
+Ascension and Severence are mutually exclusive ordinary character paths.
 
 26. COMBAT FORMAT
 
@@ -2515,7 +2516,7 @@ collection progression.
 
 Rekindling remains the long-horizon prestige direction. It should reward history, flexibility, options and identity rather than infinite raw stat inflation. Strong candidate rewards include Hall of Selves / Chronicle history, bounded Memory Carryover, one bounded Veteran Edge slot in modes where allowed, loadout convenience, cosmetic/challenge content and mentorship/knowledge systems.
 
-The Soulmarked versus Soul-Severed supernatural choice persists across Rekindling unless a future explicit story system says otherwise.
+The Ascended versus Severed supernatural choice persists across Rekindling unless a future explicit story system says otherwise.
 
 76. AUDIO IS A FIRST-CLASS SYSTEM
 
@@ -2714,7 +2715,7 @@ Spend artistic effort where players notice it:
 Premium
 character portraits;
 Discipline key art;
-Soulmark/Mantle art;
+Ascension/Severence art;
 region art;
 bosses;
 legendary items;
@@ -2811,16 +2812,16 @@ Template:
 
 Isolated fantasy RPG inventory item, [ITEM], elegant original silhouette, premium material rendering, centered orthographic presentation, subtle magical detail appropriate to rarity [RARITY], transparent or clean neutral background, no text, no hand holding item.
 
-90. SOULMARK / MANTLE PROMPTS
+90. ASCENSION / SEVERENCE PROMPTS
 
-Soulmark icons should be:
+Ascension icons should be:
 
 highly distinctive;
 symbolic;
 easy to recognize at 32px;
 beautiful at large size.
 
-Mantles should have equally distinct transformation silhouettes and state readability.
+Severence should have equally distinct transformation silhouettes and state readability.
 
 Do not create detailed mini-paintings that become unreadable icons.
 
@@ -2879,8 +2880,8 @@ Popular Primary Disciplines
 Popular Secondary Disciplines
 Popular Resonances
 Pure-Discipline / Essence usage
-Soulmark Usage
-Mantle Usage
+Ascension Usage
+Severence Usage
 
 93. MASTER PANEL — CHARACTER CONTENT
 
@@ -2890,8 +2891,8 @@ Discipline Editor
 Skill Editor
 Resonance Editor
 Essence Editor
-Soulmark Editor
-Mantle Editor
+Ascension Editor
+Severence Editor
 Item Editor
 Equipment Set Editor
 Prestige/Veteran Edge controls where applicable
@@ -3002,10 +3003,10 @@ Marketplace
 Trading
 Specific Discipline
 Specific Skill
-Specific Soulmark
+Specific Ascension
 Specific Resonance
 Specific Essence
-Specific Mantle
+Specific Severence power
 Expeditions
 Specific Expedition
 Guilds
@@ -3045,7 +3046,7 @@ Survival
 Common Secondary pairing
 Common Resonance
 Pure/Essence usage
-Common Soulmark or Mantle path
+Common Ascension or Severence path
 Common Equipment
 
 Resonances and Essences receive appropriate analytics.
@@ -3447,7 +3448,7 @@ Disciplines mastered
 Primary/Secondary pairings
 Resonances used/discovered
 Pure/Essence usage
-Soulmark/Mantle path usage
+Ascension/Severence path usage
 Quest completion
 Expedition abandonment room
 Expedition wipe location
@@ -3542,7 +3543,7 @@ Never sell:
 dominant PvP gear;
 permanent stat advantage;
 exclusive meta-defining Disciplines;
-combat-exclusive Soulmark/Mantle power.
+combat-exclusive Ascension/Severence power.
 
 128. SEASON PASS
 
@@ -3553,7 +3554,7 @@ Primarily:
 cosmetics;
 profile themes;
 portrait frames;
-Soulmark/Mantle cosmetic VFX;
+Ascension/Severence cosmetic VFX;
 emotes;
 banners;
 music-player unlocks;
@@ -3687,7 +3688,7 @@ first Resonance library;
 pure-Discipline Essence framework and first Essence Skills;
 Character Profile build configuration;
 Skill cooldown/readability rules;
-first supernatural fork/Soulmark proof where appropriate to progression.
+first supernatural fork/Ascension proof where appropriate to progression.
 
 Gate:
 
@@ -3835,7 +3836,7 @@ content editors;
 Discipline/Skill editors;
 Resonance editor;
 Essence editor;
-Soulmark/Mantle editors;
+Ascension/Severence editors;
 quest editor;
 Expedition editor;
 event editor;
@@ -3862,7 +3863,7 @@ Instead:
 region artwork;
 character art;
 Discipline artwork;
-Soulmark/Mantle art;
+Ascension/Severence art;
 soundtrack;
 ambient audio;
 SFX;
@@ -3895,7 +3896,7 @@ Alpha target remains a substantial, evolving gate rather than a date promise.
 Target shape:
 
 16 Disciplines
-8 Soulmarks for the initial Alpha supernatural set
+8 authored Ascension identities for the initial Alpha supernatural set
 Resonance coverage sufficient to make mixed builds genuinely varied
 pure-Discipline Essence coverage for the playable roster
 4 world regions
@@ -3923,7 +3924,7 @@ Repository documentation includes or should include:
 /docs/GAME_MASTER_PLAN_BUILD_SYSTEM_ADDENDUM.md
 /docs/TECH_ARCHITECTURE.md
 /docs/DISCIPLINES.md
-/docs/SOULMARKS.md
+/docs/SUPERNATURAL_PATHS.md
 /docs/COMBAT.md
 /docs/PVP.md
 /docs/EXPEDITIONS.md
@@ -4070,7 +4071,7 @@ The architecture must anticipate the complete product, including:
 - 8 pure / 6 mixed Discipline Skill capacity
 - Resonance for mixed builds
 - pure-Discipline Essence
-- Soulmark versus Soul-Severed/Mantle supernatural path
+- Ascension versus Severence supernatural path
 - tactical combat
 - Battle Hall and AI Sparring validation surfaces
 - co-operative quests
@@ -4158,8 +4159,8 @@ CHARACTER
 │   └── Mixed: Resonance passive
 │
 ├── Supernatural path
-│   ├── Soulmarked: one Soulmark + active branch package
-│   └── Soul-Severed: Mantle access
+│   ├── Ascended: one Ascension + active branch package
+│   └── Severed: Severence power access
 │
 ├── Equipment
 │   └── stats / passives / bounded Equipment Skills
@@ -4200,7 +4201,7 @@ What happens if I stay pure Stonebinder instead and build around its Essence Ski
 
 Then:
 
-How does my Soulmark—or, on a different character path, a timed Mantle—change the plan?
+How does my Ascension—or, on a different character path, a timed Severence power—change the plan?
 
 Then:
 

@@ -62,7 +62,8 @@ public/
     art/
       characters/
       disciplines/
-      soulmarks/
+      ascension/
+      severence/
       environments/
       creatures/
       items/

@@ -322,7 +322,7 @@ MOVEMENT
   equipped Movement Art
 
 SIGNATURE
-  Soulmark Signature where present
+  Ascension or Severence Signature where present
   Confluence Art where present
   Current Ultimate where unlocked
 
@@ -691,7 +691,7 @@ Requirements:
 - source distinction does not rely on color alone;
 - the six ordinary Arts still feel like one coherent build rather than two unrelated menus;
 - a Confluence Art visually reads as a result of the pairing, not merely another Current or Legacy slot;
-- Soulmark and Ultimate have their own recognizable marks;
+- Ascension, Severence and Ultimate have their own recognizable marks;
 - action iconography follows the Art Bible and stable asset IDs.
 
 The interface should help a player *feel* the build relationship every turn.
@@ -1177,7 +1177,7 @@ Use the Art Bible for:
 - frame language;
 - typography;
 - iconography;
-- Current/Legacy/Soulmark/Confluence source marks;
+- Current/Legacy/Ascension/Severence/Confluence source marks;
 - team and status treatment;
 - terrain readability;
 - selected/hover/focus states;
@@ -1200,7 +1200,7 @@ Battle interface implementation should generate structured media requests for mi
 - target/selection markers;
 - objective markers;
 - timeline frames;
-- Current/Legacy/Confluence/Soulmark/Ultimate source marks;
+- Current/Legacy/Confluence/Ascension/Severence/Ultimate source marks;
 - command-deck states;
 - targeting overlays/textures where image assets are actually needed;
 - battle UI SFX.
@@ -1275,7 +1275,7 @@ The AUREVANE battle interface succeeds when:
 - selected enemy/unit/tile information is available without duplicating permanent panels;
 - initiative is continuously readable in compact form;
 - the command deck makes the equipped build immediately understandable;
-- Current, Legacy, Movement, Soulmark, Confluence, Ultimate, Basics, and Items remain organized rather than flattened;
+- Current, Legacy, Movement, Ascension, Severence, Confluence, Ultimate, Basics, and Items remain organized rather than flattened;
 - Movement Budget + Action state is obvious every turn;
 - action selection, targeting, forecast, and commitment form one coherent flow;
 - unavailable actions explain themselves;
