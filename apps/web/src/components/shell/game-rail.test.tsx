@@ -39,6 +39,8 @@ describe('shared game rail', () => {
     expect(markup).toContain('aria-current="page"')
     expect(markup).not.toContain('Current character:')
     expect(markup).not.toContain('Aster')
+    expect(markup.match(/data-aether-bubble="true"/g)).toHaveLength(14)
+    expect(markup).toContain('aria-hidden="true"')
   })
 
   it.each([

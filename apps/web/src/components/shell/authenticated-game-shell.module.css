@@ -109,6 +109,50 @@
   scrollbar-width: thin;
 }
 
+.railAetherField {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  display: none;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.railAetherBubble {
+  position: absolute;
+  bottom: -1.1rem;
+  left: var(--aether-left);
+  width: var(--aether-size);
+  height: var(--aether-size);
+  border: 1px solid rgb(var(--aether-rgb) / 0.56);
+  border-radius: 50%;
+  opacity: 0;
+  background: radial-gradient(
+    circle at 34% 28%,
+    rgb(244 255 255 / 0.88) 0 8%,
+    rgb(var(--aether-rgb) / 0.5) 22%,
+    rgb(var(--aether-rgb) / 0.22) 48%,
+    rgb(var(--aether-rgb) / 0.06) 66%,
+    transparent 78%
+  );
+  box-shadow:
+    0 0 0.55rem rgb(var(--aether-rgb) / 0.28),
+    inset 0 0 0.25rem rgb(238 255 255 / 0.2);
+  filter: blur(var(--aether-blur));
+  will-change: transform, opacity;
+  animation: railAetherBubbleRiseA var(--aether-duration) linear var(--aether-delay) infinite;
+}
+
+.railAetherBubble:nth-child(3n + 2) {
+  animation-name: railAetherBubbleRiseB;
+  animation-timing-function: cubic-bezier(0.36, 0.08, 0.2, 0.96);
+}
+
+.railAetherBubble:nth-child(4n) {
+  animation-name: railAetherBubbleRiseC;
+  animation-timing-function: cubic-bezier(0.42, 0.02, 0.26, 0.98);
+}
+
 .railNavigation {
   position: relative;
   z-index: 1;
@@ -154,14 +198,10 @@
 }
 
 @media (min-width: 761px) {
-  .rail::before,
-  .rail::after {
+  .rail::before {
     position: absolute;
     pointer-events: none;
     content: '';
-  }
-
-  .rail::before {
     z-index: 0;
     top: -45%;
     left: -70%;
@@ -182,21 +222,8 @@
     animation: railAetherRise 16s ease-in-out infinite alternate;
   }
 
-  .rail::after {
-    z-index: 0;
-    inset: -1.5rem;
-    opacity: 0.34;
-    background-image:
-      radial-gradient(circle, rgba(180, 241, 229, 0.92) 0 1px, transparent 1.45px),
-      radial-gradient(circle, rgba(229, 198, 128, 0.76) 0 0.9px, transparent 1.35px);
-    background-position:
-      0 0,
-      2.7rem 5.4rem;
-    background-size:
-      5.8rem 8.5rem,
-      7.2rem 10.5rem;
-    will-change: transform;
-    animation: railAetherMotes 22s linear infinite;
+  .railAetherField {
+    display: block;
   }
 }
 
@@ -215,15 +242,93 @@
   }
 }
 
-@keyframes railAetherMotes {
+@keyframes railAetherBubbleRiseA {
   0% {
-    transform: translate3d(0, 1.5rem, 0);
+    opacity: 0;
+    transform: translate3d(0, 1.5rem, 0) scale(0.72);
   }
-  50% {
-    transform: translate3d(0.3rem, -0.4rem, 0);
+
+  10% {
+    opacity: var(--aether-opacity);
   }
+
+  34% {
+    transform: translate3d(var(--aether-drift-a), -34vh, 0) scale(0.96);
+  }
+
+  67% {
+    transform: translate3d(var(--aether-drift-b), -69vh, 0) scale(1.08);
+  }
+
+  88% {
+    opacity: var(--aether-opacity);
+    transform: translate3d(var(--aether-drift-c), -91vh, 0) scale(0.98);
+  }
+
   100% {
-    transform: translate3d(-0.2rem, -2rem, 0);
+    opacity: 0;
+    transform: translate3d(var(--aether-drift-a), -114vh, 0) scale(0.82);
+  }
+}
+
+@keyframes railAetherBubbleRiseB {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 2.4rem, 0) scale(0.8);
+  }
+
+  14% {
+    opacity: var(--aether-opacity);
+  }
+
+  39% {
+    transform: translate3d(var(--aether-drift-b), -29vh, 0) scale(1.04);
+  }
+
+  63% {
+    transform: translate3d(var(--aether-drift-a), -61vh, 0) scale(0.92);
+  }
+
+  84% {
+    opacity: var(--aether-opacity);
+    transform: translate3d(var(--aether-drift-c), -87vh, 0) scale(1.12);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--aether-drift-b), -116vh, 0) scale(0.88);
+  }
+}
+
+@keyframes railAetherBubbleRiseC {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0.7rem, 0) scale(0.66);
+  }
+
+  8% {
+    opacity: var(--aether-opacity);
+  }
+
+  28% {
+    transform: translate3d(var(--aether-drift-c), -27vh, 0) scale(0.9);
+  }
+
+  56% {
+    transform: translate3d(var(--aether-drift-b), -58vh, 0) scale(1.13);
+  }
+
+  79% {
+    transform: translate3d(var(--aether-drift-a), -83vh, 0) scale(1);
+  }
+
+  92% {
+    opacity: var(--aether-opacity);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--aether-drift-c), -112vh, 0) scale(0.76);
   }
 }
 
@@ -641,8 +746,12 @@
   }
 
   .rail::before,
-  .rail::after {
+  .railAetherBubble {
     animation: none;
+  }
+
+  .railAetherField {
+    display: none;
   }
 }
 
