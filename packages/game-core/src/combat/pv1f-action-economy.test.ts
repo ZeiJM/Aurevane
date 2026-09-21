@@ -201,9 +201,12 @@ describe('Level-100 offensive scaling', () => {
 
     expect(repeated.repeatPenaltyApplied).toBe(true)
     expect(damage).toMatchObject({
-      amount: Math.max(1, Math.floor(
-        (definition.effects.find((effect) => effect.type === 'damage')?.amount ?? 0) / 2,
-      )),
+      amount: Math.max(
+        1,
+        Math.floor(
+          (definition.effects.find((effect) => effect.type === 'damage')?.amount ?? 0) / 2,
+        ),
+      ),
       scaling: { source: 'physical-power', coefficientBasisPoints: 1_250 },
     })
   })
