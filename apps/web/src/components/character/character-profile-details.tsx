@@ -15,7 +15,14 @@ import {
   DERIVED_STAT_PROFILE_HELP,
 } from '@aurevane/game-core/character/profile-stat-content'
 import Image from 'next/image'
-import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from 'react'
 
 import styles from './character-profile-details.module.css'
 
@@ -28,7 +35,27 @@ interface CharacterProfileDetailsProps {
   attributeResetControl?: ReactNode
 }
 
-type Detail = { title: string; eyebrow: string; body: string } | null
+interface DetailAnchor {
+  top: number
+  right: number
+  bottom: number
+  left: number
+}
+
+interface DetailContent {
+  key: string
+  title: string
+  eyebrow: string
+  body: string
+  anchor: DetailAnchor
+}
+
+interface PopoverPosition {
+  top: number
+  left: number
+}
+
+type Detail = DetailContent | null
 
 const attributeLabels: Readonly<Record<CharacterAttributeId, string>> = {
   might: 'Might',
@@ -127,14 +154,114 @@ export function CharacterProfileDetails({
   attributeResetControl,
 }: CharacterProfileDetailsProps) {
   const [detail, setDetail] = useState<Detail>(null)
+  const [popoverPosition, setPopoverPosition] = useState<PopoverPosition | null>(null)
+  const popoverRef = useRef<HTMLElement>(null)
+  const triggerRef = useRef<HTMLButtonElement | null>(null)
+
+  const dismissDetail = () => {
+    setDetail(null)
+    setPopoverPosition(null)
+    triggerRef.current = null
+  }
+
+  const openDetail = (
+    trigger: HTMLButtonElement,
+    key: string,
+    content: Omit<DetailContent, 'key' | 'anchor'>,
+  ) => {
+    if (detail?.key === key) {
+      dismissDetail()
+      return
+    }
+
+    const rect = trigger.getBoundingClientRect()
+    triggerRef.current = trigger
+    setPopoverPosition(null)
+    setDetail({
+      ...content,
+      key,
+      anchor: {
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+        left: rect.left,
+      },
+    })
+  }
+
+  useLayoutEffect(() => {
+    if (!detail || !popoverRef.current) return
+
+    const popover = popoverRef.current.getBoundingClientRect()
+    const padding = 12
+    const gap = 8
+    const maxLeft = Math.max(padding, window.innerWidth - popover.width - padding)
+
+    let left: number
+    let top: number
+
+    if (window.innerWidth <= 760) {
+      left = Math.min(Math.max(detail.anchor.left, padding), maxLeft)
+      const below = detail.anchor.bottom + gap
+      const above = detail.anchor.top - popover.height - gap
+      top =
+        below + popover.height <= window.innerHeight - padding
+          ? below
+          : Math.max(padding, above)
+    } else {
+      const right = detail.anchor.right + gap
+      const leftSide = detail.anchor.left - popover.width - gap
+
+      if (right + popover.width <= window.innerWidth - padding) {
+        left = right
+      } else if (leftSide >= padding) {
+        left = leftSide
+      } else {
+        left = Math.min(Math.max(detail.anchor.left, padding), maxLeft)
+      }
+
+      top = Math.min(
+        Math.max(detail.anchor.top, padding),
+        Math.max(padding, window.innerHeight - popover.height - padding),
+      )
+    }
+
+    setPopoverPosition({ top, left })
+  }, [detail])
 
   useEffect(() => {
     if (!detail) return
-    const close = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setDetail(null)
+
+    const dismiss = () => {
+      setDetail(null)
+      setPopoverPosition(null)
+      triggerRef.current = null
     }
-    window.addEventListener('keydown', close)
-    return () => window.removeEventListener('keydown', close)
+
+    const closeOnOutside = (event: PointerEvent) => {
+      if (!(event.target instanceof Node)) return
+      if (popoverRef.current?.contains(event.target)) return
+      if (triggerRef.current?.contains(event.target)) return
+      dismiss()
+    }
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') dismiss()
+    }
+
+    const closeOnViewportChange = () => dismiss()
+
+    document.addEventListener('pointerdown', closeOnOutside, true)
+    document.addEventListener('keydown', closeOnEscape)
+    window.addEventListener('resize', closeOnViewportChange)
+    window.addEventListener('scroll', closeOnViewportChange, true)
+
+    return () => {
+      document.removeEventListener('pointerdown', closeOnOutside, true)
+      document.removeEventListener('keydown', closeOnEscape)
+      window.removeEventListener('resize', closeOnViewportChange)
+      window.removeEventListener('scroll', closeOnViewportChange, true)
+    }
   }, [detail])
 
   return (
@@ -173,8 +300,11 @@ export function CharacterProfileDetails({
           type="button"
           className={styles.identityFact}
           data-profile-fact
-          onClick={() =>
-            setDetail({
+          aria-haspopup="dialog"
+          aria-expanded={detail?.key === 'rekindling-cycle'}
+          aria-controls={detail?.key === 'rekindling-cycle' ? 'profile-detail-popover' : undefined}
+          onClick={(event) =>
+            openDetail(event.currentTarget, 'rekindling-cycle', {
               eyebrow: 'Rekindling record',
               title: `Rekindling Cycle ${cycleNumber}`,
               body: 'A Rekindling Cycle is the numbered era of this character’s long-term progression record. It preserves history across later Rekindlings without mixing separate progression eras.',
@@ -228,8 +358,15 @@ export function CharacterProfileDetails({
                 data-testid={`profile-attribute-${attributeId}`}
                 data-attribute={attributeId}
                 style={style}
-                onClick={() =>
-                  setDetail({
+                aria-haspopup="dialog"
+                aria-expanded={detail?.key === `attribute:${attributeId}`}
+                aria-controls={
+                  detail?.key === `attribute:${attributeId}`
+                    ? 'profile-detail-popover'
+                    : undefined
+                }
+                onClick={(event) =>
+                  openDetail(event.currentTarget, `attribute:${attributeId}`, {
                     eyebrow: 'Core attribute',
                     title: attributeLabels[attributeId],
                     body: ATTRIBUTE_PROFILE_HELP[attributeId],
@@ -311,8 +448,15 @@ export function CharacterProfileDetails({
                         type="button"
                         data-testid={`derived-stat-${statId}`}
                         aria-label={`${stat.label}, ${formattedValue}. Select for details.`}
-                        onClick={() =>
-                          setDetail({
+                        aria-haspopup="dialog"
+                        aria-expanded={detail?.key === `stat:${statId}`}
+                        aria-controls={
+                          detail?.key === `stat:${statId}`
+                            ? 'profile-detail-popover'
+                            : undefined
+                        }
+                        onClick={(event) =>
+                          openDetail(event.currentTarget, `stat:${statId}`, {
                             eyebrow: `${attributeLabels[attributeId]} capability`,
                             title: stat.label,
                             body: DERIVED_STAT_PROFILE_HELP[statId],
@@ -333,23 +477,27 @@ export function CharacterProfileDetails({
       </section>
 
       {detail ? (
-        <div className={styles.backdrop} role="presentation" onPointerDown={() => setDetail(null)}>
-          <section
-            className={styles.dialog}
-            data-av-surface="moonstone"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="profile-detail-title"
-            onPointerDown={(event) => event.stopPropagation()}
-          >
-            <span>{detail.eyebrow}</span>
-            <h2 id="profile-detail-title">{detail.title}</h2>
-            <p>{detail.body}</p>
-            <button type="button" onClick={() => setDetail(null)}>
-              Close
-            </button>
-          </section>
-        </div>
+        <section
+          ref={popoverRef}
+          id="profile-detail-popover"
+          className={styles.detailPopover}
+          data-profile-stat-popover="true"
+          data-positioned={popoverPosition ? 'true' : 'false'}
+          role="dialog"
+          aria-labelledby="profile-detail-title"
+          style={
+            popoverPosition
+              ? {
+                  top: popoverPosition.top,
+                  left: popoverPosition.left,
+                }
+              : undefined
+          }
+        >
+          <span>{detail.eyebrow}</span>
+          <h2 id="profile-detail-title">{detail.title}</h2>
+          <p>{detail.body}</p>
+        </section>
       ) : null}
     </div>
   )
