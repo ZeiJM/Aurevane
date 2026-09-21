@@ -72,6 +72,8 @@ test('level-up forces Core Stat allocation until every gained point is committed
   const remaining = dialog.locator('[aria-live="polite"]')
   await expect(dialog).toBeVisible()
   await expect(dialog).toContainText('Level gained')
+  await expect(dialog).toContainText('Primary focus · Cap 60')
+  await expect(dialog).toContainText('Cap 40')
   await expect(remaining.locator('strong')).toHaveText('1')
   await expect(remaining.locator('span')).toHaveText('point remaining')
   await expect(dialog.getByRole('button', { name: 'Close' })).toHaveCount(0)

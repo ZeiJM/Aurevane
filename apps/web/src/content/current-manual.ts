@@ -149,7 +149,7 @@ const overrides: Record<string, ManualArticle> = {
           'Might → Physical Power. Finesse → Accuracy and Critical Chance. Vitality → Maximum HP and Armor. Agility → Initiative, Movement, Jump and Evasion. Intellect → Maximum MP and Mystic Power. Resolve → Ward and Status Resistance.',
           'Character Level matures survivability, reliability and mobility across Levels 1–100, but it does not increase Physical Power or Mystic Power directly. Instead, relative Level modifies direct combat damage: opponents within 20 Levels stay close to even, while larger gaps ramp more sharply.',
           'Basic Attack reads Physical Power. Damaging regular Skills use Physical Power unless authored as mystic, in which case they use Mystic Power. The current Skill-wide Power contribution is 25% of the matching Power rating, distributed across multi-hit direct-damage effects before repeat-use falloff. Relative Level then modifies direct damage at roughly 90–110% inside a ±20-Level matchup band; beyond that band the modifier steepens, with extreme gaps bounded near 25–175%.',
-          'Critical Chance caps at 30%, Evasion at 15%, Movement at 5 and Jump at 3. Primary focus attributes remain identity-open; non-focus Core Stats currently cap at 40.',
+          'Critical Chance caps at 30%, Evasion at 15%, Movement at 5 and Jump at 3. Primary focus Core Stats currently cap at 60; non-focus Core Stats currently cap at 40.',
           'Attribute Management lets you spend earned points or reset your full personal allocation, including creation points. Five resets replenish together 30 days after the first reset in a fresh window. Your Primary’s fixed base remains separate.',
         ],
       },

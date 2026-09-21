@@ -16,6 +16,7 @@ export const ATTRIBUTE_RESET_LIMIT_PER_WINDOW = 5 as const
 export const ATTRIBUTE_RESET_WINDOW_DAYS = 30 as const
 export const MINIMUM_CHARACTER_ATTRIBUTE = 1 as const
 export const FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP = 40 as const
+export const FOUNDATION_FOCUS_ATTRIBUTE_CAP = 60 as const
 export const PERSONAL_STARTING_ATTRIBUTE_POINT_POOL =
   CHARACTER_CREATION_RULES_V1.attributes.bonusBudget
 export const STARTING_ATTRIBUTE_POINT_POOL =
@@ -37,41 +38,41 @@ export interface DisciplineAttributePolicy {
   baseAttributes: Readonly<Record<CharacterAttributeId, number>>
   /** A Discipline may intentionally focus on either two or three Core Stats. */
   focusAttributes: readonly CharacterAttributeId[]
-  /** Optional ceilings for off-identity effective attributes only. */
+  /** Effective Core Stat ceilings. Current Primary focus stats cap at 60; non-focus stats cap at 40. */
   attributeCaps: Readonly<Partial<Record<CharacterAttributeId, number>>>
 }
 
-function offFocusCaps(focusAttributes: readonly CharacterAttributeId[]) {
+function attributeCapsForFocus(focusAttributes: readonly CharacterAttributeId[]) {
   const focus = new Set<CharacterAttributeId>(focusAttributes)
   return Object.fromEntries(
-    CHARACTER_ATTRIBUTE_IDS.filter((attributeId) => !focus.has(attributeId)).map((attributeId) => [
+    CHARACTER_ATTRIBUTE_IDS.map((attributeId) => [
       attributeId,
-      FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
+      focus.has(attributeId) ? FOUNDATION_FOCUS_ATTRIBUTE_CAP : FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
     ]),
-  ) as Partial<Record<CharacterAttributeId, number>>
+  ) as Record<CharacterAttributeId, number>
 }
 
 /**
- * Foundation identity policy v3. The Primary now owns a fixed 31-point Core Stat base, while all
- * creation/level points remain player-owned. Focus attributes stay uncapped and all non-focus
+ * Foundation identity policy v5. The Primary owns a fixed 31-point Core Stat base, while all
+ * creation/level points remain player-owned. Primary focus attributes cap at 60 and all non-focus
  * attributes use the owner-approved 40-point effective ceiling.
  */
 export const FOUNDATION_DISCIPLINE_ATTRIBUTE_POLICIES: readonly DisciplineAttributePolicy[] =
   FOUNDATION_DISCIPLINES.map((discipline) => ({
     disciplineId: discipline.id,
-    policyVersion: 4,
+    policyVersion: 5,
     baseAttributes: discipline.baseAttributes,
     focusAttributes: discipline.focusAttributes,
-    attributeCaps: offFocusCaps(discipline.focusAttributes),
+    attributeCaps: attributeCapsForFocus(discipline.focusAttributes),
   }))
 
 export const ADVANCED_DISCIPLINE_ATTRIBUTE_POLICIES: readonly DisciplineAttributePolicy[] =
   ADVANCED_DISCIPLINES.map((discipline) => ({
     disciplineId: discipline.id,
-    policyVersion: 4,
+    policyVersion: 5,
     baseAttributes: discipline.baseAttributes,
     focusAttributes: discipline.focusAttributes,
-    attributeCaps: offFocusCaps(discipline.focusAttributes),
+    attributeCaps: attributeCapsForFocus(discipline.focusAttributes),
   }))
 
 export type AttributeAllocationIssueCode =
@@ -264,13 +265,6 @@ export function validateDisciplineAttributePolicy(
       })
       continue
     }
-    if (focus.has(attributeId)) {
-      issues.push({
-        code: 'invalid-discipline-policy',
-        field: `policy.attributeCaps.${attributeId}`,
-        message: 'Focus attributes must remain uncapped by Discipline identity policy.',
-      })
-    }
     if (!Number.isSafeInteger(cap) || cap < MINIMUM_CHARACTER_ATTRIBUTE) {
       issues.push({
         code: 'invalid-discipline-policy',
@@ -324,10 +318,13 @@ export function validateAttributeAllocation(
 
     const cap = input.policy?.attributeCaps[attributeId]
     if (cap !== undefined && value > cap) {
+      const capKind = input.policy?.focusAttributes.includes(attributeId)
+        ? 'Primary focus'
+        : 'off-identity'
       issues.push({
         code: 'discipline-cap-exceeded',
         field: `attributes.${attributeId}`,
-        message: `${CHARACTER_ATTRIBUTE_LABELS[attributeId]} exceeds the ${input.policy?.disciplineId ?? 'Primary Discipline'} off-identity cap of ${cap}.`,
+        message: `${CHARACTER_ATTRIBUTE_LABELS[attributeId]} exceeds the ${input.policy?.disciplineId ?? 'Primary Discipline'} ${capKind} cap of ${cap}.`,
       })
     }
   }

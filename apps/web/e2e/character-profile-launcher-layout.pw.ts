@@ -24,6 +24,8 @@ test('Arsenal build launchers stay centered and typographically matched', async 
     characterName,
   })
 
+  await expect(page.getByText('Essence Build', { exact: true })).toBeVisible()
+
   const rekindling = page.getByRole('button', { name: /^Rekindling Cycle / })
   const cycleLabel = await rekindling.locator('small').boundingBox()
   const cycleValue = await rekindling.locator('strong').boundingBox()
@@ -34,9 +36,26 @@ test('Arsenal build launchers stay centered and typographically matched', async 
     'The cycle number stays centered beneath its label on desktop and mobile',
   ).toBeLessThanOrEqual(1)
   await rekindling.click()
-  const cycleDialog = page.getByRole('dialog', { name: /^Rekindling Cycle / })
-  await expect(cycleDialog).toBeVisible()
-  await cycleDialog.getByRole('button', { name: 'Close', exact: true }).click()
+  const detailPopover = page.getByTestId('profile-detail-popover')
+  await expect(detailPopover).toBeVisible()
+  await expect(detailPopover.getByRole('heading', { name: /^Rekindling Cycle / })).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(detailPopover).toHaveCount(0)
+
+  await page.getByTestId('profile-attribute-might').click()
+  await expect(detailPopover).toBeVisible()
+  await expect(detailPopover.getByRole('heading', { name: 'Might', exact: true })).toBeVisible()
+
+  await page.getByTestId('derived-stat-maxHp').click()
+  await expect(detailPopover).toHaveCount(1)
+  await expect(
+    detailPopover.getByRole('heading', { name: 'Maximum HP', exact: true }),
+  ).toBeVisible()
+
+  await page.getByRole('button', { name: 'Account', exact: true }).click()
+  await expect(detailPopover).toHaveCount(0)
+  await expect(page.getByRole('menu', { name: 'Account menu' })).toBeVisible()
+  await page.getByRole('button', { name: 'Account', exact: true }).click()
 
   await page.goto('/game/arsenal')
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()

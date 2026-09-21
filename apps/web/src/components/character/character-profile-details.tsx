@@ -15,20 +15,26 @@ import {
   DERIVED_STAT_PROFILE_HELP,
 } from '@aurevane/game-core/character/profile-stat-content'
 import Image from 'next/image'
-import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 
 import styles from './character-profile-details.module.css'
 
 interface CharacterProfileDetailsProps {
   presentationLabel: string
-  buildTypeLabel: 'Hybrid Build' | 'Essence Build'
+  buildTypeLabel: 'Resonance Build' | 'Essence Build'
   cycleNumber: number
   attributes: CharacterAttributes
   derived: DerivedStatSnapshot
   attributeResetControl?: ReactNode
 }
 
-type Detail = { title: string; eyebrow: string; body: string } | null
+interface DetailContent {
+  title: string
+  eyebrow: string
+  body: string
+}
+
+type Detail = (DetailContent & { anchor: HTMLElement }) | null
 
 const attributeLabels: Readonly<Record<CharacterAttributeId, string>> = {
   might: 'Might',
@@ -127,14 +133,63 @@ export function CharacterProfileDetails({
   attributeResetControl,
 }: CharacterProfileDetailsProps) {
   const [detail, setDetail] = useState<Detail>(null)
+  const [popoverPosition, setPopoverPosition] = useState<{ top: number; left: number } | null>(null)
+  const popoverRef = useRef<HTMLElement>(null)
+
+  function openDetail(anchor: HTMLElement, content: DetailContent) {
+    setPopoverPosition(null)
+    setDetail({ ...content, anchor })
+  }
 
   useEffect(() => {
     if (!detail) return
-    const close = (event: KeyboardEvent) => {
+    const closeOnOutside = (event: PointerEvent) => {
+      if (event.target instanceof Node && !popoverRef.current?.contains(event.target)) {
+        setDetail(null)
+      }
+    }
+    const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setDetail(null)
     }
-    window.addEventListener('keydown', close)
-    return () => window.removeEventListener('keydown', close)
+    document.addEventListener('pointerdown', closeOnOutside, true)
+    document.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.removeEventListener('pointerdown', closeOnOutside, true)
+      document.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [detail])
+
+  useEffect(() => {
+    if (!detail) return
+    const placePopover = () => {
+      const popover = popoverRef.current
+      if (!popover || !document.documentElement.contains(detail.anchor)) return
+
+      const anchorRect = detail.anchor.getBoundingClientRect()
+      const popoverRect = popover.getBoundingClientRect()
+      const inset = 12
+      const gap = 8
+      let left = anchorRect.left + anchorRect.width / 2 - popoverRect.width / 2
+      left = Math.min(
+        Math.max(inset, left),
+        Math.max(inset, window.innerWidth - popoverRect.width - inset),
+      )
+
+      let top = anchorRect.bottom + gap
+      if (top + popoverRect.height > window.innerHeight - inset) {
+        top = Math.max(inset, anchorRect.top - popoverRect.height - gap)
+      }
+      setPopoverPosition({ top, left })
+    }
+
+    const frame = window.requestAnimationFrame(placePopover)
+    window.addEventListener('resize', placePopover)
+    window.addEventListener('scroll', placePopover, true)
+    return () => {
+      window.cancelAnimationFrame(frame)
+      window.removeEventListener('resize', placePopover)
+      window.removeEventListener('scroll', placePopover, true)
+    }
   }, [detail])
 
   return (
@@ -162,7 +217,7 @@ export function CharacterProfileDetails({
         </div>
         <div className={styles.identityFact} data-profile-fact data-build-type={buildTypeLabel}>
           <span className={`${styles.factGlyph} ${styles.buildGlyph}`} aria-hidden="true">
-            <span>{buildTypeLabel === 'Hybrid Build' ? '∞' : '✦'}</span>
+            <span>{buildTypeLabel === 'Resonance Build' ? '∞' : '✦'}</span>
           </span>
           <span className={styles.factCopy}>
             <small>Build Type</small>
@@ -173,8 +228,8 @@ export function CharacterProfileDetails({
           type="button"
           className={styles.identityFact}
           data-profile-fact
-          onClick={() =>
-            setDetail({
+          onClick={(event) =>
+            openDetail(event.currentTarget, {
               eyebrow: 'Rekindling record',
               title: `Rekindling Cycle ${cycleNumber}`,
               body: 'A Rekindling Cycle is the numbered era of this character’s long-term progression record. It preserves history across later Rekindlings without mixing separate progression eras.',
@@ -191,7 +246,7 @@ export function CharacterProfileDetails({
               alt=""
             />
           </span>
-          <span className={styles.factCopy}>
+          <span className={`${styles.factCopy} ${styles.cycleCopy}`}>
             <small>Rekindling Cycle</small>
             <strong>{cycleNumber}</strong>
           </span>
@@ -228,8 +283,8 @@ export function CharacterProfileDetails({
                 data-testid={`profile-attribute-${attributeId}`}
                 data-attribute={attributeId}
                 style={style}
-                onClick={() =>
-                  setDetail({
+                onClick={(event) =>
+                  openDetail(event.currentTarget, {
                     eyebrow: 'Core attribute',
                     title: attributeLabels[attributeId],
                     body: ATTRIBUTE_PROFILE_HELP[attributeId],
@@ -311,8 +366,8 @@ export function CharacterProfileDetails({
                         type="button"
                         data-testid={`derived-stat-${statId}`}
                         aria-label={`${stat.label}, ${formattedValue}. Select for details.`}
-                        onClick={() =>
-                          setDetail({
+                        onClick={(event) =>
+                          openDetail(event.currentTarget, {
                             eyebrow: `${attributeLabels[attributeId]} capability`,
                             title: stat.label,
                             body: DERIVED_STAT_PROFILE_HELP[statId],
@@ -333,23 +388,23 @@ export function CharacterProfileDetails({
       </section>
 
       {detail ? (
-        <div className={styles.backdrop} role="presentation" onPointerDown={() => setDetail(null)}>
-          <section
-            className={styles.dialog}
-            data-av-surface="moonstone"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="profile-detail-title"
-            onPointerDown={(event) => event.stopPropagation()}
-          >
-            <span>{detail.eyebrow}</span>
-            <h2 id="profile-detail-title">{detail.title}</h2>
-            <p>{detail.body}</p>
-            <button type="button" onClick={() => setDetail(null)}>
-              Close
-            </button>
-          </section>
-        </div>
+        <section
+          ref={popoverRef}
+          className={styles.detailPopover}
+          data-testid="profile-detail-popover"
+          role="dialog"
+          aria-modal="false"
+          aria-labelledby="profile-detail-title"
+          style={{
+            top: popoverPosition?.top ?? 0,
+            left: popoverPosition?.left ?? 0,
+            visibility: popoverPosition ? 'visible' : 'hidden',
+          }}
+        >
+          <span>{detail.eyebrow}</span>
+          <h2 id="profile-detail-title">{detail.title}</h2>
+          <p>{detail.body}</p>
+        </section>
       ) : null}
     </div>
   )

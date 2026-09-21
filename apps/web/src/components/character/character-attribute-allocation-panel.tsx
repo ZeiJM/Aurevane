@@ -299,7 +299,8 @@ export function CharacterAttributeAllocationPanel({
                       </span>
                       <small>
                         Base {allocation.baseAttributes[attributeId]}
-                        {isFocus ? ' · Primary focus' : cap !== undefined ? ` · Cap ${cap}` : ''}
+                        {isFocus ? ' · Primary focus' : ''}
+                        {cap !== undefined ? ` · Cap ${cap}` : ''}
                       </small>
                     </div>
                     <div className={styles.controls}>

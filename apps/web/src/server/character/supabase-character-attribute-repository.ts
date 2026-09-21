@@ -140,7 +140,7 @@ function nullableStringField(value: unknown): string | null {
 
 function humanizeDatabaseValidation(message: string): string {
   if (message.includes('CHARACTER_CORE_ALLOCATION_INVALID')) {
-    return 'That allocation is outside your Primary Discipline base, point pool, or off-focus limits.'
+    return 'That allocation is outside your Primary Discipline base, point pool, or Core Stat caps.'
   }
   if (message.includes('CHARACTER_ATTRIBUTE_POINT_POOL_EXCEEDED')) {
     return 'That allocation exceeds the character’s available attribute points.'

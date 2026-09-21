@@ -67,13 +67,13 @@ Primary Discipline may define:
 
 The intent is **not** to make characters of the same Discipline converge on identical stat lines.
 
-A Discipline's focus attributes are the axes it is expected to specialize in and **must not receive restrictive Discipline attribute caps**. Players may distribute heavily or lightly among those focus attributes according to their build goals.
+A Discipline's focus attributes are the axes it is expected to specialize in. Under the current owner-approved policy, those focus Core Stats have an effective **maximum value of 60 while that Discipline is Primary**.
 
-For the current six Foundation Disciplines, every non-focus core attribute has an owner-approved **maximum value of 30 while that Discipline is Primary**. Focus attributes remain uncapped by Discipline identity. This ceiling is deliberately permissive enough for serious hybrid investment while preventing an extreme off-role allocation from functionally replacing the selected Primary Discipline.
+For the current six Foundation Disciplines, every non-focus Core Stat has an effective **maximum value of 40 while that Discipline is Primary**. The 60/40 split preserves meaningful Primary specialization while still permitting serious hybrid investment without letting off-role allocation functionally replace the selected Primary Discipline.
 
 Global derived-stat ceilings remain independently authoritative. Reaching a Discipline attribute ceiling does not bypass Critical Chance, Evasion, Movement, Jump, Accuracy, Status Resistance, or any other authored derived-stat limit.
 
-Future Disciplines may define exceptional off-identity policies only when their mechanics justify doing so. An omitted ceiling in a future policy means that attribute is uncapped by that specific Discipline policy.
+Future Disciplines may define exceptional Core Stat cap policies only when their mechanics justify doing so; any exception must be explicit rather than inferred from missing focus metadata.
 
 ### 4.1 Foundation starting identities and active ceilings
 
@@ -81,12 +81,12 @@ Choosing a Foundation Discipline at character creation preloads a **recommended 
 
 Current Foundation policies:
 
-- **Vanguard** — Focus: Might and Vitality. Starting bonus spread: **+3 Might, +3 Vitality**. Non-focus cap **40** on Finesse, Agility, Intellect, and Resolve.
-- **Farstrider** — Focus: Finesse and Agility. Starting bonus spread: **+4 Finesse, +2 Agility**. Non-focus cap **40** on Might, Vitality, Intellect, and Resolve.
-- **Shadehand** — Focus: Finesse and Agility. Starting bonus spread: **+2 Finesse, +4 Agility**. Non-focus cap **40** on Might, Vitality, Intellect, and Resolve.
-- **Ironfist** — Focus: Might and Agility. Starting bonus spread: **+4 Might, +2 Agility**. Non-focus cap **40** on Finesse, Vitality, Intellect, and Resolve.
-- **Aetherist** — Focus: Intellect and Resolve. Starting bonus spread: **+4 Intellect, +2 Resolve**. Non-focus cap **40** on Might, Finesse, Vitality, and Agility.
-- **Lifebinder** — Focus: Intellect and Resolve. Starting bonus spread: **+2 Intellect, +4 Resolve**. Non-focus cap **40** on Might, Finesse, Vitality, and Agility.
+- **Vanguard** — Focus: Might and Vitality. Starting bonus spread: **+3 Might, +3 Vitality**. Focus cap **60**; non-focus cap **40** on Finesse, Agility, Intellect, and Resolve.
+- **Farstrider** — Focus: Finesse and Agility. Starting bonus spread: **+4 Finesse, +2 Agility**. Focus cap **60**; non-focus cap **40** on Might, Vitality, Intellect, and Resolve.
+- **Shadehand** — Focus: Finesse and Agility. Starting bonus spread: **+2 Finesse, +4 Agility**. Focus cap **60**; non-focus cap **40** on Might, Vitality, Intellect, and Resolve.
+- **Ironfist** — Focus: Might and Agility. Starting bonus spread: **+4 Might, +2 Agility**. Focus cap **60**; non-focus cap **40** on Finesse, Vitality, Intellect, and Resolve.
+- **Aetherist** — Focus: Intellect and Resolve. Starting bonus spread: **+4 Intellect, +2 Resolve**. Focus cap **60**; non-focus cap **40** on Might, Finesse, Vitality, and Agility.
+- **Lifebinder** — Focus: Intellect and Resolve. Starting bonus spread: **+2 Intellect, +4 Resolve**. Focus cap **60**; non-focus cap **40** on Might, Finesse, Vitality, and Agility.
 
 These starting spreads are **defaults, not caps**. Before creating the character, the player may redistribute the full six-point starting bonus budget however they wish under the active legal rules. Later full attribute resets likewise include these starting points.
 
@@ -202,7 +202,7 @@ The approved current progression pass consists of:
 2. **Authoritative allocation persistence** — Level-derived point budget, ordinary point spending, full-pool resets, idempotency, audit history, and five-use 30-day reset-window enforcement.
 3. **Profile and creation experience** — available-point allocation, refresh-stable modal redistribution, reset count/renewal visibility, Primary focus-stat presentation, and editable Foundation starting-identity presets.
 4. **Primary swap compatibility** — proposed Primary changes validate the current allocation first; illegal allocations must be redistributed and are never silently clamped.
-5. **Foundation off-identity balance policy** — current Foundation focus attributes remain uncapped by Discipline identity and every non-focus attribute uses the approved **40-point ceiling**.
+5. **Foundation Core Stat balance policy** — current Foundation focus attributes use the approved **60-point ceiling** and every non-focus attribute uses the approved **40-point ceiling**.
 6. **Level-range derived scaling** — V3 keeps Core Attribute ownership one-to-one, stretches non-Power maturation across Levels 1–100, and applies relative Level as a separate direct-damage matchup modifier while preserving approved global ceilings.
 7. **Battle Movement authority** — battle creation consumes the committed Primary-derived Movement/Jump snapshot and Movement remains an independent hard limit from AP.
 8. **Testing Discipline access** — every active player character can choose every currently active Discipline in either supported slot while testing, without exposing disabled/future content or bypassing server authority.

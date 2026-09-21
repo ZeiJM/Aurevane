@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   ATTRIBUTE_RESET_LIMIT_PER_WINDOW,
   FOUNDATION_DISCIPLINE_ATTRIBUTE_POLICIES,
+  FOUNDATION_FOCUS_ATTRIBUTE_CAP,
   FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
   PERSONAL_STARTING_ATTRIBUTE_POINT_POOL,
   STARTING_ATTRIBUTE_POINT_POOL,
@@ -19,6 +20,7 @@ import {
   validateDisciplineAttributePolicy,
   type DisciplineAttributePolicy,
 } from './attribute-allocation'
+import { CHARACTER_ATTRIBUTE_IDS } from './creation'
 
 describe('attribute allocation guardrails', () => {
   it('keeps 36 effective points at Level 1 while only five are player-owned', () => {
@@ -75,13 +77,20 @@ describe('attribute allocation guardrails', () => {
     expect(Object.values(effective).reduce((total, value) => total + value, 0)).toBe(36)
   })
 
-  it('keeps focus attributes uncapped while enforcing only authored off-identity ceilings', () => {
+  it('enforces authored focus and off-identity ceilings', () => {
     const policy: DisciplineAttributePolicy = {
       disciplineId: 'test-mage',
       policyVersion: 1,
       baseAttributes: { might: 3, finesse: 3, vitality: 4, agility: 3, intellect: 9, resolve: 9 },
       focusAttributes: ['intellect', 'resolve'],
-      attributeCaps: { might: 8, finesse: 10, vitality: 12, agility: 10 },
+      attributeCaps: {
+        might: 8,
+        finesse: 10,
+        vitality: 12,
+        agility: 10,
+        intellect: 60,
+        resolve: 60,
+      },
     }
 
     const legal = {
@@ -89,15 +98,23 @@ describe('attribute allocation guardrails', () => {
       finesse: 3,
       vitality: 4,
       agility: 3,
-      intellect: 9,
+      intellect: 60,
       resolve: 9,
     }
-    const illegal = { ...legal, might: 9, intellect: 8 }
 
-    expect(validateAttributeAllocation({ attributes: legal, level: 5, policy })).toEqual([])
-    expect(validateAttributeAllocation({ attributes: illegal, level: 5, policy })).toEqual(
+    expect(validateAttributeAllocation({ attributes: legal, level: 100, policy })).toEqual([])
+    expect(
+      validateAttributeAllocation({ attributes: { ...legal, might: 9 }, level: 100, policy }),
+    ).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ code: 'discipline-cap-exceeded', field: 'attributes.might' }),
+      ]),
+    )
+    expect(
+      validateAttributeAllocation({ attributes: { ...legal, intellect: 61 }, level: 100, policy }),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'discipline-cap-exceeded', field: 'attributes.intellect' }),
       ]),
     )
   })
@@ -128,20 +145,22 @@ describe('attribute allocation guardrails', () => {
     )
   })
 
-  it('ships Foundation policy v4 with mixed 2/3 focus counts and a 40-point non-focus ceiling', () => {
+  it('ships Foundation policy v5 with a 60 focus cap and 40 non-focus cap', () => {
+    expect(FOUNDATION_FOCUS_ATTRIBUTE_CAP).toBe(60)
     expect(FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP).toBe(40)
     expect(FOUNDATION_DISCIPLINE_ATTRIBUTE_POLICIES).toHaveLength(6)
 
     const focusCounts = new Set<number>()
     for (const policy of FOUNDATION_DISCIPLINE_ATTRIBUTE_POLICIES) {
-      expect(policy.policyVersion).toBe(4)
+      expect(policy.policyVersion).toBe(5)
       expect(validateDisciplineAttributePolicy(policy)).toEqual([])
-      expect(Object.keys(policy.attributeCaps)).toHaveLength(6 - policy.focusAttributes.length)
-      for (const focusAttribute of policy.focusAttributes) {
-        expect(policy.attributeCaps).not.toHaveProperty(focusAttribute)
-      }
-      for (const cap of Object.values(policy.attributeCaps)) {
-        expect(cap).toBe(FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP)
+      expect(Object.keys(policy.attributeCaps)).toHaveLength(6)
+      for (const attributeId of CHARACTER_ATTRIBUTE_IDS) {
+        expect(policy.attributeCaps[attributeId]).toBe(
+          policy.focusAttributes.includes(attributeId)
+            ? FOUNDATION_FOCUS_ATTRIBUTE_CAP
+            : FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
+        )
       }
       focusCounts.add(policy.focusAttributes.length)
     }
