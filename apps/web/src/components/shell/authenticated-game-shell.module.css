@@ -178,11 +178,7 @@
   left: -45%;
   height: 34%;
   border-radius: 50%;
-  background: radial-gradient(
-    ellipse,
-    rgb(var(--mana-rgb) / 0.2) 0%,
-    transparent 72%
-  );
+  background: radial-gradient(ellipse, rgb(var(--mana-rgb) / 0.2) 0%, transparent 72%);
   filter: blur(0.5rem);
 }
 
