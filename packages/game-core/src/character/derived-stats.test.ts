@@ -58,7 +58,8 @@ describe('derived stat framework', () => {
 
     expect(levelTen.stats.maxHp.value - levelOne.stats.maxHp.value).toBe(22)
     expect(levelTen.stats.maxMp.value - levelOne.stats.maxMp.value).toBe(13)
-    expect(levelTen.stats.physicalPower.value - levelOne.stats.physicalPower.value).toBe(4)
+    expect(levelTen.stats.physicalPower.value - levelOne.stats.physicalPower.value).toBe(0)
+    expect(levelTen.stats.mysticPower.value - levelOne.stats.mysticPower.value).toBe(0)
     expect(levelTen.stats.armor.value - levelOne.stats.armor.value).toBe(4)
     expect(levelTen.stats.accuracy.value - levelOne.stats.accuracy.value).toBe(90)
     expect(levelTen.stats.evasion.value - levelOne.stats.evasion.value).toBe(27)
@@ -132,15 +133,21 @@ describe('derived stat framework', () => {
     }
   })
 
-  it('gives low-Might and low-Intellect builds a Level-driven offensive floor', () => {
+  it('keeps offensive Power tied to Might and Intellect instead of Character Level', () => {
     const lowOffense = { ...balancedAttributes, might: 2, intellect: 2 }
     const levelOne = calculateDerivedStats({ attributes: lowOffense, level: 1 })
     const levelHundred = calculateDerivedStats({ attributes: lowOffense, level: 100 })
 
     expect(levelOne.stats.physicalPower.value).toBe(26)
     expect(levelOne.stats.mysticPower.value).toBe(26)
-    expect(levelHundred.stats.physicalPower.value).toBe(75)
-    expect(levelHundred.stats.mysticPower.value).toBe(75)
+    expect(levelHundred.stats.physicalPower.value).toBe(26)
+    expect(levelHundred.stats.mysticPower.value).toBe(26)
+    expect(levelHundred.stats.physicalPower.contributions).not.toContainEqual(
+      expect.objectContaining({ sourceKind: 'level' }),
+    )
+    expect(levelHundred.stats.mysticPower.contributions).not.toContainEqual(
+      expect.objectContaining({ sourceKind: 'level' }),
+    )
   })
 
   it('keeps Level-1 mobility grounded even under an extreme starting allocation', () => {
