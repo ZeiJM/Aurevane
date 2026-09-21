@@ -26,9 +26,9 @@ describe('attribute allocation guardrails', () => {
     expect(PERSONAL_STARTING_ATTRIBUTE_POINT_POOL).toBe(5)
     expect(attributePointPoolForLevel(1)).toBe(36)
     expect(attributePointPoolForLevel(2)).toBe(37)
-    expect(attributePointPoolForLevel(50)).toBe(85)
+    expect(attributePointPoolForLevel(100)).toBe(135)
     expect(personalAttributePointPoolForLevel(1)).toBe(5)
-    expect(personalAttributePointPoolForLevel(50)).toBe(54)
+    expect(personalAttributePointPoolForLevel(100)).toBe(104)
   })
 
   it('allows level-earned personal points to remain unspent until the player assigns them', () => {
@@ -128,13 +128,13 @@ describe('attribute allocation guardrails', () => {
     )
   })
 
-  it('ships Foundation policy v3 with mixed 2/3 focus counts and a 30-point non-focus ceiling', () => {
-    expect(FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP).toBe(30)
+  it('ships Foundation policy v4 with mixed 2/3 focus counts and a 40-point non-focus ceiling', () => {
+    expect(FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP).toBe(40)
     expect(FOUNDATION_DISCIPLINE_ATTRIBUTE_POLICIES).toHaveLength(6)
 
     const focusCounts = new Set<number>()
     for (const policy of FOUNDATION_DISCIPLINE_ATTRIBUTE_POLICIES) {
-      expect(policy.policyVersion).toBe(3)
+      expect(policy.policyVersion).toBe(4)
       expect(validateDisciplineAttributePolicy(policy)).toEqual([])
       expect(Object.keys(policy.attributeCaps)).toHaveLength(6 - policy.focusAttributes.length)
       for (const focusAttribute of policy.focusAttributes) {
@@ -170,7 +170,7 @@ describe('attribute allocation guardrails', () => {
   it('rejects a projected swap when preserved personal investment would exceed a target off-focus cap', () => {
     const aetherist = foundationDisciplineAttributePolicy('aetherist')!
     const vanguard = foundationDisciplineAttributePolicy('vanguard')!
-    const personal = { might: 0, finesse: 28, vitality: 0, agility: 0, intellect: 20, resolve: 1 }
+    const personal = { might: 0, finesse: 0, vitality: 0, agility: 0, intellect: 38, resolve: 1 }
     const current = effectiveAttributesFromPersonal(personal, aetherist)
 
     const projected = projectAllocationForPrimaryDisciplineChange({
@@ -181,7 +181,7 @@ describe('attribute allocation guardrails', () => {
     })
     expect(projected.issues).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ code: 'discipline-cap-exceeded', field: 'attributes.finesse' }),
+        expect.objectContaining({ code: 'discipline-cap-exceeded', field: 'attributes.intellect' }),
       ]),
     )
   })
