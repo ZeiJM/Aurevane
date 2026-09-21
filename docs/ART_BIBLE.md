@@ -19,7 +19,7 @@ The visual target is mature, atmospheric, readable, tactile, and original. The w
 3. **Detail follows hierarchy.** Highest detail belongs at the intended focal point.
 4. **Materials are believable.** Cloth, leather, metal, stone, wood, glass, bone, skin, and magical substances must feel constructed and weighted.
 5. **Supernatural color is purposeful.** Glow and saturation communicate a source, state, interaction, rarity, or exceptional event.
-6. **Rarity earns intensity.** Common content is restrained. Legendary gear, Soulmarks, Confluences, bosses, and world events earn stronger presentation.
+6. **Rarity earns intensity.** Common content is restrained. Legendary gear, Ascension, Severence, Confluences, bosses, and world events earn stronger presentation.
 7. **Shape is as important as hue.** Game-state recognition must not depend on color alone.
 8. **Regions vary inside one world.** Climate, culture, ornament, architecture, and palette may change while rendering discipline remains coherent.
 9. **Tactical information uses decisive geometry.** Movement, targeting, threat, hazards, elevation, cover, and status states must read instantly.
@@ -102,18 +102,21 @@ A Confluence effect should visually communicate **cause + interaction + result**
 
 Confluence icons should combine established parent motifs without becoming noisy collages.
 
-## 8. Soulmarks
+## 8. Ascension & Severence
 
-Soulmarks are supernatural identity layers distinct from Disciplines. Their effects may be more uncanny and metaphysical, but still require tactical readability.
+Ascension and Severence are supernatural identity layers distinct from Disciplines. Their effects may be more uncanny and metaphysical, but must remain tactically readable and immediately distinguishable from one another.
 
-Each Soulmark needs:
+Each released Ascension or Severence power package needs:
 
-- a recognizable sigil;
+- a recognizable visual identity;
 - defined geometry;
 - defined motion behavior;
 - defined palette family;
 - defined material/energy metaphor;
-- explicit overlap restrictions with Discipline effects.
+- explicit overlap restrictions with Discipline effects;
+- clear Ascended-versus-Severed readability in combat and spectation.
+
+Ascension should read as persistent soul-enhancement. Severence may use sharper state changes or temporary transformation language where the authored mechanics call for it, but it is not a separate Mantle system.
 
 ## 9. Environment Art
 
@@ -157,7 +160,7 @@ Categories should be distinguishable by shape language as well as color:
 - Traits;
 - Reactions;
 - Movement Arts;
-- Soulmarks;
+- Ascension and Severence;
 - Confluences;
 - statuses;
 - equipment;
