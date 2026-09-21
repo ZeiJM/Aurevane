@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   calculateScaledRawDamage,
+  currentSkillDamageScaling,
   validateCombatDamageScaling,
   type CombatDamageScaling,
 } from './damage-scaling'
@@ -10,6 +11,21 @@ describe('combat damage scaling', () => {
   it('preserves authored base damage when no scaling profile is present', () => {
     expect(calculateScaledRawDamage(12, null, null)).toBe(12)
     expect(calculateScaledRawDamage(12, undefined, null)).toBe(12)
+  })
+
+  it('distributes the current Skill scaling budget across direct damage hits', () => {
+    expect(currentSkillDamageScaling('physical-power', 1)).toEqual({
+      source: 'physical-power',
+      coefficientBasisPoints: 2_500,
+    })
+    expect(currentSkillDamageScaling('mystic-power', 2)).toEqual({
+      source: 'mystic-power',
+      coefficientBasisPoints: 1_250,
+    })
+    expect(currentSkillDamageScaling('physical-power', 3)).toEqual({
+      source: 'physical-power',
+      coefficientBasisPoints: 833,
+    })
   })
 
   it('adds deterministic Physical Power scaling with basis-point floor semantics', () => {
