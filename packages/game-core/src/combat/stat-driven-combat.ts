@@ -52,11 +52,16 @@ export interface StatDrivenCombatProfileV1 {
 export interface StatDrivenCombatProfile extends StatDrivenCombatProfileV1 {
   physicalPower?: number
   mysticPower?: number
+  level?: number
 }
 
 export interface StatDrivenCombatProfileV2 extends StatDrivenCombatProfileV1 {
   physicalPower: number
   mysticPower: number
+}
+
+export interface StatDrivenCombatProfileV3 extends StatDrivenCombatProfileV2 {
+  level: number
 }
 
 /** Broad persisted boundary. Validation pairs schema/rules versions and row shape. */
@@ -87,7 +92,7 @@ export interface StatDrivenCombatBridgeStateV2 extends StatDrivenCombatBridgeSta
 export interface StatDrivenCombatBridgeStateV3 extends StatDrivenCombatBridgeState {
   schemaVersion: typeof STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_VERSION
   rulesVersion: typeof STAT_DRIVEN_COMBAT_RULES_VERSION
-  combatants: readonly StatDrivenCombatProfileV2[]
+  combatants: readonly StatDrivenCombatProfileV3[]
 }
 
 export interface StatDrivenCombatEncounterState extends CombatEncounterState {
@@ -141,8 +146,9 @@ export interface StatDrivenCombatIssue {
 export function createCharacterDerivedCombatProfile(
   combatantId: string,
   characterId: string,
+  level: number,
   snapshot: DerivedStatSnapshot,
-): StatDrivenCombatProfileV2 {
+): StatDrivenCombatProfileV3 {
   return {
     combatantId,
     provenance: {
@@ -155,6 +161,7 @@ export function createCharacterDerivedCombatProfile(
     armor: snapshot.stats.armor.value,
     ward: snapshot.stats.ward.value,
     jump: snapshot.stats.jump.value,
+    level,
     physicalPower: snapshot.stats.physicalPower.value,
     mysticPower: snapshot.stats.mysticPower.value,
   }
@@ -175,8 +182,19 @@ export function createStatDrivenCombatEncounterState(
       'Stat-driven combat profiles cannot mix historical rows with offensive ratings.',
     )
   }
-  if (currentCount === profiles.length) {
+
+  const levelCount = profiles.filter(isLevelProfile).length
+  if (levelCount !== 0 && levelCount !== profiles.length) {
+    throw new TypeError('Stat-driven combat profiles cannot mix v3 Level rows with older rows.')
+  }
+  if (levelCount === profiles.length) {
     return createCurrentStatDrivenCombatEncounterState(
+      base,
+      profiles as readonly StatDrivenCombatProfileV3[],
+    )
+  }
+  if (currentCount === profiles.length) {
+    return createV2StatDrivenCombatEncounterState(
       base,
       profiles as readonly StatDrivenCombatProfileV2[],
     )
@@ -198,7 +216,7 @@ export function createStatDrivenCombatEncounterState(
 
 export function createCurrentStatDrivenCombatEncounterState(
   base: CombatEncounterState,
-  profiles: readonly StatDrivenCombatProfileV2[],
+  profiles: readonly StatDrivenCombatProfileV3[],
 ): StatDrivenCombatEncounterStateV3 {
   const state: StatDrivenCombatEncounterStateV3 = {
     ...base,
@@ -207,6 +225,25 @@ export function createCurrentStatDrivenCombatEncounterState(
       rulesVersion: STAT_DRIVEN_COMBAT_RULES_VERSION,
       combatants: [...profiles]
         .map(copyCurrentProfile)
+        .sort((left, right) => compareStableString(left.combatantId, right.combatantId)),
+    },
+  }
+
+  assertValidStatDrivenCombatEncounterState(state)
+  return state
+}
+
+function createV2StatDrivenCombatEncounterState(
+  base: CombatEncounterState,
+  profiles: readonly StatDrivenCombatProfileV2[],
+): StatDrivenCombatEncounterStateV2 {
+  const state: StatDrivenCombatEncounterStateV2 = {
+    ...base,
+    statBridge: {
+      schemaVersion: STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_V2,
+      rulesVersion: STAT_DRIVEN_COMBAT_RULES_V2,
+      combatants: [...profiles]
+        .map(copyV2Profile)
         .sort((left, right) => compareStableString(left.combatantId, right.combatantId)),
     },
   }
@@ -296,6 +333,7 @@ export function validateStatDrivenCombatEncounterState(
       const prefix = `statBridge.combatants.${index}`
       collectNonNegativeIntegerIssue(issues, profile.physicalPower, `${prefix}.physicalPower`)
       collectNonNegativeIntegerIssue(issues, profile.mysticPower, `${prefix}.mysticPower`)
+      if (isV3) collectLevelIssue(issues, profile.level, `${prefix}.level`)
     }
   }
 
@@ -526,7 +564,18 @@ function isCurrentProfile(profile: StatDrivenCombatProfile): profile is StatDriv
   )
 }
 
-function copyCurrentProfile(profile: StatDrivenCombatProfileV2): StatDrivenCombatProfileV2 {
+function isLevelProfile(profile: StatDrivenCombatProfile): profile is StatDrivenCombatProfileV3 {
+  return isCurrentProfile(profile) && Number.isSafeInteger(profile.level) && (profile.level ?? 0) >= 1
+}
+
+function copyCurrentProfile(profile: StatDrivenCombatProfileV3): StatDrivenCombatProfileV3 {
+  return {
+    ...profile,
+    provenance: { ...profile.provenance },
+  }
+}
+
+function copyV2Profile(profile: StatDrivenCombatProfileV2): StatDrivenCombatProfileV2 {
   return {
     ...profile,
     provenance: { ...profile.provenance },
@@ -596,6 +645,16 @@ function collectNonNegativeIntegerIssue(
 ): void {
   if (!Number.isSafeInteger(value) || (value ?? -1) < 0) {
     issues.push({ field, message: 'Value must be a non-negative safe integer.' })
+  }
+}
+
+function collectLevelIssue(
+  issues: StatDrivenCombatIssue[],
+  value: number | undefined,
+  field: string,
+): void {
+  if (!Number.isSafeInteger(value) || (value ?? 0) < 1 || (value ?? 101) > 100) {
+    issues.push({ field, message: 'Level must be a safe integer from 1 to 100.' })
   }
 }
 
