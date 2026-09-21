@@ -380,7 +380,12 @@
   overflow: hidden;
   border-top: 1px solid rgba(207, 169, 93, 0.2);
   background:
-    linear-gradient(180deg, rgba(7, 16, 20, 0.08), rgba(4, 10, 14, 0.45) 58%, rgba(4, 10, 14, 0.96)),
+    linear-gradient(
+      180deg,
+      rgba(7, 16, 20, 0.08),
+      rgba(4, 10, 14, 0.45) 58%,
+      rgba(4, 10, 14, 0.96)
+    ),
     linear-gradient(90deg, rgba(5, 14, 16, 0.14), rgba(209, 177, 98, 0.08)),
     url('/media/art/concept-ui/world-v01.webp') center 68% / cover;
 }
