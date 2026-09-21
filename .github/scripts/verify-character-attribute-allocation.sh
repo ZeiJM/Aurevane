@@ -99,7 +99,7 @@ test "$initial_personal_pool" = '5'
 test "$initial_personal_spent" = '5'
 test "$initial_base" = 'true'
 test "$initial_focus" = 'true'
-test "$initial_cap" = '30'
+test "$initial_cap" = '40'
 test "$initial_conversion" = 'false'
 test "$initial_used" = '0'
 test "$initial_remaining" = '5'
@@ -241,26 +241,26 @@ IFS='|' read -r _ _ _ _ _ _ _ _ _ renewed_used renewed_remaining _ <<<"$renewed"
 test "$renewed_used" = '1'
 test "$renewed_remaining" = '4'
 
-# A separate level-50 Aetherist proves the asymmetric cap rule: focus stats remain open while
-# non-focus effective stats are capped at 30.
+# A separate Level-100 Aetherist proves the asymmetric cap rule: focus stats remain open while
+# non-focus effective stats are capped at 40.
 cap_character_id="$(create_aetherist 1 '10000000-0000-4000-8000-000000000017' 'attribute-allocation:cap-character' 'Attribute Cap Tester' 'attributecaptester')"
 test -n "$cap_character_id"
 docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   update public.characters
-  set level = 50
+  set level = 100
   where id = '$cap_character_id'::uuid;" >/dev/null
 
-if commit_allocation "$cap_character_id" reset 31 3 4 3 35 9 '10000000-0000-4000-8000-000000000018' 'attribute-allocation:off-focus-cap' >/tmp/attribute-cap.out 2>/tmp/attribute-cap.err; then
-  echo 'Expected Aetherist Might 31 to exceed the off-focus Core Stat cap.' >&2
+if commit_allocation "$cap_character_id" reset 41 3 4 3 75 9 '10000000-0000-4000-8000-000000000018' 'attribute-allocation:off-focus-cap' >/tmp/attribute-cap.out 2>/tmp/attribute-cap.err; then
+  echo 'Expected Aetherist Might 41 to exceed the off-focus Core Stat cap.' >&2
   exit 1
 fi
 grep -Fq 'CHARACTER_ATTRIBUTE_DISCIPLINE_CAP_EXCEEDED' /tmp/attribute-cap.err
 
-focus_open="$(commit_allocation "$cap_character_id" reset 2 3 4 3 64 9 '10000000-0000-4000-8000-000000000019' 'attribute-allocation:focus-open')"
+focus_open="$(commit_allocation "$cap_character_id" reset 2 3 4 3 114 9 '10000000-0000-4000-8000-000000000019' 'attribute-allocation:focus-open')"
 IFS='|' read -r _ _ _ _ focus_intellect _ focus_unspent focus_personal_spent _ focus_used focus_remaining _ <<<"$focus_open"
-test "$focus_intellect" = '64'
+test "$focus_intellect" = '114'
 test "$focus_unspent" = '0'
-test "$focus_personal_spent" = '54'
+test "$focus_personal_spent" = '104'
 test "$focus_used" = '1'
 test "$focus_remaining" = '4'
 
