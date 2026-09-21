@@ -94,7 +94,8 @@ Examples:
 - Disciplines and buildcraft;
 - Current + Legacy;
 - Confluences;
-- Soulmarks;
+- Ascension;
+- Severence;
 - equipment;
 - world travel;
 - co-op;
@@ -445,7 +446,8 @@ It should eventually explain visually and concisely:
 - Disciplines;
 - Current + Legacy;
 - Confluences;
-- Soulmarks;
+- Ascension;
+- Severence;
 - build experimentation;
 - world exploration and quests;
 - co-op/Expeditions;
@@ -528,7 +530,7 @@ Examples:
 
 - explain what Confluences are without listing hidden undiscovered pairings;
 - explain how the Archive works without revealing unrecovered lore;
-- explain Soulmark mechanics without exposing secret branches/revelations;
+- explain Ascension and Severence mechanics without exposing secret branches/revelations;
 - explain Expedition structure without revealing secret rooms/boss mechanics;
 - explain the Aurevane premise only to the currently public story tier.
 
