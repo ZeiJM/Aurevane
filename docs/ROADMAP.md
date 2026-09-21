@@ -119,9 +119,8 @@ Phase 3 therefore inherits the existing combat/PvP/spectator platform. Phase act
 - **Skill** — umbrella term for usable abilities.
 - **Resonance** — passive interaction from an eligible Primary + Secondary pair.
 - **Essence / Discipline Essence** — pure-build counterpart; a Primary-only build gains a special Essence Skill outside normal Discipline capacity.
-- **Soulmark** — persistent supernatural identity on the Soulmarked branch.
-- **The Severance / Soul-Severed** — permanent alternative supernatural branch.
-- **Mantle** — temporary manifested transformation available to eligible Soul-Severed characters.
+- **Ascension / Ascended** — permanent soul-enhanced supernatural path.
+- **Severence / Severed** — mutually exclusive alternate supernatural path. **Severence** is the canonical AUREVANE spelling.
 - **Battle Hall** — current player-facing practice destination.
 - **Passive Training** — explicit server-timed background progression.
 
@@ -145,7 +144,7 @@ DISCIPLINE SKILLS
 +
 RESONANCE OR PURE ESSENCE
 +
-SOULMARK OR SOUL-SEVERED / MANTLE
+ASCENSION OR SEVERENCE
 +
 EQUIPMENT + EQUIPMENT SKILLS
 +
@@ -252,14 +251,14 @@ An Anomaly is a protected **Owner-granted exceptional character state** that del
 Initial forms:
 
 ```text
-Soulmark + Mantle
-Two Soulmarks
-Two Mantles
+Ascension + Severence
+Two Ascensions
+Two Severence powers
 ```
 
 Only the protected Owner may create/revoke these states through an audited Master Panel / Owner Override workflow by default.
 
-Normal players continue to obey the ordinary Soulmarked versus Soul-Severed/Mantle rules.
+Normal players continue to obey the ordinary Ascended versus Severence rules.
 
 Gameplay-affecting Anomalies are excluded from standard ranked PvP by default and must be identifiable in audit/analytics.
 
@@ -426,7 +425,7 @@ Phase outcome:
 - AI and existing PvP consuming the same build snapshots;
 - first minimum safe authoring/validation tooling.
 
-No Soulmark/Mantle or frontier implementation is required here.
+No Ascension/Severence or frontier implementation is required here.
 
 **Current boundary:** P3.1–P3.8 are complete. The Owner approved closure with the final responsive UI/quality release on 2026-09-11. `docs/PHASE_3_CLOSEOUT.md` records evidence and remaining Phase-4 preparation notes; this is an Owner decision, not fabricated cohort validation.
 
@@ -514,12 +513,12 @@ Scope:
 
 ```text
 UNAWAKENED
-→ SOULMARKED
+→ ASCENDED
 OR
-→ SOUL_SEVERED
+→ SEVERED
 ```
 
-Ship a small high-quality Soulmark proof and at least one valid Mantle route so Severance has a meaningful payoff.
+Ship a small high-quality proof of both Ascension and Severence so each permanent path has a clear gameplay identity and meaningful payoff. The former Mantle transformation design space belongs inside Severence rather than existing as a third named power family.
 
 Normal characters obey strict branch exclusivity.
 
@@ -620,7 +619,7 @@ Remaining scope:
 - seasons;
 - tournaments;
 - build snapshot/lock;
-- Skill/Resonance/Essence/equipment/Soulmark/Mantle/Veteran Edge legality;
+- Skill/Resonance/Essence/equipment/Ascension/Severence/Veteran Edge legality;
 - map/side-bias testing;
 - competitive telemetry;
 - spectator visibility/delay;
@@ -635,15 +634,15 @@ Special modes may explicitly normalize or allow them under transparent rules.
 
 ---
 
-## 🔜 Phase 9 — Roster, Soulmark, Mantle & Content Expansion
+## 🔜 Phase 9 — Roster, Ascension, Severence & Content Expansion
 
 **Goal:** scale only systems already proven fun and sustainable.
 
 - expand Disciplines in controlled batches toward the long-term roster;
 - mature eight-Skill libraries;
 - complete Essence/Resonance coverage;
-- expand Soulmarks based on quality/data;
-- progress toward six distinct Mantles;
+- expand Ascensions based on quality/data;
+- expand Severence powers only after the first representative Severence implementation proves readable and sustainable;
 - expand enemies/maps/equipment interactions;
 - broaden AI/PvP regression coverage;
 - scale Reach Anchors/phenomena only if exploration evidence supports it.
@@ -722,7 +721,7 @@ Scope:
 - Owner Command Center;
 - staff roles/permissions;
 - audited player correction;
-- Discipline/Skill/Resonance/Essence/Soulmark/Mantle tools;
+- Discipline/Skill/Resonance/Essence/Ascension/Severence tools;
 - item/effect/loot/economy tools;
 - quest/dialogue/story/Archive tools;
 - event scheduling;
@@ -751,7 +750,7 @@ Scope:
 
 Per `docs/ANOMALIES.md`:
 
-- create Cross-Fork, Dual-Soulmark and Dual-Mantle exceptional states;
+- create Cross-Fork, Dual-Ascension and Dual-Severence exceptional states;
 - select valid registered components;
 - preview rules being bypassed;
 - require Owner reason/re-authentication/confirmation;
@@ -764,7 +763,7 @@ Per `docs/ANOMALIES.md`:
 
 ## 🔵 Phase 14 — Art, Audio & Production Presentation
 
-Complete production-quality presentation across world, characters, Disciplines, Soulmarks, Mantles, items, battle environments, VFX, audio, transitions, responsive/mobile behavior, accessibility, Archive/Rekindling/Hall of Selves and spectator/competitive presentation.
+Complete production-quality presentation across world, characters, Disciplines, Ascensions, Severence powers, items, battle environments, VFX, audio, transitions, responsive/mobile behavior, accessibility, Archive/Rekindling/Hall of Selves and spectator/competitive presentation.
 
 ### Reach identity
 
