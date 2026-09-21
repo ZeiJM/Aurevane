@@ -3,13 +3,13 @@ import type { DerivedStatId } from './derived-stats'
 
 export const ATTRIBUTE_PROFILE_HELP: Readonly<Record<CharacterAttributeId, string>> = {
   might:
-    'Physical force. Might contributes only to Physical Power; Character Level also matures Physical Power for every build.',
+    'Physical force. Might contributes only to Physical Power. Relative Character Level modifies combat damage separately rather than changing this rating.',
   finesse: 'Precision and technique. Finesse contributes only to Accuracy and Critical Chance.',
   vitality: 'Endurance and bodily resilience. Vitality contributes only to Maximum HP and Armor.',
   agility:
     'Reflexes, footwork, and mobility. Agility contributes only to Initiative, Movement, Jump, and Evasion.',
   intellect:
-    'Mystic understanding and supernatural potency. Intellect contributes only to Maximum MP and Mystic Power; Character Level also matures Mystic Power for every build.',
+    'Mystic understanding and supernatural potency. Intellect contributes only to Maximum MP and Mystic Power. Relative Character Level modifies combat damage separately rather than changing this rating.',
   resolve:
     'Willpower and supernatural steadiness. Resolve contributes only to Ward and Status Resistance.',
 }
@@ -18,9 +18,9 @@ export const DERIVED_STAT_PROFILE_HELP: Readonly<Record<DerivedStatId, string>> 
   maxHp: 'Your current maximum health before temporary battle effects.',
   maxMp: 'Your current maximum MP before temporary battle effects.',
   physicalPower:
-    'Physical damage rating from Might plus Character Level. Basic Attack and physical damaging Skills read this rating before authored combat modifiers.',
+    'Physical damage rating from Might. Basic Attack and physical damaging Skills read this rating; relative Character Level then modifies direct combat damage separately.',
   mysticPower:
-    'Mystic damage rating from Intellect plus Character Level. Mystic damaging Skills read this rating before authored combat modifiers.',
+    'Mystic damage rating from Intellect. Mystic damaging Skills read this rating; relative Character Level then modifies direct combat damage separately.',
   armor:
     'Baseline physical defense rating before equipment, Disciplines, statuses, and battle effects.',
   ward: 'Baseline mystic defense rating before equipment, Disciplines, statuses, and battle effects.',
