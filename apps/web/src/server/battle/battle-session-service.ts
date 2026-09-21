@@ -84,7 +84,7 @@ import {
   resolveBattleSkillCopyContext,
 } from './battle-skill-copy-authority'
 
-const PV1F_RULES_VERSION = 2
+const PV1F_RULES_VERSION = 3
 const PV1F_CONTENT_VERSION = 2
 const PV1F_RECRUIT_MOVEMENT_UNITS = 10
 const PV1F_RECRUIT_OFFENSIVE_BENCHMARK = calculateDerivedStats({
