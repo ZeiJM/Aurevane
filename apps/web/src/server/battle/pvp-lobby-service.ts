@@ -400,9 +400,7 @@ export function createPvpEncounter(
       maxElevationStep: derived.stats.jump.value,
     }
     const basicDamage = calculatePv1fBasicAttackDamage({
-      level: character.level,
-      might: character.might,
-      finesse: character.finesse,
+      physicalPower: derived.stats.physicalPower.value,
     })
     const spawn = spawnFor(
       member.teamIndex,
