@@ -237,14 +237,10 @@ function createVerticalSliceEncounter(
     maxElevationStep: derived.stats.jump.value,
   }
   const playerAttackDamage = calculatePv1fBasicAttackDamage({
-    level: character.level,
-    might: character.might,
-    finesse: character.finesse,
+    physicalPower: derived.stats.physicalPower.value,
   })
   const recruitAttackDamage = calculatePv1fBasicAttackDamage({
-    level: 1,
-    might: 5,
-    finesse: 5,
+    physicalPower: PV1F_RECRUIT_OFFENSIVE_BENCHMARK.stats.physicalPower.value,
   })
 
   const battle = startBattle(
