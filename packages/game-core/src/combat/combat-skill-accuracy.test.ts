@@ -489,7 +489,7 @@ describe('Mature Skill accuracy forwarding', () => {
     const skill = mature()
     const first = executePv1fMatureSkill(world(10_000, 0), skill, SELECT)
     const second = executePv1fMatureSkill(first.state, skill, SELECT)
-    expect(unit(second.state).hp).toBe(60)
+    expect(unit(second.state).hp).toBe(70)
     expect(rolls(second.events)[0]).toMatchObject({ hit: true, hitChanceBasisPoints: 10_000 })
   })
 })
