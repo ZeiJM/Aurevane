@@ -565,7 +565,11 @@ function isCurrentProfile(profile: StatDrivenCombatProfile): profile is StatDriv
 }
 
 function isLevelProfile(profile: StatDrivenCombatProfile): profile is StatDrivenCombatProfileV3 {
-  return isCurrentProfile(profile) && Number.isSafeInteger(profile.level) && (profile.level ?? 0) >= 1
+  return (
+    Number.isSafeInteger(profile.level) &&
+    (profile.level ?? 0) >= 1 &&
+    isCurrentProfile(profile)
+  )
 }
 
 function copyCurrentProfile(profile: StatDrivenCombatProfileV3): StatDrivenCombatProfileV3 {
