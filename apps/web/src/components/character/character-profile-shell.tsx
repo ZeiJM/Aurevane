@@ -135,7 +135,7 @@ export function CharacterProfileShell({
   )
   const attributePolicy = foundationDisciplineAttributePolicy(disciplineBuild.current.definition.id)
   const focusAttributes: readonly CharacterAttributeId[] = attributePolicy?.focusAttributes ?? []
-  const buildTypeLabel = disciplineBuild.currentSecondary ? 'Hybrid Build' : 'Essence Build'
+  const buildTypeLabel = disciplineBuild.currentSecondary ? 'Resonance Build' : 'Essence Build'
   const maxHp = disciplineBuild.current.derived.stats.maxHp.value
   const maxMp = disciplineBuild.current.derived.stats.maxMp.value
 
