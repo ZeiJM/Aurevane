@@ -82,8 +82,8 @@ function battleRepository() {
   return { repository, createBattleSession }
 }
 
-describe('P4.K2 live stat-scaled potency snapshots', () => {
-  it('persists bridge v2 with authoritative player and canonical recruit offensive ratings', async () => {
+describe('Level-100 live stat-scaled potency snapshots', () => {
+  it('persists bridge v3 with authoritative player and canonical recruit offensive ratings', async () => {
     const battles = battleRepository()
     const service = createBattleSessionService({
       characters: characterRepository(),
@@ -100,7 +100,7 @@ describe('P4.K2 live stat-scaled potency snapshots', () => {
     if (!input) throw new Error('Expected battle create input.')
     const state = input.initialSnapshot as StatDrivenCombatEncounterState
 
-    expect(state.statBridge).toMatchObject({ schemaVersion: 2, rulesVersion: 2 })
+    expect(state.statBridge).toMatchObject({ schemaVersion: 3, rulesVersion: 3 })
     expect(
       state.statBridge.combatants.find(
         (profile) => profile.combatantId === `character:${CHARACTER_ID}`,
@@ -112,8 +112,8 @@ describe('P4.K2 live stat-scaled potency snapshots', () => {
     expect(
       state.statBridge.combatants.find((profile) => profile.combatantId === 'recruit:p2-4-1'),
     ).toMatchObject({
-      physicalPower: 30,
-      mysticPower: 30,
+      physicalPower: 32,
+      mysticPower: 32,
     })
   })
 })
