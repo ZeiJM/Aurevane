@@ -204,7 +204,7 @@ const overrides: Record<string, ManualArticle> = {
         ],
         bullets: [
           'It cannot complete story, quests, bosses, Expeditions, or event participation.',
-          'It cannot grant PvP rank, Resonance or Essence accomplishments, Ascension or Severence accomplishments, Archive discoveries, rare equipment, economy output, or Rekindling eligibility.',
+          'It cannot grant PvP rank, Resonance or Essence accomplishments, Ascension or Severence progression, Archive discoveries, rare equipment, economy output, or Rekindling eligibility.',
           'It cannot use client-clock changes, logout tricks, or repeated claim submissions to manufacture extra rewards.',
         ],
       },
