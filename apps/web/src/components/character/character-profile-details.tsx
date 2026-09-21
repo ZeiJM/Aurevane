@@ -154,6 +154,7 @@ export function CharacterProfileDetails({
   attributeResetControl,
 }: CharacterProfileDetailsProps) {
   const [detail, setDetail] = useState<Detail>(null)
+  const [rekindlingOpen, setRekindlingOpen] = useState(false)
   const [popoverPosition, setPopoverPosition] = useState<PopoverPosition | null>(null)
   const popoverRef = useRef<HTMLElement>(null)
   const triggerRef = useRef<HTMLButtonElement | null>(null)
@@ -228,6 +229,17 @@ export function CharacterProfileDetails({
   }, [detail])
 
   useEffect(() => {
+    if (!rekindlingOpen) return
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setRekindlingOpen(false)
+    }
+
+    document.addEventListener('keydown', closeOnEscape)
+    return () => document.removeEventListener('keydown', closeOnEscape)
+  }, [rekindlingOpen])
+
+  useEffect(() => {
     if (!detail) return
 
     const dismiss = () => {
@@ -299,15 +311,12 @@ export function CharacterProfileDetails({
           className={styles.identityFact}
           data-profile-fact
           aria-haspopup="dialog"
-          aria-expanded={detail?.key === 'rekindling-cycle'}
-          aria-controls={detail?.key === 'rekindling-cycle' ? 'profile-detail-popover' : undefined}
-          onClick={(event) =>
-            openDetail(event.currentTarget, 'rekindling-cycle', {
-              eyebrow: 'Rekindling record',
-              title: `Rekindling Cycle ${cycleNumber}`,
-              body: 'A Rekindling Cycle is the numbered era of this character’s long-term progression record. It preserves history across later Rekindlings without mixing separate progression eras.',
-            })
-          }
+          aria-expanded={rekindlingOpen}
+          aria-controls={rekindlingOpen ? 'rekindling-cycle-dialog' : undefined}
+          onClick={() => {
+            dismissDetail()
+            setRekindlingOpen(true)
+          }}
         >
           <span className={styles.factGlyph} aria-hidden="true">
             <Image
@@ -469,6 +478,35 @@ export function CharacterProfileDetails({
           })}
         </div>
       </section>
+
+      {rekindlingOpen ? (
+        <div
+          className={styles.recordBackdrop}
+          role="presentation"
+          onPointerDown={() => setRekindlingOpen(false)}
+        >
+          <section
+            id="rekindling-cycle-dialog"
+            className={styles.recordDialog}
+            data-av-surface="moonstone"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="rekindling-cycle-title"
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <span>Rekindling record</span>
+            <h2 id="rekindling-cycle-title">{`Rekindling Cycle ${cycleNumber}`}</h2>
+            <p>
+              A Rekindling Cycle is the numbered era of this character’s long-term progression
+              record. It preserves history across later Rekindlings without mixing separate
+              progression eras.
+            </p>
+            <button type="button" onClick={() => setRekindlingOpen(false)}>
+              Close
+            </button>
+          </section>
+        </div>
+      ) : null}
 
       {detail ? (
         <section
