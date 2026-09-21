@@ -390,6 +390,48 @@
   background: var(--attribute-soft);
 }
 
+.recordBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: #04101bbb;
+}
+
+.recordDialog {
+  width: min(28rem, 100%);
+  padding: 1.5rem;
+  border: 1px solid var(--av-gold-rule);
+  background: var(--av-moonstone);
+  color: var(--av-text);
+  box-shadow: var(--av-shadow-deep);
+}
+
+.recordDialog > span {
+  color: var(--av-text-muted);
+  font-size: 0.75rem;
+}
+
+.recordDialog h2 {
+  margin: 0.5rem 0;
+  font: 500 1.8rem var(--av-font-display);
+}
+
+.recordDialog p {
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.recordDialog button {
+  min-height: 2.75rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--av-teal);
+  color: var(--av-on-primary);
+  background: var(--av-teal);
+}
+
 .detailPopover {
   position: fixed;
   z-index: 1250;
