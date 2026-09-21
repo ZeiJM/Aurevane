@@ -410,7 +410,9 @@ export function createPvpEncounter(
       arena.height,
     )
 
-    profiles.push(createCharacterDerivedCombatProfile(combatantId, character.id, derived))
+    profiles.push(
+      createCharacterDerivedCombatProfile(combatantId, character.id, character.level, derived),
+    )
     movementProfiles.push(movementProfile)
     placements.push({
       combatantId,
