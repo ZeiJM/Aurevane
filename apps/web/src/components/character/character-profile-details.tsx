@@ -205,9 +205,7 @@ export function CharacterProfileDetails({
       const below = detail.anchor.bottom + gap
       const above = detail.anchor.top - popover.height - gap
       top =
-        below + popover.height <= window.innerHeight - padding
-          ? below
-          : Math.max(padding, above)
+        below + popover.height <= window.innerHeight - padding ? below : Math.max(padding, above)
     } else {
       const right = detail.anchor.right + gap
       const leftSide = detail.anchor.left - popover.width - gap
@@ -361,9 +359,7 @@ export function CharacterProfileDetails({
                 aria-haspopup="dialog"
                 aria-expanded={detail?.key === `attribute:${attributeId}`}
                 aria-controls={
-                  detail?.key === `attribute:${attributeId}`
-                    ? 'profile-detail-popover'
-                    : undefined
+                  detail?.key === `attribute:${attributeId}` ? 'profile-detail-popover' : undefined
                 }
                 onClick={(event) =>
                   openDetail(event.currentTarget, `attribute:${attributeId}`, {
@@ -451,9 +447,7 @@ export function CharacterProfileDetails({
                         aria-haspopup="dialog"
                         aria-expanded={detail?.key === `stat:${statId}`}
                         aria-controls={
-                          detail?.key === `stat:${statId}`
-                            ? 'profile-detail-popover'
-                            : undefined
+                          detail?.key === `stat:${statId}` ? 'profile-detail-popover' : undefined
                         }
                         onClick={(event) =>
                           openDetail(event.currentTarget, `stat:${statId}`, {
