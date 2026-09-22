@@ -320,7 +320,7 @@
 
 .arenaControlRow {
   display: grid;
-  grid-template-columns: minmax(14rem, 0.52fr) minmax(0, 1fr);
+  grid-template-columns: minmax(14rem, 0.52fr);
   gap: 0.75rem;
   align-items: center;
 }
@@ -394,7 +394,7 @@
 
 .modePicker > button {
   display: grid;
-  grid-template-columns: 2.35rem minmax(0, 1fr);
+  grid-template-columns: 2.35rem minmax(0, 1fr) auto minmax(7rem, 0.24fr);
   min-width: 0;
   min-height: 2.9rem;
   gap: 0.5rem;
@@ -440,6 +440,33 @@
   color: #5e737e;
   font-size: 0.64rem;
   line-height: 1.25;
+}
+
+.modeArrow {
+  color: #9c7a3c;
+  font-size: 1.35rem;
+}
+
+.modeRecommendation {
+  display: grid;
+  gap: 0.04rem;
+  justify-items: center;
+  padding-left: 0.55rem;
+  border-left: 1px solid rgba(143, 114, 61, 0.22);
+  color: #846b3d;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.modeRecommendation small,
+.modeRecommendation b {
+  font-size: 0.51rem;
+  line-height: 1.2;
+  letter-spacing: 0.13em;
+}
+
+.modeRecommendation b {
+  font-weight: 750;
 }
 
 .selectedPanel {
@@ -1220,7 +1247,11 @@
   }
 
   .modePicker > button {
-    grid-template-columns: 2.5rem minmax(0, 1fr);
+    grid-template-columns: 2.5rem minmax(0, 1fr) auto;
+  }
+
+  .modeRecommendation {
+    display: none;
   }
 
   .selectedPanel {
