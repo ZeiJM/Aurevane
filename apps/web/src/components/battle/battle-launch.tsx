@@ -102,11 +102,7 @@ function isCompletePvpLobbyKey(value: string): boolean {
   return /^AVL-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(value)
 }
 
-export function BattleLaunch({
-  characterId,
-  characterName,
-  initialJoinKey = null,
-}: BattleLaunchProps) {
+export function BattleLaunch({ characterId, initialJoinKey = null }: BattleLaunchProps) {
   const router = useRouter()
   const launchLock = useRef(false)
   const joinAttempted = useRef(false)
