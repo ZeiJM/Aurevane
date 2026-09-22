@@ -18,7 +18,7 @@ const RAIL_AETHER_ORBS = [
     driftB: '-0.18rem',
     driftC: '0.24rem',
     rgb: '136 238 235',
-    opacity: '0.3',
+    opacity: '0.42',
     blur: '0.2px',
   },
   {
@@ -30,7 +30,7 @@ const RAIL_AETHER_ORBS = [
     driftB: '0.18rem',
     driftC: '-0.32rem',
     rgb: '82 199 224',
-    opacity: '0.23',
+    opacity: '0.46',
     blur: '0.35px',
   },
   {
@@ -42,7 +42,7 @@ const RAIL_AETHER_ORBS = [
     driftB: '0.29rem',
     driftC: '0.1rem',
     rgb: '190 252 248',
-    opacity: '0.34',
+    opacity: '0.46',
     blur: '0.15px',
   },
   {
@@ -54,7 +54,7 @@ const RAIL_AETHER_ORBS = [
     driftB: '-0.34rem',
     driftC: '0.29rem',
     rgb: '111 220 232',
-    opacity: '0.2',
+    opacity: '0.31',
     blur: '0.45px',
   },
   {
@@ -66,7 +66,7 @@ const RAIL_AETHER_ORBS = [
     driftB: '-0.24rem',
     driftC: '0.16rem',
     rgb: '63 174 211',
-    opacity: '0.22',
+    opacity: '0.33',
     blur: '0.4px',
   },
   {
@@ -78,7 +78,7 @@ const RAIL_AETHER_ORBS = [
     driftB: '-0.08rem',
     driftC: '0.36rem',
     rgb: '103 225 234',
-    opacity: '0.29',
+    opacity: '0.4',
     blur: '0.2px',
   },
   {
@@ -90,7 +90,7 @@ const RAIL_AETHER_ORBS = [
     driftB: '0.32rem',
     driftC: '-0.28rem',
     rgb: '74 194 216',
-    opacity: '0.18',
+    opacity: '0.29',
     blur: '0.5px',
   },
   {
@@ -102,7 +102,7 @@ const RAIL_AETHER_ORBS = [
     driftB: '0.11rem',
     driftC: '-0.14rem',
     rgb: '205 255 252',
-    opacity: '0.36',
+    opacity: '0.48',
     blur: '0.12px',
   },
   {
@@ -114,7 +114,7 @@ const RAIL_AETHER_ORBS = [
     driftB: '-0.39rem',
     driftC: '0.27rem',
     rgb: '56 166 207',
-    opacity: '0.2',
+    opacity: '0.31',
     blur: '0.4px',
   },
   {
@@ -138,7 +138,7 @@ const RAIL_AETHER_ORBS = [
     driftB: '0.24rem',
     driftC: '-0.08rem',
     rgb: '91 210 225',
-    opacity: '0.17',
+    opacity: '0.28',
     blur: '0.55px',
   },
   {
@@ -150,7 +150,7 @@ const RAIL_AETHER_ORBS = [
     driftB: '-0.2rem',
     driftC: '0.31rem',
     rgb: '126 232 237',
-    opacity: '0.26',
+    opacity: '0.37',
     blur: '0.28px',
   },
 ] as const
