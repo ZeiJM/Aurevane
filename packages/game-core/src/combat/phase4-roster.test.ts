@@ -164,9 +164,9 @@ describe('Phase 4 seventeen-Discipline acceptance matrix', () => {
   })
 
   it('has one current Essence per Discipline and one unordered Resonance per pair', () => {
-    expect(new Set(P36_REPRESENTATIVE_ESSENCES.map((definition) => definition.essenceId)).size).toBe(
-      17,
-    )
+    expect(
+      new Set(P36_REPRESENTATIVE_ESSENCES.map((definition) => definition.essenceId)).size,
+    ).toBe(17)
     expect(
       new Set(P36_REPRESENTATIVE_ESSENCES.map((definition) => definition.sourceDisciplineId)),
     ).toEqual(new Set(roster))
