@@ -120,7 +120,9 @@ describe('P3.6 versioned pure Essence framework', () => {
   })
 
   it('normalizes current mystic Essence MP while retaining historical versions', () => {
-    const disciplineIds = [...new Set(P36_REPRESENTATIVE_ESSENCES.map((row) => row.sourceDisciplineId))]
+    const disciplineIds = [
+      ...new Set(P36_REPRESENTATIVE_ESSENCES.map((row) => row.sourceDisciplineId)),
+    ]
     for (const disciplineId of disciplineIds) {
       const definition = resolveEssenceForBuild(disciplineId, null)
       if (!definition) throw new Error(`Expected current Essence for ${disciplineId}.`)
