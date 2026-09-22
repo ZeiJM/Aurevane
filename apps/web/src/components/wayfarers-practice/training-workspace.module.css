@@ -164,7 +164,7 @@
 }
 
 .window p {
-  font-size: 0.66rem;
+  font-size: 0.75rem;
 }
 
 .rewardLine {
@@ -197,7 +197,7 @@
 
 .panel .startButton {
   align-self: stretch;
-  min-height: 2.1rem;
+  min-height: 2.5rem;
   margin-top: 0.1rem;
   padding: 0.38rem 0.62rem;
   border: 1px solid #c29d58;
@@ -323,7 +323,7 @@
 
 .countdown strong {
   color: #203846;
-  font: 600 clamp(1.55rem, 1.75vw, 2rem) / 1.1 var(--av-font-display);
+  font: 600 clamp(1.75rem, 2vw, 2.15rem) / 1.1 var(--av-font-display);
   font-variant-numeric: tabular-nums;
 }
 
