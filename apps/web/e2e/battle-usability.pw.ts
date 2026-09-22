@@ -75,10 +75,8 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
 
   await page.getByRole('button', { name: 'AI Battles' }).click()
   const battleMode = page.getByLabel('Battle mode')
-  await expect(battleMode).toHaveValue('')
-  await expect(page.getByRole('button', { name: 'Enter Battle' })).toHaveCount(0)
-
-  await battleMode.selectOption('recruit-sparring')
+  await expect(battleMode).toHaveValue('recruit-sparring')
+  await expect(page.getByRole('button', { name: 'Enter Battle' })).toBeEnabled()
   const sparringArena = page.getByLabel('AI sparring arena')
   await expect(sparringArena).toBeVisible()
   await expect(sparringArena).toHaveValue('duel-yard')
