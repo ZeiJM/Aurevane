@@ -21,7 +21,11 @@ import {
   type MatureSkillCombatContext,
   type MatureSkillDefinition,
 } from './mature-skills'
-import { PV1F_COMBAT_CONTENT } from './pv1f-action-economy'
+import {
+  calculatePv1fBasicAttackDamage,
+  PV1F_BASIC_ATTACK_COST,
+  PV1F_COMBAT_CONTENT,
+} from './pv1f-action-economy'
 import { P35_REPRESENTATIVE_RESONANCES } from './resonance'
 
 export const PHASE4_BALANCE_LEVELS = [25, 50, 100] as const
@@ -32,7 +36,10 @@ export const PHASE4_BALANCE_ASSUMED_MOVEMENT_TILES = 2 as const
 export type Phase4BalanceAllocation = 'balanced' | 'offensive'
 
 export interface Phase4BalanceMetrics {
+  basicAttackDamagePer100Ap: number
   bestDirectDamagePer100Ap: number
+  bestPositionalDamagePer100Ap: number
+  bestAttritionDamagePer100Ap: number
   bestPvpDirectDamagePer100Ap: number
   bestSetupPayoffDamagePer100Ap: number
   bestHealingPer100Ap: number
@@ -230,8 +237,24 @@ function metricsForSkills(
   const direct = pve.filter((row) => row.directDamagePer100Ap > 0)
   const conditional = pve.filter((row) => row.directDamagePer100Ap > 0 && row.hasSetupRequirement)
   const bestDirect = maximum(direct.map((row) => row.directDamagePer100Ap))
+  const basicAttackRaw = calculatePv1fBasicAttackDamage({
+    physicalPower: stats.stats.physicalPower.value,
+  })
+  const basicAttackHitChance = clampBasisPoints(
+    stats.stats.accuracy.value - PHASE4_BALANCE_TARGET_EVASION,
+  )
+  const criticalExpectedMultiplier = 1 + (stats.stats.criticalChance.value / 10_000) * 0.5
+  const basicAttackExpected =
+    mitigateDamageByDefense(basicAttackRaw, PHASE4_BALANCE_TARGET_DEFENSE) *
+    (basicAttackHitChance / 10_000) *
+    criticalExpectedMultiplier
   return {
+    basicAttackDamagePer100Ap: roundMetric(
+      (basicAttackExpected * 100) / PV1F_BASIC_ATTACK_COST,
+    ),
     bestDirectDamagePer100Ap: bestDirect,
+    bestPositionalDamagePer100Ap: maximum(pve.map((row) => row.positionalDamagePer100Ap)),
+    bestAttritionDamagePer100Ap: maximum(pve.map((row) => row.attritionDamagePer100Ap)),
     bestPvpDirectDamagePer100Ap: maximum(pvp.map((row) => row.directDamagePer100Ap)),
     bestSetupPayoffDamagePer100Ap: maximum(conditional.map((row) => row.directDamagePer100Ap)),
     bestHealingPer100Ap: maximum(pve.map((row) => row.healingPer100Ap)),
@@ -273,7 +296,30 @@ function skillMetric(
     const raw = calculateScaledRawDamage(effect.amount, authoredScaling ?? scaling, power)
     return total + mitigateDamageByDefense(raw, PHASE4_BALANCE_TARGET_DEFENSE)
   }, 0)
+  const positionalDirectDamage = damageEffects.reduce((total, effect) => {
+    const authoredScaling = 'scaling' in effect ? effect.scaling : undefined
+    const raw = calculateScaledRawDamage(effect.amount, authoredScaling ?? scaling, power)
+    const mitigated = mitigateDamageByDefense(raw, PHASE4_BALANCE_TARGET_DEFENSE)
+    const facingMultiplier = effect.facingModifiersBasisPoints
+      ? Math.max(
+          effect.facingModifiersBasisPoints.front,
+          effect.facingModifiersBasisPoints.side,
+          effect.facingModifiersBasisPoints.rear,
+        )
+      : 10_000
+    return total + Math.floor((mitigated * facingMultiplier) / 10_000)
+  }, 0)
+  const attritionDamage = definition.effects.reduce((total, effect) => {
+    if (effect.type === 'burn') return total + 8
+    if (effect.type === 'bleed') return total + effect.damagePerTick * effect.ticks
+    if (effect.type === 'poison') return total + 8
+    return total
+  }, 0)
   const expectedDirectDamage = directDamage * (hitChance / 10_000) * critExpectedMultiplier
+  const expectedPositionalDamage =
+    positionalDirectDamage * (hitChance / 10_000) * critExpectedMultiplier
+  const expectedAttritionDamage =
+    expectedDirectDamage + attritionDamage * (hitChance / 10_000)
   const healing = definition.effects.reduce(
     (total, effect) =>
       effect.type === 'healing' ? total + effect.amount * (effect.ticks ?? 1) : total,
@@ -289,6 +335,12 @@ function skillMetric(
 
   return {
     directDamagePer100Ap: roundMetric((expectedDirectDamage * 100) / resolved.apCost),
+    positionalDamagePer100Ap: roundMetric(
+      (expectedPositionalDamage * 100) / resolved.apCost,
+    ),
+    attritionDamagePer100Ap: roundMetric(
+      (expectedAttritionDamage * 100) / resolved.apCost,
+    ),
     healingPer100Ap: roundMetric((healing * 100) / resolved.apCost),
     protectionBasisPoints: protectionForEffects(definition.effects),
     controlApSwing: controlApSwing(definition.effects),
