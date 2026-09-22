@@ -11,7 +11,7 @@ vi.mock('./pvp-lobby-modal', () => ({ PvpLobbyModal: () => null }))
 import { BattleLaunch } from './battle-launch'
 
 describe('Battle Hall concept composition', () => {
-  it('renders three real workspaces without selecting an AI battle or inventing public matches', () => {
+  it('renders three real workspaces with AI Sparring selected by default and no public matches', () => {
     const markup = renderToStaticMarkup(
       createElement(BattleLaunch, {
         characterId: 'character-1',
@@ -21,13 +21,15 @@ describe('Battle Hall concept composition', () => {
     expect(markup.match(/data-hall-workspace="/g)).toHaveLength(3)
     expect(markup).toContain('data-hall-scene="true"')
     expect(markup.match(/data-hall-scroll-body="true"/g)).toHaveLength(3)
-    expect(markup.match(/data-hall-action-row="true"/g)).toHaveLength(2)
+    expect(markup.match(/data-hall-action-row="true"/g)).toHaveLength(3)
     expect(markup).toContain('AI Sparring')
     expect(markup).toContain('Create Battle Lobby')
     expect(markup).toContain('Join Battle Lobby')
     expect(markup).toContain('Spectate Battle')
-    expect(markup).not.toContain('>Enter Battle<')
+    expect(markup).toContain('>Enter Battle<')
     expect(markup).not.toContain('Featured Matches')
+    expect(markup).not.toContain('No battle selected.')
+    expect(markup).not.toMatch(/Recommended for|Ideal for|For experienced/)
   })
 
   it('separates lobby creation from key entry without losing either action', () => {

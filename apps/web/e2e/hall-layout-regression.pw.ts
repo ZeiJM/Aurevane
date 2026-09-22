@@ -104,8 +104,10 @@ test('Battle Hall shows one full-width parchment workspace at a time with all re
     expect(workspaceBox!.width).toBeGreaterThan(pageBox!.width * 0.94)
   }
 
-  await expect(page.getByLabel('Battle mode')).toHaveValue('')
-  await expect(page.getByRole('button', { name: 'Enter Battle', exact: true })).toHaveCount(0)
+  await expect(page.getByLabel('Battle mode')).toHaveValue('recruit-sparring')
+  await expect(page.getByRole('button', { name: 'Enter Battle', exact: true })).toBeEnabled()
+  await expect(page.getByText('No battle selected.', { exact: true })).toHaveCount(0)
+  await expect(page.getByText(/Recommended for|Ideal for|For experienced/i)).toHaveCount(0)
 
   for (const mode of ['recruit-sparring', 'guided-fundamentals', 'mastery-trial'] as const) {
     const record = getTacticalHallRecord(mode)
