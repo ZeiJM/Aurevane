@@ -451,9 +451,7 @@ function createA03ClassTunedEssenceVersion(
       ),
       authoring: {
         ...definition.skill.authoring,
-        validationTags: [
-          ...new Set([...definition.skill.authoring.validationTags, validationTag]),
-        ],
+        validationTags: [...new Set([...definition.skill.authoring.validationTags, validationTag])],
       },
     },
   }
