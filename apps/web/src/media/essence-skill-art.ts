@@ -1,6 +1,5 @@
 export const ESSENCE_SKILL_ART = {
-  'essence.vanguard.unbroken-strike':
-    '/media/art/essence-skills/vanguard-unbroken-strike-v01.webp',
+  'essence.vanguard.unbroken-strike': '/media/art/essence-skills/vanguard-unbroken-strike-v01.webp',
   'essence.farstrider.deadeye-barrage':
     '/media/art/essence-skills/farstrider-deadeye-barrage-v01.webp',
   'essence.shadehand.perfect-opening':
@@ -12,8 +11,7 @@ export const ESSENCE_SKILL_ART = {
   'essence.bastion.last-bastion': '/media/art/essence-skills/bastion-last-bastion-v01.webp',
   'essence.dawnshield.dawns-oath': '/media/art/essence-skills/dawnshield-dawns-oath-v01.webp',
   'essence.ravager.red-tempest': '/media/art/essence-skills/ravager-red-tempest-v01.webp',
-  'essence.edgedancer.sevenfold-cut':
-    '/media/art/essence-skills/edgedancer-sevenfold-cut-v01.webp',
+  'essence.edgedancer.sevenfold-cut': '/media/art/essence-skills/edgedancer-sevenfold-cut-v01.webp',
   'essence.wildwarden.apex-hunt': '/media/art/essence-skills/wildwarden-apex-hunt-v01.webp',
   'essence.aetherist.aether-nova': '/media/art/essence-skills/aetherist-aether-nova-v01.webp',
   'essence.runeblade.runic-overdrive':
