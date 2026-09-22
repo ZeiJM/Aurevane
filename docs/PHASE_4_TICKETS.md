@@ -6,6 +6,18 @@
 
 Owner activation: explicit request for full implementation, necessary approvals, and final production deployment; followed by confirmation that Skill targeting/effect tags belong in this work. This supersedes the earlier waiting-for-start notes. It does not manufacture human playtest evidence.
 
+### A03 — full roster rebalance redo — IMPLEMENTATION COMPLETE, EXACT-HEAD VERIFICATION PENDING
+
+The Owner reopened A03 on 2026-09-22 because the prior Discipline rebalance did not constitute a complete class-wide balance pass and approved the replacement design. Draft PR #605 now implements the systemic pass against the Level-100 combat model: combat stat bridge/rules v4 carries Critical Chance, eligible direct Criticals are 150% with one result per successfully hit target per command, ordinary current Skill/Essence Power scaling is AP-weighted at 50 basis points per AP, Basic Attack is normalized to a 15% Physical Power coefficient at 30 AP, and current static mystic Skill/Essence MP costs use `max(2, floor(AP / 15))`.
+
+The deterministic Balance Harness covers all 17 published Disciplines at Levels 25/50/100 with balanced/offensive representative allocations and keeps damage, positional/attrition pressure, combined setup/payoff cost, healing, protection, control, range/area, MP, Essence and Resonance dimensions separate. It deliberately does not manufacture a single class power score. Systemic correction removed the need for a blanket per-class number rewrite; the evidence-backed authored potency correction is Edgedancer Sevenfold Cut v3 (seven base-4 packets, with historical v2 retained at seven base-3 packets).
+
+New battle authority also re-resolves the current pure Essence before freezing a new battle snapshot, matching the existing current-Skill pinning behavior while leaving character source snapshots and existing/frozen battles unchanged.
+
+**A03 is not marked closed yet.** GitHub Actions is heavily queued during concurrent UI work, so exact-head formatting/lint/type/test/build and applicable browser/database gates must still pass before this ledger changes from verification-pending to complete. This status is intentionally narrower than a completion claim.
+
+A04 human build/pair differentiation, A07 independent media acceptance, and A10 Owner Phase acceptance remain open.
+
 
 ## Owner-approved Phase 4 operations extension — 2026-09-19
 
