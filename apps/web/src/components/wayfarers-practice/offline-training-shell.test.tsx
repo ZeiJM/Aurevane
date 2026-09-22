@@ -8,7 +8,8 @@ vi.mock('@aurevane/ui', () => ({
     createElement('section', props, children),
 }))
 vi.mock('@/components/character/character-identity-card', () => ({
-  CharacterIdentityCard: () => createElement('aside', { 'data-testid': 'character-profile' }, 'Aster'),
+  CharacterIdentityCard: () =>
+    createElement('aside', { 'data-testid': 'character-profile' }, 'Aster'),
 }))
 vi.mock('@/components/media/aurevane-image', () => ({
   AurevaneImage: (props: React.ComponentProps<'img'>) => createElement('img', props),
