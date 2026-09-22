@@ -328,7 +328,7 @@
 .page input {
   width: 100%;
   min-width: 0;
-  min-height: 2.45rem;
+  min-height: 2.5rem;
   padding: 0.42rem 0.56rem;
   border: 1px solid rgba(113, 106, 88, 0.45);
   border-radius: 0;
@@ -482,7 +482,7 @@
 
 .difficultyToggle button {
   flex: 1;
-  min-height: 2.25rem;
+  min-height: 2.5rem;
   border: 1px solid rgba(91, 112, 110, 0.4);
   color: #496167;
   background: rgba(241, 244, 238, 0.82);
@@ -735,7 +735,7 @@
 .page [data-pvp-setting-options] button {
   flex: 1;
   min-width: 0;
-  min-height: 2.25rem;
+  min-height: 2.5rem;
   padding: 0.35rem 0.14rem;
   border: 1px solid rgba(105, 116, 104, 0.36);
   color: #52666d;
