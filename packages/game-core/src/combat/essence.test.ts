@@ -139,6 +139,22 @@ describe('P3.6 versioned pure Essence framework', () => {
     expect(resolveEssenceForBuild('lifebinder', null)?.skill.mpCost).toBe(3)
   })
 
+  it('tunes current Sevenfold Cut without mutating its historical Phase 4 version', () => {
+    const current = resolveEssenceForBuild('edgedancer', null)
+    const historical = resolveEssenceForBuild('edgedancer', null, 2)
+    if (!current || !historical) throw new Error('Expected Edgedancer Essence versions.')
+
+    expect(current.contentVersion).toBe(3)
+    expect(
+      current.skill.effects.filter((effect) => effect.type === 'damage').map((effect) => effect.amount),
+    ).toEqual([4, 4, 4, 4, 4, 4, 4])
+    expect(
+      historical.skill.effects
+        .filter((effect) => effect.type === 'damage')
+        .map((effect) => effect.amount),
+    ).toEqual([3, 3, 3, 3, 3, 3, 3])
+  })
+
   it('exposes a stable pure-build snapshot reference outside Discipline Skill slots', () => {
     const essence = resolveEssenceForBuild('vanguard', null)
     if (!essence) throw new Error('Expected representative Vanguard Essence.')
