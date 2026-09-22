@@ -405,7 +405,9 @@ function createA03MysticMpEssenceVersion(
     contentVersion,
     authoring: {
       ...definition.authoring,
-      validationTags: [...new Set([...definition.authoring.validationTags, 'a03-roster-rebalance'])],
+      validationTags: [
+        ...new Set([...definition.authoring.validationTags, 'a03-roster-rebalance']),
+      ],
     },
     skill: {
       ...definition.skill,
