@@ -611,13 +611,14 @@ export function evaluatePv1fMatureSkill(
   const actorId = prepared.tactical.battle.currentTurn?.combatantId
   if (!actorId) throw new Error('Mature Skill evaluation requires an active turn.')
   const resolved = resolveMatureSkillForContext(definition, combatContext)
+  const authoredCost = options.apCostOverride ?? resolved.apCost
   const resonance = committedResonanceForecast(prepared, definition, target)
   const authoredAction = toCombatActionDefinition(definition, combatContext)
   const powerScaledAuthoredEffects = applyCurrentMatureSkillPowerScaling(
     prepared,
     definition,
     authoredAction.effects,
-    resolved.apCost,
+    authoredCost,
   )
   const usageKey = options.repeatHistoryKey ?? definition.id
   const repeatPenaltyApplied = lastMatureSkillId(prepared, actorId) === usageKey
@@ -723,7 +724,6 @@ export function evaluatePv1fMatureSkill(
           })),
         }
       : evaluation
-  const authoredCost = options.apCostOverride ?? resolved.apCost
   return {
     prepared,
     action,
