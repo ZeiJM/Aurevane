@@ -38,9 +38,7 @@
   min-width: 18rem;
   border: 1px solid rgba(212, 175, 88, 0.92);
   color: #f8f0dd;
-  background:
-    linear-gradient(180deg, rgba(49, 71, 70, 0.98), rgba(27, 47, 49, 0.98)),
-    #213739;
+  background: linear-gradient(180deg, rgba(49, 71, 70, 0.98), rgba(27, 47, 49, 0.98)), #213739;
   box-shadow:
     inset 0 0 0 1px rgba(244, 221, 160, 0.12),
     0 0.25rem 0.8rem rgba(28, 37, 34, 0.12);
