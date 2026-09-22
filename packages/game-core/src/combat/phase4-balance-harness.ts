@@ -360,7 +360,9 @@ function bestCombinedSetupPayoffDamagePer100Ap(
     const payoffMetric = skillMetric(payoff, stats, 'pve')
     for (const setup of skills) {
       if (setup.id === payoff.id || setup.requirements.length > 0) continue
-      if (!setupRequirements.every((requirement) => setupSatisfiesRequirement(setup, requirement))) {
+      if (
+        !setupRequirements.every((requirement) => setupSatisfiesRequirement(setup, requirement))
+      ) {
         continue
       }
 
