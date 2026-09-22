@@ -81,9 +81,7 @@ export function OfflineTrainingShell({
                         <h3>No report waiting</h3>
                         <p>Your completed training sessions will appear here with their rewards.</p>
                       </div>
-                      <p className={panels.footnote}>
-                        “Even in absence, discipline bears fruit.”
-                      </p>
+                      <p className={panels.footnote}>“Even in absence, discipline bears fruit.”</p>
                     </section>
                   )}
                 </aside>
