@@ -55,16 +55,15 @@
 
 .heroWash {
   z-index: -1;
-  background:
-    linear-gradient(
-      90deg,
-      rgba(255, 253, 246, 0.99) 0%,
-      rgba(255, 253, 246, 0.96) 28%,
-      rgba(255, 253, 246, 0.58) 45%,
-      rgba(8, 22, 32, 0.08) 66%,
-      rgba(6, 18, 28, 0.9) 88%,
-      rgba(5, 15, 24, 0.97) 100%
-    );
+  background: linear-gradient(
+    90deg,
+    rgba(255, 253, 246, 0.99) 0%,
+    rgba(255, 253, 246, 0.96) 28%,
+    rgba(255, 253, 246, 0.58) 45%,
+    rgba(8, 22, 32, 0.08) 66%,
+    rgba(6, 18, 28, 0.9) 88%,
+    rgba(5, 15, 24, 0.97) 100%
+  );
 }
 
 .heroCopy,
@@ -223,7 +222,12 @@
 
   .heroWash {
     background:
-      linear-gradient(90deg, rgba(255, 253, 246, 0.98), rgba(255, 253, 246, 0.78) 66%, rgba(6, 18, 28, 0.68)),
+      linear-gradient(
+        90deg,
+        rgba(255, 253, 246, 0.98),
+        rgba(255, 253, 246, 0.78) 66%,
+        rgba(6, 18, 28, 0.68)
+      ),
       linear-gradient(180deg, transparent, rgba(7, 18, 27, 0.2));
   }
 
