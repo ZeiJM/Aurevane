@@ -81,9 +81,9 @@ describe('battle skill artwork presentation', () => {
       battleSkillArtwork(actionId),
     )
     expect(new Set(lifebinderArtwork).size).toBe(GENERATED_LIFEBINDER_IDS.length)
-    expect(lifebinderArtwork.slice(0, 2).every((source) => source.startsWith('data:image/svg+xml,'))).toBe(
-      true,
-    )
+    expect(
+      lifebinderArtwork.slice(0, 2).every((source) => source.startsWith('data:image/svg+xml,')),
+    ).toBe(true)
     expect(lifebinderArtwork[2]).toBe(
       '/media/art/essence-skills/lifebinder-verdant-rupture-v01.webp',
     )
