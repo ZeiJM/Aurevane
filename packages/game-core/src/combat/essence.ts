@@ -393,9 +393,7 @@ function latestEnabledEssences(
   return [...latest.values()]
 }
 
-function createA03MysticMpEssenceVersion(
-  definition: EssenceDefinition,
-): EssenceDefinition | null {
+function createA03MysticMpEssenceVersion(definition: EssenceDefinition): EssenceDefinition | null {
   if (!definition.skill.tags.includes('mystic')) return null
   const mpCost = currentMysticMpCost(definition.skill.apCost)
   if (definition.skill.mpCost === mpCost) return null
