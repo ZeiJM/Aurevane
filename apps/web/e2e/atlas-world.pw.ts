@@ -86,6 +86,24 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
   const initial = await world(page)
   expect(initial.sectors).toHaveLength(8)
   expect(JSON.stringify(initial)).not.toContain('survey-01')
+  const identity = page.getByTestId('character-profile')
+  const identityBox = (await identity.boundingBox())!
+  for (const content of [
+    identity.getByRole('heading', { name, exact: true }),
+    identity.locator('[data-character-resource="hp"]'),
+    identity.locator('[data-character-resource="mp"]'),
+  ]) {
+    const bounds = (await content.boundingBox())!
+    expect(bounds.x).toBeGreaterThanOrEqual(identityBox.x)
+    expect(bounds.y).toBeGreaterThanOrEqual(identityBox.y)
+    expect(bounds.x + bounds.width).toBeLessThanOrEqual(identityBox.x + identityBox.width)
+    expect(bounds.y + bounds.height).toBeLessThanOrEqual(identityBox.y + identityBox.height)
+  }
+  if (info.project.name === 'mobile-chromium') {
+    const portrait = (await identity.locator('[data-character-portrait-frame]').boundingBox())!
+    expect(portrait.width).toBeLessThanOrEqual(100)
+    expect(identityBox.height).toBeLessThan(260)
+  }
   const grid = page.getByRole('group', { name: 'Verdant Expanse, square movement grid' })
   await expect(grid.getByRole('button')).toHaveCount(117)
   const cell = await grid
@@ -137,8 +155,14 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
     await expect(
       page.locator('aside').getByRole('button', { name: region.name, exact: true }),
     ).toBeVisible()
-  await capture(page, info, 'world-globe')
   const sphere = page.getByRole('group', { name: /World globe/ })
+  const globeBounds = (await sphere.boundingBox())!
+  const viewportBounds = (await page.locator('[class*="mapViewport"]').boundingBox())!
+  expect(globeBounds.y).toBeGreaterThanOrEqual(viewportBounds.y + 16)
+  expect(globeBounds.y + globeBounds.height).toBeLessThanOrEqual(
+    viewportBounds.y + viewportBounds.height - 16,
+  )
+  await capture(page, info, 'world-globe')
   await sphere.focus()
   await page.keyboard.press('ArrowRight')
   await page.getByRole('button', { name: /My Position/ }).click()

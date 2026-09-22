@@ -125,7 +125,8 @@
   width: 50%;
   font-size: 0.9rem;
 }
-.tabs button[aria-pressed='true'] {
+.tabs button[aria-pressed='true'],
+.tabs button[aria-pressed='true']:hover:not(:disabled) {
   background: #052330;
   color: #f0d798;
   border-color: #c4a569;
@@ -508,6 +509,7 @@
 }
 .globeStage {
   position: relative;
+  container-type: size;
   display: grid;
   place-items: center;
   width: 100%;
@@ -522,7 +524,7 @@
 }
 .sphere {
   position: relative;
-  width: min(100%, calc(100dvh - 245px));
+  width: min(calc(100cqw - 2rem), calc(100cqh - 4rem));
   aspect-ratio: 1;
   touch-action: none;
   cursor: grab;
@@ -789,6 +791,11 @@
   padding: 0.5rem 1rem;
   cursor: pointer;
 }
+.surroundings button:hover:not(:disabled) {
+  background: #0c4550;
+  color: #fff1cd;
+  border-color: #dfc48a;
+}
 .surroundings footer {
   position: absolute;
   bottom: 0;
@@ -863,7 +870,39 @@
 }
 @media (max-width: 1199px) {
   .layout {
-    grid-template-columns: 11rem minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+  }
+  .layout > [data-profile-identity-banner] {
+    grid-template-columns: 5.5rem minmax(0, 1fr);
+    gap: 0.5rem 0.75rem;
+    padding: 0.75rem;
+    overflow: visible;
+  }
+  .layout [data-character-portrait-frame] {
+    grid-row: 1 / span 2;
+    width: 100%;
+    padding: 0.25rem;
+    align-self: start;
+  }
+  .layout [data-character-identity-copy] {
+    justify-items: start;
+    text-align: left;
+  }
+  .layout [data-character-identity-copy] h1 {
+    font-size: 1.35rem;
+    text-align: left;
+  }
+  .layout [data-character-identity-copy] > div {
+    justify-content: flex-start;
+  }
+  .layout [data-character-resources] {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+  }
+  .layout [data-character-creed] {
+    display: none;
   }
   .workspace {
     grid-template-columns: minmax(0, 1fr);
@@ -880,16 +919,11 @@
   .sectorFrame {
     width: 100%;
   }
-  .sphere {
-    width: min(100%, 38rem);
+  .globeStage {
+    height: clamp(24rem, 65vw, 42rem);
   }
   .mapColumn {
     min-height: 34rem;
-  }
-  .layout > article {
-    align-self: start;
-    position: sticky;
-    top: 1rem;
   }
 }
 @media (max-width: 760px) {
@@ -898,11 +932,6 @@
     flex-direction: column;
     height: auto;
     gap: 0.6rem;
-  }
-  .layout > article {
-    position: static;
-    max-height: 13rem;
-    overflow: auto;
   }
   .workspace {
     display: block;
@@ -974,10 +1003,8 @@
     padding: 0.8rem;
   }
   .globeStage {
+    height: 23rem;
     min-height: 23rem;
-  }
-  .sphere {
-    width: 100%;
   }
   .globePlayer {
     width: 1.6rem;

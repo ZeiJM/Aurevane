@@ -4,6 +4,8 @@
 
 Owner approved Phase 5, the globe/sector style, uncharted territory and temporary View 360. Isolated branch `agent/phase5-strategic-atlas-20260922` implements the first Atlas/travel slice with event guidance and existing PvP entry. Phase 4 acceptance remains open. See `docs/LIVING_ATLAS_DELIVERY.md` for the bounded content scope and verification/release gates; this entry does not claim all Phase 5 complete or authorize deployment.
 
+Draft PR #609 has passed authenticated Atlas browser acceptance across desktop/laptop/mobile, including private frontier discovery, all eight panoramas and a two-account attack during View 360 (run 35795492891). Real-database entry, expired-training and retry defects have regression coverage. Screenshot review adds compact phone identity, container-fitted globe and hover-contrast corrections. Owner acceptance, staging competition checks and further authored world content remain open.
+
 
 ## Battle presentation polish follow-up — 2026-09-13
 

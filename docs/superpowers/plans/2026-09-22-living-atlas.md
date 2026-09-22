@@ -61,14 +61,14 @@ Implementation/acceptance details and scoped deviations: `docs/LIVING_ATLAS_DELI
 - [x] Implement parchment toolbar, navy/gold framing, persistent character rail, region/quest/nearby side panels, square map, bottom eastings, centered portraits and distinct textures.
 - [x] Implement camera rotation, zoom, region search, layer/motion controls, route preview, Start/Stop Auto-path and guarded Attack. Animate water and environmental accents with reduced-motion support.
 - [x] Add keyboard controls, accessible dialog focus/escape restoration, mobile panel layout and a WebGL fallback.
-- [ ] Verify interactions and layout in an authorized preview. Local browser attempt was blocked; fixture route/API were restored. UI committed with the cohesive implementation candidate.
+- [x] Verify authenticated interactions and layout in disposable Supabase browser CI; run 35795492891 passed across desktop, laptop and phone. Inspect returned screenshots and guard identified presentation defects. Owner visual acceptance remains a release gate.
 
 ### Task 4: Final verification and review
 
 **Files:** map regression tests, Phase 5 ticket/roadmap/task status and delivery notes.
 
 - [x] Run `pnpm check` (all gates passed on initial candidate; rerun after review fixes).
-- [ ] Inspect actual rendered map/360 views at 1440x900, 1366x768 and mobile and runtime errors in an authorized preview.
+- [x] Inspect actual rendered map/360 views at 1440x900, 1366x768 and mobile using CI artifacts, including all eight regional sector/panorama pairs. Focused browser results and traces are attached to the draft PR checks; no deployed preview was used.
 - [x] Refresh current main and reconcile any overlaps; inspect `git diff --check` and full task patch.
 - [x] Request one fresh whole-branch review using the executing-plans skill. Address concrete critical/important findings with focused regression tests.
 - [x] Commit verified work and prepare a non-deploying draft PR, with precise remaining content and migration/release requirements.
