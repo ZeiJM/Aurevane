@@ -320,7 +320,7 @@
   gap: 0.45rem;
   align-items: center;
   color: #685431;
-  font-size: 0.67rem;
+  font-size: 0.75rem;
   font-weight: 700;
 }
 
@@ -471,7 +471,7 @@
 .difficulty legend {
   margin-bottom: 0.25rem;
   color: #765d30;
-  font-size: 0.64rem;
+  font-size: 0.75rem;
   font-weight: 700;
 }
 
@@ -663,7 +663,7 @@
 
 .joinCard label {
   color: #735c32;
-  font-size: 0.66rem;
+  font-size: 0.75rem;
   font-weight: 700;
 }
 
@@ -676,7 +676,7 @@
 
 .formatRow > label {
   color: #5d533d;
-  font-size: 0.67rem;
+  font-size: 0.75rem;
   font-weight: 700;
 }
 
@@ -697,7 +697,7 @@
   gap: 0.35rem;
   align-items: center;
   color: #64573d;
-  font-size: 0.64rem;
+  font-size: 0.75rem;
 }
 
 .flexSizes > span {
@@ -723,7 +723,7 @@
 .page [data-pvp-setting-group] legend {
   margin-bottom: 0.32rem;
   color: #715a31;
-  font-size: 0.64rem;
+  font-size: 0.75rem;
   font-weight: 700;
 }
 
