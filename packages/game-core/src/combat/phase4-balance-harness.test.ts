@@ -48,8 +48,9 @@ describe('A03 Phase 4 balance harness', () => {
     const report = buildPhase4BalanceHarness()
 
     for (const discipline of report.disciplines) {
-      expect('powerScore' in (discipline as Phase4BalanceDisciplineReport & { powerScore?: number }))
-        .toBe(false)
+      expect(
+        'powerScore' in (discipline as Phase4BalanceDisciplineReport & { powerScore?: number }),
+      ).toBe(false)
       for (const scenario of discipline.scenarios) {
         expect(scenario.metrics).toEqual(
           expect.objectContaining({
@@ -84,22 +85,18 @@ describe('A03 Phase 4 balance harness', () => {
     }
   })
 
-  it('prints the temporary A03 review slice for evidence-backed class tuning', () => {
+  it('emits the temporary A03 review slice for evidence-backed class tuning', () => {
     const report = buildPhase4BalanceHarness()
-    console.info(
-      'A03_BALANCE_REVIEW ' +
-        JSON.stringify(
-          report.disciplines.map((discipline) => ({
-            disciplineId: discipline.disciplineId,
-            level100Offensive: discipline.scenarios.find(
-              (scenario) => scenario.level === 100 && scenario.allocation === 'offensive',
-            )?.metrics,
-            essence: discipline.essence,
-            resonance: discipline.resonance,
-          })),
-        ),
-    )
-    expect(report.disciplines).toHaveLength(17)
+    const review = report.disciplines.map((discipline) => ({
+      disciplineId: discipline.disciplineId,
+      level100Offensive: discipline.scenarios.find(
+        (scenario) => scenario.level === 100 && scenario.allocation === 'offensive',
+      )?.metrics,
+      essence: discipline.essence,
+      resonance: discipline.resonance,
+    }))
+
+    throw new Error('A03_BALANCE_REVIEW ' + JSON.stringify(review))
   })
 
   it('preserves distinct support/control dimensions for non-DPS roles', () => {
