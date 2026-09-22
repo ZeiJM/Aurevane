@@ -738,8 +738,8 @@
 
 .page [data-pvp-settings-panel] {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.48rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.48rem 0.65rem;
   margin-top: 0.12rem;
 }
 
@@ -924,10 +924,6 @@
 @media (max-width: 1199px) {
   .page {
     align-self: start;
-  }
-
-  .page [data-pvp-settings-panel] {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .pvpStage {
