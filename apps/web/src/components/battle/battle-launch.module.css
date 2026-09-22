@@ -834,6 +834,11 @@
   content: '';
 }
 
+.spectateActions {
+  display: grid;
+  justify-items: center;
+}
+
 .keyEntry {
   display: grid;
   width: min(43rem, 100%);
