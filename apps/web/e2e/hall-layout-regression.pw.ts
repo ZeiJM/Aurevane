@@ -107,7 +107,12 @@ test('Battle Hall shows one full-width parchment workspace at a time with all re
   await expect(page.getByLabel('Battle mode')).toHaveValue('recruit-sparring')
   await expect(page.getByRole('button', { name: 'Enter Battle', exact: true })).toBeEnabled()
   await expect(page.getByText('No battle selected.', { exact: true })).toHaveCount(0)
-  await expect(page.getByText(/Recommended for|Ideal for|For experienced/i)).toHaveCount(0)
+  await expect(ai.getByText('Recommended for', { exact: true })).toBeVisible()
+  await expect(ai.getByText('Ideal for', { exact: true })).toBeVisible()
+  await expect(ai.getByText('For experienced', { exact: true })).toBeVisible()
+  await expect(ai.getByText('01 / AI Battles', { exact: true })).toHaveCount(0)
+  await expect(ai.getByText('Practice, learn, and test your committed build against AI opponents.', { exact: true })).toHaveCount(0)
+  await expect(ai.getByText(/Full duel arena with difficult ground, elevation, and flanking room./)).toHaveCount(0)
 
   for (const mode of ['recruit-sparring', 'guided-fundamentals', 'mastery-trial'] as const) {
     const record = getTacticalHallRecord(mode)
@@ -140,6 +145,7 @@ test('Battle Hall shows one full-width parchment workspace at a time with all re
   await expect(page.locator('[data-hall-workspace]:visible')).toHaveCount(1)
   await expect(page.locator('[data-hall-workspace="pvp"]')).toBeVisible()
   await expect(ai).toBeHidden()
+  await expect(page.getByText('02 / Challenge', { exact: true })).toHaveCount(0)
 
   await page.locator('#pvp-mode').selectOption('flex-teams')
   await expect(page.locator('[data-pvp-team-sizes] select')).toHaveCount(2)
@@ -170,6 +176,7 @@ test('Battle Hall shows one full-width parchment workspace at a time with all re
   await expect(page.locator('[data-hall-workspace]:visible')).toHaveCount(1)
   await expect(page.locator('[data-hall-workspace="spectate"]')).toBeVisible()
   await expect(page.locator('[data-hall-workspace="pvp"]')).toBeHidden()
+  await expect(page.getByText('03 / Spectate', { exact: true })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Spectate Battle', exact: true })).toBeDisabled()
   await page.getByRole('textbox', { name: 'Battle Key', exact: true }).fill('avb-abcd-1234')
   await expect(page.getByRole('button', { name: 'Spectate Battle', exact: true })).toBeEnabled()
