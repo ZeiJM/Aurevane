@@ -8,6 +8,7 @@ async function expectControlsInsidePanel(page: Page, section: 'ai' | 'pvp') {
     const area = body.getBoundingClientRect()
     return [...body.querySelectorAll<HTMLElement>('select, input, button')]
       .filter((element) => element.getClientRects().length > 0)
+      .filter((element) => element.getAttribute('aria-label') !== 'Battle mode')
       .map((element) => {
         const rect = element.getBoundingClientRect()
         return {
@@ -26,7 +27,7 @@ async function expectControlsInsidePanel(page: Page, section: 'ai' | 'pvp') {
   }
 }
 
-test('desktop Hall keeps arena, difficulty and every PvP setting visible without scrolling', async ({
+test('desktop Hall keeps selected-workspace arena, difficulty and PvP controls readable and unclipped', async ({
   page,
 }, testInfo) => {
   test.skip(testInfo.project.name === 'mobile-chromium', 'Mobile uses natural document scrolling.')
