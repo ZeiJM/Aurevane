@@ -81,7 +81,19 @@ test('training composition preserves idle, active, report and claim flows', asyn
         scene: bounds(scene),
         planner: bounds(planner),
         overflowX: document.documentElement.scrollWidth - innerWidth,
+        mainOverflowY: (() => {
+          const main = document.getElementById('game-main')
+          return main ? main.scrollHeight - main.clientHeight : 0
+        })(),
         plannerOverflowX: planner.scrollWidth - planner.clientWidth,
+        reportSceneBottom: (() => {
+          const scene = report?.querySelector('img')
+          return scene?.getBoundingClientRect().bottom ?? null
+        })(),
+        reportGlyphTop: (() => {
+          const glyph = report?.querySelector('[aria-hidden="true"]')
+          return glyph?.getBoundingClientRect().top ?? null
+        })(),
         hasReportWorkspace: report !== null,
         minActionHeight: Math.min(
           ...actions.map((button) => button.getBoundingClientRect().height),
@@ -113,6 +125,18 @@ test('training composition preserves idle, active, report and claim flows', asyn
     expect
       .soft(metrics.hasReportWorkspace, `${label}: dedicated real report/empty state`)
       .toBe(true)
+    if (state === 'idle' && !mobile) {
+      expect
+        .soft(metrics.mainOverflowY, `${label}: 100% zoom does not require page scrolling`)
+        .toBeLessThanOrEqual(1)
+      expect.soft(metrics.reportSceneBottom).not.toBeNull()
+      expect.soft(metrics.reportGlyphTop).not.toBeNull()
+      if (metrics.reportSceneBottom !== null && metrics.reportGlyphTop !== null) {
+        expect
+          .soft(metrics.reportGlyphTop, `${label}: report icon stays below the artwork`)
+          .toBeGreaterThanOrEqual(metrics.reportSceneBottom)
+      }
+    }
     expect
       .soft(metrics.minActionHeight, `${label}: usable duration actions`)
       .toBeGreaterThanOrEqual(40)
