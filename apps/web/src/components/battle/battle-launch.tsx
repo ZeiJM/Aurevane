@@ -113,7 +113,7 @@ export function BattleLaunch({
   const restoreAttempted = useRef(false)
   const [section, setSection] = useState<HallSection>('ai')
   const [pvpEntry, setPvpEntry] = useState<'create' | 'join'>(initialJoinKey ? 'join' : 'create')
-  const [recordId, setRecordId] = useState<TacticalHallRecordId | null>(null)
+  const [recordId, setRecordId] = useState<TacticalHallRecordId | null>('recruit-sparring')
   const [arenaId, setArenaId] = useState<TacticalHallArenaId>('duel-yard')
   const [aiDifficulty, setAiDifficulty] = useState<AiDifficulty>('standard')
   const [pvpMode, setPvpMode] = useState<PvpMode | null>(DEFAULT_PVP_MODE)
@@ -135,7 +135,6 @@ export function BattleLaunch({
   function chooseSection(next: HallSection) {
     setSection(next)
     setError(null)
-    if (next !== 'ai') setRecordId(null)
   }
 
   function chooseRecord(nextRecordId: TacticalHallRecordId) {
@@ -508,12 +507,6 @@ export function BattleLaunch({
 
               {VISIBLE_RECORD_IDS.map((id) => {
                 const record = getTacticalHallRecord(id)
-                const recommendation =
-                  id === 'recruit-sparring'
-                    ? ['Recommended for', 'all players']
-                    : id === 'guided-fundamentals'
-                      ? ['Ideal for', 'new players']
-                      : ['For experienced', 'players']
                 return (
                   <button
                     type="button"
@@ -529,13 +522,6 @@ export function BattleLaunch({
                     <span className={styles.modeCopy}>
                       <strong>{recordDisplayName(id, record.name)}</strong>
                       <small>{record.purpose}</small>
-                    </span>
-                    <span className={styles.modeArrow} aria-hidden="true">
-                      ›
-                    </span>
-                    <span className={styles.modeRecommendation}>
-                      <small>{recommendation[0]}</small>
-                      <b>{recommendation[1]}</b>
                     </span>
                   </button>
                 )
