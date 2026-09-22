@@ -7,6 +7,9 @@ vi.mock('@aurevane/ui', () => ({
   Surface: ({ children, ...props }: React.ComponentProps<'section'>) =>
     createElement('section', props, children),
 }))
+vi.mock('@/components/character/character-identity-card', () => ({
+  CharacterIdentityCard: () => createElement('aside', { 'data-testid': 'character-profile' }, 'Aster'),
+}))
 vi.mock('@/components/media/aurevane-image', () => ({
   AurevaneImage: (props: React.ComponentProps<'img'>) => createElement('img', props),
 }))
@@ -24,10 +27,10 @@ vi.mock('./training-report-card', () => ({
 import { OfflineTrainingShell } from './offline-training-shell'
 
 describe('offline training shell', () => {
-  it('keeps the Passive Training title while removing redundant hero copy', () => {
+  it('keeps the Passive Training title, shared rail, and removes redundant section navigation', () => {
     const markup = renderToStaticMarkup(
       createElement(OfflineTrainingShell, {
-        characterName: 'Aster',
+        identity: {} as never,
         practicePlan: {} as never,
         trainingReport: null,
       }),
@@ -37,5 +40,7 @@ describe('offline training shell', () => {
     expect(markup).not.toContain('Background progression')
     expect(markup).not.toContain('Start a timed training block')
     expect(markup).not.toContain('Simple rule')
+    expect(markup).toContain('data-testid="character-profile"')
+    expect(markup).not.toContain('aria-label="Training sections"')
   })
 })
