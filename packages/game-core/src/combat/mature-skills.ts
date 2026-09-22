@@ -17,6 +17,13 @@ import type { SkillCooldownDefinition } from './skill-cooldowns'
 export const MATURE_SKILL_SCHEMA_VERSION = 1 as const
 export type MatureSkillCombatContext = 'pve' | 'pvp'
 
+export function currentMysticMpCost(apCost: number): number {
+  if (!Number.isSafeInteger(apCost) || apCost < 1 || apCost > 100) {
+    throw new RangeError('Mystic Skill AP cost must be a safe integer from 1 to 100.')
+  }
+  return Math.max(2, Math.floor(apCost / 15))
+}
+
 export type MatureSkillUnlockRequirement =
   | { readonly kind: 'discipline-mastery'; readonly minimumStage: number }
   | { readonly kind: 'system-grant'; readonly grantId: string }
@@ -828,9 +835,35 @@ const PHASE4_REBALANCED_DISCIPLINE_SKILLS = latestEnabledMatureSkills(
   PRE_PHASE4_REBALANCE_DISCIPLINE_SKILLS,
 ).map(createPhase4RebalancedSkill)
 
+function createA03MysticMpSkillVersion(
+  definition: MatureSkillDefinition,
+): MatureSkillDefinition | null {
+  if (!definition.tags.includes('mystic')) return null
+  const mpCost = currentMysticMpCost(definition.apCost)
+  if (definition.mpCost === mpCost) return null
+  return {
+    ...definition,
+    contentVersion: definition.contentVersion + 1,
+    mpCost,
+    authoring: {
+      ...definition.authoring,
+      validationTags: [...new Set([...definition.authoring.validationTags, 'a03-roster-rebalance'])],
+    },
+  }
+}
+
+const A03_MYSTIC_MP_DISCIPLINE_SKILLS = latestEnabledMatureSkills([
+  ...PRE_PHASE4_REBALANCE_DISCIPLINE_SKILLS,
+  ...PHASE4_REBALANCED_DISCIPLINE_SKILLS,
+]).flatMap((definition) => {
+  const next = createA03MysticMpSkillVersion(definition)
+  return next ? [next] : []
+})
+
 export const P33_REPRESENTATIVE_DISCIPLINE_SKILLS = [
   ...PRE_PHASE4_REBALANCE_DISCIPLINE_SKILLS,
   ...PHASE4_REBALANCED_DISCIPLINE_SKILLS,
+  ...A03_MYSTIC_MP_DISCIPLINE_SKILLS,
 ] as const satisfies readonly MatureSkillDefinition[]
 
 /** Current selection catalog; the full registry above also retains explicit battle history. */
