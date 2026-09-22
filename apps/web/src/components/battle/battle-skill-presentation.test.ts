@@ -52,9 +52,11 @@ describe('battle skill artwork presentation', () => {
   })
 
   it('lets a published Skill media hook replace artwork without changing the action id', () => {
-    expect(battleSkillArtwork('vanguard.forceful-strike', 'skill.lifebinder.mend.icon')).toBe(
-      '/media/art/concept-ui/skill-lifebinder-mend-v01.webp',
-    )
+    const hooked = battleSkillArtwork('vanguard.forceful-strike', 'skill.lifebinder.mend.icon')
+    expect(hooked).toBe(battleSkillArtwork('lifebinder.mend'))
+    expect(hooked).toMatch(/^data:image\/svg\+xml,/)
+    expect(decodeURIComponent(hooked)).toContain('data-art-kind="discipline-skill-action"')
+    expect(decodeURIComponent(hooked)).toContain('data-action-figure="true"')
     expect(battleSkillArtwork('vanguard.forceful-strike', 'skill.unknown.icon')).toBe(
       PHASE_3_COMBAT_ARTWORK['vanguard.forceful-strike'],
     )
@@ -83,18 +85,22 @@ describe('battle skill artwork presentation', () => {
     expect(battleSkillArtwork('future.skill')).toBe(BATTLE_MISSING_ARTWORK)
   })
 
-  it('resolves the four approved painted Skills to distinct existing runtime files', () => {
+  it('replaces the four former painted exceptions with distinct comprehensive-suite artwork', () => {
     const ids = [
       'runeblade.aether-cut',
       'runeblade.sigil-brand',
       'lifebinder.mend',
       'lifebinder.renew',
     ]
-    const paths = ids.map((id) => battleSkillArtwork(id))
-    expect(new Set(paths).size).toBe(ids.length)
-    for (const path of paths) {
-      expect(path).toMatch(/^\/media\/art\/concept-ui\/skill-.+\.webp$/)
-      expect(existsSync(new URL(`../../../public${path}`, import.meta.url))).toBe(true)
+    const artwork = ids.map((id) => battleSkillArtwork(id))
+    expect(new Set(artwork).size).toBe(ids.length)
+    for (const source of artwork) {
+      expect(source).toMatch(/^data:image\/svg\+xml,/)
+      const svg = decodeURIComponent(source)
+      expect(svg).toContain('width="512"')
+      expect(svg).toContain('height="512"')
+      expect(svg).toContain('data-art-kind="discipline-skill-action"')
+      expect(svg).toContain('data-action-figure="true"')
     }
   })
 

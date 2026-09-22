@@ -22,13 +22,6 @@ export interface SkillAudioCueHookOption {
   sampleSrc: string | null
 }
 
-const CONCEPT_SKILL_ARTWORK: Readonly<Record<string, string>> = {
-  'runeblade.aether-cut': '/media/art/concept-ui/skill-runeblade-aether-cut-v01.webp',
-  'runeblade.sigil-brand': '/media/art/concept-ui/skill-runeblade-sigil-brand-v01.webp',
-  'lifebinder.mend': '/media/art/concept-ui/skill-lifebinder-mend-v01.webp',
-  'lifebinder.renew': '/media/art/concept-ui/skill-lifebinder-renew-v01.webp',
-}
-
 function titleSkill(skillId: string): string {
   const tail = skillId.includes('.') ? skillId.slice(skillId.indexOf('.') + 1) : skillId
   return tail
@@ -39,7 +32,7 @@ function titleSkill(skillId: string): string {
 }
 
 export function registeredSkillArtworkSource(skillId: string): string | null {
-  return CONCEPT_SKILL_ARTWORK[skillId] ?? darkFantasySkillArtwork(skillId)
+  return darkFantasySkillArtwork(skillId)
 }
 
 const currentSkills = latestEnabledMatureSkills()
