@@ -14,6 +14,7 @@ import { FOUNDATION_DISCIPLINES } from '../character/foundation-disciplines'
 import type { CombatEffectDefinition, CombatUseRequirement } from './actions'
 import { calculateScaledRawDamage, currentSkillDamageScaling } from './damage-scaling'
 import { mitigateDamageByDefense } from './damage-mitigation'
+import type { GameplayTag } from './gameplay-tags'
 import { resolveEssenceForBuild } from './essence'
 import {
   latestEnabledMatureSkills,
@@ -248,9 +249,7 @@ function metricsForSkills(
     (basicAttackHitChance / 10_000) *
     criticalExpectedMultiplier
   return {
-    basicAttackDamagePer100Ap: roundMetric(
-      (basicAttackExpected * 100) / PV1F_BASIC_ATTACK_COST,
-    ),
+    basicAttackDamagePer100Ap: roundMetric((basicAttackExpected * 100) / PV1F_BASIC_ATTACK_COST),
     bestDirectDamagePer100Ap: bestDirect,
     bestPositionalDamagePer100Ap: maximum(pve.map((row) => row.positionalDamagePer100Ap)),
     bestAttritionDamagePer100Ap: maximum(pve.map((row) => row.attritionDamagePer100Ap)),
@@ -317,8 +316,7 @@ function skillMetric(
   const expectedDirectDamage = directDamage * (hitChance / 10_000) * critExpectedMultiplier
   const expectedPositionalDamage =
     positionalDirectDamage * (hitChance / 10_000) * critExpectedMultiplier
-  const expectedAttritionDamage =
-    expectedDirectDamage + attritionDamage * (hitChance / 10_000)
+  const expectedAttritionDamage = expectedDirectDamage + attritionDamage * (hitChance / 10_000)
   const healing = definition.effects.reduce(
     (total, effect) =>
       effect.type === 'healing' ? total + effect.amount * (effect.ticks ?? 1) : total,
@@ -336,12 +334,8 @@ function skillMetric(
     expectedDirectDamage,
     apCost: resolved.apCost,
     directDamagePer100Ap: roundMetric((expectedDirectDamage * 100) / resolved.apCost),
-    positionalDamagePer100Ap: roundMetric(
-      (expectedPositionalDamage * 100) / resolved.apCost,
-    ),
-    attritionDamagePer100Ap: roundMetric(
-      (expectedAttritionDamage * 100) / resolved.apCost,
-    ),
+    positionalDamagePer100Ap: roundMetric((expectedPositionalDamage * 100) / resolved.apCost),
+    attritionDamagePer100Ap: roundMetric((expectedAttritionDamage * 100) / resolved.apCost),
     healingPer100Ap: roundMetric((healing * 100) / resolved.apCost),
     protectionBasisPoints: protectionForEffects(definition.effects),
     controlApSwing: controlApSwing(definition.effects),
@@ -366,11 +360,7 @@ function bestCombinedSetupPayoffDamagePer100Ap(
     const payoffMetric = skillMetric(payoff, stats, 'pve')
     for (const setup of skills) {
       if (setup.id === payoff.id || setup.requirements.length > 0) continue
-      if (
-        !setupRequirements.every((requirement) =>
-          setupSatisfiesRequirement(setup, requirement),
-        )
-      ) {
+      if (!setupRequirements.every((requirement) => setupSatisfiesRequirement(setup, requirement))) {
         continue
       }
 
@@ -384,18 +374,13 @@ function bestCombinedSetupPayoffDamagePer100Ap(
   return best
 }
 
-function isSetupRequirement(
-  requirement: CombatUseRequirement,
-): requirement is Extract<
-  CombatUseRequirement,
-  {
-    kind:
-      | 'actor-status-present'
-      | 'target-status-present'
-      | 'actor-tag-present'
-      | 'target-tag-present'
-  }
-> {
+type SetupRequirement =
+  | { kind: 'actor-status-present'; statusId: string }
+  | { kind: 'target-status-present'; statusId: string }
+  | { kind: 'actor-tag-present'; tag: GameplayTag }
+  | { kind: 'target-tag-present'; tag: GameplayTag }
+
+function isSetupRequirement(requirement: CombatUseRequirement): requirement is SetupRequirement {
   return (
     requirement.kind === 'actor-status-present' ||
     requirement.kind === 'target-status-present' ||
@@ -412,16 +397,7 @@ type SetupRequirementIdentity = {
 
 function setupSatisfiesRequirement(
   setup: MatureSkillDefinition,
-  requirement: Extract<
-    CombatUseRequirement,
-    {
-      kind:
-        | 'actor-status-present'
-        | 'target-status-present'
-        | 'actor-tag-present'
-        | 'target-tag-present'
-    }
-  >,
+  requirement: SetupRequirement,
 ): boolean {
   const identity = setupRequirementIdentity(requirement)
   return setup.effects.some((effect) => {
@@ -443,18 +419,7 @@ function setupSatisfiesRequirement(
   })
 }
 
-function setupRequirementIdentity(
-  requirement: Extract<
-    CombatUseRequirement,
-    {
-      kind:
-        | 'actor-status-present'
-        | 'target-status-present'
-        | 'actor-tag-present'
-        | 'target-tag-present'
-    }
-  >,
-): SetupRequirementIdentity {
+function setupRequirementIdentity(requirement: SetupRequirement): SetupRequirementIdentity {
   if (requirement.kind === 'actor-status-present') {
     return { scope: 'actor', kind: 'status', value: requirement.statusId }
   }
