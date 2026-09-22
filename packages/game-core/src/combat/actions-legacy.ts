@@ -1936,7 +1936,11 @@ function resolveDamageAmount(
     amount = mitigateDamageByDefense(amount, defense)
   }
 
-  if (state.statBridge?.rulesVersion === 3 && actorId !== recipientId && amount > 0) {
+  if (
+    (state.statBridge?.rulesVersion === 3 || state.statBridge?.rulesVersion === 4) &&
+    actorId !== recipientId &&
+    amount > 0
+  ) {
     const attacker = state.statBridge.combatants.find((unit) => unit.combatantId === actorId)
     const defender = state.statBridge.combatants.find((unit) => unit.combatantId === recipientId)
     if (attacker?.level === undefined || defender?.level === undefined) {
