@@ -62,8 +62,12 @@ test('training uses the approved character rail and parchment three-workspace co
   })
 
   const rgb = (value: string) => (value.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number)
-  expect.soft(Math.min(...rgb(metrics.plannerBackground)), 'light parchment planner').toBeGreaterThan(180)
-  expect.soft(Math.max(...rgb(metrics.plannerColor)), 'dark readable planner text').toBeLessThan(100)
+  expect
+    .soft(Math.min(...rgb(metrics.plannerBackground)), 'light parchment planner')
+    .toBeGreaterThan(180)
+  expect
+    .soft(Math.max(...rgb(metrics.plannerColor)), 'dark readable planner text')
+    .toBeLessThan(100)
   expect.soft(metrics.overflowX, 'no sideways page clipping').toBeLessThanOrEqual(1)
 
   if (!mobile && metrics.identity && metrics.current && metrics.report) {
