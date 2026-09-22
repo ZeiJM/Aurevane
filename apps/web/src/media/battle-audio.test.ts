@@ -125,7 +125,7 @@ describe('committed battle audio', () => {
       '/media/art/discipline-sigils/bastion-sigil-v01.webp',
     )
     expect(phase4SkillArtwork('essence.bastion.last-bastion')).toBe(
-      '/media/art/discipline-sigils/bastion-sigil-v01.webp',
+      '/media/art/essence-skills/bastion-last-bastion-v01.webp',
     )
     expect(phase4SkillArtwork('bastion.fortress')).toMatch(/^data:image\/svg/)
   })
@@ -139,7 +139,7 @@ describe('committed battle audio', () => {
       ).toEqual([{ assetId: `audio.phase4.ironfist-${role}-v01-3`, priority }])
     }
     expect(phase4SkillArtwork('essence.ironfist.hundredfold-rush')).toBe(
-      '/media/art/discipline-sigils/ironfist-sigil-v01.webp',
+      '/media/art/essence-skills/ironfist-hundredfold-rush-v01.webp',
     )
     expect(phase4SkillArtwork('ironfist.breakfall')).toBeNull()
     expect(phase4SkillArtwork('essence.ironfist.unknown')).toBeNull()

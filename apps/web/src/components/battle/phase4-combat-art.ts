@@ -1,6 +1,7 @@
 import { ADVANCED_DISCIPLINES } from '@aurevane/game-core/character/advanced-disciplines'
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 import { resolveEssenceForBuild } from '@aurevane/game-core/combat/essence'
+import { essenceSkillArtwork } from '../../media/essence-skill-art'
 import { imageAssetRegistry } from '../../media/registry'
 
 /** Original, code-native tactical sigils. Geometry communicates tradition, shape and effect;
@@ -74,28 +75,18 @@ export function phase4DisciplineSigil(disciplineId: string): string | null {
   return color ? source(frame(color, glyphs[disciplineId]!)) : null
 }
 export function phase4SkillArtwork(actionId: string): string | null {
-  // Ironfist keeps its distinct regular Skill sigils; only the Essence shares its painted identity.
-  if (
-    actionId.startsWith('essence.ironfist.') &&
-    actionId === resolveEssenceForBuild('ironfist', null)?.skill.id
-  ) {
-    const identity = imageAssetRegistry.get('discipline.foundation.ironfist-sigil')
-    if (identity?.status === 'approved' && identity.src)
-      return identity.src.replace('-128-', '-256-')
+  if (actionId.startsWith('essence.')) {
+    const discipline = actionId.split('.')[1]!
+    const skill = resolveEssenceForBuild(discipline, null)?.skill
+    if (!skill || skill.id !== actionId) return null
+    return essenceSkillArtwork(actionId)
   }
-  const discipline = actionId.startsWith('essence.')
-    ? actionId.split('.')[1]!
-    : actionId.split('.')[0]!
+
+  const discipline = actionId.split('.')[0]!
   const color = PHASE4_DISCIPLINE_COLORS[discipline]
   if (!color) return null
-  const skill = actionId.startsWith('essence.')
-    ? resolveEssenceForBuild(discipline, null)?.skill
-    : resolveMatureSkillVersion(actionId)
+  const skill = resolveMatureSkillVersion(actionId)
   if (!skill || skill.id !== actionId) return null
-  if (actionId.startsWith('essence.')) {
-    const identity = phase4DisciplineSigil(discipline)
-    if (identity?.startsWith('/media/')) return identity.replace('-128-', '-256-')
-  }
   const status = skill.effects.find((effect) => effect.type === 'apply-status')
   const typedDot = skill.effects.find(
     (effect) => effect.type === 'burn' || effect.type === 'bleed' || effect.type === 'poison',
