@@ -56,8 +56,7 @@ export async function loadCharacterIdentityRailContext(
     secondary,
     personalTitle:
       titleStateResult.status === 'fulfilled' ? titleStateResult.value.personalTitle : null,
-    imageUrl:
-      displayStateResult.status === 'fulfilled' ? displayStateResult.value.imageUrl : null,
+    imageUrl: displayStateResult.status === 'fulfilled' ? displayStateResult.value.imageUrl : null,
     disciplineSummary: secondary
       ? `${primary.name} and ${secondary.name} techniques woven into one committed build.`
       : primary.summary,
