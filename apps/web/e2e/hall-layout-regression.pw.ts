@@ -113,8 +113,14 @@ test('Battle Hall shows one full-width parchment workspace at a time with all re
     await expect(ai.getByText('For experienced', { exact: true })).toBeVisible()
   }
   await expect(ai.getByText('01 / AI Battles', { exact: true })).toHaveCount(0)
-  await expect(ai.getByText('Practice, learn, and test your committed build against AI opponents.', { exact: true })).toHaveCount(0)
-  await expect(ai.getByText(/Full duel arena with difficult ground, elevation, and flanking room./)).toHaveCount(0)
+  await expect(
+    ai.getByText('Practice, learn, and test your committed build against AI opponents.', {
+      exact: true,
+    }),
+  ).toHaveCount(0)
+  await expect(
+    ai.getByText(/Full duel arena with difficult ground, elevation, and flanking room./),
+  ).toHaveCount(0)
 
   for (const mode of ['recruit-sparring', 'guided-fundamentals', 'mastery-trial'] as const) {
     const record = getTacticalHallRecord(mode)
