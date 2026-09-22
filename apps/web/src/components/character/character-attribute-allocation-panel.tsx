@@ -220,25 +220,6 @@ export function CharacterAttributeAllocationPanel({
                     sizes="(min-width: 761px) 28rem, 100vw"
                     alt={`${portrait.name} portrait`}
                   />
-                  <span className={styles.portraitCrest} aria-hidden="true">
-                    ✦
-                  </span>
-                  <span
-                    className={`${styles.portraitCorner} ${styles.portraitCornerTopLeft}`}
-                    aria-hidden="true"
-                  />
-                  <span
-                    className={`${styles.portraitCorner} ${styles.portraitCornerTopRight}`}
-                    aria-hidden="true"
-                  />
-                  <span
-                    className={`${styles.portraitCorner} ${styles.portraitCornerBottomLeft}`}
-                    aria-hidden="true"
-                  />
-                  <span
-                    className={`${styles.portraitCorner} ${styles.portraitCornerBottomRight}`}
-                    aria-hidden="true"
-                  />
                 </div>
 
                 <div
