@@ -709,7 +709,10 @@ export function BattleLaunch({
             ) : (
               <div className={styles.selectionNote}>
                 <strong>No battle selected.</strong>
-                <span>Select a battle mode to begin in the chosen arena.</span>
+                <span>
+                  {characterName} will enter with their committed build. Select a battle mode to
+                  begin in the chosen arena.
+                </span>
               </div>
             )}
           </div>
