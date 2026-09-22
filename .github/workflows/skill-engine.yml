@@ -30,7 +30,7 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Focused formatting
         run: |
-          pnpm exec prettier --write \
+          pnpm exec prettier --check \
             packages/game-core/src/combat/actions.ts \
             packages/game-core/src/combat/actions-legacy.ts \
             packages/game-core/src/combat/combat-critical.ts \
@@ -51,35 +51,6 @@ jobs:
             packages/game-core/src/combat/pv1f-action-economy.ts \
             packages/game-core/src/combat/pv1f-action-economy.test.ts \
             packages/game-core/src/combat/recruit-ai.test.ts \
-            packages/game-core/package.json
-          git diff -- packages/game-core/src/combat packages/game-core/package.json
-      - name: Show focused formatting patch
-        if: failure()
-        run: |
-          pnpm exec prettier --write \
-            packages/game-core/src/combat/actions.ts \
-            packages/game-core/src/combat/actions-legacy.ts \
-            packages/game-core/src/combat/combat-critical.ts \
-            packages/game-core/src/combat/combat-critical.test.ts \
-            packages/game-core/src/combat/damage-scaling.ts \
-            packages/game-core/src/combat/damage-scaling.test.ts \
-            packages/game-core/src/combat/stat-driven-combat.ts \
-            packages/game-core/src/combat/stat-driven-combat.test.ts \
-            packages/game-core/src/combat/essence.ts \
-            packages/game-core/src/combat/essence.test.ts \
-            packages/game-core/src/combat/phase4-balance-harness.ts \
-            packages/game-core/src/combat/phase4-balance-harness.test.ts \
-            packages/game-core/src/combat/mature-skills.ts \
-            packages/game-core/src/combat/mature-skills.test.ts \
-            packages/game-core/src/combat/lifebinder-offense-skills.test.ts \
-            packages/game-core/src/combat/mature-skill-lifecycle.test.ts \
-            packages/game-core/src/combat/skill-cooldowns.ts \
-            packages/game-core/src/combat/pv1f-action-economy.ts \
-            packages/game-core/src/combat/pv1f-action-economy.test.ts \
-            packages/game-core/src/combat/recruit-ai.test.ts \
-            packages/game-core/package.json
-          git diff -- \
-            packages/game-core/src/combat \
             packages/game-core/package.json
       - name: Focused lint
         run: |

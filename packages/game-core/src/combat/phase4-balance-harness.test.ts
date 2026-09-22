@@ -88,20 +88,6 @@ describe('A03 Phase 4 balance harness', () => {
     }
   })
 
-  it('emits the temporary A03 review slice for evidence-backed class tuning', () => {
-    const report = buildPhase4BalanceHarness()
-    const review = report.disciplines.map((discipline) => ({
-      disciplineId: discipline.disciplineId,
-      level100Offensive: discipline.scenarios.find(
-        (scenario) => scenario.level === 100 && scenario.allocation === 'offensive',
-      )?.metrics,
-      essence: discipline.essence,
-      resonance: discipline.resonance,
-    }))
-
-    throw new Error('A03_BALANCE_REVIEW ' + JSON.stringify(review))
-  })
-
   it('keeps authored class pressure above the universal Basic Attack in representative offensive builds', () => {
     const report = buildPhase4BalanceHarness()
     for (const discipline of report.disciplines) {
