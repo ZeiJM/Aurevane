@@ -3,6 +3,7 @@ import type { CombatActionEvaluation, CombatTargetSelection } from './actions'
 import { FOUNDATION_TRIO_ESSENCES } from './foundation-trio-essences'
 import { IRONFIST_ESSENCE } from './ironfist-content'
 import {
+  currentMysticMpCost,
   type MatureSkillCombatContext,
   type MatureSkillDefinition,
   validateMatureSkillDefinition,
@@ -378,9 +379,60 @@ function createPhase4RebalancedEssence(definition: EssenceDefinition): EssenceDe
 
 const PHASE4_REBALANCED_ESSENCES = PRE_PHASE4_REBALANCE_ESSENCES.map(createPhase4RebalancedEssence)
 
+function latestEnabledEssences(
+  definitions: readonly EssenceDefinition[],
+): readonly EssenceDefinition[] {
+  const latest = new Map<string, EssenceDefinition>()
+  for (const definition of definitions) {
+    if (!definition.enabled) continue
+    const previous = latest.get(definition.essenceId)
+    if (!previous || definition.contentVersion > previous.contentVersion) {
+      latest.set(definition.essenceId, definition)
+    }
+  }
+  return [...latest.values()]
+}
+
+function createA03MysticMpEssenceVersion(
+  definition: EssenceDefinition,
+): EssenceDefinition | null {
+  if (!definition.skill.tags.includes('mystic')) return null
+  const mpCost = currentMysticMpCost(definition.skill.apCost)
+  if (definition.skill.mpCost === mpCost) return null
+  const contentVersion = definition.contentVersion + 1
+  return {
+    ...definition,
+    contentVersion,
+    authoring: {
+      ...definition.authoring,
+      validationTags: [...new Set([...definition.authoring.validationTags, 'a03-roster-rebalance'])],
+    },
+    skill: {
+      ...definition.skill,
+      contentVersion,
+      mpCost,
+      authoring: {
+        ...definition.skill.authoring,
+        validationTags: [
+          ...new Set([...definition.skill.authoring.validationTags, 'a03-roster-rebalance']),
+        ],
+      },
+    },
+  }
+}
+
+const A03_MYSTIC_MP_ESSENCES = latestEnabledEssences([
+  ...PRE_PHASE4_REBALANCE_ESSENCES,
+  ...PHASE4_REBALANCED_ESSENCES,
+]).flatMap((definition) => {
+  const next = createA03MysticMpEssenceVersion(definition)
+  return next ? [next] : []
+})
+
 export const P36_REPRESENTATIVE_ESSENCES = [
   ...PRE_PHASE4_REBALANCE_ESSENCES,
   ...PHASE4_REBALANCED_ESSENCES,
+  ...A03_MYSTIC_MP_ESSENCES,
 ] as const satisfies readonly EssenceDefinition[]
 
 const STABLE_ID_PATTERN = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/
