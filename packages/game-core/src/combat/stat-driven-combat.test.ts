@@ -34,7 +34,15 @@ function profile(
   overrides: Partial<
     Pick<
       StatDrivenCombatProfile,
-      'accuracy' | 'evasion' | 'armor' | 'ward' | 'jump' | 'physicalPower' | 'mysticPower' | 'level' | 'criticalChance'
+      | 'accuracy'
+      | 'evasion'
+      | 'armor'
+      | 'ward'
+      | 'jump'
+      | 'physicalPower'
+      | 'mysticPower'
+      | 'level'
+      | 'criticalChance'
     >
   > = {},
 ): StatDrivenCombatProfile {
@@ -195,9 +203,10 @@ describe('stat-driven Phase 2 combat bridge', () => {
     expect(state.statBridge.schemaVersion).toBe(STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_VERSION)
     expect(STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_VERSION).toBe(4)
     expect(
-      (state.statBridge.combatants.find((row) => row.combatantId === 'player') as
-        | (StatDrivenCombatProfile & { criticalChance?: number })
-        | undefined)?.criticalChance,
+      (
+        state.statBridge.combatants.find((row) => row.combatantId === 'player') as
+          (StatDrivenCombatProfile & { criticalChance?: number }) | undefined
+      )?.criticalChance,
     ).toBe(1_750)
     expect(getStatDrivenOffensivePower(state, 'player', 'physical-power')).toBe(47)
     expect(getStatDrivenOffensivePower(state, 'player', 'mystic-power')).toBe(53)
