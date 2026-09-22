@@ -31,9 +31,7 @@ describe('Skill media hook registry', () => {
         skillId: 'essence.aetherist.aether-nova',
       }),
     )
-    expect(essence?.previewSrc).toBe(
-      '/media/art/essence-skills/aetherist-aether-nova-v01.webp',
-    )
+    expect(essence?.previewSrc).toBe('/media/art/essence-skills/aetherist-aether-nova-v01.webp')
     expect(
       skillIconHookOptions.filter((option) => option.skillId.startsWith('essence.')),
     ).toHaveLength(17)
