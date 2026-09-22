@@ -238,11 +238,7 @@ function actionPose(id: string): ActionPose {
   return 'melee'
 }
 
-function disciplineGear(
-  discipline: ArtDisciplineId,
-  pose: ActionPose,
-  spark: string,
-): string {
+function disciplineGear(discipline: ArtDisciplineId, pose: ActionPose, spark: string): string {
   if (discipline === 'farstrider' || discipline === 'wildwarden') {
     return '<path d="M35 48q19-19 38 0M35 48q19 19 38 0M70 48h28M89 42l9 6-9 6" />'
   }
