@@ -235,7 +235,6 @@ function metricsForSkills(
   const pve = skills.map((skill) => skillMetric(skill, stats, 'pve'))
   const pvp = skills.map((skill) => skillMetric(skill, stats, 'pvp'))
   const direct = pve.filter((row) => row.directDamagePer100Ap > 0)
-  const conditional = pve.filter((row) => row.directDamagePer100Ap > 0 && row.hasSetupRequirement)
   const bestDirect = maximum(direct.map((row) => row.directDamagePer100Ap))
   const basicAttackRaw = calculatePv1fBasicAttackDamage({
     physicalPower: stats.stats.physicalPower.value,
