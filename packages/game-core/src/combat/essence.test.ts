@@ -11,6 +11,7 @@ import {
   resolveEssenceForBuild,
   validateEssenceDefinition,
 } from './essence'
+import { currentMysticMpCost } from './mature-skills'
 import { createPv1fTemporaryResources, readPv1fActionEconomy } from './pv1f-action-economy'
 import {
   createStatDrivenCombatEncounterState,
@@ -116,6 +117,24 @@ describe('P3.6 versioned pure Essence framework', () => {
     expect(lifebinder?.essenceId).toBe('essence.lifebinder.verdant-rupture')
     expect(resolveEssenceForBuild('vanguard', 'lifebinder')).toBeNull()
     expect(resolveEssenceForBuild('unknown-discipline', null)).toBeNull()
+  })
+
+  it('normalizes current mystic Essence MP while retaining historical versions', () => {
+    const disciplineIds = [...new Set(P36_REPRESENTATIVE_ESSENCES.map((row) => row.sourceDisciplineId))]
+    for (const disciplineId of disciplineIds) {
+      const definition = resolveEssenceForBuild(disciplineId, null)
+      if (!definition) throw new Error(`Expected current Essence for ${disciplineId}.`)
+      if (definition.skill.tags.includes('mystic')) {
+        expect(definition.skill.mpCost).toBe(currentMysticMpCost(definition.skill.apCost))
+      } else {
+        expect(definition.skill.mpCost ?? 0).toBe(0)
+      }
+    }
+
+    expect(resolveEssenceForBuild('aetherist', null, 2)?.skill.mpCost).toBeUndefined()
+    expect(resolveEssenceForBuild('aetherist', null)?.skill.mpCost).toBe(4)
+    expect(resolveEssenceForBuild('lifebinder', null, 2)?.skill.mpCost).toBeUndefined()
+    expect(resolveEssenceForBuild('lifebinder', null)?.skill.mpCost).toBe(3)
   })
 
   it('exposes a stable pure-build snapshot reference outside Discipline Skill slots', () => {
