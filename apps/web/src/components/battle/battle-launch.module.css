@@ -256,6 +256,7 @@
   align-content: start;
   overflow: auto;
   overscroll-behavior: contain;
+  scrollbar-gutter: stable;
   scrollbar-width: thin;
 }
 
