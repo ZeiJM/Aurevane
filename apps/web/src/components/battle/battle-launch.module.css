@@ -642,7 +642,7 @@
   grid-template-rows: auto auto minmax(0, 1fr) auto;
   gap: 0.48rem;
   align-content: stretch;
-  overflow: visible;
+  overflow: hidden;
   padding: 0.15rem;
 }
 
@@ -924,16 +924,35 @@
 
 @media (max-width: 1199px) {
   .page {
+    height: auto;
     align-self: start;
+    overflow: visible;
+  }
+
+  .workspaceGrid,
+  .workspace,
+  .workspaceBody,
+  .pvpContent {
+    height: auto;
+    overflow: visible;
+  }
+
+  .workspace {
+    grid-template-rows: auto auto auto;
+  }
+
+  .pvpContent {
+    grid-template-rows: auto auto auto auto;
   }
 
   .pvpStage {
+    height: auto;
     grid-template-columns: minmax(0, 1fr);
     min-height: 0;
   }
 
   .pvpVista {
-    height: 10rem;
+    height: 7rem;
   }
 
   .pvpVista::after {
