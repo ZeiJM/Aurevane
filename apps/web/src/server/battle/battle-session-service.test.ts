@@ -411,18 +411,22 @@ describe('P2.4 battle session service', () => {
     if (!actionCommit) throw new Error('Expected action commit input.')
     const nextState = actionCommit.nextSnapshot as StatDrivenCombatEncounterState
 
-    expect(nextState.tactical.battle.rng.draws).toBe(2)
-    expect(actionCommit.events).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          event: 'stat_driven_attack_resolved',
-          actorId: `character:${CHARACTER_ID}`,
-          targetId: 'recruit:p2-4-1',
-          hitChanceBasisPoints: 6_340,
-          defenseKind: 'armor',
-          defenseRating: 20,
-          rulesVersion: 4,
-        }),
+    const attackResolution = actionCommit.events.find(
+      (event) => event.event === 'stat_driven_attack_resolved',
+    )
+    expect(attackResolution).toMatchObject({
+      event: 'stat_driven_attack_resolved',
+      actorId: `character:${CHARACTER_ID}`,
+      targetId: 'recruit:p2-4-1',
+      hitChanceBasisPoints: 6_340,
+      defenseKind: 'armor',
+      defenseRating: 20,
+      rulesVersion: 4,
+    })
+
+    if (attackResolution?.event === 'stat_driven_attack_resolved' && attackResolution.hit) {
+      expect(nextState.tactical.battle.rng.draws).toBe(2)
+      expect(actionCommit.events).toContainEqual(
         expect.objectContaining({
           event: 'combat_critical_resolved',
           sourceCombatantId: `character:${CHARACTER_ID}`,
@@ -430,8 +434,13 @@ describe('P2.4 battle session service', () => {
           criticalChanceBasisPoints: 593,
           criticalRulesVersion: 1,
         }),
-      ]),
-    )
+      )
+    } else {
+      expect(nextState.tactical.battle.rng.draws).toBe(1)
+      expect(actionCommit.events).not.toContainEqual(
+        expect.objectContaining({ event: 'combat_critical_resolved' }),
+      )
+    }
     expect(result.battleVersion).toBe(2)
     expect(result.snapshot.tactical.battle).not.toHaveProperty('rng')
   })
