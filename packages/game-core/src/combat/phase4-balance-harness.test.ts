@@ -84,6 +84,24 @@ describe('A03 Phase 4 balance harness', () => {
     }
   })
 
+  it('prints the temporary A03 review slice for evidence-backed class tuning', () => {
+    const report = buildPhase4BalanceHarness()
+    console.info(
+      'A03_BALANCE_REVIEW ' +
+        JSON.stringify(
+          report.disciplines.map((discipline) => ({
+            disciplineId: discipline.disciplineId,
+            level100Offensive: discipline.scenarios.find(
+              (scenario) => scenario.level === 100 && scenario.allocation === 'offensive',
+            )?.metrics,
+            essence: discipline.essence,
+            resonance: discipline.resonance,
+          })),
+        ),
+    )
+    expect(report.disciplines).toHaveLength(17)
+  })
+
   it('preserves distinct support/control dimensions for non-DPS roles', () => {
     const report = buildPhase4BalanceHarness()
     const byId = new Map(report.disciplines.map((row) => [row.disciplineId, row]))
