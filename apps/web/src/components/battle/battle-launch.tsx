@@ -428,9 +428,7 @@ export function BattleLaunch({
         >
           <div className={styles.workspaceHeading}>
             <div>
-              <span>01 / AI Battles</span>
               <h2 id="ai-battles-heading">Choose your arena.</h2>
-              <p>Practice, learn, and test your committed build against AI opponents.</p>
             </div>
             <blockquote>
               A safer tomorrow
@@ -459,7 +457,6 @@ export function BattleLaunch({
                 <span>Arena</span>
                 <select
                   aria-label="AI sparring arena"
-                  aria-describedby="ai-arena-description"
                   value={arenaId}
                   onChange={(event) => setArenaId(event.target.value as TacticalHallArenaId)}
                   disabled={pending || recordId === 'guided-fundamentals'}
@@ -474,9 +471,6 @@ export function BattleLaunch({
                   ))}
                 </select>
               </label>
-              <p id="ai-arena-description">
-                {selectedArena.scale} · {selectedArena.summary}
-              </p>
             </div>
 
             <nav className={styles.modePicker} aria-label="AI arenas">
@@ -507,6 +501,12 @@ export function BattleLaunch({
 
               {VISIBLE_RECORD_IDS.map((id) => {
                 const record = getTacticalHallRecord(id)
+                const recommendation =
+                  id === 'recruit-sparring'
+                    ? ['Recommended for', 'all players']
+                    : id === 'guided-fundamentals'
+                      ? ['Ideal for', 'new players']
+                      : ['For experienced', 'players']
                 return (
                   <button
                     type="button"
@@ -522,6 +522,13 @@ export function BattleLaunch({
                     <span className={styles.modeCopy}>
                       <strong>{recordDisplayName(id, record.name)}</strong>
                       <small>{record.purpose}</small>
+                    </span>
+                    <span className={styles.modeArrow} aria-hidden="true">
+                      ›
+                    </span>
+                    <span className={styles.modeRecommendation}>
+                      <small>{recommendation[0]}</small>
+                      <b>{recommendation[1]}</b>
                     </span>
                   </button>
                 )
@@ -566,15 +573,7 @@ export function BattleLaunch({
                   {selectedRecord.purpose}
                 </p>
               </div>
-            ) : (
-              <div className={styles.selectionNote}>
-                <strong>No battle selected.</strong>
-                <span>
-                  {characterName} will enter with their committed build. Select a battle mode to
-                  begin in the chosen arena.
-                </span>
-              </div>
-            )}
+            ) : null}
           </div>
 
           {selectedRecord ? (
@@ -616,7 +615,6 @@ export function BattleLaunch({
             <div className={styles.pvpContent}>
               <div className={styles.workspaceHeading}>
                 <div>
-                  <span>02 / Challenge</span>
                   <h2 id="pvp-heading">Player vs Player</h2>
                   <p>Create a private battle or join with a key to fight another player.</p>
                 </div>
@@ -863,7 +861,6 @@ export function BattleLaunch({
             </figure>
 
             <div className={styles.spectateIntro}>
-              <span>03 / Spectate</span>
               <h2 id="spectate-heading">Witness a battle by key.</h2>
               <p>Watch a shared battle. Learn from every turn.</p>
             </div>
