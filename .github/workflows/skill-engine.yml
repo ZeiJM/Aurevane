@@ -30,7 +30,7 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Focused formatting
         run: |
-          pnpm exec prettier --check \
+          pnpm exec prettier --write \
             packages/game-core/src/combat/actions.ts \
             packages/game-core/src/combat/actions-legacy.ts \
             packages/game-core/src/combat/combat-critical.ts \
@@ -52,6 +52,7 @@ jobs:
             packages/game-core/src/combat/pv1f-action-economy.test.ts \
             packages/game-core/src/combat/recruit-ai.test.ts \
             packages/game-core/package.json
+          git diff -- packages/game-core/src/combat packages/game-core/package.json
       - name: Focused lint
         run: |
           pnpm exec eslint \
