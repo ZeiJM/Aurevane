@@ -429,10 +429,50 @@ const A03_MYSTIC_MP_ESSENCES = latestEnabledEssences([
   return next ? [next] : []
 })
 
+function createA03ClassTunedEssenceVersion(
+  definition: EssenceDefinition,
+): EssenceDefinition | null {
+  if (definition.essenceId !== 'essence.edgedancer.sevenfold-cut') return null
+
+  const contentVersion = definition.contentVersion + 1
+  const validationTag = 'a03-roster-rebalance'
+  return {
+    ...definition,
+    contentVersion,
+    authoring: {
+      ...definition.authoring,
+      validationTags: [...new Set([...definition.authoring.validationTags, validationTag])],
+    },
+    skill: {
+      ...definition.skill,
+      contentVersion,
+      effects: definition.skill.effects.map((effect) =>
+        effect.type === 'damage' ? { ...effect, amount: 4 } : effect,
+      ),
+      authoring: {
+        ...definition.skill.authoring,
+        validationTags: [
+          ...new Set([...definition.skill.authoring.validationTags, validationTag]),
+        ],
+      },
+    },
+  }
+}
+
+const A03_CLASS_TUNED_ESSENCES = latestEnabledEssences([
+  ...PRE_PHASE4_REBALANCE_ESSENCES,
+  ...PHASE4_REBALANCED_ESSENCES,
+  ...A03_MYSTIC_MP_ESSENCES,
+]).flatMap((definition) => {
+  const next = createA03ClassTunedEssenceVersion(definition)
+  return next ? [next] : []
+})
+
 export const P36_REPRESENTATIVE_ESSENCES = [
   ...PRE_PHASE4_REBALANCE_ESSENCES,
   ...PHASE4_REBALANCED_ESSENCES,
   ...A03_MYSTIC_MP_ESSENCES,
+  ...A03_CLASS_TUNED_ESSENCES,
 ] as const satisfies readonly EssenceDefinition[]
 
 const STABLE_ID_PATTERN = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/
