@@ -54,7 +54,10 @@ describe('A03 Phase 4 balance harness', () => {
       for (const scenario of discipline.scenarios) {
         expect(scenario.metrics).toEqual(
           expect.objectContaining({
+            basicAttackDamagePer100Ap: expect.any(Number),
             bestDirectDamagePer100Ap: expect.any(Number),
+            bestPositionalDamagePer100Ap: expect.any(Number),
+            bestAttritionDamagePer100Ap: expect.any(Number),
             bestSetupPayoffDamagePer100Ap: expect.any(Number),
             bestHealingPer100Ap: expect.any(Number),
             bestProtectionBasisPoints: expect.any(Number),
@@ -97,6 +100,50 @@ describe('A03 Phase 4 balance harness', () => {
     }))
 
     throw new Error('A03_BALANCE_REVIEW ' + JSON.stringify(review))
+  })
+
+  it('keeps authored class pressure above the universal Basic Attack in representative offensive builds', () => {
+    const report = buildPhase4BalanceHarness()
+    for (const discipline of report.disciplines) {
+      const metrics = discipline.scenarios.find(
+        (scenario) => scenario.level === 100 && scenario.allocation === 'offensive',
+      )?.metrics
+      if (!metrics || metrics.bestDirectDamagePer100Ap === 0) continue
+      expect(
+        Math.max(
+          metrics.bestDirectDamagePer100Ap,
+          metrics.bestPositionalDamagePer100Ap,
+          metrics.bestAttritionDamagePer100Ap,
+        ),
+      ).toBeGreaterThan(metrics.basicAttackDamagePer100Ap)
+    }
+  })
+
+  it('captures positional and attrition identities separately from front-facing direct damage', () => {
+    const report = buildPhase4BalanceHarness()
+    const byId = new Map(report.disciplines.map((row) => [row.disciplineId, row]))
+    const shadehand = byId.get('shadehand')
+    const edgedancer = byId.get('edgedancer')
+    const cinderweaver = byId.get('cinderweaver')
+    const ravager = byId.get('ravager')
+    if (!shadehand || !edgedancer || !cinderweaver || !ravager) {
+      throw new Error('Expected positional/attrition fixtures.')
+    }
+
+    for (const discipline of [shadehand, edgedancer]) {
+      expect(
+        Math.max(...discipline.scenarios.map((row) => row.metrics.bestPositionalDamagePer100Ap)),
+      ).toBeGreaterThan(
+        Math.max(...discipline.scenarios.map((row) => row.metrics.bestDirectDamagePer100Ap)),
+      )
+    }
+    for (const discipline of [cinderweaver, ravager]) {
+      expect(
+        Math.max(...discipline.scenarios.map((row) => row.metrics.bestAttritionDamagePer100Ap)),
+      ).toBeGreaterThanOrEqual(
+        Math.max(...discipline.scenarios.map((row) => row.metrics.bestDirectDamagePer100Ap)),
+      )
+    }
   })
 
   it('preserves distinct support/control dimensions for non-DPS roles', () => {
