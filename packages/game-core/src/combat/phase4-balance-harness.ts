@@ -228,16 +228,12 @@ function metricsForSkills(
   const pve = skills.map((skill) => skillMetric(skill, stats, 'pve'))
   const pvp = skills.map((skill) => skillMetric(skill, stats, 'pvp'))
   const direct = pve.filter((row) => row.directDamagePer100Ap > 0)
-  const conditional = pve.filter(
-    (row) => row.directDamagePer100Ap > 0 && row.hasSetupRequirement,
-  )
+  const conditional = pve.filter((row) => row.directDamagePer100Ap > 0 && row.hasSetupRequirement)
   const bestDirect = maximum(direct.map((row) => row.directDamagePer100Ap))
   return {
     bestDirectDamagePer100Ap: bestDirect,
     bestPvpDirectDamagePer100Ap: maximum(pvp.map((row) => row.directDamagePer100Ap)),
-    bestSetupPayoffDamagePer100Ap: maximum(
-      conditional.map((row) => row.directDamagePer100Ap),
-    ),
+    bestSetupPayoffDamagePer100Ap: maximum(conditional.map((row) => row.directDamagePer100Ap)),
     bestHealingPer100Ap: maximum(pve.map((row) => row.healingPer100Ap)),
     bestProtectionBasisPoints: maximum(pve.map((row) => row.protectionBasisPoints)),
     bestControlApSwing: maximum(pve.map((row) => row.controlApSwing)),
@@ -331,7 +327,10 @@ function buildEssenceReport(
 
 function buildResonanceReport(disciplineId: string): Phase4BalanceResonanceReport {
   const definitions = P35_REPRESENTATIVE_RESONANCES.filter(
-    (definition) => definition.enabled && definition.disciplinePair.includes(disciplineId),
+    (definition) =>
+      definition.enabled &&
+      (definition.disciplinePair[0] === disciplineId ||
+        definition.disciplinePair[1] === disciplineId),
   )
   const bonusDamage = definitions.map((definition) =>
     definition.trigger.payoffEffects.reduce(
