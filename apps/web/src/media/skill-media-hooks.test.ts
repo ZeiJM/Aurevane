@@ -17,8 +17,11 @@ describe('Skill media hook registry', () => {
       expect.objectContaining({
         key: 'skill.lifebinder.mend.icon',
         skillId: 'lifebinder.mend',
-        previewSrc: '/media/art/concept-ui/skill-lifebinder-mend-v01.webp',
       }),
+    )
+    expect(icon?.previewSrc).toMatch(/^data:image\/svg\+xml,/)
+    expect(decodeURIComponent(icon!.previewSrc)).toContain(
+      'data-art-kind="discipline-skill-action"',
     )
     expect(registeredSkillArtworkSource('lifebinder.mend')).toBe(icon?.previewSrc)
     expect(skillIconHookOptions.length).toBeGreaterThan(10)
