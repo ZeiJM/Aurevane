@@ -223,29 +223,60 @@ export function CharacterAttributeAllocationPanel({
                   <span className={styles.portraitCrest} aria-hidden="true">
                     ✦
                   </span>
+                  <span
+                    className={`${styles.portraitCorner} ${styles.portraitCornerTopLeft}`}
+                    aria-hidden="true"
+                  />
+                  <span
+                    className={`${styles.portraitCorner} ${styles.portraitCornerTopRight}`}
+                    aria-hidden="true"
+                  />
+                  <span
+                    className={`${styles.portraitCorner} ${styles.portraitCornerBottomLeft}`}
+                    aria-hidden="true"
+                  />
+                  <span
+                    className={`${styles.portraitCorner} ${styles.portraitCornerBottomRight}`}
+                    aria-hidden="true"
+                  />
                 </div>
 
-                <blockquote className={styles.portraitQuote}>
-                  <span>A sharper mind.</span>
-                  <span>A swifter stride.</span>
-                  <span>A greater tomorrow.</span>
-                </blockquote>
-
                 <div
-                  className={styles.portraitAtmosphere}
-                  data-testid="attribute-redistribution-atmosphere"
-                  aria-hidden="true"
+                  className={styles.portraitLower}
+                  data-testid="attribute-redistribution-lower-art"
                 >
-                  <span className={styles.atmosphereOrbital} />
-                  <span className={styles.atmosphereSpark}>✦</span>
-                  <div className={styles.portraitIdentity}>
-                    <strong>{portrait.name}</strong>
-                    <i />
-                    <small>
-                      Strength finds
-                      <br />
-                      its own path.
-                    </small>
+                  <Image
+                    src="/media/art/concept-ui/world-v01.webp"
+                    alt=""
+                    fill
+                    sizes="(min-width: 761px) 34vw, 100vw"
+                    className={styles.atmosphereArt}
+                    aria-hidden="true"
+                  />
+                  <span className={styles.atmosphereTint} aria-hidden="true" />
+
+                  <blockquote className={styles.portraitQuote}>
+                    <span>A sharper mind.</span>
+                    <span>A swifter stride.</span>
+                    <span>A greater tomorrow.</span>
+                  </blockquote>
+
+                  <div
+                    className={styles.portraitAtmosphere}
+                    data-testid="attribute-redistribution-atmosphere"
+                    aria-hidden="true"
+                  >
+                    <span className={styles.atmosphereOrbital} />
+                    <span className={styles.atmosphereSpark}>✦</span>
+                    <div className={styles.portraitIdentity}>
+                      <strong>{portrait.name}</strong>
+                      <i />
+                      <small>
+                        Strength finds
+                        <br />
+                        its own path.
+                      </small>
+                    </div>
                   </div>
                 </div>
               </aside>
