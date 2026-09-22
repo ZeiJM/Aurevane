@@ -847,7 +847,9 @@ function createA03MysticMpSkillVersion(
     mpCost,
     authoring: {
       ...definition.authoring,
-      validationTags: [...new Set([...definition.authoring.validationTags, 'a03-roster-rebalance'])],
+      validationTags: [
+        ...new Set([...definition.authoring.validationTags, 'a03-roster-rebalance']),
+      ],
     },
   }
 }
