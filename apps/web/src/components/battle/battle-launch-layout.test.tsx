@@ -35,8 +35,12 @@ describe('Battle Hall concept composition', () => {
     expect(markup).not.toContain('01 / AI Battles')
     expect(markup).not.toContain('02 / Challenge')
     expect(markup).not.toContain('03 / Spectate')
-    expect(markup).not.toContain('Practice, learn, and test your committed build against AI opponents.')
-    expect(markup).not.toContain('Full duel arena with difficult ground, elevation, and flanking room.')
+    expect(markup).not.toContain(
+      'Practice, learn, and test your committed build against AI opponents.',
+    )
+    expect(markup).not.toContain(
+      'Full duel arena with difficult ground, elevation, and flanking room.',
+    )
   })
 
   it('separates lobby creation from key entry without losing either action', () => {
