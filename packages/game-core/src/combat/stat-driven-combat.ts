@@ -391,7 +391,8 @@ export function validateStatDrivenCombatEncounterState(
       collectNonNegativeIntegerIssue(issues, profile.physicalPower, `${prefix}.physicalPower`)
       collectNonNegativeIntegerIssue(issues, profile.mysticPower, `${prefix}.mysticPower`)
       if (isV3 || isV4) collectLevelIssue(issues, profile.level, `${prefix}.level`)
-      if (isV4) collectBasisPointIssue(issues, profile.criticalChance ?? -1, `${prefix}.criticalChance`)
+      if (isV4)
+        collectBasisPointIssue(issues, profile.criticalChance ?? -1, `${prefix}.criticalChance`)
     }
   }
 
