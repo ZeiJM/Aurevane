@@ -74,6 +74,7 @@ async function expectHallFits(page: Page, label: string): Promise<void> {
     return {
       pageOverflowY: document.documentElement.scrollHeight - window.innerHeight,
       concept,
+      enforceNoScroll: concept && window.innerWidth >= 1200 && window.innerHeight >= 700,
       pageOverflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       mainOverflowY: main.scrollHeight - main.clientHeight,
       mainOverflowX: main.scrollWidth - main.clientWidth,
@@ -82,11 +83,11 @@ async function expectHallFits(page: Page, label: string): Promise<void> {
       invalidControls: controls.filter((control) => control.outside || control.tooSmall),
     }
   })
-  if (!metrics.concept) {
+  if (!metrics.concept || metrics.enforceNoScroll) {
     expect(metrics.pageOverflowY, `${label}: document vertical overflow`).toBeLessThanOrEqual(1)
   }
   expect(metrics.pageOverflowX, `${label}: document horizontal overflow`).toBeLessThanOrEqual(1)
-  if (!metrics.concept) {
+  if (!metrics.concept || metrics.enforceNoScroll) {
     expect(metrics.mainOverflowY, `${label}: inner page vertical overflow`).toBeLessThanOrEqual(1)
   }
   expect(metrics.mainOverflowX, `${label}: inner page horizontal overflow`).toBeLessThanOrEqual(1)
@@ -148,7 +149,9 @@ test('desktop Profile and all Battle Hall setups fit without clipped controls or
     await page.goto('/game/battle')
     const tabs = page.getByRole('navigation', { name: 'Battle Hall sections' })
     await expect(page.locator('#ai-mode')).toBeAttached()
-    await expectHallFits(page, `AI empty ${size}`)
+    await expect(page.locator('#ai-mode')).toHaveValue('recruit-sparring')
+    await expect(page.getByRole('button', { name: 'Enter Battle', exact: true })).toBeEnabled()
+    await expectHallFits(page, `AI default ${size}`)
     for (const mode of ['recruit-sparring', 'guided-fundamentals']) {
       await page.locator('#ai-mode').selectOption(mode)
       await expect(page.getByRole('button', { name: 'Enter Battle', exact: true })).toBeEnabled()
