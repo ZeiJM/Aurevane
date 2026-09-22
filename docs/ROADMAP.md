@@ -50,7 +50,7 @@ Performance work never authorizes a gameplay redesign, weakened server authority
 | Phase 2 — Tactical Combat & Battle Platform | ✅ Closed / PV-1 passed | Mature combat, AI, direct PvP and spectation foundations are preserved for reuse. |
 | Phase 3 — Signature Buildcraft Foundation | ✅ Implementation complete; Owner-approved closeout | P3.1–P3.8 delivered; final UI/quality release completes the Owner's closure condition. See `PHASE_3_CLOSEOUT.md`. |
 | Phase 4 | Active — combat/content foundation plus staff/event operations extension; human acceptance open | The live seventeen-Discipline roster and 36-identity Atlas/Mastery platform are preserved. By explicit Owner correction on 2026-09-19, staff authority, persistent-event operations infrastructure, Event Builder and live-event operations are Phase-4 work (P4.11–P4.14), not Phase 5. See `PHASE_4_TICKETS.md` and `ROADMAP_DISCIPLINE_ATLAS_MASTERY.md`. |
-| Phase 5 — Living World, Story & Supernatural Identity | Planned / NOT STARTED | Begins only after explicit Owner authorization; covers the player-facing living world, supernatural fork and frontier threshold. |
+| Phase 5 — Living World, Story & Supernatural Identity | Authorized / initial Atlas in progress | Owner authorized parallel work on 2026-09-22; initial Atlas implementation candidate. Phase-4 acceptance remains open. See `LIVING_ATLAS_DELIVERY.md`. |
 
 ## Current decision boundary
 
@@ -59,7 +59,7 @@ AUREVANE has completed **Phase 3 — Signature Buildcraft Foundation** implement
 Active now:
 
 - complete and verify the active Phase-4 roster/Atlas/Mastery extension, including Profile and Manual presentation;
-- complete the Owner-approved P4.11–P4.14 staff/event operations extension before Phase 5 begins;
+- preserve the Owner-approved P4.11–P4.14 staff/event platform while the separately authorized Phase-5 Atlas work proceeds in parallel;
 - preserve the delivered P3.1–P3.8 build authority, pure/mixed identities, cooldowns and shared committed snapshots;
 - keep testing entitlement separate from earned Mastery so every published Discipline remains testable without pre-mastering release characters;
 - reuse compatible Phase-1 character/profile foundations and the mature Phase-2 battle platform;
@@ -476,7 +476,7 @@ Each expansion must justify:
 
 ### Phase 4 operations extension
 
-By Owner decision on 2026-09-19, the following work is part of Phase 4 and must be completed before Phase 5 starts:
+By Owner decision on 2026-09-19, the following work belongs to Phase 4. The Owner subsequently authorized parallel Phase-5 Atlas implementation on 2026-09-22; these remain its preserved operational dependencies:
 
 - P4.11 — staff authority foundation;
 - P4.12 — persistent event operations kernel, participant/contribution/claim boundaries, reward-service integration and safe cleanup;
@@ -488,9 +488,9 @@ These are operational foundations for later world content. They do not themselve
 
 ---
 
-## 🔜 Phase 5 — Living World, Story & Supernatural Identity — NOT STARTED
+## 🔜 Phase 5 — Living World, Story & Supernatural Identity — AUTHORIZED / IN PROGRESS
 
-**Authorization boundary:** Phase 5 has not started. It begins only after the Owner explicitly approves moving past the Phase-4 extension gate.
+**Authorization boundary:** Owner explicitly authorized Phase 5 in parallel with Phase 4 on 2026-09-22. The initial Atlas/travel branch is an implementation candidate; Phase-4 human acceptance and Phase-5 release acceptance remain open. This does not authorize deployment.
 
 **Goal:** make AUREVANE a living world and introduce the supernatural identity fork plus the first outer-world mystery.
 

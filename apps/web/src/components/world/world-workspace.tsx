@@ -1,0 +1,403 @@
+'use client'
+import { useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
+import { useRouter } from 'next/navigation'
+import { WORLD_REGIONS, FRONTIER_APPROACH, worldRegion } from '@/world/catalog'
+import { samePosition } from '@/world/travel'
+import type { WorldIntent, WorldPosition, WorldView } from '@/world/types'
+import { Globe } from './globe'
+import { SectorMap } from './sector-map'
+import { Surroundings } from './surroundings'
+import styles from './world.module.css'
+
+export function WorldWorkspace({
+  initialView,
+  character,
+}: {
+  initialView: WorldView
+  character: { name: string; portrait: string }
+}) {
+  const router = useRouter()
+  const refreshing = useRef(false)
+  const [view, setView] = useState(initialView),
+    [mode, setMode] = useState<'globe' | 'sector'>('sector'),
+    [selected, setSelected] = useState(initialView.position.sectorId)
+  const [grid, setGrid] = useState(true),
+    [motion, setMotion] = useState(true),
+    [layers, setLayers] = useState(false),
+    [panorama, setPanorama] = useState(false),
+    [focus, setFocus] = useState(0)
+  const [search, setSearch] = useState(''),
+    [target, setTarget] = useState<string | null>(null),
+    [message, setMessage] = useState(''),
+    [busy, setBusy] = useState(false)
+  const current = useRef(initialView),
+    pending = useRef(false),
+    mounted = useRef(true)
+  function accept(next: WorldView) {
+    if (!mounted.current) return
+    if (next.battleSessionId) {
+      router.replace(`/game/battle/${next.battleSessionId}`)
+      return
+    }
+    if (next.characterId !== current.current.characterId) {
+      router.refresh()
+      return
+    }
+    if (next.version < current.current.version) return
+    if (next.position.sectorId !== current.current.position.sectorId) {
+      setSelected(next.position.sectorId)
+      setPanorama(false)
+    }
+    current.current = next
+    setView(next)
+  }
+  async function refresh() {
+    if (refreshing.current) return
+    refreshing.current = true
+    try {
+      const response = await fetch('/api/world', { cache: 'no-store' })
+      const body = await response.json()
+      if (!response.ok) throw new Error(body.error?.message ?? 'The world could not be refreshed.')
+      accept(body)
+    } finally {
+      refreshing.current = false
+    }
+  }
+  async function send(intent: WorldIntent) {
+    if (pending.current) return
+    pending.current = true
+    setBusy(true)
+    try {
+      const response = await fetch('/api/world', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          intent,
+          characterId: current.current.characterId,
+          expectedVersion: current.current.version,
+          commandId: crypto.randomUUID(),
+        }),
+      })
+      const body = await response.json()
+      if (!response.ok) {
+        if (response.status === 409) await refresh()
+        throw new Error(body.error?.message ?? 'Travel could not continue.')
+      }
+      accept(body)
+      setMessage('')
+    } catch (error) {
+      if (mounted.current)
+        setMessage(error instanceof Error ? error.message : 'Travel is briefly unavailable.')
+    } finally {
+      pending.current = false
+      if (mounted.current) setBusy(false)
+    }
+  }
+  const sendRef = useRef(send),
+    refreshRef = useRef(refresh)
+  useEffect(() => {
+    sendRef.current = send
+    refreshRef.current = refresh
+  })
+  useEffect(() => {
+    mounted.current = true
+    const timer = window.setInterval(() => {
+      if (pending.current) return
+      if (current.current.route.length && !current.current.movementBlocked)
+        void sendRef.current({ kind: 'tick' })
+      else
+        void refreshRef.current().catch((error) => {
+          if (mounted.current) setMessage(error.message)
+        })
+    }, 1200)
+    return () => {
+      mounted.current = false
+      window.clearInterval(timer)
+    }
+  }, [])
+  const sector = view.sectors.find((s) => s.id === selected) ?? view.sectors[0]!
+  const player = view.players.find((p) => p.characterId === target) ?? view.players[0]
+  const local = view.sectors.find((s) => s.id === view.position.sectorId)!
+  const safe = local.cells.find((c) => c.x === view.position.x && c.y === view.position.y)?.safe
+  const currentRegion = worldRegion(view.position.sectorId)
+  function select(id: string) {
+    setSelected(id)
+    setSearch('')
+  }
+  function walk(destination: WorldPosition) {
+    void send({ kind: 'walk', destination })
+  }
+  const disabled = busy || Boolean(view.movementBlocked)
+  return (
+    <section className={styles.workspace} data-world-workspace data-av-surface="moonstone">
+      <div className={styles.mapColumn}>
+        <header className={styles.toolbar}>
+          <div className={styles.heading}>
+            <span className={styles.compass} aria-hidden="true">
+              ✥
+            </span>
+            <div>
+              <h1>{mode === 'globe' ? 'World Map' : sector.name}</h1>
+              <p>
+                {mode === 'globe'
+                  ? 'The known world, and the roads beyond'
+                  : selected === view.position.sectorId
+                    ? `${sector.coordinate} · E${local.east + view.position.x} / N${local.north - view.position.y}`
+                    : `${sector.coordinate} · Inspecting this region`}
+              </p>
+            </div>
+          </div>
+          <div className={styles.tools}>
+            <button aria-pressed={grid} onClick={() => setGrid(!grid)}>
+              ▦ Grid
+            </button>
+            <button aria-expanded={layers} onClick={() => setLayers(!layers)}>
+              ▱ Layers
+            </button>
+            <button
+              onClick={() => {
+                setSelected(view.position.sectorId)
+                setFocus((n) => n + 1)
+              }}
+            >
+              ⌖ My Position
+            </button>
+            <button disabled={!currentRegion} onClick={() => setPanorama(true)}>
+              ◉ View 360°
+            </button>
+          </div>
+          <div className={styles.toolbarBottom}>
+            <div className={styles.tabs} role="group" aria-label="Map view">
+              <button aria-pressed={mode === 'globe'} onClick={() => setMode('globe')}>
+                ◎ Globe
+              </button>
+              <button aria-pressed={mode === 'sector'} onClick={() => setMode('sector')}>
+                ✥ Sector
+              </button>
+            </div>
+            <span className={styles.territory} data-safe={safe}>
+              {safe ? '◇ Protected settlement' : '⚔ Open PvP territory'}
+              <small>
+                {safe ? 'A place to rest and prepare.' : 'Other travellers may be encountered.'}
+              </small>
+            </span>
+          </div>
+          {layers ? (
+            <div className={styles.layerPanel}>
+              <label>
+                <input type="checkbox" checked={grid} onChange={(e) => setGrid(e.target.checked)} />
+                Coordinate grid
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={motion}
+                  onChange={(e) => setMotion(e.target.checked)}
+                />
+                Environmental motion
+              </label>
+              <p>Uncharted places reveal themselves as you explore.</p>
+            </div>
+          ) : null}
+        </header>
+        <div className={styles.mapViewport}>
+          {mode === 'globe' ? (
+            <Globe
+              position={view.position}
+              selected={selected}
+              onSelect={select}
+              grid={grid}
+              portrait={character.portrait}
+              name={character.name}
+              focusKey={focus}
+            />
+          ) : (
+            <SectorMap
+              sector={sector}
+              position={view.position}
+              route={view.route}
+              players={view.players}
+              portrait={character.portrait}
+              name={character.name}
+              grid={grid}
+              motion={motion}
+              disabled={disabled}
+              onMove={walk}
+              onPlayer={setTarget}
+            />
+          )}
+        </div>
+        <div className={styles.travelBar}>
+          <span>
+            {view.route.length
+              ? `${view.route[0]?.road ?? 'Walking'} · ${view.route.length} steps remaining`
+              : selected !== view.position.sectorId
+                ? 'Inspecting a charted region. Choose a walkable tile to plot your journey.'
+                : 'Select a square to walk there.'}
+          </span>
+          {view.route.length ? (
+            <button onClick={() => void send({ kind: 'stop' })} disabled={busy}>
+              Stop travel
+            </button>
+          ) : null}
+        </div>
+        {message || view.movementBlocked ? (
+          <p role="status" className={styles.notice}>
+            {message || view.movementBlocked}
+          </p>
+        ) : null}
+      </div>
+      <aside className={styles.sidebar}>
+        {mode === 'globe' ? (
+          <section className={styles.panel}>
+            <h2>✥ World Regions</h2>
+            <input
+              className={styles.search}
+              aria-label="Find a region"
+              placeholder="Find a region…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <div className={styles.regionList}>
+              {WORLD_REGIONS.filter((r) => r.name.toLowerCase().includes(search.toLowerCase())).map(
+                (r) => (
+                  <button key={r.id} data-active={selected === r.id} onClick={() => select(r.id)}>
+                    <Image
+                      src={`/media/art/world/${r.art}-v01.webp`}
+                      alt=""
+                      width={56}
+                      height={47}
+                    />
+                    <span>{r.name}</span>
+                  </button>
+                ),
+              )}
+            </div>
+            <p className={styles.regionDescription}>{worldRegion(selected)?.summary}</p>
+            <button className={styles.primary} onClick={() => setMode('sector')}>
+              Inspect sector →
+            </button>
+          </section>
+        ) : (
+          <section className={styles.panel}>
+            <h2>⚑ Nearby Players</h2>
+            {player ? (
+              <>
+                <div className={styles.playerSummary}>
+                  <Image src={player.imageUrl!} alt="" width={72} height={72} />
+                  <div>
+                    <h3>{player.name}</h3>
+                    <span>Level {player.level}</span>
+                    <small>{player.attackable ? '● Within reach' : 'Approach to interact'}</small>
+                  </div>
+                </div>
+                {view.players.length > 1 ? (
+                  <select
+                    aria-label="Select nearby player"
+                    value={player.characterId}
+                    onChange={(e) => setTarget(e.target.value)}
+                  >
+                    {view.players.map((p) => (
+                      <option key={p.characterId} value={p.characterId}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                ) : null}
+                <button
+                  className={styles.attack}
+                  disabled={disabled || !player.attackable}
+                  onClick={() => void send({ kind: 'attack', targetId: player.characterId })}
+                >
+                  ⚔ Attack
+                </button>
+                <p className={styles.quiet}>
+                  Attacks begin tactical combat immediately in open territory.
+                </p>
+              </>
+            ) : (
+              <div className={styles.emptyPlayers}>
+                <span>♧</span>
+                <h3>A quiet stretch of road</h3>
+                <p>Other travellers appear here when they enter your surroundings.</p>
+              </div>
+            )}
+          </section>
+        )}
+        <section className={styles.panel}>
+          <h2>⚑ Tracked Quests</h2>
+          {view.objectives.map((objective) => (
+            <div className={styles.quest} key={objective.id}>
+              <h3>
+                {objective.name}
+                {objective.kind === 'event' ? ' · Event' : ''}
+              </h3>
+              <p>
+                {objective.completed ? '✓ ' : '○ '}
+                {objective.description}
+              </p>
+              {!objective.completed ? (
+                <button
+                  className={styles.primary}
+                  disabled={
+                    busy ||
+                    (view.routeObjectiveId !== objective.id &&
+                      (disabled || !objective.autoPath || !objective.destination))
+                  }
+                  onClick={() =>
+                    void send(
+                      view.routeObjectiveId === objective.id
+                        ? { kind: 'stop' }
+                        : { kind: 'autopath', objectiveId: objective.id },
+                    )
+                  }
+                >
+                  ♧{' '}
+                  {view.routeObjectiveId === objective.id
+                    ? 'Stop Auto-path'
+                    : objective.autoPath && objective.destination
+                      ? 'Start Auto-path'
+                      : 'Follow the clues'}
+                </button>
+              ) : null}
+            </div>
+          ))}
+        </section>
+        {!local.charted || samePosition(view.position, FRONTIER_APPROACH) ? (
+          <section className={styles.panel}>
+            <h2>Beyond the last map</h2>
+            <p>Routes beyond this point may not remain where you left them.</p>
+            {local.charted ? (
+              <button
+                className={styles.primary}
+                disabled={disabled || view.route.length > 0}
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      'Cross beyond the last reliable map? Your route ends here; the next steps must be surveyed.',
+                    )
+                  )
+                    void send({ kind: 'cross' })
+                }}
+              >
+                Cross into uncharted territory
+              </button>
+            ) : (
+              <p className={styles.quiet}>
+                Your survey is saved as you explore. Known ground keeps its coordinates.
+              </p>
+            )}
+          </section>
+        ) : null}
+      </aside>
+      {panorama && currentRegion ? (
+        <Surroundings
+          regionId={currentRegion.id}
+          name={currentRegion.name}
+          onClose={() => setPanorama(false)}
+        />
+      ) : null}
+    </section>
+  )
+}

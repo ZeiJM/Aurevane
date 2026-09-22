@@ -1,5 +1,10 @@
 # AUREVANE — Active Task Ledger
 
+## Living Atlas — Phase 5 authorized parallel work (2026-09-22)
+
+Owner approved Phase 5, the globe/sector style, uncharted territory and temporary View 360. Isolated branch `agent/phase5-strategic-atlas-20260922` implements the first Atlas/travel slice with event guidance and existing PvP entry. Phase 4 acceptance remains open. See `docs/LIVING_ATLAS_DELIVERY.md` for the bounded content scope and verification/release gates; this entry does not claim all Phase 5 complete or authorize deployment.
+
+
 ## Battle presentation polish follow-up — 2026-09-13
 
 Owner requested four corrections to the live command dock: sleeker portrait HP/MP meters, equally wide command/history panels, restoration of the earlier rich text-log formatting, and preview tags aligned with the Skill title. This follow-up keeps the stable battlefield allocation, square artwork, three slots per rail, recent four actor turns and static header/footer. Shared desktop rail meters retain their readable numbers and card geometry while using thin coloured fill lines and subtle translucent tracks. The desktop command dock uses two equal columns. The shared React preview overrides the older PvE inset that was shifting its tags right. The text tab reuses the established transcript formatting, including concise movement narration, numbered actions, semantic colours and indented results. Height-aware pages preserve complete actions where they fit; unusually long entries provide a visible link to the full recorded results. Combat rules and saved history remain authoritative and unchanged.

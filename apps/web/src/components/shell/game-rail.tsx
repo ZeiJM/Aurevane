@@ -207,6 +207,11 @@ function NavigationIcon({ name }: { name: (typeof gameNavigation)[number]['icon'
         <>
           <path d="m4 3 4 1 12 15-2 2L4 7V3Zm16 0-4 1-5 6M4 19l5-6M2 17l5 5m10 0 5-5" />
         </>
+      ) : name === 'world' ? (
+        <>
+          <circle cx="12" cy="12" r="8" />
+          <path d="m15.5 8.5-2 5-5 2 2-5 5-2ZM12 1v4m0 14v4M1 12h4m14 0h4" />
+        </>
       ) : name === 'training' ? (
         <>
           <circle cx="12" cy="12" r="9" />

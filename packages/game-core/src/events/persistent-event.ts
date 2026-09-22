@@ -61,7 +61,16 @@ export const EVENT_OBJECTIVE_TYPES = [
 
 export type EventObjectiveType = (typeof EVENT_OBJECTIVE_TYPES)[number]
 
+export interface EventWorldNavigation {
+  readonly sectorId: string
+  readonly x: number
+  readonly y: number
+  readonly autoPath: boolean
+  readonly guidance: 'exact' | 'clue'
+}
+
 export interface EventObjectiveDefinition {
+  readonly worldNavigation?: EventWorldNavigation | null
   readonly id: string
   readonly type: EventObjectiveType
   readonly referenceKey: string
@@ -183,6 +192,24 @@ export function validatePersistentEventDefinition(definition: PersistentEventDef
     }
     const phaseObjectiveIds = new Set<string>()
     for (const objective of phase.objectives) {
+      if (objective.worldNavigation != null) {
+        const navigation = objective.worldNavigation
+        identity(navigation.sectorId, 'World sector')
+        if (
+          !Number.isInteger(navigation.x) ||
+          navigation.x < 0 ||
+          navigation.x > 12 ||
+          !Number.isInteger(navigation.y) ||
+          navigation.y < 0 ||
+          navigation.y > 8 ||
+          typeof navigation.autoPath !== 'boolean' ||
+          !['exact', 'clue'].includes(navigation.guidance)
+        ) {
+          throw new TypeError(
+            'World navigation requires a square-grid destination, guidance and auto-path policy.',
+          )
+        }
+      }
       identity(objective.id, 'Objective id')
       identity(objective.referenceKey, 'Objective reference')
       positiveSafeInteger(objective.target, 'Objective target')

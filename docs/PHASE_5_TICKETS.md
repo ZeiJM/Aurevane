@@ -1,6 +1,6 @@
 # Phase 5 — Living World, Story & Supernatural Identity
 
-**Status:** NOT STARTED — awaiting explicit Owner authorization.
+**Status:** AUTHORIZED / IN PROGRESS — Owner authorized Phase 5 in parallel with Phase 4 on 2026-09-22. Strategic Atlas implementation candidate; no release yet.
 
 Phase 5 remains the player-facing world phase defined by the Owner. Staff authority, persistent-event infrastructure, Event Builder and live-event operations were reclassified into Phase 4 on 2026-09-19 and do not count as Phase 5 progress.
 
@@ -10,7 +10,7 @@ Historical branches, migrations and PR titles that contain `phase5` are retained
 
 **Goal:** turn AUREVANE from a battle/build platform into a living RPG world.
 
-- [ ] Strategic Atlas / world map.
+- [ ] Strategic Atlas / world map — implementation candidate; browser and authenticated multiplayer acceptance open.
 - [ ] Settlements and locations.
 - [ ] NPCs and dialogue.
 - [ ] Quests.
@@ -54,4 +54,4 @@ OR
 
 Players must understand the living-world loop, supernatural choice and frontier mystery without procedural-filler feeling.
 
-Phase 5 does not begin until the Owner explicitly authorizes it after the Phase 4 extension gate is satisfied.
+The Owner explicitly authorized parallel Phase-5 work on 2026-09-22. Phase-4 human acceptance remains open; that authorization does not imply its completion or authorize a deployment. See `LIVING_ATLAS_DELIVERY.md` for implemented scope, verification and remaining content.

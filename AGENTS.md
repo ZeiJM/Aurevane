@@ -40,6 +40,7 @@ Phase 1 — Character & Progression Foundation  substantially complete
 Phase 2 — Tactical Combat & Battle Platform   closed; PV-1 passed by explicit Owner decision
 Phase 3 — Signature Buildcraft Foundation     complete; Owner-approved closeout with final UI release
 Phase 4 — First Playable Buildcraft Roster     engineering implementation live for testing, including tags/targeting and Atlas; human acceptance open
+Phase 5 — Living World                       Owner authorized parallel work 2026-09-22; initial Living Atlas candidate, not released
 ```
 
 Phase 2 is formally closed and its reusable tactical combat, Recruit AI/Battle Hall, direct PvP, multi-combatant battles, spectation, battle communication, battle logs and responsive battle presentation are preserved dependencies for Phase 3.
