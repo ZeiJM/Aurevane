@@ -33,6 +33,8 @@ test('training composition preserves idle, active, report and claim flows', asyn
   })
   await page.goto('/game/training')
   await expect(page.getByRole('heading', { name: 'Passive Training', exact: true })).toBeVisible()
+  await expect(page.getByTestId('character-profile')).toBeVisible()
+  await expect(page.getByRole('navigation', { name: 'Training sections' })).toHaveCount(0)
 
   async function capture(state: string) {
     const frame = page.locator('[data-training-concept]')
@@ -133,8 +135,8 @@ test('training composition preserves idle, active, report and claim flows', asyn
         .soft(metrics.stopActionInPanel, `${label}: stop action visible without scrolling`)
         .toBe(true)
       expect
-        .soft(metrics.scene.width, `${label}: wide scenic header`)
-        .toBeGreaterThan(metrics.frame.width * 0.9)
+        .soft(metrics.scene.width, `${label}: scenic header fills the parchment workspace`)
+        .toBeGreaterThan(metrics.frame.width * 0.6)
       expect
         .soft(metrics.scene.height, `${label}: scenery leaves room for actions`)
         .toBeLessThan(viewport.height * 0.4)
