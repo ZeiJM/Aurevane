@@ -212,6 +212,115 @@ function semanticSkillMotif(id: string, seed: number): string {
   return fallbackSkillMotif(seed)
 }
 
+type ActionPose = 'melee' | 'ranged' | 'cast' | 'guard' | 'support' | 'movement'
+
+function actionPose(id: string): ActionPose {
+  const key = id.split('.').at(-1) ?? id
+  if (/(guard|brace|cover|fortress|ward|shield|aegis|barrier|hold-fast|steady)/.test(key)) {
+    return 'guard'
+  }
+  if (
+    /(mend|heal|renew|remedy|herb|sanctuary|light|recovery|breath|channel|thaw|springwater)/.test(
+      key,
+    )
+  ) {
+    return 'support'
+  }
+  if (/(shot|bolt|barrage|volley|longshot|lance|mark|beam|line)/.test(key)) return 'ranged'
+  if (/(rewind|step|lunge|dash|pursuit|approach)/.test(key)) return 'movement'
+  if (
+    /(rune|sigil|aether|arcane|nova|burst|temporal|time|haste|slow|delay|frost|ice|cinder|fire|flame|ember|storm|thunder|lightning|static|tide|wave|water|mist|rain|poison|venom)/.test(
+      key,
+    )
+  ) {
+    return 'cast'
+  }
+  return 'melee'
+}
+
+function disciplineGear(
+  discipline: ArtDisciplineId,
+  pose: ActionPose,
+  spark: string,
+): string {
+  if (discipline === 'farstrider' || discipline === 'wildwarden') {
+    return '<path d="M35 48q19-19 38 0M35 48q19 19 38 0M70 48h28M89 42l9 6-9 6" />'
+  }
+  if (discipline === 'vanguard' || discipline === 'bastion' || discipline === 'dawnshield') {
+    return pose === 'guard'
+      ? '<path d="M72 40 91 47v17q0 16-19 27-19-11-19-27V47Z"/><path d="M72 48v31M60 61h24"/>'
+      : '<path d="M70 25 77 32 57 79 49 86 46 77Z"/><path d="M43 78h23"/>'
+  }
+  if (discipline === 'shadehand' || discipline === 'edgedancer') {
+    return '<path d="m66 29 7 5-30 45-9 5 3-10Z"/><path d="m81 37 6 6-25 29"/>'
+  }
+  if (discipline === 'ironfist') {
+    return '<path d="M72 47q12-10 21 0l-4 18-15 5-9-10Z"/><path d="M78 43v20M84 42v20M90 45v16"/>'
+  }
+  if (discipline === 'ravager') {
+    return '<path d="M66 31 91 24l8 9-12 18-16-4-25 39"/><path d="m41 82 13 9"/>'
+  }
+  if (discipline === 'runeblade') {
+    return '<path d="M71 26 78 33 58 80 49 88 47 77Z"/><circle cx="63" cy="56" r="18"/><path d="M45 56h36M63 38v36"/>'
+  }
+  if (discipline === 'chronist') {
+    return '<path d="M74 33h18M74 76h18M78 33q0 13 5 21-5 8-5 22M88 33q0 13-5 21 5 8 5 22"/>'
+  }
+  if (discipline === 'cinderweaver') {
+    return '<path d="M82 26q6 16-5 26 13 1 15 14 3 15-13 23-17-5-15-20 1-10 10-17-2 10 5 13 1-11 3-39Z"/>'
+  }
+  if (discipline === 'frostweaver') {
+    return '<path d="M82 26v58M60 39l44 30M60 69l44-30M71 31l11 8 11-8M71 79l11-8 11 8"/>'
+  }
+  if (discipline === 'stormsinger') {
+    return '<path d="m85 25-22 31h15l-6 28 27-37H82Z"/>'
+  }
+  if (discipline === 'tidecaller') {
+    return '<path d="M58 45q12-13 24 0t24 0M58 59q12-13 24 0t24 0M85 24q-9 12-9 18 0 11 18 0 0-6-9-18Z"/>'
+  }
+  if (discipline === 'lifebinder') {
+    return '<path d="M85 80V48M85 59q-17-2-19-17 16-3 19 11M85 53q4-14 19-11-3 15-19 17"/><circle cx="85" cy="35" r="6"/>'
+  }
+  if (discipline === 'aetherist') {
+    return '<path d="m84 27 11 17-11 31-11-31Z"/><ellipse cx="84" cy="51" rx="24" ry="9"/><ellipse cx="84" cy="51" rx="9" ry="24"/>'
+  }
+  return `<circle cx="84" cy="51" r="20" stroke="${spark}"/>`
+}
+
+function actionFigure(
+  id: string,
+  discipline: ArtDisciplineId,
+  seed: number,
+  spark: string,
+  essence: boolean,
+): string {
+  const pose = actionPose(id)
+  const mirror = seed % 2 === 0 ? '' : 'translate(128 0) scale(-1 1)'
+  const shift = (seed % 7) - 3
+  const lean = ((seed >>> 4) % 9) - 4
+  const halo = essence
+    ? '<circle cx="52" cy="57" r="31" fill="none" stroke="currentColor" stroke-width="2.2" stroke-dasharray="4 5" opacity=".62"/>'
+    : ''
+  const limbs =
+    pose === 'guard'
+      ? '<path d="M49 55 37 72M56 55 68 72M45 78 37 103M59 78 68 103"/><path d="M37 72h31"/>'
+      : pose === 'support'
+        ? '<path d="M48 56 28 42M57 56 77 38M45 79 37 103M59 79 66 103"/>'
+        : pose === 'ranged'
+          ? '<path d="M48 56 67 48M56 58 73 53M45 79 36 102M59 79 70 100"/>'
+          : pose === 'cast'
+            ? '<path d="M48 57 32 43M57 56 76 43M45 79 37 103M59 79 67 102"/>'
+            : pose === 'movement'
+              ? '<path d="M47 57 31 64M58 57 73 48M46 78 28 99M59 78 78 91"/>'
+              : '<path d="M48 56 65 43M57 58 73 63M45 79 32 99M59 79 76 96"/>'
+  const cape =
+    pose === 'movement' || pose === 'melee'
+      ? '<path d="M43 49q-20 14-23 39 17-9 31-8l8-27Z"/>'
+      : '<path d="M44 49q-15 18-10 39 11-8 20-9l7-24Z"/>'
+  const gear = disciplineGear(discipline, pose, spark)
+  return `<g data-action-figure="true" data-action-pose="${pose}" transform="${mirror} translate(${shift} 0) rotate(${lean} 52 64)" color="${spark}" stroke-linecap="round" stroke-linejoin="round"><g fill="#05050a" stroke="#090810" stroke-width="7" opacity=".96">${cape}<circle cx="52" cy="38" r="7"/><path d="M45 49 42 76 53 86 65 70 59 49Z"/>${limbs}</g><g fill="#080812" stroke="${spark}" stroke-width="2.6" opacity=".94"><circle cx="52" cy="38" r="7"/><path d="M45 49 42 76 53 86 65 70 59 49Z"/>${limbs}</g><path d="M46 33q7-11 16-2-7 0-9 9-4-5-12-4Z" fill="#090812" stroke="${spark}" stroke-width="1.6"/>${halo}<g fill="none" stroke="${spark}" stroke-width="2.5" opacity=".9">${gear}</g></g>`
+}
+
 function skillSvg(id: string, discipline: ArtDisciplineId, essence: boolean): string {
   const seed = hash(id)
   const [accent, deep, spark] = THEMES[discipline]
@@ -220,10 +329,12 @@ function skillSvg(id: string, discipline: ArtDisciplineId, essence: boolean): st
   const shard = 10 + ((seed >>> 5) % 16)
   const motif = semanticSkillMotif(id, seed)
   const classSymbol = SYMBOLS[discipline]
+  const figure = actionFigure(id, discipline, seed, spark, essence)
   const essenceHalo = essence
-    ? `<circle cx="64" cy="64" r="52" fill="none" stroke="url(#metal)" stroke-width="3"/><circle cx="64" cy="64" r="47" fill="none" stroke="${spark}" stroke-width="1.8" stroke-dasharray="3 4" opacity=".9"/><path d="M64 6 70 17 64 28 58 17ZM64 100l6 11-6 11-6-11Z" fill="${spark}"/>`
+    ? `<circle cx="64" cy="64" r="54" fill="none" stroke="url(#metal)" stroke-width="3.3"/><circle cx="64" cy="64" r="48" fill="none" stroke="${spark}" stroke-width="1.8" stroke-dasharray="3 4" opacity=".9"/><path d="M64 4 70 16 64 28 58 16ZM64 100l6 12-6 12-6-12Z" fill="${spark}"/>`
     : ''
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><defs><radialGradient id="bg" cx="27%" cy="19%" r="98%"><stop stop-color="${accent}" stop-opacity=".68"/><stop offset=".42" stop-color="${deep}" stop-opacity=".92"/><stop offset="1" stop-color="#020309"/></radialGradient><linearGradient id="metal" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff5d7"/><stop offset=".3" stop-color="#a98147"/><stop offset=".58" stop-color="${spark}"/><stop offset="1" stop-color="#624a2e"/></linearGradient><linearGradient id="energy" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff"/><stop offset=".3" stop-color="${spark}"/><stop offset=".72" stop-color="${accent}"/><stop offset="1" stop-color="#fff"/></linearGradient><filter id="g"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter><filter id="mist"><feTurbulence type="fractalNoise" baseFrequency=".022 .055" numOctaves="3" seed="${1 + (seed % 89)}"/><feColorMatrix values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 .28 0"/></filter></defs><title>${id}</title><rect width="128" height="128" rx="15" fill="url(#bg)"/><rect x="5" y="5" width="118" height="118" rx="12" fill="none" stroke="url(#metal)" stroke-width="2.4"/><rect x="9" y="9" width="110" height="110" rx="10" fill="none" stroke="${accent}" stroke-opacity=".42"/><rect x="8" y="8" width="112" height="112" rx="11" filter="url(#mist)" opacity=".25"/><g transform="rotate(${angle} 64 64)" opacity=".34" stroke="${spark}" fill="none"><circle cx="64" cy="64" r="${ring}" stroke-dasharray="${shard} 7"/><circle cx="64" cy="64" r="31" stroke-dasharray="2 7"/><path d="M18 64h92M64 18v92" stroke-width=".8"/></g>${particles(seed, spark)}${essenceHalo}<g transform="translate(78 78) scale(.34)" fill="none" stroke="${spark}" stroke-width="4.2" opacity=".2">${classSymbol}</g><g fill="none" stroke="#020207" stroke-width="8.5" stroke-linecap="round" stroke-linejoin="round" opacity=".68">${motif}</g><g fill="none" stroke="url(#energy)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" filter="url(#g)">${motif}</g><circle cx="64" cy="64" r="3.5" fill="#fff9e9" opacity=".9"/></svg>`
+  const artKind = essence ? 'essence-skill-action' : 'discipline-skill-action'
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 128 128" data-art-kind="${artKind}"><defs><radialGradient id="bg" cx="27%" cy="19%" r="98%"><stop stop-color="${accent}" stop-opacity=".68"/><stop offset=".42" stop-color="${deep}" stop-opacity=".92"/><stop offset="1" stop-color="#020309"/></radialGradient><linearGradient id="metal" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff5d7"/><stop offset=".3" stop-color="#a98147"/><stop offset=".58" stop-color="${spark}"/><stop offset="1" stop-color="#624a2e"/></linearGradient><linearGradient id="energy" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff"/><stop offset=".3" stop-color="${spark}"/><stop offset=".72" stop-color="${accent}"/><stop offset="1" stop-color="#fff"/></linearGradient><filter id="g"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter><filter id="mist"><feTurbulence type="fractalNoise" baseFrequency=".022 .055" numOctaves="3" seed="${1 + (seed % 89)}"/><feColorMatrix values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 .28 0"/></filter></defs><title>${id}</title><rect width="128" height="128" rx="15" fill="url(#bg)"/><rect x="5" y="5" width="118" height="118" rx="13" fill="none" stroke="url(#metal)" stroke-width="2.4"/><rect x="9" y="9" width="110" height="110" rx="10" fill="none" stroke="${accent}" stroke-opacity=".42"/><rect x="8" y="8" width="112" height="112" rx="11" filter="url(#mist)" opacity=".25"/><g transform="rotate(${angle} 64 64)" opacity=".29" stroke="${spark}" fill="none"><circle cx="64" cy="64" r="${ring}" stroke-dasharray="${shard} 7"/><circle cx="64" cy="64" r="31" stroke-dasharray="2 7"/><path d="M18 64h92M64 18v92" stroke-width=".8"/></g>${particles(seed, spark)}${essenceHalo}<g transform="translate(76 78) scale(.34)" fill="none" stroke="${spark}" stroke-width="4.2" opacity=".16">${classSymbol}</g><g transform="translate(25 18) scale(.72)" fill="none" stroke="#020207" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" opacity=".55">${motif}</g><g transform="translate(25 18) scale(.72)" fill="none" stroke="url(#energy)" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round" filter="url(#g)" opacity=".78">${motif}</g>${figure}<circle cx="93" cy="29" r="3.4" fill="#fff9e9" opacity=".86"/></svg>`
 }
 
 export function darkFantasySkillArtwork(actionId: string): string | null {
@@ -241,7 +352,7 @@ export function darkFantasyResonanceArtwork(resonanceId: string): string | null 
   const a = THEMES[first]
   const b = THEMES[second]
   const angle = seed % 180
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><defs><radialGradient id="bg"><stop stop-color="${a[1]}"/><stop offset=".55" stop-color="#090711"/><stop offset="1" stop-color="${b[1]}"/></radialGradient><linearGradient id="r"><stop stop-color="${a[2]}"/><stop offset=".5" stop-color="#fff5d7"/><stop offset="1" stop-color="${b[2]}"/></linearGradient><filter id="g"><feGaussianBlur stdDeviation="1.7" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><rect width="128" height="128" rx="15" fill="url(#bg)"/><circle cx="64" cy="64" r="54" fill="none" stroke="url(#r)" stroke-width="3"/><circle cx="64" cy="64" r="45" fill="none" stroke="url(#r)" stroke-dasharray="6 5" opacity=".75" transform="rotate(${angle} 64 64)"/>${particles(seed, a[2])}<g transform="translate(-13 4) scale(.72)" fill="none" stroke="${a[2]}" stroke-width="3.7" stroke-linecap="round" stroke-linejoin="round" filter="url(#g)">${SYMBOLS[first]}</g><g transform="translate(49 4) scale(.72)" fill="none" stroke="${b[2]}" stroke-width="3.7" stroke-linecap="round" stroke-linejoin="round" filter="url(#g)">${SYMBOLS[second]}</g><path d="M42 86Q64 105 86 86M42 42Q64 23 86 42" fill="none" stroke="url(#r)" stroke-width="2.5"/><circle cx="64" cy="64" r="7" fill="#fff7df" stroke="url(#r)" stroke-width="2"/></svg>`
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 128 128" data-art-kind="resonance-crest"><defs><radialGradient id="bg"><stop stop-color="${a[1]}"/><stop offset=".55" stop-color="#090711"/><stop offset="1" stop-color="${b[1]}"/></radialGradient><linearGradient id="r"><stop stop-color="${a[2]}"/><stop offset=".5" stop-color="#fff5d7"/><stop offset="1" stop-color="${b[2]}"/></linearGradient><filter id="g"><feGaussianBlur stdDeviation="1.7" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><rect width="128" height="128" rx="15" fill="url(#bg)"/><g data-spiritual-harmony="true"><circle cx="64" cy="64" r="54" fill="none" stroke="url(#r)" stroke-width="3"/><circle cx="64" cy="64" r="45" fill="none" stroke="url(#r)" stroke-dasharray="6 5" opacity=".75" transform="rotate(${angle} 64 64)"/>${particles(seed, a[2])}<g transform="translate(-13 4) scale(.72)" fill="none" stroke="${a[2]}" stroke-width="3.7" stroke-linecap="round" stroke-linejoin="round" filter="url(#g)">${SYMBOLS[first]}</g><g transform="translate(49 4) scale(.72)" fill="none" stroke="${b[2]}" stroke-width="3.7" stroke-linecap="round" stroke-linejoin="round" filter="url(#g)">${SYMBOLS[second]}</g><path d="M42 86Q64 105 86 86M42 42Q64 23 86 42" fill="none" stroke="url(#r)" stroke-width="2.5"/><circle cx="64" cy="64" r="7" fill="#fff7df" stroke="url(#r)" stroke-width="2"/></g></svg>`
   return encode(svg)
 }
 
@@ -251,7 +362,7 @@ export function disciplineSigilDataUrl(discipline: string): string | null {
   const [accent, deep, spark] = THEMES[id]
   const seed = hash(`sigil.${id}`)
   const rune = 4 + (seed % 7)
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><defs><radialGradient id="b"><stop stop-color="${deep}"/><stop offset=".72" stop-color="#06070b"/><stop offset="1" stop-color="#010204"/></radialGradient><linearGradient id="m"><stop stop-color="#fff1c9"/><stop offset=".24" stop-color="#bc8b45"/><stop offset=".55" stop-color="${spark}"/><stop offset=".78" stop-color="#8c6535"/><stop offset="1" stop-color="#f6ddb2"/></linearGradient><filter id="g"><feGaussianBlur stdDeviation="1.6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><circle cx="64" cy="64" r="61" fill="url(#b)"/><circle cx="64" cy="64" r="57" fill="none" stroke="url(#m)" stroke-width="3"/><circle cx="64" cy="64" r="49" fill="none" stroke="${accent}" stroke-width="1.5" stroke-dasharray="${rune} 4"/><circle cx="64" cy="64" r="43" fill="none" stroke="${spark}" stroke-opacity=".33"/><path d="M64 1 69 11 64 21 59 11ZM64 107l5 10-5 10-5-10ZM1 64l10-5 10 5-10 5ZM107 64l10-5 10 5-10 5Z" fill="url(#m)"/>${particles(seed, spark)}<g fill="none" stroke="url(#m)" stroke-width="3.7" stroke-linecap="round" stroke-linejoin="round" filter="url(#g)">${SYMBOLS[id]}</g></svg>`
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 128 128" data-art-kind="discipline-crest"><defs><radialGradient id="b"><stop stop-color="${deep}"/><stop offset=".72" stop-color="#06070b"/><stop offset="1" stop-color="#010204"/></radialGradient><linearGradient id="m"><stop stop-color="#fff1c9"/><stop offset=".24" stop-color="#bc8b45"/><stop offset=".55" stop-color="${spark}"/><stop offset=".78" stop-color="#8c6535"/><stop offset="1" stop-color="#f6ddb2"/></linearGradient><filter id="g"><feGaussianBlur stdDeviation="1.6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><g data-heraldic-crest="true"><circle cx="64" cy="64" r="61" fill="url(#b)"/><circle cx="64" cy="64" r="57" fill="none" stroke="url(#m)" stroke-width="3"/><circle cx="64" cy="64" r="49" fill="none" stroke="${accent}" stroke-width="1.5" stroke-dasharray="${rune} 4"/><circle cx="64" cy="64" r="43" fill="none" stroke="${spark}" stroke-opacity=".33"/><path d="M64 1 69 11 64 21 59 11ZM64 107l5 10-5 10-5-10ZM1 64l10-5 10 5-10 5ZM107 64l10-5 10 5-10 5Z" fill="url(#m)"/>${particles(seed, spark)}<g fill="none" stroke="url(#m)" stroke-width="3.7" stroke-linecap="round" stroke-linejoin="round" filter="url(#g)">${SYMBOLS[id]}</g></g></svg>`
   return encode(svg)
 }
 
