@@ -35,6 +35,7 @@ jobs:
             packages/game-core/src/combat/actions-legacy.ts \
             packages/game-core/src/combat/combat-critical.ts \
             packages/game-core/src/combat/combat-critical.test.ts \
+            packages/game-core/src/combat/combat-skill-copy-pv1f.test.ts \
             packages/game-core/src/combat/damage-scaling.ts \
             packages/game-core/src/combat/damage-scaling.test.ts \
             packages/game-core/src/combat/stat-driven-combat.ts \
@@ -63,6 +64,7 @@ jobs:
             packages/game-core/src/combat/actions-legacy.ts \
             packages/game-core/src/combat/combat-critical.ts \
             packages/game-core/src/combat/combat-critical.test.ts \
+            packages/game-core/src/combat/combat-skill-copy-pv1f.test.ts \
             packages/game-core/src/combat/damage-scaling.ts \
             packages/game-core/src/combat/damage-scaling.test.ts \
             packages/game-core/src/combat/stat-driven-combat.ts \
@@ -89,6 +91,7 @@ jobs:
         run: |
           pnpm --filter @aurevane/game-core exec vitest run \
             src/combat/combat-critical.test.ts \
+            src/combat/combat-skill-copy-pv1f.test.ts \
             src/combat/damage-scaling.test.ts \
             src/combat/stat-driven-combat.test.ts \
             src/combat/essence.test.ts \
