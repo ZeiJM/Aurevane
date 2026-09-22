@@ -12,6 +12,10 @@ import {
 } from './combat-accuracy-status'
 import type { CombatSkillAccuracyResolvedEvent } from './combat-skill-accuracy'
 import {
+  COMBAT_CRITICAL_DAMAGE_BASIS_POINTS,
+  type CombatCriticalResolvedEvent,
+} from './combat-critical'
+import {
   absorbDirectDamageWithBarrier,
   currentBarrierAmount,
   grantBarrier,
@@ -271,6 +275,7 @@ export interface CombatEncounterState {
       armor: number
       ward: number
       level?: number
+      criticalChance?: number
     }[]
   }
   statusState: readonly CombatantStatusState[]
@@ -333,6 +338,7 @@ export interface CombatActionEvaluation {
 
 export type CombatResolutionEvent =
   | CombatSkillAccuracyResolvedEvent
+  | CombatCriticalResolvedEvent
   | TacticalBattleEvent
   | CombatTerrainEvent
   | {
@@ -812,6 +818,7 @@ export function executeCombatAction(
     transition: CombatResolutionTransition,
   ) => CombatResolutionTransition,
   missedCombatantIds?: ReadonlySet<string>,
+  criticalEffectOrdinalsByTarget?: ReadonlyMap<string, ReadonlySet<number>>,
 ): CombatResolutionTransition {
   const evaluation = evaluateCombatAction(state, action, selection, content)
   if (!evaluation.legal || !evaluation.actorId) {
@@ -859,6 +866,7 @@ export function executeCombatAction(
     action,
     content,
     missedCombatantIds,
+    criticalEffectOrdinalsByTarget,
   )
   nextState = applied.state
   events.push(...applied.events)
@@ -1503,6 +1511,7 @@ function resolveActionEffects(
   action: CombatActionDefinition,
   content: CombatContentCatalog,
   missedCombatantIds?: ReadonlySet<string>,
+  criticalEffectOrdinalsByTarget?: ReadonlyMap<string, ReadonlySet<number>>,
 ): CombatResolutionTransition & {
   projections: CombatEffectProjection[]
   terrain: CombatTerrainProjection[]
@@ -1524,7 +1533,7 @@ function resolveActionEffects(
     nextState = revealed.state
     events.push(...revealed.events)
   }
-  for (const effect of action.effects) {
+  for (const [effectOrdinal, effect] of action.effects.entries()) {
     if (effect.type === 'sensory') {
       throw new TypeError('Sensory must be materialized before legacy effect resolution.')
     }
@@ -1593,6 +1602,7 @@ function resolveActionEffects(
         effect,
         content,
         stormRecipients,
+        criticalEffectOrdinalsByTarget?.get(recipientId)?.has(effectOrdinal) === true,
       )
       nextState = applied.state
       events.push(...applied.events)
@@ -1700,6 +1710,7 @@ function applyEffect(
   >,
   content: CombatContentCatalog,
   stormRecipients: Set<string>,
+  critical: boolean,
 ): CombatResolutionTransition {
   if (effect.type === 'displace')
     return applyDisplacement(state, actorId, recipientId, actionId, effect, content)
@@ -1777,6 +1788,7 @@ function applyEffect(
       effect,
       content,
       stormBonus ? 12_000 : 10_000,
+      critical,
     )
     if (stormBonus && amount > 0) stormRecipients.add(recipientId)
     const barrier = absorbDirectDamageWithBarrier(state, recipientId, amount)
@@ -1925,6 +1937,7 @@ function resolveDamageAmount(
   effect: Extract<CombatEffectDefinition, { type: 'damage' }>,
   content: CombatContentCatalog,
   elementalMultiplier = 10_000,
+  critical = false,
 ): number {
   let amount = effect.amount
   if (effect.defenseKind && amount > 0 && effect.piercing !== true) {
@@ -1934,6 +1947,10 @@ function resolveDamageAmount(
     if (defense === undefined)
       throw new TypeError('Stat-driven Skill damage requires recipient defenses.')
     amount = mitigateDamageByDefense(amount, defense)
+  }
+
+  if (critical && amount > 0) {
+    amount = scaleByBasisPoints(amount, COMBAT_CRITICAL_DAMAGE_BASIS_POINTS)
   }
 
   if (
