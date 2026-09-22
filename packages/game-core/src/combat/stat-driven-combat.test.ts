@@ -364,7 +364,7 @@ describe('stat-driven Phase 2 combat bridge', () => {
     expect(state.tactical.battle.rng.draws).toBe(0)
   })
 
-  it('consumes one server RNG draw and applies the mitigated hit deterministically', () => {
+  it('consumes accuracy and Critical RNG draws on a successful v4 Basic Attack', () => {
     const state = encounter()
     const transition = executeStatDrivenAttack(
       state,
@@ -373,7 +373,7 @@ describe('stat-driven Phase 2 combat bridge', () => {
       P2_3_COMBAT_CONTENT,
     )
 
-    expect(transition.state.tactical.battle.rng.draws).toBe(1)
+    expect(transition.state.tactical.battle.rng.draws).toBe(2)
     expect(transition.events).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -382,6 +382,12 @@ describe('stat-driven Phase 2 combat bridge', () => {
           hitChanceBasisPoints: 10_000,
           defenseRating: 23,
           rulesVersion: 4,
+        }),
+        expect.objectContaining({
+          event: 'combat_critical_resolved',
+          targetCombatantId: 'recruit',
+          criticalChanceBasisPoints: 1_200,
+          rollBasisPoints: expect.any(Number),
         }),
         expect.objectContaining({ event: 'damage_applied', amount: 13 }),
       ]),
