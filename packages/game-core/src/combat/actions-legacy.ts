@@ -3035,6 +3035,7 @@ function applyDisplacement(
     { type: 'apply-status', recipient: 'primary-unit', statusId: 'displaced', stacks: 1 },
     content,
     new Set(),
+    false,
   )
   return {
     state: marked.state,
