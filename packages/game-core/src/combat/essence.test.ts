@@ -146,7 +146,9 @@ describe('P3.6 versioned pure Essence framework', () => {
 
     expect(current.contentVersion).toBe(3)
     expect(
-      current.skill.effects.filter((effect) => effect.type === 'damage').map((effect) => effect.amount),
+      current.skill.effects
+        .filter((effect) => effect.type === 'damage')
+        .map((effect) => effect.amount),
     ).toEqual([4, 4, 4, 4, 4, 4, 4])
     expect(
       historical.skill.effects

@@ -365,8 +365,12 @@ function bestCombinedSetupPayoffDamagePer100Ap(
 
     const payoffMetric = skillMetric(payoff, stats, 'pve')
     for (const setup of skills) {
-      if (setup.id === payoff.id) continue
-      if (!setupRequirements.every((requirement) => setupSatisfiesRequirement(setup, requirement))) {
+      if (setup.id === payoff.id || setup.requirements.length > 0) continue
+      if (
+        !setupRequirements.every((requirement) =>
+          setupSatisfiesRequirement(setup, requirement),
+        )
+      ) {
         continue
       }
 
@@ -423,7 +427,11 @@ function setupSatisfiesRequirement(
   return setup.effects.some((effect) => {
     const actorScoped = identity.scope === 'actor'
     if ((effect.recipient === 'actor') !== actorScoped) return false
-    if (!actorScoped && effect.recipient !== 'primary-unit' && effect.recipient !== 'affected-units') {
+    if (
+      !actorScoped &&
+      effect.recipient !== 'primary-unit' &&
+      effect.recipient !== 'affected-units'
+    ) {
       return false
     }
 
@@ -489,7 +497,9 @@ function gameplayTagsForStatus(statusId: string): readonly string[] {
     displaced: 'Displaced',
   }
   const definition = PV1F_COMBAT_CONTENT.statuses.find((candidate) => candidate.id === statusId)
-  return [...new Set([aliases[statusId], ...(definition?.gameplayTags ?? [])].filter(Boolean))] as string[]
+  return [
+    ...new Set([aliases[statusId], ...(definition?.gameplayTags ?? [])].filter(Boolean)),
+  ] as string[]
 }
 
 function buildEssenceReport(

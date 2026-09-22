@@ -51,6 +51,8 @@ jobs:
             packages/game-core/src/combat/pv1f-action-economy.ts \
             packages/game-core/src/combat/pv1f-action-economy.test.ts \
             packages/game-core/src/combat/recruit-ai.test.ts \
+            apps/web/src/server/battle/battle-build-authority.ts \
+            apps/web/src/server/battle/combat-content-publication-consumption.test.ts \
             packages/game-core/package.json
       - name: Focused lint
         run: |
@@ -74,7 +76,9 @@ jobs:
             packages/game-core/src/combat/skill-cooldowns.ts \
             packages/game-core/src/combat/pv1f-action-economy.ts \
             packages/game-core/src/combat/pv1f-action-economy.test.ts \
-            packages/game-core/src/combat/recruit-ai.test.ts
+            packages/game-core/src/combat/recruit-ai.test.ts \
+            apps/web/src/server/battle/battle-build-authority.ts \
+            apps/web/src/server/battle/combat-content-publication-consumption.test.ts
       - name: Game core typecheck
         run: pnpm --filter @aurevane/game-core typecheck
       - name: P3.3 focused tests
@@ -90,5 +94,9 @@ jobs:
             src/combat/mature-skill-lifecycle.test.ts \
             src/combat/pv1f-action-economy.test.ts \
             src/combat/recruit-ai.test.ts
+      - name: A03 battle authority regression
+        run: |
+          pnpm --filter @aurevane/web exec vitest run \
+            src/server/battle/combat-content-publication-consumption.test.ts
       - name: Production workspace build
         run: pnpm build
