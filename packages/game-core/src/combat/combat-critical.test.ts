@@ -222,7 +222,7 @@ describe('A03 authoritative Critical Chance', () => {
     const definition = action([{ type: 'damage', recipient: 'affected-units', amount: 10 }], {
       kind: 'unit',
       teamPolicy: 'enemy',
-      shape: { kind: 'line', length: 3 },
+      shape: { kind: 'circle', radius: 1 },
       minimumRange: 1,
       maximumRange: 3,
       requiresLineOfSight: false,
