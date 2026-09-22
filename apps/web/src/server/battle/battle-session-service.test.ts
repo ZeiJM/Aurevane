@@ -15,6 +15,7 @@ import { moveCurrentCombatant, selectCurrentFinalFacing } from '@aurevane/game-c
 import {
   reattachStatDrivenCombatBridge,
   type StatDrivenCombatEncounterState,
+  type StatDrivenCombatResolutionEvent,
 } from '@aurevane/game-core/combat/stat-driven-combat'
 import { AurevaneError, StaleBattleVersionError } from '@aurevane/game-core/errors'
 import { describe, expect, it, vi } from 'vitest'
@@ -56,6 +57,17 @@ function characterRecord(overrides: Partial<CharacterRecord> = {}): CharacterRec
     lastActiveAt: CREATED_AT,
     ...overrides,
   }
+}
+
+function isStatDrivenAttackResolvedEvent(
+  event: unknown,
+): event is Extract<StatDrivenCombatResolutionEvent, { event: 'stat_driven_attack_resolved' }> {
+  return (
+    typeof event === 'object' &&
+    event !== null &&
+    'event' in event &&
+    (event as { event?: unknown }).event === 'stat_driven_attack_resolved'
+  )
 }
 
 function withFinalFacing(
@@ -411,9 +423,7 @@ describe('P2.4 battle session service', () => {
     if (!actionCommit) throw new Error('Expected action commit input.')
     const nextState = actionCommit.nextSnapshot as StatDrivenCombatEncounterState
 
-    const attackResolution = actionCommit.events.find(
-      (event) => event.event === 'stat_driven_attack_resolved',
-    )
+    const attackResolution = actionCommit.events.find(isStatDrivenAttackResolvedEvent)
     expect(attackResolution).toMatchObject({
       event: 'stat_driven_attack_resolved',
       actorId: `character:${CHARACTER_ID}`,
