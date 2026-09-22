@@ -197,6 +197,9 @@ describe('P2.4 battle session service', () => {
     const playerProfile = persistedSnapshot.statBridge.combatants.find(
       (profile) => profile.combatantId === `character:${CHARACTER_ID}`,
     )
+    const recruitProfile = persistedSnapshot.statBridge.combatants.find(
+      (profile) => profile.combatantId === 'recruit:p2-4-1',
+    )
     const playerPlacement = persistedSnapshot.tactical.placements.find(
       (placement) => placement.combatantId === `character:${CHARACTER_ID}`,
     )
@@ -226,6 +229,14 @@ describe('P2.4 battle session service', () => {
       armor: 23,
       ward: 23,
       jump: 0,
+      criticalChance: 250,
+    })
+    expect(recruitProfile).toMatchObject({
+      provenance: { kind: 'scenario' },
+      level: 1,
+      physicalPower: 32,
+      mysticPower: 32,
+      criticalChance: 225,
     })
     expect(playerMovementProfile?.maxElevationStep).toBe(0)
     expect(
@@ -250,7 +261,7 @@ describe('P2.4 battle session service', () => {
       battleVersion: 1,
       replayed: false,
     })
-    expect(result.snapshot.statBridge.rulesVersion).toBe(3)
+    expect(result.snapshot.statBridge.rulesVersion).toBe(4)
     expect(result.snapshot.tactical.battle).not.toHaveProperty('rng')
   })
 
@@ -400,7 +411,7 @@ describe('P2.4 battle session service', () => {
     if (!actionCommit) throw new Error('Expected action commit input.')
     const nextState = actionCommit.nextSnapshot as StatDrivenCombatEncounterState
 
-    expect(nextState.tactical.battle.rng.draws).toBe(1)
+    expect(nextState.tactical.battle.rng.draws).toBe(2)
     expect(actionCommit.events).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -410,7 +421,14 @@ describe('P2.4 battle session service', () => {
           hitChanceBasisPoints: 6_340,
           defenseKind: 'armor',
           defenseRating: 20,
-          rulesVersion: 3,
+          rulesVersion: 4,
+        }),
+        expect.objectContaining({
+          event: 'combat_critical_resolved',
+          sourceCombatantId: `character:${CHARACTER_ID}`,
+          targetCombatantId: 'recruit:p2-4-1',
+          criticalChanceBasisPoints: 593,
+          criticalRulesVersion: 1,
         }),
       ]),
     )
