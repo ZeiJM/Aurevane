@@ -55,9 +55,7 @@ describe('complete dark-fantasy artwork coverage', () => {
   it('emits true 1:1 HQ masters with the requested category-specific visual contracts', () => {
     const skill = darkFantasySkillArtwork('runeblade.aether-cut')
     const essence = darkFantasySkillArtwork('essence.cinderweaver.phoenix-wake')
-    const resonance = darkFantasyResonanceArtwork(
-      'resonance.aetherist-vanguard.spellsteel-rhythm',
-    )
+    const resonance = darkFantasyResonanceArtwork('resonance.aetherist-vanguard.spellsteel-rhythm')
     const sigil = disciplineSigilDataUrl('vanguard')
 
     expectSquareMaster(skill, 'discipline-skill-action')
