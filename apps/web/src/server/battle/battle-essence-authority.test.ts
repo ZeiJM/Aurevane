@@ -261,7 +261,7 @@ function positionPlayerAdjacent(state: BattleAuthoritativeEncounterState) {
     ...state.statBridge,
     combatants: state.statBridge.combatants.map((profile) =>
       profile.combatantId === PLAYER_ID
-        ? { ...profile, accuracy: 10_000 }
+        ? { ...profile, accuracy: 10_000, criticalChance: 0 }
         : profile.combatantId === 'recruit:p2-4-1'
           ? { ...profile, evasion: 0 }
           : profile,
