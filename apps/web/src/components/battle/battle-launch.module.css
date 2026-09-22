@@ -363,14 +363,22 @@
 
 .visuallyHiddenSelect {
   position: absolute;
-  width: 1px;
-  height: 1px;
+  width: 2px;
+  height: 2px;
   padding: 0;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  clip-path: inset(50%);
+  overflow: visible;
+  opacity: 0;
+  pointer-events: none;
   white-space: nowrap;
+}
+
+.visuallyHiddenSelect select {
+  width: 2px;
+  height: 2px;
+  min-height: 2px;
+  padding: 0;
   border: 0;
+  opacity: 0;
 }
 
 .modePicker > button {
