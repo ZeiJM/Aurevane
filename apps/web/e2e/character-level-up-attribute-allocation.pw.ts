@@ -72,8 +72,20 @@ test('level-up forces Core Stat allocation until every gained point is committed
   const remaining = dialog.locator('[aria-live="polite"]')
   await expect(dialog).toBeVisible()
   await expect(dialog).toContainText('Level gained')
-  await expect(dialog).toContainText('Primary focus · Cap 60')
+  await expect(dialog).toContainText('Cap 60')
   await expect(dialog).toContainText('Cap 40')
+  await expect(dialog).not.toContainText('Primary focus')
+  await expect(dialog.getByText('A sharper mind.', { exact: true })).toBeVisible()
+  await expect(dialog.getByTestId('attribute-redistribution-atmosphere')).toBeVisible()
+
+  const portraitFrame = dialog.getByTestId('attribute-redistribution-portrait')
+  const portraitBox = await portraitFrame.boundingBox()
+  expect(portraitBox).not.toBeNull()
+  expect(
+    Math.abs(portraitBox!.width - portraitBox!.height),
+    'The redistribution portrait remains square',
+  ).toBeLessThanOrEqual(2)
+
   await expect(remaining.locator('strong')).toHaveText('1')
   await expect(remaining.locator('span')).toHaveText('point remaining')
   await expect(dialog.getByRole('button', { name: 'Close' })).toHaveCount(0)
