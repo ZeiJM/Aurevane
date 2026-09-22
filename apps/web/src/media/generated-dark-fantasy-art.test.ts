@@ -1,3 +1,6 @@
+import { createHash } from 'node:crypto'
+import { existsSync, readFileSync } from 'node:fs'
+
 import { DISCIPLINE_ATLAS } from '@aurevane/game-core/character/discipline-atlas'
 import { P36_REPRESENTATIVE_ESSENCES } from '@aurevane/game-core/combat/essence'
 import { latestEnabledMatureSkills } from '@aurevane/game-core/combat/mature-skills'
@@ -22,6 +25,16 @@ function expectSquareMaster(source: string | null, kind: string): void {
   expect(svg).toContain('height="512"')
   expect(svg).toContain('viewBox="0 0 128 128"')
   expect(svg).toContain(`data-art-kind="${kind}"`)
+}
+
+function expectStaticSigil(source: string | null, disciplineId: string): string {
+  expect(source).toBe(`/media/art/discipline-sigils/${disciplineId}-sigil-v01.webp`)
+  const fileUrl = new URL(`../../public${source}`, import.meta.url)
+  expect(existsSync(fileUrl)).toBe(true)
+  const bytes = readFileSync(fileUrl)
+  expect(bytes.subarray(0, 4).toString('ascii')).toBe('RIFF')
+  expect(bytes.subarray(8, 12).toString('ascii')).toBe('WEBP')
+  return createHash('sha256').update(bytes).digest('hex')
 }
 
 describe('complete dark-fantasy artwork coverage', () => {
@@ -61,12 +74,12 @@ describe('complete dark-fantasy artwork coverage', () => {
     expectSquareMaster(skill, 'discipline-skill-action')
     expectSquareMaster(essence, 'essence-skill-action')
     expectSquareMaster(resonance, 'resonance-crest')
-    expectSquareMaster(sigil, 'discipline-crest')
+    expectStaticSigil(sigil, 'vanguard')
 
     expect(decodedSvg(skill)).toContain('data-action-figure="true"')
     expect(decodedSvg(essence)).toContain('data-action-figure="true"')
     expect(decodedSvg(resonance)).toContain('data-spiritual-harmony="true"')
-    expect(decodedSvg(sigil)).toContain('data-heraldic-crest="true"')
+    expect(sigil).toBe('/media/art/discipline-sigils/vanguard-sigil-v01.webp')
   })
 
   it('keeps every category square and unique across the full 306-asset suite', () => {
@@ -84,6 +97,9 @@ describe('complete dark-fantasy artwork coverage', () => {
     for (const source of skills) expectSquareMaster(source, 'discipline-skill-action')
     for (const source of essences) expectSquareMaster(source, 'essence-skill-action')
     for (const source of resonances) expectSquareMaster(source, 'resonance-crest')
-    for (const source of sigils) expectSquareMaster(source, 'discipline-crest')
+    const sigilHashes = DARK_FANTASY_DISCIPLINES.map((id, index) =>
+      expectStaticSigil(sigils[index]!, id),
+    )
+    expect(new Set(sigilHashes).size).toBe(sigils.length)
   })
 })

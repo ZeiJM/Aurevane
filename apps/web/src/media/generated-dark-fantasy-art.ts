@@ -1,3 +1,5 @@
+import { disciplineSigilArtwork } from './discipline-sigil-art'
+
 const DISCIPLINE_ORDER = [
   'vanguard',
   'farstrider',
@@ -353,13 +355,7 @@ export function darkFantasyResonanceArtwork(resonanceId: string): string | null 
 }
 
 export function disciplineSigilDataUrl(discipline: string): string | null {
-  if (!DISCIPLINE_ORDER.includes(discipline as ArtDisciplineId)) return null
-  const id = discipline as ArtDisciplineId
-  const [accent, deep, spark] = THEMES[id]
-  const seed = hash(`sigil.${id}`)
-  const rune = 4 + (seed % 7)
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 128 128" data-art-kind="discipline-crest"><defs><radialGradient id="b"><stop stop-color="${deep}"/><stop offset=".72" stop-color="#06070b"/><stop offset="1" stop-color="#010204"/></radialGradient><linearGradient id="m"><stop stop-color="#fff1c9"/><stop offset=".24" stop-color="#bc8b45"/><stop offset=".55" stop-color="${spark}"/><stop offset=".78" stop-color="#8c6535"/><stop offset="1" stop-color="#f6ddb2"/></linearGradient><filter id="g"><feGaussianBlur stdDeviation="1.6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><g data-heraldic-crest="true"><circle cx="64" cy="64" r="61" fill="url(#b)"/><circle cx="64" cy="64" r="57" fill="none" stroke="url(#m)" stroke-width="3"/><circle cx="64" cy="64" r="49" fill="none" stroke="${accent}" stroke-width="1.5" stroke-dasharray="${rune} 4"/><circle cx="64" cy="64" r="43" fill="none" stroke="${spark}" stroke-opacity=".33"/><path d="M64 1 69 11 64 21 59 11ZM64 107l5 10-5 10-5-10ZM1 64l10-5 10 5-10 5ZM107 64l10-5 10 5-10 5Z" fill="url(#m)"/>${particles(seed, spark)}<g fill="none" stroke="url(#m)" stroke-width="3.7" stroke-linecap="round" stroke-linejoin="round" filter="url(#g)">${SYMBOLS[id]}</g></g></svg>`
-  return encode(svg)
+  return disciplineSigilArtwork(discipline)
 }
 
 export const DARK_FANTASY_DISCIPLINES = DISCIPLINE_ORDER

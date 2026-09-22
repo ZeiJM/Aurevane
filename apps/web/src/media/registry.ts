@@ -1,4 +1,4 @@
-import { disciplineSigilDataUrl } from './generated-dark-fantasy-art'
+import { disciplineSigilArtwork } from './discipline-sigil-art'
 import { GENERATED_STARTER_PORTRAITS_1 } from './generated-starter-portraits-1'
 import { GENERATED_STARTER_PORTRAITS_2 } from './generated-starter-portraits-2'
 import { GENERATED_STARTER_PORTRAITS_3 } from './generated-starter-portraits-3'
@@ -75,9 +75,9 @@ const IMAGE_ASSETS = [
     requestId,
     decorative: true,
     alt: '',
-    src: disciplineSigilDataUrl(discipline)!,
-    width: 128,
-    height: 128,
+    src: disciplineSigilArtwork(discipline)!,
+    width: 1024,
+    height: 1024,
   })),
   {
     id: 'ui.foundation.vista',
@@ -246,9 +246,9 @@ const IMAGE_ASSETS = [
     requestId,
     decorative: true,
     alt: '',
-    src: disciplineSigilDataUrl(discipline)!,
-    width: 128,
-    height: 128,
+    src: disciplineSigilArtwork(discipline)!,
+    width: 1024,
+    height: 1024,
   })),
 ] as const satisfies readonly ImageAssetDescriptor[]
 

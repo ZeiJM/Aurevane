@@ -75,6 +75,7 @@ test('Foundation Discipline sigils resolve to production artwork on desktop and 
   const dialog = page.getByRole('dialog', { name: 'Discipline Management' })
   await expect(dialog).toBeVisible()
   const committedSigil = dialog.locator('[aria-label="Committed Disciplines"] img').first()
-  await expect(committedSigil).toHaveAttribute('src', disciplineArt[0]!.src)
   await expect(committedSigil).toBeVisible()
+  const committedSigilSrc = await committedSigil.getAttribute('src')
+  expect(committedSigilSrc).toContain(`url=${encodeURIComponent(disciplineArt[0]!.src)}`)
 })

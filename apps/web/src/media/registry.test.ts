@@ -96,6 +96,25 @@ describe('image registry', () => {
     expect(getImageAsset('character.creation.portrait-01').requestId).toBe('ART-CHR-001')
   })
 
+  it('routes all published Discipline sigils to the approved 1024px static crest suite', () => {
+    const sigils = [...imageAssetRegistry.values()].filter((asset) =>
+      asset.src?.startsWith('/media/art/discipline-sigils/'),
+    )
+
+    expect(sigils).toHaveLength(17)
+    expect(new Set(sigils.map((asset) => asset.src)).size).toBe(17)
+    for (const asset of sigils) {
+      expect(asset).toMatchObject({
+        status: 'approved',
+        kind: 'icon',
+        decorative: true,
+        width: 1024,
+        height: 1024,
+      })
+      expect(asset.src).toMatch(/^\/media\/art\/discipline-sigils\/[a-z]+-sigil-v01\.webp$/)
+    }
+  })
+
   it('rejects approved meaningful art without runtime dimensions and alt text', () => {
     expect(
       validateImageRegistry([
