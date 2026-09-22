@@ -122,10 +122,10 @@ describe('committed battle audio', () => {
     for (const asset of sounds)
       expect(runtime.some((file) => file.path === `apps/web/public${asset.src}`)).toBe(true)
     expect(phase4DisciplineSigil('bastion')).toBe(
-      '/media/art/essence-skills/bastion-last-bastion-v01.webp',
+      '/media/art/discipline-sigils/bastion-sigil-v01.webp',
     )
     expect(phase4SkillArtwork('essence.bastion.last-bastion')).toBe(
-      '/media/art/discipline-sigils/bastion-sigil-v01.webp',
+      '/media/art/essence-skills/bastion-last-bastion-v01.webp',
     )
     expect(phase4SkillArtwork('bastion.fortress')).toMatch(/^data:image\/svg/)
   })
