@@ -32,6 +32,17 @@ jobs:
         run: |
           pnpm exec prettier --check \
             packages/game-core/src/combat/actions.ts \
+            packages/game-core/src/combat/actions-legacy.ts \
+            packages/game-core/src/combat/combat-critical.ts \
+            packages/game-core/src/combat/combat-critical.test.ts \
+            packages/game-core/src/combat/damage-scaling.ts \
+            packages/game-core/src/combat/damage-scaling.test.ts \
+            packages/game-core/src/combat/stat-driven-combat.ts \
+            packages/game-core/src/combat/stat-driven-combat.test.ts \
+            packages/game-core/src/combat/essence.ts \
+            packages/game-core/src/combat/essence.test.ts \
+            packages/game-core/src/combat/phase4-balance-harness.ts \
+            packages/game-core/src/combat/phase4-balance-harness.test.ts \
             packages/game-core/src/combat/mature-skills.ts \
             packages/game-core/src/combat/mature-skills.test.ts \
             packages/game-core/src/combat/lifebinder-offense-skills.test.ts \
@@ -45,6 +56,17 @@ jobs:
         run: |
           pnpm exec eslint \
             packages/game-core/src/combat/actions.ts \
+            packages/game-core/src/combat/actions-legacy.ts \
+            packages/game-core/src/combat/combat-critical.ts \
+            packages/game-core/src/combat/combat-critical.test.ts \
+            packages/game-core/src/combat/damage-scaling.ts \
+            packages/game-core/src/combat/damage-scaling.test.ts \
+            packages/game-core/src/combat/stat-driven-combat.ts \
+            packages/game-core/src/combat/stat-driven-combat.test.ts \
+            packages/game-core/src/combat/essence.ts \
+            packages/game-core/src/combat/essence.test.ts \
+            packages/game-core/src/combat/phase4-balance-harness.ts \
+            packages/game-core/src/combat/phase4-balance-harness.test.ts \
             packages/game-core/src/combat/mature-skills.ts \
             packages/game-core/src/combat/mature-skills.test.ts \
             packages/game-core/src/combat/lifebinder-offense-skills.test.ts \
@@ -58,6 +80,11 @@ jobs:
       - name: P3.3 focused tests
         run: |
           pnpm --filter @aurevane/game-core exec vitest run \
+            src/combat/combat-critical.test.ts \
+            src/combat/damage-scaling.test.ts \
+            src/combat/stat-driven-combat.test.ts \
+            src/combat/essence.test.ts \
+            src/combat/phase4-balance-harness.test.ts \
             src/combat/mature-skills.test.ts \
             src/combat/lifebinder-offense-skills.test.ts \
             src/combat/mature-skill-lifecycle.test.ts \
