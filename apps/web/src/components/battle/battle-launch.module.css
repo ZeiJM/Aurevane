@@ -334,7 +334,7 @@
   border-radius: 0;
   color: #203946;
   background: rgba(255, 254, 249, 0.82);
-  font: 500 0.72rem/1.25 var(--av-font-body);
+  font: 500 0.8125rem/1.25 var(--av-font-body);
 }
 
 .page select {
@@ -486,7 +486,7 @@
   border: 1px solid rgba(91, 112, 110, 0.4);
   color: #496167;
   background: rgba(241, 244, 238, 0.82);
-  font-size: 0.66rem;
+  font-size: 0.75rem;
   cursor: pointer;
 }
 
@@ -627,7 +627,7 @@
   border: 1px solid rgba(126, 115, 91, 0.42);
   color: #2f4651;
   background: rgba(251, 249, 240, 0.76);
-  font: 600 0.7rem/1.2 var(--av-font-display);
+  font: 600 0.75rem/1.2 var(--av-font-display);
   cursor: pointer;
 }
 
@@ -740,7 +740,7 @@
   border: 1px solid rgba(105, 116, 104, 0.36);
   color: #52666d;
   background: rgba(246, 247, 240, 0.8);
-  font-size: 0.64rem;
+  font-size: 0.75rem;
   cursor: pointer;
 }
 
