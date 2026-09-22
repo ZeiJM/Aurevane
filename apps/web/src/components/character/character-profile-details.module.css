@@ -409,7 +409,7 @@
 }
 
 .detailPopover > span {
-  color: var(--av-text-dim);
+  color: rgba(255, 255, 255, 0.74);
   font: 650 0.56rem/1.1 var(--av-font-body);
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -423,7 +423,7 @@
 
 .detailPopover p {
   margin: 0;
-  color: var(--av-text-muted);
+  color: #f5f7fa;
   font-size: 0.78rem;
   line-height: 1.5;
 }

@@ -209,13 +209,45 @@ export function CharacterAttributeAllocationPanel({
           >
             {portrait ? (
               <aside className={styles.portrait} data-av-surface="ink">
-                <CharacterPortraitImage
-                  imageUrl={portrait.imageUrl}
-                  fallbackAssetId={portrait.assetId}
-                  sizes="(min-width: 761px) 25vw, 100vw"
-                  alt={`${portrait.name} portrait`}
-                />
-                <strong>{portrait.name}</strong>
+                <div
+                  className={styles.portraitFrame}
+                  data-testid="attribute-redistribution-portrait"
+                >
+                  <CharacterPortraitImage
+                    imageUrl={portrait.imageUrl}
+                    fallbackAssetId={portrait.assetId}
+                    className={styles.portraitImage}
+                    sizes="(min-width: 761px) 28rem, 100vw"
+                    alt={`${portrait.name} portrait`}
+                  />
+                  <span className={styles.portraitCrest} aria-hidden="true">
+                    ✦
+                  </span>
+                </div>
+
+                <blockquote className={styles.portraitQuote}>
+                  <span>A sharper mind.</span>
+                  <span>A swifter stride.</span>
+                  <span>A greater tomorrow.</span>
+                </blockquote>
+
+                <div
+                  className={styles.portraitAtmosphere}
+                  data-testid="attribute-redistribution-atmosphere"
+                  aria-hidden="true"
+                >
+                  <span className={styles.atmosphereOrbital} />
+                  <span className={styles.atmosphereSpark}>✦</span>
+                  <div className={styles.portraitIdentity}>
+                    <strong>{portrait.name}</strong>
+                    <i />
+                    <small>
+                      Strength finds
+                      <br />
+                      its own path.
+                    </small>
+                  </div>
+                </div>
               </aside>
             ) : null}
             <header className={styles.header}>
@@ -299,7 +331,6 @@ export function CharacterAttributeAllocationPanel({
                       </span>
                       <small>
                         Base {allocation.baseAttributes[attributeId]}
-                        {isFocus ? ' · Primary focus' : ''}
                         {cap !== undefined ? ` · Cap ${cap}` : ''}
                       </small>
                     </div>
