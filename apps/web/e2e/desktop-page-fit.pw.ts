@@ -147,7 +147,7 @@ test('desktop Profile and all Battle Hall setups fit without clipped controls or
 
     await page.goto('/game/battle')
     const tabs = page.getByRole('navigation', { name: 'Battle Hall sections' })
-    await expect(page.locator('#ai-mode')).toBeVisible()
+    await expect(page.locator('#ai-mode')).toBeAttached()
     await expectHallFits(page, `AI empty ${size}`)
     for (const mode of ['recruit-sparring', 'guided-fundamentals']) {
       await page.locator('#ai-mode').selectOption(mode)

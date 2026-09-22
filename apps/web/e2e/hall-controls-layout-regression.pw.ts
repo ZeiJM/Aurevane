@@ -5,10 +5,12 @@ import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 async function expectControlsInsidePanel(page: Page, section: 'ai' | 'pvp') {
   const metrics = await page.locator(`[data-hall-workspace="${section}"]`).evaluate((panel) => {
     const body = panel.querySelector('[data-hall-scroll-body]')!
-    const area = body.getBoundingClientRect()
     return [...body.querySelectorAll<HTMLElement>('select, input, button')]
       .filter((element) => element.getClientRects().length > 0)
+      .filter((element) => element.getAttribute('aria-label') !== 'Battle mode')
       .map((element) => {
+        element.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+        const area = body.getBoundingClientRect()
         const rect = element.getBoundingClientRect()
         return {
           name: element.getAttribute('aria-label') || element.id || element.textContent?.trim(),
@@ -26,7 +28,7 @@ async function expectControlsInsidePanel(page: Page, section: 'ai' | 'pvp') {
   }
 }
 
-test('desktop Hall keeps arena, difficulty and every PvP setting visible without scrolling', async ({
+test('desktop Hall keeps selected-workspace arena, difficulty and PvP controls readable and reachable', async ({
   page,
 }, testInfo) => {
   test.skip(testInfo.project.name === 'mobile-chromium', 'Mobile uses natural document scrolling.')

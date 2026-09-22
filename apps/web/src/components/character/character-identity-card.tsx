@@ -6,7 +6,7 @@ import { getStarterPortraitImageAssetId } from '@/media/character'
 
 import styles from './character-identity-card.module.css'
 
-interface CharacterIdentityCardProps {
+export interface CharacterIdentityCardProps {
   profile: CharacterProfileReadModel
   primary: DisciplineDefinition
   secondary: DisciplineDefinition | null

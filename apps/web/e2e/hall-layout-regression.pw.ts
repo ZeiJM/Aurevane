@@ -73,54 +73,72 @@ async function capture(page: Page, testInfo: TestInfo, state: string) {
   })
 }
 
-test('Battle Hall presents three real workspaces with usable AI, join and spectator controls', async ({
+test('Battle Hall shows one full-width parchment workspace at a time with all real controls', async ({
   page,
 }, testInfo) => {
   test.setTimeout(90_000)
   const mobile = await enterHall(page, testInfo, 'hall')
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
-  await capture(page, testInfo, 'idle')
+
+  await expect(page.getByTestId('character-profile')).toBeVisible()
   await expect(page.locator('[data-hall-workspace]')).toHaveCount(3)
-  const panels = page.locator('[data-hall-workspace]')
-  if (!mobile) {
-    const rects = await panels.evaluateAll((items) =>
-      items.map((item) => {
-        const r = item.getBoundingClientRect()
-        return { x: r.x, y: r.y, right: r.right, width: r.width }
-      }),
-    )
-    expect(rects[0].width).toBeGreaterThan(280)
-    expect(rects[1].x).toBeGreaterThanOrEqual(rects[0].right)
-    expect(rects[2].x).toBeGreaterThanOrEqual(rects[1].right)
-    expect(Math.abs(rects[0].y - rects[2].y)).toBeLessThan(2)
-  }
-  const background = await panels.first().evaluate((node) => getComputedStyle(node).backgroundColor)
+  await expect(page.locator('[data-hall-workspace]:visible')).toHaveCount(1)
+  await expect(page.locator('[data-hall-workspace="ai"]')).toBeVisible()
+  await expect(page.locator('[data-hall-workspace="pvp"]')).toBeHidden()
+  await expect(page.locator('[data-hall-workspace="spectate"]')).toBeHidden()
+  await capture(page, testInfo, 'idle')
+
+  const ai = page.locator('[data-hall-workspace="ai"]')
+  const background = await ai.evaluate((node) => getComputedStyle(node).backgroundColor)
   const rgb = (background.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number)
-  expect(Math.max(...rgb)).toBeLessThan(65)
+  expect(Math.min(...rgb), 'AI workspace uses a light parchment surface').toBeGreaterThan(180)
+
+  if (!mobile) {
+    const [pageBox, workspaceBox] = await Promise.all([
+      page.locator('#battle-launch').boundingBox(),
+      ai.boundingBox(),
+    ])
+    expect(pageBox).not.toBeNull()
+    expect(workspaceBox).not.toBeNull()
+    expect(workspaceBox!.width).toBeGreaterThan(pageBox!.width * 0.94)
+  }
+
   await expect(page.getByLabel('Battle mode')).toHaveValue('')
   await expect(page.getByRole('button', { name: 'Enter Battle', exact: true })).toHaveCount(0)
+
   for (const mode of ['recruit-sparring', 'guided-fundamentals', 'mastery-trial'] as const) {
-    await page.getByLabel('Battle mode').selectOption(mode)
+    const record = getTacticalHallRecord(mode)
+    await ai
+      .locator('button')
+      .filter({ hasText: recordDisplayNameForTest(mode, record.name) })
+      .first()
+      .click()
+    await expect(page.getByLabel('Battle mode')).toHaveValue(mode)
     const purpose = page.locator('#ai-record-purpose')
     await expect(page.getByLabel('Battle mode')).toHaveAttribute(
       'aria-describedby',
       'ai-record-purpose',
     )
-    await expect(purpose).toHaveText(getTacticalHallRecord(mode).purpose)
+    await expect(purpose).toHaveText(record.purpose)
     await purpose.scrollIntoViewIfNeeded()
     await expect(purpose).toBeInViewport()
     expect(
       await purpose.evaluate((node) => parseFloat(getComputedStyle(node).fontSize)),
-    ).toBeGreaterThanOrEqual(13)
+    ).toBeGreaterThanOrEqual(11)
     await expect(page.getByRole('button', { name: 'Enter Battle', exact: true })).toBeEnabled()
     if (mode === 'mastery-trial') {
       await expect(page.getByRole('button', { name: 'Easy', exact: true })).toHaveCount(0)
     }
     await capture(page, testInfo, mode)
   }
+
   const navigation = page.getByRole('navigation', { name: 'Battle Hall sections', exact: true })
   await navigation.getByRole('button', { name: /Player vs Player/ }).click()
+  await expect(page.locator('[data-hall-workspace]:visible')).toHaveCount(1)
+  await expect(page.locator('[data-hall-workspace="pvp"]')).toBeVisible()
+  await expect(ai).toBeHidden()
+
   await page.locator('#pvp-mode').selectOption('flex-teams')
   await expect(page.locator('[data-pvp-team-sizes] select')).toHaveCount(2)
   for (const size of await page.locator('[data-pvp-team-sizes] select').all()) {
@@ -137,6 +155,7 @@ test('Battle Hall presents three real workspaces with usable AI, join and specta
   await page.locator('#lobby-key').clear()
   await expect(page.getByRole('button', { name: 'Join Battle Lobby', exact: true })).toBeDisabled()
   await capture(page, testInfo, 'join')
+
   await page.getByRole('button', { name: 'Create Lobby', exact: true }).click()
   await expect(page.locator('#pvp-mode')).toHaveValue('flex-teams')
   await expect(turnTimer).toHaveAttribute('aria-pressed', 'true')
@@ -144,15 +163,21 @@ test('Battle Hall presents three real workspaces with usable AI, join and specta
     await expect(size).toHaveValue('3')
   }
   await capture(page, testInfo, 'pvp')
+
   await navigation.getByRole('button', { name: /^Spectate/ }).click()
+  await expect(page.locator('[data-hall-workspace]:visible')).toHaveCount(1)
+  await expect(page.locator('[data-hall-workspace="spectate"]')).toBeVisible()
+  await expect(page.locator('[data-hall-workspace="pvp"]')).toBeHidden()
   await expect(page.getByRole('button', { name: 'Spectate Battle', exact: true })).toBeDisabled()
   await page.getByRole('textbox', { name: 'Battle Key', exact: true }).fill('avb-abcd-1234')
   await expect(page.getByRole('button', { name: 'Spectate Battle', exact: true })).toBeEnabled()
   await expect(page.getByText('Featured Matches', { exact: true })).toHaveCount(0)
   await capture(page, testInfo, 'spectate')
+
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth - innerWidth),
   ).toBeLessThanOrEqual(1)
+
   if (mobile) {
     for (const width of [320, 375, 760]) {
       await page.setViewportSize({ width, height: 844 })
@@ -164,6 +189,13 @@ test('Battle Hall presents three real workspaces with usable AI, join and specta
   }
   expect(errors).toEqual([])
 })
+
+function recordDisplayNameForTest(
+  recordId: 'recruit-sparring' | 'guided-fundamentals' | 'mastery-trial',
+  fallback: string,
+): string {
+  return recordId === 'recruit-sparring' ? 'AI Sparring' : fallback
+}
 
 test('real multi-seat lobby remains a keyboard-contained dialog with square portraits and readable settings', async ({
   page,

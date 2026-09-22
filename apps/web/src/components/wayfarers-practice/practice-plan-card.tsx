@@ -6,6 +6,8 @@ import {
   passiveTrainingWindowLabel,
 } from '@aurevane/game-core/character/wayfarers-practice'
 import { GameButton } from '@aurevane/ui'
+
+import { AurevaneImage } from '@/components/media/aurevane-image'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 
@@ -168,8 +170,8 @@ export function PracticePlanCard({ practice, report, hasReport = false }: Practi
         className={styles.panel}
         id="training-plan"
         data-testid="practice-plan-card"
-        data-training-surface="ink"
-        data-av-surface="ink"
+        data-training-surface="moonstone"
+        data-av-surface="moonstone"
         aria-labelledby="practice-plan-title"
         tabIndex={-1}
       >
@@ -187,54 +189,53 @@ export function PracticePlanCard({ practice, report, hasReport = false }: Practi
             const reward = calculatePassiveTrainingXp(option.window)
             const selected = practice.plannedWindow === option.window
             return (
-              <div
+              <article
                 className={styles.window}
                 key={option.window}
                 data-active={selected || undefined}
               >
-                <span className={styles.windowNumber} aria-hidden="true">
-                  0{index + 1}
-                </span>
-                <div className={styles.windowHeading}>
-                  <strong>{passiveTrainingWindowLabel(option.window)}</strong>
-                  <span>{formatPracticeDuration(option.seconds)}</span>
+                <div className={styles.windowMedia} aria-hidden="true">
+                  <AurevaneImage
+                    assetId="environment.passive-training.cloister"
+                    className={styles.windowImage}
+                    sizes="6rem"
+                  />
+                  <span className={styles.windowNumber}>0{index + 1}</span>
                 </div>
-                <GameButton
-                  className={styles.startButton}
-                  type="button"
-                  variant={selected ? 'quiet' : 'primary'}
-                  disabled={submittingWindow !== null || stopping || trainingActive}
-                  onClick={() => void setPlan(option.window)}
-                >
-                  {submittingWindow === option.window
-                    ? 'Starting…'
-                    : selected
-                      ? 'Training now'
-                      : `Start ${passiveTrainingWindowLabel(option.window)}`}
-                </GameButton>
-                <p>{option.description}</p>
-                <dl className={styles.rewardLine}>
-                  <div>
-                    <dt>Rate</dt>
-                    <dd>{rate} XP/hr</dd>
+                <div className={styles.windowBody}>
+                  <div className={styles.windowHeading}>
+                    <strong>{passiveTrainingWindowLabel(option.window)}</strong>
+                    <span>{formatPracticeDuration(option.seconds)}</span>
                   </div>
-                  <div>
-                    <dt>Complete</dt>
-                    <dd>+{reward} XP</dd>
-                  </div>
-                </dl>
-              </div>
+                  <p>{option.description}</p>
+                  <dl className={styles.rewardLine}>
+                    <div>
+                      <dt>Rate</dt>
+                      <dd>{rate} XP/hr</dd>
+                    </div>
+                    <div>
+                      <dt>Complete</dt>
+                      <dd>+{reward} XP</dd>
+                    </div>
+                  </dl>
+                  <GameButton
+                    className={styles.startButton}
+                    type="button"
+                    variant={selected ? 'quiet' : 'primary'}
+                    disabled={submittingWindow !== null || stopping || trainingActive}
+                    onClick={() => void setPlan(option.window)}
+                  >
+                    {submittingWindow === option.window
+                      ? 'Starting…'
+                      : selected
+                        ? 'Training now'
+                        : `Start ${passiveTrainingWindowLabel(option.window)}`}
+                  </GameButton>
+                </div>
+              </article>
             )
           })}
         </div>
-        <details className={styles.rules}>
-          <summary>How Passive Training works</summary>
-          <p>
-            While training is active, new Battle Hall fights are disabled. Profile, account,
-            reference pages, Online Users, and social/chat surfaces remain available. If you stop
-            early, the server awards XP for the completed fraction of the training time.
-          </p>
-        </details>
         {errorMessage ? (
           <p className={styles.error} role="status">
             {errorMessage}
@@ -245,7 +246,7 @@ export function PracticePlanCard({ practice, report, hasReport = false }: Practi
       <section
         className={`${styles.panel} ${styles.activity}`}
         id="training-current"
-        data-av-surface="ink"
+        data-av-surface="moonstone"
         data-testid={trainingActive ? 'passive-training-active' : undefined}
         aria-label="Current training activity"
         tabIndex={-1}
@@ -262,6 +263,11 @@ export function PracticePlanCard({ practice, report, hasReport = false }: Practi
           />
         </header>
         <div className={styles.activityBody}>
+          {!trainingActive ? (
+            <div className={styles.activitySigil} aria-hidden="true">
+              <span>❧</span>
+            </div>
+          ) : null}
           <div className={styles.activitySummary}>
             <div>
               <span className={styles.eyebrow}>CHARACTER XP</span>

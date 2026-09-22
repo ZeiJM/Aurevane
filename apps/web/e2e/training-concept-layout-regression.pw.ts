@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
-test('training uses the approved dark three-panel composition without losing mobile access', async ({
+test('training uses the approved character rail and parchment three-workspace composition', async ({
   page,
 }, testInfo) => {
   test.setTimeout(90_000)
@@ -20,47 +20,67 @@ test('training uses the approved dark three-panel composition without losing mob
     characterName: mobile ? 'Lyra Dawn' : width === 1366 ? 'Lyra Reed' : 'Lyra Vale',
   })
   await page.goto('/game/training')
-  await expect(page.getByTestId('practice-plan-card')).toBeVisible()
-  const metrics = await page.locator('[data-training-concept]').evaluate((element) => {
+
+  const frame = page.locator('[data-training-concept]')
+  const identity = page.getByTestId('character-profile')
+  const planner = page.getByTestId('practice-plan-card')
+  const current = page.getByRole('region', { name: 'Current training activity' })
+  const report = page.getByRole('complementary', { name: 'Training report workspace' })
+
+  await expect(frame).toBeVisible()
+  await expect(identity).toBeVisible()
+  await expect(planner).toBeVisible()
+  await expect(current).toBeVisible()
+  await expect(report).toBeVisible()
+  await expect(page.getByRole('navigation', { name: 'Training sections' })).toHaveCount(0)
+
+  const metrics = await frame.evaluate((element) => {
     const bounds = (node: Element | null) => {
       if (!node) return null
-      const r = node.getBoundingClientRect()
-      return { x: r.x, y: r.y, width: r.width, height: r.height, right: r.right }
+      const rect = node.getBoundingClientRect()
+      return {
+        x: rect.x,
+        y: rect.y,
+        width: rect.width,
+        height: rect.height,
+        right: rect.right,
+      }
     }
-    const planner = element.querySelector('[data-testid="practice-plan-card"]')!
-    const status = element.querySelector('[aria-label="Current training activity"]')
-    const report = element.querySelector('[aria-label="Training report workspace"]')
+    const plannerNode = element.querySelector('[data-testid="practice-plan-card"]')!
+    const currentNode = element.querySelector('[aria-label="Current training activity"]')
+    const reportNode = element.querySelector('[aria-label="Training report workspace"]')
+    const identityNode = element.querySelector('[data-testid="character-profile"]')
     return {
-      planner: bounds(planner)!,
-      status: bounds(status),
-      report: bounds(report),
-      plannerColor: getComputedStyle(planner).color,
-      plannerBackground: getComputedStyle(planner).backgroundColor,
-      context: bounds(document.querySelector('[data-av-context-strip]')),
+      identity: bounds(identityNode),
+      planner: bounds(plannerNode)!,
+      current: bounds(currentNode),
+      report: bounds(reportNode),
+      plannerColor: getComputedStyle(plannerNode).color,
+      plannerBackground: getComputedStyle(plannerNode).backgroundColor,
       overflowX: document.documentElement.scrollWidth - innerWidth,
     }
   })
-  expect.soft(metrics.status, 'current activity has its own permanent panel').not.toBeNull()
+
   const rgb = (value: string) => (value.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number)
-  expect.soft(Math.max(...rgb(metrics.plannerBackground)), 'dark ink planner').toBeLessThan(65)
-  expect.soft(Math.min(...rgb(metrics.plannerColor)), 'readable light text').toBeGreaterThan(150)
+  expect
+    .soft(Math.min(...rgb(metrics.plannerBackground)), 'light parchment planner')
+    .toBeGreaterThan(180)
+  expect
+    .soft(Math.max(...rgb(metrics.plannerColor)), 'dark readable planner text')
+    .toBeLessThan(100)
   expect.soft(metrics.overflowX, 'no sideways page clipping').toBeLessThanOrEqual(1)
-  if (!mobile) {
-    expect.soft(metrics.context, 'retired workspace strip stays absent').toBeNull()
-    if (metrics.status && metrics.report) {
-      expect.soft(metrics.status.x).toBeGreaterThanOrEqual(metrics.planner.right)
-      expect.soft(metrics.report.x).toBeGreaterThanOrEqual(metrics.status.right)
-      expect.soft(Math.abs(metrics.status.y - metrics.planner.y)).toBeLessThanOrEqual(2)
-      expect.soft(Math.abs(metrics.report.y - metrics.planner.y)).toBeLessThanOrEqual(2)
-    }
+
+  if (!mobile && metrics.identity && metrics.current && metrics.report) {
+    expect.soft(metrics.planner.x).toBeGreaterThanOrEqual(metrics.identity.right)
+    expect.soft(metrics.current.x).toBeGreaterThanOrEqual(metrics.planner.right - 1)
+    expect.soft(metrics.report.x).toBeGreaterThanOrEqual(metrics.current.right - 1)
+    expect.soft(Math.abs(metrics.current.y - metrics.planner.y)).toBeLessThanOrEqual(2)
+    expect.soft(Math.abs(metrics.report.y - metrics.planner.y)).toBeLessThanOrEqual(2)
   }
-  await expect(page.getByRole('navigation', { name: 'Training sections' })).toBeVisible()
-  const reportLink = page.getByRole('link', { name: 'Training Report', exact: true })
-  await reportLink.click()
-  const target = page.locator('#training-report-workspace')
-  await expect(target).toBeInViewport()
+
   await expect(page.getByRole('button', { name: 'Start Short', exact: true })).toBeEnabled()
   await expect(
     page.getByRole('button', { name: /Load Preset|Apply Plan|View History/ }),
   ).toHaveCount(0)
+  await expect(page.getByText('How Passive Training works', { exact: true })).toBeVisible()
 })

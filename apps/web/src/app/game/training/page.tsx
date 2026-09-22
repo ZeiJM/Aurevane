@@ -2,6 +2,7 @@ import { isAurevaneError } from '@aurevane/game-core/errors'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 
+import { AuthenticatedGameRecovery } from '@/components/shell/authenticated-game-shell'
 import { OfflineTrainingShell } from '@/components/wayfarers-practice/offline-training-shell'
 import type { PracticePlanCardData } from '@/components/wayfarers-practice/practice-plan-card'
 import type { TrainingReportCardData } from '@/components/wayfarers-practice/training-report-card'
@@ -12,6 +13,7 @@ import {
   getActiveSpectatingForUser,
 } from '@/server/account/active-game-session'
 import { getAuthenticatedActor } from '@/server/auth/actor'
+import { loadCharacterIdentityRailContext } from '@/server/character/character-identity-rail-context'
 import { loadSelectedCharacter } from '@/server/character/selected-character'
 import { loadGameEntryWayfarersPracticeState } from '@/server/wayfarers-practice/game-entry-wayfarers-practice-state'
 import { createSupabaseWayfarersPracticeRepository } from '@/server/wayfarers-practice/supabase-wayfarers-practice-repository'
@@ -41,11 +43,27 @@ export default async function OfflineTrainingPage() {
   if (activeSpectating) redirect(`/game/battle/spectate/${activeSpectating.battleKey}`)
   if (!character) redirect('/game')
 
-  const practiceState = await loadGameEntryWayfarersPracticeState(
-    actor,
-    character.id,
-    createSupabaseWayfarersPracticeRepository(),
-  )
+  const [practiceStateResult, identityResult] = await Promise.allSettled([
+    loadGameEntryWayfarersPracticeState(
+      actor,
+      character.id,
+      createSupabaseWayfarersPracticeRepository(),
+    ),
+    loadCharacterIdentityRailContext(actor, character),
+  ])
+
+  if (practiceStateResult.status === 'rejected') throw practiceStateResult.reason
+  if (identityResult.status === 'rejected') {
+    if (
+      isAurevaneError(identityResult.reason) &&
+      identityResult.reason.code === 'PERSISTENCE_UNAVAILABLE'
+    ) {
+      return <AuthenticatedGameRecovery />
+    }
+    throw identityResult.reason
+  }
+
+  const practiceState = practiceStateResult.value
   if (practiceState.kind === 'persistence-unavailable') redirect('/game/character')
 
   const practicePlan: PracticePlanCardData = {
@@ -83,7 +101,7 @@ export default async function OfflineTrainingPage() {
 
   return (
     <OfflineTrainingShell
-      characterName={character.name}
+      identity={identityResult.value}
       practicePlan={practicePlan}
       trainingReport={report}
     />

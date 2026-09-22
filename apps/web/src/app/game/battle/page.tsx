@@ -2,8 +2,8 @@ import { isAurevaneError } from '@aurevane/game-core/errors'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 
-import { BattleLaunch } from '@/components/battle/battle-launch'
-import { AuthenticatedShellFrame } from '@/components/shell/authenticated-game-shell'
+import { BattleHallShell } from '@/components/battle/battle-hall-shell'
+import { AuthenticatedGameRecovery } from '@/components/shell/authenticated-game-shell'
 import { getOptionalPublicSupabaseConfig } from '@/lib/supabase/config'
 import { getCurrentAccountServicesReadiness } from '@/server/account/account-services-readiness'
 import {
@@ -11,6 +11,7 @@ import {
   getActiveSpectatingForUser,
 } from '@/server/account/active-game-session'
 import { getAuthenticatedActor } from '@/server/auth/actor'
+import { loadCharacterIdentityRailContext } from '@/server/character/character-identity-rail-context'
 import { loadSelectedCharacter } from '@/server/character/selected-character'
 
 export const dynamic = 'force-dynamic'
@@ -42,16 +43,25 @@ export default async function BattleLaunchPage({
   if (activeSpectating) redirect(`/game/battle/spectate/${activeSpectating.battleKey}`)
   if (!character) redirect('/game')
 
+  let identity
+  try {
+    identity = await loadCharacterIdentityRailContext(actor, character)
+  } catch (error) {
+    if (isAurevaneError(error) && error.code === 'PERSISTENCE_UNAVAILABLE') {
+      return <AuthenticatedGameRecovery />
+    }
+    throw error
+  }
+
   const params = await searchParams
   const initialJoinKey = typeof params.join === 'string' ? params.join : null
 
   return (
-    <AuthenticatedShellFrame sessionLabel="Battle Hall">
-      <BattleLaunch
-        characterId={character.id}
-        characterName={character.name}
-        initialJoinKey={initialJoinKey}
-      />
-    </AuthenticatedShellFrame>
+    <BattleHallShell
+      identity={identity}
+      characterId={character.id}
+      characterName={character.name}
+      initialJoinKey={initialJoinKey}
+    />
   )
 }

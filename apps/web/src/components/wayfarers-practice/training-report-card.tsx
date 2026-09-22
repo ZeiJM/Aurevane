@@ -71,8 +71,8 @@ export function TrainingReportCard({ report }: TrainingReportCardProps) {
     <section
       className={styles.panel}
       data-testid="training-report"
-      data-training-surface="ink"
-      data-av-surface="ink"
+      data-training-surface="moonstone"
+      data-av-surface="moonstone"
     >
       <header className={styles.heading}>
         <div>

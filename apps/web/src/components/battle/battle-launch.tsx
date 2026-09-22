@@ -352,22 +352,31 @@ export function BattleLaunch({
       className={styles.page}
       id="battle-launch"
       aria-labelledby="battle-launch-title"
-      data-av-surface="ink"
+      data-av-surface="moonstone"
     >
       <header className={styles.heading} data-hall-scene="true">
         <AurevaneImage
           assetId="environment.battle-hall.courtyard"
           className={styles.heroMedia}
-          sizes="90vw"
+          sizes="(max-width: 760px) 100vw, 72vw"
         />
-        <div>
-          <p className={styles.eyebrow}>Test your skill. Find your next challenge.</p>
-          <h1 id="battle-launch-title">Battle Hall</h1>
+        <span className={styles.heroWash} aria-hidden="true" />
+        <div className={styles.headingCopy}>
+          <span className={styles.pageIcon} aria-hidden="true">
+            ⚔
+          </span>
+          <div>
+            <p className={styles.eyebrow}>Test your skill. Find your next challenge.</p>
+            <h1 id="battle-launch-title">Battle Hall</h1>
+            <small>Practice, compete, and witness the art of battle.</small>
+          </div>
         </div>
-        <p>
-          {characterName}
-          <small>Practice · Challenge · Observe</small>
-        </p>
+        <blockquote>
+          “Discipline in combat
+          <br />
+          reveals the truest self.”
+          <cite>— An Aurevane Proverb</cite>
+        </blockquote>
       </header>
 
       <nav
@@ -382,10 +391,8 @@ export function BattleLaunch({
           aria-pressed={section === 'ai'}
           onClick={() => chooseSection('ai')}
         >
-          <div>
-            <strong>AI Battles</strong>
-            <small>Practice, learn, and test builds</small>
-          </div>
+          <span aria-hidden="true">⚔</span>
+          <strong>AI Battles</strong>
         </button>
         <button
           type="button"
@@ -394,10 +401,8 @@ export function BattleLaunch({
           aria-pressed={section === 'pvp'}
           onClick={() => chooseSection('pvp')}
         >
-          <div>
-            <strong>Player vs Player</strong>
-            <small>Create or join a private battle lobby</small>
-          </div>
+          <span aria-hidden="true">♟</span>
+          <strong>Player vs Player</strong>
         </button>
         <button
           type="button"
@@ -406,10 +411,8 @@ export function BattleLaunch({
           aria-pressed={section === 'spectate'}
           onClick={() => chooseSection('spectate')}
         >
-          <div>
-            <strong>Spectate</strong>
-            <small>Watch a battle using its Battle Key</small>
-          </div>
+          <span aria-hidden="true">◉</span>
+          <strong>Spectate</strong>
         </button>
       </nav>
 
@@ -422,33 +425,63 @@ export function BattleLaunch({
           data-selected={section === 'ai' || undefined}
           data-hall-active-workspace="true"
           aria-labelledby="ai-battles-heading"
+          hidden={section !== 'ai'}
         >
           <div className={styles.workspaceHeading}>
             <div>
               <span>01 / AI Battles</span>
               <h2 id="ai-battles-heading">Choose your arena.</h2>
+              <p>Practice, learn, and test your committed build against AI opponents.</p>
             </div>
-            <p>Practice, learn, and test your committed build.</p>
+            <blockquote>
+              A safer tomorrow
+              <br />
+              is built through practice.
+            </blockquote>
           </div>
+
           <div className={styles.workspaceBody} data-hall-scroll-body="true">
             <figure className={styles.arenaVista}>
               <AurevaneImage
                 assetId="environment.battle-hall.courtyard"
-                sizes="(max-width: 900px) 100vw, 48vw"
+                sizes="(max-width: 900px) 100vw, 64vw"
               />
               <figcaption>
-                <strong>
-                  {selectedArena.name} · {selectedArena.scale}
-                </strong>
-                <span>{selectedArena.summary}</span>
+                <div>
+                  <strong>{selectedArena.name}</strong>
+                  <span>{selectedArena.scale}</span>
+                </div>
+                <em>A classic proving ground for focused combat.</em>
               </figcaption>
             </figure>
-            <nav
-              className={styles.modePicker}
-              aria-label="AI arenas"
-              data-has-selection={selectedRecord !== null || undefined}
-            >
-              <label className={styles.modeSelectLabel}>
+
+            <div className={styles.arenaControlRow}>
+              <label>
+                <span>Arena</span>
+                <select
+                  aria-label="AI sparring arena"
+                  aria-describedby="ai-arena-description"
+                  value={arenaId}
+                  onChange={(event) => setArenaId(event.target.value as TacticalHallArenaId)}
+                  disabled={pending || recordId === 'guided-fundamentals'}
+                >
+                  {(recordId === 'guided-fundamentals'
+                    ? ARENAS.filter((arena) => arena.id === 'basic-training-floor')
+                    : ARENAS.filter((arena) => arena.id !== 'basic-training-floor')
+                  ).map((arena) => (
+                    <option key={arena.id} value={arena.id}>
+                      {arena.name} · {arena.scale}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <p id="ai-arena-description">
+                {selectedArena.scale} · {selectedArena.summary}
+              </p>
+            </div>
+
+            <nav className={styles.modePicker} aria-label="AI arenas">
+              <label className={styles.visuallyHiddenSelect}>
                 <span>Battle mode</span>
                 <select
                   id="ai-mode"
@@ -472,19 +505,38 @@ export function BattleLaunch({
                   })}
                 </select>
               </label>
+
               {VISIBLE_RECORD_IDS.map((id) => {
                 const record = getTacticalHallRecord(id)
+                const recommendation =
+                  id === 'recruit-sparring'
+                    ? ['Recommended for', 'all players']
+                    : id === 'guided-fundamentals'
+                      ? ['Ideal for', 'new players']
+                      : ['For experienced', 'players']
                 return (
                   <button
                     type="button"
                     key={id}
                     aria-pressed={recordId === id}
+                    data-selected={recordId === id || undefined}
                     onClick={() => chooseRecord(id)}
                     disabled={pending}
                   >
-                    <strong>{recordDisplayName(id, record.name)}</strong>
-                    <small>{record.purpose}</small>
-                    <span aria-hidden="true">↗</span>
+                    <span className={styles.modeIcon} aria-hidden="true">
+                      {id === 'recruit-sparring' ? '⚔' : id === 'guided-fundamentals' ? '▣' : '★'}
+                    </span>
+                    <span className={styles.modeCopy}>
+                      <strong>{recordDisplayName(id, record.name)}</strong>
+                      <small>{record.purpose}</small>
+                    </span>
+                    <span className={styles.modeArrow} aria-hidden="true">
+                      ›
+                    </span>
+                    <span className={styles.modeRecommendation}>
+                      <small>{recommendation[0]}</small>
+                      <b>{recommendation[1]}</b>
+                    </span>
                   </button>
                 )
               })}
@@ -492,37 +544,6 @@ export function BattleLaunch({
 
             {selectedRecord ? (
               <div className={styles.selectedPanel}>
-                <div className={styles.selectedCopy}>
-                  <div className={styles.arenaLine}>
-                    {recordId === 'recruit-sparring' || recordId === 'mastery-trial' ? (
-                      <label>
-                        <span>Arena</span>
-                        <select
-                          aria-label="AI sparring arena"
-                          aria-describedby="ai-arena-description"
-                          value={arenaId}
-                          onChange={(event) =>
-                            setArenaId(event.target.value as TacticalHallArenaId)
-                          }
-                          disabled={pending}
-                        >
-                          {ARENAS.filter((arena) => arena.id !== 'basic-training-floor').map(
-                            (arena) => (
-                              <option key={arena.id} value={arena.id}>
-                                {arena.name} · {arena.scale}
-                              </option>
-                            ),
-                          )}
-                        </select>
-                      </label>
-                    ) : (
-                      <strong>{selectedArena.name}</strong>
-                    )}
-                    <span id="ai-arena-description">
-                      {selectedArena.scale} · {selectedArena.summary}
-                    </span>
-                  </div>
-                </div>
                 {selectedRecord.combinedDuel ? (
                   <fieldset className={styles.difficulty}>
                     <legend>AI difficulty</legend>
@@ -560,14 +581,16 @@ export function BattleLaunch({
                 </p>
               </div>
             ) : (
-              <div className={styles.selectedPanel}>
-                <div className={styles.selectedCopy}>
-                  <span>No battle selected</span>
-                  <p>{characterName} will enter with their committed build.</p>
-                </div>
+              <div className={styles.selectionNote}>
+                <strong>No battle selected.</strong>
+                <span>
+                  {characterName} will enter with their committed build. Select a battle mode to
+                  begin in the chosen arena.
+                </span>
               </div>
             )}
           </div>
+
           {selectedRecord ? (
             <footer className={styles.panelActions} data-hall-action-row="true">
               <button
@@ -589,219 +612,247 @@ export function BattleLaunch({
           data-selected={section === 'pvp' || undefined}
           data-hall-active-workspace="true"
           aria-labelledby="pvp-heading"
+          hidden={section !== 'pvp'}
         >
-          <div className={styles.workspaceHeading}>
-            <div>
-              <span>02 / Challenge</span>
-              <h2 id="pvp-heading">Player vs Player</h2>
-            </div>
-            <nav className={styles.entryModes} aria-label="PvP lobby actions">
-              <button
-                type="button"
-                aria-pressed={pvpEntry === 'create'}
-                disabled={pending}
-                onClick={() => setPvpEntry('create')}
-              >
-                Create Lobby
-              </button>
-              <button
-                type="button"
-                aria-pressed={pvpEntry === 'join'}
-                disabled={pending}
-                onClick={() => setPvpEntry('join')}
-              >
-                Join by Key
-              </button>
-            </nav>
-          </div>
-          <div className={styles.workspaceBody} data-hall-scroll-body="true">
-            <div className={styles.pvpGrid}>
-              <article
-                className={styles.joinCard}
-                data-pvp-entry="join"
-                hidden={pvpEntry !== 'join'}
-              >
-                <p>
-                  Join a private battle using a Lobby Key shared by its host. Your creation settings
-                  are kept when you switch back.
-                </p>
-                <label htmlFor="lobby-key">Lobby Key</label>
-                <input
-                  id="lobby-key"
-                  value={joinKey}
-                  onChange={(event) => setJoinKey(formatPvpLobbyKeyInput(event.target.value))}
-                  placeholder="AVL-0000-0000"
-                  title="Paste or type a Lobby Key. Capitals and dashes are added automatically."
-                  autoComplete="off"
-                  autoCapitalize="characters"
-                  spellCheck={false}
-                  maxLength={13}
-                />
-              </article>
+          <div className={styles.pvpStage}>
+            <aside className={styles.pvpVista} aria-hidden="true">
+              <AurevaneImage
+                assetId="environment.battle-hall.courtyard"
+                sizes="(max-width: 900px) 100vw, 18vw"
+              />
+              <blockquote>
+                Strategy reveals character.
+                <br />
+                Combat reveals truth.
+              </blockquote>
+            </aside>
 
-              <article
-                className={styles.setupCard}
-                data-pvp-create-card
-                data-pvp-entry="create"
-                hidden={pvpEntry !== 'create'}
-              >
-                <div className={styles.formatRow}>
-                  <label htmlFor="pvp-mode">Battle format</label>
-                  <select
-                    id="pvp-mode"
-                    aria-describedby="pvp-format-description"
-                    value={pvpMode ?? ''}
-                    onChange={(event) => setPvpMode((event.target.value || null) as PvpMode | null)}
-                    disabled={pending}
+            <div className={styles.pvpContent}>
+              <div className={styles.workspaceHeading}>
+                <div>
+                  <span>02 / Challenge</span>
+                  <h2 id="pvp-heading">Player vs Player</h2>
+                  <p>Create a private battle or join with a key to fight another player.</p>
+                </div>
+                <blockquote>“Greater minds make a greater tomorrow.”</blockquote>
+              </div>
+
+              <nav className={styles.entryModes} aria-label="PvP lobby actions">
+                <button
+                  type="button"
+                  aria-pressed={pvpEntry === 'create'}
+                  disabled={pending}
+                  onClick={() => setPvpEntry('create')}
+                >
+                  Create Lobby
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={pvpEntry === 'join'}
+                  disabled={pending}
+                  onClick={() => setPvpEntry('join')}
+                >
+                  Join by Key
+                </button>
+              </nav>
+
+              <div className={styles.workspaceBody} data-hall-scroll-body="true">
+                <div className={styles.pvpGrid}>
+                  <article
+                    className={styles.joinCard}
+                    data-pvp-entry="join"
+                    hidden={pvpEntry !== 'join'}
                   >
-                    <option value="">Choose a PvP format…</option>
-                    {PVP_MODES.map((mode) => (
-                      <option value={mode.id} key={mode.id}>
-                        {mode.label} — {mode.detail}
-                      </option>
-                    ))}
-                  </select>
+                    <p>
+                      Join a private battle using a Lobby Key shared by its host. Battles are
+                      private, not publicly listed.
+                    </p>
+                    <label htmlFor="lobby-key">Lobby Key</label>
+                    <input
+                      id="lobby-key"
+                      value={joinKey}
+                      onChange={(event) => setJoinKey(formatPvpLobbyKeyInput(event.target.value))}
+                      placeholder="AVL-0000-0000"
+                      title="Paste or type a Lobby Key. Capitals and dashes are added automatically."
+                      autoComplete="off"
+                      autoCapitalize="characters"
+                      spellCheck={false}
+                      maxLength={13}
+                    />
+                  </article>
+
+                  <article
+                    className={styles.setupCard}
+                    data-pvp-create-card
+                    data-pvp-entry="create"
+                    hidden={pvpEntry !== 'create'}
+                  >
+                    <div className={styles.formatRow}>
+                      <label htmlFor="pvp-mode">Battle format</label>
+                      <select
+                        id="pvp-mode"
+                        aria-describedby="pvp-format-description"
+                        value={pvpMode ?? ''}
+                        onChange={(event) =>
+                          setPvpMode((event.target.value || null) as PvpMode | null)
+                        }
+                        disabled={pending}
+                      >
+                        <option value="">Choose a PvP format…</option>
+                        {PVP_MODES.map((mode) => (
+                          <option value={mode.id} key={mode.id}>
+                            {mode.label} — {mode.detail}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <p id="pvp-format-description" className={styles.formatDescription}>
+                      {PVP_MODES.find((mode) => mode.id === pvpMode)?.detail ??
+                        'Choose a battle format to see its team arrangement.'}
+                    </p>
+
+                    {pvpMode === 'flex-teams' ? (
+                      <div className={styles.flexSizes} data-pvp-team-sizes>
+                        <label>
+                          Team 1
+                          <select
+                            value={teamASize}
+                            onChange={(event) => setTeamASize(Number(event.target.value))}
+                          >
+                            {[1, 2, 3].map((size) => (
+                              <option key={size} value={size}>
+                                {size} player{size > 1 ? 's' : ''}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <span>VS</span>
+                        <label>
+                          Team 2
+                          <select
+                            value={teamBSize}
+                            onChange={(event) => setTeamBSize(Number(event.target.value))}
+                          >
+                            {[1, 2, 3].map((size) => (
+                              <option key={size} value={size}>
+                                {size} player{size > 1 ? 's' : ''}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      </div>
+                    ) : null}
+
+                    <div data-pvp-settings-panel aria-label="PvP battle settings">
+                      <fieldset data-pvp-setting-group>
+                        <legend>Map size</legend>
+                        <div data-pvp-setting-options>
+                          {(['medium', 'large'] as const).map((value) => (
+                            <button
+                              key={value}
+                              type="button"
+                              aria-pressed={mapSize === value}
+                              data-selected={mapSize === value || undefined}
+                              onClick={() => setMapSize(value)}
+                              disabled={pending}
+                            >
+                              {value === 'medium' ? 'Standard' : 'Expanded'}
+                            </button>
+                          ))}
+                        </div>
+                      </fieldset>
+                      <fieldset data-pvp-setting-group>
+                        <legend>Elevation</legend>
+                        <div data-pvp-setting-options>
+                          {(['less', 'neutral', 'more'] as const).map((value) => (
+                            <button
+                              key={value}
+                              type="button"
+                              aria-pressed={elevationBias === value}
+                              data-selected={elevationBias === value || undefined}
+                              onClick={() => setElevationBias(value)}
+                              disabled={pending}
+                            >
+                              {value === 'less' ? 'Less' : value === 'more' ? 'More' : 'Neutral'}
+                            </button>
+                          ))}
+                        </div>
+                      </fieldset>
+                      <fieldset data-pvp-setting-group>
+                        <legend>Difficult ground</legend>
+                        <div data-pvp-setting-options>
+                          {(['less', 'neutral', 'more'] as const).map((value) => (
+                            <button
+                              key={value}
+                              type="button"
+                              aria-pressed={terrainBias === value}
+                              data-selected={terrainBias === value || undefined}
+                              onClick={() => setTerrainBias(value)}
+                              disabled={pending}
+                            >
+                              {value === 'less' ? 'Less' : value === 'more' ? 'More' : 'Neutral'}
+                            </button>
+                          ))}
+                        </div>
+                      </fieldset>
+                      <fieldset data-pvp-setting-group>
+                        <legend>Turn timer</legend>
+                        <div data-pvp-setting-options>
+                          {[
+                            { value: 60 as const, label: '60s' },
+                            { value: 120 as const, label: '120s' },
+                            { value: null, label: 'None' },
+                          ].map((option) => (
+                            <button
+                              key={option.label}
+                              type="button"
+                              aria-pressed={turnTimerSeconds === option.value}
+                              data-selected={turnTimerSeconds === option.value || undefined}
+                              onClick={() => setTurnTimerSeconds(option.value)}
+                              disabled={pending}
+                              aria-label={
+                                option.value === null
+                                  ? 'No turn timer'
+                                  : `${option.value} second turn timer`
+                              }
+                            >
+                              {option.label}
+                            </button>
+                          ))}
+                        </div>
+                      </fieldset>
+                    </div>
+                  </article>
                 </div>
-                <p id="pvp-format-description" className={styles.formatDescription}>
-                  {PVP_MODES.find((mode) => mode.id === pvpMode)?.detail ??
-                    'Choose a battle format to see its team arrangement.'}
+
+                <p className={styles.note}>
+                  <span aria-hidden="true">i</span>
+                  Settings lock when the lobby opens. Every seat must be filled and ready to begin.
                 </p>
-                {pvpMode === 'flex-teams' ? (
-                  <div className={styles.flexSizes} data-pvp-team-sizes>
-                    <label>
-                      Team 1
-                      <select
-                        value={teamASize}
-                        onChange={(event) => setTeamASize(Number(event.target.value))}
-                      >
-                        {[1, 2, 3].map((size) => (
-                          <option key={size} value={size}>
-                            {size} player{size > 1 ? 's' : ''}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <span>VS</span>
-                    <label>
-                      Team 2
-                      <select
-                        value={teamBSize}
-                        onChange={(event) => setTeamBSize(Number(event.target.value))}
-                      >
-                        {[1, 2, 3].map((size) => (
-                          <option key={size} value={size}>
-                            {size} player{size > 1 ? 's' : ''}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  </div>
-                ) : null}
-                <div data-pvp-settings-panel aria-label="PvP battle settings">
-                  <fieldset data-pvp-setting-group>
-                    <legend>Map size</legend>
-                    <div data-pvp-setting-options>
-                      {(['medium', 'large'] as const).map((value) => (
-                        <button
-                          key={value}
-                          type="button"
-                          aria-pressed={mapSize === value}
-                          data-selected={mapSize === value || undefined}
-                          onClick={() => setMapSize(value)}
-                          disabled={pending}
-                        >
-                          {value === 'medium' ? 'Standard' : 'Expanded'}
-                        </button>
-                      ))}
-                    </div>
-                  </fieldset>
-                  <fieldset data-pvp-setting-group>
-                    <legend>Elevation</legend>
-                    <div data-pvp-setting-options>
-                      {(['less', 'neutral', 'more'] as const).map((value) => (
-                        <button
-                          key={value}
-                          type="button"
-                          aria-pressed={elevationBias === value}
-                          data-selected={elevationBias === value || undefined}
-                          onClick={() => setElevationBias(value)}
-                          disabled={pending}
-                        >
-                          {value === 'less' ? 'Less' : value === 'more' ? 'More' : 'Neutral'}
-                        </button>
-                      ))}
-                    </div>
-                  </fieldset>
-                  <fieldset data-pvp-setting-group>
-                    <legend>Difficult ground</legend>
-                    <div data-pvp-setting-options>
-                      {(['less', 'neutral', 'more'] as const).map((value) => (
-                        <button
-                          key={value}
-                          type="button"
-                          aria-pressed={terrainBias === value}
-                          data-selected={terrainBias === value || undefined}
-                          onClick={() => setTerrainBias(value)}
-                          disabled={pending}
-                        >
-                          {value === 'less' ? 'Less' : value === 'more' ? 'More' : 'Neutral'}
-                        </button>
-                      ))}
-                    </div>
-                  </fieldset>
-                  <fieldset data-pvp-setting-group>
-                    <legend>Turn timer</legend>
-                    <div data-pvp-setting-options>
-                      {[
-                        { value: 60 as const, label: '60s' },
-                        { value: 120 as const, label: '120s' },
-                        { value: null, label: 'None' },
-                      ].map((option) => (
-                        <button
-                          key={option.label}
-                          type="button"
-                          aria-pressed={turnTimerSeconds === option.value}
-                          data-selected={turnTimerSeconds === option.value || undefined}
-                          onClick={() => setTurnTimerSeconds(option.value)}
-                          disabled={pending}
-                          aria-label={
-                            option.value === null
-                              ? 'No turn timer'
-                              : `${option.value} second turn timer`
-                          }
-                        >
-                          {option.label}
-                        </button>
-                      ))}
-                    </div>
-                  </fieldset>
-                </div>
-              </article>
+              </div>
+
+              <footer className={styles.panelActions} data-hall-action-row="true">
+                <button
+                  type="button"
+                  className={styles.primaryAction}
+                  hidden={pvpEntry !== 'create'}
+                  disabled={!pvpMode || pending}
+                  onClick={() => void createLobby()}
+                >
+                  {pending ? 'Preparing…' : 'Create Battle Lobby'}
+                </button>
+                <button
+                  type="button"
+                  hidden={pvpEntry !== 'join'}
+                  className={styles.primaryAction}
+                  disabled={pending || !isCompletePvpLobbyKey(joinKey)}
+                  onClick={() => void joinLobby(joinKey)}
+                >
+                  {pending ? 'Joining…' : 'Join Battle Lobby'}
+                </button>
+              </footer>
             </div>
-            <p className={styles.note}>
-              Settings lock when the lobby opens. Every seat must be filled and ready to begin.
-            </p>
           </div>
-          <footer className={styles.panelActions} data-hall-action-row="true">
-            <button
-              type="button"
-              className={styles.primaryAction}
-              hidden={pvpEntry !== 'create'}
-              disabled={!pvpMode || pending}
-              onClick={() => void createLobby()}
-            >
-              {pending ? 'Preparing…' : 'Create Battle Lobby'}
-            </button>
-            <button
-              type="button"
-              hidden={pvpEntry !== 'join'}
-              className={styles.secondaryAction}
-              disabled={pending || !isCompletePvpLobbyKey(joinKey)}
-              onClick={() => void joinLobby(joinKey)}
-            >
-              {pending ? 'Joining…' : 'Join Battle Lobby'}
-            </button>
-          </footer>
         </section>
 
         <section
@@ -811,52 +862,62 @@ export function BattleLaunch({
           data-selected={section === 'spectate' || undefined}
           data-hall-active-workspace="true"
           aria-labelledby="spectate-heading"
+          hidden={section !== 'spectate'}
         >
-          <div className={styles.workspaceHeading}>
-            <div>
-              <span>03 / Spectate</span>
-              <h2 id="spectate-heading">Witness a battle by key.</h2>
-            </div>
-            <p>Watch a shared battle. Learn from every turn.</p>
-          </div>
           <div className={styles.workspaceBody} data-hall-scroll-body="true">
             <figure className={styles.spectateVista}>
               <AurevaneImage
                 assetId="environment.battle-hall.courtyard"
-                sizes="(max-width: 900px) 100vw, 48vw"
+                sizes="(max-width: 900px) 100vw, 64vw"
               />
+              <figcaption>
+                <strong>Real strategy lives in every battle.</strong>
+                <span>Observe. Learn. Improve.</span>
+              </figcaption>
             </figure>
-            <div className={styles.spectateCard}>
-              <div>
-                <span>Read-only arena access</span>
-                <strong>Enter a Battle Key</strong>
-                <p>Ask a player for their Battle Key. Battles are private, not publicly listed.</p>
+
+            <div className={styles.spectateIntro}>
+              <span>03 / Spectate</span>
+              <h2 id="spectate-heading">Witness a battle by key.</h2>
+              <p>Watch a shared battle. Learn from every turn.</p>
+            </div>
+
+            <footer className={styles.spectateActions} data-hall-action-row="true">
+              <div className={styles.keyEntry}>
+                <input
+                  value={battleKey}
+                  onChange={(event) => setBattleKey(event.target.value.toUpperCase())}
+                  placeholder="Enter a Battle Key (e.g. AVB-0000-0000)"
+                  aria-label="Battle Key"
+                  autoComplete="off"
+                />
+                <button
+                  type="button"
+                  className={styles.primaryAction}
+                  disabled={pending || !battleKey.trim()}
+                  onClick={() => void spectateBattle()}
+                >
+                  {pending ? 'Opening…' : 'Spectate Battle'}
+                </button>
               </div>
-            </div>
-            <p className={styles.note}>
-              Read-only access: watch the live board and combat state without submitting battle
-              commands.
-            </p>
+            </footer>
+
+            <aside className={styles.readOnlyNote}>
+              <span aria-hidden="true">◉</span>
+              <div>
+                <strong>Read-Only Arena Access</strong>
+                <p>
+                  Spectate battles in real time, watching the live board and combat state without
+                  submitting any commands. Battles are private and accessed only by key.
+                </p>
+              </div>
+              <blockquote>
+                “Great tacticians learn twice —
+                <br />
+                once by playing, and once by watching.”
+              </blockquote>
+            </aside>
           </div>
-          <footer className={styles.panelActions} data-hall-action-row="true">
-            <div className={styles.keyEntry}>
-              <input
-                value={battleKey}
-                onChange={(event) => setBattleKey(event.target.value.toUpperCase())}
-                placeholder="AVB-0000-0000"
-                aria-label="Battle Key"
-                autoComplete="off"
-              />
-              <button
-                type="button"
-                className={styles.primaryAction}
-                disabled={pending || !battleKey.trim()}
-                onClick={() => void spectateBattle()}
-              >
-                {pending ? 'Opening…' : 'Spectate Battle'}
-              </button>
-            </div>
-          </footer>
         </section>
       </div>
 
@@ -865,6 +926,7 @@ export function BattleLaunch({
           {error}
         </p>
       ) : null}
+
       {pvpLobby ? (
         <PvpLobbyModal
           initialLobby={pvpLobby}
