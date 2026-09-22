@@ -81,7 +81,12 @@ describe('battle skill artwork presentation', () => {
       battleSkillArtwork(actionId),
     )
     expect(new Set(lifebinderArtwork).size).toBe(GENERATED_LIFEBINDER_IDS.length)
-    expect(lifebinderArtwork.every((source) => source.startsWith('data:image/svg+xml,'))).toBe(true)
+    expect(
+      lifebinderArtwork.slice(0, 2).every((source) => source.startsWith('data:image/svg+xml,')),
+    ).toBe(true)
+    expect(lifebinderArtwork[2]).toBe(
+      '/media/art/essence-skills/lifebinder-verdant-rupture-v01.webp',
+    )
     expect(battleSkillArtwork('future.skill')).toBe(BATTLE_MISSING_ARTWORK)
   })
 
@@ -104,11 +109,16 @@ describe('battle skill artwork presentation', () => {
     }
   })
 
-  it('gives the Foundation trio Techniques and Essences non-missing generated artwork', () => {
+  it('gives the Foundation trio Techniques and Essences non-missing artwork', () => {
     for (const skillId of FOUNDATION_TRIO_SAMPLE_IDS) {
       const artwork = battleSkillArtwork(skillId)
       expect(artwork).not.toBe(BATTLE_MISSING_ARTWORK)
-      expect(artwork.startsWith('data:image/svg+xml,')).toBe(true)
+      if (skillId.startsWith('essence.')) {
+        expect(artwork).toMatch(/^\/media\/art\/essence-skills\/.+-v01\.webp$/)
+        expect(existsSync(new URL(`../../../public${artwork}`, import.meta.url))).toBe(true)
+      } else {
+        expect(artwork.startsWith('data:image/svg+xml,')).toBe(true)
+      }
     }
   })
 

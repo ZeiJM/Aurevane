@@ -188,7 +188,7 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
     expect
       .soft(metrics.portraitFrameAfter, `${label}: no black bottom diamond ornament`)
       .toBe('none')
-    expect.soft(metrics.primaryLinks).toBe(4)
+    expect.soft(metrics.primaryLinks).toBe(5)
     if (viewport.width >= 1200) {
       expect
         .soft(metrics.identity.width, `${label}: no empty full-width banner`)

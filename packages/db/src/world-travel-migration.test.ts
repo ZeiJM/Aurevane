@@ -68,7 +68,8 @@ beforeAll(async () => {
  create table app_private.battle_participants(battle_session_id uuid,user_id uuid,character_id uuid,participant_role text,combatant_id text);
  create table app_private.battle_snapshots(battle_session_id uuid,battle_version bigint,snapshot jsonb,created_at timestamptz);
  create table app_private.pvp_active_spectating(user_id uuid,battle_session_id uuid);
- create table app_private.wayfarers_practice_state(character_id uuid,planned_window text);
+ create table app_private.training_reports(character_id uuid,status text);
+ create table app_private.wayfarers_practice_state(character_id uuid,planned_window text,plan_set_at timestamptz,planned_window_seconds integer);
  create table app_private.character_active_builds(character_id uuid primary key,build_version bigint);
  create table app_private.pvp_lobbies(id uuid primary key default gen_random_uuid(),lobby_key text,mode text,owner_user_id uuid,team_a_size int,team_b_size int,team_c_size int,status text default 'waiting',battle_session_id uuid,battle_key text,updated_at timestamptz);
  create table app_private.pvp_lobby_members(lobby_id uuid,user_id uuid,character_id uuid,team_index int,seat_index int,ready boolean);
@@ -118,7 +119,7 @@ async function rejected(operation: () => Promise<unknown>, message: string) {
 }
 it('denies browser roles direct state and RPC access', async () => {
   const r = await db.query<{ allowed: boolean }>(
-    "select has_function_privilege('authenticated','public.commit_world_state_v1(uuid,uuid,bigint,uuid,text,jsonb)','execute') allowed",
+    "select has_function_privilege('authenticated','public.commit_world_state_v1(uuid,uuid,bigint,uuid,text,jsonb,text)','execute') allowed",
   )
   expect(r.rows[0]?.allowed).toBe(false)
   await db.exec('set local role authenticated')
@@ -165,10 +166,10 @@ it('blocks training and interrupts routes for every combat entry', async () => {
     route: [{ position: { ...initial.position, x: 6 }, durationMs: 1100 }],
     nextStepAt: Date.now() + 10000,
   })
-  await db.query('insert into app_private.wayfarers_practice_state values($1,$2)', [
-    character,
-    'short',
-  ])
+  await db.query(
+    'insert into app_private.wayfarers_practice_state(character_id,planned_window) values($1,$2)',
+    [character, 'short'],
+  )
   await rejected(
     () => commit(2, 'walk', initial, '00000000-0000-4000-8000-000000000098'),
     'WORLD_TRAINING_ACTIVE',
@@ -273,10 +274,10 @@ it('rechecks a prechecked training start at the write boundary after an encounte
   await attack()
   await rejected(
     () =>
-      db.query('insert into app_private.wayfarers_practice_state values($1,$2)', [
-        character,
-        'short',
-      ]),
+      db.query(
+        'insert into app_private.wayfarers_practice_state(character_id,planned_window) values($1,$2)',
+        [character, 'short'],
+      ),
     'WORLD_ACTIVE_BATTLE',
   )
 })
@@ -316,4 +317,56 @@ it('rebases a delayed successor step on the authoritative commit clock', async (
       ),
     'WORLD_STEP_NOT_DUE',
   )
+})
+
+it('binds concurrent retries to request intent even when derived deadlines differ', async () => {
+  const call = (fingerprint: string, deadline: number) =>
+    db.query('select public.commit_world_state_v1($1,$2,1,$3,$4,$5,$6)', [
+      owner,
+      character,
+      '00000000-0000-4000-8000-000000000099',
+      'walk',
+      {
+        ...initial,
+        route: [{ position: { ...initial.position, x: 6 }, durationMs: 1100 }],
+        nextStepAt: deadline,
+      },
+      fingerprint,
+    ])
+  await call('request-one', 100)
+  await call('request-one', 900)
+  expect((await read()).rows[0]?.result.state.version).toBe(2)
+  await rejected(() => call('different-intent', 100), 'WORLD_COMMAND_CONFLICT')
+})
+it('reports elapsed training using the database clock and keeps incomplete plans blocked', async () => {
+  await db.query(
+    "insert into app_private.wayfarers_practice_state values($1,'short',clock_timestamp(),10800)",
+    [character],
+  )
+  const active = (await read()).rows[0]!.result
+  expect(active).toMatchObject({ trainingExpired: false, blocked: 'WORLD_TRAINING_ACTIVE' })
+  await db.exec(
+    "update app_private.wayfarers_practice_state set plan_set_at=clock_timestamp()-interval '4 hours'",
+  )
+  expect((await read()).rows[0]?.result).toMatchObject({
+    trainingExpired: true,
+    blocked: null,
+  })
+})
+
+it('allows travel after a second plan expires while an earlier reward remains unclaimed', async () => {
+  await db.query(
+    "insert into app_private.wayfarers_practice_state values($1,'short',clock_timestamp()-interval '4 hours',10800)",
+    [character],
+  )
+  await db.query("insert into app_private.training_reports values($1,'pending')", [character])
+  expect((await read()).rows[0]?.result).toMatchObject({ trainingExpired: false, blocked: null })
+  await commit(1, 'walk', {
+    ...initial,
+    route: [{ position: { ...initial.position, x: 6 }, durationMs: 1100 }],
+  })
+  expect((await read()).rows[0]?.result.state.version).toBe(2)
+  expect((await db.query('select * from app_private.training_reports')).rows).toHaveLength(1)
+  await db.exec("update app_private.training_reports set status='claimed'")
+  expect((await read()).rows[0]?.result).toMatchObject({ trainingExpired: true, blocked: null })
 })

@@ -30,7 +30,7 @@ returns text language plpgsql security definer set search_path = pg_catalog,app_
 begin
  if exists(select 1 from app_private.battle_participants p join app_private.battle_sessions b on b.id=p.battle_session_id where p.user_id=p_user_id and p.participant_role='player' and b.lifecycle='active') then return 'WORLD_ACTIVE_BATTLE'; end if;
  if exists(select 1 from app_private.pvp_active_spectating p join app_private.battle_sessions b on b.id=p.battle_session_id where p.user_id=p_user_id and b.lifecycle='active') then return 'WORLD_SPECTATING'; end if;
- if exists(select 1 from app_private.wayfarers_practice_state t where t.character_id=p_character_id and t.planned_window is not null) then return 'WORLD_TRAINING_ACTIVE'; end if;
+ if exists(select 1 from app_private.wayfarers_practice_state t where t.character_id=p_character_id and t.planned_window is not null and (t.plan_set_at is null or t.planned_window_seconds is null or t.plan_set_at + make_interval(secs => t.planned_window_seconds) > clock_timestamp())) then return 'WORLD_TRAINING_ACTIVE'; end if;
  return null;
 end;
 $$;
@@ -38,7 +38,7 @@ revoke all on function app_private.world_block_reason_v1(uuid,uuid) from public,
 
 create function public.read_world_state_v1(p_user_id uuid,p_character_id uuid,p_initial_state jsonb)
 returns jsonb language plpgsql security definer set search_path = pg_catalog,app_private,public as $$
-declare v_state jsonb; v_players jsonb; v_battle uuid; v_block text; v_events jsonb;
+declare v_state jsonb; v_players jsonb; v_battle uuid; v_block text; v_events jsonb; v_receipt app_private.character_world_state%rowtype;
 begin
  if not exists(select 1 from public.characters c where c.id=p_character_id and c.user_id=p_user_id and c.deletion_execute_after is null) then raise exception 'WORLD_NOT_OWNED' using errcode='42501'; end if;
  insert into app_private.character_world_state(character_id,state) values(p_character_id,p_initial_state) on conflict(character_id) do nothing;
@@ -62,13 +62,14 @@ begin
      and jsonb_typeof(objective->'worldNavigation')='object'
    order by r.id,objective->>'id' limit 48
  ) q;
- return jsonb_build_object('eventObjectives',v_events,'state',v_state,'players',v_players,'battleSessionId',v_battle,'blocked',v_block,'serverNow',floor(extract(epoch from clock_timestamp())*1000));
+ select * into v_receipt from app_private.character_world_state where character_id=p_character_id;
+ return jsonb_build_object('lastCommandId',v_receipt.last_command_id,'lastCommandFingerprint',v_receipt.last_command_fingerprint,'trainingExpired',exists(select 1 from app_private.wayfarers_practice_state t where t.character_id=p_character_id and t.planned_window is not null and t.plan_set_at + make_interval(secs => t.planned_window_seconds) <= clock_timestamp()) and not exists(select 1 from app_private.training_reports r where r.character_id=p_character_id and r.status='pending'),'eventObjectives',v_events,'state',v_state,'players',v_players,'battleSessionId',v_battle,'blocked',v_block,'serverNow',floor(extract(epoch from clock_timestamp())*1000));
 end;
 $$;
 revoke all on function public.read_world_state_v1(uuid,uuid,jsonb) from public,anon,authenticated;
 grant execute on function public.read_world_state_v1(uuid,uuid,jsonb) to service_role;
 
-create function public.commit_world_state_v1(p_user_id uuid,p_character_id uuid,p_expected_version bigint,p_command_id uuid,p_kind text,p_next_state jsonb)
+create function public.commit_world_state_v1(p_user_id uuid,p_character_id uuid,p_expected_version bigint,p_command_id uuid,p_kind text,p_next_state jsonb,p_request_fingerprint text default null)
 returns jsonb language plpgsql security definer set search_path=pg_catalog,app_private,public as $$
 declare v_world app_private.character_world_state%rowtype; v_block text; v_fingerprint text; v_now bigint;
 begin
@@ -77,7 +78,7 @@ begin
  if not found then raise exception 'WORLD_NOT_OWNED' using errcode='42501'; end if;
  select * into v_world from app_private.character_world_state w where w.character_id=p_character_id for update;
  if not found then raise exception 'WORLD_STATE_UNAVAILABLE'; end if;
- v_fingerprint:=md5(p_expected_version::text||p_kind||p_next_state::text);
+ v_fingerprint:=coalesce(p_request_fingerprint,md5(p_expected_version::text||p_kind||p_next_state::text));
  if v_world.last_command_id=p_command_id then
    if v_world.last_command_fingerprint<>v_fingerprint then raise exception 'WORLD_COMMAND_CONFLICT' using errcode='22023'; end if;
    return v_world.state;
@@ -105,8 +106,8 @@ begin
  return p_next_state;
 end;
 $$;
-revoke all on function public.commit_world_state_v1(uuid,uuid,bigint,uuid,text,jsonb) from public,anon,authenticated;
-grant execute on function public.commit_world_state_v1(uuid,uuid,bigint,uuid,text,jsonb) to service_role;
+revoke all on function public.commit_world_state_v1(uuid,uuid,bigint,uuid,text,jsonb,text) from public,anon,authenticated;
+grant execute on function public.commit_world_state_v1(uuid,uuid,bigint,uuid,text,jsonb,text) to service_role;
 
 -- Every existing combat entry point interrupts world routes, including Battle Hall fights.
 create function app_private.interrupt_world_route_for_battle_v1()

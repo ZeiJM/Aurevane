@@ -1,6 +1,9 @@
 import { PHASE4_AUDIO_DISCIPLINES, audioAssetRegistry } from '@aurevane/audio'
+import { DISCIPLINE_ATLAS } from '@aurevane/game-core/character/discipline-atlas'
+import { resolveEssenceForBuild } from '@aurevane/game-core/combat/essence'
 import { latestEnabledMatureSkills } from '@aurevane/game-core/combat/mature-skills'
 
+import { essenceSkillArtwork } from './essence-skill-art'
 import { darkFantasySkillArtwork } from './generated-dark-fantasy-art'
 
 export interface SkillIconHookOption {
@@ -32,10 +35,16 @@ function titleSkill(skillId: string): string {
 }
 
 export function registeredSkillArtworkSource(skillId: string): string | null {
-  return darkFantasySkillArtwork(skillId)
+  return essenceSkillArtwork(skillId) ?? darkFantasySkillArtwork(skillId)
 }
 
-const currentSkills = latestEnabledMatureSkills()
+const currentEssenceSkills = DISCIPLINE_ATLAS.flatMap((discipline) => {
+  if (discipline.publication !== 'published') return []
+  const essence = resolveEssenceForBuild(discipline.id, null)
+  return essence ? [essence.skill] : []
+})
+
+const currentSkills = [...latestEnabledMatureSkills(), ...currentEssenceSkills]
 
 export const skillIconHookOptions: readonly SkillIconHookOption[] = currentSkills
   .flatMap((definition) => {

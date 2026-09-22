@@ -1,4 +1,5 @@
 import 'server-only'
+import { createHash } from 'node:crypto'
 import {
   isStarterCharacterPortraitRef,
   STARTER_CHARACTER_PORTRAITS,
@@ -45,7 +46,21 @@ function storedState(state: WorldState) {
     throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'This location cannot be loaded safely.')
   return { ...state, safe: isSafe(sector, state.position) }
 }
-export async function readWorld(userId: string, characterId: string) {
+async function readWorldData(
+  userId: string,
+  characterId: string,
+  materializeExpired = true,
+): Promise<{
+  state: unknown
+  players: WorldPlayer[]
+  serverNow: number
+  eventObjectives?: unknown
+  trainingExpired?: boolean
+  blocked?: string
+  battleSessionId?: string
+  lastCommandId?: string
+  lastCommandFingerprint?: string
+}> {
   const { data, error } = await createSupabaseAdminClient().rpc('read_world_state_v1', {
     p_user_id: userId,
     p_character_id: characterId,
@@ -60,6 +75,20 @@ export async function readWorld(userId: string, characterId: string) {
     typeof data.serverNow !== 'number'
   )
     throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'World state could not be loaded.')
+  // Materialize through the existing training authority in a separate transaction,
+  // before re-reading world state. Never invert its character -> training lock order.
+  if (materializeExpired && data.trainingExpired === true) {
+    const result = await createSupabaseAdminClient().rpc('materialize_training_report_v2', {
+      p_user_id: userId,
+      p_character_id: characterId,
+    })
+    if (result.error) worldRpcError(result.error)
+    return readWorldData(userId, characterId, false)
+  }
+  return data
+}
+export async function readWorld(userId: string, characterId: string) {
+  const data = await readWorldData(userId, characterId)
   const objectives = [...WORLD_OBJECTIVES, ...eventWorldObjectives(data.eventObjectives)]
   const state = data.state as WorldState
   const view = projectWorld(
@@ -88,7 +117,13 @@ export async function readWorld(userId: string, characterId: string) {
         : data.blocked === 'WORLD_ACTIVE_BATTLE'
           ? 'Return to your active battle.'
           : null
-  return { state, view, objectives }
+  return {
+    state,
+    view,
+    objectives,
+    lastCommandId: data.lastCommandId as string | null,
+    lastCommandFingerprint: data.lastCommandFingerprint as string | null,
+  }
 }
 export async function commitWorldCommand(
   userId: string,
@@ -96,6 +131,20 @@ export async function commitWorldCommand(
   command: WorldCommand,
 ) {
   const current = await readWorld(userId, characterId)
+  const fingerprint = createHash('sha256')
+    .update(
+      JSON.stringify({
+        characterId,
+        expectedVersion: command.expectedVersion,
+        intent: command.intent,
+      }),
+    )
+    .digest('hex')
+  if (current.lastCommandId === command.commandId) {
+    if (current.lastCommandFingerprint !== fingerprint)
+      throw new AurevaneError('IDEMPOTENCY_CONFLICT', 'That travel command was already used.')
+    return current.view
+  }
   if (current.state.version !== command.expectedVersion)
     throw new AurevaneError(
       'STALE_VERSION',
@@ -109,8 +158,6 @@ export async function commitWorldCommand(
     current.view.serverNow,
     current.objectives,
   )
-  if (command.intent.kind === 'tick' && JSON.stringify(next) === JSON.stringify(current.state))
-    return current.view
   const { error } = await createSupabaseAdminClient().rpc('commit_world_state_v1', {
     p_user_id: userId,
     p_character_id: characterId,
@@ -118,6 +165,7 @@ export async function commitWorldCommand(
     p_command_id: command.commandId,
     p_kind: command.intent.kind,
     p_next_state: storedState(next),
+    p_request_fingerprint: fingerprint,
   })
   if (error) worldRpcError(error)
   return (await readWorld(userId, characterId)).view
