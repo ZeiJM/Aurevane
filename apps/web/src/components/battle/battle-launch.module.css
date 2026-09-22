@@ -986,7 +986,7 @@
 
   .page select,
   .page input {
-    min-height: 2.18rem;
+    min-height: 2.5rem;
     padding-block: 0.3rem;
   }
 
@@ -1026,7 +1026,7 @@
   }
 
   .difficultyToggle button {
-    min-height: 2.15rem;
+    min-height: 2.5rem;
   }
 
   .primaryAction {
@@ -1043,7 +1043,7 @@
   }
 
   .entryModes button {
-    min-height: 2.2rem;
+    min-height: 2.5rem;
   }
 
   .pvpGrid,
@@ -1070,7 +1070,7 @@
   }
 
   .page [data-pvp-setting-options] button {
-    min-height: 2.15rem;
+    min-height: 2.5rem;
     padding-block: 0.26rem;
   }
 
