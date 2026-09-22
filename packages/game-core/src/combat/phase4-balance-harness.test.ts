@@ -119,6 +119,26 @@ describe('A03 Phase 4 balance harness', () => {
     }
   })
 
+  it('measures setup-payoff pressure across the combined setup and payoff AP budget', () => {
+    const report = buildPhase4BalanceHarness()
+    const byId = new Map(report.disciplines.map((row) => [row.disciplineId, row]))
+    const ironfist = byId.get('ironfist')
+    const frostweaver = byId.get('frostweaver')
+    if (!ironfist || !frostweaver) throw new Error('Expected setup-payoff fixtures.')
+
+    for (const discipline of [ironfist, frostweaver]) {
+      const metrics = discipline.scenarios.find(
+        (scenario) => scenario.level === 100 && scenario.allocation === 'offensive',
+      )?.metrics
+      if (!metrics) throw new Error('Expected Level-100 offensive setup-payoff metrics.')
+      expect(metrics.bestSetupPayoffDamagePer100Ap).toBeGreaterThan(0)
+      expect(metrics.bestSetupPayoffDamagePer100Ap).toBeLessThan(metrics.bestDirectDamagePer100Ap)
+      expect(metrics.bestSetupPayoffDamagePer100Ap).toBeGreaterThan(
+        metrics.basicAttackDamagePer100Ap,
+      )
+    }
+  })
+
   it('captures positional and attrition identities separately from front-facing direct damage', () => {
     const report = buildPhase4BalanceHarness()
     const byId = new Map(report.disciplines.map((row) => [row.disciplineId, row]))
