@@ -11,7 +11,7 @@ import {
 } from '../character/creation'
 import { calculateDerivedStats, type DerivedStatSnapshot } from '../character/derived-stats'
 import { FOUNDATION_DISCIPLINES } from '../character/foundation-disciplines'
-import type { CombatEffectDefinition } from './actions'
+import type { CombatEffectDefinition, CombatUseRequirement } from './actions'
 import { calculateScaledRawDamage, currentSkillDamageScaling } from './damage-scaling'
 import { mitigateDamageByDefense } from './damage-mitigation'
 import { resolveEssenceForBuild } from './essence'
@@ -256,7 +256,7 @@ function metricsForSkills(
     bestPositionalDamagePer100Ap: maximum(pve.map((row) => row.positionalDamagePer100Ap)),
     bestAttritionDamagePer100Ap: maximum(pve.map((row) => row.attritionDamagePer100Ap)),
     bestPvpDirectDamagePer100Ap: maximum(pvp.map((row) => row.directDamagePer100Ap)),
-    bestSetupPayoffDamagePer100Ap: maximum(conditional.map((row) => row.directDamagePer100Ap)),
+    bestSetupPayoffDamagePer100Ap: bestCombinedSetupPayoffDamagePer100Ap(skills, stats),
     bestHealingPer100Ap: maximum(pve.map((row) => row.healingPer100Ap)),
     bestProtectionBasisPoints: maximum(pve.map((row) => row.protectionBasisPoints)),
     bestControlApSwing: maximum(pve.map((row) => row.controlApSwing)),
@@ -334,6 +334,8 @@ function skillMetric(
   )
 
   return {
+    expectedDirectDamage,
+    apCost: resolved.apCost,
     directDamagePer100Ap: roundMetric((expectedDirectDamage * 100) / resolved.apCost),
     positionalDamagePer100Ap: roundMetric(
       (expectedPositionalDamage * 100) / resolved.apCost,
@@ -350,6 +352,145 @@ function skillMetric(
     mpRecovery,
     hasSetupRequirement: definition.requirements.length > 0,
   }
+}
+
+function bestCombinedSetupPayoffDamagePer100Ap(
+  skills: readonly MatureSkillDefinition[],
+  stats: DerivedStatSnapshot,
+): number {
+  let best = 0
+
+  for (const payoff of skills) {
+    const setupRequirements = payoff.requirements.filter(isSetupRequirement)
+    if (setupRequirements.length === 0 || !payoff.effects.some(isDirectDamage)) continue
+
+    const payoffMetric = skillMetric(payoff, stats, 'pve')
+    for (const setup of skills) {
+      if (setup.id === payoff.id) continue
+      if (!setupRequirements.every((requirement) => setupSatisfiesRequirement(setup, requirement))) {
+        continue
+      }
+
+      const setupMetric = skillMetric(setup, stats, 'pve')
+      const combinedAp = setupMetric.apCost + payoffMetric.apCost
+      const combinedDamage = setupMetric.expectedDirectDamage + payoffMetric.expectedDirectDamage
+      best = Math.max(best, roundMetric((combinedDamage * 100) / combinedAp))
+    }
+  }
+
+  return best
+}
+
+function isSetupRequirement(
+  requirement: CombatUseRequirement,
+): requirement is Extract<
+  CombatUseRequirement,
+  {
+    kind:
+      | 'actor-status-present'
+      | 'target-status-present'
+      | 'actor-tag-present'
+      | 'target-tag-present'
+  }
+> {
+  return (
+    requirement.kind === 'actor-status-present' ||
+    requirement.kind === 'target-status-present' ||
+    requirement.kind === 'actor-tag-present' ||
+    requirement.kind === 'target-tag-present'
+  )
+}
+
+type SetupRequirementIdentity = {
+  scope: 'actor' | 'target'
+  kind: 'status' | 'tag'
+  value: string
+}
+
+function setupSatisfiesRequirement(
+  setup: MatureSkillDefinition,
+  requirement: Extract<
+    CombatUseRequirement,
+    {
+      kind:
+        | 'actor-status-present'
+        | 'target-status-present'
+        | 'actor-tag-present'
+        | 'target-tag-present'
+    }
+  >,
+): boolean {
+  const identity = setupRequirementIdentity(requirement)
+  return setup.effects.some((effect) => {
+    const actorScoped = identity.scope === 'actor'
+    if ((effect.recipient === 'actor') !== actorScoped) return false
+    if (!actorScoped && effect.recipient !== 'primary-unit' && effect.recipient !== 'affected-units') {
+      return false
+    }
+
+    if (identity.kind === 'status') {
+      return effect.type === 'apply-status' && effect.statusId === identity.value
+    }
+
+    return effectProvidesGameplayTag(effect, identity.value)
+  })
+}
+
+function setupRequirementIdentity(
+  requirement: Extract<
+    CombatUseRequirement,
+    {
+      kind:
+        | 'actor-status-present'
+        | 'target-status-present'
+        | 'actor-tag-present'
+        | 'target-tag-present'
+    }
+  >,
+): SetupRequirementIdentity {
+  if (requirement.kind === 'actor-status-present') {
+    return { scope: 'actor', kind: 'status', value: requirement.statusId }
+  }
+  if (requirement.kind === 'target-status-present') {
+    return { scope: 'target', kind: 'status', value: requirement.statusId }
+  }
+  if (requirement.kind === 'actor-tag-present') {
+    return { scope: 'actor', kind: 'tag', value: requirement.tag }
+  }
+  return { scope: 'target', kind: 'tag', value: requirement.tag }
+}
+
+function effectProvidesGameplayTag(effect: CombatEffectDefinition, tag: string): boolean {
+  if (effect.type === 'burn') return tag === 'Scorched'
+  if (effect.type === 'bleed') return tag === 'Bleeding'
+  if (effect.type === 'poison') return tag === 'Poisoned'
+  if (effect.type !== 'apply-status') return false
+
+  return gameplayTagsForStatus(effect.statusId).includes(tag)
+}
+
+function gameplayTagsForStatus(statusId: string): readonly string[] {
+  const aliases: Readonly<Record<string, string>> = {
+    burn: 'Scorched',
+    frozen: 'Frozen',
+    conductive: 'Conductive',
+    wet: 'Wet',
+    bleed: 'Bleeding',
+    mark: 'Marked',
+    marked: 'Marked',
+    guarded: 'Guarded',
+    inspired: 'Inspired',
+    hexed: 'Hexed',
+    invisible: 'Invisible',
+    exposed: 'Exposed',
+    poison: 'Poisoned',
+    fortified: 'Fortified',
+    summoned: 'Summoned',
+    airborne: 'Airborne',
+    displaced: 'Displaced',
+  }
+  const definition = PV1F_COMBAT_CONTENT.statuses.find((candidate) => candidate.id === statusId)
+  return [...new Set([aliases[statusId], ...(definition?.gameplayTags ?? [])].filter(Boolean))] as string[]
 }
 
 function buildEssenceReport(
