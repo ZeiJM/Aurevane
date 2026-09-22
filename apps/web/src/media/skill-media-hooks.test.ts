@@ -24,6 +24,20 @@ describe('Skill media hook registry', () => {
       'data-art-kind="discipline-skill-action"',
     )
     expect(registeredSkillArtworkSource('lifebinder.mend')).toBe(icon?.previewSrc)
+    const essence = resolveSkillIconHook('essence.aetherist.aether-nova.icon')
+    expect(essence).toEqual(
+      expect.objectContaining({
+        key: 'essence.aetherist.aether-nova.icon',
+        skillId: 'essence.aetherist.aether-nova',
+      }),
+    )
+    expect(essence?.previewSrc).toBe(
+      '/media/art/essence-skills/aetherist-aether-nova-v01.webp',
+    )
+    expect(
+      skillIconHookOptions.filter((option) => option.skillId.startsWith('essence.')),
+    ).toHaveLength(17)
+    expect(isRegisteredSkillIconHook('essence.aetherist.aether-nova.icon')).toBe(true)
     expect(skillIconHookOptions.length).toBeGreaterThan(10)
     expect(isRegisteredSkillIconHook('skill.lifebinder.mend.icon')).toBe(true)
     expect(isRegisteredSkillIconHook('skill.unknown.icon')).toBe(false)
@@ -50,6 +64,7 @@ describe('Skill media hook registry', () => {
     )
     expect(skillAudioCueHookOptions.length).toBeGreaterThan(10)
     expect(isRegisteredSkillAudioCueHook('skill.vanguard.forceful-strike.audio')).toBe(true)
+    expect(isRegisteredSkillAudioCueHook('essence.aetherist.aether-nova.audio')).toBe(true)
     expect(isRegisteredSkillAudioCueHook('skill.unknown.audio')).toBe(false)
   })
 })
