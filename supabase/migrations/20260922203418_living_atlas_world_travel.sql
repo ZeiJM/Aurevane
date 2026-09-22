@@ -40,7 +40,7 @@ create function public.read_world_state_v1(p_user_id uuid,p_character_id uuid,p_
 returns jsonb language plpgsql security definer set search_path = pg_catalog,app_private,public as $$
 declare v_state jsonb; v_players jsonb; v_battle uuid; v_block text; v_events jsonb; v_receipt app_private.character_world_state%rowtype;
 begin
- if not exists(select 1 from public.characters c where c.id=p_character_id and c.user_id=p_user_id and c.deletion_execute_after is null) then raise exception 'WORLD_NOT_OWNED' using errcode='42501'; end if;
+ if not exists(select 1 from public.characters c where c.id=p_character_id and c.user_id=p_user_id and not exists(select 1 from app_private.character_deletion_requests d where d.character_id=c.id)) then raise exception 'WORLD_NOT_OWNED' using errcode='42501'; end if;
  insert into app_private.character_world_state(character_id,state) values(p_character_id,p_initial_state) on conflict(character_id) do nothing;
  update app_private.character_world_state set last_seen_at=clock_timestamp() where character_id=p_character_id returning state into v_state;
  select b.id into v_battle from app_private.battle_participants p join app_private.battle_sessions b on b.id=p.battle_session_id where p.user_id=p_user_id and p.participant_role='player' and b.lifecycle='active' limit 1;
@@ -48,7 +48,7 @@ begin
  select coalesce(jsonb_agg(q.payload),'[]'::jsonb) into v_players from (
    select jsonb_build_object('characterId',c.id,'name',c.name,'level',c.level,'portraitRef',c.portrait_ref,'imageUrl',null,'position',w.state->'position','attackable',app_private.world_block_reason_v1(c.user_id,c.id) is null) as payload
    from app_private.character_world_state w join public.characters c on c.id=w.character_id
-   where w.sector_id=v_state #>> '{position,sectorId}' and c.user_id<>p_user_id and c.deletion_execute_after is null and w.last_seen_at>clock_timestamp()-interval '40 seconds'
+   where w.sector_id=v_state #>> '{position,sectorId}' and c.user_id<>p_user_id and not exists(select 1 from app_private.character_deletion_requests d where d.character_id=c.id) and w.last_seen_at>clock_timestamp()-interval '40 seconds'
    order by w.last_seen_at desc,c.id limit 64
  ) q;
  select coalesce(jsonb_agg(q.payload),'[]'::jsonb) into v_events from (
@@ -74,8 +74,8 @@ returns jsonb language plpgsql security definer set search_path=pg_catalog,app_p
 declare v_world app_private.character_world_state%rowtype; v_block text; v_fingerprint text; v_now bigint;
 begin
  perform pg_advisory_xact_lock(hashtextextended(p_user_id::text,1));
- perform 1 from public.characters c where c.id=p_character_id and c.user_id=p_user_id and c.deletion_execute_after is null for update;
- if not found then raise exception 'WORLD_NOT_OWNED' using errcode='42501'; end if;
+ perform 1 from public.characters c where c.id=p_character_id and c.user_id=p_user_id for update;
+ if not found or exists(select 1 from app_private.character_deletion_requests d where d.character_id=p_character_id) then raise exception 'WORLD_NOT_OWNED' using errcode='42501'; end if;
  select * into v_world from app_private.character_world_state w where w.character_id=p_character_id for update;
  if not found then raise exception 'WORLD_STATE_UNAVAILABLE'; end if;
  v_fingerprint:=coalesce(p_request_fingerprint,md5(p_expected_version::text||p_kind||p_next_state::text));
@@ -128,12 +128,13 @@ create function public.start_world_encounter_v1(p_user_id uuid,p_character_id uu
 returns jsonb language plpgsql security definer set search_path=pg_catalog,app_private,public as $$
 declare v_target_user uuid; v_user uuid; v_attacker app_private.character_world_state%rowtype; v_target app_private.character_world_state%rowtype; v_lobby uuid:=gen_random_uuid(); v_result record; v_block text; v_participants jsonb;
 begin
- select c.user_id into v_target_user from public.characters c where c.id=p_target_id and c.deletion_execute_after is null;
+ select c.user_id into v_target_user from public.characters c where c.id=p_target_id and not exists(select 1 from app_private.character_deletion_requests d where d.character_id=c.id);
  if v_target_user is null or v_target_user=p_user_id then raise exception 'WORLD_TARGET_UNAVAILABLE' using errcode='22023'; end if;
  -- Consistent account, character and world-row lock order prevents move/attack races.
  for v_user in select u from unnest(array[p_user_id,v_target_user]) u order by u loop perform pg_advisory_xact_lock(hashtextextended(v_user::text,1)); end loop;
  perform 1 from public.characters c where c.id in(p_character_id,p_target_id) order by c.id for update;
- if not exists(select 1 from public.characters c where c.id=p_character_id and c.user_id=p_user_id and c.deletion_execute_after is null) then raise exception 'WORLD_NOT_OWNED' using errcode='42501'; end if;
+ if not exists(select 1 from public.characters c where c.id=p_character_id and c.user_id=p_user_id and not exists(select 1 from app_private.character_deletion_requests d where d.character_id=c.id)) then raise exception 'WORLD_NOT_OWNED' using errcode='42501'; end if;
+ if exists(select 1 from app_private.character_deletion_requests d where d.character_id=p_target_id) then raise exception 'WORLD_TARGET_UNAVAILABLE' using errcode='22023'; end if;
  perform 1 from app_private.character_world_state w where w.character_id in(p_character_id,p_target_id) order by w.character_id for update;
  select * into v_attacker from app_private.character_world_state where character_id=p_character_id;
  select * into v_target from app_private.character_world_state where character_id=p_target_id;
@@ -159,9 +160,9 @@ create function public.read_world_encounter_pair_v1(p_user_id uuid,p_character_i
 returns jsonb language plpgsql security definer set search_path=pg_catalog,app_private,public as $$
 declare v_self jsonb; v_target jsonb; v_target_user uuid;
 begin
- if not exists(select 1 from public.characters c where c.id=p_character_id and c.user_id=p_user_id and c.deletion_execute_after is null) then raise exception 'WORLD_NOT_OWNED' using errcode='42501'; end if;
+ if not exists(select 1 from public.characters c where c.id=p_character_id and c.user_id=p_user_id and not exists(select 1 from app_private.character_deletion_requests d where d.character_id=c.id)) then raise exception 'WORLD_NOT_OWNED' using errcode='42501'; end if;
  select state into v_self from app_private.character_world_state where character_id=p_character_id;
- select w.state,c.user_id into v_target,v_target_user from app_private.character_world_state w join public.characters c on c.id=w.character_id where w.character_id=p_target_id and w.last_seen_at>clock_timestamp()-interval '40 seconds' and c.deletion_execute_after is null;
+ select w.state,c.user_id into v_target,v_target_user from app_private.character_world_state w join public.characters c on c.id=w.character_id where w.character_id=p_target_id and w.last_seen_at>clock_timestamp()-interval '40 seconds' and not exists(select 1 from app_private.character_deletion_requests d where d.character_id=c.id);
  if v_target is null or v_self#>>'{position,sectorId}' is distinct from v_target#>>'{position,sectorId}' then raise exception 'WORLD_TARGET_UNAVAILABLE' using errcode='22023'; end if;
  return jsonb_build_object('attacker',v_self,'target',v_target,'targetUserId',v_target_user);
 end;

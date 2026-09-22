@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process'
 import { expect, test, type Page, type TestInfo } from '@playwright/test'
 import { provisionAccountAndEnterCharacter, openOfflineTraining } from './pv1f-test-helpers'
 import { WORLD_REGIONS } from '../src/world/catalog'
+import { newWorldState } from '../src/world/travel'
 import type { WorldView } from '../src/world/types'
 
 function sql(query: string): string {
@@ -46,6 +47,11 @@ async function enter(page: Page) {
     password: 'Atlas-browser-2026!',
     characterName: name,
   })
+  // Exercise the real SQL schema as well as HTTP; a missing column should produce
+  // its actual database error here instead of only a generic recovery-page timeout.
+  sql(
+    `select public.read_world_state_v1(c.user_id,c.id,'${JSON.stringify({ ...newWorldState(), safe: false })}'::jsonb) from public.characters c where c.name='${name}';`,
+  )
   await page
     .getByRole('navigation', { name: 'Primary game navigation', exact: true })
     .getByRole('link', { name: /World/ })

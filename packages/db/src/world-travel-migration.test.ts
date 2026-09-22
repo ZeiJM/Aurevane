@@ -63,13 +63,13 @@ beforeAll(async () => {
   db = await PGlite.create()
   await db.exec(`create role anon; create role authenticated; create role service_role; create schema app_private; create schema auth;
  create table auth.users(id uuid primary key);
- create table public.characters(id uuid primary key,user_id uuid,name text,level integer,portrait_ref text,deletion_execute_after timestamptz);
+ create table public.characters(id uuid primary key,user_id uuid,name text,level integer,portrait_ref text);
  create table app_private.battle_sessions(id uuid primary key,owner_user_id uuid,lifecycle text,battle_id text,rules_version int,content_version int,current_version bigint,current_snapshot jsonb,created_at timestamptz,updated_at timestamptz);
  create table app_private.battle_participants(battle_session_id uuid,user_id uuid,character_id uuid,participant_role text,combatant_id text);
  create table app_private.battle_snapshots(battle_session_id uuid,battle_version bigint,snapshot jsonb,created_at timestamptz);
  create table app_private.pvp_active_spectating(user_id uuid,battle_session_id uuid);
  create table app_private.training_reports(character_id uuid,status text);
- create table app_private.wayfarers_practice_state(character_id uuid,planned_window text,plan_set_at timestamptz,planned_window_seconds integer);
+ create table app_private.wayfarers_practice_state(character_id uuid,planned_window text,plan_set_at timestamptz,planned_window_seconds bigint);
  create table app_private.character_active_builds(character_id uuid primary key,build_version bigint);
  create table app_private.pvp_lobbies(id uuid primary key default gen_random_uuid(),lobby_key text,mode text,owner_user_id uuid,team_a_size int,team_b_size int,team_c_size int,status text default 'waiting',battle_session_id uuid,battle_key text,updated_at timestamptz);
  create table app_private.pvp_lobby_members(lobby_id uuid,user_id uuid,character_id uuid,team_index int,seat_index int,ready boolean);
@@ -77,8 +77,17 @@ beforeAll(async () => {
  create table app_private.event_runs(id uuid primary key,definition_version_id uuid,run_mode text,lifecycle_status text,current_phase_id text,scheduled_end_at timestamptz,scope_type text,scope_key text);
  create function app_private.pvp_key(text) returns text language sql as 'select $1 || gen_random_uuid()::text';
  insert into auth.users values('${owner}'),('${other}');
- insert into characters values('${character}','${owner}','Traveller',1,'portrait',null),('${target}','${other}','Other',1,'portrait',null);
+ insert into characters values('${character}','${owner}','Traveller',1,'portrait'),('${target}','${other}','Other',1,'portrait');
  insert into app_private.character_active_builds values('${character}',1),('${target}',1);`)
+  // Use the production deletion table: the slots RPC aliases delete_after;
+  // deletion_execute_after is not a physical character column.
+  const deletion = migration('20260818145256_pv1f_character_slots_and_deletion.sql')
+  await db.exec(
+    deletion.slice(
+      deletion.indexOf('create table app_private.character_deletion_requests'),
+      deletion.indexOf('create index character_deletion_requests'),
+    ),
+  )
   // Execute the existing production battle creation function, not a success stub.
   const pvp = migration('20260820161500_pvp_function_ambiguity_hardening.sql')
   await db.exec(
@@ -369,4 +378,19 @@ it('allows travel after a second plan expires while an earlier reward remains un
   expect((await db.query('select * from app_private.training_reports')).rows).toHaveLength(1)
   await db.exec("update app_private.training_reports set status='claimed'")
   expect((await read()).rows[0]?.result).toMatchObject({ trainingExpired: true, blocked: null })
+})
+
+it('excludes pending character deletions from reading, travel and encounter targets', async () => {
+  await db.query(
+    "insert into app_private.character_deletion_requests values($1,$2,now(),now()+interval '24 hours')",
+    [target, other],
+  )
+  expect((await read()).rows[0]?.result).toMatchObject({ players: [] })
+  await rejected(() => attack(), 'WORLD_TARGET_UNAVAILABLE')
+  await db.query(
+    "insert into app_private.character_deletion_requests values($1,$2,now(),now()+interval '24 hours')",
+    [character, owner],
+  )
+  await rejected(() => read(), 'WORLD_NOT_OWNED')
+  await rejected(() => commit(1, 'stop', initial), 'WORLD_NOT_OWNED')
 })
