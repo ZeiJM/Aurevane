@@ -40,6 +40,7 @@ on:
       - apps/web/src/media/**
       - apps/web/src/components/wayfarers-practice/**
       - apps/web/src/components/battle/battle-launch*
+      - apps/web/src/components/battle/battle-hall-shell*
       - apps/web/src/components/battle/pvp-lobby-modal*
       - apps/web/src/components/shell/**
       - apps/web/src/app/*.css
@@ -68,6 +69,7 @@ on:
       - apps/web/src/media/**
       - apps/web/src/components/wayfarers-practice/**
       - apps/web/src/components/battle/battle-launch*
+      - apps/web/src/components/battle/battle-hall-shell*
       - apps/web/src/components/battle/pvp-lobby-modal*
       - apps/web/src/components/shell/**
       - apps/web/src/app/*.css
