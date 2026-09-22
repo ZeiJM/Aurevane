@@ -475,7 +475,9 @@ export function BattleLaunch({
                   ))}
                 </select>
               </label>
-              <p id="ai-arena-description">{selectedArena.summary}</p>
+              <p id="ai-arena-description">
+                {selectedArena.scale} · {selectedArena.summary}
+              </p>
             </div>
 
             <nav className={styles.modePicker} aria-label="AI arenas">
