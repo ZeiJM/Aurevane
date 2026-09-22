@@ -880,23 +880,25 @@ export function BattleLaunch({
               <p>Watch a shared battle. Learn from every turn.</p>
             </div>
 
-            <div className={styles.keyEntry}>
-              <input
-                value={battleKey}
-                onChange={(event) => setBattleKey(event.target.value.toUpperCase())}
-                placeholder="Enter a Battle Key (e.g. AVB-0000-0000)"
-                aria-label="Battle Key"
-                autoComplete="off"
-              />
-              <button
-                type="button"
-                className={styles.primaryAction}
-                disabled={pending || !battleKey.trim()}
-                onClick={() => void spectateBattle()}
-              >
-                {pending ? 'Opening…' : 'Spectate Battle'}
-              </button>
-            </div>
+            <footer className={styles.spectateActions} data-hall-action-row="true">
+              <div className={styles.keyEntry}>
+                <input
+                  value={battleKey}
+                  onChange={(event) => setBattleKey(event.target.value.toUpperCase())}
+                  placeholder="Enter a Battle Key (e.g. AVB-0000-0000)"
+                  aria-label="Battle Key"
+                  autoComplete="off"
+                />
+                <button
+                  type="button"
+                  className={styles.primaryAction}
+                  disabled={pending || !battleKey.trim()}
+                  onClick={() => void spectateBattle()}
+                >
+                  {pending ? 'Opening…' : 'Spectate Battle'}
+                </button>
+              </div>
+            </footer>
 
             <aside className={styles.readOnlyNote}>
               <span aria-hidden="true">◉</span>
