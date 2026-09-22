@@ -75,8 +75,17 @@ test('level-up forces Core Stat allocation until every gained point is committed
   await expect(dialog).toContainText('Cap 60')
   await expect(dialog).toContainText('Cap 40')
   await expect(dialog).not.toContainText('Primary focus')
+  const lowerArt = dialog.getByTestId('attribute-redistribution-lower-art')
   await expect(dialog.getByText('A sharper mind.', { exact: true })).toBeVisible()
+  await expect(lowerArt).toBeVisible()
+  await expect(lowerArt.locator('img')).toBeVisible()
   await expect(dialog.getByTestId('attribute-redistribution-atmosphere')).toBeVisible()
+
+  const lowerArtBox = await lowerArt.boundingBox()
+  const quoteBox = await dialog.getByText('A sharper mind.', { exact: true }).boundingBox()
+  expect(lowerArtBox).not.toBeNull()
+  expect(quoteBox).not.toBeNull()
+  expect(quoteBox!.y).toBeGreaterThanOrEqual(lowerArtBox!.y)
 
   const portraitFrame = dialog.getByTestId('attribute-redistribution-portrait')
   const portraitBox = await portraitFrame.boundingBox()
