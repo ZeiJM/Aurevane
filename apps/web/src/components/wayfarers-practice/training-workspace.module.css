@@ -18,8 +18,7 @@
   border: 1px solid rgba(149, 121, 68, 0.38);
   color: #223945;
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.54), transparent 42%),
-    rgba(250, 247, 237, 0.92);
+    linear-gradient(145deg, rgba(255, 255, 255, 0.54), transparent 42%), rgba(250, 247, 237, 0.92);
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.52),
     0 0.3rem 0.85rem rgba(43, 50, 45, 0.06);
