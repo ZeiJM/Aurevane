@@ -136,6 +136,7 @@ function currentPowerEncounter(): StatDrivenCombatEncounterState {
         level: 50,
         physicalPower: row.combatantId === 'player' ? 40 : 32,
         mysticPower: row.combatantId === 'player' ? 44 : 32,
+        criticalChance: 0,
       })),
     },
   }
