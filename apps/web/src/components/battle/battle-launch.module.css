@@ -368,7 +368,6 @@
   padding: 0;
   overflow: visible;
   opacity: 0;
-  pointer-events: none;
   white-space: nowrap;
 }
 
