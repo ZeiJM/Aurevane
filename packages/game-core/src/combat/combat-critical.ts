@@ -92,10 +92,7 @@ export function rollCombatCritical(
     }
 
     if (critical) {
-      criticalEffectOrdinalsByTarget.set(
-        target.targetCombatantId,
-        new Set(target.effectOrdinals),
-      )
+      criticalEffectOrdinalsByTarget.set(target.targetCombatantId, new Set(target.effectOrdinals))
     }
     events.push({
       event: 'combat_critical_resolved',
@@ -160,9 +157,7 @@ function criticalPlan(
 
     for (const targetCombatantId of recipientIds) {
       if (missedCombatantIds.has(targetCombatantId)) continue
-      const target = state.tactical.battle.combatants.find(
-        (unit) => unit.id === targetCombatantId,
-      )
+      const target = state.tactical.battle.combatants.find((unit) => unit.id === targetCombatantId)
       if (!target) throw new TypeError('Combat critical resolution requires committed recipients.')
       if (target.hp <= 0 || target.teamId === actor.teamId) continue
 
