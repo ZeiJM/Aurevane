@@ -398,9 +398,11 @@ test('Master combat authoring publishes versioned content, pins battles, and rol
   await apInput.fill(String(nextAp))
 
   await page.getByLabel('Skill artwork hook').selectOption('skill.lifebinder.mend.icon')
-  await expect(page.getByLabel('Skill artwork preview').locator('img')).toHaveAttribute(
+  const artworkPreview = page.getByLabel('Skill artwork preview').locator('img')
+  await expect(artworkPreview).toHaveAttribute('src', /^data:image\/svg\+xml,/)
+  await expect(artworkPreview).toHaveAttribute(
     'src',
-    /skill-lifebinder-mend-v01\.webp$/,
+    /width%3D%22512%22.*height%3D%22512%22.*data-art-kind%3D%22discipline-skill-action%22/,
   )
   await page.getByLabel('Skill audio hook').selectOption('skill.ironfist.breakfall.audio')
   await expect(page.getByLabel('Battle audio preview')).toHaveAttribute(
