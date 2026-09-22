@@ -79,10 +79,7 @@ function encounter(
     elevation: 0,
     terrainId: 'open',
   }))
-  const profiles = [
-    profile('actor', criticalChance),
-    ...targets.map((id) => profile(id, 0)),
-  ]
+  const profiles = [profile('actor', criticalChance), ...targets.map((id) => profile(id, 0))]
   const tactical = createTacticalBattleState({
     battle,
     width: combatants.length,
@@ -222,19 +219,16 @@ describe('A03 authoritative Critical Chance', () => {
 
   it('resolves multi-target critical events in stable target id order', () => {
     const state = encounter(10_000, ['target-b', 'target-a'])
-    const definition = action(
-      [{ type: 'damage', recipient: 'affected-units', amount: 10 }],
-      {
-        kind: 'unit',
-        teamPolicy: 'enemy',
-        shape: { kind: 'line', length: 3 },
-        minimumRange: 1,
-        maximumRange: 3,
-        requiresLineOfSight: false,
-        maximumElevationDifference: 1,
-        friendlyFire: 'enemies-only',
-      },
-    )
+    const definition = action([{ type: 'damage', recipient: 'affected-units', amount: 10 }], {
+      kind: 'unit',
+      teamPolicy: 'enemy',
+      shape: { kind: 'line', length: 3 },
+      minimumRange: 1,
+      maximumRange: 3,
+      requiresLineOfSight: false,
+      maximumElevationDifference: 1,
+      friendlyFire: 'enemies-only',
+    })
     const evaluation = evaluateCombatAction(
       state,
       definition,
@@ -243,10 +237,7 @@ describe('A03 authoritative Critical Chance', () => {
     )
     const rolled = rollCombatCritical(state, definition, evaluation, new Set())
 
-    expect(rolled.events.map((event) => event.targetCombatantId)).toEqual([
-      'target-a',
-      'target-b',
-    ])
+    expect(rolled.events.map((event) => event.targetCombatantId)).toEqual(['target-a', 'target-b'])
   })
 
   it('does not roll for an accuracy-missed target', () => {
