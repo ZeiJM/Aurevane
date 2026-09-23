@@ -37,10 +37,10 @@ describe('Skill media hook registry', () => {
       '/media/art/discipline-skills/chronist-stolen-moment-v01.webp',
     )
     expect(registeredSkillArtworkSource('bastion.shield-bash')).toBe(
-      '/media/art/discipline-skills/bastion-shield-bash-v01.webp',
+      '/media/art/discipline-skills/bastion-shield-bash-v02.webp',
     )
     expect(registeredSkillArtworkSource('bastion.steady-footing')).toBe(
-      '/media/art/discipline-skills/bastion-steady-footing-v01.webp',
+      '/media/art/discipline-skills/bastion-steady-footing-v02.webp',
     )
     expect(registeredSkillArtworkSource('ravager.frenzy')).toMatch(/^data:image\/svg\+xml/)
     const essence = resolveSkillIconHook('essence.aetherist.aether-nova.icon')

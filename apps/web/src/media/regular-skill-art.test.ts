@@ -60,10 +60,10 @@ describe('approved regular Discipline Skill action art — first 64', () => {
       '/media/art/discipline-skills/chronist-stolen-moment-v01.webp',
     )
     expect(regularSkillArtwork('bastion.shield-bash')).toBe(
-      '/media/art/discipline-skills/bastion-shield-bash-v01.webp',
+      '/media/art/discipline-skills/bastion-shield-bash-v02.webp',
     )
     expect(regularSkillArtwork('bastion.steady-footing')).toBe(
-      '/media/art/discipline-skills/bastion-steady-footing-v01.webp',
+      '/media/art/discipline-skills/bastion-steady-footing-v02.webp',
     )
     expect(regularSkillArtwork('ravager.frenzy')).toBeNull()
   })

@@ -112,10 +112,10 @@ describe('battle skill artwork presentation', () => {
       '/media/art/discipline-skills/chronist-stolen-moment-v01.webp',
     )
     expect(battleSkillArtwork('bastion.shield-bash')).toBe(
-      '/media/art/discipline-skills/bastion-shield-bash-v01.webp',
+      '/media/art/discipline-skills/bastion-shield-bash-v02.webp',
     )
     expect(battleSkillArtwork('bastion.steady-footing')).toBe(
-      '/media/art/discipline-skills/bastion-steady-footing-v01.webp',
+      '/media/art/discipline-skills/bastion-steady-footing-v02.webp',
     )
     expect(battleSkillArtwork('ravager.frenzy')).toMatch(/^data:image\/svg\+xml,/)
 
