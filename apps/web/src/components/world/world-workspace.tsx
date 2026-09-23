@@ -107,6 +107,7 @@ export function WorldWorkspace({
   })
   useEffect(() => {
     mounted.current = true
+    acceptedAt.current = Date.now()
     let disposed = false
 
     const clearTimer = () => {
