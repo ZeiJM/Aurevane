@@ -4,11 +4,25 @@ on:
   pull_request:
     paths-ignore:
       - 'apps/web/vercel.json'
+      - 'docs/**'
+      - 'README.md'
+      - 'TASKS.md'
+      - 'AGENTS.md'
+      - 'apps/web/DEPLOYMENT.md'
+      - 'content/art-requests/**'
+      - 'content/audio-requests/**'
   push:
     branches:
       - main
     paths-ignore:
       - 'apps/web/vercel.json'
+      - 'docs/**'
+      - 'README.md'
+      - 'TASKS.md'
+      - 'AGENTS.md'
+      - 'apps/web/DEPLOYMENT.md'
+      - 'content/art-requests/**'
+      - 'content/audio-requests/**'
 
 permissions:
   contents: read
