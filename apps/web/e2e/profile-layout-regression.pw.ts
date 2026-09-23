@@ -118,6 +118,26 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
       await page.waitForTimeout(500)
       const railAfter = await rail.evaluate((node) => getComputedStyle(node, '::before').transform)
       expect.soft(railAfter, 'game rail aether physically advances').not.toBe(railStart)
+
+      const railLinkMetrics = await rail
+        .locator('[aria-label="Primary game navigation"] > :is(a, button)')
+        .evaluateAll((links) =>
+          links.map((link) => {
+            const rect = link.getBoundingClientRect()
+            const icon = link.querySelector<SVGElement>('svg')
+            const iconRect = icon?.getBoundingClientRect()
+            return {
+              label: link.getAttribute('aria-label'),
+              height: rect.height,
+              iconWidth: iconRect?.width ?? 0,
+            }
+          }),
+        )
+      const railHeights = railLinkMetrics.map((item) => item.height)
+      expect(Math.max(...railHeights) - Math.min(...railHeights)).toBeLessThanOrEqual(1)
+      const arsenalIcon = railLinkMetrics.find((item) => item.label === 'Arsenal')
+      const characterIcon = railLinkMetrics.find((item) => item.label === 'Character')
+      expect(arsenalIcon?.iconWidth ?? 0).toBeGreaterThan(characterIcon?.iconWidth ?? 0)
     }
 
     await page.evaluate(async () => {
