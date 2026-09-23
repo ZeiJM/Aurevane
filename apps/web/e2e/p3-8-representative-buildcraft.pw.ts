@@ -31,6 +31,30 @@ async function setSkill(page: Page, name: string, checked: boolean): Promise<voi
   if ((await checkbox.isChecked()) !== checked) await checkbox.click()
 }
 
+async function commitSkills(page: Page, expectedNames: readonly string[]): Promise<void> {
+  // Refresh remounts the versioned panel and can clear its transient status. Verify the
+  // authoritative response and settled selection before the existing reload-persistence checks.
+  const saved = page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname === '/api/character/build/skills' &&
+      response.request().method() === 'PUT',
+  )
+  const commit = page.getByRole('button', { name: 'Commit Selected Techniques', exact: true })
+  await commit.click()
+  const response = await saved
+  expect(response.status()).toBe(200)
+  const body = await response.json()
+  expect(
+    body.context.disciplineSkills.equippedSkills.map(
+      (entry: { definition: { id: string } }) => entry.definition.id,
+    ),
+  ).toEqual(response.request().postDataJSON().skillIds)
+  await expect(commit).toBeDisabled()
+  for (const name of expectedNames) {
+    await expect(skillRow(page, name).getByRole('checkbox')).toBeChecked()
+  }
+}
+
 async function reloadArsenal(page: Page): Promise<void> {
   if (new URL(page.url()).pathname.startsWith('/game/arsenal')) {
     await page.reload()
@@ -101,8 +125,7 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   }
 
   await expect(page.getByTestId('skill-capacity')).toContainText('4 / 4')
-  await page.getByRole('button', { name: 'Commit Selected Techniques' }).click()
-  await expect(page.getByRole('status')).toContainText('Selected Techniques committed')
+  await commitSkills(page, ['Forceful Strike', 'Cleave', 'Brace', 'Shield Bash'])
   await reloadArsenal(page)
 
   const disciplinePanel = page.getByTestId('primary-build-panel')
@@ -141,8 +164,7 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   await expect(mixedCapacity).toContainText('Vanguard')
   await expect(mixedCapacity).toContainText('Lifebinder')
   await expect(mixedCapacity).toContainText('2 / 2')
-  await page.getByRole('button', { name: 'Commit Selected Techniques' }).click()
-  await expect(page.getByRole('status')).toContainText('Selected Techniques committed')
+  await commitSkills(page, ['Forceful Strike', 'Cleave', 'Mending Light', 'Barrier'])
 
   await reloadArsenal(page)
   await page.getByRole('button', { name: /Manage Techniques/ }).click()
