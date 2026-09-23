@@ -10,6 +10,7 @@ export {
 } from './registry'
 export {
   AUDIO_CHANNELS,
+  USER_AUDIO_CHANNELS,
   AUDIO_SETTINGS_STORAGE_KEY,
   clampAudioVolume,
   createDefaultAudioSettings,
@@ -17,6 +18,7 @@ export {
   reduceAudioSettings,
   serializeAudioSettings,
   type AudioChannel,
+  type UserAudioChannel,
   type AudioMixSettings,
   type AudioSettingsAction,
   type RoutedAudioChannel,

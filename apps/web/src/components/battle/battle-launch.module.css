@@ -253,8 +253,27 @@
   align-content: start;
   overflow: auto;
   overscroll-behavior: contain;
+  scrollbar-color: rgba(154, 120, 64, 0.78) rgba(232, 225, 208, 0.32);
   scrollbar-gutter: stable;
   scrollbar-width: thin;
+}
+
+.workspaceBody::-webkit-scrollbar {
+  width: 0.48rem;
+}
+
+.workspaceBody::-webkit-scrollbar-track {
+  background: rgba(232, 225, 208, 0.32);
+}
+
+.workspaceBody::-webkit-scrollbar-thumb {
+  border: 1px solid rgba(247, 243, 232, 0.86);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(201, 170, 104, 0.92), rgba(139, 106, 53, 0.92));
+}
+
+.workspaceBody::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #d7ba79, #9b773d);
 }
 
 .arenaVista,

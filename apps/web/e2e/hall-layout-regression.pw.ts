@@ -87,6 +87,17 @@ test('Battle Hall shows one full-width parchment workspace at a time with all re
   await expect(page.locator('[data-hall-workspace="ai"]')).toBeVisible()
   await expect(page.locator('[data-hall-workspace="pvp"]')).toBeHidden()
   await expect(page.locator('[data-hall-workspace="spectate"]')).toBeHidden()
+  if (!mobile) {
+    await expect
+      .poll(() =>
+        page
+          .locator('[data-battle-hall-workspace="true"]')
+          .evaluate((element) =>
+            getComputedStyle(element).getPropertyValue('--character-rail-height').trim(),
+          ),
+      )
+      .not.toBe('')
+  }
   await capture(page, testInfo, 'idle')
 
   const ai = page.locator('[data-hall-workspace="ai"]')
@@ -95,12 +106,20 @@ test('Battle Hall shows one full-width parchment workspace at a time with all re
   expect(Math.min(...rgb), 'AI workspace uses a light parchment surface').toBeGreaterThan(180)
 
   if (!mobile) {
-    const [pageBox, workspaceBox] = await Promise.all([
+    const [pageBox, workspaceBox, identityBox] = await Promise.all([
       page.locator('#battle-launch').boundingBox(),
       ai.boundingBox(),
+      page.getByTestId('character-profile').boundingBox(),
     ])
     expect(pageBox).not.toBeNull()
     expect(workspaceBox).not.toBeNull()
+    expect(identityBox).not.toBeNull()
+    expect
+      .soft(
+        Math.abs(pageBox!.y + pageBox!.height - (identityBox!.y + identityBox!.height)),
+        'Battle Hall parchment ends in line with the character panel',
+      )
+      .toBeLessThanOrEqual(2)
     expect(workspaceBox!.width).toBeGreaterThan(pageBox!.width * 0.94)
     const aiSpace = await ai.evaluate((element) => {
       const body = element.querySelector('[data-hall-scroll-body]')!.getBoundingClientRect()

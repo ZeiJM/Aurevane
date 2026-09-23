@@ -1,23 +1,19 @@
 'use client'
 
-import { AUDIO_CHANNELS, type AudioChannel } from '@aurevane/audio'
+import { USER_AUDIO_CHANNELS, type UserAudioChannel } from '@aurevane/audio'
 import { GameButton, Kicker, StatusMark } from '@aurevane/ui'
 import { useEffect, useId, useRef, useState } from 'react'
 
 import { useAudioRuntime } from './audio-provider'
 import styles from './audio-settings-menu.module.css'
 
-const CHANNEL_LABELS: Record<AudioChannel, string> = {
-  master: 'Master',
+const CHANNEL_LABELS: Record<UserAudioChannel, string> = {
   music: 'Music',
   sfx: 'Sound effects',
-  ambience: 'Ambience',
-  ui: 'UI sounds',
 }
 
 export function AudioSettingsMenu() {
-  const { settings, audioState, setVolume, toggleMute, unlock, playCalibrationTone } =
-    useAudioRuntime()
+  const { settings, audioState, setVolume, toggleMute, unlock } = useAudioRuntime()
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
@@ -61,7 +57,7 @@ export function AudioSettingsMenu() {
     }
   }, [open])
 
-  function updateVolume(channel: AudioChannel, value: string) {
+  function updateVolume(channel: UserAudioChannel, value: string) {
     setVolume(channel, Number(value) / 100)
   }
 
@@ -104,20 +100,17 @@ export function AudioSettingsMenu() {
               <Kicker marker={<StatusMark />}>Soundscape</Kicker>
               <h2>Audio settings</h2>
             </div>
-            <div className={styles.headingActions}>
-              <span className={styles.saveNote}>Saved locally</span>
-              <button
-                type="button"
-                className={styles.close}
-                aria-label="Close audio settings"
-                onClick={() => {
-                  setOpen(false)
-                  triggerRef.current?.focus()
-                }}
-              >
-                ×
-              </button>
-            </div>
+            <button
+              type="button"
+              className={styles.close}
+              aria-label="Close audio settings"
+              onClick={() => {
+                setOpen(false)
+                triggerRef.current?.focus()
+              }}
+            >
+              ×
+            </button>
           </div>
 
           <p className={styles.status} role="status" data-testid="audio-state">
@@ -140,7 +133,7 @@ export function AudioSettingsMenu() {
           </div>
 
           <div className={styles.mix} aria-label="Volume channels">
-            {AUDIO_CHANNELS.map((channel) => {
+            {USER_AUDIO_CHANNELS.map((channel) => {
               const percent = Math.round(settings.volumes[channel] * 100)
               return (
                 <label className={styles.channel} key={channel}>
@@ -161,20 +154,6 @@ export function AudioSettingsMenu() {
               )
             })}
           </div>
-
-          <GameButton
-            type="button"
-            variant="primary"
-            className={styles.test}
-            onClick={() => void playCalibrationTone()}
-            disabled={audioState === 'unavailable'}
-            data-testid="audio-test-tone"
-          >
-            Test UI channel
-          </GameButton>
-          <p className={styles.fineprint}>
-            Adjust each channel to suit your setup. Use the test sound to check your volume.
-          </p>
         </div>
       ) : null}
     </div>

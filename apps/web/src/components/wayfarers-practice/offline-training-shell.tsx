@@ -4,6 +4,7 @@ import {
   CharacterIdentityCard,
   type CharacterIdentityCardProps,
 } from '@/components/character/character-identity-card'
+import { CharacterRailSynchronizedLayout } from '@/components/character/character-rail-synchronized-layout'
 import { AurevaneImage } from '@/components/media/aurevane-image'
 import { AuthenticatedShellFrame } from '@/components/shell/authenticated-game-shell'
 
@@ -25,10 +26,10 @@ export function OfflineTrainingShell({
 }: OfflineTrainingShellProps) {
   return (
     <AuthenticatedShellFrame sessionLabel="Passive Training">
-      <div className={styles.layout} data-training-concept="true">
+      <CharacterRailSynchronizedLayout className={styles.layout} data-training-concept="true">
         <CharacterIdentityCard {...identity} />
 
-        <section className={styles.sheet} data-av-surface="moonstone">
+        <section className={styles.sheet} data-av-surface="moonstone" data-training-sheet="true">
           <section className={styles.hero} data-training-scene="true">
             <AurevaneImage
               assetId="ui.foundation.vista"
@@ -88,29 +89,8 @@ export function OfflineTrainingShell({
               }
             />
           </div>
-
-          <details className={styles.trainingHelp}>
-            <summary>
-              <span className={styles.helpIcon} aria-hidden="true">
-                ?
-              </span>
-              <span>
-                <strong>How Passive Training works</strong>
-                <small>
-                  Continue to gain experience while you are away. Longer sessions grant larger
-                  rewards.
-                </small>
-              </span>
-              <b>Learn More →</b>
-            </summary>
-            <p>
-              While training is active, new Battle Hall fights are disabled. Profile, account,
-              reference pages, Online Users, and social/chat surfaces remain available. If you stop
-              early, the server awards XP for the completed fraction of the training time.
-            </p>
-          </details>
         </section>
-      </div>
+      </CharacterRailSynchronizedLayout>
     </AuthenticatedShellFrame>
   )
 }

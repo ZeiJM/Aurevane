@@ -218,6 +218,11 @@
   flex: 0 0 auto;
 }
 
+.railLink svg[data-nav-icon='arsenal'] {
+  width: 1.84rem;
+  height: 1.84rem;
+}
+
 .railLink > span {
   position: absolute;
   width: 1px;
@@ -721,6 +726,11 @@
   .railLink svg {
     width: 1.2rem;
     height: 1.2rem;
+  }
+
+  .railLink svg[data-nav-icon='arsenal'] {
+    width: 1.34rem;
+    height: 1.34rem;
   }
 
   .railLink > span {

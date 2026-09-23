@@ -47,6 +47,17 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
     await page.setViewportSize(viewport)
     await page.goto('/game/character')
     await expect(page.getByTestId('character-profile')).toBeVisible()
+    if (viewport.width >= 1200) {
+      await expect
+        .poll(() =>
+          page
+            .locator('[data-profile-workspace]')
+            .evaluate((element) =>
+              getComputedStyle(element).getPropertyValue('--character-rail-height').trim(),
+            ),
+        )
+        .not.toBe('')
+    }
     await expect(page.locator('[data-profile-loadout]')).toHaveCount(0)
     await expect(page.getByRole('heading', { name: 'Identity', exact: true })).toBeVisible()
     await expect(
@@ -107,6 +118,26 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
       await page.waitForTimeout(500)
       const railAfter = await rail.evaluate((node) => getComputedStyle(node, '::before').transform)
       expect.soft(railAfter, 'game rail aether physically advances').not.toBe(railStart)
+
+      const railLinkMetrics = await rail
+        .locator('[aria-label="Primary game navigation"] > :is(a, button)')
+        .evaluateAll((links) =>
+          links.map((link) => {
+            const rect = link.getBoundingClientRect()
+            const icon = link.querySelector<SVGElement>('svg')
+            const iconRect = icon?.getBoundingClientRect()
+            return {
+              label: link.getAttribute('aria-label'),
+              height: rect.height,
+              iconWidth: iconRect?.width ?? 0,
+            }
+          }),
+        )
+      const railHeights = railLinkMetrics.map((item) => item.height)
+      expect(Math.max(...railHeights) - Math.min(...railHeights)).toBeLessThanOrEqual(1)
+      const arsenalIcon = railLinkMetrics.find((item) => item.label === 'Arsenal')
+      const characterIcon = railLinkMetrics.find((item) => item.label === 'Character')
+      expect(arsenalIcon?.iconWidth ?? 0).toBeGreaterThan(characterIcon?.iconWidth ?? 0)
     }
 
     await page.evaluate(async () => {
@@ -144,6 +175,7 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
       const portraitFrame = portrait.parentElement?.parentElement as HTMLElement
       const heading = hero.querySelector('h1')!
       const sheet = required('[data-profile-sheet]')
+      const story = required('[data-testid="current-path-coming-soon"]')
       const workspace = required('[data-profile-workspace]')
       const p = rect(portrait),
         h = rect(heading)
@@ -152,6 +184,7 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
         portrait: p,
         name: h,
         sheet: rect(sheet),
+        story: rect(story),
         workspace: rect(workspace),
         overlap:
           Math.max(0, Math.min(p.right, h.right) - Math.max(p.x, h.x)) *
@@ -160,6 +193,8 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
         sheetOverflowX: sheet.scrollWidth - sheet.clientWidth,
         identityOverflowY: getComputedStyle(identity).overflowY,
         sheetOverflowY: getComputedStyle(sheet).overflowY,
+        sheetClientHeight: sheet.clientHeight,
+        sheetScrollHeight: sheet.scrollHeight,
         portraitFrameBefore: getComputedStyle(portraitFrame, '::before').content,
         portraitFrameAfter: getComputedStyle(portraitFrame, '::after').content,
         primaryLinks: document.querySelectorAll('[aria-label="Primary game navigation"] a').length,
@@ -181,9 +216,11 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
     expect
       .soft(metrics.identityOverflowY, `${label}: no identity-card scrollbar`)
       .not.toMatch(/auto|scroll/)
-    expect
-      .soft(metrics.sheetOverflowY, `${label}: no profile-sheet scrollbar`)
-      .not.toMatch(/auto|scroll/)
+    if (viewport.width < 1200) {
+      expect
+        .soft(metrics.sheetOverflowY, `${label}: stacked profile sheet keeps natural scrolling`)
+        .not.toMatch(/auto|scroll/)
+    }
     expect.soft(metrics.portraitFrameBefore, `${label}: no black top diamond ornament`).toBe('none')
     expect
       .soft(metrics.portraitFrameAfter, `${label}: no black bottom diamond ornament`)
@@ -210,6 +247,58 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
       .toBeLessThanOrEqual(1)
 
     if (viewport.width >= 1200) {
+      expect
+        .soft(
+          Math.abs(metrics.identity.bottom - metrics.sheet.bottom),
+          `${label}: center panel aligns to character panel bottom`,
+        )
+        .toBeLessThanOrEqual(2)
+      expect
+        .soft(
+          Math.abs(metrics.identity.bottom - metrics.story.bottom),
+          `${label}: Current Path aligns to character panel bottom`,
+        )
+        .toBeLessThanOrEqual(2)
+      expect
+        .soft(metrics.sheetOverflowY, `${label}: center profile sheet owns vertical scrolling`)
+        .toMatch(/auto|scroll/)
+      expect(
+        await page
+          .locator('[data-profile-sheet]')
+          .evaluate((element) => getComputedStyle(element).scrollbarColor),
+      ).not.toBe('auto')
+      expect
+        .soft(
+          metrics.sheetScrollHeight,
+          `${label}: center profile sheet contains scrollable Adventure Stats`,
+        )
+        .toBeGreaterThan(metrics.sheetClientHeight)
+
+      const profileSheet = page.locator('[data-profile-sheet]')
+      const identityPanel = page.getByTestId('character-profile')
+      const currentPath = page.getByTestId('current-path-coming-soon')
+      const mainPanel = page.locator('#game-main')
+      const beforeScroll = {
+        identity: await identityPanel.boundingBox(),
+        story: await currentPath.boundingBox(),
+        mainScrollTop: await mainPanel.evaluate((element) => element.scrollTop),
+      }
+      await profileSheet.evaluate((element) => element.scrollTo({ top: element.scrollHeight }))
+      expect(await profileSheet.evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
+      const afterScroll = {
+        identity: await identityPanel.boundingBox(),
+        story: await currentPath.boundingBox(),
+        mainScrollTop: await mainPanel.evaluate((element) => element.scrollTop),
+      }
+      expect(afterScroll.mainScrollTop).toBe(beforeScroll.mainScrollTop)
+      expect(
+        Math.abs((afterScroll.identity?.y ?? 0) - (beforeScroll.identity?.y ?? 0)),
+      ).toBeLessThanOrEqual(1)
+      expect(
+        Math.abs((afterScroll.story?.y ?? 0) - (beforeScroll.story?.y ?? 0)),
+      ).toBeLessThanOrEqual(1)
+      await profileSheet.evaluate((element) => element.scrollTo({ top: 0 }))
+
       expect
         .soft(metrics.identity.width, `${label}: no empty full-width banner`)
         .toBeLessThan(metrics.workspace.width * 0.35)

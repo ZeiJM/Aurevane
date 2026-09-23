@@ -1,7 +1,9 @@
 export const AUDIO_CHANNELS = ['master', 'music', 'sfx', 'ambience', 'ui'] as const
+export const USER_AUDIO_CHANNELS = ['music', 'sfx'] as const
 export const AUDIO_SETTINGS_STORAGE_KEY = 'aurevane.audio.v1'
 
 export type AudioChannel = (typeof AUDIO_CHANNELS)[number]
+export type UserAudioChannel = (typeof USER_AUDIO_CHANNELS)[number]
 export type RoutedAudioChannel = Exclude<AudioChannel, 'master'>
 
 export interface AudioMixSettings {
@@ -21,11 +23,11 @@ export type AudioSettingsAction =
   | { type: 'replace'; settings: AudioMixSettings }
 
 const DEFAULT_VOLUMES: Record<AudioChannel, number> = {
-  master: 0.8,
+  master: 1,
   music: 0.62,
   sfx: 0.78,
-  ambience: 0.58,
-  ui: 0.68,
+  ambience: 0.78,
+  ui: 0.78,
 }
 
 export function createDefaultAudioSettings(): AudioMixSettings {
@@ -48,26 +50,42 @@ export function reduceAudioSettings(
   action: AudioSettingsAction,
 ): AudioMixSettings {
   switch (action.type) {
-    case 'set-volume':
+    case 'set-volume': {
+      const value = clampAudioVolume(action.value)
+
+      if (action.channel === 'sfx') {
+        return {
+          ...state,
+          volumes: {
+            ...state.volumes,
+            sfx: value,
+            ambience: value,
+            ui: value,
+          },
+        }
+      }
+
       return {
         ...state,
         volumes: {
           ...state.volumes,
-          [action.channel]: clampAudioVolume(action.value),
+          [action.channel]: value,
         },
       }
+    }
     case 'toggle-mute':
       return { ...state, muted: !state.muted }
     case 'replace':
-      return cloneAudioSettings(action.settings)
+      return normalizeUserFacingAudioSettings(action.settings)
   }
 }
 
 export function serializeAudioSettings(settings: AudioMixSettings): string {
+  const normalized = normalizeUserFacingAudioSettings(settings)
   const stored: StoredAudioSettingsV1 = {
     version: 1,
-    muted: settings.muted,
-    volumes: { ...settings.volumes },
+    muted: normalized.muted,
+    volumes: { ...normalized.volumes },
   }
 
   return JSON.stringify(stored)
@@ -84,21 +102,29 @@ export function parsePersistedAudioSettings(value: string | null): AudioMixSetti
       return createDefaultAudioSettings()
     }
 
-    return {
+    return normalizeUserFacingAudioSettings({
       muted: parsed.muted,
       volumes: Object.fromEntries(
         AUDIO_CHANNELS.map((channel) => [channel, clampAudioVolume(parsed.volumes[channel])]),
       ) as Record<AudioChannel, number>,
-    }
+    })
   } catch {
     return createDefaultAudioSettings()
   }
 }
 
-function cloneAudioSettings(settings: AudioMixSettings): AudioMixSettings {
+function normalizeUserFacingAudioSettings(settings: AudioMixSettings): AudioMixSettings {
+  const sfx = clampAudioVolume(settings.volumes.sfx)
+
   return {
     muted: settings.muted,
-    volumes: { ...settings.volumes },
+    volumes: {
+      master: DEFAULT_VOLUMES.master,
+      music: clampAudioVolume(settings.volumes.music),
+      sfx,
+      ambience: sfx,
+      ui: sfx,
+    },
   }
 }
 
