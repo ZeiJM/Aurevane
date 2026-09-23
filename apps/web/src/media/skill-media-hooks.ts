@@ -36,7 +36,11 @@ function titleSkill(skillId: string): string {
 }
 
 export function registeredSkillArtworkSource(skillId: string): string | null {
-  return regularSkillArtwork(skillId) ?? essenceSkillArtwork(skillId) ?? darkFantasySkillArtwork(skillId)
+  return (
+    regularSkillArtwork(skillId) ??
+    essenceSkillArtwork(skillId) ??
+    darkFantasySkillArtwork(skillId)
+  )
 }
 
 const currentEssenceSkills = DISCIPLINE_ATLAS.flatMap((discipline) => {
