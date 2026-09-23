@@ -95,6 +95,32 @@ test('training uses the approved character rail and parchment three-workspace co
   for (const shape of durationImageShapes) {
     expect(Math.abs(shape.width - shape.height)).toBeLessThanOrEqual(1)
   }
+  const imageToCopyBalance = await durationCards.evaluateAll((cards) =>
+    cards.map((card) => {
+      const media = card.querySelector<HTMLElement>('img')
+      const heading = card.querySelector<HTMLElement>('div > div > strong')?.parentElement
+      const description = heading?.parentElement?.querySelector<HTMLElement>('p')
+      const rewards = heading?.parentElement?.querySelector<HTMLElement>('dl')
+      if (!media || !heading || !description || !rewards) return null
+      const mediaBounds = media.getBoundingClientRect()
+      const top = Math.min(
+        heading.getBoundingClientRect().top,
+        description.getBoundingClientRect().top,
+        rewards.getBoundingClientRect().top,
+      )
+      const bottom = Math.max(
+        heading.getBoundingClientRect().bottom,
+        description.getBoundingClientRect().bottom,
+        rewards.getBoundingClientRect().bottom,
+      )
+      return { mediaHeight: mediaBounds.height, copyHeight: bottom - top }
+    }),
+  )
+  for (const balance of imageToCopyBalance) {
+    expect(balance).not.toBeNull()
+    if (!balance) continue
+    expect(balance.mediaHeight).toBeGreaterThanOrEqual(balance.copyHeight - 8)
+  }
   for (const number of ['01', '02', '03']) {
     await expect(durationCards.getByText(number, { exact: true })).toHaveCount(0)
   }
