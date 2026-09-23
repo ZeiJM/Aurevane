@@ -20,20 +20,27 @@ export function CharacterRailSynchronizedLayout({
     const rail = root.querySelector<HTMLElement>('[data-profile-identity-banner="true"]')
     if (!rail) return
 
+    let lastHeight = 0
     const sync = () => {
       const height = rail.getBoundingClientRect().height
-      if (height > 0) root.style.setProperty('--character-rail-height', `${height}px`)
+      if (height <= 0) return
+      if (height === lastHeight) return
+      lastHeight = height
+      root.style.setProperty('--character-rail-height', `${height}px`)
     }
 
     sync()
 
     const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(sync)
-    observer?.observe(rail)
-    window.addEventListener('resize', sync)
+    if (observer) {
+      observer.observe(rail)
+    } else {
+      window.addEventListener('resize', sync)
+    }
 
     return () => {
       observer?.disconnect()
-      window.removeEventListener('resize', sync)
+      if (!observer) window.removeEventListener('resize', sync)
     }
   }, [])
 

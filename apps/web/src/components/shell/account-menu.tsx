@@ -96,21 +96,36 @@ export function AccountMenu({
             showTriggerMarker={false}
           />
           {pathname !== '/game/settings/controls' ? (
-            <Link href="/game/settings/controls" role="menuitem" onClick={() => setOpen(false)}>
+            <Link
+              href="/game/settings/controls"
+              prefetch={false}
+              role="menuitem"
+              onClick={() => setOpen(false)}
+            >
               Controls &amp; Keybinds
             </Link>
           ) : null}
           {!activeSessionHref && pathname !== '/game/account/titles' ? (
-            <Link href="/game/account/titles" role="menuitem" onClick={() => setOpen(false)}>
+            <Link
+              href="/game/account/titles"
+              prefetch={false}
+              role="menuitem"
+              onClick={() => setOpen(false)}
+            >
               Titles &amp; Profile Display
             </Link>
           ) : null}
           {activeSessionHref ? (
-            <Link href={activeSessionHref} role="menuitem" onClick={() => setOpen(false)}>
+            <Link
+              href={activeSessionHref}
+              prefetch={false}
+              role="menuitem"
+              onClick={() => setOpen(false)}
+            >
               {activeSessionLabel ?? 'Return to Active Session'}
             </Link>
           ) : pathname !== '/game' ? (
-            <Link href="/game" role="menuitem" onClick={() => setOpen(false)}>
+            <Link href="/game" prefetch={false} role="menuitem" onClick={() => setOpen(false)}>
               Switch Character
             </Link>
           ) : null}
@@ -118,6 +133,7 @@ export function AccountMenu({
             <Link
               className={styles.masterPanelLink}
               href={effectiveMasterPanelHref}
+              prefetch={false}
               role="menuitem"
               onClick={() => setOpen(false)}
             >

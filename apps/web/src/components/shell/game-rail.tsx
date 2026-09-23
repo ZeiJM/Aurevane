@@ -262,6 +262,7 @@ export function GameRail({ activeSessionHref, activeSessionLabel }: GameRailProp
           ) : (
             <Link
               key={item.href}
+              prefetch={false}
               className={styles.railLink}
               href={item.href}
               aria-label={item.label}
@@ -275,7 +276,7 @@ export function GameRail({ activeSessionHref, activeSessionLabel }: GameRailProp
         })}
       </nav>
       {activeSessionHref ? (
-        <Link className={styles.railSession} href={activeSessionHref}>
+        <Link className={styles.railSession} href={activeSessionHref} prefetch={false}>
           {activeSessionLabel ?? 'Return to Active Session'}
         </Link>
       ) : null}

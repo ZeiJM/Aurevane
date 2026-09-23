@@ -74,7 +74,7 @@ export function OnlinePresenceLink({ initialCount = null }: { initialCount?: num
   }, [])
 
   return (
-    <Link href="/game/online" className={styles.onlineLink}>
+    <Link href="/game/online" className={styles.onlineLink} prefetch={false}>
       Online Users{' '}
       <span aria-label={count === null ? 'Loading online count' : undefined}>{count ?? '—'}</span>
     </Link>

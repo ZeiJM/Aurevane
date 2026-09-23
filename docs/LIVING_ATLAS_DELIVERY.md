@@ -209,3 +209,10 @@ Candidate `f75d2ece` passed the dedicated [Atlas browser run 35878824269](https:
 Visual inspection of UI artifact `10760098513` caught a remaining laptop reward-label overlap despite passing geometry tests: each action was fully inside the planner, but its 5.4rem column partly covered the overflow of the inline Complete/+XP pair. The narrow-desktop action column is reduced to 4.6rem, with reward pairs allowed to wrap at tighter widths. A new browser assertion checks every reward label/value for actual rectangle intersection with its action. Existing 40-pixel action height, fonts, image/copy balance and idle/active/report visibility assertions remain intact. This correction requires fresh verification before release.
 
 The reward-clearance correction passed the full local `pnpm check`: 2,803 Vitest tests plus seven Node report/audio checks, formatting, lint, types and production builds. Browser verification of the new no-overlap assertion remains pending.
+
+
+The complete Browser smoke run `35878824305` at `f75d2ece` passed: 20 preliminary browser checks, 220 main-suite scenarios (179 intentional duplicate/project skips) and four Edge checks. All thirteen workflows on that candidate are green. Desktop Experience passed 47 scenarios with 31 intentional skips. The later reward-clearance correction remains a separate candidate whose new overlap assertion still requires browser evidence.
+
+Main then advanced to `5a52cea0` with the approved audio mute/restore behavior, authenticated-navigation prefetch control and deduplicated character-rail measurement. These changes merge cleanly into the Atlas candidate while preserving its five navigation destinations and the new reward-overlap assertion. Two incoming shell files need formatting only. The existing long smoke run continues while this reconciliation is verified.
+
+The full reconciled local gate passed with 2,805 Vitest tests plus seven report/audio checks, formatting, lint, workspace types and production builds. Main remains `5a52cea0`. Latest-tree browser CI is required before the authorized production release.
