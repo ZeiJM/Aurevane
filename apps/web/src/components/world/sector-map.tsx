@@ -1,5 +1,6 @@
 'use client'
 import Image from 'next/image'
+import { useMemo } from 'react'
 import { cellCenter } from '@/world/travel'
 import type { WorldPlayer, WorldPosition, WorldSectorView, TravelStep } from '@/world/types'
 import styles from './world.module.css'
@@ -30,6 +31,11 @@ export function SectorMap({
   disabled: boolean
 }) {
   const local = position.sectorId === sector.id
+  const cellsByIndex = useMemo(() => {
+    const indexed = new Array<(typeof sector.cells)[number] | undefined>(13 * 9)
+    for (const cell of sector.cells) indexed[cell.y * 13 + cell.x] = cell
+    return indexed
+  }, [sector.cells])
   const path = [...(local ? [position] : []), ...route.map((s) => s.position)].filter(
     (p) => p.sectorId === sector.id,
   )
@@ -70,7 +76,7 @@ export function SectorMap({
           {Array.from({ length: 117 }, (_, index) => {
             const x = index % 13,
               y = Math.floor(index / 13),
-              cell = sector.cells.find((c) => c.x === x && c.y === y)
+              cell = cellsByIndex[index]
             return (
               <button
                 key={index}

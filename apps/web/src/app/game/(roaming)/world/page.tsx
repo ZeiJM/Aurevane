@@ -2,10 +2,7 @@ import { isAurevaneError } from '@aurevane/game-core/errors'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { CharacterIdentityCard } from '@/components/character/character-identity-card'
-import {
-  AuthenticatedGameRecovery,
-  AuthenticatedShellFrame,
-} from '@/components/shell/authenticated-game-shell'
+import { AuthenticatedGameRecoveryContent } from '@/components/shell/authenticated-game-shell'
 import { WorldWorkspace } from '@/components/world/world-workspace'
 import styles from '@/components/world/world.module.css'
 import { getOptionalPublicSupabaseConfig } from '@/lib/supabase/config'
@@ -50,7 +47,7 @@ export default async function WorldMapPage() {
     ])
   } catch (error) {
     if (isAurevaneError(error) && error.code === 'PERSISTENCE_UNAVAILABLE')
-      return <AuthenticatedGameRecovery />
+      return <AuthenticatedGameRecoveryContent />
     throw error
   }
   const [identity, world] = loaded
@@ -58,15 +55,13 @@ export default async function WorldMapPage() {
     identity.imageUrl ?? getImageAsset(getStarterPortraitImageAssetId(character.portraitRef)).src
   if (!portrait) throw new Error('The registered character portrait is unavailable.')
   return (
-    <AuthenticatedShellFrame sessionLabel="World Map">
-      <div className={styles.layout}>
-        <CharacterIdentityCard {...identity} />
-        <WorldWorkspace
-          key={character.id}
-          initialView={world.view}
-          character={{ name: character.name, portrait }}
-        />
-      </div>
-    </AuthenticatedShellFrame>
+    <div className={styles.layout}>
+      <CharacterIdentityCard {...identity} />
+      <WorldWorkspace
+        key={character.id}
+        initialView={world.view}
+        character={{ name: character.name, portrait }}
+      />
+    </div>
   )
 }

@@ -63,4 +63,23 @@ describe('authenticated navigation performance contracts', () => {
 
     expect(presenceService).toContain("supabase.rpc('count_online_characters_v1')")
   })
+
+  it('keeps World inside the persistent roaming shell without nesting another shell', () => {
+    const layout = source('src/app/game/(roaming)/layout.tsx')
+    const world = source('src/app/game/(roaming)/world/page.tsx')
+
+    expect(layout).toContain('<AuthenticatedShellFrame>')
+    expect(world).not.toContain('AuthenticatedShellFrame')
+    expect(world).toContain('AuthenticatedGameRecoveryContent')
+  })
+
+  it('bounds repeated Atlas client render work', () => {
+    const sector = source('src/components/world/sector-map.tsx')
+    const sphere = source('src/components/world/spherical-view.tsx')
+
+    expect(sector).toContain('cellsByIndex')
+    expect(sector).not.toContain('sector.cells.find')
+    expect(sphere).toContain('requestAnimationFrame')
+    expect(sphere).toContain('cancelAnimationFrame')
+  })
 })

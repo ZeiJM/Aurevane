@@ -27,6 +27,8 @@ export function SphericalView({
   const canvas = useRef<HTMLCanvasElement>(null),
     renderer = useRef<ReturnType<typeof createSphericalRenderer>>(null)
   const drag = useRef<{ x: number; y: number; camera: GlobeLocation } | null>(null)
+  const cameraFrame = useRef<number | null>(null)
+  const pendingCamera = useRef<GlobeLocation | null>(null)
   const [failed, setFailed] = useState(false)
   useEffect(() => {
     if (!canvas.current) return
@@ -36,6 +38,22 @@ export function SphericalView({
   useEffect(() => {
     renderer.current?.draw({ ...camera, zoom, panorama, grid })
   }, [camera, zoom, panorama, grid])
+  useEffect(
+    () => () => {
+      if (cameraFrame.current !== null) cancelAnimationFrame(cameraFrame.current)
+    },
+    [],
+  )
+  const scheduleCamera = (next: GlobeLocation) => {
+    pendingCamera.current = next
+    if (cameraFrame.current !== null) return
+    cameraFrame.current = requestAnimationFrame(() => {
+      cameraFrame.current = null
+      const scheduled = pendingCamera.current
+      pendingCamera.current = null
+      if (scheduled) onCamera(scheduled)
+    })
+  }
   return (
     <div
       className={panorama ? styles.panoramaScene : styles.sphere}
@@ -53,7 +71,7 @@ export function SphericalView({
       }}
       onPointerMove={(e) => {
         if (!drag.current) return
-        onCamera({
+        scheduleCamera({
           longitude: drag.current.camera.longitude - (e.clientX - drag.current.x) * 0.25,
           latitude: Math.max(
             -75,
