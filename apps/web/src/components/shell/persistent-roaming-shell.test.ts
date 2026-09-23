@@ -79,4 +79,18 @@ describe('persistent roaming shell architecture', () => {
     const testFile = source(testPath)
     expect(testFile).toContain("import('../../../../server/logging')")
   })
+  it('keeps workflow source checks aligned with the grouped Character route', () => {
+    for (const workflowPath of [
+      '../../.github/workflows/attribute-allocation.yml',
+      '../../.github/workflows/essence-build.yml',
+      '../../.github/workflows/profile-skill-build.yml',
+      '../../.github/workflows/representative-buildcraft.yml',
+      '../../.github/workflows/resonance-build.yml',
+    ]) {
+      const workflow = source(workflowPath)
+      expect(workflow).toContain('apps/web/src/app/game/(roaming)/character/page.tsx')
+      expect(workflow).not.toContain('apps/web/src/app/game/character/page.tsx')
+    }
+  })
+
 })
