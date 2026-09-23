@@ -20,6 +20,13 @@ import type {
   WorldView,
 } from '@/world/types'
 import { SURVEY_SECTOR, WORLD_OBJECTIVES, WORLD_SECTORS } from './world-content'
+import {
+  EASTERN_WATCH_OBJECTIVE_ID,
+  advanceWorldObjectiveProgress,
+  effectiveWorldObjectives,
+  localWorldInteractions,
+  resolveWorldInteraction,
+} from './world-objectives'
 
 const invalid = (message: string): never => {
   throw new AurevaneError('INVALID_REQUEST', message)
@@ -34,12 +41,13 @@ export function resolveWorldIntent(
   now: number,
   objectives: readonly WorldObjective[] = WORLD_OBJECTIVES,
 ): WorldState {
+  const effectiveObjectives = effectiveWorldObjectives(state, objectives)
   let next: WorldState = { ...state }
   if (intent.kind === 'stop')
     next = { ...state, route: [], routeObjectiveId: null, nextStepAt: null }
   else if (intent.kind === 'tick') {
     const objective = state.routeObjectiveId
-      ? objectives.find((o) => o.id === state.routeObjectiveId)
+      ? effectiveObjectives.find((o) => o.id === state.routeObjectiveId)
       : null
     next =
       (state.routeObjectiveId && (!objective || !canAutoPath(objective))) ||
@@ -55,10 +63,14 @@ export function resolveWorldIntent(
       route: [],
       nextStepAt: null,
     }
+  } else if (intent.kind === 'interact') {
+    const interaction = resolveWorldInteraction(state, intent.interactionId)
+    if (!interaction) invalid('That interaction is not available here.')
+    next = interaction
   } else {
     let destination: WorldPosition
     if (intent.kind === 'autopath') {
-      const objective = objectives.find((o) => o.id === intent.objectiveId)
+      const objective = effectiveObjectives.find((o) => o.id === intent.objectiveId)
       if (!objective || !canAutoPath(objective) || !objective.destination)
         invalid('Auto-path is unavailable for this objective.')
       destination = objective!.destination!
@@ -75,10 +87,14 @@ export function resolveWorldIntent(
       nextStepAt: route!.length ? now + route![0]!.durationMs : null,
     }
   }
-  next = revealNearby(next)
+  next = advanceWorldObjectiveProgress(revealNearby(next))
   const completed = new Set(next.completedObjectives)
-  for (const objective of objectives)
-    if (objective.destination && samePosition(next.position, objective.destination))
+  for (const objective of effectiveWorldObjectives(next, objectives))
+    if (
+      objective.id !== EASTERN_WATCH_OBJECTIVE_ID &&
+      objective.destination &&
+      samePosition(next.position, objective.destination)
+    )
       completed.add(objective.id)
   const landmark = SURVEY_SECTOR.landmarks[0]!
   if (
@@ -133,6 +149,7 @@ export function projectWorld(
           !isSafe(sector, player.position),
       }
     })
+  const effectiveObjectives = effectiveWorldObjectives(state, objectives)
   return {
     characterId: '',
     version: state.version,
@@ -143,7 +160,7 @@ export function projectWorld(
     routeObjectiveId: state.route.length ? (state.routeObjectiveId ?? null) : null,
     sectors,
     players: visiblePlayers,
-    objectives: objectives.map((o) => ({
+    objectives: effectiveObjectives.map((o) => ({
       ...o,
       destination:
         o.guidance === 'exact' && o.destination && isKnown(state, o.destination)
@@ -151,6 +168,7 @@ export function projectWorld(
           : null,
       completed: state.completedObjectives.includes(o.id),
     })),
+    interactions: localWorldInteractions(state),
     battleSessionId: null,
     movementBlocked: null,
   }
