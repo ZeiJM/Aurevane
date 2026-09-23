@@ -844,11 +844,6 @@ export function BattleLaunch({ characterId, initialJoinKey = null }: BattleLaunc
                   submitting any commands. Battles are private and accessed only by key.
                 </p>
               </div>
-              <blockquote>
-                “Great tacticians learn twice —
-                <br />
-                once by playing, and once by watching.”
-              </blockquote>
             </aside>
           </div>
         </section>
