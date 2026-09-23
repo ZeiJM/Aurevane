@@ -46,6 +46,21 @@ jobs:
         with:
           node-version: 24
 
+      - name: Verify Vercel deployment gate is locked
+        if: ${{ !startsWith(github.head_ref, 'preview/') && !startsWith(github.head_ref, 'release/') }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs'
+
+          const config = JSON.parse(readFileSync('apps/web/vercel.json', 'utf8'))
+          if (config.git?.deploymentEnabled?.['**'] !== false) {
+            console.error(
+              'Normal code changes must keep Vercel Git deployments locked. Use an explicitly authorized preview/release branch for deployment work.',
+            )
+            process.exit(1)
+          }
+          NODE
+
       - name: Enable pnpm
         run: |
           corepack enable
