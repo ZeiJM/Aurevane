@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  planWorldSync,
-  WORLD_IDLE_REFRESH_MS,
-  WORLD_MIN_SCHEDULE_MS,
-} from './world-sync'
+import { planWorldSync, WORLD_IDLE_REFRESH_MS, WORLD_MIN_SCHEDULE_MS } from './world-sync'
 
 const route = [
   {
