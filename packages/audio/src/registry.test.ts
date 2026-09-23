@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { audioAssetRegistry, validateAudioRegistry, validateRegisteredAudioAssets } from './registry'
+import {
+  audioAssetRegistry,
+  validateAudioRegistry,
+  validateRegisteredAudioAssets,
+} from './registry'
 import { PHASE4_AUDIO_DISCIPLINES } from './phase4'
 
 describe('audio registry', () => {
