@@ -17,20 +17,22 @@ function renderRail(props: Parameters<typeof GameRail>[0] = {}) {
 }
 
 describe('shared game rail', () => {
-  it('exposes Character, Arsenal, Battle Hall, Training and World Map without duplicating identity', () => {
+  it('exposes Character, Arsenal, World Map, Battle Hall and Training in the intended order without duplicating identity', () => {
     navigationState.pathname = '/game/character'
     const markup = renderRail()
     const destinations = [
       ['/game/character', 'Character'],
       ['/game/arsenal', 'Arsenal'],
+      ['/game/world', 'World Map'],
       ['/game/battle', 'Battle Hall'],
       ['/game/training', 'Passive Training'],
-      ['/game/world', 'World Map'],
     ] as const
     for (const [href, label] of destinations) {
       expect(markup).toContain(`href="${href}"`)
       expect(markup).toContain(`aria-label="${label}"`)
     }
+    const destinationPositions = destinations.map(([href]) => markup.indexOf(`href="${href}"`))
+    expect(destinationPositions).toEqual([...destinationPositions].sort((left, right) => left - right))
     expect(markup).not.toContain('aria-label="Items"')
     expect(markup).not.toContain('href="/game/items"')
     expect(markup).toContain('data-nav-icon="arsenal"')

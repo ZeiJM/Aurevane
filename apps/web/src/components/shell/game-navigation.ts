@@ -14,6 +14,13 @@ export const gameNavigation = [
     icon: 'arsenal',
   },
   {
+    href: '/game/world',
+    label: 'World Map',
+    detail: 'Travel, explore, and find your place in the world',
+    symbol: '✥',
+    icon: 'world',
+  },
+  {
     href: '/game/battle',
     label: 'Battle Hall',
     detail: 'Practice fights and combat',
@@ -26,12 +33,5 @@ export const gameNavigation = [
     detail: 'Start a timed background training plan',
     symbol: '◷',
     icon: 'training',
-  },
-  {
-    href: '/game/world',
-    label: 'World Map',
-    detail: 'Travel, explore, and find your place in the world',
-    symbol: '✥',
-    icon: 'world',
   },
 ] as const
