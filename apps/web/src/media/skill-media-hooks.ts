@@ -88,8 +88,9 @@ export const skillAudioCueHookOptions: readonly SkillAudioCueHookOption[] = curr
     const key = definition.media.audioCueKey
     if (!key) return []
     const available = audioDisciplines.has(definition.sourceDisciplineId)
+    const role = definition.id.startsWith('essence.') ? 'essence' : 'action'
     const sampleAssetId = available
-      ? `audio.phase4.${definition.sourceDisciplineId}-action-${PHASE4_DISCIPLINE_AUDIO_VERSION}-1`
+      ? `audio.phase4.${definition.sourceDisciplineId}-${role}-${PHASE4_DISCIPLINE_AUDIO_VERSION}-1`
       : null
     const sample = sampleAssetId ? audioAssetRegistry.get(sampleAssetId) : undefined
     return [
