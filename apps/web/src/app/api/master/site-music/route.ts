@@ -84,10 +84,7 @@ export async function POST(request: Request) {
 
     if (body.operation === 'create-upload') {
       const upload = await createUploadTicket(body.file)
-      return Response.json(
-        { upload },
-        { headers: { 'Cache-Control': 'private, no-store' } },
-      )
+      return Response.json({ upload }, { headers: { 'Cache-Control': 'private, no-store' } })
     }
 
     if (body.operation !== 'save') {
