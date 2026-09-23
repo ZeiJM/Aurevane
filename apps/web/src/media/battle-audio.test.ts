@@ -150,7 +150,7 @@ describe('committed battle audio', () => {
       '/media/art/essence-skills/bastion-last-bastion-v01.webp',
     )
     expect(phase4SkillArtwork('bastion.fortress')).toBe(
-      '/media/art/discipline-skills/bastion-fortress-v01.webp',
+      '/media/art/discipline-skills/bastion-fortress-v02.webp',
     )
   })
   it('routes Ironfist regular and three-hit Essence actions to their own media family', () => {
