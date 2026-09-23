@@ -268,7 +268,8 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
           color: getComputedStyle(element).scrollbarColor,
           width: getComputedStyle(element).scrollbarWidth,
         }))
-      expect(profileScrollbar.color).not.toBe('auto')
+      expect(profileScrollbar.color).toContain('rgb(201, 168, 93)')
+      expect(profileScrollbar.color).toContain('rgb(7, 16, 25)')
       expect(profileScrollbar.width).toBe('thin')
       expect
         .soft(
