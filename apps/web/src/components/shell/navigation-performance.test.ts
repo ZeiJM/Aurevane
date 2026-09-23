@@ -47,7 +47,7 @@ describe('authenticated navigation performance contracts', () => {
       'src/components/shell/account-menu.tsx',
     ]) {
       const file = source(path)
-      const linkCount = file.match(/<Link\\b/g)?.length ?? 0
+      const linkCount = file.match(/<Link\b/g)?.length ?? 0
       const disabledPrefetchCount = file.match(/prefetch={false}/g)?.length ?? 0
 
       expect(linkCount).toBeGreaterThan(0)
