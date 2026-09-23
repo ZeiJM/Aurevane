@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { audioAssetRegistry } from '@aurevane/audio'
+import { PHASE4_AUDIO_DISCIPLINES, audioAssetRegistry } from '@aurevane/audio'
 import type { BattleEventRecord } from '@aurevane/db/battle-session'
 import { BattleAudioCursor, selectBattleAudioCues } from './battle-audio'
 import { phase4DisciplineSigil, phase4SkillArtwork } from '../components/battle/phase4-combat-art'
@@ -66,6 +66,23 @@ describe('committed battle audio', () => {
         now,
       ),
     ).toEqual([{ assetId: 'audio.phase4.ironfist-action-v02-3', priority: 70 }])
+  })
+
+  it('routes every published Discipline family through the current v02 action pack', () => {
+    for (const discipline of PHASE4_AUDIO_DISCIPLINES) {
+      expect(
+        selectBattleAudioCues(
+          [record({ event: 'combat_action_used', actionId: `${discipline}.audio-routing-test` })],
+          8,
+          now,
+        ),
+      ).toEqual([
+        {
+          assetId: `audio.phase4.${discipline}-action-v02-3`,
+          priority: 70,
+        },
+      ])
+    }
   })
 
   it('uses the original Skill audio family for version-pinned copied commands', () => {
