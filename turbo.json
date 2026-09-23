@@ -3,7 +3,12 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**"],
+      "outputs": [
+        ".next/**",
+        "!.next/cache/**",
+        "dist/**",
+        "public/media/audio/sfx/phase4/*-v02-*.wav"
+      ],
       "env": [
         "NEXT_PUBLIC_AUREVANE_ENV",
         "NEXT_PUBLIC_SUPABASE_URL",
