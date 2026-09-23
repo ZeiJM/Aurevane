@@ -32,6 +32,8 @@ describe('Battle Hall concept composition', () => {
     expect(markup).toContain('Recommended for')
     expect(markup).toContain('Ideal for')
     expect(markup).toContain('For experienced')
+    expect(markup).not.toContain('AI difficulty')
+    expect(markup).not.toContain('Guided exercise')
     expect(markup).not.toContain('01 / AI Battles')
     expect(markup).not.toContain('02 / Challenge')
     expect(markup).not.toContain('03 / Spectate')
