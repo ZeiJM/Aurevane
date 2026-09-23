@@ -33,7 +33,7 @@ test('training uses the approved character rail and parchment three-workspace co
   await expect(current).toBeVisible()
   await expect(report).toBeVisible()
   await expect(page.getByRole('navigation', { name: 'Training sections' })).toHaveCount(0)
-  await expect(frame.locator('[data-training-scene] img')).toHaveCount(0)
+  await expect(frame.locator('[data-training-scene] img')).toHaveCount(1)
 
   const metrics = await frame.evaluate((element) => {
     const bounds = (node: Element | null) => {
@@ -163,5 +163,5 @@ test('training uses the approved character rail and parchment three-workspace co
   await expect(
     page.getByRole('button', { name: /Load Preset|Apply Plan|View History/ }),
   ).toHaveCount(0)
-  await expect(page.getByText('How Passive Training works', { exact: true })).toBeVisible()
+  await expect(page.getByText('How Passive Training works', { exact: true })).toHaveCount(0)
 })
