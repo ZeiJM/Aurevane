@@ -226,3 +226,15 @@ Discipline Build DB run `35892343171` initially failed before migrations or test
 Release sequencing: the candidate permits Vercel Git deployment only on `main`, leaving the feature branch disabled. After final checks and a fresh-main compatibility check, apply and verify only `20260922203418_living_atlas_world_travel.sql` before merging PR #609. The merge then triggers the Owner-authorized production deployment. Restore the Git deployment lock once the intended deployment is queued, verify its exact SHA and production alias, and record live evidence and the Phase 5 handover. No Atlas migration or production release has occurred at this checkpoint.
 
 The incoming Bastion artwork also exposed a stale `battle-audio.test.ts` assertion expecting a generated Fortress SVG. It now requires the approved Fortress WebP. All recorded audio hashes/counts remain checked; the dedicated generated-art suite continues to isolate the approved registry and exercise fallback geometry for current Skills. No audio or artwork runtime resolver changed.
+
+## Release record and continuation
+
+The checkpoints above are historical, including their then-pending release statements. PR [#609](https://github.com/ZeiJM/Aurevane/pull/609) is the final source for exact candidate checks, applied migration version, production commit/deployment and live verification. Post-release PR [#671](https://github.com/ZeiJM/Aurevane/pull/671) restores the deployment lock and provides `PHASE_5_HANDOVER.md`; it must not be merged until the intended Atlas deployment is verified. Full Phase 5 and Owner live Atlas acceptance remain open.
+
+## Persistent roaming shell reconciliation (2026-09-23)
+
+Candidate `1989d4eb` preserves main `7abe4f5f`, including the persistent roaming shell and compact Hall release. The merge was clean; the incoming Hall browser assertion needed formatting only. The full local quality gate passed with 2,811 Vitest tests plus seven report/audio Node checks, lint, formatting, types and builds. Earlier candidate `3c2434a4` passed 18 Atlas browser scenarios. Final candidate CI and production evidence are recorded in PR #609.
+
+## Final browser gate corrections
+
+The post-release branch buildcraft trace showed a successful HTTP 200 save and the correct selected Skills, but its transient status was cleared by the versioned panel refresh before the test observed it. The test now verifies the authoritative save response, exact submitted/committed IDs and selected checkboxes before its existing reload-persistence assertions. The UI gate also detected 37.6-pixel compact Hall inputs below the existing 40-pixel minimum; their minimum is restored to 2.5rem. The no-scroll and control-size browser contracts remain unchanged and must both pass.

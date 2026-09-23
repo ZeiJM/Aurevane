@@ -50,16 +50,16 @@ Performance work never authorizes a gameplay redesign, weakened server authority
 | Phase 2 — Tactical Combat & Battle Platform | ✅ Closed / PV-1 passed | Mature combat, AI, direct PvP and spectation foundations are preserved for reuse. |
 | Phase 3 — Signature Buildcraft Foundation | ✅ Implementation complete; Owner-approved closeout | P3.1–P3.8 delivered; final UI/quality release completes the Owner's closure condition. See `PHASE_3_CLOSEOUT.md`. |
 | Phase 4 — First Playable Buildcraft Roster & Core Combat Content | ✅ Closed — Owner accepted 2026-09-23 | Seventeen-Discipline combat/content baseline plus P4.11–P4.14 staff/event operations are complete and preserved. See `PHASE_4_CLOSEOUT.md`, `PHASE_4_TICKETS.md` and `ROADMAP_DISCIPLINE_ATLAS_MASTERY.md`. |
-| Phase 5 — Living World, Story & Supernatural Identity | 🔵 Authorized / initial Living Atlas in progress | Owner authorized Phase-5 Living Atlas work on 2026-09-22. Draft PR #609 is an unreleased initial travel/exploration slice under verification; this roadmap status does not claim that PR is merged or live. |
+| Phase 5 — Living World, Story & Supernatural Identity | 🔵 In progress / initial Living Atlas implemented | Owner authorized Phase-5 Living Atlas work on 2026-09-22 and its verified production release on 2026-09-23. PR #609 records the initial travel/exploration release; see `PHASE_5_HANDOVER.md` for release evidence and remaining scope. |
 
 ## Current decision boundary
 
-AUREVANE has completed and closed **Phase 4 — First Playable Buildcraft Roster & Core Combat Content** by explicit Owner decision on 2026-09-23. Phase 4's seventeen-Discipline combat/content baseline and P4.11–P4.14 staff/event operations platform remain preserved dependencies. Phase 5 was separately authorized by the Owner on 2026-09-22; draft PR #609 contains the initial Living Atlas candidate and is not represented here as merged or released.
+AUREVANE has completed and closed **Phase 4 — First Playable Buildcraft Roster & Core Combat Content** by explicit Owner decision on 2026-09-23. Phase 4's seventeen-Discipline combat/content baseline and P4.11–P4.14 staff/event operations platform remain preserved dependencies. Phase 5 was separately authorized by the Owner on 2026-09-22; PR #609 records the initial Living Atlas implementation and release. See `PHASE_5_HANDOVER.md` for the live-testing boundary and remaining work.
 
 Active now:
 
 - preserve the closed Phase-2, Phase-3 and Phase-4 authority/security/gameplay contracts unless a genuine regression or explicit redesign request requires a change;
-- continue the separately authorized Phase-5 Living Atlas verification/release work on its own candidate branch;
+- collect Owner feedback on the initial Living Atlas, fix concrete regressions, then continue the remaining Phase-5 slices in `PHASE_5_HANDOVER.md`;
 - keep testing entitlement separate from earned Mastery so every published Discipline remains testable without converting temporary access into progression;
 - treat post-closeout UI polish, performance work and regression fixes as maintenance rather than reopening Phase 4;
 - keep Production deployment Owner-controlled and the default Vercel deployment gate locked.
@@ -491,7 +491,7 @@ These are operational foundations for later world content. They do not themselve
 
 ## 🔵 Phase 5 — Living World, Story & Supernatural Identity — AUTHORIZED
 
-**Authorization boundary:** the Owner authorized Phase-5 Living Atlas work on 2026-09-22. Draft PR #609 contains the initial server-authoritative travel/exploration candidate and remains unreleased while its current verification/release gates are completed. Phase-4 closeout does not itself merge, migrate or deploy that candidate.
+**Authorization boundary:** the Owner authorized Phase-5 Living Atlas work on 2026-09-22. The Owner separately authorized the verified Atlas production release on 2026-09-23. PR #609 is the release record for this initial server-authoritative travel/exploration slice; `PHASE_5_HANDOVER.md` defines its limited scope and the remaining Phase-5 work. Phase-4 closeout does not authorize later unrelated deployments.
 
 **Goal:** make AUREVANE a living world and introduce the supernatural identity fork plus the first outer-world mystery.
 
@@ -855,7 +855,7 @@ VERIFY / RELEASE THE INITIAL LIVING ATLAS CANDIDATE UNDER ITS OWN GATES
 
 The immediate development priority is therefore:
 
-> **Preserve the closed Phase-2/3/4 platform, keep UI/regression cleanup behavior-preserving, and complete the separately authorized Phase-5 candidate through its own verification/release process.**
+> **Preserve the closed Phase-2/3/4 platform, keep UI/regression cleanup behavior-preserving, and continue the separately authorized Phase-5 world work from the verified Living Atlas handover.**
 
 Automatic performance/scaling checkpoints continue at the defined future boundaries; they are maintenance/hardening work, not permission to expand feature scope.
 
