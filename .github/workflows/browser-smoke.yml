@@ -2,12 +2,20 @@ name: Browser smoke
 
 on:
   pull_request:
+    paths-ignore:
+      - 'apps/web/vercel.json'
   push:
     branches:
       - main
+    paths-ignore:
+      - 'apps/web/vercel.json'
 
 permissions:
   contents: read
+
+concurrency:
+  group: browser-smoke-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   browser:

@@ -2,13 +2,20 @@ name: CI
 
 on:
   pull_request:
+    paths-ignore:
+      - 'apps/web/vercel.json'
   push:
     branches:
       - main
-      - "agent/**"
+    paths-ignore:
+      - 'apps/web/vercel.json'
 
 permissions:
   contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   quality:
