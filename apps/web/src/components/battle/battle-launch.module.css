@@ -770,6 +770,7 @@
 .spectateActions {
   display: grid;
   justify-items: center;
+  padding-block: clamp(0.45rem, 1.5vh, 0.9rem);
 }
 
 .keyEntry {
@@ -785,22 +786,15 @@
 
 .readOnlyNote {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) minmax(12rem, 0.55fr);
+  grid-template-columns: minmax(0, 1fr);
   min-width: 0;
-  gap: 0.72rem;
+  gap: 0.4rem;
+  justify-items: center;
   align-items: center;
-  padding: 0.7rem 0.82rem;
+  padding: 0.85rem 1rem;
   border: 1px solid rgba(138, 112, 66, 0.25);
-  background:
-    linear-gradient(
-      90deg,
-      rgba(255, 253, 247, 0.99) 0%,
-      rgba(250, 248, 239, 0.97) 54%,
-      rgba(248, 246, 236, 0.78) 68%,
-      rgba(248, 246, 236, 0.34) 82%,
-      rgba(248, 246, 236, 0.08) 100%
-    ),
-    url('/media/art/concept-ui/world-v01.webp') right 64% / 38% auto no-repeat;
+  background: rgba(255, 253, 247, 0.82);
+  text-align: center;
 }
 
 .readOnlyNote > span {
@@ -816,20 +810,15 @@
 
 .readOnlyNote > div {
   display: grid;
+  width: min(52rem, 100%);
   min-width: 0;
-  gap: 0.12rem;
+  gap: 0.18rem;
+  justify-items: center;
 }
 
 .readOnlyNote strong {
   color: #293f4a;
   font: 600 0.76rem/1.2 var(--av-font-display);
-}
-
-.readOnlyNote blockquote {
-  margin: 0;
-  color: #687982;
-  font: italic 0.66rem/1.38 var(--av-font-display);
-  text-align: right;
 }
 
 .error {
@@ -864,8 +853,9 @@
 
   .workspace[data-hall-workspace='spectate'] .workspaceBody {
     height: 100%;
-    grid-template-rows: clamp(10rem, 27vh, 14rem) auto auto;
-    align-content: start;
+    grid-template-rows: clamp(10rem, 24vh, 13rem) auto auto;
+    align-content: space-between;
+    row-gap: clamp(0.85rem, 2.2vh, 1.5rem);
   }
 
   .workspace[data-hall-workspace='spectate'] .spectateVista {
@@ -1040,8 +1030,8 @@
   }
 
   .readOnlyNote {
-    gap: 0.5rem;
-    padding: 0.48rem 0.62rem;
+    gap: 0.34rem;
+    padding: 0.7rem 0.8rem;
   }
 }
 
@@ -1205,11 +1195,4 @@
     display: none;
   }
 
-  .readOnlyNote {
-    grid-template-columns: auto minmax(0, 1fr);
-  }
-
-  .readOnlyNote blockquote {
-    display: none;
-  }
 }
