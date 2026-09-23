@@ -6,7 +6,7 @@ on:
       - 'apps/web/src/components/world/**'
       - 'apps/web/src/server/world/**'
       - 'apps/web/src/world/**'
-      - 'apps/web/src/app/game/world/**'
+      - 'apps/web/src/app/game/**/world/**'
       - 'apps/web/src/app/api/world/**'
       - 'apps/web/e2e/atlas-world.pw.ts'
       - 'supabase/migrations/*living_atlas*'
