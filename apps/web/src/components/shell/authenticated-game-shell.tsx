@@ -76,8 +76,8 @@ export function AuthenticatedGameRecoveryContent() {
         <span>Private game state unavailable</span>
         <strong>Retry when account services are ready.</strong>
         <p>
-          Retry the private-state load, or use Account to sign out. AUREVANE will not create
-          partial character state to bypass the problem.
+          Retry the private-state load, or use Account to sign out. AUREVANE will not create partial
+          character state to bypass the problem.
         </p>
         <form action="/game" method="get">
           <button type="submit">Retry private-state load</button>

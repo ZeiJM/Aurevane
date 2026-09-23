@@ -135,11 +135,7 @@ export function CharacterArsenalShell({
             {disciplines.map((entry) => {
               const concept = disciplineConceptCopy[entry.id]
               return (
-                <article
-                  className={styles.disciplineRow}
-                  key={entry.id}
-                  data-discipline={entry.id}
-                >
+                <article className={styles.disciplineRow} key={entry.id} data-discipline={entry.id}>
                   <div className={styles.mediaTile} data-arsenal-media="true">
                     <FoundationDisciplineSigil disciplineId={entry.id} />
                   </div>
