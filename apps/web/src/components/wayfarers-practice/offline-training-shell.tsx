@@ -30,11 +30,22 @@ export function OfflineTrainingShell({
 
         <section className={styles.sheet} data-av-surface="moonstone" data-training-sheet="true">
           <section className={styles.hero} data-training-scene="true">
+            <AurevaneImage
+              assetId="ui.foundation.vista"
+              className={styles.heroMedia}
+              sizes="(max-width: 760px) 100vw, 72vw"
+            />
+            <span className={styles.heroWash} aria-hidden="true" />
             <header className={styles.heroCopy}>
               <Kicker marker="◇">Discipline in stillness</Kicker>
               <h1>Passive Training</h1>
               <p>Even in silence, you grow.</p>
             </header>
+            <div className={styles.heroIdentity}>
+              <span>Same steps. A farther horizon.</span>
+              <small>Your time away.</small>
+              <small>Your progress forward.</small>
+            </div>
           </section>
 
           <div className={styles.workspace} data-training-workspace="true">
@@ -78,26 +89,6 @@ export function OfflineTrainingShell({
             />
           </div>
 
-          <details className={styles.trainingHelp}>
-            <summary>
-              <span className={styles.helpIcon} aria-hidden="true">
-                ?
-              </span>
-              <span>
-                <strong>How Passive Training works</strong>
-                <small>
-                  Continue to gain experience while you are away. Longer sessions grant larger
-                  rewards.
-                </small>
-              </span>
-              <b>Learn More →</b>
-            </summary>
-            <p>
-              While training is active, new Battle Hall fights are disabled. Profile, account,
-              reference pages, Online Users, and social/chat surfaces remain available. If you stop
-              early, the server awards XP for the completed fraction of the training time.
-            </p>
-          </details>
         </section>
       </div>
     </AuthenticatedShellFrame>
