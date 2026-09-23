@@ -327,6 +327,75 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
   }
 })
 
+test('Eastern Watch objective persists accept, inspect and idempotent return completion', async ({
+  page,
+}, info) => {
+  test.skip(info.project.name !== 'desktop-chromium', 'Objective authority is viewport independent.')
+  test.setTimeout(60000)
+  await enter(page)
+  const initial = await world(page)
+  place(initial.characterId, 'verdant-expanse', 2, 4, true)
+  await page.reload()
+
+  const interaction = page.getByRole('region', { name: 'Local interaction' })
+  await expect(interaction.getByRole('heading', { name: 'The Eastern Watch' })).toBeVisible()
+  await expect(interaction).toContainText('Watch officer')
+  await page.getByRole('button', { name: 'Accept objective' }).click()
+  await expect(page.getByText('Reach the eastern watchtower across the river.')).toBeVisible()
+  let state = await world(page)
+  expect(state.objectives.find((objective) => objective.id === 'eastern-watch')).toMatchObject({
+    progress: 'active',
+    completed: false,
+  })
+
+  await page.reload()
+  await expect(page.getByText('Reach the eastern watchtower across the river.')).toBeVisible()
+  place(initial.characterId, 'verdant-expanse', 12, 4, false)
+  await page.reload()
+  state = await world(page)
+  const inspect = await page.request.post('/api/world', {
+    data: {
+      characterId: state.characterId,
+      expectedVersion: state.version,
+      commandId: randomUUID(),
+      intent: { kind: 'tick' },
+    },
+  })
+  expect(inspect.ok()).toBe(true)
+  await page.reload()
+  await expect(
+    page.getByText('Return to the protected settlement and report to the watch officer.'),
+  ).toBeVisible()
+  expect((await world(page)).objectives.find((objective) => objective.id === 'eastern-watch')).toMatchObject({
+    progress: 'ready',
+    completed: false,
+  })
+
+  place(initial.characterId, 'verdant-expanse', 2, 4, true)
+  await page.reload()
+  const reportRequest = page.waitForRequest(
+    (request) =>
+      new URL(request.url()).pathname === '/api/world' &&
+      request.method() === 'POST' &&
+      request.postDataJSON()?.intent?.kind === 'interact',
+  )
+  await page.getByRole('button', { name: 'Report back' }).click()
+  const reportCommand = (await reportRequest).postDataJSON()
+  await expect(page.getByText('The eastern route has been verified.')).toBeVisible()
+  state = await world(page)
+  const completed = state.objectives.find((objective) => objective.id === 'eastern-watch')!
+  expect(completed).toMatchObject({ progress: 'completed', completed: true, destination: null })
+  expect(state.interactions[0]).toMatchObject({ progress: 'completed', actionLabel: null })
+  const version = state.version
+
+  const replay = await page.request.post('/api/world', { data: reportCommand })
+  expect(replay.ok()).toBe(true)
+  expect((await replay.json()).version).toBe(version)
+  await page.reload()
+  await expect(page.getByRole('button', { name: 'Report back' })).toHaveCount(0)
+  expect((await world(page)).version).toBe(version)
+})
+
 test('expired training releases travel without claiming XP and frontier discovery stays private', async ({
   page,
 }, info) => {
