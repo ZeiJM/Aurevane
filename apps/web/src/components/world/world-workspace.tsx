@@ -34,7 +34,7 @@ export function WorldWorkspace({
   const current = useRef(initialView),
     pending = useRef(false),
     mounted = useRef(true),
-    acceptedAt = useRef(Date.now()),
+    acceptedAt = useRef(0),
     timer = useRef<number | null>(null),
     reschedule = useRef<() => void>(() => {})
   function accept(next: WorldView) {
