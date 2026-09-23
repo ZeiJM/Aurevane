@@ -2,6 +2,14 @@ import { expect, test, type Page, type TestInfo } from '@playwright/test'
 
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
+function uniqueLetters(info: TestInfo): string {
+  return `${Date.now()}${info.workerIndex}`
+    .split('')
+    .map((digit) => String.fromCharCode(65 + Number(digit)))
+    .join('')
+    .slice(-10)
+}
+
 function desktopOnly(info: TestInfo): void {
   test.skip(
     info.project.name !== 'desktop-chromium',
@@ -37,7 +45,7 @@ test('roaming pages preserve one authenticated shell while Battle Hall refreshes
     page,
     email: `persistent-roaming-v2-${info.workerIndex}-${now}@example.test`,
     password: 'Persistent-roaming-v2-2026!',
-    characterName: `Roamer ${now}`,
+    characterName: `Roamer ${uniqueLetters(info)}`,
   })
 
   await rememberShell(page, '__roamingShell')
@@ -67,7 +75,7 @@ test('switching character selection refreshes the roaming shell', async ({ page 
   desktopOnly(info)
   test.setTimeout(180_000)
   const now = Date.now()
-  const characterName = `Switcher ${now}`
+  const characterName = `Switcher ${uniqueLetters(info)}`
 
   await provisionAccountAndEnterCharacter({
     page,
