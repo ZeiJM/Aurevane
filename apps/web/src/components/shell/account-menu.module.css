@@ -37,7 +37,8 @@
   backdrop-filter: blur(1rem);
 }
 .menu > a,
-.menu form button {
+.menu form button,
+.audioTrigger {
   display: flex;
   width: 100%;
   min-height: 2.8rem;
@@ -54,7 +55,10 @@
   cursor: pointer;
 }
 .menu > a:hover,
-.menu form button:hover {
+.menu form button:hover,
+.audioTrigger:hover,
+.audioTrigger:focus-visible,
+.audioTrigger[aria-expanded='true'] {
   background: rgba(207, 169, 93, 0.08);
   color: var(--av-brass-200);
 }
@@ -104,20 +108,12 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.audio {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 0.6rem;
-  align-items: center;
-  padding: 0.35rem 0.35rem 0.5rem 0.8rem;
-  border-bottom: 1px solid var(--av-border);
-  color: var(--av-text-dim);
-  font: 650 0.55rem/1 var(--av-font-body);
-  letter-spacing: 0.05em;
-  text-transform: none;
+.audioRoot {
+  width: 100%;
 }
-.audio :global(button) {
-  min-height: 2.75rem;
+
+.audioTrigger {
+  justify-content: flex-start;
 }
 @media (max-width: 560px) {
   .trigger {
