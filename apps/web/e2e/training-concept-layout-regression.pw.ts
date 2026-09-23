@@ -33,6 +33,7 @@ test('training uses the approved character rail and parchment three-workspace co
   await expect(current).toBeVisible()
   await expect(report).toBeVisible()
   await expect(page.getByRole('navigation', { name: 'Training sections' })).toHaveCount(0)
+  await expect(frame.locator('[data-training-scene] img')).toHaveCount(0)
 
   const metrics = await frame.evaluate((element) => {
     const bounds = (node: Element | null) => {
@@ -50,8 +51,10 @@ test('training uses the approved character rail and parchment three-workspace co
     const currentNode = element.querySelector('[aria-label="Current training activity"]')
     const reportNode = element.querySelector('[aria-label="Training report workspace"]')
     const identityNode = element.querySelector('[data-testid="character-profile"]')
+    const sheetNode = element.querySelector('[data-training-sheet="true"]')
     return {
       identity: bounds(identityNode),
+      sheet: bounds(sheetNode),
       planner: bounds(plannerNode)!,
       current: bounds(currentNode),
       report: bounds(reportNode),
@@ -70,12 +73,37 @@ test('training uses the approved character rail and parchment three-workspace co
     .toBeLessThan(100)
   expect.soft(metrics.overflowX, 'no sideways page clipping').toBeLessThanOrEqual(1)
 
-  if (!mobile && metrics.identity && metrics.current && metrics.report) {
+  if (!mobile && metrics.identity && metrics.sheet && metrics.current && metrics.report) {
     expect.soft(metrics.planner.x).toBeGreaterThanOrEqual(metrics.identity.right)
     expect.soft(metrics.current.x).toBeGreaterThanOrEqual(metrics.planner.right - 1)
     expect.soft(metrics.report.x).toBeGreaterThanOrEqual(metrics.current.right - 1)
     expect.soft(Math.abs(metrics.current.y - metrics.planner.y)).toBeLessThanOrEqual(2)
     expect.soft(Math.abs(metrics.report.y - metrics.planner.y)).toBeLessThanOrEqual(2)
+
+    if (width >= 1200) {
+      expect
+        .soft(
+          Math.abs(
+            metrics.sheet.y +
+              metrics.sheet.height -
+              (metrics.identity.y + metrics.identity.height),
+          ),
+          'Passive Training sheet ends in line with the character panel',
+        )
+        .toBeLessThanOrEqual(2)
+      expect
+        .soft(
+          Math.abs(metrics.current.height - metrics.planner.height),
+          'Training panels share one height',
+        )
+        .toBeLessThanOrEqual(2)
+      expect
+        .soft(
+          Math.abs(metrics.report.height - metrics.planner.height),
+          'Training Report matches plan height',
+        )
+        .toBeLessThanOrEqual(2)
+    }
   }
 
   await expect(page.getByRole('button', { name: 'Start Short', exact: true })).toBeEnabled()

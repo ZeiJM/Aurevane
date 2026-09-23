@@ -28,24 +28,13 @@ export function OfflineTrainingShell({
       <div className={styles.layout} data-training-concept="true">
         <CharacterIdentityCard {...identity} />
 
-        <section className={styles.sheet} data-av-surface="moonstone">
+        <section className={styles.sheet} data-av-surface="moonstone" data-training-sheet="true">
           <section className={styles.hero} data-training-scene="true">
-            <AurevaneImage
-              assetId="ui.foundation.vista"
-              className={styles.heroMedia}
-              sizes="(max-width: 760px) 100vw, 72vw"
-            />
-            <span className={styles.heroWash} aria-hidden="true" />
             <header className={styles.heroCopy}>
               <Kicker marker="◇">Discipline in stillness</Kicker>
               <h1>Passive Training</h1>
               <p>Even in silence, you grow.</p>
             </header>
-            <div className={styles.heroIdentity}>
-              <span>Same steps. A farther horizon.</span>
-              <small>Your time away.</small>
-              <small>Your progress forward.</small>
-            </div>
           </section>
 
           <div className={styles.workspace} data-training-workspace="true">
