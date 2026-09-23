@@ -1,4 +1,4 @@
-create table public.site_music_configuration (
+create table if not exists public.site_music_configuration (
   singleton_id boolean primary key default true check (singleton_id),
   enabled boolean not null default true,
   default_track jsonb not null,
@@ -31,6 +31,25 @@ values (
   1
 )
 on conflict (singleton_id) do nothing;
+
+-- Production briefly received an earlier site-music seed outside repository
+-- history. Repair only that untouched seed; never overwrite an operator edit.
+update public.site_music_configuration
+set
+  default_track = jsonb_set(
+    default_track,
+    '{url}',
+    to_jsonb('/media/audio/music/road-to-aurevane.webm'::text),
+    false
+  ),
+  updated_at = now()
+where singleton_id = true
+  and revision = 1
+  and updated_by is null
+  and route_overrides = '[]'::jsonb
+  and default_track ->> 'label' = 'Road to Aurevane'
+  and default_track ->> 'source' = 'bundled'
+  and default_track ->> 'url' = '/media/audio/music/road-to-aurevane.m4a';
 
 insert into storage.buckets (
   id,
