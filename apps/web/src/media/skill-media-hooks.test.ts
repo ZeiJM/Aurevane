@@ -19,9 +19,7 @@ describe('Skill media hook registry', () => {
         skillId: 'lifebinder.mend',
       }),
     )
-    expect(icon?.previewSrc).toBe(
-      '/media/art/discipline-skills/lifebinder-mend-v01.webp',
-    )
+    expect(icon?.previewSrc).toBe('/media/art/discipline-skills/lifebinder-mend-v01.webp')
     expect(registeredSkillArtworkSource('lifebinder.mend')).toBe(icon?.previewSrc)
     expect(registeredSkillArtworkSource('lifebinder.vital-sever')).toBe(
       '/media/art/discipline-skills/lifebinder-vital-sever-v01.webp',

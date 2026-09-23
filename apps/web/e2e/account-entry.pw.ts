@@ -185,6 +185,10 @@ test('account audio controls persist the two user-facing mix levels', async ({
 
   await page.getByTestId('audio-mute').click()
   await expect(page.getByTestId('audio-mute')).toHaveText('Unmute all')
+  await expect(musicVolume).toHaveValue('0')
+  await expect(effectsVolume).toHaveValue('0')
+  await expect(musicVolume).toBeDisabled()
+  await expect(effectsVolume).toBeDisabled()
 
   await expect
     .poll(() =>
@@ -214,13 +218,19 @@ test('account audio controls persist the two user-facing mix levels', async ({
   await page.getByRole('button', { name: 'Sound settings' }).click()
   await expect(page.getByTestId('audio-settings')).toHaveAttribute('data-audio-state', 'ready')
 
-  await expect(page.getByTestId('audio-volume-music')).toHaveValue('37')
-  await expect(page.getByTestId('audio-volume-sfx')).toHaveValue('23')
+  const reloadedMusicVolume = page.getByTestId('audio-volume-music')
+  const reloadedEffectsVolume = page.getByTestId('audio-volume-sfx')
+  await expect(reloadedMusicVolume).toHaveValue('0')
+  await expect(reloadedEffectsVolume).toHaveValue('0')
+  await expect(reloadedMusicVolume).toBeDisabled()
+  await expect(reloadedEffectsVolume).toBeDisabled()
   await expect(page.getByTestId('audio-mute')).toHaveText('Unmute all')
 
   await page.getByTestId('audio-mute').click()
-  await expect(page.getByTestId('audio-volume-music')).toHaveValue('37')
-  await expect(page.getByTestId('audio-volume-sfx')).toHaveValue('23')
+  await expect(reloadedMusicVolume).toHaveValue('37')
+  await expect(reloadedEffectsVolume).toHaveValue('23')
+  await expect(reloadedMusicVolume).toBeEnabled()
+  await expect(reloadedEffectsVolume).toBeEnabled()
 
   await page.keyboard.press('Escape')
   await expect(page.getByRole('dialog', { name: 'Audio settings' })).toBeHidden()

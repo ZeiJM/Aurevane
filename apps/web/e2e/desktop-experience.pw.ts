@@ -506,7 +506,9 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
     await expect(accountMenu.getByRole('button', { name: 'Sound settings' })).toHaveCount(0)
     const audioActionBounds = await audioAction.boundingBox()
     const controlsActionBounds = await controlsAction.boundingBox()
-    expect(Math.abs(audioActionBounds!.height - controlsActionBounds!.height)).toBeLessThanOrEqual(1)
+    expect(Math.abs(audioActionBounds!.height - controlsActionBounds!.height)).toBeLessThanOrEqual(
+      1,
+    )
     expect(Math.abs(audioActionBounds!.width - controlsActionBounds!.width)).toBeLessThanOrEqual(1)
     await testInfo.attach(`phone-account-menu-${width}`, {
       body: await page.screenshot(),

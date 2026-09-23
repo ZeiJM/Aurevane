@@ -125,7 +125,7 @@ export function AudioSettingsMenu({
 
           <div className={styles.mix} aria-label="Volume channels">
             {USER_AUDIO_CHANNELS.map((channel) => {
-              const percent = Math.round(settings.volumes[channel] * 100)
+              const percent = settings.muted ? 0 : Math.round(settings.volumes[channel] * 100)
               return (
                 <label className={styles.channel} key={channel}>
                   <span className={styles.channelLabel}>
@@ -138,6 +138,7 @@ export function AudioSettingsMenu({
                     max="100"
                     step="1"
                     value={percent}
+                    disabled={settings.muted}
                     onChange={(event) => updateVolume(channel, event.currentTarget.value)}
                     data-testid={`audio-volume-${channel}`}
                   />
