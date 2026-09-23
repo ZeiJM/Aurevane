@@ -1,5 +1,7 @@
 # Phase 4 — final testing readiness
 
+**Owner acceptance update — 2026-09-23:** A03, A04 and A07 are complete. A04 Resonance differentiation and A07 Discipline battle-audio acceptance were explicitly closed by the Owner on 2026-09-23. No new playtest metrics or independent reviewer results are manufactured by this documentation reconciliation. **A10 final Phase-4 acceptance remains open.**
+
 **Post-release integration update — 2026-09-18:** the verified Production release described below has **not** been replaced by Task 10 in Production. PR #552 completed the audited Discipline rebalance on the combat integration branch only: 136 immutable current regular-Skill versions, 17 audited Essence v2 definitions, current Mark/DoT/accuracy/recovery migrations, and a prepare-only database activation migration. Exact head `2220b5d1e8d5b71472374bded8c2ca49ad4d81dc` passed all 15 PR workflows and merged as `56bba54a494e272152de2e672e043da707bfbe22`; all five applicable post-merge push workflows passed. The Task 10 activation RPC has **not** been executed against Production. PR #555 resolves the separate Amplify/Curse repeat-use blocker by classifying clone transfer as discrete, enabling canonically validated Master Panel clone authoring without publishing or deploying a specific clone Skill. Human A03/A04/A07/A10 gates below remain open.
 
 Released on 2026-09-12 through [PR #461](https://github.com/ZeiJM/Aurevane/pull/461). Production is READY at https://aurevane.vercel.app on application commit `c5a9f633d5769a4cea15ed840473389e1a462aac`, deployment `dpl_CVuyfURtMUXM7LpZfWsEkyhv4Y9z`. Human acceptance remains open. The release ledger remains `PHASE_4_TICKETS.md`.
@@ -31,15 +33,15 @@ Released on 2026-09-12 through [PR #461](https://github.com/ZeiJM/Aurevane/pull/
 
 ## Final human testing
 
-Run `PHASE_4_PLAYTEST_PACKET.md` against the verified release and record actual results in `content/balance/phase4-playtest-results-template.csv`.
+`PHASE_4_PLAYTEST_PACKET.md` remains available for future regression or tuning sessions, but A03/A04/A07 no longer require acceptance work.
 
-| Gate                            | What remains for the player/Owner                                                                                                 |
-| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| A03 — balance and counterplay   | Compare representative matchups, linked benefits/drawbacks, conditional effects, repeat use and AI choices with a fixed baseline. |
-| A04 — Resonance differentiation | Check whether representative pairs change decisions and offer understandable setup/payoff and counterplay.                        |
-| A07 — media and accessibility   | Judge effect/tag clarity, art identity, listening comfort, mute/volume and reduced motion on actual devices.                      |
-| A10 — phase acceptance          | Review recorded results, resolve reproducible defects and explicitly accept Phase 4.                                              |
+| Gate                            | Status   | Current boundary                                                                                                                        |
+| ------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| A03 — balance and counterplay   | COMPLETE | Closed by the prior roster-rebalance acceptance work.                                                                                   |
+| A04 — Resonance differentiation | COMPLETE | Explicitly closed by the Owner on 2026-09-23 for the existing setup/payoff/counterplay design.                                          |
+| A07 — Discipline battle audio   | COMPLETE | Explicitly closed by the Owner on 2026-09-23 for the current v02 Discipline action/Essence SFX identities; this is not background music. |
+| A10 — phase acceptance          | OPEN     | Review the accumulated results and explicitly accept/close Phase 4.                                                                     |
 
-For the new UI, select Techniques from each category, read the button/picker tags, then compare the target preview, committed result and log. Include Water Lance → storm, Chilling Mist → fire, healing/MP drain, Cleanse/Dispel, a repeated Skill, and a pure Essence. Reload once during battle and return to Profile afterward. If recovery appears, record the time and battle ID for the new stage diagnostics.
+For any future regression session, select Techniques from each category, read the button/picker tags, then compare the target preview, committed result and log. Include Water Lance → storm, Chilling Mist → fire, healing/MP drain, Cleanse/Dispel, a repeated Skill, and a pure Essence. Reload once during battle and return to Profile afterward. If recovery appears, record the time and battle ID for the stage diagnostics.
 
-The playable scope remains **17 Disciplines, 136 regular Skills, 17 Essences and 136 Resonance pairs**. The Atlas lists 36 identities; its other 19 entries remain planned. No human results or Owner acceptance are supplied by these automated checks.
+The playable scope remains **17 Disciplines, 136 regular Skills, 17 Essences and 136 Resonance pairs**. The Atlas lists 36 identities; its other 19 entries remain planned. Automated checks do not supply Owner acceptance; A03/A04/A07 were closed by separate Owner decisions. A10 remains open.
