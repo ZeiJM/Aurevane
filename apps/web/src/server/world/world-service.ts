@@ -166,7 +166,7 @@ export function projectWorld(
         o.guidance === 'exact' && o.destination && isKnown(state, o.destination)
           ? o.destination
           : null,
-      completed: state.completedObjectives.includes(o.id),
+      completed: o.completed || state.completedObjectives.includes(o.id),
     })),
     interactions: localWorldInteractions(state),
     battleSessionId: null,
