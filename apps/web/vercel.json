@@ -2,6 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "git": {
     "deploymentEnabled": {
+      "agent/persistent-shell-bisect-route-20260923": true,
       "**": false
     }
   }
