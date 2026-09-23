@@ -22,7 +22,7 @@ The target is not constant cinematic bombast. Quiet moments must exist so import
 4. **Disciplines have sonic identity.** Players should begin recognizing combat styles by sound as well as by visuals.
 5. **Regions have environmental identity.** Wind, wildlife, settlement activity, machinery, water, weather, architecture, and supernatural phenomena define place.
 6. **Music supports long sessions.** Loops must avoid obvious repetition fatigue.
-7. **Audio remains optional and accessible.** Music, SFX, ambience, and UI audio require independent user control.
+7. **Audio remains optional and accessible.** Music and the combined non-music Sound Effects mix remain independently controllable, with a global mute.
 8. **Production is provider-independent.** The game must never require a specific AI music or SFX generator at runtime.
 9. **Originality and provenance are mandatory.** Never imitate copyrighted game music or living composers by name.
 10. **Silence is part of the design.** Do not layer every possible sound at once.
