@@ -3,6 +3,7 @@ import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-ski
 import { resolveEssenceForBuild } from '@aurevane/game-core/combat/essence'
 import { essenceSkillArtwork } from '../../media/essence-skill-art'
 import { imageAssetRegistry } from '../../media/registry'
+import { regularSkillArtwork } from '../../media/regular-skill-art'
 
 /** Original, code-native tactical sigils. Geometry communicates tradition, shape and effect;
  * these intentionally remain crisp at 32–64px and do not depend on a generation vendor. */
@@ -87,6 +88,8 @@ export function phase4SkillArtwork(actionId: string): string | null {
   if (!color) return null
   const skill = resolveMatureSkillVersion(actionId)
   if (!skill || skill.id !== actionId) return null
+  const approvedArtwork = regularSkillArtwork(actionId)
+  if (approvedArtwork) return approvedArtwork
   const status = skill.effects.find((effect) => effect.type === 'apply-status')
   const typedDot = skill.effects.find(
     (effect) => effect.type === 'burn' || effect.type === 'bleed' || effect.type === 'poison',
