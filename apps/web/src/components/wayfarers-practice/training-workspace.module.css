@@ -121,21 +121,6 @@
   filter: saturate(0.88) contrast(0.94);
 }
 
-.windowNumber {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  display: grid;
-  width: 2.25rem;
-  height: 2.05rem;
-  place-items: center;
-  border-top: 1px solid rgba(212, 176, 98, 0.7);
-  border-left: 1px solid rgba(212, 176, 98, 0.7);
-  color: #e6c56f;
-  background: rgba(7, 24, 33, 0.94);
-  font: 600 0.95rem/1 var(--av-font-display);
-}
-
 .windowBody {
   display: grid;
   min-width: 0;
