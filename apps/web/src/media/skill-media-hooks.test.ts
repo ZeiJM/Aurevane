@@ -56,10 +56,22 @@ describe('Skill media hook registry', () => {
     expect(vanguard).toEqual(
       expect.objectContaining({
         skillId: 'vanguard.forceful-strike',
-        available: false,
-        audioFamily: null,
+        available: true,
+        audioFamily: 'vanguard',
+        sampleAssetId: 'audio.phase4.vanguard-action-v01-1',
+        sampleSrc: '/media/audio/sfx/phase4/vanguard-action-v01-1.mp3',
       }),
     )
+    for (const discipline of ['farstrider', 'shadehand', 'aetherist', 'lifebinder'] as const) {
+      expect(
+        skillAudioCueHookOptions.some(
+          (option) =>
+            option.sourceDisciplineId === discipline &&
+            option.available &&
+            option.audioFamily === discipline,
+        ),
+      ).toBe(true)
+    }
     expect(skillAudioCueHookOptions.length).toBeGreaterThan(10)
     expect(isRegisteredSkillAudioCueHook('skill.vanguard.forceful-strike.audio')).toBe(true)
     expect(isRegisteredSkillAudioCueHook('essence.aetherist.aether-nova.audio')).toBe(true)
