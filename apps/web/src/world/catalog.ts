@@ -86,19 +86,136 @@ export const WORLD_REGIONS: readonly WorldRegion[] = [
   },
 ]
 
-// Painted sector maps share a road/bridge grammar; collision rows are explicit authored data.
-// # = trees/building/wall, ~ = river/chasm, . = wilderness, = = road, s = protected settlement.
-const ROWS = [
-  '######.###~##',
-  '#sss##..##~..',
-  '#s#s##..##~..',
-  '#sss##....~..',
-  'sssss========',
-  '#sss##....~..',
-  '###s#.....~..',
-  '###s#.....~..',
-  '###s==.###~##',
-].map((row) => row.trim())
+// Major regions deliberately use different settlement/path grammars rather than one biome-reskinned
+// template. # = trees/building/wall, ~ = river/chasm, . = wilderness, = = road,
+// s = protected settlement. Road endpoints remain on the shared y=4 boundary contract.
+type RegionLayout = {
+  rows: readonly string[]
+  settlement: { name: string; x: number; y: number }
+  watch: { name: string; x: number; y: number }
+}
+const REGION_LAYOUTS: Record<string, RegionLayout> = {
+  'aureth-crown': {
+    rows: [
+      '##....##~....',
+      '#.sss.##~....',
+      '#sssss..~....',
+      '#sssss..~....',
+      '=============',
+      '#.sss...~....',
+      '...=....~....',
+      '...=....~....',
+      '...====.~....',
+    ],
+    settlement: { name: 'Civic Quarter', x: 3, y: 2 },
+    watch: { name: 'Road Ward', x: 9, y: 4 },
+  },
+  'verdant-expanse': {
+    rows: [
+      '######.###~##',
+      '#sss##..##~..',
+      '#s#s##..##~..',
+      '#sss##....~..',
+      'sssss========',
+      '#sss##....~..',
+      '###s#.....~..',
+      '###s#.....~..',
+      '###s==.###~##',
+    ],
+    settlement: { name: 'Forest Settlement', x: 2, y: 4 },
+    watch: { name: 'Eastern Watchtower', x: 12, y: 4 },
+  },
+  emberreach: {
+    rows: [
+      '####....~~###',
+      '#ss#....~~###',
+      '#ss#..##~~###',
+      '#s...###~~...',
+      '=============',
+      '..###..~~....',
+      '###....~~.###',
+      '###.##.~~####',
+      '####...~~####',
+    ],
+    settlement: { name: 'Basalt Citadel', x: 1, y: 2 },
+    watch: { name: 'Forge Watch', x: 8, y: 4 },
+  },
+  frostmere: {
+    rows: [
+      '#######...###',
+      '###..ss...###',
+      '##..ssss..###',
+      '#..sssss..###',
+      '=============',
+      '#...sss...###',
+      '##...s....###',
+      '###..=...####',
+      '####.=..#####',
+    ],
+    settlement: { name: 'Mountain Refuge', x: 5, y: 2 },
+    watch: { name: 'Pass Watch', x: 9, y: 4 },
+  },
+  'glasswind-desert': {
+    rows: [
+      '..###....###.',
+      '...#......#..',
+      '..sss........',
+      '.sssss.......',
+      '=============',
+      '..sss........',
+      '...s....###..',
+      '........#....',
+      '..###........',
+    ],
+    settlement: { name: 'Oasis Enclave', x: 3, y: 3 },
+    watch: { name: 'Caravan Watch', x: 10, y: 4 },
+  },
+  'hollow-coast': {
+    rows: [
+      '###.....~~~~~',
+      '##......~~~~~',
+      '#......~~~~~~',
+      '.......~~~~~~',
+      '=============',
+      '.sss....~~~~~',
+      'sssss...~~~~~',
+      'ssss....~~~~~',
+      '.ss.....~~~~~',
+    ],
+    settlement: { name: 'Harbor Quarter', x: 2, y: 6 },
+    watch: { name: 'Tide Watch', x: 7, y: 4 },
+  },
+  'starfall-highlands': {
+    rows: [
+      '###...#######',
+      '##..sss..####',
+      '#..sssss..###',
+      '...sss....###',
+      '=============',
+      '....=...#####',
+      '....=..######',
+      '...==..######',
+      '###...#######',
+    ],
+    settlement: { name: 'Observatory Terrace', x: 5, y: 2 },
+    watch: { name: 'Highland Watch', x: 8, y: 4 },
+  },
+  'umbral-march': {
+    rows: [
+      '######.######',
+      '####...######',
+      '###....######',
+      '##ss...######',
+      '=============',
+      '#sss...######',
+      '##s....######',
+      '###....######',
+      '#############',
+    ],
+    settlement: { name: 'Frontier Outpost', x: 2, y: 5 },
+    watch: { name: 'March Watch', x: 10, y: 4 },
+  },
+}
 // Optional exit rows align each endpoint with its own painted path.
 const LINKS: readonly [string, string, string, number, number?, number?][] = [
   ['aureth-crown', 'crown-road', 'Crown Road', STEP_MS],
@@ -123,34 +240,45 @@ const roads: WorldRoad[] = LINKS.flatMap(([a, b, name, durationMs, fromY = 4, to
   { from: { sectorId: b, x: 0, y: toY }, to: { sectorId: a, x: 12, y: fromY }, name, durationMs },
 ])
 export const CHARTED_SECTORS: readonly WorldSector[] = [
-  ...WORLD_REGIONS.map((region): WorldSector => ({
-    id: region.id,
-    name: region.name,
-    coordinate: region.sector,
-    regionId: region.id,
-    art: `/media/art/world/${region.art}-v01.webp`,
-    panorama: `/media/art/world/${region.art}-panorama-v01.webp`,
-    east: 12,
-    north: 28,
-    rows: ROWS,
-    charted: true,
-    landmarks: [
-      { id: `${region.id}-settlement`, name: 'Settlement', kind: 'settlement', x: 2, y: 4 },
-      { id: `${region.id}-watch`, name: 'Watchtower', kind: 'watchtower', x: 12, y: 4 },
-      ...(region.id === 'umbral-march'
-        ? [
-            {
-              id: 'last-survey',
-              name: 'Last reliable survey',
-              kind: 'frontier' as const,
-              x: 6,
-              y: 0,
-            },
-          ]
-        : []),
-    ],
-    roads: roads.filter((road) => road.from.sectorId === region.id),
-  })),
+  ...WORLD_REGIONS.map((region): WorldSector => {
+    const layout = REGION_LAYOUTS[region.id]!
+    return {
+      id: region.id,
+      name: region.name,
+      coordinate: region.sector,
+      regionId: region.id,
+      art: `/media/art/world/${region.art}-v01.webp`,
+      panorama: `/media/art/world/${region.art}-panorama-v01.webp`,
+      east: 12,
+      north: 28,
+      rows: layout.rows,
+      charted: true,
+      landmarks: [
+        {
+          id: `${region.id}-settlement`,
+          kind: 'settlement',
+          ...layout.settlement,
+        },
+        {
+          id: `${region.id}-watch`,
+          kind: 'watchtower',
+          ...layout.watch,
+        },
+        ...(region.id === 'umbral-march'
+          ? [
+              {
+                id: 'last-survey',
+                name: 'Last reliable survey',
+                kind: 'frontier' as const,
+                x: 6,
+                y: 0,
+              },
+            ]
+          : []),
+      ],
+      roads: roads.filter((road) => road.from.sectorId === region.id),
+    }
+  }),
   {
     id: 'crown-road',
     name: 'Crown Road',
