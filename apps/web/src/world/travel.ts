@@ -35,6 +35,7 @@ export function newWorldState(): WorldState {
     nextStepAt: null,
     discoveries: {},
     completedObjectives: [],
+    objectiveProgress: {},
   }
 }
 
