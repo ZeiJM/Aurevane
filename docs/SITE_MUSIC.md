@@ -1,6 +1,6 @@
 # Site Music
 
-AUREVANE uses one persistent site-music player mounted in the root application layout. The player therefore covers public account pages, signup, character creation, the game shell, and the Master Panel. Browser autoplay rules still require the first pointer or keyboard interaction before music begins.
+AUREVANE uses one persistent site-music player mounted in the root application layout. The player therefore covers public account pages, signup, character creation, the game shell, and the Master Panel. AUREVANE attempts audible playback immediately when the soundtrack configuration loads. Browsers that block audible autoplay fall back to the first eligible pointer or keyboard interaction.
 
 ## Master Panel
 
