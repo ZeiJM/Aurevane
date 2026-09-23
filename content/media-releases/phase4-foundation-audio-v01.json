@@ -1,0 +1,167 @@
+{
+  "id": "phase4-foundation-audio-v01",
+  "status": "authorized-for-owner-testing",
+  "purpose": "Owner in-game audio evaluation",
+  "independentHumanListeningReview": false,
+  "independentHumanArtReview": false,
+  "provenance": [
+    "content/media-candidates/phase4-foundation-audio/audio-manifest.json",
+    "scripts/media/render_phase4_audio.py"
+  ],
+  "notes": "Owner requested moving from completed A03 into sound work. This release completes dedicated action/Essence audio families for Vanguard, Farstrider, Shadehand, Aetherist and Lifebinder using the existing deterministic internal-material-synthesis pipeline. Thirty synthesized cue variants are authorized for Owner audition; independent human listening acceptance is not claimed. Art acceptance remains separate.",
+  "runtime": [
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/vanguard-action-v01-1.mp3",
+      "bytes": 4365,
+      "sha256": "9d1e79a22ef056a9c2a511f281c30b0779e17f474303ce6568d42dc827341739"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/vanguard-action-v01-2.mp3",
+      "bytes": 4365,
+      "sha256": "776f5df64987a9598d26ee58af5dd82d4cb1fe2c656a914c9566daf6cb1a3d94"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/vanguard-action-v01-3.mp3",
+      "bytes": 4365,
+      "sha256": "9c1fe10a0b59c19c246b37f4315aa0951b7dad97698859312a73251bdddc2c8b"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/vanguard-essence-v01-1.mp3",
+      "bytes": 7245,
+      "sha256": "84f2bbe5e1adac3a784d39640eca84ea5f118790342c9f55302e345b5ac5a313"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/vanguard-essence-v01-2.mp3",
+      "bytes": 7245,
+      "sha256": "f3b7ce008d578975f9cec78d53ea90fb0a3f47548e2565de613702bbf480efa9"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/vanguard-essence-v01-3.mp3",
+      "bytes": 7245,
+      "sha256": "8f474c27598e33dc9c7eb99072e720af52e923e485ad8259d056380d17b2745b"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/farstrider-action-v01-1.mp3",
+      "bytes": 3789,
+      "sha256": "ed6b3e48f7020488da10532fb0fb9340469816cb37430393c753d3e423353591"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/farstrider-action-v01-2.mp3",
+      "bytes": 3789,
+      "sha256": "414af90cd1fe9928e0446c75823b866dc9f517fba490b7c9f2d755e9b0d86f49"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/farstrider-action-v01-3.mp3",
+      "bytes": 3789,
+      "sha256": "6ec5f3921c971777593c95a02f33bf82820551dfb94c50f123db49e57d2ee5f5"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/farstrider-essence-v01-1.mp3",
+      "bytes": 7245,
+      "sha256": "85cb644089ddd0423eba78ebab18ff16a9b4b7be794a1bab1a1c0edce428c1c4"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/farstrider-essence-v01-2.mp3",
+      "bytes": 7245,
+      "sha256": "428a118b57dc9c2d2fb6fe8712d5dca9b73df29e539579a52d6ac77acd902776"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/farstrider-essence-v01-3.mp3",
+      "bytes": 7245,
+      "sha256": "3da081d63a245860cf0c6689ca35ac9fb4e804c443e81e57d579e4ee04195aa4"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/shadehand-action-v01-1.mp3",
+      "bytes": 3501,
+      "sha256": "8e958cc7958e5ba9c3582d968f02a02a1ad0cf2176bb47377194196c607caae5"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/shadehand-action-v01-2.mp3",
+      "bytes": 3501,
+      "sha256": "7da1958011c42c1e0545d02cad2b8bad504771a7f852f2ebdc724c2788b9f952"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/shadehand-action-v01-3.mp3",
+      "bytes": 3501,
+      "sha256": "8060b67d514e0ae3e843f205c7b27432ece24c253be3fd910b75874a4ecb9361"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/shadehand-essence-v01-1.mp3",
+      "bytes": 7245,
+      "sha256": "1c8f93f6a06e779c8f57a429e5330e33a108dbca9bcb4efdbd06b3a66835145c"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/shadehand-essence-v01-2.mp3",
+      "bytes": 7245,
+      "sha256": "0e61ae5a92543278aabfb55aaa2f05863f26dd510850f30139902cc3a663f59c"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/shadehand-essence-v01-3.mp3",
+      "bytes": 7245,
+      "sha256": "277e608cb2f3c207935b9959b533a70d2dee4b32332194cef69d3065cd7b7233"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/aetherist-action-v01-1.mp3",
+      "bytes": 4365,
+      "sha256": "7e056c3a32ee34d4741aebf2c71b74c6243dbe97de8e327694dd86db32d046ea"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/aetherist-action-v01-2.mp3",
+      "bytes": 4365,
+      "sha256": "a1ea73292a3a874dbb33f30ef1179937b7f03f6f22268bd2e9a34cccea40e154"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/aetherist-action-v01-3.mp3",
+      "bytes": 4365,
+      "sha256": "a257ec60634ddd85674bee35d997bffb1a8b5d302027c37deb3ff7643e78d89b"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/aetherist-essence-v01-1.mp3",
+      "bytes": 7245,
+      "sha256": "5299502780410d78ce27738fe7c14fd193078b7723b84c873f637f3511bb3f28"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/aetherist-essence-v01-2.mp3",
+      "bytes": 7245,
+      "sha256": "853bccc72de454ba87e7325b12973cc90f9629bcf803e680dd89bff23088fbfb"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/aetherist-essence-v01-3.mp3",
+      "bytes": 7245,
+      "sha256": "bde68df1dc303835c223771e3b6890edc1a2771cc73d2e97ae5079fe0dd234fd"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/lifebinder-action-v01-1.mp3",
+      "bytes": 4653,
+      "sha256": "180b20b4ab24eeeb034c2bb5d02b5a742f04ef4803c09d3f4b57723a54f023ca"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/lifebinder-action-v01-2.mp3",
+      "bytes": 4653,
+      "sha256": "7c7c330890b0a5fe68df5f1e36e8ddcb4ea8b08d042eb053ca5454b91c528f03"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/lifebinder-action-v01-3.mp3",
+      "bytes": 4653,
+      "sha256": "efb9a4a4fa4a6470ea06daa3f7a5759604e530106e8da50f38951aab5b73f4a7"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/lifebinder-essence-v01-1.mp3",
+      "bytes": 7245,
+      "sha256": "88cbed79bf3e57493ef4e28e645f67ff71b911cce910641c45e151c328b94529"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/lifebinder-essence-v01-2.mp3",
+      "bytes": 7245,
+      "sha256": "66a08d5e889480377c6874a32bcc6fb672d47994fd0bb11834f7de0e74960f7d"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/lifebinder-essence-v01-3.mp3",
+      "bytes": 7245,
+      "sha256": "ad4f840fee12099e71ec5a00c094b31133fcbf8981dc737683d99867003e95ec"
+    }
+  ],
+  "authorizedBy": "Owner continuation in the implementation conversation",
+  "authorization": "Make A03 live as fully completed, then move on to sound.",
+  "authorizationDate": "2026-09-22"
+}
