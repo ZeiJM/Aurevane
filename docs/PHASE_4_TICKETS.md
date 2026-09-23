@@ -1,6 +1,6 @@
 # Phase 4 — execution and acceptance ledger
 
-**Owner acceptance update — 2026-09-23:** A04 Resonance differentiation and A07 Discipline battle-audio acceptance are **COMPLETE** by explicit Owner direction. A03 was already complete. This records the Owner's acceptance decision without inventing additional playtest observations or independent reviewer evidence. **A10 final Phase-4 acceptance remains open.**
+**FINAL OWNER CLOSEOUT — 2026-09-23:** Phase 4 is **CLOSED** by explicit Owner decision. A03 balance, A04 Resonance differentiation and A07 Discipline battle-audio acceptance are complete, and A10 final Phase-4 acceptance is now **COMPLETE**. This is an Owner phase-exit decision; it does not invent additional playtest metrics, independent tester counts or third-party media review. Routine UI cleanup and regression fixes after this point are maintenance and do not reopen Phase 4 unless the Owner explicitly does so. See `PHASE_4_CLOSEOUT.md`.
 
 **Post-release engineering integration — 2026-09-18:** Task 10 is closed at the combat-integration level through PR #552. Exact tested head `2220b5d1e8d5b71472374bded8c2ca49ad4d81dc` passed all 15 PR workflows, including Browser Smoke, Representative Buildcraft, Discipline Build DB and full CI, plus an isolated exact-head Phase-4 ground-targeting browser gate. It merged to `agent/final-ui-combat-integration-20260917` as `56bba54a494e272152de2e672e043da707bfbe22`; the merge tree is identical to the tested head, and all five applicable post-merge push workflows passed. The work appends one audited immutable current version for each of the 136 regular Discipline Skills, versions all 17 audited Essences to v2, migrates current tempo/recovery/DoT/Mark/accuracy semantics, and stages the transactional `phase4-discipline-rebalance-v1` activation. **No Production deployment, Production database mutation or Production activation RPC was performed.** The prior live testing release below remains the Production state. PR #555 resolves the Amplify/Curse consecutive-use rule by treating clone transfer as discrete, retires the former publication-stage guard while preserving canonical validation, and does not itself publish or deploy a specific clone Skill. A03/A04/A07/A10 human acceptance remains open.
 
@@ -18,7 +18,7 @@ New battle authority also re-resolves the current pure Essence before freezing a
 
 Exact-head verification completed on `ef930767c398dc23882cd79b5b746092ae5be749`. All eight PR workflows passed: Browser smoke, Representative Buildcraft, Discipline Build DB, Skill Engine, Essence Build, Resonance Build, Shared Build Snapshots and full CI. The full CI quality and database-foundation jobs passed, Browser Smoke saved its browser evidence, and the PR remained draft/unmerged during verification. No Production deployment or Production database mutation was performed as part of this A03 closeout.
 
-A04 Resonance differentiation and A07 Discipline battle-audio acceptance are now complete by the 2026-09-23 Owner decision above. A10 Owner Phase acceptance remains open.
+A04 Resonance differentiation and A07 Discipline battle-audio acceptance are complete by the 2026-09-23 Owner decision above. A10 is also complete by the final Owner Phase-4 closeout decision.
 
 ### A04 — Resonance differentiation — COMPLETE
 
@@ -28,10 +28,14 @@ The Owner explicitly directed A04 to be closed on 2026-09-23. This is the human 
 
 The Owner explicitly directed A07 to be closed on 2026-09-23, confirming acceptance of the current v02 action/Essence battle SFX identities for the 17 published Disciplines. A07 is a battle-audio identity gate, not a background-music acceptance record. The later Account/Audio-control fixes changed access, mute and volume behavior without redesigning the accepted cue identities. No independent third-party listening review is claimed.
 
+### A10 — final Phase-4 acceptance — COMPLETE
+
+On 2026-09-23 the Owner explicitly accepted Phase 4 as closed. This closes the phase after the completed engineering scope, the P4.11–P4.14 operations extension, A03, A04 and A07 acceptance work. The closeout does not convert automated evidence into independent human-study results and does not require a new gameplay, database or Production deployment.
+
 
 ## Owner-approved Phase 4 operations extension — 2026-09-19
 
-The Owner explicitly corrected the phase boundary on 2026-09-19: staff/event operations infrastructure belongs to **Phase 4**, and **Phase 5 has not started**. Historical branch names, migration filenames and merged PR titles that contain `phase5` / `Phase 5` remain unchanged where renaming would damage Git/database traceability; they are historical identifiers only and no longer define roadmap ownership.
+The Owner explicitly corrected the phase boundary on 2026-09-19: staff/event operations infrastructure belongs to **Phase 4**. At that checkpoint, **Phase 5 had not started**. Historical branch names, migration filenames and merged PR titles that contain `phase5` / `Phase 5` remain unchanged where renaming would damage Git/database traceability; they are historical identifiers only and no longer define roadmap ownership. Phase 5 was later separately authorized on 2026-09-22.
 
 ### P4.11 — Staff authority foundation — COMPLETE
 
@@ -96,7 +100,7 @@ The P4.11–P4.14 Operations Extension is technically complete and verified on t
 
 This technical gate does **not** authorize Production deployment, Production Supabase mutation, Event recovery `pg_cron` activation, or the staged Discipline rebalance. Existing human Phase-4 acceptance items including A03/A04/A07/A10 remain separate.
 
-**Phase 5 remains NOT STARTED.** Moving into player-facing Phase 5 requires a new explicit Owner authorization. This extension does not implement Phase 5's living-world content, strategic Atlas, settlements/NPCs/quests, supernatural fork, or frontier threshold.
+**Historical 2026-09-19 boundary:** Phase 5 remained **NOT STARTED** at this extension checkpoint and required separate Owner authorization. That authorization was subsequently given on 2026-09-22. This extension itself still does not count as Phase-5 living-world content.
 
 ## Previous combat completeness release — PR #459
 
@@ -114,7 +118,7 @@ PR [#459](https://github.com/ZeiJM/Aurevane/pull/459) merged as `f7369a23d745fef
 
 Two reviewed rulings remain explicit: a primary-unit Resonance payoff needs a unit-targeted Skill; ground casts preserve armed setup and empty ground cannot farm actor rewards. The cost is that ground-heavy mixed builds may need a unit Skill to cash in. Perfect Opening retains its authored **22,000 (2.2×)** rear-facing Skill ceiling; basic/combined conditional **20,000** caps remain unchanged. Its cost is continuing human balance review of that 2.2× payoff.
 
-All approved Phase-4 engineering implementation is live for testing, including typed battle tags, ground targeting and the Profile Atlas/Mastery extension. Scope is **17 published combat libraries / 36 Atlas identities**; the other 19 are planned, not playable libraries. A03 balance, A04 human pair differentiation and A07 Discipline battle-audio acceptance are complete; A10 Owner phase acceptance remains open. Full world acquisition/Rites, equipment catalogs, later roster expansion and production presentation retain their later roadmap ownership. Automated release evidence is not independent multi-tester PV-2 acceptance.
+All approved Phase-4 engineering implementation is preserved as the closed Phase-4 baseline, including typed battle tags, ground targeting, the Profile Atlas/Mastery extension and the P4.11–P4.14 operations platform. Scope is **17 published combat libraries / 36 Atlas identities**; the other 19 remain later-roadmap identities. A03, A04, A07 and A10 are complete. Full world acquisition/Rites, equipment catalogs, later roster expansion and production presentation retain their later roadmap ownership. Automated release evidence is not independent multi-tester PV-2 acceptance.
 
 ## Staged contract
 

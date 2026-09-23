@@ -198,6 +198,8 @@ Multiple testers independently demonstrate curiosity-driven build experimentatio
 
 # 7. Phase 4 — Roster expansion gate
 
+**Owner phase-exit decision — 2026-09-23:** Phase 4 is closed by explicit Owner acceptance. This records the product/roadmap phase decision; it does not manufacture a multi-tester cohort result, satisfaction score or independent PV measurement. Future balance tuning, UI cleanup and regression fixes remain valid maintenance without automatically reopening the phase. See `PHASE_4_CLOSEOUT.md`.
+
 Use staged expansion:
 
 ```text
@@ -220,7 +222,7 @@ Before expanding review:
 - content defects;
 - whether existing options are still meaningfully explored.
 
-The released sixteen-Discipline count is implementation evidence, not automatic satisfaction of this gate. Track exact roster scope, tactical identity, AI behavior, acquisition, media and human acceptance through `PHASE_4_COMPLETENESS_AUDIT.md` and `PHASE_4_PLAYTEST_PACKET.md`.
+The released seventeen-Discipline roster is implementation evidence, not by itself a measured multi-tester validation result. The Owner's 2026-09-23 phase-exit decision closes Phase 4 while preserving the exact roster, tactical-identity, AI, acquisition, media and acceptance evidence in `PHASE_4_COMPLETENESS_AUDIT.md`, `PHASE_4_PLAYTEST_PACKET.md` and `PHASE_4_CLOSEOUT.md`.
 
 ---
 
