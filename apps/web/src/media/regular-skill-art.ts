@@ -45,6 +45,24 @@ export const REGULAR_SKILL_ART = {
   'ironfist.hammer-knuckle': '/media/art/discipline-skills/ironfist-hammer-knuckle-v01.webp',
   'ironfist.pressure-palm': '/media/art/discipline-skills/ironfist-pressure-palm-v01.webp',
   'ironfist.last-stand': '/media/art/discipline-skills/ironfist-last-stand-v01.webp',
+
+  'aetherist.arc-bolt': '/media/art/discipline-skills/aetherist-arc-bolt-v01.webp',
+  'aetherist.mana-burst': '/media/art/discipline-skills/aetherist-mana-burst-v01.webp',
+  'aetherist.ward-pierce': '/media/art/discipline-skills/aetherist-ward-pierce-v01.webp',
+  'aetherist.arcane-field': '/media/art/discipline-skills/aetherist-arcane-field-v01.webp',
+  'aetherist.channel': '/media/art/discipline-skills/aetherist-channel-v01.webp',
+  'aetherist.mana-shield': '/media/art/discipline-skills/aetherist-mana-shield-v01.webp',
+  'aetherist.chain-spark': '/media/art/discipline-skills/aetherist-chain-spark-v01.webp',
+  'aetherist.overchannel': '/media/art/discipline-skills/aetherist-overchannel-v01.webp',
+
+  'chronist.temporal-bolt': '/media/art/discipline-skills/chronist-temporal-bolt-v01.webp',
+  'chronist.haste': '/media/art/discipline-skills/chronist-haste-v01.webp',
+  'chronist.slow': '/media/art/discipline-skills/chronist-slow-v01.webp',
+  'chronist.delay': '/media/art/discipline-skills/chronist-delay-v01.webp',
+  'chronist.rewind-step': '/media/art/discipline-skills/chronist-rewind-step-v01.webp',
+  'chronist.time-lock': '/media/art/discipline-skills/chronist-time-lock-v01.webp',
+  'chronist.temporal-ward': '/media/art/discipline-skills/chronist-temporal-ward-v01.webp',
+  'chronist.stolen-moment': '/media/art/discipline-skills/chronist-stolen-moment-v01.webp',
 } as const
 
 export type RegularSkillArtId = keyof typeof REGULAR_SKILL_ART

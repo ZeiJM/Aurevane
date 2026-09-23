@@ -88,10 +88,13 @@ export function AccountMenu({
               <strong>Welcome back, {characterName}.</strong>
             </div>
           ) : null}
-          <div className={styles.audio}>
-            <span>Audio</span>
-            <AudioSettingsMenu />
-          </div>
+          <AudioSettingsMenu
+            rootClassName={styles.audioRoot}
+            triggerClassName={styles.audioTrigger}
+            triggerLabel="Audio"
+            triggerRole="menuitem"
+            showTriggerMarker={false}
+          />
           {pathname !== '/game/settings/controls' ? (
             <Link href="/game/settings/controls" role="menuitem" onClick={() => setOpen(false)}>
               Controls &amp; Keybinds

@@ -507,9 +507,23 @@ for (const journey of [
     await expect
       .poll(async () => (await world(page)).position.x, { timeout: 12000 })
       .not.toBe(journey.entranceX)
-    await page.getByRole('button', { name: 'Stop travel', exact: true }).click()
+    const stopResponse = page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname === '/api/world' &&
+        response.request().method() === 'POST' &&
+        response.request().postDataJSON()?.intent?.kind === 'stop',
+      { timeout: 15000 },
+    )
+    const stopButton = page.getByRole('button', { name: 'Stop travel', exact: true })
+    await stopButton.click()
+    const committedStop = await stopResponse
+    expect(committedStop.status()).toBe(200)
+    const stopReceipt: WorldView = await committedStop.json()
+    expect(stopReceipt.route).toHaveLength(0)
+    await expect(stopButton).toBeHidden()
     const stopped = await world(page)
     expect(stopped.route).toHaveLength(0)
+    expect(stopped.position).toEqual(stopReceipt.position)
     expect(stopped.position.sectorId).toBe(journey.id)
     await page.reload()
     expect((await world(page)).position).toEqual(stopped.position)

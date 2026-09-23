@@ -262,11 +262,13 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
       expect
         .soft(metrics.sheetOverflowY, `${label}: center profile sheet owns vertical scrolling`)
         .toMatch(/auto|scroll/)
-      expect(
-        await page
-          .locator('[data-profile-sheet]')
-          .evaluate((element) => getComputedStyle(element).scrollbarColor),
-      ).not.toBe('auto')
+      const profileScrollbar = await page.locator('[data-profile-sheet]').evaluate((element) => ({
+        color: getComputedStyle(element).scrollbarColor,
+        width: getComputedStyle(element).scrollbarWidth,
+      }))
+      expect(profileScrollbar.color).toContain('rgb(201, 168, 93)')
+      expect(profileScrollbar.color).toContain('rgb(7, 16, 25)')
+      expect(profileScrollbar.width).toBe('thin')
       expect
         .soft(
           metrics.sheetScrollHeight,

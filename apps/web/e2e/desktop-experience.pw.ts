@@ -492,23 +492,41 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
   await attributeDialog.getByRole('button', { name: 'Close', exact: true }).click()
   await expect(attributeDialog).toBeHidden()
 
-  await page.getByRole('button', { name: 'Account', exact: true }).click()
-  await testInfo.attach('phone-account-menu', {
-    body: await page.screenshot(),
-    contentType: 'image/png',
-  })
   const audio = page.getByRole('dialog', { name: 'Audio settings' })
   for (const width of [360, 430, 1366]) {
     await page.setViewportSize({ width, height: 800 })
-    await page.getByRole('button', { name: 'Sound settings' }).click()
+    await page.getByRole('button', { name: 'Account', exact: true }).click()
+    const accountMenu = page.getByRole('menu', { name: 'Account menu' })
+    const audioAction = accountMenu.getByRole('menuitem', { name: 'Audio', exact: true })
+    const controlsAction = accountMenu.getByRole('menuitem', {
+      name: 'Controls & Keybinds',
+      exact: true,
+    })
+    await expect(audioAction).toBeVisible()
+    await expect(accountMenu.getByRole('button', { name: 'Sound settings' })).toHaveCount(0)
+    const audioActionBounds = await audioAction.boundingBox()
+    const controlsActionBounds = await controlsAction.boundingBox()
+    expect(Math.abs(audioActionBounds!.height - controlsActionBounds!.height)).toBeLessThanOrEqual(
+      1,
+    )
+    expect(Math.abs(audioActionBounds!.width - controlsActionBounds!.width)).toBeLessThanOrEqual(1)
+    await testInfo.attach(`phone-account-menu-${width}`, {
+      body: await page.screenshot(),
+      contentType: 'image/png',
+    })
+
+    await audioAction.click()
     await expect(audio).toBeVisible()
     const bounds = await audio.boundingBox()
     expect(bounds!.x).toBeGreaterThanOrEqual(8)
     expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width - 8)
     expect(bounds!.y).toBeGreaterThanOrEqual(8)
     expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(792)
-    await expect(audio.getByTestId('audio-state')).toHaveCSS('text-transform', 'none')
-    await expect(audio.getByTestId('audio-state')).toHaveCSS('font-weight', '400')
+    await expect(audio.getByText('Soundscape', { exact: true })).toHaveCount(0)
+    await expect(audio.getByRole('button', { name: 'Close audio settings' })).toHaveCount(0)
+    await expect(audio.getByText(/locked until/i)).toHaveCount(0)
+    await expect(audio.getByTestId('audio-unlock')).toHaveCount(0)
+    await expect(page.getByTestId('audio-settings')).toHaveAttribute('data-audio-state', 'ready')
     await audio.getByTestId('audio-volume-music').fill('37')
     await audio.getByTestId('audio-volume-sfx').fill('23')
     await expect(audio.getByTestId('audio-volume-music')).toHaveValue('37')
@@ -517,16 +535,15 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
     await expect(audio.getByTestId('audio-volume-ambience')).toHaveCount(0)
     await expect(audio.getByTestId('audio-volume-ui')).toHaveCount(0)
     await expect(audio.getByTestId('audio-test-tone')).toHaveCount(0)
+    await expect(audio.getByTestId('audio-mute')).toBeVisible()
     await testInfo.attach(`audio-${width}`, {
       body: await page.screenshot(),
       contentType: 'image/png',
     })
-    await audio.getByRole('button', { name: 'Close audio settings' }).click()
+    await page.keyboard.press('Escape')
     await expect(audio).toBeHidden()
-    await expect(page.getByRole('button', { name: 'Sound settings' })).toBeFocused()
   }
   await page.setViewportSize({ width: 360, height: 800 })
-  await page.keyboard.press('Escape')
   const phoneNavigation = page.getByRole('navigation', {
     name: 'Primary game navigation',
     exact: true,
