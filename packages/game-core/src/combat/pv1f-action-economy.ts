@@ -1,5 +1,9 @@
 import { materializeVengeanceDamage } from './combat-vengeance'
-import { calculateScaledRawDamage, currentSkillDamageScaling } from './damage-scaling'
+import {
+  calculateScaledRawDamage,
+  currentSkillDamageScaling,
+  legacySkillDamageScaling,
+} from './damage-scaling'
 import {
   commitCombatSkillCopy,
   copiedSkillApCost,
@@ -109,7 +113,7 @@ export const PV1F_ACTION_ECONOMY_RESOURCE_KEY = 'pv1f.action-economy' as const
 export const PV1F_ACTION_ECONOMY_TURN_KEY = 'pv1f.action-economy-turn' as const
 export const PV1F_BASIC_ATTACK_DAMAGE_KEY = 'pv1f.basic-attack-damage' as const
 export const PV1F_BASIC_ATTACK_BASE_DAMAGE = 6 as const
-export const PV1F_BASIC_ATTACK_POWER_SCALING_BASIS_POINTS = 2_500 as const
+export const PV1F_BASIC_ATTACK_POWER_SCALING_BASIS_POINTS = 1_500 as const
 
 export const PV1F_GUARDED_STATUS: CombatStatusDefinition = {
   id: 'guarded',
@@ -607,12 +611,14 @@ export function evaluatePv1fMatureSkill(
   const actorId = prepared.tactical.battle.currentTurn?.combatantId
   if (!actorId) throw new Error('Mature Skill evaluation requires an active turn.')
   const resolved = resolveMatureSkillForContext(definition, combatContext)
+  const authoredCost = options.apCostOverride ?? resolved.apCost
   const resonance = committedResonanceForecast(prepared, definition, target)
   const authoredAction = toCombatActionDefinition(definition, combatContext)
   const powerScaledAuthoredEffects = applyCurrentMatureSkillPowerScaling(
     prepared,
     definition,
     authoredAction.effects,
+    authoredCost,
   )
   const usageKey = options.repeatHistoryKey ?? definition.id
   const repeatPenaltyApplied = lastMatureSkillId(prepared, actorId) === usageKey
@@ -718,7 +724,6 @@ export function evaluatePv1fMatureSkill(
           })),
         }
       : evaluation
-  const authoredCost = options.apCostOverride ?? resolved.apCost
   return {
     prepared,
     action,
@@ -1167,8 +1172,9 @@ function applyCurrentMatureSkillPowerScaling(
   state: StatDrivenCombatEncounterState,
   definition: MatureSkillDefinition,
   effects: readonly CombatEffectDefinition[],
+  apCost: number,
 ): readonly CombatEffectDefinition[] {
-  if (state.statBridge.rulesVersion !== 3) return effects
+  if (state.statBridge.rulesVersion !== 3 && state.statBridge.rulesVersion !== 4) return effects
 
   const unscaledDamageCount = effects.filter(
     (effect) =>
@@ -1178,10 +1184,11 @@ function applyCurrentMatureSkillPowerScaling(
   ).length
   if (unscaledDamageCount === 0) return effects
 
-  const scaling = currentSkillDamageScaling(
-    definition.tags.includes('mystic') ? 'mystic-power' : 'physical-power',
-    unscaledDamageCount,
-  )
+  const source = definition.tags.includes('mystic') ? 'mystic-power' : 'physical-power'
+  const scaling =
+    state.statBridge.rulesVersion === 3
+      ? legacySkillDamageScaling(source, unscaledDamageCount)
+      : currentSkillDamageScaling(source, unscaledDamageCount, apCost)
   return effects.map((effect) =>
     effect.type === 'damage' &&
     !effect.scaling &&

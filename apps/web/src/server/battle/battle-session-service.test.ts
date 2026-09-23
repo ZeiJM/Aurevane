@@ -15,6 +15,7 @@ import { moveCurrentCombatant, selectCurrentFinalFacing } from '@aurevane/game-c
 import {
   reattachStatDrivenCombatBridge,
   type StatDrivenCombatEncounterState,
+  type StatDrivenCombatResolutionEvent,
 } from '@aurevane/game-core/combat/stat-driven-combat'
 import { AurevaneError, StaleBattleVersionError } from '@aurevane/game-core/errors'
 import { describe, expect, it, vi } from 'vitest'
@@ -56,6 +57,17 @@ function characterRecord(overrides: Partial<CharacterRecord> = {}): CharacterRec
     lastActiveAt: CREATED_AT,
     ...overrides,
   }
+}
+
+function isStatDrivenAttackResolvedEvent(
+  event: unknown,
+): event is Extract<StatDrivenCombatResolutionEvent, { event: 'stat_driven_attack_resolved' }> {
+  return (
+    typeof event === 'object' &&
+    event !== null &&
+    'event' in event &&
+    (event as { event?: unknown }).event === 'stat_driven_attack_resolved'
+  )
 }
 
 function withFinalFacing(
@@ -197,6 +209,9 @@ describe('P2.4 battle session service', () => {
     const playerProfile = persistedSnapshot.statBridge.combatants.find(
       (profile) => profile.combatantId === `character:${CHARACTER_ID}`,
     )
+    const recruitProfile = persistedSnapshot.statBridge.combatants.find(
+      (profile) => profile.combatantId === 'recruit:p2-4-1',
+    )
     const playerPlacement = persistedSnapshot.tactical.placements.find(
       (placement) => placement.combatantId === `character:${CHARACTER_ID}`,
     )
@@ -226,6 +241,14 @@ describe('P2.4 battle session service', () => {
       armor: 23,
       ward: 23,
       jump: 0,
+      criticalChance: 250,
+    })
+    expect(recruitProfile).toMatchObject({
+      provenance: { kind: 'scenario' },
+      level: 1,
+      physicalPower: 32,
+      mysticPower: 32,
+      criticalChance: 225,
     })
     expect(playerMovementProfile?.maxElevationStep).toBe(0)
     expect(
@@ -250,7 +273,7 @@ describe('P2.4 battle session service', () => {
       battleVersion: 1,
       replayed: false,
     })
-    expect(result.snapshot.statBridge.rulesVersion).toBe(3)
+    expect(result.snapshot.statBridge.rulesVersion).toBe(4)
     expect(result.snapshot.tactical.battle).not.toHaveProperty('rng')
   })
 
@@ -400,20 +423,34 @@ describe('P2.4 battle session service', () => {
     if (!actionCommit) throw new Error('Expected action commit input.')
     const nextState = actionCommit.nextSnapshot as StatDrivenCombatEncounterState
 
-    expect(nextState.tactical.battle.rng.draws).toBe(1)
-    expect(actionCommit.events).toEqual(
-      expect.arrayContaining([
+    const attackResolution = actionCommit.events.find(isStatDrivenAttackResolvedEvent)
+    expect(attackResolution).toMatchObject({
+      event: 'stat_driven_attack_resolved',
+      actorId: `character:${CHARACTER_ID}`,
+      targetId: 'recruit:p2-4-1',
+      hitChanceBasisPoints: 6_340,
+      defenseKind: 'armor',
+      defenseRating: 20,
+      rulesVersion: 4,
+    })
+
+    if (attackResolution?.event === 'stat_driven_attack_resolved' && attackResolution.hit) {
+      expect(nextState.tactical.battle.rng.draws).toBe(2)
+      expect(actionCommit.events).toContainEqual(
         expect.objectContaining({
-          event: 'stat_driven_attack_resolved',
-          actorId: `character:${CHARACTER_ID}`,
-          targetId: 'recruit:p2-4-1',
-          hitChanceBasisPoints: 6_340,
-          defenseKind: 'armor',
-          defenseRating: 20,
-          rulesVersion: 3,
+          event: 'combat_critical_resolved',
+          sourceCombatantId: `character:${CHARACTER_ID}`,
+          targetCombatantId: 'recruit:p2-4-1',
+          criticalChanceBasisPoints: 593,
+          criticalRulesVersion: 1,
         }),
-      ]),
-    )
+      )
+    } else {
+      expect(nextState.tactical.battle.rng.draws).toBe(1)
+      expect(actionCommit.events).not.toContainEqual(
+        expect.objectContaining({ event: 'combat_critical_resolved' }),
+      )
+    }
     expect(result.battleVersion).toBe(2)
     expect(result.snapshot.tactical.battle).not.toHaveProperty('rng')
   })

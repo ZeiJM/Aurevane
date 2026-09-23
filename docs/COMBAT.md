@@ -58,15 +58,54 @@ Normal advanced acquisition uses listed Foundation Mastery prerequisites and 4/2
 
 World acquisition, full equipment catalogs and supernatural systems retain their later roadmap boundaries. Illustrated masters, recorded SFX and independent human balance/media acceptance remain explicitly tracked; automated authored coverage is not that acceptance.
 
-### P4.K2 Stat-Scaled Potency v2 boundary
+### A03 current roster balance rules — combat rules v4
 
-Damage effects may optionally opt into one authoritative offensive rating using deterministic basis-point math:
+The 2026-09-22 A03 roster pass moves new current battles onto stat-bridge/combat-rules **v4** while preserving v1-v3 snapshots.
+
+Current regular Discipline Skills and pure Essence Skills use one AP-weighted offensive-Power budget for ordinary direct damage:
+
+```text
+CommandPowerCoefficientBasisPoints = resolved AP cost × 50
+PerDamageBlockCoefficient = floor(CommandPowerCoefficientBasisPoints / eligible direct-damage blocks)
+RawDamage = AuthoredBasePower + floor(SelectedOffensivePower × PerDamageBlockCoefficient / 10000)
+```
+
+A 50 AP single-hit Skill therefore keeps the former 25% Power coefficient, while 30 AP uses 15%, 40 AP uses 20%, 60 AP uses 30% and 65 AP uses 32.5%. Multi-hit Skills split one command-level budget across their direct-damage blocks; hit count never multiplies the total Power budget. Mystic-tagged damage uses Mystic Power; other ordinary mature-Skill damage uses Physical Power. Explicit authored scaling and Vengeance retain their own typed rules.
+
+Historical combat-rules v3 keeps the prior fixed **25% command Power budget** split across direct-damage blocks. Older snapshots are never reinterpreted as v4.
+
+The current static roster normalizes ordinary mystic Skill and Essence MP costs to:
+
+```text
+MP cost = max(2, floor(AP cost / 15))
+```
+
+Historical Skill/Essence versions retain their authored resource costs. A future explicit versioned exception may intentionally differ; the A03 migration does not rewrite old references.
+
+Current v4 character-derived combat profiles also carry the Finesse-derived **Critical Chance** rating. For eligible hostile direct damage:
+
+- the attacker gets at most one Critical result per successfully hit target per command;
+- every eligible direct-damage packet to that target shares the result;
+- a Critical multiplies post-Armor/Ward direct damage by **150%**;
+- 0% and 100% endpoints resolve without an unnecessary Critical RNG draw;
+- preview exposes Critical probability only and never samples future RNG;
+- Burn, Bleed, Poison, Vengeance-derived reactive output, Reflect and other periodic/reactive/fixed/system damage do not Critical unless a future typed rule explicitly opts them in.
+
+The v4 direct-damage ordering is: Power materialization → Armor/Ward mitigation → Critical multiplier → relative Character Level → facing/status/elemental/conditional modifiers → Barrier/HP application. Accuracy is resolved before Critical eligibility, so a missed hostile target does not consume a Critical roll.
+
+New battle construction resolves current regular Skill references through the server combat-content resolver and resolves the current pure Essence reference before freezing the battle authority snapshot. Existing/frozen battle snapshots keep their exact pinned historical Skill and Essence versions.
+
+The deterministic A03 Balance Harness evaluates all 17 published Disciplines at Levels 25/50/100 under balanced and offensive allocations. It reports separate damage, setup/payoff, positional, attrition, healing, protection, control, range/area, resource, Essence and Resonance dimensions; it intentionally has no aggregate class power score. The only class-specific authored potency change justified after the systemic pass is **Edgedancer Sevenfold Cut v3**, which advances its seven direct packets from 3 to 4 base damage while retaining immutable v2 history.
+
+### P4.K2 Stat-Scaled Potency v2 boundary — historical foundation
+
+K2 introduced the typed offensive-rating formula used by the current system:
 
 ```text
 RawDamage = AuthoredBasePower + floor(SelectedOffensivePower * ScalingCoefficientBasisPoints / 10000)
 ```
 
-`SelectedOffensivePower` is explicitly authored as Physical Power or Mystic Power for that damage effect. Scaling is opt-in; omitted scaling preserves authored-base-only behavior. The current published Discipline Skills, pure Essence Skills and Basic Attack remain unscaled by K2, and Basic Attack keeps its existing independent derived-damage formula. After optional scaling, the existing Armor/Ward mitigation, facing, target-status and bounded conditional modifier stages still resolve in their established order. Historical stat-bridge v1 encounters remain valid for unscaled content; a scaled effect requires a complete v2 offensive-stat bridge and fails closed if those ratings are absent. Broad coefficient assignment, roster rebalance and tuning belong to the later controlled content migration and Balance Harness work rather than this foundation ticket.
+At K2 introduction, broad coefficient assignment had not yet occurred and the then-current roster remained authored-base-only. That statement is historical: the A03 v4 rules above now govern new current battles. Historical stat-bridge v1 encounters remain valid for unscaled content; v2/v3/v4 preserve their versioned semantics and fail closed when a rule requires a committed rating that the pinned bridge does not contain.
 
 ### Gameplay tags and temporary terrain continuation
 
@@ -245,13 +284,15 @@ Inspect does not commit battle state and does not spend AP.
 
 Basic Attack is the low-complexity default offensive command. It uses the authoritative target, facing, accuracy/evasion, defense and effect pipeline.
 
-For the current PV-1F unarmed validation baseline, raw physical power begins from:
+For current combat rules v4, unarmed Basic Attack raw damage is:
 
 ```text
-6 + Level + floor(Might × 0.8) + floor(Finesse × 0.4)
+RawDamage = 6 + floor(PhysicalPower × 1500 / 10000)
 ```
 
-The result then passes through current accuracy/evasion, Armor/defense, facing, status and other authoritative modifiers. This formula is versioned balance data and may evolve as representative equipment/content arrives.
+That is a **15% Physical Power coefficient** at the fixed 30 AP cost. Physical Power is derived from Might by the current Level-100 stat rules; Basic Attack does not read Core Attributes directly. Relative Character Level remains a separate matchup modifier rather than being folded into Physical Power.
+
+After the Basic Attack hit roll, current direct damage follows the shared deterministic pipeline: Armor mitigation, an eligible v4 Critical result, relative-Level damage, facing and status/conditional modifiers, then Barrier/HP application. Basic Attack remains repeatable as universal filler, but its current coefficient is deliberately below the previous 25% value so it does not out-efficiency authored class pressure.
 
 ### Guard — 30 AP
 

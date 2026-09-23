@@ -22,10 +22,12 @@ import {
 
 export const STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_V1 = 1 as const
 export const STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_V2 = 2 as const
-export const STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_VERSION = 3 as const
+export const STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_V3 = 3 as const
+export const STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_VERSION = 4 as const
 export const STAT_DRIVEN_COMBAT_RULES_V1 = 1 as const
 export const STAT_DRIVEN_COMBAT_RULES_V2 = 2 as const
-export const STAT_DRIVEN_COMBAT_RULES_VERSION = 3 as const
+export const STAT_DRIVEN_COMBAT_RULES_V3 = 3 as const
+export const STAT_DRIVEN_COMBAT_RULES_VERSION = 4 as const
 export const COMBAT_BASIS_POINTS = 10_000 as const
 
 export type CombatStatProvenanceKind = 'character-derived' | 'scenario'
@@ -53,6 +55,7 @@ export interface StatDrivenCombatProfile extends StatDrivenCombatProfileV1 {
   physicalPower?: number
   mysticPower?: number
   level?: number
+  criticalChance?: number
 }
 
 export interface StatDrivenCombatProfileV2 extends StatDrivenCombatProfileV1 {
@@ -64,15 +67,21 @@ export interface StatDrivenCombatProfileV3 extends StatDrivenCombatProfileV2 {
   level: number
 }
 
+export interface StatDrivenCombatProfileV4 extends StatDrivenCombatProfileV3 {
+  criticalChance: number
+}
+
 /** Broad persisted boundary. Validation pairs schema/rules versions and row shape. */
 export interface StatDrivenCombatBridgeState {
   schemaVersion:
     | typeof STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_V1
     | typeof STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_V2
+    | typeof STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_V3
     | typeof STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_VERSION
   rulesVersion:
     | typeof STAT_DRIVEN_COMBAT_RULES_V1
     | typeof STAT_DRIVEN_COMBAT_RULES_V2
+    | typeof STAT_DRIVEN_COMBAT_RULES_V3
     | typeof STAT_DRIVEN_COMBAT_RULES_VERSION
   combatants: readonly StatDrivenCombatProfile[]
 }
@@ -90,9 +99,15 @@ export interface StatDrivenCombatBridgeStateV2 extends StatDrivenCombatBridgeSta
 }
 
 export interface StatDrivenCombatBridgeStateV3 extends StatDrivenCombatBridgeState {
+  schemaVersion: typeof STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_V3
+  rulesVersion: typeof STAT_DRIVEN_COMBAT_RULES_V3
+  combatants: readonly StatDrivenCombatProfileV3[]
+}
+
+export interface StatDrivenCombatBridgeStateV4 extends StatDrivenCombatBridgeState {
   schemaVersion: typeof STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_VERSION
   rulesVersion: typeof STAT_DRIVEN_COMBAT_RULES_VERSION
-  combatants: readonly StatDrivenCombatProfileV3[]
+  combatants: readonly StatDrivenCombatProfileV4[]
 }
 
 export interface StatDrivenCombatEncounterState extends CombatEncounterState {
@@ -109,6 +124,10 @@ export interface StatDrivenCombatEncounterStateV2 extends CombatEncounterState {
 
 export interface StatDrivenCombatEncounterStateV3 extends CombatEncounterState {
   statBridge: StatDrivenCombatBridgeStateV3
+}
+
+export interface StatDrivenCombatEncounterStateV4 extends CombatEncounterState {
+  statBridge: StatDrivenCombatBridgeStateV4
 }
 
 export interface StatDrivenAttackForecast {
@@ -148,7 +167,7 @@ export function createCharacterDerivedCombatProfile(
   characterId: string,
   level: number,
   snapshot: DerivedStatSnapshot,
-): StatDrivenCombatProfileV3 {
+): StatDrivenCombatProfileV4 {
   return {
     combatantId,
     provenance: {
@@ -164,6 +183,7 @@ export function createCharacterDerivedCombatProfile(
     level,
     physicalPower: snapshot.stats.physicalPower.value,
     mysticPower: snapshot.stats.mysticPower.value,
+    criticalChance: snapshot.stats.criticalChance.value,
   }
 }
 
@@ -187,8 +207,23 @@ export function createStatDrivenCombatEncounterState(
   if (levelCount !== 0 && levelCount !== profiles.length) {
     throw new TypeError('Stat-driven combat profiles cannot mix v3 Level rows with older rows.')
   }
-  if (levelCount === profiles.length) {
+
+  const criticalChanceCount = profiles.filter(
+    (profile) => profile.criticalChance !== undefined,
+  ).length
+  if (criticalChanceCount !== 0 && criticalChanceCount !== profiles.length) {
+    throw new TypeError(
+      'Stat-driven combat profiles cannot mix v4 Critical Chance rows with older rows.',
+    )
+  }
+  if (criticalChanceCount === profiles.length) {
     return createCurrentStatDrivenCombatEncounterState(
+      base,
+      profiles as readonly StatDrivenCombatProfileV4[],
+    )
+  }
+  if (levelCount === profiles.length) {
+    return createV3StatDrivenCombatEncounterState(
       base,
       profiles as readonly StatDrivenCombatProfileV3[],
     )
@@ -216,15 +251,34 @@ export function createStatDrivenCombatEncounterState(
 
 export function createCurrentStatDrivenCombatEncounterState(
   base: CombatEncounterState,
-  profiles: readonly StatDrivenCombatProfileV3[],
-): StatDrivenCombatEncounterStateV3 {
-  const state: StatDrivenCombatEncounterStateV3 = {
+  profiles: readonly StatDrivenCombatProfileV4[],
+): StatDrivenCombatEncounterStateV4 {
+  const state: StatDrivenCombatEncounterStateV4 = {
     ...base,
     statBridge: {
       schemaVersion: STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_VERSION,
       rulesVersion: STAT_DRIVEN_COMBAT_RULES_VERSION,
       combatants: [...profiles]
         .map(copyCurrentProfile)
+        .sort((left, right) => compareStableString(left.combatantId, right.combatantId)),
+    },
+  }
+
+  assertValidStatDrivenCombatEncounterState(state)
+  return state
+}
+
+function createV3StatDrivenCombatEncounterState(
+  base: CombatEncounterState,
+  profiles: readonly StatDrivenCombatProfileV3[],
+): StatDrivenCombatEncounterStateV3 {
+  const state: StatDrivenCombatEncounterStateV3 = {
+    ...base,
+    statBridge: {
+      schemaVersion: STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_V3,
+      rulesVersion: STAT_DRIVEN_COMBAT_RULES_V3,
+      combatants: [...profiles]
+        .map(copyV3Profile)
         .sort((left, right) => compareStableString(left.combatantId, right.combatantId)),
     },
   }
@@ -280,9 +334,12 @@ export function validateStatDrivenCombatEncounterState(
     bridge?.schemaVersion === STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_V2 &&
     bridge.rulesVersion === STAT_DRIVEN_COMBAT_RULES_V2
   const isV3 =
+    bridge?.schemaVersion === STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_V3 &&
+    bridge.rulesVersion === STAT_DRIVEN_COMBAT_RULES_V3
+  const isV4 =
     bridge?.schemaVersion === STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_VERSION &&
     bridge.rulesVersion === STAT_DRIVEN_COMBAT_RULES_VERSION
-  if (!bridge || (!isV1 && !isV2 && !isV3)) {
+  if (!bridge || (!isV1 && !isV2 && !isV3 && !isV4)) {
     issues.push({
       field: 'statBridge.schemaVersion',
       message: 'Unsupported or mismatched stat-bridge schema/rules version.',
@@ -328,12 +385,14 @@ export function validateStatDrivenCombatEncounterState(
     seen.add(profile.combatantId)
   }
 
-  if (isV2 || isV3) {
+  if (isV2 || isV3 || isV4) {
     for (const [index, profile] of bridge.combatants.entries()) {
       const prefix = `statBridge.combatants.${index}`
       collectNonNegativeIntegerIssue(issues, profile.physicalPower, `${prefix}.physicalPower`)
       collectNonNegativeIntegerIssue(issues, profile.mysticPower, `${prefix}.mysticPower`)
-      if (isV3) collectLevelIssue(issues, profile.level, `${prefix}.level`)
+      if (isV3 || isV4) collectLevelIssue(issues, profile.level, `${prefix}.level`)
+      if (isV4)
+        collectBasisPointIssue(issues, profile.criticalChance ?? -1, `${prefix}.criticalChance`)
     }
   }
 
@@ -362,6 +421,8 @@ export function getStatDrivenOffensivePower(
   const supportsOffensivePower =
     (bridge.schemaVersion === STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_V2 &&
       bridge.rulesVersion === STAT_DRIVEN_COMBAT_RULES_V2) ||
+    (bridge.schemaVersion === STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_V3 &&
+      bridge.rulesVersion === STAT_DRIVEN_COMBAT_RULES_V3) ||
     (bridge.schemaVersion === STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_VERSION &&
       bridge.rulesVersion === STAT_DRIVEN_COMBAT_RULES_VERSION)
   if (!supportsOffensivePower) {
@@ -570,7 +631,14 @@ function isLevelProfile(profile: StatDrivenCombatProfile): profile is StatDriven
   )
 }
 
-function copyCurrentProfile(profile: StatDrivenCombatProfileV3): StatDrivenCombatProfileV3 {
+function copyCurrentProfile(profile: StatDrivenCombatProfileV4): StatDrivenCombatProfileV4 {
+  return {
+    ...profile,
+    provenance: { ...profile.provenance },
+  }
+}
+
+function copyV3Profile(profile: StatDrivenCombatProfileV3): StatDrivenCombatProfileV3 {
   return {
     ...profile,
     provenance: { ...profile.provenance },

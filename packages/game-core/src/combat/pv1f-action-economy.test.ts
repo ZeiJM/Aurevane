@@ -136,6 +136,7 @@ function currentPowerEncounter(): StatDrivenCombatEncounterState {
         level: 50,
         physicalPower: row.combatantId === 'player' ? 40 : 32,
         mysticPower: row.combatantId === 'player' ? 44 : 32,
+        criticalChance: 0,
       })),
     },
   }
@@ -172,8 +173,8 @@ function expectLethalResolution(actorId: 'player' | 'recruit', targetId: 'player
 
 describe('Level-100 offensive scaling', () => {
   it('derives Basic Attack from Physical Power instead of reading Core Stats directly', () => {
-    expect(calculatePv1fBasicAttackDamage({ physicalPower: 34 })).toBe(14)
-    expect(calculatePv1fBasicAttackDamage({ physicalPower: 75 })).toBe(24)
+    expect(calculatePv1fBasicAttackDamage({ physicalPower: 34 })).toBe(11)
+    expect(calculatePv1fBasicAttackDamage({ physicalPower: 75 })).toBe(17)
   })
 
   it('scales physical and mystic mature Skills from their matching offensive Power', () => {
@@ -189,10 +190,10 @@ describe('Level-100 offensive scaling', () => {
     const mysticDamage = mysticAction.effects.find((effect) => effect.type === 'damage')
 
     expect(physicalDamage).toMatchObject({
-      scaling: { source: 'physical-power', coefficientBasisPoints: 2_500 },
+      scaling: { source: 'physical-power', coefficientBasisPoints: 2_000 },
     })
     expect(mysticDamage).toMatchObject({
-      scaling: { source: 'mystic-power', coefficientBasisPoints: 2_500 },
+      scaling: { source: 'mystic-power', coefficientBasisPoints: 2_000 },
     })
   })
 
@@ -212,7 +213,7 @@ describe('Level-100 offensive scaling', () => {
           (definition.effects.find((effect) => effect.type === 'damage')?.amount ?? 0) / 2,
         ),
       ),
-      scaling: { source: 'physical-power', coefficientBasisPoints: 1_250 },
+      scaling: { source: 'physical-power', coefficientBasisPoints: 1_000 },
     })
   })
 })

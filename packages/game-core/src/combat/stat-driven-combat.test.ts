@@ -34,7 +34,15 @@ function profile(
   overrides: Partial<
     Pick<
       StatDrivenCombatProfile,
-      'accuracy' | 'evasion' | 'armor' | 'ward' | 'jump' | 'physicalPower' | 'mysticPower' | 'level'
+      | 'accuracy'
+      | 'evasion'
+      | 'armor'
+      | 'ward'
+      | 'jump'
+      | 'physicalPower'
+      | 'mysticPower'
+      | 'level'
+      | 'criticalChance'
     >
   > = {},
 ): StatDrivenCombatProfile {
@@ -53,6 +61,7 @@ function profile(
     level: 1,
     physicalPower: 40,
     mysticPower: 35,
+    criticalChance: 1_200,
     ...overrides,
   }
 }
@@ -181,15 +190,65 @@ describe('stat-driven Phase 2 combat bridge', () => {
 
     expect(current.physicalPower).toBe(derived.stats.physicalPower.value)
     expect(current.mysticPower).toBe(derived.stats.mysticPower.value)
+    expect((current as typeof current & { criticalChance?: number }).criticalChance).toBe(
+      derived.stats.criticalChance.value,
+    )
   })
 
-  it('creates new encounters with the v3 stat bridge and exposes offensive power', () => {
-    const state = encounter(profile('player', { physicalPower: 47, mysticPower: 53 }))
+  it('creates new encounters with the v4 stat bridge and exposes offensive power', () => {
+    const state = encounter(
+      profile('player', { physicalPower: 47, mysticPower: 53, criticalChance: 1_750 }),
+    )
 
     expect(state.statBridge.schemaVersion).toBe(STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_VERSION)
-    expect(STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_VERSION).toBe(3)
+    expect(STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_VERSION).toBe(4)
+    expect(
+      (
+        state.statBridge.combatants.find((row) => row.combatantId === 'player') as
+          (StatDrivenCombatProfile & { criticalChance?: number }) | undefined
+      )?.criticalChance,
+    ).toBe(1_750)
     expect(getStatDrivenOffensivePower(state, 'player', 'physical-power')).toBe(47)
     expect(getStatDrivenOffensivePower(state, 'player', 'mystic-power')).toBe(53)
+  })
+
+  it('fails closed when a current v4 profile omits Critical Chance', () => {
+    const state = encounter()
+    const malformed: StatDrivenCombatEncounterState = {
+      ...state,
+      statBridge: {
+        ...state.statBridge,
+        combatants: state.statBridge.combatants.map((row) => {
+          const copy = { ...row } as StatDrivenCombatProfile & { criticalChance?: number }
+          delete copy.criticalChance
+          return copy
+        }),
+      },
+    }
+
+    expect(validateStatDrivenCombatEncounterState(malformed)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ field: 'statBridge.combatants.0.criticalChance' }),
+      ]),
+    )
+  })
+
+  it('continues to validate historical v3 bridges without Critical Chance', () => {
+    const state = encounter()
+    const historicalV3: StatDrivenCombatEncounterState = {
+      ...state,
+      statBridge: {
+        schemaVersion: 3,
+        rulesVersion: 3,
+        combatants: state.statBridge.combatants.map((row) => {
+          const copy = { ...row } as StatDrivenCombatProfile & { criticalChance?: number }
+          delete copy.criticalChance
+          return copy
+        }),
+      },
+    }
+
+    expect(validateStatDrivenCombatEncounterState(historicalV3)).toEqual([])
   })
 
   it('fails closed when a newly-created current profile omits offensive ratings', () => {
@@ -305,7 +364,7 @@ describe('stat-driven Phase 2 combat bridge', () => {
     expect(state.tactical.battle.rng.draws).toBe(0)
   })
 
-  it('consumes one server RNG draw and applies the mitigated hit deterministically', () => {
+  it('consumes accuracy and Critical RNG draws on a successful v4 Basic Attack', () => {
     const state = encounter()
     const transition = executeStatDrivenAttack(
       state,
@@ -314,7 +373,7 @@ describe('stat-driven Phase 2 combat bridge', () => {
       P2_3_COMBAT_CONTENT,
     )
 
-    expect(transition.state.tactical.battle.rng.draws).toBe(1)
+    expect(transition.state.tactical.battle.rng.draws).toBe(2)
     expect(transition.events).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -322,7 +381,13 @@ describe('stat-driven Phase 2 combat bridge', () => {
           hit: true,
           hitChanceBasisPoints: 10_000,
           defenseRating: 23,
-          rulesVersion: 3,
+          rulesVersion: 4,
+        }),
+        expect.objectContaining({
+          event: 'combat_critical_resolved',
+          targetCombatantId: 'recruit',
+          criticalChanceBasisPoints: 1_200,
+          rollBasisPoints: expect.any(Number),
         }),
         expect.objectContaining({ event: 'damage_applied', amount: 13 }),
       ]),

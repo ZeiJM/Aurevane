@@ -32,6 +32,18 @@ jobs:
         run: |
           pnpm exec prettier --check \
             packages/game-core/src/combat/actions.ts \
+            packages/game-core/src/combat/actions-legacy.ts \
+            packages/game-core/src/combat/combat-critical.ts \
+            packages/game-core/src/combat/combat-critical.test.ts \
+            packages/game-core/src/combat/combat-skill-copy-pv1f.test.ts \
+            packages/game-core/src/combat/damage-scaling.ts \
+            packages/game-core/src/combat/damage-scaling.test.ts \
+            packages/game-core/src/combat/stat-driven-combat.ts \
+            packages/game-core/src/combat/stat-driven-combat.test.ts \
+            packages/game-core/src/combat/essence.ts \
+            packages/game-core/src/combat/essence.test.ts \
+            packages/game-core/src/combat/phase4-balance-harness.ts \
+            packages/game-core/src/combat/phase4-balance-harness.test.ts \
             packages/game-core/src/combat/mature-skills.ts \
             packages/game-core/src/combat/mature-skills.test.ts \
             packages/game-core/src/combat/lifebinder-offense-skills.test.ts \
@@ -40,11 +52,27 @@ jobs:
             packages/game-core/src/combat/pv1f-action-economy.ts \
             packages/game-core/src/combat/pv1f-action-economy.test.ts \
             packages/game-core/src/combat/recruit-ai.test.ts \
+            apps/web/src/server/battle/battle-build-authority.ts \
+            apps/web/src/server/battle/combat-content-publication-consumption.test.ts \
+            apps/web/src/server/battle/battle-session-service.ts \
+            apps/web/src/server/battle/battle-session-service.test.ts \
             packages/game-core/package.json
       - name: Focused lint
         run: |
           pnpm exec eslint \
             packages/game-core/src/combat/actions.ts \
+            packages/game-core/src/combat/actions-legacy.ts \
+            packages/game-core/src/combat/combat-critical.ts \
+            packages/game-core/src/combat/combat-critical.test.ts \
+            packages/game-core/src/combat/combat-skill-copy-pv1f.test.ts \
+            packages/game-core/src/combat/damage-scaling.ts \
+            packages/game-core/src/combat/damage-scaling.test.ts \
+            packages/game-core/src/combat/stat-driven-combat.ts \
+            packages/game-core/src/combat/stat-driven-combat.test.ts \
+            packages/game-core/src/combat/essence.ts \
+            packages/game-core/src/combat/essence.test.ts \
+            packages/game-core/src/combat/phase4-balance-harness.ts \
+            packages/game-core/src/combat/phase4-balance-harness.test.ts \
             packages/game-core/src/combat/mature-skills.ts \
             packages/game-core/src/combat/mature-skills.test.ts \
             packages/game-core/src/combat/lifebinder-offense-skills.test.ts \
@@ -52,16 +80,31 @@ jobs:
             packages/game-core/src/combat/skill-cooldowns.ts \
             packages/game-core/src/combat/pv1f-action-economy.ts \
             packages/game-core/src/combat/pv1f-action-economy.test.ts \
-            packages/game-core/src/combat/recruit-ai.test.ts
+            packages/game-core/src/combat/recruit-ai.test.ts \
+            apps/web/src/server/battle/battle-build-authority.ts \
+            apps/web/src/server/battle/combat-content-publication-consumption.test.ts \
+            apps/web/src/server/battle/battle-session-service.ts \
+            apps/web/src/server/battle/battle-session-service.test.ts
       - name: Game core typecheck
         run: pnpm --filter @aurevane/game-core typecheck
       - name: P3.3 focused tests
         run: |
           pnpm --filter @aurevane/game-core exec vitest run \
+            src/combat/combat-critical.test.ts \
+            src/combat/combat-skill-copy-pv1f.test.ts \
+            src/combat/damage-scaling.test.ts \
+            src/combat/stat-driven-combat.test.ts \
+            src/combat/essence.test.ts \
+            src/combat/phase4-balance-harness.test.ts \
             src/combat/mature-skills.test.ts \
             src/combat/lifebinder-offense-skills.test.ts \
             src/combat/mature-skill-lifecycle.test.ts \
             src/combat/pv1f-action-economy.test.ts \
             src/combat/recruit-ai.test.ts
+      - name: A03 battle authority regression
+        run: |
+          pnpm --filter @aurevane/web exec vitest run \
+            src/server/battle/combat-content-publication-consumption.test.ts \
+            src/server/battle/battle-session-service.test.ts
       - name: Production workspace build
         run: pnpm build
