@@ -10,8 +10,8 @@
   background: #132b33;
 }
 .heroPortrait {
-  width: 11.25rem;
-  height: 11.25rem;
+  width: 9.5rem;
+  height: 9.5rem;
 }
 .fallbackPortrait {
   display: grid;
@@ -26,7 +26,7 @@
 .profileCard {
   position: fixed;
   inset: 0;
-  width: min(46rem, calc(100% - 2rem));
+  width: min(40rem, calc(100% - 2rem));
   max-width: none;
   max-height: calc(100dvh - 2rem);
   margin: auto;
@@ -44,15 +44,12 @@
 }
 .content {
   display: grid;
-  gap: 1rem;
-  padding: 1rem;
+  gap: 0.85rem;
+  padding: 0.9rem;
 }
 .header {
-  display: flex;
-  align-items: start;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 1.15rem;
+  display: block;
+  padding: 1rem;
   border: 1px solid #ab956954;
   background:
     linear-gradient(90deg, #091522ee, #09152277),
@@ -68,7 +65,7 @@
   text-transform: uppercase;
 }
 .header h2 {
-  margin: 0.5rem 0;
+  margin: 0.4rem 0 0.25rem;
   color: #f1e3c5;
   font: 500 clamp(1.6rem, 3vw, 2.6rem) / 1.15 var(--av-font-display);
   overflow-wrap: anywhere;
@@ -78,29 +75,10 @@
   color: #bccbd2;
   font-size: 0.875rem;
 }
-.close {
-  display: grid;
-  flex: 0 0 auto;
-  width: 2.75rem;
-  height: 2.75rem;
-  place-items: center;
-  padding: 0;
-  border: 1px solid #a38a5b;
-  border-radius: 0;
-  color: #ebd6ad;
-  background: #07131fe6;
-  font-size: 1.6rem;
-  line-height: 1;
-  cursor: pointer;
-}
-.close:focus-visible {
-  outline: 2px solid #8ce3d6;
-  outline-offset: -3px;
-}
 .profileBody {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 1.25rem;
+  gap: 1rem;
 }
 .portraitStage {
   display: grid;
@@ -117,17 +95,17 @@
 }
 .profileCopy {
   display: grid;
-  gap: 1rem;
+  gap: 0.75rem;
   align-content: start;
   min-width: 0;
 }
 .tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 0.4rem;
 }
 .tags span {
-  padding: 0.45rem 0.65rem;
+  padding: 0.4rem 0.6rem;
   border: 1px solid #ad915967;
   color: #e4c996;
   background: #24342e;
@@ -142,13 +120,13 @@
 .profileCopy dl {
   display: grid;
   grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr);
-  gap: 0.6rem;
+  gap: 0.5rem;
   margin: 0;
 }
 .profileCopy dl > div {
   display: grid;
-  gap: 0.6rem;
-  padding: 0.85rem;
+  gap: 0.45rem;
+  padding: 0.72rem;
   border: 1px solid #7f76545c;
   background: #12242e;
 }
@@ -162,30 +140,6 @@
   color: #e9d8b5;
   font: 500 1.15rem/1.3 var(--av-font-display);
 }
-.privacyNote {
-  margin: 0;
-  color: #c0ccd1;
-  font-size: 0.875rem;
-  line-height: 1.5;
-}
-.futureActions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.65rem;
-  padding-top: 0.85rem;
-  border-top: 1px solid #ac905859;
-}
-.futureActions button {
-  flex: 1 1 11rem;
-  min-height: 2.75rem;
-  padding: 0.6rem;
-  border: 1px solid #6c7d776b;
-  border-radius: 0;
-  color: #acb7b9;
-  background: #1a292f;
-  font: 500 0.8125rem/1.4 var(--av-font-body);
-  cursor: not-allowed;
-}
 @media (max-width: 760px) {
   .profileCard {
     width: calc(100% - 1rem);
@@ -197,7 +151,6 @@
   }
   .header {
     padding: 0.8rem;
-    gap: 0.5rem;
   }
   .profileBody {
     grid-template-columns: minmax(0, 1fr);
@@ -210,8 +163,8 @@
     gap: 1rem;
   }
   .heroPortrait {
-    width: 6rem;
-    height: 6rem;
+    width: 5.5rem;
+    height: 5.5rem;
   }
   .heroPortrait.fallbackPortrait {
     font-size: 3rem;

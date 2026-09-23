@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { PublicCharacterProfile } from './public-character-profile'
 
 describe('Public character profile', () => {
-  it('uses a native dialog and only public identity fields, with future actions disabled', () => {
+  it('uses a native dialog with a compact public-only identity card', () => {
     const character = {
       characterId: 'character-1',
       name: 'Aster Vale',
@@ -32,7 +32,10 @@ describe('Public character profile', () => {
     expect(markup).not.toContain('Primary ·')
     expect(markup).not.toContain('Secondary ·')
     expect(markup).toContain('Never seen')
-    expect(markup.match(/disabled=""/g)).toHaveLength(2)
+    expect(markup).not.toContain('Close public character profile')
+    expect(markup).not.toContain('Public profiles intentionally omit')
+    expect(markup).not.toContain('Send Direct Message')
+    expect(markup).not.toContain('Add Friend')
     for (const privateValue of [character.pronouns, character.email, ...character.inventory])
       expect(markup).not.toContain(privateValue)
   })
