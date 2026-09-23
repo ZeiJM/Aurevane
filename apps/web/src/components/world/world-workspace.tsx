@@ -34,7 +34,9 @@ export function WorldWorkspace({
   const current = useRef(initialView),
     pending = useRef(false),
     mounted = useRef(true),
-    viewAcceptedAt = useRef(Date.now())
+    viewAcceptedAt = useRef(Date.now()),
+    syncTimer = useRef<number | null>(null),
+    scheduleSync = useRef<() => void>(() => {})
   function accept(next: WorldView) {
     if (!mounted.current) return
     if (next.battleSessionId) {
@@ -64,6 +66,7 @@ export function WorldWorkspace({
       accept(body)
     } finally {
       refreshing.current = false
+      if (mounted.current) scheduleSync.current()
     }
   }
   async function send(intent: WorldIntent) {
@@ -93,7 +96,10 @@ export function WorldWorkspace({
         setMessage(error instanceof Error ? error.message : 'Travel is briefly unavailable.')
     } finally {
       pending.current = false
-      if (mounted.current) setBusy(false)
+      if (mounted.current) {
+        setBusy(false)
+        scheduleSync.current()
+      }
     }
   }
   const sendRef = useRef(send),
@@ -104,32 +110,44 @@ export function WorldWorkspace({
   })
   useEffect(() => {
     mounted.current = true
+    const clearSyncTimer = () => {
+      if (syncTimer.current === null) return
+      window.clearTimeout(syncTimer.current)
+      syncTimer.current = null
+    }
+    const schedule = () => {
+      clearSyncTimer()
+      if (!mounted.current) return
+      const latest = current.current
+      const delay = worldSyncDelayMs({
+        routeLength: latest.route.length,
+        movementBlocked: Boolean(latest.movementBlocked),
+        nextStepAt: latest.nextStepAt,
+        serverNow: latest.serverNow + Math.max(0, Date.now() - viewAcceptedAt.current),
+      })
+      syncTimer.current = window.setTimeout(() => {
+        syncTimer.current = null
+        if (!mounted.current || pending.current || refreshing.current) return
+        const active = current.current
+        const travelling = active.route.length > 0 && !active.movementBlocked
+        if (travelling) {
+          void sendRef.current({ kind: 'tick' })
+          return
+        }
+        if (document.visibilityState === 'hidden') return
+        void refreshRef.current().catch((error) => {
+          if (mounted.current) setMessage(error.message)
+        })
+      }, delay)
+    }
+    scheduleSync.current = schedule
+    schedule()
     return () => {
       mounted.current = false
+      scheduleSync.current = () => {}
+      clearSyncTimer()
     }
   }, [])
-  useEffect(() => {
-    if (busy) return
-    const travelling = view.route.length > 0 && !view.movementBlocked
-    const delay = worldSyncDelayMs({
-      routeLength: view.route.length,
-      movementBlocked: Boolean(view.movementBlocked),
-      nextStepAt: view.nextStepAt,
-      serverNow: view.serverNow + Math.max(0, Date.now() - viewAcceptedAt.current),
-    })
-    const timer = window.setTimeout(() => {
-      if (pending.current) return
-      if (travelling) {
-        void sendRef.current({ kind: 'tick' })
-        return
-      }
-      if (document.visibilityState === 'hidden') return
-      void refreshRef.current().catch((error) => {
-        if (mounted.current) setMessage(error.message)
-      })
-    }, delay)
-    return () => window.clearTimeout(timer)
-  }, [busy, view.movementBlocked, view.nextStepAt, view.route.length, view.serverNow, view.version])
   useEffect(() => {
     const onVisibilityChange = () => {
       if (document.visibilityState !== 'visible' || pending.current) return
