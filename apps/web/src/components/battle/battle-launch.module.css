@@ -253,27 +253,57 @@
   align-content: start;
   overflow: auto;
   overscroll-behavior: contain;
-  scrollbar-color: rgba(154, 120, 64, 0.78) rgba(232, 225, 208, 0.32);
+  scrollbar-color: #c9a85d #071019;
   scrollbar-gutter: stable;
   scrollbar-width: thin;
 }
 
 .workspaceBody::-webkit-scrollbar {
-  width: 0.48rem;
+  width: 0.58rem;
+}
+
+.workspaceBody::-webkit-scrollbar-button {
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 .workspaceBody::-webkit-scrollbar-track {
-  background: rgba(232, 225, 208, 0.32);
+  border-left: 1px solid rgba(201, 168, 93, 0.28);
+  background:
+    linear-gradient(
+      90deg,
+      rgba(212, 186, 130, 0.06),
+      rgba(3, 9, 14, 0.98) 34%,
+      rgba(7, 16, 25, 1) 66%,
+      rgba(212, 186, 130, 0.05)
+    ),
+    #071019;
+  box-shadow:
+    inset 1px 0 rgba(255, 245, 210, 0.04),
+    inset -1px 0 rgba(0, 0, 0, 0.54);
 }
 
 .workspaceBody::-webkit-scrollbar-thumb {
-  border: 1px solid rgba(247, 243, 232, 0.86);
+  min-height: 3.25rem;
+  border: 1px solid rgba(52, 36, 14, 0.9);
   border-radius: 999px;
-  background: linear-gradient(180deg, rgba(201, 170, 104, 0.92), rgba(139, 106, 53, 0.92));
+  background:
+    linear-gradient(90deg, rgba(255, 245, 206, 0.34), transparent 30%),
+    linear-gradient(180deg, #e0c478 0%, #c29b4e 46%, #8b682d 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 230, 167, 0.22),
+    0 0 0.32rem rgba(0, 0, 0, 0.32);
 }
 
 .workspaceBody::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #d7ba79, #9b773d);
+  background:
+    linear-gradient(90deg, rgba(255, 250, 221, 0.44), transparent 32%),
+    linear-gradient(180deg, #ead38c 0%, #cfa95e 46%, #9a7433 100%);
+}
+
+.workspaceBody::-webkit-scrollbar-corner {
+  background: #071019;
 }
 
 .arenaVista,

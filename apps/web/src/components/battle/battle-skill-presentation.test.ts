@@ -111,7 +111,13 @@ describe('battle skill artwork presentation', () => {
     expect(battleSkillArtwork('chronist.stolen-moment')).toBe(
       '/media/art/discipline-skills/chronist-stolen-moment-v01.webp',
     )
-    expect(battleSkillArtwork('bastion.shield-bash')).toMatch(/^data:image\/svg\+xml,/)
+    expect(battleSkillArtwork('bastion.shield-bash')).toBe(
+      '/media/art/discipline-skills/bastion-shield-bash-v01.webp',
+    )
+    expect(battleSkillArtwork('bastion.steady-footing')).toBe(
+      '/media/art/discipline-skills/bastion-steady-footing-v01.webp',
+    )
+    expect(battleSkillArtwork('ravager.frenzy')).toMatch(/^data:image\/svg\+xml,/)
 
     for (const id of ['runeblade.aether-cut', 'runeblade.sigil-brand']) {
       const source = battleSkillArtwork(id)
