@@ -33,7 +33,6 @@ on:
   push:
     branches:
       - main
-      - 'agent/p3-6-*'
     paths:
       - 'packages/game-core/src/combat/essence.ts'
       - 'packages/game-core/src/combat/essence.test.ts'
@@ -65,6 +64,10 @@ on:
 
 permissions:
   contents: read
+
+concurrency:
+  group: essence-build-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   quality:
