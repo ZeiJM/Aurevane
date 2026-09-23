@@ -6,7 +6,6 @@ import {
 } from '@/components/character/character-identity-card'
 import { CharacterRailSynchronizedLayout } from '@/components/character/character-rail-synchronized-layout'
 import { AurevaneImage } from '@/components/media/aurevane-image'
-import { AuthenticatedShellFrame } from '@/components/shell/authenticated-game-shell'
 
 import { PracticePlanCard, type PracticePlanCardData } from './practice-plan-card'
 import { TrainingReportCard, type TrainingReportCardData } from './training-report-card'
@@ -25,8 +24,7 @@ export function OfflineTrainingShell({
   trainingReport,
 }: OfflineTrainingShellProps) {
   return (
-    <AuthenticatedShellFrame sessionLabel="Passive Training">
-      <CharacterRailSynchronizedLayout className={styles.layout} data-training-concept="true">
+    <CharacterRailSynchronizedLayout className={styles.layout} data-training-concept="true">
         <CharacterIdentityCard {...identity} />
 
         <section className={styles.sheet} data-av-surface="moonstone" data-training-sheet="true">
@@ -90,7 +88,6 @@ export function OfflineTrainingShell({
             />
           </div>
         </section>
-      </CharacterRailSynchronizedLayout>
-    </AuthenticatedShellFrame>
+    </CharacterRailSynchronizedLayout>
   )
 }

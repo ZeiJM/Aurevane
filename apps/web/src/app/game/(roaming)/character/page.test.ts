@@ -75,12 +75,12 @@ vi.mock('@/components/character/character-profile-shell', () => ({
   CharacterProfileShell: () => null,
 }))
 vi.mock('@/components/shell/authenticated-game-shell', () => ({
-  AuthenticatedGameRecovery: () => null,
+  AuthenticatedGameRecoveryContent: () => null,
 }))
-vi.mock('@/server/logging', () => import('../../../server/logging'))
+vi.mock('@/server/logging', () => import('../../../../server/logging'))
 
 import { CharacterProfileShell } from '@/components/character/character-profile-shell'
-import { AuthenticatedGameRecovery } from '@/components/shell/authenticated-game-shell'
+import { AuthenticatedGameRecoveryContent } from '@/components/shell/authenticated-game-shell'
 
 import CharacterProfilePage from './page'
 
@@ -223,7 +223,7 @@ describe('Profile persistence recovery diagnostics', () => {
 
     const page = await CharacterProfilePage()
 
-    expect(page.type).toBe(AuthenticatedGameRecovery)
+    expect(page.type).toBe(AuthenticatedGameRecoveryContent)
     expect(console.error).toHaveBeenCalledOnce()
     const entry = JSON.parse(String(vi.mocked(console.error).mock.calls[0]?.[0]))
     expect(entry).toEqual({

@@ -14,7 +14,6 @@ import {
 } from '@/components/character/character-profile-shell'
 import { CharacterSkillBuildPanel } from '@/components/character/character-skill-build-panel'
 import { FoundationDisciplineSigil } from '@/components/character/foundation-discipline-sigil'
-import { AuthenticatedShellFrame } from '@/components/shell/authenticated-game-shell'
 
 import { skillDisplayName } from './skill-detail-presentation'
 import styles from './character-arsenal-shell.module.css'
@@ -85,8 +84,7 @@ export function CharacterArsenalShell({
   }
 
   return (
-    <AuthenticatedShellFrame sessionLabel="Arsenal">
-      <div className={styles.layout} data-arsenal-workspace data-character-concept="arsenal">
+    <div className={styles.layout} data-arsenal-workspace data-character-concept="arsenal">
         <CharacterIdentityCard
           profile={profile}
           primary={disciplineBuild.current.definition}
@@ -394,8 +392,7 @@ export function CharacterArsenalShell({
             </section>
           </div>
         </Surface>
-      </div>
-    </AuthenticatedShellFrame>
+    </div>
   )
 }
 

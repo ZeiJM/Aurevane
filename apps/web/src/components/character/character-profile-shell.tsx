@@ -18,7 +18,6 @@ import { CharacterAttributeAllocationPanel } from '@/components/character/charac
 import { CharacterIdentityCard } from '@/components/character/character-identity-card'
 import { CharacterRailSynchronizedLayout } from '@/components/character/character-rail-synchronized-layout'
 import { CharacterProfileDetails } from '@/components/character/character-profile-details'
-import { AuthenticatedShellFrame } from '@/components/shell/authenticated-game-shell'
 import { getStarterPortraitImageAssetId } from '@/media/character'
 
 import styles from './character-profile-shell.module.css'
@@ -140,8 +139,7 @@ export function CharacterProfileShell({
   const maxMp = disciplineBuild.current.derived.stats.maxMp.value
 
   return (
-    <AuthenticatedShellFrame sessionLabel="Character">
-      <CharacterRailSynchronizedLayout
+    <CharacterRailSynchronizedLayout
         className={styles.layout}
         data-profile-workspace
         data-character-concept="profile"
@@ -227,7 +225,6 @@ export function CharacterProfileShell({
             </blockquote>
           </div>
         </aside>
-      </CharacterRailSynchronizedLayout>
-    </AuthenticatedShellFrame>
+    </CharacterRailSynchronizedLayout>
   )
 }
