@@ -34,6 +34,15 @@ test('training uses the approved character rail and parchment three-workspace co
   await expect(report).toBeVisible()
   await expect(page.getByRole('navigation', { name: 'Training sections' })).toHaveCount(0)
   await expect(frame.locator('[data-training-scene] img')).toHaveCount(1)
+  if (width >= 1200) {
+    await expect
+      .poll(() =>
+        frame.evaluate((element) =>
+          getComputedStyle(element).getPropertyValue('--character-rail-height').trim(),
+        ),
+      )
+      .not.toBe('')
+  }
 
   const metrics = await frame.evaluate((element) => {
     const bounds = (node: Element | null) => {
