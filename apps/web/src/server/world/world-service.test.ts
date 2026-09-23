@@ -3,11 +3,7 @@ vi.mock('server-only', () => ({}))
 import { newWorldState, revealNearby } from '@/world/travel'
 import { FRONTIER_APPROACH } from '@/world/catalog'
 import { assertEncounterRange, projectWorld, resolveWorldIntent } from './world-service'
-import {
-  EASTERN_WATCH,
-  EASTERN_WATCH_INTERACTION_ID,
-  VERDANT_SETTLEMENT,
-} from './world-objectives'
+import { EASTERN_WATCH, EASTERN_WATCH_INTERACTION_ID, VERDANT_SETTLEMENT } from './world-objectives'
 
 describe('world authority and spoiler projection', () => {
   it.each([
