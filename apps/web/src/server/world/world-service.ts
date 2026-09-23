@@ -64,9 +64,9 @@ export function resolveWorldIntent(
       nextStepAt: null,
     }
   } else if (intent.kind === 'interact') {
-    const interaction = resolveWorldInteraction(state, intent.interactionId)
-    if (!interaction) invalid('That interaction is not available here.')
-    next = interaction
+    next =
+      resolveWorldInteraction(state, intent.interactionId) ??
+      invalid('That interaction is not available here.')
   } else {
     let destination: WorldPosition
     if (intent.kind === 'autopath') {
