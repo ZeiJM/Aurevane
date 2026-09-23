@@ -73,6 +73,16 @@ describe('authenticated navigation performance contracts', () => {
     expect(world).toContain('AuthenticatedGameRecoveryContent')
   })
 
+  it('schedules Atlas travel from the authoritative step deadline instead of fixed polling', () => {
+    const workspace = source('src/components/world/world-workspace.tsx')
+    const travel = source('src/world/travel.ts')
+
+    expect(workspace).toContain('worldSyncDelayMs')
+    expect(workspace).toContain('window.setTimeout')
+    expect(workspace).not.toContain('window.setInterval')
+    expect(travel).toContain('state.nextStepAt - state.serverNow')
+  })
+
   it('bounds repeated Atlas client render work', () => {
     const sector = source('src/components/world/sector-map.tsx')
     const sphere = source('src/components/world/spherical-view.tsx')
