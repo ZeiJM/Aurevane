@@ -84,7 +84,13 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
   test.setTimeout(120000)
   const name = await enter(page)
   const initial = await world(page)
-  for (const id of [...WORLD_REGIONS.map((region) => region.id), 'crown-road', 'coastal-road'])
+  for (const id of [
+    ...WORLD_REGIONS.map((region) => region.id),
+    'crown-road',
+    'coastal-road',
+    'ember-road',
+    'southern-caravan-road',
+  ])
     expect(initial.sectors.find((sector) => sector.id === id)).toBeDefined()
   expect(JSON.stringify(initial)).not.toContain('survey-01')
   const identity = page.getByTestId('character-profile')
@@ -266,6 +272,7 @@ for (const journey of [
     destinationId: 'aureth-crown',
     destinationName: 'Aureth Crown',
     entranceX: 12,
+    startSector: 'verdant-expanse',
   },
   {
     id: 'coastal-road',
@@ -273,6 +280,23 @@ for (const journey of [
     destinationId: 'hollow-coast',
     destinationName: 'Hollow Coast',
     entranceX: 0,
+    startSector: 'verdant-expanse',
+  },
+  {
+    id: 'ember-road',
+    name: 'Ember Road',
+    destinationId: 'emberreach',
+    destinationName: 'Emberreach',
+    entranceX: 0,
+    startSector: 'verdant-expanse',
+  },
+  {
+    id: 'southern-caravan-road',
+    name: 'Southern Caravan Road',
+    destinationId: 'glasswind-desert',
+    destinationName: 'Glasswind Desert',
+    entranceX: 0,
+    startSector: 'aureth-crown',
   },
 ])
   test(`${journey.name} is a persistent journey with exits, stopping, globe location and its own surroundings`, async ({
@@ -284,6 +308,10 @@ for (const journey of [
     )
     test.setTimeout(150000)
     const name = await enter(page)
+    if (journey.startSector !== 'verdant-expanse') {
+      place((await world(page)).characterId, journey.startSector, 5, 4)
+      await page.reload()
+    }
     await page.getByRole('button', { name: `Travel to ${journey.name}`, exact: false }).click()
     await expect(page.locator('[data-world-travel-status]')).toContainText(journey.name)
     await expect
@@ -291,7 +319,20 @@ for (const journey of [
       .toBe(journey.id)
     await expect(page.getByRole('heading', { name: journey.name, exact: true })).toBeVisible()
     await capture(page, info, `${journey.id}-sector`)
+    const ambient = page.locator(`[data-sector="${journey.id}"] [class*="ambient"]`)
+    await expect(ambient).toBeVisible()
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await expect(ambient).toBeHidden()
+    await page.emulateMedia({ reducedMotion: 'no-preference' })
+    await expect(ambient).toBeVisible()
+    const loaded = page.waitForResponse(
+      (response) =>
+        response.url().endsWith(`/${journey.id}-panorama-v01.webp`) &&
+        (response.ok() || response.status() === 304),
+      { timeout: 15000 },
+    )
     await page.getByRole('button', { name: /View 360/ }).click()
+    await (await loaded).finished()
     await expect(
       page.getByRole('dialog').getByRole('heading', { name: journey.name }),
     ).toBeVisible()

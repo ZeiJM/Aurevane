@@ -143,6 +143,48 @@ describe('world travel', () => {
       expect(route.filter((step) => step.position.sectorId === sectorId)).toHaveLength(13)
     expect(route.every((step) => step.durationMs <= 4000)).toBe(true)
   })
+  describe.each([
+    { id: 'ember-road', from: 'verdant-expanse', to: 'emberreach' },
+    { id: 'southern-caravan-road', from: 'aureth-crown', to: 'glasswind-desert' },
+  ])('$id', ({ id, from, to }) => {
+    it.each([false, true])('traverses every encounterable square (reverse: %s)', (reverse) => {
+      const endpoints = [
+        { sectorId: from, x: 12, y: 4 },
+        { sectorId: to, x: 0, y: 4 },
+      ]
+      if (reverse) endpoints.reverse()
+      const route = findWorldRoute(endpoints[0]!, endpoints[1]!, CHARTED_SECTORS)!
+      const road = route.filter((step) => step.position.sectorId === id)
+      expect(road).toHaveLength(13)
+      expect(road.map((step) => step.position.x)).toEqual(
+        Array.from({ length: 13 }, (_, x) => (reverse ? 12 - x : x)),
+      )
+      expect(road.every((step) => step.position.y === 4)).toBe(true)
+      expect(road.slice(1).every((step) => step.durationMs === 4000)).toBe(true)
+      expect(route.every((step) => step.durationMs <= 4000)).toBe(true)
+      expect(route.at(-1)?.position).toEqual(endpoints[1])
+    })
+    it('allows road verges but blocks the surrounding ridges', () => {
+      const from = { sectorId: id, x: 6, y: 4 }
+      expect(findWorldRoute(from, { ...from, y: 3 }, CHARTED_SECTORS)?.at(-1)?.position).toEqual({
+        ...from,
+        y: 3,
+      })
+      for (const y of [0, 1, 7, 8])
+        for (let x = 0; x < 13; x++)
+          expect(findWorldRoute(from, { ...from, x, y }, CHARTED_SECTORS)).toBeNull()
+    })
+  })
+  it('connects the desert to volcanic country through encounterable roads', () => {
+    const route = findWorldRoute(
+      { sectorId: 'glasswind-desert', x: 0, y: 4 },
+      { sectorId: 'emberreach', x: 0, y: 4 },
+      CHARTED_SECTORS,
+    )!
+    for (const id of ['southern-caravan-road', 'crown-road', 'ember-road'])
+      expect(route.filter((step) => step.position.sectorId === id)).toHaveLength(13)
+    expect(route.every((step) => step.durationMs <= 4000)).toBe(true)
+  })
   it('advances only one due step even after a long disconnect', () => {
     const state = {
       ...newWorldState(),

@@ -737,6 +737,42 @@
     background-position: 70px -60px;
   }
 }
+.sectorMap[data-sector='ember-road'] .riverFlow {
+  inset: 0 0 70%;
+  width: auto;
+  height: auto;
+  clip-path: none;
+  opacity: 0.12;
+  background: radial-gradient(ellipse at 68% 12%, #df753a66, transparent 48%);
+  animation: ember-haze 18s ease-in-out infinite alternate;
+}
+.sectorMap[data-sector='southern-caravan-road'] .riverFlow {
+  inset: 0;
+  width: auto;
+  height: auto;
+  clip-path: none;
+  opacity: 0.14;
+  background: repeating-linear-gradient(
+    155deg,
+    transparent 0 100px,
+    #f8e5b92b 140px,
+    transparent 180px
+  );
+  animation: sand-drift 35s linear infinite;
+}
+.sectorMap[data-sector='southern-caravan-road'] .fireflies {
+  display: none;
+}
+@keyframes ember-haze {
+  to {
+    opacity: 0.22;
+  }
+}
+@keyframes sand-drift {
+  to {
+    background-position: 180px 35px;
+  }
+}
 .cloudShadow {
   position: absolute;
   inset: -20%;

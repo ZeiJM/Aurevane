@@ -423,6 +423,86 @@
         "sha256": "19e1ac53505d9d1e81106bcd10c6429ad5cef235dd3c4fa8da5ff462466b8501",
         "encoding": "Sharp WebP quality 86; original dimensions"
       }
+    },
+    {
+      "name": "ember-road",
+      "source": {
+        "method": "generated",
+        "provider": "OpenAI image generation",
+        "createdAt": "2026-09-23",
+        "master": "exec-aeb8affb-f921-4b53-a92a-2289c5cdcce1.png",
+        "sha256": "fd3ab2be81b47d2a909c1eacd458f8c9d750c76ee4906768d62938c0e5c9a9ad",
+        "promptSpec": "content/art-requests/ART-WORLD-004-ember-and-caravan-roads.md",
+        "retention": "Original generated source retained with the conversation"
+      },
+      "runtime": {
+        "path": "/media/art/world/ember-road-v01.webp",
+        "width": 1507,
+        "height": 1044,
+        "bytes": 545468,
+        "sha256": "8ab5b606c047848fdaf7ee9eaa29227e3bc6fc647754bf3da9ced5d130b85f92",
+        "encoding": "Sharp WebP quality 86; original dimensions"
+      }
+    },
+    {
+      "name": "ember-road-panorama",
+      "source": {
+        "method": "generated",
+        "provider": "OpenAI image generation",
+        "createdAt": "2026-09-23",
+        "master": "exec-51103acd-50bc-4776-8f77-07fd38ff561b.png",
+        "sha256": "b405ffd9004a2234a5c2cd406fe3359fdf36f27506830c19bb6d9adc1cf87fb8",
+        "promptSpec": "content/art-requests/ART-WORLD-004-ember-and-caravan-roads.md",
+        "retention": "Original generated source retained with the conversation"
+      },
+      "runtime": {
+        "path": "/media/art/world/ember-road-panorama-v01.webp",
+        "width": 1774,
+        "height": 887,
+        "bytes": 348848,
+        "sha256": "55caef1e89688c5ebeb53f09cfa0f69febfcc786f7f0f3d85d8a7bd5334d9382",
+        "encoding": "Sharp WebP quality 86; original dimensions"
+      }
+    },
+    {
+      "name": "southern-caravan-road",
+      "source": {
+        "method": "generated",
+        "provider": "OpenAI image generation",
+        "createdAt": "2026-09-23",
+        "master": "exec-4ae5ad51-982e-42dc-8399-1cd505f2ac9f.png",
+        "sha256": "d6ab30560f3f79781061c4dfd9bda7c5c1230c76477e5ed254c0f16ed750326f",
+        "promptSpec": "content/art-requests/ART-WORLD-004-ember-and-caravan-roads.md",
+        "retention": "Original generated source retained with the conversation"
+      },
+      "runtime": {
+        "path": "/media/art/world/southern-caravan-road-v01.webp",
+        "width": 1506,
+        "height": 1045,
+        "bytes": 393306,
+        "sha256": "3e7135ac27a2c48919b3565b743fb93c08018ff08b6802fc0d18dfdcce62f2e5",
+        "encoding": "Sharp WebP quality 86; original dimensions"
+      }
+    },
+    {
+      "name": "southern-caravan-road-panorama",
+      "source": {
+        "method": "generated",
+        "provider": "OpenAI image generation",
+        "createdAt": "2026-09-23",
+        "master": "exec-e6b9a67f-9c41-4803-a8e7-0d5237213fc0.png",
+        "sha256": "15c3d8e56193798528e2b33214b92bd7f2ff952dc50330ebe7b6f384345d0948",
+        "promptSpec": "content/art-requests/ART-WORLD-004-ember-and-caravan-roads.md",
+        "retention": "Original generated source retained with the conversation"
+      },
+      "runtime": {
+        "path": "/media/art/world/southern-caravan-road-panorama-v01.webp",
+        "width": 1774,
+        "height": 887,
+        "bytes": 296030,
+        "sha256": "6d7eac272fa4d9633c29281861ee79fc0c4b16e6bf7da7d8b922af6ca4bec09f",
+        "encoding": "Sharp WebP quality 86; original dimensions"
+      }
     }
   ]
 }

@@ -26,6 +26,17 @@ describe('world authority and spoiler projection', () => {
       to: { sectorId: 'verdant-expanse', x: 12, y: 4 },
       durationMs: 60000,
     },
+    ...[
+      ['verdant-expanse', 'emberreach'],
+      ['aureth-crown', 'glasswind-desert'],
+    ].flatMap(([a, b]) => {
+      const from = { sectorId: a!, x: 12, y: 4 },
+        to = { sectorId: b!, x: 0, y: 4 }
+      return [
+        { from, to, durationMs: 70000 },
+        { from: to, to: from, durationMs: 70000 },
+      ]
+    }),
   ])(
     'stops a saved direct road from $from.sectorId after its edge is replaced',
     ({ from, to, durationMs }) => {
@@ -98,6 +109,35 @@ describe('world authority and spoiler projection', () => {
     ).not.toThrow()
     expect(() =>
       assertEncounterRange(state, { ...state, position: { sectorId: 'hollow-coast', x: 5, y: 3 } }),
+    ).toThrow()
+  })
+  it.each([
+    { id: 'ember-road', coordinate: 'S20-07', exits: ['emberreach', 'verdant-expanse'] },
+    {
+      id: 'southern-caravan-road',
+      coordinate: 'S14-10',
+      exits: ['aureth-crown', 'glasswind-desert'],
+    },
+  ])('projects $id as distinct open territory', ({ id, coordinate, exits }) => {
+    const state = { ...newWorldState(), position: { sectorId: id, x: 6, y: 4 } }
+    const road = projectWorld(state, [], 1000).sectors.find((sector) => sector.id === id)!
+    expect(road).toBeDefined()
+    expect(road.coordinate).toBe(coordinate)
+    expect(road.art).toBe(`/media/art/world/${id}-v01.webp`)
+    expect(road.panorama).toBe(`/media/art/world/${id}-panorama-v01.webp`)
+    expect(
+      road.cells.filter((cell) => cell.y === 4).every((cell) => cell.walkable && !cell.safe),
+    ).toBe(true)
+    expect(road.cells.some((cell) => cell.safe)).toBe(false)
+    expect(road.exits.map((exit) => exit.to.sectorId).sort()).toEqual(exits)
+    expect(() =>
+      assertEncounterRange(state, { ...state, position: { ...state.position, x: 7 } }),
+    ).not.toThrow()
+    expect(() =>
+      assertEncounterRange(state, { ...state, position: { ...state.position, x: 8 } }),
+    ).toThrow()
+    expect(() =>
+      assertEncounterRange(state, { ...state, position: { sectorId: exits[0]!, x: 6, y: 4 } }),
     ).toThrow()
   })
   it('requires a deliberate crossing from the frontier approach', () => {
