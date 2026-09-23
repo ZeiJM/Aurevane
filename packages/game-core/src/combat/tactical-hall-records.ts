@@ -102,8 +102,8 @@ export const P2_7_TACTICAL_HALL_RECORDS: readonly TacticalHallRecordDefinition[]
     id: 'mastery-trial',
     name: 'Discipline Mastery Trial',
     purpose:
-      'Win on Standard or High difficulty using at least two different Primary Skills across three Skill commands to earn 50 Mastery XP. No Character XP, loot or Crowns.',
-    defaultArenaId: 'crossroads-court',
+      'Win using at least two different Primary Skills across three Skill commands to earn 50 Mastery XP. No Character XP, loot or Crowns.',
+    defaultArenaId: 'terraced-yard',
     combinedDuel: true,
     coachSteps: [
       'Use at least two different Skills from your committed Primary, with at least three Primary Skill commands during the trial.',

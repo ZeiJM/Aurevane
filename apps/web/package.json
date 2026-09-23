@@ -3,12 +3,12 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "node ../../scripts/media/render_phase4_audio_v02.mjs --output public/media/audio/sfx/phase4 && next dev",
+    "build": "node ../../scripts/media/render_phase4_audio_v02.mjs --output public/media/audio/sfx/phase4 && next build",
     "start": "next start",
     "lint": "eslint . --max-warnings=0",
     "typecheck": "next typegen && tsc --noEmit",
-    "test": "vitest run && node --test scripts/pv1-report-node-tests.mjs",
+    "test": "vitest run && node --test scripts/pv1-report-node-tests.mjs scripts/a07-audio-render-node-tests.mjs",
     "test:browser": "playwright test --config=playwright.config.ts",
     "validation:pv1-report": "node scripts/pv1-report.mjs"
   },

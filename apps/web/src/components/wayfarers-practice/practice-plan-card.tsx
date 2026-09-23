@@ -8,6 +8,7 @@ import {
 import { GameButton } from '@aurevane/ui'
 
 import { AurevaneImage } from '@/components/media/aurevane-image'
+import type { ImageAssetId } from '@/media/registry'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 
@@ -78,21 +79,25 @@ export function PracticePlanCard({ practice, report, hasReport = false }: Practi
     window: PracticePlanWindow
     seconds: number
     description: string
+    imageAssetId: ImageAssetId
   }[] = [
     {
       window: 'short',
       seconds: practice.shortWindowSeconds,
       description: 'Best hourly return.',
+      imageAssetId: 'environment.passive-training.cloister',
     },
     {
       window: 'overnight',
       seconds: practice.overnightWindowSeconds,
       description: 'Moderate hourly return.',
+      imageAssetId: 'environment.battle-hall.courtyard',
     },
     {
       window: 'extended',
       seconds: practice.extendedWindowSeconds,
       description: 'Lowest hourly return.',
+      imageAssetId: 'environment.archive.interior',
     },
   ]
 
@@ -184,7 +189,7 @@ export function PracticePlanCard({ practice, report, hasReport = false }: Practi
         </header>
         <p className={styles.intro}>Choose a training duration.</p>
         <div className={styles.windowGrid} aria-label="Passive Training durations">
-          {windows.map((option, index) => {
+          {windows.map((option) => {
             const rate = getPassiveTrainingXpPerHour(option.window)
             const reward = calculatePassiveTrainingXp(option.window)
             const selected = practice.plannedWindow === option.window
@@ -196,11 +201,10 @@ export function PracticePlanCard({ practice, report, hasReport = false }: Practi
               >
                 <div className={styles.windowMedia} aria-hidden="true">
                   <AurevaneImage
-                    assetId="environment.passive-training.cloister"
+                    assetId={option.imageAssetId}
                     className={styles.windowImage}
-                    sizes="6rem"
+                    sizes="7rem"
                   />
-                  <span className={styles.windowNumber}>0{index + 1}</span>
                 </div>
                 <div className={styles.windowBody}>
                   <div className={styles.windowHeading}>

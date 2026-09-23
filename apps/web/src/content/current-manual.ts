@@ -324,7 +324,7 @@ const battleHallArticle: ManualArticle = {
       id: 'mastery-trials',
       title: 'Discipline Mastery Trials',
       paragraphs: [
-        'Choose Discipline Mastery Trial on Standard or High difficulty. Win using at least two different regular Primary Skills across at least three Primary Skill commands, without a player turn-timer expiry, then claim up to 50 Mastery XP from the result panel. Each battle awards once. Your frozen Primary at battle entry receives the XP.',
+        'Choose Discipline Mastery Trial. Its opponent uses the server-owned High AI profile. Win using at least two different regular Primary Skills across at least three Primary Skill commands, without a player turn-timer expiry, then claim up to 50 Mastery XP from the result panel. Each battle awards once. Your frozen Primary at battle entry receives the XP.',
         'Stages are Initiate, Practiced at 100 XP, Adept at 300, Expert at 600 and Master at 1,000. Master also requires demonstrating all eight regular Skills across qualifying victories. Mastery makes a Discipline eligible as Secondary. Profile → Discipline Management → Discipline Atlas & Mastery shows earned progress, unmet prerequisites and separate testing access. Named Mastery Rites are planned future content.',
         'Advanced Disciplines teach four Skills at Initiate, two more at Practiced and two at Adept. Ordinary AI Sparring, Guided Fundamentals and Passive Training do not award Discipline Mastery. Trials grant no Character XP, loot or Crowns.',
       ],

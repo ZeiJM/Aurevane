@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { audioAssetRegistry } from '@aurevane/audio'
+import { PHASE4_AUDIO_DISCIPLINES, audioAssetRegistry } from '@aurevane/audio'
 import type { BattleEventRecord } from '@aurevane/db/battle-session'
 import { BattleAudioCursor, selectBattleAudioCues } from './battle-audio'
 import { phase4DisciplineSigil, phase4SkillArtwork } from '../components/battle/phase4-combat-art'
@@ -30,7 +30,7 @@ describe('committed battle audio', () => {
       now,
     )
     expect(cues.map((cue) => cue.assetId)).toEqual([
-      'audio.phase4.bastion-essence-v01-3',
+      'audio.phase4.bastion-essence-v02-3',
       'audio.phase4.resonance-action-v01-3',
     ])
   })
@@ -65,7 +65,24 @@ describe('committed battle audio', () => {
         8,
         now,
       ),
-    ).toEqual([{ assetId: 'audio.phase4.ironfist-action-v01-3', priority: 70 }])
+    ).toEqual([{ assetId: 'audio.phase4.ironfist-action-v02-3', priority: 70 }])
+  })
+
+  it('routes every published Discipline family through the current v02 action pack', () => {
+    for (const discipline of PHASE4_AUDIO_DISCIPLINES) {
+      expect(
+        selectBattleAudioCues(
+          [record({ event: 'combat_action_used', actionId: `${discipline}.audio-routing-test` })],
+          8,
+          now,
+        ),
+      ).toEqual([
+        {
+          assetId: `audio.phase4.${discipline}-action-v02-3`,
+          priority: 70,
+        },
+      ])
+    }
   })
 
   it('uses the original Skill audio family for version-pinned copied commands', () => {
@@ -80,7 +97,7 @@ describe('committed battle audio', () => {
         8,
         now,
       ),
-    ).toEqual([{ assetId: 'audio.phase4.ironfist-action-v01-3', priority: 70 }])
+    ).toEqual([{ assetId: 'audio.phase4.ironfist-action-v02-3', priority: 70 }])
   })
 
   it('coalesces periodic area consequences and varies subsequent renders', () => {
@@ -118,9 +135,14 @@ describe('committed battle audio', () => {
     const sounds = [...audioAssetRegistry.values()].filter((asset) =>
       asset.id.startsWith('audio.phase4.'),
     )
-    expect(sounds).toHaveLength(84)
-    for (const asset of sounds)
+    expect(sounds).toHaveLength(186)
+    const committedV01 = sounds.filter((asset) => asset.id.includes('-v01-'))
+    const generatedV02 = sounds.filter((asset) => asset.id.includes('-v02-'))
+    expect(committedV01).toHaveLength(84)
+    expect(generatedV02).toHaveLength(102)
+    for (const asset of committedV01)
       expect(runtime.some((file) => file.path === `apps/web/public${asset.src}`)).toBe(true)
+    for (const asset of generatedV02) expect(asset.src).toMatch(/-v02-[123]\.wav$/u)
     expect(phase4DisciplineSigil('bastion')).toBe(
       '/media/art/discipline-sigils/bastion-sigil-v01.webp',
     )
@@ -136,7 +158,7 @@ describe('committed battle audio', () => {
     ] as const) {
       expect(
         selectBattleAudioCues([record({ event: 'combat_action_used', actionId })], 8, now),
-      ).toEqual([{ assetId: `audio.phase4.ironfist-${role}-v01-3`, priority }])
+      ).toEqual([{ assetId: `audio.phase4.ironfist-${role}-v02-3`, priority }])
     }
     expect(phase4SkillArtwork('essence.ironfist.hundredfold-rush')).toBe(
       '/media/art/essence-skills/ironfist-hundredfold-rush-v01.webp',

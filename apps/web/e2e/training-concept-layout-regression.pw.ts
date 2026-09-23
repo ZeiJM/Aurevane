@@ -79,6 +79,59 @@ test('training uses the approved character rail and parchment three-workspace co
   }
 
   await expect(page.getByRole('button', { name: 'Start Short', exact: true })).toBeEnabled()
+  const durationCards = page.locator('[aria-label="Passive Training durations"] article')
+  await expect(durationCards).toHaveCount(3)
+  const durationImages = durationCards.locator('img')
+  const durationImageSources = await durationImages.evaluateAll((images) =>
+    images.map((image) => image.getAttribute('src')),
+  )
+  expect(new Set(durationImageSources).size).toBe(3)
+  const durationImageShapes = await durationImages.evaluateAll((images) =>
+    images.map((image) => {
+      const bounds = image.getBoundingClientRect()
+      return { width: bounds.width, height: bounds.height }
+    }),
+  )
+  for (const shape of durationImageShapes) {
+    expect(Math.abs(shape.width - shape.height)).toBeLessThanOrEqual(1)
+  }
+  const imageToCopyBalance = await durationCards.evaluateAll((cards) =>
+    cards.map((card) => {
+      const media = card.querySelector<HTMLElement>('img')
+      const heading = card.querySelector<HTMLElement>('div > div > strong')?.parentElement
+      const description = heading?.parentElement?.querySelector<HTMLElement>('p')
+      const rewards = heading?.parentElement?.querySelector<HTMLElement>('dl')
+      if (!media || !heading || !description || !rewards) return null
+      const mediaBounds = media.getBoundingClientRect()
+      const top = Math.min(
+        heading.getBoundingClientRect().top,
+        description.getBoundingClientRect().top,
+        rewards.getBoundingClientRect().top,
+      )
+      const bottom = Math.max(
+        heading.getBoundingClientRect().bottom,
+        description.getBoundingClientRect().bottom,
+        rewards.getBoundingClientRect().bottom,
+      )
+      return { mediaHeight: mediaBounds.height, copyHeight: bottom - top }
+    }),
+  )
+  for (const balance of imageToCopyBalance) {
+    expect(balance).not.toBeNull()
+    if (!balance) continue
+    expect(balance.mediaHeight).toBeGreaterThanOrEqual(balance.copyHeight - 8)
+  }
+  for (const number of ['01', '02', '03']) {
+    await expect(durationCards.getByText(number, { exact: true })).toHaveCount(0)
+  }
+
+  const rewardValues = page.locator('[aria-label="Passive Training durations"] dd')
+  await expect(rewardValues).toHaveCount(6)
+  expect(
+    await rewardValues
+      .first()
+      .evaluate((element) => Number.parseInt(getComputedStyle(element).fontWeight, 10)),
+  ).toBeLessThanOrEqual(500)
   await expect(
     page.getByRole('button', { name: /Load Preset|Apply Plan|View History/ }),
   ).toHaveCount(0)

@@ -27,7 +27,6 @@ interface BattleLaunchProps {
   initialJoinKey?: string | null
 }
 
-type AiDifficulty = 'easy' | 'standard' | 'high'
 type HallSection = 'ai' | 'pvp' | 'spectate'
 
 interface ApiErrorBody {
@@ -68,12 +67,6 @@ const ARENAS: readonly { id: TacticalHallArenaId; name: string; scale: string; s
     },
   ]
 
-const DIFFICULTIES: readonly { id: AiDifficulty; label: string; description: string }[] = [
-  { id: 'easy', label: 'Easy', description: 'Forgiving AI decisions.' },
-  { id: 'standard', label: 'Standard', description: 'Balanced AI opponent.' },
-  { id: 'high', label: 'High', description: 'Sharper positioning and action choices.' },
-]
-
 const DEFAULT_PVP_MODE: PvpMode = '1v1'
 const PVP_LOBBY_SESSION_STORAGE_KEY = 'aurevane:pvp-lobby-id'
 const PVP_MODES: readonly { id: PvpMode; label: string; detail: string }[] = [
@@ -111,7 +104,6 @@ export function BattleLaunch({ characterId, initialJoinKey = null }: BattleLaunc
   const [pvpEntry, setPvpEntry] = useState<'create' | 'join'>(initialJoinKey ? 'join' : 'create')
   const [recordId, setRecordId] = useState<TacticalHallRecordId | null>('recruit-sparring')
   const [arenaId, setArenaId] = useState<TacticalHallArenaId>('duel-yard')
-  const [aiDifficulty, setAiDifficulty] = useState<AiDifficulty>('standard')
   const [pvpMode, setPvpMode] = useState<PvpMode | null>(DEFAULT_PVP_MODE)
   const [teamASize, setTeamASize] = useState(1)
   const [teamBSize, setTeamBSize] = useState(1)
@@ -138,7 +130,6 @@ export function BattleLaunch({ characterId, initialJoinKey = null }: BattleLaunc
     setSection('ai')
     setRecordId(nextRecordId)
     setArenaId(nextRecord.defaultArenaId)
-    if (nextRecordId === 'mastery-trial' && aiDifficulty === 'easy') setAiDifficulty('standard')
     setError(null)
   }
 
@@ -165,12 +156,6 @@ export function BattleLaunch({ characterId, initialJoinKey = null }: BattleLaunc
         body: JSON.stringify({
           characterId,
           arenaId,
-          aiDifficulty:
-            selectedRecord.id === 'mastery-trial' && aiDifficulty === 'easy'
-              ? 'standard'
-              : selectedRecord.combinedDuel
-                ? aiDifficulty
-                : 'easy',
           battleHallRecordId: selectedRecord.id,
           idempotencyKey: crypto.randomUUID(),
         }),
@@ -455,11 +440,15 @@ export function BattleLaunch({ characterId, initialJoinKey = null }: BattleLaunc
                   aria-label="AI sparring arena"
                   value={arenaId}
                   onChange={(event) => setArenaId(event.target.value as TacticalHallArenaId)}
-                  disabled={pending || recordId === 'guided-fundamentals'}
+                  disabled={
+                    pending || recordId === 'guided-fundamentals' || recordId === 'mastery-trial'
+                  }
                 >
                   {(recordId === 'guided-fundamentals'
                     ? ARENAS.filter((arena) => arena.id === 'basic-training-floor')
-                    : ARENAS.filter((arena) => arena.id !== 'basic-training-floor')
+                    : recordId === 'mastery-trial'
+                      ? ARENAS.filter((arena) => arena.id === 'terraced-yard')
+                      : ARENAS.filter((arena) => arena.id !== 'basic-training-floor')
                   ).map((arena) => (
                     <option key={arena.id} value={arena.id}>
                       {arena.name} · {arena.scale}
@@ -533,38 +522,6 @@ export function BattleLaunch({ characterId, initialJoinKey = null }: BattleLaunc
 
             {selectedRecord ? (
               <div className={styles.selectedPanel}>
-                {selectedRecord.combinedDuel ? (
-                  <fieldset className={styles.difficulty}>
-                    <legend>AI difficulty</legend>
-                    <div className={styles.difficultyToggle}>
-                      {DIFFICULTIES.filter(
-                        (difficulty) => recordId !== 'mastery-trial' || difficulty.id !== 'easy',
-                      ).map((difficulty) => (
-                        <button
-                          key={difficulty.id}
-                          type="button"
-                          aria-pressed={aiDifficulty === difficulty.id}
-                          data-selected={aiDifficulty === difficulty.id || undefined}
-                          onClick={() => setAiDifficulty(difficulty.id)}
-                          disabled={pending}
-                        >
-                          {difficulty.label}
-                        </button>
-                      ))}
-                    </div>
-                    <small>
-                      {
-                        DIFFICULTIES.find((difficulty) => difficulty.id === aiDifficulty)
-                          ?.description
-                      }
-                    </small>
-                  </fieldset>
-                ) : (
-                  <div className={styles.trainingNote}>
-                    <strong>Guided exercise</strong>
-                    <span>Victory is earned by completing the tactical lesson criteria.</span>
-                  </div>
-                )}
                 <p className={styles.recordPurpose} id="ai-record-purpose">
                   {selectedRecord.purpose}
                 </p>
@@ -841,7 +798,7 @@ export function BattleLaunch({ characterId, initialJoinKey = null }: BattleLaunc
           data-hall-workspace="spectate"
           data-selected={section === 'spectate' || undefined}
           data-hall-active-workspace="true"
-          aria-labelledby="spectate-heading"
+          aria-label="Spectate battles"
           hidden={section !== 'spectate'}
         >
           <div className={styles.workspaceBody} data-hall-scroll-body="true">
@@ -855,11 +812,6 @@ export function BattleLaunch({ characterId, initialJoinKey = null }: BattleLaunc
                 <span>Observe. Learn. Improve.</span>
               </figcaption>
             </figure>
-
-            <div className={styles.spectateIntro}>
-              <h2 id="spectate-heading">Witness a battle by key.</h2>
-              <p>Watch a shared battle. Learn from every turn.</p>
-            </div>
 
             <footer className={styles.spectateActions} data-hall-action-row="true">
               <div className={styles.keyEntry}>
@@ -890,11 +842,6 @@ export function BattleLaunch({ characterId, initialJoinKey = null }: BattleLaunc
                   submitting any commands. Battles are private and accessed only by key.
                 </p>
               </div>
-              <blockquote>
-                “Great tacticians learn twice —
-                <br />
-                once by playing, and once by watching.”
-              </blockquote>
             </aside>
           </div>
         </section>

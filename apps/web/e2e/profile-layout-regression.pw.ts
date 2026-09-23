@@ -189,6 +189,26 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
       .soft(metrics.portraitFrameAfter, `${label}: no black bottom diamond ornament`)
       .toBe('none')
     expect.soft(metrics.primaryLinks).toBe(5)
+
+    const intellectHeaderSpacing = await page
+      .locator('[data-profile-stat-group="intellect"] > header')
+      .evaluate((header) => {
+        const labelElement = header.querySelector('strong')
+        if (!labelElement) throw new Error('Missing Intellect Adventure Stat label.')
+        const headerRect = header.getBoundingClientRect()
+        const labelRect = labelElement.getBoundingClientRect()
+        return {
+          dividerGap: headerRect.right - labelRect.right,
+          overflow: header.scrollWidth - header.clientWidth,
+        }
+      })
+    expect
+      .soft(intellectHeaderSpacing.dividerGap, `${label}: Intellect divider follows the full label`)
+      .toBeGreaterThanOrEqual(8)
+    expect
+      .soft(intellectHeaderSpacing.overflow, `${label}: Intellect label is not clipped`)
+      .toBeLessThanOrEqual(1)
+
     if (viewport.width >= 1200) {
       expect
         .soft(metrics.identity.width, `${label}: no empty full-width banner`)
