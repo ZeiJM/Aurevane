@@ -13,9 +13,16 @@ from scipy.io import wavfile
 
 ROOT = Path(__file__).resolve().parents[2] / 'content/media-candidates/phase4'
 RATE = 48000
+FOUNDATION_COMPLETION_FAMILIES = ('vanguard', 'farstrider', 'shadehand', 'aetherist', 'lifebinder')
+
 FAMILIES = {
     'chronist': ('Measured clockwork tap and suspended glass', [330, 495, 825], 0.28),
     'ironfist': ('Wrapped fist contact and cloth movement', [102, 207, 431], 0.25),
+    'vanguard': ('Tempered shield strike and command pulse', [118, 274, 548], 0.31),
+    'farstrider': ('Bowstring release and arrow air', [214, 428, 856], 0.26),
+    'shadehand': ('Muted blade whisper', [677, 1187, 1901], 0.22),
+    'aetherist': ('Arcane pulse and crystalline discharge', [311, 623, 1247], 0.31),
+    'lifebinder': ('Living resonance and restorative bloom', [247, 371, 557], 0.33),
     'bastion': ('Muted shield thud', [126, 309, 587], 0.32),
     'ravager': ('Coarse cut', [96, 231, 510], 0.29),
     'edgedancer': ('Precise slice', [710, 1171, 1923], 0.22),
@@ -47,7 +54,27 @@ def render(family, variant, essence):
                for i, f in enumerate(modes))
     contact = filtered(noise, 180, 4200) * np.exp(-t/0.024)
     air = filtered(noise, 380, 2700) * np.sin(np.pi*np.minimum(t/duration, 1))**2
-    if family == 'ironfist':
+    if family == 'vanguard':
+        steel = np.sin(2*np.pi*1230*detune*t) * np.exp(-t/0.045)
+        x = 0.68*body + 0.62*contact + 0.12*steel + 0.08*air
+    elif family == 'farstrider':
+        string = sum(np.sin(2*np.pi*modes[0]*detune*k*t)*np.exp(-t/(0.082/k))/k for k in range(1, 8))
+        whoosh = filtered(noise, 900, 5200) * np.exp(-((t-duration*0.34)/(duration*0.30))**2)
+        x = 0.68*string + 0.20*contact + 0.46*whoosh
+    elif family == 'shadehand':
+        whisper = filtered(noise, 1100, 6500) * np.exp(-t/0.070)
+        edge = np.sin(2*np.pi*modes[2]*detune*t) * np.exp(-t/0.018)
+        x = 0.10*body + 0.16*contact + 0.68*whisper + 0.22*edge
+    elif family == 'aetherist':
+        sweep = np.sin(2*np.pi*((modes[0]*detune)*t + 0.5*(modes[2]-modes[0])/duration*t*t))*np.exp(-t/0.14)
+        shimmer = sum(np.sin(2*np.pi*f*1.5*detune*t)*np.exp(-t/(0.11+0.02*i))/(i+1) for i, f in enumerate(modes))
+        x = 0.42*sweep + 0.28*shimmer + 0.18*contact + 0.14*air
+    elif family == 'lifebinder':
+        bloom = sum(np.sin(2*np.pi*f*detune*t)/(i+1) for i, f in enumerate(modes))
+        bloom *= np.minimum(t/0.040, 1) * np.exp(-t/0.17)
+        pulse = np.sin(2*np.pi*modes[0]*0.5*detune*t) * np.exp(-t/0.12)
+        x = 0.52*bloom + 0.20*pulse + 0.10*contact + 0.18*air
+    elif family == 'ironfist':
         # Short padded contact with cloth movement, without a ringing metal tail.
         x = 0.55*body*np.exp(-t/0.035) + 0.55*contact + 0.16*air
     elif family in ('bastion', 'dawnshield'):
@@ -107,7 +134,10 @@ def main():
     args = parser.parse_args()
     root = args.output
     # Preserve the original 72-cue pack when run without explicit selection.
-    families = args.family or [family for family in FAMILIES if family not in ('ironfist', 'chronist')]
+    families = args.family or [
+        family for family in FAMILIES
+        if family not in ('ironfist', 'chronist', *FOUNDATION_COMPLETION_FAMILIES)
+    ]
     masters, runtime = root/'audio/masters', root/'audio/runtime'
     masters.mkdir(parents=True, exist_ok=True)
     runtime.mkdir(parents=True, exist_ok=True)
@@ -127,7 +157,7 @@ def main():
                 assert encoded.stat().st_size <= 20000
                 rows.append(dict(id=f'audio.phase4.{name}', family=family, label=label,
                     role='essence' if essence else 'action', variant=variant, status='candidate', approvedBy=None,
-                    sourceMethod='internal-material-synthesis', requestId='AUDIO-DISC-003' if family == 'chronist' else 'AUDIO-DISC-002' if family == 'ironfist' else 'AUDIO-DISC-001', seed=str(seed),
+                    sourceMethod='internal-material-synthesis', requestId='AUDIO-DISC-004' if family in FOUNDATION_COMPLETION_FAMILIES else 'AUDIO-DISC-003' if family == 'chronist' else 'AUDIO-DISC-002' if family == 'ironfist' else 'AUDIO-DISC-001', seed=str(seed),
                     master=str(master.relative_to(root)), runtime=str(encoded.relative_to(root)),
                     durationMs=round(len(samples)/RATE*1000), sampleRate=RATE, channels=1,
                     peakDbfs=round(20*np.log10(max(peak, 1e-9)), 2),
