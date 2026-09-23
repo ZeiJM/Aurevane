@@ -8,7 +8,7 @@ import {
 } from './settings'
 
 describe('audio settings', () => {
-  it('clamps channel volume without mutating the previous state', () => {
+  it('clamps music volume without mutating the previous state', () => {
     const initial = createDefaultAudioSettings()
     const next = reduceAudioSettings(initial, {
       type: 'set-volume',
@@ -18,6 +18,21 @@ describe('audio settings', () => {
 
     expect(next.volumes.music).toBe(1)
     expect(initial.volumes.music).toBe(0.62)
+  })
+
+  it('routes the visible sound-effects level to all non-music channels', () => {
+    const initial = createDefaultAudioSettings()
+    const next = reduceAudioSettings(initial, {
+      type: 'set-volume',
+      channel: 'sfx',
+      value: 0.31,
+    })
+
+    expect(next.volumes.sfx).toBe(0.31)
+    expect(next.volumes.ambience).toBe(0.31)
+    expect(next.volumes.ui).toBe(0.31)
+    expect(next.volumes.music).toBe(initial.volumes.music)
+    expect(initial.volumes.sfx).toBe(0.78)
   })
 
   it('mutes without destroying the levels that will be restored', () => {
@@ -30,14 +45,44 @@ describe('audio settings', () => {
     expect(restored).toEqual(initial)
   })
 
-  it('round-trips persisted versioned settings', () => {
-    const settings = reduceAudioSettings(createDefaultAudioSettings(), {
+  it('round-trips the two user-facing channel levels', () => {
+    let settings = reduceAudioSettings(createDefaultAudioSettings(), {
       type: 'set-volume',
-      channel: 'ambience',
-      value: 0.31,
+      channel: 'music',
+      value: 0.41,
+    })
+    settings = reduceAudioSettings(settings, {
+      type: 'set-volume',
+      channel: 'sfx',
+      value: 0.27,
     })
 
     expect(parsePersistedAudioSettings(serializeAudioSettings(settings))).toEqual(settings)
+  })
+
+  it('normalizes legacy hidden channel levels so invisible controls cannot suppress audio', () => {
+    const legacy = JSON.stringify({
+      version: 1,
+      muted: false,
+      volumes: {
+        master: 0,
+        music: 0.33,
+        sfx: 0.44,
+        ambience: 0,
+        ui: 0,
+      },
+    })
+
+    expect(parsePersistedAudioSettings(legacy)).toEqual({
+      muted: false,
+      volumes: {
+        master: 0.8,
+        music: 0.33,
+        sfx: 0.44,
+        ambience: 0.44,
+        ui: 0.44,
+      },
+    })
   })
 
   it('falls back safely when persisted settings are malformed or from another version', () => {
