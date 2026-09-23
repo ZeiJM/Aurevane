@@ -69,6 +69,14 @@ describe('Skill media hook registry', () => {
         ),
       ).toBe(true)
     }
+    const aetherNova = resolveSkillAudioCueHook('essence.aetherist.aether-nova.audio')
+    expect(aetherNova).toEqual(
+      expect.objectContaining({
+        available: true,
+        audioFamily: 'aetherist',
+        sampleAssetId: 'audio.phase4.aetherist-essence-v02-1',
+      }),
+    )
     expect(skillAudioCueHookOptions.length).toBeGreaterThan(10)
     expect(isRegisteredSkillAudioCueHook('skill.vanguard.forceful-strike.audio')).toBe(true)
     expect(isRegisteredSkillAudioCueHook('essence.aetherist.aether-nova.audio')).toBe(true)
