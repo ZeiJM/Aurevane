@@ -164,8 +164,8 @@ export function DisciplineMasteryPanel() {
           not receive a larger raw power budget simply because they are harder to reach.
         </p>
         <p>
-          Earn Mastery in a Standard or High Mastery Trial: win without a player timeout after using
-          two different regular Primary Skills across at least three Primary Skill commands. Choose
+          Earn Mastery in a Mastery Trial: win without a player timeout after using two different
+          regular Primary Skills across at least three Primary Skill commands. Choose
           Claim Mastery after the victory to receive up to 50 XP once.
         </p>
         <p>Ordinary sparring grants no Mastery XP.</p>

@@ -18,7 +18,7 @@ import {
   battleSkillArtwork,
 } from './battle-skill-presentation'
 
-const GENERATED_LIFEBINDER_IDS = [
+const LIFEBINDER_SAMPLE_IDS = [
   'lifebinder.vital-sever',
   'lifebinder.searing-bloom',
   'essence.lifebinder.verdant-rupture',
@@ -76,16 +76,13 @@ describe('battle skill artwork presentation', () => {
     })
 
     expect(new Set(resolvedArtwork).size).toBe(PHASE_3_COMBAT_ACTION_IDS.length)
-    const lifebinderArtwork = GENERATED_LIFEBINDER_IDS.map((actionId) =>
-      battleSkillArtwork(actionId),
-    )
-    expect(new Set(lifebinderArtwork).size).toBe(GENERATED_LIFEBINDER_IDS.length)
-    expect(
-      lifebinderArtwork.slice(0, 2).every((source) => source.startsWith('data:image/svg+xml,')),
-    ).toBe(true)
-    expect(lifebinderArtwork[2]).toBe(
+    const lifebinderArtwork = LIFEBINDER_SAMPLE_IDS.map((actionId) => battleSkillArtwork(actionId))
+    expect(new Set(lifebinderArtwork).size).toBe(LIFEBINDER_SAMPLE_IDS.length)
+    expect(lifebinderArtwork).toEqual([
+      '/media/art/discipline-skills/lifebinder-vital-sever-v01.webp',
+      '/media/art/discipline-skills/lifebinder-searing-bloom-v01.webp',
       '/media/art/essence-skills/lifebinder-verdant-rupture-v01.webp',
-    )
+    ])
     expect(battleSkillArtwork('future.skill')).toBe(BATTLE_MISSING_ARTWORK)
   })
 
@@ -95,6 +92,12 @@ describe('battle skill artwork presentation', () => {
     )
     expect(battleSkillArtwork('lifebinder.renew')).toBe(
       '/media/art/discipline-skills/lifebinder-renew-v01.webp',
+    )
+    expect(battleSkillArtwork('ironfist.rising-fist')).toBe(
+      '/media/art/discipline-skills/ironfist-rising-fist-v01.webp',
+    )
+    expect(battleSkillArtwork('ironfist.last-stand')).toBe(
+      '/media/art/discipline-skills/ironfist-last-stand-v01.webp',
     )
 
     for (const id of ['runeblade.aether-cut', 'runeblade.sigil-brand']) {

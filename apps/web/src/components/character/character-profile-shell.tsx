@@ -89,7 +89,6 @@ export interface CharacterWorkspaceProps {
   }
   personalTitle?: string | null
   imageUrl?: string | null
-  pv2TestKitEnabled?: boolean
 }
 
 const DUAL_DISCIPLINE_PROFILE_SUMMARIES: Readonly<Record<string, string>> = {

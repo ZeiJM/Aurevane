@@ -34,6 +34,17 @@ export const REGULAR_SKILL_ART = {
   'lifebinder.sanctuary': '/media/art/discipline-skills/lifebinder-sanctuary-v01.webp',
   'lifebinder.fortifying-light':
     '/media/art/discipline-skills/lifebinder-fortifying-light-v01.webp',
+  'lifebinder.vital-sever': '/media/art/discipline-skills/lifebinder-vital-sever-v01.webp',
+  'lifebinder.searing-bloom': '/media/art/discipline-skills/lifebinder-searing-bloom-v01.webp',
+
+  'ironfist.rising-fist': '/media/art/discipline-skills/ironfist-rising-fist-v01.webp',
+  'ironfist.sweep': '/media/art/discipline-skills/ironfist-sweep-v01.webp',
+  'ironfist.focus-breath': '/media/art/discipline-skills/ironfist-focus-breath-v01.webp',
+  'ironfist.counter-palm': '/media/art/discipline-skills/ironfist-counter-palm-v01.webp',
+  'ironfist.breakfall': '/media/art/discipline-skills/ironfist-breakfall-v01.webp',
+  'ironfist.hammer-knuckle': '/media/art/discipline-skills/ironfist-hammer-knuckle-v01.webp',
+  'ironfist.pressure-palm': '/media/art/discipline-skills/ironfist-pressure-palm-v01.webp',
+  'ironfist.last-stand': '/media/art/discipline-skills/ironfist-last-stand-v01.webp',
 } as const
 
 export type RegularSkillArtId = keyof typeof REGULAR_SKILL_ART

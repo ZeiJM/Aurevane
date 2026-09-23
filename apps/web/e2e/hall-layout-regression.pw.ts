@@ -105,18 +105,31 @@ test('Battle Hall shows one full-width parchment workspace at a time with all re
     const aiSpace = await ai.evaluate((element) => {
       const body = element.querySelector('[data-hall-scroll-body]')!.getBoundingClientRect()
       const vista = element.querySelector('figure')!.getBoundingClientRect()
+      const modes = [
+        ...element.querySelectorAll<HTMLElement>('nav[aria-label="AI arenas"] > button'),
+      ].map((button) => button.getBoundingClientRect())
       return {
         workspaceHeight: element.getBoundingClientRect().height,
         bodyHeight: body.height,
+        vistaWidth: vista.width,
         vistaHeight: vista.height,
+        modeHeights: modes.map((mode) => mode.height),
       }
     })
     expect
       .soft(aiSpace.bodyHeight, 'AI workspace gives the main content most of the available height')
       .toBeGreaterThan(aiSpace.workspaceHeight * 0.62)
     expect
-      .soft(aiSpace.vistaHeight, 'AI arena expands into otherwise unused vertical space')
-      .toBeGreaterThan(aiSpace.bodyHeight * 0.22)
+      .soft(aiSpace.vistaWidth, 'AI arena banner keeps the full workspace width')
+      .toBeGreaterThan(workspaceBox!.width * 0.94)
+    expect
+      .soft(aiSpace.vistaHeight, 'AI arena banner stays deliberately shallow')
+      .toBeLessThan(aiSpace.bodyHeight * 0.22)
+    for (const height of aiSpace.modeHeights) {
+      expect
+        .soft(height, 'AI mode choices have comfortable vertical breathing room')
+        .toBeGreaterThanOrEqual(58)
+    }
   }
 
   await expect(page.getByLabel('Battle mode')).toHaveValue('recruit-sparring')
@@ -159,6 +172,9 @@ test('Battle Hall shows one full-width parchment workspace at a time with all re
     await expect(page.getByRole('button', { name: 'Enter Battle', exact: true })).toBeEnabled()
     if (mode === 'mastery-trial') {
       await expect(page.getByRole('button', { name: 'Easy', exact: true })).toHaveCount(0)
+      await expect(page.getByLabel('AI sparring arena')).toHaveValue('terraced-yard')
+      await expect(page.getByLabel('AI sparring arena')).toBeDisabled()
+      await expect(ai.getByText('Terraced Yard', { exact: true })).toBeVisible()
     }
     await capture(page, testInfo, mode)
   }
@@ -212,23 +228,51 @@ test('Battle Hall shows one full-width parchment workspace at a time with all re
   await expect(spectateWorkspace).toBeVisible()
   await expect(page.locator('[data-hall-workspace="pvp"]')).toBeHidden()
   await expect(page.getByText('03 / Spectate', { exact: true })).toHaveCount(0)
+  const readOnlyNote = spectateWorkspace.locator('aside')
+  await expect(
+    readOnlyNote.getByText(/Great tacticians learn twice/, { exact: false }),
+  ).toHaveCount(0)
+  const readOnlyPresentation = await readOnlyNote.evaluate((element) => {
+    const style = getComputedStyle(element)
+    return {
+      backgroundImage: style.backgroundImage,
+      textAlign: style.textAlign,
+    }
+  })
+  expect(readOnlyPresentation.backgroundImage).toBe('none')
+  expect(readOnlyPresentation.textAlign).toBe('center')
+
   if (!mobile) {
     const spectateSpace = await spectateWorkspace.evaluate((element) => {
       const body = element.querySelector('[data-hall-scroll-body]')!.getBoundingClientRect()
       const vista = element.querySelector('figure')!.getBoundingClientRect()
+      const actions = element.querySelector('footer')!.getBoundingClientRect()
+      const note = element.querySelector('aside')!.getBoundingClientRect()
       const workspace = element.getBoundingClientRect()
       return {
         workspaceHeight: workspace.height,
         bodyHeight: body.height,
         vistaHeight: vista.height,
+        vistaToActionsGap: actions.top - vista.bottom,
+        actionsToNoteGap: note.top - actions.bottom,
+        noteBottomGap: body.bottom - note.bottom,
       }
     })
     expect
       .soft(spectateSpace.bodyHeight, 'Spectate content fills the parchment workspace')
       .toBeGreaterThan(spectateSpace.workspaceHeight * 0.9)
     expect
-      .soft(spectateSpace.vistaHeight, 'Spectate vista expands into the available vertical space')
-      .toBeGreaterThan(spectateSpace.bodyHeight * 0.3)
+      .soft(spectateSpace.vistaHeight, 'Spectate vista remains visually substantial')
+      .toBeGreaterThan(spectateSpace.bodyHeight * 0.25)
+    expect
+      .soft(spectateSpace.vistaToActionsGap, 'Spectate controls have room below the vista')
+      .toBeGreaterThanOrEqual(10)
+    expect
+      .soft(spectateSpace.actionsToNoteGap, 'Spectate footer has room below the controls')
+      .toBeGreaterThanOrEqual(10)
+    expect
+      .soft(spectateSpace.noteBottomGap, 'Read-only footer settles at the bottom of the workspace')
+      .toBeLessThanOrEqual(4)
   }
   await expect(page.getByRole('button', { name: 'Spectate Battle', exact: true })).toBeDisabled()
   await page.getByRole('textbox', { name: 'Battle Key', exact: true }).fill('avb-abcd-1234')

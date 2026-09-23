@@ -91,8 +91,7 @@
 }
 
 .eyebrow,
-.workspaceHeading > div > span,
-.spectateIntro > span {
+.workspaceHeading > div > span {
   color: #8a6d35;
   font: 700 0.59rem/1.35 var(--av-font-body);
   letter-spacing: 0.13em;
@@ -219,15 +218,13 @@
   gap: 0.12rem;
 }
 
-.workspaceHeading h2,
-.spectateIntro h2 {
+.workspaceHeading h2 {
   margin: 0;
   color: #1a3343;
   font: 600 clamp(1.45rem, 1.8vw, 1.85rem) / 1.08 var(--av-font-display);
 }
 
 .workspaceHeading p,
-.spectateIntro p,
 .arenaControlRow p,
 .formatDescription,
 .joinCard p,
@@ -271,7 +268,7 @@
 }
 
 .arenaVista {
-  height: clamp(5.7rem, 7vw, 7rem);
+  height: clamp(4.8rem, 5.6vw, 5.8rem);
 }
 
 .arenaVista img,
@@ -370,7 +367,7 @@
 .modePicker {
   display: grid;
   min-width: 0;
-  gap: 0.38rem;
+  gap: 0.62rem;
 }
 
 .visuallyHiddenSelect {
@@ -396,10 +393,10 @@
   display: grid;
   grid-template-columns: 2.35rem minmax(0, 1fr) auto minmax(7rem, 0.24fr);
   min-width: 0;
-  min-height: 2.9rem;
-  gap: 0.5rem;
+  min-height: 4.05rem;
+  gap: 0.66rem;
   align-items: center;
-  padding: 0.3rem 0.55rem;
+  padding: 0.52rem 0.7rem;
   border: 1px solid rgba(139, 112, 65, 0.3);
   color: #203846;
   background: rgba(255, 253, 247, 0.7);
@@ -415,8 +412,8 @@
 
 .modeIcon {
   display: grid;
-  width: 2.15rem;
-  height: 2.15rem;
+  width: 2.4rem;
+  height: 2.4rem;
   place-items: center;
   border: 1px solid rgba(188, 148, 76, 0.62);
   border-radius: 50%;
@@ -470,78 +467,10 @@
 }
 
 .selectedPanel {
-  display: grid;
   min-width: 0;
-  grid-template-columns: minmax(0, 0.62fr) minmax(0, 1fr);
-  gap: 0.48rem;
-  align-items: center;
-  padding-top: 0;
-}
-
-.difficulty {
-  display: grid;
-  min-width: 0;
-  gap: 0.35rem;
-  margin: 0;
-  padding: 0;
-  border: 0;
-}
-
-.difficulty legend {
-  margin-bottom: 0.25rem;
-  color: #765d30;
-  font-size: 0.75rem;
-  font-weight: 700;
-}
-
-.difficultyToggle {
-  display: flex;
-  gap: 0.28rem;
-}
-
-.difficultyToggle button {
-  flex: 1;
-  min-height: 2.5rem;
-  border: 1px solid rgba(91, 112, 110, 0.4);
-  color: #496167;
-  background: rgba(241, 244, 238, 0.82);
-  font-size: 0.75rem;
-  cursor: pointer;
-}
-
-.difficultyToggle button[data-selected] {
-  border-color: #5c9488;
-  color: #edf7f3;
-  background: #2b625b;
-}
-
-.difficulty small {
-  color: #667881;
-  font-size: 0.58rem;
-}
-
-.trainingNote {
-  display: grid;
-  gap: 0.16rem;
-  padding: 0.48rem 0.58rem;
-  border: 1px solid rgba(56, 116, 113, 0.25);
-  background: rgba(220, 237, 232, 0.55);
-}
-
-.trainingNote strong {
-  color: #31565c;
-  font: 600 0.72rem/1.2 var(--av-font-display);
-}
-
-.trainingNote span {
-  color: #5d737b;
-  font-size: 0.62rem;
-  line-height: 1.3;
 }
 
 .recordPurpose {
-  padding-left: 0.52rem;
-  border-left: 1px solid rgba(146, 116, 62, 0.3);
   font-size: 0.64rem;
   line-height: 1.28;
 }
@@ -838,25 +767,10 @@
   font: italic 0.68rem/1.3 var(--av-font-display);
 }
 
-.spectateIntro {
-  display: grid;
-  justify-items: center;
-  gap: 0.18rem;
-  padding: 0.25rem 0;
-  text-align: center;
-}
-
-.spectateIntro::after {
-  width: min(17rem, 70%);
-  height: 1px;
-  margin-top: 0.3rem;
-  background: linear-gradient(90deg, transparent, rgba(155, 124, 64, 0.48), transparent);
-  content: '';
-}
-
 .spectateActions {
   display: grid;
   justify-items: center;
+  padding-block: clamp(0.45rem, 1.5vh, 0.9rem);
 }
 
 .keyEntry {
@@ -872,15 +786,15 @@
 
 .readOnlyNote {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) minmax(12rem, 0.55fr);
+  grid-template-columns: minmax(0, 1fr);
   min-width: 0;
-  gap: 0.72rem;
+  gap: 0.4rem;
+  justify-items: center;
   align-items: center;
-  padding: 0.7rem 0.82rem;
+  padding: 0.85rem 1rem;
   border: 1px solid rgba(138, 112, 66, 0.25);
-  background:
-    linear-gradient(90deg, rgba(255, 253, 247, 0.7), rgba(243, 241, 231, 0.72)),
-    url('/media/art/concept-ui/world-v01.webp') right 64% / 35% auto no-repeat;
+  background: rgba(255, 253, 247, 0.82);
+  text-align: center;
 }
 
 .readOnlyNote > span {
@@ -896,20 +810,15 @@
 
 .readOnlyNote > div {
   display: grid;
+  width: min(52rem, 100%);
   min-width: 0;
-  gap: 0.12rem;
+  gap: 0.18rem;
+  justify-items: center;
 }
 
 .readOnlyNote strong {
   color: #293f4a;
   font: 600 0.76rem/1.2 var(--av-font-display);
-}
-
-.readOnlyNote blockquote {
-  margin: 0;
-  color: #687982;
-  font: italic 0.66rem/1.38 var(--av-font-display);
-  text-align: right;
 }
 
 .error {
@@ -929,13 +838,13 @@
   }
 
   .workspace[data-hall-workspace='ai'] .workspaceBody {
-    grid-template-rows: minmax(6.5rem, 1fr) auto auto auto;
-    align-content: stretch;
+    grid-template-rows: clamp(4.8rem, 9vh, 5.8rem) auto auto auto;
+    align-content: start;
   }
 
   .workspace[data-hall-workspace='ai'] .arenaVista {
     height: 100%;
-    min-height: 6.5rem;
+    min-height: 0;
   }
 
   .workspace[data-hall-workspace='pvp'] .workspaceBody {
@@ -944,13 +853,14 @@
 
   .workspace[data-hall-workspace='spectate'] .workspaceBody {
     height: 100%;
-    grid-template-rows: minmax(10rem, 1fr) auto auto auto;
-    align-content: stretch;
+    grid-template-rows: clamp(10rem, 24vh, 13rem) auto auto;
+    align-content: space-between;
+    row-gap: clamp(0.85rem, 2.2vh, 1.5rem);
   }
 
   .workspace[data-hall-workspace='spectate'] .spectateVista {
     height: 100%;
-    min-height: 10rem;
+    min-height: 0;
   }
 }
 
@@ -1003,13 +913,11 @@
     gap: 0.7rem;
   }
 
-  .workspaceHeading h2,
-  .spectateIntro h2 {
+  .workspaceHeading h2 {
     font-size: clamp(1.2rem, 1.45vw, 1.5rem);
   }
 
   .workspaceHeading p,
-  .spectateIntro p,
   .arenaControlRow p,
   .formatDescription,
   .joinCard p,
@@ -1046,18 +954,18 @@
   }
 
   .modePicker {
-    gap: 0.34rem;
+    gap: 0.54rem;
   }
 
   .modePicker > button {
-    min-height: 2.8rem;
-    padding: 0.3rem 0.52rem;
+    min-height: 3.72rem;
+    padding: 0.46rem 0.62rem;
   }
 
   .modeIcon {
-    width: 1.95rem;
-    height: 1.95rem;
-    font-size: 0.88rem;
+    width: 2.18rem;
+    height: 2.18rem;
+    font-size: 0.94rem;
   }
 
   .modeCopy strong {
@@ -1066,22 +974,6 @@
 
   .modeCopy small {
     font-size: 0.6rem;
-  }
-
-  .selectedPanel {
-    gap: 0.56rem;
-  }
-
-  .difficulty {
-    gap: 0.24rem;
-  }
-
-  .difficulty legend {
-    margin-bottom: 0.14rem;
-  }
-
-  .difficultyToggle button {
-    min-height: 2.5rem;
   }
 
   .primaryAction {
@@ -1133,18 +1025,13 @@
     padding: 0.3rem 0.46rem;
   }
 
-  .spectateIntro {
-    gap: 0.16rem;
-    padding: 0.24rem 0;
-  }
-
   .keyEntry {
     gap: 0.3rem;
   }
 
   .readOnlyNote {
-    gap: 0.5rem;
-    padding: 0.48rem 0.62rem;
+    gap: 0.34rem;
+    padding: 0.7rem 0.8rem;
   }
 }
 
@@ -1278,15 +1165,6 @@
     display: none;
   }
 
-  .selectedPanel {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .recordPurpose {
-    padding: 0;
-    border-left: 0;
-  }
-
   .pvpVista {
     height: 8rem;
   }
@@ -1317,11 +1195,4 @@
     display: none;
   }
 
-  .readOnlyNote {
-    grid-template-columns: auto minmax(0, 1fr);
-  }
-
-  .readOnlyNote blockquote {
-    display: none;
-  }
 }
