@@ -2,6 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "git": {
     "deploymentEnabled": {
+      "agent/persistent-roaming-shell-fixed-preview-20260923": true,
       "**": false
     }
   }
