@@ -126,7 +126,9 @@ test('Battle Hall shows one full-width parchment workspace at a time with all re
       .soft(aiSpace.vistaHeight, 'AI arena banner stays deliberately shallow')
       .toBeLessThan(aiSpace.bodyHeight * 0.22)
     for (const height of aiSpace.modeHeights) {
-      expect.soft(height, 'AI mode choices have comfortable vertical breathing room').toBeGreaterThanOrEqual(50)
+      expect
+        .soft(height, 'AI mode choices have comfortable vertical breathing room')
+        .toBeGreaterThanOrEqual(58)
     }
   }
 
