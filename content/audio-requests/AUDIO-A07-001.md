@@ -1,6 +1,6 @@
 # AUDIO-A07-001 — Distinct Discipline battle audio v02
 
-STATUS: IMPLEMENTATION IN PROGRESS — Owner listening acceptance remains open.
+STATUS: IMPLEMENTATION READY FOR VERIFICATION — Owner listening acceptance remains open.
 
 ## Trigger
 
@@ -38,10 +38,10 @@ Legacy `v01` assets remain addressable for compatibility. Current Discipline bat
 
 - deterministic internal material synthesis only; no external recordings/samples;
 - mono 48 kHz source synthesis;
-- 96 kbps MP3 runtime encodes;
+- deterministic build-time 16-bit PCM WAV runtime files;
 - three compatible variants per Discipline role;
 - regular action cues remain short one-shots; Essences are more articulated, not merely louder;
-- peak ceiling approximately -10 dBFS and runtime files remain under 20 KB;
+- normalized non-clipping output; runtime WAV files remain under 65 KB each;
 - no gameplay mechanic relies on sound alone;
 - central AudioDirector volume/mute/gesture behavior remains unchanged;
 - no preview/history/reconnect catch-up playback.
@@ -59,4 +59,4 @@ A family is not considered acceptable merely because its waveform or hash differ
 
 ## Acceptance
 
-Automated checks may prove registry completeness, delivery, hashes, decode/build/browser safety and deterministic generation. They do **not** close A07. A07 closes only after Owner listening review confirms the new families are suitably distinct and usable in battle.
+Automated checks may prove registry completeness, generated-file delivery, WAV validity, build/browser safety and deterministic generation. They do **not** close A07. A07 closes only after Owner listening review confirms the new families are suitably distinct and usable in battle.
