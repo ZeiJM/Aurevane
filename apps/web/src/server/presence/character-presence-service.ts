@@ -94,9 +94,11 @@ export async function touchCharacterPresence(userId: string, characterId: string
 
 export async function countOnlineCharacters(): Promise<number> {
   const supabase = createSupabaseAdminClient()
-  const { data, error } = await supabase.rpc('list_online_characters_v1')
-  if (error || !Array.isArray(data)) throw unavailable()
-  return parseOnlineCharacters(data).length
+  const { data, error } = await supabase.rpc('count_online_characters_v1')
+  if (error || !Number.isSafeInteger(data) || typeof data !== 'number' || data < 0) {
+    throw unavailable()
+  }
+  return data
 }
 
 interface PublicCharacterIdentity {

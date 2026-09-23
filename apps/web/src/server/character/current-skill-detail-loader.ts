@@ -1,10 +1,11 @@
 import 'server-only'
 
-import { AurevaneError } from '@aurevane/game-core/errors'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
+import { AurevaneError } from '@aurevane/game-core/errors'
+
+import type { CombatContentResolver } from '@/server/combat/combat-content-resolver'
 
 import type { CharacterDisciplineSkillLoadoutView } from './character-build-service'
-import type { CombatContentResolver } from '@/server/combat/combat-content-resolver'
 
 interface SkillSourceReference {
   readonly skillId: string
@@ -41,21 +42,32 @@ async function resolveCurrentDefinitions(
   resolver: CombatContentResolver,
 ): Promise<ReadonlyMap<string, MatureSkillDefinition>> {
   const references = collectReferences(loadout)
-  const resolved = await Promise.all(
-    references.map(async ({ skillId, sourceDisciplineId }) => {
-      const definition = await resolver.resolveCurrentSkillDefinition(skillId)
-      if (!definition || !definition.enabled) {
-        throw unavailable(`Skill ${skillId} has no enabled current combat definition.`)
-      }
-      if (definition.sourceDisciplineId !== sourceDisciplineId) {
-        throw unavailable(
-          `Skill ${skillId} changed source Discipline from ${sourceDisciplineId} to ${definition.sourceDisciplineId}.`,
-        )
-      }
-      return [skillId, structuredClone(definition)] as const
-    }),
-  )
-  return new Map(resolved)
+  const skillIds = references.map((reference) => reference.skillId)
+  const batchedDefinitions = resolver.resolveCurrentSkillDefinitions
+    ? await resolver.resolveCurrentSkillDefinitions(skillIds)
+    : new Map(
+        await Promise.all(
+          skillIds.map(
+            async (skillId) =>
+              [skillId, await resolver.resolveCurrentSkillDefinition(skillId)] as const,
+          ),
+        ),
+      )
+
+  const resolved = new Map<string, MatureSkillDefinition>()
+  for (const { skillId, sourceDisciplineId } of references) {
+    const definition = batchedDefinitions.get(skillId)
+    if (!definition || !definition.enabled) {
+      throw unavailable(`Skill ${skillId} has no enabled current combat definition.`)
+    }
+    if (definition.sourceDisciplineId !== sourceDisciplineId) {
+      throw unavailable(
+        `Skill ${skillId} changed source Discipline from ${sourceDisciplineId} to ${definition.sourceDisciplineId}.`,
+      )
+    }
+    resolved.set(skillId, structuredClone(definition))
+  }
+  return resolved
 }
 
 export async function resolveCurrentCharacterSkillDetails(

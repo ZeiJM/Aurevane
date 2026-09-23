@@ -3,18 +3,21 @@ import 'server-only'
 import type { CombatContentVersionRecord } from '@aurevane/db/combat-content'
 import { validateCombatActionDefinition } from '@aurevane/game-core/combat/combat-authoring-validation'
 import { AurevaneError } from '@aurevane/game-core/errors'
+import { combatActionPresentationTags } from '@aurevane/game-core/combat/gameplay-tags'
 import {
   resolveMatureSkillVersion,
   toCombatActionDefinition,
   validateMatureSkillDefinition,
   type MatureSkillDefinition,
 } from '@aurevane/game-core/combat/mature-skills'
-import { combatActionPresentationTags } from '@aurevane/game-core/combat/gameplay-tags'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
 export interface CombatContentResolver {
   resolveCurrentSkillDefinition(skillId: string): Promise<MatureSkillDefinition | null>
+  resolveCurrentSkillDefinitions?(
+    skillIds: readonly string[],
+  ): Promise<ReadonlyMap<string, MatureSkillDefinition>>
   resolvePinnedSkillDefinition(
     skillId: string,
     version: number,
@@ -23,6 +26,7 @@ export interface CombatContentResolver {
 
 export interface PublishedCombatContentSource {
   findCurrentSkill(contentKey: string): Promise<CombatContentVersionRecord | null>
+  findCurrentSkills?(contentKeys: readonly string[]): Promise<readonly CombatContentVersionRecord[]>
   findSkillVersion(
     contentKey: string,
     contentVersion: number,
@@ -97,6 +101,26 @@ function parseVersionRow(data: unknown): CombatContentVersionRecord | null {
   }
 }
 
+function parseVersionRows(data: unknown): readonly CombatContentVersionRecord[] {
+  if (!Array.isArray(data)) {
+    throw new AurevaneError(
+      'PERSISTENCE_UNAVAILABLE',
+      'The server returned invalid published combat content.',
+    )
+  }
+
+  return data.map((row) => {
+    const parsed = parseVersionRow([row])
+    if (!parsed) {
+      throw new AurevaneError(
+        'PERSISTENCE_UNAVAILABLE',
+        'The server returned invalid published combat content.',
+      )
+    }
+    return parsed
+  })
+}
+
 export class RpcPublishedCombatContentSource implements PublishedCombatContentSource {
   readonly #rpc: RpcExecutor
 
@@ -111,6 +135,19 @@ export class RpcPublishedCombatContentSource implements PublishedCombatContentSo
     })
     if (error) mapRpcFailure(error)
     return parseVersionRow(data)
+  }
+
+  async findCurrentSkills(
+    contentKeys: readonly string[],
+  ): Promise<readonly CombatContentVersionRecord[]> {
+    if (contentKeys.length === 0) return []
+
+    const { data, error } = await this.#rpc('read_current_combat_content_many_v1', {
+      p_content_keys: [...contentKeys],
+      p_content_kind: 'skill',
+    })
+    if (error) mapRpcFailure(error)
+    return parseVersionRows(data)
   }
 
   async findSkillVersion(
@@ -184,13 +221,50 @@ function validatePublishedSkill(
 export function createCombatContentResolver(
   source: PublishedCombatContentSource,
 ): CombatContentResolver {
+  async function resolveCurrentSkillDefinitions(
+    skillIds: readonly string[],
+  ): Promise<ReadonlyMap<string, MatureSkillDefinition>> {
+    const uniqueSkillIds = [...new Set(skillIds)]
+    if (uniqueSkillIds.length === 0) return new Map()
+
+    const publishedRows = source.findCurrentSkills
+      ? await source.findCurrentSkills(uniqueSkillIds)
+      : (
+          await Promise.all(uniqueSkillIds.map((skillId) => source.findCurrentSkill(skillId)))
+        ).filter((row): row is CombatContentVersionRecord => row !== null)
+
+    const requested = new Set(uniqueSkillIds)
+    const publishedByKey = new Map<string, CombatContentVersionRecord>()
+    for (const row of publishedRows) {
+      if (!requested.has(row.contentKey) || publishedByKey.has(row.contentKey)) {
+        throw new AurevaneError(
+          'PERSISTENCE_UNAVAILABLE',
+          'The server returned invalid published combat content.',
+        )
+      }
+      publishedByKey.set(row.contentKey, row)
+    }
+
+    const resolved = new Map<string, MatureSkillDefinition>()
+    for (const skillId of uniqueSkillIds) {
+      const published = publishedByKey.get(skillId)
+      if (published) {
+        resolved.set(skillId, validatePublishedSkill(published, skillId))
+        continue
+      }
+
+      const fallback = resolveMatureSkillVersion(skillId)
+      if (fallback) resolved.set(skillId, structuredClone(fallback))
+    }
+    return resolved
+  }
+
   return {
     async resolveCurrentSkillDefinition(skillId) {
-      const published = await source.findCurrentSkill(skillId)
-      if (published) return validatePublishedSkill(published, skillId)
-      const fallback = resolveMatureSkillVersion(skillId)
-      return fallback ? structuredClone(fallback) : null
+      return (await resolveCurrentSkillDefinitions([skillId])).get(skillId) ?? null
     },
+
+    resolveCurrentSkillDefinitions,
 
     async resolvePinnedSkillDefinition(skillId, version) {
       const published = await source.findSkillVersion(skillId, version)
