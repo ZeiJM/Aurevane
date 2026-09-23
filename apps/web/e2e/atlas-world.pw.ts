@@ -121,6 +121,14 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
   const eastings = await page.locator('[class*="eastings"]').boundingBox()
   const gridBox = await grid.boundingBox()
   expect(eastings!.y).toBeGreaterThanOrEqual(gridBox!.y + gridBox!.height - 1)
+  async function expectSectorToFit() {
+    if (info.project.name === 'mobile-chromium') return
+    const viewport = (await page.locator('[class*="mapViewport"]').boundingBox())!
+    const frame = (await page.locator('[class*="sectorFrame"]').boundingBox())!
+    expect(frame.y).toBeGreaterThanOrEqual(viewport.y - 1)
+    expect(frame.y + frame.height).toBeLessThanOrEqual(viewport.y + viewport.height + 1)
+  }
+  await expectSectorToFit()
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
@@ -132,6 +140,7 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
     .first()
     .click()
   await expect(page.getByRole('button', { name: /Stop Auto-path/ })).toBeVisible()
+  await expectSectorToFit()
   await expect.poll(async () => (await world(page)).position.x).toBeGreaterThan(5)
   await page.getByRole('button', { name: /Stop Auto-path/ }).click()
   await expect.poll(async () => (await world(page)).route.length).toBe(0)
@@ -183,7 +192,10 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
       await expect(page.getByRole('heading', { name: region.name, exact: true })).toBeVisible()
       await capture(page, info, `sector-${region.id}`)
       const loaded = page.waitForResponse(
-        (r) => r.url().endsWith(`/${region.id}-panorama-v01.webp`) && r.ok(),
+        // A previously viewed panorama may be revalidated from the browser cache.
+        (r) =>
+          r.url().endsWith(`/${region.id}-panorama-v01.webp`) && (r.ok() || r.status() === 304),
+        { timeout: 15000 },
       )
       await page.getByRole('button', { name: /View 360/ }).click()
       await loaded
