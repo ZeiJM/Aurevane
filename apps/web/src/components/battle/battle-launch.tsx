@@ -156,7 +156,6 @@ export function BattleLaunch({ characterId, initialJoinKey = null }: BattleLaunc
         body: JSON.stringify({
           characterId,
           arenaId,
-          aiDifficulty: selectedRecord.combinedDuel ? undefined : 'easy',
           battleHallRecordId: selectedRecord.id,
           idempotencyKey: crypto.randomUUID(),
         }),
