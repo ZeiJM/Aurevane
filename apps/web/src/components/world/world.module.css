@@ -681,7 +681,7 @@
   left: 70%;
   width: 19%;
   height: 100%;
-  opacity: 0.3;
+  opacity: 0.18;
   background: repeating-linear-gradient(
     167deg,
     transparent 0 19px,
@@ -704,8 +704,240 @@
     15% 49%,
     0 27%
   );
-  animation: water-flow 8s linear infinite;
+  animation: water-flow 18s linear infinite;
   mix-blend-mode: screen;
+}
+/* Narrow channels follow each illustration; bridges remain free of shimmer. */
+.sectorMap[data-sector='aureth-crown'] .riverFlow,
+.sectorMap[data-sector='verdant-expanse'] .riverFlow,
+.sectorMap[data-sector='emberreach'] .riverFlow,
+.sectorMap[data-sector='frostmere'] .riverFlow,
+.sectorMap[data-sector='glasswind-desert'] .riverFlow,
+.sectorMap[data-sector='hollow-coast'] .riverFlow,
+.sectorMap[data-sector='starfall-highlands'] .riverFlow,
+.sectorMap[data-sector='umbral-march'] .riverFlow {
+  inset: 0;
+  width: auto;
+  height: auto;
+  mask-image: linear-gradient(to bottom, #000 0 40%, transparent 42% 58%, #000 60% 100%);
+}
+.sectorMap[data-sector='aureth-crown'] .riverFlow {
+  clip-path: polygon(
+    70% 0%,
+    72% 10%,
+    73% 20%,
+    76% 30%,
+    77% 40%,
+    80% 60%,
+    85% 75%,
+    91% 85%,
+    98% 100%,
+    96% 100%,
+    89% 85%,
+    83% 75%,
+    78% 60%,
+    75% 40%,
+    74% 30%,
+    71% 20%,
+    70% 10%,
+    68% 0%
+  );
+}
+.sectorMap[data-sector='verdant-expanse'] .riverFlow {
+  clip-path: polygon(
+    75% 0,
+    78% 0,
+    85% 20%,
+    80% 40%,
+    82% 68%,
+    97% 100%,
+    93% 100%,
+    79% 68%,
+    77% 40%,
+    82% 20%
+  );
+}
+.sectorMap[data-sector='emberreach'] .riverFlow {
+  clip-path: polygon(
+    72% 0,
+    75% 0,
+    79% 22%,
+    78% 40%,
+    82% 75%,
+    89% 100%,
+    85% 100%,
+    79% 75%,
+    75% 40%,
+    76% 22%
+  );
+}
+.sectorMap[data-sector='frostmere'] .riverFlow {
+  clip-path: polygon(
+    79% 0,
+    82% 0,
+    83% 22%,
+    78% 40%,
+    80% 68%,
+    89% 100%,
+    86% 100%,
+    77% 68%,
+    75% 40%,
+    80% 22%
+  );
+}
+.sectorMap[data-sector='glasswind-desert'] .riverFlow {
+  clip-path: polygon(
+    80% 0,
+    83% 0,
+    85% 25%,
+    83% 40%,
+    84% 70%,
+    90% 100%,
+    87% 100%,
+    81% 70%,
+    80% 40%,
+    82% 25%
+  );
+}
+.sectorMap[data-sector='hollow-coast'] .riverFlow {
+  clip-path: polygon(
+    71% 0,
+    75% 0,
+    77% 22%,
+    75% 40%,
+    79% 65%,
+    76% 80%,
+    75% 100%,
+    69% 100%,
+    71% 80%,
+    74% 65%,
+    71% 40%,
+    73% 22%
+  );
+}
+.sectorMap[data-sector='starfall-highlands'] .riverFlow {
+  clip-path: polygon(
+    85.2% 22%,
+    84.2% 30%,
+    82.2% 40%,
+    85.2% 60%,
+    86.2% 72%,
+    91.2% 85%,
+    97.2% 100%,
+    94.8% 100%,
+    88.8% 85%,
+    83.8% 72%,
+    82.8% 60%,
+    79.8% 40%,
+    81.8% 30%,
+    82.8% 22%
+  );
+}
+.sectorMap[data-sector='umbral-march'] .riverFlow {
+  clip-path: polygon(
+    77.2% 0%,
+    78.2% 10%,
+    83.2% 25%,
+    80.2% 40%,
+    82.2% 60%,
+    86.2% 75%,
+    91.2% 85%,
+    97.2% 100%,
+    94.8% 100%,
+    88.8% 85%,
+    83.8% 75%,
+    79.8% 60%,
+    77.8% 40%,
+    80.8% 25%,
+    75.8% 10%,
+    74.8% 0%
+  );
+}
+.sectorMap[data-sector='emberreach'] .riverFlow {
+  background: repeating-linear-gradient(
+    170deg,
+    transparent 0 25px,
+    #ffb66355 28px,
+    transparent 36px
+  );
+  animation-duration: 30s;
+  opacity: 0.13;
+}
+.sectorMap[data-sector='hollow-coast'] .riverFlow {
+  mask-image: linear-gradient(to bottom, #000 0 36%, transparent 38% 48%, #000 50% 100%);
+}
+.shoreFlow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  clip-path: polygon(0 60%, 5% 67%, 12% 76%, 25% 85%, 42% 93%, 48% 100%, 0 100%);
+  background: repeating-linear-gradient(
+    155deg,
+    transparent 0 42px,
+    #b9e2e536 48px,
+    transparent 57px
+  );
+  opacity: 0.16;
+  animation: coastal-surf 28s linear infinite;
+}
+.windVeil {
+  position: absolute;
+  inset: -8%;
+  background: repeating-linear-gradient(
+    165deg,
+    transparent 0 130px,
+    #c6d4b71a 175px,
+    transparent 230px
+  );
+  opacity: 0.12;
+  animation: wind-drift 48s ease-in-out infinite alternate;
+}
+.lightBloom {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 68% 22%, #ffebbb, transparent 55%);
+  opacity: 0.035;
+  mix-blend-mode: screen;
+  animation: ambient-light 32s ease-in-out infinite alternate;
+}
+.sectorMap[data-region='emberreach'] .lightBloom {
+  background: radial-gradient(ellipse at 75% 25%, #ee9459, transparent 55%);
+}
+.sectorMap[data-region='frostmere'] .windVeil {
+  background: repeating-linear-gradient(
+    165deg,
+    transparent 0 130px,
+    #edf5fc40 175px,
+    transparent 230px
+  );
+}
+.sectorMap[data-region='glasswind-desert'] .windVeil {
+  background: repeating-linear-gradient(
+    165deg,
+    transparent 0 130px,
+    #e6c88440 175px,
+    transparent 230px
+  );
+}
+.sectorMap[data-region='frostmere'] .lightBloom,
+.sectorMap[data-region='hollow-coast'] .lightBloom,
+.sectorMap[data-region='umbral-march'] .lightBloom {
+  background: radial-gradient(ellipse at 68% 22%, #b9d1dc, transparent 55%);
+}
+.sectorMap[data-region='emberreach'] .fireflies,
+.sectorMap[data-region='frostmere'] .fireflies,
+.sectorMap[data-region='glasswind-desert'] .fireflies {
+  display: none;
+}
+@keyframes wind-drift {
+  to {
+    transform: translate(3%, 1%);
+  }
+}
+@keyframes ambient-light {
+  to {
+    opacity: 0.075;
+  }
 }
 .smoke {
   position: absolute;
@@ -715,7 +947,7 @@
   height: 10%;
   background: radial-gradient(ellipse, #eef0df65, transparent 70%);
   filter: blur(4px);
-  animation: smoke-rise 9s ease-out infinite;
+  animation: smoke-rise 16s ease-out infinite;
 }
 .sectorMap[data-sector='crown-road'] .riverFlow {
   left: 64%;
@@ -730,7 +962,7 @@
   opacity: 0.18;
   clip-path: none;
   mask-image: linear-gradient(transparent, #000 25%);
-  animation: coastal-surf 14s linear infinite;
+  animation: coastal-surf 24s linear infinite;
 }
 @keyframes coastal-surf {
   to {
@@ -824,11 +1056,12 @@
   width: 2px;
   border-radius: 50%;
   background: #ecdf9d;
+  opacity: 0.45;
   box-shadow:
     35px 22px 2px #dfd2a3,
     90px 51px 2px #d8d298,
     -18px 140px 2px #d7d699;
-  animation: firefly 12s ease-in-out infinite;
+  animation: firefly 20s ease-in-out infinite;
 }
 @keyframes water-flow {
   to {

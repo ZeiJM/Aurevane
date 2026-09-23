@@ -94,3 +94,13 @@ Scope: Eastern March Road (Emberreach–Umbral March) and Old Coast Road (Hollow
 - [x] Generate original map/panorama assets, retouch joins, register provenance and extend authenticated journeys.
 - [x] Complete full quality gate, fresh independent review, collision correction and main reconciliation; prepare draft PR update.
 - [ ] Inspect latest-head browser results/screenshots when available; Owner acceptance remains separate.
+
+
+### Ambient motion and verification continuation — 2026-09-23
+
+- [x] Inspect existing environmental effects and source illustrations; refine regional water/lava masks, coastal wash, wind and restrained light per Owner request.
+- [x] Extend browser checks for actual motion progression, disabling motion and reduced-motion removal.
+- [x] Add deterministic authenticated Postgres contention scenarios for distinct commands, identical retries and mutual attacks; verify discovery/types and independently review lock/cleanup behavior.
+- [x] Run the local quality gate and fresh independent review; reconcile current-main status and prepare draft PR update.
+- [ ] Observe latest-head authenticated browser run and inspect new screenshots; the newly authored contention scenarios require that runtime evidence.
+- [ ] Complete remaining staging movement/attack/training/build competition checks and Owner visual acceptance before release.

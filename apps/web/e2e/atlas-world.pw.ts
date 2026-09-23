@@ -1,12 +1,12 @@
 import { randomUUID } from 'node:crypto'
-import { execFileSync } from 'node:child_process'
-import { expect, test, type Page, type TestInfo } from '@playwright/test'
+import { execFileSync, spawn } from 'node:child_process'
+import { expect, test, type APIResponse, type Page, type TestInfo } from '@playwright/test'
 import { provisionAccountAndEnterCharacter, openOfflineTraining } from './pv1f-test-helpers'
 import { WORLD_REGIONS } from '../src/world/catalog'
 import { newWorldState } from '../src/world/travel'
 import type { WorldView } from '../src/world/types'
 
-function sql(query: string): string {
+function localDatabase(): string {
   const host = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://invalid').hostname
   if (!['127.0.0.1', 'localhost'].includes(host))
     throw new Error('Atlas acceptance requires disposable local Supabase.')
@@ -18,11 +18,14 @@ function sql(query: string): string {
     .trim()
     .split('\n')[0]
   if (!container) throw new Error('Local test database is unavailable.')
+  return container
+}
+function sql(query: string): string {
   return execFileSync(
     'docker',
     [
       'exec',
-      container,
+      localDatabase(),
       'psql',
       '-v',
       'ON_ERROR_STOP=1',
@@ -36,6 +39,75 @@ function sql(query: string): string {
     { encoding: 'utf8' },
   ).trim()
 }
+// Hold only these disposable accounts' mutation locks until both real HTTP
+// requests are demonstrably waiting in Postgres. This tests contention rather
+// than relying on Promise.all happening to overlap on a fast runner.
+async function contend(characterIds: string[], send: () => Promise<APIResponse>[]) {
+  for (const id of characterIds) expect(id).toMatch(/^[0-9a-f-]{36}$/)
+  const application = `atlas-gate-${randomUUID()}`
+  const gate = spawn(
+    'docker',
+    [
+      'exec',
+      '-e',
+      `PGAPPNAME=${application}`,
+      localDatabase(),
+      'psql',
+      '-v',
+      'ON_ERROR_STOP=1',
+      '-U',
+      'postgres',
+      '-d',
+      'postgres',
+      '-Atqc',
+      `begin; select pg_advisory_xact_lock(hashtextextended(user_id::text,1)) from public.characters where id in (${characterIds.map((id) => `'${id}'::uuid`).join(',')}) order by user_id; select pg_sleep(45); rollback;`,
+    ],
+    { stdio: 'ignore' },
+  )
+  const closed = new Promise<void>((resolve) => {
+    gate.once('exit', () => resolve())
+    gate.once('error', () => resolve())
+  })
+  let pending: Promise<APIResponse>[] = []
+  try {
+    await expect
+      .poll(
+        () =>
+          sql(
+            `select count(*) from pg_stat_activity where application_name='${application}' and wait_event='PgSleep'`,
+          ),
+        { timeout: 10000 },
+      )
+      .toBe('1')
+    pending = send()
+    // Register rejection handlers immediately while the requests are blocked.
+    const completed = Promise.allSettled(pending)
+    await expect
+      .poll(
+        () =>
+          Number(
+            sql(
+              `select count(distinct waiter.pid) from pg_locks waiter join pg_locks holder on waiter.locktype=holder.locktype and waiter.database=holder.database and waiter.classid=holder.classid and waiter.objid=holder.objid and waiter.objsubid=holder.objsubid join pg_stat_activity activity on activity.pid=holder.pid where holder.granted and not waiter.granted and holder.locktype='advisory' and activity.application_name='${application}'`,
+            ),
+          ),
+        { timeout: 10000 },
+      )
+      .toBe(pending.length)
+    sql(
+      `select pg_terminate_backend(pid) from pg_stat_activity where application_name='${application}'`,
+    )
+    await completed
+    return await Promise.all(pending)
+  } finally {
+    // Terminate only the uniquely named test-owned connection, even on failure.
+    sql(
+      `select pg_terminate_backend(pid) from pg_stat_activity where application_name='${application}'`,
+    )
+    await Promise.allSettled(pending)
+    await closed
+  }
+}
+
 async function enter(page: Page) {
   const name = `Atlas ${randomUUID()
     .replaceAll('-', '')
@@ -144,6 +216,28 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
       () => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
     ),
   ).toBe(true)
+  const ambient = page.locator('[data-world-ambient]')
+  const flow = ambient.locator('[data-world-flow]')
+  await expect(ambient).toBeVisible()
+  const flowPosition = await flow.evaluate(
+    (element) => getComputedStyle(element).backgroundPosition,
+  )
+  await expect
+    .poll(() => flow.evaluate((element) => getComputedStyle(element).backgroundPosition))
+    .not.toBe(flowPosition)
+  await page.getByRole('button', { name: /Layers/ }).click()
+  await page.getByLabel('Environmental motion').uncheck()
+  await expect(ambient).toHaveCount(0)
+  await page.getByLabel('Environmental motion').check()
+  await expect(ambient).toBeVisible()
+  await page.getByRole('button', { name: /Layers/ }).click()
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await expect(ambient).toBeHidden()
+  expect(await ambient.evaluate((element) => element.getAnimations({ subtree: true }).length)).toBe(
+    0,
+  )
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
+  await expect(ambient).toBeVisible()
   await capture(page, info, 'world-sector')
   await page
     .getByRole('button', { name: /Start Auto-path/ })
@@ -200,6 +294,15 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
       place(initial.characterId, region.id, 5, 4)
       await page.reload()
       await expect(page.getByRole('heading', { name: region.name, exact: true })).toBeVisible()
+      const regionalFlow = page.locator('[data-world-flow]')
+      const before = await regionalFlow.evaluate(
+        (element) => getComputedStyle(element).backgroundPosition,
+      )
+      await expect
+        .poll(() =>
+          regionalFlow.evaluate((element) => getComputedStyle(element).backgroundPosition),
+        )
+        .not.toBe(before)
       await capture(page, info, `sector-${region.id}`)
       const loaded = page.waitForResponse(
         // A previously viewed panorama may be revalidated from the browser cache.
@@ -471,5 +574,105 @@ test('a proximity attack reaches both authenticated players while the target vie
     await capture(opponent, info, 'world-encounter-target')
   } finally {
     await opponentContext.close()
+  }
+})
+
+test('contending travel commands commit once and identical retries replay once', async ({
+  page,
+}, info) => {
+  test.skip(
+    info.project.name !== 'desktop-chromium',
+    'Database contention is viewport independent.',
+  )
+  test.setTimeout(90000)
+  await enter(page)
+  for (const identical of [false, true]) {
+    const initial = await world(page)
+    const command = {
+      characterId: initial.characterId,
+      expectedVersion: initial.version,
+      commandId: randomUUID(),
+      intent: { kind: 'stop' },
+    }
+    const responses = await contend([initial.characterId], () => [
+      page.request.post('/api/world', { data: command, timeout: 20000 }),
+      page.request.post('/api/world', {
+        data: { ...command, commandId: identical ? command.commandId : randomUUID() },
+        timeout: 20000,
+      }),
+    ])
+    expect(responses.map((response) => response.status()).sort()).toEqual(
+      identical ? [200, 200] : [200, 409],
+    )
+    const after = await world(page)
+    expect(after.version).toBe(initial.version + 1)
+    expect(after.position).toEqual(initial.position)
+    expect(after.route).toHaveLength(0)
+    if (identical)
+      for (const response of responses) expect((await response.json()).version).toBe(after.version)
+    else
+      expect(
+        (await responses.find((response) => response.status() === 409)!.json()).error.code,
+      ).toBe('STALE_VERSION')
+  }
+})
+
+test('simultaneous mutual attacks create one shared active encounter', async ({
+  page,
+  browser,
+}, info) => {
+  test.skip(
+    info.project.name !== 'desktop-chromium',
+    'Database contention is viewport independent.',
+  )
+  test.setTimeout(90000)
+  await enter(page)
+  const context = await browser.newContext({ baseURL: new URL(page.url()).origin })
+  try {
+    const opponent = await context.newPage()
+    await enter(opponent)
+    const first = await world(page),
+      second = await world(opponent)
+    place(first.characterId, 'crown-road', 5, 4)
+    place(second.characterId, 'crown-road', 6, 4)
+    await world(page)
+    await world(opponent)
+    const responses = await contend([first.characterId, second.characterId], () => [
+      page.request.post('/api/world', {
+        data: {
+          characterId: first.characterId,
+          expectedVersion: first.version,
+          commandId: randomUUID(),
+          intent: { kind: 'attack', targetId: second.characterId },
+        },
+        timeout: 20000,
+      }),
+      opponent.request.post('/api/world', {
+        data: {
+          characterId: second.characterId,
+          expectedVersion: second.version,
+          commandId: randomUUID(),
+          intent: { kind: 'attack', targetId: first.characterId },
+        },
+        timeout: 20000,
+      }),
+    ])
+    expect(responses.map((response) => response.status()).sort()).toEqual([200, 409])
+    expect((await responses.find((response) => response.status() === 409)!.json()).error.code).toBe(
+      'STALE_VERSION',
+    )
+    const one = await world(page),
+      two = await world(opponent)
+    expect(one.battleSessionId).toMatch(/^[0-9a-f-]{36}$/)
+    expect(two.battleSessionId).toBe(one.battleSessionId)
+    expect(one.route).toHaveLength(0)
+    expect(two.route).toHaveLength(0)
+    expect(
+      sql(
+        `select count(distinct b.id)||':'||count(*) from app_private.battle_sessions b join app_private.battle_participants p on p.battle_session_id=b.id join app_private.world_encounters e on e.battle_session_id=b.id where b.lifecycle='active' and p.character_id in ('${first.characterId}'::uuid,'${second.characterId}'::uuid) and p.participant_role='player'`,
+      ),
+    ).toBe('1:2')
+  } finally {
+    await context.close()
   }
 })

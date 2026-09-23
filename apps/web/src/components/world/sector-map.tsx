@@ -46,11 +46,15 @@ export function SectorMap({
         data-motion={motion}
         data-frontier={!sector.charted}
         data-sector={sector.id}
+        data-region={sector.regionId}
         style={sector.art ? { backgroundImage: `url(${sector.art})` } : undefined}
       >
         {sector.charted && motion ? (
-          <div className={styles.ambient} aria-hidden="true">
-            <span className={styles.riverFlow} />
+          <div className={styles.ambient} aria-hidden="true" data-world-ambient>
+            <span className={styles.riverFlow} data-world-flow />
+            {sector.id === 'hollow-coast' ? <span className={styles.shoreFlow} /> : null}
+            <span className={styles.windVeil} />
+            <span className={styles.lightBloom} />
             {sector.landmarks.some((landmark) => landmark.kind === 'settlement') ? (
               <span className={styles.smoke} />
             ) : null}
