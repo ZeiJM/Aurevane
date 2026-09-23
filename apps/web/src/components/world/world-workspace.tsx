@@ -33,7 +33,10 @@ export function WorldWorkspace({
     [busy, setBusy] = useState(false)
   const current = useRef(initialView),
     pending = useRef(false),
-    mounted = useRef(true)
+    mounted = useRef(true),
+    acceptedAt = useRef(Date.now()),
+    timer = useRef<number | null>(null),
+    reschedule = useRef<() => void>(() => {})
   function accept(next: WorldView) {
     if (!mounted.current) return
     if (next.battleSessionId) {
@@ -50,7 +53,9 @@ export function WorldWorkspace({
       setPanorama(false)
     }
     current.current = next
+    acceptedAt.current = Date.now()
     setView(next)
+    reschedule.current()
   }
   async function refresh() {
     if (refreshing.current) return
@@ -102,18 +107,56 @@ export function WorldWorkspace({
   })
   useEffect(() => {
     mounted.current = true
-    const timer = window.setInterval(() => {
-      if (pending.current) return
-      if (current.current.route.length && !current.current.movementBlocked)
-        void sendRef.current({ kind: 'tick' })
-      else
-        void refreshRef.current().catch((error) => {
-          if (mounted.current) setMessage(error.message)
-        })
-    }, 1200)
+    let disposed = false
+
+    const clearTimer = () => {
+      if (timer.current === null) return
+      window.clearTimeout(timer.current)
+      timer.current = null
+    }
+
+    const schedule = () => {
+      clearTimer()
+      if (disposed || document.visibilityState === 'hidden') return
+
+      const plan = planWorldSync(current.current, Date.now() - acceptedAt.current)
+      timer.current = window.setTimeout(async () => {
+        timer.current = null
+        if (disposed || document.visibilityState === 'hidden') return
+
+        if (pending.current || refreshing.current) {
+          timer.current = window.setTimeout(schedule, WORLD_BUSY_RETRY_MS)
+          return
+        }
+
+        const latestPlan = planWorldSync(current.current, Date.now() - acceptedAt.current)
+        try {
+          if (latestPlan.kind === 'tick') await sendRef.current({ kind: 'tick' })
+          else await refreshRef.current()
+        } catch (error) {
+          if (mounted.current)
+            setMessage(error instanceof Error ? error.message : 'The world could not be refreshed.')
+        }
+
+        if (!disposed) schedule()
+      }, plan.delayMs)
+    }
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') clearTimer()
+      else schedule()
+    }
+
+    reschedule.current = schedule
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    schedule()
+
     return () => {
+      disposed = true
       mounted.current = false
-      window.clearInterval(timer)
+      reschedule.current = () => {}
+      clearTimer()
+      document.removeEventListener('visibilitychange', onVisibilityChange)
     }
   }, [])
   const sector = view.sectors.find((s) => s.id === selected) ?? view.sectors[0]!
