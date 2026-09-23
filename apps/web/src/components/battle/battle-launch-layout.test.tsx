@@ -26,6 +26,8 @@ describe('Battle Hall concept composition', () => {
     expect(markup).toContain('Create Battle Lobby')
     expect(markup).toContain('Join Battle Lobby')
     expect(markup).toContain('Spectate Battle')
+    expect(markup).not.toContain('Witness a battle by key.')
+    expect(markup).not.toContain('Watch a shared battle. Learn from every turn.')
     expect(markup).toContain('>Enter Battle<')
     expect(markup).not.toContain('Featured Matches')
     expect(markup).not.toContain('No battle selected.')

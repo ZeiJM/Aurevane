@@ -91,13 +91,13 @@ export function PracticePlanCard({ practice, report, hasReport = false }: Practi
       window: 'overnight',
       seconds: practice.overnightWindowSeconds,
       description: 'Moderate hourly return.',
-      imageAssetId: 'environment.archive.interior',
+      imageAssetId: 'environment.battle-hall.courtyard',
     },
     {
       window: 'extended',
       seconds: practice.extendedWindowSeconds,
       description: 'Lowest hourly return.',
-      imageAssetId: 'ui.foundation.vista',
+      imageAssetId: 'environment.archive.interior',
     },
   ]
 
@@ -203,7 +203,7 @@ export function PracticePlanCard({ practice, report, hasReport = false }: Practi
                   <AurevaneImage
                     assetId={option.imageAssetId}
                     className={styles.windowImage}
-                    sizes="6rem"
+                    sizes="7rem"
                   />
                 </div>
                 <div className={styles.windowBody}>
