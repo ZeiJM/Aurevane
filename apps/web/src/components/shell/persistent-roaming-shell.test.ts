@@ -1,0 +1,82 @@
+import { existsSync, readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+
+import { describe, expect, it } from 'vitest'
+
+function source(path: string) {
+  return readFileSync(resolve(process.cwd(), path), 'utf8')
+}
+
+const roamingPages = [
+  'src/app/game/(roaming)/character/page.tsx',
+  'src/app/game/(roaming)/arsenal/page.tsx',
+  'src/app/game/(roaming)/training/page.tsx',
+  'src/app/game/(roaming)/online/page.tsx',
+  'src/app/game/(roaming)/account/titles/page.tsx',
+  'src/app/game/(roaming)/settings/controls/page.tsx',
+] as const
+
+describe('persistent roaming shell architecture', () => {
+  it('owns one authenticated shell at the roaming layout boundary', () => {
+    const layoutPath = 'src/app/game/(roaming)/layout.tsx'
+    expect(existsSync(resolve(process.cwd(), layoutPath))).toBe(true)
+
+    const layout = source(layoutPath)
+    expect(layout).toContain('AuthenticatedShellFrame')
+    expect(layout).toContain('{children}')
+
+    for (const pagePath of roamingPages) {
+      expect(existsSync(resolve(process.cwd(), pagePath))).toBe(true)
+    }
+  })
+
+  it('keeps identity and battle boundaries outside the persistent layout', () => {
+    for (const path of [
+      'src/app/game/page.tsx',
+      'src/app/game/create',
+      'src/app/game/select',
+      'src/app/game/battle/page.tsx',
+      'src/app/game/battle/[battleSessionId]/page.tsx',
+      'src/app/game/battle/spectate/[battleKey]/page.tsx',
+    ]) {
+      expect(existsSync(resolve(process.cwd(), path))).toBe(true)
+    }
+  })
+
+  it('does not nest another authenticated shell inside roaming content', () => {
+    for (const pagePath of roamingPages) {
+      expect(source(pagePath)).not.toContain('<AuthenticatedShellFrame')
+    }
+
+    for (const componentPath of [
+      'src/components/character/character-profile-shell.tsx',
+      'src/components/character/character-arsenal-shell.tsx',
+      'src/components/wayfarers-practice/offline-training-shell.tsx',
+    ]) {
+      expect(source(componentPath)).not.toContain('<AuthenticatedShellFrame')
+    }
+  })
+
+  it('uses body-only persistence recovery inside the persistent shell', () => {
+    const shell = source('src/components/shell/authenticated-game-shell.tsx')
+    expect(shell).toContain('export function AuthenticatedGameRecoveryContent()')
+
+    for (const pagePath of [
+      'src/app/game/(roaming)/character/page.tsx',
+      'src/app/game/(roaming)/arsenal/page.tsx',
+      'src/app/game/(roaming)/training/page.tsx',
+      'src/app/game/(roaming)/account/titles/page.tsx',
+    ]) {
+      const page = source(pagePath)
+      expect(page).toContain('AuthenticatedGameRecoveryContent')
+      expect(page).not.toContain('<AuthenticatedGameRecovery />')
+    }
+  })
+
+  it('moves the Character page test with its route and keeps its logger mock resolvable', () => {
+    const testPath = 'src/app/game/(roaming)/character/page.test.ts'
+    expect(existsSync(resolve(process.cwd(), testPath))).toBe(true)
+    const testFile = source(testPath)
+    expect(testFile).toContain("import('../../../../server/logging')")
+  })
+})
