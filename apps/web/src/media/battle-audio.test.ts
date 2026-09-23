@@ -118,7 +118,7 @@ describe('committed battle audio', () => {
     expect(cursor.advance(13)).toBe(true)
     expect(cursor.advance(NaN)).toBe(false)
   })
-  it('ships every registered cue and generated identity with the recorded audio hashes', () => {
+  it('ships every registered cue with recorded hashes and resolves approved Bastion artwork', () => {
     const runtime = ['phase4-v01', 'phase4-ironfist-v01', 'phase4-chronist-v01'].flatMap((id) => {
       const release = JSON.parse(
         readFileSync(resolve(`../../content/media-releases/${id}.json`), 'utf8'),
@@ -149,7 +149,9 @@ describe('committed battle audio', () => {
     expect(phase4SkillArtwork('essence.bastion.last-bastion')).toBe(
       '/media/art/essence-skills/bastion-last-bastion-v01.webp',
     )
-    expect(phase4SkillArtwork('bastion.fortress')).toMatch(/^data:image\/svg/)
+    expect(phase4SkillArtwork('bastion.fortress')).toBe(
+      '/media/art/discipline-skills/bastion-fortress-v01.webp',
+    )
   })
   it('routes Ironfist regular and three-hit Essence actions to their own media family', () => {
     for (const [actionId, role, priority] of [
@@ -163,7 +165,9 @@ describe('committed battle audio', () => {
     expect(phase4SkillArtwork('essence.ironfist.hundredfold-rush')).toBe(
       '/media/art/essence-skills/ironfist-hundredfold-rush-v01.webp',
     )
-    expect(phase4SkillArtwork('ironfist.breakfall')).toBeNull()
+    expect(phase4SkillArtwork('ironfist.breakfall')).toBe(
+      '/media/art/discipline-skills/ironfist-breakfall-v01.webp',
+    )
     expect(phase4SkillArtwork('essence.ironfist.unknown')).toBeNull()
     expect(
       selectBattleAudioCues(

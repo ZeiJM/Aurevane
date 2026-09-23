@@ -53,6 +53,10 @@ async function expectHallFits(page: Page, label: string): Promise<void> {
     const hallRect = hall.getBoundingClientRect()
     const footerRect = footer.getBoundingClientRect()
     const concept = hall.matches('[data-hall-concept]')
+    const railRect = document
+      .querySelector('[data-battle-hall-workspace] [data-profile-identity-banner]')
+      ?.getBoundingClientRect()
+    const mainPaddingBottom = Number.parseFloat(getComputedStyle(main).paddingBottom)
     const controls = Array.from(hall.querySelectorAll('button, input, select, label, legend'))
       .filter((element) => element.checkVisibility())
       .map((element) => {
@@ -74,7 +78,11 @@ async function expectHallFits(page: Page, label: string): Promise<void> {
     return {
       pageOverflowY: document.documentElement.scrollHeight - window.innerHeight,
       concept,
-      enforceNoScroll: concept && window.innerWidth >= 1200 && window.innerHeight >= 700,
+      alignedDesktop: concept && window.innerWidth >= 1200,
+      railBottom: railRect?.bottom ?? null,
+      naturalRailOverflow: railRect
+        ? Math.max(0, railRect.bottom + mainPaddingBottom - mainRect.bottom)
+        : 0,
       pageOverflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       mainOverflowY: main.scrollHeight - main.clientHeight,
       mainOverflowX: main.scrollWidth - main.clientWidth,
@@ -83,12 +91,23 @@ async function expectHallFits(page: Page, label: string): Promise<void> {
       invalidControls: controls.filter((control) => control.outside || control.tooSmall),
     }
   })
-  if (!metrics.concept || metrics.enforceNoScroll) {
+  if (!metrics.concept || metrics.alignedDesktop) {
     expect(metrics.pageOverflowY, `${label}: document vertical overflow`).toBeLessThanOrEqual(1)
   }
   expect(metrics.pageOverflowX, `${label}: document horizontal overflow`).toBeLessThanOrEqual(1)
-  if (!metrics.concept || metrics.enforceNoScroll) {
+  if (!metrics.concept) {
     expect(metrics.mainOverflowY, `${label}: inner page vertical overflow`).toBeLessThanOrEqual(1)
+  }
+  if (metrics.alignedDesktop) {
+    expect(metrics.railBottom, `${label}: natural character rail exists`).not.toBeNull()
+    expect(
+      Math.abs(metrics.hallBottom - metrics.railBottom!),
+      `${label}: Hall ends with the natural character rail`,
+    ).toBeLessThanOrEqual(2)
+    expect(
+      metrics.mainOverflowY,
+      `${label}: page scrolling is bounded by the natural character rail`,
+    ).toBeLessThanOrEqual(Math.ceil(metrics.naturalRailOverflow) + 1)
   }
   expect(metrics.mainOverflowX, `${label}: inner page horizontal overflow`).toBeLessThanOrEqual(1)
   if (!metrics.concept) {
@@ -97,6 +116,9 @@ async function expectHallFits(page: Page, label: string): Promise<void> {
     )
   }
   expect(metrics.invalidControls, `${label}: clipped or undersized controls`).toEqual([])
+  if (metrics.alignedDesktop) {
+    await expectAboveFooter(page, page.locator('#battle-launch button:enabled:visible').last())
+  }
 }
 
 async function enterTestCharacter(page: Page, prefix: string): Promise<void> {

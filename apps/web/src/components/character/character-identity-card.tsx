@@ -36,7 +36,7 @@ export function CharacterIdentityCard({
       data-profile-identity-banner="true"
       data-av-surface="ink"
     >
-      <div className={styles.portraitFrame}>
+      <div className={styles.portraitFrame} data-character-portrait-frame>
         <div className={styles.portrait}>
           <CharacterPortraitImage
             imageUrl={imageUrl}
@@ -85,7 +85,7 @@ export function CharacterIdentityCard({
         </div>
       </section>
 
-      <div className={styles.resources}>
+      <div className={styles.resources} data-character-resources>
         <div className={styles.resource} data-character-resource="hp">
           <div>
             <span aria-hidden="true">♥</span>
@@ -112,7 +112,7 @@ export function CharacterIdentityCard({
         </div>
       </div>
 
-      <div className={styles.creed} title={disciplineSummary}>
+      <div className={styles.creed} title={disciplineSummary} data-character-creed>
         <span>Strength finds</span>
         <span>brighter ground</span>
       </div>

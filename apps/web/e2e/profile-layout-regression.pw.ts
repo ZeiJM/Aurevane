@@ -225,7 +225,7 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
     expect
       .soft(metrics.portraitFrameAfter, `${label}: no black bottom diamond ornament`)
       .toBe('none')
-    expect.soft(metrics.primaryLinks).toBe(4)
+    expect.soft(metrics.primaryLinks).toBe(5)
 
     const intellectHeaderSpacing = await page
       .locator('[data-profile-stat-group="intellect"] > header')

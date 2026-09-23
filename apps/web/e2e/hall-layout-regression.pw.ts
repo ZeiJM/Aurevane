@@ -134,7 +134,8 @@ test('Battle Hall shows one full-width parchment workspace at a time with all re
         vistaHeight: vista.height,
         modeHeights: modes.map((mode) => mode.height),
         modeBottomOverflow: Math.max(...modes.map((mode) => mode.bottom)) - body.bottom,
-        bodyOverflow: element.querySelector<HTMLElement>('[data-hall-scroll-body]')!.scrollHeight -
+        bodyOverflow:
+          element.querySelector<HTMLElement>('[data-hall-scroll-body]')!.scrollHeight -
           element.querySelector<HTMLElement>('[data-hall-scroll-body]')!.clientHeight,
       }
     })
@@ -153,7 +154,10 @@ test('Battle Hall shows one full-width parchment workspace at a time with all re
         .toBeGreaterThanOrEqual(58)
     }
     expect
-      .soft(aiSpace.modeBottomOverflow, 'AI mastery choice stays fully inside the visible workspace')
+      .soft(
+        aiSpace.modeBottomOverflow,
+        'AI mastery choice stays fully inside the visible workspace',
+      )
       .toBeLessThanOrEqual(1)
     const hallScrollbar = await ai.locator('[data-hall-scroll-body]').evaluate((element) => ({
       color: getComputedStyle(element).scrollbarColor,

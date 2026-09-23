@@ -27,4 +27,11 @@ export const gameNavigation = [
     symbol: '◷',
     icon: 'training',
   },
+  {
+    href: '/game/world',
+    label: 'World Map',
+    detail: 'Travel, explore, and find your place in the world',
+    symbol: '✥',
+    icon: 'world',
+  },
 ] as const

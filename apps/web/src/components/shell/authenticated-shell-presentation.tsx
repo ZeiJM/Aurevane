@@ -82,18 +82,20 @@ export function AuthenticatedShellPresentation({
           </div>
 
           <nav className={`${styles.headerLinks} ${railStyles.navigation}`} aria-label="Reference">
-            <Link href="/news" prefetch={false}>News</Link>
-            <Link href="/manual" prefetch={false}>Manual</Link>
-            <Link href="/rules" prefetch={false}>Rules</Link>
+            <Link href="/news" prefetch={false}>
+              News
+            </Link>
+            <Link href="/manual" prefetch={false}>
+              Manual
+            </Link>
+            <Link href="/rules" prefetch={false}>
+              Rules
+            </Link>
           </nav>
 
           <div className={`${railStyles.utility} ${styles.mastheadUtility}`}>
             {activeBattleHref ? (
-              <Link
-                className={styles.activeBattleLink}
-                href={activeBattleHref}
-                prefetch={false}
-              >
+              <Link className={styles.activeBattleLink} href={activeBattleHref} prefetch={false}>
                 <span aria-hidden="true">●</span> IN BATTLE
               </Link>
             ) : activeSpectatingHref ? (

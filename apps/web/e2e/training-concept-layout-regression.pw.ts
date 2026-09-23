@@ -176,6 +176,22 @@ test('training uses the approved character rail and parchment three-workspace co
 
   const rewardValues = page.locator('[aria-label="Passive Training durations"] dd')
   await expect(rewardValues).toHaveCount(6)
+  const obscuredRewards = await durationCards.evaluateAll((cards) =>
+    cards.flatMap((card) => {
+      const button = card.querySelector('button')?.getBoundingClientRect()
+      if (!button) return ['Missing duration action']
+      return Array.from(card.querySelectorAll('dl dt, dl dd')).flatMap((label) => {
+        const bounds = label.getBoundingClientRect()
+        const overlaps =
+          bounds.left < button.right &&
+          bounds.right > button.left &&
+          bounds.top < button.bottom &&
+          bounds.bottom > button.top
+        return overlaps ? [label.textContent] : []
+      })
+    }),
+  )
+  expect(obscuredRewards, 'Duration actions must not cover reward labels or values').toEqual([])
   expect(
     await rewardValues
       .first()

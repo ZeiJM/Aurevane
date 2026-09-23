@@ -1,4 +1,5 @@
 'use client'
+import { EventNavigationFields } from '@/components/world/event-navigation-fields'
 
 import { useMemo, useState } from 'react'
 
@@ -706,6 +707,12 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
                         })
                       }
                       aria-label="Objective target"
+                    />
+                    <EventNavigationFields
+                      value={entry.worldNavigation}
+                      onChange={(worldNavigation) =>
+                        patchObjective(phaseIndex, objectiveIndex, { worldNavigation })
+                      }
                     />
                     <button
                       type="button"

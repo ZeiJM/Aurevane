@@ -1,3 +1,4 @@
+import { WORLD_ART } from './world-art'
 import { disciplineSigilArtwork } from './discipline-sigil-art'
 import { GENERATED_STARTER_PORTRAITS_1 } from './generated-starter-portraits-1'
 import { GENERATED_STARTER_PORTRAITS_2 } from './generated-starter-portraits-2'
@@ -68,6 +69,7 @@ const legacySquareStarterPortraitAssetIds = [
 ] as const
 
 const IMAGE_ASSETS = [
+  ...WORLD_ART,
   ...phase4Sigils.map(([discipline, requestId]) => ({
     id: `art.phase4.${discipline}.identity.v01`,
     kind: 'icon' as const,

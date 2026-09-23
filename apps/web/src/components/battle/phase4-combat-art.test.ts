@@ -1,5 +1,7 @@
 import * as matureSkills from '@aurevane/game-core/combat/mature-skills'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+import * as regularSkillArt from '../../media/regular-skill-art'
 
 import { phase4SkillArtwork } from './phase4-combat-art'
 
@@ -18,7 +20,21 @@ function effectBadge(source: string): string {
   )
 }
 
-describe('Phase 4 Skill effect artwork', () => {
+describe('approved Chronist Skill artwork', () => {
+  it.each(['haste', 'delay'])('uses approved artwork for %s', (skill) => {
+    expect(phase4SkillArtwork(`chronist.${skill}`)).toBe(
+      `/media/art/discipline-skills/chronist-${skill}-v01.webp`,
+    )
+  })
+})
+
+describe('Phase 4 generated Skill effect artwork fallback', () => {
+  beforeEach(() => {
+    // Exercise fallback geometry independently of the growing approved-art registry.
+    vi.spyOn(regularSkillArt, 'regularSkillArtwork').mockReturnValue(null)
+  })
+  afterEach(() => vi.restoreAllMocks())
+
   it.each(affectedSkillIds)('renders a visible effect badge for %s', (skillId) => {
     const artwork = phase4SkillArtwork(skillId)
     expect(artwork).toMatch(/^data:image\/svg\+xml,/)

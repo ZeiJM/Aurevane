@@ -22,9 +22,7 @@ describe('Master Panel Skill media editor', () => {
       '<option value="skill.lifebinder.mend.icon" selected="">Mend · lifebinder</option>',
     )
     expect(markup).toContain('aria-label="Skill artwork preview"')
-    expect(markup).toContain('data:image/svg+xml,')
-    expect(markup).toContain('data-art-kind%3D%22discipline-skill-action%22')
-    expect(markup).toContain('data-action-figure%3D%22true%22')
+    expect(markup).toContain('src="/media/art/discipline-skills/lifebinder-mend-v01.webp"')
     expect(markup).toContain('aria-label="Skill audio hook"')
     expect(markup).toContain(
       '<option value="skill.ironfist.breakfall.audio" selected="">Breakfall · ironfist</option>',

@@ -399,11 +399,13 @@ test('Master combat authoring publishes versioned content, pins battles, and rol
 
   await page.getByLabel('Skill artwork hook').selectOption('skill.lifebinder.mend.icon')
   const artworkPreview = page.getByLabel('Skill artwork preview').locator('img')
-  await expect(artworkPreview).toHaveAttribute('src', /^data:image\/svg\+xml,/)
   await expect(artworkPreview).toHaveAttribute(
     'src',
-    /width%3D%22512%22.*height%3D%22512%22.*data-art-kind%3D%22discipline-skill-action%22/,
+    '/media/art/discipline-skills/lifebinder-mend-v01.webp',
   )
+  await expect
+    .poll(() => artworkPreview.evaluate((image: HTMLImageElement) => image.naturalWidth))
+    .toBeGreaterThan(0)
   await page.getByLabel('Skill audio hook').selectOption('skill.ironfist.breakfall.audio')
   await expect(page.getByLabel('Battle audio preview')).toHaveAttribute(
     'src',
@@ -457,11 +459,13 @@ test('Master combat authoring publishes versioned content, pins battles, and rol
   expect(pinnedSkillVersion(newBattlePayload, SKILL_ID)).toBe(newVersion)
   const publishedSkillButton = page.getByRole('button', { name: /Selected Forceful Strike/ })
   const publishedSkillArtwork = publishedSkillButton.locator('img')
-  await expect(publishedSkillArtwork).toHaveAttribute('src', /^data:image\/svg\+xml,/)
   await expect(publishedSkillArtwork).toHaveAttribute(
     'src',
-    /width%3D%22512%22.*height%3D%22512%22.*data-art-kind%3D%22discipline-skill-action%22/,
+    '/media/art/discipline-skills/lifebinder-mend-v01.webp',
   )
+  await expect
+    .poll(() => publishedSkillArtwork.evaluate((image: HTMLImageElement) => image.naturalWidth))
+    .toBeGreaterThan(0)
 
   await page.goto('/master/combat-content')
   await selectAuthoringSkill(page)

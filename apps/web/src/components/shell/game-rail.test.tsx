@@ -17,7 +17,7 @@ function renderRail(props: Parameters<typeof GameRail>[0] = {}) {
 }
 
 describe('shared game rail', () => {
-  it('exposes only Character, Arsenal, Battle Hall, and Training without duplicating identity', () => {
+  it('exposes Character, Arsenal, Battle Hall, Training and World Map without duplicating identity', () => {
     navigationState.pathname = '/game/character'
     const markup = renderRail()
     const destinations = [
@@ -25,6 +25,7 @@ describe('shared game rail', () => {
       ['/game/arsenal', 'Arsenal'],
       ['/game/battle', 'Battle Hall'],
       ['/game/training', 'Passive Training'],
+      ['/game/world', 'World Map'],
     ] as const
     for (const [href, label] of destinations) {
       expect(markup).toContain(`href="${href}"`)
@@ -55,7 +56,7 @@ describe('shared game rail', () => {
       activeSessionHref: href as Route,
       activeSessionLabel: label,
     })
-    expect(markup.match(/disabled=""/g)).toHaveLength(4)
+    expect(markup.match(/disabled=""/g)).toHaveLength(5)
     expect(markup).toContain(`href="${href}"`)
     expect(markup).toContain(label)
     expect(markup).not.toContain('href="/game/character"')

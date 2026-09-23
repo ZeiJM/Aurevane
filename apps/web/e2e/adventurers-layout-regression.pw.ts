@@ -192,7 +192,9 @@ test('Adventurers roster preserves browsing and public-profile privacy in the ne
   await expect(dialog.getByText('Keeper of the Last Light', { exact: true })).toBeVisible()
   await expect(dialog.getByText('Vanguard', { exact: true })).toBeVisible()
   await expect(dialog.getByText('Aetherist', { exact: true })).toBeVisible()
-  await expect(dialog.getByRole('button', { name: 'Close public character profile' })).toHaveCount(0)
+  await expect(dialog.getByRole('button', { name: 'Close public character profile' })).toHaveCount(
+    0,
+  )
   await expect(dialog).not.toContainText('Public profiles intentionally omit')
   await expect(dialog).not.toContainText('Send Direct Message')
   await expect(dialog).not.toContainText('Add Friend')

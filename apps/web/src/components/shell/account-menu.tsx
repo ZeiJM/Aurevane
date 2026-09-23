@@ -125,12 +125,7 @@ export function AccountMenu({
               {activeSessionLabel ?? 'Return to Active Session'}
             </Link>
           ) : pathname !== '/game' ? (
-            <Link
-              href="/game"
-              prefetch={false}
-              role="menuitem"
-              onClick={() => setOpen(false)}
-            >
+            <Link href="/game" prefetch={false} role="menuitem" onClick={() => setOpen(false)}>
               Switch Character
             </Link>
           ) : null}
