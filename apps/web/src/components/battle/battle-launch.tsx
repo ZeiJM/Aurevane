@@ -441,9 +441,7 @@ export function BattleLaunch({ characterId, initialJoinKey = null }: BattleLaunc
                   value={arenaId}
                   onChange={(event) => setArenaId(event.target.value as TacticalHallArenaId)}
                   disabled={
-                    pending ||
-                    recordId === 'guided-fundamentals' ||
-                    recordId === 'mastery-trial'
+                    pending || recordId === 'guided-fundamentals' || recordId === 'mastery-trial'
                   }
                 >
                   {(recordId === 'guided-fundamentals'
