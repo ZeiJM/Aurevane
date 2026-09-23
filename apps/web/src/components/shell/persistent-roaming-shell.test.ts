@@ -96,6 +96,7 @@ describe('persistent roaming shell architecture', () => {
       } else {
         expect(workflow).toContain('apps/web/src/app/game/(roaming)/character/page.tsx')
         expect(workflow).not.toContain('apps/web/src/app/game/character/page.tsx')
+        expect(workflow).not.toContain('src/app/game/character/')
       }
     }
   })

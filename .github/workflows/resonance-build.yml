@@ -120,7 +120,7 @@ jobs:
               "src/server/character/character-build-service.ts",
               "src/server/character/character-build-service.test.ts",
               "src/server/character/supabase-character-build-repository.ts",
-              "src/app/game/character/page.tsx",
+              "src/app/game/(roaming)/character/page.tsx",
               "src/components/character/character-profile-shell.tsx",
               "src/components/character/character-skill-build-panel.tsx",
               "src/app/game/battle/[battleSessionId]/page.tsx",

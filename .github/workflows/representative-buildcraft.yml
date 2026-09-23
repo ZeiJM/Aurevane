@@ -242,7 +242,7 @@ jobs:
       - name: Focused shared targeting and presentation tests
         run: |
           pnpm --filter @aurevane/web exec vitest run \
-            src/app/game/character/page.test.ts \
+            'src/app/game/(roaming)/character/page.test.ts' \
             src/components/battle/battle-skill-command.test.tsx \
             src/components/battle/phase4-combat-art.test.ts \
             src/components/battle/battle-geometry.test.ts \
