@@ -30,7 +30,7 @@ export interface SiteMusicConfig extends SiteMusicDraft {
 
 export const DEFAULT_SITE_MUSIC_TRACK: SiteMusicTrack = {
   label: 'Road to Aurevane',
-  url: 'https://luazfeupwfgnilohfsya.supabase.co/storage/v1/object/public/site-music/defaults/road-to-aurevane.webm',
+  url: '/media/audio/music/road-to-aurevane.webm',
   source: 'bundled',
   loop: true,
 }
