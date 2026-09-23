@@ -463,6 +463,12 @@
     min-height: 0;
     box-sizing: border-box;
   }
+
+  .windowGrid {
+    flex: 1 1 auto;
+    align-content: space-between;
+    padding-block: 0.12rem;
+  }
 }
 
 @media (min-width: 1200px) and (max-height: 900px) {

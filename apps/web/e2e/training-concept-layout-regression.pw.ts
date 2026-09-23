@@ -112,6 +112,20 @@ test('training uses the approved character rail and parchment three-workspace co
           'Training Report matches plan height',
         )
         .toBeLessThanOrEqual(2)
+
+      const planSpacing = await planner.evaluate((panel) => {
+        const grid = panel.querySelector<HTMLElement>('[aria-label="Passive Training durations"]')
+        if (!grid) throw new Error('Missing Passive Training duration grid.')
+        const cards = [...grid.querySelectorAll<HTMLElement>('article')].map((card) =>
+          card.getBoundingClientRect(),
+        )
+        return {
+          alignContent: getComputedStyle(grid).alignContent,
+          gaps: cards.slice(1).map((card, index) => card.top - cards[index]!.bottom),
+        }
+      })
+      expect(planSpacing.alignContent).toBe('space-between')
+      expect(Math.min(...planSpacing.gaps)).toBeGreaterThanOrEqual(6)
     }
   }
 
