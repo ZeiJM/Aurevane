@@ -20,6 +20,7 @@ describe('P2.7 Battle Hall teaching records', () => {
     expect(getTacticalHallRecord('guided-fundamentals').combinedDuel).toBe(false)
     expect(getTacticalHallRecord('guided-fundamentals').defaultArenaId).toBe('duel-yard')
     expect(getTacticalHallRecord('recruit-sparring').combinedDuel).toBe(true)
+    expect(getTacticalHallRecord('mastery-trial').defaultArenaId).toBe('terraced-yard')
     expect(
       P2_7_TACTICAL_HALL_RECORDS.filter(
         (record) => record.id !== 'guided-fundamentals' && !record.combinedDuel,
