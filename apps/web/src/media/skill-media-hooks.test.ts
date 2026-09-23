@@ -5,6 +5,7 @@ import {
   isRegisteredSkillIconHook,
   registeredSkillArtworkSource,
   resolveSkillAudioCueHook,
+  resolveSkillAudioPreviewAssets,
   resolveSkillIconHook,
   skillAudioCueHookOptions,
   skillIconHookOptions,
@@ -72,6 +73,16 @@ describe('Skill media hook registry', () => {
         ),
       ).toBe(true)
     }
+    const vanguardPreviews = resolveSkillAudioPreviewAssets('skill.vanguard.forceful-strike.audio')
+    expect(vanguardPreviews).toHaveLength(6)
+    expect(vanguardPreviews.map((asset) => asset.assetId)).toEqual([
+      'audio.phase4.vanguard-action-v01-1',
+      'audio.phase4.vanguard-action-v01-2',
+      'audio.phase4.vanguard-action-v01-3',
+      'audio.phase4.vanguard-essence-v01-1',
+      'audio.phase4.vanguard-essence-v01-2',
+      'audio.phase4.vanguard-essence-v01-3',
+    ])
     expect(skillAudioCueHookOptions.length).toBeGreaterThan(10)
     expect(isRegisteredSkillAudioCueHook('skill.vanguard.forceful-strike.audio')).toBe(true)
     expect(isRegisteredSkillAudioCueHook('essence.aetherist.aether-nova.audio')).toBe(true)
