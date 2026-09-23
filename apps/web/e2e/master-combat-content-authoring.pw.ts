@@ -407,7 +407,7 @@ test('Master combat authoring publishes versioned content, pins battles, and rol
   await page.getByLabel('Skill audio hook').selectOption('skill.ironfist.breakfall.audio')
   await expect(page.getByLabel('Battle audio preview')).toHaveAttribute(
     'src',
-    /ironfist-action-v01-1\.mp3$/,
+    /ironfist-action-v02-1\.wav$/,
   )
 
   await runMasterOperation(page, 'validate', 'Validate')

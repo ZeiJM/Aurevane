@@ -1,4 +1,4 @@
-import { PHASE4_AUDIO_DISCIPLINES } from '@aurevane/audio'
+import { PHASE4_AUDIO_DISCIPLINES, PHASE4_DISCIPLINE_AUDIO_VERSION } from '@aurevane/audio'
 import type { BattleEventRecord } from '@aurevane/db/battle-session'
 import { parseCopiedSkillCommandId } from '@aurevane/game-core/combat/combat-skill-copy'
 
@@ -59,8 +59,11 @@ export function selectBattleAudioCues(
     }
     if (!family) continue
     const key = `${family}-${role}`
+    const audioVersion = PHASE4_AUDIO_DISCIPLINES.some((id) => id === family)
+      ? PHASE4_DISCIPLINE_AUDIO_VERSION
+      : 'v01'
     selected.set(key, {
-      assetId: `audio.phase4.${key}-v01-${(version % 3) + 1}`,
+      assetId: `audio.phase4.${key}-${audioVersion}-${(version % 3) + 1}`,
       priority,
     })
   }

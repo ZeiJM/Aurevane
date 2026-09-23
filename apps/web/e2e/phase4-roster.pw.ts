@@ -147,14 +147,14 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
         battleVersion: battle.battleVersion,
         cues: [
           {
-            assetId: `audio.phase4.ironfist-action-v01-${(battle.battleVersion % 3) + 1}`,
+            assetId: `audio.phase4.ironfist-action-v02-${(battle.battleVersion % 3) + 1}`,
             priority: 70,
           },
         ],
       })
       const assetResponse = await sound
       expect([200, 206]).toContain(assetResponse.status())
-      expect(assetResponse.headers()['content-type']).toContain('audio/mpeg')
+      expect(assetResponse.headers()['content-type']).toContain('audio/wav')
       expect((await assetResponse.body()).byteLength).toBeGreaterThan(0)
       expect(
         battle.snapshot.statusState.flatMap((row: { statuses: unknown[] }) => row.statuses),
@@ -352,7 +352,7 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
     battleVersion: battle.battleVersion,
     cues: [
       {
-        assetId: `audio.phase4.bastion-action-v01-${(battle.battleVersion % 3) + 1}`,
+        assetId: `audio.phase4.bastion-action-v02-${(battle.battleVersion % 3) + 1}`,
         priority: 70,
       },
     ],
@@ -360,7 +360,7 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
   const audioAssetResponse = await playedAsset
   // HTMLAudioElement may request a byte range; 206 is successful media delivery.
   expect([200, 206]).toContain(audioAssetResponse.status())
-  expect(audioAssetResponse.headers()['content-type']).toContain('audio/mpeg')
+  expect(audioAssetResponse.headers()['content-type']).toContain('audio/wav')
   expect((await audioAssetResponse.body()).byteLength).toBeGreaterThan(0)
   expect(
     battle.snapshot.statusState.flatMap((row: { statuses: unknown[] }) => row.statuses),
