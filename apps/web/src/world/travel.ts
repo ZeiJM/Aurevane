@@ -11,8 +11,12 @@ export function worldSyncDelayMs(state: {
   serverNow: number
 }) {
   if (state.routeLength > 0 && !state.movementBlocked) {
-    if (state.nextStepAt !== null)
-      return Math.max(MIN_ACTIVE_WORLD_SYNC_MS, state.nextStepAt - state.serverNow)
+    if (state.nextStepAt !== null) {
+      const untilDue = state.nextStepAt - state.serverNow
+      return untilDue <= 0
+        ? MIN_ACTIVE_WORLD_SYNC_MS
+        : Math.max(ACTIVE_WORLD_SYNC_MS, untilDue)
+    }
     return ACTIVE_WORLD_SYNC_MS
   }
   return IDLE_WORLD_SYNC_MS
