@@ -133,6 +133,7 @@ test('Battle Hall shows one full-width parchment workspace at a time with all re
         vistaWidth: vista.width,
         vistaHeight: vista.height,
         modeHeights: modes.map((mode) => mode.height),
+        modeBottomOverflow: Math.max(...modes.map((mode) => mode.bottom)) - body.bottom,
       }
     })
     expect
@@ -149,6 +150,9 @@ test('Battle Hall shows one full-width parchment workspace at a time with all re
         .soft(height, 'AI mode choices have comfortable vertical breathing room')
         .toBeGreaterThanOrEqual(58)
     }
+    expect
+      .soft(aiSpace.modeBottomOverflow, 'AI mastery choice stays fully inside the visible workspace')
+      .toBeLessThanOrEqual(1)
   }
 
   await expect(page.getByLabel('Battle mode')).toHaveValue('recruit-sparring')
