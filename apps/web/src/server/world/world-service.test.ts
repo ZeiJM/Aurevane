@@ -3,6 +3,7 @@ vi.mock('server-only', () => ({}))
 import { newWorldState, revealNearby } from '@/world/travel'
 import { FRONTIER_APPROACH } from '@/world/catalog'
 import { assertEncounterRange, projectWorld, resolveWorldIntent } from './world-service'
+import { EASTERN_WATCH, EASTERN_WATCH_INTERACTION_ID, VERDANT_SETTLEMENT } from './world-objectives'
 
 describe('world authority and spoiler projection', () => {
   it.each([
@@ -238,13 +239,84 @@ describe('world authority and spoiler projection', () => {
     ]
     expect(projectWorld(state, players, 1000).players).toEqual([])
   })
-  it('persists discovery and completes a reached quest once', () => {
-    const state = { ...newWorldState(), position: { sectorId: 'verdant-expanse', x: 12, y: 4 } }
+  it('persists discovery and completes an arrival objective once', () => {
+    const state = { ...newWorldState(), position: FRONTIER_APPROACH }
     const next = resolveWorldIntent(state, { kind: 'tick' }, 1000)
-    expect(next.completedObjectives).toEqual(['eastern-watch'])
+    expect(next.completedObjectives).toEqual(['last-survey'])
     expect(resolveWorldIntent(next, { kind: 'tick' }, 2000).completedObjectives).toEqual([
-      'eastern-watch',
+      'last-survey',
     ])
+  })
+
+  it('requires accept, inspect and return before completing the Eastern Watch objective', () => {
+    const remote = newWorldState()
+    expect(() =>
+      resolveWorldIntent(
+        remote,
+        { kind: 'interact', interactionId: EASTERN_WATCH_INTERACTION_ID },
+        1000,
+      ),
+    ).toThrow()
+
+    let state = { ...newWorldState(), position: VERDANT_SETTLEMENT }
+    let view = projectWorld(state, [], 1000)
+    expect(view.objectives.find((objective) => objective.id === 'eastern-watch')).toMatchObject({
+      progress: 'available',
+      destination: null,
+      completed: false,
+    })
+    expect(view.interactions).toEqual([
+      expect.objectContaining({
+        id: EASTERN_WATCH_INTERACTION_ID,
+        speaker: 'Watch officer',
+        actionLabel: 'Accept objective',
+      }),
+    ])
+
+    state = resolveWorldIntent(
+      state,
+      { kind: 'interact', interactionId: EASTERN_WATCH_INTERACTION_ID },
+      1100,
+    )
+    view = projectWorld(state, [], 1100)
+    expect(view.objectives.find((objective) => objective.id === 'eastern-watch')).toMatchObject({
+      progress: 'active',
+      destination: EASTERN_WATCH,
+      completed: false,
+    })
+
+    state = resolveWorldIntent({ ...state, position: EASTERN_WATCH }, { kind: 'tick' }, 1200)
+    view = projectWorld(state, [], 1200)
+    expect(view.objectives.find((objective) => objective.id === 'eastern-watch')).toMatchObject({
+      progress: 'ready',
+      destination: VERDANT_SETTLEMENT,
+      completed: false,
+    })
+    expect(view.interactions).toEqual([])
+
+    state = resolveWorldIntent(
+      { ...state, position: VERDANT_SETTLEMENT },
+      { kind: 'interact', interactionId: EASTERN_WATCH_INTERACTION_ID },
+      1300,
+    )
+    view = projectWorld(state, [], 1300)
+    expect(state.completedObjectives).toEqual(['eastern-watch'])
+    expect(view.objectives.find((objective) => objective.id === 'eastern-watch')).toMatchObject({
+      progress: 'completed',
+      destination: null,
+      completed: true,
+    })
+    expect(view.interactions[0]).toMatchObject({
+      actionLabel: null,
+      progress: 'completed',
+    })
+    expect(() =>
+      resolveWorldIntent(
+        state,
+        { kind: 'interact', interactionId: EASTERN_WATCH_INTERACTION_ID },
+        1400,
+      ),
+    ).toThrow()
   })
 })
 

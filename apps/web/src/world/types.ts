@@ -8,6 +8,7 @@ export interface TravelStep {
   durationMs: number
   road?: string
 }
+export type WorldObjectiveProgress = 'available' | 'active' | 'ready' | 'completed'
 export interface WorldState {
   version: number
   position: WorldPosition
@@ -16,6 +17,7 @@ export interface WorldState {
   nextStepAt: number | null
   discoveries: Record<string, number[]>
   completedObjectives: string[]
+  objectiveProgress?: Record<string, WorldObjectiveProgress>
 }
 export interface WorldRegion {
   id: string
@@ -64,6 +66,16 @@ export interface WorldObjective {
   guidance: 'exact' | 'clue'
   destination: WorldPosition | null
   completed: boolean
+  progress?: WorldObjectiveProgress
+}
+export interface WorldInteraction {
+  id: string
+  objectiveId: string
+  title: string
+  speaker: string
+  body: string
+  actionLabel: string | null
+  progress: WorldObjectiveProgress
 }
 export interface WorldPlayer {
   characterId: string
@@ -96,6 +108,7 @@ export interface WorldView {
   sectors: WorldSectorView[]
   players: WorldPlayer[]
   objectives: WorldObjective[]
+  interactions: WorldInteraction[]
   battleSessionId: string | null
   movementBlocked: string | null
 }
@@ -105,6 +118,7 @@ export type WorldIntent =
   | { kind: 'stop' }
   | { kind: 'tick' }
   | { kind: 'cross' }
+  | { kind: 'interact'; interactionId: string }
   | { kind: 'attack'; targetId: string }
 export interface WorldCommand {
   characterId: string

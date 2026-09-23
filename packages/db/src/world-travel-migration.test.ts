@@ -104,6 +104,7 @@ beforeAll(async () => {
     ),
   )
   await db.exec(migration('20260922203418_living_atlas_world_travel.sql'))
+  await db.exec(migration('20260923194500_phase5_world_interactions.sql'))
 }, 30000)
 beforeEach(async () => {
   await db.exec('begin')
@@ -169,6 +170,33 @@ it('makes command replay harmless and rejects stale or premature movement', asyn
     position: initial.position,
   })
 })
+it('accepts idempotent interaction commits but forbids interaction movement', async () => {
+  const accepted = {
+    ...initial,
+    objectiveProgress: { 'eastern-watch': 'active' },
+  }
+  await commit(1, 'interact', accepted)
+  await commit(1, 'interact', accepted)
+  expect((await read()).rows[0]?.result.state).toMatchObject({
+    version: 2,
+    objectiveProgress: { 'eastern-watch': 'active' },
+  })
+  await rejected(
+    () =>
+      commit(
+        2,
+        'interact',
+        {
+          ...accepted,
+          version: 2,
+          position: { ...initial.position, x: 6 },
+        },
+        '00000000-0000-4000-8000-000000000098',
+      ),
+    'WORLD_INVALID_INTERACTION',
+  )
+})
+
 it('blocks training and interrupts routes for every combat entry', async () => {
   await commit(1, 'walk', {
     ...initial,

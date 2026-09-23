@@ -31,6 +31,12 @@ export function parseWorldCommand(value: unknown): WorldCommand | null {
       return null
     intent = { kind: 'walk', destination: { sectorId: p.sectorId, x: p.x, y: p.y } }
   } else if (
+    input.kind === 'interact' &&
+    typeof input.interactionId === 'string' &&
+    /^[a-z0-9][a-z0-9-]{0,99}$/.test(input.interactionId)
+  )
+    intent = { kind: 'interact', interactionId: input.interactionId }
+  else if (
     input.kind === 'autopath' &&
     typeof input.objectiveId === 'string' &&
     input.objectiveId.length <= 100
