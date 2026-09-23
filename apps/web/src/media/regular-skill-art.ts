@@ -54,6 +54,15 @@ export const REGULAR_SKILL_ART = {
   'aetherist.mana-shield': '/media/art/discipline-skills/aetherist-mana-shield-v01.webp',
   'aetherist.chain-spark': '/media/art/discipline-skills/aetherist-chain-spark-v01.webp',
   'aetherist.overchannel': '/media/art/discipline-skills/aetherist-overchannel-v01.webp',
+
+  'chronist.temporal-bolt': '/media/art/discipline-skills/chronist-temporal-bolt-v01.webp',
+  'chronist.haste': '/media/art/discipline-skills/chronist-haste-v01.webp',
+  'chronist.slow': '/media/art/discipline-skills/chronist-slow-v01.webp',
+  'chronist.delay': '/media/art/discipline-skills/chronist-delay-v01.webp',
+  'chronist.rewind-step': '/media/art/discipline-skills/chronist-rewind-step-v01.webp',
+  'chronist.time-lock': '/media/art/discipline-skills/chronist-time-lock-v01.webp',
+  'chronist.temporal-ward': '/media/art/discipline-skills/chronist-temporal-ward-v01.webp',
+  'chronist.stolen-moment': '/media/art/discipline-skills/chronist-stolen-moment-v01.webp',
 } as const
 
 export type RegularSkillArtId = keyof typeof REGULAR_SKILL_ART

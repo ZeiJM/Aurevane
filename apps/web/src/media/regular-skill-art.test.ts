@@ -7,10 +7,10 @@ import { describe, expect, it } from 'vitest'
 
 import { REGULAR_SKILL_ART, regularSkillArtwork } from './regular-skill-art'
 
-describe('approved regular Discipline Skill action art — first 48', () => {
-  it('maps exactly the approved 48 current Skills to unique committed WebPs', () => {
+describe('approved regular Discipline Skill action art — first 56', () => {
+  it('maps exactly the approved 56 current Skills to unique committed WebPs', () => {
     const entries = Object.entries(REGULAR_SKILL_ART)
-    expect(entries).toHaveLength(48)
+    expect(entries).toHaveLength(56)
 
     const counts = entries.reduce<Record<string, number>>((result, [id]) => {
       const discipline = id.split('.')[0]!
@@ -24,6 +24,7 @@ describe('approved regular Discipline Skill action art — first 48', () => {
       lifebinder: 8,
       ironfist: 8,
       aetherist: 8,
+      chronist: 8,
     })
 
     const currentIds = new Set(latestEnabledMatureSkills().map((skill) => skill.id))
@@ -51,6 +52,12 @@ describe('approved regular Discipline Skill action art — first 48', () => {
     expect(regularSkillArtwork('aetherist.overchannel')).toBe(
       '/media/art/discipline-skills/aetherist-overchannel-v01.webp',
     )
-    expect(regularSkillArtwork('chronist.temporal-bolt')).toBeNull()
+    expect(regularSkillArtwork('chronist.temporal-bolt')).toBe(
+      '/media/art/discipline-skills/chronist-temporal-bolt-v01.webp',
+    )
+    expect(regularSkillArtwork('chronist.stolen-moment')).toBe(
+      '/media/art/discipline-skills/chronist-stolen-moment-v01.webp',
+    )
+    expect(regularSkillArtwork('bastion.shield-bash')).toBeNull()
   })
 })
