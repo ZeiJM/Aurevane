@@ -1,6 +1,12 @@
 import { GRID_HEIGHT, GRID_WIDTH, START_POSITION, STEP_MS } from './catalog'
 import type { TravelStep, WorldObjective, WorldPosition, WorldSector, WorldState } from './types'
 
+export const ACTIVE_WORLD_SYNC_MS = 1200
+export const IDLE_WORLD_SYNC_MS = 10000
+export function worldSyncIntervalMs(state: { routeLength: number; movementBlocked: boolean }) {
+  return state.routeLength > 0 && !state.movementBlocked ? ACTIVE_WORLD_SYNC_MS : IDLE_WORLD_SYNC_MS
+}
+
 export const positionKey = (p: WorldPosition) => `${p.sectorId}:${p.x}:${p.y}`
 export function samePosition(a: WorldPosition, b: WorldPosition) {
   return positionKey(a) === positionKey(b)
