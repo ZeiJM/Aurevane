@@ -76,7 +76,7 @@ describe('audio settings', () => {
     expect(parsePersistedAudioSettings(legacy)).toEqual({
       muted: false,
       volumes: {
-        master: 0.8,
+        master: 1,
         music: 0.33,
         sfx: 0.44,
         ambience: 0.44,
