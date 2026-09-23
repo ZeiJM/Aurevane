@@ -440,11 +440,17 @@ export function BattleLaunch({ characterId, initialJoinKey = null }: BattleLaunc
                   aria-label="AI sparring arena"
                   value={arenaId}
                   onChange={(event) => setArenaId(event.target.value as TacticalHallArenaId)}
-                  disabled={pending || recordId === 'guided-fundamentals'}
+                  disabled={
+                    pending ||
+                    recordId === 'guided-fundamentals' ||
+                    recordId === 'mastery-trial'
+                  }
                 >
                   {(recordId === 'guided-fundamentals'
                     ? ARENAS.filter((arena) => arena.id === 'basic-training-floor')
-                    : ARENAS.filter((arena) => arena.id !== 'basic-training-floor')
+                    : recordId === 'mastery-trial'
+                      ? ARENAS.filter((arena) => arena.id === 'terraced-yard')
+                      : ARENAS.filter((arena) => arena.id !== 'basic-training-floor')
                   ).map((arena) => (
                     <option key={arena.id} value={arena.id}>
                       {arena.name} · {arena.scale}
