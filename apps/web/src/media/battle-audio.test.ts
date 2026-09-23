@@ -163,7 +163,9 @@ describe('committed battle audio', () => {
     expect(phase4SkillArtwork('essence.ironfist.hundredfold-rush')).toBe(
       '/media/art/essence-skills/ironfist-hundredfold-rush-v01.webp',
     )
-    expect(phase4SkillArtwork('ironfist.breakfall')).toBeNull()
+    expect(phase4SkillArtwork('ironfist.breakfall')).toBe(
+      '/media/art/discipline-skills/ironfist-breakfall-v01.webp',
+    )
     expect(phase4SkillArtwork('essence.ironfist.unknown')).toBeNull()
     expect(
       selectBattleAudioCues(
