@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { execFileSync, spawn } from 'node:child_process'
 import { expect, test, type APIResponse, type Page, type TestInfo } from '@playwright/test'
+import type { SetPracticePlanRequest } from '@aurevane/validation/player/wayfarers-practice'
 import { provisionAccountAndEnterCharacter, openOfflineTraining } from './pv1f-test-helpers'
 import { WORLD_REGIONS } from '../src/world/catalog'
 import { newWorldState } from '../src/world/travel'
@@ -794,10 +795,11 @@ for (const change of ['training', 'build'] as const)
           if (change === 'training') {
             const response = await opponent.request.post('/api/wayfarers-practice/plan', {
               data: {
+                version: 1,
                 characterId: target.characterId,
                 plannedWindow: 'short',
                 idempotencyKey: randomUUID(),
-              },
+              } satisfies SetPracticePlanRequest,
               timeout: 10000,
             })
             expect(response.status()).toBe(201)
