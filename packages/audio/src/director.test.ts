@@ -4,6 +4,7 @@ import type { AudioAssetDescriptor } from './registry'
 import { createDefaultAudioSettings } from './settings'
 
 const elements: FakeAudio[] = []
+const gains: Array<{ gain: { value: number }; connect: ReturnType<typeof vi.fn>; disconnect: ReturnType<typeof vi.fn> }> = []
 let hidden = false
 let pendingPlay: Promise<void> | null = null
 class FakeAudio extends EventTarget {
@@ -19,7 +20,11 @@ class FakeAudio extends EventTarget {
 class FakeContext {
   state = 'running'
   destination = {}
-  createGain = () => ({ gain: { value: 1 }, connect: vi.fn(), disconnect: vi.fn() })
+  createGain = () => {
+    const gain = { gain: { value: 1 }, connect: vi.fn(), disconnect: vi.fn() }
+    gains.push(gain)
+    return gain
+  }
   createMediaElementSource = () => ({ connect: vi.fn(), disconnect: vi.fn() })
   close = async () => {
     this.state = 'closed'
@@ -38,6 +43,7 @@ const candidate: AudioAssetDescriptor = {
 const approved = { ...candidate, status: 'approved' } as const
 beforeEach(() => {
   elements.length = 0
+  gains.length = 0
   hidden = false
   pendingPlay = null
   vi.stubGlobal('window', { AudioContext: FakeContext })
@@ -51,6 +57,33 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals())
 
 describe('central audio audition and playback boundaries', () => {
+  it('applies independent music and effects levels to the runtime mix graph', async () => {
+    const director = new AudioDirector()
+    await director.unlock()
+    const settings = createDefaultAudioSettings()
+    director.setSettings({
+      ...settings,
+      volumes: {
+        ...settings.volumes,
+        music: 0.37,
+        sfx: 0.23,
+        ambience: 0.23,
+        ui: 0.23,
+      },
+    })
+
+    expect(gains).toHaveLength(5)
+    expect(gains[0]!.gain.value).toBe(1)
+    expect(gains[1]!.gain.value).toBe(0.37)
+    expect(gains[2]!.gain.value).toBe(0.23)
+    expect(gains[3]!.gain.value).toBe(0.23)
+    expect(gains[4]!.gain.value).toBe(0.23)
+
+    director.setSettings({ ...settings, muted: true })
+    expect(gains[0]!.gain.value).toBe(0)
+    await director.close()
+  })
+
   it('never plays an unapproved candidate through ordinary playback', async () => {
     const director = new AudioDirector()
     await director.unlock()
