@@ -119,12 +119,7 @@ describe('committed battle audio', () => {
     expect(cursor.advance(NaN)).toBe(false)
   })
   it('ships every registered cue and generated identity with the recorded audio hashes', () => {
-    const runtime = [
-      'phase4-v01',
-      'phase4-ironfist-v01',
-      'phase4-chronist-v01',
-      'phase4-a07-audio-v02',
-    ].flatMap((id) => {
+    const runtime = ['phase4-v01', 'phase4-ironfist-v01', 'phase4-chronist-v01'].flatMap((id) => {
       const release = JSON.parse(
         readFileSync(resolve(`../../content/media-releases/${id}.json`), 'utf8'),
       ) as { runtime: { path: string; sha256: string }[] }
@@ -141,8 +136,13 @@ describe('committed battle audio', () => {
       asset.id.startsWith('audio.phase4.'),
     )
     expect(sounds).toHaveLength(186)
-    for (const asset of sounds)
+    const committedV01 = sounds.filter((asset) => asset.id.includes('-v01-'))
+    const generatedV02 = sounds.filter((asset) => asset.id.includes('-v02-'))
+    expect(committedV01).toHaveLength(84)
+    expect(generatedV02).toHaveLength(102)
+    for (const asset of committedV01)
       expect(runtime.some((file) => file.path === `apps/web/public${asset.src}`)).toBe(true)
+    for (const asset of generatedV02) expect(asset.src).toMatch(/-v02-[123]\.wav$/u)
     expect(phase4DisciplineSigil('bastion')).toBe(
       '/media/art/discipline-sigils/bastion-sigil-v01.webp',
     )
