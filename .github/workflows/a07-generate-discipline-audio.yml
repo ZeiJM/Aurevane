@@ -3,7 +3,7 @@ name: A07 generate Discipline audio v02
 on:
   push:
     branches:
-      - agent/a07-distinct-discipline-audio-20260922
+      - agent/a07-distinct-discipline-audio-v02-final-20260922
     paths:
       - '.github/workflows/a07-generate-discipline-audio.yml'
       - 'scripts/media/render_phase4_audio.py'
@@ -13,11 +13,11 @@ permissions:
 
 jobs:
   generate:
-    runs-on: ubuntu-24.04
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: agent/a07-distinct-discipline-audio-20260922
+          ref: agent/a07-distinct-discipline-audio-v02-final-20260922
 
       - uses: actions/setup-python@v5
         with:
@@ -25,8 +25,7 @@ jobs:
 
       - name: Install synthesis dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg
+          brew install ffmpeg
           python -m pip install --disable-pip-version-check numpy scipy
           ffmpeg -version | head -n 1
 
@@ -115,4 +114,4 @@ jobs:
           git add             apps/web/public/media/audio/sfx/phase4             content/media-candidates/phase4-a07-audio-v02             content/media-releases/phase4-a07-audio-v02.json
           git diff --cached --quiet && exit 0
           git commit -m "audio: add distinct Discipline v02 runtime pack"
-          git push origin HEAD:agent/a07-distinct-discipline-audio-20260922
+          git push origin HEAD:agent/a07-distinct-discipline-audio-v02-final-20260922
