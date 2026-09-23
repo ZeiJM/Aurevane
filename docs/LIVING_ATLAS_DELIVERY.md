@@ -230,3 +230,7 @@ The incoming Bastion artwork also exposed a stale `battle-audio.test.ts` asserti
 ## Release record and continuation
 
 The checkpoints above are historical, including their then-pending release statements. PR [#609](https://github.com/ZeiJM/Aurevane/pull/609) is the final source for exact candidate checks, applied migration version, production commit/deployment and live verification. Post-release PR [#671](https://github.com/ZeiJM/Aurevane/pull/671) restores the deployment lock and provides `PHASE_5_HANDOVER.md`; it must not be merged until the intended Atlas deployment is verified. Full Phase 5 and Owner live Atlas acceptance remain open.
+
+## Persistent roaming shell reconciliation (2026-09-23)
+
+Candidate `1989d4eb` preserves main `7abe4f5f`, including the persistent roaming shell and compact Hall release. The merge was clean; the incoming Hall browser assertion needed formatting only. The full local quality gate passed with 2,811 Vitest tests plus seven report/audio Node checks, lint, formatting, types and builds. Earlier candidate `3c2434a4` passed 18 Atlas browser scenarios. Final candidate CI and production evidence are recorded in PR #609.
