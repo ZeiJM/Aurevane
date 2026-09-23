@@ -22,7 +22,7 @@ The target is not constant cinematic bombast. Quiet moments must exist so import
 4. **Disciplines have sonic identity.** Players should begin recognizing combat styles by sound as well as by visuals.
 5. **Regions have environmental identity.** Wind, wildlife, settlement activity, machinery, water, weather, architecture, and supernatural phenomena define place.
 6. **Music supports long sessions.** Loops must avoid obvious repetition fatigue.
-7. **Audio remains optional and accessible.** Music, SFX, ambience, and UI audio require independent user control.
+7. **Audio remains optional and accessible.** Music and the combined non-music Sound Effects mix remain independently controllable, with a global mute.
 8. **Production is provider-independent.** The game must never require a specific AI music or SFX generator at runtime.
 9. **Originality and provenance are mandatory.** Never imitate copyrighted game music or living composers by name.
 10. **Silence is part of the design.** Do not layer every possible sound at once.
@@ -284,21 +284,22 @@ Exact loudness targets should be established during implementation after testing
 
 ## 17. Runtime Audio Controls
 
-Players require independent controls for at least:
+The current player-facing mix is deliberately simple:
 
-- Master Volume;
 - Music;
-- Sound Effects;
-- Ambience;
-- UI Sounds.
+- Sound Effects.
 
-Settings persist per account where appropriate and should also be available before login when technically practical.
+Sound Effects is the single non-music control and governs battle/action SFX plus current UI and ambience routing. Those internal channels may remain distinct in the runtime for authoring, prioritization and future mixing, but they do not require separate player-facing sliders unless a later Owner-approved design changes this.
 
-Required controls:
+The panel also provides mute/unmute for the entire mix. A separate Master slider is not exposed; the internal master gain stays at unity so the two visible percentages remain authoritative instead of being silently multiplied by a hidden user value.
 
-- mute all;
-- restore previous levels;
-- reduced/disabled UI sounds;
+Settings persist locally so they are available before login and continue across the game.
+
+Required behavior:
+
+- mute all and restore the prior Music/Sound Effects levels;
+- browser-gesture audio initialization;
+- hidden/legacy channel settings cannot silently suppress the visible Music or Sound Effects controls;
 - audio continues or pauses according to documented browser-focus policy;
 - no unexpected autoplay that violates browser policies.
 

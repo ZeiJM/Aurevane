@@ -28,7 +28,6 @@ interface AudioContextValue {
   setVolume(channel: AudioChannel, value: number): void
   toggleMute(): void
   unlock(): Promise<AudioDirectorState>
-  playCalibrationTone(): Promise<boolean>
   playAsset(id: string, priority?: number): Promise<boolean>
   stopSfx(): void
 }
@@ -103,13 +102,6 @@ export function AudioProvider({ children }: PropsWithChildren) {
     return nextState
   }, [director])
 
-  const playCalibrationTone = useCallback(async () => {
-    const nextState = director.state === 'ready' ? 'ready' : await director.unlock()
-    setAudioState(nextState)
-
-    return nextState === 'ready' && director.playCalibrationTone('ui')
-  }, [director])
-
   const playAsset = useCallback(
     (id: string, priority = 50) => {
       const asset = audioAssetRegistry.get(id)
@@ -127,7 +119,6 @@ export function AudioProvider({ children }: PropsWithChildren) {
         setVolume,
         toggleMute,
         unlock,
-        playCalibrationTone,
         playAsset,
         stopSfx,
       }}
