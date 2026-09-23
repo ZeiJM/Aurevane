@@ -3,6 +3,7 @@ import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-ski
 import { resolveEssenceForBuild } from '@aurevane/game-core/combat/essence'
 import { essenceSkillArtwork } from '../../media/essence-skill-art'
 import { imageAssetRegistry } from '../../media/registry'
+import { regularSkillArtwork } from '../../media/regular-skill-art'
 
 /** Original, code-native tactical sigils. Geometry communicates tradition, shape and effect;
  * these intentionally remain crisp at 32–64px and do not depend on a generation vendor. */
@@ -75,6 +76,9 @@ export function phase4DisciplineSigil(disciplineId: string): string | null {
   return color ? source(frame(color, glyphs[disciplineId]!)) : null
 }
 export function phase4SkillArtwork(actionId: string): string | null {
+  const approvedRegularArtwork = regularSkillArtwork(actionId)
+  if (approvedRegularArtwork) return approvedRegularArtwork
+
   if (actionId.startsWith('essence.')) {
     const discipline = actionId.split('.')[1]!
     const skill = resolveEssenceForBuild(discipline, null)?.skill
