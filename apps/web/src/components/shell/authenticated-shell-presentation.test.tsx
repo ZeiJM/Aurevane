@@ -7,7 +7,11 @@ vi.mock('next/link', () => ({
     createElement('a', props, children),
 }))
 vi.mock('@aurevane/ui', () => ({
+  Kicker: ({ children }: { children: React.ReactNode }) =>
+    createElement('span', null, children),
   StatusMark: () => createElement('span', { 'data-testid': 'status-mark' }, 'status'),
+  Surface: ({ children, ...props }: React.ComponentProps<'section'>) =>
+    createElement('section', props, children),
 }))
 vi.mock('@/media/registry', () => ({
   getImageAsset: () => ({ src: '/world.webp', width: 1600, height: 900 }),
@@ -43,9 +47,18 @@ vi.mock('./online-presence-link', () => ({
   OnlinePresenceLink: () => createElement('a', { href: '/game/online' }, 'Online Users'),
 }))
 
+import { AuthenticatedGameRecoveryContent } from './authenticated-game-shell'
 import { AuthenticatedShellPresentation } from './authenticated-shell-presentation'
 
 describe('authenticated shell presentation', () => {
+  it('keeps persistence recovery content separable from shell ownership', () => {
+    const markup = renderToStaticMarkup(<AuthenticatedGameRecoveryContent />)
+
+    expect(markup).toContain('data-testid="persistence-recovery"')
+    expect(markup).toContain('Your session is safe. The road is briefly closed.')
+    expect(markup).not.toContain('data-testid="authenticated-shell"')
+  })
+
   it('keeps Online Users while omitting redundant back and footer navigation controls', () => {
     const markup = renderToStaticMarkup(
       <AuthenticatedShellPresentation
