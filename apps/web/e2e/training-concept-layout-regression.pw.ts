@@ -105,7 +105,7 @@ test('training uses the approved character rail and parchment three-workspace co
     await rewardValues.first().evaluate((element) =>
       Number.parseInt(getComputedStyle(element).fontWeight, 10),
     ),
-  ).toBeLessThanOrEqual(600)
+  ).toBeLessThanOrEqual(500)
   await expect(
     page.getByRole('button', { name: /Load Preset|Apply Plan|View History/ }),
   ).toHaveCount(0)
