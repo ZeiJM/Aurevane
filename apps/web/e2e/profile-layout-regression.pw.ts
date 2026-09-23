@@ -47,6 +47,17 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
     await page.setViewportSize(viewport)
     await page.goto('/game/character')
     await expect(page.getByTestId('character-profile')).toBeVisible()
+    if (viewport.width >= 1200) {
+      await expect
+        .poll(() =>
+          page
+            .locator('[data-profile-workspace]')
+            .evaluate((element) =>
+              getComputedStyle(element).getPropertyValue('--character-rail-height').trim(),
+            ),
+        )
+        .not.toBe('')
+    }
     await expect(page.locator('[data-profile-loadout]')).toHaveCount(0)
     await expect(page.getByRole('heading', { name: 'Identity', exact: true })).toBeVisible()
     await expect(
@@ -231,6 +242,11 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
       expect
         .soft(metrics.sheetOverflowY, `${label}: center profile sheet owns vertical scrolling`)
         .toMatch(/auto|scroll/)
+      expect(
+        await page
+          .locator('[data-profile-sheet]')
+          .evaluate((element) => getComputedStyle(element).scrollbarColor),
+      ).not.toBe('auto')
       expect
         .soft(
           metrics.sheetScrollHeight,
