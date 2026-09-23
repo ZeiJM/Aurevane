@@ -25,6 +25,8 @@ jobs:
 
       - name: Install synthesis dependencies
         run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
           python -m pip install --disable-pip-version-check numpy scipy
           ffmpeg -version | head -n 1
 
