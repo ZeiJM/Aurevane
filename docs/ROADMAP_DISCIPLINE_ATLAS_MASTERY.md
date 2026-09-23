@@ -110,7 +110,7 @@ The live Mastery foundation already provides:
 
 - per-character Discipline Mastery progress;
 - stages at 100 / 300 / 600 / 1,000 XP;
-- Standard/High Mastery Trial reward path;
+- server-owned High Mastery Trial reward path;
 - immutable battle-origin/build checks;
 - committed Technique-use evidence;
 - idempotent one-claim-per-battle authority;
