@@ -40,7 +40,7 @@ function disciplineAssets(
       channel: 'sfx',
       status: 'approved',
       requestId,
-      src: `/media/audio/sfx/phase4/${family}-${role}-${version}-${variant}.mp3`,
+      src: `/media/audio/sfx/phase4/${family}-${role}-${version}-${variant}.${version === 'v02' ? 'wav' : 'mp3'}`,
       loop: false,
       preload: 'none',
     })),
