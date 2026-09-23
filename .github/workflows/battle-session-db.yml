@@ -18,7 +18,6 @@ on:
   push:
     branches:
       - main
-      - 'agent/**'
     paths:
       - 'supabase/migrations/**'
       - '.github/scripts/verify-battle-session-persistence.sh'
@@ -35,6 +34,10 @@ on:
 
 permissions:
   contents: read
+
+concurrency:
+  group: battle-session-db-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   battle-session-authority:
