@@ -18,7 +18,10 @@ test('renders 17 distinct Discipline action and Essence families as valid PCM WA
     assert.equal(rows.length, 102)
     assert.equal(new Set(rows.map((row) => row.family)).size, 17)
     assert.equal(Object.keys(DISCIPLINE_AUDIO_PROFILES).length, 17)
-    assert.equal(new Set(Object.values(DISCIPLINE_AUDIO_PROFILES).map((profile) => profile.recipe)).size, 17)
+    assert.equal(
+      new Set(Object.values(DISCIPLINE_AUDIO_PROFILES).map((profile) => profile.recipe)).size,
+      17,
+    )
 
     const files = readdirSync(output).filter((file) => file.endsWith('.wav'))
     assert.equal(files.length, 102)
