@@ -99,6 +99,13 @@ describe('battle skill artwork presentation', () => {
     expect(battleSkillArtwork('ironfist.last-stand')).toBe(
       '/media/art/discipline-skills/ironfist-last-stand-v01.webp',
     )
+    expect(battleSkillArtwork('aetherist.arc-bolt')).toBe(
+      '/media/art/discipline-skills/aetherist-arc-bolt-v01.webp',
+    )
+    expect(battleSkillArtwork('aetherist.overchannel')).toBe(
+      '/media/art/discipline-skills/aetherist-overchannel-v01.webp',
+    )
+    expect(battleSkillArtwork('chronist.temporal-bolt')).toMatch(/^data:image\/svg\+xml,/)
 
     for (const id of ['runeblade.aether-cut', 'runeblade.sigil-brand']) {
       const source = battleSkillArtwork(id)
@@ -117,7 +124,11 @@ describe('battle skill artwork presentation', () => {
       expect(artwork).not.toBe(BATTLE_MISSING_ARTWORK)
       if (skillId.startsWith('essence.')) {
         expect(artwork).toMatch(/^\/media\/art\/essence-skills\/.+-v01\.webp$/)
-      } else if (skillId.startsWith('farstrider.') || skillId.startsWith('shadehand.')) {
+      } else if (
+        skillId.startsWith('aetherist.') ||
+        skillId.startsWith('farstrider.') ||
+        skillId.startsWith('shadehand.')
+      ) {
         expect(artwork).toMatch(/^\/media\/art\/discipline-skills\/.+-v01\.webp$/)
       } else {
         expect(artwork.startsWith('data:image/svg+xml,')).toBe(true)
