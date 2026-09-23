@@ -18,7 +18,7 @@ describe('audio registry', () => {
           ).toEqual(
             expect.objectContaining({
               status: 'approved',
-              src: `/media/audio/sfx/phase4/${discipline}-${role}-v02-${variant}.mp3`,
+              src: `/media/audio/sfx/phase4/${discipline}-${role}-v02-${variant}.wav`,
             }),
           )
         }
