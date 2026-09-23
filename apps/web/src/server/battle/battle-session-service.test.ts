@@ -277,7 +277,7 @@ describe('P2.4 battle session service', () => {
     expect(result.snapshot.tactical.battle).not.toHaveProperty('rng')
   })
 
-  it('owns Battle Hall AI difficulty on the server regardless of client input', async () => {
+  it('owns Battle Hall AI difficulty and the Mastery Trial arena on the server', async () => {
     const characters = createCharacterRepository()
     const battles = createBattleRepository()
     const service = createBattleSessionService({
@@ -288,21 +288,24 @@ describe('P2.4 battle session service', () => {
     const cases = [
       {
         recordId: 'recruit-sparring' as const,
-        arenaId: 'duel-yard' as const,
+        proposedArenaId: 'duel-yard' as const,
+        expectedArenaId: 'duel-yard' as const,
         proposedDifficulty: 'easy' as const,
         expectedDifficulty: 'high',
         idempotencyKey: '11111111-2222-4333-8444-555555555551',
       },
       {
         recordId: 'mastery-trial' as const,
-        arenaId: 'crossroads-court' as const,
+        proposedArenaId: 'crossroads-court' as const,
+        expectedArenaId: 'terraced-yard' as const,
         proposedDifficulty: 'standard' as const,
         expectedDifficulty: 'high',
         idempotencyKey: '11111111-2222-4333-8444-555555555552',
       },
       {
         recordId: 'guided-fundamentals' as const,
-        arenaId: 'basic-training-floor' as const,
+        proposedArenaId: 'basic-training-floor' as const,
+        expectedArenaId: 'basic-training-floor' as const,
         proposedDifficulty: 'high' as const,
         expectedDifficulty: 'easy',
         idempotencyKey: '11111111-2222-4333-8444-555555555553',
@@ -313,7 +316,7 @@ describe('P2.4 battle session service', () => {
       await service.createSession({
         userId: USER_ID,
         characterId: CHARACTER_ID,
-        arenaId: testCase.arenaId,
+        arenaId: testCase.proposedArenaId,
         aiDifficulty: testCase.proposedDifficulty,
         battleHallRecordId: testCase.recordId,
         idempotencyKey: testCase.idempotencyKey,
@@ -327,7 +330,7 @@ describe('P2.4 battle session service', () => {
         (profile) => profile.combatantId === 'recruit:p2-4-1',
       )
       expect(recruitProfile?.provenance.sourceId).toBe(
-        `scenario:p2-7-recruit:${testCase.arenaId}:${testCase.recordId}:${testCase.expectedDifficulty}`,
+        `scenario:p2-7-recruit:${testCase.expectedArenaId}:${testCase.recordId}:${testCase.expectedDifficulty}`,
       )
     }
   })
