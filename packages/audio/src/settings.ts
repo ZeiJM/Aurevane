@@ -23,7 +23,7 @@ export type AudioSettingsAction =
   | { type: 'replace'; settings: AudioMixSettings }
 
 const DEFAULT_VOLUMES: Record<AudioChannel, number> = {
-  master: 0.8,
+  master: 1,
   music: 0.62,
   sfx: 0.78,
   ambience: 0.78,
