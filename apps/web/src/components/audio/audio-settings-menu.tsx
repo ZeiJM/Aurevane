@@ -125,9 +125,7 @@ export function AudioSettingsMenu({
 
           <div className={styles.mix} aria-label="Volume channels">
             {USER_AUDIO_CHANNELS.map((channel) => {
-              const percent = settings.muted
-                ? 0
-                : Math.round(settings.volumes[channel] * 100)
+              const percent = settings.muted ? 0 : Math.round(settings.volumes[channel] * 100)
               return (
                 <label className={styles.channel} key={channel}>
                   <span className={styles.channelLabel}>
