@@ -48,7 +48,7 @@ describe('battle audio access', () => {
       expect(response.headers.get('cache-control')).toBe('private, no-store')
       expect(await response.json()).toEqual({
         battleVersion: 8,
-        cues: [{ assetId: 'audio.phase4.ravager-action-v01-3', priority: 70 }],
+        cues: [{ assetId: 'audio.phase4.ravager-action-v02-3', priority: 70 }],
       })
       const forbidden = await handleBattleAudioRequest(request(`version=8&mode=${mode}`), session, {
         getActor: async () => actor,

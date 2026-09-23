@@ -1,4 +1,8 @@
-import { PHASE4_AUDIO_DISCIPLINES, audioAssetRegistry } from '@aurevane/audio'
+import {
+  PHASE4_AUDIO_DISCIPLINES,
+  PHASE4_DISCIPLINE_AUDIO_VERSION,
+  audioAssetRegistry,
+} from '@aurevane/audio'
 import { DISCIPLINE_ATLAS } from '@aurevane/game-core/character/discipline-atlas'
 import { resolveEssenceForBuild } from '@aurevane/game-core/combat/essence'
 import { latestEnabledMatureSkills } from '@aurevane/game-core/combat/mature-skills'
@@ -84,8 +88,9 @@ export const skillAudioCueHookOptions: readonly SkillAudioCueHookOption[] = curr
     const key = definition.media.audioCueKey
     if (!key) return []
     const available = audioDisciplines.has(definition.sourceDisciplineId)
+    const role = definition.id.startsWith('essence.') ? 'essence' : 'action'
     const sampleAssetId = available
-      ? `audio.phase4.${definition.sourceDisciplineId}-action-v01-1`
+      ? `audio.phase4.${definition.sourceDisciplineId}-${role}-${PHASE4_DISCIPLINE_AUDIO_VERSION}-1`
       : null
     const sample = sampleAssetId ? audioAssetRegistry.get(sampleAssetId) : undefined
     return [

@@ -17,3 +17,4 @@ supabase/.branches/
 .local-validation/
 .DS_Store
 *.log
+apps/web/public/media/audio/sfx/phase4/*-v02-*.wav
