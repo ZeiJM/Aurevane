@@ -3,7 +3,12 @@ import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { WORLD_REGIONS, FRONTIER_APPROACH, worldRegion } from '@/world/catalog'
-import { ACTIVE_WORLD_SYNC_MS, remainingTravelMs, samePosition, worldSyncIntervalMs } from '@/world/travel'
+import {
+  ACTIVE_WORLD_SYNC_MS,
+  remainingTravelMs,
+  samePosition,
+  worldSyncIntervalMs,
+} from '@/world/travel'
 import type { WorldIntent, WorldPosition, WorldView } from '@/world/types'
 import { Globe } from './globe'
 import { SectorMap } from './sector-map'
