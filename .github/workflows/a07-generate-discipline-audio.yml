@@ -1,0 +1,116 @@
+name: A07 generate Discipline audio v02
+
+on:
+  push:
+    branches:
+      - agent/a07-distinct-discipline-audio-20260922
+    paths:
+      - '.github/workflows/a07-generate-discipline-audio.yml'
+      - 'scripts/media/render_phase4_audio.py'
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/a07-distinct-discipline-audio-20260922
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install synthesis dependencies
+        run: |
+          python -m pip install --disable-pip-version-check numpy scipy
+          ffmpeg -version | head -n 1
+
+      - name: Render distinct v02 Discipline audio
+        run: |
+          rm -rf /tmp/aurevane-a07-audio
+          python scripts/media/render_phase4_audio.py --output /tmp/aurevane-a07-audio
+          test "$(find /tmp/aurevane-a07-audio/audio/runtime -name '*.mp3' | wc -l)" -eq 102
+
+      - name: Stage runtime assets and provenance
+        run: |
+          mkdir -p apps/web/public/media/audio/sfx/phase4
+          cp /tmp/aurevane-a07-audio/audio/runtime/*.mp3 apps/web/public/media/audio/sfx/phase4/
+
+          mkdir -p content/media-candidates/phase4-a07-audio-v02
+          cp /tmp/aurevane-a07-audio/audio-manifest.json             content/media-candidates/phase4-a07-audio-v02/audio-manifest.json
+
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib
+          import json
+
+          manifest_path = Path('content/media-candidates/phase4-a07-audio-v02/audio-manifest.json')
+          rows = json.loads(manifest_path.read_text())
+          runtime = []
+          for row in rows:
+              filename = row['id'].removeprefix('audio.phase4.') + '.mp3'
+              path = Path('apps/web/public/media/audio/sfx/phase4') / filename
+              row['runtime'] = str(path)
+              runtime.append({
+                  'path': str(path),
+                  'bytes': path.stat().st_size,
+                  'sha256': hashlib.sha256(path.read_bytes()).hexdigest(),
+              })
+          manifest_path.write_text(json.dumps(rows, indent=2) + '\n')
+
+          release = {
+              'id': 'phase4-a07-audio-v02',
+              'status': 'authorized-for-owner-testing',
+              'purpose': 'Owner in-game listening evaluation',
+              'authorization': (
+                  'Owner requested moving to sound work and reported that the existing battle '
+                  'sounds all sounded the same; v02 redesigns all 17 Discipline families for '
+                  'perceptual separation.'
+              ),
+              'authorizationDate': '2026-09-22',
+              'independentHumanListeningReview': False,
+              'humanAcceptance': None,
+              'provenance': [
+                  'content/media-candidates/phase4-a07-audio-v02/audio-manifest.json',
+                  'scripts/media/render_phase4_audio.py',
+              ],
+              'notes': (
+                  '102 deterministic 48 kHz mono synthesized cues: 17 published Disciplines x '
+                  'action/Essence x 3 variants. Legacy v01 assets remain registered; current '
+                  'Discipline playback moves to v02. Shared attrition/healing/cleanse/resonance '
+                  'cues remain v01.'
+              ),
+              'runtime': runtime,
+          }
+          Path('content/media-releases/phase4-a07-audio-v02.json').write_text(
+              json.dumps(release, indent=2) + '\n'
+          )
+          PY
+
+      - name: Verify generated pack
+        run: |
+          test "$(find apps/web/public/media/audio/sfx/phase4 -name '*-v02-*.mp3' | wc -l)" -eq 102
+          python - <<'PY'
+          from pathlib import Path
+          import json
+          rows = json.loads(
+              Path('content/media-candidates/phase4-a07-audio-v02/audio-manifest.json').read_text()
+          )
+          assert len(rows) == 102
+          assert len({row['family'] for row in rows}) == 17
+          assert max(row['runtimeBytes'] for row in rows) <= 20_000
+          assert max(row['peakDbfs'] for row in rows) <= -9.9
+          print('verified', len(rows), 'cues across', len({row['family'] for row in rows}), 'families')
+          PY
+
+      - name: Commit generated v02 audio
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add             apps/web/public/media/audio/sfx/phase4             content/media-candidates/phase4-a07-audio-v02             content/media-releases/phase4-a07-audio-v02.json
+          git diff --cached --quiet && exit 0
+          git commit -m "audio: add distinct Discipline v02 runtime pack"
+          git push origin HEAD:agent/a07-distinct-discipline-audio-20260922
