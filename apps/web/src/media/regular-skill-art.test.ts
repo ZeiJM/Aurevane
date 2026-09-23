@@ -27,9 +27,7 @@ describe('approved regular Discipline Skill action art — first 30', () => {
     const currentIds = new Set(latestEnabledMatureSkills().map((skill) => skill.id))
     const hashes = entries.map(([id, src]) => {
       expect(currentIds.has(id)).toBe(true)
-      expect(src).toMatch(
-        /^\/media\/art\/discipline-skills\/[a-z0-9-]+-v01\.webp$/,
-      )
+      expect(src).toMatch(/^\/media\/art\/discipline-skills\/[a-z0-9-]+-v01\.webp$/)
       const file = readFileSync(fileURLToPath(new URL(`../../public${src}`, import.meta.url)))
       expect(file.subarray(0, 4).toString('ascii')).toBe('RIFF')
       expect(file.length).toBeGreaterThan(5_000)
