@@ -105,18 +105,29 @@ test('Battle Hall shows one full-width parchment workspace at a time with all re
     const aiSpace = await ai.evaluate((element) => {
       const body = element.querySelector('[data-hall-scroll-body]')!.getBoundingClientRect()
       const vista = element.querySelector('figure')!.getBoundingClientRect()
+      const modes = [
+        ...element.querySelectorAll<HTMLElement>('nav[aria-label="AI arenas"] > button'),
+      ].map((button) => button.getBoundingClientRect())
       return {
         workspaceHeight: element.getBoundingClientRect().height,
         bodyHeight: body.height,
+        vistaWidth: vista.width,
         vistaHeight: vista.height,
+        modeHeights: modes.map((mode) => mode.height),
       }
     })
     expect
       .soft(aiSpace.bodyHeight, 'AI workspace gives the main content most of the available height')
       .toBeGreaterThan(aiSpace.workspaceHeight * 0.62)
     expect
-      .soft(aiSpace.vistaHeight, 'AI arena expands into otherwise unused vertical space')
-      .toBeGreaterThan(aiSpace.bodyHeight * 0.22)
+      .soft(aiSpace.vistaWidth, 'AI arena banner keeps the full workspace width')
+      .toBeGreaterThan(workspaceBox!.width * 0.94)
+    expect
+      .soft(aiSpace.vistaHeight, 'AI arena banner stays deliberately shallow')
+      .toBeLessThan(aiSpace.bodyHeight * 0.22)
+    for (const height of aiSpace.modeHeights) {
+      expect.soft(height, 'AI mode choices have comfortable vertical breathing room').toBeGreaterThanOrEqual(50)
+    }
   }
 
   await expect(page.getByLabel('Battle mode')).toHaveValue('recruit-sparring')
