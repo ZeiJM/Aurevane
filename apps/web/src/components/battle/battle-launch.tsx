@@ -800,7 +800,7 @@ export function BattleLaunch({ characterId, initialJoinKey = null }: BattleLaunc
           data-hall-workspace="spectate"
           data-selected={section === 'spectate' || undefined}
           data-hall-active-workspace="true"
-          aria-labelledby="spectate-heading"
+          aria-label="Spectate battles"
           hidden={section !== 'spectate'}
         >
           <div className={styles.workspaceBody} data-hall-scroll-body="true">
@@ -814,11 +814,6 @@ export function BattleLaunch({ characterId, initialJoinKey = null }: BattleLaunc
                 <span>Observe. Learn. Improve.</span>
               </figcaption>
             </figure>
-
-            <div className={styles.spectateIntro}>
-              <h2 id="spectate-heading">Witness a battle by key.</h2>
-              <p>Watch a shared battle. Learn from every turn.</p>
-            </div>
 
             <footer className={styles.spectateActions} data-hall-action-row="true">
               <div className={styles.keyEntry}>
