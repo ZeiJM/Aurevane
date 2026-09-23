@@ -82,4 +82,11 @@ describe('authenticated navigation performance contracts', () => {
     expect(sphere).toContain('requestAnimationFrame')
     expect(sphere).toContain('cancelAnimationFrame')
   })
+
+  it('keeps route-only site music changes from broadcasting a new audio context value', () => {
+    const audio = source('src/components/audio/audio-provider.tsx')
+
+    expect(audio).toContain('const contextValue = useMemo<AudioContextValue>(')
+    expect(audio).toContain('<AudioRuntimeContext.Provider value={contextValue}>')
+  })
 })
