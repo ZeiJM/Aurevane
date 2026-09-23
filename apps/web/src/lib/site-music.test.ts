@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import {
+  attemptSiteMusicPlayback,
   createDefaultSiteMusicConfig,
   parseSiteMusicDraft,
   parseSiteMusicUploadMetadata,
@@ -9,6 +10,13 @@ import {
 } from './site-music'
 
 describe('site music configuration', () => {
+  it('attempts soundtrack playback on initial load before user interaction', async () => {
+    const play = vi.fn().mockResolvedValue(undefined)
+
+    await expect(attemptSiteMusicPlayback(play, false)).resolves.toBe(true)
+    expect(play).toHaveBeenCalledTimes(1)
+  })
+
   it('uses Road to Aurevane on the account entry and character creation routes', () => {
     const config = createDefaultSiteMusicConfig()
 
