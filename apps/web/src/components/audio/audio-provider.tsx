@@ -57,11 +57,9 @@ export function AudioProvider({ children }: PropsWithChildren) {
   const [audioState, setAudioState] = useState<AudioDirectorState>('locked')
   const [storageReady, setStorageReady] = useState(false)
   const [interactionUnlocked, setInteractionUnlocked] = useState(false)
-  const [siteMusicConfig, setSiteMusicConfig] = useState<SiteMusicConfig>(
-    createDefaultSiteMusicConfig,
-  )
+  const [siteMusicConfig, setSiteMusicConfig] = useState<SiteMusicConfig | null>(null)
   const activeTrack = useMemo(
-    () => resolveSiteMusicTrack(siteMusicConfig, pathname),
+    () => (siteMusicConfig ? resolveSiteMusicTrack(siteMusicConfig, pathname) : null),
     [pathname, siteMusicConfig],
   )
   const musicVolume = settings.muted ? 0 : Math.min(1, Math.max(0, settings.volumes.music))
@@ -100,12 +98,15 @@ export function AudioProvider({ children }: PropsWithChildren) {
 
     void fetch('/api/site-music', { cache: 'no-store', signal: controller.signal })
       .then(async (response) => {
-        if (!response.ok) return
+        if (!response.ok) throw new Error('Site music configuration is unavailable.')
         const payload = (await response.json()) as { config?: unknown }
-        if (payload.config) setSiteMusicConfig(parseSiteMusicConfig(payload.config))
+        if (!payload.config) throw new Error('Site music configuration is missing.')
+        setSiteMusicConfig(parseSiteMusicConfig(payload.config))
       })
       .catch(() => {
-        // The bundled default remains active when remote configuration is unavailable.
+        if (!controller.signal.aborted) {
+          setSiteMusicConfig(createDefaultSiteMusicConfig())
+        }
       })
 
     const receivePublishedConfig = (event: Event) => {
