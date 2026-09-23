@@ -26,6 +26,7 @@ import {
 } from 'react'
 
 import {
+  attemptSiteMusicPlayback,
   createDefaultSiteMusicConfig,
   parseSiteMusicConfig,
   resolveSiteMusicTrack,
@@ -148,12 +149,8 @@ export function AudioProvider({ children }: PropsWithChildren) {
       element.load()
     }
 
-    if (interactionUnlocked && !document.hidden) {
-      void element.play().catch(() => {
-        // Browser policy or an unavailable remote source can still block playback.
-      })
-    }
-  }, [activeTrack, interactionUnlocked, musicVolume])
+    void attemptSiteMusicPlayback(() => element.play(), document.hidden)
+  }, [activeTrack, musicVolume])
 
   useEffect(() => {
     const element = musicElementRef.current
@@ -179,15 +176,13 @@ export function AudioProvider({ children }: PropsWithChildren) {
         element?.pause()
         return
       }
-      if (interactionUnlocked && activeTrack && element) {
-        void element.play().catch(() => {
-          // A new user gesture will retry playback if the browser requires one.
-        })
+      if (activeTrack && element) {
+        void attemptSiteMusicPlayback(() => element.play(), false)
       }
     }
     document.addEventListener('visibilitychange', handleVisibility)
     return () => document.removeEventListener('visibilitychange', handleVisibility)
-  }, [activeTrack, director, interactionUnlocked])
+  }, [activeTrack, director])
 
   const setVolume = useCallback((channel: AudioChannel, value: number) => {
     dispatch({ type: 'set-volume', channel, value })
