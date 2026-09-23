@@ -219,7 +219,7 @@
       clamp(18rem, 20.5vw, 21.8rem)
       minmax(34rem, 1fr)
       clamp(19rem, 24vw, 25rem);
-    align-items: stretch;
+    align-items: start;
     align-content: start;
   }
 
@@ -229,7 +229,8 @@
 
   .profile,
   .story {
-    contain: size;
+    height: var(--character-rail-height, auto);
+    min-height: 0;
     box-sizing: border-box;
   }
 
@@ -237,8 +238,27 @@
     overflow-x: hidden;
     overflow-y: auto;
     overscroll-behavior: contain;
+    scrollbar-color: #a78142 rgba(229, 220, 198, 0.52);
     scrollbar-gutter: stable;
     scrollbar-width: thin;
+  }
+
+  .profile::-webkit-scrollbar {
+    width: 0.55rem;
+  }
+
+  .profile::-webkit-scrollbar-track {
+    background: rgba(229, 220, 198, 0.52);
+  }
+
+  .profile::-webkit-scrollbar-thumb {
+    border: 2px solid rgba(247, 243, 232, 0.9);
+    border-radius: 999px;
+    background: linear-gradient(180deg, #c9aa68, #8b6a35);
+  }
+
+  .profile::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #d7ba79, #9b773d);
   }
 
   .story {
