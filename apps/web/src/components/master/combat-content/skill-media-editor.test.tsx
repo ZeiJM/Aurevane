@@ -29,14 +29,16 @@ describe('Master Panel Skill media editor', () => {
     expect(markup).toContain(
       '<option value="skill.ironfist.breakfall.audio" selected="">Breakfall · ironfist</option>',
     )
-    expect(markup).toContain('aria-label="Battle audio preview"')
+    expect(markup).toContain('aria-label="Battle audio preview action 1"')
+    expect(markup).toContain('aria-label="Battle audio preview essence 3"')
     expect(markup).toContain('/media/audio/sfx/phase4/ironfist-action-v01-1.mp3')
+    expect(markup).toContain('/media/audio/sfx/phase4/ironfist-essence-v01-3.mp3')
     expect(markup).toContain('aria-label="VFX hook read only"')
     expect(markup).toContain('data-media-hook-readonly="vfx"')
     expect(markup).toContain('skill.vanguard.forceful-strike.vfx')
   })
 
-  it('shows an existing reserved audio hook honestly without offering other unavailable hooks', () => {
+  it('previews newly completed Vanguard battle audio in the Master Panel', () => {
     const markup = renderToStaticMarkup(
       createElement(SkillMediaEditor, {
         value: {
@@ -48,9 +50,12 @@ describe('Master Panel Skill media editor', () => {
       }),
     )
 
-    expect(markup).toContain('Forceful Strike · vanguard · runtime audio not produced yet</option>')
     expect(markup).toContain(
-      'This hook is reserved, but no approved runtime audio is available yet.',
+      '<option value="skill.vanguard.forceful-strike.audio" selected="">Forceful Strike · vanguard</option>',
     )
+    expect(markup).toContain('aria-label="Battle audio preview action 1"')
+    expect(markup).toContain('aria-label="Battle audio preview essence 3"')
+    expect(markup).toContain('/media/audio/sfx/phase4/vanguard-action-v01-1.mp3')
+    expect(markup).toContain('/media/audio/sfx/phase4/vanguard-essence-v01-3.mp3')
   })
 })

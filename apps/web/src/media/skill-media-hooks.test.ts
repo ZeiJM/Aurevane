@@ -5,6 +5,7 @@ import {
   isRegisteredSkillIconHook,
   registeredSkillArtworkSource,
   resolveSkillAudioCueHook,
+  resolveSkillAudioPreviewAssets,
   resolveSkillIconHook,
   skillAudioCueHookOptions,
   skillIconHookOptions,
@@ -56,10 +57,32 @@ describe('Skill media hook registry', () => {
     expect(vanguard).toEqual(
       expect.objectContaining({
         skillId: 'vanguard.forceful-strike',
-        available: false,
-        audioFamily: null,
+        available: true,
+        audioFamily: 'vanguard',
+        sampleAssetId: 'audio.phase4.vanguard-action-v01-1',
+        sampleSrc: '/media/audio/sfx/phase4/vanguard-action-v01-1.mp3',
       }),
     )
+    for (const discipline of ['farstrider', 'shadehand', 'aetherist', 'lifebinder'] as const) {
+      expect(
+        skillAudioCueHookOptions.some(
+          (option) =>
+            option.sourceDisciplineId === discipline &&
+            option.available &&
+            option.audioFamily === discipline,
+        ),
+      ).toBe(true)
+    }
+    const vanguardPreviews = resolveSkillAudioPreviewAssets('skill.vanguard.forceful-strike.audio')
+    expect(vanguardPreviews).toHaveLength(6)
+    expect(vanguardPreviews.map((asset) => asset.assetId)).toEqual([
+      'audio.phase4.vanguard-action-v01-1',
+      'audio.phase4.vanguard-action-v01-2',
+      'audio.phase4.vanguard-action-v01-3',
+      'audio.phase4.vanguard-essence-v01-1',
+      'audio.phase4.vanguard-essence-v01-2',
+      'audio.phase4.vanguard-essence-v01-3',
+    ])
     expect(skillAudioCueHookOptions.length).toBeGreaterThan(10)
     expect(isRegisteredSkillAudioCueHook('skill.vanguard.forceful-strike.audio')).toBe(true)
     expect(isRegisteredSkillAudioCueHook('essence.aetherist.aether-nova.audio')).toBe(true)

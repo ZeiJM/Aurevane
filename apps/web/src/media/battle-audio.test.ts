@@ -102,7 +102,12 @@ describe('committed battle audio', () => {
     expect(cursor.advance(NaN)).toBe(false)
   })
   it('ships every registered cue and generated identity with the recorded audio hashes', () => {
-    const runtime = ['phase4-v01', 'phase4-ironfist-v01', 'phase4-chronist-v01'].flatMap((id) => {
+    const runtime = [
+      'phase4-v01',
+      'phase4-ironfist-v01',
+      'phase4-chronist-v01',
+      'phase4-foundation-audio-v01',
+    ].flatMap((id) => {
       const release = JSON.parse(
         readFileSync(resolve(`../../content/media-releases/${id}.json`), 'utf8'),
       ) as { runtime: { path: string; sha256: string }[] }
@@ -118,7 +123,7 @@ describe('committed battle audio', () => {
     const sounds = [...audioAssetRegistry.values()].filter((asset) =>
       asset.id.startsWith('audio.phase4.'),
     )
-    expect(sounds).toHaveLength(84)
+    expect(sounds).toHaveLength(114)
     for (const asset of sounds)
       expect(runtime.some((file) => file.path === `apps/web/public${asset.src}`)).toBe(true)
     expect(phase4DisciplineSigil('bastion')).toBe(
@@ -129,6 +134,22 @@ describe('committed battle audio', () => {
     )
     expect(phase4SkillArtwork('bastion.fortress')).toMatch(/^data:image\/svg/)
   })
+  it('routes every newly completed foundation Discipline to its own family', () => {
+    for (const [actionId, expected] of [
+      ['vanguard.forceful-strike', 'audio.phase4.vanguard-action-v01-3'],
+      ['farstrider.aimed-shot', 'audio.phase4.farstrider-action-v01-3'],
+      ['shadehand.backstab', 'audio.phase4.shadehand-action-v01-3'],
+      ['aetherist.arc-bolt', 'audio.phase4.aetherist-action-v01-3'],
+      ['lifebinder.mend', 'audio.phase4.lifebinder-action-v01-3'],
+      ['essence.vanguard.unbroken-strike', 'audio.phase4.vanguard-essence-v01-3'],
+      ['essence.aetherist.aether-nova', 'audio.phase4.aetherist-essence-v01-3'],
+    ] as const) {
+      expect(
+        selectBattleAudioCues([record({ event: 'combat_action_used', actionId })], 8, now),
+      ).toEqual([{ assetId: expected, priority: actionId.startsWith('essence.') ? 90 : 70 }])
+    }
+  })
+
   it('routes Ironfist regular and three-hit Essence actions to their own media family', () => {
     for (const [actionId, role, priority] of [
       ['ironfist.breakfall', 'action', 70],

@@ -18,6 +18,16 @@ Exact-head verification completed on `ef930767c398dc23882cd79b5b746092ae5be749`.
 
 A04 human build/pair differentiation, A07 independent media acceptance, and A10 Owner Phase acceptance remain open.
 
+### A07 — sound production and listening acceptance — IMPLEMENTED, EXACT-HEAD VERIFICATION PENDING
+
+The Owner separated the remaining Phase-4 media work so art can proceed independently and asked to move to sound after the completed A03 production release. This A07 audio slice completes the runtime gap for the five original playable Disciplines that previously had reserved Skill audio hooks but no dedicated Phase-4 family: Vanguard, Farstrider, Shadehand, Aetherist and Lifebinder.
+
+Each of the 17 published combat Disciplines now has a dedicated three-variant action family and three-variant Essence family in the registry. The five new families add 30 deterministic 48 kHz mono cues through the same internal-material-synthesis pipeline used by the existing Phase-4 pack, with immutable candidate hashes and an Owner-testing release record. Battle routing continues to use committed action events only; preview/reconnect/history behavior is unchanged.
+
+The Master Panel Combat Content media editor now exposes all six registered variants for the selected audio family—Action 1–3 and Essence 1–3—so the Owner can perform listening review directly from the protected authoring surface instead of discovering files manually.
+
+**A07 remains open until Owner listening acceptance.** Automated registry/hash/routing/browser evidence can prove the files exist, route correctly and remain within technical audio constraints; it cannot establish whether the sounds are subjectively suitable. Art review remains separate per Owner instruction and is not claimed by this audio slice.
+
 
 ## Owner-approved Phase 4 operations extension — 2026-09-19
 
