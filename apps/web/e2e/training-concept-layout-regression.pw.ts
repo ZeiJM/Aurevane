@@ -81,10 +81,20 @@ test('training uses the approved character rail and parchment three-workspace co
   await expect(page.getByRole('button', { name: 'Start Short', exact: true })).toBeEnabled()
   const durationCards = page.locator('[aria-label="Passive Training durations"] article')
   await expect(durationCards).toHaveCount(3)
-  const durationImageSources = await durationCards.locator('img').evaluateAll((images) =>
+  const durationImages = durationCards.locator('img')
+  const durationImageSources = await durationImages.evaluateAll((images) =>
     images.map((image) => image.getAttribute('src')),
   )
   expect(new Set(durationImageSources).size).toBe(3)
+  const durationImageShapes = await durationImages.evaluateAll((images) =>
+    images.map((image) => {
+      const bounds = image.getBoundingClientRect()
+      return { width: bounds.width, height: bounds.height }
+    }),
+  )
+  for (const shape of durationImageShapes) {
+    expect(Math.abs(shape.width - shape.height)).toBeLessThanOrEqual(1)
+  }
   for (const number of ['01', '02', '03']) {
     await expect(durationCards.getByText(number, { exact: true })).toHaveCount(0)
   }
