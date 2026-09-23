@@ -7,9 +7,15 @@ import {
   findWorldRoute,
   newWorldState,
   remainingTravelMs,
+  worldSyncIntervalMs,
 } from './travel'
 
 describe('world travel', () => {
+  it('uses rapid sync only while travel can advance', () => {
+    expect(worldSyncIntervalMs({ routeLength: 3, movementBlocked: false })).toBe(1200)
+    expect(worldSyncIntervalMs({ routeLength: 0, movementBlocked: false })).toBe(10000)
+    expect(worldSyncIntervalMs({ routeLength: 3, movementBlocked: true })).toBe(10000)
+  })
   it('keeps all eight canonical regions distinct', () => {
     expect(WORLD_REGIONS.map((r) => r.name)).toEqual([
       'Aureth Crown',
