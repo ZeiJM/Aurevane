@@ -49,15 +49,32 @@ describe('Skill media hook registry', () => {
         skillId: 'ironfist.breakfall',
         available: true,
         audioFamily: 'ironfist',
-        sampleAssetId: 'audio.phase4.ironfist-action-v01-1',
+        sampleAssetId: 'audio.phase4.ironfist-action-v02-1',
       }),
     )
     const vanguard = resolveSkillAudioCueHook('skill.vanguard.forceful-strike.audio')
     expect(vanguard).toEqual(
       expect.objectContaining({
         skillId: 'vanguard.forceful-strike',
-        available: false,
-        audioFamily: null,
+        available: true,
+        audioFamily: 'vanguard',
+        sampleAssetId: 'audio.phase4.vanguard-action-v02-1',
+      }),
+    )
+    const foundationFamilies = ['vanguard', 'farstrider', 'shadehand', 'aetherist', 'lifebinder']
+    for (const family of foundationFamilies) {
+      expect(
+        skillAudioCueHookOptions.some(
+          (option) => option.sourceDisciplineId === family && option.available,
+        ),
+      ).toBe(true)
+    }
+    const aetherNova = resolveSkillAudioCueHook('essence.aetherist.aether-nova.audio')
+    expect(aetherNova).toEqual(
+      expect.objectContaining({
+        available: true,
+        audioFamily: 'aetherist',
+        sampleAssetId: 'audio.phase4.aetherist-essence-v02-1',
       }),
     )
     expect(skillAudioCueHookOptions.length).toBeGreaterThan(10)

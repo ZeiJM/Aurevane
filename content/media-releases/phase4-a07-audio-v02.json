@@ -1,0 +1,25 @@
+{
+  "id": "phase4-a07-audio-v02",
+  "status": "authorized-for-owner-testing",
+  "purpose": "Owner in-game listening evaluation",
+  "authorization": "Owner requested moving to sound work and reported that the existing battle sounds all sounded the same; v02 redesigns all 17 published Discipline families for perceptual separation.",
+  "authorizationDate": "2026-09-22",
+  "independentHumanListeningReview": false,
+  "humanAcceptance": null,
+  "provenance": [
+    "content/audio-requests/AUDIO-A07-001.md",
+    "scripts/media/render_phase4_audio_v02.mjs"
+  ],
+  "runtime": {
+    "generation": "deterministic-build-time",
+    "format": "PCM WAV",
+    "sampleRate": 48000,
+    "channels": 1,
+    "bitDepth": 16,
+    "pathPattern": "apps/web/public/media/audio/sfx/phase4/{discipline}-{action|essence}-v02-{1|2|3}.wav",
+    "cueCount": 102,
+    "disciplineCount": 17,
+    "variantsPerRole": 3
+  },
+  "notes": "Legacy v01 MP3 assets remain registered for compatibility. Current Discipline playback and Master Panel audition use generated v02 WAVs. Shared attrition/healing/cleanse/resonance accents remain v01. Automated verification does not constitute Owner listening acceptance."
+}
