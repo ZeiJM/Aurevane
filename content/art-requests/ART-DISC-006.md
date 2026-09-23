@@ -12,7 +12,7 @@ Vital Sever and Searing Bloom are intentionally not part of this implementation 
 
 Visual direction: one standalone square image per Skill; dark-fantasy anime action illustration; no grids, collages, panels, embedded text, logos, watermarks or procedural template filler. Generated imagery is presentation-only.
 
-Source method: generated in the Owner's 2026-09-23 ChatGPT art-review session with OpenAI image generation. The accepted first three generation runs produced 30 individual 1254×1254 PNG masters. Runtime derivatives are deterministic 192×192 WebP encodes at quality 82 under `apps/web/public/media/art/discipline-skills/`.
+Source method: generated in the Owner's 2026-09-23 ChatGPT art-review session with OpenAI image generation. The accepted first three generation runs produced 30 individual 1254×1254 PNG masters. Runtime derivatives are deterministic 128×128 WebP encodes at quality 82 under `apps/web/public/media/art/discipline-skills/`.
 
 Stable integration: canonical regular Skill IDs and their existing `media.iconKey` hooks remain the source identifiers. `apps/web/src/media/regular-skill-art.ts` maps only the approved 30 IDs. All other regular Skills continue to use the existing generated dark-fantasy fallback until their approved replacement batches are implemented.
 
