@@ -1,7 +1,7 @@
 'use client'
 
 import type { HTMLAttributes, ReactNode } from 'react'
-import { useEffect, useRef } from 'react'
+import { useLayoutEffect, useRef } from 'react'
 
 interface CharacterRailSynchronizedLayoutProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode
@@ -13,7 +13,7 @@ export function CharacterRailSynchronizedLayout({
 }: CharacterRailSynchronizedLayoutProps) {
   const ref = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const root = ref.current
     if (!root) return
 
