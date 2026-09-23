@@ -510,8 +510,13 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
     await expect(audio.getByTestId('audio-state')).toHaveCSS('text-transform', 'none')
     await expect(audio.getByTestId('audio-state')).toHaveCSS('font-weight', '400')
     await audio.getByTestId('audio-volume-music').fill('37')
+    await audio.getByTestId('audio-volume-sfx').fill('23')
     await expect(audio.getByTestId('audio-volume-music')).toHaveValue('37')
-    await expect(audio.getByTestId('audio-test-tone')).toBeInViewport()
+    await expect(audio.getByTestId('audio-volume-sfx')).toHaveValue('23')
+    await expect(audio.getByTestId('audio-volume-master')).toHaveCount(0)
+    await expect(audio.getByTestId('audio-volume-ambience')).toHaveCount(0)
+    await expect(audio.getByTestId('audio-volume-ui')).toHaveCount(0)
+    await expect(audio.getByTestId('audio-test-tone')).toHaveCount(0)
     await testInfo.attach(`audio-${width}`, {
       body: await page.screenshot(),
       contentType: 'image/png',
