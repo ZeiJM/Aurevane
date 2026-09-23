@@ -34,9 +34,9 @@ on:
       - apps/web/src/app/news/**
       - apps/web/src/app/manual/**
       - apps/web/src/app/rules/**
-      - apps/web/src/app/game/online/**
+      - apps/web/src/app/game/(roaming)/online/**
       - apps/web/src/app/game/create/**
-      - apps/web/src/app/game/settings/**
+      - apps/web/src/app/game/(roaming)/settings/**
       - apps/web/src/media/**
       - apps/web/src/components/wayfarers-practice/**
       - apps/web/src/components/battle/battle-launch*
@@ -63,9 +63,9 @@ on:
       - apps/web/src/app/news/**
       - apps/web/src/app/manual/**
       - apps/web/src/app/rules/**
-      - apps/web/src/app/game/online/**
+      - apps/web/src/app/game/(roaming)/online/**
       - apps/web/src/app/game/create/**
-      - apps/web/src/app/game/settings/**
+      - apps/web/src/app/game/(roaming)/settings/**
       - apps/web/src/media/**
       - apps/web/src/components/wayfarers-practice/**
       - apps/web/src/components/battle/battle-launch*
