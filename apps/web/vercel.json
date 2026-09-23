@@ -2,7 +2,6 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "git": {
     "deploymentEnabled": {
-      "preview/authenticated-nav-prefetch-control-20260923": true,
       "**": false
     }
   }
