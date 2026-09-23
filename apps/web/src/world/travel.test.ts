@@ -144,6 +144,8 @@ describe('world travel', () => {
     expect(route.every((step) => step.durationMs <= 4000)).toBe(true)
   })
   describe.each([
+    { id: 'highland-road', from: 'aureth-crown', to: 'starfall-highlands' },
+    { id: 'northern-pass', from: 'starfall-highlands', to: 'frostmere' },
     { id: 'ember-road', from: 'verdant-expanse', to: 'emberreach' },
     { id: 'southern-caravan-road', from: 'aureth-crown', to: 'glasswind-desert' },
   ])('$id', ({ id, from, to }) => {

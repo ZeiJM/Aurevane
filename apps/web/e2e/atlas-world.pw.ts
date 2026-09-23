@@ -90,6 +90,8 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
     'coastal-road',
     'ember-road',
     'southern-caravan-road',
+    'highland-road',
+    'northern-pass',
   ])
     expect(initial.sectors.find((sector) => sector.id === id)).toBeDefined()
   expect(JSON.stringify(initial)).not.toContain('survey-01')
@@ -266,6 +268,22 @@ test('expired training releases travel without claiming XP and frontier discover
 })
 
 for (const journey of [
+  {
+    id: 'highland-road',
+    name: 'Highland Road',
+    destinationId: 'starfall-highlands',
+    destinationName: 'Starfall Highlands',
+    entranceX: 0,
+    startSector: 'aureth-crown',
+  },
+  {
+    id: 'northern-pass',
+    name: 'Northern Pass',
+    destinationId: 'frostmere',
+    destinationName: 'Frostmere',
+    entranceX: 0,
+    startSector: 'starfall-highlands',
+  },
   {
     id: 'crown-road',
     name: 'Crown Road',

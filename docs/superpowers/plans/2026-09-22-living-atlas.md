@@ -72,3 +72,14 @@ Implementation/acceptance details and scoped deviations: `docs/LIVING_ATLAS_DELI
 - [x] Refresh current main and reconcile any overlaps; inspect `git diff --check` and full task patch.
 - [x] Request one fresh whole-branch review using the executing-plans skill. Address concrete critical/important findings with focused regression tests.
 - [x] Commit verified work and prepare a non-deploying draft PR, with precise remaining content and migration/release requirements.
+
+
+### Authored northern roads continuation — 2026-09-23
+
+Scope follows the approved sector/travel contract: Highland Road (Aureth Crown–Starfall Highlands) and Northern Pass (Starfall Highlands–Frostmere), distinct terrain and ambient panoramas, no new lore or authority layer.
+
+- [x] Verify prior panorama browser results; inspect current main and existing content.
+- [x] Observe failing coverage for both traversal directions, blocked terrain, projection/encounters and obsolete saved routes; implement authored sectors and verify the focused suite.
+- [x] Generate original map/panorama artwork, retouch wrap joins, register optimized assets with provenance and extend existing browser journeys.
+- [x] Run full repository quality gate, fresh independent review and final main reconciliation; prepare draft PR #609 update.
+- [ ] Inspect latest-head authenticated browser results/screenshots when available. Owner acceptance remains separate.

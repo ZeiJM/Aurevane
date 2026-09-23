@@ -773,6 +773,27 @@
     background-position: 180px 35px;
   }
 }
+.sectorMap[data-sector='highland-road'] .riverFlow {
+  display: none;
+}
+.sectorMap[data-sector='highland-road'] .fireflies,
+.sectorMap[data-sector='northern-pass'] .fireflies {
+  display: none;
+}
+.sectorMap[data-sector='northern-pass'] .riverFlow {
+  inset: 0;
+  width: auto;
+  height: auto;
+  clip-path: none;
+  opacity: 0.16;
+  background: repeating-linear-gradient(
+    165deg,
+    transparent 0 110px,
+    #edf5fc40 140px,
+    transparent 190px
+  );
+  animation: sand-drift 40s linear infinite;
+}
 .cloudShadow {
   position: absolute;
   inset: -20%;

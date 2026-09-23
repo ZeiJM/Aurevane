@@ -545,6 +545,94 @@
         "sha256": "9ab0f8941816b7ce1d04d3255245bdfd9b6340af00a47079de0d02587252c338",
         "encoding": "Sharp WebP quality 86; original dimensions; generated center-strip repair composited into half-width-shifted original and shifted back; see promptSpec for exact recipe"
       }
+    },
+    {
+      "name": "highland-road",
+      "requestId": "ART-WORLD-005",
+      "source": {
+        "method": "generated",
+        "provider": "OpenAI image generation",
+        "createdAt": "2026-09-23",
+        "master": "exec-bb3df781-bf2c-419e-a7b6-e2e4eef5adda.png",
+        "sha256": "d5c662c532993a542dc888bbce34c43ff87600dd014efaffb3dc95209660868b",
+        "promptSpec": "content/art-requests/ART-WORLD-005-highland-and-northern-roads.md",
+        "retention": "Original generated source retained with the conversation"
+      },
+      "runtime": {
+        "path": "/media/art/world/highland-road-v01.webp",
+        "width": 1507,
+        "height": 1044,
+        "bytes": 633804,
+        "sha256": "143d4d509a60ba31f5a295dbd30b33651638b2436e7d20953c03f5f3bd8c33a1",
+        "encoding": "Sharp WebP quality 86; original dimensions"
+      }
+    },
+    {
+      "name": "highland-road-panorama",
+      "requestId": "ART-WORLD-005",
+      "source": {
+        "method": "generated",
+        "provider": "OpenAI image generation",
+        "createdAt": "2026-09-23",
+        "master": "exec-50c1c089-b048-48de-bfe0-d5e87e3aaac0.png",
+        "sha256": "acdb4da5bf8b8c52ccc637557bb2aebe0fffca256608f63b1e8eab5287f1bde7",
+        "promptSpec": "content/art-requests/ART-WORLD-005-highland-and-northern-roads.md",
+        "retention": "Original generated source retained with the conversation",
+        "repairMaster": "exec-062cc782-e9e7-4dd4-a34b-9c1b49c3565f.png",
+        "repairSha256": "d379511641a8df177ab334555568acec155b98f82f3f0b0ac0ddffac527427e7"
+      },
+      "runtime": {
+        "path": "/media/art/world/highland-road-panorama-v01.webp",
+        "width": 1774,
+        "height": 887,
+        "bytes": 311562,
+        "sha256": "74af47e0376a44d7c9408b0ee705699c3c2dfce4593553ffaf50739b94c02517",
+        "encoding": "Generated center-strip wrap repair; Sharp WebP quality 86; original dimensions"
+      }
+    },
+    {
+      "name": "northern-pass",
+      "requestId": "ART-WORLD-005",
+      "source": {
+        "method": "generated",
+        "provider": "OpenAI image generation",
+        "createdAt": "2026-09-23",
+        "master": "exec-9c6ffd45-e6c3-4e52-873a-e08f45e55451.png",
+        "sha256": "006142de05dcc5cd5b08e5be675bb962361b5986fec13ebca1cedc65996fab17",
+        "promptSpec": "content/art-requests/ART-WORLD-005-highland-and-northern-roads.md",
+        "retention": "Original generated source retained with the conversation"
+      },
+      "runtime": {
+        "path": "/media/art/world/northern-pass-v01.webp",
+        "width": 1507,
+        "height": 1044,
+        "bytes": 606662,
+        "sha256": "e60c5233b754d2d8f24fcd8cc4177b8cce1fd7c74cad1c91a99a5cef8f26c583",
+        "encoding": "Sharp WebP quality 86; original dimensions"
+      }
+    },
+    {
+      "name": "northern-pass-panorama",
+      "requestId": "ART-WORLD-005",
+      "source": {
+        "method": "generated",
+        "provider": "OpenAI image generation",
+        "createdAt": "2026-09-23",
+        "master": "exec-591a09f1-82e4-459d-b4dd-e19c854a3691.png",
+        "sha256": "2daa186770070bf7cecf03fe92f4ad7ee254b376596b3123e06134213567dee7",
+        "promptSpec": "content/art-requests/ART-WORLD-005-highland-and-northern-roads.md",
+        "retention": "Original generated source retained with the conversation",
+        "repairMaster": "exec-637ef196-0c1b-4e66-9e42-b26821c9d97e.png",
+        "repairSha256": "4a6daf8699922b57d570e6ae56179fb2617c461968341cdc334408d69b5cc19f"
+      },
+      "runtime": {
+        "path": "/media/art/world/northern-pass-panorama-v01.webp",
+        "width": 1774,
+        "height": 887,
+        "bytes": 349024,
+        "sha256": "7d83012e41c31e35d4a2ba07efab5797c58431880156b1e315f199408c244ddb",
+        "encoding": "Generated center-strip wrap repair; Sharp WebP quality 86; original dimensions"
+      }
     }
   ]
 }

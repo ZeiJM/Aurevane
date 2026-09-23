@@ -37,6 +37,17 @@ describe('world authority and spoiler projection', () => {
         { from: to, to: from, durationMs: 70000 },
       ]
     }),
+    ...[
+      { a: 'aureth-crown', b: 'starfall-highlands', durationMs: 65000 },
+      { a: 'starfall-highlands', b: 'frostmere', durationMs: 75000 },
+    ].flatMap(({ a, b, durationMs }) => {
+      const from = { sectorId: a, x: 12, y: 4 },
+        to = { sectorId: b, x: 0, y: 4 }
+      return [
+        { from, to, durationMs },
+        { from: to, to: from, durationMs },
+      ]
+    }),
   ])(
     'stops a saved direct road from $from.sectorId after its edge is replaced',
     ({ from, to, durationMs }) => {
@@ -112,19 +123,37 @@ describe('world authority and spoiler projection', () => {
     ).toThrow()
   })
   it.each([
-    { id: 'ember-road', coordinate: 'S20-07', exits: ['emberreach', 'verdant-expanse'] },
+    {
+      id: 'highland-road',
+      coordinate: 'S14-06',
+      panoramaVersion: 'v01',
+      exits: ['aureth-crown', 'starfall-highlands'],
+    },
+    {
+      id: 'northern-pass',
+      coordinate: 'S15-04',
+      panoramaVersion: 'v01',
+      exits: ['frostmere', 'starfall-highlands'],
+    },
+    {
+      id: 'ember-road',
+      coordinate: 'S20-07',
+      panoramaVersion: 'v02',
+      exits: ['emberreach', 'verdant-expanse'],
+    },
     {
       id: 'southern-caravan-road',
       coordinate: 'S14-10',
+      panoramaVersion: 'v02',
       exits: ['aureth-crown', 'glasswind-desert'],
     },
-  ])('projects $id as distinct open territory', ({ id, coordinate, exits }) => {
+  ])('projects $id as distinct open territory', ({ id, coordinate, exits, panoramaVersion }) => {
     const state = { ...newWorldState(), position: { sectorId: id, x: 6, y: 4 } }
     const road = projectWorld(state, [], 1000).sectors.find((sector) => sector.id === id)!
     expect(road).toBeDefined()
     expect(road.coordinate).toBe(coordinate)
     expect(road.art).toBe(`/media/art/world/${id}-v01.webp`)
-    expect(road.panorama).toBe(`/media/art/world/${id}-panorama-v02.webp`)
+    expect(road.panorama).toBe(`/media/art/world/${id}-panorama-${panoramaVersion}.webp`)
     expect(
       road.cells.filter((cell) => cell.y === 4).every((cell) => cell.walkable && !cell.safe),
     ).toBe(true)
