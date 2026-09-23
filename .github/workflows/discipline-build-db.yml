@@ -22,7 +22,6 @@ on:
   push:
     branches:
       - main
-      - 'agent/**'
     paths:
       - 'supabase/migrations/**'
       - '.github/scripts/verify-p31-discipline-build-authority.sh'
@@ -43,6 +42,10 @@ on:
 
 permissions:
   contents: read
+
+concurrency:
+  group: discipline-build-db-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   discipline-build:
