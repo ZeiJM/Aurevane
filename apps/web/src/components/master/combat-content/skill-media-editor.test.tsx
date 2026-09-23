@@ -29,8 +29,10 @@ describe('Master Panel Skill media editor', () => {
     expect(markup).toContain(
       '<option value="skill.ironfist.breakfall.audio" selected="">Breakfall · ironfist</option>',
     )
-    expect(markup).toContain('aria-label="Battle audio preview"')
+    expect(markup).toContain('aria-label="Battle audio preview action 1"')
+    expect(markup).toContain('aria-label="Battle audio preview essence 3"')
     expect(markup).toContain('/media/audio/sfx/phase4/ironfist-action-v01-1.mp3')
+    expect(markup).toContain('/media/audio/sfx/phase4/ironfist-essence-v01-3.mp3')
     expect(markup).toContain('aria-label="VFX hook read only"')
     expect(markup).toContain('data-media-hook-readonly="vfx"')
     expect(markup).toContain('skill.vanguard.forceful-strike.vfx')
@@ -51,7 +53,9 @@ describe('Master Panel Skill media editor', () => {
     expect(markup).toContain(
       '<option value="skill.vanguard.forceful-strike.audio" selected="">Forceful Strike · vanguard</option>',
     )
-    expect(markup).toContain('aria-label="Battle audio preview"')
+    expect(markup).toContain('aria-label="Battle audio preview action 1"')
+    expect(markup).toContain('aria-label="Battle audio preview essence 3"')
     expect(markup).toContain('/media/audio/sfx/phase4/vanguard-action-v01-1.mp3')
+    expect(markup).toContain('/media/audio/sfx/phase4/vanguard-essence-v01-3.mp3')
   })
 })
