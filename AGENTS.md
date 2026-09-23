@@ -39,7 +39,7 @@ Phase 0 — Engineering Foundation               substantially complete
 Phase 1 — Character & Progression Foundation  substantially complete
 Phase 2 — Tactical Combat & Battle Platform   closed; PV-1 passed by explicit Owner decision
 Phase 3 — Signature Buildcraft Foundation     complete; Owner-approved closeout with final UI release
-Phase 4 — First Playable Buildcraft Roster     engineering implementation live for testing, including tags/targeting and Atlas; human acceptance open
+Phase 4 — First Playable Buildcraft Roster     closed by Owner decision 2026-09-23; see docs/PHASE_4_CLOSEOUT.md
 Phase 5 — Living World                       Owner authorized parallel work 2026-09-22; initial Living Atlas candidate, not released
 ```
 

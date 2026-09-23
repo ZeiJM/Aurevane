@@ -1,8 +1,10 @@
 # AUREVANE — Active Task Ledger
 
+**PHASE 4 CLOSED — 2026-09-23:** the Owner explicitly accepted Phase 4 as closed. A03, A04, A07 and A10 are **COMPLETE**. A07 concerns battle SFX/audio identities, not background music. Post-closeout UI cleanup/regression work is maintenance and does not reopen Phase 4 by default. See `docs/PHASE_4_CLOSEOUT.md`.
+
 ## Living Atlas — Phase 5 authorized parallel work (2026-09-22)
 
-Owner approved Phase 5, the globe/sector style, uncharted territory and temporary View 360. Isolated branch `agent/phase5-strategic-atlas-20260922` implements the first Atlas/travel slice with event guidance and existing PvP entry. Phase 4 acceptance remains open. See `docs/LIVING_ATLAS_DELIVERY.md` for the bounded content scope and verification/release gates; this entry does not claim all Phase 5 complete or authorize deployment.
+Owner approved Phase 5, the globe/sector style, uncharted territory and temporary View 360. Isolated branch `agent/phase5-strategic-atlas-20260922` implements the first Atlas/travel slice with event guidance and existing PvP entry. Phase 4 was subsequently closed by Owner decision on 2026-09-23. See `docs/PHASE_4_CLOSEOUT.md` and `docs/LIVING_ATLAS_DELIVERY.md` for the bounded content scope and verification/release gates; this entry does not claim all Phase 5 complete or authorize deployment.
 
 Draft PR #609 has passed authenticated Atlas browser acceptance across desktop/laptop/mobile, including private frontier discovery, all eight panoramas and a two-account attack during View 360 (run 35795492891). Real-database entry, expired-training and retry defects have regression coverage. Screenshot review adds compact phone identity, container-fitted globe and hover-contrast corrections. Owner acceptance, staging competition checks and further authored world content remain open.
 
@@ -111,19 +113,19 @@ This file reports the **current implementation/validation boundary**.
 
 ## Current status
 
-**Stage:** Phase 4 — First Playable Buildcraft Roster — **PLAYABLE IMPLEMENTATION LIVE; HUMAN ACCEPTANCE OPEN**. Phase 3 is closed by Owner decision; see `docs/PHASE_3_CLOSEOUT.md`.
+**Stage:** Phase 5 — **AUTHORIZED; INITIAL LIVING ATLAS CANDIDATE UNDER VERIFICATION**. Phase 4 is closed by Owner decision on 2026-09-23; see `docs/PHASE_4_CLOSEOUT.md`. Draft PR #609 remains unreleased and is not implied to be merged by this status.
 
 **Phase 2:** CLOSED on 2026-09-02 by explicit Owner decision after the final production regression test. PV-1 is reconciled as completed by that Owner phase-exit decision; do not invent additional human evidence.
 
 **Phase 3 implementation:** P3.1 through P3.8 are merged to `main` and deployed on the existing no-cost Supabase/Vercel stack.
 
-**Phase 4:** **ACTIVATED** by explicit Owner request for full implementation and final production deployment. See `docs/PHASE_4_TICKETS.md`.
+**Phase 4:** **CLOSED** by explicit Owner decision on 2026-09-23. Preserve the delivered combat/content and P4.11–P4.14 operations baseline. See `docs/PHASE_4_CLOSEOUT.md` and `docs/PHASE_4_TICKETS.md`.
 
 **Phase-3 closeout:** PR #445 passed its release checks and was released as `9da6c4684f99b0617cdccab019a38f90f56795b0`; the recorded Owner closeout decision is preserved. Production READY is not independent human/product evidence.
 
 **Presentation follow-up:** PR #446 merged while this audit was in progress and was released at `0df098e8`; preserve its desktop/mobile changes and assess its exact release interaction evidence.
 
-**Current implementation:** the full approved Phase-4 engineering scope through PR #459 is live for testing, preserving the earlier roster, media, self-target cockpit and earned Mastery.
+**Current closed baseline:** the approved Phase-4 combat/content and operations scope is preserved as the completed Phase-4 foundation. Later UI/performance cleanup may continue without changing the phase-exit decision.
 
 **Live baseline:** 17 Disciplines, 136 regular Skills, 17 Essences, 136 unordered Resonance pairs and the 36-identity Atlas. PR #465's portrait meters, equal command/history panels, rich text log and preview alignment polish is live as `26ba6a240f42b51aab30824c7c3f2a1143f0de5f` / `dpl_9SQWsZSLcQmuY2YfZ91SDWN9iafe`, preserving PR #464's stable map and Discipline forecasts and the earlier artwork release. All four exact-candidate workflows and authenticated practice checks passed; the production alias was verified on that SHA. See the release evidence at the top for scope, browser/clipboard limits and the restored deployment lock. `docs/PHASE_4_FINAL_TEST_READINESS.md` records the preceding phase baseline and remaining human gates. Earlier milestone notes below are historical.
 
@@ -288,4 +290,4 @@ Release checkpoint: local `pnpm check` passed (1,095 tests including the six rep
 - [x] Implement Covert/Sensory/Revealed at their approved authority and presentation boundaries.
 - [x] Ship the real protected Master Panel Combat Content editor with typed validation, diff/preview and immutable publication; do not substitute hard-coded source edits or speculative UI.
 - [x] Resolve the Owner rule for consecutive-use Amplify/Curse clone transfer — clone transfer is discrete and omitted on a consecutive repeat; later effects retain their normal repeat scaling, pure clone repeats are full-cost no-ops, and the former `effects.status-copy-staged` publication guard is retired. This does not by itself publish or deploy a specific clone Skill.
-- [ ] Owner/human end-to-end acceptance and explicit release decision. Automated exact-head browser, database and repository gates are green through PR #552, but automation does not supply A03/A04/A07/A10 human evidence. No Production deployment or Task 10 activation is included in this checkpoint.
+- [x] A10 — explicit Owner Phase-4 acceptance/closeout decision — **COMPLETE 2026-09-23**. The Owner accepted Phase 4 as closed. This is an Owner phase-exit decision, not fabricated independent validation, and it requires no new Production deployment or database mutation.

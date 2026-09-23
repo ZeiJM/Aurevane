@@ -49,21 +49,20 @@ Performance work never authorizes a gameplay redesign, weakened server authority
 | Phase 1 — Character & Progression Foundation | ✅ Substantially complete | Character/account/profile/progression/equipment foundations exist. |
 | Phase 2 — Tactical Combat & Battle Platform | ✅ Closed / PV-1 passed | Mature combat, AI, direct PvP and spectation foundations are preserved for reuse. |
 | Phase 3 — Signature Buildcraft Foundation | ✅ Implementation complete; Owner-approved closeout | P3.1–P3.8 delivered; final UI/quality release completes the Owner's closure condition. See `PHASE_3_CLOSEOUT.md`. |
-| Phase 4 | Active — combat/content foundation plus staff/event operations extension; human acceptance open | The live seventeen-Discipline roster and 36-identity Atlas/Mastery platform are preserved. By explicit Owner correction on 2026-09-19, staff authority, persistent-event operations infrastructure, Event Builder and live-event operations are Phase-4 work (P4.11–P4.14), not Phase 5. See `PHASE_4_TICKETS.md` and `ROADMAP_DISCIPLINE_ATLAS_MASTERY.md`. |
-| Phase 5 — Living World, Story & Supernatural Identity | Authorized / initial Atlas in progress | Owner authorized parallel work on 2026-09-22; initial Atlas implementation candidate. Phase-4 acceptance remains open. See `LIVING_ATLAS_DELIVERY.md`. |
+| Phase 4 — First Playable Buildcraft Roster & Core Combat Content | ✅ Closed — Owner accepted 2026-09-23 | Seventeen-Discipline combat/content baseline plus P4.11–P4.14 staff/event operations are complete and preserved. See `PHASE_4_CLOSEOUT.md`, `PHASE_4_TICKETS.md` and `ROADMAP_DISCIPLINE_ATLAS_MASTERY.md`. |
+| Phase 5 — Living World, Story & Supernatural Identity | 🔵 Authorized / initial Living Atlas in progress | Owner authorized Phase-5 Living Atlas work on 2026-09-22. Draft PR #609 is an unreleased initial travel/exploration slice under verification; this roadmap status does not claim that PR is merged or live. |
 
 ## Current decision boundary
 
-AUREVANE has completed **Phase 3 — Signature Buildcraft Foundation** implementation. On 2026-09-11 the Owner approved closure after the requested UI/performance corrections and quality checkpoint are released. Phase 4 was subsequently **activated by explicit Owner command** for implementation and production testing. Phase 2's battle platform remains a preserved dependency.
+AUREVANE has completed and closed **Phase 4 — First Playable Buildcraft Roster & Core Combat Content** by explicit Owner decision on 2026-09-23. Phase 4's seventeen-Discipline combat/content baseline and P4.11–P4.14 staff/event operations platform remain preserved dependencies. Phase 5 was separately authorized by the Owner on 2026-09-22; draft PR #609 contains the initial Living Atlas candidate and is not represented here as merged or released.
 
 Active now:
 
-- complete and verify the active Phase-4 roster/Atlas/Mastery extension, including Profile and Manual presentation;
-- preserve the Owner-approved P4.11–P4.14 staff/event platform while the separately authorized Phase-5 Atlas work proceeds in parallel;
-- preserve the delivered P3.1–P3.8 build authority, pure/mixed identities, cooldowns and shared committed snapshots;
-- keep testing entitlement separate from earned Mastery so every published Discipline remains testable without pre-mastering release characters;
-- reuse compatible Phase-1 character/profile foundations and the mature Phase-2 battle platform;
-- run behavior-preserving performance/security checks at the Phase-3 build-state boundaries.
+- preserve the closed Phase-2, Phase-3 and Phase-4 authority/security/gameplay contracts unless a genuine regression or explicit redesign request requires a change;
+- continue the separately authorized Phase-5 Living Atlas verification/release work on its own candidate branch;
+- keep testing entitlement separate from earned Mastery so every published Discipline remains testable without converting temporary access into progression;
+- treat post-closeout UI polish, performance work and regression fixes as maintenance rather than reopening Phase 4;
+- keep Production deployment Owner-controlled and the default Vercel deployment gate locked.
 
 Not allowed by default:
 
@@ -433,7 +432,9 @@ No Ascension/Severence or frontier implementation is required here.
 
 ---
 
-## 🔜 Phase 4 — First Playable Buildcraft Roster & Core Combat Content
+## ✅ Phase 4 — First Playable Buildcraft Roster & Core Combat Content — CLOSED
+
+**Status:** CLOSED by explicit Owner decision on 2026-09-23. See `PHASE_4_CLOSEOUT.md` for the final acceptance boundary.
 
 **Goal:** prove the Phase-3 grammar across genuinely different builds before roster scale.
 
@@ -476,7 +477,7 @@ Each expansion must justify:
 
 ### Phase 4 operations extension
 
-By Owner decision on 2026-09-19, the following work belongs to Phase 4. The Owner subsequently authorized parallel Phase-5 Atlas implementation on 2026-09-22; these remain its preserved operational dependencies:
+By Owner decision on 2026-09-19, the following work was assigned to Phase 4 and was completed before the final Phase-4 closeout:
 
 - P4.11 — staff authority foundation;
 - P4.12 — persistent event operations kernel, participant/contribution/claim boundaries, reward-service integration and safe cleanup;
@@ -488,9 +489,9 @@ These are operational foundations for later world content. They do not themselve
 
 ---
 
-## 🔜 Phase 5 — Living World, Story & Supernatural Identity — AUTHORIZED / IN PROGRESS
+## 🔵 Phase 5 — Living World, Story & Supernatural Identity — AUTHORIZED
 
-**Authorization boundary:** Owner explicitly authorized Phase 5 in parallel with Phase 4 on 2026-09-22. The initial Atlas/travel branch is an implementation candidate; Phase-4 human acceptance and Phase-5 release acceptance remain open. This does not authorize deployment.
+**Authorization boundary:** the Owner authorized Phase-5 Living Atlas work on 2026-09-22. Draft PR #609 contains the initial server-authoritative travel/exploration candidate and remains unreleased while its current verification/release gates are completed. Phase-4 closeout does not itself merge, migrate or deploy that candidate.
 
 **Goal:** make AUREVANE a living world and introduce the supernatural identity fork plus the first outer-world mystery.
 
@@ -843,20 +844,18 @@ The approximate **180-day** first-cycle planning default remains subject to vali
 ```text
 PHASE 2 CLOSED / PV-1 RECONCILED
         ↓
-PHASE 3 IMPLEMENTATION COMPLETE
+PHASE 3 CLOSED — OWNER-APPROVED CLOSEOUT
         ↓
-FINAL UI / QUALITY RELEASE → OWNER-APPROVED PHASE 3 CLOSEOUT
+PHASE 4 CLOSED — OWNER ACCEPTED 2026-09-23
         ↓
-PHASE 4 ACTIVATED — FOLLOW PHASE_4_TICKETS.md
+PHASE 5 AUTHORIZED 2026-09-22
         ↓
-COMPLETE P4.11–P4.14 OPERATIONS EXTENSION
-        ↓
-OWNER AUTHORIZATION REQUIRED BEFORE PHASE 5
+VERIFY / RELEASE THE INITIAL LIVING ATLAS CANDIDATE UNDER ITS OWN GATES
 ```
 
 The immediate development priority is therefore:
 
-> **Preserve the tested platform and execute the authorized Phase-4 stages with recorded evidence.**
+> **Preserve the closed Phase-2/3/4 platform, keep UI/regression cleanup behavior-preserving, and complete the separately authorized Phase-5 candidate through its own verification/release process.**
 
 Automatic performance/scaling checkpoints continue at the defined future boundaries; they are maintenance/hardening work, not permission to expand feature scope.
 

@@ -54,4 +54,4 @@ OR
 
 Players must understand the living-world loop, supernatural choice and frontier mystery without procedural-filler feeling.
 
-The Owner explicitly authorized parallel Phase-5 work on 2026-09-22. Phase-4 human acceptance remains open; that authorization does not imply its completion or authorize a deployment. See `LIVING_ATLAS_DELIVERY.md` for implemented scope, verification and remaining content.
+The Owner explicitly authorized parallel Phase-5 work on 2026-09-22. Phase 4 was subsequently closed by explicit Owner decision on 2026-09-23; its closeout does not itself authorize an Atlas deployment. See `LIVING_ATLAS_DELIVERY.md` for implemented scope, verification and remaining content.
