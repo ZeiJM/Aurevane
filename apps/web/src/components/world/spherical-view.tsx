@@ -27,12 +27,42 @@ export function SphericalView({
   const canvas = useRef<HTMLCanvasElement>(null),
     renderer = useRef<ReturnType<typeof createSphericalRenderer>>(null)
   const drag = useRef<{ x: number; y: number; camera: GlobeLocation } | null>(null)
+  const pendingCamera = useRef<GlobeLocation | null>(null)
+  const pointerFrame = useRef<number | null>(null)
   const [failed, setFailed] = useState(false)
+
+  function flushPointerCamera() {
+    if (pointerFrame.current !== null) {
+      window.cancelAnimationFrame(pointerFrame.current)
+      pointerFrame.current = null
+    }
+    const next = pendingCamera.current
+    pendingCamera.current = null
+    if (next) onCamera(next)
+  }
+
+  function schedulePointerCamera(next: GlobeLocation) {
+    pendingCamera.current = next
+    if (pointerFrame.current !== null) return
+    pointerFrame.current = window.requestAnimationFrame(() => {
+      pointerFrame.current = null
+      const queued = pendingCamera.current
+      pendingCamera.current = null
+      if (queued) onCamera(queued)
+    })
+  }
   useEffect(() => {
     if (!canvas.current) return
     renderer.current = createSphericalRenderer(canvas.current, src, () => setFailed(true))
     return () => renderer.current?.dispose()
   }, [src])
+
+  useEffect(
+    () => () => {
+      if (pointerFrame.current !== null) window.cancelAnimationFrame(pointerFrame.current)
+    },
+    [],
+  )
   useEffect(() => {
     renderer.current?.draw({ ...camera, zoom, panorama, grid })
   }, [camera, zoom, panorama, grid])
@@ -53,7 +83,7 @@ export function SphericalView({
       }}
       onPointerMove={(e) => {
         if (!drag.current) return
-        onCamera({
+        schedulePointerCamera({
           longitude: drag.current.camera.longitude - (e.clientX - drag.current.x) * 0.25,
           latitude: Math.max(
             -75,
@@ -62,9 +92,11 @@ export function SphericalView({
         })
       }}
       onPointerUp={() => {
+        flushPointerCamera()
         drag.current = null
       }}
       onPointerCancel={() => {
+        flushPointerCamera()
         drag.current = null
       }}
       onKeyDown={(e) => {
