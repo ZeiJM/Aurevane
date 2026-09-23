@@ -7,8 +7,7 @@ vi.mock('next/link', () => ({
     createElement('a', props, children),
 }))
 vi.mock('@aurevane/ui', () => ({
-  Kicker: ({ children }: { children: React.ReactNode }) =>
-    createElement('span', null, children),
+  Kicker: ({ children }: { children: React.ReactNode }) => createElement('span', null, children),
   StatusMark: () => createElement('span', { 'data-testid': 'status-mark' }, 'status'),
   Surface: ({ children, ...props }: React.ComponentProps<'section'>) =>
     createElement('section', props, children),
