@@ -283,6 +283,15 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
   expect(globeBounds.y + globeBounds.height).toBeLessThanOrEqual(
     viewportBounds.y + viewportBounds.height - 16,
   )
+  await page.mouse.move(globeBounds.x + globeBounds.width * 0.45, globeBounds.y + globeBounds.height * 0.5)
+  await page.mouse.down()
+  await page.mouse.move(
+    globeBounds.x + globeBounds.width * 0.58,
+    globeBounds.y + globeBounds.height * 0.44,
+    { steps: 8 },
+  )
+  await page.mouse.up()
+  await expect(sphere).toBeVisible()
   await capture(page, info, 'world-globe')
   await sphere.focus()
   await page.keyboard.press('ArrowRight')
