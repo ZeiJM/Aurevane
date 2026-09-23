@@ -24,6 +24,14 @@ describe('world travel', () => {
       worldSyncDelayMs({
         routeLength: 3,
         movementBlocked: false,
+        nextStepAt: 2100,
+        serverNow: 1000,
+      }),
+    ).toBe(1200)
+    expect(
+      worldSyncDelayMs({
+        routeLength: 3,
+        movementBlocked: false,
         nextStepAt: 1000,
         serverNow: 1200,
       }),
