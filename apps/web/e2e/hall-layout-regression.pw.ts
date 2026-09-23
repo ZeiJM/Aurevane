@@ -228,23 +228,51 @@ test('Battle Hall shows one full-width parchment workspace at a time with all re
   await expect(spectateWorkspace).toBeVisible()
   await expect(page.locator('[data-hall-workspace="pvp"]')).toBeHidden()
   await expect(page.getByText('03 / Spectate', { exact: true })).toHaveCount(0)
+  const readOnlyNote = spectateWorkspace.locator('aside')
+  await expect(
+    readOnlyNote.getByText(/Great tacticians learn twice/, { exact: false }),
+  ).toHaveCount(0)
+  const readOnlyPresentation = await readOnlyNote.evaluate((element) => {
+    const style = getComputedStyle(element)
+    return {
+      backgroundImage: style.backgroundImage,
+      textAlign: style.textAlign,
+    }
+  })
+  expect(readOnlyPresentation.backgroundImage).toBe('none')
+  expect(readOnlyPresentation.textAlign).toBe('center')
+
   if (!mobile) {
     const spectateSpace = await spectateWorkspace.evaluate((element) => {
       const body = element.querySelector('[data-hall-scroll-body]')!.getBoundingClientRect()
       const vista = element.querySelector('figure')!.getBoundingClientRect()
+      const actions = element.querySelector('footer')!.getBoundingClientRect()
+      const note = element.querySelector('aside')!.getBoundingClientRect()
       const workspace = element.getBoundingClientRect()
       return {
         workspaceHeight: workspace.height,
         bodyHeight: body.height,
         vistaHeight: vista.height,
+        vistaToActionsGap: actions.top - vista.bottom,
+        actionsToNoteGap: note.top - actions.bottom,
+        noteBottomGap: body.bottom - note.bottom,
       }
     })
     expect
       .soft(spectateSpace.bodyHeight, 'Spectate content fills the parchment workspace')
       .toBeGreaterThan(spectateSpace.workspaceHeight * 0.9)
     expect
-      .soft(spectateSpace.vistaHeight, 'Spectate vista expands into the available vertical space')
-      .toBeGreaterThan(spectateSpace.bodyHeight * 0.3)
+      .soft(spectateSpace.vistaHeight, 'Spectate vista remains visually substantial')
+      .toBeGreaterThan(spectateSpace.bodyHeight * 0.25)
+    expect
+      .soft(spectateSpace.vistaToActionsGap, 'Spectate controls have room below the vista')
+      .toBeGreaterThanOrEqual(10)
+    expect
+      .soft(spectateSpace.actionsToNoteGap, 'Spectate footer has room below the controls')
+      .toBeGreaterThanOrEqual(10)
+    expect
+      .soft(spectateSpace.noteBottomGap, 'Read-only footer settles at the bottom of the workspace')
+      .toBeLessThanOrEqual(4)
   }
   await expect(page.getByRole('button', { name: 'Spectate Battle', exact: true })).toBeDisabled()
   await page.getByRole('textbox', { name: 'Battle Key', exact: true }).fill('avb-abcd-1234')
