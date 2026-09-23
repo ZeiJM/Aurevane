@@ -120,10 +120,10 @@ export function PublicCharacterProfile({
           <div className={styles.profileCopy}>
             <div className={styles.tags} aria-label="Character identity tags">
               {primaryDiscipline ? (
-                <span title="Primary Discipline">Primary · {primaryDiscipline}</span>
+                <span title="Primary Discipline">{primaryDiscipline}</span>
               ) : null}
               {secondaryDiscipline ? (
-                <span title="Secondary Discipline">Secondary · {secondaryDiscipline}</span>
+                <span title="Secondary Discipline">{secondaryDiscipline}</span>
               ) : null}
               {character.personalTitle ? (
                 <span title="Personal Title">{character.personalTitle}</span>

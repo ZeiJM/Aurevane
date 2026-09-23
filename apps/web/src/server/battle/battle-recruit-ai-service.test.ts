@@ -208,7 +208,7 @@ describe('P2.6 authoritative Recruit AI turn service', () => {
       expect(decision).toMatchObject({
         event: 'recruit_ai_decision',
         combatantId: 'recruit:p2-4-1',
-        profileId: 'recruit-standard-v2',
+        profileId: 'recruit-high-v2',
         profileVersion: 2,
         rulesVersion: 2,
       })

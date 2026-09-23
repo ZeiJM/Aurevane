@@ -29,7 +29,7 @@ describe('Adventurers roster composition', () => {
     expect(markup).toContain('data-av-surface="ink"')
     expect(markup).toContain('Aster Vale')
     expect(markup).toContain('The Patient Flame')
-    expect(markup).toContain('Vanguard + Aetherist')
+    expect(markup).toContain('Vanguard | Aetherist')
     expect(markup).toContain('Show all characters')
     expect(markup).toContain('data-online-users-heading="true"')
     expect(markup).not.toContain('Different paths. A shared world.')

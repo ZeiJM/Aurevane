@@ -16,7 +16,7 @@ export function readableDisciplinePair(
 ): string | null {
   const primary = readableIdentity(primaryDisciplineId)
   const secondary = readableIdentity(secondaryDisciplineId)
-  if (primary && secondary) return `${primary} + ${secondary}`
+  if (primary && secondary) return `${primary} | ${secondary}`
   return primary ?? secondary
 }
 
