@@ -27,7 +27,7 @@ on:
       - 'apps/web/src/server/character/discipline-mastery-service.ts'
       - 'apps/web/src/app/api/character/build/pv2-test-kit/**'
       - 'apps/web/src/app/api/character/mastery/route.ts'
-      - 'apps/web/src/app/game/character/page.tsx'
+      - 'apps/web/src/app/game/(roaming)/character/page.tsx'
       - 'apps/web/src/components/character/character-profile-shell.tsx'
       - 'apps/web/src/components/character/character-pv2-test-kit.tsx'
       - 'apps/web/src/components/character/character-pv2-test-kit.module.css'
@@ -60,7 +60,7 @@ on:
       - 'apps/web/src/server/character/discipline-mastery-service.ts'
       - 'apps/web/src/app/api/character/build/pv2-test-kit/**'
       - 'apps/web/src/app/api/character/mastery/route.ts'
-      - 'apps/web/src/app/game/character/page.tsx'
+      - 'apps/web/src/app/game/(roaming)/character/page.tsx'
       - 'apps/web/src/components/character/character-profile-shell.tsx'
       - 'apps/web/src/components/character/character-pv2-test-kit.tsx'
       - 'apps/web/src/components/character/character-pv2-test-kit.module.css'
@@ -119,7 +119,7 @@ jobs:
             apps/web/src/server/character/discipline-mastery-service.ts \
             apps/web/src/app/api/character/build/pv2-test-kit/route.ts \
             apps/web/src/app/api/character/mastery/route.ts \
-            apps/web/src/app/game/character/page.tsx \
+            'apps/web/src/app/game/(roaming)/character/page.tsx' \
             apps/web/src/components/character/character-profile-shell.tsx \
             apps/web/src/components/character/character-pv2-test-kit.tsx \
             apps/web/src/components/character/character-pv2-test-kit.module.css \
@@ -141,7 +141,7 @@ jobs:
             apps/web/src/server/character/discipline-mastery-service.ts \
             apps/web/src/app/api/character/build/pv2-test-kit/route.ts \
             apps/web/src/app/api/character/mastery/route.ts \
-            apps/web/src/app/game/character/page.tsx \
+            'apps/web/src/app/game/(roaming)/character/page.tsx' \
             apps/web/src/components/character/character-profile-shell.tsx \
             apps/web/src/components/character/character-pv2-test-kit.tsx \
             apps/web/src/components/character/discipline-mastery-panel.tsx \
@@ -242,7 +242,7 @@ jobs:
       - name: Focused shared targeting and presentation tests
         run: |
           pnpm --filter @aurevane/web exec vitest run \
-            src/app/game/character/page.test.ts \
+            'src/app/game/(roaming)/character/page.test.ts' \
             src/components/battle/battle-skill-command.test.tsx \
             src/components/battle/phase4-combat-art.test.ts \
             src/components/battle/battle-geometry.test.ts \

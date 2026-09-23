@@ -4,7 +4,6 @@ import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 
 import { CombatControlsSettings } from '@/components/settings/combat-controls-settings'
-import { AuthenticatedShellFrame } from '@/components/shell/authenticated-game-shell'
 import { getOptionalPublicSupabaseConfig } from '@/lib/supabase/config'
 import { getCurrentAccountServicesReadiness } from '@/server/account/account-services-readiness'
 import { getAuthenticatedActor } from '@/server/auth/actor'
@@ -41,17 +40,10 @@ export default async function ControlsSettingsPage() {
   const combatKeybinds = combatKeybindsResult.value
 
   return (
-    <AuthenticatedShellFrame
-      sessionLabel="Controls"
-      footerLabel={`${character.name} · Controls`}
-      backHref="/game/character"
-      backLabel="Back to Character Profile"
-    >
-      <Surface className={styles.surface} tone="elevated" data-av-surface="ink">
-        <Kicker marker="◇">Settings</Kicker>
-        <h1>Controls &amp; Keybinds</h1>
-        <CombatControlsSettings initialBindings={combatKeybinds} />
-      </Surface>
-    </AuthenticatedShellFrame>
+    <Surface className={styles.surface} tone="elevated" data-av-surface="ink">
+      <Kicker marker="◇">Settings</Kicker>
+      <h1>Controls &amp; Keybinds</h1>
+      <CombatControlsSettings initialBindings={combatKeybinds} />
+    </Surface>
   )
 }

@@ -4,10 +4,7 @@ import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 
 import { CharacterTitleSettings } from '@/components/account/character-title-settings'
-import {
-  AuthenticatedGameRecovery,
-  AuthenticatedShellFrame,
-} from '@/components/shell/authenticated-game-shell'
+import { AuthenticatedGameRecoveryContent } from '@/components/shell/authenticated-game-shell'
 import { getOptionalPublicSupabaseConfig } from '@/lib/supabase/config'
 import { getCurrentAccountServicesReadiness } from '@/server/account/account-services-readiness'
 import {
@@ -53,7 +50,7 @@ export default async function CharacterTitlesPage() {
       isAurevaneError(selectedCharacterResult.reason) &&
       selectedCharacterResult.reason.code === 'PERSISTENCE_UNAVAILABLE'
     ) {
-      return <AuthenticatedGameRecovery />
+      return <AuthenticatedGameRecoveryContent />
     }
     throw selectedCharacterResult.reason
   }
@@ -69,7 +66,7 @@ export default async function CharacterTitlesPage() {
     ])
   } catch (error) {
     if (isAurevaneError(error) && error.code === 'PERSISTENCE_UNAVAILABLE') {
-      return <AuthenticatedGameRecovery />
+      return <AuthenticatedGameRecoveryContent />
     }
     throw error
   }
@@ -77,20 +74,14 @@ export default async function CharacterTitlesPage() {
   const discipline = getFoundationDiscipline(character.foundationDisciplineId)
 
   return (
-    <AuthenticatedShellFrame
-      sessionLabel="Titles & Profile"
-      backHref="/game/character"
-      backLabel="Back to Character Profile"
-    >
-      <CharacterTitleSettings
-        characterId={character.id}
-        characterName={character.name}
-        disciplineName={discipline?.name ?? 'Adventurer'}
-        personalTitle={titleState.personalTitle}
-        personalTitleSetAt={titleState.personalTitleSetAt}
-        imageUrl={displayState.imageUrl}
-        portraitRef={character.portraitRef}
-      />
-    </AuthenticatedShellFrame>
+    <CharacterTitleSettings
+      characterId={character.id}
+      characterName={character.name}
+      disciplineName={discipline?.name ?? 'Adventurer'}
+      personalTitle={titleState.personalTitle}
+      personalTitleSetAt={titleState.personalTitleSetAt}
+      imageUrl={displayState.imageUrl}
+      portraitRef={character.portraitRef}
+    />
   )
 }

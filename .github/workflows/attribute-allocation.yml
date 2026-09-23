@@ -20,7 +20,7 @@ on:
       - 'apps/web/src/components/character/character-attribute-allocation-panel.tsx'
       - 'apps/web/src/components/character/character-attribute-allocation-panel.module.css'
       - 'apps/web/src/components/character/character-creation-experience.tsx'
-      - 'apps/web/src/app/game/character/page.tsx'
+      - 'apps/web/src/app/game/(roaming)/character/page.tsx'
       - 'apps/web/src/components/character/character-profile-shell.tsx'
       - 'apps/web/e2e/character-level-up-attribute-allocation.pw.ts'
   push:
@@ -44,7 +44,7 @@ on:
       - 'apps/web/src/components/character/character-attribute-allocation-panel.tsx'
       - 'apps/web/src/components/character/character-attribute-allocation-panel.module.css'
       - 'apps/web/src/components/character/character-creation-experience.tsx'
-      - 'apps/web/src/app/game/character/page.tsx'
+      - 'apps/web/src/app/game/(roaming)/character/page.tsx'
       - 'apps/web/src/components/character/character-profile-shell.tsx'
       - 'apps/web/e2e/character-level-up-attribute-allocation.pw.ts'
 
@@ -91,7 +91,7 @@ jobs:
             apps/web/src/components/character/character-attribute-allocation-panel.tsx \
             apps/web/src/components/character/character-attribute-allocation-panel.module.css \
             apps/web/src/components/character/character-creation-experience.tsx \
-            apps/web/src/app/game/character/page.tsx \
+            'apps/web/src/app/game/(roaming)/character/page.tsx' \
             apps/web/src/components/character/character-profile-shell.tsx \
             apps/web/e2e/character-level-up-attribute-allocation.pw.ts
           git diff --exit-code -- \
@@ -109,7 +109,7 @@ jobs:
             apps/web/src/components/character/character-attribute-allocation-panel.tsx \
             apps/web/src/components/character/character-attribute-allocation-panel.module.css \
             apps/web/src/components/character/character-creation-experience.tsx \
-            apps/web/src/app/game/character/page.tsx \
+            'apps/web/src/app/game/(roaming)/character/page.tsx' \
             apps/web/src/components/character/character-profile-shell.tsx \
             apps/web/e2e/character-level-up-attribute-allocation.pw.ts
 

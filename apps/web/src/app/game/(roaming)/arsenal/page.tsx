@@ -4,7 +4,7 @@ import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 
 import { CharacterArsenalShell } from '@/components/character/character-arsenal-shell'
-import { AuthenticatedGameRecovery } from '@/components/shell/authenticated-game-shell'
+import { AuthenticatedGameRecoveryContent } from '@/components/shell/authenticated-game-shell'
 import { getOptionalPublicSupabaseConfig } from '@/lib/supabase/config'
 import { getCurrentAccountServicesReadiness } from '@/server/account/account-services-readiness'
 import {
@@ -39,7 +39,7 @@ function renderPersistenceRecovery(
     stage,
     code: 'PERSISTENCE_UNAVAILABLE',
   })
-  return <AuthenticatedGameRecovery />
+  return <AuthenticatedGameRecoveryContent />
 }
 
 export default async function CharacterArsenalPage() {

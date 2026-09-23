@@ -32,8 +32,8 @@ const compositionContracts = [
     markers: ['data-training-scene="true"', 'data-training-workspace="true"'],
   },
   {
-    component: './game/online/page.tsx',
-    stylesheet: './game/online/online-users.module.css',
+    component: './game/(roaming)/online/page.tsx',
+    stylesheet: './game/(roaming)/online/online-users.module.css',
     markers: ['data-directory-stage="true"'],
   },
   {
