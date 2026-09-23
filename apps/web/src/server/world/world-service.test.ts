@@ -124,7 +124,7 @@ describe('world authority and spoiler projection', () => {
     expect(road).toBeDefined()
     expect(road.coordinate).toBe(coordinate)
     expect(road.art).toBe(`/media/art/world/${id}-v01.webp`)
-    expect(road.panorama).toBe(`/media/art/world/${id}-panorama-v01.webp`)
+    expect(road.panorama).toBe(`/media/art/world/${id}-panorama-v02.webp`)
     expect(
       road.cells.filter((cell) => cell.y === 4).every((cell) => cell.walkable && !cell.safe),
     ).toBe(true)

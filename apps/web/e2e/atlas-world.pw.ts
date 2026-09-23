@@ -325,10 +325,12 @@ for (const journey of [
     await expect(ambient).toBeHidden()
     await page.emulateMedia({ reducedMotion: 'no-preference' })
     await expect(ambient).toBeVisible()
+    const panorama = (await world(page)).sectors.find(
+      (sector) => sector.id === journey.id,
+    )!.panorama!
     const loaded = page.waitForResponse(
       (response) =>
-        response.url().endsWith(`/${journey.id}-panorama-v01.webp`) &&
-        (response.ok() || response.status() === 304),
+        response.url().endsWith(panorama) && (response.ok() || response.status() === 304),
       { timeout: 15000 },
     )
     await page.getByRole('button', { name: /View 360/ }).click()

@@ -8,6 +8,8 @@ Draft PR #609 has passed authenticated Atlas browser acceptance across desktop/l
 
 2026-09-23 continuation adds a distinct encounterable Crown Road sector between Aureth Crown and Verdant Expanse, original map/panorama art, filtered exit controls and an authoritative travel-time estimate. The actual sector coordinate drives the globe marker. Coastal Road continues that path from Verdant Expanse to Hollow Coast with distinct cliffside/shore terrain, surf and its own panorama. Ember Road and Southern Caravan Road add volcanic and desert routes to Emberreach and Glasswind Desert. Four other regional links retain timed transitions; this remains an incremental authored-world candidate, not full Phase-5 completion.
 
+Resumed verification: Atlas run 35806304789 passed nine scenarios with twelve intentional viewport-duplicate skips at `6a65b23d`. Screenshot review found a wrap join in the Ember/caravan panoramas; version 02 repairs the artwork while preserving version 01. Full local quality checks pass after that repair (2,768 tests plus six report tests); the new texture versions still require the next browser run. Highland Road, Northern Pass, Eastern March Road and Old Coast Road remain timed links. See the delivery notes for exact evidence and outstanding release gates.
+
 
 ## Battle presentation polish follow-up — 2026-09-13
 

@@ -23,3 +23,15 @@ Use case: stylized-concept. Asset type: original Aurevane RPG full 360 surroundi
 ## Runtime composition
 
 Both main paths align with row 4 (N4), entering E0 and leaving E12. Ember Road has blocked basalt ridges and dim molten terrain outside the road; small walkable verges border the cobbled path. Southern Caravan Road has open sandy verges bordered by blocked high dunes and sandstone ridges. All road cells are wilderness with no settlement immunity. Gentle ember haze and drifting sand replace the river effect, respecting motion controls and reduced motion. View 360 remains an ambient sector panorama, not per-cell 3D geography.
+
+## Panorama wrap repair — 2026-09-23
+
+Browser run 35806304789 passed nine scenarios, but reverse-angle screenshot review showed a vertical join in both new panoramas. The texture's left/right artwork did not join continuously; travel and the renderer were unaffected. Version 02 repairs that join. Version 01 files and their provenance remain available.
+
+Built-in OpenAI image generation edited half-width-shifted copies of the version 01 panoramas, putting the visible join in the middle for targeted retouching. The generated masters are `exec-5f5ae0ab-cd37-4872-9761-dedc3a763d5e.png` (Ember) and `exec-8b6ea8a7-3189-495a-b81a-07a5aa03ca08.png` (caravan), retained with this conversation. A first direct caravan edge-repair candidate was rejected because it retained the join.
+
+Repair prompt (both accepted masters):
+
+Use case: precise-object-edit. The attached image is an equirectangular 360 panorama cyclically shifted so its broken wrap seam is now the VERTICAL LINE AT EXACT IMAGE CENTER. Inpaint and repair only a narrow central vertical band (center 14% of total width) to REMOVE THAT VERTICAL STITCH LINE throughout sky, clouds, mountains and foreground. Make existing cloud colors, rock contours and ground texture connect naturally across this central join. Keep the whole remaining 86% pixel-for-pixel visually unchanged. This is precision retouching, no new scene, no artistic redesign, no added objects. Preserve exact canvas aspect ratio and all existing scenery, road directions, perspective, lighting and painterly realism. Preserve the outermost left and right edges unchanged, because those edges already join correctly. No blur stripe, duplicated rock edges, text or frame.
+
+Deterministic runtime derivative: start with the decoded 1774×887 version 01 WebP; swap its two 887-pixel-wide halves. Extract the generated master's 360-pixel-wide full-height center strip at x=707. Composite that strip over the shifted original with alpha `smoothstep(0,1,min(1,x/100,(359-x)/100))`, where x is the strip-local column. Preserve all pixels outside that strip. Swap the halves back, then encode Sharp WebP quality 86 at original dimensions. This retains the original forward view and uses generated artwork only around the repaired join. Final shifted wrap previews were visually inspected; browser acceptance of the version 02 textures is recorded separately on PR #609.

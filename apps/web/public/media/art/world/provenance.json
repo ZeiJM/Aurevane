@@ -503,6 +503,48 @@
         "sha256": "6d7eac272fa4d9633c29281861ee79fc0c4b16e6bf7da7d8b922af6ca4bec09f",
         "encoding": "Sharp WebP quality 86; original dimensions"
       }
+    },
+    {
+      "name": "ember-road-panorama-v02",
+      "source": {
+        "method": "generated-edit",
+        "provider": "OpenAI image generation",
+        "createdAt": "2026-09-23",
+        "master": "exec-5f5ae0ab-cd37-4872-9761-dedc3a763d5e.png",
+        "sha256": "6a999693eb4e440b0917ec1bf7040816d09a3dd3e30b1792e3eacd296c977c7f",
+        "promptSpec": "content/art-requests/ART-WORLD-004-ember-and-caravan-roads.md#panorama-wrap-repair--2026-09-23",
+        "retention": "Original generated repair master retained with the conversation",
+        "baseRuntime": "/media/art/world/ember-road-panorama-v01.webp"
+      },
+      "runtime": {
+        "path": "/media/art/world/ember-road-panorama-v02.webp",
+        "width": 1774,
+        "height": 887,
+        "bytes": 323760,
+        "sha256": "b5f98ea8f1b22a3713f2b4633a416829e32a56fd20741754b38ddea1620e7255",
+        "encoding": "Sharp WebP quality 86; original dimensions; generated center-strip repair composited into half-width-shifted original and shifted back; see promptSpec for exact recipe"
+      }
+    },
+    {
+      "name": "southern-caravan-road-panorama-v02",
+      "source": {
+        "method": "generated-edit",
+        "provider": "OpenAI image generation",
+        "createdAt": "2026-09-23",
+        "master": "exec-8b6ea8a7-3189-495a-b81a-07a5aa03ca08.png",
+        "sha256": "61db215280cd66cc531a1c52ba40b44f37633fb4b3a1db94c83bb07fe776124d",
+        "promptSpec": "content/art-requests/ART-WORLD-004-ember-and-caravan-roads.md#panorama-wrap-repair--2026-09-23",
+        "retention": "Original generated repair master retained with the conversation",
+        "baseRuntime": "/media/art/world/southern-caravan-road-panorama-v01.webp"
+      },
+      "runtime": {
+        "path": "/media/art/world/southern-caravan-road-panorama-v02.webp",
+        "width": 1774,
+        "height": 887,
+        "bytes": 269520,
+        "sha256": "9ab0f8941816b7ce1d04d3255245bdfd9b6340af00a47079de0d02587252c338",
+        "encoding": "Sharp WebP quality 86; original dimensions; generated center-strip repair composited into half-width-shifted original and shifted back; see promptSpec for exact recipe"
+      }
     }
   ]
 }
