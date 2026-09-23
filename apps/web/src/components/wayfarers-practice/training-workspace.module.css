@@ -171,27 +171,32 @@
   display: flex;
   min-width: 0;
   flex-wrap: wrap;
-  gap: 0.15rem 0.55rem;
+  gap: 0.16rem 0.72rem;
+  align-items: baseline;
   margin: 0;
 }
 
 .rewardLine > div {
-  display: flex;
+  display: inline-flex;
   min-width: 0;
-  gap: 0.3rem;
+  gap: 0.24rem;
   align-items: baseline;
 }
 
 .rewardLine dt {
   color: #687b85;
-  font-size: 0.62rem;
+  font-size: 0.61rem;
+  font-weight: 500;
+  line-height: 1.2;
 }
 
 .rewardLine dd {
   margin: 0;
-  color: #243b47;
-  font-size: 0.67rem;
-  font-weight: 750;
+  color: #344b57;
+  font-size: 0.65rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
   white-space: nowrap;
 }
 
