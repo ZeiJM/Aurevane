@@ -1,6 +1,15 @@
 import type { AudioAssetDescriptor } from './registry'
 
+const FOUNDATION_COMPLETION_AUDIO_DISCIPLINES = [
+  'vanguard',
+  'farstrider',
+  'shadehand',
+  'aetherist',
+  'lifebinder',
+] as const
+
 export const PHASE4_AUDIO_DISCIPLINES = [
+  ...FOUNDATION_COMPLETION_AUDIO_DISCIPLINES,
   'ironfist',
   'chronist',
   'bastion',
@@ -28,8 +37,9 @@ export const phase4AudioAssets: readonly AudioAssetDescriptor[] = families.flatM
       kind: 'sfx',
       channel: 'sfx',
       status: 'approved',
-      requestId:
-        family === 'chronist'
+      requestId: FOUNDATION_COMPLETION_AUDIO_DISCIPLINES.some((id) => id === family)
+        ? 'AUDIO-DISC-004'
+        : family === 'chronist'
           ? 'AUDIO-DISC-003'
           : family === 'ironfist'
             ? 'AUDIO-DISC-002'
