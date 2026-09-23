@@ -12,15 +12,26 @@ import {
   type AudioDirectorState,
   type AudioMixSettings,
 } from '@aurevane/audio'
+import { usePathname } from 'next/navigation'
 import {
   createContext,
   type PropsWithChildren,
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useReducer,
+  useRef,
   useState,
 } from 'react'
+
+import {
+  createDefaultSiteMusicConfig,
+  parseSiteMusicConfig,
+  resolveSiteMusicTrack,
+  SITE_MUSIC_UPDATED_EVENT,
+  type SiteMusicConfig,
+} from '@/lib/site-music'
 
 interface AudioContextValue {
   settings: AudioMixSettings
@@ -35,6 +46,8 @@ interface AudioContextValue {
 const AudioRuntimeContext = createContext<AudioContextValue | null>(null)
 
 export function AudioProvider({ children }: PropsWithChildren) {
+  const pathname = usePathname()
+  const musicElementRef = useRef<HTMLAudioElement>(null)
   const [director] = useState(() => new AudioDirector())
   const [settings, dispatch] = useReducer(
     reduceAudioSettings,
@@ -43,6 +56,17 @@ export function AudioProvider({ children }: PropsWithChildren) {
   )
   const [audioState, setAudioState] = useState<AudioDirectorState>('locked')
   const [storageReady, setStorageReady] = useState(false)
+  const [interactionUnlocked, setInteractionUnlocked] = useState(false)
+  const [siteMusicConfig, setSiteMusicConfig] = useState<SiteMusicConfig>(
+    createDefaultSiteMusicConfig,
+  )
+  const activeTrack = useMemo(
+    () => resolveSiteMusicTrack(siteMusicConfig, pathname),
+    [pathname, siteMusicConfig],
+  )
+  const musicVolume = settings.muted
+    ? 0
+    : Math.min(1, Math.max(0, settings.volumes.master * settings.volumes.music))
 
   useEffect(() => {
     try {
@@ -73,20 +97,98 @@ export function AudioProvider({ children }: PropsWithChildren) {
     }
   }, [director, settings, storageReady])
 
-  useEffect(
-    () => () => {
-      void director.close()
-    },
-    [director],
-  )
+  useEffect(() => {
+    const controller = new AbortController()
+
+    void fetch('/api/site-music', { cache: 'no-store', signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) return
+        const payload = (await response.json()) as { config?: unknown }
+        if (payload.config) setSiteMusicConfig(parseSiteMusicConfig(payload.config))
+      })
+      .catch(() => {
+        // The bundled default remains active when remote configuration is unavailable.
+      })
+
+    const receivePublishedConfig = (event: Event) => {
+      if (!(event instanceof CustomEvent)) return
+      try {
+        setSiteMusicConfig(parseSiteMusicConfig(event.detail))
+      } catch {
+        // Ignore malformed same-window events.
+      }
+    }
+
+    window.addEventListener(SITE_MUSIC_UPDATED_EVENT, receivePublishedConfig)
+    return () => {
+      controller.abort()
+      window.removeEventListener(SITE_MUSIC_UPDATED_EVENT, receivePublishedConfig)
+    }
+  }, [])
 
   useEffect(() => {
-    const stopHiddenAudio = () => {
-      if (document.hidden) director.stopAll()
+    const element = musicElementRef.current
+    if (!element) return
+
+    if (!activeTrack) {
+      element.pause()
+      element.removeAttribute('src')
+      element.removeAttribute('data-track-url')
+      element.load()
+      return
     }
-    document.addEventListener('visibilitychange', stopHiddenAudio)
-    return () => document.removeEventListener('visibilitychange', stopHiddenAudio)
+
+    element.loop = activeTrack.loop
+    element.preload = 'auto'
+    element.volume = musicVolume
+
+    if (element.dataset.trackUrl !== activeTrack.url) {
+      element.pause()
+      element.src = activeTrack.url
+      element.dataset.trackUrl = activeTrack.url
+      element.load()
+    }
+
+    if (interactionUnlocked && !document.hidden) {
+      void element.play().catch(() => {
+        // Browser policy or an unavailable remote source can still block playback.
+      })
+    }
+  }, [activeTrack, interactionUnlocked, musicVolume])
+
+  useEffect(() => {
+    const element = musicElementRef.current
+    if (element) element.volume = musicVolume
+  }, [musicVolume])
+
+  useEffect(() => {
+    const element = musicElementRef.current
+    return () => {
+      if (element) {
+        element.pause()
+        element.removeAttribute('src')
+      }
+      void director.close()
+    }
   }, [director])
+
+  useEffect(() => {
+    const handleVisibility = () => {
+      const element = musicElementRef.current
+      if (document.hidden) {
+        director.stopAll()
+        element?.pause()
+        return
+      }
+      if (interactionUnlocked && activeTrack && element) {
+        void element.play().catch(() => {
+          // A new user gesture will retry playback if the browser requires one.
+        })
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => document.removeEventListener('visibilitychange', handleVisibility)
+  }, [activeTrack, director, interactionUnlocked])
 
   const setVolume = useCallback((channel: AudioChannel, value: number) => {
     dispatch({ type: 'set-volume', channel, value })
@@ -103,13 +205,20 @@ export function AudioProvider({ children }: PropsWithChildren) {
   }, [director])
 
   useEffect(() => {
-    if (audioState !== 'locked') {
+    if (interactionUnlocked && audioState !== 'locked') {
       return
     }
 
     let attempting = false
     const unlockFromInteraction = () => {
-      if (attempting) return
+      setInteractionUnlocked(true)
+      const element = musicElementRef.current
+      if (activeTrack && element && !document.hidden) {
+        void element.play().catch(() => {
+          // The same gesture also unlocks the Web Audio graph below.
+        })
+      }
+      if (attempting || audioState !== 'locked') return
       attempting = true
       void unlock().finally(() => {
         attempting = false
@@ -123,7 +232,7 @@ export function AudioProvider({ children }: PropsWithChildren) {
       window.removeEventListener('pointerdown', unlockFromInteraction, true)
       window.removeEventListener('keydown', unlockFromInteraction, true)
     }
-  }, [audioState, unlock])
+  }, [activeTrack, audioState, interactionUnlocked, unlock])
 
   const playAsset = useCallback(
     (id: string, priority = 50) => {
@@ -146,6 +255,7 @@ export function AudioProvider({ children }: PropsWithChildren) {
         stopSfx,
       }}
     >
+      <audio ref={musicElementRef} aria-hidden="true" data-testid="site-music-player" />
       {children}
     </AudioRuntimeContext.Provider>
   )
