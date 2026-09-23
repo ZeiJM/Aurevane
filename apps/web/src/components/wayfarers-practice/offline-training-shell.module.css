@@ -232,7 +232,7 @@
 @media (min-width: 1200px) {
   .layout {
     grid-template-columns: clamp(18rem, 20.5vw, 21.8rem) minmax(0, 1fr);
-    align-items: stretch;
+    align-items: start;
     align-content: start;
   }
 
@@ -241,7 +241,8 @@
   }
 
   .sheet {
-    contain: size;
+    height: var(--character-rail-height, auto);
+    min-height: 0;
     box-sizing: border-box;
     grid-template-rows: auto minmax(0, 1fr);
     overflow: hidden;

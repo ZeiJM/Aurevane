@@ -87,6 +87,17 @@ test('Battle Hall shows one full-width parchment workspace at a time with all re
   await expect(page.locator('[data-hall-workspace="ai"]')).toBeVisible()
   await expect(page.locator('[data-hall-workspace="pvp"]')).toBeHidden()
   await expect(page.locator('[data-hall-workspace="spectate"]')).toBeHidden()
+  if (!mobile) {
+    await expect
+      .poll(() =>
+        page
+          .locator('[data-battle-hall-workspace="true"]')
+          .evaluate((element) =>
+            getComputedStyle(element).getPropertyValue('--character-rail-height').trim(),
+          ),
+      )
+      .not.toBe('')
+  }
   await capture(page, testInfo, 'idle')
 
   const ai = page.locator('[data-hall-workspace="ai"]')

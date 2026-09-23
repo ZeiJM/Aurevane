@@ -47,6 +47,17 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
     await page.setViewportSize(viewport)
     await page.goto('/game/character')
     await expect(page.getByTestId('character-profile')).toBeVisible()
+    if (viewport.width >= 1200) {
+      await expect
+        .poll(() =>
+          page
+            .locator('[data-profile-workspace]')
+            .evaluate((element) =>
+              getComputedStyle(element).getPropertyValue('--character-rail-height').trim(),
+            ),
+        )
+        .not.toBe('')
+    }
     await expect(page.locator('[data-profile-loadout]')).toHaveCount(0)
     await expect(page.getByRole('heading', { name: 'Identity', exact: true })).toBeVisible()
     await expect(
@@ -107,6 +118,26 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
       await page.waitForTimeout(500)
       const railAfter = await rail.evaluate((node) => getComputedStyle(node, '::before').transform)
       expect.soft(railAfter, 'game rail aether physically advances').not.toBe(railStart)
+
+      const railLinkMetrics = await rail
+        .locator('[aria-label="Primary game navigation"] > :is(a, button)')
+        .evaluateAll((links) =>
+          links.map((link) => {
+            const rect = link.getBoundingClientRect()
+            const icon = link.querySelector<SVGElement>('svg')
+            const iconRect = icon?.getBoundingClientRect()
+            return {
+              label: link.getAttribute('aria-label'),
+              height: rect.height,
+              iconWidth: iconRect?.width ?? 0,
+            }
+          }),
+        )
+      const railHeights = railLinkMetrics.map((item) => item.height)
+      expect(Math.max(...railHeights) - Math.min(...railHeights)).toBeLessThanOrEqual(1)
+      const arsenalIcon = railLinkMetrics.find((item) => item.label === 'Arsenal')
+      const characterIcon = railLinkMetrics.find((item) => item.label === 'Character')
+      expect(arsenalIcon?.iconWidth ?? 0).toBeGreaterThan(characterIcon?.iconWidth ?? 0)
     }
 
     await page.evaluate(async () => {
@@ -231,6 +262,11 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
       expect
         .soft(metrics.sheetOverflowY, `${label}: center profile sheet owns vertical scrolling`)
         .toMatch(/auto|scroll/)
+      expect(
+        await page
+          .locator('[data-profile-sheet]')
+          .evaluate((element) => getComputedStyle(element).scrollbarColor),
+      ).not.toBe('auto')
       expect
         .soft(
           metrics.sheetScrollHeight,
