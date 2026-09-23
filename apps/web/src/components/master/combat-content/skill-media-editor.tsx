@@ -5,6 +5,7 @@ import Image from 'next/image'
 
 import {
   resolveSkillAudioCueHook,
+  resolveSkillAudioPreviewAssets,
   resolveSkillIconHook,
   skillAudioCueHookOptions,
   skillIconHookOptions,
@@ -20,6 +21,7 @@ export interface SkillMediaEditorProps {
 export function SkillMediaEditor({ value, onChange }: SkillMediaEditorProps) {
   const icon = resolveSkillIconHook(value.iconKey)
   const audio = resolveSkillAudioCueHook(value.audioCueKey)
+  const audioPreviews = resolveSkillAudioPreviewAssets(value.audioCueKey)
   const unregisteredIcon = value.iconKey && !icon ? value.iconKey : null
   const unregisteredAudio = value.audioCueKey && !audio ? value.audioCueKey : null
 
@@ -106,15 +108,28 @@ export function SkillMediaEditor({ value, onChange }: SkillMediaEditorProps) {
         </label>
 
         <div className={styles.mediaAudioPreview}>
-          {audio?.available && audio.sampleSrc ? (
+          {audio?.available && audioPreviews.length > 0 ? (
             <>
-              <audio
-                aria-label="Battle audio preview"
-                controls
-                preload="none"
-                src={audio.sampleSrc}
-              />
-              <code>{audio.sampleAssetId}</code>
+              <div className={styles.audioReviewHeader}>
+                <strong>{audio.audioFamily} family</strong>
+                <span>Action + Essence variants</span>
+              </div>
+              <div className={styles.audioVariantGrid}>
+                {audioPreviews.map((preview) => (
+                  <div className={styles.audioVariant} key={preview.assetId}>
+                    <span>
+                      {preview.role === 'essence' ? 'Essence' : 'Action'} {preview.variant}
+                    </span>
+                    <audio
+                      aria-label={`Battle audio preview ${preview.role} ${preview.variant}`}
+                      controls
+                      preload="none"
+                      src={preview.src}
+                    />
+                    <code>{preview.assetId}</code>
+                  </div>
+                ))}
+              </div>
             </>
           ) : (
             <span>
