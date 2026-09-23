@@ -134,6 +134,9 @@ test('Battle Hall shows one full-width parchment workspace at a time with all re
         vistaHeight: vista.height,
         modeHeights: modes.map((mode) => mode.height),
         modeBottomOverflow: Math.max(...modes.map((mode) => mode.bottom)) - body.bottom,
+        bodyOverflow:
+          element.querySelector<HTMLElement>('[data-hall-scroll-body]')!.scrollHeight -
+          element.querySelector<HTMLElement>('[data-hall-scroll-body]')!.clientHeight,
       }
     })
     expect
@@ -162,6 +165,11 @@ test('Battle Hall shows one full-width parchment workspace at a time with all re
     }))
     expect(hallScrollbar.color).toContain('rgb(7, 16, 25)')
     expect(hallScrollbar.width).toBe('thin')
+    if (testInfo.project.name === 'laptop-chromium') {
+      expect
+        .soft(aiSpace.bodyOverflow, 'Laptop AI workspace fits without a vertical scrollbar')
+        .toBeLessThanOrEqual(1)
+    }
   }
 
   await expect(page.getByLabel('Battle mode')).toHaveValue('recruit-sparring')

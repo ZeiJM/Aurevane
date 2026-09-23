@@ -2,7 +2,7 @@ import { isAurevaneError } from '@aurevane/game-core/errors'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 
-import { AuthenticatedGameRecovery } from '@/components/shell/authenticated-game-shell'
+import { AuthenticatedGameRecoveryContent } from '@/components/shell/authenticated-game-shell'
 import { OfflineTrainingShell } from '@/components/wayfarers-practice/offline-training-shell'
 import type { PracticePlanCardData } from '@/components/wayfarers-practice/practice-plan-card'
 import type { TrainingReportCardData } from '@/components/wayfarers-practice/training-report-card'
@@ -58,7 +58,7 @@ export default async function OfflineTrainingPage() {
       isAurevaneError(identityResult.reason) &&
       identityResult.reason.code === 'PERSISTENCE_UNAVAILABLE'
     ) {
-      return <AuthenticatedGameRecovery />
+      return <AuthenticatedGameRecoveryContent />
     }
     throw identityResult.reason
   }

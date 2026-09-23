@@ -1,7 +1,6 @@
 import { isAurevaneError } from '@aurevane/game-core/errors'
 import { redirect } from 'next/navigation'
 
-import { AuthenticatedShellFrame } from '@/components/shell/authenticated-game-shell'
 import { OnlineUsersDirectory } from '@/components/social/online-users-directory'
 import { getAuthenticatedActor } from '@/server/auth/actor'
 import { loadSelectedCharacter } from '@/server/character/selected-character'
@@ -29,20 +28,14 @@ export default async function OnlineUsersPage() {
   const online = await listOnlineCharacters()
 
   return (
-    <AuthenticatedShellFrame
-      sessionLabel="Online Users"
-      backHref="/game/character"
-      backLabel="Back to Character Profile"
+    <section
+      className={styles.page}
+      data-character-directory
+      data-av-surface="ink"
+      data-online-concept="true"
+      data-directory-stage="true"
     >
-      <section
-        className={styles.page}
-        data-character-directory
-        data-av-surface="ink"
-        data-online-concept="true"
-        data-directory-stage="true"
-      >
-        <OnlineUsersDirectory characters={online} />
-      </section>
-    </AuthenticatedShellFrame>
+      <OnlineUsersDirectory characters={online} />
+    </section>
   )
 }

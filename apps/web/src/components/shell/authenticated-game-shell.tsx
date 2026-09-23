@@ -63,28 +63,34 @@ async function AuthenticatedCharacterPortrait({
   return <ShellCharacterPortrait character={character} imageUrl={imageUrl} />
 }
 
+export function AuthenticatedGameRecoveryContent() {
+  return (
+    <Surface className={styles.primaryCard} tone="elevated">
+      <Kicker marker="◇">Game service interruption</Kicker>
+      <h1>Your session is safe. The road is briefly closed.</h1>
+      <p className={styles.lead}>
+        AUREVANE verified your sign-in, but it could not safely load the private account and
+        character state required to continue. No character or progression state was changed.
+      </p>
+      <div className={styles.characterState} data-testid="persistence-recovery">
+        <span>Private game state unavailable</span>
+        <strong>Retry when account services are ready.</strong>
+        <p>
+          Retry the private-state load, or use Account to sign out. AUREVANE will not create partial
+          character state to bypass the problem.
+        </p>
+        <form action="/game" method="get">
+          <button type="submit">Retry private-state load</button>
+        </form>
+      </div>
+    </Surface>
+  )
+}
+
 export function AuthenticatedGameRecovery() {
   return (
     <AuthenticatedShellFrame sessionLabel="Service Recovery">
-      <Surface className={styles.primaryCard} tone="elevated">
-        <Kicker marker="◇">Game service interruption</Kicker>
-        <h1>Your session is safe. The road is briefly closed.</h1>
-        <p className={styles.lead}>
-          AUREVANE verified your sign-in, but it could not safely load the private account and
-          character state required to continue. No character or progression state was changed.
-        </p>
-        <div className={styles.characterState} data-testid="persistence-recovery">
-          <span>Private game state unavailable</span>
-          <strong>Retry when account services are ready.</strong>
-          <p>
-            Retry the private-state load, or use Account to sign out. AUREVANE will not create
-            partial character state to bypass the problem.
-          </p>
-          <form action="/game" method="get">
-            <button type="submit">Retry private-state load</button>
-          </form>
-        </div>
-      </Surface>
+      <AuthenticatedGameRecoveryContent />
     </AuthenticatedShellFrame>
   )
 }
