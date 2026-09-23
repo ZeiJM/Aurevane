@@ -24,7 +24,41 @@ export function AccountMenu({
 }: AccountMenuProps) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
+  const [resolvedMasterPanelHref, setResolvedMasterPanelHref] = useState<Route | null>(
+    masterPanelHref,
+  )
+  const [masterAccessResolved, setMasterAccessResolved] = useState(masterPanelHref !== null)
   const rootRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!masterPanelHref) return
+    setResolvedMasterPanelHref(masterPanelHref)
+    setMasterAccessResolved(true)
+  }, [masterPanelHref])
+
+  useEffect(() => {
+    if (!open || masterAccessResolved) return
+    let cancelled = false
+
+    async function loadMasterPanelAccess() {
+      try {
+        const response = await fetch('/api/master/access', { cache: 'no-store' })
+        const body = (await response.json()) as { hasAccess?: boolean }
+        if (cancelled) return
+        setResolvedMasterPanelHref(response.ok && body.hasAccess === true ? '/master' : null)
+      } catch {
+        if (cancelled) return
+        setResolvedMasterPanelHref(null)
+      } finally {
+        if (!cancelled) setMasterAccessResolved(true)
+      }
+    }
+
+    void loadMasterPanelAccess()
+    return () => {
+      cancelled = true
+    }
+  }, [masterAccessResolved, open])
 
   useEffect(() => {
     if (!open) return
@@ -84,10 +118,10 @@ export function AccountMenu({
               Switch Character
             </Link>
           ) : null}
-          {masterPanelHref && !pathname.startsWith('/master') ? (
+          {resolvedMasterPanelHref && !pathname.startsWith('/master') ? (
             <Link
               className={styles.masterPanelLink}
-              href={masterPanelHref}
+              href={resolvedMasterPanelHref}
               role="menuitem"
               onClick={() => setOpen(false)}
             >
