@@ -1,0 +1,28 @@
+{
+  "id": "AUDIO-MUS-003",
+  "kind": "music",
+  "status": "approved-for-integration",
+  "title": "Road to Aurevane",
+  "source": {
+    "method": "owner-uploaded-ai-assisted",
+    "provider": "Suno",
+    "createdAt": "2026-09-23T16:13:42Z",
+    "sourceId": "68b3e1ad-daf9-4bb8-8ab1-814b2da517e7",
+    "originalFilename": "Road to Aurevane.m4a",
+    "durationSeconds": 194.76,
+    "codec": "opus",
+    "sampleRateHz": 48000,
+    "channels": 2
+  },
+  "runtime": [
+    {
+      "path": "/media/audio/music/road-to-aurevane.webm",
+      "codec": "opus",
+      "container": "webm",
+      "loop": true
+    }
+  ],
+  "approvedBy": "owner",
+  "approvedAt": "2026-09-23",
+  "notes": "Persistent site-wide default theme; Master Panel may replace or override it by route."
+}

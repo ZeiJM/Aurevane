@@ -12,7 +12,7 @@ import {
 
 import styles from './master-panel-shell.module.css'
 
-export type MasterPanelSection = 'combat' | 'staff' | 'events' | 'live-events'
+export type MasterPanelSection = 'combat' | 'staff' | 'events' | 'live-events' | 'music'
 
 interface MasterPanelShellProps {
   access: MasterPanelAccess
@@ -30,6 +30,14 @@ const masterNavigation = [
     detail: 'Skills & publication',
     icon: '⚔',
     capability: 'content.combat.author',
+  },
+  {
+    id: 'music',
+    href: '/master/music',
+    label: 'Site Music',
+    detail: 'Global & page tracks',
+    icon: '♫',
+    capability: 'staff.manage',
   },
   {
     id: 'staff',
@@ -57,7 +65,12 @@ const masterNavigation = [
   },
 ] as const satisfies readonly {
   id: MasterPanelSection
-  href: '/master/combat-content' | '/master/staff' | '/master/events' | '/master/events/live'
+  href:
+    | '/master/combat-content'
+    | '/master/music'
+    | '/master/staff'
+    | '/master/events'
+    | '/master/events/live'
   label: string
   detail: string
   icon: string

@@ -1,0 +1,246 @@
+.root {
+  display: grid;
+  gap: 1.15rem;
+  color: #ede5d1;
+}
+
+.toolbar,
+.card,
+.empty {
+  border: 1px solid rgba(201, 166, 83, 0.28);
+  background:
+    linear-gradient(145deg, rgba(25, 24, 22, 0.97), rgba(10, 11, 12, 0.98)),
+    radial-gradient(circle at top right, rgba(201, 166, 83, 0.08), transparent 42%);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.24);
+}
+
+.toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1.2rem 1.35rem;
+}
+
+.toolbar h2,
+.rulesHeading h3,
+.card h3 {
+  margin: 0;
+  color: #f4e7bd;
+  font-family: var(--font-display, Georgia, serif);
+  font-weight: 600;
+}
+
+.toolbar p,
+.rulesHeading p,
+.cardHeading p {
+  max-width: 72ch;
+  margin: 0.35rem 0 0;
+  color: rgba(237, 229, 209, 0.68);
+  line-height: 1.55;
+}
+
+.eyebrow {
+  margin: 0 0 0.3rem !important;
+  color: #c9a653 !important;
+  font-size: 0.69rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.toolbarActions {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  flex: 0 0 auto;
+}
+
+.revision {
+  color: rgba(237, 229, 209, 0.58);
+  font-size: 0.76rem;
+}
+
+.notice {
+  margin: 0;
+  border-left: 2px solid #c9a653;
+  background: rgba(201, 166, 83, 0.09);
+  padding: 0.75rem 0.9rem;
+  color: #ead9a6;
+}
+
+.card {
+  padding: 1.05rem 1.15rem 1.2rem;
+}
+
+.cardHeading,
+.rulesHeading,
+.ruleTopline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.masterToggle,
+.ruleToggle,
+.loopToggle {
+  display: inline-flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 0.55rem;
+  color: #e6d7ab;
+  white-space: nowrap;
+}
+
+.masterToggle input,
+.ruleToggle input,
+.loopToggle input {
+  accent-color: #c9a653;
+}
+
+.trackEditor {
+  display: grid;
+  grid-template-columns: minmax(10rem, 0.8fr) minmax(18rem, 1.7fr) auto auto;
+  align-items: end;
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+.trackEditor label,
+.ruleTopline label {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+  color: rgba(237, 229, 209, 0.62);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+}
+
+.trackEditor input[type='text'],
+.trackEditor input:not([type]),
+.ruleTopline input[type='text'],
+.ruleTopline input:not([type]) {
+  width: 100%;
+}
+
+.trackEditor input,
+.ruleTopline input {
+  border: 1px solid rgba(201, 166, 83, 0.26);
+  border-radius: 0;
+  background: rgba(4, 5, 6, 0.72);
+  padding: 0.65rem 0.72rem;
+  color: #f5eedc;
+  font: inherit;
+}
+
+.trackEditor input:focus,
+.ruleTopline input:focus {
+  outline: 1px solid #c9a653;
+  outline-offset: 1px;
+}
+
+.uploadButton {
+  position: relative;
+  display: inline-flex !important;
+  justify-content: center;
+  border: 1px solid rgba(201, 166, 83, 0.42);
+  padding: 0.65rem 0.8rem;
+  color: #ead9a6 !important;
+  cursor: pointer;
+  text-align: center;
+}
+
+.uploadButton input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.preview {
+  grid-column: 1 / -1;
+  width: 100%;
+  height: 2.15rem;
+  margin-top: 0.15rem;
+  opacity: 0.86;
+}
+
+.rulesHeading {
+  align-items: flex-end;
+  padding: 0.4rem 0.2rem 0;
+}
+
+.rulesHeading code {
+  color: #dbc477;
+}
+
+.rules {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.empty {
+  padding: 1.4rem;
+  color: rgba(237, 229, 209, 0.62);
+  text-align: center;
+}
+
+.ruleTopline {
+  display: grid;
+  grid-template-columns: auto minmax(10rem, 0.8fr) minmax(13rem, 1.1fr) auto auto;
+  align-items: end;
+}
+
+.ruleNumber {
+  align-self: center;
+  color: rgba(201, 166, 83, 0.5);
+  font-family: var(--font-display, Georgia, serif);
+  font-size: 1.1rem;
+}
+
+.removeButton {
+  border: 0;
+  background: transparent;
+  padding: 0.65rem 0.2rem;
+  color: rgba(237, 170, 151, 0.82);
+  cursor: pointer;
+}
+
+@media (max-width: 1100px) {
+  .trackEditor {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .ruleTopline {
+    grid-template-columns: auto 1fr 1fr;
+  }
+
+  .ruleToggle,
+  .removeButton {
+    grid-column: span 1;
+  }
+}
+
+@media (max-width: 760px) {
+  .toolbar,
+  .cardHeading,
+  .rulesHeading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .toolbarActions {
+    justify-content: space-between;
+  }
+
+  .trackEditor,
+  .ruleTopline {
+    grid-template-columns: 1fr;
+  }
+
+  .ruleNumber {
+    display: none;
+  }
+}
