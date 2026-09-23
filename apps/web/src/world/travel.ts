@@ -69,7 +69,7 @@ export function findWorldRoute(
       [0, -1],
     ].map(([dx, dy]) => ({
       position: { ...current.position, x: current.position.x + dx!, y: current.position.y + dy! },
-      durationMs: STEP_MS,
+      durationMs: sector.stepMs ?? STEP_MS,
     }))
     for (const road of sector.roads)
       if (samePosition(road.from, current.position))
@@ -106,6 +106,42 @@ export function advanceWorldRoute(state: WorldState, now: number): WorldState {
     route,
     nextStepAt: route[0] ? now + route[0].durationMs : null,
   }
+}
+/** Saved routes must still match the authored topology and movement costs after a content update. */
+export function isCurrentWorldRoute(
+  from: WorldPosition,
+  route: readonly TravelStep[],
+  sectors: readonly WorldSector[],
+  known: (p: WorldPosition) => boolean,
+) {
+  const lookup = new Map(sectors.map((sector) => [sector.id, sector]))
+  let previous = from
+  for (const step of route) {
+    const source = lookup.get(previous.sectorId),
+      target = lookup.get(step.position.sectorId)
+    if (!source || !target || !isWalkable(target, step.position) || !known(step.position))
+      return false
+    const adjacent =
+      previous.sectorId === step.position.sectorId &&
+      Math.abs(previous.x - step.position.x) + Math.abs(previous.y - step.position.y) === 1 &&
+      step.durationMs === (source.stepMs ?? STEP_MS)
+    const crossing = source.roads.some(
+      (road) =>
+        samePosition(road.from, previous) &&
+        samePosition(road.to, step.position) &&
+        road.durationMs === step.durationMs,
+    )
+    if (!adjacent && !crossing) return false
+    previous = step.position
+  }
+  return true
+}
+export function remainingTravelMs(state: Pick<WorldState, 'route' | 'nextStepAt'>, now: number) {
+  if (!state.route.length || state.nextStepAt === null) return 0
+  return (
+    Math.max(0, state.nextStepAt - now) +
+    state.route.slice(1).reduce((ms, step) => ms + step.durationMs, 0)
+  )
 }
 export function revealNearby(state: WorldState): WorldState {
   const p = state.position

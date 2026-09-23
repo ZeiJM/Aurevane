@@ -10,7 +10,7 @@ Historical branches, migrations and PR titles that contain `phase5` are retained
 
 **Goal:** turn AUREVANE from a battle/build platform into a living RPG world.
 
-- [ ] Strategic Atlas / world map — implementation candidate; browser and authenticated multiplayer acceptance open.
+- [ ] Strategic Atlas / world map — implementation candidate; automated browser and authenticated two-player checks passed for the initial Atlas. Owner visual acceptance and staging competition checks remain open; Crown Road extends the authored travel slice.
 - [ ] Settlements and locations.
 - [ ] NPCs and dialogue.
 - [ ] Quests.

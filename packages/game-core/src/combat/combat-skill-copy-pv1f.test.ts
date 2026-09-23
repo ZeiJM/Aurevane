@@ -11,7 +11,11 @@ import {
   evaluatePv1fMatureSkill,
 } from './pv1f-action-economy'
 import { resolveMatureSkillVersion, type MatureSkillDefinition } from './mature-skills'
-import { createStatDrivenCombatEncounterState } from './stat-driven-combat'
+import {
+  createStatDrivenCombatEncounterState,
+  STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_VERSION,
+  STAT_DRIVEN_COMBAT_RULES_VERSION,
+} from './stat-driven-combat'
 
 const ACTOR = 'copy:actor'
 const SOURCE = 'copy:source'
@@ -126,6 +130,24 @@ function state(seed = 0x4d415354) {
       mysticPower: 10,
     },
   ])
+}
+
+function currentState() {
+  const before = state()
+  return {
+    ...before,
+    statBridge: {
+      schemaVersion: STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_VERSION,
+      rulesVersion: STAT_DRIVEN_COMBAT_RULES_VERSION,
+      combatants: before.statBridge.combatants.map((profile) => ({
+        ...profile,
+        level: 50,
+        physicalPower: 100,
+        mysticPower: 100,
+        criticalChance: 0,
+      })),
+    },
+  }
 }
 
 describe('PV-1F temporary Skill Copy integration', () => {
@@ -260,6 +282,42 @@ describe('PV-1F temporary Skill Copy integration', () => {
     expect(result.events).not.toContainEqual(
       expect.objectContaining({ event: 'temporary_skill_copied' }),
     )
+  })
+
+  it('weights current copied-Skill Power scaling by the copied half-AP command cost', () => {
+    const definition = staticSkill('vanguard.forceful-strike')
+    const before = currentState()
+    before.effectState = {
+      ongoingRecovery: [],
+      poison: [],
+      bleed: [],
+      burn: [],
+      temporarySkills: [
+        {
+          combatantId: ACTOR,
+          sourceCombatantId: SOURCE,
+          skillId: definition.id,
+          contentVersion: definition.contentVersion,
+        },
+      ],
+      damageHistory: [],
+    }
+
+    const evaluated = evaluatePv1fCopiedSkill(
+      before,
+      definition,
+      { kind: 'unit', combatantId: SOURCE },
+      'pve',
+    )
+    const damage = evaluated.action.effects.find((effect) => effect.type === 'damage')
+
+    expect(evaluated.cost).toBe(20)
+    expect(damage).toMatchObject({
+      scaling: {
+        source: 'physical-power',
+        coefficientBasisPoints: 1_000,
+      },
+    })
   })
 
   it('executes a granted copied Skill at half AP rounded up while preserving its MP cost', () => {

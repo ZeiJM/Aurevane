@@ -2,14 +2,67 @@ import { describe, expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
 import { newWorldState, revealNearby } from '@/world/travel'
 import { FRONTIER_APPROACH } from '@/world/catalog'
-import { projectWorld, resolveWorldIntent } from './world-service'
+import { assertEncounterRange, projectWorld, resolveWorldIntent } from './world-service'
 
 describe('world authority and spoiler projection', () => {
+  it.each([
+    {
+      from: { sectorId: 'aureth-crown', x: 12, y: 4 },
+      to: { sectorId: 'verdant-expanse', x: 0, y: 4 },
+    },
+    {
+      from: { sectorId: 'verdant-expanse', x: 0, y: 4 },
+      to: { sectorId: 'aureth-crown', x: 12, y: 4 },
+    },
+  ])('stops a saved direct road from $from.sectorId after its edge is replaced', ({ from, to }) => {
+    const state = {
+      ...newWorldState(),
+      position: from,
+      route: [{ position: to, durationMs: 45000, road: 'Crown Road' }],
+      nextStepAt: 1000,
+    }
+    const next = resolveWorldIntent(state, { kind: 'tick' }, 2000)
+    expect(next.position).toEqual(from)
+    expect(next.route).toEqual([])
+    expect(next.nextStepAt).toBeNull()
+  })
+  it('stops an old speed or broken later step before consuming a saved route', () => {
+    const position = { sectorId: 'crown-road', x: 5, y: 4 }
+    for (const route of [
+      [{ position: { ...position, x: 6 }, durationMs: 1100 }],
+      [
+        { position: { ...position, x: 6 }, durationMs: 4000 },
+        { position: { ...position, x: 8 }, durationMs: 4000 },
+      ],
+    ]) {
+      const state = { ...newWorldState(), position, route, nextStepAt: 1000 }
+      const next = resolveWorldIntent(state, { kind: 'tick' }, 2000)
+      expect(next.position).toEqual(position)
+      expect(next.route).toEqual([])
+    }
+  })
   it('does not send unknown frontier names, cells or exits', () => {
     const view = projectWorld(newWorldState(), [], 1000)
-    expect(view.sectors).toHaveLength(8)
+    expect(new Set(view.sectors.map((s) => s.regionId)).size).toBe(8)
     expect(JSON.stringify(view)).not.toContain('survey-01')
     expect(JSON.stringify(view)).not.toContain('Weathered Observatory')
+  })
+  it('exposes Crown Road as its own open territory and keeps nearby encounters local', () => {
+    const state = { ...newWorldState(), position: { sectorId: 'crown-road', x: 5, y: 4 } }
+    const view = projectWorld(state, [], 1000)
+    const road = view.sectors.find((s) => s.id === 'crown-road')!
+    expect(road).toBeDefined()
+    expect(road.cells.filter((c) => c.y === 4).every((c) => c.walkable && !c.safe)).toBe(true)
+    expect(road.exits.map((e) => e.to.sectorId).sort()).toEqual(['aureth-crown', 'verdant-expanse'])
+    expect(() =>
+      assertEncounterRange(state, { ...state, position: { ...state.position, x: 6 } }),
+    ).not.toThrow()
+    expect(() =>
+      assertEncounterRange(state, { ...state, position: { ...state.position, x: 7 } }),
+    ).toThrow()
+    expect(() =>
+      assertEncounterRange(state, { ...state, position: { sectorId: 'aureth-crown', x: 5, y: 4 } }),
+    ).toThrow()
   })
   it('requires a deliberate crossing from the frontier approach', () => {
     expect(() => resolveWorldIntent(newWorldState(), { kind: 'cross' }, 1000)).toThrow()

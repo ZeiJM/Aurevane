@@ -100,7 +100,8 @@ const ROWS = [
   '###s==.###~##',
 ].map((row) => row.trim())
 const LINKS: readonly [string, string, string, number][] = [
-  ['aureth-crown', 'verdant-expanse', 'Crown Road', 45000],
+  ['aureth-crown', 'crown-road', 'Crown Road', STEP_MS],
+  ['crown-road', 'verdant-expanse', 'Crown Road', STEP_MS],
   ['aureth-crown', 'glasswind-desert', 'Southern Caravan Road', 70000],
   ['aureth-crown', 'starfall-highlands', 'Highland Road', 65000],
   ['starfall-highlands', 'frostmere', 'Northern Pass', 75000],
@@ -113,25 +114,61 @@ const roads: WorldRoad[] = LINKS.flatMap(([a, b, name, durationMs]) => [
   { from: { sectorId: a, x: 12, y: 4 }, to: { sectorId: b, x: 0, y: 4 }, name, durationMs },
   { from: { sectorId: b, x: 0, y: 4 }, to: { sectorId: a, x: 12, y: 4 }, name, durationMs },
 ])
-export const CHARTED_SECTORS: readonly WorldSector[] = WORLD_REGIONS.map((region) => ({
-  id: region.id,
-  name: region.name,
-  coordinate: region.sector,
-  regionId: region.id,
-  art: `/media/art/world/${region.art}-v01.webp`,
-  east: 12,
-  north: 28,
-  rows: ROWS,
-  charted: true,
-  landmarks: [
-    { id: `${region.id}-settlement`, name: 'Settlement', kind: 'settlement', x: 2, y: 4 },
-    { id: `${region.id}-watch`, name: 'Watchtower', kind: 'watchtower', x: 12, y: 4 },
-    ...(region.id === 'umbral-march'
-      ? [{ id: 'last-survey', name: 'Last reliable survey', kind: 'frontier' as const, x: 6, y: 0 }]
-      : []),
-  ],
-  roads: roads.filter((road) => road.from.sectorId === region.id),
-}))
+export const CHARTED_SECTORS: readonly WorldSector[] = [
+  ...WORLD_REGIONS.map((region): WorldSector => ({
+    id: region.id,
+    name: region.name,
+    coordinate: region.sector,
+    regionId: region.id,
+    art: `/media/art/world/${region.art}-v01.webp`,
+    panorama: `/media/art/world/${region.art}-panorama-v01.webp`,
+    east: 12,
+    north: 28,
+    rows: ROWS,
+    charted: true,
+    landmarks: [
+      { id: `${region.id}-settlement`, name: 'Settlement', kind: 'settlement', x: 2, y: 4 },
+      { id: `${region.id}-watch`, name: 'Watchtower', kind: 'watchtower', x: 12, y: 4 },
+      ...(region.id === 'umbral-march'
+        ? [
+            {
+              id: 'last-survey',
+              name: 'Last reliable survey',
+              kind: 'frontier' as const,
+              x: 6,
+              y: 0,
+            },
+          ]
+        : []),
+    ],
+    roads: roads.filter((road) => road.from.sectorId === region.id),
+  })),
+  {
+    id: 'crown-road',
+    name: 'Crown Road',
+    coordinate: 'S16-08',
+    regionId: 'aureth-crown',
+    art: '/media/art/world/crown-road-v01.webp',
+    panorama: '/media/art/world/crown-road-panorama-v01.webp',
+    stepMs: 4000,
+    east: 0,
+    north: 8,
+    rows: [
+      '###...##~~###',
+      '#..#..##~~###',
+      '#.....##~~###',
+      '.......#~~...',
+      '=============',
+      '.......#~~...',
+      '#.....##~~###',
+      '##...###~~###',
+      '########~~###',
+    ],
+    charted: true,
+    landmarks: [],
+    roads: roads.filter((road) => road.from.sectorId === 'crown-road'),
+  },
+]
 export const START_POSITION: WorldPosition = { sectorId: 'verdant-expanse', x: 5, y: 4 }
 export const FRONTIER_APPROACH: WorldPosition = { sectorId: 'umbral-march', x: 6, y: 0 }
 export function worldRegion(id: string) {

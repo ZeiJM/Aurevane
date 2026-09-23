@@ -46,6 +46,8 @@ export interface WorldSector {
   coordinate: string
   regionId: string
   art: string | null
+  panorama?: string
+  stepMs?: number
   east: number
   north: number
   rows: readonly string[]

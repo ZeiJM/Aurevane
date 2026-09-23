@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { WORLD_REGIONS, FRONTIER_APPROACH, worldRegion } from '@/world/catalog'
-import { samePosition } from '@/world/travel'
+import { remainingTravelMs, samePosition } from '@/world/travel'
 import type { WorldIntent, WorldPosition, WorldView } from '@/world/types'
 import { Globe } from './globe'
 import { SectorMap } from './sector-map'
@@ -120,7 +120,13 @@ export function WorldWorkspace({
   const player = view.players.find((p) => p.characterId === target) ?? view.players[0]
   const local = view.sectors.find((s) => s.id === view.position.sectorId)!
   const safe = local.cells.find((c) => c.x === view.position.x && c.y === view.position.y)?.safe
-  const currentRegion = worldRegion(view.position.sectorId)
+  const destination = view.route.at(-1)?.position
+  const destinationName = view.sectors.find((s) => s.id === destination?.sectorId)?.name
+  const remainingSeconds = Math.ceil(remainingTravelMs(view, view.serverNow) / 1000)
+  const remainingTime =
+    remainingSeconds >= 60
+      ? `${Math.floor(remainingSeconds / 60)}m ${remainingSeconds % 60}s`
+      : `${remainingSeconds}s`
   function select(id: string) {
     setSelected(id)
     setSearch('')
@@ -163,7 +169,7 @@ export function WorldWorkspace({
             >
               ⌖ My Position
             </button>
-            <button disabled={!currentRegion} onClick={() => setPanorama(true)}>
+            <button disabled={!local.panorama} onClick={() => setPanorama(true)}>
               ◉ View 360°
             </button>
           </div>
@@ -204,7 +210,7 @@ export function WorldWorkspace({
         <div className={styles.mapViewport}>
           {mode === 'globe' ? (
             <Globe
-              position={view.position}
+              sectorCoordinate={local.coordinate}
               selected={selected}
               onSelect={select}
               grid={grid}
@@ -229,12 +235,21 @@ export function WorldWorkspace({
           )}
         </div>
         <div className={styles.travelBar}>
-          <span>
-            {view.route.length
-              ? `${view.route[0]?.road ?? 'Walking'} · ${view.route.length} steps remaining`
-              : selected !== view.position.sectorId
-                ? 'Inspecting a charted region. Choose a walkable tile to plot your journey.'
-                : 'Select a square to walk there.'}
+          <span data-world-travel-status>
+            {view.route.length ? (
+              <>
+                <strong>
+                  {view.route[0]?.road ?? 'Walking'} → {destinationName}
+                </strong>
+                <small>
+                  About {remainingTime} · {view.route.length} steps remaining
+                </small>
+              </>
+            ) : selected !== view.position.sectorId ? (
+              'Inspecting a charted region. Choose a walkable tile to plot your journey.'
+            ) : (
+              'Select a square to walk there.'
+            )}
           </span>
           {view.route.length ? (
             <button onClick={() => void send({ kind: 'stop' })} disabled={busy}>
@@ -364,6 +379,30 @@ export function WorldWorkspace({
             </div>
           ))}
         </section>
+        {sector.exits.length ? (
+          <section className={styles.panel} aria-label="Roads and crossings">
+            <h2>Roads & crossings</h2>
+            <p className={styles.quiet}>From {sector.name}</p>
+            <div className={styles.exitList}>
+              {sector.exits.map((exit) => {
+                const targetSector = view.sectors.find((s) => s.id === exit.to.sectorId)
+                if (!targetSector) return null
+                return (
+                  <button
+                    key={`${exit.to.sectorId}:${exit.to.x}:${exit.to.y}`}
+                    disabled={disabled}
+                    onClick={() => walk(exit.to)}
+                  >
+                    <strong>Travel to {targetSector.name}</strong>
+                    <small>
+                      {exit.name} · {targetSector.coordinate}
+                    </small>
+                  </button>
+                )
+              })}
+            </div>
+          </section>
+        ) : null}
         {!local.charted || samePosition(view.position, FRONTIER_APPROACH) ? (
           <section className={styles.panel}>
             <h2>Beyond the last map</h2>
@@ -391,12 +430,8 @@ export function WorldWorkspace({
           </section>
         ) : null}
       </aside>
-      {panorama && currentRegion ? (
-        <Surroundings
-          regionId={currentRegion.id}
-          name={currentRegion.name}
-          onClose={() => setPanorama(false)}
-        />
+      {panorama && local.panorama ? (
+        <Surroundings src={local.panorama} name={local.name} onClose={() => setPanorama(false)} />
       ) : null}
     </section>
   )

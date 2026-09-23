@@ -444,11 +444,20 @@ export async function createResolvedBattleBuildAuthoritySnapshot(
       })
     }
 
+    const currentEssence = resolveEssenceForBuild(
+      input.snapshot.primary.disciplineId,
+      input.snapshot.secondary?.disciplineId ?? null,
+    )
+
     resolvedInputs.push({
       ...input,
       snapshot: {
         ...input.snapshot,
         disciplineSkills,
+        extensions: {
+          ...input.snapshot.extensions,
+          essence: currentEssence ? essenceSnapshotReference(currentEssence) : null,
+        },
       },
     })
   }

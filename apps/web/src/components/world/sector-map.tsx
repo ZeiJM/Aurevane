@@ -45,12 +45,15 @@ export function SectorMap({
         data-grid={grid}
         data-motion={motion}
         data-frontier={!sector.charted}
+        data-sector={sector.id}
         style={sector.art ? { backgroundImage: `url(${sector.art})` } : undefined}
       >
         {sector.charted && motion ? (
           <div className={styles.ambient} aria-hidden="true">
             <span className={styles.riverFlow} />
-            <span className={styles.smoke} />
+            {sector.landmarks.some((landmark) => landmark.kind === 'settlement') ? (
+              <span className={styles.smoke} />
+            ) : null}
             <span className={styles.cloudShadow} />
             <span className={styles.fireflies} />
           </div>

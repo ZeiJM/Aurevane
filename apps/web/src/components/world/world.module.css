@@ -362,6 +362,30 @@
   white-space: nowrap;
   font-size: 0.8rem;
 }
+.travelBar strong {
+  font-weight: 500;
+}
+.travelBar small {
+  display: block;
+  margin-top: 0.2rem;
+  color: #4c5053;
+}
+.exitList {
+  display: grid;
+  gap: 0.4rem;
+}
+.exitList button {
+  display: grid;
+  gap: 0.2rem;
+  text-align: left;
+}
+.exitList strong {
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+.exitList small {
+  font-size: 0.68rem;
+}
 .notice {
   margin: 0;
   padding: 0.5rem 0.7rem;
@@ -692,6 +716,12 @@
   background: radial-gradient(ellipse, #eef0df65, transparent 70%);
   filter: blur(4px);
   animation: smoke-rise 9s ease-out infinite;
+}
+.sectorMap[data-sector='crown-road'] .riverFlow {
+  left: 64%;
+  width: 9%;
+  clip-path: none;
+  mask-image: linear-gradient(to bottom, #000 0 44%, transparent 44% 56%, #000 56% 100%);
 }
 .cloudShadow {
   position: absolute;

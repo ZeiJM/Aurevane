@@ -6,6 +6,7 @@ import {
   canAutoPath,
   findWorldRoute,
   isSafe,
+  isCurrentWorldRoute,
   isWalkable,
   revealNearby,
   samePosition,
@@ -41,7 +42,8 @@ export function resolveWorldIntent(
       ? objectives.find((o) => o.id === state.routeObjectiveId)
       : null
     next =
-      state.routeObjectiveId && (!objective || !canAutoPath(objective))
+      (state.routeObjectiveId && (!objective || !canAutoPath(objective))) ||
+      !isCurrentWorldRoute(state.position, state.route, WORLD_SECTORS, (p) => isKnown(state, p))
         ? { ...state, route: [], routeObjectiveId: null, nextStepAt: null }
         : advanceWorldRoute(state, now)
   } else if (intent.kind === 'cross') {

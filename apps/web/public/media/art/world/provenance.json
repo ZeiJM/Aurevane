@@ -343,6 +343,46 @@
         "sha256": "933e5300f15af228848da13407722420fb02026aa0fa2fe9734f8165cbfa7000",
         "encoding": "Sharp WebP quality 86; original dimensions"
       }
+    },
+    {
+      "name": "crown-road",
+      "source": {
+        "method": "generated",
+        "provider": "OpenAI image generation",
+        "createdAt": "2026-09-23",
+        "master": "exec-9bd7751d-18a0-4767-9ddc-ab14d1f98633.png",
+        "sha256": "39b79ecc78b62c3e8049bde9aa32f6fbc829dcfcd69e6c090905d7af1a02ee34",
+        "promptSpec": "content/art-requests/ART-WORLD-002-crown-road.md",
+        "retention": "Original generated source retained with the conversation"
+      },
+      "runtime": {
+        "path": "/media/art/world/crown-road-v01.webp",
+        "width": 1507,
+        "height": 1044,
+        "bytes": 669146,
+        "sha256": "42b99c6af30791889d042cd29cdf12f496889f72e5522cacf5a3f60237292bc7",
+        "encoding": "Sharp WebP quality 86; original dimensions"
+      }
+    },
+    {
+      "name": "crown-road-panorama",
+      "source": {
+        "method": "generated",
+        "provider": "OpenAI image generation",
+        "createdAt": "2026-09-23",
+        "master": "exec-69b7d8c5-976a-4997-b608-86bfed142e47.png",
+        "sha256": "82831c96d998dd2696ccf6a4cdd2e514b419646864d5ab4d813f6b519edc94ff",
+        "promptSpec": "content/art-requests/ART-WORLD-002-crown-road.md",
+        "retention": "Original generated source retained with the conversation"
+      },
+      "runtime": {
+        "path": "/media/art/world/crown-road-panorama-v01.webp",
+        "width": 1774,
+        "height": 887,
+        "bytes": 528616,
+        "sha256": "4f6650153465d5fa499774b7d34d6ac1bee97cf27d12a66a29120e1a64093011",
+        "encoding": "Sharp WebP quality 86; original dimensions"
+      }
     }
   ]
 }

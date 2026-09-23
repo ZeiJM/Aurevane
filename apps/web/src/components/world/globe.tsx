@@ -1,14 +1,13 @@
 'use client'
 import Image from 'next/image'
 import { useState } from 'react'
-import { WORLD_REGIONS, worldRegion } from '@/world/catalog'
-import { projectGlobePoint } from '@/world/globe-math'
-import type { WorldPosition } from '@/world/types'
+import { WORLD_REGIONS } from '@/world/catalog'
+import { globeSectorCenter, projectGlobePoint } from '@/world/globe-math'
 import { SphericalView } from './spherical-view'
 import styles from './world.module.css'
 
 export function Globe({
-  position,
+  sectorCoordinate,
   selected,
   onSelect,
   grid,
@@ -16,7 +15,7 @@ export function Globe({
   name,
   focusKey,
 }: {
-  position: WorldPosition
+  sectorCoordinate: string
   selected: string
   onSelect: (id: string) => void
   grid: boolean
@@ -24,23 +23,15 @@ export function Globe({
   name: string
   focusKey: number
 }) {
-  const initial = worldRegion(position.sectorId) ?? WORLD_REGIONS[1]!
+  const marker = globeSectorCenter(sectorCoordinate)
   const [camera, setCamera] = useState({ longitude: 0, latitude: 8 }),
     [zoom, setZoom] = useState(0.94),
     [lastFocus, setLastFocus] = useState(focusKey)
   if (lastFocus !== focusKey) {
     setLastFocus(focusKey)
-    setCamera({ longitude: initial.longitude, latitude: initial.latitude })
+    setCamera(marker ?? { longitude: 0, latitude: 8 })
     setZoom(0.94)
   }
-  const region = worldRegion(position.sectorId)
-  // Snap the portrait to the centre of its globe sector; never use the label's offset.
-  const marker = region
-    ? {
-        longitude: (Math.floor((region.longitude + 180) / 11.25) + 0.5) * 11.25 - 180,
-        latitude: 90 - (Math.floor((90 - region.latitude) / 11.25) + 0.5) * 11.25,
-      }
-    : null
   const projected = marker ? projectGlobePoint(marker, camera) : null
   const fogPoint = projectGlobePoint({ longitude: 80, latitude: 9 }, camera)
   const outline = marker

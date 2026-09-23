@@ -1,5 +1,11 @@
 import { expect, it } from 'vitest'
-import { projectGlobePoint, unprojectGlobePoint } from './globe-math'
+import { globeSectorCenter, projectGlobePoint, unprojectGlobePoint } from './globe-math'
+it('centres the player on the actual road sector rather than its parent region', () => {
+  expect(globeSectorCenter('S16-08')).toEqual({ longitude: -5.625, latitude: 5.625 })
+  expect(globeSectorCenter('S18-08')).toEqual({ longitude: 16.875, latitude: 5.625 })
+  for (const coordinate of ['Survey I', 'S00-08', 'S33-08', 'S16-00', 'S16-17', ''])
+    expect(globeSectorCenter(coordinate)).toBeNull()
+})
 it('round trips visible locations through the rotated globe', () => {
   for (const camera of [
     { longitude: 0, latitude: 0 },

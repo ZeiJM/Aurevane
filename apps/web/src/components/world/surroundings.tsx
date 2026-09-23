@@ -3,11 +3,11 @@ import { useEffect, useRef, useState } from 'react'
 import { SphericalView } from './spherical-view'
 import styles from './world.module.css'
 export function Surroundings({
-  regionId,
+  src,
   name,
   onClose,
 }: {
-  regionId: string
+  src: string
   name: string
   onClose: () => void
 }) {
@@ -29,7 +29,7 @@ export function Surroundings({
       aria-labelledby="surroundings-title"
     >
       <SphericalView
-        src={`/media/art/world/${regionId}-panorama-v01.webp`}
+        src={src}
         camera={camera}
         onCamera={setCamera}
         zoom={zoom}

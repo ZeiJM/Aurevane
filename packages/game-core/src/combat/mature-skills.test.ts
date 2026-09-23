@@ -5,6 +5,8 @@ import { createPendingBattle, startBattle } from './battle-state'
 import { createTacticalBattleState } from './board'
 import {
   P33_REPRESENTATIVE_DISCIPLINE_SKILLS,
+  currentMysticMpCost,
+  latestEnabledMatureSkills,
   resolveMatureSkillForContext,
   resolveMatureSkillVersion,
   toCombatActionDefinition,
@@ -117,6 +119,21 @@ describe('P3.3 mature Skill schema', () => {
     expect(resolveMatureSkillVersion('vanguard.forceful-strike', 2)?.contentVersion).toBe(2)
     expect(resolveMatureSkillVersion('vanguard.forceful-strike', 999)).toBeNull()
     expect(resolveMatureSkillVersion('vanguard.forceful-strike')?.contentVersion).toBe(3)
+  })
+
+  it('normalizes MP costs for every current mystic Skill without rewriting historical versions', () => {
+    for (const definition of latestEnabledMatureSkills()) {
+      if (definition.tags.includes('mystic')) {
+        expect(definition.mpCost).toBe(currentMysticMpCost(definition.apCost))
+      } else {
+        expect(definition.mpCost ?? 0).toBe(0)
+      }
+    }
+
+    expect(resolveMatureSkillVersion('aetherist.arc-bolt', 2)?.mpCost).toBeUndefined()
+    expect(resolveMatureSkillVersion('aetherist.arc-bolt')?.mpCost).toBe(2)
+    expect(resolveMatureSkillVersion('lifebinder.vital-sever', 2)?.mpCost).toBeUndefined()
+    expect(resolveMatureSkillVersion('lifebinder.vital-sever')?.mpCost).toBe(2)
   })
 
   it('uses existing combat target, requirement, and effect authority instead of a parallel engine', () => {

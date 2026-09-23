@@ -14,7 +14,7 @@ Owner explicitly authorized Phase 5 and the approved map style in parallel with 
 
 ## Deliberate scope and remaining content
 
-This is a bounded authored first slice: one 13×9 local scene per canonical region and one surveyed frontier scene. The 45–85 second regional road links are elapsed-time transitions: a traveller remains encounterable at the departure cell until arrival. They are not yet continuous multi-sector corridors. More authored sectors, route encounters and settlements are needed to achieve the full expansive-world content goal.
+This is a bounded authored first slice: one 13×9 local scene per canonical region, one distinct Crown Road wilderness sector and one surveyed frontier scene. Crown Road now connects Aureth Crown and Verdant Expanse through 13 encounterable squares, with four-second minimum local steps and ordinary boundary crossings. Other regional road links remain 60–85 second elapsed-time transitions: a traveller remains encounterable at the departure cell until arrival. They are not yet continuous multi-sector corridors. More authored sectors, route encounters and settlements are needed to achieve the full expansive-world content goal.
 
 View 360 is a regional ambient panorama, not a unique scene for every square; it is unavailable for undiscovered frontier scenes. Landmark arrival records a discovery, not a reward or full narrative quest completion. The two initial travel objectives do not implement the full quest system. Frontier Anchors, controlled Cartographic Drift, Archive integration, NPC dialogue, vendors, supernatural fork and region-specific tactical battle scenes remain later Phase 5 work. There is no claim that these are finished.
 
@@ -28,7 +28,7 @@ Before release: apply migration through the normal approved migration workflow, 
 
 ## Decisions recorded
 
-- Bounded authored sectors and timed road transitions avoid procedural filler; the cost is further authored content before claiming a large seamless world.
+- Expand travel one authored road at a time, starting with Crown Road, while keeping the other timed links; the cost is further authored content before claiming a large seamless world.
 - Domain, persistence and UI are delivered together because they share a new interface; the cost is a larger review patch.
 - Authenticated browser acceptance runs in CI because local preview access was blocked; Owner acceptance and staging concurrency verification remain separate release gates.
 
@@ -47,3 +47,15 @@ Focused follow-up review additionally covered early no-op tick receipts and expi
 Browser integration finding: candidate `5dc2510a` passed 11 workflows and 202 existing browser scenarios, but all five runnable Atlas scenarios stopped at entry. The SQL incorrectly treated the slots RPC's `deletion_execute_after` alias as a physical character column; the minimal test fixture repeated that mistake. The query now uses the existing `app_private.character_deletion_requests` table, with deletion eligibility rechecked after mutation locks. The SQL suite imports that production table definition, reproduces the former missing-column failure, and covers pending deletion exclusion. The corrected candidate passed the focused browser run above and the complete disposable migration chain in Foundation Security DB run 35795492510. The local gate passed with 2,713 Vitest tests and six Node report tests.
 
 Screenshot review then identified phone identity-card clipping, a laptop globe extending below its viewport, and low-contrast hover states. World-specific compact card rules retain the name, portrait, progression and resources; the globe uses available container dimensions; selected tabs and panorama controls preserve dark backgrounds on hover. Browser geometry guards now require identity contents and the complete default globe to fit their containers. The latest PR check results supply the verification for this presentation follow-up. Shared identity markup adds only presentation hooks; other pages keep their existing styles.
+
+## Crown Road continuation — 2026-09-23
+
+The Owner's continued implementation instruction advances the approved authored-world direction with one real road sector, rather than declaring every regional transition complete. Crown Road has original map/panorama art, explicit blocked river cells and a bridge, no settlement immunity, stable sector `S16-08`, and local coordinates. Both directions use the same existing server-owned routing and PvP authority. No database schema or combat rule changes are required.
+
+Roads & crossings controls expose only exits already present in the server's filtered sector view. The travel bar estimates remaining time from the authoritative current-step deadline plus subsequent steps; it does not advance state or simulate offline catch-up. The globe marker now derives its cell centre from the actual sector coordinate, so a road does not place the portrait at its parent region's centre. View 360 uses the current sector's registered panorama and remains unavailable for the unsurveyed frontier.
+
+New regression coverage exercises both complete road directions, bridge collision, open-territory encounter range, hidden-frontier preservation, the road's globe cell and partial-step timing. Authenticated browser coverage adds a full real-time journey, stopping/reloading mid-road, the distinct panorama, and two-player PvP on Crown Road. Current verification results are recorded on draft PR #609; no merge, migration or deployment is included.
+
+The continuation reconciles Phase-4 A03 roster rebalance through main `4c188261`. Focused review identified that a saved pre-update route could retain the removed direct Crown Road edge. Every tick now validates the remaining authored edges, walkability, knowledge and durations; an obsolete route stops at the saved position instead of skipping the new sector. Regressions reproduce both former directions and stale movement costs before the fix. The opposite-bank bridge test also explicitly checks the detour through the bridge. The Atlas migration has not been released by this branch.
+
+Crown Road local gate: `pnpm check` passed after the main reconciliation and saved-route fix: formatting, lint, workspace type checks, 2,743 Vitest tests, six Node report tests and production builds. The 32 focused world domain/service tests pass. Authenticated browser verification of the new road is pending the updated draft branch CI run.

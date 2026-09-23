@@ -3,6 +3,10 @@ import { describe, expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
 
 import {
+  essenceSnapshotReference,
+  resolveEssenceForBuild,
+} from '@aurevane/game-core/combat/essence'
+import {
   resolveMatureSkillVersion,
   type MatureSkillDefinition,
 } from '@aurevane/game-core/combat/mature-skills'
@@ -18,6 +22,7 @@ import {
   createBattleBuildAuthoritySnapshot,
   createResolvedBattleBuildAuthoritySnapshot,
   resolveBattleDisciplineSkillDefinition,
+  resolveBattleEssenceDefinition,
 } from './battle-build-authority'
 
 const CHARACTER_ID = '00000000-0000-4000-8000-000000009901'
@@ -73,6 +78,30 @@ function loadout(): CharacterDisciplineSkillLoadoutView {
     extensions: {
       resonance: null,
       essence: null,
+      equipmentSkills: [],
+      supernatural: null,
+      prestige: null,
+    },
+  }
+}
+
+function historicalPureEdgedancerSnapshot(): CharacterCommittedBuildSnapshotRecord {
+  const essence = resolveEssenceForBuild('edgedancer', null, 2)
+  if (!essence) throw new Error('Expected historical Edgedancer Essence v2.')
+
+  return {
+    schemaVersion: 3,
+    buildVersion: 42,
+    primary: {
+      disciplineId: 'edgedancer',
+      definitionVersion: 1,
+      profileVersion: 1,
+    },
+    secondary: null,
+    disciplineSkills: [],
+    extensions: {
+      resonance: null,
+      essence: essenceSnapshotReference(essence),
       equipmentSkills: [],
       supernatural: null,
       prestige: null,
@@ -154,6 +183,31 @@ describe('published combat content consumption', () => {
     expect(existingBattle.combatants[0]!.disciplineSkills[0]!.contentVersion).toBe(oldVersion)
     expect(newBattle.catalogVersion).toBe(3)
     expect(newBattle.combatants[0]!.disciplineSkills[0]!.contentVersion).toBe(7)
+  })
+
+  it('pins the current pure Essence into a new battle without rewriting the committed character snapshot', async () => {
+    const snapshot = historicalPureEdgedancerSnapshot()
+    expect(snapshot.extensions.essence?.contentVersion).toBe(2)
+
+    const authority = await createResolvedBattleBuildAuthoritySnapshot(
+      'pve',
+      [{ combatantId: COMBATANT_ID, characterId: CHARACTER_ID, snapshot }],
+      resolver(),
+    )
+    const resolved = resolveBattleEssenceDefinition(authority, COMBATANT_ID)
+
+    expect(snapshot.extensions.essence?.contentVersion).toBe(2)
+    expect(authority.combatants[0]!.extensions.essence).toMatchObject({
+      essenceId: 'essence.edgedancer.sevenfold-cut',
+      contentVersion: 3,
+      skillContentVersion: 3,
+    })
+    expect(resolved?.contentVersion).toBe(3)
+    expect(
+      resolved?.skill.effects
+        .filter((effect) => effect.type === 'damage')
+        .map((effect) => effect.amount),
+    ).toEqual([4, 4, 4, 4, 4, 4, 4])
   })
 
   it('resolves the exact pinned publication for catalog-v3 battle execution without static fallback', async () => {

@@ -195,6 +195,7 @@ function recruitScenarioProfile(
     level,
     physicalPower: PV1F_RECRUIT_OFFENSIVE_BENCHMARK.stats.physicalPower.value,
     mysticPower: PV1F_RECRUIT_OFFENSIVE_BENCHMARK.stats.mysticPower.value,
+    criticalChance: PV1F_RECRUIT_OFFENSIVE_BENCHMARK.stats.criticalChance.value,
   }
 }
 

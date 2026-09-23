@@ -84,7 +84,8 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
   test.setTimeout(120000)
   const name = await enter(page)
   const initial = await world(page)
-  expect(initial.sectors).toHaveLength(8)
+  expect(initial.sectors.filter((s) => s.id !== 'crown-road')).toHaveLength(8)
+  expect(initial.sectors.find((s) => s.id === 'crown-road')).toBeDefined()
   expect(JSON.stringify(initial)).not.toContain('survey-01')
   const identity = page.getByTestId('character-profile')
   const identityBox = (await identity.boundingBox())!
@@ -246,6 +247,55 @@ test('expired training releases travel without claiming XP and frontier discover
   expect((await world(page)).sectors.find((s) => !s.charted)?.cells).toEqual(survey.cells)
 })
 
+test('Crown Road is a persistent journey with exits, stopping, globe location and its own surroundings', async ({
+  page,
+}, info) => {
+  test.skip(
+    info.project.name !== 'desktop-chromium',
+    'Full elapsed-time journey is viewport independent.',
+  )
+  test.setTimeout(150000)
+  const name = await enter(page)
+  await page.getByRole('button', { name: 'Travel to Crown Road', exact: false }).click()
+  await expect(page.locator('[data-world-travel-status]')).toContainText('Crown Road')
+  await expect
+    .poll(async () => (await world(page)).position.sectorId, { timeout: 20000 })
+    .toBe('crown-road')
+  await expect(page.getByRole('heading', { name: 'Crown Road', exact: true })).toBeVisible()
+  await capture(page, info, 'crown-road-sector')
+  await page.getByRole('button', { name: /View 360/ }).click()
+  await expect(page.getByRole('dialog').getByRole('heading', { name: 'Crown Road' })).toBeVisible()
+  await capture(page, info, 'crown-road-surroundings')
+  await page.keyboard.press('Escape')
+  await page.getByRole('button', { name: /Globe/ }).click()
+  await page.getByRole('button', { name: /My Position/ }).click()
+  await expect(
+    page.getByRole('img', { name: `${name}, your current sector`, exact: true }),
+  ).toBeVisible()
+  await capture(page, info, 'crown-road-globe')
+  await page
+    .getByRole('button', { name: /Sector/, exact: false })
+    .first()
+    .click()
+  await page.getByRole('button', { name: /Travel to Aureth Crown/ }).click()
+  await expect(page.locator('[data-world-travel-status]')).toContainText('Aureth Crown')
+  await expect(page.locator('[data-world-travel-status]')).toContainText('About')
+  await expect.poll(async () => (await world(page)).position.x, { timeout: 12000 }).toBeLessThan(12)
+  await page.getByRole('button', { name: 'Stop travel', exact: true }).click()
+  const stopped = await world(page)
+  expect(stopped.route).toHaveLength(0)
+  expect(stopped.position.sectorId).toBe('crown-road')
+  await page.reload()
+  expect((await world(page)).position).toEqual(stopped.position)
+  await page.getByRole('button', { name: /Travel to Aureth Crown/ }).click()
+  await expect
+    .poll(async () => (await world(page)).position.sectorId, { timeout: 85000 })
+    .toBe('aureth-crown')
+  await expect(page.getByRole('heading', { name: 'Aureth Crown', exact: true })).toBeVisible()
+  expect((await world(page)).route).toHaveLength(0)
+  await capture(page, info, 'crown-road-arrival')
+})
+
 test('a proximity attack reaches both authenticated players while the target views 360', async ({
   page,
   browser,
@@ -272,7 +322,9 @@ test('a proximity attack reaches both authenticated players while the target vie
       },
     })
     expect(protectedAttack.ok()).toBe(false)
-    place(target.characterId, 'verdant-expanse', 6, 4)
+    place(attacker.characterId, 'crown-road', 5, 4)
+    place(target.characterId, 'crown-road', 6, 4)
+    await page.reload()
     await opponent.reload()
     await opponent.getByRole('button', { name: /View 360/ }).click()
     await expect(opponent.getByRole('dialog')).toBeVisible()

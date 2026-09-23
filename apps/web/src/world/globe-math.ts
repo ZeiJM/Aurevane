@@ -2,6 +2,14 @@ export interface GlobeLocation {
   longitude: number
   latitude: number
 }
+export function globeSectorCenter(coordinate: string): GlobeLocation | null {
+  const match = /^S(\d{2})-(\d{2})$/.exec(coordinate)
+  if (!match) return null
+  const east = Number(match[1]),
+    north = Number(match[2])
+  if (east < 1 || east > 32 || north < 1 || north > 16) return null
+  return { longitude: (east - 0.5) * 11.25 - 180, latitude: 90 - (north - 0.5) * 11.25 }
+}
 const radians = (degrees: number) => (degrees * Math.PI) / 180
 const degrees = (radians: number) => (radians * 180) / Math.PI
 export function projectGlobePoint(location: GlobeLocation, camera: GlobeLocation) {

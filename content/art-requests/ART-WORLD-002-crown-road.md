@@ -1,0 +1,17 @@
+# ART-WORLD-002 — Crown Road
+
+Status: generated implementation candidate under the approved Living Atlas style. Owner visual acceptance and release remain open.
+
+Original OpenAI built-in image generation, 2026-09-23. No third-party code or art copied. The generated PNG masters remain with the conversation; optimized runtime WebP assets are versioned in `apps/web/public/media/art/world/`. SHA-256 hashes, dimensions and generation identifiers are recorded in `provenance.json`. Encoding uses Sharp WebP quality 86 without resizing.
+
+## Sector prompt
+
+Use case: stylized-concept. Asset type: finished original Aurevane fantasy browser RPG terrain painting, NO UI. Create the Crown Road wilderness between golden farmland and an ancient green forest. A highly detailed but calm, easy-on-the-eyes hand-painted travel map, muted emerald, sage, ochre, warm stone. Elevated near-top-down orthographic view, landscape 13:9 aspect ratio. Important gameplay composition: one broad old stone/dirt road runs horizontally across the exact middle, entering at the left edge at 50% height and leaving the right edge at 50% height. Road is clear and continuous, about one ninth of the picture's height. Fields and hedges in the western half gradually give way to forest in eastern half. A narrow vertical river at 70% width runs from top to bottom, crossed by a low stone bridge precisely where it meets the central road. Small weathered stone milestone by the road, ruined wayside arch in upper western field; no new named town or large settlement. Clear verges for side exploration near center. Dense trees and rocks at perimeter and upper/lower corners, no obstructions on central road. Subtle inviting midday light and crisp small foliage, rock, cobble and water details without visual noise. No sky/horizon. Full bleed single landscape map image. No labels, grid, text, border, compass, tokens, people, UI, watermark. Original art; do not imitate any existing game.
+
+## Panorama prompt
+
+Use case: stylized-concept. Asset type: finished original Aurevane fantasy RPG 360 surroundings panorama. Crown Road, a quiet wilderness road between golden farmland and an ancient emerald forest. Create a seamless full 360-degree equirectangular environment texture with a 2:1 aspect ratio. Eye-level view standing on a weathered stone-and-dirt road beside a small mossy stone bridge over a flowing stream. The path winds through lush green woodland in one direction and opens onto sunlit sage-green and golden fields in the other, distant soft rolling hills, a ruined wayside stone arch and worn unmarked milestone, no buildings or cities. Richly detailed hand-painted realistic fantasy environment matching a restrained navy/cream/gold framed RPG's painterly world art. Calm gentle midday illumination, natural muted emerald, sage, ochre, gray stone, soft blue sky, detailed leaves and cobbles, easy on the eyes. Horizon centered vertically, full wrap, continuous left/right edge, sky above and ground below suitable for spherical projection. One continuous environment, no panels or collage. No text, people, character, UI, logo, watermark, grid.
+
+## Runtime composition
+
+Crown Road is a distinct charted sector between Aureth Crown and Verdant Expanse. The middle row is a continuous road; river cells in columns 8–9 are blocked outside the bridge. The square grid, portraits and route overlays are rendered separately. This sector has no protected settlement. The panorama supplies temporary ambient surroundings, not a cell-by-cell 3D simulation.

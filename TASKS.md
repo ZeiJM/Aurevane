@@ -6,6 +6,8 @@ Owner approved Phase 5, the globe/sector style, uncharted territory and temporar
 
 Draft PR #609 has passed authenticated Atlas browser acceptance across desktop/laptop/mobile, including private frontier discovery, all eight panoramas and a two-account attack during View 360 (run 35795492891). Real-database entry, expired-training and retry defects have regression coverage. Screenshot review adds compact phone identity, container-fitted globe and hover-contrast corrections. Owner acceptance, staging competition checks and further authored world content remain open.
 
+2026-09-23 continuation adds a distinct encounterable Crown Road sector between Aureth Crown and Verdant Expanse, original map/panorama art, filtered exit controls and an authoritative travel-time estimate. The actual sector coordinate drives the globe marker. Other regional links retain timed transitions; this remains an incremental authored-world candidate, not full Phase-5 completion.
+
 
 ## Battle presentation polish follow-up — 2026-09-13
 

@@ -6,6 +6,12 @@ import {
   type CombatTargetHitChance,
 } from './combat-skill-accuracy'
 import {
+  forecastCombatCritical,
+  hasCriticalEligibleDamage,
+  rollCombatCritical,
+  type CombatTargetCriticalChance,
+} from './combat-critical'
+import {
   materializeVengeanceDamage,
   type CombatVengeanceDefinition,
   type CombatVengeanceBasis,
@@ -46,6 +52,7 @@ export interface CombatActionDefinition
 
 export interface CombatEncounterState extends Omit<legacy.CombatEncounterState, 'statBridge'> {
   statBridge?: {
+    rulesVersion?: number
     combatants: readonly {
       combatantId: string
       armor: number
@@ -54,6 +61,8 @@ export interface CombatEncounterState extends Omit<legacy.CombatEncounterState, 
       mysticPower?: number
       accuracy?: number
       evasion?: number
+      level?: number
+      criticalChance?: number
     }[]
   }
 }
@@ -61,6 +70,7 @@ export interface CombatEncounterState extends Omit<legacy.CombatEncounterState, 
 export interface CombatActionEvaluation extends legacy.CombatActionEvaluation {
   vengeanceBasis?: readonly CombatVengeanceBasis[]
   targetHitChances?: readonly CombatTargetHitChance[]
+  targetCriticalChances?: readonly CombatTargetCriticalChance[]
   projectionsAssumeHits?: true
   skillCopy?: CombatSkillCopyPreview
 }
@@ -103,7 +113,16 @@ export function evaluateCombatAction(
     evaluation.legal && materialized.basis.length > 0
       ? { ...evaluation, vengeanceBasis: materialized.basis }
       : evaluation
-  return forecastCombatSkillAccuracy(state, action, preview, content)
+  const accuracyPreview = forecastCombatSkillAccuracy(state, action, preview, content)
+  const criticalPreview = forecastCombatCritical(
+    state,
+    csrPreviewAction,
+    accuracyPreview,
+    new Set(),
+  )
+  return criticalPreview.targetCriticalChances.length > 0
+    ? { ...accuracyPreview, targetCriticalChances: criticalPreview.targetCriticalChances }
+    : accuracyPreview
 }
 
 export function executeCombatAction(
@@ -124,7 +143,8 @@ export function executeCombatAction(
   const requiresEvaluation =
     Boolean(context) ||
     action.accuracyMode === 'per-target' ||
-    action.effects.some((effect) => effect.type === 'sensory')
+    action.effects.some((effect) => effect.type === 'sensory') ||
+    (state.statBridge?.rulesVersion === 4 && hasCriticalEligibleDamage(action))
   const evaluation = requiresEvaluation
     ? legacy.evaluateCombatAction(state, previewMaterializedAction, selection, content)
     : null
@@ -137,13 +157,19 @@ export function executeCombatAction(
     content,
     missedCombatantIds: accuracy.missedCombatantIds,
   })
-  const materializedAction = materializeStatScaledDamage(
+  const critical = rollCombatCritical(
     accuracy.state,
-    materializeVengeanceDamage(accuracy.state, csr.action).action,
+    csr.action,
+    evaluation,
+    accuracy.missedCombatantIds,
+  )
+  const materializedAction = materializeStatScaledDamage(
+    critical.state,
+    materializeVengeanceDamage(critical.state, csr.action).action,
   )
   let triggerGuard = context?.triggerGuard
   const committed = legacy.executeCombatAction(
-    accuracy.state,
+    critical.state,
     materializedAction,
     selection,
     csr.content,
@@ -172,9 +198,10 @@ export function executeCombatAction(
       return { state: reflected.state, events: [...recovered.events, ...reflected.events] }
     },
     accuracy.missedCombatantIds,
+    critical.criticalEffectOrdinalsByTarget,
   )
   const covertFiltered = filterBlockedCovertApplication({
-    before: accuracy.state,
+    before: critical.state,
     after: committed.state,
     events: committed.events,
   })
@@ -183,9 +210,10 @@ export function executeCombatAction(
     state: covertFiltered.state,
     events: covertFiltered.events as legacy.CombatResolutionEvent[],
   }
+  const preCommitEvents = [...accuracy.events, ...critical.events]
   const transition =
-    accuracy.events.length > 0
-      ? { ...committedTransition, events: [...accuracy.events, ...committedTransition.events] }
+    preCommitEvents.length > 0
+      ? { ...committedTransition, events: [...preCommitEvents, ...committedTransition.events] }
       : committedTransition
   if (!context || !evaluation) return transition
   // A miss must not reattribute an existing status or persistent effect.
