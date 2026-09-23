@@ -330,7 +330,10 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
 test('Eastern Watch objective persists accept, inspect and idempotent return completion', async ({
   page,
 }, info) => {
-  test.skip(info.project.name !== 'desktop-chromium', 'Objective authority is viewport independent.')
+  test.skip(
+    info.project.name !== 'desktop-chromium',
+    'Objective authority is viewport independent.',
+  )
   test.setTimeout(60000)
   await enter(page)
   const initial = await world(page)
@@ -366,7 +369,9 @@ test('Eastern Watch objective persists accept, inspect and idempotent return com
   await expect(
     page.getByText('Return to the protected settlement and report to the watch officer.'),
   ).toBeVisible()
-  expect((await world(page)).objectives.find((objective) => objective.id === 'eastern-watch')).toMatchObject({
+  expect(
+    (await world(page)).objectives.find((objective) => objective.id === 'eastern-watch'),
+  ).toMatchObject({
     progress: 'ready',
     completed: false,
   })
