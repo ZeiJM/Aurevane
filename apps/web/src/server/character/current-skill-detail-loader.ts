@@ -47,10 +47,10 @@ async function resolveCurrentDefinitions(
     ? await resolver.resolveCurrentSkillDefinitions(skillIds)
     : new Map(
         await Promise.all(
-          skillIds.map(async (skillId) => [
-            skillId,
-            await resolver.resolveCurrentSkillDefinition(skillId),
-          ] as const),
+          skillIds.map(
+            async (skillId) =>
+              [skillId, await resolver.resolveCurrentSkillDefinition(skillId)] as const,
+          ),
         ),
       )
 

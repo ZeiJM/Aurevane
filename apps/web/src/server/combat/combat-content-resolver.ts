@@ -26,9 +26,7 @@ export interface CombatContentResolver {
 
 export interface PublishedCombatContentSource {
   findCurrentSkill(contentKey: string): Promise<CombatContentVersionRecord | null>
-  findCurrentSkills?(
-    contentKeys: readonly string[],
-  ): Promise<readonly CombatContentVersionRecord[]>
+  findCurrentSkills?(contentKeys: readonly string[]): Promise<readonly CombatContentVersionRecord[]>
   findSkillVersion(
     contentKey: string,
     contentVersion: number,
@@ -232,9 +230,7 @@ export function createCombatContentResolver(
     const publishedRows = source.findCurrentSkills
       ? await source.findCurrentSkills(uniqueSkillIds)
       : (
-          await Promise.all(
-            uniqueSkillIds.map((skillId) => source.findCurrentSkill(skillId)),
-          )
+          await Promise.all(uniqueSkillIds.map((skillId) => source.findCurrentSkill(skillId)))
         ).filter((row): row is CombatContentVersionRecord => row !== null)
 
     const requested = new Set(uniqueSkillIds)
