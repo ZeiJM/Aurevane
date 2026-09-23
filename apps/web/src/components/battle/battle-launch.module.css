@@ -91,8 +91,7 @@
 }
 
 .eyebrow,
-.workspaceHeading > div > span,
-.spectateIntro > span {
+.workspaceHeading > div > span {
   color: #8a6d35;
   font: 700 0.59rem/1.35 var(--av-font-body);
   letter-spacing: 0.13em;
@@ -219,15 +218,13 @@
   gap: 0.12rem;
 }
 
-.workspaceHeading h2,
-.spectateIntro h2 {
+.workspaceHeading h2 {
   margin: 0;
   color: #1a3343;
   font: 600 clamp(1.45rem, 1.8vw, 1.85rem) / 1.08 var(--av-font-display);
 }
 
 .workspaceHeading p,
-.spectateIntro p,
 .arenaControlRow p,
 .formatDescription,
 .joinCard p,
@@ -770,22 +767,6 @@
   font: italic 0.68rem/1.3 var(--av-font-display);
 }
 
-.spectateIntro {
-  display: grid;
-  justify-items: center;
-  gap: 0.18rem;
-  padding: 0.25rem 0;
-  text-align: center;
-}
-
-.spectateIntro::after {
-  width: min(17rem, 70%);
-  height: 1px;
-  margin-top: 0.3rem;
-  background: linear-gradient(90deg, transparent, rgba(155, 124, 64, 0.48), transparent);
-  content: '';
-}
-
 .spectateActions {
   display: grid;
   justify-items: center;
@@ -883,7 +864,7 @@
 
   .workspace[data-hall-workspace='spectate'] .workspaceBody {
     height: 100%;
-    grid-template-rows: clamp(10rem, 27vh, 14rem) auto auto auto;
+    grid-template-rows: clamp(10rem, 27vh, 14rem) auto auto;
     align-content: start;
   }
 
@@ -942,13 +923,11 @@
     gap: 0.7rem;
   }
 
-  .workspaceHeading h2,
-  .spectateIntro h2 {
+  .workspaceHeading h2 {
     font-size: clamp(1.2rem, 1.45vw, 1.5rem);
   }
 
   .workspaceHeading p,
-  .spectateIntro p,
   .arenaControlRow p,
   .formatDescription,
   .joinCard p,
@@ -1054,11 +1033,6 @@
 
   .note {
     padding: 0.3rem 0.46rem;
-  }
-
-  .spectateIntro {
-    gap: 0.16rem;
-    padding: 0.24rem 0;
   }
 
   .keyEntry {
