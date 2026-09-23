@@ -9,6 +9,7 @@ import { latestEnabledMatureSkills } from '@aurevane/game-core/combat/mature-ski
 
 import { essenceSkillArtwork } from './essence-skill-art'
 import { darkFantasySkillArtwork } from './generated-dark-fantasy-art'
+import { regularSkillArtwork } from './regular-skill-art'
 
 export interface SkillIconHookOption {
   key: string
@@ -39,7 +40,9 @@ function titleSkill(skillId: string): string {
 }
 
 export function registeredSkillArtworkSource(skillId: string): string | null {
-  return essenceSkillArtwork(skillId) ?? darkFantasySkillArtwork(skillId)
+  return (
+    regularSkillArtwork(skillId) ?? essenceSkillArtwork(skillId) ?? darkFantasySkillArtwork(skillId)
+  )
 }
 
 const currentEssenceSkills = DISCIPLINE_ATLAS.flatMap((discipline) => {

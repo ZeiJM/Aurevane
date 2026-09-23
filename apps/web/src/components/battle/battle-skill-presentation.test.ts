@@ -18,7 +18,7 @@ import {
   battleSkillArtwork,
 } from './battle-skill-presentation'
 
-const GENERATED_LIFEBINDER_IDS = [
+const LIFEBINDER_SAMPLE_IDS = [
   'lifebinder.vital-sever',
   'lifebinder.searing-bloom',
   'essence.lifebinder.verdant-rupture',
@@ -54,9 +54,8 @@ describe('battle skill artwork presentation', () => {
   it('lets a published Skill media hook replace artwork without changing the action id', () => {
     const hooked = battleSkillArtwork('vanguard.forceful-strike', 'skill.lifebinder.mend.icon')
     expect(hooked).toBe(battleSkillArtwork('lifebinder.mend'))
-    expect(hooked).toMatch(/^data:image\/svg\+xml,/)
-    expect(decodeURIComponent(hooked)).toContain('data-art-kind="discipline-skill-action"')
-    expect(decodeURIComponent(hooked)).toContain('data-action-figure="true"')
+    expect(hooked).toBe('/media/art/discipline-skills/lifebinder-mend-v01.webp')
+    expect(existsSync(new URL(`../../../public${hooked}`, import.meta.url))).toBe(true)
     expect(battleSkillArtwork('vanguard.forceful-strike', 'skill.unknown.icon')).toBe(
       PHASE_3_COMBAT_ARTWORK['vanguard.forceful-strike'],
     )
@@ -77,29 +76,32 @@ describe('battle skill artwork presentation', () => {
     })
 
     expect(new Set(resolvedArtwork).size).toBe(PHASE_3_COMBAT_ACTION_IDS.length)
-    const lifebinderArtwork = GENERATED_LIFEBINDER_IDS.map((actionId) =>
-      battleSkillArtwork(actionId),
-    )
-    expect(new Set(lifebinderArtwork).size).toBe(GENERATED_LIFEBINDER_IDS.length)
-    expect(
-      lifebinderArtwork.slice(0, 2).every((source) => source.startsWith('data:image/svg+xml,')),
-    ).toBe(true)
-    expect(lifebinderArtwork[2]).toBe(
+    const lifebinderArtwork = LIFEBINDER_SAMPLE_IDS.map((actionId) => battleSkillArtwork(actionId))
+    expect(new Set(lifebinderArtwork).size).toBe(LIFEBINDER_SAMPLE_IDS.length)
+    expect(lifebinderArtwork).toEqual([
+      '/media/art/discipline-skills/lifebinder-vital-sever-v01.webp',
+      '/media/art/discipline-skills/lifebinder-searing-bloom-v01.webp',
       '/media/art/essence-skills/lifebinder-verdant-rupture-v01.webp',
-    )
+    ])
     expect(battleSkillArtwork('future.skill')).toBe(BATTLE_MISSING_ARTWORK)
   })
 
-  it('replaces the four former painted exceptions with distinct comprehensive-suite artwork', () => {
-    const ids = [
-      'runeblade.aether-cut',
-      'runeblade.sigil-brand',
-      'lifebinder.mend',
-      'lifebinder.renew',
-    ]
-    const artwork = ids.map((id) => battleSkillArtwork(id))
-    expect(new Set(artwork).size).toBe(ids.length)
-    for (const source of artwork) {
+  it('uses approved static art without disturbing unreplaced generated Skill artwork', () => {
+    expect(battleSkillArtwork('lifebinder.mend')).toBe(
+      '/media/art/discipline-skills/lifebinder-mend-v01.webp',
+    )
+    expect(battleSkillArtwork('lifebinder.renew')).toBe(
+      '/media/art/discipline-skills/lifebinder-renew-v01.webp',
+    )
+    expect(battleSkillArtwork('ironfist.rising-fist')).toBe(
+      '/media/art/discipline-skills/ironfist-rising-fist-v01.webp',
+    )
+    expect(battleSkillArtwork('ironfist.last-stand')).toBe(
+      '/media/art/discipline-skills/ironfist-last-stand-v01.webp',
+    )
+
+    for (const id of ['runeblade.aether-cut', 'runeblade.sigil-brand']) {
+      const source = battleSkillArtwork(id)
       expect(source).toMatch(/^data:image\/svg\+xml,/)
       const svg = decodeURIComponent(source)
       expect(svg).toContain('width="512"')
@@ -115,9 +117,13 @@ describe('battle skill artwork presentation', () => {
       expect(artwork).not.toBe(BATTLE_MISSING_ARTWORK)
       if (skillId.startsWith('essence.')) {
         expect(artwork).toMatch(/^\/media\/art\/essence-skills\/.+-v01\.webp$/)
-        expect(existsSync(new URL(`../../../public${artwork}`, import.meta.url))).toBe(true)
+      } else if (skillId.startsWith('farstrider.') || skillId.startsWith('shadehand.')) {
+        expect(artwork).toMatch(/^\/media\/art\/discipline-skills\/.+-v01\.webp$/)
       } else {
         expect(artwork.startsWith('data:image/svg+xml,')).toBe(true)
+      }
+      if (artwork.startsWith('/media/')) {
+        expect(existsSync(new URL(`../../../public${artwork}`, import.meta.url))).toBe(true)
       }
     }
   })

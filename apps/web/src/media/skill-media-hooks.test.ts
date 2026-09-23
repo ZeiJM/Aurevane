@@ -19,11 +19,17 @@ describe('Skill media hook registry', () => {
         skillId: 'lifebinder.mend',
       }),
     )
-    expect(icon?.previewSrc).toMatch(/^data:image\/svg\+xml,/)
-    expect(decodeURIComponent(icon!.previewSrc)).toContain(
-      'data-art-kind="discipline-skill-action"',
+    expect(icon?.previewSrc).toBe(
+      '/media/art/discipline-skills/lifebinder-mend-v01.webp',
     )
     expect(registeredSkillArtworkSource('lifebinder.mend')).toBe(icon?.previewSrc)
+    expect(registeredSkillArtworkSource('lifebinder.vital-sever')).toBe(
+      '/media/art/discipline-skills/lifebinder-vital-sever-v01.webp',
+    )
+    expect(registeredSkillArtworkSource('ironfist.rising-fist')).toBe(
+      '/media/art/discipline-skills/ironfist-rising-fist-v01.webp',
+    )
+    expect(registeredSkillArtworkSource('aetherist.arc-bolt')).toMatch(/^data:image\/svg\+xml/)
     const essence = resolveSkillIconHook('essence.aetherist.aether-nova.icon')
     expect(essence).toEqual(
       expect.objectContaining({
