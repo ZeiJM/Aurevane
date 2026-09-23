@@ -7,10 +7,10 @@ import { describe, expect, it } from 'vitest'
 
 import { REGULAR_SKILL_ART, regularSkillArtwork } from './regular-skill-art'
 
-describe('approved regular Discipline Skill action art — first 64', () => {
-  it('maps exactly the approved 64 current Skills to unique committed WebPs', () => {
+describe('approved regular Discipline Skill action art — first 72', () => {
+  it('maps exactly the approved 72 current Skills to unique committed WebPs', () => {
     const entries = Object.entries(REGULAR_SKILL_ART)
-    expect(entries).toHaveLength(64)
+    expect(entries).toHaveLength(72)
 
     const counts = entries.reduce<Record<string, number>>((result, [id]) => {
       const discipline = id.split('.')[0]!
@@ -26,6 +26,7 @@ describe('approved regular Discipline Skill action art — first 64', () => {
       aetherist: 8,
       chronist: 8,
       bastion: 8,
+      ravager: 8,
     })
 
     const currentIds = new Set(latestEnabledMatureSkills().map((skill) => skill.id))
@@ -65,6 +66,7 @@ describe('approved regular Discipline Skill action art — first 64', () => {
     expect(regularSkillArtwork('bastion.steady-footing')).toBe(
       '/media/art/discipline-skills/bastion-steady-footing-v02.webp',
     )
-    expect(regularSkillArtwork('ravager.frenzy')).toBeNull()
+    expect(regularSkillArtwork('ravager.frenzy')).toBe('/media/art/discipline-skills/ravager-frenzy-v01.webp')
+    expect(regularSkillArtwork('edgedancer.lunge')).toBeNull()
   })
 })

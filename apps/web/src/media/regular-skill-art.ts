@@ -72,6 +72,16 @@ export const REGULAR_SKILL_ART = {
   'bastion.shield-line': '/media/art/discipline-skills/bastion-shield-line-v02.webp',
   'bastion.stalwart-strike': '/media/art/discipline-skills/bastion-stalwart-strike-v02.webp',
   'bastion.steady-footing': '/media/art/discipline-skills/bastion-steady-footing-v02.webp',
+
+  'ravager.frenzy': '/media/art/discipline-skills/ravager-frenzy-v01.webp',
+  'ravager.gash': '/media/art/discipline-skills/ravager-gash-v01.webp',
+  'ravager.cleaving-blow': '/media/art/discipline-skills/ravager-cleaving-blow-v01.webp',
+  'ravager.blood-rush': '/media/art/discipline-skills/ravager-blood-rush-v01.webp',
+  'ravager.war-roar': '/media/art/discipline-skills/ravager-war-roar-v01.webp',
+  'ravager.desperate-execution':
+    '/media/art/discipline-skills/ravager-desperate-execution-v01.webp',
+  'ravager.blood-siphon': '/media/art/discipline-skills/ravager-blood-siphon-v01.webp',
+  'ravager.open-wound': '/media/art/discipline-skills/ravager-open-wound-v01.webp',
 } as const
 
 export type RegularSkillArtId = keyof typeof REGULAR_SKILL_ART

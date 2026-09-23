@@ -117,7 +117,10 @@ describe('battle skill artwork presentation', () => {
     expect(battleSkillArtwork('bastion.steady-footing')).toBe(
       '/media/art/discipline-skills/bastion-steady-footing-v02.webp',
     )
-    expect(battleSkillArtwork('ravager.frenzy')).toMatch(/^data:image\/svg\+xml,/)
+    expect(battleSkillArtwork('ravager.frenzy')).toBe(
+      '/media/art/discipline-skills/ravager-frenzy-v01.webp',
+    )
+    expect(battleSkillArtwork('edgedancer.lunge')).toMatch(/^data:image\/svg\+xml,/)
 
     for (const id of ['runeblade.aether-cut', 'runeblade.sigil-brand']) {
       const source = battleSkillArtwork(id)

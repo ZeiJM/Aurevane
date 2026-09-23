@@ -42,7 +42,10 @@ describe('Skill media hook registry', () => {
     expect(registeredSkillArtworkSource('bastion.steady-footing')).toBe(
       '/media/art/discipline-skills/bastion-steady-footing-v02.webp',
     )
-    expect(registeredSkillArtworkSource('ravager.frenzy')).toMatch(/^data:image\/svg\+xml/)
+    expect(registeredSkillArtworkSource('ravager.frenzy')).toBe(
+      '/media/art/discipline-skills/ravager-frenzy-v01.webp',
+    )
+    expect(registeredSkillArtworkSource('edgedancer.lunge')).toMatch(/^data:image\/svg\+xml/)
     const essence = resolveSkillIconHook('essence.aetherist.aether-nova.icon')
     expect(essence).toEqual(
       expect.objectContaining({
