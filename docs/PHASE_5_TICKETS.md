@@ -21,6 +21,11 @@ Historical branches, migrations and PR titles that contain `phase5` are retained
 - [ ] Relevant active-event/world-state delivery remains spoiler-safe and server-authoritative.
 - [ ] Hidden, undiscovered or ineligible world/map data is absent from unauthorized payloads rather than merely hidden by presentation.
 
+Current bounded progress:
+
+- PR #672 merged the first persistent settlement interaction loop using the existing Verdant protected settlement, a generic watch-officer role and the Eastern Watch objective. It proves authoritative accept → inspect → return/complete persistence and idempotency without inventing a named NPC or reward. This is a vertical slice only; the broader settlements, NPCs/dialogue and quests checklist items remain open.
+- The next bounded slice surfaces already-eligible live event objectives as a player-facing **World Pulse** while reusing the completed Phase 4 event-operations authority. It does not create a parallel event schema or broaden event eligibility.
+
 ## 5B — Supernatural Fork
 
 Canonical normal-character progression:

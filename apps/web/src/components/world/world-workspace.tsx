@@ -135,6 +135,8 @@ export function WorldWorkspace({
     void send({ kind: 'walk', destination })
   }
   const disabled = busy || Boolean(view.movementBlocked)
+  const pulseObjectives = view.objectives.filter((objective) => objective.kind === 'event')
+  const questObjectives = view.objectives.filter((objective) => objective.kind === 'quest')
   return (
     <section className={styles.workspace} data-world-workspace data-av-surface="moonstone">
       <div className={styles.mapColumn}>
@@ -368,14 +370,47 @@ export function WorldWorkspace({
             )}
           </section>
         )}
+        {pulseObjectives.length ? (
+          <section className={styles.panel} aria-label="World Pulse">
+            <h2>✦ World Pulse</h2>
+            <p className={styles.quiet}>
+              Live happenings that currently reach your part of the world.
+            </p>
+            {pulseObjectives.map((objective) => (
+              <div className={styles.quest} key={objective.id}>
+                <h3>{objective.name}</h3>
+                <p>○ {objective.description}</p>
+                <button
+                  className={styles.primary}
+                  disabled={
+                    busy ||
+                    (view.routeObjectiveId !== objective.id &&
+                      (disabled || !objective.autoPath || !objective.destination))
+                  }
+                  onClick={() =>
+                    void send(
+                      view.routeObjectiveId === objective.id
+                        ? { kind: 'stop' }
+                        : { kind: 'autopath', objectiveId: objective.id },
+                    )
+                  }
+                >
+                  ♧{' '}
+                  {view.routeObjectiveId === objective.id
+                    ? 'Stop Auto-path'
+                    : objective.autoPath && objective.destination
+                      ? 'Follow event route'
+                      : 'Follow the clues'}
+                </button>
+              </div>
+            ))}
+          </section>
+        ) : null}
         <section className={styles.panel}>
           <h2>⚑ Tracked Quests</h2>
-          {view.objectives.map((objective) => (
+          {questObjectives.map((objective) => (
             <div className={styles.quest} key={objective.id}>
-              <h3>
-                {objective.name}
-                {objective.kind === 'event' ? ' · Event' : ''}
-              </h3>
+              <h3>{objective.name}</h3>
               <p>
                 {objective.completed ? '✓ ' : '○ '}
                 {objective.description}
