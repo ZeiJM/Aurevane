@@ -31,7 +31,7 @@ describe('approved regular Discipline Skill action art — first 64', () => {
     const currentIds = new Set(latestEnabledMatureSkills().map((skill) => skill.id))
     const hashes = entries.map(([id, src]) => {
       expect(currentIds.has(id)).toBe(true)
-      expect(src).toMatch(/^\/media\/art\/discipline-skills\/[a-z0-9-]+-v01\.webp$/)
+      expect(src).toMatch(/^\/media\/art\/discipline-skills\/[a-z0-9-]+-v\d{2}\.webp$/)
       const file = readFileSync(fileURLToPath(new URL(`../../public${src}`, import.meta.url)))
       expect(file.subarray(0, 4).toString('ascii')).toBe('RIFF')
       expect(file.length).toBeGreaterThan(3_000)
@@ -60,10 +60,10 @@ describe('approved regular Discipline Skill action art — first 64', () => {
       '/media/art/discipline-skills/chronist-stolen-moment-v01.webp',
     )
     expect(regularSkillArtwork('bastion.shield-bash')).toBe(
-      '/media/art/discipline-skills/bastion-shield-bash-v01.webp',
+      '/media/art/discipline-skills/bastion-shield-bash-v02.webp',
     )
     expect(regularSkillArtwork('bastion.steady-footing')).toBe(
-      '/media/art/discipline-skills/bastion-steady-footing-v01.webp',
+      '/media/art/discipline-skills/bastion-steady-footing-v02.webp',
     )
     expect(regularSkillArtwork('ravager.frenzy')).toBeNull()
   })
