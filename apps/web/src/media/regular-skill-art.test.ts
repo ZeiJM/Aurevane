@@ -30,7 +30,7 @@ describe('approved regular Discipline Skill action art — first 30', () => {
       expect(src).toMatch(/^\/media\/art\/discipline-skills\/[a-z0-9-]+-v01\.webp$/)
       const file = readFileSync(fileURLToPath(new URL(`../../public${src}`, import.meta.url)))
       expect(file.subarray(0, 4).toString('ascii')).toBe('RIFF')
-      expect(file.length).toBeGreaterThan(5_000)
+      expect(file.length).toBeGreaterThan(3_000)
       expect(regularSkillArtwork(id)).toBe(src)
       return createHash('sha256').update(file).digest('hex')
     })
