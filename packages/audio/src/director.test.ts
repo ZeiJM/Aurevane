@@ -4,7 +4,7 @@ import type { AudioAssetDescriptor } from './registry'
 import { createDefaultAudioSettings } from './settings'
 
 const elements: FakeAudio[] = []
-const gains: Array<{ gain: { value: number }; connect: ReturnType<typeof vi.fn>; disconnect: ReturnType<typeof vi.fn> }> = []
+const gains: Array<{\n  gain: { value: number }\n  connect: ReturnType<typeof vi.fn>\n  disconnect: ReturnType<typeof vi.fn>\n}> = []
 let hidden = false
 let pendingPlay: Promise<void> | null = null
 class FakeAudio extends EventTarget {
