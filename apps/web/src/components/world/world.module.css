@@ -515,6 +515,45 @@
   background: #082c37;
   color: #ffefbd;
 }
+.chartedSectorIndex {
+  margin-top: 0.75rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid #b7a17b66;
+}
+.chartedSectorIndex h3 {
+  margin: 0 0 0.45rem;
+  font-size: 0.88rem;
+  color: #29394b;
+}
+.chartedSectorList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.28rem;
+}
+.workspace .chartedSectorList button {
+  display: grid;
+  gap: 0.1rem;
+  align-content: center;
+  min-height: 2.5rem;
+  padding: 0.35rem 0.45rem;
+  text-align: left;
+}
+.chartedSectorList strong {
+  font-size: 0.72rem;
+  font-weight: 500;
+  line-height: 1.15;
+}
+.chartedSectorList small {
+  font-size: 0.61rem;
+  color: #6d6a5e;
+}
+.workspace .chartedSectorList button[data-active='true'] {
+  background: #082c37;
+  color: #ffefbd;
+}
+.workspace .chartedSectorList button[data-active='true'] small {
+  color: #d4ccb4;
+}
 .search {
   width: 100%;
   font-size: 0.83rem;
@@ -1441,7 +1480,21 @@
   z-index: 2;
 }
 .globeOutline polygon {
-  fill: #e9c27e15;
+  fill: #d8dfc708;
+  stroke: #b7cdb84f;
+  stroke-width: 1;
+}
+.globeOutline polygon[data-current='true'] {
+  fill: #e9c27e18;
   stroke: #e7ca7b;
   stroke-width: 2;
+}
+.globeOutline polygon[data-selected='true'] {
+  fill: #8bd8d11f;
+  stroke: #a7ece1;
+  stroke-width: 2;
+}
+.globeOutline polygon[data-current='true'][data-selected='true'] {
+  fill: #d8d89924;
+  stroke: #f3d88f;
 }
