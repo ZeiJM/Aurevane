@@ -79,14 +79,18 @@
   font-size: 0.875rem;
 }
 .close {
+  display: grid;
   flex: 0 0 auto;
   width: 2.75rem;
   height: 2.75rem;
+  place-items: center;
+  padding: 0;
   border: 1px solid #a38a5b;
   border-radius: 0;
   color: #ebd6ad;
   background: #07131fe6;
   font-size: 1.6rem;
+  line-height: 1;
   cursor: pointer;
 }
 .close:focus-visible {

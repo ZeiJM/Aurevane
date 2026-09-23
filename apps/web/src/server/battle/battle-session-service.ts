@@ -40,6 +40,7 @@ import {
   getTacticalHallArena,
   type TacticalHallArenaId,
 } from '@aurevane/game-core/combat/tactical-hall-arenas'
+import { getTacticalHallRecord } from '@aurevane/game-core/combat/tactical-hall-records'
 import { AurevaneError, StaleBattleVersionError } from '@aurevane/game-core/errors'
 import {
   createBattleSessionChangedInvalidation,
@@ -172,6 +173,12 @@ function persistenceInvalid(): AurevaneError {
 
 function fingerprint(value: unknown): string {
   return `sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`
+}
+
+function authoritativeBattleHallAiDifficulty(
+  battleHallRecordId: BattleHallRecordId,
+): BattleAiDifficulty {
+  return getTacticalHallRecord(battleHallRecordId).combinedDuel ? 'high' : 'easy'
 }
 
 function recruitScenarioProfile(
@@ -609,13 +616,10 @@ export function createBattleSessionService({
       }
 
       const arenaId = command.arenaId ?? 'basic-training-floor'
-      const aiDifficulty = command.aiDifficulty ?? 'standard'
       const battleHallRecordId = command.battleHallRecordId ?? 'recruit-sparring'
-      if (battleHallRecordId === 'mastery-trial' && aiDifficulty === 'easy')
-        throw new AurevaneError(
-          'INVALID_REQUEST',
-          'Mastery Trials require Standard or High difficulty.',
-        )
+      // Battle Hall difficulty is server-owned: full duels always use High AI,
+      // while guided/legacy teaching records stay Easy regardless of client input.
+      const aiDifficulty = authoritativeBattleHallAiDifficulty(battleHallRecordId)
       const baseEncounter = createVerticalSliceEncounter(
         character,
         arenaId,
