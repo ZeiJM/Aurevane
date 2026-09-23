@@ -102,6 +102,21 @@ test('Battle Hall shows one full-width parchment workspace at a time with all re
     expect(pageBox).not.toBeNull()
     expect(workspaceBox).not.toBeNull()
     expect(workspaceBox!.width).toBeGreaterThan(pageBox!.width * 0.94)
+    const aiSpace = await ai.evaluate((element) => {
+      const body = element.querySelector('[data-hall-scroll-body]')!.getBoundingClientRect()
+      const vista = element.querySelector('figure')!.getBoundingClientRect()
+      return {
+        workspaceHeight: element.getBoundingClientRect().height,
+        bodyHeight: body.height,
+        vistaHeight: vista.height,
+      }
+    })
+    expect
+      .soft(aiSpace.bodyHeight, 'AI workspace gives the main content most of the available height')
+      .toBeGreaterThan(aiSpace.workspaceHeight * 0.62)
+    expect
+      .soft(aiSpace.vistaHeight, 'AI arena expands into otherwise unused vertical space')
+      .toBeGreaterThan(aiSpace.bodyHeight * 0.22)
   }
 
   await expect(page.getByLabel('Battle mode')).toHaveValue('recruit-sparring')
@@ -151,9 +166,20 @@ test('Battle Hall shows one full-width parchment workspace at a time with all re
   const navigation = page.getByRole('navigation', { name: 'Battle Hall sections', exact: true })
   await navigation.getByRole('button', { name: /Player vs Player/ }).click()
   await expect(page.locator('[data-hall-workspace]:visible')).toHaveCount(1)
-  await expect(page.locator('[data-hall-workspace="pvp"]')).toBeVisible()
+  const pvpWorkspace = page.locator('[data-hall-workspace="pvp"]')
+  await expect(pvpWorkspace).toBeVisible()
   await expect(ai).toBeHidden()
   await expect(page.getByText('02 / Challenge', { exact: true })).toHaveCount(0)
+  if (!mobile) {
+    const pvpSpace = await pvpWorkspace.evaluate((element) => {
+      const stage = element.firstElementChild!.getBoundingClientRect()
+      const workspace = element.getBoundingClientRect()
+      return { stageHeight: stage.height, workspaceHeight: workspace.height }
+    })
+    expect
+      .soft(pvpSpace.stageHeight, 'PvP composition fills the available parchment workspace')
+      .toBeGreaterThan(pvpSpace.workspaceHeight * 0.9)
+  }
 
   await page.locator('#pvp-mode').selectOption('flex-teams')
   await expect(page.locator('[data-pvp-team-sizes] select')).toHaveCount(2)
@@ -182,9 +208,28 @@ test('Battle Hall shows one full-width parchment workspace at a time with all re
 
   await navigation.getByRole('button', { name: /^Spectate/ }).click()
   await expect(page.locator('[data-hall-workspace]:visible')).toHaveCount(1)
-  await expect(page.locator('[data-hall-workspace="spectate"]')).toBeVisible()
+  const spectateWorkspace = page.locator('[data-hall-workspace="spectate"]')
+  await expect(spectateWorkspace).toBeVisible()
   await expect(page.locator('[data-hall-workspace="pvp"]')).toBeHidden()
   await expect(page.getByText('03 / Spectate', { exact: true })).toHaveCount(0)
+  if (!mobile) {
+    const spectateSpace = await spectateWorkspace.evaluate((element) => {
+      const body = element.querySelector('[data-hall-scroll-body]')!.getBoundingClientRect()
+      const vista = element.querySelector('figure')!.getBoundingClientRect()
+      const workspace = element.getBoundingClientRect()
+      return {
+        workspaceHeight: workspace.height,
+        bodyHeight: body.height,
+        vistaHeight: vista.height,
+      }
+    })
+    expect
+      .soft(spectateSpace.bodyHeight, 'Spectate content fills the parchment workspace')
+      .toBeGreaterThan(spectateSpace.workspaceHeight * 0.9)
+    expect
+      .soft(spectateSpace.vistaHeight, 'Spectate vista expands into the available vertical space')
+      .toBeGreaterThan(spectateSpace.bodyHeight * 0.3)
+  }
   await expect(page.getByRole('button', { name: 'Spectate Battle', exact: true })).toBeDisabled()
   await page.getByRole('textbox', { name: 'Battle Key', exact: true }).fill('avb-abcd-1234')
   await expect(page.getByRole('button', { name: 'Spectate Battle', exact: true })).toBeEnabled()
