@@ -75,21 +75,6 @@ export function PublicCharacterProfile({
       data-av-surface="ink"
       aria-labelledby="online-profile-name"
       onClose={onClose}
-      onKeyDown={(event) => {
-        if (event.key !== 'Tab') return
-        // Keep Tab in the sheet even when Close is the only enabled action.
-        const buttons =
-          event.currentTarget.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')
-        const first = buttons[0]
-        const last = buttons[buttons.length - 1]
-        if (event.shiftKey && document.activeElement === first) {
-          event.preventDefault()
-          last?.focus()
-        } else if (!event.shiftKey && document.activeElement === last) {
-          event.preventDefault()
-          first?.focus()
-        }
-      }}
       onClick={(event) => {
         if (event.target === event.currentTarget) dialogRef.current?.close()
       }}
@@ -101,14 +86,6 @@ export function PublicCharacterProfile({
             <h2 id="online-profile-name">{character.name}</h2>
             <p>Public character profile</p>
           </div>
-          <button
-            type="button"
-            className={styles.close}
-            aria-label="Close public character profile"
-            onClick={() => dialogRef.current?.close()}
-          >
-            ×
-          </button>
         </header>
         <div className={styles.profileBody}>
           <div className={styles.portraitStage}>
@@ -142,20 +119,8 @@ export function PublicCharacterProfile({
                 <dd>{online ? 'Online now' : formatLastSeenAt(character.lastSeenAt, nowMs)}</dd>
               </div>
             </dl>
-            <p className={styles.privacyNote}>
-              Public profiles intentionally omit combat stats, inventory, currencies, account
-              identity, and other private character data.
-            </p>
           </div>
         </div>
-        <footer className={styles.futureActions} aria-label="Planned social actions">
-          <button type="button" disabled title="Direct messages arrive with the social phase.">
-            Send Direct Message · Planned
-          </button>
-          <button type="button" disabled title="Friends arrive with the social phase.">
-            Add Friend · Planned
-          </button>
-        </footer>
       </div>
     </dialog>
   )
