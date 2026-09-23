@@ -28,7 +28,10 @@ describe('authenticated navigation performance contracts', () => {
   })
 
   it('overlaps current Skill resolution with the remaining Character and Arsenal reads', () => {
-    for (const path of ['src/app/game/character/page.tsx', 'src/app/game/arsenal/page.tsx']) {
+    for (const path of [
+      'src/app/game/(roaming)/character/page.tsx',
+      'src/app/game/(roaming)/arsenal/page.tsx',
+    ]) {
       const page = source(path)
 
       expect(page).toContain('const disciplineBuildPromise = loadCharacterBuildContext(')
