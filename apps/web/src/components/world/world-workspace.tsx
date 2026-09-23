@@ -277,9 +277,7 @@ export function WorldWorkspace({
                   <button
                     className={styles.primary}
                     disabled={disabled || view.route.length > 0}
-                    onClick={() =>
-                      void send({ kind: 'interact', interactionId: interaction.id })
-                    }
+                    onClick={() => void send({ kind: 'interact', interactionId: interaction.id })}
                   >
                     {interaction.actionLabel}
                   </button>
