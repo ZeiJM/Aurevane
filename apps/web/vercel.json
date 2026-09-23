@@ -2,7 +2,6 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "git": {
     "deploymentEnabled": {
-      "agent/navigation-performance-pass-20260922": true,
       "**": false
     }
   }
