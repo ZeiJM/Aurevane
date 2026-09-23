@@ -140,91 +140,91 @@ export function CharacterProfileShell({
 
   return (
     <CharacterRailSynchronizedLayout
-        className={styles.layout}
-        data-profile-workspace
-        data-character-concept="profile"
+      className={styles.layout}
+      data-profile-workspace
+      data-character-concept="profile"
+    >
+      <CharacterIdentityCard
+        profile={profile}
+        primary={disciplineBuild.current.definition}
+        secondary={disciplineBuild.currentSecondary}
+        personalTitle={personalTitle}
+        imageUrl={imageUrl}
+        disciplineSummary={disciplineSummary}
+        maxHp={maxHp}
+        maxMp={maxMp}
+      />
+
+      <Surface
+        className={styles.profile}
+        tone="elevated"
+        data-av-surface="moonstone"
+        data-profile-sheet="true"
       >
-        <CharacterIdentityCard
-          profile={profile}
-          primary={disciplineBuild.current.definition}
-          secondary={disciplineBuild.currentSecondary}
-          personalTitle={personalTitle}
-          imageUrl={imageUrl}
-          disciplineSummary={disciplineSummary}
-          maxHp={maxHp}
-          maxMp={maxMp}
-        />
-
-        <Surface
-          className={styles.profile}
-          tone="elevated"
-          data-av-surface="moonstone"
-          data-profile-sheet="true"
-        >
-          <header className={styles.sheetHeading}>
-            <div>
-              <span className={styles.sheetMarker} aria-hidden="true">
-                ✧
-              </span>
-              <h2>Identity</h2>
-            </div>
-            <small>Same soul. A wider horizon.</small>
-          </header>
-
-          <CharacterProfileDetails
-            presentationLabel={profile.identity.presentationLabel}
-            buildTypeLabel={buildTypeLabel}
-            cycleNumber={profile.progression.cycleNumber}
-            attributes={profile.attributes}
-            derived={disciplineBuild.current.derived}
-            attributeResetControl={
-              <CharacterAttributeAllocationPanel
-                initialAllocation={attributeAllocation}
-                portrait={{
-                  name: profile.identity.name,
-                  imageUrl,
-                  assetId: getStarterPortraitImageAssetId(profile.identity.portraitRef),
-                }}
-                focusAttributes={focusAttributes}
-                attributeCaps={attributePolicy?.attributeCaps ?? {}}
-              />
-            }
-          />
-        </Surface>
-
-        <aside
-          className={styles.story}
-          data-testid="current-path-coming-soon"
-          aria-label="Current Path"
-        >
-          <header className={styles.storyHeading}>
-            <div>
-              <span aria-hidden="true">♜</span>
-              <strong>Current Path</strong>
-            </div>
-            <small>Your story continues.</small>
-          </header>
-          <div className={styles.storyArt} aria-hidden="true" />
-          <div className={styles.storyCopy}>
-            <h2>Echoes Beyond the Vale</h2>
-            <p>
-              Fragments stir across Aurevane. Follow the threads, sharpen your strength, and uncover
-              what lies beyond the turning skies.
-            </p>
-            <div className={styles.storyDivider} aria-hidden="true">
+        <header className={styles.sheetHeading}>
+          <div>
+            <span className={styles.sheetMarker} aria-hidden="true">
               ✧
-            </div>
-            <button type="button" disabled>
-              View Journey <span aria-hidden="true">→</span>
-            </button>
-            <blockquote>
-              “New paths are not found,
-              <br />
-              but remembered.”
-              <cite>— An Aurevane Proverb</cite>
-            </blockquote>
+            </span>
+            <h2>Identity</h2>
           </div>
-        </aside>
+          <small>Same soul. A wider horizon.</small>
+        </header>
+
+        <CharacterProfileDetails
+          presentationLabel={profile.identity.presentationLabel}
+          buildTypeLabel={buildTypeLabel}
+          cycleNumber={profile.progression.cycleNumber}
+          attributes={profile.attributes}
+          derived={disciplineBuild.current.derived}
+          attributeResetControl={
+            <CharacterAttributeAllocationPanel
+              initialAllocation={attributeAllocation}
+              portrait={{
+                name: profile.identity.name,
+                imageUrl,
+                assetId: getStarterPortraitImageAssetId(profile.identity.portraitRef),
+              }}
+              focusAttributes={focusAttributes}
+              attributeCaps={attributePolicy?.attributeCaps ?? {}}
+            />
+          }
+        />
+      </Surface>
+
+      <aside
+        className={styles.story}
+        data-testid="current-path-coming-soon"
+        aria-label="Current Path"
+      >
+        <header className={styles.storyHeading}>
+          <div>
+            <span aria-hidden="true">♜</span>
+            <strong>Current Path</strong>
+          </div>
+          <small>Your story continues.</small>
+        </header>
+        <div className={styles.storyArt} aria-hidden="true" />
+        <div className={styles.storyCopy}>
+          <h2>Echoes Beyond the Vale</h2>
+          <p>
+            Fragments stir across Aurevane. Follow the threads, sharpen your strength, and uncover
+            what lies beyond the turning skies.
+          </p>
+          <div className={styles.storyDivider} aria-hidden="true">
+            ✧
+          </div>
+          <button type="button" disabled>
+            View Journey <span aria-hidden="true">→</span>
+          </button>
+          <blockquote>
+            “New paths are not found,
+            <br />
+            but remembered.”
+            <cite>— An Aurevane Proverb</cite>
+          </blockquote>
+        </div>
+      </aside>
     </CharacterRailSynchronizedLayout>
   )
 }
