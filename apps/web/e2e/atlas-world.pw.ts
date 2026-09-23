@@ -232,6 +232,23 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
   await expect
     .poll(() => flow.evaluate((element) => getComputedStyle(element).backgroundPosition))
     .not.toBe(flowPosition)
+  expect(
+    Number(await flow.evaluate((element) => getComputedStyle(element).opacity)),
+  ).toBeGreaterThanOrEqual(0.28)
+  expect(
+    Number(
+      await ambient
+        .locator('[data-world-wind]')
+        .evaluate((element) => getComputedStyle(element).opacity),
+    ),
+  ).toBeGreaterThanOrEqual(0.18)
+  expect(
+    Number(
+      await ambient
+        .locator('[data-world-light]')
+        .evaluate((element) => getComputedStyle(element).opacity),
+    ),
+  ).toBeGreaterThanOrEqual(0.07)
   await page.getByRole('button', { name: /Layers/ }).click()
   await page.getByLabel('Environmental motion').uncheck()
   await expect(ambient).toHaveCount(0)
@@ -283,6 +300,28 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
   expect(globeBounds.y + globeBounds.height).toBeLessThanOrEqual(
     viewportBounds.y + viewportBounds.height - 16,
   )
+  const uncharted = page.getByText('Uncharted Territory', { exact: true })
+  await expect(uncharted).toBeVisible()
+  expect(
+    await uncharted.evaluate((element) => getComputedStyle(element.parentElement!).backgroundImage),
+  ).toContain('linear-gradient')
+
+  for (let i = 0; i < 4; i++) await page.getByRole('button', { name: 'Zoom in' }).click()
+  const zoomedBounds = (await sphere.boundingBox())!
+  expect(zoomedBounds.x).toBeGreaterThanOrEqual(viewportBounds.x)
+  expect(zoomedBounds.x + zoomedBounds.width).toBeLessThanOrEqual(
+    viewportBounds.x + viewportBounds.width,
+  )
+  const visibleLabels = page.locator('[class*="regionLabel"]:visible')
+  for (let i = 0; i < (await visibleLabels.count()); i++) {
+    const bounds = await visibleLabels.nth(i).boundingBox()
+    if (!bounds) continue
+    expect(bounds.x).toBeGreaterThanOrEqual(zoomedBounds.x - 1)
+    expect(bounds.x + bounds.width).toBeLessThanOrEqual(zoomedBounds.x + zoomedBounds.width + 1)
+    expect(bounds.y).toBeGreaterThanOrEqual(zoomedBounds.y - 1)
+    expect(bounds.y + bounds.height).toBeLessThanOrEqual(zoomedBounds.y + zoomedBounds.height + 1)
+  }
+  await capture(page, info, 'world-globe-zoomed')
   await page.mouse.move(globeBounds.x + globeBounds.width * 0.45, globeBounds.y + globeBounds.height * 0.5)
   await page.mouse.down()
   await page.mouse.move(

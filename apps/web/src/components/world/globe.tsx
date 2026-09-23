@@ -33,7 +33,11 @@ export function Globe({
     setZoom(0.94)
   }
   const projected = marker ? projectGlobePoint(marker, camera) : null
-  const fogPoint = projectGlobePoint({ longitude: 80, latitude: 9 }, camera)
+  const fogPoint = projectGlobePoint({ longitude: 38, latitude: 9 }, camera)
+  const overlayVisible = (point: ReturnType<typeof projectGlobePoint>) =>
+    point.visible && Math.abs(point.x * zoom) < 0.82 && Math.abs(point.y * zoom) < 0.9
+  const labelVisible = (point: ReturnType<typeof projectGlobePoint>) =>
+    point.visible && Math.abs(point.x * zoom) < 0.6 && Math.abs(point.y * zoom) < 0.72
   const outline = marker
     ? Array.from({ length: 20 }, (_, i) => {
         const edge = Math.floor(i / 5),
@@ -72,7 +76,7 @@ export function Globe({
       >
         {WORLD_REGIONS.map((region) => {
           const point = projectGlobePoint(region, camera)
-          if (!point.visible) return null
+          if (!labelVisible(point)) return null
           return (
             <button
               key={region.id}
@@ -85,7 +89,7 @@ export function Globe({
             </button>
           )
         })}
-        {projected?.visible && outline.every((p) => p.visible) ? (
+        {projected && overlayVisible(projected) && outline.every(overlayVisible) ? (
           <svg className={styles.globeOutline} viewBox="0 0 1000 1000" aria-hidden="true">
             <polygon
               points={outline
@@ -94,7 +98,7 @@ export function Globe({
             />
           </svg>
         ) : null}
-        {projected?.visible ? (
+        {projected && overlayVisible(projected) ? (
           <div
             className={styles.globePlayer}
             style={{
@@ -112,7 +116,7 @@ export function Globe({
             />
           </div>
         ) : null}
-        {fogPoint.visible ? (
+        {labelVisible(fogPoint) ? (
           <span
             className={styles.unchartedLabel}
             style={{
@@ -120,9 +124,8 @@ export function Globe({
               top: `${50 - fogPoint.y * zoom * 50}%`,
             }}
           >
-            Uncharted
-            <br />
-            Territory
+            <strong>Uncharted Territory</strong>
+            <small>Beyond reliable charts</small>
           </span>
         ) : null}
       </SphericalView>
