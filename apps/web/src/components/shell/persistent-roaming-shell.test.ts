@@ -87,10 +87,16 @@ describe('persistent roaming shell architecture', () => {
       '../../.github/workflows/profile-skill-build.yml',
       '../../.github/workflows/representative-buildcraft.yml',
       '../../.github/workflows/resonance-build.yml',
+      '../../.github/workflows/profile-layout-review.yml',
     ]) {
       const workflow = source(workflowPath)
-      expect(workflow).toContain('apps/web/src/app/game/(roaming)/character/page.tsx')
-      expect(workflow).not.toContain('apps/web/src/app/game/character/page.tsx')
+      if (workflowPath.endsWith('profile-layout-review.yml')) {
+        expect(workflow).toContain('apps/web/src/app/game/(roaming)/online/')
+        expect(workflow).not.toContain('apps/web/src/app/game/online/')
+      } else {
+        expect(workflow).toContain('apps/web/src/app/game/(roaming)/character/page.tsx')
+        expect(workflow).not.toContain('apps/web/src/app/game/character/page.tsx')
+      }
     }
   })
 })

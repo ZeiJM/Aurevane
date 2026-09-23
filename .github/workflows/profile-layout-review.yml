@@ -34,7 +34,7 @@ on:
       - apps/web/src/app/news/**
       - apps/web/src/app/manual/**
       - apps/web/src/app/rules/**
-      - apps/web/src/app/game/online/**
+      - apps/web/src/app/game/(roaming)/online/**
       - apps/web/src/app/game/create/**
       - apps/web/src/app/game/settings/**
       - apps/web/src/media/**
@@ -63,7 +63,7 @@ on:
       - apps/web/src/app/news/**
       - apps/web/src/app/manual/**
       - apps/web/src/app/rules/**
-      - apps/web/src/app/game/online/**
+      - apps/web/src/app/game/(roaming)/online/**
       - apps/web/src/app/game/create/**
       - apps/web/src/app/game/settings/**
       - apps/web/src/media/**
