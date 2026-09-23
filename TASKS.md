@@ -2,7 +2,11 @@
 
 **PHASE 4 CLOSED — 2026-09-23:** the Owner explicitly accepted Phase 4 as closed. A03, A04, A07 and A10 are **COMPLETE**. A07 concerns battle SFX/audio identities, not background music. Post-closeout UI cleanup/regression work is maintenance and does not reopen Phase 4 by default. See `docs/PHASE_4_CLOSEOUT.md`.
 
-## Living Atlas — Phase 5 authorized parallel work (2026-09-22)
+## Living Atlas — implementation and live-testing handover
+
+Initial Atlas scope is implemented in PR #609. The Owner authorized release after all necessary checks; PR #609 records the final checks, migration and production deployment, and PR #671 restores the deployment lock. See `docs/PHASE_5_HANDOVER.md` for the testing boundary and remaining Phase 5 work. Owner Atlas acceptance is still open.
+
+### Historical implementation checkpoints (2026-09-22 onward)
 
 Owner approved Phase 5, the globe/sector style, uncharted territory and temporary View 360. Isolated branch `agent/phase5-strategic-atlas-20260922` implements the first Atlas/travel slice with event guidance and existing PvP entry. Phase 4 was subsequently closed by Owner decision on 2026-09-23. See `docs/PHASE_4_CLOSEOUT.md` and `docs/LIVING_ATLAS_DELIVERY.md` for the bounded content scope and verification/release gates; this entry does not claim all Phase 5 complete or authorize deployment.
 
@@ -21,7 +25,7 @@ Encounter verification continuation adds real-database scenarios for a due movem
 Atlas run 35855143006 at `2378def6` completed with seventeen passing scenarios, one failure and thirty intentional skips. All eight roads, regional panoramas, responsive geometry, environmental motion/accessibility, command/retry contention, mutual attacks, due movement versus attack and Skill-build change rejection passed. Final-road maps/reverse panoramas and regional/laptop/mobile screenshots were inspected. The training-change case failed during setup because its request omitted required `version: 1`; the API correctly returned 400. The fixture now includes that field and satisfies the shared `SetPracticePlanRequest` type. Omitting the field was reproduced as a TypeScript error before restoring it. Fresh browser execution of the corrected fixture remains pending; this is not an all-green or release claim.
 
 
-Living Atlas release checkpoint: Owner authorized deployment after verification on 2026-09-23. Current release preparation preserves main through `acb03c40`, including all 40 approved Skill images. The complete local gate passed: 2,798 Vitest tests, seven report/audio Node tests, formatting, lint, type checks and builds. See `docs/LIVING_ATLAS_DELIVERY.md` for corrected media assertions and precise evidence. Candidate browser/CI verification remains pending; no Atlas production release is claimed yet.
+Latest implementation verification: candidate `3c2434a4` preserves main through `7800fa97`, including the approved Bastion artwork, profile and Hall changes. The full local gate passed 2,805 Vitest tests plus seven Node report/audio checks, formatting, lint, types and production builds. The release record in PR #609 supplies final CI, migration and deployment evidence; `docs/LIVING_ATLAS_DELIVERY.md` retains the historical corrections and `docs/PHASE_5_HANDOVER.md` defines the continuation boundary.
 
 ## Battle presentation polish follow-up — 2026-09-13
 
@@ -113,7 +117,7 @@ This file reports the **current implementation/validation boundary**.
 
 ## Current status
 
-**Stage:** Phase 5 — **AUTHORIZED; INITIAL LIVING ATLAS CANDIDATE UNDER VERIFICATION**. Phase 4 is closed by Owner decision on 2026-09-23; see `docs/PHASE_4_CLOSEOUT.md`. Draft PR #609 remains unreleased and is not implied to be merged by this status.
+**Stage:** Phase 5 — **IN PROGRESS; INITIAL LIVING ATLAS IMPLEMENTED**. Phase 4 is closed by Owner decision on 2026-09-23; see `docs/PHASE_4_CLOSEOUT.md`. Atlas release evidence is recorded in PR #609 and the live-testing continuation is `docs/PHASE_5_HANDOVER.md`; this is not completion of all Phase 5.
 
 **Phase 2:** CLOSED on 2026-09-02 by explicit Owner decision after the final production regression test. PV-1 is reconciled as completed by that Owner phase-exit decision; do not invent additional human evidence.
 
