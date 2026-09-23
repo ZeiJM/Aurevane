@@ -65,7 +65,12 @@ export function AuthenticatedShellPresentation({
         </a>
         <header className={`${styles.masthead} ${railStyles.masthead}`} data-av-surface="ink">
           <div className={styles.brandGroup}>
-            <Link className="brand" href="/game/character" aria-label="AUREVANE character profile">
+            <Link
+              className="brand"
+              href="/game/character"
+              prefetch={false}
+              aria-label="AUREVANE character profile"
+            >
               <span className="brand__crest" aria-hidden="true">
                 <span>A</span>
               </span>
@@ -77,18 +82,26 @@ export function AuthenticatedShellPresentation({
           </div>
 
           <nav className={`${styles.headerLinks} ${railStyles.navigation}`} aria-label="Reference">
-            <Link href="/news">News</Link>
-            <Link href="/manual">Manual</Link>
-            <Link href="/rules">Rules</Link>
+            <Link href="/news" prefetch={false}>News</Link>
+            <Link href="/manual" prefetch={false}>Manual</Link>
+            <Link href="/rules" prefetch={false}>Rules</Link>
           </nav>
 
           <div className={`${railStyles.utility} ${styles.mastheadUtility}`}>
             {activeBattleHref ? (
-              <Link className={styles.activeBattleLink} href={activeBattleHref}>
+              <Link
+                className={styles.activeBattleLink}
+                href={activeBattleHref}
+                prefetch={false}
+              >
                 <span aria-hidden="true">●</span> IN BATTLE
               </Link>
             ) : activeSpectatingHref ? (
-              <Link className={styles.activeBattleLink} href={activeSpectatingHref}>
+              <Link
+                className={styles.activeBattleLink}
+                href={activeSpectatingHref}
+                prefetch={false}
+              >
                 <span aria-hidden="true">●</span> SPECTATING
               </Link>
             ) : null}

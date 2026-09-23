@@ -39,6 +39,22 @@ describe('authenticated navigation performance contracts', () => {
     }
   })
 
+  it('disables automatic Link prefetch across the authenticated shell', () => {
+    for (const path of [
+      'src/components/shell/game-rail.tsx',
+      'src/components/shell/authenticated-shell-presentation.tsx',
+      'src/components/shell/online-presence-link.tsx',
+      'src/components/shell/account-menu.tsx',
+    ]) {
+      const file = source(path)
+      const linkCount = file.match(/<Link\b/g)?.length ?? 0
+      const disabledPrefetchCount = file.match(/prefetch={false}/g)?.length ?? 0
+
+      expect(linkCount).toBeGreaterThan(0)
+      expect(disabledPrefetchCount).toBe(linkCount)
+    }
+  })
+
   it('uses the scalar online count instead of loading directory rows for the footer', () => {
     const presenceService = source('src/server/presence/character-presence-service.ts')
 
