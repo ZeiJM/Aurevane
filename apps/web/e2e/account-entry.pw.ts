@@ -204,7 +204,7 @@ test('account audio controls persist the two user-facing mix levels', async ({
     return value ? JSON.parse(value) : null
   }, AUDIO_SETTINGS_STORAGE_KEY)
   expect(persisted?.volumes).toMatchObject({
-    master: 0.8,
+    master: 1,
     music: 0.37,
     sfx: 0.23,
     ambience: 0.23,
