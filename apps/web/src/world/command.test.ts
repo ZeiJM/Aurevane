@@ -17,6 +17,18 @@ it('accepts intent but never accepts client state', () => {
     intent: { kind: 'walk', destination: { sectorId: 'verdant-expanse', x: 5, y: 4 } },
   })
 })
+it('accepts bounded local interaction intent', () => {
+  expect(
+    parseWorldCommand({
+      ...base,
+      intent: { kind: 'interact', interactionId: 'eastern-watch-officer' },
+    }),
+  ).toEqual({
+    ...base,
+    intent: { kind: 'interact', interactionId: 'eastern-watch-officer' },
+  })
+})
+
 it('rejects malformed and unbounded commands', () => {
   for (const input of [
     null,
@@ -27,6 +39,8 @@ it('rejects malformed and unbounded commands', () => {
       intent: { kind: 'walk', destination: { sectorId: 'verdant-expanse', x: 13, y: 4 } },
     },
     { ...base, intent: { kind: 'attack', targetId: 'not-a-uuid' } },
+    { ...base, intent: { kind: 'interact', interactionId: '' } },
+    { ...base, intent: { kind: 'interact', interactionId: 'A'.repeat(101) } },
   ])
     expect(parseWorldCommand(input)).toBeNull()
 })
