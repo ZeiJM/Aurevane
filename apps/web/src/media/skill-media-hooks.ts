@@ -37,9 +37,7 @@ function titleSkill(skillId: string): string {
 
 export function registeredSkillArtworkSource(skillId: string): string | null {
   return (
-    regularSkillArtwork(skillId) ??
-    essenceSkillArtwork(skillId) ??
-    darkFantasySkillArtwork(skillId)
+    regularSkillArtwork(skillId) ?? essenceSkillArtwork(skillId) ?? darkFantasySkillArtwork(skillId)
   )
 }
 
