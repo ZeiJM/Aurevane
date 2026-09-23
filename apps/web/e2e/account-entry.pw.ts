@@ -144,7 +144,7 @@ test('duplicate email signup is denied with a visible error', async ({ page }, t
   await expect(message).toHaveAttribute('data-tone', 'error')
 })
 
-test('audio stays gesture-gated and persists mute plus channel levels', async ({
+test('account audio controls persist the two user-facing mix levels', async ({
   page,
 }, testInfo) => {
   test.skip(
@@ -158,6 +158,18 @@ test('audio stays gesture-gated and persists mute plus channel levels', async ({
   await trigger.focus()
   await trigger.press('Enter')
 
+  const dialog = page.getByRole('dialog', { name: 'Audio settings' })
+  await expect(dialog).toBeVisible()
+  await expect(dialog.getByText('Saved locally', { exact: true })).toHaveCount(0)
+  await expect(dialog.getByRole('button', { name: 'Test UI channel' })).toHaveCount(0)
+  await expect(dialog.getByText(/Adjust each channel/i)).toHaveCount(0)
+
+  await expect(page.getByTestId('audio-volume-music')).toBeVisible()
+  await expect(page.getByTestId('audio-volume-sfx')).toBeVisible()
+  await expect(page.getByTestId('audio-volume-master')).toHaveCount(0)
+  await expect(page.getByTestId('audio-volume-ambience')).toHaveCount(0)
+  await expect(page.getByTestId('audio-volume-ui')).toHaveCount(0)
+
   await expect(page.getByTestId('audio-state')).toContainText(
     'locked until you choose to enable it',
   )
@@ -165,8 +177,12 @@ test('audio stays gesture-gated and persists mute plus channel levels', async ({
   await expect(page.getByTestId('audio-state')).toContainText('Audio ready')
 
   const musicVolume = page.getByTestId('audio-volume-music')
+  const effectsVolume = page.getByTestId('audio-volume-sfx')
   await musicVolume.fill('37')
+  await effectsVolume.fill('23')
   await expect(musicVolume).toHaveValue('37')
+  await expect(effectsVolume).toHaveValue('23')
+  await expect(dialog).toBeVisible()
 
   await page.getByTestId('audio-mute').click()
   await expect(page.getByTestId('audio-mute')).toHaveText('Unmute all')
@@ -183,14 +199,28 @@ test('audio stays gesture-gated and persists mute plus channel levels', async ({
     )
     .toContain('"music":0.37')
 
+  const persisted = await page.evaluate((key) => {
+    const value = window.localStorage.getItem(key)
+    return value ? JSON.parse(value) : null
+  }, AUDIO_SETTINGS_STORAGE_KEY)
+  expect(persisted?.volumes).toMatchObject({
+    master: 0.8,
+    music: 0.37,
+    sfx: 0.23,
+    ambience: 0.23,
+    ui: 0.23,
+  })
+
   await page.reload()
   await page.getByRole('button', { name: 'Sound settings' }).click()
 
   await expect(page.getByTestId('audio-volume-music')).toHaveValue('37')
+  await expect(page.getByTestId('audio-volume-sfx')).toHaveValue('23')
   await expect(page.getByTestId('audio-mute')).toHaveText('Unmute all')
 
   await page.getByTestId('audio-mute').click()
   await expect(page.getByTestId('audio-volume-music')).toHaveValue('37')
+  await expect(page.getByTestId('audio-volume-sfx')).toHaveValue('23')
 
   await page.keyboard.press('Escape')
   await expect(page.getByRole('dialog', { name: 'Audio settings' })).toBeHidden()
