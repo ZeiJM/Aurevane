@@ -79,6 +79,7 @@ describe('persistent roaming shell architecture', () => {
     const testFile = source(testPath)
     expect(testFile).toContain("import('../../../../server/logging')")
   })
+
   it('keeps workflow source checks aligned with the grouped Character route', () => {
     for (const workflowPath of [
       '../../.github/workflows/attribute-allocation.yml',
@@ -92,5 +93,4 @@ describe('persistent roaming shell architecture', () => {
       expect(workflow).not.toContain('apps/web/src/app/game/character/page.tsx')
     }
   })
-
 })
