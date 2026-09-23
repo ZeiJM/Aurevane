@@ -1,11 +1,11 @@
 {
   "id": "phase4-a07-audio-v02",
-  "status": "authorized-for-owner-testing",
-  "purpose": "Owner in-game listening evaluation",
+  "status": "accepted",
+  "purpose": "Owner in-game listening acceptance",
   "authorization": "Owner requested moving to sound work and reported that the existing battle sounds all sounded the same; v02 redesigns all 17 published Discipline families for perceptual separation.",
   "authorizationDate": "2026-09-22",
   "independentHumanListeningReview": false,
-  "humanAcceptance": null,
+  "humanAcceptance": true,
   "provenance": [
     "content/audio-requests/AUDIO-A07-001.md",
     "scripts/media/render_phase4_audio_v02.mjs"
@@ -21,5 +21,8 @@
     "disciplineCount": 17,
     "variantsPerRole": 3
   },
-  "notes": "Legacy v01 MP3 assets remain registered for compatibility. Current Discipline playback and Master Panel audition use generated v02 WAVs. Shared attrition/healing/cleanse/resonance accents remain v01. Automated verification does not constitute Owner listening acceptance."
+  "notes": "Legacy v01 MP3 assets remain registered for compatibility. Current Discipline playback and Master Panel audition use generated v02 WAVs. Shared attrition/healing/cleanse/resonance accents remain v01. The Owner accepted the current v02 Discipline battle-audio identities on 2026-09-23. This records Owner human acceptance and does not claim an independent third-party listening review.",
+  "humanAcceptanceBy": "Owner",
+  "humanAcceptanceDate": "2026-09-23",
+  "humanAcceptanceScope": "Distinct v02 Discipline action and Essence battle SFX identities"
 }

@@ -1,5 +1,7 @@
 # Phase 4 — execution and acceptance ledger
 
+**Owner acceptance update — 2026-09-23:** A04 Resonance differentiation and A07 Discipline battle-audio acceptance are **COMPLETE** by explicit Owner direction. A03 was already complete. This records the Owner's acceptance decision without inventing additional playtest observations or independent reviewer evidence. **A10 final Phase-4 acceptance remains open.**
+
 **Post-release engineering integration — 2026-09-18:** Task 10 is closed at the combat-integration level through PR #552. Exact tested head `2220b5d1e8d5b71472374bded8c2ca49ad4d81dc` passed all 15 PR workflows, including Browser Smoke, Representative Buildcraft, Discipline Build DB and full CI, plus an isolated exact-head Phase-4 ground-targeting browser gate. It merged to `agent/final-ui-combat-integration-20260917` as `56bba54a494e272152de2e672e043da707bfbe22`; the merge tree is identical to the tested head, and all five applicable post-merge push workflows passed. The work appends one audited immutable current version for each of the 136 regular Discipline Skills, versions all 17 audited Essences to v2, migrates current tempo/recovery/DoT/Mark/accuracy semantics, and stages the transactional `phase4-discipline-rebalance-v1` activation. **No Production deployment, Production database mutation or Production activation RPC was performed.** The prior live testing release below remains the Production state. PR #555 resolves the Amplify/Curse consecutive-use rule by treating clone transfer as discrete, retires the former publication-stage guard while preserving canonical validation, and does not itself publish or deploy a specific clone Skill. A03/A04/A07/A10 human acceptance remains open.
 
 **Live testing release — 2026-09-12:** PR #461 is merged and released at https://aurevane.vercel.app. It adds visible battle button/picker effect tags, current/historical execution contracts, four effect-badge repairs and Profile recovery diagnostics on top of PR #459. All ten applicable CI workflows passed, production is READY, and live casting/reload checks passed. See `PHASE_4_FINAL_TEST_READINESS.md` for exact evidence and the isolated recovered turn-clock 503 whose underlying cause remains unestablished. Independent human tactical, visual and listening acceptance remains open.
@@ -16,7 +18,15 @@ New battle authority also re-resolves the current pure Essence before freezing a
 
 Exact-head verification completed on `ef930767c398dc23882cd79b5b746092ae5be749`. All eight PR workflows passed: Browser smoke, Representative Buildcraft, Discipline Build DB, Skill Engine, Essence Build, Resonance Build, Shared Build Snapshots and full CI. The full CI quality and database-foundation jobs passed, Browser Smoke saved its browser evidence, and the PR remained draft/unmerged during verification. No Production deployment or Production database mutation was performed as part of this A03 closeout.
 
-A04 human build/pair differentiation, A07 independent media acceptance, and A10 Owner Phase acceptance remain open.
+A04 Resonance differentiation and A07 Discipline battle-audio acceptance are now complete by the 2026-09-23 Owner decision above. A10 Owner Phase acceptance remains open.
+
+### A04 — Resonance differentiation — COMPLETE
+
+The Owner explicitly directed A04 to be closed on 2026-09-23. This is the human acceptance decision for the existing Resonance differentiation work and its established setup/payoff/counterplay design. The prior automated and implementation evidence remains the technical basis; this closeout does not invent new battle IDs, outcomes, tester counts or quantitative playtest observations.
+
+### A07 — distinct Discipline battle audio — COMPLETE
+
+The Owner explicitly directed A07 to be closed on 2026-09-23, confirming acceptance of the current v02 action/Essence battle SFX identities for the 17 published Disciplines. A07 is a battle-audio identity gate, not a background-music acceptance record. The later Account/Audio-control fixes changed access, mute and volume behavior without redesigning the accepted cue identities. No independent third-party listening review is claimed.
 
 
 ## Owner-approved Phase 4 operations extension — 2026-09-19
@@ -104,7 +114,7 @@ PR [#459](https://github.com/ZeiJM/Aurevane/pull/459) merged as `f7369a23d745fef
 
 Two reviewed rulings remain explicit: a primary-unit Resonance payoff needs a unit-targeted Skill; ground casts preserve armed setup and empty ground cannot farm actor rewards. The cost is that ground-heavy mixed builds may need a unit Skill to cash in. Perfect Opening retains its authored **22,000 (2.2×)** rear-facing Skill ceiling; basic/combined conditional **20,000** caps remain unchanged. Its cost is continuing human balance review of that 2.2× payoff.
 
-All approved Phase-4 engineering implementation is live for testing, including typed battle tags, ground targeting and the Profile Atlas/Mastery extension. Scope is **17 published combat libraries / 36 Atlas identities**; the other 19 are planned, not playable libraries. A03 balance, A04 human pair differentiation, A07 human visual/listening acceptance and A10 Owner phase acceptance remain open. Full world acquisition/Rites, equipment catalogs, later roster expansion and production presentation retain their later roadmap ownership. Automated release evidence is not independent multi-tester PV-2 acceptance.
+All approved Phase-4 engineering implementation is live for testing, including typed battle tags, ground targeting and the Profile Atlas/Mastery extension. Scope is **17 published combat libraries / 36 Atlas identities**; the other 19 are planned, not playable libraries. A03 balance, A04 human pair differentiation and A07 Discipline battle-audio acceptance are complete; A10 Owner phase acceptance remains open. Full world acquisition/Rites, equipment catalogs, later roster expansion and production presentation retain their later roadmap ownership. Automated release evidence is not independent multi-tester PV-2 acceptance.
 
 ## Staged contract
 

@@ -1,6 +1,6 @@
 # Phase 4 completeness audit — 2026-09-12
 
-**Current conclusion:** Phase-4 engineering is live for final testing through PR #461, including the actual battle button/picker tags, 153 current and 20 historical execution contracts, four effect-badge repairs and Profile recovery diagnostics. All ten applicable CI workflows and live cast/reload checks passed. `PHASE_4_FINAL_TEST_READINESS.md` records the exact release and an isolated recovered turn-clock 503 whose underlying cause remains unestablished. Human tactical, visual/listening and Owner phase acceptance remain open. PR #459's earlier release evidence is preserved below.
+**Current conclusion — reconciled 2026-09-23:** Phase-4 engineering remains live for testing, and the historical release evidence below is preserved. A03 balance, A04 Resonance differentiation and A07 Discipline battle-audio acceptance are complete by Owner decisions. A10 Owner phase acceptance remains open. No new human-session metrics or independent reviewer evidence are invented by this reconciliation.
 
 This is a scope and evidence audit, not a full security audit or a new human playtest. It preserves released mechanics and testing access.
 
@@ -20,7 +20,7 @@ PR [#459](https://github.com/ZeiJM/Aurevane/pull/459) merged as `f7369a23d745fef
 
 Two reviewed rulings remain explicit: a primary-unit Resonance payoff needs a unit-targeted Skill; ground casts preserve armed setup and empty ground cannot farm actor rewards. The cost is that ground-heavy mixed builds may need a unit Skill to cash in. Perfect Opening retains its authored **22,000 (2.2×)** rear-facing Skill ceiling; basic/combined conditional **20,000** caps remain unchanged. Its cost is continuing human balance review of that 2.2× payoff.
 
-All approved Phase-4 engineering implementation is live for testing, including typed battle tags, ground targeting and the Profile Atlas/Mastery extension. Scope is **17 published combat libraries / 36 Atlas identities**; the other 19 are planned, not playable libraries. A03 balance, A04 human pair differentiation, A07 human visual/listening acceptance and A10 Owner phase acceptance remain open. Full world acquisition/Rites, equipment catalogs, later roster expansion and production presentation retain their later roadmap ownership. Automated release evidence is not independent multi-tester PV-2 acceptance.
+All approved Phase-4 engineering implementation is live for testing, including typed battle tags, ground targeting and the Profile Atlas/Mastery extension. Scope is **17 published combat libraries / 36 Atlas identities**; the other 19 are planned, not playable libraries. A03 balance, A04 human pair differentiation and A07 Discipline battle-audio acceptance are complete; A10 Owner phase acceptance remains open. Full world acquisition/Rites, equipment catalogs, later roster expansion and production presentation retain their later roadmap ownership. Automated release evidence is not independent multi-tester PV-2 acceptance.
 
 ## Current requirement coverage
 
@@ -163,6 +163,6 @@ Recommended execution order: resolve the A01 roster obligation; reconcile and fi
 
 ## Implementation follow-through
 
-The audit above is the pre-change inventory. The Owner subsequently authorized implementation and release. See `PHASE_4_TICKETS.md` → “Audit implementation — 2026-09-12” for the additive Chronist implementation, Ironfist recovery, runtime Resonance repair, AI changes and release evidence. A03/A07/A10 still require actual human observations and an explicit acceptance decision; those cannot be completed by generated results.
+The audit above is the pre-change inventory. The Owner subsequently authorized implementation and release. See `PHASE_4_TICKETS.md` → “Audit implementation — 2026-09-12” for the additive Chronist implementation, Ironfist recovery, runtime Resonance repair, AI changes and release evidence. A03 subsequently closed during the roster-rebalance work; A04 and A07 were explicitly closed by Owner decision on 2026-09-23. A10 remains the outstanding Phase-4 acceptance decision. No additional human-session metrics are fabricated by this reconciliation.
 
 Historical implementation checkpoint, now superseded by the released evidence at the top of this audit: the full local repository check passed before release preparation. The Owner explicitly approved publication to public `ZeiJM/Aurevane`, CI/browser checks, the Supabase migration and production deployment, resolving the previous publication approval block. The earned-Mastery browser case subsequently passed in Representative Buildcraft, and the Atlas/Chronist/Ironfist release reached Production. The gameplay-tag continuation subsequently passed its own exact-head release gates, recorded at the top of this audit.

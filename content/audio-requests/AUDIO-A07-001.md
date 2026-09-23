@@ -1,6 +1,6 @@
 # AUDIO-A07-001 — Distinct Discipline battle audio v02
 
-STATUS: IMPLEMENTATION READY FOR VERIFICATION — Owner listening acceptance remains open.
+STATUS: COMPLETE — Owner listening acceptance recorded 2026-09-23.
 
 ## Trigger
 
@@ -60,3 +60,9 @@ A family is not considered acceptable merely because its waveform or hash differ
 ## Acceptance
 
 Automated checks may prove registry completeness, generated-file delivery, WAV validity, build/browser safety and deterministic generation. They do **not** close A07. A07 closes only after Owner listening review confirms the new families are suitably distinct and usable in battle.
+
+## Closeout — 2026-09-23
+
+The Owner accepted the current A07 Discipline battle-audio identities and explicitly directed A07 to be closed. This acceptance applies to the v02 action/Essence SFX pack for the 17 published Disciplines; it is not a background-music acceptance record.
+
+The later Account/Audio-control corrections, including the simplified Audio menu and mute-to-zero/restore behavior, did not redesign or revoke acceptance of the A07 cue identities. No independent third-party listening review is claimed.
