@@ -35,7 +35,7 @@ On 2026-09-23 the Owner explicitly accepted Phase 4 as closed. This closes the p
 
 ## Owner-approved Phase 4 operations extension — 2026-09-19
 
-The Owner explicitly corrected the phase boundary on 2026-09-19: staff/event operations infrastructure belongs to **Phase 4**, and **Phase 5 has not started**. Historical branch names, migration filenames and merged PR titles that contain `phase5` / `Phase 5` remain unchanged where renaming would damage Git/database traceability; they are historical identifiers only and no longer define roadmap ownership.
+The Owner explicitly corrected the phase boundary on 2026-09-19: staff/event operations infrastructure belongs to **Phase 4**. At that checkpoint, **Phase 5 had not started**. Historical branch names, migration filenames and merged PR titles that contain `phase5` / `Phase 5` remain unchanged where renaming would damage Git/database traceability; they are historical identifiers only and no longer define roadmap ownership. Phase 5 was later separately authorized on 2026-09-22.
 
 ### P4.11 — Staff authority foundation — COMPLETE
 
@@ -100,7 +100,7 @@ The P4.11–P4.14 Operations Extension is technically complete and verified on t
 
 This technical gate does **not** authorize Production deployment, Production Supabase mutation, Event recovery `pg_cron` activation, or the staged Discipline rebalance. Existing human Phase-4 acceptance items including A03/A04/A07/A10 remain separate.
 
-**Phase 5 remains NOT STARTED.** Moving into player-facing Phase 5 requires a new explicit Owner authorization. This extension does not implement Phase 5's living-world content, strategic Atlas, settlements/NPCs/quests, supernatural fork, or frontier threshold.
+**Historical 2026-09-19 boundary:** Phase 5 remained **NOT STARTED** at this extension checkpoint and required separate Owner authorization. That authorization was subsequently given on 2026-09-22. This extension itself still does not count as Phase-5 living-world content.
 
 ## Previous combat completeness release — PR #459
 

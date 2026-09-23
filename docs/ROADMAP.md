@@ -844,20 +844,18 @@ The approximate **180-day** first-cycle planning default remains subject to vali
 ```text
 PHASE 2 CLOSED / PV-1 RECONCILED
         ↓
-PHASE 3 IMPLEMENTATION COMPLETE
+PHASE 3 CLOSED — OWNER-APPROVED CLOSEOUT
         ↓
-FINAL UI / QUALITY RELEASE → OWNER-APPROVED PHASE 3 CLOSEOUT
+PHASE 4 CLOSED — OWNER ACCEPTED 2026-09-23
         ↓
-PHASE 4 ACTIVATED — FOLLOW PHASE_4_TICKETS.md
+PHASE 5 AUTHORIZED 2026-09-22
         ↓
-COMPLETE P4.11–P4.14 OPERATIONS EXTENSION
-        ↓
-OWNER AUTHORIZATION REQUIRED BEFORE PHASE 5
+VERIFY / RELEASE THE INITIAL LIVING ATLAS CANDIDATE UNDER ITS OWN GATES
 ```
 
 The immediate development priority is therefore:
 
-> **Preserve the tested platform and execute the authorized Phase-4 stages with recorded evidence.**
+> **Preserve the closed Phase-2/3/4 platform, keep UI/regression cleanup behavior-preserving, and complete the separately authorized Phase-5 candidate through its own verification/release process.**
 
 Automatic performance/scaling checkpoints continue at the defined future boundaries; they are maintenance/hardening work, not permission to expand feature scope.
 
