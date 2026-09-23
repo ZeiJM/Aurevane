@@ -83,15 +83,25 @@ test('training uses the approved character rail and parchment three-workspace co
     if (width >= 1200) {
       expect
         .soft(
-          Math.abs(metrics.sheet.y + metrics.sheet.height - (metrics.identity.y + metrics.identity.height)),
+          Math.abs(
+            metrics.sheet.y +
+              metrics.sheet.height -
+              (metrics.identity.y + metrics.identity.height),
+          ),
           'Passive Training sheet ends in line with the character panel',
         )
         .toBeLessThanOrEqual(2)
       expect
-        .soft(Math.abs(metrics.current.height - metrics.planner.height), 'Training panels share one height')
+        .soft(
+          Math.abs(metrics.current.height - metrics.planner.height),
+          'Training panels share one height',
+        )
         .toBeLessThanOrEqual(2)
       expect
-        .soft(Math.abs(metrics.report.height - metrics.planner.height), 'Training Report matches plan height')
+        .soft(
+          Math.abs(metrics.report.height - metrics.planner.height),
+          'Training Report matches plan height',
+        )
         .toBeLessThanOrEqual(2)
     }
   }
