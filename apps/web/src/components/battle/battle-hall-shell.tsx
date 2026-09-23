@@ -21,10 +21,7 @@ export function BattleHallShell({
 }: BattleHallShellProps) {
   return (
     <AuthenticatedShellFrame sessionLabel="Battle Hall">
-      <CharacterRailSynchronizedLayout
-        className={styles.layout}
-        data-battle-hall-workspace="true"
-      >
+      <CharacterRailSynchronizedLayout className={styles.layout} data-battle-hall-workspace="true">
         <CharacterIdentityCard {...identity} />
         <BattleLaunch
           characterId={characterId}

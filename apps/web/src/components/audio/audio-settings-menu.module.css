@@ -97,6 +97,10 @@
   cursor: pointer;
 }
 
+.channel input:disabled {
+  cursor: default;
+}
+
 @media (max-width: 640px) {
   .trigger {
     min-width: 2.7rem;
