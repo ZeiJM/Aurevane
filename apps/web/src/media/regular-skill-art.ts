@@ -63,6 +63,15 @@ export const REGULAR_SKILL_ART = {
   'chronist.time-lock': '/media/art/discipline-skills/chronist-time-lock-v01.webp',
   'chronist.temporal-ward': '/media/art/discipline-skills/chronist-temporal-ward-v01.webp',
   'chronist.stolen-moment': '/media/art/discipline-skills/chronist-stolen-moment-v01.webp',
+
+  'bastion.shield-bash': '/media/art/discipline-skills/bastion-shield-bash-v01.webp',
+  'bastion.cover': '/media/art/discipline-skills/bastion-cover-v01.webp',
+  'bastion.challenge': '/media/art/discipline-skills/bastion-challenge-v01.webp',
+  'bastion.fortress': '/media/art/discipline-skills/bastion-fortress-v01.webp',
+  'bastion.hold-fast': '/media/art/discipline-skills/bastion-hold-fast-v01.webp',
+  'bastion.shield-line': '/media/art/discipline-skills/bastion-shield-line-v01.webp',
+  'bastion.stalwart-strike': '/media/art/discipline-skills/bastion-stalwart-strike-v01.webp',
+  'bastion.steady-footing': '/media/art/discipline-skills/bastion-steady-footing-v01.webp',
 } as const
 
 export type RegularSkillArtId = keyof typeof REGULAR_SKILL_ART
