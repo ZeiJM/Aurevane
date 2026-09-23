@@ -3,7 +3,12 @@ import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { WORLD_REGIONS, FRONTIER_APPROACH, worldRegion } from '@/world/catalog'
-import { remainingTravelMs, samePosition } from '@/world/travel'
+import {
+  ACTIVE_WORLD_SYNC_MS,
+  remainingTravelMs,
+  samePosition,
+  worldSyncIntervalMs,
+} from '@/world/travel'
 import type { WorldIntent, WorldPosition, WorldView } from '@/world/types'
 import { Globe } from './globe'
 import { SectorMap } from './sector-map'
@@ -102,18 +107,42 @@ export function WorldWorkspace({
   })
   useEffect(() => {
     mounted.current = true
-    const timer = window.setInterval(() => {
+    let lastIdleSyncAt = Date.now()
+    const sync = () => {
       if (pending.current) return
-      if (current.current.route.length && !current.current.movementBlocked)
+      const travelling = current.current.route.length > 0 && !current.current.movementBlocked
+      if (travelling) {
         void sendRef.current({ kind: 'tick' })
-      else
-        void refreshRef.current().catch((error) => {
-          if (mounted.current) setMessage(error.message)
+        return
+      }
+      if (document.visibilityState === 'hidden') return
+      const now = Date.now()
+      if (
+        now - lastIdleSyncAt <
+        worldSyncIntervalMs({
+          routeLength: current.current.route.length,
+          movementBlocked: Boolean(current.current.movementBlocked),
         })
-    }, 1200)
+      )
+        return
+      lastIdleSyncAt = now
+      void refreshRef.current().catch((error) => {
+        if (mounted.current) setMessage(error.message)
+      })
+    }
+    const timer = window.setInterval(sync, ACTIVE_WORLD_SYNC_MS)
+    const onVisibilityChange = () => {
+      if (document.visibilityState !== 'visible' || pending.current) return
+      lastIdleSyncAt = Date.now()
+      void refreshRef.current().catch((error) => {
+        if (mounted.current) setMessage(error.message)
+      })
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange)
     return () => {
       mounted.current = false
       window.clearInterval(timer)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
     }
   }, [])
   const sector = view.sectors.find((s) => s.id === selected) ?? view.sectors[0]!
