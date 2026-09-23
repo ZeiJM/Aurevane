@@ -277,6 +277,61 @@ describe('P2.4 battle session service', () => {
     expect(result.snapshot.tactical.battle).not.toHaveProperty('rng')
   })
 
+  it('owns Battle Hall AI difficulty on the server regardless of client input', async () => {
+    const characters = createCharacterRepository()
+    const battles = createBattleRepository()
+    const service = createBattleSessionService({
+      characters: characters.repository,
+      battles: battles.repository,
+    })
+
+    const cases = [
+      {
+        recordId: 'recruit-sparring' as const,
+        arenaId: 'duel-yard' as const,
+        proposedDifficulty: 'easy' as const,
+        expectedDifficulty: 'high',
+        idempotencyKey: '11111111-2222-4333-8444-555555555551',
+      },
+      {
+        recordId: 'mastery-trial' as const,
+        arenaId: 'crossroads-court' as const,
+        proposedDifficulty: 'standard' as const,
+        expectedDifficulty: 'high',
+        idempotencyKey: '11111111-2222-4333-8444-555555555552',
+      },
+      {
+        recordId: 'guided-fundamentals' as const,
+        arenaId: 'basic-training-floor' as const,
+        proposedDifficulty: 'high' as const,
+        expectedDifficulty: 'easy',
+        idempotencyKey: '11111111-2222-4333-8444-555555555553',
+      },
+    ]
+
+    for (const testCase of cases) {
+      await service.createSession({
+        userId: USER_ID,
+        characterId: CHARACTER_ID,
+        arenaId: testCase.arenaId,
+        aiDifficulty: testCase.proposedDifficulty,
+        battleHallRecordId: testCase.recordId,
+        idempotencyKey: testCase.idempotencyKey,
+      })
+
+      const input = battles.createBattleSession.mock.calls.at(-1)?.[0]
+      if (!input) throw new Error('Expected battle create input.')
+
+      const state = input.initialSnapshot as StatDrivenCombatEncounterState
+      const recruitProfile = state.statBridge.combatants.find(
+        (profile) => profile.combatantId === 'recruit:p2-4-1',
+      )
+      expect(recruitProfile?.provenance.sourceId).toBe(
+        `scenario:p2-7-recruit:${testCase.arenaId}:${testCase.recordId}:${testCase.expectedDifficulty}`,
+      )
+    }
+  })
+
   it('changes authoritative combat and reliability values for a different legal character build', async () => {
     const character = characterRecord({ might: 5, finesse: 9, intellect: 5, resolve: 5 })
     const { battles } = await createPersistedFixture(character)

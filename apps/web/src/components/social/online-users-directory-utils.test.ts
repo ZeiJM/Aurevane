@@ -13,7 +13,7 @@ describe('online users directory helpers', () => {
   })
 
   it('formats Primary and Secondary Disciplines together', () => {
-    expect(readableDisciplinePair('vanguard', 'aetherist')).toBe('Vanguard + Aetherist')
+    expect(readableDisciplinePair('vanguard', 'aetherist')).toBe('Vanguard | Aetherist')
     expect(readableDisciplinePair('cinderweaver', null)).toBe('Cinderweaver')
     expect(readableDisciplinePair(null, null)).toBeNull()
   })
