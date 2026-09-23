@@ -79,6 +79,13 @@ test('training uses the approved character rail and parchment three-workspace co
   }
 
   await expect(page.getByRole('button', { name: 'Start Short', exact: true })).toBeEnabled()
+  const rewardValues = page.locator('[aria-label="Passive Training durations"] dd')
+  await expect(rewardValues).toHaveCount(6)
+  expect(
+    await rewardValues.first().evaluate((element) =>
+      Number.parseInt(getComputedStyle(element).fontWeight, 10),
+    ),
+  ).toBeLessThanOrEqual(600)
   await expect(
     page.getByRole('button', { name: /Load Preset|Apply Plan|View History/ }),
   ).toHaveCount(0)
