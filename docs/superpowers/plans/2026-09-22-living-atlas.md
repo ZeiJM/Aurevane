@@ -82,4 +82,15 @@ Scope follows the approved sector/travel contract: Highland Road (Aureth Crown�
 - [x] Observe failing coverage for both traversal directions, blocked terrain, projection/encounters and obsolete saved routes; implement authored sectors and verify the focused suite.
 - [x] Generate original map/panorama artwork, retouch wrap joins, register optimized assets with provenance and extend existing browser journeys.
 - [x] Run full repository quality gate, fresh independent review and final main reconciliation; prepare draft PR #609 update.
-- [ ] Inspect latest-head authenticated browser results/screenshots when available. Owner acceptance remains separate.
+- [x] Inspect latest-head authenticated browser results/screenshots: run 35847548263 passed eleven scenarios; northern maps/reverse panoramas inspected. Owner acceptance remains separate.
+
+
+### Final initial regional road pair — 2026-09-23
+
+Scope: Eastern March Road (Emberreach–Umbral March) and Old Coast Road (Hollow Coast–Umbral March), using the existing authored-sector contract. This finishes the eight initial connections without claiming all Phase 5 content.
+
+- [x] Verify northern-road browser evidence and inspect the separate database runner failure.
+- [x] Observe missing-feature failures, implement both sectors, and pass traversal/authority/all-region connectivity regressions.
+- [x] Generate original map/panorama assets, retouch joins, register provenance and extend authenticated journeys.
+- [x] Complete full quality gate, fresh independent review, collision correction and main reconciliation; prepare draft PR update.
+- [ ] Inspect latest-head browser results/screenshots when available; Owner acceptance remains separate.

@@ -794,6 +794,20 @@
   );
   animation: sand-drift 40s linear infinite;
 }
+.sectorMap[data-sector='eastern-march-road'] .riverFlow,
+.sectorMap[data-sector='old-coast-road'] .riverFlow {
+  inset: 0;
+  width: auto;
+  height: auto;
+  clip-path: none;
+  opacity: 0.12;
+  background: radial-gradient(ellipse at 30% 60%, #cbd5cd55, transparent 55%);
+  animation: cloud-drift 50s ease-in-out infinite alternate;
+}
+.sectorMap[data-sector='eastern-march-road'] .fireflies,
+.sectorMap[data-sector='old-coast-road'] .fireflies {
+  display: none;
+}
 .cloudShadow {
   position: absolute;
   inset: -20%;

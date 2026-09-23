@@ -92,6 +92,8 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
     'southern-caravan-road',
     'highland-road',
     'northern-pass',
+    'eastern-march-road',
+    'old-coast-road',
   ])
     expect(initial.sectors.find((sector) => sector.id === id)).toBeDefined()
   expect(JSON.stringify(initial)).not.toContain('survey-01')
@@ -268,6 +270,22 @@ test('expired training releases travel without claiming XP and frontier discover
 })
 
 for (const journey of [
+  {
+    id: 'eastern-march-road',
+    name: 'Eastern March Road',
+    destinationId: 'umbral-march',
+    destinationName: 'Umbral March',
+    entranceX: 0,
+    startSector: 'emberreach',
+  },
+  {
+    id: 'old-coast-road',
+    name: 'Old Coast Road',
+    destinationId: 'umbral-march',
+    destinationName: 'Umbral March',
+    entranceX: 0,
+    startSector: 'hollow-coast',
+  },
   {
     id: 'highland-road',
     name: 'Highland Road',

@@ -633,6 +633,94 @@
         "sha256": "7d83012e41c31e35d4a2ba07efab5797c58431880156b1e315f199408c244ddb",
         "encoding": "Generated center-strip wrap repair; Sharp WebP quality 86; original dimensions"
       }
+    },
+    {
+      "name": "eastern-march-road",
+      "requestId": "ART-WORLD-006",
+      "source": {
+        "method": "generated",
+        "provider": "OpenAI image generation",
+        "createdAt": "2026-09-23",
+        "master": "exec-e2c3ca12-32f1-495e-b150-7f378eb2c856.png",
+        "sha256": "1ed11a88ae8250533a9fe875f0fd3ca1ebc07bc40a1c4732fecab7165d676904",
+        "promptSpec": "content/art-requests/ART-WORLD-006-march-and-old-coast-roads.md",
+        "retention": "Original generated source retained with the conversation"
+      },
+      "runtime": {
+        "path": "/media/art/world/eastern-march-road-v01.webp",
+        "width": 1506,
+        "height": 1045,
+        "bytes": 488350,
+        "sha256": "a4745d7ed07b04311209818b833b5bd3faa712768dfc20d4c6d43ab2a02f5ee9",
+        "encoding": "Sharp WebP quality 86; original dimensions"
+      }
+    },
+    {
+      "name": "eastern-march-road-panorama",
+      "requestId": "ART-WORLD-006",
+      "source": {
+        "method": "generated",
+        "provider": "OpenAI image generation",
+        "createdAt": "2026-09-23",
+        "master": "exec-41fe3432-b4c6-49b1-bac4-01002da5971e.png",
+        "sha256": "f5e1fc8ded1f08a4dd5d76fb7c073271feab6ab94c3dc09562a20527902cc697",
+        "promptSpec": "content/art-requests/ART-WORLD-006-march-and-old-coast-roads.md",
+        "retention": "Original generated source retained with the conversation",
+        "repairMaster": "exec-f8540f76-2b30-4cb0-8945-f7768b6cb5dd.png",
+        "repairSha256": "ba20c9bde66e2fde402044bce03de26fedbe174d59d6db991771e458010882db"
+      },
+      "runtime": {
+        "path": "/media/art/world/eastern-march-road-panorama-v01.webp",
+        "width": 1774,
+        "height": 887,
+        "bytes": 348740,
+        "sha256": "060c20cdee5b1ed705caa21883c609912e304a6e1622eeeca47891a914f1824d",
+        "encoding": "Generated center-strip wrap repair; Sharp WebP quality 86; original dimensions"
+      }
+    },
+    {
+      "name": "old-coast-road",
+      "requestId": "ART-WORLD-006",
+      "source": {
+        "method": "generated",
+        "provider": "OpenAI image generation",
+        "createdAt": "2026-09-23",
+        "master": "exec-7964f4f8-41e9-44de-86f7-5223fc1fadc7.png",
+        "sha256": "aa4ffbf570820731898e144dea539184acabac32fcb84c3f40ecfdfe1a794d08",
+        "promptSpec": "content/art-requests/ART-WORLD-006-march-and-old-coast-roads.md",
+        "retention": "Original generated source retained with the conversation"
+      },
+      "runtime": {
+        "path": "/media/art/world/old-coast-road-v01.webp",
+        "width": 1506,
+        "height": 1044,
+        "bytes": 592586,
+        "sha256": "3fced975df525acbd629469bca2eaf2005e138a55d1cab6045d30a5bbd01bc95",
+        "encoding": "Sharp WebP quality 86; original dimensions"
+      }
+    },
+    {
+      "name": "old-coast-road-panorama",
+      "requestId": "ART-WORLD-006",
+      "source": {
+        "method": "generated",
+        "provider": "OpenAI image generation",
+        "createdAt": "2026-09-23",
+        "master": "exec-78cecc85-4954-484b-979b-f47d89614ab2.png",
+        "sha256": "d46617ba713365f4934a42930406e3c9b8001d3b1fffded1999c091bc767bef0",
+        "promptSpec": "content/art-requests/ART-WORLD-006-march-and-old-coast-roads.md",
+        "retention": "Original generated source retained with the conversation",
+        "repairMaster": "exec-87acd1ad-feb5-4fe8-82e6-b3662f056b27.png",
+        "repairSha256": "4e6fe751c0779545fbb6cd1a106ba8050359a2715860d4abf64f1837f01fa359"
+      },
+      "runtime": {
+        "path": "/media/art/world/old-coast-road-panorama-v01.webp",
+        "width": 1774,
+        "height": 887,
+        "bytes": 333380,
+        "sha256": "fdb82813adb8befb51ebcd942c7e0b3e04028f2dc8729aaa488ce691919801a2",
+        "encoding": "Generated center-strip wrap repair; Sharp WebP quality 86; original dimensions"
+      }
     }
   ]
 }

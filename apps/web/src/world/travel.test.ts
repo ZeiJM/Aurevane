@@ -144,11 +144,13 @@ describe('world travel', () => {
     expect(route.every((step) => step.durationMs <= 4000)).toBe(true)
   })
   describe.each([
+    { id: 'eastern-march-road', from: 'emberreach', to: 'umbral-march', walkableVerge: false },
+    { id: 'old-coast-road', from: 'hollow-coast', to: 'umbral-march', walkableVerge: false },
     { id: 'highland-road', from: 'aureth-crown', to: 'starfall-highlands' },
     { id: 'northern-pass', from: 'starfall-highlands', to: 'frostmere' },
     { id: 'ember-road', from: 'verdant-expanse', to: 'emberreach' },
     { id: 'southern-caravan-road', from: 'aureth-crown', to: 'glasswind-desert' },
-  ])('$id', ({ id, from, to }) => {
+  ])('$id', ({ id, from, to, walkableVerge = true }) => {
     it.each([false, true])('traverses every encounterable square (reverse: %s)', (reverse) => {
       const endpoints = [
         { sectorId: from, x: 12, y: 4 },
@@ -166,13 +168,17 @@ describe('world travel', () => {
       expect(route.every((step) => step.durationMs <= 4000)).toBe(true)
       expect(route.at(-1)?.position).toEqual(endpoints[1])
     })
-    it('allows road verges but blocks the surrounding ridges', () => {
+    it('permits only terrain squares clear of painted obstacles', () => {
       const from = { sectorId: id, x: 6, y: 4 }
-      expect(findWorldRoute(from, { ...from, y: 3 }, CHARTED_SECTORS)?.at(-1)?.position).toEqual({
-        ...from,
-        y: 3,
-      })
-      for (const y of [0, 1, 7, 8])
+      if (walkableVerge)
+        expect(findWorldRoute(from, { ...from, y: 3 }, CHARTED_SECTORS)?.at(-1)?.position).toEqual({
+          ...from,
+          y: 3,
+        })
+      // These two woodland roads have narrow decorative verges; adjacent cell centres
+      // already fall inside the painted boulders and trees, including E6/N3.
+      const blockedRows = walkableVerge ? [0, 1, 7, 8] : [0, 1, 2, 3, 5, 6, 7, 8]
+      for (const y of blockedRows)
         for (let x = 0; x < 13; x++)
           expect(findWorldRoute(from, { ...from, x, y }, CHARTED_SECTORS)).toBeNull()
     })
@@ -186,6 +192,21 @@ describe('world travel', () => {
     for (const id of ['southern-caravan-road', 'crown-road', 'ember-road'])
       expect(route.filter((step) => step.position.sectorId === id)).toHaveLength(13)
     expect(route.every((step) => step.durationMs <= 4000)).toBe(true)
+  })
+  it('connects every canonical region through bounded square-by-square journeys', () => {
+    for (const from of WORLD_REGIONS)
+      for (const to of WORLD_REGIONS) {
+        if (from.id === to.id) continue
+        const destination = { sectorId: to.id, x: 5, y: 4 }
+        const route = findWorldRoute(
+          { sectorId: from.id, x: 5, y: 4 },
+          destination,
+          CHARTED_SECTORS,
+        )
+        expect(route, `${from.id} to ${to.id}`).not.toBeNull()
+        expect(route!.at(-1)?.position).toEqual(destination)
+        expect(route!.every((step) => step.durationMs <= 4000)).toBe(true)
+      }
   })
   it('advances only one due step even after a long disconnect', () => {
     const state = {

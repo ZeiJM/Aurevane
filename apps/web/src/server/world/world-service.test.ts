@@ -38,6 +38,8 @@ describe('world authority and spoiler projection', () => {
       ]
     }),
     ...[
+      { a: 'emberreach', b: 'umbral-march', durationMs: 85000 },
+      { a: 'hollow-coast', b: 'umbral-march', durationMs: 80000 },
       { a: 'aureth-crown', b: 'starfall-highlands', durationMs: 65000 },
       { a: 'starfall-highlands', b: 'frostmere', durationMs: 75000 },
     ].flatMap(({ a, b, durationMs }) => {
@@ -123,6 +125,18 @@ describe('world authority and spoiler projection', () => {
     ).toThrow()
   })
   it.each([
+    {
+      id: 'eastern-march-road',
+      coordinate: 'S22-08',
+      panoramaVersion: 'v01',
+      exits: ['emberreach', 'umbral-march'],
+    },
+    {
+      id: 'old-coast-road',
+      coordinate: 'S20-11',
+      panoramaVersion: 'v01',
+      exits: ['hollow-coast', 'umbral-march'],
+    },
     {
       id: 'highland-road',
       coordinate: 'S14-06',
