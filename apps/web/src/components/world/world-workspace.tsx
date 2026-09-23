@@ -264,6 +264,36 @@ export function WorldWorkspace({
         ) : null}
       </div>
       <aside className={styles.sidebar}>
+        {view.interactions.length ? (
+          <section className={styles.panel} aria-label="Local interaction">
+            <h2>✦ Local interaction</h2>
+            {view.interactions.map((interaction) => (
+              <div className={styles.quest} key={interaction.id}>
+                <h3>{interaction.title}</h3>
+                <p>
+                  <strong>{interaction.speaker}</strong> · {interaction.body}
+                </p>
+                {interaction.actionLabel ? (
+                  <button
+                    className={styles.primary}
+                    disabled={disabled || view.route.length > 0}
+                    onClick={() =>
+                      void send({ kind: 'interact', interactionId: interaction.id })
+                    }
+                  >
+                    {interaction.actionLabel}
+                  </button>
+                ) : (
+                  <p className={styles.quiet}>
+                    {interaction.progress === 'completed'
+                      ? 'This objective is complete.'
+                      : 'Return after checking the eastern watch.'}
+                  </p>
+                )}
+              </div>
+            ))}
+          </section>
+        ) : null}
         {mode === 'globe' ? (
           <section className={styles.panel}>
             <h2>✥ World Regions</h2>
