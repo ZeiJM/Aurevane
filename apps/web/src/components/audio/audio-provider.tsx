@@ -236,19 +236,21 @@ export function AudioProvider({ children }: PropsWithChildren) {
     [director],
   )
   const stopSfx = useCallback(() => director.stopChannel('sfx'), [director])
+  const contextValue = useMemo<AudioContextValue>(
+    () => ({
+      settings,
+      audioState,
+      setVolume,
+      toggleMute,
+      unlock,
+      playAsset,
+      stopSfx,
+    }),
+    [settings, audioState, setVolume, toggleMute, unlock, playAsset, stopSfx],
+  )
 
   return (
-    <AudioRuntimeContext.Provider
-      value={{
-        settings,
-        audioState,
-        setVolume,
-        toggleMute,
-        unlock,
-        playAsset,
-        stopSfx,
-      }}
-    >
+    <AudioRuntimeContext.Provider value={contextValue}>
       <audio ref={musicElementRef} aria-hidden="true" data-testid="site-music-player" />
       {children}
     </AudioRuntimeContext.Provider>
