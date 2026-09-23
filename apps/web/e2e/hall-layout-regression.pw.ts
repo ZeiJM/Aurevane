@@ -159,6 +159,9 @@ test('Battle Hall shows one full-width parchment workspace at a time with all re
     await expect(page.getByRole('button', { name: 'Enter Battle', exact: true })).toBeEnabled()
     if (mode === 'mastery-trial') {
       await expect(page.getByRole('button', { name: 'Easy', exact: true })).toHaveCount(0)
+      await expect(page.getByLabel('AI sparring arena')).toHaveValue('terraced-yard')
+      await expect(page.getByLabel('AI sparring arena')).toBeDisabled()
+      await expect(ai.getByText('Terraced Yard', { exact: true })).toBeVisible()
     }
     await capture(page, testInfo, mode)
   }
