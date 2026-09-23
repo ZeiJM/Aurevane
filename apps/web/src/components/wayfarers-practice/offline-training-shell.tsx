@@ -89,7 +89,6 @@ export function OfflineTrainingShell({
               }
             />
           </div>
-
         </section>
       </CharacterRailSynchronizedLayout>
     </AuthenticatedShellFrame>
