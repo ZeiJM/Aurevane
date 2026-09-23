@@ -3,12 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { WORLD_REGIONS, FRONTIER_APPROACH, worldRegion } from '@/world/catalog'
-import {
-  ACTIVE_WORLD_SYNC_MS,
-  remainingTravelMs,
-  samePosition,
-  worldSyncIntervalMs,
-} from '@/world/travel'
+import { remainingTravelMs, samePosition, worldSyncDelayMs } from '@/world/travel'
 import type { WorldIntent, WorldPosition, WorldView } from '@/world/types'
 import { Globe } from './globe'
 import { SectorMap } from './sector-map'
@@ -38,7 +33,8 @@ export function WorldWorkspace({
     [busy, setBusy] = useState(false)
   const current = useRef(initialView),
     pending = useRef(false),
-    mounted = useRef(true)
+    mounted = useRef(true),
+    viewAcceptedAt = useRef(Date.now())
   function accept(next: WorldView) {
     if (!mounted.current) return
     if (next.battleSessionId) {
@@ -55,6 +51,7 @@ export function WorldWorkspace({
       setPanorama(false)
     }
     current.current = next
+    viewAcceptedAt.current = Date.now()
     setView(next)
   }
   async function refresh() {
@@ -107,43 +104,41 @@ export function WorldWorkspace({
   })
   useEffect(() => {
     mounted.current = true
-    let lastIdleSyncAt = Date.now()
-    const sync = () => {
+    return () => {
+      mounted.current = false
+    }
+  }, [])
+  useEffect(() => {
+    if (busy) return
+    const travelling = view.route.length > 0 && !view.movementBlocked
+    const delay = worldSyncDelayMs({
+      routeLength: view.route.length,
+      movementBlocked: Boolean(view.movementBlocked),
+      nextStepAt: view.nextStepAt,
+      serverNow: view.serverNow + Math.max(0, Date.now() - viewAcceptedAt.current),
+    })
+    const timer = window.setTimeout(() => {
       if (pending.current) return
-      const travelling = current.current.route.length > 0 && !current.current.movementBlocked
       if (travelling) {
         void sendRef.current({ kind: 'tick' })
         return
       }
       if (document.visibilityState === 'hidden') return
-      const now = Date.now()
-      if (
-        now - lastIdleSyncAt <
-        worldSyncIntervalMs({
-          routeLength: current.current.route.length,
-          movementBlocked: Boolean(current.current.movementBlocked),
-        })
-      )
-        return
-      lastIdleSyncAt = now
       void refreshRef.current().catch((error) => {
         if (mounted.current) setMessage(error.message)
       })
-    }
-    const timer = window.setInterval(sync, ACTIVE_WORLD_SYNC_MS)
+    }, delay)
+    return () => window.clearTimeout(timer)
+  }, [busy, view.movementBlocked, view.nextStepAt, view.route.length, view.serverNow, view.version])
+  useEffect(() => {
     const onVisibilityChange = () => {
       if (document.visibilityState !== 'visible' || pending.current) return
-      lastIdleSyncAt = Date.now()
       void refreshRef.current().catch((error) => {
         if (mounted.current) setMessage(error.message)
       })
     }
     document.addEventListener('visibilitychange', onVisibilityChange)
-    return () => {
-      mounted.current = false
-      window.clearInterval(timer)
-      document.removeEventListener('visibilitychange', onVisibilityChange)
-    }
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange)
   }, [])
   const sector = view.sectors.find((s) => s.id === selected) ?? view.sectors[0]!
   const player = view.players.find((p) => p.characterId === target) ?? view.players[0]
