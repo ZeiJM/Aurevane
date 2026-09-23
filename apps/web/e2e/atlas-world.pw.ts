@@ -5,6 +5,7 @@ import { provisionAccountAndEnterCharacter, openOfflineTraining } from './pv1f-t
 import { WORLD_REGIONS } from '../src/world/catalog'
 import { newWorldState } from '../src/world/travel'
 import type { WorldView } from '../src/world/types'
+import type { CharacterBuildContext } from '../src/server/character/character-build-service'
 
 function localDatabase(): string {
   const host = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://invalid').hostname
@@ -39,10 +40,14 @@ function sql(query: string): string {
     { encoding: 'utf8' },
   ).trim()
 }
-// Hold only these disposable accounts' mutation locks until both real HTTP
+// Hold only these disposable accounts' mutation locks until the real HTTP
 // requests are demonstrably waiting in Postgres. This tests contention rather
 // than relying on Promise.all happening to overlap on a fast runner.
-async function contend(characterIds: string[], send: () => Promise<APIResponse>[]) {
+async function contend(
+  characterIds: string[],
+  send: () => Promise<APIResponse>[],
+  whileBlocked?: () => Promise<void>,
+) {
   for (const id of characterIds) expect(id).toMatch(/^[0-9a-f-]{36}$/)
   const application = `atlas-gate-${randomUUID()}`
   const gate = spawn(
@@ -93,6 +98,7 @@ async function contend(characterIds: string[], send: () => Promise<APIResponse>[
         { timeout: 10000 },
       )
       .toBe(pending.length)
+    await whileBlocked?.()
     sql(
       `select pg_terminate_backend(pid) from pg_stat_activity where application_name='${application}'`,
     )
@@ -676,3 +682,177 @@ test('simultaneous mutual attacks create one shared active encounter', async ({
     await context.close()
   }
 })
+
+test('a due movement step and an attack cannot both commit from the same target position', async ({
+  page,
+  browser,
+}, info) => {
+  test.skip(
+    info.project.name !== 'desktop-chromium',
+    'Database contention is viewport independent.',
+  )
+  test.setTimeout(90000)
+  await enter(page)
+  const context = await browser.newContext({ baseURL: new URL(page.url()).origin })
+  try {
+    const opponent = await context.newPage()
+    await enter(opponent)
+    const attacker = await world(page),
+      target = await world(opponent)
+    // Stop UI polling/ticking; retain both real authenticated request contexts.
+    await page.goto('about:blank')
+    await opponent.goto('about:blank')
+    place(attacker.characterId, 'crown-road', 5, 4)
+    place(target.characterId, 'crown-road', 6, 4)
+    const destination = { sectorId: 'crown-road', x: 7, y: 4 }
+    sql(
+      `update app_private.character_world_state set state = state || '${JSON.stringify({ route: [{ position: destination, durationMs: 4000 }], nextStepAt: Date.now() - 1000 })}'::jsonb where character_id='${target.characterId}'::uuid`,
+    )
+    await world(page)
+    await world(opponent)
+    const [attack, move] = await contend([attacker.characterId, target.characterId], () => [
+      page.request.post('/api/world', {
+        data: {
+          characterId: attacker.characterId,
+          expectedVersion: attacker.version,
+          commandId: randomUUID(),
+          intent: { kind: 'attack', targetId: target.characterId },
+        },
+        timeout: 20000,
+      }),
+      opponent.request.post('/api/world', {
+        data: {
+          characterId: target.characterId,
+          expectedVersion: target.version,
+          commandId: randomUUID(),
+          intent: { kind: 'tick' },
+        },
+        timeout: 20000,
+      }),
+    ])
+    expect([attack!.status(), move!.status()].sort()).toEqual([200, 409])
+    const loser = attack!.ok() ? move! : attack!
+    expect((await loser.json()).error.code).toBe('STALE_VERSION')
+    const afterAttacker = await world(page),
+      afterTarget = await world(opponent)
+    expect(afterTarget.version).toBe(target.version + 1)
+    expect(afterTarget.route).toHaveLength(0)
+    if (attack!.ok()) {
+      expect(afterAttacker.battleSessionId).toMatch(/^[0-9a-f-]{36}$/)
+      expect(afterTarget.battleSessionId).toBe(afterAttacker.battleSessionId)
+      expect(afterTarget.position).toEqual({ ...destination, x: 6 })
+    } else {
+      expect(afterTarget.position).toEqual(destination)
+      expect(afterAttacker.battleSessionId).toBeNull()
+      expect(afterTarget.battleSessionId).toBeNull()
+      expect(afterAttacker.version).toBe(attacker.version)
+    }
+  } finally {
+    await context.close()
+  }
+})
+
+for (const change of ['training', 'build'] as const)
+  test(`encounter creation rechecks a ${change} change after preparing its snapshot`, async ({
+    page,
+    browser,
+  }, info) => {
+    test.skip(
+      info.project.name !== 'desktop-chromium',
+      'Database contention is viewport independent.',
+    )
+    test.setTimeout(90000)
+    await enter(page)
+    const context = await browser.newContext({ baseURL: new URL(page.url()).origin })
+    try {
+      const opponent = await context.newPage()
+      await enter(opponent)
+      const attacker = await world(page),
+        target = await world(opponent)
+      await page.goto('about:blank')
+      await opponent.goto('about:blank')
+      place(attacker.characterId, 'crown-road', 5, 4)
+      place(target.characterId, 'crown-road', 6, 4)
+      await world(page)
+      await world(opponent)
+      const [attack] = await contend(
+        [attacker.characterId, target.characterId],
+        () => [
+          page.request.post('/api/world', {
+            data: {
+              characterId: attacker.characterId,
+              expectedVersion: attacker.version,
+              commandId: randomUUID(),
+              intent: { kind: 'attack', targetId: target.characterId },
+            },
+            timeout: 20000,
+          }),
+        ],
+        async () => {
+          // The attack is now inside its mutation RPC, after its eligibility read
+          // and committed-build snapshot, but before its transaction takes locks.
+          if (change === 'training') {
+            const response = await opponent.request.post('/api/wayfarers-practice/plan', {
+              data: {
+                characterId: target.characterId,
+                plannedWindow: 'short',
+                idempotencyKey: randomUUID(),
+              },
+              timeout: 10000,
+            })
+            expect(response.status()).toBe(201)
+          } else {
+            const response = await opponent.request.get('/api/character/build/skills')
+            expect(response.ok()).toBe(true)
+            const { context: before } = (await response.json()) as {
+              context: CharacterBuildContext
+            }
+            const equipped = before.disciplineSkills.equippedSkills.map(
+              (entry) => entry.definition.id,
+            )
+            const skillIds = equipped.length
+              ? equipped.slice(0, -1)
+              : [before.disciplineSkills.learnedSkills[0]!.definition.id]
+            const saved = await opponent.request.put('/api/character/build/skills', {
+              data: {
+                expectedBuildVersion: before.build.buildVersion,
+                skillIds,
+                idempotencyKey: randomUUID(),
+              },
+              timeout: 10000,
+            })
+            expect(saved.ok()).toBe(true)
+            const { context: after } = (await saved.json()) as { context: CharacterBuildContext }
+            expect(after.build.buildVersion).toBe(before.build.buildVersion + 1)
+            expect(
+              after.disciplineSkills.equippedSkills.map((entry) => entry.definition.id),
+            ).toEqual(skillIds)
+          }
+        },
+      )
+      expect(attack!.status()).toBe(change === 'training' ? 400 : 409)
+      expect((await attack!.json()).error.code).toBe(
+        change === 'training' ? 'INVALID_REQUEST' : 'STALE_VERSION',
+      )
+      const afterAttacker = await world(page),
+        afterTarget = await world(opponent)
+      expect(afterAttacker.battleSessionId).toBeNull()
+      expect(afterTarget.battleSessionId).toBeNull()
+      expect(afterAttacker.version).toBe(attacker.version)
+      expect(afterTarget.version).toBe(target.version)
+      if (change === 'training')
+        expect(afterTarget.movementBlocked).toContain('Stop Passive Training')
+      expect(
+        sql(
+          `select count(*) from app_private.pvp_lobby_members where character_id in ('${attacker.characterId}'::uuid,'${target.characterId}'::uuid)`,
+        ),
+      ).toBe('0')
+      expect(
+        sql(
+          `select count(*) from app_private.battle_participants where character_id in ('${attacker.characterId}'::uuid,'${target.characterId}'::uuid)`,
+        ),
+      ).toBe('0')
+    } finally {
+      await context.close()
+    }
+  })

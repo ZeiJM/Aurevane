@@ -104,3 +104,11 @@ Scope: Eastern March Road (Emberreach–Umbral March) and Old Coast Road (Hollow
 - [x] Run the local quality gate and fresh independent review; reconcile current-main status and prepare draft PR update.
 - [ ] Observe latest-head authenticated browser run and inspect new screenshots; the newly authored contention scenarios require that runtime evidence.
 - [ ] Complete remaining staging movement/attack/training/build competition checks and Owner visual acceptance before release.
+
+
+### Encounter competition verification continuation — 2026-09-23
+
+- [x] Inspect latest PR state and runner status; current main remains `41f2c560` and Atlas CI remains queued.
+- [x] Add authenticated due-movement/attack competition and controlled training/build changes after encounter snapshot preparation, using the existing disposable-database lock gate.
+- [x] Run full local checks, confirm 48 discovered browser combinations and obtain fresh independent review.
+- [ ] Execute these new real-Postgres scenarios in CI and inspect latest-head browser artifacts; authored tests alone do not close the gate.
