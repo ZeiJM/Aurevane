@@ -27,6 +27,34 @@ describe('persistent roaming shell architecture', () => {
     }
   })
 
+  it('does not re-wrap roaming page bodies in another authenticated shell', () => {
+    for (const pagePath of roamingPages) {
+      const page = source(pagePath)
+      expect(page).not.toContain('<AuthenticatedShellFrame')
+    }
+
+    for (const componentPath of [
+      'src/components/character/character-profile-shell.tsx',
+      'src/components/character/character-arsenal-shell.tsx',
+      'src/components/wayfarers-practice/offline-training-shell.tsx',
+    ]) {
+      const component = source(componentPath)
+      expect(component).not.toContain('<AuthenticatedShellFrame')
+    }
+  })
+
+  it('uses recovery content instead of a nested recovery shell on roaming pages', () => {
+    for (const pagePath of [
+      'src/app/game/(roaming)/character/page.tsx',
+      'src/app/game/(roaming)/arsenal/page.tsx',
+      'src/app/game/(roaming)/training/page.tsx',
+      'src/app/game/(roaming)/account/titles/page.tsx',
+    ]) {
+      const page = source(pagePath)
+      expect(page).not.toContain('<AuthenticatedGameRecovery />')
+    }
+  })
+
   it('keeps identity-changing and battle routes outside the persistent boundary', () => {
     for (const path of [
       'src/app/game/page.tsx',
