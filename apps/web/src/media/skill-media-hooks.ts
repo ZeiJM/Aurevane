@@ -25,6 +25,13 @@ export interface SkillAudioCueHookOption {
   sampleSrc: string | null
 }
 
+export interface SkillAudioPreviewAsset {
+  role: 'action' | 'essence'
+  variant: 1 | 2 | 3
+  assetId: string
+  src: string
+}
+
 function titleSkill(skillId: string): string {
   const tail = skillId.includes('.') ? skillId.slice(skillId.indexOf('.') + 1) : skillId
   return tail
@@ -119,4 +126,22 @@ export function resolveSkillAudioCueHook(
 
 export function isRegisteredSkillAudioCueHook(key: string | null | undefined): boolean {
   return key === null || key === undefined || audioHookByKey.has(key)
+}
+
+
+export function resolveSkillAudioPreviewAssets(
+  key: string | null | undefined,
+): readonly SkillAudioPreviewAsset[] {
+  const option = resolveSkillAudioCueHook(key)
+  if (!option?.available || !option.audioFamily) return []
+
+  const previews: SkillAudioPreviewAsset[] = []
+  for (const role of ['action', 'essence'] as const) {
+    for (const variant of [1, 2, 3] as const) {
+      const assetId = `audio.phase4.${option.audioFamily}-${role}-v01-${variant}`
+      const asset = audioAssetRegistry.get(assetId)
+      if (asset?.src) previews.push({ role, variant, assetId, src: asset.src })
+    }
+  }
+  return previews
 }
