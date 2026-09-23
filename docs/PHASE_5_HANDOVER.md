@@ -6,7 +6,7 @@ This is the post-release handover prepared in [PR #671](https://github.com/ZeiJM
 
 Live testing destination: https://aurevane.vercel.app — sign in and open World. Automatic Vercel Git deployment returns to the normal `**: false` lock with this handover. The release authorization covered this Atlas release, not future unrelated deployments.
 
-The application candidate is `1989d4ebaecdf7e273a273857d892e62995e4844`, reconciled with main `7abe4f5f929123e472452822968f843e581380c9`. The post-release branch changes only the deployment lock and documentation. Phase 4 is closed by explicit Owner decision recorded in PRs #659/#660; do not reopen its acceptance checklist or invent independent tester evidence. Full Phase 5 and Owner acceptance of the live Atlas remain open.
+The final application candidate and reconciled main SHA are recorded in PR #609. The post-release branch changes only the deployment lock and documentation. Phase 4 is closed by explicit Owner decision recorded in PRs #659/#660; do not reopen its acceptance checklist or invent independent tester evidence. Full Phase 5 and Owner acceptance of the live Atlas remain open.
 
 ## Delivered Atlas scope
 
@@ -23,7 +23,7 @@ The candidate's full local gate passed: **2,811 Vitest tests plus seven report/a
 
 Earlier application candidate `c49921f1` passed all 13 workflows, including 18 Atlas browser scenarios, 220 main smoke scenarios, 20 preliminary checks and four Edge checks. Screenshot review confirmed the corrected laptop Training reward text is readable beside its actions. The delivery notes preserve detailed browser, visual and media-provenance evidence.
 
-Latest main reconciliation preserved the persistent roaming shell, compact public profiles, Battle Hall fit/scrollbars and approved Bastion artwork. Two stale test expectations were corrected: directory dismissal uses Escape and checks focus restoration, and the media test requires the approved Fortress WebP. Existing containment, audio-hash and generated-art fallback coverage remains. The focused media suites passed 17 tests. A runner database-port collision was handled by retrying only that failed workflow; a corrupt local Turbopack cache was set aside and a clean build passed. Neither required runtime changes.
+Latest main reconciliation preserved the persistent roaming shell, compact public profiles, Battle Hall fit/scrollbars and approved Bastion artwork. Two stale test expectations were corrected: directory dismissal uses Escape and checks focus restoration, and the media test requires the approved Fortress WebP. Existing containment, audio-hash and generated-art fallback coverage remains. The focused media suites passed 17 tests. A runner database-port collision was handled by retrying only that failed workflow; a corrupt local Turbopack cache was set aside and a clean build passed. Neither required runtime changes. Final CI also exposed a transient buildcraft-status assertion and compact Hall inputs below the existing 40-pixel minimum. The browser test now verifies the successful save response, exact committed selection and reload persistence; the compact inputs retain a 40-pixel minimum. Existing no-scroll, readability and containment assertions remain intact.
 
 Authenticated journeys and concurrency scenarios run against disposable CI accounts/databases. Consult the release record for the actual production smoke coverage; do not represent automated CI as human live acceptance.
 

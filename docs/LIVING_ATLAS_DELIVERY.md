@@ -234,3 +234,7 @@ The checkpoints above are historical, including their then-pending release state
 ## Persistent roaming shell reconciliation (2026-09-23)
 
 Candidate `1989d4eb` preserves main `7abe4f5f`, including the persistent roaming shell and compact Hall release. The merge was clean; the incoming Hall browser assertion needed formatting only. The full local quality gate passed with 2,811 Vitest tests plus seven report/audio Node checks, lint, formatting, types and builds. Earlier candidate `3c2434a4` passed 18 Atlas browser scenarios. Final candidate CI and production evidence are recorded in PR #609.
+
+## Final browser gate corrections
+
+The post-release branch buildcraft trace showed a successful HTTP 200 save and the correct selected Skills, but its transient status was cleared by the versioned panel refresh before the test observed it. The test now verifies the authoritative save response, exact submitted/committed IDs and selected checkboxes before its existing reload-persistence assertions. The UI gate also detected 37.6-pixel compact Hall inputs below the existing 40-pixel minimum; their minimum is restored to 2.5rem. The no-scroll and control-size browser contracts remain unchanged and must both pass.
