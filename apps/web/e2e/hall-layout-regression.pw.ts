@@ -153,6 +153,12 @@ test('Battle Hall shows one full-width parchment workspace at a time with all re
     expect
       .soft(aiSpace.modeBottomOverflow, 'AI mastery choice stays fully inside the visible workspace')
       .toBeLessThanOrEqual(1)
+    const hallScrollbar = await ai.locator('[data-hall-scroll-body]').evaluate((element) => ({
+      color: getComputedStyle(element).scrollbarColor,
+      width: getComputedStyle(element).scrollbarWidth,
+    }))
+    expect(hallScrollbar.color).toContain('rgb(7, 16, 25)')
+    expect(hallScrollbar.width).toBe('thin')
   }
 
   await expect(page.getByLabel('Battle mode')).toHaveValue('recruit-sparring')
