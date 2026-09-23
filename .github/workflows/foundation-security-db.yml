@@ -10,7 +10,6 @@ on:
   push:
     branches:
       - main
-      - 'agent/**'
     paths:
       - 'supabase/migrations/**'
       - '.github/scripts/verify-foundation-security.sh'
@@ -19,6 +18,10 @@ on:
 
 permissions:
   contents: read
+
+concurrency:
+  group: foundation-security-db-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   foundation-security:
