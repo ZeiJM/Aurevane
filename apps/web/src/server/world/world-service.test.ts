@@ -9,23 +9,38 @@ describe('world authority and spoiler projection', () => {
     {
       from: { sectorId: 'aureth-crown', x: 12, y: 4 },
       to: { sectorId: 'verdant-expanse', x: 0, y: 4 },
+      durationMs: 45000,
     },
     {
       from: { sectorId: 'verdant-expanse', x: 0, y: 4 },
       to: { sectorId: 'aureth-crown', x: 12, y: 4 },
+      durationMs: 45000,
     },
-  ])('stops a saved direct road from $from.sectorId after its edge is replaced', ({ from, to }) => {
-    const state = {
-      ...newWorldState(),
-      position: from,
-      route: [{ position: to, durationMs: 45000, road: 'Crown Road' }],
-      nextStepAt: 1000,
-    }
-    const next = resolveWorldIntent(state, { kind: 'tick' }, 2000)
-    expect(next.position).toEqual(from)
-    expect(next.route).toEqual([])
-    expect(next.nextStepAt).toBeNull()
-  })
+    {
+      from: { sectorId: 'verdant-expanse', x: 12, y: 4 },
+      to: { sectorId: 'hollow-coast', x: 0, y: 4 },
+      durationMs: 60000,
+    },
+    {
+      from: { sectorId: 'hollow-coast', x: 0, y: 4 },
+      to: { sectorId: 'verdant-expanse', x: 12, y: 4 },
+      durationMs: 60000,
+    },
+  ])(
+    'stops a saved direct road from $from.sectorId after its edge is replaced',
+    ({ from, to, durationMs }) => {
+      const state = {
+        ...newWorldState(),
+        position: from,
+        route: [{ position: to, durationMs }],
+        nextStepAt: 1000,
+      }
+      const next = resolveWorldIntent(state, { kind: 'tick' }, 2000)
+      expect(next.position).toEqual(from)
+      expect(next.route).toEqual([])
+      expect(next.nextStepAt).toBeNull()
+    },
+  )
   it('stops an old speed or broken later step before consuming a saved route', () => {
     const position = { sectorId: 'crown-road', x: 5, y: 4 }
     for (const route of [
@@ -62,6 +77,27 @@ describe('world authority and spoiler projection', () => {
     ).toThrow()
     expect(() =>
       assertEncounterRange(state, { ...state, position: { sectorId: 'aureth-crown', x: 5, y: 4 } }),
+    ).toThrow()
+  })
+  it('projects Coastal Road terrain, exits and nearby encounter eligibility', () => {
+    const state = { ...newWorldState(), position: { sectorId: 'coastal-road', x: 5, y: 3 } }
+    const road = projectWorld(state, [], 1000).sectors.find((s) => s.id === 'coastal-road')!
+    expect(road).toBeDefined()
+    expect(road.coordinate).toBe('S18-10')
+    expect(
+      road.cells.filter((cell) => cell.y === 3).every((cell) => cell.walkable && !cell.safe),
+    ).toBe(true)
+    expect(road.cells.filter((cell) => cell.y >= 5).every((cell) => !cell.walkable)).toBe(true)
+    expect(road.exits.map((exit) => exit.to.sectorId).sort()).toEqual([
+      'hollow-coast',
+      'verdant-expanse',
+    ])
+    expect(road.panorama).toBe('/media/art/world/coastal-road-panorama-v01.webp')
+    expect(() =>
+      assertEncounterRange(state, { ...state, position: { ...state.position, x: 6 } }),
+    ).not.toThrow()
+    expect(() =>
+      assertEncounterRange(state, { ...state, position: { sectorId: 'hollow-coast', x: 5, y: 3 } }),
     ).toThrow()
   })
   it('requires a deliberate crossing from the frontier approach', () => {

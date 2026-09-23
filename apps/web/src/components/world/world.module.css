@@ -723,6 +723,20 @@
   clip-path: none;
   mask-image: linear-gradient(to bottom, #000 0 44%, transparent 44% 56%, #000 56% 100%);
 }
+.sectorMap[data-sector='coastal-road'] .riverFlow {
+  inset: 58% 0 0;
+  width: auto;
+  height: auto;
+  opacity: 0.18;
+  clip-path: none;
+  mask-image: linear-gradient(transparent, #000 25%);
+  animation: coastal-surf 14s linear infinite;
+}
+@keyframes coastal-surf {
+  to {
+    background-position: 70px -60px;
+  }
+}
 .cloudShadow {
   position: absolute;
   inset: -20%;

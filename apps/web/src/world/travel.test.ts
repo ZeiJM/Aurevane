@@ -103,6 +103,46 @@ describe('world travel', () => {
       )?.map((s) => s.position.x),
     ).toEqual([8, 9, 10])
   })
+  it('walks Coastal Road in both directions along the painted path', () => {
+    for (const [from, to] of [
+      [
+        { sectorId: 'verdant-expanse', x: 12, y: 4 },
+        { sectorId: 'hollow-coast', x: 0, y: 4 },
+      ],
+      [
+        { sectorId: 'hollow-coast', x: 0, y: 4 },
+        { sectorId: 'verdant-expanse', x: 12, y: 4 },
+      ],
+    ]) {
+      const route = findWorldRoute(from!, to!, CHARTED_SECTORS)!
+      const road = route.filter((s) => s.position.sectorId === 'coastal-road')
+      expect(road).toHaveLength(13)
+      expect(new Set(road.map((s) => s.position.x)).size).toBe(13)
+      expect(road.every((s) => s.position.y === 3)).toBe(true)
+      expect(road.slice(1).every((s) => s.durationMs === 4000)).toBe(true)
+      expect(route.at(-1)?.position).toEqual(to)
+    }
+  })
+  it('keeps the coastal sea blocked while allowing the shore verge', () => {
+    const from = { sectorId: 'coastal-road', x: 5, y: 3 }
+    expect(findWorldRoute(from, { ...from, y: 4 }, CHARTED_SECTORS)?.at(-1)?.position).toEqual({
+      ...from,
+      y: 4,
+    })
+    for (let y = 5; y < 9; y++)
+      for (let x = 0; x < 13; x++)
+        expect(findWorldRoute(from, { ...from, x, y }, CHARTED_SECTORS)).toBeNull()
+  })
+  it('joins Crown Road and Coastal Road into one continuous regional journey', () => {
+    const route = findWorldRoute(
+      { sectorId: 'aureth-crown', x: 12, y: 4 },
+      { sectorId: 'hollow-coast', x: 0, y: 4 },
+      CHARTED_SECTORS,
+    )!
+    for (const sectorId of ['crown-road', 'coastal-road'])
+      expect(route.filter((step) => step.position.sectorId === sectorId)).toHaveLength(13)
+    expect(route.every((step) => step.durationMs <= 4000)).toBe(true)
+  })
   it('advances only one due step even after a long disconnect', () => {
     const state = {
       ...newWorldState(),

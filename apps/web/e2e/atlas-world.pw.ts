@@ -84,8 +84,8 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
   test.setTimeout(120000)
   const name = await enter(page)
   const initial = await world(page)
-  expect(initial.sectors.filter((s) => s.id !== 'crown-road')).toHaveLength(8)
-  expect(initial.sectors.find((s) => s.id === 'crown-road')).toBeDefined()
+  for (const id of [...WORLD_REGIONS.map((region) => region.id), 'crown-road', 'coastal-road'])
+    expect(initial.sectors.find((sector) => sector.id === id)).toBeDefined()
   expect(JSON.stringify(initial)).not.toContain('survey-01')
   const identity = page.getByTestId('character-profile')
   const identityBox = (await identity.boundingBox())!
@@ -259,54 +259,83 @@ test('expired training releases travel without claiming XP and frontier discover
   expect((await world(page)).sectors.find((s) => !s.charted)?.cells).toEqual(survey.cells)
 })
 
-test('Crown Road is a persistent journey with exits, stopping, globe location and its own surroundings', async ({
-  page,
-}, info) => {
-  test.skip(
-    info.project.name !== 'desktop-chromium',
-    'Full elapsed-time journey is viewport independent.',
-  )
-  test.setTimeout(150000)
-  const name = await enter(page)
-  await page.getByRole('button', { name: 'Travel to Crown Road', exact: false }).click()
-  await expect(page.locator('[data-world-travel-status]')).toContainText('Crown Road')
-  await expect
-    .poll(async () => (await world(page)).position.sectorId, { timeout: 20000 })
-    .toBe('crown-road')
-  await expect(page.getByRole('heading', { name: 'Crown Road', exact: true })).toBeVisible()
-  await capture(page, info, 'crown-road-sector')
-  await page.getByRole('button', { name: /View 360/ }).click()
-  await expect(page.getByRole('dialog').getByRole('heading', { name: 'Crown Road' })).toBeVisible()
-  await capture(page, info, 'crown-road-surroundings')
-  await page.keyboard.press('Escape')
-  await page.getByRole('button', { name: /Globe/ }).click()
-  await page.getByRole('button', { name: /My Position/ }).click()
-  await expect(
-    page.getByRole('img', { name: `${name}, your current sector`, exact: true }),
-  ).toBeVisible()
-  await capture(page, info, 'crown-road-globe')
-  await page
-    .getByRole('button', { name: /Sector/, exact: false })
-    .first()
-    .click()
-  await page.getByRole('button', { name: /Travel to Aureth Crown/ }).click()
-  await expect(page.locator('[data-world-travel-status]')).toContainText('Aureth Crown')
-  await expect(page.locator('[data-world-travel-status]')).toContainText('About')
-  await expect.poll(async () => (await world(page)).position.x, { timeout: 12000 }).toBeLessThan(12)
-  await page.getByRole('button', { name: 'Stop travel', exact: true }).click()
-  const stopped = await world(page)
-  expect(stopped.route).toHaveLength(0)
-  expect(stopped.position.sectorId).toBe('crown-road')
-  await page.reload()
-  expect((await world(page)).position).toEqual(stopped.position)
-  await page.getByRole('button', { name: /Travel to Aureth Crown/ }).click()
-  await expect
-    .poll(async () => (await world(page)).position.sectorId, { timeout: 85000 })
-    .toBe('aureth-crown')
-  await expect(page.getByRole('heading', { name: 'Aureth Crown', exact: true })).toBeVisible()
-  expect((await world(page)).route).toHaveLength(0)
-  await capture(page, info, 'crown-road-arrival')
-})
+for (const journey of [
+  {
+    id: 'crown-road',
+    name: 'Crown Road',
+    destinationId: 'aureth-crown',
+    destinationName: 'Aureth Crown',
+    entranceX: 12,
+  },
+  {
+    id: 'coastal-road',
+    name: 'Coastal Road',
+    destinationId: 'hollow-coast',
+    destinationName: 'Hollow Coast',
+    entranceX: 0,
+  },
+])
+  test(`${journey.name} is a persistent journey with exits, stopping, globe location and its own surroundings`, async ({
+    page,
+  }, info) => {
+    test.skip(
+      info.project.name !== 'desktop-chromium',
+      'Full elapsed-time journey is viewport independent.',
+    )
+    test.setTimeout(150000)
+    const name = await enter(page)
+    await page.getByRole('button', { name: `Travel to ${journey.name}`, exact: false }).click()
+    await expect(page.locator('[data-world-travel-status]')).toContainText(journey.name)
+    await expect
+      .poll(async () => (await world(page)).position.sectorId, { timeout: 20000 })
+      .toBe(journey.id)
+    await expect(page.getByRole('heading', { name: journey.name, exact: true })).toBeVisible()
+    await capture(page, info, `${journey.id}-sector`)
+    await page.getByRole('button', { name: /View 360/ }).click()
+    await expect(
+      page.getByRole('dialog').getByRole('heading', { name: journey.name }),
+    ).toBeVisible()
+    await capture(page, info, `${journey.id}-surroundings`)
+    for (let turn = 0; turn < 6; turn++)
+      await page.getByRole('dialog').getByRole('button', { name: 'Look right' }).click()
+    await capture(page, info, `${journey.id}-surroundings-reverse`)
+    await page.keyboard.press('Escape')
+    await page.getByRole('button', { name: /Globe/ }).click()
+    await page.getByRole('button', { name: /My Position/ }).click()
+    await expect(
+      page.getByRole('img', { name: `${name}, your current sector`, exact: true }),
+    ).toBeVisible()
+    await capture(page, info, `${journey.id}-globe`)
+    await page
+      .getByRole('button', { name: /Sector/, exact: false })
+      .first()
+      .click()
+    await page
+      .getByRole('button', { name: `Travel to ${journey.destinationName}`, exact: false })
+      .click()
+    await expect(page.locator('[data-world-travel-status]')).toContainText(journey.destinationName)
+    await expect(page.locator('[data-world-travel-status]')).toContainText('About')
+    await expect
+      .poll(async () => (await world(page)).position.x, { timeout: 12000 })
+      .not.toBe(journey.entranceX)
+    await page.getByRole('button', { name: 'Stop travel', exact: true }).click()
+    const stopped = await world(page)
+    expect(stopped.route).toHaveLength(0)
+    expect(stopped.position.sectorId).toBe(journey.id)
+    await page.reload()
+    expect((await world(page)).position).toEqual(stopped.position)
+    await page
+      .getByRole('button', { name: `Travel to ${journey.destinationName}`, exact: false })
+      .click()
+    await expect
+      .poll(async () => (await world(page)).position.sectorId, { timeout: 85000 })
+      .toBe(journey.destinationId)
+    await expect(
+      page.getByRole('heading', { name: journey.destinationName, exact: true }),
+    ).toBeVisible()
+    expect((await world(page)).route).toHaveLength(0)
+    await capture(page, info, `${journey.id}-arrival`)
+  })
 
 test('a proximity attack reaches both authenticated players while the target views 360', async ({
   page,

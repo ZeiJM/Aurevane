@@ -12,7 +12,6 @@ import {
 import { getAuthenticatedActor } from '@/server/auth/actor'
 import { loadCharacterProfileDisplay } from '@/server/character/character-profile-display-service'
 import { loadSelectedCharacter } from '@/server/character/selected-character'
-import { createServerMasterPanelStaffAccessService } from '@/server/master/staff-access-server'
 
 import { AuthenticatedShellPresentation } from './authenticated-shell-presentation'
 import styles from './authenticated-game-shell.module.css'
@@ -101,19 +100,14 @@ export async function AuthenticatedShellFrame({
   let activeUserId: string | null = null
   let activeBattleHref: Route | null = null
   let activeSpectatingHref: Route | null = null
-  let masterPanelHref: Route | null = null
   try {
     const actor = await getAuthenticatedActor()
     activeUserId = actor.userId
-    const [activeBattle, activeSpectating, selectedCharacter, masterPanelAccess] =
-      await Promise.all([
-        getActiveBattleForUser(actor.userId).catch(() => null),
-        getActiveSpectatingForUser(actor.userId).catch(() => null),
-        loadSelectedCharacter(actor),
-        createServerMasterPanelStaffAccessService()
-          .readAccess(actor.userId)
-          .catch(() => null),
-      ])
+    const [activeBattle, activeSpectating, selectedCharacter] = await Promise.all([
+      getActiveBattleForUser(actor.userId).catch(() => null),
+      getActiveSpectatingForUser(actor.userId).catch(() => null),
+      loadSelectedCharacter(actor),
+    ])
     activeBattleHref = activeBattle
       ? (`/game/battle/${activeBattle.battleSessionId}` as Route)
       : null
@@ -122,11 +116,9 @@ export async function AuthenticatedShellFrame({
         ? (`/game/battle/spectate/${activeSpectating.battleKey}` as Route)
         : null
     activeCharacter = selectedCharacter
-    masterPanelHref = masterPanelAccess ? ('/master' as Route) : null
   } catch {
     activeCharacter = null
     activeUserId = null
-    masterPanelHref = null
   }
 
   const activeSessionHref = activeBattleHref ?? activeSpectatingHref
@@ -156,7 +148,6 @@ export async function AuthenticatedShellFrame({
       activeSpectatingHref={activeSpectatingHref}
       activeSessionHref={activeSessionHref}
       activeSessionLabel={activeSessionLabel}
-      masterPanelHref={masterPanelHref}
     >
       {children}
     </AuthenticatedShellPresentation>

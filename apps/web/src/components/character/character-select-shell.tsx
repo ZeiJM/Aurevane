@@ -2,7 +2,6 @@
 
 import type { PersistedCharacter } from '@aurevane/game-core/character/persistence'
 import { getFoundationDiscipline } from '@aurevane/game-core/character/foundation-disciplines'
-import type { Route } from 'next'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
@@ -23,7 +22,6 @@ interface CharacterSelectShellProps {
   selectedCharacter: PersistedCharacter | null
   profileImageUrls: Readonly<Record<string, string>>
   accountDeletion: AccountDeletionState | null
-  masterPanelHref?: Route | null
 }
 
 function lockedSlotCopy(slotIndex: number): { title: string; body: string; badge: string } {
@@ -46,7 +44,6 @@ export function CharacterSelectShell({
   selectedCharacter,
   profileImageUrls,
   accountDeletion,
-  masterPanelHref = null,
 }: CharacterSelectShellProps) {
   const router = useRouter()
   const [deleting, setDeleting] = useState<CharacterSlotCharacter | null>(null)
@@ -212,7 +209,7 @@ export function CharacterSelectShell({
         </Link>
 
         <div className={styles.headerActions}>
-          <AccountMenu masterPanelHref={masterPanelHref} />
+          <AccountMenu />
         </div>
       </header>
 

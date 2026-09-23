@@ -99,20 +99,22 @@ const ROWS = [
   '###s#.....~..',
   '###s==.###~##',
 ].map((row) => row.trim())
-const LINKS: readonly [string, string, string, number][] = [
+// Optional exit rows align each endpoint with its own painted path.
+const LINKS: readonly [string, string, string, number, number?, number?][] = [
   ['aureth-crown', 'crown-road', 'Crown Road', STEP_MS],
   ['crown-road', 'verdant-expanse', 'Crown Road', STEP_MS],
   ['aureth-crown', 'glasswind-desert', 'Southern Caravan Road', 70000],
   ['aureth-crown', 'starfall-highlands', 'Highland Road', 65000],
   ['starfall-highlands', 'frostmere', 'Northern Pass', 75000],
   ['verdant-expanse', 'emberreach', 'Ember Road', 70000],
-  ['verdant-expanse', 'hollow-coast', 'Coastal Road', 60000],
+  ['verdant-expanse', 'coastal-road', 'Coastal Road', STEP_MS, 4, 3],
+  ['coastal-road', 'hollow-coast', 'Coastal Road', STEP_MS, 3, 4],
   ['emberreach', 'umbral-march', 'Eastern March Road', 85000],
   ['hollow-coast', 'umbral-march', 'Old Coast Road', 80000],
 ]
-const roads: WorldRoad[] = LINKS.flatMap(([a, b, name, durationMs]) => [
-  { from: { sectorId: a, x: 12, y: 4 }, to: { sectorId: b, x: 0, y: 4 }, name, durationMs },
-  { from: { sectorId: b, x: 0, y: 4 }, to: { sectorId: a, x: 12, y: 4 }, name, durationMs },
+const roads: WorldRoad[] = LINKS.flatMap(([a, b, name, durationMs, fromY = 4, toY = 4]) => [
+  { from: { sectorId: a, x: 12, y: fromY }, to: { sectorId: b, x: 0, y: toY }, name, durationMs },
+  { from: { sectorId: b, x: 0, y: toY }, to: { sectorId: a, x: 12, y: fromY }, name, durationMs },
 ])
 export const CHARTED_SECTORS: readonly WorldSector[] = [
   ...WORLD_REGIONS.map((region): WorldSector => ({
@@ -167,6 +169,31 @@ export const CHARTED_SECTORS: readonly WorldSector[] = [
     charted: true,
     landmarks: [],
     roads: roads.filter((road) => road.from.sectorId === 'crown-road'),
+  },
+  {
+    id: 'coastal-road',
+    name: 'Coastal Road',
+    coordinate: 'S18-10',
+    regionId: 'hollow-coast',
+    art: '/media/art/world/coastal-road-v01.webp',
+    panorama: '/media/art/world/coastal-road-panorama-v01.webp',
+    stepMs: 4000,
+    east: 0,
+    north: 8,
+    rows: [
+      '#############',
+      '#############',
+      '####..##..###',
+      '=============',
+      '..#....##....',
+      '~~~~~~~~~~~~~',
+      '~~~~~~~~~~~~~',
+      '~~~~~~~~~~~~~',
+      '~~~~~~~~~~~~~',
+    ],
+    charted: true,
+    landmarks: [],
+    roads: roads.filter((road) => road.from.sectorId === 'coastal-road'),
   },
 ]
 export const START_POSITION: WorldPosition = { sectorId: 'verdant-expanse', x: 5, y: 4 }

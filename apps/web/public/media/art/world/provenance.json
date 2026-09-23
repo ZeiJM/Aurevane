@@ -383,6 +383,46 @@
         "sha256": "4f6650153465d5fa499774b7d34d6ac1bee97cf27d12a66a29120e1a64093011",
         "encoding": "Sharp WebP quality 86; original dimensions"
       }
+    },
+    {
+      "name": "coastal-road",
+      "source": {
+        "method": "generated",
+        "provider": "OpenAI image generation",
+        "createdAt": "2026-09-23",
+        "master": "exec-ae4c61f1-00ae-4bba-bb11-72835d990087.png",
+        "sha256": "b2243787f35aa6403dcb184ee5fa62dd7a2b693fc7a2c28b68f04aec1ccfdcbf",
+        "promptSpec": "content/art-requests/ART-WORLD-003-coastal-road.md",
+        "retention": "Original generated source retained with the conversation"
+      },
+      "runtime": {
+        "path": "/media/art/world/coastal-road-v01.webp",
+        "width": 1507,
+        "height": 1044,
+        "bytes": 531726,
+        "sha256": "b26db1571d36d21b761e54673b0e03b4f9c2ae488b5374e95f7ab81251bab037",
+        "encoding": "Sharp WebP quality 86; original dimensions"
+      }
+    },
+    {
+      "name": "coastal-road-panorama",
+      "source": {
+        "method": "generated",
+        "provider": "OpenAI image generation",
+        "createdAt": "2026-09-23",
+        "master": "exec-e565b341-5f1e-4db0-9721-810fc9c51df1.png",
+        "sha256": "61a5aa708d55eaaa91854c1c0c5ec79fb4aa7833f219cd84263481d9f118ebb5",
+        "promptSpec": "content/art-requests/ART-WORLD-003-coastal-road.md",
+        "retention": "Original generated source retained with the conversation"
+      },
+      "runtime": {
+        "path": "/media/art/world/coastal-road-panorama-v01.webp",
+        "width": 1774,
+        "height": 887,
+        "bytes": 381282,
+        "sha256": "19e1ac53505d9d1e81106bcd10c6429ad5cef235dd3c4fa8da5ff462466b8501",
+        "encoding": "Sharp WebP quality 86; original dimensions"
+      }
     }
   ]
 }

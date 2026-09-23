@@ -18,9 +18,21 @@ import {
 class MemoryPublishedCombatContentSource implements PublishedCombatContentSource {
   current = new Map<string, CombatContentVersionRecord>()
   versions = new Map<string, CombatContentVersionRecord>()
+  singleCurrentReads = 0
+  batchCurrentReads = 0
 
   async findCurrentSkill(contentKey: string): Promise<CombatContentVersionRecord | null> {
+    this.singleCurrentReads += 1
     return this.current.get(contentKey) ?? null
+  }
+
+  async findCurrentSkills(
+    contentKeys: readonly string[],
+  ): Promise<readonly CombatContentVersionRecord[]> {
+    this.batchCurrentReads += 1
+    return contentKeys
+      .map((contentKey) => this.current.get(contentKey) ?? null)
+      .filter((row): row is CombatContentVersionRecord => row !== null)
   }
 
   async findSkillVersion(
@@ -72,6 +84,28 @@ describe('combat content resolver', () => {
 
     expect(resolved?.contentVersion).toBe(7)
     expect(resolved?.apCost).toBe(44)
+  })
+
+  it('resolves multiple current Skills through one batch source read', async () => {
+    const source = new MemoryPublishedCombatContentSource()
+    const published = {
+      ...staticSkill('vanguard.forceful-strike', 2),
+      contentVersion: 7,
+      apCost: 44,
+    } satisfies MatureSkillDefinition
+    source.current.set(published.id, publishedSkill(published))
+
+    const resolver = createCombatContentResolver(source)
+    const resolved = await resolver.resolveCurrentSkillDefinitions?.([
+      published.id,
+      'chronist.slow',
+      published.id,
+    ])
+
+    expect(resolved?.get(published.id)?.contentVersion).toBe(7)
+    expect(resolved?.get('chronist.slow')?.id).toBe('chronist.slow')
+    expect(source.batchCurrentReads).toBe(1)
+    expect(source.singleCurrentReads).toBe(0)
   })
 
   it('resolves an exact historical published Skill version for pinned battles', async () => {
