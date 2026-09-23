@@ -167,7 +167,7 @@ test('desktop Profile and every Battle Hall tab fit without sacrificing readable
         ).toBeLessThan(460)
       }
     }
-    await fit(page, `AI-empty-${suffix}`, testInfo)
+    await fit(page, `AI-default-${suffix}`, testInfo)
     for (const mode of ['recruit-sparring', 'guided-fundamentals']) {
       await page.getByLabel('Battle mode').selectOption(mode)
       await readable(page.getByLabel('Battle mode'), 13)
