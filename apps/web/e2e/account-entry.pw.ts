@@ -163,18 +163,17 @@ test('account audio controls persist the two user-facing mix levels', async ({
   await expect(dialog.getByText('Saved locally', { exact: true })).toHaveCount(0)
   await expect(dialog.getByRole('button', { name: 'Test UI channel' })).toHaveCount(0)
   await expect(dialog.getByText(/Adjust each channel/i)).toHaveCount(0)
+  await expect(dialog.getByText('Soundscape', { exact: true })).toHaveCount(0)
+  await expect(dialog.getByRole('button', { name: 'Close audio settings' })).toHaveCount(0)
+  await expect(dialog.getByText(/locked until/i)).toHaveCount(0)
+  await expect(dialog.getByTestId('audio-unlock')).toHaveCount(0)
+  await expect(page.getByTestId('audio-settings')).toHaveAttribute('data-audio-state', 'ready')
 
   await expect(page.getByTestId('audio-volume-music')).toBeVisible()
   await expect(page.getByTestId('audio-volume-sfx')).toBeVisible()
   await expect(page.getByTestId('audio-volume-master')).toHaveCount(0)
   await expect(page.getByTestId('audio-volume-ambience')).toHaveCount(0)
   await expect(page.getByTestId('audio-volume-ui')).toHaveCount(0)
-
-  await expect(page.getByTestId('audio-state')).toContainText(
-    'locked until you choose to enable it',
-  )
-  await page.getByTestId('audio-unlock').click()
-  await expect(page.getByTestId('audio-state')).toContainText('Audio ready')
 
   const musicVolume = page.getByTestId('audio-volume-music')
   const effectsVolume = page.getByTestId('audio-volume-sfx')
@@ -213,6 +212,7 @@ test('account audio controls persist the two user-facing mix levels', async ({
 
   await page.reload()
   await page.getByRole('button', { name: 'Sound settings' }).click()
+  await expect(page.getByTestId('audio-settings')).toHaveAttribute('data-audio-state', 'ready')
 
   await expect(page.getByTestId('audio-volume-music')).toHaveValue('37')
   await expect(page.getByTestId('audio-volume-sfx')).toHaveValue('23')

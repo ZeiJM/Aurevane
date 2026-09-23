@@ -298,7 +298,7 @@ Settings persist locally so they are available before login and continue across 
 Required behavior:
 
 - mute all and restore the prior Music/Sound Effects levels;
-- browser-gesture audio initialization;
+- audio is enabled by default and browser-gesture initialization happens automatically on the first eligible interaction; no separate enable control is exposed;
 - hidden/legacy channel settings cannot silently suppress the visible Music or Sound Effects controls;
 - audio continues or pauses according to documented browser-focus policy;
 - no unexpected autoplay that violates browser policies.

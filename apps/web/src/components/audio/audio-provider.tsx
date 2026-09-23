@@ -102,6 +102,29 @@ export function AudioProvider({ children }: PropsWithChildren) {
     return nextState
   }, [director])
 
+  useEffect(() => {
+    if (audioState !== 'locked') {
+      return
+    }
+
+    let attempting = false
+    const unlockFromInteraction = () => {
+      if (attempting) return
+      attempting = true
+      void unlock().finally(() => {
+        attempting = false
+      })
+    }
+
+    window.addEventListener('pointerdown', unlockFromInteraction, true)
+    window.addEventListener('keydown', unlockFromInteraction, true)
+
+    return () => {
+      window.removeEventListener('pointerdown', unlockFromInteraction, true)
+      window.removeEventListener('keydown', unlockFromInteraction, true)
+    }
+  }, [audioState, unlock])
+
   const playAsset = useCallback(
     (id: string, priority = 50) => {
       const asset = audioAssetRegistry.get(id)

@@ -1,7 +1,7 @@
 'use client'
 
 import { USER_AUDIO_CHANNELS, type UserAudioChannel } from '@aurevane/audio'
-import { GameButton, Kicker, StatusMark } from '@aurevane/ui'
+import { GameButton } from '@aurevane/ui'
 import { useEffect, useId, useRef, useState } from 'react'
 
 import { useAudioRuntime } from './audio-provider'
@@ -12,8 +12,22 @@ const CHANNEL_LABELS: Record<UserAudioChannel, string> = {
   sfx: 'Sound effects',
 }
 
-export function AudioSettingsMenu() {
-  const { settings, audioState, setVolume, toggleMute, unlock } = useAudioRuntime()
+interface AudioSettingsMenuProps {
+  rootClassName?: string
+  triggerClassName?: string
+  triggerLabel?: string
+  triggerRole?: 'menuitem'
+  showTriggerMarker?: boolean
+}
+
+export function AudioSettingsMenu({
+  rootClassName,
+  triggerClassName,
+  triggerLabel = 'Sound',
+  triggerRole,
+  showTriggerMarker = true,
+}: AudioSettingsMenuProps = {}) {
+  const { settings, audioState, setVolume, toggleMute } = useAudioRuntime()
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
@@ -61,28 +75,32 @@ export function AudioSettingsMenu() {
     setVolume(channel, Number(value) / 100)
   }
 
-  const statusMessage =
-    audioState === 'ready'
-      ? 'Audio ready. Nothing plays unless the game requests it.'
-      : audioState === 'unavailable'
-        ? 'Audio is unavailable in this browser session.'
-        : 'Audio is locked until you choose to enable it.'
+  const triggerAriaLabel = triggerLabel === 'Sound' ? 'Sound settings' : triggerLabel
 
   return (
-    <div className={styles.root} data-testid="audio-settings" ref={rootRef}>
+    <div
+      className={rootClassName ? `${styles.root} ${rootClassName}` : styles.root}
+      data-testid="audio-settings"
+      data-audio-state={audioState}
+      ref={rootRef}
+    >
       <button
         ref={triggerRef}
         type="button"
-        className={styles.trigger}
-        aria-label="Sound settings"
+        className={triggerClassName ?? styles.trigger}
+        role={triggerRole}
+        aria-label={triggerAriaLabel}
         aria-expanded={open}
+        aria-haspopup="dialog"
         aria-controls={panelId}
         onClick={() => setOpen((current) => !current)}
       >
-        <span className={styles.speaker} aria-hidden="true">
-          ◇
-        </span>
-        <span className={styles.triggerLabel}>Sound</span>
+        {showTriggerMarker ? (
+          <span className={styles.speaker} aria-hidden="true">
+            ◇
+          </span>
+        ) : null}
+        <span className={triggerClassName ? undefined : styles.triggerLabel}>{triggerLabel}</span>
       </button>
 
       {open ? (
@@ -96,37 +114,10 @@ export function AudioSettingsMenu() {
           aria-label="Audio settings"
         >
           <div className={styles.heading}>
-            <div>
-              <Kicker marker={<StatusMark />}>Soundscape</Kicker>
-              <h2>Audio settings</h2>
-            </div>
-            <button
-              type="button"
-              className={styles.close}
-              aria-label="Close audio settings"
-              onClick={() => {
-                setOpen(false)
-                triggerRef.current?.focus()
-              }}
-            >
-              ×
-            </button>
+            <h2>Audio settings</h2>
           </div>
 
-          <p className={styles.status} role="status" data-testid="audio-state">
-            {statusMessage}
-          </p>
-
           <div className={styles.actions}>
-            <GameButton
-              type="button"
-              variant="quiet"
-              onClick={() => void unlock()}
-              disabled={audioState === 'ready' || audioState === 'unavailable'}
-              data-testid="audio-unlock"
-            >
-              {audioState === 'ready' ? 'Audio enabled' : 'Enable audio'}
-            </GameButton>
             <GameButton type="button" variant="quiet" onClick={toggleMute} data-testid="audio-mute">
               {settings.muted ? 'Unmute all' : 'Mute all'}
             </GameButton>
