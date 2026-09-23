@@ -55,6 +55,20 @@ export const DEFAULT_SITE_MUSIC_TRACK: SiteMusicTrack = {
   loop: true,
 }
 
+export async function attemptSiteMusicPlayback(
+  play: () => Promise<void>,
+  hidden: boolean,
+): Promise<boolean> {
+  if (hidden) return false
+
+  try {
+    await play()
+    return true
+  } catch {
+    return false
+  }
+}
+
 export function createDefaultSiteMusicConfig(): SiteMusicConfig {
   return {
     enabled: true,
