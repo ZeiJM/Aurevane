@@ -14,7 +14,6 @@ import { getAuthenticatedActor } from '@/server/auth/actor'
 import { loadCharacterProfileImageMap } from '@/server/character/character-profile-display-service'
 import { loadCharacterSlots } from '@/server/character/character-slot-service'
 import { loadSelectedCharacter } from '@/server/character/selected-character'
-import { createServerMasterPanelStaffAccessService } from '@/server/master/staff-access-server'
 
 export const dynamic = 'force-dynamic'
 
@@ -54,7 +53,6 @@ export default async function CharacterSelectPage() {
     selectedCharacterResult,
     accountDeletionResult,
     profileImageUrls,
-    masterPanelAccessResult,
   ] = await Promise.allSettled([
     getActiveBattleForUser(actor.userId),
     getActiveSpectatingForUser(actor.userId),
@@ -62,9 +60,6 @@ export default async function CharacterSelectPage() {
     loadSelectedCharacter(actor),
     getAccountDeletionState(actor.userId),
     profileImageUrlsPromise,
-    createServerMasterPanelStaffAccessService()
-      .readAccess(actor.userId)
-      .catch(() => null),
   ])
   if (activeBattleResult.status === 'rejected') throw activeBattleResult.reason
   const activeBattle = activeBattleResult.value
@@ -77,7 +72,6 @@ export default async function CharacterSelectPage() {
   if (selectedCharacterResult.status === 'rejected') throw selectedCharacterResult.reason
   if (accountDeletionResult.status === 'rejected') throw accountDeletionResult.reason
   if (profileImageUrls.status === 'rejected') throw profileImageUrls.reason
-  if (masterPanelAccessResult.status === 'rejected') throw masterPanelAccessResult.reason
 
   const characters = charactersResult.value
   const selectedCharacter = selectedCharacterResult.value
@@ -89,7 +83,6 @@ export default async function CharacterSelectPage() {
       selectedCharacter={selectedCharacter}
       profileImageUrls={profileImageUrls.value}
       accountDeletion={accountDeletion}
-      masterPanelHref={masterPanelAccessResult.value ? '/master' : null}
     />
   )
 }
