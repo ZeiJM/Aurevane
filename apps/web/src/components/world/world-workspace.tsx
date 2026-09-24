@@ -166,6 +166,14 @@ export function WorldWorkspace({
   const disabled = busy || Boolean(view.movementBlocked)
   const pulseObjectives = view.objectives.filter((objective) => objective.kind === 'event')
   const questObjectives = view.objectives.filter((objective) => objective.kind === 'quest')
+  const majorRegionIds = new Set(WORLD_REGIONS.map((region) => region.id))
+  const chartedMinorSectors = view.sectors.filter(
+    (candidate) =>
+      candidate.charted &&
+      !majorRegionIds.has(candidate.id) &&
+      (candidate.name.toLowerCase().includes(search.toLowerCase()) ||
+        candidate.coordinate.toLowerCase().includes(search.toLowerCase())),
+  )
   return (
     <section className={styles.workspace} data-world-workspace data-av-surface="moonstone">
       <div className={styles.mapColumn}>
@@ -243,7 +251,14 @@ export function WorldWorkspace({
             <Globe
               sectorCoordinate={local.coordinate}
               selected={selected}
-              onSelect={select}
+              sectors={view.sectors}
+              onSelect={(id) => {
+                select(id)
+                setMessage('')
+              }}
+              onUnavailable={(coordinate) =>
+                setMessage(`${coordinate} is uncharted. No charted destination is available there yet.`)
+              }
               grid={grid}
               portrait={character.portrait}
               name={character.name}
@@ -277,7 +292,7 @@ export function WorldWorkspace({
                 </small>
               </>
             ) : selected !== view.position.sectorId ? (
-              'Inspecting a charted region. Choose a walkable tile to plot your journey.'
+              'Inspecting a charted sector. Choose a walkable tile to plot your journey.'
             ) : (
               'Select a square to walk there.'
             )}
@@ -348,7 +363,27 @@ export function WorldWorkspace({
                 ),
               )}
             </div>
-            <p className={styles.regionDescription}>{worldRegion(selected)?.summary}</p>
+            {chartedMinorSectors.length ? (
+              <div className={styles.chartedSectorIndex}>
+                <h3>Charted Sectors</h3>
+                <div className={styles.chartedSectorList}>
+                  {chartedMinorSectors.map((chartedSector) => (
+                    <button
+                      key={chartedSector.id}
+                      data-active={selected === chartedSector.id}
+                      onClick={() => select(chartedSector.id)}
+                    >
+                      <strong>{chartedSector.name}</strong>
+                      <small>{chartedSector.coordinate}</small>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            <p className={styles.regionDescription}>
+              {worldRegion(selected)?.summary ??
+                `${sector.name} · ${sector.coordinate}. An unlabeled charted sector.`}
+            </p>
             <button className={styles.primary} onClick={() => setMode('sector')}>
               Inspect sector →
             </button>

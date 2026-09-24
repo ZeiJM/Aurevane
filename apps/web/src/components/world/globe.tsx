@@ -2,14 +2,16 @@
 import Image from 'next/image'
 import { useState } from 'react'
 import { WORLD_REGIONS } from '@/world/catalog'
-import { globeSectorCenter, projectGlobePoint } from '@/world/globe-math'
+import { globeSectorCenter, globeSectorCoordinate, projectGlobePoint } from '@/world/globe-math'
 import { SphericalView } from './spherical-view'
 import styles from './world.module.css'
 
 export function Globe({
   sectorCoordinate,
   selected,
+  sectors,
   onSelect,
+  onUnavailable,
   grid,
   portrait,
   name,
@@ -17,13 +19,16 @@ export function Globe({
 }: {
   sectorCoordinate: string
   selected: string
+  sectors: readonly { id: string; coordinate: string }[]
   onSelect: (id: string) => void
+  onUnavailable?: (coordinate: string) => void
   grid: boolean
   portrait: string
   name: string
   focusKey: number
 }) {
   const marker = globeSectorCenter(sectorCoordinate)
+  const sectorByCoordinate = new Map(sectors.map((sector) => [sector.coordinate, sector]))
   const [camera, setCamera] = useState({ longitude: 0, latitude: 8 }),
     [zoom, setZoom] = useState(0.94),
     [lastFocus, setLastFocus] = useState(focusKey)
@@ -38,32 +43,37 @@ export function Globe({
     point.visible && Math.abs(point.x * zoom) < 0.82 && Math.abs(point.y * zoom) < 0.9
   const labelVisible = (point: ReturnType<typeof projectGlobePoint>) =>
     point.visible && Math.abs(point.x * zoom) < 0.6 && Math.abs(point.y * zoom) < 0.72
-  const outline = marker
-    ? Array.from({ length: 20 }, (_, i) => {
-        const edge = Math.floor(i / 5),
-          t = (i % 5) / 5,
-          half = 5.625
-        const longitude =
-          marker.longitude +
-          (edge === 0
-            ? -half + t * 11.25
-            : edge === 1
-              ? half
-              : edge === 2
-                ? half - t * 11.25
-                : -half)
-        const latitude =
-          marker.latitude +
-          (edge === 0
+  const sectorOutline = (coordinate: string) => {
+    const center = globeSectorCenter(coordinate)
+    if (!center) return []
+    return Array.from({ length: 20 }, (_, i) => {
+      const edge = Math.floor(i / 5),
+        t = (i % 5) / 5,
+        half = 5.625
+      const longitude =
+        center.longitude +
+        (edge === 0
+          ? -half + t * 11.25
+          : edge === 1
             ? half
-            : edge === 1
+            : edge === 2
               ? half - t * 11.25
-              : edge === 2
-                ? -half
-                : -half + t * 11.25)
-        return projectGlobePoint({ longitude, latitude }, camera)
-      })
-    : []
+              : -half)
+      const latitude =
+        center.latitude +
+        (edge === 0
+          ? half
+          : edge === 1
+            ? half - t * 11.25
+            : edge === 2
+              ? -half
+              : -half + t * 11.25)
+      return projectGlobePoint({ longitude, latitude }, camera)
+    })
+  }
+  const chartedOutlines = sectors
+    .map((sector) => ({ sector, points: sectorOutline(sector.coordinate) }))
+    .filter(({ points }) => points.length && points.every(overlayVisible))
   return (
     <div className={styles.globeStage}>
       <SphericalView
@@ -73,6 +83,13 @@ export function Globe({
         zoom={zoom}
         onZoom={setZoom}
         grid={grid}
+        onActivate={(location) => {
+          const coordinate = globeSectorCoordinate(location)
+          if (!coordinate) return
+          const sector = sectorByCoordinate.get(coordinate)
+          if (sector) onSelect(sector.id)
+          else onUnavailable?.(coordinate)
+        }}
       >
         {WORLD_REGIONS.map((region) => {
           const point = projectGlobePoint(region, camera)
@@ -89,13 +106,19 @@ export function Globe({
             </button>
           )
         })}
-        {projected && overlayVisible(projected) && outline.every(overlayVisible) ? (
+        {chartedOutlines.length ? (
           <svg className={styles.globeOutline} viewBox="0 0 1000 1000" aria-hidden="true">
-            <polygon
-              points={outline
-                .map((p) => `${500 + p.x * zoom * 500},${500 - p.y * zoom * 500}`)
-                .join(' ')}
-            />
+            {chartedOutlines.map(({ sector, points }) => (
+              <polygon
+                key={sector.id}
+                data-sector-outline={sector.id}
+                data-current={sector.coordinate === sectorCoordinate}
+                data-selected={sector.id === selected}
+                points={points
+                  .map((p) => `${500 + p.x * zoom * 500},${500 - p.y * zoom * 500}`)
+                  .join(' ')}
+              />
+            ))}
           </svg>
         ) : null}
         {projected && overlayVisible(projected) ? (
@@ -137,7 +160,7 @@ export function Globe({
           −
         </button>
       </div>
-      <div className={styles.globeHint}>Drag to rotate · Scroll to zoom</div>
+      <div className={styles.globeHint}>Drag to rotate · Scroll to zoom · Click charted grid sectors</div>
       <div className={styles.legend}>
         <span>◉ Charted</span>
         <span>◇ Surveyed</span>

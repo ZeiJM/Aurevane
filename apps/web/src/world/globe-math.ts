@@ -10,6 +10,20 @@ export function globeSectorCenter(coordinate: string): GlobeLocation | null {
   if (east < 1 || east > 32 || north < 1 || north > 16) return null
   return { longitude: (east - 0.5) * 11.25 - 180, latitude: 90 - (north - 0.5) * 11.25 }
 }
+export function globeSectorCoordinate(location: GlobeLocation): string | null {
+  if (
+    !Number.isFinite(location.longitude) ||
+    !Number.isFinite(location.latitude) ||
+    location.latitude < -90 ||
+    location.latitude > 90
+  )
+    return null
+  const longitude = ((location.longitude + 180) % 360 + 360) % 360
+  const east = Math.min(32, Math.floor(longitude / 11.25) + 1)
+  const north = Math.min(16, Math.floor((90 - location.latitude) / 11.25) + 1)
+  if (north < 1 || north > 16) return null
+  return `S${String(east).padStart(2, '0')}-${String(north).padStart(2, '0')}`
+}
 const radians = (degrees: number) => (degrees * Math.PI) / 180
 const degrees = (radians: number) => (radians * 180) / Math.PI
 export function projectGlobePoint(location: GlobeLocation, camera: GlobeLocation) {

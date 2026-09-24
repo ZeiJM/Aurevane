@@ -4,6 +4,7 @@ import { expect, test, type APIResponse, type Page, type TestInfo } from '@playw
 import type { SetPracticePlanRequest } from '@aurevane/validation/player/wayfarers-practice'
 import { provisionAccountAndEnterCharacter, openOfflineTraining } from './pv1f-test-helpers'
 import { WORLD_REGIONS } from '../src/world/catalog'
+import { globeSectorCenter, projectGlobePoint } from '../src/world/globe-math'
 import { newWorldState } from '../src/world/travel'
 import type { WorldView } from '../src/world/types'
 import type { CharacterBuildContext } from '../src/server/character/character-build-service'
@@ -293,7 +294,14 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
     await expect(
       page.locator('aside').getByRole('button', { name: region.name, exact: true }),
     ).toBeVisible()
+  await expect(page.locator('aside').getByText('Charted Sectors', { exact: true })).toBeVisible()
+  await expect(page.locator('aside').getByRole('button', { name: /Crown Road.*S16-08/ })).toBeVisible()
   const sphere = page.getByRole('group', { name: /World globe/ })
+  await expect(page.locator('[data-sector-outline="crown-road"]')).toBeVisible()
+  await expect(page.locator('[data-sector-outline="verdant-expanse"]')).toHaveAttribute(
+    'data-current',
+    'true',
+  )
   const globeBounds = (await sphere.boundingBox())!
   const viewportBounds = (await page.locator('[class*="mapViewport"]').boundingBox())!
   expect(globeBounds.y).toBeGreaterThanOrEqual(viewportBounds.y + 16)
@@ -322,6 +330,38 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
     expect(bounds.y + bounds.height).toBeLessThanOrEqual(zoomedBounds.y + zoomedBounds.height + 1)
   }
   await capture(page, info, 'world-globe-zoomed')
+  for (let i = 0; i < 4; i++) await page.getByRole('button', { name: 'Zoom out' }).click()
+
+  const crownRoad = globeSectorCenter('S16-08')!
+  const crownRoadPoint = projectGlobePoint(crownRoad, { longitude: 0, latitude: 8 })
+  await sphere.click({
+    position: {
+      x: globeBounds.width * (0.5 + crownRoadPoint.x * 0.94 * 0.5),
+      y: globeBounds.height * (0.5 - crownRoadPoint.y * 0.94 * 0.5),
+    },
+  })
+  await expect(page.locator('[class*="regionDescription"]')).toContainText('Crown Road · S16-08')
+  await expect(page.locator('[data-sector-outline="crown-road"]')).toHaveAttribute(
+    'data-selected',
+    'true',
+  )
+  await page.getByRole('button', { name: /Inspect sector/ }).click()
+  await expect(page.getByRole('heading', { name: 'Crown Road', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: /Globe/ }).click()
+
+  const unchartedCell = globeSectorCenter('S17-08')!
+  const unchartedPoint = projectGlobePoint(unchartedCell, { longitude: 0, latitude: 8 })
+  await sphere.click({
+    position: {
+      x: globeBounds.width * (0.5 + unchartedPoint.x * 0.94 * 0.5),
+      y: globeBounds.height * (0.5 - unchartedPoint.y * 0.94 * 0.5),
+    },
+  })
+  await expect(page.getByRole('status')).toContainText(
+    'S17-08 is uncharted. No charted destination is available there yet.',
+  )
+  expect((await world(page)).sectors.some((sector) => sector.coordinate === 'S17-08')).toBe(false)
+
   await page.mouse.move(globeBounds.x + globeBounds.width * 0.45, globeBounds.y + globeBounds.height * 0.5)
   await page.mouse.down()
   await page.mouse.move(

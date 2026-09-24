@@ -1,5 +1,11 @@
 import { expect, it } from 'vitest'
-import { globeSectorCenter, projectGlobePoint, unprojectGlobePoint } from './globe-math'
+import { CHARTED_SECTORS } from './catalog'
+import {
+  globeSectorCenter,
+  globeSectorCoordinate,
+  projectGlobePoint,
+  unprojectGlobePoint,
+} from './globe-math'
 it('centres the player on the actual road sector rather than its parent region', () => {
   expect(globeSectorCenter('S16-08')).toEqual({ longitude: -5.625, latitude: 5.625 })
   expect(globeSectorCenter('S18-08')).toEqual({ longitude: 16.875, latitude: 5.625 })
@@ -25,4 +31,19 @@ it('rejects space and hides the far hemisphere', () => {
   expect(
     projectGlobePoint({ longitude: 180, latitude: 0 }, { longitude: 0, latitude: 0 }).visible,
   ).toBe(false)
+})
+
+it('keeps every charted sector uniquely addressable on the globe grid', () => {
+  const coordinates = CHARTED_SECTORS.map((sector) => sector.coordinate)
+  expect(new Set(coordinates).size).toBe(coordinates.length)
+  for (const coordinate of coordinates) expect(globeSectorCenter(coordinate)).not.toBeNull()
+})
+
+it('maps world locations back to stable 32 by 16 atlas coordinates', () => {
+  for (const coordinate of ['S01-01', 'S16-08', 'S18-10', 'S32-16']) {
+    const center = globeSectorCenter(coordinate)!
+    expect(globeSectorCoordinate(center)).toBe(coordinate)
+  }
+  expect(globeSectorCoordinate({ longitude: 540, latitude: 0 })).toBe('S01-09')
+  expect(globeSectorCoordinate({ longitude: 0, latitude: 91 })).toBeNull()
 })

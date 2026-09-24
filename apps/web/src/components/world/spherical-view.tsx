@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import type { GlobeLocation } from '@/world/globe-math'
+import { unprojectGlobePoint, type GlobeLocation } from '@/world/globe-math'
 import { createSphericalRenderer } from './spherical-renderer'
 import styles from './world.module.css'
 
@@ -12,6 +12,7 @@ interface Props {
   grid?: boolean
   onCamera: (camera: GlobeLocation) => void
   onZoom: (zoom: number) => void
+  onActivate?: (location: GlobeLocation) => void
   children?: ReactNode
 }
 export function SphericalView({
@@ -22,6 +23,7 @@ export function SphericalView({
   grid = true,
   onCamera,
   onZoom,
+  onActivate,
   children,
 }: Props) {
   const canvas = useRef<HTMLCanvasElement>(null),
@@ -79,8 +81,18 @@ export function SphericalView({
           ),
         })
       }}
-      onPointerUp={() => {
+      onPointerUp={(e) => {
+        const start = drag.current
         drag.current = null
+        if (!start || !onActivate || panorama) return
+        const dx = e.clientX - start.x,
+          dy = e.clientY - start.y
+        if (dx * dx + dy * dy > 36) return
+        const bounds = e.currentTarget.getBoundingClientRect(),
+          x = (((e.clientX - bounds.left) / bounds.width) * 2 - 1) / zoom,
+          y = (1 - ((e.clientY - bounds.top) / bounds.height) * 2) / zoom
+        const location = unprojectGlobePoint(x, y, start.camera)
+        if (location) onActivate(location)
       }}
       onPointerCancel={() => {
         drag.current = null
