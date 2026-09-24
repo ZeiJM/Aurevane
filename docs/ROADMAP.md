@@ -60,6 +60,7 @@ Active now:
 
 - preserve the closed Phase-2, Phase-3 and Phase-4 authority/security/gameplay contracts unless a genuine regression or explicit redesign request requires a change;
 - collect Owner feedback on the initial Living Atlas, fix concrete regressions, then continue the remaining Phase-5 slices in `PHASE_5_HANDOVER.md`;
+- treat the Owner's 2026-09-23 world-expansion feedback as committed Phase-5 scope: broader authored land-sector coverage, selectable unlabeled charted sectors, distinct regional settlement compositions, visibly readable but gentle environmental motion, stable globe zoom/framing, and a deliberate fog-of-war/uncharted presentation;
 - keep testing entitlement separate from earned Mastery so every published Discipline remains testable without converting temporary access into progression;
 - treat post-closeout UI polish, performance work and regression fixes as maintenance rather than reopening Phase 4;
 - keep Production deployment Owner-controlled and the default Vercel deployment gate locked.
@@ -498,7 +499,12 @@ These are operational foundations for later world content. They do not themselve
 Scope:
 
 - strategic Atlas/world map;
+- **continuous known-world land exploration**: major labels are regional landmarks, not the only destinations; authored unlabeled land sectors become first-class explorable WorldSectors through the same authoritative chart/discovery/travel registry;
+- **authored sector expansion rather than filler**: broaden the known world with wilderness, roads, minor settlements, ruins, caves, coastlines, crossroads, quest locations and encounter spaces that each contribute meaningful local identity;
+- **explicit neighboring-sector crossings**: adjacent globe cells do not automatically imply traversal; designers author safe reciprocal edge gates so cliffs, water and blocked borders remain authoritative;
 - settlements/locations;
+- **distinct regional settlement composition**: the eight initial major-region towns must not remain one shared layout with biome reskins; each region needs its own settlement silhouette, safe-zone footprint, road/path grammar, landmark identity and matching v02 local-map art;
+- **Living Atlas presentation quality**: environmental water/shore/wind/light/smoke/cloud/mote motion should stay gentle but be clearly visible; globe zoom must preserve a readable framed sphere and keep labels inside the rim; uncharted territory must read as intentional cartographic fog-of-war rather than a flat white placeholder;
 - NPC/dialogue;
 - quests;
 - layered world state;
@@ -509,6 +515,8 @@ Scope:
 - location-coherent battle scenes;
 - player-facing World Pulse and world-event presentation built on the completed Phase-4 operations platform;
 - early Horizon/world gates.
+
+The detailed known-world expansion contract lives in `docs/LIVING_ATLAS_EXPANSION.md`. These Owner-requested world changes are Phase-5 deliverables, not optional polish to be dropped at phase closeout.
 
 ### Supernatural fork
 
@@ -535,7 +543,7 @@ The data model should remain capable of safely representing future Owner-created
 - Field Observation → Archive integration;
 - early evidence of far inhabitants.
 
-**Gate:** players understand the living-world loop, supernatural fork and frontier mystery without confusion or procedural-filler feeling.
+**Gate:** players understand the living-world loop, supernatural fork and frontier mystery without confusion or procedural-filler feeling; the known-world Atlas no longer reads as eight isolated labels, the initial regional settlements are compositionally distinct rather than reskins, environmental motion is perceptible without distraction, and globe/uncharted presentation remains readable at supported responsive sizes.
 
 ---
 

@@ -6,6 +6,23 @@
 
 Initial Atlas scope is implemented in PR #609. The Owner authorized release after all necessary checks; PR #609 records the final checks, migration and production deployment, and PR #671 restores the deployment lock. See `docs/PHASE_5_HANDOVER.md` for the testing boundary and remaining Phase 5 work. Owner Atlas acceptance is still open.
 
+### Owner world-expansion requirements — committed Phase 5 scope (2026-09-23)
+
+These requirements are explicitly retained in the active ledger and must not be dropped as optional polish:
+
+- [ ] **Broaden the explorable known world:** unlabeled land cells are eventual first-class authored sectors, not decorative globe space. Major region labels are hubs/landmarks rather than the only valid destinations.
+- [ ] **Continuous authored land coverage:** add meaningful wilderness/minor-location clusters around and between major regions, then expand toward near-continuous known-world land exploration without procedural filler.
+- [ ] **Explicit adjacent-sector gates:** neighboring globe cells connect only through authored reciprocal edge crossings; adjacency must never silently bypass cliffs, water or blocked borders.
+- [ ] **Distinct starting-region towns:** replace the shared/reskinned settlement composition with eight different settlement silhouettes, safe-zone footprints, route grammars, landmark identities and matching local-map paintings.
+- [ ] **Regional v02 map art:** produce/review paintings that actually match the distinct gameplay geometry before the redesigned settlement layouts merge.
+- [ ] **Readable environmental motion:** water/shore flow, wind, light, smoke/cloud/mote effects remain gentle but must be visually noticeable during ordinary play; reduced-motion and motion-off behavior remain intact.
+- [ ] **Globe zoom/framing:** zoom must preserve a stable readable sphere and keep region labels/annotations inside the visible rim at supported desktop/laptop/mobile sizes.
+- [ ] **Uncharted UI redesign:** unknown territory must read as intentional cartographic fog-of-war/veil rather than a flat white placeholder, while remaining spoiler-safe.
+- [ ] **Visible unlabeled-sector navigation:** charted unlabeled sectors should be visibly selectable on the globe and reachable through an accessible sector index; hidden sectors reveal no protected names/content.
+- [ ] **Preserve authored quality:** more tiles are not success by themselves; each added sector should contribute terrain, exploration, encounter, story, settlement/service, route or quest identity.
+
+Tracking note: the detailed contract is `docs/LIVING_ATLAS_EXPANSION.md`. Existing implementation slices include #679 (presentation/ambient/globe UX), #681 (regional settlement geometry; merge-held for matching art), #682 (unlabeled charted-sector selection) and the authored adjacent-sector crossing foundation under development. Production/Vercel release is intentionally deferred while implementation limits apply.
+
 ### Historical implementation checkpoints (2026-09-22 onward)
 
 Owner approved Phase 5, the globe/sector style, uncharted territory and temporary View 360. Isolated branch `agent/phase5-strategic-atlas-20260922` implements the first Atlas/travel slice with event guidance and existing PvP entry. Phase 4 was subsequently closed by Owner decision on 2026-09-23. See `docs/PHASE_4_CLOSEOUT.md` and `docs/LIVING_ATLAS_DELIVERY.md` for the bounded content scope and verification/release gates; this entry does not claim all Phase 5 complete or authorize deployment.
