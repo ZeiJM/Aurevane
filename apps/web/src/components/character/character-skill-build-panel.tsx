@@ -394,10 +394,16 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                     </span>
                     <div>
                       <h2 id="skill-build-heading">Techniques</h2>
-                      <p>Master your combat techniques. Tick up to {capacity} to form your loadout.</p>
+                      <p>
+                        Master your combat techniques. Tick up to {capacity} to form your loadout.
+                      </p>
                     </div>
                   </div>
-                  <button type="button" className={styles.close} onClick={() => setPanelOpen(false)}>
+                  <button
+                    type="button"
+                    className={styles.close}
+                    onClick={() => setPanelOpen(false)}
+                  >
                     <span aria-hidden="true">×</span>
                     Close
                   </button>
@@ -487,7 +493,9 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                               techniqueId={focusedSkill.definition.id}
                               label={skillDisplayName(focusedSkill.definition)}
                               category={favoriteCategory(focusedSkill.definition)!}
-                              disabled={!selectedIds.includes(focusedSkill.definition.id) || pending}
+                              disabled={
+                                !selectedIds.includes(focusedSkill.definition.id) || pending
+                              }
                             />
                           ) : null}
                         </>
