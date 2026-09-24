@@ -37,15 +37,19 @@ describe('authored supernatural proof content', () => {
     })
 
     expect(SUPERNATURAL_CHOICE_TRANSITIONS).toHaveLength(2)
-    expect(SUPERNATURAL_CHOICE_TRANSITIONS.map((transition) => transition.result.path).sort()).toEqual(
-      ['ascended', 'severed'],
-    )
-    expect(SUPERNATURAL_CHOICE_TRANSITIONS.every((transition) => transition.storyId === 'supernatural.main')).toBe(
-      true,
-    )
-    expect(SUPERNATURAL_CHOICE_TRANSITIONS.every((transition) => transition.fromNodeId === 'awakening.threshold')).toBe(
-      true,
-    )
+    expect(
+      SUPERNATURAL_CHOICE_TRANSITIONS.map((transition) => transition.result.path).sort(),
+    ).toEqual(['ascended', 'severed'])
+    expect(
+      SUPERNATURAL_CHOICE_TRANSITIONS.every(
+        (transition) => transition.storyId === 'supernatural.main',
+      ),
+    ).toBe(true)
+    expect(
+      SUPERNATURAL_CHOICE_TRANSITIONS.every(
+        (transition) => transition.fromNodeId === 'awakening.threshold',
+      ),
+    ).toBe(true)
   })
 
   it('executes both authored choices through the canonical story-state transition engine', () => {
@@ -69,13 +73,19 @@ describe('authored supernatural proof content', () => {
 
     expect(ascended).toMatchObject({
       path: 'ascended',
-      ascension: { id: ASCENSION_PROOF.id, contentVersion: ASCENSION_PROOF.contentVersion },
+      ascension: {
+        id: ASCENSION_PROOF.id,
+        contentVersion: ASCENSION_PROOF.contentVersion,
+      },
       severence: null,
     })
     expect(severed).toMatchObject({
       path: 'severed',
       ascension: null,
-      severence: { id: SEVERENCE_PROOF.id, contentVersion: SEVERENCE_PROOF.contentVersion },
+      severence: {
+        id: SEVERENCE_PROOF.id,
+        contentVersion: SEVERENCE_PROOF.contentVersion,
+      },
     })
   })
 
@@ -89,11 +99,17 @@ describe('authored supernatural proof content', () => {
 
     expect(ascension.result).toEqual({
       path: 'ascended',
-      ascension: { id: ASCENSION_PROOF.id, contentVersion: ASCENSION_PROOF.contentVersion },
+      ascension: {
+        id: ASCENSION_PROOF.id,
+        contentVersion: ASCENSION_PROOF.contentVersion,
+      },
     })
     expect(severence.result).toEqual({
       path: 'severed',
-      severence: { id: SEVERENCE_PROOF.id, contentVersion: SEVERENCE_PROOF.contentVersion },
+      severence: {
+        id: SEVERENCE_PROOF.id,
+        contentVersion: SEVERENCE_PROOF.contentVersion,
+      },
     })
   })
 
