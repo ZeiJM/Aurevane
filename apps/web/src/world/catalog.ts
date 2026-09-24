@@ -1,4 +1,5 @@
 import type { WorldPosition, WorldRegion, WorldRoad, WorldSector } from './types'
+import { buildAuthoredSectorCrossing } from './sector-crossings'
 
 export const GRID_WIDTH = 13
 export const GRID_HEIGHT = 9
@@ -99,6 +100,28 @@ const ROWS = [
   '###s#.....~..',
   '###s==.###~##',
 ].map((row) => row.trim())
+const CROWN_HINTERLAND_ROWS = [
+  '###..###..###',
+  '##...##...###',
+  '#....##....##',
+  '.....##......',
+  '=============',
+  '......##.....',
+  '##....##....#',
+  '###...##...##',
+  '###..####..##',
+] as const
+const CROWN_ROAD_ROWS = [
+  '###...##~~###',
+  '#..#..##~~###',
+  '#.....##~~###',
+  '.......#~~...',
+  '=============',
+  '.......#~~...',
+  '#.....##~~###',
+  '##...###~~###',
+  '########~~###',
+] as const
 // Optional exit rows align each endpoint with its own painted path.
 const LINKS: readonly [string, string, string, number, number?, number?][] = [
   ['aureth-crown', 'crown-road', 'Crown Road', STEP_MS],
@@ -118,10 +141,34 @@ const LINKS: readonly [string, string, string, number, number?, number?][] = [
   ['hollow-coast', 'old-coast-road', 'Old Coast Road', STEP_MS],
   ['old-coast-road', 'umbral-march', 'Old Coast Road', STEP_MS],
 ]
-const roads: WorldRoad[] = LINKS.flatMap(([a, b, name, durationMs, fromY = 4, toY = 4]) => [
+const legacyRoads: WorldRoad[] = LINKS.flatMap(([a, b, name, durationMs, fromY = 4, toY = 4]) => [
   { from: { sectorId: a, x: 12, y: fromY }, to: { sectorId: b, x: 0, y: toY }, name, durationMs },
   { from: { sectorId: b, x: 0, y: toY }, to: { sectorId: a, x: 12, y: fromY }, name, durationMs },
 ])
+const crownHinterland = {
+  id: 'crown-hinterland',
+  coordinate: 'S15-08',
+  rows: CROWN_HINTERLAND_ROWS,
+} as const
+const authoredRoads: WorldRoad[] = [
+  ...buildAuthoredSectorCrossing({
+    from: { id: 'aureth-crown', coordinate: 'S14-08', rows: ROWS },
+    to: crownHinterland,
+    fromOffset: 4,
+    toOffset: 4,
+    name: 'Crown Hinterland',
+    durationMs: STEP_MS,
+  }),
+  ...buildAuthoredSectorCrossing({
+    from: crownHinterland,
+    to: { id: 'crown-road', coordinate: 'S16-08', rows: CROWN_ROAD_ROWS },
+    fromOffset: 4,
+    toOffset: 4,
+    name: 'Crown Hinterland',
+    durationMs: STEP_MS,
+  }),
+]
+const roads: WorldRoad[] = [...legacyRoads, ...authoredRoads]
 export const CHARTED_SECTORS: readonly WorldSector[] = [
   ...WORLD_REGIONS.map((region): WorldSector => ({
     id: region.id,
@@ -161,20 +208,23 @@ export const CHARTED_SECTORS: readonly WorldSector[] = [
     stepMs: 4000,
     east: 0,
     north: 8,
-    rows: [
-      '###...##~~###',
-      '#..#..##~~###',
-      '#.....##~~###',
-      '.......#~~...',
-      '=============',
-      '.......#~~...',
-      '#.....##~~###',
-      '##...###~~###',
-      '########~~###',
-    ],
+    rows: CROWN_ROAD_ROWS,
     charted: true,
     landmarks: [],
     roads: roads.filter((road) => road.from.sectorId === 'crown-road'),
+  },
+  {
+    id: 'crown-hinterland',
+    name: 'Crown Hinterland',
+    coordinate: 'S15-08',
+    regionId: 'aureth-crown',
+    art: null,
+    east: 0,
+    north: 8,
+    rows: CROWN_HINTERLAND_ROWS,
+    charted: true,
+    landmarks: [],
+    roads: roads.filter((road) => road.from.sectorId === 'crown-hinterland'),
   },
   {
     id: 'coastal-road',
