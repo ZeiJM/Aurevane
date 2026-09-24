@@ -6,6 +6,8 @@ import type {
 import { AurevaneError } from '@aurevane/game-core/errors'
 import { describe, expect, it, vi } from 'vitest'
 
+vi.mock('server-only', () => ({}))
+
 import {
   handleSupernaturalStoryGet,
   handleSupernaturalStoryPut,
