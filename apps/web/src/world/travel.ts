@@ -2,9 +2,24 @@ import { GRID_HEIGHT, GRID_WIDTH, START_POSITION, STEP_MS } from './catalog'
 import type { TravelStep, WorldObjective, WorldPosition, WorldSector, WorldState } from './types'
 
 export const ACTIVE_WORLD_SYNC_MS = 1200
+export const MIN_ACTIVE_WORLD_SYNC_MS = 50
 export const IDLE_WORLD_SYNC_MS = 10000
-export function worldSyncIntervalMs(state: { routeLength: number; movementBlocked: boolean }) {
-  return state.routeLength > 0 && !state.movementBlocked ? ACTIVE_WORLD_SYNC_MS : IDLE_WORLD_SYNC_MS
+export function worldSyncDelayMs(state: {
+  routeLength: number
+  movementBlocked: boolean
+  nextStepAt: number | null
+  serverNow: number
+}) {
+  if (state.routeLength > 0 && !state.movementBlocked) {
+    if (state.nextStepAt !== null) {
+      const untilDue = state.nextStepAt - state.serverNow
+      return untilDue <= 0
+        ? MIN_ACTIVE_WORLD_SYNC_MS
+        : Math.max(ACTIVE_WORLD_SYNC_MS, untilDue)
+    }
+    return ACTIVE_WORLD_SYNC_MS
+  }
+  return IDLE_WORLD_SYNC_MS
 }
 
 export const positionKey = (p: WorldPosition) => `${p.sectorId}:${p.x}:${p.y}`
