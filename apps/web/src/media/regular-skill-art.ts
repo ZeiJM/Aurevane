@@ -82,6 +82,16 @@ export const REGULAR_SKILL_ART = {
     '/media/art/discipline-skills/ravager-desperate-execution-v01.webp',
   'ravager.blood-siphon': '/media/art/discipline-skills/ravager-blood-siphon-v01.webp',
   'ravager.open-wound': '/media/art/discipline-skills/ravager-open-wound-v01.webp',
+
+  'edgedancer.lunge': '/media/art/discipline-skills/edgedancer-lunge-v01.webp',
+  'edgedancer.riposte': '/media/art/discipline-skills/edgedancer-riposte-v01.webp',
+  'edgedancer.hamstring': '/media/art/discipline-skills/edgedancer-hamstring-v01.webp',
+  'edgedancer.flourish': '/media/art/discipline-skills/edgedancer-flourish-v01.webp',
+  'edgedancer.poised-guard': '/media/art/discipline-skills/edgedancer-poised-guard-v01.webp',
+  'edgedancer.flanking-cut': '/media/art/discipline-skills/edgedancer-flanking-cut-v01.webp',
+  'edgedancer.severing-cut': '/media/art/discipline-skills/edgedancer-severing-cut-v01.webp',
+  'edgedancer.finishing-thrust':
+    '/media/art/discipline-skills/edgedancer-finishing-thrust-v01.webp',
 } as const
 
 export type RegularSkillArtId = keyof typeof REGULAR_SKILL_ART
