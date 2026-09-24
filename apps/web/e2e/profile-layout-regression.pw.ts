@@ -64,18 +64,13 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
       page.getByRole('heading', { name: 'Character Overview', exact: true }),
     ).toHaveCount(0)
     await expect(page.getByTestId('current-path-coming-soon')).toBeVisible()
+    const primaryNavigation = page.getByRole('navigation', { name: 'Primary game navigation' })
     await expect(
-      page.getByRole('navigation', { name: 'Primary game navigation' }).getByRole('link', {
-        name: 'Arsenal',
-        exact: true,
-      }),
+      primaryNavigation.getByRole('button', { name: 'Arsenal', exact: true }),
+    ).toBeDisabled()
+    await expect(
+      primaryNavigation.getByRole('link', { name: 'Nexus', exact: true }),
     ).toBeVisible()
-    await expect(
-      page.getByRole('navigation', { name: 'Primary game navigation' }).getByRole('button', {
-        name: 'Items',
-        exact: true,
-      }),
-    ).toHaveCount(0)
     await expect(page.locator('[data-character-resource="hp"]')).toBeVisible()
     await expect(page.locator('[data-character-resource="mp"]')).toBeVisible()
 
@@ -135,9 +130,9 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
         )
       const railHeights = railLinkMetrics.map((item) => item.height)
       expect(Math.max(...railHeights) - Math.min(...railHeights)).toBeLessThanOrEqual(1)
-      const arsenalIcon = railLinkMetrics.find((item) => item.label === 'Arsenal')
+      const nexusIcon = railLinkMetrics.find((item) => item.label === 'Nexus')
       const characterIcon = railLinkMetrics.find((item) => item.label === 'Character')
-      expect(arsenalIcon?.iconWidth ?? 0).toBeGreaterThan(characterIcon?.iconWidth ?? 0)
+      expect(nexusIcon?.iconWidth ?? 0).toBeGreaterThan(characterIcon?.iconWidth ?? 0)
     }
 
     await page.evaluate(async () => {
@@ -316,7 +311,7 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
       expect.soft(metrics.sheet.y).toBeGreaterThanOrEqual(metrics.identity.bottom - 1)
     }
 
-    // Profile keeps attribute management; combat build management lives on Arsenal.
+    // Profile keeps attribute management; combat build management lives on Nexus.
     const redistribute = page
       .locator('section[aria-label="Attribute redistribution"] > button')
       .first()
@@ -330,16 +325,16 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
     await redistributionDialog.getByRole('button', { name: 'Close', exact: true }).click()
     await expect(redistributionDialog).toHaveCount(0)
 
-    await page.goto('/game/arsenal')
+    await page.goto('/game/nexus')
     await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
-    await expect(page.getByRole('heading', { name: 'Arsenal', exact: true })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Nexus', exact: true })).toBeVisible()
     await expect(
       page.getByRole('navigation', { name: 'Primary game navigation' }).getByRole('button', {
-        name: 'Items',
+        name: 'Arsenal',
         exact: true,
       }),
-    ).toHaveCount(0)
-    await expect(page.locator('[data-arsenal-panel="items"]')).toBeVisible()
+    ).toBeDisabled()
+    await expect(page.locator('[data-arsenal-panel="power"]')).toBeVisible()
     const arsenalIdentity = page.locator('[data-profile-identity-banner]')
     const arsenalIdentityBox = await arsenalIdentity.boundingBox()
     expect(arsenalIdentityBox).not.toBeNull()
@@ -468,19 +463,13 @@ test('a populated hybrid loadout keeps all four Techniques and management action
     password: 'Disposable-layout-review-2026!',
     characterName,
   })
-  await page.goto('/game/arsenal')
+  await page.goto('/game/nexus')
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
   await page.locator('[data-testid="primary-build-panel"] > button').click()
   const management = page.getByRole('dialog', { name: 'Discipline Management', exact: true })
-  await management
-    .locator('label')
-    .filter({ hasText: /^Proposed Secondary/ })
-    .locator('select')
-    .selectOption('lifebinder')
-  const commitBuild = management.getByRole('button', {
-    name: 'Commit Discipline changes',
-    exact: true,
-  })
+  await management.getByRole('button', { name: /Secondary Discipline/ }).click()
+  await management.locator('select').selectOption('lifebinder')
+  const commitBuild = management.getByRole('button', { name: /Confirm Change/ })
   await expect(commitBuild).toBeEnabled()
   const buildSaved = page.waitForResponse(
     (response) =>
@@ -523,15 +512,15 @@ test('a populated hybrid loadout keeps all four Techniques and management action
       response.url().endsWith('/api/character/build/skills') &&
       response.request().method() === 'PUT',
   )
-  await techniques.getByRole('button', { name: 'Commit Selected Techniques' }).click()
+  await techniques.getByRole('button', { name: /Commit Techniques/ }).click()
   expect((await skillsSaved).status()).toBe(200)
-  await page.goto('/game/arsenal')
+  await page.goto('/game/nexus')
   await expect(page.getByTestId('secondary-discipline-chip')).toHaveText('Lifebinder')
   const loadout = page.locator('[data-arsenal-workspace]')
   await expect(
     loadout.locator('[data-arsenal-technique-row="true"][data-equipped="true"]'),
   ).toHaveCount(4)
-  await expect(page.locator('[aria-labelledby="arsenal-attunement-heading"]')).toContainText(
+  await expect(page.locator('[aria-labelledby="nexus-attunement-heading"]')).toContainText(
     'Resonance',
   )
   await expect(page.getByText('Pronouns', { exact: true })).toHaveCount(0)
