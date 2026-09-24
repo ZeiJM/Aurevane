@@ -6,7 +6,7 @@ import { toServerErrorResponse } from '@/server/http/error-response'
 
 import {
   commitAuthoredSupernaturalStoryTransition,
-  findSupernaturalStoryState,
+  findAuthoredSupernaturalStoryState,
 } from './supernatural-story-state-service'
 
 export interface SupernaturalStoryHandlerDependencies {
@@ -41,7 +41,7 @@ export async function handleSupernaturalStoryGet(
 ): Promise<Response> {
   try {
     const { actor, character } = await selectedCharacter(dependencies)
-    const state = await findSupernaturalStoryState(
+    const state = await findAuthoredSupernaturalStoryState(
       actor.userId,
       character.id,
       dependencies.repository,
