@@ -310,7 +310,6 @@ export function CharacterDisciplineBuildPanel({
     activeSlot === 'primary'
       ? (preview?.proposed.definition ?? current.definition)
       : (preview?.proposedSecondary ?? currentSecondary)
-  const selectedValue = activeSlot === 'primary' ? selectedPrimaryId : selectedSecondaryId
   const secondarySelectable = visibleSecondaryOptions.length > 0 || Boolean(currentSecondary)
   const changedCore = coreDeltas.filter((entry) => entry.direction !== 'neutral').slice(0, 4)
   const changedAdventure = adventureDeltas
@@ -428,14 +427,6 @@ export function CharacterDisciplineBuildPanel({
     }
   }
 
-  function selectProposed(value: string) {
-    if (activeSlot === 'primary') {
-      void previewSelection(value, selectedSecondaryId)
-    } else {
-      void previewSelection(selectedPrimaryId, value)
-    }
-  }
-
   return (
     <div className={styles.root} data-testid="primary-build-panel">
       <button
@@ -547,7 +538,6 @@ export function CharacterDisciplineBuildPanel({
                         <strong>{current.definition.name}</strong>
                         <p>{current.definition.summary}</p>
                       </div>
-                      <b>● Live</b>
                     </article>
                     {currentSecondary ? (
                       <article className={styles.currentDiscipline} data-av-surface="ink">
@@ -560,7 +550,6 @@ export function CharacterDisciplineBuildPanel({
                           <strong>{currentSecondary.name}</strong>
                           <p>{currentSecondary.summary}</p>
                         </div>
-                        <b>● Live</b>
                       </article>
                     ) : (
                       <article
@@ -587,45 +576,58 @@ export function CharacterDisciplineBuildPanel({
                     <span>Explore. Compare. Commit.</span>
                   </div>
                   <div className={styles.selectionControls}>
-                    <div className={styles.controlBlock}>
-                      <span>Apply to</span>
-                      <div className={styles.slotButtons}>
-                        <button
-                          type="button"
-                          data-active={activeSlot === 'primary' ? 'true' : 'false'}
-                          onClick={() => setActiveSlot('primary')}
-                          disabled={pendingPreview || pendingCommit || remaining.primary > 0}
-                        >
-                          ⚔ Primary Discipline
-                        </button>
-                        <button
-                          type="button"
-                          data-active={activeSlot === 'secondary' ? 'true' : 'false'}
-                          onClick={() => setActiveSlot('secondary')}
-                          disabled={
-                            pendingPreview ||
-                            pendingCommit ||
-                            remaining.secondary > 0 ||
-                            !secondarySelectable
-                          }
-                        >
-                          ▣ Secondary Discipline
-                        </button>
-                      </div>
-                    </div>
-
-                    <label className={styles.selector}>
-                      <span>Proposed Discipline</span>
+                    <label
+                      className={styles.slotSelector}
+                      data-active={activeSlot === 'primary' ? 'true' : 'false'}
+                      onFocus={() => setActiveSlot('primary')}
+                    >
+                      <span>Primary Discipline</span>
                       <select
-                        value={selectedValue}
-                        onChange={(event) => selectProposed(event.target.value)}
-                        disabled={pendingPreview || pendingCommit || refreshingProfile}
+                        value={selectedPrimaryId}
+                        onChange={(event) => {
+                          setActiveSlot('primary')
+                          void previewSelection(event.target.value, selectedSecondaryId)
+                        }}
+                        disabled={
+                          pendingPreview ||
+                          pendingCommit ||
+                          refreshingProfile ||
+                          remaining.primary > 0
+                        }
                       >
-                        {activeSlot === 'secondary' ? <option value="">None</option> : null}
-                        {(activeSlot === 'primary'
-                          ? visiblePrimaryOptions
-                          : visibleSecondaryOptions
-                        ).map((entry) => (
+                        {visiblePrimaryOptions.map((entry) => (
+                          <option
+                            key={`${entry.definition.id}:${entry.definition.definitionVersion}`}
+                            value={entry.definition.id}
+                          >
+                            {entry.definition.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label
+                      className={styles.slotSelector}
+                      data-active={activeSlot === 'secondary' ? 'true' : 'false'}
+                      onFocus={() => setActiveSlot('secondary')}
+                    >
+                      <span>Secondary Discipline</span>
+                      <select
+                        value={selectedSecondaryId}
+                        onChange={(event) => {
+                          setActiveSlot('secondary')
+                          void previewSelection(selectedPrimaryId, event.target.value)
+                        }}
+                        disabled={
+                          pendingPreview ||
+                          pendingCommit ||
+                          refreshingProfile ||
+                          remaining.secondary > 0 ||
+                          !secondarySelectable
+                        }
+                      >
+                        <option value="">None</option>
+                        {visibleSecondaryOptions.map((entry) => (
                           <option
                             key={`${entry.definition.id}:${entry.definition.definitionVersion}`}
                             value={entry.definition.id}
@@ -644,7 +646,6 @@ export function CharacterDisciplineBuildPanel({
                     >
                       <span aria-hidden="true">⚔</span>
                       {pendingCommit ? 'Committing…' : 'Confirm Change'}
-                      <span aria-hidden="true">›</span>
                     </button>
                   </div>
                 </section>
@@ -691,7 +692,7 @@ export function CharacterDisciplineBuildPanel({
 
                   <article className={styles.previewCard}>
                     <header>
-                      <span>{`Proposed ${activeSlot === 'primary' ? 'Primary' : 'Secondary'}`}</span>
+                      <span>{`Preview ${activeSlot === 'primary' ? 'Primary' : 'Secondary'}`}</span>
                       <b data-preview="true">● Preview</b>
                     </header>
                     <div className={styles.previewIdentity}>
@@ -766,12 +767,6 @@ export function CharacterDisciplineBuildPanel({
                       {changedCore.length === 0 && changedAdventure.length === 0 ? (
                         <p>No stat changes in the current preview.</p>
                       ) : null}
-                    </div>
-                    <div className={styles.impactNote}>
-                      <strong>Build Shift</strong>
-                      <p>
-                        Review the authoritative preview before committing the Discipline change.
-                      </p>
                     </div>
                   </aside>
                 </section>
