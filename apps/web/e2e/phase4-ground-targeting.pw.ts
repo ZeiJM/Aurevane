@@ -34,8 +34,8 @@ async function equipMist(page: Page) {
   const skills = page.getByRole('dialog', { name: 'Techniques', exact: true })
   const mist = skills.locator('article').filter({ hasText: 'Chilling Mist' })
   const mistCheckbox = mist.getByRole('checkbox')
-  const coarsePointer = await page.evaluate(() =>
-    window.matchMedia('(hover: none), (pointer: coarse)').matches,
+  const coarsePointer = await page.evaluate(
+    () => window.matchMedia('(hover: none), (pointer: coarse)').matches,
   )
   const saved = page.waitForResponse(
     (response) =>
