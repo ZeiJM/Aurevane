@@ -1,13 +1,9 @@
 import 'server-only'
 import { createHash } from 'node:crypto'
-import {
-  isStarterCharacterPortraitRef,
-  STARTER_CHARACTER_PORTRAITS,
-} from '@aurevane/game-core/character/starter-options'
 import { AurevaneError } from '@aurevane/game-core/errors'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
-import { getStarterPortraitImageAssetId } from '@/media/character'
-import { getImageAsset } from '@/media/registry'
+import { resolveCharacterPortraitImageUrl } from '@/media/character'
+import { loadPublicCharacterProfileImageMap } from '@/server/character/character-profile-display-service'
 import { isSafe, newWorldState } from '@/world/travel'
 import type { WorldCommand, WorldPlayer, WorldState } from '@/world/types'
 import { eventWorldObjectives } from './world-events'
@@ -91,18 +87,18 @@ export async function readWorld(userId: string, characterId: string) {
   const data = await readWorldData(userId, characterId)
   const objectives = [...WORLD_OBJECTIVES, ...eventWorldObjectives(data.eventObjectives)]
   const state = data.state as WorldState
+  const players = data.players as WorldPlayer[]
+  const imageMap = await loadPublicCharacterProfileImageMap(
+    players.map((player) => player.characterId),
+  ).catch(() => new Map<string, string>())
   const view = projectWorld(
     state,
-    (data.players as WorldPlayer[]).map((player) => ({
+    players.map((player) => ({
       ...player,
-      imageUrl:
-        getImageAsset(
-          getStarterPortraitImageAssetId(
-            isStarterCharacterPortraitRef(player.portraitRef)
-              ? player.portraitRef
-              : STARTER_CHARACTER_PORTRAITS[0]!.ref,
-          ),
-        ).src ?? null,
+      imageUrl: resolveCharacterPortraitImageUrl(
+        imageMap.get(player.characterId),
+        player.portraitRef,
+      ),
     })),
     data.serverNow,
     objectives,
