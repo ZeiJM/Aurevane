@@ -287,9 +287,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                 : `${discipline?.name ?? 'Discipline'} Techniques`}
             </h3>
           </div>
-          <small>
-            {locked ? '0 / 8 unlocked' : `${skills.length} techniques available`}
-          </small>
+          <small>{locked ? '0 / 8 unlocked' : `${skills.length} techniques available`}</small>
         </header>
         <div className={styles.skillGrid}>
           {Array.from({ length: TECHNIQUES_PER_DISCIPLINE }, (_, index) => {
