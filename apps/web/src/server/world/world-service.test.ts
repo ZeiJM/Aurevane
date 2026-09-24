@@ -101,9 +101,9 @@ describe('world authority and spoiler projection', () => {
       regionId: 'aureth-crown',
       charted: true,
     })
-    expect(hinterland.cells.filter((cell) => cell.y === 4).every((cell) => cell.walkable && !cell.safe)).toBe(
-      true,
-    )
+    expect(
+      hinterland.cells.filter((cell) => cell.y === 4).every((cell) => cell.walkable && !cell.safe),
+    ).toBe(true)
     expect(hinterland.exits.map((exit) => exit.to.sectorId).sort()).toEqual([
       'aureth-crown',
       'crown-road',
