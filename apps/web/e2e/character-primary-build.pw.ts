@@ -14,7 +14,7 @@ function uniqueCharacterName(): string {
   return `Primary ${letters}`
 }
 
-test('Arsenal previews and commits Primary Discipline while Character preserves personal allocation', async ({
+test('Nexus previews and commits Primary Discipline while Character preserves personal allocation', async ({
   page,
 }, testInfo) => {
   test.skip(
@@ -55,55 +55,44 @@ test('Arsenal previews and commits Primary Discipline while Character preserves 
     }),
   )
 
-  await page.goto('/game/arsenal')
+  await page.goto('/game/nexus')
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
 
   const panel = page.getByTestId('primary-build-panel')
   await expect(panel).toBeVisible()
-  const launcher = panel.getByRole('button', { name: /Manage Primary Discipline/ })
+  const launcher = panel.getByRole('button', { name: /Manage Disciplines/ })
   const primaryDisciplineChip = page.getByTestId('primary-discipline-chip')
   await expect(launcher).toBeVisible()
-  await expect(launcher).toHaveText('Discipline Management')
+  await expect(launcher).toHaveText(/Manage Disciplines/)
   await expect(primaryDisciplineChip).toHaveText('Vanguard')
 
   await launcher.click()
   const dialog = page.getByRole('dialog', { name: 'Discipline Management' })
   await expect(dialog).toBeVisible()
-  await expect(dialog).toContainText('Committed Primary')
+  await expect(dialog).toContainText('Currently Committed')
   await expect(dialog).toContainText('Vanguard')
-  await expect(dialog).not.toContainText('Committed Secondary')
-  await expect(dialog.locator('[aria-label="Choose a proposed Primary"]')).toHaveCount(0)
+  await expect(dialog).toContainText('Secondary Discipline')
+  await expect(dialog).toContainText('Locked')
 
-  const primary = dialog
-    .locator('label')
-    .filter({ hasText: /^Proposed Primary/ })
-    .locator('select')
-  const secondary = dialog
-    .locator('label')
-    .filter({ hasText: /^Proposed Secondary/ })
-    .locator('select')
-  await expect(secondary.locator('option[value=""]')).toHaveText('None')
-  await expect(secondary.locator('option[value="vanguard"]')).toHaveCount(0)
-  await primary.selectOption('aetherist')
+  const primarySlot = dialog.getByRole('button', { name: /Primary Discipline/ })
+  const secondarySlot = dialog.getByRole('button', { name: /Secondary Discipline/ })
+  const proposed = dialog.locator('select')
 
-  const preview = page.getByTestId('primary-build-preview')
+  await secondarySlot.click()
+  await expect(proposed.locator('option[value=""]')).toHaveText('None')
+  await expect(proposed.locator('option[value="vanguard"]')).toHaveCount(0)
+  await primarySlot.click()
+  await proposed.selectOption('aetherist')
+
+  const preview = dialog.locator('[aria-label="Discipline stat preview"]')
   await expect(preview).toBeVisible()
+  await expect(preview).toContainText('Proposed Primary')
   await expect(preview).toContainText('Aetherist')
-  await expect(preview).not.toContainText('Pure')
-  await expect(preview).not.toContainText('Build v1')
-  await expect(preview).toContainText('Core stats')
-  await expect(preview).toContainText('Adventure stats')
-  await expect(preview).toContainText('Maximum HP')
-  await expect(preview).toContainText('Maximum MP')
-  await expect(preview).not.toContainText('Personal allocation is preserved')
-  await expect(preview).toContainText('Unchanged')
+  await expect(preview).toContainText('Change Impact')
 
-  await page.getByRole('button', { name: 'Commit Aetherist as Primary' }).click()
-  await expect(preview).toBeHidden()
-  await expect(page.getByRole('status')).toContainText(
-    'Aetherist is now the committed Primary Discipline.',
-  )
-  await expect(launcher).toHaveText('Discipline Management')
+  await dialog.getByRole('button', { name: /Confirm Change/ }).click()
+  await expect(page.getByRole('status')).toContainText('Discipline changes committed.')
+  await expect(launcher).toHaveText(/Manage Disciplines/)
   await expect(primaryDisciplineChip).toHaveText('Aetherist')
   await dialog.getByRole('button', { name: 'Close', exact: true }).click()
 
@@ -124,19 +113,19 @@ test('Arsenal previews and commits Primary Discipline while Character preserves 
   await expect(maxHp).not.toHaveText(maxHpBefore)
   const maxHpAfter = await maxHp.innerText()
 
-  await page.goto('/game/arsenal')
+  await page.goto('/game/nexus')
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
   await launcher.click()
   await expect(dialog).toBeVisible()
-  await primary.selectOption('vanguard')
+  await proposed.selectOption('vanguard')
   await expect(preview).toBeVisible()
-  await expect(preview).not.toContainText('Build v2')
+  await expect(preview).toContainText('Vanguard')
 
   await page.reload()
   await expect(dialog).toBeVisible()
-  await expect(dialog).toContainText('Committed Primary')
+  await expect(dialog).toContainText('Currently Committed')
   await expect(dialog).toContainText('Aetherist')
-  await expect(dialog).not.toContainText('Committed Secondary')
+  await expect(dialog).toContainText('Secondary Discipline')
   await page.mouse.click(1, 1)
   await expect(dialog).toBeHidden()
 
