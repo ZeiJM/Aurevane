@@ -137,6 +137,30 @@ describe('supernatural story HTTP handler', () => {
     expect(commitTransition).not.toHaveBeenCalled()
   })
 
+  it('does not create supernatural eligibility through the public choice endpoint', async () => {
+    const initialize = vi.fn()
+    const commitTransition = vi.fn()
+    const response = await handleSupernaturalStoryPut(
+      putRequest({
+        expectedStateVersion: 1,
+        idempotencyKey: '00000000-0000-4000-8000-000000000936',
+        transitionId: 'supernatural.main.choose-ascension',
+        transitionContentVersion: 1,
+      }),
+      dependencies({
+        repository: repository({
+          find: vi.fn(async () => null),
+          initialize,
+          commitTransition,
+        }),
+      }),
+    )
+
+    expect(response.status).toBe(400)
+    expect(initialize).not.toHaveBeenCalled()
+    expect(commitTransition).not.toHaveBeenCalled()
+  })
+
   it('checks gameplay mutation eligibility before committing a choice', async () => {
     const guard = vi.fn(async () => {
       throw new AurevaneError('INVALID_REQUEST', 'Blocked while in battle.')
@@ -162,11 +186,8 @@ describe('supernatural story HTTP handler', () => {
   })
 
   it('commits only the exact authored transition reference and returns the authoritative state', async () => {
-    const find = vi
-      .fn<SupernaturalStoryStateRepository['find']>()
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(state())
-    const initialize = vi.fn(async () => state())
+    const find = vi.fn(async () => state())
+    const initialize = vi.fn()
     const commitTransition = vi.fn(async (input: CommitSupernaturalStoryTransitionInput) => ({
       state: state({
         stateVersion: 2,
@@ -193,7 +214,7 @@ describe('supernatural story HTTP handler', () => {
     )
 
     expect(response.status).toBe(200)
-    expect(initialize).toHaveBeenCalledTimes(1)
+    expect(initialize).not.toHaveBeenCalled()
     expect(commitTransition).toHaveBeenCalledWith(
       expect.objectContaining({
         transitionId: 'supernatural.main.choose-ascension',
