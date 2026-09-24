@@ -93,7 +93,11 @@ describe('world authority and spoiler projection', () => {
     const road = view.sectors.find((s) => s.id === 'crown-road')!
     expect(road).toBeDefined()
     expect(road.cells.filter((c) => c.y === 4).every((c) => c.walkable && !c.safe)).toBe(true)
-    expect(road.exits.map((e) => e.to.sectorId).sort()).toEqual(['aureth-crown', 'verdant-expanse'])
+    expect(road.exits.map((e) => e.to.sectorId).sort()).toEqual([
+      'aureth-crown',
+      'crown-hinterland',
+      'verdant-expanse',
+    ])
     expect(() =>
       assertEncounterRange(state, { ...state, position: { ...state.position, x: 6 } }),
     ).not.toThrow()
