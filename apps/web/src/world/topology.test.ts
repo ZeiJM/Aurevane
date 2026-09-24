@@ -84,31 +84,31 @@ describe('authored world topology validation', () => {
   })
 
   it('rejects dangling, blocked, unnamed, nonpositive and one-way roads', () => {
-    const west = authoredSector('west', 'S16-08')
+    const west = authoredSector('west', 'S16-08', {
+      roads: [
+        {
+          from: { sectorId: 'west', x: 12, y: 4 },
+          to: { sectorId: 'east', x: 0, y: 0 },
+          name: '',
+          durationMs: 0,
+        },
+        {
+          from: { sectorId: 'other', x: 12, y: 4 },
+          to: { sectorId: 'missing', x: 0, y: 4 },
+          name: 'Broken source',
+          durationMs: 1000,
+        },
+        {
+          from: { sectorId: 'west', x: 12, y: 3 },
+          to: { sectorId: 'missing', x: 0, y: 3 },
+          name: 'Missing target',
+          durationMs: 1000,
+        },
+      ],
+    })
     const east = authoredSector('east', 'S17-08', {
       rows: ['#............', ...rows.slice(1)],
     })
-
-    west.roads = [
-      {
-        from: { sectorId: 'west', x: 12, y: 4 },
-        to: { sectorId: 'east', x: 0, y: 0 },
-        name: '',
-        durationMs: 0,
-      },
-      {
-        from: { sectorId: 'other', x: 12, y: 4 },
-        to: { sectorId: 'missing', x: 0, y: 4 },
-        name: 'Broken source',
-        durationMs: 1000,
-      },
-      {
-        from: { sectorId: 'west', x: 12, y: 3 },
-        to: { sectorId: 'missing', x: 0, y: 3 },
-        name: 'Missing target',
-        durationMs: 1000,
-      },
-    ]
 
     const issues = validateWorldTopology([west, east])
     expect(issues.map((issue) => issue.code)).toEqual(
@@ -124,23 +124,23 @@ describe('authored world topology validation', () => {
   })
 
   it('accepts an exact reciprocal authored crossing', () => {
-    const west = authoredSector('west', 'S16-08')
-    const east = authoredSector('east', 'S17-08')
     const eastbound = {
       from: { sectorId: 'west', x: 12, y: 4 },
       to: { sectorId: 'east', x: 0, y: 3 },
       name: 'Hinterland crossing',
       durationMs: 1800,
     }
-    west.roads = [eastbound]
-    east.roads = [
-      {
-        from: eastbound.to,
-        to: eastbound.from,
-        name: eastbound.name,
-        durationMs: eastbound.durationMs,
-      },
-    ]
+    const west = authoredSector('west', 'S16-08', { roads: [eastbound] })
+    const east = authoredSector('east', 'S17-08', {
+      roads: [
+        {
+          from: eastbound.to,
+          to: eastbound.from,
+          name: eastbound.name,
+          durationMs: eastbound.durationMs,
+        },
+      ],
+    })
 
     expect(validateWorldTopology([west, east])).toEqual([])
   })
