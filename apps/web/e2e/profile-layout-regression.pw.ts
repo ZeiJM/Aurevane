@@ -68,9 +68,7 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
     await expect(
       primaryNavigation.getByRole('button', { name: 'Arsenal', exact: true }),
     ).toBeDisabled()
-    await expect(
-      primaryNavigation.getByRole('link', { name: 'Nexus', exact: true }),
-    ).toBeVisible()
+    await expect(primaryNavigation.getByRole('link', { name: 'Nexus', exact: true })).toBeVisible()
     await expect(page.locator('[data-character-resource="hp"]')).toBeVisible()
     await expect(page.locator('[data-character-resource="mp"]')).toBeVisible()
 
