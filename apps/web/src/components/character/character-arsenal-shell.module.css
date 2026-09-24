@@ -539,6 +539,7 @@
 
   .arsenal {
     height: auto;
+    grid-template-rows: none;
     overflow: visible;
   }
 
@@ -563,6 +564,7 @@
 
   .arsenal {
     height: auto;
+    grid-template-rows: none;
     overflow: visible;
     padding: 0.62rem;
   }
