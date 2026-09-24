@@ -73,6 +73,23 @@ describe('authenticated navigation performance contracts', () => {
     expect(world).toContain('AuthenticatedGameRecoveryContent')
   })
 
+  it('schedules Atlas travel from authoritative step deadlines instead of fixed polling', () => {
+    const workspace = source('src/components/world/world-workspace.tsx')
+    const travel = source('src/world/travel.ts')
+
+    expect(workspace).toContain('worldSyncDelayMs')
+    expect(workspace).toContain('window.setTimeout')
+    expect(workspace).not.toContain('window.setInterval')
+    expect(travel).toContain('state.nextStepAt - state.serverNow')
+  })
+
+  it('keeps route-only site music changes from broadcasting a new audio context value', () => {
+    const audio = source('src/components/audio/audio-provider.tsx')
+
+    expect(audio).toContain('const contextValue = useMemo<AudioContextValue>(')
+    expect(audio).toContain('<AudioRuntimeContext.Provider value={contextValue}>')
+  })
+
   it('bounds repeated Atlas client render work', () => {
     const sector = source('src/components/world/sector-map.tsx')
     const sphere = source('src/components/world/spherical-view.tsx')
