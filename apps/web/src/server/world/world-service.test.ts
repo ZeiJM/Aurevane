@@ -4,6 +4,7 @@ import { newWorldState, revealNearby } from '@/world/travel'
 import { FRONTIER_APPROACH } from '@/world/catalog'
 import { assertEncounterRange, projectWorld, resolveWorldIntent } from './world-service'
 import { EASTERN_WATCH, EASTERN_WATCH_INTERACTION_ID, VERDANT_SETTLEMENT } from './world-objectives'
+import { FIRST_FIELD_OBSERVATION_ID } from './world-archive'
 
 describe('world authority and spoiler projection', () => {
   it.each([
@@ -239,6 +240,26 @@ describe('world authority and spoiler projection', () => {
     ]
     expect(projectWorld(state, players, 1000).players).toEqual([])
   })
+  it('reveals a frontier Field Observation in the Archive only after it is recorded', () => {
+    const state = newWorldState()
+    const hidden = projectWorld(state, [], 1000)
+    expect(hidden.archive).toEqual([])
+    expect(JSON.stringify(hidden)).not.toContain('Weathered Observatory')
+
+    const recorded = {
+      ...state,
+      completedObjectives: [...state.completedObjectives, FIRST_FIELD_OBSERVATION_ID],
+    }
+    expect(projectWorld(recorded, [], 1000).archive).toEqual([
+      expect.objectContaining({
+        id: 'field-observation-first-observation',
+        kind: 'field-observation',
+        title: 'Weathered Observatory',
+        provenance: 'Direct field observation',
+      }),
+    ])
+  })
+
   it('persists discovery and completes an arrival objective once', () => {
     const state = { ...newWorldState(), position: FRONTIER_APPROACH }
     const next = resolveWorldIntent(state, { kind: 'tick' }, 1000)
