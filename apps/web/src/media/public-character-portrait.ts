@@ -1,8 +1,5 @@
 import { isStarterCharacterPortraitRef } from '@aurevane/game-core/character/starter-options'
 
-import { getStarterPortraitImageAssetId } from './character'
-import { getImageAsset } from './registry'
-
 export function resolvePublicCharacterImageUrl(
   profileImageUrl: string | null | undefined,
   portraitRef: string | null | undefined,
@@ -11,5 +8,5 @@ export function resolvePublicCharacterImageUrl(
   if (custom) return custom
   if (!portraitRef || !isStarterCharacterPortraitRef(portraitRef)) return null
 
-  return getImageAsset(getStarterPortraitImageAssetId(portraitRef)).src ?? null
+  return `/api/media/starter-portrait/${encodeURIComponent(portraitRef)}`
 }
