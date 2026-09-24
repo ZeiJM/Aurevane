@@ -514,7 +514,9 @@ test('a populated hybrid loadout keeps all four Techniques and management action
     await choice.check()
     expect((await skillsSaved).status()).toBe(200)
   }
-  await expect(techniques.getByRole('button', { name: 'Commit Selected Techniques' })).toHaveCount(0)
+  await expect(techniques.getByRole('button', { name: 'Commit Selected Techniques' })).toHaveCount(
+    0,
+  )
   await page.goto('/game/nexus')
   await expect(page.getByTestId('secondary-discipline-chip')).toHaveText('Lifebinder')
   const loadout = page.locator('[data-arsenal-workspace]')
