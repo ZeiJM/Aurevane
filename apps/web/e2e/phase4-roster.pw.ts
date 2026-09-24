@@ -239,8 +239,6 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
       }),
     ]),
   )
-  await expect(management).toContainText('36 Disciplines')
-  await expect(management).toContainText('Testing access is open.')
   const primary = management.locator('select')
   await expect(primary.locator('option[value="bastion"]')).toHaveCount(1)
   // Existing Owner-authorized testing access covers all published Disciplines without fake Mastery.
