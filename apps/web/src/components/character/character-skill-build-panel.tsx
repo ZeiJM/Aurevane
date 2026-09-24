@@ -331,7 +331,12 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                     disabled={disabled}
                     onChange={() => toggle(entry)}
                   />
-                  <span className={styles.skillArt} aria-hidden="true">
+                  <span
+                    className={styles.skillArt}
+                    data-av-square-media="true"
+                    data-av-square-media-fit="contain"
+                    aria-hidden="true"
+                  >
                     <Image
                       src={battleSkillArtwork(entry.definition.id)}
                       width={64}
@@ -438,7 +443,11 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                 </div>
 
                 <div className={styles.workspace}>
-                  <section className={styles.techniqueArea} aria-label="Available Techniques">
+                  <section
+                    className={styles.techniqueArea}
+                    aria-label="Available Techniques"
+                    data-testid="learned-skill-list"
+                  >
                     {renderTechniqueGroup(primaryDiscipline, primarySkills, false)}
                     {renderTechniqueGroup(secondaryDiscipline, secondarySkills, true)}
                   </section>
@@ -464,7 +473,11 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                       {focusedSkill ? (
                         <>
                           <div className={styles.selectedTechniqueHeading}>
-                            <span className={styles.detailArt}>
+                            <span
+                              className={styles.detailArt}
+                              data-av-square-media="true"
+                              data-av-square-media-fit="contain"
+                            >
                               <Image
                                 src={battleSkillArtwork(focusedSkill.definition.id)}
                                 width={80}
