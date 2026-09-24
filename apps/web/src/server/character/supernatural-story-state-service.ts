@@ -207,9 +207,16 @@ export async function commitAuthoredSupernaturalStoryTransition(
     idempotencyKey: string
     transitionId: string
     transitionContentVersion: number
+    confirmPermanentChoice: boolean
   },
   repository: SupernaturalStoryStateRepository,
 ) {
+  if (!input.confirmPermanentChoice)
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Confirm the permanent supernatural choice before continuing.',
+    )
+
   const transition = resolveSupernaturalChoiceTransition(
     input.transitionId,
     input.transitionContentVersion,
