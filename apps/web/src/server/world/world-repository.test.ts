@@ -1,8 +1,14 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 import { createHash } from 'node:crypto'
 vi.mock('server-only', () => ({}))
-const { rpc } = vi.hoisted(() => ({ rpc: vi.fn() }))
+const { rpc, profileImages } = vi.hoisted(() => ({
+  rpc: vi.fn(),
+  profileImages: new Map<string, string>(),
+}))
 vi.mock('@/lib/supabase/admin', () => ({ createSupabaseAdminClient: () => ({ rpc }) }))
+vi.mock('@/server/character/character-profile-display-service', () => ({
+  loadPublicCharacterProfileImageMap: vi.fn(async () => new Map(profileImages)),
+}))
 import { newWorldState } from '@/world/travel'
 import type { WorldCommand } from '@/world/types'
 import { commitWorldCommand, readWorld } from './world-repository'
@@ -23,7 +29,10 @@ const payload = () => ({
   lastCommandId: null,
   lastCommandFingerprint: null,
 })
-beforeEach(() => rpc.mockReset())
+beforeEach(() => {
+  rpc.mockReset()
+  profileImages.clear()
+})
 
 it('materializes expired training once using the existing authority, without claiming rewards', async () => {
   rpc
@@ -96,4 +105,46 @@ it('records successful early ticks so a retry cannot advance a later due step', 
     p_kind: 'tick',
     p_request_fingerprint: expect.stringMatching(/^[0-9a-f]{64}$/),
   })
+})
+
+
+it('projects current profile images for nearby players and starter portraits when unset', async () => {
+  const state = newWorldState()
+  const customId = '00000000-0000-4000-8000-000000000021'
+  const starterId = '00000000-0000-4000-8000-000000000022'
+  profileImages.set(customId, 'https://images.example.test/custom-profile.webp')
+  rpc.mockResolvedValue({
+    data: {
+      ...payload(),
+      state,
+      players: [
+        {
+          characterId: customId,
+          name: 'Custom',
+          level: 9,
+          portraitRef: 'portrait.starter.wayfarer-01',
+          imageUrl: null,
+          position: state.position,
+          attackable: false,
+        },
+        {
+          characterId: starterId,
+          name: 'Starter',
+          level: 3,
+          portraitRef: 'portrait.starter.wayfarer-07',
+          imageUrl: null,
+          position: state.position,
+          attackable: false,
+        },
+      ],
+    },
+  })
+
+  const view = (await readWorld('owner', characterId)).view
+  expect(view.players.find((player) => player.characterId === customId)?.imageUrl).toBe(
+    'https://images.example.test/custom-profile.webp',
+  )
+  expect(view.players.find((player) => player.characterId === starterId)?.imageUrl).toMatch(
+    /^\/media\/.+\.webp$/,
+  )
 })
