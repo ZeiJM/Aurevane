@@ -59,6 +59,6 @@ it('renders a selected starter portrait for a public character without a custom 
   )
 
   expect(markup).toContain('<img')
-  expect(markup).toContain('data:image/webp;base64,')
+  expect(markup).toContain('/api/media/starter-portrait/portrait.starter.wayfarer-07')
   expect(markup).toContain('Starter Vale portrait')
 })
