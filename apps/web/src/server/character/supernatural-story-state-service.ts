@@ -123,6 +123,15 @@ function fingerprint(
     .digest('hex')}`
 }
 
+export async function findSupernaturalStoryState(
+  userId: string,
+  characterId: string,
+  repository: SupernaturalStoryStateRepository,
+): Promise<SupernaturalStoryState | null> {
+  const existing = await repository.find(userId, characterId)
+  return existing ? toCoreState(existing) : null
+}
+
 export async function loadOrInitializeSupernaturalStoryState(
   userId: string,
   characterId: string,
@@ -191,6 +200,8 @@ export async function commitAuthoredSupernaturalStoryTransition(
       'INVALID_REQUEST',
       'That supernatural transition version is not authored or available.',
     )
+
+  await loadOrInitializeAuthoredSupernaturalStoryState(userId, characterId, repository)
 
   return commitSupernaturalStoryTransition(
     userId,
