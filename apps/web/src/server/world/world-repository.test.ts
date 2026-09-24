@@ -107,7 +107,7 @@ it('records successful early ticks so a retry cannot advance a later due step', 
   })
 })
 
-it('projects current profile images for nearby players and starter portraits when unset', async () => {
+it('projects current profile images while retaining starter portrait references for nearby players', async () => {
   const state = newWorldState()
   const customId = '00000000-0000-4000-8000-000000000021'
   const starterId = '00000000-0000-4000-8000-000000000022'
@@ -143,7 +143,8 @@ it('projects current profile images for nearby players and starter portraits whe
   expect(view.players.find((player) => player.characterId === customId)?.imageUrl).toBe(
     'https://images.example.test/custom-profile.webp',
   )
-  expect(view.players.find((player) => player.characterId === starterId)?.imageUrl).toMatch(
-    /^\/media\/.+\.webp$/,
-  )
+  expect(view.players.find((player) => player.characterId === starterId)).toMatchObject({
+    portraitRef: 'portrait.starter.wayfarer-07',
+    imageUrl: null,
+  })
 })
