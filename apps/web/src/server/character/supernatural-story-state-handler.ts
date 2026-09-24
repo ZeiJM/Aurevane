@@ -1,4 +1,5 @@
 import type { SupernaturalStoryStateRepository } from '@aurevane/db/supernatural-state'
+import { availableSupernaturalChoiceTransitions } from '@aurevane/game-core/character/supernatural-content'
 import { AurevaneError } from '@aurevane/game-core/errors'
 import { parseAuthoredSupernaturalTransitionRequest } from '@aurevane/validation/player/supernatural'
 
@@ -46,7 +47,18 @@ export async function handleSupernaturalStoryGet(
       character.id,
       dependencies.repository,
     )
-    return Response.json({ state }, { headers: { 'Cache-Control': 'private, no-store' } })
+    const choices =
+      state?.path === 'unawakened'
+        ? availableSupernaturalChoiceTransitions(state).map((transition) => ({
+            transitionId: transition.id,
+            transitionContentVersion: transition.contentVersion,
+            path: transition.result.path,
+          }))
+        : []
+    return Response.json(
+      { state, choices },
+      { headers: { 'Cache-Control': 'private, no-store' } },
+    )
   } catch (error) {
     return toServerErrorResponse(error)
   }
