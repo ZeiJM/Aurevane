@@ -58,14 +58,16 @@ export function SectorMap({
         {sector.charted && motion ? (
           <div className={styles.ambient} aria-hidden="true" data-world-ambient>
             <span className={styles.riverFlow} data-world-flow />
-            {sector.id === 'hollow-coast' ? <span className={styles.shoreFlow} /> : null}
-            <span className={styles.windVeil} />
-            <span className={styles.lightBloom} />
-            {sector.landmarks.some((landmark) => landmark.kind === 'settlement') ? (
-              <span className={styles.smoke} />
+            {sector.id === 'hollow-coast' ? (
+              <span className={styles.shoreFlow} data-world-shore />
             ) : null}
-            <span className={styles.cloudShadow} />
-            <span className={styles.fireflies} />
+            <span className={styles.windVeil} data-world-wind />
+            <span className={styles.lightBloom} data-world-light />
+            {sector.landmarks.some((landmark) => landmark.kind === 'settlement') ? (
+              <span className={styles.smoke} data-world-smoke />
+            ) : null}
+            <span className={styles.cloudShadow} data-world-clouds />
+            <span className={styles.fireflies} data-world-fireflies />
           </div>
         ) : null}
         <div

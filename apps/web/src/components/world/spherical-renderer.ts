@@ -33,7 +33,12 @@ export function createSphericalRenderer(
  void main(){
   vec2 p=(uv*2.-1.); vec3 ray;
   if(panorama>.5){ray=normalize(vec3(p.x*aspect/zoom,p.y/zoom,1.));}
-  else{p/=zoom;if(dot(p,p)>1.){gl_FragColor=vec4(0.);return;}ray=vec3(p,sqrt(1.-dot(p,p)));}
+  else{
+   vec2 globePoint=p;
+   if(zoom<1.){globePoint=p/zoom;if(dot(globePoint,globePoint)>1.){gl_FragColor=vec4(0.);return;}}
+   else{if(dot(p,p)>1.){gl_FragColor=vec4(0.);return;}globePoint=p/zoom;}
+   ray=vec3(globePoint,sqrt(max(0.,1.-dot(globePoint,globePoint))));
+  }
   float tilt=camera.y;vec3 turned=vec3(ray.x,ray.y*cos(tilt)+ray.z*sin(tilt),ray.z*cos(tilt)-ray.y*sin(tilt));
   float longitude=atan(turned.x,turned.z)+camera.x;float latitude=asin(clamp(turned.y,-1.,1.));
   vec2 map=vec2(fract(.5+longitude/(2.*PI)),.5-latitude/PI);
@@ -41,11 +46,15 @@ export function createSphericalRenderer(
   if(panorama<.5){
    float lon=(map.x-.5)*360.;float lat=(.5-map.y)*180.;
    float fog=max(smoothstep(63.,88.,lon),max(1.-smoothstep(-106.,-78.,lon),smoothstep(69.,84.,abs(lat))));
-   float grain=sin(map.x*189.+sin(map.y*31.))*sin(map.y*119.)*.018;
-   color=mix(color,vec3(.73,.80,.82)+grain,fog);
+   float cloud=sin(map.x*73.+sin(map.y*29.))*sin(map.y*97.+cos(map.x*41.));
+   float grain=sin(map.x*189.+sin(map.y*31.))*sin(map.y*119.);
+   float contour=.5+.5*sin((map.x*23.+map.y*17.+cloud*.18)*6.28318);
+   vec3 veil=mix(vec3(.045,.105,.145),vec3(.12,.25,.29),.5+.28*cloud);
+   veil+=vec3(.035,.055,.045)*(grain*.5+contour*.35);
+   color=mix(color,veil,fog*.88);
    vec2 cell=fract(map*vec2(32.,16.));float edge=min(min(cell.x,1.-cell.x),min(cell.y,1.-cell.y));
-   float line=(1.-smoothstep(.007,.021,edge))*grid*(1.-fog)*.22;
-   color=mix(color,vec3(.82,.88,.82),line);
+   float line=(1.-smoothstep(.007,.021,edge))*grid*(.13+.87*(1.-fog))*.24;
+   color=mix(color,vec3(.70,.82,.76),line);
    color*=.78+.22*ray.z;
    float rim=pow(1.-ray.z,4.);color=mix(color,vec3(.20,.65,.85),rim*.5);
   }
