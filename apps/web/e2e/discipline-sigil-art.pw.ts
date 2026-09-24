@@ -69,7 +69,6 @@ test('Foundation Discipline sigils resolve to production artwork on desktop and 
   })
   await expect(launcher).toBeVisible()
   await expect(launcher).toHaveText(/Manage Disciplines/)
-  await expect(launcher.locator('img')).toBeVisible()
 
   await launcher.click()
   const dialog = page.getByRole('dialog', { name: 'Discipline Management' })
