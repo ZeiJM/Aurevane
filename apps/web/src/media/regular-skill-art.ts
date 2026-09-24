@@ -92,6 +92,22 @@ export const REGULAR_SKILL_ART = {
   'edgedancer.severing-cut': '/media/art/discipline-skills/edgedancer-severing-cut-v01.webp',
   'edgedancer.finishing-thrust':
     '/media/art/discipline-skills/edgedancer-finishing-thrust-v01.webp',
+
+  'wildwarden.snare': '/media/art/discipline-skills/wildwarden-snare-v01.webp',
+  'wildwarden.hunters-mark':
+    '/media/art/discipline-skills/wildwarden-hunters-mark-v01.webp',
+  'wildwarden.venom-shot':
+    '/media/art/discipline-skills/wildwarden-venom-shot-v01.webp',
+  'wildwarden.field-remedy':
+    '/media/art/discipline-skills/wildwarden-field-remedy-v01.webp',
+  'wildwarden.thorn-line':
+    '/media/art/discipline-skills/wildwarden-thorn-line-v01.webp',
+  'wildwarden.pursuit-shot':
+    '/media/art/discipline-skills/wildwarden-pursuit-shot-v01.webp',
+  'wildwarden.renewing-herbs':
+    '/media/art/discipline-skills/wildwarden-renewing-herbs-v01.webp',
+  'wildwarden.close-quarry':
+    '/media/art/discipline-skills/wildwarden-close-quarry-v01.webp',
 } as const
 
 export type RegularSkillArtId = keyof typeof REGULAR_SKILL_ART
