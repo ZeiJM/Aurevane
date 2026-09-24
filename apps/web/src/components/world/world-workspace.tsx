@@ -3,12 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { WORLD_REGIONS, FRONTIER_APPROACH, worldRegion } from '@/world/catalog'
-import {
-  ACTIVE_WORLD_SYNC_MS,
-  remainingTravelMs,
-  samePosition,
-  worldSyncIntervalMs,
-} from '@/world/travel'
+import { remainingTravelMs, samePosition, worldSyncDelayMs } from '@/world/travel'
 import type { WorldIntent, WorldPosition, WorldView } from '@/world/types'
 import { Globe } from './globe'
 import { SectorMap } from './sector-map'
@@ -38,7 +33,10 @@ export function WorldWorkspace({
     [busy, setBusy] = useState(false)
   const current = useRef(initialView),
     pending = useRef(false),
-    mounted = useRef(true)
+    mounted = useRef(true),
+    viewAcceptedAt = useRef(Date.now()),
+    syncTimer = useRef<number | null>(null),
+    scheduleSync = useRef<() => void>(() => {})
   function accept(next: WorldView) {
     if (!mounted.current) return
     if (next.battleSessionId) {
@@ -55,6 +53,7 @@ export function WorldWorkspace({
       setPanorama(false)
     }
     current.current = next
+    viewAcceptedAt.current = Date.now()
     setView(next)
   }
   async function refresh() {
@@ -67,6 +66,7 @@ export function WorldWorkspace({
       accept(body)
     } finally {
       refreshing.current = false
+      if (mounted.current) scheduleSync.current()
     }
   }
   async function send(intent: WorldIntent) {
@@ -96,7 +96,10 @@ export function WorldWorkspace({
         setMessage(error instanceof Error ? error.message : 'Travel is briefly unavailable.')
     } finally {
       pending.current = false
-      if (mounted.current) setBusy(false)
+      if (mounted.current) {
+        setBusy(false)
+        scheduleSync.current()
+      }
     }
   }
   const sendRef = useRef(send),
@@ -107,43 +110,53 @@ export function WorldWorkspace({
   })
   useEffect(() => {
     mounted.current = true
-    let lastIdleSyncAt = Date.now()
-    const sync = () => {
-      if (pending.current) return
-      const travelling = current.current.route.length > 0 && !current.current.movementBlocked
-      if (travelling) {
-        void sendRef.current({ kind: 'tick' })
-        return
-      }
-      if (document.visibilityState === 'hidden') return
-      const now = Date.now()
-      if (
-        now - lastIdleSyncAt <
-        worldSyncIntervalMs({
-          routeLength: current.current.route.length,
-          movementBlocked: Boolean(current.current.movementBlocked),
-        })
-      )
-        return
-      lastIdleSyncAt = now
-      void refreshRef.current().catch((error) => {
-        if (mounted.current) setMessage(error.message)
-      })
+    const clearSyncTimer = () => {
+      if (syncTimer.current === null) return
+      window.clearTimeout(syncTimer.current)
+      syncTimer.current = null
     }
-    const timer = window.setInterval(sync, ACTIVE_WORLD_SYNC_MS)
+    const schedule = () => {
+      clearSyncTimer()
+      if (!mounted.current) return
+      const latest = current.current
+      const delay = worldSyncDelayMs({
+        routeLength: latest.route.length,
+        movementBlocked: Boolean(latest.movementBlocked),
+        nextStepAt: latest.nextStepAt,
+        serverNow: latest.serverNow + Math.max(0, Date.now() - viewAcceptedAt.current),
+      })
+      syncTimer.current = window.setTimeout(() => {
+        syncTimer.current = null
+        if (!mounted.current || pending.current || refreshing.current) return
+        const active = current.current
+        const travelling = active.route.length > 0 && !active.movementBlocked
+        if (travelling) {
+          void sendRef.current({ kind: 'tick' })
+          return
+        }
+        if (document.visibilityState === 'hidden') return
+        void refreshRef.current().catch((error) => {
+          if (mounted.current) setMessage(error.message)
+        })
+      }, delay)
+    }
+    scheduleSync.current = schedule
+    schedule()
+    return () => {
+      mounted.current = false
+      scheduleSync.current = () => {}
+      clearSyncTimer()
+    }
+  }, [])
+  useEffect(() => {
     const onVisibilityChange = () => {
       if (document.visibilityState !== 'visible' || pending.current) return
-      lastIdleSyncAt = Date.now()
       void refreshRef.current().catch((error) => {
         if (mounted.current) setMessage(error.message)
       })
     }
     document.addEventListener('visibilitychange', onVisibilityChange)
-    return () => {
-      mounted.current = false
-      window.clearInterval(timer)
-      document.removeEventListener('visibilitychange', onVisibilityChange)
-    }
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange)
   }, [])
   const sector = view.sectors.find((s) => s.id === selected) ?? view.sectors[0]!
   const player = view.players.find((p) => p.characterId === target) ?? view.players[0]
