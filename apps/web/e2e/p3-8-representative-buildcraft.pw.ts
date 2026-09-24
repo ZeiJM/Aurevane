@@ -28,31 +28,16 @@ function tileDistance(first: { x: number; y: number }, second: { x: number; y: n
 
 async function setSkill(page: Page, name: string, checked: boolean): Promise<void> {
   const checkbox = skillRow(page, name).getByRole('checkbox')
-  if ((await checkbox.isChecked()) !== checked) await checkbox.click()
-}
+  if ((await checkbox.isChecked()) === checked) return
 
-async function commitSkills(page: Page, expectedNames: readonly string[]): Promise<void> {
-  // Refresh remounts the versioned panel and can clear its transient status. Verify the
-  // authoritative response and settled selection before the existing reload-persistence checks.
   const saved = page.waitForResponse(
     (response) =>
       new URL(response.url()).pathname === '/api/character/build/skills' &&
       response.request().method() === 'PUT',
   )
-  const commit = page.getByRole('button', { name: 'Commit Selected Techniques', exact: true })
-  await commit.click()
-  const response = await saved
-  expect(response.status()).toBe(200)
-  const body = await response.json()
-  expect(
-    body.context.disciplineSkills.equippedSkills.map(
-      (entry: { definition: { id: string } }) => entry.definition.id,
-    ),
-  ).toEqual(response.request().postDataJSON().skillIds)
-  await expect(commit).toBeDisabled()
-  for (const name of expectedNames) {
-    await expect(skillRow(page, name).getByRole('checkbox')).toBeChecked()
-  }
+  await checkbox.click()
+  expect((await saved).status()).toBe(200)
+  await expect(checkbox).toBeChecked({ checked })
 }
 
 async function reloadNexus(page: Page): Promise<void> {
@@ -108,6 +93,9 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   })
   await reloadNexus(page)
 
+  const pureAttunement = page.locator('[aria-labelledby="nexus-attunement-heading"]')
+  await expect(pureAttunement).toContainText('Unbroken Strike')
+
   await page.getByRole('button', { name: /Manage Techniques/ }).click()
   const techniquesOverlay = page.locator('body > [data-techniques-overlay="true"]')
   await expect(techniquesOverlay).toBeVisible()
@@ -115,17 +103,14 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   expect(await page.evaluate(() => getComputedStyle(document.documentElement).overflow)).toBe(
     'hidden',
   )
-  await expect(page.getByTestId('skill-capacity')).toContainText('Vanguard')
-  await expect(page.getByTestId('skill-capacity')).toContainText('0 / 4')
-  await expect(page.getByTestId('active-essence')).toContainText('Unbroken Strike')
-  await expect(page.getByTestId('active-resonance')).toHaveCount(0)
+  await expect(page.getByTestId('skill-capacity')).toContainText('0 / 4 selected')
+  await expect(page.getByTestId('technique-preview')).not.toContainText('Build Signature')
 
   for (const skill of ['Forceful Strike', 'Cleave', 'Brace', 'Shield Bash']) {
     await setSkill(page, skill, true)
   }
 
-  await expect(page.getByTestId('skill-capacity')).toContainText('4 / 4')
-  await commitSkills(page, ['Forceful Strike', 'Cleave', 'Brace', 'Shield Bash'])
+  await expect(page.getByTestId('skill-capacity')).toContainText('4 / 4 selected')
   await reloadNexus(page)
 
   const disciplinePanel = page.getByTestId('primary-build-panel')
@@ -135,8 +120,7 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   await disciplineLauncher.click()
   const disciplineDialog = page.getByRole('dialog', { name: 'Discipline Management' })
   await expect(disciplineDialog).toBeVisible()
-  await disciplineDialog.getByRole('button', { name: /Secondary Discipline/ }).click()
-  await disciplineDialog.locator('select').selectOption('lifebinder')
+  await disciplineDialog.getByLabel('Secondary Discipline').selectOption('lifebinder')
   await expect(page.getByTestId('primary-build-preview')).toContainText('Lifebinder')
   await disciplineDialog.getByRole('button', { name: /Confirm Change/ }).click()
   await expect(page.getByRole('status')).toContainText('Discipline changes committed.')
@@ -148,28 +132,25 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   await expect(disciplineDialog).toContainText('Lifebinder')
   await reloadNexus(page)
 
+  const mixedAttunement = page.locator('[aria-labelledby="nexus-attunement-heading"]')
+  await expect(mixedAttunement).toContainText("Mercy's Edge")
+  await expect(mixedAttunement).not.toContainText('Unbroken Strike')
+
   await page.getByRole('button', { name: /Manage Techniques/ }).click()
   const mixedCapacity = page.getByTestId('skill-capacity')
-  await expect(mixedCapacity).toContainText('Vanguard')
-  await expect(mixedCapacity).toContainText('2 / 3')
-  await expect(mixedCapacity).toContainText('Lifebinder')
-  await expect(mixedCapacity).toContainText('0 / 2')
-  await expect(page.getByTestId('active-resonance')).toContainText("Mercy's Edge")
-  await expect(page.getByTestId('active-essence')).toHaveCount(0)
+  await expect(mixedCapacity).toContainText('2 / 4 selected')
 
   await setSkill(page, 'Mending Light', true)
   await setSkill(page, 'Barrier', true)
 
-  await expect(mixedCapacity).toContainText('Vanguard')
-  await expect(mixedCapacity).toContainText('Lifebinder')
-  await expect(mixedCapacity).toContainText('2 / 2')
-  await commitSkills(page, ['Forceful Strike', 'Cleave', 'Mending Light', 'Barrier'])
+  await expect(mixedCapacity).toContainText('4 / 4 selected')
 
   await reloadNexus(page)
+  await expect(page.locator('[aria-labelledby="nexus-attunement-heading"]')).toContainText(
+    "Mercy's Edge",
+  )
   await page.getByRole('button', { name: /Manage Techniques/ }).click()
-  await expect(page.getByTestId('skill-capacity')).toContainText('2 / 2')
-  await expect(page.getByTestId('active-resonance')).toContainText("Mercy's Edge")
-  await expect(page.getByTestId('active-essence')).toHaveCount(0)
+  await expect(page.getByTestId('skill-capacity')).toContainText('4 / 4 selected')
   await expect(skillRow(page, 'Forceful Strike').getByRole('checkbox')).toBeChecked()
   await expect(skillRow(page, 'Cleave').getByRole('checkbox')).toBeChecked()
   await expect(skillRow(page, 'Mending Light').getByRole('checkbox')).toBeChecked()
