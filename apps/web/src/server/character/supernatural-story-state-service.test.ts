@@ -201,43 +201,31 @@ describe('supernatural story-state authority service', () => {
     expect(result.state.path).toBe('ascended')
   })
 
-  it('initializes the canonical story once before committing a valid first authored choice', async () => {
-    const find = vi
-      .fn<SupernaturalStoryStateRepository['find']>()
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(state())
-    const initialize = vi.fn(async () => state())
-    const commitTransition = vi.fn(async (input: CommitSupernaturalStoryTransitionInput) => ({
-      state: state({
-        stateVersion: 2,
-        nodeId: input.toNodeId,
-        path: input.nextPath,
-        ascensionId: input.ascensionId,
-        ascensionContentVersion: input.ascensionContentVersion,
-        severenceId: input.severenceId,
-        severenceContentVersion: input.severenceContentVersion,
-        chosenAt: '2026-09-23T12:05:00.000Z',
-        updatedAt: '2026-09-23T12:05:00.000Z',
-      }),
-      replayed: false,
-    }))
-    const repo = repository({ find, initialize, commitTransition })
+  it('requires the story authority to initialize eligibility before a choice can commit', async () => {
+    const initialize = vi.fn()
+    const commitTransition = vi.fn()
+    const repo = repository({
+      find: vi.fn(async () => null),
+      initialize,
+      commitTransition,
+    })
 
-    const result = await commitAuthoredSupernaturalStoryTransition(
-      userId,
-      characterId,
-      {
-        expectedStateVersion: 1,
-        idempotencyKey: '00000000-0000-4000-8000-000000000920',
-        transitionId: 'supernatural.main.choose-ascension',
-        transitionContentVersion: 1,
-      },
-      repo,
-    )
+    await expect(
+      commitAuthoredSupernaturalStoryTransition(
+        userId,
+        characterId,
+        {
+          expectedStateVersion: 1,
+          idempotencyKey: '00000000-0000-4000-8000-000000000920',
+          transitionId: 'supernatural.main.choose-ascension',
+          transitionContentVersion: 1,
+        },
+        repo,
+      ),
+    ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
 
-    expect(initialize).toHaveBeenCalledTimes(1)
-    expect(commitTransition).toHaveBeenCalledTimes(1)
-    expect(result.state.path).toBe('ascended')
+    expect(initialize).not.toHaveBeenCalled()
+    expect(commitTransition).not.toHaveBeenCalled()
   })
 
   it('rejects invented or stale authored choice references before reading or writing persistence', async () => {
