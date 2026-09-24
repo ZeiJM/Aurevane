@@ -503,8 +503,8 @@ test('a populated hybrid loadout keeps all four Techniques and management action
     .getByTestId('learned-skill-list')
     .locator('input[type="checkbox"]:enabled')
   expect(await choices.count()).toBeGreaterThanOrEqual(4)
-  const coarseTechniquePointer = await page.evaluate(() =>
-    window.matchMedia('(hover: none), (pointer: coarse)').matches,
+  const coarseTechniquePointer = await page.evaluate(
+    () => window.matchMedia('(hover: none), (pointer: coarse)').matches,
   )
   for (let index = 0; index < 4; index += 1) {
     const choice = choices.nth(index)
