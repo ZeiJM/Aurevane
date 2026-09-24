@@ -4,7 +4,6 @@ import { AurevaneError } from '@aurevane/game-core/errors'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { loadPublicCharacterProfileImageMap } from '@/server/character/character-profile-display-service'
-import { resolvePublicCharacterImageUrl } from '@/server/character/public-character-image'
 
 export interface OnlineCharacter {
   characterId: string
@@ -185,10 +184,7 @@ export async function listOnlineCharacters(): Promise<OnlineCharacter[]> {
         disciplineId: identity?.disciplineId ?? null,
         secondaryDisciplineId: identity?.secondaryDisciplineId ?? null,
         personalTitle: identity?.personalTitle ?? null,
-        imageUrl: resolvePublicCharacterImageUrl(
-          imageMap.get(row.characterId),
-          identity?.portraitRef,
-        ),
+        imageUrl: imageMap.get(row.characterId) ?? null,
       }
     })
     .sort(compareOnlineCharacters)
@@ -241,10 +237,7 @@ export async function listCharacterPresenceDirectory(): Promise<CharacterPresenc
       disciplineId: identity?.disciplineId ?? null,
       secondaryDisciplineId: identity?.secondaryDisciplineId ?? null,
       personalTitle: identity?.personalTitle ?? null,
-      imageUrl: resolvePublicCharacterImageUrl(
-        imageMap.get(row.characterId),
-        identity?.portraitRef,
-      ),
+      imageUrl: imageMap.get(row.characterId) ?? null,
     }
   })
 }
