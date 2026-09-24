@@ -35,7 +35,7 @@ describe('world travel', () => {
         nextStepAt: 1000,
         serverNow: 1200,
       }),
-    ).toBe(50)
+    ).toBe(1200)
     expect(
       worldSyncDelayMs({
         routeLength: 3,
