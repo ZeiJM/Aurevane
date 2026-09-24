@@ -82,7 +82,6 @@ export function parseSupernaturalStoryTransitionRow(
   return parsed.success ? parsed.data : null
 }
 
-
 const authoredSupernaturalTransitionRequestSchema = z
   .object({
     expectedStateVersion: positiveVersion,
