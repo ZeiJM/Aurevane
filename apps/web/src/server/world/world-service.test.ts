@@ -107,8 +107,39 @@ describe('world authority and spoiler projection', () => {
     expect(hinterland.exits.map((exit) => exit.to.sectorId).sort()).toEqual([
       'aureth-crown',
       'crown-road',
+      'crown-uplands',
     ])
     expect(view.sectors.some((sector) => sector.coordinate === 'S17-08')).toBe(false)
+  })
+
+  it('projects the rest of the Crown wilderness cluster as open authored land', () => {
+    const view = projectWorld(newWorldState(), [], 1000)
+    const expected = [
+      {
+        id: 'crown-northfields',
+        coordinate: 'S14-07',
+        exits: ['aureth-crown', 'crown-uplands'],
+      },
+      {
+        id: 'crown-uplands',
+        coordinate: 'S15-07',
+        exits: ['crown-hinterland', 'crown-northfields'],
+      },
+    ]
+
+    for (const item of expected) {
+      const sector = view.sectors.find((candidate) => candidate.id === item.id)!
+      expect(sector).toMatchObject({
+        id: item.id,
+        coordinate: item.coordinate,
+        regionId: 'aureth-crown',
+        art: null,
+        charted: true,
+      })
+      expect(sector.cells.some((cell) => cell.walkable)).toBe(true)
+      expect(sector.cells.some((cell) => cell.safe)).toBe(false)
+      expect(sector.exits.map((exit) => exit.to.sectorId).sort()).toEqual(item.exits)
+    }
   })
 
   it('exposes Crown Road as its own open territory and keeps nearby encounters local', () => {
