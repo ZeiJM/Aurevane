@@ -1,0 +1,24 @@
+import { describe, expect, it } from 'vitest'
+
+import { resolvePublicCharacterImageUrl } from './public-character-portrait'
+
+describe('public character image resolution', () => {
+  it('prefers the current custom profile image over the starter portrait', () => {
+    expect(
+      resolvePublicCharacterImageUrl(
+        'https://images.example.test/current-profile.webp',
+        'portrait.starter.wayfarer-07',
+      ),
+    ).toBe('https://images.example.test/current-profile.webp')
+  })
+
+  it('uses the selected starter portrait when no custom profile image exists', () => {
+    const resolved = resolvePublicCharacterImageUrl(null, 'portrait.starter.wayfarer-07')
+    expect(resolved).toBeTruthy()
+    expect(resolved).toMatch(/^(?:data:image\/webp;base64,|\/media\/)/)
+  })
+
+  it('returns no public image for an invalid portrait reference', () => {
+    expect(resolvePublicCharacterImageUrl(null, 'portrait.invalid')).toBeNull()
+  })
+})
