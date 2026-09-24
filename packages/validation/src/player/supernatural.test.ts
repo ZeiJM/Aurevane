@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { parseSupernaturalStoryStateRow, parseSupernaturalStoryTransitionRow } from './supernatural'
+import {
+  parseAuthoredSupernaturalTransitionRequest,
+  parseSupernaturalStoryStateRow,
+  parseSupernaturalStoryTransitionRow,
+} from './supernatural'
 
 const base = {
   character_id: '00000000-0000-4000-8000-000000000901',
@@ -83,5 +87,37 @@ describe('supernatural persistence validation', () => {
       path: 'unawakened',
     })
     expect(parseSupernaturalStoryTransitionRow(base)).toBeNull()
+  })
+})
+
+describe('authored supernatural transition request validation', () => {
+  const request = {
+    expectedStateVersion: 1,
+    idempotencyKey: '00000000-0000-4000-8000-000000000919',
+    transitionId: 'supernatural.main.choose-ascension',
+    transitionContentVersion: 1,
+    confirmPermanentChoice: true as const,
+  }
+
+  it('accepts only the exact server-resolvable transition reference shape', () => {
+    expect(parseAuthoredSupernaturalTransitionRequest(request)).toEqual(request)
+  })
+
+  it('rejects malformed, extra or caller-authored transition payloads', () => {
+    for (const invalid of [
+      { ...request, expectedStateVersion: 0 },
+      { ...request, transitionContentVersion: 0 },
+      { ...request, idempotencyKey: 'not-a-uuid' },
+      { ...request, transitionId: 'Ascension Choice' },
+      { ...request, confirmPermanentChoice: false },
+      {
+        expectedStateVersion: request.expectedStateVersion,
+        idempotencyKey: request.idempotencyKey,
+        transitionId: request.transitionId,
+        transitionContentVersion: request.transitionContentVersion,
+      },
+      { ...request, transition: { result: { path: 'ascended' } } },
+    ])
+      expect(parseAuthoredSupernaturalTransitionRequest(invalid)).toBeNull()
   })
 })
