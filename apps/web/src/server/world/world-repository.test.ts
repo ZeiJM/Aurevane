@@ -1,8 +1,14 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 import { createHash } from 'node:crypto'
 vi.mock('server-only', () => ({}))
-const { rpc } = vi.hoisted(() => ({ rpc: vi.fn() }))
+const { rpc, publicImages } = vi.hoisted(() => ({
+  rpc: vi.fn(),
+  publicImages: new Map<string, string>(),
+}))
 vi.mock('@/lib/supabase/admin', () => ({ createSupabaseAdminClient: () => ({ rpc }) }))
+vi.mock('@/server/character/character-profile-display-service', () => ({
+  loadPublicCharacterProfileImageMap: vi.fn(async () => publicImages),
+}))
 import { newWorldState } from '@/world/travel'
 import type { WorldCommand } from '@/world/types'
 import { commitWorldCommand, readWorld } from './world-repository'
@@ -23,7 +29,10 @@ const payload = () => ({
   lastCommandId: null,
   lastCommandFingerprint: null,
 })
-beforeEach(() => rpc.mockReset())
+beforeEach(() => {
+  rpc.mockReset()
+  publicImages.clear()
+})
 
 it('materializes expired training once using the existing authority, without claiming rewards', async () => {
   rpc
@@ -96,4 +105,32 @@ it('records successful early ticks so a retry cannot advance a later due step', 
     p_kind: 'tick',
     p_request_fingerprint: expect.stringMatching(/^[0-9a-f]{64}$/),
   })
+})
+
+
+it('projects nearby players with their public profile image instead of the starter fallback', async () => {
+  const state = newWorldState()
+  const nearbyCharacterId = '00000000-0000-4000-8000-000000000012'
+  publicImages.set(nearbyCharacterId, 'https://example.com/nearby-profile.webp')
+  rpc.mockResolvedValue({
+    data: {
+      ...payload(),
+      state,
+      players: [
+        {
+          characterId: nearbyCharacterId,
+          name: 'Nearby Hero',
+          level: 7,
+          portraitRef: 'portrait.starter.wayfarer-01',
+          imageUrl: null,
+          position: state.position,
+          attackable: false,
+        },
+      ],
+    },
+  })
+
+  const result = await readWorld('owner', characterId)
+  expect(result.view.players).toHaveLength(1)
+  expect(result.view.players[0]?.imageUrl).toBe('https://example.com/nearby-profile.webp')
 })
