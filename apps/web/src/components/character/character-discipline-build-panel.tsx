@@ -94,20 +94,6 @@ type DisciplineSlot = 'primary' | 'secondary'
 const PROFILE_PANEL_QUERY = 'profilePanel'
 const DISCIPLINES_PANEL = 'disciplines'
 
-function formatDuration(totalSeconds: number): string {
-  if (totalSeconds <= 0) return 'Ready'
-  const hours = Math.floor(totalSeconds / 3600)
-  const minutes = Math.floor((totalSeconds % 3600) / 60)
-  const seconds = totalSeconds % 60
-  return [
-    hours > 0 ? `${hours}h` : '',
-    minutes > 0 || hours > 0 ? `${minutes}m` : '',
-    `${seconds}s`,
-  ]
-    .filter(Boolean)
-    .join(' ')
-}
-
 function focusAttributes(disciplineId: string): readonly CharacterAttributeId[] {
   return foundationDisciplineAttributePolicy(disciplineId)?.focusAttributes ?? []
 }
