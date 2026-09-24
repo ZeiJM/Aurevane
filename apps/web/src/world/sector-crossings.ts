@@ -62,11 +62,7 @@ function sectorDimensions(sector: CrossingSector) {
   return { width, height }
 }
 
-function edgePosition(
-  sector: CrossingSector,
-  direction: SectorNeighborDirection,
-  offset: number,
-) {
+function edgePosition(sector: CrossingSector, direction: SectorNeighborDirection, offset: number) {
   if (!Number.isInteger(offset)) throw new Error('Crossing offsets must be integers.')
   const { width, height } = sectorDimensions(sector)
 
