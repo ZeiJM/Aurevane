@@ -132,6 +132,25 @@ export async function findSupernaturalStoryState(
   return existing ? toCoreState(existing) : null
 }
 
+export async function findAuthoredSupernaturalStoryState(
+  userId: string,
+  characterId: string,
+  repository: SupernaturalStoryStateRepository,
+): Promise<SupernaturalStoryState | null> {
+  const state = await findSupernaturalStoryState(userId, characterId, repository)
+  if (
+    state &&
+    (state.storyId !== SUPERNATURAL_STORY_DEFINITION.id ||
+      state.storyVersion !== SUPERNATURAL_STORY_DEFINITION.contentVersion)
+  ) {
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'This character is committed to a different supernatural story version.',
+    )
+  }
+  return state
+}
+
 export async function loadOrInitializeSupernaturalStoryState(
   userId: string,
   characterId: string,
