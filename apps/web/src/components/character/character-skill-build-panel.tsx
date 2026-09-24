@@ -297,18 +297,17 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
     void commitSelection(nextIds)
   }
 
-  function handleCoarseTechniqueTap(skill: SkillCatalogEntryView) {
-    const now = performance.now()
+  function handleCoarseTechniqueTap(skill: SkillCatalogEntryView, timestamp: number) {
     const previous = lastTapRef.current
     setFocusedSkillId(skill.definition.id)
 
-    if (previous?.skillId === skill.definition.id && now - previous.at <= 350) {
+    if (previous?.skillId === skill.definition.id && timestamp - previous.at <= 350) {
       lastTapRef.current = null
       toggleAndCommit(skill)
       return
     }
 
-    lastTapRef.current = { skillId: skill.definition.id, at: now }
+    lastTapRef.current = { skillId: skill.definition.id, at: timestamp }
   }
 
   function renderTechniqueGroup(
@@ -376,7 +375,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                       return
                     }
                     event.preventDefault()
-                    handleCoarseTechniqueTap(entry)
+                    handleCoarseTechniqueTap(entry, event.timeStamp)
                   }}
                 >
                   <input
