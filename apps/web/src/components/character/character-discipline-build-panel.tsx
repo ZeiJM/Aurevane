@@ -632,7 +632,6 @@ export function CharacterDisciplineBuildPanel({
                         ))}
                       </select>
                     </label>
-
                   </div>
                 </section>
 
