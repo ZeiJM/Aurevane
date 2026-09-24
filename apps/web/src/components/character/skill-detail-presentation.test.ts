@@ -172,7 +172,6 @@ it('describes authored Barrier grants in Skill Details', () => {
   expect(skillEffectDescription(barrier)).toBe('Grant up to 12 Barrier to the selected unit.')
 })
 
-
 it('presents the standardized Technique characteristic schema without prose expansion', () => {
   const timeLock = resolveMatureSkillVersion('chronist.time-lock')!
   const stolenMoment = resolveMatureSkillVersion('chronist.stolen-moment')!
