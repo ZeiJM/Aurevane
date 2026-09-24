@@ -55,16 +55,16 @@ async function commitSkills(page: Page, expectedNames: readonly string[]): Promi
   }
 }
 
-async function reloadArsenal(page: Page): Promise<void> {
-  if (new URL(page.url()).pathname.startsWith('/game/arsenal')) {
+async function reloadNexus(page: Page): Promise<void> {
+  if (new URL(page.url()).pathname.startsWith('/game/nexus')) {
     await page.reload()
   } else {
-    await page.goto('/game/arsenal')
+    await page.goto('/game/nexus')
   }
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
   await expect(page.getByTestId('character-profile')).toBeVisible()
 
-  // Arsenal build panels intentionally persist through refresh via URL state. Confirm that
+  // Nexus build panels intentionally persist through refresh via URL state. Confirm that
   // persisted panel is restored, then close it so the next buildcraft step can open the other
   // authoritative panel rather than clicking through a modal backdrop.
   const openDialog = page.getByRole('dialog')
@@ -106,7 +106,7 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   expect(prepared.body).toMatchObject({
     result: { masteredDisciplines: 6, learnedSkills: 16 },
   })
-  await reloadArsenal(page)
+  await reloadNexus(page)
 
   await page.getByRole('button', { name: /Manage Techniques/ }).click()
   const techniquesOverlay = page.locator('body > [data-techniques-overlay="true"]')
@@ -126,28 +126,27 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
 
   await expect(page.getByTestId('skill-capacity')).toContainText('4 / 4')
   await commitSkills(page, ['Forceful Strike', 'Cleave', 'Brace', 'Shield Bash'])
-  await reloadArsenal(page)
+  await reloadNexus(page)
 
   const disciplinePanel = page.getByTestId('primary-build-panel')
   const disciplineLauncher = disciplinePanel.getByRole('button', {
-    name: /Manage Primary Discipline/,
+    name: /Manage Disciplines/,
   })
   await disciplineLauncher.click()
   const disciplineDialog = page.getByRole('dialog', { name: 'Discipline Management' })
   await expect(disciplineDialog).toBeVisible()
-  await page.getByLabel('Proposed Secondary').selectOption('lifebinder')
-  await expect(page.getByTestId('primary-build-preview')).toContainText('Vanguard + Lifebinder')
-  await page.getByRole('button', { name: 'Commit Discipline changes' }).click()
-  await expect(page.getByRole('status')).toContainText(
-    'Lifebinder is now the committed Secondary Discipline.',
-  )
-  await expect(disciplineLauncher).toHaveText('Discipline Management')
+  await disciplineDialog.getByRole('button', { name: /Secondary Discipline/ }).click()
+  await disciplineDialog.locator('select').selectOption('lifebinder')
+  await expect(page.getByTestId('primary-build-preview')).toContainText('Lifebinder')
+  await disciplineDialog.getByRole('button', { name: /Confirm Change/ }).click()
+  await expect(page.getByRole('status')).toContainText('Discipline changes committed.')
+  await expect(disciplineLauncher).toHaveText(/Manage Disciplines/)
   await expect(disciplinePanel).not.toContainText('Vanguard + Lifebinder')
-  await expect(disciplineDialog).toContainText('Committed Primary')
+  await expect(disciplineDialog).toContainText('Primary Discipline')
   await expect(disciplineDialog).toContainText('Vanguard')
-  await expect(disciplineDialog).toContainText('Committed Secondary')
+  await expect(disciplineDialog).toContainText('Secondary Discipline')
   await expect(disciplineDialog).toContainText('Lifebinder')
-  await reloadArsenal(page)
+  await reloadNexus(page)
 
   await page.getByRole('button', { name: /Manage Techniques/ }).click()
   const mixedCapacity = page.getByTestId('skill-capacity')
@@ -166,7 +165,7 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   await expect(mixedCapacity).toContainText('2 / 2')
   await commitSkills(page, ['Forceful Strike', 'Cleave', 'Mending Light', 'Barrier'])
 
-  await reloadArsenal(page)
+  await reloadNexus(page)
   await page.getByRole('button', { name: /Manage Techniques/ }).click()
   await expect(page.getByTestId('skill-capacity')).toContainText('2 / 2')
   await expect(page.getByTestId('active-resonance')).toContainText("Mercy's Edge")

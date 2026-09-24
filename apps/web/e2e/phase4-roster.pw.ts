@@ -25,19 +25,15 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
     password: 'Phase4-disposable-browser-2026!',
     characterName: `Roster ${suffix}`,
   })
-  await page.goto('/game/arsenal')
+  await page.goto('/game/nexus')
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
-  await page.getByRole('button', { name: /Manage Primary Discipline/ }).click()
+  await page.getByRole('button', { name: /Manage Disciplines/ }).click()
   const management = page.getByRole('dialog', { name: 'Discipline Management' })
   await expect(management).toBeVisible()
   await page.reload()
   await expect(management).toBeVisible()
-  await management
-    .locator('label')
-    .filter({ hasText: /^Proposed Primary/ })
-    .locator('select')
-    .selectOption('ironfist')
-  await page.getByRole('button', { name: 'Commit Ironfist as Primary' }).click()
+  await management.locator('select').selectOption('ironfist')
+  await management.getByRole('button', { name: /Confirm Change/ }).click()
   await expect(page.getByTestId('primary-discipline-chip')).toHaveText('Ironfist')
   await management.getByRole('button', { name: 'Close', exact: true }).click()
   await page.getByRole('button', { name: /Manage Techniques/ }).click()
@@ -57,12 +53,13 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
     .poll(() => essenceArtwork.evaluate((image: HTMLImageElement) => image.naturalWidth))
     .toBeGreaterThan(0)
   const palm = list.locator('article').filter({ hasText: 'Counter Palm' })
-  await palm.locator('summary').click()
-  await expect(palm).toContainText('Requires Guarded on yourself.')
-  await expect(palm).toContainText('1 tile')
+  await palm.getByRole('checkbox').focus()
+  await expect(dialog).toContainText('Requires Guarded on yourself.')
+  await expect(dialog).toContainText('1 tile')
   await expect(palm.getByRole('checkbox')).not.toBeChecked()
   const sweep = list.locator('article').filter({ hasText: 'Sweep' })
-  await expect(sweep).toContainText('Circle 1')
+  await sweep.getByRole('checkbox').focus()
+  await expect(dialog).toContainText('Circle 1')
   for (const name of ['Rising Fist', 'Sweep', 'Breakfall', 'Counter Palm']) {
     await list.locator('article').filter({ hasText: name }).getByRole('checkbox').check()
   }
@@ -83,7 +80,7 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
       list.locator('article').filter({ hasText: name }).getByRole('checkbox'),
     ).toBeChecked()
   }
-  await palm.locator('summary').click()
+  await palm.getByRole('checkbox').focus()
   const overflow = await dialog.evaluate((element) => element.scrollWidth > element.clientWidth + 1)
   expect(overflow).toBe(false)
   expect(await palm.evaluate((element) => element.scrollHeight > element.clientHeight + 1)).toBe(
@@ -200,18 +197,16 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
     password: 'P4-advanced-disposable-2026!',
     characterName: `Mastery ${suffix}`,
   })
-  await page.goto('/game/arsenal')
+  await page.goto('/game/nexus')
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
-  await page.getByRole('button', { name: /Manage Primary Discipline/ }).click()
+  await page.getByRole('button', { name: /Manage Disciplines/ }).click()
   const management = page.getByRole('dialog', { name: 'Discipline Management' })
-  const atlasResponse = page.waitForResponse(
-    (response) =>
-      response.url().endsWith('/api/character/mastery') && response.request().method() === 'GET',
-  )
-  await management.getByText('Discipline Atlas & Mastery', { exact: true }).click()
-  const atlasResult = await atlasResponse
-  expect(atlasResult.status()).toBe(200)
-  const atlasBody = (await atlasResult.json()) as {
+  const mastery = await page.evaluate(async () => {
+    const response = await fetch('/api/character/mastery')
+    return { status: response.status, body: await response.json() }
+  })
+  expect(mastery.status).toBe(200)
+  const atlasBody = mastery.body as {
     progress: Array<{
       disciplineId: string
       xp: number
@@ -244,17 +239,12 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
       }),
     ]),
   )
-  await expect(management).toContainText('36 Disciplines')
-  await expect(management).toContainText('Testing access is open.')
-  const primary = management
-    .locator('label')
-    .filter({ hasText: /^Proposed Primary/ })
-    .locator('select')
+  const primary = management.locator('select')
   await expect(primary.locator('option[value="bastion"]')).toHaveCount(1)
   // Existing Owner-authorized testing access covers all published Disciplines without fake Mastery.
   // Earned prerequisites and 4/2/2 acquisition are independently verified in database CI.
   await primary.selectOption('bastion')
-  await page.getByRole('button', { name: 'Commit Bastion as Primary' }).click()
+  await management.getByRole('button', { name: /Confirm Change/ }).click()
   await expect(page.getByTestId('primary-discipline-chip')).toHaveText('Bastion')
   await management.getByRole('button', { name: 'Close', exact: true }).click()
   await page.getByRole('button', { name: /Manage Techniques/ }).click()
@@ -276,10 +266,10 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
     )
     .toBe(true)
   const fortress = list.locator('article').filter({ hasText: 'Fortress' })
-  await expect(fortress).toContainText('Fortified')
-  await fortress.locator('summary').click()
-  await expect(fortress).toContainText('Take 30% less damage and deal 20% less damage.')
-  await expect(fortress).toContainText('to yourself')
+  await fortress.getByRole('checkbox').focus()
+  await expect(dialog).toContainText('Fortified')
+  await expect(dialog).toContainText('Take 30% less damage and deal 20% less damage.')
+  await expect(dialog).toContainText('to yourself')
   expect(await dialog.evaluate((element) => element.scrollWidth > element.clientWidth + 1)).toBe(
     false,
   )
@@ -390,16 +380,12 @@ test('Chronist provisions its full testing library, Essence artwork and explicit
     password: 'P4-chronist-disposable-2026!',
     characterName: `Chronist ${suffix}`,
   })
-  await page.goto('/game/arsenal')
+  await page.goto('/game/nexus')
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
-  await page.getByRole('button', { name: /Manage Primary Discipline/ }).click()
+  await page.getByRole('button', { name: /Manage Disciplines/ }).click()
   const management = page.getByRole('dialog', { name: 'Discipline Management' })
-  await management
-    .locator('label')
-    .filter({ hasText: /^Proposed Primary/ })
-    .locator('select')
-    .selectOption('chronist')
-  await page.getByRole('button', { name: 'Commit Chronist as Primary' }).click()
+  await management.locator('select').selectOption('chronist')
+  await management.getByRole('button', { name: /Confirm Change/ }).click()
   await expect(page.getByTestId('primary-discipline-chip')).toHaveText('Chronist')
   await management.getByRole('button', { name: 'Close', exact: true }).click()
   await page.getByRole('button', { name: /Manage Techniques/ }).click()
@@ -418,12 +404,12 @@ test('Chronist provisions its full testing library, Essence artwork and explicit
   await expect
     .poll(() => artwork.evaluate((image: HTMLImageElement) => image.naturalWidth))
     .toBeGreaterThan(0)
-  const haste = list.locator('article').filter({ hasText: /^HasteChronist30 AP/ })
-  await haste.locator('summary').click()
-  await expect(haste).toContainText('Movement costs 10 less AP per entered tile')
+  const haste = list.locator('article').filter({ hasText: 'Haste' }).first()
+  await haste.getByRole('checkbox').focus()
+  await expect(dialog).toContainText('Movement costs 10 less AP per entered tile')
   const rewind = list.locator('article').filter({ hasText: 'Rewind Step' })
-  await rewind.locator('summary').click()
-  await expect(rewind).toContainText('turn')
+  await rewind.getByRole('checkbox').focus()
+  await expect(dialog).toContainText('turn')
   expect(await dialog.evaluate((element) => element.scrollWidth > element.clientWidth + 1)).toBe(
     false,
   )

@@ -63,18 +63,17 @@ test('legal Vanguard 3 + Lifebinder 1 mixed build can enter AI Sparring with fav
   await page.reload()
   await expect(page.getByTestId('character-profile')).toBeVisible()
   await closeOpenDialog(page)
-  await page.goto('/game/arsenal')
+  await page.goto('/game/nexus')
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
 
   const disciplinePanel = page.getByTestId('primary-build-panel')
-  await disciplinePanel.getByRole('button', { name: /Manage Primary Discipline/ }).click()
+  await disciplinePanel.getByRole('button', { name: /Manage Disciplines/ }).click()
   const disciplineDialog = page.getByRole('dialog', { name: 'Discipline Management' })
   await expect(disciplineDialog).toBeVisible()
-  await page.getByLabel('Proposed Secondary').selectOption('lifebinder')
-  await page.getByRole('button', { name: 'Commit Discipline changes' }).click()
-  await expect(page.getByRole('status')).toContainText(
-    'Lifebinder is now the committed Secondary Discipline.',
-  )
+  await disciplineDialog.getByRole('button', { name: /Secondary Discipline/ }).click()
+  await disciplineDialog.locator('select').selectOption('lifebinder')
+  await disciplineDialog.getByRole('button', { name: /Confirm Change/ }).click()
+  await expect(page.getByRole('status')).toContainText('Discipline changes committed.')
   await disciplineDialog.getByRole('button', { name: 'Close' }).click()
 
   await page.getByRole('button', { name: /Manage Techniques/ }).click()

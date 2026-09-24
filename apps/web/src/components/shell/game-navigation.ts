@@ -7,11 +7,19 @@ export const gameNavigation = [
     icon: 'profile',
   },
   {
-    href: '/game/arsenal',
+    href: null,
     label: 'Arsenal',
-    detail: 'Disciplines, Techniques, and Attunement',
-    symbol: '✦',
+    detail: 'Items — Coming Soon',
+    symbol: '▣',
     icon: 'arsenal',
+    disabled: true,
+  },
+  {
+    href: '/game/nexus',
+    label: 'Nexus',
+    detail: 'Disciplines, Techniques, Attunement, Ascension, and Severed Power',
+    symbol: '✦',
+    icon: 'nexus',
   },
   {
     href: '/game/world',
