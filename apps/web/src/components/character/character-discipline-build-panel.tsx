@@ -443,7 +443,7 @@ export function CharacterDisciplineBuildPanel({
         type="button"
         className={styles.trigger}
         aria-haspopup="dialog"
-        aria-label={`Manage Primary Discipline and Secondary Discipline. Current: ${current.definition.name}${
+        aria-label={`Manage Disciplines — Manage Primary Discipline and Secondary Discipline. Current: ${current.definition.name}${
           currentSecondary ? ` plus ${currentSecondary.name}` : ''
         }`}
         onClick={() => setPanelOpen(true)}
