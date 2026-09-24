@@ -34,6 +34,7 @@ function TechniqueLane({
   return (
     <section
       className={styles.techniqueLane}
+      data-nexus-technique-lane="true"
       data-locked={locked ? 'true' : 'false'}
       aria-label={locked ? 'Locked Secondary Techniques' : `${discipline?.name ?? kind} Techniques`}
     >
@@ -74,6 +75,7 @@ function TechniqueLane({
                 className={styles.emptyTechniqueSlot}
                 key={`empty-${kind}-${index}`}
                 data-arsenal-technique-row="true"
+                data-empty-technique-slot="true"
                 data-equipped="false"
                 aria-hidden="true"
               >
