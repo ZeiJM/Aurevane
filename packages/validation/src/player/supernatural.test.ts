@@ -96,6 +96,7 @@ describe('authored supernatural transition request validation', () => {
     idempotencyKey: '00000000-0000-4000-8000-000000000919',
     transitionId: 'supernatural.main.choose-ascension',
     transitionContentVersion: 1,
+    confirmPermanentChoice: true as const,
   }
 
   it('accepts only the exact server-resolvable transition reference shape', () => {
@@ -108,6 +109,13 @@ describe('authored supernatural transition request validation', () => {
       { ...request, transitionContentVersion: 0 },
       { ...request, idempotencyKey: 'not-a-uuid' },
       { ...request, transitionId: 'Ascension Choice' },
+      { ...request, confirmPermanentChoice: false },
+      {
+        expectedStateVersion: request.expectedStateVersion,
+        idempotencyKey: request.idempotencyKey,
+        transitionId: request.transitionId,
+        transitionContentVersion: request.transitionContentVersion,
+      },
       { ...request, transition: { result: { path: 'ascended' } } },
     ])
       expect(parseAuthoredSupernaturalTransitionRequest(invalid)).toBeNull()
