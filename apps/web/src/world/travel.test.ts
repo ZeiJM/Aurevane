@@ -139,14 +139,26 @@ describe('world travel', () => {
       'crown-northfields',
     ])
 
-    const route = findWorldRoute(
+    const northRoute = findWorldRoute(
       { sectorId: 'aureth-crown', x: 6, y: 0 },
+      { sectorId: 'crown-uplands', x: 0, y: 4 },
+      CHARTED_SECTORS,
+    )!
+    expect(northRoute.some((step) => step.road === 'Crown North Road')).toBe(true)
+    expect(northRoute.some((step) => step.road === 'Northfields Crossroad')).toBe(true)
+    expect(northRoute.at(-1)?.position).toEqual({ sectorId: 'crown-uplands', x: 0, y: 4 })
+
+    const uplandRoute = findWorldRoute(
+      { sectorId: 'crown-hinterland', x: 4, y: 0 },
       { sectorId: 'crown-uplands', x: 4, y: 8 },
       CHARTED_SECTORS,
     )!
-    expect(route.some((step) => step.road === 'Crown North Road')).toBe(true)
-    expect(route.some((step) => step.road === 'Northfields Crossroad')).toBe(true)
-    expect(route.at(-1)?.position).toEqual({ sectorId: 'crown-uplands', x: 4, y: 8 })
+    expect(uplandRoute).toEqual([
+      expect.objectContaining({
+        position: { sectorId: 'crown-uplands', x: 4, y: 8 },
+        road: 'Crown Upland Track',
+      }),
+    ])
   })
 
   it('walks through Crown Road in both directions without skipping encounterable squares', () => {
