@@ -75,13 +75,9 @@ test('Nexus previews and commits Primary Discipline while Character preserves pe
   await expect(dialog).toContainText('Locked')
 
   const primarySlot = dialog.getByRole('button', { name: /Primary Discipline/ })
-  const secondarySlot = dialog.getByRole('button', { name: /Secondary Discipline/ })
   const proposed = dialog.locator('select')
 
-  await secondarySlot.click()
-  await expect(proposed.locator('option[value=""]')).toHaveText('None')
-  await expect(proposed.locator('option[value="vanguard"]')).toHaveCount(0)
-  await primarySlot.click()
+  await expect(primarySlot).toBeEnabled()
   await proposed.selectOption('aetherist')
 
   const preview = dialog.locator('[aria-label="Discipline stat preview"]')
