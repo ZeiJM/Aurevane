@@ -88,6 +88,7 @@ const authoredSupernaturalTransitionRequestSchema = z
     idempotencyKey: z.string().uuid(),
     transitionId: stableId,
     transitionContentVersion: positiveVersion,
+    confirmPermanentChoice: z.literal(true),
   })
   .strict()
 
