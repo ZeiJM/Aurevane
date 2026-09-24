@@ -218,7 +218,8 @@
   flex: 0 0 auto;
 }
 
-.railLink svg[data-nav-icon='arsenal'] {
+.railLink svg[data-nav-icon='arsenal'],
+.railLink svg[data-nav-icon='nexus'] {
   width: 1.84rem;
   height: 1.84rem;
 }
@@ -708,7 +709,7 @@
   }
 
   .railNavigation {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     padding: 0;
   }
 
@@ -728,7 +729,8 @@
     height: 1.2rem;
   }
 
-  .railLink svg[data-nav-icon='arsenal'] {
+  .railLink svg[data-nav-icon='arsenal'],
+  .railLink svg[data-nav-icon='nexus'] {
     width: 1.34rem;
     height: 1.34rem;
   }
