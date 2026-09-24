@@ -126,7 +126,12 @@ describe('battle skill artwork presentation', () => {
     expect(battleSkillArtwork('edgedancer.finishing-thrust')).toBe(
       '/media/art/discipline-skills/edgedancer-finishing-thrust-v01.webp',
     )
-    expect(battleSkillArtwork('wildwarden.snare')).toMatch(/^data:image\/svg\+xml,/)
+    expect(battleSkillArtwork('wildwarden.snare')).toBe(
+      '/media/art/discipline-skills/wildwarden-snare-v01.webp',
+    )
+    expect(battleSkillArtwork('wildwarden.close-quarry')).toBe(
+      '/media/art/discipline-skills/wildwarden-close-quarry-v01.webp',
+    )
 
     for (const id of ['runeblade.aether-cut', 'runeblade.sigil-brand']) {
       const source = battleSkillArtwork(id)

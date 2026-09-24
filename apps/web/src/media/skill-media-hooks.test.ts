@@ -51,7 +51,13 @@ describe('Skill media hook registry', () => {
     expect(registeredSkillArtworkSource('edgedancer.finishing-thrust')).toBe(
       '/media/art/discipline-skills/edgedancer-finishing-thrust-v01.webp',
     )
-    expect(registeredSkillArtworkSource('wildwarden.snare')).toMatch(/^data:image\/svg\+xml/)
+    expect(registeredSkillArtworkSource('wildwarden.snare')).toBe(
+      '/media/art/discipline-skills/wildwarden-snare-v01.webp',
+    )
+    expect(registeredSkillArtworkSource('wildwarden.close-quarry')).toBe(
+      '/media/art/discipline-skills/wildwarden-close-quarry-v01.webp',
+    )
+    expect(registeredSkillArtworkSource('runeblade.aether-cut')).toMatch(/^data:image\/svg\+xml/)
     const essence = resolveSkillIconHook('essence.aetherist.aether-nova.icon')
     expect(essence).toEqual(
       expect.objectContaining({
