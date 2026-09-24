@@ -55,10 +55,7 @@ export async function handleSupernaturalStoryGet(
             path: transition.result.path,
           }))
         : []
-    return Response.json(
-      { state, choices },
-      { headers: { 'Cache-Control': 'private, no-store' } },
-    )
+    return Response.json({ state, choices }, { headers: { 'Cache-Control': 'private, no-store' } })
   } catch (error) {
     return toServerErrorResponse(error)
   }
