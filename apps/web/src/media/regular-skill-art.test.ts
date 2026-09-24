@@ -7,10 +7,10 @@ import { describe, expect, it } from 'vitest'
 
 import { REGULAR_SKILL_ART, regularSkillArtwork } from './regular-skill-art'
 
-describe('approved regular Discipline Skill action art — first 88', () => {
-  it('maps exactly the approved 88 current Skills to unique committed WebPs', () => {
+describe('approved regular Discipline Skill action art — first 96', () => {
+  it('maps exactly the approved 96 current Skills to unique committed WebPs', () => {
     const entries = Object.entries(REGULAR_SKILL_ART)
-    expect(entries).toHaveLength(88)
+    expect(entries).toHaveLength(96)
 
     const counts = entries.reduce<Record<string, number>>((result, [id]) => {
       const discipline = id.split('.')[0]!
@@ -29,6 +29,7 @@ describe('approved regular Discipline Skill action art — first 88', () => {
       ravager: 8,
       edgedancer: 8,
       wildwarden: 8,
+      runeblade: 8,
     })
 
     const currentIds = new Set(latestEnabledMatureSkills().map((skill) => skill.id))
@@ -83,6 +84,12 @@ describe('approved regular Discipline Skill action art — first 88', () => {
     expect(regularSkillArtwork('wildwarden.close-quarry')).toBe(
       '/media/art/discipline-skills/wildwarden-close-quarry-v01.webp',
     )
-    expect(regularSkillArtwork('runeblade.aether-cut')).toBeNull()
+    expect(regularSkillArtwork('runeblade.arc-edge')).toBe(
+      '/media/art/discipline-skills/runeblade-arc-edge-v01.webp',
+    )
+    expect(regularSkillArtwork('runeblade.rune-mending')).toBe(
+      '/media/art/discipline-skills/runeblade-rune-mending-v01.webp',
+    )
+    expect(regularSkillArtwork('dawnshield.radiant-strike')).toBeNull()
   })
 })
