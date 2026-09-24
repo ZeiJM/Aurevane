@@ -179,7 +179,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
         : titleCase(focusedSkill.definition.sourceDisciplineId)
     : null
   const focusedCharacteristics = focusedSkill
-    ? [
+    ? ([
         ['Skill Type', skillTypeDescription(focusedSkill.definition)],
         ['Cost', skillCostDescription(focusedSkill.definition)],
         ['Damage', skillDamageDescription(focusedSkill.definition)],
@@ -191,7 +191,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
         ['Range', skillCompactRangeDescription(focusedSkill.definition)],
         ['Line of Sight', skillLineOfSightDescription(focusedSkill.definition)],
         ['Cooldown', skillCooldownDescription(focusedSkill.definition)],
-      ] as const
+      ] as const)
     : []
 
   useEffect(() => {
