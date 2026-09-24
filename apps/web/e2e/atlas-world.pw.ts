@@ -541,6 +541,44 @@ test('expired training releases travel without claiming XP and frontier discover
   expect((await world(page)).sectors.find((s) => !s.charted)?.cells).toEqual(survey.cells)
 })
 
+
+test('Crown Road advances one four-second step with one due client tick', async ({ page }, info) => {
+  test.skip(
+    info.project.name !== 'desktop-chromium',
+    'Tick scheduling is viewport independent; exercise one authoritative desktop journey.',
+  )
+  test.setTimeout(60_000)
+  await enter(page)
+  const initial = await world(page)
+  place(initial.characterId, 'crown-road', 6, 4)
+  await page.reload()
+
+  const placed = await world(page)
+  const road = placed.sectors.find((sector) => sector.id === 'crown-road')!
+  let tickPosts = 0
+  page.on('request', (request) => {
+    if (request.method() !== 'POST' || !request.url().endsWith('/api/world')) return
+    try {
+      const payload = request.postDataJSON() as { intent?: { kind?: string } }
+      if (payload.intent?.kind === 'tick') tickPosts++
+    } catch {
+      // Ignore non-JSON requests; World commands are JSON by contract.
+    }
+  })
+
+  await page
+    .getByRole('button', {
+      name: `E${road.east + 7} N${road.north - 4}, open territory`,
+      exact: true,
+    })
+    .click()
+  await expect(page.locator('[data-world-travel-status]')).toContainText('1 steps remaining')
+  await expect
+    .poll(async () => (await world(page)).position.x, { timeout: 7_000 })
+    .toBe(7)
+  expect(tickPosts).toBe(1)
+})
+
 for (const journey of [
   {
     id: 'eastern-march-road',

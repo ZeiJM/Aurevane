@@ -7,14 +7,59 @@ import {
   findWorldRoute,
   newWorldState,
   remainingTravelMs,
-  worldSyncIntervalMs,
+  worldSyncDelayMs,
 } from './travel'
 
 describe('world travel', () => {
-  it('uses rapid sync only while travel can advance', () => {
-    expect(worldSyncIntervalMs({ routeLength: 3, movementBlocked: false })).toBe(1200)
-    expect(worldSyncIntervalMs({ routeLength: 0, movementBlocked: false })).toBe(10000)
-    expect(worldSyncIntervalMs({ routeLength: 3, movementBlocked: true })).toBe(10000)
+  it('schedules active sync from the authoritative next-step deadline', () => {
+    expect(
+      worldSyncDelayMs({
+        routeLength: 3,
+        movementBlocked: false,
+        nextStepAt: 5000,
+        serverNow: 1000,
+      }),
+    ).toBe(4000)
+    expect(
+      worldSyncDelayMs({
+        routeLength: 3,
+        movementBlocked: false,
+        nextStepAt: 2100,
+        serverNow: 1000,
+      }),
+    ).toBe(1200)
+    expect(
+      worldSyncDelayMs({
+        routeLength: 3,
+        movementBlocked: false,
+        nextStepAt: 1000,
+        serverNow: 1200,
+      }),
+    ).toBe(1200)
+    expect(
+      worldSyncDelayMs({
+        routeLength: 3,
+        movementBlocked: false,
+        nextStepAt: null,
+        serverNow: 1200,
+      }),
+    ).toBe(1200)
+    expect(
+      worldSyncDelayMs({
+        routeLength: 0,
+        movementBlocked: false,
+        nextStepAt: null,
+        serverNow: 1200,
+      }),
+    ).toBe(10000)
+    expect(
+      worldSyncDelayMs({
+        routeLength: 3,
+        movementBlocked: true,
+        nextStepAt: 5000,
+        serverNow: 1000,
+      }),
+    ).toBe(10000)
   })
   it('keeps all eight canonical regions distinct', () => {
     expect(WORLD_REGIONS.map((r) => r.name)).toEqual([
