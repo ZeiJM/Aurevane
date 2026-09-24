@@ -80,7 +80,6 @@ export function resolveSupernaturalChoiceTransition(id: string, contentVersion: 
   )
 }
 
-
 export function availableSupernaturalChoiceTransitions(
   state: SupernaturalStoryState,
 ): readonly SupernaturalStoryTransitionDefinition[] {
