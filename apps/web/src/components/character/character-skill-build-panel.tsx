@@ -459,7 +459,11 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                     {renderTechniqueGroup(secondaryDiscipline, secondarySkills, true)}
                   </section>
 
-                  <aside className={styles.detailRail} data-av-surface="ink">
+                  <aside
+                    className={styles.detailRail}
+                    data-av-surface="ink"
+                    data-testid="technique-preview"
+                  >
                     <section className={styles.selectedTechnique}>
                       <span>Technique Preview</span>
                       {focusedSkill ? (
