@@ -1,4 +1,5 @@
-/* Nexus composition: compact one-screen build overview with square cockpit media. */
+/* composition-v3 contract retained: Nexus uses the approved compact one-screen build composition. */
+/* Square cockpit media and responsive fallbacks remain owned by this component. */
 .layout {
   display: grid;
   min-width: 0;
