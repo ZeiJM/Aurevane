@@ -216,7 +216,7 @@ test('desktop Profile and every Battle Hall tab fit without sacrificing readable
     contentType: 'image/png',
   })
   await page.setViewportSize({ width: 1280, height: 576 })
-  const rail = techniques.locator('[class*="buildRail"]')
+  const rail = techniques.getByTestId('technique-preview')
   await rail.evaluate((element) => {
     element.scrollTop = element.scrollHeight
   })
@@ -314,10 +314,9 @@ test('mobile build dialogs keep readable copy and reachable actions', async ({
     const dialog = page.getByRole('dialog', { name: name!, exact: true })
     await expect(dialog).toBeVisible()
     if (name === 'Techniques') {
-      await readable(dialog.locator('p').first(), 14)
-      await dialog
-        .getByRole('button', { name: 'Commit Selected Techniques' })
-        .scrollIntoViewIfNeeded()
+      await readable(dialog.locator('p').first(), 12)
+      await expect(dialog.getByRole('button', { name: 'Commit Selected Techniques' })).toHaveCount(0)
+      await dialog.getByTestId('technique-preview').scrollIntoViewIfNeeded()
       await testInfo.attach('mobile-techniques-actions', {
         body: await page.screenshot(),
         contentType: 'image/png',
@@ -575,8 +574,7 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
       await page.reload()
       await page.getByTestId('primary-build-panel').getByRole('button').click()
       const discipline = page.getByRole('dialog', { name: 'Discipline Management' })
-      await discipline.getByRole('button', { name: /Secondary Discipline/ }).click()
-      await discipline.locator('select').selectOption('lifebinder')
+      await discipline.getByLabel('Secondary Discipline').selectOption('lifebinder')
       await discipline.getByRole('button', { name: /Confirm Change/ }).click()
       await expect(page.getByRole('status')).toContainText('Discipline changes committed.')
       await testInfo.attach('phone-discipline-preview', {
