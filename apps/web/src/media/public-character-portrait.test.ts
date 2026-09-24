@@ -13,9 +13,9 @@ describe('public character image resolution', () => {
   })
 
   it('uses the selected starter portrait when no custom profile image exists', () => {
-    const resolved = resolvePublicCharacterImageUrl(null, 'portrait.starter.wayfarer-07')
-    expect(resolved).toBeTruthy()
-    expect(resolved).toMatch(/^(?:data:image\/webp;base64,|\/media\/)/)
+    expect(resolvePublicCharacterImageUrl(null, 'portrait.starter.wayfarer-07')).toBe(
+      '/api/media/starter-portrait/portrait.starter.wayfarer-07',
+    )
   })
 
   it('returns no public image for an invalid portrait reference', () => {
