@@ -268,8 +268,8 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
     )
     .toBe(true)
   const fortress = list.locator('article').filter({ hasText: 'Fortress' })
-  await expect(fortress).toContainText('Fortified')
   await fortress.getByRole('checkbox').focus()
+  await expect(dialog).toContainText('Fortified')
   await expect(dialog).toContainText('Take 30% less damage and deal 20% less damage.')
   await expect(dialog).toContainText('to yourself')
   expect(await dialog.evaluate((element) => element.scrollWidth > element.clientWidth + 1)).toBe(
