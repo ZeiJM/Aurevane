@@ -2,7 +2,13 @@
 import Image from 'next/image'
 import { useMemo } from 'react'
 import { cellCenter } from '@/world/travel'
-import type { WorldPlayer, WorldPosition, WorldSectorView, TravelStep } from '@/world/types'
+import type {
+  TravelStep,
+  WorldCell,
+  WorldPlayer,
+  WorldPosition,
+  WorldSectorView,
+} from '@/world/types'
 import styles from './world.module.css'
 
 export function SectorMap({
@@ -32,7 +38,7 @@ export function SectorMap({
 }) {
   const local = position.sectorId === sector.id
   const cellsByIndex = useMemo(() => {
-    const indexed = new Array<(typeof sector.cells)[number] | undefined>(13 * 9)
+    const indexed = new Array<WorldCell | undefined>(13 * 9)
     for (const cell of sector.cells) indexed[cell.y * 13 + cell.x] = cell
     return indexed
   }, [sector.cells])
