@@ -661,21 +661,10 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
           await expect(tag).toHaveCSS('font-size', '11px')
         }
         const title = await card.locator('label strong').boundingBox()
-        const star = card.locator('[data-favorite-technique-star]')
-        if (await star.count()) {
-          const starBox = await star.boundingBox()
-          // Padding reserves the favourite control's column for wrapped names.
-          const textRight = await card.locator('label strong').evaluate((e) => {
-            const r = document.createRange()
-            r.selectNodeContents(e)
-            return Math.max(...[...r.getClientRects()].map((rect) => rect.right))
-          })
-          expect(textRight, 'Technique name must not collide with favourite').toBeLessThanOrEqual(
-            starBox!.x,
-          )
-          if (width < 760) expect(starBox!.width).toBeGreaterThanOrEqual(44)
-        }
+        await expect(card.locator('[data-favorite-technique-star]')).toHaveCount(0)
+        expect(title).not.toBeNull()
         expect(title!.x).toBeGreaterThanOrEqual(0)
+        expect(title!.width).toBeGreaterThan(0)
       }
       await testInfo.attach(`skills-${width}-${mixed ? 'mixed' : 'pure'}`, {
         body: await page.screenshot(),
