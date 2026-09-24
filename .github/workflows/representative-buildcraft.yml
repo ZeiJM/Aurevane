@@ -83,6 +83,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: representative-buildcraft-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   representative-buildcraft:
     runs-on: ubuntu-24.04
