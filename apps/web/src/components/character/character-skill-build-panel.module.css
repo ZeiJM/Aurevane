@@ -481,6 +481,7 @@
 }
 
 .selectedTechnique {
+  position: relative;
   align-content: start;
   min-height: 0;
   overflow: auto;
