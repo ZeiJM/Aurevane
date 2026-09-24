@@ -3,8 +3,18 @@ import type { TravelStep, WorldObjective, WorldPosition, WorldSector, WorldState
 
 export const ACTIVE_WORLD_SYNC_MS = 1200
 export const IDLE_WORLD_SYNC_MS = 10000
-export function worldSyncIntervalMs(state: { routeLength: number; movementBlocked: boolean }) {
-  return state.routeLength > 0 && !state.movementBlocked ? ACTIVE_WORLD_SYNC_MS : IDLE_WORLD_SYNC_MS
+export function worldSyncDelayMs(state: {
+  routeLength: number
+  movementBlocked: boolean
+  nextStepAt: number | null
+  serverNow: number
+}) {
+  if (state.routeLength > 0 && !state.movementBlocked) {
+    if (state.nextStepAt !== null)
+      return Math.max(ACTIVE_WORLD_SYNC_MS, state.nextStepAt - state.serverNow)
+    return ACTIVE_WORLD_SYNC_MS
+  }
+  return IDLE_WORLD_SYNC_MS
 }
 
 export const positionKey = (p: WorldPosition) => `${p.sectorId}:${p.x}:${p.y}`
