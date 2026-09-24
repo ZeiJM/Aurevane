@@ -285,7 +285,7 @@
 
 .techniqueGroup > header > small {
   color: #526b7a;
-  font: 700 0.5rem/1 var(--av-font-body);
+  font: 700 0.6875rem/1 var(--av-font-body);
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
