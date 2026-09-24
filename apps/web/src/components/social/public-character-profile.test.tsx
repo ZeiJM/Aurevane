@@ -2,7 +2,7 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 
-import { PublicCharacterProfile } from './public-character-profile'
+import { PublicCharacterPortrait, PublicCharacterProfile } from './public-character-profile'
 
 describe('Public character profile', () => {
   it('uses a native dialog with a compact public-only identity card', () => {
@@ -39,4 +39,27 @@ describe('Public character profile', () => {
     for (const privateValue of [character.pronouns, character.email, ...character.inventory])
       expect(markup).not.toContain(privateValue)
   })
+})
+
+
+it('renders a selected starter portrait for a public character without a custom image', () => {
+  const markup = renderToStaticMarkup(
+    createElement(PublicCharacterPortrait, {
+      character: {
+        characterId: 'character-starter',
+        name: 'Starter Vale',
+        level: 1,
+        lastSeenAt: '2026-09-24T00:00:00Z',
+        portraitRef: 'portrait.starter.wayfarer-07',
+        disciplineId: null,
+        secondaryDisciplineId: null,
+        personalTitle: null,
+        imageUrl: null,
+      },
+    }),
+  )
+
+  expect(markup).toContain('<img')
+  expect(markup).toContain('data:image/webp;base64,')
+  expect(markup).toContain('Starter Vale portrait')
 })
