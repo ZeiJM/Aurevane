@@ -296,7 +296,10 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
     ).toBeVisible()
   await expect(page.locator('aside').getByText('Charted Sectors', { exact: true })).toBeVisible()
   await expect(
-    page.locator('aside').getByRole('button', { name: /Crown Road.*S16-08/ }),
+    page
+      .locator('aside')
+      .locator('[class*="chartedSectorList"]')
+      .getByRole('button', { name: /Crown Road.*S16-08/ }),
   ).toBeVisible()
   const sphere = page.getByRole('group', { name: /World globe/ })
   await expect(page.locator('[data-sector-outline="crown-road"]')).toBeVisible()
@@ -351,7 +354,7 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
   await expect(page.getByRole('heading', { name: 'Crown Road', exact: true })).toBeVisible()
   await page.getByRole('button', { name: /Globe/ }).click()
 
-  const unchartedCell = globeSectorCenter('S17-08')!
+  const unchartedCell = globeSectorCenter('S17-09')!
   const unchartedPoint = projectGlobePoint(unchartedCell, { longitude: 0, latitude: 8 })
   await sphere.click({
     position: {
@@ -360,7 +363,7 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
     },
   })
   await expect(page.getByRole('status')).toContainText(
-    'S17-08 is uncharted. No charted destination is available there yet.',
+    'S17-09 is uncharted. No charted destination is available there yet.',
   )
   expect((await world(page)).sectors.some((sector) => sector.coordinate === 'S17-08')).toBe(false)
 
@@ -541,9 +544,40 @@ test('expired training releases travel without claiming XP and frontier discover
     },
   })
   expect(forged.ok()).toBe(false)
+
+  place(initial.characterId, survey.id, 11, 1, false)
+  await page.reload()
+  const observation = await world(page)
+  expect(observation.archive).toEqual([])
+  const recordObservation = await page.request.post('/api/world', {
+    data: {
+      characterId: initial.characterId,
+      expectedVersion: observation.version,
+      commandId: randomUUID(),
+      intent: { kind: 'tick' },
+    },
+  })
+  expect(recordObservation.ok()).toBe(true)
+  await page.reload()
+  const archive = page.getByRole('region', { name: 'Archive' })
+  await expect(archive).toContainText('Weathered Observatory')
+  await expect(archive).toContainText('Field Observation')
+  const archived = await world(page)
+  expect(archived.archive).toEqual([
+    expect.objectContaining({
+      id: 'field-observation-first-observation',
+      provenance: 'Direct field observation',
+    }),
+  ])
+  const archivedVersion = archived.version
+  await page.reload()
+  expect((await world(page)).version).toBe(archivedVersion)
+  await expect(page.getByRole('region', { name: 'Archive' })).toContainText('Weathered Observatory')
+
+  const archivedCells = archived.sectors.find((s) => !s.charted)!.cells
   await capture(page, info, 'world-frontier')
   await page.reload()
-  expect((await world(page)).sectors.find((s) => !s.charted)?.cells).toEqual(survey.cells)
+  expect((await world(page)).sectors.find((s) => !s.charted)?.cells).toEqual(archivedCells)
 })
 
 test('Crown Road advances one four-second step with one due client tick', async ({
