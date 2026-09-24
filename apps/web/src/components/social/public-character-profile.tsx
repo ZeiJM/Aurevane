@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 
+import { resolvePublicCharacterImageUrl } from '@/media/public-character-portrait'
+
 import type {
   CharacterPresenceDirectoryEntry,
   OnlineCharacter,
@@ -21,18 +23,25 @@ export function PublicCharacterPortrait({
 }) {
   const [failedSource, setFailedSource] = useState<string | null>(null)
   const className = large ? styles.heroPortrait : styles.avatar
-  if (character.imageUrl && failedSource !== character.imageUrl) {
+  const starterSource = resolvePublicCharacterImageUrl(null, character.portraitRef)
+  const source =
+    failedSource === starterSource
+      ? null
+      : character.imageUrl && failedSource !== character.imageUrl
+        ? character.imageUrl
+        : starterSource
+  if (source) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
         className={className}
-        src={character.imageUrl}
+        src={source}
         alt={`${character.name} portrait`}
         width={large ? 180 : 48}
         height={large ? 180 : 48}
         loading={large ? 'eager' : 'lazy'}
         referrerPolicy="no-referrer"
-        onError={() => setFailedSource(character.imageUrl)}
+        onError={() => setFailedSource(source)}
       />
     )
   }
