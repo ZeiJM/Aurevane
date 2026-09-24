@@ -65,7 +65,7 @@
   width: min(82rem, 97vw);
   max-height: 92dvh;
   min-height: 0;
-  grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
   overflow: hidden;
   border: 1px solid #a88548;
   border-radius: 0.2rem;
@@ -83,12 +83,10 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  min-height: 4.5rem;
-  padding: 0.65rem 0.9rem 0.55rem;
+  min-height: 4rem;
+  padding: 0.55rem 0.9rem;
   border-bottom: 1px solid rgba(151, 125, 76, 0.34);
-  background:
-    linear-gradient(90deg, rgba(255, 253, 247, 0.06), rgba(255, 253, 247, 0.65)),
-    url('/media/art/concept-ui/world-v01.webp') 72% 45% / 58% auto no-repeat;
+  background: linear-gradient(90deg, rgba(244, 237, 220, 0.5), rgba(255, 253, 247, 0.32) 48%, rgba(224, 210, 179, 0.2));
 }
 
 .headingCopy {
@@ -100,7 +98,7 @@
 
 .headerIcon {
   color: #89692f;
-  font-size: 2.15rem;
+  font-size: 1.9rem;
   line-height: 1;
 }
 
@@ -113,13 +111,20 @@
 .header h2 {
   margin: 0;
   color: #182e3d;
-  font: 600 clamp(1.85rem, 2.8vw, 2.55rem) / 1 var(--av-font-display);
+  font: 600 clamp(1.75rem, 2.4vw, 2.25rem) / 1 var(--av-font-display);
 }
 
 .headingCopy p {
-  margin: 0;
+  margin: 0.08rem 0 0;
   color: #526b7a;
-  font: italic 0.875rem/1.3 var(--av-font-display);
+  font: italic 0.78rem/1.28 var(--av-font-display);
+}
+
+.autoSaveNote {
+  color: #6a7d87;
+  font: 700 0.56rem/1.2 var(--av-font-body);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .close {
@@ -228,16 +233,16 @@
 
 .selectedCounter small {
   color: #4c626f;
-  font-size: 0.6875rem;
-  line-height: 1.25;
+  font-size: 0.72rem;
+  line-height: 1.3;
 }
 
 .workspace {
   display: grid;
   min-height: 0;
-  grid-template-columns: minmax(0, 1fr) minmax(18rem, 23%);
-  gap: 0.55rem;
-  padding: 0.5rem 0.8rem;
+  grid-template-columns: minmax(0, 1fr) minmax(19rem, 22rem);
+  gap: 0.62rem;
+  padding: 0.55rem 0.8rem;
   overflow: hidden;
 }
 
@@ -294,7 +299,7 @@
   display: grid;
   min-height: 0;
   grid-template-columns: repeat(8, minmax(0, 1fr));
-  gap: 0.38rem;
+  gap: 0.42rem;
   align-items: stretch;
 }
 
@@ -324,8 +329,8 @@
   grid-template-rows: auto auto auto;
   justify-items: center;
   align-content: start;
-  gap: 0.2rem;
-  padding: 0.4rem 0.28rem 0.34rem;
+  gap: 0.3rem;
+  padding: 0.48rem 0.34rem 0.42rem;
   cursor: pointer;
 }
 
@@ -347,8 +352,8 @@
 .skillArt {
   position: relative;
   display: grid;
-  width: 3.5rem;
-  height: 3.5rem;
+  width: 4.15rem;
+  height: 4.15rem;
   aspect-ratio: 1 / 1;
   place-items: center;
   overflow: hidden;
@@ -380,26 +385,21 @@
 .skill label > strong {
   box-sizing: border-box;
   width: 100%;
-  padding-right: 2.25rem;
-  overflow: hidden;
+  min-height: 1.6rem;
   color: #f0e5d3;
-  font: 600 0.6875rem/1.12 var(--av-font-display);
+  font: 600 0.72rem/1.15 var(--av-font-display);
   text-align: center;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .skillMeta {
   box-sizing: border-box;
   width: 100%;
-  padding-right: 2.25rem;
-  overflow: hidden;
   color: #acb9bd;
-  font-size: 0.6875rem;
-  line-height: 1.1;
+  font-size: 0.64rem;
+  line-height: 1.2;
   text-align: center;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .lockedSkill {
@@ -413,8 +413,8 @@
 
 .lockedSkill > span {
   display: grid;
-  width: 3.5rem;
-  height: 3.5rem;
+  width: 4.15rem;
+  height: 4.15rem;
   aspect-ratio: 1 / 1;
   place-items: center;
   border: 1px solid #4c5e67;
@@ -430,10 +430,9 @@
   display: grid;
   min-width: 0;
   min-height: 0;
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  gap: 0.6rem;
-  padding: 0.65rem;
-  overflow-y: auto;
+  grid-template-rows: minmax(0, 1fr);
+  padding: 0.75rem;
+  overflow: hidden;
   border: 1px solid #324b59;
   color: #eee4d4;
   background-color: #0d2532;
@@ -487,23 +486,26 @@
 
 .selectedTechnique {
   position: relative;
-  align-content: start;
+  display: grid;
   min-height: 0;
-  overflow: auto;
+  align-content: start;
+  gap: 0.6rem;
+  overflow-y: auto;
+  padding-right: 0.18rem;
   scrollbar-width: thin;
 }
 
 .selectedTechniqueHeading {
   display: grid;
-  grid-template-columns: 3.5rem minmax(0, 1fr);
-  gap: 0.6rem;
-  align-items: center;
+  justify-items: center;
+  gap: 0.55rem;
+  text-align: center;
 }
 
 .detailArt {
   display: block;
-  width: 3.5rem;
-  height: 3.5rem;
+  width: 4.15rem;
+  height: 4.15rem;
   aspect-ratio: 1 / 1;
   overflow: hidden;
   border: 1px solid #a48750;
@@ -520,12 +522,13 @@
 .selectedTechniqueHeading > div {
   display: grid;
   min-width: 0;
-  gap: 0.25rem;
+  justify-items: center;
+  gap: 0.22rem;
 }
 
 .selectedTechniqueHeading strong {
   color: #f3e9d8;
-  font: 600 1.02rem/1.08 var(--av-font-display);
+  font: 600 1.18rem/1.08 var(--av-font-display);
 }
 
 .selectedTechniqueHeading small {
@@ -558,8 +561,8 @@
 
 .signatureArt {
   display: block;
-  width: 3.5rem;
-  height: 3.5rem;
+  width: 4.15rem;
+  height: 4.15rem;
   aspect-ratio: 1 / 1;
   overflow: hidden;
   border: 1px solid #8f774c;
@@ -599,7 +602,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  padding: 0.52rem 0.8rem 0.65rem;
+  min-height: 3.2rem;
+  padding: 0.42rem 0.8rem 0.55rem;
   border-top: 1px solid rgba(151, 125, 76, 0.24);
 }
 
@@ -616,17 +620,10 @@
   font: 600 0.68rem/1 var(--av-font-body);
 }
 
-.actions button:last-child {
-  display: flex;
-  min-width: 19rem;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.65rem;
-  border: 1px solid #a17b35;
-  color: #ead08a;
-  background: linear-gradient(180deg, #0e3b4b, #071e2c);
-  font: 700 0.72rem/1 var(--av-font-body);
-  letter-spacing: 0.07em;
+.saveState {
+  color: #5b707d;
+  font: 700 0.58rem/1.2 var(--av-font-body);
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
@@ -661,7 +658,6 @@
   }
 
   .detailRail {
-    grid-template-columns: 0.7fr 1.3fr;
     grid-template-rows: auto;
     overflow: visible;
   }
@@ -693,20 +689,18 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .skill label > strong,
-  .skillMeta {
-    padding-right: 3.15rem;
-  }
-
   .actions {
     align-items: stretch;
     flex-direction: column;
   }
 
-  .actions button,
-  .actions button:last-child {
+  .actions button {
     width: 100%;
     min-width: 0;
+  }
+
+  .saveState {
+    text-align: center;
   }
 
   .headingCopy p {
