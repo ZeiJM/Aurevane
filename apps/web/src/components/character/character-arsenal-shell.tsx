@@ -61,6 +61,7 @@ function TechniqueLane({
                 className={styles.lockedTechniqueSlot}
                 key={`locked-${kind}-${index}`}
                 data-arsenal-technique-row="true"
+                data-arsenal-media="true"
                 data-equipped="false"
                 aria-hidden="true"
               >
