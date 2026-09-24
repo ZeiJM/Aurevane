@@ -354,7 +354,7 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
   await expect(page.getByRole('heading', { name: 'Crown Road', exact: true })).toBeVisible()
   await page.getByRole('button', { name: /Globe/ }).click()
 
-  const unchartedCell = globeSectorCenter('S17-08')!
+  const unchartedCell = globeSectorCenter('S17-09')!
   const unchartedPoint = projectGlobePoint(unchartedCell, { longitude: 0, latitude: 8 })
   await sphere.click({
     position: {
@@ -363,7 +363,7 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
     },
   })
   await expect(page.getByRole('status')).toContainText(
-    'S17-08 is uncharted. No charted destination is available there yet.',
+    'S17-09 is uncharted. No charted destination is available there yet.',
   )
   expect((await world(page)).sectors.some((sector) => sector.coordinate === 'S17-08')).toBe(false)
 
