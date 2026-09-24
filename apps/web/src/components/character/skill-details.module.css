@@ -1,7 +1,7 @@
 .root {
   grid-column: 1 / -1;
   min-width: 0;
-  padding: 0.15rem 0.7rem 0.55rem;
+  padding: 0;
 }
 .tags {
   display: flex;
@@ -62,4 +62,33 @@
   color: #afbdcb;
   margin: 0.6rem 0 0.2rem;
   font-size: 12px;
+}
+
+
+.expanded {
+  margin-top: 0.65rem;
+}
+
+.expanded dl {
+  display: grid;
+  gap: 0.18rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid rgb(183 199 212 / 16%);
+  background: rgb(4 17 25 / 42%);
+}
+
+.expanded dl > div {
+  min-height: 1.35rem;
+  align-items: baseline;
+}
+
+.expanded ol,
+.expanded ul {
+  margin-bottom: 0.55rem;
+}
+
+.expanded > strong {
+  display: block;
+  margin-top: 0.45rem;
+  color: #edcd94;
 }
