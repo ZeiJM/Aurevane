@@ -15,7 +15,7 @@ Historical branches, migrations and PR titles that contain `phase5` are retained
 - [ ] NPCs and dialogue.
 - [ ] Quests.
 - [ ] Layered authoritative world state.
-- [ ] Player-facing world events / World Pulse built on the completed Phase 4 event-operations platform.
+- [x] Player-facing world events / World Pulse built on the completed Phase 4 event-operations platform.
 - [ ] Archive, Fragment Sets and lore.
 - [ ] Vendors and location-based battle scenes.
 - [ ] Relevant active-event/world-state delivery remains spoiler-safe and server-authoritative.
@@ -24,25 +24,35 @@ Historical branches, migrations and PR titles that contain `phase5` are retained
 Current bounded progress:
 
 - PR #672 merged the first persistent settlement interaction loop using the existing Verdant protected settlement, a generic watch-officer role and the Eastern Watch objective. It proves authoritative accept → inspect → return/complete persistence and idempotency without inventing a named NPC or reward. This is a vertical slice only; the broader settlements, NPCs/dialogue and quests checklist items remain open.
-- The next bounded slice surfaces already-eligible live event objectives as a player-facing **World Pulse** while reusing the completed Phase 4 event-operations authority. It does not create a parallel event schema or broaden event eligibility.
+- PR #673 merged the first player-facing **World Pulse**, surfacing server-eligible live event objectives through the existing Phase 4 event-operations authority without creating a parallel event schema.
+- PR #679 merged the stronger environmental-motion/globe-presentation pass, including a stable zoomed globe silhouette, responsive label-safe projection and a deliberate dark uncharted veil.
+- PR #682 merged charted-sector globe selection. Existing unlabeled road sectors are now first-class globe destinations, hidden cells remain spoiler-safe, and `LIVING_ATLAS_EXPANSION.md` records the authored continuous-known-world expansion contract.
+- PR #681 remains a draft merge-hold for distinct major-region settlement geometry until matching v02 regional paintings are produced and reviewed.
+- PR #684 remains the active **Field Observation → Archive** slice; it is intentionally not counted as merged progress until exact-head verification/merge completes.
 
 ## 5B — Supernatural Fork
 
-Canonical normal-character progression:
+Current canonical normal-character progression follows `SUPERNATURAL_PATHS.md`:
 
 ```text
 UNAWAKENED
-→ SOULMARKED
+→ ASCENDED
 OR
-→ SOUL-SEVERED
+→ SEVERED
 ```
 
+**Severence** is the intentional AUREVANE spelling. The former Soulmark / Soulmarked / Mantle / Soul-Severed terminology is retired for new implementation. Mantle is not a separate current power family.
+
 - [ ] Data-driven, versioned supernatural story state.
-- [ ] Small high-quality Soulmark proof.
-- [ ] Permanent normal-character Soulmarked / Soul-Severed exclusivity.
-- [ ] At least one valid Soul-Severed Mantle route.
+- [ ] Small high-quality Ascension proof.
+- [ ] Permanent normal-character Ascended / Severed exclusivity.
+- [ ] At least one representative authored Severence power proof.
 - [ ] Spoiler-safe delivery and authoritative eligibility.
 - [ ] No unapproved supernatural mechanics outside the canonical design documents.
+
+Current bounded progress:
+
+- Branch `agent/phase5-supernatural-story-state-20260923` implements the first 5B authority foundation: typed versioned story state, Unawakened/Ascended/Severed invariants, private per-character persistence, expected-version writes, durable idempotency and server-only authored transitions. It deliberately contains no Ascension catalog, Severence power package, quest/reward or player-facing choice UI yet.
 
 ## 5C — Frontier Threshold
 
