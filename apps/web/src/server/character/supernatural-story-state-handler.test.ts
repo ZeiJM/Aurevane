@@ -183,6 +183,24 @@ describe('supernatural story HTTP handler', () => {
     expect(commitTransition).not.toHaveBeenCalled()
   })
 
+  it('rejects a permanent choice when confirmation is missing', async () => {
+    const commitTransition = vi.fn()
+    const response = await handleSupernaturalStoryPut(
+      putRequest({
+        expectedStateVersion: 1,
+        idempotencyKey: '00000000-0000-4000-8000-000000000937',
+        transitionId: 'supernatural.main.choose-ascension',
+        transitionContentVersion: 1,
+      }),
+      dependencies({
+        repository: repository({ commitTransition }),
+      }),
+    )
+
+    expect(response.status).toBe(400)
+    expect(commitTransition).not.toHaveBeenCalled()
+  })
+
   it('does not create supernatural eligibility through the public choice endpoint', async () => {
     const initialize = vi.fn()
     const commitTransition = vi.fn()
@@ -192,6 +210,7 @@ describe('supernatural story HTTP handler', () => {
         idempotencyKey: '00000000-0000-4000-8000-000000000936',
         transitionId: 'supernatural.main.choose-ascension',
         transitionContentVersion: 1,
+        confirmPermanentChoice: true,
       }),
       dependencies({
         repository: repository({
@@ -219,6 +238,7 @@ describe('supernatural story HTTP handler', () => {
         idempotencyKey: '00000000-0000-4000-8000-000000000934',
         transitionId: 'supernatural.main.choose-ascension',
         transitionContentVersion: 1,
+        confirmPermanentChoice: true,
       }),
       dependencies({
         assertGameplayMutationAllowed: guard,
@@ -253,6 +273,7 @@ describe('supernatural story HTTP handler', () => {
         idempotencyKey: '00000000-0000-4000-8000-000000000935',
         transitionId: 'supernatural.main.choose-ascension',
         transitionContentVersion: 1,
+        confirmPermanentChoice: true,
       }),
       dependencies({
         repository: repository({ find, initialize, commitTransition }),
