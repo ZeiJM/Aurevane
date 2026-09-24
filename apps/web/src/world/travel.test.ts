@@ -105,6 +105,35 @@ describe('world travel', () => {
     expect(route.reduce((ms, s) => ms + s.durationMs, 0)).toBeGreaterThan(45000)
     expect(route.at(-1)?.position).toEqual({ sectorId: 'aureth-crown', x: 6, y: 4 })
   })
+  it('adds Crown Hinterland as authored charted land without replacing the established Crown Road', () => {
+    const aureth = CHARTED_SECTORS.find((sector) => sector.id === 'aureth-crown')!
+    const hinterland = CHARTED_SECTORS.find((sector) => sector.id === 'crown-hinterland')!
+
+    expect(hinterland).toMatchObject({
+      name: 'Crown Hinterland',
+      coordinate: 'S15-08',
+      regionId: 'aureth-crown',
+      art: null,
+      charted: true,
+    })
+    expect(new Set(CHARTED_SECTORS.map((sector) => sector.coordinate)).size).toBe(
+      CHARTED_SECTORS.length,
+    )
+    expect(CHARTED_SECTORS.some((sector) => sector.coordinate === 'S17-08')).toBe(false)
+    expect(aureth.roads.some((road) => road.to.sectorId === 'crown-road')).toBe(true)
+    expect(aureth.roads.some((road) => road.to.sectorId === 'crown-hinterland')).toBe(true)
+    expect(hinterland.roads.some((road) => road.to.sectorId === 'aureth-crown')).toBe(true)
+    expect(hinterland.roads.some((road) => road.to.sectorId === 'crown-road')).toBe(true)
+
+    const route = findWorldRoute(
+      { sectorId: 'aureth-crown', x: 12, y: 4 },
+      { sectorId: 'crown-hinterland', x: 6, y: 4 },
+      CHARTED_SECTORS,
+    )!
+    expect(route.some((step) => step.road === 'Crown Hinterland')).toBe(true)
+    expect(route.at(-1)?.position).toEqual({ sectorId: 'crown-hinterland', x: 6, y: 4 })
+  })
+
   it('walks through Crown Road in both directions without skipping encounterable squares', () => {
     for (const [from, to] of [
       [
