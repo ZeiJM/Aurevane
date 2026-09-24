@@ -649,7 +649,11 @@ export function CharacterDisciplineBuildPanel({
                   </div>
                 </section>
 
-                <section className={styles.comparisonGrid} aria-label="Discipline stat preview">
+                <section
+                  className={styles.comparisonGrid}
+                  data-testid="primary-build-preview"
+                  aria-label="Discipline stat preview"
+                >
                   <article className={styles.previewCard}>
                     <header>
                       <span>{`Current ${activeSlot === 'primary' ? 'Primary' : 'Secondary'}`}</span>
