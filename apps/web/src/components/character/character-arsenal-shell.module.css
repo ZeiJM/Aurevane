@@ -554,6 +554,10 @@
   .bottomGrid {
     grid-template-columns: 1fr;
   }
+
+  .bottomGrid > .panel {
+    min-height: 8.5rem;
+  }
 }
 
 @media (max-width: 760px) {
