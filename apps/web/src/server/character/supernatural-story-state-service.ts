@@ -220,8 +220,6 @@ export async function commitAuthoredSupernaturalStoryTransition(
       'That supernatural transition version is not authored or available.',
     )
 
-  await loadOrInitializeAuthoredSupernaturalStoryState(userId, characterId, repository)
-
   return commitSupernaturalStoryTransition(
     userId,
     characterId,
