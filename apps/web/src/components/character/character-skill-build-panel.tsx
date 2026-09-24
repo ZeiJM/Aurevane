@@ -455,7 +455,11 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                     </div>
                   </div>
                   <div className={styles.selectedCounter}>
-                    <span className={styles.compatCapacity} data-testid="skill-capacity" aria-hidden="true">
+                    <span
+                      className={styles.compatCapacity}
+                      data-testid="skill-capacity"
+                      aria-hidden="true"
+                    >
                       <span>{primaryDiscipline.name}</span>
                       <strong>{primarySelected}</strong>
                       <span> / {primaryMixedLimit}</span>
