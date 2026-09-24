@@ -94,20 +94,22 @@ export const REGULAR_SKILL_ART = {
     '/media/art/discipline-skills/edgedancer-finishing-thrust-v01.webp',
 
   'wildwarden.snare': '/media/art/discipline-skills/wildwarden-snare-v01.webp',
-  'wildwarden.hunters-mark':
-    '/media/art/discipline-skills/wildwarden-hunters-mark-v01.webp',
-  'wildwarden.venom-shot':
-    '/media/art/discipline-skills/wildwarden-venom-shot-v01.webp',
-  'wildwarden.field-remedy':
-    '/media/art/discipline-skills/wildwarden-field-remedy-v01.webp',
-  'wildwarden.thorn-line':
-    '/media/art/discipline-skills/wildwarden-thorn-line-v01.webp',
-  'wildwarden.pursuit-shot':
-    '/media/art/discipline-skills/wildwarden-pursuit-shot-v01.webp',
-  'wildwarden.renewing-herbs':
-    '/media/art/discipline-skills/wildwarden-renewing-herbs-v01.webp',
-  'wildwarden.close-quarry':
-    '/media/art/discipline-skills/wildwarden-close-quarry-v01.webp',
+  'wildwarden.hunters-mark': '/media/art/discipline-skills/wildwarden-hunters-mark-v01.webp',
+  'wildwarden.venom-shot': '/media/art/discipline-skills/wildwarden-venom-shot-v01.webp',
+  'wildwarden.field-remedy': '/media/art/discipline-skills/wildwarden-field-remedy-v01.webp',
+  'wildwarden.thorn-line': '/media/art/discipline-skills/wildwarden-thorn-line-v01.webp',
+  'wildwarden.pursuit-shot': '/media/art/discipline-skills/wildwarden-pursuit-shot-v01.webp',
+  'wildwarden.renewing-herbs': '/media/art/discipline-skills/wildwarden-renewing-herbs-v01.webp',
+  'wildwarden.close-quarry': '/media/art/discipline-skills/wildwarden-close-quarry-v01.webp',
+
+  'runeblade.arc-edge': '/media/art/discipline-skills/runeblade-arc-edge-v01.webp',
+  'runeblade.rune-guard': '/media/art/discipline-skills/runeblade-rune-guard-v01.webp',
+  'runeblade.siphon-slash': '/media/art/discipline-skills/runeblade-siphon-slash-v01.webp',
+  'runeblade.sigil-brand': '/media/art/discipline-skills/runeblade-sigil-brand-v01.webp',
+  'runeblade.rune-burst': '/media/art/discipline-skills/runeblade-rune-burst-v01.webp',
+  'runeblade.unbinding-rune': '/media/art/discipline-skills/runeblade-unbinding-rune-v01.webp',
+  'runeblade.aether-cut': '/media/art/discipline-skills/runeblade-aether-cut-v01.webp',
+  'runeblade.rune-mending': '/media/art/discipline-skills/runeblade-rune-mending-v01.webp',
 } as const
 
 export type RegularSkillArtId = keyof typeof REGULAR_SKILL_ART
