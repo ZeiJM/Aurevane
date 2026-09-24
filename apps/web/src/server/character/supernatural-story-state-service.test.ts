@@ -179,6 +179,7 @@ describe('supernatural story-state authority service', () => {
         idempotencyKey: '00000000-0000-4000-8000-000000000917',
         transitionId: 'supernatural.main.choose-ascension',
         transitionContentVersion: 1,
+        confirmPermanentChoice: true,
       },
       repo,
     )
@@ -224,6 +225,29 @@ describe('supernatural story-state authority service', () => {
     expect(commitTransition).not.toHaveBeenCalled()
   })
 
+  it('requires explicit permanent-choice confirmation before persistence', async () => {
+    const find = vi.fn()
+    const commitTransition = vi.fn()
+
+    await expect(
+      commitAuthoredSupernaturalStoryTransition(
+        userId,
+        characterId,
+        {
+          expectedStateVersion: 1,
+          idempotencyKey: '00000000-0000-4000-8000-000000000921',
+          transitionId: 'supernatural.main.choose-ascension',
+          transitionContentVersion: 1,
+          confirmPermanentChoice: false,
+        },
+        repository({ find, commitTransition }),
+      ),
+    ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+
+    expect(find).not.toHaveBeenCalled()
+    expect(commitTransition).not.toHaveBeenCalled()
+  })
+
   it('rejects invented or stale authored choice references before reading or writing persistence', async () => {
     for (const input of [
       {
@@ -233,6 +257,7 @@ describe('supernatural story-state authority service', () => {
       {
         transitionId: 'supernatural.main.choose-anomaly',
         transitionContentVersion: 1,
+        confirmPermanentChoice: true,
       },
     ]) {
       const find = vi.fn()
@@ -246,6 +271,7 @@ describe('supernatural story-state authority service', () => {
             expectedStateVersion: 1,
             idempotencyKey: '00000000-0000-4000-8000-000000000918',
             ...input,
+            confirmPermanentChoice: true,
           },
           repository({ find, commitTransition }),
         ),
