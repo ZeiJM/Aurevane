@@ -20,6 +20,7 @@ import type {
   WorldView,
 } from '@/world/types'
 import { SURVEY_SECTOR, WORLD_OBJECTIVES, WORLD_SECTORS } from './world-content'
+import { worldArchiveEntries } from './world-archive'
 import {
   EASTERN_WATCH_OBJECTIVE_ID,
   advanceWorldObjectiveProgress,
@@ -169,6 +170,7 @@ export function projectWorld(
       completed: o.completed || state.completedObjectives.includes(o.id),
     })),
     interactions: localWorldInteractions(state),
+    archive: worldArchiveEntries(state),
     battleSessionId: null,
     movementBlocked: null,
   }

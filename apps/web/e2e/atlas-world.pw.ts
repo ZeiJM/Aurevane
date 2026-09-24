@@ -541,9 +541,40 @@ test('expired training releases travel without claiming XP and frontier discover
     },
   })
   expect(forged.ok()).toBe(false)
+
+  place(initial.characterId, survey.id, 11, 1, false)
+  await page.reload()
+  const observation = await world(page)
+  expect(observation.archive).toEqual([])
+  const recordObservation = await page.request.post('/api/world', {
+    data: {
+      characterId: initial.characterId,
+      expectedVersion: observation.version,
+      commandId: randomUUID(),
+      intent: { kind: 'tick' },
+    },
+  })
+  expect(recordObservation.ok()).toBe(true)
+  await page.reload()
+  const archive = page.getByRole('region', { name: 'Archive' })
+  await expect(archive).toContainText('Weathered Observatory')
+  await expect(archive).toContainText('Field Observation')
+  const archived = await world(page)
+  expect(archived.archive).toEqual([
+    expect.objectContaining({
+      id: 'field-observation-first-observation',
+      provenance: 'Direct field observation',
+    }),
+  ])
+  const archivedVersion = archived.version
+  await page.reload()
+  expect((await world(page)).version).toBe(archivedVersion)
+  await expect(page.getByRole('region', { name: 'Archive' })).toContainText('Weathered Observatory')
+
+  const archivedCells = archived.sectors.find((s) => !s.charted)!.cells
   await capture(page, info, 'world-frontier')
   await page.reload()
-  expect((await world(page)).sectors.find((s) => !s.charted)?.cells).toEqual(survey.cells)
+  expect((await world(page)).sectors.find((s) => !s.charted)?.cells).toEqual(archivedCells)
 })
 
 test('Crown Road advances one four-second step with one due client tick', async ({
