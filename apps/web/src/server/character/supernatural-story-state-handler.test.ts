@@ -93,9 +93,55 @@ describe('supernatural story HTTP handler', () => {
     )
 
     expect(response.status).toBe(200)
-    expect(await response.json()).toEqual({ state: null })
+    expect(await response.json()).toEqual({ state: null, choices: [] })
     expect(initialize).not.toHaveBeenCalled()
     expect(response.headers.get('Cache-Control')).toBe('private, no-store')
+  })
+
+  it('returns authored choice references only for an initialized threshold state', async () => {
+    const response = await handleSupernaturalStoryGet(dependencies())
+
+    expect(response.status).toBe(200)
+    await expect(response.json()).resolves.toMatchObject({
+      state: {
+        path: 'unawakened',
+        nodeId: 'awakening.threshold',
+      },
+      choices: [
+        {
+          transitionId: 'supernatural.main.choose-ascension',
+          transitionContentVersion: 1,
+          path: 'ascended',
+        },
+        {
+          transitionId: 'supernatural.main.choose-severence',
+          transitionContentVersion: 1,
+          path: 'severed',
+        },
+      ],
+    })
+  })
+
+  it('returns no ordinary choices after the permanent path has been selected', async () => {
+    const response = await handleSupernaturalStoryGet(
+      dependencies({
+        repository: repository({
+          find: vi.fn(async () =>
+            state({
+              stateVersion: 2,
+              nodeId: 'awakening.bound',
+              path: 'ascended',
+              ascensionId: 'ascension.proof',
+              ascensionContentVersion: 1,
+              chosenAt: '2026-09-23T12:05:00.000Z',
+            }),
+          ),
+        }),
+      }),
+    )
+
+    expect(response.status).toBe(200)
+    await expect(response.json()).resolves.toMatchObject({ choices: [] })
   })
 
   it('requires a selected owned character before reading supernatural state', async () => {
