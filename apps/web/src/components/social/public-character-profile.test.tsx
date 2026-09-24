@@ -41,7 +41,6 @@ describe('Public character profile', () => {
   })
 })
 
-
 it('renders a selected starter portrait for a public character without a custom image', () => {
   const markup = renderToStaticMarkup(
     createElement(PublicCharacterPortrait, {
