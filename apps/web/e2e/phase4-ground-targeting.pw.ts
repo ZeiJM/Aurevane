@@ -22,18 +22,12 @@ async function provision(page: Page, prefix: string, testInfo: TestInfo) {
 }
 
 async function equipMist(page: Page) {
-  await page.goto('/game/arsenal')
+  await page.goto('/game/nexus')
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
-  await page.getByRole('button', { name: /Manage Primary Discipline/ }).click()
+  await page.getByRole('button', { name: /Manage Disciplines/ }).click()
   const management = page.getByRole('dialog', { name: 'Discipline Management', exact: true })
-  await management
-    .locator('label')
-    .filter({ hasText: /^Proposed Primary/ })
-    .locator('select')
-    .selectOption('frostweaver')
-  await management
-    .getByRole('button', { name: 'Commit Frostweaver as Primary', exact: true })
-    .click()
+  await management.locator('select').selectOption('frostweaver')
+  await management.getByRole('button', { name: /Confirm Change/ }).click()
   await expect(page.getByTestId('primary-discipline-chip')).toHaveText('Frostweaver')
   await management.getByRole('button', { name: 'Close', exact: true }).click()
   await page.getByRole('button', { name: /Manage Techniques/ }).click()
