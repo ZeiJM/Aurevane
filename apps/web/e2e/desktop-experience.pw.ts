@@ -315,7 +315,9 @@ test('mobile build dialogs keep readable copy and reachable actions', async ({
     await expect(dialog).toBeVisible()
     if (name === 'Techniques') {
       await readable(dialog.locator('p').first(), 12)
-      await expect(dialog.getByRole('button', { name: 'Commit Selected Techniques' })).toHaveCount(0)
+      await expect(dialog.getByRole('button', { name: 'Commit Selected Techniques' })).toHaveCount(
+        0,
+      )
       await dialog.getByTestId('technique-preview').scrollIntoViewIfNeeded()
       await testInfo.attach('mobile-techniques-actions', {
         body: await page.screenshot(),
