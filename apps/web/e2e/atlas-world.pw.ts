@@ -295,7 +295,9 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
       page.locator('aside').getByRole('button', { name: region.name, exact: true }),
     ).toBeVisible()
   await expect(page.locator('aside').getByText('Charted Sectors', { exact: true })).toBeVisible()
-  await expect(page.locator('aside').getByRole('button', { name: /Crown Road.*S16-08/ })).toBeVisible()
+  await expect(
+    page.locator('aside').getByRole('button', { name: /Crown Road.*S16-08/ }),
+  ).toBeVisible()
   const sphere = page.getByRole('group', { name: /World globe/ })
   await expect(page.locator('[data-sector-outline="crown-road"]')).toBeVisible()
   await expect(page.locator('[data-sector-outline="verdant-expanse"]')).toHaveAttribute(
@@ -362,7 +364,10 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
   )
   expect((await world(page)).sectors.some((sector) => sector.coordinate === 'S17-08')).toBe(false)
 
-  await page.mouse.move(globeBounds.x + globeBounds.width * 0.45, globeBounds.y + globeBounds.height * 0.5)
+  await page.mouse.move(
+    globeBounds.x + globeBounds.width * 0.45,
+    globeBounds.y + globeBounds.height * 0.5,
+  )
   await page.mouse.down()
   await page.mouse.move(
     globeBounds.x + globeBounds.width * 0.58,
@@ -542,7 +547,9 @@ test('expired training releases travel without claiming XP and frontier discover
 })
 
 
-test('Crown Road advances one four-second step with one due client tick', async ({ page }, info) => {
+test('Crown Road advances one four-second step with one due client tick', async ({
+  page,
+}, info) => {
   test.skip(
     info.project.name !== 'desktop-chromium',
     'Tick scheduling is viewport independent; exercise one authoritative desktop journey.',
@@ -573,9 +580,7 @@ test('Crown Road advances one four-second step with one due client tick', async 
     })
     .click()
   await expect(page.locator('[data-world-travel-status]')).toContainText('1 steps remaining')
-  await expect
-    .poll(async () => (await world(page)).position.x, { timeout: 7_000 })
-    .toBe(7)
+  await expect.poll(async () => (await world(page)).position.x, { timeout: 7_000 }).toBe(7)
   expect(tickPosts).toBe(1)
 })
 

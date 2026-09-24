@@ -270,7 +270,9 @@ export function WorldWorkspace({
                 setMessage('')
               }}
               onUnavailable={(coordinate) =>
-                setMessage(`${coordinate} is uncharted. No charted destination is available there yet.`)
+                setMessage(
+                  `${coordinate} is uncharted. No charted destination is available there yet.`,
+                )
               }
               grid={grid}
               portrait={character.portrait}

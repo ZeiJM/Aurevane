@@ -52,22 +52,10 @@ export function Globe({
         half = 5.625
       const longitude =
         center.longitude +
-        (edge === 0
-          ? -half + t * 11.25
-          : edge === 1
-            ? half
-            : edge === 2
-              ? half - t * 11.25
-              : -half)
+        (edge === 0 ? -half + t * 11.25 : edge === 1 ? half : edge === 2 ? half - t * 11.25 : -half)
       const latitude =
         center.latitude +
-        (edge === 0
-          ? half
-          : edge === 1
-            ? half - t * 11.25
-            : edge === 2
-              ? -half
-              : -half + t * 11.25)
+        (edge === 0 ? half : edge === 1 ? half - t * 11.25 : edge === 2 ? -half : -half + t * 11.25)
       return projectGlobePoint({ longitude, latitude }, camera)
     })
   }
@@ -160,7 +148,9 @@ export function Globe({
           −
         </button>
       </div>
-      <div className={styles.globeHint}>Drag to rotate · Scroll to zoom · Click charted grid sectors</div>
+      <div className={styles.globeHint}>
+        Drag to rotate · Scroll to zoom · Click charted grid sectors
+      </div>
       <div className={styles.legend}>
         <span>◉ Charted</span>
         <span>◇ Surveyed</span>

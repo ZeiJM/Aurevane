@@ -68,7 +68,9 @@ describe('approved regular Discipline Skill action art — first 88', () => {
     expect(regularSkillArtwork('bastion.steady-footing')).toBe(
       '/media/art/discipline-skills/bastion-steady-footing-v02.webp',
     )
-    expect(regularSkillArtwork('ravager.frenzy')).toBe('/media/art/discipline-skills/ravager-frenzy-v01.webp')
+    expect(regularSkillArtwork('ravager.frenzy')).toBe(
+      '/media/art/discipline-skills/ravager-frenzy-v01.webp',
+    )
     expect(regularSkillArtwork('edgedancer.lunge')).toBe(
       '/media/art/discipline-skills/edgedancer-lunge-v01.webp',
     )
