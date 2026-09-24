@@ -305,8 +305,7 @@ export function CharacterDisciplineBuildPanel({
     }))
   }, [current, preview])
 
-  const currentSlotDefinition =
-    activeSlot === 'primary' ? current.definition : currentSecondary
+  const currentSlotDefinition = activeSlot === 'primary' ? current.definition : currentSecondary
   const proposedSlotDefinition =
     activeSlot === 'primary'
       ? (preview?.proposed.definition ?? current.definition)
@@ -766,7 +765,9 @@ export function CharacterDisciplineBuildPanel({
                     </div>
                     <div className={styles.impactNote}>
                       <strong>Build Shift</strong>
-                      <p>Review the authoritative preview before committing the Discipline change.</p>
+                      <p>
+                        Review the authoritative preview before committing the Discipline change.
+                      </p>
                     </div>
                   </aside>
                 </section>
