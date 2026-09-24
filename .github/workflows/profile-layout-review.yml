@@ -4,20 +4,6 @@ on:
   push:
     branches:
       - main
-      - agent/profile-layout-repair
-      - agent/training-concept-ui
-      - agent/battle-hall-concept-ui
-      - agent/adventurers-concept-ui
-      - agent/character-roster-hq-continuation
-      - agent/creation-workspace-repair
-      - agent/controls-keybinds-fidelity
-      - agent/account-gateway-fidelity
-      - agent/news-index-fidelity
-      - agent/news-article-fidelity
-      - agent/manual-index-fidelity
-      - agent/manual-article-fidelity
-      - agent/rules-fidelity
-      - agent/creation-subject-reconciliation
     paths:
       - .github/workflows/profile-layout-review.yml
       - apps/web/e2e/*layout-regression.pw.ts
