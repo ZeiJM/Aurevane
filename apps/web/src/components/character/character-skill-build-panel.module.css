@@ -432,7 +432,8 @@
   overflow-y: auto;
   border: 1px solid #324b59;
   color: #eee4d4;
-  background: linear-gradient(145deg, #0d2532, #071721);
+  background-color: #0d2532;
+  background-image: linear-gradient(145deg, #0d2532, #071721);
 }
 
 .activeBuild,
@@ -524,7 +525,7 @@
 }
 
 .selectedTechniqueHeading small {
-  color: #aeb9bc;
+  color: #d1dcde;
   font-size: 0.6875rem;
   line-height: 1.25;
 }
