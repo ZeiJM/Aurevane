@@ -524,6 +524,20 @@ export function WorldWorkspace({
             </div>
           ))}
         </section>
+        {view.archive.length ? (
+          <section className={styles.panel} aria-label="Archive">
+            <h2>▤ Archive</h2>
+            {view.archive.map((entry) => (
+              <div className={styles.quest} key={entry.id}>
+                <h3>{entry.title}</h3>
+                <p>{entry.summary}</p>
+                <p className={styles.quiet}>
+                  Field Observation · {entry.location} · {entry.provenance}
+                </p>
+              </div>
+            ))}
+          </section>
+        ) : null}
         {sector.exits.length ? (
           <section className={styles.panel} aria-label="Roads and crossings">
             <h2>Roads & crossings</h2>
