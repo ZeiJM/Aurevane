@@ -12,6 +12,10 @@ import {
   type SupernaturalStoryState,
   type SupernaturalStoryTransitionDefinition,
 } from '@aurevane/game-core/character/supernatural-state'
+import {
+  SUPERNATURAL_STORY_DEFINITION,
+  resolveSupernaturalChoiceTransition,
+} from '@aurevane/game-core/character/supernatural-content'
 import { AurevaneError } from '@aurevane/game-core/errors'
 
 export interface SupernaturalStoryDefinition {
@@ -119,6 +123,34 @@ function fingerprint(
     .digest('hex')}`
 }
 
+export async function findSupernaturalStoryState(
+  userId: string,
+  characterId: string,
+  repository: SupernaturalStoryStateRepository,
+): Promise<SupernaturalStoryState | null> {
+  const existing = await repository.find(userId, characterId)
+  return existing ? toCoreState(existing) : null
+}
+
+export async function findAuthoredSupernaturalStoryState(
+  userId: string,
+  characterId: string,
+  repository: SupernaturalStoryStateRepository,
+): Promise<SupernaturalStoryState | null> {
+  const state = await findSupernaturalStoryState(userId, characterId, repository)
+  if (
+    state &&
+    (state.storyId !== SUPERNATURAL_STORY_DEFINITION.id ||
+      state.storyVersion !== SUPERNATURAL_STORY_DEFINITION.contentVersion)
+  ) {
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'This character is committed to a different supernatural story version.',
+    )
+  }
+  return state
+}
+
 export async function loadOrInitializeSupernaturalStoryState(
   userId: string,
   characterId: string,
@@ -152,6 +184,59 @@ export async function loadOrInitializeSupernaturalStoryState(
   )
     throw persistenceUnavailable('The initialized supernatural story state was invalid.')
   return state
+}
+
+export async function loadOrInitializeAuthoredSupernaturalStoryState(
+  userId: string,
+  characterId: string,
+  repository: SupernaturalStoryStateRepository,
+) {
+  return loadOrInitializeSupernaturalStoryState(
+    userId,
+    characterId,
+    SUPERNATURAL_STORY_DEFINITION,
+    repository,
+  )
+}
+
+export async function commitAuthoredSupernaturalStoryTransition(
+  userId: string,
+  characterId: string,
+  input: {
+    expectedStateVersion: number
+    idempotencyKey: string
+    transitionId: string
+    transitionContentVersion: number
+    confirmPermanentChoice: boolean
+  },
+  repository: SupernaturalStoryStateRepository,
+) {
+  if (!input.confirmPermanentChoice)
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Confirm the permanent supernatural choice before continuing.',
+    )
+
+  const transition = resolveSupernaturalChoiceTransition(
+    input.transitionId,
+    input.transitionContentVersion,
+  )
+  if (!transition)
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'That supernatural transition version is not authored or available.',
+    )
+
+  return commitSupernaturalStoryTransition(
+    userId,
+    characterId,
+    {
+      expectedStateVersion: input.expectedStateVersion,
+      idempotencyKey: input.idempotencyKey,
+      transition,
+    },
+    repository,
+  )
 }
 
 export async function commitSupernaturalStoryTransition(

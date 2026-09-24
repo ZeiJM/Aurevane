@@ -81,3 +81,24 @@ export function parseSupernaturalStoryTransitionRow(
   const parsed = supernaturalStoryTransitionRowSchema.safeParse(input)
   return parsed.success ? parsed.data : null
 }
+
+const authoredSupernaturalTransitionRequestSchema = z
+  .object({
+    expectedStateVersion: positiveVersion,
+    idempotencyKey: z.string().uuid(),
+    transitionId: stableId,
+    transitionContentVersion: positiveVersion,
+    confirmPermanentChoice: z.literal(true),
+  })
+  .strict()
+
+export type AuthoredSupernaturalTransitionRequest = z.infer<
+  typeof authoredSupernaturalTransitionRequestSchema
+>
+
+export function parseAuthoredSupernaturalTransitionRequest(
+  input: unknown,
+): AuthoredSupernaturalTransitionRequest | null {
+  const parsed = authoredSupernaturalTransitionRequestSchema.safeParse(input)
+  return parsed.success ? parsed.data : null
+}
