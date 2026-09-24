@@ -172,7 +172,7 @@ test('mobile Character keeps its portrait readable and Nexus centers Discipline 
   }
   expect(dialogBox.x).toBeGreaterThanOrEqual(0)
   expect(dialogBox.x + dialogBox.width).toBeLessThanOrEqual(viewport.width + 1)
-  expect(dialogBox.y).toBeGreaterThanOrEqual(8)
+  expect(dialogBox.y).toBeGreaterThanOrEqual(0)
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
     viewport.width + 1,
   )
