@@ -7,7 +7,10 @@ import type { SupernaturalStoryTransitionDefinition } from '@aurevane/game-core/
 import { describe, expect, it, vi } from 'vitest'
 
 import {
+  commitAuthoredSupernaturalStoryTransition,
+  findAuthoredSupernaturalStoryState,
   commitSupernaturalStoryTransition,
+  loadOrInitializeAuthoredSupernaturalStoryState,
   loadOrInitializeSupernaturalStoryState,
 } from './supernatural-story-state-service'
 
@@ -88,6 +91,16 @@ function repository(
 }
 
 describe('supernatural story-state authority service', () => {
+  it('fails closed when a read finds a different canonical story version', async () => {
+    const repo = repository({
+      find: vi.fn(async () => state({ storyVersion: 2 })),
+    })
+
+    await expect(
+      findAuthoredSupernaturalStoryState(userId, characterId, repo),
+    ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+  })
+
   it('initializes an absent character story as Unawakened from server-owned story metadata', async () => {
     const initialize = vi.fn(async () => state())
     const repo = repository({
@@ -117,6 +130,157 @@ describe('supernatural story-state authority service', () => {
         repository(),
       ),
     ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+  })
+
+  it('initializes the canonical authored story without accepting caller-owned story metadata', async () => {
+    const initialize = vi.fn(async () => state())
+    const repo = repository({
+      find: vi.fn(async () => null),
+      initialize,
+    })
+
+    const result = await loadOrInitializeAuthoredSupernaturalStoryState(userId, characterId, repo)
+
+    expect(initialize).toHaveBeenCalledWith({
+      userId,
+      characterId,
+      storyId: 'supernatural.main',
+      storyVersion: 1,
+      initialNodeId: 'awakening.threshold',
+    })
+    expect(result.path).toBe('unawakened')
+  })
+
+  it('resolves an authored choice by exact server-owned id and version before persistence', async () => {
+    let captured: CommitSupernaturalStoryTransitionInput | undefined
+    const repo = repository({
+      commitTransition: vi.fn(async (input) => {
+        captured = input
+        return {
+          state: state({
+            stateVersion: 2,
+            nodeId: 'awakening.bound',
+            path: 'ascended',
+            ascensionId: 'ascension.proof',
+            ascensionContentVersion: 1,
+            chosenAt: '2026-09-23T12:05:00.000Z',
+            updatedAt: '2026-09-23T12:05:00.000Z',
+          }),
+          replayed: false,
+        }
+      }),
+    })
+
+    const result = await commitAuthoredSupernaturalStoryTransition(
+      userId,
+      characterId,
+      {
+        expectedStateVersion: 1,
+        idempotencyKey: '00000000-0000-4000-8000-000000000917',
+        transitionId: 'supernatural.main.choose-ascension',
+        transitionContentVersion: 1,
+        confirmPermanentChoice: true,
+      },
+      repo,
+    )
+
+    expect(captured).toMatchObject({
+      transitionId: 'supernatural.main.choose-ascension',
+      transitionContentVersion: 1,
+      storyId: 'supernatural.main',
+      storyVersion: 1,
+      fromNodeId: 'awakening.threshold',
+      toNodeId: 'awakening.bound',
+      nextPath: 'ascended',
+      ascensionId: 'ascension.proof',
+      ascensionContentVersion: 1,
+    })
+    expect(result.state.path).toBe('ascended')
+  })
+
+  it('requires the story authority to initialize eligibility before a choice can commit', async () => {
+    const initialize = vi.fn()
+    const commitTransition = vi.fn()
+    const repo = repository({
+      find: vi.fn(async () => null),
+      initialize,
+      commitTransition,
+    })
+
+    await expect(
+      commitAuthoredSupernaturalStoryTransition(
+        userId,
+        characterId,
+        {
+          expectedStateVersion: 1,
+          idempotencyKey: '00000000-0000-4000-8000-000000000920',
+          transitionId: 'supernatural.main.choose-ascension',
+          transitionContentVersion: 1,
+          confirmPermanentChoice: true,
+        },
+        repo,
+      ),
+    ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+
+    expect(initialize).not.toHaveBeenCalled()
+    expect(commitTransition).not.toHaveBeenCalled()
+  })
+
+  it('requires explicit permanent-choice confirmation before persistence', async () => {
+    const find = vi.fn()
+    const commitTransition = vi.fn()
+
+    await expect(
+      commitAuthoredSupernaturalStoryTransition(
+        userId,
+        characterId,
+        {
+          expectedStateVersion: 1,
+          idempotencyKey: '00000000-0000-4000-8000-000000000921',
+          transitionId: 'supernatural.main.choose-ascension',
+          transitionContentVersion: 1,
+          confirmPermanentChoice: false,
+        },
+        repository({ find, commitTransition }),
+      ),
+    ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+
+    expect(find).not.toHaveBeenCalled()
+    expect(commitTransition).not.toHaveBeenCalled()
+  })
+
+  it('rejects invented or stale authored choice references before reading or writing persistence', async () => {
+    for (const input of [
+      {
+        transitionId: 'supernatural.main.choose-ascension',
+        transitionContentVersion: 2,
+      },
+      {
+        transitionId: 'supernatural.main.choose-anomaly',
+        transitionContentVersion: 1,
+        confirmPermanentChoice: true,
+      },
+    ]) {
+      const find = vi.fn()
+      const commitTransition = vi.fn()
+
+      await expect(
+        commitAuthoredSupernaturalStoryTransition(
+          userId,
+          characterId,
+          {
+            expectedStateVersion: 1,
+            idempotencyKey: '00000000-0000-4000-8000-000000000918',
+            ...input,
+            confirmPermanentChoice: true,
+          },
+          repository({ find, commitTransition }),
+        ),
+      ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+
+      expect(find).not.toHaveBeenCalled()
+      expect(commitTransition).not.toHaveBeenCalled()
+    }
   })
 
   it('commits an authored Ascension transition with a deterministic fingerprint', async () => {

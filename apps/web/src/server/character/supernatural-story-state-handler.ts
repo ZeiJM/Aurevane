@@ -1,0 +1,91 @@
+import type { SupernaturalStoryStateRepository } from '@aurevane/db/supernatural-state'
+import { availableSupernaturalChoiceTransitions } from '@aurevane/game-core/character/supernatural-content'
+import { AurevaneError } from '@aurevane/game-core/errors'
+import { parseAuthoredSupernaturalTransitionRequest } from '@aurevane/validation/player/supernatural'
+
+import { toServerErrorResponse } from '@/server/http/error-response'
+
+import {
+  commitAuthoredSupernaturalStoryTransition,
+  findAuthoredSupernaturalStoryState,
+} from './supernatural-story-state-service'
+
+export interface SupernaturalStoryHandlerDependencies {
+  getActor(): Promise<{ userId: string }>
+  loadSelectedCharacter(actor: { userId: string }): Promise<{ id: string } | null>
+  assertGameplayMutationAllowed(userId: string): Promise<void>
+  repository: SupernaturalStoryStateRepository
+}
+
+async function selectedCharacter(dependencies: SupernaturalStoryHandlerDependencies) {
+  const actor = await dependencies.getActor()
+  const character = await dependencies.loadSelectedCharacter(actor)
+  if (!character) {
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Select a character before accessing supernatural progression.',
+    )
+  }
+  return { actor, character }
+}
+
+async function readJson(request: Request): Promise<unknown> {
+  try {
+    return await request.json()
+  } catch {
+    throw new AurevaneError('INVALID_REQUEST', 'The request body must be valid JSON.')
+  }
+}
+
+export async function handleSupernaturalStoryGet(
+  dependencies: SupernaturalStoryHandlerDependencies,
+): Promise<Response> {
+  try {
+    const { actor, character } = await selectedCharacter(dependencies)
+    const state = await findAuthoredSupernaturalStoryState(
+      actor.userId,
+      character.id,
+      dependencies.repository,
+    )
+    const choices =
+      state?.path === 'unawakened'
+        ? availableSupernaturalChoiceTransitions(state).map((transition) => ({
+            transitionId: transition.id,
+            transitionContentVersion: transition.contentVersion,
+            path: transition.result.path,
+          }))
+        : []
+    return Response.json({ state, choices }, { headers: { 'Cache-Control': 'private, no-store' } })
+  } catch (error) {
+    return toServerErrorResponse(error)
+  }
+}
+
+export async function handleSupernaturalStoryPut(
+  request: Request,
+  dependencies: SupernaturalStoryHandlerDependencies,
+): Promise<Response> {
+  try {
+    const { actor, character } = await selectedCharacter(dependencies)
+    await dependencies.assertGameplayMutationAllowed(actor.userId)
+
+    const input = parseAuthoredSupernaturalTransitionRequest(await readJson(request))
+    if (!input) {
+      throw new AurevaneError(
+        'INVALID_REQUEST',
+        'Provide a valid authored supernatural transition request.',
+      )
+    }
+
+    const outcome = await commitAuthoredSupernaturalStoryTransition(
+      actor.userId,
+      character.id,
+      input,
+      dependencies.repository,
+    )
+
+    return Response.json(outcome, { headers: { 'Cache-Control': 'private, no-store' } })
+  } catch (error) {
+    return toServerErrorResponse(error)
+  }
+}
