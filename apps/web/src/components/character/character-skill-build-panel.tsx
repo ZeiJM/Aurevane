@@ -206,6 +206,12 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
 
   const primarySelected = selectedSourceCount(primaryDiscipline.id)
   const secondarySelected = secondaryDiscipline ? selectedSourceCount(secondaryDiscipline.id) : 0
+  const primaryMixedLimit = secondaryDiscipline
+    ? Math.min(MIXED_SOURCE_MAXIMUM, capacity - secondarySelected)
+    : capacity
+  const secondaryMixedLimit = secondaryDiscipline
+    ? Math.min(MIXED_SOURCE_MAXIMUM, capacity - primarySelected)
+    : capacity
   const mixedSelectionValid =
     !secondaryDiscipline ||
     selectedIds.length < capacity ||
@@ -327,6 +333,8 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                 key={`${entry.definition.id}:${entry.definition.contentVersion}`}
                 data-selected={selected ? 'true' : 'false'}
                 style={skillPaletteStyle(entry.definition.sourceDisciplineId)}
+                onMouseEnter={() => setFocusedSkillId(entry.definition.id)}
+                onFocusCapture={() => setFocusedSkillId(entry.definition.id)}
               >
                 <label>
                   <input
@@ -447,6 +455,18 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                     </div>
                   </div>
                   <div className={styles.selectedCounter}>
+                    <span className={styles.compatCapacity} data-testid="skill-capacity" aria-hidden="true">
+                      <span>{primaryDiscipline.name}</span>
+                      <strong>{primarySelected}</strong>
+                      <span> / {primaryMixedLimit}</span>
+                      {secondaryDiscipline ? (
+                        <>
+                          <span>{secondaryDiscipline.name}</span>
+                          <strong>{secondarySelected}</strong>
+                          <span> / {secondaryMixedLimit}</span>
+                        </>
+                      ) : null}
+                    </span>
                     <span>Selected Techniques</span>
                     <strong>
                       {selectedIds.length} / {capacity}
