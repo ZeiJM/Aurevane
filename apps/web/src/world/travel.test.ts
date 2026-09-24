@@ -111,12 +111,14 @@ describe('world travel', () => {
     const northfields = CHARTED_SECTORS.find((sector) => sector.id === 'crown-northfields')!
     const uplands = CHARTED_SECTORS.find((sector) => sector.id === 'crown-uplands')!
 
-    expect([hinterland, northfields, uplands].map(({ id, coordinate, art, charted }) => ({
-      id,
-      coordinate,
-      art,
-      charted,
-    }))).toEqual([
+    expect(
+      [hinterland, northfields, uplands].map(({ id, coordinate, art, charted }) => ({
+        id,
+        coordinate,
+        art,
+        charted,
+      })),
+    ).toEqual([
       { id: 'crown-hinterland', coordinate: 'S15-08', art: null, charted: true },
       { id: 'crown-northfields', coordinate: 'S14-07', art: null, charted: true },
       { id: 'crown-uplands', coordinate: 'S15-07', art: null, charted: true },
