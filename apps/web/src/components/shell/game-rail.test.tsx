@@ -17,12 +17,12 @@ function renderRail(props: Parameters<typeof GameRail>[0] = {}) {
 }
 
 describe('shared game rail', () => {
-  it('exposes Character, Arsenal, World Map, Battle Hall and Training in the intended order without duplicating identity', () => {
+  it('exposes locked Arsenal above Nexus and preserves the intended navigation order', () => {
     navigationState.pathname = '/game/character'
     const markup = renderRail()
     const destinations = [
       ['/game/character', 'Character'],
-      ['/game/arsenal', 'Arsenal'],
+      ['/game/nexus', 'Nexus'],
       ['/game/world', 'World Map'],
       ['/game/battle', 'Battle Hall'],
       ['/game/training', 'Passive Training'],
@@ -35,9 +35,15 @@ describe('shared game rail', () => {
     expect(destinationPositions).toEqual(
       [...destinationPositions].sort((left, right) => left - right),
     )
-    expect(markup).not.toContain('aria-label="Items"')
-    expect(markup).not.toContain('href="/game/items"')
+    expect(markup).toContain('aria-label="Arsenal"')
+    expect(markup).toContain('title="Items — Coming Soon"')
+    expect(markup).not.toContain('href="/game/arsenal"')
+    expect(markup.match(/disabled=""/g)).toHaveLength(1)
+    expect(markup.indexOf('aria-label="Arsenal"')).toBeLessThan(
+      markup.indexOf('aria-label="Nexus"'),
+    )
     expect(markup).toContain('data-nav-icon="arsenal"')
+    expect(markup).toContain('data-nav-icon="nexus"')
     expect(markup).toContain('data-nav-icon="battle"')
     expect(markup).not.toContain('href="/game/online"')
     expect(markup).not.toContain('Adventurers')
@@ -60,13 +66,22 @@ describe('shared game rail', () => {
       activeSessionHref: href as Route,
       activeSessionLabel: label,
     })
-    expect(markup.match(/disabled=""/g)).toHaveLength(5)
+    expect(markup.match(/disabled=""/g)).toHaveLength(6)
     expect(markup).toContain(`href="${href}"`)
     expect(markup).toContain(label)
     expect(markup).not.toContain('href="/game/character"')
-    expect(markup).not.toContain('href="/game/arsenal"')
+    expect(markup).not.toContain('href="/game/nexus"')
     expect(markup).not.toContain('href="/game/training"')
     expect(markup).not.toContain('href="/game/online"')
+  })
+
+  it('marks Nexus active without activating the locked Arsenal placeholder', () => {
+    navigationState.pathname = '/game/nexus'
+    const markup = renderRail()
+    expect(markup).toContain('href="/game/nexus"')
+    expect(markup).toContain('aria-current="page"')
+    expect(markup).toContain('aria-label="Arsenal"')
+    expect(markup).not.toContain('href="/game/arsenal"')
   })
 
   it('does not mark an unrelated route as the active destination or invent a character', () => {
