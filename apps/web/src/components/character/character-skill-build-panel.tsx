@@ -115,6 +115,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
     initialCapacity,
     initialLearnedSkills,
     initialEquippedSkills,
+    initialEssence,
   } = props
   const mounted = useSyncExternalStore(
     () => () => {},
@@ -317,6 +318,8 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
             )
             const disabledByCapacity = !selected && selectedIds.length >= capacity
             const disabled = pending || disabledByCapacity || disabledBySource
+            const category = favoriteCategory(entry.definition)
+            const label = skillDisplayName(entry.definition)
             return (
               <article
                 className={styles.skill}
@@ -346,11 +349,20 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                     />
                     {selected ? <b>✓</b> : null}
                   </span>
-                  <strong>{skillDisplayName(entry.definition)}</strong>
+                  <strong>{label}</strong>
                   <span className={styles.skillMeta}>
                     {cockpitType(entry.definition)} · {entry.definition.apCost} AP
                   </span>
                 </label>
+                {category ? (
+                  <FavoriteTechniqueButton
+                    characterId={characterId}
+                    techniqueId={entry.definition.id}
+                    label={label}
+                    category={category}
+                    disabled={!selected || pending}
+                  />
+                ) : null}
               </article>
             )
           })}
@@ -412,7 +424,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                   </button>
                 </header>
 
-                <div className={styles.buildStrip}>
+                <div className={styles.buildStrip} data-technique-build-strip="true">
                   <div className={styles.buildDiscipline}>
                     <FoundationDisciplineSigil disciplineId={primaryDiscipline.id} />
                     <div>
@@ -514,6 +526,21 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                         <p>No Technique is available for this build.</p>
                       )}
                     </section>
+
+                    {initialEssence && favoriteCategory(initialEssence.skill) ? (
+                      <article className={styles.signatureFavorite}>
+                        <div>
+                          <span>Build Signature</span>
+                          <strong data-testid="active-essence">{initialEssence.name}</strong>
+                        </div>
+                        <FavoriteTechniqueButton
+                          characterId={characterId}
+                          techniqueId={initialEssence.skill.id}
+                          label={initialEssence.name}
+                          category={favoriteCategory(initialEssence.skill)!}
+                        />
+                      </article>
+                    ) : null}
                   </aside>
                 </div>
 
