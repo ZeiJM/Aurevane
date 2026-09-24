@@ -34,12 +34,19 @@ async function equipMist(page: Page) {
   const skills = page.getByRole('dialog', { name: 'Techniques', exact: true })
   const mist = skills.locator('article').filter({ hasText: 'Chilling Mist' })
   const mistCheckbox = mist.getByRole('checkbox')
+  const coarsePointer = await page.evaluate(() =>
+    window.matchMedia('(hover: none), (pointer: coarse)').matches,
+  )
   const saved = page.waitForResponse(
     (response) =>
       response.url().endsWith('/api/character/build/skills') &&
       response.request().method() === 'PUT',
   )
-  await mistCheckbox.check()
+  if (coarsePointer) {
+    await mist.locator('label').dblclick()
+  } else {
+    await mistCheckbox.check()
+  }
   const savedResponse = await saved
   expect(savedResponse.status()).toBe(200)
   const savedBody = (await savedResponse.json()) as {
