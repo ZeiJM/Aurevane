@@ -378,7 +378,9 @@
 }
 
 .skill label > strong {
+  box-sizing: border-box;
   width: 100%;
+  padding-right: 2.25rem;
   overflow: hidden;
   color: #f0e5d3;
   font: 600 0.6875rem/1.12 var(--av-font-display);
@@ -388,7 +390,9 @@
 }
 
 .skillMeta {
+  box-sizing: border-box;
   width: 100%;
+  padding-right: 2.25rem;
   overflow: hidden;
   color: #acb9bd;
   font-size: 0.6875rem;
@@ -687,6 +691,11 @@
 
   .skillGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .skill label > strong,
+  .skillMeta {
+    padding-right: 3.15rem;
   }
 
   .actions {
