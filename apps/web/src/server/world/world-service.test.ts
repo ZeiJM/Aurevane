@@ -87,6 +87,30 @@ describe('world authority and spoiler projection', () => {
     expect(JSON.stringify(view)).not.toContain('survey-01')
     expect(JSON.stringify(view)).not.toContain('Weathered Observatory')
   })
+  it('projects Crown Hinterland as charted wilderness with only authored reciprocal exits', () => {
+    const state = {
+      ...newWorldState(),
+      position: { sectorId: 'crown-hinterland', x: 6, y: 4 },
+    }
+    const view = projectWorld(state, [], 1000)
+    const hinterland = view.sectors.find((sector) => sector.id === 'crown-hinterland')!
+
+    expect(hinterland).toMatchObject({
+      name: 'Crown Hinterland',
+      coordinate: 'S15-08',
+      regionId: 'aureth-crown',
+      charted: true,
+    })
+    expect(hinterland.cells.filter((cell) => cell.y === 4).every((cell) => cell.walkable && !cell.safe)).toBe(
+      true,
+    )
+    expect(hinterland.exits.map((exit) => exit.to.sectorId).sort()).toEqual([
+      'aureth-crown',
+      'crown-road',
+    ])
+    expect(view.sectors.some((sector) => sector.coordinate === 'S17-08')).toBe(false)
+  })
+
   it('exposes Crown Road as its own open territory and keeps nearby encounters local', () => {
     const state = { ...newWorldState(), position: { sectorId: 'crown-road', x: 5, y: 4 } }
     const view = projectWorld(state, [], 1000)
