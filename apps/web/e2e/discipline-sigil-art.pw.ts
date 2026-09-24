@@ -26,7 +26,7 @@ test('Foundation Discipline sigils resolve to production artwork on desktop and 
 }, testInfo) => {
   test.skip(
     !['desktop-chromium', 'mobile-chromium'].includes(testInfo.project.name),
-    'Arsenal Discipline artwork is checked at both target viewport classes.',
+    'Nexus Discipline artwork is checked at both target viewport classes.',
   )
 
   const disciplineArt = FOUNDATION_DISCIPLINES.map((id) => {
@@ -61,20 +61,20 @@ test('Foundation Discipline sigils resolve to production artwork on desktop and 
     expect(artwork.height, `${artwork.id} artwork should decode`).toBeGreaterThan(0)
   }
 
-  await page.goto('/game/arsenal')
+  await page.goto('/game/nexus')
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
 
   const launcher = page.getByRole('button', {
-    name: /Manage Primary Discipline and Secondary Discipline/,
+    name: /Manage Disciplines/,
   })
   await expect(launcher).toBeVisible()
-  await expect(launcher).toHaveText('Discipline Management')
-  await expect(launcher.locator('img')).toBeHidden()
+  await expect(launcher).toHaveText(/Manage Disciplines/)
+  await expect(launcher.locator('img')).toBeVisible()
 
   await launcher.click()
   const dialog = page.getByRole('dialog', { name: 'Discipline Management' })
   await expect(dialog).toBeVisible()
-  const committedSigil = dialog.locator('[aria-label="Committed Disciplines"] img').first()
+  const committedSigil = dialog.locator('[aria-label="Currently committed"] img').first()
   const renderedSigilSrc = await committedSigil.getAttribute('src')
   expect(renderedSigilSrc).not.toBeNull()
   expect(decodeURIComponent(renderedSigilSrc!)).toContain(disciplineArt[0]!.src)

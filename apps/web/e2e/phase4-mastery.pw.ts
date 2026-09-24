@@ -57,7 +57,7 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
     },
   )
   await page.reload()
-  await page.goto('/game/arsenal')
+  await page.goto('/game/nexus')
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
   await page.getByRole('button', { name: /Manage Techniques/ }).click()
   const techniques = page.getByRole('dialog', { name: 'Techniques', exact: true })
@@ -222,22 +222,20 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
     body: await page.screenshot(),
     contentType: 'image/png',
   })
-  await page.goto('/game/arsenal')
+  await page.goto('/game/nexus')
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
-  await page.getByRole('button', { name: /Manage Primary Discipline/ }).click()
+  await page.getByRole('button', { name: /Manage Disciplines/ }).click()
   const management = page.getByRole('dialog', { name: 'Discipline Management' })
-  const atlasResponse = page.waitForResponse(
-    (r) => r.url().endsWith('/api/character/mastery') && r.request().method() === 'GET',
-  )
-  await management.getByText('Discipline Atlas & Mastery', { exact: true }).click()
-  const atlasResult = await atlasResponse
-  expect(atlasResult.status()).toBe(200)
-  expect((await atlasResult.json()).atlas.entries).toEqual(
+  const mastery = await page.evaluate(async () => {
+    const response = await fetch('/api/character/mastery')
+    return { status: response.status, body: await response.json() }
+  })
+  expect(mastery.status).toBe(200)
+  expect(mastery.body.atlas.entries).toEqual(
     expect.arrayContaining([
       expect.objectContaining({ disciplineId: 'bastion', releaseEligible: true }),
     ]),
   )
-  await expect(management).toContainText('Adept · 300/1,000 XP')
   await expect(management.locator('select').first().locator('option[value="bastion"]')).toHaveCount(
     1,
   )

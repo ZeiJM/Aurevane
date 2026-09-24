@@ -196,7 +196,7 @@ test('desktop Profile and every Battle Hall tab fit without sacrificing readable
   await allocation.getByRole('button', { name: 'Close', exact: true }).click()
   await expect(allocation).toBeHidden()
 
-  await page.goto('/game/arsenal')
+  await page.goto('/game/nexus')
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
   await page.getByTestId('primary-build-panel').getByRole('button').click()
   const disciplines = page.getByRole('dialog', { name: 'Discipline Management', exact: true })
@@ -304,7 +304,7 @@ test('mobile build dialogs keep readable copy and reachable actions', async ({
     password: 'AurevaneTest!42',
     characterName: 'Dialog Wayfarer',
   })
-  await page.goto('/game/arsenal')
+  await page.goto('/game/nexus')
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
   for (const [panel, name] of [
     ['primary-build-panel', 'Discipline Management'],
@@ -553,7 +553,7 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
     body: await page.screenshot(),
     contentType: 'image/png',
   })
-  await page.goto('/game/arsenal')
+  await page.goto('/game/nexus')
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
   for (const mixed of [false, true]) {
     if (mixed) {
@@ -575,11 +575,10 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
       await page.reload()
       await page.getByTestId('primary-build-panel').getByRole('button').click()
       const discipline = page.getByRole('dialog', { name: 'Discipline Management' })
-      await discipline.getByLabel('Proposed Secondary').selectOption('lifebinder')
-      await discipline.getByRole('button', { name: 'Commit Discipline changes' }).click()
-      await expect(page.getByRole('status')).toContainText(
-        'Lifebinder is now the committed Secondary Discipline.',
-      )
+      await discipline.getByRole('button', { name: /Secondary Discipline/ }).click()
+      await discipline.locator('select').selectOption('lifebinder')
+      await discipline.getByRole('button', { name: /Confirm Change/ }).click()
+      await expect(page.getByRole('status')).toContainText('Discipline changes committed.')
       await testInfo.attach('phone-discipline-preview', {
         body: await page.screenshot(),
         contentType: 'image/png',
