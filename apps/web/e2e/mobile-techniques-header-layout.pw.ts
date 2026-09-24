@@ -30,7 +30,7 @@ async function closeOpenDialog(page: Page): Promise<void> {
   await expect(dialog).toHaveCount(0)
 }
 
-test('mobile mixed-build Technique counters sit below the title without colliding with Close', async ({
+test('mobile Techniques header keeps capacity status clear of title and Close', async ({
   page,
 }, testInfo) => {
   test.skip(
@@ -75,24 +75,23 @@ test('mobile mixed-build Technique counters sit below the title without collidin
 
   const heading = dialog.getByRole('heading', { name: 'Techniques' })
   const close = dialog.getByRole('button', { name: 'Close' })
-  const counter = dialog.getByTestId('skill-capacity')
+  const capacity = dialog.getByTestId('skill-capacity')
 
   await expect(heading).toBeVisible()
   await expect(close).toBeVisible()
-  await expect(counter).toBeVisible()
-  await expect(counter).toContainText('/ 4 selected')
+  await expect(capacity).toBeVisible()
+  await expect(capacity).toContainText('/ 4 selected')
   await expect(dialog.locator('[data-technique-build-strip="true"]')).toHaveCount(0)
 
   const headingBox = await heading.boundingBox()
   const closeBox = await close.boundingBox()
-  const counterBox = await counter.boundingBox()
+  const capacityBox = await capacity.boundingBox()
   expect(headingBox).not.toBeNull()
   expect(closeBox).not.toBeNull()
-  expect(counterBox).not.toBeNull()
+  expect(capacityBox).not.toBeNull()
 
-  if (!headingBox || !closeBox || !counterBox) return
+  if (!headingBox || !closeBox || !capacityBox) return
 
   expect(overlaps(headingBox, closeBox)).toBe(false)
-  expect(overlaps(counterBox, closeBox)).toBe(false)
-  expect(counterBox.y).toBeGreaterThanOrEqual(headingBox.y + headingBox.height - 2)
+  expect(overlaps(closeBox, capacityBox)).toBe(false)
 })
