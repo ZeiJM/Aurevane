@@ -109,8 +109,9 @@ export function skillCostDescription(skill: MatureSkillDefinition): string {
 
 export function skillDamageDescription(skill: MatureSkillDefinition): string {
   const amounts = skill.effects
-    .filter((effect): effect is Extract<CombatEffectDefinition, { type: 'damage' }> =>
-      effect.type === 'damage',
+    .filter(
+      (effect): effect is Extract<CombatEffectDefinition, { type: 'damage' }> =>
+        effect.type === 'damage',
     )
     .map((effect) => effect.amount)
 
