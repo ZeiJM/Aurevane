@@ -18,7 +18,7 @@ export function globeSectorCoordinate(location: GlobeLocation): string | null {
     location.latitude > 90
   )
     return null
-  const longitude = ((location.longitude + 180) % 360 + 360) % 360
+  const longitude = (((location.longitude + 180) % 360) + 360) % 360
   const east = Math.min(32, Math.floor(longitude / 11.25) + 1)
   const north = Math.min(16, Math.floor((90 - location.latitude) / 11.25) + 1)
   if (north < 1 || north > 16) return null

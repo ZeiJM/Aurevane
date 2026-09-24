@@ -34,7 +34,7 @@ export function WorldWorkspace({
   const current = useRef(initialView),
     pending = useRef(false),
     mounted = useRef(true),
-    viewAcceptedAt = useRef(Date.now()),
+    viewAcceptedAt = useRef<number | null>(null),
     syncTimer = useRef<number | null>(null),
     scheduleSync = useRef<() => void>(() => {})
   function accept(next: WorldView) {
@@ -110,6 +110,7 @@ export function WorldWorkspace({
   })
   useEffect(() => {
     mounted.current = true
+    viewAcceptedAt.current = Date.now()
     const clearSyncTimer = () => {
       if (syncTimer.current === null) return
       window.clearTimeout(syncTimer.current)
@@ -123,7 +124,9 @@ export function WorldWorkspace({
         routeLength: latest.route.length,
         movementBlocked: Boolean(latest.movementBlocked),
         nextStepAt: latest.nextStepAt,
-        serverNow: latest.serverNow + Math.max(0, Date.now() - viewAcceptedAt.current),
+        serverNow:
+          latest.serverNow +
+          Math.max(0, viewAcceptedAt.current === null ? 0 : Date.now() - viewAcceptedAt.current),
       })
       syncTimer.current = window.setTimeout(() => {
         syncTimer.current = null
@@ -270,7 +273,9 @@ export function WorldWorkspace({
                 setMessage('')
               }}
               onUnavailable={(coordinate) =>
-                setMessage(`${coordinate} is uncharted. No charted destination is available there yet.`)
+                setMessage(
+                  `${coordinate} is uncharted. No charted destination is available there yet.`,
+                )
               }
               grid={grid}
               portrait={character.portrait}
