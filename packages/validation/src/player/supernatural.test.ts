@@ -88,6 +88,7 @@ describe('supernatural persistence validation', () => {
     })
     expect(parseSupernaturalStoryTransitionRow(base)).toBeNull()
   })
+})
 
 describe('authored supernatural transition request validation', () => {
   const request = {
