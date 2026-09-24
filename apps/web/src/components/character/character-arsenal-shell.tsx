@@ -18,7 +18,18 @@ import { FoundationDisciplineSigil } from '@/components/character/foundation-dis
 import { skillDisplayName } from './skill-detail-presentation'
 import styles from './character-arsenal-shell.module.css'
 
-const OVERVIEW_TECHNIQUE_SLOTS = 8
+const OVERVIEW_TECHNIQUE_SLOTS = 4
+
+function overviewTechniqueType(skill: MatureSkillDefinition): string {
+  const cockpitTag = skill.tags.find((tag) => tag.startsWith('cockpit:'))
+  if (!cockpitTag) return 'Technique'
+  return cockpitTag
+    .slice('cockpit:'.length)
+    .split(/[._-]/g)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
+}
 
 function TechniqueLane({
   kind,
@@ -46,7 +57,6 @@ function TechniqueLane({
           )}
         </span>
         <div>
-          <span>{kind}</span>
           <strong>{locked ? 'Locked' : discipline?.name}</strong>
           {locked ? <small>Choose a second discipline.</small> : null}
         </div>
@@ -99,6 +109,9 @@ function TechniqueLane({
                 />
               </span>
               <strong>{skillDisplayName(skill)}</strong>
+              <small className={styles.overviewTechniqueMeta}>
+                {overviewTechniqueType(skill)} · {skill.apCost} AP
+              </small>
             </article>
           )
         })}
