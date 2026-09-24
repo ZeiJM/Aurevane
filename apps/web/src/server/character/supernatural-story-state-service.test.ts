@@ -8,6 +8,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import {
   commitAuthoredSupernaturalStoryTransition,
+  findAuthoredSupernaturalStoryState,
   commitSupernaturalStoryTransition,
   loadOrInitializeAuthoredSupernaturalStoryState,
   loadOrInitializeSupernaturalStoryState,
@@ -90,6 +91,16 @@ function repository(
 }
 
 describe('supernatural story-state authority service', () => {
+  it('fails closed when a read finds a different canonical story version', async () => {
+    const repo = repository({
+      find: vi.fn(async () => state({ storyVersion: 2 })),
+    })
+
+    await expect(
+      findAuthoredSupernaturalStoryState(userId, characterId, repo),
+    ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+  })
+
   it('initializes an absent character story as Unawakened from server-owned story metadata', async () => {
     const initialize = vi.fn(async () => state())
     const repo = repository({
