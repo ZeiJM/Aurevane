@@ -133,7 +133,14 @@ describe('battle skill artwork presentation', () => {
       '/media/art/discipline-skills/wildwarden-close-quarry-v01.webp',
     )
 
-    for (const id of ['runeblade.aether-cut', 'runeblade.sigil-brand']) {
+    expect(battleSkillArtwork('runeblade.aether-cut')).toBe(
+      '/media/art/discipline-skills/runeblade-aether-cut-v01.webp',
+    )
+    expect(battleSkillArtwork('runeblade.rune-mending')).toBe(
+      '/media/art/discipline-skills/runeblade-rune-mending-v01.webp',
+    )
+
+    for (const id of ['dawnshield.radiant-strike', 'dawnshield.aegis']) {
       const source = battleSkillArtwork(id)
       expect(source).toMatch(/^data:image\/svg\+xml,/)
       const svg = decodeURIComponent(source)
