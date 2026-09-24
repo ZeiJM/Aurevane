@@ -296,7 +296,10 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
     ).toBeVisible()
   await expect(page.locator('aside').getByText('Charted Sectors', { exact: true })).toBeVisible()
   await expect(
-    page.locator('aside').getByRole('button', { name: /Crown Road.*S16-08/ }),
+    page
+      .locator('aside')
+      .locator('[class*="chartedSectorList"]')
+      .getByRole('button', { name: /Crown Road.*S16-08/ }),
   ).toBeVisible()
   const sphere = page.getByRole('group', { name: /World globe/ })
   await expect(page.locator('[data-sector-outline="crown-road"]')).toBeVisible()
