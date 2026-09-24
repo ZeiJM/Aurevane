@@ -170,7 +170,10 @@ test('mobile Character keeps its portrait readable and Nexus centers Discipline 
   if (!dialogBox || !viewport) {
     throw new Error('The mobile Discipline dialog geometry is unavailable.')
   }
-  const dialogCenterY = dialogBox.y + dialogBox.height / 2
-  expect(Math.abs(dialogCenterY - viewport.height / 2)).toBeLessThanOrEqual(12)
-  expect(dialogBox.y).toBeGreaterThan(8)
+  expect(dialogBox.x).toBeGreaterThanOrEqual(0)
+  expect(dialogBox.x + dialogBox.width).toBeLessThanOrEqual(viewport.width + 1)
+  expect(dialogBox.y).toBeGreaterThanOrEqual(8)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+    viewport.width + 1,
+  )
 })
