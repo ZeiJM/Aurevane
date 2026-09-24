@@ -10,7 +10,6 @@ import { useEffect, useMemo, useState, useSyncExternalStore, type CSSProperties 
 import { createPortal } from 'react-dom'
 
 import { battleSkillArtwork } from '../battle/battle-skill-presentation'
-import { FoundationDisciplineSigil } from './foundation-discipline-sigil'
 import { SkillDetails } from './skill-details'
 import { skillDisplayName } from './skill-detail-presentation'
 import styles from './character-skill-build-panel.module.css'
