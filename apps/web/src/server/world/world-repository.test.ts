@@ -107,7 +107,6 @@ it('records successful early ticks so a retry cannot advance a later due step', 
   })
 })
 
-
 it('projects current profile images for nearby players and starter portraits when unset', async () => {
   const state = newWorldState()
   const customId = '00000000-0000-4000-8000-000000000021'
