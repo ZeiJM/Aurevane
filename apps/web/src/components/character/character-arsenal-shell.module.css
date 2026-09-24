@@ -339,7 +339,7 @@
 .emptyTechniqueSlot,
 .lockedTechniqueSlot {
   display: grid;
-  width: min(3.55rem, 100%);
+  width: min(3.5rem, 100%);
   aspect-ratio: 1 / 1;
   place-items: center;
   overflow: hidden;
