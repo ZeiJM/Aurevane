@@ -289,6 +289,7 @@
 .skill,
 .lockedSkill {
   --skill-accent: 197 158 92;
+  position: relative;
   display: grid;
   min-width: 0;
   min-height: 0;
@@ -413,7 +414,7 @@
   display: grid;
   min-width: 0;
   min-height: 0;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
   gap: 0.6rem;
   padding: 0.65rem;
   overflow: hidden;
@@ -518,6 +519,40 @@
 .selectedTechnique > p {
   color: #b8c3c6;
   font-size: 0.65rem;
+}
+
+.signatureFavorite {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-height: 3.2rem;
+  padding: 0.48rem 2.7rem 0.48rem 0.55rem;
+  border: 1px solid rgba(151, 125, 76, 0.28);
+  background: rgba(4, 17, 25, 0.58);
+}
+
+.signatureFavorite > div {
+  display: grid;
+  min-width: 0;
+  gap: 0.08rem;
+}
+
+.signatureFavorite span {
+  color: #d5bd81;
+  font: 700 0.48rem/1 var(--av-font-body);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.signatureFavorite strong {
+  overflow: hidden;
+  color: #f1e7d5;
+  font: 600 0.72rem/1.1 var(--av-font-display);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .actions {
