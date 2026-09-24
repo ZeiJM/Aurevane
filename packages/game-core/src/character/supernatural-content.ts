@@ -1,4 +1,7 @@
-import type { SupernaturalStoryTransitionDefinition } from './supernatural-state'
+import type {
+  SupernaturalStoryState,
+  SupernaturalStoryTransitionDefinition,
+} from './supernatural-state'
 
 export type AuthoredSupernaturalIdentityKind = 'ascension' | 'severence'
 
@@ -74,5 +77,21 @@ export function resolveSupernaturalChoiceTransition(id: string, contentVersion: 
     SUPERNATURAL_CHOICE_TRANSITIONS.find(
       (transition) => transition.id === id && transition.contentVersion === contentVersion,
     ) ?? null
+  )
+}
+
+
+export function availableSupernaturalChoiceTransitions(
+  state: SupernaturalStoryState,
+): readonly SupernaturalStoryTransitionDefinition[] {
+  if (
+    state.path !== 'unawakened' ||
+    state.storyId !== SUPERNATURAL_STORY_DEFINITION.id ||
+    state.storyVersion !== SUPERNATURAL_STORY_DEFINITION.contentVersion
+  )
+    return []
+
+  return SUPERNATURAL_CHOICE_TRANSITIONS.filter(
+    (transition) => transition.fromNodeId === state.nodeId,
   )
 }
