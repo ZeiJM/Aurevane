@@ -368,7 +368,9 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
     const secondaryDisciplineSummary = page.locator('[data-slot="secondary"] p')
     if (await secondaryDisciplineSummary.count()) {
       expect(
-        await secondaryDisciplineSummary.evaluate((element) => element.scrollWidth - element.clientWidth),
+        await secondaryDisciplineSummary.evaluate(
+          (element) => element.scrollWidth - element.clientWidth,
+        ),
       ).toBeLessThanOrEqual(1)
     }
 
