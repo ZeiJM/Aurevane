@@ -432,7 +432,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                     <div>
                       <h2 id="skill-build-heading">Techniques</h2>
                       <p>Choose your active techniques. Changes save automatically.</p>
-                      <small className={styles.autoSaveNote}>
+                      <small className={styles.autoSaveNote} data-testid="skill-capacity">
                         {selectedIds.length} / {capacity} selected
                         {coarsePointer ? ' · tap to preview, double tap to select' : ''}
                       </small>
