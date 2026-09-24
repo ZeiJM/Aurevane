@@ -124,10 +124,7 @@ describe('authored supernatural proof content', () => {
 
     expect(
       availableSupernaturalChoiceTransitions(threshold).map((transition) => transition.id),
-    ).toEqual([
-      'supernatural.main.choose-ascension',
-      'supernatural.main.choose-severence',
-    ])
+    ).toEqual(['supernatural.main.choose-ascension', 'supernatural.main.choose-severence'])
     expect(
       availableSupernaturalChoiceTransitions({
         ...threshold,
