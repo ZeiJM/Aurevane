@@ -142,15 +142,13 @@ export function CharacterArsenalShell({
   )
   const primarySkills = equipped
     .filter(
-      (entry) =>
-        entry.definition.sourceDisciplineId === disciplineBuild.current.definition.id,
+      (entry) => entry.definition.sourceDisciplineId === disciplineBuild.current.definition.id,
     )
     .map((entry) => entry.definition)
   const secondarySkills = disciplineBuild.currentSecondary
     ? equipped
         .filter(
-          (entry) =>
-            entry.definition.sourceDisciplineId === disciplineBuild.currentSecondary?.id,
+          (entry) => entry.definition.sourceDisciplineId === disciplineBuild.currentSecondary?.id,
         )
         .map((entry) => entry.definition)
     : []
