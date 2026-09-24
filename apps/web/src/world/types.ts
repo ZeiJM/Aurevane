@@ -77,6 +77,14 @@ export interface WorldInteraction {
   actionLabel: string | null
   progress: WorldObjectiveProgress
 }
+export interface WorldArchiveEntry {
+  id: string
+  kind: 'field-observation'
+  title: string
+  location: string
+  summary: string
+  provenance: string
+}
 export interface WorldPlayer {
   characterId: string
   name: string
@@ -109,6 +117,7 @@ export interface WorldView {
   players: WorldPlayer[]
   objectives: WorldObjective[]
   interactions: WorldInteraction[]
+  archive: WorldArchiveEntry[]
   battleSessionId: string | null
   movementBlocked: string | null
 }
