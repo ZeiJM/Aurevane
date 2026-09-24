@@ -452,7 +452,7 @@
 
 .activeBuild > div {
   display: grid;
-  grid-template-columns: 3rem minmax(0, 1fr) auto;
+  grid-template-columns: 3.5rem minmax(0, 1fr) auto;
   gap: 0.5rem;
   align-items: center;
   padding: 0.48rem;
