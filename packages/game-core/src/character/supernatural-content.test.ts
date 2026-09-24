@@ -6,6 +6,7 @@ import {
 } from './supernatural-state'
 import {
   ASCENSION_PROOF,
+  availableSupernaturalChoiceTransitions,
   SEVERENCE_PROOF,
   SUPERNATURAL_CHOICE_TRANSITIONS,
   SUPERNATURAL_IDENTITY_PROOFS,
@@ -111,6 +112,35 @@ describe('authored supernatural proof content', () => {
         contentVersion: SEVERENCE_PROOF.contentVersion,
       },
     })
+  })
+
+  it('exposes choices only after story authority reaches the authored threshold', () => {
+    const threshold = createInitialSupernaturalStoryState({
+      storyId: SUPERNATURAL_STORY_DEFINITION.id,
+      storyVersion: SUPERNATURAL_STORY_DEFINITION.contentVersion,
+      initialNodeId: SUPERNATURAL_STORY_DEFINITION.initialNodeId,
+      now: '2026-09-23T12:00:00.000Z',
+    })
+
+    expect(
+      availableSupernaturalChoiceTransitions(threshold).map((transition) => transition.id),
+    ).toEqual([
+      'supernatural.main.choose-ascension',
+      'supernatural.main.choose-severence',
+    ])
+    expect(
+      availableSupernaturalChoiceTransitions({
+        ...threshold,
+        nodeId: 'awakening.not-yet-eligible',
+      }),
+    ).toEqual([])
+
+    const chosen = applySupernaturalStoryTransition(
+      threshold,
+      SUPERNATURAL_CHOICE_TRANSITIONS[0],
+      '2026-09-23T12:05:00.000Z',
+    )
+    expect(availableSupernaturalChoiceTransitions(chosen)).toEqual([])
   })
 
   it('resolves exact authored versions and fails closed on unknown or stale references', () => {
