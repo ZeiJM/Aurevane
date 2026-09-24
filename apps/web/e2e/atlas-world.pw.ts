@@ -546,7 +546,6 @@ test('expired training releases travel without claiming XP and frontier discover
   expect((await world(page)).sectors.find((s) => !s.charted)?.cells).toEqual(survey.cells)
 })
 
-
 test('Crown Road advances one four-second step with one due client tick', async ({
   page,
 }, info) => {
