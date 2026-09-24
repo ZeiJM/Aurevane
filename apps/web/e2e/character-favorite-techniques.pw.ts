@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
 
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
@@ -28,7 +28,7 @@ async function openTechniques(page: Page) {
   return dialog
 }
 
-async function toggleAndWait(page: Page, checkbox: ReturnType<ReturnType<typeof skillCard>['getByRole']>) {
+async function toggleAndWait(page: Page, checkbox: Locator) {
   const before = await checkbox.isChecked()
   const saved = page.waitForResponse(
     (response) =>
