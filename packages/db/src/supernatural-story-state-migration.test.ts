@@ -177,7 +177,7 @@ describe('Phase 5 supernatural story-state migration', () => {
       ascension_id: 'ascension.proof',
       replayed: true,
     })
-    expect(replay.rows[0]?.chosen_at).toBe(first.rows[0]?.chosen_at)
+    expect(replay.rows[0]?.chosen_at).toStrictEqual(first.rows[0]?.chosen_at)
   })
 
   it('rejects conflicting idempotency fingerprints and stale state versions', async () => {
