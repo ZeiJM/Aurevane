@@ -510,9 +510,7 @@ test('a populated hybrid loadout keeps all four Techniques and management action
       response.url().endsWith('/api/character/build/skills') &&
       response.request().method() === 'PUT',
   )
-  await techniques
-    .getByRole('button', { name: 'Commit Selected Techniques', exact: true })
-    .click()
+  await techniques.getByRole('button', { name: 'Commit Selected Techniques', exact: true }).click()
   expect((await skillsSaved).status()).toBe(200)
   await page.goto('/game/nexus')
   await expect(page.getByTestId('secondary-discipline-chip')).toHaveText('Lifebinder')
