@@ -465,8 +465,7 @@ test('a populated hybrid loadout keeps all four Techniques and management action
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
   await page.locator('[data-testid="primary-build-panel"] > button').click()
   const management = page.getByRole('dialog', { name: 'Discipline Management', exact: true })
-  await management.getByRole('button', { name: /Secondary Discipline/ }).click()
-  await management.locator('select').selectOption('lifebinder')
+  await management.getByLabel('Secondary Discipline').selectOption('lifebinder')
   const commitBuild = management.getByRole('button', { name: /Confirm Change/ })
   await expect(commitBuild).toBeEnabled()
   const buildSaved = page.waitForResponse(
@@ -504,14 +503,18 @@ test('a populated hybrid loadout keeps all four Techniques and management action
     .getByTestId('learned-skill-list')
     .locator('input[type="checkbox"]:enabled')
   expect(await choices.count()).toBeGreaterThanOrEqual(4)
-  for (let index = 0; index < 4; index++) await choices.nth(index).check()
-  const skillsSaved = page.waitForResponse(
-    (response) =>
-      response.url().endsWith('/api/character/build/skills') &&
-      response.request().method() === 'PUT',
-  )
-  await techniques.getByRole('button', { name: 'Commit Selected Techniques', exact: true }).click()
-  expect((await skillsSaved).status()).toBe(200)
+  for (let index = 0; index < 4; index += 1) {
+    const choice = choices.nth(index)
+    if (await choice.isChecked()) continue
+    const skillsSaved = page.waitForResponse(
+      (response) =>
+        response.url().endsWith('/api/character/build/skills') &&
+        response.request().method() === 'PUT',
+    )
+    await choice.check()
+    expect((await skillsSaved).status()).toBe(200)
+  }
+  await expect(techniques.getByRole('button', { name: 'Commit Selected Techniques' })).toHaveCount(0)
   await page.goto('/game/nexus')
   await expect(page.getByTestId('secondary-discipline-chip')).toHaveText('Lifebinder')
   const loadout = page.locator('[data-arsenal-workspace]')
