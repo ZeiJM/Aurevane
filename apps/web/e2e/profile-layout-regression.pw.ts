@@ -503,6 +503,9 @@ test('a populated hybrid loadout keeps all four Techniques and management action
     .getByTestId('learned-skill-list')
     .locator('input[type="checkbox"]:enabled')
   expect(await choices.count()).toBeGreaterThanOrEqual(4)
+  const coarseTechniquePointer = await page.evaluate(() =>
+    window.matchMedia('(hover: none), (pointer: coarse)').matches,
+  )
   for (let index = 0; index < 4; index += 1) {
     const choice = choices.nth(index)
     if (await choice.isChecked()) continue
@@ -511,7 +514,11 @@ test('a populated hybrid loadout keeps all four Techniques and management action
         response.url().endsWith('/api/character/build/skills') &&
         response.request().method() === 'PUT',
     )
-    await choice.check()
+    if (coarseTechniquePointer) {
+      await choice.locator('..').dblclick()
+    } else {
+      await choice.check()
+    }
     expect((await skillsSaved).status()).toBe(200)
   }
   await expect(techniques.getByRole('button', { name: 'Commit Selected Techniques' })).toHaveCount(
