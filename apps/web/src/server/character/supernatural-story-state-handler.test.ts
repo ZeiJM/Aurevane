@@ -165,6 +165,7 @@ describe('supernatural story HTTP handler', () => {
         idempotencyKey: '00000000-0000-4000-8000-000000000933',
         transitionId: 'supernatural.main.choose-ascension',
         transitionContentVersion: 1,
+        confirmPermanentChoice: true,
         transition: {
           result: {
             path: 'ascended',
