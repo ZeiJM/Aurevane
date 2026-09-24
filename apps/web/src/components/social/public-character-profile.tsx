@@ -21,15 +21,13 @@ export function PublicCharacterPortrait({
   character: PublicCharacter
   large?: boolean
 }) {
-  const [failedSource, setFailedSource] = useState<string | null>(null)
+  const [failedSources, setFailedSources] = useState<string[]>([])
   const className = large ? styles.heroPortrait : styles.avatar
   const starterSource = resolvePublicCharacterImageUrl(null, character.portraitRef)
   const source =
-    failedSource === starterSource
-      ? null
-      : character.imageUrl && failedSource !== character.imageUrl
-        ? character.imageUrl
-        : starterSource
+    [character.imageUrl, starterSource].find(
+      (candidate): candidate is string => Boolean(candidate) && !failedSources.includes(candidate!),
+    ) ?? null
   if (source) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
@@ -41,7 +39,9 @@ export function PublicCharacterPortrait({
         height={large ? 180 : 48}
         loading={large ? 'eager' : 'lazy'}
         referrerPolicy="no-referrer"
-        onError={() => setFailedSource(source)}
+        onError={() =>
+          setFailedSources((current) => (current.includes(source) ? current : [...current, source]))
+        }
       />
     )
   }
