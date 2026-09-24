@@ -10,7 +10,7 @@ import { useEffect, useMemo, useState, useSyncExternalStore, type CSSProperties 
 import { createPortal } from 'react-dom'
 
 import type { FavoriteTechniqueCategory } from '../battle/favorite-technique-storage'
-import { battleSkillArtwork } from '../battle/battle-skill-presentation'
+import { battleResonanceArtwork, battleSkillArtwork } from '../battle/battle-skill-presentation'
 import { FavoriteTechniqueButton } from './favorite-technique-button'
 import { FoundationDisciplineSigil } from './foundation-discipline-sigil'
 import { SkillDetails } from './skill-details'
@@ -115,6 +115,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
     initialCapacity,
     initialLearnedSkills,
     initialEquippedSkills,
+    initialResonance,
     initialEssence,
   } = props
   const mounted = useSyncExternalStore(
@@ -464,7 +465,10 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                     {renderTechniqueGroup(secondaryDiscipline, secondarySkills, true)}
                   </section>
 
-                  <aside className={styles.detailRail} data-av-surface="ink">
+                  <aside
+                    className={`${styles.detailRail} ${styles.buildRail}`}
+                    data-av-surface="ink"
+                  >
                     <section className={styles.activeBuild}>
                       <span>Active Build</span>
                       <div>
@@ -527,18 +531,45 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                       )}
                     </section>
 
-                    {initialEssence && favoriteCategory(initialEssence.skill) ? (
+                    {initialResonance ? (
                       <article className={styles.signatureFavorite}>
+                        <span className={styles.signatureArt} aria-hidden="true">
+                          <Image
+                            src={battleResonanceArtwork(initialResonance.id)}
+                            width={48}
+                            height={48}
+                            unoptimized
+                            alt=""
+                          />
+                        </span>
+                        <div>
+                          <span>Build Signature</span>
+                          <strong data-testid="active-resonance">{initialResonance.name}</strong>
+                        </div>
+                      </article>
+                    ) : initialEssence ? (
+                      <article className={styles.signatureFavorite}>
+                        <span className={styles.signatureArt} aria-hidden="true">
+                          <Image
+                            src={battleSkillArtwork(initialEssence.skill.id)}
+                            width={48}
+                            height={48}
+                            unoptimized
+                            alt=""
+                          />
+                        </span>
                         <div>
                           <span>Build Signature</span>
                           <strong data-testid="active-essence">{initialEssence.name}</strong>
                         </div>
-                        <FavoriteTechniqueButton
-                          characterId={characterId}
-                          techniqueId={initialEssence.skill.id}
-                          label={initialEssence.name}
-                          category={favoriteCategory(initialEssence.skill)!}
-                        />
+                        {favoriteCategory(initialEssence.skill) ? (
+                          <FavoriteTechniqueButton
+                            characterId={characterId}
+                            techniqueId={initialEssence.skill.id}
+                            label={initialEssence.name}
+                            category={favoriteCategory(initialEssence.skill)!}
+                          />
+                        ) : null}
                       </article>
                     ) : null}
                   </aside>
@@ -558,6 +589,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                   </button>
                   <button
                     type="button"
+                    aria-label="Commit Selected Techniques"
                     onClick={() => void save()}
                     disabled={!dirty || pending || !mixedSelectionValid}
                   >
