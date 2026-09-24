@@ -57,7 +57,15 @@ describe('Skill media hook registry', () => {
     expect(registeredSkillArtworkSource('wildwarden.close-quarry')).toBe(
       '/media/art/discipline-skills/wildwarden-close-quarry-v01.webp',
     )
-    expect(registeredSkillArtworkSource('runeblade.aether-cut')).toMatch(/^data:image\/svg\+xml/)
+    expect(registeredSkillArtworkSource('runeblade.aether-cut')).toBe(
+      '/media/art/discipline-skills/runeblade-aether-cut-v01.webp',
+    )
+    expect(registeredSkillArtworkSource('runeblade.rune-mending')).toBe(
+      '/media/art/discipline-skills/runeblade-rune-mending-v01.webp',
+    )
+    expect(registeredSkillArtworkSource('dawnshield.radiant-strike')).toMatch(
+      /^data:image\/svg\+xml/,
+    )
     const essence = resolveSkillIconHook('essence.aetherist.aether-nova.icon')
     expect(essence).toEqual(
       expect.objectContaining({
