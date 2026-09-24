@@ -139,11 +139,7 @@ describe('supernatural story-state authority service', () => {
       initialize,
     })
 
-    const result = await loadOrInitializeAuthoredSupernaturalStoryState(
-      userId,
-      characterId,
-      repo,
-    )
+    const result = await loadOrInitializeAuthoredSupernaturalStoryState(userId, characterId, repo)
 
     expect(initialize).toHaveBeenCalledWith({
       userId,
