@@ -6,9 +6,6 @@ on:
       - 'packages/game-core/src/combat/**'
       - 'packages/game-core/package.json'
       - 'apps/web/src/server/battle/**'
-      - 'TASKS.md'
-      - 'AGENTS.md'
-      - 'docs/ROADMAP.md'
       - '.github/workflows/skill-engine.yml'
 
 permissions:
