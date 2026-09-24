@@ -233,7 +233,10 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
     return [...selectedIds, id]
   }
 
-  async function commitSelection(nextIds: string[], successMessage = 'Techniques saved automatically.') {
+  async function commitSelection(
+    nextIds: string[],
+    successMessage = 'Techniques saved automatically.',
+  ) {
     if (pending || sameSelection(nextIds, selectedIds)) return
     if (!mixedSelectionValid(nextIds)) {
       setMessage('A full mixed loadout needs at least one Technique from each active Discipline.')
@@ -485,7 +488,8 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                             <div>
                               <strong>{skillDisplayName(focusedSkill.definition)}</strong>
                               <small>
-                                {focusedSkill.definition.apCost} AP · {cockpitType(focusedSkill.definition)}
+                                {focusedSkill.definition.apCost} AP ·{' '}
+                                {cockpitType(focusedSkill.definition)}
                                 {focusedSkill.definition.mpCost
                                   ? ` · ${focusedSkill.definition.mpCost} MP`
                                   : ''}
