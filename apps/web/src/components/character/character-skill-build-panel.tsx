@@ -6,7 +6,7 @@ import type { EssenceDefinition } from '@aurevane/game-core/combat/essence'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
 import type { ResonanceDefinition } from '@aurevane/game-core/combat/resonance'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useMemo, useState, useSyncExternalStore, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 
 import { battleSkillArtwork } from '../battle/battle-skill-presentation'
@@ -131,6 +131,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
   const [message, setMessage] = useState<string | null>(null)
   const [coarsePointer, setCoarsePointer] = useState(false)
   const [refreshOnClose, setRefreshOnClose] = useState(false)
+  const lastTapRef = useRef<{ skillId: string; at: number } | null>(null)
 
   const visibleSkills = useMemo(
     () => learnedSkills.filter((entry) => entry.activeSource),
@@ -289,6 +290,20 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
     void commitSelection(nextIds)
   }
 
+  function handleCoarseTechniqueTap(skill: SkillCatalogEntryView) {
+    const now = performance.now()
+    const previous = lastTapRef.current
+    setFocusedSkillId(skill.definition.id)
+
+    if (previous?.skillId === skill.definition.id && now - previous.at <= 350) {
+      lastTapRef.current = null
+      toggleAndCommit(skill)
+      return
+    }
+
+    lastTapRef.current = { skillId: skill.definition.id, at: now }
+  }
+
   function renderTechniqueGroup(
     discipline: { id: string; name: string } | null,
     skills: readonly SkillCatalogEntryView[],
@@ -349,13 +364,12 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
               >
                 <label
                   onClick={(event) => {
-                    setFocusedSkillId(entry.definition.id)
-                    if (coarsePointer) event.preventDefault()
-                  }}
-                  onDoubleClick={(event) => {
-                    if (!coarsePointer) return
+                    if (!coarsePointer) {
+                      setFocusedSkillId(entry.definition.id)
+                      return
+                    }
                     event.preventDefault()
-                    toggleAndCommit(entry)
+                    handleCoarseTechniqueTap(entry)
                   }}
                 >
                   <input
