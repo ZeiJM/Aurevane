@@ -10,11 +10,11 @@ import { useEffect, useMemo, useState, useSyncExternalStore, type CSSProperties 
 import { createPortal } from 'react-dom'
 
 import type { FavoriteTechniqueCategory } from '../battle/favorite-technique-storage'
-import { battleResonanceArtwork, battleSkillArtwork } from '../battle/battle-skill-presentation'
+import { battleSkillArtwork } from '../battle/battle-skill-presentation'
 import { FavoriteTechniqueButton } from './favorite-technique-button'
+import { FoundationDisciplineSigil } from './foundation-discipline-sigil'
 import { SkillDetails } from './skill-details'
 import { skillDisplayName } from './skill-detail-presentation'
-import polish from './character-skill-build-panel-polish.module.css'
 import styles from './character-skill-build-panel.module.css'
 
 interface SkillCatalogEntryView {
@@ -56,6 +56,7 @@ interface SkillCommitResponse {
 const PROFILE_PANEL_QUERY = 'profilePanel'
 const TECHNIQUES_PANEL = 'techniques'
 const MIXED_SOURCE_MAXIMUM = 3
+const TECHNIQUES_PER_DISCIPLINE = 8
 
 const DISCIPLINE_PALETTE: Readonly<Record<string, { accent: string; deep: string }>> = {
   vanguard: { accent: '232 119 76', deep: '117 50 31' },
@@ -76,10 +77,6 @@ function skillPaletteStyle(disciplineId: string): CSSProperties {
     '--skill-accent': palette.accent,
     '--skill-deep': palette.deep,
   } as CSSProperties
-}
-
-function chipPaletteStyle(disciplineId: string): CSSProperties {
-  return { '--chip': paletteFor(disciplineId).accent } as CSSProperties
 }
 
 function titleCase(value: string): string {
@@ -109,17 +106,16 @@ function orderedSkillIds(equippedSkills: readonly EquippedSkillView[]): string[]
     .map((entry) => entry.definition.id)
 }
 
-export function CharacterSkillBuildPanel({
-  characterId,
-  initialBuildVersion,
-  primaryDiscipline,
-  secondaryDiscipline,
-  initialCapacity,
-  initialLearnedSkills,
-  initialEquippedSkills,
-  initialResonance,
-  initialEssence,
-}: CharacterSkillBuildPanelProps) {
+export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
+  const {
+    characterId,
+    initialBuildVersion,
+    primaryDiscipline,
+    secondaryDiscipline,
+    initialCapacity,
+    initialLearnedSkills,
+    initialEquippedSkills,
+  } = props
   const mounted = useSyncExternalStore(
     () => () => {},
     () => true,
@@ -129,6 +125,8 @@ export function CharacterSkillBuildPanel({
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const initialIds = orderedSkillIds(initialEquippedSkills)
+  const initialFocusedId =
+    initialIds[0] ?? initialLearnedSkills.find((entry) => entry.activeSource)?.definition.id ?? null
   const open = searchParams.get(PROFILE_PANEL_QUERY) === TECHNIQUES_PANEL
   const [buildVersion, setBuildVersion] = useState(initialBuildVersion)
   const [capacity, setCapacity] = useState(initialCapacity)
@@ -136,6 +134,7 @@ export function CharacterSkillBuildPanel({
     useState<readonly SkillCatalogEntryView[]>(initialLearnedSkills)
   const [committedIds, setCommittedIds] = useState<string[]>(initialIds)
   const [selectedIds, setSelectedIds] = useState<string[]>(initialIds)
+  const [focusedSkillId, setFocusedSkillId] = useState<string | null>(initialFocusedId)
   const [pending, setPending] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
 
@@ -143,6 +142,26 @@ export function CharacterSkillBuildPanel({
     () => learnedSkills.filter((entry) => entry.activeSource),
     [learnedSkills],
   )
+  const primarySkills = useMemo(
+    () =>
+      visibleSkills
+        .filter((entry) => entry.definition.sourceDisciplineId === primaryDiscipline.id)
+        .slice(0, TECHNIQUES_PER_DISCIPLINE),
+    [primaryDiscipline.id, visibleSkills],
+  )
+  const secondarySkills = useMemo(
+    () =>
+      secondaryDiscipline
+        ? visibleSkills
+            .filter((entry) => entry.definition.sourceDisciplineId === secondaryDiscipline.id)
+            .slice(0, TECHNIQUES_PER_DISCIPLINE)
+        : [],
+    [secondaryDiscipline, visibleSkills],
+  )
+  const focusedSkill =
+    visibleSkills.find((entry) => entry.definition.id === focusedSkillId) ??
+    visibleSkills[0] ??
+    null
 
   useEffect(() => {
     if (!open) return
@@ -185,12 +204,6 @@ export function CharacterSkillBuildPanel({
 
   const primarySelected = selectedSourceCount(primaryDiscipline.id)
   const secondarySelected = secondaryDiscipline ? selectedSourceCount(secondaryDiscipline.id) : 0
-  const primaryMixedLimit = secondaryDiscipline
-    ? Math.min(MIXED_SOURCE_MAXIMUM, capacity - secondarySelected)
-    : capacity
-  const secondaryMixedLimit = secondaryDiscipline
-    ? Math.min(MIXED_SOURCE_MAXIMUM, capacity - primarySelected)
-    : capacity
   const mixedSelectionValid =
     !secondaryDiscipline ||
     selectedIds.length < capacity ||
@@ -199,6 +212,7 @@ export function CharacterSkillBuildPanel({
   function toggle(skill: SkillCatalogEntryView) {
     if (!skill.activeSource || pending) return
     const id = skill.definition.id
+    setFocusedSkillId(id)
     setMessage(null)
     setSelectedIds((current) => {
       if (current.includes(id)) return current.filter((candidate) => candidate !== id)
@@ -256,12 +270,91 @@ export function CharacterSkillBuildPanel({
     }
   }
 
-  const signatureLabel = initialResonance
-    ? 'Build Signature · Resonance'
-    : initialEssence
-      ? 'Build Signature · Essence Skill'
-      : 'Build Signature'
-  const essenceFavoriteCategory = initialEssence ? favoriteCategory(initialEssence.skill) : null
+  function renderTechniqueGroup(
+    discipline: { id: string; name: string } | null,
+    skills: readonly SkillCatalogEntryView[],
+    secondary: boolean,
+  ) {
+    const locked = secondary && !discipline
+    return (
+      <section className={styles.techniqueGroup} data-locked={locked ? 'true' : 'false'}>
+        <header>
+          <div>
+            <span aria-hidden="true">✦</span>
+            <h3>
+              {locked
+                ? 'Secondary Discipline Techniques'
+                : `${discipline?.name ?? 'Discipline'} Techniques`}
+            </h3>
+          </div>
+          <small>
+            {locked ? '0 / 8 unlocked' : `${skills.length} techniques available`}
+          </small>
+        </header>
+        <div className={styles.skillGrid}>
+          {Array.from({ length: TECHNIQUES_PER_DISCIPLINE }, (_, index) => {
+            if (locked) {
+              return (
+                <div className={styles.lockedSkill} key={`locked-${index}`} aria-hidden="true">
+                  <span>▣</span>
+                  <strong>Locked</strong>
+                </div>
+              )
+            }
+
+            const entry = skills[index]
+            if (!entry) {
+              return (
+                <div className={styles.lockedSkill} key={`void-${index}`} aria-hidden="true">
+                  <span>◇</span>
+                  <strong>Unavailable</strong>
+                </div>
+              )
+            }
+
+            const selected = selectedIds.includes(entry.definition.id)
+            const sourceCount = selectedSourceCount(entry.definition.sourceDisciplineId)
+            const disabledBySource = Boolean(
+              secondaryDiscipline && !selected && sourceCount >= MIXED_SOURCE_MAXIMUM,
+            )
+            const disabledByCapacity = !selected && selectedIds.length >= capacity
+            const disabled = pending || disabledByCapacity || disabledBySource
+            return (
+              <article
+                className={styles.skill}
+                key={`${entry.definition.id}:${entry.definition.contentVersion}`}
+                data-selected={selected ? 'true' : 'false'}
+                style={skillPaletteStyle(entry.definition.sourceDisciplineId)}
+              >
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={selected}
+                    disabled={disabled}
+                    onChange={() => toggle(entry)}
+                  />
+                  <span className={styles.skillArt} aria-hidden="true">
+                    <Image
+                      src={battleSkillArtwork(entry.definition.id)}
+                      width={64}
+                      height={64}
+                      unoptimized
+                      alt=""
+                    />
+                    {selected ? <b>✓</b> : null}
+                  </span>
+                  <strong>{skillDisplayName(entry.definition)}</strong>
+                  <span className={styles.skillMeta}>
+                    {cockpitType(entry.definition)} · {entry.definition.apCost} AP
+                  </span>
+                </label>
+              </article>
+            )
+          })}
+        </div>
+      </section>
+    )
+  }
 
   return (
     <div className={styles.root} data-testid="skill-build-panel">
@@ -272,10 +365,9 @@ export function CharacterSkillBuildPanel({
         aria-label={`Manage Techniques. ${selectedIds.length} of ${capacity} selected.`}
         onClick={() => setPanelOpen(true)}
       >
+        <span aria-hidden="true">⚔</span>
         <strong>Manage Techniques</strong>
-        <small>
-          {selectedIds.length} / {capacity}
-        </small>
+        <span aria-hidden="true">›</span>
       </button>
 
       {open && mounted
@@ -297,297 +389,135 @@ export function CharacterSkillBuildPanel({
               >
                 <header className={styles.header}>
                   <div className={styles.headingCopy}>
-                    <h2 id="skill-build-heading">Techniques</h2>
-                  </div>
-                  <div className={styles.headerActions}>
-                    <div className={polish.counterGroup} data-testid="skill-capacity">
-                      {secondaryDiscipline ? (
-                        <>
-                          <div
-                            className={`${styles.capacityBadge} ${polish.capacityBadge}`}
-                            style={chipPaletteStyle(primaryDiscipline.id)}
-                          >
-                            <span className={polish.counterName}>{primaryDiscipline.name}</span>
-                            <strong>{primarySelected}</strong>
-                            <span>{` / ${primaryMixedLimit}`}</span>
-                          </div>
-                          <div
-                            className={`${styles.capacityBadge} ${polish.capacityBadge}`}
-                            style={chipPaletteStyle(secondaryDiscipline.id)}
-                          >
-                            <span className={polish.counterName}>{secondaryDiscipline.name}</span>
-                            <strong>{secondarySelected}</strong>
-                            <span>{` / ${secondaryMixedLimit}`}</span>
-                          </div>
-                        </>
-                      ) : (
-                        <div
-                          className={`${styles.capacityBadge} ${polish.capacityBadge}`}
-                          style={chipPaletteStyle(primaryDiscipline.id)}
-                        >
-                          <span className={polish.counterName}>{primaryDiscipline.name}</span>
-                          <strong>{selectedIds.length}</strong>
-                          <span>{` / ${capacity}`}</span>
-                        </div>
-                      )}
+                    <span className={styles.headerIcon} aria-hidden="true">
+                      ⚔
+                    </span>
+                    <div>
+                      <h2 id="skill-build-heading">Techniques</h2>
+                      <p>Master your combat techniques. Tick up to {capacity} to form your loadout.</p>
                     </div>
-                    <button
-                      type="button"
-                      className={`${styles.close} ${polish.standardButton}`}
-                      onClick={() => setPanelOpen(false)}
-                    >
-                      Close
-                    </button>
                   </div>
+                  <button type="button" className={styles.close} onClick={() => setPanelOpen(false)}>
+                    <span aria-hidden="true">×</span>
+                    Close
+                  </button>
                 </header>
 
-                <div className={styles.workspace}>
-                  <aside className={styles.buildRail} data-av-surface="ink">
-                    <section className={styles.buildCard}>
-                      <span className={styles.eyebrow}>Active build</span>
-                      <strong className={styles.buildName}>
-                        {primaryDiscipline.name}
-                        {secondaryDiscipline ? ` + ${secondaryDiscipline.name}` : ''}
-                      </strong>
-                    </section>
-
-                    {(initialResonance || initialEssence) && (
-                      <section className={`${styles.extensions} ${polish.signatureSection}`}>
-                        <span className={styles.eyebrow}>{signatureLabel}</span>
-                        {initialResonance ? (
-                          <article className={polish.signatureCard}>
-                            <span
-                              className={polish.signatureArtFrame}
-                              data-av-square-media="true"
-                              data-av-square-media-fit="contain"
-                              aria-hidden="true"
-                            >
-                              <Image
-                                width={64}
-                                height={64}
-                                unoptimized
-                                className={polish.signatureArt}
-                                src={battleResonanceArtwork(initialResonance.id)}
-                                alt=""
-                              />
-                            </span>
-                            <div className={polish.signatureCopy}>
-                              <strong data-testid="active-resonance">
-                                {initialResonance.name}
-                              </strong>
-                              <span className={styles.metaRow}>
-                                {initialResonance.disciplinePair.map((disciplineId) => (
-                                  <small
-                                    key={disciplineId}
-                                    className={styles.sourceChip}
-                                    style={chipPaletteStyle(disciplineId)}
-                                  >
-                                    {titleCase(disciplineId)}
-                                  </small>
-                                ))}
-                                <small className={polish.typeChip} data-light-panel-chip="true">
-                                  Passive
-                                </small>
-                              </span>
-                              <p>{initialResonance.description}</p>
-                            </div>
-                          </article>
-                        ) : null}
-                        {initialEssence ? (
-                          <article className={polish.signatureCard}>
-                            <span
-                              className={polish.signatureArtFrame}
-                              data-av-square-media="true"
-                              data-av-square-media-fit="contain"
-                              aria-hidden="true"
-                            >
-                              <Image
-                                width={64}
-                                height={64}
-                                unoptimized
-                                className={polish.signatureArt}
-                                src={battleSkillArtwork(initialEssence.skill.id)}
-                                alt=""
-                              />
-                            </span>
-                            <div className={polish.signatureCopy}>
-                              <strong data-testid="active-essence">{initialEssence.name}</strong>
-                              <span className={styles.metaRow}>
-                                <small
-                                  className={styles.sourceChip}
-                                  style={chipPaletteStyle(initialEssence.sourceDisciplineId)}
-                                >
-                                  {titleCase(initialEssence.sourceDisciplineId)}
-                                </small>
-                                <small>
-                                  {initialEssence.skill.apCost} AP
-                                  {initialEssence.skill.mpCost
-                                    ? ` · ${initialEssence.skill.mpCost} MP`
-                                    : ''}
-                                </small>
-                                <small className={polish.typeChip} data-light-panel-chip="true">
-                                  {cockpitType(initialEssence.skill)}
-                                </small>
-                              </span>
-                              <p>{initialEssence.description}</p>
-                            </div>
-                            <SkillDetails skill={initialEssence.skill} />
-                            {essenceFavoriteCategory ? (
-                              <FavoriteTechniqueButton
-                                characterId={characterId}
-                                techniqueId={initialEssence.skill.id}
-                                label={initialEssence.name}
-                                category={essenceFavoriteCategory}
-                              />
-                            ) : null}
-                          </article>
-                        ) : null}
-                      </section>
+                <div className={styles.buildStrip}>
+                  <div className={styles.buildDiscipline}>
+                    <FoundationDisciplineSigil disciplineId={primaryDiscipline.id} />
+                    <div>
+                      <span>Primary Discipline</span>
+                      <strong>{primaryDiscipline.name}</strong>
+                    </div>
+                  </div>
+                  <div className={styles.buildDiscipline} data-locked={!secondaryDiscipline}>
+                    {secondaryDiscipline ? (
+                      <FoundationDisciplineSigil disciplineId={secondaryDiscipline.id} />
+                    ) : (
+                      <span className={styles.buildLock} aria-hidden="true">
+                        ▣
+                      </span>
                     )}
-                  </aside>
-
-                  <section className={styles.techniqueArea} aria-label="Techniques">
-                    <div className={`${styles.techniqueHeading} ${polish.techniqueHeading}`}>
-                      <strong>Select your combat loadout</strong>
+                    <div>
+                      <span>Secondary Discipline</span>
+                      <strong>{secondaryDiscipline?.name ?? 'Locked'}</strong>
                     </div>
-
-                    <ol className={styles.selectedLoadout} aria-label="Selected ordinary Skills">
-                      {Array.from({ length: capacity }, (_, index) => {
-                        const entry = initialLearnedSkills.find(
-                          (entry) => entry.definition.id === selectedIds[index],
-                        )
-                        return (
-                          <li key={index} data-av-surface="ink">
-                            <span className={styles.slotNumber}>{index + 1}</span>
-                            {entry ? (
-                              <>
-                                <span
-                                  className={styles.selectedLoadoutArt}
-                                  data-av-square-media="true"
-                                  data-av-square-media-fit="contain"
-                                >
-                                  <Image
-                                    src={battleSkillArtwork(entry.definition.id)}
-                                    width={200}
-                                    height={200}
-                                    unoptimized
-                                    alt=""
-                                  />
-                                </span>
-                                <strong>{skillDisplayName(entry.definition)}</strong>
-                              </>
-                            ) : (
-                              <span className={styles.emptySlot}>Empty slot</span>
-                            )}
-                          </li>
-                        )
-                      })}
-                    </ol>
-                    <h3 className={styles.libraryHeading}>Skill library</h3>
-                    <div className={styles.skillList} data-testid="learned-skill-list">
-                      {visibleSkills.length === 0 ? (
-                        <p className={styles.empty}>No Techniques are available for this build.</p>
-                      ) : (
-                        visibleSkills.map((entry) => {
-                          const selected = selectedIds.includes(entry.definition.id)
-                          const sourceCount = selectedSourceCount(
-                            entry.definition.sourceDisciplineId,
-                          )
-                          const disabledBySource = Boolean(
-                            secondaryDiscipline && !selected && sourceCount >= MIXED_SOURCE_MAXIMUM,
-                          )
-                          const disabledByCapacity = !selected && selectedIds.length >= capacity
-                          const disabled = pending || disabledByCapacity || disabledBySource
-                          const category = favoriteCategory(entry.definition)
-                          const label = skillDisplayName(entry.definition)
-
-                          return (
-                            <article
-                              key={`${entry.definition.id}:${entry.definition.contentVersion}`}
-                              className={styles.skill}
-                              data-av-surface="ink"
-                              data-active-source="true"
-                              data-selected={selected ? 'true' : 'false'}
-                              data-source={entry.definition.sourceDisciplineId}
-                              style={skillPaletteStyle(entry.definition.sourceDisciplineId)}
-                            >
-                              <label className={styles.skillToggle}>
-                                <input
-                                  type="checkbox"
-                                  checked={selected}
-                                  disabled={disabled}
-                                  onChange={() => toggle(entry)}
-                                />
-                                <span
-                                  className={styles.artFrame}
-                                  data-av-square-media="true"
-                                  data-av-square-media-fit="contain"
-                                  aria-hidden="true"
-                                >
-                                  <Image
-                                    width={64}
-                                    height={64}
-                                    unoptimized
-                                    className={styles.skillArt}
-                                    src={battleSkillArtwork(entry.definition.id)}
-                                    alt=""
-                                  />
-                                </span>
-                                <span className={styles.skillCopy}>
-                                  <strong>{label}</strong>
-                                  <span className={styles.metaRow}>
-                                    <small className={styles.sourceChip}>
-                                      {titleCase(entry.definition.sourceDisciplineId)}
-                                    </small>
-                                    <small>
-                                      {entry.definition.apCost} AP
-                                      {entry.definition.mpCost
-                                        ? ` · ${entry.definition.mpCost} MP`
-                                        : ''}
-                                    </small>
-                                    <small className={polish.typeChip} data-light-panel-chip="true">
-                                      {cockpitType(entry.definition)}
-                                    </small>
-                                  </span>
-                                </span>
-                              </label>
-                              <SkillDetails skill={entry.definition} />
-                              {category ? (
-                                <FavoriteTechniqueButton
-                                  characterId={characterId}
-                                  techniqueId={entry.definition.id}
-                                  label={label}
-                                  category={category}
-                                  disabled={!selected || pending}
-                                />
-                              ) : null}
-                            </article>
-                          )
-                        })
-                      )}
-                    </div>
-                  </section>
+                  </div>
+                  <div className={styles.selectedCounter}>
+                    <span>Selected Techniques</span>
+                    <strong>
+                      {selectedIds.length} / {capacity}
+                    </strong>
+                    <small>Tick techniques below to set your active loadout.</small>
+                  </div>
                 </div>
 
-                <footer className={`${styles.actions} ${polish.actions}`}>
+                <div className={styles.workspace}>
+                  <section className={styles.techniqueArea} aria-label="Available Techniques">
+                    {renderTechniqueGroup(primaryDiscipline, primarySkills, false)}
+                    {renderTechniqueGroup(secondaryDiscipline, secondarySkills, true)}
+                  </section>
+
+                  <aside className={styles.detailRail} data-av-surface="ink">
+                    <section className={styles.activeBuild}>
+                      <span>Active Build</span>
+                      <div>
+                        <FoundationDisciplineSigil
+                          disciplineId={primaryDiscipline.id}
+                          className={styles.detailSigil}
+                        />
+                        <strong>
+                          {primaryDiscipline.name}
+                          {secondaryDiscipline ? ` + ${secondaryDiscipline.name}` : ''}
+                        </strong>
+                        <b>● Live</b>
+                      </div>
+                    </section>
+
+                    <section className={styles.selectedTechnique}>
+                      <span>Selected Technique</span>
+                      {focusedSkill ? (
+                        <>
+                          <div className={styles.selectedTechniqueHeading}>
+                            <span className={styles.detailArt}>
+                              <Image
+                                src={battleSkillArtwork(focusedSkill.definition.id)}
+                                width={80}
+                                height={80}
+                                unoptimized
+                                alt=""
+                              />
+                            </span>
+                            <div>
+                              <strong>{skillDisplayName(focusedSkill.definition)}</strong>
+                              <small>
+                                {cockpitType(focusedSkill.definition)} ·{' '}
+                                {focusedSkill.definition.apCost} AP
+                                {focusedSkill.definition.mpCost
+                                  ? ` · ${focusedSkill.definition.mpCost} MP`
+                                  : ''}
+                              </small>
+                            </div>
+                          </div>
+                          <SkillDetails skill={focusedSkill.definition} />
+                          {favoriteCategory(focusedSkill.definition) ? (
+                            <FavoriteTechniqueButton
+                              characterId={characterId}
+                              techniqueId={focusedSkill.definition.id}
+                              label={skillDisplayName(focusedSkill.definition)}
+                              category={favoriteCategory(focusedSkill.definition)!}
+                              disabled={!selectedIds.includes(focusedSkill.definition.id) || pending}
+                            />
+                          ) : null}
+                        </>
+                      ) : (
+                        <p>No Technique is available for this build.</p>
+                      )}
+                    </section>
+                  </aside>
+                </div>
+
+                <footer className={styles.actions}>
                   <button
                     type="button"
-                    className={`${styles.secondaryAction} ${polish.standardButton}`}
+                    className={styles.secondaryAction}
                     onClick={() => {
                       setSelectedIds([])
                       setMessage(null)
                     }}
                     disabled={pending || selectedIds.length === 0}
                   >
-                    Clear Selected Techniques
+                    ↻ Clear Selections
                   </button>
                   <button
                     type="button"
-                    className={polish.standardButton}
                     onClick={() => void save()}
                     disabled={!dirty || pending || !mixedSelectionValid}
                   >
-                    {pending ? 'Saving…' : 'Commit Selected Techniques'}
+                    <span aria-hidden="true">⚔</span>
+                    {pending ? 'Saving…' : 'Commit Techniques'}
+                    <span aria-hidden="true">›</span>
                   </button>
                 </footer>
 
