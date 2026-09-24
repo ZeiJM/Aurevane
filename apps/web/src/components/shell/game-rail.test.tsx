@@ -32,7 +32,9 @@ describe('shared game rail', () => {
       expect(markup).toContain(`aria-label="${label}"`)
     }
     const destinationPositions = destinations.map(([href]) => markup.indexOf(`href="${href}"`))
-    expect(destinationPositions).toEqual([...destinationPositions].sort((left, right) => left - right))
+    expect(destinationPositions).toEqual(
+      [...destinationPositions].sort((left, right) => left - right),
+    )
     expect(markup).not.toContain('aria-label="Items"')
     expect(markup).not.toContain('href="/game/items"')
     expect(markup).toContain('data-nav-icon="arsenal"')
