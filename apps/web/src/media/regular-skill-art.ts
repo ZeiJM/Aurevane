@@ -101,6 +101,15 @@ export const REGULAR_SKILL_ART = {
   'wildwarden.pursuit-shot': '/media/art/discipline-skills/wildwarden-pursuit-shot-v01.webp',
   'wildwarden.renewing-herbs': '/media/art/discipline-skills/wildwarden-renewing-herbs-v01.webp',
   'wildwarden.close-quarry': '/media/art/discipline-skills/wildwarden-close-quarry-v01.webp',
+
+  'runeblade.arc-edge': '/media/art/discipline-skills/runeblade-arc-edge-v01.webp',
+  'runeblade.rune-guard': '/media/art/discipline-skills/runeblade-rune-guard-v01.webp',
+  'runeblade.siphon-slash': '/media/art/discipline-skills/runeblade-siphon-slash-v01.webp',
+  'runeblade.sigil-brand': '/media/art/discipline-skills/runeblade-sigil-brand-v01.webp',
+  'runeblade.rune-burst': '/media/art/discipline-skills/runeblade-rune-burst-v01.webp',
+  'runeblade.unbinding-rune': '/media/art/discipline-skills/runeblade-unbinding-rune-v01.webp',
+  'runeblade.aether-cut': '/media/art/discipline-skills/runeblade-aether-cut-v01.webp',
+  'runeblade.rune-mending': '/media/art/discipline-skills/runeblade-rune-mending-v01.webp',
 } as const
 
 export type RegularSkillArtId = keyof typeof REGULAR_SKILL_ART
