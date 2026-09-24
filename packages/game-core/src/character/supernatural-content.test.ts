@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  applySupernaturalStoryTransition,
+  createInitialSupernaturalStoryState,
+} from './supernatural-state'
+import {
   ASCENSION_PROOF,
   SEVERENCE_PROOF,
   SUPERNATURAL_CHOICE_TRANSITIONS,
@@ -42,6 +46,37 @@ describe('authored supernatural proof content', () => {
     expect(SUPERNATURAL_CHOICE_TRANSITIONS.every((transition) => transition.fromNodeId === 'awakening.threshold')).toBe(
       true,
     )
+  })
+
+  it('executes both authored choices through the canonical story-state transition engine', () => {
+    const initial = createInitialSupernaturalStoryState({
+      storyId: SUPERNATURAL_STORY_DEFINITION.id,
+      storyVersion: SUPERNATURAL_STORY_DEFINITION.contentVersion,
+      initialNodeId: SUPERNATURAL_STORY_DEFINITION.initialNodeId,
+      now: '2026-09-23T12:00:00.000Z',
+    })
+
+    const ascended = applySupernaturalStoryTransition(
+      initial,
+      SUPERNATURAL_CHOICE_TRANSITIONS[0],
+      '2026-09-23T12:05:00.000Z',
+    )
+    const severed = applySupernaturalStoryTransition(
+      initial,
+      SUPERNATURAL_CHOICE_TRANSITIONS[1],
+      '2026-09-23T12:05:00.000Z',
+    )
+
+    expect(ascended).toMatchObject({
+      path: 'ascended',
+      ascension: { id: ASCENSION_PROOF.id, contentVersion: ASCENSION_PROOF.contentVersion },
+      severence: null,
+    })
+    expect(severed).toMatchObject({
+      path: 'severed',
+      ascension: null,
+      severence: { id: SEVERENCE_PROOF.id, contentVersion: SEVERENCE_PROOF.contentVersion },
+    })
   })
 
   it('pins each authored transition to the matching versioned identity', () => {
