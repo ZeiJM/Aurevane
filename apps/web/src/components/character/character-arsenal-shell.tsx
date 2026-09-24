@@ -60,6 +60,8 @@ function TechniqueLane({
               <div
                 className={styles.lockedTechniqueSlot}
                 key={`locked-${kind}-${index}`}
+                data-arsenal-technique-row="true"
+                data-equipped="false"
                 aria-hidden="true"
               >
                 <span>▣</span>
@@ -71,6 +73,8 @@ function TechniqueLane({
               <div
                 className={styles.emptyTechniqueSlot}
                 key={`empty-${kind}-${index}`}
+                data-arsenal-technique-row="true"
+                data-equipped="false"
                 aria-hidden="true"
               >
                 <span>+</span>
@@ -78,8 +82,13 @@ function TechniqueLane({
             )
           }
           return (
-            <article className={styles.overviewTechnique} key={skill.id}>
-              <span className={styles.overviewTechniqueArt}>
+            <article
+              className={styles.overviewTechnique}
+              key={skill.id}
+              data-arsenal-technique-row="true"
+              data-equipped="true"
+            >
+              <span className={styles.overviewTechniqueArt} data-arsenal-media="true">
                 <Image
                   src={battleSkillArtwork(skill.id)}
                   width={64}
