@@ -181,8 +181,11 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   const confirmAction = page.getByRole('button', { name: /Confirm Action/ })
   const actionEconomy = page.getByRole('progressbar', { name: 'Action Economy remaining' })
 
-  // Swapping an active basic Guard to ally-only Barrier must replace the self forecast with
-  // truthful skill guidance. A 1v1 has no other allied unit, and Barrier's range starts at one.
+  // Favorites no longer choose cockpit defaults, so explicitly restore basic Guard before
+  // verifying the Guard -> Barrier forecast swap. A 1v1 has no other allied unit, and Barrier's
+  // range starts at one.
+  await commandDeck.getByRole('button', { name: /Choose Guard skill/ }).click()
+  await page.getByRole('option', { name: 'Guard 30 AP', exact: true }).click()
   await commandDeck.getByRole('button', { name: 'Guard, 30 AP', exact: true }).click()
   await expect(confirmAction).toBeEnabled()
   const guardTargetPreview = page.waitForResponse((response) => response.url().endsWith('/preview'))
