@@ -111,6 +111,28 @@ const CROWN_HINTERLAND_ROWS = [
   '###...##...##',
   '###..####..##',
 ] as const
+const CROWN_NORTHFIELDS_ROWS = [
+  '###...=...###',
+  '##....=....##',
+  '#.....=.....#',
+  '......=......',
+  '=============',
+  '......=......',
+  '#.....=.....#',
+  '##....=....##',
+  '###...=...###',
+] as const
+const CROWN_UPLANDS_ROWS = [
+  '#####...#####',
+  '####....#####',
+  '###...#######',
+  '##....#######',
+  '=====...#####',
+  '####=...#####',
+  '####=....####',
+  '####=.....###',
+  '####=...#####',
+] as const
 const CROWN_ROAD_ROWS = [
   '###...##~~###',
   '#..#..##~~###',
@@ -150,6 +172,16 @@ const crownHinterland = {
   coordinate: 'S15-08',
   rows: CROWN_HINTERLAND_ROWS,
 } as const
+const crownNorthfields = {
+  id: 'crown-northfields',
+  coordinate: 'S14-07',
+  rows: CROWN_NORTHFIELDS_ROWS,
+} as const
+const crownUplands = {
+  id: 'crown-uplands',
+  coordinate: 'S15-07',
+  rows: CROWN_UPLANDS_ROWS,
+} as const
 const authoredRoads: WorldRoad[] = [
   ...buildAuthoredSectorCrossing({
     from: { id: 'aureth-crown', coordinate: 'S14-08', rows: ROWS },
@@ -165,6 +197,30 @@ const authoredRoads: WorldRoad[] = [
     fromOffset: 4,
     toOffset: 4,
     name: 'Crown Hinterland',
+    durationMs: STEP_MS,
+  }),
+  ...buildAuthoredSectorCrossing({
+    from: { id: 'aureth-crown', coordinate: 'S14-08', rows: ROWS },
+    to: crownNorthfields,
+    fromOffset: 6,
+    toOffset: 6,
+    name: 'Crown North Road',
+    durationMs: STEP_MS,
+  }),
+  ...buildAuthoredSectorCrossing({
+    from: crownNorthfields,
+    to: crownUplands,
+    fromOffset: 4,
+    toOffset: 4,
+    name: 'Northfields Crossroad',
+    durationMs: STEP_MS,
+  }),
+  ...buildAuthoredSectorCrossing({
+    from: crownHinterland,
+    to: crownUplands,
+    fromOffset: 4,
+    toOffset: 4,
+    name: 'Crown Upland Track',
     durationMs: STEP_MS,
   }),
 ]
@@ -225,6 +281,32 @@ export const CHARTED_SECTORS: readonly WorldSector[] = [
     charted: true,
     landmarks: [],
     roads: roads.filter((road) => road.from.sectorId === 'crown-hinterland'),
+  },
+  {
+    id: 'crown-northfields',
+    name: 'Crown Northfields',
+    coordinate: 'S14-07',
+    regionId: 'aureth-crown',
+    art: null,
+    east: 0,
+    north: 8,
+    rows: CROWN_NORTHFIELDS_ROWS,
+    charted: true,
+    landmarks: [],
+    roads: roads.filter((road) => road.from.sectorId === 'crown-northfields'),
+  },
+  {
+    id: 'crown-uplands',
+    name: 'Crown Uplands',
+    coordinate: 'S15-07',
+    regionId: 'aureth-crown',
+    art: null,
+    east: 0,
+    north: 8,
+    rows: CROWN_UPLANDS_ROWS,
+    charted: true,
+    landmarks: [],
+    roads: roads.filter((road) => road.from.sectorId === 'crown-uplands'),
   },
   {
     id: 'coastal-road',
