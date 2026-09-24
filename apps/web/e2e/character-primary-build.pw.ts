@@ -74,15 +74,14 @@ test('Nexus previews and commits Primary Discipline while Character preserves pe
   await expect(dialog).toContainText('Secondary Discipline')
   await expect(dialog).toContainText('Locked')
 
-  const primarySlot = dialog.getByRole('button', { name: /Primary Discipline/ })
-  const proposed = dialog.locator('select')
+  const primarySelect = dialog.getByLabel('Primary Discipline')
 
-  await expect(primarySlot).toBeEnabled()
-  await proposed.selectOption('aetherist')
+  await expect(primarySelect).toBeEnabled()
+  await primarySelect.selectOption('aetherist')
 
   const preview = dialog.locator('[aria-label="Discipline stat preview"]')
   await expect(preview).toBeVisible()
-  await expect(preview).toContainText('Proposed Primary')
+  await expect(preview).toContainText('Preview Primary')
   await expect(preview).toContainText('Aetherist')
   await expect(preview).toContainText('Change Impact')
 
@@ -113,7 +112,7 @@ test('Nexus previews and commits Primary Discipline while Character preserves pe
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
   await launcher.click()
   await expect(dialog).toBeVisible()
-  await proposed.selectOption('vanguard')
+  await primarySelect.selectOption('vanguard')
   await expect(preview).toBeVisible()
   await expect(preview).toContainText('Vanguard')
 

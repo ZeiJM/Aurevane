@@ -30,7 +30,7 @@ async function closeOpenDialog(page: Page): Promise<void> {
   await expect(dialog).toHaveCount(0)
 }
 
-test('mobile mixed-build Technique counters sit below the title without colliding with Close', async ({
+test('mobile Techniques header keeps capacity status clear of title and Close', async ({
   page,
 }, testInfo) => {
   test.skip(
@@ -64,8 +64,7 @@ test('mobile mixed-build Technique counters sit below the title without collidin
     .click()
   const disciplineDialog = page.getByRole('dialog', { name: 'Discipline Management' })
   await expect(disciplineDialog).toBeVisible()
-  await disciplineDialog.getByRole('button', { name: /Secondary Discipline/ }).click()
-  await disciplineDialog.locator('select').selectOption('lifebinder')
+  await disciplineDialog.getByLabel('Secondary Discipline').selectOption('lifebinder')
   await disciplineDialog.getByRole('button', { name: /Confirm Change/ }).click()
   await expect(page.getByRole('status')).toContainText('Discipline changes committed.')
   await disciplineDialog.getByRole('button', { name: 'Close' }).click()
@@ -76,28 +75,23 @@ test('mobile mixed-build Technique counters sit below the title without collidin
 
   const heading = dialog.getByRole('heading', { name: 'Techniques' })
   const close = dialog.getByRole('button', { name: 'Close' })
-  const buildStrip = dialog.locator('[data-technique-build-strip="true"]')
+  const capacity = dialog.getByTestId('skill-capacity')
 
   await expect(heading).toBeVisible()
   await expect(close).toBeVisible()
-  await expect(buildStrip).toBeVisible()
-  await expect(buildStrip).toContainText('Vanguard')
-  await expect(buildStrip).toContainText('Lifebinder')
-  await expect(buildStrip).toContainText('Selected Techniques')
+  await expect(capacity).toBeVisible()
+  await expect(capacity).toContainText('/ 4 selected')
+  await expect(dialog.locator('[data-technique-build-strip="true"]')).toHaveCount(0)
 
   const headingBox = await heading.boundingBox()
   const closeBox = await close.boundingBox()
-  const buildStripBox = await buildStrip.boundingBox()
+  const capacityBox = await capacity.boundingBox()
   expect(headingBox).not.toBeNull()
   expect(closeBox).not.toBeNull()
-  expect(buildStripBox).not.toBeNull()
+  expect(capacityBox).not.toBeNull()
 
-  if (!headingBox || !closeBox || !buildStripBox) return
+  if (!headingBox || !closeBox || !capacityBox) return
 
   expect(overlaps(headingBox, closeBox)).toBe(false)
-  expect(overlaps(headingBox, buildStripBox)).toBe(false)
-  expect(overlaps(closeBox, buildStripBox)).toBe(false)
-  expect(buildStripBox.y).toBeGreaterThanOrEqual(
-    Math.max(headingBox.y + headingBox.height, closeBox.y + closeBox.height),
-  )
+  expect(overlaps(closeBox, capacityBox)).toBe(false)
 })

@@ -62,17 +62,18 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
   await page.getByRole('button', { name: /Manage Techniques/ }).click()
   const techniques = page.getByRole('dialog', { name: 'Techniques', exact: true })
   const list = page.getByTestId('learned-skill-list')
-  for (const name of ['Forceful Strike', 'Brace'])
-    await list
+  for (const name of ['Forceful Strike', 'Brace']) {
+    const checkbox = list
       .locator('article')
       .filter({ has: page.getByText(name, { exact: true }) })
       .getByRole('checkbox')
-      .check()
-  const saved = page.waitForResponse(
-    (r) => r.url().endsWith('/api/character/build/skills') && r.request().method() === 'PUT',
-  )
-  await page.getByRole('button', { name: 'Commit Selected Techniques' }).click()
-  expect((await saved).status()).toBe(200)
+    if (await checkbox.isChecked()) continue
+    const saved = page.waitForResponse(
+      (r) => r.url().endsWith('/api/character/build/skills') && r.request().method() === 'PUT',
+    )
+    await checkbox.check()
+    expect((await saved).status()).toBe(200)
+  }
   await techniques.getByRole('button', { name: 'Close', exact: true }).click()
   await page.goto('/game/battle')
   await page.getByLabel('Battle mode').selectOption('mastery-trial')
@@ -236,7 +237,7 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
       expect.objectContaining({ disciplineId: 'bastion', releaseEligible: true }),
     ]),
   )
-  await expect(management.locator('select').first().locator('option[value="bastion"]')).toHaveCount(
-    1,
-  )
+  await expect(
+    management.getByLabel('Primary Discipline').locator('option[value="bastion"]'),
+  ).toHaveCount(1)
 })

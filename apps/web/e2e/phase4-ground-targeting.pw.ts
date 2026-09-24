@@ -26,20 +26,27 @@ async function equipMist(page: Page) {
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
   await page.getByRole('button', { name: /Manage Disciplines/ }).click()
   const management = page.getByRole('dialog', { name: 'Discipline Management', exact: true })
-  await management.locator('select').selectOption('frostweaver')
+  await management.getByLabel('Primary Discipline').selectOption('frostweaver')
   await management.getByRole('button', { name: /Confirm Change/ }).click()
   await expect(page.getByTestId('primary-discipline-chip')).toHaveText('Frostweaver')
   await management.getByRole('button', { name: 'Close', exact: true }).click()
   await page.getByRole('button', { name: /Manage Techniques/ }).click()
   const skills = page.getByRole('dialog', { name: 'Techniques', exact: true })
   const mist = skills.locator('article').filter({ hasText: 'Chilling Mist' })
-  await mist.getByRole('checkbox').check()
+  const mistCheckbox = mist.getByRole('checkbox')
+  const coarsePointer = await page.evaluate(
+    () => window.matchMedia('(hover: none), (pointer: coarse)').matches,
+  )
   const saved = page.waitForResponse(
     (response) =>
       response.url().endsWith('/api/character/build/skills') &&
       response.request().method() === 'PUT',
   )
-  await skills.getByRole('button', { name: 'Commit Selected Techniques', exact: true }).click()
+  if (coarsePointer) {
+    await mist.locator('label').dblclick()
+  } else {
+    await mistCheckbox.check()
+  }
   const savedResponse = await saved
   expect(savedResponse.status()).toBe(200)
   const savedBody = (await savedResponse.json()) as {

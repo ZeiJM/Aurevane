@@ -44,7 +44,8 @@ test('Mastery authority remains available while Discipline Management uses the c
   await expect(management).toBeVisible()
   await expect(management).toContainText('Currently Committed')
   await expect(management).toContainText('Select New Discipline')
-  await expect(management.locator('select')).toBeVisible()
+  await expect(management.getByLabel('Primary Discipline')).toBeVisible()
+  await expect(management.getByLabel('Secondary Discipline')).toBeVisible()
   expect(
     await management.evaluate((element) => element.scrollWidth <= element.clientWidth + 1),
   ).toBe(true)

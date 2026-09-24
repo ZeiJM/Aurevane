@@ -83,21 +83,19 @@ test('Nexus equips a mastered Secondary with independent attunement authority', 
   await expect(dialog).toContainText('Secondary Discipline')
   await expect(dialog).toContainText('Locked')
 
-  const primarySlot = dialog.getByRole('button', { name: /Primary Discipline/ })
-  const secondarySlot = dialog.getByRole('button', { name: /Secondary Discipline/ })
-  const proposed = dialog.locator('select')
+  const primarySelect = dialog.getByLabel('Primary Discipline')
+  const secondarySelect = dialog.getByLabel('Secondary Discipline')
 
-  await expect(primarySlot).toBeEnabled()
-  await expect(secondarySlot).toBeEnabled()
-  await secondarySlot.click()
-  await expect(proposed.locator('option[value=""]')).toHaveText('None')
-  await expect(proposed.locator('option[value="aetherist"]')).toHaveText('Aetherist')
-  await expect(proposed.locator('option[value="vanguard"]')).toHaveCount(0)
+  await expect(primarySelect).toBeEnabled()
+  await expect(secondarySelect).toBeEnabled()
+  await expect(secondarySelect.locator('option[value=""]')).toHaveText('None')
+  await expect(secondarySelect.locator('option[value="aetherist"]')).toHaveText('Aetherist')
+  await expect(secondarySelect.locator('option[value="vanguard"]')).toHaveCount(0)
 
-  await proposed.selectOption('aetherist')
+  await secondarySelect.selectOption('aetherist')
   const preview = dialog.locator('[aria-label="Discipline stat preview"]')
   await expect(preview).toBeVisible()
-  await expect(preview).toContainText('Proposed Secondary')
+  await expect(preview).toContainText('Preview Secondary')
   await expect(preview).toContainText('Aetherist')
 
   await dialog.getByRole('button', { name: /Confirm Change/ }).click()
@@ -107,9 +105,8 @@ test('Nexus equips a mastered Secondary with independent attunement authority', 
   await expect(secondaryDisciplineChip).toHaveText('Aetherist')
   await expect(maxHp).toContainText(maxHpBeforeSecondary)
 
-  await primarySlot.click()
-  await proposed.selectOption('lifebinder')
-  await expect(preview).toContainText('Proposed Primary')
+  await primarySelect.selectOption('lifebinder')
+  await expect(preview).toContainText('Preview Primary')
   await expect(preview).toContainText('Lifebinder')
 
   await dialog.getByRole('button', { name: /Confirm Change/ }).click()
@@ -121,8 +118,8 @@ test('Nexus equips a mastered Secondary with independent attunement authority', 
   await expect(dialog).toBeVisible()
   await expect(dialog).toContainText('Lifebinder')
   await expect(dialog).toContainText('Aetherist')
-  await expect(primarySlot).toBeEnabled()
-  await expect(secondarySlot).toBeEnabled()
+  await expect(primarySelect).toBeEnabled()
+  await expect(secondarySelect).toBeEnabled()
 
   await page.goto('/game/character')
   await expect(page.getByText('Resonance Build', { exact: true })).toBeVisible()

@@ -6,13 +6,17 @@ import type { EssenceDefinition } from '@aurevane/game-core/combat/essence'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
 import type { ResonanceDefinition } from '@aurevane/game-core/combat/resonance'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useMemo, useState, useSyncExternalStore, type CSSProperties } from 'react'
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type CSSProperties,
+} from 'react'
 import { createPortal } from 'react-dom'
 
-import type { FavoriteTechniqueCategory } from '../battle/favorite-technique-storage'
-import { battleResonanceArtwork, battleSkillArtwork } from '../battle/battle-skill-presentation'
-import { FavoriteTechniqueButton } from './favorite-technique-button'
-import { FoundationDisciplineSigil } from './foundation-discipline-sigil'
+import { battleSkillArtwork } from '../battle/battle-skill-presentation'
 import { SkillDetails } from './skill-details'
 import { skillDisplayName } from './skill-detail-presentation'
 import styles from './character-skill-build-panel.module.css'
@@ -92,31 +96,24 @@ function cockpitType(skill: MatureSkillDefinition): string {
   return cockpitTag ? titleCase(cockpitTag.slice('cockpit:'.length)) : 'Technique'
 }
 
-function favoriteCategory(skill: MatureSkillDefinition): FavoriteTechniqueCategory | null {
-  const type = cockpitType(skill).toLowerCase()
-  if (type === 'attack') return 'attack'
-  if (type === 'defense' || type === 'guard') return 'defense'
-  if (type === 'heal' || type === 'recovery') return 'heal'
-  return null
-}
-
 function orderedSkillIds(equippedSkills: readonly EquippedSkillView[]): string[] {
   return [...equippedSkills]
     .sort((left, right) => left.slotIndex - right.slotIndex)
     .map((entry) => entry.definition.id)
 }
 
+function sameSelection(left: readonly string[], right: readonly string[]): boolean {
+  return left.length === right.length && left.every((skillId, index) => skillId === right[index])
+}
+
 export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
   const {
-    characterId,
     initialBuildVersion,
     primaryDiscipline,
     secondaryDiscipline,
     initialCapacity,
     initialLearnedSkills,
     initialEquippedSkills,
-    initialResonance,
-    initialEssence,
   } = props
   const mounted = useSyncExternalStore(
     () => () => {},
@@ -139,6 +136,9 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
   const [focusedSkillId, setFocusedSkillId] = useState<string | null>(initialFocusedId)
   const [pending, setPending] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
+  const [coarsePointer, setCoarsePointer] = useState(false)
+  const [refreshOnClose, setRefreshOnClose] = useState(false)
+  const lastTapRef = useRef<{ skillId: string; at: number } | null>(null)
 
   const visibleSkills = useMemo(
     () => learnedSkills.filter((entry) => entry.activeSource),
@@ -166,6 +166,14 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
     null
 
   useEffect(() => {
+    const media = window.matchMedia('(hover: none), (pointer: coarse)')
+    const sync = () => setCoarsePointer(media.matches)
+    sync()
+    media.addEventListener?.('change', sync)
+    return () => media.removeEventListener?.('change', sync)
+  }, [])
+
+  useEffect(() => {
     if (!open) return
 
     const previousBodyOverflow = document.body.style.overflow
@@ -179,11 +187,9 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
     }
   }, [open])
 
-  const dirty =
-    committedIds.length !== selectedIds.length ||
-    committedIds.some((skillId, index) => skillId !== selectedIds[index])
-
   function setPanelOpen(nextOpen: boolean) {
+    if (!nextOpen && pending) return
+
     const params = new URLSearchParams(searchParams.toString())
     if (nextOpen) {
       params.set(PROFILE_PANEL_QUERY, TECHNIQUES_PANEL)
@@ -193,10 +199,18 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
     const query = params.toString()
     const href = query ? `${pathname}?${query}` : pathname
     window.history.replaceState(null, '', href)
+
+    if (!nextOpen && refreshOnClose) {
+      setRefreshOnClose(false)
+      router.refresh()
+    }
   }
 
-  function selectedSourceCount(sourceDisciplineId: string): number {
-    const selected = new Set(selectedIds)
+  function selectedSourceCount(
+    sourceDisciplineId: string,
+    ids: readonly string[] = selectedIds,
+  ): number {
+    const selected = new Set(ids)
     return visibleSkills.filter(
       (entry) =>
         selected.has(entry.definition.id) &&
@@ -204,78 +218,96 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
     ).length
   }
 
-  const primarySelected = selectedSourceCount(primaryDiscipline.id)
-  const secondarySelected = secondaryDiscipline ? selectedSourceCount(secondaryDiscipline.id) : 0
-  const primaryMixedLimit = secondaryDiscipline
-    ? Math.min(MIXED_SOURCE_MAXIMUM, capacity - secondarySelected)
-    : capacity
-  const secondaryMixedLimit = secondaryDiscipline
-    ? Math.min(MIXED_SOURCE_MAXIMUM, capacity - primarySelected)
-    : capacity
-  const mixedSelectionValid =
-    !secondaryDiscipline ||
-    selectedIds.length < capacity ||
-    (primarySelected > 0 && secondarySelected > 0)
-
-  function toggle(skill: SkillCatalogEntryView) {
-    if (!skill.activeSource || pending) return
-    const id = skill.definition.id
-    setFocusedSkillId(id)
-    setMessage(null)
-    setSelectedIds((current) => {
-      if (current.includes(id)) return current.filter((candidate) => candidate !== id)
-      if (current.length >= capacity) return current
-      if (secondaryDiscipline) {
-        const selected = new Set(current)
-        const sameSourceCount = visibleSkills.filter(
-          (entry) =>
-            selected.has(entry.definition.id) &&
-            entry.definition.sourceDisciplineId === skill.definition.sourceDisciplineId,
-        ).length
-        if (sameSourceCount >= MIXED_SOURCE_MAXIMUM) return current
-      }
-      return [...current, id]
-    })
+  function mixedSelectionValid(ids: readonly string[]): boolean {
+    if (!secondaryDiscipline || ids.length < capacity) return true
+    return (
+      selectedSourceCount(primaryDiscipline.id, ids) > 0 &&
+      selectedSourceCount(secondaryDiscipline.id, ids) > 0
+    )
   }
 
-  async function save() {
-    if (!dirty || pending) return
-    if (!mixedSelectionValid) {
+  function nextSelectionFor(skill: SkillCatalogEntryView): string[] {
+    const id = skill.definition.id
+    if (selectedIds.includes(id)) {
+      return selectedIds.filter((candidate) => candidate !== id)
+    }
+    if (selectedIds.length >= capacity) return selectedIds
+    if (
+      secondaryDiscipline &&
+      selectedSourceCount(skill.definition.sourceDisciplineId) >= MIXED_SOURCE_MAXIMUM
+    ) {
+      return selectedIds
+    }
+    return [...selectedIds, id]
+  }
+
+  async function commitSelection(
+    nextIds: string[],
+    successMessage = 'Techniques saved automatically.',
+  ) {
+    if (pending || sameSelection(nextIds, selectedIds)) return
+    if (!mixedSelectionValid(nextIds)) {
       setMessage('A full mixed loadout needs at least one Technique from each active Discipline.')
       return
     }
 
+    setSelectedIds(nextIds)
     setPending(true)
     setMessage(null)
+
     try {
       const response = await fetch('/api/character/build/skills', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           expectedBuildVersion: buildVersion,
-          skillIds: selectedIds,
+          skillIds: nextIds,
           idempotencyKey: crypto.randomUUID(),
         }),
       })
       const body = (await response.json()) as SkillCommitResponse
       if (!response.ok || !body.context) {
+        setSelectedIds(committedIds)
         setMessage(body.error?.message ?? 'The selected Techniques could not be saved.')
         return
       }
 
-      const nextIds = orderedSkillIds(body.context.disciplineSkills.equippedSkills)
+      const committed = orderedSkillIds(body.context.disciplineSkills.equippedSkills)
       setBuildVersion(body.context.build.buildVersion)
       setCapacity(body.context.disciplineSkills.capacity)
       setLearnedSkills(body.context.disciplineSkills.learnedSkills)
-      setCommittedIds(nextIds)
-      setSelectedIds(nextIds)
-      setMessage('Selected Techniques committed.')
-      router.refresh()
+      setCommittedIds(committed)
+      setSelectedIds(committed)
+      setRefreshOnClose(true)
+      setMessage(successMessage)
     } catch {
+      setSelectedIds(committedIds)
       setMessage('The build service could not be reached. Nothing was changed.')
     } finally {
       setPending(false)
     }
+  }
+
+  function toggleAndCommit(skill: SkillCatalogEntryView) {
+    if (!skill.activeSource || pending) return
+    setFocusedSkillId(skill.definition.id)
+    setMessage(null)
+    const nextIds = nextSelectionFor(skill)
+    if (sameSelection(nextIds, selectedIds)) return
+    void commitSelection(nextIds)
+  }
+
+  function handleCoarseTechniqueTap(skill: SkillCatalogEntryView, timestamp: number) {
+    const previous = lastTapRef.current
+    setFocusedSkillId(skill.definition.id)
+
+    if (previous?.skillId === skill.definition.id && timestamp - previous.at <= 350) {
+      lastTapRef.current = null
+      toggleAndCommit(skill)
+      return
+    }
+
+    lastTapRef.current = { skillId: skill.definition.id, at: timestamp }
   }
 
   function renderTechniqueGroup(
@@ -325,8 +357,8 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
             )
             const disabledByCapacity = !selected && selectedIds.length >= capacity
             const disabled = pending || disabledByCapacity || disabledBySource
-            const category = favoriteCategory(entry.definition)
             const label = skillDisplayName(entry.definition)
+
             return (
               <article
                 className={styles.skill}
@@ -336,12 +368,24 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                 onMouseEnter={() => setFocusedSkillId(entry.definition.id)}
                 onFocusCapture={() => setFocusedSkillId(entry.definition.id)}
               >
-                <label>
+                <label
+                  onClick={(event) => {
+                    if (!coarsePointer) {
+                      setFocusedSkillId(entry.definition.id)
+                      return
+                    }
+                    event.preventDefault()
+                    handleCoarseTechniqueTap(entry, event.timeStamp)
+                  }}
+                >
                   <input
                     type="checkbox"
                     checked={selected}
                     disabled={disabled}
-                    onChange={() => toggle(entry)}
+                    aria-label={`${selected ? 'Unselect' : 'Select'} ${label}`}
+                    onChange={() => {
+                      if (!coarsePointer) toggleAndCommit(entry)
+                    }}
                   />
                   <span
                     className={styles.skillArt}
@@ -351,8 +395,8 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                   >
                     <Image
                       src={battleSkillArtwork(entry.definition.id)}
-                      width={64}
-                      height={64}
+                      width={96}
+                      height={96}
                       unoptimized
                       alt=""
                     />
@@ -360,18 +404,10 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                   </span>
                   <strong>{label}</strong>
                   <span className={styles.skillMeta}>
-                    {cockpitType(entry.definition)} · {entry.definition.apCost} AP
+                    {entry.definition.apCost} AP · {cockpitType(entry.definition)}
+                    {entry.definition.mpCost ? ` · ${entry.definition.mpCost} MP` : ''}
                   </span>
                 </label>
-                {category ? (
-                  <FavoriteTechniqueButton
-                    characterId={characterId}
-                    techniqueId={entry.definition.id}
-                    label={label}
-                    category={category}
-                    disabled={!selected || pending}
-                  />
-                ) : null}
               </article>
             )
           })}
@@ -418,66 +454,23 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                     </span>
                     <div>
                       <h2 id="skill-build-heading">Techniques</h2>
-                      <p>
-                        Master your combat techniques. Tick up to {capacity} to form your loadout.
-                      </p>
+                      <p>Choose your active techniques. Changes save automatically.</p>
+                      <small className={styles.autoSaveNote} data-testid="skill-capacity">
+                        {selectedIds.length} / {capacity} selected
+                        {coarsePointer ? ' · tap to preview, double tap to select' : ''}
+                      </small>
                     </div>
                   </div>
                   <button
                     type="button"
                     className={styles.close}
+                    disabled={pending}
                     onClick={() => setPanelOpen(false)}
                   >
                     <span aria-hidden="true">×</span>
                     Close
                   </button>
                 </header>
-
-                <div className={styles.buildStrip} data-technique-build-strip="true">
-                  <div className={styles.buildDiscipline}>
-                    <FoundationDisciplineSigil disciplineId={primaryDiscipline.id} />
-                    <div>
-                      <span>Primary Discipline</span>
-                      <strong>{primaryDiscipline.name}</strong>
-                    </div>
-                  </div>
-                  <div className={styles.buildDiscipline} data-locked={!secondaryDiscipline}>
-                    {secondaryDiscipline ? (
-                      <FoundationDisciplineSigil disciplineId={secondaryDiscipline.id} />
-                    ) : (
-                      <span className={styles.buildLock} aria-hidden="true">
-                        ▣
-                      </span>
-                    )}
-                    <div>
-                      <span>Secondary Discipline</span>
-                      <strong>{secondaryDiscipline?.name ?? 'Locked'}</strong>
-                    </div>
-                  </div>
-                  <div className={styles.selectedCounter}>
-                    <span
-                      className={styles.compatCapacity}
-                      data-testid="skill-capacity"
-                      aria-hidden="true"
-                    >
-                      <span>{primaryDiscipline.name}</span>
-                      <strong>{primarySelected}</strong>
-                      <span> / {primaryMixedLimit}</span>
-                      {secondaryDiscipline ? (
-                        <>
-                          <span>{secondaryDiscipline.name}</span>
-                          <strong>{secondarySelected}</strong>
-                          <span> / {secondaryMixedLimit}</span>
-                        </>
-                      ) : null}
-                    </span>
-                    <span>Selected Techniques</span>
-                    <strong>
-                      {selectedIds.length} / {capacity}
-                    </strong>
-                    <small>Tick techniques below to set your active loadout.</small>
-                  </div>
-                </div>
 
                 <div className={styles.workspace}>
                   <section
@@ -490,26 +483,12 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                   </section>
 
                   <aside
-                    className={`${styles.detailRail} ${styles.buildRail}`}
+                    className={styles.detailRail}
                     data-av-surface="ink"
+                    data-testid="technique-preview"
                   >
-                    <section className={styles.activeBuild}>
-                      <span>Active Build</span>
-                      <div>
-                        <FoundationDisciplineSigil
-                          disciplineId={primaryDiscipline.id}
-                          className={styles.detailSigil}
-                        />
-                        <strong>
-                          {primaryDiscipline.name}
-                          {secondaryDiscipline ? ` + ${secondaryDiscipline.name}` : ''}
-                        </strong>
-                        <b>● Live</b>
-                      </div>
-                    </section>
-
                     <section className={styles.selectedTechnique}>
-                      <span>Selected Technique</span>
+                      <span>Technique Preview</span>
                       {focusedSkill ? (
                         <>
                           <div className={styles.selectedTechniqueHeading}>
@@ -520,8 +499,8 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                             >
                               <Image
                                 src={battleSkillArtwork(focusedSkill.definition.id)}
-                                width={80}
-                                height={80}
+                                width={192}
+                                height={192}
                                 unoptimized
                                 alt=""
                               />
@@ -529,73 +508,20 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                             <div>
                               <strong>{skillDisplayName(focusedSkill.definition)}</strong>
                               <small>
-                                {cockpitType(focusedSkill.definition)} ·{' '}
-                                {focusedSkill.definition.apCost} AP
+                                {focusedSkill.definition.apCost} AP ·{' '}
+                                {cockpitType(focusedSkill.definition)}
                                 {focusedSkill.definition.mpCost
                                   ? ` · ${focusedSkill.definition.mpCost} MP`
                                   : ''}
                               </small>
                             </div>
                           </div>
-                          <SkillDetails skill={focusedSkill.definition} />
-                          {favoriteCategory(focusedSkill.definition) ? (
-                            <FavoriteTechniqueButton
-                              characterId={characterId}
-                              techniqueId={focusedSkill.definition.id}
-                              label={skillDisplayName(focusedSkill.definition)}
-                              category={favoriteCategory(focusedSkill.definition)!}
-                              disabled={
-                                !selectedIds.includes(focusedSkill.definition.id) || pending
-                              }
-                            />
-                          ) : null}
+                          <SkillDetails skill={focusedSkill.definition} expanded />
                         </>
                       ) : (
                         <p>No Technique is available for this build.</p>
                       )}
                     </section>
-
-                    {initialResonance ? (
-                      <article className={styles.signatureFavorite}>
-                        <span className={styles.signatureArt} aria-hidden="true">
-                          <Image
-                            src={battleResonanceArtwork(initialResonance.id)}
-                            width={48}
-                            height={48}
-                            unoptimized
-                            alt=""
-                          />
-                        </span>
-                        <div>
-                          <span>Build Signature</span>
-                          <strong data-testid="active-resonance">{initialResonance.name}</strong>
-                        </div>
-                      </article>
-                    ) : initialEssence ? (
-                      <article className={styles.signatureFavorite}>
-                        <span className={styles.signatureArt} aria-hidden="true">
-                          <Image
-                            src={battleSkillArtwork(initialEssence.skill.id)}
-                            width={48}
-                            height={48}
-                            unoptimized
-                            alt=""
-                          />
-                        </span>
-                        <div>
-                          <span>Build Signature</span>
-                          <strong data-testid="active-essence">{initialEssence.name}</strong>
-                        </div>
-                        {favoriteCategory(initialEssence.skill) ? (
-                          <FavoriteTechniqueButton
-                            characterId={characterId}
-                            techniqueId={initialEssence.skill.id}
-                            label={initialEssence.name}
-                            category={favoriteCategory(initialEssence.skill)!}
-                          />
-                        ) : null}
-                      </article>
-                    ) : null}
                   </aside>
                 </div>
 
@@ -603,24 +529,14 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                   <button
                     type="button"
                     className={styles.secondaryAction}
-                    onClick={() => {
-                      setSelectedIds([])
-                      setMessage(null)
-                    }}
+                    onClick={() => void commitSelection([], 'Selections cleared.')}
                     disabled={pending || selectedIds.length === 0}
                   >
                     ↻ Clear Selections
                   </button>
-                  <button
-                    type="button"
-                    aria-label="Commit Selected Techniques"
-                    onClick={() => void save()}
-                    disabled={!dirty || pending || !mixedSelectionValid}
-                  >
-                    <span aria-hidden="true">⚔</span>
-                    {pending ? 'Saving…' : 'Commit Techniques'}
-                    <span aria-hidden="true">›</span>
-                  </button>
+                  <span className={styles.saveState} aria-live="polite">
+                    {pending ? 'Saving selection…' : 'Selections save automatically'}
+                  </span>
                 </footer>
 
                 {message ? (

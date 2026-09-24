@@ -17,7 +17,7 @@ function renderRail(props: Parameters<typeof GameRail>[0] = {}) {
 }
 
 describe('shared game rail', () => {
-  it('exposes locked Arsenal above Nexus and preserves the intended navigation order', () => {
+  it('exposes Nexus above the locked future Arsenal and preserves the intended navigation order', () => {
     navigationState.pathname = '/game/character'
     const markup = renderRail()
     const destinations = [
@@ -39,8 +39,8 @@ describe('shared game rail', () => {
     expect(markup).toContain('title="Items — Coming Soon"')
     expect(markup).not.toContain('href="/game/arsenal"')
     expect(markup.match(/disabled=""/g)).toHaveLength(1)
-    expect(markup.indexOf('aria-label="Arsenal"')).toBeLessThan(
-      markup.indexOf('aria-label="Nexus"'),
+    expect(markup.indexOf('aria-label="Nexus"')).toBeLessThan(
+      markup.indexOf('aria-label="Arsenal"'),
     )
     expect(markup).toContain('data-nav-icon="arsenal"')
     expect(markup).toContain('data-nav-icon="nexus"')
