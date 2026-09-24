@@ -2,7 +2,6 @@ import { GRID_HEIGHT, GRID_WIDTH, START_POSITION, STEP_MS } from './catalog'
 import type { TravelStep, WorldObjective, WorldPosition, WorldSector, WorldState } from './types'
 
 export const ACTIVE_WORLD_SYNC_MS = 1200
-export const MIN_ACTIVE_WORLD_SYNC_MS = 50
 export const IDLE_WORLD_SYNC_MS = 10000
 export function worldSyncDelayMs(state: {
   routeLength: number
@@ -11,12 +10,8 @@ export function worldSyncDelayMs(state: {
   serverNow: number
 }) {
   if (state.routeLength > 0 && !state.movementBlocked) {
-    if (state.nextStepAt !== null) {
-      const untilDue = state.nextStepAt - state.serverNow
-      return untilDue <= 0
-        ? MIN_ACTIVE_WORLD_SYNC_MS
-        : Math.max(ACTIVE_WORLD_SYNC_MS, untilDue)
-    }
+    if (state.nextStepAt !== null)
+      return Math.max(ACTIVE_WORLD_SYNC_MS, state.nextStepAt - state.serverNow)
     return ACTIVE_WORLD_SYNC_MS
   }
   return IDLE_WORLD_SYNC_MS
