@@ -196,7 +196,7 @@ test('desktop Profile and every Battle Hall tab fit without sacrificing readable
   await allocation.getByRole('button', { name: 'Close', exact: true }).click()
   await expect(allocation).toBeHidden()
 
-  await page.goto('/game/arsenal')
+  await page.goto('/game/nexus')
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
   await page.getByTestId('primary-build-panel').getByRole('button').click()
   const disciplines = page.getByRole('dialog', { name: 'Discipline Management', exact: true })
@@ -216,7 +216,7 @@ test('desktop Profile and every Battle Hall tab fit without sacrificing readable
     contentType: 'image/png',
   })
   await page.setViewportSize({ width: 1280, height: 576 })
-  const rail = techniques.locator('[class*="buildRail"]')
+  const rail = techniques.getByTestId('technique-preview')
   await rail.evaluate((element) => {
     element.scrollTop = element.scrollHeight
   })
@@ -304,7 +304,7 @@ test('mobile build dialogs keep readable copy and reachable actions', async ({
     password: 'AurevaneTest!42',
     characterName: 'Dialog Wayfarer',
   })
-  await page.goto('/game/arsenal')
+  await page.goto('/game/nexus')
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
   for (const [panel, name] of [
     ['primary-build-panel', 'Discipline Management'],
@@ -314,10 +314,11 @@ test('mobile build dialogs keep readable copy and reachable actions', async ({
     const dialog = page.getByRole('dialog', { name: name!, exact: true })
     await expect(dialog).toBeVisible()
     if (name === 'Techniques') {
-      await readable(dialog.locator('p').first(), 14)
-      await dialog
-        .getByRole('button', { name: 'Commit Selected Techniques' })
-        .scrollIntoViewIfNeeded()
+      await readable(dialog.getByTestId('skill-capacity'), 11)
+      await expect(dialog.getByRole('button', { name: 'Commit Selected Techniques' })).toHaveCount(
+        0,
+      )
+      await dialog.getByTestId('technique-preview').scrollIntoViewIfNeeded()
       await testInfo.attach('mobile-techniques-actions', {
         body: await page.screenshot(),
         contentType: 'image/png',
@@ -553,7 +554,7 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
     body: await page.screenshot(),
     contentType: 'image/png',
   })
-  await page.goto('/game/arsenal')
+  await page.goto('/game/nexus')
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
   for (const mixed of [false, true]) {
     if (mixed) {
@@ -575,11 +576,9 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
       await page.reload()
       await page.getByTestId('primary-build-panel').getByRole('button').click()
       const discipline = page.getByRole('dialog', { name: 'Discipline Management' })
-      await discipline.getByLabel('Proposed Secondary').selectOption('lifebinder')
-      await discipline.getByRole('button', { name: 'Commit Discipline changes' }).click()
-      await expect(page.getByRole('status')).toContainText(
-        'Lifebinder is now the committed Secondary Discipline.',
-      )
+      await discipline.getByLabel('Secondary Discipline').selectOption('lifebinder')
+      await discipline.getByRole('button', { name: /Confirm Change/ }).click()
+      await expect(page.getByRole('status')).toContainText('Discipline changes committed.')
       await testInfo.attach('phone-discipline-preview', {
         body: await page.screenshot(),
         contentType: 'image/png',
@@ -664,21 +663,10 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
           await expect(tag).toHaveCSS('font-size', '11px')
         }
         const title = await card.locator('label strong').boundingBox()
-        const star = card.locator('[data-favorite-technique-star]')
-        if (await star.count()) {
-          const starBox = await star.boundingBox()
-          // Padding reserves the favourite control's column for wrapped names.
-          const textRight = await card.locator('label strong').evaluate((e) => {
-            const r = document.createRange()
-            r.selectNodeContents(e)
-            return Math.max(...[...r.getClientRects()].map((rect) => rect.right))
-          })
-          expect(textRight, 'Technique name must not collide with favourite').toBeLessThanOrEqual(
-            starBox!.x,
-          )
-          if (width < 760) expect(starBox!.width).toBeGreaterThanOrEqual(44)
-        }
+        await expect(card.locator('[data-favorite-technique-star]')).toHaveCount(0)
+        expect(title).not.toBeNull()
         expect(title!.x).toBeGreaterThanOrEqual(0)
+        expect(title!.width).toBeGreaterThan(0)
       }
       await testInfo.attach(`skills-${width}-${mixed ? 'mixed' : 'pure'}`, {
         body: await page.screenshot(),

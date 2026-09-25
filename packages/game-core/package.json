@@ -16,6 +16,8 @@
     "./character/profile-stat-content": "./src/character/profile-stat-content.ts",
     "./character/progression": "./src/character/progression.ts",
     "./character/starter-options": "./src/character/starter-options.ts",
+    "./character/supernatural-state": "./src/character/supernatural-state.ts",
+    "./character/supernatural-content": "./src/character/supernatural-content.ts",
     "./character/wayfarers-practice": "./src/character/wayfarers-practice.ts",
     "./combat/actions": "./src/combat/actions.ts",
     "./combat/combat-action-source": "./src/combat/combat-action-source.ts",

@@ -16,15 +16,27 @@ function skillRow(page: Page, name: string): Locator {
 }
 
 async function setSkill(page: Page, name: string, checked: boolean): Promise<void> {
-  const checkbox = skillRow(page, name).getByRole('checkbox')
-  if ((await checkbox.isChecked()) !== checked) await checkbox.click()
-}
+  const card = skillRow(page, name)
+  const checkbox = card.getByRole('checkbox')
+  if ((await checkbox.isChecked()) === checked) return
 
-async function setFavorite(page: Page, name: string): Promise<void> {
-  const star = skillRow(page, name).locator('button[data-favorite-technique-star="true"]')
-  await expect(star).toBeEnabled()
-  if ((await star.getAttribute('aria-pressed')) !== 'true') await star.click()
-  await expect(star).toHaveAttribute('aria-pressed', 'true')
+  const saved = page.waitForResponse(
+    (response) =>
+      response.url().endsWith('/api/character/build/skills') &&
+      response.request().method() === 'PUT',
+  )
+  const coarsePointer = await page.evaluate(
+    () => window.matchMedia('(hover: none), (pointer: coarse)').matches,
+  )
+
+  if (coarsePointer) {
+    await card.locator('label').dblclick()
+  } else {
+    await checkbox.click()
+  }
+
+  expect((await saved).status()).toBe(200)
+  await expect(checkbox).toBeChecked({ checked })
 }
 
 async function closeOpenDialog(page: Page): Promise<void> {
@@ -34,7 +46,7 @@ async function closeOpenDialog(page: Page): Promise<void> {
   await expect(dialog).toHaveCount(0)
 }
 
-test('legal Vanguard 3 + Lifebinder 1 mixed build can enter AI Sparring with favorite cockpit defaults', async ({
+test('legal Vanguard 3 + Lifebinder 1 mixed build can enter AI Sparring from its selected loadout', async ({
   page,
 }, testInfo) => {
   test.skip(
@@ -63,18 +75,16 @@ test('legal Vanguard 3 + Lifebinder 1 mixed build can enter AI Sparring with fav
   await page.reload()
   await expect(page.getByTestId('character-profile')).toBeVisible()
   await closeOpenDialog(page)
-  await page.goto('/game/arsenal')
+  await page.goto('/game/nexus')
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
 
   const disciplinePanel = page.getByTestId('primary-build-panel')
-  await disciplinePanel.getByRole('button', { name: /Manage Primary Discipline/ }).click()
+  await disciplinePanel.getByRole('button', { name: /Manage Disciplines/ }).click()
   const disciplineDialog = page.getByRole('dialog', { name: 'Discipline Management' })
   await expect(disciplineDialog).toBeVisible()
-  await page.getByLabel('Proposed Secondary').selectOption('lifebinder')
-  await page.getByRole('button', { name: 'Commit Discipline changes' }).click()
-  await expect(page.getByRole('status')).toContainText(
-    'Lifebinder is now the committed Secondary Discipline.',
-  )
+  await disciplineDialog.getByLabel('Secondary Discipline').selectOption('lifebinder')
+  await disciplineDialog.getByRole('button', { name: /Confirm Change/ }).click()
+  await expect(page.getByRole('status')).toContainText('Discipline changes committed.')
   await disciplineDialog.getByRole('button', { name: 'Close' }).click()
 
   await page.getByRole('button', { name: /Manage Techniques/ }).click()
@@ -89,17 +99,11 @@ test('legal Vanguard 3 + Lifebinder 1 mixed build can enter AI Sparring with fav
   await expect(skillRow(page, 'Brace').getByRole('checkbox')).toBeChecked()
   await expect(skillRow(page, 'Mending Light').getByRole('checkbox')).toBeChecked()
 
-  const saved = page.waitForResponse(
-    (response) =>
-      response.url().endsWith('/api/character/build/skills') &&
-      response.request().method() === 'PUT',
-  )
-  await page.getByRole('button', { name: 'Commit Selected Techniques' }).click()
-  expect((await saved).status()).toBe(200)
-
-  await setFavorite(page, 'Forceful Strike')
-  await setFavorite(page, 'Brace')
-  await setFavorite(page, 'Mending Light')
+  await expect(
+    page.getByRole('dialog', { name: 'Techniques' }).getByRole('button', {
+      name: 'Commit Selected Techniques',
+    }),
+  ).toHaveCount(0)
 
   await page
     .getByRole('dialog', { name: 'Techniques' })

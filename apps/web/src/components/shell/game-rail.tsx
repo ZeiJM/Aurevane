@@ -200,8 +200,13 @@ function NavigationIcon({ name }: { name: (typeof gameNavigation)[number]['icon'
         </>
       ) : name === 'arsenal' ? (
         <>
-          <path d="M12 3 18 5.5v5.2c0 3.7-2.4 7-6 9.3-3.6-2.3-6-5.6-6-9.3V5.5L12 3Z" />
-          <path d="m9 15 6-6M13.8 8.2l2 2M8.3 13.7l2 2" />
+          <path d="M5 8h14v11H5z" />
+          <path d="M8 8V5h8v3M8 12h8M10 12v2h4v-2" />
+        </>
+      ) : name === 'nexus' ? (
+        <>
+          <circle cx="12" cy="12" r="2.6" />
+          <path d="M12 2v5m0 10v5M2 12h5m10 0h5M5 5l3.5 3.5m7 7L19 19M19 5l-3.5 3.5m-7 7L5 19" />
         </>
       ) : name === 'battle' ? (
         <>
@@ -245,7 +250,24 @@ export function GameRail({ activeSessionHref, activeSessionLabel }: GameRailProp
       <RailAetherField />
       <nav className={styles.railNavigation} aria-label="Primary game navigation">
         {gameNavigation.map((item) => {
-          const active = pathname === item.href || pathname.startsWith(item.href + '/')
+          const active = Boolean(
+            item.href && (pathname === item.href || pathname.startsWith(item.href + '/')),
+          )
+          if (!item.href || ('disabled' in item && item.disabled)) {
+            return (
+              <button
+                key={item.label}
+                className={styles.railLink}
+                type="button"
+                disabled
+                title={item.detail}
+                aria-label={item.label}
+              >
+                <NavigationIcon name={item.icon} />
+                <span>{item.label}</span>
+              </button>
+            )
+          }
           return restricted ? (
             <button
               key={item.href}
