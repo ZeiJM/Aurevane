@@ -63,7 +63,7 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
     await expect(
       page.getByRole('heading', { name: 'Character Overview', exact: true }),
     ).toHaveCount(0)
-    await expect(page.getByTestId('current-path-coming-soon')).toBeVisible()
+    await expect(page.getByRole('complementary', { name: 'Current Path' })).toBeVisible()
     const primaryNavigation = page.getByRole('navigation', { name: 'Primary game navigation' })
     await expect(
       primaryNavigation.getByRole('button', { name: 'Arsenal', exact: true }),
@@ -168,7 +168,7 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
       const portraitFrame = portrait.parentElement?.parentElement as HTMLElement
       const heading = hero.querySelector('h1')!
       const sheet = required('[data-profile-sheet]')
-      const story = required('[data-testid="current-path-coming-soon"]')
+      const story = required('[aria-label="Current Path"]')
       const workspace = required('[data-profile-workspace]')
       const p = rect(portrait),
         h = rect(heading)
@@ -271,7 +271,7 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
 
       const profileSheet = page.locator('[data-profile-sheet]')
       const identityPanel = page.getByTestId('character-profile')
-      const currentPath = page.getByTestId('current-path-coming-soon')
+      const currentPath = page.getByRole('complementary', { name: 'Current Path' })
       const mainPanel = page.locator('#game-main')
       const beforeScroll = {
         identity: await identityPanel.boundingBox(),

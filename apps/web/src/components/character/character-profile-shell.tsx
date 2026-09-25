@@ -9,6 +9,7 @@ import type {
   PrimaryDisciplinePreview,
 } from '@aurevane/game-core/character/discipline-build'
 import type { CharacterProfileReadModel } from '@aurevane/game-core/character/profile'
+import type { SupernaturalStoryState } from '@aurevane/game-core/character/supernatural-state'
 import type { EssenceDefinition } from '@aurevane/game-core/combat/essence'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
 import type { ResonanceDefinition } from '@aurevane/game-core/combat/resonance'
@@ -18,6 +19,8 @@ import { CharacterAttributeAllocationPanel } from '@/components/character/charac
 import { CharacterIdentityCard } from '@/components/character/character-identity-card'
 import { CharacterRailSynchronizedLayout } from '@/components/character/character-rail-synchronized-layout'
 import { CharacterProfileDetails } from '@/components/character/character-profile-details'
+import { type SupernaturalChoiceOption } from '@/components/character/character-supernatural-choice-controls'
+import { CharacterSupernaturalPath } from './character-supernatural-path'
 import { getStarterPortraitImageAssetId } from '@/media/character'
 
 import styles from './character-profile-shell.module.css'
@@ -89,6 +92,10 @@ export interface CharacterWorkspaceProps {
   }
   personalTitle?: string | null
   imageUrl?: string | null
+  supernatural?: {
+    state: SupernaturalStoryState | null
+    choices: readonly SupernaturalChoiceOption[]
+  }
 }
 
 const DUAL_DISCIPLINE_PROFILE_SUMMARIES: Readonly<Record<string, string>> = {
@@ -127,6 +134,7 @@ export function CharacterProfileShell({
   disciplineBuild,
   personalTitle = null,
   imageUrl = null,
+  supernatural = { state: null, choices: [] },
 }: CharacterWorkspaceProps) {
   const disciplineSummary = characterDisciplineSummary(
     disciplineBuild.current.definition,
@@ -171,6 +179,30 @@ export function CharacterProfileShell({
           <small>Same soul. A wider horizon.</small>
         </header>
 
+        <details className={styles.buildIdentity}>
+          <summary>
+            {disciplineBuild.currentSecondary ? 'Mixed build' : 'Pure build'} ·{' '}
+            {disciplineBuild.current.definition.name}
+            {disciplineBuild.currentSecondary ? ` + ${disciplineBuild.currentSecondary.name}` : ''}
+          </summary>
+          <p>
+            Your Primary Discipline supplies your base-stat profile.
+            {disciplineBuild.currentSecondary
+              ? ' Your Secondary adds its Skill library, not a second base-stat profile.'
+              : ' With no Secondary equipped, your build uses Essence instead of Resonance.'}
+          </p>
+          <p>
+            {disciplineBuild.currentSecondary
+              ? `Resonance: ${disciplineBuild.disciplineSkills.extensions.resonance?.name ?? 'None active'}.`
+              : `Essence: ${disciplineBuild.disciplineSkills.extensions.essence?.name ?? 'None active'}.`}{' '}
+            {disciplineBuild.disciplineSkills.equippedSkills.length} /{' '}
+            {disciplineBuild.disciplineSkills.capacity} selected Discipline Techniques.{' '}
+            {disciplineBuild.currentSecondary
+              ? 'The selection limit is shared across both Disciplines.'
+              : 'An active Essence sits outside these selections.'}
+          </p>
+        </details>
+
         <CharacterProfileDetails
           presentationLabel={profile.identity.presentationLabel}
           buildTypeLabel={buildTypeLabel}
@@ -192,37 +224,25 @@ export function CharacterProfileShell({
         />
       </Surface>
 
-      <aside
-        className={styles.story}
-        data-testid="current-path-coming-soon"
-        aria-label="Current Path"
-      >
+      <aside className={styles.story} aria-label="Current Path">
         <header className={styles.storyHeading}>
           <div>
             <span aria-hidden="true">♜</span>
             <strong>Current Path</strong>
           </div>
-          <small>Your story continues.</small>
+          <small>
+            {supernatural.state?.path === 'ascended'
+              ? 'Ascension bound.'
+              : supernatural.state?.path === 'severed'
+                ? 'Severence bound.'
+                : supernatural.choices.length
+                  ? 'A permanent threshold.'
+                  : 'Your story continues.'}
+          </small>
         </header>
         <div className={styles.storyArt} aria-hidden="true" />
         <div className={styles.storyCopy}>
-          <h2>Echoes Beyond the Vale</h2>
-          <p>
-            Fragments stir across Aurevane. Follow the threads, sharpen your strength, and uncover
-            what lies beyond the turning skies.
-          </p>
-          <div className={styles.storyDivider} aria-hidden="true">
-            ✧
-          </div>
-          <button type="button" disabled>
-            View Journey <span aria-hidden="true">→</span>
-          </button>
-          <blockquote>
-            “New paths are not found,
-            <br />
-            but remembered.”
-            <cite>— An Aurevane Proverb</cite>
-          </blockquote>
+          <CharacterSupernaturalPath state={supernatural.state} choices={supernatural.choices} />
         </div>
       </aside>
     </CharacterRailSynchronizedLayout>

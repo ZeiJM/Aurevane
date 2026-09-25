@@ -79,21 +79,27 @@ export function Globe({
           else onUnavailable?.(coordinate)
         }}
       >
-        {WORLD_REGIONS.map((region) => {
-          const point = projectGlobePoint(region, camera)
-          if (!labelVisible(point)) return null
-          return (
-            <button
-              key={region.id}
-              className={styles.regionLabel}
-              data-selected={selected === region.id}
-              style={{ left: `${50 + point.x * zoom * 50}%`, top: `${50 - point.y * zoom * 50}%` }}
-              onClick={() => onSelect(region.id)}
-            >
-              {region.name}
-            </button>
-          )
-        })}
+        {WORLD_REGIONS.filter((region) => sectors.some((sector) => sector.id === region.id)).map(
+          (region) => {
+            const point = projectGlobePoint(region, camera)
+            if (!labelVisible(point)) return null
+            return (
+              <button
+                key={region.id}
+                className={styles.regionLabel}
+                data-selected={selected === region.id}
+                aria-pressed={selected === region.id}
+                style={{
+                  left: `${50 + point.x * zoom * 50}%`,
+                  top: `${50 - point.y * zoom * 50}%`,
+                }}
+                onClick={() => onSelect(region.id)}
+              >
+                {region.name}
+              </button>
+            )
+          },
+        )}
         {chartedOutlines.length ? (
           <svg className={styles.globeOutline} viewBox="0 0 1000 1000" aria-hidden="true">
             {chartedOutlines.map(({ sector, points }) => (
