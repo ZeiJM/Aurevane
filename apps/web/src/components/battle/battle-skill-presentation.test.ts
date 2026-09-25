@@ -193,18 +193,26 @@ describe('battle skill artwork presentation', () => {
     }
   })
 
-  it('maps established and expanded resonance presentation independently from combat actions', () => {
+  it('uses approved Resonance art while retaining generated fallback for unapproved pairs', () => {
     for (const resonanceId of PHASE_3_RESONANCE_IDS) {
       const artwork = battleResonanceArtwork(resonanceId)
       expect(artwork).toBe(PHASE_3_RESONANCE_ARTWORK[resonanceId])
-      expect(artwork).not.toBe(BATTLE_MISSING_ARTWORK)
-      expect(artwork).not.toBe(BATTLE_COMMAND_ARTWORK.inspect)
-      expect(artwork.startsWith('data:image/svg+xml,')).toBe(true)
+      expect(artwork).toBe(
+        '/media/art/resonances/resonance-lifebinder-vanguard-mercys-edge-v01.webp',
+      )
+      expect(existsSync(new URL(`../../../public${artwork}`, import.meta.url))).toBe(true)
     }
 
     const expandedResonance = battleResonanceArtwork('resonance.aetherist-farstrider.arcane-hunt')
-    expect(expandedResonance).not.toBe(BATTLE_MISSING_ARTWORK)
-    expect(expandedResonance.startsWith('data:image/svg+xml,')).toBe(true)
+    expect(expandedResonance).toBe(
+      '/media/art/resonances/resonance-aetherist-farstrider-arcane-hunt-v01.webp',
+    )
+    expect(existsSync(new URL(`../../../public${expandedResonance}`, import.meta.url))).toBe(true)
+
+    const unapprovedResonance = battleResonanceArtwork(
+      'resonance.frostweaver-runeblade.linked-sequence',
+    )
+    expect(unapprovedResonance.startsWith('data:image/svg+xml,')).toBe(true)
     expect(battleResonanceArtwork('future.resonance')).toBe(BATTLE_MISSING_ARTWORK)
   })
 })
