@@ -115,6 +115,29 @@ describe('world travel', () => {
     ])
       expect(findWorldRoute(START_POSITION, to, CHARTED_SECTORS)).toBeNull()
   })
+  it('keeps the representative local settlement route at three authoritative 1.1-second steps', () => {
+    const route = findWorldRoute(
+      START_POSITION,
+      { sectorId: 'verdant-expanse', x: 2, y: 4 },
+      CHARTED_SECTORS,
+    )!
+
+    expect(route).toHaveLength(3)
+    expect(route.every((step) => step.durationMs === STEP_MS)).toBe(true)
+    expect(route.reduce((ms, step) => ms + step.durationMs, 0)).toBe(3_300)
+  })
+
+  it('keeps the representative settlement-to-settlement journey on the same 26-step path', () => {
+    const route = findWorldRoute(
+      { sectorId: 'verdant-expanse', x: 2, y: 4 },
+      { sectorId: 'aureth-crown', x: 2, y: 4 },
+      CHARTED_SECTORS,
+    )!
+
+    expect(route).toHaveLength(26)
+    expect(route.reduce((ms, step) => ms + step.durationMs, 0)).toBe(28_600)
+  })
+
   it('uses the tuned authoritative pace for a representative regional journey', () => {
     const route = findWorldRoute(
       START_POSITION,
