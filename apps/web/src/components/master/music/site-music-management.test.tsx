@@ -18,7 +18,7 @@ describe('Master Panel site music management', () => {
       }),
     )
 
-    expect(markup).toContain('Upload audio file')
+    expect(markup).toContain('Upload from PC')
     expect(markup).toContain('type="file"')
     expect(markup).toContain(
       'accept="audio/mpeg,audio/mp4,audio/x-m4a,audio/aac,audio/ogg,audio/webm,audio/wav,audio/x-wav"',
