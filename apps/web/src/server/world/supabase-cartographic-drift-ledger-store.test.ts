@@ -8,8 +8,6 @@ vi.mock('@/lib/supabase/admin', () => ({
   createSupabaseAdminClient: () => ({ rpc }),
 }))
 
-import { AurevaneError } from '@aurevane/game-core/errors'
-
 import { createSupabaseCartographicDriftLedgerStore } from './supabase-cartographic-drift-ledger-store'
 
 const entry = {
@@ -74,7 +72,7 @@ describe('Supabase Cartographic Drift cycle ledger store', () => {
 
     await expect(
       createSupabaseCartographicDriftLedgerStore().insertIfAbsent(entry),
-    ).rejects.toMatchObject<AurevaneError>({ code: 'PERSISTENCE_UNAVAILABLE' })
+    ).rejects.toMatchObject({ code: 'PERSISTENCE_UNAVAILABLE' })
   })
 
   it.each([
@@ -88,6 +86,6 @@ describe('Supabase Cartographic Drift cycle ledger store', () => {
 
     await expect(
       createSupabaseCartographicDriftLedgerStore().insertIfAbsent(entry),
-    ).rejects.toMatchObject<AurevaneError>({ code: 'PERSISTENCE_UNAVAILABLE' })
+    ).rejects.toMatchObject({ code: 'PERSISTENCE_UNAVAILABLE' })
   })
 })
