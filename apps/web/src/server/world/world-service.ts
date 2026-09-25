@@ -16,6 +16,7 @@ import type {
   WorldObjective,
   WorldPlayer,
   WorldPosition,
+  WorldRoutePreview,
   WorldState,
   WorldView,
 } from '@/world/types'
@@ -36,6 +37,23 @@ function isKnown(state: WorldState, p: WorldPosition) {
   const sector = WORLD_SECTORS.find((s) => s.id === p.sectorId)
   return Boolean(sector?.charted || state.discoveries[p.sectorId]?.includes(p.y * GRID_WIDTH + p.x))
 }
+export function resolveWorldRoutePreview(
+  state: WorldState,
+  destination: WorldPosition,
+): Omit<WorldRoutePreview, 'stateVersion'> {
+  if (!isKnown(state, destination)) invalid('Survey this ground before plotting a route.')
+  const sectors = WORLD_SECTORS.filter((sector) => sector.charted || state.discoveries[sector.id])
+  const route = findWorldRoute(state.position, destination, sectors, (position) =>
+    isKnown(state, position),
+  )
+  if (!route) invalid('There is no known walkable route to that location.')
+  return {
+    destination: { ...destination },
+    stepCount: route.length,
+    durationMs: route.reduce((total, step) => total + step.durationMs, 0),
+  }
+}
+
 export function resolveWorldIntent(
   state: WorldState,
   intent: Exclude<WorldIntent, { kind: 'attack' }>,
