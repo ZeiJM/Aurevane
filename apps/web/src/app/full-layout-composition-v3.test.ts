@@ -13,7 +13,7 @@ const compositionContracts = [
     markers: [
       'data-profile-workspace',
       'data-profile-sheet="true"',
-      'data-testid="current-path-coming-soon"',
+      'data-testid="current-path"',
     ],
   },
   {
