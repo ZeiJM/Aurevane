@@ -2,7 +2,7 @@
 import Image from 'next/image'
 import { useMemo } from 'react'
 import { resolvePublicCharacterImageUrl } from '@/media/public-character-portrait'
-import { cellCenter } from '@/world/travel'
+import { cellCenter, samePosition } from '@/world/travel'
 import type {
   TravelStep,
   WorldCell,
@@ -23,7 +23,7 @@ export function SectorMap({
   motion,
   onMove,
   onPlayer,
-  disabled,
+  selectedTile,
 }: {
   sector: WorldSectorView
   position: WorldPosition
@@ -35,7 +35,7 @@ export function SectorMap({
   motion: boolean
   onMove: (p: WorldPosition) => void
   onPlayer: (id: string) => void
-  disabled: boolean
+  selectedTile?: WorldPosition | null
 }) {
   const local = position.sectorId === sector.id
   const cellsByIndex = useMemo(() => {
@@ -93,7 +93,10 @@ export function SectorMap({
                 className={styles.cell}
                 data-known={Boolean(cell)}
                 data-terrain={cell?.terrain}
-                disabled={disabled || !cell?.walkable}
+                disabled={!cell?.walkable}
+                aria-pressed={Boolean(
+                  selectedTile && samePosition(selectedTile, { sectorId: sector.id, x, y }),
+                )}
                 aria-label={`E${sector.east + x} N${sector.north - y}${!cell ? ', uncharted' : !cell.walkable ? ', blocked' : cell.safe ? ', safe settlement' : ', open territory'}`}
                 title={!cell ? 'Uncharted territory' : `E${sector.east + x} / N${sector.north - y}`}
                 onClick={() => onMove({ sectorId: sector.id, x, y })}

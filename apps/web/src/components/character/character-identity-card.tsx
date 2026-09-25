@@ -51,8 +51,14 @@ export function CharacterIdentityCard({
         <h1>{profile.identity.name}</h1>
         <p className={styles.motto}>A quieter blade still changes the tide.</p>
         <div className={styles.tags}>
-          <span data-testid="primary-discipline-chip">{primary.name}</span>
-          {secondary ? <span data-testid="secondary-discipline-chip">{secondary.name}</span> : null}
+          <span>
+            Primary: <span data-testid="primary-discipline-chip">{primary.name}</span>
+          </span>
+          {secondary ? (
+            <span>
+              Secondary: <span data-testid="secondary-discipline-chip">{secondary.name}</span>
+            </span>
+          ) : null}
           {personalTitle ? <span data-tone="title">{personalTitle}</span> : null}
         </div>
       </div>

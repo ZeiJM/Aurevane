@@ -115,6 +115,31 @@
   width: 100%;
   gap: 0.5rem;
 }
+.locationContext {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 1rem;
+  width: 100%;
+  margin: 0;
+  font-size: 0.78rem;
+}
+.locationLandmarks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-block: 0.5rem;
+}
+.locationLandmarks button {
+  font-size: 0.78rem;
+  min-height: 2.75rem;
+}
+.sectorMap[data-motion='false'] .playerToken {
+  transition: none;
+}
+.workspace .cell[aria-pressed='true'] {
+  background: #ffe4a138;
+  box-shadow: inset 0 0 0 3px #ffe4a1;
+}
 .tabs {
   display: flex;
   min-width: 12rem;
@@ -624,6 +649,10 @@
 .workspace .regionLabel[data-selected='true'] {
   background: #082731;
   color: #f9d486;
+}
+.workspace .regionLabel[data-current='true'] {
+  /* Leave the authoritative sector marker visible above its name. */
+  transform: translate(-50%, 1.4rem);
 }
 .globePlayer {
   position: absolute;

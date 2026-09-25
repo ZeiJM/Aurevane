@@ -219,6 +219,22 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
     expect(frame.y + frame.height).toBeLessThanOrEqual(viewport.y + viewport.height + 1)
   }
   await expectSectorToFit()
+  // Selecting a destination is presentation only; the explicit action starts travel.
+  const beforeSelection = await world(page)
+  await grid.getByRole('button', { name: 'E18 N24, open territory', exact: true }).click()
+  const afterSelection = await world(page)
+  expect(afterSelection.position).toEqual(beforeSelection.position)
+  expect(afterSelection.route).toEqual(beforeSelection.route)
+  await expect(
+    page.getByRole('button', { name: 'Travel to selected tile', exact: true }),
+  ).toBeEnabled()
+  await expect(page.locator('[data-world-location-context]')).toContainText(
+    'You are in Verdant Expanse',
+  )
+  await page.getByRole('button', { name: 'Travel to selected tile', exact: true }).click()
+  await expect.poll(async () => (await world(page)).route.length).toBeGreaterThan(0)
+  await page.getByRole('button', { name: 'Stop travel', exact: true }).click()
+  await expect.poll(async () => (await world(page)).route.length).toBe(0)
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
@@ -253,6 +269,11 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
   await page.getByRole('button', { name: /Layers/ }).click()
   await page.getByLabel('Environmental motion').uncheck()
   await expect(ambient).toHaveCount(0)
+  expect(
+    await page
+      .getByRole('button', { name: `${name}, your position`, exact: true })
+      .evaluate((element) => getComputedStyle(element).transitionDuration),
+  ).toBe('0s')
   await page.getByLabel('Environmental motion').check()
   await expect(ambient).toBeVisible()
   await page.getByRole('button', { name: /Layers/ }).click()
@@ -307,6 +328,29 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
     'data-current',
     'true',
   )
+  async function expectCurrentGlobeLabelClear() {
+    const label = await sphere
+      .getByRole('button', { name: 'Verdant Expanse', exact: true })
+      .boundingBox()
+    const marker = await sphere
+      .getByRole('img', { name: `${name}, your current sector`, exact: true })
+      .boundingBox()
+    expect(label).not.toBeNull()
+    expect(marker).not.toBeNull()
+    const overlap =
+      Math.max(
+        0,
+        Math.min(label!.x + label!.width, marker!.x + marker!.width) -
+          Math.max(label!.x, marker!.x),
+      ) *
+      Math.max(
+        0,
+        Math.min(label!.y + label!.height, marker!.y + marker!.height) -
+          Math.max(label!.y, marker!.y),
+      )
+    expect(overlap, 'the player portrait must not cover the current region name').toBe(0)
+  }
+  await expectCurrentGlobeLabelClear()
   const globeBounds = (await sphere.boundingBox())!
   const viewportBounds = (await page.locator('[class*="mapViewport"]').boundingBox())!
   expect(globeBounds.y).toBeGreaterThanOrEqual(viewportBounds.y + 16)
@@ -320,6 +364,7 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
   ).toContain('linear-gradient')
 
   for (let i = 0; i < 4; i++) await page.getByRole('button', { name: 'Zoom in' }).click()
+  await expectCurrentGlobeLabelClear()
   const zoomedBounds = (await sphere.boundingBox())!
   expect(zoomedBounds.x).toBeGreaterThanOrEqual(viewportBounds.x)
   expect(zoomedBounds.x + zoomedBounds.width).toBeLessThanOrEqual(
@@ -355,13 +400,39 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
   await page.getByRole('button', { name: /Globe/ }).click()
 
   const unchartedCell = globeSectorCenter('S17-09')!
-  const unchartedPoint = projectGlobePoint(unchartedCell, { longitude: 0, latitude: 8 })
-  await sphere.click({
-    position: {
-      x: globeBounds.width * (0.5 + unchartedPoint.x * 0.94 * 0.5),
-      y: globeBounds.height * (0.5 - unchartedPoint.y * 0.94 * 0.5),
-    },
-  })
+  const returnedGlobeBounds = (await sphere.boundingBox())!
+  let unchartedClick: { x: number; y: number } | null = null
+  for (const latitudeOffset of [-4.5, -3, -1.5, 0, 1.5, 3, 4.5]) {
+    for (const longitudeOffset of [-4.5, -3, -1.5, 0, 1.5, 3, 4.5]) {
+      const point = projectGlobePoint(
+        {
+          longitude: unchartedCell.longitude + longitudeOffset,
+          latitude: unchartedCell.latitude + latitudeOffset,
+        },
+        { longitude: 0, latitude: 8 },
+      )
+      if (!point.visible) continue
+      const x = returnedGlobeBounds.x + returnedGlobeBounds.width * (0.5 + point.x * 0.94 * 0.5)
+      const y = returnedGlobeBounds.y - returnedGlobeBounds.height * (point.y * 0.94 * 0.5 - 0.5)
+      const available = await page.evaluate(
+        ({ x, y }) => {
+          const target = document.elementFromPoint(x, y)
+          return Boolean(
+            target &&
+            !target.closest('button') &&
+            target.closest('[role="group"][aria-label^="World globe"]'),
+          )
+        },
+        { x, y },
+      )
+      if (!available) continue
+      unchartedClick = { x, y }
+      break
+    }
+    if (unchartedClick) break
+  }
+  expect(unchartedClick).not.toBeNull()
+  await page.mouse.click(unchartedClick!.x, unchartedClick!.y)
   await expect(page.getByRole('status')).toContainText(
     'S17-09 is uncharted. No charted destination is available there yet.',
   )
@@ -593,7 +664,36 @@ test('expired training releases travel without claiming XP and frontier discover
   expect((await world(page)).sectors.find((s) => !s.charted)?.cells).toEqual(archivedCells)
 })
 
-test('Crown Road advances one ordinary step with one due client tick', async ({ page }, info) => {
+test('inspecting a destination survives a refreshed player sector change', async ({ page }) => {
+  await enter(page)
+  const initial = await world(page)
+  await page.getByRole('button', { name: /Globe/ }).click()
+  const destination = page.locator('aside').getByRole('button', {
+    name: 'Aureth Crown',
+    exact: true,
+  })
+  await destination.focus()
+  await destination.press('Enter')
+  await expect(destination).toHaveAttribute('aria-pressed', 'true')
+  expect((await world(page)).position).toEqual(initial.position)
+  // The fixture relocates the player; refresh exercises the real authorized projection.
+  // The separate route/tick scenarios retain responsibility for crossing authority.
+  place(initial.characterId, 'crown-road', 6, 4)
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
+  const context = page.locator('[data-world-location-context]')
+  await expect(context).toContainText('You are in Crown Road')
+  await expect(context).toContainText('Viewing Aureth Crown')
+  await expect(destination).toHaveAttribute('aria-pressed', 'true')
+  await page.getByRole('button', { name: /My Position/ }).click()
+  await expect(context).toContainText('Viewing Crown Road')
+  place(initial.characterId, initial.position.sectorId, initial.position.x, initial.position.y)
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
+  await expect(context).toContainText('Viewing Verdant Expanse')
+})
+
+test('Crown Road advances one authoritative ordinary step with one due client tick', async ({
+  page,
+}, info) => {
   test.skip(
     info.project.name !== 'desktop-chromium',
     'Tick scheduling is viewport independent; exercise one authoritative desktop journey.',
@@ -623,6 +723,8 @@ test('Crown Road advances one ordinary step with one due client tick', async ({ 
       exact: true,
     })
     .click()
+  expect((await world(page)).route).toHaveLength(0)
+  await page.getByRole('button', { name: 'Travel to selected tile', exact: true }).click()
   await expect(page.locator('[data-world-travel-status]')).toContainText('1 steps remaining')
   expect((await world(page)).route[0]?.durationMs).toBe(STEP_MS)
   await expect.poll(async () => (await world(page)).position.x, { timeout: 4_000 }).toBe(7)
@@ -971,7 +1073,7 @@ test('a due movement step and an attack cannot both commit from the same target 
     place(target.characterId, 'crown-road', 6, 4)
     const destination = { sectorId: 'crown-road', x: 7, y: 4 }
     sql(
-      `update app_private.character_world_state set state = state || '${JSON.stringify({ route: [{ position: destination, durationMs: STEP_MS }], nextStepAt: Date.now() - 1000 })}'::jsonb where character_id='${target.characterId}'::uuid`,
+      `update app_private.character_world_state set state = state || '${JSON.stringify({ route: [{ position: destination, durationMs: 4000 }], nextStepAt: Date.now() - 1000 })}'::jsonb where character_id='${target.characterId}'::uuid`,
     )
     await world(page)
     await world(opponent)

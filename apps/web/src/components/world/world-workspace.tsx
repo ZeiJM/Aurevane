@@ -28,10 +28,12 @@ export function WorldWorkspace({
     [panorama, setPanorama] = useState(false),
     [focus, setFocus] = useState(0)
   const [search, setSearch] = useState(''),
+    [selectedTile, setSelectedTile] = useState<WorldPosition | null>(null),
     [target, setTarget] = useState<string | null>(null),
     [message, setMessage] = useState(''),
     [busy, setBusy] = useState(false)
   const current = useRef(initialView),
+    followingPlayer = useRef(true),
     pending = useRef(false),
     mounted = useRef(true),
     viewAcceptedAt = useRef<number | null>(null),
@@ -49,9 +51,12 @@ export function WorldWorkspace({
     }
     if (next.version < current.current.version) return
     if (next.position.sectorId !== current.current.position.sectorId) {
-      setSelected(next.position.sectorId)
       setPanorama(false)
+      if (followingPlayer.current) setSelected(next.position.sectorId)
     }
+    setSelected((id) =>
+      next.sectors.some((sector) => sector.id === id) ? id : next.position.sectorId,
+    )
     current.current = next
     viewAcceptedAt.current = Date.now()
     setView(next)
@@ -172,9 +177,24 @@ export function WorldWorkspace({
     remainingSeconds >= 60
       ? `${Math.floor(remainingSeconds / 60)}m ${remainingSeconds % 60}s`
       : `${remainingSeconds}s`
+  const selectedCell =
+    selectedTile?.sectorId === sector.id
+      ? sector.cells.find((cell) => cell.x === selectedTile.x && cell.y === selectedTile.y)
+      : null
+  const selectedLandmark =
+    selectedCell &&
+    sector.landmarks.find(
+      (landmark) => landmark.x === selectedCell.x && landmark.y === selectedCell.y,
+    )
   function select(id: string) {
+    followingPlayer.current = false
     setSelected(id)
+    setSelectedTile(null)
     setSearch('')
+  }
+  function inspectTile(position: WorldPosition) {
+    followingPlayer.current = false
+    setSelectedTile(position)
   }
   function walk(destination: WorldPosition) {
     void send({ kind: 'walk', destination })
@@ -218,7 +238,9 @@ export function WorldWorkspace({
             </button>
             <button
               onClick={() => {
+                followingPlayer.current = true
                 setSelected(view.position.sectorId)
+                setSelectedTile(null)
                 setFocus((n) => n + 1)
               }}
             >
@@ -244,6 +266,14 @@ export function WorldWorkspace({
               </small>
             </span>
           </div>
+          <p className={styles.locationContext} data-world-location-context>
+            <span>
+              You are in <strong>{local.name}</strong>
+            </span>
+            <span>
+              Viewing <strong>{sector.name}</strong>
+            </span>
+          </p>
           {layers ? (
             <div className={styles.layerPanel}>
               <label>
@@ -292,8 +322,8 @@ export function WorldWorkspace({
               name={character.name}
               grid={grid}
               motion={motion}
-              disabled={disabled}
-              onMove={walk}
+              selectedTile={selectedTile}
+              onMove={inspectTile}
               onPlayer={setTarget}
             />
           )}
@@ -310,9 +340,9 @@ export function WorldWorkspace({
                 </small>
               </>
             ) : selected !== view.position.sectorId ? (
-              'Inspecting a charted sector. Choose a walkable tile to plot your journey.'
+              'Inspecting only. Select a square, then choose Travel to selected tile.'
             ) : (
-              'Select a square to walk there.'
+              'Select a square to inspect it, then choose Travel to selected tile.'
             )}
           </span>
           {view.route.length ? (
@@ -328,9 +358,68 @@ export function WorldWorkspace({
         ) : null}
       </div>
       <aside className={styles.sidebar}>
+        <section className={styles.panel} aria-label="Location details">
+          <h2>Viewing {sector.name}</h2>
+          <p className={styles.quiet}>
+            {worldRegion(sector.regionId)?.summary ?? 'Explore the places revealed on your map.'}
+          </p>
+          <p className={styles.quiet}>
+            {selected === local.id ? 'Your current area' : `Inspecting from ${local.name}`} ·{' '}
+            {sector.coordinate}
+          </p>
+          {sector.landmarks.length ? (
+            <div className={styles.locationLandmarks} aria-label="Known landmarks">
+              {sector.landmarks.map((landmark) => (
+                <button
+                  key={landmark.id}
+                  onClick={() => {
+                    inspectTile({ sectorId: sector.id, x: landmark.x, y: landmark.y })
+                    setMode('sector')
+                  }}
+                >
+                  View {landmark.name}
+                </button>
+              ))}
+            </div>
+          ) : null}
+          {selectedCell && selectedTile ? (
+            <div className={styles.quest} aria-live="polite">
+              <h3>{selectedLandmark?.name ?? 'Selected destination'}</h3>
+              <p>
+                E{sector.east + selectedCell.x} / N{sector.north - selectedCell.y} ·{' '}
+                {selectedCell.safe ? 'Protected settlement' : 'Open territory'}
+              </p>
+              {samePosition(selectedTile, view.position) ? (
+                <p>You are here.</p>
+              ) : (
+                <>
+                  <button
+                    className={styles.primary}
+                    disabled={disabled || !selectedCell.walkable}
+                    onClick={() => walk(selectedTile)}
+                  >
+                    {view.route.length
+                      ? 'Replace route with selected tile'
+                      : 'Travel to selected tile'}
+                  </button>
+                  <p className={styles.quiet}>
+                    Travel starts only when you choose this action. A known route must be available;
+                    its travel time appears once started.
+                  </p>
+                </>
+              )}
+            </div>
+          ) : (
+            <p className={styles.quiet}>
+              Viewing a place does not start travel. Select a walkable square to choose a
+              destination.
+            </p>
+          )}
+        </section>
         {view.interactions.length ? (
           <section className={styles.panel} aria-label="Local interaction">
             <h2>✦ Local interaction</h2>
+            <p className={styles.quiet}>At your current position in {local.name}.</p>
             {view.interactions.map((interaction) => (
               <div className={styles.quest} key={interaction.id}>
                 <h3>{interaction.title}</h3>
@@ -367,19 +456,21 @@ export function WorldWorkspace({
               onChange={(e) => setSearch(e.target.value)}
             />
             <div className={styles.regionList}>
-              {WORLD_REGIONS.filter((r) => r.name.toLowerCase().includes(search.toLowerCase())).map(
-                (r) => (
-                  <button key={r.id} data-active={selected === r.id} onClick={() => select(r.id)}>
-                    <Image
-                      src={`/media/art/world/${r.art}-v01.webp`}
-                      alt=""
-                      width={56}
-                      height={47}
-                    />
-                    <span>{r.name}</span>
-                  </button>
-                ),
-              )}
+              {WORLD_REGIONS.filter(
+                (r) =>
+                  view.sectors.some((candidate) => candidate.id === r.id) &&
+                  r.name.toLowerCase().includes(search.toLowerCase()),
+              ).map((r) => (
+                <button
+                  key={r.id}
+                  data-active={selected === r.id}
+                  aria-pressed={selected === r.id}
+                  onClick={() => select(r.id)}
+                >
+                  <Image src={`/media/art/world/${r.art}-v01.webp`} alt="" width={56} height={47} />
+                  <span>{r.name}</span>
+                </button>
+              ))}
             </div>
             {chartedMinorSectors.length ? (
               <div className={styles.chartedSectorIndex}>
@@ -389,6 +480,7 @@ export function WorldWorkspace({
                     <button
                       key={chartedSector.id}
                       data-active={selected === chartedSector.id}
+                      aria-pressed={selected === chartedSector.id}
                       onClick={() => select(chartedSector.id)}
                     >
                       <strong>{chartedSector.name}</strong>
@@ -409,6 +501,7 @@ export function WorldWorkspace({
         ) : (
           <section className={styles.panel}>
             <h2>⚑ Nearby Players</h2>
+            <p className={styles.quiet}>Near you in {local.name}.</p>
             {player ? (
               <>
                 <div className={styles.playerSummary}>
