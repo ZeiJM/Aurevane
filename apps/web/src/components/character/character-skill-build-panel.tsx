@@ -397,17 +397,19 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                 onMouseEnter={() => setFocusedSkillId(entry.definition.id)}
                 onFocusCapture={() => setFocusedSkillId(entry.definition.id)}
               >
-                <label>
+                <label
+                  onPointerUpCapture={(event) => {
+                    if (!coarsePointer) return
+                    handleCoarseTechniqueTap(entry, event.timeStamp)
+                  }}
+                >
                   <input
                     type="checkbox"
                     checked={selected}
                     disabled={disabled}
                     aria-label={`${selected ? 'Unselect' : 'Select'} ${label}`}
                     onClick={(event) => {
-                      setFocusedSkillId(entry.definition.id)
-                      if (!coarsePointer) return
-                      event.preventDefault()
-                      handleCoarseTechniqueTap(entry, event.timeStamp)
+                      if (coarsePointer) event.preventDefault()
                     }}
                     onChange={() => {
                       if (!coarsePointer) toggleAndCommit(entry)
