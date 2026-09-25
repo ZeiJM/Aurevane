@@ -96,7 +96,7 @@ function TrackEditor({
       </label>
 
       <label className={styles.uploadButton}>
-        <span>{uploading ? 'Uploading…' : 'Upload audio file'}</span>
+        <span>{uploading ? 'Uploading…' : 'Upload from PC'}</span>
         <input
           type="file"
           accept="audio/mpeg,audio/mp4,audio/x-m4a,audio/aac,audio/ogg,audio/webm,audio/wav,audio/x-wav"
