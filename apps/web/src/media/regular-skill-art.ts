@@ -110,6 +110,54 @@ export const REGULAR_SKILL_ART = {
   'runeblade.unbinding-rune': '/media/art/discipline-skills/runeblade-unbinding-rune-v01.webp',
   'runeblade.aether-cut': '/media/art/discipline-skills/runeblade-aether-cut-v01.webp',
   'runeblade.rune-mending': '/media/art/discipline-skills/runeblade-rune-mending-v01.webp',
+
+  'dawnshield.radiant-strike': '/media/art/discipline-skills/dawnshield-radiant-strike-v01.webp',
+  'dawnshield.sacred-guard': '/media/art/discipline-skills/dawnshield-sacred-guard-v01.webp',
+  'dawnshield.purge': '/media/art/discipline-skills/dawnshield-purge-v01.webp',
+  'dawnshield.consecrated-light':
+    '/media/art/discipline-skills/dawnshield-consecrated-light-v01.webp',
+  'dawnshield.aegis': '/media/art/discipline-skills/dawnshield-aegis-v01.webp',
+  'dawnshield.renewal': '/media/art/discipline-skills/dawnshield-renewal-v01.webp',
+  'dawnshield.judgment': '/media/art/discipline-skills/dawnshield-judgment-v01.webp',
+  'dawnshield.last-light': '/media/art/discipline-skills/dawnshield-last-light-v01.webp',
+
+  'cinderweaver.cinder-bolt': '/media/art/discipline-skills/cinderweaver-cinder-bolt-v01.webp',
+  'cinderweaver.flame-burst': '/media/art/discipline-skills/cinderweaver-flame-burst-v01.webp',
+  'cinderweaver.ember-line': '/media/art/discipline-skills/cinderweaver-ember-line-v01.webp',
+  'cinderweaver.scorch': '/media/art/discipline-skills/cinderweaver-scorch-v01.webp',
+  'cinderweaver.ash-ward': '/media/art/discipline-skills/cinderweaver-ash-ward-v01.webp',
+  'cinderweaver.flashfire': '/media/art/discipline-skills/cinderweaver-flashfire-v01.webp',
+  'cinderweaver.banked-embers': '/media/art/discipline-skills/cinderweaver-banked-embers-v01.webp',
+  'cinderweaver.blistering-heat':
+    '/media/art/discipline-skills/cinderweaver-blistering-heat-v01.webp',
+
+  'frostweaver.ice-lance': '/media/art/discipline-skills/frostweaver-ice-lance-v01.webp',
+  'frostweaver.frost-guard': '/media/art/discipline-skills/frostweaver-frost-guard-v01.webp',
+  'frostweaver.chilling-mist': '/media/art/discipline-skills/frostweaver-chilling-mist-v01.webp',
+  'frostweaver.crystal-prison': '/media/art/discipline-skills/frostweaver-crystal-prison-v01.webp',
+  'frostweaver.shatter': '/media/art/discipline-skills/frostweaver-shatter-v01.webp',
+  'frostweaver.ice-line': '/media/art/discipline-skills/frostweaver-ice-line-v01.webp',
+  'frostweaver.thaw': '/media/art/discipline-skills/frostweaver-thaw-v01.webp',
+  'frostweaver.brittle-ice': '/media/art/discipline-skills/frostweaver-brittle-ice-v01.webp',
+
+  'stormsinger.arc-spark': '/media/art/discipline-skills/stormsinger-arc-spark-v01.webp',
+  'stormsinger.lightning-line': '/media/art/discipline-skills/stormsinger-lightning-line-v01.webp',
+  'stormsinger.static-burst': '/media/art/discipline-skills/stormsinger-static-burst-v01.webp',
+  'stormsinger.thunderclap': '/media/art/discipline-skills/stormsinger-thunderclap-v01.webp',
+  'stormsinger.grounding': '/media/art/discipline-skills/stormsinger-grounding-v01.webp',
+  'stormsinger.static-drain': '/media/art/discipline-skills/stormsinger-static-drain-v01.webp',
+  'stormsinger.conductive-bolt':
+    '/media/art/discipline-skills/stormsinger-conductive-bolt-v01.webp',
+  'stormsinger.storm-breath': '/media/art/discipline-skills/stormsinger-storm-breath-v01.webp',
+
+  'tidecaller.water-lance': '/media/art/discipline-skills/tidecaller-water-lance-v01.webp',
+  'tidecaller.mist-veil': '/media/art/discipline-skills/tidecaller-mist-veil-v01.webp',
+  'tidecaller.undertow': '/media/art/discipline-skills/tidecaller-undertow-v01.webp',
+  'tidecaller.cleansing-rain': '/media/art/discipline-skills/tidecaller-cleansing-rain-v01.webp',
+  'tidecaller.flood-line': '/media/art/discipline-skills/tidecaller-flood-line-v01.webp',
+  'tidecaller.springwater': '/media/art/discipline-skills/tidecaller-springwater-v01.webp',
+  'tidecaller.still-water': '/media/art/discipline-skills/tidecaller-still-water-v01.webp',
+  'tidecaller.crushing-wave': '/media/art/discipline-skills/tidecaller-crushing-wave-v01.webp',
 } as const
 
 export type RegularSkillArtId = keyof typeof REGULAR_SKILL_ART

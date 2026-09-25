@@ -6,6 +6,7 @@ import {
 } from '@aurevane/game-core/combat/pv1f-skills'
 
 import { darkFantasyResonanceArtwork } from '../../media/generated-dark-fantasy-art'
+import { resonanceArtwork } from '../../media/resonance-art'
 import { registeredSkillArtworkSource, resolveSkillIconHook } from '../../media/skill-media-hooks'
 
 export const BATTLE_COMMAND_ARTWORK = {
@@ -53,7 +54,7 @@ export const PHASE_3_COMBAT_ARTWORK = Object.fromEntries(
 export const PHASE_3_RESONANCE_ARTWORK = Object.fromEntries(
   PHASE_3_RESONANCE_IDS.map((id) => [
     id,
-    darkFantasyResonanceArtwork(id) ?? BATTLE_MISSING_ARTWORK,
+    resonanceArtwork(id) ?? darkFantasyResonanceArtwork(id) ?? BATTLE_MISSING_ARTWORK,
   ]),
 ) as Record<(typeof PHASE_3_RESONANCE_IDS)[number], string>
 
@@ -75,5 +76,9 @@ export function battleSkillArtwork(actionId: string, iconKey?: string | null): s
 }
 
 export function battleResonanceArtwork(resonanceId: string): string {
-  return darkFantasyResonanceArtwork(resonanceId) ?? BATTLE_MISSING_ARTWORK
+  return (
+    resonanceArtwork(resonanceId) ??
+    darkFantasyResonanceArtwork(resonanceId) ??
+    BATTLE_MISSING_ARTWORK
+  )
 }
