@@ -136,6 +136,18 @@ export type WorldIntent =
   | { kind: 'cross' }
   | { kind: 'interact'; interactionId: string }
   | { kind: 'attack'; targetId: string }
+export interface WorldRoutePreviewRequest {
+  operation: 'preview-route'
+  characterId: string
+  expectedVersion: number
+  destination: WorldPosition
+}
+export interface WorldRoutePreview {
+  stateVersion: number
+  destination: WorldPosition
+  stepCount: number
+  durationMs: number
+}
 export interface WorldCommand {
   characterId: string
   expectedVersion: number
