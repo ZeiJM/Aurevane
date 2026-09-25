@@ -141,12 +141,12 @@
 .disciplineCard {
   position: relative;
   display: grid;
-  grid-template-columns: 3.7rem minmax(0, 1fr);
+  grid-template-columns: 3.8rem minmax(0, 1fr);
   min-width: 0;
-  min-height: 4.45rem;
+  min-height: 4.8rem;
   gap: 0.72rem;
   align-items: center;
-  padding: 0.38rem 0.52rem;
+  padding: 0.45rem 0.62rem;
   overflow: hidden;
   border: 1px solid rgba(151, 125, 76, 0.44);
   color: #f4ebd8;
@@ -206,12 +206,11 @@
 
 .disciplineCard p {
   margin: 0;
-  overflow: hidden;
   color: #c0cbd0;
   font-size: 0.63rem;
-  line-height: 1.28;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.3;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .lockGlyph {
@@ -245,14 +244,15 @@
 
 .techniqueLanes {
   display: grid;
-  gap: 0.34rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
 }
 
 .techniqueLane {
   display: grid;
-  grid-template-columns: 9.4rem minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
   min-width: 0;
-  min-height: 4.35rem;
+  min-height: 7.2rem;
   overflow: hidden;
   border: 1px solid #4b6170;
   color: #f3ede0;
@@ -268,18 +268,18 @@
 
 .techniqueLaneIdentity {
   display: grid;
-  grid-template-columns: 2.9rem minmax(0, 1fr);
-  gap: 0.46rem;
+  grid-template-columns: 2.65rem minmax(0, 1fr);
+  gap: 0.5rem;
   align-items: center;
-  padding: 0.34rem 0.48rem;
-  border-right: 1px solid rgba(212, 186, 130, 0.2);
+  padding: 0.36rem 0.5rem;
+  border-bottom: 1px solid rgba(212, 186, 130, 0.2);
   background: rgba(3, 13, 21, 0.38);
 }
 
 .laneSigil {
   display: grid;
-  width: 2.9rem;
-  height: 2.9rem;
+  width: 2.65rem;
+  height: 2.65rem;
   aspect-ratio: 1 / 1;
   place-items: center;
   overflow: hidden;
@@ -316,28 +316,29 @@
 
 .techniqueSlots {
   display: grid;
-  grid-template-columns: repeat(4, minmax(3.5rem, 4.2rem));
-  gap: clamp(0.55rem, 1.8vw, 1.35rem);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(0.4rem, 0.75vw, 0.72rem);
   align-items: start;
-  justify-content: space-evenly;
-  padding: 0.32rem 0.55rem;
+  justify-items: center;
+  padding: 0.42rem 0.55rem 0.48rem;
 }
 
 .overviewTechnique,
 .emptyTechniqueSlot,
 .lockedTechniqueSlot {
   display: grid;
+  width: 100%;
   min-width: 0;
   justify-items: center;
   align-content: start;
-  gap: 0.12rem;
+  gap: 0.16rem;
 }
 
 .overviewTechniqueArt,
 .emptyTechniqueSlot,
 .lockedTechniqueSlot {
   display: grid;
-  width: min(3.5rem, 100%);
+  width: min(4rem, 100%);
   aspect-ratio: 1 / 1;
   place-items: center;
   overflow: hidden;
@@ -360,23 +361,25 @@
 .overviewTechnique strong {
   width: 100%;
   color: #efe6d7;
-  font: 600 0.56rem/1.08 var(--av-font-display);
+  font: 600 0.58rem/1.12 var(--av-font-display);
   text-align: center;
   overflow-wrap: anywhere;
 }
 
-.overviewTechniqueMeta {
-  width: 100%;
-  color: #afbdc2;
-  font: 500 0.48rem/1.08 var(--av-font-body);
-  text-align: center;
-  white-space: normal;
-}
-
 .emptyTechniqueSlot,
 .lockedTechniqueSlot {
+  align-self: start;
+  place-content: center;
   color: #839197;
   font-size: 1rem;
+}
+
+.emptyTechniqueSlot > span,
+.lockedTechniqueSlot > span {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
 }
 
 .lockedTechniqueSlot {
@@ -385,9 +388,9 @@
 
 .bottomGrid {
   display: grid;
-  min-height: 7.1rem;
-  grid-template-columns: minmax(0, 0.96fr) minmax(0, 1.08fr);
-  gap: 0.4rem;
+  min-height: 7.6rem;
+  grid-template-columns: minmax(0, 1.02fr) minmax(0, 1.18fr);
+  gap: 0.5rem;
   align-items: stretch;
   margin-top: 0;
 }
@@ -404,16 +407,16 @@
   display: grid;
   min-height: 0;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.45rem;
+  gap: 0.5rem;
 }
 
 .attunementCard {
   display: grid;
-  grid-template-columns: 3.35rem minmax(0, 1fr);
+  grid-template-columns: 3.45rem minmax(0, 1fr);
   min-width: 0;
   gap: 0.52rem;
   align-items: center;
-  padding: 0.34rem;
+  padding: 0.42rem;
   border: 1px solid rgba(126, 104, 68, 0.3);
   background: rgba(255, 253, 246, 0.65);
 }
@@ -464,8 +467,9 @@
 .futurePowerCard p {
   margin: 0;
   color: #5f707b;
-  font-size: 0.55rem;
-  line-height: 1.24;
+  font-size: 0.56rem;
+  line-height: 1.28;
+  overflow-wrap: anywhere;
 }
 
 .attunementCard b,
@@ -546,8 +550,12 @@
     overflow: visible;
   }
 
+  .techniqueLanes {
+    grid-template-columns: 1fr;
+  }
+
   .techniqueLane {
-    grid-template-columns: 9.8rem minmax(0, 1fr);
+    min-height: 6.8rem;
   }
 
   .techniqueSlots {
@@ -597,13 +605,13 @@
     width: 100%;
   }
 
-  .techniqueLane {
+  .techniqueLanes {
     grid-template-columns: 1fr;
   }
 
-  .techniqueLaneIdentity {
-    border-right: 0;
-    border-bottom: 1px solid rgba(212, 186, 130, 0.2);
+  .techniqueLane {
+    grid-template-columns: 1fr;
+    min-height: 0;
   }
 
   .techniqueSlots {

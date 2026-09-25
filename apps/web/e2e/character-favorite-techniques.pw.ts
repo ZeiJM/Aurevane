@@ -68,8 +68,25 @@ test('Technique selection auto-saves and favorite controls are removed', async (
   await forceful.hover()
   const preview = page.getByTestId('technique-preview')
   await expect(preview).toContainText('Forceful Strike')
-  await expect(preview).toContainText('AP')
+  for (const label of [
+    'Skill Type',
+    'Cost',
+    'Damage',
+    'Effects',
+    'Requirements',
+    'Target',
+    'Target Method',
+    'Target Elevation',
+    'Range',
+    'Line of Sight',
+    'Cooldown',
+  ]) {
+    await expect(preview.getByText(label, { exact: true })).toBeVisible()
+  }
+  await expect(preview).not.toContainText('Effects, in order')
   await expect(preview.getByText('Skill details', { exact: true })).toHaveCount(0)
+  await expect(forceful).toContainText('Attack')
+  await expect(forceful).not.toContainText('AP')
 
   await dialog.getByRole('button', { name: 'Close' }).click()
   await page.reload()

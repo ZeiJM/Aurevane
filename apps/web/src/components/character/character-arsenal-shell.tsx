@@ -20,17 +20,6 @@ import styles from './character-arsenal-shell.module.css'
 
 const OVERVIEW_TECHNIQUE_SLOTS = 4
 
-function overviewTechniqueType(skill: MatureSkillDefinition): string {
-  const cockpitTag = skill.tags.find((tag) => tag.startsWith('cockpit:'))
-  if (!cockpitTag) return 'Technique'
-  return cockpitTag
-    .slice('cockpit:'.length)
-    .split(/[._-]/g)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ')
-}
-
 function TechniqueLane({
   kind,
   discipline,
@@ -45,6 +34,7 @@ function TechniqueLane({
   return (
     <section
       className={styles.techniqueLane}
+      data-nexus-technique-lane="true"
       data-locked={locked ? 'true' : 'false'}
       aria-label={locked ? 'Locked Secondary Techniques' : `${discipline?.name ?? kind} Techniques`}
     >
@@ -85,6 +75,7 @@ function TechniqueLane({
                 className={styles.emptyTechniqueSlot}
                 key={`empty-${kind}-${index}`}
                 data-arsenal-technique-row="true"
+                data-empty-technique-slot="true"
                 data-equipped="false"
                 aria-hidden="true"
               >
@@ -109,9 +100,6 @@ function TechniqueLane({
                 />
               </span>
               <strong>{skillDisplayName(skill)}</strong>
-              <small className={styles.overviewTechniqueMeta}>
-                {overviewTechniqueType(skill)} · {skill.apCost} AP
-              </small>
             </article>
           )
         })}
