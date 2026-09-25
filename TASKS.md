@@ -23,6 +23,18 @@ These requirements are explicitly retained in the active ledger and must not be 
 
 Tracking note: the detailed contract is `docs/LIVING_ATLAS_EXPANSION.md`. Existing implementation slices include #679 (presentation/ambient/globe UX), #681 (regional settlement geometry; merge-held for matching art), #682 (unlabeled charted-sector selection) and the authored adjacent-sector crossing foundation under development. Production/Vercel release is intentionally deferred while implementation limits apply.
 
+### Owner reference-review integration — 2026-09-25
+
+Approved delivery contract: `docs/ROADMAP_WORLD_EXPERIENCE.md`; phase sequence in `docs/ROADMAP.md`.
+
+- [ ] P5-W1: measured faster ordinary travel, authoritative timing/ETA compatibility and retained encounter/stop/reconnect protections.
+- [ ] P5-W2: globe/local location and destination clarity, accessible inspect/view versus travel and responsive framing/labels.
+- [ ] P5-W3: authored place identity, staged distinct settlements with matching art, and contextual existing service/objective actions.
+- [ ] P5-W4: current build and representative Ascension/Severence identity clarity with authoritative eligibility/exclusivity and spoiler safety.
+- [ ] Phase 6 carry-forward: P6-W1 continuous multi-sector surface and P6-S1 mechanic-based Skill discovery/shared factual summaries; later phase acceptance in the companion.
+
+Ownership: the current Phase 5 chat handles server timing, authored geography/content and supernatural rules/projection; a separate Work Mode chat handles all layout/presentation/art alignment. Agree shared contract changes before editing. Preserve existing PC music upload, Anchor/Drift work and deployment lock. These items are planned work, not implementation evidence or phase completion.
+
 ### Historical implementation checkpoints (2026-09-22 onward)
 
 Owner approved Phase 5, the globe/sector style, uncharted territory and temporary View 360. Isolated branch `agent/phase5-strategic-atlas-20260922` implements the first Atlas/travel slice with event guidance and existing PvP entry. Phase 4 was subsequently closed by Owner decision on 2026-09-23. See `docs/PHASE_4_CLOSEOUT.md` and `docs/LIVING_ATLAS_DELIVERY.md` for the bounded content scope and verification/release gates; this entry does not claim all Phase 5 complete or authorize deployment.

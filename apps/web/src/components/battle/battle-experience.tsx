@@ -275,9 +275,15 @@ export function BattleExperience({
       'sourceSkillId' in technique ? technique.sourceSkillId : technique.id,
       technique.iconKey,
     )
-  const [selectedAttackActionId, setSelectedAttackActionId] = useState<string>(BASIC_ATTACK_ID)
-  const [selectedDefenseActionId, setSelectedDefenseActionId] = useState<string>(GUARD_ID)
-  const [selectedTechniqueHealId, setSelectedTechniqueHealId] = useState<string | null>(null)
+  const [selectedAttackActionId, setSelectedAttackActionId] = useState<string>(
+    attackTechniques[0]?.id ?? BASIC_ATTACK_ID,
+  )
+  const [selectedDefenseActionId, setSelectedDefenseActionId] = useState<string>(
+    defenseTechniques[0]?.id ?? GUARD_ID,
+  )
+  const [selectedTechniqueHealId, setSelectedTechniqueHealId] = useState<string | null>(
+    healTechniques[0]?.id ?? null,
+  )
   const attackOptions = [
     {
       id: BASIC_ATTACK_ID,

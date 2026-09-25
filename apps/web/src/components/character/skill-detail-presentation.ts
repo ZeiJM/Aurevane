@@ -94,6 +94,174 @@ export function skillTargetTags(skill: MatureSkillDefinition): readonly string[]
   return combatActionPresentationTags(skill)
 }
 
+export function skillTypeDescription(skill: MatureSkillDefinition): string {
+  const cockpitTag = skill.tags.find((tag) => tag.startsWith('cockpit:'))
+  if (cockpitTag) return title(cockpitTag.slice('cockpit:'.length))
+  const fallback = skill.tags.find((tag) =>
+    ['attack', 'defense', 'recovery', 'support', 'control'].includes(tag),
+  )
+  return fallback ? title(fallback) : 'Technique'
+}
+
+export function skillCostDescription(skill: MatureSkillDefinition): string {
+  return skill.mpCost ? `${skill.apCost} AP / ${skill.mpCost} MP` : `${skill.apCost} AP`
+}
+
+export function skillDamageDescription(skill: MatureSkillDefinition): string {
+  const amounts = skill.effects
+    .filter(
+      (effect): effect is Extract<CombatEffectDefinition, { type: 'damage' }> =>
+        effect.type === 'damage',
+    )
+    .map((effect) => effect.amount)
+
+  if (amounts.length === 0) return '0'
+  return amounts.length === 1 ? `${amounts[0]} base` : `${amounts.join(' + ')} base`
+}
+
+export function skillEffectsSummary(skill: MatureSkillDefinition): string {
+  const effects = new Set<string>()
+
+  for (const effect of skill.effects) {
+    switch (effect.type) {
+      case 'damage':
+        if (effect.element) effects.add(title(effect.element))
+        break
+      case 'apply-status':
+        effects.add(gameplayStatusName(effect.statusId))
+        break
+      case 'remove-status':
+        effects.add('Cleanse')
+        break
+      case 'poison':
+        effects.add('Poison')
+        break
+      case 'burn':
+        effects.add('Burn')
+        break
+      case 'bleed':
+        effects.add('Bleed')
+        break
+      case 'healing':
+        effects.add('Healing')
+        break
+      case 'barrier-change':
+        effects.add(effect.amount >= 0 ? 'Barrier' : 'Barrier Break')
+        break
+      case 'resource-change':
+        effects.add(effect.delta >= 0 ? 'MP Restore' : 'MP Drain')
+        break
+      case 'displace':
+        effects.add(effect.direction === 'pull' ? 'Pull' : 'Push')
+        break
+      case 'create-terrain':
+        effects.add('Frozen Terrain')
+        break
+      case 'return-to-turn-start':
+        effects.add('Return to Turn Start')
+        break
+      case 'copy-statuses':
+        effects.add('Status Copy')
+        break
+      case 'copy':
+        effects.add('Skill Copy')
+        break
+      case 'sensory':
+        effects.add('Sensory / Revealed')
+        break
+    }
+  }
+
+  const ignoredTags = new Set([
+    'discipline',
+    skill.sourceDisciplineId,
+    'attack',
+    'defense',
+    'recovery',
+    'support',
+    'heal',
+    'control',
+  ])
+  for (const tag of skill.tags) {
+    if (tag.startsWith('cockpit:') || ignoredTags.has(tag)) continue
+    effects.add(title(tag))
+  }
+
+  return effects.size > 0 ? [...effects].join(', ') : 'N/A'
+}
+
+export function skillRequirementsSummary(skill: MatureSkillDefinition): string {
+  if (skill.requirements.length === 0) return 'None'
+  return skill.requirements
+    .map((requirement) => {
+      switch (requirement.kind) {
+        case 'actor-tag-present':
+          return `Self: ${title(requirement.tag)}`
+        case 'actor-tag-absent':
+          return `Self lacks ${title(requirement.tag)}`
+        case 'target-tag-present':
+          return `Target: ${title(requirement.tag)}`
+        case 'actor-status-present':
+          return `Self: ${gameplayStatusName(requirement.statusId)}`
+        case 'actor-status-absent':
+          return `Self lacks ${gameplayStatusName(requirement.statusId)}`
+        case 'target-status-present':
+          return `Target: ${gameplayStatusName(requirement.statusId)}`
+        case 'actor-hp-at-most':
+          return `HP ≤ ${requirement.basisPoints / 100}%`
+      }
+    })
+    .join(', ')
+}
+
+export function skillTargetDescription(skill: MatureSkillDefinition): string {
+  if (skill.target.kind === 'self') return 'Self'
+  if (skill.target.kind === 'ground-tile') return 'Ground'
+  if (skill.target.kind === 'empty-tile') return 'Empty Ground'
+  switch (skill.target.teamPolicy) {
+    case 'self':
+      return 'Self'
+    case 'ally':
+      return 'Ally'
+    case 'enemy':
+      return 'Enemy'
+    case 'any':
+      return 'Any Unit'
+  }
+}
+
+export function skillTargetMethodDescription(skill: MatureSkillDefinition): string {
+  switch (skill.target.shape.kind) {
+    case 'single':
+      return 'Single'
+    case 'circle':
+      return `Circle · radius ${skill.target.shape.radius}`
+    case 'line':
+      return `Line · ${skill.target.shape.length} tiles`
+  }
+}
+
+export function skillTargetElevationDescription(skill: MatureSkillDefinition): string {
+  return skill.target.maximumElevationDifference === null
+    ? 'N/A'
+    : String(skill.target.maximumElevationDifference)
+}
+
+export function skillCompactRangeDescription(skill: MatureSkillDefinition): string {
+  if (skill.target.kind === 'self') return 'N/A'
+  const { minimumRange: min, maximumRange: max } = skill.target
+  return min === max ? `${min} ${min === 1 ? 'tile' : 'tiles'}` : `${min}–${max} tiles`
+}
+
+export function skillLineOfSightDescription(skill: MatureSkillDefinition): string {
+  if (skill.target.kind === 'self') return 'N/A'
+  return skill.target.requiresLineOfSight ? 'Required' : 'Not required'
+}
+
+export function skillCooldownDescription(skill: MatureSkillDefinition): string {
+  return `${skill.cooldown.ownerTurns} ${skill.cooldown.ownerTurns === 1 ? 'turn' : 'turns'}`
+}
+
 export function skillRangeDescription(skill: MatureSkillDefinition): string {
   const { minimumRange: min, maximumRange: max } = skill.target
   return skill.target.kind === 'self'

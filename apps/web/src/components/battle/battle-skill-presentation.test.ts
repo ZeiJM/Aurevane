@@ -140,15 +140,36 @@ describe('battle skill artwork presentation', () => {
       '/media/art/discipline-skills/runeblade-rune-mending-v01.webp',
     )
 
-    for (const id of ['dawnshield.radiant-strike', 'dawnshield.aegis']) {
-      const source = battleSkillArtwork(id)
-      expect(source).toMatch(/^data:image\/svg\+xml,/)
-      const svg = decodeURIComponent(source)
-      expect(svg).toContain('width="512"')
-      expect(svg).toContain('height="512"')
-      expect(svg).toContain('data-art-kind="discipline-skill-action"')
-      expect(svg).toContain('data-action-figure="true"')
-    }
+    expect(battleSkillArtwork('dawnshield.radiant-strike')).toBe(
+      '/media/art/discipline-skills/dawnshield-radiant-strike-v01.webp',
+    )
+    expect(battleSkillArtwork('dawnshield.last-light')).toBe(
+      '/media/art/discipline-skills/dawnshield-last-light-v01.webp',
+    )
+    expect(battleSkillArtwork('cinderweaver.cinder-bolt')).toBe(
+      '/media/art/discipline-skills/cinderweaver-cinder-bolt-v01.webp',
+    )
+    expect(battleSkillArtwork('cinderweaver.blistering-heat')).toBe(
+      '/media/art/discipline-skills/cinderweaver-blistering-heat-v01.webp',
+    )
+    expect(battleSkillArtwork('frostweaver.ice-lance')).toBe(
+      '/media/art/discipline-skills/frostweaver-ice-lance-v01.webp',
+    )
+    expect(battleSkillArtwork('frostweaver.brittle-ice')).toBe(
+      '/media/art/discipline-skills/frostweaver-brittle-ice-v01.webp',
+    )
+    expect(battleSkillArtwork('stormsinger.arc-spark')).toBe(
+      '/media/art/discipline-skills/stormsinger-arc-spark-v01.webp',
+    )
+    expect(battleSkillArtwork('stormsinger.storm-breath')).toBe(
+      '/media/art/discipline-skills/stormsinger-storm-breath-v01.webp',
+    )
+    expect(battleSkillArtwork('tidecaller.water-lance')).toBe(
+      '/media/art/discipline-skills/tidecaller-water-lance-v01.webp',
+    )
+    expect(battleSkillArtwork('tidecaller.crushing-wave')).toBe(
+      '/media/art/discipline-skills/tidecaller-crushing-wave-v01.webp',
+    )
   })
 
   it('gives the Foundation trio Techniques and Essences non-missing artwork', () => {
@@ -172,18 +193,36 @@ describe('battle skill artwork presentation', () => {
     }
   })
 
-  it('maps established and expanded resonance presentation independently from combat actions', () => {
+  it('uses approved Resonance art for the complete authored catalog', () => {
     for (const resonanceId of PHASE_3_RESONANCE_IDS) {
       const artwork = battleResonanceArtwork(resonanceId)
       expect(artwork).toBe(PHASE_3_RESONANCE_ARTWORK[resonanceId])
-      expect(artwork).not.toBe(BATTLE_MISSING_ARTWORK)
-      expect(artwork).not.toBe(BATTLE_COMMAND_ARTWORK.inspect)
-      expect(artwork.startsWith('data:image/svg+xml,')).toBe(true)
+      expect(artwork).toBe(
+        '/media/art/resonances/resonance-lifebinder-vanguard-mercys-edge-v01.webp',
+      )
+      expect(existsSync(new URL(`../../../public${artwork}`, import.meta.url))).toBe(true)
     }
 
     const expandedResonance = battleResonanceArtwork('resonance.aetherist-farstrider.arcane-hunt')
-    expect(expandedResonance).not.toBe(BATTLE_MISSING_ARTWORK)
-    expect(expandedResonance.startsWith('data:image/svg+xml,')).toBe(true)
+    expect(expandedResonance).toBe(
+      '/media/art/resonances/resonance-aetherist-farstrider-arcane-hunt-v01.webp',
+    )
+    expect(existsSync(new URL(`../../../public${expandedResonance}`, import.meta.url))).toBe(true)
+
+    const completedResonance = battleResonanceArtwork(
+      'resonance.frostweaver-runeblade.linked-sequence',
+    )
+    expect(completedResonance).toBe(
+      '/media/art/resonances/resonance-frostweaver-runeblade-frozen-sigil-v01.webp',
+    )
+    expect(existsSync(new URL(`../../../public${completedResonance}`, import.meta.url))).toBe(true)
+
+    const finalResonance = battleResonanceArtwork('resonance.chronist-tidecaller.linked-sequence')
+    expect(finalResonance).toBe(
+      '/media/art/resonances/resonance-chronist-tidecaller-measured-tide-v01.webp',
+    )
+    expect(existsSync(new URL(`../../../public${finalResonance}`, import.meta.url))).toBe(true)
+
     expect(battleResonanceArtwork('future.resonance')).toBe(BATTLE_MISSING_ARTWORK)
   })
 })

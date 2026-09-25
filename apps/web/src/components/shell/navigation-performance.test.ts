@@ -27,10 +27,10 @@ describe('authenticated navigation performance contracts', () => {
     expect(presence).not.toContain('new AbortController()')
   })
 
-  it('overlaps current Skill resolution with the remaining Character and Arsenal reads', () => {
+  it('overlaps current Skill resolution with the remaining Character and Nexus reads', () => {
     for (const path of [
       'src/app/game/(roaming)/character/page.tsx',
-      'src/app/game/(roaming)/arsenal/page.tsx',
+      'src/app/game/(roaming)/nexus/page.tsx',
     ]) {
       const page = source(path)
 

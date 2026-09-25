@@ -22,14 +22,16 @@ describe('dark-fantasy combat artwork', () => {
     }
   })
 
-  it('prefers approved Skill art while preserving generated Resonance art', () => {
+  it('prefers approved Skill and Resonance art over legacy dark-fantasy assets', () => {
     const skill = battleSkillArtwork('lifebinder.vital-sever')
     const essence = battleSkillArtwork('essence.aetherist.aether-nova')
     const resonance = battleResonanceArtwork('resonance.farstrider-shadehand.marked-opening')
 
     expect(skill).toBe('/media/art/discipline-skills/lifebinder-vital-sever-v01.webp')
     expect(essence).toBe('/media/art/essence-skills/aetherist-aether-nova-v01.webp')
-    expect(resonance.startsWith('data:image/svg+xml,')).toBe(true)
+    expect(resonance).toBe(
+      '/media/art/resonances/resonance-farstrider-shadehand-marked-opening-v01.webp',
+    )
 
     expect(skill).not.toBe(DARK_FANTASY_COMBAT_ARTWORK['lifebinder.vital-sever'])
     expect(essence).not.toBe(DARK_FANTASY_COMBAT_ARTWORK['essence.aetherist.aether-nova'])
