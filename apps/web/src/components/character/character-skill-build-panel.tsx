@@ -9,7 +9,6 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import {
   useEffect,
   useMemo,
-  useRef,
   useState,
   useSyncExternalStore,
   type CSSProperties,
@@ -145,7 +144,6 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
   const [message, setMessage] = useState<string | null>(null)
   const [coarsePointer, setCoarsePointer] = useState(false)
   const [refreshOnClose, setRefreshOnClose] = useState(false)
-  const lastTapRef = useRef<{ skillId: string; at: number } | null>(null)
 
   const visibleSkills = useMemo(
     () => learnedSkills.filter((entry) => entry.activeSource),
@@ -326,19 +324,6 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
     void commitSelection(nextIds)
   }
 
-  function handleCoarseTechniqueTap(skill: SkillCatalogEntryView, timestamp: number) {
-    const previous = lastTapRef.current
-    setFocusedSkillId(skill.definition.id)
-
-    if (previous?.skillId === skill.definition.id && timestamp - previous.at <= 350) {
-      lastTapRef.current = null
-      toggleAndCommit(skill)
-      return
-    }
-
-    lastTapRef.current = { skillId: skill.definition.id, at: timestamp }
-  }
-
   function renderTechniqueGroup(
     discipline: { id: string; name: string } | null,
     skills: readonly SkillCatalogEntryView[],
@@ -406,7 +391,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                     onClick={(event) => {
                       if (!coarsePointer) return
                       event.preventDefault()
-                      handleCoarseTechniqueTap(entry, event.timeStamp)
+                      toggleAndCommit(entry)
                     }}
                     onChange={() => {
                       if (!coarsePointer) toggleAndCommit(entry)
