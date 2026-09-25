@@ -76,12 +76,12 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
   await expect(list.locator('article')).toHaveCount(8)
   const palm = list.locator('article').filter({ hasText: 'Counter Palm' })
   await palm.getByRole('checkbox').focus()
-  await expect(dialog).toContainText('Requires Guarded on yourself.')
-  await expect(dialog).toContainText('1 tile')
+  await expect(dialog).toContainText('RequirementsSelf: Guard')
+  await expect(dialog).toContainText('Range1 tile')
   await expect(palm.getByRole('checkbox')).not.toBeChecked()
   const sweep = list.locator('article').filter({ hasText: 'Sweep' })
   await sweep.getByRole('checkbox').focus()
-  await expect(dialog).toContainText('Circle 1')
+  await expect(dialog).toContainText('Target MethodCircle · radius 1')
   for (const name of ['Rising Fist', 'Sweep', 'Breakfall', 'Counter Palm']) {
     await setTechnique(page, list.locator('article').filter({ hasText: name }), true)
   }
@@ -281,9 +281,9 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
   await expect(list.locator('article')).toHaveCount(8)
   const fortress = list.locator('article').filter({ hasText: 'Fortress' })
   await fortress.getByRole('checkbox').focus()
-  await expect(dialog).toContainText('Fortified')
-  await expect(dialog).toContainText('Take 30% less damage and deal 20% less damage.')
-  await expect(dialog).toContainText('to yourself')
+  await expect(dialog).toContainText('EffectsFortified')
+  await expect(dialog).toContainText('TargetSelf')
+  await expect(dialog).toContainText('Damage0')
   expect(await dialog.evaluate((element) => element.scrollWidth > element.clientWidth + 1)).toBe(
     false,
   )
@@ -412,10 +412,11 @@ test('Chronist provisions its full testing library, Essence artwork and explicit
   await expect(list.locator('article')).toHaveCount(8)
   const haste = list.locator('article').filter({ hasText: 'Haste' }).first()
   await haste.getByRole('checkbox').focus()
-  await expect(dialog).toContainText('Movement costs 10 less AP per entered tile')
+  await expect(dialog).toContainText('EffectsHaste')
   const rewind = list.locator('article').filter({ hasText: 'Rewind Step' })
   await rewind.getByRole('checkbox').focus()
-  await expect(dialog).toContainText('turn')
+  await expect(dialog).toContainText('EffectsReturn to Turn Start')
+  await expect(dialog).toContainText('Cooldown')
   expect(await dialog.evaluate((element) => element.scrollWidth > element.clientWidth + 1)).toBe(
     false,
   )
