@@ -97,9 +97,7 @@ test('Technique selection auto-saves and favorite controls are removed', async (
   await expect(dialog.locator('[data-favorite-technique-star="true"]')).toHaveCount(0)
 })
 
-test('mobile Techniques use tap to preview and double tap to select', async ({
-  page,
-}, testInfo) => {
+test('mobile Techniques select and save on the first tap', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'mobile-chromium', 'Mobile Technique interaction proof')
 
   await provisionAccountAndEnterCharacter({
@@ -115,16 +113,13 @@ test('mobile Techniques use tap to preview and double tap to select', async ({
   const label = forceful.locator('label')
   const before = await checkbox.isChecked()
 
-  await label.tap()
-  await expect(page.getByTestId('technique-preview')).toContainText('Forceful Strike')
-  await expect(checkbox).toBeChecked({ checked: before })
-
   const saved = page.waitForResponse(
     (response) =>
       response.url().endsWith('/api/character/build/skills') &&
       response.request().method() === 'PUT',
   )
-  await label.dblclick()
+  await label.tap()
+
   expect((await saved).status()).toBe(200)
   await expect(checkbox).toBeChecked({ checked: !before })
   await expect(dialog.locator('[data-favorite-technique-star="true"]')).toHaveCount(0)
