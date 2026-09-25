@@ -7,10 +7,10 @@ import { describe, expect, it } from 'vitest'
 
 import { APPROVED_RESONANCE_ART, resonanceArtwork } from './resonance-art'
 
-describe('approved Resonance artwork — first 80 of 136', () => {
-  it('maps exactly the 80 approved Resonances to unique committed square WebPs', () => {
+describe('approved Resonance artwork — complete 136 of 136', () => {
+  it('maps exactly all 136 approved Resonances to unique committed square WebPs', () => {
     const entries = Object.entries(APPROVED_RESONANCE_ART)
-    expect(entries).toHaveLength(80)
+    expect(entries).toHaveLength(136)
 
     const currentIds = new Set(P35_REPRESENTATIVE_RESONANCES.map((resonance) => resonance.id))
     expect(currentIds.size).toBe(136)
@@ -26,12 +26,17 @@ describe('approved Resonance artwork — first 80 of 136', () => {
       return createHash('sha256').update(file).digest('hex')
     })
 
-    expect(new Set(entries.map(([, src]) => src)).size).toBe(80)
-    expect(new Set(hashes).size).toBe(80)
+    expect(new Set(entries.map(([, src]) => src)).size).toBe(136)
+    expect(new Set(hashes).size).toBe(136)
   })
 
-  it('does not claim unapproved Resonance artwork', () => {
-    expect(resonanceArtwork('resonance.frostweaver-runeblade.linked-sequence')).toBeNull()
+  it('maps the former fallback range and rejects unknown Resonance ids', () => {
+    expect(resonanceArtwork('resonance.frostweaver-runeblade.linked-sequence')).toBe(
+      '/media/art/resonances/resonance-frostweaver-runeblade-frozen-sigil-v01.webp',
+    )
+    expect(resonanceArtwork('resonance.chronist-tidecaller.linked-sequence')).toBe(
+      '/media/art/resonances/resonance-chronist-tidecaller-measured-tide-v01.webp',
+    )
     expect(resonanceArtwork('resonance.unknown.invalid')).toBeNull()
   })
 })
