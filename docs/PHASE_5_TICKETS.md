@@ -65,6 +65,17 @@ Current bounded progress:
 - [ ] Early evidence of far inhabitants.
 - [ ] Early Horizon/world gates where required by progression/story.
 
+## Owner reference-review work — 2026-09-25
+
+Detailed scope, acceptance and two-chat ownership: `ROADMAP_WORLD_EXPERIENCE.md`. These are refinements to 5A/5B, not a new phase or claims of completed work.
+
+- [ ] **P5-W1 — Faster ordinary travel:** inspect effective durations/overrides and the complete authoritative execution path; tune pace with before/after evidence while preserving route validation, ETA, stop/reconnect and encounter contention.
+- [ ] **P5-W2 — Globe/local clarity:** persistent player/destination context, explicit inspect/view versus travel, accessible navigation and readable responsive globe labels.
+- [ ] **P5-W3 — Place identity:** finish staged distinct settlement geometry with matching reviewed art and add truthful contextual service/objective presentation using existing authority.
+- [ ] **P5-W4 — Character/fork clarity:** current build identity and representative Ascension/Severence explanations derived from approved story/power state; deliberate permanent choice, private undiscovered content and normal branch exclusivity preserved.
+
+**Existing Phase 5 chat:** server travel timing, authored geography/content and supernatural authority/projection. **Separate Work Mode chat:** layout/CSS/rendering, contextual location and identity UI, approved map art alignment and visual verification. Coordinate shared types/DTOs before edits; preserve active music, Anchor and Drift slices. No wholesale multi-sector renderer or new Skill browser here: those remain P6-W1/P6-S1. Missing approved media or mechanics are explicit open dependencies, not permission to invent content.
+
 ## Phase 5 gate
 
 Players must understand the living-world loop, supernatural choice and frontier mystery without procedural-filler feeling.

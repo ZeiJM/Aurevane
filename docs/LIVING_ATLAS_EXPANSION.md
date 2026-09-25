@@ -100,3 +100,7 @@ Phase-5 known-world acceptance additionally requires:
 - environmental motion is visibly perceptible without becoming distracting;
 - charted unlabeled sectors are discoverable and selectable without pixel-perfect clicking;
 - new land-sector coverage uses authored traversal/identity rather than bulk filler generation.
+
+## Reference-review refinement — 2026-09-25
+
+`ROADMAP_WORLD_EXPERIENCE.md` adds the Owner-approved Phase 5 travel-pace, navigation and place-identity acceptance criteria (P5-W1–W3), including the separate server/content and Work Mode presentation ownership. It also distinguishes **authored land coverage/crossings in Phase 5** from **continuous multi-sector rendering in Phase 6**. Continuous geography alone does not establish seamless camera/rendering behavior. Preserve this document's geometry/art agreement, reciprocal gates, maritime boundary and discovery privacy through both phases.
