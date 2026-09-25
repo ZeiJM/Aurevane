@@ -400,14 +400,30 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
   await page.getByRole('button', { name: /Globe/ }).click()
 
   const unchartedCell = globeSectorCenter('S17-09')!
-  const unchartedPoint = projectGlobePoint(unchartedCell, { longitude: 0, latitude: 8 })
   const returnedGlobeBounds = (await sphere.boundingBox())!
-  await sphere.click({
-    position: {
-      x: returnedGlobeBounds.width * (0.5 + unchartedPoint.x * 0.94 * 0.5),
-      y: returnedGlobeBounds.height * (0.5 - unchartedPoint.y * 0.94 * 0.5),
-    },
-  })
+  const unchartedCandidates = [
+    unchartedCell,
+    { longitude: unchartedCell.longitude + 2, latitude: unchartedCell.latitude },
+    { longitude: unchartedCell.longitude - 2, latitude: unchartedCell.latitude },
+    { longitude: unchartedCell.longitude, latitude: unchartedCell.latitude + 2 },
+    { longitude: unchartedCell.longitude, latitude: unchartedCell.latitude - 2 },
+  ]
+  let unchartedClick: { x: number; y: number } | null = null
+  for (const candidate of unchartedCandidates) {
+    const point = projectGlobePoint(candidate, { longitude: 0, latitude: 8 })
+    const x = returnedGlobeBounds.x + returnedGlobeBounds.width * (0.5 + point.x * 0.94 * 0.5)
+    const y = returnedGlobeBounds.y + returnedGlobeBounds.height * (0.5 - point.y * 0.94 * 0.5)
+    const coveredByButton = await page.evaluate(
+      ({ x, y }) => Boolean(document.elementFromPoint(x, y)?.closest('button')),
+      { x, y },
+    )
+    if (!coveredByButton) {
+      unchartedClick = { x, y }
+      break
+    }
+  }
+  expect(unchartedClick).not.toBeNull()
+  await page.mouse.click(unchartedClick!.x, unchartedClick!.y)
   await expect(page.getByRole('status')).toContainText(
     'S17-09 is uncharted. No charted destination is available there yet.',
   )
