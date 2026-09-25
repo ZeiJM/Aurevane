@@ -549,6 +549,7 @@ test('expired training releases travel without claiming XP and frontier discover
   await page.reload()
   const observation = await world(page)
   expect(observation.archive).toEqual([])
+  expect(observation.anchors).toEqual([])
   const recordObservation = await page.request.post('/api/world', {
     data: {
       characterId: initial.characterId,
@@ -569,10 +570,22 @@ test('expired training releases travel without claiming XP and frontier discover
       provenance: 'Direct field observation',
     }),
   ])
+  expect(archived.anchors).toEqual([
+    expect.objectContaining({
+      id: 'first-observation',
+      name: 'Weathered Observatory',
+    }),
+  ])
+  const anchors = page.getByRole('region', { name: 'Frontier Anchors' })
+  await expect(anchors).toContainText('Weathered Observatory')
+  await expect(anchors).toContainText('persists in frontier history')
   const archivedVersion = archived.version
   await page.reload()
   expect((await world(page)).version).toBe(archivedVersion)
   await expect(page.getByRole('region', { name: 'Archive' })).toContainText('Weathered Observatory')
+  await expect(page.getByRole('region', { name: 'Frontier Anchors' })).toContainText(
+    'Weathered Observatory',
+  )
 
   const archivedCells = archived.sectors.find((s) => !s.charted)!.cells
   await capture(page, info, 'world-frontier')
