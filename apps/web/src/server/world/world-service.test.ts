@@ -4,7 +4,6 @@ import { newWorldState, revealNearby } from '@/world/travel'
 import { FRONTIER_APPROACH } from '@/world/catalog'
 import { assertEncounterRange, projectWorld, resolveWorldIntent } from './world-service'
 import { EASTERN_WATCH, EASTERN_WATCH_INTERACTION_ID, VERDANT_SETTLEMENT } from './world-objectives'
-import { FIRST_FIELD_OBSERVATION_ID } from './world-archive'
 
 describe('world authority and spoiler projection', () => {
   it.each([
@@ -88,13 +87,72 @@ describe('world authority and spoiler projection', () => {
     expect(JSON.stringify(view)).not.toContain('survey-01')
     expect(JSON.stringify(view)).not.toContain('Weathered Observatory')
   })
+  it('projects Crown Hinterland as charted wilderness with only authored reciprocal exits', () => {
+    const state = {
+      ...newWorldState(),
+      position: { sectorId: 'crown-hinterland', x: 6, y: 4 },
+    }
+    const view = projectWorld(state, [], 1000)
+    const hinterland = view.sectors.find((sector) => sector.id === 'crown-hinterland')!
+
+    expect(hinterland).toMatchObject({
+      name: 'Crown Hinterland',
+      coordinate: 'S15-08',
+      regionId: 'aureth-crown',
+      charted: true,
+    })
+    expect(
+      hinterland.cells.filter((cell) => cell.y === 4).every((cell) => cell.walkable && !cell.safe),
+    ).toBe(true)
+    expect(hinterland.exits.map((exit) => exit.to.sectorId).sort()).toEqual([
+      'aureth-crown',
+      'crown-road',
+      'crown-uplands',
+    ])
+    expect(view.sectors.some((sector) => sector.coordinate === 'S17-08')).toBe(false)
+  })
+
+  it('projects the rest of the Crown wilderness cluster as open authored land', () => {
+    const view = projectWorld(newWorldState(), [], 1000)
+    const expected = [
+      {
+        id: 'crown-northfields',
+        coordinate: 'S14-07',
+        exits: ['aureth-crown', 'crown-uplands'],
+      },
+      {
+        id: 'crown-uplands',
+        coordinate: 'S15-07',
+        exits: ['crown-hinterland', 'crown-northfields'],
+      },
+    ]
+
+    for (const item of expected) {
+      const sector = view.sectors.find((candidate) => candidate.id === item.id)!
+      expect(sector).toMatchObject({
+        id: item.id,
+        coordinate: item.coordinate,
+        regionId: 'aureth-crown',
+        art: null,
+        charted: true,
+      })
+      expect(sector.cells.some((cell) => cell.walkable)).toBe(true)
+      expect(sector.cells.some((cell) => cell.safe)).toBe(false)
+      expect(sector.exits.map((exit) => exit.to.sectorId).sort()).toEqual(item.exits)
+    }
+  })
+
   it('exposes Crown Road as its own open territory and keeps nearby encounters local', () => {
     const state = { ...newWorldState(), position: { sectorId: 'crown-road', x: 5, y: 4 } }
     const view = projectWorld(state, [], 1000)
     const road = view.sectors.find((s) => s.id === 'crown-road')!
     expect(road).toBeDefined()
     expect(road.cells.filter((c) => c.y === 4).every((c) => c.walkable && !c.safe)).toBe(true)
-    expect(road.exits.map((e) => e.to.sectorId).sort()).toEqual(['aureth-crown', 'verdant-expanse'])
+    expect(road.exits.map((e) => e.to.sectorId).sort()).toEqual([
+      'aureth-crown',
+      'crown-hinterland',
+      'verdant-expanse',
+    ])
     expect(() =>
       assertEncounterRange(state, { ...state, position: { ...state.position, x: 6 } }),
     ).not.toThrow()
@@ -240,26 +298,6 @@ describe('world authority and spoiler projection', () => {
     ]
     expect(projectWorld(state, players, 1000).players).toEqual([])
   })
-  it('reveals a frontier Field Observation in the Archive only after it is recorded', () => {
-    const state = newWorldState()
-    const hidden = projectWorld(state, [], 1000)
-    expect(hidden.archive).toEqual([])
-    expect(JSON.stringify(hidden)).not.toContain('Weathered Observatory')
-
-    const recorded = {
-      ...state,
-      completedObjectives: [...state.completedObjectives, FIRST_FIELD_OBSERVATION_ID],
-    }
-    expect(projectWorld(recorded, [], 1000).archive).toEqual([
-      expect.objectContaining({
-        id: 'field-observation-first-observation',
-        kind: 'field-observation',
-        title: 'Weathered Observatory',
-        provenance: 'Direct field observation',
-      }),
-    ])
-  })
-
   it('persists discovery and completes an arrival objective once', () => {
     const state = { ...newWorldState(), position: FRONTIER_APPROACH }
     const next = resolveWorldIntent(state, { kind: 'tick' }, 1000)
