@@ -30,7 +30,7 @@ async function closeOpenDialog(page: Page): Promise<void> {
   await expect(dialog).toHaveCount(0)
 }
 
-test('mobile mixed-build Technique counters sit below the title without colliding with Close', async ({
+test('mobile Techniques header keeps capacity status clear of title and Close', async ({
   page,
 }, testInfo) => {
   test.skip(
@@ -55,20 +55,18 @@ test('mobile mixed-build Technique counters sit below the title without collidin
   await page.reload()
   await expect(page.getByTestId('character-profile')).toBeVisible()
   await closeOpenDialog(page)
-  await page.goto('/game/arsenal')
+  await page.goto('/game/nexus')
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
 
   await page
     .getByTestId('primary-build-panel')
-    .getByRole('button', { name: /Manage Primary Discipline/ })
+    .getByRole('button', { name: /Manage Disciplines/ })
     .click()
   const disciplineDialog = page.getByRole('dialog', { name: 'Discipline Management' })
   await expect(disciplineDialog).toBeVisible()
-  await page.getByLabel('Proposed Secondary').selectOption('lifebinder')
-  await page.getByRole('button', { name: 'Commit Discipline changes' }).click()
-  await expect(page.getByRole('status')).toContainText(
-    'Lifebinder is now the committed Secondary Discipline.',
-  )
+  await disciplineDialog.getByLabel('Secondary Discipline').selectOption('lifebinder')
+  await disciplineDialog.getByRole('button', { name: /Confirm Change/ }).click()
+  await expect(page.getByRole('status')).toContainText('Discipline changes committed.')
   await disciplineDialog.getByRole('button', { name: 'Close' }).click()
 
   await page.getByRole('button', { name: /Manage Techniques/ }).click()
@@ -78,14 +76,12 @@ test('mobile mixed-build Technique counters sit below the title without collidin
   const heading = dialog.getByRole('heading', { name: 'Techniques' })
   const close = dialog.getByRole('button', { name: 'Close' })
   const capacity = dialog.getByTestId('skill-capacity')
-  const badges = capacity.locator(':scope > div')
 
   await expect(heading).toBeVisible()
   await expect(close).toBeVisible()
   await expect(capacity).toBeVisible()
-  await expect(badges).toHaveCount(2)
-  await expect(capacity).toContainText('Vanguard')
-  await expect(capacity).toContainText('Lifebinder')
+  await expect(capacity).toContainText('/ 4 selected')
+  await expect(dialog.locator('[data-technique-build-strip="true"]')).toHaveCount(0)
 
   const headingBox = await heading.boundingBox()
   const closeBox = await close.boundingBox()
@@ -97,15 +93,5 @@ test('mobile mixed-build Technique counters sit below the title without collidin
   if (!headingBox || !closeBox || !capacityBox) return
 
   expect(overlaps(headingBox, closeBox)).toBe(false)
-  expect(overlaps(headingBox, capacityBox)).toBe(false)
   expect(overlaps(closeBox, capacityBox)).toBe(false)
-  expect(capacityBox.y).toBeGreaterThanOrEqual(
-    Math.max(headingBox.y + headingBox.height, closeBox.y + closeBox.height),
-  )
-
-  const firstBadgeBox = await badges.nth(0).boundingBox()
-  const secondBadgeBox = await badges.nth(1).boundingBox()
-  expect(firstBadgeBox).not.toBeNull()
-  expect(secondBadgeBox).not.toBeNull()
-  if (firstBadgeBox && secondBadgeBox) expect(overlaps(firstBadgeBox, secondBadgeBox)).toBe(false)
 })

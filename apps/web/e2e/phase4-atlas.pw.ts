@@ -4,7 +4,7 @@ import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 test.use({ trace: 'on' })
 
-test('Profile Atlas stays inside Discipline Management and fits each supported viewport', async ({
+test('Mastery authority remains available while Discipline Management uses the compact Nexus layout', async ({
   page,
 }, testInfo) => {
   test.setTimeout(150_000)
@@ -19,93 +19,53 @@ test('Profile Atlas stays inside Discipline Management and fits each supported v
     password: 'Atlas-disposable-browser-2026!',
     characterName: `Atlas ${suffix}`,
   })
-  await page.goto('/game/arsenal')
+
+  await page.goto('/game/nexus')
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
 
-  await page.getByRole('button', { name: /Manage Primary Discipline/ }).click()
+  const mastery = await page.evaluate(async () => {
+    const response = await fetch('/api/character/mastery')
+    return { status: response.status, body: await response.json() }
+  })
+  expect(mastery.status).toBe(200)
+  expect(mastery.body.atlas.totalDisciplines).toBe(36)
+  expect(mastery.body.atlas.publishedDisciplines).toBe(17)
+  expect(mastery.body.atlas.testingAccess).toBe(true)
+  expect(mastery.body.atlas.entries).toHaveLength(36)
+  expect(
+    mastery.body.atlas.entries.filter(
+      (entry: { disciplineId: string | null }) => entry.disciplineId === null,
+    ),
+  ).toHaveLength(6)
+
+  const launcher = page.getByRole('button', { name: /Manage Disciplines/ })
+  await launcher.click()
   const management = page.getByRole('dialog', { name: 'Discipline Management', exact: true })
   await expect(management).toBeVisible()
-  const summary = management.locator('summary').filter({ hasText: 'Discipline Atlas & Mastery' })
-  await summary.focus()
-  await page.keyboard.press('Enter')
-  await expect(management).toContainText('36 Disciplines')
-  await expect(management).toContainText('Testing access is open.')
-
-  const cards = management.locator('article[data-publication]')
-  await expect(cards).toHaveCount(36)
-  await expect(
-    cards.filter({ has: page.getByText('Veiled Discipline', { exact: true }) }),
-  ).toHaveCount(6)
-  await expect(management.locator('article[data-publication="published"]')).toHaveCount(17)
-  const bastion = cards.filter({ has: page.getByText('Bastion', { exact: true }) })
-  await expect(bastion).toContainText('Vanguard Adept')
-  await expect(bastion).toContainText('0/1,000 XP')
-  const chronist = cards.filter({ has: page.getByText('Chronist', { exact: true }) })
-  await expect(chronist).toContainText('Rekindling 1 + Aetherist Adept')
-  await expect(management).toContainText('Ordinary sparring grants no Mastery XP.')
-  await expect(management.getByRole('link', { name: 'Mastery Trial guide' })).toHaveAttribute(
-    'href',
-    '/manual/battle-hall#mastery-trials',
-  )
-  await expect(management.locator('article[data-publication="planned"] progress')).toHaveCount(0)
-
-  const search = management.getByRole('searchbox', { name: 'Search the Atlas' })
-  await search.fill('  CHRONIST  ')
-  await expect(cards).toHaveCount(1)
-  await expect(chronist.getByRole('meter', { name: 'Reliability', exact: true })).toHaveAttribute(
-    'aria-valuemax',
-    '5',
-  )
-  await expect(chronist).toContainText('Planned Mastery Rite:')
-  await search.fill('no-matching-tradition')
-  await expect(cards).toHaveCount(0)
-  await expect(management).toContainText('No traditions match your filters.')
-  await search.fill('')
-  const publishedOnly = management.getByRole('checkbox', { name: 'Published Disciplines only' })
-  await publishedOnly.check()
-  await expect(cards).toHaveCount(17)
-  await publishedOnly.uncheck()
-  await expect(cards).toHaveCount(36)
-
-  for (const card of [bastion, chronist, cards.last()]) {
-    await card.scrollIntoViewIfNeeded()
-    expect(await card.evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(
-      true,
-    )
-  }
+  await expect(management).toContainText('Currently Committed')
+  await expect(management).toContainText('Select New Discipline')
+  await expect(management.getByLabel('Primary Discipline')).toBeVisible()
+  await expect(management.getByLabel('Secondary Discipline')).toBeVisible()
   expect(
     await management.evaluate((element) => element.scrollWidth <= element.clientWidth + 1),
   ).toBe(true)
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1),
   ).toBe(true)
-  await summary.scrollIntoViewIfNeeded()
-  await testInfo.attach(`profile-atlas-${testInfo.project.name}`, {
+
+  await testInfo.attach(`discipline-management-${testInfo.project.name}`, {
     body: await page.screenshot(),
     contentType: 'image/png',
   })
+
   await management.getByRole('button', { name: 'Close', exact: true }).click()
   await expect(management).toHaveCount(0)
-  await expect(page.getByRole('button', { name: /Manage Primary Discipline/ })).toBeFocused()
+  await expect(launcher).toBeFocused()
   await page.keyboard.press('Enter')
-  await expect(management).toBeFocused()
-  await management.getByLabel('Proposed Secondary').focus()
-  await page.keyboard.press('Tab')
-  await expect(
-    management.locator('section[aria-label="Primary Discipline library"] button').first(),
-  ).toBeFocused()
-  const close = management.getByRole('button', { name: 'Close', exact: true })
-  await close.focus()
-  await page.keyboard.press('Shift+Tab')
-  const lastLibraryButton = management
-    .locator('section[aria-label="Primary Discipline library"] button')
-    .last()
-  await expect(lastLibraryButton).toBeFocused()
-  await page.keyboard.press('Tab')
-  await expect(close).toBeFocused()
+  await expect(management).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(management).toHaveCount(0)
-  await expect(page.getByRole('button', { name: /Manage Primary Discipline/ })).toBeFocused()
+  await expect(launcher).toBeFocused()
 })
 
 test('illustrated Manual Atlas is public and fits each supported viewport', async ({
