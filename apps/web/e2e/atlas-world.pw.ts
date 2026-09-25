@@ -971,7 +971,7 @@ test('a due movement step and an attack cannot both commit from the same target 
     place(target.characterId, 'crown-road', 6, 4)
     const destination = { sectorId: 'crown-road', x: 7, y: 4 }
     sql(
-      `update app_private.character_world_state set state = state || '${JSON.stringify({ route: [{ position: destination, durationMs: 4000 }], nextStepAt: Date.now() - 1000 })}'::jsonb where character_id='${target.characterId}'::uuid`,
+      `update app_private.character_world_state set state = state || '${JSON.stringify({ route: [{ position: destination, durationMs: STEP_MS }], nextStepAt: Date.now() - 1000 })}'::jsonb where character_id='${target.characterId}'::uuid`,
     )
     await world(page)
     await world(opponent)
