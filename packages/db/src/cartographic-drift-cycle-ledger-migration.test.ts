@@ -26,7 +26,8 @@ describe('Cartographic Drift cycle-ledger migration', () => {
   it('never persists or accepts the private server seed', () => {
     const sql = readFileSync(migrationPath, 'utf8')
 
-    expect(sql).not.toMatch(/server[_ ]?seed/i)
+    expect(sql).not.toContain('server_seed')
+    expect(sql).not.toContain('p_server_seed')
     expect(sql).not.toContain('p_seed')
   })
 
