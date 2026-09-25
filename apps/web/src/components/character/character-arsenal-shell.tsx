@@ -394,7 +394,13 @@ export function CharacterArsenalShell({
             <div className={styles.powerGrid}>
               <article className={styles.futurePowerCard} data-power="ascension">
                 <span className={styles.powerGlyph} aria-hidden="true">
-                  ✺
+                  <Image
+                    src="/media/art/nexus/nexus-ascension-default-v01.webp"
+                    width={160}
+                    height={160}
+                    unoptimized
+                    alt=""
+                  />
                 </span>
                 <div>
                   <strong>Ascension</strong>
@@ -404,7 +410,13 @@ export function CharacterArsenalShell({
               </article>
               <article className={styles.futurePowerCard} data-power="severed">
                 <span className={styles.powerGlyph} aria-hidden="true">
-                  ◐
+                  <Image
+                    src="/media/art/nexus/nexus-severed-default-v01.webp"
+                    width={160}
+                    height={160}
+                    unoptimized
+                    alt=""
+                  />
                 </span>
                 <div>
                   <strong>Severed</strong>

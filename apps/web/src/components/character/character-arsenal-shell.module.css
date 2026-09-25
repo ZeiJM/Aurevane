@@ -438,7 +438,8 @@
   background: #10232f;
 }
 
-.attunementArt img {
+.attunementArt img,
+.powerGlyph img {
   display: block;
   width: 100%;
   height: 100%;
@@ -517,14 +518,7 @@
 }
 
 .powerGlyph {
-  color: #d7aa4d;
   border-color: #5f7380;
-  font-size: 2rem;
-}
-
-.futurePowerCard[data-power='severed'] .powerGlyph {
-  color: #a97be9;
-  font-size: 2.3rem;
 }
 
 @media (min-width: 1200px) {
