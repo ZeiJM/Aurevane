@@ -177,11 +177,17 @@ export default async function CharacterProfilePage() {
   const supernaturalState =
     supernaturalStateResult.status === 'fulfilled' ? supernaturalStateResult.value : null
   const supernaturalChoices = supernaturalState
-    ? availableSupernaturalChoiceTransitions(supernaturalState).map((transition) => ({
-        transitionId: transition.id,
-        transitionContentVersion: transition.contentVersion,
-        path: transition.result.path,
-      }))
+    ? availableSupernaturalChoiceTransitions(supernaturalState).flatMap((transition) =>
+        transition.result.path === 'ascended' || transition.result.path === 'severed'
+          ? [
+              {
+                transitionId: transition.id,
+                transitionContentVersion: transition.contentVersion,
+                path: transition.result.path,
+              },
+            ]
+          : [],
+      )
     : []
   return (
     <CharacterProfileShell
