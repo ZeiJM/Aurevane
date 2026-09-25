@@ -593,9 +593,7 @@ test('expired training releases travel without claiming XP and frontier discover
   expect((await world(page)).sectors.find((s) => !s.charted)?.cells).toEqual(archivedCells)
 })
 
-test('Crown Road advances one ordinary step with one due client tick', async ({
-  page,
-}, info) => {
+test('Crown Road advances one ordinary step with one due client tick', async ({ page }, info) => {
   test.skip(
     info.project.name !== 'desktop-chromium',
     'Tick scheduling is viewport independent; exercise one authoritative desktop journey.',
