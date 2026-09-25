@@ -4,10 +4,16 @@ import { AurevaneError } from '@aurevane/game-core/errors'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { loadPublicCharacterProfileImageMap } from '@/server/character/character-profile-display-service'
 import { isSafe, newWorldState } from '@/world/travel'
-import type { WorldCommand, WorldPlayer, WorldState } from '@/world/types'
+import type {
+  WorldCommand,
+  WorldPlayer,
+  WorldRoutePreview,
+  WorldRoutePreviewRequest,
+  WorldState,
+} from '@/world/types'
 import { eventWorldObjectives } from './world-events'
 import { WORLD_OBJECTIVES, WORLD_SECTORS } from './world-content'
-import { projectWorld, resolveWorldIntent } from './world-service'
+import { projectWorld, resolveWorldIntent, resolveWorldRoutePreview } from './world-service'
 
 export function worldRpcError(error: { message?: string }): never {
   const message = error.message ?? ''
@@ -117,6 +123,26 @@ export async function readWorld(userId: string, characterId: string) {
     lastCommandFingerprint: data.lastCommandFingerprint as string | null,
   }
 }
+export async function previewWorldRouteForCharacter(
+  userId: string,
+  characterId: string,
+  request: WorldRoutePreviewRequest,
+): Promise<WorldRoutePreview> {
+  const current = await readWorld(userId, characterId)
+  if (current.state.version !== request.expectedVersion)
+    throw new AurevaneError(
+      'STALE_VERSION',
+      'Your position changed. Refresh the map before previewing that route.',
+    )
+  if (current.view.movementBlocked)
+    throw new AurevaneError('INVALID_REQUEST', current.view.movementBlocked)
+
+  return {
+    stateVersion: current.state.version,
+    ...resolveWorldRoutePreview(current.state, request.destination),
+  }
+}
+
 export async function commitWorldCommand(
   userId: string,
   characterId: string,
