@@ -147,7 +147,7 @@ describe('Cartographic Drift resolved-cycle ledger contract', () => {
 
     expect(first.replayed).toBe(false)
     expect(second.replayed).toBe(false)
-    expect(entries).toHaveLength(2)
+    expect(entries.size).toBe(2)
     expect(second.entry.cycleKey).toBe('cycle-b')
   })
 })
