@@ -16,6 +16,7 @@ export interface WorldState {
   routeObjectiveId?: string | null
   nextStepAt: number | null
   discoveries: Record<string, number[]>
+  discoveredAnchors?: string[]
   completedObjectives: string[]
   objectiveProgress?: Record<string, WorldObjectiveProgress>
 }
@@ -77,6 +78,11 @@ export interface WorldInteraction {
   actionLabel: string | null
   progress: WorldObjectiveProgress
 }
+export interface WorldAnchorDiscovery {
+  id: string
+  name: string
+  sectorId: string
+}
 export interface WorldArchiveEntry {
   id: string
   kind: 'field-observation'
@@ -117,6 +123,7 @@ export interface WorldView {
   players: WorldPlayer[]
   objectives: WorldObjective[]
   interactions: WorldInteraction[]
+  anchors: WorldAnchorDiscovery[]
   archive: WorldArchiveEntry[]
   battleSessionId: string | null
   movementBlocked: string | null
