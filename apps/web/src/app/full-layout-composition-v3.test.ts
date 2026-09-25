@@ -10,11 +10,7 @@ const compositionContracts = [
   {
     component: '../components/character/character-profile-shell.tsx',
     stylesheet: '../components/character/character-profile-shell.module.css',
-    markers: [
-      'data-profile-workspace',
-      'data-profile-sheet="true"',
-      'data-testid="current-path"',
-    ],
+    markers: ['data-profile-workspace', 'data-profile-sheet="true"', 'data-testid="current-path"'],
   },
   {
     component: '../components/character/character-arsenal-shell.tsx',
