@@ -158,7 +158,6 @@ export const CHARTED_SECTORS: readonly WorldSector[] = [
     regionId: 'aureth-crown',
     art: '/media/art/world/crown-road-v01.webp',
     panorama: '/media/art/world/crown-road-panorama-v01.webp',
-    stepMs: 4000,
     east: 0,
     north: 8,
     rows: [
@@ -183,7 +182,6 @@ export const CHARTED_SECTORS: readonly WorldSector[] = [
     regionId: 'hollow-coast',
     art: '/media/art/world/coastal-road-v01.webp',
     panorama: '/media/art/world/coastal-road-panorama-v01.webp',
-    stepMs: 4000,
     east: 0,
     north: 8,
     rows: [
@@ -208,7 +206,6 @@ export const CHARTED_SECTORS: readonly WorldSector[] = [
     regionId: 'emberreach',
     art: '/media/art/world/ember-road-v01.webp',
     panorama: '/media/art/world/ember-road-panorama-v02.webp',
-    stepMs: 4000,
     east: 0,
     north: 8,
     rows: [
@@ -233,7 +230,6 @@ export const CHARTED_SECTORS: readonly WorldSector[] = [
     regionId: 'glasswind-desert',
     art: '/media/art/world/southern-caravan-road-v01.webp',
     panorama: '/media/art/world/southern-caravan-road-panorama-v02.webp',
-    stepMs: 4000,
     east: 0,
     north: 8,
     rows: [
@@ -258,7 +254,6 @@ export const CHARTED_SECTORS: readonly WorldSector[] = [
     regionId: 'starfall-highlands',
     art: '/media/art/world/highland-road-v01.webp',
     panorama: '/media/art/world/highland-road-panorama-v01.webp',
-    stepMs: 4000,
     east: 0,
     north: 8,
     rows: [
@@ -283,7 +278,6 @@ export const CHARTED_SECTORS: readonly WorldSector[] = [
     regionId: 'frostmere',
     art: '/media/art/world/northern-pass-v01.webp',
     panorama: '/media/art/world/northern-pass-panorama-v01.webp',
-    stepMs: 4000,
     east: 0,
     north: 8,
     rows: [
@@ -308,7 +302,6 @@ export const CHARTED_SECTORS: readonly WorldSector[] = [
     regionId: 'umbral-march',
     art: '/media/art/world/eastern-march-road-v01.webp',
     panorama: '/media/art/world/eastern-march-road-panorama-v01.webp',
-    stepMs: 4000,
     east: 0,
     north: 8,
     rows: [
@@ -333,7 +326,6 @@ export const CHARTED_SECTORS: readonly WorldSector[] = [
     regionId: 'umbral-march',
     art: '/media/art/world/old-coast-road-v01.webp',
     panorama: '/media/art/world/old-coast-road-panorama-v01.webp',
-    stepMs: 4000,
     east: 0,
     north: 8,
     rows: [
