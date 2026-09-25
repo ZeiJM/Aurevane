@@ -74,6 +74,45 @@ describe('world travel', () => {
     ])
     expect(new Set(WORLD_REGIONS.map((r) => r.art)).size).toBe(8)
   })
+  it('gives every major region distinct settlement geometry without breaking its road boundary', () => {
+    const regions = WORLD_REGIONS.map((region) =>
+      CHARTED_SECTORS.find((sector) => sector.id === region.id)!,
+    )
+    expect(new Set(regions.map((sector) => sector.rows.join('\n'))).size).toBe(WORLD_REGIONS.length)
+
+    for (const sector of regions) {
+      expect(sector.rows).toHaveLength(9)
+      expect(sector.rows.every((row) => row.length === 13)).toBe(true)
+      const settlement = sector.landmarks.find((landmark) => landmark.kind === 'settlement')!
+      expect(sector.rows[settlement.y]![settlement.x]).toBe('s')
+      expect(['#', '~']).not.toContain(sector.rows[4]![0])
+      expect(['#', '~']).not.toContain(sector.rows[4]![12])
+      expect(
+        findWorldRoute(
+          { sectorId: sector.id, x: 0, y: 4 },
+          { sectorId: sector.id, x: 12, y: 4 },
+          CHARTED_SECTORS,
+        ),
+      ).not.toBeNull()
+    }
+  })
+
+  it('keeps regional settlement and watch identities distinct without inventing proper names', () => {
+    const regions = WORLD_REGIONS.map((region) =>
+      CHARTED_SECTORS.find((sector) => sector.id === region.id)!,
+    )
+    const settlementNames = regions.map(
+      (sector) => sector.landmarks.find((landmark) => landmark.kind === 'settlement')!.name,
+    )
+    const watchNames = regions.map(
+      (sector) => sector.landmarks.find((landmark) => landmark.kind === 'watchtower')!.name,
+    )
+    expect(new Set(settlementNames).size).toBe(WORLD_REGIONS.length)
+    expect(new Set(watchNames).size).toBe(WORLD_REGIONS.length)
+    expect(settlementNames).not.toContain('Settlement')
+    expect(watchNames).not.toContain('Watchtower')
+  })
+
   it('routes over the bridge instead of through water', () => {
     const route = findWorldRoute(
       { sectorId: 'verdant-expanse', x: 9, y: 3 },
