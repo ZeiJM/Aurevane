@@ -1,6 +1,11 @@
+import { execFileSync } from 'node:child_process'
+import { randomUUID } from 'node:crypto'
 import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { expect, test } from '@playwright/test'
+import { SUPERNATURAL_STORY_DEFINITION } from '@aurevane/game-core/character/supernatural-content'
+import type { SupernaturalStoryState } from '@aurevane/game-core/character/supernatural-state'
+import type { SupernaturalChoiceOption } from '../src/components/character/character-supernatural-choice-controls'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 // Exercise real authentication, character creation, production CSS and existing dialogs.
@@ -560,3 +565,166 @@ test('a populated hybrid loadout keeps all four Techniques and management action
     await dialog.getByRole('button', { name: 'Close', exact: true }).click()
   }
 })
+
+for (const pathChoice of [
+  { path: 'ascended', label: 'Ascension', identity: 'Ascended' },
+  { path: 'severed', label: 'Severence', identity: 'Severed' },
+] as const) {
+  test(`Profile ${pathChoice.label} requires confirmation and stays bound after reload`, async ({
+    page,
+  }, info) => {
+    test.setTimeout(120_000)
+    const api = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://invalid')
+    expect(['127.0.0.1', 'localhost']).toContain(api.hostname)
+    const suffix = randomUUID()
+      .replaceAll('-', '')
+      .slice(0, 12)
+      .replace(/[0-9]/g, (digit) => String.fromCharCode(65 + Number(digit)))
+    const characterName = `Path ${suffix}`
+    await provisionAccountAndEnterCharacter({
+      page,
+      email: `path-${randomUUID()}@example.com`,
+      password: 'Disposable-path-review-2026!',
+      characterName,
+    })
+    const panel = page.getByRole('complementary', { name: 'Current Path' })
+    async function currentPath() {
+      const response = await page.request.get('/api/character/supernatural')
+      expect(response.ok()).toBe(true)
+      return response.json() as Promise<{
+        state: SupernaturalStoryState | null
+        choices: SupernaturalChoiceOption[]
+      }>
+    }
+    expect(await currentPath()).toEqual({ state: null, choices: [] })
+    await expect(panel).toContainText('Path information is unavailable')
+    await expect(panel.locator('[data-supernatural-choice]')).toHaveCount(0)
+
+    // Disposable fixture setup only: make the existing authored threshold available.
+    // Every choice below goes through the real authenticated API and private persistence.
+    const container = execFileSync(
+      'docker',
+      ['ps', '--filter', 'name=supabase_db_', '--format', '{{.Names}}'],
+      { encoding: 'utf8' },
+    )
+      .trim()
+      .split('\n')[0]
+    if (!container) throw new Error('Disposable local database is unavailable.')
+    expect(characterName).toMatch(/^Path [a-zA-Z]+$/)
+    const story = SUPERNATURAL_STORY_DEFINITION
+    execFileSync('docker', [
+      'exec',
+      container,
+      'psql',
+      '-v',
+      'ON_ERROR_STOP=1',
+      '-U',
+      'postgres',
+      '-d',
+      'postgres',
+      '-Atqc',
+      `select public.initialize_character_supernatural_story_state_v1(c.user_id,c.id,'${story.id}',${story.contentVersion},'${story.initialNodeId}') from public.characters c where c.name='${characterName}';`,
+    ])
+    await page.reload()
+    await expect(panel.getByRole('heading', { name: 'Unawakened', exact: true })).toBeVisible()
+    const available = await currentPath()
+    expect(available.state?.path).toBe('unawakened')
+    expect(available.choices).toHaveLength(2)
+    const choice = available.choices.find((option) => option.path === pathChoice.path)!
+    const other = available.choices.find((option) => option.path !== pathChoice.path)!
+    const command = {
+      expectedStateVersion: available.state!.stateVersion,
+      idempotencyKey: randomUUID(),
+      transitionId: choice.transitionId,
+      transitionContentVersion: choice.transitionContentVersion,
+      confirmPermanentChoice: true,
+    }
+    const unconfirmed = await page.request.put('/api/character/supernatural', {
+      data: { ...command, confirmPermanentChoice: false },
+    })
+    expect(unconfirmed.status()).toBe(400)
+    expect((await unconfirmed.json()).error.code).toBe('INVALID_REQUEST')
+    const unapproved = await page.request.put('/api/character/supernatural', {
+      data: { ...command, transitionId: 'not.an.authored.transition' },
+    })
+    expect(unapproved.status()).toBe(400)
+    expect((await unapproved.json()).error.code).toBe('INVALID_REQUEST')
+    expect(await currentPath()).toEqual(available)
+
+    let writes = 0
+    page.on('request', (request) => {
+      if (request.method() === 'PUT' && request.url().endsWith('/api/character/supernatural'))
+        writes++
+    })
+    const choose = panel.getByRole('button', { name: `Choose ${pathChoice.label}`, exact: true })
+    await choose.focus()
+    await choose.press('Enter')
+    await expect(panel).toContainText('Your path persists through Rekindling')
+    expect(writes).toBe(0)
+    await panel.getByRole('button', { name: 'Cancel', exact: true }).click()
+    expect(writes).toBe(0)
+    expect(await currentPath()).toEqual(available)
+    await choose.click()
+    const output = process.env.LAYOUT_REVIEW_OUTPUT
+    if (output) {
+      await mkdir(output, { recursive: true })
+      await page.screenshot({
+        path: path.join(output, `profile-path-confirm-${pathChoice.path}-${info.project.name}.png`),
+        fullPage: true,
+      })
+    }
+    const [request, response] = await Promise.all([
+      page.waitForRequest(
+        (request) =>
+          request.method() === 'PUT' && request.url().endsWith('/api/character/supernatural'),
+      ),
+      page.waitForResponse(
+        (response) =>
+          response.request().method() === 'PUT' &&
+          response.url().endsWith('/api/character/supernatural'),
+      ),
+      panel.getByRole('button', { name: `Confirm ${pathChoice.label}`, exact: true }).click(),
+    ])
+    expect(response.ok()).toBe(true)
+    expect(writes).toBe(1)
+    await expect(
+      panel.getByRole('heading', { name: pathChoice.identity, exact: true }),
+    ).toBeVisible()
+    await expect(panel.locator('[data-supernatural-choice]')).toHaveCount(0)
+    const bound = await currentPath()
+    expect(bound.state?.path).toBe(pathChoice.path)
+    expect(bound.state?.stateVersion).toBe(available.state!.stateVersion + 1)
+    expect(bound.choices).toEqual([])
+    await page.reload()
+    await expect(
+      panel.getByRole('heading', { name: pathChoice.identity, exact: true }),
+    ).toBeVisible()
+    expect(await currentPath()).toEqual(bound)
+    // Stale retries and a forged opposite choice cannot switch the committed path.
+    const replay = await page.request.put('/api/character/supernatural', {
+      data: request.postDataJSON(),
+    })
+    expect(replay.status()).toBe(409)
+    expect((await replay.json()).error.code).toBe('STALE_VERSION')
+    const switched = await page.request.put('/api/character/supernatural', {
+      data: {
+        ...command,
+        expectedStateVersion: bound.state!.stateVersion,
+        idempotencyKey: randomUUID(),
+        transitionId: other.transitionId,
+        transitionContentVersion: other.transitionContentVersion,
+      },
+    })
+    expect(switched.status()).toBe(400)
+    expect((await switched.json()).error.code).toBe('INVALID_REQUEST')
+    expect(await currentPath()).toEqual(bound)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(
+      true,
+    )
+    if (output)
+      await page.screenshot({
+        path: path.join(output, `profile-path-bound-${pathChoice.path}-${info.project.name}.png`),
+        fullPage: true,
+      })
+  })
+}

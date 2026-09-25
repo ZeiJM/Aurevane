@@ -193,7 +193,7 @@ describe('battle skill artwork presentation', () => {
     }
   })
 
-  it('uses approved Resonance art while retaining generated fallback for unapproved pairs', () => {
+  it('uses approved Resonance art for the complete authored catalog', () => {
     for (const resonanceId of PHASE_3_RESONANCE_IDS) {
       const artwork = battleResonanceArtwork(resonanceId)
       expect(artwork).toBe(PHASE_3_RESONANCE_ARTWORK[resonanceId])
@@ -209,10 +209,20 @@ describe('battle skill artwork presentation', () => {
     )
     expect(existsSync(new URL(`../../../public${expandedResonance}`, import.meta.url))).toBe(true)
 
-    const unapprovedResonance = battleResonanceArtwork(
+    const completedResonance = battleResonanceArtwork(
       'resonance.frostweaver-runeblade.linked-sequence',
     )
-    expect(unapprovedResonance.startsWith('data:image/svg+xml,')).toBe(true)
+    expect(completedResonance).toBe(
+      '/media/art/resonances/resonance-frostweaver-runeblade-frozen-sigil-v01.webp',
+    )
+    expect(existsSync(new URL(`../../../public${completedResonance}`, import.meta.url))).toBe(true)
+
+    const finalResonance = battleResonanceArtwork('resonance.chronist-tidecaller.linked-sequence')
+    expect(finalResonance).toBe(
+      '/media/art/resonances/resonance-chronist-tidecaller-measured-tide-v01.webp',
+    )
+    expect(existsSync(new URL(`../../../public${finalResonance}`, import.meta.url))).toBe(true)
+
     expect(battleResonanceArtwork('future.resonance')).toBe(BATTLE_MISSING_ARTWORK)
   })
 })
