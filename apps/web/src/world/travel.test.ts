@@ -115,14 +115,14 @@ describe('world travel', () => {
     ])
       expect(findWorldRoute(START_POSITION, to, CHARTED_SECTORS)).toBeNull()
   })
-  it('crosses a regional road with elapsed travel time', () => {
+  it('uses the tuned authoritative pace for a representative regional journey', () => {
     const route = findWorldRoute(
       START_POSITION,
       { sectorId: 'aureth-crown', x: 6, y: 4 },
       CHARTED_SECTORS,
     )!
     expect(route.length).toBeGreaterThan(1)
-    expect(route.reduce((ms, s) => ms + s.durationMs, 0)).toBeGreaterThan(45000)
+    expect(route.reduce((ms, s) => ms + s.durationMs, 0)).toBe(27_500)
     expect(route.at(-1)?.position).toEqual({ sectorId: 'aureth-crown', x: 6, y: 4 })
   })
   it('adds a connected Crown wilderness cluster without replacing the established Crown Road', () => {
@@ -198,6 +198,7 @@ describe('world travel', () => {
       expect(new Set(road.map((s) => s.position.x)).size).toBe(13)
       expect(road.every((s) => s.position.y === 4)).toBe(true)
       expect(road.slice(1).every((s) => s.durationMs === STEP_MS)).toBe(true)
+      expect(route.reduce((ms, step) => ms + step.durationMs, 0)).toBe(15_400)
       expect(route.at(-1)?.position).toEqual(to)
     }
   })
