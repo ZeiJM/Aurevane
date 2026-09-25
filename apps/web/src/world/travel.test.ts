@@ -275,7 +275,7 @@ describe('world travel', () => {
         )
         expect(route, `${from.id} to ${to.id}`).not.toBeNull()
         expect(route!.at(-1)?.position).toEqual(destination)
-        expect(route!.every((step) => step.durationMs <= 4000)).toBe(true)
+        expect(route!.every((step) => step.durationMs <= STEP_MS)).toBe(true)
       }
   })
   it('advances only one due step even after a long disconnect', () => {
