@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
 import { newWorldState, revealNearby } from '@/world/travel'
-import { FRONTIER_APPROACH } from '@/world/catalog'
+import { FRONTIER_APPROACH, STEP_MS } from '@/world/catalog'
 import { assertEncounterRange, projectWorld, resolveWorldIntent } from './world-service'
 import { EASTERN_WATCH, EASTERN_WATCH_INTERACTION_ID, VERDANT_SETTLEMENT } from './world-objectives'
 import { FIRST_FIELD_OBSERVATION_ID } from './world-archive'
@@ -67,19 +67,20 @@ describe('world authority and spoiler projection', () => {
       expect(next.nextStepAt).toBeNull()
     },
   )
-  it('stops an old speed or broken later step before consuming a saved route', () => {
+  it('stops a saved four-second road route or broken later step before moving', () => {
     const position = { sectorId: 'crown-road', x: 5, y: 4 }
     for (const route of [
-      [{ position: { ...position, x: 6 }, durationMs: 1100 }],
+      [{ position: { ...position, x: 6 }, durationMs: 4000 }],
       [
-        { position: { ...position, x: 6 }, durationMs: 4000 },
-        { position: { ...position, x: 8 }, durationMs: 4000 },
+        { position: { ...position, x: 6 }, durationMs: STEP_MS },
+        { position: { ...position, x: 8 }, durationMs: STEP_MS },
       ],
     ]) {
       const state = { ...newWorldState(), position, route, nextStepAt: 1000 }
       const next = resolveWorldIntent(state, { kind: 'tick' }, 2000)
       expect(next.position).toEqual(position)
       expect(next.route).toEqual([])
+      expect(next.nextStepAt).toBeNull()
     }
   })
   it('does not send unknown frontier names, cells or exits', () => {
