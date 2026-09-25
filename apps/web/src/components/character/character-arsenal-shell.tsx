@@ -404,7 +404,6 @@ export function CharacterArsenalShell({
                 </span>
                 <div>
                   <strong>Ascension</strong>
-                  <p>Granted by the game owner. A different path of power.</p>
                   <b>▣ Coming Soon</b>
                 </div>
               </article>
@@ -420,7 +419,6 @@ export function CharacterArsenalShell({
                 </span>
                 <div>
                   <strong>Severed</strong>
-                  <p>Granted by the game owner. A different path of power.</p>
                   <b>▣ Coming Soon</b>
                 </div>
               </article>
