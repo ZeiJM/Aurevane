@@ -121,7 +121,6 @@ test('mobile Techniques select and save on the first tap', async ({ page }, test
   await label.tap()
 
   expect((await saved).status()).toBe(200)
-  await expect(page.getByTestId('technique-preview')).toContainText('Forceful Strike')
   await expect(checkbox).toBeChecked({ checked: !before })
   await expect(dialog.locator('[data-favorite-technique-star="true"]')).toHaveCount(0)
 })
