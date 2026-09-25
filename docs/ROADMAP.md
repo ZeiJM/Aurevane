@@ -2,7 +2,7 @@
 
 **Authority:** Derived from `docs/GAME_MASTER_PLAN.md` and Owner-approved domain specifications. If conflict exists, the Master Game Plan and applicable canonical domain specification win.
 
-**Synchronized:** 2026-09-12
+**Synchronized:** 2026-09-25 — world-experience scope and delivery ownership
 
 This roadmap reflects the game that actually exists today. It formally credits early-delivered battle-platform work instead of pretending later phases must rebuild it.
 
@@ -518,6 +518,17 @@ Scope:
 
 The detailed known-world expansion contract lives in `docs/LIVING_ATLAS_EXPANSION.md`. These Owner-requested world changes are Phase-5 deliverables, not optional polish to be dropped at phase closeout.
 
+### Owner reference-review integration — 2026-09-25
+
+`docs/ROADMAP_WORLD_EXPERIENCE.md` defines required acceptance and the two-chat delivery boundary:
+
+- **P5-W1:** faster ordinary overworld travel through measured authoritative timing improvements, accurate ETA and preserved encounter/stop/reconnect behavior; inspect per-sector 4-second overrides as well as the default interval.
+- **P5-W2:** coherent globe/local location and destination context, explicit view versus travel actions, readable framing/labels and accessible responsive navigation.
+- **P5-W3:** recognizable authored places, completion of the existing geometry/matching-art contract, and truthful contextual service/objective actions.
+- **P5-W4:** clearer existing build identity and the representative Ascension/Severence choice, derived from approved authoritative content with exclusivity and spoilers preserved.
+
+The existing Phase 5 chat owns server timing, authored geography/content and supernatural authority. A separate Work Mode chat owns layout/rendering, location/identity presentation and art alignment. Shared contracts must be coordinated; neither chat may overwrite the other's branch. A continuous multi-sector renderer and the larger Skill browser remain Phase 6 deliverables. This scope does not authorize deployment or reopen completed combat phases.
+
 ### Supernatural fork
 
 ```text
@@ -567,6 +578,12 @@ Scope:
 
 The Reach retains meaningful solo content.
 
+### World continuity and Skill discovery dependencies
+
+- **P6-W1:** build a persistent local surface across three connected authored areas with camera follow, bounded authorized neighbor streaming and uninterrupted routes; integrate party context only after solo traversal is correct.
+- **P6-S1:** extend the existing Skill/Manual/build browser with mechanic-based facets, clear include/exclude semantics and shared factual effect/eligibility summaries. Preserve four selected Techniques, pure/mixed rules and consecutive-use effectiveness rather than importing ordinary cooldowns.
+- Reuse Phase 5 travel, topology, discovery, place identity and presentation. Full acceptance is in `ROADMAP_WORLD_EXPERIENCE.md`; no adjacency shortcuts, hidden-data prefetch or duplicate authority.
+
 **Gate:** three players can complete a readable fair cooperative mission together.
 
 ---
@@ -597,6 +614,8 @@ Deep Reach expansion:
 - meaningful Frontier Acumen;
 - first substantial Veyr interactions when story timing supports them;
 - deep Anchor/boss interactions.
+
+Carry P6-W1 into long/resumable journeys with hazard ordering, discovery-safe streaming and route revalidation across authored Drift/content versions. Preserve persistent Anchors and deliberate frontier boundaries; see `ROADMAP_WORLD_EXPERIENCE.md`.
 
 There is **no Anomaly acquisition loop** here.
 
@@ -635,6 +654,8 @@ Remaining scope:
 - Colosseum public discovery;
 - featured matches/replays where appropriate.
 
+Audit shared Skill facts, repeat-use effectiveness, target legality, onset/expiry and action-result explanations against committed battle versions. Verify participant/spectator privacy and forecast/log consistency; the reference review does not authorize simultaneous resolution or new cooldowns (`ROADMAP_WORLD_EXPERIENCE.md`).
+
 ### Anomaly policy
 
 Gameplay-affecting Owner-created Anomalies are **DISALLOWED in standard ranked PvP by default**.
@@ -655,6 +676,8 @@ Special modes may explicitly normalize or allow them under transparent rules.
 - expand enemies/maps/equipment interactions;
 - broaden AI/PvP regression coverage;
 - scale Reach Anchors/phenomena only if exploration evidence supports it.
+
+Expand the inherited Skill discovery facets and Ascension/Severence identity explanations alongside actual published content. Keep strengths, constraints and defined counterplay understandable without another supernatural tree; see `ROADMAP_WORLD_EXPERIENCE.md`.
 
 Anomalies remain Owner-created exceptional states, not a content catalog players farm.
 
@@ -679,6 +702,8 @@ Mature scope:
 - route/map sharing where appropriate;
 - guild frontier organization;
 - first-discovery attribution and famous explorer identity.
+
+Apply the reference-review identity refinement to existing profiles/Chronicle/guild plans: earned deeds, approved representatives and map-linked places should communicate belonging. Keep public factions distinct from player guilds and respect privacy/provenance (`ROADMAP_WORLD_EXPERIENCE.md`).
 
 ---
 
@@ -712,6 +737,8 @@ Scope:
 - political rankings;
 - warfare only when population supports it;
 - PvE/PvP contribution paths.
+
+Introduce approved nations through their values, obligations, authored representatives and map-linked places before commitment; allow deferral and never silently change a player's build through membership (`ROADMAP_WORLD_EXPERIENCE.md`).
 
 Nations may interpret the Reach, Veyr and Great Vane mysteries differently.
 

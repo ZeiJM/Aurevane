@@ -63,6 +63,7 @@
 .dialog {
   display: grid;
   width: min(82rem, 97vw);
+  height: min(50rem, 92dvh);
   max-height: 92dvh;
   min-height: 0;
   grid-template-rows: auto minmax(0, 1fr) auto auto;
@@ -110,7 +111,7 @@
 .headingCopy > div {
   display: grid;
   min-width: 0;
-  gap: 0.08rem;
+  gap: 0.22rem;
 }
 
 .header h2 {
@@ -245,8 +246,8 @@
 .workspace {
   display: grid;
   min-height: 0;
-  grid-template-columns: minmax(0, 1fr) minmax(19rem, 22rem);
-  gap: 0.62rem;
+  grid-template-columns: minmax(0, 1fr) minmax(21rem, 24rem);
+  gap: 0.72rem;
   padding: 0.55rem 0.8rem;
   overflow: hidden;
 }
@@ -255,8 +256,9 @@
   display: grid;
   min-width: 0;
   min-height: 0;
-  grid-template-rows: repeat(2, minmax(0, 1fr));
-  gap: 0.46rem;
+  grid-template-rows: repeat(2, minmax(0, auto));
+  gap: 0.5rem;
+  align-content: start;
   overflow: hidden;
 }
 
@@ -264,8 +266,8 @@
   display: grid;
   min-width: 0;
   min-height: 0;
-  grid-template-rows: auto minmax(0, 1fr);
-  gap: 0.3rem;
+  grid-template-rows: auto auto;
+  gap: 0.34rem;
   overflow: hidden;
 }
 
@@ -303,9 +305,9 @@
 .skillGrid {
   display: grid;
   min-height: 0;
-  grid-template-columns: repeat(8, minmax(0, 1fr));
-  gap: 0.42rem;
-  align-items: stretch;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.45rem;
+  align-items: start;
 }
 
 .skill,
@@ -316,6 +318,7 @@
   min-width: 0;
   min-height: 0;
   align-content: start;
+  align-self: start;
   overflow: hidden;
   border: 1px solid rgba(73, 91, 101, 0.7);
   background: #0d2230;
@@ -330,12 +333,11 @@
   position: relative;
   display: grid;
   min-width: 0;
-  height: 100%;
   grid-template-rows: auto auto auto;
   justify-items: center;
   align-content: start;
-  gap: 0.3rem;
-  padding: 0.48rem 0.34rem 0.42rem;
+  gap: 0.22rem;
+  padding: 0.42rem 0.32rem 0.38rem;
   cursor: pointer;
 }
 
@@ -357,8 +359,8 @@
 .skillArt {
   position: relative;
   display: grid;
-  width: 4.15rem;
-  height: 4.15rem;
+  width: 4.6rem;
+  height: 4.6rem;
   aspect-ratio: 1 / 1;
   place-items: center;
   overflow: hidden;
@@ -390,9 +392,8 @@
 .skill label > strong {
   box-sizing: border-box;
   width: 100%;
-  min-height: 1.6rem;
   color: #f0e5d3;
-  font: 600 0.72rem/1.15 var(--av-font-display);
+  font: 600 0.72rem/1.12 var(--av-font-display);
   text-align: center;
   overflow-wrap: anywhere;
 }
@@ -402,9 +403,9 @@
   width: 100%;
   color: #acb9bd;
   font-size: 0.64rem;
-  line-height: 1.2;
+  line-height: 1.15;
   text-align: center;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
 }
 
 .lockedSkill {
@@ -418,8 +419,8 @@
 
 .lockedSkill > span {
   display: grid;
-  width: 4.15rem;
-  height: 4.15rem;
+  width: 4.6rem;
+  height: 4.6rem;
   aspect-ratio: 1 / 1;
   place-items: center;
   border: 1px solid #4c5e67;
@@ -435,8 +436,9 @@
   display: grid;
   min-width: 0;
   min-height: 0;
+  height: 100%;
   grid-template-rows: minmax(0, 1fr);
-  padding: 0.75rem;
+  padding: 0.8rem;
   overflow: hidden;
   border: 1px solid #324b59;
   color: #eee4d4;
@@ -494,22 +496,22 @@
   display: grid;
   min-height: 0;
   align-content: start;
-  gap: 0.6rem;
-  overflow-y: auto;
-  padding-right: 0.18rem;
-  scrollbar-width: thin;
+  gap: 0.7rem;
+  overflow: hidden;
 }
 
 .selectedTechniqueHeading {
   display: grid;
-  justify-items: center;
-  gap: 0.55rem;
-  text-align: center;
+  grid-template-columns: 7.2rem minmax(0, 1fr);
+  gap: 0.8rem;
+  align-items: center;
+  text-align: left;
 }
 
 .detailArt {
   display: block;
-  width: min(9rem, 72%);
+  width: 7.2rem;
+  height: 7.2rem;
   aspect-ratio: 1 / 1;
   overflow: hidden;
   border: 1px solid #a48750;
@@ -526,19 +528,53 @@
 .selectedTechniqueHeading > div {
   display: grid;
   min-width: 0;
-  justify-items: center;
-  gap: 0.22rem;
+  justify-items: start;
+  gap: 0.28rem;
 }
 
 .selectedTechniqueHeading strong {
   color: #f3e9d8;
-  font: 600 1.18rem/1.08 var(--av-font-display);
+  font: 600 1.28rem/1.08 var(--av-font-display);
 }
 
 .selectedTechniqueHeading small {
   color: #d1dcde;
   font-size: 0.6875rem;
   line-height: 1.25;
+}
+
+.characteristics {
+  display: grid;
+  margin: 0;
+  border: 1px solid rgba(183, 199, 212, 0.2);
+  background: rgba(4, 17, 25, 0.42);
+}
+
+.characteristics > div {
+  display: grid;
+  grid-template-columns: minmax(7.1rem, 0.9fr) minmax(0, 1.35fr);
+  gap: 0.65rem;
+  align-items: start;
+  padding: 0.34rem 0.5rem;
+  border-bottom: 1px solid rgba(183, 199, 212, 0.14);
+}
+
+.characteristics > div:last-child {
+  border-bottom: 0;
+}
+
+.characteristics dt {
+  color: #b8c7cc;
+  font-size: 0.66rem;
+  line-height: 1.25;
+}
+
+.characteristics dd {
+  margin: 0;
+  color: #f0e8dc;
+  font: 600 0.66rem/1.25 var(--av-font-body);
+  text-align: right;
+  overflow-wrap: anywhere;
 }
 
 .selectedTechnique > p {
@@ -604,7 +640,7 @@
 .actions {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 0.75rem;
   min-height: 3.2rem;
   padding: 0.42rem 0.8rem 0.55rem;
@@ -652,6 +688,7 @@
   }
 
   .dialog {
+    height: auto;
     max-height: none;
     overflow: visible;
   }
@@ -662,12 +699,17 @@
   }
 
   .detailRail {
+    height: auto;
     grid-template-rows: auto;
     overflow: visible;
   }
 
   .skillGrid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .selectedTechnique {
+    overflow: visible;
   }
 
   .techniqueArea {
