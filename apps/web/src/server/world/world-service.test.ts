@@ -69,10 +69,10 @@ describe('world authority and spoiler projection', () => {
   it('stops an old speed or broken later step before consuming a saved route', () => {
     const position = { sectorId: 'crown-road', x: 5, y: 4 }
     for (const route of [
-      [{ position: { ...position, x: 6 }, durationMs: 1100 }],
+      [{ position: { ...position, x: 6 }, durationMs: 4000 }],
       [
-        { position: { ...position, x: 6 }, durationMs: 4000 },
-        { position: { ...position, x: 8 }, durationMs: 4000 },
+        { position: { ...position, x: 6 }, durationMs: 1100 },
+        { position: { ...position, x: 8 }, durationMs: 1100 },
       ],
     ]) {
       const state = { ...newWorldState(), position, route, nextStepAt: 1000 }
