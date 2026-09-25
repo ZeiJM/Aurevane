@@ -50,6 +50,7 @@ export function newWorldState(): WorldState {
     route: [],
     nextStepAt: null,
     discoveries: {},
+    discoveredAnchors: [],
     completedObjectives: [],
     objectiveProgress: {},
   }

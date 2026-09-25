@@ -1,6 +1,7 @@
 'use client'
 import Image from 'next/image'
 import { useMemo } from 'react'
+import { resolvePublicCharacterImageUrl } from '@/media/public-character-portrait'
 import { cellCenter } from '@/world/travel'
 import type {
   TravelStep,
@@ -135,7 +136,7 @@ export function SectorMap({
               key={player.characterId}
               position={player.position}
               name={player.name}
-              portrait={player.imageUrl!}
+              portrait={resolvePublicCharacterImageUrl(player.imageUrl, player.portraitRef)!}
               enemy
               onClick={() => onPlayer(player.characterId)}
             />

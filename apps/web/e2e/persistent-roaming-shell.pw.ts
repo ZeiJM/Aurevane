@@ -51,8 +51,9 @@ test('roaming pages preserve one authenticated shell while Battle Hall refreshes
   await rememberShell(page, '__roamingShell')
   const rail = page.getByRole('navigation', { name: 'Primary game navigation', exact: true })
 
-  await rail.getByRole('link', { name: 'Arsenal', exact: true }).click()
-  await expect(page).toHaveURL(/\/game\/arsenal$/)
+  await expect(rail.getByRole('button', { name: 'Arsenal', exact: true })).toBeDisabled()
+  await rail.getByRole('link', { name: 'Nexus', exact: true }).click()
+  await expect(page).toHaveURL(/\/game\/nexus$/)
   expect(await rememberedShellIsCurrent(page, '__roamingShell')).toBe(true)
 
   await rail.getByRole('link', { name: /Passive Training/ }).click()

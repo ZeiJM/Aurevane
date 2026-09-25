@@ -63,8 +63,23 @@ describe('Skill media hook registry', () => {
     expect(registeredSkillArtworkSource('runeblade.rune-mending')).toBe(
       '/media/art/discipline-skills/runeblade-rune-mending-v01.webp',
     )
-    expect(registeredSkillArtworkSource('dawnshield.radiant-strike')).toMatch(
-      /^data:image\/svg\+xml/,
+    expect(registeredSkillArtworkSource('dawnshield.radiant-strike')).toBe(
+      '/media/art/discipline-skills/dawnshield-radiant-strike-v01.webp',
+    )
+    expect(registeredSkillArtworkSource('cinderweaver.cinder-bolt')).toBe(
+      '/media/art/discipline-skills/cinderweaver-cinder-bolt-v01.webp',
+    )
+    expect(registeredSkillArtworkSource('frostweaver.ice-lance')).toBe(
+      '/media/art/discipline-skills/frostweaver-ice-lance-v01.webp',
+    )
+    expect(registeredSkillArtworkSource('stormsinger.arc-spark')).toBe(
+      '/media/art/discipline-skills/stormsinger-arc-spark-v01.webp',
+    )
+    expect(registeredSkillArtworkSource('tidecaller.water-lance')).toBe(
+      '/media/art/discipline-skills/tidecaller-water-lance-v01.webp',
+    )
+    expect(registeredSkillArtworkSource('tidecaller.crushing-wave')).toBe(
+      '/media/art/discipline-skills/tidecaller-crushing-wave-v01.webp',
     )
     const essence = resolveSkillIconHook('essence.aetherist.aether-nova.icon')
     expect(essence).toEqual(

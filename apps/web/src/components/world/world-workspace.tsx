@@ -538,6 +538,20 @@ export function WorldWorkspace({
             ))}
           </section>
         ) : null}
+        {view.anchors?.length ? (
+          <section className={styles.panel} aria-label="Frontier Anchors">
+            <h2>◇ Frontier Anchors</h2>
+            <p className={styles.quiet}>
+              Persistent places you have personally confirmed beyond reliable cartography.
+            </p>
+            {view.anchors.map((anchor) => (
+              <div className={styles.quest} key={anchor.id}>
+                <h3>{anchor.name}</h3>
+                <p className={styles.quiet}>Recorded Anchor · persists in frontier history</p>
+              </div>
+            ))}
+          </section>
+        ) : null}
         {sector.exits.length ? (
           <section className={styles.panel} aria-label="Roads and crossings">
             <h2>Roads & crossings</h2>

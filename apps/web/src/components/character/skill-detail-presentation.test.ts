@@ -2,10 +2,21 @@ import { describe, expect, it } from 'vitest'
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 import {
   skillAffectedDescription,
+  skillCompactRangeDescription,
+  skillCooldownDescription,
+  skillCostDescription,
+  skillDamageDescription,
   skillEffectDescription,
+  skillEffectsSummary,
+  skillLineOfSightDescription,
   skillRangeDescription,
   skillRequirementDescription,
+  skillRequirementsSummary,
+  skillTargetDescription,
+  skillTargetElevationDescription,
+  skillTargetMethodDescription,
   skillTargetTags,
+  skillTypeDescription,
 } from './skill-detail-presentation'
 
 describe('Player-facing Skill targeting and effects', () => {
@@ -159,4 +170,22 @@ it('describes authored Barrier grants in Skill Details', () => {
   } as unknown as Parameters<typeof skillEffectDescription>[0]
 
   expect(skillEffectDescription(barrier)).toBe('Grant up to 12 Barrier to the selected unit.')
+})
+
+it('presents the standardized Technique characteristic schema without prose expansion', () => {
+  const timeLock = resolveMatureSkillVersion('chronist.time-lock')!
+  const stolenMoment = resolveMatureSkillVersion('chronist.stolen-moment')!
+
+  expect(skillTypeDescription(timeLock)).toBe('Defense')
+  expect(skillCostDescription(timeLock)).toMatch(/AP/)
+  expect(skillDamageDescription(timeLock)).toBe('0')
+  expect(skillEffectsSummary(timeLock)).toContain('Root')
+  expect(skillEffectsSummary(timeLock)).toContain('Slow')
+  expect(skillRequirementsSummary(stolenMoment)).toContain('Slow')
+  expect(skillTargetDescription(timeLock)).toBe('Enemy')
+  expect(skillTargetMethodDescription(timeLock)).toBe('Single')
+  expect(skillTargetElevationDescription(timeLock)).not.toBe('N/A')
+  expect(skillCompactRangeDescription(timeLock)).toMatch(/tile/)
+  expect(skillLineOfSightDescription(timeLock)).toBe('Required')
+  expect(skillCooldownDescription(timeLock)).toMatch(/turn/)
 })
