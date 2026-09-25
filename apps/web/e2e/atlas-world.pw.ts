@@ -3,7 +3,7 @@ import { execFileSync, spawn } from 'node:child_process'
 import { expect, test, type APIResponse, type Page, type TestInfo } from '@playwright/test'
 import type { SetPracticePlanRequest } from '@aurevane/validation/player/wayfarers-practice'
 import { provisionAccountAndEnterCharacter, openOfflineTraining } from './pv1f-test-helpers'
-import { WORLD_REGIONS } from '../src/world/catalog'
+import { STEP_MS, WORLD_REGIONS } from '../src/world/catalog'
 import { globeSectorCenter, projectGlobePoint } from '../src/world/globe-math'
 import { newWorldState } from '../src/world/travel'
 import type { WorldView } from '../src/world/types'
@@ -580,7 +580,7 @@ test('expired training releases travel without claiming XP and frontier discover
   expect((await world(page)).sectors.find((s) => !s.charted)?.cells).toEqual(archivedCells)
 })
 
-test('Crown Road advances one four-second step with one due client tick', async ({
+test('Crown Road advances one ordinary-speed step with one due client tick', async ({
   page,
 }, info) => {
   test.skip(
@@ -613,7 +613,7 @@ test('Crown Road advances one four-second step with one due client tick', async 
     })
     .click()
   await expect(page.locator('[data-world-travel-status]')).toContainText('1 steps remaining')
-  await expect.poll(async () => (await world(page)).position.x, { timeout: 7_000 }).toBe(7)
+  await expect.poll(async () => (await world(page)).position.x, { timeout: 5_000 }).toBe(7)
   expect(tickPosts).toBe(1)
 })
 
@@ -959,7 +959,7 @@ test('a due movement step and an attack cannot both commit from the same target 
     place(target.characterId, 'crown-road', 6, 4)
     const destination = { sectorId: 'crown-road', x: 7, y: 4 }
     sql(
-      `update app_private.character_world_state set state = state || '${JSON.stringify({ route: [{ position: destination, durationMs: 4000 }], nextStepAt: Date.now() - 1000 })}'::jsonb where character_id='${target.characterId}'::uuid`,
+      `update app_private.character_world_state set state = state || '${JSON.stringify({ route: [{ position: destination, durationMs: STEP_MS }], nextStepAt: Date.now() - 1000 })}'::jsonb where character_id='${target.characterId}'::uuid`,
     )
     await world(page)
     await world(opponent)
