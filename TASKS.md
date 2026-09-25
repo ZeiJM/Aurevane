@@ -27,7 +27,7 @@ Tracking note: the detailed contract is `docs/LIVING_ATLAS_EXPANSION.md`. Existi
 
 Approved delivery contract: `docs/ROADMAP_WORLD_EXPERIENCE.md`; phase sequence in `docs/ROADMAP.md`.
 
-- [ ] P5-W1: measured faster ordinary travel, authoritative timing/ETA compatibility and retained encounter/stop/reconnect protections.
+- [x] P5-W1: measured faster ordinary travel, authoritative timing/ETA compatibility and retained encounter/stop/reconnect protections.
 - [ ] P5-W2: globe/local location and destination clarity, accessible inspect/view versus travel and responsive framing/labels.
 - [ ] P5-W3: authored place identity, staged distinct settlements with matching art, and contextual existing service/objective actions.
 - [ ] P5-W4: current build and representative Ascension/Severence identity clarity with authoritative eligibility/exclusivity and spoiler safety.
