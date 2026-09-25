@@ -3,7 +3,7 @@ import { execFileSync, spawn } from 'node:child_process'
 import { expect, test, type APIResponse, type Page, type TestInfo } from '@playwright/test'
 import type { SetPracticePlanRequest } from '@aurevane/validation/player/wayfarers-practice'
 import { provisionAccountAndEnterCharacter, openOfflineTraining } from './pv1f-test-helpers'
-import { WORLD_REGIONS } from '../src/world/catalog'
+import { STEP_MS, WORLD_REGIONS } from '../src/world/catalog'
 import { globeSectorCenter, projectGlobePoint } from '../src/world/globe-math'
 import { newWorldState } from '../src/world/travel'
 import type { WorldView } from '../src/world/types'
@@ -691,7 +691,7 @@ test('inspecting a destination survives a refreshed player sector change', async
   await expect(context).toContainText('Viewing Verdant Expanse')
 })
 
-test('Crown Road advances one authoritative step with one due client tick', async ({
+test('Crown Road advances one authoritative ordinary step with one due client tick', async ({
   page,
 }, info) => {
   test.skip(
@@ -726,7 +726,8 @@ test('Crown Road advances one authoritative step with one due client tick', asyn
   expect((await world(page)).route).toHaveLength(0)
   await page.getByRole('button', { name: 'Travel to selected tile', exact: true }).click()
   await expect(page.locator('[data-world-travel-status]')).toContainText('1 steps remaining')
-  await expect.poll(async () => (await world(page)).position.x, { timeout: 7_000 }).toBe(7)
+  expect((await world(page)).route[0]?.durationMs).toBe(STEP_MS)
+  await expect.poll(async () => (await world(page)).position.x, { timeout: 4_000 }).toBe(7)
   expect(tickPosts).toBe(1)
 })
 
