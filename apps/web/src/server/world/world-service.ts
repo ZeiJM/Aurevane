@@ -89,6 +89,16 @@ export function resolveWorldIntent(
     }
   }
   next = advanceWorldObjectiveProgress(revealNearby(next))
+  const discoveredAnchors = new Set(next.discoveredAnchors ?? [])
+  const currentSector = WORLD_SECTORS.find((sector) => sector.id === next.position.sectorId)
+  const currentAnchor = currentSector?.landmarks.find(
+    (landmark) =>
+      landmark.kind === 'anchor' &&
+      landmark.x === next.position.x &&
+      landmark.y === next.position.y,
+  )
+  if (currentAnchor) discoveredAnchors.add(currentAnchor.id)
+
   const completed = new Set(next.completedObjectives)
   for (const objective of effectiveWorldObjectives(next, objectives))
     if (
@@ -104,7 +114,11 @@ export function resolveWorldIntent(
     next.position.y === landmark.y
   )
     completed.add(landmark.id)
-  return { ...next, completedObjectives: [...completed] }
+  return {
+    ...next,
+    discoveredAnchors: [...discoveredAnchors].sort(),
+    completedObjectives: [...completed],
+  }
 }
 export function projectWorld(
   state: WorldState,
@@ -151,6 +165,16 @@ export function projectWorld(
       }
     })
   const effectiveObjectives = effectiveWorldObjectives(state, objectives)
+  const discoveredAnchorIds = new Set(state.discoveredAnchors ?? [])
+  const anchors = WORLD_SECTORS.flatMap((sector) =>
+    sector.landmarks
+      .filter((landmark) => landmark.kind === 'anchor' && discoveredAnchorIds.has(landmark.id))
+      .map((landmark) => ({
+        id: landmark.id,
+        name: landmark.name,
+        sectorId: sector.id,
+      })),
+  )
   return {
     characterId: '',
     version: state.version,
@@ -170,6 +194,7 @@ export function projectWorld(
       completed: o.completed || state.completedObjectives.includes(o.id),
     })),
     interactions: localWorldInteractions(state),
+    anchors,
     archive: worldArchiveEntries(state),
     battleSessionId: null,
     movementBlocked: null,
