@@ -56,14 +56,10 @@ describe('Cartographic Drift cycle-ledger migration', () => {
     const sql = readFileSync(migrationPath, 'utf8')
 
     expect(sql).toContain('prevent_cartographic_drift_cycle_ledger_mutation_v1')
-    expect(sql).toMatch(
-      /before update or delete on app_private\.cartographic_drift_cycle_ledger/i,
-    )
+    expect(sql).toMatch(/before update or delete on app_private\.cartographic_drift_cycle_ledger/i)
     expect(sql).toContain('CARTOGRAPHIC_DRIFT_LEDGER_IMMUTABLE')
-    expect(sql).toContain("pg_advisory_xact_lock(")
-    expect(sql).toContain(
-      "'aurevane:cartographic-drift:' || p_definition_id || ':' || p_cycle_key",
-    )
+    expect(sql).toContain('pg_advisory_xact_lock(')
+    expect(sql).toContain("'aurevane:cartographic-drift:' || p_definition_id || ':' || p_cycle_key")
   })
 
   it('returns the existing immutable row instead of mutating it on replay', () => {
