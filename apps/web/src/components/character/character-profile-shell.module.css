@@ -194,6 +194,44 @@
   margin-left: 0.4rem;
 }
 
+.story [data-supernatural-actions] {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.story [data-supernatural-action-row] {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.story [data-supernatural-action-row] button {
+  width: 100%;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.story [data-supernatural-secondary] {
+  border-color: rgba(212, 186, 130, 0.45);
+  color: #d7d1c6;
+  background: rgba(8, 22, 31, 0.82);
+}
+
+.story [data-supernatural-warning],
+.story [data-supernatural-message] {
+  margin: 0;
+  padding: 0.58rem 0.65rem;
+  border: 1px solid rgba(212, 186, 130, 0.3);
+  color: #e3dbc9;
+  background: rgba(5, 16, 24, 0.66);
+  font-size: 0.7rem;
+  line-height: 1.4;
+}
+
+.story [data-supernatural-warning] strong {
+  color: #f0dfb3;
+}
+
 .story blockquote {
   display: grid;
   gap: 0.12rem;
@@ -351,5 +389,9 @@
 
   .storyHeading small {
     display: none;
+  }
+
+  .story [data-supernatural-action-row] {
+    grid-template-columns: 1fr;
   }
 }
