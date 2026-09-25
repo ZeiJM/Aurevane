@@ -28,43 +28,28 @@ function tileDistance(first: { x: number; y: number }, second: { x: number; y: n
 
 async function setSkill(page: Page, name: string, checked: boolean): Promise<void> {
   const checkbox = skillRow(page, name).getByRole('checkbox')
-  if ((await checkbox.isChecked()) !== checked) await checkbox.click()
-}
+  if ((await checkbox.isChecked()) === checked) return
 
-async function commitSkills(page: Page, expectedNames: readonly string[]): Promise<void> {
-  // Refresh remounts the versioned panel and can clear its transient status. Verify the
-  // authoritative response and settled selection before the existing reload-persistence checks.
   const saved = page.waitForResponse(
     (response) =>
       new URL(response.url()).pathname === '/api/character/build/skills' &&
       response.request().method() === 'PUT',
   )
-  const commit = page.getByRole('button', { name: 'Commit Selected Techniques', exact: true })
-  await commit.click()
-  const response = await saved
-  expect(response.status()).toBe(200)
-  const body = await response.json()
-  expect(
-    body.context.disciplineSkills.equippedSkills.map(
-      (entry: { definition: { id: string } }) => entry.definition.id,
-    ),
-  ).toEqual(response.request().postDataJSON().skillIds)
-  await expect(commit).toBeDisabled()
-  for (const name of expectedNames) {
-    await expect(skillRow(page, name).getByRole('checkbox')).toBeChecked()
-  }
+  await checkbox.click()
+  expect((await saved).status()).toBe(200)
+  await expect(checkbox).toBeChecked({ checked })
 }
 
-async function reloadArsenal(page: Page): Promise<void> {
-  if (new URL(page.url()).pathname.startsWith('/game/arsenal')) {
+async function reloadNexus(page: Page): Promise<void> {
+  if (new URL(page.url()).pathname.startsWith('/game/nexus')) {
     await page.reload()
   } else {
-    await page.goto('/game/arsenal')
+    await page.goto('/game/nexus')
   }
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
   await expect(page.getByTestId('character-profile')).toBeVisible()
 
-  // Arsenal build panels intentionally persist through refresh via URL state. Confirm that
+  // Nexus build panels intentionally persist through refresh via URL state. Confirm that
   // persisted panel is restored, then close it so the next buildcraft step can open the other
   // authoritative panel rather than clicking through a modal backdrop.
   const openDialog = page.getByRole('dialog')
@@ -106,7 +91,10 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   expect(prepared.body).toMatchObject({
     result: { masteredDisciplines: 6, learnedSkills: 16 },
   })
-  await reloadArsenal(page)
+  await reloadNexus(page)
+
+  const pureAttunement = page.locator('[aria-labelledby="nexus-attunement-heading"]')
+  await expect(pureAttunement).toContainText('Unbroken Strike')
 
   await page.getByRole('button', { name: /Manage Techniques/ }).click()
   const techniquesOverlay = page.locator('body > [data-techniques-overlay="true"]')
@@ -115,62 +103,54 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   expect(await page.evaluate(() => getComputedStyle(document.documentElement).overflow)).toBe(
     'hidden',
   )
-  await expect(page.getByTestId('skill-capacity')).toContainText('Vanguard')
-  await expect(page.getByTestId('skill-capacity')).toContainText('0 / 4')
-  await expect(page.getByTestId('active-essence')).toContainText('Unbroken Strike')
-  await expect(page.getByTestId('active-resonance')).toHaveCount(0)
+  await expect(page.getByTestId('skill-capacity')).toContainText('0 / 4 selected')
+  await expect(page.getByTestId('technique-preview')).not.toContainText('Build Signature')
 
   for (const skill of ['Forceful Strike', 'Cleave', 'Brace', 'Shield Bash']) {
     await setSkill(page, skill, true)
   }
 
-  await expect(page.getByTestId('skill-capacity')).toContainText('4 / 4')
-  await commitSkills(page, ['Forceful Strike', 'Cleave', 'Brace', 'Shield Bash'])
-  await reloadArsenal(page)
+  await expect(page.getByTestId('skill-capacity')).toContainText('4 / 4 selected')
+  await reloadNexus(page)
 
   const disciplinePanel = page.getByTestId('primary-build-panel')
   const disciplineLauncher = disciplinePanel.getByRole('button', {
-    name: /Manage Primary Discipline/,
+    name: /Manage Disciplines/,
   })
   await disciplineLauncher.click()
   const disciplineDialog = page.getByRole('dialog', { name: 'Discipline Management' })
   await expect(disciplineDialog).toBeVisible()
-  await page.getByLabel('Proposed Secondary').selectOption('lifebinder')
-  await expect(page.getByTestId('primary-build-preview')).toContainText('Vanguard + Lifebinder')
-  await page.getByRole('button', { name: 'Commit Discipline changes' }).click()
-  await expect(page.getByRole('status')).toContainText(
-    'Lifebinder is now the committed Secondary Discipline.',
-  )
-  await expect(disciplineLauncher).toHaveText('Discipline Management')
+  await disciplineDialog.getByLabel('Secondary Discipline').selectOption('lifebinder')
+  await expect(page.getByTestId('primary-build-preview')).toContainText('Lifebinder')
+  await disciplineDialog.getByRole('button', { name: /Confirm Change/ }).click()
+  await expect(page.getByRole('status')).toContainText('Discipline changes committed.')
+  await expect(disciplineLauncher).toHaveText(/Manage Disciplines/)
   await expect(disciplinePanel).not.toContainText('Vanguard + Lifebinder')
-  await expect(disciplineDialog).toContainText('Committed Primary')
+  await expect(disciplineDialog).toContainText('Primary Discipline')
   await expect(disciplineDialog).toContainText('Vanguard')
-  await expect(disciplineDialog).toContainText('Committed Secondary')
+  await expect(disciplineDialog).toContainText('Secondary Discipline')
   await expect(disciplineDialog).toContainText('Lifebinder')
-  await reloadArsenal(page)
+  await reloadNexus(page)
+
+  const mixedAttunement = page.locator('[aria-labelledby="nexus-attunement-heading"]')
+  await expect(mixedAttunement).toContainText("Mercy's Edge")
+  await expect(mixedAttunement).not.toContainText('Unbroken Strike')
 
   await page.getByRole('button', { name: /Manage Techniques/ }).click()
   const mixedCapacity = page.getByTestId('skill-capacity')
-  await expect(mixedCapacity).toContainText('Vanguard')
-  await expect(mixedCapacity).toContainText('2 / 3')
-  await expect(mixedCapacity).toContainText('Lifebinder')
-  await expect(mixedCapacity).toContainText('0 / 2')
-  await expect(page.getByTestId('active-resonance')).toContainText("Mercy's Edge")
-  await expect(page.getByTestId('active-essence')).toHaveCount(0)
+  await expect(mixedCapacity).toContainText('2 / 4 selected')
 
   await setSkill(page, 'Mending Light', true)
   await setSkill(page, 'Barrier', true)
 
-  await expect(mixedCapacity).toContainText('Vanguard')
-  await expect(mixedCapacity).toContainText('Lifebinder')
-  await expect(mixedCapacity).toContainText('2 / 2')
-  await commitSkills(page, ['Forceful Strike', 'Cleave', 'Mending Light', 'Barrier'])
+  await expect(mixedCapacity).toContainText('4 / 4 selected')
 
-  await reloadArsenal(page)
+  await reloadNexus(page)
+  await expect(page.locator('[aria-labelledby="nexus-attunement-heading"]')).toContainText(
+    "Mercy's Edge",
+  )
   await page.getByRole('button', { name: /Manage Techniques/ }).click()
-  await expect(page.getByTestId('skill-capacity')).toContainText('2 / 2')
-  await expect(page.getByTestId('active-resonance')).toContainText("Mercy's Edge")
-  await expect(page.getByTestId('active-essence')).toHaveCount(0)
+  await expect(page.getByTestId('skill-capacity')).toContainText('4 / 4 selected')
   await expect(skillRow(page, 'Forceful Strike').getByRole('checkbox')).toBeChecked()
   await expect(skillRow(page, 'Cleave').getByRole('checkbox')).toBeChecked()
   await expect(skillRow(page, 'Mending Light').getByRole('checkbox')).toBeChecked()
@@ -201,8 +181,11 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   const confirmAction = page.getByRole('button', { name: /Confirm Action/ })
   const actionEconomy = page.getByRole('progressbar', { name: 'Action Economy remaining' })
 
-  // Swapping an active basic Guard to ally-only Barrier must replace the self forecast with
-  // truthful skill guidance. A 1v1 has no other allied unit, and Barrier's range starts at one.
+  // Favorites no longer choose cockpit defaults, so explicitly restore basic Guard before
+  // verifying the Guard -> Barrier forecast swap. A 1v1 has no other allied unit, and Barrier's
+  // range starts at one.
+  await commandDeck.getByRole('button', { name: /Choose Guard skill/ }).click()
+  await page.getByRole('option', { name: 'Guard 30 AP', exact: true }).click()
   await commandDeck.getByRole('button', { name: 'Guard, 30 AP', exact: true }).click()
   await expect(confirmAction).toBeEnabled()
   const guardTargetPreview = page.waitForResponse((response) => response.url().endsWith('/preview'))

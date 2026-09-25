@@ -47,6 +47,8 @@ Phase 2 is formally closed and its reusable tactical combat, Recruit AI/Battle H
 
 Later phases inherit compatible early-delivered systems and audit them instead of rebuilding them solely because older roadmaps scheduled them later.
 
+Owner reference-review scope (2026-09-25): `docs/ROADMAP_WORLD_EXPERIENCE.md` defines P5-W1–W4 and later-phase continuations. The current Phase 5 chat owns server travel timing, authored geography/content and supernatural authority; a separate Work Mode chat owns map/globe layout, location/identity presentation and art alignment. Coordinate shared contracts and preserve active work. Seamless multi-sector rendering and mechanic-based Skill discovery remain Phase 6. This planning authorization does not authorize deployment.
+
 ### Owner Phase-3 transition rule
 
 If the Owner clearly says wording equivalent to:

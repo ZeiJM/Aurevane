@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
 import {
   BATTLE_MISSING_ARTWORK,
   battleSkillArtwork,
@@ -7,6 +7,29 @@ import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 // Keep the screenshots and interaction trace when this release gate passes, too.
 test.use({ trace: 'on' })
+
+async function setTechnique(page: Page, card: Locator, checked = true): Promise<void> {
+  const checkbox = card.getByRole('checkbox')
+  if ((await checkbox.isChecked()) === checked) return
+
+  const saved = page.waitForResponse(
+    (response) =>
+      response.url().endsWith('/api/character/build/skills') &&
+      response.request().method() === 'PUT',
+  )
+  const coarsePointer = await page.evaluate(
+    () => window.matchMedia('(hover: none), (pointer: coarse)').matches,
+  )
+
+  if (coarsePointer) {
+    await card.locator('label').dblclick()
+  } else {
+    await checkbox.click()
+  }
+
+  expect((await saved).status()).toBe(200)
+  await expect(checkbox).toBeChecked({ checked })
+}
 
 test('Ironfist provisions normally and Skill details preserve selection on phone and desktop', async ({
   page,
@@ -25,30 +48,21 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
     password: 'Phase4-disposable-browser-2026!',
     characterName: `Roster ${suffix}`,
   })
-  await page.goto('/game/arsenal')
+  await page.goto('/game/nexus')
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
-  await page.getByRole('button', { name: /Manage Primary Discipline/ }).click()
+  await page.getByRole('button', { name: /Manage Disciplines/ }).click()
   const management = page.getByRole('dialog', { name: 'Discipline Management' })
   await expect(management).toBeVisible()
   await page.reload()
   await expect(management).toBeVisible()
-  await management
-    .locator('label')
-    .filter({ hasText: /^Proposed Primary/ })
-    .locator('select')
-    .selectOption('ironfist')
-  await page.getByRole('button', { name: 'Commit Ironfist as Primary' }).click()
+  await management.getByLabel('Primary Discipline').selectOption('ironfist')
+  await management.getByRole('button', { name: /Confirm Change/ }).click()
   await expect(page.getByTestId('primary-discipline-chip')).toHaveText('Ironfist')
   await management.getByRole('button', { name: 'Close', exact: true }).click()
-  await page.getByRole('button', { name: /Manage Techniques/ }).click()
-  const dialog = page.getByRole('dialog', { name: 'Techniques', exact: true })
-  const list = page.getByTestId('learned-skill-list')
-  await expect(list.locator('article')).toHaveCount(8)
-  await expect(page.getByTestId('active-essence')).toHaveText('Hundredfold Rush')
-  const essenceArtwork = dialog
-    .locator('article')
-    .filter({ has: page.getByTestId('active-essence') })
-    .locator('img')
+  const attunement = page.locator('[aria-labelledby="nexus-attunement-heading"]')
+  const essenceCard = attunement.locator('article').filter({ hasText: 'Hundredfold Rush' })
+  await expect(essenceCard).toBeVisible()
+  const essenceArtwork = essenceCard.locator('img')
   const expectedEssenceArtwork = battleSkillArtwork('essence.ironfist.hundredfold-rush')
   expect(expectedEssenceArtwork).not.toBe(BATTLE_MISSING_ARTWORK)
   await expect(essenceArtwork).toHaveAttribute('src', expectedEssenceArtwork)
@@ -56,25 +70,23 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
   await expect
     .poll(() => essenceArtwork.evaluate((image: HTMLImageElement) => image.naturalWidth))
     .toBeGreaterThan(0)
+  await page.getByRole('button', { name: /Manage Techniques/ }).click()
+  const dialog = page.getByRole('dialog', { name: 'Techniques', exact: true })
+  const list = page.getByTestId('learned-skill-list')
+  await expect(list.locator('article')).toHaveCount(8)
   const palm = list.locator('article').filter({ hasText: 'Counter Palm' })
-  await palm.locator('summary').click()
-  await expect(palm).toContainText('Requires Guarded on yourself.')
-  await expect(palm).toContainText('1 tile')
+  await palm.getByRole('checkbox').focus()
+  await expect(dialog).toContainText('RequirementsSelf: Guard')
+  await expect(dialog).toContainText('Range1 tile')
   await expect(palm.getByRole('checkbox')).not.toBeChecked()
   const sweep = list.locator('article').filter({ hasText: 'Sweep' })
-  await expect(sweep).toContainText('Circle 1')
+  await sweep.getByRole('checkbox').focus()
+  await expect(dialog).toContainText('Target MethodCircle · radius 1')
   for (const name of ['Rising Fist', 'Sweep', 'Breakfall', 'Counter Palm']) {
-    await list.locator('article').filter({ hasText: name }).getByRole('checkbox').check()
+    await setTechnique(page, list.locator('article').filter({ hasText: name }), true)
   }
-  // The profile refresh can remount the panel and clear its transient status.
-  // Verify the authoritative save, then independently check persisted selections.
-  const saved = page.waitForResponse(
-    (response) =>
-      response.url().endsWith('/api/character/build/skills') &&
-      response.request().method() === 'PUT',
-  )
-  await page.getByRole('button', { name: 'Commit Selected Techniques' }).click()
-  expect((await saved).status()).toBe(200)
+  // The profile refresh can remount the panel. Verify the authoritative auto-save
+  // by independently checking persisted selections after reload.
   await page.reload()
   await expect(dialog).toBeVisible()
   await expect(list.locator('input:checked')).toHaveCount(4)
@@ -83,7 +95,7 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
       list.locator('article').filter({ hasText: name }).getByRole('checkbox'),
     ).toBeChecked()
   }
-  await palm.locator('summary').click()
+  await palm.getByRole('checkbox').focus()
   const overflow = await dialog.evaluate((element) => element.scrollWidth > element.clientWidth + 1)
   expect(overflow).toBe(false)
   expect(await palm.evaluate((element) => element.scrollHeight > element.clientHeight + 1)).toBe(
@@ -200,18 +212,16 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
     password: 'P4-advanced-disposable-2026!',
     characterName: `Mastery ${suffix}`,
   })
-  await page.goto('/game/arsenal')
+  await page.goto('/game/nexus')
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
-  await page.getByRole('button', { name: /Manage Primary Discipline/ }).click()
+  await page.getByRole('button', { name: /Manage Disciplines/ }).click()
   const management = page.getByRole('dialog', { name: 'Discipline Management' })
-  const atlasResponse = page.waitForResponse(
-    (response) =>
-      response.url().endsWith('/api/character/mastery') && response.request().method() === 'GET',
-  )
-  await management.getByText('Discipline Atlas & Mastery', { exact: true }).click()
-  const atlasResult = await atlasResponse
-  expect(atlasResult.status()).toBe(200)
-  const atlasBody = (await atlasResult.json()) as {
+  const mastery = await page.evaluate(async () => {
+    const response = await fetch('/api/character/mastery')
+    return { status: response.status, body: await response.json() }
+  })
+  expect(mastery.status).toBe(200)
+  const atlasBody = mastery.body as {
     progress: Array<{
       disciplineId: string
       xp: number
@@ -244,28 +254,18 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
       }),
     ]),
   )
-  await expect(management).toContainText('36 Disciplines')
-  await expect(management).toContainText('Testing access is open.')
-  const primary = management
-    .locator('label')
-    .filter({ hasText: /^Proposed Primary/ })
-    .locator('select')
+  const primary = management.getByLabel('Primary Discipline')
   await expect(primary.locator('option[value="bastion"]')).toHaveCount(1)
   // Existing Owner-authorized testing access covers all published Disciplines without fake Mastery.
   // Earned prerequisites and 4/2/2 acquisition are independently verified in database CI.
   await primary.selectOption('bastion')
-  await page.getByRole('button', { name: 'Commit Bastion as Primary' }).click()
+  await management.getByRole('button', { name: /Confirm Change/ }).click()
   await expect(page.getByTestId('primary-discipline-chip')).toHaveText('Bastion')
   await management.getByRole('button', { name: 'Close', exact: true }).click()
-  await page.getByRole('button', { name: /Manage Techniques/ }).click()
-  const dialog = page.getByRole('dialog', { name: 'Techniques', exact: true })
-  const list = page.getByTestId('learned-skill-list')
-  await expect(list.locator('article')).toHaveCount(8)
-  await expect(page.getByTestId('active-essence')).toHaveText('Last Bastion')
-  const essenceArt = dialog
-    .locator('article')
-    .filter({ has: page.getByTestId('active-essence') })
-    .locator('img')
+  const attunement = page.locator('[aria-labelledby="nexus-attunement-heading"]')
+  const essenceCard = attunement.locator('article').filter({ hasText: 'Last Bastion' })
+  await expect(essenceCard).toBeVisible()
+  const essenceArt = essenceCard.locator('img')
   const expectedEssenceArtwork = battleSkillArtwork('essence.bastion.last-bastion')
   expect(expectedEssenceArtwork).not.toBe(BATTLE_MISSING_ARTWORK)
   await expect(essenceArt).toHaveAttribute('src', expectedEssenceArtwork)
@@ -275,11 +275,15 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
       essenceArt.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0),
     )
     .toBe(true)
+  await page.getByRole('button', { name: /Manage Techniques/ }).click()
+  const dialog = page.getByRole('dialog', { name: 'Techniques', exact: true })
+  const list = page.getByTestId('learned-skill-list')
+  await expect(list.locator('article')).toHaveCount(8)
   const fortress = list.locator('article').filter({ hasText: 'Fortress' })
-  await expect(fortress).toContainText('Fortified')
-  await fortress.locator('summary').click()
-  await expect(fortress).toContainText('Take 30% less damage and deal 20% less damage.')
-  await expect(fortress).toContainText('to yourself')
+  await fortress.getByRole('checkbox').focus()
+  await expect(dialog).toContainText('EffectsFortified')
+  await expect(dialog).toContainText('TargetSelf')
+  await expect(dialog).toContainText('Damage0')
   expect(await dialog.evaluate((element) => element.scrollWidth > element.clientWidth + 1)).toBe(
     false,
   )
@@ -287,14 +291,7 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
     body: await page.screenshot(),
     contentType: 'image/png',
   })
-  await fortress.getByRole('checkbox').check()
-  const saved = page.waitForResponse(
-    (response) =>
-      response.url().endsWith('/api/character/build/skills') &&
-      response.request().method() === 'PUT',
-  )
-  await page.getByRole('button', { name: 'Commit Selected Techniques' }).click()
-  expect((await saved).status()).toBe(200)
+  await setTechnique(page, fortress, true)
   await dialog.getByRole('button', { name: 'Close', exact: true }).click()
   await page.goto('/game/battle')
   await page.getByLabel('Battle mode').selectOption('mastery-trial')
@@ -390,27 +387,18 @@ test('Chronist provisions its full testing library, Essence artwork and explicit
     password: 'P4-chronist-disposable-2026!',
     characterName: `Chronist ${suffix}`,
   })
-  await page.goto('/game/arsenal')
+  await page.goto('/game/nexus')
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
-  await page.getByRole('button', { name: /Manage Primary Discipline/ }).click()
+  await page.getByRole('button', { name: /Manage Disciplines/ }).click()
   const management = page.getByRole('dialog', { name: 'Discipline Management' })
-  await management
-    .locator('label')
-    .filter({ hasText: /^Proposed Primary/ })
-    .locator('select')
-    .selectOption('chronist')
-  await page.getByRole('button', { name: 'Commit Chronist as Primary' }).click()
+  await management.getByLabel('Primary Discipline').selectOption('chronist')
+  await management.getByRole('button', { name: /Confirm Change/ }).click()
   await expect(page.getByTestId('primary-discipline-chip')).toHaveText('Chronist')
   await management.getByRole('button', { name: 'Close', exact: true }).click()
-  await page.getByRole('button', { name: /Manage Techniques/ }).click()
-  const dialog = page.getByRole('dialog', { name: 'Techniques', exact: true })
-  const list = page.getByTestId('learned-skill-list')
-  await expect(list.locator('article')).toHaveCount(8)
-  await expect(page.getByTestId('active-essence')).toHaveText('Borrowed Hour')
-  const artwork = dialog
-    .locator('article')
-    .filter({ has: page.getByTestId('active-essence') })
-    .locator('img')
+  const attunement = page.locator('[aria-labelledby="nexus-attunement-heading"]')
+  const essenceCard = attunement.locator('article').filter({ hasText: 'Borrowed Hour' })
+  await expect(essenceCard).toBeVisible()
+  const artwork = essenceCard.locator('img')
   const expectedEssenceArtwork = battleSkillArtwork('essence.chronist.borrowed-hour')
   expect(expectedEssenceArtwork).not.toBe(BATTLE_MISSING_ARTWORK)
   await expect(artwork).toHaveAttribute('src', expectedEssenceArtwork)
@@ -418,12 +406,17 @@ test('Chronist provisions its full testing library, Essence artwork and explicit
   await expect
     .poll(() => artwork.evaluate((image: HTMLImageElement) => image.naturalWidth))
     .toBeGreaterThan(0)
-  const haste = list.locator('article').filter({ hasText: /^HasteChronist30 AP/ })
-  await haste.locator('summary').click()
-  await expect(haste).toContainText('Movement costs 10 less AP per entered tile')
+  await page.getByRole('button', { name: /Manage Techniques/ }).click()
+  const dialog = page.getByRole('dialog', { name: 'Techniques', exact: true })
+  const list = page.getByTestId('learned-skill-list')
+  await expect(list.locator('article')).toHaveCount(8)
+  const haste = list.locator('article').filter({ hasText: 'Haste' }).first()
+  await haste.getByRole('checkbox').focus()
+  await expect(dialog).toContainText('EffectsHaste')
   const rewind = list.locator('article').filter({ hasText: 'Rewind Step' })
-  await rewind.locator('summary').click()
-  await expect(rewind).toContainText('turn')
+  await rewind.getByRole('checkbox').focus()
+  await expect(dialog).toContainText('EffectsReturn to Turn Start')
+  await expect(dialog).toContainText('Cooldown')
   expect(await dialog.evaluate((element) => element.scrollWidth > element.clientWidth + 1)).toBe(
     false,
   )
