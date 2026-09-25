@@ -6,13 +6,7 @@ import type { EssenceDefinition } from '@aurevane/game-core/combat/essence'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
 import type { ResonanceDefinition } from '@aurevane/game-core/combat/resonance'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import {
-  useEffect,
-  useMemo,
-  useState,
-  useSyncExternalStore,
-  type CSSProperties,
-} from 'react'
+import { useEffect, useMemo, useState, useSyncExternalStore, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 
 import { battleSkillArtwork } from '../battle/battle-skill-presentation'
