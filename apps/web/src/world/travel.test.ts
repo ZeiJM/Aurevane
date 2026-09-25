@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { WORLD_REGIONS, CHARTED_SECTORS, START_POSITION } from './catalog'
+import { WORLD_REGIONS, CHARTED_SECTORS, START_POSITION, STEP_MS } from './catalog'
 import {
   advanceWorldRoute,
   canAutoPath,
@@ -11,6 +11,26 @@ import {
 } from './travel'
 
 describe('world travel', () => {
+  it('keeps representative local and road travel on the canonical ordinary pace', () => {
+    const local = findWorldRoute(
+      { sectorId: 'verdant-expanse', x: 2, y: 4 },
+      { sectorId: 'verdant-expanse', x: 5, y: 4 },
+      CHARTED_SECTORS,
+    )!
+    expect(local).toHaveLength(3)
+    expect(local.every((step) => step.durationMs === STEP_MS)).toBe(true)
+    expect(local.reduce((ms, step) => ms + step.durationMs, 0)).toBe(3300)
+
+    const crownJourney = findWorldRoute(
+      { sectorId: 'aureth-crown', x: 12, y: 4 },
+      { sectorId: 'verdant-expanse', x: 0, y: 4 },
+      CHARTED_SECTORS,
+    )!
+    expect(crownJourney).toHaveLength(14)
+    expect(crownJourney.every((step) => step.durationMs === STEP_MS)).toBe(true)
+    expect(crownJourney.reduce((ms, step) => ms + step.durationMs, 0)).toBe(15400)
+  })
+
   it('schedules active sync from the authoritative next-step deadline', () => {
     expect(
       worldSyncDelayMs({
@@ -95,14 +115,37 @@ describe('world travel', () => {
     ])
       expect(findWorldRoute(START_POSITION, to, CHARTED_SECTORS)).toBeNull()
   })
-  it('crosses a regional road with elapsed travel time', () => {
+  it('keeps the representative local settlement route at three authoritative 1.1-second steps', () => {
+    const route = findWorldRoute(
+      START_POSITION,
+      { sectorId: 'verdant-expanse', x: 2, y: 4 },
+      CHARTED_SECTORS,
+    )!
+
+    expect(route).toHaveLength(3)
+    expect(route.every((step) => step.durationMs === STEP_MS)).toBe(true)
+    expect(route.reduce((ms, step) => ms + step.durationMs, 0)).toBe(3_300)
+  })
+
+  it('keeps the representative settlement-to-settlement journey on the same 26-step path', () => {
+    const route = findWorldRoute(
+      { sectorId: 'verdant-expanse', x: 2, y: 4 },
+      { sectorId: 'aureth-crown', x: 2, y: 4 },
+      CHARTED_SECTORS,
+    )!
+
+    expect(route).toHaveLength(26)
+    expect(route.reduce((ms, step) => ms + step.durationMs, 0)).toBe(28_600)
+  })
+
+  it('uses the tuned authoritative pace for a representative regional journey', () => {
     const route = findWorldRoute(
       START_POSITION,
       { sectorId: 'aureth-crown', x: 6, y: 4 },
       CHARTED_SECTORS,
     )!
     expect(route.length).toBeGreaterThan(1)
-    expect(route.reduce((ms, s) => ms + s.durationMs, 0)).toBeGreaterThan(45000)
+    expect(route.reduce((ms, s) => ms + s.durationMs, 0)).toBe(27_500)
     expect(route.at(-1)?.position).toEqual({ sectorId: 'aureth-crown', x: 6, y: 4 })
   })
   it('adds a connected Crown wilderness cluster without replacing the established Crown Road', () => {
@@ -177,7 +220,8 @@ describe('world travel', () => {
       expect(road).toHaveLength(13)
       expect(new Set(road.map((s) => s.position.x)).size).toBe(13)
       expect(road.every((s) => s.position.y === 4)).toBe(true)
-      expect(road.slice(1).every((s) => s.durationMs === 4000)).toBe(true)
+      expect(road.slice(1).every((s) => s.durationMs === STEP_MS)).toBe(true)
+      expect(route.reduce((ms, step) => ms + step.durationMs, 0)).toBe(15_400)
       expect(route.at(-1)?.position).toEqual(to)
     }
   })
@@ -226,7 +270,7 @@ describe('world travel', () => {
       expect(road).toHaveLength(13)
       expect(new Set(road.map((s) => s.position.x)).size).toBe(13)
       expect(road.every((s) => s.position.y === 3)).toBe(true)
-      expect(road.slice(1).every((s) => s.durationMs === 4000)).toBe(true)
+      expect(road.slice(1).every((s) => s.durationMs === STEP_MS)).toBe(true)
       expect(route.at(-1)?.position).toEqual(to)
     }
   })
@@ -248,7 +292,7 @@ describe('world travel', () => {
     )!
     for (const sectorId of ['crown-road', 'coastal-road'])
       expect(route.filter((step) => step.position.sectorId === sectorId)).toHaveLength(13)
-    expect(route.every((step) => step.durationMs <= 4000)).toBe(true)
+    expect(route.every((step) => step.durationMs <= STEP_MS)).toBe(true)
   })
   describe.each([
     { id: 'eastern-march-road', from: 'emberreach', to: 'umbral-march', walkableVerge: false },
@@ -271,8 +315,8 @@ describe('world travel', () => {
         Array.from({ length: 13 }, (_, x) => (reverse ? 12 - x : x)),
       )
       expect(road.every((step) => step.position.y === 4)).toBe(true)
-      expect(road.slice(1).every((step) => step.durationMs === 4000)).toBe(true)
-      expect(route.every((step) => step.durationMs <= 4000)).toBe(true)
+      expect(road.slice(1).every((step) => step.durationMs === STEP_MS)).toBe(true)
+      expect(route.every((step) => step.durationMs <= STEP_MS)).toBe(true)
       expect(route.at(-1)?.position).toEqual(endpoints[1])
     })
     it('permits only terrain squares clear of painted obstacles', () => {
@@ -298,7 +342,7 @@ describe('world travel', () => {
     )!
     for (const id of ['southern-caravan-road', 'crown-road', 'ember-road'])
       expect(route.filter((step) => step.position.sectorId === id)).toHaveLength(13)
-    expect(route.every((step) => step.durationMs <= 4000)).toBe(true)
+    expect(route.every((step) => step.durationMs <= STEP_MS)).toBe(true)
   })
   it('connects every canonical region through bounded square-by-square journeys', () => {
     for (const from of WORLD_REGIONS)
@@ -312,7 +356,7 @@ describe('world travel', () => {
         )
         expect(route, `${from.id} to ${to.id}`).not.toBeNull()
         expect(route!.at(-1)?.position).toEqual(destination)
-        expect(route!.every((step) => step.durationMs <= 4000)).toBe(true)
+        expect(route!.every((step) => step.durationMs <= STEP_MS)).toBe(true)
       }
   })
   it('advances only one due step even after a long disconnect', () => {
