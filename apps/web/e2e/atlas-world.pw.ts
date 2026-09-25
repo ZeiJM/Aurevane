@@ -413,9 +413,11 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
       )
       if (!point.visible) continue
       const x =
-        returnedGlobeBounds.x + returnedGlobeBounds.width * (0.5 + point.x * 0.94 * 0.5)
+        returnedGlobeBounds.x +
+        returnedGlobeBounds.width * (0.5 + point.x * 0.94 * 0.5)
       const y =
-        returnedGlobeBounds.y + returnedGlobeBounds.height * (0.5 - point.y * 0.94 * 0.5)
+        returnedGlobeBounds.y -
+        returnedGlobeBounds.height * (point.y * 0.94 * 0.5 - 0.5)
       const available = await page.evaluate(
         ({ x, y }) => {
           const target = document.elementFromPoint(x, y)
