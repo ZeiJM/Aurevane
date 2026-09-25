@@ -1,84 +1,164 @@
 export const APPROVED_RESONANCE_ART = {
-  'resonance.lifebinder-vanguard.mercys-edge': '/media/art/resonances/resonance-lifebinder-vanguard-mercys-edge-v01.webp',
-  'resonance.aetherist-farstrider.arcane-hunt': '/media/art/resonances/resonance-aetherist-farstrider-arcane-hunt-v01.webp',
-  'resonance.aetherist-lifebinder.vital-circuit': '/media/art/resonances/resonance-aetherist-lifebinder-vital-circuit-v01.webp',
-  'resonance.aetherist-shadehand.veiled-conduit': '/media/art/resonances/resonance-aetherist-shadehand-veiled-conduit-v01.webp',
-  'resonance.aetherist-vanguard.spellsteel-rhythm': '/media/art/resonances/resonance-aetherist-vanguard-spellsteel-rhythm-v01.webp',
-  'resonance.farstrider-lifebinder.guided-renewal': '/media/art/resonances/resonance-farstrider-lifebinder-guided-renewal-v01.webp',
-  'resonance.farstrider-shadehand.marked-opening': '/media/art/resonances/resonance-farstrider-shadehand-marked-opening-v01.webp',
-  'resonance.farstrider-vanguard.covering-break': '/media/art/resonances/resonance-farstrider-vanguard-covering-break-v01.webp',
-  'resonance.lifebinder-shadehand.mercy-in-shadow': '/media/art/resonances/resonance-lifebinder-shadehand-mercy-in-shadow-v01.webp',
-  'resonance.shadehand-vanguard.broken-line': '/media/art/resonances/resonance-shadehand-vanguard-broken-line-v01.webp',
-  'resonance.aetherist-ironfist.conductive-impact': '/media/art/resonances/resonance-aetherist-ironfist-conductive-impact-v01.webp',
-  'resonance.farstrider-ironfist.marked-approach': '/media/art/resonances/resonance-farstrider-ironfist-marked-approach-v01.webp',
-  'resonance.ironfist-lifebinder.renewed-force': '/media/art/resonances/resonance-ironfist-lifebinder-renewed-force-v01.webp',
-  'resonance.ironfist-shadehand.broken-rhythm': '/media/art/resonances/resonance-ironfist-shadehand-broken-rhythm-v01.webp',
-  'resonance.ironfist-vanguard.tempered-response': '/media/art/resonances/resonance-ironfist-vanguard-tempered-response-v01.webp',
-  'resonance.bastion-vanguard.linked-sequence': '/media/art/resonances/resonance-bastion-vanguard-tempered-vanguard-v01.webp',
-  'resonance.bastion-lifebinder.linked-sequence': '/media/art/resonances/resonance-bastion-lifebinder-tempered-bloom-v01.webp',
-  'resonance.aetherist-bastion.linked-sequence': '/media/art/resonances/resonance-aetherist-bastion-tempered-arc-v01.webp',
-  'resonance.bastion-farstrider.linked-sequence': '/media/art/resonances/resonance-bastion-farstrider-tempered-volley-v01.webp',
-  'resonance.bastion-shadehand.linked-sequence': '/media/art/resonances/resonance-bastion-shadehand-tempered-ambush-v01.webp',
-  'resonance.bastion-ironfist.linked-sequence': '/media/art/resonances/resonance-bastion-ironfist-tempered-impact-v01.webp',
-  'resonance.ravager-vanguard.linked-sequence': '/media/art/resonances/resonance-ravager-vanguard-crimson-vanguard-v01.webp',
-  'resonance.lifebinder-ravager.linked-sequence': '/media/art/resonances/resonance-lifebinder-ravager-crimson-bloom-v01.webp',
-  'resonance.aetherist-ravager.linked-sequence': '/media/art/resonances/resonance-aetherist-ravager-crimson-arc-v01.webp',
-  'resonance.farstrider-ravager.linked-sequence': '/media/art/resonances/resonance-farstrider-ravager-crimson-volley-v01.webp',
-  'resonance.ravager-shadehand.linked-sequence': '/media/art/resonances/resonance-ravager-shadehand-crimson-ambush-v01.webp',
-  'resonance.ironfist-ravager.linked-sequence': '/media/art/resonances/resonance-ironfist-ravager-crimson-impact-v01.webp',
-  'resonance.bastion-ravager.linked-sequence': '/media/art/resonances/resonance-bastion-ravager-crimson-bulwark-v01.webp',
-  'resonance.edgedancer-vanguard.linked-sequence': '/media/art/resonances/resonance-edgedancer-vanguard-poised-vanguard-v01.webp',
-  'resonance.edgedancer-lifebinder.linked-sequence': '/media/art/resonances/resonance-edgedancer-lifebinder-poised-bloom-v01.webp',
-  'resonance.aetherist-edgedancer.linked-sequence': '/media/art/resonances/resonance-aetherist-edgedancer-poised-arc-v01.webp',
-  'resonance.edgedancer-farstrider.linked-sequence': '/media/art/resonances/resonance-edgedancer-farstrider-poised-volley-v01.webp',
-  'resonance.edgedancer-shadehand.linked-sequence': '/media/art/resonances/resonance-edgedancer-shadehand-poised-ambush-v01.webp',
-  'resonance.edgedancer-ironfist.linked-sequence': '/media/art/resonances/resonance-edgedancer-ironfist-poised-impact-v01.webp',
-  'resonance.bastion-edgedancer.linked-sequence': '/media/art/resonances/resonance-bastion-edgedancer-poised-bulwark-v01.webp',
-  'resonance.edgedancer-ravager.linked-sequence': '/media/art/resonances/resonance-edgedancer-ravager-poised-fury-v01.webp',
-  'resonance.vanguard-wildwarden.linked-sequence': '/media/art/resonances/resonance-vanguard-wildwarden-quarry-vanguard-v01.webp',
-  'resonance.lifebinder-wildwarden.linked-sequence': '/media/art/resonances/resonance-lifebinder-wildwarden-quarry-bloom-v01.webp',
-  'resonance.aetherist-wildwarden.linked-sequence': '/media/art/resonances/resonance-aetherist-wildwarden-quarry-arc-v01.webp',
-  'resonance.farstrider-wildwarden.linked-sequence': '/media/art/resonances/resonance-farstrider-wildwarden-quarry-volley-v01.webp',
-  'resonance.shadehand-wildwarden.linked-sequence': '/media/art/resonances/resonance-shadehand-wildwarden-quarry-ambush-v01.webp',
-  'resonance.ironfist-wildwarden.linked-sequence': '/media/art/resonances/resonance-ironfist-wildwarden-quarry-impact-v01.webp',
-  'resonance.bastion-wildwarden.linked-sequence': '/media/art/resonances/resonance-bastion-wildwarden-quarry-bulwark-v01.webp',
-  'resonance.ravager-wildwarden.linked-sequence': '/media/art/resonances/resonance-ravager-wildwarden-quarry-fury-v01.webp',
-  'resonance.edgedancer-wildwarden.linked-sequence': '/media/art/resonances/resonance-edgedancer-wildwarden-quarry-edge-v01.webp',
-  'resonance.runeblade-vanguard.linked-sequence': '/media/art/resonances/resonance-runeblade-vanguard-runic-vanguard-v01.webp',
-  'resonance.lifebinder-runeblade.linked-sequence': '/media/art/resonances/resonance-lifebinder-runeblade-runic-bloom-v01.webp',
-  'resonance.aetherist-runeblade.linked-sequence': '/media/art/resonances/resonance-aetherist-runeblade-runic-arc-v01.webp',
-  'resonance.farstrider-runeblade.linked-sequence': '/media/art/resonances/resonance-farstrider-runeblade-runic-volley-v01.webp',
-  'resonance.runeblade-shadehand.linked-sequence': '/media/art/resonances/resonance-runeblade-shadehand-runic-ambush-v01.webp',
-  'resonance.ironfist-runeblade.linked-sequence': '/media/art/resonances/resonance-ironfist-runeblade-runic-impact-v01.webp',
-  'resonance.bastion-runeblade.linked-sequence': '/media/art/resonances/resonance-bastion-runeblade-runic-bulwark-v01.webp',
-  'resonance.ravager-runeblade.linked-sequence': '/media/art/resonances/resonance-ravager-runeblade-runic-fury-v01.webp',
-  'resonance.edgedancer-runeblade.linked-sequence': '/media/art/resonances/resonance-edgedancer-runeblade-runic-edge-v01.webp',
-  'resonance.runeblade-wildwarden.linked-sequence': '/media/art/resonances/resonance-runeblade-wildwarden-runic-hunt-v01.webp',
-  'resonance.dawnshield-vanguard.linked-sequence': '/media/art/resonances/resonance-dawnshield-vanguard-dawnlit-vanguard-v01.webp',
-  'resonance.dawnshield-lifebinder.linked-sequence': '/media/art/resonances/resonance-dawnshield-lifebinder-dawnlit-bloom-v01.webp',
-  'resonance.aetherist-dawnshield.linked-sequence': '/media/art/resonances/resonance-aetherist-dawnshield-dawnlit-arc-v01.webp',
-  'resonance.dawnshield-farstrider.linked-sequence': '/media/art/resonances/resonance-dawnshield-farstrider-dawnlit-volley-v01.webp',
-  'resonance.dawnshield-shadehand.linked-sequence': '/media/art/resonances/resonance-dawnshield-shadehand-dawnlit-ambush-v01.webp',
-  'resonance.dawnshield-ironfist.linked-sequence': '/media/art/resonances/resonance-dawnshield-ironfist-dawnlit-impact-v01.webp',
-  'resonance.bastion-dawnshield.linked-sequence': '/media/art/resonances/resonance-bastion-dawnshield-dawnlit-bulwark-v01.webp',
-  'resonance.dawnshield-ravager.linked-sequence': '/media/art/resonances/resonance-dawnshield-ravager-dawnlit-fury-v01.webp',
-  'resonance.dawnshield-edgedancer.linked-sequence': '/media/art/resonances/resonance-dawnshield-edgedancer-dawnlit-edge-v01.webp',
-  'resonance.dawnshield-wildwarden.linked-sequence': '/media/art/resonances/resonance-dawnshield-wildwarden-dawnlit-hunt-v01.webp',
-  'resonance.dawnshield-runeblade.linked-sequence': '/media/art/resonances/resonance-dawnshield-runeblade-dawnlit-sigil-v01.webp',
-  'resonance.cinderweaver-vanguard.linked-sequence': '/media/art/resonances/resonance-cinderweaver-vanguard-ember-vanguard-v01.webp',
-  'resonance.cinderweaver-lifebinder.linked-sequence': '/media/art/resonances/resonance-cinderweaver-lifebinder-ember-bloom-v01.webp',
-  'resonance.aetherist-cinderweaver.linked-sequence': '/media/art/resonances/resonance-aetherist-cinderweaver-ember-arc-v01.webp',
-  'resonance.cinderweaver-farstrider.linked-sequence': '/media/art/resonances/resonance-cinderweaver-farstrider-ember-volley-v01.webp',
-  'resonance.cinderweaver-shadehand.linked-sequence': '/media/art/resonances/resonance-cinderweaver-shadehand-ember-ambush-v01.webp',
-  'resonance.cinderweaver-ironfist.linked-sequence': '/media/art/resonances/resonance-cinderweaver-ironfist-ember-impact-v01.webp',
-  'resonance.bastion-cinderweaver.linked-sequence': '/media/art/resonances/resonance-bastion-cinderweaver-ember-bulwark-v01.webp',
-  'resonance.cinderweaver-ravager.linked-sequence': '/media/art/resonances/resonance-cinderweaver-ravager-ember-fury-v01.webp',
-  'resonance.cinderweaver-edgedancer.linked-sequence': '/media/art/resonances/resonance-cinderweaver-edgedancer-ember-edge-v01.webp',
-  'resonance.cinderweaver-wildwarden.linked-sequence': '/media/art/resonances/resonance-cinderweaver-wildwarden-ember-hunt-v01.webp',
-  'resonance.cinderweaver-runeblade.linked-sequence': '/media/art/resonances/resonance-cinderweaver-runeblade-ember-sigil-v01.webp',
-  'resonance.cinderweaver-dawnshield.linked-sequence': '/media/art/resonances/resonance-cinderweaver-dawnshield-ember-aegis-v01.webp',
-  'resonance.frostweaver-vanguard.linked-sequence': '/media/art/resonances/resonance-frostweaver-vanguard-frozen-vanguard-v01.webp',
-  'resonance.frostweaver-lifebinder.linked-sequence': '/media/art/resonances/resonance-frostweaver-lifebinder-frozen-bloom-v01.webp',
+  'resonance.lifebinder-vanguard.mercys-edge':
+    '/media/art/resonances/resonance-lifebinder-vanguard-mercys-edge-v01.webp',
+  'resonance.aetherist-farstrider.arcane-hunt':
+    '/media/art/resonances/resonance-aetherist-farstrider-arcane-hunt-v01.webp',
+  'resonance.aetherist-lifebinder.vital-circuit':
+    '/media/art/resonances/resonance-aetherist-lifebinder-vital-circuit-v01.webp',
+  'resonance.aetherist-shadehand.veiled-conduit':
+    '/media/art/resonances/resonance-aetherist-shadehand-veiled-conduit-v01.webp',
+  'resonance.aetherist-vanguard.spellsteel-rhythm':
+    '/media/art/resonances/resonance-aetherist-vanguard-spellsteel-rhythm-v01.webp',
+  'resonance.farstrider-lifebinder.guided-renewal':
+    '/media/art/resonances/resonance-farstrider-lifebinder-guided-renewal-v01.webp',
+  'resonance.farstrider-shadehand.marked-opening':
+    '/media/art/resonances/resonance-farstrider-shadehand-marked-opening-v01.webp',
+  'resonance.farstrider-vanguard.covering-break':
+    '/media/art/resonances/resonance-farstrider-vanguard-covering-break-v01.webp',
+  'resonance.lifebinder-shadehand.mercy-in-shadow':
+    '/media/art/resonances/resonance-lifebinder-shadehand-mercy-in-shadow-v01.webp',
+  'resonance.shadehand-vanguard.broken-line':
+    '/media/art/resonances/resonance-shadehand-vanguard-broken-line-v01.webp',
+  'resonance.aetherist-ironfist.conductive-impact':
+    '/media/art/resonances/resonance-aetherist-ironfist-conductive-impact-v01.webp',
+  'resonance.farstrider-ironfist.marked-approach':
+    '/media/art/resonances/resonance-farstrider-ironfist-marked-approach-v01.webp',
+  'resonance.ironfist-lifebinder.renewed-force':
+    '/media/art/resonances/resonance-ironfist-lifebinder-renewed-force-v01.webp',
+  'resonance.ironfist-shadehand.broken-rhythm':
+    '/media/art/resonances/resonance-ironfist-shadehand-broken-rhythm-v01.webp',
+  'resonance.ironfist-vanguard.tempered-response':
+    '/media/art/resonances/resonance-ironfist-vanguard-tempered-response-v01.webp',
+  'resonance.bastion-vanguard.linked-sequence':
+    '/media/art/resonances/resonance-bastion-vanguard-tempered-vanguard-v01.webp',
+  'resonance.bastion-lifebinder.linked-sequence':
+    '/media/art/resonances/resonance-bastion-lifebinder-tempered-bloom-v01.webp',
+  'resonance.aetherist-bastion.linked-sequence':
+    '/media/art/resonances/resonance-aetherist-bastion-tempered-arc-v01.webp',
+  'resonance.bastion-farstrider.linked-sequence':
+    '/media/art/resonances/resonance-bastion-farstrider-tempered-volley-v01.webp',
+  'resonance.bastion-shadehand.linked-sequence':
+    '/media/art/resonances/resonance-bastion-shadehand-tempered-ambush-v01.webp',
+  'resonance.bastion-ironfist.linked-sequence':
+    '/media/art/resonances/resonance-bastion-ironfist-tempered-impact-v01.webp',
+  'resonance.ravager-vanguard.linked-sequence':
+    '/media/art/resonances/resonance-ravager-vanguard-crimson-vanguard-v01.webp',
+  'resonance.lifebinder-ravager.linked-sequence':
+    '/media/art/resonances/resonance-lifebinder-ravager-crimson-bloom-v01.webp',
+  'resonance.aetherist-ravager.linked-sequence':
+    '/media/art/resonances/resonance-aetherist-ravager-crimson-arc-v01.webp',
+  'resonance.farstrider-ravager.linked-sequence':
+    '/media/art/resonances/resonance-farstrider-ravager-crimson-volley-v01.webp',
+  'resonance.ravager-shadehand.linked-sequence':
+    '/media/art/resonances/resonance-ravager-shadehand-crimson-ambush-v01.webp',
+  'resonance.ironfist-ravager.linked-sequence':
+    '/media/art/resonances/resonance-ironfist-ravager-crimson-impact-v01.webp',
+  'resonance.bastion-ravager.linked-sequence':
+    '/media/art/resonances/resonance-bastion-ravager-crimson-bulwark-v01.webp',
+  'resonance.edgedancer-vanguard.linked-sequence':
+    '/media/art/resonances/resonance-edgedancer-vanguard-poised-vanguard-v01.webp',
+  'resonance.edgedancer-lifebinder.linked-sequence':
+    '/media/art/resonances/resonance-edgedancer-lifebinder-poised-bloom-v01.webp',
+  'resonance.aetherist-edgedancer.linked-sequence':
+    '/media/art/resonances/resonance-aetherist-edgedancer-poised-arc-v01.webp',
+  'resonance.edgedancer-farstrider.linked-sequence':
+    '/media/art/resonances/resonance-edgedancer-farstrider-poised-volley-v01.webp',
+  'resonance.edgedancer-shadehand.linked-sequence':
+    '/media/art/resonances/resonance-edgedancer-shadehand-poised-ambush-v01.webp',
+  'resonance.edgedancer-ironfist.linked-sequence':
+    '/media/art/resonances/resonance-edgedancer-ironfist-poised-impact-v01.webp',
+  'resonance.bastion-edgedancer.linked-sequence':
+    '/media/art/resonances/resonance-bastion-edgedancer-poised-bulwark-v01.webp',
+  'resonance.edgedancer-ravager.linked-sequence':
+    '/media/art/resonances/resonance-edgedancer-ravager-poised-fury-v01.webp',
+  'resonance.vanguard-wildwarden.linked-sequence':
+    '/media/art/resonances/resonance-vanguard-wildwarden-quarry-vanguard-v01.webp',
+  'resonance.lifebinder-wildwarden.linked-sequence':
+    '/media/art/resonances/resonance-lifebinder-wildwarden-quarry-bloom-v01.webp',
+  'resonance.aetherist-wildwarden.linked-sequence':
+    '/media/art/resonances/resonance-aetherist-wildwarden-quarry-arc-v01.webp',
+  'resonance.farstrider-wildwarden.linked-sequence':
+    '/media/art/resonances/resonance-farstrider-wildwarden-quarry-volley-v01.webp',
+  'resonance.shadehand-wildwarden.linked-sequence':
+    '/media/art/resonances/resonance-shadehand-wildwarden-quarry-ambush-v01.webp',
+  'resonance.ironfist-wildwarden.linked-sequence':
+    '/media/art/resonances/resonance-ironfist-wildwarden-quarry-impact-v01.webp',
+  'resonance.bastion-wildwarden.linked-sequence':
+    '/media/art/resonances/resonance-bastion-wildwarden-quarry-bulwark-v01.webp',
+  'resonance.ravager-wildwarden.linked-sequence':
+    '/media/art/resonances/resonance-ravager-wildwarden-quarry-fury-v01.webp',
+  'resonance.edgedancer-wildwarden.linked-sequence':
+    '/media/art/resonances/resonance-edgedancer-wildwarden-quarry-edge-v01.webp',
+  'resonance.runeblade-vanguard.linked-sequence':
+    '/media/art/resonances/resonance-runeblade-vanguard-runic-vanguard-v01.webp',
+  'resonance.lifebinder-runeblade.linked-sequence':
+    '/media/art/resonances/resonance-lifebinder-runeblade-runic-bloom-v01.webp',
+  'resonance.aetherist-runeblade.linked-sequence':
+    '/media/art/resonances/resonance-aetherist-runeblade-runic-arc-v01.webp',
+  'resonance.farstrider-runeblade.linked-sequence':
+    '/media/art/resonances/resonance-farstrider-runeblade-runic-volley-v01.webp',
+  'resonance.runeblade-shadehand.linked-sequence':
+    '/media/art/resonances/resonance-runeblade-shadehand-runic-ambush-v01.webp',
+  'resonance.ironfist-runeblade.linked-sequence':
+    '/media/art/resonances/resonance-ironfist-runeblade-runic-impact-v01.webp',
+  'resonance.bastion-runeblade.linked-sequence':
+    '/media/art/resonances/resonance-bastion-runeblade-runic-bulwark-v01.webp',
+  'resonance.ravager-runeblade.linked-sequence':
+    '/media/art/resonances/resonance-ravager-runeblade-runic-fury-v01.webp',
+  'resonance.edgedancer-runeblade.linked-sequence':
+    '/media/art/resonances/resonance-edgedancer-runeblade-runic-edge-v01.webp',
+  'resonance.runeblade-wildwarden.linked-sequence':
+    '/media/art/resonances/resonance-runeblade-wildwarden-runic-hunt-v01.webp',
+  'resonance.dawnshield-vanguard.linked-sequence':
+    '/media/art/resonances/resonance-dawnshield-vanguard-dawnlit-vanguard-v01.webp',
+  'resonance.dawnshield-lifebinder.linked-sequence':
+    '/media/art/resonances/resonance-dawnshield-lifebinder-dawnlit-bloom-v01.webp',
+  'resonance.aetherist-dawnshield.linked-sequence':
+    '/media/art/resonances/resonance-aetherist-dawnshield-dawnlit-arc-v01.webp',
+  'resonance.dawnshield-farstrider.linked-sequence':
+    '/media/art/resonances/resonance-dawnshield-farstrider-dawnlit-volley-v01.webp',
+  'resonance.dawnshield-shadehand.linked-sequence':
+    '/media/art/resonances/resonance-dawnshield-shadehand-dawnlit-ambush-v01.webp',
+  'resonance.dawnshield-ironfist.linked-sequence':
+    '/media/art/resonances/resonance-dawnshield-ironfist-dawnlit-impact-v01.webp',
+  'resonance.bastion-dawnshield.linked-sequence':
+    '/media/art/resonances/resonance-bastion-dawnshield-dawnlit-bulwark-v01.webp',
+  'resonance.dawnshield-ravager.linked-sequence':
+    '/media/art/resonances/resonance-dawnshield-ravager-dawnlit-fury-v01.webp',
+  'resonance.dawnshield-edgedancer.linked-sequence':
+    '/media/art/resonances/resonance-dawnshield-edgedancer-dawnlit-edge-v01.webp',
+  'resonance.dawnshield-wildwarden.linked-sequence':
+    '/media/art/resonances/resonance-dawnshield-wildwarden-dawnlit-hunt-v01.webp',
+  'resonance.dawnshield-runeblade.linked-sequence':
+    '/media/art/resonances/resonance-dawnshield-runeblade-dawnlit-sigil-v01.webp',
+  'resonance.cinderweaver-vanguard.linked-sequence':
+    '/media/art/resonances/resonance-cinderweaver-vanguard-ember-vanguard-v01.webp',
+  'resonance.cinderweaver-lifebinder.linked-sequence':
+    '/media/art/resonances/resonance-cinderweaver-lifebinder-ember-bloom-v01.webp',
+  'resonance.aetherist-cinderweaver.linked-sequence':
+    '/media/art/resonances/resonance-aetherist-cinderweaver-ember-arc-v01.webp',
+  'resonance.cinderweaver-farstrider.linked-sequence':
+    '/media/art/resonances/resonance-cinderweaver-farstrider-ember-volley-v01.webp',
+  'resonance.cinderweaver-shadehand.linked-sequence':
+    '/media/art/resonances/resonance-cinderweaver-shadehand-ember-ambush-v01.webp',
+  'resonance.cinderweaver-ironfist.linked-sequence':
+    '/media/art/resonances/resonance-cinderweaver-ironfist-ember-impact-v01.webp',
+  'resonance.bastion-cinderweaver.linked-sequence':
+    '/media/art/resonances/resonance-bastion-cinderweaver-ember-bulwark-v01.webp',
+  'resonance.cinderweaver-ravager.linked-sequence':
+    '/media/art/resonances/resonance-cinderweaver-ravager-ember-fury-v01.webp',
+  'resonance.cinderweaver-edgedancer.linked-sequence':
+    '/media/art/resonances/resonance-cinderweaver-edgedancer-ember-edge-v01.webp',
+  'resonance.cinderweaver-wildwarden.linked-sequence':
+    '/media/art/resonances/resonance-cinderweaver-wildwarden-ember-hunt-v01.webp',
+  'resonance.cinderweaver-runeblade.linked-sequence':
+    '/media/art/resonances/resonance-cinderweaver-runeblade-ember-sigil-v01.webp',
+  'resonance.cinderweaver-dawnshield.linked-sequence':
+    '/media/art/resonances/resonance-cinderweaver-dawnshield-ember-aegis-v01.webp',
+  'resonance.frostweaver-vanguard.linked-sequence':
+    '/media/art/resonances/resonance-frostweaver-vanguard-frozen-vanguard-v01.webp',
+  'resonance.frostweaver-lifebinder.linked-sequence':
+    '/media/art/resonances/resonance-frostweaver-lifebinder-frozen-bloom-v01.webp',
 } as const
 
 export type ApprovedResonanceArtId = keyof typeof APPROVED_RESONANCE_ART
