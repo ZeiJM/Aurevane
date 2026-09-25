@@ -369,6 +369,7 @@
 .emptyTechniqueSlot,
 .lockedTechniqueSlot {
   align-self: start;
+  place-content: center;
   color: #839197;
   font-size: 1rem;
 }
