@@ -401,10 +401,11 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
 
   const unchartedCell = globeSectorCenter('S17-09')!
   const unchartedPoint = projectGlobePoint(unchartedCell, { longitude: 0, latitude: 8 })
+  const returnedGlobeBounds = (await sphere.boundingBox())!
   await sphere.click({
     position: {
-      x: globeBounds.width * (0.5 + unchartedPoint.x * 0.94 * 0.5),
-      y: globeBounds.height * (0.5 - unchartedPoint.y * 0.94 * 0.5),
+      x: returnedGlobeBounds.width * (0.5 + unchartedPoint.x * 0.94 * 0.5),
+      y: returnedGlobeBounds.height * (0.5 - unchartedPoint.y * 0.94 * 0.5),
     },
   })
   await expect(page.getByRole('status')).toContainText(
