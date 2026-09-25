@@ -650,6 +650,10 @@
   background: #082731;
   color: #f9d486;
 }
+.workspace .regionLabel[data-current='true'] {
+  /* Leave the authoritative sector marker visible above its name. */
+  transform: translate(-50%, 1.4rem);
+}
 .globePlayer {
   position: absolute;
   transform: translate(-50%, -50%);

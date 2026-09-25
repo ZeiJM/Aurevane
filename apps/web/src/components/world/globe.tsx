@@ -41,8 +41,10 @@ export function Globe({
   const fogPoint = projectGlobePoint({ longitude: 38, latitude: 9 }, camera)
   const overlayVisible = (point: ReturnType<typeof projectGlobePoint>) =>
     point.visible && Math.abs(point.x * zoom) < 0.82 && Math.abs(point.y * zoom) < 0.9
-  const labelVisible = (point: ReturnType<typeof projectGlobePoint>) =>
-    point.visible && Math.abs(point.x * zoom) < 0.6 && Math.abs(point.y * zoom) < 0.72
+  const labelVisible = (point: ReturnType<typeof projectGlobePoint>, current = false) =>
+    point.visible &&
+    Math.abs(point.x * zoom) < 0.6 &&
+    Math.abs(point.y * zoom) < (current ? 0.6 : 0.72)
   const sectorOutline = (coordinate: string) => {
     const center = globeSectorCenter(coordinate)
     if (!center) return []
@@ -81,13 +83,15 @@ export function Globe({
       >
         {WORLD_REGIONS.filter((region) => sectors.some((sector) => sector.id === region.id)).map(
           (region) => {
-            const point = projectGlobePoint(region, camera)
-            if (!labelVisible(point)) return null
+            const current = region.sector === sectorCoordinate
+            const point = current && projected ? projected : projectGlobePoint(region, camera)
+            if (!labelVisible(point, current)) return null
             return (
               <button
                 key={region.id}
                 className={styles.regionLabel}
                 data-selected={selected === region.id}
+                data-current={current}
                 aria-pressed={selected === region.id}
                 style={{
                   left: `${50 + point.x * zoom * 50}%`,

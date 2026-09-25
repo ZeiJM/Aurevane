@@ -328,6 +328,29 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
     'data-current',
     'true',
   )
+  async function expectCurrentGlobeLabelClear() {
+    const label = await sphere
+      .getByRole('button', { name: 'Verdant Expanse', exact: true })
+      .boundingBox()
+    const marker = await sphere
+      .getByRole('img', { name: `${name}, your current sector`, exact: true })
+      .boundingBox()
+    expect(label).not.toBeNull()
+    expect(marker).not.toBeNull()
+    const overlap =
+      Math.max(
+        0,
+        Math.min(label!.x + label!.width, marker!.x + marker!.width) -
+          Math.max(label!.x, marker!.x),
+      ) *
+      Math.max(
+        0,
+        Math.min(label!.y + label!.height, marker!.y + marker!.height) -
+          Math.max(label!.y, marker!.y),
+      )
+    expect(overlap, 'the player portrait must not cover the current region name').toBe(0)
+  }
+  await expectCurrentGlobeLabelClear()
   const globeBounds = (await sphere.boundingBox())!
   const viewportBounds = (await page.locator('[class*="mapViewport"]').boundingBox())!
   expect(globeBounds.y).toBeGreaterThanOrEqual(viewportBounds.y + 16)
@@ -341,6 +364,7 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
   ).toContain('linear-gradient')
 
   for (let i = 0; i < 4; i++) await page.getByRole('button', { name: 'Zoom in' }).click()
+  await expectCurrentGlobeLabelClear()
   const zoomedBounds = (await sphere.boundingBox())!
   expect(zoomedBounds.x).toBeGreaterThanOrEqual(viewportBounds.x)
   expect(zoomedBounds.x + zoomedBounds.width).toBeLessThanOrEqual(
