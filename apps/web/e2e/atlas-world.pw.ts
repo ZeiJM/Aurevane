@@ -419,8 +419,8 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
           const target = document.elementFromPoint(x, y)
           return Boolean(
             target &&
-              !target.closest('button') &&
-              target.closest('[role="group"][aria-label^="World globe"]'),
+            !target.closest('button') &&
+            target.closest('[role="group"][aria-label^="World globe"]'),
           )
         },
         { x, y },
