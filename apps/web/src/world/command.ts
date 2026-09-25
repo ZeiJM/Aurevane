@@ -1,10 +1,42 @@
 import { validCell } from './travel'
-import type { WorldCommand, WorldIntent } from './types'
+import type { WorldCommand, WorldIntent, WorldPosition, WorldRoutePreviewRequest } from './types'
 const object = (v: unknown): v is Record<string, unknown> =>
   v !== null && typeof v === 'object' && !Array.isArray(v)
 const uuid = (v: unknown): v is string =>
   typeof v === 'string' &&
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v)
+
+function parsePosition(value: unknown): WorldPosition | null {
+  if (!object(value)) return null
+  if (
+    typeof value.sectorId !== 'string' ||
+    value.sectorId.length > 64 ||
+    typeof value.x !== 'number' ||
+    typeof value.y !== 'number' ||
+    !validCell({ x: value.x, y: value.y })
+  )
+    return null
+  return { sectorId: value.sectorId, x: value.x, y: value.y }
+}
+
+export function parseWorldRoutePreviewRequest(value: unknown): WorldRoutePreviewRequest | null {
+  if (
+    !object(value) ||
+    value.operation !== 'preview-route' ||
+    !Number.isSafeInteger(value.expectedVersion) ||
+    (value.expectedVersion as number) < 1 ||
+    !uuid(value.characterId)
+  )
+    return null
+  const destination = parsePosition(value.destination)
+  if (!destination) return null
+  return {
+    operation: 'preview-route',
+    characterId: value.characterId,
+    expectedVersion: value.expectedVersion as number,
+    destination,
+  }
+}
 export function parseWorldCommand(value: unknown): WorldCommand | null {
   if (
     !object(value) ||
@@ -19,17 +51,10 @@ export function parseWorldCommand(value: unknown): WorldCommand | null {
   let intent: WorldIntent
   if (input.kind === 'tick' || input.kind === 'stop' || input.kind === 'cross')
     intent = { kind: input.kind }
-  else if (input.kind === 'walk' && object(input.destination)) {
-    const p = input.destination
-    if (
-      typeof p.sectorId !== 'string' ||
-      p.sectorId.length > 64 ||
-      typeof p.x !== 'number' ||
-      typeof p.y !== 'number' ||
-      !validCell({ x: p.x, y: p.y })
-    )
-      return null
-    intent = { kind: 'walk', destination: { sectorId: p.sectorId, x: p.x, y: p.y } }
+  else if (input.kind === 'walk') {
+    const destination = parsePosition(input.destination)
+    if (!destination) return null
+    intent = { kind: 'walk', destination }
   } else if (
     input.kind === 'interact' &&
     typeof input.interactionId === 'string' &&
