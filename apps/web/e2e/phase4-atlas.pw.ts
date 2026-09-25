@@ -43,7 +43,9 @@ test('Mastery authority remains available while Discipline Management uses the c
   const management = page.getByRole('dialog', { name: 'Discipline Management', exact: true })
   await expect(management).toBeVisible()
   await expect(management).toContainText('Currently Committed')
-  await expect(management).toContainText('Select New Discipline')
+  await expect(management).not.toContainText('Select New Discipline')
+  await expect(management).not.toContainText('Explore. Compare. Commit.')
+  await expect(management).not.toContainText('Your foundation in battle')
   await expect(management.getByLabel('Primary Discipline')).toBeVisible()
   await expect(management.getByLabel('Secondary Discipline')).toBeVisible()
   expect(

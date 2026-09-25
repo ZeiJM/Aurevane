@@ -525,7 +525,6 @@ export function CharacterDisciplineBuildPanel({
                 <section className={styles.committedSection} aria-label="Currently committed">
                   <div className={styles.sectionTitle}>
                     <h3>Currently Committed</h3>
-                    <span>Your foundation in battle</span>
                   </div>
                   <div className={styles.current}>
                     <article className={styles.currentDiscipline} data-av-surface="ink">
@@ -570,11 +569,7 @@ export function CharacterDisciplineBuildPanel({
                   </div>
                 </section>
 
-                <section className={styles.selectionSection} aria-label="Select new Discipline">
-                  <div className={styles.sectionTitle}>
-                    <h3>Select New Discipline</h3>
-                    <span>Explore. Compare. Commit.</span>
-                  </div>
+                <section className={styles.selectionSection} aria-label="Discipline selection">
                   <div className={styles.selectionControls}>
                     <label
                       className={styles.slotSelector}
@@ -637,16 +632,6 @@ export function CharacterDisciplineBuildPanel({
                         ))}
                       </select>
                     </label>
-
-                    <button
-                      type="button"
-                      className={styles.confirmAction}
-                      onClick={() => void commit()}
-                      disabled={commitBlocked}
-                    >
-                      <span aria-hidden="true">⚔</span>
-                      {pendingCommit ? 'Committing…' : 'Confirm Change'}
-                    </button>
                   </div>
                 </section>
 
@@ -770,6 +755,18 @@ export function CharacterDisciplineBuildPanel({
                     </div>
                   </aside>
                 </section>
+
+                <footer className={styles.dialogActions}>
+                  <button
+                    type="button"
+                    className={styles.confirmAction}
+                    onClick={() => void commit()}
+                    disabled={commitBlocked}
+                  >
+                    <span aria-hidden="true">⚔</span>
+                    {pendingCommit ? 'Committing…' : 'Confirm Change'}
+                  </button>
+                </footer>
 
                 {pendingPreview ? (
                   <p className={styles.status}>Calculating authoritative preview…</p>

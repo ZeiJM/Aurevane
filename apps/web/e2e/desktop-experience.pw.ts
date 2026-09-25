@@ -314,7 +314,7 @@ test('mobile build dialogs keep readable copy and reachable actions', async ({
     const dialog = page.getByRole('dialog', { name: name!, exact: true })
     await expect(dialog).toBeVisible()
     if (name === 'Techniques') {
-      await readable(dialog.locator('p').first(), 12)
+      await readable(dialog.getByTestId('skill-capacity'), 11)
       await expect(dialog.getByRole('button', { name: 'Commit Selected Techniques' })).toHaveCount(
         0,
       )

@@ -17,8 +17,20 @@ import {
 import { createPortal } from 'react-dom'
 
 import { battleSkillArtwork } from '../battle/battle-skill-presentation'
-import { SkillDetails } from './skill-details'
-import { skillDisplayName } from './skill-detail-presentation'
+import {
+  skillCompactRangeDescription,
+  skillCooldownDescription,
+  skillCostDescription,
+  skillDamageDescription,
+  skillDisplayName,
+  skillEffectsSummary,
+  skillLineOfSightDescription,
+  skillRequirementsSummary,
+  skillTargetDescription,
+  skillTargetElevationDescription,
+  skillTargetMethodDescription,
+  skillTypeDescription,
+} from './skill-detail-presentation'
 import styles from './character-skill-build-panel.module.css'
 
 interface SkillCatalogEntryView {
@@ -91,11 +103,6 @@ function titleCase(value: string): string {
     .join(' ')
 }
 
-function cockpitType(skill: MatureSkillDefinition): string {
-  const cockpitTag = skill.tags.find((tag) => tag.startsWith('cockpit:'))
-  return cockpitTag ? titleCase(cockpitTag.slice('cockpit:'.length)) : 'Technique'
-}
-
 function orderedSkillIds(equippedSkills: readonly EquippedSkillView[]): string[] {
   return [...equippedSkills]
     .sort((left, right) => left.slotIndex - right.slotIndex)
@@ -164,6 +171,28 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
     visibleSkills.find((entry) => entry.definition.id === focusedSkillId) ??
     visibleSkills[0] ??
     null
+  const focusedSkillDisciplineName = focusedSkill
+    ? focusedSkill.definition.sourceDisciplineId === primaryDiscipline.id
+      ? primaryDiscipline.name
+      : secondaryDiscipline?.id === focusedSkill.definition.sourceDisciplineId
+        ? secondaryDiscipline.name
+        : titleCase(focusedSkill.definition.sourceDisciplineId)
+    : null
+  const focusedCharacteristics = focusedSkill
+    ? ([
+        ['Skill Type', skillTypeDescription(focusedSkill.definition)],
+        ['Cost', skillCostDescription(focusedSkill.definition)],
+        ['Damage', skillDamageDescription(focusedSkill.definition)],
+        ['Effects', skillEffectsSummary(focusedSkill.definition)],
+        ['Requirements', skillRequirementsSummary(focusedSkill.definition)],
+        ['Target', skillTargetDescription(focusedSkill.definition)],
+        ['Target Method', skillTargetMethodDescription(focusedSkill.definition)],
+        ['Target Elevation', skillTargetElevationDescription(focusedSkill.definition)],
+        ['Range', skillCompactRangeDescription(focusedSkill.definition)],
+        ['Line of Sight', skillLineOfSightDescription(focusedSkill.definition)],
+        ['Cooldown', skillCooldownDescription(focusedSkill.definition)],
+      ] as const)
+    : []
 
   useEffect(() => {
     const media = window.matchMedia('(hover: none), (pointer: coarse)')
@@ -368,21 +397,17 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                 onMouseEnter={() => setFocusedSkillId(entry.definition.id)}
                 onFocusCapture={() => setFocusedSkillId(entry.definition.id)}
               >
-                <label
-                  onClick={(event) => {
-                    if (!coarsePointer) {
-                      setFocusedSkillId(entry.definition.id)
-                      return
-                    }
-                    event.preventDefault()
-                    handleCoarseTechniqueTap(entry, event.timeStamp)
-                  }}
-                >
+                <label>
                   <input
                     type="checkbox"
                     checked={selected}
                     disabled={disabled}
                     aria-label={`${selected ? 'Unselect' : 'Select'} ${label}`}
+                    onClick={(event) => {
+                      if (!coarsePointer) return
+                      event.preventDefault()
+                      handleCoarseTechniqueTap(entry, event.timeStamp)
+                    }}
                     onChange={() => {
                       if (!coarsePointer) toggleAndCommit(entry)
                     }}
@@ -403,10 +428,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                     {selected ? <b>✓</b> : null}
                   </span>
                   <strong>{label}</strong>
-                  <span className={styles.skillMeta}>
-                    {entry.definition.apCost} AP · {cockpitType(entry.definition)}
-                    {entry.definition.mpCost ? ` · ${entry.definition.mpCost} MP` : ''}
-                  </span>
+                  <span className={styles.skillMeta}>{skillTypeDescription(entry.definition)}</span>
                 </label>
               </article>
             )
@@ -454,10 +476,8 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                     </span>
                     <div>
                       <h2 id="skill-build-heading">Techniques</h2>
-                      <p>Choose your active techniques. Changes save automatically.</p>
                       <small className={styles.autoSaveNote} data-testid="skill-capacity">
                         {selectedIds.length} / {capacity} selected
-                        {coarsePointer ? ' · tap to preview, double tap to select' : ''}
                       </small>
                     </div>
                   </div>
@@ -507,16 +527,17 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                             </span>
                             <div>
                               <strong>{skillDisplayName(focusedSkill.definition)}</strong>
-                              <small>
-                                {focusedSkill.definition.apCost} AP ·{' '}
-                                {cockpitType(focusedSkill.definition)}
-                                {focusedSkill.definition.mpCost
-                                  ? ` · ${focusedSkill.definition.mpCost} MP`
-                                  : ''}
-                              </small>
+                              <small>{focusedSkillDisciplineName} Technique</small>
                             </div>
                           </div>
-                          <SkillDetails skill={focusedSkill.definition} expanded />
+                          <dl className={styles.characteristics}>
+                            {focusedCharacteristics.map(([label, value]) => (
+                              <div key={label}>
+                                <dt>{label}</dt>
+                                <dd>{value}</dd>
+                              </div>
+                            ))}
+                          </dl>
                         </>
                       ) : (
                         <p>No Technique is available for this build.</p>
@@ -534,9 +555,11 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                   >
                     ↻ Clear Selections
                   </button>
-                  <span className={styles.saveState} aria-live="polite">
-                    {pending ? 'Saving selection…' : 'Selections save automatically'}
-                  </span>
+                  {pending ? (
+                    <span className={styles.saveState} aria-live="polite">
+                      Saving selection…
+                    </span>
+                  ) : null}
                 </footer>
 
                 {message ? (

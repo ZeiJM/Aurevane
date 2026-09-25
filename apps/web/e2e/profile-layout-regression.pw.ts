@@ -370,7 +370,50 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
       expect(metric.height).toBeGreaterThan(110)
       expect(metric.headingOverflow).toBeLessThanOrEqual(1)
     }
+    const secondaryDisciplineSummary = page.locator('[data-slot="secondary"] p')
+    if (await secondaryDisciplineSummary.count()) {
+      expect(
+        await secondaryDisciplineSummary.evaluate(
+          (element) => element.scrollWidth - element.clientWidth,
+        ),
+      ).toBeLessThanOrEqual(1)
+    }
+
     const techniqueCards = page.locator('[data-arsenal-technique-row="true"]')
+    await expect(techniqueCards).toHaveCount(8)
+    if (viewport.width >= 1200) {
+      const lanes = page.locator('[data-nexus-technique-lane="true"]')
+      await expect(lanes).toHaveCount(2)
+      const [leftLane, rightLane] = await lanes.evaluateAll((nodes) =>
+        nodes.map((node) => {
+          const rect = node.getBoundingClientRect()
+          return { x: rect.x, y: rect.y, right: rect.right, width: rect.width }
+        }),
+      )
+      expect(Math.abs(leftLane!.y - rightLane!.y)).toBeLessThanOrEqual(2)
+      expect(leftLane!.right).toBeLessThanOrEqual(rightLane!.x + 1)
+      expect(leftLane!.width).toBeGreaterThan(250)
+      expect(rightLane!.width).toBeGreaterThan(250)
+    }
+    const emptySlots = page.locator('[data-empty-technique-slot="true"]')
+    if (await emptySlots.count()) {
+      const plusOffsets = await emptySlots.evaluateAll((nodes) =>
+        nodes.map((node) => {
+          const rect = node.getBoundingClientRect()
+          const plus = node.querySelector('span')!.getBoundingClientRect()
+          return {
+            x: Math.abs(rect.x + rect.width / 2 - (plus.x + plus.width / 2)),
+            y: Math.abs(rect.y + rect.height / 2 - (plus.y + plus.height / 2)),
+            squareDelta: Math.abs(rect.width - rect.height),
+          }
+        }),
+      )
+      for (const offset of plusOffsets) {
+        expect(offset.x).toBeLessThanOrEqual(1)
+        expect(offset.y).toBeLessThanOrEqual(1)
+        expect(offset.squareDelta).toBeLessThanOrEqual(1)
+      }
+    }
     const techniqueChrome = await techniqueCards.evaluateAll((cards) =>
       cards.map((card) => {
         const style = getComputedStyle(card)
@@ -403,7 +446,7 @@ test('profile identity, sheet and loadout remain readable without overlap', asyn
     )
     for (const metric of arsenalMetrics) {
       expect(Math.abs(metric.width - metric.height)).toBeLessThanOrEqual(1)
-      expect(metric.width).toBeCloseTo(56, 0)
+      expect(metric.width).toBeCloseTo(64, 0)
     }
     for (const [launcher, dialogName] of [
       ['[data-testid="primary-build-panel"] > button', 'Discipline Management'],
@@ -532,9 +575,13 @@ test('a populated hybrid loadout keeps all four Techniques and management action
   await page.goto('/game/nexus')
   await expect(page.getByTestId('secondary-discipline-chip')).toHaveText('Lifebinder')
   const loadout = page.locator('[data-arsenal-workspace]')
-  await expect(
-    loadout.locator('[data-arsenal-technique-row="true"][data-equipped="true"]'),
-  ).toHaveCount(4)
+  const equippedOverview = loadout.locator(
+    '[data-arsenal-technique-row="true"][data-equipped="true"]',
+  )
+  await expect(equippedOverview).toHaveCount(4)
+  for (const card of await equippedOverview.all()) {
+    await expect(card).not.toContainText('AP')
+  }
   await expect(page.locator('[aria-labelledby="nexus-attunement-heading"]')).toContainText(
     'Resonance',
   )
