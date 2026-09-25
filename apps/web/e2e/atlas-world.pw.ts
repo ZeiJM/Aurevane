@@ -401,26 +401,37 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
 
   const unchartedCell = globeSectorCenter('S17-09')!
   const returnedGlobeBounds = (await sphere.boundingBox())!
-  const unchartedCandidates = [
-    unchartedCell,
-    { longitude: unchartedCell.longitude + 2, latitude: unchartedCell.latitude },
-    { longitude: unchartedCell.longitude - 2, latitude: unchartedCell.latitude },
-    { longitude: unchartedCell.longitude, latitude: unchartedCell.latitude + 2 },
-    { longitude: unchartedCell.longitude, latitude: unchartedCell.latitude - 2 },
-  ]
   let unchartedClick: { x: number; y: number } | null = null
-  for (const candidate of unchartedCandidates) {
-    const point = projectGlobePoint(candidate, { longitude: 0, latitude: 8 })
-    const x = returnedGlobeBounds.x + returnedGlobeBounds.width * (0.5 + point.x * 0.94 * 0.5)
-    const y = returnedGlobeBounds.y + returnedGlobeBounds.height * (0.5 - point.y * 0.94 * 0.5)
-    const coveredByButton = await page.evaluate(
-      ({ x, y }) => Boolean(document.elementFromPoint(x, y)?.closest('button')),
-      { x, y },
-    )
-    if (!coveredByButton) {
+  for (const latitudeOffset of [-4.5, -3, -1.5, 0, 1.5, 3, 4.5]) {
+    for (const longitudeOffset of [-4.5, -3, -1.5, 0, 1.5, 3, 4.5]) {
+      const point = projectGlobePoint(
+        {
+          longitude: unchartedCell.longitude + longitudeOffset,
+          latitude: unchartedCell.latitude + latitudeOffset,
+        },
+        { longitude: 0, latitude: 8 },
+      )
+      if (!point.visible) continue
+      const x =
+        returnedGlobeBounds.x + returnedGlobeBounds.width * (0.5 + point.x * 0.94 * 0.5)
+      const y =
+        returnedGlobeBounds.y + returnedGlobeBounds.height * (0.5 - point.y * 0.94 * 0.5)
+      const available = await page.evaluate(
+        ({ x, y }) => {
+          const target = document.elementFromPoint(x, y)
+          return Boolean(
+            target &&
+              !target.closest('button') &&
+              target.closest('[role="group"][aria-label^="World globe"]'),
+          )
+        },
+        { x, y },
+      )
+      if (!available) continue
       unchartedClick = { x, y }
       break
     }
+    if (unchartedClick) break
   }
   expect(unchartedClick).not.toBeNull()
   await page.mouse.click(unchartedClick!.x, unchartedClick!.y)
