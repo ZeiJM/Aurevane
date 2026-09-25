@@ -202,7 +202,7 @@ export function CharacterProfileShell({
         />
       </Surface>
 
-      <aside className={styles.story} aria-label="Current Path">
+      <aside className={styles.story} data-testid="current-path" aria-label="Current Path">
         <header className={styles.storyHeading}>
           <div>
             <span aria-hidden="true">♜</span>
