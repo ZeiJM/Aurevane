@@ -1,3 +1,4 @@
+import { availableSupernaturalChoiceTransitions } from '@aurevane/game-core/character/supernatural-content'
 import { buildCharacterProfileReadModel } from '@aurevane/game-core/character/profile'
 import { isAurevaneError } from '@aurevane/game-core/errors'
 import { headers } from 'next/headers'
@@ -17,9 +18,11 @@ import { loadCharacterBuildContext } from '@/server/character/character-build-se
 import { loadCharacterProfileDisplay } from '@/server/character/character-profile-display-service'
 import { loadCharacterTitleState } from '@/server/character/character-title-service'
 import { resolveCurrentCharacterSkillDetails } from '@/server/character/current-skill-detail-loader'
+import { findAuthoredSupernaturalStoryState } from '@/server/character/supernatural-story-state-service'
 import { loadSelectedCharacter } from '@/server/character/selected-character'
 import { createSupabaseCharacterAttributeRepository } from '@/server/character/supabase-character-attribute-repository'
 import { createSupabaseCharacterBuildRepository } from '@/server/character/supabase-character-build-repository'
+import { createSupabaseSupernaturalStoryStateRepository } from '@/server/character/supabase-supernatural-story-state-repository'
 import { createServerCombatContentResolver } from '@/server/combat/combat-content-resolver'
 import { serverLogger } from '@/server/logging'
 import { loadLevelProgressionCurve } from '@/server/progression/progression-service'
@@ -99,6 +102,7 @@ export default async function CharacterProfilePage() {
     attributeAllocationResult,
     titleStateResult,
     displayStateResult,
+    supernaturalStateResult,
   ] = await Promise.allSettled([
     loadLevelProgressionCurve(
       character.progressionCycle.number,
@@ -113,6 +117,11 @@ export default async function CharacterProfilePage() {
     ),
     loadCharacterTitleState(actor.userId, character.id),
     loadCharacterProfileDisplay(actor.userId, character.id),
+    findAuthoredSupernaturalStoryState(
+      actor.userId,
+      character.id,
+      createSupabaseSupernaturalStoryStateRepository(),
+    ),
   ])
 
   if (levelCurveResult.status === 'rejected') {
@@ -151,6 +160,12 @@ export default async function CharacterProfilePage() {
   ) {
     throw displayStateResult.reason
   }
+  if (
+    supernaturalStateResult.status === 'rejected' &&
+    !isPersistenceUnavailable(supernaturalStateResult.reason)
+  ) {
+    throw supernaturalStateResult.reason
+  }
   const levelCurve = levelCurveResult.value
   const disciplineBuild = disciplineBuildResult.value
   const currentDisciplineSkills = currentDisciplineSkillsResult.value
@@ -159,6 +174,15 @@ export default async function CharacterProfilePage() {
     titleStateResult.status === 'fulfilled' ? titleStateResult.value.personalTitle : null
   const imageUrl =
     displayStateResult.status === 'fulfilled' ? displayStateResult.value.imageUrl : null
+  const supernaturalState =
+    supernaturalStateResult.status === 'fulfilled' ? supernaturalStateResult.value : null
+  const supernaturalChoices = supernaturalState
+    ? availableSupernaturalChoiceTransitions(supernaturalState).map((transition) => ({
+        transitionId: transition.id,
+        transitionContentVersion: transition.contentVersion,
+        path: transition.result.path,
+      }))
+    : []
   return (
     <CharacterProfileShell
       profile={buildCharacterProfileReadModel(character, levelCurve)}
@@ -179,6 +203,7 @@ export default async function CharacterProfilePage() {
       }}
       personalTitle={personalTitle}
       imageUrl={imageUrl}
+      supernatural={{ state: supernaturalState, choices: supernaturalChoices }}
     />
   )
 }
