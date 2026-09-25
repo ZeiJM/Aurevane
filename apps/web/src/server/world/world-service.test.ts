@@ -1,11 +1,37 @@
 import { describe, expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
 import { newWorldState, revealNearby } from '@/world/travel'
-import { FRONTIER_APPROACH } from '@/world/catalog'
-import { assertEncounterRange, projectWorld, resolveWorldIntent } from './world-service'
+import { FRONTIER_APPROACH, STEP_MS } from '@/world/catalog'
+import {
+  assertEncounterRange,
+  projectWorld,
+  resolveWorldIntent,
+  resolveWorldRoutePreview,
+} from './world-service'
 import { EASTERN_WATCH, EASTERN_WATCH_INTERACTION_ID, VERDANT_SETTLEMENT } from './world-objectives'
 
 describe('world authority and spoiler projection', () => {
+  it('previews an authoritative known route without mutating world state', () => {
+    const state = {
+      ...newWorldState(),
+      position: { sectorId: 'verdant-expanse', x: 5, y: 4 },
+    }
+    const before = JSON.stringify(state)
+    expect(
+      resolveWorldRoutePreview(state, { sectorId: 'verdant-expanse', x: 8, y: 4 }),
+    ).toEqual({
+      destination: { sectorId: 'verdant-expanse', x: 8, y: 4 },
+      stepCount: 3,
+      durationMs: 3 * STEP_MS,
+    })
+    expect(JSON.stringify(state)).toBe(before)
+  })
+
+  it('does not preview routes to uncharted frontier ground', () => {
+    expect(() =>
+      resolveWorldRoutePreview(newWorldState(), { sectorId: 'survey-01', x: 6, y: 8 }),
+    ).toThrow('Survey this ground before plotting a route.')
+  })
   it.each([
     {
       from: { sectorId: 'aureth-crown', x: 12, y: 4 },
