@@ -101,6 +101,25 @@ describe('supernatural story-state authority service', () => {
     ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
   })
 
+  it('fails closed when a chosen path references an unknown authored identity version', async () => {
+    const repo = repository({
+      find: vi.fn(async () =>
+        state({
+          stateVersion: 2,
+          nodeId: 'awakening.bound',
+          path: 'ascended',
+          ascensionId: 'ascension.proof',
+          ascensionContentVersion: 2,
+          chosenAt: '2026-09-23T12:05:00.000Z',
+        }),
+      ),
+    })
+
+    await expect(
+      findAuthoredSupernaturalStoryState(userId, characterId, repo),
+    ).rejects.toMatchObject({ code: 'PERSISTENCE_UNAVAILABLE' })
+  })
+
   it('initializes an absent character story as Unawakened from server-owned story metadata', async () => {
     const initialize = vi.fn(async () => state())
     const repo = repository({
