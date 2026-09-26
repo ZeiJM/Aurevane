@@ -48,6 +48,16 @@ export const WORLD_OBJECTIVES: readonly WorldObjective[] = [
     completed: false,
   },
   {
+    id: 'crown-hinterland-survey',
+    name: 'Hinterland Survey',
+    description: 'Reach the Crown Hinterland crossing and return with a route report.',
+    kind: 'quest',
+    autoPath: true,
+    guidance: 'exact',
+    destination: { sectorId: 'crown-hinterland', x: 0, y: 4 },
+    completed: false,
+  },
+  {
     id: 'last-survey',
     name: 'Beyond the last map',
     description: 'Find the last reliable survey in the Umbral March.',
