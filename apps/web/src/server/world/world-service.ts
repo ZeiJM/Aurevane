@@ -22,9 +22,9 @@ import type {
 import { SURVEY_SECTOR, WORLD_OBJECTIVES, WORLD_SECTORS } from './world-content'
 import { worldArchiveEntries } from './world-archive'
 import {
-  EASTERN_WATCH_OBJECTIVE_ID,
   advanceWorldObjectiveProgress,
   effectiveWorldObjectives,
+  isInteractionWorldObjectiveId,
   localWorldInteractions,
   resolveWorldInteraction,
 } from './world-objectives'
@@ -102,7 +102,7 @@ export function resolveWorldIntent(
   const completed = new Set(next.completedObjectives)
   for (const objective of effectiveWorldObjectives(next, objectives))
     if (
-      objective.id !== EASTERN_WATCH_OBJECTIVE_ID &&
+      !isInteractionWorldObjectiveId(objective.id) &&
       objective.destination &&
       samePosition(next.position, objective.destination)
     )
