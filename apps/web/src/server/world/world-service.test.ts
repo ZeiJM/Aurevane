@@ -327,9 +327,7 @@ describe('world authority and spoiler projection', () => {
     let state = { ...newWorldState(), position: AURETH_SETTLEMENT }
     let view = projectWorld(state, [], 1000)
     expect(
-      view.objectives.find(
-        (objective) => objective.id === CROWN_HINTERLAND_SURVEY_OBJECTIVE_ID,
-      ),
+      view.objectives.find((objective) => objective.id === CROWN_HINTERLAND_SURVEY_OBJECTIVE_ID),
     ).toMatchObject({
       progress: 'available',
       destination: null,
@@ -350,9 +348,7 @@ describe('world authority and spoiler projection', () => {
     )
     view = projectWorld(state, [], 1100)
     expect(
-      view.objectives.find(
-        (objective) => objective.id === CROWN_HINTERLAND_SURVEY_OBJECTIVE_ID,
-      ),
+      view.objectives.find((objective) => objective.id === CROWN_HINTERLAND_SURVEY_OBJECTIVE_ID),
     ).toMatchObject({
       progress: 'active',
       destination: CROWN_HINTERLAND_CROSSING,
@@ -367,9 +363,7 @@ describe('world authority and spoiler projection', () => {
     view = projectWorld(state, [], 1200)
     expect(state.completedObjectives).not.toContain(CROWN_HINTERLAND_SURVEY_OBJECTIVE_ID)
     expect(
-      view.objectives.find(
-        (objective) => objective.id === CROWN_HINTERLAND_SURVEY_OBJECTIVE_ID,
-      ),
+      view.objectives.find((objective) => objective.id === CROWN_HINTERLAND_SURVEY_OBJECTIVE_ID),
     ).toMatchObject({
       progress: 'ready',
       destination: AURETH_SETTLEMENT,
@@ -384,9 +378,7 @@ describe('world authority and spoiler projection', () => {
     view = projectWorld(state, [], 1300)
     expect(state.completedObjectives).toContain(CROWN_HINTERLAND_SURVEY_OBJECTIVE_ID)
     expect(
-      view.objectives.find(
-        (objective) => objective.id === CROWN_HINTERLAND_SURVEY_OBJECTIVE_ID,
-      ),
+      view.objectives.find((objective) => objective.id === CROWN_HINTERLAND_SURVEY_OBJECTIVE_ID),
     ).toMatchObject({
       progress: 'completed',
       destination: null,
