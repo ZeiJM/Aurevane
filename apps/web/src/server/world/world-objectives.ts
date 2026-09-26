@@ -61,8 +61,7 @@ const INTERACTION_OBJECTIVES: readonly InteractionObjectiveDefinition[] = [
       completed: 'The eastern route has been verified.',
     },
     bodies: {
-      available:
-        'The eastern tower has gone quiet. Confirm it is standing, then report back.',
+      available: 'The eastern tower has gone quiet. Confirm it is standing, then report back.',
       active: 'The watch officer is waiting for your report from the eastern tower.',
       ready:
         'You have seen the tower. Give the watch officer your report so the route can be marked verified.',
@@ -86,8 +85,7 @@ const INTERACTION_OBJECTIVES: readonly InteractionObjectiveDefinition[] = [
       available:
         'The hinterland road needs a fresh patrol. Reach its central stretch, then report back.',
       active: 'The watch officer is waiting for your report from Crown Hinterland.',
-      ready:
-        'You have reached Crown Hinterland. Give the watch officer your patrol report.',
+      ready: 'You have reached Crown Hinterland. Give the watch officer your patrol report.',
       completed:
         'Your patrol report is already recorded. The hinterland route remains under watch.',
     },
@@ -196,8 +194,7 @@ export function resolveWorldInteraction(
     return null
 
   const progress = worldObjectiveProgress(state, definition.objectiveId)
-  if (progress === 'available')
-    return setObjectiveProgress(state, definition.objectiveId, 'active')
+  if (progress === 'available') return setObjectiveProgress(state, definition.objectiveId, 'active')
   if (progress !== 'ready') return null
 
   const completedObjectives = new Set(state.completedObjectives)
