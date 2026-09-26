@@ -95,7 +95,7 @@ describe('supernatural story HTTP handler', () => {
     )
 
     expect(response.status).toBe(200)
-    expect(await response.json()).toEqual({ state: null, choices: [] })
+    expect(await response.json()).toEqual({ state: null, choices: [], currentIdentity: null })
     expect(initialize).not.toHaveBeenCalled()
     expect(response.headers.get('Cache-Control')).toBe('private, no-store')
   })
@@ -114,11 +114,27 @@ describe('supernatural story HTTP handler', () => {
           transitionId: 'supernatural.main.choose-ascension',
           transitionContentVersion: 1,
           path: 'ascended',
+          identity: {
+            id: 'ascension.proof',
+            contentVersion: 1,
+            kind: 'ascension',
+            title: 'Ascension Proof',
+            summary:
+              'Representative authored Ascension identity for the Phase-5 content contract; combat power is not attached yet.',
+          },
         },
         {
           transitionId: 'supernatural.main.choose-severence',
           transitionContentVersion: 1,
           path: 'severed',
+          identity: {
+            id: 'severence.proof',
+            contentVersion: 1,
+            kind: 'severence',
+            title: 'Severence Proof',
+            summary:
+              'Representative authored Severence identity for the Phase-5 content contract; combat power is not attached yet.',
+          },
         },
       ],
     })
@@ -143,7 +159,15 @@ describe('supernatural story HTTP handler', () => {
     )
 
     expect(response.status).toBe(200)
-    await expect(response.json()).resolves.toMatchObject({ choices: [] })
+    await expect(response.json()).resolves.toMatchObject({
+      choices: [],
+      currentIdentity: {
+        id: 'ascension.proof',
+        contentVersion: 1,
+        kind: 'ascension',
+        title: 'Ascension Proof',
+      },
+    })
   })
 
   it('requires a selected owned character before reading supernatural state', async () => {
