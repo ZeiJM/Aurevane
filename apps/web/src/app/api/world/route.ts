@@ -3,8 +3,12 @@ import { getAuthenticatedActor } from '@/server/auth/actor'
 import { loadSelectedCharacter } from '@/server/character/selected-character'
 import { toServerErrorResponse } from '@/server/http/error-response'
 import { attackWorldPlayer } from '@/server/world/world-battle'
-import { commitWorldCommand, readWorld } from '@/server/world/world-repository'
-import { parseWorldCommand } from '@/world/command'
+import {
+  commitWorldCommand,
+  previewWorldRouteForCharacter,
+  readWorld,
+} from '@/server/world/world-repository'
+import { parseWorldCommand, parseWorldRoutePreviewRequest } from '@/world/command'
 
 export const dynamic = 'force-dynamic'
 async function identity() {
@@ -37,6 +41,13 @@ export async function POST(request: Request) {
     } catch {
       throw new AurevaneError('INVALID_REQUEST', 'The travel command is invalid.')
     }
+    const preview = parseWorldRoutePreviewRequest(value)
+    if (preview) {
+      if (preview.characterId !== actor.characterId)
+        throw new AurevaneError('STALE_VERSION', 'Your selected character changed. Refresh the map.')
+      return json(await previewWorldRouteForCharacter(actor.userId, actor.characterId, preview))
+    }
+
     const command = parseWorldCommand(value)
     if (!command) throw new AurevaneError('INVALID_REQUEST', 'The travel command is invalid.')
     if (command.characterId !== actor.characterId)
