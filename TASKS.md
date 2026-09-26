@@ -27,9 +27,9 @@ Tracking note: the detailed contract is `docs/LIVING_ATLAS_EXPANSION.md`. Existi
 
 Approved delivery contract: `docs/ROADMAP_WORLD_EXPERIENCE.md`; phase sequence in `docs/ROADMAP.md`.
 
-- [ ] P5-W1: measured faster ordinary travel, authoritative timing/ETA compatibility and retained encounter/stop/reconnect protections.
+- [x] P5-W1: measured faster ordinary travel, authoritative timing/ETA compatibility and retained encounter/stop/reconnect protections.
   - Candidate `agent/phase5-ordinary-travel-pace-20260925`: remove the eight 4,000 ms ordinary road-sector overrides so road cells inherit the existing 1,100 ms world pace. Measured server ETA: Verdant local start → settlement stays 3.3 s; Verdant settlement → Aureth settlement changes 63.4 s → 28.6 s on the same 26-step route; Crown Road edge → edge changes 50.2 s → 15.4 s on the same 14-step route.
-  - Authority preserved: first step still waits the full configured interval; ETA sums the same route durations; old 4,000 ms persisted road routes fail closed before movement; reconnect advances at most one overdue step; stop, idempotent retry, stale-version handling, discovery, due-move/attack serialization and battle/training/spectating guards remain on the existing authority paths. Exact-head CI/browser evidence is pending, so W1 remains unchecked.
+  - Authority preserved: first step still waits the full configured interval; ETA sums the same route durations; old 4,000 ms persisted road routes fail closed before movement; reconnect advances at most one overdue step; stop, idempotent retry, stale-version handling, discovery, due-move/attack serialization and battle/training/spectating guards remain on the existing authority paths. PR #740 passed exact-tree CI, Living Atlas browser and Browser Smoke and merged to `main` as `795e7223416a408736a304c860f6291d7d568284`; no Production deployment or migration was part of W1.
 - [ ] P5-W2: globe/local location and destination clarity, accessible inspect/view versus travel and responsive framing/labels.
 - [ ] P5-W3: authored place identity, staged distinct settlements with matching art, and contextual existing service/objective actions.
 - [ ] P5-W4: current build and representative Ascension/Severence identity clarity with authoritative eligibility/exclusivity and spoiler safety.
