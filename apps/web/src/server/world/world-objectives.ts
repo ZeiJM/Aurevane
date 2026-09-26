@@ -206,7 +206,7 @@ export function resolveWorldInteraction(
 }
 
 export function localWorldInteractions(state: WorldState): WorldInteraction[] {
-  return INTERACTION_OBJECTIVES.flatMap((definition) => {
+  return INTERACTION_OBJECTIVES.flatMap<WorldInteraction>((definition) => {
     if (!samePosition(state.position, definition.origin)) return []
 
     const progress = worldObjectiveProgress(state, definition.objectiveId)
