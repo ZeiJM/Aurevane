@@ -107,17 +107,11 @@ export function resolveSupernaturalStateIdentity(
   state: SupernaturalStoryState,
 ): AuthoredSupernaturalIdentityDefinition | null {
   if (state.path === 'ascended' && state.ascension) {
-    const identity = resolveSupernaturalIdentity(
-      state.ascension.id,
-      state.ascension.contentVersion,
-    )
+    const identity = resolveSupernaturalIdentity(state.ascension.id, state.ascension.contentVersion)
     return identity?.kind === 'ascension' ? identity : null
   }
   if (state.path === 'severed' && state.severence) {
-    const identity = resolveSupernaturalIdentity(
-      state.severence.id,
-      state.severence.contentVersion,
-    )
+    const identity = resolveSupernaturalIdentity(state.severence.id, state.severence.contentVersion)
     return identity?.kind === 'severence' ? identity : null
   }
   return null
