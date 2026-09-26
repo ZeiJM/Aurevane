@@ -11,7 +11,10 @@ import {
   SUPERNATURAL_CHOICE_TRANSITIONS,
   SUPERNATURAL_IDENTITY_PROOFS,
   SUPERNATURAL_STORY_DEFINITION,
+  resolveSupernaturalChoiceIdentity,
   resolveSupernaturalChoiceTransition,
+  resolveSupernaturalIdentity,
+  resolveSupernaturalStateIdentity,
 } from './supernatural-content'
 
 describe('authored supernatural proof content', () => {
@@ -28,6 +31,20 @@ describe('authored supernatural proof content', () => {
       contentVersion: 1,
       kind: 'severence',
     })
+  })
+
+  it('resolves only exact versioned public identity facts', () => {
+    expect(resolveSupernaturalIdentity('ascension.proof', 1)).toEqual(ASCENSION_PROOF)
+    expect(resolveSupernaturalIdentity('severence.proof', 1)).toEqual(SEVERENCE_PROOF)
+    expect(resolveSupernaturalIdentity('ascension.proof', 2)).toBeNull()
+    expect(resolveSupernaturalIdentity('ascension.unknown', 1)).toBeNull()
+
+    expect(resolveSupernaturalChoiceIdentity(SUPERNATURAL_CHOICE_TRANSITIONS[0])).toEqual(
+      ASCENSION_PROOF,
+    )
+    expect(resolveSupernaturalChoiceIdentity(SUPERNATURAL_CHOICE_TRANSITIONS[1])).toEqual(
+      SEVERENCE_PROOF,
+    )
   })
 
   it('authors the permanent normal-path choice directly on the existing story-state contract', () => {
@@ -88,6 +105,29 @@ describe('authored supernatural proof content', () => {
         contentVersion: SEVERENCE_PROOF.contentVersion,
       },
     })
+  })
+
+  it('resolves the current bound identity only after a permanent authored choice', () => {
+    const initial = createInitialSupernaturalStoryState({
+      storyId: SUPERNATURAL_STORY_DEFINITION.id,
+      storyVersion: SUPERNATURAL_STORY_DEFINITION.contentVersion,
+      initialNodeId: SUPERNATURAL_STORY_DEFINITION.initialNodeId,
+      now: '2026-09-23T12:00:00.000Z',
+    })
+    expect(resolveSupernaturalStateIdentity(initial)).toBeNull()
+
+    const ascended = applySupernaturalStoryTransition(
+      initial,
+      SUPERNATURAL_CHOICE_TRANSITIONS[0],
+      '2026-09-23T12:05:00.000Z',
+    )
+    expect(resolveSupernaturalStateIdentity(ascended)).toEqual(ASCENSION_PROOF)
+    expect(
+      resolveSupernaturalStateIdentity({
+        ...ascended,
+        ascension: { id: 'ascension.proof', contentVersion: 2 },
+      }),
+    ).toBeNull()
   })
 
   it('pins each authored transition to the matching versioned identity', () => {
