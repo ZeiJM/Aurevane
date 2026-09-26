@@ -103,10 +103,7 @@ describe('authored settlement interaction quests', () => {
       progress: 'ready',
     })
 
-    const completed = resolveWorldInteraction(
-      returned,
-      CROWN_HINTERLAND_SURVEY_INTERACTION_ID,
-    )!
+    const completed = resolveWorldInteraction(returned, CROWN_HINTERLAND_SURVEY_INTERACTION_ID)!
     expect(worldObjectiveProgress(completed, CROWN_HINTERLAND_SURVEY_OBJECTIVE_ID)).toBe(
       'completed',
     )
@@ -130,9 +127,7 @@ describe('authored settlement interaction quests', () => {
       route: [{ position: CROWN_HINTERLAND_CROSSING, durationMs: 1100 }],
       nextStepAt: 2100,
     }
-    expect(
-      resolveWorldInteraction(travelling, CROWN_HINTERLAND_SURVEY_INTERACTION_ID),
-    ).toBeNull()
+    expect(resolveWorldInteraction(travelling, CROWN_HINTERLAND_SURVEY_INTERACTION_ID)).toBeNull()
   })
 
   it('identifies all interaction-driven objectives so arrival cannot auto-complete them', () => {
