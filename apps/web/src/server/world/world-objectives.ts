@@ -63,8 +63,7 @@ const INTERACTION_QUESTS: readonly InteractionQuestDefinition[] = [
       completed: 'The eastern route has been verified.',
     },
     bodies: {
-      available:
-        'The eastern tower has gone quiet. Confirm it is standing, then report back.',
+      available: 'The eastern tower has gone quiet. Confirm it is standing, then report back.',
       active: 'The watch officer is waiting for your report from the eastern tower.',
       ready:
         'You have seen the tower. Give the watch officer your report so the route can be marked verified.',
@@ -202,8 +201,7 @@ export function resolveWorldInteraction(
   if (!quest || state.route.length || !samePosition(state.position, quest.settlement)) return null
 
   const progress = worldObjectiveProgress(state, quest.objectiveId)
-  if (progress === 'available')
-    return setObjectiveProgress(state, quest.objectiveId, 'active')
+  if (progress === 'available') return setObjectiveProgress(state, quest.objectiveId, 'active')
   if (progress !== 'ready') return null
 
   const completedObjectives = new Set(state.completedObjectives)
@@ -214,10 +212,7 @@ export function resolveWorldInteraction(
   }
 }
 
-function interactionFor(
-  state: WorldState,
-  quest: InteractionQuestDefinition,
-): WorldInteraction {
+function interactionFor(state: WorldState, quest: InteractionQuestDefinition): WorldInteraction {
   const progress = worldObjectiveProgress(state, quest.objectiveId)
   return {
     id: quest.interactionId,
