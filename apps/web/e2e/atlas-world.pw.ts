@@ -542,9 +542,7 @@ test('Crown Hinterland patrol persists accept, field check and idempotent return
     page.getByText('Return to the Aureth Crown settlement and report to the watch officer.'),
   ).toBeVisible()
   expect(
-    (await world(page)).objectives.find(
-      (objective) => objective.id === 'crown-hinterland-patrol',
-    ),
+    (await world(page)).objectives.find((objective) => objective.id === 'crown-hinterland-patrol'),
   ).toMatchObject({
     progress: 'ready',
     completed: false,
