@@ -497,6 +497,88 @@ test('Eastern Watch objective persists accept, inspect and idempotent return com
   expect((await world(page)).version).toBe(version)
 })
 
+test('Hinterland Survey persists accept, crossing check, and idempotent filed report', async ({
+  page,
+}, info) => {
+  test.skip(
+    info.project.name !== 'desktop-chromium',
+    'Objective authority is viewport independent.',
+  )
+  test.setTimeout(60000)
+  await enter(page)
+  const initial = await world(page)
+  place(initial.characterId, 'aureth-crown', 2, 4, true)
+  await page.reload()
+
+  const interaction = page.getByRole('region', { name: 'Local interaction' })
+  await expect(interaction.getByRole('heading', { name: 'Hinterland Survey' })).toBeVisible()
+  await expect(interaction).toContainText('Survey clerk')
+  await page.getByRole('button', { name: 'Accept objective' }).click()
+  await expect(page.getByText('Reach the western Crown Hinterland crossing.')).toBeVisible()
+  let state = await world(page)
+  expect(
+    state.objectives.find((objective) => objective.id === 'crown-hinterland-survey'),
+  ).toMatchObject({
+    progress: 'active',
+    completed: false,
+  })
+
+  place(initial.characterId, 'crown-hinterland', 0, 4, false)
+  await page.reload()
+  state = await world(page)
+  const inspect = await page.request.post('/api/world', {
+    data: {
+      characterId: state.characterId,
+      expectedVersion: state.version,
+      commandId: randomUUID(),
+      intent: { kind: 'tick' },
+    },
+  })
+  expect(inspect.ok()).toBe(true)
+  await page.reload()
+  await expect(page.getByText('Return to Aureth Crown and file the route report.')).toBeVisible()
+  expect(
+    (await world(page)).objectives.find(
+      (objective) => objective.id === 'crown-hinterland-survey',
+    ),
+  ).toMatchObject({
+    progress: 'ready',
+    completed: false,
+  })
+
+  place(initial.characterId, 'aureth-crown', 2, 4, true)
+  await page.reload()
+  const reportRequest = page.waitForRequest(
+    (request) =>
+      new URL(request.url()).pathname === '/api/world' &&
+      request.method() === 'POST' &&
+      request.postDataJSON()?.intent?.kind === 'interact',
+  )
+  await page.getByRole('button', { name: 'File report' }).click()
+  const reportCommand = (await reportRequest).postDataJSON()
+  await expect(page.getByText('The Crown Hinterland crossing has been recorded.')).toBeVisible()
+  state = await world(page)
+  expect(
+    state.objectives.find((objective) => objective.id === 'crown-hinterland-survey'),
+  ).toMatchObject({
+    progress: 'completed',
+    completed: true,
+    destination: null,
+  })
+  expect(state.interactions[0]).toMatchObject({
+    progress: 'completed',
+    actionLabel: null,
+  })
+  const version = state.version
+
+  const replay = await page.request.post('/api/world', { data: reportCommand })
+  expect(replay.ok()).toBe(true)
+  expect((await replay.json()).version).toBe(version)
+  await page.reload()
+  await expect(page.getByRole('button', { name: 'File report' })).toHaveCount(0)
+  expect((await world(page)).version).toBe(version)
+})
+
 test('expired training releases travel without claiming XP and frontier discovery stays private', async ({
   page,
 }, info) => {
