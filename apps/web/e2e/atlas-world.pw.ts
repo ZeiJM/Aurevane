@@ -538,9 +538,7 @@ test('Hinterland Survey persists accept, crossing check, and idempotent filed re
   await page.reload()
   await expect(page.getByText('Return to Aureth Crown and file the route report.')).toBeVisible()
   expect(
-    (await world(page)).objectives.find(
-      (objective) => objective.id === 'crown-hinterland-survey',
-    ),
+    (await world(page)).objectives.find((objective) => objective.id === 'crown-hinterland-survey'),
   ).toMatchObject({
     progress: 'ready',
     completed: false,
