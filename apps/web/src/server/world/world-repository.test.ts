@@ -11,7 +11,7 @@ vi.mock('@/server/character/character-profile-display-service', () => ({
 }))
 import { newWorldState } from '@/world/travel'
 import type { WorldCommand } from '@/world/types'
-import { commitWorldCommand, readWorld } from './world-repository'
+import { commitWorldCommand, previewWorldRouteForCharacter, readWorld } from './world-repository'
 
 const characterId = '00000000-0000-4000-8000-000000000011'
 const command: WorldCommand = {
@@ -55,6 +55,70 @@ it('does not materialize an active plan or loop if a concurrent plan remains blo
   expect((await readWorld('owner', characterId)).view.movementBlocked).toContain('Training')
   expect(rpc).toHaveBeenCalledTimes(1)
 })
+it('previews a route from authoritative persisted state without writing world state', async () => {
+  rpc.mockResolvedValue({
+    data: {
+      ...payload(),
+      state: {
+        ...newWorldState(),
+        version: 3,
+        position: { sectorId: 'verdant-expanse', x: 5, y: 4 },
+      },
+    },
+  })
+
+  await expect(
+    previewWorldRouteForCharacter('owner', characterId, {
+      operation: 'preview-route',
+      characterId,
+      expectedVersion: 3,
+      destination: { sectorId: 'verdant-expanse', x: 8, y: 4 },
+    }),
+  ).resolves.toEqual({
+    stateVersion: 3,
+    destination: { sectorId: 'verdant-expanse', x: 8, y: 4 },
+    stepCount: 3,
+    durationMs: 3300,
+  })
+  expect(rpc.mock.calls.map(([name]) => name)).toEqual(['read_world_state_v1'])
+})
+
+it('rejects stale or movement-blocked route previews before any mutation', async () => {
+  rpc.mockResolvedValueOnce({
+    data: {
+      ...payload(),
+      state: { ...newWorldState(), version: 4 },
+    },
+  })
+  await expect(
+    previewWorldRouteForCharacter('owner', characterId, {
+      operation: 'preview-route',
+      characterId,
+      expectedVersion: 3,
+      destination: { sectorId: 'verdant-expanse', x: 8, y: 4 },
+    }),
+  ).rejects.toMatchObject({ code: 'STALE_VERSION' })
+  expect(rpc).toHaveBeenCalledTimes(1)
+
+  rpc.mockReset()
+  rpc.mockResolvedValue({
+    data: {
+      ...payload(),
+      state: { ...newWorldState(), version: 3 },
+      blocked: 'WORLD_TRAINING_ACTIVE',
+    },
+  })
+  await expect(
+    previewWorldRouteForCharacter('owner', characterId, {
+      operation: 'preview-route',
+      characterId,
+      expectedVersion: 3,
+      destination: { sectorId: 'verdant-expanse', x: 8, y: 4 },
+    }),
+  ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+  expect(rpc.mock.calls.map(([name]) => name)).toEqual(['read_world_state_v1'])
+})
+
 it('returns authoritative state for a successful retry without another mutation', async () => {
   const fingerprint = createHash('sha256')
     .update(
