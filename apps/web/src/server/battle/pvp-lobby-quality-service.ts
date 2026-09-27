@@ -34,13 +34,17 @@ import type { PvpMapBias, PvpMapSize, PvpTurnTimerSeconds } from '@aurevane/vali
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createSupabaseCharacterBuildRepository } from '@/server/character/supabase-character-build-repository'
 import { createSupabaseCharacterRepository } from '@/server/character/supabase-character-repository'
+import { createServerCombatContentResolver } from '@/server/combat/combat-content-resolver'
 
 import { toCombatBuildSnapshot } from '../character/character-combat-build-snapshot'
 import {
   loadCharacterCommittedBuildSnapshot,
   type CharacterCommittedBuildSnapshotRecord,
 } from '../character/character-build-service'
-import { createBattleBuildAuthoritySnapshot } from './battle-build-authority'
+import {
+  createResolvedBattleBuildAuthoritySnapshot,
+  type BattleBuildAuthoritySnapshot,
+} from './battle-build-authority'
 import { getPvpLobby, type PvpLobbyMemberView } from './pvp-lobby-service'
 
 const PVP_RULES_VERSION = 2
@@ -216,6 +220,7 @@ function createPvpEncounter(
   roster: readonly PvpRosterEntry[],
   teamSizes: readonly [number, number, number],
   settings: PvpLobbyMapSettings,
+  buildAuthority: BattleBuildAuthoritySnapshot,
 ) {
   const width = settings.mapSize === 'large' ? 13 : 9
   const height = settings.mapSize === 'large' ? 9 : 7
@@ -317,13 +322,8 @@ function createPvpEncounter(
       profiles,
     ),
   )
-  // Freeze both projections from the same committed loadout. Runtime/preview/commit read
-  // buildAuthority; the existing bridge remains the common combat snapshot contract.
-  const authorityInputs = roster.map(({ character, buildSnapshot }) => ({
-    combatantId: `character:${character.id}`,
-    characterId: character.id,
-    snapshot: buildSnapshot,
-  }))
+  // Preserve the committed bridge for historical/source-build inspection while runtime
+  // authority pins the current published/static combat versions for this new battle.
   return {
     ...attachCombatBuildBridge(
       encounter,
@@ -333,7 +333,7 @@ function createPvpEncounter(
         snapshot: toCombatBuildSnapshot(buildSnapshot),
       })),
     ),
-    buildAuthority: createBattleBuildAuthoritySnapshot('pvp', authorityInputs),
+    buildAuthority,
   }
 }
 
@@ -370,7 +370,16 @@ export async function startPvpLobbyWithQuality(
     }),
   )
 
-  const encounter = createPvpEncounter(roster, lobby.teamSizes, settings)
+  const buildAuthority = await createResolvedBattleBuildAuthoritySnapshot(
+    'pvp',
+    roster.map(({ character, buildSnapshot }) => ({
+      combatantId: `character:${character.id}`,
+      characterId: character.id,
+      snapshot: buildSnapshot,
+    })),
+    createServerCombatContentResolver(),
+  )
+  const encounter = createPvpEncounter(roster, lobby.teamSizes, settings, buildAuthority)
   const battle = encounter.tactical.battle
   const supabase = createSupabaseAdminClient()
   const { data, error } = await supabase.rpc('create_pvp_battle_session_v1', {
