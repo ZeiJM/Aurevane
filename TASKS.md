@@ -6,7 +6,9 @@
 
 Owner-requested maintenance candidate `agent/technique-preview-manual-20260927` adds the ordered Technique characteristics, effect magnitudes and compact explanations, current zero-turn cooldown display, and content-aligned preview height. Nexus Technique lane names are centered without class icons; the two requested header captions are removed; the power heading is “Ascension / Severance”. Mobile first-tap selection and server-owned auto-save remain on the existing path.
 
-Manual impact: new `/manual/techniques-damage-effects` article, corrections to stale fixed Power and historical Mark text, source-derived magnitude bands from all 136 current regular Techniques, and an expandable complete catalog. The guide traces repeat preprocessing, Power, defense, critical, Level, facing, legacy/status multipliers and Barrier in runtime order. Source rules and battle authority are unchanged. Verification includes focused unit/browser guards and the repository quality gate; authenticated CI evidence belongs to the candidate PR. This work does not authorize a Vercel deployment.
+Manual impact: new `/manual/techniques-damage-effects` article, corrections to stale fixed Power and historical Mark text, source-derived magnitude bands from all 136 current regular Techniques, and an expandable complete catalog. The guide traces repeat preprocessing, Power, defense, critical, Level, facing, legacy/status multipliers and Barrier in runtime order. Source rules and battle authority are unchanged.
+
+The Owner subsequently authorized making this work live for testing once all checks passed. All 11 PR workflows passed at `62bb7d80`, including full Browser smoke (228 suite tests, 20 focused browser checks and four Edge checks passed; viewport-specific skips retained). PR #749 merged at `88d9cbff`, with the tested tree unchanged. Configuration-only release `7dacfd408ea8350ec97e17c462f878c60d7054f7` reached READY as `dpl_FQ9P74ST3oauWqpyS6nvTCj1HvXi`, and `https://aurevane.vercel.app` was verified on that exact revision. Live browser checks at 1366×768 and 390×844 passed for the new Manual article and expandable catalog, horizontal fit, enabled account entry and protected-route sign-in; no page errors occurred. The deployment-scoped error/fatal runtime scan was empty. Authenticated Nexus interactions passed in CI; Owner live acceptance remains open. This commit restores the deployment lock. No database migration or combat publication was required.
 
 ## Living Atlas — implementation and live-testing handover
 
@@ -53,14 +55,11 @@ Draft PR #609 has passed authenticated Atlas browser acceptance across desktop/l
 
 Resumed verification: northern-road Atlas run 35847548263 passed eleven scenarios with sixteen intentional viewport-duplicate skips at `081bd4a9`; new maps and reverse panoramas were inspected. The final road pair passed all 76 focused world tests after thirteen new cases first failed, including reachability between every pair of canonical regions. Its full quality gate passed with 2,793 tests plus six report tests. Independent review identified a verge/painted-obstacle mismatch, reproduced and fixed; new browser verification is pending. The previous Battle Session DB job failed before testing on an occupied runner port; Browser Smoke was cancelled. These are not application test failures or an all-CI-green claim.
 
-
 Owner's ambient-motion follow-up adds separate regional water/lava masks, Hollow Coast wash, slow wind and faint region-colored light while preserving motion-off/reduced-motion behavior and readable controls. Full local checks pass at 2,793 tests plus six reports; fresh independent review found no important defects. Browser discovery now includes actual animation/toggle checks and two deterministic real-Postgres contention scenarios (command/retry and mutual attack). Their runtime evidence is pending; the prior-head Atlas run remains queued. The prior-head Battle Session DB rerun passed, while Browser Smoke failed before tests on occupied Supabase port 54324. See delivery notes for exact evidence. No merge or deployment.
-
 
 Encounter verification continuation adds real-database scenarios for a due movement step racing an attack and for training/Skill-build changes after encounter snapshot preparation. No production behavior changed. Local checks remain green (2,793 + six report tests); independent review found no actionable defects. Browser discovery is 48 combinations, with eighteen runnable scenarios and thirty intentional skips.
 
 Atlas run 35855143006 at `2378def6` completed with seventeen passing scenarios, one failure and thirty intentional skips. All eight roads, regional panoramas, responsive geometry, environmental motion/accessibility, command/retry contention, mutual attacks, due movement versus attack and Skill-build change rejection passed. Final-road maps/reverse panoramas and regional/laptop/mobile screenshots were inspected. The training-change case failed during setup because its request omitted required `version: 1`; the API correctly returned 400. The fixture now includes that field and satisfies the shared `SetPracticePlanRequest` type. Omitting the field was reproduced as a TypeScript error before restoring it. Fresh browser execution of the corrected fixture remains pending; this is not an all-green or release claim.
-
 
 Latest implementation verification: the final candidate recorded in PR #609 preserves main through `7abe4f5f`, including the persistent roaming shell, compact Hall fit, approved Bastion artwork and profile changes. The full local gate passed 2,811 Vitest tests plus seven Node report/audio checks, formatting, lint, types and production builds. The release record in PR #609 supplies final CI, migration and deployment evidence; `docs/LIVING_ATLAS_DELIVERY.md` retains the historical corrections and `docs/PHASE_5_HANDOVER.md` defines the continuation boundary.
 
@@ -316,7 +315,6 @@ Owner instruction: “Take what ever authorizations you need and implement.” T
 Validation and deployment results are recorded below when completed. Historical counts and release records earlier in this document refer to their original sixteen-Discipline snapshots.
 
 Release checkpoint: local `pnpm check` passed (1,095 tests including the six report tests). Automatic review blocked publishing to public `ZeiJM/Aurevane`; explicit destination approval is required. See `docs/PHASE_4_TICKETS.md` for remaining CI, earned-Mastery UI and coordinated migration/deployment steps. No live-release completion is claimed.
-
 
 ## Combat effect overhaul — intermediate movement/recovery checkpoint
 
