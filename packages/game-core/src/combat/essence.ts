@@ -489,7 +489,9 @@ function v5EssenceSummary(definition: EssenceDefinition): string {
   ) {
     return `A high-cost ${discipline} signature recovery with concentrated restorative power.`
   }
-  return `A high-cost ${discipline} signature utility Skill built around its defining control effects.`
+  return (
+    `A high-cost ${discipline} signature utility Skill built around its defining control effects.`
+  )
 }
 
 const V5_REBALANCED_ESSENCES = latestEnabledEssences(PRE_V5_CURRENT_ESSENCES).map(
@@ -515,8 +517,11 @@ const V5_REBALANCED_ESSENCES = latestEnabledEssences(PRE_V5_CURRENT_ESSENCES).ma
   },
 )
 
-export const P36_REPRESENTATIVE_ESSENCES = [
-  ...PRE_V5_CURRENT_ESSENCES,
+export const P36_REPRESENTATIVE_ESSENCES =
+  PRE_V5_CURRENT_ESSENCES
+
+const CURRENT_ESSENCE_REGISTRY = [
+  ...P36_REPRESENTATIVE_ESSENCES,
   ...V5_REBALANCED_ESSENCES,
 ] as const satisfies readonly EssenceDefinition[]
 
@@ -552,7 +557,7 @@ export function resolveEssenceForBuild(
   contentVersion?: number,
 ): EssenceDefinition | null {
   if (secondaryDisciplineId !== null) return null
-  const candidates = P36_REPRESENTATIVE_ESSENCES.filter(
+  const candidates = CURRENT_ESSENCE_REGISTRY.filter(
     (definition) => definition.enabled && definition.sourceDisciplineId === primaryDisciplineId,
   )
   if (contentVersion !== undefined) {
