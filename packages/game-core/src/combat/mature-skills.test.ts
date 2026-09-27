@@ -85,7 +85,9 @@ describe('P3.3 mature Skill schema', () => {
   it('keeps representative Discipline Skills fully data-defined and valid', () => {
     for (const definition of P33_REPRESENTATIVE_DISCIPLINE_SKILLS) {
       expect(validateMatureSkillDefinition(definition)).toEqual([])
-      if (!definition.cooldown) throw new Error(`Expected historical cooldown for ${definition.id}.`)
+      if (!definition.cooldown) {
+        throw new Error(`Expected historical cooldown for ${definition.id}.`)
+      }
       expect(definition.cooldown.ownerTurns).toBeGreaterThan(0)
       expect(definition.sourceDisciplineId).toMatch(/^[a-z0-9.-]+$/)
     }
