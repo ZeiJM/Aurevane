@@ -124,7 +124,7 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
     'borrowed-hour',
     'Borrowed Hour',
     'Buff',
-    'Gain 40 Initiative for the next round only. Combined tempo offsets cap at +40 or -40. No extra turn or AP is granted.',
+    'Gain 40 Initiative for the next round only. No extra turn or AP is granted.',
     { nextRoundInitiative: 40 },
   ),
   status(
