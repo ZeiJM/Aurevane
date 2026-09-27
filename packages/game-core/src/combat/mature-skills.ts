@@ -1016,11 +1016,7 @@ export function validateMatureSkillDefinition(
 
   for (const [index, effect] of definition.effects.entries()) {
     const durationTurns = effect.durationTurns ?? 0
-    if (
-      !Number.isSafeInteger(durationTurns) ||
-      durationTurns < 0 ||
-      durationTurns > 4
-    ) {
+    if (!Number.isSafeInteger(durationTurns) || durationTurns < 0 || durationTurns > 4) {
       issues.push(`effects[${index}].durationTurns`)
     }
     if (
