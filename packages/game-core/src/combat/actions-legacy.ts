@@ -3106,49 +3106,50 @@ export function resolveCombatMovementStepEffects(
   combatantId: string,
   content: CombatContentCatalog,
 ): CombatResolutionTransition {
-  const poison = currentPoisonInstance(state, combatantId)
   const advanced = advanceCurrentPoisonMovement(state, combatantId, 1)
-  if (!poison || advanced.triggeredTicks === 0) return { state: advanced.state, events: [] }
+  if (advanced.triggered.length === 0) return { state: advanced.state, events: [] }
 
   let nextState = advanced.state
   const events: CombatResolutionEvent[] = []
-  for (let index = 0; index < advanced.triggeredTicks; index += 1) {
-    const target = getCombatant(nextState.tactical.battle, combatantId)
-    if (target.hp <= 0) break
-    const hpAfter = Math.max(0, target.hp - CURRENT_POISON_DAMAGE)
-    const defeatsCurrentActor =
-      hpAfter === 0 &&
-      nextState.tactical.battle.lifecycle === 'active' &&
-      nextState.tactical.battle.currentTurn?.combatantId === combatantId
-    const defeatTransition = defeatsCurrentActor
-      ? defeatCurrentCombatant(nextState.tactical.battle, combatantId)
-      : null
-    nextState = defeatTransition
-      ? withBattle(nextState, defeatTransition.state)
-      : withUpdatedCombatant(nextState, combatantId, { ...target, hp: hpAfter })
-    events.push({
-      event: 'damage_applied',
-      actionId: 'status.poison.current.v1',
-      sourceCombatantId: poison.sourceCombatantId,
-      targetCombatantId: combatantId,
-      amount: target.hp - hpAfter,
-      hpBefore: target.hp,
-      hpAfter,
-    })
+  for (const trigger of advanced.triggered) {
+    for (let index = 0; index < trigger.ticks; index += 1) {
+      const target = getCombatant(nextState.tactical.battle, combatantId)
+      if (target.hp <= 0) break
+      const hpAfter = Math.max(0, target.hp - CURRENT_POISON_DAMAGE)
+      const defeatsCurrentActor =
+        hpAfter === 0 &&
+        nextState.tactical.battle.lifecycle === 'active' &&
+        nextState.tactical.battle.currentTurn?.combatantId === combatantId
+      const defeatTransition = defeatsCurrentActor
+        ? defeatCurrentCombatant(nextState.tactical.battle, combatantId)
+        : null
+      nextState = defeatTransition
+        ? withBattle(nextState, defeatTransition.state)
+        : withUpdatedCombatant(nextState, combatantId, { ...target, hp: hpAfter })
+      events.push({
+        event: 'damage_applied',
+        actionId: 'status.poison.current.v1',
+        sourceCombatantId: trigger.instance.sourceCombatantId,
+        targetCombatantId: combatantId,
+        amount: target.hp - hpAfter,
+        hpBefore: target.hp,
+        hpAfter,
+      })
 
-    if (hpAfter < target.hp) {
-      const revealed = removeGameplayTags(
-        nextState,
-        poison.sourceCombatantId,
-        combatantId,
-        'status.poison.current.v1',
-        ['Invisible'],
-        content,
-      )
-      nextState = revealed.state
-      events.push(...revealed.events)
+      if (hpAfter < target.hp) {
+        const revealed = removeGameplayTags(
+          nextState,
+          trigger.instance.sourceCombatantId,
+          combatantId,
+          'status.poison.current.v1',
+          ['Invisible'],
+          content,
+        )
+        nextState = revealed.state
+        events.push(...revealed.events)
+      }
+      if (defeatTransition) events.push(...defeatTransition.events)
     }
-    if (defeatTransition) events.push(...defeatTransition.events)
   }
   return { state: nextState, events }
 }
