@@ -475,8 +475,10 @@ const PRE_V5_CURRENT_ESSENCES = [
 ] as const satisfies readonly EssenceDefinition[]
 
 function v5EssenceSummary(definition: EssenceDefinition): string {
+  const discipline =
+    definition.sourceDisciplineId.charAt(0).toUpperCase() + definition.sourceDisciplineId.slice(1)
   if (definition.skill.tags.includes('attack')) {
-    return `A high-cost ${definition.sourceDisciplineId} signature attack built for a decisive payoff.`
+    return `A high-cost ${discipline} signature attack built for a decisive payoff.`
   }
   if (
     definition.skill.effects.some(
@@ -485,9 +487,9 @@ function v5EssenceSummary(definition: EssenceDefinition): string {
         (effect.type === 'resource-change' && effect.delta > 0),
     )
   ) {
-    return `A high-cost ${definition.sourceDisciplineId} signature recovery with concentrated restorative power.`
+    return `A high-cost ${discipline} signature recovery with concentrated restorative power.`
   }
-  return `A high-cost ${definition.sourceDisciplineId} signature utility Skill built around its defining control effects.`
+  return `A high-cost ${discipline} signature utility Skill built around its defining control effects.`
 }
 
 const V5_REBALANCED_ESSENCES = latestEnabledEssences(PRE_V5_CURRENT_ESSENCES).map(
