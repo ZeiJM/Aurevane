@@ -1,5 +1,7 @@
 import Image from 'next/image'
+import type { EssenceDefinition } from '@aurevane/game-core/combat/essence'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
+import type { ResonanceDefinition } from '@aurevane/game-core/combat/resonance'
 import { Surface } from '@aurevane/ui'
 
 import {
@@ -39,7 +41,7 @@ function effectSummaryWithDuration(
   return turns > 0 ? `${base} [${turns} ${turns === 1 ? 'Turn' : 'Turns'}]` : base
 }
 
-function EssenceHoverPreview({ essence }: { essence: NonNullable<CharacterWorkspaceProps['essence']> }) {
+function EssenceHoverPreview({ essence }: { essence: EssenceDefinition }) {
   const skill = essence.skill
   const rows: readonly (readonly [string, string | readonly string[]])[] = [
     ['Skill Type', skillTypeDescription(skill)],
@@ -80,7 +82,7 @@ function EssenceHoverPreview({ essence }: { essence: NonNullable<CharacterWorksp
 function ResonanceHoverPreview({
   resonance,
 }: {
-  resonance: NonNullable<CharacterWorkspaceProps['resonance']>
+  resonance: ResonanceDefinition
 }) {
   const setup = resonance.trigger.setup
   const payoff = resonance.trigger.payoff
