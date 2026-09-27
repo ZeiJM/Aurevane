@@ -249,7 +249,7 @@ describe('Profile persistence recovery diagnostics', () => {
     const page = await CharacterProfilePage()
 
     expect(page.type).toBe(CharacterProfileShell)
-    expect(page.props.supernatural).toEqual({ state: null, choices: [] })
+    expect(page.props.supernatural).toEqual({ state: null, choices: [], currentIdentity: null })
     expect(console.error).not.toHaveBeenCalled()
   })
 
@@ -277,13 +277,26 @@ describe('Profile persistence recovery diagnostics', () => {
           transitionId: 'supernatural.main.choose-ascension',
           transitionContentVersion: 1,
           path: 'ascended',
+          identity: {
+            id: 'ascension.proof',
+            contentVersion: 1,
+            kind: 'ascension',
+            title: 'Ascension Proof',
+          },
         },
         {
           transitionId: 'supernatural.main.choose-severence',
           transitionContentVersion: 1,
           path: 'severed',
+          identity: {
+            id: 'severence.proof',
+            contentVersion: 1,
+            kind: 'severence',
+            title: 'Severence Proof',
+          },
         },
       ],
+      currentIdentity: null,
     })
   })
 
@@ -295,7 +308,7 @@ describe('Profile persistence recovery diagnostics', () => {
     const page = await CharacterProfilePage()
 
     expect(page.type).toBe(CharacterProfileShell)
-    expect(page.props.supernatural).toEqual({ state: null, choices: [] })
+    expect(page.props.supernatural).toEqual({ state: null, choices: [], currentIdentity: null })
     expect(console.error).not.toHaveBeenCalled()
   })
 
