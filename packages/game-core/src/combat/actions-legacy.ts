@@ -2764,7 +2764,9 @@ function scaleByBasisPointsRepeated(value: number, basisPoints: number, applicat
   if (basisPoints === COMBAT_BASIS_POINTS) return value
   let result = value
   for (let index = 0; index < applications && result > 0; index += 1) {
-    result = scaleByBasisPoints(result, basisPoints)
+    const next = scaleByBasisPoints(result, basisPoints)
+    if (next === result) return result
+    result = next
   }
   return result
 }
