@@ -43,6 +43,8 @@ type LegacyDamageEffect = Extract<legacy.CombatEffectDefinition, { type: 'damage
 export interface CombatEffectAuthoringTuning {
   /** 0 is immediate. Positive values count full future owner turns. */
   readonly durationTurns?: number
+  /** Optional bounded non-percentage power for effects whose native payload has no amount field. */
+  readonly power?: number
   /** Optional status magnitude override in basis points (100 = 1 percentage point). */
   readonly potencyBasisPoints?: number
 }
