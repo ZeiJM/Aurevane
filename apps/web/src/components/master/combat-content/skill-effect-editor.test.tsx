@@ -119,7 +119,17 @@ describe('Master Panel Skill effect editor', () => {
     expect(applied).toContain('value="covert"')
     expect(applied).toContain('aria-label="Status stacks"')
     expect(applied).toContain('aria-label="Effect duration (turns)"')
-    expect(applied).toContain('aria-label="Status potency (percent)"')
+    expect(applied).not.toContain('aria-label="Status potency (percent)"')
+
+    const percentage = render({
+      type: 'apply-status',
+      recipient: 'primary-unit',
+      statusId: 'guarded',
+      stacks: 1,
+      potencyBasisPoints: 1_500,
+    })
+    expect(percentage).toContain('aria-label="Status potency (percent)"')
+    expect(percentage).toContain('value="15"')
 
     const removed = render({
       type: 'remove-status',
