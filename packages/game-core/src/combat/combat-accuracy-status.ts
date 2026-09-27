@@ -117,7 +117,7 @@ export function assertValidCombatAccuracyStatusState(
         (status.sourceScopedMark === true) !== isMark ||
         status.statusVersion !== definition.version ||
         status.stacks !== 1 ||
-        status.remainingOwnerTurnStarts > definition.durationOwnerTurnStarts
+        status.remainingOwnerTurnStarts > 5
       ) {
         throw new TypeError(
           'Current accuracy status must match its pinned definition, source scope, stack and duration.',
@@ -144,14 +144,20 @@ export function combatAccuracyStatusModifier(
           candidate.id === status.statusId && candidate.version === status.statusVersion,
       )
       if (row.combatantId === actorId) {
-        blind = Math.max(blind, definition?.blindAccuracyPenaltyBasisPoints ?? 0)
+        blind = Math.max(
+          blind,
+          status.potencyBasisPoints ?? definition?.blindAccuracyPenaltyBasisPoints ?? 0,
+        )
       }
       if (
         row.combatantId === targetId &&
         status.sourceScopedMark === true &&
         status.sourceCombatantId === actorId
       ) {
-        mark = Math.max(mark, definition?.markAccuracyBonusBasisPoints ?? 0)
+        mark = Math.max(
+          mark,
+          status.potencyBasisPoints ?? definition?.markAccuracyBonusBasisPoints ?? 0,
+        )
       }
     }
   }
