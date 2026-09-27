@@ -360,6 +360,7 @@ describe('Committed Resonance uses normal battle execution', () => {
         recipient: 'actor',
         statusId: 'hastened',
         stacks: 1,
+        durationTurns: 1,
       })
       expect(JSON.stringify(loaded)).toBe(saved)
       const result = executePv1fMatureSkill(
