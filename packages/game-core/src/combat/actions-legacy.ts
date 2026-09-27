@@ -961,20 +961,14 @@ function collectNextRoundInitiativeModifiers(
   content: CombatContentCatalog,
 ): NonNullable<BattleState['roundInitiativeModifiers']> {
   return state.statusState.flatMap((row) => {
-    const amount = Math.max(
-      -40,
-      Math.min(
-        40,
-        row.statuses.reduce(
-          (sum, status) =>
-            sum +
-            (getStatusDefinition(content, status.statusId, status.statusVersion)
-              .nextRoundInitiative ?? 0) *
-              status.stacks,
-          0,
-        ),
-      ),
-    )
+    const amount = row.statuses.reduce((sum, status) => {
+      const perApplication =
+        getStatusDefinition(content, status.statusId, status.statusVersion).nextRoundInitiative ?? 0
+      const next = BigInt(sum) + BigInt(perApplication) * BigInt(status.stacks)
+      if (next > BigInt(Number.MAX_SAFE_INTEGER)) return Number.MAX_SAFE_INTEGER
+      if (next < BigInt(Number.MIN_SAFE_INTEGER)) return Number.MIN_SAFE_INTEGER
+      return Number(next)
+    }, 0)
     return amount === 0 ? [] : [{ combatantId: row.combatantId, amount }]
   })
 }
