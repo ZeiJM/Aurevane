@@ -129,6 +129,10 @@ export interface CombatEffectState {
   barriers?: CombatBarrierInstance[]
 }
 
+function normalizedEffectStacks(stacks: number | undefined): number {
+  return stacks !== undefined && Number.isSafeInteger(stacks) && stacks > 0 ? stacks : 1
+}
+
 export function normalizeCombatEffectState(value: unknown): CombatEffectState {
   const input =
     value && typeof value === 'object' && !Array.isArray(value)
@@ -140,16 +144,14 @@ export function normalizeCombatEffectState(value: unknown): CombatEffectState {
     poison: Array.isArray(input.poison)
       ? input.poison.map((instance) => ({
           ...instance,
-          stacks:
-            Number.isSafeInteger(instance.stacks) && instance.stacks > 0 ? instance.stacks : 1,
+          stacks: normalizedEffectStacks(instance.stacks),
         }))
       : [],
     bleed: Array.isArray(input.bleed) ? input.bleed : [],
     burn: Array.isArray(input.burn)
       ? input.burn.map((instance) => ({
           ...instance,
-          stacks:
-            Number.isSafeInteger(instance.stacks) && instance.stacks > 0 ? instance.stacks : 1,
+          stacks: normalizedEffectStacks(instance.stacks),
         }))
       : [],
     temporarySkills: Array.isArray(input.temporarySkills) ? input.temporarySkills : [],
