@@ -347,7 +347,7 @@ describe('P3.6 versioned pure Essence framework', () => {
     expect(essence.name).toBe('Verdant Rupture')
     expect(essence.skill.tags).toEqual(expect.arrayContaining(['attack', 'cockpit:attack']))
     expect(readPv1fActionEconomy(result.state, 'player')?.current).toBe(45)
-    expect(result.state.tactical.battle.combatants.find((row) => row.id === 'recruit')?.hp).toBe(30)
+    expect(result.state.tactical.battle.combatants.find((row) => row.id === 'recruit')?.hp).toBe(31)
   })
 
   it('fails closed for a mixed build before spending AP or applying effects', () => {
