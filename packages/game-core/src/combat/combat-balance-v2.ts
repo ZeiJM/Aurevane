@@ -179,8 +179,27 @@ export function createCombatRebalancedSkillVersion(
     ...definition,
     contentVersion,
     apCost,
+    ...(definition.tags.includes('mystic')
+      ? { mpCost: Math.max(2, Math.floor(apCost / 15)) }
+      : { mpCost: undefined }),
     effects: balancedEffects({ ...definition, apCost } as MatureSkillDefinition, tier),
     cooldown: { ...definition.cooldown, ownerTurns: cooldownOwnerTurns },
+    overrides: Object.fromEntries(
+      Object.entries(definition.overrides).map(([context, override]) => [
+        context,
+        override
+          ? {
+              ...override,
+              ...(override.apCost === undefined
+                ? {}
+                : { apCost: balancedApCost(override.apCost, tier) }),
+              ...(override.cooldownOwnerTurns === undefined
+                ? {}
+                : { cooldownOwnerTurns }),
+            }
+          : override,
+      ]),
+    ) as MatureSkillDefinition['overrides'],
     authoring: {
       ...definition.authoring,
       validationTags: [
