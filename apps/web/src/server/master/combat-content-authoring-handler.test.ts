@@ -216,7 +216,6 @@ describe('combat content authoring handler', () => {
     })
   })
 
-
   it('routes Essence and Resonance writes through their typed authoring lanes', async () => {
     const service = serviceMock()
     const deps = dependencies(service)
