@@ -117,9 +117,7 @@ export function ResonanceContentEditor({
     : emptyCombatContentReview()
   const selectedHistory = selected ? (histories[selected.id] ?? selected.history) : []
   const selectedCurrentVersion =
-    selectedHistory.find((entry) => entry.current)?.contentVersion ??
-    selected?.currentVersion ??
-    1
+    selectedHistory.find((entry) => entry.current)?.contentVersion ?? selected?.currentVersion ?? 1
   const selectedNextVersion = selected
     ? nextCombatContentVersion(selectedCurrentVersion, selectedHistory)
     : 1
@@ -213,13 +211,10 @@ export function ResonanceContentEditor({
       })
       setHistories((current) => ({
         ...current,
-        [selected.id]: projectPublishedVersionHistory(
-          current[selected.id] ?? selectedHistory,
-          {
-            contentVersion: response.published.contentVersion,
-            publishedAt: response.published.publishedAt,
-          },
-        ),
+        [selected.id]: projectPublishedVersionHistory(current[selected.id] ?? selectedHistory, {
+          contentVersion: response.published.contentVersion,
+          publishedAt: response.published.publishedAt,
+        }),
       }))
       setReviews((current) => ({ ...current, [selected.id]: emptyCombatContentReview() }))
       setPublishConfirmationId(null)
