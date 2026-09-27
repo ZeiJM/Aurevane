@@ -65,6 +65,25 @@ Open work observed during planning includes #681 (settlement geometry held for m
 
 **Acceptance:** the representative town–road–town journey presents distinguishable places and truthful context actions; remote/stale action attempts cannot bypass location checks; eight regional compositions/art remain tracked to completion; inspect screenshots at supported sizes. One corridor is a delivery slice, not evidence all eight towns are done.
 
+#### P5-W3A — NPC conversation experience
+
+**Owner direction — 2026-09-27:** use the supplied conversation screenshot only as a structural reference and build a distinctly AUREVANE system with stronger usability, atmosphere and authority. Do not copy the reference game's artwork, branding, lore, exact styling or proprietary layout.
+
+- Keep the current world/location visibly present behind a focused conversation rather than navigating to a disconnected full page.
+- Desktop presentation should favor the dialogue itself while giving authored NPC art meaningful presence; target roughly a 55–60% dialogue / 40–45% NPC-art composition where space permits. Mobile should stack a compact NPC-art/banner region above dialogue and choices rather than preserve a cramped side-by-side layout.
+- Present a compact identity header with NPC name plus approved role/title/affiliation/location context. Do not expose internal IDs or hidden affiliation facts.
+- Use readable dialogue typography and bounded line length suitable for longer authored exchanges.
+- Present responses as clear choice cards/actions rather than undifferentiated generic buttons. Optional supporting copy may explain what a choice does without leaking hidden outcomes.
+- Conversation options are state-aware: accepted/active/ready/completed quest states, vendor/service availability, event eligibility, location, permissions and other authoritative facts may change which authored choices are projected and how they are labeled.
+- The server projects the current authored conversation node and only the choices/actions currently legal for that player and location. The client renders those options and submits the selected authored choice; it never invents dialogue nodes, quest state, prices, rewards, eligibility or transitions.
+- Remote, stale, replayed or otherwise invalid conversation actions fail closed. Valuable-resource spending, permanent supernatural/faction choices and other irreversible actions require a distinct deliberate confirmation state rather than looking like ordinary dialogue.
+- Preserve short in-session conversational continuity without turning the feature into a generic chat window. Prior exchange context may collapse above the active line where useful.
+- Keep an obvious but visually secondary End conversation action available, with keyboard/touch accessibility, loading/error states and reduced-motion support.
+- Reuse the same framework for ordinary NPCs, quest givers, vendors/services, event characters and later authorized staff/world actors instead of hardcoding a separate popup per use case.
+- NPC portraits/art are optional content dependencies. Missing approved artwork must degrade gracefully and remain tracked rather than blocking authoritative dialogue content or counting a placeholder as completed art.
+
+**Acceptance:** an eligible nearby NPC can open a conversation, project only legal choices, advance through an authored exchange, accept/report an objective or invoke an existing service through server authority, reject a stale/remote/forged choice, reload without corrupting state, and end cleanly. Desktop/mobile/keyboard presentation must remain readable and no hidden NPC, quest, reward, service or future-node data may enter unauthorized payloads.
+
 ### P5-W4 — Existing character/supernatural identity clarity
 
 **Outcome:** players understand their current identity and the representative Phase 5 fork before and after commitment.
