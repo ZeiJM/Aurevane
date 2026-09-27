@@ -197,7 +197,7 @@ describe('Level-100 offensive scaling', () => {
     })
   })
 
-  it('halves both authored damage and Power scaling on a consecutive repeat', () => {
+  it('uses v5 cooldown authority instead of legacy consecutive-use falloff', () => {
     const definition = resolveMatureSkillVersion('vanguard.forceful-strike')
     if (!definition) throw new Error('Expected current Vanguard Skill fixture.')
     const target = { kind: 'unit' as const, combatantId: 'recruit' }
@@ -205,15 +205,15 @@ describe('Level-100 offensive scaling', () => {
     const repeated = evaluatePv1fMatureSkill(first.state, definition, target)
     const damage = repeated.action.effects.find((effect) => effect.type === 'damage')
 
-    expect(repeated.repeatPenaltyApplied).toBe(true)
+    expect(definition.authoring.validationTags).toContain('owner-rebalance-v5')
+    expect(repeated.repeatPenaltyApplied).toBe(false)
+    expect(repeated.evaluation.legal).toBe(false)
+    expect(repeated.evaluation.issues).toContainEqual(
+      expect.objectContaining({ code: 'cooldown-active' }),
+    )
     expect(damage).toMatchObject({
-      amount: Math.max(
-        1,
-        Math.floor(
-          (definition.effects.find((effect) => effect.type === 'damage')?.amount ?? 0) / 2,
-        ),
-      ),
-      scaling: { source: 'physical-power', coefficientBasisPoints: 1_000 },
+      amount: definition.effects.find((effect) => effect.type === 'damage')?.amount,
+      scaling: { source: 'physical-power', coefficientBasisPoints: 2_000 },
     })
   })
 })
@@ -372,7 +372,7 @@ describe('P3.3 mature Skill Action Economy integration', () => {
   })
 
   it('treats a repeated pure Curse as a legal full-cost no-op clone', () => {
-    const base = resolveMatureSkillVersion('chronist.slow')
+    const base = resolveMatureSkillVersion('chronist.slow', 1)
     if (!base) throw new Error('Expected current Chronist Slow fixture.')
     const definition = {
       ...base,
@@ -430,7 +430,7 @@ describe('P3.3 mature Skill Action Economy integration', () => {
   })
 
   it('omits discrete Curse cloning on a consecutive use while later damage still halves', () => {
-    const base = resolveMatureSkillVersion('chronist.slow')
+    const base = resolveMatureSkillVersion('chronist.slow', 1)
     if (!base) throw new Error('Expected current Chronist Slow fixture.')
     const definition = {
       ...base,
