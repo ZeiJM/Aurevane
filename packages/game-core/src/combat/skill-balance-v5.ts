@@ -76,6 +76,13 @@ function isAreaSkill(definition: MatureSkillDefinition): boolean {
   return definition.target.shape.kind !== 'single'
 }
 
+function targetReachFactor(definition: MatureSkillDefinition): number {
+  if (definition.target.kind === 'self') return 1
+  const maximumRange = Math.max(0, definition.target.maximumRange)
+  if (maximumRange <= 1) return 1
+  return Math.max(0.78, 1 - Math.min(6, maximumRange - 1) * 0.04)
+}
+
 function defaultStatusDuration(statusId: string): number {
   switch (statusId) {
     case 'root':
@@ -155,11 +162,17 @@ function tuneDamage(
         ? 0.86
         : 1
   const utilityFactor = Math.max(0.55, 1 - nonDamageWeight * 0.12)
+  const reachFactor = targetReachFactor(definition)
   const requirementFactor = definition.requirements.length > 0 ? 1.12 : 1
   const essenceFactor = kind === 'essence' ? 1.12 : 1
   const commandBudget = definition.apCost / 3
   const perHit =
-    (commandBudget * areaFactor * utilityFactor * requirementFactor * essenceFactor) /
+    (commandBudget *
+      areaFactor *
+      reachFactor *
+      utilityFactor *
+      requirementFactor *
+      essenceFactor) /
     Math.max(1, Math.sqrt(damageEffects))
   return {
     ...effect,
@@ -183,13 +196,14 @@ function tuneEffect(
   const durationWeight = Math.max(1, durationTurns)
   const essenceFactor = kind === 'essence' ? 1.12 : 1
   const areaFactor = isAreaSkill(definition) ? 0.82 : 1
+  const reachFactor = targetReachFactor(definition)
 
   switch (effect.type) {
     case 'healing':
       return {
         ...effect,
         amount: roundedPower(
-          ((definition.apCost / 4) * areaFactor * essenceFactor) / Math.sqrt(durationWeight),
+          ((definition.apCost / 4) * areaFactor * reachFactor * essenceFactor) / Math.sqrt(durationWeight),
         ),
         durationTurns,
       }
@@ -200,7 +214,7 @@ function tuneEffect(
         delta:
           sign *
           roundedPower(
-            ((definition.apCost / 7) * areaFactor * essenceFactor) / Math.sqrt(durationWeight),
+            ((definition.apCost / 7) * areaFactor * reachFactor * essenceFactor) / Math.sqrt(durationWeight),
           ),
         durationTurns,
       }
@@ -209,7 +223,7 @@ function tuneEffect(
       return {
         ...effect,
         amount: roundedPower(
-          ((definition.apCost / 4) * areaFactor * essenceFactor) / Math.sqrt(durationWeight),
+          ((definition.apCost / 4) * areaFactor * reachFactor * essenceFactor) / Math.sqrt(durationWeight),
         ),
         durationTurns,
       }
@@ -217,7 +231,7 @@ function tuneEffect(
       return {
         ...effect,
         damagePerTick: roundedPower(
-          ((definition.apCost / 14) * areaFactor * essenceFactor) / Math.sqrt(durationWeight),
+          ((definition.apCost / 14) * areaFactor * reachFactor * essenceFactor) / Math.sqrt(durationWeight),
         ),
         ticks: clamp(durationTurns, 1, CURRENT_EFFECT_DURATION_MAXIMUM_TURNS),
         durationTurns,
@@ -227,7 +241,7 @@ function tuneEffect(
       return {
         ...effect,
         power: roundedPower(
-          ((definition.apCost / 12) * areaFactor * essenceFactor) / Math.sqrt(durationWeight),
+          ((definition.apCost / 12) * areaFactor * reachFactor * essenceFactor) / Math.sqrt(durationWeight),
         ),
         durationTurns,
       }
