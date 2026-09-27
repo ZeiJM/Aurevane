@@ -63,8 +63,10 @@ export function skillEffectDescription(effect: CombatEffectDefinition): string {
       return 'Copy one random eligible regular battle Skill from the selected unit for the rest of this battle. The copied Skill keeps its original MP, targeting, effects and requirements, but costs half AP rounded up.'
     case 'sensory':
       return `Attempt Sensory on ${target}. On a successful hit against Covert, remove eligible positive statuses and Covert, then apply Revealed for ${effect.revealedDurationOwnerTurnStarts} owner-turn starts. Otherwise the Sensory block has no effect.`
-    case 'remove-status':
-      return `Remove ${effect.statusIds.map((id) => combatStatusDetails(id).name).join(', ')} from ${target}.`
+    case 'remove-status': {
+      const statusNames = [...new Set(effect.statusIds.map((id) => combatStatusDetails(id).name))]
+      return `Remove ${statusNames.join(', ')} from ${target}.`
+    }
     case 'apply-status': {
       const status = combatStatusDetails(effect.statusId)
       return `Apply ${effect.stacks} ${gameplayStatusName(effect.statusId)} ${effect.stacks === 1 ? 'stack' : 'stacks'} to ${target}. ${status.description} ${combatStatusDuration(effect.statusId)}`
@@ -95,21 +97,26 @@ export function skillTargetTags(skill: MatureSkillDefinition): readonly string[]
   return combatActionPresentationTags(skill)
 }
 
-export function skillTypeDescription(skill: MatureSkillDefinition): string {
-  const cockpitTag = skill.tags.find((tag) => tag.startsWith('cockpit:'))
-  if (cockpitTag) return title(cockpitTag.slice('cockpit:'.length))
-  const fallback = skill.tags.find((tag) =>
-    ['attack', 'defense', 'recovery', 'support', 'control'].includes(tag),
+export function skillTypeDescription(skill: MatureSkillDefinition): 'Attack' | 'Recovery' | 'Utility' {
+  if (skill.tags.includes('attack')) return 'Attack'
+
+  const recoversHpOrMp = skill.effects.some(
+    (effect) =>
+      effect.type === 'healing' || (effect.type === 'resource-change' && effect.delta > 0),
   )
-  return fallback ? title(fallback) : 'Technique'
+  return recoversHpOrMp ? 'Recovery' : 'Utility'
 }
 
 export function skillCostDescription(skill: MatureSkillDefinition): string {
   return skill.mpCost ? `${skill.apCost} AP / ${skill.mpCost} MP` : `${skill.apCost} AP`
 }
 
+export function skillEffectSummaries(skill: MatureSkillDefinition): readonly string[] {
+  return skill.effects.map((effect) => effectSummary(previewEffect(effect)))
+}
+
 export function skillEffectsSummary(skill: MatureSkillDefinition): string {
-  return skill.effects.map((effect) => effectSummary(previewEffect(effect))).join(', ') || 'N/A'
+  return skillEffectSummaries(skill).join(', ') || 'N/A'
 }
 
 export function skillRequirementsSummary(skill: MatureSkillDefinition): string {
