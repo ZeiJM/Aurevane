@@ -16,6 +16,8 @@ function serviceMock(): CombatContentAuthoringService {
   return {
     requireOperator: vi.fn(async () => 'owner' as const),
     validateSkillDefinition: vi.fn(() => ({ valid: true, issues: [], derivedTags: [] })),
+    validateEssenceDefinition: vi.fn(() => ({ valid: true, issues: [], derivedTags: [] })),
+    validateResonanceDefinition: vi.fn(() => ({ valid: true, issues: [], derivedTags: [] })),
     previewSkillDefinition: vi.fn(async () => {
       throw new Error('Not used by handler tests yet.')
     }),
@@ -39,6 +41,47 @@ function serviceMock(): CombatContentAuthoringService {
       publishedAt: '2026-09-17T22:01:00.000Z',
     })),
     rollbackSkill: vi.fn(async () => undefined),
+    saveEssenceDraft: vi.fn(async () => ({
+      contentKey: 'essence.vanguard.unbroken-strike',
+      contentKind: 'essence' as const,
+      definition: { essenceId: 'essence.vanguard.unbroken-strike' },
+      baseVersion: 4,
+      draftVersion: 1,
+      updatedBy: ACTOR,
+      updatedAt: '2026-09-27T20:00:00.000Z',
+    })),
+    publishEssence: vi.fn(async () => ({
+      id: '33333333-3333-4333-8333-333333333333',
+      contentKey: 'essence.vanguard.unbroken-strike',
+      contentKind: 'essence' as const,
+      contentVersion: 5,
+      definition: { essenceId: 'essence.vanguard.unbroken-strike', contentVersion: 5 },
+      publishedBy: ACTOR,
+      publishedAt: '2026-09-27T20:01:00.000Z',
+    })),
+    rollbackEssence: vi.fn(async () => undefined),
+    saveResonanceDraft: vi.fn(async () => ({
+      contentKey: 'resonance.lifebinder-vanguard.mercys-edge',
+      contentKind: 'resonance' as const,
+      definition: { id: 'resonance.lifebinder-vanguard.mercys-edge' },
+      baseVersion: 2,
+      draftVersion: 1,
+      updatedBy: ACTOR,
+      updatedAt: '2026-09-27T20:00:00.000Z',
+    })),
+    publishResonance: vi.fn(async () => ({
+      id: '44444444-4444-4444-8444-444444444444',
+      contentKey: 'resonance.lifebinder-vanguard.mercys-edge',
+      contentKind: 'resonance' as const,
+      contentVersion: 3,
+      definition: {
+        id: 'resonance.lifebinder-vanguard.mercys-edge',
+        contentVersion: 3,
+      },
+      publishedBy: ACTOR,
+      publishedAt: '2026-09-27T20:01:00.000Z',
+    })),
+    rollbackResonance: vi.fn(async () => undefined),
   }
 }
 
@@ -169,6 +212,46 @@ describe('combat content authoring handler', () => {
     expect(service.rollbackSkill).toHaveBeenCalledWith({
       actorUserId: ACTOR,
       skillId: 'vanguard.forceful-strike',
+      targetVersion: 2,
+    })
+  })
+
+
+  it('routes Essence and Resonance writes through their typed authoring lanes', async () => {
+    const service = serviceMock()
+    const deps = dependencies(service)
+
+    const essenceResponse = await handleCombatContentAuthoringRequest(
+      post({
+        operation: 'publish',
+        contentKind: 'essence',
+        definition: { essenceId: 'essence.vanguard.unbroken-strike' },
+        expectedBaseVersion: 4,
+      }),
+      deps,
+    )
+    const resonanceRollback = await handleCombatContentAuthoringRequest(
+      post({
+        operation: 'rollback',
+        contentKind: 'resonance',
+        contentKey: 'resonance.lifebinder-vanguard.mercys-edge',
+        disciplinePair: ['lifebinder', 'vanguard'],
+        targetVersion: 2,
+      }),
+      deps,
+    )
+
+    expect(essenceResponse.status).toBe(200)
+    expect(resonanceRollback.status).toBe(200)
+    expect(service.publishEssence).toHaveBeenCalledWith({
+      actorUserId: ACTOR,
+      definition: { essenceId: 'essence.vanguard.unbroken-strike' },
+      expectedBaseVersion: 4,
+    })
+    expect(service.rollbackResonance).toHaveBeenCalledWith({
+      actorUserId: ACTOR,
+      resonanceId: 'resonance.lifebinder-vanguard.mercys-edge',
+      disciplinePair: ['lifebinder', 'vanguard'],
       targetVersion: 2,
     })
   })
