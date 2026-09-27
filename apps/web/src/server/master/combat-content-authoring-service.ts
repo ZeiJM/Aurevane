@@ -683,7 +683,8 @@ export function createCombatContentAuthoringService({
         ? null
         : resolveResonanceForPair(definition.disciplinePair[0], definition.disciplinePair[1])
       const actualBaseVersion =
-        published?.contentVersion ?? (fallback?.id === definition.id ? fallback.contentVersion : null)
+        published?.contentVersion ??
+        (fallback?.id === definition.id ? fallback.contentVersion : null)
       if (actualBaseVersion !== input.expectedBaseVersion) {
         throw new AurevaneError(
           'STALE_VERSION',
