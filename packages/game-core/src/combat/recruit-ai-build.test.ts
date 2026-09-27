@@ -198,10 +198,11 @@ describe('P3.7 build-aware Recruit AI', () => {
 
     expect(readPv1fActionEconomy(result.state, actorId)?.current).toBe(45)
     expect(result.state.tactical.battle.combatants.find((row) => row.id === targetId)?.hp).toBe(30)
-    expect(result.events).not.toContainEqual(
+    expect(result.events).toContainEqual(
       expect.objectContaining({
         event: 'skill_cooldown_started',
         actionId: 'essence.vanguard.unbroken-strike',
+        ownerTurns: 3,
       }),
     )
     expect(result.events).toContainEqual(
