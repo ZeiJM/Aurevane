@@ -64,12 +64,14 @@ it('names a linked tradeoff and explains both halves on the correct recipient', 
   expect(description).toContain('Deal 40% more damage and take 25% more damage')
   expect(description).toContain('expire or are removed together')
 })
-it('describes source-specific modifiers, cleansing and periodic timing', () => {
+it('describes source-specific modifiers, cleansing and periodic timing without stack jargon', () => {
   const mark = resolveMatureSkillVersion('wildwarden.hunters-mark')!
   expect(skillEffectDescription(mark.effects[0]!)).toContain('Other attackers gain no benefit')
   const burn = resolveMatureSkillVersion('cinderweaver.cinder-bolt')!
   expect(skillEffectDescription(burn.effects[1]!)).toContain('4, then 3, then 2')
   expect(skillEffectDescription(burn.effects[1]!)).toContain('end-turn boundaries')
+  expect(skillEffectDescription({ type: 'apply-status', recipient: 'actor', statusId: 'guarded', stacks: 1 })).not.toMatch(/stack/i)
+  expect(skillEffectDescription({ type: 'bleed', recipient: 'primary-unit', damagePerTick: 2, ticks: 3 })).not.toMatch(/stack/i)
   expect(skillTargetTags(resolveMatureSkillVersion('runeblade.unbinding-rune')!)).toContain(
     'Cleanse',
   )
