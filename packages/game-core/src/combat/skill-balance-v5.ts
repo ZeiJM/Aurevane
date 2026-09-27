@@ -283,6 +283,32 @@ function effectWeight(effect: CombatEffectDefinition): number {
   }
 }
 
+function effectMagnitudeWeight(effect: CombatEffectDefinition): number {
+  switch (effect.type) {
+    case 'damage':
+      return effect.amount * 0.3
+    case 'healing':
+    case 'barrier-change':
+      return effect.amount * 0.22
+    case 'resource-change':
+      return Math.abs(effect.delta) * 0.18
+    case 'bleed':
+      return effect.damagePerTick * effect.ticks * 0.12
+    case 'burn':
+    case 'poison':
+      return (effect.power ?? 3) * Math.max(1, defaultEffectDurationTurns(effect)) * 0.1
+    case 'apply-status':
+      return (effect.potencyBasisPoints ?? 0) / 1_000
+    default:
+      return 0
+  }
+}
+
+function cooldownReachWeight(definition: MatureSkillDefinition): number {
+  if (definition.target.kind === 'self') return 0
+  return Math.min(6, Math.max(0, definition.target.maximumRange - 1)) * 1.25
+}
+
 function cooldownTurns(
   definition: MatureSkillDefinition,
   effects: readonly CombatEffectDefinition[],
@@ -291,9 +317,17 @@ function cooldownTurns(
   if (definition.requirements.length > 0) return null
 
   const persistentWeight = effects.reduce((sum, effect) => sum + effectWeight(effect), 0)
+  const magnitudeWeight = effects.reduce((sum, effect) => sum + effectMagnitudeWeight(effect), 0)
   const areaWeight = isAreaSkill(definition) ? 6 : 0
+  const reachWeight = cooldownReachWeight(definition)
   const essenceWeight = kind === 'essence' ? 10 : 0
-  const score = definition.apCost + persistentWeight * 4 + areaWeight + essenceWeight
+  const score =
+    definition.apCost +
+    persistentWeight * 4 +
+    magnitudeWeight +
+    areaWeight +
+    reachWeight +
+    essenceWeight
   if (score < 45) return 1
   if (score < 65) return 2
   return 3
