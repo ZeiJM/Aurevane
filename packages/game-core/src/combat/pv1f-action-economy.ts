@@ -1115,16 +1115,6 @@ export function resolvePv1fActionDefinition(
   throw new Error(`Unsupported PV-1F action ${actionId}.`)
 }
 
-function lastMatureSkillId(
-  state: StatDrivenCombatEncounterState,
-  combatantId: string,
-): string | null {
-  const marker = getCombatant(state, combatantId).temporaryResources.find((resource) =>
-    resource.key.startsWith(PV1F_LAST_MATURE_SKILL_RESOURCE_PREFIX),
-  )
-  return marker?.key.slice(PV1F_LAST_MATURE_SKILL_RESOURCE_PREFIX.length) ?? null
-}
-
 function clearLastMatureSkill(
   state: StatDrivenCombatEncounterState,
   combatantId: string,
@@ -1134,26 +1124,6 @@ function clearLastMatureSkill(
     (resource) => !resource.key.startsWith(PV1F_LAST_MATURE_SKILL_RESOURCE_PREFIX),
   )
   if (temporaryResources.length === combatant.temporaryResources.length) return state
-  return withCombatant(state, { ...combatant, temporaryResources })
-}
-
-function markLastMatureSkill(
-  state: StatDrivenCombatEncounterState,
-  combatantId: string,
-  skillId: string,
-): StatDrivenCombatEncounterState {
-  const combatant = getCombatant(state, combatantId)
-  const marker: BattleTemporaryResource = {
-    key: `${PV1F_LAST_MATURE_SKILL_RESOURCE_PREFIX}${skillId}`,
-    current: 1,
-    maximum: 1,
-  }
-  const temporaryResources = [
-    ...combatant.temporaryResources.filter(
-      (resource) => !resource.key.startsWith(PV1F_LAST_MATURE_SKILL_RESOURCE_PREFIX),
-    ),
-    marker,
-  ].sort((left, right) => left.key.localeCompare(right.key))
   return withCombatant(state, { ...combatant, temporaryResources })
 }
 
@@ -1185,68 +1155,6 @@ function applyCurrentMatureSkillPowerScaling(
       ? { ...effect, scaling }
       : effect,
   )
-}
-
-function scaleRepeatedMatureSkillEffects(
-  effects: readonly CombatEffectDefinition[],
-): readonly CombatEffectDefinition[] {
-  const scaled: CombatEffectDefinition[] = []
-  for (const effect of effects) {
-    if (effect.type === 'damage') {
-      scaled.push({
-        ...effect,
-        amount: halfPositiveMagnitude(effect.amount),
-        ...(effect.scaling
-          ? {
-              scaling: {
-                ...effect.scaling,
-                coefficientBasisPoints: Math.floor(effect.scaling.coefficientBasisPoints / 2),
-              },
-            }
-          : {}),
-      })
-      continue
-    }
-    if (effect.type === 'healing' || effect.type === 'barrier-change') {
-      scaled.push({ ...effect, amount: halfPositiveMagnitude(effect.amount) })
-      continue
-    }
-    if (effect.type === 'resource-change') {
-      scaled.push({ ...effect, delta: halfSignedMagnitude(effect.delta) })
-      continue
-    }
-    if (effect.type === 'bleed') {
-      scaled.push({ ...effect, damagePerTick: halfPositiveMagnitude(effect.damagePerTick) })
-      continue
-    }
-    // These effects are discrete: a consecutive repeat cannot resolve a half-strength copy.
-    if (
-      effect.type === 'remove-status' ||
-      effect.type === 'return-to-turn-start' ||
-      effect.type === 'create-terrain' ||
-      effect.type === 'displace' ||
-      effect.type === 'poison' ||
-      effect.type === 'burn' ||
-      effect.type === 'copy' ||
-      effect.type === 'copy-statuses' ||
-      effect.type === 'sensory'
-    )
-      continue
-    const stacks = Math.floor(effect.stacks / 2)
-    if (stacks > 0) scaled.push({ ...effect, stacks })
-  }
-  return scaled
-}
-
-function halfPositiveMagnitude(value: number): number {
-  if (value <= 0) return 0
-  return Math.max(1, Math.floor(value / 2))
-}
-
-function halfSignedMagnitude(value: number): number {
-  if (value === 0) return 0
-  const magnitude = Math.max(1, Math.floor(Math.abs(value) / 2))
-  return value < 0 ? -magnitude : magnitude
 }
 
 function getCombatant(state: StatDrivenCombatEncounterState, combatantId: string): BattleCombatant {
