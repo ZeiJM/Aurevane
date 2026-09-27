@@ -144,14 +144,24 @@ export function combatAccuracyStatusModifier(
           candidate.id === status.statusId && candidate.version === status.statusVersion,
       )
       if (row.combatantId === actorId) {
-        blind = Math.max(blind, definition?.blindAccuracyPenaltyBasisPoints ?? 0)
+        const tuned = status.tuning?.accuracyModifierBasisPoints
+        blind = Math.max(
+          blind,
+          tuned !== undefined && tuned < 0
+            ? Math.abs(tuned)
+            : (definition?.blindAccuracyPenaltyBasisPoints ?? 0),
+        )
       }
       if (
         row.combatantId === targetId &&
         status.sourceScopedMark === true &&
         status.sourceCombatantId === actorId
       ) {
-        mark = Math.max(mark, definition?.markAccuracyBonusBasisPoints ?? 0)
+        const tuned = status.tuning?.accuracyModifierBasisPoints
+        mark = Math.max(
+          mark,
+          tuned !== undefined && tuned > 0 ? tuned : (definition?.markAccuracyBonusBasisPoints ?? 0),
+        )
       }
     }
   }
