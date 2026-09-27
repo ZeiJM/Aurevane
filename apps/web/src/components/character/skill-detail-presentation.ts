@@ -189,9 +189,10 @@ export function skillLineOfSightDescription(skill: MatureSkillDefinition): strin
   return skill.target.requiresLineOfSight ? 'Required' : 'Not required'
 }
 
-// The current mature-Skill runtime removes authored turn cooldowns and applies repeat falloff.
-export function skillCooldownDescription(): string {
-  return '0 turns'
+export function skillCooldownDescription(skill: MatureSkillDefinition): string {
+  if (skill.requirements.length > 0) return 'None'
+  const turns = skill.cooldown.ownerTurns
+  return `${turns} ${turns === 1 ? 'turn' : 'turns'}`
 }
 
 export function skillRangeDescription(skill: MatureSkillDefinition): string {
