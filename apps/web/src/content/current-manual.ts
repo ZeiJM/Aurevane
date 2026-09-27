@@ -344,7 +344,7 @@ const battleHallArticle: ManualArticle = {
       title: 'Elemental setup and payoffs',
       paragraphs: [
         'Scorched, Bleeding and Poisoned are the gameplay tags for Burn, Bleed and Poison. Skills can require tags such as Frozen or Conductive; their details explain which setup is needed before a payoff becomes legal.',
-        'Battle Technique buttons and their skill pickers show target, shape and effect tags from the build committed to that battle. Tags describe the full Technique; the target preview shows its actual legal effects, costs and consecutive-use reduction before confirmation. Dispel removes listed protection; Cleanse removes listed harmful effects.',
+        'Battle Technique buttons and their skill pickers show target, shape and effect tags from the build committed to that battle. Tags describe the full Technique; the target preview shows its actual legal effects, costs, requirements and cooldown state before confirmation. Dispel removes listed protection; Cleanse removes listed harmful effects.',
         'Water Skills can apply Wet. Against Wet or Conductive, the first positive storm hit per target per command gains a bounded 20% bonus. Conductive is consumed; Wet remains. Having both conditions does not double the bonus. Positive fire damage clears Wet and Frozen from the damaged unit.',
       ],
     },
@@ -355,14 +355,14 @@ const battleHallArticle: ManualArticle = {
         'Ground Skills select a tile, including empty ground. Choose the Skill, select its tile and review the affected area before confirming. Previews spend no AP or MP and stay silent. A Skill’s affected-team rule governs its unit effects; temporary terrain affects either team.',
         `${COMBAT_TERRAIN_OVERLAY_DETAILS.frozen.name} terrain: ${COMBAT_TERRAIN_OVERLAY_DETAILS.frozen.description} Fire on affected Frozen tiles converts them to Steam, including empty tiles. ${COMBAT_TERRAIN_OVERLAY_DETAILS.steam.name}: ${COMBAT_TERRAIN_OVERLAY_DETAILS.steam.description} Both overlays last ${COMBAT_TERRAIN_OVERLAY_DETAILS.frozen.roundBoundaries} round boundaries. Refreshing an overlay renews its duration without stacking it.`,
         'Slow and base-terrain AP costs still apply with Airborne, and Root still prevents movement. Inspect the tile and movement preview for its current cost and remaining duration. Your Movement allowance remains a separate limit even when AP is available.',
-        'Single-unit Resonance payoffs wait for a unit-targeted Skill. Ground casts preserve that setup for a later eligible action, and empty ground cannot generate an actor reward. Consecutive repeats omit new terrain creation and displacement while halving quantitative effects at unchanged costs.',
+        'Single-unit Resonance payoffs wait for a unit-targeted Skill. Ground casts preserve that setup for a later eligible action, and empty ground cannot generate an actor reward. Resonance setup and payoff requirements are tag-based and are shown in the Nexus Resonance preview.',
       ],
     },
     {
       id: 'protection-and-position',
       title: 'Protection, concealment and displacement',
       paragraphs: [
-        'Inspired adds 10% outgoing damage within the conditional modifier budget. Hexed reduces incoming direct and periodic healing by 25%. Summoned is temporary spirit protection that reduces incoming damage by 15% within the same budget and can be dispelled; it grants no extra combatant or turn.',
+        'Inspired defaults to +10% outgoing damage, Hexed defaults to −25% healing received, and Summoned defaults to −15% incoming damage. A specific authored Skill can override an eligible status percentage for its own application, and the Technique Preview shows that tuned value. Summoned can be dispelled and grants no extra combatant or turn.',
         'Invisible prevents hostile direct unit selection. Ground and area effects can still hit the concealed unit. Taking positive damage or making a damaging command breaks concealment, including a missed basic attack.',
         'A push moves its target one tile away if the destination is within the board, passable, vacant and legal for its elevation. Root resists it. A successful push applies Displaced briefly; a blocked push keeps the action’s cost and leaves the target in place. The preview and combat log show the result.',
       ],
@@ -377,10 +377,10 @@ const battleHallArticle: ManualArticle = {
     },
     {
       id: 'repeat-use',
-      title: 'Consecutive Skill use',
+      title: 'Skill cooldowns and requirements',
       paragraphs: [
-        'Ordinary authored Techniques and Essence Skills do not use turn cooldowns. Repeating the same authored Skill consecutively gives 50% effectiveness at the normal AP cost. Further consecutive uses remain at 50%.',
-        'A different combat command breaks the repeat chain; ending a turn alone does not. The server preserves this state across reconnects. Basic recovery actions keep their separate timing rules.',
+        'Current authored Techniques and Essence Skills use cooldowns of one to three owner turns based on their overall power and effect budget. Higher-impact Skills generally receive longer cooldowns within that bounded range.',
+        'A Skill with an explicit Requirement has no runtime cooldown; the Requirement itself is the limiter. If it remains satisfied and you can afford the AP/MP cost, the Skill can be used again at full authored strength. Basic recovery actions keep their separate timing rules.',
       ],
     },
     {
