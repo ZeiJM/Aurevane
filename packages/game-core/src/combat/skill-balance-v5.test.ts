@@ -13,6 +13,7 @@ describe('owner v5 Skill rebalance', () => {
 
     for (const skill of skills) {
       expect(skill.authoring.validationTags).toContain('owner-rebalance-v5')
+      expect(skill.flavorLine?.trim().length).toBeGreaterThan(0)
       if (skill.requirements.length > 0) {
         expect(skill.cooldown).toBeNull()
       } else {
