@@ -9,6 +9,7 @@ import type {
   PrimaryDisciplinePreview,
 } from '@aurevane/game-core/character/discipline-build'
 import type { CharacterProfileReadModel } from '@aurevane/game-core/character/profile'
+import type { AuthoredSupernaturalIdentityDefinition } from '@aurevane/game-core/character/supernatural-content'
 import type { SupernaturalStoryState } from '@aurevane/game-core/character/supernatural-state'
 import type { EssenceDefinition } from '@aurevane/game-core/combat/essence'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
@@ -97,6 +98,7 @@ export interface CharacterWorkspaceProps {
   supernatural?: {
     state: SupernaturalStoryState | null
     choices: readonly SupernaturalChoiceOption[]
+    currentIdentity: AuthoredSupernaturalIdentityDefinition | null
   }
 }
 
@@ -136,7 +138,7 @@ export function CharacterProfileShell({
   disciplineBuild,
   personalTitle = null,
   imageUrl = null,
-  supernatural = { state: null, choices: [] },
+  supernatural = { state: null, choices: [], currentIdentity: null },
 }: CharacterWorkspaceProps) {
   const disciplineSummary = characterDisciplineSummary(
     disciplineBuild.current.definition,
@@ -222,7 +224,8 @@ export function CharacterProfileShell({
         <div className={styles.storyCopy}>
           {supernatural.state?.path === 'ascended' ? (
             <>
-              <h2>Ascension</h2>
+              <h2>{supernatural.currentIdentity?.title ?? 'Ascension'}</h2>
+              {supernatural.currentIdentity ? <p>{supernatural.currentIdentity.summary}</p> : null}
               <p data-supernatural-path="ascended">
                 This character is permanently bound to the Ascension path. Ordinary supernatural
                 progression cannot switch this character to Severence.
@@ -230,7 +233,8 @@ export function CharacterProfileShell({
             </>
           ) : supernatural.state?.path === 'severed' ? (
             <>
-              <h2>Severence</h2>
+              <h2>{supernatural.currentIdentity?.title ?? 'Severence'}</h2>
+              {supernatural.currentIdentity ? <p>{supernatural.currentIdentity.summary}</p> : null}
               <p data-supernatural-path="severed">
                 This character is permanently bound to the Severence path. Ordinary supernatural
                 progression cannot switch this character to Ascension.
