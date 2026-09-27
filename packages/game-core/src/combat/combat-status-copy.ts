@@ -93,13 +93,12 @@ function assertPinnedStatus(
     instance.statusVersion !== definition.version ||
     !Number.isSafeInteger(instance.stacks) ||
     instance.stacks < 1 ||
-    instance.stacks > definition.maximumStacks ||
     !Number.isSafeInteger(instance.remainingOwnerTurnStarts) ||
     instance.remainingOwnerTurnStarts < 1 ||
     instance.remainingOwnerTurnStarts > definition.durationOwnerTurnStarts
   ) {
     throw new TypeError(
-      'Copied status state must match its pinned version, stack cap and remaining duration.',
+      'Copied status state must match its pinned version, application count and remaining duration.',
     )
   }
 }
@@ -129,15 +128,6 @@ interface BleedCopy {
   survives: boolean
 }
 
-interface SimulatedBleedRow {
-  targetCombatantId: string
-  damagePerTick: number
-  remainingTicks: number
-  applicationOrder: number
-  existing?: CombatBleedStack
-  attemptIndex?: number
-}
-
 function planBleedCopies(
   state: CombatEncounterState,
   donorId: string,
@@ -145,71 +135,28 @@ function planBleedCopies(
   mode: CombatStatusCopyEffect['mode'],
 ): readonly BleedCopy[] {
   if (mode !== 'curse') return []
-  const donors = currentBleedStacks(state, donorId).filter((stack) => stack.curseCopyable === true)
+  const donors = currentBleedStacks(state, donorId).filter((application) => application.curseCopyable === true)
   if (donors.length === 0) return []
 
   const effectState = normalizeCombatEffectState(state.effectState)
   let maximumOrder = effectState.bleed.reduce(
-    (maximum, stack) => Math.max(maximum, stack.applicationOrder),
+    (maximum, application) => Math.max(maximum, application.applicationOrder),
     0,
   )
-  let simulated: SimulatedBleedRow[] = effectState.bleed.map((stack) => ({
-    targetCombatantId: stack.targetCombatantId,
-    damagePerTick: stack.damagePerTick,
-    remainingTicks: stack.remainingTicks,
-    applicationOrder: stack.applicationOrder,
-    existing: stack,
-  }))
-  const attempts: Omit<BleedCopy, 'survives'>[] = []
-
-  donors.forEach((donor, attemptIndex) => {
+  return donors.map((donor, attemptIndex) => {
     if (maximumOrder >= Number.MAX_SAFE_INTEGER) {
       throw new RangeError('Bleed application order has reached the safe integer limit.')
     }
-    const targetRows = simulated
-      .filter((row) => row.targetCombatantId === receiverId)
-      .sort(
-        (left, right) =>
-          left.remainingTicks - right.remainingTicks ||
-          left.applicationOrder - right.applicationOrder,
-      )
-    const replaced = targetRows.length >= 3 ? targetRows[0] : undefined
-    if (replaced) {
-      simulated = simulated.filter(
-        (row) =>
-          row.targetCombatantId !== replaced.targetCombatantId ||
-          row.applicationOrder !== replaced.applicationOrder,
-      )
-    }
     maximumOrder += 1
-    const applicationOrder = maximumOrder
-    simulated.push({
-      targetCombatantId: receiverId,
-      damagePerTick: donor.damagePerTick,
-      remainingTicks: donor.remainingTicks,
-      applicationOrder,
-      attemptIndex,
-    })
-    attempts.push({
+    return {
       donor,
-      previous: replaced?.existing,
-      replacedSummary: replaced
-        ? `bleed:${replaced.damagePerTick}:${replaced.remainingTicks}`
-        : undefined,
-      applicationOrder,
+      previous: undefined,
+      replacedSummary: undefined,
+      applicationOrder: maximumOrder,
       attemptIndex,
-    })
+      survives: true,
+    }
   })
-
-  const survivingOrders = new Set(
-    simulated
-      .filter((row) => row.targetCombatantId === receiverId && row.attemptIndex !== undefined)
-      .map((row) => row.applicationOrder),
-  )
-  return attempts.map((attempt) => ({
-    ...attempt,
-    survives: survivingOrders.has(attempt.applicationOrder),
-  }))
 }
 
 interface CombatCopyPlan {
@@ -262,8 +209,7 @@ export function planCombatStatusCopies(
       ...(donor.sourceScopedMark === true ? { sourceScopedMark: true as const } : {}),
       statusId: donor.statusId,
       statusVersion: donor.statusVersion,
-      // Both inputs are bounded; adding only the remaining capacity avoids unsafe integer sums.
-      stacks: previousStacks + Math.min(donor.stacks, definition.maximumStacks - previousStacks),
+      stacks: addEffectApplications(previousStacks, donor.stacks),
       remainingOwnerTurnStarts: Math.max(
         donor.remainingOwnerTurnStarts,
         previous?.remainingOwnerTurnStarts ?? 0,
@@ -284,6 +230,13 @@ export function planCombatStatusCopies(
       : undefined
   const bleed = planBleedCopies(state, donorId, receiverId, effect.mode)
   return { receiverId, copies, poison, burn, bleed }
+}
+
+function addEffectApplications(current: number, added: number): number {
+  const total = BigInt(current) + BigInt(added)
+  return Number(
+    total > BigInt(Number.MAX_SAFE_INTEGER) ? BigInt(Number.MAX_SAFE_INTEGER) : total,
+  )
 }
 
 function statusSummary(status: CombatStatusInstance | undefined): string {
