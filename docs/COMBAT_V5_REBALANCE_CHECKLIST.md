@@ -5,6 +5,8 @@
 **Base:** current `main` after Discipline/Technique polish  
 **Purpose:** single source of truth for the requested Discipline, Essence, Resonance, Technique Preview, Master Panel, and Manual changes.
 
+**Current implementation status:** v5 engine/content/UI implementation is active on PR #754; historical content remains pinned separately. Exact-head verification is still required before merge. Essence/Resonance Master Panel authoring remains an explicit open item.
+
 ## 0. Already completed before this rebalance
 
 - [x] Center Discipline names in the Primary/Secondary selection boxes.
@@ -18,38 +20,38 @@
 
 ## 1. Canonical combat-v5 authoring model
 
-- [ ] Use a bounded authored **Power 1–20** scale for magnitude-bearing combat effects where appropriate.
-- [ ] Keep percentage-based effects explicit rather than forcing them through the 1–20 scale.
-- [ ] Allow per-Skill percentage potency, e.g. one Guarded application can reduce damage by 10% while another can reduce it by 15%.
+- [x] Use a bounded authored **Power 1–20** scale for magnitude-bearing combat effects where appropriate.
+- [x] Keep percentage-based effects explicit rather than forcing them through the 1–20 scale.
+- [x] Allow per-Skill percentage potency, e.g. one Guarded application can reduce damage by 10% while another can reduce it by 15%.
 - [ ] Ensure authored Power is converted by the battle formula into actual damage/healing/resource output; the UI must not treat Power as literal final HP damage.
-- [ ] Keep all authored magnitude fields bounded and server validated.
-- [ ] Preserve historical content versions so already-pinned battles do not silently change.
+- [x] Keep all authored magnitude fields bounded and server validated.
+- [x] Preserve historical content versions so already-pinned battles do not silently change.
 
 ## 2. Effect duration model
 
-- [ ] Add an authoritative duration to persistent effects.
-- [ ] **0 turns** = instantaneous on the current command/turn and omitted from player-facing duration brackets.
-- [ ] **1 turn** = begins on the following owner turn and lasts for that one turn.
-- [ ] **N turns** = begins on the following owner turn and lasts for N owner turns.
-- [ ] Display duration beside each applicable effect line as `[1 Turn]`, `[2 Turns]`, etc.
-- [ ] Do not display `[0 Turns]`.
-- [ ] Make duration editable in the Master Panel.
-- [ ] Make balance budgets account for duration so a longer persistent effect costs more of a Skill's budget.
+- [x] Add an authoritative duration to persistent effects.
+- [x] **0 turns** = instantaneous on the current command/turn and omitted from player-facing duration brackets.
+- [x] **1 turn** = begins on the following owner turn and lasts for that one turn.
+- [x] **N turns** = begins on the following owner turn and lasts for N owner turns.
+- [x] Display duration beside each applicable effect line as `[1 Turn]`, `[2 Turns]`, etc.
+- [x] Do not display `[0 Turns]`.
+- [x] Make duration editable in the Master Panel.
+- [x] Make balance budgets account for duration so a longer persistent effect costs more of a Skill's budget.
 - [ ] Verify duration semantics for statuses, periodic healing/recovery, DOTs, movement/control, and other persistent effects.
 
 ## 3. Cooldown model
 
-- [ ] Retire the current ordinary-Technique `0 turns + consecutive-use falloff` rule for combat v5.
-- [ ] Normal authored Technique/Essence cooldowns are **1–3 turns** based on total power.
-- [ ] Any Skill with an explicit use **Requirement** has **no cooldown**.
-- [ ] Cooldown calculation/tuning must account for damage, effect potency, duration, range, area, utility, and other total Skill value.
-- [ ] Make cooldown editable in the Master Panel with the 1–3 bound and requirement-gated no-cooldown rule.
-- [ ] Player-facing preview shows the actual cooldown; requirement-gated Skills display no cooldown rather than a fake 0-turn value.
+- [x] Retire the current ordinary-Technique `0 turns + consecutive-use falloff` rule for combat v5.
+- [x] Normal authored Technique/Essence cooldowns are **1–3 turns** based on total power.
+- [x] Any Skill with an explicit use **Requirement** has **no cooldown**.
+- [x] Cooldown calculation/tuning must account for damage, effect potency, duration, range, area, utility, and other total Skill value.
+- [x] Make cooldown editable in the Master Panel with the 1–3 bound and requirement-gated no-cooldown rule.
+- [x] Player-facing preview shows the actual cooldown; requirement-gated Skills display no cooldown rather than a fake 0-turn value.
 - [ ] Add engine/runtime tests proving cooldown enforcement and owner-turn advancement.
 
 ## 4. Discipline Technique rebalance
 
-- [ ] Rebalance all latest enabled Discipline Techniques across the full published roster.
+- [x] Rebalance all latest enabled Discipline Techniques across the full published roster.
 - [ ] Higher AP should generally buy more total power, without scaling so aggressively that high-AP Skills become dominant/almighty.
 - [ ] Damage Skills should normally allocate most of their budget to damage.
 - [ ] Permit thematic exceptions where a damaging Skill intentionally trades damage for stronger utility/control/status effects.
@@ -63,69 +65,69 @@
 
 ## 5. Essence rebalance
 
-- [ ] Rebalance every current Essence Skill.
-- [ ] Essence Skills should naturally cost somewhat more AP than ordinary Techniques.
+- [x] Rebalance every current Essence Skill.
+- [x] Essence Skills should naturally cost somewhat more AP than ordinary Techniques.
 - [ ] Essence Skills should feel meaningfully powerful/signature without invalidating the regular Technique kit.
-- [ ] Apply the same Power, duration, percentage-potency, cooldown, targeting, and budget rules.
-- [ ] Requirement-gated Essence Skills follow the same no-cooldown rule.
-- [ ] Preserve versioned Essence history.
+- [x] Apply the same Power, duration, percentage-potency, cooldown, targeting, and budget rules.
+- [x] Requirement-gated Essence Skills follow the same no-cooldown rule.
+- [x] Preserve versioned Essence history.
 
 ## 6. Resonance redesign/rebalance
 
-- [ ] Rebalance every current Resonance.
+- [x] Rebalance every current Resonance.
 - [ ] Resonances must be widely varied and thematic rather than cookie-cutter bonus-damage templates.
-- [ ] Use setup/payoff tags and Requirements cleanly.
-- [ ] Allow Resonance payoffs to use damage, recovery, control, statuses, resources, cleanse, movement, or other bounded effects where thematically appropriate.
-- [ ] Account for setup difficulty, payoff specificity, effect potency, and duration when balancing Resonance value.
-- [ ] Ensure Resonance setup/payoff behavior remains deterministic and server authoritative.
-- [ ] Preserve versioned Resonance history.
+- [x] Use setup/payoff tags and Requirements cleanly.
+- [x] Allow Resonance payoffs to use damage, recovery, control, statuses, resources, cleanse, movement, or other bounded effects where thematically appropriate.
+- [x] Account for setup difficulty, payoff specificity, effect potency, and duration when balancing Resonance value.
+- [x] Ensure Resonance setup/payoff behavior remains deterministic and server authoritative.
+- [x] Preserve versioned Resonance history.
 
 ## 7. Technique Preview presentation
 
-- [ ] Keep Skill Type limited to Attack / Recovery / Utility.
-- [ ] Effects remain one bullet per effect, one line each.
-- [ ] Each persistent effect line includes its duration bracket.
-- [ ] Effect description/explanation lines remain individually readable.
-- [ ] Replace the current `<Discipline> Technique` subtitle with a one-line **flavor line** that brings the Technique to life.
-- [ ] Flavor line must be concise and non-mechanical; exact mechanics stay in the rows/effect descriptions.
-- [ ] Generate/authenticate flavor lines for every current Discipline Technique.
-- [ ] Make the flavor line editable in the Master Panel.
+- [x] Keep Skill Type limited to Attack / Recovery / Utility.
+- [x] Effects remain one bullet per effect, one line each.
+- [x] Each persistent effect line includes its duration bracket.
+- [x] Effect description/explanation lines remain individually readable.
+- [x] Replace the current `<Discipline> Technique` subtitle with a one-line **flavor line** that brings the Technique to life.
+- [x] Flavor line must be concise and non-mechanical; exact mechanics stay in the rows/effect descriptions.
+- [x] Generate/authenticate flavor lines for every current Discipline Technique.
+- [x] Make the flavor line editable in the Master Panel.
 
 ## 8. Essence / Resonance Nexus presentation
 
-- [ ] Active card heading format: `Essence: <Name>`.
-- [ ] Active card heading format: `Resonance: <Name>`.
-- [ ] Replace long mechanical card descriptions with a concise one-line flavor/summary line.
-- [ ] Generate/authenticate one-line flavor text for every current Essence and Resonance.
-- [ ] Hovering/focusing the Essence artwork opens a Technique-style detail panel.
-- [ ] Hovering/focusing the Resonance artwork opens a matching detail panel.
-- [ ] Moving the cursor/focus away closes the detail panel automatically.
-- [ ] Essence detail view shows type/cost/cooldown/requirements/effects/range/targeting as applicable.
-- [ ] Resonance detail view clearly shows setup Requirements/tags, payoff Requirements/tags, and payoff Effects/durations.
+- [x] Active card heading format: `Essence: <Name>`.
+- [x] Active card heading format: `Resonance: <Name>`.
+- [x] Replace long mechanical card descriptions with a concise one-line flavor/summary line.
+- [x] Generate/authenticate one-line flavor text for every current Essence and Resonance.
+- [x] Hovering/focusing the Essence artwork opens a Technique-style detail panel.
+- [x] Hovering/focusing the Resonance artwork opens a matching detail panel.
+- [x] Moving the cursor/focus away closes the detail panel automatically.
+- [x] Essence detail view shows type/cost/cooldown/requirements/effects/range/targeting as applicable.
+- [x] Resonance detail view clearly shows setup Requirements/tags, payoff Requirements/tags, and payoff Effects/durations.
 - [ ] Make Essence and Resonance flavor lines editable from the Master Panel.
 - [ ] Keep desktop/mobile/keyboard behavior accessible and non-blocking.
 
 ## 9. Master Panel authoring
 
-- [ ] Discipline Technique flavor-line editing.
+- [x] Discipline Technique flavor-line editing.
 - [ ] Essence flavor-line editing.
 - [ ] Resonance flavor-line editing.
-- [ ] Existing per-effect player-facing description override remains available.
-- [ ] Effect Power 1–20 editing where applicable.
-- [ ] Explicit percentage potency editing for percentage-based effects.
-- [ ] Effect duration editing.
-- [ ] Cooldown editing with the v5 rules.
+- [x] Existing per-effect player-facing description override remains available.
+- [x] Effect Power 1–20 editing where applicable.
+- [x] Explicit percentage potency editing for percentage-based effects.
+- [x] Effect duration editing.
+- [x] Cooldown editing with the v5 rules.
 - [ ] Effects, duration, potency, descriptions, and flavor text must appear in validation/diff/preview before publish.
-- [ ] Presentation-only copy must remain unable to modify authoritative combat mechanics.
+- [x] Presentation-only copy must remain unable to modify authoritative combat mechanics.
 - [ ] Extend versioned authoring/publication support as needed so Essence and Resonance edits are immutable/auditable like Skill content.
-- [ ] No browser-direct writes to private combat-content tables.
+- [x] No browser-direct writes to private combat-content tables.
 
 ## 10. Flavor-line content contract
 
-- [ ] Add one canonical presentation field for short flavor text rather than repurposing mechanical descriptions.
-- [ ] Use the same field contract for Discipline Skills, Essence Skills, and Resonances.
-- [ ] Plan for **Ascension** and **Severance** to use the same field when those systems become playable.
-- [ ] Do **not** invent separate Ascension/Severance authoring systems now; record the compatibility requirement for future implementation.
+- [x] Add one canonical presentation field for short flavor text rather than repurposing mechanical descriptions.
+- [x] Use the same field contract for Discipline Skills, Essence Skills, and Resonances.
+- [x] Plan for **Ascension** and **Severance** to use the same field when those systems become playable.
+- [x] Do **not** invent separate Ascension/Severance authoring systems now; record the compatibility requirement for future implementation.
 
 ## 11. Manual / documentation
 
@@ -135,7 +137,7 @@
 - [ ] Document effect duration semantics and duration brackets.
 - [ ] Document 1–3-turn cooldowns and Requirement-gated no-cooldown Skills.
 - [ ] Remove obsolete consecutive-use 50% falloff documentation once the v5 runtime is authoritative.
-- [ ] Document Attack / Recovery / Utility classification.
+- [x] Document Attack / Recovery / Utility classification.
 - [ ] Document Essence/Resonance hover-detail behavior and setup/payoff Requirements.
 - [ ] Update any affected combat docs/tests so documentation and runtime never disagree.
 
