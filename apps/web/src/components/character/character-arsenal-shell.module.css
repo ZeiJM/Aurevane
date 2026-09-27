@@ -424,6 +424,11 @@
   outline: none;
 }
 
+.attunementPreviewAnchor:focus-visible {
+  outline: 2px solid #9f875b;
+  outline-offset: 3px;
+}
+
 .attunementArt,
 .powerGlyph {
   display: grid;
