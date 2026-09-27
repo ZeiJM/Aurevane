@@ -11,6 +11,20 @@ import styles from './combat-content-editor.module.css'
 type DamageEffect = Extract<CombatEffectDefinition, { type: 'damage' }>
 type DisplaceEffect = Extract<CombatEffectDefinition, { type: 'displace' }>
 
+const PERCENTAGE_STATUS_IDS = new Set([
+  'guarded',
+  'exposed',
+  'mark',
+  'marked',
+  'hexed',
+  'inspired',
+  'summoned',
+  'warded',
+  'reckless',
+  'fortified',
+  'challenged',
+])
+
 const RECIPIENTS: readonly { value: CombatEffectRecipient; label: string }[] = [
   { value: 'actor', label: 'Actor' },
   { value: 'primary-unit', label: 'Primary unit' },
@@ -900,7 +914,7 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
           </label>
         ) : null}
 
-        {value.type === 'apply-status' ? (
+        {value.type === 'apply-status' && PERCENTAGE_STATUS_IDS.has(value.statusId) ? (
           <label className={styles.field}>
             <span>Status potency (%)</span>
             <input
