@@ -16,10 +16,34 @@ export interface PreviewEffect {
 
 const signed = (value: number) => `${value < 0 ? '−' : '+'}${Math.abs(value)}`
 
-function statusPreview(id: string): PreviewEffect {
+function statusPreview(
+  id: string,
+  tuning: Extract<CombatEffectDefinition, { type: 'apply-status' }>['tuning'],
+): PreviewEffect {
   const details = combatStatusDetails(id)
   const status = PV1F_COMBAT_CONTENT.statuses.find((entry) => entry.id === id)
   const result: PreviewEffect = { label: details.name, explanation: details.description }
+  if (tuning) {
+    const magnitudes = [
+      tuning.incomingDamageModifierBasisPoints === undefined
+        ? null
+        : `${signed(tuning.incomingDamageModifierBasisPoints / 100)}% incoming`,
+      tuning.outgoingDamageModifierBasisPoints === undefined
+        ? null
+        : `${signed(tuning.outgoingDamageModifierBasisPoints / 100)}% outgoing`,
+      tuning.healingReceivedModifierBasisPoints === undefined
+        ? null
+        : `${signed(tuning.healingReceivedModifierBasisPoints / 100)}% healing`,
+      tuning.accuracyModifierBasisPoints === undefined
+        ? null
+        : `${signed(tuning.accuracyModifierBasisPoints / 100)} pp Accuracy`,
+    ].filter((value): value is string => value !== null)
+    if (magnitudes.length > 0) {
+      result.magnitude = magnitudes.join(' / ')
+      result.explanation = `Applies ${details.name} with ${magnitudes.join(', ')}.`
+      return result
+    }
+  }
   // These gameplay-tag rules live in the damage/healing resolvers. Their shared
   // status descriptions are the public authority; avoid a second numeric constant.
   if (['inspired', 'hexed', 'wet', 'conductive'].includes(id)) {
@@ -92,7 +116,7 @@ export function previewEffect(effect: CombatEffectDefinition): PreviewEffect {
             : `Restores MP to ${target}${effect.ticks && effect.ticks > 1 ? ` per application, ${effect.ticks} times (first immediately)` : ''}.`,
       }
     case 'apply-status':
-      return statusPreview(effect.statusId)
+      return statusPreview(effect.statusId, effect.tuning)
     case 'displace':
       return {
         label: effect.direction === 'pull' ? 'Pull' : 'Push',
