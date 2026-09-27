@@ -121,9 +121,9 @@ describe('P3.3 mature Skill schema', () => {
     expect(resolveMatureSkillVersion('vanguard.forceful-strike', 1)).toBeNull()
     expect(resolveMatureSkillVersion('vanguard.forceful-strike', 2)?.contentVersion).toBe(2)
     expect(resolveMatureSkillVersion('vanguard.forceful-strike', 999)).toBeNull()
-    expect(resolveMatureSkillVersion('vanguard.forceful-strike')?.authoring.validationTags).toContain(
-      'owner-rebalance-v5',
-    )
+    expect(
+      resolveMatureSkillVersion('vanguard.forceful-strike')?.authoring.validationTags,
+    ).toContain('owner-rebalance-v5')
   })
 
   it('normalizes MP costs for every current mystic Skill without rewriting historical versions', () => {
