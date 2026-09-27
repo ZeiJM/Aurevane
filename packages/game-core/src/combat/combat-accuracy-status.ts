@@ -5,6 +5,7 @@ import type {
   CombatStatusDefinition,
   CombatStatusInstance,
 } from './actions'
+import { usesUnboundedEffectApplications } from './effect-application-rules'
 
 /** Pure accuracy statuses deliberately cannot duplicate other per-source status behavior. */
 export function validateCombatAccuracyStatusDefinition(status: CombatStatusDefinition): void {
@@ -22,6 +23,7 @@ export function validateCombatAccuracyStatusDefinition(status: CombatStatusDefin
     (mark !== undefined && blind !== undefined) ||
     status.polarity !== 'negative' ||
     status.reactionClass !== 'ordinary' ||
+    status.maximumStacks !== 1 ||
     status.damageTakenMultiplierBasisPoints !== 10_000 ||
     (status.damageModifiers?.length ?? 0) > 0 ||
     status.endOfTurn !== undefined ||
@@ -32,7 +34,7 @@ export function validateCombatAccuracyStatusDefinition(status: CombatStatusDefin
     status.reflectBasisPoints !== undefined
   ) {
     throw new TypeError(
-      'Mark and Blind must be separate negative, ordinary accuracy statuses.',
+      'Mark and Blind must be separate single-stack, negative, ordinary accuracy statuses.',
     )
   }
 }
@@ -102,6 +104,7 @@ export function assertValidCombatAccuracyStatusState(
   content: CombatContentCatalog,
 ): void {
   const definitions = new Map(content.statuses.map((status) => [status.id, status]))
+  const unbounded = usesUnboundedEffectApplications(state)
   for (const row of state.statusState) {
     for (const status of row.statuses) {
       const definition = definitions.get(status.statusId)
@@ -114,6 +117,7 @@ export function assertValidCombatAccuracyStatusState(
         status.statusVersion !== definition.version ||
         !Number.isSafeInteger(status.stacks) ||
         status.stacks < 1 ||
+        (!unbounded && status.stacks !== 1) ||
         status.remainingOwnerTurnStarts > definition.durationOwnerTurnStarts
       ) {
         throw new TypeError(
@@ -124,13 +128,39 @@ export function assertValidCombatAccuracyStatusState(
   }
 }
 
-/** Accuracy magnitudes accumulate once per active application. */
+/** Rules v5 accumulates every application; v1-v4 retain strongest-only accuracy behavior. */
 export function combatAccuracyStatusModifier(
   state: CombatEncounterState,
   actorId: string,
   targetId: string,
   content: CombatContentCatalog,
 ): number {
+  const unbounded = usesUnboundedEffectApplications(state)
+  if (!unbounded) {
+    let mark = 0
+    let blind = 0
+    for (const row of state.statusState) {
+      if (row.combatantId !== actorId && row.combatantId !== targetId) continue
+      for (const status of row.statuses) {
+        const definition = content.statuses.find(
+          (candidate) =>
+            candidate.id === status.statusId && candidate.version === status.statusVersion,
+        )
+        if (row.combatantId === actorId) {
+          blind = Math.max(blind, definition?.blindAccuracyPenaltyBasisPoints ?? 0)
+        }
+        if (
+          row.combatantId === targetId &&
+          status.sourceScopedMark === true &&
+          status.sourceCombatantId === actorId
+        ) {
+          mark = Math.max(mark, definition?.markAccuracyBonusBasisPoints ?? 0)
+        }
+      }
+    }
+    return mark - blind
+  }
+
   let mark = 0n
   let blind = 0n
   for (const row of state.statusState) {
