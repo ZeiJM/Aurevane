@@ -43,6 +43,10 @@ export function defaultEffectDurationTurns(effect: CombatEffectDefinition): numb
   switch (effect.type) {
     case 'apply-status':
       return defaultStatusDuration(effect.statusId)
+    case 'healing':
+      return Math.max(0, (effect.ticks ?? 1) - 1)
+    case 'resource-change':
+      return effect.delta > 0 ? Math.max(0, (effect.ticks ?? 1) - 1) : 0
     case 'bleed':
       return effect.ticks
     case 'burn':
