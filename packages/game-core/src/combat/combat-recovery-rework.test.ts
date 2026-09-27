@@ -21,7 +21,10 @@ import {
   finishPv1fTurn,
   PV1F_COMBAT_CONTENT,
 } from './pv1f-action-economy'
-import { latestEnabledMatureSkills } from './mature-skills'
+import {
+  P33_REPRESENTATIVE_DISCIPLINE_SKILLS,
+  latestEnabledMatureSkills,
+} from './mature-skills'
 
 function encounter(): StatDrivenCombatEncounterState {
   const ids = ['actor', 'target', 'enemy']
@@ -324,7 +327,7 @@ describe('Heal X and MP Rec X execution', () => {
     expect(pending(state)[0]?.remainingFutureTicks).toBe(2)
   })
   it('applies consecutive-use falloff to each tick amount, not its duration', () => {
-    const base = latestEnabledMatureSkills().find((row) =>
+    const base = latestEnabledMatureSkills(P33_REPRESENTATIVE_DISCIPLINE_SKILLS).find((row) =>
       row.effects.some((effect) => effect.type === 'healing'),
     )!
     const definition = {
