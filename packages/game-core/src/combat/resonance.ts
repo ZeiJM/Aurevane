@@ -47,6 +47,7 @@ export interface ResonanceDefinition {
   readonly disciplinePair: readonly [string, string]
   readonly name: string
   readonly description: string
+  readonly flavorLine?: string
   readonly trigger: ResonanceSkillSequenceTrigger
   readonly media: ResonanceMediaHooks
   readonly authoring: {
@@ -168,6 +169,20 @@ export function validateResonanceDefinition(definition: ResonanceDefinition): re
   }
   if (!definition.name.trim()) issues.push('name')
   if (!definition.description.trim()) issues.push('description')
+  if (
+    definition.flavorLine !== undefined &&
+    (definition.flavorLine.trim().length === 0 ||
+      definition.flavorLine.length > 160 ||
+      /[\r\n]/u.test(definition.flavorLine))
+  ) {
+    issues.push('flavorLine')
+  }
+  if (
+    definition.authoring.validationTags.includes('owner-rebalance-v5') &&
+    !definition.flavorLine?.trim()
+  ) {
+    issues.push('flavorLine')
+  }
 
   const [first, second] = definition.disciplinePair
   if (
