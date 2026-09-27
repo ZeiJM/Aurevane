@@ -806,8 +806,53 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
       controls = assertNever(value)
   }
 
-  const durationTurns = value.durationTurns ?? 0
+  const fixedImmediate = [
+    'damage',
+    'remove-status',
+    'return-to-turn-start',
+    'displace',
+    'barrier-change',
+    'copy-statuses',
+    'copy',
+    'sensory',
+  ].includes(value.type)
+  const fixedTerrain = value.type === 'create-terrain'
+  const minimumDuration = ['apply-status', 'bleed', 'burn', 'poison'].includes(value.type) ? 1 : 0
+  const durationTurns =
+    value.durationTurns ??
+    (value.type === 'healing'
+      ? Math.max(0, (value.ticks ?? 1) - 1)
+      : value.type === 'resource-change' && value.delta > 0
+        ? Math.max(0, (value.ticks ?? 1) - 1)
+        : value.type === 'bleed'
+          ? value.ticks
+          : value.type === 'burn'
+            ? 3
+            : value.type === 'poison'
+              ? 4
+              : value.type === 'create-terrain'
+                ? 2
+                : value.type === 'apply-status'
+                  ? 2
+                  : 0)
   const supportsGenericPower = value.type === 'burn' || value.type === 'poison'
+
+  function changeDuration(nextDuration: number) {
+    const duration = Math.max(minimumDuration, Math.min(4, nextDuration))
+    if (value.type === 'healing') {
+      onChange({ ...value, durationTurns: duration, ticks: duration + 1 })
+      return
+    }
+    if (value.type === 'resource-change' && value.delta > 0) {
+      onChange({ ...value, durationTurns: duration, ticks: duration + 1 })
+      return
+    }
+    if (value.type === 'bleed') {
+      onChange({ ...value, durationTurns: duration, ticks: Math.max(1, duration) })
+      return
+    }
+    onChange({ ...value, durationTurns: duration })
+  }
 
   return (
     <div className={styles.effectEditor} data-effect-type={value.type}>
@@ -818,19 +863,19 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
           <input
             aria-label="Effect duration (turns)"
             type="number"
-            min={0}
-            max={4}
+            min={fixedImmediate ? 0 : fixedTerrain ? 2 : minimumDuration}
+            max={fixedImmediate ? 0 : fixedTerrain ? 2 : 4}
             step={1}
-            value={durationTurns}
-            onChange={(event) =>
-              onChange({
-                ...value,
-                durationTurns: Math.max(0, Math.min(4, integer(event.currentTarget.value, 0))),
-              })
-            }
+            disabled={fixedImmediate || fixedTerrain}
+            value={fixedImmediate ? 0 : fixedTerrain ? 2 : durationTurns}
+            onChange={(event) => changeDuration(integer(event.currentTarget.value, durationTurns))}
           />
           <small className={styles.fieldHint}>
-            0 = immediate. Positive durations persist through that many future turns.
+            {fixedImmediate
+              ? 'Immediate effect; [0 Turns] is intentionally omitted in player-facing details.'
+              : fixedTerrain
+                ? 'Frozen terrain uses the engine-owned two-round duration.'
+                : 'Positive durations persist through that many future turns.'}
           </small>
         </label>
 
