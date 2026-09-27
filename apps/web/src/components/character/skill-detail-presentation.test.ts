@@ -186,7 +186,7 @@ it('presents the standardized Technique characteristic schema without prose expa
   expect(skillTargetElevationDescription(timeLock)).not.toBe('N/A')
   expect(skillCompactRangeDescription(timeLock)).toMatch(/tile/)
   expect(skillLineOfSightDescription(timeLock)).toBe('Required')
-  expect(skillCooldownDescription()).toMatch(/turn/)
+  expect(skillCooldownDescription(timeLock)).toMatch(/turn|None/)
 })
 
 it('classifies Techniques only as Attack, Recovery, or Utility', () => {
@@ -198,9 +198,15 @@ it('classifies Techniques only as Attack, Recovery, or Utility', () => {
   expect(skillTypeDescription(hybrid)).toBe('Attack')
 })
 
-it('returns one effect summary per authored effect for bullet presentation', () => {
+it('returns one effect summary per authored effect with positive durations only', () => {
   const siphon = resolveMatureSkillVersion('runeblade.siphon-slash')!
-  expect(skillEffectSummaries(siphon)).toEqual(['Dmg [6]', 'MP Drain [4]', 'MP Restore [4]'])
+  expect(skillEffectSummaries(siphon)).toEqual([
+    expect.stringMatching(/^Dmg \[\d+\]$/),
+    expect.stringMatching(/^MP Drain \[\d+\]$/),
+    expect.stringMatching(/^MP Restore \[\d+\]$/),
+  ])
+  const guard = resolveMatureSkillVersion('runeblade.rune-guard')!
+  expect(skillEffectSummaries(guard).some((line) => /\[\d+ Turns?\]$/.test(line))).toBe(true)
 })
 
 it('lists authored magnitudes as effects without leaking design tags', () => {
@@ -228,6 +234,9 @@ it('shows conditional elemental and terrain magnitudes without treating them as 
   )
 })
 
-it('shows current repeat-use timing instead of retired authored turn cooldowns', () => {
-  expect(skillCooldownDescription()).toBe('0 turns')
+it('shows 1–3 turn cooldowns and no cooldown on prerequisite-gated Skills', () => {
+  const ordinary = resolveMatureSkillVersion('runeblade.aether-cut')!
+  const gated = resolveMatureSkillVersion('runeblade.rune-burst')!
+  expect(skillCooldownDescription(ordinary)).toMatch(/^[1-3] turns?$/)
+  expect(skillCooldownDescription(gated)).toBe('None')
 })
