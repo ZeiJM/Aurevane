@@ -107,6 +107,8 @@ describe('Master Panel combat content editor shell', () => {
     expect(markup).toContain('data-media-hook-readonly="vfx"')
     expect(markup).toContain('aria-label="Effect 1 player-facing description"')
     expect(markup).toContain('Leave blank to use the generated wording.')
+    expect(markup).toContain('aria-label="Cooldown (turns)"')
+    expect(markup).toContain('aria-label="Effect duration (turns)"')
   })
 
   it('renders derived tags as read-only output rather than an editable gameplay-tag field', () => {
