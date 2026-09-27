@@ -452,9 +452,7 @@ export function attachCombatStatusCopyProvenance(
       })
     : undefined
   const bleedBaseOrdinal = copies.length + (poison ? 1 : 0) + (burn ? 1 : 0)
-  const copiedBleed = new Map(
-    bleed.map((attempt) => [attempt.applicationOrder, attempt] as const),
-  )
+  const copiedBleed = new Map(bleed.map((attempt) => [attempt.applicationOrder, attempt] as const))
   const effectState = normalizeCombatEffectState(after.effectState)
   return {
     ...after,
