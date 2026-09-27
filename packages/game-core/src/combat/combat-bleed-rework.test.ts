@@ -179,18 +179,19 @@ describe('current Bleed runtime', () => {
     expect(state.effectState?.bleed).toEqual([])
   })
 
-  it('replaces the fewest-remaining stack and breaks ties by oldest application', () => {
+  it('keeps every Bleed application instead of replacing a fourth stack', () => {
     let state = apply(encounter(), 3, 2, 'test.bleed.oldest-two')
     state = apply(state, 2, 2, 'test.bleed.newer-two')
     state = apply(state, 2, 4, 'test.bleed.four')
     state = apply(state, 3, 3, 'test.bleed.replacement')
 
     expect(state.effectState?.bleed.map((row) => row.sourceActionId)).toEqual([
+      'test.bleed.oldest-two',
       'test.bleed.newer-two',
       'test.bleed.four',
       'test.bleed.replacement',
     ])
-    expect(state.effectState?.bleed.map((row) => row.applicationOrder)).toEqual([2, 3, 4])
+    expect(state.effectState?.bleed.map((row) => row.applicationOrder)).toEqual([1, 2, 3, 4])
   })
 
   it('Cleanse removes every current Bleed stack', () => {
