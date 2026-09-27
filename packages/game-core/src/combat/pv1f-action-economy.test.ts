@@ -197,6 +197,50 @@ describe('Level-100 offensive scaling', () => {
     })
   })
 
+  it('converts authored v5 recovery Power into stat-scaled HP and MP output', () => {
+    const definition = resolveMatureSkillVersion('cinderweaver.banked-embers')
+    if (!definition) throw new Error('Expected current Banked Embers fixture.')
+    const authoredHealing = definition.effects.find((effect) => effect.type === 'healing')
+    const authoredMp = definition.effects.find(
+      (effect) => effect.type === 'resource-change' && effect.delta > 0,
+    )
+    if (!authoredHealing || !authoredMp) {
+      throw new Error('Expected Banked Embers recovery effects.')
+    }
+
+    const state = currentPowerEncounter()
+    const player = state.tactical.battle.combatants.find((combatant) => combatant.id === 'player')
+    if (!player) throw new Error('Expected player combatant.')
+    player.hp = 10
+    player.mp = 1
+
+    const evaluated = evaluatePv1fMatureSkill(state, definition, { kind: 'self' })
+    const scaledHealing = evaluated.action.effects.find((effect) => effect.type === 'healing')
+    const scaledMp = evaluated.action.effects.find(
+      (effect) => effect.type === 'resource-change' && effect.delta > 0,
+    )
+    if (!scaledHealing || !scaledMp) throw new Error('Expected scaled recovery effects.')
+
+    expect(scaledHealing.amount).toBeGreaterThan(authoredHealing.amount)
+    expect(scaledMp.delta).toBeGreaterThan(authoredMp.delta)
+
+    const resolved = executePv1fMatureSkill(state, definition, { kind: 'self' })
+    const nextPlayer = resolved.state.tactical.battle.combatants.find(
+      (combatant) => combatant.id === 'player',
+    )
+    expect(nextPlayer?.hp).toBe(Math.min(player.maxHp, 10 + scaledHealing.amount))
+    expect(nextPlayer?.mp).toBe(Math.min(player.maxMp, 1 + scaledMp.delta))
+  })
+
+  it('keeps historical recovery magnitudes literal when an old Skill version is pinned', () => {
+    const definition = resolveMatureSkillVersion('cinderweaver.banked-embers', 1)
+    if (!definition) throw new Error('Expected historical Banked Embers fixture.')
+    const evaluated = evaluatePv1fMatureSkill(currentPowerEncounter(), definition, { kind: 'self' })
+
+    expect(evaluated.action.effects).toEqual(definition.effects)
+    expect(definition.authoring.validationTags).not.toContain('owner-rebalance-v5')
+  })
+
   it('uses v5 cooldown authority instead of legacy consecutive-use falloff', () => {
     const definition = resolveMatureSkillVersion('vanguard.forceful-strike')
     if (!definition) throw new Error('Expected current Vanguard Skill fixture.')
