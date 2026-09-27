@@ -255,5 +255,4 @@ describe('InMemoryCombatContentRepository', () => {
       }),
     ).rejects.toMatchObject({ code: 'COMBAT_CONTENT_KIND_CONFLICT' })
   })
-
 })
