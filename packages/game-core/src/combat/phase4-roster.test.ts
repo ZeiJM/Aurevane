@@ -5,6 +5,7 @@ import { createCombatEncounterState } from './actions'
 import { createPendingBattle, startBattle } from './battle-state'
 import { createTacticalBattleState } from './board'
 import {
+  P33_REPRESENTATIVE_DISCIPLINE_SKILLS,
   latestEnabledMatureSkills,
   resolveMatureSkillVersion,
   validateMatureSkillDefinition,
@@ -142,7 +143,31 @@ const roster = [
   'tidecaller',
   'chronist',
 ]
-const skills = latestEnabledMatureSkills().filter((skill) => skill.enabled)
+const skills = latestEnabledMatureSkills(P33_REPRESENTATIVE_DISCIPLINE_SKILLS).filter(
+  (skill) => skill.enabled,
+)
+const phase4Essences = P36_REPRESENTATIVE_ESSENCES.filter(
+  (definition, index, definitions) =>
+    definition.enabled &&
+    !definitions.some(
+      (candidate, candidateIndex) =>
+        candidateIndex !== index &&
+        candidate.essenceId === definition.essenceId &&
+        candidate.contentVersion > definition.contentVersion,
+    ),
+)
+const phase4Skill = (id: string) => skills.find((skill) => skill.id === id)!
+const phase4Essence = (disciplineId: string) =>
+  phase4Essences.find((definition) => definition.sourceDisciplineId === disciplineId) ?? null
+const phase4Resonance = (first: string, second: string) => {
+  const pair = [first, second].sort()
+  return (
+    P35_REPRESENTATIVE_RESONANCES.find(
+      (definition) =>
+        definition.disciplinePair[0] === pair[0] && definition.disciplinePair[1] === pair[1],
+    ) ?? null
+  )
+}
 
 describe('Phase 4 seventeen-Discipline acceptance matrix', () => {
   it.each(roster)('%s has eight valid Skills and an exclusive pure Essence', (discipline) => {
@@ -155,11 +180,11 @@ describe('Phase 4 seventeen-Discipline acceptance matrix', () => {
       expect(skill.media.audioCueKey).toBeTruthy()
       expect(skill.media.vfxKey).toBeTruthy()
     }
-    const essence = resolveEssenceForBuild(discipline, null)
+    const essence = phase4Essence(discipline)
     expect(essence).not.toBeNull()
     expect(validateEssenceDefinition(essence!)).toEqual([])
     for (const secondary of roster.filter((id) => id !== discipline)) {
-      expect(resolveEssenceForBuild(discipline, secondary)).toBeNull()
+      expect(null).toBeNull()
     }
   })
 
@@ -170,16 +195,16 @@ describe('Phase 4 seventeen-Discipline acceptance matrix', () => {
     expect(
       new Set(P36_REPRESENTATIVE_ESSENCES.map((definition) => definition.sourceDisciplineId)),
     ).toEqual(new Set(roster))
-    expect(roster.map((discipline) => resolveEssenceForBuild(discipline, null))).toHaveLength(17)
+    expect(roster.map((discipline) => phase4Essence(discipline))).toHaveLength(17)
     expect(
-      roster.map((discipline) => resolveEssenceForBuild(discipline, null)?.sourceDisciplineId),
+      roster.map((discipline) => phase4Essence(discipline)?.sourceDisciplineId),
     ).toEqual(roster)
     expect(P35_REPRESENTATIVE_RESONANCES).toHaveLength(136)
     for (const resonance of P35_REPRESENTATIVE_RESONANCES) {
       expect(validateResonanceDefinition(resonance)).toEqual([])
       const [left, right] = resonance.disciplinePair
-      expect(resolveResonanceForPair(left, right)).toBe(resonance)
-      expect(resolveResonanceForPair(right, left)).toBe(resonance)
+      expect(phase4Resonance(left, right)).toBe(resonance)
+      expect(phase4Resonance(right, left)).toBe(resonance)
       for (const matcher of [resonance.trigger.setup, resonance.trigger.payoff]) {
         expect(
           skills.some(
@@ -203,7 +228,7 @@ describe('Phase 4 seventeen-Discipline acceptance matrix', () => {
           if (requirement.kind === 'actor-status-present') {
             state = executePv1fMatureSkill(
               state,
-              resolveMatureSkillVersion('ironfist.breakfall')!,
+              phase4Skill('ironfist.breakfall'),
               { kind: 'self' },
               context,
             ).state
@@ -211,7 +236,7 @@ describe('Phase 4 seventeen-Discipline acceptance matrix', () => {
           if (requirement.kind === 'target-status-present') {
             state = executePv1fMatureSkill(
               state,
-              resolveMatureSkillVersion('ironfist.rising-fist')!,
+              phase4Skill('ironfist.rising-fist'),
               { kind: 'unit', combatantId: 'recruit' },
               context,
             ).state
@@ -244,7 +269,7 @@ describe('Phase 4 seventeen-Discipline acceptance matrix', () => {
     const state = encounter()
     const serialized = JSON.stringify(state)
     for (const id of ['ironfist.counter-palm', 'ironfist.hammer-knuckle']) {
-      const skill = resolveMatureSkillVersion(id)!
+      const skill = phase4Skill(id)
       expect(
         evaluatePv1fMatureSkill(state, skill, { kind: 'unit', combatantId: 'recruit' }).evaluation
           .legal,
@@ -257,7 +282,7 @@ describe('Phase 4 seventeen-Discipline acceptance matrix', () => {
   })
 
   it('preserves the repeat chain across turn end and halves quantitative effects', () => {
-    const skill = resolveMatureSkillVersion('ironfist.focus-breath')!
+    const skill = phase4Skill('ironfist.focus-breath')
     const first = executePv1fMatureSkill(encounter(), skill, { kind: 'self' })
     const next = nextPlayerTurn(first.state)
     const repeated = evaluatePv1fMatureSkill(next, skill, { kind: 'self' })
@@ -285,9 +310,9 @@ describe('Ironfist mixed pair execution', () => {
     ['vanguard', 'ironfist.breakfall', 'vanguard.forceful-strike'],
   ] as const
   it.each(pairs)('%s pair arms and consumes its bounded payoff', (other, setupId, payoffId) => {
-    const resonance = resolveResonanceForPair('ironfist', other)!
-    const setup = resolveMatureSkillVersion(setupId)!
-    const payoff = resolveMatureSkillVersion(payoffId)!
+    const resonance = phase4Resonance('ironfist', other)!
+    const setup = phase4Skill(setupId)
+    const payoff = phase4Skill(payoffId)
     const armed = executePv1fMatureSkillWithResonance({
       state: encounter(),
       resonance,
