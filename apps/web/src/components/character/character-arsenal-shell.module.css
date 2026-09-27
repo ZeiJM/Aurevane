@@ -395,6 +395,7 @@
 }
 
 .attunementCard {
+  position: relative;
   display: grid;
   grid-template-columns: 3.45rem minmax(0, 1fr);
   min-width: 0;
@@ -408,6 +409,21 @@
 .attunementCard[data-active='false'] {
   opacity: 0.64;
   background: #deddd7;
+}
+
+.attunementArtButton {
+  display: block;
+  width: 3.35rem;
+  height: 3.35rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: help;
+}
+
+.attunementArtButton:focus-visible {
+  outline: 2px solid #2faea8;
+  outline-offset: 2px;
 }
 
 .attunementArt,
@@ -457,6 +473,12 @@
   overflow-wrap: anywhere;
 }
 
+.attunementCard[data-active='true'] p {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .attunementCard b,
 .futurePowerCard b {
   justify-self: start;
@@ -473,6 +495,123 @@
   border-color: rgba(98, 102, 102, 0.28);
   color: #59605f;
   background: rgba(192, 194, 191, 0.7);
+}
+
+.attunementPanel {
+  z-index: 40;
+  overflow: visible;
+}
+
+.attunementPreview {
+  position: absolute;
+  bottom: calc(100% + 0.5rem);
+  left: 0;
+  z-index: 80;
+  display: grid;
+  width: min(25rem, 80vw);
+  gap: 0.55rem;
+  padding: 0.7rem;
+  border: 1px solid #9f875b;
+  color: #eee4d4;
+  background: linear-gradient(145deg, #0d2532, #071721);
+  box-shadow: 0 1rem 2.4rem rgba(0, 0, 0, 0.42);
+}
+
+.attunementCard:nth-child(2) .attunementPreview {
+  right: 0;
+  left: auto;
+}
+
+.attunementPreview > header {
+  display: grid;
+  grid-template-columns: 4.25rem minmax(0, 1fr);
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.attunementPreview > header > div {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.attunementPreview > header small {
+  color: #d5bd81;
+  font: 700 0.52rem/1 var(--av-font-body);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.attunementPreview > header strong {
+  color: #f3e9d8;
+  font: 600 1.05rem/1.08 var(--av-font-display);
+}
+
+.attunementPreviewArt {
+  display: block;
+  width: 4.25rem;
+  height: 4.25rem;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border: 1px solid #9f875b;
+  background: #0a1b27;
+}
+
+.attunementPreviewArt img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.attunementPreviewFacts {
+  display: grid;
+  margin: 0;
+  border: 1px solid rgba(183, 199, 212, 0.2);
+  background: rgba(4, 17, 25, 0.42);
+}
+
+.attunementPreviewFacts > div {
+  display: grid;
+  grid-template-columns: minmax(7.2rem, 0.9fr) minmax(0, 1.35fr);
+  gap: 0.55rem;
+  padding: 0.3rem 0.45rem;
+  border-bottom: 1px solid rgba(183, 199, 212, 0.14);
+}
+
+.attunementPreviewFacts > div:last-child {
+  border-bottom: 0;
+}
+
+.attunementPreviewFacts dt {
+  color: #b8c7cc;
+  font-size: 0.62rem;
+}
+
+.attunementPreviewFacts dd {
+  margin: 0;
+  color: #f0e8dc;
+  font: 600 0.62rem/1.3 var(--av-font-body);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.attunementPreviewFacts ul,
+.attunementEffectExplanations {
+  display: grid;
+  gap: 0.18rem;
+  margin: 0;
+  padding-left: 1rem;
+  text-align: left;
+}
+
+.attunementEffectExplanations {
+  color: #c4d0d2;
+  font-size: 0.64rem;
+  line-height: 1.35;
+}
+
+.attunementEffectExplanations strong {
+  color: #f0e8dc;
 }
 
 .futurePowerCard {
@@ -569,6 +708,13 @@
 
   .pageHeading > small {
     display: none;
+  }
+
+  .attunementPreview {
+    right: 0;
+    left: 0;
+    width: min(100%, 25rem);
+    margin-inline: auto;
   }
 
   .disciplinePair,
