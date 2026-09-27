@@ -1,4 +1,8 @@
-import { availableSupernaturalChoiceTransitions } from '@aurevane/game-core/character/supernatural-content'
+import {
+  availableSupernaturalChoiceTransitions,
+  resolveSupernaturalChoiceIdentity,
+  resolveSupernaturalStateIdentity,
+} from '@aurevane/game-core/character/supernatural-content'
 import { buildCharacterProfileReadModel } from '@aurevane/game-core/character/profile'
 import { isAurevaneError } from '@aurevane/game-core/errors'
 import { headers } from 'next/headers'
@@ -177,18 +181,24 @@ export default async function CharacterProfilePage() {
   const supernaturalState =
     supernaturalStateResult.status === 'fulfilled' ? supernaturalStateResult.value : null
   const supernaturalChoices = supernaturalState
-    ? availableSupernaturalChoiceTransitions(supernaturalState).flatMap((transition) =>
-        transition.result.path === 'ascended' || transition.result.path === 'severed'
+    ? availableSupernaturalChoiceTransitions(supernaturalState).flatMap((transition) => {
+        const identity = resolveSupernaturalChoiceIdentity(transition)
+        return identity &&
+          (transition.result.path === 'ascended' || transition.result.path === 'severed')
           ? [
               {
                 transitionId: transition.id,
                 transitionContentVersion: transition.contentVersion,
                 path: transition.result.path,
+                identity,
               },
             ]
-          : [],
-      )
+          : []
+      })
     : []
+  const supernaturalIdentity = supernaturalState
+    ? resolveSupernaturalStateIdentity(supernaturalState)
+    : null
   return (
     <CharacterProfileShell
       profile={buildCharacterProfileReadModel(character, levelCurve)}
@@ -209,7 +219,11 @@ export default async function CharacterProfilePage() {
       }}
       personalTitle={personalTitle}
       imageUrl={imageUrl}
-      supernatural={{ state: supernaturalState, choices: supernaturalChoices }}
+      supernatural={{
+        state: supernaturalState,
+        choices: supernaturalChoices,
+        currentIdentity: supernaturalIdentity,
+      }}
     />
   )
 }
