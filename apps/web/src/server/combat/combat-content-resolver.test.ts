@@ -109,7 +109,7 @@ describe('combat content resolver', () => {
     const definition = await resolver.resolveCurrentSkillDefinition('vanguard.forceful-strike')
 
     expect(definition?.id).toBe('vanguard.forceful-strike')
-    expect(definition?.contentVersion).toBe(3)
+    expect(definition?.contentVersion).toBe(staticSkill('vanguard.forceful-strike').contentVersion)
   })
 
   it('prefers the current published Skill over static content', async () => {
