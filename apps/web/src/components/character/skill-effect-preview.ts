@@ -103,13 +103,14 @@ export function previewEffect(effect: CombatEffectDefinition): PreviewEffect {
       return {
         label: 'Burn',
         magnitude: CURRENT_BURN_DAMAGE_BY_STAGE.join('/'),
-        explanation: 'Fixed damage at the next three turn ends per active application; reapplication adds another application and restarts the shared sequence.',
+        explanation:
+          'Fixed damage at the next three turn ends per active application; reapplication adds another application and restarts the shared sequence.',
       }
     case 'bleed':
       return {
         label: 'Bleed',
         magnitude: `${effect.damagePerTick} × ${effect.ticks} ticks`,
-        explanation: 'Fixed damage at turn end for each active application.'
+        explanation: 'Fixed damage at turn end for each active application.',
       }
     case 'poison':
       return {
