@@ -17,6 +17,7 @@ import {
 } from './combat-skill-accuracy'
 import { normalizeCombatEffectState } from './combat-effect-state'
 import { hasGameplayTag } from './gameplay-tags'
+import { usesUnboundedEffectApplications } from './effect-application-rules'
 import { CURRENT_POISON_DAMAGE, advanceCurrentPoisonMovement } from './combat-dots'
 import { terrainOverlayAt, COMBAT_TERRAIN_OVERLAY_DETAILS } from './terrain-overlays'
 import { readBattleAuthorityCombatBuildSnapshot } from './battle-authority-build-snapshot'
@@ -959,11 +960,15 @@ export function pv1fMovementModifiers(
     ),
   }))
   const rooted = statusDefinitions.some(({ definition }) => definition?.movement?.blocked)
-  const surcharge = statusDefinitions.reduce(
+  const unbounded = usesUnboundedEffectApplications(state)
+  const rawSurcharge = statusDefinitions.reduce(
     (sum, { status, definition }) =>
-      sum + (definition?.movement?.additionalApPerTile ?? 0) * status.stacks,
+      sum +
+      (definition?.movement?.additionalApPerTile ?? 0) *
+        (unbounded ? status.stacks : Math.min(status.stacks, 1)),
     0,
   )
+  const surcharge = unbounded ? rawSurcharge : Math.min(20, rawSurcharge)
   const airborne = Boolean(
     actorId && hasGameplayTag(state, actorId, 'Airborne', PV1F_COMBAT_CONTENT),
   )
@@ -1173,7 +1178,12 @@ function applyCurrentMatureSkillPowerScaling(
   effects: readonly CombatEffectDefinition[],
   apCost: number,
 ): readonly CombatEffectDefinition[] {
-  if (state.statBridge.rulesVersion !== 3 && state.statBridge.rulesVersion !== 4) return effects
+  if (
+    state.statBridge.rulesVersion !== 3 &&
+    state.statBridge.rulesVersion !== 4 &&
+    state.statBridge.rulesVersion !== 5
+  )
+    return effects
 
   const unscaledDamageCount = effects.filter(
     (effect) =>
