@@ -505,7 +505,7 @@ Scope:
 - settlements/locations;
 - **distinct regional settlement composition**: the eight initial major-region towns must not remain one shared layout with biome reskins; each region needs its own settlement silhouette, safe-zone footprint, road/path grammar, landmark identity and matching v02 local-map art;
 - **Living Atlas presentation quality**: environmental water/shore/wind/light/smoke/cloud/mote motion should stay gentle but be clearly visible; globe zoom must preserve a readable framed sphere and keep labels inside the rim; uncharted territory must read as intentional cartographic fog-of-war rather than a flat white placeholder;
-- NPC/dialogue;
+- NPC/dialogue, including a reusable server-authoritative conversation framework with state-aware authored choices, contextual world presentation, responsive NPC-art treatment, deliberate confirmation for irreversible/high-value actions, and no hidden-node/quest/service leakage;
 - quests;
 - layered world state;
 - world events/World Pulse;
@@ -524,10 +524,10 @@ The detailed known-world expansion contract lives in `docs/LIVING_ATLAS_EXPANSIO
 
 - **P5-W1:** faster ordinary overworld travel through measured authoritative timing improvements, accurate ETA and preserved encounter/stop/reconnect behavior; inspect per-sector 4-second overrides as well as the default interval.
 - **P5-W2:** coherent globe/local location and destination context, explicit view versus travel actions, readable framing/labels and accessible responsive navigation.
-- **P5-W3:** recognizable authored places, completion of the existing geometry/matching-art contract, and truthful contextual service/objective actions.
+- **P5-W3:** recognizable authored places, completion of the existing geometry/matching-art contract, truthful contextual service/objective actions, and the P5-W3A reusable NPC conversation experience defined in `ROADMAP_WORLD_EXPERIENCE.md`.
 - **P5-W4:** clearer existing build identity and the representative Ascension/Severence choice, derived from approved authoritative content with exclusivity and spoilers preserved.
 
-The existing Phase 5 chat owns server timing, authored geography/content and supernatural authority. A separate Work Mode chat owns layout/rendering, location/identity presentation and art alignment. Shared contracts must be coordinated; neither chat may overwrite the other's branch. A continuous multi-sector renderer and the larger Skill browser remain Phase 6 deliverables. This scope does not authorize deployment or reopen completed combat phases.
+The existing Phase 5 chat owns server timing, authored geography/content, NPC conversation authority/content, quest/service eligibility and supernatural authority. A separate Work Mode chat owns layout/rendering, the cinematic conversation overlay/portrait treatment, location/identity presentation and art alignment. Shared contracts must be coordinated; neither chat may overwrite the other's branch. A continuous multi-sector renderer and the larger Skill browser remain Phase 6 deliverables. This scope does not authorize deployment or reopen completed combat phases.
 
 ### Supernatural fork
 
