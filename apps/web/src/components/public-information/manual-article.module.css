@@ -296,3 +296,54 @@
     font-size: 0.86rem;
   }
 }
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  color: #d4cebf;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.table caption {
+  text-align: left;
+  color: #e6d3a0;
+  padding-block: 0.7rem;
+}
+.table th,
+.table td {
+  border: 1px solid #3e4545;
+  padding: 0.5rem;
+  text-align: left;
+  vertical-align: top;
+}
+.table thead {
+  color: #e6d3a0;
+  background: #172329;
+}
+.table thead th:nth-child(4):last-child {
+  width: 2rem;
+}
+
+.table tbody th {
+  font-weight: 600;
+}
+.disclosure {
+  border-block-end: 1px solid #3e4545;
+  padding-block: 0.7rem;
+}
+.disclosure summary {
+  color: #e6d3a0;
+  cursor: pointer;
+  font-weight: 600;
+}
+@media (max-width: 520px) {
+  .table {
+    font-size: 0.72rem;
+  }
+  .table th,
+  .table td {
+    padding: 0.3rem;
+  }
+}

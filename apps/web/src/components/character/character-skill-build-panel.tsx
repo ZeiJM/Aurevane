@@ -1,5 +1,7 @@
 'use client'
 
+import { skillPreviewEffects } from './skill-effect-preview'
+
 import Image from 'next/image'
 
 import type { EssenceDefinition } from '@aurevane/game-core/combat/essence'
@@ -14,7 +16,6 @@ import {
   skillCompactRangeDescription,
   skillCooldownDescription,
   skillCostDescription,
-  skillDamageDescription,
   skillDisplayName,
   skillEffectsSummary,
   skillLineOfSightDescription,
@@ -174,15 +175,14 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
     ? ([
         ['Skill Type', skillTypeDescription(focusedSkill.definition)],
         ['Cost', skillCostDescription(focusedSkill.definition)],
-        ['Damage', skillDamageDescription(focusedSkill.definition)],
-        ['Effects', skillEffectsSummary(focusedSkill.definition)],
+        ['Cooldown', skillCooldownDescription()],
         ['Requirements', skillRequirementsSummary(focusedSkill.definition)],
+        ['Effects', skillEffectsSummary(focusedSkill.definition)],
+        ['Range', skillCompactRangeDescription(focusedSkill.definition)],
         ['Target', skillTargetDescription(focusedSkill.definition)],
         ['Target Method', skillTargetMethodDescription(focusedSkill.definition)],
         ['Target Elevation', skillTargetElevationDescription(focusedSkill.definition)],
-        ['Range', skillCompactRangeDescription(focusedSkill.definition)],
         ['Line of Sight', skillLineOfSightDescription(focusedSkill.definition)],
-        ['Cooldown', skillCooldownDescription(focusedSkill.definition)],
       ] as const)
     : []
 
@@ -517,6 +517,16 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                               </div>
                             ))}
                           </dl>
+                          <ul
+                            className={styles.effectExplanations}
+                            aria-label="Effect explanations"
+                          >
+                            {skillPreviewEffects(focusedSkill.definition).map((effect) => (
+                              <li key={JSON.stringify(effect)}>
+                                <strong>{effect.label}</strong> — {effect.explanation}
+                              </li>
+                            ))}
+                          </ul>
                         </>
                       ) : (
                         <p>No Technique is available for this build.</p>

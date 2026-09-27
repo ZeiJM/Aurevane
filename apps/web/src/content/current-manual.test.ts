@@ -82,3 +82,17 @@ describe('published Manual rule consistency', () => {
     expect(JSON.stringify(currentManualArticles)).not.toContain('until multiplayer combat exists')
   })
 })
+
+it('publishes the Techniques guide and removes the obsolete fixed Power budget', () => {
+  const text = articleText('techniques-damage-effects')
+  expect(text).toContain('Techniques, Damage & Effects')
+  expect(text).toContain('136')
+  expect(text).toContain('0.5%')
+  expect(text).toContain('65 AP')
+  expect(text).toContain('4.64%')
+  expect(text).toContain('Armor')
+  expect(text).toContain('quartile')
+  expect(articleText('attributes-derived-stats')).not.toContain(
+    'Skill-wide Power contribution is 25%',
+  )
+})
