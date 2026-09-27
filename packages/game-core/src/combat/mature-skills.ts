@@ -3,6 +3,7 @@ import {
   type CombatAccuracyAuthoring,
 } from './combat-skill-accuracy'
 import { validateGameplayActionMetadata } from './gameplay-tags'
+import { createCombatRebalancedSkillVersion } from './combat-balance-v2'
 import { ADVANCED_DISCIPLINE_SKILLS } from './advanced-discipline-content'
 import { FOUNDATION_TRIO_DISCIPLINE_SKILLS } from './foundation-trio-skills'
 import { IRONFIST_SKILLS } from './ironfist-content'
@@ -867,10 +868,17 @@ const A03_MYSTIC_MP_DISCIPLINE_SKILLS = latestEnabledMatureSkills([
   return next ? [next] : []
 })
 
+const OWNER_COMBAT_REBALANCED_DISCIPLINE_SKILLS = latestEnabledMatureSkills([
+  ...PRE_PHASE4_REBALANCE_DISCIPLINE_SKILLS,
+  ...PHASE4_REBALANCED_DISCIPLINE_SKILLS,
+  ...A03_MYSTIC_MP_DISCIPLINE_SKILLS,
+]).map((definition) => createCombatRebalancedSkillVersion(definition))
+
 export const P33_REPRESENTATIVE_DISCIPLINE_SKILLS = [
   ...PRE_PHASE4_REBALANCE_DISCIPLINE_SKILLS,
   ...PHASE4_REBALANCED_DISCIPLINE_SKILLS,
   ...A03_MYSTIC_MP_DISCIPLINE_SKILLS,
+  ...OWNER_COMBAT_REBALANCED_DISCIPLINE_SKILLS,
 ] as const satisfies readonly MatureSkillDefinition[]
 
 /** Current selection catalog; the full registry above also retains explicit battle history. */
