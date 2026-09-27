@@ -23,7 +23,7 @@
 - [x] Use a bounded authored **Power 1–20** scale for magnitude-bearing combat effects where appropriate.
 - [x] Keep percentage-based effects explicit rather than forcing them through the 1–20 scale.
 - [x] Allow per-Skill percentage potency, e.g. one Guarded application can reduce damage by 10% while another can reduce it by 15%.
-- [ ] Ensure authored Power is converted by the battle formula into actual damage/healing/resource output; the UI must not treat Power as literal final HP damage.
+- [x] Ensure authored Power is converted by the battle formula into actual damage/healing/resource output; the UI must not treat Power as literal final HP damage.
 - [x] Keep all authored magnitude fields bounded and server validated.
 - [x] Preserve historical content versions so already-pinned battles do not silently change.
 
@@ -47,7 +47,7 @@
 - [x] Cooldown calculation/tuning must account for damage, effect potency, duration, range, area, utility, and other total Skill value.
 - [x] Make cooldown editable in the Master Panel with the 1–3 bound and requirement-gated no-cooldown rule.
 - [x] Player-facing preview shows the actual cooldown; requirement-gated Skills display no cooldown rather than a fake 0-turn value.
-- [ ] Add engine/runtime tests proving cooldown enforcement and owner-turn advancement.
+- [x] Add engine/runtime tests proving cooldown enforcement and owner-turn advancement.
 
 ## 4. Discipline Technique rebalance
 
@@ -143,10 +143,10 @@
 
 ## 12. Verification and release gates
 
-- [ ] Add/adjust unit tests for Power bounds and formula conversion.
+- [x] Add/adjust unit tests for Power bounds and formula conversion.
 - [ ] Add/adjust tests for per-effect percentage potency.
 - [ ] Add/adjust tests for duration timing and expiry.
-- [ ] Add/adjust tests for cooldown legality and Requirement exceptions.
+- [x] Add/adjust tests for cooldown legality and Requirement exceptions.
 - [ ] Add full-roster balance contracts for Discipline Skills.
 - [ ] Add Essence balance contracts.
 - [ ] Add Resonance uniqueness/balance contracts.
