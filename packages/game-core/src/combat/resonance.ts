@@ -142,8 +142,11 @@ const PRE_V5_RESONANCES = [
 
 const V5_REBALANCED_RESONANCES = PRE_V5_RESONANCES.map(rebalanceResonanceDefinition)
 
-export const P35_REPRESENTATIVE_RESONANCES: readonly ResonanceDefinition[] = [
-  ...PRE_V5_RESONANCES,
+export const P35_REPRESENTATIVE_RESONANCES: readonly ResonanceDefinition[] =
+  PRE_V5_RESONANCES
+
+const CURRENT_RESONANCE_REGISTRY: readonly ResonanceDefinition[] = [
+  ...P35_REPRESENTATIVE_RESONANCES,
   ...V5_REBALANCED_RESONANCES,
 ]
 
@@ -228,7 +231,7 @@ export function resolveResonanceForPair(
 ): ResonanceDefinition | null {
   if (secondaryDisciplineId === null || primaryDisciplineId === secondaryDisciplineId) return null
   const pair = canonicalResonancePair(primaryDisciplineId, secondaryDisciplineId)
-  const candidates = P35_REPRESENTATIVE_RESONANCES.filter(
+  const candidates = CURRENT_RESONANCE_REGISTRY.filter(
     (definition) =>
       definition.enabled &&
       definition.disciplinePair[0] === pair[0] &&
