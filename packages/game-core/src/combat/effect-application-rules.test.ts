@@ -165,7 +165,7 @@ const guardAction: CombatActionDefinition = {
     maximumRange: 0,
     requiresLineOfSight: false,
     maximumElevationDifference: null,
-    friendlyFire: 'self-only',
+    friendlyFire: 'allies-only',
   },
   cost: { spendsAction: false, mp: 0 },
   requirements: [],
