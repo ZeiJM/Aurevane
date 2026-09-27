@@ -508,13 +508,13 @@ describe('Mark and Blind: authoring and snapshot guards', () => {
       ),
     ).toThrow()
   })
-  it('rejects a current accuracy duration exceeding its pinned definition', () => {
+  it('rejects a current accuracy duration exceeding the v5 runtime bound', () => {
     const marked = apply(world(), MARK.id)
     expect(() =>
       chance(
         withStatuses(
           marked,
-          statuses(marked).map((row) => ({ ...row, remainingOwnerTurnStarts: 4 })),
+          statuses(marked).map((row) => ({ ...row, remainingOwnerTurnStarts: 6 })),
         ),
       ),
     ).toThrow()
