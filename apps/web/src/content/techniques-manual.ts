@@ -13,10 +13,6 @@ import {
 } from '@aurevane/game-core/combat/combat-level-scaling'
 import { COMBAT_CRITICAL_DAMAGE_BASIS_POINTS } from '@aurevane/game-core/combat/combat-critical'
 import {
-  CONDITIONAL_DAMAGE_MINIMUM,
-  CONDITIONAL_DAMAGE_MAXIMUM,
-} from '@aurevane/game-core/combat/damage-modifiers'
-import {
   CURRENT_BURN_DAMAGE_BY_STAGE,
   CURRENT_BURN_BACKLASH_DAMAGE,
   CURRENT_POISON_DAMAGE,
@@ -125,7 +121,7 @@ export const techniquesManualArticle: ManualArticle = {
         '5. Apply the attacker-versus-defender Level multiplier below, rounding down. Self-damage does not receive this relative-Level adjustment.',
         '6. Apply any authored front/side/rear damage multiplier, rounding down. Only a Skill that specifies a facing multiplier receives one.',
         '7. Apply the recipient’s damage-taken multipliers once per active application, rounding down each time. Guarded multiplies by 85% per application; Exposed by 115%; Lowered Guard, the PvP timeout penalty, by 250%.',
-        `8. Apply the combined conditional/status/elemental damage multiplier, bounded to ${CONDITIONAL_DAMAGE_MINIMUM / 100}–${CONDITIONAL_DAMAGE_MAXIMUM / 100}%, and round down. Piercing ignores incoming reductions in this budget and legacy incoming reductions, but not incoming increases.`,
+        '8. Apply the combined conditional/status/elemental damage multipliers from every active application, rounding down at the normal damage boundary. Piercing ignores incoming reductions but not incoming increases.',
         '9. Barrier absorbs direct damage first. Remaining damage reduces HP, bounded by the recipient’s current HP. Later multipliers can round a small hit to zero; the defense minimum is not a final guaranteed HP loss.',
       ],
     },
@@ -207,7 +203,7 @@ export const techniquesManualArticle: ManualArticle = {
       id: 'status-magnitudes',
       title: 'Status percentages and movement modifiers',
       paragraphs: [
-        'Named status magnitudes are fixed rules, not a shared low/medium/high scale. Repeated applications accumulate without a gameplay application-count cap; outcome rules such as minimum movement cost and bounded conditional-damage budgets still apply after those applications are combined. Damage dealt, damage received, healing received and Accuracy are separate dimensions. Haste and Slow each change movement by 10 AP per tile in opposite directions; Root blocks movement instead of adding an AP magnitude. The table includes every named status applied by the current regular catalog.',
+        'Named status magnitudes are fixed rules, not a shared low/medium/high scale. Repeated applications accumulate without a gameplay application-count cap. Genuine resource/system boundaries still apply afterward—for example HP/MP cannot exceed their maxima and movement cannot cost less than 10 AP per tile. Damage dealt, damage received, healing received and Accuracy are separate dimensions. Haste and Slow each change movement by 10 AP per tile in opposite directions; Root blocks movement instead of adding an AP magnitude. The table includes every named status applied by the current regular catalog.',
         'A bracketed percentage may have a source or condition restriction: read its explanation. Reckless and Fortified each link a benefit with a drawback. A larger magnitude alone does not make a Skill stronger: AP/MP cost, range, area, requirements, duration, setup, payoff and repeat behavior all matter.',
       ],
       table: {
