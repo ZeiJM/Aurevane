@@ -188,7 +188,9 @@ export function SkillEffectListEditor({
                   onClick={() =>
                     onChange(
                       removeCombatEffect(value, index),
-                      alignedDescriptions.filter((_, descriptionIndex) => descriptionIndex !== index),
+                      alignedDescriptions.filter(
+                        (_, descriptionIndex) => descriptionIndex !== index,
+                      ),
                     )
                   }
                 >
@@ -250,10 +252,7 @@ export function SkillEffectListEditor({
         <button
           type="button"
           onClick={() =>
-            onChange(appendCombatEffect(value, newEffectType), [
-              ...alignedDescriptions,
-              null,
-            ])
+            onChange(appendCombatEffect(value, newEffectType), [...alignedDescriptions, null])
           }
         >
           Add effect
