@@ -127,6 +127,7 @@ describe('current Burn pressure runtime', () => {
         sourceActionId: 'test.current-burn',
         profileVersion: 1,
         stage: 0,
+        stacks: 1,
       },
     ])
     expect(
