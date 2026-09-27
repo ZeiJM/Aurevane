@@ -118,7 +118,39 @@ describe('P3.3 mature Skill schema', () => {
     expect(resolveMatureSkillVersion('vanguard.forceful-strike', 1)).toBeNull()
     expect(resolveMatureSkillVersion('vanguard.forceful-strike', 2)?.contentVersion).toBe(2)
     expect(resolveMatureSkillVersion('vanguard.forceful-strike', 999)).toBeNull()
-    expect(resolveMatureSkillVersion('vanguard.forceful-strike')?.contentVersion).toBe(3)
+    expect(resolveMatureSkillVersion('vanguard.forceful-strike')?.contentVersion).toBeGreaterThan(3)
+    expect(
+      resolveMatureSkillVersion('vanguard.forceful-strike')?.authoring.validationTags,
+    ).toContain('owner-combat-rebalance-v2')
+  })
+
+  it('keeps current Discipline Skill AP, cooldown, and authored power inside the rebalance bounds', () => {
+    for (const definition of latestEnabledMatureSkills()) {
+      expect(definition.apCost).toBeGreaterThanOrEqual(25)
+      expect(definition.apCost).toBeLessThanOrEqual(65)
+      expect(definition.cooldown.ownerTurns).toBeGreaterThanOrEqual(1)
+      expect(definition.cooldown.ownerTurns).toBeLessThanOrEqual(3)
+      expect(definition.authoring.validationTags).toContain('power-scale-1-20')
+
+      for (const effect of definition.effects) {
+        if (effect.type === 'damage' && !('vengeance' in effect && effect.vengeance !== undefined)) {
+          expect(effect.amount).toBeGreaterThanOrEqual(1)
+          expect(effect.amount).toBeLessThanOrEqual(20)
+        }
+        if (effect.type === 'healing') {
+          expect(effect.amount).toBeGreaterThanOrEqual(1)
+          expect(effect.amount).toBeLessThanOrEqual(20)
+        }
+        if (effect.type === 'barrier-change') {
+          expect(Math.abs(effect.amount)).toBeGreaterThanOrEqual(1)
+          expect(Math.abs(effect.amount)).toBeLessThanOrEqual(20)
+        }
+        if (effect.type === 'resource-change') {
+          expect(Math.abs(effect.delta)).toBeGreaterThanOrEqual(1)
+          expect(Math.abs(effect.delta)).toBeLessThanOrEqual(20)
+        }
+      }
+    }
   })
 
   it('normalizes MP costs for every current mystic Skill without rewriting historical versions', () => {
