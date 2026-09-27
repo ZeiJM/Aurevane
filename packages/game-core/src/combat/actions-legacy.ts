@@ -471,7 +471,7 @@ export interface CombatEncounterIssue {
 export const P2_3_GUARDED_STATUS: CombatStatusDefinition = {
   id: 'guarded',
   version: 1,
-  maximumStacks: Number.MAX_SAFE_INTEGER,
+  maximumStacks: 3,
   durationOwnerTurnStarts: 1,
   damageTakenMultiplierBasisPoints: 8_000,
 }
