@@ -60,10 +60,16 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
     'Inspired',
     'Buff',
     'Deal 10% more damage within the combined damage-modifier cap.',
-    { gameplayTags: ['Inspired'], amplifyCopyable: true, reactionClass: 'ordinary' },
+    {
+      gameplayTags: ['Inspired'],
+      damageModifiers: [modifier('outgoing', 11_000)],
+      amplifyCopyable: true,
+      reactionClass: 'ordinary',
+    },
   ),
   status('hexed', 'Hexed', 'Debuff', 'Receive 25% less healing.', {
     gameplayTags: ['Hexed'],
+    healingReceivedMultiplierBasisPoints: 7_500,
     curseCopyable: true,
     reactionClass: 'ordinary',
   }),
