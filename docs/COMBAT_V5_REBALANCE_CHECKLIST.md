@@ -37,7 +37,7 @@
 - [x] Do not display `[0 Turns]`.
 - [x] Make duration editable in the Master Panel.
 - [x] Make balance budgets account for duration so a longer persistent effect costs more of a Skill's budget.
-- [ ] Verify duration semantics for statuses, periodic healing/recovery, DOTs, movement/control, and other persistent effects.
+- [x] Verify duration semantics for statuses, periodic healing/recovery, DOTs, movement/control, and other persistent effects.
 
 ## 3. Cooldown model
 
@@ -145,7 +145,7 @@
 
 - [x] Add/adjust unit tests for Power bounds and formula conversion.
 - [ ] Add/adjust tests for per-effect percentage potency.
-- [ ] Add/adjust tests for duration timing and expiry.
+- [x] Add/adjust tests for duration timing and expiry.
 - [x] Add/adjust tests for cooldown legality and Requirement exceptions.
 - [ ] Add full-roster balance contracts for Discipline Skills.
 - [ ] Add Essence balance contracts.
