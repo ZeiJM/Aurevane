@@ -16,7 +16,7 @@ export interface PreviewEffect {
 
 const signed = (value: number) => `${value < 0 ? '−' : '+'}${Math.abs(value)}`
 
-function statusPreview(id: string): PreviewEffect {
+function statusPreview(id: string, potencyBasisPoints?: number): PreviewEffect {
   const details = combatStatusDetails(id)
   const status = PV1F_COMBAT_CONTENT.statuses.find((entry) => entry.id === id)
   const result: PreviewEffect = { label: details.name, explanation: details.description }
@@ -52,6 +52,22 @@ function statusPreview(id: string): PreviewEffect {
     result.explanation = `Recipient takes ${result.magnitude}.${status.maximumStacks > 1 ? ` Up to ${status.maximumStacks} stacks.` : ''}`
   } else if (status?.endOfTurn) {
     result.magnitude = `${status.endOfTurn.amount} × ${status.durationOwnerTurnStarts} ticks`
+  }
+  if (potencyBasisPoints !== undefined) {
+    const percent = potencyBasisPoints / 100
+    if (id === 'guarded') {
+      result.magnitude = `−${percent}% incoming`
+      result.explanation = `Reduces incoming damage by ${percent}% per stack.`
+    } else if (id === 'exposed') {
+      result.magnitude = `+${percent}% incoming`
+      result.explanation = `Increases incoming damage by ${percent}%.`
+    } else if (id === 'mark') {
+      result.magnitude = `+${percent} pp Accuracy`
+      result.explanation = `Source gains +${percent} percentage points Accuracy against this target.`
+    } else if (id === 'hexed') {
+      result.magnitude = `−${percent}% healing`
+      result.explanation = `Reduces incoming healing by ${percent}%.`
+    }
   }
   return result
 }
@@ -92,32 +108,42 @@ export function previewEffect(effect: CombatEffectDefinition): PreviewEffect {
             : `Restores MP to ${target}${effect.ticks && effect.ticks > 1 ? ` per application, ${effect.ticks} times (first immediately)` : ''}.`,
       }
     case 'apply-status':
-      return statusPreview(effect.statusId)
+      return statusPreview(effect.statusId, effect.potencyBasisPoints)
     case 'displace':
       return {
         label: effect.direction === 'pull' ? 'Pull' : 'Push',
         magnitude: `${effect.distance} ${effect.distance === 1 ? 'tile' : 'tiles'}`,
         explanation: `Moves ${target} ${effect.direction === 'pull' ? 'toward you' : 'away'}; stops at blocked tiles or Root.`,
       }
-    case 'burn':
+    case 'burn': {
+      const turns = effect.durationTurns ?? CURRENT_BURN_DAMAGE_BY_STAGE.length
+      const values =
+        effect.power === undefined
+          ? CURRENT_BURN_DAMAGE_BY_STAGE.slice(0, turns)
+          : Array.from({ length: turns }, (_, index) => Math.max(1, effect.power! - index))
       return {
         label: 'Burn',
-        magnitude: CURRENT_BURN_DAMAGE_BY_STAGE.join('/'),
-        explanation: 'Fixed damage at the next three turn ends; reapplication restarts it.',
+        magnitude: values.join('/'),
+        explanation: `Fixed damage at the next ${turns} turn ${turns === 1 ? 'end' : 'ends'}; reapplication restarts it.`,
       }
+    }
     case 'bleed':
       return {
         label: 'Bleed',
         magnitude: `${effect.damagePerTick} × ${effect.ticks} ticks`,
         explanation: 'Fixed damage at turn end; up to three independent stacks.',
       }
-    case 'poison':
+    case 'poison': {
+      const turns = effect.durationTurns
       return {
         label: 'Poison',
-        magnitude: String(CURRENT_POISON_DAMAGE),
+        magnitude: String(effect.power ?? CURRENT_POISON_DAMAGE),
         explanation:
-          'Fixed damage at turn end and every five voluntarily entered tiles, until removed.',
+          turns === undefined
+            ? 'Fixed damage at turn end and every five voluntarily entered tiles, until removed.'
+            : `Fixed damage at turn end and every five voluntarily entered tiles for ${turns} ${turns === 1 ? 'turn' : 'turns'}.`,
       }
+    }
     case 'remove-status': {
       const statusNames = [...new Set(effect.statusIds.map((id) => combatStatusDetails(id).name))]
       return {
