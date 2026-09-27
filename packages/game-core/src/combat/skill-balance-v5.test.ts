@@ -60,6 +60,84 @@ describe('owner v5 Skill rebalance', () => {
     expect(highDamage.amount / lowDamage.amount).toBeLessThan(2.5)
   })
 
+  it('prices reach, area, utility, and multi-hit coverage into direct damage power', () => {
+    const base = resolveMatureSkillVersion('vanguard.forceful-strike', 2)
+    if (!base) throw new Error('Expected historical Forceful Strike.')
+
+    const melee = rebalanceMatureSkillDefinition({
+      ...base,
+      apCost: 45,
+      requirements: [],
+      target: { ...base.target, minimumRange: 1, maximumRange: 1, shape: { kind: 'single' } },
+      effects: [{ type: 'damage', recipient: 'primary-unit', amount: 8 }],
+    })
+    const ranged = rebalanceMatureSkillDefinition({
+      ...base,
+      apCost: 45,
+      requirements: [],
+      target: { ...base.target, minimumRange: 1, maximumRange: 5, shape: { kind: 'single' } },
+      effects: [{ type: 'damage', recipient: 'primary-unit', amount: 8 }],
+    })
+    const area = rebalanceMatureSkillDefinition({
+      ...base,
+      apCost: 45,
+      requirements: [],
+      target: { ...base.target, shape: { kind: 'circle', radius: 1 } },
+      effects: [{ type: 'damage', recipient: 'affected-units', amount: 8 }],
+    })
+    const utility = rebalanceMatureSkillDefinition({
+      ...base,
+      apCost: 45,
+      requirements: [],
+      target: { ...base.target, minimumRange: 1, maximumRange: 1, shape: { kind: 'single' } },
+      effects: [
+        { type: 'damage', recipient: 'primary-unit', amount: 8 },
+        { type: 'apply-status', recipient: 'primary-unit', statusId: 'exposed', stacks: 1 },
+      ],
+    })
+    const multiHit = rebalanceMatureSkillDefinition({
+      ...base,
+      apCost: 45,
+      requirements: [],
+      target: { ...base.target, minimumRange: 1, maximumRange: 1, shape: { kind: 'single' } },
+      effects: [
+        { type: 'damage', recipient: 'primary-unit', amount: 8 },
+        { type: 'damage', recipient: 'primary-unit', amount: 8 },
+      ],
+    })
+
+    const damage = (definition: typeof melee) =>
+      definition.effects.find((effect) => effect.type === 'damage')?.amount ?? 0
+
+    expect(damage(ranged)).toBeLessThan(damage(melee))
+    expect(damage(area)).toBeLessThan(damage(melee))
+    expect(damage(utility)).toBeLessThan(damage(melee))
+    expect(damage(multiHit)).toBeLessThan(damage(melee))
+  })
+
+  it('lets a Requirement-gated payoff spend more budget on impact instead of cooldown', () => {
+    const base = resolveMatureSkillVersion('vanguard.forceful-strike', 2)
+    if (!base) throw new Error('Expected historical Forceful Strike.')
+
+    const ordinary = rebalanceMatureSkillDefinition({
+      ...base,
+      apCost: 45,
+      requirements: [],
+    })
+    const gated = rebalanceMatureSkillDefinition({
+      ...base,
+      apCost: 45,
+      requirements: [{ kind: 'target-status-present', statusId: 'exposed' }],
+    })
+    const ordinaryDamage =
+      ordinary.effects.find((effect) => effect.type === 'damage')?.amount ?? 0
+    const gatedDamage = gated.effects.find((effect) => effect.type === 'damage')?.amount ?? 0
+
+    expect(gatedDamage).toBeGreaterThanOrEqual(ordinaryDamage)
+    expect(ordinary.cooldown).not.toBeNull()
+    expect(gated.cooldown).toBeNull()
+  })
+
   it('prices persistent duration into cooldown strength', () => {
     const base = resolveMatureSkillVersion('vanguard.brace', 1)
     if (!base) throw new Error('Expected historical Brace.')
