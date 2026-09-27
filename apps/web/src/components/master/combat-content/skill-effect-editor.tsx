@@ -76,7 +76,8 @@ function damageEditor(value: DamageEffect, onChange: (next: CombatEffectDefiniti
         <input
           aria-label="Damage amount"
           type="number"
-          min={0}
+          min={1}
+          max={20}
           step={1}
           value={value.amount}
           disabled={vengeance !== undefined}
@@ -377,7 +378,8 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
             <input
               aria-label="Healing amount"
               type="number"
-              min={0}
+              min={1}
+              max={20}
               step={1}
               value={value.amount}
               onChange={(event) =>
@@ -424,6 +426,8 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
             <input
               aria-label="MP delta"
               type="number"
+              min={-20}
+              max={20}
               step={1}
               value={value.delta}
               onChange={(event) =>
@@ -637,6 +641,7 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
               aria-label="Bleed damage per tick"
               type="number"
               min={1}
+              max={20}
               step={1}
               value={value.damagePerTick}
               onChange={(event) =>
@@ -697,6 +702,7 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
               aria-label="Barrier amount"
               type="number"
               min={1}
+              max={20}
               step={1}
               value={value.amount}
               onChange={(event) =>
@@ -800,9 +806,79 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
       controls = assertNever(value)
   }
 
+  const durationTurns = value.durationTurns ?? 0
+  const supportsGenericPower = value.type === 'burn' || value.type === 'poison'
+
   return (
     <div className={styles.effectEditor} data-effect-type={value.type}>
       {controls}
+      <div className={styles.effectTuningGrid}>
+        <label className={styles.field}>
+          <span>Effect duration (turns)</span>
+          <input
+            aria-label="Effect duration (turns)"
+            type="number"
+            min={0}
+            max={4}
+            step={1}
+            value={durationTurns}
+            onChange={(event) =>
+              onChange({
+                ...value,
+                durationTurns: Math.max(0, Math.min(4, integer(event.currentTarget.value, 0))),
+              })
+            }
+          />
+          <small className={styles.fieldHint}>
+            0 = immediate. Positive durations persist through that many future turns.
+          </small>
+        </label>
+
+        {supportsGenericPower ? (
+          <label className={styles.field}>
+            <span>Effect power</span>
+            <input
+              aria-label="Effect power"
+              type="number"
+              min={1}
+              max={20}
+              step={1}
+              value={value.power ?? 1}
+              onChange={(event) =>
+                onChange({
+                  ...value,
+                  power: Math.max(1, Math.min(20, integer(event.currentTarget.value, 1))),
+                })
+              }
+            />
+            <small className={styles.fieldHint}>Bounded authored power: 1–20.</small>
+          </label>
+        ) : null}
+
+        {value.type === 'apply-status' ? (
+          <label className={styles.field}>
+            <span>Status potency (%)</span>
+            <input
+              aria-label="Status potency (percent)"
+              type="number"
+              min={1}
+              max={50}
+              step={1}
+              value={(value.potencyBasisPoints ?? 1500) / 100}
+              onChange={(event) =>
+                onChange({
+                  ...value,
+                  potencyBasisPoints:
+                    Math.max(1, Math.min(50, integer(event.currentTarget.value, 15))) * 100,
+                })
+              }
+            />
+            <small className={styles.fieldHint}>
+              Used by percentage-based statuses such as Guarded or Exposed. 15 = 15%.
+            </small>
+          </label>
+        ) : null}
+      </div>
     </div>
   )
 }
