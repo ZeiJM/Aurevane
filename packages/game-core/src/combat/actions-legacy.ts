@@ -2697,7 +2697,7 @@ function validateCombatContentCatalog(content: CombatContentCatalog): void {
         status.endOfTurn)
     )
       throw new RangeError(
-        'Round initiative status must be non-periodic and bounded to +/-40 per application.'
+        'Round initiative status must be non-periodic and bounded to +/-40 per application.',
       )
     if (status.endOfTurn) {
       assertKnownString(status.endOfTurn.type, ['damage', 'healing'], 'periodic effect')
