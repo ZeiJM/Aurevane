@@ -452,9 +452,7 @@ describe('Status copying: fail-closed eligibility and staged scope', () => {
     expect(() => cast(state, 'amplify')).toThrow()
   })
   it('accepts donor application counts above the legacy authored maximum', () => {
-    const state = world([
-      { combatantId: 'target', statuses: [row(POSITIVE, { stacks: 4 })] },
-    ])
+    const state = world([{ combatantId: 'target', statuses: [row(POSITIVE, { stacks: 4 })] }])
     const result = cast(state, 'amplify')
     expect(statuses(result.state, 'actor')).toEqual([
       expect.objectContaining({ statusId: POSITIVE.id, stacks: 4 }),
