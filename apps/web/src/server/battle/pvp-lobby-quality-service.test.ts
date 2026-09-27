@@ -14,9 +14,8 @@ const mocks = vi.hoisted(() => ({
 vi.mock('server-only', () => ({}))
 
 vi.mock('@/server/combat/combat-content-resolver', async () => {
-  const { resolveMatureSkillVersion: resolve } = await import(
-    '@aurevane/game-core/combat/mature-skills'
-  )
+  const { resolveMatureSkillVersion: resolve } =
+    await import('@aurevane/game-core/combat/mature-skills')
   return {
     createServerCombatContentResolver: () => ({
       resolveCurrentSkillDefinition: async (skillId: string) => resolve(skillId),

@@ -196,9 +196,9 @@ describe('Phase 4 seventeen-Discipline acceptance matrix', () => {
       new Set(P36_REPRESENTATIVE_ESSENCES.map((definition) => definition.sourceDisciplineId)),
     ).toEqual(new Set(roster))
     expect(roster.map((discipline) => phase4Essence(discipline))).toHaveLength(17)
-    expect(
-      roster.map((discipline) => phase4Essence(discipline)?.sourceDisciplineId),
-    ).toEqual(roster)
+    expect(roster.map((discipline) => phase4Essence(discipline)?.sourceDisciplineId)).toEqual(
+      roster,
+    )
     expect(P35_REPRESENTATIVE_RESONANCES).toHaveLength(136)
     for (const resonance of P35_REPRESENTATIVE_RESONANCES) {
       expect(validateResonanceDefinition(resonance)).toEqual([])

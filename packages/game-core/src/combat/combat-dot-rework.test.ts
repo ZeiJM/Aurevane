@@ -263,12 +263,8 @@ describe('current Poison runtime', () => {
   })
 })
 
-
 describe('Combat v5 authored duration lifecycle', () => {
-  function persistentRows(
-    state: CombatEncounterState,
-    kind: 'poison' | 'bleed' | 'burn',
-  ) {
+  function persistentRows(state: CombatEncounterState, kind: 'poison' | 'bleed' | 'burn') {
     return state.effectState?.[kind] ?? []
   }
 
@@ -304,74 +300,80 @@ describe('Combat v5 authored duration lifecycle', () => {
       } satisfies CombatEffectDefinition,
       'burn' as const,
     ],
-  ])('%s starts on the following target turn and expires after two target turns', (_name, effect, kind) => {
-    const applied = executeCombatAction(
-      encounter(),
-      action(effect, `test.v5-duration-${kind}`),
-      { kind: 'unit', combatantId: 'target' },
-      CONTENT,
-    )
-    expect(persistentRows(applied.state, kind)[0]?.remainingTicks).toBe(2)
+  ])(
+    '%s starts on the following target turn and expires after two target turns',
+    (_name, effect, kind) => {
+      const applied = executeCombatAction(
+        encounter(),
+        action(effect, `test.v5-duration-${kind}`),
+        { kind: 'unit', combatantId: 'target' },
+        CONTENT,
+      )
+      expect(persistentRows(applied.state, kind)[0]?.remainingTicks).toBe(2)
 
-    const targetTurn = finishTurn(applied.state).state
-    expect(targetTurn.tactical.battle.currentTurn?.combatantId).toBe('target')
-    expect(targetTurn.tactical.battle.combatants.find((row) => row.id === 'target')?.hp).toBe(30)
+      const targetTurn = finishTurn(applied.state).state
+      expect(targetTurn.tactical.battle.currentTurn?.combatantId).toBe('target')
+      expect(targetTurn.tactical.battle.combatants.find((row) => row.id === 'target')?.hp).toBe(30)
 
-    const firstTick = finishTurn(targetTurn).state
-    const hpAfterFirstTick =
-      firstTick.tactical.battle.combatants.find((row) => row.id === 'target')?.hp ?? 30
-    expect(hpAfterFirstTick).toBeLessThan(30)
-    expect(persistentRows(firstTick, kind)[0]?.remainingTicks).toBe(1)
+      const firstTick = finishTurn(targetTurn).state
+      const hpAfterFirstTick =
+        firstTick.tactical.battle.combatants.find((row) => row.id === 'target')?.hp ?? 30
+      expect(hpAfterFirstTick).toBeLessThan(30)
+      expect(persistentRows(firstTick, kind)[0]?.remainingTicks).toBe(1)
 
-    const secondTargetTurn = finishTurn(firstTick).state
-    expect(secondTargetTurn.tactical.battle.currentTurn?.combatantId).toBe('target')
-    const expired = finishTurn(secondTargetTurn).state
-    expect(
-      expired.tactical.battle.combatants.find((row) => row.id === 'target')?.hp,
-    ).toBeLessThan(hpAfterFirstTick)
-    expect(persistentRows(expired, kind)).toHaveLength(0)
-  })
+      const secondTargetTurn = finishTurn(firstTick).state
+      expect(secondTargetTurn.tactical.battle.currentTurn?.combatantId).toBe('target')
+      const expired = finishTurn(secondTargetTurn).state
+      expect(
+        expired.tactical.battle.combatants.find((row) => row.id === 'target')?.hp,
+      ).toBeLessThan(hpAfterFirstTick)
+      expect(persistentRows(expired, kind)).toHaveLength(0)
+    },
+  )
 
   it.each([
     ['root', 1],
     ['slow', 2],
-  ] as const)('%s begins on the following target turn and lasts exactly %i turn(s)', (statusId, durationTurns) => {
-    const applied = executeCombatAction(
-      encounter(),
-      action(
-        {
-          type: 'apply-status',
-          recipient: 'primary-unit',
-          statusId,
-          stacks: 1,
-          durationTurns,
-        },
-        `test.v5-status-duration-${statusId}`,
-      ),
-      { kind: 'unit', combatantId: 'target' },
-      CONTENT,
-    )
-    const appliedStatus = applied.state.statusState
-      .find((row) => row.combatantId === 'target')
-      ?.statuses.find((status) => status.statusId === statusId)
-    expect(appliedStatus?.remainingOwnerTurnStarts).toBe(durationTurns + 1)
-
-    let state = finishTurn(applied.state).state
-    for (let ownerTurn = 1; ownerTurn <= durationTurns; ownerTurn += 1) {
-      const active = state.statusState
+  ] as const)(
+    '%s begins on the following target turn and lasts exactly %i turn(s)',
+    (statusId, durationTurns) => {
+      const applied = executeCombatAction(
+        encounter(),
+        action(
+          {
+            type: 'apply-status',
+            recipient: 'primary-unit',
+            statusId,
+            stacks: 1,
+            durationTurns,
+          },
+          `test.v5-status-duration-${statusId}`,
+        ),
+        { kind: 'unit', combatantId: 'target' },
+        CONTENT,
+      )
+      const appliedStatus = applied.state.statusState
         .find((row) => row.combatantId === 'target')
         ?.statuses.find((status) => status.statusId === statusId)
-      expect(state.tactical.battle.currentTurn?.combatantId).toBe('target')
-      expect(active?.remainingOwnerTurnStarts).toBe(durationTurns + 1 - ownerTurn)
+      expect(appliedStatus?.remainingOwnerTurnStarts).toBe(durationTurns + 1)
 
-      state = finishTurn(state).state
-      state = finishTurn(state).state
-    }
+      let state = finishTurn(applied.state).state
+      for (let ownerTurn = 1; ownerTurn <= durationTurns; ownerTurn += 1) {
+        const active = state.statusState
+          .find((row) => row.combatantId === 'target')
+          ?.statuses.find((status) => status.statusId === statusId)
+        expect(state.tactical.battle.currentTurn?.combatantId).toBe('target')
+        expect(active?.remainingOwnerTurnStarts).toBe(durationTurns + 1 - ownerTurn)
 
-    expect(
-      state.statusState
-        .find((row) => row.combatantId === 'target')
-        ?.statuses.some((status) => status.statusId === statusId),
-    ).toBe(false)
-  })
+        state = finishTurn(state).state
+        state = finishTurn(state).state
+      }
+
+      expect(
+        state.statusState
+          .find((row) => row.combatantId === 'target')
+          ?.statuses.some((status) => status.statusId === statusId),
+      ).toBe(false)
+    },
+  )
 })

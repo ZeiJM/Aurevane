@@ -1230,7 +1230,7 @@ function applyCurrentMatureSkillPowerScaling(
           effect.amount,
           recoveryScaling,
           offensivePower,
-          effect.type === 'healing' ? effect.ticks ?? 1 : 1,
+          effect.type === 'healing' ? (effect.ticks ?? 1) : 1,
         ),
       }
     }
