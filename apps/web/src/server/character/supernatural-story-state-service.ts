@@ -15,6 +15,7 @@ import {
 import {
   SUPERNATURAL_STORY_DEFINITION,
   resolveSupernaturalChoiceTransition,
+  resolveSupernaturalStateIdentity,
 } from '@aurevane/game-core/character/supernatural-content'
 import { AurevaneError } from '@aurevane/game-core/errors'
 
@@ -148,6 +149,10 @@ export async function findAuthoredSupernaturalStoryState(
       'This character is committed to a different supernatural story version.',
     )
   }
+  if (state && state.path !== 'unawakened' && !resolveSupernaturalStateIdentity(state))
+    throw persistenceUnavailable(
+      'Persisted supernatural identity does not match the authored content version.',
+    )
   return state
 }
 

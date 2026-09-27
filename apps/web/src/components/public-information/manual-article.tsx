@@ -89,6 +89,45 @@ export function ManualArticle({
               {block.paragraphs.map((paragraph) => (
                 <p key={paragraph}>{paragraph}</p>
               ))}
+              {block.table ? (
+                <table className={styles.table}>
+                  <caption>{block.table.caption}</caption>
+                  <thead>
+                    <tr>
+                      {block.table.headers.map((header) => (
+                        <th scope="col" key={header}>
+                          {header}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {block.table.rows.map((row) => (
+                      <tr key={row[0]}>
+                        {row.map((cell, index) =>
+                          index === 0 ? (
+                            <th scope="row" key={index}>
+                              {cell}
+                            </th>
+                          ) : (
+                            <td key={index}>{cell}</td>
+                          ),
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : null}
+              {block.disclosures?.map((disclosure) => (
+                <details className={styles.disclosure} key={disclosure.title}>
+                  <summary>{disclosure.title}</summary>
+                  <ul>
+                    {disclosure.bullets.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </details>
+              ))}
               {block.bullets ? (
                 <ul>
                   {block.bullets.map((item) => (

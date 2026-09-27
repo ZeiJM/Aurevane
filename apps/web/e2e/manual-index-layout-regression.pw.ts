@@ -24,14 +24,14 @@ test('Manual index is a searchable dark guide directory on desktop', async ({ pa
   await expect(directory).toHaveAttribute('data-manual-index-surface', 'ink')
   await expect(page.getByRole('heading', { level: 1, name: 'Manual' })).toBeVisible()
   await expect(search).toBeVisible()
-  await expect(rows).toHaveCount(10)
+  await expect(rows).toHaveCount(11)
 
   await search.fill('Battle Hall')
   await expect(rows).toHaveCount(1)
   await expect(page.getByRole('link', { name: /Battle Hall & Action Economy/ })).toBeVisible()
 
   await search.clear()
-  await expect(rows).toHaveCount(10)
+  await expect(rows).toHaveCount(11)
   await settle(page)
 
   const metrics = await page.evaluate(() => {
@@ -74,13 +74,13 @@ test('Manual index stays a natural single-column guide on mobile', async ({ page
 
   await expect(directory).toBeVisible()
   await expect(search).toBeVisible()
-  await expect(rows).toHaveCount(10)
+  await expect(rows).toHaveCount(11)
 
   await search.fill('Glossary')
   await expect(rows).toHaveCount(1)
   await expect(page.getByRole('link', { name: /Glossary/ })).toBeVisible()
   await search.clear()
-  await expect(rows).toHaveCount(10)
+  await expect(rows).toHaveCount(11)
 
   await rows.last().scrollIntoViewIfNeeded()
   await expect(rows.last()).toBeInViewport({ ratio: 0.8 })

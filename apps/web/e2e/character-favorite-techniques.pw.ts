@@ -68,21 +68,33 @@ test('Technique selection auto-saves and favorite controls are removed', async (
   await forceful.hover()
   const preview = page.getByTestId('technique-preview')
   await expect(preview).toContainText('Forceful Strike')
-  for (const label of [
+  await expect(preview.locator('dt')).toHaveText([
     'Skill Type',
     'Cost',
-    'Damage',
-    'Effects',
+    'Cooldown',
     'Requirements',
+    'Effects',
+    'Range',
     'Target',
     'Target Method',
     'Target Elevation',
-    'Range',
     'Line of Sight',
-    'Cooldown',
-  ]) {
-    await expect(preview.getByText(label, { exact: true })).toBeVisible()
-  }
+  ])
+  await expect(preview.getByText('Damage', { exact: true })).toHaveCount(0)
+  await expect(preview.locator('dd').filter({ hasText: 'Dmg [' })).toBeVisible()
+  await expect(preview.getByRole('list', { name: 'Effect explanations' })).toBeVisible()
+  const group = page.getByTestId('learned-skill-list').locator(':scope > section').last()
+  const previewBox = await preview.boundingBox()
+  const groupBox = await group.boundingBox()
+  expect(
+    Math.abs(previewBox!.y + previewBox!.height - groupBox!.y - groupBox!.height),
+  ).toBeLessThanOrEqual(2)
+  const previewLayout = await preview.evaluate((node) => ({
+    overflow: getComputedStyle(node).overflowY,
+    clipped: node.scrollHeight > node.clientHeight + 1,
+  }))
+  expect(['scroll', 'auto']).not.toContain(previewLayout.overflow)
+  expect(previewLayout.clipped).toBe(false)
   await expect(preview).not.toContainText('Effects, in order')
   await expect(preview.getByText('Skill details', { exact: true })).toHaveCount(0)
   await expect(forceful).toContainText('Attack')

@@ -385,6 +385,8 @@ A feature is not finished when its UI changes but its current Manual still teach
 
 The current public Manual implementation is maintained through player-facing content such as `apps/web/src/content/current-manual.ts` and related public information sources.
 
+The Techniques, Damage & Effects article (`/manual/techniques-damage-effects`) uses `techniques-manual.ts` and `technique-magnitudes.ts` for the current regular catalog, AP-dependent Power scaling, exact damage operation order, relative-Level examples and per-family nearest-rank quartiles. Its expandable Discipline catalog uses the latest enabled Skill versions; historical pinned battles and published overrides remain identified as potentially different. Technique Preview effects use the shared compact presentation layer, with current status/terrain magnitudes and no arbitrary authoring tags. Current Mark is an Accuracy effect, separate from historical Marked damage amplification.
+
 Current Manual copy must prioritize what is actually playable now—character/account systems, six attributes, Passive Training, Battle Hall/AI Sparring and current combat rules—while explicitly labeling future Primary/Secondary/Resonance/Essence/world/co-op/PvP systems as roadmap direction until released.
 
 ---
