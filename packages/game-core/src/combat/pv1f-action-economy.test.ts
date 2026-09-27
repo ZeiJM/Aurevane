@@ -313,17 +313,13 @@ describe('Combat v5 Skill cooldown lifecycle', () => {
   }
 
   it('uses an explicit gameplay Requirement instead of adding a cooldown', () => {
-    const definition = resolveMatureSkillVersion('vanguard.stalwart-strike')
-    if (!definition) throw new Error('Expected current Stalwart Strike fixture.')
+    const definition = resolveMatureSkillVersion('vanguard.brace')
+    if (!definition) throw new Error('Expected current Brace fixture.')
     expect(definition.requirements.length).toBeGreaterThan(0)
     expect(definition.cooldown).toBeNull()
 
-    const guarded = executePv1fAction(currentPowerEncounter(), PV1F_GUARD_ACTION_ID, {
+    const used = executePv1fMatureSkill(currentPowerEncounter(), definition, {
       kind: 'self',
-    })
-    const used = executePv1fMatureSkill(guarded.state, definition, {
-      kind: 'unit',
-      combatantId: 'recruit',
     })
     expect(used.events).not.toContainEqual(
       expect.objectContaining({ event: 'skill_cooldown_started' }),
