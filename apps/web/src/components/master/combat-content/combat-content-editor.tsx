@@ -524,7 +524,9 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
                   mpCost: selectedDraft.mpCost,
                   accuracyMode: selectedDraft.accuracyMode,
                   accuracyModifierBasisPoints: selectedDraft.accuracyModifierBasisPoints,
+                  cooldown: selectedDraft.cooldown,
                 }}
+                requirementGated={selectedDraft.requirements.length > 0}
                 onChange={(economy: SkillEconomyDraft) =>
                   updateSelectedDraft({ ...selectedDraft, ...economy })
                 }
