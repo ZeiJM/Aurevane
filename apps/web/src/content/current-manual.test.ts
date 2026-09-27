@@ -55,7 +55,7 @@ describe('published Manual rule consistency', () => {
     )
   })
 
-  it('distinguishes learned libraries from current selected capacity and repeat-use rules', () => {
+  it('distinguishes learned libraries from current selected capacity and cooldown rules', () => {
     const text = articleText('start-here')
     expect(text).toContain(`Pure builds select up to ${PURE_DISCIPLINE_SKILL_CAPACITY}`)
     expect(text).toContain(`Mixed builds select up to ${MIXED_DISCIPLINE_SKILL_CAPACITY}`)
@@ -63,8 +63,9 @@ describe('published Manual rule consistency', () => {
     expect(text).not.toContain('up to eight learned')
     expect(text).not.toContain('six total Discipline')
     const combat = articleText('battle-hall')
-    expect(combat).toContain('50% effectiveness at the normal AP cost')
-    expect(combat).toContain('ending a turn alone does not')
+    expect(combat).toContain('cooldowns of one to three owner turns')
+    expect(combat).toContain('A Skill with an explicit Requirement has no runtime cooldown')
+    expect(combat).not.toContain('50% effectiveness at the normal AP cost')
   })
 
   it('credits delivered buildcraft and PvP without promising complete content', () => {
@@ -86,6 +87,9 @@ describe('published Manual rule consistency', () => {
 it('publishes the Techniques guide and removes the obsolete fixed Power budget', () => {
   const text = articleText('techniques-damage-effects')
   expect(text).toContain('Techniques, Damage & Effects')
+  expect(text).toContain('1–20')
+  expect(text).toContain('one to three owner turns')
+  expect(text).toContain('no runtime cooldown')
   expect(text).toContain('136')
   expect(text).toContain('0.5%')
   expect(text).toContain('65 AP')
