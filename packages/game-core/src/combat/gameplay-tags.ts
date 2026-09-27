@@ -222,6 +222,28 @@ export function validateGameplayActionMetadata(
 /** Shared content-boundary validation; the containing action supplies target-dependent legality. */
 export function validateGameplayEffectMetadata(effect: CombatEffectDefinition): void {
   if (
+    effect.durationTurns !== undefined &&
+    (!Number.isSafeInteger(effect.durationTurns) ||
+      effect.durationTurns < 0 ||
+      effect.durationTurns > 4)
+  ) {
+    throw new RangeError('Effect duration must be an integer from 0 to 4 turns.')
+  }
+  if (
+    effect.power !== undefined &&
+    (!Number.isSafeInteger(effect.power) || effect.power < 1 || effect.power > 20)
+  ) {
+    throw new RangeError('Effect power must be an integer from 1 to 20.')
+  }
+  if (
+    effect.potencyBasisPoints !== undefined &&
+    (!Number.isSafeInteger(effect.potencyBasisPoints) ||
+      effect.potencyBasisPoints < 100 ||
+      effect.potencyBasisPoints > 5_000)
+  ) {
+    throw new RangeError('Effect percentage potency must be from 1 to 50 percentage points.')
+  }
+  if (
     effect.type === 'damage' &&
     effect.piercing !== undefined &&
     typeof effect.piercing !== 'boolean'
