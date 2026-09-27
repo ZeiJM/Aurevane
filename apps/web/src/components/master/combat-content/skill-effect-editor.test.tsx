@@ -63,6 +63,9 @@ describe('Master Panel Skill effect editor', () => {
       element: 'fire',
       scaling: { source: 'physical-power', coefficientBasisPoints: 7_500 },
     })
+    expect(ordinary).toContain('aria-label="Damage amount"')
+    expect(ordinary).toContain('max="20"')
+
     for (const label of [
       'Damage amount',
       'Damage recipient',
@@ -94,6 +97,7 @@ describe('Master Panel Skill effect editor', () => {
   it('edits healing and MP recovery/drain timing without a generic payload field', () => {
     const healing = render({ type: 'healing', recipient: 'actor', amount: 6, ticks: 3 })
     expect(healing).toContain('aria-label="Healing amount"')
+    expect(healing).toContain('max="20"')
     expect(healing).toContain('aria-label="Healing ticks"')
 
     const mp = render({
@@ -104,6 +108,8 @@ describe('Master Panel Skill effect editor', () => {
       ticks: 1,
     })
     expect(mp).toContain('aria-label="MP delta"')
+    expect(mp).toContain('min="-20"')
+    expect(mp).toContain('max="20"')
     expect(mp).toContain('aria-label="MP ticks"')
     expect(mp).not.toContain('payload')
   })
@@ -118,6 +124,19 @@ describe('Master Panel Skill effect editor', () => {
     expect(applied).toContain('aria-label="Status ID"')
     expect(applied).toContain('value="covert"')
     expect(applied).toContain('aria-label="Status stacks"')
+    expect(applied).toContain('aria-label="Incoming damage change (%)"')
+    expect(applied).toContain('aria-label="Outgoing damage change (%)"')
+    expect(applied).toContain('aria-label="Healing received change (%)"')
+    expect(applied).toContain('aria-label="Accuracy change (percentage points)"')
+
+    const tuned = render({
+      type: 'apply-status',
+      recipient: 'actor',
+      statusId: 'guarded',
+      stacks: 1,
+      tuning: { incomingDamageModifierBasisPoints: -1_500 },
+    })
+    expect(tuned).toContain('value="-15"')
 
     const removed = render({
       type: 'remove-status',
