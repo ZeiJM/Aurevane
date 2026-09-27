@@ -52,7 +52,11 @@ function EssenceHoverPreview({ essence }: { essence: EssenceDefinition }) {
     ['Target Method', skillTargetMethodDescription(skill)],
   ]
   return (
-    <aside className={styles.attunementHover} role="tooltip">
+    <aside
+      id={`essence-preview-${essence.essenceId}`}
+      className={styles.attunementHover}
+      role="tooltip"
+    >
       <span>Essence Preview</span>
       <strong>{`Essence: ${essence.name}`}</strong>
       <dl>
@@ -82,7 +86,11 @@ function ResonanceHoverPreview({ resonance }: { resonance: ResonanceDefinition }
   const payoff = resonance.trigger.payoff
   const effects = resonance.trigger.payoffEffects.map(effectSummaryWithDuration)
   return (
-    <aside className={styles.attunementHover} role="tooltip">
+    <aside
+      id={`resonance-preview-${resonance.id}`}
+      className={styles.attunementHover}
+      role="tooltip"
+    >
       <span>Resonance Preview</span>
       <strong>{`Resonance: ${resonance.name}`}</strong>
       <dl>
@@ -422,7 +430,12 @@ export function CharacterArsenalShell({
             <div className={styles.attunementGrid}>
               {essence ? (
                 <article className={styles.attunementCard} data-active="true">
-                  <span className={styles.attunementPreviewAnchor} tabIndex={0}>
+                  <span
+                    className={styles.attunementPreviewAnchor}
+                    tabIndex={0}
+                    aria-label={`Preview Essence: ${essence.name}`}
+                    aria-describedby={`essence-preview-${essence.essenceId}`}
+                  >
                     <span className={styles.attunementArt}>
                       <Image
                         src={battleSkillArtwork(essence.skill.id)}
@@ -446,7 +459,12 @@ export function CharacterArsenalShell({
 
               {resonance ? (
                 <article className={styles.attunementCard} data-active="true">
-                  <span className={styles.attunementPreviewAnchor} tabIndex={0}>
+                  <span
+                    className={styles.attunementPreviewAnchor}
+                    tabIndex={0}
+                    aria-label={`Preview Resonance: ${resonance.name}`}
+                    aria-describedby={`resonance-preview-${resonance.id}`}
+                  >
                     <span className={styles.attunementArt}>
                       <Image
                         src={battleResonanceArtwork(resonance.id)}
