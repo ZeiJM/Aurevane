@@ -5,6 +5,7 @@ import { resolveMatureSkillVersion, type MatureSkillDefinition } from './mature-
 import { createCombatEncounterState } from './actions'
 import { createPendingBattle, startBattle } from './battle-state'
 import { normalizeCombatEffectState } from './combat-effect-state'
+import { readSkillCooldown } from './skill-cooldowns'
 import { createTacticalBattleState } from './board'
 import {
   calculatePv1fBasicAttackDamage,
@@ -259,6 +260,78 @@ describe('Level-100 offensive scaling', () => {
       amount: definition.effects.find((effect) => effect.type === 'damage')?.amount,
       scaling: { source: 'physical-power', coefficientBasisPoints: 2_000 },
     })
+  })
+})
+
+describe('Combat v5 Skill cooldown lifecycle', () => {
+  function backToPlayer(state: StatDrivenCombatEncounterState): StatDrivenCombatEncounterState {
+    const recruitTurn = finishPv1fTurn(state, 'east').state
+    return finishPv1fTurn(recruitTurn, 'west').state
+  }
+
+  for (const ownerTurns of [1, 2, 3] as const) {
+    it(`keeps a ${ownerTurns}-turn cooldown locked for exactly ${ownerTurns} future owner turns and survives reconnect`, () => {
+      const base = resolveMatureSkillVersion('vanguard.forceful-strike')
+      if (!base) throw new Error('Expected current Vanguard Skill fixture.')
+      const definition: MatureSkillDefinition = {
+        ...base,
+        id: `test.v5-cooldown-${ownerTurns}`,
+        cooldown: { key: `test.v5-cooldown-${ownerTurns}`, ownerTurns },
+      }
+      const target = { kind: 'unit' as const, combatantId: 'recruit' }
+      const used = executePv1fMatureSkill(currentPowerEncounter(), definition, target)
+      const player = used.state.tactical.battle.combatants.find(
+        (combatant) => combatant.id === 'player',
+      )
+      if (!player || !definition.cooldown) throw new Error('Expected v5 cooldown state.')
+
+      expect(readSkillCooldown(player, definition.cooldown)).toMatchObject({
+        active: true,
+        ownerTurns,
+        ticksRemaining: ownerTurns + 1,
+      })
+
+      let reconnected = JSON.parse(JSON.stringify(used.state)) as StatDrivenCombatEncounterState
+      for (let elapsed = 1; elapsed <= ownerTurns; elapsed += 1) {
+        reconnected = backToPlayer(reconnected)
+        const activePlayer = reconnected.tactical.battle.combatants.find(
+          (combatant) => combatant.id === 'player',
+        )
+        if (!activePlayer) throw new Error('Expected player after owner-turn advance.')
+        expect(readSkillCooldown(activePlayer, definition.cooldown).ticksRemaining).toBe(
+          ownerTurns + 1 - elapsed,
+        )
+        expect(evaluatePv1fMatureSkill(reconnected, definition, target).evaluation.issues).toContainEqual(
+          expect.objectContaining({ code: 'cooldown-active' }),
+        )
+      }
+
+      const ready = backToPlayer(reconnected)
+      const readyPlayer = ready.tactical.battle.combatants.find(
+        (combatant) => combatant.id === 'player',
+      )
+      if (!readyPlayer) throw new Error('Expected player when cooldown becomes ready.')
+      expect(readSkillCooldown(readyPlayer, definition.cooldown).active).toBe(false)
+      expect(evaluatePv1fMatureSkill(ready, definition, target).evaluation.legal).toBe(true)
+    })
+  }
+
+  it('uses an explicit gameplay Requirement instead of adding a cooldown', () => {
+    const definition = resolveMatureSkillVersion('vanguard.stalwart-strike')
+    if (!definition) throw new Error('Expected current Stalwart Strike fixture.')
+    expect(definition.requirements.length).toBeGreaterThan(0)
+    expect(definition.cooldown).toBeNull()
+
+    const guarded = executePv1fAction(currentPowerEncounter(), PV1F_GUARD_ACTION_ID, {
+      kind: 'self',
+    })
+    const used = executePv1fMatureSkill(guarded.state, definition, {
+      kind: 'unit',
+      combatantId: 'recruit',
+    })
+    expect(used.events).not.toContainEqual(
+      expect.objectContaining({ event: 'skill_cooldown_started' }),
+    )
   })
 })
 
