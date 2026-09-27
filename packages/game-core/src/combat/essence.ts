@@ -26,6 +26,7 @@ export interface EssenceDefinition {
   readonly sourceDisciplineId: string
   readonly name: string
   readonly description: string
+  readonly flavorLine?: string
   readonly skill: MatureSkillDefinition
   readonly authoring: {
     readonly schemaVersion: typeof ESSENCE_SCHEMA_VERSION
@@ -474,7 +475,7 @@ const PRE_V5_CURRENT_ESSENCES = [
   ...A03_CLASS_TUNED_ESSENCES,
 ] as const satisfies readonly EssenceDefinition[]
 
-function v5EssenceSummary(definition: EssenceDefinition): string {
+function v5EssenceFlavorLine(definition: EssenceDefinition): string {
   const discipline =
     definition.sourceDisciplineId.charAt(0).toUpperCase() + definition.sourceDisciplineId.slice(1)
   if (definition.skill.tags.includes('attack')) {
@@ -500,7 +501,7 @@ const V5_REBALANCED_ESSENCES = latestEnabledEssences(PRE_V5_CURRENT_ESSENCES).ma
     return {
       ...definition,
       contentVersion: skill.contentVersion,
-      description: v5EssenceSummary(definition),
+      flavorLine: v5EssenceFlavorLine(definition),
       skill,
       authoring: {
         ...definition.authoring,
@@ -535,6 +536,20 @@ export function validateEssenceDefinition(definition: EssenceDefinition): readon
   if (!STABLE_ID_PATTERN.test(definition.sourceDisciplineId)) issues.push('sourceDisciplineId')
   if (!definition.name.trim()) issues.push('name')
   if (!definition.description.trim()) issues.push('description')
+  if (
+    definition.flavorLine !== undefined &&
+    (definition.flavorLine.trim().length === 0 ||
+      definition.flavorLine.length > 160 ||
+      /[\r\n]/u.test(definition.flavorLine))
+  ) {
+    issues.push('flavorLine')
+  }
+  if (
+    definition.authoring.validationTags.includes('owner-rebalance-v5') &&
+    !definition.flavorLine?.trim()
+  ) {
+    issues.push('flavorLine')
+  }
   if (definition.skill.id !== definition.essenceId) issues.push('skill.id')
   if (definition.skill.contentVersion !== definition.contentVersion) {
     issues.push('skill.contentVersion')
