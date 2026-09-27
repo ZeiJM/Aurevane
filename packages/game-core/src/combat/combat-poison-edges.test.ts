@@ -161,7 +161,10 @@ describe('current Poison edge rules', () => {
       { kind: 'self' },
       CONTENT,
     )
-    expect(reapplied.state.effectState?.poison[0]).toMatchObject({ stacks: 2, movementRemainder: 4 })
+    expect(reapplied.state.effectState?.poison[0]).toMatchObject({
+      stacks: 2,
+      movementRemainder: 4,
+    })
   })
 
   it('Revert relocates without counting Poison movement progress', () => {
