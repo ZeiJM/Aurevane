@@ -10,6 +10,7 @@ function draft(overrides: Partial<SkillEconomyDraft> = {}): SkillEconomyDraft {
     mpCost: 5,
     accuracyMode: 'per-target',
     accuracyModifierBasisPoints: -750,
+    cooldown: { key: 'test.skill', ownerTurns: 2 },
     ...overrides,
   }
 }
@@ -17,7 +18,11 @@ function draft(overrides: Partial<SkillEconomyDraft> = {}): SkillEconomyDraft {
 describe('Master Panel Skill economy editor', () => {
   it('edits canonical AP and MP bounds', () => {
     const markup = renderToStaticMarkup(
-      createElement(SkillEconomyEditor, { value: draft(), onChange: vi.fn() }),
+      createElement(SkillEconomyEditor, {
+        value: draft(),
+        requirementGated: false,
+        onChange: vi.fn(),
+      }),
     )
 
     expect(markup).toContain('aria-label="Action Economy (AP)"')
@@ -30,9 +35,39 @@ describe('Master Panel Skill economy editor', () => {
     expect(markup).toContain('value="5"')
   })
 
+  it('authors one-to-three-turn cooldowns and disables cooldown editing for requirement-gated Skills', () => {
+    const ordinary = renderToStaticMarkup(
+      createElement(SkillEconomyEditor, {
+        value: draft(),
+        requirementGated: false,
+        onChange: vi.fn(),
+      }),
+    )
+    expect(ordinary).toContain('aria-label="Cooldown (turns)"')
+    expect(ordinary).toContain('min="1"')
+    expect(ordinary).toContain('max="3"')
+    expect(ordinary).toContain('value="2"')
+    expect(ordinary).toContain('Current combat rules allow 1–3 owner turns.')
+
+    const gated = renderToStaticMarkup(
+      createElement(SkillEconomyEditor, {
+        value: draft(),
+        requirementGated: true,
+        onChange: vi.fn(),
+      }),
+    )
+    expect(gated).toContain('aria-label="Cooldown (turns)"')
+    expect(gated).toContain('disabled=""')
+    expect(gated).toContain('No runtime cooldown: this Skill already has a use requirement.')
+  })
+
   it('offers Automatic Hit and Accuracy Roll and exposes the signed modifier only for rolls', () => {
     const roll = renderToStaticMarkup(
-      createElement(SkillEconomyEditor, { value: draft(), onChange: vi.fn() }),
+      createElement(SkillEconomyEditor, {
+        value: draft(),
+        requirementGated: false,
+        onChange: vi.fn(),
+      }),
     )
     expect(roll).toContain('<option value="automatic">Automatic Hit</option>')
     expect(roll).toContain('<option value="per-target" selected="">Accuracy Roll</option>')
@@ -44,6 +79,7 @@ describe('Master Panel Skill economy editor', () => {
     const automatic = renderToStaticMarkup(
       createElement(SkillEconomyEditor, {
         value: draft({ accuracyMode: 'automatic', accuracyModifierBasisPoints: undefined }),
+        requirementGated: false,
         onChange: vi.fn(),
       }),
     )
@@ -52,7 +88,11 @@ describe('Master Panel Skill economy editor', () => {
 
   it('does not expose editable gameplay tags', () => {
     const markup = renderToStaticMarkup(
-      createElement(SkillEconomyEditor, { value: draft(), onChange: vi.fn() }),
+      createElement(SkillEconomyEditor, {
+        value: draft(),
+        requirementGated: false,
+        onChange: vi.fn(),
+      }),
     )
 
     expect(markup).not.toContain('name="tags"')
