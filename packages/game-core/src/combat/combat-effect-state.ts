@@ -61,6 +61,8 @@ export interface CombatOngoingRecovery {
 }
 
 export interface CombatPoisonInstance {
+  /** New applications use stable order; omitted historical single-instance state remains valid. */
+  applicationOrder?: number
   targetCombatantId: string
   sourceCombatantId: string
   sourceActionId: string
@@ -84,6 +86,8 @@ export interface CombatBleedStack {
 }
 
 export interface CombatBurnInstance {
+  /** New applications use stable order; omitted historical single-instance state remains valid. */
+  applicationOrder?: number
   targetCombatantId: string
   sourceCombatantId: string
   sourceActionId: string
