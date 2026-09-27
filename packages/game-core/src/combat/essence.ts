@@ -1,4 +1,5 @@
 import { ADVANCED_DISCIPLINE_ESSENCES } from './advanced-discipline-content'
+import { createCombatRebalancedSkillVersion } from './combat-balance-v2'
 import type { CombatActionEvaluation, CombatTargetSelection } from './actions'
 import { FOUNDATION_TRIO_ESSENCES } from './foundation-trio-essences'
 import { IRONFIST_ESSENCE } from './ironfist-content'
@@ -466,11 +467,32 @@ const A03_CLASS_TUNED_ESSENCES = latestEnabledEssences([
   return next ? [next] : []
 })
 
+const OWNER_COMBAT_REBALANCED_ESSENCES = latestEnabledEssences([
+  ...PRE_PHASE4_REBALANCE_ESSENCES,
+  ...PHASE4_REBALANCED_ESSENCES,
+  ...A03_MYSTIC_MP_ESSENCES,
+  ...A03_CLASS_TUNED_ESSENCES,
+]).map((definition) => {
+  const skill = createCombatRebalancedSkillVersion(definition.skill, 'essence')
+  return {
+    ...definition,
+    contentVersion: skill.contentVersion,
+    skill,
+    authoring: {
+      ...definition.authoring,
+      validationTags: [
+        ...new Set([...definition.authoring.validationTags, 'owner-combat-rebalance-v2']),
+      ],
+    },
+  } satisfies EssenceDefinition
+})
+
 export const P36_REPRESENTATIVE_ESSENCES = [
   ...PRE_PHASE4_REBALANCE_ESSENCES,
   ...PHASE4_REBALANCED_ESSENCES,
   ...A03_MYSTIC_MP_ESSENCES,
   ...A03_CLASS_TUNED_ESSENCES,
+  ...OWNER_COMBAT_REBALANCED_ESSENCES,
 ] as const satisfies readonly EssenceDefinition[]
 
 const STABLE_ID_PATTERN = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/
