@@ -8,7 +8,6 @@ import {
 
 export const CURRENT_POISON_PROFILE_VERSION = 1 as const
 export const CURRENT_POISON_DAMAGE = 2 as const
-export const CURRENT_BLEED_MAX_STACKS = 3 as const
 export const CURRENT_BLEED_MAX_TICKS = 4 as const
 export const CURRENT_BLEED_MAX_RAW_TOTAL = 10 as const
 export const CURRENT_BURN_PROFILE_VERSION = 1 as const
@@ -189,23 +188,7 @@ export function applyCurrentBleedState(
     throw new RangeError('Bleed application order has reached the safe integer limit.')
   }
   const applicationOrder = maximumOrder + 1
-  let bleed = [...effectState.bleed]
-  const targetStacks = bleed
-    .filter((stack) => stack.targetCombatantId === targetCombatantId)
-    .sort(
-      (left, right) =>
-        left.remainingTicks - right.remainingTicks ||
-        left.applicationOrder - right.applicationOrder,
-    )
-  if (targetStacks.length >= CURRENT_BLEED_MAX_STACKS) {
-    const replaced = targetStacks[0]
-    bleed = bleed.filter(
-      (stack) =>
-        stack.targetCombatantId !== replaced.targetCombatantId ||
-        stack.applicationOrder !== replaced.applicationOrder,
-    )
-  }
-
+  const bleed = [...effectState.bleed]
   bleed.push({
     targetCombatantId,
     sourceCombatantId,
@@ -457,15 +440,12 @@ function validateCurrentBleedState(state: CombatEncounterState): readonly Combat
   }
 
   const combatantIds = new Set(state.tactical.battle.combatants.map((row) => row.id))
-  const stackCounts = new Map<string, number>()
   const applicationOrders = new Set<number>()
   let invalid = false
   let previousTargetId: string | null = null
   let previousApplicationOrder = 0
 
   for (const stack of bleed) {
-    const targetCount = (stackCounts.get(stack.targetCombatantId) ?? 0) + 1
-    stackCounts.set(stack.targetCombatantId, targetCount)
     const rawTotalValid =
       Number.isSafeInteger(stack.damagePerTick) &&
       Number.isSafeInteger(stack.remainingTicks) &&
@@ -491,7 +471,6 @@ function validateCurrentBleedState(state: CombatEncounterState): readonly Combat
       !Number.isSafeInteger(stack.applicationOrder) ||
       stack.applicationOrder <= 0 ||
       applicationOrders.has(stack.applicationOrder) ||
-      targetCount > CURRENT_BLEED_MAX_STACKS ||
       !sorted
     ) {
       invalid = true
@@ -506,7 +485,7 @@ function validateCurrentBleedState(state: CombatEncounterState): readonly Combat
         {
           field: 'effectState.bleed',
           message:
-            'Bleed state must contain at most three valid independent stacks per target in stable application order, each with one to four remaining ticks, no more than 10 raw remaining damage, and optional boolean copy policy.',
+            'Bleed state must contain valid independent applications in stable order, each with one to four remaining ticks, no more than 10 raw remaining damage, and optional boolean copy policy.',
         },
       ]
     : []
