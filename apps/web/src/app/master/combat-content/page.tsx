@@ -10,9 +10,7 @@ import {
   type ResonanceDefinition,
 } from '@aurevane/game-core/combat/resonance'
 import type { CombatContentEditorSkillOption } from '@/components/master/combat-content/combat-content-editor'
-import {
-  CombatContentAuthoringWorkspace,
-} from '@/components/master/combat-content/combat-content-authoring-workspace'
+import { CombatContentAuthoringWorkspace } from '@/components/master/combat-content/combat-content-authoring-workspace'
 import type { EssenceContentEditorOption } from '@/components/master/combat-content/essence-content-editor'
 import type { ResonanceContentEditorOption } from '@/components/master/combat-content/resonance-content-editor'
 import { MasterPanelShell } from '@/components/master/master-panel-shell'
@@ -106,7 +104,6 @@ export default async function MasterCombatContentPage() {
         left.id.localeCompare(right.id),
     )
 
-
   const disciplineIds = [...new Set(catalog.map((skill) => skill.sourceDisciplineId))]
   const staticEssences = disciplineIds
     .map((disciplineId) => resolveEssenceForBuild(disciplineId, null))
@@ -130,10 +127,7 @@ export default async function MasterCombatContentPage() {
           throw new Error(`Invalid authoritative Essence ${staticDefinition.essenceId}.`)
         }
 
-        const historyByVersion = new Map<
-          number,
-          EssenceContentEditorOption['history'][number]
-        >()
+        const historyByVersion = new Map<number, EssenceContentEditorOption['history'][number]>()
         historyByVersion.set(staticDefinition.contentVersion, {
           contentVersion: staticDefinition.contentVersion,
           source: 'static-baseline',
@@ -177,7 +171,6 @@ export default async function MasterCombatContentPage() {
       left.id.localeCompare(right.id),
   )
 
-
   const staticResonances: ResonanceDefinition[] = []
   for (let firstIndex = 0; firstIndex < disciplineIds.length; firstIndex += 1) {
     for (let secondIndex = firstIndex + 1; secondIndex < disciplineIds.length; secondIndex += 1) {
@@ -209,10 +202,7 @@ export default async function MasterCombatContentPage() {
           throw new Error(`Invalid authoritative Resonance ${staticDefinition.id}.`)
         }
 
-        const historyByVersion = new Map<
-          number,
-          ResonanceContentEditorOption['history'][number]
-        >()
+        const historyByVersion = new Map<number, ResonanceContentEditorOption['history'][number]>()
         historyByVersion.set(staticDefinition.contentVersion, {
           contentVersion: staticDefinition.contentVersion,
           source: 'static-baseline',
