@@ -93,13 +93,12 @@ function assertPinnedStatus(
     instance.statusVersion !== definition.version ||
     !Number.isSafeInteger(instance.stacks) ||
     instance.stacks < 1 ||
-    instance.stacks > definition.maximumStacks ||
     !Number.isSafeInteger(instance.remainingOwnerTurnStarts) ||
     instance.remainingOwnerTurnStarts < 1 ||
     instance.remainingOwnerTurnStarts > definition.durationOwnerTurnStarts
   ) {
     throw new TypeError(
-      'Copied status state must match its pinned version, stack cap and remaining duration.',
+      'Copied status state must match its pinned version, positive stack count and remaining duration.'
     )
   }
 }
@@ -262,8 +261,7 @@ export function planCombatStatusCopies(
       ...(donor.sourceScopedMark === true ? { sourceScopedMark: true as const } : {}),
       statusId: donor.statusId,
       statusVersion: donor.statusVersion,
-      // Both inputs are bounded; adding only the remaining capacity avoids unsafe integer sums.
-      stacks: previousStacks + Math.min(donor.stacks, definition.maximumStacks - previousStacks),
+      stacks: addCopiedStacks(previousStacks, donor.stacks),
       remainingOwnerTurnStarts: Math.max(
         donor.remainingOwnerTurnStarts,
         previous?.remainingOwnerTurnStarts ?? 0,
@@ -284,6 +282,14 @@ export function planCombatStatusCopies(
       : undefined
   const bleed = planBleedCopies(state, donorId, receiverId, effect.mode)
   return { receiverId, copies, poison, burn, bleed }
+}
+
+function addCopiedStacks(current: number, added: number): number {
+  const total = BigInt(current) + BigInt(added)
+  if (total > BigInt(Number.MAX_SAFE_INTEGER)) {
+    throw new RangeError('Copied effect stack count has reached the safe integer limit.')
+  }
+  return Number(total)
 }
 
 function statusSummary(status: CombatStatusInstance | undefined): string {
@@ -328,6 +334,7 @@ export function applyCombatStatusCopies(
   const nextPoison = poison
     ? {
         targetCombatantId: receiverId,
+        stacks: addCopiedStacks(poison.previous?.stacks ?? 0, poison.donor.stacks),
         sourceCombatantId: actorId,
         sourceActionId: actionId,
         profileVersion: poison.donor.profileVersion,
@@ -338,6 +345,7 @@ export function applyCombatStatusCopies(
   const nextBurn = burn
     ? {
         targetCombatantId: receiverId,
+        stacks: addCopiedStacks(burn.previous?.stacks ?? 0, burn.donor.stacks),
         sourceCombatantId: actorId,
         sourceActionId: actionId,
         profileVersion: burn.donor.profileVersion,
