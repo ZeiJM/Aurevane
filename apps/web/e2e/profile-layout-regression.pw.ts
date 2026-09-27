@@ -643,7 +643,7 @@ for (const pathChoice of [
         choices: SupernaturalChoiceOption[]
       }>
     }
-    expect(await currentPath()).toEqual({ state: null, choices: [] })
+    expect(await currentPath()).toEqual({ state: null, choices: [], currentIdentity: null })
     await expect(panel).toContainText('Path information is unavailable')
     await expect(panel.locator('[data-supernatural-choice]')).toHaveCount(0)
 
