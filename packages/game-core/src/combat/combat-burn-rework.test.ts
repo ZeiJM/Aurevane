@@ -10,6 +10,7 @@ import {
 } from './actions'
 import { createPendingBattle, startBattle } from './battle-state'
 import { createTacticalBattleState, selectCurrentFinalFacing } from './board'
+import { applyCurrentBurnState } from './combat-dots'
 import { PHASE4_STATUSES } from './status-content'
 
 const CONTENT = { statuses: PHASE4_STATUSES }
@@ -185,6 +186,38 @@ describe('current Burn pressure runtime', () => {
     const restartedTick = finishTurn(targetTurnAgain.state, 'west')
     expect(targetHp(restartedTick.state)).toBe(18)
     expect(restartedTick.state.effectState?.burn[0]?.stage).toBe(1)
+  })
+
+  it('counts a historical Burn without an application count before reapplication', () => {
+    const base = encounter()
+    const historical: CombatEncounterState = {
+      ...base,
+      effectState: {
+        ...base.effectState!,
+        burn: [
+          {
+            targetCombatantId: 'target',
+            sourceCombatantId: 'actor',
+            sourceActionId: 'test.legacy-burn',
+            profileVersion: 1,
+            stage: 1,
+          },
+        ],
+      },
+    }
+    const reapplied = applyCurrentBurnState(
+      historical,
+      'actor',
+      'target',
+      'test.reapplied-burn',
+    )
+    expect(reapplied.effectState?.burn).toEqual([
+      expect.objectContaining({
+        sourceActionId: 'test.reapplied-burn',
+        stage: 0,
+        stacks: 2,
+      }),
+    ])
   })
 
   it('Cleanse removes the current Burn instance', () => {
