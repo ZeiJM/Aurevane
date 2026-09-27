@@ -124,7 +124,7 @@ export const techniquesManualArticle: ManualArticle = {
         `4. On an eligible critical hit, multiply by ${COMBAT_CRITICAL_DAMAGE_BASIS_POINTS / 10_000} and round down. One critical result is shared by all eligible damage blocks against the same target in that command.`,
         '5. Apply the attacker-versus-defender Level multiplier below, rounding down. Self-damage does not receive this relative-Level adjustment.',
         '6. Apply any authored front/side/rear damage multiplier, rounding down. Only a Skill that specifies a facing multiplier receives one.',
-        '7. Apply the recipient’s legacy damage-taken multipliers, once per active stack in stored order, rounding down each time. Current Guarded multiplies by 85% per stack (up to three); Exposed multiplies by 115%. Lowered Guard, the PvP timeout penalty, is separate at 250% per stack.',
+        '7. Apply the recipient’s damage-taken multipliers once per active application, rounding down each time. Guarded multiplies by 85% per application; Exposed by 115%; Lowered Guard, the PvP timeout penalty, by 250%.',
         `8. Apply the combined conditional/status/elemental damage multiplier, bounded to ${CONDITIONAL_DAMAGE_MINIMUM / 100}–${CONDITIONAL_DAMAGE_MAXIMUM / 100}%, and round down. Piercing ignores incoming reductions in this budget and legacy incoming reductions, but not incoming increases.`,
         '9. Barrier absorbs direct damage first. Remaining damage reduces HP, bounded by the recipient’s current HP. Later multipliers can round a small hit to zero; the defense minimum is not a final guaranteed HP loss.',
       ],
@@ -165,7 +165,7 @@ export const techniquesManualArticle: ManualArticle = {
       title: 'Cooldowns and consecutive use',
       paragraphs: [
         'Ordinary authored Techniques have zero turn cooldown. Consecutively using the same Skill instead reduces quantitative effectiveness to 50% at unchanged costs; further repeats stay at 50%. A different actual command resets the chain; ending a turn alone does not.',
-        'Healing, Barrier, MP changes and Bleed tick damage are halved, rounding positive magnitudes down with a minimum of one. Status stack grants round down without that minimum, so a one-stack application disappears on a repeat. Discrete effects—Cleanse/Dispel, return, terrain creation, displacement, new Poison/Burn, Sensory and copying—are omitted on the repeated command. This is why repeating a setup Skill may do little or nothing even though it remains legal.',
+        'Healing, Barrier, MP changes and Bleed tick damage are halved, rounding positive magnitudes down with a minimum of one. Authored status-application counts round down without that minimum, so a one-application grant disappears on a repeat. Discrete effects—Cleanse/Dispel, return, terrain creation, displacement, new Poison/Burn, Sensory and copying—are omitted on the repeated command. This is why repeating a setup Skill may do little or nothing even though it remains legal.',
       ],
     },
     {
@@ -179,10 +179,10 @@ export const techniquesManualArticle: ManualArticle = {
         'Healing: restores HP without reviving a defeated unit. Multi-application recovery starts immediately, then continues at recipient turn ends. Hexed reduces both direct and periodic healing. Restoration cannot exceed maximum HP.',
         'MP Restore / MP Drain: adds or removes MP, bounded by the recipient’s resource limits. Repeated recovery lists its application count; a drain does not imply restoration unless another effect grants it.',
         'Barrier: grants a separate pool that absorbs direct damage before HP. No current regular Technique authors a Barrier grant, although the effect is supported by the combat system.',
-        `Burn: ${CURRENT_BURN_DAMAGE_BY_STAGE.join(', then ')} fixed damage at the next three turn ends; reapplication restarts the sequence. A burning unit also takes ${CURRENT_BURN_BACKLASH_DAMAGE} backlash after a Basic Attack or damaging command.`,
-        `Poison: ${CURRENT_POISON_DAMAGE} fixed damage at turn end and per five voluntarily entered tiles, carrying partial movement progress forward. It persists until removed; it has no finite three- or four-turn total. Forced displacement does not count as voluntary movement.`,
-        'Bleed: authored fixed damage per turn-end tick, with an authored tick count. Up to three independent stacks coexist. Fixed DOT damage does not gain Power, Level or critical scaling.',
-        'Apply status: grants the named condition; a stack count is not a percentage magnitude. Current Mark improves source Accuracy, while historical Marked increased source damage. Their meanings are not interchangeable.',
+        `Burn: ${CURRENT_BURN_DAMAGE_BY_STAGE.join(', then ')} fixed damage across its next three turn ends. Each application progresses independently. A burning unit also takes ${CURRENT_BURN_BACKLASH_DAMAGE} backlash per active Burn application after a Basic Attack or damaging command.`,
+        `Poison: ${CURRENT_POISON_DAMAGE} fixed damage per application at turn end and per five voluntarily entered tiles, with each application carrying its own partial movement progress. Poison persists until removed; it has no finite three- or four-turn total. Forced displacement does not count as voluntary movement.`,
+        'Bleed: authored fixed damage per turn-end tick, with an authored tick count. Each application advances independently. Fixed DOT damage does not gain Power, Level or critical scaling.',
+        'Apply status: grants the named condition. Repeated applications accumulate under the shared effect rule; the listed percentage or value is the magnitude of one application. Current Mark improves source Accuracy, while historical Marked increased source damage. Their meanings are not interchangeable.',
         'Cleanse / Dispel: removes the statuses explicitly listed by the Skill. Dispel removes protection; Cleanse removes harmful conditions. Neither automatically removes every effect in the game.',
         'Push / Pull: moves a unit one legal tile at a time, stopping at occupancy, obstacles or illegal elevation. Root prevents displacement. Return moves you to your vacant turn-start tile without restoring resources or undoing actions.',
         'Frozen Terrain: creates a temporary ground overlay affecting both teams; entering it costs extra AP unless Airborne. Fire converts it to Steam, which blocks sight. Unit effects still follow the Skill’s affected-team rule.',
@@ -207,7 +207,7 @@ export const techniquesManualArticle: ManualArticle = {
       id: 'status-magnitudes',
       title: 'Status percentages and movement modifiers',
       paragraphs: [
-        'Named status magnitudes are fixed rules, not a shared low/medium/high scale. Damage dealt, damage received, healing received and Accuracy are separate dimensions. Haste and Slow each change movement by 10 AP per tile in opposite directions; Root blocks movement instead of adding an AP magnitude. The table includes every named status applied by the current regular catalog.',
+        'Named status magnitudes are fixed rules, not a shared low/medium/high scale. Repeated applications accumulate without a gameplay application-count cap; outcome rules such as minimum movement cost and bounded conditional-damage budgets still apply after those applications are combined. Damage dealt, damage received, healing received and Accuracy are separate dimensions. Haste and Slow each change movement by 10 AP per tile in opposite directions; Root blocks movement instead of adding an AP magnitude. The table includes every named status applied by the current regular catalog.',
         'A bracketed percentage may have a source or condition restriction: read its explanation. Reckless and Fortified each link a benefit with a drawback. A larger magnitude alone does not make a Skill stronger: AP/MP cost, range, area, requirements, duration, setup, payoff and repeat behavior all matter.',
       ],
       table: {
