@@ -22,7 +22,6 @@ export function validateCombatAccuracyStatusDefinition(status: CombatStatusDefin
     (mark !== undefined && blind !== undefined) ||
     status.polarity !== 'negative' ||
     status.reactionClass !== 'ordinary' ||
-    status.maximumStacks !== 1 ||
     status.damageTakenMultiplierBasisPoints !== 10_000 ||
     (status.damageModifiers?.length ?? 0) > 0 ||
     status.endOfTurn !== undefined ||
@@ -33,7 +32,7 @@ export function validateCombatAccuracyStatusDefinition(status: CombatStatusDefin
     status.reflectBasisPoints !== undefined
   ) {
     throw new TypeError(
-      'Mark and Blind must be separate single-stack, negative, ordinary accuracy statuses.',
+      'Mark and Blind must be separate negative, ordinary accuracy statuses.',
     )
   }
 }
@@ -65,9 +64,6 @@ export function collectCombatStatusIdentityIssues(
     const first = firstById.get(status.statusId)
     if (status.sourceScopedMark !== undefined && status.sourceScopedMark !== true) {
       issues.push({ field, message: 'Source-scoped Mark marker must be true when supplied.' })
-    }
-    if (status.sourceScopedMark === true && status.stacks !== 1) {
-      issues.push({ field, message: 'Source-scoped Mark cannot stack.' })
     }
     if (
       first &&
@@ -116,26 +112,27 @@ export function assertValidCombatAccuracyStatusState(
         !definition ||
         (status.sourceScopedMark === true) !== isMark ||
         status.statusVersion !== definition.version ||
-        status.stacks !== 1 ||
+        !Number.isSafeInteger(status.stacks) ||
+        status.stacks < 1 ||
         status.remainingOwnerTurnStarts > definition.durationOwnerTurnStarts
       ) {
         throw new TypeError(
-          'Current accuracy status must match its pinned definition, source scope, stack and duration.',
+          'Current accuracy status must match its pinned definition, source scope, applications and duration.',
         )
       }
     }
   }
 }
 
-/** Non-stacking magnitudes: only the strongest eligible Mark and strongest Blind contribute. */
+/** Accuracy magnitudes accumulate once per active application. */
 export function combatAccuracyStatusModifier(
   state: CombatEncounterState,
   actorId: string,
   targetId: string,
   content: CombatContentCatalog,
 ): number {
-  let mark = 0
-  let blind = 0
+  let mark = 0n
+  let blind = 0n
   for (const row of state.statusState) {
     if (row.combatantId !== actorId && row.combatantId !== targetId) continue
     for (const status of row.statuses) {
@@ -144,16 +141,20 @@ export function combatAccuracyStatusModifier(
           candidate.id === status.statusId && candidate.version === status.statusVersion,
       )
       if (row.combatantId === actorId) {
-        blind = Math.max(blind, definition?.blindAccuracyPenaltyBasisPoints ?? 0)
+        blind +=
+          BigInt(definition?.blindAccuracyPenaltyBasisPoints ?? 0) * BigInt(status.stacks)
       }
       if (
         row.combatantId === targetId &&
         status.sourceScopedMark === true &&
         status.sourceCombatantId === actorId
       ) {
-        mark = Math.max(mark, definition?.markAccuracyBonusBasisPoints ?? 0)
+        mark += BigInt(definition?.markAccuracyBonusBasisPoints ?? 0) * BigInt(status.stacks)
       }
     }
   }
-  return mark - blind
+  const modifier = mark - blind
+  if (modifier > BigInt(Number.MAX_SAFE_INTEGER)) return Number.MAX_SAFE_INTEGER
+  if (modifier < BigInt(Number.MIN_SAFE_INTEGER)) return Number.MIN_SAFE_INTEGER
+  return Number(modifier)
 }
