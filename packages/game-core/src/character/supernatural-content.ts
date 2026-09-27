@@ -72,6 +72,51 @@ export const SUPERNATURAL_CHOICE_TRANSITIONS = [
   },
 ] as const satisfies readonly SupernaturalStoryTransitionDefinition[]
 
+export function resolveSupernaturalIdentity(
+  id: string,
+  contentVersion: number,
+): AuthoredSupernaturalIdentityDefinition | null {
+  return (
+    SUPERNATURAL_IDENTITY_PROOFS.find(
+      (identity) => identity.id === id && identity.contentVersion === contentVersion,
+    ) ?? null
+  )
+}
+
+export function resolveSupernaturalChoiceIdentity(
+  transition: SupernaturalStoryTransitionDefinition,
+): AuthoredSupernaturalIdentityDefinition | null {
+  if (transition.result.path === 'ascended') {
+    const identity = resolveSupernaturalIdentity(
+      transition.result.ascension.id,
+      transition.result.ascension.contentVersion,
+    )
+    return identity?.kind === 'ascension' ? identity : null
+  }
+  if (transition.result.path === 'severed') {
+    const identity = resolveSupernaturalIdentity(
+      transition.result.severence.id,
+      transition.result.severence.contentVersion,
+    )
+    return identity?.kind === 'severence' ? identity : null
+  }
+  return null
+}
+
+export function resolveSupernaturalStateIdentity(
+  state: SupernaturalStoryState,
+): AuthoredSupernaturalIdentityDefinition | null {
+  if (state.path === 'ascended' && state.ascension) {
+    const identity = resolveSupernaturalIdentity(state.ascension.id, state.ascension.contentVersion)
+    return identity?.kind === 'ascension' ? identity : null
+  }
+  if (state.path === 'severed' && state.severence) {
+    const identity = resolveSupernaturalIdentity(state.severence.id, state.severence.contentVersion)
+    return identity?.kind === 'severence' ? identity : null
+  }
+  return null
+}
+
 export function resolveSupernaturalChoiceTransition(id: string, contentVersion: number) {
   return (
     SUPERNATURAL_CHOICE_TRANSITIONS.find(
