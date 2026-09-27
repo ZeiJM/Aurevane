@@ -508,7 +508,10 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                             </span>
                             <div>
                               <strong>{skillDisplayName(focusedSkill.definition)}</strong>
-                              <small>{focusedSkillDisciplineName} Technique</small>
+                              <small>
+                                {focusedSkill.definition.flavorLine ??
+                                  `${focusedSkillDisciplineName} Technique`}
+                              </small>
                             </div>
                           </div>
                           <dl className={styles.characteristics}>
