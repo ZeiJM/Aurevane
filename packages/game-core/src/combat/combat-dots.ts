@@ -5,9 +5,11 @@ import {
   type CombatBurnInstance,
   type CombatPoisonInstance,
 } from './combat-effect-state'
+import { usesUnboundedEffectApplications } from './effect-application-rules'
 
 export const CURRENT_POISON_PROFILE_VERSION = 1 as const
 export const CURRENT_POISON_DAMAGE = 2 as const
+export const CURRENT_BLEED_MAX_STACKS = 3 as const
 export const CURRENT_BLEED_MAX_TICKS = 4 as const
 export const CURRENT_BLEED_MAX_RAW_TOTAL = 10 as const
 export const CURRENT_BURN_PROFILE_VERSION = 1 as const
@@ -85,13 +87,17 @@ export function applyCurrentPoisonState(
 ): CombatEncounterState {
   validateCurrentPoisonEffect({ curseCopyable })
   const effectState = normalizeCombatEffectState(state.effectState)
+  const unbounded = usesUnboundedEffectApplications(state)
+  const existing = effectState.poison.find(
+    (instance) => instance.targetCombatantId === targetCombatantId,
+  )
   const instance: CombatPoisonInstance = {
-    applicationOrder: nextDotApplicationOrder(effectState.poison),
+    ...(unbounded ? { applicationOrder: nextDotApplicationOrder(effectState.poison) } : {}),
     targetCombatantId,
     sourceCombatantId,
     sourceActionId,
     profileVersion: CURRENT_POISON_PROFILE_VERSION,
-    movementRemainder: 0,
+    movementRemainder: unbounded ? 0 : (existing?.movementRemainder ?? 0),
     ...(curseCopyable !== undefined ? { curseCopyable } : {}),
   }
 
@@ -99,7 +105,16 @@ export function applyCurrentPoisonState(
     ...state,
     effectState: {
       ...effectState,
-      poison: [...effectState.poison, instance].sort(compareDotApplication),
+      poison: (
+        unbounded
+          ? [...effectState.poison, instance]
+          : [
+              ...effectState.poison.filter(
+                (candidate) => candidate.targetCombatantId !== targetCombatantId,
+              ),
+              instance,
+            ]
+      ).sort(compareDotApplication),
     },
   }
 }
@@ -216,7 +231,24 @@ export function applyCurrentBleedState(
     throw new RangeError('Bleed application order has reached the safe integer limit.')
   }
   const applicationOrder = maximumOrder + 1
-  const bleed = [...effectState.bleed]
+  let bleed = [...effectState.bleed]
+  if (!usesUnboundedEffectApplications(state)) {
+    const targetApplications = bleed
+      .filter((application) => application.targetCombatantId === targetCombatantId)
+      .sort(
+        (left, right) =>
+          left.remainingTicks - right.remainingTicks ||
+          left.applicationOrder - right.applicationOrder,
+      )
+    if (targetApplications.length >= CURRENT_BLEED_MAX_STACKS) {
+      const replaced = targetApplications[0]!
+      bleed = bleed.filter(
+        (application) =>
+          application.targetCombatantId !== replaced.targetCombatantId ||
+          application.applicationOrder !== replaced.applicationOrder,
+      )
+    }
+  }
   bleed.push({
     targetCombatantId,
     sourceCombatantId,
@@ -302,8 +334,9 @@ export function applyCurrentBurnState(
 ): CombatEncounterState {
   validateCurrentBurnEffect({ curseCopyable })
   const effectState = normalizeCombatEffectState(state.effectState)
+  const unbounded = usesUnboundedEffectApplications(state)
   const instance: CombatBurnInstance = {
-    applicationOrder: nextDotApplicationOrder(effectState.burn),
+    ...(unbounded ? { applicationOrder: nextDotApplicationOrder(effectState.burn) } : {}),
     targetCombatantId,
     sourceCombatantId,
     sourceActionId,
@@ -315,7 +348,16 @@ export function applyCurrentBurnState(
     ...state,
     effectState: {
       ...effectState,
-      burn: [...effectState.burn, instance].sort(compareDotApplication),
+      burn: (
+        unbounded
+          ? [...effectState.burn, instance]
+          : [
+              ...effectState.burn.filter(
+                (candidate) => candidate.targetCombatantId !== targetCombatantId,
+              ),
+              instance,
+            ]
+      ).sort(compareDotApplication),
     },
   }
 }
@@ -395,7 +437,9 @@ function validateCurrentPoisonState(state: CombatEncounterState): readonly Comba
   }
 
   const combatantIds = new Set(state.tactical.battle.combatants.map((row) => row.id))
+  const unbounded = usesUnboundedEffectApplications(state)
   const applicationOrders = new Set<number>()
+  const targetIds = new Set<string>()
   let invalid = false
   let previousTargetId: string | null = null
   let previousApplicationOrder = -1
@@ -418,15 +462,18 @@ function validateCurrentPoisonState(state: CombatEncounterState): readonly Comba
       !Number.isSafeInteger(instance.movementRemainder) ||
       instance.movementRemainder < 0 ||
       instance.movementRemainder > 4 ||
-      (instance.applicationOrder !== undefined &&
-        (!Number.isSafeInteger(instance.applicationOrder) ||
+      (unbounded
+        ? instance.applicationOrder === undefined ||
+          !Number.isSafeInteger(instance.applicationOrder) ||
           instance.applicationOrder < 1 ||
-          applicationOrders.has(instance.applicationOrder))) ||
+          applicationOrders.has(instance.applicationOrder)
+        : instance.applicationOrder !== undefined || targetIds.has(instance.targetCombatantId)) ||
       !sorted
     ) {
       invalid = true
     }
     if (instance.applicationOrder !== undefined) applicationOrders.add(instance.applicationOrder)
+    targetIds.add(instance.targetCombatantId)
     previousTargetId = instance.targetCombatantId
     previousApplicationOrder = applicationOrder
   }
@@ -436,7 +483,9 @@ function validateCurrentPoisonState(state: CombatEncounterState): readonly Comba
         {
           field: 'effectState.poison',
           message:
-            'Poison state must contain valid independent current-profile applications in stable order, with movement progress from 0 to 4 and optional boolean copy policy.',
+            unbounded
+              ? 'Poison state must contain valid independent current-profile applications in stable order, with movement progress from 0 to 4 and optional boolean copy policy.'
+              : 'Poison state must contain one valid current-profile instance per target, sorted by target ID, with movement progress from 0 to 4 and optional boolean copy policy.',
         },
       ]
     : []
@@ -449,7 +498,9 @@ function validateCurrentBurnState(state: CombatEncounterState): readonly CombatE
   }
 
   const combatantIds = new Set(state.tactical.battle.combatants.map((row) => row.id))
+  const unbounded = usesUnboundedEffectApplications(state)
   const applicationOrders = new Set<number>()
+  const targetIds = new Set<string>()
   let invalid = false
   let previousTargetId: string | null = null
   let previousApplicationOrder = -1
@@ -472,15 +523,18 @@ function validateCurrentBurnState(state: CombatEncounterState): readonly CombatE
       !Number.isSafeInteger(instance.stage) ||
       instance.stage < 0 ||
       instance.stage >= CURRENT_BURN_DAMAGE_BY_STAGE.length ||
-      (instance.applicationOrder !== undefined &&
-        (!Number.isSafeInteger(instance.applicationOrder) ||
+      (unbounded
+        ? instance.applicationOrder === undefined ||
+          !Number.isSafeInteger(instance.applicationOrder) ||
           instance.applicationOrder < 1 ||
-          applicationOrders.has(instance.applicationOrder))) ||
+          applicationOrders.has(instance.applicationOrder)
+        : instance.applicationOrder !== undefined || targetIds.has(instance.targetCombatantId)) ||
       !sorted
     ) {
       invalid = true
     }
     if (instance.applicationOrder !== undefined) applicationOrders.add(instance.applicationOrder)
+    targetIds.add(instance.targetCombatantId)
     previousTargetId = instance.targetCombatantId
     previousApplicationOrder = applicationOrder
   }
@@ -490,7 +544,9 @@ function validateCurrentBurnState(state: CombatEncounterState): readonly CombatE
         {
           field: 'effectState.burn',
           message:
-            'Burn state must contain valid independent current-profile applications in stable order, with canonical stage 0 through 2 and optional boolean copy policy.',
+            unbounded
+              ? 'Burn state must contain valid independent current-profile applications in stable order, with canonical stage 0 through 2 and optional boolean copy policy.'
+              : 'Burn state must contain one valid current-profile instance per target, sorted by target ID, with canonical stage 0 through 2 and optional boolean copy policy.',
         },
       ]
     : []
@@ -503,12 +559,16 @@ function validateCurrentBleedState(state: CombatEncounterState): readonly Combat
   }
 
   const combatantIds = new Set(state.tactical.battle.combatants.map((row) => row.id))
+  const unbounded = usesUnboundedEffectApplications(state)
   const applicationOrders = new Set<number>()
+  const targetCounts = new Map<string, number>()
   let invalid = false
   let previousTargetId: string | null = null
   let previousApplicationOrder = 0
 
   for (const stack of bleed) {
+    const targetCount = (targetCounts.get(stack.targetCombatantId) ?? 0) + 1
+    targetCounts.set(stack.targetCombatantId, targetCount)
     const rawTotalValid =
       Number.isSafeInteger(stack.damagePerTick) &&
       Number.isSafeInteger(stack.remainingTicks) &&
@@ -534,6 +594,7 @@ function validateCurrentBleedState(state: CombatEncounterState): readonly Combat
       !Number.isSafeInteger(stack.applicationOrder) ||
       stack.applicationOrder <= 0 ||
       applicationOrders.has(stack.applicationOrder) ||
+      (!unbounded && targetCount > CURRENT_BLEED_MAX_STACKS) ||
       !sorted
     ) {
       invalid = true
@@ -548,7 +609,9 @@ function validateCurrentBleedState(state: CombatEncounterState): readonly Combat
         {
           field: 'effectState.bleed',
           message:
-            'Bleed state must contain valid independent applications in stable order, each with one to four remaining ticks, no more than 10 raw remaining damage, and optional boolean copy policy.',
+            unbounded
+              ? 'Bleed state must contain valid independent applications in stable order, each with one to four remaining ticks, no more than 10 raw remaining damage, and optional boolean copy policy.'
+              : 'Bleed state must contain at most three valid independent applications per target in stable order, each with one to four remaining ticks, no more than 10 raw remaining damage, and optional boolean copy policy.',
         },
       ]
     : []
