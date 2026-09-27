@@ -98,7 +98,7 @@ function assertPinnedStatus(
     instance.remainingOwnerTurnStarts > definition.durationOwnerTurnStarts
   ) {
     throw new TypeError(
-      'Copied status state must match its pinned version, positive stack count and remaining duration.'
+      'Copied status state must match its pinned version, positive stack count and remaining duration.',
     )
   }
 }
