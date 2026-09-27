@@ -281,9 +281,10 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
   await expect(list.locator('article')).toHaveCount(8)
   const fortress = list.locator('article').filter({ hasText: 'Fortress' })
   await fortress.getByRole('checkbox').focus()
-  await expect(dialog).toContainText('EffectsFortified')
+  await expect(dialog).toContainText('EffectsFortified [−30% incoming / −20% outgoing]')
   await expect(dialog).toContainText('TargetSelf')
-  await expect(dialog).toContainText('Damage0')
+  await expect(dialog.locator('dt').filter({ hasText: /^Damage$/ })).toHaveCount(0)
+  await expect(dialog).toContainText('Take 30% less damage and deal 20% less damage.')
   expect(await dialog.evaluate((element) => element.scrollWidth > element.clientWidth + 1)).toBe(
     false,
   )
@@ -415,7 +416,10 @@ test('Chronist provisions its full testing library, Essence artwork and explicit
   await expect(dialog).toContainText('EffectsHaste')
   const rewind = list.locator('article').filter({ hasText: 'Rewind Step' })
   await rewind.getByRole('checkbox').focus()
-  await expect(dialog).toContainText('EffectsReturn to Turn Start')
+  await expect(dialog).toContainText('EffectsReturn')
+  await expect(dialog).toContainText(
+    'Returns you to your turn-start tile if legal; refunds no resources.',
+  )
   await expect(dialog).toContainText('Cooldown')
   expect(await dialog.evaluate((element) => element.scrollWidth > element.clientWidth + 1)).toBe(
     false,
