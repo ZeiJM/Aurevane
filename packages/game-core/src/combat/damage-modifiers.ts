@@ -30,8 +30,6 @@ export function conditionalDamageMultiplier(
   options: { ignoreIncomingMitigation?: boolean } = {},
 ): number {
   let numerator = BigInt(elementalMultiplier)
-  if (hasGameplayTag(state, attackerId, 'Inspired', content))
-    numerator = (numerator * 11_000n) / 10_000n
   let denominator = 1n
   for (const [ownerId, opponentId, direction] of [
     [attackerId, recipientId, 'outgoing'],
@@ -65,7 +63,11 @@ export function conditionalDamageMultiplier(
         )
           continue
         // Each new modifier is applied once per status, independently of legacy stack counts.
-        numerator *= BigInt(modifier.multiplierBasisPoints)
+        const tuned =
+          direction === 'incoming'
+            ? status.tuning?.incomingDamageModifierBasisPoints
+            : status.tuning?.outgoingDamageModifierBasisPoints
+        numerator *= BigInt(tuned === undefined ? modifier.multiplierBasisPoints : 10_000 + tuned)
         denominator *= 10_000n
       }
     }
