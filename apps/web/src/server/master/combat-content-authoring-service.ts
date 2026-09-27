@@ -214,7 +214,30 @@ function draftShapeIssuesForIdentity(
   if (!isRecord(definition)) {
     return [
       {
-        path: '
+        path: '$',
+        code: 'INVALID_DEFINITION_SHAPE',
+        message: `${label} content must be a typed object definition.`,
+      },
+    ]
+  }
+
+  const issues = forbiddenDraftFieldIssues(definition)
+  const identity =
+    identityField === 'essenceId' ? readEssenceId(definition) : readResonanceId(definition)
+  if (!identity) {
+    issues.push({
+      path: identityField,
+      code: `INVALID_${label.toUpperCase()}_ID`,
+      message: `${label} id is required.`,
+    })
+  }
+  return issues
+}
+
+function normalizeMessage(error: unknown): string {
+  return error instanceof Error && error.message ? error.message : 'Combat definition is invalid.'
+}
+
 function validateSkillDefinition(definition: unknown): CombatContentValidationResult {
   const issues = draftShapeIssues(definition)
   if (!isRecord(definition) || issues.length > 0) {
@@ -291,6 +314,70 @@ function validateSkillDefinition(definition: unknown): CombatContentValidationRe
       derivedTags: [],
     }
   }
+}
+
+function validateEssenceAuthoringDefinition(definition: unknown): CombatContentValidationResult {
+  const issues = draftShapeIssuesForIdentity(definition, 'essenceId', 'Essence')
+  if (!isRecord(definition) || issues.length > 0) {
+    return { valid: false, issues, derivedTags: [] }
+  }
+
+  const candidate = structuredClone(definition) as unknown as EssenceDefinition
+  try {
+    for (const field of validateCanonicalEssenceDefinition(candidate)) {
+      issues.push({
+        path: field,
+        code: 'INVALID_ESSENCE_FIELD',
+        message: `Essence validation rejected ${field}.`,
+      })
+    }
+  } catch (error) {
+    issues.push({
+      path: '$',
+      code: 'INVALID_ESSENCE_SHAPE',
+      message: normalizeMessage(error),
+    })
+  }
+
+  if (issues.length === 0) {
+    const skillValidation = validateSkillDefinition(candidate.skill)
+    for (const issue of skillValidation.issues) {
+      issues.push({ ...issue, path: `skill.${issue.path}` })
+    }
+  }
+  if (issues.length > 0) return { valid: false, issues, derivedTags: [] }
+
+  return {
+    valid: true,
+    issues: [],
+    derivedTags: combatActionPresentationTags(toCombatActionDefinition(candidate.skill, 'pve')),
+  }
+}
+
+function validateResonanceAuthoringDefinition(definition: unknown): CombatContentValidationResult {
+  const issues = draftShapeIssuesForIdentity(definition, 'id', 'Resonance')
+  if (!isRecord(definition) || issues.length > 0) {
+    return { valid: false, issues, derivedTags: [] }
+  }
+
+  const candidate = structuredClone(definition) as unknown as ResonanceDefinition
+  try {
+    for (const field of validateCanonicalResonanceDefinition(candidate)) {
+      issues.push({
+        path: field,
+        code: 'INVALID_RESONANCE_FIELD',
+        message: `Resonance validation rejected ${field}.`,
+      })
+    }
+  } catch (error) {
+    issues.push({
+      path: '$',
+      code: 'INVALID_RESONANCE_SHAPE',
+      message: normalizeMessage(error),
+    })
+  }
+
+  return { valid: issues.length === 0, issues, derivedTags: [] }
 }
 
 function semanticChangedPaths(before: unknown, after: unknown, prefix = ''): string[] {
@@ -459,7 +546,6 @@ export function createCombatContentAuthoringService({
         return mapRepositoryConflict(error)
       }
     },
-
     async saveEssenceDraft(input) {
       await authorizeOperator(store, input.actorUserId)
       const validation = validateEssenceAuthoringDefinition(input.definition)
@@ -501,9 +587,9 @@ export function createCombatContentAuthoringService({
       const fallback = published
         ? null
         : resolveEssenceForBuild(definition.sourceDisciplineId, null)
-      const actualBaseVersion = published?.contentVersion ?? (
-        fallback?.essenceId === definition.essenceId ? fallback.contentVersion : null
-      )
+      const actualBaseVersion =
+        published?.contentVersion ??
+        (fallback?.essenceId === definition.essenceId ? fallback.contentVersion : null)
       if (actualBaseVersion !== input.expectedBaseVersion) {
         throw new AurevaneError(
           'STALE_VERSION',
@@ -538,10 +624,7 @@ export function createCombatContentAuthoringService({
       const fallback = stored
         ? null
         : resolveEssenceForBuild(input.sourceDisciplineId, null, input.targetVersion)
-      if (
-        !stored &&
-        (!fallback || fallback.essenceId !== input.essenceId || !fallback.enabled)
-      ) {
+      if (!stored && (!fallback || fallback.essenceId !== input.essenceId || !fallback.enabled)) {
         throw new AurevaneError(
           'INVALID_REQUEST',
           'That rollback target is not an enabled Essence version.',
@@ -599,9 +682,8 @@ export function createCombatContentAuthoringService({
       const fallback = published
         ? null
         : resolveResonanceForPair(definition.disciplinePair[0], definition.disciplinePair[1])
-      const actualBaseVersion = published?.contentVersion ?? (
-        fallback?.id === definition.id ? fallback.contentVersion : null
-      )
+      const actualBaseVersion =
+        published?.contentVersion ?? (fallback?.id === definition.id ? fallback.contentVersion : null)
       if (actualBaseVersion !== input.expectedBaseVersion) {
         throw new AurevaneError(
           'STALE_VERSION',
@@ -649,828 +731,6 @@ export function createCombatContentAuthoringService({
       try {
         await store.setCurrentPublication(
           input.resonanceId,
-          stored ? input.targetVersion : null,
-          input.actorUserId,
-        )
-      } catch (error) {
-        return mapRepositoryConflict(error)
-      }
-    },
-  }
-}
-,
-        code: 'INVALID_DEFINITION_SHAPE',
-        message: `${label} content must be a typed object definition.`,
-      },
-    ]
-  }
-
-  const issues = forbiddenDraftFieldIssues(definition)
-  const identity =
-    identityField === 'essenceId' ? readEssenceId(definition) : readResonanceId(definition)
-  if (!identity) {
-    issues.push({
-      path: identityField,
-      code: `INVALID_${label.toUpperCase()}_ID`,
-      message: `${label} id is required.`,
-    })
-  }
-  return issues
-}
-
-function validateEssenceAuthoringDefinition(definition: unknown): CombatContentValidationResult {
-  const issues = draftShapeIssuesForIdentity(definition, 'essenceId', 'Essence')
-  if (!isRecord(definition) || issues.length > 0) {
-    return { valid: false, issues, derivedTags: [] }
-  }
-
-  const candidate = structuredClone(definition) as unknown as EssenceDefinition
-  try {
-    for (const field of validateCanonicalEssenceDefinition(candidate)) {
-      issues.push({
-        path: field,
-        code: 'INVALID_ESSENCE_FIELD',
-        message: `Essence validation rejected ${field}.`,
-      })
-    }
-  } catch (error) {
-    issues.push({
-      path: '
-function validateSkillDefinition(definition: unknown): CombatContentValidationResult {
-  const issues = draftShapeIssues(definition)
-  if (!isRecord(definition) || issues.length > 0) {
-    return { valid: false, issues, derivedTags: [] }
-  }
-
-  const candidate = structuredClone(definition) as unknown as MatureSkillDefinition
-  try {
-    for (const field of validateMatureSkillDefinition(candidate)) {
-      issues.push({
-        path: field,
-        code: 'INVALID_MATURE_SKILL_FIELD',
-        message: `Mature Skill validation rejected ${field}.`,
-      })
-    }
-  } catch (error) {
-    issues.push({
-      path: '$',
-      code: 'INVALID_MATURE_SKILL_SHAPE',
-      message: normalizeMessage(error),
-    })
-  }
-
-  if (issues.length === 0) {
-    if (!isRegisteredSkillIconHook(candidate.media.iconKey)) {
-      issues.push({
-        path: 'media.iconKey',
-        code: 'UNKNOWN_MEDIA_HOOK',
-        message: 'Skill artwork must use a registered approved media hook.',
-      })
-    }
-    if (!isRegisteredSkillAudioCueHook(candidate.media.audioCueKey)) {
-      issues.push({
-        path: 'media.audioCueKey',
-        code: 'UNKNOWN_MEDIA_HOOK',
-        message: 'Skill audio must use a registered media hook.',
-      })
-    }
-  }
-
-  if (issues.length === 0) {
-    for (const context of ['pve', 'pvp'] as const) {
-      try {
-        const action = toCombatActionDefinition(candidate, context)
-        validateCombatActionDefinition(action)
-      } catch (error) {
-        issues.push({
-          path: context,
-          code: 'INVALID_COMBAT_ACTION',
-          message: normalizeMessage(error),
-        })
-      }
-    }
-  }
-
-  if (issues.length > 0) return { valid: false, issues, derivedTags: [] }
-
-  try {
-    return {
-      valid: true,
-      issues: [],
-      derivedTags: combatActionPresentationTags(toCombatActionDefinition(candidate, 'pve')),
-    }
-  } catch (error) {
-    return {
-      valid: false,
-      issues: [
-        {
-          path: '$',
-          code: 'INVALID_PRESENTATION_PROJECTION',
-          message: normalizeMessage(error),
-        },
-      ],
-      derivedTags: [],
-    }
-  }
-}
-
-function semanticChangedPaths(before: unknown, after: unknown, prefix = ''): string[] {
-  if (Object.is(before, after)) return []
-  if (Array.isArray(before) || Array.isArray(after)) {
-    return JSON.stringify(before) === JSON.stringify(after) ? [] : [prefix || '$']
-  }
-  if (isRecord(before) && isRecord(after)) {
-    const keys = new Set([...Object.keys(before), ...Object.keys(after)])
-    const changed: string[] = []
-    for (const key of [...keys].sort()) {
-      if (key === 'contentVersion' || key === 'presentationTags' || key === 'derivedTags') continue
-      const path = prefix ? `${prefix}.${key}` : key
-      changed.push(...semanticChangedPaths(before[key], after[key], path))
-    }
-    return changed
-  }
-  return [prefix || '$']
-}
-
-function mapRepositoryConflict(error: unknown): never {
-  if (error instanceof CombatContentConflictError) {
-    if (
-      error.code === 'COMBAT_CONTENT_BASE_VERSION_CONFLICT' ||
-      error.code === 'COMBAT_CONTENT_DRAFT_VERSION_CONFLICT'
-    ) {
-      throw new AurevaneError(
-        'STALE_VERSION',
-        'Combat content changed. Refresh the authoritative version and retry.',
-        { cause: error },
-      )
-    }
-    throw new AurevaneError('INVALID_REQUEST', error.message, { cause: error })
-  }
-  throw error
-}
-
-async function authorizeOperator(
-  store: CombatContentAuthoringStore,
-  actorUserId: string,
-): Promise<MasterPanelOperatorRole> {
-  const role = await store.getOperatorRole(actorUserId)
-  if (role !== 'owner' && role !== 'content-staff') {
-    throw new AurevaneError(
-      'FORBIDDEN',
-      'Master Panel combat authoring is not available to this account.',
-    )
-  }
-  return role
-}
-
-function assertDraftShape(definition: unknown): asserts definition is Record<string, unknown> {
-  const issues = draftShapeIssues(definition)
-  if (issues.length > 0) {
-    throw new AurevaneError('INVALID_REQUEST', issues[0]!.message)
-  }
-}
-
-export function createCombatContentAuthoringService({
-  store,
-  resolver,
-}: Dependencies): CombatContentAuthoringService {
-  return {
-    requireOperator(actorUserId) {
-      return authorizeOperator(store, actorUserId)
-    },
-
-    validateSkillDefinition,
-
-    async previewSkillDefinition(input) {
-      await authorizeOperator(store, input.actorUserId)
-      const validation = validateSkillDefinition(input.definition)
-      if (!validation.valid) {
-        throw new AurevaneError(
-          'INVALID_REQUEST',
-          `Combat content validation failed: ${validation.issues[0]?.message ?? 'invalid Skill definition.'}`,
-        )
-      }
-
-      return previewCombatContentDefinition(input.definition as MatureSkillDefinition, {
-        ...(input.seed === undefined ? {} : { seed: input.seed }),
-        ...(input.combatContext === undefined ? {} : { combatContext: input.combatContext }),
-      })
-    },
-
-    diffSkillDefinitions(before, after) {
-      return { changedPaths: semanticChangedPaths(before, after) }
-    },
-
-    async saveSkillDraft(input) {
-      await authorizeOperator(store, input.actorUserId)
-      assertDraftShape(input.definition)
-      const skillId = readSkillId(input.definition)!
-      try {
-        return await store.saveDraft({
-          contentKey: skillId,
-          contentKind: 'skill',
-          definition: structuredClone(input.definition) as CombatContentDefinition,
-          baseVersion: input.baseVersion,
-          expectedDraftVersion: input.expectedDraftVersion,
-          actorUserId: input.actorUserId,
-        })
-      } catch (error) {
-        return mapRepositoryConflict(error)
-      }
-    },
-
-    async publishSkill(input) {
-      await authorizeOperator(store, input.actorUserId)
-      const validation = validateSkillDefinition(input.definition)
-      if (!validation.valid) {
-        throw new AurevaneError(
-          'INVALID_REQUEST',
-          `Combat content validation failed: ${validation.issues[0]?.message ?? 'invalid Skill definition.'}`,
-        )
-      }
-      const definition = input.definition as MatureSkillDefinition
-      const current = await resolver.resolveCurrentSkillDefinition(definition.id)
-      const actualBaseVersion = current?.contentVersion ?? null
-      if (actualBaseVersion !== input.expectedBaseVersion) {
-        throw new AurevaneError(
-          'STALE_VERSION',
-          'Combat content changed. Refresh the authoritative version and retry.',
-        )
-      }
-
-      try {
-        return await store.publish({
-          contentKey: definition.id,
-          contentKind: 'skill',
-          definition: structuredClone(definition) as unknown as CombatContentDefinition,
-          expectedBaseVersion: input.expectedBaseVersion,
-          actorUserId: input.actorUserId,
-        })
-      } catch (error) {
-        return mapRepositoryConflict(error)
-      }
-    },
-
-    async rollbackSkill(input) {
-      await authorizeOperator(store, input.actorUserId)
-      if (!Number.isSafeInteger(input.targetVersion) || input.targetVersion < 1) {
-        throw new AurevaneError('INVALID_REQUEST', 'Rollback target must be a positive version.')
-      }
-
-      const target = await resolver.resolvePinnedSkillDefinition(input.skillId, input.targetVersion)
-      if (!target || target.id !== input.skillId || !target.enabled) {
-        throw new AurevaneError(
-          'INVALID_REQUEST',
-          'That rollback target is not an enabled Skill version.',
-        )
-      }
-
-      const stored = (await store.listPublishedVersions(input.skillId)).some(
-        (version) => version.contentVersion === input.targetVersion,
-      )
-      try {
-        await store.setCurrentPublication(
-          input.skillId,
-          stored ? input.targetVersion : null,
-          input.actorUserId,
-        )
-      } catch (error) {
-        return mapRepositoryConflict(error)
-      }
-    },
-  }
-}
-,
-      code: 'INVALID_ESSENCE_SHAPE',
-      message: normalizeMessage(error),
-    })
-  }
-
-  if (issues.length === 0) {
-    const skillValidation = validateSkillDefinition(candidate.skill)
-    for (const issue of skillValidation.issues) {
-      issues.push({ ...issue, path: `skill.${issue.path}` })
-    }
-  }
-  if (issues.length > 0) return { valid: false, issues, derivedTags: [] }
-
-  return {
-    valid: true,
-    issues: [],
-    derivedTags: combatActionPresentationTags(toCombatActionDefinition(candidate.skill, 'pve')),
-  }
-}
-
-function validateResonanceAuthoringDefinition(definition: unknown): CombatContentValidationResult {
-  const issues = draftShapeIssuesForIdentity(definition, 'id', 'Resonance')
-  if (!isRecord(definition) || issues.length > 0) {
-    return { valid: false, issues, derivedTags: [] }
-  }
-
-  const candidate = structuredClone(definition) as unknown as ResonanceDefinition
-  try {
-    for (const field of validateCanonicalResonanceDefinition(candidate)) {
-      issues.push({
-        path: field,
-        code: 'INVALID_RESONANCE_FIELD',
-        message: `Resonance validation rejected ${field}.`,
-      })
-    }
-  } catch (error) {
-    issues.push({
-      path: '
-function validateSkillDefinition(definition: unknown): CombatContentValidationResult {
-  const issues = draftShapeIssues(definition)
-  if (!isRecord(definition) || issues.length > 0) {
-    return { valid: false, issues, derivedTags: [] }
-  }
-
-  const candidate = structuredClone(definition) as unknown as MatureSkillDefinition
-  try {
-    for (const field of validateMatureSkillDefinition(candidate)) {
-      issues.push({
-        path: field,
-        code: 'INVALID_MATURE_SKILL_FIELD',
-        message: `Mature Skill validation rejected ${field}.`,
-      })
-    }
-  } catch (error) {
-    issues.push({
-      path: '$',
-      code: 'INVALID_MATURE_SKILL_SHAPE',
-      message: normalizeMessage(error),
-    })
-  }
-
-  if (issues.length === 0) {
-    if (!isRegisteredSkillIconHook(candidate.media.iconKey)) {
-      issues.push({
-        path: 'media.iconKey',
-        code: 'UNKNOWN_MEDIA_HOOK',
-        message: 'Skill artwork must use a registered approved media hook.',
-      })
-    }
-    if (!isRegisteredSkillAudioCueHook(candidate.media.audioCueKey)) {
-      issues.push({
-        path: 'media.audioCueKey',
-        code: 'UNKNOWN_MEDIA_HOOK',
-        message: 'Skill audio must use a registered media hook.',
-      })
-    }
-  }
-
-  if (issues.length === 0) {
-    for (const context of ['pve', 'pvp'] as const) {
-      try {
-        const action = toCombatActionDefinition(candidate, context)
-        validateCombatActionDefinition(action)
-      } catch (error) {
-        issues.push({
-          path: context,
-          code: 'INVALID_COMBAT_ACTION',
-          message: normalizeMessage(error),
-        })
-      }
-    }
-  }
-
-  if (issues.length > 0) return { valid: false, issues, derivedTags: [] }
-
-  try {
-    return {
-      valid: true,
-      issues: [],
-      derivedTags: combatActionPresentationTags(toCombatActionDefinition(candidate, 'pve')),
-    }
-  } catch (error) {
-    return {
-      valid: false,
-      issues: [
-        {
-          path: '$',
-          code: 'INVALID_PRESENTATION_PROJECTION',
-          message: normalizeMessage(error),
-        },
-      ],
-      derivedTags: [],
-    }
-  }
-}
-
-function semanticChangedPaths(before: unknown, after: unknown, prefix = ''): string[] {
-  if (Object.is(before, after)) return []
-  if (Array.isArray(before) || Array.isArray(after)) {
-    return JSON.stringify(before) === JSON.stringify(after) ? [] : [prefix || '$']
-  }
-  if (isRecord(before) && isRecord(after)) {
-    const keys = new Set([...Object.keys(before), ...Object.keys(after)])
-    const changed: string[] = []
-    for (const key of [...keys].sort()) {
-      if (key === 'contentVersion' || key === 'presentationTags' || key === 'derivedTags') continue
-      const path = prefix ? `${prefix}.${key}` : key
-      changed.push(...semanticChangedPaths(before[key], after[key], path))
-    }
-    return changed
-  }
-  return [prefix || '$']
-}
-
-function mapRepositoryConflict(error: unknown): never {
-  if (error instanceof CombatContentConflictError) {
-    if (
-      error.code === 'COMBAT_CONTENT_BASE_VERSION_CONFLICT' ||
-      error.code === 'COMBAT_CONTENT_DRAFT_VERSION_CONFLICT'
-    ) {
-      throw new AurevaneError(
-        'STALE_VERSION',
-        'Combat content changed. Refresh the authoritative version and retry.',
-        { cause: error },
-      )
-    }
-    throw new AurevaneError('INVALID_REQUEST', error.message, { cause: error })
-  }
-  throw error
-}
-
-async function authorizeOperator(
-  store: CombatContentAuthoringStore,
-  actorUserId: string,
-): Promise<MasterPanelOperatorRole> {
-  const role = await store.getOperatorRole(actorUserId)
-  if (role !== 'owner' && role !== 'content-staff') {
-    throw new AurevaneError(
-      'FORBIDDEN',
-      'Master Panel combat authoring is not available to this account.',
-    )
-  }
-  return role
-}
-
-function assertDraftShape(definition: unknown): asserts definition is Record<string, unknown> {
-  const issues = draftShapeIssues(definition)
-  if (issues.length > 0) {
-    throw new AurevaneError('INVALID_REQUEST', issues[0]!.message)
-  }
-}
-
-export function createCombatContentAuthoringService({
-  store,
-  resolver,
-}: Dependencies): CombatContentAuthoringService {
-  return {
-    requireOperator(actorUserId) {
-      return authorizeOperator(store, actorUserId)
-    },
-
-    validateSkillDefinition,
-
-    async previewSkillDefinition(input) {
-      await authorizeOperator(store, input.actorUserId)
-      const validation = validateSkillDefinition(input.definition)
-      if (!validation.valid) {
-        throw new AurevaneError(
-          'INVALID_REQUEST',
-          `Combat content validation failed: ${validation.issues[0]?.message ?? 'invalid Skill definition.'}`,
-        )
-      }
-
-      return previewCombatContentDefinition(input.definition as MatureSkillDefinition, {
-        ...(input.seed === undefined ? {} : { seed: input.seed }),
-        ...(input.combatContext === undefined ? {} : { combatContext: input.combatContext }),
-      })
-    },
-
-    diffSkillDefinitions(before, after) {
-      return { changedPaths: semanticChangedPaths(before, after) }
-    },
-
-    async saveSkillDraft(input) {
-      await authorizeOperator(store, input.actorUserId)
-      assertDraftShape(input.definition)
-      const skillId = readSkillId(input.definition)!
-      try {
-        return await store.saveDraft({
-          contentKey: skillId,
-          contentKind: 'skill',
-          definition: structuredClone(input.definition) as CombatContentDefinition,
-          baseVersion: input.baseVersion,
-          expectedDraftVersion: input.expectedDraftVersion,
-          actorUserId: input.actorUserId,
-        })
-      } catch (error) {
-        return mapRepositoryConflict(error)
-      }
-    },
-
-    async publishSkill(input) {
-      await authorizeOperator(store, input.actorUserId)
-      const validation = validateSkillDefinition(input.definition)
-      if (!validation.valid) {
-        throw new AurevaneError(
-          'INVALID_REQUEST',
-          `Combat content validation failed: ${validation.issues[0]?.message ?? 'invalid Skill definition.'}`,
-        )
-      }
-      const definition = input.definition as MatureSkillDefinition
-      const current = await resolver.resolveCurrentSkillDefinition(definition.id)
-      const actualBaseVersion = current?.contentVersion ?? null
-      if (actualBaseVersion !== input.expectedBaseVersion) {
-        throw new AurevaneError(
-          'STALE_VERSION',
-          'Combat content changed. Refresh the authoritative version and retry.',
-        )
-      }
-
-      try {
-        return await store.publish({
-          contentKey: definition.id,
-          contentKind: 'skill',
-          definition: structuredClone(definition) as unknown as CombatContentDefinition,
-          expectedBaseVersion: input.expectedBaseVersion,
-          actorUserId: input.actorUserId,
-        })
-      } catch (error) {
-        return mapRepositoryConflict(error)
-      }
-    },
-
-    async rollbackSkill(input) {
-      await authorizeOperator(store, input.actorUserId)
-      if (!Number.isSafeInteger(input.targetVersion) || input.targetVersion < 1) {
-        throw new AurevaneError('INVALID_REQUEST', 'Rollback target must be a positive version.')
-      }
-
-      const target = await resolver.resolvePinnedSkillDefinition(input.skillId, input.targetVersion)
-      if (!target || target.id !== input.skillId || !target.enabled) {
-        throw new AurevaneError(
-          'INVALID_REQUEST',
-          'That rollback target is not an enabled Skill version.',
-        )
-      }
-
-      const stored = (await store.listPublishedVersions(input.skillId)).some(
-        (version) => version.contentVersion === input.targetVersion,
-      )
-      try {
-        await store.setCurrentPublication(
-          input.skillId,
-          stored ? input.targetVersion : null,
-          input.actorUserId,
-        )
-      } catch (error) {
-        return mapRepositoryConflict(error)
-      }
-    },
-  }
-}
-,
-      code: 'INVALID_RESONANCE_SHAPE',
-      message: normalizeMessage(error),
-    })
-  }
-
-  return { valid: issues.length === 0, issues, derivedTags: [] }
-}
-
-function normalizeMessage(error: unknown): string {
-  return error instanceof Error && error.message ? error.message : 'Combat definition is invalid.'
-}
-
-function validateSkillDefinition(definition: unknown): CombatContentValidationResult {
-  const issues = draftShapeIssues(definition)
-  if (!isRecord(definition) || issues.length > 0) {
-    return { valid: false, issues, derivedTags: [] }
-  }
-
-  const candidate = structuredClone(definition) as unknown as MatureSkillDefinition
-  try {
-    for (const field of validateMatureSkillDefinition(candidate)) {
-      issues.push({
-        path: field,
-        code: 'INVALID_MATURE_SKILL_FIELD',
-        message: `Mature Skill validation rejected ${field}.`,
-      })
-    }
-  } catch (error) {
-    issues.push({
-      path: '$',
-      code: 'INVALID_MATURE_SKILL_SHAPE',
-      message: normalizeMessage(error),
-    })
-  }
-
-  if (issues.length === 0) {
-    if (!isRegisteredSkillIconHook(candidate.media.iconKey)) {
-      issues.push({
-        path: 'media.iconKey',
-        code: 'UNKNOWN_MEDIA_HOOK',
-        message: 'Skill artwork must use a registered approved media hook.',
-      })
-    }
-    if (!isRegisteredSkillAudioCueHook(candidate.media.audioCueKey)) {
-      issues.push({
-        path: 'media.audioCueKey',
-        code: 'UNKNOWN_MEDIA_HOOK',
-        message: 'Skill audio must use a registered media hook.',
-      })
-    }
-  }
-
-  if (issues.length === 0) {
-    for (const context of ['pve', 'pvp'] as const) {
-      try {
-        const action = toCombatActionDefinition(candidate, context)
-        validateCombatActionDefinition(action)
-      } catch (error) {
-        issues.push({
-          path: context,
-          code: 'INVALID_COMBAT_ACTION',
-          message: normalizeMessage(error),
-        })
-      }
-    }
-  }
-
-  if (issues.length > 0) return { valid: false, issues, derivedTags: [] }
-
-  try {
-    return {
-      valid: true,
-      issues: [],
-      derivedTags: combatActionPresentationTags(toCombatActionDefinition(candidate, 'pve')),
-    }
-  } catch (error) {
-    return {
-      valid: false,
-      issues: [
-        {
-          path: '$',
-          code: 'INVALID_PRESENTATION_PROJECTION',
-          message: normalizeMessage(error),
-        },
-      ],
-      derivedTags: [],
-    }
-  }
-}
-
-function semanticChangedPaths(before: unknown, after: unknown, prefix = ''): string[] {
-  if (Object.is(before, after)) return []
-  if (Array.isArray(before) || Array.isArray(after)) {
-    return JSON.stringify(before) === JSON.stringify(after) ? [] : [prefix || '$']
-  }
-  if (isRecord(before) && isRecord(after)) {
-    const keys = new Set([...Object.keys(before), ...Object.keys(after)])
-    const changed: string[] = []
-    for (const key of [...keys].sort()) {
-      if (key === 'contentVersion' || key === 'presentationTags' || key === 'derivedTags') continue
-      const path = prefix ? `${prefix}.${key}` : key
-      changed.push(...semanticChangedPaths(before[key], after[key], path))
-    }
-    return changed
-  }
-  return [prefix || '$']
-}
-
-function mapRepositoryConflict(error: unknown): never {
-  if (error instanceof CombatContentConflictError) {
-    if (
-      error.code === 'COMBAT_CONTENT_BASE_VERSION_CONFLICT' ||
-      error.code === 'COMBAT_CONTENT_DRAFT_VERSION_CONFLICT'
-    ) {
-      throw new AurevaneError(
-        'STALE_VERSION',
-        'Combat content changed. Refresh the authoritative version and retry.',
-        { cause: error },
-      )
-    }
-    throw new AurevaneError('INVALID_REQUEST', error.message, { cause: error })
-  }
-  throw error
-}
-
-async function authorizeOperator(
-  store: CombatContentAuthoringStore,
-  actorUserId: string,
-): Promise<MasterPanelOperatorRole> {
-  const role = await store.getOperatorRole(actorUserId)
-  if (role !== 'owner' && role !== 'content-staff') {
-    throw new AurevaneError(
-      'FORBIDDEN',
-      'Master Panel combat authoring is not available to this account.',
-    )
-  }
-  return role
-}
-
-function assertDraftShape(definition: unknown): asserts definition is Record<string, unknown> {
-  const issues = draftShapeIssues(definition)
-  if (issues.length > 0) {
-    throw new AurevaneError('INVALID_REQUEST', issues[0]!.message)
-  }
-}
-
-export function createCombatContentAuthoringService({
-  store,
-  resolver,
-}: Dependencies): CombatContentAuthoringService {
-  return {
-    requireOperator(actorUserId) {
-      return authorizeOperator(store, actorUserId)
-    },
-
-    validateSkillDefinition,
-
-    async previewSkillDefinition(input) {
-      await authorizeOperator(store, input.actorUserId)
-      const validation = validateSkillDefinition(input.definition)
-      if (!validation.valid) {
-        throw new AurevaneError(
-          'INVALID_REQUEST',
-          `Combat content validation failed: ${validation.issues[0]?.message ?? 'invalid Skill definition.'}`,
-        )
-      }
-
-      return previewCombatContentDefinition(input.definition as MatureSkillDefinition, {
-        ...(input.seed === undefined ? {} : { seed: input.seed }),
-        ...(input.combatContext === undefined ? {} : { combatContext: input.combatContext }),
-      })
-    },
-
-    diffSkillDefinitions(before, after) {
-      return { changedPaths: semanticChangedPaths(before, after) }
-    },
-
-    async saveSkillDraft(input) {
-      await authorizeOperator(store, input.actorUserId)
-      assertDraftShape(input.definition)
-      const skillId = readSkillId(input.definition)!
-      try {
-        return await store.saveDraft({
-          contentKey: skillId,
-          contentKind: 'skill',
-          definition: structuredClone(input.definition) as CombatContentDefinition,
-          baseVersion: input.baseVersion,
-          expectedDraftVersion: input.expectedDraftVersion,
-          actorUserId: input.actorUserId,
-        })
-      } catch (error) {
-        return mapRepositoryConflict(error)
-      }
-    },
-
-    async publishSkill(input) {
-      await authorizeOperator(store, input.actorUserId)
-      const validation = validateSkillDefinition(input.definition)
-      if (!validation.valid) {
-        throw new AurevaneError(
-          'INVALID_REQUEST',
-          `Combat content validation failed: ${validation.issues[0]?.message ?? 'invalid Skill definition.'}`,
-        )
-      }
-      const definition = input.definition as MatureSkillDefinition
-      const current = await resolver.resolveCurrentSkillDefinition(definition.id)
-      const actualBaseVersion = current?.contentVersion ?? null
-      if (actualBaseVersion !== input.expectedBaseVersion) {
-        throw new AurevaneError(
-          'STALE_VERSION',
-          'Combat content changed. Refresh the authoritative version and retry.',
-        )
-      }
-
-      try {
-        return await store.publish({
-          contentKey: definition.id,
-          contentKind: 'skill',
-          definition: structuredClone(definition) as unknown as CombatContentDefinition,
-          expectedBaseVersion: input.expectedBaseVersion,
-          actorUserId: input.actorUserId,
-        })
-      } catch (error) {
-        return mapRepositoryConflict(error)
-      }
-    },
-
-    async rollbackSkill(input) {
-      await authorizeOperator(store, input.actorUserId)
-      if (!Number.isSafeInteger(input.targetVersion) || input.targetVersion < 1) {
-        throw new AurevaneError('INVALID_REQUEST', 'Rollback target must be a positive version.')
-      }
-
-      const target = await resolver.resolvePinnedSkillDefinition(input.skillId, input.targetVersion)
-      if (!target || target.id !== input.skillId || !target.enabled) {
-        throw new AurevaneError(
-          'INVALID_REQUEST',
-          'That rollback target is not an enabled Skill version.',
-        )
-      }
-
-      const stored = (await store.listPublishedVersions(input.skillId)).some(
-        (version) => version.contentVersion === input.targetVersion,
-      )
-      try {
-        await store.setCurrentPublication(
-          input.skillId,
           stored ? input.targetVersion : null,
           input.actorUserId,
         )
