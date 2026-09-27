@@ -535,7 +535,24 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
               />
               <SkillEffectListEditor
                 value={selectedDraft.effects}
-                onChange={(effects) => updateSelectedDraft({ ...selectedDraft, effects })}
+                effectDescriptions={selectedDraft.effectDescriptions}
+                onChange={(effects, effectDescriptions) => {
+                  const normalizedDescriptions = effectDescriptions.map((description) => {
+                    const trimmed = description?.trim()
+                    return trimmed ? trimmed : null
+                  })
+                  const { effectDescriptions: _previousDescriptions, ...draftWithoutDescriptions } =
+                    selectedDraft
+                  updateSelectedDraft(
+                    normalizedDescriptions.some((description) => description !== null)
+                      ? {
+                          ...draftWithoutDescriptions,
+                          effects,
+                          effectDescriptions: normalizedDescriptions,
+                        }
+                      : { ...draftWithoutDescriptions, effects },
+                  )
+                }}
               />
             </div>
           ) : (
