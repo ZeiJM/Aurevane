@@ -24,7 +24,7 @@ function status(
     kind,
     description,
     version: 1,
-    maximumStacks: Number.MAX_SAFE_INTEGER,
+    maximumStacks: 1,
     durationOwnerTurnStarts: 2,
     damageTakenMultiplierBasisPoints: 10_000,
     polarity: kind === 'Buff' ? 'positive' : kind === 'Debuff' ? 'negative' : 'neutral',
