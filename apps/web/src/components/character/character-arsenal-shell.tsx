@@ -2,10 +2,8 @@ import Image from 'next/image'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
 import { Surface } from '@aurevane/ui'
 
-import {
-  battleResonanceArtwork,
-  battleSkillArtwork,
-} from '@/components/battle/battle-skill-presentation'
+import { battleSkillArtwork } from '@/components/battle/battle-skill-presentation'
+import { CharacterAttunementCard } from '@/components/character/character-attunement-card'
 import { CharacterDisciplineBuildPanel } from '@/components/character/character-discipline-build-panel'
 import { CharacterIdentityCard } from '@/components/character/character-identity-card'
 import {
@@ -327,43 +325,13 @@ export function CharacterArsenalShell({
 
             <div className={styles.attunementGrid}>
               {essence ? (
-                <article className={styles.attunementCard} data-active="true">
-                  <span className={styles.attunementArt}>
-                    <Image
-                      src={battleSkillArtwork(essence.skill.id)}
-                      width={64}
-                      height={64}
-                      unoptimized
-                      alt=""
-                    />
-                  </span>
-                  <div>
-                    <strong>{essence.name}</strong>
-                    <p>{essence.description}</p>
-                    <b>● Active</b>
-                  </div>
-                </article>
+                <CharacterAttunementCard kind="essence" definition={essence} />
               ) : (
                 <LockedAttunementCard label="Essence" />
               )}
 
               {resonance ? (
-                <article className={styles.attunementCard} data-active="true">
-                  <span className={styles.attunementArt}>
-                    <Image
-                      src={battleResonanceArtwork(resonance.id)}
-                      width={64}
-                      height={64}
-                      unoptimized
-                      alt=""
-                    />
-                  </span>
-                  <div>
-                    <strong>{resonance.name}</strong>
-                    <p>{resonance.description}</p>
-                    <b>● Active</b>
-                  </div>
-                </article>
+                <CharacterAttunementCard kind="resonance" definition={resonance} />
               ) : (
                 <LockedAttunementCard label="Resonance" />
               )}
