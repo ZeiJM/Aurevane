@@ -65,10 +65,7 @@ function messageFrom(error: unknown): string {
     : 'The Master Panel could not complete that operation.'
 }
 
-export function EssenceContentEditor({
-  essences,
-  initialEssenceId,
-}: EssenceContentEditorProps) {
+export function EssenceContentEditor({ essences, initialEssenceId }: EssenceContentEditorProps) {
   const router = useRouter()
   const first =
     (initialEssenceId ? essences.find((essence) => essence.id === initialEssenceId) : null) ??
@@ -101,9 +98,7 @@ export function EssenceContentEditor({
     : emptyCombatContentReview()
   const selectedHistory = selected ? (histories[selected.id] ?? selected.history) : []
   const selectedCurrentVersion =
-    selectedHistory.find((entry) => entry.current)?.contentVersion ??
-    selected?.currentVersion ??
-    1
+    selectedHistory.find((entry) => entry.current)?.contentVersion ?? selected?.currentVersion ?? 1
   const selectedNextVersion = selected
     ? nextCombatContentVersion(selectedCurrentVersion, selectedHistory)
     : 1
@@ -235,13 +230,10 @@ export function EssenceContentEditor({
       })
       setHistories((current) => ({
         ...current,
-        [selected.id]: projectPublishedVersionHistory(
-          current[selected.id] ?? selectedHistory,
-          {
-            contentVersion: response.published.contentVersion,
-            publishedAt: response.published.publishedAt,
-          },
-        ),
+        [selected.id]: projectPublishedVersionHistory(current[selected.id] ?? selectedHistory, {
+          contentVersion: response.published.contentVersion,
+          publishedAt: response.published.publishedAt,
+        }),
       }))
       setReviews((current) => ({ ...current, [selected.id]: emptyCombatContentReview() }))
       setPublishConfirmationId(null)
@@ -405,9 +397,7 @@ export function EssenceContentEditor({
 
             <SkillTargetingEditor
               value={skill.target}
-              onChange={(target) =>
-                updateDraft({ ...selectedDraft, skill: { ...skill, target } })
-              }
+              onChange={(target) => updateDraft({ ...selectedDraft, skill: { ...skill, target } })}
             />
             <SkillEconomyEditor
               value={{
@@ -437,9 +427,7 @@ export function EssenceContentEditor({
             />
             <SkillMediaEditor
               value={skill.media}
-              onChange={(media) =>
-                updateDraft({ ...selectedDraft, skill: { ...skill, media } })
-              }
+              onChange={(media) => updateDraft({ ...selectedDraft, skill: { ...skill, media } })}
             />
             <SkillEffectListEditor
               value={skill.effects}
