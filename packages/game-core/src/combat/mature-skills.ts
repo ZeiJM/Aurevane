@@ -1008,10 +1008,17 @@ export function validateMatureSkillDefinition(
     ) {
       issues.push(`effects[${index}].potencyBasisPoints`)
     }
+    if (
+      effect.power !== undefined &&
+      (!Number.isSafeInteger(effect.power) || effect.power < 1 || effect.power > 20)
+    ) {
+      issues.push(`effects[${index}].power`)
+    }
     if (effect.type === 'damage' || effect.type === 'healing' || effect.type === 'barrier-change') {
+      const minimum = effect.type === 'damage' && effect.vengeance !== undefined ? 0 : 1
       if (
         !Number.isSafeInteger(effect.amount) ||
-        effect.amount < 1 ||
+        effect.amount < minimum ||
         effect.amount > 20
       ) {
         issues.push(`effects[${index}].amount`)
