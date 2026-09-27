@@ -17,9 +17,9 @@ export interface CombatDamageModifier {
   condition: DamageCondition
 }
 
-/** Conditional modifiers share a bounded budget; every active application contributes. */
-export const CONDITIONAL_DAMAGE_MINIMUM = 5_000
-export const CONDITIONAL_DAMAGE_MAXIMUM = 20_000
+/** Compatibility exports: accumulation itself is no longer gameplay-clamped. */
+export const CONDITIONAL_DAMAGE_MINIMUM = 0
+export const CONDITIONAL_DAMAGE_MAXIMUM = Number.MAX_SAFE_INTEGER
 
 export function conditionalDamageMultiplier(
   state: CombatEncounterState,
@@ -76,11 +76,7 @@ export function conditionalDamageMultiplier(
   }
   const result = numerator / denominator
   return Number(
-    result < BigInt(CONDITIONAL_DAMAGE_MINIMUM)
-      ? BigInt(CONDITIONAL_DAMAGE_MINIMUM)
-      : result > BigInt(CONDITIONAL_DAMAGE_MAXIMUM)
-        ? BigInt(CONDITIONAL_DAMAGE_MAXIMUM)
-        : result,
+    result > BigInt(Number.MAX_SAFE_INTEGER) ? BigInt(Number.MAX_SAFE_INTEGER) : result,
   )
 }
 
