@@ -104,22 +104,22 @@
 - [x] Moving the cursor/focus away closes the detail panel automatically.
 - [x] Essence detail view shows type/cost/cooldown/requirements/effects/range/targeting as applicable.
 - [x] Resonance detail view clearly shows setup Requirements/tags, payoff Requirements/tags, and payoff Effects/durations.
-- [ ] Make Essence and Resonance flavor lines editable from the Master Panel.
+- [x] Make Essence and Resonance flavor lines editable from the Master Panel.
 - [ ] Keep desktop/mobile/keyboard behavior accessible and non-blocking.
 
 ## 9. Master Panel authoring
 
 - [x] Discipline Technique flavor-line editing.
-- [ ] Essence flavor-line editing.
-- [ ] Resonance flavor-line editing.
+- [x] Essence flavor-line editing.
+- [x] Resonance flavor-line editing.
 - [x] Existing per-effect player-facing description override remains available.
 - [x] Effect Power 1–20 editing where applicable.
 - [x] Explicit percentage potency editing for percentage-based effects.
 - [x] Effect duration editing.
 - [x] Cooldown editing with the v5 rules.
-- [ ] Effects, duration, potency, descriptions, and flavor text must appear in validation/diff/preview before publish.
+- [x] Effects, duration, potency, descriptions, and flavor text must appear in validation/diff/preview before publish.
 - [x] Presentation-only copy must remain unable to modify authoritative combat mechanics.
-- [ ] Extend versioned authoring/publication support as needed so Essence and Resonance edits are immutable/auditable like Skill content.
+- [x] Extend versioned authoring/publication support as needed so Essence and Resonance edits are immutable/auditable like Skill content.
 - [x] No browser-direct writes to private combat-content tables.
 
 ## 10. Flavor-line content contract
@@ -152,7 +152,7 @@
 - [ ] Add Resonance uniqueness/balance contracts.
 - [ ] Add Technique Preview rendering tests for bullets, duration, Skill Type, and flavor line.
 - [ ] Add Nexus hover/focus tests for Essence and Resonance detail panels.
-- [ ] Add Master Panel authoring/validation/publish tests for new fields.
+- [x] Add Master Panel authoring/validation/publish tests for new fields.
 - [ ] Run full CI, Skill Engine, Essence, Resonance, Profile Skill Build, buildcraft, layout, desktop, and browser smoke checks.
 - [ ] Resolve all failures on the exact PR head before merge.
 - [ ] Recheck current `main` for concurrent overlap before merge.
