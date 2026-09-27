@@ -57,7 +57,7 @@ export const techniquesManualArticle: ManualArticle = {
     'Read a Technique, understand each step of damage, and compare magnitudes across the current regular Skill catalog.',
   category: 'Combat',
   lastUpdated: '2026-09-27',
-  rulesVersion: 'Current combat rules v4 · regular Skill catalog',
+  rulesVersion: 'Current combat rules v5 · regular Skill catalog',
   body: [
     {
       id: 'technique-basics',
