@@ -476,7 +476,8 @@ const PRE_V5_CURRENT_ESSENCES = [
 
 function v5EssenceSummary(definition: EssenceDefinition): string {
   const discipline =
-    definition.sourceDisciplineId.charAt(0).toUpperCase() + definition.sourceDisciplineId.slice(1)
+    definition.sourceDisciplineId.charAt(0).toUpperCase() +
+    definition.sourceDisciplineId.slice(1)
   if (definition.skill.tags.includes('attack')) {
     return `A high-cost ${discipline} signature attack built for a decisive payoff.`
   }
