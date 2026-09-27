@@ -167,12 +167,7 @@ function tuneDamage(
   const essenceFactor = kind === 'essence' ? 1.12 : 1
   const commandBudget = definition.apCost / 3
   const perHit =
-    (commandBudget *
-      areaFactor *
-      reachFactor *
-      utilityFactor *
-      requirementFactor *
-      essenceFactor) /
+    (commandBudget * areaFactor * reachFactor * utilityFactor * requirementFactor * essenceFactor) /
     Math.max(1, Math.sqrt(damageEffects))
   return {
     ...effect,
@@ -203,7 +198,8 @@ function tuneEffect(
       return {
         ...effect,
         amount: roundedPower(
-          ((definition.apCost / 4) * areaFactor * reachFactor * essenceFactor) / Math.sqrt(durationWeight),
+          ((definition.apCost / 4) * areaFactor * reachFactor * essenceFactor) /
+            Math.sqrt(durationWeight),
         ),
         durationTurns,
       }
@@ -214,7 +210,8 @@ function tuneEffect(
         delta:
           sign *
           roundedPower(
-            ((definition.apCost / 7) * areaFactor * reachFactor * essenceFactor) / Math.sqrt(durationWeight),
+            ((definition.apCost / 7) * areaFactor * reachFactor * essenceFactor) /
+              Math.sqrt(durationWeight),
           ),
         durationTurns,
       }
@@ -231,7 +228,8 @@ function tuneEffect(
       return {
         ...effect,
         damagePerTick: roundedPower(
-          ((definition.apCost / 14) * areaFactor * reachFactor * essenceFactor) / Math.sqrt(durationWeight),
+          ((definition.apCost / 14) * areaFactor * reachFactor * essenceFactor) /
+            Math.sqrt(durationWeight),
         ),
         ticks: clamp(durationTurns, 1, CURRENT_EFFECT_DURATION_MAXIMUM_TURNS),
         durationTurns,
@@ -241,7 +239,8 @@ function tuneEffect(
       return {
         ...effect,
         power: roundedPower(
-          ((definition.apCost / 12) * areaFactor * reachFactor * essenceFactor) / Math.sqrt(durationWeight),
+          ((definition.apCost / 12) * areaFactor * reachFactor * essenceFactor) /
+            Math.sqrt(durationWeight),
         ),
         durationTurns,
       }
