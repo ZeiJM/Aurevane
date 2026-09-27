@@ -979,14 +979,24 @@ export function validateMatureSkillDefinition(
   if (definition.authoring.schemaVersion !== MATURE_SKILL_SCHEMA_VERSION) {
     issues.push('authoring.schemaVersion')
   }
-  if (definition.requirements.length > 0) {
+  const usesV5BalanceRules = definition.authoring.validationTags.includes('owner-rebalance-v5')
+  if (usesV5BalanceRules && definition.requirements.length > 0) {
     if (definition.cooldown !== null) issues.push('cooldown')
   } else if (
-    definition.cooldown === null ||
-    !idPattern.test(definition.cooldown.key) ||
-    !Number.isSafeInteger(definition.cooldown.ownerTurns) ||
-    definition.cooldown.ownerTurns < 1 ||
-    definition.cooldown.ownerTurns > 3
+    usesV5BalanceRules &&
+    (definition.cooldown === null ||
+      !idPattern.test(definition.cooldown.key) ||
+      !Number.isSafeInteger(definition.cooldown.ownerTurns) ||
+      definition.cooldown.ownerTurns < 1 ||
+      definition.cooldown.ownerTurns > 3)
+  ) {
+    issues.push('cooldown')
+  } else if (
+    !usesV5BalanceRules &&
+    (definition.cooldown === null ||
+      !idPattern.test(definition.cooldown.key) ||
+      !Number.isSafeInteger(definition.cooldown.ownerTurns) ||
+      definition.cooldown.ownerTurns < 1)
   ) {
     issues.push('cooldown')
   }
@@ -1014,7 +1024,10 @@ export function validateMatureSkillDefinition(
     ) {
       issues.push(`effects[${index}].power`)
     }
-    if (effect.type === 'damage' || effect.type === 'healing' || effect.type === 'barrier-change') {
+    if (
+      usesV5BalanceRules &&
+      (effect.type === 'damage' || effect.type === 'healing' || effect.type === 'barrier-change')
+    ) {
       const minimum = effect.type === 'damage' && effect.vengeance !== undefined ? 0 : 1
       if (
         !Number.isSafeInteger(effect.amount) ||
@@ -1024,13 +1037,13 @@ export function validateMatureSkillDefinition(
         issues.push(`effects[${index}].amount`)
       }
     }
-    if (effect.type === 'resource-change') {
+    if (usesV5BalanceRules && effect.type === 'resource-change') {
       const magnitude = Math.abs(effect.delta)
       if (!Number.isSafeInteger(magnitude) || magnitude < 1 || magnitude > 20) {
         issues.push(`effects[${index}].delta`)
       }
     }
-    if (effect.type === 'bleed') {
+    if (usesV5BalanceRules && effect.type === 'bleed') {
       if (
         !Number.isSafeInteger(effect.damagePerTick) ||
         effect.damagePerTick < 1 ||
