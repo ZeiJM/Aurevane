@@ -192,7 +192,7 @@ it('presents the standardized Technique characteristic schema without prose expa
 it('classifies Techniques only as Attack, Recovery, or Utility', () => {
   expect(skillTypeDescription(resolveMatureSkillVersion('runeblade.aether-cut')!)).toBe('Attack')
   expect(skillTypeDescription(resolveMatureSkillVersion('vanguard.rally')!)).toBe('Recovery')
-  expect(skillTypeDescription(resolveMatureSkillVersion('runeblade.rune-guard')!)).toBe('Utility')
+  expect(skillTypeDescription(resolveMatureSkillVersion('vanguard.brace')!)).toBe('Utility')
 
   const hybrid = resolveMatureSkillVersion('runeblade.siphon-slash')!
   expect(skillTypeDescription(hybrid)).toBe('Attack')
