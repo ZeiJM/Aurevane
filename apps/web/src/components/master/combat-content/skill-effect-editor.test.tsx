@@ -118,6 +118,8 @@ describe('Master Panel Skill effect editor', () => {
     expect(applied).toContain('aria-label="Status ID"')
     expect(applied).toContain('value="covert"')
     expect(applied).toContain('aria-label="Status stacks"')
+    expect(applied).toContain('aria-label="Effect duration (turns)"')
+    expect(applied).toContain('aria-label="Status potency (percent)"')
 
     const removed = render({
       type: 'remove-status',
@@ -186,6 +188,8 @@ describe('Master Panel Skill effect editor', () => {
     for (const type of ['poison', 'burn'] as const) {
       const dot = render({ type, recipient: 'primary-unit', curseCopyable: true })
       expect(dot).toContain('aria-label="Curse-copyable"')
+      expect(dot).toContain('aria-label="Effect power"')
+      expect(dot).toContain('aria-label="Effect duration (turns)"')
     }
 
     const barrier = render({ type: 'barrier-change', recipient: 'actor', amount: 12 })
