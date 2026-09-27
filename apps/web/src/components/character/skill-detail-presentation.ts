@@ -69,7 +69,9 @@ export function skillEffectDescription(effect: CombatEffectDefinition): string {
     }
     case 'apply-status': {
       const status = combatStatusDetails(effect.statusId)
-      return `Apply ${effect.stacks} ${gameplayStatusName(effect.statusId)} ${effect.stacks === 1 ? 'stack' : 'stacks'} to ${target}. ${status.description} ${combatStatusDuration(effect.statusId)}`
+      const tuned = previewEffect(effect)
+      const tuning = effect.tuning && tuned.magnitude ? ` Tuning: ${tuned.magnitude}.` : ''
+      return `Apply ${effect.stacks} ${gameplayStatusName(effect.statusId)} ${effect.stacks === 1 ? 'stack' : 'stacks'} to ${target}.${tuning} ${status.description} ${combatStatusDuration(effect.statusId)}`
     }
   }
 }
