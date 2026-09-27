@@ -75,7 +75,9 @@ export function skillEffectDescription(effect: CombatEffectDefinition): string {
           ? `Lasts ${effect.durationTurns} ${effect.durationTurns === 1 ? 'turn' : 'turns'}.`
           : combatStatusDuration(effect.statusId)
       const explanation =
-        effect.potencyBasisPoints !== undefined ? preview.explanation : status.description
+        effect.potencyBasisPoints !== undefined
+          ? `${preview.explanation}${effect.statusId === 'mark' ? ' Other attackers gain no benefit.' : ''}`
+          : status.description
       return `Apply ${effect.stacks} ${gameplayStatusName(effect.statusId)} ${effect.stacks === 1 ? 'stack' : 'stacks'} to ${target}. ${explanation} ${duration}`
     }
   }
