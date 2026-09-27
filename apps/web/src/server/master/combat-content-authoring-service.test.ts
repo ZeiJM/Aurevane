@@ -409,7 +409,7 @@ describe('combat content authoring service', () => {
     const { store, service } = serviceFixture()
     store.operators.set(OWNER, 'owner')
     const invalid = invalidVariant((value) => {
-      value.effects = [{ type: 'bleed', recipient: 'primary-unit', damagePerTick: 6, ticks: 2 }]
+      value.effects = [{ type: 'bleed', recipient: 'primary-unit', damagePerTick: 21, ticks: 4 }]
     })
 
     await expect(
