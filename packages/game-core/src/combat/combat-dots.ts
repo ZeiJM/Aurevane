@@ -10,7 +10,7 @@ export const CURRENT_POISON_PROFILE_VERSION = 1 as const
 export const CURRENT_POISON_DAMAGE = 2 as const
 export const CURRENT_BLEED_MAX_STACKS = 3 as const
 export const CURRENT_BLEED_MAX_TICKS = 4 as const
-export const CURRENT_BLEED_MAX_RAW_TOTAL = 10 as const
+export const CURRENT_BLEED_MAX_RAW_TOTAL = 80 as const
 export const CURRENT_BURN_PROFILE_VERSION = 1 as const
 export const CURRENT_BURN_DAMAGE_BY_STAGE = [4, 3, 2] as const
 export const CURRENT_BURN_BACKLASH_DAMAGE = 2 as const
@@ -18,12 +18,32 @@ export const CURRENT_BURN_BACKLASH_DAMAGE = 2 as const
 export interface CurrentPoisonEffect {
   type: 'poison'
   recipient: CombatEffectRecipient
+  power?: number
+  durationTurns?: number
   curseCopyable?: boolean
 }
 
-export function validateCurrentPoisonEffect(effect: { curseCopyable?: unknown }): void {
+export function validateCurrentPoisonEffect(effect: {
+  curseCopyable?: unknown
+  power?: unknown
+  durationTurns?: unknown
+}): void {
   if (effect.curseCopyable !== undefined && typeof effect.curseCopyable !== 'boolean') {
     throw new TypeError('Poison curseCopyable must be boolean when supplied.')
+  }
+  if (
+    effect.power !== undefined &&
+    (!Number.isSafeInteger(effect.power) || (effect.power as number) < 1 || (effect.power as number) > 20)
+  ) {
+    throw new RangeError('Poison power must be an integer from 1 to 20.')
+  }
+  if (
+    effect.durationTurns !== undefined &&
+    (!Number.isSafeInteger(effect.durationTurns) ||
+      (effect.durationTurns as number) < 1 ||
+      (effect.durationTurns as number) > 4)
+  ) {
+    throw new RangeError('Poison duration must be an integer from 1 to 4 turns.')
   }
 }
 
@@ -46,7 +66,8 @@ export function currentPoisonEndTurnDamage(
   state: CombatEncounterState,
   targetCombatantId: string,
 ): number {
-  return hasCurrentPoison(state, targetCombatantId) ? CURRENT_POISON_DAMAGE : 0
+  const instance = currentPoisonInstance(state, targetCombatantId)
+  return instance ? (instance.damagePerTick ?? CURRENT_POISON_DAMAGE) : 0
 }
 
 export function applyCurrentPoisonState(
@@ -55,8 +76,10 @@ export function applyCurrentPoisonState(
   targetCombatantId: string,
   sourceActionId: string,
   curseCopyable?: boolean,
+  power?: number,
+  durationTurns?: number,
 ): CombatEncounterState {
-  validateCurrentPoisonEffect({ curseCopyable })
+  validateCurrentPoisonEffect({ curseCopyable, power, durationTurns })
   const effectState = normalizeCombatEffectState(state.effectState)
   const existing = effectState.poison.find(
     (instance) => instance.targetCombatantId === targetCombatantId,
@@ -67,6 +90,8 @@ export function applyCurrentPoisonState(
     sourceActionId,
     profileVersion: CURRENT_POISON_PROFILE_VERSION,
     movementRemainder: existing?.movementRemainder ?? 0,
+    ...(power !== undefined ? { damagePerTick: power } : {}),
+    ...(durationTurns !== undefined ? { remainingTicks: durationTurns } : {}),
     ...(curseCopyable !== undefined ? { curseCopyable } : {}),
   }
 
@@ -82,6 +107,22 @@ export function applyCurrentPoisonState(
       ].sort((left, right) => left.targetCombatantId.localeCompare(right.targetCombatantId)),
     },
   }
+}
+
+export function advanceCurrentPoisonEndTurn(
+  state: CombatEncounterState,
+  targetCombatantId: string,
+): CombatEncounterState {
+  const effectState = normalizeCombatEffectState(state.effectState)
+  const poison = effectState.poison.flatMap((instance) => {
+    if (instance.targetCombatantId !== targetCombatantId || instance.remainingTicks === undefined) {
+      return [instance]
+    }
+    return instance.remainingTicks <= 1
+      ? []
+      : [{ ...instance, remainingTicks: instance.remainingTicks - 1 }]
+  })
+  return { ...state, effectState: { ...effectState, poison } }
 }
 
 export function removeCurrentPoisonState(
@@ -153,7 +194,7 @@ export function validateCurrentBleedEffect(effect: {
   }
   const total = BigInt(effect.damagePerTick) * BigInt(effect.ticks)
   if (total > BigInt(CURRENT_BLEED_MAX_RAW_TOTAL)) {
-    throw new RangeError('Bleed raw per-stack total must not exceed 10 damage.')
+    throw new RangeError('Bleed raw per-stack total must not exceed 80 damage.')
   }
 }
 
@@ -256,9 +297,27 @@ export function advanceCurrentBleedEndTurn(
   return { state: { ...state, effectState: { ...effectState, bleed } }, stacks }
 }
 
-export function validateCurrentBurnEffect(effect: { curseCopyable?: unknown }): void {
+export function validateCurrentBurnEffect(effect: {
+  curseCopyable?: unknown
+  power?: unknown
+  durationTurns?: unknown
+}): void {
   if (effect.curseCopyable !== undefined && typeof effect.curseCopyable !== 'boolean') {
     throw new TypeError('Burn curseCopyable must be boolean when supplied.')
+  }
+  if (
+    effect.power !== undefined &&
+    (!Number.isSafeInteger(effect.power) || (effect.power as number) < 1 || (effect.power as number) > 20)
+  ) {
+    throw new RangeError('Burn power must be an integer from 1 to 20.')
+  }
+  if (
+    effect.durationTurns !== undefined &&
+    (!Number.isSafeInteger(effect.durationTurns) ||
+      (effect.durationTurns as number) < 1 ||
+      (effect.durationTurns as number) > 4)
+  ) {
+    throw new RangeError('Burn duration must be an integer from 1 to 4 turns.')
   }
 }
 
@@ -283,8 +342,10 @@ export function applyCurrentBurnState(
   targetCombatantId: string,
   sourceActionId: string,
   curseCopyable?: boolean,
+  power?: number,
+  durationTurns?: number,
 ): CombatEncounterState {
-  validateCurrentBurnEffect({ curseCopyable })
+  validateCurrentBurnEffect({ curseCopyable, power, durationTurns })
   const effectState = normalizeCombatEffectState(state.effectState)
   const instance: CombatBurnInstance = {
     targetCombatantId,
@@ -292,6 +353,8 @@ export function applyCurrentBurnState(
     sourceActionId,
     profileVersion: CURRENT_BURN_PROFILE_VERSION,
     stage: 0,
+    ...(power !== undefined ? { basePower: power } : {}),
+    ...(durationTurns !== undefined ? { remainingTicks: durationTurns } : {}),
     ...(curseCopyable !== undefined ? { curseCopyable } : {}),
   }
   return {
@@ -332,19 +395,31 @@ export function advanceCurrentBurnEndTurn(
   )
   if (!instance) return { state, instance: null, damage: 0 }
 
-  const damage = CURRENT_BURN_DAMAGE_BY_STAGE[instance.stage]
+  const damage =
+    instance.basePower === undefined
+      ? CURRENT_BURN_DAMAGE_BY_STAGE[instance.stage]
+      : Math.max(1, instance.basePower - instance.stage)
   if (damage === undefined) {
     throw new RangeError('Current Burn stage is outside the canonical profile.')
   }
   const nextStage = instance.stage + 1
-  const burn =
-    nextStage >= CURRENT_BURN_DAMAGE_BY_STAGE.length
-      ? effectState.burn.filter((candidate) => candidate.targetCombatantId !== targetCombatantId)
-      : effectState.burn.map((candidate) =>
-          candidate.targetCombatantId === targetCombatantId
-            ? { ...candidate, stage: nextStage }
-            : candidate,
-        )
+  const remainingTicks =
+    instance.remainingTicks === undefined ? undefined : instance.remainingTicks - 1
+  const expired =
+    remainingTicks !== undefined
+      ? remainingTicks <= 0
+      : nextStage >= CURRENT_BURN_DAMAGE_BY_STAGE.length
+  const burn = expired
+    ? effectState.burn.filter((candidate) => candidate.targetCombatantId !== targetCombatantId)
+    : effectState.burn.map((candidate) =>
+        candidate.targetCombatantId === targetCombatantId
+          ? {
+              ...candidate,
+              stage: nextStage,
+              ...(remainingTicks === undefined ? {} : { remainingTicks }),
+            }
+          : candidate,
+      )
 
   return {
     state: { ...state, effectState: { ...effectState, burn } },
@@ -387,6 +462,14 @@ function validateCurrentPoisonState(state: CombatEncounterState): readonly Comba
       !Number.isSafeInteger(instance.movementRemainder) ||
       instance.movementRemainder < 0 ||
       instance.movementRemainder > 4 ||
+      (instance.damagePerTick !== undefined &&
+        (!Number.isSafeInteger(instance.damagePerTick) ||
+          instance.damagePerTick < 1 ||
+          instance.damagePerTick > 20)) ||
+      (instance.remainingTicks !== undefined &&
+        (!Number.isSafeInteger(instance.remainingTicks) ||
+          instance.remainingTicks < 1 ||
+          instance.remainingTicks > 4)) ||
       targetIds.has(instance.targetCombatantId) ||
       (previousTargetId !== null && previousTargetId > instance.targetCombatantId)
     ) {
@@ -429,7 +512,15 @@ function validateCurrentBurnState(state: CombatEncounterState): readonly CombatE
       (instance.curseCopyable !== undefined && typeof instance.curseCopyable !== 'boolean') ||
       !Number.isSafeInteger(instance.stage) ||
       instance.stage < 0 ||
-      instance.stage >= CURRENT_BURN_DAMAGE_BY_STAGE.length ||
+      instance.stage > 3 ||
+      (instance.basePower !== undefined &&
+        (!Number.isSafeInteger(instance.basePower) ||
+          instance.basePower < 1 ||
+          instance.basePower > 20)) ||
+      (instance.remainingTicks !== undefined &&
+        (!Number.isSafeInteger(instance.remainingTicks) ||
+          instance.remainingTicks < 1 ||
+          instance.remainingTicks > 4)) ||
       targetIds.has(instance.targetCombatantId) ||
       (previousTargetId !== null && previousTargetId > instance.targetCombatantId)
     ) {
@@ -506,7 +597,7 @@ function validateCurrentBleedState(state: CombatEncounterState): readonly Combat
         {
           field: 'effectState.bleed',
           message:
-            'Bleed state must contain at most three valid independent stacks per target in stable application order, each with one to four remaining ticks, no more than 10 raw remaining damage, and optional boolean copy policy.',
+            'Bleed state must contain at most three valid independent stacks per target in stable application order, each with one to four remaining ticks, no more than 80 raw remaining damage, and optional boolean copy policy.',
         },
       ]
     : []
