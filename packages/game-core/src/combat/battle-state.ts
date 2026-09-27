@@ -464,12 +464,11 @@ export function validateBattleState(state: BattleState): readonly BattleInvarian
       !combatantIds.has(modifier.combatantId) ||
       modifierIds.has(modifier.combatantId) ||
       !Number.isSafeInteger(modifier.amount) ||
-      Math.abs(modifier.amount) > 40 ||
       state.lifecycle === 'pending'
     ) {
       issues.push({
         field: 'roundInitiativeModifiers',
-        message: 'Round initiative offsets must be unique known combatants and bounded to +/-40.',
+        message: 'Round initiative offsets must be unique known combatants with safe-integer values.',
       })
     }
     modifierIds.add(modifier.combatantId)
@@ -545,8 +544,12 @@ function createInitiativeOrder(
   modifiers: NonNullable<BattleState['roundInitiativeModifiers']> = [],
 ): string[] {
   const offsets = new Map(modifiers.map((modifier) => [modifier.combatantId, modifier.amount]))
-  const priority = (unit: BattleCombatant) =>
-    Math.min(Number.MAX_SAFE_INTEGER, unit.initiative + (offsets.get(unit.id) ?? 0))
+  const priority = (unit: BattleCombatant) => {
+    const value = BigInt(unit.initiative) + BigInt(offsets.get(unit.id) ?? 0)
+    if (value > BigInt(Number.MAX_SAFE_INTEGER)) return Number.MAX_SAFE_INTEGER
+    if (value < BigInt(Number.MIN_SAFE_INTEGER)) return Number.MIN_SAFE_INTEGER
+    return Number(value)
+  }
   return [...combatants]
     .sort((left, right) => {
       if (priority(left) !== priority(right)) {
