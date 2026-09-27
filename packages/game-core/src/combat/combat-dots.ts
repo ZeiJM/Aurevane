@@ -14,6 +14,10 @@ export const CURRENT_BURN_PROFILE_VERSION = 1 as const
 export const CURRENT_BURN_DAMAGE_BY_STAGE = [4, 3, 2] as const
 export const CURRENT_BURN_BACKLASH_DAMAGE = 2 as const
 
+function currentEffectStacks(value: { stacks?: number }): number {
+  return Number.isSafeInteger(value.stacks) && (value.stacks ?? 0) > 0 ? value.stacks! : 1
+}
+
 function addEffectStacks(current: number | undefined, added = 1): number {
   const total = BigInt(current ?? 0) + BigInt(added)
   if (total > BigInt(Number.MAX_SAFE_INTEGER)) {
@@ -54,7 +58,7 @@ export function currentPoisonEndTurnDamage(
   targetCombatantId: string,
 ): number {
   const instance = currentPoisonInstance(state, targetCombatantId)
-  return instance ? CURRENT_POISON_DAMAGE * instance.stacks : 0
+  return instance ? CURRENT_POISON_DAMAGE * currentEffectStacks(instance) : 0
 }
 
 export function applyCurrentPoisonState(
@@ -347,7 +351,7 @@ export function advanceCurrentBurnEndTurn(
   return {
     state: { ...state, effectState: { ...effectState, burn } },
     instance,
-    damage: damagePerStack * instance.stacks,
+    damage: damagePerStack * currentEffectStacks(instance),
   }
 }
 
@@ -381,8 +385,8 @@ function validateCurrentPoisonState(state: CombatEncounterState): readonly Comba
       instance.sourceActionId.length === 0 ||
       instance.sourceActionId.trim() !== instance.sourceActionId ||
       instance.profileVersion !== CURRENT_POISON_PROFILE_VERSION ||
-      !Number.isSafeInteger(instance.stacks) ||
-      instance.stacks < 1 ||
+      (instance.stacks !== undefined &&
+        (!Number.isSafeInteger(instance.stacks) || instance.stacks < 1)) ||
       (instance.curseCopyable !== undefined && typeof instance.curseCopyable !== 'boolean') ||
       !Number.isSafeInteger(instance.movementRemainder) ||
       instance.movementRemainder < 0 ||
@@ -426,8 +430,8 @@ function validateCurrentBurnState(state: CombatEncounterState): readonly CombatE
       instance.sourceActionId.length === 0 ||
       instance.sourceActionId.trim() !== instance.sourceActionId ||
       instance.profileVersion !== CURRENT_BURN_PROFILE_VERSION ||
-      !Number.isSafeInteger(instance.stacks) ||
-      instance.stacks < 1 ||
+      (instance.stacks !== undefined &&
+        (!Number.isSafeInteger(instance.stacks) || instance.stacks < 1)) ||
       (instance.curseCopyable !== undefined && typeof instance.curseCopyable !== 'boolean') ||
       !Number.isSafeInteger(instance.stage) ||
       instance.stage < 0 ||
