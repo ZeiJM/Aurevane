@@ -10,10 +10,7 @@ import {
   resolveMatureSkillVersion,
   type MatureSkillDefinition,
 } from '@aurevane/game-core/combat/mature-skills'
-import {
-  resolveEssenceForBuild,
-  type EssenceDefinition,
-} from '@aurevane/game-core/combat/essence'
+import { resolveEssenceForBuild, type EssenceDefinition } from '@aurevane/game-core/combat/essence'
 import {
   resolveResonanceForPair,
   type ResonanceDefinition,
@@ -39,7 +36,6 @@ function staticSkill(
   return structuredClone(definition)
 }
 
-
 function staticEssence(version?: number): EssenceDefinition {
   const definition = resolveEssenceForBuild('vanguard', null, version)
   if (!definition) throw new Error(`Missing static Vanguard Essence@${String(version)}.`)
@@ -48,7 +44,8 @@ function staticEssence(version?: number): EssenceDefinition {
 
 function staticResonance(version?: number): ResonanceDefinition {
   const definition = resolveResonanceForPair('lifebinder', 'vanguard', version)
-  if (!definition) throw new Error(`Missing static Lifebinder/Vanguard Resonance@${String(version)}.`)
+  if (!definition)
+    throw new Error(`Missing static Lifebinder/Vanguard Resonance@${String(version)}.`)
   return structuredClone(definition)
 }
 
@@ -468,7 +465,10 @@ describe('combat content authoring service', () => {
 
     const published = await service.publishEssence({
       actorUserId: OWNER,
-      definition: { ...essence, flavorLine: 'Stand unbroken and drive the decisive strike through.' },
+      definition: {
+        ...essence,
+        flavorLine: 'Stand unbroken and drive the decisive strike through.',
+      },
       expectedBaseVersion: essence.contentVersion,
     })
 
@@ -526,10 +526,8 @@ describe('combat content authoring service', () => {
       targetVersion: first.contentVersion,
     })
     expect((await store.findPublished(resonance.id))?.contentVersion).toBe(first.contentVersion)
-    expect((await store.listPublishedVersions(resonance.id)).map((row) => row.contentVersion)).toEqual([
-      first.contentVersion,
-      second.contentVersion,
-    ])
+    expect(
+      (await store.listPublishedVersions(resonance.id)).map((row) => row.contentVersion),
+    ).toEqual([first.contentVersion, second.contentVersion])
   })
-
 })
