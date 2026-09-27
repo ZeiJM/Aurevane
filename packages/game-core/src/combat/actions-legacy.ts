@@ -469,7 +469,7 @@ export interface CombatEncounterIssue {
 export const P2_3_GUARDED_STATUS: CombatStatusDefinition = {
   id: 'guarded',
   version: 1,
-  maximumStacks: 3,
+  maximumStacks: Number.MAX_SAFE_INTEGER,
   durationOwnerTurnStarts: 1,
   damageTakenMultiplierBasisPoints: 8_000,
 }
@@ -963,7 +963,8 @@ function collectNextRoundInitiativeModifiers(
           (sum, status) =>
             sum +
             (getStatusDefinition(content, status.statusId, status.statusVersion)
-              .nextRoundInitiative ?? 0),
+              .nextRoundInitiative ?? 0) *
+              status.stacks,
           0,
         ),
       ),
@@ -1028,7 +1029,7 @@ export function endCombatTurn(
     (hp, status) => {
       const periodic = getStatusDefinition(content, status.statusId, status.statusVersion).endOfTurn
       if (!periodic || hp <= 0) return hp
-      const amount = periodic.amount * status.stacks
+      const amount = multiplyClampedSafeInteger(periodic.amount, status.stacks)
       return periodic.type === 'damage'
         ? Math.max(0, hp - amount)
         : Math.min(outgoing.maxHp, hp + incomingHealingAmount(state, outgoingId, amount, content))
@@ -1983,9 +1984,11 @@ function resolveDamageAmount(
   for (const status of getStatusRow(state, recipientId).statuses) {
     const definition = getStatusDefinition(content, status.statusId, status.statusVersion)
     if (effect.piercing === true && definition.damageTakenMultiplierBasisPoints < 10_000) continue
-    for (let stack = 0; stack < status.stacks; stack += 1) {
-      amount = scaleByBasisPoints(amount, definition.damageTakenMultiplierBasisPoints)
-    }
+    amount = scaleByBasisPointsRepeated(
+      amount,
+      definition.damageTakenMultiplierBasisPoints,
+      status.stacks,
+    )
   }
 
   amount = scaleByBasisPoints(
@@ -2010,8 +2013,8 @@ function applyStatusState(
   const definition = getStatusDefinitionById(content, statusId)
   const existing = getStatus(state, recipientId, statusId, sourceCombatantId)
   const nextStacks = existing
-    ? addClampedSafeInteger(existing.stacks, stacks, 1, definition.maximumStacks)
-    : Math.min(definition.maximumStacks, stacks)
+    ? addClampedSafeInteger(existing.stacks, stacks, 1, Number.MAX_SAFE_INTEGER)
+    : stacks
   const nextStatus: CombatStatusInstance = existing
     ? {
         ...existing,
@@ -2115,7 +2118,7 @@ function resolveEndOfTurnStatuses(
     // Periodic values are fixed, do not roll accuracy, and do not trigger ordinary on-hit modifiers.
     const target = getCombatant(nextState.tactical.battle, combatantId)
     if (target.hp > 0) {
-      const amount = definition.endOfTurn.amount * status.stacks
+      const amount = multiplyClampedSafeInteger(definition.endOfTurn.amount, status.stacks)
       const hpAfter =
         definition.endOfTurn.type === 'damage'
           ? Math.max(0, target.hp - amount)
@@ -2688,24 +2691,21 @@ function validateCombatContentCatalog(content: CombatContentCatalog): void {
         throw new TypeError('Invalid gameplay tags.')
       for (const tag of status.gameplayTags) validateGameplayTag(tag)
     }
-    if (status.damageModifiers?.length && status.maximumStacks !== 1)
-      throw new TypeError('Conditional damage statuses must be single-stack.')
     if (
       status.nextRoundInitiative !== undefined &&
       (!Number.isSafeInteger(status.nextRoundInitiative) ||
         Math.abs(status.nextRoundInitiative) > 40 ||
         status.nextRoundInitiative === 0 ||
-        status.maximumStacks !== 1 ||
         status.endOfTurn)
     )
       throw new RangeError(
-        'Round initiative status must be single-stack, non-periodic and bounded to +/-40.',
+        'Round initiative status must be non-periodic and bounded to +/-40 per application.',
       )
     if (status.endOfTurn) {
       assertKnownString(status.endOfTurn.type, ['damage', 'healing'], 'periodic effect')
       assertPositiveSafeInteger(status.endOfTurn.amount, 'periodic amount')
-      if (status.endOfTurn.amount > 100 || status.maximumStacks > 3)
-        throw new RangeError('Periodic status exceeds its bounded magnitude.')
+      if (status.endOfTurn.amount > 100)
+        throw new RangeError('Periodic status exceeds its bounded per-application magnitude.')
     }
     if (status.movement) {
       if (status.movement.blocked !== undefined && typeof status.movement.blocked !== 'boolean')
@@ -2749,6 +2749,25 @@ function scaleByBasisPoints(value: number, basisPoints: number): number {
     throw new RangeError('Scaled combat value exceeds the safe integer range.')
   }
   return Number(scaled)
+}
+
+function scaleByBasisPointsRepeated(value: number, basisPoints: number, applications: number): number {
+  assertNonNegativeSafeInteger(value, 'combat value')
+  assertNonNegativeSafeInteger(basisPoints, 'combat basis points')
+  assertPositiveSafeInteger(applications, 'effect applications')
+  if (basisPoints === COMBAT_BASIS_POINTS) return value
+  let result = value
+  for (let index = 0; index < applications && result > 0; index += 1) {
+    result = scaleByBasisPoints(result, basisPoints)
+  }
+  return result
+}
+
+function multiplyClampedSafeInteger(value: number, multiplier: number): number {
+  assertNonNegativeSafeInteger(value, 'combat value')
+  assertPositiveSafeInteger(multiplier, 'effect applications')
+  const total = BigInt(value) * BigInt(multiplier)
+  return Number(total > BigInt(Number.MAX_SAFE_INTEGER) ? BigInt(Number.MAX_SAFE_INTEGER) : total)
 }
 
 function scaleRatioToBasisPoints(current: number, maximum: number): number {
