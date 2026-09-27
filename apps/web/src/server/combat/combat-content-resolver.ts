@@ -469,11 +469,7 @@ export function createCombatContentResolver(
         ? await source.findContentVersion(resonanceId, 'resonance', version)
         : null
       if (published) return validatePublishedResonance(published, resonanceId, version)
-      const fallback = resolveResonanceForPair(
-        primaryDisciplineId,
-        secondaryDisciplineId,
-        version,
-      )
+      const fallback = resolveResonanceForPair(primaryDisciplineId, secondaryDisciplineId, version)
       return fallback?.id === resonanceId ? structuredClone(fallback) : null
     },
   }
