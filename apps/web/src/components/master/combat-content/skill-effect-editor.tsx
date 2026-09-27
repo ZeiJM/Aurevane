@@ -10,6 +10,7 @@ import styles from './combat-content-editor.module.css'
 
 type DamageEffect = Extract<CombatEffectDefinition, { type: 'damage' }>
 type DisplaceEffect = Extract<CombatEffectDefinition, { type: 'displace' }>
+type ApplyStatusEffect = Extract<CombatEffectDefinition, { type: 'apply-status' }>
 
 const RECIPIENTS: readonly { value: CombatEffectRecipient; label: string }[] = [
   { value: 'actor', label: 'Actor' },
@@ -20,6 +21,46 @@ const RECIPIENTS: readonly { value: CombatEffectRecipient; label: string }[] = [
 function integer(value: string, fallback: number): number {
   const parsed = Number(value)
   return Number.isSafeInteger(parsed) ? parsed : fallback
+}
+
+function statusTuningField(
+  value: ApplyStatusEffect,
+  field: NonNullable<ApplyStatusEffect['tuning']> extends infer T ? keyof T : never,
+  label: string,
+  minimum: number,
+  maximum: number,
+  onChange: (next: CombatEffectDefinition) => void,
+) {
+  const basisPoints = value.tuning?.[field] as number | undefined
+  return (
+    <label className={styles.field}>
+      <span>{label}</span>
+      <input
+        aria-label={label}
+        type="number"
+        min={minimum}
+        max={maximum}
+        step={1}
+        value={basisPoints === undefined ? '' : basisPoints / 100}
+        placeholder="Status default"
+        onChange={(event) => {
+          const rest = { ...(value.tuning ?? {}) }
+          if (event.currentTarget.value === '') {
+            Reflect.deleteProperty(rest, field)
+          } else {
+            rest[field] = Math.round(Number(event.currentTarget.value) * 100) as never
+          }
+          const next = { ...value }
+          if (Object.keys(rest).length === 0) {
+            Reflect.deleteProperty(next, 'tuning')
+            onChange(next)
+            return
+          }
+          onChange({ ...value, tuning: rest })
+        }}
+      />
+    </label>
+  )
 }
 
 function recipientField(
@@ -494,6 +535,42 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
               }
             />
           </label>
+          {statusTuningField(
+            value,
+            'incomingDamageModifierBasisPoints',
+            'Incoming damage change (%)',
+            -50,
+            50,
+            onChange,
+          )}
+          {statusTuningField(
+            value,
+            'outgoingDamageModifierBasisPoints',
+            'Outgoing damage change (%)',
+            -50,
+            50,
+            onChange,
+          )}
+          {statusTuningField(
+            value,
+            'healingReceivedModifierBasisPoints',
+            'Healing received change (%)',
+            -50,
+            50,
+            onChange,
+          )}
+          {statusTuningField(
+            value,
+            'accuracyModifierBasisPoints',
+            'Accuracy change (percentage points)',
+            -30,
+            30,
+            onChange,
+          )}
+          <p className={styles.effectNote}>
+            Leave tuning blank to use the status default. Negative values reduce the named quantity;
+            positive values increase it.
+          </p>
         </div>
       )
       break
