@@ -14,6 +14,7 @@ import {
   resolveResonanceForPair,
   validateResonanceDefinition,
 } from './resonance'
+import { rebalanceResonanceDefinition } from './resonance-balance-v5'
 
 function encounter() {
   const battle = startBattle(
@@ -195,6 +196,45 @@ describe('P3.5 versioned Resonance framework', () => {
 
     const armed = { ...ready, armedByActionId: heal.id }
     expect(resonanceAiUtilityBonus(resonance, armed, strike)).toBe(30)
+  })
+})
+
+describe('Combat v5 thematic Resonance rebalance', () => {
+  it('derives payoff variety from authored setup Disciplines rather than Resonance IDs', () => {
+    const lifebinder = resolveResonanceForPair('lifebinder', 'vanguard', 1)
+    const farstrider = resolveResonanceForPair('farstrider', 'vanguard', 1)
+    const cinderweaver = resolveResonanceForPair('cinderweaver', 'vanguard', 1)
+    if (!lifebinder || !farstrider || !cinderweaver) {
+      throw new Error('Expected representative thematic Resonances.')
+    }
+
+    const lifebinderV5 = rebalanceResonanceDefinition(lifebinder)
+    const farstriderV5 = rebalanceResonanceDefinition(farstrider)
+    const cinderweaverV5 = rebalanceResonanceDefinition(cinderweaver)
+
+    expect(lifebinderV5.trigger.payoffEffects).toContainEqual(
+      expect.objectContaining({ type: 'healing', recipient: 'actor' }),
+    )
+    expect(farstriderV5.trigger.payoffEffects).toContainEqual(
+      expect.objectContaining({ type: 'resource-change', recipient: 'actor', resource: 'mp' }),
+    )
+    expect(cinderweaverV5.trigger.payoffEffects).toContainEqual(
+      expect.objectContaining({ type: 'burn', recipient: 'primary-unit' }),
+    )
+  })
+
+  it('does not change v5 payoff semantics when only an opaque Resonance ID changes', () => {
+    const base = resolveResonanceForPair('lifebinder', 'vanguard', 1)
+    if (!base) throw new Error('Expected Lifebinder/Vanguard Resonance.')
+
+    const renamed = {
+      ...base,
+      id: 'resonance.lifebinder-vanguard.semantic-identity-test',
+    }
+
+    expect(rebalanceResonanceDefinition(renamed).trigger.payoffEffects).toEqual(
+      rebalanceResonanceDefinition(base).trigger.payoffEffects,
+    )
   })
 })
 
