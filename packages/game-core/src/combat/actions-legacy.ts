@@ -3141,7 +3141,7 @@ export function resolveCombatMovementStepEffects(
   for (let index = 0; index < advanced.triggeredTicks; index += 1) {
     const target = getCombatant(nextState.tactical.battle, combatantId)
     if (target.hp <= 0) break
-    const hpAfter = Math.max(0, target.hp - CURRENT_POISON_DAMAGE)
+    const hpAfter = Math.max(0, target.hp - currentPoisonEndTurnDamage(nextState, combatantId))
     const defeatsCurrentActor =
       hpAfter === 0 &&
       nextState.tactical.battle.lifecycle === 'active' &&
