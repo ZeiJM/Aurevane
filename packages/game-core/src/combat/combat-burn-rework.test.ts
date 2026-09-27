@@ -205,12 +205,7 @@ describe('current Burn pressure runtime', () => {
         ],
       },
     }
-    const reapplied = applyCurrentBurnState(
-      historical,
-      'actor',
-      'target',
-      'test.reapplied-burn',
-    )
+    const reapplied = applyCurrentBurnState(historical, 'actor', 'target', 'test.reapplied-burn')
     expect(reapplied.effectState?.burn).toEqual([
       expect.objectContaining({
         sourceActionId: 'test.reapplied-burn',
