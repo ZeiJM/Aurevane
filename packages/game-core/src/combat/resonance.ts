@@ -142,8 +142,7 @@ const PRE_V5_RESONANCES = [
 
 const V5_REBALANCED_RESONANCES = PRE_V5_RESONANCES.map(rebalanceResonanceDefinition)
 
-export const P35_REPRESENTATIVE_RESONANCES: readonly ResonanceDefinition[] =
-  PRE_V5_RESONANCES
+export const P35_REPRESENTATIVE_RESONANCES: readonly ResonanceDefinition[] = PRE_V5_RESONANCES
 
 const CURRENT_RESONANCE_REGISTRY: readonly ResonanceDefinition[] = [
   ...P35_REPRESENTATIVE_RESONANCES,
