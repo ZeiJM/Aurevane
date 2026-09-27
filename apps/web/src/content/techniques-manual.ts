@@ -91,7 +91,7 @@ export const techniquesManualArticle: ManualArticle = {
         'The 1–20 authored number and the AP-linked Power contribution are separate. More AP generally raises the authored budget and the Power coefficient, while area coverage, secondary utility, multiple hits, effect potency and duration reduce how much of that budget can be concentrated into one damage block.',
       ],
       table: {
-        caption: 'Current Power contribution before repeat-use reduction',
+        caption: 'Current AP-linked Power contribution per direct-damage block',
         headers: ['AP / hits', 'Power coefficient per hit'],
         rows: [
           [25, 1],
@@ -119,15 +119,14 @@ export const techniquesManualArticle: ManualArticle = {
         'The server first checks legality and resolves any Accuracy check. A miss does not apply the missed target’s hostile effects. For each successful direct-damage block, the following order matters because each multiplication rounds down separately:',
       ],
       bullets: [
-        '1. Prepare repeat-use reduction, if applicable: halve the authored base amount (rounded down, minimum one for a positive amount) and halve the Power coefficient in basis points (rounded down). This happens before adding Power, not as a final 50% multiplier.',
-        '2. Add floor(matching Power × coefficientBP ÷ 10,000) to the prepared base damage.',
-        '3. Apply Armor or Ward: floor(raw damage × 100 ÷ (100 + defense)), with a minimum of one for positive raw damage. Piercing skips this defense step.',
-        `4. On an eligible critical hit, multiply by ${COMBAT_CRITICAL_DAMAGE_BASIS_POINTS / 10_000} and round down. One critical result is shared by all eligible damage blocks against the same target in that command.`,
-        '5. Apply the attacker-versus-defender Level multiplier below, rounding down. Self-damage does not receive this relative-Level adjustment.',
-        '6. Apply any authored front/side/rear damage multiplier, rounding down. Only a Skill that specifies a facing multiplier receives one.',
-        '7. Apply the recipient’s legacy damage-taken multipliers, once per active stack in stored order, rounding down each time. Current Guarded multiplies by 85% per stack (up to three); Exposed multiplies by 115%. Lowered Guard, the PvP timeout penalty, is separate at 250% per stack.',
-        `8. Apply the combined conditional/status/elemental damage multiplier, bounded to ${CONDITIONAL_DAMAGE_MINIMUM / 100}–${CONDITIONAL_DAMAGE_MAXIMUM / 100}%, and round down. Piercing ignores incoming reductions in this budget and legacy incoming reductions, but not incoming increases.`,
-        '9. Barrier absorbs direct damage first. Remaining damage reduces HP, bounded by the recipient’s current HP. Later multipliers can round a small hit to zero; the defense minimum is not a final guaranteed HP loss.',
+        '1. Add floor(matching Power × coefficientBP ÷ 10,000) to the authored base damage.',
+        '2. Apply Armor or Ward: floor(raw damage × 100 ÷ (100 + defense)), with a minimum of one for positive raw damage. Piercing skips this defense step.',
+        `3. On an eligible critical hit, multiply by ${COMBAT_CRITICAL_DAMAGE_BASIS_POINTS / 10_000} and round down. One critical result is shared by all eligible damage blocks against the same target in that command.`,
+        '4. Apply the attacker-versus-defender Level multiplier below, rounding down. Self-damage does not receive this relative-Level adjustment.',
+        '5. Apply any authored front/side/rear damage multiplier, rounding down. Only a Skill that specifies a facing multiplier receives one.',
+        '6. Apply the recipient’s legacy damage-taken multipliers, once per active stack in stored order, rounding down each time. Current Guarded multiplies by 85% per stack (up to three); Exposed multiplies by 115%. Lowered Guard, the PvP timeout penalty, is separate at 250% per stack.',
+        `7. Apply the combined conditional/status/elemental damage multiplier, bounded to ${CONDITIONAL_DAMAGE_MINIMUM / 100}–${CONDITIONAL_DAMAGE_MAXIMUM / 100}%, and round down. Piercing ignores incoming reductions in this budget and legacy incoming reductions, but not incoming increases.`,
+        '8. Barrier absorbs direct damage first. Remaining damage reduces HP, bounded by the recipient’s current HP. Later multipliers can round a small hit to zero; the defense minimum is not a final guaranteed HP loss.',
       ],
     },
     {
@@ -170,6 +169,15 @@ export const techniquesManualArticle: ManualArticle = {
       ],
     },
     {
+      id: 'attunement-details',
+      title: 'Essence and Resonance details in Nexus',
+      paragraphs: [
+        'A pure build shows its active Essence card in Nexus; a mixed build shows its active Resonance card. The card itself keeps a concise flavor line so the full mechanical description does not crowd the layout.',
+        'Hover the active Essence or Resonance artwork, or move keyboard focus to it, to open the detail panel. Moving the pointer or focus away closes it automatically. Essence details use the same Skill rows as Technique details: type, cost, cooldown, requirements, effects, range and targeting where applicable.',
+        'Resonance details show both halves of the sequence explicitly: the setup Discipline/tags that arm the Resonance, the payoff Discipline/tags that consume it, and the bounded payoff effects with their durations. The panel is informational only; it does not change the committed build or battle state.',
+      ],
+    },
+    {
       id: 'effect-families',
       title: 'What each effect family does',
       paragraphs: [
@@ -180,8 +188,8 @@ export const techniquesManualArticle: ManualArticle = {
         'Healing: restores HP without reviving a defeated unit. Multi-application recovery starts immediately, then continues at recipient turn ends. Hexed reduces both direct and periodic healing. Restoration cannot exceed maximum HP.',
         'MP Restore / MP Drain: adds or removes MP, bounded by the recipient’s resource limits. Repeated recovery lists its application count; a drain does not imply restoration unless another effect grants it.',
         'Barrier: grants a separate pool that absorbs direct damage before HP. No current regular Technique authors a Barrier grant, although the effect is supported by the combat system.',
-        `Burn: ${CURRENT_BURN_DAMAGE_BY_STAGE.join(', then ')} fixed damage at the next three turn ends; reapplication restarts the sequence. A burning unit also takes ${CURRENT_BURN_BACKLASH_DAMAGE} backlash after a Basic Attack or damaging command.`,
-        `Poison: ${CURRENT_POISON_DAMAGE} fixed damage at turn end and per five voluntarily entered tiles, carrying partial movement progress forward. It persists until removed; it has no finite three- or four-turn total. Forced displacement does not count as voluntary movement.`,
+        `Burn: current v5 Skills can author Burn Power and duration. Each affected turn end deals the authored starting Power, then one less on each later tick with a minimum of 1, until the authored duration expires. The fallback historical profile remains ${CURRENT_BURN_DAMAGE_BY_STAGE.join(', then ')}. A burning unit also takes ${CURRENT_BURN_BACKLASH_DAMAGE} backlash after a Basic Attack or damaging command.`,
+        `Poison: current v5 Skills can author Poison Power and duration. Its authored Power is the damage dealt at affected turn end and per five voluntarily entered tiles, carrying partial movement progress forward until the authored duration expires. The fallback historical profile deals ${CURRENT_POISON_DAMAGE} damage and persists until removed. Forced displacement does not count as voluntary movement.`,
         'Bleed: authored fixed damage per turn-end tick, with an authored tick count. Up to three independent stacks coexist. Fixed DOT damage does not gain Power, Level or critical scaling.',
         'Apply status: grants the named condition for its authored duration. Percentage-based status potency is authored per effect where supported, so Guarded, Exposed, Mark and similar effects can differ by Skill version. A stack count is separate from percentage potency.',
         'Cleanse / Dispel: removes the statuses explicitly listed by the Skill. Dispel removes protection; Cleanse removes harmful conditions. Neither automatically removes every effect in the game.',
@@ -196,7 +204,7 @@ export const techniquesManualArticle: ManualArticle = {
       paragraphs: [
         `These figures are generated from the ${skills.length} latest enabled regular Skills. Compare within a family only: seven base damage cannot be ranked against seven MP or a seven-tile line. One observation is one effect block, except command damage totals and shape sizes. Multi-target effects are counted once, not once per potential target.`,
         '“Typical” is the inclusive lower-to-upper quartile interval (Q1–Q3). Low means below Q1; high means above Q3, within the observed range. Quartiles use nearest rank: sort the observations and take positions ceil(n × 0.25) and ceil(n × 0.75). Ties can leave a low or high band empty. A fixed-value or tiny family is a catalog comparison, not a reliable balance tier.',
-        'DOT observations include each Burn stage and each authored Bleed tick magnitude; Poison contributes its fixed tick value but no finite duration. Total healing includes only effects with multiple applications, before missing-HP limits and healing modifiers.',
+        'DOT observations use the authored current-v5 magnitudes for Burn, Bleed and Poison where present. Historical/default fallback profiles remain versioned separately. Total healing includes only effects with multiple applications, before missing-HP limits and healing modifiers.',
       ],
       table: {
         caption: 'Current catalog magnitude ranges',
