@@ -1,5 +1,6 @@
 'use client'
 
+import type { AuthoredSupernaturalIdentityDefinition } from '@aurevane/game-core/character/supernatural-content'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
@@ -7,6 +8,7 @@ export interface SupernaturalChoiceOption {
   transitionId: string
   transitionContentVersion: number
   path: 'ascended' | 'severed'
+  identity: AuthoredSupernaturalIdentityDefinition
 }
 
 async function responseMessage(response: Response): Promise<string> {
@@ -95,6 +97,14 @@ export function CharacterSupernaturalChoiceControls({
       <p data-supernatural-warning>
         This decision is permanent. Review both paths before binding this character.
       </p>
+      <div data-supernatural-choice-facts>
+        {choices.map((choice) => (
+          <div key={choice.transitionId} data-supernatural-choice-fact={choice.path}>
+            <strong>{choice.identity.title}</strong>
+            <p>{choice.identity.summary}</p>
+          </div>
+        ))}
+      </div>
       <div data-supernatural-action-row>
         {choices.map((choice) => (
           <button
