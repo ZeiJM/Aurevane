@@ -259,7 +259,9 @@ describe('P3.7 direct PvP committed build snapshots', () => {
         })),
       )
       for (const skill of combatant.disciplineSkills) {
-        const source = bridge.disciplineSkills.find((candidate) => candidate.skillId === skill.skillId)
+        const source = bridge.disciplineSkills.find(
+          (candidate) => candidate.skillId === skill.skillId,
+        )
         expect(source).toBeDefined()
         expect(skill.contentVersion).toBeGreaterThanOrEqual(source!.contentVersion)
       }
