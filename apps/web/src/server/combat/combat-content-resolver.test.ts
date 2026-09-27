@@ -4,9 +4,17 @@ vi.mock('server-only', () => ({}))
 
 import type { CombatContentVersionRecord } from '@aurevane/db/combat-content'
 import {
+  resolveEssenceForBuild,
+  type EssenceDefinition,
+} from '@aurevane/game-core/combat/essence'
+import {
   resolveMatureSkillVersion,
   type MatureSkillDefinition,
 } from '@aurevane/game-core/combat/mature-skills'
+import {
+  resolveResonanceForPair,
+  type ResonanceDefinition,
+} from '@aurevane/game-core/combat/resonance'
 
 import {
   InvalidPublishedCombatContentError,
@@ -41,6 +49,23 @@ class MemoryPublishedCombatContentSource implements PublishedCombatContentSource
   ): Promise<CombatContentVersionRecord | null> {
     return this.versions.get(`${contentKey}@${contentVersion}`) ?? null
   }
+
+  async findCurrentContent(
+    contentKey: string,
+    contentKind: 'essence' | 'resonance',
+  ): Promise<CombatContentVersionRecord | null> {
+    const row = this.current.get(contentKey) ?? null
+    return row?.contentKind === contentKind ? row : null
+  }
+
+  async findContentVersion(
+    contentKey: string,
+    contentKind: 'essence' | 'resonance',
+    contentVersion: number,
+  ): Promise<CombatContentVersionRecord | null> {
+    const row = this.versions.get(`${contentKey}@${contentVersion}`) ?? null
+    return row?.contentKind === contentKind ? row : null
+  }
 }
 
 const staticSkill = (skillId: string, version?: number): MatureSkillDefinition => {
@@ -57,6 +82,27 @@ const publishedSkill = (definition: MatureSkillDefinition): CombatContentVersion
   definition: structuredClone(definition) as unknown as Readonly<Record<string, unknown>>,
   publishedBy: '22222222-2222-4222-8222-222222222222',
   publishedAt: '2026-09-17T21:45:00.000Z',
+})
+
+
+const publishedEssence = (definition: EssenceDefinition): CombatContentVersionRecord => ({
+  id: '33333333-3333-4333-8333-333333333333',
+  contentKey: definition.essenceId,
+  contentKind: 'essence',
+  contentVersion: definition.contentVersion,
+  definition: structuredClone(definition) as unknown as Readonly<Record<string, unknown>>,
+  publishedBy: '22222222-2222-4222-8222-222222222222',
+  publishedAt: '2026-09-27T21:45:00.000Z',
+})
+
+const publishedResonance = (definition: ResonanceDefinition): CombatContentVersionRecord => ({
+  id: '44444444-4444-4444-8444-444444444444',
+  contentKey: definition.id,
+  contentKind: 'resonance',
+  contentVersion: definition.contentVersion,
+  definition: structuredClone(definition) as unknown as Readonly<Record<string, unknown>>,
+  publishedBy: '22222222-2222-4222-8222-222222222222',
+  publishedAt: '2026-09-27T21:45:00.000Z',
 })
 
 describe('combat content resolver', () => {
@@ -217,4 +263,80 @@ describe('combat content resolver', () => {
 
     expect(deriveSkillPresentationTags(definition)).toEqual(['Enemy', 'Single', 'Dmg'])
   })
+
+  it('prefers published current Essence and Resonance definitions over static content', async () => {
+    const source = new MemoryPublishedCombatContentSource()
+    const staticEssence = resolveEssenceForBuild('vanguard', null)
+    const staticResonance = resolveResonanceForPair('lifebinder', 'vanguard')
+    if (!staticEssence || !staticResonance) throw new Error('Missing static combat fixtures.')
+
+    const essence: EssenceDefinition = {
+      ...structuredClone(staticEssence),
+      contentVersion: staticEssence.contentVersion + 1,
+      flavorLine: 'Published Essence flavor.',
+      skill: {
+        ...structuredClone(staticEssence.skill),
+        contentVersion: staticEssence.contentVersion + 1,
+      },
+    }
+    const resonance: ResonanceDefinition = {
+      ...structuredClone(staticResonance),
+      contentVersion: staticResonance.contentVersion + 1,
+      flavorLine: 'Published Resonance flavor.',
+    }
+    source.current.set(essence.essenceId, publishedEssence(essence))
+    source.current.set(resonance.id, publishedResonance(resonance))
+
+    const resolver = createCombatContentResolver(source)
+    await expect(resolver.resolveCurrentEssenceDefinition?.('vanguard', null)).resolves.toMatchObject({
+      contentVersion: essence.contentVersion,
+      flavorLine: 'Published Essence flavor.',
+    })
+    await expect(
+      resolver.resolveCurrentResonanceDefinition?.('lifebinder', 'vanguard'),
+    ).resolves.toMatchObject({
+      contentVersion: resonance.contentVersion,
+      flavorLine: 'Published Resonance flavor.',
+    })
+  })
+
+  it('resolves exact pinned published Essence and Resonance versions', async () => {
+    const source = new MemoryPublishedCombatContentSource()
+    const staticEssence = resolveEssenceForBuild('vanguard', null)
+    const staticResonance = resolveResonanceForPair('lifebinder', 'vanguard')
+    if (!staticEssence || !staticResonance) throw new Error('Missing static combat fixtures.')
+
+    const essenceVersion = staticEssence.contentVersion + 2
+    const resonanceVersion = staticResonance.contentVersion + 2
+    const essence: EssenceDefinition = {
+      ...structuredClone(staticEssence),
+      contentVersion: essenceVersion,
+      skill: { ...structuredClone(staticEssence.skill), contentVersion: essenceVersion },
+    }
+    const resonance: ResonanceDefinition = {
+      ...structuredClone(staticResonance),
+      contentVersion: resonanceVersion,
+    }
+    source.versions.set(`${essence.essenceId}@${essenceVersion}`, publishedEssence(essence))
+    source.versions.set(`${resonance.id}@${resonanceVersion}`, publishedResonance(resonance))
+
+    const resolver = createCombatContentResolver(source)
+    await expect(
+      resolver.resolvePinnedEssenceDefinition?.(
+        'vanguard',
+        null,
+        essence.essenceId,
+        essenceVersion,
+      ),
+    ).resolves.toMatchObject({ contentVersion: essenceVersion })
+    await expect(
+      resolver.resolvePinnedResonanceDefinition?.(
+        'lifebinder',
+        'vanguard',
+        resonance.id,
+        resonanceVersion,
+      ),
+    ).resolves.toMatchObject({ contentVersion: resonanceVersion })
+  })
+
 })

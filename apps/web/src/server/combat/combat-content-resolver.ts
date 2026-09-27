@@ -2,6 +2,16 @@ import 'server-only'
 
 import type { CombatContentVersionRecord } from '@aurevane/db/combat-content'
 import { validateCombatActionDefinition } from '@aurevane/game-core/combat/combat-authoring-validation'
+import {
+  resolveEssenceForBuild,
+  validateEssenceDefinition,
+  type EssenceDefinition,
+} from '@aurevane/game-core/combat/essence'
+import {
+  resolveResonanceForPair,
+  validateResonanceDefinition,
+  type ResonanceDefinition,
+} from '@aurevane/game-core/combat/resonance'
 import { AurevaneError } from '@aurevane/game-core/errors'
 import { combatActionPresentationTags } from '@aurevane/game-core/combat/gameplay-tags'
 import {
@@ -22,6 +32,26 @@ export interface CombatContentResolver {
     skillId: string,
     version: number,
   ): Promise<MatureSkillDefinition | null>
+  resolveCurrentEssenceDefinition?(
+    primaryDisciplineId: string,
+    secondaryDisciplineId: string | null,
+  ): Promise<EssenceDefinition | null>
+  resolvePinnedEssenceDefinition?(
+    primaryDisciplineId: string,
+    secondaryDisciplineId: string | null,
+    essenceId: string,
+    version: number,
+  ): Promise<EssenceDefinition | null>
+  resolveCurrentResonanceDefinition?(
+    primaryDisciplineId: string,
+    secondaryDisciplineId: string | null,
+  ): Promise<ResonanceDefinition | null>
+  resolvePinnedResonanceDefinition?(
+    primaryDisciplineId: string,
+    secondaryDisciplineId: string | null,
+    resonanceId: string,
+    version: number,
+  ): Promise<ResonanceDefinition | null>
 }
 
 export interface PublishedCombatContentSource {
@@ -29,6 +59,15 @@ export interface PublishedCombatContentSource {
   findCurrentSkills?(contentKeys: readonly string[]): Promise<readonly CombatContentVersionRecord[]>
   findSkillVersion(
     contentKey: string,
+    contentVersion: number,
+  ): Promise<CombatContentVersionRecord | null>
+  findCurrentContent?(
+    contentKey: string,
+    contentKind: 'essence' | 'resonance',
+  ): Promise<CombatContentVersionRecord | null>
+  findContentVersion?(
+    contentKey: string,
+    contentKind: 'essence' | 'resonance',
     contentVersion: number,
   ): Promise<CombatContentVersionRecord | null>
 }
@@ -71,14 +110,17 @@ function mapRpcFailure(error: RpcError): never {
   )
 }
 
-function parseVersionRow(data: unknown): CombatContentVersionRecord | null {
+function parseVersionRow(
+  data: unknown,
+  expectedKind: CombatContentVersionRecord['contentKind'] = 'skill',
+): CombatContentVersionRecord | null {
   if (data === null || (Array.isArray(data) && data.length === 0)) return null
   const row = Array.isArray(data) && data.length === 1 ? data[0] : null
   if (
     !isObject(row) ||
     !requiredString(row.id) ||
     !requiredString(row.content_key) ||
-    row.content_kind !== 'skill' ||
+    row.content_kind !== expectedKind ||
     !positiveInteger(row.content_version) ||
     !isObject(row.definition) ||
     !requiredString(row.published_by) ||
@@ -93,7 +135,7 @@ function parseVersionRow(data: unknown): CombatContentVersionRecord | null {
   return {
     id: row.id,
     contentKey: row.content_key,
-    contentKind: 'skill',
+    contentKind: expectedKind,
     contentVersion: row.content_version,
     definition: structuredClone(row.definition),
     publishedBy: row.published_by,
@@ -137,6 +179,18 @@ export class RpcPublishedCombatContentSource implements PublishedCombatContentSo
     return parseVersionRow(data)
   }
 
+  async findCurrentContent(
+    contentKey: string,
+    contentKind: 'essence' | 'resonance',
+  ): Promise<CombatContentVersionRecord | null> {
+    const { data, error } = await this.#rpc('read_current_combat_content_v1', {
+      p_content_key: contentKey,
+      p_content_kind: contentKind,
+    })
+    if (error) mapRpcFailure(error)
+    return parseVersionRow(data, contentKind)
+  }
+
   async findCurrentSkills(
     contentKeys: readonly string[],
   ): Promise<readonly CombatContentVersionRecord[]> {
@@ -148,6 +202,20 @@ export class RpcPublishedCombatContentSource implements PublishedCombatContentSo
     })
     if (error) mapRpcFailure(error)
     return parseVersionRows(data)
+  }
+
+  async findContentVersion(
+    contentKey: string,
+    contentKind: 'essence' | 'resonance',
+    contentVersion: number,
+  ): Promise<CombatContentVersionRecord | null> {
+    const { data, error } = await this.#rpc('read_combat_content_version_v1', {
+      p_content_key: contentKey,
+      p_content_kind: contentKind,
+      p_content_version: contentVersion,
+    })
+    if (error) mapRpcFailure(error)
+    return parseVersionRow(data, contentKind)
   }
 
   async findSkillVersion(
@@ -218,6 +286,89 @@ function validatePublishedSkill(
   return structuredClone(candidate)
 }
 
+function validatePublishedEssence(
+  record: CombatContentVersionRecord,
+  expectedEssenceId: string,
+  expectedVersion?: number,
+): EssenceDefinition {
+  if (
+    record.contentKind !== 'essence' ||
+    record.contentKey !== expectedEssenceId ||
+    (expectedVersion !== undefined && record.contentVersion !== expectedVersion)
+  ) {
+    throw new InvalidPublishedCombatContentError(
+      `Published Essence metadata does not match ${expectedEssenceId}${
+        expectedVersion === undefined ? '' : `@${expectedVersion}`
+      }.`,
+    )
+  }
+
+  const candidate = structuredClone(record.definition) as unknown as EssenceDefinition
+  let issues: readonly string[]
+  try {
+    issues = validateEssenceDefinition(candidate)
+  } catch (error) {
+    throw new InvalidPublishedCombatContentError(
+      `Published Essence ${expectedEssenceId}@${record.contentVersion} has an invalid definition shape.`,
+      { cause: error },
+    )
+  }
+  if (
+    issues.length > 0 ||
+    candidate.essenceId !== record.contentKey ||
+    candidate.contentVersion !== record.contentVersion ||
+    candidate.skill.contentVersion !== record.contentVersion
+  ) {
+    throw new InvalidPublishedCombatContentError(
+      `Published Essence ${expectedEssenceId}@${record.contentVersion} failed validation${
+        issues.length > 0 ? `: ${issues.join(', ')}` : '.'
+      }`,
+    )
+  }
+  return structuredClone(candidate)
+}
+
+function validatePublishedResonance(
+  record: CombatContentVersionRecord,
+  expectedResonanceId: string,
+  expectedVersion?: number,
+): ResonanceDefinition {
+  if (
+    record.contentKind !== 'resonance' ||
+    record.contentKey !== expectedResonanceId ||
+    (expectedVersion !== undefined && record.contentVersion !== expectedVersion)
+  ) {
+    throw new InvalidPublishedCombatContentError(
+      `Published Resonance metadata does not match ${expectedResonanceId}${
+        expectedVersion === undefined ? '' : `@${expectedVersion}`
+      }.`,
+    )
+  }
+
+  const candidate = structuredClone(record.definition) as unknown as ResonanceDefinition
+  let issues: readonly string[]
+  try {
+    issues = validateResonanceDefinition(candidate)
+  } catch (error) {
+    throw new InvalidPublishedCombatContentError(
+      `Published Resonance ${expectedResonanceId}@${record.contentVersion} has an invalid definition shape.`,
+      { cause: error },
+    )
+  }
+  if (
+    issues.length > 0 ||
+    candidate.id !== record.contentKey ||
+    candidate.contentVersion !== record.contentVersion
+  ) {
+    throw new InvalidPublishedCombatContentError(
+      `Published Resonance ${expectedResonanceId}@${record.contentVersion} failed validation${
+        issues.length > 0 ? `: ${issues.join(', ')}` : '.'
+      }`,
+    )
+  }
+  return structuredClone(candidate)
+}
+
 export function createCombatContentResolver(
   source: PublishedCombatContentSource,
 ): CombatContentResolver {
@@ -271,6 +422,59 @@ export function createCombatContentResolver(
       if (published) return validatePublishedSkill(published, skillId, version)
       const fallback = resolveMatureSkillVersion(skillId, version)
       return fallback ? structuredClone(fallback) : null
+    },
+    async resolveCurrentEssenceDefinition(primaryDisciplineId, secondaryDisciplineId) {
+      const fallback = resolveEssenceForBuild(primaryDisciplineId, secondaryDisciplineId)
+      if (!fallback) return null
+      const published = source.findCurrentContent
+        ? await source.findCurrentContent(fallback.essenceId, 'essence')
+        : null
+      return published
+        ? validatePublishedEssence(published, fallback.essenceId)
+        : structuredClone(fallback)
+    },
+
+    async resolvePinnedEssenceDefinition(
+      primaryDisciplineId,
+      secondaryDisciplineId,
+      essenceId,
+      version,
+    ) {
+      const published = source.findContentVersion
+        ? await source.findContentVersion(essenceId, 'essence', version)
+        : null
+      if (published) return validatePublishedEssence(published, essenceId, version)
+      const fallback = resolveEssenceForBuild(primaryDisciplineId, secondaryDisciplineId, version)
+      return fallback?.essenceId === essenceId ? structuredClone(fallback) : null
+    },
+
+    async resolveCurrentResonanceDefinition(primaryDisciplineId, secondaryDisciplineId) {
+      const fallback = resolveResonanceForPair(primaryDisciplineId, secondaryDisciplineId)
+      if (!fallback) return null
+      const published = source.findCurrentContent
+        ? await source.findCurrentContent(fallback.id, 'resonance')
+        : null
+      return published
+        ? validatePublishedResonance(published, fallback.id)
+        : structuredClone(fallback)
+    },
+
+    async resolvePinnedResonanceDefinition(
+      primaryDisciplineId,
+      secondaryDisciplineId,
+      resonanceId,
+      version,
+    ) {
+      const published = source.findContentVersion
+        ? await source.findContentVersion(resonanceId, 'resonance', version)
+        : null
+      if (published) return validatePublishedResonance(published, resonanceId, version)
+      const fallback = resolveResonanceForPair(
+        primaryDisciplineId,
+        secondaryDisciplineId,
+        version,
+      )
+      return fallback?.id === resonanceId ? structuredClone(fallback) : null
     },
   }
 }
