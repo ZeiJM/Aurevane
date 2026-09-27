@@ -285,7 +285,7 @@ function statusApplicationSecondary(
       segment('↳ '),
       ...(target ? [segment(`${target}'s `, 'target')] : []),
       segment(name, 'outcome', negative ? 'warning' : 'benefit'),
-      segment(` stacks${stacks ? ` to ×${stacks}` : ''}`),
+      ...(stacks ? [segment(` ×${stacks}`)] : []),
       ...(durationDisplay ? [segment(` · ${durationDisplay}`)] : []),
     ]
   }
@@ -686,7 +686,7 @@ function presentAction(group: ActionGroup, options: PresentationOptions): Presen
         ? [
             segment(`${target}'s `, 'target'),
             segment(name, 'outcome', negative ? 'warning' : 'benefit'),
-            segment(` stacks${stacks ? ` to ×${stacks}` : ''}`),
+            ...(stacks ? [segment(` ×${stacks}`)] : []),
             ...(duration ? [segment(` · ${duration}`)] : []),
           ]
         : refreshed
