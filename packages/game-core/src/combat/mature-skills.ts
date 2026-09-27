@@ -64,6 +64,11 @@ export interface MatureSkillDefinition extends CombatAccuracyAuthoring {
   readonly target: CombatTargetSpec
   readonly requirements: readonly CombatUseRequirement[]
   readonly effects: readonly CombatEffectDefinition[]
+  /**
+   * Optional player-facing copy for each effect, aligned by effect index.
+   * This presentation-only field is never projected into combat resolution.
+   */
+  readonly effectDescriptions?: readonly (string | null)[]
   readonly tags: readonly string[]
   readonly cooldown: SkillCooldownDefinition
   readonly ai: MatureSkillAiMetadata
@@ -912,6 +917,24 @@ export function validateMatureSkillDefinition(
     (!Number.isSafeInteger(definition.mpCost) || definition.mpCost < 0 || definition.mpCost > 20)
   )
     issues.push('mpCost')
+  const effectDescriptions = definition.effectDescriptions as unknown
+  if (effectDescriptions !== undefined) {
+    if (!Array.isArray(effectDescriptions) || effectDescriptions.length !== definition.effects.length) {
+      issues.push('effectDescriptions')
+    } else {
+      for (const [index, description] of effectDescriptions.entries()) {
+        if (
+          description !== null &&
+          (typeof description !== 'string' ||
+            description.trim().length === 0 ||
+            description.length > 240 ||
+            /[\r\n]/u.test(description))
+        ) {
+          issues.push(`effectDescriptions[${index}]`)
+        }
+      }
+    }
+  }
   if (definition.tags.length === 0 || definition.tags.some((tag) => !tag.trim()))
     issues.push('tags')
   if (
