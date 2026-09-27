@@ -48,6 +48,16 @@ export const WORLD_OBJECTIVES: readonly WorldObjective[] = [
     completed: false,
   },
   {
+    id: 'crown-hinterland-patrol',
+    name: 'Hinterland Patrol',
+    description: 'Patrol Crown Hinterland and report back to Aureth Crown.',
+    kind: 'quest',
+    autoPath: true,
+    guidance: 'exact',
+    destination: { sectorId: 'crown-hinterland', x: 6, y: 4 },
+    completed: false,
+  },
+  {
     id: 'last-survey',
     name: 'Beyond the last map',
     description: 'Find the last reliable survey in the Umbral March.',
