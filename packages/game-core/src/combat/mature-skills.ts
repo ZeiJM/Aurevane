@@ -58,6 +58,7 @@ export interface MatureSkillDefinition extends CombatAccuracyAuthoring {
   readonly enabled: boolean
   readonly nameRef: string
   readonly descriptionRef: string
+  readonly flavorLine?: string
   readonly sourceDisciplineId: string
   readonly unlockRequirement: MatureSkillUnlockRequirement
   readonly apCost: number
@@ -916,6 +917,15 @@ export function validateMatureSkillDefinition(
   }
   if (!definition.nameRef.trim()) issues.push('nameRef')
   if (!definition.descriptionRef.trim()) issues.push('descriptionRef')
+  if (
+    definition.flavorLine !== undefined &&
+    (typeof definition.flavorLine !== 'string' ||
+      definition.flavorLine.trim().length === 0 ||
+      definition.flavorLine.length > 160 ||
+      /[\r\n]/u.test(definition.flavorLine))
+  ) {
+    issues.push('flavorLine')
+  }
   if (!idPattern.test(definition.sourceDisciplineId)) issues.push('sourceDisciplineId')
   if (
     !Number.isSafeInteger(definition.apCost) ||
@@ -982,6 +992,7 @@ export function validateMatureSkillDefinition(
     issues.push('authoring.schemaVersion')
   }
   const usesV5BalanceRules = definition.authoring.validationTags.includes('owner-rebalance-v5')
+  if (usesV5BalanceRules && !definition.flavorLine?.trim()) issues.push('flavorLine')
   if (usesV5BalanceRules && definition.requirements.length > 0) {
     if (definition.cooldown !== null) issues.push('cooldown')
   } else if (
