@@ -1,4 +1,5 @@
 import { validateGameplayEffectMetadata } from './gameplay-tags'
+import { createCombatRebalancedResonanceVersion } from './combat-balance-v2'
 import { ADVANCED_RESONANCES } from './advanced-resonances'
 import { FOUNDATION_TRIO_RESONANCES } from './foundation-trio-resonances'
 import { IRONFIST_RESONANCES } from './ironfist-content'
@@ -106,7 +107,7 @@ export interface MatureSkillResonanceTransition {
   readonly events: readonly (CombatResolutionEvent | ResonanceCombatEvent)[]
 }
 
-export const P35_REPRESENTATIVE_RESONANCES = [
+const PRE_OWNER_REBALANCE_RESONANCES = [
   {
     id: 'resonance.lifebinder-vanguard.mercys-edge',
     contentVersion: 1,
@@ -137,6 +138,15 @@ export const P35_REPRESENTATIVE_RESONANCES = [
   ...FOUNDATION_TRIO_RESONANCES,
   ...IRONFIST_RESONANCES,
   ...ADVANCED_RESONANCES,
+] as const satisfies readonly ResonanceDefinition[]
+
+const OWNER_COMBAT_REBALANCED_RESONANCES = PRE_OWNER_REBALANCE_RESONANCES.map(
+  createCombatRebalancedResonanceVersion,
+)
+
+export const P35_REPRESENTATIVE_RESONANCES = [
+  ...PRE_OWNER_REBALANCE_RESONANCES,
+  ...OWNER_COMBAT_REBALANCED_RESONANCES,
 ] as const satisfies readonly ResonanceDefinition[]
 
 const STABLE_ID_PATTERN = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/
