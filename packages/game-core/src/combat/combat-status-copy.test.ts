@@ -441,13 +441,25 @@ describe('Status copying: fail-closed eligibility and staged scope', () => {
       expect(statuses(result.state, 'target').map((entry) => entry.statusId)).toEqual([NEGATIVE.id])
     },
   )
-  it.each([{ statusVersion: 2 }, { stacks: 4 }, { remainingOwnerTurnStarts: 5 }])(
-    'rejects mismatched donor state %j',
-    (patch) => {
-      const state = world([{ combatantId: 'target', statuses: [row(POSITIVE, patch)] }])
-      expect(() => cast(state, 'amplify')).toThrow()
-    },
-  )
+  it.each([
+    { statusVersion: 2 },
+    { stacks: 0 },
+    { stacks: -1 },
+    { stacks: 1.5 },
+    { remainingOwnerTurnStarts: 5 },
+  ])('rejects mismatched donor state %j', (patch) => {
+    const state = world([{ combatantId: 'target', statuses: [row(POSITIVE, patch)] }])
+    expect(() => cast(state, 'amplify')).toThrow()
+  })
+  it('accepts donor application counts above the legacy authored maximum', () => {
+    const state = world([
+      { combatantId: 'target', statuses: [row(POSITIVE, { stacks: 4 })] },
+    ])
+    const result = cast(state, 'amplify')
+    expect(statuses(result.state, 'actor')).toEqual([
+      expect.objectContaining({ statusId: POSITIVE.id, stacks: 4 }),
+    ])
+  })
   it('does not permit copying onto oneself to create stacks', () => {
     const state = world([{ combatantId: 'actor', statuses: [row(POSITIVE)] }])
     expect(
