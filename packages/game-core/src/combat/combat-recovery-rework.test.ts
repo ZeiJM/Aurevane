@@ -21,10 +21,7 @@ import {
   finishPv1fTurn,
   PV1F_COMBAT_CONTENT,
 } from './pv1f-action-economy'
-import {
-  P33_REPRESENTATIVE_DISCIPLINE_SKILLS,
-  latestEnabledMatureSkills,
-} from './mature-skills'
+import { P33_REPRESENTATIVE_DISCIPLINE_SKILLS, latestEnabledMatureSkills } from './mature-skills'
 
 function encounter(): StatDrivenCombatEncounterState {
   const ids = ['actor', 'target', 'enemy']
