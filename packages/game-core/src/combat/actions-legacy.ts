@@ -2192,9 +2192,10 @@ function resolveCurrentEndOfTurnDots(
   let nextState = state
   const events: CombatResolutionEvent[] = []
 
-  const poison = currentPoisonInstance(nextState, combatantId)
   let target = getCombatant(nextState.tactical.battle, combatantId)
-  if (poison && target.hp > 0) {
+  for (const poison of currentPoisonInstances(nextState, combatantId)) {
+    target = getCombatant(nextState.tactical.battle, combatantId)
+    if (target.hp <= 0) break
     const hpAfter = Math.max(0, target.hp - CURRENT_POISON_DAMAGE)
     nextState = withUpdatedCombatant(nextState, combatantId, { ...target, hp: hpAfter })
     events.push({
@@ -2258,14 +2259,15 @@ function resolveCurrentEndOfTurnDots(
 
   const burnTurn = advanceCurrentBurnEndTurn(nextState, combatantId)
   nextState = burnTurn.state
-  if (burnTurn.instance && burnTurn.damage > 0) {
+  for (const application of burnTurn.applications) {
     target = getCombatant(nextState.tactical.battle, combatantId)
-    const hpAfter = Math.max(0, target.hp - burnTurn.damage)
+    if (target.hp <= 0) break
+    const hpAfter = Math.max(0, target.hp - application.damage)
     nextState = withUpdatedCombatant(nextState, combatantId, { ...target, hp: hpAfter })
     events.push({
       event: 'damage_applied',
       actionId: 'status.burn.current.v1',
-      sourceCombatantId: burnTurn.instance.sourceCombatantId,
+      sourceCombatantId: application.instance.sourceCombatantId,
       targetCombatantId: combatantId,
       amount: target.hp - hpAfter,
       hpBefore: target.hp,
@@ -2274,7 +2276,7 @@ function resolveCurrentEndOfTurnDots(
     if (hpAfter < target.hp) {
       const revealed = removeGameplayTags(
         nextState,
-        burnTurn.instance.sourceCombatantId,
+        application.instance.sourceCombatantId,
         combatantId,
         'status.burn.current.v1',
         ['Invisible'],
