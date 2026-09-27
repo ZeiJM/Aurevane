@@ -97,7 +97,9 @@ export function skillTargetTags(skill: MatureSkillDefinition): readonly string[]
   return combatActionPresentationTags(skill)
 }
 
-export function skillTypeDescription(skill: MatureSkillDefinition): 'Attack' | 'Recovery' | 'Utility' {
+export function skillTypeDescription(
+  skill: MatureSkillDefinition,
+): 'Attack' | 'Recovery' | 'Utility' {
   if (skill.tags.includes('attack')) return 'Attack'
 
   const recoversHpOrMp = skill.effects.some(
