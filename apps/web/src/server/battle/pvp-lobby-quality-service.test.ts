@@ -337,6 +337,14 @@ describe('P3.7 direct PvP committed build snapshots', () => {
         }
       },
     }
+    const combatContentResolver = {
+      async resolveCurrentSkillDefinition(skillId) {
+        return resolveMatureSkillVersion(skillId)
+      },
+      async resolvePinnedSkillDefinition(skillId, contentVersion) {
+        return resolveMatureSkillVersion(skillId, contentVersion)
+      },
+    }
     const service = createBattleSessionService({
       battles: repository,
       characters: {
@@ -345,6 +353,7 @@ describe('P3.7 direct PvP committed build snapshots', () => {
           throw new Error('Not a character creation test.')
         },
       },
+      combatContentResolver,
     })
     const hostId = `character:${hostCharacterId}`
     // Always include a real server-facing transition, even if the host initially wins initiative.
@@ -393,14 +402,7 @@ describe('P3.7 direct PvP committed build snapshots', () => {
         sourceDisciplineId: 'frostweaver',
       },
     ])
-    const previewService = createBattlePreviewService(repository, {
-      async resolveCurrentSkillDefinition(skillId) {
-        return resolveMatureSkillVersion(skillId)
-      },
-      async resolvePinnedSkillDefinition(skillId, contentVersion) {
-        return resolveMatureSkillVersion(skillId, contentVersion)
-      },
-    })
+    const previewService = createBattlePreviewService(repository, combatContentResolver)
     const intent = {
       kind: 'action' as const,
       actionId: 'frostweaver.chilling-mist',
