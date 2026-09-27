@@ -535,6 +535,15 @@
   min-height: 2.35rem;
 }
 
+.effectTuningGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: var(--av-space-3);
+  margin-top: var(--av-space-4);
+  padding-top: var(--av-space-3);
+  border-top: 1px solid var(--av-border);
+}
+
 .effectAdd {
   display: grid;
   grid-template-columns: minmax(14rem, 1fr) auto;
