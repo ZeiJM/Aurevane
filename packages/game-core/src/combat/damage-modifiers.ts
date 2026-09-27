@@ -1,4 +1,4 @@
-import { hasGameplayTag, validateGameplayTag, type GameplayTag } from './gameplay-tags'
+import { validateGameplayTag, type GameplayTag } from './gameplay-tags'
 import type { CombatContentCatalog, CombatEncounterState } from './actions'
 import { classifyFacingRelation } from './board'
 
