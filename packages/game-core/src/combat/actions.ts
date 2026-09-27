@@ -40,10 +40,19 @@ export * from './actions-legacy'
 
 type LegacyDamageEffect = Extract<legacy.CombatEffectDefinition, { type: 'damage' }>
 
-export type CombatEffectDefinition =
+export interface CombatEffectAuthoringTuning {
+  /** 0 is immediate. Positive values count full future owner turns. */
+  readonly durationTurns?: number
+  /** Optional status magnitude override in basis points (100 = 1 percentage point). */
+  readonly potencyBasisPoints?: number
+}
+
+export type CombatEffectDefinition = (
   | Exclude<legacy.CombatEffectDefinition, { type: 'damage' }>
   | (LegacyDamageEffect & { scaling?: CombatDamageScaling; vengeance?: CombatVengeanceDefinition })
   | CombatSensoryEffect
+) &
+  CombatEffectAuthoringTuning
 
 export interface CombatActionDefinition
   extends Omit<legacy.CombatActionDefinition, 'effects'>, CombatAccuracyAuthoring {
