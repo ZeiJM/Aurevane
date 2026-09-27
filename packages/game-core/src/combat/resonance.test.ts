@@ -223,6 +223,53 @@ describe('Combat v5 thematic Resonance rebalance', () => {
     )
   })
 
+  it('keeps all 136 current pairs valid with broad semantic payoff variety', () => {
+    const current = P35_REPRESENTATIVE_RESONANCES.map((historical) => {
+      const resolved = resolveResonanceForPair(
+        historical.disciplinePair[0],
+        historical.disciplinePair[1],
+      )
+      if (!resolved) throw new Error(`Missing current Resonance ${historical.id}.`)
+      return resolved
+    })
+
+    expect(current).toHaveLength(136)
+    expect(new Set(current.map((definition) => definition.id)).size).toBe(136)
+
+    const payoffSignatures = new Set<string>()
+    let nonDamagePayoffCount = 0
+    for (const definition of current) {
+      expect(validateResonanceDefinition(definition), definition.id).toEqual([])
+      expect(definition.authoring.validationTags, definition.id).toContain('owner-rebalance-v5')
+      expect(definition.authoring.validationTags, definition.id).toContain(
+        'thematic-resonance-payoff',
+      )
+      expect(definition.flavorLine?.trim().length, definition.id).toBeGreaterThan(0)
+
+      const signature = definition.trigger.payoffEffects
+        .map((effect) => {
+          if (effect.type === 'apply-status') {
+            return `${effect.type}:${effect.recipient}:${effect.statusId}`
+          }
+          if (effect.type === 'resource-change') {
+            return `${effect.type}:${effect.recipient}:${effect.resource}:${Math.sign(effect.delta)}`
+          }
+          if (effect.type === 'remove-status') {
+            return `${effect.type}:${effect.recipient}:${effect.statusIds.join('+')}`
+          }
+          return `${effect.type}:${effect.recipient}`
+        })
+        .join('|')
+      payoffSignatures.add(signature)
+      if (definition.trigger.payoffEffects.some((effect) => effect.type !== 'damage')) {
+        nonDamagePayoffCount += 1
+      }
+    }
+
+    expect(payoffSignatures.size).toBeGreaterThanOrEqual(8)
+    expect(nonDamagePayoffCount).toBeGreaterThan(current.length / 2)
+  })
+
   it('does not change v5 payoff semantics when only an opaque Resonance ID changes', () => {
     const base = resolveResonanceForPair('lifebinder', 'vanguard', 1)
     if (!base) throw new Error('Expected Lifebinder/Vanguard Resonance.')
