@@ -508,7 +508,7 @@ function validateCurrentBleedState(state: CombatEncounterState): readonly Combat
         {
           field: 'effectState.bleed',
           message:
-            'Bleed state must contain valid independent applications in stable order, each with one to four remaining ticks, no more than 10 raw remaining damage, and optional boolean copy policy.'
+            'Bleed state must contain valid independent applications in stable order, each with one to four remaining ticks, no more than 10 raw remaining damage, and optional boolean copy policy.',
         },
       ]
     : []
