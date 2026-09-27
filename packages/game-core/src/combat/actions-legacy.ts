@@ -257,6 +257,8 @@ export interface CombatStatusInstance {
   stacks: number
   remainingOwnerTurnStarts: number
   sourceCombatantId: string
+  /** Optional per-application authored magnitude; 100 = 1 percentage point. */
+  potencyBasisPoints?: number
   provenance?: CombatEffectInstanceProvenance
 }
 
@@ -1885,6 +1887,10 @@ function applyEffect(
   }
 
   const existingStatus = getStatus(state, recipientId, effect.statusId, actorId)
+  const tuning = effect as typeof effect & {
+    durationTurns?: number
+    potencyBasisPoints?: number
+  }
   const nextState = applyStatusState(
     state,
     actorId,
@@ -1892,6 +1898,8 @@ function applyEffect(
     effect.statusId,
     effect.stacks,
     content,
+    tuning.durationTurns,
+    tuning.potencyBasisPoints,
   )
   const status = getStatus(nextState, recipientId, effect.statusId, actorId)
   if (!status) {
@@ -1982,9 +1990,18 @@ function resolveDamageAmount(
 
   for (const status of getStatusRow(state, recipientId).statuses) {
     const definition = getStatusDefinition(content, status.statusId, status.statusVersion)
-    if (effect.piercing === true && definition.damageTakenMultiplierBasisPoints < 10_000) continue
+    const authoredPotency = status.potencyBasisPoints
+    const damageTakenMultiplier =
+      authoredPotency === undefined
+        ? definition.damageTakenMultiplierBasisPoints
+        : definition.damageTakenMultiplierBasisPoints < 10_000
+          ? Math.max(0, 10_000 - authoredPotency)
+          : definition.damageTakenMultiplierBasisPoints > 10_000
+            ? 10_000 + authoredPotency
+            : 10_000
+    if (effect.piercing === true && damageTakenMultiplier < 10_000) continue
     for (let stack = 0; stack < status.stacks; stack += 1) {
-      amount = scaleByBasisPoints(amount, definition.damageTakenMultiplierBasisPoints)
+      amount = scaleByBasisPoints(amount, damageTakenMultiplier)
     }
   }
 
@@ -2005,9 +2022,27 @@ function applyStatusState(
   statusId: string,
   stacks: number,
   content: CombatContentCatalog,
+  durationTurns?: number,
+  potencyBasisPoints?: number,
 ): CombatEncounterState {
   assertPositiveSafeInteger(stacks, 'status stacks')
+  if (
+    durationTurns !== undefined &&
+    (!Number.isSafeInteger(durationTurns) || durationTurns < 1 || durationTurns > 4)
+  ) {
+    throw new RangeError('Persistent status duration must be an integer from 1 to 4 turns.')
+  }
+  if (
+    potencyBasisPoints !== undefined &&
+    (!Number.isSafeInteger(potencyBasisPoints) ||
+      potencyBasisPoints < 100 ||
+      potencyBasisPoints > 5_000)
+  ) {
+    throw new RangeError('Status potency must be from 1 to 50 percentage points.')
+  }
   const definition = getStatusDefinitionById(content, statusId)
+  const remainingOwnerTurnStarts =
+    durationTurns === undefined ? definition.durationOwnerTurnStarts : durationTurns + 1
   const existing = getStatus(state, recipientId, statusId, sourceCombatantId)
   const nextStacks = existing
     ? addClampedSafeInteger(existing.stacks, stacks, 1, definition.maximumStacks)
@@ -2016,8 +2051,9 @@ function applyStatusState(
     ? {
         ...existing,
         stacks: nextStacks,
-        remainingOwnerTurnStarts: definition.durationOwnerTurnStarts,
+        remainingOwnerTurnStarts,
         sourceCombatantId,
+        ...(potencyBasisPoints !== undefined ? { potencyBasisPoints } : {}),
       }
     : {
         ...(definition.markAccuracyBonusBasisPoints !== undefined
@@ -2026,8 +2062,9 @@ function applyStatusState(
         statusId: definition.id,
         statusVersion: definition.version,
         stacks: nextStacks,
-        remainingOwnerTurnStarts: definition.durationOwnerTurnStarts,
+        remainingOwnerTurnStarts,
         sourceCombatantId,
+        ...(potencyBasisPoints !== undefined ? { potencyBasisPoints } : {}),
       }
 
   const statusState = state.statusState.map((candidate) =>
@@ -2895,9 +2932,13 @@ function incomingHealingAmount(
   amount: number,
   content: CombatContentCatalog,
 ): number {
-  return hasGameplayTag(state, recipientId, 'Hexed', content)
-    ? scaleByBasisPoints(amount, 7_500)
-    : amount
+  const hexed = getStatusRow(state, recipientId).statuses.find((status) =>
+    getStatusDefinition(content, status.statusId, status.statusVersion).gameplayTags?.includes(
+      'Hexed',
+    ),
+  )
+  if (!hexed) return amount
+  return scaleByBasisPoints(amount, Math.max(0, 10_000 - (hexed.potencyBasisPoints ?? 2_500)))
 }
 
 function applyDisplacement(
