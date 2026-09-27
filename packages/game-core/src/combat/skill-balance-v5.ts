@@ -8,6 +8,67 @@ export const CURRENT_SKILL_COOLDOWN_MAXIMUM_TURNS = 3 as const
 
 export type RebalanceSkillKind = 'technique' | 'essence'
 
+function title(value: string): string {
+  return value
+    .split(/[._-]/gu)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
+}
+
+function v5SkillFlavorLine(definition: MatureSkillDefinition): string {
+  const discipline = title(definition.sourceDisciplineId)
+  const effects = definition.effects
+  const statuses = effects.flatMap((effect) =>
+    effect.type === 'apply-status' ? [effect.statusId] : [],
+  )
+  const hasDamage = effects.some((effect) => effect.type === 'damage')
+  const restoresHp = effects.some((effect) => effect.type === 'healing')
+  const restoresMp = effects.some(
+    (effect) => effect.type === 'resource-change' && effect.delta > 0,
+  )
+  const drainsMp = effects.some(
+    (effect) => effect.type === 'resource-change' && effect.delta < 0,
+  )
+
+  if (definition.sourceDisciplineId === 'chronist' && hasDamage) {
+    return 'Rend a seam in time and drive the strike through before the enemy can recover.'
+  }
+  if (hasDamage && statuses.some((status) => ['root', 'slow', 'exposed'].includes(status))) {
+    return `Drive ${discipline} force through the hit, turning pain into an opening the enemy cannot ignore.`
+  }
+  if (hasDamage && drainsMp) {
+    return `Cut into the enemy's momentum and tear away the reserve they need to answer back.`
+  }
+  if (hasDamage && definition.target.shape.kind !== 'single') {
+    return `Unleash ${discipline} force across the field and catch every foe inside the sweep.`
+  }
+  if (hasDamage && definition.tags.includes('mystic')) {
+    return `Gather ${discipline} power into a focused strike that tears through the enemy's guard.`
+  }
+  if (hasDamage) {
+    return `Drive ${discipline} technique through the opening with a decisive, committed strike.`
+  }
+  if (restoresHp && restoresMp) {
+    return 'Draw breath, will, and inner reserve back into alignment before the next exchange.'
+  }
+  if (restoresHp) {
+    return `Call on ${discipline} discipline to turn a wounded moment back toward survival.`
+  }
+  if (statuses.includes('guarded')) {
+    return `Set a ${discipline} stance that steadies the line and blunts the next exchange.`
+  }
+  if (statuses.some((status) => ['root', 'slow'].includes(status))) {
+    return `Bind the enemy's momentum and force their next move into a narrower path.`
+  }
+  if (effects.some((effect) => effect.type === 'remove-status')) {
+    return `Break hostile influence with a clean ${discipline} release and reclaim control.`
+  }
+  if (restoresMp) {
+    return `Settle into ${discipline} rhythm and refill the reserve needed for the next technique.`
+  }
+  return `Shape ${discipline} technique into a precise advantage before the next exchange.`
+}
 const clamp = (value: number, minimum: number, maximum: number): number =>
   Math.min(maximum, Math.max(minimum, value))
 
@@ -236,6 +297,7 @@ export function rebalanceMatureSkillDefinition(
     ...definition,
     contentVersion: definition.contentVersion + 1,
     apCost,
+    flavorLine: v5SkillFlavorLine(definition),
     effects,
     cooldown: cooldown === null ? null : { key: definition.id, ownerTurns: cooldown },
     overrides: Object.fromEntries(
