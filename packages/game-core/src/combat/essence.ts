@@ -484,8 +484,7 @@ function v5EssenceFlavorLine(definition: EssenceDefinition): string {
   if (
     definition.skill.effects.some(
       (effect) =>
-        effect.type === 'healing' ||
-        (effect.type === 'resource-change' && effect.delta > 0),
+        effect.type === 'healing' || (effect.type === 'resource-change' && effect.delta > 0),
     )
   ) {
     return `A high-cost ${discipline} signature recovery with concentrated restorative power.`

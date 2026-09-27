@@ -1038,11 +1038,7 @@ export function validateMatureSkillDefinition(
       (effect.type === 'damage' || effect.type === 'healing' || effect.type === 'barrier-change')
     ) {
       const minimum = effect.type === 'damage' && effect.vengeance !== undefined ? 0 : 1
-      if (
-        !Number.isSafeInteger(effect.amount) ||
-        effect.amount < minimum ||
-        effect.amount > 20
-      ) {
+      if (!Number.isSafeInteger(effect.amount) || effect.amount < minimum || effect.amount > 20) {
         issues.push(`effects[${index}].amount`)
       }
     }

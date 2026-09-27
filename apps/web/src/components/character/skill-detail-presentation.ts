@@ -127,7 +127,9 @@ function durationLabel(effect: CombatEffectDefinition): string {
 }
 
 export function skillEffectSummaries(skill: MatureSkillDefinition): readonly string[] {
-  return skill.effects.map((effect) => `${effectSummary(previewEffect(effect))}${durationLabel(effect)}`)
+  return skill.effects.map(
+    (effect) => `${effectSummary(previewEffect(effect))}${durationLabel(effect)}`,
+  )
 }
 
 export function skillEffectsSummary(skill: MatureSkillDefinition): string {

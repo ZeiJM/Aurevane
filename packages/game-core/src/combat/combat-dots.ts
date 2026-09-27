@@ -33,7 +33,9 @@ export function validateCurrentPoisonEffect(effect: {
   }
   if (
     effect.power !== undefined &&
-    (!Number.isSafeInteger(effect.power) || (effect.power as number) < 1 || (effect.power as number) > 20)
+    (!Number.isSafeInteger(effect.power) ||
+      (effect.power as number) < 1 ||
+      (effect.power as number) > 20)
   ) {
     throw new RangeError('Poison power must be an integer from 1 to 20.')
   }
@@ -307,7 +309,9 @@ export function validateCurrentBurnEffect(effect: {
   }
   if (
     effect.power !== undefined &&
-    (!Number.isSafeInteger(effect.power) || (effect.power as number) < 1 || (effect.power as number) > 20)
+    (!Number.isSafeInteger(effect.power) ||
+      (effect.power as number) < 1 ||
+      (effect.power as number) > 20)
   ) {
     throw new RangeError('Burn power must be an integer from 1 to 20.')
   }

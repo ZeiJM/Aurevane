@@ -24,12 +24,8 @@ function v5SkillFlavorLine(definition: MatureSkillDefinition): string {
   )
   const hasDamage = effects.some((effect) => effect.type === 'damage')
   const restoresHp = effects.some((effect) => effect.type === 'healing')
-  const restoresMp = effects.some(
-    (effect) => effect.type === 'resource-change' && effect.delta > 0,
-  )
-  const drainsMp = effects.some(
-    (effect) => effect.type === 'resource-change' && effect.delta < 0,
-  )
+  const restoresMp = effects.some((effect) => effect.type === 'resource-change' && effect.delta > 0)
+  const drainsMp = effects.some((effect) => effect.type === 'resource-change' && effect.delta < 0)
 
   if (definition.sourceDisciplineId === 'chronist' && hasDamage) {
     return 'Rend a seam in time and drive the strike through before the enemy can recover.'
@@ -121,7 +117,10 @@ export function defaultEffectDurationTurns(effect: CombatEffectDefinition): numb
   }
 }
 
-function defaultStatusPotencyBasisPoints(effect: CombatEffectDefinition, apCost: number): number | undefined {
+function defaultStatusPotencyBasisPoints(
+  effect: CombatEffectDefinition,
+  apCost: number,
+): number | undefined {
   if (effect.type !== 'apply-status') return undefined
   if (effect.potencyBasisPoints !== undefined) return effect.potencyBasisPoints
   const scaled = clamp(1_000 + Math.floor(Math.max(0, apCost - 25) / 10) * 100, 1_000, 2_000)
@@ -149,12 +148,19 @@ function tuneDamage(
   nonDamageWeight: number,
   kind: RebalanceSkillKind,
 ): CombatEffectDefinition {
-  const areaFactor = definition.target.shape.kind === 'circle' ? 0.78 : definition.target.shape.kind === 'line' ? 0.86 : 1
+  const areaFactor =
+    definition.target.shape.kind === 'circle'
+      ? 0.78
+      : definition.target.shape.kind === 'line'
+        ? 0.86
+        : 1
   const utilityFactor = Math.max(0.55, 1 - nonDamageWeight * 0.12)
   const requirementFactor = definition.requirements.length > 0 ? 1.12 : 1
   const essenceFactor = kind === 'essence' ? 1.12 : 1
   const commandBudget = definition.apCost / 3
-  const perHit = (commandBudget * areaFactor * utilityFactor * requirementFactor * essenceFactor) / Math.max(1, Math.sqrt(damageEffects))
+  const perHit =
+    (commandBudget * areaFactor * utilityFactor * requirementFactor * essenceFactor) /
+    Math.max(1, Math.sqrt(damageEffects))
   return {
     ...effect,
     amount: roundedPower(effect.vengeance ? effect.amount : perHit),
@@ -182,7 +188,9 @@ function tuneEffect(
     case 'healing':
       return {
         ...effect,
-        amount: roundedPower((definition.apCost / 4) * areaFactor * essenceFactor / Math.sqrt(durationWeight)),
+        amount: roundedPower(
+          ((definition.apCost / 4) * areaFactor * essenceFactor) / Math.sqrt(durationWeight),
+        ),
         durationTurns,
       }
     case 'resource-change': {
@@ -191,21 +199,25 @@ function tuneEffect(
         ...effect,
         delta:
           sign *
-          roundedPower((definition.apCost / 7) * areaFactor * essenceFactor / Math.sqrt(durationWeight)),
+          roundedPower(
+            ((definition.apCost / 7) * areaFactor * essenceFactor) / Math.sqrt(durationWeight),
+          ),
         durationTurns,
       }
     }
     case 'barrier-change':
       return {
         ...effect,
-        amount: roundedPower((definition.apCost / 4) * areaFactor * essenceFactor / Math.sqrt(durationWeight)),
+        amount: roundedPower(
+          ((definition.apCost / 4) * areaFactor * essenceFactor) / Math.sqrt(durationWeight),
+        ),
         durationTurns,
       }
     case 'bleed':
       return {
         ...effect,
         damagePerTick: roundedPower(
-          (definition.apCost / 14) * areaFactor * essenceFactor / Math.sqrt(durationWeight),
+          ((definition.apCost / 14) * areaFactor * essenceFactor) / Math.sqrt(durationWeight),
         ),
         ticks: clamp(durationTurns, 1, CURRENT_EFFECT_DURATION_MAXIMUM_TURNS),
         durationTurns,
@@ -215,7 +227,7 @@ function tuneEffect(
       return {
         ...effect,
         power: roundedPower(
-          (definition.apCost / 12) * areaFactor * essenceFactor / Math.sqrt(durationWeight),
+          ((definition.apCost / 12) * areaFactor * essenceFactor) / Math.sqrt(durationWeight),
         ),
         durationTurns,
       }
@@ -307,8 +319,16 @@ export function rebalanceMatureSkillDefinition(
           ...override,
           ...(override?.apCost === undefined
             ? {}
-            : { apCost: clamp(Math.round(override.apCost / 5) * 5, 25, kind === 'essence' ? 80 : 70) }),
-          ...(cooldown === null ? { cooldownOwnerTurns: undefined } : { cooldownOwnerTurns: cooldown }),
+            : {
+                apCost: clamp(
+                  Math.round(override.apCost / 5) * 5,
+                  25,
+                  kind === 'essence' ? 80 : 70,
+                ),
+              }),
+          ...(cooldown === null
+            ? { cooldownOwnerTurns: undefined }
+            : { cooldownOwnerTurns: cooldown }),
         },
       ]),
     ),

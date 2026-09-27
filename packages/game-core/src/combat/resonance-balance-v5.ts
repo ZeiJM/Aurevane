@@ -28,10 +28,7 @@ function durationFor(effect: CombatEffectDefinition): number {
   }
 }
 
-function tunePrimaryEffect(
-  effect: CombatEffectDefinition,
-  seed: number,
-): CombatEffectDefinition {
+function tunePrimaryEffect(effect: CombatEffectDefinition, seed: number): CombatEffectDefinition {
   const variation = (seed % 3) - 1
   switch (effect.type) {
     case 'damage':
@@ -150,9 +147,7 @@ function compactDescription(definition: ResonanceDefinition, effectCount: number
   return `${definition.name} links ${title(setup.sourceDisciplineId)} ${setup.requiredTags.join(' + ')} into a ${title(payoff.sourceDisciplineId)} ${payoff.requiredTags.join(' + ')} follow-through with ${effectCount === 1 ? 'one focused payoff' : 'a two-part payoff'}.`
 }
 
-export function rebalanceResonanceDefinition(
-  definition: ResonanceDefinition,
-): ResonanceDefinition {
+export function rebalanceResonanceDefinition(definition: ResonanceDefinition): ResonanceDefinition {
   const seed = hash(definition.id)
   const primary = definition.trigger.payoffEffects.map((effect, index) =>
     tunePrimaryEffect(effect, seed + index * 17),

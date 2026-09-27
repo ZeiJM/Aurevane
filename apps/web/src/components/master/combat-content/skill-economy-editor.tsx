@@ -83,7 +83,10 @@ export function SkillEconomyEditor({
                   key: value.cooldown?.key ?? 'skill.cooldown',
                   ownerTurns: Math.max(
                     1,
-                    Math.min(3, integer(event.currentTarget.value, value.cooldown?.ownerTurns ?? 1)),
+                    Math.min(
+                      3,
+                      integer(event.currentTarget.value, value.cooldown?.ownerTurns ?? 1),
+                    ),
                   ),
                 },
               })

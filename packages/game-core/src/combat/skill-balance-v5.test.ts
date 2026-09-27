@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import {
-  latestEnabledMatureSkills,
-  resolveMatureSkillVersion,
-} from './mature-skills'
+import { latestEnabledMatureSkills, resolveMatureSkillVersion } from './mature-skills'
 import { rebalanceMatureSkillDefinition } from './skill-balance-v5'
 
 describe('owner v5 Skill rebalance', () => {

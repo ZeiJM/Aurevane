@@ -33,9 +33,7 @@ import styles from './character-arsenal-shell.module.css'
 
 const OVERVIEW_TECHNIQUE_SLOTS = 4
 
-function effectSummaryWithDuration(
-  effect: Parameters<typeof previewEffect>[0],
-): string {
+function effectSummaryWithDuration(effect: Parameters<typeof previewEffect>[0]): string {
   const base = effectSummary(previewEffect(effect))
   const turns = effect.durationTurns ?? 0
   return turns > 0 ? `${base} [${turns} ${turns === 1 ? 'Turn' : 'Turns'}]` : base
@@ -79,11 +77,7 @@ function EssenceHoverPreview({ essence }: { essence: EssenceDefinition }) {
   )
 }
 
-function ResonanceHoverPreview({
-  resonance,
-}: {
-  resonance: ResonanceDefinition
-}) {
+function ResonanceHoverPreview({ resonance }: { resonance: ResonanceDefinition }) {
   const setup = resonance.trigger.setup
   const payoff = resonance.trigger.payoff
   const effects = resonance.trigger.payoffEffects.map(effectSummaryWithDuration)
