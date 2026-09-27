@@ -395,11 +395,18 @@ function validateCurrentPoisonState(state: CombatEncounterState): readonly Comba
   }
 
   const combatantIds = new Set(state.tactical.battle.combatants.map((row) => row.id))
-  const targetIds = new Set<string>()
+  const applicationOrders = new Set<number>()
   let invalid = false
   let previousTargetId: string | null = null
+  let previousApplicationOrder = -1
 
   for (const instance of poison) {
+    const applicationOrder = dotOrder(instance)
+    const sorted =
+      previousTargetId === null ||
+      previousTargetId < instance.targetCombatantId ||
+      (previousTargetId === instance.targetCombatantId &&
+        previousApplicationOrder < applicationOrder)
     if (
       !combatantIds.has(instance.targetCombatantId) ||
       !combatantIds.has(instance.sourceCombatantId) ||
@@ -411,13 +418,17 @@ function validateCurrentPoisonState(state: CombatEncounterState): readonly Comba
       !Number.isSafeInteger(instance.movementRemainder) ||
       instance.movementRemainder < 0 ||
       instance.movementRemainder > 4 ||
-      targetIds.has(instance.targetCombatantId) ||
-      (previousTargetId !== null && previousTargetId > instance.targetCombatantId)
+      (instance.applicationOrder !== undefined &&
+        (!Number.isSafeInteger(instance.applicationOrder) ||
+          instance.applicationOrder < 1 ||
+          applicationOrders.has(instance.applicationOrder))) ||
+      !sorted
     ) {
       invalid = true
     }
-    targetIds.add(instance.targetCombatantId)
+    if (instance.applicationOrder !== undefined) applicationOrders.add(instance.applicationOrder)
     previousTargetId = instance.targetCombatantId
+    previousApplicationOrder = applicationOrder
   }
 
   return invalid
@@ -425,7 +436,7 @@ function validateCurrentPoisonState(state: CombatEncounterState): readonly Comba
         {
           field: 'effectState.poison',
           message:
-            'Poison state must contain one valid current-profile instance per target, sorted by target ID, with movement progress from 0 to 4 and optional boolean copy policy.',
+            'Poison state must contain valid independent current-profile applications in stable order, with movement progress from 0 to 4 and optional boolean copy policy.',
         },
       ]
     : []
@@ -438,11 +449,18 @@ function validateCurrentBurnState(state: CombatEncounterState): readonly CombatE
   }
 
   const combatantIds = new Set(state.tactical.battle.combatants.map((row) => row.id))
-  const targetIds = new Set<string>()
+  const applicationOrders = new Set<number>()
   let invalid = false
   let previousTargetId: string | null = null
+  let previousApplicationOrder = -1
 
   for (const instance of burn) {
+    const applicationOrder = dotOrder(instance)
+    const sorted =
+      previousTargetId === null ||
+      previousTargetId < instance.targetCombatantId ||
+      (previousTargetId === instance.targetCombatantId &&
+        previousApplicationOrder < applicationOrder)
     if (
       !combatantIds.has(instance.targetCombatantId) ||
       !combatantIds.has(instance.sourceCombatantId) ||
@@ -454,13 +472,17 @@ function validateCurrentBurnState(state: CombatEncounterState): readonly CombatE
       !Number.isSafeInteger(instance.stage) ||
       instance.stage < 0 ||
       instance.stage >= CURRENT_BURN_DAMAGE_BY_STAGE.length ||
-      targetIds.has(instance.targetCombatantId) ||
-      (previousTargetId !== null && previousTargetId > instance.targetCombatantId)
+      (instance.applicationOrder !== undefined &&
+        (!Number.isSafeInteger(instance.applicationOrder) ||
+          instance.applicationOrder < 1 ||
+          applicationOrders.has(instance.applicationOrder))) ||
+      !sorted
     ) {
       invalid = true
     }
-    targetIds.add(instance.targetCombatantId)
+    if (instance.applicationOrder !== undefined) applicationOrders.add(instance.applicationOrder)
     previousTargetId = instance.targetCombatantId
+    previousApplicationOrder = applicationOrder
   }
 
   return invalid
@@ -468,7 +490,7 @@ function validateCurrentBurnState(state: CombatEncounterState): readonly CombatE
         {
           field: 'effectState.burn',
           message:
-            'Burn state must contain one valid current-profile instance per target, sorted by target ID, with canonical stage 0 through 2 and optional boolean copy policy.',
+            'Burn state must contain valid independent current-profile applications in stable order, with canonical stage 0 through 2 and optional boolean copy policy.',
         },
       ]
     : []
