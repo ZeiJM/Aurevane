@@ -8,6 +8,7 @@ import {
   type MatureSkillDefinition,
   validateMatureSkillDefinition,
 } from './mature-skills'
+import { rebalanceMatureSkillDefinition } from './skill-balance-v5'
 import {
   evaluatePv1fMatureSkill,
   executePv1fMatureSkill,
@@ -466,11 +467,55 @@ const A03_CLASS_TUNED_ESSENCES = latestEnabledEssences([
   return next ? [next] : []
 })
 
-export const P36_REPRESENTATIVE_ESSENCES = [
+const PRE_V5_CURRENT_ESSENCES = [
   ...PRE_PHASE4_REBALANCE_ESSENCES,
   ...PHASE4_REBALANCED_ESSENCES,
   ...A03_MYSTIC_MP_ESSENCES,
   ...A03_CLASS_TUNED_ESSENCES,
+] as const satisfies readonly EssenceDefinition[]
+
+function v5EssenceSummary(definition: EssenceDefinition): string {
+  if (definition.skill.tags.includes('attack')) {
+    return `A high-cost ${definition.sourceDisciplineId} signature attack built for a decisive payoff.`
+  }
+  if (
+    definition.skill.effects.some(
+      (effect) =>
+        effect.type === 'healing' ||
+        (effect.type === 'resource-change' && effect.delta > 0),
+    )
+  ) {
+    return `A high-cost ${definition.sourceDisciplineId} signature recovery with concentrated restorative power.`
+  }
+  return `A high-cost ${definition.sourceDisciplineId} signature utility Skill built around its defining control effects.`
+}
+
+const V5_REBALANCED_ESSENCES = latestEnabledEssences(PRE_V5_CURRENT_ESSENCES).map(
+  (definition): EssenceDefinition => {
+    const skill = rebalanceMatureSkillDefinition(definition.skill, 'essence')
+    return {
+      ...definition,
+      contentVersion: skill.contentVersion,
+      description: v5EssenceSummary(definition),
+      skill,
+      authoring: {
+        ...definition.authoring,
+        validationTags: [
+          ...new Set([
+            ...definition.authoring.validationTags,
+            'owner-rebalance-v5',
+            'duration-aware',
+            'power-1-20',
+          ]),
+        ],
+      },
+    }
+  },
+)
+
+export const P36_REPRESENTATIVE_ESSENCES = [
+  ...PRE_V5_CURRENT_ESSENCES,
+  ...V5_REBALANCED_ESSENCES,
 ] as const satisfies readonly EssenceDefinition[]
 
 const STABLE_ID_PATTERN = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/
