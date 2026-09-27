@@ -262,7 +262,7 @@ function metricsForSkills(
     maximumAreaTargets: maximum(pve.map((row) => row.areaTargets)),
     currentMpSpendMaximum: maximum(pve.map((row) => row.mpCost)),
     currentMpRecoveryMaximum: maximum(pve.map((row) => row.mpRecovery)),
-    repeatDamageEfficiencyRatio: bestDirect > 0 ? 0.5 : 0,
+    repeatDamageEfficiencyRatio: bestDirect > 0 ? 1 : 0,
   }
 }
 
