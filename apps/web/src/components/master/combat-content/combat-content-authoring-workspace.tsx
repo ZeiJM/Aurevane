@@ -4,10 +4,7 @@ import { useState } from 'react'
 
 import { CombatContentEditor, type CombatContentEditorSkillOption } from './combat-content-editor'
 import styles from './combat-content-editor.module.css'
-import {
-  EssenceContentEditor,
-  type EssenceContentEditorOption,
-} from './essence-content-editor'
+import { EssenceContentEditor, type EssenceContentEditorOption } from './essence-content-editor'
 import {
   ResonanceContentEditor,
   type ResonanceContentEditorOption,
@@ -34,9 +31,7 @@ export function CombatContentAuthoringWorkspace({
           aria-label="Combat content type"
           value={contentType}
           onChange={(event) =>
-            setContentType(
-              event.currentTarget.value as 'skills' | 'essences' | 'resonances',
-            )
+            setContentType(event.currentTarget.value as 'skills' | 'essences' | 'resonances')
           }
         >
           <option value="skills">Skills</option>
@@ -50,10 +45,7 @@ export function CombatContentAuthoringWorkspace({
       ) : contentType === 'essences' ? (
         <EssenceContentEditor essences={essences} initialEssenceId={essences[0]?.id} />
       ) : (
-        <ResonanceContentEditor
-          resonances={resonances}
-          initialResonanceId={resonances[0]?.id}
-        />
+        <ResonanceContentEditor resonances={resonances} initialResonanceId={resonances[0]?.id} />
       )}
     </div>
   )
