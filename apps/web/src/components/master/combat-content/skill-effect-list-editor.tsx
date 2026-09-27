@@ -3,6 +3,7 @@
 import type { CombatEffectDefinition } from '@aurevane/game-core/combat/actions'
 import { useState } from 'react'
 
+import { previewEffect } from '../../character/skill-effect-preview'
 import styles from './combat-content-editor.module.css'
 import { SkillEffectEditor } from './skill-effect-editor'
 
@@ -212,7 +213,7 @@ export function SkillEffectListEditor({
                 aria-label={`Effect ${index + 1} player-facing description`}
                 type="text"
                 maxLength={240}
-                placeholder="Generated automatically when blank"
+                placeholder={previewEffect(effect).explanation}
                 value={alignedDescriptions[index] ?? ''}
                 onChange={(event) => {
                   const nextDescriptions = [...alignedDescriptions]
@@ -223,7 +224,8 @@ export function SkillEffectListEditor({
                 }}
               />
               <small className={styles.fieldHint}>
-                Presentation only. This wording never changes the authoritative combat effect.
+                Leave blank to use the generated wording. Presentation only; this never changes the
+                authoritative combat effect.
               </small>
             </label>
           </article>
