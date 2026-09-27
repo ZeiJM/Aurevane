@@ -442,7 +442,7 @@ export function CharacterArsenalShell({
                   </span>
                   <div>
                     <strong>{`Essence: ${essence.name}`}</strong>
-                    <p>{essence.description}</p>
+                    <p>{essence.flavorLine ?? essence.description}</p>
                     <b>● Active</b>
                   </div>
                 </article>
@@ -466,7 +466,7 @@ export function CharacterArsenalShell({
                   </span>
                   <div>
                     <strong>{`Resonance: ${resonance.name}`}</strong>
-                    <p>{resonance.description}</p>
+                    <p>{resonance.flavorLine ?? resonance.description}</p>
                     <b>● Active</b>
                   </div>
                 </article>
