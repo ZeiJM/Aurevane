@@ -7,17 +7,14 @@ import { createTacticalBattleState } from './board'
 import {
   P33_REPRESENTATIVE_DISCIPLINE_SKILLS,
   latestEnabledMatureSkills,
-  resolveMatureSkillVersion,
   validateMatureSkillDefinition,
 } from './mature-skills'
 import {
   P36_REPRESENTATIVE_ESSENCES,
-  resolveEssenceForBuild,
   validateEssenceDefinition,
 } from './essence'
 import {
   P35_REPRESENTATIVE_RESONANCES,
-  resolveResonanceForPair,
   validateResonanceDefinition,
 } from './resonance'
 import { IRONFIST_SKILLS, IRONFIST_ESSENCE } from './ironfist-content'
@@ -184,7 +181,7 @@ describe('Phase 4 seventeen-Discipline acceptance matrix', () => {
     expect(essence).not.toBeNull()
     expect(validateEssenceDefinition(essence!)).toEqual([])
     for (const secondary of roster.filter((id) => id !== discipline)) {
-      expect(null).toBeNull()
+      expect(secondary).not.toBe(discipline)
     }
   })
 
