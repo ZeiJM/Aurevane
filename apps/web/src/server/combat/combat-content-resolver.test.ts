@@ -3,10 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
 
 import type { CombatContentVersionRecord } from '@aurevane/db/combat-content'
-import {
-  resolveEssenceForBuild,
-  type EssenceDefinition,
-} from '@aurevane/game-core/combat/essence'
+import { resolveEssenceForBuild, type EssenceDefinition } from '@aurevane/game-core/combat/essence'
 import {
   resolveMatureSkillVersion,
   type MatureSkillDefinition,
@@ -83,7 +80,6 @@ const publishedSkill = (definition: MatureSkillDefinition): CombatContentVersion
   publishedBy: '22222222-2222-4222-8222-222222222222',
   publishedAt: '2026-09-17T21:45:00.000Z',
 })
-
 
 const publishedEssence = (definition: EssenceDefinition): CombatContentVersionRecord => ({
   id: '33333333-3333-4333-8333-333333333333',
@@ -288,7 +284,9 @@ describe('combat content resolver', () => {
     source.current.set(resonance.id, publishedResonance(resonance))
 
     const resolver = createCombatContentResolver(source)
-    await expect(resolver.resolveCurrentEssenceDefinition?.('vanguard', null)).resolves.toMatchObject({
+    await expect(
+      resolver.resolveCurrentEssenceDefinition?.('vanguard', null),
+    ).resolves.toMatchObject({
       contentVersion: essence.contentVersion,
       flavorLine: 'Published Essence flavor.',
     })
@@ -338,5 +336,4 @@ describe('combat content resolver', () => {
       ),
     ).resolves.toMatchObject({ contentVersion: resonanceVersion })
   })
-
 })
