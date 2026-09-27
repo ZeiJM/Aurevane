@@ -31,9 +31,7 @@ export function validateCombatAccuracyStatusDefinition(status: CombatStatusDefin
     status.absorbMpBasisPoints !== undefined ||
     status.reflectBasisPoints !== undefined
   ) {
-    throw new TypeError(
-      'Mark and Blind must be separate negative, ordinary accuracy statuses.'
-    )
+    throw new TypeError('Mark and Blind must be separate negative, ordinary accuracy statuses.')
   }
 }
 
@@ -117,7 +115,7 @@ export function assertValidCombatAccuracyStatusState(
         status.remainingOwnerTurnStarts > definition.durationOwnerTurnStarts
       ) {
         throw new TypeError(
-          'Current accuracy status must match its pinned definition, source scope, positive stack count and duration.'
+          'Current accuracy status must match its pinned definition, source scope, positive stack count and duration.',
         )
       }
     }
