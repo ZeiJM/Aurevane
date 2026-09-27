@@ -99,7 +99,7 @@ export {
 export const PV1F_ACTION_ECONOMY_MAXIMUM = 100 as const
 export const PV1F_RECOVER_PERCENT = 10 as const
 export const PV1F_MP_RECOVER_PERCENT = 10 as const
-export const PV1F_STATUS_MAXIMUM_STACKS = Number.MAX_SAFE_INTEGER
+export const PV1F_STATUS_MAXIMUM_STACKS = 3 as const
 export const PV1F_RECOVERY_COOLDOWN_OWNER_TURNS = 2 as const
 export const PV1F_REPEAT_SKILL_EFFECTIVENESS_BASIS_POINTS = 5_000 as const
 export const PV1F_LAST_MATURE_SKILL_RESOURCE_PREFIX = 'pv1f.last-mature-skill.' as const
@@ -142,7 +142,7 @@ export const PV1F_LOWERED_GUARD_STATUS: CombatStatusDefinition = {
 export const PV1F_EXPOSED_STATUS: CombatStatusDefinition = {
   id: 'exposed',
   version: 1,
-  maximumStacks: PV1F_STATUS_MAXIMUM_STACKS,
+  maximumStacks: 1,
   durationOwnerTurnStarts: 2,
   damageTakenMultiplierBasisPoints: 11_500,
   polarity: 'negative',
