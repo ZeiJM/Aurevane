@@ -137,6 +137,42 @@ describe('owner v5 Skill rebalance', () => {
     expect(gated.cooldown).toBeNull()
   })
 
+  it('prices reach and magnitude into cooldown strength', () => {
+    const base = resolveMatureSkillVersion('vanguard.forceful-strike', 2)
+    if (!base) throw new Error('Expected historical Forceful Strike.')
+
+    const short = rebalanceMatureSkillDefinition({
+      ...base,
+      apCost: 40,
+      requirements: [],
+      target: { ...base.target, minimumRange: 1, maximumRange: 1, shape: { kind: 'single' } },
+      effects: [{ type: 'damage', recipient: 'primary-unit', amount: 8 }],
+    })
+    const long = rebalanceMatureSkillDefinition({
+      ...base,
+      apCost: 40,
+      requirements: [],
+      target: { ...base.target, minimumRange: 1, maximumRange: 5, shape: { kind: 'single' } },
+      effects: [{ type: 'damage', recipient: 'primary-unit', amount: 8 }],
+    })
+    const heavier = rebalanceMatureSkillDefinition({
+      ...base,
+      apCost: 40,
+      requirements: [],
+      target: { ...base.target, minimumRange: 1, maximumRange: 1, shape: { kind: 'single' } },
+      effects: [
+        { type: 'damage', recipient: 'primary-unit', amount: 8 },
+        { type: 'damage', recipient: 'primary-unit', amount: 8 },
+        { type: 'damage', recipient: 'primary-unit', amount: 8 },
+      ],
+    })
+
+    expect(long.cooldown?.ownerTurns ?? 0).toBeGreaterThan(short.cooldown?.ownerTurns ?? 0)
+    expect(heavier.cooldown?.ownerTurns ?? 0).toBeGreaterThanOrEqual(
+      short.cooldown?.ownerTurns ?? 0,
+    )
+  })
+
   it('prices persistent duration into cooldown strength', () => {
     const base = resolveMatureSkillVersion('vanguard.brace', 1)
     if (!base) throw new Error('Expected historical Brace.')
