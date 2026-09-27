@@ -1,10 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
-import { resolveMatureSkillVersion, type MatureSkillDefinition } from './mature-skills'
+import { resolveMatureSkillVersion } from './mature-skills'
 
 import { createCombatEncounterState } from './actions'
 import { createPendingBattle, startBattle } from './battle-state'
-import { normalizeCombatEffectState } from './combat-effect-state'
 import { createTacticalBattleState } from './board'
 import {
   calculatePv1fBasicAttackDamage,
@@ -350,162 +349,89 @@ describe('P3.3 recovery cooldown authority', () => {
   })
 })
 
-describe('P3.3 mature Skill Action Economy integration', () => {
-  it('spends authored AP and remains available after reconnect with repeat falloff', () => {
-    const definition = resolveMatureSkillVersion('lifebinder.mending-light', 1)
-    if (!definition) throw new Error('Expected representative Lifebinder Skill.')
+describe('current mature Skill cooldown authority', () => {
+  it('starts the authored one-to-three-turn cooldown and survives reconnect serialization', () => {
+    const definition = resolveMatureSkillVersion('vanguard.forceful-strike')
+    if (!definition) throw new Error('Expected current Vanguard Skill.')
+    const state = lethalEncounter('player')
+    const recruit = state.tactical.battle.combatants.find((combatant) => combatant.id === 'recruit')
+    if (!recruit) throw new Error('Expected recruit combatant.')
+    recruit.hp = 100
+    recruit.maxHp = 100
+
+    const target = { kind: 'unit' as const, combatantId: 'recruit' }
+    const used = executePv1fMatureSkill(state, definition, target)
+    expect(used.events).toContainEqual(
+      expect.objectContaining({
+        event: 'skill_cooldown_started',
+        actionId: definition.id,
+        ownerTurns: definition.cooldown.ownerTurns,
+      }),
+    )
+    expect(definition.cooldown.ownerTurns).toBeGreaterThanOrEqual(1)
+    expect(definition.cooldown.ownerTurns).toBeLessThanOrEqual(3)
+
+    const reconnected = JSON.parse(JSON.stringify(used.state)) as StatDrivenCombatEncounterState
+    const repeated = evaluatePv1fMatureSkill(reconnected, definition, target)
+    expect(repeated.repeatPenaltyApplied).toBe(false)
+    expect(repeated.evaluation.legal).toBe(false)
+    expect(repeated.evaluation.issues).toContainEqual(
+      expect.objectContaining({ code: 'cooldown-active' }),
+    )
+  })
+
+  it('omits runtime cooldowns for requirement-gated Skills while the requirement remains satisfied', () => {
+    const definition = resolveMatureSkillVersion('lifebinder.mending-light')
+    if (!definition) throw new Error('Expected current Lifebinder Skill.')
+    expect(definition.requirements.length).toBeGreaterThan(0)
+
     const state = lethalEncounter('player')
     const player = state.tactical.battle.combatants.find((combatant) => combatant.id === 'player')
     if (!player) throw new Error('Expected player combatant.')
-    player.hp = 25
+    player.hp = 1
 
     const used = executePv1fMatureSkill(state, definition, { kind: 'self' })
-    expect(readPv1fActionEconomy(used.state, 'player')?.current).toBe(55)
     expect(used.events).not.toContainEqual(
       expect.objectContaining({ event: 'skill_cooldown_started' }),
     )
 
-    const reconnected = JSON.parse(JSON.stringify(used.state)) as StatDrivenCombatEncounterState
-    const repeated = evaluatePv1fMatureSkill(reconnected, definition, { kind: 'self' })
+    const repeated = evaluatePv1fMatureSkill(used.state, definition, { kind: 'self' })
+    expect(repeated.repeatPenaltyApplied).toBe(false)
+    expect(repeated.action.cooldown).toBeUndefined()
     expect(repeated.evaluation.legal).toBe(true)
-    expect(repeated.repeatPenaltyApplied).toBe(true)
   })
 
-  it('treats a repeated pure Curse as a legal full-cost no-op clone', () => {
-    const base = resolveMatureSkillVersion('chronist.slow')
-    if (!base) throw new Error('Expected current Chronist Slow fixture.')
+  it('uses full authored effects on consecutive requirement-gated casts instead of repeat falloff', () => {
+    const base = resolveMatureSkillVersion('vanguard.forceful-strike')
+    if (!base) throw new Error('Expected current Vanguard Skill.')
     const definition = {
       ...base,
-      apCost: 20,
-      effects: [{ type: 'copy-statuses', recipient: 'primary-unit', mode: 'curse' }],
-    } as unknown as MatureSkillDefinition
-
-    const initial = lethalEncounter('player')
-    const effectState = normalizeCombatEffectState(initial.effectState)
-    const prepared: StatDrivenCombatEncounterState = {
-      ...initial,
-      effectState: {
-        ...effectState,
-        poison: [
-          ...effectState.poison,
-          {
-            targetCombatantId: 'player',
-            sourceCombatantId: 'recruit',
-            sourceActionId: 'test.repeat.pure-poison',
-            profileVersion: 1,
-            movementRemainder: 2,
-            curseCopyable: true,
-          },
-        ],
-      },
+      apCost: 30,
+      requirements: [{ kind: 'actor-hp-at-most' as const, basisPoints: 10_000 }],
+      effects: [{ type: 'damage' as const, recipient: 'primary-unit' as const, amount: 8 }],
     }
-    const target = { kind: 'unit' as const, combatantId: 'recruit' }
-
-    const first = executePv1fMatureSkill(prepared, definition, target)
-    const firstPoison = normalizeCombatEffectState(first.state.effectState).poison.find(
-      (instance) => instance.targetCombatantId === 'recruit',
-    )
-    expect(firstPoison).toBeDefined()
-
-    const repeated = evaluatePv1fMatureSkill(first.state, definition, target)
-    expect(repeated.repeatPenaltyApplied).toBe(true)
-    expect(repeated.evaluation.legal).toBe(true)
-    expect(repeated.action.effects).toEqual([])
-    expect(repeated.evaluation.projectedEffects).toEqual([])
-
-    const second = executePv1fMatureSkill(first.state, definition, target)
-    const secondPoison = normalizeCombatEffectState(second.state.effectState).poison.find(
-      (instance) => instance.targetCombatantId === 'recruit',
-    )
-    expect(secondPoison).toEqual(firstPoison)
-    expect(readPv1fActionEconomy(second.state, 'player')?.current).toBe(60)
-    expect(second.events).toContainEqual(
-      expect.objectContaining({
-        event: 'skill_repeat_penalty_applied',
-        combatantId: 'player',
-        actionId: definition.id,
-        effectivenessBasisPoints: 5_000,
-      }),
-    )
-  })
-
-  it('omits discrete Curse cloning on a consecutive use while later damage still halves', () => {
-    const base = resolveMatureSkillVersion('chronist.slow')
-    if (!base) throw new Error('Expected current Chronist Slow fixture.')
-    const definition = {
-      ...base,
-      apCost: 20,
-      effects: [
-        { type: 'copy-statuses', recipient: 'primary-unit', mode: 'curse' },
-        { type: 'damage', recipient: 'primary-unit', amount: 8 },
-      ],
-    } as unknown as MatureSkillDefinition
-
-    const initial = lethalEncounter('player')
-    const recruit = initial.tactical.battle.combatants.find(
-      (combatant) => combatant.id === 'recruit',
-    )
+    const state = lethalEncounter('player')
+    const recruit = state.tactical.battle.combatants.find((combatant) => combatant.id === 'recruit')
     if (!recruit) throw new Error('Expected recruit combatant.')
     recruit.hp = 50
-
-    const effectState = normalizeCombatEffectState(initial.effectState)
-    const prepared: StatDrivenCombatEncounterState = {
-      ...initial,
-      effectState: {
-        ...effectState,
-        poison: [
-          ...effectState.poison,
-          {
-            targetCombatantId: 'player',
-            sourceCombatantId: 'recruit',
-            sourceActionId: 'test.repeat.poison',
-            profileVersion: 1,
-            movementRemainder: 3,
-            curseCopyable: true,
-          },
-        ],
-      },
-    }
+    recruit.maxHp = 50
     const target = { kind: 'unit' as const, combatantId: 'recruit' }
 
-    const first = executePv1fMatureSkill(prepared, definition, target)
-    const firstRecruit = first.state.tactical.battle.combatants.find(
-      (combatant) => combatant.id === 'recruit',
-    )
-    const firstPoison = normalizeCombatEffectState(first.state.effectState).poison.find(
-      (instance) => instance.targetCombatantId === 'recruit',
-    )
-    expect(firstRecruit?.hp).toBe(42)
-    expect(firstPoison).toBeDefined()
-
-    const repeated = evaluatePv1fMatureSkill(first.state, definition, target)
-    expect(repeated.repeatPenaltyApplied).toBe(true)
-    expect(repeated.evaluation.legal).toBe(true)
-    expect(repeated.action.effects).toHaveLength(1)
-    expect(repeated.action.effects[0]).toMatchObject({
-      type: 'damage',
-      recipient: 'primary-unit',
-      amount: 4,
-    })
-    expect(repeated.action.effects.some((effect) => effect.type === 'copy-statuses')).toBe(false)
+    const first = executePv1fMatureSkill(state, definition, target)
+    const firstHp =
+      first.state.tactical.battle.combatants.find((combatant) => combatant.id === 'recruit')?.hp ??
+      0
+    const secondPreview = evaluatePv1fMatureSkill(first.state, definition, target)
+    expect(secondPreview.repeatPenaltyApplied).toBe(false)
+    expect(secondPreview.action.effects[0]).toMatchObject({ type: 'damage', amount: 8 })
 
     const second = executePv1fMatureSkill(first.state, definition, target)
-    const secondRecruit = second.state.tactical.battle.combatants.find(
-      (combatant) => combatant.id === 'recruit',
-    )
-    const secondPoison = normalizeCombatEffectState(second.state.effectState).poison.find(
-      (instance) => instance.targetCombatantId === 'recruit',
-    )
-    expect(secondRecruit?.hp).toBe(38)
-    expect(secondPoison).toEqual(firstPoison)
-    expect(readPv1fActionEconomy(second.state, 'player')?.current).toBe(60)
-    expect(second.events).toContainEqual(
-      expect.objectContaining({
-        event: 'skill_repeat_penalty_applied',
-        combatantId: 'player',
-        actionId: definition.id,
-        effectivenessBasisPoints: 5_000,
-      }),
+    const secondHp =
+      second.state.tactical.battle.combatants.find((combatant) => combatant.id === 'recruit')?.hp ??
+      0
+    expect(firstHp - secondHp).toBe(8)
+    expect(second.events).not.toContainEqual(
+      expect.objectContaining({ event: 'skill_repeat_penalty_applied' }),
     )
   })
 })
