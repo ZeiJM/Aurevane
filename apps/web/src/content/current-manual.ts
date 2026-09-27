@@ -336,7 +336,7 @@ const battleHallArticle: ManualArticle = {
       paragraphs: [
         'Technique tags show who a Skill targets, its single/area/line shape and its effects. Expand Skill details for exact recipients, range, AP/MP cost and requirements. Burn, Bleed and Poison cause fixed damage at affected turn end; Regeneration restores HP then. Slow raises movement AP cost; Root prevents movement while leaving other commands available. Cleanse removes its listed negative effects.',
         'Current Mark gives its source +15 percentage points Accuracy against the marked target. Historical Marked versions increased incoming damage only from their source. Challenged reduces damage dealt to anyone except its source. Warded reduces damage taken from burning opponents. The rare Reckless effect increases both damage dealt and damage taken; Fortified reduces both. Each tradeoff keeps its benefit and drawback together when it expires or is removed.',
-        'Skill damage checks armor for physical attacks and ward for mystic attacks, separately for each hit and affected unit. The battle preview resolves the actual attacker/target conditions. New conditional modifiers combine within a 50–200% budget; Guarded, Exposed and timer penalties retain their existing separate rules.',
+        'Skill damage checks armor for physical attacks and ward for mystic attacks, separately for each hit and affected unit. Current effect power is authored on a bounded 1–20 scale where applicable, and persistent duration is part of the Skill’s balance budget. Percentage-based statuses can use per-Skill potency overrides; the preview shows the actual value for that Skill version. Conditional modifiers remain bounded to a safe combined range.',
       ],
     },
     {
@@ -355,7 +355,7 @@ const battleHallArticle: ManualArticle = {
         'Ground Skills select a tile, including empty ground. Choose the Skill, select its tile and review the affected area before confirming. Previews spend no AP or MP and stay silent. A Skill’s affected-team rule governs its unit effects; temporary terrain affects either team.',
         `${COMBAT_TERRAIN_OVERLAY_DETAILS.frozen.name} terrain: ${COMBAT_TERRAIN_OVERLAY_DETAILS.frozen.description} Fire on affected Frozen tiles converts them to Steam, including empty tiles. ${COMBAT_TERRAIN_OVERLAY_DETAILS.steam.name}: ${COMBAT_TERRAIN_OVERLAY_DETAILS.steam.description} Both overlays last ${COMBAT_TERRAIN_OVERLAY_DETAILS.frozen.roundBoundaries} round boundaries. Refreshing an overlay renews its duration without stacking it.`,
         'Slow and base-terrain AP costs still apply with Airborne, and Root still prevents movement. Inspect the tile and movement preview for its current cost and remaining duration. Your Movement allowance remains a separate limit even when AP is available.',
-        'Single-unit Resonance payoffs wait for a unit-targeted Skill. Ground casts preserve that setup for a later eligible action, and empty ground cannot generate an actor reward. Consecutive repeats omit new terrain creation and displacement while halving quantitative effects at unchanged costs.',
+        'Single-unit Resonance payoffs wait for a unit-targeted Skill. Ground casts preserve that setup for a later eligible action, and empty ground cannot generate an actor reward. Current Skill versions use authored 1–3 turn cooldowns rather than the retired consecutive-repeat falloff.',
       ],
     },
     {
@@ -377,10 +377,10 @@ const battleHallArticle: ManualArticle = {
     },
     {
       id: 'repeat-use',
-      title: 'Consecutive Skill use',
+      title: 'Skill cooldowns and requirements',
       paragraphs: [
-        'Ordinary authored Techniques and Essence Skills do not use turn cooldowns. Repeating the same authored Skill consecutively gives 50% effectiveness at the normal AP cost. Further consecutive uses remain at 50%.',
-        'A different combat command breaks the repeat chain; ending a turn alone does not. The server preserves this state across reconnects. Basic recovery actions keep their separate timing rules.',
+        'Current Techniques and Essence Skills use authored cooldowns from 1 to 3 turns based on their total power, coverage, utility and duration. The server advances cooldown state on owner-turn boundaries.',
+        'A Skill with an explicit use Requirement has no cooldown; satisfying that prerequisite is its limiter. The previous consecutive-use 50% effectiveness rule is retired for current versions. Basic recovery actions keep their separate timing rules.',
       ],
     },
     {
