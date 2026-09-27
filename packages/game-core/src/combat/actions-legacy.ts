@@ -1197,6 +1197,17 @@ export function validateCombatEncounterState(
         status.remainingOwnerTurnStarts,
         `${statusPrefix}.remainingOwnerTurnStarts`,
       )
+      if (
+        status.potencyBasisPoints !== undefined &&
+        (!Number.isSafeInteger(status.potencyBasisPoints) ||
+          status.potencyBasisPoints < 100 ||
+          status.potencyBasisPoints > 5_000)
+      ) {
+        issues.push({
+          field: `${statusPrefix}.potencyBasisPoints`,
+          message: 'Status potency must be from 1 to 50 percentage points.',
+        })
+      }
       if (!expectedCombatantIds.includes(status.sourceCombatantId)) {
         issues.push({
           field: `${statusPrefix}.sourceCombatantId`,
