@@ -34,11 +34,11 @@ function assertNever(value: never): never {
 export function createDefaultCombatEffect(type: CombatEffectType): CombatEffectDefinition {
   switch (type) {
     case 'damage':
-      return { type, recipient: 'primary-unit', amount: 0 }
+      return { type, recipient: 'primary-unit', amount: 1 }
     case 'healing':
-      return { type, recipient: 'actor', amount: 0, ticks: 1 }
+      return { type, recipient: 'actor', amount: 1, ticks: 1 }
     case 'resource-change':
-      return { type, recipient: 'actor', resource: 'mp', delta: 0, ticks: 1 }
+      return { type, recipient: 'actor', resource: 'mp', delta: 1, ticks: 1 }
     case 'apply-status':
       return { type, recipient: 'primary-unit', statusId: 'guarded', stacks: 1 }
     case 'remove-status':
