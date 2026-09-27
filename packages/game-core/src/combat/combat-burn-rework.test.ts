@@ -158,7 +158,7 @@ describe('current Burn pressure runtime', () => {
     expect(tick3.state.effectState?.burn).toEqual([])
   })
 
-  it('reapplication restarts the 4 -> 3 -> 2 sequence instead of stacking', () => {
+  it('reapplication adds another Burn stack and restarts the shared pressure sequence', () => {
     const first = executeCombatAction(
       encounter(),
       action(currentBurn, 'test.burn-a'),
@@ -177,12 +177,12 @@ describe('current Burn pressure runtime', () => {
       CONTENT,
     )
     expect(reapplied.state.effectState?.burn).toEqual([
-      expect.objectContaining({ sourceActionId: 'test.burn-b', stage: 0 }),
+      expect.objectContaining({ sourceActionId: 'test.burn-b', stage: 0, stacks: 2 }),
     ])
 
     const targetTurnAgain = finishTurn(reapplied.state)
     const restartedTick = finishTurn(targetTurnAgain.state, 'west')
-    expect(targetHp(restartedTick.state)).toBe(22)
+    expect(targetHp(restartedTick.state)).toBe(18)
     expect(restartedTick.state.effectState?.burn[0]?.stage).toBe(1)
   })
 
