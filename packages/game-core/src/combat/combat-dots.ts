@@ -75,7 +75,7 @@ export function applyCurrentPoisonState(
   )
   const instance = {
     targetCombatantId,
-    stacks: addEffectStacks(existing?.stacks),
+    stacks: addEffectStacks(existing ? currentEffectStacks(existing) : 0),
     sourceCombatantId,
     sourceActionId,
     profileVersion: CURRENT_POISON_PROFILE_VERSION,
@@ -289,7 +289,7 @@ export function applyCurrentBurnState(
   )
   const instance: CombatBurnInstance = {
     targetCombatantId,
-    stacks: addEffectStacks(existing?.stacks),
+    stacks: addEffectStacks(existing ? currentEffectStacks(existing) : 0),
     sourceCombatantId,
     sourceActionId,
     profileVersion: CURRENT_BURN_PROFILE_VERSION,
