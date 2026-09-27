@@ -17,7 +17,7 @@ export interface CombatDamageModifier {
   condition: DamageCondition
 }
 
-/** New modifiers share a bounded budget; historical Guarded/Exposed stacks remain separate. */
+/** Conditional modifiers share a bounded final budget, while every active application contributes. */
 export const CONDITIONAL_DAMAGE_MINIMUM = 5_000
 export const CONDITIONAL_DAMAGE_MAXIMUM = 20_000
 
@@ -64,9 +64,10 @@ export function conditionalDamageMultiplier(
           )
         )
           continue
-        // Each new modifier is applied once per status, independently of legacy stack counts.
-        numerator *= BigInt(modifier.multiplierBasisPoints)
-        denominator *= 10_000n
+        for (let stack = 0; stack < status.stacks; stack += 1) {
+          numerator *= BigInt(modifier.multiplierBasisPoints)
+          denominator *= 10_000n
+        }
       }
     }
   }

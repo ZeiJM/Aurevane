@@ -8,12 +8,23 @@ import {
 
 export const CURRENT_POISON_PROFILE_VERSION = 1 as const
 export const CURRENT_POISON_DAMAGE = 2 as const
-export const CURRENT_BLEED_MAX_STACKS = 3 as const
 export const CURRENT_BLEED_MAX_TICKS = 4 as const
 export const CURRENT_BLEED_MAX_RAW_TOTAL = 10 as const
 export const CURRENT_BURN_PROFILE_VERSION = 1 as const
 export const CURRENT_BURN_DAMAGE_BY_STAGE = [4, 3, 2] as const
 export const CURRENT_BURN_BACKLASH_DAMAGE = 2 as const
+
+function currentEffectStacks(value: { stacks?: number }): number {
+  return Number.isSafeInteger(value.stacks) && (value.stacks ?? 0) > 0 ? value.stacks! : 1
+}
+
+function addEffectStacks(current: number | undefined, added = 1): number {
+  const total = BigInt(current ?? 0) + BigInt(added)
+  if (total > BigInt(Number.MAX_SAFE_INTEGER)) {
+    throw new RangeError('Effect stack count has reached the safe integer limit.')
+  }
+  return Number(total)
+}
 
 export interface CurrentPoisonEffect {
   type: 'poison'
@@ -46,7 +57,8 @@ export function currentPoisonEndTurnDamage(
   state: CombatEncounterState,
   targetCombatantId: string,
 ): number {
-  return hasCurrentPoison(state, targetCombatantId) ? CURRENT_POISON_DAMAGE : 0
+  const instance = currentPoisonInstance(state, targetCombatantId)
+  return instance ? CURRENT_POISON_DAMAGE * currentEffectStacks(instance) : 0
 }
 
 export function applyCurrentPoisonState(
@@ -63,6 +75,7 @@ export function applyCurrentPoisonState(
   )
   const instance = {
     targetCombatantId,
+    stacks: addEffectStacks(existing ? currentEffectStacks(existing) : 0),
     sourceCombatantId,
     sourceActionId,
     profileVersion: CURRENT_POISON_PROFILE_VERSION,
@@ -189,22 +202,7 @@ export function applyCurrentBleedState(
     throw new RangeError('Bleed application order has reached the safe integer limit.')
   }
   const applicationOrder = maximumOrder + 1
-  let bleed = [...effectState.bleed]
-  const targetStacks = bleed
-    .filter((stack) => stack.targetCombatantId === targetCombatantId)
-    .sort(
-      (left, right) =>
-        left.remainingTicks - right.remainingTicks ||
-        left.applicationOrder - right.applicationOrder,
-    )
-  if (targetStacks.length >= CURRENT_BLEED_MAX_STACKS) {
-    const replaced = targetStacks[0]
-    bleed = bleed.filter(
-      (stack) =>
-        stack.targetCombatantId !== replaced.targetCombatantId ||
-        stack.applicationOrder !== replaced.applicationOrder,
-    )
-  }
+  const bleed = [...effectState.bleed]
 
   bleed.push({
     targetCombatantId,
@@ -286,8 +284,12 @@ export function applyCurrentBurnState(
 ): CombatEncounterState {
   validateCurrentBurnEffect({ curseCopyable })
   const effectState = normalizeCombatEffectState(state.effectState)
+  const existing = effectState.burn.find(
+    (instance) => instance.targetCombatantId === targetCombatantId,
+  )
   const instance: CombatBurnInstance = {
     targetCombatantId,
+    stacks: addEffectStacks(existing ? currentEffectStacks(existing) : 0),
     sourceCombatantId,
     sourceActionId,
     profileVersion: CURRENT_BURN_PROFILE_VERSION,
@@ -332,8 +334,8 @@ export function advanceCurrentBurnEndTurn(
   )
   if (!instance) return { state, instance: null, damage: 0 }
 
-  const damage = CURRENT_BURN_DAMAGE_BY_STAGE[instance.stage]
-  if (damage === undefined) {
+  const damagePerStack = CURRENT_BURN_DAMAGE_BY_STAGE[instance.stage]
+  if (damagePerStack === undefined) {
     throw new RangeError('Current Burn stage is outside the canonical profile.')
   }
   const nextStage = instance.stage + 1
@@ -349,7 +351,7 @@ export function advanceCurrentBurnEndTurn(
   return {
     state: { ...state, effectState: { ...effectState, burn } },
     instance,
-    damage,
+    damage: damagePerStack * currentEffectStacks(instance),
   }
 }
 
@@ -383,6 +385,8 @@ function validateCurrentPoisonState(state: CombatEncounterState): readonly Comba
       instance.sourceActionId.length === 0 ||
       instance.sourceActionId.trim() !== instance.sourceActionId ||
       instance.profileVersion !== CURRENT_POISON_PROFILE_VERSION ||
+      (instance.stacks !== undefined &&
+        (!Number.isSafeInteger(instance.stacks) || instance.stacks < 1)) ||
       (instance.curseCopyable !== undefined && typeof instance.curseCopyable !== 'boolean') ||
       !Number.isSafeInteger(instance.movementRemainder) ||
       instance.movementRemainder < 0 ||
@@ -401,7 +405,7 @@ function validateCurrentPoisonState(state: CombatEncounterState): readonly Comba
         {
           field: 'effectState.poison',
           message:
-            'Poison state must contain one valid current-profile instance per target, sorted by target ID, with movement progress from 0 to 4 and optional boolean copy policy.',
+            'Poison state must contain one valid current-profile instance per target, sorted by target ID, with a positive stack count, movement progress from 0 to 4 and optional boolean copy policy.',
         },
       ]
     : []
@@ -426,6 +430,8 @@ function validateCurrentBurnState(state: CombatEncounterState): readonly CombatE
       instance.sourceActionId.length === 0 ||
       instance.sourceActionId.trim() !== instance.sourceActionId ||
       instance.profileVersion !== CURRENT_BURN_PROFILE_VERSION ||
+      (instance.stacks !== undefined &&
+        (!Number.isSafeInteger(instance.stacks) || instance.stacks < 1)) ||
       (instance.curseCopyable !== undefined && typeof instance.curseCopyable !== 'boolean') ||
       !Number.isSafeInteger(instance.stage) ||
       instance.stage < 0 ||
@@ -444,7 +450,7 @@ function validateCurrentBurnState(state: CombatEncounterState): readonly CombatE
         {
           field: 'effectState.burn',
           message:
-            'Burn state must contain one valid current-profile instance per target, sorted by target ID, with canonical stage 0 through 2 and optional boolean copy policy.',
+            'Burn state must contain one valid current-profile instance per target, sorted by target ID, with a positive stack count, canonical stage 0 through 2 and optional boolean copy policy.',
         },
       ]
     : []
@@ -457,15 +463,12 @@ function validateCurrentBleedState(state: CombatEncounterState): readonly Combat
   }
 
   const combatantIds = new Set(state.tactical.battle.combatants.map((row) => row.id))
-  const stackCounts = new Map<string, number>()
   const applicationOrders = new Set<number>()
   let invalid = false
   let previousTargetId: string | null = null
   let previousApplicationOrder = 0
 
   for (const stack of bleed) {
-    const targetCount = (stackCounts.get(stack.targetCombatantId) ?? 0) + 1
-    stackCounts.set(stack.targetCombatantId, targetCount)
     const rawTotalValid =
       Number.isSafeInteger(stack.damagePerTick) &&
       Number.isSafeInteger(stack.remainingTicks) &&
@@ -491,7 +494,6 @@ function validateCurrentBleedState(state: CombatEncounterState): readonly Combat
       !Number.isSafeInteger(stack.applicationOrder) ||
       stack.applicationOrder <= 0 ||
       applicationOrders.has(stack.applicationOrder) ||
-      targetCount > CURRENT_BLEED_MAX_STACKS ||
       !sorted
     ) {
       invalid = true
@@ -506,7 +508,7 @@ function validateCurrentBleedState(state: CombatEncounterState): readonly Combat
         {
           field: 'effectState.bleed',
           message:
-            'Bleed state must contain at most three valid independent stacks per target in stable application order, each with one to four remaining ticks, no more than 10 raw remaining damage, and optional boolean copy policy.',
+            'Bleed state must contain valid independent applications in stable order, each with one to four remaining ticks, no more than 10 raw remaining damage, and optional boolean copy policy.',
         },
       ]
     : []

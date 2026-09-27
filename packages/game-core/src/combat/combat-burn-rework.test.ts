@@ -10,6 +10,7 @@ import {
 } from './actions'
 import { createPendingBattle, startBattle } from './battle-state'
 import { createTacticalBattleState, selectCurrentFinalFacing } from './board'
+import { applyCurrentBurnState } from './combat-dots'
 import { PHASE4_STATUSES } from './status-content'
 
 const CONTENT = { statuses: PHASE4_STATUSES }
@@ -127,6 +128,7 @@ describe('current Burn pressure runtime', () => {
         sourceActionId: 'test.current-burn',
         profileVersion: 1,
         stage: 0,
+        stacks: 1,
       },
     ])
     expect(
@@ -158,7 +160,7 @@ describe('current Burn pressure runtime', () => {
     expect(tick3.state.effectState?.burn).toEqual([])
   })
 
-  it('reapplication restarts the 4 -> 3 -> 2 sequence instead of stacking', () => {
+  it('reapplication adds another Burn stack and restarts the shared pressure sequence', () => {
     const first = executeCombatAction(
       encounter(),
       action(currentBurn, 'test.burn-a'),
@@ -177,13 +179,40 @@ describe('current Burn pressure runtime', () => {
       CONTENT,
     )
     expect(reapplied.state.effectState?.burn).toEqual([
-      expect.objectContaining({ sourceActionId: 'test.burn-b', stage: 0 }),
+      expect.objectContaining({ sourceActionId: 'test.burn-b', stage: 0, stacks: 2 }),
     ])
 
     const targetTurnAgain = finishTurn(reapplied.state)
     const restartedTick = finishTurn(targetTurnAgain.state, 'west')
-    expect(targetHp(restartedTick.state)).toBe(22)
+    expect(targetHp(restartedTick.state)).toBe(18)
     expect(restartedTick.state.effectState?.burn[0]?.stage).toBe(1)
+  })
+
+  it('counts a historical Burn without an application count before reapplication', () => {
+    const base = encounter()
+    const historical: CombatEncounterState = {
+      ...base,
+      effectState: {
+        ...base.effectState!,
+        burn: [
+          {
+            targetCombatantId: 'target',
+            sourceCombatantId: 'actor',
+            sourceActionId: 'test.legacy-burn',
+            profileVersion: 1,
+            stage: 1,
+          },
+        ],
+      },
+    }
+    const reapplied = applyCurrentBurnState(historical, 'actor', 'target', 'test.reapplied-burn')
+    expect(reapplied.effectState?.burn).toEqual([
+      expect.objectContaining({
+        sourceActionId: 'test.reapplied-burn',
+        stage: 0,
+        stacks: 2,
+      }),
+    ])
   })
 
   it('Cleanse removes the current Burn instance', () => {

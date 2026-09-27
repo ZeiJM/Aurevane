@@ -17,7 +17,11 @@ import {
 } from './combat-skill-accuracy'
 import { normalizeCombatEffectState } from './combat-effect-state'
 import { hasGameplayTag } from './gameplay-tags'
-import { CURRENT_POISON_DAMAGE, advanceCurrentPoisonMovement } from './combat-dots'
+import {
+  CURRENT_POISON_DAMAGE,
+  advanceCurrentPoisonMovement,
+  currentPoisonInstance,
+} from './combat-dots'
 import { terrainOverlayAt, COMBAT_TERRAIN_OVERLAY_DETAILS } from './terrain-overlays'
 import { readBattleAuthorityCombatBuildSnapshot } from './battle-authority-build-snapshot'
 import {
@@ -949,19 +953,20 @@ export function pv1fMovementModifiers(
   },
 ) {
   const actorId = state.tactical.battle.currentTurn?.combatantId
-  const definitions = (
-    state.statusState.find((row) => row.combatantId === actorId)?.statuses ?? []
-  ).map((status) =>
-    PV1F_COMBAT_CONTENT.statuses.find(
+  const statuses = state.statusState.find((row) => row.combatantId === actorId)?.statuses ?? []
+  const definitions = statuses.map((status) => ({
+    status,
+    definition: PV1F_COMBAT_CONTENT.statuses.find(
       (definition) =>
         definition.id === status.statusId && definition.version === status.statusVersion,
     ),
-  )
-  const rooted = definitions.some((definition) => definition?.movement?.blocked)
+  }))
+  const rooted = definitions.some(({ definition }) => definition?.movement?.blocked)
   const surcharge = Math.min(
     20,
     definitions.reduce(
-      (sum, definition) => sum + (definition?.movement?.additionalApPerTile ?? 0),
+      (sum, { status, definition }) =>
+        sum + (definition?.movement?.additionalApPerTile ?? 0) * status.stacks,
       0,
     ),
   )
@@ -1003,7 +1008,8 @@ function forecastPv1fPoisonMovement(
     traversedTiles += 1
     triggeredTicks += advanced.triggeredTicks
     if (advanced.triggeredTicks > 0) {
-      hp = Math.max(0, hp - advanced.triggeredTicks * CURRENT_POISON_DAMAGE)
+      const poisonStacks = currentPoisonInstance(shadow, actorId)?.stacks ?? 1
+      hp = Math.max(0, hp - advanced.triggeredTicks * CURRENT_POISON_DAMAGE * poisonStacks)
       if (hp === 0) break
     }
   }

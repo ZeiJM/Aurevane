@@ -44,9 +44,9 @@ export function skillEffectDescription(effect: CombatEffectDefinition): string {
     case 'poison':
       return `Apply Poison (Poisoned) to ${target}.`
     case 'burn':
-      return `Apply Burn (Scorched) to ${target}. Burn deals 4, then 3, then 2 fixed damage at the target's next three end-turn boundaries; reapplication restarts the sequence.`
+      return `Apply Burn (Scorched) to ${target}. Each active application deals 4, then 3, then 2 fixed damage at the target's next three end-turn boundaries; reapplication adds another application and restarts the shared sequence.`
     case 'bleed':
-      return `Apply Bleed (Bleeding) to ${target} for ${effect.ticks} ${effect.ticks === 1 ? 'end-turn tick' : 'end-turn ticks'} at ${effect.damagePerTick} damage per tick. Bleed stacks independently up to three times.`
+      return `Apply Bleed (Bleeding) to ${target} for ${effect.ticks} ${effect.ticks === 1 ? 'end-turn tick' : 'end-turn ticks'} at ${effect.damagePerTick} damage per tick.`
     case 'return-to-turn-start':
       return 'Return to the vacant tile where you started this turn. Root blocks the return. No HP, MP, AP, Movement or past action is refunded.'
     case 'healing':
@@ -57,8 +57,8 @@ export function skillEffectDescription(effect: CombatEffectDefinition): string {
       return `${effect.delta >= 0 ? 'Restore up to' : 'Remove'} ${Math.abs(effect.delta)} MP ${effect.delta >= 0 ? 'to' : 'from'} ${target}.${effect.delta >= 0 ? recoveryTiming(effect.ticks) : ''}`
     case 'copy-statuses':
       return effect.mode === 'amplify'
-        ? 'Copy eligible positive active statuses from the selected unit onto yourself. The selected unit keeps its statuses; copied stacks respect caps and remaining durations are not restarted.'
-        : 'Copy eligible negative active statuses from yourself onto the selected unit. You keep the original statuses; copied stacks respect caps and remaining durations are not restarted.'
+        ? 'Copy eligible positive active statuses from the selected unit onto yourself. The selected unit keeps its statuses; remaining durations are not restarted.'
+        : 'Copy eligible negative active statuses from yourself onto the selected unit. You keep the original statuses; remaining durations are not restarted.'
     case 'copy':
       return 'Copy one random eligible regular battle Skill from the selected unit for the rest of this battle. The copied Skill keeps its original MP, targeting, effects and requirements, but costs half AP rounded up.'
     case 'sensory':
@@ -69,7 +69,7 @@ export function skillEffectDescription(effect: CombatEffectDefinition): string {
     }
     case 'apply-status': {
       const status = combatStatusDetails(effect.statusId)
-      return `Apply ${effect.stacks} ${gameplayStatusName(effect.statusId)} ${effect.stacks === 1 ? 'stack' : 'stacks'} to ${target}. ${status.description} ${combatStatusDuration(effect.statusId)}`
+      return `Apply ${gameplayStatusName(effect.statusId)}${effect.stacks > 1 ? ` ×${effect.stacks}` : ''} to ${target}. ${status.description} ${combatStatusDuration(effect.statusId)}`
     }
   }
 }

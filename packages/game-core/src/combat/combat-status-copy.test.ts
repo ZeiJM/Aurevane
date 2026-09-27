@@ -254,7 +254,7 @@ describe('Amplify Curse active-status copying: public command contract', () => {
       )
     },
   )
-  it('merges receiver stacks within the definition cap without shortening its longer duration', () => {
+  it('merges receiver stacks without an authored stack cap and keeps its longer duration', () => {
     const state = world([
       {
         combatantId: 'target',
@@ -266,16 +266,16 @@ describe('Amplify Curse active-status copying: public command contract', () => {
       },
     ])
     expect(statuses(cast(state, 'amplify').state, 'actor')).toEqual([
-      row(POSITIVE, { stacks: 3, remainingOwnerTurnStarts: 3, sourceCombatantId: 'actor' }),
+      row(POSITIVE, { stacks: 4, remainingOwnerTurnStarts: 3, sourceCombatantId: 'actor' }),
     ])
   })
-  it('does not compound an existing Blind or restart its four-tick definition', () => {
+  it('compounds an existing Blind without restarting its four-tick definition', () => {
     const state = world([
       { combatantId: 'actor', statuses: [row(NEGATIVE, { remainingOwnerTurnStarts: 1 })] },
       { combatantId: 'target', statuses: [row(NEGATIVE)] },
     ])
     expect(statuses(cast(state, 'curse').state, 'target')).toEqual([
-      row(NEGATIVE, { sourceCombatantId: 'actor' }),
+      row(NEGATIVE, { stacks: 2, sourceCombatantId: 'actor' }),
     ])
   })
   it('copies a Mark as a relationship owned by the Curse caster, preserving other target sources', () => {
@@ -441,13 +441,32 @@ describe('Status copying: fail-closed eligibility and staged scope', () => {
       expect(statuses(result.state, 'target').map((entry) => entry.statusId)).toEqual([NEGATIVE.id])
     },
   )
-  it.each([{ statusVersion: 2 }, { stacks: 4 }, { remainingOwnerTurnStarts: 5 }])(
+  it.each([{ statusVersion: 2 }, { remainingOwnerTurnStarts: 5 }])(
     'rejects mismatched donor state %j',
     (patch) => {
       const state = world([{ combatantId: 'target', statuses: [row(POSITIVE, patch)] }])
       expect(() => cast(state, 'amplify')).toThrow()
     },
   )
+  it.each([0, -1, 1.5])('rejects malformed donor application count %s', (stacks) => {
+    const valid = world()
+    const state: CombatEncounterState = {
+      ...valid,
+      statusState: valid.statusState.map((entry) =>
+        entry.combatantId === 'target'
+          ? { ...entry, statuses: [row(POSITIVE, { stacks })] }
+          : entry,
+      ),
+    }
+    expect(() => cast(state, 'amplify')).toThrow()
+  })
+  it('accepts donor application counts above the legacy authored maximum', () => {
+    const state = world([{ combatantId: 'target', statuses: [row(POSITIVE, { stacks: 4 })] }])
+    const result = cast(state, 'amplify')
+    expect(statuses(result.state, 'actor')).toEqual([
+      expect.objectContaining({ statusId: POSITIVE.id, stacks: 4 }),
+    ])
+  })
   it('does not permit copying onto oneself to create stacks', () => {
     const state = world([{ combatantId: 'actor', statuses: [row(POSITIVE)] }])
     expect(

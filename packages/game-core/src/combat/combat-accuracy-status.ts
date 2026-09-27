@@ -6,7 +6,7 @@ import type {
   CombatStatusInstance,
 } from './actions'
 
-/** Pure accuracy statuses deliberately cannot duplicate other per-source status behavior. */
+/** Accuracy statuses remain source-aware, but repeated applications share the universal stack rule. */
 export function validateCombatAccuracyStatusDefinition(status: CombatStatusDefinition): void {
   const mark = status.markAccuracyBonusBasisPoints
   const blind = status.blindAccuracyPenaltyBasisPoints
@@ -22,7 +22,6 @@ export function validateCombatAccuracyStatusDefinition(status: CombatStatusDefin
     (mark !== undefined && blind !== undefined) ||
     status.polarity !== 'negative' ||
     status.reactionClass !== 'ordinary' ||
-    status.maximumStacks !== 1 ||
     status.damageTakenMultiplierBasisPoints !== 10_000 ||
     (status.damageModifiers?.length ?? 0) > 0 ||
     status.endOfTurn !== undefined ||
@@ -32,9 +31,7 @@ export function validateCombatAccuracyStatusDefinition(status: CombatStatusDefin
     status.absorbMpBasisPoints !== undefined ||
     status.reflectBasisPoints !== undefined
   ) {
-    throw new TypeError(
-      'Mark and Blind must be separate single-stack, negative, ordinary accuracy statuses.',
-    )
+    throw new TypeError('Mark and Blind must be separate negative, ordinary accuracy statuses.')
   }
 }
 
@@ -65,9 +62,6 @@ export function collectCombatStatusIdentityIssues(
     const first = firstById.get(status.statusId)
     if (status.sourceScopedMark !== undefined && status.sourceScopedMark !== true) {
       issues.push({ field, message: 'Source-scoped Mark marker must be true when supplied.' })
-    }
-    if (status.sourceScopedMark === true && status.stacks !== 1) {
-      issues.push({ field, message: 'Source-scoped Mark cannot stack.' })
     }
     if (
       first &&
@@ -116,18 +110,19 @@ export function assertValidCombatAccuracyStatusState(
         !definition ||
         (status.sourceScopedMark === true) !== isMark ||
         status.statusVersion !== definition.version ||
-        status.stacks !== 1 ||
+        !Number.isSafeInteger(status.stacks) ||
+        status.stacks < 1 ||
         status.remainingOwnerTurnStarts > definition.durationOwnerTurnStarts
       ) {
         throw new TypeError(
-          'Current accuracy status must match its pinned definition, source scope, stack and duration.',
+          'Current accuracy status must match its pinned definition, source scope, positive stack count and duration.',
         )
       }
     }
   }
 }
 
-/** Non-stacking magnitudes: only the strongest eligible Mark and strongest Blind contribute. */
+/** Every active Mark and Blind application contributes through the universal stack rule. */
 export function combatAccuracyStatusModifier(
   state: CombatEncounterState,
   actorId: string,
@@ -144,14 +139,14 @@ export function combatAccuracyStatusModifier(
           candidate.id === status.statusId && candidate.version === status.statusVersion,
       )
       if (row.combatantId === actorId) {
-        blind = Math.max(blind, definition?.blindAccuracyPenaltyBasisPoints ?? 0)
+        blind += (definition?.blindAccuracyPenaltyBasisPoints ?? 0) * status.stacks
       }
       if (
         row.combatantId === targetId &&
         status.sourceScopedMark === true &&
         status.sourceCombatantId === actorId
       ) {
-        mark = Math.max(mark, definition?.markAccuracyBonusBasisPoints ?? 0)
+        mark += (definition?.markAccuracyBonusBasisPoints ?? 0) * status.stacks
       }
     }
   }

@@ -62,6 +62,8 @@ export interface CombatOngoingRecovery {
 
 export interface CombatPoisonInstance {
   targetCombatantId: string
+  /** Omitted historical instances represent one active application. */
+  stacks?: number
   sourceCombatantId: string
   sourceActionId: string
   profileVersion: number
@@ -85,6 +87,8 @@ export interface CombatBleedStack {
 
 export interface CombatBurnInstance {
   targetCombatantId: string
+  /** Omitted historical instances represent one active application. */
+  stacks?: number
   sourceCombatantId: string
   sourceActionId: string
   profileVersion: number

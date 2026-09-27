@@ -331,7 +331,7 @@ describe('P2.3 targeting, actions and effects', () => {
     )
   })
 
-  it('caps current Guarded stacks at three while still allowing a duration refresh', () => {
+  it('keeps increasing Guarded stacks beyond the legacy authored cap', () => {
     const state = activeEncounter({
       statusState: [
         {
@@ -355,7 +355,7 @@ describe('P2.3 targeting, actions and effects', () => {
       { kind: 'self' },
       P2_3_COMBAT_CONTENT,
     )
-    expect(guarded.state.statusState[1]?.statuses[0]?.stacks).toBe(3)
+    expect(guarded.state.statusState[1]?.statuses[0]?.stacks).toBe(4)
   })
 
   it('requires final facing before Wait can end the turn', () => {
