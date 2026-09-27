@@ -541,8 +541,8 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
                     const trimmed = description?.trim()
                     return trimmed ? trimmed : null
                   })
-                  const { effectDescriptions: _previousDescriptions, ...draftWithoutDescriptions } =
-                    selectedDraft
+                  const draftWithoutDescriptions = { ...selectedDraft }
+                  Reflect.deleteProperty(draftWithoutDescriptions, 'effectDescriptions')
                   updateSelectedDraft(
                     normalizedDescriptions.some((description) => description !== null)
                       ? {
