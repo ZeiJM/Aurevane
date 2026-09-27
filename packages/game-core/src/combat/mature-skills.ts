@@ -13,6 +13,7 @@ import type {
   CombatUseRequirement,
 } from './actions'
 import type { SkillCooldownDefinition } from './skill-cooldowns'
+import { rebalanceMatureSkillDefinition } from './skill-balance-v5'
 
 export const MATURE_SKILL_SCHEMA_VERSION = 1 as const
 export type MatureSkillCombatContext = 'pve' | 'pvp'
@@ -70,7 +71,7 @@ export interface MatureSkillDefinition extends CombatAccuracyAuthoring {
    */
   readonly effectDescriptions?: readonly (string | null)[]
   readonly tags: readonly string[]
-  readonly cooldown: SkillCooldownDefinition
+  readonly cooldown: SkillCooldownDefinition | null
   readonly ai: MatureSkillAiMetadata
   readonly overrides: Readonly<
     Partial<Record<MatureSkillCombatContext, MatureSkillContextOverride>>
@@ -867,10 +868,19 @@ const A03_MYSTIC_MP_DISCIPLINE_SKILLS = latestEnabledMatureSkills([
   return next ? [next] : []
 })
 
-export const P33_REPRESENTATIVE_DISCIPLINE_SKILLS = [
+const PRE_V5_CURRENT_DISCIPLINE_SKILLS = [
   ...PRE_PHASE4_REBALANCE_DISCIPLINE_SKILLS,
   ...PHASE4_REBALANCED_DISCIPLINE_SKILLS,
   ...A03_MYSTIC_MP_DISCIPLINE_SKILLS,
+] as const satisfies readonly MatureSkillDefinition[]
+
+const V5_REBALANCED_DISCIPLINE_SKILLS = latestEnabledMatureSkills(
+  PRE_V5_CURRENT_DISCIPLINE_SKILLS,
+).map((definition) => rebalanceMatureSkillDefinition(definition, 'technique'))
+
+export const P33_REPRESENTATIVE_DISCIPLINE_SKILLS = [
+  ...PRE_V5_CURRENT_DISCIPLINE_SKILLS,
+  ...V5_REBALANCED_DISCIPLINE_SKILLS,
 ] as const satisfies readonly MatureSkillDefinition[]
 
 /** Current selection catalog; the full registry above also retains explicit battle history. */
@@ -969,12 +979,59 @@ export function validateMatureSkillDefinition(
   if (definition.authoring.schemaVersion !== MATURE_SKILL_SCHEMA_VERSION) {
     issues.push('authoring.schemaVersion')
   }
-  if (
+  if (definition.requirements.length > 0) {
+    if (definition.cooldown !== null) issues.push('cooldown')
+  } else if (
+    definition.cooldown === null ||
     !idPattern.test(definition.cooldown.key) ||
     !Number.isSafeInteger(definition.cooldown.ownerTurns) ||
-    definition.cooldown.ownerTurns < 1
+    definition.cooldown.ownerTurns < 1 ||
+    definition.cooldown.ownerTurns > 3
   ) {
     issues.push('cooldown')
+  }
+
+  for (const [index, effect] of definition.effects.entries()) {
+    const durationTurns = effect.durationTurns ?? 0
+    if (
+      !Number.isSafeInteger(durationTurns) ||
+      durationTurns < 0 ||
+      durationTurns > 4
+    ) {
+      issues.push(`effects[${index}].durationTurns`)
+    }
+    if (
+      effect.potencyBasisPoints !== undefined &&
+      (!Number.isSafeInteger(effect.potencyBasisPoints) ||
+        effect.potencyBasisPoints < 100 ||
+        effect.potencyBasisPoints > 5_000)
+    ) {
+      issues.push(`effects[${index}].potencyBasisPoints`)
+    }
+    if (effect.type === 'damage' || effect.type === 'healing' || effect.type === 'barrier-change') {
+      if (
+        !Number.isSafeInteger(effect.amount) ||
+        effect.amount < 1 ||
+        effect.amount > 20
+      ) {
+        issues.push(`effects[${index}].amount`)
+      }
+    }
+    if (effect.type === 'resource-change') {
+      const magnitude = Math.abs(effect.delta)
+      if (!Number.isSafeInteger(magnitude) || magnitude < 1 || magnitude > 20) {
+        issues.push(`effects[${index}].delta`)
+      }
+    }
+    if (effect.type === 'bleed') {
+      if (
+        !Number.isSafeInteger(effect.damagePerTick) ||
+        effect.damagePerTick < 1 ||
+        effect.damagePerTick > 20
+      ) {
+        issues.push(`effects[${index}].damagePerTick`)
+      }
+    }
   }
   for (const [context, override] of Object.entries(definition.overrides)) {
     if (
@@ -985,7 +1042,9 @@ export function validateMatureSkillDefinition(
     }
     if (
       override?.cooldownOwnerTurns !== undefined &&
-      (!Number.isSafeInteger(override.cooldownOwnerTurns) || override.cooldownOwnerTurns < 1)
+      (!Number.isSafeInteger(override.cooldownOwnerTurns) ||
+        override.cooldownOwnerTurns < 1 ||
+        override.cooldownOwnerTurns > 3)
     ) {
       issues.push(`overrides.${context}.cooldownOwnerTurns`)
     }
@@ -1017,10 +1076,13 @@ export function resolveMatureSkillForContext(
   return {
     ...definition,
     apCost: override?.apCost ?? definition.apCost,
-    cooldown: {
-      ...definition.cooldown,
-      ownerTurns: override?.cooldownOwnerTurns ?? definition.cooldown.ownerTurns,
-    },
+    cooldown:
+      definition.cooldown === null
+        ? null
+        : {
+            ...definition.cooldown,
+            ownerTurns: override?.cooldownOwnerTurns ?? definition.cooldown.ownerTurns,
+          },
     combatContext,
   }
 }
@@ -1039,7 +1101,7 @@ export function toCombatActionDefinition(
     target: resolved.target,
     cost: { spendsAction: true, mp: resolved.mpCost ?? 0 },
     requirements: resolved.requirements,
-    cooldown: resolved.cooldown,
+    ...(resolved.cooldown === null ? {} : { cooldown: resolved.cooldown }),
     effects: resolved.effects,
     ...(resolved.accuracyMode !== undefined ? { accuracyMode: resolved.accuracyMode } : {}),
     ...(resolved.accuracyModifierBasisPoints !== undefined
