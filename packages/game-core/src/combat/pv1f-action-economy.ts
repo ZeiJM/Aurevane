@@ -620,11 +620,8 @@ export function evaluatePv1fMatureSkill(
     authoredAction.effects,
     authoredCost,
   )
-  const usageKey = options.repeatHistoryKey ?? definition.id
-  const repeatPenaltyApplied = lastMatureSkillId(prepared, actorId) === usageKey
-  const copyEffect = repeatPenaltyApplied
-    ? undefined
-    : authoredAction.effects.find((effect) => effect.type === 'copy')
+  const repeatPenaltyApplied = false
+  const copyEffect = authoredAction.effects.find((effect) => effect.type === 'copy')
   const baseAction: CombatActionDefinition = {
     ...authoredAction,
     id: options.actionIdOverride ?? authoredAction.id,
@@ -641,10 +638,7 @@ export function evaluatePv1fMatureSkill(
   )
   const action: CombatActionDefinition = {
     ...baseAction,
-    cooldown: undefined,
-    effects: repeatPenaltyApplied
-      ? scaleRepeatedMatureSkillEffects(defendedEffects)
-      : defendedEffects,
+    effects: defendedEffects,
   }
   let evaluation = evaluateCombatAction(prepared, action, target, PV1F_COMBAT_CONTENT)
   if (
@@ -716,12 +710,7 @@ export function evaluatePv1fMatureSkill(
     evaluation.legal && vengeance.basis.length > 0
       ? {
           ...evaluation,
-          vengeanceBasis: vengeance.basis.map((basis) => ({
-            ...basis,
-            rawDamage: repeatPenaltyApplied
-              ? halfPositiveMagnitude(basis.rawDamage)
-              : basis.rawDamage,
-          })),
+          vengeanceBasis: vengeance.basis.map((basis) => ({ ...basis })),
         }
       : evaluation
   return {
@@ -793,7 +782,7 @@ export function executePv1fMatureSkill(
   )
   let next = reattachStatDrivenCombatBridge(resolved.state, prepared.statBridge)
   next = spendPv1fActionEconomyForActor(next, actorId, cost)
-  next = markLastMatureSkill(next, actorId, options.repeatHistoryKey ?? definition.id)
+  next = clearLastMatureSkill(next, actorId)
 
   let copyEvent: unknown = null
   if (evaluation.skillCopy && options.copyContext) {
