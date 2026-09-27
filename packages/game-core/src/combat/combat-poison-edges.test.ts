@@ -151,6 +151,17 @@ describe('current Poison edge rules', () => {
       CONTENT,
     )
     expect(reapplied.state.effectState?.poison[0]?.movementRemainder).toBe(0)
+    expect(reapplied.state.effectState?.poison[0]?.stacks).toBe(1)
+  })
+
+  it('reapplication increases Poison stacks without resetting movement progress', () => {
+    const reapplied = executeCombatAction(
+      encounter(),
+      selfAction('test.more-poison', [{ type: 'poison', recipient: 'actor' }]),
+      { kind: 'self' },
+      CONTENT,
+    )
+    expect(reapplied.state.effectState?.poison[0]).toMatchObject({ stacks: 2, movementRemainder: 4 })
   })
 
   it('Revert relocates without counting Poison movement progress', () => {
