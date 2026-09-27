@@ -3183,7 +3183,11 @@ function scheduleAfterRecovery(
     amountPerTick,
     remainingFutureTicks: ticks - 1,
   }
-  const state = replaceRecoverySchedule(transition.state, recovery, 'append')
+  const state = replaceRecoverySchedule(
+    transition.state,
+    recovery,
+    usesUnboundedEffectApplications(transition.state) ? 'append' : 'legacy',
+  )
   if (state === transition.state) return transition
   return {
     state,
