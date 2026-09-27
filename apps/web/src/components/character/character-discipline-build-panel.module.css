@@ -379,6 +379,8 @@
   color: #1f3544;
   background: #f3efe6;
   font: 600 0.875rem/1.1 var(--av-font-display);
+  text-align: center;
+  text-align-last: center;
 }
 
 .slotSelector select:disabled {
