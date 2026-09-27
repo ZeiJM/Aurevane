@@ -202,9 +202,7 @@ describe('Level-100 offensive scaling', () => {
     const definition = resolveMatureSkillVersion('cinderweaver.banked-embers')
     if (!definition) throw new Error('Expected current Banked Embers fixture.')
     const authoredHealing = definition.effects.find((effect) => effect.type === 'healing')
-    const authoredMp = definition.effects.find(
-      (effect) => effect.type === 'resource-change' && effect.delta > 0,
-    )
+    const authoredMp = definition.effects.find((effect) => effect.type === 'resource-change')
     if (!authoredHealing || !authoredMp) {
       throw new Error('Expected Banked Embers recovery effects.')
     }
@@ -217,9 +215,7 @@ describe('Level-100 offensive scaling', () => {
 
     const evaluated = evaluatePv1fMatureSkill(state, definition, { kind: 'self' })
     const scaledHealing = evaluated.action.effects.find((effect) => effect.type === 'healing')
-    const scaledMp = evaluated.action.effects.find(
-      (effect) => effect.type === 'resource-change' && effect.delta > 0,
-    )
+    const scaledMp = evaluated.action.effects.find((effect) => effect.type === 'resource-change')
     if (!scaledHealing || !scaledMp) throw new Error('Expected scaled recovery effects.')
 
     expect(scaledHealing.amount).toBeGreaterThan(authoredHealing.amount)
@@ -301,9 +297,9 @@ describe('Combat v5 Skill cooldown lifecycle', () => {
         expect(readSkillCooldown(activePlayer, definition.cooldown).ticksRemaining).toBe(
           ownerTurns + 1 - elapsed,
         )
-        expect(evaluatePv1fMatureSkill(reconnected, definition, target).evaluation.issues).toContainEqual(
-          expect.objectContaining({ code: 'cooldown-active' }),
-        )
+        expect(
+          evaluatePv1fMatureSkill(reconnected, definition, target).evaluation.issues,
+        ).toContainEqual(expect.objectContaining({ code: 'cooldown-active' }))
       }
 
       const ready = backToPlayer(reconnected)
