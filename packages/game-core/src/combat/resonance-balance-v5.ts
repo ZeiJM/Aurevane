@@ -1,15 +1,6 @@
 import type { CombatEffectDefinition } from './actions'
 import type { ResonanceDefinition } from './resonance'
 
-function hash(value: string): number {
-  let result = 2166136261
-  for (const char of value) {
-    result ^= char.charCodeAt(0)
-    result = Math.imul(result, 16777619)
-  }
-  return result >>> 0
-}
-
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
 
 function durationFor(effect: CombatEffectDefinition): number {
@@ -28,54 +19,52 @@ function durationFor(effect: CombatEffectDefinition): number {
   }
 }
 
-function tunePrimaryEffect(effect: CombatEffectDefinition, seed: number): CombatEffectDefinition {
-  const variation = (seed % 3) - 1
+function statusPotency(statusId: string): number | undefined {
+  switch (statusId) {
+    case 'guarded':
+    case 'exposed':
+    case 'inspired':
+    case 'summoned':
+    case 'warded':
+      return 1_200
+    case 'mark':
+      return 1_300
+    case 'hexed':
+      return 1_800
+    default:
+      return undefined
+  }
+}
+
+function tunePrimaryEffect(effect: CombatEffectDefinition): CombatEffectDefinition {
   switch (effect.type) {
     case 'damage':
-      return {
-        ...effect,
-        amount: clamp(5 + variation, 3, 8),
-        durationTurns: 0,
-      }
+      return { ...effect, amount: clamp(effect.amount, 4, 7), durationTurns: 0 }
     case 'healing':
-      return {
-        ...effect,
-        amount: clamp(5 + variation, 3, 8),
-        durationTurns: 0,
-      }
+      return { ...effect, amount: clamp(effect.amount, 4, 7), durationTurns: 0 }
     case 'resource-change':
       return {
         ...effect,
-        delta: Math.sign(effect.delta || 1) * clamp(4 + variation, 2, 7),
+        delta: Math.sign(effect.delta || 1) * clamp(Math.abs(effect.delta), 3, 6),
         durationTurns: 0,
       }
     case 'barrier-change':
-      return {
-        ...effect,
-        amount: clamp(5 + variation, 3, 8),
-        durationTurns: 0,
-      }
-    case 'apply-status':
+      return { ...effect, amount: clamp(effect.amount, 4, 7), durationTurns: 0 }
+    case 'apply-status': {
+      const potencyBasisPoints = statusPotency(effect.statusId)
       return {
         ...effect,
         durationTurns: durationFor(effect),
-        ...(['guarded', 'exposed', 'mark', 'hexed', 'inspired', 'summoned', 'warded'].includes(
-          effect.statusId,
-        )
-          ? { potencyBasisPoints: clamp(1_000 + (seed % 7) * 100, 1_000, 1_800) }
-          : {}),
+        ...(potencyBasisPoints === undefined ? {} : { potencyBasisPoints }),
       }
+    }
     case 'burn':
     case 'poison':
-      return {
-        ...effect,
-        power: clamp(3 + (seed % 4), 3, 6),
-        durationTurns: durationFor(effect),
-      }
+      return { ...effect, power: 4, durationTurns: durationFor(effect) }
     case 'bleed':
       return {
         ...effect,
-        damagePerTick: clamp(2 + (seed % 3), 2, 4),
+        damagePerTick: clamp(effect.damagePerTick, 2, 4),
         ticks: clamp(durationFor(effect), 1, 4),
         durationTurns: clamp(durationFor(effect), 1, 4),
       }
@@ -84,39 +73,57 @@ function tunePrimaryEffect(effect: CombatEffectDefinition, seed: number): Combat
   }
 }
 
-function secondaryEffect(seed: number): CombatEffectDefinition | null {
-  switch (seed % 8) {
-    case 0:
-      return { type: 'damage', recipient: 'primary-unit', amount: 3 + (seed % 3), durationTurns: 0 }
-    case 1:
-      return { type: 'healing', recipient: 'actor', amount: 3 + (seed % 3), durationTurns: 0 }
-    case 2:
+function thematicSecondaryEffect(setupDisciplineId: string): CombatEffectDefinition | null {
+  switch (setupDisciplineId) {
+    case 'aetherist':
       return {
         type: 'resource-change',
         recipient: 'actor',
         resource: 'mp',
-        delta: 3 + (seed % 3),
+        delta: 4,
         durationTurns: 0,
       }
-    case 3:
+    case 'farstrider':
       return {
-        type: 'apply-status',
+        type: 'resource-change',
         recipient: 'actor',
-        statusId: 'guarded',
-        stacks: 1,
-        potencyBasisPoints: 1_000 + (seed % 5) * 100,
-        durationTurns: 1,
+        resource: 'mp',
+        delta: 3,
+        durationTurns: 0,
       }
-    case 4:
+    case 'lifebinder':
+      return { type: 'healing', recipient: 'actor', amount: 4, durationTurns: 0 }
+    case 'shadehand':
+    case 'ironfist':
+    case 'runeblade':
       return {
         type: 'apply-status',
         recipient: 'primary-unit',
         statusId: 'exposed',
         stacks: 1,
-        potencyBasisPoints: 1_000 + (seed % 5) * 100,
+        potencyBasisPoints: 1_200,
         durationTurns: 1,
       }
-    case 5:
+    case 'vanguard':
+    case 'bastion':
+      return {
+        type: 'apply-status',
+        recipient: 'actor',
+        statusId: 'guarded',
+        stacks: 1,
+        potencyBasisPoints: 1_200,
+        durationTurns: 1,
+      }
+    case 'ravager':
+      return {
+        type: 'bleed',
+        recipient: 'primary-unit',
+        damagePerTick: 2,
+        ticks: 2,
+        durationTurns: 2,
+      }
+    case 'edgedancer':
+    case 'frostweaver':
       return {
         type: 'apply-status',
         recipient: 'primary-unit',
@@ -124,42 +131,92 @@ function secondaryEffect(seed: number): CombatEffectDefinition | null {
         stacks: 1,
         durationTurns: 1,
       }
-    case 6:
+    case 'wildwarden':
+      return {
+        type: 'resource-change',
+        recipient: 'actor',
+        resource: 'mp',
+        delta: 4,
+        durationTurns: 0,
+      }
+    case 'dawnshield':
       return {
         type: 'remove-status',
         recipient: 'actor',
         statusIds: ['burn', 'bleed', 'poison'],
         durationTurns: 0,
       }
+    case 'cinderweaver':
+      return {
+        type: 'burn',
+        recipient: 'primary-unit',
+        power: 4,
+        durationTurns: 2,
+      }
+    case 'stormsinger':
+      return {
+        type: 'resource-change',
+        recipient: 'primary-unit',
+        resource: 'mp',
+        delta: -3,
+        durationTurns: 0,
+      }
+    case 'tidecaller':
+      return { type: 'healing', recipient: 'actor', amount: 4, durationTurns: 0 }
+    case 'chronist':
+      return {
+        type: 'apply-status',
+        recipient: 'actor',
+        statusId: 'haste',
+        stacks: 1,
+        durationTurns: 1,
+      }
     default:
       return null
   }
 }
 
+function semanticEffectKey(effect: CombatEffectDefinition): string {
+  if (effect.type === 'apply-status') return `apply-status:${effect.recipient}:${effect.statusId}`
+  if (effect.type === 'resource-change') {
+    return `resource-change:${effect.recipient}:${effect.resource}:${Math.sign(effect.delta)}`
+  }
+  if (effect.type === 'remove-status') return `remove-status:${effect.recipient}`
+  return `${effect.type}:${effect.recipient}`
+}
+
 function resonanceFlavorLine(definition: ResonanceDefinition): string {
   const title = (value: string) => value.charAt(0).toUpperCase() + value.slice(1)
-  return `${definition.name} turns ${title(definition.trigger.setup.sourceDisciplineId)} instinct into ${title(definition.trigger.payoff.sourceDisciplineId)} timing in one practiced rhythm.`
+  const setup = title(definition.trigger.setup.sourceDisciplineId)
+  const payoff = title(definition.trigger.payoff.sourceDisciplineId)
+  return `${definition.name} carries ${setup} momentum into a ${payoff} response shaped by both Disciplines.`
 }
+
 function compactDescription(definition: ResonanceDefinition, effectCount: number): string {
   const title = (value: string) => value.charAt(0).toUpperCase() + value.slice(1)
   const setup = definition.trigger.setup
   const payoff = definition.trigger.payoff
-  return `${definition.name} links ${title(setup.sourceDisciplineId)} ${setup.requiredTags.join(' + ')} into a ${title(payoff.sourceDisciplineId)} ${payoff.requiredTags.join(' + ')} follow-through with ${effectCount === 1 ? 'one focused payoff' : 'a two-part payoff'}.`
+  return `${definition.name} links ${title(setup.sourceDisciplineId)} ${setup.requiredTags.join(' + ')} into a ${title(payoff.sourceDisciplineId)} ${payoff.requiredTags.join(' + ')} follow-through with ${effectCount === 1 ? 'one focused payoff' : 'a paired thematic payoff'}.`
+}
+
+function setupUtility(definition: ResonanceDefinition): number {
+  return clamp(
+    10 + definition.trigger.setup.requiredTags.length * 2 + definition.trigger.payoff.requiredTags.length,
+    10,
+    16,
+  )
+}
+
+function payoffUtility(effects: readonly CombatEffectDefinition[]): number {
+  const persistentEffects = effects.filter((effect) => durationFor(effect) > 0).length
+  return clamp(22 + effects.length * 4 + persistentEffects * 2, 22, 33)
 }
 
 export function rebalanceResonanceDefinition(definition: ResonanceDefinition): ResonanceDefinition {
-  const seed = hash(definition.id)
-  const primary = definition.trigger.payoffEffects.map((effect, index) =>
-    tunePrimaryEffect(effect, seed + index * 17),
-  )
-  const extra = seed % 3 === 0 ? secondaryEffect(seed >>> 3) : null
+  const primary = definition.trigger.payoffEffects.map(tunePrimaryEffect)
+  const extra = thematicSecondaryEffect(definition.trigger.setup.sourceDisciplineId)
   const payoffEffects =
-    extra &&
-    !primary.some(
-      (effect) =>
-        effect.type === extra.type &&
-        ('statusId' in effect && 'statusId' in extra ? effect.statusId === extra.statusId : false),
-    )
+    extra && !primary.some((effect) => semanticEffectKey(effect) === semanticEffectKey(extra))
       ? [...primary, extra]
       : primary
 
@@ -171,8 +228,8 @@ export function rebalanceResonanceDefinition(definition: ResonanceDefinition): R
     trigger: {
       ...definition.trigger,
       payoffEffects: payoffEffects.slice(0, 3),
-      aiSetupUtilityBonus: clamp(10 + (seed % 7), 10, 16),
-      aiPayoffUtilityBonus: clamp(22 + (seed % 12), 22, 33),
+      aiSetupUtilityBonus: setupUtility(definition),
+      aiPayoffUtilityBonus: payoffUtility(payoffEffects),
     },
     authoring: {
       ...definition.authoring,
@@ -180,7 +237,7 @@ export function rebalanceResonanceDefinition(definition: ResonanceDefinition): R
         ...new Set([
           ...definition.authoring.validationTags,
           'owner-rebalance-v5',
-          'varied-resonance-payoff',
+          'thematic-resonance-payoff',
           'duration-aware',
         ]),
       ],
