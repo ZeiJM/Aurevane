@@ -185,27 +185,26 @@ describe('Heal X and MP Rec X execution', () => {
     const initial = encounter()
     const committed = executeCombatAction(
       initial,
-      action([recovery('hp', 2)]),
+      action([recovery('hp', 2), recovery('mp', 2, 3)]),
       { kind: 'unit', combatantId: 'actor' },
       PV1F_COMBAT_CONTENT,
     )
     let state = { ...committed.state, statBridge: initial.statBridge }
 
     expect(value(state, 'actor')).toBe(38)
-    expect(pending(state)[0]).toMatchObject({
-      remainingFutureTicks: 1,
-      skipCurrentOwnerTurnEnd: true,
-    })
+    expect(value(state, 'actor', 'mp')).toBe(8)
+    expect(pending(state)).toHaveLength(2)
+    expect(pending(state).every((row) => row.skipCurrentOwnerTurnEnd === true)).toBe(true)
 
     state = end(state)
     expect(value(state, 'actor')).toBe(38)
-    expect(pending(state)[0]).toMatchObject({
-      remainingFutureTicks: 1,
-      skipCurrentOwnerTurnEnd: false,
-    })
+    expect(value(state, 'actor', 'mp')).toBe(8)
+    expect(pending(state)).toHaveLength(2)
+    expect(pending(state).every((row) => row.skipCurrentOwnerTurnEnd === false)).toBe(true)
 
     state = end(end(end(state)))
     expect(value(state, 'actor')).toBe(46)
+    expect(value(state, 'actor', 'mp')).toBe(11)
     expect(pending(state)).toHaveLength(0)
   })
   it('caps each recovery at max HP/MP without discarding its later ticks', () => {
