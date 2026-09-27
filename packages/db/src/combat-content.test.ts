@@ -223,7 +223,7 @@ describe('InMemoryCombatContentRepository', () => {
     const essence = await repository.publish({
       contentKey: 'essence.vanguard.unbroken-strike',
       contentKind: 'essence',
-      definition: { name: 'Unbroken Strike' },
+      definition: { contentVersion: 4, name: 'Unbroken Strike', skill: { contentVersion: 4 } },
       expectedBaseVersion: 4,
       actorUserId: ACTOR,
     })
@@ -237,6 +237,10 @@ describe('InMemoryCombatContentRepository', () => {
 
     expect(essence.contentKind).toBe('essence')
     expect(essence.contentVersion).toBe(5)
+    expect(essence.definition).toMatchObject({
+      contentVersion: 5,
+      skill: { contentVersion: 5 },
+    })
     expect(resonance.contentKind).toBe('resonance')
     expect(resonance.contentVersion).toBe(3)
 
