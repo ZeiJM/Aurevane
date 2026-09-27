@@ -8,8 +8,8 @@ import {
   type EssenceDefinition,
 } from './essence'
 import {
+  P33_REPRESENTATIVE_DISCIPLINE_SKILLS,
   latestEnabledMatureSkills,
-  resolveMatureSkillVersion,
   toCombatActionDefinition,
   validateMatureSkillDefinition,
   type MatureSkillDefinition,
@@ -17,9 +17,11 @@ import {
 
 const RETIRED_CURRENT_STATUS_IDS = new Set(['hastened', 'delayed', 'borrowed-hour', 'regeneration'])
 
+const PHASE4_DISCIPLINE_SKILLS = latestEnabledMatureSkills(P33_REPRESENTATIVE_DISCIPLINE_SKILLS)
+
 function currentSkill(skillId: string): MatureSkillDefinition {
-  const definition = resolveMatureSkillVersion(skillId)
-  if (!definition) throw new Error(`Missing current Skill ${skillId}.`)
+  const definition = PHASE4_DISCIPLINE_SKILLS.find((candidate) => candidate.id === skillId)
+  if (!definition) throw new Error(`Missing Phase 4 Skill ${skillId}.`)
   return definition
 }
 
@@ -58,7 +60,7 @@ function retiredCurrentReferences(definition: MatureSkillDefinition): string[] {
 
 describe('Phase 4 current Discipline Skill rebalance', () => {
   it('keeps all 17 eight-Skill regular rosters canonical and removes retired current statuses', () => {
-    const current = latestEnabledMatureSkills()
+    const current = PHASE4_DISCIPLINE_SKILLS
     expect(current).toHaveLength(136)
 
     const byDiscipline = new Map<string, MatureSkillDefinition[]>()
