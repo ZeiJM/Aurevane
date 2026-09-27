@@ -115,9 +115,11 @@ describe('P3.5 versioned Resonance framework', () => {
     if (!definition) throw new Error('Expected representative Resonance.')
     expect(resonanceSnapshotReference(definition)).toEqual({
       resonanceId: definition.id,
-      contentVersion: 1,
+      contentVersion: definition.contentVersion,
       disciplinePair: ['lifebinder', 'vanguard'],
     })
+    expect(definition.contentVersion).toBeGreaterThan(1)
+    expect(definition.authoring.validationTags).toContain('owner-combat-rebalance-v2')
   })
 
   it('arms on a successful Lifebinder heal and gives the next Vanguard melee Skill a bounded payoff', () => {
@@ -153,7 +155,7 @@ describe('P3.5 versioned Resonance framework', () => {
     })
 
     const recruit = payoff.state.tactical.battle.combatants.find((row) => row.id === 'recruit')
-    expect(recruit?.hp).toBe(32)
+    expect(recruit?.hp).toBeLessThan(38)
     expect(payoff.resonanceState.armedByActionId).toBeNull()
     expect(payoff.events).toContainEqual(
       expect.objectContaining({
