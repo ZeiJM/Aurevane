@@ -149,9 +149,7 @@ describe('combat content authoring service', () => {
     const result = service.validateSkillDefinition(invalid)
 
     expect(result.valid).toBe(false)
-    expect(result.issues).toContainEqual(
-      expect.objectContaining({ path: 'effectDescriptions' }),
-    )
+    expect(result.issues).toContainEqual(expect.objectContaining({ path: 'effectDescriptions' }))
   })
 
   it.each([
