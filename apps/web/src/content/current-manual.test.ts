@@ -63,8 +63,8 @@ describe('published Manual rule consistency', () => {
     expect(text).not.toContain('up to eight learned')
     expect(text).not.toContain('six total Discipline')
     const combat = articleText('battle-hall')
-    expect(combat).toContain('50% effectiveness at the normal AP cost')
-    expect(combat).toContain('ending a turn alone does not')
+    expect(combat).toContain('authored cooldowns from 1 to 3 turns')
+    expect(combat).toContain('previous consecutive-use 50% effectiveness rule is retired')
   })
 
   it('credits delivered buildcraft and PvP without promising complete content', () => {
@@ -87,11 +87,11 @@ it('publishes the Techniques guide and removes the obsolete fixed Power budget',
   const text = articleText('techniques-damage-effects')
   expect(text).toContain('Techniques, Damage & Effects')
   expect(text).toContain('136')
-  expect(text).toContain('0.5%')
+  expect(text).toContain('0.01%')
   expect(text).toContain('65 AP')
   expect(text).toContain('4.64%')
   expect(text).toContain('Armor')
-  expect(text).toContain('quartile')
+  expect(text).toContain('bounded authored power scale from 1 to 20')
   expect(articleText('attributes-derived-stats')).not.toContain(
     'Skill-wide Power contribution is 25%',
   )
