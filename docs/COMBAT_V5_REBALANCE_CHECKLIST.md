@@ -5,7 +5,7 @@
 **Base:** current `main` after Discipline/Technique polish  
 **Purpose:** single source of truth for the requested Discipline, Essence, Resonance, Technique Preview, Master Panel, and Manual changes.
 
-**Current implementation status:** v5 engine/content/UI implementation is active on PR #754; historical content remains pinned separately. Exact-head verification is still required before merge. Essence/Resonance Master Panel authoring remains an explicit open item.
+**Current implementation status:** v5 engine/content/UI authoring is implemented on PR #754; historical content remains pinned separately. Focused Skill/Essence/Resonance suites are green. Exact-head full-matrix verification and final overlap review remain required before merge.
 
 ## 0. Already completed before this rebalance
 
@@ -52,22 +52,22 @@
 ## 4. Discipline Technique rebalance
 
 - [x] Rebalance all latest enabled Discipline Techniques across the full published roster.
-- [ ] Higher AP should generally buy more total power, without scaling so aggressively that high-AP Skills become dominant/almighty.
-- [ ] Damage Skills should normally allocate most of their budget to damage.
-- [ ] Permit thematic exceptions where a damaging Skill intentionally trades damage for stronger utility/control/status effects.
-- [ ] Evaluate each Skill in the context of its entire Discipline kit, not as an isolated card.
-- [ ] Utility Skills should spend most/all of their budget on utility effects.
-- [ ] Recovery Skills should spend most/all of their budget on healing/MP recovery/defensive recovery.
-- [ ] Area, multi-hit, long-range, strong targeting, multiple effects, and long durations must consume budget.
-- [ ] Requirement-gated payoff Skills can be stronger because their Requirement already gates access and they have no cooldown.
-- [ ] Maintain meaningful distinctions between low-, medium-, and high-AP Skills.
-- [ ] Run representative buildcraft at multiple Levels/attribute allocations and protect against obvious outliers.
+- [x] Higher AP should generally buy more total power, without scaling so aggressively that high-AP Skills become dominant/almighty.
+- [x] Damage Skills should normally allocate most of their budget to damage.
+- [x] Permit thematic exceptions where a damaging Skill intentionally trades damage for stronger utility/control/status effects.
+- [x] Evaluate each Skill in the context of its entire Discipline kit, not as an isolated card.
+- [x] Utility Skills should spend most/all of their budget on utility effects.
+- [x] Recovery Skills should spend most/all of their budget on healing/MP recovery/defensive recovery.
+- [x] Area, multi-hit, long-range, strong targeting, multiple effects, and long durations must consume budget.
+- [x] Requirement-gated payoff Skills can be stronger because their Requirement already gates access and they have no cooldown.
+- [x] Maintain meaningful distinctions between low-, medium-, and high-AP Skills.
+- [x] Run representative buildcraft at multiple Levels/attribute allocations and protect against obvious outliers.
 
 ## 5. Essence rebalance
 
 - [x] Rebalance every current Essence Skill.
 - [x] Essence Skills should naturally cost somewhat more AP than ordinary Techniques.
-- [ ] Essence Skills should feel meaningfully powerful/signature without invalidating the regular Technique kit.
+- [x] Essence Skills should feel meaningfully powerful/signature without invalidating the regular Technique kit.
 - [x] Apply the same Power, duration, percentage-potency, cooldown, targeting, and budget rules.
 - [x] Requirement-gated Essence Skills follow the same no-cooldown rule.
 - [x] Preserve versioned Essence history.
@@ -75,7 +75,7 @@
 ## 6. Resonance redesign/rebalance
 
 - [x] Rebalance every current Resonance.
-- [ ] Resonances must be widely varied and thematic rather than cookie-cutter bonus-damage templates.
+- [x] Resonances must be widely varied and thematic rather than cookie-cutter bonus-damage templates.
 - [x] Use setup/payoff tags and Requirements cleanly.
 - [x] Allow Resonance payoffs to use damage, recovery, control, statuses, resources, cleanse, movement, or other bounded effects where thematically appropriate.
 - [x] Account for setup difficulty, payoff specificity, effect potency, and duration when balancing Resonance value.
@@ -105,7 +105,7 @@
 - [x] Essence detail view shows type/cost/cooldown/requirements/effects/range/targeting as applicable.
 - [x] Resonance detail view clearly shows setup Requirements/tags, payoff Requirements/tags, and payoff Effects/durations.
 - [x] Make Essence and Resonance flavor lines editable from the Master Panel.
-- [ ] Keep desktop/mobile/keyboard behavior accessible and non-blocking.
+- [x] Keep desktop/mobile/keyboard behavior accessible and non-blocking.
 
 ## 9. Master Panel authoring
 
@@ -131,27 +131,27 @@
 
 ## 11. Manual / documentation
 
-- [ ] Rewrite the Techniques/Damage/Effects Manual article for combat v5.
-- [ ] Document Power 1–20 and how it maps into actual battle output.
-- [ ] Document explicit percentage potency.
-- [ ] Document effect duration semantics and duration brackets.
-- [ ] Document 1–3-turn cooldowns and Requirement-gated no-cooldown Skills.
-- [ ] Remove obsolete consecutive-use 50% falloff documentation once the v5 runtime is authoritative.
+- [x] Rewrite the Techniques/Damage/Effects Manual article for combat v5.
+- [x] Document Power 1–20 and how it maps into actual battle output.
+- [x] Document explicit percentage potency.
+- [x] Document effect duration semantics and duration brackets.
+- [x] Document 1–3-turn cooldowns and Requirement-gated no-cooldown Skills.
+- [x] Remove obsolete consecutive-use 50% falloff documentation once the v5 runtime is authoritative.
 - [x] Document Attack / Recovery / Utility classification.
-- [ ] Document Essence/Resonance hover-detail behavior and setup/payoff Requirements.
-- [ ] Update any affected combat docs/tests so documentation and runtime never disagree.
+- [x] Document Essence/Resonance hover-detail behavior and setup/payoff Requirements.
+- [x] Update any affected combat docs/tests so documentation and runtime never disagree.
 
 ## 12. Verification and release gates
 
 - [x] Add/adjust unit tests for Power bounds and formula conversion.
-- [ ] Add/adjust tests for per-effect percentage potency.
+- [x] Add/adjust tests for per-effect percentage potency.
 - [x] Add/adjust tests for duration timing and expiry.
 - [x] Add/adjust tests for cooldown legality and Requirement exceptions.
-- [ ] Add full-roster balance contracts for Discipline Skills.
-- [ ] Add Essence balance contracts.
-- [ ] Add Resonance uniqueness/balance contracts.
-- [ ] Add Technique Preview rendering tests for bullets, duration, Skill Type, and flavor line.
-- [ ] Add Nexus hover/focus tests for Essence and Resonance detail panels.
+- [x] Add full-roster balance contracts for Discipline Skills.
+- [x] Add Essence balance contracts.
+- [x] Add Resonance uniqueness/balance contracts.
+- [x] Add Technique Preview rendering tests for bullets, duration, Skill Type, and flavor line.
+- [x] Add Nexus hover/focus tests for Essence and Resonance detail panels.
 - [x] Add Master Panel authoring/validation/publish tests for new fields.
 - [ ] Run full CI, Skill Engine, Essence, Resonance, Profile Skill Build, buildcraft, layout, desktop, and browser smoke checks.
 - [ ] Resolve all failures on the exact PR head before merge.
