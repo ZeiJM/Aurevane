@@ -73,6 +73,13 @@ test('Nexus build launchers stay centered and typographically matched', async ({
   await expect(techniquesLauncher).toBeVisible()
   await expect(page.locator('#nexus-disciplines-heading')).toHaveText('Disciplines')
   await expect(page.locator('#nexus-techniques-heading')).toHaveText('Techniques')
+  await expect(page.locator('#nexus-power-heading')).toHaveText('Ascension / Severance')
+  await expect(page.getByText('Your foundation in battle', { exact: true })).toHaveCount(0)
+  await expect(page.getByText('Align with greater potential', { exact: true })).toHaveCount(0)
+  for (const header of await page.locator('[data-nexus-technique-lane] > header').all()) {
+    await expect(header.locator('img, svg')).toHaveCount(0)
+    expect(await header.evaluate((node) => getComputedStyle(node).textAlign)).toBe('center')
+  }
   await expect(page.getByText(/\d+ \/ \d+ tagged/)).toHaveCount(0)
 
   const navigation = page.getByRole('navigation', {

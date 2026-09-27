@@ -39,13 +39,6 @@ function TechniqueLane({
       aria-label={locked ? 'Locked Secondary Techniques' : `${discipline?.name ?? kind} Techniques`}
     >
       <header className={styles.techniqueLaneIdentity}>
-        <span className={styles.laneSigil} aria-hidden="true">
-          {locked || !discipline ? (
-            <span className={styles.lockGlyph}>▣</span>
-          ) : (
-            <FoundationDisciplineSigil disciplineId={discipline.id} />
-          )}
-        </span>
         <div>
           <strong>{locked ? 'Locked' : discipline?.name}</strong>
           {locked ? <small>Choose a second discipline.</small> : null}
@@ -209,7 +202,6 @@ export function CharacterArsenalShell({
               <span>✦</span>
               <h2 id="nexus-disciplines-heading">Disciplines</h2>
             </div>
-            <small>Your foundation in battle</small>
           </header>
 
           <div className={styles.disciplinePair}>
@@ -331,7 +323,6 @@ export function CharacterArsenalShell({
                 <span>✦</span>
                 <h2 id="nexus-attunement-heading">Attunement</h2>
               </div>
-              <small>Align with greater potential</small>
             </header>
 
             <div className={styles.attunementGrid}>
@@ -387,7 +378,7 @@ export function CharacterArsenalShell({
             <header className={styles.sectionHeading}>
               <div>
                 <span>✦</span>
-                <h2 id="nexus-power-heading">Ascension / Severed Power</h2>
+                <h2 id="nexus-power-heading">Ascension / Severance</h2>
               </div>
             </header>
 

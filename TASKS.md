@@ -2,6 +2,12 @@
 
 **PHASE 4 CLOSED — 2026-09-23:** the Owner explicitly accepted Phase 4 as closed. A03, A04, A07 and A10 are **COMPLETE**. A07 concerns battle SFX/audio identities, not background music. Post-closeout UI cleanup/regression work is maintenance and does not reopen Phase 4 by default. See `docs/PHASE_4_CLOSEOUT.md`.
 
+## Nexus Technique Preview and Manual — 2026-09-27
+
+Owner-requested maintenance candidate `agent/technique-preview-manual-20260927` adds the ordered Technique characteristics, effect magnitudes and compact explanations, current zero-turn cooldown display, and content-aligned preview height. Nexus Technique lane names are centered without class icons; the two requested header captions are removed; the power heading is “Ascension / Severance”. Mobile first-tap selection and server-owned auto-save remain on the existing path.
+
+Manual impact: new `/manual/techniques-damage-effects` article, corrections to stale fixed Power and historical Mark text, source-derived magnitude bands from all 136 current regular Techniques, and an expandable complete catalog. The guide traces repeat preprocessing, Power, defense, critical, Level, facing, legacy/status multipliers and Barrier in runtime order. Source rules and battle authority are unchanged. Verification includes focused unit/browser guards and the repository quality gate; authenticated CI evidence belongs to the candidate PR. This work does not authorize a Vercel deployment.
+
 ## Living Atlas — implementation and live-testing handover
 
 Initial Atlas scope is implemented in PR #609. The Owner authorized release after all necessary checks; PR #609 records the final checks, migration and production deployment, and PR #671 restores the deployment lock. See `docs/PHASE_5_HANDOVER.md` for the testing boundary and remaining Phase 5 work. Owner Atlas acceptance is still open.

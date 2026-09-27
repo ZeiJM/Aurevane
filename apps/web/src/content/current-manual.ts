@@ -1,3 +1,4 @@
+import { techniquePowerSummary, techniquesManualArticle } from './techniques-manual'
 import {
   PURE_DISCIPLINE_SKILL_CAPACITY,
   MIXED_DISCIPLINE_SKILL_CAPACITY,
@@ -148,7 +149,7 @@ const overrides: Record<string, ManualArticle> = {
         paragraphs: [
           'Might → Physical Power. Finesse → Accuracy and Critical Chance. Vitality → Maximum HP and Armor. Agility → Initiative, Movement, Jump and Evasion. Intellect → Maximum MP and Mystic Power. Resolve → Ward and Status Resistance.',
           'Character Level matures survivability, reliability and mobility across Levels 1–100, but it does not increase Physical Power or Mystic Power directly. Instead, relative Level modifies direct combat damage: opponents within 20 Levels stay close to even, while larger gaps ramp more sharply.',
-          'Basic Attack reads Physical Power. Damaging regular Skills use Physical Power unless authored as mystic, in which case they use Mystic Power. The current Skill-wide Power contribution is 25% of the matching Power rating, distributed across multi-hit direct-damage effects before repeat-use falloff. Relative Level then modifies direct damage at roughly 90–110% inside a ±20-Level matchup band; beyond that band the modifier steepens, with extreme gaps bounded near 25–175%.',
+          techniquePowerSummary,
           'Critical Chance caps at 30%, Evasion at 15%, Movement at 5 and Jump at 3. Primary focus Core Stats currently cap at 60; non-focus Core Stats currently cap at 40.',
           'Attribute Management lets you spend earned points or reset your full personal allocation, including creation points. Five resets replenish together 30 days after the first reset in a fresh window. Your Primary’s fixed base remains separate.',
         ],
@@ -334,7 +335,7 @@ const battleHallArticle: ManualArticle = {
       title: 'Targeting and named effects',
       paragraphs: [
         'Technique tags show who a Skill targets, its single/area/line shape and its effects. Expand Skill details for exact recipients, range, AP/MP cost and requirements. Burn, Bleed and Poison cause fixed damage at affected turn end; Regeneration restores HP then. Slow raises movement AP cost; Root prevents movement while leaving other commands available. Cleanse removes its listed negative effects.',
-        'Marked increases incoming damage only from its source. Challenged reduces damage dealt to anyone except its source. Warded reduces damage taken from burning opponents. The rare Reckless effect increases both damage dealt and damage taken; Fortified reduces both. Each tradeoff keeps its benefit and drawback together when it expires or is removed.',
+        'Current Mark gives its source +15 percentage points Accuracy against the marked target. Historical Marked versions increased incoming damage only from their source. Challenged reduces damage dealt to anyone except its source. Warded reduces damage taken from burning opponents. The rare Reckless effect increases both damage dealt and damage taken; Fortified reduces both. Each tradeoff keeps its benefit and drawback together when it expires or is removed.',
         'Skill damage checks armor for physical attacks and ward for mystic attacks, separately for each hit and affected unit. The battle preview resolves the actual attacker/target conditions. New conditional modifiers combine within a 50–200% budget; Guarded, Exposed and timer penalties retain their existing separate rules.',
       ],
     },
@@ -411,6 +412,7 @@ const battleHallArticle: ManualArticle = {
 export const currentManualArticles: readonly ManualArticle[] = [
   ...foundationManualArticles.map((article) => overrides[article.slug] ?? article),
   battleHallArticle,
+  techniquesManualArticle,
 ]
 
 export function findCurrentManualArticle(slug: string): ManualArticle | null {

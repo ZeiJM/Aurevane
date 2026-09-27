@@ -5,7 +5,6 @@ import {
   skillCompactRangeDescription,
   skillCooldownDescription,
   skillCostDescription,
-  skillDamageDescription,
   skillEffectDescription,
   skillEffectsSummary,
   skillLineOfSightDescription,
@@ -178,7 +177,6 @@ it('presents the standardized Technique characteristic schema without prose expa
 
   expect(skillTypeDescription(timeLock)).toBe('Defense')
   expect(skillCostDescription(timeLock)).toMatch(/AP/)
-  expect(skillDamageDescription(timeLock)).toBe('0')
   expect(skillEffectsSummary(timeLock)).toContain('Root')
   expect(skillEffectsSummary(timeLock)).toContain('Slow')
   expect(skillRequirementsSummary(stolenMoment)).toContain('Slow')
@@ -187,5 +185,34 @@ it('presents the standardized Technique characteristic schema without prose expa
   expect(skillTargetElevationDescription(timeLock)).not.toBe('N/A')
   expect(skillCompactRangeDescription(timeLock)).toMatch(/tile/)
   expect(skillLineOfSightDescription(timeLock)).toBe('Required')
-  expect(skillCooldownDescription(timeLock)).toMatch(/turn/)
+  expect(skillCooldownDescription()).toMatch(/turn/)
+})
+
+it('lists authored magnitudes as effects without leaking design tags', () => {
+  const siphon = resolveMatureSkillVersion('runeblade.siphon-slash')!
+  expect(skillEffectsSummary(siphon)).toBe('Dmg [6], MP Drain [4], MP Restore [4]')
+  expect(skillEffectsSummary({ ...siphon, tags: [...siphon.tags, 'setup', 'melee'] })).toBe(
+    skillEffectsSummary(siphon),
+  )
+  const brand = skillEffectsSummary(resolveMatureSkillVersion('runeblade.sigil-brand')!)
+  expect(brand).toBe('Dmg [5], Exposed [+15% incoming], Hexed [−25% healing]')
+  expect(skillEffectsSummary(resolveMatureSkillVersion('runeblade.rune-mending')!)).not.toContain(
+    'Dmg',
+  )
+})
+
+it('shows conditional elemental and terrain magnitudes without treating them as universal damage', () => {
+  expect(skillEffectsSummary(resolveMatureSkillVersion('tidecaller.water-lance')!)).toContain(
+    'Wet [+20% Storm]',
+  )
+  expect(skillEffectsSummary(resolveMatureSkillVersion('stormsinger.static-drain')!)).toContain(
+    'Conductive [+20% Storm]',
+  )
+  expect(skillEffectsSummary(resolveMatureSkillVersion('frostweaver.chilling-mist')!)).toContain(
+    'Frozen Terrain [+10 AP/tile]',
+  )
+})
+
+it('shows current repeat-use timing instead of retired authored turn cooldowns', () => {
+  expect(skillCooldownDescription()).toBe('0 turns')
 })

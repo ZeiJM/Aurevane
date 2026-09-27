@@ -268,29 +268,13 @@
 
 .techniqueLaneIdentity {
   display: grid;
-  grid-template-columns: 2.65rem minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
+  text-align: center;
   gap: 0.5rem;
   align-items: center;
   padding: 0.36rem 0.5rem;
   border-bottom: 1px solid rgba(212, 186, 130, 0.2);
   background: rgba(3, 13, 21, 0.38);
-}
-
-.laneSigil {
-  display: grid;
-  width: 2.65rem;
-  height: 2.65rem;
-  aspect-ratio: 1 / 1;
-  place-items: center;
-  overflow: hidden;
-  border: 1px solid rgba(212, 186, 130, 0.34);
-  background: #0a1d29;
-}
-
-.laneSigil :is(svg, img) {
-  width: 100%;
-  height: 100%;
-  padding: 0.14rem;
 }
 
 .techniqueLaneIdentity > div {
