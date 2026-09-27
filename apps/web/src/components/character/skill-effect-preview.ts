@@ -48,8 +48,8 @@ function statusPreview(id: string): PreviewEffect {
       .join(' / ')
     result.explanation = details.description.split('. ')[0] + '.'
   } else if (status && status.damageTakenMultiplierBasisPoints !== 10_000) {
-    result.magnitude = `${signed((status.damageTakenMultiplierBasisPoints - 10_000) / 100)}% incoming${status.maximumStacks > 1 ? '/stack' : ''}`
-    result.explanation = `Recipient takes ${result.magnitude}.${status.maximumStacks > 1 ? ` Up to ${status.maximumStacks} stacks.` : ''}`
+    result.magnitude = `${signed((status.damageTakenMultiplierBasisPoints - 10_000) / 100)}% incoming`
+    result.explanation = details.description
   } else if (status?.endOfTurn) {
     result.magnitude = `${status.endOfTurn.amount} × ${status.durationOwnerTurnStarts} ticks`
   }
@@ -103,13 +103,13 @@ export function previewEffect(effect: CombatEffectDefinition): PreviewEffect {
       return {
         label: 'Burn',
         magnitude: CURRENT_BURN_DAMAGE_BY_STAGE.join('/'),
-        explanation: 'Fixed damage at the next three turn ends; reapplication restarts it.',
+        explanation: 'Fixed damage at the next three turn ends.',
       }
     case 'bleed':
       return {
         label: 'Bleed',
         magnitude: `${effect.damagePerTick} × ${effect.ticks} ticks`,
-        explanation: 'Fixed damage at turn end; up to three independent stacks.',
+        explanation: 'Fixed damage at turn end for the listed duration.',
       }
     case 'poison':
       return {
