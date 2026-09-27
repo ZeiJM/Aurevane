@@ -92,7 +92,9 @@ export function validateOngoingRecoveryState(
       row.amountPerTick < 0 ||
       !Number.isSafeInteger(row.remainingFutureTicks) ||
       row.remainingFutureTicks < 1 ||
-      row.remainingFutureTicks > 3
+      row.remainingFutureTicks > 3 ||
+      (row.skipCurrentOwnerTurnEnd !== undefined &&
+        typeof row.skipCurrentOwnerTurnEnd !== 'boolean')
     )
       return invalid
     const key = recoveryKey(row)
