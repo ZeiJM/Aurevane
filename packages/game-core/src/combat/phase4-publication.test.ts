@@ -34,10 +34,7 @@ import {
   essenceSnapshotReference,
   resolveEssenceForBuild,
 } from './essence'
-import {
-  P35_REPRESENTATIVE_RESONANCES,
-  resonanceSnapshotReference,
-} from './resonance'
+import { P35_REPRESENTATIVE_RESONANCES, resonanceSnapshotReference } from './resonance'
 import { hasGameplayTag } from './gameplay-tags'
 import { validateDamageModifiers } from './damage-modifiers'
 import {
