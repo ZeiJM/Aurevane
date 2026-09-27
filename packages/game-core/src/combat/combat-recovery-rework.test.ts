@@ -181,6 +181,33 @@ describe('Heal X and MP Rec X execution', () => {
     expect(value(state, 'target')).toBe(46)
     expect(pending(state)[0]?.remainingFutureTicks).toBe(1)
   })
+  it('defers self-cast periodic recovery until the following owner turn', () => {
+    const initial = encounter()
+    const committed = executeCombatAction(
+      initial,
+      action([recovery('hp', 2)]),
+      { kind: 'unit', combatantId: 'actor' },
+      PV1F_COMBAT_CONTENT,
+    )
+    let state = { ...committed.state, statBridge: initial.statBridge }
+
+    expect(value(state, 'actor')).toBe(38)
+    expect(pending(state)[0]).toMatchObject({
+      remainingFutureTicks: 1,
+      skipCurrentOwnerTurnEnd: true,
+    })
+
+    state = end(state)
+    expect(value(state, 'actor')).toBe(38)
+    expect(pending(state)[0]).toMatchObject({
+      remainingFutureTicks: 1,
+      skipCurrentOwnerTurnEnd: false,
+    })
+
+    state = end(end(end(state)))
+    expect(value(state, 'actor')).toBe(46)
+    expect(pending(state)).toHaveLength(0)
+  })
   it('caps each recovery at max HP/MP without discarding its later ticks', () => {
     let state = cast(encounter(), action([recovery('hp', 3, 200), recovery('mp', 3, 200)]))
     expect(value(state, 'target')).toBe(100)
