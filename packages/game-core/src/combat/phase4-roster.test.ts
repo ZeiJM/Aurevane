@@ -9,14 +9,8 @@ import {
   latestEnabledMatureSkills,
   validateMatureSkillDefinition,
 } from './mature-skills'
-import {
-  P36_REPRESENTATIVE_ESSENCES,
-  validateEssenceDefinition,
-} from './essence'
-import {
-  P35_REPRESENTATIVE_RESONANCES,
-  validateResonanceDefinition,
-} from './resonance'
+import { P36_REPRESENTATIVE_ESSENCES, validateEssenceDefinition } from './essence'
+import { P35_REPRESENTATIVE_RESONANCES, validateResonanceDefinition } from './resonance'
 import { IRONFIST_SKILLS, IRONFIST_ESSENCE } from './ironfist-content'
 import {
   createPv1fTemporaryResources,
