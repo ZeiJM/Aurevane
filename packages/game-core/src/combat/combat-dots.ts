@@ -14,6 +14,27 @@ export const CURRENT_BURN_PROFILE_VERSION = 1 as const
 export const CURRENT_BURN_DAMAGE_BY_STAGE = [4, 3, 2] as const
 export const CURRENT_BURN_BACKLASH_DAMAGE = 2 as const
 
+function dotOrder(value: { applicationOrder?: number }): number {
+  return value.applicationOrder ?? 0
+}
+
+function compareDotApplication<
+  T extends { targetCombatantId: string; applicationOrder?: number },
+>(left: T, right: T): number {
+  return (
+    left.targetCombatantId.localeCompare(right.targetCombatantId) ||
+    dotOrder(left) - dotOrder(right)
+  )
+}
+
+function nextDotApplicationOrder(rows: readonly { applicationOrder?: number }[]): number {
+  const maximum = rows.reduce((value, row) => Math.max(value, dotOrder(row)), 0)
+  if (maximum >= Number.MAX_SAFE_INTEGER) {
+    throw new RangeError('Effect application order has reached the safe integer limit.')
+  }
+  return maximum + 1
+}
+
 export interface CurrentPoisonEffect {
   type: 'poison'
   recipient: CombatEffectRecipient
@@ -26,26 +47,33 @@ export function validateCurrentPoisonEffect(effect: { curseCopyable?: unknown })
   }
 }
 
+export function currentPoisonInstances(
+  state: CombatEncounterState,
+  targetCombatantId: string,
+): readonly CombatPoisonInstance[] {
+  return normalizeCombatEffectState(state.effectState).poison
+    .filter((instance) => instance.targetCombatantId === targetCombatantId)
+    .sort(compareDotApplication)
+}
+
 export function currentPoisonInstance(
   state: CombatEncounterState,
   targetCombatantId: string,
 ): CombatPoisonInstance | null {
-  return (
-    normalizeCombatEffectState(state.effectState).poison.find(
-      (instance) => instance.targetCombatantId === targetCombatantId,
-    ) ?? null
-  )
+  return currentPoisonInstances(state, targetCombatantId)[0] ?? null
 }
 
 export function hasCurrentPoison(state: CombatEncounterState, targetCombatantId: string): boolean {
-  return currentPoisonInstance(state, targetCombatantId) !== null
+  return currentPoisonInstances(state, targetCombatantId).length > 0
 }
 
 export function currentPoisonEndTurnDamage(
   state: CombatEncounterState,
   targetCombatantId: string,
 ): number {
-  return hasCurrentPoison(state, targetCombatantId) ? CURRENT_POISON_DAMAGE : 0
+  const total =
+    BigInt(currentPoisonInstances(state, targetCombatantId).length) * BigInt(CURRENT_POISON_DAMAGE)
+  return Number(total > BigInt(Number.MAX_SAFE_INTEGER) ? BigInt(Number.MAX_SAFE_INTEGER) : total)
 }
 
 export function applyCurrentPoisonState(
@@ -57,15 +85,13 @@ export function applyCurrentPoisonState(
 ): CombatEncounterState {
   validateCurrentPoisonEffect({ curseCopyable })
   const effectState = normalizeCombatEffectState(state.effectState)
-  const existing = effectState.poison.find(
-    (instance) => instance.targetCombatantId === targetCombatantId,
-  )
-  const instance = {
+  const instance: CombatPoisonInstance = {
+    applicationOrder: nextDotApplicationOrder(effectState.poison),
     targetCombatantId,
     sourceCombatantId,
     sourceActionId,
     profileVersion: CURRENT_POISON_PROFILE_VERSION,
-    movementRemainder: existing?.movementRemainder ?? 0,
+    movementRemainder: 0,
     ...(curseCopyable !== undefined ? { curseCopyable } : {}),
   }
 
@@ -73,12 +99,7 @@ export function applyCurrentPoisonState(
     ...state,
     effectState: {
       ...effectState,
-      poison: [
-        ...effectState.poison.filter(
-          (candidate) => candidate.targetCombatantId !== targetCombatantId,
-        ),
-        instance,
-      ].sort((left, right) => left.targetCombatantId.localeCompare(right.targetCombatantId)),
+      poison: [...effectState.poison, instance].sort(compareDotApplication),
     },
   }
 }
@@ -103,32 +124,39 @@ export function advanceCurrentPoisonMovement(
   state: CombatEncounterState,
   targetCombatantId: string,
   traversedTiles: number,
-): { state: CombatEncounterState; triggeredTicks: number } {
+): {
+  state: CombatEncounterState
+  triggeredTicks: number
+  triggered: readonly { instance: CombatPoisonInstance; ticks: number }[]
+} {
   if (!Number.isSafeInteger(traversedTiles) || traversedTiles < 0) {
     throw new RangeError(
       'Poison movement progress requires a non-negative safe integer tile count.',
     )
   }
-  if (traversedTiles === 0) return { state, triggeredTicks: 0 }
+  if (traversedTiles === 0) return { state, triggeredTicks: 0, triggered: [] }
 
   const effectState = normalizeCombatEffectState(state.effectState)
-  const existing = effectState.poison.find(
-    (instance) => instance.targetCombatantId === targetCombatantId,
-  )
-  if (!existing) return { state, triggeredTicks: 0 }
-
-  const total = existing.movementRemainder + traversedTiles
-  const triggeredTicks = Math.floor(total / 5)
-  const movementRemainder = total % 5
-  const poison = effectState.poison.map((instance) =>
-    instance.targetCombatantId === targetCombatantId
-      ? { ...instance, movementRemainder }
-      : instance,
-  )
+  const triggered: { instance: CombatPoisonInstance; ticks: number }[] = []
+  let triggeredTicks = 0
+  const poison = effectState.poison.map((instance) => {
+    if (instance.targetCombatantId !== targetCombatantId) return instance
+    const total = instance.movementRemainder + traversedTiles
+    const ticks = Math.floor(total / 5)
+    if (ticks > 0) {
+      triggered.push({ instance, ticks })
+      triggeredTicks += ticks
+    }
+    return { ...instance, movementRemainder: total % 5 }
+  })
+  if (triggered.length === 0 && !poison.some((instance) => instance.targetCombatantId === targetCombatantId)) {
+    return { state, triggeredTicks: 0, triggered: [] }
+  }
 
   return {
     state: { ...state, effectState: { ...effectState, poison } },
     triggeredTicks,
+    triggered,
   }
 }
 
@@ -245,19 +273,24 @@ export function validateCurrentBurnEffect(effect: { curseCopyable?: unknown }): 
   }
 }
 
+export function currentBurnInstances(
+  state: CombatEncounterState,
+  targetCombatantId: string,
+): readonly CombatBurnInstance[] {
+  return normalizeCombatEffectState(state.effectState).burn
+    .filter((instance) => instance.targetCombatantId === targetCombatantId)
+    .sort(compareDotApplication)
+}
+
 export function currentBurnInstance(
   state: CombatEncounterState,
   targetCombatantId: string,
 ): CombatBurnInstance | null {
-  return (
-    normalizeCombatEffectState(state.effectState).burn.find(
-      (instance) => instance.targetCombatantId === targetCombatantId,
-    ) ?? null
-  )
+  return currentBurnInstances(state, targetCombatantId)[0] ?? null
 }
 
 export function hasCurrentBurn(state: CombatEncounterState, targetCombatantId: string): boolean {
-  return currentBurnInstance(state, targetCombatantId) !== null
+  return currentBurnInstances(state, targetCombatantId).length > 0
 }
 
 export function applyCurrentBurnState(
@@ -270,6 +303,7 @@ export function applyCurrentBurnState(
   validateCurrentBurnEffect({ curseCopyable })
   const effectState = normalizeCombatEffectState(state.effectState)
   const instance: CombatBurnInstance = {
+    applicationOrder: nextDotApplicationOrder(effectState.burn),
     targetCombatantId,
     sourceCombatantId,
     sourceActionId,
@@ -281,12 +315,7 @@ export function applyCurrentBurnState(
     ...state,
     effectState: {
       ...effectState,
-      burn: [
-        ...effectState.burn.filter(
-          (candidate) => candidate.targetCombatantId !== targetCombatantId,
-        ),
-        instance,
-      ].sort((left, right) => left.targetCombatantId.localeCompare(right.targetCombatantId)),
+      burn: [...effectState.burn, instance].sort(compareDotApplication),
     },
   }
 }
@@ -308,31 +337,43 @@ export function removeCurrentBurnState(
 export function advanceCurrentBurnEndTurn(
   state: CombatEncounterState,
   targetCombatantId: string,
-): { state: CombatEncounterState; instance: CombatBurnInstance | null; damage: number } {
+): {
+  state: CombatEncounterState
+  instance: CombatBurnInstance | null
+  damage: number
+  applications: readonly { instance: CombatBurnInstance; damage: number }[]
+} {
   const effectState = normalizeCombatEffectState(state.effectState)
-  const instance = effectState.burn.find(
-    (candidate) => candidate.targetCombatantId === targetCombatantId,
-  )
-  if (!instance) return { state, instance: null, damage: 0 }
+  const instances = currentBurnInstances(state, targetCombatantId)
+  if (instances.length === 0) return { state, instance: null, damage: 0, applications: [] }
 
-  const damage = CURRENT_BURN_DAMAGE_BY_STAGE[instance.stage]
-  if (damage === undefined) {
-    throw new RangeError('Current Burn stage is outside the canonical profile.')
-  }
-  const nextStage = instance.stage + 1
-  const burn =
-    nextStage >= CURRENT_BURN_DAMAGE_BY_STAGE.length
-      ? effectState.burn.filter((candidate) => candidate.targetCombatantId !== targetCombatantId)
-      : effectState.burn.map((candidate) =>
-          candidate.targetCombatantId === targetCombatantId
-            ? { ...candidate, stage: nextStage }
-            : candidate,
-        )
+  let damage = 0
+  const applications = instances.map((instance) => {
+    const amount = CURRENT_BURN_DAMAGE_BY_STAGE[instance.stage]
+    if (amount === undefined) {
+      throw new RangeError('Current Burn stage is outside the canonical profile.')
+    }
+    damage += amount
+    return { instance, damage: amount }
+  })
+  const expiring = new Set(
+    instances
+      .filter((instance) => instance.stage + 1 >= CURRENT_BURN_DAMAGE_BY_STAGE.length)
+      .map((instance) => instance.applicationOrder ?? 0),
+  )
+  const burn = effectState.burn
+    .flatMap((candidate) => {
+      if (candidate.targetCombatantId !== targetCombatantId) return [candidate]
+      if (expiring.has(candidate.applicationOrder ?? 0)) return []
+      return [{ ...candidate, stage: candidate.stage + 1 }]
+    })
+    .sort(compareDotApplication)
 
   return {
     state: { ...state, effectState: { ...effectState, burn } },
-    instance,
+    instance: instances[0] ?? null,
     damage,
+    applications,
   }
 }
 
