@@ -118,6 +118,17 @@ export type CombatFriendlyFirePolicy =
   'enemies-only' | 'allies-only' | 'all-units' | 'all-except-actor'
 export type CombatEffectRecipient = 'actor' | 'primary-unit' | 'affected-units'
 
+export interface CombatStatusEffectTuning {
+  /** Signed percentage-point change to incoming damage, in basis points. */
+  readonly incomingDamageModifierBasisPoints?: number
+  /** Signed percentage-point change to outgoing damage, in basis points. */
+  readonly outgoingDamageModifierBasisPoints?: number
+  /** Signed percentage-point change to healing received, in basis points. */
+  readonly healingReceivedModifierBasisPoints?: number
+  /** Signed accuracy change, in basis points / percentage points. */
+  readonly accuracyModifierBasisPoints?: number
+}
+
 export type CombatTargetShape =
   { kind: 'single' } | { kind: 'circle'; radius: number } | { kind: 'line'; length: number }
 
@@ -204,6 +215,7 @@ export type CombatEffectDefinition =
       recipient: CombatEffectRecipient
       statusId: string
       stacks: number
+      tuning?: CombatStatusEffectTuning
     }
 
 export interface CombatActionDefinition {
@@ -236,6 +248,8 @@ export interface CombatStatusDefinition {
   maximumStacks: number
   durationOwnerTurnStarts: number
   damageTakenMultiplierBasisPoints: number
+  /** Optional recovery multiplier; 10_000 is neutral. */
+  healingReceivedMultiplierBasisPoints?: number
   /** Additional bounded modifiers; omitted by immutable legacy status definitions. */
   damageModifiers?: readonly CombatDamageModifier[]
   gameplayTags?: readonly GameplayTag[]
@@ -257,6 +271,7 @@ export interface CombatStatusInstance {
   stacks: number
   remainingOwnerTurnStarts: number
   sourceCombatantId: string
+  tuning?: CombatStatusEffectTuning
   provenance?: CombatEffectInstanceProvenance
 }
 
@@ -1891,6 +1906,7 @@ function applyEffect(
     recipientId,
     effect.statusId,
     effect.stacks,
+    effect.tuning,
     content,
   )
   const status = getStatus(nextState, recipientId, effect.statusId, actorId)
@@ -1982,9 +1998,14 @@ function resolveDamageAmount(
 
   for (const status of getStatusRow(state, recipientId).statuses) {
     const definition = getStatusDefinition(content, status.statusId, status.statusVersion)
-    if (effect.piercing === true && definition.damageTakenMultiplierBasisPoints < 10_000) continue
+    const tunedIncoming = status.tuning?.incomingDamageModifierBasisPoints
+    const damageTakenMultiplier =
+      tunedIncoming === undefined
+        ? definition.damageTakenMultiplierBasisPoints
+        : 10_000 + tunedIncoming
+    if (effect.piercing === true && damageTakenMultiplier < 10_000) continue
     for (let stack = 0; stack < status.stacks; stack += 1) {
-      amount = scaleByBasisPoints(amount, definition.damageTakenMultiplierBasisPoints)
+      amount = scaleByBasisPoints(amount, damageTakenMultiplier)
     }
   }
 
@@ -2004,6 +2025,7 @@ function applyStatusState(
   recipientId: string,
   statusId: string,
   stacks: number,
+  tuning: CombatStatusEffectTuning | undefined,
   content: CombatContentCatalog,
 ): CombatEncounterState {
   assertPositiveSafeInteger(stacks, 'status stacks')
@@ -2018,6 +2040,7 @@ function applyStatusState(
         stacks: nextStacks,
         remainingOwnerTurnStarts: definition.durationOwnerTurnStarts,
         sourceCombatantId,
+        ...(tuning === undefined ? {} : { tuning }),
       }
     : {
         ...(definition.markAccuracyBonusBasisPoints !== undefined
@@ -2028,6 +2051,7 @@ function applyStatusState(
         stacks: nextStacks,
         remainingOwnerTurnStarts: definition.durationOwnerTurnStarts,
         sourceCombatantId,
+        ...(tuning === undefined ? {} : { tuning }),
       }
 
   const statusState = state.statusState.map((candidate) =>
@@ -2644,8 +2668,33 @@ function validateCombatActionDefinition(
     if (effect.type === 'apply-status') {
       collectRequiredIdentity(effect.statusId, 'effect status ID')
       assertPositiveSafeInteger(effect.stacks, 'effect status stacks')
+      validateCombatStatusEffectTuning(effect.tuning)
       if (content) getStatusDefinitionById(content, effect.statusId)
     }
+  }
+}
+
+function validateCombatStatusEffectTuning(
+  tuning: CombatStatusEffectTuning | undefined,
+): void {
+  if (tuning === undefined) return
+  const percentFields = [
+    tuning.incomingDamageModifierBasisPoints,
+    tuning.outgoingDamageModifierBasisPoints,
+    tuning.healingReceivedModifierBasisPoints,
+  ]
+  for (const value of percentFields) {
+    if (value !== undefined && (!Number.isSafeInteger(value) || value < -5_000 || value > 5_000)) {
+      throw new RangeError('Status percentage tuning must be between -50% and +50%.')
+    }
+  }
+  if (
+    tuning.accuracyModifierBasisPoints !== undefined &&
+    (!Number.isSafeInteger(tuning.accuracyModifierBasisPoints) ||
+      tuning.accuracyModifierBasisPoints < -3_000 ||
+      tuning.accuracyModifierBasisPoints > 3_000)
+  ) {
+    throw new RangeError('Status accuracy tuning must be between -30 and +30 percentage points.')
   }
 }
 
@@ -2678,6 +2727,13 @@ function validateCombatContentCatalog(content: CombatContentCatalog): void {
     assertPositiveSafeInteger(status.maximumStacks, 'status maximum stacks')
     assertPositiveSafeInteger(status.durationOwnerTurnStarts, 'status duration')
     assertBasisPoints(status.damageTakenMultiplierBasisPoints, 'damage taken multiplier', 25_000)
+    if (status.healingReceivedMultiplierBasisPoints !== undefined) {
+      assertBasisPoints(
+        status.healingReceivedMultiplierBasisPoints,
+        'healing received multiplier',
+        20_000,
+      )
+    }
     validateDamageModifiers(status.damageModifiers)
     if (status.gameplayTags !== undefined) {
       if (
@@ -2895,9 +2951,17 @@ function incomingHealingAmount(
   amount: number,
   content: CombatContentCatalog,
 ): number {
-  return hasGameplayTag(state, recipientId, 'Hexed', content)
-    ? scaleByBasisPoints(amount, 7_500)
-    : amount
+  let multiplier = 10_000
+  for (const status of getStatusRow(state, recipientId).statuses) {
+    const definition = getStatusDefinition(content, status.statusId, status.statusVersion)
+    const tuned = status.tuning?.healingReceivedModifierBasisPoints
+    const statusMultiplier =
+      tuned === undefined ? definition.healingReceivedMultiplierBasisPoints : 10_000 + tuned
+    if (statusMultiplier !== undefined) {
+      multiplier = Math.min(multiplier, statusMultiplier)
+    }
+  }
+  return scaleByBasisPoints(amount, multiplier)
 }
 
 function applyDisplacement(
