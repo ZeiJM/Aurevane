@@ -30,9 +30,9 @@ import {
 } from './combat-recovery'
 import {
   CURRENT_BURN_BACKLASH_DAMAGE,
-  CURRENT_POISON_DAMAGE,
   advanceCurrentBleedEndTurn,
   advanceCurrentBurnEndTurn,
+  advanceCurrentPoisonEndTurn,
   advanceCurrentPoisonMovement,
   applyCurrentBleedState,
   applyCurrentBurnState,
@@ -1728,8 +1728,17 @@ function applyEffect(
   if (effect.type === 'displace')
     return applyDisplacement(state, actorId, recipientId, actionId, effect, content)
   if (effect.type === 'poison') {
+    const tuning = effect as typeof effect & { power?: number; durationTurns?: number }
     return {
-      state: applyCurrentPoisonState(state, actorId, recipientId, actionId, effect.curseCopyable),
+      state: applyCurrentPoisonState(
+        state,
+        actorId,
+        recipientId,
+        actionId,
+        effect.curseCopyable,
+        tuning.power,
+        tuning.durationTurns,
+      ),
       events: [],
     }
   }
@@ -1748,8 +1757,17 @@ function applyEffect(
     }
   }
   if (effect.type === 'burn') {
+    const tuning = effect as typeof effect & { power?: number; durationTurns?: number }
     return {
-      state: applyCurrentBurnState(state, actorId, recipientId, actionId, effect.curseCopyable),
+      state: applyCurrentBurnState(
+        state,
+        actorId,
+        recipientId,
+        actionId,
+        effect.curseCopyable,
+        tuning.power,
+        tuning.durationTurns,
+      ),
       events: [],
     }
   }
@@ -2230,8 +2248,10 @@ function resolveCurrentEndOfTurnDots(
   const poison = currentPoisonInstance(nextState, combatantId)
   let target = getCombatant(nextState.tactical.battle, combatantId)
   if (poison && target.hp > 0) {
-    const hpAfter = Math.max(0, target.hp - CURRENT_POISON_DAMAGE)
+    const poisonDamage = currentPoisonEndTurnDamage(nextState, combatantId)
+    const hpAfter = Math.max(0, target.hp - poisonDamage)
     nextState = withUpdatedCombatant(nextState, combatantId, { ...target, hp: hpAfter })
+    nextState = advanceCurrentPoisonEndTurn(nextState, combatantId)
     events.push({
       event: 'damage_applied',
       actionId: 'status.poison.current.v1',
