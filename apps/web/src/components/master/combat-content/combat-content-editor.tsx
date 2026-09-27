@@ -524,9 +524,21 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
                   mpCost: selectedDraft.mpCost,
                   accuracyMode: selectedDraft.accuracyMode,
                   accuracyModifierBasisPoints: selectedDraft.accuracyModifierBasisPoints,
+                  cooldown: selectedDraft.cooldown,
                 }}
+                cooldownLockedByRequirement={selectedDraft.requirements.length > 0}
                 onChange={(economy: SkillEconomyDraft) =>
-                  updateSelectedDraft({ ...selectedDraft, ...economy })
+                  updateSelectedDraft({
+                    ...selectedDraft,
+                    ...economy,
+                    cooldown:
+                      selectedDraft.requirements.length > 0
+                        ? null
+                        : {
+                            key: selectedDraft.id,
+                            ownerTurns: economy.cooldown?.ownerTurns ?? 1,
+                          },
+                  })
                 }
               />
               <SkillMediaEditor
