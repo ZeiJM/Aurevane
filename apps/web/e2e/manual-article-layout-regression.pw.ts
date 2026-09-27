@@ -205,3 +205,25 @@ test('unknown Manual article slugs still return the not-found surface', async ({
   const response = await page.goto('/manual/not-a-real-guide')
   expect(response?.status()).toBe(404)
 })
+
+test('Techniques guide is discoverable and its tables and catalog fit the viewport', async ({
+  page,
+}) => {
+  const errors: string[] = []
+  page.on('pageerror', (error) => errors.push(error.message))
+  await page.goto('/manual')
+  await page.getByRole('link', { name: /Techniques, Damage & Effects/ }).click()
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Techniques, Damage & Effects' }),
+  ).toBeVisible()
+  await expect(page.getByRole('table', { name: 'Current catalog magnitude ranges' })).toBeVisible()
+  const catalog = page.locator('#catalog')
+  await catalog.getByText('Runeblade', { exact: true }).click()
+  await expect(catalog.getByText(/Siphon Slash —/)).toContainText(
+    'Dmg [6], MP Drain [4], MP Restore [4]',
+  )
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth - innerWidth),
+  ).toBeLessThanOrEqual(1)
+  expect(errors).toEqual([])
+})

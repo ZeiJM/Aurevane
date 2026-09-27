@@ -1,3 +1,4 @@
+import { effectSummary, previewEffect } from './skill-effect-preview'
 import { combatActionPresentationTags } from '@aurevane/game-core/combat/gameplay-tags'
 import { gameplayStatusName } from '../../lib/battle/combat-interaction-presentation'
 import {
@@ -107,87 +108,8 @@ export function skillCostDescription(skill: MatureSkillDefinition): string {
   return skill.mpCost ? `${skill.apCost} AP / ${skill.mpCost} MP` : `${skill.apCost} AP`
 }
 
-export function skillDamageDescription(skill: MatureSkillDefinition): string {
-  const amounts = skill.effects
-    .filter(
-      (effect): effect is Extract<CombatEffectDefinition, { type: 'damage' }> =>
-        effect.type === 'damage',
-    )
-    .map((effect) => effect.amount)
-
-  if (amounts.length === 0) return '0'
-  return amounts.length === 1 ? `${amounts[0]} base` : `${amounts.join(' + ')} base`
-}
-
 export function skillEffectsSummary(skill: MatureSkillDefinition): string {
-  const effects = new Set<string>()
-
-  for (const effect of skill.effects) {
-    switch (effect.type) {
-      case 'damage':
-        if (effect.element) effects.add(title(effect.element))
-        break
-      case 'apply-status':
-        effects.add(gameplayStatusName(effect.statusId))
-        break
-      case 'remove-status':
-        effects.add('Cleanse')
-        break
-      case 'poison':
-        effects.add('Poison')
-        break
-      case 'burn':
-        effects.add('Burn')
-        break
-      case 'bleed':
-        effects.add('Bleed')
-        break
-      case 'healing':
-        effects.add('Healing')
-        break
-      case 'barrier-change':
-        effects.add(effect.amount >= 0 ? 'Barrier' : 'Barrier Break')
-        break
-      case 'resource-change':
-        effects.add(effect.delta >= 0 ? 'MP Restore' : 'MP Drain')
-        break
-      case 'displace':
-        effects.add(effect.direction === 'pull' ? 'Pull' : 'Push')
-        break
-      case 'create-terrain':
-        effects.add('Frozen Terrain')
-        break
-      case 'return-to-turn-start':
-        effects.add('Return to Turn Start')
-        break
-      case 'copy-statuses':
-        effects.add('Status Copy')
-        break
-      case 'copy':
-        effects.add('Skill Copy')
-        break
-      case 'sensory':
-        effects.add('Sensory / Revealed')
-        break
-    }
-  }
-
-  const ignoredTags = new Set([
-    'discipline',
-    skill.sourceDisciplineId,
-    'attack',
-    'defense',
-    'recovery',
-    'support',
-    'heal',
-    'control',
-  ])
-  for (const tag of skill.tags) {
-    if (tag.startsWith('cockpit:') || ignoredTags.has(tag)) continue
-    effects.add(title(tag))
-  }
-
-  return effects.size > 0 ? [...effects].join(', ') : 'N/A'
+  return skill.effects.map((effect) => effectSummary(previewEffect(effect))).join(', ') || 'N/A'
 }
 
 export function skillRequirementsSummary(skill: MatureSkillDefinition): string {
@@ -258,8 +180,9 @@ export function skillLineOfSightDescription(skill: MatureSkillDefinition): strin
   return skill.target.requiresLineOfSight ? 'Required' : 'Not required'
 }
 
-export function skillCooldownDescription(skill: MatureSkillDefinition): string {
-  return `${skill.cooldown.ownerTurns} ${skill.cooldown.ownerTurns === 1 ? 'turn' : 'turns'}`
+// The current mature-Skill runtime removes authored turn cooldowns and applies repeat falloff.
+export function skillCooldownDescription(): string {
+  return '0 turns'
 }
 
 export function skillRangeDescription(skill: MatureSkillDefinition): string {

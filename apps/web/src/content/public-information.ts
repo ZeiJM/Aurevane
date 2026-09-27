@@ -5,6 +5,12 @@ export interface PublicBodyBlock {
   title?: string
   paragraphs: readonly string[]
   bullets?: readonly string[]
+  table?: {
+    caption: string
+    headers: readonly string[]
+    rows: readonly (readonly string[])[]
+  }
+  disclosures?: readonly { title: string; bullets: readonly string[] }[]
 }
 
 export interface ManualArticle {
