@@ -62,6 +62,7 @@ export interface CombatOngoingRecovery {
 
 export interface CombatPoisonInstance {
   targetCombatantId: string
+  stacks: number
   sourceCombatantId: string
   sourceActionId: string
   profileVersion: number
@@ -85,6 +86,7 @@ export interface CombatBleedStack {
 
 export interface CombatBurnInstance {
   targetCombatantId: string
+  stacks: number
   sourceCombatantId: string
   sourceActionId: string
   profileVersion: number
@@ -133,9 +135,21 @@ export function normalizeCombatEffectState(value: unknown): CombatEffectState {
 
   return {
     ongoingRecovery: Array.isArray(input.ongoingRecovery) ? input.ongoingRecovery : [],
-    poison: Array.isArray(input.poison) ? input.poison : [],
+    poison: Array.isArray(input.poison)
+      ? input.poison.map((instance) => ({
+          ...instance,
+          stacks:
+            Number.isSafeInteger(instance.stacks) && instance.stacks > 0 ? instance.stacks : 1,
+        }))
+      : [],
     bleed: Array.isArray(input.bleed) ? input.bleed : [],
-    burn: Array.isArray(input.burn) ? input.burn : [],
+    burn: Array.isArray(input.burn)
+      ? input.burn.map((instance) => ({
+          ...instance,
+          stacks:
+            Number.isSafeInteger(instance.stacks) && instance.stacks > 0 ? instance.stacks : 1,
+        }))
+      : [],
     temporarySkills: Array.isArray(input.temporarySkills) ? input.temporarySkills : [],
     damageHistory: Array.isArray(input.damageHistory) ? input.damageHistory : [],
     ...(Array.isArray(input.barriers) ? { barriers: input.barriers } : {}),
