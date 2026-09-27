@@ -193,6 +193,29 @@ describe('Mark and Blind: public-entry contract', () => {
   it('adds fifteen percentage points for the Mark source, not fifteen percent of accuracy', () => {
     expect(chance(apply(world(), MARK.id))).toBe(6_500)
   })
+  it('honors per-effect authored Mark potency for the same named status', () => {
+    const applied = (potencyBasisPoints: number) =>
+      executeCombatAction(
+        world(),
+        {
+          ...statusAction(MARK.id),
+          effects: [
+            {
+              type: 'apply-status',
+              recipient: 'primary-unit',
+              statusId: MARK.id,
+              stacks: 1,
+              potencyBasisPoints,
+            },
+          ],
+        },
+        TARGET,
+        CONTENT,
+      ).state
+
+    expect(chance(applied(1_000))).toBe(6_000)
+    expect(chance(applied(1_800))).toBe(6_800)
+  })
   it('does not grant the applying source bonus to its ally', () => {
     const marked = apply(world(), MARK.id)
     expect(chance(advanceTo(marked, 'ally'))).toBe(5_000)
