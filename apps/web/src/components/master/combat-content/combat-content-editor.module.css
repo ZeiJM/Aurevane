@@ -527,6 +527,14 @@
   padding: var(--av-space-4);
 }
 
+.effectDescriptionField {
+  margin: 0 var(--av-space-4) var(--av-space-4);
+}
+
+.effectDescriptionField input {
+  min-height: 2.35rem;
+}
+
 .effectAdd {
   display: grid;
   grid-template-columns: minmax(14rem, 1fr) auto;
