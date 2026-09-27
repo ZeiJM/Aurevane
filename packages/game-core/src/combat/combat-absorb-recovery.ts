@@ -111,8 +111,21 @@ function activeAbsorbBasisPoints(
     )
       continue
     validateCombatStatusDefinition(definition)
-    hp = Math.min(ABSORB_BASIS_POINTS, hp + (definition.absorbHpBasisPoints ?? 0) * instance.stacks)
-    mp = Math.min(ABSORB_BASIS_POINTS, mp + (definition.absorbMpBasisPoints ?? 0) * instance.stacks)
+    const addedHp = BigInt(definition.absorbHpBasisPoints ?? 0) * BigInt(instance.stacks)
+    const addedMp = BigInt(definition.absorbMpBasisPoints ?? 0) * BigInt(instance.stacks)
+    const nextHp = BigInt(hp) + addedHp
+    const nextMp = BigInt(mp) + addedMp
+    if (usesUnboundedEffectApplications(state)) {
+      hp = Number(
+        nextHp > BigInt(Number.MAX_SAFE_INTEGER) ? BigInt(Number.MAX_SAFE_INTEGER) : nextHp,
+      )
+      mp = Number(
+        nextMp > BigInt(Number.MAX_SAFE_INTEGER) ? BigInt(Number.MAX_SAFE_INTEGER) : nextMp,
+      )
+    } else {
+      hp = Math.min(ABSORB_BASIS_POINTS, Number(nextHp))
+      mp = Math.min(ABSORB_BASIS_POINTS, Number(nextMp))
+    }
   }
   return { hp, mp }
 }

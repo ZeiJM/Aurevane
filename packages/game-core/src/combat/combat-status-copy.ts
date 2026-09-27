@@ -12,9 +12,10 @@ import type {
 import { compareCombatStatusInstances } from './combat-accuracy-status'
 import {
   applyCurrentBleedState,
+  CURRENT_BLEED_MAX_STACKS,
   currentBleedStacks,
-  currentBurnInstance,
-  currentPoisonInstance,
+  currentBurnInstances,
+  currentPoisonInstances,
 } from './combat-dots'
 import {
   normalizeCombatEffectState,
@@ -23,6 +24,7 @@ import {
   type CombatPoisonInstance,
 } from './combat-effect-state'
 import { createCombatEffectInstanceProvenance } from './combat-kernel-types'
+import { usesUnboundedEffectApplications } from './effect-application-rules'
 
 export interface CombatStatusCopyEffect {
   type: 'copy-statuses'
@@ -88,18 +90,19 @@ function isCopyable(
 function assertPinnedStatus(
   instance: CombatStatusInstance,
   definition: CombatStatusDefinition,
+  unbounded: boolean,
 ): void {
   if (
     instance.statusVersion !== definition.version ||
     !Number.isSafeInteger(instance.stacks) ||
     instance.stacks < 1 ||
-    instance.stacks > definition.maximumStacks ||
+    (!unbounded && instance.stacks > definition.maximumStacks) ||
     !Number.isSafeInteger(instance.remainingOwnerTurnStarts) ||
     instance.remainingOwnerTurnStarts < 1 ||
     instance.remainingOwnerTurnStarts > definition.durationOwnerTurnStarts
   ) {
     throw new TypeError(
-      'Copied status state must match its pinned version, stack cap and remaining duration.',
+      'Copied status state must match its pinned version, application count and remaining duration.',
     )
   }
 }
@@ -112,12 +115,14 @@ interface StatusCopy {
 
 interface PoisonCopy {
   donor: CombatPoisonInstance
-  previous: CombatPoisonInstance | undefined
+  previous?: CombatPoisonInstance
+  applicationOrder?: number
 }
 
 interface BurnCopy {
   donor: CombatBurnInstance
-  previous: CombatBurnInstance | undefined
+  previous?: CombatBurnInstance
+  applicationOrder?: number
 }
 
 interface BleedCopy {
@@ -145,20 +150,39 @@ function planBleedCopies(
   mode: CombatStatusCopyEffect['mode'],
 ): readonly BleedCopy[] {
   if (mode !== 'curse') return []
-  const donors = currentBleedStacks(state, donorId).filter((stack) => stack.curseCopyable === true)
+  const donors = currentBleedStacks(state, donorId).filter(
+    (application) => application.curseCopyable === true,
+  )
   if (donors.length === 0) return []
 
   const effectState = normalizeCombatEffectState(state.effectState)
   let maximumOrder = effectState.bleed.reduce(
-    (maximum, stack) => Math.max(maximum, stack.applicationOrder),
+    (maximum, application) => Math.max(maximum, application.applicationOrder),
     0,
   )
-  let simulated: SimulatedBleedRow[] = effectState.bleed.map((stack) => ({
-    targetCombatantId: stack.targetCombatantId,
-    damagePerTick: stack.damagePerTick,
-    remainingTicks: stack.remainingTicks,
-    applicationOrder: stack.applicationOrder,
-    existing: stack,
+  if (usesUnboundedEffectApplications(state)) {
+    return donors.map((donor, attemptIndex) => {
+      if (maximumOrder >= Number.MAX_SAFE_INTEGER) {
+        throw new RangeError('Bleed application order has reached the safe integer limit.')
+      }
+      maximumOrder += 1
+      return {
+        donor,
+        previous: undefined,
+        replacedSummary: undefined,
+        applicationOrder: maximumOrder,
+        attemptIndex,
+        survives: true,
+      }
+    })
+  }
+
+  let simulated: SimulatedBleedRow[] = effectState.bleed.map((application) => ({
+    targetCombatantId: application.targetCombatantId,
+    damagePerTick: application.damagePerTick,
+    remainingTicks: application.remainingTicks,
+    applicationOrder: application.applicationOrder,
+    existing: application,
   }))
   const attempts: Omit<BleedCopy, 'survives'>[] = []
 
@@ -173,7 +197,8 @@ function planBleedCopies(
           left.remainingTicks - right.remainingTicks ||
           left.applicationOrder - right.applicationOrder,
       )
-    const replaced = targetRows.length >= 3 ? targetRows[0] : undefined
+    const replaced =
+      targetRows.length >= CURRENT_BLEED_MAX_STACKS ? targetRows[0] : undefined
     if (replaced) {
       simulated = simulated.filter(
         (row) =>
@@ -214,9 +239,10 @@ function planBleedCopies(
 
 interface CombatCopyPlan {
   receiverId: string
+  unbounded: boolean
   copies: readonly StatusCopy[]
-  poison: PoisonCopy | undefined
-  burn: BurnCopy | undefined
+  poison: readonly PoisonCopy[]
+  burn: readonly BurnCopy[]
   bleed: readonly BleedCopy[]
 }
 
@@ -231,7 +257,15 @@ export function planCombatStatusCopies(
   const donorId = effect.mode === 'amplify' ? selectedId : actorId
   const receiverId = effect.mode === 'amplify' ? actorId : selectedId
   if (donorId === receiverId)
-    return { receiverId, copies: [], poison: undefined, burn: undefined, bleed: [] }
+    return {
+      receiverId,
+      unbounded: usesUnboundedEffectApplications(state),
+      copies: [],
+      poison: [],
+      burn: [],
+      bleed: [],
+    }
+  const unbounded = usesUnboundedEffectApplications(state)
   const donors = state.statusState.find((row) => row.combatantId === donorId)?.statuses ?? []
   const receiver = state.statusState.find((row) => row.combatantId === receiverId)?.statuses ?? []
   const definitions = new Map(content.statuses.map((definition) => [definition.id, definition]))
@@ -243,7 +277,7 @@ export function planCombatStatusCopies(
     const definition = definitions.get(donor.statusId)
     if (!definition) throw new TypeError(`Missing pinned status definition ${donor.statusId}.`)
     if (!isCopyable(definition, effect.mode)) continue
-    assertPinnedStatus(donor, definition)
+    assertPinnedStatus(donor, definition, unbounded)
     const previous = selected.get(donor.statusId)
     // Rebound Marks share one receiver relationship: choose the longest-lived source, stable on ties.
     if (!previous || donor.remainingOwnerTurnStarts > previous.donor.remainingOwnerTurnStarts) {
@@ -256,14 +290,15 @@ export function planCombatStatusCopies(
         status.statusId === donor.statusId &&
         (status.sourceScopedMark !== true || status.sourceCombatantId === actorId),
     )
-    if (previous) assertPinnedStatus(previous, definition)
+    if (previous) assertPinnedStatus(previous, definition, unbounded)
     const previousStacks = previous?.stacks ?? 0
     const next: CombatStatusInstance = {
       ...(donor.sourceScopedMark === true ? { sourceScopedMark: true as const } : {}),
       statusId: donor.statusId,
       statusVersion: donor.statusVersion,
-      // Both inputs are bounded; adding only the remaining capacity avoids unsafe integer sums.
-      stacks: previousStacks + Math.min(donor.stacks, definition.maximumStacks - previousStacks),
+      stacks: unbounded
+        ? addEffectApplications(previousStacks, donor.stacks)
+        : previousStacks + Math.min(donor.stacks, definition.maximumStacks - previousStacks),
       remainingOwnerTurnStarts: Math.max(
         donor.remainingOwnerTurnStarts,
         previous?.remainingOwnerTurnStarts ?? 0,
@@ -272,18 +307,73 @@ export function planCombatStatusCopies(
     }
     return { donor, previous, next }
   })
-  const donorPoison = effect.mode === 'curse' ? currentPoisonInstance(state, donorId) : null
+  const effectState = normalizeCombatEffectState(state.effectState)
+  let poisonOrder = effectState.poison.reduce(
+    (maximum, instance) => Math.max(maximum, instance.applicationOrder ?? 0),
+    0,
+  )
   const poison =
-    donorPoison?.curseCopyable === true
-      ? { donor: donorPoison, previous: currentPoisonInstance(state, receiverId) ?? undefined }
-      : undefined
-  const donorBurn = effect.mode === 'curse' ? currentBurnInstance(state, donorId) : null
+    effect.mode !== 'curse'
+      ? []
+      : unbounded
+        ? currentPoisonInstances(state, donorId)
+            .filter((instance) => instance.curseCopyable === true)
+            .map((donor) => {
+              if (poisonOrder >= Number.MAX_SAFE_INTEGER) {
+                throw new RangeError('Poison application order has reached the safe integer limit.')
+              }
+              poisonOrder += 1
+              return { donor, applicationOrder: poisonOrder }
+            })
+        : currentPoisonInstances(state, donorId)
+            .filter((instance) => instance.curseCopyable === true)
+            .slice(0, 1)
+            .map((donor) => ({
+              donor,
+              previous: currentPoisonInstances(state, receiverId)[0],
+            }))
+  let burnOrder = effectState.burn.reduce(
+    (maximum, instance) => Math.max(maximum, instance.applicationOrder ?? 0),
+    0,
+  )
   const burn =
-    donorBurn?.curseCopyable === true
-      ? { donor: donorBurn, previous: currentBurnInstance(state, receiverId) ?? undefined }
-      : undefined
+    effect.mode !== 'curse'
+      ? []
+      : unbounded
+        ? currentBurnInstances(state, donorId)
+            .filter((instance) => instance.curseCopyable === true)
+            .map((donor) => {
+              if (burnOrder >= Number.MAX_SAFE_INTEGER) {
+                throw new RangeError('Burn application order has reached the safe integer limit.')
+              }
+              burnOrder += 1
+              return { donor, applicationOrder: burnOrder }
+            })
+        : currentBurnInstances(state, donorId)
+            .filter((instance) => instance.curseCopyable === true)
+            .slice(0, 1)
+            .map((donor) => ({
+              donor,
+              previous: currentBurnInstances(state, receiverId)[0],
+            }))
   const bleed = planBleedCopies(state, donorId, receiverId, effect.mode)
-  return { receiverId, copies, poison, burn, bleed }
+  return { receiverId, unbounded, copies, poison, burn, bleed }
+}
+
+function compareTypedApplication<
+  T extends { targetCombatantId: string; applicationOrder?: number },
+>(left: T, right: T): number {
+  return (
+    left.targetCombatantId.localeCompare(right.targetCombatantId) ||
+    (left.applicationOrder ?? 0) - (right.applicationOrder ?? 0)
+  )
+}
+
+function addEffectApplications(current: number, added: number): number {
+  const total = BigInt(current) + BigInt(added)
+  return Number(
+    total > BigInt(Number.MAX_SAFE_INTEGER) ? BigInt(Number.MAX_SAFE_INTEGER) : total,
+  )
 }
 
 function statusSummary(status: CombatStatusInstance | undefined): string {
@@ -298,14 +388,14 @@ export function applyCombatStatusCopies(
   effect: CombatStatusCopyEffect,
   content: CombatContentCatalog,
 ): CombatResolutionTransition & { projections: CombatEffectProjection[] } {
-  const { receiverId, copies, poison, burn, bleed } = planCombatStatusCopies(
+  const { receiverId, unbounded, copies, poison, burn, bleed } = planCombatStatusCopies(
     state,
     actorId,
     selectedId,
     effect,
     content,
   )
-  if (copies.length === 0 && !poison && !burn && bleed.length === 0) {
+  if (copies.length === 0 && poison.length === 0 && burn.length === 0 && bleed.length === 0) {
     if (effect.allowNoEligibleEffects === true) {
       return { state, events: [], projections: [] }
     }
@@ -325,51 +415,49 @@ export function applyCombatStatusCopies(
         }
       : row,
   )
-  const nextPoison = poison
-    ? {
-        targetCombatantId: receiverId,
-        sourceCombatantId: actorId,
-        sourceActionId: actionId,
-        profileVersion: poison.donor.profileVersion,
-        movementRemainder: poison.previous?.movementRemainder ?? poison.donor.movementRemainder,
-        curseCopyable: true as const,
-      }
-    : undefined
-  const nextBurn = burn
-    ? {
-        targetCombatantId: receiverId,
-        sourceCombatantId: actorId,
-        sourceActionId: actionId,
-        profileVersion: burn.donor.profileVersion,
-        stage: burn.previous ? 0 : burn.donor.stage,
-        curseCopyable: true as const,
-      }
-    : undefined
+  const nextPoison = poison.map(({ donor, previous, applicationOrder }) => ({
+    ...(applicationOrder !== undefined ? { applicationOrder } : {}),
+    targetCombatantId: receiverId,
+    sourceCombatantId: actorId,
+    sourceActionId: actionId,
+    profileVersion: donor.profileVersion,
+    movementRemainder: unbounded
+      ? donor.movementRemainder
+      : (previous?.movementRemainder ?? donor.movementRemainder),
+    curseCopyable: true as const,
+  }))
+  const nextBurn = burn.map(({ donor, previous, applicationOrder }) => ({
+    ...(applicationOrder !== undefined ? { applicationOrder } : {}),
+    targetCombatantId: receiverId,
+    sourceCombatantId: actorId,
+    sourceActionId: actionId,
+    profileVersion: donor.profileVersion,
+    stage: unbounded ? donor.stage : previous ? 0 : donor.stage,
+    curseCopyable: true as const,
+  }))
   const effectState =
-    nextPoison || nextBurn ? normalizeCombatEffectState(state.effectState) : undefined
+    nextPoison.length > 0 || nextBurn.length > 0
+      ? normalizeCombatEffectState(state.effectState)
+      : undefined
   const nextEffectState = effectState
     ? {
         ...effectState,
-        ...(nextPoison
-          ? {
-              poison: [
+        poison: (
+          unbounded
+            ? [...effectState.poison, ...nextPoison]
+            : [
                 ...effectState.poison.filter((entry) => entry.targetCombatantId !== receiverId),
-                nextPoison,
-              ].sort((left, right) =>
-                left.targetCombatantId.localeCompare(right.targetCombatantId),
-              ),
-            }
-          : {}),
-        ...(nextBurn
-          ? {
-              burn: [
+                ...nextPoison,
+              ]
+        ).sort(compareTypedApplication),
+        burn: (
+          unbounded
+            ? [...effectState.burn, ...nextBurn]
+            : [
                 ...effectState.burn.filter((entry) => entry.targetCombatantId !== receiverId),
-                nextBurn,
-              ].sort((left, right) =>
-                left.targetCombatantId.localeCompare(right.targetCombatantId),
-              ),
-            }
-          : {}),
+                ...nextBurn,
+              ]
+        ).sort(compareTypedApplication),
       }
     : state.effectState
   let copiedState: CombatEncounterState = { ...state, statusState, effectState: nextEffectState }
@@ -404,26 +492,20 @@ export function applyCombatStatusCopies(
         before: statusSummary(previous),
         after: statusSummary(next),
       })),
-      ...(nextPoison
-        ? [
-            {
-              effectType: 'copy-statuses' as const,
-              combatantId: receiverId,
-              before: poison?.previous ? `poison:${poison.previous.movementRemainder}` : 'none',
-              after: `poison:${nextPoison.movementRemainder}`,
-            },
-          ]
-        : []),
-      ...(nextBurn
-        ? [
-            {
-              effectType: 'copy-statuses' as const,
-              combatantId: receiverId,
-              before: burn?.previous ? `burn:${burn.previous.stage}` : 'none',
-              after: `burn:${nextBurn.stage}`,
-            },
-          ]
-        : []),
+      ...nextPoison.map((instance, index) => ({
+        effectType: 'copy-statuses' as const,
+        combatantId: receiverId,
+        before: poison[index]?.previous
+          ? `poison:${poison[index]!.previous!.movementRemainder}`
+          : 'none',
+        after: `poison:${instance.movementRemainder}`,
+      })),
+      ...nextBurn.map((instance, index) => ({
+        effectType: 'copy-statuses' as const,
+        combatantId: receiverId,
+        before: burn[index]?.previous ? `burn:${burn[index]!.previous!.stage}` : 'none',
+        after: `burn:${instance.stage}`,
+      })),
       ...bleed.map((attempt) => ({
         effectType: 'copy-statuses' as const,
         combatantId: receiverId,
@@ -444,7 +526,7 @@ export function attachCombatStatusCopyProvenance(
   content: CombatContentCatalog,
   context: CombatResolutionContext,
 ): CombatEncounterState {
-  const { receiverId, copies, poison, burn, bleed } = planCombatStatusCopies(
+  const { receiverId, unbounded, copies, poison, burn, bleed } = planCombatStatusCopies(
     before,
     actorId,
     selectedId,
@@ -476,32 +558,39 @@ export function attachCombatStatusCopyProvenance(
         }
       : row,
   )
-  if (!poison && !burn && bleed.length === 0) return { ...after, statusState }
-  const poisonProvenance = poison
-    ? createCombatEffectInstanceProvenance({
+  if (poison.length === 0 && burn.length === 0 && bleed.length === 0)
+    return { ...after, statusState }
+  const poisonProvenance = new Map(
+    poison.map((copy, index) => [
+      copy.applicationOrder ?? 0,
+      createCombatEffectInstanceProvenance({
         action: context.provenance,
         targetCombatantId: receiverId,
         effectOrdinal: 0,
-        copyOrdinal: copies.length,
+        copyOrdinal: copies.length + index,
         createdRound: before.tactical.battle.round,
         createdTurn: before.tactical.battle.turnNumber,
-        copiedFromInstanceId: poison.donor.provenance?.instanceId,
-        inheritedFromInstanceId: poison.previous?.provenance?.instanceId,
-      })
-    : undefined
-  const burnProvenance = burn
-    ? createCombatEffectInstanceProvenance({
+        copiedFromInstanceId: copy.donor.provenance?.instanceId,
+        inheritedFromInstanceId: copy.previous?.provenance?.instanceId,
+      }),
+    ]),
+  )
+  const burnProvenance = new Map(
+    burn.map((copy, index) => [
+      copy.applicationOrder ?? 0,
+      createCombatEffectInstanceProvenance({
         action: context.provenance,
         targetCombatantId: receiverId,
         effectOrdinal: 0,
-        copyOrdinal: copies.length + (poison ? 1 : 0),
+        copyOrdinal: copies.length + poison.length + index,
         createdRound: before.tactical.battle.round,
         createdTurn: before.tactical.battle.turnNumber,
-        copiedFromInstanceId: burn.donor.provenance?.instanceId,
-        inheritedFromInstanceId: burn.previous?.provenance?.instanceId,
-      })
-    : undefined
-  const bleedBaseOrdinal = copies.length + (poison ? 1 : 0) + (burn ? 1 : 0)
+        copiedFromInstanceId: copy.donor.provenance?.instanceId,
+        inheritedFromInstanceId: copy.previous?.provenance?.instanceId,
+      }),
+    ]),
+  )
+  const bleedBaseOrdinal = copies.length + poison.length + burn.length
   const survivingBleed = new Map(
     bleed
       .filter((attempt) => attempt.survives)
@@ -513,20 +602,30 @@ export function attachCombatStatusCopyProvenance(
     statusState,
     effectState: {
       ...effectState,
-      poison: poisonProvenance
-        ? effectState.poison.map((entry) =>
-            entry.targetCombatantId === receiverId && entry.sourceCombatantId === actorId
-              ? { ...entry, provenance: poisonProvenance }
-              : entry,
-          )
-        : effectState.poison,
-      burn: burnProvenance
-        ? effectState.burn.map((entry) =>
-            entry.targetCombatantId === receiverId && entry.sourceCombatantId === actorId
-              ? { ...entry, provenance: burnProvenance }
-              : entry,
-          )
-        : effectState.burn,
+      poison:
+        poisonProvenance.size > 0
+          ? effectState.poison.map((entry) => {
+              const provenance = poisonProvenance.get(entry.applicationOrder ?? 0)
+              return provenance &&
+                entry.targetCombatantId === receiverId &&
+                entry.sourceCombatantId === actorId &&
+                entry.sourceActionId === actionId
+                ? { ...entry, provenance }
+                : entry
+            })
+          : effectState.poison,
+      burn:
+        burnProvenance.size > 0
+          ? effectState.burn.map((entry) => {
+              const provenance = burnProvenance.get(entry.applicationOrder ?? 0)
+              return provenance &&
+                entry.targetCombatantId === receiverId &&
+                entry.sourceCombatantId === actorId &&
+                entry.sourceActionId === actionId
+                ? { ...entry, provenance }
+                : entry
+            })
+          : effectState.burn,
       bleed:
         survivingBleed.size > 0
           ? effectState.bleed.map((entry) => {

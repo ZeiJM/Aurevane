@@ -295,28 +295,24 @@ export function validateCombatStatusDefinition(status: CombatStatusDefinition): 
     for (const tag of status.gameplayTags) validateGameplayTag(tag)
   }
 
-  if (status.damageModifiers?.length && status.maximumStacks !== 1) {
-    throw new TypeError('Conditional damage statuses must be single-stack.')
-  }
 
   if (
     status.nextRoundInitiative !== undefined &&
     (!Number.isSafeInteger(status.nextRoundInitiative) ||
       Math.abs(status.nextRoundInitiative) > 40 ||
       status.nextRoundInitiative === 0 ||
-      status.maximumStacks !== 1 ||
       status.endOfTurn)
   ) {
     throw new RangeError(
-      'Round initiative status must be single-stack, non-periodic and bounded to +/-40.',
+      'Round initiative status must be non-periodic and bounded to +/-40 per application.',
     )
   }
 
   if (status.endOfTurn) {
     knownString(status.endOfTurn.type, ['damage', 'healing'], 'periodic effect')
     positiveSafeInteger(status.endOfTurn.amount, 'periodic amount')
-    if (status.endOfTurn.amount > 100 || status.maximumStacks > 3) {
-      throw new RangeError('Periodic status exceeds its bounded magnitude.')
+    if (status.endOfTurn.amount > 100) {
+      throw new RangeError('Periodic status exceeds its bounded per-application magnitude.')
     }
   }
 

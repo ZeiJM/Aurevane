@@ -1,5 +1,6 @@
 import type { CombatEffectDefinition, CombatEncounterIssue, CombatEncounterState } from './actions'
 import { normalizeCombatEffectState, type CombatOngoingRecovery } from './combat-effect-state'
+import { usesUnboundedEffectApplications } from './effect-application-rules'
 
 /** Shared by the live combat boundary and Master Panel validation. */
 export function validateRecoveryEffect(effect: CombatEffectDefinition): void {
@@ -16,30 +17,91 @@ export function validateRecoveryEffect(effect: CombatEffectDefinition): void {
   }
 }
 
-function recoveryKey(row: CombatOngoingRecovery): string {
+function recoveryBaseKey(row: CombatOngoingRecovery): string {
   return JSON.stringify([row.targetCombatantId, row.kind, row.sourceActionId])
 }
 
-/** Replace the same recipient/resource/action schedule; different actions coexist. */
+function recoveryOrder(row: CombatOngoingRecovery): number {
+  return row.applicationOrder ?? 0
+}
+
+function compareRecovery(left: CombatOngoingRecovery, right: CombatOngoingRecovery): number {
+  const leftKey = recoveryBaseKey(left)
+  const rightKey = recoveryBaseKey(right)
+  return leftKey < rightKey
+    ? -1
+    : leftKey > rightKey
+      ? 1
+      : recoveryOrder(left) - recoveryOrder(right)
+}
+
+function nextRecoveryOrder(rows: readonly CombatOngoingRecovery[]): number {
+  const maximum = rows.reduce((value, row) => Math.max(value, recoveryOrder(row)), 0)
+  if (maximum >= Number.MAX_SAFE_INTEGER) {
+    throw new RangeError('Recovery application order has reached the safe integer limit.')
+  }
+  return maximum + 1
+}
+
+/**
+ * Append a newly cast schedule or update one already ticking.
+ * Historical schedules without applicationOrder remain valid and update by their old identity.
+ */
 export function replaceRecoverySchedule(
   state: CombatEncounterState,
   recovery: CombatOngoingRecovery,
+  mode: 'legacy' | 'append' | 'update' = 'update',
 ): CombatEncounterState {
   const effects = normalizeCombatEffectState(state.effectState)
-  const key = recoveryKey(recovery)
-  const remaining = effects.ongoingRecovery.filter((row) => recoveryKey(row) !== key)
   const alive = state.tactical.battle.combatants.some(
     (row) => row.id === recovery.targetCombatantId && row.hp > 0,
   )
-  if (alive && recovery.remainingFutureTicks > 0) remaining.push({ ...recovery })
-  else if (remaining.length === effects.ongoingRecovery.length) return state
+
+  if (mode === 'legacy') {
+    const key = recoveryBaseKey(recovery)
+    const remaining = effects.ongoingRecovery.filter((row) => recoveryBaseKey(row) !== key)
+    if (alive && recovery.remainingFutureTicks > 0) remaining.push({ ...recovery })
+    else if (remaining.length === effects.ongoingRecovery.length) return state
+    return {
+      ...state,
+      effectState: {
+        ...effects,
+        ongoingRecovery: remaining.sort(compareRecovery),
+      },
+    }
+  }
+
+  if (mode === 'append') {
+    if (!alive || recovery.remainingFutureTicks <= 0) return state
+    const next = {
+      ...recovery,
+      applicationOrder: nextRecoveryOrder(effects.ongoingRecovery),
+    }
+    return {
+      ...state,
+      effectState: {
+        ...effects,
+        ongoingRecovery: [...effects.ongoingRecovery, next].sort(compareRecovery),
+      },
+    }
+  }
+
+  const matches = (row: CombatOngoingRecovery) =>
+    recovery.applicationOrder !== undefined
+      ? row.applicationOrder === recovery.applicationOrder
+      : row.applicationOrder === undefined && recoveryBaseKey(row) === recoveryBaseKey(recovery)
+  let found = false
+  const ongoingRecovery = effects.ongoingRecovery.flatMap((row) => {
+    if (!matches(row)) return [row]
+    found = true
+    return alive && recovery.remainingFutureTicks > 0 ? [{ ...recovery }] : []
+  })
+  if (!found) return state
   return {
     ...state,
     effectState: {
       ...effects,
-      ongoingRecovery: remaining.sort((a, b) =>
-        recoveryKey(a) < recoveryKey(b) ? -1 : recoveryKey(a) > recoveryKey(b) ? 1 : 0,
-      ),
+      ongoingRecovery: ongoingRecovery.sort(compareRecovery),
     },
   }
 }
@@ -66,19 +128,21 @@ export function validateOngoingRecoveryState(
     {
       field: 'effectState.ongoingRecovery',
       message:
-        'Recovery schedules must have valid identities, safe amounts, one to three future ticks, and unique recipient/resource/action keys.',
+        'Recovery schedules must have valid identities, safe amounts, one to three future ticks, and stable application order.',
     },
   ]
   if (
     !effects ||
     typeof effects !== 'object' ||
     Array.isArray(effects) ||
-    !Array.isArray(effects.ongoingRecovery) ||
-    effects.ongoingRecovery.length > state.tactical.battle.combatants.length * 256
+    !Array.isArray(effects.ongoingRecovery)
   )
     return invalid
   const ids = new Set(state.tactical.battle.combatants.map((row) => row.id))
-  const seen = new Set<string>()
+  const unbounded = usesUnboundedEffectApplications(state)
+  const seenOrders = new Set<number>()
+  const historicalKeys = new Set<string>()
+  let previous: CombatOngoingRecovery | null = null
   for (const row of effects.ongoingRecovery) {
     if (
       !row ||
@@ -95,9 +159,23 @@ export function validateOngoingRecoveryState(
       row.remainingFutureTicks > 3
     )
       return invalid
-    const key = recoveryKey(row)
-    if (seen.has(key)) return invalid
-    seen.add(key)
+    if (unbounded) {
+      if (
+        row.applicationOrder === undefined ||
+        !Number.isSafeInteger(row.applicationOrder) ||
+        row.applicationOrder < 1 ||
+        seenOrders.has(row.applicationOrder)
+      )
+        return invalid
+      seenOrders.add(row.applicationOrder)
+    } else {
+      if (row.applicationOrder !== undefined) return invalid
+      const key = recoveryBaseKey(row)
+      if (historicalKeys.has(key)) return invalid
+      historicalKeys.add(key)
+    }
+    if (previous && compareRecovery(previous, row) > 0) return invalid
+    previous = row
   }
   return []
 }

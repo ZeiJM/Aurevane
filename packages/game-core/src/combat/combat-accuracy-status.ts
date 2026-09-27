@@ -5,6 +5,7 @@ import type {
   CombatStatusDefinition,
   CombatStatusInstance,
 } from './actions'
+import { usesUnboundedEffectApplications } from './effect-application-rules'
 
 /** Pure accuracy statuses deliberately cannot duplicate other per-source status behavior. */
 export function validateCombatAccuracyStatusDefinition(status: CombatStatusDefinition): void {
@@ -66,9 +67,6 @@ export function collectCombatStatusIdentityIssues(
     if (status.sourceScopedMark !== undefined && status.sourceScopedMark !== true) {
       issues.push({ field, message: 'Source-scoped Mark marker must be true when supplied.' })
     }
-    if (status.sourceScopedMark === true && status.stacks !== 1) {
-      issues.push({ field, message: 'Source-scoped Mark cannot stack.' })
-    }
     if (
       first &&
       (first.sourceScopedMark !== true ||
@@ -106,6 +104,7 @@ export function assertValidCombatAccuracyStatusState(
   content: CombatContentCatalog,
 ): void {
   const definitions = new Map(content.statuses.map((status) => [status.id, status]))
+  const unbounded = usesUnboundedEffectApplications(state)
   for (const row of state.statusState) {
     for (const status of row.statuses) {
       const definition = definitions.get(status.statusId)
@@ -116,26 +115,54 @@ export function assertValidCombatAccuracyStatusState(
         !definition ||
         (status.sourceScopedMark === true) !== isMark ||
         status.statusVersion !== definition.version ||
-        status.stacks !== 1 ||
+        !Number.isSafeInteger(status.stacks) ||
+        status.stacks < 1 ||
+        (!unbounded && status.stacks !== 1) ||
         status.remainingOwnerTurnStarts > definition.durationOwnerTurnStarts
       ) {
         throw new TypeError(
-          'Current accuracy status must match its pinned definition, source scope, stack and duration.',
+          'Current accuracy status must match its pinned definition, source scope, applications and duration.',
         )
       }
     }
   }
 }
 
-/** Non-stacking magnitudes: only the strongest eligible Mark and strongest Blind contribute. */
+/** Rules v5 accumulates every application; v1-v4 retain strongest-only accuracy behavior. */
 export function combatAccuracyStatusModifier(
   state: CombatEncounterState,
   actorId: string,
   targetId: string,
   content: CombatContentCatalog,
 ): number {
-  let mark = 0
-  let blind = 0
+  const unbounded = usesUnboundedEffectApplications(state)
+  if (!unbounded) {
+    let mark = 0
+    let blind = 0
+    for (const row of state.statusState) {
+      if (row.combatantId !== actorId && row.combatantId !== targetId) continue
+      for (const status of row.statuses) {
+        const definition = content.statuses.find(
+          (candidate) =>
+            candidate.id === status.statusId && candidate.version === status.statusVersion,
+        )
+        if (row.combatantId === actorId) {
+          blind = Math.max(blind, definition?.blindAccuracyPenaltyBasisPoints ?? 0)
+        }
+        if (
+          row.combatantId === targetId &&
+          status.sourceScopedMark === true &&
+          status.sourceCombatantId === actorId
+        ) {
+          mark = Math.max(mark, definition?.markAccuracyBonusBasisPoints ?? 0)
+        }
+      }
+    }
+    return mark - blind
+  }
+
+  let mark = 0n
+  let blind = 0n
   for (const row of state.statusState) {
     if (row.combatantId !== actorId && row.combatantId !== targetId) continue
     for (const status of row.statuses) {
@@ -144,16 +171,20 @@ export function combatAccuracyStatusModifier(
           candidate.id === status.statusId && candidate.version === status.statusVersion,
       )
       if (row.combatantId === actorId) {
-        blind = Math.max(blind, definition?.blindAccuracyPenaltyBasisPoints ?? 0)
+        blind +=
+          BigInt(definition?.blindAccuracyPenaltyBasisPoints ?? 0) * BigInt(status.stacks)
       }
       if (
         row.combatantId === targetId &&
         status.sourceScopedMark === true &&
         status.sourceCombatantId === actorId
       ) {
-        mark = Math.max(mark, definition?.markAccuracyBonusBasisPoints ?? 0)
+        mark += BigInt(definition?.markAccuracyBonusBasisPoints ?? 0) * BigInt(status.stacks)
       }
     }
   }
-  return mark - blind
+  const modifier = mark - blind
+  if (modifier > BigInt(Number.MAX_SAFE_INTEGER)) return Number.MAX_SAFE_INTEGER
+  if (modifier < BigInt(Number.MIN_SAFE_INTEGER)) return Number.MIN_SAFE_INTEGER
+  return Number(modifier)
 }

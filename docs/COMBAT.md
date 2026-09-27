@@ -36,7 +36,7 @@ This ticket supplies kernel calculation, validation and forecast data, not publi
 
 ## P4.K4 Reflect kernel boundary — 2026-09-15
 
-The current-kernel `reflectBasisPoints` status field is optional for historical compatibility and requires positive/reactive metadata and an integer from 1 to 10000. Active stacks and definitions combine up to 100% per defender. Reflect aggregates actual hostile direct-command HP loss after incoming mitigation, Barrier and overkill, floors the percentage once per defender, and does not inherit Absorb's minimum-1 recovery rule. Zero results emit no damage event.
+The `reflectBasisPoints` status field is optional for historical compatibility and requires positive/reactive metadata and an integer from 1 to 10000. v1-v4 combine active applications up to 100% per defender; current v5 removes that aggregate application cap. Reflect aggregates actual hostile direct-command HP loss after incoming mitigation, Barrier and overkill, floors the percentage once per defender, and does not inherit Absorb's minimum-1 recovery rule. Zero results emit no damage event.
 
 Original command receipts are shared with Absorb HP/MP without recycling reaction output. Reflect deals fixed damage to the source attacker without an accuracy roll or another Armor/Ward/modifier pass. The existing first Barrier slice remains direct-command-only: attacker Barrier does not intercept reactive Reflect output in this version. Reflect is excluded from Damage History, Absorb and further Reflect triggers. Periodic damage, Burn backlash, friendly fire, self-cost and system output do not qualify. Unsupported generic self-damage remains rejected.
 
@@ -46,13 +46,29 @@ When Reflect defeats the current actor but the battle continues, the successor r
 
 This is a kernel primitive, not a published roster or balance change. No published Skill/status catalog, player UI, AI policy, schema or deployment is activated by this slice. Current player forecasts do not yet display reactive returns; forecast/AI integration must be completed before authored Reflect content is published through the later migration and acceptance gates. Existing AP, targeting, direct-damage calculations and historical definitions remain protected.
 
+## Current repeated-effect application rule — combat rules v5 — 2026-09-27
+
+Combat-rules v5 makes repeated persistent effect applications a universal rule rather than a per-effect feature. There is no authored gameplay application-count cap for current v5 battles. Each quantitative application contributes its authored magnitude; binary/discrete effects remain binary in outcome, and genuine system/resource bounds still apply afterward (for example HP/MP maxima and the 10-AP minimum movement cost).
+
+This is rules-versioned rather than retroactive. New current stat-driven battles use v5. Already-pinned v1-v4 snapshots retain their historical status caps, Poison/Burn replacement, maximum-three Bleed behavior, recovery replacement, strongest-only Mark/Blind treatment, combined conditional-damage budget, and +/-40 next-round Initiative limit.
+
+Current v5 behavior includes:
+- Guarded, Exposed, Lowered Guard and other persistent statuses may receive additional applications without consulting their historical `maximumStacks` metadata. Shared-duration status rows still refresh their authored duration on a new application.
+- Mark and Blind contribute their accuracy magnitude once per active application. Percentage damage/healing modifiers, movement AP modifiers and next-round Initiative likewise account for every active application.
+- Bleed, Poison and Burn preserve independent applications. Each Poison keeps its own movement remainder; each Burn keeps its own decay stage; each Bleed keeps its own timer.
+- Multi-turn HP/MP recovery schedules coexist instead of replacing another schedule from the same action.
+- Reflect and Absorb percentages combine every current v5 application without the historical 100% combination cap. Actual HP/MP recovery and HP loss remain bounded by the affected resource state.
+- Current Curse/Amplify copying preserves all eligible v5 application counts and typed DoT applications. Historical v1-v4 copy behavior remains pinned.
+
+Player-facing descriptions state what an effect does; they do not advertise "stacking" as a separate characteristic. When a count is useful in battle presentation, use the effect name with a compact multiplier such as `×2`.
+
 ## Phase 4 roster and effect implementation — 2026-09-12
 
 The published seventeen-Discipline roster contains 136 regular Skills, 17 pure Essences and all 136 unordered Resonance pairs. Eight learned Skills per mature library remain distinct from four battle selections. Full mixed builds use 1+3, 2+2 or 3+1; Essence and Resonance are exclusive. The gameplay-tag continuation below adds versions of existing Skills without adding selectable slots or rewriting frozen battles. See `PHASE_4_COMPLETENESS_AUDIT.md` and `PHASE_4_TICKETS.md` for candidate verification and live release status.
 
-Existing named statuses include Burn, Bleed, Poison, Regeneration, Slow, Root, Reckless, Fortified, Challenged, Marked and Warded. Conditioned outgoing/incoming damage evaluates each attacker/recipient pair, using a 50–200% combined budget for the new modifiers. Guarded/Exposed/Lowered Guard remain separate historical multipliers. New percentage statuses are single-stack; Reckless and Fortified keep their benefit and drawback together.
+Existing named statuses include Burn, Bleed, Poison, Regeneration, Slow, Root, Reckless, Fortified, Challenged, Marked and Warded. Under the historical v4 rule recorded by this section, conditioned outgoing/incoming damage used a 50–200% combined budget and many percentage statuses had one-application metadata. Current v5 supersedes only those application-count/aggregate-cap semantics; Reckless and Fortified still keep their benefit and drawback together.
 
-Periodic HP effects tick at affected turn end, before completion; they cannot revive a defeated unit. Root blocks movement while leaving actions/facing available. Slow adds 10 AP per tile within the normal Movement allowance. Cleanse removes only named statuses. Mature Skill damage resolves each hit against each actual recipient's Armor (physical) or Ward (mystic). New mystic attacks have bounded authored MP costs. Repeated quantitative effects halve, discrete one-stack/cleanse repeats are omitted, and AP/MP costs remain unchanged.
+Periodic HP effects tick at affected turn end, before completion; they cannot revive a defeated unit. Root blocks movement while leaving actions/facing available. Slow adds 10 AP per tile within the normal Movement allowance. Cleanse removes only named statuses. Mature Skill damage resolves each hit against each actual recipient's Armor (physical) or Ward (mystic). New mystic attacks have bounded authored MP costs. Consecutive use still halves quantitative Skill output; an authored one-application status grant therefore rounds to zero on the repeat adapter, while discrete/cleanse repeats are omitted and AP/MP costs remain unchanged.
 
 Normal advanced acquisition uses listed Foundation Mastery prerequisites and 4/2/2 learned milestones at Initiate/Practiced/Adept. Mastery Trials on Standard/High award up to 50 XP for an eligible victory using two different Primary regular Skills across at least three Primary Skill commands and no player timeout. The database checks immutable origin/build and committed events; claims are atomic and idempotent. Stages are 100/300/600/1,000 XP, with all eight regular Skills demonstrated for normal Master. Owner-authorized testing access permits immediate published-roster testing independently of earned XP, stage and release eligibility. Ordinary sparring grants no Mastery XP. The 36-identity Discipline Atlas is inside Profile → Discipline Management; unpublished nodes and later authored Mastery Rites remain planned.
 
@@ -111,17 +127,17 @@ At K2 introduction, broad coefficient assignment had not yet occurred and the th
 
 The typed gameplay tags are Scorched, Frozen, Conductive, Wet, Bleeding, Marked, Guarded, Inspired, Hexed, Invisible, Exposed, Poisoned, Fortified, Summoned, Airborne and Displaced. Existing Burn, Bleed and Poison map to Scorched, Bleeding and Poisoned without changing their historical status IDs. Authored requirements and conditional damage consume these tags explicitly.
 
-- Water Skills apply Wet only when authored to do so. The first positive storm hit per recipient per command receives a 20% bonus from Wet or Conductive, within the existing combined modifier budget. The conditions do not double the bonus. Conductive is consumed; Wet remains.
+- Water Skills apply Wet only when authored to do so. In v5 the first positive storm hit per recipient per command gains 20% for each active Wet or Conductive application. Conductive is consumed; Wet remains.
 - Positive fire damage removes Wet and Frozen statuses. Independently, fire on an affected Frozen tile converts that overlay to Steam, including empty tiles and either team's tiles.
-- Inspired adds 10% outgoing damage within the same combined budget. Hexed reduces incoming direct and periodic healing by 25%; it does not change ordinary revive effects. Summoned provides temporary, dispellable spirit protection that reduces incoming damage by 15% within the combined budget; it creates no extra actor or turn.
+- Each Inspired application adds its 10% outgoing modifier. Each Hexed application applies its 25% incoming-healing reduction; ordinary revive effects remain separate. Summoned provides temporary, dispellable spirit protection that reduces incoming damage by 15% per application; it creates no extra actor or turn.
 - Invisible blocks hostile direct unit selection. It does not prevent a ground or area effect from hitting the unit. Taking positive damage or committing the holder's damaging command breaks concealment, including a missed basic attack.
 - Frozen terrain adds 10 AP per tile entered, on top of base terrain and Slow costs. Airborne ignores only this temporary Frozen surcharge; it does not bypass Root, occupancy, elevation, base terrain or the separate Movement allowance.
-- Steam blocks line of sight through intermediate tiles, following the existing endpoint convention. Frozen and Steam affect both teams, preserve base terrain and expire after two round boundaries. Reapplication refreshes duration without stacking; at most one overlay occupies a tile.
+- Steam blocks line of sight through intermediate tiles, following the existing endpoint convention. Frozen and Steam are discrete tile overlays rather than counted status applications: they affect both teams, preserve base terrain, expire after two round boundaries, refresh on reapplication, and at most one overlay occupies a tile.
 - A one-tile push moves directly away from the caster along the dominant axis, with a horizontal tie-break. Bounds, passability, vacancy, elevation and Root still apply. Failure does not move the unit or refund costs. Success preserves facing/resources and records Displaced for one owner turn start; it grants no extra turn.
 
-The newly introduced status instances last two owner turn starts unless specified otherwise; refreshing a single-stack status does not stack its modifier. Preview and commit share effect resolution. Ground casts submit tile intent, and only explicitly authored terrain/elemental actions can resolve without an affected unit. Existing primary-unit Resonance payoffs retain their scope: a ground cast preserves that setup for a later unit-targeted Skill, and empty ground cannot farm an actor reward. Consecutive repeats omit discrete terrain creation/displacement just as they omit other discrete benefits, while quantitative effects halve at unchanged AP/MP cost.
+The newly introduced status instances last two owner turn starts unless specified otherwise. In v5 a new application increases the active count and refreshes the shared authored duration. Preview and commit share effect resolution. Ground casts submit tile intent, and only explicitly authored terrain/elemental actions can resolve without an affected unit. Existing primary-unit Resonance payoffs retain their scope: a ground cast preserves that setup for a later unit-targeted Skill, and empty ground cannot farm an actor reward. Consecutive repeats omit discrete terrain creation/displacement just as they omit other discrete benefits, while quantitative effects halve at unchanged AP/MP cost.
 
-Authored Skill facing multipliers accept up to 22,000 basis points so the existing Perfect Opening Essence's 2.2× rear payoff can execute. Basic attack facing and combined conditional modifier caps remain 20,000; these are separate limits.
+Authored Skill facing multipliers accept up to 22,000 basis points so the existing Perfect Opening Essence's 2.2× rear payoff can execute. Basic-attack facing remains separately authored; the historical v4 20,000 combined conditional-modifier cap does not apply to v5 application accumulation.
 
 ## Current selected-Technique and repeat-use authority — 2026-09-11 synchronization
 
@@ -296,14 +312,11 @@ After the Basic Attack hit roll, current direct damage follows the shared determ
 
 ### Guard — 30 AP
 
-Guard applies one stack of **15% incoming-damage reduction for 2 authoritative turns** in the
-current validation rules. Guarded may be reapplied up to three stacks; each application spends AP,
-adds a stack until the cap, and refreshes the shared authoritative duration.
+Guard applies **15% incoming-damage reduction for 2 authoritative turns** per application in current v5 battles. Reapplying Guard spends AP, adds another active application without an authored count cap, and refreshes the shared authoritative duration.
 
 The duration follows authoritative turn progression, not client animation timing.
 
-Released buffs and debuffs use their authored stack cap rather than a universal one-stack block.
-Lowered Guard uses the same three-stack cap and retains its one-owner-turn-start duration.
+Current v5 buffs and debuffs use the shared unbounded application rule. Lowered Guard retains its one-owner-turn-start duration and applies its 2.5× incoming-damage multiplier once per active application. Historical v1-v4 snapshots retain their old caps.
 
 ### Recover — 50 AP
 
@@ -536,20 +549,18 @@ Historical snapshots may omit K3 provenance. Omitted provenance remains valid; i
 
 Following the approved September 12 reactive-effects design, new status definitions may opt into
 `markAccuracyBonusBasisPoints` or `blindAccuracyPenaltyBasisPoints`. The baseline is 1500 basis
-points (15 percentage points); this first authoring policy accepts integer magnitudes from 1 to 3000. They are separate, single-stack, negative, ordinary accuracy statuses. Other status behaviors
-must remain separate definitions so source-specific Mark instances cannot multiply unrelated effects.
+points (15 percentage points); this first authoring policy accepts integer magnitudes from 1 to 3000. They are separate negative, ordinary accuracy statuses. In v5 repeated applications contribute repeatedly; other status behaviors remain separate definitions so source-specific Mark instances cannot multiply unrelated effects.
 
 Current Mark instances use optional `sourceScopedMark: true` in the existing status-state rows.
 A source/target/definition relationship refreshes independently. Different sources coexist in stable
 status-ID/source-ID order; ordinary historical status IDs remain unique. Catalog-bound validation
-checks the marker, pinned version, stack count and remaining duration. Explicit removal by status ID
+checks the marker, pinned version, active application count and remaining duration. Explicit removal by status ID
 cleanses every matching source. Current Mark expiry receipts include the expiring source; historical
 expiry event shapes are unchanged. K3 provenance refreshes only the applying source's Mark.
 
 Skill and Basic Attack hit chance share the same additive adjustment: actor Accuracy minus target
 Evasion, plus the Skill modifier and the actor's eligible Mark, minus the actor's Blind, then clamp
-to 0–100%. Alternate definitions cannot stack magnitudes: use the strongest applicable Mark for
-that source/target and the strongest Blind on the actor. Their independent remaining durations
+to 0–100%. v1-v4 use the strongest applicable Mark for that source/target and the strongest Blind on the actor; v5 adds the magnitude from every active application before the final hit-chance clamp. Their independent remaining durations
 are preserved; weaker effects may contribute after a stronger definition expires or is removed.
 Mark does not benefit allies. A target being Blind does not reduce its attacker's accuracy.
 
@@ -595,9 +606,7 @@ Self-copy and an empty eligible donor are illegal before spending anything. A mi
 still spends its ordinary costs but neither copies nor reattributes a status. Automatic Hit and
 preview RNG purity are unchanged.
 
-The receiving status uses the pinned definition, copied remaining duration, and bounded stacks.
-An existing receiver status combines stacks up to its cap and retains the longer of its current
-and incoming remaining duration; no copy refills the definition's full timer. Source-scoped Marks
+The receiving status uses the pinned definition and copied remaining duration. In current v5, an existing receiver status adds every copied application without an authored count cap and retains the longer of its current and incoming remaining duration; no copy refills the definition's full timer. v1-v4 retain their historical bounded-copy behavior. Source-scoped Marks
 rebind to the Curse caster and preserve other receiver sources. Donor Marks that become one
 relationship after rebinding are deduplicated, taking the longest remaining duration and stable
 source order for ties. Copied/inherited K3 lineage identifies the selected donor and prior receiver
@@ -654,16 +663,14 @@ repeat-use/publication, AI and broader copying remain separate gates; no publish
 
 ## Curse Bleed copy state (staged typed-effect extension)
 
-Current Bleed authoring may explicitly set `curseCopyable: true | false` per independent stack.
-The optional policy persists with that stack; omitted historical Bleed remains valid and non-copyable,
+Current Bleed authoring may explicitly set `curseCopyable: true | false` per independent application.
+The optional policy persists with that application; omitted historical Bleed remains valid and non-copyable,
 and malformed authoring or saved values fail closed.
 
-A pure single-unit Curse copies every explicitly eligible donor Bleed stack in stable donor
+A pure single-unit Curse copies every explicitly eligible donor Bleed application in stable donor
 application order while leaving the donor unchanged. Each copy preserves the donor's current damage
 per tick and remaining ticks, rebinds source combatant/action to Curse, and is explicitly copyable.
-Each receiver insertion uses the existing canonical maximum-three-stack rule: when full, replace the
-fewest-remaining stack and break ties by oldest application order. Because copies are inserted
-sequentially, a later donor may replace an earlier same-command copy. Copying itself causes no damage;
+In v1-v4 each receiver insertion retains the historical maximum-three replacement rule. In v5 every eligible copied application remains independently active; no same-command donor is displaced merely because other applications already exist. Copying itself causes no damage;
 normal independent end-turn ticks, expiry and Cleanse continue afterward.
 
 K3 reserves Bleed copy ordinals after ordinary statuses, Poison and Burn, one ordinal for every

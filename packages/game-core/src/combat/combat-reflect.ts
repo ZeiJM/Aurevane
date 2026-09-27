@@ -126,7 +126,15 @@ function activeReflectBasisPoints(
     )
     if (definition?.reflectBasisPoints === undefined) continue
     validateCombatStatusDefinition(definition)
-    rate = Math.min(REFLECT_BASIS_POINTS, rate + definition.reflectBasisPoints * instance.stacks)
+    const added = BigInt(definition.reflectBasisPoints) * BigInt(instance.stacks)
+    const combined = BigInt(rate) + added
+    rate = usesUnboundedEffectApplications(state)
+      ? Number(
+          combined > BigInt(Number.MAX_SAFE_INTEGER)
+            ? BigInt(Number.MAX_SAFE_INTEGER)
+            : combined,
+        )
+      : Math.min(REFLECT_BASIS_POINTS, Number(combined))
   }
   return rate
 }

@@ -39,8 +39,10 @@ import {
   applyCurrentPoisonState,
   currentBleedStacks,
   currentBurnInstance,
+  currentBurnInstances,
   currentPoisonEndTurnDamage,
   currentPoisonInstance,
+  currentPoisonInstances,
   hasCurrentBleed,
   hasCurrentBurn,
   hasCurrentPoison,
@@ -53,6 +55,7 @@ import {
   validateCurrentPoisonEffect,
 } from './combat-dots'
 import { validateCombatTemporarySkillState, type CombatEffectState } from './combat-effect-state'
+import { usesUnboundedEffectApplications } from './effect-application-rules'
 import {
   validateCombatEffectInstanceProvenance,
   type CombatEffectInstanceProvenance,
@@ -786,7 +789,12 @@ export function applyCurrentBurnBacklash(
   const actor = getCombatant(state.tactical.battle, actorId)
   if (actor.hp <= 0) return { state, events: [] }
 
-  const hpAfter = Math.max(0, actor.hp - CURRENT_BURN_BACKLASH_DAMAGE)
+  const activeBurns = currentBurnInstances(state, actorId).length
+  const backlashDamage = multiplyClampedSafeInteger(
+    CURRENT_BURN_BACKLASH_DAMAGE,
+    usesUnboundedEffectApplications(state) ? activeBurns : Math.min(activeBurns, 1),
+  )
+  const hpAfter = Math.max(0, actor.hp - backlashDamage)
   const damageEvent: CombatResolutionEvent = {
     event: 'damage_applied',
     actionId: 'status.burn.backlash.current.v1',
@@ -954,21 +962,19 @@ function collectNextRoundInitiativeModifiers(
   state: CombatEncounterState,
   content: CombatContentCatalog,
 ): NonNullable<BattleState['roundInitiativeModifiers']> {
+  const unbounded = usesUnboundedEffectApplications(state)
   return state.statusState.flatMap((row) => {
-    const amount = Math.max(
-      -40,
-      Math.min(
-        40,
-        row.statuses.reduce(
-          (sum, status) =>
-            sum +
-            (getStatusDefinition(content, status.statusId, status.statusVersion)
-              .nextRoundInitiative ?? 0),
-          0,
-        ),
-      ),
-    )
-    return amount === 0 ? [] : [{ combatantId: row.combatantId, amount }]
+    const amount = row.statuses.reduce((sum, status) => {
+      const perApplication =
+        getStatusDefinition(content, status.statusId, status.statusVersion).nextRoundInitiative ?? 0
+      const applications = unbounded ? status.stacks : Math.min(status.stacks, 1)
+      const next = BigInt(sum) + BigInt(perApplication) * BigInt(applications)
+      if (next > BigInt(Number.MAX_SAFE_INTEGER)) return Number.MAX_SAFE_INTEGER
+      if (next < BigInt(Number.MIN_SAFE_INTEGER)) return Number.MIN_SAFE_INTEGER
+      return Number(next)
+    }, 0)
+    const effective = unbounded ? amount : Math.max(-40, Math.min(40, amount))
+    return effective === 0 ? [] : [{ combatantId: row.combatantId, amount: effective }]
   })
 }
 
@@ -1028,7 +1034,7 @@ export function endCombatTurn(
     (hp, status) => {
       const periodic = getStatusDefinition(content, status.statusId, status.statusVersion).endOfTurn
       if (!periodic || hp <= 0) return hp
-      const amount = periodic.amount * status.stacks
+      const amount = multiplyClampedSafeInteger(periodic.amount, status.stacks)
       return periodic.type === 'damage'
         ? Math.max(0, hp - amount)
         : Math.min(outgoing.maxHp, hp + incomingHealingAmount(state, outgoingId, amount, content))
@@ -1776,21 +1782,29 @@ function applyEffect(
 
   if (effect.type === 'damage') {
     const target = getCombatant(state.tactical.battle, recipientId)
-    const stormBonus =
-      effect.element === 'storm' &&
-      !stormRecipients.has(recipientId) &&
-      (hasGameplayTag(state, recipientId, 'Wet', content) ||
-        hasGameplayTag(state, recipientId, 'Conductive', content))
+    const stormApplications =
+      effect.element === 'storm' && !stormRecipients.has(recipientId)
+        ? statusApplicationCount(state, recipientId, ['wet', 'conductive'])
+        : 0
+    const effectiveStormApplications = usesUnboundedEffectApplications(state)
+      ? stormApplications
+      : Math.min(stormApplications, 1)
+    const stormMultiplier = Number(
+      [
+        BigInt(Number.MAX_SAFE_INTEGER),
+        10_000n + BigInt(effectiveStormApplications) * 2_000n,
+      ].reduce((minimum, value) => (value < minimum ? value : minimum)),
+    )
     const amount = resolveDamageAmount(
       state,
       actorId,
       recipientId,
       effect,
       content,
-      stormBonus ? 12_000 : 10_000,
+      stormMultiplier,
       critical,
     )
-    if (stormBonus && amount > 0) stormRecipients.add(recipientId)
+    if (effectiveStormApplications > 0 && amount > 0) stormRecipients.add(recipientId)
     const barrier = absorbDirectDamageWithBarrier(state, recipientId, amount)
     const hpAfter = Math.max(0, target.hp - barrier.remainingDamage)
     const updated = withUpdatedCombatant(barrier.state, recipientId, { ...target, hp: hpAfter })
@@ -1804,7 +1818,7 @@ function applyEffect(
             [
               'Invisible',
               ...(effect.element === 'fire' ? (['Wet', 'Frozen'] as const) : []),
-              ...(stormBonus ? (['Conductive'] as const) : []),
+              ...(stormApplications > 0 ? (['Conductive'] as const) : []),
             ],
             content,
           )
@@ -1954,7 +1968,9 @@ function resolveDamageAmount(
   }
 
   if (
-    (state.statBridge?.rulesVersion === 3 || state.statBridge?.rulesVersion === 4) &&
+    (state.statBridge?.rulesVersion === 3 ||
+      state.statBridge?.rulesVersion === 4 ||
+      state.statBridge?.rulesVersion === 5) &&
     actorId !== recipientId &&
     amount > 0
   ) {
@@ -1983,9 +1999,11 @@ function resolveDamageAmount(
   for (const status of getStatusRow(state, recipientId).statuses) {
     const definition = getStatusDefinition(content, status.statusId, status.statusVersion)
     if (effect.piercing === true && definition.damageTakenMultiplierBasisPoints < 10_000) continue
-    for (let stack = 0; stack < status.stacks; stack += 1) {
-      amount = scaleByBasisPoints(amount, definition.damageTakenMultiplierBasisPoints)
-    }
+    amount = scaleByBasisPointsRepeated(
+      amount,
+      definition.damageTakenMultiplierBasisPoints,
+      status.stacks,
+    )
   }
 
   amount = scaleByBasisPoints(
@@ -2009,9 +2027,13 @@ function applyStatusState(
   assertPositiveSafeInteger(stacks, 'status stacks')
   const definition = getStatusDefinitionById(content, statusId)
   const existing = getStatus(state, recipientId, statusId, sourceCombatantId)
-  const nextStacks = existing
-    ? addClampedSafeInteger(existing.stacks, stacks, 1, definition.maximumStacks)
-    : Math.min(definition.maximumStacks, stacks)
+  const nextStacks = usesUnboundedEffectApplications(state)
+    ? existing
+      ? addClampedSafeInteger(existing.stacks, stacks, 1, Number.MAX_SAFE_INTEGER)
+      : stacks
+    : existing
+      ? addClampedSafeInteger(existing.stacks, stacks, 1, definition.maximumStacks)
+      : Math.min(definition.maximumStacks, stacks)
   const nextStatus: CombatStatusInstance = existing
     ? {
         ...existing,
@@ -2115,7 +2137,7 @@ function resolveEndOfTurnStatuses(
     // Periodic values are fixed, do not roll accuracy, and do not trigger ordinary on-hit modifiers.
     const target = getCombatant(nextState.tactical.battle, combatantId)
     if (target.hp > 0) {
-      const amount = definition.endOfTurn.amount * status.stacks
+      const amount = multiplyClampedSafeInteger(definition.endOfTurn.amount, status.stacks)
       const hpAfter =
         definition.endOfTurn.type === 'damage'
           ? Math.max(0, target.hp - amount)
@@ -2179,9 +2201,10 @@ function resolveCurrentEndOfTurnDots(
   let nextState = state
   const events: CombatResolutionEvent[] = []
 
-  const poison = currentPoisonInstance(nextState, combatantId)
   let target = getCombatant(nextState.tactical.battle, combatantId)
-  if (poison && target.hp > 0) {
+  for (const poison of currentPoisonInstances(nextState, combatantId)) {
+    target = getCombatant(nextState.tactical.battle, combatantId)
+    if (target.hp <= 0) break
     const hpAfter = Math.max(0, target.hp - CURRENT_POISON_DAMAGE)
     nextState = withUpdatedCombatant(nextState, combatantId, { ...target, hp: hpAfter })
     events.push({
@@ -2245,14 +2268,15 @@ function resolveCurrentEndOfTurnDots(
 
   const burnTurn = advanceCurrentBurnEndTurn(nextState, combatantId)
   nextState = burnTurn.state
-  if (burnTurn.instance && burnTurn.damage > 0) {
+  for (const application of burnTurn.applications) {
     target = getCombatant(nextState.tactical.battle, combatantId)
-    const hpAfter = Math.max(0, target.hp - burnTurn.damage)
+    if (target.hp <= 0) break
+    const hpAfter = Math.max(0, target.hp - application.damage)
     nextState = withUpdatedCombatant(nextState, combatantId, { ...target, hp: hpAfter })
     events.push({
       event: 'damage_applied',
       actionId: 'status.burn.current.v1',
-      sourceCombatantId: burnTurn.instance.sourceCombatantId,
+      sourceCombatantId: application.instance.sourceCombatantId,
       targetCombatantId: combatantId,
       amount: target.hp - hpAfter,
       hpBefore: target.hp,
@@ -2261,7 +2285,7 @@ function resolveCurrentEndOfTurnDots(
     if (hpAfter < target.hp) {
       const revealed = removeGameplayTags(
         nextState,
-        burnTurn.instance.sourceCombatantId,
+        application.instance.sourceCombatantId,
         combatantId,
         'status.burn.current.v1',
         ['Invisible'],
@@ -2688,24 +2712,21 @@ function validateCombatContentCatalog(content: CombatContentCatalog): void {
         throw new TypeError('Invalid gameplay tags.')
       for (const tag of status.gameplayTags) validateGameplayTag(tag)
     }
-    if (status.damageModifiers?.length && status.maximumStacks !== 1)
-      throw new TypeError('Conditional damage statuses must be single-stack.')
     if (
       status.nextRoundInitiative !== undefined &&
       (!Number.isSafeInteger(status.nextRoundInitiative) ||
         Math.abs(status.nextRoundInitiative) > 40 ||
         status.nextRoundInitiative === 0 ||
-        status.maximumStacks !== 1 ||
         status.endOfTurn)
     )
       throw new RangeError(
-        'Round initiative status must be single-stack, non-periodic and bounded to +/-40.',
+        'Round initiative status must be non-periodic and bounded to +/-40 per application.',
       )
     if (status.endOfTurn) {
       assertKnownString(status.endOfTurn.type, ['damage', 'healing'], 'periodic effect')
       assertPositiveSafeInteger(status.endOfTurn.amount, 'periodic amount')
-      if (status.endOfTurn.amount > 100 || status.maximumStacks > 3)
-        throw new RangeError('Periodic status exceeds its bounded magnitude.')
+      if (status.endOfTurn.amount > 100)
+        throw new RangeError('Periodic status exceeds its bounded per-application magnitude.')
     }
     if (status.movement) {
       if (status.movement.blocked !== undefined && typeof status.movement.blocked !== 'boolean')
@@ -2749,6 +2770,27 @@ function scaleByBasisPoints(value: number, basisPoints: number): number {
     throw new RangeError('Scaled combat value exceeds the safe integer range.')
   }
   return Number(scaled)
+}
+
+function scaleByBasisPointsRepeated(value: number, basisPoints: number, applications: number): number {
+  assertNonNegativeSafeInteger(value, 'combat value')
+  assertNonNegativeSafeInteger(basisPoints, 'combat basis points')
+  assertPositiveSafeInteger(applications, 'effect applications')
+  if (basisPoints === COMBAT_BASIS_POINTS) return value
+  let result = value
+  for (let index = 0; index < applications && result > 0; index += 1) {
+    const next = scaleByBasisPoints(result, basisPoints)
+    if (next === result) return result
+    result = next
+  }
+  return result
+}
+
+function multiplyClampedSafeInteger(value: number, multiplier: number): number {
+  assertNonNegativeSafeInteger(value, 'combat value')
+  assertPositiveSafeInteger(multiplier, 'effect applications')
+  const total = BigInt(value) * BigInt(multiplier)
+  return Number(total > BigInt(Number.MAX_SAFE_INTEGER) ? BigInt(Number.MAX_SAFE_INTEGER) : total)
 }
 
 function scaleRatioToBasisPoints(current: number, maximum: number): number {
@@ -2889,15 +2931,31 @@ function samePosition(a: GridPosition, b: GridPosition): boolean {
   return a.x === b.x && a.y === b.y
 }
 
+function statusApplicationCount(
+  state: CombatEncounterState,
+  combatantId: string,
+  statusIds: readonly string[],
+): number {
+  const ids = new Set(statusIds)
+  return getStatusRow(state, combatantId).statuses
+    .filter((status) => ids.has(status.statusId))
+    .reduce((total, status) => {
+      const next = BigInt(total) + BigInt(status.stacks)
+      return next > BigInt(Number.MAX_SAFE_INTEGER) ? Number.MAX_SAFE_INTEGER : Number(next)
+    }, 0)
+}
+
 function incomingHealingAmount(
   state: CombatEncounterState,
   recipientId: string,
   amount: number,
   content: CombatContentCatalog,
 ): number {
-  return hasGameplayTag(state, recipientId, 'Hexed', content)
-    ? scaleByBasisPoints(amount, 7_500)
-    : amount
+  const hexedApplications = statusApplicationCount(state, recipientId, ['hexed'])
+  const applications = usesUnboundedEffectApplications(state)
+    ? hexedApplications
+    : Math.min(hexedApplications, 1)
+  return applications > 0 ? scaleByBasisPointsRepeated(amount, 7_500, applications) : amount
 }
 
 function applyDisplacement(
@@ -3060,49 +3118,50 @@ export function resolveCombatMovementStepEffects(
   combatantId: string,
   content: CombatContentCatalog,
 ): CombatResolutionTransition {
-  const poison = currentPoisonInstance(state, combatantId)
   const advanced = advanceCurrentPoisonMovement(state, combatantId, 1)
-  if (!poison || advanced.triggeredTicks === 0) return { state: advanced.state, events: [] }
+  if (advanced.triggered.length === 0) return { state: advanced.state, events: [] }
 
   let nextState = advanced.state
   const events: CombatResolutionEvent[] = []
-  for (let index = 0; index < advanced.triggeredTicks; index += 1) {
-    const target = getCombatant(nextState.tactical.battle, combatantId)
-    if (target.hp <= 0) break
-    const hpAfter = Math.max(0, target.hp - CURRENT_POISON_DAMAGE)
-    const defeatsCurrentActor =
-      hpAfter === 0 &&
-      nextState.tactical.battle.lifecycle === 'active' &&
-      nextState.tactical.battle.currentTurn?.combatantId === combatantId
-    const defeatTransition = defeatsCurrentActor
-      ? defeatCurrentCombatant(nextState.tactical.battle, combatantId)
-      : null
-    nextState = defeatTransition
-      ? withBattle(nextState, defeatTransition.state)
-      : withUpdatedCombatant(nextState, combatantId, { ...target, hp: hpAfter })
-    events.push({
-      event: 'damage_applied',
-      actionId: 'status.poison.current.v1',
-      sourceCombatantId: poison.sourceCombatantId,
-      targetCombatantId: combatantId,
-      amount: target.hp - hpAfter,
-      hpBefore: target.hp,
-      hpAfter,
-    })
+  for (const trigger of advanced.triggered) {
+    for (let index = 0; index < trigger.ticks; index += 1) {
+      const target = getCombatant(nextState.tactical.battle, combatantId)
+      if (target.hp <= 0) break
+      const hpAfter = Math.max(0, target.hp - CURRENT_POISON_DAMAGE)
+      const defeatsCurrentActor =
+        hpAfter === 0 &&
+        nextState.tactical.battle.lifecycle === 'active' &&
+        nextState.tactical.battle.currentTurn?.combatantId === combatantId
+      const defeatTransition = defeatsCurrentActor
+        ? defeatCurrentCombatant(nextState.tactical.battle, combatantId)
+        : null
+      nextState = defeatTransition
+        ? withBattle(nextState, defeatTransition.state)
+        : withUpdatedCombatant(nextState, combatantId, { ...target, hp: hpAfter })
+      events.push({
+        event: 'damage_applied',
+        actionId: 'status.poison.current.v1',
+        sourceCombatantId: trigger.instance.sourceCombatantId,
+        targetCombatantId: combatantId,
+        amount: target.hp - hpAfter,
+        hpBefore: target.hp,
+        hpAfter,
+      })
 
-    if (hpAfter < target.hp) {
-      const revealed = removeGameplayTags(
-        nextState,
-        poison.sourceCombatantId,
-        combatantId,
-        'status.poison.current.v1',
-        ['Invisible'],
-        content,
-      )
-      nextState = revealed.state
-      events.push(...revealed.events)
+      if (hpAfter < target.hp) {
+        const revealed = removeGameplayTags(
+          nextState,
+          trigger.instance.sourceCombatantId,
+          combatantId,
+          'status.poison.current.v1',
+          ['Invisible'],
+          content,
+        )
+        nextState = revealed.state
+        events.push(...revealed.events)
+      }
+      if (defeatTransition) events.push(...defeatTransition.events)
     }
-    if (defeatTransition) events.push(...defeatTransition.events)
   }
   return { state: nextState, events }
 }
@@ -3124,7 +3183,11 @@ function scheduleAfterRecovery(
     amountPerTick,
     remainingFutureTicks: ticks - 1,
   }
-  const state = replaceRecoverySchedule(transition.state, recovery)
+  const state = replaceRecoverySchedule(
+    transition.state,
+    recovery,
+    usesUnboundedEffectApplications(transition.state) ? 'append' : 'legacy',
+  )
   if (state === transition.state) return transition
   return {
     state,

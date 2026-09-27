@@ -38,7 +38,7 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
     'wet',
     'Wet',
     'Debuff',
-    'Storm damage gains a single 20% bonus per action against Wet or Conductive. Fire removes Wet.',
+    'Storm damage gains 20% for each active Wet or Conductive effect. Fire removes Wet.',
     { gameplayTags: ['Wet'] },
   ),
   status(
@@ -52,7 +52,7 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
     'conductive',
     'Conductive',
     'Debuff',
-    'Storm damage gains a single 20% bonus per action against Wet or Conductive, consuming Conductive.',
+    'Storm damage gains 20% for each active Wet or Conductive effect, consuming Conductive.',
     { gameplayTags: ['Conductive'] },
   ),
   status(
@@ -124,7 +124,7 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
     'borrowed-hour',
     'Borrowed Hour',
     'Buff',
-    'Gain 40 Initiative for the next round only. Combined tempo offsets cap at +40 or -40. No extra turn or AP is granted.',
+    'Gain 40 Initiative for the next round only. No extra turn or AP is granted.',
     { nextRoundInitiative: 40 },
   ),
   status(
@@ -245,18 +245,18 @@ const legacyDescriptions: Record<
     name: 'Guarded',
     kind: 'Buff',
     description:
-      'Each stack reduces incoming damage by 15%, up to three stacks. Reapplying adds a stack and refreshes the duration.',
+      'Reduces incoming damage by 15%.',
   },
   exposed: {
     name: 'Exposed',
     kind: 'Debuff',
-    description: 'Take 15% more damage. Reapplying refreshes the duration; does not stack.',
+    description: 'Take 15% more damage.',
   },
   'lowered-guard': {
     name: 'Lowered Guard',
     kind: 'Debuff',
     description:
-      'Each stack multiplies incoming damage by 2.5×, up to three stacks. Applied after a genuine PvP turn-timer expiry.',
+      'Incoming damage is multiplied by 2.5×. Applied after a genuine PvP turn-timer expiry.',
   },
 }
 export function combatStatusDetails(
@@ -277,8 +277,8 @@ export function combatStatusDetails(
 export function combatStatusDuration(id: string): string {
   const status = PHASE4_STATUSES.find((candidate) => candidate.id === id)
   if (status?.nextRoundInitiative !== undefined)
-    return 'Consumed when the next round starts; the resulting order lasts for that round. Reapplying does not stack.'
+    return 'Consumed when the next round starts; the resulting order lasts for that round.'
   if (status?.endOfTurn)
-    return `Lasts ${status.durationOwnerTurnStarts} end-of-turn ticks; reapplying refreshes the remaining ticks.`
+    return `Lasts ${status.durationOwnerTurnStarts} end-of-turn ticks.`
   return `Expires at the start of the affected unit’s ${status?.durationOwnerTurnStarts === 1 || id === 'lowered-guard' ? 'next' : 'second upcoming'} turn.`
 }
