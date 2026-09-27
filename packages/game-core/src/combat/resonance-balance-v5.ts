@@ -140,9 +140,10 @@ function secondaryEffect(seed: number): CombatEffectDefinition | null {
 }
 
 function compactDescription(definition: ResonanceDefinition, effectCount: number): string {
-  const setup = definition.trigger.setup.requiredTags.join(' + ')
-  const payoff = definition.trigger.payoff.requiredTags.join(' + ')
-  return `${definition.trigger.setup.sourceDisciplineId} ${setup} primes ${definition.trigger.payoff.sourceDisciplineId} ${payoff}; the next matching payoff gains ${effectCount === 1 ? 'a resonance effect' : 'a two-part resonance payoff'}.`
+  const title = (value: string) => value.charAt(0).toUpperCase() + value.slice(1)
+  const setup = definition.trigger.setup
+  const payoff = definition.trigger.payoff
+  return `${definition.name} links ${title(setup.sourceDisciplineId)} ${setup.requiredTags.join(' + ')} into a ${title(payoff.sourceDisciplineId)} ${payoff.requiredTags.join(' + ')} follow-through with ${effectCount === 1 ? 'one focused payoff' : 'a two-part payoff'}.`
 }
 
 export function rebalanceResonanceDefinition(
