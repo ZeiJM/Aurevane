@@ -129,8 +129,7 @@ describe('owner v5 Skill rebalance', () => {
       apCost: 45,
       requirements: [{ kind: 'target-status-present', statusId: 'exposed' }],
     })
-    const ordinaryDamage =
-      ordinary.effects.find((effect) => effect.type === 'damage')?.amount ?? 0
+    const ordinaryDamage = ordinary.effects.find((effect) => effect.type === 'damage')?.amount ?? 0
     const gatedDamage = gated.effects.find((effect) => effect.type === 'damage')?.amount ?? 0
 
     expect(gatedDamage).toBeGreaterThanOrEqual(ordinaryDamage)
