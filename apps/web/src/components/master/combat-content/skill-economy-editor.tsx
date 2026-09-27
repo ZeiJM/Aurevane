@@ -6,11 +6,12 @@ import styles from './combat-content-editor.module.css'
 
 export type SkillEconomyDraft = Pick<
   MatureSkillDefinition,
-  'apCost' | 'mpCost' | 'accuracyMode' | 'accuracyModifierBasisPoints'
+  'apCost' | 'mpCost' | 'accuracyMode' | 'accuracyModifierBasisPoints' | 'cooldown'
 >
 
 export interface SkillEconomyEditorProps {
   readonly value: SkillEconomyDraft
+  readonly requirementGated: boolean
   readonly onChange: (value: SkillEconomyDraft) => void
 }
 
@@ -19,7 +20,11 @@ function integer(value: string, fallback: number): number {
   return Number.isSafeInteger(parsed) ? parsed : fallback
 }
 
-export function SkillEconomyEditor({ value, onChange }: SkillEconomyEditorProps) {
+export function SkillEconomyEditor({
+  value,
+  requirementGated,
+  onChange,
+}: SkillEconomyEditorProps) {
   const accuracyMode = value.accuracyMode ?? 'automatic'
 
   return (
@@ -59,6 +64,32 @@ export function SkillEconomyEditor({ value, onChange }: SkillEconomyEditorProps)
               })
             }
           />
+        </label>
+
+        <label className={styles.field}>
+          <span>Cooldown</span>
+          <input
+            aria-label="Cooldown (turns)"
+            type="number"
+            min={1}
+            max={3}
+            value={value.cooldown.ownerTurns}
+            disabled={requirementGated}
+            onChange={(event) =>
+              onChange({
+                ...value,
+                cooldown: {
+                  ...value.cooldown,
+                  ownerTurns: integer(event.currentTarget.value, value.cooldown.ownerTurns),
+                },
+              })
+            }
+          />
+          <small className={styles.fieldHint}>
+            {requirementGated
+              ? 'No runtime cooldown: this Skill already has a use requirement.'
+              : 'Current combat rules allow 1–3 owner turns.'}
+          </small>
         </label>
 
         <label className={styles.field}>
