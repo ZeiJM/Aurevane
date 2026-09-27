@@ -130,9 +130,7 @@ describe('P3.6 versioned pure Essence framework', () => {
       const definition = resolveEssenceForBuild(disciplineId, null)
       if (!definition) throw new Error(`Expected current Essence for ${disciplineId}.`)
 
-      const ordinary = regularSkills.filter(
-        (skill) => skill.sourceDisciplineId === disciplineId,
-      )
+      const ordinary = regularSkills.filter((skill) => skill.sourceDisciplineId === disciplineId)
       const averageOrdinaryAp =
         ordinary.reduce((sum, skill) => sum + skill.apCost, 0) / Math.max(1, ordinary.length)
 
@@ -148,14 +146,20 @@ describe('P3.6 versioned pure Essence framework', () => {
       if (definition.skill.requirements.length > 0) {
         expect(definition.skill.cooldown, definition.essenceId).toBeNull()
       } else {
-        expect(definition.skill.cooldown?.ownerTurns, definition.essenceId).toBeGreaterThanOrEqual(1)
+        expect(definition.skill.cooldown?.ownerTurns, definition.essenceId).toBeGreaterThanOrEqual(
+          1,
+        )
         expect(definition.skill.cooldown?.ownerTurns, definition.essenceId).toBeLessThanOrEqual(3)
       }
 
       for (const effect of definition.skill.effects) {
         expect(effect.durationTurns, definition.essenceId).toBeGreaterThanOrEqual(0)
         expect(effect.durationTurns, definition.essenceId).toBeLessThanOrEqual(4)
-        if (effect.type === 'damage' || effect.type === 'healing' || effect.type === 'barrier-change') {
+        if (
+          effect.type === 'damage' ||
+          effect.type === 'healing' ||
+          effect.type === 'barrier-change'
+        ) {
           expect(effect.amount, definition.essenceId).toBeGreaterThanOrEqual(1)
           expect(effect.amount, definition.essenceId).toBeLessThanOrEqual(20)
         }
