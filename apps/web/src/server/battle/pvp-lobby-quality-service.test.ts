@@ -338,10 +338,10 @@ describe('P3.7 direct PvP committed build snapshots', () => {
       },
     }
     const combatContentResolver = {
-      async resolveCurrentSkillDefinition(skillId) {
+      async resolveCurrentSkillDefinition(skillId: string) {
         return resolveMatureSkillVersion(skillId)
       },
-      async resolvePinnedSkillDefinition(skillId, contentVersion) {
+      async resolvePinnedSkillDefinition(skillId: string, contentVersion: number) {
         return resolveMatureSkillVersion(skillId, contentVersion)
       },
     }
