@@ -98,6 +98,10 @@ function focusAttributes(disciplineId: string): readonly CharacterAttributeId[] 
   return foundationDisciplineAttributePolicy(disciplineId)?.focusAttributes ?? []
 }
 
+function committedDisciplineSummary(summary: string): string {
+  return summary.replace(/\s*Focus:\s*[^.]+\.?\s*$/i, '').trim()
+}
+
 function deltaDirection(current: number, proposed: number): DeltaDirection {
   if (proposed > current) return 'increase'
   if (proposed < current) return 'decrease'
@@ -535,7 +539,7 @@ export function CharacterDisciplineBuildPanel({
                       <div>
                         <span>Primary Discipline</span>
                         <strong>{current.definition.name}</strong>
-                        <p>{current.definition.summary}</p>
+                        <p>{committedDisciplineSummary(current.definition.summary)}</p>
                       </div>
                     </article>
                     {currentSecondary ? (
@@ -547,7 +551,7 @@ export function CharacterDisciplineBuildPanel({
                         <div>
                           <span>Secondary Discipline</span>
                           <strong>{currentSecondary.name}</strong>
-                          <p>{currentSecondary.summary}</p>
+                          <p>{committedDisciplineSummary(currentSecondary.summary)}</p>
                         </div>
                       </article>
                     ) : (
@@ -646,16 +650,6 @@ export function CharacterDisciplineBuildPanel({
                       <b>● Committed</b>
                     </header>
                     <div className={styles.previewIdentity}>
-                      {currentSlotDefinition ? (
-                        <FoundationDisciplineSigil
-                          disciplineId={currentSlotDefinition.id}
-                          className={styles.previewSigil}
-                        />
-                      ) : (
-                        <span className={styles.previewLock} aria-hidden="true">
-                          ▣
-                        </span>
-                      )}
                       <div>
                         <strong>{currentSlotDefinition?.name ?? 'Locked'}</strong>
                         {currentSlotDefinition ? (
@@ -681,16 +675,6 @@ export function CharacterDisciplineBuildPanel({
                       <b data-preview="true">● Preview</b>
                     </header>
                     <div className={styles.previewIdentity}>
-                      {proposedSlotDefinition ? (
-                        <FoundationDisciplineSigil
-                          disciplineId={proposedSlotDefinition.id}
-                          className={styles.previewSigil}
-                        />
-                      ) : (
-                        <span className={styles.previewLock} aria-hidden="true">
-                          ▣
-                        </span>
-                      )}
                       <div>
                         <strong>{proposedSlotDefinition?.name ?? 'None'}</strong>
                         {proposedSlotDefinition ? (

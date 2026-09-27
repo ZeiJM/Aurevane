@@ -379,6 +379,8 @@
   color: #1f3544;
   background: #f3efe6;
   font: 600 0.875rem/1.1 var(--av-font-display);
+  text-align: center;
+  text-align-last: center;
 }
 
 .slotSelector select:disabled {
@@ -463,8 +465,6 @@
 
 .previewIdentity {
   display: grid;
-  grid-template-columns: 3.7rem minmax(0, auto);
-  gap: 0.6rem;
   align-items: center;
   justify-content: center;
   text-align: center;
