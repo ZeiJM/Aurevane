@@ -2183,7 +2183,7 @@ function resolveCurrentEndOfTurnDots(
   const poison = currentPoisonInstance(nextState, combatantId)
   let target = getCombatant(nextState.tactical.battle, combatantId)
   if (poison && target.hp > 0) {
-    const hpAfter = Math.max(0, target.hp - CURRENT_POISON_DAMAGE * poison.stacks)
+    const hpAfter = Math.max(0, target.hp - CURRENT_POISON_DAMAGE * (poison.stacks ?? 1))
     nextState = withUpdatedCombatant(nextState, combatantId, { ...target, hp: hpAfter })
     events.push({
       event: 'damage_applied',
@@ -3067,7 +3067,7 @@ export function resolveCombatMovementStepEffects(
   for (let index = 0; index < advanced.triggeredTicks; index += 1) {
     const target = getCombatant(nextState.tactical.battle, combatantId)
     if (target.hp <= 0) break
-    const hpAfter = Math.max(0, target.hp - CURRENT_POISON_DAMAGE * poison.stacks)
+    const hpAfter = Math.max(0, target.hp - CURRENT_POISON_DAMAGE * (poison.stacks ?? 1))
     const defeatsCurrentActor =
       hpAfter === 0 &&
       nextState.tactical.battle.lifecycle === 'active' &&
