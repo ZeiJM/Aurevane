@@ -69,7 +69,14 @@ export function skillEffectDescription(effect: CombatEffectDefinition): string {
     }
     case 'apply-status': {
       const status = combatStatusDetails(effect.statusId)
-      return `Apply ${effect.stacks} ${gameplayStatusName(effect.statusId)} ${effect.stacks === 1 ? 'stack' : 'stacks'} to ${target}. ${status.description} ${combatStatusDuration(effect.statusId)}`
+      const preview = previewEffect(effect)
+      const duration =
+        (effect.durationTurns ?? 0) > 0
+          ? `Lasts ${effect.durationTurns} ${effect.durationTurns === 1 ? 'turn' : 'turns'}.`
+          : combatStatusDuration(effect.statusId)
+      const explanation =
+        effect.potencyBasisPoints !== undefined ? preview.explanation : status.description
+      return `Apply ${effect.stacks} ${gameplayStatusName(effect.statusId)} ${effect.stacks === 1 ? 'stack' : 'stacks'} to ${target}. ${explanation} ${duration}`
     }
   }
 }
