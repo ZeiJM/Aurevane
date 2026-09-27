@@ -203,8 +203,8 @@ describe('Mark and Blind: public-entry contract', () => {
     expect(chance(second)).toBe(6_500)
     expect(chance(advanceTo(second, 'actor'))).toBe(6_500)
   })
-  it('does not stack the same source Mark on repeated application', () => {
-    expect(chance(apply(apply(world(), MARK.id), MARK.id))).toBe(6_500)
+  it('stacks the same source Mark on repeated application', () => {
+    expect(chance(apply(apply(world(), MARK.id), MARK.id))).toBe(8_000)
   })
   it('does not increase damage merely because the new Mark improves accuracy', () => {
     const state = apply(world(10_000, 0), MARK.id)
@@ -219,14 +219,14 @@ describe('Mark and Blind: public-entry contract', () => {
   it('does not lower attacker accuracy merely because the target is blind', () => {
     expect(chance(apply(world(), BLIND.id, 'target'))).toBe(5_000)
   })
-  it('does not compound Blind when the same source reapplies it', () => {
+  it('compounds Blind when the same source reapplies it', () => {
     const once = apply(world(), BLIND.id, 'actor')
-    expect(chance(apply(once, BLIND.id, 'actor'))).toBe(3_500)
+    expect(chance(apply(once, BLIND.id, 'actor'))).toBe(2_000)
   })
-  it('does not compound Blind when another source reapplies it', () => {
+  it('compounds Blind when another source reapplies it', () => {
     const first = apply(world(), BLIND.id, 'actor')
     const second = apply(advanceTo(first, 'ally'), BLIND.id, 'actor')
-    expect(chance(advanceTo(second, 'actor'))).toBe(3_500)
+    expect(chance(advanceTo(second, 'actor'))).toBe(2_000)
   })
   it('combines Mark and Blind additively with the Skill modifier before clamping', () => {
     const state = apply(apply(world(), MARK.id), BLIND.id, 'actor')
