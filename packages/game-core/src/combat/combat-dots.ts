@@ -195,7 +195,7 @@ export function validateCurrentBleedEffect(effect: {
   }
   const total = BigInt(effect.damagePerTick) * BigInt(effect.ticks)
   if (total > BigInt(CURRENT_BLEED_MAX_RAW_TOTAL)) {
-    throw new RangeError('Bleed raw per-stack total must not exceed 10 damage.')
+    throw new RangeError('Bleed raw per-application total must not exceed 10 damage.')
   }
 }
 
