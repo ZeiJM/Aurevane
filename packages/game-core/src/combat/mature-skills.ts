@@ -1073,7 +1073,7 @@ export function validateMatureSkillDefinition(
       override?.cooldownOwnerTurns !== undefined &&
       (!Number.isSafeInteger(override.cooldownOwnerTurns) ||
         override.cooldownOwnerTurns < 1 ||
-        override.cooldownOwnerTurns > 3)
+        (usesV5BalanceRules && override.cooldownOwnerTurns > 3))
     ) {
       issues.push(`overrides.${context}.cooldownOwnerTurns`)
     }
