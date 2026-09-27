@@ -3171,7 +3171,7 @@ function scheduleAfterRecovery(
     amountPerTick,
     remainingFutureTicks: ticks - 1,
   }
-  const state = replaceRecoverySchedule(transition.state, recovery)
+  const state = replaceRecoverySchedule(transition.state, recovery, 'append')
   if (state === transition.state) return transition
   return {
     state,
