@@ -140,6 +140,7 @@ export function SkillEffectListEditor({
   onChange,
 }: SkillEffectListEditorProps) {
   const [newEffectType, setNewEffectType] = useState<CombatEffectType>('damage')
+  const alignedDescriptions = alignedEffectDescriptions(value, effectDescriptions)
 
   return (
     <fieldset className={styles.typedGroup}>
@@ -149,9 +150,7 @@ export function SkillEffectListEditor({
         className={styles.effectList}
         data-effect-sequence={value.map((effect) => effect.type).join('|')}
       >
-        {value.map((effect, index) => {
-          const alignedDescriptions = alignedEffectDescriptions(value, effectDescriptions)
-          return (
+        {value.map((effect, index) => (
           <article className={styles.effectCard} key={`${index}:${effect.type}`}>
             <header className={styles.effectHeader}>
               <div>
@@ -228,8 +227,7 @@ export function SkillEffectListEditor({
               </small>
             </label>
           </article>
-          )
-        })}
+        ))}
       </div>
 
       <div className={styles.effectAdd}>
@@ -251,7 +249,7 @@ export function SkillEffectListEditor({
           type="button"
           onClick={() =>
             onChange(appendCombatEffect(value, newEffectType), [
-              ...alignedEffectDescriptions(value, effectDescriptions),
+              ...alignedDescriptions,
               null,
             ])
           }
