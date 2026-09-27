@@ -201,7 +201,9 @@ function compactDescription(definition: ResonanceDefinition, effectCount: number
 
 function setupUtility(definition: ResonanceDefinition): number {
   return clamp(
-    10 + definition.trigger.setup.requiredTags.length * 2 + definition.trigger.payoff.requiredTags.length,
+    10 +
+      definition.trigger.setup.requiredTags.length * 2 +
+      definition.trigger.payoff.requiredTags.length,
     10,
     16,
   )
