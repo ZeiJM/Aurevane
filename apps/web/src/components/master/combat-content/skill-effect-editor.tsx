@@ -117,7 +117,8 @@ function damageEditor(value: DamageEffect, onChange: (next: CombatEffectDefiniti
         <input
           aria-label="Damage amount"
           type="number"
-          min={0}
+          min={vengeance !== undefined ? 0 : 1}
+          max={20}
           step={1}
           value={value.amount}
           disabled={vengeance !== undefined}
@@ -418,7 +419,8 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
             <input
               aria-label="Healing amount"
               type="number"
-              min={0}
+              min={1}
+              max={20}
               step={1}
               value={value.amount}
               onChange={(event) =>
@@ -465,6 +467,8 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
             <input
               aria-label="MP delta"
               type="number"
+              min={-20}
+              max={20}
               step={1}
               value={value.delta}
               onChange={(event) =>
@@ -774,6 +778,7 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
               aria-label="Barrier amount"
               type="number"
               min={1}
+              max={20}
               step={1}
               value={value.amount}
               onChange={(event) =>
