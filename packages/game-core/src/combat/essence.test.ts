@@ -11,7 +11,7 @@ import {
   resolveEssenceForBuild,
   validateEssenceDefinition,
 } from './essence'
-import { currentMysticMpCost } from './mature-skills'
+import { currentMysticMpCost, latestEnabledMatureSkills } from './mature-skills'
 import { createPv1fTemporaryResources, readPv1fActionEconomy } from './pv1f-action-economy'
 import {
   createStatDrivenCombatEncounterState,
@@ -117,6 +117,58 @@ describe('P3.6 versioned pure Essence framework', () => {
     expect(lifebinder?.essenceId).toBe('essence.lifebinder.verdant-rupture')
     expect(resolveEssenceForBuild('vanguard', 'lifebinder')).toBeNull()
     expect(resolveEssenceForBuild('unknown-discipline', null)).toBeNull()
+  })
+
+  it('keeps all current Essences as bounded higher-cost combat-v5 signature Skills', () => {
+    const disciplineIds = [
+      ...new Set(P36_REPRESENTATIVE_ESSENCES.map((row) => row.sourceDisciplineId)),
+    ]
+    const regularSkills = latestEnabledMatureSkills()
+
+    expect(disciplineIds).toHaveLength(17)
+    for (const disciplineId of disciplineIds) {
+      const definition = resolveEssenceForBuild(disciplineId, null)
+      if (!definition) throw new Error(`Expected current Essence for ${disciplineId}.`)
+
+      const ordinary = regularSkills.filter(
+        (skill) => skill.sourceDisciplineId === disciplineId,
+      )
+      const averageOrdinaryAp =
+        ordinary.reduce((sum, skill) => sum + skill.apCost, 0) / Math.max(1, ordinary.length)
+
+      expect(validateEssenceDefinition(definition), definition.essenceId).toEqual([])
+      expect(definition.flavorLine?.trim().length, definition.essenceId).toBeGreaterThan(0)
+      expect(definition.skill.authoring.validationTags, definition.essenceId).toContain(
+        'owner-rebalance-v5',
+      )
+      expect(definition.skill.apCost, definition.essenceId).toBeGreaterThanOrEqual(55)
+      expect(definition.skill.apCost, definition.essenceId).toBeLessThanOrEqual(75)
+      expect(definition.skill.apCost, definition.essenceId).toBeGreaterThan(averageOrdinaryAp)
+
+      if (definition.skill.requirements.length > 0) {
+        expect(definition.skill.cooldown, definition.essenceId).toBeNull()
+      } else {
+        expect(definition.skill.cooldown?.ownerTurns, definition.essenceId).toBeGreaterThanOrEqual(1)
+        expect(definition.skill.cooldown?.ownerTurns, definition.essenceId).toBeLessThanOrEqual(3)
+      }
+
+      for (const effect of definition.skill.effects) {
+        expect(effect.durationTurns, definition.essenceId).toBeGreaterThanOrEqual(0)
+        expect(effect.durationTurns, definition.essenceId).toBeLessThanOrEqual(4)
+        if (effect.type === 'damage' || effect.type === 'healing' || effect.type === 'barrier-change') {
+          expect(effect.amount, definition.essenceId).toBeGreaterThanOrEqual(1)
+          expect(effect.amount, definition.essenceId).toBeLessThanOrEqual(20)
+        }
+        if (effect.type === 'resource-change') {
+          expect(Math.abs(effect.delta), definition.essenceId).toBeGreaterThanOrEqual(1)
+          expect(Math.abs(effect.delta), definition.essenceId).toBeLessThanOrEqual(20)
+        }
+        if (effect.power !== undefined) {
+          expect(effect.power, definition.essenceId).toBeGreaterThanOrEqual(1)
+          expect(effect.power, definition.essenceId).toBeLessThanOrEqual(20)
+        }
+      }
+    }
   })
 
   it('normalizes current mystic Essence MP while retaining historical versions', () => {
