@@ -55,6 +55,7 @@ import {
   validateCurrentPoisonEffect,
 } from './combat-dots'
 import { validateCombatTemporarySkillState, type CombatEffectState } from './combat-effect-state'
+import { usesUnboundedEffectApplications } from './effect-application-rules'
 import {
   validateCombatEffectInstanceProvenance,
   type CombatEffectInstanceProvenance,
@@ -788,9 +789,10 @@ export function applyCurrentBurnBacklash(
   const actor = getCombatant(state.tactical.battle, actorId)
   if (actor.hp <= 0) return { state, events: [] }
 
+  const activeBurns = currentBurnInstances(state, actorId).length
   const backlashDamage = multiplyClampedSafeInteger(
     CURRENT_BURN_BACKLASH_DAMAGE,
-    currentBurnInstances(state, actorId).length,
+    usesUnboundedEffectApplications(state) ? activeBurns : Math.min(activeBurns, 1),
   )
   const hpAfter = Math.max(0, actor.hp - backlashDamage)
   const damageEvent: CombatResolutionEvent = {
@@ -960,16 +962,19 @@ function collectNextRoundInitiativeModifiers(
   state: CombatEncounterState,
   content: CombatContentCatalog,
 ): NonNullable<BattleState['roundInitiativeModifiers']> {
+  const unbounded = usesUnboundedEffectApplications(state)
   return state.statusState.flatMap((row) => {
     const amount = row.statuses.reduce((sum, status) => {
       const perApplication =
         getStatusDefinition(content, status.statusId, status.statusVersion).nextRoundInitiative ?? 0
-      const next = BigInt(sum) + BigInt(perApplication) * BigInt(status.stacks)
+      const applications = unbounded ? status.stacks : Math.min(status.stacks, 1)
+      const next = BigInt(sum) + BigInt(perApplication) * BigInt(applications)
       if (next > BigInt(Number.MAX_SAFE_INTEGER)) return Number.MAX_SAFE_INTEGER
       if (next < BigInt(Number.MIN_SAFE_INTEGER)) return Number.MIN_SAFE_INTEGER
       return Number(next)
     }, 0)
-    return amount === 0 ? [] : [{ combatantId: row.combatantId, amount }]
+    const effective = unbounded ? amount : Math.max(-40, Math.min(40, amount))
+    return effective === 0 ? [] : [{ combatantId: row.combatantId, amount: effective }]
   })
 }
 
@@ -1781,10 +1786,14 @@ function applyEffect(
       effect.element === 'storm' && !stormRecipients.has(recipientId)
         ? statusApplicationCount(state, recipientId, ['wet', 'conductive'])
         : 0
+    const effectiveStormApplications = usesUnboundedEffectApplications(state)
+      ? stormApplications
+      : Math.min(stormApplications, 1)
     const stormMultiplier = Number(
-      [BigInt(Number.MAX_SAFE_INTEGER), 10_000n + BigInt(stormApplications) * 2_000n].reduce(
-        (minimum, value) => (value < minimum ? value : minimum),
-      ),
+      [
+        BigInt(Number.MAX_SAFE_INTEGER),
+        10_000n + BigInt(effectiveStormApplications) * 2_000n,
+      ].reduce((minimum, value) => (value < minimum ? value : minimum)),
     )
     const amount = resolveDamageAmount(
       state,
@@ -1795,7 +1804,7 @@ function applyEffect(
       stormMultiplier,
       critical,
     )
-    if (stormApplications > 0 && amount > 0) stormRecipients.add(recipientId)
+    if (effectiveStormApplications > 0 && amount > 0) stormRecipients.add(recipientId)
     const barrier = absorbDirectDamageWithBarrier(state, recipientId, amount)
     const hpAfter = Math.max(0, target.hp - barrier.remainingDamage)
     const updated = withUpdatedCombatant(barrier.state, recipientId, { ...target, hp: hpAfter })
@@ -1959,7 +1968,9 @@ function resolveDamageAmount(
   }
 
   if (
-    (state.statBridge?.rulesVersion === 3 || state.statBridge?.rulesVersion === 4) &&
+    (state.statBridge?.rulesVersion === 3 ||
+      state.statBridge?.rulesVersion === 4 ||
+      state.statBridge?.rulesVersion === 5) &&
     actorId !== recipientId &&
     amount > 0
   ) {
@@ -2016,9 +2027,13 @@ function applyStatusState(
   assertPositiveSafeInteger(stacks, 'status stacks')
   const definition = getStatusDefinitionById(content, statusId)
   const existing = getStatus(state, recipientId, statusId, sourceCombatantId)
-  const nextStacks = existing
-    ? addClampedSafeInteger(existing.stacks, stacks, 1, Number.MAX_SAFE_INTEGER)
-    : stacks
+  const nextStacks = usesUnboundedEffectApplications(state)
+    ? existing
+      ? addClampedSafeInteger(existing.stacks, stacks, 1, Number.MAX_SAFE_INTEGER)
+      : stacks
+    : existing
+      ? addClampedSafeInteger(existing.stacks, stacks, 1, definition.maximumStacks)
+      : Math.min(definition.maximumStacks, stacks)
   const nextStatus: CombatStatusInstance = existing
     ? {
         ...existing,
@@ -2937,9 +2952,10 @@ function incomingHealingAmount(
   content: CombatContentCatalog,
 ): number {
   const hexedApplications = statusApplicationCount(state, recipientId, ['hexed'])
-  return hexedApplications > 0
-    ? scaleByBasisPointsRepeated(amount, 7_500, hexedApplications)
-    : amount
+  const applications = usesUnboundedEffectApplications(state)
+    ? hexedApplications
+    : Math.min(hexedApplications, 1)
+  return applications > 0 ? scaleByBasisPointsRepeated(amount, 7_500, applications) : amount
 }
 
 function applyDisplacement(
