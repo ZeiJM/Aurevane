@@ -384,15 +384,18 @@ describe('Curse Bleed: stable donor state and universal application retention', 
     expect(result.events.filter((event) => event.event === 'damage_applied')).toEqual([])
   })
 
-  it.each([1, 2])('adds a copied application to a receiver starting with %s application(s)', (count) => {
-    let state = applyBleed(world(), 'actor', 3, 2, true, 'test.donor-single')
-    for (let index = 0; index < count; index += 1) {
-      state = applyBleed(state, 'target', 2, index + 2, false, `test.receiver-${index}`)
-    }
-    const result = cast(state)
-    expect(stacks(result.state, 'target')).toHaveLength(count + 1)
-    expect(copiedStacks(result.state)).toHaveLength(1)
-  })
+  it.each([1, 2])(
+    'adds a copied application to a receiver starting with %s application(s)',
+    (count) => {
+      let state = applyBleed(world(), 'actor', 3, 2, true, 'test.donor-single')
+      for (let index = 0; index < count; index += 1) {
+        state = applyBleed(state, 'target', 2, index + 2, false, `test.receiver-${index}`)
+      }
+      const result = cast(state)
+      expect(stacks(result.state, 'target')).toHaveLength(count + 1)
+      expect(copiedStacks(result.state)).toHaveLength(1)
+    },
+  )
 
   it('retains every receiver and donor application in stable application order', () => {
     const state = seedReceiverThree(seedDonorThree())
@@ -554,13 +557,10 @@ describe('Curse Bleed: K3 lineage and copy ordering', () => {
     const previous = stacks(state, 'target')[0]!.provenance
     const result = cast(state, context())
     expect(
-      stacks(result.state, 'target').find(
-        (stack) => stack.sourceActionId === 'test.receiver-short',
-      )?.provenance?.instanceId,
+      stacks(result.state, 'target').find((stack) => stack.sourceActionId === 'test.receiver-short')
+        ?.provenance?.instanceId,
     ).toBe(previous?.instanceId)
-    expect(copiedStacks(result.state)[0]?.provenance).not.toHaveProperty(
-      'inheritedFromInstanceId',
-    )
+    expect(copiedStacks(result.state)[0]?.provenance).not.toHaveProperty('inheritedFromInstanceId')
   })
 
   it('does not invent lineage without K3 context', () => {
@@ -633,9 +633,9 @@ describe('Curse Bleed: K3 lineage and copy ordering', () => {
     const result = cast(state, context())
     const copied = copiedStacks(result.state)
     expect(copied.map((stack) => stack.provenance?.copyOrdinal)).toEqual([0, 1, 2])
-    expect(
-      copied.every((stack) => stack.provenance?.inheritedFromInstanceId === undefined),
-    ).toBe(true)
+    expect(copied.every((stack) => stack.provenance?.inheritedFromInstanceId === undefined)).toBe(
+      true,
+    )
   })
 
   it('round-trips final copied Bleed provenance and timers through JSON', () => {
