@@ -17,7 +17,7 @@ export interface CombatDamageModifier {
   condition: DamageCondition
 }
 
-/** New modifiers share a bounded budget; historical Guarded/Exposed stacks remain separate. */
+/** Conditional modifiers share a bounded budget; every active application contributes. */
 export const CONDITIONAL_DAMAGE_MINIMUM = 5_000
 export const CONDITIONAL_DAMAGE_MAXIMUM = 20_000
 
@@ -30,9 +30,12 @@ export function conditionalDamageMultiplier(
   options: { ignoreIncomingMitigation?: boolean } = {},
 ): number {
   let numerator = BigInt(elementalMultiplier)
-  if (hasGameplayTag(state, attackerId, 'Inspired', content))
-    numerator = (numerator * 11_000n) / 10_000n
   let denominator = 1n
+  const inspiredApplications = statusApplications(state, attackerId, 'inspired')
+  for (let application = 0; application < inspiredApplications; application += 1) {
+    numerator *= 11_000n
+    denominator *= 10_000n
+  }
   for (const [ownerId, opponentId, direction] of [
     [attackerId, recipientId, 'outgoing'],
     [recipientId, attackerId, 'incoming'],
@@ -64,9 +67,10 @@ export function conditionalDamageMultiplier(
           )
         )
           continue
-        // Each new modifier is applied once per status, independently of legacy stack counts.
-        numerator *= BigInt(modifier.multiplierBasisPoints)
-        denominator *= 10_000n
+        for (let application = 0; application < status.stacks; application += 1) {
+          numerator *= BigInt(modifier.multiplierBasisPoints)
+          denominator *= 10_000n
+        }
       }
     }
   }
@@ -77,6 +81,19 @@ export function conditionalDamageMultiplier(
       : result > BigInt(CONDITIONAL_DAMAGE_MAXIMUM)
         ? BigInt(CONDITIONAL_DAMAGE_MAXIMUM)
         : result,
+  )
+}
+
+function statusApplications(
+  state: CombatEncounterState,
+  combatantId: string,
+  statusId: string,
+): number {
+  return (
+    state.statusState
+      .find((row) => row.combatantId === combatantId)
+      ?.statuses.filter((status) => status.statusId === statusId)
+      .reduce((total, status) => total + status.stacks, 0) ?? 0
   )
 }
 
