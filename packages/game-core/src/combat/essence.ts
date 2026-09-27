@@ -490,9 +490,7 @@ function v5EssenceFlavorLine(definition: EssenceDefinition): string {
   ) {
     return `A high-cost ${discipline} signature recovery with concentrated restorative power.`
   }
-  return (
-    `A high-cost ${discipline} signature utility Skill built around its defining control effects.`
-  )
+  return `A high-cost ${discipline} signature utility Skill built around its defining control effects.`
 }
 
 const V5_REBALANCED_ESSENCES = latestEnabledEssences(PRE_V5_CURRENT_ESSENCES).map(
