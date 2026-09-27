@@ -84,7 +84,7 @@ describe('Master Panel Skill effect list editor', () => {
     for (const type of effectTypes) expect(markup).toContain(`<option value="${type}"`)
     expect(markup).toContain('Player-facing effect description')
     expect(markup).toContain('aria-label="Effect 1 player-facing description"')
-    expect(markup).toContain('Presentation only. This wording never changes the authoritative combat effect.')
+    expect(markup).toContain('Leave blank to use the generated wording.')
     expect(markup).not.toContain('<textarea')
     expect(markup).not.toContain('Raw JSON')
     expect(markup).not.toContain('Script')
