@@ -10,6 +10,7 @@ function draft(overrides: Partial<SkillEconomyDraft> = {}): SkillEconomyDraft {
     mpCost: 5,
     accuracyMode: 'per-target',
     accuracyModifierBasisPoints: -750,
+    cooldown: { key: 'vanguard.forceful-strike', ownerTurns: 2 },
     ...overrides,
   }
 }
@@ -28,6 +29,8 @@ describe('Master Panel Skill economy editor', () => {
     expect(markup).toContain('min="0"')
     expect(markup).toContain('max="20"')
     expect(markup).toContain('value="5"')
+    expect(markup).toContain('aria-label="Cooldown (turns)"')
+    expect(markup).toContain('max="3"')
   })
 
   it('offers Automatic Hit and Accuracy Roll and exposes the signed modifier only for rolls', () => {
