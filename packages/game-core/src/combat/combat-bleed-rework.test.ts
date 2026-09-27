@@ -210,9 +210,9 @@ describe('current Bleed runtime', () => {
   })
 
   it('rejects authored Bleed outside 1-4 ticks or above 80 raw total', () => {
-    expect(() => validateCombatActionDefinition(action(bleed(21, 4), 'test.invalid-total'))).toThrow(
-      /Bleed raw per-stack total must not exceed 80 damage/,
-    )
+    expect(() =>
+      validateCombatActionDefinition(action(bleed(21, 4), 'test.invalid-total')),
+    ).toThrow(/Bleed raw per-stack total must not exceed 80 damage/)
     expect(() =>
       validateCombatActionDefinition(action(bleed(2, 5), 'test.invalid-duration')),
     ).toThrow(/Bleed duration ticks must be an integer between 1 and 4/)
