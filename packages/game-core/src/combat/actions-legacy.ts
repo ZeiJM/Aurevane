@@ -1777,21 +1777,24 @@ function applyEffect(
 
   if (effect.type === 'damage') {
     const target = getCombatant(state.tactical.battle, recipientId)
-    const stormBonus =
-      effect.element === 'storm' &&
-      !stormRecipients.has(recipientId) &&
-      (hasGameplayTag(state, recipientId, 'Wet', content) ||
-        hasGameplayTag(state, recipientId, 'Conductive', content))
+    const stormApplications =
+      effect.element === 'storm' && !stormRecipients.has(recipientId)
+        ? statusApplicationCount(state, recipientId, ['wet', 'conductive'])
+        : 0
+    const stormMultiplier = Math.min(
+      Number.MAX_SAFE_INTEGER,
+      10_000 + stormApplications * 2_000,
+    )
     const amount = resolveDamageAmount(
       state,
       actorId,
       recipientId,
       effect,
       content,
-      stormBonus ? 12_000 : 10_000,
+      stormMultiplier,
       critical,
     )
-    if (stormBonus && amount > 0) stormRecipients.add(recipientId)
+    if (stormApplications > 0 && amount > 0) stormRecipients.add(recipientId)
     const barrier = absorbDirectDamageWithBarrier(state, recipientId, amount)
     const hpAfter = Math.max(0, target.hp - barrier.remainingDamage)
     const updated = withUpdatedCombatant(barrier.state, recipientId, { ...target, hp: hpAfter })
@@ -1805,7 +1808,7 @@ function applyEffect(
             [
               'Invisible',
               ...(effect.element === 'fire' ? (['Wet', 'Frozen'] as const) : []),
-              ...(stormBonus ? (['Conductive'] as const) : []),
+              ...(stormApplications > 0 ? (['Conductive'] as const) : []),
             ],
             content,
           )
@@ -2908,14 +2911,29 @@ function samePosition(a: GridPosition, b: GridPosition): boolean {
   return a.x === b.x && a.y === b.y
 }
 
+function statusApplicationCount(
+  state: CombatEncounterState,
+  combatantId: string,
+  statusIds: readonly string[],
+): number {
+  const ids = new Set(statusIds)
+  return getStatusRow(state, combatantId).statuses
+    .filter((status) => ids.has(status.statusId))
+    .reduce((total, status) => {
+      const next = BigInt(total) + BigInt(status.stacks)
+      return next > BigInt(Number.MAX_SAFE_INTEGER) ? Number.MAX_SAFE_INTEGER : Number(next)
+    }, 0)
+}
+
 function incomingHealingAmount(
   state: CombatEncounterState,
   recipientId: string,
   amount: number,
   content: CombatContentCatalog,
 ): number {
-  return hasGameplayTag(state, recipientId, 'Hexed', content)
-    ? scaleByBasisPoints(amount, 7_500)
+  const hexedApplications = statusApplicationCount(state, recipientId, ['hexed'])
+  return hexedApplications > 0
+    ? scaleByBasisPointsRepeated(amount, 7_500, hexedApplications)
     : amount
 }
 
