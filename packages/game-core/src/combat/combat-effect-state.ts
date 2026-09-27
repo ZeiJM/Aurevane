@@ -51,6 +51,8 @@ export interface DamageProvenance {
 }
 
 export interface CombatOngoingRecovery {
+  /** New schedules use stable order; omitted historical single schedules remain valid. */
+  applicationOrder?: number
   kind: 'hp' | 'mp'
   sourceCombatantId: string
   targetCombatantId: string
