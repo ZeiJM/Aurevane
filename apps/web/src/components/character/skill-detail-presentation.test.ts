@@ -186,7 +186,7 @@ it('presents the standardized Technique characteristic schema without prose expa
   expect(skillTargetElevationDescription(timeLock)).not.toBe('N/A')
   expect(skillCompactRangeDescription(timeLock)).toMatch(/tile/)
   expect(skillLineOfSightDescription(timeLock)).toBe('Required')
-  expect(skillCooldownDescription()).toMatch(/turn/)
+  expect(skillCooldownDescription(timeLock)).toMatch(/turn/)
 })
 
 it('classifies Techniques only as Attack, Recovery, or Utility', () => {
@@ -228,6 +228,10 @@ it('shows conditional elemental and terrain magnitudes without treating them as 
   )
 })
 
-it('shows current repeat-use timing instead of retired authored turn cooldowns', () => {
-  expect(skillCooldownDescription()).toBe('0 turns')
+it('shows one-to-three-turn cooldowns and no cooldown for requirement-gated Skills', () => {
+  const ordinary = resolveMatureSkillVersion('vanguard.forceful-strike')!
+  const gated = resolveMatureSkillVersion('chronist.stolen-moment')!
+
+  expect(skillCooldownDescription(ordinary)).toMatch(/^[1-3] turns?$/)
+  expect(skillCooldownDescription(gated)).toBe('None')
 })
