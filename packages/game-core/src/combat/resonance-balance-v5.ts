@@ -139,6 +139,10 @@ function secondaryEffect(seed: number): CombatEffectDefinition | null {
   }
 }
 
+function resonanceFlavorLine(definition: ResonanceDefinition): string {
+  const title = (value: string) => value.charAt(0).toUpperCase() + value.slice(1)
+  return `${definition.name} turns ${title(definition.trigger.setup.sourceDisciplineId)} instinct into ${title(definition.trigger.payoff.sourceDisciplineId)} timing in one practiced rhythm.`
+}
 function compactDescription(definition: ResonanceDefinition, effectCount: number): string {
   const title = (value: string) => value.charAt(0).toUpperCase() + value.slice(1)
   const setup = definition.trigger.setup
@@ -168,6 +172,7 @@ export function rebalanceResonanceDefinition(
     ...definition,
     contentVersion: definition.contentVersion + 1,
     description: compactDescription(definition, payoffEffects.length),
+    flavorLine: resonanceFlavorLine(definition),
     trigger: {
       ...definition.trigger,
       payoffEffects: payoffEffects.slice(0, 3),
