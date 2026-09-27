@@ -65,6 +65,7 @@ describe('published Manual rule consistency', () => {
     const combat = articleText('battle-hall')
     expect(combat).toContain('authored cooldowns from 1 to 3 turns')
     expect(combat).toContain('previous consecutive-use 50% effectiveness rule is retired')
+    expect(combat).not.toContain('costs and consecutive-use reduction')
   })
 
   it('credits delivered buildcraft and PvP without promising complete content', () => {
@@ -95,4 +96,10 @@ it('publishes the Techniques guide and removes the obsolete fixed Power budget',
   expect(articleText('attributes-derived-stats')).not.toContain(
     'Skill-wide Power contribution is 25%',
   )
+  expect(text).not.toContain('before repeat-use reduction')
+  expect(text).not.toContain('Prepare repeat-use reduction')
+  expect(text).toContain('Essence and Resonance details in Nexus')
+  expect(text).toContain('Hover the active Essence or Resonance artwork')
+  expect(text).toContain('setup Discipline/tags')
+  expect(text).toContain('current v5 Skills can author Poison Power and duration')
 })
