@@ -63,6 +63,8 @@ interface SkillCommitResponse {
   error?: { message?: string }
 }
 
+type SkillCharacteristic = readonly [string, string | readonly string[]]
+
 const PROFILE_PANEL_QUERY = 'profilePanel'
 const TECHNIQUES_PANEL = 'techniques'
 const MIXED_SOURCE_MAXIMUM = 3
@@ -171,10 +173,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
         ? secondaryDiscipline.name
         : titleCase(focusedSkill.definition.sourceDisciplineId)
     : null
-  const focusedCharacteristics: readonly (readonly [
-    string,
-    string | readonly string[],
-  ])[] = focusedSkill
+  const focusedCharacteristics: readonly SkillCharacteristic[] = focusedSkill
     ? [
         ['Skill Type', skillTypeDescription(focusedSkill.definition)],
         ['Cost', skillCostDescription(focusedSkill.definition)],
