@@ -79,6 +79,7 @@ import {
 } from './pv1f-skills'
 import {
   executeStatDrivenAttack,
+  getStatDrivenOffensivePower,
   reattachStatDrivenCombatBridge,
   validateStatDrivenCombatEncounterState,
   type StatDrivenCombatEncounterState,
@@ -1186,19 +1187,88 @@ function applyCurrentMatureSkillPowerScaling(
       !effect.scaling &&
       !('vengeance' in effect && effect.vengeance !== undefined),
   ).length
-  if (unscaledDamageCount === 0) return effects
-
   const source = definition.tags.includes('mystic') ? 'mystic-power' : 'physical-power'
-  const scaling =
-    state.statBridge.rulesVersion === 3
-      ? legacySkillDamageScaling(source, unscaledDamageCount)
-      : currentSkillDamageScaling(source, unscaledDamageCount, apCost)
-  return effects.map((effect) =>
-    effect.type === 'damage' &&
-    !effect.scaling &&
-    !('vengeance' in effect && effect.vengeance !== undefined)
-      ? { ...effect, scaling }
-      : effect,
+  const damageScaling =
+    unscaledDamageCount === 0
+      ? null
+      : state.statBridge.rulesVersion === 3
+        ? legacySkillDamageScaling(source, unscaledDamageCount)
+        : currentSkillDamageScaling(source, unscaledDamageCount, apCost)
+
+  const usesV5BalanceRules = definition.authoring.validationTags.includes('owner-rebalance-v5')
+  const scalableRecoveryCount = usesV5BalanceRules
+    ? effects.filter(
+        (effect) =>
+          effect.type === 'healing' ||
+          effect.type === 'barrier-change' ||
+          effect.type === 'resource-change',
+      ).length
+    : 0
+  const recoveryScaling =
+    state.statBridge.rulesVersion === 4 && scalableRecoveryCount > 0
+      ? currentSkillDamageScaling(source, scalableRecoveryCount, apCost)
+      : null
+  const actorId = state.tactical.battle.currentTurn?.combatantId ?? null
+  const offensivePower =
+    recoveryScaling && actorId ? getStatDrivenOffensivePower(state, actorId, source) : null
+
+  return effects.map((effect) => {
+    if (
+      effect.type === 'damage' &&
+      damageScaling &&
+      !effect.scaling &&
+      !('vengeance' in effect && effect.vengeance !== undefined)
+    ) {
+      return { ...effect, scaling: damageScaling }
+    }
+    if (!recoveryScaling || offensivePower === null) return effect
+
+    if (effect.type === 'healing' || effect.type === 'barrier-change') {
+      return {
+        ...effect,
+        amount: calculateScaledRecoveryMagnitude(
+          effect.amount,
+          recoveryScaling,
+          offensivePower,
+          effect.type === 'healing' ? effect.ticks ?? 1 : 1,
+        ),
+      }
+    }
+    if (effect.type === 'resource-change') {
+      const sign = effect.delta < 0 ? -1 : 1
+      return {
+        ...effect,
+        delta:
+          sign *
+          calculateScaledRecoveryMagnitude(
+            Math.abs(effect.delta),
+            recoveryScaling,
+            offensivePower,
+            effect.ticks ?? 1,
+          ),
+      }
+    }
+    return effect
+  })
+}
+
+function calculateScaledRecoveryMagnitude(
+  authoredPower: number,
+  scaling: ReturnType<typeof currentSkillDamageScaling>,
+  offensivePower: number,
+  applications: number,
+): number {
+  const applicationCount = Math.max(1, applications)
+  return calculateScaledRawDamage(
+    authoredPower,
+    {
+      ...scaling,
+      coefficientBasisPoints: Math.max(
+        1,
+        Math.floor(scaling.coefficientBasisPoints / applicationCount),
+      ),
+    },
+    offensivePower,
   )
 }
 
