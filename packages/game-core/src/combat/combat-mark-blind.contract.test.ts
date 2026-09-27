@@ -418,7 +418,6 @@ describe('Mark and Blind: authoring and snapshot guards', () => {
     },
   )
   const invalidProfiles: Partial<AccuracyStatusFixture>[] = [
-    { maximumStacks: 2 },
     { polarity: 'positive' },
     { reactionClass: 'reactive' },
     { damageTakenMultiplierBasisPoints: 12_500 },
@@ -426,7 +425,7 @@ describe('Mark and Blind: authoring and snapshot guards', () => {
     { nextRoundInitiative: -5 },
     { blindAccuracyPenaltyBasisPoints: 1_500 },
   ]
-  it.each(invalidProfiles)('rejects mixed, stacking or nonordinary Mark definition %j', (patch) => {
+  it.each(invalidProfiles)('rejects mixed or nonordinary Mark definition %j', (patch) => {
     const definition = { ...MARK, ...patch }
     expect(() => validateCombatStatusDefinition(definition)).toThrow()
     expect(() => apply(world(), MARK.id, 'target', { statuses: [definition] })).toThrow()
@@ -497,16 +496,16 @@ describe('Mark and Blind: authoring and snapshot guards', () => {
     )
     expect(() => chance(changed)).toThrow()
   })
-  it('rejects a multi-stack current accuracy row even when only one identity exists', () => {
+  it('accepts a multi-application current accuracy row and applies every application', () => {
     const marked = apply(world(), MARK.id)
-    expect(() =>
+    expect(
       chance(
         withStatuses(
           marked,
           statuses(marked).map((row) => ({ ...row, stacks: 2 })),
         ),
       ),
-    ).toThrow()
+    ).toBe(8_000)
   })
   it('rejects a current accuracy duration exceeding its pinned definition', () => {
     const marked = apply(world(), MARK.id)
