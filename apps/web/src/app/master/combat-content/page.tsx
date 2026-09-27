@@ -4,11 +4,17 @@ import {
   type EssenceDefinition,
 } from '@aurevane/game-core/combat/essence'
 import { latestEnabledMatureSkills } from '@aurevane/game-core/combat/mature-skills'
+import {
+  resolveResonanceForPair,
+  validateResonanceDefinition,
+  type ResonanceDefinition,
+} from '@aurevane/game-core/combat/resonance'
 import type { CombatContentEditorSkillOption } from '@/components/master/combat-content/combat-content-editor'
 import {
   CombatContentAuthoringWorkspace,
 } from '@/components/master/combat-content/combat-content-authoring-workspace'
 import type { EssenceContentEditorOption } from '@/components/master/combat-content/essence-content-editor'
+import type { ResonanceContentEditorOption } from '@/components/master/combat-content/resonance-content-editor'
 import { MasterPanelShell } from '@/components/master/master-panel-shell'
 import {
   createServerCombatContentResolver,
@@ -171,6 +177,80 @@ export default async function MasterCombatContentPage() {
       left.id.localeCompare(right.id),
   )
 
+
+  const staticResonances: ResonanceDefinition[] = []
+  for (let firstIndex = 0; firstIndex < disciplineIds.length; firstIndex += 1) {
+    for (let secondIndex = firstIndex + 1; secondIndex < disciplineIds.length; secondIndex += 1) {
+      const definition = resolveResonanceForPair(
+        disciplineIds[firstIndex]!,
+        disciplineIds[secondIndex]!,
+      )
+      if (definition && !staticResonances.some((candidate) => candidate.id === definition.id)) {
+        staticResonances.push(definition)
+      }
+    }
+  }
+
+  const resonances = (
+    await mapInBatches(
+      staticResonances,
+      4,
+      async (staticDefinition): Promise<ResonanceContentEditorOption> => {
+        const [published, draft, publishedVersions] = await Promise.all([
+          store.findPublished(staticDefinition.id),
+          store.findDraft(staticDefinition.id),
+          store.listPublishedVersions(staticDefinition.id),
+        ])
+        const current =
+          published?.contentKind === 'resonance'
+            ? (structuredClone(published.definition) as unknown as ResonanceDefinition)
+            : structuredClone(staticDefinition)
+        if (validateResonanceDefinition(current).length > 0) {
+          throw new Error(`Invalid authoritative Resonance ${staticDefinition.id}.`)
+        }
+
+        const historyByVersion = new Map<
+          number,
+          ResonanceContentEditorOption['history'][number]
+        >()
+        historyByVersion.set(staticDefinition.contentVersion, {
+          contentVersion: staticDefinition.contentVersion,
+          source: 'static-baseline',
+          current: current.contentVersion === staticDefinition.contentVersion,
+          publishedAt: null,
+        })
+        for (const version of publishedVersions) {
+          if (version.contentKind !== 'resonance') continue
+          historyByVersion.set(version.contentVersion, {
+            contentVersion: version.contentVersion,
+            source: 'published',
+            current: current.contentVersion === version.contentVersion,
+            publishedAt: version.publishedAt,
+          })
+        }
+
+        const initialDraft =
+          draft?.contentKind === 'resonance'
+            ? (structuredClone(draft.definition) as unknown as ResonanceDefinition)
+            : undefined
+
+        return {
+          id: current.id,
+          label: current.name,
+          disciplinePair: current.disciplinePair,
+          currentVersion: current.contentVersion,
+          baseVersion: draft?.baseVersion ?? current.contentVersion,
+          draftVersion: draft?.draftVersion ?? null,
+          definition: current,
+          ...(initialDraft ? { initialDraft } : {}),
+          history: [...historyByVersion.values()].sort(
+            (left, right) => left.contentVersion - right.contentVersion,
+          ),
+        }
+      },
+    )
+  ).sort((left, right) => left.label.localeCompare(right.label))
+
   return (
     <MasterPanelShell
       access={access}
@@ -188,9 +268,14 @@ export default async function MasterCombatContentPage() {
             (option) =>
               `essence:${option.id}:${option.currentVersion}:${option.draftVersion ?? 'none'}`,
           ),
+          ...resonances.map(
+            (option) =>
+              `resonance:${option.id}:${option.currentVersion}:${option.draftVersion ?? 'none'}`,
+          ),
         ].join('|')}
         skills={options}
         essences={essences}
+        resonances={resonances}
       />
     </MasterPanelShell>
   )
