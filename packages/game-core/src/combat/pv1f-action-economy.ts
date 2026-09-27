@@ -949,21 +949,20 @@ export function pv1fMovementModifiers(
   },
 ) {
   const actorId = state.tactical.battle.currentTurn?.combatantId
-  const definitions = (
+  const statuses =
     state.statusState.find((row) => row.combatantId === actorId)?.statuses ?? []
-  ).map((status) =>
-    PV1F_COMBAT_CONTENT.statuses.find(
+  const statusDefinitions = statuses.map((status) => ({
+    status,
+    definition: PV1F_COMBAT_CONTENT.statuses.find(
       (definition) =>
         definition.id === status.statusId && definition.version === status.statusVersion,
     ),
-  )
-  const rooted = definitions.some((definition) => definition?.movement?.blocked)
-  const surcharge = Math.min(
-    20,
-    definitions.reduce(
-      (sum, definition) => sum + (definition?.movement?.additionalApPerTile ?? 0),
-      0,
-    ),
+  }))
+  const rooted = statusDefinitions.some(({ definition }) => definition?.movement?.blocked)
+  const surcharge = statusDefinitions.reduce(
+    (sum, { status, definition }) =>
+      sum + (definition?.movement?.additionalApPerTile ?? 0) * status.stacks,
+    0,
   )
   const airborne = Boolean(
     actorId && hasGameplayTag(state, actorId, 'Airborne', PV1F_COMBAT_CONTENT),
