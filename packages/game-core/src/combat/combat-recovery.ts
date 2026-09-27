@@ -1,5 +1,6 @@
 import type { CombatEffectDefinition, CombatEncounterIssue, CombatEncounterState } from './actions'
 import { normalizeCombatEffectState, type CombatOngoingRecovery } from './combat-effect-state'
+import { usesUnboundedEffectApplications } from './effect-application-rules'
 
 /** Shared by the live combat boundary and Master Panel validation. */
 export function validateRecoveryEffect(effect: CombatEffectDefinition): void {
@@ -49,12 +50,26 @@ function nextRecoveryOrder(rows: readonly CombatOngoingRecovery[]): number {
 export function replaceRecoverySchedule(
   state: CombatEncounterState,
   recovery: CombatOngoingRecovery,
-  mode: 'append' | 'update' = 'update',
+  mode: 'legacy' | 'append' | 'update' = 'update',
 ): CombatEncounterState {
   const effects = normalizeCombatEffectState(state.effectState)
   const alive = state.tactical.battle.combatants.some(
     (row) => row.id === recovery.targetCombatantId && row.hp > 0,
   )
+
+  if (mode === 'legacy') {
+    const key = recoveryBaseKey(recovery)
+    const remaining = effects.ongoingRecovery.filter((row) => recoveryBaseKey(row) !== key)
+    if (alive && recovery.remainingFutureTicks > 0) remaining.push({ ...recovery })
+    else if (remaining.length === effects.ongoingRecovery.length) return state
+    return {
+      ...state,
+      effectState: {
+        ...effects,
+        ongoingRecovery: remaining.sort(compareRecovery),
+      },
+    }
+  }
 
   if (mode === 'append') {
     if (!alive || recovery.remainingFutureTicks <= 0) return state
@@ -124,6 +139,7 @@ export function validateOngoingRecoveryState(
   )
     return invalid
   const ids = new Set(state.tactical.battle.combatants.map((row) => row.id))
+  const unbounded = usesUnboundedEffectApplications(state)
   const seenOrders = new Set<number>()
   const historicalKeys = new Set<string>()
   let previous: CombatOngoingRecovery | null = null
@@ -143,8 +159,9 @@ export function validateOngoingRecoveryState(
       row.remainingFutureTicks > 3
     )
       return invalid
-    if (row.applicationOrder !== undefined) {
+    if (unbounded) {
       if (
+        row.applicationOrder === undefined ||
         !Number.isSafeInteger(row.applicationOrder) ||
         row.applicationOrder < 1 ||
         seenOrders.has(row.applicationOrder)
@@ -152,6 +169,7 @@ export function validateOngoingRecoveryState(
         return invalid
       seenOrders.add(row.applicationOrder)
     } else {
+      if (row.applicationOrder !== undefined) return invalid
       const key = recoveryBaseKey(row)
       if (historicalKeys.has(key)) return invalid
       historicalKeys.add(key)
