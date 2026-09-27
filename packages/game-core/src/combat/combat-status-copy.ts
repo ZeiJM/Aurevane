@@ -334,7 +334,7 @@ export function applyCombatStatusCopies(
   const nextPoison = poison
     ? {
         targetCombatantId: receiverId,
-        stacks: addCopiedStacks(poison.previous?.stacks ?? 0, poison.donor.stacks),
+        stacks: addCopiedStacks(poison.previous?.stacks ?? 0, poison.donor.stacks ?? 1),
         sourceCombatantId: actorId,
         sourceActionId: actionId,
         profileVersion: poison.donor.profileVersion,
@@ -345,7 +345,7 @@ export function applyCombatStatusCopies(
   const nextBurn = burn
     ? {
         targetCombatantId: receiverId,
-        stacks: addCopiedStacks(burn.previous?.stacks ?? 0, burn.donor.stacks),
+        stacks: addCopiedStacks(burn.previous?.stacks ?? 0, burn.donor.stacks ?? 1),
         sourceCombatantId: actorId,
         sourceActionId: actionId,
         profileVersion: burn.donor.profileVersion,
