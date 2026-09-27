@@ -103,6 +103,7 @@ describe('Master Panel combat content editor shell', () => {
 
     expect(markup).toContain('<legend>Media</legend>')
     expect(markup).toContain('aria-label="Skill artwork hook"')
+    expect(markup).toContain('aria-label="Player-facing flavor line"')
     expect(markup).toContain('aria-label="Skill audio hook"')
     expect(markup).toContain('data-media-hook-readonly="vfx"')
     expect(markup).toContain('aria-label="Effect 1 player-facing description"')
