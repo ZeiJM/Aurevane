@@ -1,6 +1,7 @@
 import { hasGameplayTag, validateGameplayTag, type GameplayTag } from './gameplay-tags'
 import type { CombatContentCatalog, CombatEncounterState } from './actions'
 import { classifyFacingRelation } from './board'
+import { usesUnboundedEffectApplications } from './effect-application-rules'
 
 export type DamageCondition =
   | { kind: 'always' }
@@ -17,9 +18,9 @@ export interface CombatDamageModifier {
   condition: DamageCondition
 }
 
-/** Compatibility exports: accumulation itself is no longer gameplay-clamped. */
-export const CONDITIONAL_DAMAGE_MINIMUM = 0
-export const CONDITIONAL_DAMAGE_MAXIMUM = Number.MAX_SAFE_INTEGER
+/** Historical v1-v4 combined modifier budget. Rules v5 no longer clamps accumulated applications. */
+export const CONDITIONAL_DAMAGE_MINIMUM = 5_000
+export const CONDITIONAL_DAMAGE_MAXIMUM = 20_000
 
 export function conditionalDamageMultiplier(
   state: CombatEncounterState,
@@ -29,9 +30,11 @@ export function conditionalDamageMultiplier(
   elementalMultiplier = 10_000,
   options: { ignoreIncomingMitigation?: boolean } = {},
 ): number {
+  const unbounded = usesUnboundedEffectApplications(state)
   let numerator = BigInt(elementalMultiplier)
   let denominator = 1n
-  const inspiredApplications = statusApplications(state, attackerId, 'inspired')
+  const inspiredCount = statusApplications(state, attackerId, 'inspired')
+  const inspiredApplications = unbounded ? inspiredCount : Math.min(inspiredCount, 1)
   for (let application = 0; application < inspiredApplications; application += 1) {
     numerator *= 11_000n
     denominator *= 10_000n
@@ -67,7 +70,8 @@ export function conditionalDamageMultiplier(
           )
         )
           continue
-        for (let application = 0; application < status.stacks; application += 1) {
+        const applications = unbounded ? status.stacks : 1
+        for (let application = 0; application < applications; application += 1) {
           numerator *= BigInt(modifier.multiplierBasisPoints)
           denominator *= 10_000n
         }
@@ -75,6 +79,15 @@ export function conditionalDamageMultiplier(
     }
   }
   const result = numerator / denominator
+  if (!unbounded) {
+    return Number(
+      result < BigInt(CONDITIONAL_DAMAGE_MINIMUM)
+        ? BigInt(CONDITIONAL_DAMAGE_MINIMUM)
+        : result > BigInt(CONDITIONAL_DAMAGE_MAXIMUM)
+          ? BigInt(CONDITIONAL_DAMAGE_MAXIMUM)
+          : result,
+    )
+  }
   return Number(
     result > BigInt(Number.MAX_SAFE_INTEGER) ? BigInt(Number.MAX_SAFE_INTEGER) : result,
   )
