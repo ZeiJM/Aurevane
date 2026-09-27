@@ -620,11 +620,8 @@ export function evaluatePv1fMatureSkill(
     authoredAction.effects,
     authoredCost,
   )
-  const usageKey = options.repeatHistoryKey ?? definition.id
-  const repeatPenaltyApplied = lastMatureSkillId(prepared, actorId) === usageKey
-  const copyEffect = repeatPenaltyApplied
-    ? undefined
-    : authoredAction.effects.find((effect) => effect.type === 'copy')
+  const repeatPenaltyApplied = false
+  const copyEffect = authoredAction.effects.find((effect) => effect.type === 'copy')
   const baseAction: CombatActionDefinition = {
     ...authoredAction,
     id: options.actionIdOverride ?? authoredAction.id,
@@ -641,10 +638,8 @@ export function evaluatePv1fMatureSkill(
   )
   const action: CombatActionDefinition = {
     ...baseAction,
-    cooldown: undefined,
-    effects: repeatPenaltyApplied
-      ? scaleRepeatedMatureSkillEffects(defendedEffects)
-      : defendedEffects,
+    cooldown: definition.requirements.length > 0 ? undefined : authoredAction.cooldown,
+    effects: defendedEffects,
   }
   let evaluation = evaluateCombatAction(prepared, action, target, PV1F_COMBAT_CONTENT)
   if (
@@ -716,12 +711,7 @@ export function evaluatePv1fMatureSkill(
     evaluation.legal && vengeance.basis.length > 0
       ? {
           ...evaluation,
-          vengeanceBasis: vengeance.basis.map((basis) => ({
-            ...basis,
-            rawDamage: repeatPenaltyApplied
-              ? halfPositiveMagnitude(basis.rawDamage)
-              : basis.rawDamage,
-          })),
+          vengeanceBasis: vengeance.basis.map((basis) => ({ ...basis })),
         }
       : evaluation
   return {
@@ -740,7 +730,7 @@ export function executePv1fMatureSkill(
   combatContext: MatureSkillCombatContext = 'pve',
   options: Pv1fMatureSkillOptions = {},
 ): Pv1fTransition {
-  const { prepared, action, cost, evaluation, repeatPenaltyApplied } = evaluatePv1fMatureSkill(
+  const { prepared, action, cost, evaluation } = evaluatePv1fMatureSkill(
     state,
     definition,
     target,
@@ -793,7 +783,6 @@ export function executePv1fMatureSkill(
   )
   let next = reattachStatDrivenCombatBridge(resolved.state, prepared.statBridge)
   next = spendPv1fActionEconomyForActor(next, actorId, cost)
-  next = markLastMatureSkill(next, actorId, options.repeatHistoryKey ?? definition.id)
 
   let copyEvent: unknown = null
   if (evaluation.skillCopy && options.copyContext) {
@@ -1126,16 +1115,6 @@ export function resolvePv1fActionDefinition(
   throw new Error(`Unsupported PV-1F action ${actionId}.`)
 }
 
-function lastMatureSkillId(
-  state: StatDrivenCombatEncounterState,
-  combatantId: string,
-): string | null {
-  const marker = getCombatant(state, combatantId).temporaryResources.find((resource) =>
-    resource.key.startsWith(PV1F_LAST_MATURE_SKILL_RESOURCE_PREFIX),
-  )
-  return marker?.key.slice(PV1F_LAST_MATURE_SKILL_RESOURCE_PREFIX.length) ?? null
-}
-
 function clearLastMatureSkill(
   state: StatDrivenCombatEncounterState,
   combatantId: string,
@@ -1145,26 +1124,6 @@ function clearLastMatureSkill(
     (resource) => !resource.key.startsWith(PV1F_LAST_MATURE_SKILL_RESOURCE_PREFIX),
   )
   if (temporaryResources.length === combatant.temporaryResources.length) return state
-  return withCombatant(state, { ...combatant, temporaryResources })
-}
-
-function markLastMatureSkill(
-  state: StatDrivenCombatEncounterState,
-  combatantId: string,
-  skillId: string,
-): StatDrivenCombatEncounterState {
-  const combatant = getCombatant(state, combatantId)
-  const marker: BattleTemporaryResource = {
-    key: `${PV1F_LAST_MATURE_SKILL_RESOURCE_PREFIX}${skillId}`,
-    current: 1,
-    maximum: 1,
-  }
-  const temporaryResources = [
-    ...combatant.temporaryResources.filter(
-      (resource) => !resource.key.startsWith(PV1F_LAST_MATURE_SKILL_RESOURCE_PREFIX),
-    ),
-    marker,
-  ].sort((left, right) => left.key.localeCompare(right.key))
   return withCombatant(state, { ...combatant, temporaryResources })
 }
 
@@ -1196,68 +1155,6 @@ function applyCurrentMatureSkillPowerScaling(
       ? { ...effect, scaling }
       : effect,
   )
-}
-
-function scaleRepeatedMatureSkillEffects(
-  effects: readonly CombatEffectDefinition[],
-): readonly CombatEffectDefinition[] {
-  const scaled: CombatEffectDefinition[] = []
-  for (const effect of effects) {
-    if (effect.type === 'damage') {
-      scaled.push({
-        ...effect,
-        amount: halfPositiveMagnitude(effect.amount),
-        ...(effect.scaling
-          ? {
-              scaling: {
-                ...effect.scaling,
-                coefficientBasisPoints: Math.floor(effect.scaling.coefficientBasisPoints / 2),
-              },
-            }
-          : {}),
-      })
-      continue
-    }
-    if (effect.type === 'healing' || effect.type === 'barrier-change') {
-      scaled.push({ ...effect, amount: halfPositiveMagnitude(effect.amount) })
-      continue
-    }
-    if (effect.type === 'resource-change') {
-      scaled.push({ ...effect, delta: halfSignedMagnitude(effect.delta) })
-      continue
-    }
-    if (effect.type === 'bleed') {
-      scaled.push({ ...effect, damagePerTick: halfPositiveMagnitude(effect.damagePerTick) })
-      continue
-    }
-    // These effects are discrete: a consecutive repeat cannot resolve a half-strength copy.
-    if (
-      effect.type === 'remove-status' ||
-      effect.type === 'return-to-turn-start' ||
-      effect.type === 'create-terrain' ||
-      effect.type === 'displace' ||
-      effect.type === 'poison' ||
-      effect.type === 'burn' ||
-      effect.type === 'copy' ||
-      effect.type === 'copy-statuses' ||
-      effect.type === 'sensory'
-    )
-      continue
-    const stacks = Math.floor(effect.stacks / 2)
-    if (stacks > 0) scaled.push({ ...effect, stacks })
-  }
-  return scaled
-}
-
-function halfPositiveMagnitude(value: number): number {
-  if (value <= 0) return 0
-  return Math.max(1, Math.floor(value / 2))
-}
-
-function halfSignedMagnitude(value: number): number {
-  if (value === 0) return 0
-  const magnitude = Math.max(1, Math.floor(Math.abs(value) / 2))
-  return value < 0 ? -magnitude : magnitude
 }
 
 function getCombatant(state: StatDrivenCombatEncounterState, combatantId: string): BattleCombatant {
