@@ -57,6 +57,8 @@ export interface CombatOngoingRecovery {
   sourceActionId: string
   amountPerTick: number
   remainingFutureTicks: number
+  /** A recovery applied during the target's active turn must not tick again at that same turn end. */
+  skipCurrentOwnerTurnEnd?: boolean
   provenance?: CombatEffectInstanceProvenance
 }
 
