@@ -386,6 +386,11 @@
   align-content: start;
 }
 
+.attunementPanel {
+  overflow: visible;
+  z-index: 4;
+}
+
 .attunementGrid,
 .powerGrid {
   display: grid;
@@ -410,6 +415,15 @@
   background: #deddd7;
 }
 
+.attunementPreviewAnchor {
+  position: relative;
+  display: grid;
+  width: 3.35rem;
+  height: 3.35rem;
+  place-items: center;
+  outline: none;
+}
+
 .attunementArt,
 .powerGlyph {
   display: grid;
@@ -420,6 +434,88 @@
   overflow: hidden;
   border: 1px solid #9f875b;
   background: #10232f;
+}
+
+.attunementHover {
+  position: absolute;
+  z-index: 80;
+  right: calc(100% + 0.5rem);
+  bottom: 0;
+  display: grid;
+  width: min(24rem, 42vw);
+  max-height: min(29rem, 70vh);
+  gap: 0.55rem;
+  padding: 0.7rem;
+  overflow: auto;
+  border: 1px solid #425d6c;
+  border-radius: 0.16rem;
+  color: #eee4d4;
+  background: linear-gradient(145deg, #0d2532, #071721);
+  box-shadow: 0 0.8rem 2.4rem rgba(0, 0, 0, 0.32);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(0.3rem);
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease;
+}
+
+.attunementPreviewAnchor:hover > .attunementHover,
+.attunementPreviewAnchor:focus-visible > .attunementHover,
+.attunementPreviewAnchor:focus-within > .attunementHover {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.attunementHover > span {
+  color: #d5bd81;
+  font: 700 0.52rem/1 var(--av-font-body);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.attunementHover > strong {
+  color: #f3e9d8;
+  font: 600 1rem/1.1 var(--av-font-display);
+}
+
+.attunementHover dl {
+  display: grid;
+  margin: 0;
+  border: 1px solid rgba(183, 199, 212, 0.2);
+  background: rgba(4, 17, 25, 0.42);
+}
+
+.attunementHover dl > div {
+  display: grid;
+  grid-template-columns: minmax(6.2rem, 0.78fr) minmax(0, 1.35fr);
+  gap: 0.5rem;
+  padding: 0.34rem 0.46rem;
+  border-bottom: 1px solid rgba(183, 199, 212, 0.14);
+}
+
+.attunementHover dl > div:last-child {
+  border-bottom: 0;
+}
+
+.attunementHover dt {
+  color: #b8c7cc;
+  font-size: 0.6rem;
+}
+
+.attunementHover dd {
+  margin: 0;
+  color: #f0e8dc;
+  font: 600 0.6rem/1.35 var(--av-font-body);
+  overflow-wrap: anywhere;
+}
+
+.attunementHover ul {
+  display: grid;
+  gap: 0.14rem;
+  margin: 0;
+  padding-left: 1rem;
 }
 
 .attunementArt img,
@@ -550,6 +646,13 @@
 }
 
 @media (max-width: 760px) {
+  .attunementHover {
+    right: auto;
+    bottom: calc(100% + 0.45rem);
+    left: 0;
+    width: min(21rem, 84vw);
+  }
+
   .layout {
     height: auto;
     overflow: visible;
