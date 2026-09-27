@@ -919,7 +919,10 @@ export function validateMatureSkillDefinition(
     issues.push('mpCost')
   const effectDescriptions = definition.effectDescriptions as unknown
   if (effectDescriptions !== undefined) {
-    if (!Array.isArray(effectDescriptions) || effectDescriptions.length !== definition.effects.length) {
+    if (
+      !Array.isArray(effectDescriptions) ||
+      effectDescriptions.length !== definition.effects.length
+    ) {
       issues.push('effectDescriptions')
     } else {
       for (const [index, description] of effectDescriptions.entries()) {
