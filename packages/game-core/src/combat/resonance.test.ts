@@ -101,8 +101,8 @@ describe('P3.5 versioned Resonance framework', () => {
       expect(validateResonanceDefinition(definition)).toEqual([])
     }
 
-    const forward = resolveResonanceForPair('lifebinder', 'vanguard')
-    const reverse = resolveResonanceForPair('vanguard', 'lifebinder')
+    const forward = resolveResonanceForPair('lifebinder', 'vanguard', 1)
+    const reverse = resolveResonanceForPair('vanguard', 'lifebinder', 1)
     expect(forward?.id).toBe('resonance.lifebinder-vanguard.mercys-edge')
     expect(reverse?.id).toBe(forward?.id)
     expect(resolveResonanceForPair('vanguard', null)).toBeNull()
@@ -111,7 +111,7 @@ describe('P3.5 versioned Resonance framework', () => {
   })
 
   it('exposes a stable snapshot identity without embedding executable trigger state', () => {
-    const definition = resolveResonanceForPair('vanguard', 'lifebinder')
+    const definition = resolveResonanceForPair('vanguard', 'lifebinder', 1)
     if (!definition) throw new Error('Expected representative Resonance.')
     expect(resonanceSnapshotReference(definition)).toEqual({
       resonanceId: definition.id,
@@ -121,7 +121,7 @@ describe('P3.5 versioned Resonance framework', () => {
   })
 
   it('arms on a successful Lifebinder heal and gives the next Vanguard melee Skill a bounded payoff', () => {
-    const resonance = resolveResonanceForPair('vanguard', 'lifebinder')
+    const resonance = resolveResonanceForPair('vanguard', 'lifebinder', 1)
     const heal = resolveMatureSkillVersion('lifebinder.mending-light', 1)
     const strike = resolveMatureSkillVersion('vanguard.forceful-strike', 2)
     if (!resonance || !heal || !strike) throw new Error('Expected representative P3.5 content.')
@@ -166,7 +166,7 @@ describe('P3.5 versioned Resonance framework', () => {
   })
 
   it('expires an armed setup on an intervening non-payoff Discipline Skill and never loops itself', () => {
-    const resonance = resolveResonanceForPair('vanguard', 'lifebinder')
+    const resonance = resolveResonanceForPair('vanguard', 'lifebinder', 1)
     const heal = resolveMatureSkillVersion('lifebinder.mending-light', 1)
     if (!resonance || !heal) throw new Error('Expected representative P3.5 content.')
 
@@ -184,7 +184,7 @@ describe('P3.5 versioned Resonance framework', () => {
   })
 
   it('makes the armed payoff more valuable to AI without changing Skill legality', () => {
-    const resonance = resolveResonanceForPair('vanguard', 'lifebinder')
+    const resonance = resolveResonanceForPair('vanguard', 'lifebinder', 1)
     const heal = resolveMatureSkillVersion('lifebinder.mending-light', 1)
     const strike = resolveMatureSkillVersion('vanguard.forceful-strike', 2)
     if (!resonance || !heal || !strike) throw new Error('Expected representative P3.5 content.')
