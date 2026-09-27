@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 
-export type CombatContentKind = 'skill' | 'status' | 'effect-profile'
+export type CombatContentKind = 'skill' | 'essence' | 'resonance' | 'status' | 'effect-profile'
 
 export type CombatContentDefinition = Readonly<Record<string, unknown>>
 
