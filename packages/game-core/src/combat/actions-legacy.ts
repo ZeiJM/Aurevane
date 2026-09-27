@@ -3195,6 +3195,9 @@ function scheduleAfterRecovery(
     kind,
     amountPerTick,
     remainingFutureTicks: ticks - 1,
+    ...(transition.state.tactical.battle.currentTurn?.combatantId === targetCombatantId
+      ? { skipCurrentOwnerTurnEnd: true }
+      : {}),
   }
   const state = replaceRecoverySchedule(transition.state, recovery)
   if (state === transition.state) return transition
@@ -3227,6 +3230,13 @@ function resolveEndOfTurnRecovery(
     []
   for (const schedule of schedules) {
     if (getCombatant(nextState.tactical.battle, combatantId).hp <= 0) break
+    if (schedule.skipCurrentOwnerTurnEnd === true) {
+      nextState = replaceRecoverySchedule(nextState, {
+        ...schedule,
+        skipCurrentOwnerTurnEnd: false,
+      })
+      continue
+    }
     const effect: Extract<CombatEffectDefinition, { type: 'healing' | 'resource-change' }> =
       schedule.kind === 'hp'
         ? { type: 'healing', recipient: 'primary-unit', amount: schedule.amountPerTick }
