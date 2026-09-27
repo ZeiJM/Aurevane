@@ -212,7 +212,7 @@ describe('combat content authoring service', () => {
     [
       'Bleed budget overflow',
       (value: Record<string, unknown>) => {
-        value.effects = [{ type: 'bleed', recipient: 'primary-unit', damagePerTick: 6, ticks: 2 }]
+        value.effects = [{ type: 'bleed', recipient: 'primary-unit', damagePerTick: 21, ticks: 4 }]
       },
     ],
     [
@@ -383,23 +383,24 @@ describe('combat content authoring service', () => {
     const { store, service } = serviceFixture()
     store.operators.set(OWNER, 'owner')
 
+    const baseVersion = staticSkill().contentVersion
     const published = await service.publishSkill({
       actorUserId: OWNER,
       definition: staticSkill(),
-      expectedBaseVersion: 3,
+      expectedBaseVersion: baseVersion,
     })
 
-    expect(published.contentVersion).toBe(4)
+    expect(published.contentVersion).toBe(baseVersion + 1)
     expect(published.definition).toMatchObject({
       id: 'vanguard.forceful-strike',
-      contentVersion: 4,
+      contentVersion: baseVersion + 1,
     })
 
     await expect(
       service.publishSkill({
         actorUserId: OWNER,
         definition: staticSkill(),
-        expectedBaseVersion: 3,
+        expectedBaseVersion: baseVersion,
       }),
     ).rejects.toMatchObject({ code: 'STALE_VERSION' })
   })
@@ -415,7 +416,7 @@ describe('combat content authoring service', () => {
       service.publishSkill({
         actorUserId: OWNER,
         definition: invalid,
-        expectedBaseVersion: 3,
+        expectedBaseVersion: staticSkill().contentVersion,
       }),
     ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
     expect(await store.findPublished('vanguard.forceful-strike')).toBeNull()
@@ -425,35 +426,38 @@ describe('combat content authoring service', () => {
     const { store, service } = serviceFixture()
     store.operators.set(OWNER, 'owner')
 
+    const baseVersion = staticSkill().contentVersion
     await service.publishSkill({
       actorUserId: OWNER,
       definition: staticSkill(),
-      expectedBaseVersion: 3,
+      expectedBaseVersion: baseVersion,
     })
     await service.publishSkill({
       actorUserId: OWNER,
       definition: { ...staticSkill(), apCost: 41 },
-      expectedBaseVersion: 4,
+      expectedBaseVersion: baseVersion + 1,
     })
 
     await service.rollbackSkill({
       actorUserId: OWNER,
       skillId: 'vanguard.forceful-strike',
-      targetVersion: 4,
+      targetVersion: baseVersion + 1,
     })
-    expect((await store.findPublished('vanguard.forceful-strike'))?.contentVersion).toBe(4)
+    expect((await store.findPublished('vanguard.forceful-strike'))?.contentVersion).toBe(
+      baseVersion + 1,
+    )
 
     await service.rollbackSkill({
       actorUserId: OWNER,
       skillId: 'vanguard.forceful-strike',
-      targetVersion: 3,
+      targetVersion: baseVersion,
     })
     expect(await store.findPublished('vanguard.forceful-strike')).toBeNull()
     expect(
       (await store.listPublishedVersions('vanguard.forceful-strike')).map(
         (version) => version.contentVersion,
       ),
-    ).toEqual([4, 5])
+    ).toEqual([baseVersion + 1, baseVersion + 2])
   })
 
   it('validates and publishes an Essence as one immutable outer+nested Skill version', async () => {
