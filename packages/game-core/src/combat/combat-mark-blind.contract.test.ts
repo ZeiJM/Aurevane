@@ -566,15 +566,15 @@ describe('Mark and Blind: command and lifecycle interactions', () => {
       sourceCombatantId: 'ally',
     })
   })
-  it('refreshes Blind duration without additional penalty', () => {
+  it('refreshes Blind duration and adds another active penalty', () => {
     const first = apply(world(), BLIND.id, 'actor')
     const cycled = advanceTo(advanceTo(first, 'ally'), 'actor')
     expect(statuses(cycled, 'actor')[0]?.remainingOwnerTurnStarts).toBe(2)
     const refreshed = apply(cycled, BLIND.id, 'actor')
     expect(statuses(refreshed, 'actor')[0]?.remainingOwnerTurnStarts).toBe(3)
-    expect(chance(refreshed)).toBe(3_500)
+    expect(chance(refreshed)).toBe(2_000)
   })
-  it('does not stack accuracy bonuses from alternate Mark definitions for one source', () => {
+  it('combines accuracy bonuses from alternate Mark definitions for one source', () => {
     const stronger: AccuracyStatusFixture = {
       ...MARK,
       id: 'test.stronger-mark',
@@ -582,9 +582,9 @@ describe('Mark and Blind: command and lifecycle interactions', () => {
     }
     const content = { statuses: [MARK, BLIND, stronger] }
     const state = apply(apply(world(), MARK.id, 'target', content), stronger.id, 'target', content)
-    expect(chance(state, content)).toBe(7_000)
+    expect(chance(state, content)).toBe(8_500)
   })
-  it('does not stack Blind penalties from alternate definitions', () => {
+  it('combines Blind penalties from alternate definitions', () => {
     const stronger: AccuracyStatusFixture = {
       ...BLIND,
       id: 'test.stronger-blind',
@@ -592,7 +592,7 @@ describe('Mark and Blind: command and lifecycle interactions', () => {
     }
     const content = { statuses: [MARK, BLIND, stronger] }
     const state = apply(apply(world(), BLIND.id, 'actor', content), stronger.id, 'actor', content)
-    expect(chance(state, content)).toBe(3_000)
+    expect(chance(state, content)).toBe(1_500)
   })
   it('does not borrow a stronger Mark owned by another attacker', () => {
     const stronger: AccuracyStatusFixture = {
