@@ -139,12 +139,19 @@ function tuneEffect(
     case 'bleed':
       return {
         ...effect,
-        damagePerTick: clamp(
-          Math.round((definition.apCost / 14) * areaFactor * essenceFactor),
-          1,
-          5,
+        damagePerTick: roundedPower(
+          (definition.apCost / 14) * areaFactor * essenceFactor / Math.sqrt(durationWeight),
         ),
         ticks: clamp(durationTurns, 1, CURRENT_EFFECT_DURATION_MAXIMUM_TURNS),
+        durationTurns,
+      }
+    case 'burn':
+    case 'poison':
+      return {
+        ...effect,
+        power: roundedPower(
+          (definition.apCost / 12) * areaFactor * essenceFactor / Math.sqrt(durationWeight),
+        ),
         durationTurns,
       }
     case 'apply-status': {
