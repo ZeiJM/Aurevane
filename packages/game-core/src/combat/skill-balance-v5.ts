@@ -220,7 +220,8 @@ function tuneEffect(
       return {
         ...effect,
         amount: roundedPower(
-          ((definition.apCost / 4) * areaFactor * reachFactor * essenceFactor) / Math.sqrt(durationWeight),
+          ((definition.apCost / 4) * areaFactor * reachFactor * essenceFactor) /
+            Math.sqrt(durationWeight),
         ),
         durationTurns,
       }
