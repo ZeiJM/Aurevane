@@ -878,14 +878,17 @@ const V5_REBALANCED_DISCIPLINE_SKILLS = latestEnabledMatureSkills(
   PRE_V5_CURRENT_DISCIPLINE_SKILLS,
 ).map((definition) => rebalanceMatureSkillDefinition(definition, 'technique'))
 
-export const P33_REPRESENTATIVE_DISCIPLINE_SKILLS = [
-  ...PRE_V5_CURRENT_DISCIPLINE_SKILLS,
+export const P33_REPRESENTATIVE_DISCIPLINE_SKILLS =
+  PRE_V5_CURRENT_DISCIPLINE_SKILLS
+
+const CURRENT_DISCIPLINE_SKILL_REGISTRY = [
+  ...P33_REPRESENTATIVE_DISCIPLINE_SKILLS,
   ...V5_REBALANCED_DISCIPLINE_SKILLS,
 ] as const satisfies readonly MatureSkillDefinition[]
 
-/** Current selection catalog; the full registry above also retains explicit battle history. */
+/** Current selection catalog; the historical P3.3/P4 export remains stable for pinned contracts. */
 export function latestEnabledMatureSkills(
-  definitions: readonly MatureSkillDefinition[] = P33_REPRESENTATIVE_DISCIPLINE_SKILLS,
+  definitions: readonly MatureSkillDefinition[] = CURRENT_DISCIPLINE_SKILL_REGISTRY,
 ): readonly MatureSkillDefinition[] {
   const latest = new Map<string, MatureSkillDefinition>()
   for (const definition of definitions) {
@@ -1076,7 +1079,7 @@ export function resolveMatureSkillVersion(
   skillId: string,
   contentVersion?: number,
 ): MatureSkillDefinition | null {
-  const candidates = P33_REPRESENTATIVE_DISCIPLINE_SKILLS.filter(
+  const candidates = CURRENT_DISCIPLINE_SKILL_REGISTRY.filter(
     (definition) => definition.id === skillId && definition.enabled,
   )
   if (contentVersion !== undefined) {
