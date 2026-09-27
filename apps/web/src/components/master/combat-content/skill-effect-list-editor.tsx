@@ -3,6 +3,7 @@
 import type { CombatEffectDefinition } from '@aurevane/game-core/combat/actions'
 import { useState } from 'react'
 
+import { previewEffect } from '../../character/skill-effect-preview'
 import styles from './combat-content-editor.module.css'
 import { SkillEffectEditor } from './skill-effect-editor'
 
@@ -97,13 +98,50 @@ export function moveCombatEffect(
   return next
 }
 
-export interface SkillEffectListEditorProps {
-  readonly value: readonly CombatEffectDefinition[]
-  readonly onChange: (next: readonly CombatEffectDefinition[]) => void
+function alignedEffectDescriptions(
+  effects: readonly CombatEffectDefinition[],
+  descriptions: readonly (string | null)[] | undefined,
+): (string | null)[] {
+  return effects.map((_, index) => descriptions?.[index] ?? null)
 }
 
-export function SkillEffectListEditor({ value, onChange }: SkillEffectListEditorProps) {
+export function moveCombatEffectDescription(
+  descriptions: readonly (string | null)[],
+  index: number,
+  direction: 'up' | 'down',
+): readonly (string | null)[] {
+  const nextIndex = direction === 'up' ? index - 1 : index + 1
+  if (
+    index < 0 ||
+    index >= descriptions.length ||
+    nextIndex < 0 ||
+    nextIndex >= descriptions.length
+  ) {
+    return [...descriptions]
+  }
+  const next = [...descriptions]
+  const current = next[index] ?? null
+  next[index] = next[nextIndex] ?? null
+  next[nextIndex] = current
+  return next
+}
+
+export interface SkillEffectListEditorProps {
+  readonly value: readonly CombatEffectDefinition[]
+  readonly effectDescriptions?: readonly (string | null)[]
+  readonly onChange: (
+    nextEffects: readonly CombatEffectDefinition[],
+    nextDescriptions: readonly (string | null)[],
+  ) => void
+}
+
+export function SkillEffectListEditor({
+  value,
+  effectDescriptions,
+  onChange,
+}: SkillEffectListEditorProps) {
   const [newEffectType, setNewEffectType] = useState<CombatEffectType>('damage')
+  const alignedDescriptions = alignedEffectDescriptions(value, effectDescriptions)
 
   return (
     <fieldset className={styles.typedGroup}>
@@ -124,18 +162,38 @@ export function SkillEffectListEditor({ value, onChange }: SkillEffectListEditor
                 <button
                   type="button"
                   disabled={index === 0}
-                  onClick={() => onChange(moveCombatEffect(value, index, 'up'))}
+                  onClick={() =>
+                    onChange(
+                      moveCombatEffect(value, index, 'up'),
+                      moveCombatEffectDescription(alignedDescriptions, index, 'up'),
+                    )
+                  }
                 >
                   ↑ Up
                 </button>
                 <button
                   type="button"
                   disabled={index === value.length - 1}
-                  onClick={() => onChange(moveCombatEffect(value, index, 'down'))}
+                  onClick={() =>
+                    onChange(
+                      moveCombatEffect(value, index, 'down'),
+                      moveCombatEffectDescription(alignedDescriptions, index, 'down'),
+                    )
+                  }
                 >
                   ↓ Down
                 </button>
-                <button type="button" onClick={() => onChange(removeCombatEffect(value, index))}>
+                <button
+                  type="button"
+                  onClick={() =>
+                    onChange(
+                      removeCombatEffect(value, index),
+                      alignedDescriptions.filter(
+                        (_, descriptionIndex) => descriptionIndex !== index,
+                      ),
+                    )
+                  }
+                >
                   Remove
                 </button>
               </div>
@@ -147,9 +205,31 @@ export function SkillEffectListEditor({ value, onChange }: SkillEffectListEditor
                   value.map((candidate, effectIndex) =>
                     effectIndex === index ? nextEffect : candidate,
                   ),
+                  alignedDescriptions,
                 )
               }
             />
+            <label className={`${styles.field} ${styles.effectDescriptionField}`}>
+              <span>Player-facing effect description</span>
+              <input
+                aria-label={`Effect ${index + 1} player-facing description`}
+                type="text"
+                maxLength={240}
+                placeholder={previewEffect(effect).explanation}
+                value={alignedDescriptions[index] ?? ''}
+                onChange={(event) => {
+                  const nextDescriptions = [...alignedDescriptions]
+                  nextDescriptions[index] = event.currentTarget.value.trim()
+                    ? event.currentTarget.value
+                    : null
+                  onChange(value, nextDescriptions)
+                }}
+              />
+              <small className={styles.fieldHint}>
+                Leave blank to use the generated wording. Presentation only; this never changes the
+                authoritative combat effect.
+              </small>
+            </label>
           </article>
         ))}
       </div>
@@ -169,7 +249,12 @@ export function SkillEffectListEditor({ value, onChange }: SkillEffectListEditor
             ))}
           </select>
         </label>
-        <button type="button" onClick={() => onChange(appendCombatEffect(value, newEffectType))}>
+        <button
+          type="button"
+          onClick={() =>
+            onChange(appendCombatEffect(value, newEffectType), [...alignedDescriptions, null])
+          }
+        >
           Add effect
         </button>
       </div>

@@ -17,7 +17,7 @@ import {
   skillCooldownDescription,
   skillCostDescription,
   skillDisplayName,
-  skillEffectsSummary,
+  skillEffectSummaries,
   skillLineOfSightDescription,
   skillRequirementsSummary,
   skillTargetDescription,
@@ -62,6 +62,8 @@ interface SkillCommitResponse {
   }
   error?: { message?: string }
 }
+
+type SkillCharacteristic = readonly [string, string | readonly string[]]
 
 const PROFILE_PANEL_QUERY = 'profilePanel'
 const TECHNIQUES_PANEL = 'techniques'
@@ -171,19 +173,19 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
         ? secondaryDiscipline.name
         : titleCase(focusedSkill.definition.sourceDisciplineId)
     : null
-  const focusedCharacteristics = focusedSkill
-    ? ([
+  const focusedCharacteristics: readonly SkillCharacteristic[] = focusedSkill
+    ? [
         ['Skill Type', skillTypeDescription(focusedSkill.definition)],
         ['Cost', skillCostDescription(focusedSkill.definition)],
         ['Cooldown', skillCooldownDescription()],
         ['Requirements', skillRequirementsSummary(focusedSkill.definition)],
-        ['Effects', skillEffectsSummary(focusedSkill.definition)],
+        ['Effects', skillEffectSummaries(focusedSkill.definition)],
         ['Range', skillCompactRangeDescription(focusedSkill.definition)],
         ['Target', skillTargetDescription(focusedSkill.definition)],
         ['Target Method', skillTargetMethodDescription(focusedSkill.definition)],
         ['Target Elevation', skillTargetElevationDescription(focusedSkill.definition)],
         ['Line of Sight', skillLineOfSightDescription(focusedSkill.definition)],
-      ] as const)
+      ]
     : []
 
   useEffect(() => {
@@ -513,7 +515,19 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                             {focusedCharacteristics.map(([label, value]) => (
                               <div key={label}>
                                 <dt>{label}</dt>
-                                <dd>{value}</dd>
+                                <dd>
+                                  {typeof value === 'string' ? (
+                                    value
+                                  ) : value.length > 0 ? (
+                                    <ul className={styles.effectSummaryList}>
+                                      {value.map((effect, index) => (
+                                        <li key={`${index}:${effect}`}>{effect}</li>
+                                      ))}
+                                    </ul>
+                                  ) : (
+                                    'N/A'
+                                  )}
+                                </dd>
                               </div>
                             ))}
                           </dl>

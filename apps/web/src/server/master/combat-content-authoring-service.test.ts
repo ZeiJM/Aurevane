@@ -130,6 +130,28 @@ describe('combat content authoring service', () => {
     })
   })
 
+  it('accepts aligned presentation-only effect descriptions and rejects malformed copy', () => {
+    const { service } = serviceFixture()
+    const base = staticSkill()
+    const valid: MatureSkillDefinition = {
+      ...base,
+      effectDescriptions: base.effects.map((_, index) =>
+        index === 0 ? 'Custom player-facing wording.' : null,
+      ),
+    }
+
+    expect(service.validateSkillDefinition(valid)).toMatchObject({ valid: true, issues: [] })
+
+    const invalid = {
+      ...base,
+      effectDescriptions: ['One line.', 'Extra unmatched line.'],
+    } as unknown as MatureSkillDefinition
+    const result = service.validateSkillDefinition(invalid)
+
+    expect(result.valid).toBe(false)
+    expect(result.issues).toContainEqual(expect.objectContaining({ path: 'effectDescriptions' }))
+  })
+
   it.each([
     ['amplify', 'Amplify'],
     ['curse', 'Curse'],

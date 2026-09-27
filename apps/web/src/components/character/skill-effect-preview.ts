@@ -118,13 +118,15 @@ export function previewEffect(effect: CombatEffectDefinition): PreviewEffect {
         explanation:
           'Fixed damage at turn end and every five voluntarily entered tiles, until removed.',
       }
-    case 'remove-status':
+    case 'remove-status': {
+      const statusNames = [...new Set(effect.statusIds.map((id) => combatStatusDetails(id).name))]
       return {
         label: effect.statusIds.every((id) => combatStatusDetails(id).kind === 'Buff')
           ? 'Dispel'
           : 'Cleanse',
-        explanation: `Removes ${effect.statusIds.map((id) => combatStatusDetails(id).name).join(', ')}.`,
+        explanation: `Removes ${statusNames.join(', ')}.`,
       }
+    }
     case 'create-terrain':
       return {
         label: 'Frozen Terrain',
@@ -158,13 +160,11 @@ export function previewEffect(effect: CombatEffectDefinition): PreviewEffect {
 }
 
 export function skillPreviewEffects(skill: MatureSkillDefinition): readonly PreviewEffect[] {
-  const unique = new Map<string, PreviewEffect>()
-  for (const effect of skill.effects) {
+  return skill.effects.map((effect, index) => {
     const entry = previewEffect(effect)
-    // Hits retain their amounts/count in the summary; explain each effect only once.
-    unique.set(`${entry.label}:${entry.explanation}`, entry)
-  }
-  return [...unique.values()]
+    const override = skill.effectDescriptions?.[index]?.trim()
+    return override ? { ...entry, explanation: override } : entry
+  })
 }
 
 export function effectSummary(effect: PreviewEffect): string {

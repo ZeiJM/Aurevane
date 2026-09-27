@@ -105,6 +105,8 @@ describe('Master Panel combat content editor shell', () => {
     expect(markup).toContain('aria-label="Skill artwork hook"')
     expect(markup).toContain('aria-label="Skill audio hook"')
     expect(markup).toContain('data-media-hook-readonly="vfx"')
+    expect(markup).toContain('aria-label="Effect 1 player-facing description"')
+    expect(markup).toContain('Leave blank to use the generated wording.')
   })
 
   it('renders derived tags as read-only output rather than an editable gameplay-tag field', () => {

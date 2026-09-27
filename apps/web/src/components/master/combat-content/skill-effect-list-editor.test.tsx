@@ -7,6 +7,7 @@ import {
   SkillEffectListEditor,
   appendCombatEffect,
   moveCombatEffect,
+  moveCombatEffectDescription,
   removeCombatEffect,
 } from './skill-effect-list-editor'
 
@@ -47,6 +48,11 @@ describe('Master Panel Skill effect list editor', () => {
 
     const moved = moveCombatEffect(effects, 2, 'up')
     expect(moved.map((effect) => effect.type)).toEqual(['damage', 'sensory', 'apply-status'])
+    expect(moveCombatEffectDescription(['Damage copy', null, 'Sensory copy'], 2, 'up')).toEqual([
+      'Damage copy',
+      'Sensory copy',
+      null,
+    ])
 
     const removed = removeCombatEffect(effects, 1)
     expect(removed.map((effect) => effect.type)).toEqual(['damage', 'sensory'])
@@ -76,6 +82,9 @@ describe('Master Panel Skill effect list editor', () => {
     ]
 
     for (const type of effectTypes) expect(markup).toContain(`<option value="${type}"`)
+    expect(markup).toContain('Player-facing effect description')
+    expect(markup).toContain('aria-label="Effect 1 player-facing description"')
+    expect(markup).toContain('Leave blank to use the generated wording.')
     expect(markup).not.toContain('<textarea')
     expect(markup).not.toContain('Raw JSON')
     expect(markup).not.toContain('Script')

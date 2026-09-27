@@ -6,6 +6,7 @@ import {
   skillCooldownDescription,
   skillCostDescription,
   skillEffectDescription,
+  skillEffectSummaries,
   skillEffectsSummary,
   skillLineOfSightDescription,
   skillRangeDescription,
@@ -175,7 +176,7 @@ it('presents the standardized Technique characteristic schema without prose expa
   const timeLock = resolveMatureSkillVersion('chronist.time-lock')!
   const stolenMoment = resolveMatureSkillVersion('chronist.stolen-moment')!
 
-  expect(skillTypeDescription(timeLock)).toBe('Defense')
+  expect(skillTypeDescription(timeLock)).toBe('Utility')
   expect(skillCostDescription(timeLock)).toMatch(/AP/)
   expect(skillEffectsSummary(timeLock)).toContain('Root')
   expect(skillEffectsSummary(timeLock)).toContain('Slow')
@@ -186,6 +187,20 @@ it('presents the standardized Technique characteristic schema without prose expa
   expect(skillCompactRangeDescription(timeLock)).toMatch(/tile/)
   expect(skillLineOfSightDescription(timeLock)).toBe('Required')
   expect(skillCooldownDescription()).toMatch(/turn/)
+})
+
+it('classifies Techniques only as Attack, Recovery, or Utility', () => {
+  expect(skillTypeDescription(resolveMatureSkillVersion('runeblade.aether-cut')!)).toBe('Attack')
+  expect(skillTypeDescription(resolveMatureSkillVersion('vanguard.rally')!)).toBe('Recovery')
+  expect(skillTypeDescription(resolveMatureSkillVersion('vanguard.brace')!)).toBe('Utility')
+
+  const hybrid = resolveMatureSkillVersion('runeblade.siphon-slash')!
+  expect(skillTypeDescription(hybrid)).toBe('Attack')
+})
+
+it('returns one effect summary per authored effect for bullet presentation', () => {
+  const siphon = resolveMatureSkillVersion('runeblade.siphon-slash')!
+  expect(skillEffectSummaries(siphon)).toEqual(['Dmg [6]', 'MP Drain [4]', 'MP Restore [4]'])
 })
 
 it('lists authored magnitudes as effects without leaking design tags', () => {
