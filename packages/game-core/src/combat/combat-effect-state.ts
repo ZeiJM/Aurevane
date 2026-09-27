@@ -66,6 +66,9 @@ export interface CombatPoisonInstance {
   sourceActionId: string
   profileVersion: number
   movementRemainder: number
+  /** Current authored Poison may pin bounded power and remaining future turns. */
+  damagePerTick?: number
+  remainingTicks?: number
   /** Explicit current Curse eligibility; omitted historical Poison remains non-copyable. */
   curseCopyable?: boolean
   provenance?: CombatEffectInstanceProvenance
@@ -89,6 +92,9 @@ export interface CombatBurnInstance {
   sourceActionId: string
   profileVersion: number
   stage: number
+  /** Current authored Burn may override the canonical stage-one power and duration. */
+  basePower?: number
+  remainingTicks?: number
   /** Explicit current Curse eligibility; omitted historical Burn remains non-copyable. */
   curseCopyable?: boolean
   provenance?: CombatEffectInstanceProvenance
