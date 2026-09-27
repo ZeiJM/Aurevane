@@ -393,7 +393,14 @@ describe('P3.7 direct PvP committed build snapshots', () => {
         sourceDisciplineId: 'frostweaver',
       },
     ])
-    const previewService = createBattlePreviewService(repository)
+    const previewService = createBattlePreviewService(repository, {
+      async resolveCurrentSkillDefinition(skillId) {
+        return resolveMatureSkillVersion(skillId)
+      },
+      async resolvePinnedSkillDefinition(skillId, contentVersion) {
+        return resolveMatureSkillVersion(skillId, contentVersion)
+      },
+    })
     const intent = {
       kind: 'action' as const,
       actionId: 'frostweaver.chilling-mist',
