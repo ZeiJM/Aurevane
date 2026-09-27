@@ -39,8 +39,10 @@ import {
   applyCurrentPoisonState,
   currentBleedStacks,
   currentBurnInstance,
+  currentBurnInstances,
   currentPoisonEndTurnDamage,
   currentPoisonInstance,
+  currentPoisonInstances,
   hasCurrentBleed,
   hasCurrentBurn,
   hasCurrentPoison,
@@ -786,7 +788,11 @@ export function applyCurrentBurnBacklash(
   const actor = getCombatant(state.tactical.battle, actorId)
   if (actor.hp <= 0) return { state, events: [] }
 
-  const hpAfter = Math.max(0, actor.hp - CURRENT_BURN_BACKLASH_DAMAGE)
+  const backlashDamage = multiplyClampedSafeInteger(
+    CURRENT_BURN_BACKLASH_DAMAGE,
+    currentBurnInstances(state, actorId).length,
+  )
+  const hpAfter = Math.max(0, actor.hp - backlashDamage)
   const damageEvent: CombatResolutionEvent = {
     event: 'damage_applied',
     actionId: 'status.burn.backlash.current.v1',
@@ -1781,9 +1787,10 @@ function applyEffect(
       effect.element === 'storm' && !stormRecipients.has(recipientId)
         ? statusApplicationCount(state, recipientId, ['wet', 'conductive'])
         : 0
-    const stormMultiplier = Math.min(
-      Number.MAX_SAFE_INTEGER,
-      10_000 + stormApplications * 2_000,
+    const stormMultiplier = Number(
+      [BigInt(Number.MAX_SAFE_INTEGER), 10_000n + BigInt(stormApplications) * 2_000n].reduce(
+        (minimum, value) => (value < minimum ? value : minimum),
+      ),
     )
     const amount = resolveDamageAmount(
       state,
