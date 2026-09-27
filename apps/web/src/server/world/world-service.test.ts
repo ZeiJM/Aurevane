@@ -3,7 +3,15 @@ vi.mock('server-only', () => ({}))
 import { newWorldState, revealNearby } from '@/world/travel'
 import { FRONTIER_APPROACH } from '@/world/catalog'
 import { assertEncounterRange, projectWorld, resolveWorldIntent } from './world-service'
-import { EASTERN_WATCH, EASTERN_WATCH_INTERACTION_ID, VERDANT_SETTLEMENT } from './world-objectives'
+import {
+  AURETH_SETTLEMENT,
+  CROWN_HINTERLAND_PATROL,
+  CROWN_HINTERLAND_PATROL_INTERACTION_ID,
+  CROWN_HINTERLAND_PATROL_OBJECTIVE_ID,
+  EASTERN_WATCH,
+  EASTERN_WATCH_INTERACTION_ID,
+  VERDANT_SETTLEMENT,
+} from './world-objectives'
 
 describe('world authority and spoiler projection', () => {
   it.each([
@@ -373,6 +381,91 @@ describe('world authority and spoiler projection', () => {
       resolveWorldIntent(
         state,
         { kind: 'interact', interactionId: EASTERN_WATCH_INTERACTION_ID },
+        1400,
+      ),
+    ).toThrow()
+  })
+
+  it('requires accept, patrol and return before completing the Crown Hinterland objective', () => {
+    const remote = newWorldState()
+    expect(() =>
+      resolveWorldIntent(
+        remote,
+        { kind: 'interact', interactionId: CROWN_HINTERLAND_PATROL_INTERACTION_ID },
+        1000,
+      ),
+    ).toThrow()
+
+    let state = { ...newWorldState(), position: AURETH_SETTLEMENT }
+    let view = projectWorld(state, [], 1000)
+    expect(
+      view.objectives.find((objective) => objective.id === CROWN_HINTERLAND_PATROL_OBJECTIVE_ID),
+    ).toMatchObject({
+      progress: 'available',
+      destination: null,
+      completed: false,
+    })
+    expect(view.interactions).toEqual([
+      expect.objectContaining({
+        id: CROWN_HINTERLAND_PATROL_INTERACTION_ID,
+        speaker: 'Watch officer',
+        actionLabel: 'Accept objective',
+      }),
+    ])
+
+    state = resolveWorldIntent(
+      state,
+      { kind: 'interact', interactionId: CROWN_HINTERLAND_PATROL_INTERACTION_ID },
+      1100,
+    )
+    view = projectWorld(state, [], 1100)
+    expect(
+      view.objectives.find((objective) => objective.id === CROWN_HINTERLAND_PATROL_OBJECTIVE_ID),
+    ).toMatchObject({
+      progress: 'active',
+      destination: CROWN_HINTERLAND_PATROL,
+      completed: false,
+    })
+
+    state = resolveWorldIntent(
+      { ...state, position: CROWN_HINTERLAND_PATROL },
+      { kind: 'tick' },
+      1200,
+    )
+    view = projectWorld(state, [], 1200)
+    expect(state.completedObjectives).toEqual([])
+    expect(
+      view.objectives.find((objective) => objective.id === CROWN_HINTERLAND_PATROL_OBJECTIVE_ID),
+    ).toMatchObject({
+      progress: 'ready',
+      destination: AURETH_SETTLEMENT,
+      completed: false,
+    })
+    expect(view.interactions).toEqual([])
+
+    state = resolveWorldIntent(
+      { ...state, position: AURETH_SETTLEMENT },
+      { kind: 'interact', interactionId: CROWN_HINTERLAND_PATROL_INTERACTION_ID },
+      1300,
+    )
+    view = projectWorld(state, [], 1300)
+    expect(state.completedObjectives).toEqual([CROWN_HINTERLAND_PATROL_OBJECTIVE_ID])
+    expect(
+      view.objectives.find((objective) => objective.id === CROWN_HINTERLAND_PATROL_OBJECTIVE_ID),
+    ).toMatchObject({
+      progress: 'completed',
+      destination: null,
+      completed: true,
+    })
+    expect(view.interactions[0]).toMatchObject({
+      id: CROWN_HINTERLAND_PATROL_INTERACTION_ID,
+      actionLabel: null,
+      progress: 'completed',
+    })
+    expect(() =>
+      resolveWorldIntent(
+        state,
+        { kind: 'interact', interactionId: CROWN_HINTERLAND_PATROL_INTERACTION_ID },
         1400,
       ),
     ).toThrow()
