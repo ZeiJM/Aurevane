@@ -12,6 +12,7 @@ import type {
 import { compareCombatStatusInstances } from './combat-accuracy-status'
 import {
   applyCurrentBleedState,
+  CURRENT_BLEED_MAX_STACKS,
   currentBleedStacks,
   currentBurnInstances,
   currentPoisonInstances,
@@ -133,6 +134,15 @@ interface BleedCopy {
   survives: boolean
 }
 
+interface SimulatedBleedRow {
+  targetCombatantId: string
+  damagePerTick: number
+  remainingTicks: number
+  applicationOrder: number
+  existing?: CombatBleedStack
+  attemptIndex?: number
+}
+
 function planBleedCopies(
   state: CombatEncounterState,
   donorId: string,
@@ -140,7 +150,9 @@ function planBleedCopies(
   mode: CombatStatusCopyEffect['mode'],
 ): readonly BleedCopy[] {
   if (mode !== 'curse') return []
-  const donors = currentBleedStacks(state, donorId).filter((application) => application.curseCopyable === true)
+  const donors = currentBleedStacks(state, donorId).filter(
+    (application) => application.curseCopyable === true,
+  )
   if (donors.length === 0) return []
 
   const effectState = normalizeCombatEffectState(state.effectState)
@@ -148,20 +160,81 @@ function planBleedCopies(
     (maximum, application) => Math.max(maximum, application.applicationOrder),
     0,
   )
-  return donors.map((donor, attemptIndex) => {
+  if (usesUnboundedEffectApplications(state)) {
+    return donors.map((donor, attemptIndex) => {
+      if (maximumOrder >= Number.MAX_SAFE_INTEGER) {
+        throw new RangeError('Bleed application order has reached the safe integer limit.')
+      }
+      maximumOrder += 1
+      return {
+        donor,
+        previous: undefined,
+        replacedSummary: undefined,
+        applicationOrder: maximumOrder,
+        attemptIndex,
+        survives: true,
+      }
+    })
+  }
+
+  let simulated: SimulatedBleedRow[] = effectState.bleed.map((application) => ({
+    targetCombatantId: application.targetCombatantId,
+    damagePerTick: application.damagePerTick,
+    remainingTicks: application.remainingTicks,
+    applicationOrder: application.applicationOrder,
+    existing: application,
+  }))
+  const attempts: Omit<BleedCopy, 'survives'>[] = []
+
+  donors.forEach((donor, attemptIndex) => {
     if (maximumOrder >= Number.MAX_SAFE_INTEGER) {
       throw new RangeError('Bleed application order has reached the safe integer limit.')
     }
-    maximumOrder += 1
-    return {
-      donor,
-      previous: undefined,
-      replacedSummary: undefined,
-      applicationOrder: maximumOrder,
-      attemptIndex,
-      survives: true,
+    const targetRows = simulated
+      .filter((row) => row.targetCombatantId === receiverId)
+      .sort(
+        (left, right) =>
+          left.remainingTicks - right.remainingTicks ||
+          left.applicationOrder - right.applicationOrder,
+      )
+    const replaced =
+      targetRows.length >= CURRENT_BLEED_MAX_STACKS ? targetRows[0] : undefined
+    if (replaced) {
+      simulated = simulated.filter(
+        (row) =>
+          row.targetCombatantId !== replaced.targetCombatantId ||
+          row.applicationOrder !== replaced.applicationOrder,
+      )
     }
+    maximumOrder += 1
+    const applicationOrder = maximumOrder
+    simulated.push({
+      targetCombatantId: receiverId,
+      damagePerTick: donor.damagePerTick,
+      remainingTicks: donor.remainingTicks,
+      applicationOrder,
+      attemptIndex,
+    })
+    attempts.push({
+      donor,
+      previous: replaced?.existing,
+      replacedSummary: replaced
+        ? `bleed:${replaced.damagePerTick}:${replaced.remainingTicks}`
+        : undefined,
+      applicationOrder,
+      attemptIndex,
+    })
   })
+
+  const survivingOrders = new Set(
+    simulated
+      .filter((row) => row.targetCombatantId === receiverId && row.attemptIndex !== undefined)
+      .map((row) => row.applicationOrder),
+  )
+  return attempts.map((attempt) => ({
+    ...attempt,
+    survives: survivingOrders.has(attempt.applicationOrder),
+  }))
 }
 
 interface CombatCopyPlan {
@@ -489,7 +562,7 @@ export function attachCombatStatusCopyProvenance(
     return { ...after, statusState }
   const poisonProvenance = new Map(
     poison.map((copy, index) => [
-      copy.applicationOrder,
+      copy.applicationOrder ?? 0,
       createCombatEffectInstanceProvenance({
         action: context.provenance,
         targetCombatantId: receiverId,
@@ -504,7 +577,7 @@ export function attachCombatStatusCopyProvenance(
   )
   const burnProvenance = new Map(
     burn.map((copy, index) => [
-      copy.applicationOrder,
+      copy.applicationOrder ?? 0,
       createCombatEffectInstanceProvenance({
         action: context.provenance,
         targetCombatantId: receiverId,
