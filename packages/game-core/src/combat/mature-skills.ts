@@ -1199,12 +1199,10 @@ export function resolveMatureSkillForContext(
   }
 }
 
-export function toCombatActionDefinition(
-  definition: MatureSkillDefinition,
-  combatContext: MatureSkillCombatContext,
+function projectResolvedMatureSkillAction(
+  resolved: ResolvedMatureSkillDefinition,
+  effects: readonly CombatEffectDefinition[],
 ): CombatActionDefinition {
-  const resolved = resolveMatureSkillForContext(definition, combatContext)
-
   return {
     id: resolved.id,
     version: resolved.contentVersion,
@@ -1214,17 +1212,37 @@ export function toCombatActionDefinition(
     cost: { spendsAction: true, mp: resolved.mpCost ?? 0 },
     requirements: resolved.requirements,
     ...(resolved.cooldown === null ? {} : { cooldown: resolved.cooldown }),
-    effects: resolved.effects.map((effect) => {
-      if (effect.type === 'summon') {
-        throw new TypeError('Summon must be materialized by the mature Skill execution layer.')
-      }
-      return effect
-    }),
+    effects,
     ...(resolved.accuracyMode !== undefined ? { accuracyMode: resolved.accuracyMode } : {}),
     ...(resolved.accuracyModifierBasisPoints !== undefined
       ? { accuracyModifierBasisPoints: resolved.accuracyModifierBasisPoints }
       : {}),
   }
+}
+
+export function toCombatActionDefinition(
+  definition: MatureSkillDefinition,
+  combatContext: MatureSkillCombatContext,
+): CombatActionDefinition {
+  const resolved = resolveMatureSkillForContext(definition, combatContext)
+  if (resolved.effects.some((effect) => effect.type === 'summon')) {
+    throw new TypeError('Summon must be materialized by the mature Skill execution layer.')
+  }
+  return projectResolvedMatureSkillAction(
+    resolved,
+    resolved.effects.filter(isMaterializedCombatEffect),
+  )
+}
+
+export function toMaterializedCombatActionDefinition(
+  definition: MatureSkillDefinition,
+  combatContext: MatureSkillCombatContext,
+): CombatActionDefinition {
+  const resolved = resolveMatureSkillForContext(definition, combatContext)
+  return projectResolvedMatureSkillAction(
+    resolved,
+    resolved.effects.filter(isMaterializedCombatEffect),
+  )
 }
 
 function assertUsableDefinition(definition: MatureSkillDefinition): void {
