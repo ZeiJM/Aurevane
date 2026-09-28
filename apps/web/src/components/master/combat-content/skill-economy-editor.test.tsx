@@ -63,7 +63,6 @@ describe('Master Panel Skill economy editor', () => {
   })
 })
 
-
 it('uses explicit AP authoring bounds when the selected current ruleset supplies them', () => {
   const markup = renderToStaticMarkup(
     createElement(SkillEconomyEditor, {
