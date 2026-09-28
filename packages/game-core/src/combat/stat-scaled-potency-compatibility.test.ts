@@ -6,10 +6,7 @@ import {
   type CombatEffectDefinition,
 } from './actions'
 import { P36_REPRESENTATIVE_ESSENCES } from './essence'
-import {
-  latestEnabledMatureSkills,
-  type MatureSkillEffectDefinition,
-} from './mature-skills'
+import { latestEnabledMatureSkills, type MatureSkillEffectDefinition } from './mature-skills'
 
 function isDamageEffect(
   effect: MatureSkillEffectDefinition,
