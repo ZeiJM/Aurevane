@@ -1090,6 +1090,7 @@ export function executePv1fMatureSkill(
               contentVersion: resonance.definition.contentVersion,
               actorId,
               setupActionId: resonance.armedByActionId,
+              triggerActionId: definition.id,
               payoffActionId: definition.id,
             },
           ]
