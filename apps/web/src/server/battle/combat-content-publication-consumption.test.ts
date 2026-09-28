@@ -202,7 +202,7 @@ describe('published combat content consumption', () => {
       contentVersion: 5,
       skillContentVersion: 5,
     })
-    expect(resolved?.contentVersion).toBe(4)
+    expect(resolved?.contentVersion).toBe(5)
     expect(
       resolved?.skill.effects
         .filter((effect) => effect.type === 'damage')
