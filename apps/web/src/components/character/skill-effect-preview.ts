@@ -6,7 +6,10 @@ import {
   CURRENT_BURN_DAMAGE_BY_STAGE,
   CURRENT_POISON_DAMAGE,
 } from '@aurevane/game-core/combat/combat-dots'
-import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
+import type {
+  MatureSkillDefinition,
+  MatureSkillEffectDefinition,
+} from '@aurevane/game-core/combat/mature-skills'
 
 export interface PreviewEffect {
   label: string
@@ -72,14 +75,21 @@ function statusPreview(id: string, potencyBasisPoints?: number): PreviewEffect {
   return result
 }
 
-export function previewEffect(effect: CombatEffectDefinition): PreviewEffect {
+export function previewEffect(effect: MatureSkillEffectDefinition): PreviewEffect {
   const target =
     effect.recipient === 'actor'
       ? 'you'
       : effect.recipient === 'affected-units'
         ? 'each affected unit'
-        : 'the target'
+        : effect.recipient === 'selected-tile'
+          ? 'the selected empty tile'
+          : 'the target'
   switch (effect.type) {
+    case 'summon':
+      return {
+        label: 'Summon',
+        explanation: 'Calls the authored allied summon onto the selected empty tile.',
+      }
     case 'damage':
       return {
         label: 'Dmg',
