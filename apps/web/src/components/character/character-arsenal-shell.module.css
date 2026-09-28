@@ -638,6 +638,10 @@
     min-height: 6.8rem;
   }
 
+  .attunementHover {
+    width: min(21rem, 36vw);
+  }
+
   .techniqueSlots {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
