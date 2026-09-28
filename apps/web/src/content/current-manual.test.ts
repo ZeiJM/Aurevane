@@ -103,3 +103,19 @@ it('publishes the Techniques guide and removes the obsolete fixed Power budget',
   expect(text).toContain('setup Discipline/tags')
   expect(text).toContain('current v5 Skills can author Poison Power and duration')
 })
+
+
+it('documents Combat v5.1 reach, elevation, LOS, and compact targeting presentation', () => {
+  const text = articleText('techniques-damage-effects')
+
+  expect(text).toContain('Range shows only the maximum reach')
+  expect(text).toContain('Target Method shows Single, Line or Circle')
+  expect(text).toContain('range 1–5')
+  expect(text).toContain('range 3')
+  expect(text).toContain('elevation 0')
+  expect(text).toContain('elevation 1')
+  expect(text).toContain('elevation 2')
+  expect(text).toContain('line of sight')
+  expect(text).toContain('Slow [+10 AP]')
+  expect(text).not.toContain('Slow [+10 AP/tile]')
+})

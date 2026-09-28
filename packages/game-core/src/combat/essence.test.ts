@@ -370,3 +370,59 @@ describe('P3.6 versioned pure Essence framework', () => {
     expect(state.tactical.battle.combatants.find((row) => row.id === 'recruit')?.hp).toBe(50)
   })
 })
+
+
+describe('Combat v5.1 Essence targeting balance', () => {
+  it('publishes current Essence versions with v5.1 targeting rules while preserving v5 history', () => {
+    const disciplineIds = [
+      ...new Set(P36_REPRESENTATIVE_ESSENCES.map((row) => row.sourceDisciplineId)),
+    ]
+    const elevations = new Map<number, number>([
+      [0, 0],
+      [1, 0],
+      [2, 0],
+    ])
+
+    for (const disciplineId of disciplineIds) {
+      const current = resolveEssenceForBuild(disciplineId, null)
+      if (!current) throw new Error(`Expected current Essence for ${disciplineId}.`)
+
+      expect(current.authoring.validationTags, current.essenceId).toContain('owner-rebalance-v5-1')
+      expect(current.skill.authoring.validationTags, current.essenceId).toContain(
+        'owner-rebalance-v5-1',
+      )
+      expect(current.skill.apCost, current.essenceId).toBeGreaterThanOrEqual(55)
+      expect(current.skill.apCost, current.essenceId).toBeLessThanOrEqual(75)
+
+      if (current.skill.target.kind === 'self') {
+        expect(current.skill.target.maximumRange, current.essenceId).toBe(0)
+        expect(current.skill.target.maximumElevationDifference, current.essenceId).toBeNull()
+      } else {
+        expect(current.skill.target.maximumRange, current.essenceId).toBeGreaterThanOrEqual(1)
+        expect(current.skill.target.maximumRange, current.essenceId).toBeLessThanOrEqual(5)
+        const elevation = current.skill.target.maximumElevationDifference
+        expect(elevation, current.essenceId).not.toBeNull()
+        expect(elevation ?? 0, current.essenceId).toBeGreaterThanOrEqual(0)
+        expect(elevation ?? 0, current.essenceId).toBeLessThanOrEqual(2)
+        elevations.set(elevation ?? 0, (elevations.get(elevation ?? 0) ?? 0) + 1)
+      }
+
+      const previous = resolveEssenceForBuild(
+        disciplineId,
+        null,
+        current.contentVersion - 1,
+      )
+      if (!previous) throw new Error(`Expected prior Essence for ${disciplineId}.`)
+      expect(previous.skill.authoring.validationTags, previous.essenceId).toContain(
+        'owner-rebalance-v5',
+      )
+      expect(previous.skill.authoring.validationTags, previous.essenceId).not.toContain(
+        'owner-rebalance-v5-1',
+      )
+    }
+
+    expect(elevations.get(0) ?? 0).toBeGreaterThan(elevations.get(1) ?? 0)
+    expect(elevations.get(1) ?? 0).toBeGreaterThan(elevations.get(2) ?? 0)
+    expect(elevations.get(2) ?? 0).toBeGreaterThan(0)
+  })
+})
