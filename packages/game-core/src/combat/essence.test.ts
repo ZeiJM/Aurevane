@@ -255,7 +255,7 @@ describe('P3.6 versioned pure Essence framework', () => {
       affordable: true,
       apCost: 55,
       actionEconomyRemaining: 100,
-      baseUtility: 95,
+      baseUtility: 97,
       purposeTags: ['damage', 'finisher', 'pure-build'],
       combatEvaluation: { legal: true, primaryCombatantId: 'recruit' },
     })
