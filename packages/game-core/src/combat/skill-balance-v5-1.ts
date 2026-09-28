@@ -117,11 +117,7 @@ function tuneEffectMagnitude(
         ...(effect.potencyBasisPoints === undefined
           ? {}
           : {
-              potencyBasisPoints: clamp(
-                Math.round(effect.potencyBasisPoints * factor),
-                100,
-                5_000,
-              ),
+              potencyBasisPoints: clamp(Math.round(effect.potencyBasisPoints * factor), 100, 5_000),
             }),
       }
     default:
@@ -253,9 +249,7 @@ export function rebalanceMatureSkillDefinitionV51(
       ...definition.ai,
       baseUtility: clamp(
         Math.round(
-          definition.ai.baseUtility * 0.6 +
-            apCost * 0.65 +
-            v51TargetingValueWeight(definition),
+          definition.ai.baseUtility * 0.6 + apCost * 0.65 + v51TargetingValueWeight(definition),
         ),
         20,
         120,
