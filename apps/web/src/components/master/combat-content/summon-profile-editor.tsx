@@ -276,7 +276,9 @@ export function SummonProfileEditor({ value, onChange }: SummonProfileEditorProp
                   onClick={() =>
                     onChange({
                       ...value,
-                      abilities: value.abilities.filter((_, abilityIndex) => abilityIndex !== index),
+                      abilities: value.abilities.filter(
+                        (_, abilityIndex) => abilityIndex !== index,
+                      ),
                     })
                   }
                 >
