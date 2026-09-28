@@ -450,8 +450,8 @@
   display: grid;
   width: min(24rem, 42vw);
   max-height: min(29rem, 70vh);
-  gap: 0.55rem;
-  padding: 0.7rem;
+  gap: 0.4rem;
+  padding: 0.55rem 0.7rem 0.7rem;
   overflow: auto;
   border: 1px solid #425d6c;
   border-radius: 0.16rem;
