@@ -13,7 +13,7 @@ import {
 import { resolveEssenceForBuild, type EssenceDefinition } from '@aurevane/game-core/combat/essence'
 import {
   resolveResonanceForPair,
-  type ResonanceDefinition,
+  type AnyResonanceDefinition,
 } from '@aurevane/game-core/combat/resonance'
 import type { CombatContentResolver } from '@/server/combat/combat-content-resolver'
 
@@ -42,7 +42,7 @@ function staticEssence(version?: number): EssenceDefinition {
   return structuredClone(definition)
 }
 
-function staticResonance(version?: number): ResonanceDefinition {
+function staticResonance(version?: number): AnyResonanceDefinition {
   const definition = resolveResonanceForPair('lifebinder', 'vanguard', version)
   if (!definition)
     throw new Error(`Missing static Lifebinder/Vanguard Resonance@${String(version)}.`)
