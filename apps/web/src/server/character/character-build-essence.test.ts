@@ -130,7 +130,7 @@ describe('P3.6 character build Essence authority', () => {
     expect(context.disciplineSkills.extensions.resonance).toBeNull()
     expect(context.disciplineSkills.extensions.essence).toMatchObject({
       essenceId: 'essence.vanguard.unbroken-strike',
-      contentVersion: 3,
+      contentVersion: 4,
       sourceDisciplineId: 'vanguard',
       skill: expect.objectContaining({
         contentVersion: 4,
