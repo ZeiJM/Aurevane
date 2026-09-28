@@ -5,7 +5,7 @@
 **Base:** current `main` after Discipline/Technique polish  
 **Purpose:** single source of truth for the requested Discipline, Essence, Resonance, Technique Preview, Master Panel, and Manual changes.
 
-**Current implementation status:** v5 engine/content/UI authoring is implemented on PR #754; historical content remains pinned separately. Focused Skill/Essence/Resonance suites are green. Exact-head full-matrix verification and final overlap review remain required before merge.
+**Current implementation status:** v5 engine/content/UI authoring is implemented on PR #754; historical content remains pinned separately. The full workflow matrix was green on exact head `e926d3e10e99097aa180cbfa213121761a84d8f8`. Current `main` is still the PR base `0b19ede5a89c946196deb17335523c44773eae6e`. Draft PR #755 remains separate; overlap review confirms 10 shared kernel/presentation files that must be reconciled explicitly if both workstreams are merged.
 
 ## 0. Already completed before this rebalance
 
@@ -153,10 +153,10 @@
 - [x] Add Technique Preview rendering tests for bullets, duration, Skill Type, and flavor line.
 - [x] Add Nexus hover/focus tests for Essence and Resonance detail panels.
 - [x] Add Master Panel authoring/validation/publish tests for new fields.
-- [ ] Run full CI, Skill Engine, Essence, Resonance, Profile Skill Build, buildcraft, layout, desktop, and browser smoke checks.
-- [ ] Resolve all failures on the exact PR head before merge.
-- [ ] Recheck current `main` for concurrent overlap before merge.
-- [ ] Keep Vercel deployment gate locked unless Owner explicitly requests a live deployment.
+- [x] Run full CI, Skill Engine, Essence, Resonance, Profile Skill Build, buildcraft, layout, desktop, and browser smoke checks.
+- [x] Resolve all failures on the exact PR head before merge.
+- [x] Recheck current `main` for concurrent overlap before merge.
+- [x] Keep Vercel deployment gate locked unless Owner explicitly requests a live deployment.
 - [ ] If deployment is requested: deploy exact merged commit, verify live Nexus/runtime health, then relock.
 
 ## Concurrency boundary
