@@ -679,7 +679,7 @@ function summonAbilityUsedThisTurn(
   state: StatDrivenCombatEncounterState,
   combatantId: string,
 ): boolean {
-  const turnNumber = state.tactical.battle.currentTurn?.turnNumber ?? state.tactical.battle.turnNumber
+  const turnNumber = state.tactical.battle.turnNumber
   const combatant = getCombatant(state, combatantId)
   return combatant.temporaryResources.some(
     (resource) =>
