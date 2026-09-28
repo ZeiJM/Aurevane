@@ -212,3 +212,36 @@ describe('P3.3 generic owner-turn cooldown clock', () => {
     )
   })
 })
+
+
+describe('Combat v5.1 authoring bounds', () => {
+  it('enforces current AP, maximum-range, and elevation bounds without invalidating historical versions', () => {
+    const attack = resolveMatureSkillVersion('vanguard.forceful-strike')
+    const utility = resolveMatureSkillVersion('aetherist.channel')
+    const recovery = resolveMatureSkillVersion('lifebinder.mend')
+    if (!attack || !utility || !recovery) throw new Error('Expected current v5.1 Skills.')
+
+    expect(validateMatureSkillDefinition({ ...attack, apCost: 44 })).toContain('apCost')
+    expect(validateMatureSkillDefinition({ ...attack, apCost: 45 })).not.toContain('apCost')
+    expect(validateMatureSkillDefinition({ ...utility, apCost: 34 })).toContain('apCost')
+    expect(validateMatureSkillDefinition({ ...utility, apCost: 35 })).not.toContain('apCost')
+    expect(validateMatureSkillDefinition({ ...recovery, apCost: 44 })).toContain('apCost')
+
+    expect(
+      validateMatureSkillDefinition({
+        ...attack,
+        target: { ...attack.target, maximumRange: 6 },
+      }),
+    ).toContain('target.maximumRange')
+    expect(
+      validateMatureSkillDefinition({
+        ...attack,
+        target: { ...attack.target, maximumElevationDifference: 3 },
+      }),
+    ).toContain('target.maximumElevationDifference')
+
+    const historicalLongshot = resolveMatureSkillVersion('farstrider.longshot', 1)
+    if (!historicalLongshot) throw new Error('Expected historical Longshot.')
+    expect(validateMatureSkillDefinition(historicalLongshot)).toEqual([])
+  })
+})

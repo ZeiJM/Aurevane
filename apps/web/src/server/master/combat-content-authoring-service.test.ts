@@ -535,3 +535,29 @@ describe('combat content authoring service', () => {
     ).toEqual([first.contentVersion, second.contentVersion])
   })
 })
+
+
+describe('Combat v5.1 Master authoring bounds', () => {
+  it('rejects current range and elevation overflow through the canonical service boundary', () => {
+    const { service } = serviceFixture()
+    const base = staticSkill()
+
+    const range = service.validateSkillDefinition({
+      ...base,
+      target: { ...base.target, maximumRange: 6 },
+    })
+    expect(range.valid).toBe(false)
+    expect(range.issues).toContainEqual(
+      expect.objectContaining({ path: 'target.maximumRange' }),
+    )
+
+    const elevation = service.validateSkillDefinition({
+      ...base,
+      target: { ...base.target, maximumElevationDifference: 3 },
+    })
+    expect(elevation.valid).toBe(false)
+    expect(elevation.issues).toContainEqual(
+      expect.objectContaining({ path: 'target.maximumElevationDifference' }),
+    )
+  })
+})
