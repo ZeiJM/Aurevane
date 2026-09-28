@@ -83,7 +83,7 @@ Commit message: `feat: add compact combat effect presentation`
 - Modify: `apps/web/src/components/character/character-skill-build-panel.module.css`
 - Modify: `apps/web/src/components/character/skill-detail-presentation.ts`
 - Modify: `apps/web/src/components/character/skill-detail-presentation.test.ts`
-- Modify: `apps/web/e2e/mobile-techniques-header-layout.pw.ts`
+- Create: `apps/web/e2e/technique-preview-layout.pw.ts`
 
 **Interfaces:**
 - Consumes: `CompactSkillEffectSummary` from Task 1.
@@ -109,7 +109,7 @@ Run:
 `pnpm --filter @aurevane/web exec vitest run src/components/character/skill-detail-presentation.test.ts`
 
 Then:
-`pnpm --filter @aurevane/web exec playwright test e2e/mobile-techniques-header-layout.pw.ts --project=desktop-chromium`
+`pnpm --filter @aurevane/web exec playwright test e2e/technique-preview-layout.pw.ts --project=desktop-chromium`
 
 - [ ] **Step 4: Implement the preview layout**
   - Replace the Effects bullet list inside `<dd>` with compact-effect rows.
