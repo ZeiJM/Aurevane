@@ -261,7 +261,12 @@ export function rebalanceMatureSkillDefinitionV51(
     kind === 'essence' ? tunedEssenceApCost(definition) : tunedTechniqueApCost(definition)
   const apFactor = apCost / Math.max(1, definition.apCost)
   const targetFactor = v51TargetingMagnitudeFactor(definition)
-  const magnitudeFactor = apFactor * targetFactor
+  const rawMagnitudeFactor = apFactor * targetFactor
+  const damageEffectCount = definition.effects.filter((effect) => effect.type === 'damage').length
+  const magnitudeFactor =
+    kind === 'essence' && damageEffectCount > 1 && Math.abs(rawMagnitudeFactor - 1) < 0.05
+      ? 1
+      : rawMagnitudeFactor
   const effects = definition.effects.map((effect) => tuneEffectMagnitude(effect, magnitudeFactor))
   const withCostAndEffects: MatureSkillDefinition = {
     ...definition,
