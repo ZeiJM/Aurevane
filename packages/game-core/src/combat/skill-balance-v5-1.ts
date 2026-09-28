@@ -1,4 +1,3 @@
-import type { CombatEffectDefinition } from './actions'
 import type { MatureSkillDefinition, MatureSkillEffectDefinition } from './mature-skills'
 import {
   CURRENT_EFFECT_DURATION_MAXIMUM_TURNS,
