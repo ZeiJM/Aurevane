@@ -1,5 +1,4 @@
 import { COMBAT_TERRAIN_OVERLAY_DETAILS } from '@aurevane/game-core/combat/terrain-overlays'
-import type { CombatEffectDefinition } from '@aurevane/game-core/combat/actions'
 import { PV1F_COMBAT_CONTENT } from '@aurevane/game-core/combat/pv1f-action-economy'
 import { combatStatusDetails } from '@aurevane/game-core/combat/status-content'
 import {
