@@ -10,19 +10,13 @@ import {
   preparePv1fTurnEconomy,
   readPv1fActionEconomy,
 } from './pv1f-action-economy'
-import {
-  chooseSummonAiDecision,
-  type SummonAiDecision,
-} from './summon-ai'
+import { chooseSummonAiDecision, type SummonAiDecision } from './summon-ai'
 import {
   createCurrentStatDrivenCombatEncounterState,
   type StatDrivenCombatEncounterState,
   type StatDrivenCombatProfileV4,
 } from './stat-driven-combat'
-import {
-  SUMMON_PROFILE_SCHEMA_VERSION,
-  type SummonProfileDefinition,
-} from './summon-content'
+import { SUMMON_PROFILE_SCHEMA_VERSION, type SummonProfileDefinition } from './summon-content'
 
 function combatProfile(
   combatantId: string,
@@ -47,9 +41,7 @@ function combatProfile(
   }
 }
 
-function summonProfile(
-  overrides: Partial<SummonProfileDefinition> = {},
-): SummonProfileDefinition {
+function summonProfile(overrides: Partial<SummonProfileDefinition> = {}): SummonProfileDefinition {
   return {
     schemaVersion: SUMMON_PROFILE_SCHEMA_VERSION,
     id: 'summon.wildwarden.verdant-stalker',
@@ -198,7 +190,10 @@ function encounter(playerHp: number): StatDrivenCombatEncounterState {
   ])
 }
 
-function summonTurn(playerHp = 20, profile = summonProfile()): {
+function summonTurn(
+  playerHp = 20,
+  profile = summonProfile(),
+): {
   state: StatDrivenCombatEncounterState
   summon: CombatSummonInstance
 } {
