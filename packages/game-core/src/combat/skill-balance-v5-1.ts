@@ -13,6 +13,22 @@ export type V51SkillRole = 'attack' | 'utility' | 'recovery'
 const TARGET_RANGE_FACTORS = [1, 1.12, 1.06, 1, 0.94, 0.88] as const
 const ELEVATION_FACTORS = [1, 0.95, 0.88] as const
 
+const V51_ELEVATION_TWO_SKILL_IDS = new Set([
+  'aetherist.arc-bolt',
+  'farstrider.longshot',
+  'stormsinger.lightning-line',
+])
+
+const V51_ELEVATION_ONE_SKILL_IDS = new Set([
+  'aetherist.chain-spark',
+  'chronist.temporal-bolt',
+  'cinderweaver.cinder-bolt',
+  'farstrider.aimed-shot',
+  'farstrider.volley',
+  'frostweaver.ice-lance',
+  'stormsinger.conductive-bolt',
+])
+
 const clamp = (value: number, minimum: number, maximum: number): number =>
   Math.min(maximum, Math.max(minimum, value))
 
@@ -42,6 +58,39 @@ function tunedEssenceApCost(definition: MatureSkillDefinition): number {
   return clamp(Math.max(55, roundToFive(definition.apCost)), 55, 75)
 }
 
+export function applyV51CurrentTechniqueTargeting(
+  definition: MatureSkillDefinition,
+): MatureSkillDefinition {
+  if (definition.target.kind === 'self') {
+    return {
+      ...definition,
+      target: {
+        ...definition.target,
+        minimumRange: 0,
+        maximumRange: 0,
+        maximumElevationDifference: null,
+      },
+    }
+  }
+
+  const maximumRange = clamp(Math.round(definition.target.maximumRange), 1, 5)
+  const maximumElevationDifference = V51_ELEVATION_TWO_SKILL_IDS.has(definition.id)
+    ? 2
+    : V51_ELEVATION_ONE_SKILL_IDS.has(definition.id)
+      ? 1
+      : 0
+
+  return {
+    ...definition,
+    target: {
+      ...definition.target,
+      minimumRange: Math.min(definition.target.minimumRange, maximumRange),
+      maximumRange,
+      maximumElevationDifference,
+    },
+  }
+}
+
 export function v51TargetingMagnitudeFactor(definition: MatureSkillDefinition): number {
   if (definition.target.kind === 'self') return 1
 
@@ -52,7 +101,7 @@ export function v51TargetingMagnitudeFactor(definition: MatureSkillDefinition): 
       ? 0
       : clamp(Math.round(definition.target.maximumElevationDifference), 0, 2)
   const elevationFactor = ELEVATION_FACTORS[elevation] ?? ELEVATION_FACTORS[0]
-  const lineOfSightFactor = definition.target.requiresLineOfSight ? 1 : 0.94
+  const lineOfSightFactor = definition.target.requiresLineOfSight ? 1 : 0.9
 
   return rangeFactor * elevationFactor * lineOfSightFactor
 }
