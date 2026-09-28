@@ -1,5 +1,6 @@
 'use client'
 
+import { CompactSkillEffectSummary } from './compact-skill-effect-summary'
 import { skillPreviewEffects } from './skill-effect-preview'
 
 import Image from 'next/image'
@@ -519,14 +520,23 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                               <div key={label}>
                                 <dt>{label}</dt>
                                 <dd>
-                                  {typeof value === 'string' ? (
+                                  {label === 'Effects' && focusedSkill ? (
+                                    focusedSkill.definition.effects.length > 0 ? (
+                                      <div className={styles.effectSummaryList}>
+                                        {focusedSkill.definition.effects.map((effect, index) => (
+                                          <CompactSkillEffectSummary
+                                            effect={effect}
+                                            key={`${index}:${effect.type}`}
+                                          />
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      'N/A'
+                                    )
+                                  ) : typeof value === 'string' ? (
                                     value
                                   ) : value.length > 0 ? (
-                                    <ul className={styles.effectSummaryList}>
-                                      {value.map((effect, index) => (
-                                        <li key={`${index}:${effect}`}>{effect}</li>
-                                      ))}
-                                    </ul>
+                                    value.join(', ')
                                   ) : (
                                     'N/A'
                                   )}
