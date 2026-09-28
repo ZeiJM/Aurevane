@@ -236,6 +236,51 @@ describe('Combat v5.1 summon Skill execution', () => {
     expect(prepared.tactical.battle.combatants).toHaveLength(2)
   })
 
+  it('removes an active summon as defeated instead of advancing its lifetime', () => {
+    const skill = summoningSkill()
+    let state = executePv1fMatureSkill(
+      encounter(),
+      skill,
+      { kind: 'tile', position: { x: 1, y: 0 } },
+      'pve',
+    ).state
+    const summonId = state.effectState?.summons?.[0]?.combatantId
+    if (!summonId) throw new Error('Expected spawned summon.')
+
+    for (let safety = 0; safety < 6; safety += 1) {
+      if (state.tactical.battle.currentTurn?.combatantId === summonId) break
+      const outgoing = state.tactical.battle.currentTurn?.combatantId
+      if (!outgoing) throw new Error('Expected active turn.')
+      state = finishPv1fTurn(state, outgoing === 'enemy' ? 'west' : 'east').state
+    }
+
+    expect(state.tactical.battle.currentTurn?.combatantId).toBe(summonId)
+    state = {
+      ...state,
+      tactical: {
+        ...state.tactical,
+        battle: {
+          ...state.tactical.battle,
+          combatants: state.tactical.battle.combatants.map((combatant) =>
+            combatant.id === summonId ? { ...combatant, hp: 0 } : combatant,
+          ),
+        },
+      },
+    }
+
+    const finished = finishPv1fTurn(state, 'east')
+    expect(finished.state.effectState?.summons?.some((row) => row.combatantId === summonId)).toBe(
+      false,
+    )
+    expect(finished.state.tactical.battle.combatants.some((row) => row.id === summonId)).toBe(false)
+    expect(finished.events).toContainEqual(
+      expect.objectContaining({ event: 'summon_defeated', combatantId: summonId }),
+    )
+    expect(finished.events).not.toContainEqual(
+      expect.objectContaining({ event: 'summon_expired', combatantId: summonId }),
+    )
+  })
+
   it('advances lifetime only when the summon finishes its own turn and expires after turn five', () => {
     const skill = summoningSkill()
     let state = executePv1fMatureSkill(
