@@ -18,7 +18,7 @@ describe('Discipline Management performance contract', () => {
 
   it('avoids full-screen live blur and centers native option text where supported', () => {
     expect(css).not.toMatch(/backdrop-filter\s*:\s*blur\(/u)
-    expect(css).toMatch(/\.slotSelector select\s*\{[^}]*text-align:\s*center/ su)
+    expect(css).toMatch(/\.slotSelector select\s*\{[^}]*text-align:\s*center/su)
     expect(css).toMatch(/\.slotSelector select option\s*\{[^}]*text-align:\s*center/ su)
   })
 })
