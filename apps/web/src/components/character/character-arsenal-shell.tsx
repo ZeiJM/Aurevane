@@ -85,6 +85,7 @@ function EssenceHoverPreview({ essence }: { essence: EssenceDefinition }) {
 function ResonanceHoverPreview({ resonance }: { resonance: AnyResonanceDefinition }) {
   const mechanics = normalizedResonanceMechanics(resonance)
   const effects = mechanics.resultEffects.map(effectSummaryWithDuration)
+  const effectExplanations = mechanics.resultEffects.map((effect) => previewEffect(effect).explanation)
   const setup = mechanics.setup
   const trigger = mechanics.trigger
   return (
@@ -118,6 +119,16 @@ function ResonanceHoverPreview({ resonance }: { resonance: AnyResonanceDefinitio
           <dd>
             <ul>
               {effects.map((entry, index) => (
+                <li key={`${index}:${entry}`}>{entry}</li>
+              ))}
+            </ul>
+          </dd>
+        </div>
+        <div>
+          <dt>Result details</dt>
+          <dd>
+            <ul>
+              {effectExplanations.map((entry, index) => (
                 <li key={`${index}:${entry}`}>{entry}</li>
               ))}
             </ul>
