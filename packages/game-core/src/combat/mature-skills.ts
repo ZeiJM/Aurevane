@@ -13,10 +13,7 @@ import type {
   CombatUseRequirement,
 } from './actions'
 import type { SkillCooldownDefinition } from './skill-cooldowns'
-import {
-  validateSummonProfileDefinition,
-  type SummonProfileDefinition,
-} from './summon-content'
+import { validateSummonProfileDefinition, type SummonProfileDefinition } from './summon-content'
 import { rebalanceMatureSkillDefinition } from './skill-balance-v5'
 import {
   applyV51CurrentTechniqueTargeting,
