@@ -602,7 +602,9 @@ export async function saveCharacterDisciplineSkills(
   const currentLearnedById = new Map(
     context.disciplineSkills.learnedSkills.map((entry) => [entry.definition.id, entry] as const),
   )
-  const learnedRecordById = new Map(learnedRecords.map((record) => [record.skillId, record] as const))
+  const learnedRecordById = new Map(
+    learnedRecords.map((record) => [record.skillId, record] as const),
+  )
   const selected = input.skillIds.map((candidate) => {
     const skillId = candidate.trim()
     const entry = currentLearnedById.get(skillId)
