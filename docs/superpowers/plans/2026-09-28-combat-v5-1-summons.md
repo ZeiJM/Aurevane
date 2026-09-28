@@ -29,6 +29,7 @@
 - Spawn on an occupied/invalid tile must fail closed without partially adding runtime state.
 - Adding/removing a summon must keep battle combatants, placements, initiative order, stat bridge, status/effect state, and validation in sync.
 - A summon spawned late in a round must not receive an immediate turn or cause initiative-index corruption.
+- Current-round initiative must remain frozen: newly spawned summon IDs live in an explicit deferred-initiative set until the next round rebuild.
 - Defeat/expiration must not leave future recovery/DOT/cooldown state referencing the removed summon.
 - AI must never use both authored abilities in one turn even when enough AP remains.
 
@@ -87,6 +88,8 @@ Commit message: `feat: define versioned summon content`
 **Interfaces:**
 - Produces: `CombatSummonInstance` with combatantId, ownerCombatantId, sourceSkillId/version, pinned `SummonProfileDefinition`, spawnedRound, turnsCompleted.
 - `CombatEffectState` gains `summons: CombatSummonInstance[]`.
+- `BattleCombatant` gains backward-compatible `kind?: 'standard' | 'summon'` (omitted historical rows are standard).
+- `BattleState` gains backward-compatible `deferredInitiativeCombatantIds?: readonly string[]`.
 - Produces: `spawnCombatSummon(state, input): { state; events }`.
 - Produces: `removeCombatSummon(state, combatantId, reason): { state; events }`.
 - Produces: `advanceCombatSummonOwnerTurn(...)` to increment completed turns and expire at 5.
@@ -95,8 +98,9 @@ Commit message: `feat: define versioned summon content`
 - [ ] **Step 1: Write failing atomicity/invariant tests**
   - legal empty tile adds combatant, placement, stat profile, summon state;
   - occupied/blocked/out-of-range tile changes nothing;
-  - spawned summon is absent from current-round initiative order;
-  - next round order includes it deterministically;
+  - spawned summon is absent from current-round initiative order and present in `deferredInitiativeCombatantIds`;
+  - current turn index/order is unchanged by spawn;
+  - next round order includes it deterministically and clears its deferred marker;
   - removing summon clears placement/stat/effect references;
   - team terminal calculation ignores summons as sole team anchors.
 
@@ -107,8 +111,11 @@ Run:
 
 - [ ] **Step 3: Implement atomic spawn/removal helpers**
   - Derive stable combatant id from battle id + owner + source skill/version + deterministic summon ordinal.
+  - Mark spawned BattleCombatant as `kind: 'summon'`.
   - Update all parallel state collections in one returned immutable state.
-  - Rebuild initiative only at the normal round boundary.
+  - Keep the current initiative array/index frozen and add the new id to `deferredInitiativeCombatantIds`.
+  - On the existing round-wrap path, rebuild initiative from living combatants and clear deferred ids that become eligible.
+  - Battle terminal-team calculation counts living `standard` combatants as team anchors; summons remain combat-capable while their team has an anchor but cannot keep a defeated team alive by themselves.
   - Validate resulting runtime state before returning.
 
 - [ ] **Step 4: Run tests and verify GREEN.**
