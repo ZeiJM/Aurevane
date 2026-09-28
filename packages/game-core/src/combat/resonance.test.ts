@@ -200,6 +200,46 @@ describe('P3.5 versioned Resonance framework', () => {
   })
 })
 
+describe('Combat v5.1 Resonance v2 runtime', () => {
+  it('activates an immediate Trigger without arming stale Setup state', () => {
+    const resonance = resolveResonanceForPair('farstrider', 'lifebinder')
+    const shot = resolveMatureSkillVersion('farstrider.aimed-shot', 1)
+    if (!resonance || !shot) throw new Error('Expected immediate Resonance v2 fixtures.')
+
+    const ready = createResonanceCombatState(resonance)
+    const forecast = forecastResonanceForSkill(resonance, ready, shot)
+    expect(forecast).toMatchObject({
+      willArm: false,
+      willActivate: true,
+      willExpireArmedSetup: false,
+    })
+
+    const resolved = executeMatureSkillWithResonance({
+      state: encounter(),
+      resonance,
+      resonanceState: ready,
+      skill: shot,
+      combatContext: 'pve',
+      selection: { kind: 'unit', combatantId: 'recruit' },
+      content: { statuses: [] },
+    })
+
+    expect(resolved.resonanceState.armedByActionId).toBeNull()
+    expect(resolved.events).toContainEqual(
+      expect.objectContaining({
+        event: 'resonance_activated',
+        resonanceId: resonance.id,
+        setupActionId: null,
+        triggerActionId: shot.id,
+        payoffActionId: shot.id,
+      }),
+    )
+    expect(resolved.events).not.toContainEqual(
+      expect.objectContaining({ event: 'resonance_armed', resonanceId: resonance.id }),
+    )
+  })
+})
+
 describe('Combat v5 thematic Resonance rebalance', () => {
   it('derives payoff variety from authored setup Disciplines rather than Resonance IDs', () => {
     const lifebinder = resolveResonanceForPair('lifebinder', 'vanguard', 1)
