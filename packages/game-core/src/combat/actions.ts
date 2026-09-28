@@ -40,11 +40,6 @@ export * from './actions-legacy'
 
 type LegacyDamageEffect = Extract<legacy.CombatEffectDefinition, { type: 'damage' }>
 
-export interface CombatSummonEffect {
-  readonly type: 'summon'
-  readonly recipient: 'selected-tile'
-}
-
 export interface CombatEffectAuthoringTuning {
   /** 0 is immediate. Positive values count full future owner turns. */
   readonly durationTurns?: number
@@ -58,7 +53,6 @@ export type CombatEffectDefinition = (
   | Exclude<legacy.CombatEffectDefinition, { type: 'damage' }>
   | (LegacyDamageEffect & { scaling?: CombatDamageScaling; vengeance?: CombatVengeanceDefinition })
   | CombatSensoryEffect
-  | CombatSummonEffect
 ) &
   CombatEffectAuthoringTuning
 
@@ -306,9 +300,6 @@ function materializeStatScaledDamage(
     }
     if (effect.type === 'copy') {
       throw new TypeError('Copy must be materialized by the mature Skill execution layer.')
-    }
-    if (effect.type === 'summon') {
-      throw new TypeError('Summon must be materialized by the mature Skill execution layer.')
     }
     if (effect.type !== 'damage') return effect
 
