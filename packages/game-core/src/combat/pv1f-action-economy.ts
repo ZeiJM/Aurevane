@@ -15,10 +15,7 @@ import {
   forecastCombatSkillAccuracyForTarget,
   rollCombatSkillAccuracyForTarget,
 } from './combat-skill-accuracy'
-import {
-  normalizeCombatEffectState,
-  type CombatSummonInstance,
-} from './combat-effect-state'
+import { normalizeCombatEffectState, type CombatSummonInstance } from './combat-effect-state'
 import { advanceCombatSummonOwnerTurn, spawnCombatSummon } from './combat-summons'
 import type { SummonAbilityDefinition } from './summon-content'
 import { hasGameplayTag } from './gameplay-tags'
