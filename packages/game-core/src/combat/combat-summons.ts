@@ -402,6 +402,29 @@ export function removeCombatSummon(
   }
 }
 
+export function removeDefeatedCombatSummons(
+  state: StatDrivenCombatEncounterState,
+): CombatSummonTransition {
+  let next = state
+  const events: CombatSummonEvent[] = []
+  const activeCombatantId = state.tactical.battle.currentTurn?.combatantId ?? null
+  const summonIds = (normalizeCombatEffectState(state.effectState).summons ?? []).map(
+    (summon) => summon.combatantId,
+  )
+
+  for (const combatantId of summonIds) {
+    if (combatantId === activeCombatantId) continue
+    const combatant = next.tactical.battle.combatants.find((row) => row.id === combatantId)
+    if (!combatant || combatant.hp > 0) continue
+
+    const removed = removeCombatSummon(next, combatantId, 'defeated')
+    next = removed.state
+    events.push(...removed.events)
+  }
+
+  return { state: next, events }
+}
+
 export function advanceCombatSummonOwnerTurn(
   state: StatDrivenCombatEncounterState,
   combatantId: string,
