@@ -17,6 +17,7 @@ const V51_ELEVATION_TWO_SKILL_IDS = new Set([
   'aetherist.arc-bolt',
   'farstrider.longshot',
   'stormsinger.lightning-line',
+  'essence.farstrider.deadeye-barrage',
 ])
 
 const V51_ELEVATION_ONE_SKILL_IDS = new Set([
@@ -27,6 +28,9 @@ const V51_ELEVATION_ONE_SKILL_IDS = new Set([
   'farstrider.volley',
   'frostweaver.ice-lance',
   'stormsinger.conductive-bolt',
+  'essence.aetherist.aether-nova',
+  'essence.stormsinger.skybreak',
+  'essence.cinderweaver.phoenix-wake',
 ])
 
 const clamp = (value: number, minimum: number, maximum: number): number =>
