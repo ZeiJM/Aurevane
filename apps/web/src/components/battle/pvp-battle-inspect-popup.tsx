@@ -8,6 +8,7 @@ import { getStarterPortraitImageAssetId } from '@/media/character'
 import type { PvpBattleMetadata, PvpBattleParticipantView } from '@/server/battle/pvp-lobby-service'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
+import { readSummonInspectMetadata, type BattleSummonInspectMetadata } from './battle-summon-inspect'
 import {
   aggregateBattleStatusStacks,
   formatStatusStackCount,
@@ -33,9 +34,13 @@ interface SelectedCombatant {
   placement: Placement
   profile: Profile | null
   statuses: readonly CombatStatus[]
-  participant: PvpBattleParticipantView
+  participant: PvpBattleParticipantView | null
   active: boolean
   actionEconomy: number | null
+  summon: (BattleSummonInspectMetadata & {
+    readonly ownerName: string
+    readonly teamLabel: string
+  }) | null
 }
 
 interface BattleApiBody {
@@ -93,7 +98,10 @@ function readSelectedCombatant(
   const participant = metadata.participants.find(
     (candidate) => candidate.combatantId === placement.combatantId,
   )
-  if (!combatant || !participant) return null
+  if (!combatant) return null
+
+  const summon = readSummonInspectMetadata(battle.snapshot, combatant.id)
+  if (!participant && !summon) return null
 
   const profile =
     battle.snapshot.statBridge.combatants.find(
@@ -105,15 +113,27 @@ function readSelectedCombatant(
   const economy = combatant.temporaryResources.find(
     (resource) => resource.key === ACTION_ECONOMY_KEY,
   )
+  const ownerParticipant = summon
+    ? metadata.participants.find(
+        (candidate) => candidate.combatantId === summon.ownerCombatantId,
+      )
+    : null
 
   return {
     combatant,
     placement,
     profile,
     statuses,
-    participant,
+    participant: participant ?? null,
     active: battle.snapshot.tactical.battle.currentTurn?.combatantId === combatant.id,
     actionEconomy: economy?.current ?? null,
+    summon: summon
+      ? {
+          ...summon,
+          ownerName: ownerParticipant?.characterName ?? summon.ownerCombatantId,
+          teamLabel: ownerParticipant ? `Team ${ownerParticipant.teamIndex + 1} Summon` : 'Summon',
+        }
+      : null,
   }
 }
 
@@ -229,7 +249,7 @@ export function PvpBattleInspectPopup({
         aria-modal="true"
         aria-label={
           selected
-            ? `${selected.participant.characterName} battle details`
+            ? `${selected.summon?.name ?? selected.participant?.characterName ?? 'Summon'} battle details`
             : 'Battle combatant details'
         }
         onPointerDown={(event) => event.stopPropagation()}
@@ -244,21 +264,32 @@ export function PvpBattleInspectPopup({
           <>
             <div className={styles.identityRow}>
               <div className={styles.portrait}>
-                <CharacterPortraitImage
-                  imageUrl={selected.participant.profileImageUrl}
-                  fallbackAssetId={getStarterPortraitImageAssetId(
-                    selected.participant.portraitRef as CharacterPortraitRef,
-                  )}
-                  className={styles.portraitImage}
-                  sizes="8rem"
-                  alt={`${selected.participant.characterName} portrait`}
-                />
+                {selected.participant ? (
+                  <CharacterPortraitImage
+                    imageUrl={selected.participant.profileImageUrl}
+                    fallbackAssetId={getStarterPortraitImageAssetId(
+                      selected.participant.portraitRef as CharacterPortraitRef,
+                    )}
+                    className={styles.portraitImage}
+                    sizes="8rem"
+                    alt={`${selected.participant.characterName} portrait`}
+                  />
+                ) : (
+                  <span className={styles.recruitPortrait} aria-hidden="true">
+                    {(selected.summon?.name ?? 'S').slice(0, 1).toUpperCase()}
+                  </span>
+                )}
               </div>
               <div className={styles.identityCopy}>
-                <span>Team {selected.participant.teamIndex + 1}</span>
-                <h2>{selected.participant.characterName}</h2>
+                <span>
+                  {selected.summon?.teamLabel ??
+                    (selected.participant ? `Team ${selected.participant.teamIndex + 1}` : 'Summon')}
+                </span>
+                <h2>{selected.summon?.name ?? selected.participant?.characterName ?? 'Summon'}</h2>
                 <p>
-                  Level {selected.participant.characterLevel}
+                  {selected.summon
+                    ? `Summoner: ${selected.summon.ownerName} · ${selected.summon.remainingTurns} summon turn${selected.summon.remainingTurns === 1 ? '' : 's'} remaining`
+                    : `Level ${selected.participant?.characterLevel ?? '—'}`}
                   {selected.active ? ' · Active turn' : ''} · Facing {selected.placement.facing}{' '}
                   {facingGlyph(selected.placement.facing)}
                 </p>
@@ -329,9 +360,37 @@ export function PvpBattleInspectPopup({
               </div>
             </dl>
 
+            {selected.summon ? (
+              <section
+                className={styles.effects}
+                aria-label={`${selected.summon.name} summon profile`}
+              >
+                <span>Summon profile</span>
+                <p>
+                  {selected.summon.description} · {selected.summon.remainingTurns}/
+                  {selected.summon.lifetimeTurns} turns remaining.
+                </p>
+                <p>{selected.summon.tags.join(' · ')}</p>
+                <ul>
+                  {selected.summon.abilities.map((ability) => (
+                    <li key={ability.id}>
+                      <strong>
+                        {ability.name}
+                        <b>
+                          {ability.apCost} AP
+                          {ability.mpCost > 0 ? ` · ${ability.mpCost} MP` : ''}
+                        </b>
+                      </strong>
+                      <small>{ability.description}</small>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
+
             <section
               className={styles.effects}
-              aria-label={`${selected.participant.characterName} active effects`}
+              aria-label={`${selected.summon?.name ?? selected.participant?.characterName ?? 'Summon'} active effects`}
             >
               <span>Active effects</span>
               {effectStatuses.length === 0 ? (
