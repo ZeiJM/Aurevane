@@ -14,6 +14,10 @@ import type {
 } from './actions'
 import type { SkillCooldownDefinition } from './skill-cooldowns'
 import { rebalanceMatureSkillDefinition } from './skill-balance-v5'
+import {
+  applyV51CurrentTechniqueTargeting,
+  rebalanceMatureSkillDefinitionV51,
+} from './skill-balance-v5-1'
 
 export const MATURE_SKILL_SCHEMA_VERSION = 1 as const
 export type MatureSkillCombatContext = 'pve' | 'pvp'
@@ -879,11 +883,22 @@ const V5_REBALANCED_DISCIPLINE_SKILLS = latestEnabledMatureSkills(
   PRE_V5_CURRENT_DISCIPLINE_SKILLS,
 ).map((definition) => rebalanceMatureSkillDefinition(definition, 'technique'))
 
+const V51_REBALANCED_DISCIPLINE_SKILLS = latestEnabledMatureSkills([
+  ...PRE_V5_CURRENT_DISCIPLINE_SKILLS,
+  ...V5_REBALANCED_DISCIPLINE_SKILLS,
+]).map((definition) =>
+  rebalanceMatureSkillDefinitionV51(
+    applyV51CurrentTechniqueTargeting(definition),
+    'technique',
+  ),
+)
+
 export const P33_REPRESENTATIVE_DISCIPLINE_SKILLS = PRE_V5_CURRENT_DISCIPLINE_SKILLS
 
 const CURRENT_DISCIPLINE_SKILL_REGISTRY = [
   ...P33_REPRESENTATIVE_DISCIPLINE_SKILLS,
   ...V5_REBALANCED_DISCIPLINE_SKILLS,
+  ...V51_REBALANCED_DISCIPLINE_SKILLS,
 ] as const satisfies readonly MatureSkillDefinition[]
 
 /** Current selection catalog; the historical P3.3/P4 export remains stable for pinned contracts. */
