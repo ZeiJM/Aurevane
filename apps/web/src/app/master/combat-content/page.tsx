@@ -7,7 +7,7 @@ import { latestEnabledMatureSkills } from '@aurevane/game-core/combat/mature-ski
 import {
   resolveResonanceForPair,
   validateResonanceDefinition,
-  type ResonanceDefinition,
+  type AnyResonanceDefinition,
 } from '@aurevane/game-core/combat/resonance'
 import type { CombatContentEditorSkillOption } from '@/components/master/combat-content/combat-content-editor'
 import { CombatContentAuthoringWorkspace } from '@/components/master/combat-content/combat-content-authoring-workspace'
@@ -171,7 +171,7 @@ export default async function MasterCombatContentPage() {
       left.id.localeCompare(right.id),
   )
 
-  const staticResonances: ResonanceDefinition[] = []
+  const staticResonances: AnyResonanceDefinition[] = []
   for (let firstIndex = 0; firstIndex < disciplineIds.length; firstIndex += 1) {
     for (let secondIndex = firstIndex + 1; secondIndex < disciplineIds.length; secondIndex += 1) {
       const definition = resolveResonanceForPair(
@@ -196,7 +196,7 @@ export default async function MasterCombatContentPage() {
         ])
         const current =
           published?.contentKind === 'resonance'
-            ? (structuredClone(published.definition) as unknown as ResonanceDefinition)
+            ? (structuredClone(published.definition) as unknown as AnyResonanceDefinition)
             : structuredClone(staticDefinition)
         if (validateResonanceDefinition(current).length > 0) {
           throw new Error(`Invalid authoritative Resonance ${staticDefinition.id}.`)
@@ -221,7 +221,7 @@ export default async function MasterCombatContentPage() {
 
         const initialDraft =
           draft?.contentKind === 'resonance'
-            ? (structuredClone(draft.definition) as unknown as ResonanceDefinition)
+            ? (structuredClone(draft.definition) as unknown as AnyResonanceDefinition)
             : undefined
 
         return {
