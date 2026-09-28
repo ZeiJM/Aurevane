@@ -64,16 +64,14 @@ describe('Master Panel Skill economy editor', () => {
 })
 
 
-  it('uses explicit AP authoring bounds when the selected current ruleset supplies them', () => {
-    const markup = renderToStaticMarkup(
-      createElement(SkillEconomyEditor, {
-        value: draft({ apCost: 50 }),
-        apCostBounds: { minimum: 45, maximum: 60 },
-        onChange: vi.fn(),
-      }),
-    )
+it('uses explicit AP authoring bounds when the selected current ruleset supplies them', () => {
+  const markup = renderToStaticMarkup(
+    createElement(SkillEconomyEditor, {
+      value: draft({ apCost: 50 }),
+      apCostBounds: { minimum: 45, maximum: 60 },
+      onChange: vi.fn(),
+    }),
+  )
 
-    expect(markup).toMatch(
-      /aria-label="Action Economy \(AP\)"[^>]*min="45"[^>]*max="60"/u,
-    )
-  })
+  expect(markup).toMatch(/aria-label="Action Economy \(AP\)"[^>]*min="45"[^>]*max="60"/u)
+})
