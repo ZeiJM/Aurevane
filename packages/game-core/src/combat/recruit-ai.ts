@@ -63,6 +63,12 @@ export interface RecruitAiKnowledge {
   tiles: readonly CombatTile[]
 }
 
+export interface RecruitAiCapabilities {
+  readonly basicAttack?: boolean
+  readonly guard?: boolean
+  readonly recover?: boolean
+}
+
 export interface RecruitAiDecision {
   intent: RecruitAiIntent
   reason: RecruitAiReasonTag
@@ -162,6 +168,7 @@ export function chooseRecruitAiDecision(input: {
   state: StatDrivenCombatEncounterState
   profile?: RecruitAiProfile
   tieBreakSeed: number
+  capabilities?: RecruitAiCapabilities
 }): RecruitAiDecision {
   const profile = input.profile ?? RECRUIT_STANDARD_PROFILE
   assertRecruitAiProfile(profile)
@@ -170,7 +177,7 @@ export function chooseRecruitAiDecision(input: {
   }
 
   const knowledge = createRecruitAiKnowledge(input.state)
-  const candidates = buildCandidates(input.state, knowledge, profile)
+  const candidates = buildCandidates(input.state, knowledge, profile, input.capabilities)
   if (candidates.length === 0) {
     throw new Error('Recruit AI could not find a legal bounded turn decision.')
   }
@@ -203,6 +210,7 @@ function buildCandidates(
   state: StatDrivenCombatEncounterState,
   knowledge: RecruitAiKnowledge,
   profile: RecruitAiProfile,
+  capabilities: RecruitAiCapabilities | undefined,
 ): Candidate[] {
   const candidates: Candidate[] = []
   const actor = knowledge.combatants.find(
@@ -219,12 +227,14 @@ function buildCandidates(
     .filter((combatant) => combatant.teamId !== actor.teamId && combatant.hp > 0)
     .sort((left, right) => left.id.localeCompare(right.id))
 
-  for (const enemy of enemies) {
-    pushCandidate(candidates, profile, createAttackCandidate(state, enemy.id, profile))
+  if (capabilities?.basicAttack !== false) {
+    for (const enemy of enemies) {
+      pushCandidate(candidates, profile, createAttackCandidate(state, enemy.id, profile))
+    }
   }
 
   const hpRatio = actor.maxHp > 0 ? actor.hp / actor.maxHp : 0
-  if (hpRatio < 0.72) {
+  if (capabilities?.guard !== false && hpRatio < 0.72) {
     pushCandidate(
       candidates,
       profile,
@@ -236,7 +246,7 @@ function buildCandidates(
       ),
     )
   }
-  if (hpRatio < 0.62) {
+  if (capabilities?.recover !== false && hpRatio < 0.62) {
     pushCandidate(
       candidates,
       profile,
