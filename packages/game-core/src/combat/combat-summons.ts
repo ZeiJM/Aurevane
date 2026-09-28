@@ -75,7 +75,7 @@ function summonMovementProfileId(profileId: string): string {
 }
 
 function pinnedProfile(profile: SummonProfileDefinition): SummonProfileDefinition {
-  return structuredClone(profile)
+  return JSON.parse(JSON.stringify(profile)) as SummonProfileDefinition
 }
 
 function nextSummonId(
