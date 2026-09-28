@@ -289,7 +289,10 @@ export function spawnCombatSummon(
   }
 }
 
-function cleanupEffectState(\n  effectState: CombatEffectState,\n  combatantId: string,\n): CombatEffectState {
+function cleanupEffectState(
+  effectState: CombatEffectState,
+  combatantId: string,
+): CombatEffectState {
   return {
     ...effectState,
     ongoingRecovery: effectState.ongoingRecovery.filter(
