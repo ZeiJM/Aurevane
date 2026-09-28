@@ -91,7 +91,7 @@ export type ResonanceCombatEvent =
       readonly resonanceId: string
       readonly contentVersion: number
       readonly actorId: string
-      readonly setupActionId: string
+      readonly setupActionId: string | null
       readonly triggerActionId: string
       readonly payoffActionId: string
     }
@@ -400,7 +400,7 @@ export function executeMatureSkillWithResonance(input: {
   const resonanceEvents: ResonanceCombatEvent[] = []
   let nextArmedByActionId = input.resonanceState.armedByActionId
 
-  if (forecast.willActivate && input.resonanceState.armedByActionId) {
+  if (forecast.willActivate) {
     resonanceEvents.push({
       event: 'resonance_activated',
       resonanceId: input.resonance.id,
