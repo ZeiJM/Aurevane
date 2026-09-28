@@ -1,4 +1,4 @@
-import { effectSummary, previewEffect } from './skill-effect-preview'
+import { previewEffect } from './skill-effect-preview'
 import { combatActionPresentationTags } from '@aurevane/game-core/combat/gameplay-tags'
 import { gameplayStatusName } from '../../lib/battle/combat-interaction-presentation'
 import {
