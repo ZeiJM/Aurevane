@@ -1206,7 +1206,12 @@ export function toCombatActionDefinition(
     cost: { spendsAction: true, mp: resolved.mpCost ?? 0 },
     requirements: resolved.requirements,
     ...(resolved.cooldown === null ? {} : { cooldown: resolved.cooldown }),
-    effects: resolved.effects,
+    effects: resolved.effects.map((effect) => {
+      if (effect.type === 'summon') {
+        throw new TypeError('Summon must be materialized by the mature Skill execution layer.')
+      }
+      return effect
+    }),
     ...(resolved.accuracyMode !== undefined ? { accuracyMode: resolved.accuracyMode } : {}),
     ...(resolved.accuracyModifierBasisPoints !== undefined
       ? { accuracyModifierBasisPoints: resolved.accuracyModifierBasisPoints }
