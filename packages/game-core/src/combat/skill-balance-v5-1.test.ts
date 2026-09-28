@@ -87,9 +87,7 @@ describe('Combat v5.1 Skill balance primitives', () => {
     expect(v51TargetingMagnitudeFactor(elevationTwo)).toBeLessThan(
       v51TargetingMagnitudeFactor(elevationOne),
     )
-    expect(v51TargetingMagnitudeFactor(noLos)).toBeLessThan(
-      v51TargetingMagnitudeFactor(definition),
-    )
+    expect(v51TargetingMagnitudeFactor(noLos)).toBeLessThan(v51TargetingMagnitudeFactor(definition))
 
     expect(v51TargetingValueWeight(elevationOne)).toBeGreaterThan(
       v51TargetingValueWeight(definition),
@@ -97,9 +95,7 @@ describe('Combat v5.1 Skill balance primitives', () => {
     expect(v51TargetingValueWeight(elevationTwo)).toBeGreaterThan(
       v51TargetingValueWeight(elevationOne),
     )
-    expect(v51TargetingValueWeight(noLos)).toBeGreaterThan(
-      v51TargetingValueWeight(definition),
-    )
+    expect(v51TargetingValueWeight(noLos)).toBeGreaterThan(v51TargetingValueWeight(definition))
   })
 
   it('does not charge self-target Skills for irrelevant line-of-sight settings', () => {
