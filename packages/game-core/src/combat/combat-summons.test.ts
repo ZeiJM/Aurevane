@@ -6,6 +6,7 @@ import { createTacticalBattleState } from './board'
 import {
   advanceCombatSummonOwnerTurn,
   removeCombatSummon,
+  removeDefeatedCombatSummons,
   spawnCombatSummon,
 } from './combat-summons'
 import {
@@ -261,6 +262,40 @@ describe('Combat v5.1 summon runtime state', () => {
     )
     expect(removed.events).toContainEqual(
       expect.objectContaining({ event: 'summon_expired', combatantId: summonId }),
+    )
+  })
+
+  it('atomically removes a defeated non-active summon from all runtime collections', () => {
+    const spawned = spawn()
+    const spawnEvent = spawned.events.find((entry) => entry.event === 'summon_spawned')
+    if (!spawnEvent || spawnEvent.event !== 'summon_spawned') throw new Error('Expected spawn.')
+    const summonId = spawnEvent.combatantId
+
+    const defeated = {
+      ...spawned.state,
+      tactical: {
+        ...spawned.state.tactical,
+        battle: {
+          ...spawned.state.tactical.battle,
+          combatants: spawned.state.tactical.battle.combatants.map((combatant) =>
+            combatant.id === summonId ? { ...combatant, hp: 0 } : combatant,
+          ),
+        },
+      },
+    }
+
+    const cleaned = removeDefeatedCombatSummons(defeated)
+
+    expect(cleaned.state.tactical.battle.combatants.some((row) => row.id === summonId)).toBe(false)
+    expect(cleaned.state.tactical.placements.some((row) => row.combatantId === summonId)).toBe(false)
+    expect(cleaned.state.statBridge.combatants.some((row) => row.combatantId === summonId)).toBe(
+      false,
+    )
+    expect(cleaned.state.effectState?.summons?.some((row) => row.combatantId === summonId)).toBe(
+      false,
+    )
+    expect(cleaned.events).toContainEqual(
+      expect.objectContaining({ event: 'summon_defeated', combatantId: summonId }),
     )
   })
 
