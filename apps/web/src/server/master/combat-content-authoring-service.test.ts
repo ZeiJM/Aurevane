@@ -434,7 +434,7 @@ describe('combat content authoring service', () => {
     })
     await service.publishSkill({
       actorUserId: OWNER,
-      definition: { ...staticSkill(), apCost: 41 },
+      definition: { ...staticSkill(), apCost: 50 },
       expectedBaseVersion: baseVersion + 1,
     })
 
