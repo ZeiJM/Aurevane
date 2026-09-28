@@ -13,10 +13,7 @@ import {
   type StatDrivenCombatEncounterState,
   type StatDrivenCombatProfileV4,
 } from './stat-driven-combat'
-import {
-  SUMMON_PROFILE_SCHEMA_VERSION,
-  type SummonProfileDefinition,
-} from './summon-content'
+import { SUMMON_PROFILE_SCHEMA_VERSION, type SummonProfileDefinition } from './summon-content'
 
 function profile(combatantId: string, team: 'players' | 'opponents'): StatDrivenCombatProfileV4 {
   return {
