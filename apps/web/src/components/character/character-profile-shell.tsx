@@ -82,7 +82,7 @@ export interface CharacterWorkspaceProps {
         equippedAt: string
       }[]
       extensions: {
-        resonance: ResonanceDefinition | null
+        resonance: AnyResonanceDefinition | null
         essence: EssenceDefinition | null
       }
     }
