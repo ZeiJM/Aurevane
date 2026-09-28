@@ -15,6 +15,7 @@ import type {
 import type { SkillCooldownDefinition } from './skill-cooldowns'
 import {
   isMaterializedCombatEffect,
+  SUMMON_PROFILE_SCHEMA_VERSION,
   validateSummonProfileDefinition,
   type CombatSummonEffect,
   type SummonProfileDefinition,
@@ -912,11 +913,121 @@ const V5_REBALANCED_DISCIPLINE_SKILLS = latestEnabledMatureSkills(
   PRE_V5_CURRENT_DISCIPLINE_SKILLS,
 ).map((definition) => rebalanceMatureSkillDefinition(definition, 'technique'))
 
+function materializeV51CurrentSummon(
+  definition: MatureSkillDefinition,
+): MatureSkillDefinition {
+  if (definition.id !== 'wildwarden.renewing-herbs') return definition
+
+  const summonProfile: SummonProfileDefinition = {
+    schemaVersion: SUMMON_PROFILE_SCHEMA_VERSION,
+    id: 'summon.wildwarden.verdant-stalker',
+    name: 'Verdant Stalker',
+    description: 'A temporary woodland hunter that supports allies and pressures nearby enemies.',
+    flavorLine: 'Roots and herbs knot together into a watchful hunter.',
+    portraitKey: 'summon.wildwarden.verdant-stalker.portrait',
+    tags: ['summon', 'verdant', 'beast'],
+    maxHp: 36,
+    maxMp: 12,
+    initiative: 28,
+    movementBudget: 5,
+    stats: {
+      accuracy: 6800,
+      evasion: 1200,
+      armor: 8,
+      ward: 6,
+      jump: 1,
+      physicalPower: 24,
+      mysticPower: 18,
+    },
+    aiProfile: 'standard',
+    aiPurposeTags: ['damage', 'support'],
+    lifetimeTurns: 5,
+    abilities: [
+      {
+        id: 'wildwarden.verdant-stalker.thorn-rake',
+        name: 'Thorn Rake',
+        description: 'Rake a nearby enemy with thorned claws.',
+        apCost: 45,
+        mpCost: 0,
+        tags: ['attack', 'melee'],
+        target: {
+          kind: 'unit',
+          teamPolicy: 'enemy',
+          shape: { kind: 'single' },
+          minimumRange: 1,
+          maximumRange: 2,
+          requiresLineOfSight: true,
+          maximumElevationDifference: 0,
+          friendlyFire: 'enemies-only',
+        },
+        requirements: [],
+        effects: [{ type: 'damage', recipient: 'primary-unit', amount: 5, durationTurns: 0 }],
+        ai: { baseUtility: 70, purposeTags: ['damage', 'pressure'] },
+        media: {
+          iconKey: 'summon-ability.wildwarden.verdant-stalker.thorn-rake.icon',
+          audioCueKey: null,
+          vfxKey: null,
+        },
+      },
+      {
+        id: 'wildwarden.verdant-stalker.verdant-mend',
+        name: 'Verdant Mend',
+        description: 'Restore an injured ally with living herbs.',
+        apCost: 45,
+        mpCost: 0,
+        tags: ['heal', 'support'],
+        target: {
+          kind: 'unit',
+          teamPolicy: 'ally',
+          shape: { kind: 'single' },
+          minimumRange: 1,
+          maximumRange: 2,
+          requiresLineOfSight: true,
+          maximumElevationDifference: 0,
+          friendlyFire: 'allies-only',
+        },
+        requirements: [],
+        effects: [{ type: 'healing', recipient: 'primary-unit', amount: 4, durationTurns: 0 }],
+        ai: { baseUtility: 64, purposeTags: ['heal', 'support'] },
+        media: {
+          iconKey: 'summon-ability.wildwarden.verdant-stalker.verdant-mend.icon',
+          audioCueKey: null,
+          vfxKey: null,
+        },
+      },
+    ],
+  }
+
+  return {
+    ...definition,
+    apCost: 45,
+    target: {
+      kind: 'empty-tile',
+      teamPolicy: 'ally',
+      shape: { kind: 'single' },
+      minimumRange: 1,
+      maximumRange: 3,
+      requiresLineOfSight: true,
+      maximumElevationDifference: 0,
+      friendlyFire: 'allies-only',
+    },
+    effects: [{ type: 'summon', recipient: 'selected-tile', durationTurns: 0 }],
+    effectDescriptions: ['Summon a Verdant Stalker on the selected empty tile.'],
+    summonProfile,
+    ai: {
+      ...definition.ai,
+      purposeTags: rebalancePurposeTags(definition, ['summon', 'support']),
+    },
+  }
+}
+
 const V51_REBALANCED_DISCIPLINE_SKILLS = latestEnabledMatureSkills([
   ...PRE_V5_CURRENT_DISCIPLINE_SKILLS,
   ...V5_REBALANCED_DISCIPLINE_SKILLS,
 ]).map((definition) =>
-  rebalanceMatureSkillDefinitionV51(applyV51CurrentTechniqueTargeting(definition), 'technique'),
+  materializeV51CurrentSummon(
+    rebalanceMatureSkillDefinitionV51(applyV51CurrentTechniqueTargeting(definition), 'technique'),
+  ),
 )
 
 export const P33_REPRESENTATIVE_DISCIPLINE_SKILLS = PRE_V5_CURRENT_DISCIPLINE_SKILLS
