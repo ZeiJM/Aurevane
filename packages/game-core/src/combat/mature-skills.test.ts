@@ -85,6 +85,9 @@ describe('P3.3 mature Skill schema', () => {
   it('keeps representative Discipline Skills fully data-defined and valid', () => {
     for (const definition of P33_REPRESENTATIVE_DISCIPLINE_SKILLS) {
       expect(validateMatureSkillDefinition(definition)).toEqual([])
+      if (!definition.cooldown) {
+        throw new Error(`Expected historical cooldown for ${definition.id}.`)
+      }
       expect(definition.cooldown.ownerTurns).toBeGreaterThan(0)
       expect(definition.sourceDisciplineId).toMatch(/^[a-z0-9.-]+$/)
     }
@@ -118,7 +121,9 @@ describe('P3.3 mature Skill schema', () => {
     expect(resolveMatureSkillVersion('vanguard.forceful-strike', 1)).toBeNull()
     expect(resolveMatureSkillVersion('vanguard.forceful-strike', 2)?.contentVersion).toBe(2)
     expect(resolveMatureSkillVersion('vanguard.forceful-strike', 999)).toBeNull()
-    expect(resolveMatureSkillVersion('vanguard.forceful-strike')?.contentVersion).toBe(3)
+    expect(
+      resolveMatureSkillVersion('vanguard.forceful-strike')?.authoring.validationTags,
+    ).toContain('owner-rebalance-v5')
   })
 
   it('normalizes MP costs for every current mystic Skill without rewriting historical versions', () => {
@@ -139,6 +144,7 @@ describe('P3.3 mature Skill schema', () => {
   it('uses existing combat target, requirement, and effect authority instead of a parallel engine', () => {
     const definition = resolveMatureSkillVersion('lifebinder.mending-light', 1)
     if (!definition) throw new Error('Expected representative Lifebinder Skill.')
+    if (!definition.cooldown) throw new Error('Expected historical Lifebinder cooldown.')
     const action = toCombatActionDefinition(definition, 'pve')
     const state = encounter()
     const evaluation = evaluateCombatAction(state, action, { kind: 'self' }, { statuses: [] })
@@ -180,6 +186,7 @@ describe('P3.3 generic owner-turn cooldown clock', () => {
     const player = encounter().tactical.battle.combatants.find((row) => row.id === 'player')
     if (!player) throw new Error('Expected player combatant.')
 
+    if (!definition.cooldown) throw new Error('Expected historical Lifebinder cooldown.')
     const started = applySkillCooldown(player, definition.cooldown, {
       actionId: definition.id,
       definitionVersion: definition.contentVersion,

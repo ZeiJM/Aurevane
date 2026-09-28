@@ -11,6 +11,20 @@ import styles from './combat-content-editor.module.css'
 type DamageEffect = Extract<CombatEffectDefinition, { type: 'damage' }>
 type DisplaceEffect = Extract<CombatEffectDefinition, { type: 'displace' }>
 
+const PERCENTAGE_STATUS_IDS = new Set([
+  'guarded',
+  'exposed',
+  'mark',
+  'marked',
+  'hexed',
+  'inspired',
+  'summoned',
+  'warded',
+  'reckless',
+  'fortified',
+  'challenged',
+])
+
 const RECIPIENTS: readonly { value: CombatEffectRecipient; label: string }[] = [
   { value: 'actor', label: 'Actor' },
   { value: 'primary-unit', label: 'Primary unit' },
@@ -76,7 +90,8 @@ function damageEditor(value: DamageEffect, onChange: (next: CombatEffectDefiniti
         <input
           aria-label="Damage amount"
           type="number"
-          min={0}
+          min={1}
+          max={20}
           step={1}
           value={value.amount}
           disabled={vengeance !== undefined}
@@ -377,7 +392,8 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
             <input
               aria-label="Healing amount"
               type="number"
-              min={0}
+              min={1}
+              max={20}
               step={1}
               value={value.amount}
               onChange={(event) =>
@@ -424,6 +440,8 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
             <input
               aria-label="MP delta"
               type="number"
+              min={-20}
+              max={20}
               step={1}
               value={value.delta}
               onChange={(event) =>
@@ -637,6 +655,7 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
               aria-label="Bleed damage per tick"
               type="number"
               min={1}
+              max={20}
               step={1}
               value={value.damagePerTick}
               onChange={(event) =>
@@ -697,6 +716,7 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
               aria-label="Barrier amount"
               type="number"
               min={1}
+              max={20}
               step={1}
               value={value.amount}
               onChange={(event) =>
@@ -800,9 +820,124 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
       controls = assertNever(value)
   }
 
+  const fixedImmediate = [
+    'damage',
+    'remove-status',
+    'return-to-turn-start',
+    'displace',
+    'barrier-change',
+    'copy-statuses',
+    'copy',
+    'sensory',
+  ].includes(value.type)
+  const fixedTerrain = value.type === 'create-terrain'
+  const minimumDuration = ['apply-status', 'bleed', 'burn', 'poison'].includes(value.type) ? 1 : 0
+  const durationTurns =
+    value.durationTurns ??
+    (value.type === 'healing'
+      ? Math.max(0, (value.ticks ?? 1) - 1)
+      : value.type === 'resource-change' && value.delta > 0
+        ? Math.max(0, (value.ticks ?? 1) - 1)
+        : value.type === 'bleed'
+          ? value.ticks
+          : value.type === 'burn'
+            ? 3
+            : value.type === 'poison'
+              ? 4
+              : value.type === 'create-terrain'
+                ? 2
+                : value.type === 'apply-status'
+                  ? 2
+                  : 0)
+  const supportsGenericPower = value.type === 'burn' || value.type === 'poison'
+
+  function changeDuration(nextDuration: number) {
+    const duration = Math.max(minimumDuration, Math.min(4, nextDuration))
+    if (value.type === 'healing') {
+      onChange({ ...value, durationTurns: duration, ticks: duration + 1 })
+      return
+    }
+    if (value.type === 'resource-change' && value.delta > 0) {
+      onChange({ ...value, durationTurns: duration, ticks: duration + 1 })
+      return
+    }
+    if (value.type === 'bleed') {
+      onChange({ ...value, durationTurns: duration, ticks: Math.max(1, duration) })
+      return
+    }
+    onChange({ ...value, durationTurns: duration })
+  }
+
   return (
     <div className={styles.effectEditor} data-effect-type={value.type}>
       {controls}
+      <div className={styles.effectTuningGrid}>
+        <label className={styles.field}>
+          <span>Effect duration (turns)</span>
+          <input
+            aria-label="Effect duration (turns)"
+            type="number"
+            min={fixedImmediate ? 0 : fixedTerrain ? 2 : minimumDuration}
+            max={fixedImmediate ? 0 : fixedTerrain ? 2 : 4}
+            step={1}
+            disabled={fixedImmediate || fixedTerrain}
+            value={fixedImmediate ? 0 : fixedTerrain ? 2 : durationTurns}
+            onChange={(event) => changeDuration(integer(event.currentTarget.value, durationTurns))}
+          />
+          <small className={styles.fieldHint}>
+            {fixedImmediate
+              ? 'Immediate effect; [0 Turns] is intentionally omitted in player-facing details.'
+              : fixedTerrain
+                ? 'Frozen terrain uses the engine-owned two-round duration.'
+                : 'Positive durations persist through that many future turns.'}
+          </small>
+        </label>
+
+        {supportsGenericPower ? (
+          <label className={styles.field}>
+            <span>Effect power</span>
+            <input
+              aria-label="Effect power"
+              type="number"
+              min={1}
+              max={20}
+              step={1}
+              value={value.power ?? 1}
+              onChange={(event) =>
+                onChange({
+                  ...value,
+                  power: Math.max(1, Math.min(20, integer(event.currentTarget.value, 1))),
+                })
+              }
+            />
+            <small className={styles.fieldHint}>Bounded authored power: 1–20.</small>
+          </label>
+        ) : null}
+
+        {value.type === 'apply-status' && PERCENTAGE_STATUS_IDS.has(value.statusId) ? (
+          <label className={styles.field}>
+            <span>Status potency (%)</span>
+            <input
+              aria-label="Status potency (percent)"
+              type="number"
+              min={1}
+              max={50}
+              step={1}
+              value={(value.potencyBasisPoints ?? 1500) / 100}
+              onChange={(event) =>
+                onChange({
+                  ...value,
+                  potencyBasisPoints:
+                    Math.max(1, Math.min(50, integer(event.currentTarget.value, 15))) * 100,
+                })
+              }
+            />
+            <small className={styles.fieldHint}>
+              Used by percentage-based statuses such as Guarded or Exposed. 15 = 15%.
+            </small>
+          </label>
+        ) : null}
+      </div>
     </div>
   )
 }

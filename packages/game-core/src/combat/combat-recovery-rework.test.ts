@@ -21,7 +21,7 @@ import {
   finishPv1fTurn,
   PV1F_COMBAT_CONTENT,
 } from './pv1f-action-economy'
-import { latestEnabledMatureSkills } from './mature-skills'
+import { P33_REPRESENTATIVE_DISCIPLINE_SKILLS, latestEnabledMatureSkills } from './mature-skills'
 
 function encounter(): StatDrivenCombatEncounterState {
   const ids = ['actor', 'target', 'enemy']
@@ -181,6 +181,32 @@ describe('Heal X and MP Rec X execution', () => {
     expect(value(state, 'target')).toBe(46)
     expect(pending(state)[0]?.remainingFutureTicks).toBe(1)
   })
+  it('defers self-cast periodic recovery until the following owner turn', () => {
+    const initial = encounter()
+    const committed = executeCombatAction(
+      initial,
+      action([recovery('hp', 2), recovery('mp', 2, 3)]),
+      { kind: 'unit', combatantId: 'actor' },
+      PV1F_COMBAT_CONTENT,
+    )
+    let state = { ...committed.state, statBridge: initial.statBridge }
+
+    expect(value(state, 'actor')).toBe(38)
+    expect(value(state, 'actor', 'mp')).toBe(8)
+    expect(pending(state)).toHaveLength(2)
+    expect(pending(state).every((row) => row.skipCurrentOwnerTurnEnd === true)).toBe(true)
+
+    state = end(state)
+    expect(value(state, 'actor')).toBe(38)
+    expect(value(state, 'actor', 'mp')).toBe(8)
+    expect(pending(state)).toHaveLength(2)
+    expect(pending(state).every((row) => row.skipCurrentOwnerTurnEnd === false)).toBe(true)
+
+    state = end(end(end(state)))
+    expect(value(state, 'actor')).toBe(46)
+    expect(value(state, 'actor', 'mp')).toBe(11)
+    expect(pending(state)).toHaveLength(0)
+  })
   it('caps each recovery at max HP/MP without discarding its later ticks', () => {
     let state = cast(encounter(), action([recovery('hp', 3, 200), recovery('mp', 3, 200)]))
     expect(value(state, 'target')).toBe(100)
@@ -298,7 +324,7 @@ describe('Heal X and MP Rec X execution', () => {
     expect(pending(state)[0]?.remainingFutureTicks).toBe(2)
   })
   it('applies consecutive-use falloff to each tick amount, not its duration', () => {
-    const base = latestEnabledMatureSkills().find((row) =>
+    const base = latestEnabledMatureSkills(P33_REPRESENTATIVE_DISCIPLINE_SKILLS).find((row) =>
       row.effects.some((effect) => effect.type === 'healing'),
     )!
     const definition = {

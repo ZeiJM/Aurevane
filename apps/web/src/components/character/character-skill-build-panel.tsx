@@ -177,7 +177,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
     ? [
         ['Skill Type', skillTypeDescription(focusedSkill.definition)],
         ['Cost', skillCostDescription(focusedSkill.definition)],
-        ['Cooldown', skillCooldownDescription()],
+        ['Cooldown', skillCooldownDescription(focusedSkill.definition)],
         ['Requirements', skillRequirementsSummary(focusedSkill.definition)],
         ['Effects', skillEffectSummaries(focusedSkill.definition)],
         ['Range', skillCompactRangeDescription(focusedSkill.definition)],
@@ -508,7 +508,10 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                             </span>
                             <div>
                               <strong>{skillDisplayName(focusedSkill.definition)}</strong>
-                              <small>{focusedSkillDisciplineName} Technique</small>
+                              <small>
+                                {focusedSkill.definition.flavorLine ??
+                                  `${focusedSkillDisciplineName} Technique`}
+                              </small>
                             </div>
                           </div>
                           <dl className={styles.characteristics}>

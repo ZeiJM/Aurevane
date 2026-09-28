@@ -216,4 +216,43 @@ describe('InMemoryCombatContentRepository', () => {
       }),
     ).rejects.toBeInstanceOf(CombatContentConflictError)
   })
+
+  it('supports immutable Essence and Resonance lineages without cross-kind aliasing', async () => {
+    const repository = new InMemoryCombatContentRepository()
+
+    const essence = await repository.publish({
+      contentKey: 'essence.vanguard.unbroken-strike',
+      contentKind: 'essence',
+      definition: { contentVersion: 4, name: 'Unbroken Strike', skill: { contentVersion: 4 } },
+      expectedBaseVersion: 4,
+      actorUserId: ACTOR,
+    })
+    const resonance = await repository.publish({
+      contentKey: 'resonance.lifebinder-vanguard.mercys-edge',
+      contentKind: 'resonance',
+      definition: { name: "Mercy's Edge" },
+      expectedBaseVersion: 2,
+      actorUserId: ACTOR,
+    })
+
+    expect(essence.contentKind).toBe('essence')
+    expect(essence.contentVersion).toBe(5)
+    expect(essence.definition).toMatchObject({
+      contentVersion: 5,
+      skill: { contentVersion: 5 },
+    })
+    expect(resonance.contentKind).toBe('resonance')
+    expect(resonance.contentVersion).toBe(3)
+
+    await expect(
+      repository.saveDraft({
+        contentKey: essence.contentKey,
+        contentKind: 'resonance',
+        definition: { name: 'Wrong lineage' },
+        baseVersion: essence.contentVersion,
+        expectedDraftVersion: null,
+        actorUserId: OTHER_ACTOR,
+      }),
+    ).rejects.toMatchObject({ code: 'COMBAT_CONTENT_KIND_CONFLICT' })
+  })
 })

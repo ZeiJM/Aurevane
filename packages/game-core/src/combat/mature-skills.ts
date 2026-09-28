@@ -13,6 +13,7 @@ import type {
   CombatUseRequirement,
 } from './actions'
 import type { SkillCooldownDefinition } from './skill-cooldowns'
+import { rebalanceMatureSkillDefinition } from './skill-balance-v5'
 
 export const MATURE_SKILL_SCHEMA_VERSION = 1 as const
 export type MatureSkillCombatContext = 'pve' | 'pvp'
@@ -57,6 +58,7 @@ export interface MatureSkillDefinition extends CombatAccuracyAuthoring {
   readonly enabled: boolean
   readonly nameRef: string
   readonly descriptionRef: string
+  readonly flavorLine?: string
   readonly sourceDisciplineId: string
   readonly unlockRequirement: MatureSkillUnlockRequirement
   readonly apCost: number
@@ -70,7 +72,7 @@ export interface MatureSkillDefinition extends CombatAccuracyAuthoring {
    */
   readonly effectDescriptions?: readonly (string | null)[]
   readonly tags: readonly string[]
-  readonly cooldown: SkillCooldownDefinition
+  readonly cooldown: SkillCooldownDefinition | null
   readonly ai: MatureSkillAiMetadata
   readonly overrides: Readonly<
     Partial<Record<MatureSkillCombatContext, MatureSkillContextOverride>>
@@ -867,15 +869,26 @@ const A03_MYSTIC_MP_DISCIPLINE_SKILLS = latestEnabledMatureSkills([
   return next ? [next] : []
 })
 
-export const P33_REPRESENTATIVE_DISCIPLINE_SKILLS = [
+const PRE_V5_CURRENT_DISCIPLINE_SKILLS = [
   ...PRE_PHASE4_REBALANCE_DISCIPLINE_SKILLS,
   ...PHASE4_REBALANCED_DISCIPLINE_SKILLS,
   ...A03_MYSTIC_MP_DISCIPLINE_SKILLS,
 ] as const satisfies readonly MatureSkillDefinition[]
 
-/** Current selection catalog; the full registry above also retains explicit battle history. */
+const V5_REBALANCED_DISCIPLINE_SKILLS = latestEnabledMatureSkills(
+  PRE_V5_CURRENT_DISCIPLINE_SKILLS,
+).map((definition) => rebalanceMatureSkillDefinition(definition, 'technique'))
+
+export const P33_REPRESENTATIVE_DISCIPLINE_SKILLS = PRE_V5_CURRENT_DISCIPLINE_SKILLS
+
+const CURRENT_DISCIPLINE_SKILL_REGISTRY = [
+  ...P33_REPRESENTATIVE_DISCIPLINE_SKILLS,
+  ...V5_REBALANCED_DISCIPLINE_SKILLS,
+] as const satisfies readonly MatureSkillDefinition[]
+
+/** Current selection catalog; the historical P3.3/P4 export remains stable for pinned contracts. */
 export function latestEnabledMatureSkills(
-  definitions: readonly MatureSkillDefinition[] = P33_REPRESENTATIVE_DISCIPLINE_SKILLS,
+  definitions: readonly MatureSkillDefinition[] = CURRENT_DISCIPLINE_SKILL_REGISTRY,
 ): readonly MatureSkillDefinition[] {
   const latest = new Map<string, MatureSkillDefinition>()
   for (const definition of definitions) {
@@ -904,6 +917,15 @@ export function validateMatureSkillDefinition(
   }
   if (!definition.nameRef.trim()) issues.push('nameRef')
   if (!definition.descriptionRef.trim()) issues.push('descriptionRef')
+  if (
+    definition.flavorLine !== undefined &&
+    (typeof definition.flavorLine !== 'string' ||
+      definition.flavorLine.trim().length === 0 ||
+      definition.flavorLine.length > 160 ||
+      /[\r\n]/u.test(definition.flavorLine))
+  ) {
+    issues.push('flavorLine')
+  }
   if (!idPattern.test(definition.sourceDisciplineId)) issues.push('sourceDisciplineId')
   if (
     !Number.isSafeInteger(definition.apCost) ||
@@ -969,12 +991,72 @@ export function validateMatureSkillDefinition(
   if (definition.authoring.schemaVersion !== MATURE_SKILL_SCHEMA_VERSION) {
     issues.push('authoring.schemaVersion')
   }
-  if (
-    !idPattern.test(definition.cooldown.key) ||
-    !Number.isSafeInteger(definition.cooldown.ownerTurns) ||
-    definition.cooldown.ownerTurns < 1
+  const usesV5BalanceRules = definition.authoring.validationTags.includes('owner-rebalance-v5')
+  if (usesV5BalanceRules && !definition.flavorLine?.trim()) issues.push('flavorLine')
+  if (usesV5BalanceRules && definition.requirements.length > 0) {
+    if (definition.cooldown !== null) issues.push('cooldown')
+  } else if (
+    usesV5BalanceRules &&
+    (definition.cooldown === null ||
+      !idPattern.test(definition.cooldown.key) ||
+      !Number.isSafeInteger(definition.cooldown.ownerTurns) ||
+      definition.cooldown.ownerTurns < 1 ||
+      definition.cooldown.ownerTurns > 3)
   ) {
     issues.push('cooldown')
+  } else if (
+    !usesV5BalanceRules &&
+    (definition.cooldown === null ||
+      !idPattern.test(definition.cooldown.key) ||
+      !Number.isSafeInteger(definition.cooldown.ownerTurns) ||
+      definition.cooldown.ownerTurns < 1)
+  ) {
+    issues.push('cooldown')
+  }
+
+  for (const [index, effect] of definition.effects.entries()) {
+    const durationTurns = effect.durationTurns ?? 0
+    if (!Number.isSafeInteger(durationTurns) || durationTurns < 0 || durationTurns > 4) {
+      issues.push(`effects[${index}].durationTurns`)
+    }
+    if (
+      effect.potencyBasisPoints !== undefined &&
+      (!Number.isSafeInteger(effect.potencyBasisPoints) ||
+        effect.potencyBasisPoints < 100 ||
+        effect.potencyBasisPoints > 5_000)
+    ) {
+      issues.push(`effects[${index}].potencyBasisPoints`)
+    }
+    if (
+      effect.power !== undefined &&
+      (!Number.isSafeInteger(effect.power) || effect.power < 1 || effect.power > 20)
+    ) {
+      issues.push(`effects[${index}].power`)
+    }
+    if (
+      usesV5BalanceRules &&
+      (effect.type === 'damage' || effect.type === 'healing' || effect.type === 'barrier-change')
+    ) {
+      const minimum = effect.type === 'damage' && effect.vengeance !== undefined ? 0 : 1
+      if (!Number.isSafeInteger(effect.amount) || effect.amount < minimum || effect.amount > 20) {
+        issues.push(`effects[${index}].amount`)
+      }
+    }
+    if (usesV5BalanceRules && effect.type === 'resource-change') {
+      const magnitude = Math.abs(effect.delta)
+      if (!Number.isSafeInteger(magnitude) || magnitude < 1 || magnitude > 20) {
+        issues.push(`effects[${index}].delta`)
+      }
+    }
+    if (usesV5BalanceRules && effect.type === 'bleed') {
+      if (
+        !Number.isSafeInteger(effect.damagePerTick) ||
+        effect.damagePerTick < 1 ||
+        effect.damagePerTick > 20
+      ) {
+        issues.push(`effects[${index}].damagePerTick`)
+      }
+    }
   }
   for (const [context, override] of Object.entries(definition.overrides)) {
     if (
@@ -985,7 +1067,9 @@ export function validateMatureSkillDefinition(
     }
     if (
       override?.cooldownOwnerTurns !== undefined &&
-      (!Number.isSafeInteger(override.cooldownOwnerTurns) || override.cooldownOwnerTurns < 1)
+      (!Number.isSafeInteger(override.cooldownOwnerTurns) ||
+        override.cooldownOwnerTurns < 1 ||
+        (usesV5BalanceRules && override.cooldownOwnerTurns > 3))
     ) {
       issues.push(`overrides.${context}.cooldownOwnerTurns`)
     }
@@ -997,7 +1081,7 @@ export function resolveMatureSkillVersion(
   skillId: string,
   contentVersion?: number,
 ): MatureSkillDefinition | null {
-  const candidates = P33_REPRESENTATIVE_DISCIPLINE_SKILLS.filter(
+  const candidates = CURRENT_DISCIPLINE_SKILL_REGISTRY.filter(
     (definition) => definition.id === skillId && definition.enabled,
   )
   if (contentVersion !== undefined) {
@@ -1017,10 +1101,13 @@ export function resolveMatureSkillForContext(
   return {
     ...definition,
     apCost: override?.apCost ?? definition.apCost,
-    cooldown: {
-      ...definition.cooldown,
-      ownerTurns: override?.cooldownOwnerTurns ?? definition.cooldown.ownerTurns,
-    },
+    cooldown:
+      definition.cooldown === null
+        ? null
+        : {
+            ...definition.cooldown,
+            ownerTurns: override?.cooldownOwnerTurns ?? definition.cooldown.ownerTurns,
+          },
     combatContext,
   }
 }
@@ -1039,7 +1126,7 @@ export function toCombatActionDefinition(
     target: resolved.target,
     cost: { spendsAction: true, mp: resolved.mpCost ?? 0 },
     requirements: resolved.requirements,
-    cooldown: resolved.cooldown,
+    ...(resolved.cooldown === null ? {} : { cooldown: resolved.cooldown }),
     effects: resolved.effects,
     ...(resolved.accuracyMode !== undefined ? { accuracyMode: resolved.accuracyMode } : {}),
     ...(resolved.accuracyModifierBasisPoints !== undefined

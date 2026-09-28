@@ -34,7 +34,7 @@ import {
   essenceSnapshotReference,
   resolveEssenceForBuild,
 } from './essence'
-import { resolveResonanceForPair, resonanceSnapshotReference } from './resonance'
+import { P35_REPRESENTATIVE_RESONANCES, resonanceSnapshotReference } from './resonance'
 import { hasGameplayTag } from './gameplay-tags'
 import { validateDamageModifiers } from './damage-modifiers'
 import {
@@ -106,7 +106,36 @@ function encounter(): StatDrivenCombatEncounterState {
   )
 }
 const enemy = { kind: 'unit', combatantId: 'enemy' } as const
-const skill = (id: string, version?: number) => resolveMatureSkillVersion(id, version)!
+const phase4Skills = latestEnabledMatureSkills(P33_REPRESENTATIVE_DISCIPLINE_SKILLS)
+const phase4Essences = P36_REPRESENTATIVE_ESSENCES.filter(
+  (definition, index, definitions) =>
+    definition.enabled &&
+    !definitions.some(
+      (candidate, candidateIndex) =>
+        candidateIndex !== index &&
+        candidate.essenceId === definition.essenceId &&
+        candidate.contentVersion > definition.contentVersion,
+    ),
+)
+const phase4Resonances = P35_REPRESENTATIVE_RESONANCES
+const skill = (id: string, version?: number) =>
+  version === undefined
+    ? phase4Skills.find((definition) => definition.id === id)!
+    : resolveMatureSkillVersion(id, version)!
+const phase4Essence = (disciplineId: string, secondaryDisciplineId: string | null) =>
+  secondaryDisciplineId === null
+    ? (phase4Essences.find((definition) => definition.sourceDisciplineId === disciplineId) ?? null)
+    : null
+const phase4Resonance = (primaryDisciplineId: string, secondaryDisciplineId: string | null) => {
+  if (!secondaryDisciplineId || primaryDisciplineId === secondaryDisciplineId) return null
+  const pair = [primaryDisciplineId, secondaryDisciplineId].sort()
+  return (
+    phase4Resonances.find(
+      (definition) =>
+        definition.disciplinePair[0] === pair[0] && definition.disciplinePair[1] === pair[1],
+    ) ?? null
+  )
+}
 const reload = (state: StatDrivenCombatEncounterState): StatDrivenCombatEncounterState =>
   JSON.parse(JSON.stringify(state))
 function build(
@@ -119,8 +148,8 @@ function build(
   if (sources.length > 2) throw new Error('A build has at most two Disciplines')
   const primary = sources[0]!
   const secondary = sources[1] ?? null
-  const essence = resolveEssenceForBuild(primary, secondary)
-  const resonance = resolveResonanceForPair(primary, secondary)
+  const essence = phase4Essence(primary, secondary)
+  const resonance = phase4Resonance(primary, secondary)
   const snapshot: CombatBuildSnapshot = {
     schemaVersion: 1,
     sourceBuildSchemaVersion: 3,
@@ -181,17 +210,12 @@ function tag(
 }
 
 describe('Versioned Phase 4 published interactions', () => {
-  const currentSkills = latestEnabledMatureSkills()
-  const currentEssences = P36_REPRESENTATIVE_ESSENCES.filter(
-    (definition, index, definitions) =>
-      !definitions.some(
-        (candidate, candidateIndex) =>
-          candidateIndex !== index &&
-          candidate.essenceId === definition.essenceId &&
-          candidate.contentVersion > definition.contentVersion,
-      ),
-  )
-
+  const currentSkills = phase4Skills
+  const currentEssences = phase4Essences
+  /*
+   * The Phase 4 suite intentionally stays pinned to the historical content registry.
+   * Combat v5 has its own balance/authority contracts.
+   */
   it('selects 136 unique current Skills while retaining immutable historical versions', () => {
     expect(currentSkills).toHaveLength(136)
     for (const definition of currentSkills) {

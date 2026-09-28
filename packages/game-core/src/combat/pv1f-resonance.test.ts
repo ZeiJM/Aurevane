@@ -112,7 +112,7 @@ function nextPlayerTurn(state: StatDrivenCombatEncounterState): StatDrivenCombat
 
 describe('P3.5 Resonance on the authoritative PV-1F Skill path', () => {
   it('spends authored AP, avoids mature-Skill cooldowns, and applies the bounded payoff', () => {
-    const resonance = resolveResonanceForPair('vanguard', 'lifebinder')
+    const resonance = resolveResonanceForPair('vanguard', 'lifebinder', 1)
     const heal = resolveMatureSkillVersion('lifebinder.mending-light', 1)
     const strike = resolveMatureSkillVersion('vanguard.forceful-strike', 2)
     if (!resonance || !heal || !strike) throw new Error('Expected representative P3.5 content.')
@@ -177,7 +177,7 @@ describe('P3.5 Resonance on the authoritative PV-1F Skill path', () => {
   })
 
   it('does not mutate Resonance state when the authoritative AP check rejects the Skill', () => {
-    const resonance = resolveResonanceForPair('vanguard', 'lifebinder')
+    const resonance = resolveResonanceForPair('vanguard', 'lifebinder', 1)
     const heal = resolveMatureSkillVersion('lifebinder.mending-light', 1)
     if (!resonance || !heal) throw new Error('Expected representative P3.5 content.')
 

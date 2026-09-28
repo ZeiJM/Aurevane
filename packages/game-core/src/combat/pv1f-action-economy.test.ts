@@ -5,6 +5,7 @@ import { resolveMatureSkillVersion, type MatureSkillDefinition } from './mature-
 import { createCombatEncounterState } from './actions'
 import { createPendingBattle, startBattle } from './battle-state'
 import { normalizeCombatEffectState } from './combat-effect-state'
+import { readSkillCooldown } from './skill-cooldowns'
 import { createTacticalBattleState } from './board'
 import {
   calculatePv1fBasicAttackDamage,
@@ -197,7 +198,47 @@ describe('Level-100 offensive scaling', () => {
     })
   })
 
-  it('halves both authored damage and Power scaling on a consecutive repeat', () => {
+  it('converts authored v5 recovery Power into stat-scaled HP and MP output', () => {
+    const definition = resolveMatureSkillVersion('cinderweaver.banked-embers')
+    if (!definition) throw new Error('Expected current Banked Embers fixture.')
+    const authoredHealing = definition.effects.find((effect) => effect.type === 'healing')
+    const authoredMp = definition.effects.find((effect) => effect.type === 'resource-change')
+    if (!authoredHealing || !authoredMp) {
+      throw new Error('Expected Banked Embers recovery effects.')
+    }
+
+    const state = currentPowerEncounter()
+    const player = state.tactical.battle.combatants.find((combatant) => combatant.id === 'player')
+    if (!player) throw new Error('Expected player combatant.')
+    player.hp = 10
+    player.mp = 1
+
+    const evaluated = evaluatePv1fMatureSkill(state, definition, { kind: 'self' })
+    const scaledHealing = evaluated.action.effects.find((effect) => effect.type === 'healing')
+    const scaledMp = evaluated.action.effects.find((effect) => effect.type === 'resource-change')
+    if (!scaledHealing || !scaledMp) throw new Error('Expected scaled recovery effects.')
+
+    expect(scaledHealing.amount).toBeGreaterThan(authoredHealing.amount)
+    expect(scaledMp.delta).toBeGreaterThan(authoredMp.delta)
+
+    const resolved = executePv1fMatureSkill(state, definition, { kind: 'self' })
+    const nextPlayer = resolved.state.tactical.battle.combatants.find(
+      (combatant) => combatant.id === 'player',
+    )
+    expect(nextPlayer?.hp).toBe(Math.min(player.maxHp, 10 + scaledHealing.amount))
+    expect(nextPlayer?.mp).toBe(Math.min(player.maxMp, 1 + scaledMp.delta))
+  })
+
+  it('keeps historical recovery magnitudes literal when an old Skill version is pinned', () => {
+    const definition = resolveMatureSkillVersion('cinderweaver.banked-embers', 1)
+    if (!definition) throw new Error('Expected historical Banked Embers fixture.')
+    const evaluated = evaluatePv1fMatureSkill(currentPowerEncounter(), definition, { kind: 'self' })
+
+    expect(evaluated.action.effects).toEqual(definition.effects)
+    expect(definition.authoring.validationTags).not.toContain('owner-rebalance-v5')
+  })
+
+  it('uses v5 cooldown authority instead of legacy consecutive-use falloff', () => {
     const definition = resolveMatureSkillVersion('vanguard.forceful-strike')
     if (!definition) throw new Error('Expected current Vanguard Skill fixture.')
     const target = { kind: 'unit' as const, combatantId: 'recruit' }
@@ -205,16 +246,84 @@ describe('Level-100 offensive scaling', () => {
     const repeated = evaluatePv1fMatureSkill(first.state, definition, target)
     const damage = repeated.action.effects.find((effect) => effect.type === 'damage')
 
-    expect(repeated.repeatPenaltyApplied).toBe(true)
+    expect(definition.authoring.validationTags).toContain('owner-rebalance-v5')
+    expect(repeated.repeatPenaltyApplied).toBe(false)
+    expect(repeated.evaluation.legal).toBe(false)
+    expect(repeated.evaluation.issues).toContainEqual(
+      expect.objectContaining({ code: 'cooldown-active' }),
+    )
     expect(damage).toMatchObject({
-      amount: Math.max(
-        1,
-        Math.floor(
-          (definition.effects.find((effect) => effect.type === 'damage')?.amount ?? 0) / 2,
-        ),
-      ),
-      scaling: { source: 'physical-power', coefficientBasisPoints: 1_000 },
+      amount: definition.effects.find((effect) => effect.type === 'damage')?.amount,
+      scaling: { source: 'physical-power', coefficientBasisPoints: 2_000 },
     })
+  })
+})
+
+describe('Combat v5 Skill cooldown lifecycle', () => {
+  function backToPlayer(state: StatDrivenCombatEncounterState): StatDrivenCombatEncounterState {
+    const recruitTurn = finishPv1fTurn(state, 'east').state
+    return finishPv1fTurn(recruitTurn, 'west').state
+  }
+
+  for (const ownerTurns of [1, 2, 3] as const) {
+    it(`keeps a ${ownerTurns}-turn cooldown locked for exactly ${ownerTurns} future owner turns and survives reconnect`, () => {
+      const base = resolveMatureSkillVersion('vanguard.forceful-strike')
+      if (!base) throw new Error('Expected current Vanguard Skill fixture.')
+      const definition: MatureSkillDefinition = {
+        ...base,
+        id: `test.v5-cooldown-${ownerTurns}`,
+        cooldown: { key: `test.v5-cooldown-${ownerTurns}`, ownerTurns },
+      }
+      const target = { kind: 'unit' as const, combatantId: 'recruit' }
+      const used = executePv1fMatureSkill(currentPowerEncounter(), definition, target)
+      const player = used.state.tactical.battle.combatants.find(
+        (combatant) => combatant.id === 'player',
+      )
+      if (!player || !definition.cooldown) throw new Error('Expected v5 cooldown state.')
+
+      expect(readSkillCooldown(player, definition.cooldown)).toMatchObject({
+        active: true,
+        ownerTurns,
+        ticksRemaining: ownerTurns + 1,
+      })
+
+      let reconnected = JSON.parse(JSON.stringify(used.state)) as StatDrivenCombatEncounterState
+      for (let elapsed = 1; elapsed <= ownerTurns; elapsed += 1) {
+        reconnected = backToPlayer(reconnected)
+        const activePlayer = reconnected.tactical.battle.combatants.find(
+          (combatant) => combatant.id === 'player',
+        )
+        if (!activePlayer) throw new Error('Expected player after owner-turn advance.')
+        expect(readSkillCooldown(activePlayer, definition.cooldown).ticksRemaining).toBe(
+          ownerTurns + 1 - elapsed,
+        )
+        expect(
+          evaluatePv1fMatureSkill(reconnected, definition, target).evaluation.issues,
+        ).toContainEqual(expect.objectContaining({ code: 'cooldown-active' }))
+      }
+
+      const ready = backToPlayer(reconnected)
+      const readyPlayer = ready.tactical.battle.combatants.find(
+        (combatant) => combatant.id === 'player',
+      )
+      if (!readyPlayer) throw new Error('Expected player when cooldown becomes ready.')
+      expect(readSkillCooldown(readyPlayer, definition.cooldown).active).toBe(false)
+      expect(evaluatePv1fMatureSkill(ready, definition, target).evaluation.legal).toBe(true)
+    })
+  }
+
+  it('uses an explicit gameplay Requirement instead of adding a cooldown', () => {
+    const definition = resolveMatureSkillVersion('vanguard.brace')
+    if (!definition) throw new Error('Expected current Brace fixture.')
+    expect(definition.requirements.length).toBeGreaterThan(0)
+    expect(definition.cooldown).toBeNull()
+
+    const used = executePv1fMatureSkill(currentPowerEncounter(), definition, {
+      kind: 'self',
+    })
+    expect(used.events).not.toContainEqual(
+      expect.objectContaining({ event: 'skill_cooldown_started' }),
+    )
   })
 })
 
@@ -372,7 +481,7 @@ describe('P3.3 mature Skill Action Economy integration', () => {
   })
 
   it('treats a repeated pure Curse as a legal full-cost no-op clone', () => {
-    const base = resolveMatureSkillVersion('chronist.slow')
+    const base = resolveMatureSkillVersion('chronist.slow', 1)
     if (!base) throw new Error('Expected current Chronist Slow fixture.')
     const definition = {
       ...base,
@@ -430,7 +539,7 @@ describe('P3.3 mature Skill Action Economy integration', () => {
   })
 
   it('omits discrete Curse cloning on a consecutive use while later damage still halves', () => {
-    const base = resolveMatureSkillVersion('chronist.slow')
+    const base = resolveMatureSkillVersion('chronist.slow', 1)
     if (!base) throw new Error('Expected current Chronist Slow fixture.')
     const definition = {
       ...base,

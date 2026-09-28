@@ -30,9 +30,9 @@ import {
 } from './combat-recovery'
 import {
   CURRENT_BURN_BACKLASH_DAMAGE,
-  CURRENT_POISON_DAMAGE,
   advanceCurrentBleedEndTurn,
   advanceCurrentBurnEndTurn,
+  advanceCurrentPoisonEndTurn,
   advanceCurrentPoisonMovement,
   applyCurrentBleedState,
   applyCurrentBurnState,
@@ -257,6 +257,8 @@ export interface CombatStatusInstance {
   stacks: number
   remainingOwnerTurnStarts: number
   sourceCombatantId: string
+  /** Optional per-application authored magnitude; 100 = 1 percentage point. */
+  potencyBasisPoints?: number
   provenance?: CombatEffectInstanceProvenance
 }
 
@@ -1195,6 +1197,17 @@ export function validateCombatEncounterState(
         status.remainingOwnerTurnStarts,
         `${statusPrefix}.remainingOwnerTurnStarts`,
       )
+      if (
+        status.potencyBasisPoints !== undefined &&
+        (!Number.isSafeInteger(status.potencyBasisPoints) ||
+          status.potencyBasisPoints < 100 ||
+          status.potencyBasisPoints > 5_000)
+      ) {
+        issues.push({
+          field: `${statusPrefix}.potencyBasisPoints`,
+          message: 'Status potency must be from 1 to 50 percentage points.',
+        })
+      }
       if (!expectedCombatantIds.includes(status.sourceCombatantId)) {
         issues.push({
           field: `${statusPrefix}.sourceCombatantId`,
@@ -1715,8 +1728,17 @@ function applyEffect(
   if (effect.type === 'displace')
     return applyDisplacement(state, actorId, recipientId, actionId, effect, content)
   if (effect.type === 'poison') {
+    const tuning = effect as typeof effect & { power?: number; durationTurns?: number }
     return {
-      state: applyCurrentPoisonState(state, actorId, recipientId, actionId, effect.curseCopyable),
+      state: applyCurrentPoisonState(
+        state,
+        actorId,
+        recipientId,
+        actionId,
+        effect.curseCopyable,
+        tuning.power,
+        tuning.durationTurns,
+      ),
       events: [],
     }
   }
@@ -1735,8 +1757,17 @@ function applyEffect(
     }
   }
   if (effect.type === 'burn') {
+    const tuning = effect as typeof effect & { power?: number; durationTurns?: number }
     return {
-      state: applyCurrentBurnState(state, actorId, recipientId, actionId, effect.curseCopyable),
+      state: applyCurrentBurnState(
+        state,
+        actorId,
+        recipientId,
+        actionId,
+        effect.curseCopyable,
+        tuning.power,
+        tuning.durationTurns,
+      ),
       events: [],
     }
   }
@@ -1885,6 +1916,10 @@ function applyEffect(
   }
 
   const existingStatus = getStatus(state, recipientId, effect.statusId, actorId)
+  const tuning = effect as typeof effect & {
+    durationTurns?: number
+    potencyBasisPoints?: number
+  }
   const nextState = applyStatusState(
     state,
     actorId,
@@ -1892,6 +1927,8 @@ function applyEffect(
     effect.statusId,
     effect.stacks,
     content,
+    tuning.durationTurns,
+    tuning.potencyBasisPoints,
   )
   const status = getStatus(nextState, recipientId, effect.statusId, actorId)
   if (!status) {
@@ -1982,9 +2019,18 @@ function resolveDamageAmount(
 
   for (const status of getStatusRow(state, recipientId).statuses) {
     const definition = getStatusDefinition(content, status.statusId, status.statusVersion)
-    if (effect.piercing === true && definition.damageTakenMultiplierBasisPoints < 10_000) continue
+    const authoredPotency = status.potencyBasisPoints
+    const damageTakenMultiplier =
+      authoredPotency === undefined
+        ? definition.damageTakenMultiplierBasisPoints
+        : definition.damageTakenMultiplierBasisPoints < 10_000
+          ? Math.max(0, 10_000 - authoredPotency)
+          : definition.damageTakenMultiplierBasisPoints > 10_000
+            ? 10_000 + authoredPotency
+            : 10_000
+    if (effect.piercing === true && damageTakenMultiplier < 10_000) continue
     for (let stack = 0; stack < status.stacks; stack += 1) {
-      amount = scaleByBasisPoints(amount, definition.damageTakenMultiplierBasisPoints)
+      amount = scaleByBasisPoints(amount, damageTakenMultiplier)
     }
   }
 
@@ -2005,9 +2051,27 @@ function applyStatusState(
   statusId: string,
   stacks: number,
   content: CombatContentCatalog,
+  durationTurns?: number,
+  potencyBasisPoints?: number,
 ): CombatEncounterState {
   assertPositiveSafeInteger(stacks, 'status stacks')
+  if (
+    durationTurns !== undefined &&
+    (!Number.isSafeInteger(durationTurns) || durationTurns < 1 || durationTurns > 4)
+  ) {
+    throw new RangeError('Persistent status duration must be an integer from 1 to 4 turns.')
+  }
+  if (
+    potencyBasisPoints !== undefined &&
+    (!Number.isSafeInteger(potencyBasisPoints) ||
+      potencyBasisPoints < 100 ||
+      potencyBasisPoints > 5_000)
+  ) {
+    throw new RangeError('Status potency must be from 1 to 50 percentage points.')
+  }
   const definition = getStatusDefinitionById(content, statusId)
+  const remainingOwnerTurnStarts =
+    durationTurns === undefined ? definition.durationOwnerTurnStarts : durationTurns + 1
   const existing = getStatus(state, recipientId, statusId, sourceCombatantId)
   const nextStacks = existing
     ? addClampedSafeInteger(existing.stacks, stacks, 1, definition.maximumStacks)
@@ -2016,8 +2080,9 @@ function applyStatusState(
     ? {
         ...existing,
         stacks: nextStacks,
-        remainingOwnerTurnStarts: definition.durationOwnerTurnStarts,
+        remainingOwnerTurnStarts,
         sourceCombatantId,
+        ...(potencyBasisPoints !== undefined ? { potencyBasisPoints } : {}),
       }
     : {
         ...(definition.markAccuracyBonusBasisPoints !== undefined
@@ -2026,8 +2091,9 @@ function applyStatusState(
         statusId: definition.id,
         statusVersion: definition.version,
         stacks: nextStacks,
-        remainingOwnerTurnStarts: definition.durationOwnerTurnStarts,
+        remainingOwnerTurnStarts,
         sourceCombatantId,
+        ...(potencyBasisPoints !== undefined ? { potencyBasisPoints } : {}),
       }
 
   const statusState = state.statusState.map((candidate) =>
@@ -2182,8 +2248,10 @@ function resolveCurrentEndOfTurnDots(
   const poison = currentPoisonInstance(nextState, combatantId)
   let target = getCombatant(nextState.tactical.battle, combatantId)
   if (poison && target.hp > 0) {
-    const hpAfter = Math.max(0, target.hp - CURRENT_POISON_DAMAGE)
+    const poisonDamage = currentPoisonEndTurnDamage(nextState, combatantId)
+    const hpAfter = Math.max(0, target.hp - poisonDamage)
     nextState = withUpdatedCombatant(nextState, combatantId, { ...target, hp: hpAfter })
+    nextState = advanceCurrentPoisonEndTurn(nextState, combatantId)
     events.push({
       event: 'damage_applied',
       actionId: 'status.poison.current.v1',
@@ -2895,9 +2963,13 @@ function incomingHealingAmount(
   amount: number,
   content: CombatContentCatalog,
 ): number {
-  return hasGameplayTag(state, recipientId, 'Hexed', content)
-    ? scaleByBasisPoints(amount, 7_500)
-    : amount
+  const hexed = getStatusRow(state, recipientId).statuses.find((status) =>
+    getStatusDefinition(content, status.statusId, status.statusVersion).gameplayTags?.includes(
+      'Hexed',
+    ),
+  )
+  if (!hexed) return amount
+  return scaleByBasisPoints(amount, Math.max(0, 10_000 - (hexed.potencyBasisPoints ?? 2_500)))
 }
 
 function applyDisplacement(
@@ -3069,7 +3141,7 @@ export function resolveCombatMovementStepEffects(
   for (let index = 0; index < advanced.triggeredTicks; index += 1) {
     const target = getCombatant(nextState.tactical.battle, combatantId)
     if (target.hp <= 0) break
-    const hpAfter = Math.max(0, target.hp - CURRENT_POISON_DAMAGE)
+    const hpAfter = Math.max(0, target.hp - currentPoisonEndTurnDamage(nextState, combatantId))
     const defeatsCurrentActor =
       hpAfter === 0 &&
       nextState.tactical.battle.lifecycle === 'active' &&
@@ -3123,6 +3195,9 @@ function scheduleAfterRecovery(
     kind,
     amountPerTick,
     remainingFutureTicks: ticks - 1,
+    ...(transition.state.tactical.battle.currentTurn?.combatantId === targetCombatantId
+      ? { skipCurrentOwnerTurnEnd: true }
+      : {}),
   }
   const state = replaceRecoverySchedule(transition.state, recovery)
   if (state === transition.state) return transition
@@ -3155,6 +3230,13 @@ function resolveEndOfTurnRecovery(
     []
   for (const schedule of schedules) {
     if (getCombatant(nextState.tactical.battle, combatantId).hp <= 0) break
+    if (schedule.skipCurrentOwnerTurnEnd === true) {
+      nextState = replaceRecoverySchedule(nextState, {
+        ...schedule,
+        skipCurrentOwnerTurnEnd: false,
+      })
+      continue
+    }
     const effect: Extract<CombatEffectDefinition, { type: 'healing' | 'resource-change' }> =
       schedule.kind === 'hp'
         ? { type: 'healing', recipient: 'primary-unit', amount: schedule.amountPerTick }

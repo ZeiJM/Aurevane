@@ -338,7 +338,7 @@ test('PvP ground Skill uses the same forecast and spectator terrain inspection',
       initialBattle.snapshot.buildAuthority,
       'The quality lobby must freeze executable build authority before the first handoff.',
     ).toMatchObject({
-      catalogVersion: 2,
+      catalogVersion: 3,
       combatContext: 'pvp',
       combatants: expect.arrayContaining([
         expect.objectContaining({

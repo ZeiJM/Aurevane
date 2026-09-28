@@ -300,9 +300,11 @@ function resolvedSecondaryDefinition(
 }
 
 function resolveLearnedSkill(record: CharacterLearnedSkillRecord): CharacterSkillCatalogEntry {
-  const definition = resolveMatureSkillVersion(record.skillId, record.contentVersion)
+  const definition = resolveMatureSkillVersion(record.skillId)
   if (!definition || definition.sourceDisciplineId !== record.sourceDisciplineId) {
-    throw persistenceUnavailable('A learned Skill references a stale or disabled content version.')
+    throw persistenceUnavailable(
+      'A learned Skill references a missing or invalid current definition.',
+    )
   }
   return { definition, learnedAt: record.learnedAt, activeSource: false }
 }
@@ -310,10 +312,10 @@ function resolveLearnedSkill(record: CharacterLearnedSkillRecord): CharacterSkil
 function resolveEquippedSkill(
   record: CharacterEquippedDisciplineSkillRecord,
 ): CharacterEquippedDisciplineSkill {
-  const definition = resolveMatureSkillVersion(record.skillId, record.contentVersion)
+  const definition = resolveMatureSkillVersion(record.skillId)
   if (!definition || definition.sourceDisciplineId !== record.sourceDisciplineId) {
     throw persistenceUnavailable(
-      'An equipped Skill references a stale or disabled content version.',
+      'An equipped Skill references a missing or invalid current definition.',
     )
   }
   return { definition, slotIndex: record.slotIndex, equippedAt: record.equippedAt }
@@ -593,20 +595,27 @@ export async function saveCharacterDisciplineSkills(
     throw new AurevaneError('INVALID_REQUEST', 'The Discipline Skill selection is invalid.')
   }
 
-  const context = await loadCharacterBuildContext(userId, character, repository)
-  const learnedById = new Map(
+  const [context, learnedRecords] = await Promise.all([
+    loadCharacterBuildContext(userId, character, repository),
+    repository.listLearnedSkills(userId, character.id),
+  ])
+  const currentLearnedById = new Map(
     context.disciplineSkills.learnedSkills.map((entry) => [entry.definition.id, entry] as const),
+  )
+  const learnedRecordById = new Map(
+    learnedRecords.map((record) => [record.skillId, record] as const),
   )
   const selected = input.skillIds.map((candidate) => {
     const skillId = candidate.trim()
-    const entry = learnedById.get(skillId)
-    if (!skillId || !entry) {
+    const entry = currentLearnedById.get(skillId)
+    const learnedRecord = learnedRecordById.get(skillId)
+    if (!skillId || !entry || !learnedRecord) {
       throw new AurevaneError('INVALID_REQUEST', 'Only learned Discipline Skills may be equipped.')
     }
     return {
-      skillId: entry.definition.id,
-      contentVersion: entry.definition.contentVersion,
-      sourceDisciplineId: entry.definition.sourceDisciplineId,
+      skillId: learnedRecord.skillId,
+      contentVersion: learnedRecord.contentVersion,
+      sourceDisciplineId: learnedRecord.sourceDisciplineId,
     } satisfies DisciplineSkillReference
   })
 
@@ -614,10 +623,10 @@ export async function saveCharacterDisciplineSkills(
     primaryDisciplineId: context.current.definition.id,
     secondaryDisciplineId: context.currentSecondary?.id ?? null,
     equipped: selected,
-    learned: context.disciplineSkills.learnedSkills.map((entry) => ({
-      skillId: entry.definition.id,
-      contentVersion: entry.definition.contentVersion,
-      sourceDisciplineId: entry.definition.sourceDisciplineId,
+    learned: learnedRecords.map((record) => ({
+      skillId: record.skillId,
+      contentVersion: record.contentVersion,
+      sourceDisciplineId: record.sourceDisciplineId,
     })),
   })
   if (issues.length > 0) {

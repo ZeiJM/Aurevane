@@ -514,6 +514,32 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
 
           {selectedDraft ? (
             <div className={styles.authoringStack}>
+              <fieldset className={styles.typedGroup}>
+                <legend>Presentation</legend>
+                <label className={styles.field}>
+                  <span>Flavor line</span>
+                  <input
+                    aria-label="Player-facing flavor line"
+                    type="text"
+                    maxLength={160}
+                    placeholder="One evocative line; mechanics belong in the effect fields"
+                    value={selectedDraft.flavorLine ?? ''}
+                    onChange={(event) => {
+                      const flavorLine = event.currentTarget.value
+                      const nextDraft = { ...selectedDraft }
+                      if (flavorLine.trim()) {
+                        updateSelectedDraft({ ...nextDraft, flavorLine })
+                      } else {
+                        Reflect.deleteProperty(nextDraft, 'flavorLine')
+                        updateSelectedDraft(nextDraft)
+                      }
+                    }}
+                  />
+                  <small className={styles.fieldHint}>
+                    Presentation only. Keep exact mechanics in Effects, Requirements, and targeting.
+                  </small>
+                </label>
+              </fieldset>
               <SkillTargetingEditor
                 value={selectedDraft.target}
                 onChange={(target) => updateSelectedDraft({ ...selectedDraft, target })}
@@ -524,9 +550,21 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
                   mpCost: selectedDraft.mpCost,
                   accuracyMode: selectedDraft.accuracyMode,
                   accuracyModifierBasisPoints: selectedDraft.accuracyModifierBasisPoints,
+                  cooldown: selectedDraft.cooldown,
                 }}
+                cooldownLockedByRequirement={selectedDraft.requirements.length > 0}
                 onChange={(economy: SkillEconomyDraft) =>
-                  updateSelectedDraft({ ...selectedDraft, ...economy })
+                  updateSelectedDraft({
+                    ...selectedDraft,
+                    ...economy,
+                    cooldown:
+                      selectedDraft.requirements.length > 0
+                        ? null
+                        : {
+                            key: selectedDraft.id,
+                            ownerTurns: economy.cooldown?.ownerTurns ?? 1,
+                          },
+                  })
                 }
               />
               <SkillMediaEditor

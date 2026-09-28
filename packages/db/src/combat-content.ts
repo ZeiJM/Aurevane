@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 
-export type CombatContentKind = 'skill' | 'status' | 'effect-profile'
+export type CombatContentKind = 'skill' | 'essence' | 'resonance' | 'status' | 'effect-profile'
 
 export type CombatContentDefinition = Readonly<Record<string, unknown>>
 
@@ -78,9 +78,20 @@ const cloneDefinition = (definition: CombatContentDefinition): CombatContentDefi
 const versionDefinition = (
   definition: CombatContentDefinition,
   contentVersion: number,
+  contentKind: CombatContentKind,
 ): CombatContentDefinition => {
   const clone = cloneDefinition(definition)
-  return Object.hasOwn(clone, 'contentVersion') ? { ...clone, contentVersion } : clone
+  const versioned = Object.hasOwn(clone, 'contentVersion') ? { ...clone, contentVersion } : clone
+  if (contentKind !== 'essence') return versioned
+
+  const skill = versioned.skill
+  if (typeof skill !== 'object' || skill === null || Array.isArray(skill)) return versioned
+  return {
+    ...versioned,
+    skill: Object.hasOwn(skill, 'contentVersion')
+      ? { ...(skill as Record<string, unknown>), contentVersion }
+      : structuredClone(skill),
+  }
 }
 
 const cloneDraft = (draft: CombatContentDraftRecord): CombatContentDraftRecord => ({
@@ -198,7 +209,7 @@ export class InMemoryCombatContentRepository implements CombatContentRepository 
       contentKey: input.contentKey,
       contentKind: input.contentKind,
       contentVersion: nextVersion,
-      definition: versionDefinition(input.definition, nextVersion),
+      definition: versionDefinition(input.definition, nextVersion, input.contentKind),
       publishedBy: input.actorUserId,
       publishedAt: now,
     }

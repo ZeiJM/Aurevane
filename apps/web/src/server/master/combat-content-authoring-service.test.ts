@@ -10,6 +10,11 @@ import {
   resolveMatureSkillVersion,
   type MatureSkillDefinition,
 } from '@aurevane/game-core/combat/mature-skills'
+import { resolveEssenceForBuild, type EssenceDefinition } from '@aurevane/game-core/combat/essence'
+import {
+  resolveResonanceForPair,
+  type ResonanceDefinition,
+} from '@aurevane/game-core/combat/resonance'
 import type { CombatContentResolver } from '@/server/combat/combat-content-resolver'
 
 import {
@@ -28,6 +33,19 @@ function staticSkill(
 ): MatureSkillDefinition {
   const definition = resolveMatureSkillVersion(skillId, version)
   if (!definition) throw new Error(`Missing static Skill ${skillId}@${String(version)}.`)
+  return structuredClone(definition)
+}
+
+function staticEssence(version?: number): EssenceDefinition {
+  const definition = resolveEssenceForBuild('vanguard', null, version)
+  if (!definition) throw new Error(`Missing static Vanguard Essence@${String(version)}.`)
+  return structuredClone(definition)
+}
+
+function staticResonance(version?: number): ResonanceDefinition {
+  const definition = resolveResonanceForPair('lifebinder', 'vanguard', version)
+  if (!definition)
+    throw new Error(`Missing static Lifebinder/Vanguard Resonance@${String(version)}.`)
   return structuredClone(definition)
 }
 
@@ -194,7 +212,7 @@ describe('combat content authoring service', () => {
     [
       'Bleed budget overflow',
       (value: Record<string, unknown>) => {
-        value.effects = [{ type: 'bleed', recipient: 'primary-unit', damagePerTick: 6, ticks: 2 }]
+        value.effects = [{ type: 'bleed', recipient: 'primary-unit', damagePerTick: 21, ticks: 4 }]
       },
     ],
     [
@@ -365,23 +383,24 @@ describe('combat content authoring service', () => {
     const { store, service } = serviceFixture()
     store.operators.set(OWNER, 'owner')
 
+    const baseVersion = staticSkill().contentVersion
     const published = await service.publishSkill({
       actorUserId: OWNER,
       definition: staticSkill(),
-      expectedBaseVersion: 3,
+      expectedBaseVersion: baseVersion,
     })
 
-    expect(published.contentVersion).toBe(4)
+    expect(published.contentVersion).toBe(baseVersion + 1)
     expect(published.definition).toMatchObject({
       id: 'vanguard.forceful-strike',
-      contentVersion: 4,
+      contentVersion: baseVersion + 1,
     })
 
     await expect(
       service.publishSkill({
         actorUserId: OWNER,
         definition: staticSkill(),
-        expectedBaseVersion: 3,
+        expectedBaseVersion: baseVersion,
       }),
     ).rejects.toMatchObject({ code: 'STALE_VERSION' })
   })
@@ -390,14 +409,14 @@ describe('combat content authoring service', () => {
     const { store, service } = serviceFixture()
     store.operators.set(OWNER, 'owner')
     const invalid = invalidVariant((value) => {
-      value.effects = [{ type: 'bleed', recipient: 'primary-unit', damagePerTick: 6, ticks: 2 }]
+      value.effects = [{ type: 'bleed', recipient: 'primary-unit', damagePerTick: 21, ticks: 4 }]
     })
 
     await expect(
       service.publishSkill({
         actorUserId: OWNER,
         definition: invalid,
-        expectedBaseVersion: 3,
+        expectedBaseVersion: staticSkill().contentVersion,
       }),
     ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
     expect(await store.findPublished('vanguard.forceful-strike')).toBeNull()
@@ -407,34 +426,112 @@ describe('combat content authoring service', () => {
     const { store, service } = serviceFixture()
     store.operators.set(OWNER, 'owner')
 
+    const baseVersion = staticSkill().contentVersion
     await service.publishSkill({
       actorUserId: OWNER,
       definition: staticSkill(),
-      expectedBaseVersion: 3,
+      expectedBaseVersion: baseVersion,
     })
     await service.publishSkill({
       actorUserId: OWNER,
       definition: { ...staticSkill(), apCost: 41 },
-      expectedBaseVersion: 4,
+      expectedBaseVersion: baseVersion + 1,
     })
 
     await service.rollbackSkill({
       actorUserId: OWNER,
       skillId: 'vanguard.forceful-strike',
-      targetVersion: 4,
+      targetVersion: baseVersion + 1,
     })
-    expect((await store.findPublished('vanguard.forceful-strike'))?.contentVersion).toBe(4)
+    expect((await store.findPublished('vanguard.forceful-strike'))?.contentVersion).toBe(
+      baseVersion + 1,
+    )
 
     await service.rollbackSkill({
       actorUserId: OWNER,
       skillId: 'vanguard.forceful-strike',
-      targetVersion: 3,
+      targetVersion: baseVersion,
     })
     expect(await store.findPublished('vanguard.forceful-strike')).toBeNull()
     expect(
       (await store.listPublishedVersions('vanguard.forceful-strike')).map(
         (version) => version.contentVersion,
       ),
-    ).toEqual([4, 5])
+    ).toEqual([baseVersion + 1, baseVersion + 2])
+  })
+
+  it('validates and publishes an Essence as one immutable outer+nested Skill version', async () => {
+    const { store, service } = serviceFixture()
+    store.operators.set(OWNER, 'owner')
+    const essence = staticEssence()
+
+    expect(service.validateEssenceDefinition(essence)).toMatchObject({ valid: true, issues: [] })
+
+    const published = await service.publishEssence({
+      actorUserId: OWNER,
+      definition: {
+        ...essence,
+        flavorLine: 'Stand unbroken and drive the decisive strike through.',
+      },
+      expectedBaseVersion: essence.contentVersion,
+    })
+
+    expect(published.contentKind).toBe('essence')
+    expect(published.contentVersion).toBe(essence.contentVersion + 1)
+    expect(published.definition).toMatchObject({
+      essenceId: essence.essenceId,
+      contentVersion: essence.contentVersion + 1,
+      skill: { contentVersion: essence.contentVersion + 1 },
+    })
+
+    await service.rollbackEssence({
+      actorUserId: OWNER,
+      essenceId: essence.essenceId,
+      sourceDisciplineId: essence.sourceDisciplineId,
+      targetVersion: essence.contentVersion,
+    })
+    expect(await store.findPublished(essence.essenceId)).toBeNull()
+  })
+
+  it('validates, publishes, and rolls back Resonance content without mutating history', async () => {
+    const { store, service } = serviceFixture()
+    store.operators.set(OWNER, 'owner')
+    const resonance = staticResonance()
+
+    expect(service.validateResonanceDefinition(resonance)).toMatchObject({
+      valid: true,
+      issues: [],
+    })
+
+    const first = await service.publishResonance({
+      actorUserId: OWNER,
+      definition: {
+        ...resonance,
+        flavorLine: 'Mercy opens the line; the blade answers before it closes.',
+      },
+      expectedBaseVersion: resonance.contentVersion,
+    })
+    const second = await service.publishResonance({
+      actorUserId: OWNER,
+      definition: {
+        ...resonance,
+        flavorLine: 'Restore the opening, then turn it into a Vanguard finishing lane.',
+      },
+      expectedBaseVersion: first.contentVersion,
+    })
+
+    expect(first.contentKind).toBe('resonance')
+    expect(second.contentVersion).toBe(first.contentVersion + 1)
+
+    await service.rollbackResonance({
+      actorUserId: OWNER,
+      resonanceId: resonance.id,
+      disciplinePair: resonance.disciplinePair,
+      targetVersion: first.contentVersion,
+    })
+    expect((await store.findPublished(resonance.id))?.contentVersion).toBe(first.contentVersion)
+    expect(
+      (await store.listPublishedVersions(resonance.id)).map((row) => row.contentVersion),
+    ).toEqual([first.contentVersion, second.contentVersion])
   })
 })

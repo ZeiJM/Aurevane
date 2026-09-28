@@ -8,6 +8,7 @@ import {
   type MatureSkillDefinition,
   validateMatureSkillDefinition,
 } from './mature-skills'
+import { rebalanceMatureSkillDefinition } from './skill-balance-v5'
 import {
   evaluatePv1fMatureSkill,
   executePv1fMatureSkill,
@@ -25,6 +26,7 @@ export interface EssenceDefinition {
   readonly sourceDisciplineId: string
   readonly name: string
   readonly description: string
+  readonly flavorLine?: string
   readonly skill: MatureSkillDefinition
   readonly authoring: {
     readonly schemaVersion: typeof ESSENCE_SCHEMA_VERSION
@@ -466,11 +468,58 @@ const A03_CLASS_TUNED_ESSENCES = latestEnabledEssences([
   return next ? [next] : []
 })
 
-export const P36_REPRESENTATIVE_ESSENCES = [
+const PRE_V5_CURRENT_ESSENCES = [
   ...PRE_PHASE4_REBALANCE_ESSENCES,
   ...PHASE4_REBALANCED_ESSENCES,
   ...A03_MYSTIC_MP_ESSENCES,
   ...A03_CLASS_TUNED_ESSENCES,
+] as const satisfies readonly EssenceDefinition[]
+
+function v5EssenceFlavorLine(definition: EssenceDefinition): string {
+  const discipline =
+    definition.sourceDisciplineId.charAt(0).toUpperCase() + definition.sourceDisciplineId.slice(1)
+  if (definition.skill.tags.includes('attack')) {
+    return `A high-cost ${discipline} signature attack built for a decisive payoff.`
+  }
+  if (
+    definition.skill.effects.some(
+      (effect) =>
+        effect.type === 'healing' || (effect.type === 'resource-change' && effect.delta > 0),
+    )
+  ) {
+    return `A high-cost ${discipline} signature recovery with concentrated restorative power.`
+  }
+  return `A high-cost ${discipline} signature utility Skill built around its defining control effects.`
+}
+
+const V5_REBALANCED_ESSENCES = latestEnabledEssences(PRE_V5_CURRENT_ESSENCES).map(
+  (definition): EssenceDefinition => {
+    const skill = rebalanceMatureSkillDefinition(definition.skill, 'essence')
+    return {
+      ...definition,
+      contentVersion: skill.contentVersion,
+      flavorLine: v5EssenceFlavorLine(definition),
+      skill,
+      authoring: {
+        ...definition.authoring,
+        validationTags: [
+          ...new Set([
+            ...definition.authoring.validationTags,
+            'owner-rebalance-v5',
+            'duration-aware',
+            'power-1-20',
+          ]),
+        ],
+      },
+    }
+  },
+)
+
+export const P36_REPRESENTATIVE_ESSENCES = PRE_V5_CURRENT_ESSENCES
+
+const CURRENT_ESSENCE_REGISTRY = [
+  ...P36_REPRESENTATIVE_ESSENCES,
+  ...V5_REBALANCED_ESSENCES,
 ] as const satisfies readonly EssenceDefinition[]
 
 const STABLE_ID_PATTERN = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/
@@ -484,6 +533,20 @@ export function validateEssenceDefinition(definition: EssenceDefinition): readon
   if (!STABLE_ID_PATTERN.test(definition.sourceDisciplineId)) issues.push('sourceDisciplineId')
   if (!definition.name.trim()) issues.push('name')
   if (!definition.description.trim()) issues.push('description')
+  if (
+    definition.flavorLine !== undefined &&
+    (definition.flavorLine.trim().length === 0 ||
+      definition.flavorLine.length > 160 ||
+      /[\r\n]/u.test(definition.flavorLine))
+  ) {
+    issues.push('flavorLine')
+  }
+  if (
+    definition.authoring.validationTags.includes('owner-rebalance-v5') &&
+    !definition.flavorLine?.trim()
+  ) {
+    issues.push('flavorLine')
+  }
   if (definition.skill.id !== definition.essenceId) issues.push('skill.id')
   if (definition.skill.contentVersion !== definition.contentVersion) {
     issues.push('skill.contentVersion')
@@ -505,7 +568,7 @@ export function resolveEssenceForBuild(
   contentVersion?: number,
 ): EssenceDefinition | null {
   if (secondaryDisciplineId !== null) return null
-  const candidates = P36_REPRESENTATIVE_ESSENCES.filter(
+  const candidates = CURRENT_ESSENCE_REGISTRY.filter(
     (definition) => definition.enabled && definition.sourceDisciplineId === primaryDisciplineId,
   )
   if (contentVersion !== undefined) {

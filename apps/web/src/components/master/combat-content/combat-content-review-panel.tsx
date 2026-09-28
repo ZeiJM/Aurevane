@@ -16,6 +16,7 @@ export interface CombatContentReviewPanelProps {
   readonly validation: CombatContentValidationResult | null
   readonly diff: CombatContentSemanticDiff | null
   readonly preview: CombatContentPreviewSummary | null
+  readonly previewRequired?: boolean
   readonly history: readonly CombatContentVersionHistoryEntry[]
   readonly busy: boolean
   readonly publishConfirmationOpen: boolean
@@ -44,6 +45,7 @@ export function CombatContentReviewPanel({
   validation,
   diff,
   preview,
+  previewRequired = true,
   history,
   busy,
   publishConfirmationOpen,
@@ -62,9 +64,13 @@ export function CombatContentReviewPanel({
 }: CombatContentReviewPanelProps) {
   const review = { validation, diff, preview }
   const canPublish =
-    canPublishCombatContent(review) && (diff?.changedPaths.length ?? 0) > 0 && !busy
+    validation?.valid === true &&
+    diff !== null &&
+    diff.changedPaths.length > 0 &&
+    (!previewRequired || canPublishCombatContent(review)) &&
+    !busy
   const canDiff = validation?.valid === true && !busy
-  const canPreview = validation?.valid === true && diff !== null && !busy
+  const canPreview = previewRequired && validation?.valid === true && diff !== null && !busy
   const hitChance = preview?.accuracy?.targetHitChances?.[0]
   const effectTypes =
     preview?.projections?.effects
@@ -142,9 +148,11 @@ export function CombatContentReviewPanel({
           <button type="button" disabled={!canDiff} onClick={onDiff}>
             Diff
           </button>
-          <button type="button" disabled={!canPreview} onClick={onPreview}>
-            Preview
-          </button>
+          {previewRequired ? (
+            <button type="button" disabled={!canPreview} onClick={onPreview}>
+              Preview
+            </button>
+          ) : null}
           <button type="button" disabled={!canPublish} onClick={onRequestPublish}>
             Publish
           </button>

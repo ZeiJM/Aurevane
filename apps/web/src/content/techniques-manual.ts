@@ -51,7 +51,7 @@ const bandRows = techniqueMagnitudeBands(skills).map((band) => [
 ])
 const disciplineIds = [...new Set(skills.map((skill) => skill.sourceDisciplineId))]
 
-export const techniquePowerSummary = `Current regular Skill Power budget is AP cost × ${CURRENT_SKILL_POWER_SCALING_PER_AP_BASIS_POINTS / 100}% of the matching Power rating, divided among its direct-damage blocks. Physical Skills use Physical Power and Armor; Skills authored as mystic use Mystic Power and Ward. This is an added Power contribution, not a multiplier on base damage.`
+export const techniquePowerSummary = `Current Technique effects use a bounded authored power scale from 1 to 20. Higher-AP Skills receive more total effect budget, but area coverage, extra effects, long durations and strong utility consume part of that budget so high cost does not mean unlimited output. Direct damage still adds AP-linked Physical or Mystic Power scaling before defenses.`
 
 export const techniquesManualArticle: ManualArticle = {
   id: 'manual.techniques-damage-effects',
@@ -61,7 +61,7 @@ export const techniquesManualArticle: ManualArticle = {
     'Read a Technique, understand each step of damage, and compare magnitudes across the current regular Skill catalog.',
   category: 'Combat',
   lastUpdated: '2026-09-27',
-  rulesVersion: 'Current combat rules v4 · regular Skill catalog',
+  rulesVersion: 'Current combat rules v5 · duration-aware Skill balance',
   body: [
     {
       id: 'technique-basics',
@@ -76,9 +76,10 @@ export const techniquesManualArticle: ManualArticle = {
       id: 'read-preview',
       title: 'Reading the Technique Preview',
       paragraphs: [
-        'Read Skill Type, Cost, Cooldown, Requirements, Effects, Range, Target, Target Method, Target Elevation and Line of Sight in that order. Requirements must be satisfied before use. Costs are AP and, where listed, MP. A circle radius and a line length describe affected tiles, not damage multipliers.',
-        'Damage is an effect: Dmg [7] means seven authored base damage for that block. Healing [4] means four HP per application; its explanation states any repeated applications. MP Drain [4] removes MP from the target, while MP Restore [4] can restore it to you. Siphon Slash therefore lists Dmg [6], MP Drain [4], MP Restore [4]. Equal repeated damage entries are separate hits, not duplicate labels to discard.',
-        'A named status keeps its identity and a meaningful magnitude, such as Exposed [+15% incoming]. “pp” means percentage points: Mark adds 15 points to the source’s Accuracy against that target, rather than multiplying damage. Setup, melee and other design tags are not extra effects.',
+        'Read Skill Type, Cost, Cooldown, Requirements, Effects, Range, Target, Target Method, Target Elevation and Line of Sight in that order. Skill Type is Attack, Recovery or Utility. Requirements must be satisfied before use. Costs are AP and, where listed, MP. A circle radius and a line length describe affected tiles, not damage multipliers.',
+        'Each effect is listed on its own line. Bounded non-percentage effect power runs from 1 to 20: Dmg [7] means seven authored base power for that damage block, Healing [4] means four HP power, and MP Restore [4] means four MP power. Equal repeated damage entries are separate hits.',
+        'A positive duration is appended to the effect line, for example Slow [+10 AP/tile] [2 Turns]. A duration of 0 is immediate and intentionally has no [0 Turns] label. Duration counts future turns: [1 Turn] remains through the following turn; [2 Turns] remains through the following two turns. Persistent effect duration consumes balance budget.',
+        'Percentage-based effects use their percentage instead of the 1–20 power number. The same named status may be authored at different potency on different Skills—for example one Guarded application may reduce incoming damage by 10% while another reduces it by 15%. The Technique Preview is authoritative for that Skill version.',
       ],
     },
     {
@@ -86,11 +87,11 @@ export const techniquesManualArticle: ManualArticle = {
       title: 'Base damage and Power magnitude',
       paragraphs: [
         techniquePowerSummary,
-        `For a normally scaled direct-damage block: coefficientBP = floor(AP cost × ${CURRENT_SKILL_POWER_SCALING_PER_AP_BASIS_POINTS} ÷ number of normally scaled damage blocks); Power bonus = floor(matching Power × coefficientBP ÷ 10,000); raw damage = authored base damage + Power bonus. A basis point is 0.01%. Explicitly authored scaling is retained; Vengeance uses its recorded-damage rule instead of receiving another automatic Power budget.`,
-        'The budget is split across hits before integer rounding. It is not granted in full to each hit. Area effects resolve independently against each recipient; damage is not divided by the number of targets. The runtime uses the effective command AP cost, including a relevant override.',
+        `For a normally scaled direct-damage block: coefficientBP = floor(AP cost × ${CURRENT_SKILL_POWER_SCALING_PER_AP_BASIS_POINTS} ÷ number of normally scaled damage blocks); Power bonus = floor(matching Power × coefficientBP ÷ 10,000); raw damage = authored damage power + Power bonus. A basis point is 0.01%. Explicitly authored scaling is retained; Vengeance uses its recorded-damage rule instead of receiving another automatic Power budget.`,
+        'The 1–20 authored number and the AP-linked Power contribution are separate. More AP generally raises the authored budget and the Power coefficient, while area coverage, secondary utility, multiple hits, effect potency and duration reduce how much of that budget can be concentrated into one damage block.',
       ],
       table: {
-        caption: 'Current Power contribution before repeat-use reduction',
+        caption: 'Current AP-linked Power contribution per direct-damage block',
         headers: ['AP / hits', 'Power coefficient per hit'],
         rows: [
           [25, 1],
@@ -118,23 +119,22 @@ export const techniquesManualArticle: ManualArticle = {
         'The server first checks legality and resolves any Accuracy check. A miss does not apply the missed target’s hostile effects. For each successful direct-damage block, the following order matters because each multiplication rounds down separately:',
       ],
       bullets: [
-        '1. Prepare repeat-use reduction, if applicable: halve the authored base amount (rounded down, minimum one for a positive amount) and halve the Power coefficient in basis points (rounded down). This happens before adding Power, not as a final 50% multiplier.',
-        '2. Add floor(matching Power × coefficientBP ÷ 10,000) to the prepared base damage.',
-        '3. Apply Armor or Ward: floor(raw damage × 100 ÷ (100 + defense)), with a minimum of one for positive raw damage. Piercing skips this defense step.',
-        `4. On an eligible critical hit, multiply by ${COMBAT_CRITICAL_DAMAGE_BASIS_POINTS / 10_000} and round down. One critical result is shared by all eligible damage blocks against the same target in that command.`,
-        '5. Apply the attacker-versus-defender Level multiplier below, rounding down. Self-damage does not receive this relative-Level adjustment.',
-        '6. Apply any authored front/side/rear damage multiplier, rounding down. Only a Skill that specifies a facing multiplier receives one.',
-        '7. Apply the recipient’s legacy damage-taken multipliers, once per active stack in stored order, rounding down each time. Current Guarded multiplies by 85% per stack (up to three); Exposed multiplies by 115%. Lowered Guard, the PvP timeout penalty, is separate at 250% per stack.',
-        `8. Apply the combined conditional/status/elemental damage multiplier, bounded to ${CONDITIONAL_DAMAGE_MINIMUM / 100}–${CONDITIONAL_DAMAGE_MAXIMUM / 100}%, and round down. Piercing ignores incoming reductions in this budget and legacy incoming reductions, but not incoming increases.`,
-        '9. Barrier absorbs direct damage first. Remaining damage reduces HP, bounded by the recipient’s current HP. Later multipliers can round a small hit to zero; the defense minimum is not a final guaranteed HP loss.',
+        '1. Add floor(matching Power × coefficientBP ÷ 10,000) to the authored base damage.',
+        '2. Apply Armor or Ward: floor(raw damage × 100 ÷ (100 + defense)), with a minimum of one for positive raw damage. Piercing skips this defense step.',
+        `3. On an eligible critical hit, multiply by ${COMBAT_CRITICAL_DAMAGE_BASIS_POINTS / 10_000} and round down. One critical result is shared by all eligible damage blocks against the same target in that command.`,
+        '4. Apply the attacker-versus-defender Level multiplier below, rounding down. Self-damage does not receive this relative-Level adjustment.',
+        '5. Apply any authored front/side/rear damage multiplier, rounding down. Only a Skill that specifies a facing multiplier receives one.',
+        '6. Apply the recipient’s legacy damage-taken multipliers, once per active stack in stored order, rounding down each time. Current Guarded multiplies by 85% per stack (up to three); Exposed multiplies by 115%. Lowered Guard, the PvP timeout penalty, is separate at 250% per stack.',
+        `7. Apply the combined conditional/status/elemental damage multiplier, bounded to ${CONDITIONAL_DAMAGE_MINIMUM / 100}–${CONDITIONAL_DAMAGE_MAXIMUM / 100}%, and round down. Piercing ignores incoming reductions in this budget and legacy incoming reductions, but not incoming increases.`,
+        '8. Barrier absorbs direct damage first. Remaining damage reduces HP, bounded by the recipient’s current HP. Later multipliers can round a small hit to zero; the defense minimum is not a final guaranteed HP loss.',
       ],
     },
     {
       id: 'damage-example',
-      title: 'A worked hit and its consecutive repeat',
+      title: 'A worked hit',
       paragraphs: [
-        'Example: a physical 40 AP Skill has one damage block with base 7, the attacker has Physical Power 40, and the defender has Armor 25. At equal Levels, with no critical, facing bonus, status modifiers or Barrier: coefficient = 20%; Power bonus = floor(40 × 0.20) = 8; raw damage = 15; after Armor = floor(15 × 100 ÷ 125) = 12 HP.',
-        'Repeat that same Skill consecutively: base becomes floor(7 ÷ 2) = 3 and coefficient becomes 10%; raw damage = 3 + floor(40 × 0.10) = 7; after Armor = floor(7 × 100 ÷ 125) = 5 HP. It is not floor(12 ÷ 2) = 6. The same AP and MP costs still apply.',
+        'Example: a physical 40 AP Skill has one damage block with authored power 10, the attacker has Physical Power 40, and the defender has Armor 25. At equal Levels, with no critical, facing bonus, status modifiers or Barrier: coefficient = 20%; Power bonus = floor(40 × 0.20) = 8; raw damage = 18; after Armor = floor(18 × 100 ÷ 125) = 14 HP.',
+        'A higher-AP attack can receive more damage budget, but adding an area shape, a strong status, another effect or a longer duration redirects part of that budget away from direct damage.',
       ],
     },
     {
@@ -162,10 +162,19 @@ export const techniquesManualArticle: ManualArticle = {
     },
     {
       id: 'repeat-use',
-      title: 'Cooldowns and consecutive use',
+      title: 'Cooldowns and requirements',
       paragraphs: [
-        'Ordinary authored Techniques have zero turn cooldown. Consecutively using the same Skill instead reduces quantitative effectiveness to 50% at unchanged costs; further repeats stay at 50%. A different actual command resets the chain; ending a turn alone does not.',
-        'Healing, Barrier, MP changes and Bleed tick damage are halved, rounding positive magnitudes down with a minimum of one. Status stack grants round down without that minimum, so a one-stack application disappears on a repeat. Discrete effects—Cleanse/Dispel, return, terrain creation, displacement, new Poison/Burn, Sensory and copying—are omitted on the repeated command. This is why repeating a setup Skill may do little or nothing even though it remains legal.',
+        'Current authored Skills use power-based cooldowns from 1 to 3 turns. More powerful, broader or longer-lasting Skills generally receive longer cooldowns.',
+        'A Skill with an explicit use Requirement has no cooldown. Its prerequisite is the limiter instead. The old consecutive-use 50% falloff is retired for current Skill versions; cooldown state is server-authoritative and advances on the owner’s turn boundaries.',
+      ],
+    },
+    {
+      id: 'attunement-details',
+      title: 'Essence and Resonance details in Nexus',
+      paragraphs: [
+        'A pure build shows its active Essence card in Nexus; a mixed build shows its active Resonance card. The card itself keeps a concise flavor line so the full mechanical description does not crowd the layout.',
+        'Hover the active Essence or Resonance artwork, or move keyboard focus to it, to open the detail panel. Moving the pointer or focus away closes it automatically. Essence details use the same Skill rows as Technique details: type, cost, cooldown, requirements, effects, range and targeting where applicable.',
+        'Resonance details show both halves of the sequence explicitly: the setup Discipline/tags that arm the Resonance, the payoff Discipline/tags that consume it, and the bounded payoff effects with their durations. The panel is informational only; it does not change the committed build or battle state.',
       ],
     },
     {
@@ -179,10 +188,10 @@ export const techniquesManualArticle: ManualArticle = {
         'Healing: restores HP without reviving a defeated unit. Multi-application recovery starts immediately, then continues at recipient turn ends. Hexed reduces both direct and periodic healing. Restoration cannot exceed maximum HP.',
         'MP Restore / MP Drain: adds or removes MP, bounded by the recipient’s resource limits. Repeated recovery lists its application count; a drain does not imply restoration unless another effect grants it.',
         'Barrier: grants a separate pool that absorbs direct damage before HP. No current regular Technique authors a Barrier grant, although the effect is supported by the combat system.',
-        `Burn: ${CURRENT_BURN_DAMAGE_BY_STAGE.join(', then ')} fixed damage at the next three turn ends; reapplication restarts the sequence. A burning unit also takes ${CURRENT_BURN_BACKLASH_DAMAGE} backlash after a Basic Attack or damaging command.`,
-        `Poison: ${CURRENT_POISON_DAMAGE} fixed damage at turn end and per five voluntarily entered tiles, carrying partial movement progress forward. It persists until removed; it has no finite three- or four-turn total. Forced displacement does not count as voluntary movement.`,
+        `Burn: current v5 Skills can author Burn Power and duration. Each affected turn end deals the authored starting Power, then one less on each later tick with a minimum of 1, until the authored duration expires. The fallback historical profile remains ${CURRENT_BURN_DAMAGE_BY_STAGE.join(', then ')}. A burning unit also takes ${CURRENT_BURN_BACKLASH_DAMAGE} backlash after a Basic Attack or damaging command.`,
+        `Poison: current v5 Skills can author Poison Power and duration. Its authored Power is the damage dealt at affected turn end and per five voluntarily entered tiles, carrying partial movement progress forward until the authored duration expires. The fallback historical profile deals ${CURRENT_POISON_DAMAGE} damage and persists until removed. Forced displacement does not count as voluntary movement.`,
         'Bleed: authored fixed damage per turn-end tick, with an authored tick count. Up to three independent stacks coexist. Fixed DOT damage does not gain Power, Level or critical scaling.',
-        'Apply status: grants the named condition; a stack count is not a percentage magnitude. Current Mark improves source Accuracy, while historical Marked increased source damage. Their meanings are not interchangeable.',
+        'Apply status: grants the named condition for its authored duration. Percentage-based status potency is authored per effect where supported, so Guarded, Exposed, Mark and similar effects can differ by Skill version. A stack count is separate from percentage potency.',
         'Cleanse / Dispel: removes the statuses explicitly listed by the Skill. Dispel removes protection; Cleanse removes harmful conditions. Neither automatically removes every effect in the game.',
         'Push / Pull: moves a unit one legal tile at a time, stopping at occupancy, obstacles or illegal elevation. Root prevents displacement. Return moves you to your vacant turn-start tile without restoring resources or undoing actions.',
         'Frozen Terrain: creates a temporary ground overlay affecting both teams; entering it costs extra AP unless Airborne. Fire converts it to Steam, which blocks sight. Unit effects still follow the Skill’s affected-team rule.',
@@ -195,7 +204,7 @@ export const techniquesManualArticle: ManualArticle = {
       paragraphs: [
         `These figures are generated from the ${skills.length} latest enabled regular Skills. Compare within a family only: seven base damage cannot be ranked against seven MP or a seven-tile line. One observation is one effect block, except command damage totals and shape sizes. Multi-target effects are counted once, not once per potential target.`,
         '“Typical” is the inclusive lower-to-upper quartile interval (Q1–Q3). Low means below Q1; high means above Q3, within the observed range. Quartiles use nearest rank: sort the observations and take positions ceil(n × 0.25) and ceil(n × 0.75). Ties can leave a low or high band empty. A fixed-value or tiny family is a catalog comparison, not a reliable balance tier.',
-        'DOT observations include each Burn stage and each authored Bleed tick magnitude; Poison contributes its fixed tick value but no finite duration. Total healing includes only effects with multiple applications, before missing-HP limits and healing modifiers.',
+        'DOT observations use the authored current-v5 magnitudes for Burn, Bleed and Poison where present. Historical/default fallback profiles remain versioned separately. Total healing includes only effects with multiple applications, before missing-HP limits and healing modifiers.',
       ],
       table: {
         caption: 'Current catalog magnitude ranges',
@@ -207,8 +216,8 @@ export const techniquesManualArticle: ManualArticle = {
       id: 'status-magnitudes',
       title: 'Status percentages and movement modifiers',
       paragraphs: [
-        'Named status magnitudes are fixed rules, not a shared low/medium/high scale. Damage dealt, damage received, healing received and Accuracy are separate dimensions. Haste and Slow each change movement by 10 AP per tile in opposite directions; Root blocks movement instead of adding an AP magnitude. The table includes every named status applied by the current regular catalog.',
-        'A bracketed percentage may have a source or condition restriction: read its explanation. Reckless and Fortified each link a benefit with a drawback. A larger magnitude alone does not make a Skill stronger: AP/MP cost, range, area, requirements, duration, setup, payoff and repeat behavior all matter.',
+        'Named status magnitudes are not forced to one global percentage. Percentage potency can be authored per Skill effect where the status supports it, while movement effects such as Haste and Slow use AP-per-tile rules and Root blocks movement instead of adding a percentage magnitude.',
+        'A larger magnitude alone does not make a Skill stronger: AP/MP cost, range, area, requirements, duration, setup, payoff and cooldown all matter. The table shows the canonical fallback status wording; the Technique Preview shows the actual authored potency for the selected Skill version.',
       ],
       table: {
         caption: 'Current named effects',

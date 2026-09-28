@@ -6,11 +6,12 @@ import styles from './combat-content-editor.module.css'
 
 export type SkillEconomyDraft = Pick<
   MatureSkillDefinition,
-  'apCost' | 'mpCost' | 'accuracyMode' | 'accuracyModifierBasisPoints'
+  'apCost' | 'mpCost' | 'accuracyMode' | 'accuracyModifierBasisPoints' | 'cooldown'
 >
 
 export interface SkillEconomyEditorProps {
   readonly value: SkillEconomyDraft
+  readonly cooldownLockedByRequirement?: boolean
   readonly onChange: (value: SkillEconomyDraft) => void
 }
 
@@ -19,7 +20,11 @@ function integer(value: string, fallback: number): number {
   return Number.isSafeInteger(parsed) ? parsed : fallback
 }
 
-export function SkillEconomyEditor({ value, onChange }: SkillEconomyEditorProps) {
+export function SkillEconomyEditor({
+  value,
+  cooldownLockedByRequirement = false,
+  onChange,
+}: SkillEconomyEditorProps) {
   const accuracyMode = value.accuracyMode ?? 'automatic'
 
   return (
@@ -59,6 +64,39 @@ export function SkillEconomyEditor({ value, onChange }: SkillEconomyEditorProps)
               })
             }
           />
+        </label>
+
+        <label className={styles.field}>
+          <span>Cooldown</span>
+          <input
+            aria-label="Cooldown (turns)"
+            type="number"
+            min={1}
+            max={3}
+            step={1}
+            disabled={cooldownLockedByRequirement}
+            value={value.cooldown?.ownerTurns ?? 1}
+            onChange={(event) =>
+              onChange({
+                ...value,
+                cooldown: {
+                  key: value.cooldown?.key ?? 'skill.cooldown',
+                  ownerTurns: Math.max(
+                    1,
+                    Math.min(
+                      3,
+                      integer(event.currentTarget.value, value.cooldown?.ownerTurns ?? 1),
+                    ),
+                  ),
+                },
+              })
+            }
+          />
+          <small className={styles.fieldHint}>
+            {cooldownLockedByRequirement
+              ? 'Requirement-gated Skills have no cooldown.'
+              : 'Power-based cooldowns are limited to 1–3 turns.'}
+          </small>
         </label>
 
         <label className={styles.field}>

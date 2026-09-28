@@ -36,6 +36,7 @@ import {
   ADVANCED_DISCIPLINE_ESSENCES,
 } from './advanced-discipline-content'
 import {
+  P33_REPRESENTATIVE_DISCIPLINE_SKILLS,
   validateMatureSkillDefinition,
   latestEnabledMatureSkills,
   resolveMatureSkillVersion,
@@ -386,6 +387,8 @@ describe('Phase 4 advanced libraries', () => {
   })
 })
 
+const phase4Skills = latestEnabledMatureSkills(P33_REPRESENTATIVE_DISCIPLINE_SKILLS)
+
 const currentEssences = P36_REPRESENTATIVE_ESSENCES.filter(
   (definition, index, definitions) =>
     definition.enabled &&
@@ -397,10 +400,7 @@ const currentEssences = P36_REPRESENTATIVE_ESSENCES.filter(
     ),
 )
 
-const publishedSkills = [
-  ...latestEnabledMatureSkills(),
-  ...currentEssences.map((essence) => essence.skill),
-]
+const publishedSkills = [...phase4Skills, ...currentEssences.map((essence) => essence.skill)]
 const contractCombatants: readonly ContractCombatant[] = ['actor', 'enemy', 'other', 'ally']
 
 function contractEncounter(skill: MatureSkillDefinition, contract: PublishedSkillContract) {
@@ -606,7 +606,7 @@ function assertContractUse(
 
 describe('Every published Technique and Essence executes its authored recipient contract', () => {
   it('covers exactly the 136 current regular Skills and 17 current Essences', () => {
-    expect(latestEnabledMatureSkills()).toHaveLength(136)
+    expect(phase4Skills).toHaveLength(136)
     expect(publishedSkills).toHaveLength(153)
     expect(PUBLISHED_SKILL_CONTRACTS.map((contract) => contract.id).sort()).toEqual(
       publishedSkills.map((skill) => skill.id).sort(),
@@ -755,7 +755,7 @@ describe('Phase 4 cross-library Resonance conversions', () => {
       `${combatContext}: $id can arm and consume a legal cross-library payoff`,
       (resonance) => {
         const find = (matcher: typeof resonance.trigger.setup) =>
-          latestEnabledMatureSkills().find(
+          phase4Skills.find(
             (skill) =>
               skill.enabled &&
               skill.sourceDisciplineId === matcher.sourceDisciplineId &&

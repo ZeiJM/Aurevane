@@ -14,6 +14,7 @@ import {
   resolveResonanceForPair,
   validateResonanceDefinition,
 } from './resonance'
+import { rebalanceResonanceDefinition } from './resonance-balance-v5'
 
 function encounter() {
   const battle = startBattle(
@@ -101,8 +102,8 @@ describe('P3.5 versioned Resonance framework', () => {
       expect(validateResonanceDefinition(definition)).toEqual([])
     }
 
-    const forward = resolveResonanceForPair('lifebinder', 'vanguard')
-    const reverse = resolveResonanceForPair('vanguard', 'lifebinder')
+    const forward = resolveResonanceForPair('lifebinder', 'vanguard', 1)
+    const reverse = resolveResonanceForPair('vanguard', 'lifebinder', 1)
     expect(forward?.id).toBe('resonance.lifebinder-vanguard.mercys-edge')
     expect(reverse?.id).toBe(forward?.id)
     expect(resolveResonanceForPair('vanguard', null)).toBeNull()
@@ -111,7 +112,7 @@ describe('P3.5 versioned Resonance framework', () => {
   })
 
   it('exposes a stable snapshot identity without embedding executable trigger state', () => {
-    const definition = resolveResonanceForPair('vanguard', 'lifebinder')
+    const definition = resolveResonanceForPair('vanguard', 'lifebinder', 1)
     if (!definition) throw new Error('Expected representative Resonance.')
     expect(resonanceSnapshotReference(definition)).toEqual({
       resonanceId: definition.id,
@@ -121,7 +122,7 @@ describe('P3.5 versioned Resonance framework', () => {
   })
 
   it('arms on a successful Lifebinder heal and gives the next Vanguard melee Skill a bounded payoff', () => {
-    const resonance = resolveResonanceForPair('vanguard', 'lifebinder')
+    const resonance = resolveResonanceForPair('vanguard', 'lifebinder', 1)
     const heal = resolveMatureSkillVersion('lifebinder.mending-light', 1)
     const strike = resolveMatureSkillVersion('vanguard.forceful-strike', 2)
     if (!resonance || !heal || !strike) throw new Error('Expected representative P3.5 content.')
@@ -166,7 +167,7 @@ describe('P3.5 versioned Resonance framework', () => {
   })
 
   it('expires an armed setup on an intervening non-payoff Discipline Skill and never loops itself', () => {
-    const resonance = resolveResonanceForPair('vanguard', 'lifebinder')
+    const resonance = resolveResonanceForPair('vanguard', 'lifebinder', 1)
     const heal = resolveMatureSkillVersion('lifebinder.mending-light', 1)
     if (!resonance || !heal) throw new Error('Expected representative P3.5 content.')
 
@@ -184,7 +185,7 @@ describe('P3.5 versioned Resonance framework', () => {
   })
 
   it('makes the armed payoff more valuable to AI without changing Skill legality', () => {
-    const resonance = resolveResonanceForPair('vanguard', 'lifebinder')
+    const resonance = resolveResonanceForPair('vanguard', 'lifebinder', 1)
     const heal = resolveMatureSkillVersion('lifebinder.mending-light', 1)
     const strike = resolveMatureSkillVersion('vanguard.forceful-strike', 2)
     if (!resonance || !heal || !strike) throw new Error('Expected representative P3.5 content.')
@@ -195,6 +196,92 @@ describe('P3.5 versioned Resonance framework', () => {
 
     const armed = { ...ready, armedByActionId: heal.id }
     expect(resonanceAiUtilityBonus(resonance, armed, strike)).toBe(30)
+  })
+})
+
+describe('Combat v5 thematic Resonance rebalance', () => {
+  it('derives payoff variety from authored setup Disciplines rather than Resonance IDs', () => {
+    const lifebinder = resolveResonanceForPair('lifebinder', 'vanguard', 1)
+    const farstrider = resolveResonanceForPair('farstrider', 'vanguard', 1)
+    const cinderweaver = resolveResonanceForPair('cinderweaver', 'vanguard', 1)
+    if (!lifebinder || !farstrider || !cinderweaver) {
+      throw new Error('Expected representative thematic Resonances.')
+    }
+
+    const lifebinderV5 = rebalanceResonanceDefinition(lifebinder)
+    const farstriderV5 = rebalanceResonanceDefinition(farstrider)
+    const cinderweaverV5 = rebalanceResonanceDefinition(cinderweaver)
+
+    expect(lifebinderV5.trigger.payoffEffects).toContainEqual(
+      expect.objectContaining({ type: 'healing', recipient: 'actor' }),
+    )
+    expect(farstriderV5.trigger.payoffEffects).toContainEqual(
+      expect.objectContaining({ type: 'resource-change', recipient: 'actor', resource: 'mp' }),
+    )
+    expect(cinderweaverV5.trigger.payoffEffects).toContainEqual(
+      expect.objectContaining({ type: 'burn', recipient: 'primary-unit' }),
+    )
+  })
+
+  it('keeps all 136 current pairs valid with broad semantic payoff variety', () => {
+    const current = P35_REPRESENTATIVE_RESONANCES.map((historical) => {
+      const resolved = resolveResonanceForPair(
+        historical.disciplinePair[0],
+        historical.disciplinePair[1],
+      )
+      if (!resolved) throw new Error(`Missing current Resonance ${historical.id}.`)
+      return resolved
+    })
+
+    expect(current).toHaveLength(136)
+    expect(new Set(current.map((definition) => definition.id)).size).toBe(136)
+
+    const payoffSignatures = new Set<string>()
+    let nonDamagePayoffCount = 0
+    for (const definition of current) {
+      expect(validateResonanceDefinition(definition), definition.id).toEqual([])
+      expect(definition.authoring.validationTags, definition.id).toContain('owner-rebalance-v5')
+      expect(definition.authoring.validationTags, definition.id).toContain(
+        'thematic-resonance-payoff',
+      )
+      expect(definition.flavorLine?.trim().length, definition.id).toBeGreaterThan(0)
+
+      const signature = definition.trigger.payoffEffects
+        .map((effect) => {
+          if (effect.type === 'apply-status') {
+            return `${effect.type}:${effect.recipient}:${effect.statusId}`
+          }
+          if (effect.type === 'resource-change') {
+            return `${effect.type}:${effect.recipient}:${effect.resource}:${Math.sign(effect.delta)}`
+          }
+          if (effect.type === 'remove-status') {
+            return `${effect.type}:${effect.recipient}:${effect.statusIds.join('+')}`
+          }
+          return `${effect.type}:${effect.recipient}`
+        })
+        .join('|')
+      payoffSignatures.add(signature)
+      if (definition.trigger.payoffEffects.some((effect) => effect.type !== 'damage')) {
+        nonDamagePayoffCount += 1
+      }
+    }
+
+    expect(payoffSignatures.size).toBeGreaterThanOrEqual(8)
+    expect(nonDamagePayoffCount).toBeGreaterThan(current.length / 2)
+  })
+
+  it('does not change v5 payoff semantics when only an opaque Resonance ID changes', () => {
+    const base = resolveResonanceForPair('lifebinder', 'vanguard', 1)
+    if (!base) throw new Error('Expected Lifebinder/Vanguard Resonance.')
+
+    const renamed = {
+      ...base,
+      id: 'resonance.lifebinder-vanguard.semantic-identity-test',
+    }
+
+    expect(rebalanceResonanceDefinition(renamed).trigger.payoffEffects).toEqual(
+      rebalanceResonanceDefinition(base).trigger.payoffEffects,
+    )
   })
 })
 

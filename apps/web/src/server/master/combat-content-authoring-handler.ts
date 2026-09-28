@@ -50,6 +50,26 @@ function readOptionalPreviewSeed(value: unknown): number | undefined {
   return value as number
 }
 
+type AuthoringContentKind = 'skill' | 'essence' | 'resonance'
+
+function readAuthoringContentKind(value: unknown): AuthoringContentKind {
+  if (value === undefined) return 'skill'
+  if (value !== 'skill' && value !== 'essence' && value !== 'resonance') {
+    return invalid('contentKind must be skill, essence, or resonance.')
+  }
+  return value
+}
+
+function readDisciplinePair(value: unknown): readonly [string, string] {
+  if (!Array.isArray(value) || value.length !== 2) {
+    return invalid('disciplinePair must contain exactly two Discipline ids.')
+  }
+  return [
+    requiredString(value[0], 'disciplinePair[0]'),
+    requiredString(value[1], 'disciplinePair[1]'),
+  ]
+}
+
 function readOptionalCombatContext(value: unknown): 'pve' | 'pvp' | undefined {
   if (value === undefined) return undefined
   if (value !== 'pve' && value !== 'pvp') {
@@ -101,10 +121,17 @@ export async function handleCombatContentAuthoringRequest(
     await service.requireOperator(actor.userId)
     const body = await readBody(request)
     const operation = requiredString(body.operation, 'operation')
+    const contentKind = readAuthoringContentKind(body.contentKind)
 
     if (operation === 'validate') {
       const definition = requireProperty(body, 'definition')
-      return success({ validation: service.validateSkillDefinition(definition) })
+      const validation =
+        contentKind === 'skill'
+          ? service.validateSkillDefinition(definition)
+          : contentKind === 'essence'
+            ? service.validateEssenceDefinition(definition)
+            : service.validateResonanceDefinition(definition)
+      return success({ validation })
     }
 
     if (operation === 'diff') {
@@ -136,12 +163,18 @@ export async function handleCombatContentAuthoringRequest(
         requireProperty(body, 'expectedDraftVersion'),
         'expectedDraftVersion',
       )
-      const draft = await service.saveSkillDraft({
+      const input = {
         actorUserId: actor.userId,
         definition,
         baseVersion,
         expectedDraftVersion,
-      })
+      }
+      const draft =
+        contentKind === 'skill'
+          ? await service.saveSkillDraft(input)
+          : contentKind === 'essence'
+            ? await service.saveEssenceDraft(input)
+            : await service.saveResonanceDraft(input)
       return success({ draft })
     }
 
@@ -151,22 +184,43 @@ export async function handleCombatContentAuthoringRequest(
         requireProperty(body, 'expectedBaseVersion'),
         'expectedBaseVersion',
       )
-      const published = await service.publishSkill({
+      const input = {
         actorUserId: actor.userId,
         definition,
         expectedBaseVersion,
-      })
+      }
+      const published =
+        contentKind === 'skill'
+          ? await service.publishSkill(input)
+          : contentKind === 'essence'
+            ? await service.publishEssence(input)
+            : await service.publishResonance(input)
       return success({ published })
     }
 
     if (operation === 'rollback') {
-      const skillId = requiredString(body.skillId, 'skillId')
       const targetVersion = readPositiveInteger(body.targetVersion, 'targetVersion')
-      await service.rollbackSkill({
-        actorUserId: actor.userId,
-        skillId,
-        targetVersion,
-      })
+      if (contentKind === 'skill') {
+        await service.rollbackSkill({
+          actorUserId: actor.userId,
+          skillId: requiredString(body.skillId, 'skillId'),
+          targetVersion,
+        })
+      } else if (contentKind === 'essence') {
+        await service.rollbackEssence({
+          actorUserId: actor.userId,
+          essenceId: requiredString(body.contentKey, 'contentKey'),
+          sourceDisciplineId: requiredString(body.sourceDisciplineId, 'sourceDisciplineId'),
+          targetVersion,
+        })
+      } else {
+        await service.rollbackResonance({
+          actorUserId: actor.userId,
+          resonanceId: requiredString(body.contentKey, 'contentKey'),
+          disciplinePair: readDisciplinePair(body.disciplinePair),
+          targetVersion,
+        })
+      }
       return success({ ok: true })
     }
 

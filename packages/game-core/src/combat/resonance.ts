@@ -2,6 +2,7 @@ import { validateGameplayEffectMetadata } from './gameplay-tags'
 import { ADVANCED_RESONANCES } from './advanced-resonances'
 import { FOUNDATION_TRIO_RESONANCES } from './foundation-trio-resonances'
 import { IRONFIST_RESONANCES } from './ironfist-content'
+import { rebalanceResonanceDefinition } from './resonance-balance-v5'
 import {
   executeCombatAction,
   evaluateCombatAction,
@@ -46,6 +47,7 @@ export interface ResonanceDefinition {
   readonly disciplinePair: readonly [string, string]
   readonly name: string
   readonly description: string
+  readonly flavorLine?: string
   readonly trigger: ResonanceSkillSequenceTrigger
   readonly media: ResonanceMediaHooks
   readonly authoring: {
@@ -106,7 +108,7 @@ export interface MatureSkillResonanceTransition {
   readonly events: readonly (CombatResolutionEvent | ResonanceCombatEvent)[]
 }
 
-export const P35_REPRESENTATIVE_RESONANCES = [
+const PRE_V5_RESONANCES = [
   {
     id: 'resonance.lifebinder-vanguard.mercys-edge',
     contentVersion: 1,
@@ -139,6 +141,15 @@ export const P35_REPRESENTATIVE_RESONANCES = [
   ...ADVANCED_RESONANCES,
 ] as const satisfies readonly ResonanceDefinition[]
 
+const V5_REBALANCED_RESONANCES = PRE_V5_RESONANCES.map(rebalanceResonanceDefinition)
+
+export const P35_REPRESENTATIVE_RESONANCES: readonly ResonanceDefinition[] = PRE_V5_RESONANCES
+
+const CURRENT_RESONANCE_REGISTRY: readonly ResonanceDefinition[] = [
+  ...P35_REPRESENTATIVE_RESONANCES,
+  ...V5_REBALANCED_RESONANCES,
+]
+
 const STABLE_ID_PATTERN = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/
 
 export function canonicalResonancePair(
@@ -158,6 +169,20 @@ export function validateResonanceDefinition(definition: ResonanceDefinition): re
   }
   if (!definition.name.trim()) issues.push('name')
   if (!definition.description.trim()) issues.push('description')
+  if (
+    definition.flavorLine !== undefined &&
+    (definition.flavorLine.trim().length === 0 ||
+      definition.flavorLine.length > 160 ||
+      /[\r\n]/u.test(definition.flavorLine))
+  ) {
+    issues.push('flavorLine')
+  }
+  if (
+    definition.authoring.validationTags.includes('owner-rebalance-v5') &&
+    !definition.flavorLine?.trim()
+  ) {
+    issues.push('flavorLine')
+  }
 
   const [first, second] = definition.disciplinePair
   if (
@@ -220,7 +245,7 @@ export function resolveResonanceForPair(
 ): ResonanceDefinition | null {
   if (secondaryDisciplineId === null || primaryDisciplineId === secondaryDisciplineId) return null
   const pair = canonicalResonancePair(primaryDisciplineId, secondaryDisciplineId)
-  const candidates = P35_REPRESENTATIVE_RESONANCES.filter(
+  const candidates = CURRENT_RESONANCE_REGISTRY.filter(
     (definition) =>
       definition.enabled &&
       definition.disciplinePair[0] === pair[0] &&

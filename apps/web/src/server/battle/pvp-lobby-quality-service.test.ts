@@ -1,6 +1,7 @@
 import type { CharacterRecord } from '@aurevane/db/character'
 import type { BattleSessionRecord, BattleSessionRepository } from '@aurevane/db/battle-session'
 import { readCombatBuildSnapshot } from '@aurevane/game-core/combat/build-snapshot'
+import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 import { surrenderPvpCombatant, timeoutPvpTurn } from '@aurevane/game-core/combat/pvp-quality'
 import { readPv1fActionEconomy } from '@aurevane/game-core/combat/pv1f-action-economy'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -11,6 +12,18 @@ const mocks = vi.hoisted(() => ({
 }))
 
 vi.mock('server-only', () => ({}))
+
+vi.mock('@/server/combat/combat-content-resolver', async () => {
+  const { resolveMatureSkillVersion: resolve } =
+    await import('@aurevane/game-core/combat/mature-skills')
+  return {
+    createServerCombatContentResolver: () => ({
+      resolveCurrentSkillDefinition: async (skillId: string) => resolve(skillId),
+      resolvePinnedSkillDefinition: async (skillId: string, contentVersion: number) =>
+        resolve(skillId, contentVersion),
+    }),
+  }
+})
 
 const hostUserId = '00000000-0000-4000-8000-000000003721'
 const guestUserId = '00000000-0000-4000-8000-000000003722'
@@ -225,17 +238,47 @@ describe('P3.7 direct PvP committed build snapshots', () => {
 
     const host = readCombatBuildSnapshot(state, `character:${hostCharacterId}`)
     const guest = readCombatBuildSnapshot(state, `character:${guestCharacterId}`)
-    expect(state.buildAuthority).toMatchObject({ catalogVersion: 2, combatContext: 'pvp' })
+    expect(state.buildAuthority).toMatchObject({ catalogVersion: 3, combatContext: 'pvp' })
     for (const combatant of state.buildAuthority!.combatants) {
       const bridge = readCombatBuildSnapshot(state, combatant.combatantId)!
       expect(combatant.primary).toEqual(bridge.primary)
       expect(combatant.secondary).toEqual(bridge.secondary)
-      expect(combatant.disciplineSkills).toEqual(bridge.disciplineSkills)
-      expect(combatant.extensions).toEqual({
-        essence: bridge.extensions.essence,
-        resonance: bridge.extensions.resonance,
-      })
-      expect(combatant.fingerprint).toBe(bridge.fingerprint)
+      expect(combatant.buildVersion).toBe(bridge.sourceBuildVersion)
+      expect(
+        combatant.disciplineSkills.map(({ slotIndex, skillId, sourceDisciplineId }) => ({
+          slotIndex,
+          skillId,
+          sourceDisciplineId,
+        })),
+      ).toEqual(
+        bridge.disciplineSkills.map(({ slotIndex, skillId, sourceDisciplineId }) => ({
+          slotIndex,
+          skillId,
+          sourceDisciplineId,
+        })),
+      )
+      for (const skill of combatant.disciplineSkills) {
+        const source = bridge.disciplineSkills.find(
+          (candidate) => candidate.skillId === skill.skillId,
+        )
+        expect(source).toBeDefined()
+        expect(skill.contentVersion).toBeGreaterThanOrEqual(source!.contentVersion)
+      }
+      if (bridge.extensions.essence) {
+        expect(combatant.extensions.essence).toMatchObject({
+          essenceId: bridge.extensions.essence.essenceId,
+          sourceDisciplineId: bridge.extensions.essence.sourceDisciplineId,
+        })
+        expect(combatant.extensions.essence!.contentVersion).toBeGreaterThanOrEqual(
+          bridge.extensions.essence.contentVersion,
+        )
+      } else {
+        expect(combatant.extensions.essence).toBeNull()
+      }
+      expect(combatant.extensions.resonance?.resonanceId ?? null).toBe(
+        bridge.extensions.resonance?.resonanceId ?? null,
+      )
+      expect(combatant.fingerprint).toMatch(/^sha256:[0-9a-f]{64}$/u)
     }
     expect(host?.sourceBuildVersion).toBe(3)
     expect(host?.extensions.essence?.essenceId).toBe('essence.vanguard.unbroken-strike')
@@ -294,6 +337,14 @@ describe('P3.7 direct PvP committed build snapshots', () => {
         }
       },
     }
+    const combatContentResolver = {
+      async resolveCurrentSkillDefinition(skillId: string) {
+        return resolveMatureSkillVersion(skillId)
+      },
+      async resolvePinnedSkillDefinition(skillId: string, contentVersion: number) {
+        return resolveMatureSkillVersion(skillId, contentVersion)
+      },
+    }
     const service = createBattleSessionService({
       battles: repository,
       characters: {
@@ -302,6 +353,7 @@ describe('P3.7 direct PvP committed build snapshots', () => {
           throw new Error('Not a character creation test.')
         },
       },
+      combatContentResolver,
     })
     const hostId = `character:${hostCharacterId}`
     // Always include a real server-facing transition, even if the host initially wins initiative.
@@ -331,7 +383,18 @@ describe('P3.7 direct PvP committed build snapshots', () => {
     const hostBuild = before.snapshot.buildAuthority!.combatants.find(
       (row) => row.combatantId === hostId,
     )!
+    const currentMist = resolveMatureSkillVersion('frostweaver.chilling-mist')
+    if (!currentMist) throw new Error('Expected current Chilling Mist definition.')
+    expect(before.snapshot.buildAuthority?.catalogVersion).toBe(3)
     expect(hostBuild.disciplineSkills).toEqual([
+      {
+        slotIndex: 1,
+        skillId: 'frostweaver.chilling-mist',
+        contentVersion: currentMist.contentVersion,
+        sourceDisciplineId: 'frostweaver',
+      },
+    ])
+    expect(readCombatBuildSnapshot(beforePersisted, hostId)!.disciplineSkills).toEqual([
       {
         slotIndex: 1,
         skillId: 'frostweaver.chilling-mist',
@@ -339,10 +402,7 @@ describe('P3.7 direct PvP committed build snapshots', () => {
         sourceDisciplineId: 'frostweaver',
       },
     ])
-    expect(hostBuild.disciplineSkills).toEqual(
-      readCombatBuildSnapshot(beforePersisted, hostId)!.disciplineSkills,
-    )
-    const previewService = createBattlePreviewService(repository)
+    const previewService = createBattlePreviewService(repository, combatContentResolver)
     const intent = {
       kind: 'action' as const,
       actionId: 'frostweaver.chilling-mist',

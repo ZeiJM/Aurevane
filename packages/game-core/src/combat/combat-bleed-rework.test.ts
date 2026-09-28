@@ -209,15 +209,15 @@ describe('current Bleed runtime', () => {
     expect(state.effectState?.bleed).toEqual([])
   })
 
-  it('rejects authored Bleed outside 1-4 ticks or above 10 raw total', () => {
-    expect(() => validateCombatActionDefinition(action(bleed(4, 3), 'test.invalid-total'))).toThrow(
-      /Bleed raw per-stack total must not exceed 10 damage/,
-    )
+  it('rejects authored Bleed outside 1-4 ticks or above 80 raw total', () => {
+    expect(() =>
+      validateCombatActionDefinition(action(bleed(21, 4), 'test.invalid-total')),
+    ).toThrow(/Bleed raw per-stack total must not exceed 80 damage/)
     expect(() =>
       validateCombatActionDefinition(action(bleed(2, 5), 'test.invalid-duration')),
     ).toThrow(/Bleed duration ticks must be an integer between 1 and 4/)
     expect(() =>
-      validateCombatActionDefinition(action(bleed(2, 4), 'test.valid-bleed')),
+      validateCombatActionDefinition(action(bleed(20, 4), 'test.valid-bleed')),
     ).not.toThrow()
   })
 
@@ -233,8 +233,8 @@ describe('current Bleed runtime', () => {
             targetCombatantId: 'target',
             sourceCombatantId: 'actor',
             sourceActionId: 'test.invalid',
-            damagePerTick: 4,
-            remainingTicks: 3,
+            damagePerTick: 21,
+            remainingTicks: 4,
             applicationOrder: 1,
           },
         ],

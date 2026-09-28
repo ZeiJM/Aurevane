@@ -40,7 +40,7 @@ describe('P3.8 representative buildcraft catalog', () => {
         expect(action.id).toBe(skill.id)
         expect(action.version).toBe(skill.contentVersion)
         expect(action.sourceType).toBe('discipline-skill')
-        expect(action.cooldown?.key).toBe(skill.cooldown.key)
+        expect(action.cooldown?.key ?? null).toBe(skill.cooldown?.key ?? null)
         expect(action.effects.length).toBeGreaterThan(0)
       }
     }

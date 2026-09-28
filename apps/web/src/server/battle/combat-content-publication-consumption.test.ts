@@ -199,15 +199,15 @@ describe('published combat content consumption', () => {
     expect(snapshot.extensions.essence?.contentVersion).toBe(2)
     expect(authority.combatants[0]!.extensions.essence).toMatchObject({
       essenceId: 'essence.edgedancer.sevenfold-cut',
-      contentVersion: 3,
-      skillContentVersion: 3,
+      contentVersion: 4,
+      skillContentVersion: 4,
     })
-    expect(resolved?.contentVersion).toBe(3)
+    expect(resolved?.contentVersion).toBe(4)
     expect(
       resolved?.skill.effects
         .filter((effect) => effect.type === 'damage')
         .map((effect) => effect.amount),
-    ).toEqual([4, 4, 4, 4, 4, 4, 4])
+    ).toEqual([9, 9, 9, 9, 9, 9, 9])
   })
 
   it('resolves the exact pinned publication for catalog-v3 battle execution without static fallback', async () => {

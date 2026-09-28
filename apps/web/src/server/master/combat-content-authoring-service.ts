@@ -8,6 +8,11 @@ import type {
 } from '@aurevane/db/combat-content'
 import { CombatContentConflictError } from '@aurevane/db/combat-content'
 import { validateCombatActionDefinition } from '@aurevane/game-core/combat/combat-authoring-validation'
+import {
+  resolveEssenceForBuild,
+  validateEssenceDefinition as validateCanonicalEssenceDefinition,
+  type EssenceDefinition,
+} from '@aurevane/game-core/combat/essence'
 import { combatActionPresentationTags } from '@aurevane/game-core/combat/gameplay-tags'
 import {
   toCombatActionDefinition,
@@ -15,6 +20,11 @@ import {
   type MatureSkillCombatContext,
   type MatureSkillDefinition,
 } from '@aurevane/game-core/combat/mature-skills'
+import {
+  resolveResonanceForPair,
+  validateResonanceDefinition as validateCanonicalResonanceDefinition,
+  type ResonanceDefinition,
+} from '@aurevane/game-core/combat/resonance'
 import { AurevaneError } from '@aurevane/game-core/errors'
 
 import type { CombatContentResolver } from '@/server/combat/combat-content-resolver'
@@ -50,6 +60,8 @@ export interface CombatContentSemanticDiff {
 export interface CombatContentAuthoringService {
   requireOperator(actorUserId: string): Promise<MasterPanelOperatorRole>
   validateSkillDefinition(definition: unknown): CombatContentValidationResult
+  validateEssenceDefinition(definition: unknown): CombatContentValidationResult
+  validateResonanceDefinition(definition: unknown): CombatContentValidationResult
   previewSkillDefinition(input: {
     actorUserId: string
     definition: unknown
@@ -71,6 +83,40 @@ export interface CombatContentAuthoringService {
   rollbackSkill(input: {
     actorUserId: string
     skillId: string
+    targetVersion: number
+  }): Promise<void>
+  saveEssenceDraft(input: {
+    actorUserId: string
+    definition: unknown
+    baseVersion: number | null
+    expectedDraftVersion: number | null
+  }): Promise<CombatContentDraftRecord>
+  publishEssence(input: {
+    actorUserId: string
+    definition: unknown
+    expectedBaseVersion: number | null
+  }): Promise<CombatContentVersionRecord>
+  rollbackEssence(input: {
+    actorUserId: string
+    essenceId: string
+    sourceDisciplineId: string
+    targetVersion: number
+  }): Promise<void>
+  saveResonanceDraft(input: {
+    actorUserId: string
+    definition: unknown
+    baseVersion: number | null
+    expectedDraftVersion: number | null
+  }): Promise<CombatContentDraftRecord>
+  publishResonance(input: {
+    actorUserId: string
+    definition: unknown
+    expectedBaseVersion: number | null
+  }): Promise<CombatContentVersionRecord>
+  rollbackResonance(input: {
+    actorUserId: string
+    resonanceId: string
+    disciplinePair: readonly [string, string]
     targetVersion: number
   }): Promise<void>
 }
@@ -95,6 +141,17 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function readSkillId(definition: unknown): string | null {
   if (!isRecord(definition)) return null
   return typeof definition.id === 'string' && definition.id.length > 0 ? definition.id : null
+}
+
+function readEssenceId(definition: unknown): string | null {
+  if (!isRecord(definition)) return null
+  return typeof definition.essenceId === 'string' && definition.essenceId.length > 0
+    ? definition.essenceId
+    : null
+}
+
+function readResonanceId(definition: unknown): string | null {
+  return readSkillId(definition)
 }
 
 function forbiddenDraftFieldIssues(
@@ -145,6 +202,34 @@ function draftShapeIssues(definition: unknown): CombatContentValidationIssue[] {
   const issues = forbiddenDraftFieldIssues(definition)
   if (!readSkillId(definition)) {
     issues.push({ path: 'id', code: 'INVALID_SKILL_ID', message: 'Skill id is required.' })
+  }
+  return issues
+}
+
+function draftShapeIssuesForIdentity(
+  definition: unknown,
+  identityField: 'essenceId' | 'id',
+  label: 'Essence' | 'Resonance',
+): CombatContentValidationIssue[] {
+  if (!isRecord(definition)) {
+    return [
+      {
+        path: '$',
+        code: 'INVALID_DEFINITION_SHAPE',
+        message: `${label} content must be a typed object definition.`,
+      },
+    ]
+  }
+
+  const issues = forbiddenDraftFieldIssues(definition)
+  const identity =
+    identityField === 'essenceId' ? readEssenceId(definition) : readResonanceId(definition)
+  if (!identity) {
+    issues.push({
+      path: identityField,
+      code: `INVALID_${label.toUpperCase()}_ID`,
+      message: `${label} id is required.`,
+    })
   }
   return issues
 }
@@ -231,6 +316,70 @@ function validateSkillDefinition(definition: unknown): CombatContentValidationRe
   }
 }
 
+function validateEssenceAuthoringDefinition(definition: unknown): CombatContentValidationResult {
+  const issues = draftShapeIssuesForIdentity(definition, 'essenceId', 'Essence')
+  if (!isRecord(definition) || issues.length > 0) {
+    return { valid: false, issues, derivedTags: [] }
+  }
+
+  const candidate = structuredClone(definition) as unknown as EssenceDefinition
+  try {
+    for (const field of validateCanonicalEssenceDefinition(candidate)) {
+      issues.push({
+        path: field,
+        code: 'INVALID_ESSENCE_FIELD',
+        message: `Essence validation rejected ${field}.`,
+      })
+    }
+  } catch (error) {
+    issues.push({
+      path: '$',
+      code: 'INVALID_ESSENCE_SHAPE',
+      message: normalizeMessage(error),
+    })
+  }
+
+  if (issues.length === 0) {
+    const skillValidation = validateSkillDefinition(candidate.skill)
+    for (const issue of skillValidation.issues) {
+      issues.push({ ...issue, path: `skill.${issue.path}` })
+    }
+  }
+  if (issues.length > 0) return { valid: false, issues, derivedTags: [] }
+
+  return {
+    valid: true,
+    issues: [],
+    derivedTags: combatActionPresentationTags(toCombatActionDefinition(candidate.skill, 'pve')),
+  }
+}
+
+function validateResonanceAuthoringDefinition(definition: unknown): CombatContentValidationResult {
+  const issues = draftShapeIssuesForIdentity(definition, 'id', 'Resonance')
+  if (!isRecord(definition) || issues.length > 0) {
+    return { valid: false, issues, derivedTags: [] }
+  }
+
+  const candidate = structuredClone(definition) as unknown as ResonanceDefinition
+  try {
+    for (const field of validateCanonicalResonanceDefinition(candidate)) {
+      issues.push({
+        path: field,
+        code: 'INVALID_RESONANCE_FIELD',
+        message: `Resonance validation rejected ${field}.`,
+      })
+    }
+  } catch (error) {
+    issues.push({
+      path: '$',
+      code: 'INVALID_RESONANCE_SHAPE',
+      message: normalizeMessage(error),
+    })
+  }
+
+  return { valid: issues.length === 0, issues, derivedTags: [] }
+}
+
 function semanticChangedPaths(before: unknown, after: unknown, prefix = ''): string[] {
   if (Object.is(before, after)) return []
   if (Array.isArray(before) || Array.isArray(after)) {
@@ -297,6 +446,8 @@ export function createCombatContentAuthoringService({
     },
 
     validateSkillDefinition,
+    validateEssenceDefinition: validateEssenceAuthoringDefinition,
+    validateResonanceDefinition: validateResonanceAuthoringDefinition,
 
     async previewSkillDefinition(input) {
       await authorizeOperator(store, input.actorUserId)
@@ -388,6 +539,199 @@ export function createCombatContentAuthoringService({
       try {
         await store.setCurrentPublication(
           input.skillId,
+          stored ? input.targetVersion : null,
+          input.actorUserId,
+        )
+      } catch (error) {
+        return mapRepositoryConflict(error)
+      }
+    },
+    async saveEssenceDraft(input) {
+      await authorizeOperator(store, input.actorUserId)
+      const validation = validateEssenceAuthoringDefinition(input.definition)
+      if (!validation.valid) {
+        throw new AurevaneError(
+          'INVALID_REQUEST',
+          `Combat content validation failed: ${validation.issues[0]?.message ?? 'invalid Essence definition.'}`,
+        )
+      }
+      const essenceId = readEssenceId(input.definition)!
+      try {
+        return await store.saveDraft({
+          contentKey: essenceId,
+          contentKind: 'essence',
+          definition: structuredClone(input.definition) as CombatContentDefinition,
+          baseVersion: input.baseVersion,
+          expectedDraftVersion: input.expectedDraftVersion,
+          actorUserId: input.actorUserId,
+        })
+      } catch (error) {
+        return mapRepositoryConflict(error)
+      }
+    },
+
+    async publishEssence(input) {
+      await authorizeOperator(store, input.actorUserId)
+      const validation = validateEssenceAuthoringDefinition(input.definition)
+      if (!validation.valid) {
+        throw new AurevaneError(
+          'INVALID_REQUEST',
+          `Combat content validation failed: ${validation.issues[0]?.message ?? 'invalid Essence definition.'}`,
+        )
+      }
+      const definition = input.definition as EssenceDefinition
+      const published = await store.findPublished(definition.essenceId)
+      if (published && published.contentKind !== 'essence') {
+        throw new AurevaneError('INVALID_REQUEST', 'Combat content kind conflict.')
+      }
+      const fallback = published
+        ? null
+        : resolveEssenceForBuild(definition.sourceDisciplineId, null)
+      const actualBaseVersion =
+        published?.contentVersion ??
+        (fallback?.essenceId === definition.essenceId ? fallback.contentVersion : null)
+      if (actualBaseVersion !== input.expectedBaseVersion) {
+        throw new AurevaneError(
+          'STALE_VERSION',
+          'Combat content changed. Refresh the authoritative version and retry.',
+        )
+      }
+
+      try {
+        return await store.publish({
+          contentKey: definition.essenceId,
+          contentKind: 'essence',
+          definition: structuredClone(definition) as unknown as CombatContentDefinition,
+          expectedBaseVersion: input.expectedBaseVersion,
+          actorUserId: input.actorUserId,
+        })
+      } catch (error) {
+        return mapRepositoryConflict(error)
+      }
+    },
+
+    async rollbackEssence(input) {
+      await authorizeOperator(store, input.actorUserId)
+      if (!Number.isSafeInteger(input.targetVersion) || input.targetVersion < 1) {
+        throw new AurevaneError('INVALID_REQUEST', 'Rollback target must be a positive version.')
+      }
+
+      const storedVersions = await store.listPublishedVersions(input.essenceId)
+      const stored = storedVersions.some(
+        (version) =>
+          version.contentKind === 'essence' && version.contentVersion === input.targetVersion,
+      )
+      const fallback = stored
+        ? null
+        : resolveEssenceForBuild(input.sourceDisciplineId, null, input.targetVersion)
+      if (!stored && (!fallback || fallback.essenceId !== input.essenceId || !fallback.enabled)) {
+        throw new AurevaneError(
+          'INVALID_REQUEST',
+          'That rollback target is not an enabled Essence version.',
+        )
+      }
+      try {
+        await store.setCurrentPublication(
+          input.essenceId,
+          stored ? input.targetVersion : null,
+          input.actorUserId,
+        )
+      } catch (error) {
+        return mapRepositoryConflict(error)
+      }
+    },
+
+    async saveResonanceDraft(input) {
+      await authorizeOperator(store, input.actorUserId)
+      const validation = validateResonanceAuthoringDefinition(input.definition)
+      if (!validation.valid) {
+        throw new AurevaneError(
+          'INVALID_REQUEST',
+          `Combat content validation failed: ${validation.issues[0]?.message ?? 'invalid Resonance definition.'}`,
+        )
+      }
+      const resonanceId = readResonanceId(input.definition)!
+      try {
+        return await store.saveDraft({
+          contentKey: resonanceId,
+          contentKind: 'resonance',
+          definition: structuredClone(input.definition) as CombatContentDefinition,
+          baseVersion: input.baseVersion,
+          expectedDraftVersion: input.expectedDraftVersion,
+          actorUserId: input.actorUserId,
+        })
+      } catch (error) {
+        return mapRepositoryConflict(error)
+      }
+    },
+
+    async publishResonance(input) {
+      await authorizeOperator(store, input.actorUserId)
+      const validation = validateResonanceAuthoringDefinition(input.definition)
+      if (!validation.valid) {
+        throw new AurevaneError(
+          'INVALID_REQUEST',
+          `Combat content validation failed: ${validation.issues[0]?.message ?? 'invalid Resonance definition.'}`,
+        )
+      }
+      const definition = input.definition as ResonanceDefinition
+      const published = await store.findPublished(definition.id)
+      if (published && published.contentKind !== 'resonance') {
+        throw new AurevaneError('INVALID_REQUEST', 'Combat content kind conflict.')
+      }
+      const fallback = published
+        ? null
+        : resolveResonanceForPair(definition.disciplinePair[0], definition.disciplinePair[1])
+      const actualBaseVersion =
+        published?.contentVersion ??
+        (fallback?.id === definition.id ? fallback.contentVersion : null)
+      if (actualBaseVersion !== input.expectedBaseVersion) {
+        throw new AurevaneError(
+          'STALE_VERSION',
+          'Combat content changed. Refresh the authoritative version and retry.',
+        )
+      }
+
+      try {
+        return await store.publish({
+          contentKey: definition.id,
+          contentKind: 'resonance',
+          definition: structuredClone(definition) as unknown as CombatContentDefinition,
+          expectedBaseVersion: input.expectedBaseVersion,
+          actorUserId: input.actorUserId,
+        })
+      } catch (error) {
+        return mapRepositoryConflict(error)
+      }
+    },
+
+    async rollbackResonance(input) {
+      await authorizeOperator(store, input.actorUserId)
+      if (!Number.isSafeInteger(input.targetVersion) || input.targetVersion < 1) {
+        throw new AurevaneError('INVALID_REQUEST', 'Rollback target must be a positive version.')
+      }
+
+      const storedVersions = await store.listPublishedVersions(input.resonanceId)
+      const stored = storedVersions.some(
+        (version) =>
+          version.contentKind === 'resonance' && version.contentVersion === input.targetVersion,
+      )
+      const fallback = stored
+        ? null
+        : resolveResonanceForPair(
+            input.disciplinePair[0],
+            input.disciplinePair[1],
+            input.targetVersion,
+          )
+      if (!stored && (!fallback || fallback.id !== input.resonanceId || !fallback.enabled)) {
+        throw new AurevaneError(
+          'INVALID_REQUEST',
+          'That rollback target is not an enabled Resonance version.',
+        )
+      }
+      try {
+        await store.setCurrentPublication(
+          input.resonanceId,
           stored ? input.targetVersion : null,
           input.actorUserId,
         )

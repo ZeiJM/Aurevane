@@ -99,7 +99,10 @@ async function battleBuildExtensions(
           iconKey: definition.media.iconKey,
           apCost: override?.apCost ?? definition.apCost,
           mpCost: definition.mpCost ?? 0,
-          cooldownOwnerTurns: override?.cooldownOwnerTurns ?? definition.cooldown.ownerTurns,
+          cooldownOwnerTurns:
+            definition.cooldown === null
+              ? null
+              : (override?.cooldownOwnerTurns ?? definition.cooldown.ownerTurns),
           category: techniqueCategory(definition.tags),
           targetKind: definition.target.kind,
           targetTeamPolicy: definition.target.teamPolicy,
@@ -177,7 +180,10 @@ async function battleBuildExtensions(
           minimumRange: essenceDefinition.skill.target.minimumRange,
           maximumRange: essenceDefinition.skill.target.maximumRange,
           cooldownOwnerTurns:
-            essenceOverride?.cooldownOwnerTurns ?? essenceDefinition.skill.cooldown.ownerTurns,
+            essenceDefinition.skill.cooldown === null
+              ? null
+              : (essenceOverride?.cooldownOwnerTurns ??
+                essenceDefinition.skill.cooldown.ownerTurns),
           tags: skillTargetTags(essenceDefinition.skill),
           effectDescriptions: essenceDefinition.skill.effects.map(skillEffectDescription),
           requirementDescriptions: essenceDefinition.skill.requirements.map(

@@ -79,6 +79,7 @@ import {
 } from './pv1f-skills'
 import {
   executeStatDrivenAttack,
+  getStatDrivenOffensivePower,
   reattachStatDrivenCombatBridge,
   validateStatDrivenCombatEncounterState,
   type StatDrivenCombatEncounterState,
@@ -620,8 +621,10 @@ export function evaluatePv1fMatureSkill(
     authoredAction.effects,
     authoredCost,
   )
+  const usesV5BalanceRules = definition.authoring.validationTags.includes('owner-rebalance-v5')
   const usageKey = options.repeatHistoryKey ?? definition.id
-  const repeatPenaltyApplied = lastMatureSkillId(prepared, actorId) === usageKey
+  const repeatPenaltyApplied =
+    !usesV5BalanceRules && lastMatureSkillId(prepared, actorId) === usageKey
   const copyEffect = repeatPenaltyApplied
     ? undefined
     : authoredAction.effects.find((effect) => effect.type === 'copy')
@@ -641,7 +644,7 @@ export function evaluatePv1fMatureSkill(
   )
   const action: CombatActionDefinition = {
     ...baseAction,
-    cooldown: undefined,
+    ...(usesV5BalanceRules ? {} : { cooldown: undefined }),
     effects: repeatPenaltyApplied
       ? scaleRepeatedMatureSkillEffects(defendedEffects)
       : defendedEffects,
@@ -793,7 +796,9 @@ export function executePv1fMatureSkill(
   )
   let next = reattachStatDrivenCombatBridge(resolved.state, prepared.statBridge)
   next = spendPv1fActionEconomyForActor(next, actorId, cost)
-  next = markLastMatureSkill(next, actorId, options.repeatHistoryKey ?? definition.id)
+  next = definition.authoring.validationTags.includes('owner-rebalance-v5')
+    ? clearLastMatureSkill(next, actorId)
+    : markLastMatureSkill(next, actorId, options.repeatHistoryKey ?? definition.id)
 
   let copyEvent: unknown = null
   if (evaluation.skillCopy && options.copyContext) {
@@ -1182,19 +1187,88 @@ function applyCurrentMatureSkillPowerScaling(
       !effect.scaling &&
       !('vengeance' in effect && effect.vengeance !== undefined),
   ).length
-  if (unscaledDamageCount === 0) return effects
-
   const source = definition.tags.includes('mystic') ? 'mystic-power' : 'physical-power'
-  const scaling =
-    state.statBridge.rulesVersion === 3
-      ? legacySkillDamageScaling(source, unscaledDamageCount)
-      : currentSkillDamageScaling(source, unscaledDamageCount, apCost)
-  return effects.map((effect) =>
-    effect.type === 'damage' &&
-    !effect.scaling &&
-    !('vengeance' in effect && effect.vengeance !== undefined)
-      ? { ...effect, scaling }
-      : effect,
+  const damageScaling =
+    unscaledDamageCount === 0
+      ? null
+      : state.statBridge.rulesVersion === 3
+        ? legacySkillDamageScaling(source, unscaledDamageCount)
+        : currentSkillDamageScaling(source, unscaledDamageCount, apCost)
+
+  const usesV5BalanceRules = definition.authoring.validationTags.includes('owner-rebalance-v5')
+  const scalableRecoveryCount = usesV5BalanceRules
+    ? effects.filter(
+        (effect) =>
+          effect.type === 'healing' ||
+          effect.type === 'barrier-change' ||
+          effect.type === 'resource-change',
+      ).length
+    : 0
+  const recoveryScaling =
+    state.statBridge.rulesVersion === 4 && scalableRecoveryCount > 0
+      ? currentSkillDamageScaling(source, scalableRecoveryCount, apCost)
+      : null
+  const actorId = state.tactical.battle.currentTurn?.combatantId ?? null
+  const offensivePower =
+    recoveryScaling && actorId ? getStatDrivenOffensivePower(state, actorId, source) : null
+
+  return effects.map((effect) => {
+    if (
+      effect.type === 'damage' &&
+      damageScaling &&
+      !effect.scaling &&
+      !('vengeance' in effect && effect.vengeance !== undefined)
+    ) {
+      return { ...effect, scaling: damageScaling }
+    }
+    if (!recoveryScaling || offensivePower === null) return effect
+
+    if (effect.type === 'healing' || effect.type === 'barrier-change') {
+      return {
+        ...effect,
+        amount: calculateScaledRecoveryMagnitude(
+          effect.amount,
+          recoveryScaling,
+          offensivePower,
+          effect.type === 'healing' ? (effect.ticks ?? 1) : 1,
+        ),
+      }
+    }
+    if (effect.type === 'resource-change') {
+      const sign = effect.delta < 0 ? -1 : 1
+      return {
+        ...effect,
+        delta:
+          sign *
+          calculateScaledRecoveryMagnitude(
+            Math.abs(effect.delta),
+            recoveryScaling,
+            offensivePower,
+            effect.ticks ?? 1,
+          ),
+      }
+    }
+    return effect
+  })
+}
+
+function calculateScaledRecoveryMagnitude(
+  authoredPower: number,
+  scaling: ReturnType<typeof currentSkillDamageScaling>,
+  offensivePower: number,
+  applications: number,
+): number {
+  const applicationCount = Math.max(1, applications)
+  return calculateScaledRawDamage(
+    authoredPower,
+    {
+      ...scaling,
+      coefficientBasisPoints: Math.max(
+        1,
+        Math.floor(scaling.coefficientBasisPoints / applicationCount),
+      ),
+    },
+    offensivePower,
   )
 }
 
@@ -1230,7 +1304,6 @@ function scaleRepeatedMatureSkillEffects(
       scaled.push({ ...effect, damagePerTick: halfPositiveMagnitude(effect.damagePerTick) })
       continue
     }
-    // These effects are discrete: a consecutive repeat cannot resolve a half-strength copy.
     if (
       effect.type === 'remove-status' ||
       effect.type === 'return-to-turn-start' ||
@@ -1241,8 +1314,9 @@ function scaleRepeatedMatureSkillEffects(
       effect.type === 'copy' ||
       effect.type === 'copy-statuses' ||
       effect.type === 'sensory'
-    )
+    ) {
       continue
+    }
     const stacks = Math.floor(effect.stacks / 2)
     if (stacks > 0) scaled.push({ ...effect, stacks })
   }

@@ -69,7 +69,16 @@ export function skillEffectDescription(effect: CombatEffectDefinition): string {
     }
     case 'apply-status': {
       const status = combatStatusDetails(effect.statusId)
-      return `Apply ${effect.stacks} ${gameplayStatusName(effect.statusId)} ${effect.stacks === 1 ? 'stack' : 'stacks'} to ${target}. ${status.description} ${combatStatusDuration(effect.statusId)}`
+      const preview = previewEffect(effect)
+      const duration =
+        (effect.durationTurns ?? 0) > 0
+          ? `Lasts ${effect.durationTurns} ${effect.durationTurns === 1 ? 'turn' : 'turns'}.`
+          : combatStatusDuration(effect.statusId)
+      const explanation =
+        effect.potencyBasisPoints !== undefined
+          ? `${preview.explanation}${effect.statusId === 'mark' ? ' Other attackers gain no benefit.' : ''}`
+          : status.description
+      return `Apply ${effect.stacks} ${gameplayStatusName(effect.statusId)} ${effect.stacks === 1 ? 'stack' : 'stacks'} to ${target}. ${explanation} ${duration}`
     }
   }
 }
@@ -113,8 +122,16 @@ export function skillCostDescription(skill: MatureSkillDefinition): string {
   return skill.mpCost ? `${skill.apCost} AP / ${skill.mpCost} MP` : `${skill.apCost} AP`
 }
 
+function durationLabel(effect: CombatEffectDefinition): string {
+  const turns = effect.durationTurns ?? 0
+  if (turns <= 0) return ''
+  return ` [${turns} ${turns === 1 ? 'Turn' : 'Turns'}]`
+}
+
 export function skillEffectSummaries(skill: MatureSkillDefinition): readonly string[] {
-  return skill.effects.map((effect) => effectSummary(previewEffect(effect)))
+  return skill.effects.map(
+    (effect) => `${effectSummary(previewEffect(effect))}${durationLabel(effect)}`,
+  )
 }
 
 export function skillEffectsSummary(skill: MatureSkillDefinition): string {
@@ -189,9 +206,9 @@ export function skillLineOfSightDescription(skill: MatureSkillDefinition): strin
   return skill.target.requiresLineOfSight ? 'Required' : 'Not required'
 }
 
-// The current mature-Skill runtime removes authored turn cooldowns and applies repeat falloff.
-export function skillCooldownDescription(): string {
-  return '0 turns'
+export function skillCooldownDescription(skill: MatureSkillDefinition): string {
+  if (skill.cooldown === null) return 'None'
+  return `${skill.cooldown.ownerTurns} ${skill.cooldown.ownerTurns === 1 ? 'turn' : 'turns'}`
 }
 
 export function skillRangeDescription(skill: MatureSkillDefinition): string {

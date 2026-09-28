@@ -1,5 +1,7 @@
 import Image from 'next/image'
+import type { EssenceDefinition } from '@aurevane/game-core/combat/essence'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
+import type { ResonanceDefinition } from '@aurevane/game-core/combat/resonance'
 import { Surface } from '@aurevane/ui'
 
 import {
@@ -15,10 +17,110 @@ import {
 import { CharacterSkillBuildPanel } from '@/components/character/character-skill-build-panel'
 import { FoundationDisciplineSigil } from '@/components/character/foundation-discipline-sigil'
 
-import { skillDisplayName } from './skill-detail-presentation'
+import {
+  skillCompactRangeDescription,
+  skillCooldownDescription,
+  skillCostDescription,
+  skillDisplayName,
+  skillEffectSummaries,
+  skillRequirementsSummary,
+  skillTargetDescription,
+  skillTargetMethodDescription,
+  skillTypeDescription,
+} from './skill-detail-presentation'
+import { effectSummary, previewEffect } from './skill-effect-preview'
 import styles from './character-arsenal-shell.module.css'
 
 const OVERVIEW_TECHNIQUE_SLOTS = 4
+
+function effectSummaryWithDuration(effect: Parameters<typeof previewEffect>[0]): string {
+  const base = effectSummary(previewEffect(effect))
+  const turns = effect.durationTurns ?? 0
+  return turns > 0 ? `${base} [${turns} ${turns === 1 ? 'Turn' : 'Turns'}]` : base
+}
+
+function EssenceHoverPreview({ essence }: { essence: EssenceDefinition }) {
+  const skill = essence.skill
+  const rows: readonly (readonly [string, string | readonly string[]])[] = [
+    ['Skill Type', skillTypeDescription(skill)],
+    ['Cost', skillCostDescription(skill)],
+    ['Cooldown', skillCooldownDescription(skill)],
+    ['Requirements', skillRequirementsSummary(skill)],
+    ['Effects', skillEffectSummaries(skill)],
+    ['Range', skillCompactRangeDescription(skill)],
+    ['Target', skillTargetDescription(skill)],
+    ['Target Method', skillTargetMethodDescription(skill)],
+  ]
+  return (
+    <aside
+      id={`essence-preview-${essence.essenceId}`}
+      className={styles.attunementHover}
+      role="tooltip"
+    >
+      <span>Essence Preview</span>
+      <strong>{`Essence: ${essence.name}`}</strong>
+      <dl>
+        {rows.map(([label, value]) => (
+          <div key={label}>
+            <dt>{label}</dt>
+            <dd>
+              {typeof value === 'string' ? (
+                value
+              ) : (
+                <ul>
+                  {value.map((entry, index) => (
+                    <li key={`${index}:${entry}`}>{entry}</li>
+                  ))}
+                </ul>
+              )}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </aside>
+  )
+}
+
+function ResonanceHoverPreview({ resonance }: { resonance: ResonanceDefinition }) {
+  const setup = resonance.trigger.setup
+  const payoff = resonance.trigger.payoff
+  const effects = resonance.trigger.payoffEffects.map(effectSummaryWithDuration)
+  return (
+    <aside
+      id={`resonance-preview-${resonance.id}`}
+      className={styles.attunementHover}
+      role="tooltip"
+    >
+      <span>Resonance Preview</span>
+      <strong>{`Resonance: ${resonance.name}`}</strong>
+      <dl>
+        <div>
+          <dt>Type</dt>
+          <dd>Resonance</dd>
+        </div>
+        <div>
+          <dt>Requirements</dt>
+          <dd>
+            <ul>
+              <li>{`Setup: ${setup.sourceDisciplineId} · ${setup.requiredTags.join(' + ')}`}</li>
+              <li>{`Payoff: ${payoff.sourceDisciplineId} · ${payoff.requiredTags.join(' + ')}`}</li>
+            </ul>
+          </dd>
+        </div>
+        <div>
+          <dt>Effects</dt>
+          <dd>
+            <ul>
+              {effects.map((entry, index) => (
+                <li key={`${index}:${entry}`}>{entry}</li>
+              ))}
+            </ul>
+          </dd>
+        </div>
+      </dl>
+    </aside>
+  )
+}
 
 function TechniqueLane({
   kind,
@@ -328,18 +430,26 @@ export function CharacterArsenalShell({
             <div className={styles.attunementGrid}>
               {essence ? (
                 <article className={styles.attunementCard} data-active="true">
-                  <span className={styles.attunementArt}>
-                    <Image
-                      src={battleSkillArtwork(essence.skill.id)}
-                      width={64}
-                      height={64}
-                      unoptimized
-                      alt=""
-                    />
+                  <span
+                    className={styles.attunementPreviewAnchor}
+                    tabIndex={0}
+                    aria-label={`Preview Essence: ${essence.name}`}
+                    aria-describedby={`essence-preview-${essence.essenceId}`}
+                  >
+                    <span className={styles.attunementArt}>
+                      <Image
+                        src={battleSkillArtwork(essence.skill.id)}
+                        width={64}
+                        height={64}
+                        unoptimized
+                        alt=""
+                      />
+                    </span>
+                    <EssenceHoverPreview essence={essence} />
                   </span>
                   <div>
-                    <strong>{essence.name}</strong>
-                    <p>{essence.description}</p>
+                    <strong>{`Essence: ${essence.name}`}</strong>
+                    <p>{essence.flavorLine ?? essence.description}</p>
                     <b>● Active</b>
                   </div>
                 </article>
@@ -349,18 +459,26 @@ export function CharacterArsenalShell({
 
               {resonance ? (
                 <article className={styles.attunementCard} data-active="true">
-                  <span className={styles.attunementArt}>
-                    <Image
-                      src={battleResonanceArtwork(resonance.id)}
-                      width={64}
-                      height={64}
-                      unoptimized
-                      alt=""
-                    />
+                  <span
+                    className={styles.attunementPreviewAnchor}
+                    tabIndex={0}
+                    aria-label={`Preview Resonance: ${resonance.name}`}
+                    aria-describedby={`resonance-preview-${resonance.id}`}
+                  >
+                    <span className={styles.attunementArt}>
+                      <Image
+                        src={battleResonanceArtwork(resonance.id)}
+                        width={64}
+                        height={64}
+                        unoptimized
+                        alt=""
+                      />
+                    </span>
+                    <ResonanceHoverPreview resonance={resonance} />
                   </span>
                   <div>
-                    <strong>{resonance.name}</strong>
-                    <p>{resonance.description}</p>
+                    <strong>{`Resonance: ${resonance.name}`}</strong>
+                    <p>{resonance.flavorLine ?? resonance.description}</p>
                     <b>● Active</b>
                   </div>
                 </article>

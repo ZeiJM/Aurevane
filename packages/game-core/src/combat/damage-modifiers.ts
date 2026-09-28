@@ -30,8 +30,19 @@ export function conditionalDamageMultiplier(
   options: { ignoreIncomingMitigation?: boolean } = {},
 ): number {
   let numerator = BigInt(elementalMultiplier)
-  if (hasGameplayTag(state, attackerId, 'Inspired', content))
-    numerator = (numerator * 11_000n) / 10_000n
+  const inspired = state.statusState
+    .find((row) => row.combatantId === attackerId)
+    ?.statuses.find((status) => {
+      const definition = content.statuses.find(
+        (candidate) =>
+          candidate.id === status.statusId && candidate.version === status.statusVersion,
+      )
+      return definition?.gameplayTags?.includes('Inspired') === true
+    })
+  if (inspired) {
+    const multiplier = 10_000 + (inspired.potencyBasisPoints ?? 1_000)
+    numerator = (numerator * BigInt(multiplier)) / 10_000n
+  }
   let denominator = 1n
   for (const [ownerId, opponentId, direction] of [
     [attackerId, recipientId, 'outgoing'],
@@ -65,7 +76,13 @@ export function conditionalDamageMultiplier(
         )
           continue
         // Each new modifier is applied once per status, independently of legacy stack counts.
-        numerator *= BigInt(modifier.multiplierBasisPoints)
+        const multiplier =
+          status.potencyBasisPoints === undefined || modifier.multiplierBasisPoints === 10_000
+            ? modifier.multiplierBasisPoints
+            : modifier.multiplierBasisPoints < 10_000
+              ? Math.max(0, 10_000 - status.potencyBasisPoints)
+              : 10_000 + status.potencyBasisPoints
+        numerator *= BigInt(multiplier)
         denominator *= 10_000n
       }
     }

@@ -775,6 +775,13 @@ export function createBattleSessionService({
 
       assertPlayerControlledTurn(state, current.controlledCombatantIds)
       const resolved = await resolveIntent(state, command.intent, combatContentResolver)
+      const resolvedIssues = validateStatDrivenCombatEncounterState(resolved.state)
+      if (resolvedIssues.length > 0) {
+        throw new AurevaneError(
+          'PERSISTENCE_UNAVAILABLE',
+          `The next battle state is invalid: ${resolvedIssues[0]!.field}: ${resolvedIssues[0]!.message}`,
+        )
+      }
       const privacyJournal = buildBattlePrivacyJournalInput({
         before: state,
         after: resolved.state,
