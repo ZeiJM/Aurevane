@@ -64,6 +64,33 @@ describe('Master Panel combat content preview', () => {
     )
   })
 
+  it('previews the pinned summon profile, lifetime and authored abilities without consuming RNG', () => {
+    const definition = resolveMatureSkillVersion('wildwarden.renewing-herbs')
+    if (!definition?.summonProfile) throw new Error('Expected current Renewing Herbs summon.')
+
+    const preview = previewCombatContentDefinition(definition, { seed: PREVIEW_SEED })
+
+    expect(preview.legal).toBe(true)
+    expect(preview.simulation.rngConsumed).toBe(false)
+    expect(preview.targeting.selection).toMatchObject({ kind: 'tile' })
+    expect(preview.summon).toMatchObject({
+      profile: {
+        id: definition.summonProfile.id,
+        name: definition.summonProfile.name,
+        lifetimeTurns: definition.summonProfile.lifetimeTurns,
+        maxHp: definition.summonProfile.maxHp,
+        maxMp: definition.summonProfile.maxMp,
+        initiative: definition.summonProfile.initiative,
+        movementBudget: definition.summonProfile.movementBudget,
+      },
+    })
+    expect(preview.summon?.abilities).toHaveLength(2)
+    expect(preview.summon?.abilities.map((ability) => ability.name)).toEqual([
+      'Thorn Rake',
+      'Verdant Mend',
+    ])
+  })
+
   it('reports authoritative per-target hit chance without consuming a random result', () => {
     const definition: MatureSkillDefinition = {
       ...baseSkill(),
