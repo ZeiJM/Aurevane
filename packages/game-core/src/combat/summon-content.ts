@@ -129,7 +129,9 @@ export function validateSummonProfileDefinition(
     profile.abilities.some((ability) => !validAbility(ability))
   ) {
     issues.push('abilities')
-  } else if (\n    new Set(profile.abilities.map((ability) => ability.id)).size !== profile.abilities.length\n  ) {
+  } else if (
+    new Set(profile.abilities.map((ability) => ability.id)).size !== profile.abilities.length
+  ) {
     issues.push('abilities')
   }
 
