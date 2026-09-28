@@ -1,8 +1,4 @@
-import type {
-  CombatEffectDefinition,
-  CombatTargetSpec,
-  CombatUseRequirement,
-} from './actions'
+import type { CombatEffectDefinition, CombatTargetSpec, CombatUseRequirement } from './actions'
 
 export const SUMMON_PROFILE_SCHEMA_VERSION = 1 as const
 export const CURRENT_SUMMON_LIFETIME_TURNS = 5 as const
