@@ -27,6 +27,7 @@ import { SkillEconomyEditor, type SkillEconomyDraft } from './skill-economy-edit
 import { SkillEffectListEditor } from './skill-effect-list-editor'
 import { SkillMediaEditor } from './skill-media-editor'
 import { SkillTargetingEditor } from './skill-targeting-editor'
+import { SummonProfileEditor } from './summon-profile-editor'
 
 export interface CombatContentEditorSkillOption {
   readonly id: string
@@ -612,6 +613,14 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
                   )
                 }}
               />
+              {selectedDraft.summonProfile ? (
+                <SummonProfileEditor
+                  value={selectedDraft.summonProfile}
+                  onChange={(summonProfile) =>
+                    updateSelectedDraft({ ...selectedDraft, summonProfile })
+                  }
+                />
+              ) : null}
             </div>
           ) : (
             <p className={styles.placeholder}>
