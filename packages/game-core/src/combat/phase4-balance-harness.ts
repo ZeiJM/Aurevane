@@ -21,6 +21,7 @@ import {
   resolveMatureSkillForContext,
   type MatureSkillCombatContext,
   type MatureSkillDefinition,
+  type MatureSkillEffectDefinition,
 } from './mature-skills'
 import {
   calculatePv1fBasicAttackDamage,
@@ -434,7 +435,8 @@ function setupRequirementIdentity(requirement: SetupRequirement): SetupRequireme
   return { scope: 'target', kind: 'tag', value: requirement.tag }
 }
 
-function effectProvidesGameplayTag(effect: CombatEffectDefinition, tag: string): boolean {
+function effectProvidesGameplayTag(effect: MatureSkillEffectDefinition, tag: string): boolean {
+  if (effect.type === 'summon') return false
   if (effect.type === 'burn') return tag === 'Scorched'
   if (effect.type === 'bleed') return tag === 'Bleeding'
   if (effect.type === 'poison') return tag === 'Poisoned'
@@ -517,7 +519,7 @@ function buildResonanceReport(disciplineId: string): Phase4BalanceResonanceRepor
   }
 }
 
-function protectionForEffects(effects: readonly CombatEffectDefinition[]): number {
+function protectionForEffects(effects: readonly MatureSkillEffectDefinition[]): number {
   let best = 0
   for (const effect of effects) {
     if (effect.type !== 'apply-status') continue
@@ -539,7 +541,7 @@ function protectionForEffects(effects: readonly CombatEffectDefinition[]): numbe
   return best
 }
 
-function controlApSwing(effects: readonly CombatEffectDefinition[]): number {
+function controlApSwing(effects: readonly MatureSkillEffectDefinition[]): number {
   let best = 0
   for (const effect of effects) {
     if (effect.type === 'displace') {
@@ -569,7 +571,7 @@ function assumedAreaTargets(definition: MatureSkillDefinition): number {
 }
 
 function isDirectDamage(
-  effect: CombatEffectDefinition,
+  effect: MatureSkillEffectDefinition,
 ): effect is Extract<CombatEffectDefinition, { type: 'damage' }> {
   return (
     effect.type === 'damage' &&
