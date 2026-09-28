@@ -16,7 +16,11 @@ import {
   rollCombatSkillAccuracyForTarget,
 } from './combat-skill-accuracy'
 import { normalizeCombatEffectState, type CombatSummonInstance } from './combat-effect-state'
-import { advanceCombatSummonOwnerTurn, spawnCombatSummon } from './combat-summons'
+import {
+  advanceCombatSummonOwnerTurn,
+  removeDefeatedCombatSummons,
+  spawnCombatSummon,
+} from './combat-summons'
 import type { SummonAbilityDefinition } from './summon-content'
 import { hasGameplayTag } from './gameplay-tags'
 import { CURRENT_POISON_DAMAGE, advanceCurrentPoisonMovement } from './combat-dots'
@@ -561,7 +565,8 @@ export function executePv1fAction(
             events: resolved.events,
           }
         })()
-  let next = spendPv1fActionEconomyForActor(transition.state, actorId, cost)
+  const defeatedSummons = removeDefeatedCombatSummons(transition.state)
+  let next = spendPv1fActionEconomyForActor(defeatedSummons.state, actorId, cost)
   next = clearLastMatureSkill(next, actorId)
   const cooldownDefinition = pv1fCooldownForAction(action.id)
   const cooldownEvents: readonly unknown[] = cooldownDefinition
@@ -579,6 +584,7 @@ export function executePv1fAction(
     state: next,
     events: [
       ...transition.events,
+      ...defeatedSummons.events,
       ...cooldownEvents,
       { event: 'action_economy_spent', combatantId: actorId, amount: cost, remaining },
     ],
@@ -743,7 +749,8 @@ export function executePv1fSummonAbility(
 
   const resolved = executeCombatAction(prepared, action, target, PV1F_COMBAT_CONTENT)
   let next = reattachStatDrivenCombatBridge(resolved.state, prepared.statBridge)
-  next = spendPv1fActionEconomyForActor(next, actorId, cost)
+  const defeatedSummons = removeDefeatedCombatSummons(next)
+  next = spendPv1fActionEconomyForActor(defeatedSummons.state, actorId, cost)
   next = clearLastMatureSkill(next, actorId)
 
   const turnNumber = prepared.tactical.battle.turnNumber
@@ -764,6 +771,7 @@ export function executePv1fSummonAbility(
     state: next,
     events: [
       ...resolved.events,
+      ...defeatedSummons.events,
       {
         event: 'summon_ability_used',
         combatantId: actorId,
@@ -1016,6 +1024,8 @@ export function executePv1fMatureSkill(
     next = summoned.state
     summonEvents.push(...summoned.events)
   }
+  const defeatedSummons = removeDefeatedCombatSummons(next)
+  next = defeatedSummons.state
   next = spendPv1fActionEconomyForActor(next, actorId, cost)
   next = definition.authoring.validationTags.includes('owner-rebalance-v5')
     ? clearLastMatureSkill(next, actorId)
@@ -1070,6 +1080,7 @@ export function executePv1fMatureSkill(
     events: [
       ...mediaResolutionEvents,
       ...summonEvents,
+      ...defeatedSummons.events,
       ...(resonance?.forecast.willActivate
         ? [
             {
