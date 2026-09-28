@@ -536,7 +536,6 @@ describe('combat content authoring service', () => {
   })
 })
 
-
 describe('Combat v5.1 Master authoring bounds', () => {
   it('rejects current range and elevation overflow through the canonical service boundary', () => {
     const { service } = serviceFixture()
@@ -547,9 +546,7 @@ describe('Combat v5.1 Master authoring bounds', () => {
       target: { ...base.target, maximumRange: 6 },
     })
     expect(range.valid).toBe(false)
-    expect(range.issues).toContainEqual(
-      expect.objectContaining({ path: 'target.maximumRange' }),
-    )
+    expect(range.issues).toContainEqual(expect.objectContaining({ path: 'target.maximumRange' }))
 
     const elevation = service.validateSkillDefinition({
       ...base,
