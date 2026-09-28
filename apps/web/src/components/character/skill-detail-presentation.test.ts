@@ -185,7 +185,7 @@ it('presents the standardized Technique characteristic schema without prose expa
   expect(skillTargetDescription(timeLock)).toBe('Enemy')
   expect(skillTargetMethodDescription(timeLock)).toBe('Single')
   expect(skillTargetElevationDescription(timeLock)).not.toBe('N/A')
-  expect(skillCompactRangeDescription(timeLock)).toMatch(/tile/)
+  expect(skillCompactRangeDescription(timeLock)).toBe(String(timeLock.target.maximumRange))
   expect(skillLineOfSightDescription(timeLock)).toBe('Required')
   expect(skillCooldownDescription(timeLock)).toMatch(/turn|None/)
 })
@@ -310,5 +310,55 @@ describe('Combat v5.1 compact effect summaries', () => {
         durationTurns: 0,
       }),
     ).toEqual({ label: 'Dmg', magnitude: '9', duration: null })
+  })
+})
+
+
+describe('Combat v5.1 compact targeting labels', () => {
+  const base = resolveMatureSkillVersion('vanguard.forceful-strike')!
+
+  it('shows maximum range only', () => {
+    expect(
+      skillCompactRangeDescription({
+        ...base,
+        target: { ...base.target, minimumRange: 1, maximumRange: 3 },
+      }),
+    ).toBe('3')
+    expect(
+      skillCompactRangeDescription({
+        ...base,
+        target: { ...base.target, minimumRange: 0, maximumRange: 3 },
+      }),
+    ).toBe('3')
+    expect(
+      skillCompactRangeDescription({
+        ...base,
+        target: { ...base.target, minimumRange: 1, maximumRange: 1 },
+      }),
+    ).toBe('1')
+    expect(skillCompactRangeDescription(resolveMatureSkillVersion('ironfist.focus-breath')!)).toBe(
+      'N/A',
+    )
+  })
+
+  it('shows targeting shape without repeating geometry reach', () => {
+    expect(
+      skillTargetMethodDescription({
+        ...base,
+        target: { ...base.target, shape: { kind: 'single' } },
+      }),
+    ).toBe('Single')
+    expect(
+      skillTargetMethodDescription({
+        ...base,
+        target: { ...base.target, shape: { kind: 'line', length: 3 } },
+      }),
+    ).toBe('Line')
+    expect(
+      skillTargetMethodDescription({
+        ...base,
+        target: { ...base.target, shape: { kind: 'circle', radius: 1 } },
+      }),
+    ).toBe('Circle')
   })
 })
