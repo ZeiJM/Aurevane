@@ -1,4 +1,5 @@
 import type { PersistedCharacter } from '@aurevane/game-core/character/persistence'
+import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 import { describe, expect, it, vi } from 'vitest'
 
 import {
@@ -178,7 +179,10 @@ describe('character build service', () => {
     expect(context.disciplineSkills.capacity).toBe(4)
     expect(context.disciplineSkills.learnedSkills).toEqual([
       expect.objectContaining({
-        definition: expect.objectContaining({ id: learnedVanguard.skillId }),
+        definition: expect.objectContaining({
+          id: learnedVanguard.skillId,
+          contentVersion: resolveMatureSkillVersion(learnedVanguard.skillId)?.contentVersion,
+        }),
         activeSource: true,
       }),
       expect.objectContaining({
@@ -375,7 +379,7 @@ describe('character build service', () => {
     expect(captured.value?.skills).toEqual([
       {
         skillId: 'vanguard.forceful-strike',
-        contentVersion: 2,
+        contentVersion: resolveMatureSkillVersion('vanguard.forceful-strike')!.contentVersion,
         sourceDisciplineId: 'vanguard',
       },
     ])
