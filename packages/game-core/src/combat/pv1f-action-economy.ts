@@ -18,6 +18,7 @@ import {
 import { normalizeCombatEffectState, type CombatSummonInstance } from './combat-effect-state'
 import {
   advanceCombatSummonOwnerTurn,
+  removeCombatSummon,
   removeDefeatedCombatSummons,
   spawnCombatSummon,
 } from './combat-summons'
@@ -1341,18 +1342,27 @@ export function finishPv1fTurn(
     (normalizeCombatEffectState(prepared.effectState).summons ?? []).some(
       (summon) => summon.combatantId === outgoingCombatantId,
     )
+  const outgoingDefeated =
+    outgoingCombatantId !== null && getCombatant(prepared, outgoingCombatantId).hp <= 0
   const selected = selectCurrentFinalFacing(prepared.tactical, facing)
   const encounter = reattachStatDrivenCombatBridge(
     { ...prepared, ...createCombatEncounterState(selected.state, prepared.statusState) },
     prepared.statBridge,
   )
-  const ended = endCombatTurn(encounter, PV1F_COMBAT_CONTENT, outgoingDefeatedAtTurnEnd)
+  const ended = endCombatTurn(
+    encounter,
+    PV1F_COMBAT_CONTENT,
+    outgoingDefeatedAtTurnEnd || outgoingDefeated,
+  )
   let bridged = reattachStatDrivenCombatBridge(ended.state, prepared.statBridge)
   const summonTurnEvents: unknown[] = []
   if (outgoingWasSummon && outgoingCombatantId) {
-    const advanced = advanceCombatSummonOwnerTurn(bridged, outgoingCombatantId)
-    bridged = advanced.state
-    summonTurnEvents.push(...advanced.events)
+    const transition =
+      outgoingDefeated || outgoingDefeatedAtTurnEnd
+        ? removeCombatSummon(bridged, outgoingCombatantId, 'defeated')
+        : advanceCombatSummonOwnerTurn(bridged, outgoingCombatantId)
+    bridged = transition.state
+    summonTurnEvents.push(...transition.events)
   }
   const nextTurn = preparePv1fTurnEconomyTransition(bridged)
   return {
