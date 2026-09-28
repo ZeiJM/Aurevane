@@ -207,7 +207,7 @@ describe('Combat v5.1 current Technique catalog', () => {
       maximumRange: 1,
       maximumElevationDifference: 0,
     })
-    expect(resolveMatureSkillVersion('lifebinder.mending-light')?.target.maximumRange).toBe(3)
+    expect(resolveMatureSkillVersion('lifebinder.mend')?.target.maximumRange).toBe(3)
     expect(resolveMatureSkillVersion('farstrider.longshot')?.target).toMatchObject({
       maximumRange: 5,
       maximumElevationDifference: 2,
