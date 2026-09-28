@@ -122,7 +122,9 @@ export function v51TargetingValueWeight(definition: MatureSkillDefinition): numb
 }
 
 function scalePower(value: number, factor: number, minimum = 1): number {
-  return clamp(Math.round(value * factor), minimum, CURRENT_SKILL_POWER_MAXIMUM)
+  const scaled = value * factor
+  const rounded = factor < 1 ? Math.floor(scaled) : factor > 1 ? Math.ceil(scaled) : Math.round(scaled)
+  return clamp(rounded, minimum, CURRENT_SKILL_POWER_MAXIMUM)
 }
 
 function tuneEffectMagnitude(
