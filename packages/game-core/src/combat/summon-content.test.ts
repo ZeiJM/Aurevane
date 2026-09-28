@@ -117,6 +117,35 @@ describe('Combat v5.1 summon content', () => {
     )
   })
 
+  it('keeps historical Renewing Herbs pinned while current v5.1 uses the real summon profile', () => {
+    const currentDefinition = resolveMatureSkillVersion('wildwarden.renewing-herbs')
+    if (!currentDefinition) throw new Error('Expected current Renewing Herbs.')
+    const historical = resolveMatureSkillVersion(
+      'wildwarden.renewing-herbs',
+      currentDefinition.contentVersion - 1,
+    )
+    if (!historical) throw new Error('Expected historical Renewing Herbs.')
+
+    expect(currentDefinition.authoring.validationTags).toContain('owner-rebalance-v5-1')
+    expect(currentDefinition.target.kind).toBe('empty-tile')
+    expect(currentDefinition.effects).toEqual([
+      expect.objectContaining({ type: 'summon', recipient: 'selected-tile' }),
+    ])
+    expect(currentDefinition.summonProfile).toMatchObject({
+      name: 'Verdant Stalker',
+      lifetimeTurns: 5,
+    })
+    expect(currentDefinition.summonProfile?.abilities).toHaveLength(2)
+
+    expect(historical.summonProfile).toBeUndefined()
+    expect(historical.effects).toContainEqual(
+      expect.objectContaining({
+        type: 'apply-status',
+        statusId: 'summoned',
+      }),
+    )
+  })
+
   it('requires summon effects and profiles to appear together on empty-ground Skills', () => {
     const base = resolveMatureSkillVersion('wildwarden.renewing-herbs')
     if (!base) throw new Error('Expected current Renewing Herbs.')
