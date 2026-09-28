@@ -6,7 +6,9 @@ function uniqueCharacterName(): string {
   return `Preview ${Date.now().toString(36)}`
 }
 
-test('Technique Preview keeps compact effects aligned and unwrapped', async ({ page }, testInfo) => {
+test('Technique Preview keeps compact effects aligned and unwrapped', async ({
+  page,
+}, testInfo) => {
   test.skip(
     testInfo.project.name !== 'desktop-chromium',
     'Desktop Chromium proves the compact Technique Preview layout.',
