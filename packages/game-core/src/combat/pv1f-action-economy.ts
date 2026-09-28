@@ -1502,7 +1502,7 @@ export function committedResonanceForecast(
           selection,
           evaluateCombatAction(
             state,
-            { ...toCombatActionDefinition(skill, 'pve'), cooldown: undefined },
+            { ...toMaterializedCombatActionDefinition(skill, 'pve'), cooldown: undefined },
             selection,
             PV1F_COMBAT_CONTENT,
           ).affectedCombatantIds,
