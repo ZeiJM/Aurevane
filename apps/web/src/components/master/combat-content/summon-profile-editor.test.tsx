@@ -45,6 +45,6 @@ describe('Master Panel summon profile editor', () => {
     expect(markup).toContain('aria-label="Summon ability 2 AP cost"')
     expect(markup).toContain('aria-label="Summon ability 1 AI utility"')
     expect(markup).toContain('aria-label="Summon ability 2 AI utility"')
-    expect(markup).toMatch(/<button type="button" disabled="">Add summon ability</button>/u)
+    expect(markup).toContain('<button type="button" disabled="">Add summon ability</button>')
   })
 })
