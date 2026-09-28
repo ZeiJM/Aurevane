@@ -302,7 +302,9 @@ function resolvedSecondaryDefinition(
 function resolveLearnedSkill(record: CharacterLearnedSkillRecord): CharacterSkillCatalogEntry {
   const definition = resolveMatureSkillVersion(record.skillId)
   if (!definition || definition.sourceDisciplineId !== record.sourceDisciplineId) {
-    throw persistenceUnavailable('A learned Skill references a missing or invalid current definition.')
+    throw persistenceUnavailable(
+      'A learned Skill references a missing or invalid current definition.',
+    )
   }
   return { definition, learnedAt: record.learnedAt, activeSource: false }
 }
@@ -312,7 +314,9 @@ function resolveEquippedSkill(
 ): CharacterEquippedDisciplineSkill {
   const definition = resolveMatureSkillVersion(record.skillId)
   if (!definition || definition.sourceDisciplineId !== record.sourceDisciplineId) {
-    throw persistenceUnavailable('An equipped Skill references a missing or invalid current definition.')
+    throw persistenceUnavailable(
+      'An equipped Skill references a missing or invalid current definition.',
+    )
   }
   return { definition, slotIndex: record.slotIndex, equippedAt: record.equippedAt }
 }
