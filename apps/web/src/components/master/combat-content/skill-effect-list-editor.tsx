@@ -129,6 +129,7 @@ export function moveCombatEffectDescription(
 export interface SkillEffectListEditorProps {
   readonly value: readonly CombatEffectDefinition[]
   readonly effectDescriptions?: readonly (string | null)[]
+  readonly maxEffects?: number
   readonly onChange: (
     nextEffects: readonly CombatEffectDefinition[],
     nextDescriptions: readonly (string | null)[],
@@ -138,6 +139,7 @@ export interface SkillEffectListEditorProps {
 export function SkillEffectListEditor({
   value,
   effectDescriptions,
+  maxEffects,
   onChange,
 }: SkillEffectListEditorProps) {
   const [newEffectType, setNewEffectType] = useState<CombatEffectType>('damage')
@@ -251,6 +253,7 @@ export function SkillEffectListEditor({
         </label>
         <button
           type="button"
+          disabled={maxEffects !== undefined && value.length >= maxEffects}
           onClick={() =>
             onChange(appendCombatEffect(value, newEffectType), [...alignedDescriptions, null])
           }
@@ -260,8 +263,9 @@ export function SkillEffectListEditor({
       </div>
 
       <p className={styles.effectNote}>
-        Effect order is authoritative. Validation catches composition rules such as status Copy
-        placement, Sensory targeting, and Rewind self-only requirements.
+        Effect order is authoritative.
+        {maxEffects === undefined ? '' : ` This section allows at most ${maxEffects} effects.`}
+        {' Validation catches composition rules such as status Copy placement, Sensory targeting, and Rewind self-only requirements.'}
       </p>
     </fieldset>
   )
