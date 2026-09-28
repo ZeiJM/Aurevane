@@ -1,6 +1,9 @@
 'use client'
 
-import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
+import {
+  matureSkillApCostBounds,
+  type MatureSkillDefinition,
+} from '@aurevane/game-core/combat/mature-skills'
 import { useRouter } from 'next/navigation'
 import { useMemo, useRef, useState } from 'react'
 
@@ -542,6 +545,7 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
               </fieldset>
               <SkillTargetingEditor
                 value={selectedDraft.target}
+                v51Rules={selectedDraft.authoring.validationTags.includes('owner-rebalance-v5-1')}
                 onChange={(target) => updateSelectedDraft({ ...selectedDraft, target })}
               />
               <SkillEconomyEditor
@@ -552,6 +556,7 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
                   accuracyModifierBasisPoints: selectedDraft.accuracyModifierBasisPoints,
                   cooldown: selectedDraft.cooldown,
                 }}
+                apCostBounds={matureSkillApCostBounds(selectedDraft)}
                 cooldownLockedByRequirement={selectedDraft.requirements.length > 0}
                 onChange={(economy: SkillEconomyDraft) =>
                   updateSelectedDraft({
