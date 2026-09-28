@@ -59,7 +59,8 @@
     "./combat/combat-critical": "./src/combat/combat-critical.ts",
     "./combat/damage-modifiers": "./src/combat/damage-modifiers.ts",
     "./combat/summon-content": "./src/combat/summon-content.ts",
-    "./combat/combat-summons": "./src/combat/combat-summons.ts"
+    "./combat/combat-summons": "./src/combat/combat-summons.ts",
+    "./combat/summon-ai": "./src/combat/summon-ai.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
