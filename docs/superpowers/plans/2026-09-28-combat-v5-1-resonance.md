@@ -181,7 +181,14 @@ Commit message: `feat: streamline Resonance preview`
 - Effect editor labeled `Result`, limited to 1–2 entries.
 - Validation/diff/history support both schema versions but new drafts publish v2.
 
-- [ ] **Step 1: Write failing editor/service tests.**
+- [ ] **Step 1: Write failing editor/service tests**
+  - current editor labels are Setup / Trigger / Result and contain no Payoff label;
+  - Immediate mode serializes `setup: null` and hides/disables Setup matcher controls;
+  - Sequence mode requires a Setup matcher;
+  - Setup/Trigger tag inputs accept 1–2 canonical tags and reject a third;
+  - Result editor accepts 1–2 effects and rejects a third;
+  - service accepts historical v1 definitions for history/rollback while new current drafts validate/publish as schema v2;
+  - semantic diff reports mode, matcher, and Result changes.
 - [ ] **Step 2: Implement current v2 authoring controls and compatibility readout for v1 history.**
 - [ ] **Step 3: Run tests and verify GREEN.**
 - [ ] **Step 4: Commit**
