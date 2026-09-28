@@ -182,7 +182,7 @@ describe('Combat v5.1 summon runtime state', () => {
     expect(spawned.state.tactical.battle.initiativeOrder).toEqual(beforeOrder)
     expect(spawned.state.tactical.battle.deferredInitiativeCombatantIds).toContain(summonId)
     expect(spawned.state.tactical.battle.combatants).toContainEqual(
-      expect.objectContaining({ id: summonId, teamId: 'players', kind: 'summon', hp: 36, maxHp: 36 }),
+      expect.objectContaining({\n        id: summonId,\n        teamId: 'players',\n        kind: 'summon',\n        hp: 36,\n        maxHp: 36,\n      }),
     )
     expect(spawned.state.tactical.placements).toContainEqual(
       expect.objectContaining({ combatantId: summonId, position: { x: 1, y: 0 } }),
@@ -243,7 +243,7 @@ describe('Combat v5.1 summon runtime state', () => {
     const removed = removeCombatSummon(spawned.state, summonId, 'expired')
 
     expect(removed.state.tactical.battle.combatants.some((row) => row.id === summonId)).toBe(false)
-    expect(removed.state.tactical.placements.some((row) => row.combatantId === summonId)).toBe(false)
+    expect(removed.state.tactical.placements.some((row) => row.combatantId === summonId)).toBe(\n      false,\n    )
     expect(removed.state.statBridge.combatants.some((row) => row.combatantId === summonId)).toBe(
       false,
     )
