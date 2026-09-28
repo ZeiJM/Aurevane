@@ -33,8 +33,14 @@ test('single-Discipline Nexus and Technique modal align live and locked slots', 
 
   const activeHeaderBox = await activeLane.locator('header').boundingBox()
   const lockedHeaderBox = await lockedLane.locator('header').boundingBox()
-  const activeSlotBox = await activeLane.locator('[data-arsenal-technique-row="true"]').first().boundingBox()
-  const lockedSlotBox = await lockedLane.locator('[data-arsenal-technique-row="true"]').first().boundingBox()
+  const activeSlotBox = await activeLane
+    .locator('[data-arsenal-technique-row="true"]')
+    .first()
+    .boundingBox()
+  const lockedSlotBox = await lockedLane
+    .locator('[data-arsenal-technique-row="true"]')
+    .first()
+    .boundingBox()
 
   if (!activeHeaderBox || !lockedHeaderBox || !activeSlotBox || !lockedSlotBox) {
     throw new Error('Nexus Technique geometry is unavailable.')
