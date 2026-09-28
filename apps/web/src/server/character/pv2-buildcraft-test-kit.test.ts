@@ -66,8 +66,7 @@ describe('PV-2 buildcraft test kit', () => {
     expect(unlockCalls).toHaveLength(desiredSkills.length - 1)
     expect(
       unlockCalls.some(
-        ([, args]) =>
-          (args as { p_skill_id?: string }).p_skill_id === 'vanguard.forceful-strike',
+        ([, args]) => (args as { p_skill_id?: string }).p_skill_id === 'vanguard.forceful-strike',
       ),
     ).toBe(false)
     expect(
