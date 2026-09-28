@@ -259,6 +259,16 @@ export function validateResonanceDefinition(
 export function resolveResonanceForPair(
   primaryDisciplineId: string,
   secondaryDisciplineId: string | null,
+  contentVersion: 1 | 2,
+): ResonanceDefinition | null
+export function resolveResonanceForPair(
+  primaryDisciplineId: string,
+  secondaryDisciplineId: string | null,
+  contentVersion?: number,
+): AnyResonanceDefinition | null
+export function resolveResonanceForPair(
+  primaryDisciplineId: string,
+  secondaryDisciplineId: string | null,
   contentVersion?: number,
 ): AnyResonanceDefinition | null {
   if (secondaryDisciplineId === null || primaryDisciplineId === secondaryDisciplineId) return null
