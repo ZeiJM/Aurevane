@@ -18,10 +18,6 @@ const clamp = (value: number, minimum: number, maximum: number): number =>
 
 const roundToFive = (value: number): number => Math.round(value / 5) * 5
 
-function roundedPower(value: number): number {
-  return clamp(Math.round(value), CURRENT_SKILL_POWER_MINIMUM, CURRENT_SKILL_POWER_MAXIMUM)
-}
-
 export function classifyV51SkillRole(definition: MatureSkillDefinition): V51SkillRole {
   if (
     definition.tags.includes('attack') ||
