@@ -14,6 +14,7 @@ import type {
 } from './actions'
 import type { SkillCooldownDefinition } from './skill-cooldowns'
 import {
+  isMaterializedCombatEffect,
   validateSummonProfileDefinition,
   type CombatSummonEffect,
   type SummonProfileDefinition,
@@ -852,7 +853,9 @@ function createPhase4RebalancedSkill(definition: MatureSkillDefinition): MatureS
     ...definition,
     contentVersion: definition.contentVersion + 1,
     requirements: definition.requirements.map(currentRequirement),
-    effects: definition.effects.map(currentEffect),
+    effects: definition.effects.map((effect) =>
+      effect.type === 'summon' ? effect : currentEffect(effect),
+    ),
     accuracyMode,
     ...(accuracyMode === 'per-target'
       ? { accuracyModifierBasisPoints: definition.accuracyModifierBasisPoints ?? 0 }
@@ -944,7 +947,11 @@ export function validateMatureSkillDefinition(
   const issues: string[] = []
   try {
     validateCombatAccuracyDefinition(definition)
-    validateGameplayActionMetadata(definition)
+    validateGameplayActionMetadata({
+      target: definition.target,
+      requirements: definition.requirements,
+      effects: definition.effects.filter(isMaterializedCombatEffect),
+    })
   } catch {
     issues.push('combatDefinition')
   }
@@ -1092,6 +1099,7 @@ export function validateMatureSkillDefinition(
     if (!Number.isSafeInteger(durationTurns) || durationTurns < 0 || durationTurns > 4) {
       issues.push(`effects[${index}].durationTurns`)
     }
+    if (effect.type === 'summon') continue
     if (
       effect.potencyBasisPoints !== undefined &&
       (!Number.isSafeInteger(effect.potencyBasisPoints) ||
