@@ -444,8 +444,9 @@
 .attunementHover {
   position: absolute;
   z-index: 80;
-  right: calc(100% + 0.5rem);
+  right: auto;
   bottom: 0;
+  left: calc(100% + 0.5rem);
   display: grid;
   width: min(24rem, 42vw);
   max-height: min(29rem, 70vh);
