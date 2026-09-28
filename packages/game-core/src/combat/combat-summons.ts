@@ -25,6 +25,8 @@ import {
 } from './stat-driven-combat'
 import { validateSummonProfileDefinition, type SummonProfileDefinition } from './summon-content'
 
+export type { CombatSummonInstance } from './combat-effect-state'
+
 export type CombatSummonRemovalReason = 'expired' | 'defeated'
 
 export type CombatSummonEvent =
