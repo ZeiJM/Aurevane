@@ -13,7 +13,11 @@ import type {
   CombatUseRequirement,
 } from './actions'
 import type { SkillCooldownDefinition } from './skill-cooldowns'
-import { validateSummonProfileDefinition, type SummonProfileDefinition } from './summon-content'
+import {
+  validateSummonProfileDefinition,
+  type CombatSummonEffect,
+  type SummonProfileDefinition,
+} from './summon-content'
 import { rebalanceMatureSkillDefinition } from './skill-balance-v5'
 import {
   applyV51CurrentTechniqueTargeting,
@@ -58,6 +62,8 @@ export interface MatureSkillAuthoringMetadata {
   readonly validationTags: readonly string[]
 }
 
+export type MatureSkillEffectDefinition = CombatEffectDefinition | CombatSummonEffect
+
 export interface MatureSkillDefinition extends CombatAccuracyAuthoring {
   readonly id: string
   readonly contentVersion: number
@@ -71,7 +77,7 @@ export interface MatureSkillDefinition extends CombatAccuracyAuthoring {
   readonly mpCost?: number
   readonly target: CombatTargetSpec
   readonly requirements: readonly CombatUseRequirement[]
-  readonly effects: readonly CombatEffectDefinition[]
+  readonly effects: readonly MatureSkillEffectDefinition[]
   /**
    * Optional player-facing copy for each effect, aligned by effect index.
    * This presentation-only field is never projected into combat resolution.
