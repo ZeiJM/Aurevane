@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest'
 
 import { createCombatEncounterState } from './actions'
 import { createPendingBattle, startBattle } from './battle-state'
-import { copiedSkillCommandId } from './combat-skill-copy'
+import { copiedSkillApCost, copiedSkillCommandId } from './combat-skill-copy'
 import { createTacticalBattleState } from './board'
+import { currentSkillDamageScaling } from './damage-scaling'
 import {
   executePv1fCopiedSkill,
   executePv1fMatureSkill,
@@ -311,12 +312,9 @@ describe('PV-1F temporary Skill Copy integration', () => {
     )
     const damage = evaluated.action.effects.find((effect) => effect.type === 'damage')
 
-    expect(evaluated.cost).toBe(20)
+    expect(evaluated.cost).toBe(copiedSkillApCost(definition, 'pve'))
     expect(damage).toMatchObject({
-      scaling: {
-        source: 'physical-power',
-        coefficientBasisPoints: 1_000,
-      },
+      scaling: currentSkillDamageScaling('physical-power', 1, evaluated.cost),
     })
   })
 
