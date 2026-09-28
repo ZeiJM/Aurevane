@@ -16,6 +16,7 @@ import {
   rollCombatSkillAccuracyForTarget,
 } from './combat-skill-accuracy'
 import { normalizeCombatEffectState } from './combat-effect-state'
+import { advanceCombatSummonOwnerTurn, spawnCombatSummon } from './combat-summons'
 import { hasGameplayTag } from './gameplay-tags'
 import { CURRENT_POISON_DAMAGE, advanceCurrentPoisonMovement } from './combat-dots'
 import { terrainOverlayAt, COMBAT_TERRAIN_OVERLAY_DETAILS } from './terrain-overlays'
@@ -50,7 +51,7 @@ import type { BattleCombatant, BattleFacing, BattleTemporaryResource } from './b
 import {
   resolveMatureSkillForContext,
   resolveMatureSkillVersion,
-  toCombatActionDefinition,
+  toMaterializedCombatActionDefinition,
   type MatureSkillCombatContext,
   type MatureSkillDefinition,
 } from './mature-skills'
@@ -614,7 +615,7 @@ export function evaluatePv1fMatureSkill(
   const resolved = resolveMatureSkillForContext(definition, combatContext)
   const authoredCost = options.apCostOverride ?? resolved.apCost
   const resonance = committedResonanceForecast(prepared, definition, target)
-  const authoredAction = toCombatActionDefinition(definition, combatContext)
+  const authoredAction = toMaterializedCombatActionDefinition(definition, combatContext)
   const powerScaledAuthoredEffects = applyCurrentMatureSkillPowerScaling(
     prepared,
     definition,
@@ -795,6 +796,30 @@ export function executePv1fMatureSkill(
       : event,
   )
   let next = reattachStatDrivenCombatBridge(resolved.state, prepared.statBridge)
+  const summonEffect = definition.effects.find((effect) => effect.type === 'summon')
+  const summonEvents: unknown[] = []
+  if (summonEffect) {
+    if (!definition.summonProfile) {
+      throw new TypeError('Summon Skill execution requires a validated summon profile.')
+    }
+    if (target.kind !== 'tile') {
+      throw new TypeError('Summon Skill execution requires an empty-tile target selection.')
+    }
+    const actorPlacement = next.tactical.placements.find(
+      (placement) => placement.combatantId === actorId,
+    )
+    if (!actorPlacement) throw new Error('Summon Skill execution requires actor placement.')
+    const summoned = spawnCombatSummon(next, {
+      ownerCombatantId: actorId,
+      sourceSkillId: definition.id,
+      sourceSkillVersion: definition.contentVersion,
+      profile: definition.summonProfile,
+      position: target.position,
+      facing: actorPlacement.facing,
+    })
+    next = summoned.state
+    summonEvents.push(...summoned.events)
+  }
   next = spendPv1fActionEconomyForActor(next, actorId, cost)
   next = definition.authoring.validationTags.includes('owner-rebalance-v5')
     ? clearLastMatureSkill(next, actorId)
@@ -848,6 +873,7 @@ export function executePv1fMatureSkill(
     state: next,
     events: [
       ...mediaResolutionEvents,
+      ...summonEvents,
       ...(resonance?.forecast.willActivate
         ? [
             {
@@ -1102,17 +1128,29 @@ export function finishPv1fTurn(
   outgoingDefeatedAtTurnEnd = false,
 ): Pv1fTransition {
   const prepared = preparePv1fTurnEconomy(state)
+  const outgoingCombatantId = prepared.tactical.battle.currentTurn?.combatantId ?? null
+  const outgoingWasSummon =
+    outgoingCombatantId !== null &&
+    (normalizeCombatEffectState(prepared.effectState).summons ?? []).some(
+      (summon) => summon.combatantId === outgoingCombatantId,
+    )
   const selected = selectCurrentFinalFacing(prepared.tactical, facing)
   const encounter = reattachStatDrivenCombatBridge(
     { ...prepared, ...createCombatEncounterState(selected.state, prepared.statusState) },
     prepared.statBridge,
   )
   const ended = endCombatTurn(encounter, PV1F_COMBAT_CONTENT, outgoingDefeatedAtTurnEnd)
-  const bridged = reattachStatDrivenCombatBridge(ended.state, prepared.statBridge)
+  let bridged = reattachStatDrivenCombatBridge(ended.state, prepared.statBridge)
+  const summonTurnEvents: unknown[] = []
+  if (outgoingWasSummon && outgoingCombatantId) {
+    const advanced = advanceCombatSummonOwnerTurn(bridged, outgoingCombatantId)
+    bridged = advanced.state
+    summonTurnEvents.push(...advanced.events)
+  }
   const nextTurn = preparePv1fTurnEconomyTransition(bridged)
   return {
     state: nextTurn.state,
-    events: [...selected.events, ...ended.events, ...nextTurn.events],
+    events: [...selected.events, ...ended.events, ...summonTurnEvents, ...nextTurn.events],
   }
 }
 
