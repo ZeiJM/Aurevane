@@ -199,8 +199,8 @@ describe('published combat content consumption', () => {
     expect(snapshot.extensions.essence?.contentVersion).toBe(2)
     expect(authority.combatants[0]!.extensions.essence).toMatchObject({
       essenceId: 'essence.edgedancer.sevenfold-cut',
-      contentVersion: 4,
-      skillContentVersion: 4,
+      contentVersion: 5,
+      skillContentVersion: 5,
     })
     expect(resolved?.contentVersion).toBe(4)
     expect(
