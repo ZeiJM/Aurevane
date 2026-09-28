@@ -358,6 +358,39 @@ export function previewCombatContentDefinition(
       terrain: evaluated.evaluation.projectedTerrain.map((terrain) => structuredClone(terrain)),
       events: evaluated.evaluation.projectedEvents.map((event) => structuredClone(event)),
     },
+    summon: definition.summonProfile
+      ? {
+          spawnPosition:
+            selection.kind === 'tile' ? { ...selection.position } : previewTargetPosition(definition),
+          profile: {
+            id: definition.summonProfile.id,
+            name: definition.summonProfile.name,
+            description: definition.summonProfile.description,
+            flavorLine: definition.summonProfile.flavorLine,
+            portraitKey: definition.summonProfile.portraitKey,
+            tags: [...definition.summonProfile.tags],
+            maxHp: definition.summonProfile.maxHp,
+            maxMp: definition.summonProfile.maxMp,
+            initiative: definition.summonProfile.initiative,
+            movementBudget: definition.summonProfile.movementBudget,
+            stats: structuredClone(definition.summonProfile.stats),
+            aiProfile: definition.summonProfile.aiProfile,
+            aiPurposeTags: [...definition.summonProfile.aiPurposeTags],
+            lifetimeTurns: definition.summonProfile.lifetimeTurns,
+          },
+          abilities: definition.summonProfile.abilities.map((ability) => ({
+            id: ability.id,
+            name: ability.name,
+            description: ability.description,
+            apCost: ability.apCost,
+            mpCost: ability.mpCost,
+            tags: [...ability.tags],
+            target: structuredClone(ability.target),
+            effects: ability.effects.map((effect) => structuredClone(effect)),
+            ai: structuredClone(ability.ai),
+          })),
+        }
+      : null,
     vengeanceBasis: (evaluated.evaluation.vengeanceBasis ?? []).map((basis) =>
       structuredClone(basis),
     ),
