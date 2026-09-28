@@ -26,7 +26,7 @@ describe('Combat v5.1 Resonance v2 schema', () => {
   })
 
   it('converts a v5 sequence to schema v2 with Setup, Trigger and one or two Result effects', () => {
-    const v5 = resolveResonanceForPair('lifebinder', 'vanguard')
+    const v5 = resolveResonanceForPair('lifebinder', 'vanguard', 2)
     if (!v5) throw new Error('Expected current v5 Resonance.')
 
     const v2 = convertV5ResonanceToV2(v5)
@@ -39,7 +39,7 @@ describe('Combat v5.1 Resonance v2 schema', () => {
   })
 
   it('supports immediate Resonance without stale armed Setup state and weakens its Result', () => {
-    const v5 = resolveResonanceForPair('farstrider', 'vanguard')
+    const v5 = resolveResonanceForPair('farstrider', 'vanguard', 2)
     if (!v5) throw new Error('Expected Farstrider/Vanguard Resonance.')
 
     const v2 = convertV5ResonanceToV2(v5)
