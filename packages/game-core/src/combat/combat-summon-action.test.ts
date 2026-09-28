@@ -15,10 +15,7 @@ import {
   type StatDrivenCombatEncounterState,
   type StatDrivenCombatProfileV4,
 } from './stat-driven-combat'
-import {
-  SUMMON_PROFILE_SCHEMA_VERSION,
-  type SummonProfileDefinition,
-} from './summon-content'
+import { SUMMON_PROFILE_SCHEMA_VERSION, type SummonProfileDefinition } from './summon-content'
 
 function profile(combatantId: string, team: 'players' | 'opponents'): StatDrivenCombatProfileV4 {
   return {
@@ -201,7 +198,11 @@ describe('Combat v5.1 summon Skill execution', () => {
     })
 
     const summonEvent = resolved.events.find(
-      (event) => typeof event === 'object' && event !== null && 'event' in event && event.event === 'summon_spawned',
+      (event) =>
+        typeof event === 'object' &&
+        event !== null &&
+        'event' in event &&
+        event.event === 'summon_spawned',
     )
     expect(summonEvent).toEqual(
       expect.objectContaining({
@@ -227,12 +228,7 @@ describe('Combat v5.1 summon Skill execution', () => {
     expect(readPv1fActionEconomy(prepared, 'player')?.current).toBe(100)
 
     expect(() =>
-      executePv1fMatureSkill(
-        prepared,
-        skill,
-        { kind: 'tile', position: { x: 2, y: 0 } },
-        'pve',
-      ),
+      executePv1fMatureSkill(prepared, skill, { kind: 'tile', position: { x: 2, y: 0 } }, 'pve'),
     ).toThrow(/empty|occupied|target/i)
 
     expect(readPv1fActionEconomy(prepared, 'player')?.current).toBe(100)
@@ -261,9 +257,7 @@ describe('Combat v5.1 summon Skill execution', () => {
 
       if (outgoing === summonId) {
         summonTurns += 1
-        const activeSummon = state.effectState?.summons?.find(
-          (row) => row.combatantId === summonId,
-        )
+        const activeSummon = state.effectState?.summons?.find((row) => row.combatantId === summonId)
         if (summonTurns < 5) {
           expect(activeSummon?.turnsCompleted).toBe(summonTurns)
         } else {
