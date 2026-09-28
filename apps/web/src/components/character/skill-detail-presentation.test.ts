@@ -313,7 +313,6 @@ describe('Combat v5.1 compact effect summaries', () => {
   })
 })
 
-
 describe('Combat v5.1 compact targeting labels', () => {
   const base = resolveMatureSkillVersion('vanguard.forceful-strike')!
 
