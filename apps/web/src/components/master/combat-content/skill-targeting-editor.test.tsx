@@ -76,7 +76,6 @@ describe('Master Panel Skill targeting editor', () => {
   })
 })
 
-
 it('applies Combat v5.1 maximum range and elevation authoring bounds without changing historical defaults', () => {
   const currentMarkup = renderToStaticMarkup(
     createElement(SkillTargetingEditor, {
