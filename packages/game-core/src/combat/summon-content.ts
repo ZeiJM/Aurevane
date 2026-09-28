@@ -13,6 +13,12 @@ export interface CombatSummonEffect {
   readonly durationTurns?: 0
 }
 
+export function isMaterializedCombatEffect(
+  effect: CombatEffectDefinition | CombatSummonEffect,
+): effect is CombatEffectDefinition {
+  return effect.type !== 'summon'
+}
+
 export type SummonAiProfile = 'standard' | 'high'
 
 export interface SummonAbilityMediaHooks {
