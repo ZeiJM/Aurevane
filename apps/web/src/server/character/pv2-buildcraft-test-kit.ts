@@ -56,6 +56,28 @@ export async function preparePv2BuildcraftTestKit(
     throw new AurevaneError('INVALID_REQUEST', 'The selected character is not available.')
   }
 
+  const { data: learnedRows, error: learnedError } = await supabase.rpc(
+    'get_character_learned_skills_v1',
+    {
+      p_user_id: userId,
+      p_character_id: characterId,
+    },
+  )
+  if (learnedError || !Array.isArray(learnedRows)) throw persistenceUnavailable()
+
+  const existingSkillIds = new Set<string>()
+  for (const row of learnedRows) {
+    if (
+      !row ||
+      typeof row !== 'object' ||
+      Array.isArray(row) ||
+      typeof (row as { skill_id?: unknown }).skill_id !== 'string'
+    ) {
+      throw persistenceUnavailable()
+    }
+    existingSkillIds.add((row as { skill_id: string }).skill_id)
+  }
+
   for (const disciplineId of PV2_TEST_MASTERED_DISCIPLINES) {
     const { error } = await supabase.rpc('record_character_discipline_mastery_v1', {
       p_character_id: characterId,
@@ -73,6 +95,10 @@ export async function preparePv2BuildcraftTestKit(
   )
 
   for (const skill of representativeSkills) {
+    // Learned Skill rows are immutable versioned facts. Keep an existing historical
+    // reference intact; current presentation/battle resolution upgrades separately.
+    if (existingSkillIds.has(skill.id)) continue
+
     const { error } = await supabase.rpc('record_character_skill_unlock_v1', {
       p_character_id: characterId,
       p_skill_id: skill.id,
