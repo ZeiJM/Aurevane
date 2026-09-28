@@ -144,7 +144,6 @@ describe('Combat v5.1 Skill balance primitives', () => {
   })
 })
 
-
 describe('Combat v5.1 current Technique catalog', () => {
   it('publishes all 136 current Techniques inside the approved AP and range bands', () => {
     const skills = latestEnabledMatureSkills()
