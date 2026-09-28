@@ -148,6 +148,53 @@ describe('combat content authoring service', () => {
     })
   })
 
+  it('validates per-summon lifetimes and reports summon-profile semantic changes', () => {
+    const { service } = serviceFixture()
+    const base = staticSkill('wildwarden.renewing-herbs')
+    if (!base.summonProfile) throw new Error('Expected current Renewing Herbs summon profile.')
+
+    const threeTurn = {
+      ...base,
+      summonProfile: {
+        ...base.summonProfile,
+        lifetimeTurns: 3,
+      },
+    }
+    expect(service.validateSkillDefinition(threeTurn)).toMatchObject({
+      valid: true,
+      issues: [],
+    })
+    expect(service.diffSkillDefinitions(base, threeTurn).changedPaths).toContain(
+      'summonProfile.lifetimeTurns',
+    )
+
+    const invalid = {
+      ...base,
+      summonProfile: {
+        ...base.summonProfile,
+        lifetimeTurns: 0,
+      },
+    }
+    const validation = service.validateSkillDefinition(invalid)
+    expect(validation.valid).toBe(false)
+    expect(validation.issues).toContainEqual(
+      expect.objectContaining({ path: 'summonProfile' }),
+    )
+
+    const editedAbility = {
+      ...base,
+      summonProfile: {
+        ...base.summonProfile,
+        abilities: base.summonProfile.abilities.map((ability, index) =>
+          index === 0 ? { ...ability, apCost: ability.apCost + 5 } : ability,
+        ),
+      },
+    }
+    expect(service.diffSkillDefinitions(base, editedAbility).changedPaths).toContain(
+      'summonProfile.abilities',
+    )
+  })
+
   it('accepts aligned presentation-only effect descriptions and rejects malformed copy', () => {
     const { service } = serviceFixture()
     const base = staticSkill()
