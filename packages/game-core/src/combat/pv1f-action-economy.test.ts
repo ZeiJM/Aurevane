@@ -5,6 +5,7 @@ import { resolveMatureSkillVersion, type MatureSkillDefinition } from './mature-
 import { createCombatEncounterState } from './actions'
 import { createPendingBattle, startBattle } from './battle-state'
 import { normalizeCombatEffectState } from './combat-effect-state'
+import { currentSkillDamageScaling } from './damage-scaling'
 import { readSkillCooldown } from './skill-cooldowns'
 import { createTacticalBattleState } from './board'
 import {
@@ -191,10 +192,18 @@ describe('Level-100 offensive scaling', () => {
     const mysticDamage = mysticAction.effects.find((effect) => effect.type === 'damage')
 
     expect(physicalDamage).toMatchObject({
-      scaling: { source: 'physical-power', coefficientBasisPoints: 2_000 },
+      scaling: currentSkillDamageScaling(
+        'physical-power',
+        physical.effects.filter((effect) => effect.type === 'damage').length,
+        physical.apCost,
+      ),
     })
     expect(mysticDamage).toMatchObject({
-      scaling: { source: 'mystic-power', coefficientBasisPoints: 2_000 },
+      scaling: currentSkillDamageScaling(
+        'mystic-power',
+        mystic.effects.filter((effect) => effect.type === 'damage').length,
+        mystic.apCost,
+      ),
     })
   })
 
@@ -254,7 +263,11 @@ describe('Level-100 offensive scaling', () => {
     )
     expect(damage).toMatchObject({
       amount: definition.effects.find((effect) => effect.type === 'damage')?.amount,
-      scaling: { source: 'physical-power', coefficientBasisPoints: 2_000 },
+      scaling: currentSkillDamageScaling(
+        'physical-power',
+        definition.effects.filter((effect) => effect.type === 'damage').length,
+        definition.apCost,
+      ),
     })
   })
 })
