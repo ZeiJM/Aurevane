@@ -221,6 +221,7 @@ export function CharacterDisciplineBuildPanel({
   const [pendingCommit, setPendingCommit] = useState(false)
   const [refreshingProfile, startProfileRefresh] = useTransition()
   const [message, setMessage] = useState<string | null>(null)
+  const countdownActive = shouldRunAttunementCountdown(open, remaining)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const dialogRef = useRef<HTMLElement>(null)
 
@@ -234,7 +235,7 @@ export function CharacterDisciplineBuildPanel({
   }, [open, mounted])
 
   useEffect(() => {
-    if (!shouldRunAttunementCountdown(open, remaining)) return
+    if (!countdownActive) return
 
     const timer = window.setInterval(() => {
       setRemaining((value) => {
@@ -245,7 +246,7 @@ export function CharacterDisciplineBuildPanel({
       })
     }, 1000)
     return () => window.clearInterval(timer)
-  }, [open, remaining.primary, remaining.secondary])
+  }, [countdownActive])
 
   useEffect(() => {
     if (!open) return
