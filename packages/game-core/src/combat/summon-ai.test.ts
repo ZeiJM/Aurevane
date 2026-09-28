@@ -3,7 +3,8 @@ import { describe, expect, it } from 'vitest'
 import { createCombatEncounterState } from './actions'
 import { createPendingBattle, endTurn, selectFinalFacing, startBattle } from './battle-state'
 import { createTacticalBattleState } from './board'
-import { spawnCombatSummon, type CombatSummonInstance } from './combat-summons'
+import type { CombatSummonInstance } from './combat-effect-state'
+import { spawnCombatSummon } from './combat-summons'
 import {
   executePv1fSummonAbility,
   preparePv1fTurnEconomy,
