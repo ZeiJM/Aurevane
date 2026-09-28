@@ -117,7 +117,7 @@ export function validateSummonProfileDefinition(
 
   if (!['standard', 'high'].includes(profile.aiProfile)) issues.push('aiProfile')
   if (profile.aiPurposeTags.some((tag) => !tag.trim())) issues.push('aiPurposeTags')
-  if (profile.lifetimeTurns !== CURRENT_SUMMON_LIFETIME_TURNS) issues.push('lifetimeTurns')
+  if (!positiveSafeInteger(profile.lifetimeTurns)) issues.push('lifetimeTurns')
 
   if (
     profile.abilities.length < 1 ||
