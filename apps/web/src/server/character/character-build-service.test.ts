@@ -379,7 +379,7 @@ describe('character build service', () => {
     expect(captured.value?.skills).toEqual([
       {
         skillId: 'vanguard.forceful-strike',
-        contentVersion: resolveMatureSkillVersion('vanguard.forceful-strike')!.contentVersion,
+        contentVersion: learnedVanguard.contentVersion,
         sourceDisciplineId: 'vanguard',
       },
     ])
