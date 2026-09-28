@@ -4,6 +4,7 @@ import {
   matureSkillApCostBounds,
   type MatureSkillDefinition,
 } from '@aurevane/game-core/combat/mature-skills'
+import { isMaterializedCombatEffect } from '@aurevane/game-core/combat/summon-content'
 import { useRouter } from 'next/navigation'
 import { useMemo, useRef, useState } from 'react'
 
@@ -577,23 +578,37 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
                 onChange={(media) => updateSelectedDraft({ ...selectedDraft, media })}
               />
               <SkillEffectListEditor
-                value={selectedDraft.effects}
-                effectDescriptions={selectedDraft.effectDescriptions}
+                value={selectedDraft.effects.filter(isMaterializedCombatEffect)}
+                effectDescriptions={selectedDraft.effectDescriptions?.filter(
+                  (_, index) => selectedDraft.effects[index]?.type !== 'summon',
+                )}
                 onChange={(effects, effectDescriptions) => {
-                  const normalizedDescriptions = effectDescriptions.map((description) => {
-                    const trimmed = description?.trim()
-                    return trimmed ? trimmed : null
-                  })
+                  const summonEffects = selectedDraft.effects.filter(
+                    (effect) => effect.type === 'summon',
+                  )
+                  const summonDescriptions = selectedDraft.effects.flatMap((effect, index) =>
+                    effect.type === 'summon'
+                      ? [selectedDraft.effectDescriptions?.[index] ?? null]
+                      : [],
+                  )
+                  const normalizedDescriptions = [
+                    ...effectDescriptions.map((description) => {
+                      const trimmed = description?.trim()
+                      return trimmed ? trimmed : null
+                    }),
+                    ...summonDescriptions,
+                  ]
+                  const mergedEffects = [...effects, ...summonEffects]
                   const draftWithoutDescriptions = { ...selectedDraft }
                   Reflect.deleteProperty(draftWithoutDescriptions, 'effectDescriptions')
                   updateSelectedDraft(
                     normalizedDescriptions.some((description) => description !== null)
                       ? {
                           ...draftWithoutDescriptions,
-                          effects,
+                          effects: mergedEffects,
                           effectDescriptions: normalizedDescriptions,
                         }
-                      : { ...draftWithoutDescriptions, effects },
+                      : { ...draftWithoutDescriptions, effects: mergedEffects },
                   )
                 }}
               />
