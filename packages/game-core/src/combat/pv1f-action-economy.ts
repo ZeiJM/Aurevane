@@ -588,7 +588,6 @@ export function executePv1fAction(
   }
 }
 
-
 function summonAbilityDefinition(
   state: StatDrivenCombatEncounterState,
   ability: SummonAbilityDefinition,
