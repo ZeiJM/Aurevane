@@ -1,5 +1,6 @@
 import { terrainOverlayAiUtility, terrainOverlayAt } from './terrain-overlays'
 import { combatStatusDetails } from './status-content'
+import { isMaterializedCombatEffect } from './summon-content'
 import type {
   CombatActionEvaluation,
   CombatEffectDefinition,
@@ -251,7 +252,11 @@ function buildSkillCandidates(
         // action difficulty adjustment so higher difficulties do not suppress Skills.
         definition.ai.baseUtility +
         (profile.attackUtility - RECRUIT_EASY_PROFILE.attackUtility) +
-        projectedCombatEffectUtility(evaluated.evaluation, state, definition.effects) +
+        projectedCombatEffectUtility(
+          evaluated.evaluation,
+          state,
+          definition.effects.filter(isMaterializedCombatEffect),
+        ) +
         terrainOverlayAiUtility(state, evaluated.evaluation) +
         resonanceUtility +
         copiedApDiscountUtility,
