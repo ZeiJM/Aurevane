@@ -887,10 +887,7 @@ const V51_REBALANCED_DISCIPLINE_SKILLS = latestEnabledMatureSkills([
   ...PRE_V5_CURRENT_DISCIPLINE_SKILLS,
   ...V5_REBALANCED_DISCIPLINE_SKILLS,
 ]).map((definition) =>
-  rebalanceMatureSkillDefinitionV51(
-    applyV51CurrentTechniqueTargeting(definition),
-    'technique',
-  ),
+  rebalanceMatureSkillDefinitionV51(applyV51CurrentTechniqueTargeting(definition), 'technique'),
 )
 
 export const P33_REPRESENTATIVE_DISCIPLINE_SKILLS = PRE_V5_CURRENT_DISCIPLINE_SKILLS
