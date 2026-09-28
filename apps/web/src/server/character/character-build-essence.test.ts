@@ -133,7 +133,7 @@ describe('P3.6 character build Essence authority', () => {
       contentVersion: 3,
       sourceDisciplineId: 'vanguard',
       skill: expect.objectContaining({
-        contentVersion: 3,
+        contentVersion: 4,
         id: 'essence.vanguard.unbroken-strike',
         apCost: 55,
         cooldown: { key: 'essence.vanguard.unbroken-strike', ownerTurns: 3 },
