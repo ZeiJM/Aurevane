@@ -60,8 +60,8 @@ export const techniquesManualArticle: ManualArticle = {
   summary:
     'Read a Technique, understand each step of damage, and compare magnitudes across the current regular Skill catalog.',
   category: 'Combat',
-  lastUpdated: '2026-09-27',
-  rulesVersion: 'Current combat rules v5 · duration-aware Skill balance',
+  lastUpdated: '2026-09-28',
+  rulesVersion: 'Current combat rules v5.1 · targeting-aware Skill balance',
   body: [
     {
       id: 'technique-basics',
@@ -76,10 +76,10 @@ export const techniquesManualArticle: ManualArticle = {
       id: 'read-preview',
       title: 'Reading the Technique Preview',
       paragraphs: [
-        'Read Skill Type, Cost, Cooldown, Requirements, Effects, Range, Target, Target Method, Target Elevation and Line of Sight in that order. Skill Type is Attack, Recovery or Utility. Requirements must be satisfied before use. Costs are AP and, where listed, MP. A circle radius and a line length describe affected tiles, not damage multipliers.',
+        'Read Skill Type, Cost, Cooldown, Requirements, Effects, Range, Target, Target Method, Target Elevation and Line of Sight in that order. Skill Type is Attack, Recovery or Utility. Requirements must be satisfied before use. Costs are AP and, where listed, MP. Range shows only the maximum reach. Target Method shows Single, Line or Circle; line length and circle radius remain internal targeting geometry instead of being repeated in that row.',
         'Each effect is listed on its own line. Bounded non-percentage effect power runs from 1 to 20: Dmg [7] means seven authored base power for that damage block, Healing [4] means four HP power, and MP Restore [4] means four MP power. Equal repeated damage entries are separate hits.',
-        'A positive duration is appended to the effect line, for example Slow [+10 AP/tile] [2 Turns]. A duration of 0 is immediate and intentionally has no [0 Turns] label. Duration counts future turns: [1 Turn] remains through the following turn; [2 Turns] remains through the following two turns. Persistent effect duration consumes balance budget.',
-        'Percentage-based effects use their percentage instead of the 1–20 power number. The same named status may be authored at different potency on different Skills—for example one Guarded application may reduce incoming damage by 10% while another reduces it by 15%. The Technique Preview is authoritative for that Skill version.',
+        'A positive duration is appended to the effect line, for example Slow [+10 AP] [2 Turns]. A duration of 0 is immediate and intentionally has no [0 Turns] label. Duration counts future turns: [1 Turn] remains through the following turn; [2 Turns] remains through the following two turns. Persistent effect duration consumes balance budget.',
+        'Percentage-based effects use their percentage instead of the 1–20 power number. The same named status may be authored at different potency on different Skills—for example one Guarded application may reduce incoming damage by 10% while another reduces it by 15%. The Technique Preview is authoritative for that Skill version. Current non-self Techniques use range 1–5, with range 3 as the common midpoint. Most current Techniques have elevation 0 reach; elevation 1 is uncommon and elevation 2 is rare. Extra reach, elevation access, and bypassing line of sight consume balance budget and therefore reduce available Power or require other tradeoffs.',
       ],
     },
     {
