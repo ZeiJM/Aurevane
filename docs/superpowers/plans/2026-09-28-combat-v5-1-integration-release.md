@@ -143,11 +143,11 @@ Expected: exit 0.
 **Files:**
 - Browser tests from component plans and existing critical suites.
 
-- [ ] **Step 1: Run authenticated Nexus/Discipline/Technique browser proofs.**
-- [ ] **Step 2: Run representative buildcraft.**
-- [ ] **Step 3: Run summon battle flow proof including spawn → next-round turn → AI action → Inspect → expiry.**
-- [ ] **Step 4: Run Resonance sequence and immediate browser/runtime proofs.**
-- [ ] **Step 5: Run responsive/mobile smoke around Technique modal and Attunement hover/focus.**
+- [ ] **Step 1: Run authenticated Nexus/Discipline/Technique browser proofs** using `character-primary-build.pw.ts`, `character-secondary-build.pw.ts`, `technique-preview-layout.pw.ts`, and `nexus-technique-alignment.pw.ts`.
+- [ ] **Step 2: Run representative buildcraft** using `p3-8-representative-buildcraft.pw.ts`.
+- [ ] **Step 3: Run `summon-battle-flow.pw.ts`** proving empty-tile spawn → no same-round turn → next-round summon AI turn → at most one authored ability → Inspect metadata → defeat/5-turn expiry cleanup.
+- [ ] **Step 4: Run `resonance-v5-1.pw.ts`** proving one sequence Resonance and one immediate Resonance activate with Setup / Trigger / Result presentation.
+- [ ] **Step 5: Run responsive/mobile proofs** for Technique modal and Attunement hover/focus with no horizontal overflow.
 
 Expected: all selected browser suites pass without console/runtime errors.
 
