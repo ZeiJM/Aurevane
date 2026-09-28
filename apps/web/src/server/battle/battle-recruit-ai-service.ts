@@ -368,7 +368,8 @@ export function createBattleRecruitAiService(
           step,
           combatantId: turn.combatantId,
         })
-        const difficulty = summon?.profile.aiProfile ?? recruitDifficultyForActor(state, turn.combatantId)
+        const difficulty =
+          summon?.profile.aiProfile ?? recruitDifficultyForActor(state, turn.combatantId)
         const resolver =
           combatContentResolver ??
           (state.buildAuthority ? createServerCombatContentResolver() : undefined)
