@@ -85,13 +85,14 @@ export function executePv1fMatureSkillWithResonance(input: {
   const resonanceEvents: ResonanceCombatEvent[] = []
   let nextArmedByActionId = input.resonanceState.armedByActionId
 
-  if (forecast.willActivate && input.resonanceState.armedByActionId) {
+  if (forecast.willActivate) {
     resonanceEvents.push({
       event: 'resonance_activated',
       resonanceId: input.resonance.id,
       contentVersion: input.resonance.contentVersion,
       actorId,
       setupActionId: input.resonanceState.armedByActionId,
+      triggerActionId: input.skill.id,
       payoffActionId: input.skill.id,
     })
     nextArmedByActionId = null
