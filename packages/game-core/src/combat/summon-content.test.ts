@@ -102,18 +102,12 @@ describe('Combat v5.1 summon content', () => {
     ).toContain('abilities')
   })
 
-  it('accepts configurable positive whole-turn lifetimes with five turns as the standard', () => {
+  it('requires the current summon lifetime to be exactly five turns', () => {
     expect(validateSummonProfileDefinition(profile({ lifetimeTurns: 5 }))).toEqual([])
-    expect(validateSummonProfileDefinition(profile({ lifetimeTurns: 3 }))).toEqual([])
-    expect(validateSummonProfileDefinition(profile({ lifetimeTurns: 1 }))).toEqual([])
-
-    expect(validateSummonProfileDefinition(profile({ lifetimeTurns: 0 }))).toContain(
+    expect(validateSummonProfileDefinition(profile({ lifetimeTurns: 4 }))).toContain(
       'lifetimeTurns',
     )
-    expect(validateSummonProfileDefinition(profile({ lifetimeTurns: -1 }))).toContain(
-      'lifetimeTurns',
-    )
-    expect(validateSummonProfileDefinition(profile({ lifetimeTurns: 1.5 }))).toContain(
+    expect(validateSummonProfileDefinition(profile({ lifetimeTurns: 6 }))).toContain(
       'lifetimeTurns',
     )
   })
