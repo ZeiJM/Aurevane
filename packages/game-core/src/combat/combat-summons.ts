@@ -23,10 +23,7 @@ import {
   type StatDrivenCombatEncounterState,
   type StatDrivenCombatProfileV4,
 } from './stat-driven-combat'
-import {
-  validateSummonProfileDefinition,
-  type SummonProfileDefinition,
-} from './summon-content'
+import { validateSummonProfileDefinition, type SummonProfileDefinition } from './summon-content'
 
 export type CombatSummonRemovalReason = 'expired' | 'defeated'
 
@@ -158,11 +155,10 @@ function assertCurrentStatBridge(state: StatDrivenCombatEncounterState): void {
   }
 }
 
-function assertSpawnTile(
-  state: StatDrivenCombatEncounterState,
-  position: GridPosition,
-): void {
-  const tile = state.tactical.tiles.find((candidate) => positionsEqual(candidate.position, position))
+function assertSpawnTile(state: StatDrivenCombatEncounterState, position: GridPosition): void {
+  const tile = state.tactical.tiles.find((candidate) =>
+    positionsEqual(candidate.position, position),
+  )
   if (!tile) throw new RangeError('Summon target must be a valid empty battle tile.')
   if (state.tactical.placements.some((row) => positionsEqual(row.position, position))) {
     throw new RangeError('Summon target tile is occupied; summons require empty ground.')
@@ -260,10 +256,9 @@ export function spawnCombatSummon(
         summonStatProfile(combatantId, profile),
       ].sort((left, right) => stableCompare(left.combatantId, right.combatantId)),
     },
-    statusState: [
-      ...state.statusState,
-      { combatantId, statuses: [] },
-    ].sort((left, right) => stableCompare(left.combatantId, right.combatantId)),
+    statusState: [...state.statusState, { combatantId, statuses: [] }].sort((left, right) =>
+      stableCompare(left.combatantId, right.combatantId),
+    ),
     effectState: {
       ...effectState,
       summons: [...(effectState.summons ?? []), instance].sort((left, right) =>
@@ -296,32 +291,26 @@ function cleanupEffectState(
   return {
     ...effectState,
     ongoingRecovery: effectState.ongoingRecovery.filter(
-      (row) =>
-        row.sourceCombatantId !== combatantId && row.targetCombatantId !== combatantId,
+      (row) => row.sourceCombatantId !== combatantId && row.targetCombatantId !== combatantId,
     ),
     poison: effectState.poison.filter(
-      (row) =>
-        row.sourceCombatantId !== combatantId && row.targetCombatantId !== combatantId,
+      (row) => row.sourceCombatantId !== combatantId && row.targetCombatantId !== combatantId,
     ),
     bleed: effectState.bleed.filter(
-      (row) =>
-        row.sourceCombatantId !== combatantId && row.targetCombatantId !== combatantId,
+      (row) => row.sourceCombatantId !== combatantId && row.targetCombatantId !== combatantId,
     ),
     burn: effectState.burn.filter(
-      (row) =>
-        row.sourceCombatantId !== combatantId && row.targetCombatantId !== combatantId,
+      (row) => row.sourceCombatantId !== combatantId && row.targetCombatantId !== combatantId,
     ),
     temporarySkills: effectState.temporarySkills.filter(
-      (row) =>
-        row.combatantId !== combatantId && row.sourceCombatantId !== combatantId,
+      (row) => row.combatantId !== combatantId && row.sourceCombatantId !== combatantId,
     ),
     damageHistory: effectState.damageHistory.filter((row) => row.combatantId !== combatantId),
     ...(effectState.barriers === undefined
       ? {}
       : {
           barriers: effectState.barriers.filter(
-            (row) =>
-              row.sourceCombatantId !== combatantId && row.targetCombatantId !== combatantId,
+            (row) => row.sourceCombatantId !== combatantId && row.targetCombatantId !== combatantId,
           ),
         }),
     ...(effectState.summons === undefined
