@@ -231,7 +231,13 @@ Commit message: `feat: expose summons through battle Inspect`
 - Validation/diff/preview treat `summonProfile` as authoritative mechanics, not presentation-only metadata.
 - Preview reports spawn tile, unit stats, lifetime, and ability summaries without mutating battle RNG.
 
-- [ ] **Step 1: Write failing editor/service tests.**
+- [ ] **Step 1: Write failing editor/service tests**
+  - summon effect reveals a Summon Profile editor;
+  - editor exposes name, flavor/description, artwork hook, tags, HP/MP/stats, initiative, movement, AI profile, lifetime, and 1–2 abilities;
+  - a third ability is rejected/disabled;
+  - semantic diff reports nested summon-profile changes;
+  - validation rejects missing/invalid profile data;
+  - preview returns spawn target, profile stats, lifetime 5, ability summaries, and `rngConsumed: false`.
 - [ ] **Step 2: Implement summon effect/profile controls and validation.**
 - [ ] **Step 3: Implement deterministic preview output.**
 - [ ] **Step 4: Run Master Panel tests and verify GREEN.**
@@ -255,7 +261,11 @@ Commit message: `feat: author summon profiles in Master Panel`
 - Current v5.1 `wildwarden.renewing-herbs` (and any other selected current summoning Skill) uses the new summon effect/profile.
 - Historical versions continue using historical `summoned` status.
 
-- [ ] **Step 1: Add failing current-vs-historical version tests.**
+- [ ] **Step 1: Add failing current-vs-historical version tests**
+  - historical v5 Renewing Herbs resolves its original `apply-status: summoned` effect;
+  - current v5.1 Renewing Herbs resolves `target.kind === 'empty-tile'` plus the new summon effect/profile;
+  - current profile has lifetime 5 and 1–2 authored abilities;
+  - serializing/reloading an active summon preserves owner, source Skill/version, turns completed, pinned profile, placement, and stat profile.
 - [ ] **Step 2: Author thematic summon profile(s) with 1–2 abilities and 5-turn lifetime.**
 - [ ] **Step 3: Add persistence/reload test with an active summon and pinned profile.**
 - [ ] **Step 4: Update docs/manual.**
