@@ -67,8 +67,8 @@ describe('Foundation trio authored class content', () => {
     const longshot = resolveMatureSkillVersion('farstrider.longshot')
     expect(longshot?.target).toMatchObject({
       minimumRange: 3,
-      maximumRange: 6,
-      maximumElevationDifference: 3,
+      maximumRange: 5,
+      maximumElevationDifference: 2,
     })
 
     const backstab = resolveMatureSkillVersion('shadehand.backstab')
