@@ -301,9 +301,10 @@ describe('Combat v5.1 summon AI', () => {
       tieBreakSeed: 45,
     })
 
+    const nextActionId = next.intent.kind === 'action' ? next.intent.actionId : null
     expect(
-      next.intent.kind === 'action' &&
-        summon.profile.abilities.some((ability) => ability.id === next.intent.actionId),
+      nextActionId !== null &&
+        summon.profile.abilities.some((ability) => ability.id === nextActionId),
     ).toBe(false)
     expect(['move', 'face', 'end-turn']).toContain(next.intent.kind)
   })
