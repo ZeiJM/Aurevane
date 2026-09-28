@@ -22,6 +22,8 @@ export interface BattleTemporaryResource {
 export interface BattleCombatant {
   id: string
   teamId: string
+  /** Omitted historical rows are ordinary non-summon combatants. */
+  kind?: 'standard' | 'summon'
   initiative: number
   baseMovementBudget: number
   hp: number
@@ -50,6 +52,8 @@ export interface BattleState {
   rng: BattleRngState
   combatants: readonly BattleCombatant[]
   initiativeOrder: readonly string[]
+  /** Combatants spawned mid-round join deterministic initiative at the next round boundary. */
+  deferredInitiativeCombatantIds?: readonly string[]
   /** Frozen offsets for this round only; absent on legacy snapshots. */
   roundInitiativeModifiers?: readonly { combatantId: string; amount: number }[]
   round: number
@@ -65,6 +69,7 @@ export interface BattleInvariantIssue {
 export interface CreateBattleCombatantInput {
   id: string
   teamId: string
+  kind?: 'standard' | 'summon'
   initiative: number
   baseMovementBudget: number
   hp: number
@@ -310,6 +315,7 @@ export function endTurn(
     ? {
         ...state,
         initiativeOrder: createInitiativeOrder(state.combatants, nextRoundModifiers),
+        deferredInitiativeCombatantIds: [],
         ...(nextRoundModifiers.length || state.roundInitiativeModifiers
           ? { roundInitiativeModifiers: nextRoundModifiers.map((modifier) => ({ ...modifier })) }
           : {}),
@@ -399,6 +405,7 @@ export function defeatCurrentCombatant(
     ? {
         ...defeatedState,
         initiativeOrder: createInitiativeOrder(defeatedState.combatants, nextRoundModifiers),
+        deferredInitiativeCombatantIds: [],
         ...(nextRoundModifiers.length || state.roundInitiativeModifiers
           ? { roundInitiativeModifiers: nextRoundModifiers.map((modifier) => ({ ...modifier })) }
           : {}),
@@ -474,9 +481,21 @@ export function validateBattleState(state: BattleState): readonly BattleInvarian
     }
     modifierIds.add(modifier.combatantId)
   }
+  const deferredIds = new Set(state.deferredInitiativeCombatantIds ?? [])
+  if (
+    deferredIds.size !== (state.deferredInitiativeCombatantIds ?? []).length ||
+    [...deferredIds].some((combatantId) => !combatantIds.has(combatantId)) ||
+    (deferredIds.size > 0 && state.lifecycle !== 'active')
+  ) {
+    issues.push({
+      field: 'deferredInitiativeCombatantIds',
+      message: 'Deferred initiative IDs must be unique known combatants in an active battle.',
+    })
+  }
   const expectedInitiativeOrder = createInitiativeOrder(
     state.combatants,
     state.roundInitiativeModifiers,
+    deferredIds,
   )
   if (!arraysEqual(state.initiativeOrder, expectedInitiativeOrder)) {
     issues.push({
@@ -530,6 +549,7 @@ function normalizeCombatant(input: CreateBattleCombatantInput): BattleCombatant 
   return {
     id: input.id,
     teamId: input.teamId,
+    ...(input.kind === undefined ? {} : { kind: input.kind }),
     initiative: input.initiative,
     baseMovementBudget: input.baseMovementBudget,
     hp: input.hp,
@@ -543,11 +563,13 @@ function normalizeCombatant(input: CreateBattleCombatantInput): BattleCombatant 
 function createInitiativeOrder(
   combatants: readonly BattleCombatant[],
   modifiers: NonNullable<BattleState['roundInitiativeModifiers']> = [],
+  excludedIds: ReadonlySet<string> = new Set(),
 ): string[] {
   const offsets = new Map(modifiers.map((modifier) => [modifier.combatantId, modifier.amount]))
   const priority = (unit: BattleCombatant) =>
     Math.min(Number.MAX_SAFE_INTEGER, unit.initiative + (offsets.get(unit.id) ?? 0))
   return [...combatants]
+    .filter((combatant) => !excludedIds.has(combatant.id))
     .sort((left, right) => {
       if (priority(left) !== priority(right)) {
         return priority(right) - priority(left)
@@ -625,7 +647,9 @@ function getCombatant(state: BattleState, combatantId: string): BattleCombatant 
 
 function collectActiveTeams(state: BattleState): Set<string> {
   return new Set(
-    state.combatants.filter((combatant) => combatant.hp > 0).map((combatant) => combatant.teamId),
+    state.combatants
+      .filter((combatant) => combatant.hp > 0 && combatant.kind !== 'summon')
+      .map((combatant) => combatant.teamId),
   )
 }
 
@@ -637,6 +661,9 @@ function collectCombatantIssues(
   const prefix = `combatants.${index}`
   collectIdentityIssue(issues, combatant.id, `${prefix}.id`)
   collectIdentityIssue(issues, combatant.teamId, `${prefix}.teamId`)
+  if (combatant.kind !== undefined && combatant.kind !== 'standard' && combatant.kind !== 'summon') {
+    issues.push({ field: `${prefix}.kind`, message: 'Unknown combatant kind.' })
+  }
   collectNonNegativeIntegerIssue(issues, combatant.initiative, `${prefix}.initiative`)
   collectNonNegativeIntegerIssue(
     issues,
