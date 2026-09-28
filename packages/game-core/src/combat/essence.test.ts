@@ -200,7 +200,7 @@ describe('P3.6 versioned pure Essence framework', () => {
     const historical = resolveEssenceForBuild('edgedancer', null, 2)
     if (!current || !historical) throw new Error('Expected Edgedancer Essence versions.')
 
-    expect(current.contentVersion).toBe(4)
+    expect(current.contentVersion).toBe(5)
     expect(
       current.skill.effects
         .filter((effect) => effect.type === 'damage')
@@ -219,10 +219,10 @@ describe('P3.6 versioned pure Essence framework', () => {
 
     expect(essenceSnapshotReference(essence)).toEqual({
       essenceId: essence.essenceId,
-      contentVersion: 3,
+      contentVersion: 4,
       sourceDisciplineId: 'vanguard',
       skillId: 'essence.vanguard.unbroken-strike',
-      skillContentVersion: 3,
+      skillContentVersion: 4,
     })
 
     const historical = resolveEssenceForBuild('vanguard', null, 1)
