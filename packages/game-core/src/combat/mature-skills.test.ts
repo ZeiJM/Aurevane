@@ -136,9 +136,9 @@ describe('P3.3 mature Skill schema', () => {
     }
 
     expect(resolveMatureSkillVersion('aetherist.arc-bolt', 2)?.mpCost).toBeUndefined()
-    expect(resolveMatureSkillVersion('aetherist.arc-bolt')?.mpCost).toBe(2)
+    expect(resolveMatureSkillVersion('aetherist.arc-bolt')?.mpCost).toBe(3)
     expect(resolveMatureSkillVersion('lifebinder.vital-sever', 2)?.mpCost).toBeUndefined()
-    expect(resolveMatureSkillVersion('lifebinder.vital-sever')?.mpCost).toBe(2)
+    expect(resolveMatureSkillVersion('lifebinder.vital-sever')?.mpCost).toBe(3)
   })
 
   it('uses existing combat target, requirement, and effect authority instead of a parallel engine', () => {
