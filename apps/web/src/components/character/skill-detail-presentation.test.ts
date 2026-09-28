@@ -212,7 +212,7 @@ it('returns one effect summary per authored effect with positive durations only'
 
 it('lists authored magnitudes as effects without leaking design tags', () => {
   const siphon = resolveMatureSkillVersion('runeblade.siphon-slash')!
-  expect(skillEffectsSummary(siphon)).toBe('Dmg [11], MP Drain [6], MP Restore [6]')
+  expect(skillEffectsSummary(siphon)).toBe('Dmg [13], MP Drain [7], MP Restore [7]')
   expect(skillEffectsSummary({ ...siphon, tags: [...siphon.tags, 'setup', 'melee'] })).toBe(
     skillEffectsSummary(siphon),
   )
