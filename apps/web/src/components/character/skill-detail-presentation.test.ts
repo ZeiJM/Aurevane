@@ -217,7 +217,7 @@ it('lists authored magnitudes as effects without leaking design tags', () => {
     skillEffectsSummary(siphon),
   )
   const brand = skillEffectsSummary(resolveMatureSkillVersion('runeblade.sigil-brand')!)
-  expect(brand).toBe('Dmg [7], Exposed [11%] [2 Turns], Hexed [16%] [2 Turns]')
+  expect(brand).toBe('Dmg [10], Exposed [14.26%] [2 Turns], Hexed [20.74%] [2 Turns]')
   expect(skillEffectsSummary(resolveMatureSkillVersion('runeblade.rune-mending')!)).not.toContain(
     'Dmg',
   )
