@@ -102,12 +102,17 @@ describe('Combat v5.1 summon content', () => {
     ).toContain('abilities')
   })
 
-  it('requires the current summon lifetime to be exactly five turns', () => {
+  it('allows each summon to author its own positive lifetime while keeping five turns as the standard', () => {
     expect(validateSummonProfileDefinition(profile({ lifetimeTurns: 5 }))).toEqual([])
-    expect(validateSummonProfileDefinition(profile({ lifetimeTurns: 4 }))).toContain(
+    expect(validateSummonProfileDefinition(profile({ lifetimeTurns: 3 }))).toEqual([])
+    expect(validateSummonProfileDefinition(profile({ lifetimeTurns: 8 }))).toEqual([])
+    expect(validateSummonProfileDefinition(profile({ lifetimeTurns: 0 }))).toContain(
       'lifetimeTurns',
     )
-    expect(validateSummonProfileDefinition(profile({ lifetimeTurns: 6 }))).toContain(
+    expect(validateSummonProfileDefinition(profile({ lifetimeTurns: -1 }))).toContain(
+      'lifetimeTurns',
+    )
+    expect(validateSummonProfileDefinition(profile({ lifetimeTurns: 2.5 }))).toContain(
       'lifetimeTurns',
     )
   })
