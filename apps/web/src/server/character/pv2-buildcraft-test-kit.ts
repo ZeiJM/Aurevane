@@ -93,22 +93,7 @@ export async function preparePv2BuildcraftTestKit(
       skill.enabled &&
       PV2_TEST_SKILL_DISCIPLINES.some((disciplineId) => disciplineId === skill.sourceDisciplineId),
   )
-  const { data: learnedRows, error: learnedError } = await supabase.rpc(
-    'get_character_learned_skills_v1',
-    {
-      p_user_id: userId,
-      p_character_id: characterId,
-    },
-  )
-  if (learnedError || !Array.isArray(learnedRows)) throw persistenceUnavailable()
-  const learnedSkillIds = new Set(
-    learnedRows.flatMap((row) =>
-      row && typeof row === 'object' && typeof row.skill_id === 'string' ? [row.skill_id] : [],
-    ),
-  )
-
   for (const skill of representativeSkills) {
-    if (learnedSkillIds.has(skill.id)) continue
     // Learned Skill rows are immutable versioned facts. Keep an existing historical
     // reference intact; current presentation/battle resolution upgrades separately.
     if (existingSkillIds.has(skill.id)) continue
