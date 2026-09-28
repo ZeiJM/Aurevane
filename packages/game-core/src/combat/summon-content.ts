@@ -7,6 +7,12 @@ import type {
 export const SUMMON_PROFILE_SCHEMA_VERSION = 1 as const
 export const CURRENT_SUMMON_LIFETIME_TURNS = 5 as const
 
+export interface CombatSummonEffect {
+  readonly type: 'summon'
+  readonly recipient: 'selected-tile'
+  readonly durationTurns?: 0
+}
+
 export type SummonAiProfile = 'standard' | 'high'
 
 export interface SummonAbilityMediaHooks {
@@ -24,7 +30,7 @@ export interface SummonAbilityDefinition {
   readonly tags: readonly string[]
   readonly target: CombatTargetSpec
   readonly requirements: readonly CombatUseRequirement[]
-  readonly effects: readonly Exclude<CombatEffectDefinition, { type: 'summon' }>[]
+  readonly effects: readonly CombatEffectDefinition[]
   readonly ai: {
     readonly baseUtility: number
     readonly purposeTags: readonly string[]
@@ -55,7 +61,7 @@ export interface SummonProfileDefinition {
   }
   readonly aiProfile: SummonAiProfile
   readonly aiPurposeTags: readonly string[]
-  readonly lifetimeTurns: typeof CURRENT_SUMMON_LIFETIME_TURNS
+  readonly lifetimeTurns: number
   readonly abilities: readonly SummonAbilityDefinition[]
 }
 
