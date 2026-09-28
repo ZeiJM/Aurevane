@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { latestEnabledMatureSkills, resolveMatureSkillVersion } from './mature-skills'
 import { rebalanceMatureSkillDefinition } from './skill-balance-v5'
+import { isMaterializedCombatEffect } from './summon-content'
 
 describe('owner v5 Skill rebalance', () => {
   it('publishes all current regular Techniques with bounded power, duration, and cooldown rules', () => {
@@ -35,7 +36,7 @@ describe('owner v5 Skill rebalance', () => {
           expect(Math.abs(effect.delta)).toBeGreaterThanOrEqual(1)
           expect(Math.abs(effect.delta)).toBeLessThanOrEqual(20)
         }
-        if (effect.power !== undefined) {
+        if (effect.type !== 'summon' && effect.power !== undefined) {
           expect(effect.power).toBeGreaterThanOrEqual(1)
           expect(effect.power).toBeLessThanOrEqual(20)
         }
@@ -180,11 +181,15 @@ describe('owner v5 Skill rebalance', () => {
 
     const short = rebalanceMatureSkillDefinition({
       ...ungated,
-      effects: ungated.effects.map((effect) => ({ ...effect, durationTurns: 1 })),
+      effects: ungated.effects
+        .filter(isMaterializedCombatEffect)
+        .map((effect) => ({ ...effect, durationTurns: 1 })),
     })
     const long = rebalanceMatureSkillDefinition({
       ...ungated,
-      effects: ungated.effects.map((effect) => ({ ...effect, durationTurns: 4 })),
+      effects: ungated.effects
+        .filter(isMaterializedCombatEffect)
+        .map((effect) => ({ ...effect, durationTurns: 4 })),
     })
 
     expect(long.cooldown?.ownerTurns ?? 0).toBeGreaterThanOrEqual(short.cooldown?.ownerTurns ?? 0)
