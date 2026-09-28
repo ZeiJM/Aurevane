@@ -213,7 +213,6 @@ describe('P3.3 generic owner-turn cooldown clock', () => {
   })
 })
 
-
 describe('Combat v5.1 authoring bounds', () => {
   it('enforces current AP, maximum-range, and elevation bounds without invalidating historical versions', () => {
     const attack = resolveMatureSkillVersion('vanguard.forceful-strike')
