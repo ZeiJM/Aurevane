@@ -242,7 +242,6 @@ it('shows 1–3 turn cooldowns and no cooldown on prerequisite-gated Skills', ()
   expect(skillCooldownDescription(gated)).toBe('None')
 })
 
-
 describe('Combat v5.1 compact effect summaries', () => {
   it('formats authored percentage statuses as magnitude plus duration only', () => {
     expect(
