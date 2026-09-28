@@ -35,7 +35,9 @@ function profile(combatantId: string, team: 'players' | 'opponents'): StatDriven
   }
 }
 
-function summonProfile(): SummonProfileDefinition {
+function summonProfile(
+  overrides: Partial<SummonProfileDefinition> = {},
+): SummonProfileDefinition {
   return {
     schemaVersion: SUMMON_PROFILE_SCHEMA_VERSION,
     id: 'summon.wildwarden.verdant-stalker',
@@ -88,6 +90,7 @@ function summonProfile(): SummonProfileDefinition {
         },
       },
     ],
+    ...overrides,
   }
 }
 
@@ -156,12 +159,15 @@ function encounter(): StatDrivenCombatEncounterState {
   ])
 }
 
-function spawn(state = encounter()) {
+function spawn(
+  state = encounter(),
+  summon = summonProfile(),
+) {
   return spawnCombatSummon(state, {
     ownerCombatantId: 'player',
     sourceSkillId: 'wildwarden.renewing-herbs',
     sourceSkillVersion: 5,
-    profile: summonProfile(),
+    profile: summon,
     position: { x: 1, y: 0 },
     facing: 'east',
   })
@@ -259,6 +265,29 @@ describe('Combat v5.1 summon runtime state', () => {
       summonId,
     )
     expect(removed.events).toContainEqual(
+      expect.objectContaining({ event: 'summon_expired', combatantId: summonId }),
+    )
+  })
+
+  it('expires a summon after its authored number of completed turns', () => {
+    let transition = spawn(encounter(), summonProfile({ lifetimeTurns: 3 }))
+    const spawnEvent = transition.events.find((entry) => entry.event === 'summon_spawned')
+    if (!spawnEvent || spawnEvent.event !== 'summon_spawned') throw new Error('Expected spawn.')
+    const summonId = spawnEvent.combatantId
+
+    for (let turn = 1; turn <= 2; turn += 1) {
+      transition = advanceCombatSummonOwnerTurn(transition.state, summonId)
+      expect(
+        transition.state.effectState?.summons?.find((row) => row.combatantId === summonId)
+          ?.turnsCompleted,
+      ).toBe(turn)
+    }
+
+    transition = advanceCombatSummonOwnerTurn(transition.state, summonId)
+    expect(transition.state.effectState?.summons?.find((row) => row.combatantId === summonId)).toBe(
+      undefined,
+    )
+    expect(transition.events).toContainEqual(
       expect.objectContaining({ event: 'summon_expired', combatantId: summonId }),
     )
   })
