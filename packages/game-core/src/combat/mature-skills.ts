@@ -16,6 +16,7 @@ import type { SkillCooldownDefinition } from './skill-cooldowns'
 import { rebalanceMatureSkillDefinition } from './skill-balance-v5'
 import {
   applyV51CurrentTechniqueTargeting,
+  classifyV51SkillRole,
   rebalanceMatureSkillDefinitionV51,
 } from './skill-balance-v5-1'
 
@@ -87,6 +88,22 @@ export interface MatureSkillDefinition extends CombatAccuracyAuthoring {
 
 export interface ResolvedMatureSkillDefinition extends MatureSkillDefinition {
   readonly combatContext: MatureSkillCombatContext
+}
+
+export interface MatureSkillApCostBounds {
+  readonly minimum: number
+  readonly maximum: number
+}
+
+export function matureSkillApCostBounds(
+  definition: MatureSkillDefinition,
+): MatureSkillApCostBounds {
+  if (!definition.authoring.validationTags.includes('owner-rebalance-v5-1')) {
+    return { minimum: 1, maximum: 100 }
+  }
+  return classifyV51SkillRole(definition) === 'utility'
+    ? { minimum: 35, maximum: 50 }
+    : { minimum: 45, maximum: 60 }
 }
 
 const meleeEnemyTarget: CombatTargetSpec = {
@@ -1004,6 +1021,25 @@ export function validateMatureSkillDefinition(
     issues.push('authoring.schemaVersion')
   }
   const usesV5BalanceRules = definition.authoring.validationTags.includes('owner-rebalance-v5')
+  const usesV51BalanceRules = definition.authoring.validationTags.includes('owner-rebalance-v5-1')
+  if (usesV51BalanceRules) {
+    const apBounds = matureSkillApCostBounds(definition)
+    if (definition.apCost < apBounds.minimum || definition.apCost > apBounds.maximum) {
+      issues.push('apCost')
+    }
+    if (definition.target.kind !== 'self') {
+      if (definition.target.maximumRange < 1 || definition.target.maximumRange > 5) {
+        issues.push('target.maximumRange')
+      }
+      if (
+        definition.target.maximumElevationDifference === null ||
+        definition.target.maximumElevationDifference < 0 ||
+        definition.target.maximumElevationDifference > 2
+      ) {
+        issues.push('target.maximumElevationDifference')
+      }
+    }
+  }
   if (usesV5BalanceRules && !definition.flavorLine?.trim()) issues.push('flavorLine')
   if (usesV5BalanceRules && definition.requirements.length > 0) {
     if (definition.cooldown !== null) issues.push('cooldown')
@@ -1071,11 +1107,17 @@ export function validateMatureSkillDefinition(
     }
   }
   for (const [context, override] of Object.entries(definition.overrides)) {
-    if (
-      override?.apCost !== undefined &&
-      (!Number.isSafeInteger(override.apCost) || override.apCost < 1 || override.apCost > 100)
-    ) {
-      issues.push(`overrides.${context}.apCost`)
+    if (override?.apCost !== undefined) {
+      const apBounds = usesV51BalanceRules
+        ? matureSkillApCostBounds(definition)
+        : { minimum: 1, maximum: 100 }
+      if (
+        !Number.isSafeInteger(override.apCost) ||
+        override.apCost < apBounds.minimum ||
+        override.apCost > apBounds.maximum
+      ) {
+        issues.push(`overrides.${context}.apCost`)
+      }
     }
     if (
       override?.cooldownOwnerTurns !== undefined &&
