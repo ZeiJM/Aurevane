@@ -37,7 +37,7 @@ function statusPreview(id: string, potencyBasisPoints?: number): PreviewEffect {
     result.magnitude = `+${status.markAccuracyBonusBasisPoints / 100} pp Accuracy`
     result.explanation = `Source gains ${result.magnitude} against this target.`
   } else if (status?.movement?.additionalApPerTile !== undefined) {
-    result.magnitude = `${signed(status.movement.additionalApPerTile)} AP/tile`
+    result.magnitude = `${signed(status.movement.additionalApPerTile)} AP`
     result.explanation = details.description
   } else if (status?.movement?.blocked) {
     result.explanation = 'Blocks movement; attacks, Skills and facing remain available.'
