@@ -1,5 +1,5 @@
 import type { CombatEffectDefinition } from './actions'
-import type { MatureSkillDefinition } from './mature-skills'
+import type { MatureSkillDefinition, MatureSkillEffectDefinition } from './mature-skills'
 
 export const CURRENT_SKILL_POWER_MINIMUM = 1 as const
 export const CURRENT_SKILL_POWER_MAXIMUM = 20 as const
@@ -102,7 +102,7 @@ function defaultStatusDuration(statusId: string): number {
   }
 }
 
-export function defaultEffectDurationTurns(effect: CombatEffectDefinition): number {
+export function defaultEffectDurationTurns(effect: MatureSkillEffectDefinition): number {
   if (effect.durationTurns !== undefined) return effect.durationTurns
   switch (effect.type) {
     case 'apply-status':
@@ -178,11 +178,12 @@ function tuneDamage(
 
 function tuneEffect(
   definition: MatureSkillDefinition,
-  effect: CombatEffectDefinition,
+  effect: MatureSkillEffectDefinition,
   damageEffects: number,
   nonDamageWeight: number,
   kind: RebalanceSkillKind,
-): CombatEffectDefinition {
+): MatureSkillEffectDefinition {
+  if (effect.type === 'summon') return effect
   if (effect.type === 'damage') {
     return tuneDamage(definition, effect, damageEffects, nonDamageWeight, kind)
   }
@@ -258,7 +259,7 @@ function tuneEffect(
   }
 }
 
-function effectWeight(effect: CombatEffectDefinition): number {
+function effectWeight(effect: MatureSkillEffectDefinition): number {
   const duration = defaultEffectDurationTurns(effect)
   switch (effect.type) {
     case 'apply-status':
@@ -280,11 +281,12 @@ function effectWeight(effect: CombatEffectDefinition): number {
     case 'bleed':
       return 1 + duration * 0.35
     case 'damage':
+    case 'summon':
       return 0
   }
 }
 
-function effectMagnitudeWeight(effect: CombatEffectDefinition): number {
+function effectMagnitudeWeight(effect: MatureSkillEffectDefinition): number {
   switch (effect.type) {
     case 'damage':
       return effect.amount * 0.3
@@ -300,6 +302,8 @@ function effectMagnitudeWeight(effect: CombatEffectDefinition): number {
       return (effect.power ?? 3) * Math.max(1, defaultEffectDurationTurns(effect)) * 0.1
     case 'apply-status':
       return (effect.potencyBasisPoints ?? 0) / 1_000
+    case 'summon':
+      return 0
     default:
       return 0
   }
@@ -312,7 +316,7 @@ function cooldownReachWeight(definition: MatureSkillDefinition): number {
 
 function cooldownTurns(
   definition: MatureSkillDefinition,
-  effects: readonly CombatEffectDefinition[],
+  effects: readonly MatureSkillEffectDefinition[],
   kind: RebalanceSkillKind,
 ): 1 | 2 | 3 | null {
   if (definition.requirements.length > 0) return null
