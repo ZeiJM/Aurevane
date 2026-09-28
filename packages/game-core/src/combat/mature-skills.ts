@@ -101,6 +101,7 @@ export function matureSkillApCostBounds(
   if (!definition.authoring.validationTags.includes('owner-rebalance-v5-1')) {
     return { minimum: 1, maximum: 100 }
   }
+  if (definition.tags.includes('essence')) return { minimum: 55, maximum: 75 }
   return classifyV51SkillRole(definition) === 'utility'
     ? { minimum: 35, maximum: 50 }
     : { minimum: 45, maximum: 60 }
