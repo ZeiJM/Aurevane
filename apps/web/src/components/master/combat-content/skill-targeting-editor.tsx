@@ -271,7 +271,9 @@ export function SkillTargetingEditor({
         />
         <span>Requires line of sight</span>
         {currentNonSelf && !value.requiresLineOfSight ? (
-          <small className={styles.fieldHint}>Skipping line of sight consumes targeting budget.</small>
+          <small className={styles.fieldHint}>
+            Skipping line of sight consumes targeting budget.
+          </small>
         ) : null}
       </label>
 
