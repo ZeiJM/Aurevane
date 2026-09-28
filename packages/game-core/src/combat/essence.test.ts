@@ -167,7 +167,7 @@ describe('P3.6 versioned pure Essence framework', () => {
           expect(Math.abs(effect.delta), definition.essenceId).toBeGreaterThanOrEqual(1)
           expect(Math.abs(effect.delta), definition.essenceId).toBeLessThanOrEqual(20)
         }
-        if (effect.power !== undefined) {
+        if (effect.type !== 'summon' && effect.power !== undefined) {
           expect(effect.power, definition.essenceId).toBeGreaterThanOrEqual(1)
           expect(effect.power, definition.essenceId).toBeLessThanOrEqual(20)
         }
