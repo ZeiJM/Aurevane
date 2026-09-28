@@ -1,5 +1,5 @@
 import type { CombatEffectDefinition } from './actions'
-import type { MatureSkillDefinition } from './mature-skills'
+import type { MatureSkillDefinition, MatureSkillEffectDefinition } from './mature-skills'
 import {
   CURRENT_EFFECT_DURATION_MAXIMUM_TURNS,
   CURRENT_SKILL_POWER_MAXIMUM,
@@ -133,9 +133,10 @@ function scalePower(value: number, factor: number, minimum = 1): number {
 }
 
 function tuneEffectMagnitude(
-  effect: CombatEffectDefinition,
+  effect: MatureSkillEffectDefinition,
   factor: number,
-): CombatEffectDefinition {
+): MatureSkillEffectDefinition {
+  if (effect.type === 'summon') return effect
   switch (effect.type) {
     case 'damage':
       return {
@@ -177,7 +178,7 @@ function tuneEffectMagnitude(
   }
 }
 
-function effectWeight(effect: CombatEffectDefinition): number {
+function effectWeight(effect: MatureSkillEffectDefinition): number {
   const duration = defaultEffectDurationTurns(effect)
   switch (effect.type) {
     case 'apply-status':
@@ -199,11 +200,12 @@ function effectWeight(effect: CombatEffectDefinition): number {
     case 'bleed':
       return 1 + duration * 0.35
     case 'damage':
+    case 'summon':
       return 0
   }
 }
 
-function effectMagnitudeWeight(effect: CombatEffectDefinition): number {
+function effectMagnitudeWeight(effect: MatureSkillEffectDefinition): number {
   switch (effect.type) {
     case 'damage':
       return effect.amount * 0.3
@@ -219,6 +221,8 @@ function effectMagnitudeWeight(effect: CombatEffectDefinition): number {
       return (effect.power ?? 3) * Math.max(1, defaultEffectDurationTurns(effect)) * 0.1
     case 'apply-status':
       return (effect.potencyBasisPoints ?? 0) / 1_000
+    case 'summon':
+      return 0
     default:
       return 0
   }
@@ -226,7 +230,7 @@ function effectMagnitudeWeight(effect: CombatEffectDefinition): number {
 
 function cooldownTurns(
   definition: MatureSkillDefinition,
-  effects: readonly CombatEffectDefinition[],
+  effects: readonly MatureSkillEffectDefinition[],
   kind: RebalanceSkillKind,
 ): 1 | 2 | 3 | null {
   if (definition.requirements.length > 0) return null
