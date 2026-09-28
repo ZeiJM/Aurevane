@@ -13,6 +13,10 @@ import type {
   CombatUseRequirement,
 } from './actions'
 import type { SkillCooldownDefinition } from './skill-cooldowns'
+import {
+  validateSummonProfileDefinition,
+  type SummonProfileDefinition,
+} from './summon-content'
 import { rebalanceMatureSkillDefinition } from './skill-balance-v5'
 import {
   applyV51CurrentTechniqueTargeting,
@@ -76,6 +80,7 @@ export interface MatureSkillDefinition extends CombatAccuracyAuthoring {
    * This presentation-only field is never projected into combat resolution.
    */
   readonly effectDescriptions?: readonly (string | null)[]
+  readonly summonProfile?: SummonProfileDefinition
   readonly tags: readonly string[]
   readonly cooldown: SkillCooldownDefinition | null
   readonly ai: MatureSkillAiMetadata
@@ -1021,6 +1026,22 @@ export function validateMatureSkillDefinition(
   if (definition.authoring.schemaVersion !== MATURE_SKILL_SCHEMA_VERSION) {
     issues.push('authoring.schemaVersion')
   }
+  const summonEffects = definition.effects.filter((effect) => effect.type === 'summon')
+  if (summonEffects.length > 0 !== (definition.summonProfile !== undefined)) {
+    issues.push('summonProfile')
+  }
+  if (definition.summonProfile !== undefined) {
+    const summonIssues = validateSummonProfileDefinition(definition.summonProfile)
+    if (summonIssues.length > 0) issues.push('summonProfile')
+  }
+  if (summonEffects.length > 0) {
+    if (summonEffects.length !== 1) issues.push('effects.summon')
+    if (definition.target.kind !== 'empty-tile') issues.push('target.kind')
+    if (summonEffects.some((effect) => (effect.durationTurns ?? 0) !== 0)) {
+      issues.push('effects.summon.durationTurns')
+    }
+  }
+
   const usesV5BalanceRules = definition.authoring.validationTags.includes('owner-rebalance-v5')
   const usesV51BalanceRules = definition.authoring.validationTags.includes('owner-rebalance-v5-1')
   if (usesV51BalanceRules) {
