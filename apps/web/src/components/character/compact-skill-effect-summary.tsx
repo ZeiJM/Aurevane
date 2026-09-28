@@ -1,8 +1,8 @@
-import type { CombatEffectDefinition } from '@aurevane/game-core/combat/actions'
+import type { MatureSkillEffectDefinition } from '@aurevane/game-core/combat/mature-skills'
 
 import { compactSkillEffectSummaryParts } from './skill-detail-presentation'
 
-export function CompactSkillEffectSummary({ effect }: { effect: CombatEffectDefinition }) {
+export function CompactSkillEffectSummary({ effect }: { effect: MatureSkillEffectDefinition }) {
   const parts = compactSkillEffectSummaryParts(effect)
 
   return (
