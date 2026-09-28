@@ -104,7 +104,6 @@ it('publishes the Techniques guide and removes the obsolete fixed Power budget',
   expect(text).toContain('current v5 Skills can author Poison Power and duration')
 })
 
-
 it('documents Combat v5.1 reach, elevation, LOS, and compact targeting presentation', () => {
   const text = articleText('techniques-damage-effects')
 
