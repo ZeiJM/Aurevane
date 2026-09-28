@@ -5,25 +5,29 @@ import {
   combatStatusDetails,
   combatStatusDuration,
 } from '@aurevane/game-core/combat/status-content'
+import type { CombatUseRequirement } from '@aurevane/game-core/combat/actions'
 import type {
-  CombatEffectDefinition,
-  CombatUseRequirement,
-} from '@aurevane/game-core/combat/actions'
-import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
+  MatureSkillDefinition,
+  MatureSkillEffectDefinition,
+} from '@aurevane/game-core/combat/mature-skills'
+import { isMaterializedCombatEffect } from '@aurevane/game-core/combat/summon-content'
 
 function title(value: string): string {
   return value.replace(/[-_]/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
 }
 
-function recipient(effect: CombatEffectDefinition): string {
+function recipient(effect: MatureSkillEffectDefinition): string {
   if (effect.recipient === 'actor') return 'yourself'
   if (effect.recipient === 'affected-units') return 'each affected unit'
+  if (effect.recipient === 'selected-tile') return 'the selected empty tile'
   return 'the selected unit'
 }
 
-export function skillEffectDescription(effect: CombatEffectDefinition): string {
+export function skillEffectDescription(effect: MatureSkillEffectDefinition): string {
   const target = recipient(effect)
   switch (effect.type) {
+    case 'summon':
+      return 'Summon the authored allied unit onto the selected empty tile.'
     case 'damage': {
       const facing = effect.facingModifiersBasisPoints
       const position = facing
@@ -103,7 +107,11 @@ export function skillRequirementDescription(requirement: CombatUseRequirement): 
 }
 
 export function skillTargetTags(skill: MatureSkillDefinition): readonly string[] {
-  return combatActionPresentationTags(skill)
+  const tags = combatActionPresentationTags({
+    target: skill.target,
+    effects: skill.effects.filter(isMaterializedCombatEffect),
+  })
+  return skill.effects.some((effect) => effect.type === 'summon') ? [...tags, 'Summon'] : tags
 }
 
 export function skillTypeDescription(
@@ -128,13 +136,14 @@ export interface CompactSkillEffectSummaryParts {
   duration: string | null
 }
 
-function compactDuration(effect: CombatEffectDefinition): string | null {
+function compactDuration(effect: MatureSkillEffectDefinition): string | null {
   const turns = effect.durationTurns ?? 0
   if (turns <= 0) return null
   return `${turns} ${turns === 1 ? 'Turn' : 'Turns'}`
 }
 
-function compactMagnitude(effect: CombatEffectDefinition): string | null {
+function compactMagnitude(effect: MatureSkillEffectDefinition): string | null {
+  if (effect.type === 'summon') return null
   if (effect.type === 'apply-status' && effect.potencyBasisPoints !== undefined) {
     return `${Math.abs(effect.potencyBasisPoints) / 100}%`
   }
@@ -148,7 +157,7 @@ function compactMagnitude(effect: CombatEffectDefinition): string | null {
 }
 
 export function compactSkillEffectSummaryParts(
-  effect: CombatEffectDefinition,
+  effect: MatureSkillEffectDefinition,
 ): CompactSkillEffectSummaryParts {
   const preview = previewEffect(effect)
   return {
@@ -158,7 +167,7 @@ export function compactSkillEffectSummaryParts(
   }
 }
 
-function compactEffectSummary(effect: CombatEffectDefinition): string {
+function compactEffectSummary(effect: MatureSkillEffectDefinition): string {
   const { label, magnitude, duration } = compactSkillEffectSummaryParts(effect)
   return [label, magnitude ? `[${magnitude}]` : null, duration ? `[${duration}]` : null]
     .filter((part): part is string => part !== null)
