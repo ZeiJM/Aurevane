@@ -35,9 +35,7 @@ function profile(combatantId: string, team: 'players' | 'opponents'): StatDriven
   }
 }
 
-function summonProfile(
-  overrides: Partial<SummonProfileDefinition> = {},
-): SummonProfileDefinition {
+function summonProfile(overrides: Partial<SummonProfileDefinition> = {}): SummonProfileDefinition {
   return {
     schemaVersion: SUMMON_PROFILE_SCHEMA_VERSION,
     id: 'summon.wildwarden.verdant-stalker',
@@ -159,10 +157,7 @@ function encounter(): StatDrivenCombatEncounterState {
   ])
 }
 
-function spawn(
-  state = encounter(),
-  summon = summonProfile(),
-) {
+function spawn(state = encounter(), summon = summonProfile()) {
   return spawnCombatSummon(state, {
     ownerCombatantId: 'player',
     sourceSkillId: 'wildwarden.renewing-herbs',
