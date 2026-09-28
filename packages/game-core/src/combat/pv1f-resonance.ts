@@ -10,7 +10,7 @@ import {
   constrainResonanceForecastToTarget,
   type ResonanceCombatEvent,
   type ResonanceCombatState,
-  type ResonanceDefinition,
+  type AnyResonanceDefinition,
 } from './resonance'
 import type { StatDrivenCombatEncounterState } from './stat-driven-combat'
 
@@ -22,7 +22,7 @@ export interface Pv1fMatureSkillResonanceTransition {
 
 export function executePv1fMatureSkillWithResonance(input: {
   readonly state: StatDrivenCombatEncounterState
-  readonly resonance: ResonanceDefinition
+  readonly resonance: AnyResonanceDefinition
   readonly resonanceState: ResonanceCombatState
   readonly skill: MatureSkillDefinition
   readonly combatContext: MatureSkillCombatContext
