@@ -661,7 +661,11 @@ function collectCombatantIssues(
   const prefix = `combatants.${index}`
   collectIdentityIssue(issues, combatant.id, `${prefix}.id`)
   collectIdentityIssue(issues, combatant.teamId, `${prefix}.teamId`)
-  if (\n    combatant.kind !== undefined &&\n    combatant.kind !== 'standard' &&\n    combatant.kind !== 'summon'\n  ) {
+  if (
+    combatant.kind !== undefined &&
+    combatant.kind !== 'standard' &&
+    combatant.kind !== 'summon'
+  ) {
     issues.push({ field: `${prefix}.kind`, message: 'Unknown combatant kind.' })
   }
   collectNonNegativeIntegerIssue(issues, combatant.initiative, `${prefix}.initiative`)
