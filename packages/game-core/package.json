@@ -57,7 +57,8 @@
     "./combat/combat-dots": "./src/combat/combat-dots.ts",
     "./combat/combat-level-scaling": "./src/combat/combat-level-scaling.ts",
     "./combat/combat-critical": "./src/combat/combat-critical.ts",
-    "./combat/damage-modifiers": "./src/combat/damage-modifiers.ts"
+    "./combat/damage-modifiers": "./src/combat/damage-modifiers.ts",
+    "./combat/summon-content": "./src/combat/summon-content.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
