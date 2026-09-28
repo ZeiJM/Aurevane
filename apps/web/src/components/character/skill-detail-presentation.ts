@@ -218,9 +218,9 @@ export function skillTargetMethodDescription(skill: MatureSkillDefinition): stri
     case 'single':
       return 'Single'
     case 'circle':
-      return `Circle · radius ${skill.target.shape.radius}`
+      return 'Circle'
     case 'line':
-      return `Line · ${skill.target.shape.length} tiles`
+      return 'Line'
   }
 }
 
@@ -232,8 +232,7 @@ export function skillTargetElevationDescription(skill: MatureSkillDefinition): s
 
 export function skillCompactRangeDescription(skill: MatureSkillDefinition): string {
   if (skill.target.kind === 'self') return 'N/A'
-  const { minimumRange: min, maximumRange: max } = skill.target
-  return min === max ? `${min} ${min === 1 ? 'tile' : 'tiles'}` : `${min}–${max} tiles`
+  return String(skill.target.maximumRange)
 }
 
 export function skillLineOfSightDescription(skill: MatureSkillDefinition): string {
