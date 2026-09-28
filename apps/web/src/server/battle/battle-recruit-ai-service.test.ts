@@ -7,6 +7,11 @@ import type {
 import type { CharacterRecord, CharacterRepository } from '@aurevane/db/character'
 import { P2_3_COMBAT_CONTENT, endCombatTurn } from '@aurevane/game-core/combat/actions'
 import { selectCurrentFinalFacing } from '@aurevane/game-core/combat/board'
+import { spawnCombatSummon } from '@aurevane/game-core/combat/combat-summons'
+import {
+  SUMMON_PROFILE_SCHEMA_VERSION,
+  type SummonProfileDefinition,
+} from '@aurevane/game-core/combat/summon-content'
 import {
   reattachStatDrivenCombatBridge,
   type StatDrivenCombatEncounterState,
@@ -106,6 +111,98 @@ function advanceToRecruitTurn(
     state.statBridge,
   )
   return endCombatTurn(withFacing, P2_3_COMBAT_CONTENT).state as StatDrivenCombatEncounterState
+}
+
+function summonProfile(): SummonProfileDefinition {
+  return {
+    schemaVersion: SUMMON_PROFILE_SCHEMA_VERSION,
+    id: 'summon.test.service-stalker',
+    name: 'Service Stalker',
+    description: 'A test summon controlled through the authoritative AI service.',
+    flavorLine: 'It moves only when the server commands it.',
+    portraitKey: 'summon.test.service-stalker.portrait',
+    tags: ['summon', 'test'],
+    maxHp: 30,
+    maxMp: 0,
+    initiative: 100,
+    movementBudget: 4,
+    stats: {
+      accuracy: 10_000,
+      evasion: 0,
+      armor: 0,
+      ward: 0,
+      jump: 1,
+      physicalPower: 20,
+      mysticPower: 20,
+    },
+    aiProfile: 'standard',
+    aiPurposeTags: ['damage'],
+    lifetimeTurns: 3,
+    abilities: [
+      {
+        id: 'summon.test.service-stalker.strike',
+        name: 'Stalker Strike',
+        description: 'Strike an enemy through the summon-specific action path.',
+        apCost: 45,
+        mpCost: 0,
+        tags: ['attack'],
+        target: {
+          kind: 'unit',
+          teamPolicy: 'enemy',
+          shape: { kind: 'single' },
+          minimumRange: 1,
+          maximumRange: 99,
+          requiresLineOfSight: false,
+          maximumElevationDifference: null,
+          friendlyFire: 'enemies-only',
+        },
+        requirements: [],
+        effects: [{ type: 'damage', recipient: 'primary-unit', amount: 3, durationTurns: 0 }],
+        ai: { baseUtility: 1_000, purposeTags: ['damage'] },
+        media: { iconKey: null, audioCueKey: null, vfxKey: null },
+      },
+    ],
+  }
+}
+
+function stateWithActiveSummonTurn(
+  state: StatDrivenCombatEncounterState,
+): { state: StatDrivenCombatEncounterState; summonId: string } {
+  const occupied = new Set(
+    state.tactical.placements.map(
+      (placement) => `${placement.position.x},${placement.position.y}`,
+    ),
+  )
+  const position = state.tactical.tiles.find(
+    (tile) =>
+      !occupied.has(`${tile.position.x},${tile.position.y}`) &&
+      state.tactical.terrains.some(
+        (terrain) => terrain.id === tile.terrainId && terrain.traversalCost !== null,
+      ),
+  )?.position
+  if (!position) throw new Error('Expected an empty passable tile for summon service test.')
+
+  const ownerCombatantId = state.tactical.battle.currentTurn?.combatantId
+  if (!ownerCombatantId) throw new Error('Expected player turn before summon spawn.')
+
+  const spawned = spawnCombatSummon(state, {
+    ownerCombatantId,
+    sourceSkillId: 'test.summon-service',
+    sourceSkillVersion: 1,
+    profile: summonProfile(),
+    position,
+    facing: 'east',
+  })
+  const summonId = spawned.events.find((event) => event.event === 'summon_spawned')?.combatantId
+  if (!summonId) throw new Error('Expected summon spawn event.')
+
+  const recruitTurn = advanceToRecruitTurn(spawned.state)
+  const summonTurn = advanceToRecruitTurn(recruitTurn)
+  if (summonTurn.tactical.battle.currentTurn?.combatantId !== summonId) {
+    throw new Error('Expected deferred summon to lead the next round.')
+  }
+
+  return { state: summonTurn, summonId }
 }
 
 function createStatefulRepository(
@@ -216,6 +313,50 @@ describe('P2.6 authoritative Recruit AI turn service', () => {
       expect(JSON.stringify(decision)).not.toContain('rng')
       expect(commit.requestFingerprint).toMatch(/^sha256:[0-9a-f]{64}$/)
     }
+  })
+
+  it('routes summon turns through authored summon AI and returns control after the summon turn', async () => {
+    const active = stateWithActiveSummonTurn(await initialEncounter())
+    const fixture = createStatefulRepository(active.state)
+    const service = createBattleRecruitAiService(fixture.repository)
+
+    const result = await service.runTurn({
+      userId: USER_ID,
+      battleSessionId: SESSION_ID,
+      expectedBattleVersion: 1,
+    })
+
+    expect(result.decisions.length).toBeGreaterThan(0)
+    expect(result.snapshot.tactical.battle.currentTurn?.combatantId).toBe(
+      `character:${CHARACTER_ID}`,
+    )
+    expect(
+      fixture.commits.some((commit) =>
+        commit.events.some(
+          (event) =>
+            typeof event === 'object' &&
+            event !== null &&
+            'event' in event &&
+            event.event === 'summon_ai_decision',
+        ),
+      ),
+    ).toBe(true)
+    expect(
+      fixture.commits.some((commit) =>
+        commit.events.some(
+          (event) =>
+            typeof event === 'object' &&
+            event !== null &&
+            'event' in event &&
+            event.event === 'summon_ability_used',
+        ),
+      ),
+    ).toBe(true)
+
+    const summon = result.snapshot.effectState?.summons?.find(
+      (candidate) => candidate.combatantId === active.summonId,
+    )
+    expect(summon?.turnsCompleted).toBe(1)
   })
 
   it('rejects attempts to run Recruit AI during a player-controlled turn', async () => {
