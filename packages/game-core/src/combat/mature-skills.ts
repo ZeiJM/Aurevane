@@ -913,16 +913,15 @@ const V5_REBALANCED_DISCIPLINE_SKILLS = latestEnabledMatureSkills(
   PRE_V5_CURRENT_DISCIPLINE_SKILLS,
 ).map((definition) => rebalanceMatureSkillDefinition(definition, 'technique'))
 
-function materializeV51CurrentSummon(
-  definition: MatureSkillDefinition,
-): MatureSkillDefinition {
+function materializeV51CurrentSummon(definition: MatureSkillDefinition): MatureSkillDefinition {
   if (definition.id !== 'wildwarden.renewing-herbs') return definition
 
   const summonProfile: SummonProfileDefinition = {
     schemaVersion: SUMMON_PROFILE_SCHEMA_VERSION,
     id: 'summon.wildwarden.verdant-stalker',
     name: 'Verdant Stalker',
-    description: 'A temporary woodland hunter that supports allies and pressures nearby enemies.',
+    description:
+      'A temporary woodland hunter that supports allies and pressures nearby enemies.',
     flavorLine: 'Roots and herbs knot together into a watchful hunter.',
     portraitKey: 'summon.wildwarden.verdant-stalker.portrait',
     tags: ['summon', 'verdant', 'beast'],
