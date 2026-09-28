@@ -122,16 +122,51 @@ export function skillCostDescription(skill: MatureSkillDefinition): string {
   return skill.mpCost ? `${skill.apCost} AP / ${skill.mpCost} MP` : `${skill.apCost} AP`
 }
 
-function durationLabel(effect: CombatEffectDefinition): string {
+export interface CompactSkillEffectSummaryParts {
+  label: string
+  magnitude: string | null
+  duration: string | null
+}
+
+function compactDuration(effect: CombatEffectDefinition): string | null {
   const turns = effect.durationTurns ?? 0
-  if (turns <= 0) return ''
-  return ` [${turns} ${turns === 1 ? 'Turn' : 'Turns'}]`
+  if (turns <= 0) return null
+  return `${turns} ${turns === 1 ? 'Turn' : 'Turns'}`
+}
+
+function compactMagnitude(effect: CombatEffectDefinition): string | null {
+  if (effect.type === 'apply-status' && effect.potencyBasisPoints !== undefined) {
+    return `${Math.abs(effect.potencyBasisPoints) / 100}%`
+  }
+
+  const magnitude = previewEffect(effect).magnitude
+  if (!magnitude) return null
+  if (effect.type === 'apply-status' && effect.statusId === 'slow') {
+    return magnitude.replace(/\/tile$/u, '')
+  }
+  return magnitude
+}
+
+export function compactSkillEffectSummaryParts(
+  effect: CombatEffectDefinition,
+): CompactSkillEffectSummaryParts {
+  const preview = previewEffect(effect)
+  return {
+    label: preview.label,
+    magnitude: compactMagnitude(effect),
+    duration: compactDuration(effect),
+  }
+}
+
+function compactEffectSummary(effect: CombatEffectDefinition): string {
+  const { label, magnitude, duration } = compactSkillEffectSummaryParts(effect)
+  return [label, magnitude ? `[${magnitude}]` : null, duration ? `[${duration}]` : null]
+    .filter((part): part is string => part !== null)
+    .join(' ')
 }
 
 export function skillEffectSummaries(skill: MatureSkillDefinition): readonly string[] {
-  return skill.effects.map(
-    (effect) => `${effectSummary(previewEffect(effect))}${durationLabel(effect)}`,
-  )
+  return skill.effects.map(compactEffectSummary)
 }
 
 export function skillEffectsSummary(skill: MatureSkillDefinition): string {
