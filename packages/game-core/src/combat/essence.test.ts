@@ -371,7 +371,6 @@ describe('P3.6 versioned pure Essence framework', () => {
   })
 })
 
-
 describe('Combat v5.1 Essence targeting balance', () => {
   it('publishes current Essence versions with v5.1 targeting rules while preserving v5 history', () => {
     const disciplineIds = [
@@ -407,11 +406,7 @@ describe('Combat v5.1 Essence targeting balance', () => {
         elevations.set(elevation ?? 0, (elevations.get(elevation ?? 0) ?? 0) + 1)
       }
 
-      const previous = resolveEssenceForBuild(
-        disciplineId,
-        null,
-        current.contentVersion - 1,
-      )
+      const previous = resolveEssenceForBuild(disciplineId, null, current.contentVersion - 1)
       if (!previous) throw new Error(`Expected prior Essence for ${disciplineId}.`)
       expect(previous.skill.authoring.validationTags, previous.essenceId).toContain(
         'owner-rebalance-v5',
