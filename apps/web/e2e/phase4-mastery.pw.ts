@@ -62,7 +62,7 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
   await page.getByRole('button', { name: /Manage Techniques/ }).click()
   const techniques = page.getByRole('dialog', { name: 'Techniques', exact: true })
   const list = page.getByTestId('learned-skill-list')
-  for (const name of ['Forceful Strike', 'Brace']) {
+  for (const name of ['Forceful Strike', 'Brace', 'Shield Bash']) {
     const checkbox = list
       .locator('article')
       .filter({ has: page.getByText(name, { exact: true }) })
@@ -143,9 +143,13 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
       skillCommands++
       continue
     }
-    if (distance === 1 && ap >= (skillCommands < 3 ? 40 : 50)) {
-      if (skillCommands < 3) {
+    const nextPrimarySkillCost = skillCommands === 2 ? 45 : 40
+    if (distance === 1 && ap >= (skillCommands < 3 ? nextPrimarySkillCost : 50)) {
+      if (skillCommands === 1) {
         await root.getByRole('button', { name: 'Forceful Strike, 40 AP', exact: true }).click()
+      } else if (skillCommands === 2) {
+        await chooseSkill('Attack', 'vanguard.shield-bash')
+        await root.getByRole('button', { name: 'Shield Bash, 45 AP', exact: true }).click()
       } else {
         await chooseSkill('Attack', 'basic.attack.unarmed.basic')
         await root.locator('[data-battle-command="attack"]').click()
