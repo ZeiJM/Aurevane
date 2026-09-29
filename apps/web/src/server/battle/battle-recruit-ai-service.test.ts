@@ -153,7 +153,7 @@ function summonProfile(): SummonProfileDefinition {
           minimumRange: 1,
           maximumRange: 1,
           requiresLineOfSight: false,
-          maximumElevationDifference: null,
+          maximumElevationDifference: 0,
           friendlyFire: 'enemies-only',
         },
         requirements: [],
