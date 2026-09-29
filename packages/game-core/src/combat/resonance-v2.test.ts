@@ -59,7 +59,7 @@ describe('Combat v5.1 Resonance v2 schema', () => {
   })
 
   it('rejects more than two matcher tags or more than two Result effects', () => {
-    const v5 = resolveResonanceForPair('lifebinder', 'vanguard')
+    const v5 = resolveResonanceForPair('lifebinder', 'vanguard', 2)
     if (!v5 || isResonanceDefinitionV2(v5)) {
       throw new Error('Expected current v5 Resonance.')
     }
