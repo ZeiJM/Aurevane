@@ -85,7 +85,9 @@ function EssenceHoverPreview({ essence }: { essence: EssenceDefinition }) {
 function ResonanceHoverPreview({ resonance }: { resonance: AnyResonanceDefinition }) {
   const mechanics = normalizedResonanceMechanics(resonance)
   const effects = mechanics.resultEffects.map(effectSummaryWithDuration)
-  const effectExplanations = mechanics.resultEffects.map((effect) => previewEffect(effect).explanation)
+  const effectExplanations = mechanics.resultEffects.map(
+    (effect) => previewEffect(effect).explanation,
+  )
   const setup = mechanics.setup
   const trigger = mechanics.trigger
   return (
