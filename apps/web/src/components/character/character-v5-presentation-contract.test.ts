@@ -35,7 +35,7 @@ describe('Combat v5 Nexus and Technique presentation contracts', () => {
     const skillCss = readFileSync(join(here, 'character-skill-build-panel.module.css'), 'utf8')
     const shell = readFileSync(join(here, 'character-arsenal-shell.tsx'), 'utf8')
 
-    expect(source).toContain('data-single-discipline={!secondaryDiscipline ? \'true\' : \'false\'}')
+    expect(source).toContain("data-single-discipline={!secondaryDiscipline ? 'true' : 'false'}")
     expect(skillCss).toContain(".techniqueArea[data-single-discipline='true']")
     expect(shell).toContain('<strong>Severance</strong>')
     expect(shell).not.toContain('<strong>Severed</strong>')
