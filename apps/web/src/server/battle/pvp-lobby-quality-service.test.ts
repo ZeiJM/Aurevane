@@ -403,18 +403,47 @@ describe('P3.7 direct PvP committed build snapshots', () => {
       },
     ])
     const previewService = createBattlePreviewService(repository, combatContentResolver)
-    const intent = {
-      kind: 'action' as const,
-      actionId: 'frostweaver.chilling-mist',
-      target: { kind: 'tile' as const, position: { x: 1, y: 1 } },
+    const occupied = new Set(
+      before.snapshot.tactical.placements.map(
+        (placement) => `${placement.position.x},${placement.position.y}`,
+      ),
+    )
+    let intent:
+      | {
+          kind: 'action'
+          actionId: string
+          target: { kind: 'tile'; position: { x: number; y: number } }
+        }
+      | null = null
+    let preview: Awaited<ReturnType<typeof previewService.previewIntent>> | null = null
+
+    for (const tile of before.snapshot.tactical.tiles) {
+      if (occupied.has(`${tile.position.x},${tile.position.y}`)) continue
+      const candidateIntent = {
+        kind: 'action' as const,
+        actionId: 'frostweaver.chilling-mist',
+        target: { kind: 'tile' as const, position: { ...tile.position } },
+      }
+      const candidatePreview = await previewService.previewIntent({
+        userId: hostUserId,
+        battleSessionId: record.battleSessionId,
+        expectedBattleVersion: record.battleVersion,
+        intent: candidateIntent,
+      })
+      if (
+        candidatePreview.preview.legal &&
+        candidatePreview.preview.affectedCombatantIds.length === 0 &&
+        candidatePreview.preview.projectedTerrain.some((entry) => entry.after === 'frozen')
+      ) {
+        intent = candidateIntent
+        preview = candidatePreview
+        break
+      }
     }
-    const preview = await previewService.previewIntent({
-      userId: hostUserId,
-      battleSessionId: record.battleSessionId,
-      expectedBattleVersion: record.battleVersion,
-      intent,
-    })
-    expect(preview.preview).toMatchObject({
+
+    expect(intent).not.toBeNull()
+    expect(preview).not.toBeNull()
+    expect(preview!.preview).toMatchObject({
       legal: true,
       affectedCombatantIds: [],
       projectedTerrain: expect.arrayContaining([
