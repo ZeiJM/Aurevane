@@ -132,7 +132,7 @@ function pveParticipants(
   const participants: BattlePresentationParticipant[] = []
   const battleCombatants = battle.snapshot.tactical.battle.combatants
   const localCombatant = localProfile
-    ? battleCombatants.find((combatant) => combatant.id === localProfile.combatantId) ?? null
+    ? (battleCombatants.find((combatant) => combatant.id === localProfile.combatantId) ?? null)
     : null
   const orderedTeamIds = [
     ...(localCombatant ? [localCombatant.teamId] : []),
@@ -264,9 +264,7 @@ export function buildBattleViewModel(
   runtime: BattleRuntime,
 ): BattleViewModel {
   const participants =
-    runtime.kind === 'pvp'
-      ? pvpParticipants(battle, runtime)
-      : pveParticipants(battle, runtime)
+    runtime.kind === 'pvp' ? pvpParticipants(battle, runtime) : pveParticipants(battle, runtime)
   const participantByCombatant = new Map(
     participants.map((participant) => [participant.combatantId, participant] as const),
   )
