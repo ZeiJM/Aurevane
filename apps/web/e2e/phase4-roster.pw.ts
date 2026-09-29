@@ -138,8 +138,8 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
       }
       page.on('request', trackAudio)
       await root.getByRole('button', { name: /Choose Guard skill/ }).click()
-      await page.getByRole('option', { name: 'Breakfall 25 AP', exact: true }).click()
-      await root.getByRole('button', { name: 'Breakfall, 25 AP', exact: true }).click()
+      await page.getByRole('option', { name: 'Breakfall 35 AP', exact: true }).click()
+      await root.getByRole('button', { name: 'Breakfall, 35 AP', exact: true }).click()
       await expect(root.getByRole('button', { name: 'Confirm Action', exact: true })).toBeEnabled()
       expect(audioRequests).toEqual([])
       const committed = page.waitForResponse(
