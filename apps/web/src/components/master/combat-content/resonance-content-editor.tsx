@@ -270,66 +270,81 @@ export function ResonanceContentEditor({
     )
   }
 
-  const pair = selectedDraft.disciplinePair
-  const mechanics = normalizedResonanceMechanics(selectedDraft)
+  const draft = selectedDraft
+  const pair = draft.disciplinePair
+  const mechanics = normalizedResonanceMechanics(draft)
   const setup = mechanics.setup
   const triggerMatcher = mechanics.trigger
-  const v2 = isResonanceDefinitionV2(selectedDraft)
+  const v2 = isResonanceDefinitionV2(draft)
 
   function updateSetup(nextSetup: typeof setup) {
-    if (v2) {
+    if (isResonanceDefinitionV2(draft)) {
       updateDraft({
-        ...selectedDraft,
-        trigger: { ...selectedDraft.trigger, setup: nextSetup },
+        ...draft,
+        trigger: { ...draft.trigger, setup: nextSetup },
       })
       return
     }
     if (!nextSetup) return
     updateDraft({
-      ...selectedDraft,
-      trigger: { ...selectedDraft.trigger, setup: nextSetup },
+      ...draft,
+      trigger: { ...draft.trigger, setup: nextSetup },
     })
   }
 
   function updateTriggerMatcher(nextTrigger: typeof triggerMatcher) {
-    if (v2) {
+    if (isResonanceDefinitionV2(draft)) {
       updateDraft({
-        ...selectedDraft,
-        trigger: { ...selectedDraft.trigger, trigger: nextTrigger },
+        ...draft,
+        trigger: { ...draft.trigger, trigger: nextTrigger },
       })
       return
     }
     updateDraft({
-      ...selectedDraft,
-      trigger: { ...selectedDraft.trigger, payoff: nextTrigger },
+      ...draft,
+      trigger: { ...draft.trigger, payoff: nextTrigger },
     })
   }
 
   function updateTriggerUtility(value: number) {
-    if (v2) {
+    if (isResonanceDefinitionV2(draft)) {
       updateDraft({
-        ...selectedDraft,
-        trigger: { ...selectedDraft.trigger, aiTriggerUtilityBonus: value },
+        ...draft,
+        trigger: { ...draft.trigger, aiTriggerUtilityBonus: value },
       })
       return
     }
     updateDraft({
-      ...selectedDraft,
-      trigger: { ...selectedDraft.trigger, aiPayoffUtilityBonus: value },
+      ...draft,
+      trigger: { ...draft.trigger, aiPayoffUtilityBonus: value },
+    })
+  }
+
+  function updateSetupUtility(value: number) {
+    if (isResonanceDefinitionV2(draft)) {
+      updateDraft({
+        ...draft,
+        trigger: { ...draft.trigger, aiSetupUtilityBonus: value },
+      })
+      return
+    }
+    updateDraft({
+      ...draft,
+      trigger: { ...draft.trigger, aiSetupUtilityBonus: value },
     })
   }
 
   function updateResultEffects(effects: Parameters<typeof SkillEffectListEditor>[0]['value']) {
-    if (v2) {
+    if (isResonanceDefinitionV2(draft)) {
       updateDraft({
-        ...selectedDraft,
-        trigger: { ...selectedDraft.trigger, resultEffects: effects },
+        ...draft,
+        trigger: { ...draft.trigger, resultEffects: effects },
       })
       return
     }
     updateDraft({
-      ...selectedDraft,
-      trigger: { ...selectedDraft.trigger, payoffEffects: effects },
+      ...draft,
+      trigger: { ...draft.trigger, payoffEffects: effects },
     })
   }
 
@@ -457,7 +472,7 @@ export function ResonanceContentEditor({
                     disabled={!v2}
                     value={mechanics.mode}
                     onChange={(event) => {
-                      if (!v2) return
+                      if (!isResonanceDefinitionV2(draft)) return
                       const mode = event.currentTarget.value as 'sequence' | 'immediate'
                       const defaultSetup = {
                         sourceDisciplineId:
@@ -467,15 +482,15 @@ export function ResonanceContentEditor({
                         requiredTags: ['attack'],
                       }
                       updateDraft({
-                        ...selectedDraft,
+                        ...draft,
                         trigger: {
-                          ...selectedDraft.trigger,
+                          ...draft.trigger,
                           mode,
                           setup: mode === 'immediate' ? null : (setup ?? defaultSetup),
                           aiSetupUtilityBonus:
                             mode === 'immediate'
                               ? 0
-                              : Math.max(1, selectedDraft.trigger.aiSetupUtilityBonus || 10),
+                              : Math.max(1, draft.trigger.aiSetupUtilityBonus || 10),
                         },
                       })
                     }}
@@ -539,13 +554,7 @@ export function ResonanceContentEditor({
                       type="number"
                       value={selectedDraft.trigger.aiSetupUtilityBonus}
                       onChange={(event) =>
-                        updateDraft({
-                          ...selectedDraft,
-                          trigger: {
-                            ...selectedDraft.trigger,
-                            aiSetupUtilityBonus: Number(event.currentTarget.value),
-                          },
-                        })
+                        updateSetupUtility(Number(event.currentTarget.value))
                       }
                     />
                   </label>
