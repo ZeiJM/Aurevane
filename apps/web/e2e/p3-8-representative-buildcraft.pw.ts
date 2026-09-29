@@ -140,16 +140,15 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
     name: /Preview Resonance: Mercy's Edge/,
   })
   await resonancePreviewButton.hover()
-  const resonancePreview = page
-    .locator('[id^="resonance-preview-"]')
-    .filter({ hasText: "Mercy's Edge" })
+  const resonancePreview = page.locator('[id^="resonance-preview-"]').filter({
+    hasText: "Mercy's Edge",
+  })
   await expect(resonancePreview).toBeVisible()
   await expect(resonancePreview).toContainText('Setup:')
   await expect(resonancePreview).toContainText('Trigger:')
   await expect(resonancePreview).toContainText('Result')
   await expect(resonancePreview).toContainText('Result details')
   await expect(resonancePreview).not.toContainText('Payoff')
-
 
   await page.getByRole('button', { name: /Manage Techniques/ }).click()
   const mixedCapacity = page.getByTestId('skill-capacity')
