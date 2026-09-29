@@ -91,7 +91,7 @@ test('current Renewing Herbs summons, inspects and survives reload with its pinn
   )
   expect(actorPlacement).toBeTruthy()
 
-  await root.getByRole('button', { name: /Choose Guard skill/ }).click()
+  await root.getByRole('button', { name: /Choose Heal skill/ }).click()
   await page.getByRole('option', { name: /Renewing Herbs 45 AP/ }).click()
   await root.getByRole('button', { name: /Renewing Herbs, 45 AP/ }).click()
 
