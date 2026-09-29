@@ -8,6 +8,17 @@ Live testing destination: https://aurevane.vercel.app — sign in and open World
 
 The final application candidate and reconciled main SHA are recorded in PR #609. The post-release branch changes only the deployment lock and documentation. Phase 4 is closed by explicit Owner decision recorded in PRs #659/#660; do not reopen its acceptance checklist or invent independent tester evidence. Full Phase 5 and Owner acceptance of the live Atlas remain open.
 
+## Repository advances after the initial Atlas Production release
+
+The live deployment described above is an older Phase-5 baseline, not the current repository head. Preserve this distinction when reporting status.
+
+- PR #764 merged the Owner's 2026-09-29 travel retune: ordinary authoritative world steps are **275 ms** (4× faster than the preceding 1,100 ms baseline), active World synchronization uses the same interval and player-marker interpolation is 210 ms. Saved 1,100 ms/4,000 ms routes fail closed rather than silently changing timing. This retune is merged but **not yet deployed to Production**.
+- PR #763 merged P5-W2/P5-W4 presentation: explicit inspect versus travel, actual-location versus viewed-location context, route/ETA continuity, label-safe globe presentation, build identity and the existing Ascension/Severence choice presentation. This is also merged but **not yet deployed to Production**.
+- PR #684 already merged the first spoiler-safe Field Observation → Archive vertical slice; do not reopen it as unimplemented.
+- PRs #710/#717/#747 merged supernatural story-state authority, version-pinned proof identities/transitions and approved identity projection. The committed migration `20260924003000_phase5_supernatural_story_state.sql` is **not applied to live Supabase**.
+- PRs #742/#743 merged immutable Cartographic Drift ledger persistence and the server-only persisted-resolution service. The committed migration `20260925180000_cartographic_drift_cycle_ledger.sql` is **not applied to live Supabase**.
+- PR #765 is the active P5-W3A in-world NPC conversation presentation slice over the already-authoritative Eastern Watch/Hinterland Patrol objective interactions. It must not be represented as merged/live until its current-main verification and integration are complete.
+
 ## Delivered Atlas scope
 
 - Interactive globe, eight canonical regional scenes, eight authored 13-square road sectors and a private frontier survey scene.
@@ -37,6 +48,13 @@ Refresh main explicitly with `git fetch origin refs/heads/main:refs/remotes/orig
 
 ## Continue next
 
-Start with the Owner's live Atlas feedback and concrete defects. Then take the next small approved Phase 5 slice: settlements/locations, NPC dialogue, quests, vendors, Archive/lore and player-facing world events. Supernatural choice and the first authored frontier/Cartographic Drift slice remain later work. Reuse completed Phase 4 infrastructure; this Atlas is not all of Phase 5.
+Start with the Owner's live Atlas feedback and concrete defects. Current repository priority is:
 
-Keep persistent state server-authoritative, preserve normal supernatural exclusivity and spoiler boundaries, and never repurpose Owner-granted Anomaly states as frontier rewards.
+1. Finish and integrate the verified P5-W3A NPC conversation presentation (#765) over the existing authoritative objective interactions.
+2. Keep #681's distinct-settlement geometry on merge hold until matching reviewed v02 regional art exists; do not move geometry to fit old paintings.
+3. Expand settlements/NPCs/quests/vendors only from approved authored content and reward facts. The Eastern Watch and Crown Hinterland loops already prove persistent accept → progress → return/completion without inventing rewards.
+4. Extend Archive work with Fragment Sets/deeper lore provenance only when approved content contracts exist; the first Field Observation → Archive slice is already merged.
+5. Release the already-merged supernatural story-state and Cartographic Drift persistence migrations only under explicit Production authorization, then verify the matching application flows live.
+6. Continue the remaining outer-Reach/far-inhabitant/Horizon and location-coherent battle-scene work without absorbing Phase-6 continuous rendering.
+
+Player-facing World Pulse is already built on Phase-4 event operations; do not create a parallel event system. Keep persistent state server-authoritative, preserve normal supernatural exclusivity and spoiler boundaries, and never repurpose Owner-granted Anomaly states as frontier rewards.
