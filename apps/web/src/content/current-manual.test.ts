@@ -100,7 +100,9 @@ it('publishes the Techniques guide and removes the obsolete fixed Power budget',
   expect(text).not.toContain('Prepare repeat-use reduction')
   expect(text).toContain('Essence and Resonance details in Nexus')
   expect(text).toContain('Hover the active Essence or Resonance artwork')
-  expect(text).toContain('setup Discipline/tags')
+  expect(text).toContain('Resonance details use Setup, Trigger and Result')
+  expect(text).toContain('Immediate Resonances have no Setup')
+  expect(text).not.toContain('payoff Discipline/tags')
   expect(text).toContain('current v5 Skills can author Poison Power and duration')
 })
 
