@@ -617,3 +617,24 @@
     transform: none;
   }
 }
+
+/* Stone account gate: preserve notice and tab contrast in both modes. */
+.entryCard[data-account-concept='true'] .environmentNotice {
+  background: #d8cbb2;
+  color: #383b31;
+  border-color: #998360;
+}
+.entryCard[data-account-concept='true'] .environmentNotice strong {
+  color: #30372e;
+}
+.entryCard[data-account-concept='true'] .modeSwitch {
+  background: #b2a184;
+  border-color: #97815c;
+}
+.entryCard[data-account-concept='true'] .modeSwitch button {
+  color: #343b31;
+}
+.entryCard[data-account-concept='true'] .modeSwitch .modeActive {
+  color: #f3ead5;
+  background: #345951;
+}

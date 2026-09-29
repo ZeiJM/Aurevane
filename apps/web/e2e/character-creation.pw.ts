@@ -91,7 +91,7 @@ test('creates a slotted character, persists its profile, and resumes it across s
   await expect(page.getByText(personalTitle, { exact: true }).first()).toBeVisible()
   await page
     .getByRole('navigation', { name: 'Primary game navigation', exact: true })
-    .getByRole('link', { name: 'Character', exact: true })
+    .getByRole('link', { name: 'Profile', exact: true })
     .click()
   await expect(page).toHaveURL(/\/game\/character$/)
   await expect(page.getByTestId('character-profile')).toContainText(personalTitle)
@@ -113,7 +113,8 @@ test('creates a slotted character, persists its profile, and resumes it across s
 
   await expect(page).toHaveURL(/\/game$/)
   await page.getByRole('link', { name: `Play ${characterName}` }).click()
-  await expect(page).toHaveURL(/\/game\/character$/)
+  await expect(page).toHaveURL(/\/game\/haven$/)
+  await page.goto('/game/character')
   await expect(page.getByTestId('character-profile')).toContainText(characterName)
   await expect(page.getByTestId('character-profile')).toContainText(personalTitle)
 
@@ -132,7 +133,7 @@ test('creates a slotted character, persists its profile, and resumes it across s
   await expect(page.getByTestId('practice-plan-card')).toContainText('Idle')
   await page
     .getByRole('navigation', { name: 'Primary game navigation', exact: true })
-    .getByRole('link', { name: 'Character', exact: true })
+    .getByRole('link', { name: 'Profile', exact: true })
     .click()
   await expect(page).toHaveURL(/\/game\/character$/)
 
@@ -160,7 +161,7 @@ test('creates a slotted character, persists its profile, and resumes it across s
 
   await page
     .getByRole('navigation', { name: 'Primary game navigation', exact: true })
-    .getByRole('link', { name: 'Character', exact: true })
+    .getByRole('link', { name: 'Profile', exact: true })
     .click()
   await expect(page).toHaveURL(/\/game\/character$/)
   await expect(page.getByTestId('character-profile')).toContainText('Level 1')

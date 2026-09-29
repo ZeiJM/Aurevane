@@ -3,7 +3,7 @@
 import type { Route } from 'next'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import type { CSSProperties } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 
 import { gameNavigation } from './game-navigation'
 import styles from './authenticated-game-shell.module.css'
@@ -198,10 +198,9 @@ function NavigationIcon({ name }: { name: (typeof gameNavigation)[number]['icon'
           <circle cx="12" cy="7" r="3.25" />
           <path d="M5 21v-3a7 7 0 0 1 14 0v3Z" />
         </>
-      ) : name === 'arsenal' ? (
+      ) : name === 'haven' ? (
         <>
-          <path d="M5 8h14v11H5z" />
-          <path d="M8 8V5h8v3M8 12h8M10 12v2h4v-2" />
+          <path d="m3 11 9-8 9 8M5 10v11h14V10M9 21v-7h6v7" />
         </>
       ) : name === 'nexus' ? (
         <>
@@ -233,11 +232,16 @@ function NavigationIcon({ name }: { name: (typeof gameNavigation)[number]['icon'
 }
 
 export interface GameRailProps {
+  characterIdentity?: ReactNode
   activeSessionHref?: Route | null
   activeSessionLabel?: string | null
 }
 
-export function GameRail({ activeSessionHref, activeSessionLabel }: GameRailProps) {
+export function GameRail({
+  activeSessionHref,
+  activeSessionLabel,
+  characterIdentity,
+}: GameRailProps) {
   const pathname = usePathname()
   const restricted = Boolean(activeSessionHref)
   return (
@@ -248,26 +252,16 @@ export function GameRail({ activeSessionHref, activeSessionLabel }: GameRailProp
       data-av-surface="ink"
     >
       <RailAetherField />
+      {characterIdentity}
       <nav className={styles.railNavigation} aria-label="Primary game navigation">
         {gameNavigation.map((item) => {
           const active = Boolean(
-            item.href && (pathname === item.href || pathname.startsWith(item.href + '/')),
+            item.href &&
+            (pathname === item.href ||
+              pathname.startsWith(item.href + '/') ||
+              (item.href === '/game/loadout' &&
+                (pathname.startsWith('/game/nexus') || pathname.startsWith('/game/arsenal')))),
           )
-          if (!item.href || ('disabled' in item && item.disabled)) {
-            return (
-              <button
-                key={item.label}
-                className={styles.railLink}
-                type="button"
-                disabled
-                title={item.detail}
-                aria-label={item.label}
-              >
-                <NavigationIcon name={item.icon} />
-                <span>{item.label}</span>
-              </button>
-            )
-          }
           return restricted ? (
             <button
               key={item.href}
@@ -297,6 +291,19 @@ export function GameRail({ activeSessionHref, activeSessionLabel }: GameRailProp
           )
         })}
       </nav>
+      {!restricted ? (
+        <div className="av-rail-utilities">
+          <Link href="/game/account/titles" prefetch={false}>
+            ♜ <span>Titles</span>
+          </Link>
+          <Link href="/game/settings/audio" prefetch={false}>
+            ♫ <span>Audio</span>
+          </Link>
+          <Link href="/game/settings/controls" prefetch={false}>
+            ⚙ <span>Controls</span>
+          </Link>
+        </div>
+      ) : null}
       {activeSessionHref ? (
         <Link className={styles.railSession} href={activeSessionHref} prefetch={false}>
           {activeSessionLabel ?? 'Return to Active Session'}

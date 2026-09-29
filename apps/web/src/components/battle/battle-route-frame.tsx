@@ -3,7 +3,6 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 
 import { AccountMenu } from '@/components/shell/account-menu'
-import { GameRail } from '@/components/shell/game-rail'
 import styles from './battle-route-frame.module.css'
 
 /** Chrome only: the child battlefield remains the sole main and interaction root. */
@@ -43,7 +42,6 @@ export function BattleRouteFrame({
         </nav>
         <AccountMenu activeSessionHref={sessionHref as Route} activeSessionLabel={sessionLabel} />
       </header>
-      <GameRail activeSessionHref={sessionHref as Route} activeSessionLabel={sessionLabel} />
       <div className={styles.field}>{children}</div>
     </div>
   )

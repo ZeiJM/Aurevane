@@ -92,4 +92,12 @@ describe('authenticated shell presentation', () => {
     expect(markup).toContain('data-testid="portrait"')
     expect(markup).toContain('data-testid="account-menu"')
   })
+  it('removes navigation from live combat and spectation', () => {
+    const markup = renderToStaticMarkup(
+      <AuthenticatedShellPresentation layout="battlefield">
+        <section>Battle</section>
+      </AuthenticatedShellPresentation>,
+    )
+    expect(markup).not.toContain('data-testid="game-rail"')
+  })
 })

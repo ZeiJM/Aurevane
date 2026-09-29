@@ -217,9 +217,10 @@ test('desktop Profile and all Battle Hall setups fit without clipped controls or
   await page.setViewportSize({ width: 1366, height: 768 })
   await page
     .getByRole('navigation', { name: 'Primary game navigation' })
-    .getByRole('link', { name: 'Nexus', exact: true })
+    .getByRole('link', { name: 'Loadout', exact: true })
     .click()
-  await expect(page).toHaveURL(/\/game\/nexus$/)
+  await expect(page).toHaveURL(/\/game\/loadout$/)
+  await page.goto('/game/nexus')
   for (const [panel, name] of [
     ['primary-build-panel', 'Discipline Management'],
     ['skill-build-panel', 'Techniques'],

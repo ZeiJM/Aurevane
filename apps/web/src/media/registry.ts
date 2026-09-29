@@ -69,6 +69,41 @@ const legacySquareStarterPortraitAssetIds = [
 ] as const
 
 const IMAGE_ASSETS = [
+  ...(['male', 'female'] as const).flatMap((gender) =>
+    Array.from({ length: 12 }, (_, index) => ({
+      id: `character.adventure.${gender}-${String(index + 1).padStart(2, '0')}`,
+      kind: 'character' as const,
+      status: 'approved' as const,
+      requestId: 'ART-UI-20260929',
+      decorative: false,
+      alt: `${gender === 'male' ? 'Male' : 'Female'} adventurer ${index + 1}`,
+      src: `/media/art/adventure/${gender}-${String(index + 1).padStart(2, '0')}-v01.webp`,
+      width: 384,
+      height: 384,
+    })),
+  ),
+  {
+    id: 'environment.adventure.threshold',
+    kind: 'environment',
+    status: 'approved',
+    requestId: 'ART-UI-20260929',
+    decorative: true,
+    alt: '',
+    src: '/media/art/adventure/threshold-v01.webp',
+    width: 1672,
+    height: 941,
+  },
+  {
+    id: 'environment.adventure.haven',
+    kind: 'environment',
+    status: 'approved',
+    requestId: 'ART-UI-20260929',
+    decorative: true,
+    alt: '',
+    src: '/media/art/adventure/haven-v01.webp',
+    width: 1672,
+    height: 941,
+  },
   ...WORLD_ART,
   ...phase4Sigils.map(([discipline, requestId]) => ({
     id: `art.phase4.${discipline}.identity.v01`,

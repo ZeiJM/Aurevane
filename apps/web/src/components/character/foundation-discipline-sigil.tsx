@@ -12,6 +12,7 @@ interface FoundationDisciplineSigilProps {
 function Frame({ className, children }: { className?: string; children: ReactNode }) {
   return (
     <svg
+      data-gameplay-art="discipline"
       className={className}
       viewBox="0 0 96 96"
       fill="none"
@@ -48,6 +49,7 @@ export function FoundationDisciplineSigil({
   ) {
     return (
       <Image
+        data-gameplay-art="discipline"
         className={className}
         src={mediaAsset.src}
         width={mediaAsset.width}

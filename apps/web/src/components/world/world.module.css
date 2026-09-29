@@ -1527,3 +1527,62 @@
   fill: #d8d89924;
   stroke: #f3d88f;
 }
+
+/* Approved expedition workspace. Geography and travel authority are unchanged. */
+.workspace {
+  --map-paper: #c5b79d;
+  --map-gold: #9b8359;
+  grid-template-columns: minmax(0, 1fr) minmax(14rem, 22%);
+  gap: 0.8rem;
+}
+.mapColumn {
+  border-radius: 5px;
+  overflow: hidden;
+  box-shadow: 0 8px 25px #17282738;
+}
+.toolbar {
+  background: linear-gradient(120deg, #d0c3aa, #b6a789);
+  padding: 0.8rem 1rem;
+}
+.mapViewport {
+  background: radial-gradient(ellipse at 40% 45%, #7d948167, #2b4248e6);
+  border-block: 1px solid #8d795a;
+}
+.sidebar {
+  gap: 0.8rem;
+}
+.panel {
+  color: #303a31;
+  background: linear-gradient(135deg, #d7cab1, #bdac8e);
+  border-color: #9c8762;
+  border-radius: 4px;
+}
+.travelBar {
+  background: #c4b496;
+  border-color: #927d57;
+}
+.workspace button {
+  background: #d9cdb4;
+  border-color: #96805b;
+}
+.workspace button:hover:not(:disabled) {
+  background: #e4d6b9;
+}
+.tabs button[aria-pressed='true'] {
+  background: #325950;
+  color: #eee0bc;
+}
+@media (max-width: 980px) {
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+  .sidebar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 760px) {
+  .sidebar {
+    grid-template-columns: 1fr;
+  }
+}

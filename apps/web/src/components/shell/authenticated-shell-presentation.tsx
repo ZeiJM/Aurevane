@@ -22,6 +22,7 @@ export interface AuthenticatedShellPresentationProps extends GameRailProps {
   layout?: 'standard' | 'battlefield'
   character?: { name: string; level?: number } | null
   characterPortrait?: ReactNode
+  railIdentity?: ReactNode
   activeBattleHref?: Route | null
   activeSpectatingHref?: Route | null
   masterPanelHref?: Route | null
@@ -33,6 +34,7 @@ export function AuthenticatedShellPresentation({
   layout = 'standard',
   character,
   characterPortrait,
+  railIdentity,
   activeBattleHref = null,
   activeSpectatingHref = null,
   activeSessionHref = activeBattleHref ?? activeSpectatingHref,
@@ -65,12 +67,7 @@ export function AuthenticatedShellPresentation({
         </a>
         <header className={`${styles.masthead} ${railStyles.masthead}`} data-av-surface="ink">
           <div className={styles.brandGroup}>
-            <Link
-              className="brand"
-              href="/game/character"
-              prefetch={false}
-              aria-label="AUREVANE character profile"
-            >
+            <Link className="brand" href="/game/haven" prefetch={false} aria-label="AUREVANE Haven">
               <span className="brand__crest" aria-hidden="true">
                 <span>A</span>
               </span>
@@ -124,7 +121,23 @@ export function AuthenticatedShellPresentation({
           </div>
         </header>
 
-        <GameRail activeSessionHref={activeSessionHref} activeSessionLabel={activeSessionLabel} />
+        {layout !== 'battlefield' ? (
+          <GameRail
+            activeSessionHref={activeSessionHref}
+            activeSessionLabel={activeSessionLabel}
+            characterIdentity={
+              railIdentity ??
+              (character ? (
+                <div className="av-rail-identity">
+                  {characterPortrait}
+                  <strong>{character.name}</strong>
+                  {character.level ? <small>Level {character.level}</small> : null}
+                  <span>Your journey continues</span>
+                </div>
+              ) : null)
+            }
+          />
+        ) : null}
 
         <main className={styles.main} id="game-main" tabIndex={-1}>
           {children}

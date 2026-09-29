@@ -58,10 +58,10 @@ export function AccountEntryShell({ authConfig, sessionNotice }: AccountEntryShe
 
       <main className={styles.main} id="account-main">
         <section className={styles.hero} aria-labelledby="aurevane-title">
-          <AurevaneImage assetId="ui.foundation.vista" className={styles.heroMedia} />
+          <AurevaneImage assetId="environment.adventure.threshold" className={styles.heroMedia} />
           <div className={styles.heroShade} aria-hidden="true" />
           <div className={styles.heroContent}>
-            <Kicker marker="◆">The gates remember // every road begins here</Kicker>
+            <Kicker marker="◆">A magical world. An unwritten legend.</Kicker>
             <h1 id="aurevane-title">AUREVANE</h1>
             <p>
               Beyond these gates, moonlit roads lead toward old powers, rival ambitions, and legends
@@ -82,7 +82,7 @@ export function AccountEntryShell({ authConfig, sessionNotice }: AccountEntryShe
           data-account-concept="true"
         >
           <Kicker marker="◇">Cross the threshold</Kicker>
-          <h2>Begin or return.</h2>
+          <h2>Your journey continues.</h2>
           <AccountAccessPanel authConfig={authConfig} initialMessage={sessionNotice} />
         </Surface>
       </main>

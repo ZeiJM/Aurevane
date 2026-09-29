@@ -25,7 +25,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
 
   const battleHallLink = page
     .getByRole('navigation', { name: 'Primary game navigation', exact: true })
-    .getByRole('link', { name: /Battle Hall/ })
+    .getByRole('link', { name: /Battle/ })
   await battleHallLink.focus()
   await expect(battleHallLink).toBeFocused()
   await battleHallLink.press('Enter')

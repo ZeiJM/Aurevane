@@ -711,7 +711,7 @@ test('supplementary presence never blocks primary rail navigation', async ({ pag
     })
     await page
       .getByRole('navigation', { name: 'Primary game navigation', exact: true })
-      .getByRole('link', { name: /Battle Hall/ })
+      .getByRole('link', { name: /Battle/ })
       .click()
     releaseNavigation()
     await expect(page).toHaveURL(/\/game\/battle$/)

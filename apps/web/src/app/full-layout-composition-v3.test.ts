@@ -10,12 +10,7 @@ const compositionContracts = [
   {
     component: '../components/character/character-profile-shell.tsx',
     stylesheet: '../components/character/character-profile-shell.module.css',
-    markers: [
-      'data-profile-workspace',
-      'data-profile-sheet="true"',
-      'aria-label="Current Path"',
-      '<CharacterSupernaturalPath',
-    ],
+    markers: ['data-profile-workspace', 'data-profile-sheet="true"'],
   },
   {
     component: '../components/character/character-arsenal-shell.tsx',
@@ -45,6 +40,12 @@ const compositionContracts = [
 ] as const
 
 describe('full layout composition v3', () => {
+  it('moves the complete Current Path controls to Haven', () => {
+    expect(source('./game/(roaming)/haven/page.tsx')).toContain('<CharacterSupernaturalPath')
+    expect(source('../components/character/character-profile-shell.tsx')).not.toContain(
+      '<CharacterSupernaturalPath',
+    )
+  })
   it.each(compositionContracts)(
     'gives $component an explicit composition that also owns narrow/mobile layout',
     ({ component, stylesheet, markers }) => {

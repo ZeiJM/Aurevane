@@ -40,7 +40,7 @@ export default async function ControlsSettingsPage() {
   const combatKeybinds = combatKeybindsResult.value
 
   return (
-    <Surface className={styles.surface} tone="elevated" data-av-surface="ink">
+    <Surface className={styles.surface} tone="elevated" data-av-surface="moonstone">
       <Kicker marker="◇">Settings</Kicker>
       <h1>Controls &amp; Keybinds</h1>
       <CombatControlsSettings initialBindings={combatKeybinds} />

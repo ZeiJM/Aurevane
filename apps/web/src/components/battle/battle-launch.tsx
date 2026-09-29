@@ -27,7 +27,7 @@ interface BattleLaunchProps {
   initialJoinKey?: string | null
 }
 
-type HallSection = 'ai' | 'pvp' | 'spectate'
+type HallSection = 'ai' | 'pvp' | 'spectate' | 'matchmaking'
 
 interface ApiErrorBody {
   error?: { message?: string }
@@ -394,9 +394,35 @@ export function BattleLaunch({ characterId, initialJoinKey = null }: BattleLaunc
           <span aria-hidden="true">◉</span>
           <strong>Spectate</strong>
         </button>
+        <button
+          type="button"
+          data-active={section === 'matchmaking' || undefined}
+          aria-pressed={section === 'matchmaking'}
+          onClick={() => chooseSection('matchmaking')}
+        >
+          <span aria-hidden="true">✧</span>
+          <strong>Matchmaking</strong>
+          <small>Coming Soon</small>
+        </button>
       </nav>
 
-      <div className={styles.workspaceGrid}>
+      {section === 'matchmaking' ? (
+        <section className="av-matchmaking" aria-labelledby="matchmaking-title">
+          <span className="av-soon">Coming Soon</span>
+          <div className="av-matchmaking-sigil" aria-hidden="true">
+            ⚔
+          </div>
+          <h2 id="matchmaking-title">A worthy rival awaits.</h2>
+          <p>
+            Matchmaking will help you find your next opponent. For now, create a direct PvP lobby or
+            join a friend with a battle key.
+          </p>
+          <button type="button" className="av-action" onClick={() => chooseSection('pvp')}>
+            Open direct PvP →
+          </button>
+        </section>
+      ) : null}
+      <div className={styles.workspaceGrid} hidden={section === 'matchmaking'}>
         <section
           className={styles.workspace}
           data-tone="ai"

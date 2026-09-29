@@ -39,7 +39,7 @@ test('Creation exposes its forty portraits and preserves the complete authentica
   const library = creation.locator('[data-portrait-library]')
   const portraits = library.locator('input[name="portrait"]')
   await expect(library).toBeVisible()
-  await expect(portraits).toHaveCount(40)
+  await expect(portraits).toHaveCount(12)
   const decoded = await library.locator('img').evaluateAll(async (images) => {
     return Promise.all(
       images.map(async (image) => {
@@ -64,11 +64,11 @@ test('Creation exposes its forty portraits and preserves the complete authentica
       }),
     )
   })
-  expect(decoded).toHaveLength(40)
+  expect(decoded).toHaveLength(12)
   expect(
     decoded.every((image) => image.loaded && image.width >= 96 && image.width === image.height),
   ).toBe(true)
-  expect(new Set(decoded.map((image) => image.src)).size).toBe(40)
+  expect(new Set(decoded.map((image) => image.src)).size).toBe(12)
 
   const sizes =
     info.project.name === 'mobile-chromium'
@@ -165,11 +165,13 @@ test('Creation exposes its forty portraits and preserves the complete authentica
   await portraits.last().check()
   await portraits.last().focus()
   await page.keyboard.press('ArrowLeft')
-  await expect(portraits.nth(38)).toBeChecked()
+  await expect(portraits.nth(10)).toBeChecked()
   await page.keyboard.press('ArrowRight')
   await expect(portraits.last()).toBeChecked()
   await expect(portraits.last()).toBeInViewport({ ratio: 1 })
-  await creation.getByRole('radio', { name: 'Feminine', exact: true }).check()
+  await creation.getByRole('radio', { name: 'Female', exact: true }).check()
+  await expect(portraits).toHaveCount(12)
+  await portraits.last().check()
   await creation.locator('input[name="appearance"]').last().check()
   await next.click()
   await expect(creation).toHaveAttribute('data-step', 'discipline')
@@ -214,7 +216,7 @@ test('Creation exposes its forty portraits and preserves the complete authentica
   await creation.getByRole('button', { name: 'Back', exact: true }).click()
   await expect(name).toHaveValue(characterName)
   await expect(portraits.last()).toBeChecked()
-  await expect(creation.getByRole('radio', { name: 'Feminine', exact: true })).toBeChecked()
+  await expect(creation.getByRole('radio', { name: 'Female', exact: true })).toBeChecked()
   await expect(creation.locator('input[name="appearance"]').last()).toBeChecked()
   await next.click()
   await creation.getByRole('button', { name: 'Review character', exact: true }).click()
@@ -258,14 +260,15 @@ test('Creation exposes its forty portraits and preserves the complete authentica
   const payload = await response.json()
   expect(payload.character).toMatchObject({
     name: characterName,
-    portraitRef: 'portrait.starter.wayfarer-40',
+    portraitRef: 'portrait.adventure.female-12',
     presentationId: 'feminine',
     starterAppearanceRef: 'appearance.starter.lightstep',
   })
   expect(requests).toHaveLength(2)
   expect(requests[0].idempotencyKey).toBe(requests[1].idempotencyKey)
   expect(requests[1].intent.pronounPresetId).toBe('she_her')
-  await expect(page).toHaveURL(/\/game\/character$/)
+  await expect(page).toHaveURL(/\/game\/haven$/)
+  await page.goto('/game/character')
   await expect(page.getByTestId('character-profile')).toContainText(characterName)
   await page.reload()
   await expect(page.getByTestId('character-profile')).toContainText(characterName)

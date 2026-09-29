@@ -195,7 +195,7 @@ export function CharacterSelectShell({
   return (
     <div className={styles.shell} data-character-select-page="true" data-character-concept="roster">
       <div className={styles.world} aria-hidden="true">
-        <AurevaneImage assetId="ui.foundation.vista" />
+        <AurevaneImage assetId="environment.adventure.threshold" />
       </div>
       <header className={styles.header}>
         <Link className="brand" href="/game" aria-label="AUREVANE Character Select">

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { AuthenticatedShellFrame } from '@/components/shell/authenticated-game-shell'
 import type { ReactNode } from 'react'
 
 import { AurevaneImage } from '@/components/media/aurevane-image'
@@ -43,6 +44,12 @@ async function loadOptionalGameIdentity() {
 export async function PublicInformationShell({ active, children }: PublicInformationShellProps) {
   const identity = await loadOptionalGameIdentity()
   const character = identity.character
+  if (character)
+    return (
+      <AuthenticatedShellFrame>
+        <div data-public-reading>{children}</div>
+      </AuthenticatedShellFrame>
+    )
   const gameHref = identity.authenticated ? (character ? '/game/character' : '/game') : '/'
   const gameLabel = identity.authenticated
     ? character

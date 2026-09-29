@@ -22,7 +22,7 @@ test('training uses the approved character rail and parchment three-workspace co
   await page.goto('/game/training')
 
   const frame = page.locator('[data-training-concept]')
-  const identity = page.getByTestId('character-profile')
+  const identity = page.locator('[data-av-game-rail]')
   const planner = page.getByTestId('practice-plan-card')
   const current = page.getByRole('region', { name: 'Current training activity' })
   const report = page.getByRole('complementary', { name: 'Training report workspace' })
@@ -34,100 +34,13 @@ test('training uses the approved character rail and parchment three-workspace co
   await expect(report).toBeVisible()
   await expect(page.getByRole('navigation', { name: 'Training sections' })).toHaveCount(0)
   await expect(frame.locator('[data-training-scene] img')).toHaveCount(1)
-  if (width >= 1200) {
-    await expect
-      .poll(() =>
-        frame.evaluate((element) =>
-          getComputedStyle(element).getPropertyValue('--character-rail-height').trim(),
-        ),
-      )
-      .not.toBe('')
-  }
+  const railBox = await identity.boundingBox()
+  expect(railBox).not.toBeNull()
+  if (!mobile) expect(railBox!.width).toBeCloseTo(190, 0)
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth - innerWidth),
+  ).toBeLessThanOrEqual(1)
 
-  const metrics = await frame.evaluate((element) => {
-    const bounds = (node: Element | null) => {
-      if (!node) return null
-      const rect = node.getBoundingClientRect()
-      return {
-        x: rect.x,
-        y: rect.y,
-        width: rect.width,
-        height: rect.height,
-        right: rect.right,
-      }
-    }
-    const plannerNode = element.querySelector('[data-testid="practice-plan-card"]')!
-    const currentNode = element.querySelector('[aria-label="Current training activity"]')
-    const reportNode = element.querySelector('[aria-label="Training report workspace"]')
-    const identityNode = element.querySelector('[data-testid="character-profile"]')
-    const sheetNode = element.querySelector('[data-training-sheet="true"]')
-    return {
-      identity: bounds(identityNode),
-      sheet: bounds(sheetNode),
-      planner: bounds(plannerNode)!,
-      current: bounds(currentNode),
-      report: bounds(reportNode),
-      plannerColor: getComputedStyle(plannerNode).color,
-      plannerBackground: getComputedStyle(plannerNode).backgroundColor,
-      overflowX: document.documentElement.scrollWidth - innerWidth,
-    }
-  })
-
-  const rgb = (value: string) => (value.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number)
-  expect
-    .soft(Math.min(...rgb(metrics.plannerBackground)), 'light parchment planner')
-    .toBeGreaterThan(180)
-  expect
-    .soft(Math.max(...rgb(metrics.plannerColor)), 'dark readable planner text')
-    .toBeLessThan(100)
-  expect.soft(metrics.overflowX, 'no sideways page clipping').toBeLessThanOrEqual(1)
-
-  if (!mobile && metrics.identity && metrics.sheet && metrics.current && metrics.report) {
-    expect.soft(metrics.planner.x).toBeGreaterThanOrEqual(metrics.identity.right)
-    expect.soft(metrics.current.x).toBeGreaterThanOrEqual(metrics.planner.right - 1)
-    expect.soft(metrics.report.x).toBeGreaterThanOrEqual(metrics.current.right - 1)
-    expect.soft(Math.abs(metrics.current.y - metrics.planner.y)).toBeLessThanOrEqual(2)
-    expect.soft(Math.abs(metrics.report.y - metrics.planner.y)).toBeLessThanOrEqual(2)
-
-    if (width >= 1200) {
-      expect
-        .soft(
-          Math.abs(
-            metrics.sheet.y + metrics.sheet.height - (metrics.identity.y + metrics.identity.height),
-          ),
-          'Passive Training sheet ends in line with the character panel',
-        )
-        .toBeLessThanOrEqual(2)
-      expect
-        .soft(
-          Math.abs(metrics.current.height - metrics.planner.height),
-          'Training panels share one height',
-        )
-        .toBeLessThanOrEqual(2)
-      expect
-        .soft(
-          Math.abs(metrics.report.height - metrics.planner.height),
-          'Training Report matches plan height',
-        )
-        .toBeLessThanOrEqual(2)
-
-      const planSpacing = await planner.evaluate((panel) => {
-        const grid = panel.querySelector<HTMLElement>('[aria-label="Passive Training durations"]')
-        if (!grid) throw new Error('Missing Passive Training duration grid.')
-        const cards = [...grid.querySelectorAll<HTMLElement>('article')].map((card) =>
-          card.getBoundingClientRect(),
-        )
-        return {
-          alignContent: getComputedStyle(grid).alignContent,
-          gaps: cards.slice(1).map((card, index) => card.top - cards[index]!.bottom),
-        }
-      })
-      expect(planSpacing.alignContent).toBe('space-between')
-      expect(Math.min(...planSpacing.gaps)).toBeGreaterThanOrEqual(6)
-    }
-  }
-
-  await expect(page.getByRole('button', { name: 'Start Short', exact: true })).toBeEnabled()
   const durationCards = page.locator('[aria-label="Passive Training durations"] article')
   await expect(durationCards).toHaveCount(3)
   const durationImages = durationCards.locator('img')

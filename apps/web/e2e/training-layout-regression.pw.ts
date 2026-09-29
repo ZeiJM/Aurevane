@@ -33,7 +33,7 @@ test('training composition preserves idle, active, report and claim flows', asyn
   })
   await page.goto('/game/training')
   await expect(page.getByRole('heading', { name: 'Passive Training', exact: true })).toBeVisible()
-  await expect(page.getByTestId('character-profile')).toBeVisible()
+  await expect(page.locator('[data-av-game-rail]')).toBeVisible()
   await expect(page.getByRole('navigation', { name: 'Training sections' })).toHaveCount(0)
 
   async function capture(state: string) {

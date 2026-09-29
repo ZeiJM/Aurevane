@@ -40,7 +40,7 @@ const overrides: Record<string, ManualArticle> = {
         bullets: [
           'Create or sign in to an account and safely return to the same private profile.',
           'Create characters in three roster slots with six core attributes and a starting Discipline.',
-          'Configure your Primary and optional Secondary Discipline in Profile, with server-calculated stats and committed Skill choices.',
+          'Configure your Primary and optional Secondary Discipline in Loadout → Nexus, with server-calculated stats and committed Skill choices.',
           `Pure builds select up to ${PURE_DISCIPLINE_SKILL_CAPACITY} learned Discipline Techniques plus Essence. Mixed builds select up to ${MIXED_DISCIPLINE_SKILL_CAPACITY} total Techniques plus an eligible Resonance; a full loadout must use both Disciplines (1+3, 2+2 or 3+1). Each mature Discipline has eight learnable Skills: eight available to a pure build, or 16 across a fully authored pair. The pure-Discipline Essence or matching mixed-Discipline Resonance is separate from those four selections. Signature coverage depends on the authored Disciplines.`,
           'Set the current character’s one personal title from Account → Titles & Profile Display.',
           'Progress through the versioned Character XP and level foundation.',
@@ -52,7 +52,7 @@ const overrides: Record<string, ManualArticle> = {
         id: 'navigation',
         title: 'Finding things',
         paragraphs: [
-          'Manual, News, and Rules live in the authenticated header. Account contains audio, Controls & Keybinds, Titles & Profile Display, Switch Character, and sign-out. The compact footer Navigation menu contains the destinations other than the page you are currently viewing, including Profile, Battle Hall, Passive Training, and Online Users where applicable.',
+          'Manual, News, and Rules live in the authenticated header. Account contains audio, Controls & Keybinds, Titles & Profile Display, Switch Character, and sign-out. The compact character rail links Haven, Profile, Loadout, Travel, Battle and Training. On phones these destinations move to a fixed bottom bar. Items is a Coming Soon destination inside Loadout; Online Users remains in the footer.',
           'Normal game screens show a small circular portrait beside the green screen-name indicator in the shared header. The AUREVANE A-in-diamond remains the brand crest. Active battle uses its own combat HUD instead of the shared screen header.',
         ],
       },
@@ -98,14 +98,14 @@ const overrides: Record<string, ManualArticle> = {
         title: 'What is a Discipline?',
         paragraphs: [
           'A Discipline is a learnable combat tradition that establishes your first tactical direction. It is not a permanent class lock. Discipline Mastery Trials let characters deepen, broaden, and combine what they know.',
-          'The starting choices are Vanguard, Farstrider, Shadehand, Ironfist, Aetherist and Lifebinder. Profile supports Primary and optional Secondary configuration. Published mature Disciplines have eight learnable Techniques and a pure Essence, with mixed pairs receiving authored Resonances as their content is published. Technique cards show targeting and effect tags; expand Skill details for range, effects and requirements. Mastery Trials and the Discipline Atlas track the eventual acquisition paths. During development testing, a separate server-owned testing entitlement keeps every published Discipline available without counting that access as earned Mastery or satisfying its release requirements. Planned Disciplines remain unavailable until their combat content is actually published. Supernatural paths and later world-based acquisition remain later work.',
+          'The starting choices are Vanguard, Farstrider, Shadehand, Ironfist, Aetherist and Lifebinder. Loadout → Nexus supports Primary and optional Secondary configuration. Published mature Disciplines have eight learnable Techniques and a pure Essence, with mixed pairs receiving authored Resonances as their content is published. Technique cards show targeting and effect tags; expand Skill details for range, effects and requirements. Mastery Trials and the Discipline Atlas track the eventual acquisition paths. During development testing, a separate server-owned testing entitlement keeps every published Discipline available without counting that access as earned Mastery or satisfying its release requirements. Planned Disciplines remain unavailable until their combat content is actually published. Supernatural paths and later world-based acquisition remain later work.',
         ],
       },
       {
         id: 'slots-and-entry',
         title: 'Slots, creation, and switching',
         paragraphs: [
-          'Accounts have three character slots. Successful creation makes the new character active and takes you directly into the game instead of bouncing back to Character Select.',
+          'Accounts have three character slots. Successful creation makes the new character active and takes you to Haven, your personal hub for Current Path, training and updates.',
           'Character Select is available when entering an authenticated session and through Account → Switch Character. If you swap away from a character, that character has a server-authoritative one-hour return cooldown before you can select it again.',
         ],
       },
@@ -326,7 +326,7 @@ const battleHallArticle: ManualArticle = {
       title: 'Discipline Mastery Trials',
       paragraphs: [
         'Choose Discipline Mastery Trial. Its opponent uses the server-owned High AI profile. Win using at least two different regular Primary Skills across at least three Primary Skill commands, without a player turn-timer expiry, then claim up to 50 Mastery XP from the result panel. Each battle awards once. Your frozen Primary at battle entry receives the XP.',
-        'Stages are Initiate, Practiced at 100 XP, Adept at 300, Expert at 600 and Master at 1,000. Master also requires demonstrating all eight regular Skills across qualifying victories. Mastery makes a Discipline eligible as Secondary. Profile → Discipline Management → Discipline Atlas & Mastery shows earned progress, unmet prerequisites and separate testing access. Named Mastery Rites are planned future content.',
+        'Stages are Initiate, Practiced at 100 XP, Adept at 300, Expert at 600 and Master at 1,000. Master also requires demonstrating all eight regular Skills across qualifying victories. Mastery makes a Discipline eligible as Secondary. Loadout → Nexus → Manage Disciplines → Discipline Atlas & Mastery shows earned progress, unmet prerequisites and separate testing access. Named Mastery Rites are planned future content.',
         'Advanced Disciplines teach four Skills at Initiate, two more at Practiced and two at Adept. Ordinary AI Sparring, Guided Fundamentals and Passive Training do not award Discipline Mastery. Trials grant no Character XP, loot or Crowns.',
       ],
     },
