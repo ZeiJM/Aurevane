@@ -2,7 +2,8 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "git": {
     "deploymentEnabled": {
-      "**": false
+      "**": false,
+      "agent/combat-v5-1-rebalance-summons-resonance-20260928": true
     }
   }
 }
