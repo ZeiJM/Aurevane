@@ -66,7 +66,10 @@ test('current Renewing Herbs summons, inspects and survives reload with its pinn
   page,
 }, testInfo) => {
   test.setTimeout(180_000)
-  test.skip(testInfo.project.name === 'mobile-chromium', 'Desktop Inspect contract is covered here.')
+  test.skip(
+    testInfo.project.name === 'mobile-chromium',
+    'Desktop Inspect contract is covered here.',
+  )
 
   const characterName = await provision(page, testInfo)
   await equipRenewingHerbs(page)
