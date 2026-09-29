@@ -50,8 +50,8 @@ function statusPreview(id: string, potencyBasisPoints?: number): PreviewEffect {
       .join(' / ')
     result.explanation = details.description.split('. ')[0] + '.'
   } else if (status && status.damageTakenMultiplierBasisPoints !== 10_000) {
-    result.magnitude = `${signed((status.damageTakenMultiplierBasisPoints - 10_000) / 100)}% incoming${status.maximumStacks > 1 ? '/stack' : ''}`
-    result.explanation = `Recipient takes ${result.magnitude}.${status.maximumStacks > 1 ? ` Up to ${status.maximumStacks} stacks.` : ''}`
+    result.magnitude = `${signed((status.damageTakenMultiplierBasisPoints - 10_000) / 100)}% incoming`
+    result.explanation = `Recipient takes ${result.magnitude}.`
   } else if (status?.endOfTurn) {
     result.magnitude = `${status.endOfTurn.amount} × ${status.durationOwnerTurnStarts} ticks`
   }
@@ -59,7 +59,7 @@ function statusPreview(id: string, potencyBasisPoints?: number): PreviewEffect {
     const percent = potencyBasisPoints / 100
     if (id === 'guarded') {
       result.magnitude = `−${percent}% incoming`
-      result.explanation = `Reduces incoming damage by ${percent}% per stack.`
+      result.explanation = `Reduces incoming damage by ${percent}%.`
     } else if (id === 'exposed') {
       result.magnitude = `+${percent}% incoming`
       result.explanation = `Increases incoming damage by ${percent}%.`
@@ -133,14 +133,14 @@ export function previewEffect(effect: MatureSkillEffectDefinition): PreviewEffec
       return {
         label: 'Burn',
         magnitude: values.join('/'),
-        explanation: `Fixed damage at the next ${turns} turn ${turns === 1 ? 'end' : 'ends'}; reapplication restarts it.`,
+        explanation: `Fixed damage at the next ${turns} turn ${turns === 1 ? 'end' : 'ends'} per active application; reapplication adds another application and restarts the shared sequence.`,
       }
     }
     case 'bleed':
       return {
         label: 'Bleed',
         magnitude: `${effect.damagePerTick} × ${effect.ticks} ticks`,
-        explanation: 'Fixed damage at turn end; up to three independent stacks.',
+        explanation: 'Fixed damage at turn end for each active application.',
       }
     case 'poison': {
       const turns = effect.durationTurns
