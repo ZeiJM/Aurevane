@@ -1,6 +1,5 @@
 import type { CharacterPortraitRef } from '@aurevane/game-core/character/creation'
 import type { CombatTargetKind, CombatTargetTeamPolicy } from '@aurevane/game-core/combat/actions'
-import { normalizeCombatEffectState } from '@aurevane/game-core/combat/combat-effect-state'
 
 import { getStarterPortraitImageAssetId } from '@/media/character'
 import type { ImageAssetId } from '@/media/registry'
@@ -91,6 +90,7 @@ export interface BattlePresentationParticipant {
   profileImageUrl: string | null
   portraitAssetId: ImageAssetId | null
   local: boolean
+  kind: 'character' | 'scenario' | 'summon'
 }
 
 export interface BattleViewModel {
@@ -124,8 +124,32 @@ function pveParticipants(
 ): BattlePresentationParticipant[] {
   const profiles = battle.snapshot.statBridge.combatants
   const localProfile = profiles.find((profile) => profile.provenance.kind === 'character-derived')
-  const scenarioProfiles = profiles.filter((profile) => profile.provenance.kind === 'scenario')
+  const summons = battle.snapshot.effectState?.summons ?? []
+  const summonIds = new Set(summons.map((summon) => summon.combatantId))
+  const scenarioProfiles = profiles.filter(
+    (profile) => profile.provenance.kind === 'scenario' && !summonIds.has(profile.combatantId),
+  )
   const participants: BattlePresentationParticipant[] = []
+  const battleCombatants = battle.snapshot.tactical.battle.combatants
+  const localCombatant = localProfile
+    ? (battleCombatants.find((combatant) => combatant.id === localProfile.combatantId) ?? null)
+    : null
+  const orderedTeamIds = [
+    ...(localCombatant ? [localCombatant.teamId] : []),
+    ...battleCombatants
+      .map((combatant) => combatant.teamId)
+      .filter(
+        (teamId, index, teamIds) =>
+          teamId !== localCombatant?.teamId && teamIds.indexOf(teamId) === index,
+      ),
+  ]
+
+  const teamIndexForCombatant = (combatantId: string): number => {
+    const teamId = battleCombatants.find((combatant) => combatant.id === combatantId)?.teamId
+    if (!teamId) return 0
+    const index = orderedTeamIds.indexOf(teamId)
+    return index < 0 ? 0 : index
+  }
 
   if (localProfile) {
     const characterId = localProfile.provenance.sourceId.startsWith('character:')
@@ -136,11 +160,12 @@ function pveParticipants(
       characterId,
       name: runtime.playerName,
       level: runtime.playerLevel,
-      teamIndex: 0,
+      teamIndex: teamIndexForCombatant(localProfile.combatantId),
       seatIndex: 0,
       profileImageUrl: runtime.playerProfileImageUrl,
       portraitAssetId: runtime.playerPortraitAssetId,
       local: true,
+      kind: 'character',
     })
   }
 
@@ -150,33 +175,88 @@ function pveParticipants(
       characterId: null,
       name: scenarioProfiles.length === 1 ? 'Recruit' : `Recruit ${index + 1}`,
       level: 1,
-      teamIndex: 1,
+      teamIndex: teamIndexForCombatant(profile.combatantId),
       seatIndex: index,
       profileImageUrl: null,
       portraitAssetId: null,
       local: false,
+      kind: 'scenario',
     })
   })
+
+  summons
+    .slice()
+    .sort((left, right) => left.combatantId.localeCompare(right.combatantId))
+    .forEach((summon, index) => {
+      if (!battleCombatants.some((combatant) => combatant.id === summon.combatantId)) return
+      participants.push({
+        combatantId: summon.combatantId,
+        characterId: null,
+        name: summon.profile.name,
+        level: 1,
+        teamIndex: teamIndexForCombatant(summon.combatantId),
+        seatIndex: scenarioProfiles.length + index + 1,
+        profileImageUrl: null,
+        portraitAssetId: null,
+        local: false,
+        kind: 'summon',
+      })
+    })
 
   return participants
 }
 
 function pvpParticipants(
+  battle: BattleSessionView,
   runtime: Extract<BattleRuntime, { kind: 'pvp' }>,
 ): BattlePresentationParticipant[] {
-  return runtime.metadata.participants.map((participant) => ({
-    combatantId: participant.combatantId,
-    characterId: participant.characterId,
-    name: participant.characterName,
-    level: participant.characterLevel,
-    teamIndex: participant.teamIndex,
-    seatIndex: participant.seatIndex,
-    profileImageUrl: participant.profileImageUrl,
-    portraitAssetId: getStarterPortraitImageAssetId(
-      participant.portraitRef as CharacterPortraitRef,
-    ),
-    local: participant.characterId === runtime.metadata.localCharacterId,
-  }))
+  const participants: BattlePresentationParticipant[] = runtime.metadata.participants.map(
+    (participant) => ({
+      combatantId: participant.combatantId,
+      characterId: participant.characterId,
+      name: participant.characterName,
+      level: participant.characterLevel,
+      teamIndex: participant.teamIndex,
+      seatIndex: participant.seatIndex,
+      profileImageUrl: participant.profileImageUrl,
+      portraitAssetId: getStarterPortraitImageAssetId(
+        participant.portraitRef as CharacterPortraitRef,
+      ),
+      local: participant.characterId === runtime.metadata.localCharacterId,
+      kind: 'character' as const,
+    }),
+  )
+
+  ;(battle.snapshot.effectState?.summons ?? [])
+    .slice()
+    .sort((left, right) => left.combatantId.localeCompare(right.combatantId))
+    .forEach((summon, index) => {
+      const owner = participants.find(
+        (participant) => participant.combatantId === summon.ownerCombatantId,
+      )
+      if (!owner) return
+      if (
+        !battle.snapshot.tactical.battle.combatants.some(
+          (combatant) => combatant.id === summon.combatantId,
+        )
+      ) {
+        return
+      }
+      participants.push({
+        combatantId: summon.combatantId,
+        characterId: null,
+        name: summon.profile.name,
+        level: 1,
+        teamIndex: owner.teamIndex,
+        seatIndex: runtime.metadata.participants.length + index,
+        profileImageUrl: null,
+        portraitAssetId: null,
+        local: false,
+        kind: 'summon',
+      })
+    })
+
+  return participants
 }
 
 export function buildBattleViewModel(
@@ -184,26 +264,10 @@ export function buildBattleViewModel(
   runtime: BattleRuntime,
 ): BattleViewModel {
   const participants =
-    runtime.kind === 'pvp' ? pvpParticipants(runtime) : pveParticipants(battle, runtime)
+    runtime.kind === 'pvp' ? pvpParticipants(battle, runtime) : pveParticipants(battle, runtime)
   const participantByCombatant = new Map(
     participants.map((participant) => [participant.combatantId, participant] as const),
   )
-  const activeSummons = normalizeCombatEffectState(battle.snapshot.effectState).summons ?? []
-  for (const summon of activeSummons) {
-    const owner = participantByCombatant.get(summon.ownerCombatantId)
-    if (!owner) continue
-    participantByCombatant.set(summon.combatantId, {
-      combatantId: summon.combatantId,
-      characterId: null,
-      name: summon.profile.name,
-      level: null,
-      teamIndex: owner.teamIndex,
-      seatIndex: owner.seatIndex,
-      profileImageUrl: null,
-      portraitAssetId: null,
-      local: false,
-    })
-  }
   const localParticipant = participants.find((participant) => participant.local) ?? null
   const highestTeam = participants.reduce(
     (highest, participant) => Math.max(highest, participant.teamIndex),
