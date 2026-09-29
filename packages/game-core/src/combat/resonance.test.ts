@@ -80,6 +80,26 @@ function encounter() {
   )
 }
 
+function rangedEncounter() {
+  const state = encounter()
+  return {
+    ...state,
+    tactical: {
+      ...state.tactical,
+      width: 3,
+      tiles: [
+        ...state.tactical.tiles,
+        { position: { x: 2, y: 0 }, elevation: 0, terrainId: 'open-ground' },
+      ],
+      placements: state.tactical.placements.map((placement) =>
+        placement.combatantId === 'recruit'
+          ? { ...placement, position: { x: 2, y: 0 } }
+          : placement,
+      ),
+    },
+  }
+}
+
 function nextPlayerAction(state: ReturnType<typeof encounter>) {
   const playerFacing = selectCurrentFinalFacing(state.tactical, 'east').state
   const recruitTurn = endTurn(playerFacing.battle).state
@@ -215,7 +235,7 @@ describe('Combat v5.1 Resonance v2 runtime', () => {
     })
 
     const resolved = executeMatureSkillWithResonance({
-      state: encounter(),
+      state: rangedEncounter(),
       resonance,
       resonanceState: ready,
       skill: shot,
