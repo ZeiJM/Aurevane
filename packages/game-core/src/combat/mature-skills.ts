@@ -920,8 +920,7 @@ function materializeV51CurrentSummon(definition: MatureSkillDefinition): MatureS
     schemaVersion: SUMMON_PROFILE_SCHEMA_VERSION,
     id: 'summon.wildwarden.verdant-stalker',
     name: 'Verdant Stalker',
-    description:
-      'A temporary woodland hunter that supports allies and pressures nearby enemies.',
+    description: 'A temporary woodland hunter that supports allies and pressures nearby enemies.',
     flavorLine: 'Roots and herbs knot together into a watchful hunter.',
     portraitKey: 'summon.wildwarden.verdant-stalker.portrait',
     tags: ['summon', 'verdant', 'beast'],
