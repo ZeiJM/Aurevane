@@ -18,6 +18,29 @@ describe('Combat v5 Nexus and Technique presentation contracts', () => {
     expect(source).toContain('aria-label="Effect explanations"')
   })
 
+  it('keeps Essence and Resonance effect summaries descriptive and visually differentiated', () => {
+    const source = readFileSync(join(here, 'character-arsenal-shell.tsx'), 'utf8')
+    const css = readFileSync(join(here, 'character-arsenal-shell.module.css'), 'utf8')
+
+    expect(source).toContain('CompactSkillEffectSummary')
+    expect(source).toContain('skillPreviewEffects')
+    expect(source).toContain('Effect details')
+    expect(source).toContain('Result details')
+    expect(css).toContain(".attunementHover [data-compact-effect-magnitude='true']")
+    expect(css).toContain(".attunementHover [data-compact-effect-duration='true']")
+  })
+
+  it('keeps the one-discipline Techniques layout compact and uses the Severance label', () => {
+    const source = readFileSync(join(here, 'character-skill-build-panel.tsx'), 'utf8')
+    const skillCss = readFileSync(join(here, 'character-skill-build-panel.module.css'), 'utf8')
+    const shell = readFileSync(join(here, 'character-arsenal-shell.tsx'), 'utf8')
+
+    expect(source).toContain('data-single-discipline={!secondaryDiscipline ? \'true\' : \'false\'}')
+    expect(skillCss).toContain(".techniqueArea[data-single-discipline='true']")
+    expect(shell).toContain('<strong>Severance</strong>')
+    expect(shell).not.toContain('<strong>Severed</strong>')
+  })
+
   it('keeps Essence and Resonance detail previews hoverable, keyboard-focusable and named', () => {
     const source = readFileSync(join(here, 'character-arsenal-shell.tsx'), 'utf8')
     const css = readFileSync(join(here, 'character-arsenal-shell.module.css'), 'utf8')
