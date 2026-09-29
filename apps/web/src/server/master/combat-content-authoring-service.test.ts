@@ -177,9 +177,7 @@ describe('combat content authoring service', () => {
     }
     const validation = service.validateSkillDefinition(invalid)
     expect(validation.valid).toBe(false)
-    expect(validation.issues).toContainEqual(
-      expect.objectContaining({ path: 'summonProfile' }),
-    )
+    expect(validation.issues).toContainEqual(expect.objectContaining({ path: 'summonProfile' }))
 
     const editedAbility = {
       ...base,
