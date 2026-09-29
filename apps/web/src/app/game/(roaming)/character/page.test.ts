@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
   attributeAllocation: vi.fn(),
   titleState: vi.fn(),
   displayState: vi.fn(),
+  supernaturalState: vi.fn(),
   testKit: vi.fn(),
   redirect: vi.fn((path: string) => {
     throw new Error(`redirect:${path}`)
@@ -59,6 +60,9 @@ vi.mock('@/server/character/character-title-service', () => ({
 vi.mock('@/server/character/character-profile-display-service', () => ({
   loadCharacterProfileDisplay: mocks.displayState,
 }))
+vi.mock('@/server/character/supernatural-story-state-service', () => ({
+  findAuthoredSupernaturalStoryState: mocks.supernaturalState,
+}))
 vi.mock('@/server/character/pv2-buildcraft-test-kit', () => ({
   isPv2BuildcraftTestKitEnabled: mocks.testKit,
 }))
@@ -70,6 +74,9 @@ vi.mock('@/server/character/supabase-character-build-repository', () => ({
 }))
 vi.mock('@/server/character/supabase-character-attribute-repository', () => ({
   createSupabaseCharacterAttributeRepository: () => ({}),
+}))
+vi.mock('@/server/character/supabase-supernatural-story-state-repository', () => ({
+  createSupabaseSupernaturalStoryStateRepository: () => ({}),
 }))
 vi.mock('@/components/character/character-profile-shell', () => ({
   CharacterProfileShell: () => null,
@@ -209,6 +216,7 @@ describe('Profile persistence recovery diagnostics', () => {
     mocks.attributeAllocation.mockResolvedValue(attributeAllocation)
     mocks.titleState.mockResolvedValue({ personalTitle: null, personalTitleSetAt: null })
     mocks.displayState.mockResolvedValue({ imageUrl: null })
+    mocks.supernaturalState.mockResolvedValue(null)
     mocks.testKit.mockResolvedValue(false)
   })
 
@@ -241,6 +249,53 @@ describe('Profile persistence recovery diagnostics', () => {
     const page = await CharacterProfilePage()
 
     expect(page.type).toBe(CharacterProfileShell)
+    expect(page.props.supernatural).toEqual({ state: null, choices: [] })
+    expect(console.error).not.toHaveBeenCalled()
+  })
+
+  it('projects authored permanent supernatural choices only after the threshold is initialized', async () => {
+    mocks.supernaturalState.mockResolvedValue({
+      schemaVersion: 1,
+      stateVersion: 4,
+      storyId: 'supernatural.main',
+      storyVersion: 1,
+      nodeId: 'awakening.threshold',
+      path: 'unawakened',
+      ascension: null,
+      severence: null,
+      chosenAt: null,
+      updatedAt: character.createdAt,
+    })
+
+    const page = await CharacterProfilePage()
+
+    expect(page.type).toBe(CharacterProfileShell)
+    expect(page.props.supernatural).toMatchObject({
+      state: { stateVersion: 4, path: 'unawakened', nodeId: 'awakening.threshold' },
+      choices: [
+        {
+          transitionId: 'supernatural.main.choose-ascension',
+          transitionContentVersion: 1,
+          path: 'ascended',
+        },
+        {
+          transitionId: 'supernatural.main.choose-severence',
+          transitionContentVersion: 1,
+          path: 'severed',
+        },
+      ],
+    })
+  })
+
+  it('keeps Character profile available when supernatural persistence is unavailable', async () => {
+    mocks.supernaturalState.mockRejectedValue(
+      new AurevaneError('PERSISTENCE_UNAVAILABLE', 'Supernatural persistence unavailable'),
+    )
+
+    const page = await CharacterProfilePage()
+
+    expect(page.type).toBe(CharacterProfileShell)
+    expect(page.props.supernatural).toEqual({ state: null, choices: [] })
     expect(console.error).not.toHaveBeenCalled()
   })
 
