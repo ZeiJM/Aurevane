@@ -10,7 +10,7 @@ import {
 } from '@aurevane/game-core/combat/mature-skills'
 import {
   resolveResonanceForPair,
-  type ResonanceDefinition,
+  type AnyResonanceDefinition,
 } from '@aurevane/game-core/combat/resonance'
 
 import {
@@ -91,7 +91,7 @@ const publishedEssence = (definition: EssenceDefinition): CombatContentVersionRe
   publishedAt: '2026-09-27T21:45:00.000Z',
 })
 
-const publishedResonance = (definition: ResonanceDefinition): CombatContentVersionRecord => ({
+const publishedResonance = (definition: AnyResonanceDefinition): CombatContentVersionRecord => ({
   id: '44444444-4444-4444-8444-444444444444',
   contentKey: definition.id,
   contentKind: 'resonance',
@@ -275,7 +275,7 @@ describe('combat content resolver', () => {
         contentVersion: staticEssence.contentVersion + 1,
       },
     }
-    const resonance: ResonanceDefinition = {
+    const resonance: AnyResonanceDefinition = {
       ...structuredClone(staticResonance),
       contentVersion: staticResonance.contentVersion + 1,
       flavorLine: 'Published Resonance flavor.',
@@ -311,7 +311,7 @@ describe('combat content resolver', () => {
       contentVersion: essenceVersion,
       skill: { ...structuredClone(staticEssence.skill), contentVersion: essenceVersion },
     }
-    const resonance: ResonanceDefinition = {
+    const resonance: AnyResonanceDefinition = {
       ...structuredClone(staticResonance),
       contentVersion: resonanceVersion,
     }
