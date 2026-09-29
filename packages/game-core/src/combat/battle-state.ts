@@ -295,9 +295,9 @@ export function endTurn(
   nextRoundModifiers: NonNullable<BattleState['roundInitiativeModifiers']> = [],
   outgoingDefeatedAtTurnEnd = false,
 ): BattleTransition {
-  const turn = requireActiveTurn(state)
+  const turn = requireActiveTurnForEnd(state, outgoingDefeatedAtTurnEnd)
 
-  if (turn.finalFacing === null) {
+  if (turn.finalFacing === null && !outgoingDefeatedAtTurnEnd) {
     throw new Error('Final facing must be selected before ending the turn.')
   }
 
@@ -598,6 +598,34 @@ function requireActiveTurn(state: BattleState): BattleTurnState {
     throw new Error('Battle command requires an active turn.')
   }
 
+  return state.currentTurn
+}
+
+function requireActiveTurnForEnd(
+  state: BattleState,
+  outgoingDefeatedAtTurnEnd: boolean,
+): BattleTurnState {
+  if (!outgoingDefeatedAtTurnEnd) return requireActiveTurn(state)
+
+  const currentId = state.currentTurn?.combatantId ?? null
+  const current = currentId
+    ? state.combatants.find((combatant) => combatant.id === currentId) ?? null
+    : null
+  const allowDefeatedCurrent = current !== null && current.hp <= 0
+  const issues = validateBattleState(state).filter(
+    (issue) =>
+      !(
+        allowDefeatedCurrent &&
+        issue.field === 'currentTurn.combatantId' &&
+        issue.message === 'A defeated combatant cannot own the current turn.'
+      ),
+  )
+  if (issues.length > 0) {
+    throw new Error(`Invalid battle state: ${issues[0]!.field}: ${issues[0]!.message}`)
+  }
+  if (state.lifecycle !== 'active' || state.currentTurn === null) {
+    throw new Error('Battle command requires an active turn.')
+  }
   return state.currentTurn
 }
 
