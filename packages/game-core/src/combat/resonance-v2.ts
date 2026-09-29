@@ -64,6 +64,10 @@ function validateEffect(effect: CombatEffectDefinition): boolean {
   }
 }
 
+function cloneDefinitionValue<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T
+}
+
 function scaledPositive(value: number, factor: number): number {
   return Math.max(1, Math.round(value * factor))
 }
@@ -226,10 +230,10 @@ export function convertV5ResonanceToV2(definition: ResonanceDefinition): Resonan
   const immediate = IMMEDIATE_TRIGGER_DISCIPLINES.has(definition.trigger.payoff.sourceDisciplineId)
   const resultEffects = definition.trigger.payoffEffects
     .slice(0, 2)
-    .map((effect) => (immediate ? weakenImmediateEffect(effect) : structuredClone(effect)))
+    .map((effect) => (immediate ? weakenImmediateEffect(effect) : cloneDefinitionValue(effect)))
 
-  const setup = immediate ? null : structuredClone(definition.trigger.setup)
-  const trigger = structuredClone(definition.trigger.payoff)
+  const setup = immediate ? null : cloneDefinitionValue(definition.trigger.setup)
+  const trigger = cloneDefinitionValue(definition.trigger.payoff)
   const setupLabel = setup
     ? `${setup.sourceDisciplineId} ${setup.requiredTags.join(' + ')}`
     : 'No setup'
