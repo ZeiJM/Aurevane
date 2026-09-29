@@ -59,6 +59,9 @@ export function WorldWorkspace({
     setSelected((id) =>
       next.sectors.some((sector) => sector.id === id) ? id : next.position.sectorId,
     )
+    setConversationId((id) =>
+      id && next.interactions.some((interaction) => interaction.id === id) ? id : null,
+    )
     current.current = next
     viewAcceptedAt.current = Date.now()
     setView(next)
@@ -168,13 +171,6 @@ export function WorldWorkspace({
     document.addEventListener('visibilitychange', onVisibilityChange)
     return () => document.removeEventListener('visibilitychange', onVisibilityChange)
   }, [])
-  useEffect(() => {
-    if (
-      conversationId &&
-      !view.interactions.some((interaction) => interaction.id === conversationId)
-    )
-      setConversationId(null)
-  }, [conversationId, view.interactions])
   const sector = view.sectors.find((s) => s.id === selected) ?? view.sectors[0]!
   const player = view.players.find((p) => p.characterId === target) ?? view.players[0]
   const local = view.sectors.find((s) => s.id === view.position.sectorId)!
