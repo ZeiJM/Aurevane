@@ -93,7 +93,7 @@ test('current Renewing Herbs summons, inspects and survives reload with its pinn
 
   await root.getByRole('button', { name: /Choose Heal skill/ }).click()
   await page.getByRole('option', { name: /Renewing Herbs 45 AP/ }).click()
-  await root.getByRole('button', { name: /Renewing Herbs, 45 AP/ }).click()
+  await root.locator('[data-battle-command="recover"]').click()
 
   const candidates = before.snapshot.tactical.tiles.filter((tile) => {
     if (!actorPlacement) return false
