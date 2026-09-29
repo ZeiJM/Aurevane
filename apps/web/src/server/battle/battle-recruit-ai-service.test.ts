@@ -151,7 +151,7 @@ function summonProfile(): SummonProfileDefinition {
           teamPolicy: 'enemy',
           shape: { kind: 'single' },
           minimumRange: 1,
-          maximumRange: 99,
+          maximumRange: 1,
           requiresLineOfSight: false,
           maximumElevationDifference: null,
           friendlyFire: 'enemies-only',
@@ -168,21 +168,55 @@ function summonProfile(): SummonProfileDefinition {
 function stateWithActiveSummonTurn(state: StatDrivenCombatEncounterState): {
   state: StatDrivenCombatEncounterState
   summonId: string
+  enemyId: string
 } {
+  const ownerCombatantId = state.tactical.battle.currentTurn?.combatantId
+  if (!ownerCombatantId) throw new Error('Expected player turn before summon spawn.')
+  const owner = state.tactical.battle.combatants.find(
+    (combatant) => combatant.id === ownerCombatantId,
+  )
+  if (!owner) throw new Error('Expected player combatant before summon spawn.')
+  const enemy = state.tactical.battle.combatants.find(
+    (combatant) => combatant.teamId !== owner.teamId && combatant.hp > 0,
+  )
+  if (!enemy) throw new Error('Expected opposing combatant for summon service test.')
+  const enemyPlacement = state.tactical.placements.find(
+    (placement) => placement.combatantId === enemy.id,
+  )
+  if (!enemyPlacement) throw new Error('Expected opposing placement for summon service test.')
+
   const occupied = new Set(
     state.tactical.placements.map((placement) => `${placement.position.x},${placement.position.y}`),
   )
-  const position = state.tactical.tiles.find(
-    (tile) =>
-      !occupied.has(`${tile.position.x},${tile.position.y}`) &&
-      state.tactical.terrains.some(
-        (terrain) => terrain.id === tile.terrainId && terrain.traversalCost !== null,
-      ),
-  )?.position
-  if (!position) throw new Error('Expected an empty passable tile for summon service test.')
+  const passable = (x: number, y: number): boolean => {
+    if (occupied.has(`${x},${y}`)) return false
+    const tile = state.tactical.tiles.find(
+      (candidate) => candidate.position.x === x && candidate.position.y === y,
+    )
+    if (!tile) return false
+    return state.tactical.terrains.some(
+      (terrain) => terrain.id === tile.terrainId && terrain.traversalCost !== null,
+    )
+  }
+  const distanceToEnemy = (x: number, y: number): number =>
+    Math.abs(x - enemyPlacement.position.x) + Math.abs(y - enemyPlacement.position.y)
 
-  const ownerCombatantId = state.tactical.battle.currentTurn?.combatantId
-  if (!ownerCombatantId) throw new Error('Expected player turn before summon spawn.')
+  const position = state.tactical.tiles.find((tile) => {
+    if (!passable(tile.position.x, tile.position.y)) return false
+    if (distanceToEnemy(tile.position.x, tile.position.y) !== 2) return false
+    return [
+      { x: tile.position.x + 1, y: tile.position.y },
+      { x: tile.position.x - 1, y: tile.position.y },
+      { x: tile.position.x, y: tile.position.y + 1 },
+      { x: tile.position.x, y: tile.position.y - 1 },
+    ].some(
+      (neighbor) =>
+        passable(neighbor.x, neighbor.y) && distanceToEnemy(neighbor.x, neighbor.y) === 1,
+    )
+  })?.position
+  if (!position) {
+    throw new Error('Expected an empty passable summon tile two steps from the opponent.')
+  }
 
   const spawned = spawnCombatSummon(state, {
     ownerCombatantId,
@@ -201,7 +235,7 @@ function stateWithActiveSummonTurn(state: StatDrivenCombatEncounterState): {
     throw new Error('Expected deferred summon to lead the next round.')
   }
 
-  return { state: summonTurn, summonId }
+  return { state: summonTurn, summonId, enemyId: enemy.id }
 }
 
 function createStatefulRepository(
@@ -318,6 +352,12 @@ describe('P2.6 authoritative Recruit AI turn service', () => {
     const active = stateWithActiveSummonTurn(await initialEncounter())
     const fixture = createStatefulRepository(active.state)
     const service = createBattleRecruitAiService(fixture.repository)
+    const summonBefore = active.state.tactical.placements.find(
+      (placement) => placement.combatantId === active.summonId,
+    )!
+    const enemyHpBefore = active.state.tactical.battle.combatants.find(
+      (combatant) => combatant.id === active.enemyId,
+    )!.hp
 
     const result = await service.runTurn({
       userId: USER_ID,
@@ -325,10 +365,19 @@ describe('P2.6 authoritative Recruit AI turn service', () => {
       expectedBattleVersion: 1,
     })
 
-    expect(result.decisions.length).toBeGreaterThan(0)
+    expect(result.decisions.length).toBeGreaterThanOrEqual(2)
     expect(result.snapshot.tactical.battle.currentTurn?.combatantId).toBe(
       `character:${CHARACTER_ID}`,
     )
+    const summonAfter = result.snapshot.tactical.placements.find(
+      (placement) => placement.combatantId === active.summonId,
+    )
+    expect(summonAfter?.position).not.toEqual(summonBefore.position)
+    expect(
+      result.snapshot.tactical.battle.combatants.find(
+        (combatant) => combatant.id === active.enemyId,
+      )?.hp,
+    ).toBeLessThan(enemyHpBefore)
     expect(
       fixture.commits.some((commit) =>
         commit.events.some(
