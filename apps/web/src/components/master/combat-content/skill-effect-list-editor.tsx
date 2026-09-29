@@ -265,7 +265,9 @@ export function SkillEffectListEditor({
       <p className={styles.effectNote}>
         Effect order is authoritative.
         {maxEffects === undefined ? '' : ` This section allows at most ${maxEffects} effects.`}
-        {' Validation catches composition rules such as status Copy placement, Sensory targeting, and Rewind self-only requirements.'}
+        {
+          ' Validation catches composition rules such as status Copy placement, Sensory targeting, and Rewind self-only requirements.'
+        }
       </p>
     </fieldset>
   )
