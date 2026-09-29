@@ -1128,3 +1128,17 @@ body {
     min-height: min-content !important;
   }
 }
+
+@media (min-width: 761px) {
+  [data-av-shell='concept'] > main:has(> [data-world-shell]) {
+    display: block;
+  }
+  [data-av-shell='concept'] #game-main > [data-world-shell] {
+    height: 100% !important;
+    grid-template-rows: minmax(0, 1fr);
+  }
+  [data-world-workspace] {
+    height: 100% !important;
+    min-height: 0 !important;
+  }
+}

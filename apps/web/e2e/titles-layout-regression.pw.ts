@@ -71,7 +71,7 @@ test('Titles keeps the approved stone two-column account composition at normal d
       save: { y: saveBox.y, bottom: saveBox.bottom },
       footerTop: footer.top,
       surface: root.dataset.avSurface ?? null,
-      background: getComputedStyle(root).backgroundImage,
+      background: getComputedStyle(root).backgroundColor,
       personalHeadingColor: getComputedStyle(root.querySelector('h1')!).color,
       profileHeadingColor: getComputedStyle(root.querySelector('#profile-image-heading')!).color,
       overflow: document.documentElement.scrollWidth - innerWidth,
@@ -80,7 +80,7 @@ test('Titles keeps the approved stone two-column account composition at normal d
 
   expect.soft(metrics.overflow, 'no horizontal overflow').toBeLessThanOrEqual(1)
   expect.soft(metrics.surface, 'Titles uses the stone surface token contract').toBe('moonstone')
-  expect.soft(metrics.background, 'stone Titles workspace').toContain('linear-gradient')
+  expect.soft(maxRgbChannel(metrics.background), 'stone Titles workspace').toBeGreaterThan(140)
   expect
     .soft(maxRgbChannel(metrics.personalHeadingColor), 'personal-title heading remains readable')
     .toBeLessThan(110)
@@ -148,7 +148,7 @@ test('Titles stacks cleanly on phone without inventing desktop-only overflow', a
     const root = document.querySelector<HTMLElement>('[data-character-concept="titles"]')!
     return {
       surface: root.dataset.avSurface ?? null,
-      rootBackground: getComputedStyle(root).backgroundImage,
+      rootBackground: getComputedStyle(root).backgroundColor,
       personalHeadingColor: getComputedStyle(root.querySelector('h1')!).color,
       current: rect('section[aria-labelledby="current-title-heading"]'),
       personal: rect('section[aria-labelledby="personal-title-heading"]'),
@@ -161,7 +161,7 @@ test('Titles stacks cleanly on phone without inventing desktop-only overflow', a
   expect
     .soft(metrics.surface, 'phone Titles uses the stone surface token contract')
     .toBe('moonstone')
-  expect.soft(metrics.rootBackground, 'phone stone workspace').toContain('linear-gradient')
+  expect.soft(maxRgbChannel(metrics.rootBackground), 'phone stone workspace').toBeGreaterThan(140)
   expect
     .soft(maxRgbChannel(metrics.personalHeadingColor), 'phone title heading remains readable')
     .toBeLessThan(110)

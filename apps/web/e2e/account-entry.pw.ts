@@ -9,18 +9,21 @@ test('account entry is responsive, focusable, stable, and media-safe', async ({ 
   await expect(page.getByTestId('account-shell')).toBeVisible()
   const title = page.getByRole('heading', { level: 1, name: 'AUREVANE' })
   await expect(title).toBeVisible()
-  const threshold = page.locator('img[src*="adventure/threshold-v01.webp"]')
-  await expect(threshold).toBeAttached()
   const hero = page.locator('[aria-labelledby="aurevane-title"]')
   await expect(hero).toBeVisible()
   expect(await hero.evaluate((element) => getComputedStyle(element).backgroundImage)).toContain(
     'adventure/threshold-v01.webp',
   )
-  await expect
-    .poll(() =>
-      threshold.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0),
-    )
-    .toBe(true)
+  const artworkWidth = await hero.evaluate(async (element) => {
+    const background = getComputedStyle(element).backgroundImage
+    const url = background.match(/url\("?([^"\)]+)"?\)/)?.[1]
+    if (!url) throw new Error('The login hero has no artwork URL')
+    const image = new Image()
+    image.src = url
+    await image.decode()
+    return image.naturalWidth
+  })
+  expect(artworkWidth).toBeGreaterThan(0)
 
   const hasHorizontalOverflow = await page.evaluate(
     () => document.documentElement.scrollWidth > window.innerWidth + 1,

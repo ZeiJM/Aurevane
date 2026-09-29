@@ -114,7 +114,10 @@ test('creates a slotted character, persists its profile, and resumes it across s
   await expect(page).toHaveURL(/\/game$/)
   await page.getByRole('link', { name: `Play ${characterName}` }).click()
   await expect(page).toHaveURL(/\/game\/haven$/)
-  await page.goto('/game/character')
+  await page
+    .getByRole('navigation', { name: 'Primary game navigation', exact: true })
+    .getByRole('link', { name: 'Profile', exact: true })
+    .click()
   await expect(page.getByTestId('character-profile')).toContainText(characterName)
   await expect(page.getByTestId('character-profile')).toContainText(personalTitle)
 

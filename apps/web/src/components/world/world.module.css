@@ -1586,3 +1586,29 @@
     grid-template-columns: 1fr;
   }
 }
+
+@media (min-width: 761px) {
+  .workspace {
+    height: 100%;
+    grid-template-columns: minmax(0, 1fr) minmax(12rem, 22%);
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .sidebar {
+    display: flex;
+    overflow: auto;
+  }
+  .mapColumn,
+  .mapViewport,
+  .globeStage {
+    min-height: 0;
+  }
+  .globeStage {
+    height: 100%;
+  }
+  .mapViewport {
+    container-type: size;
+  }
+  .sectorFrame {
+    width: min(100cqw, calc((100cqh - 1.7rem) * 13 / 9 + 2rem));
+  }
+}

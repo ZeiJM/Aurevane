@@ -360,6 +360,13 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
   await expectCurrentGlobeLabelClear()
   const globeBounds = (await sphere.boundingBox())!
   const viewportBounds = (await page.locator('[class*="mapViewport"]').boundingBox())!
+  if (info.project.name !== 'mobile-chromium') {
+    const mainBounds = (await page.locator('#game-main').boundingBox())!
+    expect(viewportBounds.y).toBeGreaterThanOrEqual(mainBounds.y)
+    expect(viewportBounds.y + viewportBounds.height).toBeLessThanOrEqual(
+      mainBounds.y + mainBounds.height,
+    )
+  }
   expect(globeBounds.y).toBeGreaterThanOrEqual(viewportBounds.y + 16)
   expect(globeBounds.y + globeBounds.height).toBeLessThanOrEqual(
     viewportBounds.y + viewportBounds.height - 16,

@@ -38,6 +38,10 @@ The corrected candidate passed the full local `pnpm check` again (formatting, li
 
 Synthetic Chromium checks confirmed mobile action clicks, a 980px Nexus without horizontal overflow, a fully expanded mobile controls list, and reachable lobby actions. Desktop/mobile versus-lobby screenshots were reviewed. These checks do not replace authenticated CI outcomes.
 
+The next authenticated run passed CI, Profile Skill Build, Essence Build, Resonance Build, Attribute Allocation, Desktop page fit and Representative Buildcraft. Remaining browser findings prompted a second follow-up: validate the actual login background rather than its hidden lazy image, retain same-origin navigation after sign-in in the resume test, verify Titles' solid stone material, improve Techniques label contrast, and bound the globe inside the fixed desktop/laptop content frame. The globe defect came from a retired Profile height rule matching the World page's hidden legacy identity card; the correction overrides only the World container. A new Atlas assertion checks that the viewport itself fits inside main content.
+
+Local Chromium confirmed globe fit at 1440×900, 980×1000 and 1366×576, with the natural mobile world layout retained. Visible Techniques labels measured at least 11px and 4.8:1 contrast. All existing lobby formats passed desktop, 390px and 360px control-reachability/overflow checks. The full local `pnpm check` passed again after fixture removal: formatting, lint, types, 2,988 tests and production builds. A fresh exact-candidate authenticated run is still required after this follow-up.
+
 ## Verification boundary
 
 Authenticated browser workflows ran in CI and require a fresh successful run on the corrected candidate. Local Supabase credentials remain unavailable. A complete state-by-state review of every privileged dialog and real-user live multiplayer acceptance are not established by synthetic fixtures or disposable CI accounts.
