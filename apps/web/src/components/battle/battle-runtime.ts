@@ -1,5 +1,6 @@
 import type { CharacterPortraitRef } from '@aurevane/game-core/character/creation'
 import type { CombatTargetKind, CombatTargetTeamPolicy } from '@aurevane/game-core/combat/actions'
+import { normalizeCombatEffectState } from '@aurevane/game-core/combat/combat-effect-state'
 
 import { getStarterPortraitImageAssetId } from '@/media/character'
 import type { ImageAssetId } from '@/media/registry'
@@ -124,7 +125,7 @@ function pveParticipants(
 ): BattlePresentationParticipant[] {
   const profiles = battle.snapshot.statBridge.combatants
   const localProfile = profiles.find((profile) => profile.provenance.kind === 'character-derived')
-  const summons = battle.snapshot.effectState?.summons ?? []
+  const summons = normalizeCombatEffectState(battle.snapshot.effectState).summons ?? []
   const summonIds = new Set(summons.map((summon) => summon.combatantId))
   const scenarioProfiles = profiles.filter(
     (profile) => profile.provenance.kind === 'scenario' && !summonIds.has(profile.combatantId),
@@ -227,7 +228,7 @@ function pvpParticipants(
     }),
   )
 
-  ;(battle.snapshot.effectState?.summons ?? [])
+  ;(normalizeCombatEffectState(battle.snapshot.effectState).summons ?? [])
     .slice()
     .sort((left, right) => left.combatantId.localeCompare(right.combatantId))
     .forEach((summon, index) => {
