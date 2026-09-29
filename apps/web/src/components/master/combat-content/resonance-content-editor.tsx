@@ -553,9 +553,7 @@ export function ResonanceContentEditor({
                       min={0}
                       type="number"
                       value={selectedDraft.trigger.aiSetupUtilityBonus}
-                      onChange={(event) =>
-                        updateSetupUtility(Number(event.currentTarget.value))
-                      }
+                      onChange={(event) => updateSetupUtility(Number(event.currentTarget.value))}
                     />
                   </label>
                 </div>
