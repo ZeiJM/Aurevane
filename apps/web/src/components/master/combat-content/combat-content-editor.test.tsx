@@ -114,7 +114,8 @@ describe('Master Panel combat content editor shell', () => {
 
   it('mounts the dedicated summon profile editor for a current summoning Skill', () => {
     const definition = resolveMatureSkillVersion('wildwarden.renewing-herbs')
-    if (!definition?.summonProfile) throw new Error('Expected current Renewing Herbs summon profile.')
+    if (!definition?.summonProfile)
+      throw new Error('Expected current Renewing Herbs summon profile.')
     const summonSkill: CombatContentEditorSkillOption = {
       id: definition.id,
       sourceDisciplineId: definition.sourceDisciplineId,
