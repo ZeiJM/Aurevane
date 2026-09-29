@@ -479,6 +479,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                     className={styles.techniqueArea}
                     aria-label="Available Techniques"
                     data-testid="learned-skill-list"
+                    data-single-discipline={!secondaryDiscipline ? 'true' : 'false'}
                   >
                     {renderTechniqueGroup(primaryDiscipline, primarySkills, false)}
                     {renderTechniqueGroup(secondaryDiscipline, secondarySkills, true)}
