@@ -24,7 +24,6 @@ import {
   skillCooldownDescription,
   skillCostDescription,
   skillDisplayName,
-  skillEffectSummaries,
   skillRequirementsSummary,
   skillTargetDescription,
   skillTargetMethodDescription,
