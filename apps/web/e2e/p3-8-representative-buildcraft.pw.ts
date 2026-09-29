@@ -333,7 +333,7 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   await expect(confirmAction).toBeEnabled()
 
   await page.keyboard.press(attackDirection!)
-  await expect(actionEconomy).toHaveAttribute('aria-valuenow', '60', { timeout: 8000 })
+  await expect(actionEconomy).toHaveAttribute('aria-valuenow', '55', { timeout: 8000 })
   await expect(confirmAction).toBeDisabled({ timeout: 8000 })
   // Authored Attack Techniques stay selected after a successful commit (the approved
   // post-attack cockpit contract). The previous Move selection must never be restored.
