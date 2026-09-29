@@ -515,7 +515,7 @@ test('Eastern Watch objective persists accept, inspect and idempotent return com
   await expect(conversation).toContainText(
     'The eastern tower has gone quiet. Confirm it is standing, then report back.',
   )
-  await conversation.getByRole('button', { name: 'End conversation' }).last().click()
+  await page.keyboard.press('Escape')
   await expect(page.getByRole('dialog', { name: 'Watch officer' })).toHaveCount(0)
   expect(
     (await world(page)).objectives.find((objective) => objective.id === 'eastern-watch'),
