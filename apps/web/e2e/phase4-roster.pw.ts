@@ -81,7 +81,7 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
   await expect(palm.getByRole('checkbox')).not.toBeChecked()
   const sweep = list.locator('article').filter({ hasText: 'Sweep' })
   await sweep.getByRole('checkbox').focus()
-  await expect(dialog).toContainText('Target MethodCircle · radius 1')
+  await expect(page.getByTestId('technique-preview')).toContainText('Target MethodCircle')
   for (const name of ['Rising Fist', 'Sweep', 'Breakfall', 'Counter Palm']) {
     await setTechnique(page, list.locator('article').filter({ hasText: name }), true)
   }
