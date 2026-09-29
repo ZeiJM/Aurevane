@@ -80,7 +80,7 @@ describe('compact combat presentation tags', () => {
         },
         effects: [{ type: 'summon', recipient: 'selected-tile' }],
       }),
-    ).toEqual(['Ally', 'Single', 'Summon'])
+    ).toEqual(['Empty Tile', 'Single', 'Summon'])
   })
 
   it('derives canonical damage, resource, cleanse, displacement and reaction labels', () => {
