@@ -361,7 +361,9 @@ export function previewCombatContentDefinition(
     summon: definition.summonProfile
       ? {
           spawnPosition:
-            selection.kind === 'tile' ? { ...selection.position } : previewTargetPosition(definition),
+            selection.kind === 'tile'
+              ? { ...selection.position }
+              : previewTargetPosition(definition),
           profile: {
             id: definition.summonProfile.id,
             name: definition.summonProfile.name,
