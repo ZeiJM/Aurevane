@@ -524,16 +524,16 @@ describe('Mark and Blind: authoring and snapshot guards', () => {
     )
     expect(() => chance(changed)).toThrow()
   })
-  it('rejects a multi-stack current accuracy row even when only one identity exists', () => {
+  it('accepts multiple active accuracy applications on one identity', () => {
     const marked = apply(world(), MARK.id)
-    expect(() =>
+    expect(
       chance(
         withStatuses(
           marked,
           statuses(marked).map((row) => ({ ...row, stacks: 2 })),
         ),
       ),
-    ).toThrow()
+    ).toBe(8_000)
   })
   it('rejects a current accuracy duration exceeding the v5 runtime bound', () => {
     const marked = apply(world(), MARK.id)
