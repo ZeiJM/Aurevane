@@ -201,8 +201,8 @@ describe('Curse Poison: explicit authored and persisted copy policy', () => {
   it.each([true, false])('preserves explicit Poison copy permission %s', (flag) => {
     expect(instance(poison(world(), 'actor', 0, flag))).toHaveProperty('curseCopyable', flag)
   })
-  it('keeps the exact old Poison shape when copy permission is omitted', () => {
-    // Explicit undefined must not be replaced by the helper default.
+  it('writes an explicit application count when copy permission is omitted', () => {
+    // Omitted permission stays omitted; newly applied effects still write an explicit count.
     const unflagged = {
       ...action(),
       id: 'test.poison',
@@ -221,6 +221,7 @@ describe('Curse Poison: explicit authored and persisted copy policy', () => {
       sourceActionId: 'test.poison',
       profileVersion: 1,
       movementRemainder: 0,
+      stacks: 1,
     })
   })
   it('reapplication replaces copy permission instead of retaining a previous opt-in', () => {
