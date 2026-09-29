@@ -173,9 +173,7 @@ export function canonicalResonancePair(
     : [secondDisciplineId, firstDisciplineId]
 }
 
-export function validateResonanceDefinition(
-  definition: AnyResonanceDefinition,
-): readonly string[] {
+export function validateResonanceDefinition(definition: AnyResonanceDefinition): readonly string[] {
   if (isResonanceDefinitionV2(definition)) {
     return validateResonanceDefinitionV2(definition)
   }
@@ -319,9 +317,7 @@ export function forecastResonanceForSkill(
   const setupMatches = mechanics.setup ? matchesSkill(skill, mechanics.setup) : false
   const triggerMatches = matchesSkill(skill, mechanics.trigger)
   const immediate = mechanics.mode === 'immediate'
-  const activates = immediate
-    ? triggerMatches
-    : state.armedByActionId !== null && triggerMatches
+  const activates = immediate ? triggerMatches : state.armedByActionId !== null && triggerMatches
   const expires = !immediate && state.armedByActionId !== null && !activates
   const arms = !immediate && setupMatches
 
