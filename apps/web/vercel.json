@@ -2,6 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "git": {
     "deploymentEnabled": {
+      "combat-v5-1-test-preview-20260929": true,
       "**": false
     }
   }
