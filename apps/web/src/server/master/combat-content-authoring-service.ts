@@ -15,7 +15,7 @@ import {
 } from '@aurevane/game-core/combat/essence'
 import { combatActionPresentationTags } from '@aurevane/game-core/combat/gameplay-tags'
 import {
-  toCombatActionDefinition,
+  toMaterializedCombatActionDefinition,
   validateMatureSkillDefinition,
   type MatureSkillCombatContext,
   type MatureSkillDefinition,
@@ -281,7 +281,7 @@ function validateSkillDefinition(definition: unknown): CombatContentValidationRe
   if (issues.length === 0) {
     for (const context of ['pve', 'pvp'] as const) {
       try {
-        const action = toCombatActionDefinition(candidate, context)
+        const action = toMaterializedCombatActionDefinition(candidate, context)
         validateCombatActionDefinition(action)
       } catch (error) {
         issues.push({
@@ -299,7 +299,7 @@ function validateSkillDefinition(definition: unknown): CombatContentValidationRe
     return {
       valid: true,
       issues: [],
-      derivedTags: combatActionPresentationTags(toCombatActionDefinition(candidate, 'pve')),
+      derivedTags: combatActionPresentationTags(candidate),
     }
   } catch (error) {
     return {
@@ -350,7 +350,7 @@ function validateEssenceAuthoringDefinition(definition: unknown): CombatContentV
   return {
     valid: true,
     issues: [],
-    derivedTags: combatActionPresentationTags(toCombatActionDefinition(candidate.skill, 'pve')),
+    derivedTags: combatActionPresentationTags(candidate.skill),
   }
 }
 
