@@ -16,7 +16,10 @@ import {
   statusLabel,
   summarizeBattleEffects,
 } from './battle-effect-summary'
-import { readSummonInspectMetadata, type BattleSummonInspectMetadata } from './battle-summon-inspect'
+import {
+  readSummonInspectMetadata,
+  type BattleSummonInspectMetadata,
+} from './battle-summon-inspect'
 import styles from './desktop-battle-combatant-inspect.module.css'
 import { useBattleInteractionLifecycle } from './battle-interaction-lifecycle'
 import { PvpBattleInspectPopup } from './pvp-battle-inspect-popup'
@@ -161,9 +164,7 @@ function readSelectedCombatant(
   const isPlayer = Boolean(playerName && combatantId.startsWith('character:'))
   const summon = readSummonInspectMetadata(battle.snapshot, combatantId)
   const ownerParticipant = summon
-    ? metadata?.participants.find(
-        (candidate) => candidate.combatantId === summon.ownerCombatantId,
-      )
+    ? metadata?.participants.find((candidate) => candidate.combatantId === summon.ownerCombatantId)
     : null
   const summonWithOwner = summon
     ? {
