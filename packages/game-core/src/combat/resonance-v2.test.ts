@@ -4,6 +4,7 @@ import { resolveResonanceForPair } from './resonance'
 import {
   RESONANCE_V2_SCHEMA_VERSION,
   convertV5ResonanceToV2,
+  isResonanceDefinitionV2,
   normalizedResonanceMechanics,
   validateResonanceDefinitionV2,
 } from './resonance-v2'
@@ -59,7 +60,7 @@ describe('Combat v5.1 Resonance v2 schema', () => {
 
   it('rejects more than two matcher tags or more than two Result effects', () => {
     const v5 = resolveResonanceForPair('lifebinder', 'vanguard')
-    if (!v5 || v5.trigger.kind !== 'skill-sequence') {
+    if (!v5 || isResonanceDefinitionV2(v5)) {
       throw new Error('Expected current v5 Resonance.')
     }
     const v2 = convertV5ResonanceToV2(v5)
