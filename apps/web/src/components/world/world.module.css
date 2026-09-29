@@ -303,8 +303,8 @@
     0 0 0 2px #071b23,
     0 2px 8px #0009;
   transition:
-    left 850ms linear,
-    top 850ms linear;
+    left 210ms linear,
+    top 210ms linear;
 }
 .playerToken img {
   width: 100%;
