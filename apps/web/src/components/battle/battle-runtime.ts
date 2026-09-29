@@ -90,6 +90,7 @@ export interface BattlePresentationParticipant {
   profileImageUrl: string | null
   portraitAssetId: ImageAssetId | null
   local: boolean
+  kind: 'character' | 'scenario' | 'summon'
 }
 
 export interface BattleViewModel {
@@ -123,8 +124,32 @@ function pveParticipants(
 ): BattlePresentationParticipant[] {
   const profiles = battle.snapshot.statBridge.combatants
   const localProfile = profiles.find((profile) => profile.provenance.kind === 'character-derived')
-  const scenarioProfiles = profiles.filter((profile) => profile.provenance.kind === 'scenario')
+  const summons = battle.snapshot.effectState?.summons ?? []
+  const summonIds = new Set(summons.map((summon) => summon.combatantId))
+  const scenarioProfiles = profiles.filter(
+    (profile) => profile.provenance.kind === 'scenario' && !summonIds.has(profile.combatantId),
+  )
   const participants: BattlePresentationParticipant[] = []
+  const battleCombatants = battle.snapshot.tactical.battle.combatants
+  const localCombatant = localProfile
+    ? battleCombatants.find((combatant) => combatant.id === localProfile.combatantId) ?? null
+    : null
+  const orderedTeamIds = [
+    ...(localCombatant ? [localCombatant.teamId] : []),
+    ...battleCombatants
+      .map((combatant) => combatant.teamId)
+      .filter(
+        (teamId, index, teamIds) =>
+          teamId !== localCombatant?.teamId && teamIds.indexOf(teamId) === index,
+      ),
+  ]
+
+  const teamIndexForCombatant = (combatantId: string): number => {
+    const teamId = battleCombatants.find((combatant) => combatant.id === combatantId)?.teamId
+    if (!teamId) return 0
+    const index = orderedTeamIds.indexOf(teamId)
+    return index < 0 ? 0 : index
+  }
 
   if (localProfile) {
     const characterId = localProfile.provenance.sourceId.startsWith('character:')
@@ -135,11 +160,12 @@ function pveParticipants(
       characterId,
       name: runtime.playerName,
       level: runtime.playerLevel,
-      teamIndex: 0,
+      teamIndex: teamIndexForCombatant(localProfile.combatantId),
       seatIndex: 0,
       profileImageUrl: runtime.playerProfileImageUrl,
       portraitAssetId: runtime.playerPortraitAssetId,
       local: true,
+      kind: 'character',
     })
   }
 
@@ -149,13 +175,33 @@ function pveParticipants(
       characterId: null,
       name: scenarioProfiles.length === 1 ? 'Recruit' : `Recruit ${index + 1}`,
       level: 1,
-      teamIndex: 1,
+      teamIndex: teamIndexForCombatant(profile.combatantId),
       seatIndex: index,
       profileImageUrl: null,
       portraitAssetId: null,
       local: false,
+      kind: 'scenario',
     })
   })
+
+  summons
+    .slice()
+    .sort((left, right) => left.combatantId.localeCompare(right.combatantId))
+    .forEach((summon, index) => {
+      if (!battleCombatants.some((combatant) => combatant.id === summon.combatantId)) return
+      participants.push({
+        combatantId: summon.combatantId,
+        characterId: null,
+        name: summon.profile.name,
+        level: 1,
+        teamIndex: teamIndexForCombatant(summon.combatantId),
+        seatIndex: scenarioProfiles.length + index + 1,
+        profileImageUrl: null,
+        portraitAssetId: null,
+        local: false,
+        kind: 'summon',
+      })
+    })
 
   return participants
 }
@@ -175,6 +221,7 @@ function pvpParticipants(
       participant.portraitRef as CharacterPortraitRef,
     ),
     local: participant.characterId === runtime.metadata.localCharacterId,
+    kind: 'character' as const,
   }))
 }
 
