@@ -4,7 +4,7 @@ import {
   latestEnabledMatureSkills,
   resolveMatureSkillForContext,
   resolveMatureSkillVersion,
-  toCombatActionDefinition,
+  toMaterializedCombatActionDefinition,
   validateMatureSkillDefinition,
 } from './mature-skills'
 
@@ -34,7 +34,7 @@ describe('P3.8 representative buildcraft catalog', () => {
     for (const skill of enabledSkills) {
       for (const context of ['pve', 'pvp'] as const) {
         const resolved = resolveMatureSkillForContext(skill, context)
-        const action = toCombatActionDefinition(skill, context)
+        const action = toMaterializedCombatActionDefinition(skill, context)
 
         expect(resolved.combatContext).toBe(context)
         expect(action.id).toBe(skill.id)
