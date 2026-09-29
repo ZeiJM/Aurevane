@@ -1,10 +1,6 @@
 import type { CombatEffectDefinition } from './actions'
 import { validateGameplayEffectMetadata } from './gameplay-tags'
-import type {
-  ResonanceDefinition,
-  ResonanceMediaHooks,
-  ResonanceSkillMatcher,
-} from './resonance'
+import type { ResonanceDefinition, ResonanceMediaHooks, ResonanceSkillMatcher } from './resonance'
 
 export const RESONANCE_V2_SCHEMA_VERSION = 2 as const
 
@@ -48,12 +44,7 @@ export interface NormalizedResonanceMechanics {
 
 const STABLE_ID_PATTERN = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/u
 
-const IMMEDIATE_TRIGGER_DISCIPLINES = new Set([
-  'chronist',
-  'farstrider',
-  'ironfist',
-  'shadehand',
-])
+const IMMEDIATE_TRIGGER_DISCIPLINES = new Set(['chronist', 'farstrider', 'ironfist', 'shadehand'])
 
 function matcherValid(matcher: ResonanceSkillMatcher): boolean {
   return (
@@ -199,7 +190,9 @@ export function validateResonanceDefinitionV2(
     ...(definition.trigger.setup ? [definition.trigger.setup.sourceDisciplineId] : []),
     definition.trigger.trigger.sourceDisciplineId,
   ]
-  if (matcherDisciplines.some((disciplineId) => !definition.disciplinePair.includes(disciplineId))) {
+  if (
+    matcherDisciplines.some((disciplineId) => !definition.disciplinePair.includes(disciplineId))
+  ) {
     issues.push('trigger.sourceDiscipline')
   }
 
@@ -219,10 +212,7 @@ export function validateResonanceDefinitionV2(
   ) {
     issues.push('trigger.aiUtility')
   }
-  if (
-    definition.trigger.mode === 'immediate' &&
-    definition.trigger.aiSetupUtilityBonus !== 0
-  ) {
+  if (definition.trigger.mode === 'immediate' && definition.trigger.aiSetupUtilityBonus !== 0) {
     issues.push('trigger.aiSetupUtilityBonus')
   }
   if (definition.authoring.schemaVersion !== RESONANCE_V2_SCHEMA_VERSION) {
@@ -232,12 +222,8 @@ export function validateResonanceDefinitionV2(
   return [...new Set(issues)]
 }
 
-export function convertV5ResonanceToV2(
-  definition: ResonanceDefinition,
-): ResonanceDefinitionV2 {
-  const immediate = IMMEDIATE_TRIGGER_DISCIPLINES.has(
-    definition.trigger.payoff.sourceDisciplineId,
-  )
+export function convertV5ResonanceToV2(definition: ResonanceDefinition): ResonanceDefinitionV2 {
+  const immediate = IMMEDIATE_TRIGGER_DISCIPLINES.has(definition.trigger.payoff.sourceDisciplineId)
   const resultEffects = definition.trigger.payoffEffects
     .slice(0, 2)
     .map((effect) => (immediate ? weakenImmediateEffect(effect) : structuredClone(effect)))
@@ -252,10 +238,9 @@ export function convertV5ResonanceToV2(
   return {
     ...definition,
     contentVersion: definition.contentVersion + 1,
-    description:
-      immediate
-        ? `${definition.name} triggers immediately from ${triggerLabel}; its Result is intentionally lighter because no Setup is required.`
-        : `${definition.name} uses Setup ${setupLabel}, then Trigger ${triggerLabel}, to produce its authored Result.`,
+    description: immediate
+      ? `${definition.name} triggers immediately from ${triggerLabel}; its Result is intentionally lighter because no Setup is required.`
+      : `${definition.name} uses Setup ${setupLabel}, then Trigger ${triggerLabel}, to produce its authored Result.`,
     trigger: {
       kind: 'skill-trigger-v2',
       mode: immediate ? 'immediate' : 'sequence',
