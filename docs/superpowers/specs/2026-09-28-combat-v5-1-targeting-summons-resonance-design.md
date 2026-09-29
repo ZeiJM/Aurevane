@@ -258,7 +258,7 @@ A summon has its own HP and can be defeated.
 It disappears when either:
 
 1. it is defeated; or
-2. it completes its **5th summon turn**.
+2. it completes the final summon turn authored by its pinned summon profile (**5 turns is the standard**, not a global hard limit).
 
 Expiration is server-authoritative and removes the summon cleanly from placement, active combatant/stat-bridge state, initiative eligibility, temporary effect state, and any summon-owned future schedules.
 
@@ -315,7 +315,7 @@ Each summoning Skill owns a versioned summon profile containing at minimum:
 - base HP/MP and stat profile or bounded derivation inputs;
 - initiative/movement profile;
 - AI profile/behavior hints;
-- lifetime (v5.1 current rule = 5 turns);
+- lifetime as a positive whole number of summon turns (5 is the standard/current Verdant Stalker value);
 - 1–2 authored summon abilities;
 - ability media/presentation hooks where applicable.
 
@@ -345,7 +345,7 @@ Browser clients still cannot write private combat-content tables directly.
 
 The parent summoning Skill's total value must account for:
 
-- the summon lasting up to 5 turns;
+- the summon's authored lifetime (5 turns is the standard baseline);
 - summon survivability;
 - initiative;
 - movement;
@@ -522,7 +522,7 @@ Implementation must be test-driven and include regressions for at least:
 - at most two authored abilities in profile;
 - deterministic utility/tie-break behavior;
 - own HP and defeat cleanup;
-- five-turn expiration cleanup;
+- authored-lifetime expiration cleanup, including the standard five-turn case;
 - battle victory does not miscount expired/defeated summons;
 - Inspect exposes summon data;
 - no normal player/recruit rail is created;
