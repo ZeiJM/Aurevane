@@ -73,12 +73,7 @@ const CROSSROADS_COURT: TacticalHallArenaDefinition = {
   width: 12,
   height: 7,
   // A short costly center competes with two longer open flanks. Ground routes need no Jump.
-  tiles: createTiles(
-    12,
-    7,
-    new Set(['5:2', '5:3', '5:4', '6:2', '6:3', '6:4']),
-    new Set(),
-  ),
+  tiles: createTiles(12, 7, new Set(['5:2', '5:3', '5:4', '6:2', '6:3', '6:4']), new Set()),
   playerSpawn: { x: 1, y: 3 },
   recruitSpawn: { x: 10, y: 3 },
 }
