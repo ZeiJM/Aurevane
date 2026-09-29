@@ -1189,6 +1189,135 @@
     transform: translate(10px, -14px);
   }
 }
+
+.conversationScrim {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  display: grid;
+  place-items: center;
+  padding: clamp(1rem, 3vw, 2.5rem);
+  background: #03141eb8;
+  backdrop-filter: blur(3px);
+}
+.conversation {
+  width: min(68rem, 100%);
+  max-height: min(84dvh, 48rem);
+  display: grid;
+  grid-template-columns: minmax(15rem, 42%) minmax(0, 58%);
+  overflow: hidden;
+  border: 1px solid #bda870;
+  border-radius: 0.65rem;
+  background: #071d27;
+  box-shadow: 0 1.5rem 4rem #000b;
+  color: #f7efd5;
+}
+.conversationNpc {
+  position: relative;
+  min-height: 31rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 0.25rem;
+  padding: 2rem;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 32%, #d8c78520, transparent 28%),
+    linear-gradient(165deg, #153b44, #081a25 58%, #050f17);
+  border-right: 1px solid #a58d5b66;
+}
+.conversationNpc > span,
+.conversationNpc > small {
+  position: relative;
+  z-index: 1;
+  color: #cbbf9d;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.conversationNpc > strong {
+  position: relative;
+  z-index: 1;
+  font: 500 clamp(1.45rem, 2.5vw, 2.3rem) var(--av-font-display, Georgia, serif);
+  color: #fff0c3;
+}
+.conversationNpcPlaceholder {
+  position: absolute;
+  inset: 13% 12% 25%;
+  display: grid;
+  place-items: center;
+  border: 1px solid #c5ae7447;
+  border-radius: 50% 50% 42% 42%;
+  background: radial-gradient(circle at 50% 36%, #e2d09b21, #071820 68%);
+  color: #dac98b42;
+  font-size: 7rem;
+}
+.conversationDialogue {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: clamp(1.2rem, 3vw, 2.2rem);
+  overflow: auto;
+}
+.conversationDialogue header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #ad976454;
+}
+.conversationDialogue header small {
+  color: #c4b58f;
+  letter-spacing: 0.06em;
+}
+.conversationDialogue h2 {
+  margin: 0.25rem 0 0;
+  font: 500 clamp(1.55rem, 3vw, 2.4rem) var(--av-font-display, Georgia, serif);
+  color: #fff0c3;
+}
+.conversationClose {
+  white-space: nowrap;
+}
+.conversationBody {
+  max-width: 45rem;
+  margin: 1.5rem 0;
+  font-size: clamp(1rem, 1.4vw, 1.15rem);
+  line-height: 1.75;
+  color: #f5eddb;
+}
+.conversationChoices {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: auto;
+}
+.conversationChoice {
+  display: grid;
+  gap: 0.35rem;
+  width: 100%;
+  min-height: 4.5rem;
+  padding: 0.9rem 1rem;
+  text-align: left;
+  border: 1px solid #c1aa70;
+  background: #0c3039;
+  color: #fff0c3;
+}
+.conversationChoice:hover:not(:disabled),
+.conversationChoice:focus-visible {
+  background: #124650;
+  border-color: #ead493;
+}
+.conversationChoice span,
+.conversationState {
+  color: #c9c5b1;
+  font-size: 0.78rem;
+}
+.conversationDialogue footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 1.2rem;
+}
+
 .surroundings {
   position: fixed;
   inset: 0;
@@ -1491,6 +1620,45 @@
     font-size: 0.7rem;
   }
 }
+
+@media (max-width: 760px) {
+  .conversationScrim {
+    padding: 0;
+    align-items: end;
+  }
+  .conversation {
+    width: 100%;
+    max-height: 92dvh;
+    grid-template-columns: 1fr;
+    border-radius: 0.7rem 0.7rem 0 0;
+  }
+  .conversationNpc {
+    min-height: 8.5rem;
+    padding: 1rem 1.1rem;
+    border-right: 0;
+    border-bottom: 1px solid #a58d5b66;
+  }
+  .conversationNpcPlaceholder {
+    inset: 0 0 0 58%;
+    border: 0;
+    border-radius: 0;
+    font-size: 4rem;
+  }
+  .conversationDialogue {
+    padding: 1rem 1.1rem 1.2rem;
+  }
+  .conversationDialogue header {
+    align-items: center;
+  }
+  .conversationClose {
+    display: none;
+  }
+  .conversationBody {
+    margin: 1rem 0 1.25rem;
+    line-height: 1.6;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .ambient {
     display: none;
