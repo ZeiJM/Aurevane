@@ -147,8 +147,10 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   await expect(resonancePreview).toContainText('Result')
   await expect(resonancePreview).toContainText('Result details')
   await expect(resonancePreview).not.toContainText('Payoff')
+  await resonancePreviewAnchor.evaluate((element) => (element as HTMLElement).blur())
   await page.mouse.move(0, 0)
-  await expect(resonancePreview).toBeHidden()
+  await expect(resonancePreview).toHaveCSS('opacity', '0')
+  await expect(resonancePreview).toHaveCSS('pointer-events', 'none')
 
   await page.getByRole('button', { name: /Manage Techniques/ }).click()
   const mixedCapacity = page.getByTestId('skill-capacity')
