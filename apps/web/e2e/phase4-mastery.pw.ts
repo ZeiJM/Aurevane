@@ -136,17 +136,17 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
     await expect(
       root.getByRole('progressbar', { name: 'Action Economy remaining' }),
     ).toHaveAttribute('aria-valuenow', String(ap))
-    if (!braced && ap >= 30) {
-      await root.getByRole('button', { name: 'Brace, 30 AP', exact: true }).click()
+    if (!braced && ap >= 35) {
+      await root.getByRole('button', { name: 'Brace, 35 AP', exact: true }).click()
       await commit()
       braced = true
       skillCommands++
       continue
     }
-    const nextPrimarySkillCost = skillCommands === 2 ? 45 : 40
+    const nextPrimarySkillCost = 45
     if (distance === 1 && ap >= (skillCommands < 3 ? nextPrimarySkillCost : 50)) {
       if (skillCommands === 1) {
-        await root.getByRole('button', { name: 'Forceful Strike, 40 AP', exact: true }).click()
+        await root.getByRole('button', { name: 'Forceful Strike, 45 AP', exact: true }).click()
       } else if (skillCommands === 2) {
         await chooseSkill('Attack', 'vanguard.shield-bash')
         await root.getByRole('button', { name: 'Shield Bash, 45 AP', exact: true }).click()
