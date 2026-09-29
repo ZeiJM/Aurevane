@@ -589,7 +589,7 @@ export function evaluateCombatAction(
   selection: CombatTargetSelection,
   content: CombatContentCatalog,
 ): CombatActionEvaluation {
-  assertValidCombatEncounterStateForTurnEnd(state, outgoingDefeatedAtTurnEnd)
+  assertValidCombatEncounterState(state)
   validateCombatContentCatalog(content)
   assertValidCombatAccuracyStatusState(state, content)
   validateCombatActionDefinition(action, content)
@@ -909,7 +909,7 @@ export function waitCurrentTurn(
   state: CombatEncounterState,
   content: CombatContentCatalog,
 ): CombatResolutionTransition {
-  assertValidCombatEncounterState(state)
+  assertValidCombatEncounterStateForTurnEnd(state, outgoingDefeatedAtTurnEnd)
   validateCombatContentCatalog(content)
   assertValidCombatAccuracyStatusState(state, content)
 
