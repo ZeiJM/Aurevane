@@ -494,6 +494,36 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
   }
 })
 
+test('local NPC conversation stays readable and dismissible across supported layouts', async ({
+  page,
+}, info) => {
+  await enter(page)
+  const initial = await world(page)
+  place(initial.characterId, 'verdant-expanse', 2, 4, true)
+  await page.reload()
+
+  await page
+    .getByRole('region', { name: 'Local interaction' })
+    .getByRole('button', { name: 'Speak with Watch officer' })
+    .click()
+
+  const conversation = page.getByRole('dialog', { name: 'Watch officer' })
+  await expect(conversation).toBeVisible()
+  await expect(conversation).toContainText('The Eastern Watch')
+  await expect(conversation).toContainText(
+    'The eastern tower has gone quiet. Confirm it is standing, then report back.',
+  )
+  await expect(conversation.getByRole('button', { name: 'Accept objective' })).toBeVisible()
+  await expect(conversation.getByRole('button', { name: 'End conversation' }).last()).toBeVisible()
+  await capture(page, info, `npc-conversation-${info.project.name}`)
+
+  await page.keyboard.press('Escape')
+  await expect(conversation).toHaveCount(0)
+  expect(
+    (await world(page)).objectives.find((objective) => objective.id === 'eastern-watch'),
+  ).toMatchObject({ progress: 'available', completed: false })
+})
+
 test('Eastern Watch objective persists accept, inspect and idempotent return completion', async ({
   page,
 }, info) => {
