@@ -28,7 +28,8 @@ async function confirmTestAccountEmail(email: string): Promise<void> {
 
   if (error) throw error
 
-  const user = data.users.find((candidate) => candidate.email === email)
+  const normalizedEmail = email.trim().toLowerCase()
+  const user = data.users.find((candidate) => candidate.email?.toLowerCase() === normalizedEmail)
   if (!user) throw new Error('The browser-test account was not created in local Supabase.')
 
   const { error: confirmError } = await supabase.auth.admin.updateUserById(user.id, {

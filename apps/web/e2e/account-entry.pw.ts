@@ -9,7 +9,18 @@ test('account entry is responsive, focusable, stable, and media-safe', async ({ 
   await expect(page.getByTestId('account-shell')).toBeVisible()
   const title = page.getByRole('heading', { level: 1, name: 'AUREVANE' })
   await expect(title).toBeVisible()
-  await expect(page.locator('img[src*="world-v01.webp"]')).toBeVisible()
+  const threshold = page.locator('img[src*="adventure/threshold-v01.webp"]')
+  await expect(threshold).toBeAttached()
+  const hero = page.locator('[aria-labelledby="aurevane-title"]')
+  await expect(hero).toBeVisible()
+  expect(await hero.evaluate((element) => getComputedStyle(element).backgroundImage)).toContain(
+    'adventure/threshold-v01.webp',
+  )
+  await expect
+    .poll(() =>
+      threshold.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0),
+    )
+    .toBe(true)
 
   const hasHorizontalOverflow = await page.evaluate(
     () => document.documentElement.scrollWidth > window.innerWidth + 1,

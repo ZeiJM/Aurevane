@@ -506,3 +506,198 @@
     padding: 0.4rem;
   }
 }
+
+/* The approved versus stage: stone console, distinct rival sides, square portraits. */
+.modal[role='dialog'][data-lobby-concept] {
+  --av-text: #293630;
+  --av-text-muted: #4c5044;
+  --av-text-dim: #625b4b;
+  --av-brass-300: #765a32;
+}
+.modal {
+  width: min(72rem, calc(100% - 2rem));
+  padding: 1.1rem;
+  gap: 1rem;
+  border-color: #ae9265;
+  border-radius: 6px;
+  background: linear-gradient(125deg, #cec0a5, #b7a58b), #b7a58b;
+}
+.modal::backdrop {
+  background: #172526d9;
+  backdrop-filter: blur(6px);
+}
+.header {
+  padding: 0.85rem 1.1rem;
+  border-color: #947b57;
+  background: linear-gradient(110deg, #374c47, #283438);
+}
+.header p {
+  color: #d4cbb8;
+}
+.keyStack button {
+  min-height: 3.2rem;
+  background: #222e2f;
+}
+.keyStack strong {
+  font-size: 1.2rem;
+}
+.arenaLine {
+  padding-block: 0.3rem;
+}
+.setting {
+  padding: 0.55rem 0.75rem;
+  border-color: #968260;
+  background: #ded0b67d;
+}
+.teams {
+  gap: 3rem;
+}
+.team {
+  padding: 1rem;
+  gap: 0.85rem;
+  border-color: #668b7c;
+  border-top: 3px solid #467767;
+  border-radius: 4px;
+  background: linear-gradient(150deg, #d3d1b8, #adb9a2), #adb9a2;
+}
+.team[data-team='1'] {
+  border-color: #a4755d;
+  border-top-color: #925f47;
+  background: linear-gradient(150deg, #dec4aa, #be9a81), #be9a81;
+}
+.team[data-team='2'] {
+  border-color: #8a7c9b;
+  border-top-color: #74647f;
+  background: linear-gradient(150deg, #cec4cd, #afa0b5), #afa0b5;
+}
+.teamHeading span {
+  color: #625744;
+}
+.teamHeading strong {
+  font-size: 1.35rem;
+}
+.vs {
+  left: -1.5rem;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-color: #a08352;
+  color: #e4c78f;
+  background: #34403c;
+  box-shadow:
+    0 0 0 5px #b9aa90,
+    0 0 1.5rem #6e8d7655;
+  font-size: 1rem;
+}
+.filledSeat,
+.emptySeat {
+  border-color: #887b625c;
+  background: #fff1d642;
+  border-radius: 3px;
+}
+.filledSeat strong,
+.emptySeat strong {
+  color: #29352e;
+}
+.filledSeat small,
+.emptySeat small {
+  color: #4d5043;
+}
+.filledSeat > span,
+.filledSeat:not([data-ready]) > span {
+  color: #65563c;
+}
+.filledSeat[data-ready] {
+  border-color: #38775f;
+  background: #dbe7c75e;
+}
+.filledSeat[data-ready] > span {
+  color: #275b47;
+}
+.portraitFrame {
+  box-shadow: 0 0 0 3px #4b504422;
+}
+.unseatedMember {
+  background: #ddceb44d;
+}
+.footer {
+  padding: 0.8rem 0.3rem 0;
+  border-color: #947b56;
+}
+.modal[data-lobby-mode='1v1'] .filledSeat {
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  min-height: 15rem;
+  padding: 1.2rem;
+  text-align: center;
+}
+.modal[data-lobby-mode='1v1'] .portraitFrame {
+  grid-row: auto;
+  width: 8rem;
+  height: 8rem;
+}
+.modal[data-lobby-mode='1v1'] .filledSeat strong {
+  font-size: 1.7rem;
+}
+.modal[data-lobby-mode='1v1'] .filledSeat > div:nth-child(2) {
+  align-self: center;
+}
+.modal[data-lobby-mode='1v1'] .emptySeat {
+  grid-template-columns: 1fr;
+  min-height: 15rem;
+  justify-items: center;
+  text-align: center;
+}
+.modal[data-lobby-mode='1v1'] .emptySeat > div {
+  grid-row: auto;
+  font-size: 3rem;
+  color: #907a56;
+}
+@media (max-width: 800px) {
+  .modal {
+    width: calc(100% - 1rem);
+    padding: 0.6rem;
+    gap: 0.65rem;
+  }
+  .teams {
+    gap: 1.5rem;
+  }
+  .vs {
+    top: -0.75rem;
+    left: 50%;
+    width: 1.8rem;
+    height: 1.8rem;
+    font-size: 0.75rem;
+  }
+  .team {
+    padding: 0.65rem;
+  }
+  .modal[data-lobby-mode='1v1'] .filledSeat,
+  .modal[data-lobby-mode='1v1'] .emptySeat {
+    min-height: 12rem;
+    padding: 0.75rem 0.4rem;
+  }
+  .modal[data-lobby-mode='1v1'] .portraitFrame {
+    width: 6rem;
+    height: 6rem;
+  }
+  .modal[data-lobby-mode='1v1'] .filledSeat strong {
+    font-size: 1.25rem;
+  }
+}
+@media (min-width: 360px) and (max-width: 800px) {
+  .modal[data-lobby-mode='1v1'] .teams {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.5rem;
+  }
+  .modal[data-lobby-mode='1v1'] .vs {
+    top: 50%;
+    left: -0.75rem;
+  }
+  .modal[data-lobby-mode='1v1'] .teamHeading {
+    flex-direction: column;
+    align-items: center;
+  }
+  .modal[data-lobby-mode='1v1'] .teamHeading strong {
+    font-size: 1rem;
+  }
+}

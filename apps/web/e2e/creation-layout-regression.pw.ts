@@ -4,7 +4,7 @@ import { expect, test } from '@playwright/test'
 
 import { createVerifiedAccountAndSignIn } from './pv1f-test-helpers'
 
-test('Creation exposes its forty portraits and preserves the complete authenticated three-step journey', async ({
+test('Creation exposes twelve portraits per gender and preserves the complete authenticated three-step journey', async ({
   page,
 }, info) => {
   test.setTimeout(120_000)
@@ -126,11 +126,8 @@ test('Creation exposes its forty portraits and preserves the complete authentica
       .toBeCloseTo(1, 2)
     if (size.width >= 1024)
       expect
-        .soft(
-          metrics.preview.width / metrics.library.width,
-          `${label}: desktop preview balances gallery`,
-        )
-        .toBeGreaterThanOrEqual(0.45)
+        .soft(metrics.preview.width, `${label}: usable desktop preview`)
+        .toBeGreaterThanOrEqual(128)
     expect.soft(metrics.nameFont, `${label}: readable name input`).toBeGreaterThanOrEqual(16)
     expect.soft(metrics.primaryFont, `${label}: readable action`).toBeGreaterThanOrEqual(14)
     expect
@@ -199,7 +196,7 @@ test('Creation exposes its forty portraits and preserves the complete authentica
     })
   await creation.getByRole('button', { name: 'Review character', exact: true }).click()
   await expect(creation.getByText('Portrait', { exact: true })).toBeVisible()
-  await expect(creation.getByText('Wayfarer 40', { exact: true })).toBeVisible()
+  await expect(creation.getByText('Female adventurer 12', { exact: true })).toBeVisible()
   await expect(creation.getByText('Lightstep travelwear', { exact: true })).toBeVisible()
   await expect(creation).not.toContainText(/pronouns/i)
   if (process.env.LAYOUT_REVIEW_OUTPUT)

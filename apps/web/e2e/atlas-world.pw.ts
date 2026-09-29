@@ -177,23 +177,30 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
   ])
     expect(initial.sectors.find((sector) => sector.id === id)).toBeDefined()
   expect(JSON.stringify(initial)).not.toContain('survey-01')
-  const identity = page.getByTestId('character-profile')
-  const identityBox = (await identity.boundingBox())!
-  for (const content of [
-    identity.getByRole('heading', { name, exact: true }),
-    identity.locator('[data-character-resource="hp"]'),
-    identity.locator('[data-character-resource="mp"]'),
-  ]) {
-    const bounds = (await content.boundingBox())!
-    expect(bounds.x).toBeGreaterThanOrEqual(identityBox.x)
-    expect(bounds.y).toBeGreaterThanOrEqual(identityBox.y)
-    expect(bounds.x + bounds.width).toBeLessThanOrEqual(identityBox.x + identityBox.width)
-    expect(bounds.y + bounds.height).toBeLessThanOrEqual(identityBox.y + identityBox.height)
-  }
+  const rail = page.locator('[data-av-game-rail]')
+  await expect(rail).toBeVisible()
+  const railBox = (await rail.boundingBox())!
   if (info.project.name === 'mobile-chromium') {
-    const portrait = (await identity.locator('[data-character-portrait-frame]').boundingBox())!
-    expect(portrait.width).toBeLessThanOrEqual(100)
-    expect(identityBox.height).toBeLessThan(260)
+    await expect(
+      page.getByRole('navigation', { name: 'Primary game navigation', exact: true }),
+    ).toBeVisible()
+    expect(railBox.height).toBeLessThan(100)
+  } else {
+    const identity = page.getByTestId('character-rail-profile')
+    await expect(identity).toBeVisible()
+    const identityBox = (await identity.boundingBox())!
+    for (const content of [
+      identity.locator('[data-character-identity-copy] > strong').filter({ hasText: name }),
+      identity.locator('[data-character-resource="hp"]'),
+      identity.locator('[data-character-resource="mp"]'),
+    ]) {
+      const bounds = (await content.boundingBox())!
+      expect(bounds.x).toBeGreaterThanOrEqual(identityBox.x)
+      expect(bounds.y).toBeGreaterThanOrEqual(identityBox.y)
+      expect(bounds.x + bounds.width).toBeLessThanOrEqual(identityBox.x + identityBox.width)
+      expect(bounds.y + bounds.height).toBeLessThanOrEqual(identityBox.y + identityBox.height)
+    }
+    expect(railBox.width).toBe(190)
   }
   const grid = page.getByRole('group', { name: 'Verdant Expanse, square movement grid' })
   await expect(grid.getByRole('button')).toHaveCount(117)

@@ -26,8 +26,20 @@ Temporary fixture routes and their derived development types were removed before
 
 A fresh reviewer identified two material issues: battle dropdown controls inheriting the large gameplay-art size, and optional Current Path persistence blocking Haven. Both were corrected. The review found no concrete authorization bypass, legacy portrait incompatibility, or removed skill-parameter/effect renderer.
 
+## Authenticated CI follow-up
+
+The initial draft PR ran against CI's disposable Supabase environment. CI, Profile Skill Build, Essence Build, Resonance Build and Attribute Allocation passed. Browser suites exposed both outdated presentation assertions and actual UI defects; the candidate is not yet accepted as release-ready.
+
+Corrections preserve the gameplay assertions: controls/title surfaces now use readable stone tokens; mobile controls no longer inherit the desktop height cap; battle information buttons no longer intercept action-button clicks; closed discipline tooltips no longer expand Nexus horizontally. The dedicated PvP lobby now has opposing character cards and a central VS marker, retaining format selection, ready, leave, key and start operations.
+
+Browser contracts now target the actual compact rail/mobile dock and fixed footer, approved account imagery, portrait count and stone palette. Duplicate identity selectors are scoped. Test-account confirmation normalizes email case. Travel, combat legality, action submission, saved builds and parameter/effect assertions remain in place.
+
+The corrected candidate passed the full local `pnpm check` again (formatting, lint, types, 2,988 tests and production builds). `git diff --check` passed.
+
+Synthetic Chromium checks confirmed mobile action clicks, a 980px Nexus without horizontal overflow, a fully expanded mobile controls list, and reachable lobby actions. Desktop/mobile versus-lobby screenshots were reviewed. These checks do not replace authenticated CI outcomes.
+
 ## Verification boundary
 
-No configured Supabase account/persistence environment was available locally. Authenticated end-to-end browser tests, real account persistence, live multiplayer, and a complete state-by-state review of every privileged dialog were not run. Synthetic component checks do not establish those outcomes. The updated browser suite requires the configured CI/game environment before release acceptance.
+Authenticated browser workflows ran in CI and require a fresh successful run on the corrected candidate. Local Supabase credentials remain unavailable. A complete state-by-state review of every privileged dialog and real-user live multiplayer acceptance are not established by synthetic fixtures or disposable CI accounts.
 
 Vercel deployment remains disabled for all branches in `apps/web/vercel.json`.

@@ -10,6 +10,8 @@ Specification and verification plan: `docs/superpowers/specs/2026-09-29-approved
 
 Implementation checks passed: full `pnpm check` (including 2,988 tests and production builds), independent review with both material findings corrected, and representative desktop/mobile component previews. Evidence and remaining authenticated-browser verification boundary: `docs/superpowers/verification/2026-09-29-approved-ui.md`. Main was refreshed at `f82f8176fead0024572bfa53f497430602740880` before handover.
 
+Authenticated CI follow-up: initial build/Skill/Essence/Resonance/attribute workflows passed; browser workflows exposed stale layout selectors and real mobile action/controls/overflow defects. Those findings are corrected on the candidate, including the dedicated X vs Y lobby visual pass. A fresh exact-candidate CI run is required before release acceptance; see the verification record. No merge or deployment is authorized.
+
 ## Nexus Technique Preview and Manual — 2026-09-27
 
 Owner-requested maintenance candidate `agent/technique-preview-manual-20260927` adds the ordered Technique characteristics, effect magnitudes and compact explanations, current zero-turn cooldown display, and content-aligned preview height. Nexus Technique lane names are centered without class icons; the two requested header captions are removed; the power heading is “Ascension / Severance”. Mobile first-tap selection and server-owned auto-save remain on the existing path.

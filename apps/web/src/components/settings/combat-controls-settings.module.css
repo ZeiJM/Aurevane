@@ -236,3 +236,8 @@
   background: #34584f;
   border-color: #8c7955;
 }
+@media (max-width: 900px) {
+  .grid {
+    max-height: none;
+  }
+}

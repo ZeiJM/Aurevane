@@ -313,6 +313,7 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
       ref={dialogRef}
       className={styles.modal}
       data-lobby-concept="true"
+      data-lobby-mode={lobby.mode}
       role="dialog"
       aria-modal="true"
       aria-labelledby="pvp-lobby-title"

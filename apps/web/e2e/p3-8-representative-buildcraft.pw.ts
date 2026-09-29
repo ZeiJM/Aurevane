@@ -47,7 +47,7 @@ async function reloadNexus(page: Page): Promise<void> {
     await page.goto('/game/nexus')
   }
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
-  await expect(page.getByTestId('character-profile')).toBeVisible()
+  await expect(page.locator('[data-av-game-rail]')).toBeVisible()
 
   // Nexus build panels intentionally persist through refresh via URL state. Confirm that
   // persisted panel is restored, then close it so the next buildcraft step can open the other

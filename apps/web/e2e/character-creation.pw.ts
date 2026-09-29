@@ -58,10 +58,9 @@ test('creates a slotted character, persists its profile, and resumes it across s
   const levelProgress = page.getByTestId('level-progress')
   await expect(levelProgress).toContainText('Character Level 1')
   await expect(levelProgress).toContainText('0 / 100 XP')
-  await expect(page.getByRole('progressbar', { name: 'Level progress' })).toHaveAttribute(
-    'aria-valuenow',
-    '0',
-  )
+  await expect(
+    page.getByRole('progressbar', { name: 'Level progress', exact: true }),
+  ).toHaveAttribute('aria-valuenow', '0')
 
   // Starter portrait filenames are registry-driven; verify the rendered image and decoded asset.
   const profilePortrait = page.getByTestId('character-profile').locator('img').first()
@@ -84,11 +83,12 @@ test('creates a slotted character, persists its profile, and resumes it across s
   await page.getByRole('checkbox').check()
   await page.getByRole('button', { name: 'Confirm Final Title' }).click()
   await expect(page.getByText('Choice used')).toBeVisible()
-  await expect(page.getByText(personalTitle, { exact: true }).first()).toBeVisible()
+  const titleWorkspace = page.locator('[data-character-concept="titles"]')
+  await expect(titleWorkspace.getByText(personalTitle, { exact: true }).first()).toBeVisible()
   await expect(page.getByRole('textbox', { name: /^Personal title/ })).toHaveCount(0)
   await page.reload()
   await expect(page.getByText('Choice used')).toBeVisible()
-  await expect(page.getByText(personalTitle, { exact: true }).first()).toBeVisible()
+  await expect(titleWorkspace.getByText(personalTitle, { exact: true }).first()).toBeVisible()
   await page
     .getByRole('navigation', { name: 'Primary game navigation', exact: true })
     .getByRole('link', { name: 'Profile', exact: true })

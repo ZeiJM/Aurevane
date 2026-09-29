@@ -44,7 +44,7 @@ body {
   --av-text-muted: #49463e;
   --av-text-dim: #61594c;
   color: var(--av-text);
-  background: linear-gradient(125deg, #d1c4ae, #bdad92) !important;
+  background: linear-gradient(125deg, #d1c4ae, #bdad92), #bdad92 !important;
   border-color: #9c8561 !important;
 }
 [data-av-shell='concept'] {
@@ -845,7 +845,7 @@ body {
   border: 1px solid #a48c60 !important;
   box-shadow: 0 25px 100px #10191cc7 !important;
   color: #29322c !important;
-  background: linear-gradient(120deg, #d1c3aa, #b4a489) !important;
+  background: linear-gradient(120deg, #d1c3aa, #b4a489), #b4a489 !important;
 }
 [data-character-concept='editor'] :is(input, select) {
   color: #29332d;
