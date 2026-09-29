@@ -165,13 +165,12 @@ function summonProfile(): SummonProfileDefinition {
   }
 }
 
-function stateWithActiveSummonTurn(
-  state: StatDrivenCombatEncounterState,
-): { state: StatDrivenCombatEncounterState; summonId: string } {
+function stateWithActiveSummonTurn(state: StatDrivenCombatEncounterState): {
+  state: StatDrivenCombatEncounterState
+  summonId: string
+} {
   const occupied = new Set(
-    state.tactical.placements.map(
-      (placement) => `${placement.position.x},${placement.position.y}`,
-    ),
+    state.tactical.placements.map((placement) => `${placement.position.x},${placement.position.y}`),
   )
   const position = state.tactical.tiles.find(
     (tile) =>
