@@ -41,7 +41,12 @@ describe('P3.8 representative buildcraft catalog', () => {
         expect(action.version).toBe(skill.contentVersion)
         expect(action.sourceType).toBe('discipline-skill')
         expect(action.cooldown?.key ?? null).toBe(skill.cooldown?.key ?? null)
-        expect(action.effects.length).toBeGreaterThan(0)
+        if (skill.effects.some((effect) => effect.type === 'summon')) {
+          expect(action.effects).toEqual([])
+          expect(skill.summonProfile?.abilities.length).toBeGreaterThanOrEqual(1)
+        } else {
+          expect(action.effects.length).toBeGreaterThan(0)
+        }
       }
     }
   })
