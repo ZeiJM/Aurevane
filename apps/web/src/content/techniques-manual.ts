@@ -174,7 +174,7 @@ export const techniquesManualArticle: ManualArticle = {
       paragraphs: [
         'A pure build shows its active Essence card in Nexus; a mixed build shows its active Resonance card. The card itself keeps a concise flavor line so the full mechanical description does not crowd the layout.',
         'Hover the active Essence or Resonance artwork, or move keyboard focus to it, to open the detail panel. Moving the pointer or focus away closes it automatically. Essence details use the same Skill rows as Technique details: type, cost, cooldown, requirements, effects, range and targeting where applicable.',
-        'Resonance details show both halves of the sequence explicitly: the setup Discipline/tags that arm the Resonance, the payoff Discipline/tags that consume it, and the bounded payoff effects with their durations. The panel is informational only; it does not change the committed build or battle state.',
+        'Resonance details use Setup, Trigger and Result. Sequence Resonances show the Setup Discipline/tags that arm the Resonance, then the Trigger Discipline/tags that activate its bounded Result effects. Immediate Resonances have no Setup, activate directly from their Trigger, and use a lighter Result because activation is easier. The panel is informational only; it does not change the committed build or battle state.',
       ],
     },
     {
