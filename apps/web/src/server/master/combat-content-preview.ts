@@ -9,7 +9,6 @@ import { createTacticalBattleState, type GridPosition } from '@aurevane/game-cor
 import { normalizeCombatEffectState } from '@aurevane/game-core/combat/combat-effect-state'
 import { combatActionPresentationTags } from '@aurevane/game-core/combat/gameplay-tags'
 import {
-  toCombatActionDefinition,
   type MatureSkillCombatContext,
   type MatureSkillDefinition,
 } from '@aurevane/game-core/combat/mature-skills'
@@ -328,9 +327,7 @@ export function previewCombatContentDefinition(
             },
           ]),
     ],
-    derivedTags: [
-      ...combatActionPresentationTags(toCombatActionDefinition(definition, combatContext)),
-    ],
+    derivedTags: [...combatActionPresentationTags(definition)],
     simulation: {
       seed,
       actorCombatantId: ACTOR_ID,
