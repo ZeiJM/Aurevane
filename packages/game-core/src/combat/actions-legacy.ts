@@ -2892,7 +2892,7 @@ function assertValidCombatEncounterStateForTurnEnd(
 
   const currentId = state.tactical.battle.currentTurn?.combatantId ?? null
   const current = currentId
-    ? state.tactical.battle.combatants.find((combatant) => combatant.id === currentId) ?? null
+    ? (state.tactical.battle.combatants.find((combatant) => combatant.id === currentId) ?? null)
     : null
   const allowDefeatedCurrent = current !== null && current.hp <= 0
   const issues = validateCombatEncounterState(state).filter(
