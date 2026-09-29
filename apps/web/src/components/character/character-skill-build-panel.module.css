@@ -591,8 +591,7 @@
   max-width: 100%;
   color: #f0e8dc;
   text-align: right;
-  overflow-wrap: anywhere;
-  white-space: normal;
+  white-space: nowrap;
 }
 
 .effectSummaryList [data-compact-effect-magnitude='true'] {
@@ -778,6 +777,11 @@
 
   .headingCopy p {
     display: block;
+  }
+
+  .effectSummaryList [data-compact-skill-effect='true'] {
+    overflow-wrap: anywhere;
+    white-space: normal;
   }
 }
 
