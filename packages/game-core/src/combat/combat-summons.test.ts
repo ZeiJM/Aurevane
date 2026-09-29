@@ -11,6 +11,7 @@ import {
 } from './combat-summons'
 import {
   createCurrentStatDrivenCombatEncounterState,
+  validateStatDrivenCombatEncounterState,
   type StatDrivenCombatEncounterState,
   type StatDrivenCombatProfileV4,
 } from './stat-driven-combat'
@@ -321,6 +322,46 @@ describe('Combat v5.1 summon runtime state', () => {
     )
     expect(transition.events).toContainEqual(
       expect.objectContaining({ event: 'summon_expired', combatantId: summonId }),
+    )
+  })
+
+  it('round-trips an active summon with its pinned lifetime and authored abilities', () => {
+    let transition = spawn(encounter(), summonProfile({ lifetimeTurns: 3 }))
+    const spawnEvent = transition.events.find((entry) => entry.event === 'summon_spawned')
+    if (!spawnEvent || spawnEvent.event !== 'summon_spawned') throw new Error('Expected spawn.')
+    const summonId = spawnEvent.combatantId
+
+    transition = advanceCombatSummonOwnerTurn(transition.state, summonId)
+
+    const reloaded = JSON.parse(JSON.stringify(transition.state)) as StatDrivenCombatEncounterState
+    expect(validateStatDrivenCombatEncounterState(reloaded)).toEqual([])
+
+    const persistedSummon = reloaded.effectState?.summons?.find(
+      (row) => row.combatantId === summonId,
+    )
+    expect(persistedSummon).toMatchObject({
+      ownerCombatantId: 'player',
+      sourceSkillId: 'wildwarden.renewing-herbs',
+      sourceSkillVersion: 5,
+      spawnedRound: 1,
+      turnsCompleted: 1,
+      profile: {
+        id: 'summon.wildwarden.verdant-stalker',
+        lifetimeTurns: 3,
+      },
+    })
+    expect(persistedSummon?.profile.abilities).toHaveLength(1)
+    expect(persistedSummon?.profile.abilities[0]).toMatchObject({
+      id: 'wildwarden.verdant-stalker.thorn-rake',
+      name: 'Thorn Rake',
+      apCost: 45,
+      mpCost: 0,
+    })
+    expect(reloaded.tactical.placements).toContainEqual(
+      expect.objectContaining({ combatantId: summonId, position: { x: 1, y: 0 } }),
+    )
+    expect(reloaded.statBridge.combatants).toContainEqual(
+      expect.objectContaining({ combatantId: summonId, physicalPower: 24, mysticPower: 18 }),
     )
   })
 
