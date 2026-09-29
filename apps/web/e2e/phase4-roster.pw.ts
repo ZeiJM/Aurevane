@@ -77,11 +77,11 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
   const palm = list.locator('article').filter({ hasText: 'Counter Palm' })
   await palm.getByRole('checkbox').focus()
   await expect(dialog).toContainText('RequirementsSelf: Guard')
-  await expect(dialog).toContainText('Range1 tile')
+  await expect(page.getByTestId('technique-preview')).toContainText('Range1')
   await expect(palm.getByRole('checkbox')).not.toBeChecked()
   const sweep = list.locator('article').filter({ hasText: 'Sweep' })
   await sweep.getByRole('checkbox').focus()
-  await expect(dialog).toContainText('Target MethodCircle · radius 1')
+  await expect(page.getByTestId('technique-preview')).toContainText('Target MethodCircle')
   for (const name of ['Rising Fist', 'Sweep', 'Breakfall', 'Counter Palm']) {
     await setTechnique(page, list.locator('article').filter({ hasText: name }), true)
   }
@@ -138,8 +138,8 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
       }
       page.on('request', trackAudio)
       await root.getByRole('button', { name: /Choose Guard skill/ }).click()
-      await page.getByRole('option', { name: 'Breakfall 25 AP', exact: true }).click()
-      await root.getByRole('button', { name: 'Breakfall, 25 AP', exact: true }).click()
+      await page.getByRole('option', { name: 'Breakfall 35 AP', exact: true }).click()
+      await root.getByRole('button', { name: 'Breakfall, 35 AP', exact: true }).click()
       await expect(root.getByRole('button', { name: 'Confirm Action', exact: true })).toBeEnabled()
       expect(audioRequests).toEqual([])
       const committed = page.waitForResponse(
@@ -307,8 +307,8 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
     if (/\/api\/battles\/[^/]+\/audio\?/.test(request.url())) audioRequests.push(request.url())
   })
   await root.getByRole('button', { name: /Choose Guard skill/ }).click()
-  await page.getByRole('option', { name: 'Fortress 30 AP', exact: true }).click()
-  await root.getByRole('button', { name: 'Fortress, 30 AP', exact: true }).click()
+  await page.getByRole('option', { name: 'Fortress 35 AP', exact: true }).click()
+  await root.getByRole('button', { name: 'Fortress, 35 AP', exact: true }).click()
   await expect(root.getByRole('button', { name: 'Confirm Action', exact: true })).toBeEnabled()
   await expect(root.locator('#battlefield button[data-target="friendly"]')).toHaveCount(1)
   await expect(

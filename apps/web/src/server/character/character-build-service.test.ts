@@ -202,8 +202,10 @@ describe('character build service', () => {
 
     expect(context.disciplineSkills.extensions.resonance).toMatchObject({
       id: 'resonance.lifebinder-vanguard.mercys-edge',
-      contentVersion: 2,
+      contentVersion: 3,
       disciplinePair: ['lifebinder', 'vanguard'],
+      trigger: { kind: 'skill-trigger-v2' },
+      authoring: { schemaVersion: 2 },
     })
   })
 

@@ -27,7 +27,7 @@ import {
 import {
   resonanceSnapshotReference,
   resolveResonanceForPair,
-  type ResonanceDefinition,
+  type AnyResonanceDefinition,
   type ResonanceSnapshotReference,
 } from '@aurevane/game-core/combat/resonance'
 import { AurevaneError } from '@aurevane/game-core/errors'
@@ -162,7 +162,7 @@ export interface CharacterDisciplineSkillLoadoutView {
   learnedSkills: readonly CharacterSkillCatalogEntry[]
   equippedSkills: readonly CharacterEquippedDisciplineSkill[]
   extensions: {
-    resonance: ResonanceDefinition | null
+    resonance: AnyResonanceDefinition | null
     essence: EssenceDefinition | null
     equipmentSkills: readonly never[]
     supernatural: null

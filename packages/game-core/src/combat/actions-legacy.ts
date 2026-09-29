@@ -1013,7 +1013,7 @@ export function endCombatTurn(
   content: CombatContentCatalog,
   outgoingDefeatedAtTurnEnd = false,
 ): CombatResolutionTransition {
-  assertValidCombatEncounterState(state)
+  assertValidCombatEncounterStateForTurnEnd(state, outgoingDefeatedAtTurnEnd)
   validateCombatContentCatalog(content)
   assertValidCombatAccuracyStatusState(state, content)
 
@@ -2878,6 +2878,33 @@ function assertValidCombatEncounterState(state: CombatEncounterState): void {
   const issues = validateCombatEncounterState(state)
   if (issues.length > 0) {
     throw new Error(`Invalid combat encounter state: ${issues[0].field}: ${issues[0].message}`)
+  }
+}
+
+function assertValidCombatEncounterStateForTurnEnd(
+  state: CombatEncounterState,
+  outgoingDefeatedAtTurnEnd: boolean,
+): void {
+  if (!outgoingDefeatedAtTurnEnd) {
+    assertValidCombatEncounterState(state)
+    return
+  }
+
+  const currentId = state.tactical.battle.currentTurn?.combatantId ?? null
+  const current = currentId
+    ? (state.tactical.battle.combatants.find((combatant) => combatant.id === currentId) ?? null)
+    : null
+  const allowDefeatedCurrent = current !== null && current.hp <= 0
+  const issues = validateCombatEncounterState(state).filter(
+    (issue) =>
+      !(
+        allowDefeatedCurrent &&
+        issue.field === 'tactical.battle.currentTurn.combatantId' &&
+        issue.message === 'A defeated combatant cannot own the current turn.'
+      ),
+  )
+  if (issues.length > 0) {
+    throw new Error(`Invalid combat encounter state: ${issues[0]!.field}: ${issues[0]!.message}`)
   }
 }
 

@@ -10,13 +10,13 @@ import {
 import {
   resolveResonanceForPair,
   validateResonanceDefinition,
-  type ResonanceDefinition,
+  type AnyResonanceDefinition,
 } from '@aurevane/game-core/combat/resonance'
 import { AurevaneError } from '@aurevane/game-core/errors'
 import { combatActionPresentationTags } from '@aurevane/game-core/combat/gameplay-tags'
 import {
   resolveMatureSkillVersion,
-  toCombatActionDefinition,
+  toMaterializedCombatActionDefinition,
   validateMatureSkillDefinition,
   type MatureSkillDefinition,
 } from '@aurevane/game-core/combat/mature-skills'
@@ -45,13 +45,13 @@ export interface CombatContentResolver {
   resolveCurrentResonanceDefinition?(
     primaryDisciplineId: string,
     secondaryDisciplineId: string | null,
-  ): Promise<ResonanceDefinition | null>
+  ): Promise<AnyResonanceDefinition | null>
   resolvePinnedResonanceDefinition?(
     primaryDisciplineId: string,
     secondaryDisciplineId: string | null,
     resonanceId: string,
     version: number,
-  ): Promise<ResonanceDefinition | null>
+  ): Promise<AnyResonanceDefinition | null>
 }
 
 export interface PublishedCombatContentSource {
@@ -274,7 +274,7 @@ function validatePublishedSkill(
 
   try {
     for (const context of ['pve', 'pvp'] as const) {
-      validateCombatActionDefinition(toCombatActionDefinition(candidate, context))
+      validateCombatActionDefinition(toMaterializedCombatActionDefinition(candidate, context))
     }
   } catch (error) {
     throw new InvalidPublishedCombatContentError(
@@ -332,7 +332,7 @@ function validatePublishedResonance(
   record: CombatContentVersionRecord,
   expectedResonanceId: string,
   expectedVersion?: number,
-): ResonanceDefinition {
+): AnyResonanceDefinition {
   if (
     record.contentKind !== 'resonance' ||
     record.contentKey !== expectedResonanceId ||
@@ -345,7 +345,7 @@ function validatePublishedResonance(
     )
   }
 
-  const candidate = structuredClone(record.definition) as unknown as ResonanceDefinition
+  const candidate = structuredClone(record.definition) as unknown as AnyResonanceDefinition
   let issues: readonly string[]
   try {
     issues = validateResonanceDefinition(candidate)
@@ -476,7 +476,7 @@ export function createCombatContentResolver(
 }
 
 export function deriveSkillPresentationTags(definition: MatureSkillDefinition): readonly string[] {
-  return combatActionPresentationTags(toCombatActionDefinition(definition, 'pve'))
+  return combatActionPresentationTags(definition)
 }
 
 export function createServerCombatContentResolver(): CombatContentResolver {

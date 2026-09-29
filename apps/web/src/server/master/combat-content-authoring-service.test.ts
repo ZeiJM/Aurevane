@@ -13,7 +13,7 @@ import {
 import { resolveEssenceForBuild, type EssenceDefinition } from '@aurevane/game-core/combat/essence'
 import {
   resolveResonanceForPair,
-  type ResonanceDefinition,
+  type AnyResonanceDefinition,
 } from '@aurevane/game-core/combat/resonance'
 import type { CombatContentResolver } from '@/server/combat/combat-content-resolver'
 
@@ -42,7 +42,7 @@ function staticEssence(version?: number): EssenceDefinition {
   return structuredClone(definition)
 }
 
-function staticResonance(version?: number): ResonanceDefinition {
+function staticResonance(version?: number): AnyResonanceDefinition {
   const definition = resolveResonanceForPair('lifebinder', 'vanguard', version)
   if (!definition)
     throw new Error(`Missing static Lifebinder/Vanguard Resonance@${String(version)}.`)
@@ -146,6 +146,52 @@ describe('combat content authoring service', () => {
       issues: [],
       derivedTags: ['Enemy', 'Single', 'Dmg'],
     })
+  })
+
+  it('validates per-summon lifetimes and reports summon-profile semantic changes', () => {
+    const { service } = serviceFixture()
+    const base = staticSkill('wildwarden.renewing-herbs')
+    if (!base.summonProfile) throw new Error('Expected current Renewing Herbs summon profile.')
+
+    const threeTurn = {
+      ...base,
+      summonProfile: {
+        ...base.summonProfile,
+        lifetimeTurns: 3,
+      },
+    }
+    expect(service.validateSkillDefinition(threeTurn)).toMatchObject({
+      valid: true,
+      issues: [],
+      derivedTags: ['Empty Tile', 'Single', 'Summon'],
+    })
+    expect(service.diffSkillDefinitions(base, threeTurn).changedPaths).toContain(
+      'summonProfile.lifetimeTurns',
+    )
+
+    const invalid = {
+      ...base,
+      summonProfile: {
+        ...base.summonProfile,
+        lifetimeTurns: 0,
+      },
+    }
+    const validation = service.validateSkillDefinition(invalid)
+    expect(validation.valid).toBe(false)
+    expect(validation.issues).toContainEqual(expect.objectContaining({ path: 'summonProfile' }))
+
+    const editedAbility = {
+      ...base,
+      summonProfile: {
+        ...base.summonProfile,
+        abilities: base.summonProfile.abilities.map((ability, index) =>
+          index === 0 ? { ...ability, apCost: ability.apCost + 5 } : ability,
+        ),
+      },
+    }
+    expect(service.diffSkillDefinitions(base, editedAbility).changedPaths).toContain(
+      'summonProfile.abilities',
+    )
   })
 
   it('accepts aligned presentation-only effect descriptions and rejects malformed copy', () => {
@@ -434,7 +480,7 @@ describe('combat content authoring service', () => {
     })
     await service.publishSkill({
       actorUserId: OWNER,
-      definition: { ...staticSkill(), apCost: 41 },
+      definition: { ...staticSkill(), apCost: 50 },
       expectedBaseVersion: baseVersion + 1,
     })
 
@@ -533,5 +579,28 @@ describe('combat content authoring service', () => {
     expect(
       (await store.listPublishedVersions(resonance.id)).map((row) => row.contentVersion),
     ).toEqual([first.contentVersion, second.contentVersion])
+  })
+})
+
+describe('Combat v5.1 Master authoring bounds', () => {
+  it('rejects current range and elevation overflow through the canonical service boundary', () => {
+    const { service } = serviceFixture()
+    const base = staticSkill()
+
+    const range = service.validateSkillDefinition({
+      ...base,
+      target: { ...base.target, maximumRange: 6 },
+    })
+    expect(range.valid).toBe(false)
+    expect(range.issues).toContainEqual(expect.objectContaining({ path: 'target.maximumRange' }))
+
+    const elevation = service.validateSkillDefinition({
+      ...base,
+      target: { ...base.target, maximumElevationDifference: 3 },
+    })
+    expect(elevation.valid).toBe(false)
+    expect(elevation.issues).toContainEqual(
+      expect.objectContaining({ path: 'target.maximumElevationDifference' }),
+    )
   })
 })

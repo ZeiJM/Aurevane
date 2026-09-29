@@ -68,9 +68,12 @@ async function createCharacterAfterSignIn(input: {
   await page.getByLabel('Character name').fill(characterName)
   await page.getByRole('button', { name: 'Choose your discipline' }).click()
 
-  await expect(page.getByTestId('attribute-points')).toContainText('0 personal points remaining')
+  await expect(page.getByTestId('creation-discipline-workspace')).toBeVisible({ timeout: 15_000 })
+  const reviewCharacter = page.getByRole('button', { name: 'Review character' })
+  await expect(reviewCharacter).toBeVisible({ timeout: 15_000 })
+  await expect(reviewCharacter).toBeEnabled()
 
-  await page.getByRole('button', { name: 'Review character' }).click()
+  await reviewCharacter.click()
   await page.getByRole('button', { name: 'Create character' }).click()
 
   await expect(page).toHaveURL(/\/game\/character$/)

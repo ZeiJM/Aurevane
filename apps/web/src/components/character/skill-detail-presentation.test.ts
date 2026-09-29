@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 import {
+  compactSkillEffectSummaryParts,
   skillAffectedDescription,
   skillCompactRangeDescription,
   skillCooldownDescription,
@@ -184,7 +185,7 @@ it('presents the standardized Technique characteristic schema without prose expa
   expect(skillTargetDescription(timeLock)).toBe('Enemy')
   expect(skillTargetMethodDescription(timeLock)).toBe('Single')
   expect(skillTargetElevationDescription(timeLock)).not.toBe('N/A')
-  expect(skillCompactRangeDescription(timeLock)).toMatch(/tile/)
+  expect(skillCompactRangeDescription(timeLock)).toBe(String(timeLock.target.maximumRange))
   expect(skillLineOfSightDescription(timeLock)).toBe('Required')
   expect(skillCooldownDescription(timeLock)).toMatch(/turn|None/)
 })
@@ -211,12 +212,12 @@ it('returns one effect summary per authored effect with positive durations only'
 
 it('lists authored magnitudes as effects without leaking design tags', () => {
   const siphon = resolveMatureSkillVersion('runeblade.siphon-slash')!
-  expect(skillEffectsSummary(siphon)).toBe('Dmg [11], MP Drain [6], MP Restore [6]')
+  expect(skillEffectsSummary(siphon)).toBe('Dmg [13], MP Drain [7], MP Restore [7]')
   expect(skillEffectsSummary({ ...siphon, tags: [...siphon.tags, 'setup', 'melee'] })).toBe(
     skillEffectsSummary(siphon),
   )
   const brand = skillEffectsSummary(resolveMatureSkillVersion('runeblade.sigil-brand')!)
-  expect(brand).toBe('Dmg [7], Exposed [+11% incoming] [2 Turns], Hexed [−16% healing] [2 Turns]')
+  expect(brand).toBe('Dmg [10], Exposed [14.26%] [2 Turns], Hexed [20.74%] [2 Turns]')
   expect(skillEffectsSummary(resolveMatureSkillVersion('runeblade.rune-mending')!)).not.toContain(
     'Dmg',
   )
@@ -239,4 +240,124 @@ it('shows 1–3 turn cooldowns and no cooldown on prerequisite-gated Skills', ()
   const gated = resolveMatureSkillVersion('runeblade.rune-burst')!
   expect(skillCooldownDescription(ordinary)).toMatch(/^[1-3] turns?$/)
   expect(skillCooldownDescription(gated)).toBe('None')
+})
+
+describe('Combat v5.1 compact effect summaries', () => {
+  it('formats authored percentage statuses as magnitude plus duration only', () => {
+    expect(
+      compactSkillEffectSummaryParts({
+        type: 'apply-status',
+        recipient: 'primary-unit',
+        statusId: 'mark',
+        stacks: 1,
+        potencyBasisPoints: 1000,
+        durationTurns: 2,
+      }),
+    ).toEqual({ label: 'Marked', magnitude: '10%', duration: '2 Turns' })
+
+    expect(
+      compactSkillEffectSummaryParts({
+        type: 'apply-status',
+        recipient: 'primary-unit',
+        statusId: 'guarded',
+        stacks: 1,
+        potencyBasisPoints: 1200,
+        durationTurns: 2,
+      }),
+    ).toEqual({ label: 'Guarded', magnitude: '12%', duration: '2 Turns' })
+
+    expect(
+      compactSkillEffectSummaryParts({
+        type: 'apply-status',
+        recipient: 'primary-unit',
+        statusId: 'exposed',
+        stacks: 1,
+        potencyBasisPoints: 1400,
+        durationTurns: 2,
+      }),
+    ).toEqual({ label: 'Exposed', magnitude: '14%', duration: '2 Turns' })
+
+    expect(
+      compactSkillEffectSummaryParts({
+        type: 'apply-status',
+        recipient: 'primary-unit',
+        statusId: 'hexed',
+        stacks: 1,
+        potencyBasisPoints: 1600,
+        durationTurns: 2,
+      }),
+    ).toEqual({ label: 'Hexed', magnitude: '16%', duration: '2 Turns' })
+  })
+
+  it('formats Slow as a concise AP magnitude and separates duration', () => {
+    expect(
+      compactSkillEffectSummaryParts({
+        type: 'apply-status',
+        recipient: 'primary-unit',
+        statusId: 'slow',
+        stacks: 1,
+        durationTurns: 2,
+      }),
+    ).toEqual({ label: 'Slow', magnitude: '+10 AP', duration: '2 Turns' })
+  })
+
+  it('omits a duration token for immediate effects', () => {
+    expect(
+      compactSkillEffectSummaryParts({
+        type: 'damage',
+        recipient: 'primary-unit',
+        amount: 9,
+        durationTurns: 0,
+      }),
+    ).toEqual({ label: 'Dmg', magnitude: '9', duration: null })
+  })
+})
+
+describe('Combat v5.1 compact targeting labels', () => {
+  const base = resolveMatureSkillVersion('vanguard.forceful-strike')!
+
+  it('shows maximum range only', () => {
+    expect(
+      skillCompactRangeDescription({
+        ...base,
+        target: { ...base.target, minimumRange: 1, maximumRange: 3 },
+      }),
+    ).toBe('3')
+    expect(
+      skillCompactRangeDescription({
+        ...base,
+        target: { ...base.target, minimumRange: 0, maximumRange: 3 },
+      }),
+    ).toBe('3')
+    expect(
+      skillCompactRangeDescription({
+        ...base,
+        target: { ...base.target, minimumRange: 1, maximumRange: 1 },
+      }),
+    ).toBe('1')
+    expect(skillCompactRangeDescription(resolveMatureSkillVersion('ironfist.focus-breath')!)).toBe(
+      'N/A',
+    )
+  })
+
+  it('shows targeting shape without repeating geometry reach', () => {
+    expect(
+      skillTargetMethodDescription({
+        ...base,
+        target: { ...base.target, shape: { kind: 'single' } },
+      }),
+    ).toBe('Single')
+    expect(
+      skillTargetMethodDescription({
+        ...base,
+        target: { ...base.target, shape: { kind: 'line', length: 3 } },
+      }),
+    ).toBe('Line')
+    expect(
+      skillTargetMethodDescription({
+        ...base,
+        target: { ...base.target, shape: { kind: 'circle', radius: 1 } },
+      }),
+    ).toBe('Circle')
+  })
 })

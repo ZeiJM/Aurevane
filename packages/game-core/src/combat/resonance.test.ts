@@ -15,6 +15,7 @@ import {
   validateResonanceDefinition,
 } from './resonance'
 import { rebalanceResonanceDefinition } from './resonance-balance-v5'
+import { normalizedResonanceMechanics } from './resonance-v2'
 
 function encounter() {
   const battle = startBattle(
@@ -77,6 +78,26 @@ function encounter() {
       ],
     }),
   )
+}
+
+function rangedEncounter() {
+  const state = encounter()
+  return {
+    ...state,
+    tactical: {
+      ...state.tactical,
+      width: 3,
+      tiles: [
+        ...state.tactical.tiles,
+        { position: { x: 2, y: 0 }, elevation: 0, terrainId: 'open-ground' },
+      ],
+      placements: state.tactical.placements.map((placement) =>
+        placement.combatantId === 'recruit'
+          ? { ...placement, position: { x: 2, y: 0 } }
+          : placement,
+      ),
+    },
+  }
 }
 
 function nextPlayerAction(state: ReturnType<typeof encounter>) {
@@ -199,6 +220,46 @@ describe('P3.5 versioned Resonance framework', () => {
   })
 })
 
+describe('Combat v5.1 Resonance v2 runtime', () => {
+  it('activates an immediate Trigger without arming stale Setup state', () => {
+    const resonance = resolveResonanceForPair('farstrider', 'lifebinder')
+    const shot = resolveMatureSkillVersion('farstrider.aimed-shot', 1)
+    if (!resonance || !shot) throw new Error('Expected immediate Resonance v2 fixtures.')
+
+    const ready = createResonanceCombatState(resonance)
+    const forecast = forecastResonanceForSkill(resonance, ready, shot)
+    expect(forecast).toMatchObject({
+      willArm: false,
+      willActivate: true,
+      willExpireArmedSetup: false,
+    })
+
+    const resolved = executeMatureSkillWithResonance({
+      state: rangedEncounter(),
+      resonance,
+      resonanceState: ready,
+      skill: shot,
+      combatContext: 'pve',
+      selection: { kind: 'unit', combatantId: 'recruit' },
+      content: { statuses: [] },
+    })
+
+    expect(resolved.resonanceState.armedByActionId).toBeNull()
+    expect(resolved.events).toContainEqual(
+      expect.objectContaining({
+        event: 'resonance_activated',
+        resonanceId: resonance.id,
+        setupActionId: null,
+        triggerActionId: shot.id,
+        payoffActionId: shot.id,
+      }),
+    )
+    expect(resolved.events).not.toContainEqual(
+      expect.objectContaining({ event: 'resonance_armed', resonanceId: resonance.id }),
+    )
+  })
+})
+
 describe('Combat v5 thematic Resonance rebalance', () => {
   it('derives payoff variety from authored setup Disciplines rather than Resonance IDs', () => {
     const lifebinder = resolveResonanceForPair('lifebinder', 'vanguard', 1)
@@ -223,7 +284,7 @@ describe('Combat v5 thematic Resonance rebalance', () => {
     )
   })
 
-  it('keeps all 136 current pairs valid with broad semantic payoff variety', () => {
+  it('keeps all 136 current pairs valid with broad semantic Result variety', () => {
     const current = P35_REPRESENTATIVE_RESONANCES.map((historical) => {
       const resolved = resolveResonanceForPair(
         historical.disciplinePair[0],
@@ -236,17 +297,31 @@ describe('Combat v5 thematic Resonance rebalance', () => {
     expect(current).toHaveLength(136)
     expect(new Set(current.map((definition) => definition.id)).size).toBe(136)
 
-    const payoffSignatures = new Set<string>()
-    let nonDamagePayoffCount = 0
+    const resultSignatures = new Set<string>()
+    let nonDamageResultCount = 0
+    let immediateCount = 0
     for (const definition of current) {
       expect(validateResonanceDefinition(definition), definition.id).toEqual([])
+      expect(definition.authoring.schemaVersion, definition.id).toBe(2)
       expect(definition.authoring.validationTags, definition.id).toContain('owner-rebalance-v5')
+      expect(definition.authoring.validationTags, definition.id).toContain('owner-rebalance-v5-1')
       expect(definition.authoring.validationTags, definition.id).toContain(
         'thematic-resonance-payoff',
       )
       expect(definition.flavorLine?.trim().length, definition.id).toBeGreaterThan(0)
 
-      const signature = definition.trigger.payoffEffects
+      const mechanics = normalizedResonanceMechanics(definition)
+      expect(mechanics.trigger.requiredTags.length, definition.id).toBeGreaterThanOrEqual(1)
+      expect(mechanics.trigger.requiredTags.length, definition.id).toBeLessThanOrEqual(2)
+      expect(mechanics.resultEffects.length, definition.id).toBeGreaterThanOrEqual(1)
+      expect(mechanics.resultEffects.length, definition.id).toBeLessThanOrEqual(2)
+      if (mechanics.setup) {
+        expect(mechanics.setup.requiredTags.length, definition.id).toBeLessThanOrEqual(2)
+      } else {
+        immediateCount += 1
+      }
+
+      const signature = mechanics.resultEffects
         .map((effect) => {
           if (effect.type === 'apply-status') {
             return `${effect.type}:${effect.recipient}:${effect.statusId}`
@@ -260,14 +335,16 @@ describe('Combat v5 thematic Resonance rebalance', () => {
           return `${effect.type}:${effect.recipient}`
         })
         .join('|')
-      payoffSignatures.add(signature)
-      if (definition.trigger.payoffEffects.some((effect) => effect.type !== 'damage')) {
-        nonDamagePayoffCount += 1
+      resultSignatures.add(signature)
+      if (mechanics.resultEffects.some((effect) => effect.type !== 'damage')) {
+        nonDamageResultCount += 1
       }
     }
 
-    expect(payoffSignatures.size).toBeGreaterThanOrEqual(8)
-    expect(nonDamagePayoffCount).toBeGreaterThan(current.length / 2)
+    expect(resultSignatures.size).toBeGreaterThanOrEqual(8)
+    expect(nonDamageResultCount).toBeGreaterThan(current.length / 2)
+    expect(immediateCount).toBeGreaterThan(0)
+    expect(immediateCount).toBeLessThan(current.length)
   })
 
   it('does not change v5 payoff semantics when only an opaque Resonance ID changes', () => {

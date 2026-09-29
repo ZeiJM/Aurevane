@@ -22,7 +22,7 @@ import type { CombatTemporarySkillGrant } from '@aurevane/game-core/combat/comba
 import {
   resonanceSnapshotReference,
   resolveResonanceForPair,
-  type ResonanceDefinition,
+  type AnyResonanceDefinition,
   type ResonanceSnapshotReference,
 } from '@aurevane/game-core/combat/resonance'
 
@@ -578,7 +578,7 @@ export function resolveBattleEssenceDefinition(
 export function resolveBattleResonanceDefinition(
   authority: BattleBuildAuthoritySnapshot | null | undefined,
   combatantId: string,
-): ResonanceDefinition | null {
+): AnyResonanceDefinition | null {
   const build = battleBuildAuthorityForCombatant(authority, combatantId)
   const reference = build?.extensions.resonance
   if (!build || !reference) return null

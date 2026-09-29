@@ -65,6 +65,24 @@ describe('compact combat presentation tags', () => {
     ).toEqual(['Ground', 'Line 3', 'Freeze Ground'])
   })
 
+  it('derives the mature summon label from an empty-tile summon effect', () => {
+    expect(
+      combatActionPresentationTags({
+        target: {
+          kind: 'empty-tile',
+          teamPolicy: 'ally',
+          shape: { kind: 'single' },
+          minimumRange: 1,
+          maximumRange: 3,
+          requiresLineOfSight: true,
+          maximumElevationDifference: 0,
+          friendlyFire: 'allies-only',
+        },
+        effects: [{ type: 'summon', recipient: 'selected-tile' }],
+      }),
+    ).toEqual(['Empty Tile', 'Single', 'Summon'])
+  })
+
   it('derives canonical damage, resource, cleanse, displacement and reaction labels', () => {
     expect(
       tags({ kind: 'unit', teamPolicy: 'enemy' }, [

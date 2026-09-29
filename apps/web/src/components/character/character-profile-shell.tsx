@@ -11,7 +11,7 @@ import type {
 import type { CharacterProfileReadModel } from '@aurevane/game-core/character/profile'
 import type { EssenceDefinition } from '@aurevane/game-core/combat/essence'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
-import type { ResonanceDefinition } from '@aurevane/game-core/combat/resonance'
+import type { AnyResonanceDefinition } from '@aurevane/game-core/combat/resonance'
 import { Surface } from '@aurevane/ui'
 
 import { CharacterAttributeAllocationPanel } from '@/components/character/character-attribute-allocation-panel'
@@ -82,7 +82,7 @@ export interface CharacterWorkspaceProps {
         equippedAt: string
       }[]
       extensions: {
-        resonance: ResonanceDefinition | null
+        resonance: AnyResonanceDefinition | null
         essence: EssenceDefinition | null
       }
     }

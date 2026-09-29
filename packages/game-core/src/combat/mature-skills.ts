@@ -13,7 +13,19 @@ import type {
   CombatUseRequirement,
 } from './actions'
 import type { SkillCooldownDefinition } from './skill-cooldowns'
+import {
+  isMaterializedCombatEffect,
+  SUMMON_PROFILE_SCHEMA_VERSION,
+  validateSummonProfileDefinition,
+  type CombatSummonEffect,
+  type SummonProfileDefinition,
+} from './summon-content'
 import { rebalanceMatureSkillDefinition } from './skill-balance-v5'
+import {
+  applyV51CurrentTechniqueTargeting,
+  classifyV51SkillRole,
+  rebalanceMatureSkillDefinitionV51,
+} from './skill-balance-v5-1'
 
 export const MATURE_SKILL_SCHEMA_VERSION = 1 as const
 export type MatureSkillCombatContext = 'pve' | 'pvp'
@@ -52,6 +64,8 @@ export interface MatureSkillAuthoringMetadata {
   readonly validationTags: readonly string[]
 }
 
+export type MatureSkillEffectDefinition = CombatEffectDefinition | CombatSummonEffect
+
 export interface MatureSkillDefinition extends CombatAccuracyAuthoring {
   readonly id: string
   readonly contentVersion: number
@@ -65,12 +79,13 @@ export interface MatureSkillDefinition extends CombatAccuracyAuthoring {
   readonly mpCost?: number
   readonly target: CombatTargetSpec
   readonly requirements: readonly CombatUseRequirement[]
-  readonly effects: readonly CombatEffectDefinition[]
+  readonly effects: readonly MatureSkillEffectDefinition[]
   /**
    * Optional player-facing copy for each effect, aligned by effect index.
    * This presentation-only field is never projected into combat resolution.
    */
   readonly effectDescriptions?: readonly (string | null)[]
+  readonly summonProfile?: SummonProfileDefinition
   readonly tags: readonly string[]
   readonly cooldown: SkillCooldownDefinition | null
   readonly ai: MatureSkillAiMetadata
@@ -83,6 +98,23 @@ export interface MatureSkillDefinition extends CombatAccuracyAuthoring {
 
 export interface ResolvedMatureSkillDefinition extends MatureSkillDefinition {
   readonly combatContext: MatureSkillCombatContext
+}
+
+export interface MatureSkillApCostBounds {
+  readonly minimum: number
+  readonly maximum: number
+}
+
+export function matureSkillApCostBounds(
+  definition: MatureSkillDefinition,
+): MatureSkillApCostBounds {
+  if (!definition.authoring.validationTags.includes('owner-rebalance-v5-1')) {
+    return { minimum: 1, maximum: 100 }
+  }
+  if (definition.tags.includes('essence')) return { minimum: 55, maximum: 75 }
+  return classifyV51SkillRole(definition) === 'utility'
+    ? { minimum: 35, maximum: 50 }
+    : { minimum: 45, maximum: 60 }
 }
 
 const meleeEnemyTarget: CombatTargetSpec = {
@@ -822,7 +854,9 @@ function createPhase4RebalancedSkill(definition: MatureSkillDefinition): MatureS
     ...definition,
     contentVersion: definition.contentVersion + 1,
     requirements: definition.requirements.map(currentRequirement),
-    effects: definition.effects.map(currentEffect),
+    effects: definition.effects.map((effect) =>
+      effect.type === 'summon' ? effect : currentEffect(effect),
+    ),
     accuracyMode,
     ...(accuracyMode === 'per-target'
       ? { accuracyModifierBasisPoints: definition.accuracyModifierBasisPoints ?? 0 }
@@ -879,11 +913,127 @@ const V5_REBALANCED_DISCIPLINE_SKILLS = latestEnabledMatureSkills(
   PRE_V5_CURRENT_DISCIPLINE_SKILLS,
 ).map((definition) => rebalanceMatureSkillDefinition(definition, 'technique'))
 
+function materializeV51CurrentSummon(definition: MatureSkillDefinition): MatureSkillDefinition {
+  if (definition.id !== 'wildwarden.renewing-herbs') return definition
+
+  const summonProfile: SummonProfileDefinition = {
+    schemaVersion: SUMMON_PROFILE_SCHEMA_VERSION,
+    id: 'summon.wildwarden.verdant-stalker',
+    name: 'Verdant Stalker',
+    description: 'A temporary woodland hunter that supports allies and pressures nearby enemies.',
+    flavorLine: 'Roots and herbs knot together into a watchful hunter.',
+    portraitKey: 'summon.wildwarden.verdant-stalker.portrait',
+    tags: ['summon', 'verdant', 'beast'],
+    maxHp: 36,
+    maxMp: 12,
+    initiative: 28,
+    movementBudget: 5,
+    stats: {
+      accuracy: 6800,
+      evasion: 1200,
+      armor: 8,
+      ward: 6,
+      jump: 1,
+      physicalPower: 24,
+      mysticPower: 18,
+    },
+    aiProfile: 'standard',
+    aiPurposeTags: ['damage', 'support'],
+    lifetimeTurns: 5,
+    abilities: [
+      {
+        id: 'wildwarden.verdant-stalker.thorn-rake',
+        name: 'Thorn Rake',
+        description: 'Rake a nearby enemy with thorned claws.',
+        apCost: 45,
+        mpCost: 0,
+        tags: ['attack', 'melee'],
+        target: {
+          kind: 'unit',
+          teamPolicy: 'enemy',
+          shape: { kind: 'single' },
+          minimumRange: 1,
+          maximumRange: 2,
+          requiresLineOfSight: true,
+          maximumElevationDifference: 0,
+          friendlyFire: 'enemies-only',
+        },
+        requirements: [],
+        effects: [{ type: 'damage', recipient: 'primary-unit', amount: 5, durationTurns: 0 }],
+        ai: { baseUtility: 70, purposeTags: ['damage', 'pressure'] },
+        media: {
+          iconKey: 'summon-ability.wildwarden.verdant-stalker.thorn-rake.icon',
+          audioCueKey: null,
+          vfxKey: null,
+        },
+      },
+      {
+        id: 'wildwarden.verdant-stalker.verdant-mend',
+        name: 'Verdant Mend',
+        description: 'Restore an injured ally with living herbs.',
+        apCost: 45,
+        mpCost: 0,
+        tags: ['heal', 'support'],
+        target: {
+          kind: 'unit',
+          teamPolicy: 'ally',
+          shape: { kind: 'single' },
+          minimumRange: 1,
+          maximumRange: 2,
+          requiresLineOfSight: true,
+          maximumElevationDifference: 0,
+          friendlyFire: 'allies-only',
+        },
+        requirements: [],
+        effects: [{ type: 'healing', recipient: 'primary-unit', amount: 4, durationTurns: 0 }],
+        ai: { baseUtility: 64, purposeTags: ['heal', 'support'] },
+        media: {
+          iconKey: 'summon-ability.wildwarden.verdant-stalker.verdant-mend.icon',
+          audioCueKey: null,
+          vfxKey: null,
+        },
+      },
+    ],
+  }
+
+  return {
+    ...definition,
+    apCost: 45,
+    target: {
+      kind: 'empty-tile',
+      teamPolicy: 'ally',
+      shape: { kind: 'single' },
+      minimumRange: 1,
+      maximumRange: 3,
+      requiresLineOfSight: true,
+      maximumElevationDifference: 0,
+      friendlyFire: 'allies-only',
+    },
+    effects: [{ type: 'summon', recipient: 'selected-tile', durationTurns: 0 }],
+    effectDescriptions: ['Summon a Verdant Stalker on the selected empty tile.'],
+    summonProfile,
+    ai: {
+      ...definition.ai,
+      purposeTags: rebalancePurposeTags(definition, ['summon', 'support']),
+    },
+  }
+}
+
+const V51_REBALANCED_DISCIPLINE_SKILLS = latestEnabledMatureSkills([
+  ...PRE_V5_CURRENT_DISCIPLINE_SKILLS,
+  ...V5_REBALANCED_DISCIPLINE_SKILLS,
+]).map((definition) =>
+  materializeV51CurrentSummon(
+    rebalanceMatureSkillDefinitionV51(applyV51CurrentTechniqueTargeting(definition), 'technique'),
+  ),
+)
+
 export const P33_REPRESENTATIVE_DISCIPLINE_SKILLS = PRE_V5_CURRENT_DISCIPLINE_SKILLS
 
 const CURRENT_DISCIPLINE_SKILL_REGISTRY = [
   ...P33_REPRESENTATIVE_DISCIPLINE_SKILLS,
   ...V5_REBALANCED_DISCIPLINE_SKILLS,
+  ...V51_REBALANCED_DISCIPLINE_SKILLS,
 ] as const satisfies readonly MatureSkillDefinition[]
 
 /** Current selection catalog; the historical P3.3/P4 export remains stable for pinned contracts. */
@@ -906,7 +1056,11 @@ export function validateMatureSkillDefinition(
   const issues: string[] = []
   try {
     validateCombatAccuracyDefinition(definition)
-    validateGameplayActionMetadata(definition)
+    validateGameplayActionMetadata({
+      target: definition.target,
+      requirements: definition.requirements,
+      effects: definition.effects.filter(isMaterializedCombatEffect),
+    })
   } catch {
     issues.push('combatDefinition')
   }
@@ -991,7 +1145,42 @@ export function validateMatureSkillDefinition(
   if (definition.authoring.schemaVersion !== MATURE_SKILL_SCHEMA_VERSION) {
     issues.push('authoring.schemaVersion')
   }
+  const summonEffects = definition.effects.filter((effect) => effect.type === 'summon')
+  if (summonEffects.length > 0 !== (definition.summonProfile !== undefined)) {
+    issues.push('summonProfile')
+  }
+  if (definition.summonProfile !== undefined) {
+    const summonIssues = validateSummonProfileDefinition(definition.summonProfile)
+    if (summonIssues.length > 0) issues.push('summonProfile')
+  }
+  if (summonEffects.length > 0) {
+    if (summonEffects.length !== 1) issues.push('effects.summon')
+    if (definition.target.kind !== 'empty-tile') issues.push('target.kind')
+    if (summonEffects.some((effect) => (effect.durationTurns ?? 0) !== 0)) {
+      issues.push('effects.summon.durationTurns')
+    }
+  }
+
   const usesV5BalanceRules = definition.authoring.validationTags.includes('owner-rebalance-v5')
+  const usesV51BalanceRules = definition.authoring.validationTags.includes('owner-rebalance-v5-1')
+  if (usesV51BalanceRules) {
+    const apBounds = matureSkillApCostBounds(definition)
+    if (definition.apCost < apBounds.minimum || definition.apCost > apBounds.maximum) {
+      issues.push('apCost')
+    }
+    if (definition.target.kind !== 'self') {
+      if (definition.target.maximumRange < 1 || definition.target.maximumRange > 5) {
+        issues.push('target.maximumRange')
+      }
+      if (
+        definition.target.maximumElevationDifference === null ||
+        definition.target.maximumElevationDifference < 0 ||
+        definition.target.maximumElevationDifference > 2
+      ) {
+        issues.push('target.maximumElevationDifference')
+      }
+    }
+  }
   if (usesV5BalanceRules && !definition.flavorLine?.trim()) issues.push('flavorLine')
   if (usesV5BalanceRules && definition.requirements.length > 0) {
     if (definition.cooldown !== null) issues.push('cooldown')
@@ -1019,6 +1208,7 @@ export function validateMatureSkillDefinition(
     if (!Number.isSafeInteger(durationTurns) || durationTurns < 0 || durationTurns > 4) {
       issues.push(`effects[${index}].durationTurns`)
     }
+    if (effect.type === 'summon') continue
     if (
       effect.potencyBasisPoints !== undefined &&
       (!Number.isSafeInteger(effect.potencyBasisPoints) ||
@@ -1059,11 +1249,17 @@ export function validateMatureSkillDefinition(
     }
   }
   for (const [context, override] of Object.entries(definition.overrides)) {
-    if (
-      override?.apCost !== undefined &&
-      (!Number.isSafeInteger(override.apCost) || override.apCost < 1 || override.apCost > 100)
-    ) {
-      issues.push(`overrides.${context}.apCost`)
+    if (override?.apCost !== undefined) {
+      const apBounds = usesV51BalanceRules
+        ? matureSkillApCostBounds(definition)
+        : { minimum: 1, maximum: 100 }
+      if (
+        !Number.isSafeInteger(override.apCost) ||
+        override.apCost < apBounds.minimum ||
+        override.apCost > apBounds.maximum
+      ) {
+        issues.push(`overrides.${context}.apCost`)
+      }
     }
     if (
       override?.cooldownOwnerTurns !== undefined &&
@@ -1112,12 +1308,10 @@ export function resolveMatureSkillForContext(
   }
 }
 
-export function toCombatActionDefinition(
-  definition: MatureSkillDefinition,
-  combatContext: MatureSkillCombatContext,
+function projectResolvedMatureSkillAction(
+  resolved: ResolvedMatureSkillDefinition,
+  effects: readonly CombatEffectDefinition[],
 ): CombatActionDefinition {
-  const resolved = resolveMatureSkillForContext(definition, combatContext)
-
   return {
     id: resolved.id,
     version: resolved.contentVersion,
@@ -1127,12 +1321,37 @@ export function toCombatActionDefinition(
     cost: { spendsAction: true, mp: resolved.mpCost ?? 0 },
     requirements: resolved.requirements,
     ...(resolved.cooldown === null ? {} : { cooldown: resolved.cooldown }),
-    effects: resolved.effects,
+    effects,
     ...(resolved.accuracyMode !== undefined ? { accuracyMode: resolved.accuracyMode } : {}),
     ...(resolved.accuracyModifierBasisPoints !== undefined
       ? { accuracyModifierBasisPoints: resolved.accuracyModifierBasisPoints }
       : {}),
   }
+}
+
+export function toCombatActionDefinition(
+  definition: MatureSkillDefinition,
+  combatContext: MatureSkillCombatContext,
+): CombatActionDefinition {
+  const resolved = resolveMatureSkillForContext(definition, combatContext)
+  if (resolved.effects.some((effect) => effect.type === 'summon')) {
+    throw new TypeError('Summon must be materialized by the mature Skill execution layer.')
+  }
+  return projectResolvedMatureSkillAction(
+    resolved,
+    resolved.effects.filter(isMaterializedCombatEffect),
+  )
+}
+
+export function toMaterializedCombatActionDefinition(
+  definition: MatureSkillDefinition,
+  combatContext: MatureSkillCombatContext,
+): CombatActionDefinition {
+  const resolved = resolveMatureSkillForContext(definition, combatContext)
+  return projectResolvedMatureSkillAction(
+    resolved,
+    resolved.effects.filter(isMaterializedCombatEffect),
+  )
 }
 
 function assertUsableDefinition(definition: MatureSkillDefinition): void {

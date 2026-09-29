@@ -16,6 +16,10 @@ import {
   statusLabel,
   summarizeBattleEffects,
 } from './battle-effect-summary'
+import {
+  readSummonInspectMetadata,
+  type BattleSummonInspectMetadata,
+} from './battle-summon-inspect'
 import styles from './desktop-battle-combatant-inspect.module.css'
 import { useBattleInteractionLifecycle } from './battle-interaction-lifecycle'
 import { PvpBattleInspectPopup } from './pvp-battle-inspect-popup'
@@ -40,6 +44,7 @@ type SelectedCombatant = {
   imageUrl: string | null
   fallbackAssetId: ImageAssetId | null
   active: boolean
+  summon: (BattleSummonInspectMetadata & { readonly ownerName: string }) | null
 }
 
 type BattleApiBody = {
@@ -157,26 +162,48 @@ function readSelectedCombatant(
     (candidate) => candidate.combatantId === combatantId,
   )
   const isPlayer = Boolean(playerName && combatantId.startsWith('character:'))
+  const summon = readSummonInspectMetadata(battle.snapshot, combatantId)
+  const ownerParticipant = summon
+    ? metadata?.participants.find((candidate) => candidate.combatantId === summon.ownerCombatantId)
+    : null
+  const summonWithOwner = summon
+    ? {
+        ...summon,
+        ownerName:
+          ownerParticipant?.characterName ??
+          displayNameForCombatant(summon.ownerCombatantId, playerName),
+      }
+    : null
 
   return {
     combatant,
     placement,
     profile,
     statuses,
-    name: participant?.characterName ?? displayNameForCombatant(combatantId, playerName),
+    name:
+      summonWithOwner?.name ??
+      participant?.characterName ??
+      displayNameForCombatant(combatantId, playerName),
     teamLabel: participant
       ? `Team ${participant.teamIndex + 1}`
-      : isPlayer
-        ? 'Character'
-        : 'Opponent',
-    level: participant?.characterLevel ?? null,
-    imageUrl: participant?.profileImageUrl ?? (isPlayer ? playerProfileImageUrl : null),
-    fallbackAssetId: participant
-      ? getStarterPortraitImageAssetId(participant.portraitRef as CharacterPortraitRef)
-      : isPlayer
-        ? playerPortraitAssetId
-        : null,
+      : summonWithOwner
+        ? 'Summon'
+        : isPlayer
+          ? 'Character'
+          : 'Opponent',
+    level: summonWithOwner ? null : (participant?.characterLevel ?? null),
+    imageUrl: summonWithOwner
+      ? null
+      : (participant?.profileImageUrl ?? (isPlayer ? playerProfileImageUrl : null)),
+    fallbackAssetId: summonWithOwner
+      ? null
+      : participant
+        ? getStarterPortraitImageAssetId(participant.portraitRef as CharacterPortraitRef)
+        : isPlayer
+          ? playerPortraitAssetId
+          : null,
     active: battle.snapshot.tactical.battle.currentTurn?.combatantId === combatantId,
+    summon: summonWithOwner,
   }
 }
 
@@ -378,11 +405,13 @@ export function DesktopBattleCombatantInspect({
                 <span>{selected.teamLabel}</span>
                 <h2>{selected.name}</h2>
                 <p>
-                  {selected.level
-                    ? `Level ${selected.level}${selected.active ? ' · Active turn' : ''}`
-                    : selected.active
-                      ? 'Active turn'
-                      : ''}
+                  {selected.summon
+                    ? `Summoner: ${selected.summon.ownerName} · ${selected.summon.remainingTurns} summon turn${selected.summon.remainingTurns === 1 ? '' : 's'} remaining${selected.active ? ' · Active turn' : ''}`
+                    : selected.level
+                      ? `Level ${selected.level}${selected.active ? ' · Active turn' : ''}`
+                      : selected.active
+                        ? 'Active turn'
+                        : ''}
                 </p>
               </div>
             </div>
@@ -444,6 +473,41 @@ export function DesktopBattleCombatantInspect({
                 </dd>
               </div>
             </dl>
+
+            {selected.summon ? (
+              <section
+                className={styles.summonDetails}
+                aria-label={`${selected.name} summon profile`}
+              >
+                <div className={styles.summonHeading}>
+                  <span>Summon profile</span>
+                  <strong>
+                    {selected.summon.remainingTurns}/{selected.summon.lifetimeTurns} turns
+                  </strong>
+                </div>
+                <p>{selected.summon.description}</p>
+                <small>{selected.summon.flavorLine}</small>
+                <div className={styles.summonTags} aria-label="Summon tags">
+                  {selected.summon.tags.map((tag) => (
+                    <span key={tag}>{tag}</span>
+                  ))}
+                </div>
+                <div className={styles.summonAbilities}>
+                  {selected.summon.abilities.map((ability) => (
+                    <article key={ability.id}>
+                      <div>
+                        <strong>{ability.name}</strong>
+                        <span>
+                          {ability.apCost} AP
+                          {ability.mpCost > 0 ? ` · ${ability.mpCost} MP` : ''}
+                        </span>
+                      </div>
+                      <p>{ability.description}</p>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            ) : null}
 
             <section className={styles.effects} aria-label={`${selected.name} buffs and debuffs`}>
               <div className={styles.effectsHeading}>

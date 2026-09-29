@@ -1,6 +1,7 @@
 import type { CombatStatusDefinition } from './actions'
 import type { CombatEffectCategory } from './combat-effect-categories'
 import type { CombatEffectInstanceProvenance } from './combat-kernel-types'
+import type { SummonProfileDefinition } from './summon-content'
 
 export type EffectPolarity = 'positive' | 'negative' | 'neutral' | 'mixed'
 
@@ -123,6 +124,16 @@ export interface CombatBarrierInstance {
   provenance?: CombatEffectInstanceProvenance
 }
 
+export interface CombatSummonInstance {
+  combatantId: string
+  ownerCombatantId: string
+  sourceSkillId: string
+  sourceSkillVersion: number
+  profile: SummonProfileDefinition
+  spawnedRound: number
+  turnsCompleted: number
+}
+
 export interface CombatEffectState {
   ongoingRecovery: CombatOngoingRecovery[]
   poison: CombatPoisonInstance[]
@@ -131,6 +142,7 @@ export interface CombatEffectState {
   temporarySkills: CombatTemporarySkillGrant[]
   damageHistory: CombatDamageHistoryEntry[]
   barriers?: CombatBarrierInstance[]
+  summons?: CombatSummonInstance[]
 }
 
 export function normalizeCombatEffectState(value: unknown): CombatEffectState {
@@ -147,6 +159,7 @@ export function normalizeCombatEffectState(value: unknown): CombatEffectState {
     temporarySkills: Array.isArray(input.temporarySkills) ? input.temporarySkills : [],
     damageHistory: Array.isArray(input.damageHistory) ? input.damageHistory : [],
     ...(Array.isArray(input.barriers) ? { barriers: input.barriers } : {}),
+    ...(Array.isArray(input.summons) ? { summons: input.summons } : {}),
   }
 }
 

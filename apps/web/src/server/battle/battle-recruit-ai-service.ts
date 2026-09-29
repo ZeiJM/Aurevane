@@ -12,14 +12,22 @@ import {
   chooseBuildAwareRecruitAiDecision,
   type BuildAwareRecruitAiSkillOptions,
 } from '@aurevane/game-core/combat/recruit-ai-build'
-import { normalizeCombatEffectState } from '@aurevane/game-core/combat/combat-effect-state'
+import {
+  normalizeCombatEffectState,
+  type CombatSummonInstance,
+} from '@aurevane/game-core/combat/combat-effect-state'
 import {
   getRecruitAiProfile,
   type RecruitAiDecision,
   type RecruitAiDifficulty,
   type RecruitAiIntent,
 } from '@aurevane/game-core/combat/recruit-ai'
-import { executePv1fMovement, finishPv1fTurn } from '@aurevane/game-core/combat/pv1f-action-economy'
+import {
+  executePv1fMovement,
+  executePv1fSummonAbility,
+  finishPv1fTurn,
+} from '@aurevane/game-core/combat/pv1f-action-economy'
+import { chooseSummonAiDecision } from '@aurevane/game-core/combat/summon-ai'
 import {
   validateStatDrivenCombatEncounterState,
   type StatDrivenCombatEncounterState,
@@ -155,11 +163,14 @@ function resolveRecruitIntent(
   state: StatDrivenCombatEncounterState,
   intent: RecruitAiIntent,
   skillOptions: BuildAwareRecruitAiSkillOptions,
+  summon: CombatSummonInstance | null = null,
 ): { state: StatDrivenCombatEncounterState; events: readonly unknown[] } {
   try {
     if (intent.kind === 'move') return executePv1fMovement(state, intent.path)
     if (intent.kind === 'action') {
-      return executeBuildAwareRecruitAiAction(state, intent.actionId, intent.target, skillOptions)
+      return summon
+        ? executePv1fSummonAbility(state, summon, intent.actionId, intent.target)
+        : executeBuildAwareRecruitAiAction(state, intent.actionId, intent.target, skillOptions)
     }
     if (intent.kind === 'face') return finishPv1fTurn(state, intent.facing)
 
@@ -167,12 +178,23 @@ function resolveRecruitIntent(
     const placement = activeId
       ? state.tactical.placements.find((candidate) => candidate.combatantId === activeId)
       : null
-    if (!placement) throw new Error('Recruit has no committed facing.')
+    if (!placement) throw new Error('AI combatant has no committed facing.')
     return finishPv1fTurn(state, placement.facing)
   } catch (error) {
     if (error instanceof AurevaneError) throw error
-    throw persistenceInvalid('Recruit AI produced a command rejected by shared combat legality.')
+    throw persistenceInvalid('Combat AI produced a command rejected by shared combat legality.')
   }
+}
+
+function activeSummonForActor(
+  state: StatDrivenCombatEncounterState,
+  combatantId: string,
+): CombatSummonInstance | null {
+  return (
+    (normalizeCombatEffectState(state.effectState).summons ?? []).find(
+      (summon) => summon.combatantId === combatantId,
+    ) ?? null
+  )
 }
 
 async function resolveRecruitSkillOptions(
@@ -264,9 +286,13 @@ export function deriveRecruitTieBreakSeed(input: RecruitTieBreakSeedInput): numb
   return digest.readInt32BE(0)
 }
 
-function decisionEvent(decision: RecruitAiDecision, combatantId: string) {
+function decisionEvent(
+  decision: RecruitAiDecision,
+  combatantId: string,
+  controller: 'recruit' | 'summon',
+) {
   return {
-    event: 'recruit_ai_decision',
+    event: controller === 'summon' ? 'summon_ai_decision' : 'recruit_ai_decision',
     combatantId,
     profileId: decision.profileId,
     profileVersion: decision.profileVersion,
@@ -333,27 +359,38 @@ export function createBattleRecruitAiService(
           }
         }
 
-        const difficulty = recruitDifficultyForActor(state, turn.combatantId)
+        const summon = activeSummonForActor(state, turn.combatantId)
+        const tieBreakSeed = deriveRecruitTieBreakSeed({
+          battleId: battle.battleId,
+          round: battle.round,
+          turnNumber: battle.turnNumber,
+          battleVersion,
+          step,
+          combatantId: turn.combatantId,
+        })
+        const difficulty =
+          summon?.profile.aiProfile ?? recruitDifficultyForActor(state, turn.combatantId)
         const resolver =
           combatContentResolver ??
           (state.buildAuthority ? createServerCombatContentResolver() : undefined)
-        const skillOptions = await resolveRecruitSkillOptions(state, turn.combatantId, resolver)
-        const decision = chooseBuildAwareRecruitAiDecision({
-          state,
-          profile: getRecruitAiProfile(difficulty),
-          tieBreakSeed: deriveRecruitTieBreakSeed({
-            battleId: battle.battleId,
-            round: battle.round,
-            turnNumber: battle.turnNumber,
-            battleVersion,
-            step,
-            combatantId: turn.combatantId,
-          }),
-          skillOptions,
-        })
-        const resolved = resolveRecruitIntent(state, decision.intent, skillOptions)
+        const skillOptions = summon
+          ? {}
+          : await resolveRecruitSkillOptions(state, turn.combatantId, resolver)
+        const decision = summon
+          ? chooseSummonAiDecision({
+              state,
+              summon,
+              tieBreakSeed,
+            })
+          : chooseBuildAwareRecruitAiDecision({
+              state,
+              profile: getRecruitAiProfile(difficulty),
+              tieBreakSeed,
+              skillOptions,
+            })
+        const resolved = resolveRecruitIntent(state, decision.intent, skillOptions, summon)
         const nextState = preserveFrozenBuildMetadata(state, resolved.state)
-        const event = decisionEvent(decision, turn.combatantId)
+        const event = decisionEvent(decision, turn.combatantId, summon ? 'summon' : 'recruit')
         const events = [event, ...resolved.events]
         const privacyJournal = buildBattlePrivacyJournalInput({
           before: state,
@@ -362,7 +399,7 @@ export function createBattleRecruitAiService(
           events,
         })
         const requestFingerprint = fingerprint({
-          command: 'battle.recruit-ai.v2',
+          command: summon ? 'battle.summon-ai.v1' : 'battle.recruit-ai.v2',
           battleSessionId: initial.battleSessionId,
           expectedBattleVersion: battleVersion,
           difficulty,

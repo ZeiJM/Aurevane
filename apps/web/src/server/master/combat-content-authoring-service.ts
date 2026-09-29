@@ -15,7 +15,7 @@ import {
 } from '@aurevane/game-core/combat/essence'
 import { combatActionPresentationTags } from '@aurevane/game-core/combat/gameplay-tags'
 import {
-  toCombatActionDefinition,
+  toMaterializedCombatActionDefinition,
   validateMatureSkillDefinition,
   type MatureSkillCombatContext,
   type MatureSkillDefinition,
@@ -23,7 +23,7 @@ import {
 import {
   resolveResonanceForPair,
   validateResonanceDefinition as validateCanonicalResonanceDefinition,
-  type ResonanceDefinition,
+  type AnyResonanceDefinition,
 } from '@aurevane/game-core/combat/resonance'
 import { AurevaneError } from '@aurevane/game-core/errors'
 
@@ -281,7 +281,7 @@ function validateSkillDefinition(definition: unknown): CombatContentValidationRe
   if (issues.length === 0) {
     for (const context of ['pve', 'pvp'] as const) {
       try {
-        const action = toCombatActionDefinition(candidate, context)
+        const action = toMaterializedCombatActionDefinition(candidate, context)
         validateCombatActionDefinition(action)
       } catch (error) {
         issues.push({
@@ -299,7 +299,7 @@ function validateSkillDefinition(definition: unknown): CombatContentValidationRe
     return {
       valid: true,
       issues: [],
-      derivedTags: combatActionPresentationTags(toCombatActionDefinition(candidate, 'pve')),
+      derivedTags: combatActionPresentationTags(candidate),
     }
   } catch (error) {
     return {
@@ -350,7 +350,7 @@ function validateEssenceAuthoringDefinition(definition: unknown): CombatContentV
   return {
     valid: true,
     issues: [],
-    derivedTags: combatActionPresentationTags(toCombatActionDefinition(candidate.skill, 'pve')),
+    derivedTags: combatActionPresentationTags(candidate.skill),
   }
 }
 
@@ -360,7 +360,7 @@ function validateResonanceAuthoringDefinition(definition: unknown): CombatConten
     return { valid: false, issues, derivedTags: [] }
   }
 
-  const candidate = structuredClone(definition) as unknown as ResonanceDefinition
+  const candidate = structuredClone(definition) as unknown as AnyResonanceDefinition
   try {
     for (const field of validateCanonicalResonanceDefinition(candidate)) {
       issues.push({
@@ -674,7 +674,7 @@ export function createCombatContentAuthoringService({
           `Combat content validation failed: ${validation.issues[0]?.message ?? 'invalid Resonance definition.'}`,
         )
       }
-      const definition = input.definition as ResonanceDefinition
+      const definition = input.definition as AnyResonanceDefinition
       const published = await store.findPublished(definition.id)
       if (published && published.contentKind !== 'resonance') {
         throw new AurevaneError('INVALID_REQUEST', 'Combat content kind conflict.')

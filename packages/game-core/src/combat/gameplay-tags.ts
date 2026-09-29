@@ -107,6 +107,14 @@ type PresentationEffect = {
   [key: string]: unknown
 }
 
+type PresentationAction = {
+  readonly target: CombatActionDefinition['target']
+  readonly effects: readonly {
+    readonly type: string
+    readonly recipient?: unknown
+  }[]
+}
+
 export function validateGameplayTag(tag: unknown): asserts tag is GameplayTag {
   if (typeof tag !== 'string' || !GAMEPLAY_TAGS.includes(tag as GameplayTag))
     throw new TypeError('Unknown gameplay tag.')
@@ -116,9 +124,7 @@ export function combatStatusPresentationTag(statusId: string): string {
   return STATUS_PRESENTATION_TAGS[statusId] ?? titleIdentity(statusId)
 }
 
-export function combatActionPresentationTags(
-  action: Pick<CombatActionDefinition, 'target' | 'effects'>,
-): readonly string[] {
+export function combatActionPresentationTags(action: PresentationAction): readonly string[] {
   const result = [targetPresentationTag(action), shapePresentationTag(action)]
   const seen = new Set(result)
 
@@ -345,6 +351,7 @@ function effectPresentationTags(effect: PresentationEffect): readonly string[] {
     cleanse: 'Cleanse',
     dispel: 'Dispel',
     sensory: 'Sensory',
+    summon: 'Summon',
     'apply-burn': 'Burn (Scorched)',
     'apply-bleed': 'Bleed (Bleeding)',
     'apply-poison': 'Poison (Poisoned)',

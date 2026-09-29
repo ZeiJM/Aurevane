@@ -444,13 +444,14 @@
 .attunementHover {
   position: absolute;
   z-index: 80;
-  right: calc(100% + 0.5rem);
+  right: auto;
   bottom: 0;
+  left: calc(100% + 0.5rem);
   display: grid;
   width: min(24rem, 42vw);
   max-height: min(29rem, 70vh);
-  gap: 0.55rem;
-  padding: 0.7rem;
+  gap: 0.4rem;
+  padding: 0.55rem 0.7rem 0.7rem;
   overflow: auto;
   border: 1px solid #425d6c;
   border-radius: 0.16rem;
@@ -635,6 +636,10 @@
 
   .techniqueLane {
     min-height: 6.8rem;
+  }
+
+  .attunementHover {
+    width: min(21rem, 36vw);
   }
 
   .techniqueSlots {

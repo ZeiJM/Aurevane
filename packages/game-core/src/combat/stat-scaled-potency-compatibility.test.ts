@@ -6,16 +6,16 @@ import {
   type CombatEffectDefinition,
 } from './actions'
 import { P36_REPRESENTATIVE_ESSENCES } from './essence'
-import { latestEnabledMatureSkills } from './mature-skills'
+import { latestEnabledMatureSkills, type MatureSkillEffectDefinition } from './mature-skills'
 
 function isDamageEffect(
-  effect: CombatEffectDefinition,
+  effect: MatureSkillEffectDefinition,
 ): effect is Extract<CombatEffectDefinition, { type: 'damage' }> {
   return effect.type === 'damage'
 }
 
 function damageEffects(
-  effects: readonly CombatEffectDefinition[],
+  effects: readonly MatureSkillEffectDefinition[],
 ): readonly Extract<CombatEffectDefinition, { type: 'damage' }>[] {
   return effects.filter(isDamageEffect)
 }

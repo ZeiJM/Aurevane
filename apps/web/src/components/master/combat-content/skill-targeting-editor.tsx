@@ -12,6 +12,7 @@ import styles from './combat-content-editor.module.css'
 
 export interface SkillTargetingEditorProps {
   readonly value: CombatTargetSpec
+  readonly v51Rules?: boolean
   readonly onChange: (value: CombatTargetSpec) => void
 }
 
@@ -55,9 +56,14 @@ function shapeForKind(
   return { kind: 'line', length: current.kind === 'line' ? current.length : 1 }
 }
 
-export function SkillTargetingEditor({ value, onChange }: SkillTargetingEditorProps) {
+export function SkillTargetingEditor({
+  value,
+  v51Rules = false,
+  onChange,
+}: SkillTargetingEditorProps) {
   const shape = value.shape
   const invalidRange = value.minimumRange > value.maximumRange
+  const currentNonSelf = v51Rules && value.kind !== 'self'
 
   return (
     <fieldset className={styles.typedGroup}>
@@ -187,7 +193,8 @@ export function SkillTargetingEditor({ value, onChange }: SkillTargetingEditorPr
             aria-label="Maximum range"
             aria-invalid={invalidRange}
             type="number"
-            min={0}
+            min={currentNonSelf ? 1 : 0}
+            max={currentNonSelf ? 5 : undefined}
             value={value.maximumRange}
             onChange={(event) =>
               onChange({
@@ -196,6 +203,11 @@ export function SkillTargetingEditor({ value, onChange }: SkillTargetingEditorPr
               })
             }
           />
+          {currentNonSelf ? (
+            <small className={styles.fieldHint}>
+              Current v5.1 non-self reach is 1–5; longer reach reduces effect budget.
+            </small>
+          ) : null}
         </label>
 
         <label className={styles.field}>
@@ -204,8 +216,9 @@ export function SkillTargetingEditor({ value, onChange }: SkillTargetingEditorPr
             aria-label="Maximum elevation difference"
             type="number"
             min={0}
+            max={currentNonSelf ? 2 : undefined}
             value={value.maximumElevationDifference ?? ''}
-            placeholder="Unlimited"
+            placeholder={currentNonSelf ? '0' : 'Unlimited'}
             onChange={(event) =>
               onChange({
                 ...value,
@@ -216,6 +229,11 @@ export function SkillTargetingEditor({ value, onChange }: SkillTargetingEditorPr
               })
             }
           />
+          {currentNonSelf ? (
+            <small className={styles.fieldHint}>
+              Elevation 0 is standard; 1 is uncommon; 2 is rare.
+            </small>
+          ) : null}
         </label>
 
         <label className={styles.field}>
@@ -252,6 +270,11 @@ export function SkillTargetingEditor({ value, onChange }: SkillTargetingEditorPr
           }
         />
         <span>Requires line of sight</span>
+        {currentNonSelf ? (
+          <small className={styles.fieldHint}>
+            Skipping line of sight consumes targeting budget.
+          </small>
+        ) : null}
       </label>
 
       {invalidRange ? (

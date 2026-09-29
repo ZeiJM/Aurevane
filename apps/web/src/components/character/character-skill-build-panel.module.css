@@ -580,13 +580,26 @@
 .effectSummaryList {
   display: grid;
   gap: 0.18rem;
+  justify-items: end;
   margin: 0;
-  padding-left: 1rem;
-  text-align: left;
+  padding-left: 0;
+  text-align: right;
 }
 
-.effectSummaryList li {
-  padding-left: 0.08rem;
+.effectSummaryList [data-compact-skill-effect='true'] {
+  display: block;
+  max-width: 100%;
+  color: #f0e8dc;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.effectSummaryList [data-compact-effect-magnitude='true'] {
+  color: #e4bd67;
+}
+
+.effectSummaryList [data-compact-effect-duration='true'] {
+  color: #70d7ce;
 }
 
 .selectedTechnique > p {
@@ -764,6 +777,11 @@
 
   .headingCopy p {
     display: block;
+  }
+
+  .effectSummaryList [data-compact-skill-effect='true'] {
+    overflow-wrap: anywhere;
+    white-space: normal;
   }
 }
 

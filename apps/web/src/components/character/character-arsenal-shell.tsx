@@ -1,7 +1,8 @@
 import Image from 'next/image'
 import type { EssenceDefinition } from '@aurevane/game-core/combat/essence'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
-import type { ResonanceDefinition } from '@aurevane/game-core/combat/resonance'
+import type { AnyResonanceDefinition } from '@aurevane/game-core/combat/resonance'
+import { normalizedResonanceMechanics } from '@aurevane/game-core/combat/resonance-v2'
 import { Surface } from '@aurevane/ui'
 
 import {
@@ -81,10 +82,14 @@ function EssenceHoverPreview({ essence }: { essence: EssenceDefinition }) {
   )
 }
 
-function ResonanceHoverPreview({ resonance }: { resonance: ResonanceDefinition }) {
-  const setup = resonance.trigger.setup
-  const payoff = resonance.trigger.payoff
-  const effects = resonance.trigger.payoffEffects.map(effectSummaryWithDuration)
+function ResonanceHoverPreview({ resonance }: { resonance: AnyResonanceDefinition }) {
+  const mechanics = normalizedResonanceMechanics(resonance)
+  const effects = mechanics.resultEffects.map(effectSummaryWithDuration)
+  const effectExplanations = mechanics.resultEffects.map(
+    (effect) => previewEffect(effect).explanation,
+  )
+  const setup = mechanics.setup
+  const trigger = mechanics.trigger
   return (
     <aside
       id={`resonance-preview-${resonance.id}`}
@@ -96,22 +101,36 @@ function ResonanceHoverPreview({ resonance }: { resonance: ResonanceDefinition }
       <dl>
         <div>
           <dt>Type</dt>
-          <dd>Resonance</dd>
+          <dd>{mechanics.mode === 'immediate' ? 'Immediate Resonance' : 'Sequence Resonance'}</dd>
         </div>
         <div>
           <dt>Requirements</dt>
           <dd>
             <ul>
-              <li>{`Setup: ${setup.sourceDisciplineId} · ${setup.requiredTags.join(' + ')}`}</li>
-              <li>{`Payoff: ${payoff.sourceDisciplineId} · ${payoff.requiredTags.join(' + ')}`}</li>
+              <li>
+                {setup
+                  ? `Setup: ${setup.sourceDisciplineId} · ${setup.requiredTags.join(' + ')}`
+                  : 'Setup: None'}
+              </li>
+              <li>{`Trigger: ${trigger.sourceDisciplineId} · ${trigger.requiredTags.join(' + ')}`}</li>
             </ul>
           </dd>
         </div>
         <div>
-          <dt>Effects</dt>
+          <dt>Result</dt>
           <dd>
             <ul>
               {effects.map((entry, index) => (
+                <li key={`${index}:${entry}`}>{entry}</li>
+              ))}
+            </ul>
+          </dd>
+        </div>
+        <div>
+          <dt>Result details</dt>
+          <dd>
+            <ul>
+              {effectExplanations.map((entry, index) => (
                 <li key={`${index}:${entry}`}>{entry}</li>
               ))}
             </ul>

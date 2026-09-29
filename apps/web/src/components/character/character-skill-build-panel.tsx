@@ -1,12 +1,13 @@
 'use client'
 
+import { CompactSkillEffectSummary } from './compact-skill-effect-summary'
 import { skillPreviewEffects } from './skill-effect-preview'
 
 import Image from 'next/image'
 
 import type { EssenceDefinition } from '@aurevane/game-core/combat/essence'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
-import type { ResonanceDefinition } from '@aurevane/game-core/combat/resonance'
+import type { AnyResonanceDefinition } from '@aurevane/game-core/combat/resonance'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState, useSyncExternalStore, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
@@ -47,7 +48,7 @@ interface CharacterSkillBuildPanelProps {
   initialCapacity: number
   initialLearnedSkills: readonly SkillCatalogEntryView[]
   initialEquippedSkills: readonly EquippedSkillView[]
-  initialResonance: ResonanceDefinition | null
+  initialResonance: AnyResonanceDefinition | null
   initialEssence: EssenceDefinition | null
 }
 
@@ -519,14 +520,23 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                               <div key={label}>
                                 <dt>{label}</dt>
                                 <dd>
-                                  {typeof value === 'string' ? (
+                                  {label === 'Effects' && focusedSkill ? (
+                                    focusedSkill.definition.effects.length > 0 ? (
+                                      <div className={styles.effectSummaryList}>
+                                        {focusedSkill.definition.effects.map((effect, index) => (
+                                          <CompactSkillEffectSummary
+                                            effect={effect}
+                                            key={`${index}:${effect.type}`}
+                                          />
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      'N/A'
+                                    )
+                                  ) : typeof value === 'string' ? (
                                     value
                                   ) : value.length > 0 ? (
-                                    <ul className={styles.effectSummaryList}>
-                                      {value.map((effect, index) => (
-                                        <li key={`${index}:${effect}`}>{effect}</li>
-                                      ))}
-                                    </ul>
+                                    value.join(', ')
                                   ) : (
                                     'N/A'
                                   )}

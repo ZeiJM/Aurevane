@@ -94,6 +94,13 @@ type DisciplineSlot = 'primary' | 'secondary'
 const PROFILE_PANEL_QUERY = 'profilePanel'
 const DISCIPLINES_PANEL = 'disciplines'
 
+export function shouldRunAttunementCountdown(
+  open: boolean,
+  remaining: { primary: number; secondary: number },
+): boolean {
+  return open && (remaining.primary > 0 || remaining.secondary > 0)
+}
+
 function focusAttributes(disciplineId: string): readonly CharacterAttributeId[] {
   return foundationDisciplineAttributePolicy(disciplineId)?.focusAttributes ?? []
 }
@@ -214,6 +221,7 @@ export function CharacterDisciplineBuildPanel({
   const [pendingCommit, setPendingCommit] = useState(false)
   const [refreshingProfile, startProfileRefresh] = useTransition()
   const [message, setMessage] = useState<string | null>(null)
+  const countdownActive = shouldRunAttunementCountdown(open, remaining)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const dialogRef = useRef<HTMLElement>(null)
 
@@ -227,14 +235,18 @@ export function CharacterDisciplineBuildPanel({
   }, [open, mounted])
 
   useEffect(() => {
+    if (!countdownActive) return
+
     const timer = window.setInterval(() => {
-      setRemaining((value) => ({
-        primary: Math.max(0, value.primary - 1),
-        secondary: Math.max(0, value.secondary - 1),
-      }))
+      setRemaining((value) => {
+        const primary = Math.max(0, value.primary - 1)
+        const secondary = Math.max(0, value.secondary - 1)
+        if (primary === value.primary && secondary === value.secondary) return value
+        return { primary, secondary }
+      })
     }, 1000)
     return () => window.clearInterval(timer)
-  }, [])
+  }, [countdownActive])
 
   useEffect(() => {
     if (!open) return

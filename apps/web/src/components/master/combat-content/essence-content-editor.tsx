@@ -1,6 +1,7 @@
 'use client'
 
 import type { EssenceDefinition } from '@aurevane/game-core/combat/essence'
+import { isMaterializedCombatEffect } from '@aurevane/game-core/combat/summon-content'
 import { useRouter } from 'next/navigation'
 import { useMemo, useRef, useState } from 'react'
 
@@ -430,7 +431,7 @@ export function EssenceContentEditor({ essences, initialEssenceId }: EssenceCont
               onChange={(media) => updateDraft({ ...selectedDraft, skill: { ...skill, media } })}
             />
             <SkillEffectListEditor
-              value={skill.effects}
+              value={skill.effects.filter(isMaterializedCombatEffect)}
               effectDescriptions={skill.effectDescriptions}
               onChange={(effects, effectDescriptions) =>
                 updateDraft({

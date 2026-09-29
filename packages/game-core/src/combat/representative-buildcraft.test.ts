@@ -4,7 +4,7 @@ import {
   latestEnabledMatureSkills,
   resolveMatureSkillForContext,
   resolveMatureSkillVersion,
-  toCombatActionDefinition,
+  toMaterializedCombatActionDefinition,
   validateMatureSkillDefinition,
 } from './mature-skills'
 
@@ -34,14 +34,19 @@ describe('P3.8 representative buildcraft catalog', () => {
     for (const skill of enabledSkills) {
       for (const context of ['pve', 'pvp'] as const) {
         const resolved = resolveMatureSkillForContext(skill, context)
-        const action = toCombatActionDefinition(skill, context)
+        const action = toMaterializedCombatActionDefinition(skill, context)
 
         expect(resolved.combatContext).toBe(context)
         expect(action.id).toBe(skill.id)
         expect(action.version).toBe(skill.contentVersion)
         expect(action.sourceType).toBe('discipline-skill')
         expect(action.cooldown?.key ?? null).toBe(skill.cooldown?.key ?? null)
-        expect(action.effects.length).toBeGreaterThan(0)
+        if (skill.effects.some((effect) => effect.type === 'summon')) {
+          expect(action.effects).toEqual([])
+          expect(skill.summonProfile?.abilities.length).toBeGreaterThanOrEqual(1)
+        } else {
+          expect(action.effects.length).toBeGreaterThan(0)
+        }
       }
     }
   })

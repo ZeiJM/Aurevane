@@ -130,10 +130,10 @@ describe('P3.6 character build Essence authority', () => {
     expect(context.disciplineSkills.extensions.resonance).toBeNull()
     expect(context.disciplineSkills.extensions.essence).toMatchObject({
       essenceId: 'essence.vanguard.unbroken-strike',
-      contentVersion: 3,
+      contentVersion: 4,
       sourceDisciplineId: 'vanguard',
       skill: expect.objectContaining({
-        contentVersion: 3,
+        contentVersion: 4,
         id: 'essence.vanguard.unbroken-strike',
         apCost: 55,
         cooldown: { key: 'essence.vanguard.unbroken-strike', ownerTurns: 3 },
@@ -153,7 +153,9 @@ describe('P3.6 character build Essence authority', () => {
     expect(context.disciplineSkills.extensions.essence).toBeNull()
     expect(context.disciplineSkills.extensions.resonance).toMatchObject({
       id: 'resonance.lifebinder-vanguard.mercys-edge',
-      contentVersion: 2,
+      contentVersion: 3,
+      trigger: { kind: 'skill-trigger-v2' },
+      authoring: { schemaVersion: 2 },
     })
   })
 

@@ -136,6 +136,22 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   await expect(mixedAttunement).toContainText("Mercy's Edge")
   await expect(mixedAttunement).not.toContainText('Unbroken Strike')
 
+  const resonancePreviewAnchor = mixedAttunement.getByLabel(/Preview Resonance: Mercy's Edge/)
+  await resonancePreviewAnchor.hover()
+  const resonancePreview = page.locator('[id^="resonance-preview-"]').filter({
+    hasText: "Mercy's Edge",
+  })
+  await expect(resonancePreview).toBeVisible()
+  await expect(resonancePreview).toContainText('Setup:')
+  await expect(resonancePreview).toContainText('Trigger:')
+  await expect(resonancePreview).toContainText('Result')
+  await expect(resonancePreview).toContainText('Result details')
+  await expect(resonancePreview).not.toContainText('Payoff')
+  await resonancePreviewAnchor.evaluate((element) => (element as HTMLElement).blur())
+  await page.mouse.move(0, 0)
+  await expect(resonancePreview).toHaveCSS('opacity', '0')
+  await expect(resonancePreview).toHaveCSS('pointer-events', 'none')
+
   await page.getByRole('button', { name: /Manage Techniques/ }).click()
   const mixedCapacity = page.getByTestId('skill-capacity')
   await expect(mixedCapacity).toContainText('2 / 4 selected')
@@ -317,7 +333,7 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   await expect(confirmAction).toBeEnabled()
 
   await page.keyboard.press(attackDirection!)
-  await expect(actionEconomy).toHaveAttribute('aria-valuenow', '60', { timeout: 8000 })
+  await expect(actionEconomy).toHaveAttribute('aria-valuenow', '55', { timeout: 8000 })
   await expect(confirmAction).toBeDisabled({ timeout: 8000 })
   // Authored Attack Techniques stay selected after a successful commit (the approved
   // post-attack cockpit contract). The previous Move selection must never be restored.

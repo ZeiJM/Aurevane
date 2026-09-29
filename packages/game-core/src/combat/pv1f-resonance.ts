@@ -10,7 +10,7 @@ import {
   constrainResonanceForecastToTarget,
   type ResonanceCombatEvent,
   type ResonanceCombatState,
-  type ResonanceDefinition,
+  type AnyResonanceDefinition,
 } from './resonance'
 import type { StatDrivenCombatEncounterState } from './stat-driven-combat'
 
@@ -22,7 +22,7 @@ export interface Pv1fMatureSkillResonanceTransition {
 
 export function executePv1fMatureSkillWithResonance(input: {
   readonly state: StatDrivenCombatEncounterState
-  readonly resonance: ResonanceDefinition
+  readonly resonance: AnyResonanceDefinition
   readonly resonanceState: ResonanceCombatState
   readonly skill: MatureSkillDefinition
   readonly combatContext: MatureSkillCombatContext
@@ -85,13 +85,14 @@ export function executePv1fMatureSkillWithResonance(input: {
   const resonanceEvents: ResonanceCombatEvent[] = []
   let nextArmedByActionId = input.resonanceState.armedByActionId
 
-  if (forecast.willActivate && input.resonanceState.armedByActionId) {
+  if (forecast.willActivate) {
     resonanceEvents.push({
       event: 'resonance_activated',
       resonanceId: input.resonance.id,
       contentVersion: input.resonance.contentVersion,
       actorId,
       setupActionId: input.resonanceState.armedByActionId,
+      triggerActionId: input.skill.id,
       payoffActionId: input.skill.id,
     })
     nextArmedByActionId = null

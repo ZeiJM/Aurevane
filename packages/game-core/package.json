@@ -30,6 +30,7 @@
     "./combat/damage-scaling": "./src/combat/damage-scaling.ts",
     "./combat/mature-skills": "./src/combat/mature-skills.ts",
     "./combat/resonance": "./src/combat/resonance.ts",
+    "./combat/resonance-v2": "./src/combat/resonance-v2.ts",
     "./combat/pv1f-resonance": "./src/combat/pv1f-resonance.ts",
     "./combat/essence": "./src/combat/essence.ts",
     "./combat/skill-cooldowns": "./src/combat/skill-cooldowns.ts",
@@ -57,7 +58,10 @@
     "./combat/combat-dots": "./src/combat/combat-dots.ts",
     "./combat/combat-level-scaling": "./src/combat/combat-level-scaling.ts",
     "./combat/combat-critical": "./src/combat/combat-critical.ts",
-    "./combat/damage-modifiers": "./src/combat/damage-modifiers.ts"
+    "./combat/damage-modifiers": "./src/combat/damage-modifiers.ts",
+    "./combat/summon-content": "./src/combat/summon-content.ts",
+    "./combat/combat-summons": "./src/combat/combat-summons.ts",
+    "./combat/summon-ai": "./src/combat/summon-ai.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

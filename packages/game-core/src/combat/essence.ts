@@ -10,6 +10,10 @@ import {
 } from './mature-skills'
 import { rebalanceMatureSkillDefinition } from './skill-balance-v5'
 import {
+  applyV51CurrentTechniqueTargeting,
+  rebalanceMatureSkillDefinitionV51,
+} from './skill-balance-v5-1'
+import {
   evaluatePv1fMatureSkill,
   executePv1fMatureSkill,
   readPv1fActionEconomy,
@@ -515,11 +519,37 @@ const V5_REBALANCED_ESSENCES = latestEnabledEssences(PRE_V5_CURRENT_ESSENCES).ma
   },
 )
 
+const V51_REBALANCED_ESSENCES = latestEnabledEssences([
+  ...PRE_V5_CURRENT_ESSENCES,
+  ...V5_REBALANCED_ESSENCES,
+]).map((definition): EssenceDefinition => {
+  const skill = rebalanceMatureSkillDefinitionV51(
+    applyV51CurrentTechniqueTargeting(definition.skill),
+    'essence',
+  )
+  return {
+    ...definition,
+    contentVersion: skill.contentVersion,
+    skill,
+    authoring: {
+      ...definition.authoring,
+      validationTags: [
+        ...new Set([
+          ...definition.authoring.validationTags,
+          'owner-rebalance-v5-1',
+          'target-budget-v5-1',
+        ]),
+      ],
+    },
+  }
+})
+
 export const P36_REPRESENTATIVE_ESSENCES = PRE_V5_CURRENT_ESSENCES
 
 const CURRENT_ESSENCE_REGISTRY = [
   ...P36_REPRESENTATIVE_ESSENCES,
   ...V5_REBALANCED_ESSENCES,
+  ...V51_REBALANCED_ESSENCES,
 ] as const satisfies readonly EssenceDefinition[]
 
 const STABLE_ID_PATTERN = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/

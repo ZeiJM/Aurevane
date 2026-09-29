@@ -214,9 +214,9 @@ describe('battle build authority mixed Technique source capacity', () => {
     const pool = await resolveBattleDisciplineSkillDefinitions(authority, sourceId, resolver)
     expect(pool?.map((definition) => [definition.id, definition.contentVersion])).toEqual([
       ['vanguard.forceful-strike', 7],
-      ['vanguard.rally', 3],
-      ['vanguard.brace', 3],
-      ['lifebinder.barrier', 3],
+      ['vanguard.rally', 4],
+      ['vanguard.brace', 4],
+      ['lifebinder.barrier', 4],
     ])
 
     await expect(

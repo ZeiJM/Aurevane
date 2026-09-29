@@ -1,5 +1,6 @@
 import { terrainOverlayAiUtility, terrainOverlayAt } from './terrain-overlays'
 import { combatStatusDetails } from './status-content'
+import { isMaterializedCombatEffect } from './summon-content'
 import type {
   CombatActionEvaluation,
   CombatEffectDefinition,
@@ -31,6 +32,7 @@ import {
   type RecruitAiDecision,
   type RecruitAiProfile,
 } from './recruit-ai'
+import { normalizedResonanceMechanics } from './resonance-v2'
 import type { StatDrivenCombatEncounterState } from './stat-driven-combat'
 
 interface BuildSkillCandidate {
@@ -234,10 +236,11 @@ function buildSkillCandidates(
     )
       continue
     const resonance = committedResonanceForecast(evaluated.prepared, definition, target)
+    const resonanceMechanics = resonance ? normalizedResonanceMechanics(resonance.definition) : null
     const resonanceUtility = resonance?.forecast.willActivate
-      ? resonance.definition.trigger.aiPayoffUtilityBonus
+      ? (resonanceMechanics?.aiTriggerUtilityBonus ?? 0)
       : resonance?.forecast.willArm
-        ? resonance.definition.trigger.aiSetupUtilityBonus
+        ? (resonanceMechanics?.aiSetupUtilityBonus ?? 0)
         : 0
     const originalCost = resolveMatureSkillForContext(definition, 'pve').apCost
     const copiedApDiscountUtility = copied ? Math.max(0, originalCost - evaluated.cost) : 0
@@ -251,7 +254,11 @@ function buildSkillCandidates(
         // action difficulty adjustment so higher difficulties do not suppress Skills.
         definition.ai.baseUtility +
         (profile.attackUtility - RECRUIT_EASY_PROFILE.attackUtility) +
-        projectedCombatEffectUtility(evaluated.evaluation, state, definition.effects) +
+        projectedCombatEffectUtility(
+          evaluated.evaluation,
+          state,
+          definition.effects.filter(isMaterializedCombatEffect),
+        ) +
         terrainOverlayAiUtility(state, evaluated.evaluation) +
         resonanceUtility +
         copiedApDiscountUtility,

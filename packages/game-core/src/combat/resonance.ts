@@ -4,6 +4,13 @@ import { FOUNDATION_TRIO_RESONANCES } from './foundation-trio-resonances'
 import { IRONFIST_RESONANCES } from './ironfist-content'
 import { rebalanceResonanceDefinition } from './resonance-balance-v5'
 import {
+  convertV5ResonanceToV2,
+  isResonanceDefinitionV2,
+  normalizedResonanceMechanics,
+  validateResonanceDefinitionV2,
+  type ResonanceDefinitionV2,
+} from './resonance-v2'
+import {
   executeCombatAction,
   evaluateCombatAction,
   type CombatContentCatalog,
@@ -57,6 +64,8 @@ export interface ResonanceDefinition {
   }
 }
 
+export type AnyResonanceDefinition = ResonanceDefinition | ResonanceDefinitionV2
+
 export interface ResonanceSnapshotReference {
   readonly resonanceId: string
   readonly contentVersion: number
@@ -82,7 +91,8 @@ export type ResonanceCombatEvent =
       readonly resonanceId: string
       readonly contentVersion: number
       readonly actorId: string
-      readonly setupActionId: string
+      readonly setupActionId: string | null
+      readonly triggerActionId: string
       readonly payoffActionId: string
     }
   | {
@@ -142,12 +152,14 @@ const PRE_V5_RESONANCES = [
 ] as const satisfies readonly ResonanceDefinition[]
 
 const V5_REBALANCED_RESONANCES = PRE_V5_RESONANCES.map(rebalanceResonanceDefinition)
+const V51_REBALANCED_RESONANCES = V5_REBALANCED_RESONANCES.map(convertV5ResonanceToV2)
 
 export const P35_REPRESENTATIVE_RESONANCES: readonly ResonanceDefinition[] = PRE_V5_RESONANCES
 
-const CURRENT_RESONANCE_REGISTRY: readonly ResonanceDefinition[] = [
+const CURRENT_RESONANCE_REGISTRY: readonly AnyResonanceDefinition[] = [
   ...P35_REPRESENTATIVE_RESONANCES,
   ...V5_REBALANCED_RESONANCES,
+  ...V51_REBALANCED_RESONANCES,
 ]
 
 const STABLE_ID_PATTERN = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/
@@ -161,7 +173,11 @@ export function canonicalResonancePair(
     : [secondDisciplineId, firstDisciplineId]
 }
 
-export function validateResonanceDefinition(definition: ResonanceDefinition): readonly string[] {
+export function validateResonanceDefinition(definition: AnyResonanceDefinition): readonly string[] {
+  if (isResonanceDefinitionV2(definition)) {
+    return validateResonanceDefinitionV2(definition)
+  }
+
   const issues: string[] = []
   if (!STABLE_ID_PATTERN.test(definition.id)) issues.push('id')
   if (!Number.isSafeInteger(definition.contentVersion) || definition.contentVersion < 1) {
@@ -241,8 +257,18 @@ export function validateResonanceDefinition(definition: ResonanceDefinition): re
 export function resolveResonanceForPair(
   primaryDisciplineId: string,
   secondaryDisciplineId: string | null,
+  contentVersion: 1 | 2,
+): ResonanceDefinition | null
+export function resolveResonanceForPair(
+  primaryDisciplineId: string,
+  secondaryDisciplineId: string | null,
   contentVersion?: number,
-): ResonanceDefinition | null {
+): AnyResonanceDefinition | null
+export function resolveResonanceForPair(
+  primaryDisciplineId: string,
+  secondaryDisciplineId: string | null,
+  contentVersion?: number,
+): AnyResonanceDefinition | null {
   if (secondaryDisciplineId === null || primaryDisciplineId === secondaryDisciplineId) return null
   const pair = canonicalResonancePair(primaryDisciplineId, secondaryDisciplineId)
   const candidates = CURRENT_RESONANCE_REGISTRY.filter(
@@ -260,7 +286,7 @@ export function resolveResonanceForPair(
 }
 
 export function resonanceSnapshotReference(
-  definition: ResonanceDefinition,
+  definition: AnyResonanceDefinition,
 ): ResonanceSnapshotReference {
   assertUsableResonance(definition)
   return {
@@ -270,7 +296,9 @@ export function resonanceSnapshotReference(
   }
 }
 
-export function createResonanceCombatState(definition: ResonanceDefinition): ResonanceCombatState {
+export function createResonanceCombatState(
+  definition: AnyResonanceDefinition,
+): ResonanceCombatState {
   assertUsableResonance(definition)
   return {
     resonanceId: definition.id,
@@ -280,26 +308,32 @@ export function createResonanceCombatState(definition: ResonanceDefinition): Res
 }
 
 export function forecastResonanceForSkill(
-  definition: ResonanceDefinition,
+  definition: AnyResonanceDefinition,
   state: ResonanceCombatState,
   skill: MatureSkillDefinition,
 ): ResonanceSkillForecast {
   assertMatchingState(definition, state)
-  const setup = matchesSkill(skill, definition.trigger.setup)
-  const payoff = state.armedByActionId !== null && matchesSkill(skill, definition.trigger.payoff)
-  const expires = state.armedByActionId !== null && !payoff
+  const mechanics = normalizedResonanceMechanics(definition)
+  const setupMatches = mechanics.setup ? matchesSkill(skill, mechanics.setup) : false
+  const triggerMatches = matchesSkill(skill, mechanics.trigger)
+  const immediate = mechanics.mode === 'immediate'
+  const activates = immediate ? triggerMatches : state.armedByActionId !== null && triggerMatches
+  const expires = !immediate && state.armedByActionId !== null && !activates
+  const arms = !immediate && setupMatches
 
   return {
-    willArm: setup,
-    willActivate: payoff,
+    willArm: arms,
+    willActivate: activates,
     willExpireArmedSetup: expires,
-    bonusEffects: payoff ? definition.trigger.payoffEffects : [],
-    explanation: payoff
-      ? `${definition.name} is armed: this Skill gains the Resonance payoff.`
-      : setup
-        ? `${definition.name} will arm after this Skill resolves successfully.`
+    bonusEffects: activates ? mechanics.resultEffects : [],
+    explanation: activates
+      ? immediate
+        ? `${definition.name} triggers immediately: this Skill gains the Resonance Result.`
+        : `${definition.name} is armed: this Skill triggers the Resonance Result.`
+      : arms
+        ? `${definition.name} will arm its Setup after this Skill resolves successfully.`
         : expires
-          ? `${definition.name}'s armed setup will expire if this Discipline Skill is used.`
+          ? `${definition.name}'s armed Setup will expire if this Discipline Skill is used.`
           : null,
   }
 }
@@ -332,19 +366,20 @@ export function constrainResonanceForecastToTarget(
 }
 
 export function resonanceAiUtilityBonus(
-  definition: ResonanceDefinition,
+  definition: AnyResonanceDefinition,
   state: ResonanceCombatState,
   skill: MatureSkillDefinition,
 ): number {
   const forecast = forecastResonanceForSkill(definition, state, skill)
-  if (forecast.willActivate) return definition.trigger.aiPayoffUtilityBonus
-  if (forecast.willArm) return definition.trigger.aiSetupUtilityBonus
+  const mechanics = normalizedResonanceMechanics(definition)
+  if (forecast.willActivate) return mechanics.aiTriggerUtilityBonus
+  if (forecast.willArm) return mechanics.aiSetupUtilityBonus
   return 0
 }
 
 export function executeMatureSkillWithResonance(input: {
   readonly state: CombatEncounterState
-  readonly resonance: ResonanceDefinition
+  readonly resonance: AnyResonanceDefinition
   readonly resonanceState: ResonanceCombatState
   readonly skill: MatureSkillDefinition
   readonly combatContext: MatureSkillCombatContext
@@ -371,13 +406,14 @@ export function executeMatureSkillWithResonance(input: {
   const resonanceEvents: ResonanceCombatEvent[] = []
   let nextArmedByActionId = input.resonanceState.armedByActionId
 
-  if (forecast.willActivate && input.resonanceState.armedByActionId) {
+  if (forecast.willActivate) {
     resonanceEvents.push({
       event: 'resonance_activated',
       resonanceId: input.resonance.id,
       contentVersion: input.resonance.contentVersion,
       actorId,
       setupActionId: input.resonanceState.armedByActionId,
+      triggerActionId: input.skill.id,
       payoffActionId: input.skill.id,
     })
     nextArmedByActionId = null
@@ -436,13 +472,16 @@ function matchesSkill(skill: MatureSkillDefinition, matcher: ResonanceSkillMatch
   )
 }
 
-function assertUsableResonance(definition: ResonanceDefinition): void {
+function assertUsableResonance(definition: AnyResonanceDefinition): void {
   const issues = validateResonanceDefinition(definition)
   if (issues.length > 0) throw new TypeError(`Invalid Resonance definition: ${issues.join(', ')}.`)
   if (!definition.enabled) throw new RangeError('That Resonance version is disabled.')
 }
 
-function assertMatchingState(definition: ResonanceDefinition, state: ResonanceCombatState): void {
+function assertMatchingState(
+  definition: AnyResonanceDefinition,
+  state: ResonanceCombatState,
+): void {
   assertUsableResonance(definition)
   if (state.resonanceId !== definition.id || state.contentVersion !== definition.contentVersion) {
     throw new RangeError('Resonance combat state does not match the active definition version.')

@@ -11,6 +11,7 @@ export type SkillEconomyDraft = Pick<
 
 export interface SkillEconomyEditorProps {
   readonly value: SkillEconomyDraft
+  readonly apCostBounds?: { readonly minimum: number; readonly maximum: number }
   readonly cooldownLockedByRequirement?: boolean
   readonly onChange: (value: SkillEconomyDraft) => void
 }
@@ -22,6 +23,7 @@ function integer(value: string, fallback: number): number {
 
 export function SkillEconomyEditor({
   value,
+  apCostBounds = { minimum: 1, maximum: 100 },
   cooldownLockedByRequirement = false,
   onChange,
 }: SkillEconomyEditorProps) {
@@ -37,8 +39,8 @@ export function SkillEconomyEditor({
           <input
             aria-label="Action Economy (AP)"
             type="number"
-            min={1}
-            max={100}
+            min={apCostBounds.minimum}
+            max={apCostBounds.maximum}
             value={value.apCost}
             onChange={(event) =>
               onChange({

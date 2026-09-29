@@ -1,12 +1,14 @@
 import { COMBAT_TERRAIN_OVERLAY_DETAILS } from '@aurevane/game-core/combat/terrain-overlays'
-import type { CombatEffectDefinition } from '@aurevane/game-core/combat/actions'
 import { PV1F_COMBAT_CONTENT } from '@aurevane/game-core/combat/pv1f-action-economy'
 import { combatStatusDetails } from '@aurevane/game-core/combat/status-content'
 import {
   CURRENT_BURN_DAMAGE_BY_STAGE,
   CURRENT_POISON_DAMAGE,
 } from '@aurevane/game-core/combat/combat-dots'
-import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
+import type {
+  MatureSkillDefinition,
+  MatureSkillEffectDefinition,
+} from '@aurevane/game-core/combat/mature-skills'
 
 export interface PreviewEffect {
   label: string
@@ -35,7 +37,7 @@ function statusPreview(id: string, potencyBasisPoints?: number): PreviewEffect {
     result.magnitude = `+${status.markAccuracyBonusBasisPoints / 100} pp Accuracy`
     result.explanation = `Source gains ${result.magnitude} against this target.`
   } else if (status?.movement?.additionalApPerTile !== undefined) {
-    result.magnitude = `${signed(status.movement.additionalApPerTile)} AP/tile`
+    result.magnitude = `${signed(status.movement.additionalApPerTile)} AP`
     result.explanation = details.description
   } else if (status?.movement?.blocked) {
     result.explanation = 'Blocks movement; attacks, Skills and facing remain available.'
@@ -72,14 +74,21 @@ function statusPreview(id: string, potencyBasisPoints?: number): PreviewEffect {
   return result
 }
 
-export function previewEffect(effect: CombatEffectDefinition): PreviewEffect {
+export function previewEffect(effect: MatureSkillEffectDefinition): PreviewEffect {
   const target =
     effect.recipient === 'actor'
       ? 'you'
       : effect.recipient === 'affected-units'
         ? 'each affected unit'
-        : 'the target'
+        : effect.recipient === 'selected-tile'
+          ? 'the selected empty tile'
+          : 'the target'
   switch (effect.type) {
+    case 'summon':
+      return {
+        label: 'Summon',
+        explanation: 'Calls the authored allied summon onto the selected empty tile.',
+      }
     case 'damage':
       return {
         label: 'Dmg',

@@ -112,6 +112,34 @@ describe('Master Panel combat content editor shell', () => {
     expect(markup).toContain('aria-label="Effect duration (turns)"')
   })
 
+  it('mounts the dedicated summon profile editor for a current summoning Skill', () => {
+    const definition = resolveMatureSkillVersion('wildwarden.renewing-herbs')
+    if (!definition?.summonProfile)
+      throw new Error('Expected current Renewing Herbs summon profile.')
+    const summonSkill: CombatContentEditorSkillOption = {
+      id: definition.id,
+      sourceDisciplineId: definition.sourceDisciplineId,
+      label: 'Renewing Herbs',
+      currentVersion: definition.contentVersion,
+      baseVersion: definition.contentVersion,
+      draftVersion: null,
+      derivedTags: ['Ally', 'Single', 'Summon'],
+      definition,
+    }
+
+    const markup = renderToStaticMarkup(
+      createElement(CombatContentEditor, {
+        skills: [summonSkill],
+        initialSkillId: definition.id,
+      }),
+    )
+
+    expect(markup).toContain('<legend>Summon Profile</legend>')
+    expect(markup).toContain('aria-label="Summon lifetime turns"')
+    expect(markup).toContain('Thorn Rake')
+    expect(markup).toContain('Verdant Mend')
+  })
+
   it('renders derived tags as read-only output rather than an editable gameplay-tag field', () => {
     const markup = renderToStaticMarkup(
       createElement(CombatContentEditor, {

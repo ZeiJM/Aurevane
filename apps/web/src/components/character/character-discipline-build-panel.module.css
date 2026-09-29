@@ -68,7 +68,6 @@
   overflow: hidden;
   padding: 0.72rem;
   background: rgba(2, 8, 13, 0.82);
-  backdrop-filter: blur(10px);
 }
 
 .dialog {
@@ -381,6 +380,10 @@
   font: 600 0.875rem/1.1 var(--av-font-display);
   text-align: center;
   text-align-last: center;
+}
+
+.slotSelector select option {
+  text-align: center;
 }
 
 .slotSelector select:disabled {

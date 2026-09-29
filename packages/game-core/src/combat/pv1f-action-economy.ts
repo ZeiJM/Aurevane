@@ -15,7 +15,14 @@ import {
   forecastCombatSkillAccuracyForTarget,
   rollCombatSkillAccuracyForTarget,
 } from './combat-skill-accuracy'
-import { normalizeCombatEffectState } from './combat-effect-state'
+import { normalizeCombatEffectState, type CombatSummonInstance } from './combat-effect-state'
+import {
+  advanceCombatSummonOwnerTurn,
+  removeCombatSummon,
+  removeDefeatedCombatSummons,
+  spawnCombatSummon,
+} from './combat-summons'
+import type { SummonAbilityDefinition } from './summon-content'
 import { hasGameplayTag } from './gameplay-tags'
 import { CURRENT_POISON_DAMAGE, advanceCurrentPoisonMovement } from './combat-dots'
 import { terrainOverlayAt, COMBAT_TERRAIN_OVERLAY_DETAILS } from './terrain-overlays'
@@ -50,7 +57,7 @@ import type { BattleCombatant, BattleFacing, BattleTemporaryResource } from './b
 import {
   resolveMatureSkillForContext,
   resolveMatureSkillVersion,
-  toCombatActionDefinition,
+  toMaterializedCombatActionDefinition,
   type MatureSkillCombatContext,
   type MatureSkillDefinition,
 } from './mature-skills'
@@ -104,6 +111,7 @@ export const PV1F_STATUS_MAXIMUM_STACKS = 3 as const
 export const PV1F_RECOVERY_COOLDOWN_OWNER_TURNS = 2 as const
 export const PV1F_REPEAT_SKILL_EFFECTIVENESS_BASIS_POINTS = 5_000 as const
 export const PV1F_LAST_MATURE_SKILL_RESOURCE_PREFIX = 'pv1f.last-mature-skill.' as const
+export const PV1F_SUMMON_ABILITY_USED_TURN_KEY = 'pv1f.summon-ability-used-turn' as const
 
 export const PV1F_RECOVERY_COOLDOWN: SkillCooldownDefinition = {
   key: 'basic.recovery',
@@ -558,7 +566,8 @@ export function executePv1fAction(
             events: resolved.events,
           }
         })()
-  let next = spendPv1fActionEconomyForActor(transition.state, actorId, cost)
+  const defeatedSummons = removeDefeatedCombatSummons(transition.state)
+  let next = spendPv1fActionEconomyForActor(defeatedSummons.state, actorId, cost)
   next = clearLastMatureSkill(next, actorId)
   const cooldownDefinition = pv1fCooldownForAction(action.id)
   const cooldownEvents: readonly unknown[] = cooldownDefinition
@@ -576,10 +585,207 @@ export function executePv1fAction(
     state: next,
     events: [
       ...transition.events,
+      ...defeatedSummons.events,
       ...cooldownEvents,
       { event: 'action_economy_spent', combatantId: actorId, amount: cost, remaining },
     ],
   }
+}
+
+function summonAbilityDefinition(
+  state: StatDrivenCombatEncounterState,
+  ability: SummonAbilityDefinition,
+): CombatActionDefinition {
+  const actorId = state.tactical.battle.currentTurn?.combatantId
+  if (!actorId) throw new Error('Summon ability requires an active turn.')
+
+  const source = ability.tags.includes('mystic') ? 'mystic-power' : 'physical-power'
+  const damageCount = ability.effects.filter((effect) => effect.type === 'damage').length
+  const recoveryCount = ability.effects.filter(
+    (effect) =>
+      effect.type === 'healing' ||
+      effect.type === 'barrier-change' ||
+      effect.type === 'resource-change',
+  ).length
+  const damageScaling =
+    state.statBridge.rulesVersion === 4 && damageCount > 0
+      ? currentSkillDamageScaling(source, damageCount, ability.apCost)
+      : null
+  const recoveryScaling =
+    state.statBridge.rulesVersion === 4 && recoveryCount > 0
+      ? currentSkillDamageScaling(source, recoveryCount, ability.apCost)
+      : null
+  const offensivePower =
+    recoveryScaling === null ? null : getStatDrivenOffensivePower(state, actorId, source)
+
+  const effects = ability.effects.map((effect): CombatEffectDefinition => {
+    if (effect.type === 'damage' && damageScaling && !effect.scaling) {
+      return { ...effect, scaling: damageScaling }
+    }
+    if (!recoveryScaling || offensivePower === null) return effect
+
+    if (effect.type === 'healing' || effect.type === 'barrier-change') {
+      return {
+        ...effect,
+        amount: calculateScaledRecoveryMagnitude(
+          effect.amount,
+          recoveryScaling,
+          offensivePower,
+          effect.type === 'healing' ? (effect.ticks ?? 1) : 1,
+        ),
+      }
+    }
+    if (effect.type === 'resource-change') {
+      const sign = effect.delta < 0 ? -1 : 1
+      return {
+        ...effect,
+        delta:
+          sign *
+          calculateScaledRecoveryMagnitude(
+            Math.abs(effect.delta),
+            recoveryScaling,
+            offensivePower,
+            effect.ticks ?? 1,
+          ),
+      }
+    }
+    return effect
+  })
+
+  return {
+    id: ability.id,
+    version: 1,
+    sourceType: 'discipline-skill',
+    tags: ability.tags,
+    target: ability.target,
+    cost: { spendsAction: true, mp: ability.mpCost },
+    requirements: ability.requirements,
+    effects,
+  }
+}
+
+function authoritativeSummon(
+  state: StatDrivenCombatEncounterState,
+  summon: CombatSummonInstance,
+): CombatSummonInstance {
+  const current = normalizeCombatEffectState(state.effectState).summons?.find(
+    (candidate) => candidate.combatantId === summon.combatantId,
+  )
+  if (!current) throw new Error('That summon is no longer active.')
+  if (state.tactical.battle.currentTurn?.combatantId !== current.combatantId) {
+    throw new Error('Summon abilities can be used only during that summon’s turn.')
+  }
+  return current
+}
+
+function summonAbilityUsedThisTurn(
+  state: StatDrivenCombatEncounterState,
+  combatantId: string,
+): boolean {
+  const turnNumber = state.tactical.battle.turnNumber
+  const combatant = getCombatant(state, combatantId)
+  return combatant.temporaryResources.some(
+    (resource) =>
+      resource.key === PV1F_SUMMON_ABILITY_USED_TURN_KEY && resource.current === turnNumber,
+  )
+}
+
+export function evaluatePv1fSummonAbility(
+  state: StatDrivenCombatEncounterState,
+  summon: CombatSummonInstance,
+  actionId: string,
+  target: CombatTargetSelection,
+): {
+  prepared: StatDrivenCombatEncounterState
+  action: CombatActionDefinition
+  cost: number
+  evaluation: CombatActionEvaluation
+} {
+  const prepared = preparePv1fTurnEconomy(state)
+  const current = authoritativeSummon(prepared, summon)
+  const ability = current.profile.abilities.find((candidate) => candidate.id === actionId)
+  if (!ability) throw new Error('That summon does not have the requested authored ability.')
+
+  const action = summonAbilityDefinition(prepared, ability)
+  const cost = ability.apCost
+  const baseEvaluation = evaluateCombatAction(prepared, action, target, PV1F_COMBAT_CONTENT)
+  const evaluation = summonAbilityUsedThisTurn(prepared, current.combatantId)
+    ? {
+        ...baseEvaluation,
+        legal: false,
+        issues: [
+          ...baseEvaluation.issues,
+          {
+            code: 'requirement-not-met' as const,
+            message: 'A summon can use only one authored ability per turn.',
+          },
+        ],
+      }
+    : baseEvaluation
+
+  return { prepared, action, cost, evaluation }
+}
+
+export function executePv1fSummonAbility(
+  state: StatDrivenCombatEncounterState,
+  summon: CombatSummonInstance,
+  actionId: string,
+  target: CombatTargetSelection,
+): Pv1fTransition {
+  const { prepared, action, cost, evaluation } = evaluatePv1fSummonAbility(
+    state,
+    summon,
+    actionId,
+    target,
+  )
+  if (!evaluation.legal) {
+    throw new Error(evaluation.issues[0]?.message ?? 'That summon ability is not legal.')
+  }
+  if (!canAffordPv1fEconomy(prepared, cost)) {
+    throw new Error('Not enough Action Economy remains for that summon ability.')
+  }
+
+  const actorId = prepared.tactical.battle.currentTurn?.combatantId
+  if (!actorId) throw new Error('Summon ability execution requires an active turn.')
+
+  const resolved = executeCombatAction(prepared, action, target, PV1F_COMBAT_CONTENT)
+  let next = reattachStatDrivenCombatBridge(resolved.state, prepared.statBridge)
+  const defeatedSummons = removeDefeatedCombatSummons(next)
+  next = spendPv1fActionEconomyForActor(defeatedSummons.state, actorId, cost)
+  next = clearLastMatureSkill(next, actorId)
+
+  const turnNumber = prepared.tactical.battle.turnNumber
+  const actor = getCombatant(next, actorId)
+  next = withCombatant(next, {
+    ...actor,
+    temporaryResources: replaceResources(actor.temporaryResources, [
+      {
+        key: PV1F_SUMMON_ABILITY_USED_TURN_KEY,
+        current: turnNumber,
+        maximum: Number.MAX_SAFE_INTEGER,
+      },
+    ]),
+  })
+
+  const remaining = readPv1fActionEconomy(next, actorId)?.current ?? 0
+  return {
+    state: next,
+    events: [
+      ...resolved.events,
+      ...defeatedSummons.events,
+      {
+        event: 'summon_ability_used',
+        combatantId: actorId,
+        actionId: abilityIdForEvent(action),
+        turnNumber,
+      },
+      { event: 'action_economy_spent', combatantId: actorId, amount: cost, remaining },
+    ],
+  }
+}
+
+function abilityIdForEvent(action: CombatActionDefinition): string {
+  return action.id
 }
 
 export interface Pv1fMatureSkillCopyContext {
@@ -614,7 +820,7 @@ export function evaluatePv1fMatureSkill(
   const resolved = resolveMatureSkillForContext(definition, combatContext)
   const authoredCost = options.apCostOverride ?? resolved.apCost
   const resonance = committedResonanceForecast(prepared, definition, target)
-  const authoredAction = toCombatActionDefinition(definition, combatContext)
+  const authoredAction = toMaterializedCombatActionDefinition(definition, combatContext)
   const powerScaledAuthoredEffects = applyCurrentMatureSkillPowerScaling(
     prepared,
     definition,
@@ -795,6 +1001,32 @@ export function executePv1fMatureSkill(
       : event,
   )
   let next = reattachStatDrivenCombatBridge(resolved.state, prepared.statBridge)
+  const summonEffect = definition.effects.find((effect) => effect.type === 'summon')
+  const summonEvents: unknown[] = []
+  if (summonEffect) {
+    if (!definition.summonProfile) {
+      throw new TypeError('Summon Skill execution requires a validated summon profile.')
+    }
+    if (target.kind !== 'tile') {
+      throw new TypeError('Summon Skill execution requires an empty-tile target selection.')
+    }
+    const actorPlacement = next.tactical.placements.find(
+      (placement) => placement.combatantId === actorId,
+    )
+    if (!actorPlacement) throw new Error('Summon Skill execution requires actor placement.')
+    const summoned = spawnCombatSummon(next, {
+      ownerCombatantId: actorId,
+      sourceSkillId: definition.id,
+      sourceSkillVersion: definition.contentVersion,
+      profile: definition.summonProfile,
+      position: target.position,
+      facing: actorPlacement.facing,
+    })
+    next = summoned.state
+    summonEvents.push(...summoned.events)
+  }
+  const defeatedSummons = removeDefeatedCombatSummons(next)
+  next = defeatedSummons.state
   next = spendPv1fActionEconomyForActor(next, actorId, cost)
   next = definition.authoring.validationTags.includes('owner-rebalance-v5')
     ? clearLastMatureSkill(next, actorId)
@@ -848,6 +1080,8 @@ export function executePv1fMatureSkill(
     state: next,
     events: [
       ...mediaResolutionEvents,
+      ...summonEvents,
+      ...defeatedSummons.events,
       ...(resonance?.forecast.willActivate
         ? [
             {
@@ -856,6 +1090,7 @@ export function executePv1fMatureSkill(
               contentVersion: resonance.definition.contentVersion,
               actorId,
               setupActionId: resonance.armedByActionId,
+              triggerActionId: definition.id,
               payoffActionId: definition.id,
             },
           ]
@@ -1102,17 +1337,42 @@ export function finishPv1fTurn(
   outgoingDefeatedAtTurnEnd = false,
 ): Pv1fTransition {
   const prepared = preparePv1fTurnEconomy(state)
-  const selected = selectCurrentFinalFacing(prepared.tactical, facing)
-  const encounter = reattachStatDrivenCombatBridge(
-    { ...prepared, ...createCombatEncounterState(selected.state, prepared.statusState) },
-    prepared.statBridge,
+  const outgoingCombatantId = prepared.tactical.battle.currentTurn?.combatantId ?? null
+  const outgoingWasSummon =
+    outgoingCombatantId !== null &&
+    (normalizeCombatEffectState(prepared.effectState).summons ?? []).some(
+      (summon) => summon.combatantId === outgoingCombatantId,
+    )
+  const outgoingDefeated =
+    outgoingCombatantId !== null && getCombatant(prepared, outgoingCombatantId).hp <= 0
+  const selected = outgoingDefeated
+    ? { state: prepared.tactical, events: [] }
+    : selectCurrentFinalFacing(prepared.tactical, facing)
+  const encounter: CombatEncounterState = outgoingDefeated
+    ? { ...prepared, tactical: selected.state }
+    : reattachStatDrivenCombatBridge(
+        { ...prepared, ...createCombatEncounterState(selected.state, prepared.statusState) },
+        prepared.statBridge,
+      )
+  const ended = endCombatTurn(
+    encounter,
+    PV1F_COMBAT_CONTENT,
+    outgoingDefeatedAtTurnEnd || outgoingDefeated,
   )
-  const ended = endCombatTurn(encounter, PV1F_COMBAT_CONTENT, outgoingDefeatedAtTurnEnd)
-  const bridged = reattachStatDrivenCombatBridge(ended.state, prepared.statBridge)
+  let bridged = reattachStatDrivenCombatBridge(ended.state, prepared.statBridge)
+  const summonTurnEvents: unknown[] = []
+  if (outgoingWasSummon && outgoingCombatantId) {
+    const transition =
+      outgoingDefeated || outgoingDefeatedAtTurnEnd
+        ? removeCombatSummon(bridged, outgoingCombatantId, 'defeated')
+        : advanceCombatSummonOwnerTurn(bridged, outgoingCombatantId)
+    bridged = transition.state
+    summonTurnEvents.push(...transition.events)
+  }
   const nextTurn = preparePv1fTurnEconomyTransition(bridged)
   return {
     state: nextTurn.state,
-    events: [...selected.events, ...ended.events, ...nextTurn.events],
+    events: [...selected.events, ...ended.events, ...summonTurnEvents, ...nextTurn.events],
   }
 }
 
@@ -1464,7 +1724,7 @@ export function committedResonanceForecast(
           selection,
           evaluateCombatAction(
             state,
-            { ...toCombatActionDefinition(skill, 'pve'), cooldown: undefined },
+            { ...toMaterializedCombatActionDefinition(skill, 'pve'), cooldown: undefined },
             selection,
             PV1F_COMBAT_CONTENT,
           ).affectedCombatantIds,
