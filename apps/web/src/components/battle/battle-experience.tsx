@@ -1325,6 +1325,7 @@ export function BattleExperience({
     clearPlanning,
     handleApiFailure,
     localCombatantId,
+    localTeamIndex,
     localTurn,
     recruitPending,
     runtime,
