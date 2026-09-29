@@ -284,9 +284,7 @@ describe('Combat v5 thematic Resonance rebalance', () => {
       expect(validateResonanceDefinition(definition), definition.id).toEqual([])
       expect(definition.authoring.schemaVersion, definition.id).toBe(2)
       expect(definition.authoring.validationTags, definition.id).toContain('owner-rebalance-v5')
-      expect(definition.authoring.validationTags, definition.id).toContain(
-        'owner-rebalance-v5-1',
-      )
+      expect(definition.authoring.validationTags, definition.id).toContain('owner-rebalance-v5-1')
       expect(definition.authoring.validationTags, definition.id).toContain(
         'thematic-resonance-payoff',
       )
