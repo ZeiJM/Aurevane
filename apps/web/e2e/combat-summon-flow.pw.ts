@@ -1,7 +1,38 @@
+import { execFileSync } from 'node:child_process'
 import { expect, test, type Page, type TestInfo } from '@playwright/test'
 
 import type { BattleSessionView } from '../src/server/battle/battle-session-service'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
+
+function readPersistedDeferredInitiative(sessionId: string): readonly string[] {
+  if (!/^[0-9a-f-]{36}$/i.test(sessionId)) throw new Error('Invalid test battle ID')
+  const container = execFileSync(
+    'docker',
+    ['ps', '--filter', 'name=supabase_db_', '--format', '{{.Names}}'],
+    { encoding: 'utf8' },
+  )
+    .trim()
+    .split('\n')[0]
+  if (!container) throw new Error('Disposable test database is unavailable')
+  const value = execFileSync(
+    'docker',
+    [
+      'exec',
+      container,
+      'psql',
+      '-v',
+      'ON_ERROR_STOP=1',
+      '-U',
+      'postgres',
+      '-d',
+      'postgres',
+      '-Atqc',
+      `select current_snapshot #> '{tactical,battle,deferredInitiativeCombatantIds}' from app_private.battle_sessions where id = '${sessionId}'::uuid;`,
+    ],
+    { encoding: 'utf8' },
+  ).trim()
+  return JSON.parse(value) as readonly string[]
+}
 
 test.use({ trace: 'on', actionTimeout: 15_000 })
 
@@ -160,9 +191,8 @@ test('current Renewing Herbs summons, inspects and survives reload with its pinn
   )
   expect(placement?.position).toEqual(chosen!.position)
   expect(after.snapshot.tactical.battle.initiativeOrder).not.toContain(summon?.combatantId)
-  expect(after.snapshot.tactical.battle.deferredInitiativeCombatantIds).toContain(
-    summon?.combatantId,
-  )
+  // The player projection omits this internal queue; retain the assertion on persisted authority.
+  expect(readPersistedDeferredInitiative(sessionId)).toContain(summon?.combatantId)
 
   await expect(
     page.getByRole('button', { name: 'Inspect Verdant Stalker', exact: true }),

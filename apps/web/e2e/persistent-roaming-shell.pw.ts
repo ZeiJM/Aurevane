@@ -54,7 +54,8 @@ test('roaming pages preserve one authenticated shell while Battle Hall refreshes
   await expect(rail.getByRole('link', { name: 'Items', exact: true })).toHaveCount(0)
   await rail.getByRole('link', { name: 'Loadout', exact: true }).click()
   await expect(page).toHaveURL(/\/game\/loadout$/)
-  await page.goto('/game/nexus')
+  await page.locator('main a[href="/game/nexus"]').click()
+  await expect(page).toHaveURL(/\/game\/nexus$/)
   expect(await rememberedShellIsCurrent(page, '__roamingShell')).toBe(true)
 
   await rail.getByRole('link', { name: /Training/ }).click()

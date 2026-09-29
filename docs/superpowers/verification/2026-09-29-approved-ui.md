@@ -42,6 +42,8 @@ The next authenticated run passed CI, Profile Skill Build, Essence Build, Resona
 
 Local Chromium confirmed globe fit at 1440×900, 980×1000 and 1366×576, with the natural mobile world layout retained. Visible Techniques labels measured at least 11px and 4.8:1 contrast. All existing lobby formats passed desktop, 390px and 360px control-reachability/overflow checks. The full local `pnpm check` passed again after fixture removal: formatting, lint, types, 2,988 tests and production builds. A fresh exact-candidate authenticated run is still required after this follow-up.
 
+The second follow-up passed ten of eleven authenticated workflows, including Living Atlas browser, UI layout review, Desktop experience and Desktop page fit. The full Browser smoke run remains pending. Its previous partial run exposed six stale test contracts: Master overview entry, scoped Master navigation, soft Loadout-to-Nexus navigation, two generated names containing disallowed digits, and a deferred summon queue absent from the public player projection. The test follow-up retains the existing gameplay assertions; the summon queue is now checked against the persisted snapshot in CI's disposable database. No production service, schema or combat rule changes are included in that follow-up.
+
 ## Verification boundary
 
 Authenticated browser workflows ran in CI and require a fresh successful run on the corrected candidate. Local Supabase credentials remain unavailable. A complete state-by-state review of every privileged dialog and real-user live multiplayer acceptance are not established by synthetic fixtures or disposable CI accounts.

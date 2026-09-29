@@ -3,7 +3,12 @@ import { expect, test } from '@playwright/test'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 function uniqueCharacterName(): string {
-  return `Align ${Date.now().toString(36)}`
+  const letters = Date.now()
+    .toString()
+    .split('')
+    .map((digit) => String.fromCharCode(65 + Number(digit)))
+    .join('')
+  return `Align ${letters}`
 }
 
 test('single-Discipline Nexus and Technique modal align live and locked slots', async ({
