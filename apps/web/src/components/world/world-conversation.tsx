@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import type { WorldInteraction } from '@/world/types'
 import styles from './world.module.css'
 
@@ -24,6 +25,16 @@ export function WorldConversation({
   onClose: () => void
 }) {
   const headingId = `world-conversation-${interaction.id}`
+
+  useEffect(() => {
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      event.preventDefault()
+      onClose()
+    }
+    document.addEventListener('keydown', closeOnEscape)
+    return () => document.removeEventListener('keydown', closeOnEscape)
+  }, [onClose])
 
   return (
     <div className={styles.conversationScrim} data-world-conversation>
