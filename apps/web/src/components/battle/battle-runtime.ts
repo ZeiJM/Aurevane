@@ -1,5 +1,6 @@
 import type { CharacterPortraitRef } from '@aurevane/game-core/character/creation'
 import type { CombatTargetKind, CombatTargetTeamPolicy } from '@aurevane/game-core/combat/actions'
+import { normalizeCombatEffectState } from '@aurevane/game-core/combat/combat-effect-state'
 
 import { getStarterPortraitImageAssetId } from '@/media/character'
 import type { ImageAssetId } from '@/media/registry'
@@ -187,6 +188,22 @@ export function buildBattleViewModel(
   const participantByCombatant = new Map(
     participants.map((participant) => [participant.combatantId, participant] as const),
   )
+  const activeSummons = normalizeCombatEffectState(battle.snapshot.effectState).summons ?? []
+  for (const summon of activeSummons) {
+    const owner = participantByCombatant.get(summon.ownerCombatantId)
+    if (!owner) continue
+    participantByCombatant.set(summon.combatantId, {
+      combatantId: summon.combatantId,
+      characterId: null,
+      name: summon.profile.name,
+      level: null,
+      teamIndex: owner.teamIndex,
+      seatIndex: owner.seatIndex,
+      profileImageUrl: null,
+      portraitAssetId: null,
+      local: false,
+    })
+  }
   const localParticipant = participants.find((participant) => participant.local) ?? null
   const highestTeam = participants.reduce(
     (highest, participant) => Math.max(highest, participant.teamIndex),
