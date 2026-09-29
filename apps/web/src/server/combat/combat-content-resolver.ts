@@ -16,7 +16,7 @@ import { AurevaneError } from '@aurevane/game-core/errors'
 import { combatActionPresentationTags } from '@aurevane/game-core/combat/gameplay-tags'
 import {
   resolveMatureSkillVersion,
-  toCombatActionDefinition,
+  toMaterializedCombatActionDefinition,
   validateMatureSkillDefinition,
   type MatureSkillDefinition,
 } from '@aurevane/game-core/combat/mature-skills'
@@ -274,7 +274,7 @@ function validatePublishedSkill(
 
   try {
     for (const context of ['pve', 'pvp'] as const) {
-      validateCombatActionDefinition(toCombatActionDefinition(candidate, context))
+      validateCombatActionDefinition(toMaterializedCombatActionDefinition(candidate, context))
     }
   } catch (error) {
     throw new InvalidPublishedCombatContentError(
@@ -476,7 +476,7 @@ export function createCombatContentResolver(
 }
 
 export function deriveSkillPresentationTags(definition: MatureSkillDefinition): readonly string[] {
-  return combatActionPresentationTags(toCombatActionDefinition(definition, 'pve'))
+  return combatActionPresentationTags(definition)
 }
 
 export function createServerCombatContentResolver(): CombatContentResolver {
