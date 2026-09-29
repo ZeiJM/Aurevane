@@ -287,7 +287,9 @@ describe('Combat v5.1 summon runtime state', () => {
     const cleaned = removeDefeatedCombatSummons(defeated)
 
     expect(cleaned.state.tactical.battle.combatants.some((row) => row.id === summonId)).toBe(false)
-    expect(cleaned.state.tactical.placements.some((row) => row.combatantId === summonId)).toBe(false)
+    expect(cleaned.state.tactical.placements.some((row) => row.combatantId === summonId)).toBe(
+      false,
+    )
     expect(cleaned.state.statBridge.combatants.some((row) => row.combatantId === summonId)).toBe(
       false,
     )
