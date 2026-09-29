@@ -441,7 +441,6 @@ describe('Mark and Blind: authoring and snapshot guards', () => {
     },
   )
   const invalidProfiles: Partial<AccuracyStatusFixture>[] = [
-    { maximumStacks: 2 },
     { polarity: 'positive' },
     { reactionClass: 'reactive' },
     { damageTakenMultiplierBasisPoints: 12_500 },
@@ -449,11 +448,16 @@ describe('Mark and Blind: authoring and snapshot guards', () => {
     { nextRoundInitiative: -5 },
     { blindAccuracyPenaltyBasisPoints: 1_500 },
   ]
-  it.each(invalidProfiles)('rejects mixed, stacking or nonordinary Mark definition %j', (patch) => {
+  it.each(invalidProfiles)('rejects mixed or nonordinary Mark definition %j', (patch) => {
     const definition = { ...MARK, ...patch }
     expect(() => validateCombatStatusDefinition(definition)).toThrow()
     expect(() => apply(world(), MARK.id, 'target', { statuses: [definition] })).toThrow()
   })
+  it('accepts legacy maximumStacks metadata above one for Mark', () => {
+    const definition = { ...MARK, maximumStacks: 2 }
+    expect(() => validateCombatStatusDefinition(definition)).not.toThrow()
+  })
+
   it('rejects a current Mark row without its source-scoped identity marker', () => {
     const marked = apply(world(), MARK.id)
     const unscoped = statuses(marked).map((row) => {
