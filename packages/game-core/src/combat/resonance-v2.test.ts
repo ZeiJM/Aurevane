@@ -40,7 +40,9 @@ describe('Combat v5.1 Resonance v2 schema', () => {
 
   it('supports immediate Resonance without stale armed Setup state and weakens its Result', () => {
     const v5 = resolveResonanceForPair('farstrider', 'lifebinder', 2)
-    if (!v5) throw new Error('Expected Farstrider/Lifebinder Resonance.')
+    if (!v5 || v5.authoring.schemaVersion !== 1) {
+      throw new Error('Expected Farstrider/Lifebinder v5 Resonance.')
+    }
 
     const v2 = convertV5ResonanceToV2(v5)
     expect(v2.trigger.mode).toBe('immediate')
