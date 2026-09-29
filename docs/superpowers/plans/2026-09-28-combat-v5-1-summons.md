@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace new-current passive Summoned status usage with a real server-authoritative temporary allied combatant that lasts up to five of its own turns and uses at most one of up to two authored abilities per turn.
+**Goal:** Replace new-current passive Summoned status usage with a real server-authoritative temporary allied combatant whose lifetime is authored per summon profile (five turns standard) and that uses at most one of up to two authored abilities per turn.
 
 **Architecture:** Introduce a versioned summon profile owned by the parent Mature Skill and a dedicated mature-layer `summon` effect. Runtime summon instances live in normalized combat effect state and atomically add/remove battle combatant, placement, stat profile, and summon metadata. Summon AI reuses the build-aware Recruit AI scoring path with the summon profile's explicit abilities.
 
@@ -15,7 +15,7 @@
 - Summoning Skill target kind is `empty-tile`.
 - Spawned unit joins the summoner's team.
 - Summon receives no turn in the spawn round; it becomes eligible at the next round boundary.
-- Lifetime is exactly 5 completed summon turns unless defeated earlier.
+- Lifetime is authored per summon profile as a positive whole number of completed summon turns; 5 is the standard/default content value.
 - Summon has 1–2 authored abilities and can execute at most one authored ability per summon turn.
 - Summon has its own HP and can be defeated.
 - Summon gets no normal player/recruit side rail; information is available through Inspect.
@@ -51,12 +51,12 @@
 - Produces: `validateSummonProfileDefinition(profile): readonly string[]`.
 - Extends current `CombatEffectDefinition` with mature-layer-only `{ type: 'summon'; recipient: 'selected-tile'; durationTurns?: 0 }`.
 - Extends `MatureSkillDefinition` with optional `summonProfile`.
-- v5.1 validation requires exactly one summon profile when a summon effect exists, exactly 1–2 abilities, and `lifetimeTurns === 5`.
+- v5.1 validation requires exactly one summon profile when a summon effect exists, exactly 1–2 abilities, and a positive whole-number `lifetimeTurns`.
 
 - [ ] **Step 1: Write failing schema tests**
   - valid profile with one/two abilities passes;
   - 0 or 3 abilities fails;
-  - lifetime other than 5 fails for current v5.1;
+  - positive authored lifetimes such as 3, 5 and 8 pass, while zero/negative/fractional lifetimes fail;
   - summon effect without profile fails;
   - profile without summon effect fails;
   - summon Skill target must be `empty-tile`.
@@ -92,7 +92,7 @@ Commit message: `feat: define versioned summon content`
 - `BattleState` gains backward-compatible `deferredInitiativeCombatantIds?: readonly string[]`.
 - Produces: `spawnCombatSummon(state, input): { state; events }`.
 - Produces: `removeCombatSummon(state, combatantId, reason): { state; events }`.
-- Produces: `advanceCombatSummonOwnerTurn(...)` to increment completed turns and expire at 5.
+- Produces: `advanceCombatSummonOwnerTurn(...)` to increment completed turns and expire at the pinned profile's authored lifetime.
 - Produces summon events `summon_spawned`, `summon_expired`, `summon_defeated`.
 
 - [ ] **Step 1: Write failing atomicity/invariant tests**
@@ -143,8 +143,8 @@ Commit message: `feat: add temporary summon runtime state`
   - failed legality does not spawn;
   - no same-round turn;
   - turnsCompleted increments only on the summon's own turn;
-  - after turn 5, expiration happens before another turn is granted;
-  - defeat before turn 5 removes summon immediately.
+  - after the pinned profile's authored final turn, expiration happens before another turn is granted;
+  - defeat before the authored lifetime ends removes the summon immediately.
 
 - [ ] **Step 2: Run tests and verify RED.**
 - [ ] **Step 3: Implement mature-layer summon execution/lifecycle hooks.**
@@ -237,7 +237,7 @@ Commit message: `feat: expose summons through battle Inspect`
   - a third ability is rejected/disabled;
   - semantic diff reports nested summon-profile changes;
   - validation rejects missing/invalid profile data;
-  - preview returns spawn target, profile stats, lifetime 5, ability summaries, and `rngConsumed: false`.
+  - preview returns spawn target, profile stats, authored lifetime, ability summaries, and `rngConsumed: false`.
 - [ ] **Step 2: Implement summon effect/profile controls and validation.**
 - [ ] **Step 3: Implement deterministic preview output.**
 - [ ] **Step 4: Run Master Panel tests and verify GREEN.**
@@ -264,9 +264,9 @@ Commit message: `feat: author summon profiles in Master Panel`
 - [ ] **Step 1: Add failing current-vs-historical version tests**
   - historical v5 Renewing Herbs resolves its original `apply-status: summoned` effect;
   - current v5.1 Renewing Herbs resolves `target.kind === 'empty-tile'` plus the new summon effect/profile;
-  - current profile has lifetime 5 and 1–2 authored abilities;
+  - current profile uses the standard lifetime 5 and 1–2 authored abilities, while other summon profiles may author different positive lifetimes;
   - serializing/reloading an active summon preserves owner, source Skill/version, turns completed, pinned profile, placement, and stat profile.
-- [ ] **Step 2: Author thematic summon profile(s) with 1–2 abilities and 5-turn lifetime.**
+- [ ] **Step 2: Author thematic summon profile(s) with 1–2 abilities and an explicit lifetime (5 turns for the current Verdant Stalker).**
 - [ ] **Step 3: Add persistence/reload test with an active summon and pinned profile.**
 - [ ] **Step 4: Update docs/manual.**
 - [ ] **Step 5: Run game-core/web focused suites and verify GREEN.**
