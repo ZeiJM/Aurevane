@@ -325,9 +325,9 @@ describe('Combat v5.1 summon AI', () => {
       second.intent.actionId,
       second.intent.target,
     )
-    expect(attacked.state.tactical.battle.combatants.find((row) => row.id === 'enemy')?.hp).toBeLessThan(
-      enemyBefore.hp,
-    )
+    expect(
+      attacked.state.tactical.battle.combatants.find((row) => row.id === 'enemy')?.hp,
+    ).toBeLessThan(enemyBefore.hp)
   })
 
   it('allows at most one authored ability per summon turn while leaving movement/facing/end available', () => {
