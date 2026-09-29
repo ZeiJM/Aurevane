@@ -111,7 +111,9 @@ describe('Combat v5.1 summon content', () => {
           abilities: [
             {
               ...base,
-              effects: [{ type: 'damage', recipient: 'primary-unit', amount: 20, durationTurns: 0 }],
+              effects: [
+                { type: 'damage', recipient: 'primary-unit', amount: 20, durationTurns: 0 },
+              ],
               target: { ...base.target, maximumRange: 5, maximumElevationDifference: 2 },
               apCost: 45,
             },
@@ -120,7 +122,7 @@ describe('Combat v5.1 summon content', () => {
       ),
     ).toEqual([])
 
-    for (const invalid of [
+    const invalidAbilities: SummonProfileDefinition['abilities'][number][] = [
       {
         ...base,
         effects: [{ type: 'damage', recipient: 'primary-unit', amount: 21, durationTurns: 0 }],
@@ -128,7 +130,8 @@ describe('Combat v5.1 summon content', () => {
       { ...base, target: { ...base.target, maximumRange: 6 } },
       { ...base, target: { ...base.target, maximumElevationDifference: 3 } },
       { ...base, apCost: 40 },
-    ]) {
+    ]
+    for (const invalid of invalidAbilities) {
       expect(validateSummonProfileDefinition(profile({ abilities: [invalid] }))).toContain(
         'abilities',
       )
