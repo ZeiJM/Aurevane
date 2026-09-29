@@ -73,6 +73,7 @@ describe('Master Panel combat content preview', () => {
     expect(preview.legal).toBe(true)
     expect(preview.simulation.rngConsumed).toBe(false)
     expect(preview.targeting.selection).toMatchObject({ kind: 'tile' })
+    expect(preview.derivedTags).toEqual(expect.arrayContaining(['Ally', 'Single', 'Summon']))
     expect(preview.summon).toMatchObject({
       profile: {
         id: definition.summonProfile.id,
