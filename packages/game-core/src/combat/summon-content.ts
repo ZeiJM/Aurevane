@@ -77,18 +77,94 @@ function nonNegativeSafeInteger(value: number): boolean {
   return Number.isSafeInteger(value) && value >= 0
 }
 
+function abilityApBounds(ability: SummonAbilityDefinition): {
+  readonly minimum: number
+  readonly maximum: number
+} {
+  const attack =
+    ability.tags.includes('attack') || ability.effects.some((effect) => effect.type === 'damage')
+  const recovery = ability.effects.some((effect) => effect.type === 'healing')
+  return attack || recovery ? { minimum: 45, maximum: 60 } : { minimum: 35, maximum: 50 }
+}
+
+function validAbilityTarget(target: CombatTargetSpec): boolean {
+  if (target.kind === 'self') {
+    return (
+      target.minimumRange === 0 &&
+      target.maximumRange === 0 &&
+      target.maximumElevationDifference === null
+    )
+  }
+
+  return (
+    Number.isSafeInteger(target.minimumRange) &&
+    target.minimumRange >= 0 &&
+    Number.isSafeInteger(target.maximumRange) &&
+    target.maximumRange >= 1 &&
+    target.maximumRange <= 5 &&
+    target.minimumRange <= target.maximumRange &&
+    target.maximumElevationDifference !== null &&
+    Number.isSafeInteger(target.maximumElevationDifference) &&
+    target.maximumElevationDifference >= 0 &&
+    target.maximumElevationDifference <= 2
+  )
+}
+
+function validAbilityEffect(effect: CombatEffectDefinition): boolean {
+  const durationTurns = effect.durationTurns ?? 0
+  if (!Number.isSafeInteger(durationTurns) || durationTurns < 0 || durationTurns > 4) return false
+  if (
+    effect.potencyBasisPoints !== undefined &&
+    (!Number.isSafeInteger(effect.potencyBasisPoints) ||
+      effect.potencyBasisPoints < 100 ||
+      effect.potencyBasisPoints > 5_000)
+  ) {
+    return false
+  }
+  if (
+    effect.power !== undefined &&
+    (!Number.isSafeInteger(effect.power) || effect.power < 1 || effect.power > 20)
+  ) {
+    return false
+  }
+
+  if (effect.type === 'damage') {
+    const minimum = effect.vengeance === undefined ? 1 : 0
+    return Number.isSafeInteger(effect.amount) && effect.amount >= minimum && effect.amount <= 20
+  }
+  if (effect.type === 'healing' || effect.type === 'barrier-change') {
+    return Number.isSafeInteger(effect.amount) && effect.amount >= 1 && effect.amount <= 20
+  }
+  if (effect.type === 'resource-change') {
+    const magnitude = Math.abs(effect.delta)
+    return Number.isSafeInteger(magnitude) && magnitude >= 1 && magnitude <= 20
+  }
+  if (effect.type === 'bleed') {
+    return (
+      Number.isSafeInteger(effect.damagePerTick) &&
+      effect.damagePerTick >= 1 &&
+      effect.damagePerTick <= 20
+    )
+  }
+  return true
+}
+
 function validAbility(ability: SummonAbilityDefinition): boolean {
+  const apBounds = abilityApBounds(ability)
   return (
     STABLE_ID_PATTERN.test(ability.id) &&
     ability.name.trim().length > 0 &&
     ability.description.trim().length > 0 &&
     positiveSafeInteger(ability.apCost) &&
-    ability.apCost <= 100 &&
+    ability.apCost >= apBounds.minimum &&
+    ability.apCost <= apBounds.maximum &&
     nonNegativeSafeInteger(ability.mpCost) &&
     ability.mpCost <= 20 &&
     ability.tags.length > 0 &&
     ability.tags.every((tag) => tag.trim().length > 0) &&
+    validAbilityTarget(ability.target) &&
     ability.effects.length > 0 &&
+    ability.effects.every(validAbilityEffect) &&
     Number.isFinite(ability.ai.baseUtility) &&
     ability.ai.purposeTags.every((tag) => tag.trim().length > 0)
   )

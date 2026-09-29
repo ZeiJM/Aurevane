@@ -164,15 +164,18 @@ test('current Renewing Herbs summons, inspects and survives reload with its pinn
     summon?.combatantId,
   )
 
+  const summonTile = root.getByRole('button', {
+    name: new RegExp(
+      `^Tile ${placement!.position.x + 1}, ${placement!.position.y + 1};.*occupied by Verdant Stalker`,
+    ),
+  })
+  await expect(summonTile).toBeVisible()
+  await expect(summonTile.locator('[data-team="0"]')).toHaveCount(1)
+
   await expect(
     page.getByRole('button', { name: 'Inspect Verdant Stalker', exact: true }),
   ).toHaveCount(0)
 
-  const summonTile = root.getByRole('button', {
-    name: new RegExp(
-      `^Tile ${placement!.position.x + 1}, ${placement!.position.y + 1};.*occupied by`,
-    ),
-  })
   await root.getByRole('button', { name: /^Inspect,/ }).click()
   await summonTile.click()
 
@@ -200,13 +203,13 @@ test('current Renewing Herbs summons, inspects and survives reload with its pinn
 
   const reloadedRoot = page.locator('main[data-unified-battle="true"]')
   await reloadedRoot.getByRole('button', { name: /^Inspect,/ }).click()
-  await reloadedRoot
-    .getByRole('button', {
-      name: new RegExp(
-        `^Tile ${placement!.position.x + 1}, ${placement!.position.y + 1};.*occupied by`,
-      ),
-    })
-    .click()
+  const reloadedSummonTile = reloadedRoot.getByRole('button', {
+    name: new RegExp(
+      `^Tile ${placement!.position.x + 1}, ${placement!.position.y + 1};.*occupied by Verdant Stalker`,
+    ),
+  })
+  await expect(reloadedSummonTile).toBeVisible()
+  await reloadedSummonTile.click()
   const reloadedInspect = page.getByRole('dialog', {
     name: 'Verdant Stalker battle details',
     exact: true,

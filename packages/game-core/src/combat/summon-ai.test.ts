@@ -6,6 +6,7 @@ import { createTacticalBattleState } from './board'
 import type { CombatSummonInstance } from './combat-effect-state'
 import { spawnCombatSummon } from './combat-summons'
 import {
+  executePv1fMovement,
   executePv1fSummonAbility,
   preparePv1fTurnEconomy,
   readPv1fActionEconomy,
@@ -272,6 +273,61 @@ describe('Combat v5.1 summon AI', () => {
 
     expect(chosenAbility(a)).not.toBeNull()
     expect(chosenAbility(b)).toBe(chosenAbility(a))
+  })
+
+  it('moves into authored range before using an authored attack', () => {
+    const melee = summonProfile({
+      abilities: [
+        {
+          ...summonProfile().abilities[0]!,
+          target: {
+            ...summonProfile().abilities[0]!.target,
+            minimumRange: 1,
+            maximumRange: 1,
+          },
+        },
+      ],
+    })
+    const { state, summon } = summonTurn(50, melee)
+    const enemyBefore = state.tactical.battle.combatants.find((row) => row.id === 'enemy')!
+    const summonBefore = state.tactical.placements.find(
+      (row) => row.combatantId === summon.combatantId,
+    )!
+
+    const first = chooseSummonAiDecision({ state, summon, tieBreakSeed: 77 })
+    expect(first.intent.kind).toBe('move')
+    if (first.intent.kind !== 'move') throw new Error('Expected summon movement into range.')
+
+    const moved = executePv1fMovement(state, first.intent.path)
+    const movedSummon = moved.state.effectState!.summons!.find(
+      (row) => row.combatantId === summon.combatantId,
+    )!
+    const summonAfterMove = moved.state.tactical.placements.find(
+      (row) => row.combatantId === summon.combatantId,
+    )!
+    expect(summonAfterMove.position).not.toEqual(summonBefore.position)
+    expect(moved.state.tactical.battle.combatants.find((row) => row.id === 'enemy')?.hp).toBe(
+      enemyBefore.hp,
+    )
+
+    const second = chooseSummonAiDecision({
+      state: moved.state,
+      summon: movedSummon,
+      tieBreakSeed: 78,
+    })
+    expect(second.intent.kind).toBe('action')
+    if (second.intent.kind !== 'action') throw new Error('Expected summon attack after movement.')
+    expect(second.intent.actionId).toBe('wildwarden.verdant-stalker.thorn-rake')
+
+    const attacked = executePv1fSummonAbility(
+      moved.state,
+      movedSummon,
+      second.intent.actionId,
+      second.intent.target,
+    )
+    expect(
+      attacked.state.tactical.battle.combatants.find((row) => row.id === 'enemy')?.hp,
+    ).toBeLessThan(enemyBefore.hp)
   })
 
   it('allows at most one authored ability per summon turn while leaving movement/facing/end available', () => {
