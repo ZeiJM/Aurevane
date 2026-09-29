@@ -7,6 +7,7 @@ import { remainingTravelMs, samePosition, worldSyncDelayMs } from '@/world/trave
 import type { WorldIntent, WorldPosition, WorldView } from '@/world/types'
 import { Globe } from './globe'
 import { SectorMap } from './sector-map'
+import { WorldConversation } from './world-conversation'
 import { Surroundings } from './surroundings'
 import styles from './world.module.css'
 
@@ -31,7 +32,8 @@ export function WorldWorkspace({
     [selectedTile, setSelectedTile] = useState<WorldPosition | null>(null),
     [target, setTarget] = useState<string | null>(null),
     [message, setMessage] = useState(''),
-    [busy, setBusy] = useState(false)
+    [busy, setBusy] = useState(false),
+    [conversationId, setConversationId] = useState<string | null>(null)
   const current = useRef(initialView),
     followingPlayer = useRef(true),
     pending = useRef(false),
@@ -56,6 +58,9 @@ export function WorldWorkspace({
     }
     setSelected((id) =>
       next.sectors.some((sector) => sector.id === id) ? id : next.position.sectorId,
+    )
+    setConversationId((id) =>
+      id && next.interactions.some((interaction) => interaction.id === id) ? id : null,
     )
     current.current = next
     viewAcceptedAt.current = Date.now()
@@ -169,6 +174,9 @@ export function WorldWorkspace({
   const sector = view.sectors.find((s) => s.id === selected) ?? view.sectors[0]!
   const player = view.players.find((p) => p.characterId === target) ?? view.players[0]
   const local = view.sectors.find((s) => s.id === view.position.sectorId)!
+  const conversation = conversationId
+    ? (view.interactions.find((interaction) => interaction.id === conversationId) ?? null)
+    : null
   const safe = local.cells.find((c) => c.x === view.position.x && c.y === view.position.y)?.safe
   const destination = view.route.at(-1)?.position
   const destinationName = view.sectors.find((s) => s.id === destination?.sectorId)?.name
@@ -424,23 +432,15 @@ export function WorldWorkspace({
               <div className={styles.quest} key={interaction.id}>
                 <h3>{interaction.title}</h3>
                 <p>
-                  <strong>{interaction.speaker}</strong> · {interaction.body}
+                  <strong>{interaction.speaker}</strong> · {interaction.progress}
                 </p>
-                {interaction.actionLabel ? (
-                  <button
-                    className={styles.primary}
-                    disabled={disabled || view.route.length > 0}
-                    onClick={() => void send({ kind: 'interact', interactionId: interaction.id })}
-                  >
-                    {interaction.actionLabel}
-                  </button>
-                ) : (
-                  <p className={styles.quiet}>
-                    {interaction.progress === 'completed'
-                      ? 'This objective is complete.'
-                      : 'Return after checking the eastern watch.'}
-                  </p>
-                )}
+                <button
+                  className={styles.primary}
+                  disabled={disabled || view.route.length > 0}
+                  onClick={() => setConversationId(interaction.id)}
+                >
+                  Speak with {interaction.speaker}
+                </button>
               </div>
             ))}
           </section>
@@ -698,6 +698,15 @@ export function WorldWorkspace({
       </aside>
       {panorama && local.panorama ? (
         <Surroundings src={local.panorama} name={local.name} onClose={() => setPanorama(false)} />
+      ) : null}
+      {conversation ? (
+        <WorldConversation
+          interaction={conversation}
+          locationName={local.name}
+          disabled={disabled || view.route.length > 0}
+          onAction={() => void send({ kind: 'interact', interactionId: conversation.id })}
+          onClose={() => setConversationId(null)}
+        />
       ) : null}
     </section>
   )
