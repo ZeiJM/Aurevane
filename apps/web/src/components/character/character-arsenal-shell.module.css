@@ -524,6 +524,27 @@
   padding-left: 1rem;
 }
 
+.attunementEffectSummaryList {
+  list-style: none;
+  padding-left: 0 !important;
+}
+
+.attunementEffectSummaryList [data-compact-skill-effect='true'] {
+  color: #f0e8dc;
+}
+
+.attunementHover [data-compact-effect-magnitude='true'] {
+  color: #e4bd67;
+}
+
+.attunementHover [data-compact-effect-duration='true'] {
+  color: #70d7ce;
+}
+
+.attunementEffectDetails strong {
+  color: #d5bd81;
+}
+
 .attunementArt img,
 .powerGlyph img {
   display: block;
