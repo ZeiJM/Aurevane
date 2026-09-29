@@ -431,9 +431,10 @@ describe('P3.7 direct PvP committed build snapshots', () => {
         intent: candidateIntent,
       })
       if (
+        candidatePreview.preview.kind === 'action' &&
         candidatePreview.preview.legal &&
         candidatePreview.preview.affectedCombatantIds.length === 0 &&
-        candidatePreview.preview.projectedTerrain.some((entry) => entry.after === 'frozen')
+        candidatePreview.preview.projectedTerrain?.some((entry) => entry.after === 'frozen')
       ) {
         intent = candidateIntent
         preview = candidatePreview
@@ -441,9 +442,10 @@ describe('P3.7 direct PvP committed build snapshots', () => {
       }
     }
 
-    expect(intent).not.toBeNull()
-    expect(preview).not.toBeNull()
-    expect(preview!.preview).toMatchObject({
+    if (!intent || !preview || preview.preview.kind !== 'action') {
+      throw new Error('Expected a legal empty-ground Chilling Mist preview.')
+    }
+    expect(preview.preview).toMatchObject({
       legal: true,
       affectedCombatantIds: [],
       projectedTerrain: expect.arrayContaining([
