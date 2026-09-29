@@ -8,7 +8,10 @@ import { getStarterPortraitImageAssetId } from '@/media/character'
 import type { PvpBattleMetadata, PvpBattleParticipantView } from '@/server/battle/pvp-lobby-service'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
-import { readSummonInspectMetadata, type BattleSummonInspectMetadata } from './battle-summon-inspect'
+import {
+  readSummonInspectMetadata,
+  type BattleSummonInspectMetadata,
+} from './battle-summon-inspect'
 import {
   aggregateBattleStatusStacks,
   formatStatusStackCount,
@@ -37,10 +40,12 @@ interface SelectedCombatant {
   participant: PvpBattleParticipantView | null
   active: boolean
   actionEconomy: number | null
-  summon: (BattleSummonInspectMetadata & {
-    readonly ownerName: string
-    readonly teamLabel: string
-  }) | null
+  summon:
+    | (BattleSummonInspectMetadata & {
+        readonly ownerName: string
+        readonly teamLabel: string
+      })
+    | null
 }
 
 interface BattleApiBody {
@@ -114,9 +119,7 @@ function readSelectedCombatant(
     (resource) => resource.key === ACTION_ECONOMY_KEY,
   )
   const ownerParticipant = summon
-    ? metadata.participants.find(
-        (candidate) => candidate.combatantId === summon.ownerCombatantId,
-      )
+    ? metadata.participants.find((candidate) => candidate.combatantId === summon.ownerCombatantId)
     : null
 
   return {
@@ -283,7 +286,9 @@ export function PvpBattleInspectPopup({
               <div className={styles.identityCopy}>
                 <span>
                   {selected.summon?.teamLabel ??
-                    (selected.participant ? `Team ${selected.participant.teamIndex + 1}` : 'Summon')}
+                    (selected.participant
+                      ? `Team ${selected.participant.teamIndex + 1}`
+                      : 'Summon')}
                 </span>
                 <h2>{selected.summon?.name ?? selected.participant?.characterName ?? 'Summon'}</h2>
                 <p>
