@@ -207,22 +207,56 @@ function pveParticipants(
 }
 
 function pvpParticipants(
+  battle: BattleSessionView,
   runtime: Extract<BattleRuntime, { kind: 'pvp' }>,
 ): BattlePresentationParticipant[] {
-  return runtime.metadata.participants.map((participant) => ({
-    combatantId: participant.combatantId,
-    characterId: participant.characterId,
-    name: participant.characterName,
-    level: participant.characterLevel,
-    teamIndex: participant.teamIndex,
-    seatIndex: participant.seatIndex,
-    profileImageUrl: participant.profileImageUrl,
-    portraitAssetId: getStarterPortraitImageAssetId(
-      participant.portraitRef as CharacterPortraitRef,
-    ),
-    local: participant.characterId === runtime.metadata.localCharacterId,
-    kind: 'character' as const,
-  }))
+  const participants: BattlePresentationParticipant[] = runtime.metadata.participants.map(
+    (participant) => ({
+      combatantId: participant.combatantId,
+      characterId: participant.characterId,
+      name: participant.characterName,
+      level: participant.characterLevel,
+      teamIndex: participant.teamIndex,
+      seatIndex: participant.seatIndex,
+      profileImageUrl: participant.profileImageUrl,
+      portraitAssetId: getStarterPortraitImageAssetId(
+        participant.portraitRef as CharacterPortraitRef,
+      ),
+      local: participant.characterId === runtime.metadata.localCharacterId,
+      kind: 'character' as const,
+    }),
+  )
+
+  ;(battle.snapshot.effectState?.summons ?? [])
+    .slice()
+    .sort((left, right) => left.combatantId.localeCompare(right.combatantId))
+    .forEach((summon, index) => {
+      const owner = participants.find(
+        (participant) => participant.combatantId === summon.ownerCombatantId,
+      )
+      if (!owner) return
+      if (
+        !battle.snapshot.tactical.battle.combatants.some(
+          (combatant) => combatant.id === summon.combatantId,
+        )
+      ) {
+        return
+      }
+      participants.push({
+        combatantId: summon.combatantId,
+        characterId: null,
+        name: summon.profile.name,
+        level: 1,
+        teamIndex: owner.teamIndex,
+        seatIndex: runtime.metadata.participants.length + index,
+        profileImageUrl: null,
+        portraitAssetId: null,
+        local: false,
+        kind: 'summon',
+      })
+    })
+
+  return participants
 }
 
 export function buildBattleViewModel(
@@ -230,7 +264,9 @@ export function buildBattleViewModel(
   runtime: BattleRuntime,
 ): BattleViewModel {
   const participants =
-    runtime.kind === 'pvp' ? pvpParticipants(runtime) : pveParticipants(battle, runtime)
+    runtime.kind === 'pvp'
+      ? pvpParticipants(battle, runtime)
+      : pveParticipants(battle, runtime)
   const participantByCombatant = new Map(
     participants.map((participant) => [participant.combatantId, participant] as const),
   )
