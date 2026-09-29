@@ -609,7 +609,7 @@ function requireActiveTurnForEnd(
 
   const currentId = state.currentTurn?.combatantId ?? null
   const current = currentId
-    ? state.combatants.find((combatant) => combatant.id === currentId) ?? null
+    ? (state.combatants.find((combatant) => combatant.id === currentId) ?? null)
     : null
   const allowDefeatedCurrent = current !== null && current.hp <= 0
   const issues = validateBattleState(state).filter(
