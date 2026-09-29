@@ -408,13 +408,11 @@ describe('P3.7 direct PvP committed build snapshots', () => {
         (placement) => `${placement.position.x},${placement.position.y}`,
       ),
     )
-    let intent:
-      | {
-          kind: 'action'
-          actionId: string
-          target: { kind: 'tile'; position: { x: number; y: number } }
-        }
-      | null = null
+    let intent: {
+      kind: 'action'
+      actionId: string
+      target: { kind: 'tile'; position: { x: number; y: number } }
+    } | null = null
     let preview: Awaited<ReturnType<typeof previewService.previewIntent>> | null = null
 
     for (const tile of before.snapshot.tactical.tiles) {
