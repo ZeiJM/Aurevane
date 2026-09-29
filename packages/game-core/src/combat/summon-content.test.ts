@@ -102,6 +102,39 @@ describe('Combat v5.1 summon content', () => {
     ).toContain('abilities')
   })
 
+  it('applies current v5.1 Skill power, range, elevation and AP bounds to summon abilities', () => {
+    const base = ability('wildwarden.verdant-stalker.thorn-rake')
+
+    expect(
+      validateSummonProfileDefinition(
+        profile({
+          abilities: [
+            {
+              ...base,
+              effects: [{ type: 'damage', recipient: 'primary-unit', amount: 20, durationTurns: 0 }],
+              target: { ...base.target, maximumRange: 5, maximumElevationDifference: 2 },
+              apCost: 45,
+            },
+          ],
+        }),
+      ),
+    ).toEqual([])
+
+    for (const invalid of [
+      {
+        ...base,
+        effects: [{ type: 'damage', recipient: 'primary-unit', amount: 21, durationTurns: 0 }],
+      },
+      { ...base, target: { ...base.target, maximumRange: 6 } },
+      { ...base, target: { ...base.target, maximumElevationDifference: 3 } },
+      { ...base, apCost: 40 },
+    ]) {
+      expect(validateSummonProfileDefinition(profile({ abilities: [invalid] }))).toContain(
+        'abilities',
+      )
+    }
+  })
+
   it('allows each summon to author its own positive lifetime while keeping five turns as the standard', () => {
     expect(validateSummonProfileDefinition(profile({ lifetimeTurns: 5 }))).toEqual([])
     expect(validateSummonProfileDefinition(profile({ lifetimeTurns: 3 }))).toEqual([])
