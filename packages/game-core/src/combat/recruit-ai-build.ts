@@ -236,9 +236,7 @@ function buildSkillCandidates(
     )
       continue
     const resonance = committedResonanceForecast(evaluated.prepared, definition, target)
-    const resonanceMechanics = resonance
-      ? normalizedResonanceMechanics(resonance.definition)
-      : null
+    const resonanceMechanics = resonance ? normalizedResonanceMechanics(resonance.definition) : null
     const resonanceUtility = resonance?.forecast.willActivate
       ? (resonanceMechanics?.aiTriggerUtilityBonus ?? 0)
       : resonance?.forecast.willArm
