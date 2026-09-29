@@ -591,7 +591,8 @@
   max-width: 100%;
   color: #f0e8dc;
   text-align: right;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .effectSummaryList [data-compact-effect-magnitude='true'] {
