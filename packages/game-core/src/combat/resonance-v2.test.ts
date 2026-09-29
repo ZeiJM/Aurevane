@@ -59,7 +59,9 @@ describe('Combat v5.1 Resonance v2 schema', () => {
 
   it('rejects more than two matcher tags or more than two Result effects', () => {
     const v5 = resolveResonanceForPair('lifebinder', 'vanguard')
-    if (!v5) throw new Error('Expected current Resonance.')
+    if (!v5 || v5.trigger.kind !== 'skill-sequence') {
+      throw new Error('Expected current v5 Resonance.')
+    }
     const v2 = convertV5ResonanceToV2(v5)
 
     expect(
