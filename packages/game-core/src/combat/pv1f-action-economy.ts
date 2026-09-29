@@ -1345,7 +1345,9 @@ export function finishPv1fTurn(
     )
   const outgoingDefeated =
     outgoingCombatantId !== null && getCombatant(prepared, outgoingCombatantId).hp <= 0
-  const selected = selectCurrentFinalFacing(prepared.tactical, facing)
+  const selected = outgoingDefeated
+    ? { state: prepared.tactical, events: [] }
+    : selectCurrentFinalFacing(prepared.tactical, facing)
   const encounter = reattachStatDrivenCombatBridge(
     { ...prepared, ...createCombatEncounterState(selected.state, prepared.statusState) },
     prepared.statBridge,
