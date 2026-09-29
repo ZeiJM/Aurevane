@@ -119,7 +119,7 @@ describe('Master Panel combat content editor shell', () => {
     const summonSkill: CombatContentEditorSkillOption = {
       id: definition.id,
       sourceDisciplineId: definition.sourceDisciplineId,
-      label: definition.name,
+      label: 'Renewing Herbs',
       currentVersion: definition.contentVersion,
       baseVersion: definition.contentVersion,
       draftVersion: null,
