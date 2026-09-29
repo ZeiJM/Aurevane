@@ -153,7 +153,9 @@ describe('P3.6 character build Essence authority', () => {
     expect(context.disciplineSkills.extensions.essence).toBeNull()
     expect(context.disciplineSkills.extensions.resonance).toMatchObject({
       id: 'resonance.lifebinder-vanguard.mercys-edge',
-      contentVersion: 2,
+      contentVersion: 3,
+      trigger: { kind: 'skill-trigger-v2' },
+      authoring: { schemaVersion: 2 },
     })
   })
 
