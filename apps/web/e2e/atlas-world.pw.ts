@@ -510,8 +510,22 @@ test('Eastern Watch objective persists accept, inspect and idempotent return com
   const interaction = page.getByRole('region', { name: 'Local interaction' })
   await expect(interaction.getByRole('heading', { name: 'The Eastern Watch' })).toBeVisible()
   await expect(interaction).toContainText('Watch officer')
-  await page.getByRole('button', { name: 'Accept objective' }).click()
+  await interaction.getByRole('button', { name: 'Speak with Watch officer' }).click()
+  let conversation = page.getByRole('dialog', { name: 'Watch officer' })
+  await expect(conversation).toContainText(
+    'The eastern tower has gone quiet. Confirm it is standing, then report back.',
+  )
+  await conversation.getByRole('button', { name: 'End conversation' }).last().click()
+  await expect(page.getByRole('dialog', { name: 'Watch officer' })).toHaveCount(0)
+  expect(
+    (await world(page)).objectives.find((objective) => objective.id === 'eastern-watch'),
+  ).toMatchObject({ progress: 'available', completed: false })
+
+  await interaction.getByRole('button', { name: 'Speak with Watch officer' }).click()
+  conversation = page.getByRole('dialog', { name: 'Watch officer' })
+  await conversation.getByRole('button', { name: 'Accept objective' }).click()
   await expect(page.getByText('Reach the eastern watchtower across the river.')).toBeVisible()
+  await conversation.getByRole('button', { name: 'End conversation' }).last().click()
   let state = await world(page)
   expect(state.objectives.find((objective) => objective.id === 'eastern-watch')).toMatchObject({
     progress: 'active',
@@ -545,13 +559,15 @@ test('Eastern Watch objective persists accept, inspect and idempotent return com
 
   place(initial.characterId, 'verdant-expanse', 2, 4, true)
   await page.reload()
+  await page.getByRole('button', { name: 'Speak with Watch officer' }).click()
+  conversation = page.getByRole('dialog', { name: 'Watch officer' })
   const reportRequest = page.waitForRequest(
     (request) =>
       new URL(request.url()).pathname === '/api/world' &&
       request.method() === 'POST' &&
       request.postDataJSON()?.intent?.kind === 'interact',
   )
-  await page.getByRole('button', { name: 'Report back' }).click()
+  await conversation.getByRole('button', { name: 'Report back' }).click()
   const reportCommand = (await reportRequest).postDataJSON()
   await expect(page.getByText('The eastern route has been verified.')).toBeVisible()
   state = await world(page)
@@ -584,8 +600,14 @@ test('Crown Hinterland patrol persists accept, field check and idempotent return
   const interaction = page.getByRole('region', { name: 'Local interaction' })
   await expect(interaction.getByRole('heading', { name: 'Hinterland Patrol' })).toBeVisible()
   await expect(interaction).toContainText('Watch officer')
-  await page.getByRole('button', { name: 'Accept objective' }).click()
+  await interaction.getByRole('button', { name: 'Speak with Watch officer' }).click()
+  let conversation = page.getByRole('dialog', { name: 'Watch officer' })
+  await expect(conversation).toContainText(
+    'The hinterland road needs a fresh patrol. Reach its central stretch, then report back.',
+  )
+  await conversation.getByRole('button', { name: 'Accept objective' }).click()
   await expect(page.getByText('Reach the central road in Crown Hinterland.')).toBeVisible()
+  await conversation.getByRole('button', { name: 'End conversation' }).last().click()
   let state = await world(page)
   expect(
     state.objectives.find((objective) => objective.id === 'crown-hinterland-patrol'),
@@ -621,13 +643,15 @@ test('Crown Hinterland patrol persists accept, field check and idempotent return
 
   place(initial.characterId, 'aureth-crown', 2, 4, true)
   await page.reload()
+  await page.getByRole('button', { name: 'Speak with Watch officer' }).click()
+  conversation = page.getByRole('dialog', { name: 'Watch officer' })
   const reportRequest = page.waitForRequest(
     (request) =>
       new URL(request.url()).pathname === '/api/world' &&
       request.method() === 'POST' &&
       request.postDataJSON()?.intent?.kind === 'interact',
   )
-  await page.getByRole('button', { name: 'Report back' }).click()
+  await conversation.getByRole('button', { name: 'Report back' }).click()
   const reportCommand = (await reportRequest).postDataJSON()
   await expect(page.getByText('The Crown Hinterland patrol has been recorded.')).toBeVisible()
   state = await world(page)
