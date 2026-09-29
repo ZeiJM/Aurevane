@@ -77,9 +77,10 @@ function nonNegativeSafeInteger(value: number): boolean {
   return Number.isSafeInteger(value) && value >= 0
 }
 
-function abilityApBounds(
-  ability: SummonAbilityDefinition,
-): { readonly minimum: number; readonly maximum: number } {
+function abilityApBounds(ability: SummonAbilityDefinition): {
+  readonly minimum: number
+  readonly maximum: number
+} {
   const attack =
     ability.tags.includes('attack') || ability.effects.some((effect) => effect.type === 'damage')
   const recovery = ability.effects.some((effect) => effect.type === 'healing')
@@ -129,9 +130,7 @@ function validAbilityEffect(effect: CombatEffectDefinition): boolean {
 
   if (effect.type === 'damage') {
     const minimum = effect.vengeance === undefined ? 1 : 0
-    return (
-      Number.isSafeInteger(effect.amount) && effect.amount >= minimum && effect.amount <= 20
-    )
+    return Number.isSafeInteger(effect.amount) && effect.amount >= minimum && effect.amount <= 20
   }
   if (effect.type === 'healing' || effect.type === 'barrier-change') {
     return Number.isSafeInteger(effect.amount) && effect.amount >= 1 && effect.amount <= 20
