@@ -163,6 +163,7 @@ describe('combat content authoring service', () => {
     expect(service.validateSkillDefinition(threeTurn)).toMatchObject({
       valid: true,
       issues: [],
+      derivedTags: ['Ally', 'Single', 'Summon'],
     })
     expect(service.diffSkillDefinitions(base, threeTurn).changedPaths).toContain(
       'summonProfile.lifetimeTurns',
