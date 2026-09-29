@@ -254,7 +254,7 @@ describe('Amplify Curse active-status copying: public command contract', () => {
       )
     },
   )
-  it('merges receiver stacks within the definition cap without shortening its longer duration', () => {
+  it('adds copied applications without shortening the receiver longer duration', () => {
     const state = world([
       {
         combatantId: 'target',
@@ -266,16 +266,16 @@ describe('Amplify Curse active-status copying: public command contract', () => {
       },
     ])
     expect(statuses(cast(state, 'amplify').state, 'actor')).toEqual([
-      row(POSITIVE, { stacks: 3, remainingOwnerTurnStarts: 3, sourceCombatantId: 'actor' }),
+      row(POSITIVE, { stacks: 4, remainingOwnerTurnStarts: 3, sourceCombatantId: 'actor' }),
     ])
   })
-  it('does not compound an existing Blind or restart its four-tick definition', () => {
+  it('compounds an existing Blind without shortening its remaining duration', () => {
     const state = world([
       { combatantId: 'actor', statuses: [row(NEGATIVE, { remainingOwnerTurnStarts: 1 })] },
       { combatantId: 'target', statuses: [row(NEGATIVE)] },
     ])
     expect(statuses(cast(state, 'curse').state, 'target')).toEqual([
-      row(NEGATIVE, { sourceCombatantId: 'actor' }),
+      row(NEGATIVE, { stacks: 2, sourceCombatantId: 'actor' }),
     ])
   })
   it('copies a Mark as a relationship owned by the Curse caster, preserving other target sources', () => {
