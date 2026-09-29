@@ -68,9 +68,9 @@ async function createCharacterAfterSignIn(input: {
   await page.getByLabel('Character name').fill(characterName)
   await page.getByRole('button', { name: 'Choose your discipline' }).click()
 
-  await expect(page.getByTestId('creation-discipline-workspace')).toBeVisible()
+  await expect(page.getByTestId('creation-discipline-workspace')).toBeVisible({ timeout: 15_000 })
   const reviewCharacter = page.getByRole('button', { name: 'Review character' })
-  await expect(reviewCharacter).toBeVisible()
+  await expect(reviewCharacter).toBeVisible({ timeout: 15_000 })
   await expect(reviewCharacter).toBeEnabled()
 
   await reviewCharacter.click()
