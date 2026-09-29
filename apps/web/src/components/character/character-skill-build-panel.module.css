@@ -262,6 +262,10 @@
   overflow: hidden;
 }
 
+.techniqueArea[data-single-discipline='true'] {
+  align-content: start;
+}
+
 .techniqueGroup {
   display: grid;
   min-width: 0;
