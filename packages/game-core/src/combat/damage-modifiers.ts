@@ -17,7 +17,7 @@ export interface CombatDamageModifier {
   condition: DamageCondition
 }
 
-/** New modifiers share a bounded budget; historical Guarded/Exposed stacks remain separate. */
+/** Conditional modifiers share a bounded final budget, while every active application contributes. */
 export const CONDITIONAL_DAMAGE_MINIMUM = 5_000
 export const CONDITIONAL_DAMAGE_MAXIMUM = 20_000
 
@@ -41,7 +41,9 @@ export function conditionalDamageMultiplier(
     })
   if (inspired) {
     const multiplier = 10_000 + (inspired.potencyBasisPoints ?? 1_000)
-    numerator = (numerator * BigInt(multiplier)) / 10_000n
+    for (let application = 0; application < inspired.stacks; application += 1) {
+      numerator = (numerator * BigInt(multiplier)) / 10_000n
+    }
   }
   let denominator = 1n
   for (const [ownerId, opponentId, direction] of [
@@ -75,15 +77,16 @@ export function conditionalDamageMultiplier(
           )
         )
           continue
-        // Each new modifier is applied once per status, independently of legacy stack counts.
         const multiplier =
           status.potencyBasisPoints === undefined || modifier.multiplierBasisPoints === 10_000
             ? modifier.multiplierBasisPoints
             : modifier.multiplierBasisPoints < 10_000
               ? Math.max(0, 10_000 - status.potencyBasisPoints)
               : 10_000 + status.potencyBasisPoints
-        numerator *= BigInt(multiplier)
-        denominator *= 10_000n
+        for (let application = 0; application < status.stacks; application += 1) {
+          numerator *= BigInt(multiplier)
+          denominator *= 10_000n
+        }
       }
     }
   }
