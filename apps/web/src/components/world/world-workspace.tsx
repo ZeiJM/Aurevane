@@ -169,7 +169,10 @@ export function WorldWorkspace({
     return () => document.removeEventListener('visibilitychange', onVisibilityChange)
   }, [])
   useEffect(() => {
-    if (conversationId && !view.interactions.some((interaction) => interaction.id === conversationId))
+    if (
+      conversationId &&
+      !view.interactions.some((interaction) => interaction.id === conversationId)
+    )
       setConversationId(null)
   }, [conversationId, view.interactions])
   const sector = view.sectors.find((s) => s.id === selected) ?? view.sectors[0]!
