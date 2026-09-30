@@ -965,7 +965,8 @@ function collectNextRoundInitiativeModifiers(
           (sum, status) =>
             sum +
             (getStatusDefinition(content, status.statusId, status.statusVersion)
-              .nextRoundInitiative ?? 0),
+              .nextRoundInitiative ?? 0) *
+              status.stacks,
           0,
         ),
       ),
@@ -2074,8 +2075,8 @@ function applyStatusState(
     durationTurns === undefined ? definition.durationOwnerTurnStarts : durationTurns + 1
   const existing = getStatus(state, recipientId, statusId, sourceCombatantId)
   const nextStacks = existing
-    ? addClampedSafeInteger(existing.stacks, stacks, 1, definition.maximumStacks)
-    : Math.min(definition.maximumStacks, stacks)
+    ? addClampedSafeInteger(existing.stacks, stacks, 1, Number.MAX_SAFE_INTEGER)
+    : stacks
   const nextStatus: CombatStatusInstance = existing
     ? {
         ...existing,
@@ -2756,24 +2757,21 @@ function validateCombatContentCatalog(content: CombatContentCatalog): void {
         throw new TypeError('Invalid gameplay tags.')
       for (const tag of status.gameplayTags) validateGameplayTag(tag)
     }
-    if (status.damageModifiers?.length && status.maximumStacks !== 1)
-      throw new TypeError('Conditional damage statuses must be single-stack.')
     if (
       status.nextRoundInitiative !== undefined &&
       (!Number.isSafeInteger(status.nextRoundInitiative) ||
         Math.abs(status.nextRoundInitiative) > 40 ||
         status.nextRoundInitiative === 0 ||
-        status.maximumStacks !== 1 ||
         status.endOfTurn)
     )
       throw new RangeError(
-        'Round initiative status must be single-stack, non-periodic and bounded to +/-40.',
+        'Round initiative status must be non-periodic and bounded to +/-40 per application.',
       )
     if (status.endOfTurn) {
       assertKnownString(status.endOfTurn.type, ['damage', 'healing'], 'periodic effect')
       assertPositiveSafeInteger(status.endOfTurn.amount, 'periodic amount')
-      if (status.endOfTurn.amount > 100 || status.maximumStacks > 3)
-        throw new RangeError('Periodic status exceeds its bounded magnitude.')
+      if (status.endOfTurn.amount > 100)
+        throw new RangeError('Periodic status exceeds its bounded per-application magnitude.')
     }
     if (status.movement) {
       if (status.movement.blocked !== undefined && typeof status.movement.blocked !== 'boolean')

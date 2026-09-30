@@ -226,8 +226,8 @@ describe('Mark and Blind: public-entry contract', () => {
     expect(chance(second)).toBe(6_500)
     expect(chance(advanceTo(second, 'actor'))).toBe(6_500)
   })
-  it('does not stack the same source Mark on repeated application', () => {
-    expect(chance(apply(apply(world(), MARK.id), MARK.id))).toBe(6_500)
+  it('accumulates the same source Mark on repeated application', () => {
+    expect(chance(apply(apply(world(), MARK.id), MARK.id))).toBe(8_000)
   })
   it('does not increase damage merely because the new Mark improves accuracy', () => {
     const state = apply(world(10_000, 0), MARK.id)
@@ -242,14 +242,14 @@ describe('Mark and Blind: public-entry contract', () => {
   it('does not lower attacker accuracy merely because the target is blind', () => {
     expect(chance(apply(world(), BLIND.id, 'target'))).toBe(5_000)
   })
-  it('does not compound Blind when the same source reapplies it', () => {
+  it('compounds Blind when the same source reapplies it', () => {
     const once = apply(world(), BLIND.id, 'actor')
-    expect(chance(apply(once, BLIND.id, 'actor'))).toBe(3_500)
+    expect(chance(apply(once, BLIND.id, 'actor'))).toBe(2_000)
   })
-  it('does not compound Blind when another source reapplies it', () => {
+  it('compounds Blind when another source reapplies it', () => {
     const first = apply(world(), BLIND.id, 'actor')
     const second = apply(advanceTo(first, 'ally'), BLIND.id, 'actor')
-    expect(chance(advanceTo(second, 'actor'))).toBe(3_500)
+    expect(chance(advanceTo(second, 'actor'))).toBe(2_000)
   })
   it('combines Mark and Blind additively with the Skill modifier before clamping', () => {
     const state = apply(apply(world(), MARK.id), BLIND.id, 'actor')
@@ -441,7 +441,6 @@ describe('Mark and Blind: authoring and snapshot guards', () => {
     },
   )
   const invalidProfiles: Partial<AccuracyStatusFixture>[] = [
-    { maximumStacks: 2 },
     { polarity: 'positive' },
     { reactionClass: 'reactive' },
     { damageTakenMultiplierBasisPoints: 12_500 },
@@ -449,11 +448,16 @@ describe('Mark and Blind: authoring and snapshot guards', () => {
     { nextRoundInitiative: -5 },
     { blindAccuracyPenaltyBasisPoints: 1_500 },
   ]
-  it.each(invalidProfiles)('rejects mixed, stacking or nonordinary Mark definition %j', (patch) => {
+  it.each(invalidProfiles)('rejects mixed or nonordinary Mark definition %j', (patch) => {
     const definition = { ...MARK, ...patch }
     expect(() => validateCombatStatusDefinition(definition)).toThrow()
     expect(() => apply(world(), MARK.id, 'target', { statuses: [definition] })).toThrow()
   })
+  it('accepts legacy maximumStacks metadata above one for Mark', () => {
+    const definition = { ...MARK, maximumStacks: 2 }
+    expect(() => validateCombatStatusDefinition(definition)).not.toThrow()
+  })
+
   it('rejects a current Mark row without its source-scoped identity marker', () => {
     const marked = apply(world(), MARK.id)
     const unscoped = statuses(marked).map((row) => {
@@ -520,16 +524,16 @@ describe('Mark and Blind: authoring and snapshot guards', () => {
     )
     expect(() => chance(changed)).toThrow()
   })
-  it('rejects a multi-stack current accuracy row even when only one identity exists', () => {
+  it('accepts multiple active accuracy applications on one identity', () => {
     const marked = apply(world(), MARK.id)
-    expect(() =>
+    expect(
       chance(
         withStatuses(
           marked,
           statuses(marked).map((row) => ({ ...row, stacks: 2 })),
         ),
       ),
-    ).toThrow()
+    ).toBe(8_000)
   })
   it('rejects a current accuracy duration exceeding the v5 runtime bound', () => {
     const marked = apply(world(), MARK.id)
@@ -590,15 +594,15 @@ describe('Mark and Blind: command and lifecycle interactions', () => {
       sourceCombatantId: 'ally',
     })
   })
-  it('refreshes Blind duration without additional penalty', () => {
+  it('refreshes Blind duration and adds another active penalty', () => {
     const first = apply(world(), BLIND.id, 'actor')
     const cycled = advanceTo(advanceTo(first, 'ally'), 'actor')
     expect(statuses(cycled, 'actor')[0]?.remainingOwnerTurnStarts).toBe(2)
     const refreshed = apply(cycled, BLIND.id, 'actor')
     expect(statuses(refreshed, 'actor')[0]?.remainingOwnerTurnStarts).toBe(3)
-    expect(chance(refreshed)).toBe(3_500)
+    expect(chance(refreshed)).toBe(2_000)
   })
-  it('does not stack accuracy bonuses from alternate Mark definitions for one source', () => {
+  it('combines accuracy bonuses from alternate Mark definitions for one source', () => {
     const stronger: AccuracyStatusFixture = {
       ...MARK,
       id: 'test.stronger-mark',
@@ -606,9 +610,9 @@ describe('Mark and Blind: command and lifecycle interactions', () => {
     }
     const content = { statuses: [MARK, BLIND, stronger] }
     const state = apply(apply(world(), MARK.id, 'target', content), stronger.id, 'target', content)
-    expect(chance(state, content)).toBe(7_000)
+    expect(chance(state, content)).toBe(8_500)
   })
-  it('does not stack Blind penalties from alternate definitions', () => {
+  it('combines Blind penalties from alternate definitions', () => {
     const stronger: AccuracyStatusFixture = {
       ...BLIND,
       id: 'test.stronger-blind',
@@ -616,7 +620,7 @@ describe('Mark and Blind: command and lifecycle interactions', () => {
     }
     const content = { statuses: [MARK, BLIND, stronger] }
     const state = apply(apply(world(), BLIND.id, 'actor', content), stronger.id, 'actor', content)
-    expect(chance(state, content)).toBe(3_000)
+    expect(chance(state, content)).toBe(1_500)
   })
   it('does not borrow a stronger Mark owned by another attacker', () => {
     const stronger: AccuracyStatusFixture = {

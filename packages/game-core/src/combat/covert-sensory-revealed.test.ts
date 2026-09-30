@@ -240,13 +240,13 @@ describe('CSR-1 Covert and Revealed definitions', () => {
     expect(() => createRevealedStatusDefinition(5)).toThrow()
   })
 
-  it('keeps Covert single-stack and refreshes its pinned duration on reapplication', () => {
+  it('accumulates Covert applications and refreshes its pinned duration', () => {
     const once = executeCombatAction(encounter(), covertAction(), { kind: 'self' }, content)
     const twice = executeCombatAction(once.state, covertAction(), { kind: 'self' }, content)
     const active = statuses(twice.state, 'wayfarer').filter((entry) => entry.statusId === 'covert')
 
     expect(active).toHaveLength(1)
-    expect(active[0]).toMatchObject({ stacks: 1, remainingOwnerTurnStarts: 3 })
+    expect(active[0]).toMatchObject({ stacks: 2, remainingOwnerTurnStarts: 3 })
   })
 
   it('blocks a new Covert application while Revealed is active', () => {

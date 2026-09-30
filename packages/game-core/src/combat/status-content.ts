@@ -244,19 +244,18 @@ const legacyDescriptions: Record<
   guarded: {
     name: 'Guarded',
     kind: 'Buff',
-    description:
-      'Each stack reduces incoming damage by 15%, up to three stacks. Reapplying adds a stack and refreshes the duration.',
+    description: 'Take 15% less incoming damage. Reapplying refreshes the duration.',
   },
   exposed: {
     name: 'Exposed',
     kind: 'Debuff',
-    description: 'Take 15% more damage. Reapplying refreshes the duration; does not stack.',
+    description: 'Take 15% more damage. Reapplying refreshes the duration.',
   },
   'lowered-guard': {
     name: 'Lowered Guard',
     kind: 'Debuff',
     description:
-      'Each stack multiplies incoming damage by 2.5×, up to three stacks. Applied after a genuine PvP turn-timer expiry.',
+      'Incoming damage is multiplied by 2.5×. Applied after a genuine PvP turn-timer expiry.',
   },
 }
 export function combatStatusDetails(
@@ -277,7 +276,7 @@ export function combatStatusDetails(
 export function combatStatusDuration(id: string): string {
   const status = PHASE4_STATUSES.find((candidate) => candidate.id === id)
   if (status?.nextRoundInitiative !== undefined)
-    return 'Consumed when the next round starts; the resulting order lasts for that round. Reapplying does not stack.'
+    return 'Consumed when the next round starts; the resulting order lasts for that round.'
   if (status?.endOfTurn)
     return `Lasts ${status.durationOwnerTurnStarts} end-of-turn ticks; reapplying refreshes the remaining ticks.`
   return `Expires at the start of the affected unit’s ${status?.durationOwnerTurnStarts === 1 || id === 'lowered-guard' ? 'next' : 'second upcoming'} turn.`

@@ -46,6 +46,7 @@ describe('compact Technique explanations', () => {
     expect(status('marked').magnitude).toBe('+20% incoming')
     expect(status('reckless').magnitude).toBe('+40% outgoing / +25% incoming')
     expect(status('fortified').magnitude).toBe('−30% incoming / −20% outgoing')
-    expect(status('guarded').magnitude).toBe('−15% incoming/stack')
+    expect(status('guarded').magnitude).toBe('−15% incoming')
+    expect(status('guarded').explanation).not.toMatch(/stack/i)
   })
 })

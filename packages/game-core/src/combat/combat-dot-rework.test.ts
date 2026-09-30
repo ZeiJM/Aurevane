@@ -127,6 +127,7 @@ describe('current Poison runtime', () => {
         sourceActionId: 'test.current-poison',
         profileVersion: 1,
         movementRemainder: 0,
+        stacks: 1,
       },
     ])
     expect(
@@ -134,7 +135,7 @@ describe('current Poison runtime', () => {
     ).toEqual([])
   })
 
-  it('reapplication remains non-stacking and preserves movement progress', () => {
+  it('reapplication adds another Poison application and preserves movement progress', () => {
     const first = executeCombatAction(
       encounter(),
       action(currentPoison, 'test.poison-a'),
@@ -163,6 +164,7 @@ describe('current Poison runtime', () => {
         sourceActionId: 'test.poison-b',
         profileVersion: 1,
         movementRemainder: 3,
+        stacks: 2,
       },
     ])
   })

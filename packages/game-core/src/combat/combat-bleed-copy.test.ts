@@ -353,7 +353,7 @@ describe('Curse Bleed: explicit authored and persisted copy policy', () => {
   })
 })
 
-describe('Curse Bleed: stable donor state and receiver cap semantics', () => {
+describe('Curse Bleed: stable donor state and universal application retention', () => {
   it('copies all eligible donor stacks in stable application order to an empty receiver', () => {
     const state = seedDonorThree()
     const donorBefore = stacks(state).map((stack) => ({ ...stack }))
@@ -384,39 +384,45 @@ describe('Curse Bleed: stable donor state and receiver cap semantics', () => {
     expect(result.events.filter((event) => event.event === 'damage_applied')).toEqual([])
   })
 
-  it.each([1, 2])('fills a receiver starting with %s stack(s) without exceeding three', (count) => {
-    let state = applyBleed(world(), 'actor', 3, 2, true, 'test.donor-single')
-    for (let index = 0; index < count; index += 1) {
-      state = applyBleed(state, 'target', 2, index + 2, false, `test.receiver-${index}`)
-    }
-    const result = cast(state)
-    expect(stacks(result.state, 'target')).toHaveLength(count + 1)
-    expect(copiedStacks(result.state)).toHaveLength(1)
-  })
+  it.each([1, 2])(
+    'adds a copied application to a receiver starting with %s application(s)',
+    (count) => {
+      let state = applyBleed(world(), 'actor', 3, 2, true, 'test.donor-single')
+      for (let index = 0; index < count; index += 1) {
+        state = applyBleed(state, 'target', 2, index + 2, false, `test.receiver-${index}`)
+      }
+      const result = cast(state)
+      expect(stacks(result.state, 'target')).toHaveLength(count + 1)
+      expect(copiedStacks(result.state)).toHaveLength(1)
+    },
+  )
 
-  it('applies each donor sequentially through the existing three-stack replacement rule', () => {
+  it('retains every receiver and donor application in stable application order', () => {
     const state = seedReceiverThree(seedDonorThree())
     const result = cast(state)
     const final = stacks(result.state, 'target')
-    expect(final).toHaveLength(3)
+    expect(final).toHaveLength(6)
     expect(
       final.map((stack) => [stack.damagePerTick, stack.remainingTicks, stack.applicationOrder]),
     ).toEqual([
+      [2, 1, 4],
+      [2, 2, 5],
       [2, 4, 6],
       [3, 3, 7],
+      [5, 1, 8],
       [2, 4, 9],
     ])
-    expect(copiedStacks(result.state).map((stack) => stack.applicationOrder)).toEqual([7, 9])
-    expect(final.some((stack) => stack.applicationOrder === 8)).toBe(false)
+    expect(copiedStacks(result.state).map((stack) => stack.applicationOrder)).toEqual([7, 8, 9])
   })
 
-  it('breaks receiver replacement ties by oldest application order during copy', () => {
+  it('keeps existing receiver applications while appending the copied Bleed', () => {
     let state = applyBleed(world(), 'actor', 3, 3, true, 'test.donor')
     state = applyBleed(state, 'target', 2, 2, false, 'test.oldest-two')
     state = applyBleed(state, 'target', 3, 2, false, 'test.newer-two')
     state = applyBleed(state, 'target', 2, 4, false, 'test.four')
     const result = cast(state)
     expect(stacks(result.state, 'target').map((stack) => stack.sourceActionId)).toEqual([
+      'test.oldest-two',
       'test.newer-two',
       'test.four',
       'test.curse-bleed',
@@ -541,18 +547,20 @@ describe('Curse Bleed: K3 lineage and copy ordering', () => {
     })
   })
 
-  it('records a replaced pre-existing receiver stack as inherited lineage', () => {
+  it('preserves receiver lineage without treating a copied Bleed as a replacement', () => {
     let state = applyBleed(world(), 'actor', 3, 3, true, 'test.donor')
     state = applyBleed(state, 'target', 2, 1, false, 'test.receiver-short')
     state = applyBleed(state, 'target', 2, 3, false, 'test.receiver-mid')
     state = applyBleed(state, 'target', 2, 4, false, 'test.receiver-long')
-    const replacedOrder = stacks(state, 'target')[0]!.applicationOrder
-    state = withStackProvenance(state, 'target', replacedOrder, 'test.receiver-short')
+    const receiverOrder = stacks(state, 'target')[0]!.applicationOrder
+    state = withStackProvenance(state, 'target', receiverOrder, 'test.receiver-short')
     const previous = stacks(state, 'target')[0]!.provenance
     const result = cast(state, context())
-    expect(copiedStacks(result.state)[0]?.provenance?.inheritedFromInstanceId).toBe(
-      previous?.instanceId,
-    )
+    expect(
+      stacks(result.state, 'target').find((stack) => stack.sourceActionId === 'test.receiver-short')
+        ?.provenance?.instanceId,
+    ).toBe(previous?.instanceId)
+    expect(copiedStacks(result.state)[0]?.provenance).not.toHaveProperty('inheritedFromInstanceId')
   })
 
   it('does not invent lineage without K3 context', () => {
@@ -620,12 +628,14 @@ describe('Curse Bleed: K3 lineage and copy ordering', () => {
     expect(copiedStacks(result.state).map((stack) => stack.provenance?.copyOrdinal)).toEqual([3, 4])
   })
 
-  it('reserves donor-order ordinals even when a same-command Bleed copy is later replaced', () => {
+  it('assigns donor-order ordinals to every retained Bleed copy', () => {
     const state = seedReceiverThree(seedDonorThree())
     const result = cast(state, context())
     const copied = copiedStacks(result.state)
-    expect(copied.map((stack) => stack.provenance?.copyOrdinal)).toEqual([0, 2])
-    expect(copied[1]?.provenance).not.toHaveProperty('inheritedFromInstanceId')
+    expect(copied.map((stack) => stack.provenance?.copyOrdinal)).toEqual([0, 1, 2])
+    expect(copied.every((stack) => stack.provenance?.inheritedFromInstanceId === undefined)).toBe(
+      true,
+    )
   })
 
   it('round-trips final copied Bleed provenance and timers through JSON', () => {
