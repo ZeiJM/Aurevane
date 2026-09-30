@@ -64,7 +64,7 @@ export function describeTerrainLabel(label: string): {
 export function BattleInspectTerrainContext() {
   useEffect(() => {
     const root = document.querySelector<HTMLElement>('main[data-unified-battle="true"]')
-    if (!root) return
+    if (!root || root.dataset.battleLayout === 'refined') return
 
     let frame = 0
 

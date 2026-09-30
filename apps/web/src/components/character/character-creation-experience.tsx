@@ -241,39 +241,41 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
 
         {step === 'identity' ? (
           <div className={styles.step}>
-            <h1 ref={stepHeading} tabIndex={-1}>
-              Give your legend a face.
-            </h1>
-            <p className={styles.intro}>Choose your name, visage, and appearance.</p>
+            <div className={styles.identityHeading}>
+              <h1 ref={stepHeading} tabIndex={-1}>
+                Give your legend a face.
+              </h1>
+              <p className={styles.intro}>Choose your name, visage, and appearance.</p>
+              <fieldset className={styles.genderChoices}>
+                <legend>Gender</legend>
+                <div className={styles.presentationChoices}>
+                  {CHARACTER_PRESENTATIONS.filter((option) => option.id !== 'androgynous').map(
+                    (option) => (
+                      <label key={option.id} className={styles.inlineChoice}>
+                        <input
+                          checked={presentationId === option.id}
+                          name="presentation"
+                          onChange={() => {
+                            changed()
+                            setPresentationId(option.id)
+                            setPortraitRef(
+                              ADVENTURE_CHARACTER_PORTRAITS.find(
+                                (portrait) => portrait.presentationId === option.id,
+                              )!.ref,
+                            )
+                          }}
+                          type="radio"
+                        />
+                        <span>{option.id === 'masculine' ? 'Male' : 'Female'}</span>
+                      </label>
+                    ),
+                  )}
+                </div>
+              </fieldset>
+            </div>
 
             <div className={styles.identityWorkspace}>
               <div className={styles.choiceGroup} data-portrait-library="true">
-                <fieldset className={styles.choiceGroup}>
-                  <legend>Character</legend>
-                  <div className={styles.presentationChoices}>
-                    {CHARACTER_PRESENTATIONS.filter((option) => option.id !== 'androgynous').map(
-                      (option) => (
-                        <label key={option.id} className={styles.inlineChoice}>
-                          <input
-                            checked={presentationId === option.id}
-                            name="presentation"
-                            onChange={() => {
-                              changed()
-                              setPresentationId(option.id)
-                              setPortraitRef(
-                                ADVENTURE_CHARACTER_PORTRAITS.find(
-                                  (portrait) => portrait.presentationId === option.id,
-                                )!.ref,
-                              )
-                            }}
-                            type="radio"
-                          />
-                          <span>{option.id === 'masculine' ? 'Male' : 'Female'}</span>
-                        </label>
-                      ),
-                    )}
-                  </div>
-                </fieldset>
                 <h2 className={styles.collectionHeading}>Choose your visage</h2>
                 <p className={styles.choiceHint}>
                   {portraitChoices.length} portraits. Choose your likeness.

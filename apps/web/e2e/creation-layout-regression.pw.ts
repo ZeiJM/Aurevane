@@ -99,6 +99,9 @@ test('Creation exposes twelve portraits per gender and preserves the complete au
         return { x: box.x, y: box.y, width: box.width, height: box.height, bottom: box.bottom }
       }
       const input = element.querySelector('#creation-name')!
+      const heading = element.querySelector('h1')!
+      const gender = element.querySelector('input[name="presentation"]')!.closest('fieldset')!
+      const gallery = element.querySelector('[data-portrait-grid]')!
       const preview = element.querySelector('[aria-label="Selected portrait preview"] img')!
       const primary = Array.from(element.querySelectorAll('button')).find((button) =>
         button.textContent?.includes('Choose your discipline'),
@@ -106,6 +109,10 @@ test('Creation exposes twelve portraits per gender and preserves the complete au
       return {
         library: rect(element.querySelector('[data-portrait-library]')!),
         name: rect(input),
+        heading: rect(heading),
+        gender: rect(gender),
+        gallery: rect(gallery),
+        galleryOverflow: gallery.scrollHeight - gallery.clientHeight,
         preview: rect(preview),
         primary: rect(primary),
         nameFont: parseFloat(getComputedStyle(input).fontSize),
@@ -149,6 +156,17 @@ test('Creation exposes twelve portraits per gender and preserves the complete au
     expect.soft(metrics.background, `${label}: stone workspace`).toContain('linear-gradient')
     if (size.width >= 1280 && size.height >= 768)
       expect.soft(metrics.overflowY, `${label}: desktop page fits`).toBeLessThanOrEqual(1)
+    if (size.width >= 1280 && size.height >= 768) {
+      expect
+        .soft(metrics.gender.x, `${label}: Gender belongs to the header right`)
+        .toBeGreaterThan(metrics.heading.x)
+      expect
+        .soft(metrics.gender.bottom, `${label}: Gender precedes the collection`)
+        .toBeLessThanOrEqual(metrics.gallery.y)
+      expect
+        .soft(metrics.galleryOverflow, `${label}: all twelve portraits fit without gallery scroll`)
+        .toBeLessThanOrEqual(1)
+    }
     if (size.width >= 1280 && size.height >= 768)
       expect
         .soft(metrics.primary.bottom, `${label}: primary fits at normal zoom`)

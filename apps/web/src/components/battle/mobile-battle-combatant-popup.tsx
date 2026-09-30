@@ -146,7 +146,7 @@ export function MobileBattleCombatantPopup({
   useEffect(() => {
     let requestSequence = 0
 
-    async function openCombatant(position: GridPosition) {
+    async function openCombatant(target: GridPosition | string) {
       const sequence = ++requestSequence
       openRef.current = true
       setOpen(true)
@@ -165,7 +165,12 @@ export function MobileBattleCombatantPopup({
           throw new Error(body.error?.message ?? 'Combatant details could not be loaded.')
         }
 
-        const next = readSelectedCombatant(body.battle, position, playerName)
+        const position =
+          typeof target === 'string'
+            ? body.battle.snapshot.tactical.placements.find((row) => row.combatantId === target)
+                ?.position
+            : target
+        const next = position ? readSelectedCombatant(body.battle, position, playerName) : null
         if (!next) throw new Error('That combatant is no longer on this tile.')
         setSelected(next)
       } catch (loadError) {
@@ -179,12 +184,22 @@ export function MobileBattleCombatantPopup({
     }
 
     function handleBattlefieldClick(event: MouseEvent) {
-      if (window.matchMedia(DESKTOP_POINTER_QUERY).matches || !inspectModeActive()) return
+      if (window.matchMedia(DESKTOP_POINTER_QUERY).matches) return
       const target = event.target instanceof Element ? event.target : null
+      const cardId = target?.closest<HTMLElement>('[data-desktop-inspect-combatant]')?.dataset
+        .desktopInspectCombatant
+      if (cardId) {
+        event.preventDefault()
+        event.stopPropagation()
+        void openCombatant(cardId)
+        return
+      }
+      if (!inspectModeActive()) return
       const tile = target?.closest<HTMLButtonElement>(
         '#battlefield button[aria-label^="Tile "][aria-label*="occupied by"]',
       )
       if (!tile) return
+      if (tile.closest('main[data-battle-layout="refined"]')) return
 
       const label = tile.getAttribute('aria-label') ?? ''
       const position = parseTilePosition(label)

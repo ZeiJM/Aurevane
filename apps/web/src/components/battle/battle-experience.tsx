@@ -13,6 +13,7 @@ import { BattleMapKey } from './battle-map-key'
 import { BattleInfoPopover } from './battle-info-popover'
 import { terrainOverlayAt } from '@aurevane/game-core/combat/terrain-overlays'
 import { terrainOverlayDescription } from '../../lib/battle/combat-interaction-presentation'
+import { describeTerrainLabel } from './battle-inspect-terrain-context'
 
 import {
   PV1F_BASIC_ATTACK_COST,
@@ -229,6 +230,7 @@ export function BattleExperience({
   const [preview, setPreview] = useState<BattlePreviewView | null>(null)
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null)
   const [inspectedUnitId, setInspectedUnitId] = useState<string | null>(null)
+  const [inspectedTile, setInspectedTile] = useState<BattleGridPosition | null>(null)
   const [bindings, setBindings] = useState<CombatKeybindMap>(DEFAULT_COMBAT_KEYBINDS)
   const executionLock = useRef(false)
   const [executionPending, setExecutionPending] = useState(false)
@@ -1068,6 +1070,7 @@ export function BattleExperience({
     (nextMode: Mode) => {
       if (executionLock.current || commitLock.current) return
       if (planningDisabled && nextMode !== 'inspect') return
+      setInspectedTile(null)
       if (nextMode === 'attack') {
         setSelectedAttackActionId(BASIC_ATTACK_ID)
         armAction('attack', BASIC_ATTACK_ID)
@@ -1112,6 +1115,7 @@ export function BattleExperience({
         return
       }
       if (mode === 'inspect') {
+        setInspectedTile(position)
         setSelectedUnitId(placement?.combatantId ?? null)
         if (placement) setInspectedUnitId(placement.combatantId)
         return
@@ -1487,10 +1491,25 @@ export function BattleExperience({
                   : mode === 'move'
                     ? 'Move'
                     : 'Inspect'
-  const contextDescription =
+  const characterInspection =
     mode === 'inspect' && selectedParticipant && selectedCombatant && selectedPlacement
       ? `Team ${selectedParticipant.teamIndex + 1} · HP ${selectedCombatant.hp}/${selectedCombatant.maxHp} · MP ${selectedCombatant.mp}/${selectedCombatant.maxMp} · Facing ${selectedPlacement.facing} ${facingGlyph(selectedPlacement.facing)}`
       : notice
+  const inspectedTerrain =
+    mode === 'inspect' && inspectedTile
+      ? tactical.tiles.find((tile) => positionsEqual(tile.position, inspectedTile))
+      : null
+  const inspectedOverlay = inspectedTerrain
+    ? terrainOverlayAt(battle.snapshot, inspectedTerrain.position)
+    : null
+  const terrainInspection = inspectedTerrain
+    ? describeTerrainLabel(
+        `Tile ${inspectedTerrain.position.x + 1}, ${inspectedTerrain.position.y + 1}; ${inspectedTerrain.terrainId}; elevation ${inspectedTerrain.elevation}${inspectedOverlay ? `; ${terrainOverlayDescription(inspectedOverlay)}` : ''}`,
+      )
+    : null
+  const contextDescription = terrainInspection
+    ? `${terrainInspection.title} · ${terrainInspection.description}${selectedParticipant ? ` · ${characterInspection}` : ''}`
+    : characterInspection
 
   return (
     <main

@@ -137,6 +137,26 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
   await expect(commandContext).toContainText('Choose a character or tile to inspect')
   await page.getByRole('button', { name: /Tile 4, 3; rough-ground; elevation 0/ }).click()
   await expect(commandContext).toContainText('Rough ground')
+  await page.getByRole('button', { name: new RegExp(`occupied by ${characterName}`) }).click()
+  await expect(page.locator('[data-battle-combatant-card="selected"]')).toContainText(characterName)
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await page
+    .getByRole('button', { name: `Inspect ${characterName}`, exact: true })
+    .first()
+    .click()
+  const combatantDetails = page.getByRole('dialog', {
+    name: `${characterName} battle details`,
+    exact: true,
+  })
+  await expect(combatantDetails).toBeVisible()
+  await expect(combatantDetails).toContainText('MP')
+  await page.keyboard.press('m')
+  await expect(page.getByRole('progressbar', { name: 'Action Economy remaining' })).toHaveAttribute(
+    'aria-valuenow',
+    '80',
+  )
+  await page.keyboard.press('Escape')
+  await expect(combatantDetails).toHaveCount(0)
   await expect(commandContext).toContainText('40 AP')
 
   const battleUrl = page.url()

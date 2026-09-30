@@ -306,6 +306,19 @@ test('mobile page panels clear the navigation bar at the end of scrolling', asyn
     await page.locator('[data-testid="authenticated-shell"] > footer').evaluate((element) => {
       ;(element as HTMLElement).style.setProperty('padding-bottom', '40px', 'important')
     })
+    await expect
+      .poll(() =>
+        page
+          .locator('[data-testid="authenticated-shell"]')
+          .evaluate((shell) =>
+            Math.abs(
+              parseFloat(
+                (shell as HTMLElement).style.getPropertyValue('--av-mobile-footer-height'),
+              ) - shell.querySelector(':scope > footer')!.getBoundingClientRect().height,
+            ),
+          ),
+      )
+      .toBeLessThanOrEqual(0.1)
     await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
     await settleLayout(page)
     const main = await page.locator('#game-main').boundingBox()

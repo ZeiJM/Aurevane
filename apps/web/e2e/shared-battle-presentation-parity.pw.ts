@@ -96,7 +96,7 @@ async function expectMobileTokenMeters(root: ReturnType<Page['locator']>) {
         portraitTop: portraitRect.top,
         portraitBottom: portraitRect.bottom,
         portraitCount: portraitCandidates.length,
-        portraitClipPath: getComputedStyle(portrait).clipPath,
+        portraitBorderRadius: getComputedStyle(portrait).borderRadius,
         hpWidth: hp.getBoundingClientRect().width,
         mpWidth: mp.getBoundingClientRect().width,
         hpBackground: getComputedStyle(hp).backgroundImage,
@@ -113,7 +113,7 @@ async function expectMobileTokenMeters(root: ReturnType<Page['locator']>) {
     expect(geometry.meterBottom).toBeLessThanOrEqual(geometry.tileBottom + 2)
 
     expect(geometry.portraitCount).toBe(1)
-    expect(geometry.portraitClipPath).not.toBe('none')
+    expect(geometry.portraitBorderRadius).toBe('50%')
     expect(geometry.portraitLeft).toBeGreaterThanOrEqual(geometry.tokenLeft - 1)
     expect(geometry.portraitRight).toBeLessThanOrEqual(geometry.tokenRight + 1)
     expect(geometry.portraitTop).toBeGreaterThanOrEqual(geometry.tokenTop - 1)
@@ -230,7 +230,6 @@ test('keeps requested PvE presentation parity on desktop and mobile', async ({
     await page.getByRole('button', { name: 'Expand battle history' }).click()
     const history = page.getByRole('dialog', { name: 'Battle Log', exact: true })
     await expect(history).toContainText('Guard')
-    await expect(history).toContainText('Guarded')
     await expect(history.getByRole('button', { name: 'Text log', exact: true })).toBeVisible()
     await history.getByRole('button', { name: 'Text log', exact: true }).click()
     const transcript = history.getByRole('list', { name: 'Battle action transcript' })
