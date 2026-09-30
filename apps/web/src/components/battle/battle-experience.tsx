@@ -352,10 +352,7 @@ export function BattleExperience({
   )
 
   const capabilities = useMemo(() => deriveBattleCapabilities(runtime), [runtime])
-  const viewModel = useMemo(
-    () => buildBattleViewModel(initialBattle, runtime),
-    [initialBattle, runtime],
-  )
+  const viewModel = useMemo(() => buildBattleViewModel(battle, runtime), [battle, runtime])
   const tactical = battle.snapshot.tactical
   const battleState = tactical.battle
   const localParticipant = viewModel.localParticipant

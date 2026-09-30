@@ -419,8 +419,8 @@
 
 .lockedSkill > span {
   display: grid;
-  width: 4.6rem;
-  height: 4.6rem;
+  width: 4rem;
+  height: 4rem;
   aspect-ratio: 1 / 1;
   place-items: center;
   border: 1px solid #4c5e67;
