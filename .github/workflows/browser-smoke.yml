@@ -108,6 +108,9 @@ jobs:
             e2e/phase4-ground-targeting.pw.ts \
             e2e/pvp-mobile-unified-battle.pw.ts e2e/discipline-sigil-art.pw.ts \
             e2e/character-secondary-build.pw.ts \
+            e2e/battle-move-preview-polish.pw.ts e2e/battle-self-action-quick-commit.pw.ts \
+            e2e/battle-terrain-control-parity.pw.ts e2e/refined-battle-execution.pw.ts \
+            e2e/shell-viewport-fit.pw.ts \
             --project=desktop-chromium --project=mobile-chromium
 
           AUREVANE_ENV=local \

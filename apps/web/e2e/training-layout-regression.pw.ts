@@ -49,11 +49,7 @@ test('training composition preserves idle, active, report and claim flows', asyn
       }
       const scene = element.querySelector('[data-training-scene]')!
       const planner = element.querySelector('[data-testid="practice-plan-card"]')!
-      const actions = [
-        ...planner.querySelectorAll<HTMLButtonElement>(
-          '[aria-label="Passive Training durations"] button',
-        ),
-      ]
+      const actions = [...planner.querySelectorAll<HTMLButtonElement>('button')]
       const report = element.querySelector('[aria-label="Training report workspace"]')
       return {
         countdownSize: (() => {
@@ -129,13 +125,6 @@ test('training composition preserves idle, active, report and claim flows', asyn
       expect
         .soft(metrics.mainOverflowY, `${label}: 100% zoom does not require page scrolling`)
         .toBeLessThanOrEqual(1)
-      expect.soft(metrics.reportSceneBottom).not.toBeNull()
-      expect.soft(metrics.reportGlyphTop).not.toBeNull()
-      if (metrics.reportSceneBottom !== null && metrics.reportGlyphTop !== null) {
-        expect
-          .soft(metrics.reportGlyphTop, `${label}: report icon stays below the artwork`)
-          .toBeGreaterThanOrEqual(metrics.reportSceneBottom)
-      }
     }
     expect
       .soft(metrics.minActionHeight, `${label}: usable duration actions`)
@@ -160,23 +149,22 @@ test('training composition preserves idle, active, report and claim flows', asyn
         .toBe(true)
       expect
         .soft(metrics.scene.width, `${label}: scenic header fills the parchment workspace`)
-        .toBeGreaterThan(metrics.frame.width * 0.6)
+        .toBeLessThan(metrics.frame.width * 0.6)
       expect
         .soft(metrics.scene.height, `${label}: scenery leaves room for actions`)
-        .toBeLessThan(viewport.height * 0.4)
+        .toBeGreaterThan(viewport.height * 0.5)
       expect
-        .soft(metrics.planner.y, `${label}: planner below scene`)
-        .toBeGreaterThanOrEqual(metrics.scene.bottom - 1)
+        .soft(metrics.planner.y, `${label}: planner shares the scene height`)
+        .toBeLessThan(metrics.scene.bottom)
     }
   }
 
   await capture('idle')
-  await expect(page.locator('[aria-label="Passive Training durations"] button')).toHaveCount(3)
-  await submit(page, 'Start Short', '/api/wayfarers-practice/plan')
+  await expect(page.getByTestId('practice-plan-card').getByRole('radio')).toHaveCount(3)
+  await expect(page.getByRole('button', { name: 'Start Training', exact: true })).toBeEnabled()
+  await submit(page, 'Start Training', '/api/wayfarers-practice/plan')
   await expect(page.getByTestId('passive-training-active')).toBeVisible()
-  for (const action of await page
-    .locator('[aria-label="Passive Training durations"] button')
-    .all()) {
+  for (const action of await page.getByTestId('practice-plan-card').locator('button').all()) {
     await expect(action).toBeDisabled()
   }
   await capture('active')
@@ -187,10 +175,10 @@ test('training composition preserves idle, active, report and claim flows', asyn
   await capture('report')
   await submit(page, 'Claim Training', '/api/wayfarers-practice/claim')
   await expect(page.getByTestId('training-report')).toHaveCount(0)
-  await expect(page.getByRole('button', { name: 'Start Short', exact: true })).toBeEnabled()
+  await expect(page.getByRole('button', { name: 'Start Training', exact: true })).toBeEnabled()
   if (mobile) {
     await page.setViewportSize({ width: 320, height: 740 })
-    await expect(page.getByRole('button', { name: 'Start Extended' })).toBeVisible()
+    await expect(page.getByRole('radio', { name: 'Extended Plan' })).toBeVisible()
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth - innerWidth),
     ).toBeLessThanOrEqual(1)

@@ -265,6 +265,7 @@ test('mobile page panels clear the navigation bar at the end of scrolling', asyn
       await page
         .locator('#game-main')
         .evaluate((element) => element.scrollTo(0, element.scrollHeight))
+      await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
       await settleLayout(page)
       const measure = () =>
         page.evaluate(() => {
@@ -302,14 +303,29 @@ test('mobile page panels clear the navigation bar at the end of scrolling', asyn
     }
 
     // Exercise a taller bar, as produced by safe-area padding or larger text.
-    await page.addStyleTag({
-      content: '[data-testid="authenticated-shell"] > footer { padding-bottom: 40px; }',
+    await page.locator('[data-testid="authenticated-shell"] > footer').evaluate((element) => {
+      ;(element as HTMLElement).style.setProperty('padding-bottom', '40px', 'important')
     })
+    await expect
+      .poll(() =>
+        page
+          .locator('[data-testid="authenticated-shell"]')
+          .evaluate((shell) =>
+            Math.abs(
+              parseFloat(
+                (shell as HTMLElement).style.getPropertyValue('--av-mobile-footer-height'),
+              ) - shell.querySelector(':scope > footer')!.getBoundingClientRect().height,
+            ),
+          ),
+      )
+      .toBeLessThanOrEqual(0.1)
     await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
     await settleLayout(page)
     const main = await page.locator('#game-main').boundingBox()
     const footer = await page.locator('[data-testid="authenticated-shell"] > footer').boundingBox()
-    expect(main!.y + main!.height).toBeLessThanOrEqual(footer!.y + 1)
+    const dock = await page.locator('[data-av-game-rail]').boundingBox()
+    expect(main!.y + main!.height).toBeLessThanOrEqual(dock!.y + 1)
+    expect(dock!.y + dock!.height).toBeLessThanOrEqual(footer!.y + 1)
     await expect(page.getByRole('link', { name: /Online Users/ })).toBeVisible()
   }
 })

@@ -1086,9 +1086,16 @@
   --av-text-dim: #625e4f;
   --av-brass-300: #69532d;
   --av-brass-200: #6d572e;
+  --av-teal-bright: #285f58;
   --av-border: #99826366;
   --av-border-strong: #9b8362;
   color: #2d332d;
+}
+:global(.av-master) .workspaceTabs span {
+  font-size: 0.75rem;
+}
+:global(.av-master) .rosterFilters span {
+  font-size: 0.6875rem;
 }
 :global(.av-master) .rosterPane,
 :global(.av-master) .detailPane,
@@ -1114,10 +1121,64 @@
   color: inherit;
 }
 :global(.av-master) .layout :is(button, a)[data-selected='true'] {
+  --av-teal-bright: #b8e4dc;
   color: #f1e5ce;
   background: #345b52;
   border-color: #437367;
 }
+:global(.av-master) .layout .rosterRow[data-selected='true'] strong {
+  color: inherit;
+}
 :global(.av-master) .layout button:disabled {
   opacity: 0.5;
+}
+
+/* Approved stone collection and authoring composition. */
+.layout {
+  grid-template-columns: minmax(12rem, 23%) minmax(0, 1fr);
+  gap: 0.7rem;
+}
+.rosterPane,
+.staffCard,
+.authorityDock,
+.statusCard,
+.guardrail,
+.auditCard,
+.emptyState {
+  background: var(--master-stone);
+  border-radius: 2px;
+  box-shadow: none;
+}
+.rosterRow {
+  background: #d9cbb3;
+}
+.rosterRow[aria-pressed='true'] {
+  background: #bfd0c5;
+}
+.accountHeader {
+  background: #e0d6c3;
+}
+@media (max-width: 1000px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (min-width: 1001px) {
+  .rosterPane {
+    grid-column: 1;
+    grid-row: 1 / 3;
+  }
+  .authorityWorkspace,
+  .authorityDock {
+    grid-column: 2;
+  }
+  .authorityDock {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
+    align-items: start;
+  }
+  .auditCard {
+    grid-column: 1 / -1;
+  }
 }

@@ -222,8 +222,8 @@ function createPvpEncounter(
   settings: PvpLobbyMapSettings,
   buildAuthority: BattleBuildAuthoritySnapshot,
 ) {
-  const width = settings.mapSize === 'large' ? 13 : 9
-  const height = settings.mapSize === 'large' ? 9 : 7
+  const width = settings.mapSize === 'large' ? 15 : 9
+  const height = 7
   const spawnRows = roster.map(({ member }) => ({
     member,
     spawn: spawnFor(

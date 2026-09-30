@@ -22,6 +22,8 @@ import { CharacterProfileDetails } from '@/components/character/character-profil
 import { type SupernaturalChoiceOption } from '@/components/character/character-supernatural-choice-controls'
 import { getStarterPortraitImageAssetId } from '@/media/character'
 
+import { CharacterPortraitImage } from './character-portrait-image'
+
 import styles from './character-profile-shell.module.css'
 
 interface PrimaryOption {
@@ -149,7 +151,20 @@ export function CharacterProfileShell({
       className={styles.layout}
       data-profile-workspace
       data-character-concept="profile"
+      data-composition="correction"
     >
+      <header className={styles.pageHeading}>
+        <h1>Profile</h1>
+        <p>Your journey, your choices, your story.</p>
+      </header>
+      <div className={styles.scenePortrait} aria-hidden="true">
+        <CharacterPortraitImage
+          imageUrl={imageUrl}
+          fallbackAssetId={getStarterPortraitImageAssetId(profile.identity.portraitRef)}
+          sizes="(max-width: 760px) 40vw, 32vw"
+          alt=""
+        />
+      </div>
       <CharacterIdentityCard
         profile={profile}
         primary={disciplineBuild.current.definition}
@@ -167,16 +182,6 @@ export function CharacterProfileShell({
         data-av-surface="moonstone"
         data-profile-sheet="true"
       >
-        <header className={styles.sheetHeading}>
-          <div>
-            <span className={styles.sheetMarker} aria-hidden="true">
-              ✧
-            </span>
-            <h2>Identity</h2>
-          </div>
-          <small>Same soul. A wider horizon.</small>
-        </header>
-
         <details className={styles.buildIdentity}>
           <summary>
             {disciplineBuild.currentSecondary ? 'Mixed build' : 'Pure build'} ·{' '}

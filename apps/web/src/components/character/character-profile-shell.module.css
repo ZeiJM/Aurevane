@@ -1,417 +1,253 @@
-/* composition-v3 contract retained: approved Character workspace composition. */
-/* Approved Character concept composition: compact identity + profile sheet; Current Path now lives in Haven. */
+/* The profile is a landscape identity banner above a readable stat sheet. */
 .layout {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
   min-width: 0;
   min-height: 0;
-  gap: 0.72rem;
-  align-content: start;
+  gap: 0.75rem;
+  padding: 0.5rem;
 }
-
-.profile {
-  position: relative;
-  min-width: 0;
-  padding: clamp(0.72rem, 1vw, 0.9rem);
-  border: 1px solid var(--av-gold-rule);
+.pageHeading {
+  min-height: 4.5rem;
+  color: #f1e5cd;
+  text-shadow: 0 2px 8px #000;
+}
+.pageHeading h1 {
+  margin: 0;
+  font: 500 2.5rem var(--av-font-display);
+}
+.pageHeading p {
+  margin: 0.3rem 0;
+  font-size: 1rem;
+}
+.layout > :global([data-testid='character-profile']) {
+  display: grid;
+  grid-template-columns: 6rem minmax(12rem, 1fr) minmax(12rem, 0.9fr) minmax(12rem, 0.9fr);
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  height: auto;
+  min-height: 7.5rem;
+  padding: 0.75rem;
+  border: 1px solid #a18a61;
+  color: #333a33;
+  background: linear-gradient(120deg, #e0d4bef2, #c9baa0f7);
+}
+.layout :global([data-character-portrait-frame]) {
+  width: 6rem;
+  height: 6rem;
+  padding: 0;
+  border: 1px solid #9f875b;
   border-radius: 0;
-  color: var(--av-charcoal);
-  background:
-    radial-gradient(circle at 88% 0%, rgba(183, 147, 76, 0.08), transparent 24rem),
-    linear-gradient(180deg, rgba(255, 253, 246, 0.985), rgba(244, 240, 228, 0.985)),
-    var(--av-moonstone);
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.48),
-    0 0.7rem 1.8rem rgba(4, 12, 18, 0.1);
 }
-
+.layout :global([data-character-portrait-frame] > div) {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 1;
+}
+.layout :global([data-character-portrait-frame] img) {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.layout :global([data-character-identity-copy]) {
+  padding: 0;
+  text-align: left;
+}
+.layout :global([data-character-identity-copy] h1) {
+  margin: 0;
+  color: #333a33;
+  font-size: 1.65rem;
+}
+.layout :global([data-character-identity-copy] p),
+.layout :global([data-character-creed]) {
+  display: none;
+}
+.layout :global([data-character-identity-copy] > div) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.layout :global([data-character-identity-copy] > div > span) {
+  color: #494e43;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-size: 0.875rem;
+}
+.layout :global([data-testid='level-progress']) {
+  padding: 0;
+  width: auto;
+  margin: 0;
+  color: #333a33;
+}
+.layout :global([data-testid='level-progress'] strong),
+.layout :global([data-testid='level-progress'] span) {
+  color: #333a33;
+  font-size: 0.875rem;
+}
+.layout :global([data-character-resources]) {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0;
+}
+.layout :global([data-character-resource]) {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.layout :global([data-character-resource] strong),
+.layout :global([data-character-resource] b) {
+  color: #333a33;
+  font-size: 0.875rem;
+}
+.profile {
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid #a18a61;
+  border-radius: 0;
+  color: #333a33;
+  background: linear-gradient(120deg, #e0d4bef2, #c9baa0f7);
+  box-shadow:
+    inset 0 0 0 3px #e4d8c050,
+    0 5px 16px #0003;
+}
 .sheetHeading {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  min-height: 2.1rem;
-  padding: 0 0.08rem 0.42rem;
-  border-bottom: 1px solid var(--av-gold-rule);
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #a18a6155;
 }
-
 .sheetHeading > div {
   display: flex;
-  min-width: 0;
   gap: 0.5rem;
   align-items: center;
 }
-
-.sheetMarker {
-  color: #91733c;
-  font-size: 1.35rem;
-  line-height: 1;
-}
-
 .sheetHeading h2 {
   margin: 0;
-  color: #1d3240;
-  font: 600 clamp(1.28rem, 1.55vw, 1.5rem)/1.08 var(--av-font-display);
+  color: #333a33;
+  font: 500 1.5rem var(--av-font-display);
 }
-
 .sheetHeading small {
-  color: #657681;
-  font: italic 0.69rem/1.25 var(--av-font-display);
+  font: italic 0.9375rem var(--av-font-display);
+}
+.sheetMarker {
+  color: #8f7956;
+  font-size: 1.4rem;
 }
 .buildIdentity {
-  margin-block: 0.5rem;
-  color: #233745;
-  font: 0.8rem/1.5 var(--av-font-body);
+  color: #333a33;
+  margin-top: 0.5rem;
+  font-size: 0.9375rem;
 }
 .buildIdentity summary {
   cursor: pointer;
-  padding: 0.5rem;
-  border: 1px solid #a39372;
-}
-.buildIdentity summary:focus-visible {
-  outline: 2px solid #806734;
-  outline-offset: 2px;
 }
 .buildIdentity p {
-  margin: 0.5rem;
+  margin: 0.5rem 0;
+  line-height: 1.5;
 }
-
-.story {
+/* Compact identity at the upper left, portrait scene at right, stat sheet below. */
+.layout {
   position: relative;
-  display: grid;
-  min-width: 0;
-  align-content: start;
-  overflow: hidden;
-  border: 1px solid var(--av-brass-500);
-  color: var(--av-parchment-100);
-  background: linear-gradient(180deg, rgba(4, 14, 22, 0.96), rgba(4, 14, 22, 0.9)), #07131d;
-  box-shadow:
-    inset 0 0 0 1px rgba(225, 193, 124, 0.08),
-    0 0.7rem 1.8rem rgba(0, 0, 0, 0.14);
-}
-
-.story::after {
-  position: absolute;
-  z-index: 0;
-  inset: 48% 0 0;
-  pointer-events: none;
+  isolation: isolate;
+  height: 100%;
+  padding: 1rem;
+  grid-template-rows: auto 7rem minmax(0, 1fr);
   background:
-    linear-gradient(180deg, #07131d 0%, rgba(7, 19, 29, 0.56) 36%, rgba(7, 19, 29, 0.16)),
-    url('/media/art/concept-ui/world-v01.webp') center 76% / cover no-repeat;
-  opacity: 0.72;
-  content: '';
+    linear-gradient(#18242325, #18242325),
+    url('/media/art/adventure/haven-v01.webp') center / cover;
 }
-
-.storyHeading,
-.storyArt,
-.storyCopy {
+.pageHeading {
   position: relative;
   z-index: 1;
+  min-height: 0;
 }
-
-.storyHeading {
-  display: flex;
-  min-height: 3rem;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.7rem;
-  padding: 0.72rem 0.85rem 0.58rem;
-  border-bottom: 1px solid rgba(212, 186, 130, 0.44);
+.scenePortrait {
+  position: absolute;
+  z-index: -1;
+  right: 1rem;
+  top: 0;
+  width: 35%;
+  height: 48%;
+  overflow: hidden;
+  mask-image: linear-gradient(#000 70%, transparent);
 }
-
-.storyHeading > div {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.storyHeading > div > span {
-  color: var(--av-brass-300);
-  font-size: 1rem;
-}
-
-.storyHeading strong {
-  color: #f0dfb3;
-  font: 600 1rem/1 var(--av-font-display);
-}
-
-.storyHeading small {
-  color: #b8b7b1;
-  font: italic 0.62rem/1.2 var(--av-font-display);
-  white-space: nowrap;
-}
-
-.storyArt {
-  min-height: 12.5rem;
-  margin: 0.72rem 0.78rem 0;
-  border: 1px solid rgba(212, 186, 130, 0.58);
-  background:
-    linear-gradient(180deg, rgba(7, 18, 28, 0.02), rgba(7, 18, 28, 0.16)),
-    url('/media/art/concept-ui/world-v01.webp') center 37% / cover;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
-  filter: saturate(0.92);
-}
-
-.storyCopy {
-  display: grid;
-  gap: 0.72rem;
-  align-content: start;
-  padding: 0.78rem 0.92rem 1rem;
-}
-
-.story h2 {
-  margin: 0;
-  color: #f0dfb3;
-  font: 600 clamp(1.35rem, 1.75vw, 1.65rem)/1.06 var(--av-font-display);
-}
-
-.story p {
-  margin: 0;
-  color: #ddd7c9;
-  font: 0.76rem/1.5 var(--av-font-body);
-}
-
-.storyDivider {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  gap: 0.55rem;
-  align-items: center;
-  color: #cda557;
-  font-size: 0.8rem;
-}
-
-.storyDivider::before,
-.storyDivider::after {
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(205, 165, 87, 0.72));
-  content: '';
-}
-
-.storyDivider::after {
-  transform: scaleX(-1);
-}
-
-.story button {
-  justify-self: center;
-  min-width: min(14rem, 88%);
-  min-height: 2.72rem;
-  padding: 0.55rem 1.2rem;
-  border: 1px solid rgba(85, 215, 207, 0.74);
-  color: #eef8f5;
-  background: linear-gradient(180deg, rgba(18, 119, 125, 0.88), rgba(11, 80, 87, 0.94));
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
-    0 0 0.9rem rgba(31, 146, 145, 0.08);
-  cursor: not-allowed;
-  font: 600 0.86rem/1 var(--av-font-display);
-  opacity: 1;
-}
-
-.story button > span {
-  margin-left: 0.4rem;
-}
-
-.story [data-supernatural-actions] {
-  display: grid;
-  gap: 0.65rem;
-}
-
-.story [data-supernatural-action-row] {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.55rem;
-}
-
-.story [data-supernatural-action-row] button {
+.scenePortrait img {
   width: 100%;
-  min-width: 0;
-  cursor: pointer;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 25%;
 }
-
-.story [data-supernatural-secondary] {
-  border-color: rgba(212, 186, 130, 0.45);
-  color: #d7d1c6;
-  background: rgba(8, 22, 31, 0.82);
+.layout > :global([data-testid='character-profile']) {
+  position: relative;
+  grid-template-columns: 6rem minmax(0, 1fr);
+  width: min(100%, 25rem);
+  min-height: 0;
+  padding: 0.5rem;
+  gap: 0.75rem;
 }
-
-.story [data-supernatural-warning],
-.story [data-supernatural-message] {
-  margin: 0;
-  padding: 0.58rem 0.65rem;
-  border: 1px solid rgba(212, 186, 130, 0.3);
-  color: #e3dbc9;
-  background: rgba(5, 16, 24, 0.66);
-  font-size: 0.7rem;
-  line-height: 1.4;
+.layout :global([data-testid='level-progress']),
+.layout :global([data-character-resources]) {
+  display: none;
 }
-
-.story [data-supernatural-warning] strong {
-  color: #f0dfb3;
+.profile {
+  position: relative;
+  min-height: 0;
+  align-self: stretch;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  width: 100%;
+  padding: 0.85rem;
 }
-
-.story blockquote {
-  display: grid;
-  gap: 0.12rem;
-  margin: 0.12rem 0 0;
-  padding-top: 0.58rem;
-  border-top: 1px solid rgba(212, 186, 130, 0.24);
-  color: #d4ccbd;
-  font: italic 0.72rem/1.35 var(--av-font-display);
-  text-align: center;
+.buildIdentity {
+  margin: 0 0 0.35rem;
 }
-
-.story cite {
-  display: block;
-  margin-top: 0.12rem;
-  color: #c49f58;
-  font-size: 0.62rem;
-  font-style: normal;
-}
-
-@media (min-width: 1200px) {
+@media (max-width: 1100px) {
   .layout {
-    grid-template-columns:
-      clamp(18rem, 20.5vw, 21.8rem)
-      minmax(34rem, 1fr)
-      clamp(19rem, 24vw, 25rem);
-    align-items: start;
-    align-content: start;
-  }
-
-  .layout > * {
-    min-height: 0;
-  }
-
-  .profile,
-  .story {
-    height: var(--character-rail-height, auto);
-    min-height: 0;
-    box-sizing: border-box;
-  }
-
-  .profile {
-    overflow-x: hidden;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    scrollbar-color: #c9a85d #071019;
-    scrollbar-gutter: stable;
-    scrollbar-width: thin;
-  }
-
-  .profile::-webkit-scrollbar {
-    width: 0.58rem;
-  }
-
-  .profile::-webkit-scrollbar-button {
-    width: 0;
-    height: 0;
-    display: none;
-  }
-
-  .profile::-webkit-scrollbar-track {
-    border-left: 1px solid rgba(201, 168, 93, 0.28);
-    background:
-      linear-gradient(
-        90deg,
-        rgba(212, 186, 130, 0.06),
-        rgba(3, 9, 14, 0.98) 34%,
-        rgba(7, 16, 25, 1) 66%,
-        rgba(212, 186, 130, 0.05)
-      ),
-      #071019;
-    box-shadow:
-      inset 1px 0 rgba(255, 245, 210, 0.04),
-      inset -1px 0 rgba(0, 0, 0, 0.54);
-  }
-
-  .profile::-webkit-scrollbar-thumb {
-    min-height: 3.25rem;
-    border: 1px solid rgba(52, 36, 14, 0.9);
-    border-radius: 999px;
-    background:
-      linear-gradient(90deg, rgba(255, 245, 206, 0.34), transparent 30%),
-      linear-gradient(180deg, #e0c478 0%, #c29b4e 46%, #8b682d 100%);
-    box-shadow:
-      inset 0 0 0 1px rgba(255, 230, 167, 0.22),
-      0 0 0.32rem rgba(0, 0, 0, 0.32);
-  }
-
-  .profile::-webkit-scrollbar-thumb:hover {
-    background:
-      linear-gradient(90deg, rgba(255, 250, 221, 0.44), transparent 32%),
-      linear-gradient(180deg, #ead38c 0%, #cfa95e 46%, #9a7433 100%);
-  }
-
-  .profile::-webkit-scrollbar-corner {
-    background: #071019;
-  }
-
-  .story {
-    overflow-x: hidden;
-    overflow-y: auto;
-    scrollbar-color: #c9a85d #071019;
-    scrollbar-width: thin;
-  }
-
-  .storyArt {
-    min-height: clamp(11rem, 15vw, 13.5rem);
+    height: auto;
+    grid-template-rows: auto auto auto;
   }
 }
-
-@media (min-width: 761px) and (max-width: 1199px) {
-  .layout {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .story {
-    grid-template-columns: minmax(13rem, 0.95fr) minmax(0, 1.05fr);
-    align-items: stretch;
-  }
-
-  .storyHeading {
-    grid-column: 1 / -1;
-  }
-
-  .storyArt {
-    min-height: 16rem;
-    margin-bottom: 0.72rem;
-  }
-
-  .storyCopy {
-    align-content: center;
-  }
-
-  .story::after {
-    display: none;
-  }
-}
-
 @media (max-width: 760px) {
   .layout {
-    gap: 0.55rem;
+    padding: 0.75rem;
   }
-
+  .scenePortrait {
+    height: 15rem;
+    width: 45%;
+  }
+  .layout > :global([data-testid='character-profile']) {
+    width: 70%;
+    grid-template-columns: 4rem minmax(0, 1fr);
+  }
+  .layout :global([data-character-portrait-frame]) {
+    width: 4rem;
+    height: 4rem;
+  }
   .profile {
-    padding: 0.7rem;
+    padding: 0.75rem;
   }
-
-  .sheetHeading {
-    padding-right: 0;
+  .layout :global([data-testid='level-progress']),
+  .layout :global([data-character-resources]) {
+    display: grid;
+    grid-column: 1 / -1;
   }
-
-  .sheetHeading small {
-    display: none;
+}
+@media (min-width: 1100px) and (max-height: 800px) {
+  .layout {
+    padding: 0.75rem;
+    gap: 0.5rem;
+    grid-template-rows: auto 6rem minmax(0, 1fr);
   }
-
-  .storyArt {
-    min-height: 10rem;
+  .pageHeading h1 {
+    font-size: 2.1rem;
   }
-
-  .storyHeading small {
-    display: none;
-  }
-
-  .story [data-supernatural-action-row] {
-    grid-template-columns: 1fr;
+  .layout :global([data-character-portrait-frame]) {
+    width: 5rem;
+    height: 5rem;
   }
 }

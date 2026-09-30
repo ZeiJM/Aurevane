@@ -75,7 +75,9 @@ test('Passive Training requires an explicit plan and freezes a server-timed rewa
     }
   })
 
-  await page.getByRole('button', { name: 'Start Medium' }).click()
+  await page.getByRole('radio', { name: 'Medium Plan', exact: true }).check()
+  expect(planPayload).toBeNull()
+  await page.getByRole('button', { name: 'Start Training', exact: true }).click()
   await expect(planner).toContainText('Training active')
   await expect(page.getByTestId('passive-training-active')).toContainText('Medium')
   await expect(page.getByTestId('passive-training-active')).toContainText('+56 XP')

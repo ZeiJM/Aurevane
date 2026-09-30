@@ -50,7 +50,7 @@ test('approved Profile and Haven keep the frame fixed and complete controls reac
     await expect(reset.getByRole('button', { name: `Increase ${attribute}` })).toBeVisible()
   await reset.getByRole('button', { name: 'Close', exact: true }).click()
   await page.goto('/game/haven')
-  await expect(page.getByRole('heading', { name: 'Haven', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /^Welcome home,/ })).toBeVisible()
   await expect(page.getByText('Current Path', { exact: true })).toBeVisible()
   await page.goto('/game/loadout')
   await expect(page.getByRole('link', { name: /Nexus/ })).toHaveAttribute('href', '/game/nexus')
@@ -99,7 +99,9 @@ test('a populated hybrid loadout keeps all four Techniques and management action
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
   await page.locator('[data-testid="primary-build-panel"] > button').click()
   const management = page.getByRole('dialog', { name: 'Discipline Management', exact: true })
-  await management.getByLabel('Secondary Discipline').selectOption('lifebinder')
+  await management
+    .getByRole('combobox', { name: 'Secondary Discipline', exact: true })
+    .selectOption('lifebinder')
   const commitBuild = management.getByRole('button', { name: /Confirm Change/ })
   await expect(commitBuild).toBeEnabled()
   const buildSaved = page.waitForResponse(

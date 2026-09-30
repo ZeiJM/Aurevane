@@ -1,5 +1,5 @@
 import { isAurevaneError } from '@aurevane/game-core/errors'
-import { Kicker, Surface } from '@aurevane/ui'
+import { SettingsScene } from '@/components/settings/settings-scene'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 
@@ -10,8 +10,6 @@ import { getAuthenticatedActor } from '@/server/auth/actor'
 import { loadSelectedCharacter } from '@/server/character/selected-character'
 import { loadPlayerCombatControls } from '@/server/player-profile/player-controls-service'
 import { createSupabasePlayerProfileRepository } from '@/server/player-profile/supabase-player-profile-repository'
-
-import styles from './page.module.css'
 
 export const dynamic = 'force-dynamic'
 
@@ -40,10 +38,8 @@ export default async function ControlsSettingsPage() {
   const combatKeybinds = combatKeybindsResult.value
 
   return (
-    <Surface className={styles.surface} tone="elevated" data-av-surface="moonstone">
-      <Kicker marker="◇">Settings</Kicker>
-      <h1>Controls &amp; Keybinds</h1>
+    <SettingsScene title="Controls & Keybinds" description="Customize your experience.">
       <CombatControlsSettings initialBindings={combatKeybinds} />
-    </Surface>
+    </SettingsScene>
   )
 }

@@ -1,5 +1,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 
+import { openSelectedCombatantDetails, targetForecast } from './refined-battle-helpers'
+
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 function uniqueIdentity(prefix: string): { email: string; characterName: string } {
@@ -65,7 +67,7 @@ async function expectFinePointerDesktopPresentation(page: Page, root: Locator) {
     ),
   ).toBe(true)
   await expect(root.locator('section[aria-label="Battle roster"]')).toBeHidden()
-  const rails = root.locator('aside[data-unified-combatant-rail="true"]')
+  const rails = root.locator('aside[data-battle-side]')
   await expect(rails).toHaveCount(2)
   await expect(rails.first()).toBeVisible()
   await expect(page.locator('[data-mobile-battle-popup]')).toHaveCount(0)
@@ -79,8 +81,7 @@ async function openInspectAndDismiss(page: Page, root: Locator, targetName: stri
   const target = root.locator(`#battlefield button[aria-label*="occupied by ${targetName}"]`)
   await target.click()
 
-  const dialog = page.getByRole('dialog', { name: `${targetName} battle details` })
-  await expect(dialog).toBeVisible({ timeout: 5_000 })
+  const dialog = await openSelectedCombatantDetails(page, targetName)
   const backdrop = page.locator('[data-desktop-battle-inspect="true"]')
   await expect(backdrop).toBeVisible()
   await backdrop.click({ position: { x: 5, y: 5 } })
@@ -91,52 +92,22 @@ async function openInspectAndDismiss(page: Page, root: Locator, targetName: stri
 
 async function finishTurnKeepingFacing(page: Page, root: Locator, testRepeat = false) {
   await expect(root).toHaveAttribute('data-local-turn', 'true', { timeout: 12_000 })
-  await expect(root).toHaveAttribute('data-finish-turn-hotkey-owner', 'ready', { timeout: 5_000 })
   const finish = root.locator(
     'section[aria-label="Command Deck"] button[data-battle-command="finish"]',
   )
   await expect(finish).toBeEnabled()
   await expect(finish).toContainText('Space')
+  await expect(root.locator('[data-pvp-turn-clock="true"]')).toBeVisible()
+  // The lobby click can leave the pointer over a cockpit info trigger after navigation.
+  // Leave hover reading before exercising combat keys; pinned dialogs must still block them.
+  await page.mouse.move(0, 0)
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await root.focus()
+  await expect(root).toBeFocused()
 
-  // Observe the transition itself: an eventual hidden assertion can miss a one-frame legacy pad.
-  await page.evaluate(() => {
-    const pad = document.querySelector<HTMLElement>('[data-unified-facing-pad="true"]')!
-    const samples: boolean[] = []
-    const sample = () =>
-      samples.push(pad.getClientRects().length > 0 && getComputedStyle(pad).visibility !== 'hidden')
-    const observer = new MutationObserver(sample)
-    observer.observe(pad, { attributes: true })
-    sample()
-    ;(
-      window as Window & {
-        facingPadPaintCheck?: { samples: boolean[]; observer: MutationObserver }
-      }
-    ).facingPadPaintCheck = { samples, observer }
-  })
   await page.keyboard.press('Space')
-  await expect(root).toHaveAttribute('data-finish-turn-hotkey-last-decision', 'handled-first')
-  await expect(root.locator('button[aria-label="Face north"]')).toBeEnabled()
-  await expect(root.locator('button[aria-label="Face east"]')).toBeEnabled()
-  await expect(root.locator('button[aria-label="Face south"]')).toBeEnabled()
-  await expect(root.locator('button[aria-label="Face west"]')).toBeEnabled()
-  await expect(root.locator('[data-unified-facing-pad="true"]')).toBeHidden()
-  const facingPadAppeared = await page.evaluate(async () => {
-    await new Promise<void>((resolve) =>
-      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
-    )
-    const state = (
-      window as Window & {
-        facingPadPaintCheck?: { samples: boolean[]; observer: MutationObserver }
-      }
-    ).facingPadPaintCheck!
-    state.observer.disconnect()
-    return state.samples.some(Boolean)
-  })
-  expect(
-    facingPadAppeared,
-    'The legacy pad must remain hidden throughout the first Space transition.',
-  ).toBe(false)
-  await expect(root.locator('#battlefield [data-facing-guide="true"]')).toHaveCount(4)
+  await expect(root.locator('[data-unified-facing-pad="true"]')).toBeVisible()
+  await expect(root.locator('[data-unified-facing-pad="true"] button')).toHaveCount(4)
 
   if (testRepeat) {
     await page.evaluate(() => {
@@ -158,7 +129,7 @@ async function finishTurnKeepingFacing(page: Page, root: Locator, testRepeat = f
   await expect(root).not.toHaveAttribute('data-local-turn', 'true', { timeout: 12_000 })
 }
 
-test('previews Guard on the first shortcut press and commits it only on a second deliberate press', async ({
+test('arms Guard without spending AP and executes once on a deliberate direction', async ({
   page,
 }, testInfo) => {
   test.skip(testInfo.project.name === 'mobile-chromium', 'Desktop keyboard shortcut contract')
@@ -167,14 +138,13 @@ test('previews Guard on the first shortcut press and commits it only on a second
   const root = await enterGuidedBattle(page)
   const deck = root.getByRole('region', { name: 'Command Deck' })
   const guard = deck.getByRole('button', { name: /^Guard,/ })
-  const confirm = root.getByRole('button', { name: 'Confirm Action' })
   const economy = root.getByRole('progressbar', { name: 'Action Economy remaining' })
 
-  await expect(guard).toContainText('4')
+  await expect(guard).toContainText('3')
   await expect(economy).toHaveAttribute('aria-valuenow', '100')
 
-  await page.keyboard.press('Digit4')
-  await expect(confirm).toBeEnabled()
+  await page.keyboard.press('Digit3')
+  await expect(targetForecast(page)).toContainText('Guard')
   await expect(economy).toHaveAttribute('aria-valuenow', '100')
 
   // Holding a key must never count as the deliberate second press. Chromium and Edge both expose
@@ -182,8 +152,8 @@ test('previews Guard on the first shortcut press and commits it only on a second
   await page.evaluate(() => {
     window.dispatchEvent(
       new KeyboardEvent('keydown', {
-        code: 'Digit4',
-        key: '4',
+        code: 'Digit3',
+        key: '3',
         repeat: true,
         bubbles: true,
         cancelable: true,
@@ -191,7 +161,7 @@ test('previews Guard on the first shortcut press and commits it only on a second
     )
   })
   await page.waitForTimeout(100)
-  await expect(confirm).toBeEnabled()
+  await expect(targetForecast(page)).toContainText('Guard')
   await expect(economy).toHaveAttribute('aria-valuenow', '100')
 
   const commitResponse = page.waitForResponse((response) => {
@@ -199,12 +169,12 @@ test('previews Guard on the first shortcut press and commits it only on a second
     return request.method() === 'POST' && new URL(response.url()).pathname.endsWith('/intents')
   })
 
-  await page.keyboard.press('Digit4')
+  await page.keyboard.press('KeyD')
   expect((await commitResponse).status()).toBe(200)
   await expect(economy).toHaveAttribute('aria-valuenow', '70')
 })
 
-test('keeps Guard double-press reliable after Inspect closes in a narrow desktop window', async ({
+test('keeps Guard selection and single-input execution reliable after Inspect closes in a narrow desktop window', async ({
   page,
 }, testInfo) => {
   test.skip(testInfo.project.name === 'mobile-chromium', 'Physical keyboard regression')
@@ -220,24 +190,23 @@ test('keeps Guard double-press reliable after Inspect closes in a narrow desktop
   await inspect.click()
   const target = root.locator('#battlefield button[aria-label*="occupied by Recruit"]')
   await target.click()
-  const dialog = page.getByRole('dialog', { name: /Recruit battle details/ })
-  await expect(dialog).toBeVisible({ timeout: 5_000 })
+  const selectedName = (await target.getAttribute('aria-label'))!.split('; occupied by ')[1]
+  const dialog = await openSelectedCombatantDetails(page, selectedName)
   const backdrop = page.locator('[data-desktop-battle-inspect="true"]')
   await backdrop.click({ position: { x: 5, y: 5 } })
   await expect(dialog).toBeHidden()
   await expect(inspect).not.toHaveAttribute('data-active', 'true')
   await expect(root).toBeFocused()
 
-  const confirm = root.getByRole('button', { name: 'Confirm Action' })
   const economy = root.getByRole('progressbar', { name: 'Action Economy remaining' })
-  await page.keyboard.press('Digit4')
-  await expect(confirm).toBeEnabled()
+  await page.keyboard.press('Digit3')
+  await expect(targetForecast(page)).toContainText('Guard')
 
   const commitResponse = page.waitForResponse((response) => {
     const request = response.request()
     return request.method() === 'POST' && new URL(response.url()).pathname.endsWith('/intents')
   })
-  await page.keyboard.press('Digit4')
+  await page.keyboard.press('KeyD')
   expect((await commitResponse).status()).toBe(200)
   await expect(economy).toHaveAttribute('aria-valuenow', '70')
 })

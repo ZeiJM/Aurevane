@@ -1318,3 +1318,186 @@
     display: none;
   }
 }
+
+/* Reference 09: full courtyard scene with compact setup at its lower edge. */
+.page {
+  position: relative;
+  isolation: isolate;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  padding: 1.25rem;
+  gap: 0.75rem;
+  background: #253330;
+}
+.heading {
+  position: static;
+  isolation: auto;
+  min-height: 0;
+  padding: 0.5rem;
+  overflow: visible;
+  border: 0;
+  background: transparent;
+}
+.heroMedia {
+  inset: 0;
+  z-index: -2;
+  height: 100%;
+  object-position: center;
+}
+.heroWash {
+  z-index: -1;
+  background: linear-gradient(#18232125, #18232115 55%, #18232150);
+}
+.headingCopy {
+  color: #eee6d2;
+  text-shadow: 0 2px 5px #14201f;
+}
+.heading h1 {
+  color: #f0e6d4;
+  font-size: 2.5rem;
+}
+.heading small,
+.heading .eyebrow {
+  color: #e3d8c2;
+  font-size: 0.9rem;
+}
+.heading > blockquote {
+  display: none;
+}
+.categoryGrid {
+  width: min(100%, 42rem);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+  gap: 1px;
+}
+.categoryGrid button {
+  min-height: 2.75rem;
+  padding: 0.5rem;
+  color: #34392f;
+  border: 1px solid #948165;
+  background: #d3c5ac;
+}
+.categoryGrid strong {
+  font-size: 0.9rem;
+}
+.categoryGrid button[data-active] {
+  color: #f0e3cb;
+  background: #73392c;
+}
+.workspaceGrid {
+  align-self: end;
+  max-height: 100%;
+  grid-template-rows: minmax(0, 1fr);
+  overflow: visible;
+}
+.workspace {
+  height: auto;
+  max-height: 100%;
+  padding: 0.85rem;
+  background: linear-gradient(125deg, #ded4c0ed, #bdad93f5);
+}
+.workspaceHeading h2 {
+  font-size: 1.25rem;
+}
+.workspaceHeading > blockquote {
+  display: none;
+}
+.workspaceBody {
+  scrollbar-gutter: stable;
+}
+.workspace[data-hall-workspace='ai'] .workspaceBody {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  grid-template-rows: auto auto auto;
+  gap: 0.6rem;
+}
+.workspace[data-hall-workspace='ai'] .modePicker {
+  grid-column: 1;
+  grid-row: 1 / 4;
+}
+.workspace[data-hall-workspace='ai'] .arenaVista {
+  grid-column: 2;
+  grid-row: 1;
+  height: 6.5rem;
+  margin: 0;
+}
+.workspace[data-hall-workspace='ai'] .arenaControlRow {
+  grid-column: 2;
+  grid-row: 2;
+}
+.workspace[data-hall-workspace='ai'] .selectedPanel {
+  grid-column: 2;
+  grid-row: 3;
+}
+.modePicker > button {
+  min-height: 3.5rem;
+  padding: 0.5rem;
+  grid-template-columns: 2rem minmax(0, 1fr) auto;
+}
+.modeRecommendation {
+  display: none;
+}
+.modeCopy strong {
+  font-size: 1rem;
+}
+.modeCopy small,
+.recordPurpose {
+  font-size: 0.8rem;
+}
+.panelActions {
+  justify-content: flex-end;
+}
+.panelActions .primaryAction {
+  width: min(100%, 18rem);
+  min-height: 44px;
+  background: linear-gradient(#824839, #5b3027);
+  color: #f1e5ce;
+  font-size: 1rem;
+}
+.pvpStage {
+  grid-template-columns: minmax(0, 1fr);
+}
+.pvpVista {
+  display: none;
+}
+@media (min-width: 761px) {
+  .workspace[data-hall-workspace='pvp'] {
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .pvpStage,
+  .pvpContent {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .pvpContent {
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+  }
+  .workspace[data-hall-workspace='pvp'] .workspaceBody {
+    min-height: 0;
+    overflow: auto;
+    align-content: start;
+  }
+}
+@media (max-width: 760px) {
+  .page {
+    height: auto;
+    padding: 0.75rem;
+    min-height: 70dvh;
+  }
+  .heading {
+    min-height: 8rem;
+  }
+  .categoryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .workspace[data-hall-workspace='ai'] .workspaceBody {
+    display: flex;
+    flex-direction: column;
+  }
+  .workspace[data-hall-workspace='ai'] .arenaVista {
+    height: 8rem;
+  }
+  .workspace {
+    max-height: none;
+  }
+}

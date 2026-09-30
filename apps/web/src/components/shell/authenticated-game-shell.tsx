@@ -32,9 +32,11 @@ interface AuthenticatedShellFrameProps {
 function ShellCharacterPortrait({
   character,
   imageUrl,
+  rail = false,
 }: {
   character: PersistedCharacter
   imageUrl: string | null
+  rail?: boolean
 }) {
   return (
     <span className={styles.screenPortrait} title={character.name}>
@@ -42,7 +44,11 @@ function ShellCharacterPortrait({
         imageUrl={imageUrl}
         fallbackAssetId={getStarterPortraitImageAssetId(character.portraitRef)}
         className={styles.screenPortraitImage}
-        sizes="(max-width: 760px) 2rem, 3rem"
+        sizes={
+          rail
+            ? '(max-height: 620px) 88px, (max-height: 700px) 112px, 144px'
+            : '(max-width: 760px) 2rem, 3rem'
+        }
         alt=""
       />
     </span>
@@ -79,7 +85,7 @@ async function RailIdentity({
     </div>
   ) : (
     <div className="av-rail-identity">
-      <ShellCharacterPortrait character={character} imageUrl={null} />
+      <ShellCharacterPortrait character={character} imageUrl={null} rail />
       <strong>{character.name}</strong>
       <small>Level {character.level}</small>
     </div>
@@ -180,7 +186,7 @@ export async function AuthenticatedShellFrame({
           <Suspense
             fallback={
               <div className="av-rail-identity">
-                <ShellCharacterPortrait character={activeCharacter} imageUrl={null} />
+                <ShellCharacterPortrait character={activeCharacter} imageUrl={null} rail />
                 <strong>{activeCharacter.name}</strong>
               </div>
             }

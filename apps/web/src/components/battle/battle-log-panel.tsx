@@ -7,6 +7,7 @@ import type { BattleLogView } from '@/server/battle/battle-log-service'
 
 import { BattleLogFeed, countBattleLogActions, type BattleLogFlowView } from './battle-log-feed'
 import { useBattlePlayerName } from './battle-runtime-context'
+import { BattleInfoPopover } from './battle-info-popover'
 import styles from './battle-log-panel.module.css'
 
 interface BattleLogPanelProps {
@@ -18,6 +19,7 @@ interface BattleLogPanelProps {
   combatantNames?: Readonly<Record<string, string>>
   dockOnDesktop?: boolean
   recentTurnCount?: number
+  presentation?: 'floating' | 'inline'
 }
 
 interface BattleLogResponse {
@@ -133,12 +135,13 @@ export function BattleLogPanel({
   combatantNames,
   dockOnDesktop = false,
   recentTurnCount,
+  presentation = 'floating',
 }: BattleLogPanelProps) {
   const runtimePlayerName = useBattlePlayerName()
   const effectivePlayerName = playerName ?? runtimePlayerName ?? undefined
   const controlled = open !== undefined
   const [internalOpen, setInternalOpen] = useState(false)
-  const visible = controlled ? Boolean(open) : internalOpen
+  const visible = presentation === 'inline' || (controlled ? Boolean(open) : internalOpen)
   const [log, setLog] = useState<BattleLogView | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -223,6 +226,41 @@ export function BattleLogPanel({
 
   const entries = log?.entries ?? []
   const actionCount = countBattleLogActions(entries)
+
+  if (presentation === 'inline')
+    return (
+      <div className={styles.inline} data-battle-inline-log="true">
+        <header>
+          <strong>Battle Log</strong>
+          <BattleInfoPopover label="Expand battle history" title="Battle Log" trigger="Expand">
+            <BattleLogFeed
+              compactFlow
+              entries={entries}
+              playerName={effectivePlayerName}
+              combatantNames={combatantNames}
+              emptyMessage="No committed battle actions yet."
+            />
+          </BattleInfoPopover>
+        </header>
+        {loading && entries.length === 0 ? (
+          <p className={styles.empty}>Reading battle history…</p>
+        ) : error ? (
+          <p className={styles.empty} role="status">
+            {error}
+          </p>
+        ) : (
+          <BattleLogFeed
+            compactFlow
+            entries={entries}
+            flowView="timeline"
+            recentTurnCount={recentTurnCount ?? 2}
+            playerName={effectivePlayerName}
+            combatantNames={combatantNames}
+            emptyMessage="No committed battle actions yet."
+          />
+        )}
+      </div>
+    )
 
   if (!controlled) {
     return (

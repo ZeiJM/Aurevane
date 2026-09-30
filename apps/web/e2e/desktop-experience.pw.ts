@@ -576,7 +576,9 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
       await page.reload()
       await page.getByTestId('primary-build-panel').getByRole('button').click()
       const discipline = page.getByRole('dialog', { name: 'Discipline Management' })
-      await discipline.getByLabel('Secondary Discipline').selectOption('lifebinder')
+      await discipline
+        .getByRole('combobox', { name: 'Secondary Discipline', exact: true })
+        .selectOption('lifebinder')
       await discipline.getByRole('button', { name: /Confirm Change/ }).click()
       await expect(page.getByRole('status')).toContainText('Discipline changes committed.')
       await testInfo.attach('phone-discipline-preview', {

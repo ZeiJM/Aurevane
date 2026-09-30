@@ -118,7 +118,7 @@ export function AudioSettingsMenu({
           aria-label="Audio settings"
         >
           <div className={styles.heading}>
-            <h2>Audio settings</h2>
+            <h2>{inline ? 'Volume settings' : 'Audio settings'}</h2>
           </div>
 
           <div className={styles.actions}>

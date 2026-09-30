@@ -267,3 +267,66 @@
     transition: none;
   }
 }
+
+/* Truthful empty news archive in the approved scene and stone frame. */
+.board {
+  height: 100%;
+  min-height: 0;
+  grid-template-rows: 8rem minmax(0, 1fr);
+  border-color: #9c8563;
+  background: #cab99b;
+  color: #3c473b;
+}
+.hero {
+  padding: 1rem 1.5rem;
+  background:
+    linear-gradient(90deg, #172725a0, #19252330),
+    url('/media/art/concept-ui/world-v01.webp') center / cover;
+}
+.hero::after,
+.board::after {
+  display: none;
+}
+.hero h1 {
+  font-size: 2.5rem;
+}
+.description {
+  display: none;
+}
+.archive {
+  padding: 1rem;
+  display: grid;
+  place-items: center;
+}
+.emptyState {
+  max-width: 42rem;
+  padding: 1.5rem;
+  background: #ded3bd;
+  color: #404a3b;
+  border: 1px solid #ab946f;
+}
+.emptyState h2 {
+  color: #354235;
+  font-size: 1.8rem;
+}
+.emptyState p {
+  color: #535d4c;
+}
+.links a {
+  background: #3a6059;
+  color: #efe6d3;
+  border-color: #3a6059;
+}
+.kicker,
+.closingLine {
+  color: #7c6445;
+}
+@media (max-width: 760px) {
+  .board {
+    height: auto;
+    min-height: 35rem;
+  }
+  .archive {
+    padding: 0.7rem;
+  }
+}

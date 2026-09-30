@@ -15,13 +15,18 @@ function compact(value: string): string {
 }
 
 describe('PvP-first shared battle visual contract', () => {
-  it('is mounted by both playable battle boundaries', () => {
+  it('leaves refined playable layout to BattleExperience without legacy CSS contract mounts', () => {
     const shared = readLocalFile('battle-client-boundary.tsx')
 
-    expect(shared).toContain(
-      "import { BattleScreenVisualContract } from './battle-screen-visual-contract'",
+    expect(shared).toContain('<BattleExperience')
+    expect(shared).not.toContain('BattleScreenVisualContract')
+    expect(shared).not.toContain('BattleCommandCockpitPolish')
+    expect(shared).not.toContain('BattleCockpitLayoutStabilizer')
+    expect(readLocalFile('battle-pve-enhancements.tsx')).not.toContain(
+      'BattlePveCommandContextParity',
     )
-    expect(shared).toContain('<BattleScreenVisualContract />')
+    expect(readLocalFile('battle-pvp-enhancements.tsx')).not.toContain('PvpBattleReleasePolish')
+    expect(readLocalFile('battle-pvp-enhancements.tsx')).not.toContain('BattleStabilizationPolish')
     expect(shared).toContain('<BattlePveEnhancements')
     expect(shared).toContain('<BattlePvpEnhancements')
   })
@@ -48,19 +53,19 @@ describe('PvP-first shared battle visual contract', () => {
   })
 
   it('gives the desktop command deck enough width for commands and contains selected skills', () => {
-    const scale = compact(readLocalFile('battle-pvp-scale-authority.module.css'))
+    const cockpit = compact(readLocalFile('pvp-battle-experience.module.css'))
     const selectedSkills = compact(readLocalFile('battle-selected-skills.module.css'))
-
-    expect(scale).toContain('grid-template-columns: minmax(0, 3fr) minmax(16rem, 1fr);')
-    expect(selectedSkills).toContain('box-sizing: border-box;')
-    expect(selectedSkills).toContain('width: min(3.5rem, 15cqw);')
+    expect(cockpit).toContain(
+      "grid-template-areas: 'local board selected' 'local preview selected' 'cockpit cockpit cockpit';",
+    )
+    expect(selectedSkills).toContain('min-width: 0;')
+    expect(selectedSkills).toContain('width: min(100%, 4.875rem);')
   })
 
-  it('keeps command costs and tags dark enough for the pale command cards', () => {
+  it('keeps command text dark and artwork square on the pale cockpit', () => {
     const skillCommand = compact(readLocalFile('battle-skill-command.module.css'))
-
-    expect(skillCommand).toContain('color: #3e5563 !important;')
-    expect(skillCommand).toContain('.action > .tags > span { color: #304957;')
+    expect(skillCommand).toContain('color: #332b22;')
+    expect(skillCommand).toContain('aspect-ratio: 1;')
   })
 
   it('uses viewport width alone to switch shared battle and rail geometry', () => {

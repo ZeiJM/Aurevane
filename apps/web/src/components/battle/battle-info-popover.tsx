@@ -11,18 +11,43 @@ export function BattleInfoPopover({
   trigger,
   className,
   children,
+  hover = false,
 }: {
   label: string
   title?: string
   trigger: ReactNode
   className?: string
   children: ReactNode
+  hover?: boolean
 }) {
   const id = useId()
   const [open, setOpen] = useState(false)
   const [position, setPosition] = useState({ left: 8, top: 8 })
   const buttonRef = useRef<HTMLButtonElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
+  const pinned = useRef(false)
+  const focusOnOpen = useRef(true)
+  const suppressFocus = useRef(false)
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const cancelClose = () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current)
+  }
+  const queueClose = () => {
+    cancelClose()
+    if (!pinned.current) closeTimer.current = setTimeout(() => setOpen(false), 150)
+  }
+  const restoreFocus = () => {
+    pinned.current = false
+    suppressFocus.current = true
+    setOpen(false)
+    buttonRef.current?.focus()
+  }
+  useEffect(
+    () => () => {
+      if (closeTimer.current) clearTimeout(closeTimer.current)
+    },
+    [],
+  )
 
   useLayoutEffect(() => {
     if (!open) return
@@ -42,7 +67,7 @@ export function BattleInfoPopover({
       })
     }
     place()
-    panelRef.current?.focus()
+    if (focusOnOpen.current) panelRef.current?.focus()
     window.addEventListener('resize', place)
     window.addEventListener('scroll', place, true)
     return () => {
@@ -62,6 +87,8 @@ export function BattleInfoPopover({
     const escape = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return
       event.preventDefault()
+      pinned.current = false
+      suppressFocus.current = true
       setOpen(false)
       buttonRef.current?.focus()
     }
@@ -84,7 +111,44 @@ export function BattleInfoPopover({
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-controls={open ? id : undefined}
-        onClick={() => setOpen(!open)}
+        onMouseEnter={
+          hover
+            ? () => {
+                cancelClose()
+                focusOnOpen.current = false
+                setOpen(true)
+              }
+            : undefined
+        }
+        onMouseLeave={hover ? queueClose : undefined}
+        onFocus={
+          hover
+            ? () => {
+                if (suppressFocus.current) {
+                  suppressFocus.current = false
+                  return
+                }
+                cancelClose()
+                focusOnOpen.current = false
+                setOpen(true)
+              }
+            : undefined
+        }
+        onBlur={
+          hover
+            ? (event) => {
+                if (!panelRef.current?.contains(event.relatedTarget as Node | null)) queueClose()
+              }
+            : undefined
+        }
+        onClick={() => {
+          cancelClose()
+          focusOnOpen.current = true
+          const next = hover && !pinned.current ? true : !open
+          pinned.current = next
+          setOpen(next)
+          if (next && open) panelRef.current?.focus()
+        }}
       >
         {trigger}
       </button>
@@ -97,19 +161,14 @@ export function BattleInfoPopover({
             aria-label={title}
             tabIndex={-1}
             data-battle-info-panel="true"
+            onMouseEnter={hover ? cancelClose : undefined}
+            onMouseLeave={hover ? queueClose : undefined}
             className={styles.panel}
             style={position}
           >
             <header>
               <strong>{title}</strong>
-              <button
-                type="button"
-                aria-label={`Close ${title}`}
-                onClick={() => {
-                  setOpen(false)
-                  buttonRef.current?.focus()
-                }}
-              >
+              <button type="button" aria-label={`Close ${title}`} onClick={restoreFocus}>
                 ×
               </button>
             </header>

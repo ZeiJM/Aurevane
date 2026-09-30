@@ -64,7 +64,9 @@ test('mobile Techniques header keeps capacity status clear of title and Close', 
     .click()
   const disciplineDialog = page.getByRole('dialog', { name: 'Discipline Management' })
   await expect(disciplineDialog).toBeVisible()
-  await disciplineDialog.getByLabel('Secondary Discipline').selectOption('lifebinder')
+  await disciplineDialog
+    .getByRole('combobox', { name: 'Secondary Discipline', exact: true })
+    .selectOption('lifebinder')
   await disciplineDialog.getByRole('button', { name: /Confirm Change/ }).click()
   await expect(page.getByRole('status')).toContainText('Discipline changes committed.')
   await disciplineDialog.getByRole('button', { name: 'Close' }).click()

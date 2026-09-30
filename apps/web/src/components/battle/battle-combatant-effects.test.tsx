@@ -40,6 +40,23 @@ describe('combatant effect presentation', () => {
     expect(markup).toContain('−27.8%')
     expect(markup).not.toContain('Damage dealt')
   })
+  it('keeps every compact effect reachable by focus, hover or touch instead of truncating the card', () => {
+    const statuses = ['guarded', 'marked', 'fortified'].map((statusId) => ({
+      statusId,
+      statusVersion: 1,
+      stacks: 1,
+      remainingOwnerTurnStarts: 2,
+      sourceCombatantId: 'opponent',
+    }))
+    const markup = renderToStaticMarkup(
+      <BattleCombatantEffects compact name="Archer" statuses={statuses} />,
+    )
+    expect(markup.match(/aria-haspopup="dialog"/g)).toHaveLength(3)
+    expect(markup).toContain('Explain Guard')
+    expect(markup).toContain('Explain Mark')
+    expect(markup).toContain('Explain Fortified')
+    expect(markup).not.toContain('All 3')
+  })
   it('does not claim bonuses when no effect is active', () => {
     const markup = render()
     expect(markup).toContain('No active effects')

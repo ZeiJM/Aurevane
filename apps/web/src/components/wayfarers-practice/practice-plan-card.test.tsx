@@ -45,6 +45,9 @@ describe('practice plan card', () => {
     const markup = renderToStaticMarkup(createElement(PracticePlanCard, { practice }))
 
     expect(markup).toContain('Choose a training duration.')
+    expect((markup.match(/type="radio"/g) ?? []).length).toBe(3)
+    expect(markup).toContain('Start Training')
+    expect(markup).not.toContain('Start Medium')
     expect(markup).toContain('Training Plan')
     expect(markup).toContain('Current Training')
     expect(markup).toContain('aria-label="Training progress"')

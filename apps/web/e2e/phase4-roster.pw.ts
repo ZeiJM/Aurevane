@@ -55,7 +55,9 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
   await expect(management).toBeVisible()
   await page.reload()
   await expect(management).toBeVisible()
-  await management.getByLabel('Primary Discipline').selectOption('ironfist')
+  await management
+    .getByRole('combobox', { name: 'Primary Discipline', exact: true })
+    .selectOption('ironfist')
   await management.getByRole('button', { name: /Confirm Change/ }).click()
   await expect(page.getByTestId('primary-discipline-chip')).toHaveText('Ironfist')
   await management.getByRole('button', { name: 'Close', exact: true }).click()
@@ -119,8 +121,8 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
     contentType: 'image/png',
   })
   for (const [id, dimensions, tiles, name] of [
-    ['crossroads-court', '7x7', 49, 'Crossroads Court'],
-    ['terraced-yard', '11x7', 77, 'Terraced Yard'],
+    ['crossroads-court', '12x7', 84, 'Crossroads Court'],
+    ['terraced-yard', '15x7', 105, 'Terraced Yard'],
   ] as const) {
     await arena.selectOption(id)
     await page.getByRole('button', { name: 'Enter Battle', exact: true }).click()
@@ -137,10 +139,11 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
         if (/\/api\/battles\/[^/]+\/audio\?/.test(request.url())) audioRequests.push(request.url())
       }
       page.on('request', trackAudio)
-      await root.getByRole('button', { name: /Choose Guard skill/ }).click()
-      await page.getByRole('option', { name: 'Breakfall 35 AP', exact: true }).click()
-      await root.getByRole('button', { name: 'Breakfall, 35 AP', exact: true }).click()
-      await expect(root.getByRole('button', { name: 'Confirm Action', exact: true })).toBeEnabled()
+      const armed = page.waitForResponse(
+        (response) => response.url().endsWith('/preview') && response.request().method() === 'POST',
+      )
+      await root.getByRole('button', { name: 'Selected Breakfall, 35 AP', exact: true }).click()
+      expect((await armed).status()).toBe(200)
       expect(audioRequests).toEqual([])
       const committed = page.waitForResponse(
         (response) => response.url().endsWith('/intents') && response.request().method() === 'POST',
@@ -151,7 +154,7 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
       const sound = page.waitForResponse((response) =>
         response.url().includes('/media/audio/sfx/phase4/ironfist-action-'),
       )
-      await root.getByRole('button', { name: 'Confirm Action', exact: true }).click()
+      await root.locator('#battlefield button[aria-label*="occupied by"]').first().click()
       const committedResponse = await committed
       expect(committedResponse.status()).toBe(200)
       const battle = (await committedResponse.json()).battle
@@ -254,7 +257,7 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
       }),
     ]),
   )
-  const primary = management.getByLabel('Primary Discipline')
+  const primary = management.getByRole('combobox', { name: 'Primary Discipline', exact: true })
   await expect(primary.locator('option[value="bastion"]')).toHaveCount(1)
   // Existing Owner-authorized testing access covers all published Disciplines without fake Mastery.
   // Earned prerequisites and 4/2/2 acquisition are independently verified in database CI.
@@ -306,29 +309,20 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
   page.on('request', (request) => {
     if (/\/api\/battles\/[^/]+\/audio\?/.test(request.url())) audioRequests.push(request.url())
   })
-  await root.getByRole('button', { name: /Choose Guard skill/ }).click()
-  await page.getByRole('option', { name: 'Fortress 35 AP', exact: true }).click()
-  await root.getByRole('button', { name: 'Fortress, 35 AP', exact: true }).click()
-  await expect(root.getByRole('button', { name: 'Confirm Action', exact: true })).toBeEnabled()
-  await expect(root.locator('#battlefield button[data-target="friendly"]')).toHaveCount(1)
-  await expect(
-    root.getByRole('button', { name: new RegExp(`occupied by Mastery ${suffix}$`) }),
-  ).toHaveAttribute('data-target', 'friendly')
-  // A new invalid target must discard the earlier accepted self projection and confirmation.
-  await root.locator('#battlefield button:not([aria-label*="occupied by"])').first().click()
-  await expect(root.getByRole('button', { name: 'Confirm Action', exact: true })).toBeDisabled()
-  await expect(root.getByLabel('Action preview')).not.toContainText('Success 100%')
   const selfPreview = page.waitForResponse(
     (response) => response.url().endsWith('/preview') && response.request().method() === 'POST',
   )
-  // Re-selecting the caster on the board must not replace self with an illegal unit target.
-  await root.getByRole('button', { name: new RegExp(`occupied by Mastery ${suffix}$`) }).click()
+  await root.getByRole('button', { name: 'Selected Fortress, 35 AP', exact: true }).click()
   const previewResponse = await selfPreview
   expect(previewResponse.request().postDataJSON().intent.target).toEqual({ kind: 'self' })
   const preview = (await previewResponse.json()).battlePreview.preview
   expect(preview.legal).toBe(true)
   expect(preview.projectedStatuses).toEqual(
     expect.arrayContaining([expect.objectContaining({ statusId: 'fortified' })]),
+  )
+  await expect(root.getByRole('progressbar', { name: 'Action Economy remaining' })).toHaveAttribute(
+    'aria-valuenow',
+    '100',
   )
   const committed = page.waitForResponse(
     (response) => response.url().endsWith('/intents') && response.request().method() === 'POST',
@@ -340,7 +334,7 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
   const playedAsset = page.waitForResponse((response) =>
     response.url().includes('/media/audio/sfx/phase4/bastion-action-'),
   )
-  await root.getByRole('button', { name: 'Confirm Action', exact: true }).click()
+  await root.locator('#battlefield button:not([aria-label*="occupied by"])').first().click()
   const commitResponse = await committed
   expect(commitResponse.status()).toBe(200)
   const battle = (await commitResponse.json()).battle
@@ -392,7 +386,9 @@ test('Chronist provisions its full testing library, Essence artwork and explicit
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
   await page.getByRole('button', { name: /Manage Disciplines/ }).click()
   const management = page.getByRole('dialog', { name: 'Discipline Management' })
-  await management.getByLabel('Primary Discipline').selectOption('chronist')
+  await management
+    .getByRole('combobox', { name: 'Primary Discipline', exact: true })
+    .selectOption('chronist')
   await management.getByRole('button', { name: /Confirm Change/ }).click()
   await expect(page.getByTestId('primary-discipline-chip')).toHaveText('Chronist')
   await management.getByRole('button', { name: 'Close', exact: true }).click()

@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test'
 
+import { targetForecast } from './refined-battle-helpers'
+
 import { createAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 function uniqueCharacterName(): string {
@@ -31,34 +33,13 @@ test('routes the Recovery hotkey to the stable slot after swapping HP Recovery t
   const root = page.locator("main[data-unified-battle='true'][data-battle-kind='pve']")
   await expect(root).toBeVisible()
   const deck = root.getByRole('region', { name: 'Command Deck' })
-  const recoveryCard = deck.locator('[data-command-card="recover"]')
-  const recovery = recoveryCard.locator('button[data-battle-command="recover"]')
-  const artwork = recoveryCard.getByRole('button', { name: /Choose Heal skill/i })
-
-  await expect(recovery).toContainText('HP Recovery')
-  await expect(recovery.locator(':scope > [data-battle-command-hotkey]')).toContainText('5')
-
-  await artwork.click()
-  const selector = page.getByRole('listbox', { name: 'Heal skills' })
-  await expect(selector).toBeVisible()
-  await selector.getByRole('option', { name: /MP Recovery/ }).click()
-  await expect(selector).toBeHidden()
-  await expect(recovery).toContainText('MP Recovery')
-  await expect(recovery.locator(':scope > [data-battle-command-hotkey]')).toContainText('5')
-
-  // Count the real cockpit button invocation rather than relying on the currently equipped heal's
-  // resource legality. The keyboard contract is slot-based: Digit5 must reach this same button
-  // whether it currently presents HP Recovery or MP Recovery.
-  await recovery.evaluate((button) => {
-    const target = button as HTMLButtonElement
-    const originalClick = target.click.bind(target)
-    target.dataset.hotkeyClickCount = '0'
-    target.click = () => {
-      target.dataset.hotkeyClickCount = String(Number(target.dataset.hotkeyClickCount ?? '0') + 1)
-      originalClick()
-    }
-  })
-
-  await page.keyboard.press('Digit5')
-  await expect(recovery).toHaveAttribute('data-hotkey-click-count', '1')
+  const economy = root.getByRole('progressbar', { name: 'Action Economy remaining' })
+  await root.locator('[data-battle-secondary-actions] summary').click()
+  await root.getByRole('button', { name: 'MP Recovery · 50 AP', exact: true }).click()
+  await expect(targetForecast(page)).toContainText('MP Recovery')
+  await root.getByRole('button', { name: 'Cancel Action' }).click()
+  await page.keyboard.press('KeyR')
+  await expect(targetForecast(page)).toContainText('MP Recovery')
+  await expect(economy).toHaveAttribute('aria-valuenow', '100')
+  await expect(deck.locator('[data-battle-skill-slot]')).toHaveCount(4)
 })

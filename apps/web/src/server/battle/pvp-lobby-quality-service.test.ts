@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   groundSkill: false,
+  mapSize: 'medium' as 'medium' | 'large',
   createdBattleArgs: null as Record<string, unknown> | null,
 }))
 
@@ -192,7 +193,7 @@ vi.mock('@/lib/supabase/admin', () => ({
       if (name === 'get_pvp_lobby_settings_v2') {
         return {
           data: {
-            map_size: 'medium',
+            map_size: mocks.mapSize,
             elevation_bias: 'neutral',
             terrain_bias: 'neutral',
             turn_timer_seconds: null,
@@ -226,7 +227,34 @@ describe('P3.7 direct PvP committed build snapshots', () => {
   beforeEach(() => {
     mocks.createdBattleArgs = null
     mocks.groundSkill = false
+    mocks.mapSize = 'medium'
   })
+
+  it.each([
+    ['medium', 9, 63],
+    ['large', 15, 105],
+  ] as const)(
+    'persists a %s PvP arena with seven rows and safe spawns',
+    async (size, width, count) => {
+      mocks.mapSize = size
+      await startPvpLobbyWithQuality(hostUserId, lobbyId)
+      const state = mocks.createdBattleArgs!.p_initial_snapshot as BattleAuthoritativeEncounterState
+      expect(state.tactical).toMatchObject({ width, height: 7 })
+      expect(state.tactical.tiles).toHaveLength(count)
+      expect(state.tactical.tiles.at(-1)?.position).toEqual({ x: width - 1, y: 6 })
+      expect(state.tactical.placements.map((placement) => placement.position)).toEqual([
+        { x: 1, y: 3 },
+        { x: width - 2, y: 3 },
+      ])
+      for (const { position } of state.tactical.placements) {
+        expect(
+          state.tactical.tiles.find(
+            (tile) => tile.position.x === position.x && tile.position.y === position.y,
+          ),
+        ).toMatchObject({ elevation: 0, terrainId: 'open-ground' })
+      }
+    },
+  )
 
   it('persists the same frozen build grammar for both PvP participants', async () => {
     await startPvpLobbyWithQuality(hostUserId, lobbyId)
@@ -290,12 +318,24 @@ describe('P3.7 direct PvP committed build snapshots', () => {
     )
   })
 
-  it('loads the actual quality-lobby snapshot through facing, ground preview/commit and reload', async () => {
+  it.each(['current', '13x9'])('plays persisted %s geometry through reload', async (geometry) => {
     mocks.groundSkill = true
     await startPvpLobbyWithQuality(hostUserId, lobbyId)
     const initial = structuredClone(
       mocks.createdBattleArgs!.p_initial_snapshot,
     ) as BattleAuthoritativeEncounterState
+    if (geometry === '13x9') {
+      initial.tactical = {
+        ...initial.tactical,
+        width: 13,
+        height: 9,
+        tiles: Array.from({ length: 117 }, (_, index) => ({
+          position: { x: index % 13, y: Math.floor(index / 13) },
+          elevation: 0,
+          terrainId: 'open-ground',
+        })),
+      }
+    }
     const battle = initial.tactical.battle
     let record: BattleSessionRecord = {
       battleSessionId: '00000000-0000-4000-8000-000000003726',
@@ -379,6 +419,11 @@ describe('P3.7 direct PvP committed build snapshots', () => {
     const before = await service.getSession(hostUserId, record.battleSessionId)
     const beforePersisted = structuredClone(record.snapshot) as BattleAuthoritativeEncounterState
     expect(before.snapshot.tactical.battle.currentTurn!.combatantId).toBe(hostId)
+    expect(before.snapshot.tactical).toMatchObject({
+      width: initial.tactical.width,
+      height: initial.tactical.height,
+    })
+    expect(before.snapshot.tactical.tiles).toEqual(initial.tactical.tiles)
     expect(before.snapshot.buildAuthority).toEqual(initial.buildAuthority)
     const hostBuild = before.snapshot.buildAuthority!.combatants.find(
       (row) => row.combatantId === hostId,

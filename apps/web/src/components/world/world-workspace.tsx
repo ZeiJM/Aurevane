@@ -210,88 +210,92 @@ export function WorldWorkspace({
       (candidate.name.toLowerCase().includes(search.toLowerCase()) ||
         candidate.coordinate.toLowerCase().includes(search.toLowerCase())),
   )
-  return (
-    <section className={styles.workspace} data-world-workspace data-av-surface="moonstone">
-      <div className={styles.mapColumn}>
-        <header className={styles.toolbar}>
-          <div className={styles.heading}>
-            <span className={styles.compass} aria-hidden="true">
-              ✥
-            </span>
-            <div>
-              <h1>{mode === 'globe' ? 'World Map' : sector.name}</h1>
-              <p>
-                {mode === 'globe'
-                  ? 'The known world, and the roads beyond'
-                  : selected === view.position.sectorId
-                    ? `${sector.coordinate} · E${local.east + view.position.x} / N${local.north - view.position.y}`
-                    : `${sector.coordinate} · Inspecting this region`}
-              </p>
-            </div>
-          </div>
-          <div className={styles.tools}>
-            <button aria-pressed={grid} onClick={() => setGrid(!grid)}>
-              ▦ Grid
-            </button>
-            <button aria-expanded={layers} onClick={() => setLayers(!layers)}>
-              ▱ Layers
-            </button>
-            <button
-              onClick={() => {
-                followingPlayer.current = true
-                setSelected(view.position.sectorId)
-                setSelectedTile(null)
-                setFocus((n) => n + 1)
-              }}
-            >
-              ⌖ My Position
-            </button>
-            <button disabled={!local.panorama} onClick={() => setPanorama(true)}>
-              ◉ View 360°
-            </button>
-          </div>
-          <div className={styles.toolbarBottom}>
-            <div className={styles.tabs} role="group" aria-label="Map view">
-              <button aria-pressed={mode === 'globe'} onClick={() => setMode('globe')}>
-                ◎ Globe
-              </button>
-              <button aria-pressed={mode === 'sector'} onClick={() => setMode('sector')}>
-                ✥ Sector
-              </button>
-            </div>
-            <span className={styles.territory} data-safe={safe}>
-              {safe ? '◇ Protected settlement' : '⚔ Open PvP territory'}
-              <small>
-                {safe ? 'A place to rest and prepare.' : 'Other travellers may be encountered.'}
-              </small>
-            </span>
-          </div>
-          <p className={styles.locationContext} data-world-location-context>
-            <span>
-              You are in <strong>{local.name}</strong>
-            </span>
-            <span>
-              Viewing <strong>{sector.name}</strong>
-            </span>
+  const toolbar = (
+    <header className={styles.toolbar}>
+      <div className={styles.heading}>
+        <span className={styles.compass} aria-hidden="true">
+          ✥
+        </span>
+        <div>
+          <h1>{mode === 'globe' ? 'World Map' : sector.name}</h1>
+          <p>
+            {mode === 'globe'
+              ? 'The known world, and the roads beyond'
+              : selected === view.position.sectorId
+                ? `${sector.coordinate} · E${local.east + view.position.x} / N${local.north - view.position.y}`
+                : `${sector.coordinate} · Inspecting this region`}
           </p>
-          {layers ? (
-            <div className={styles.layerPanel}>
-              <label>
-                <input type="checkbox" checked={grid} onChange={(e) => setGrid(e.target.checked)} />
-                Coordinate grid
-              </label>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={motion}
-                  onChange={(e) => setMotion(e.target.checked)}
-                />
-                Environmental motion
-              </label>
-              <p>Uncharted places reveal themselves as you explore.</p>
-            </div>
-          ) : null}
-        </header>
+        </div>
+      </div>
+      <div className={styles.tools}>
+        <button aria-pressed={grid} onClick={() => setGrid(!grid)}>
+          ▦ Grid
+        </button>
+        <button aria-expanded={layers} onClick={() => setLayers(!layers)}>
+          ▱ Layers
+        </button>
+        <button
+          onClick={() => {
+            followingPlayer.current = true
+            setSelected(view.position.sectorId)
+            setSelectedTile(null)
+            setFocus((n) => n + 1)
+          }}
+        >
+          ⌖ My Position
+        </button>
+        <button disabled={!local.panorama} onClick={() => setPanorama(true)}>
+          ◉ View 360°
+        </button>
+      </div>
+      <div className={styles.toolbarBottom}>
+        <div className={styles.tabs} role="group" aria-label="Map view">
+          <button aria-pressed={mode === 'globe'} onClick={() => setMode('globe')}>
+            ◎ Globe
+          </button>
+          <button aria-pressed={mode === 'sector'} onClick={() => setMode('sector')}>
+            ✥ Sector
+          </button>
+        </div>
+        <span className={styles.territory} data-safe={safe}>
+          {safe ? '◇ Protected settlement' : '⚔ Open PvP territory'}
+          <small>
+            {safe ? 'A place to rest and prepare.' : 'Other travellers may be encountered.'}
+          </small>
+        </span>
+      </div>
+      <p className={styles.locationContext} data-world-location-context>
+        <span>
+          You are in <strong>{local.name}</strong>
+        </span>
+        <span>
+          Viewing <strong>{sector.name}</strong>
+        </span>
+      </p>
+      {layers ? (
+        <div className={styles.layerPanel}>
+          <label>
+            <input type="checkbox" checked={grid} onChange={(e) => setGrid(e.target.checked)} />
+            Coordinate grid
+          </label>
+          <label>
+            <input type="checkbox" checked={motion} onChange={(e) => setMotion(e.target.checked)} />
+            Environmental motion
+          </label>
+          <p>Uncharted places reveal themselves as you explore.</p>
+        </div>
+      ) : null}
+    </header>
+  )
+  return (
+    <section
+      className={styles.workspace}
+      data-world-workspace
+      data-world-view={mode}
+      data-av-surface="moonstone"
+    >
+      <div className={styles.mapColumn}>
+        {mode === 'sector' ? toolbar : null}
         <div className={styles.mapViewport}>
           {mode === 'globe' ? (
             <Globe
@@ -358,7 +362,13 @@ export function WorldWorkspace({
         ) : null}
       </div>
       <aside className={styles.sidebar}>
+        {mode === 'globe' ? toolbar : null}
         <section className={styles.panel} aria-label="Location details">
+          {sector.panorama ? (
+            <div className={styles.locationArt}>
+              <Image src={sector.panorama} alt="" fill sizes="(max-width: 760px) 100vw, 24vw" />
+            </div>
+          ) : null}
           <h2>Viewing {sector.name}</h2>
           <p className={styles.quiet}>
             {worldRegion(sector.regionId)?.summary ?? 'Explore the places revealed on your map.'}

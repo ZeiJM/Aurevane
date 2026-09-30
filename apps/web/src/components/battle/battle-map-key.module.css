@@ -51,3 +51,63 @@
   color: #b5e2bc;
   border-color: #73a67e;
 }
+
+.inline {
+  min-width: 0;
+  padding: 0.55rem;
+  border: 1px solid #9e8862;
+  color: #302a23;
+  background: linear-gradient(125deg, #e5d8be, #caba9d);
+  box-shadow:
+    inset 0 0 0 3px #e5d7bc66,
+    0 3px 12px #0004;
+}
+.inline header {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.4rem;
+}
+.inline strong {
+  font: 650 0.9375rem/1.1 var(--av-font-display);
+}
+.samples {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+.samples > span {
+  display: grid;
+  gap: 0.2rem;
+  text-align: center;
+  font-size: 0.75rem;
+  line-height: 1.2;
+}
+.samples i {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 2rem;
+  border: 1px solid #756b56;
+  background: url('/media/art/battle/terrain-open-stone-v01.webp') center/cover;
+  color: #ceeff6;
+  font-style: normal;
+}
+.samples [data-key='rough'] {
+  background-image: url('/media/art/battle/terrain-rough-moss-v01.webp');
+}
+.samples [data-key='elevated'] {
+  background-image: url('/media/art/battle/terrain-raised-stone-v01.webp');
+}
+.samples [data-key='frozen'] {
+  background: linear-gradient(135deg, #4a99b1, #214652);
+}
+@media (max-width: 820px) {
+  .inline {
+    padding: 0.4rem;
+  }
+  .samples {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

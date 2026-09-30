@@ -1,4 +1,6 @@
 import Link from 'next/link'
+import { AurevaneImage } from '@/components/media/aurevane-image'
+import styles from '@/components/master/master-panel-shell.module.css'
 import { MasterPanelShell, masterNavigation } from '@/components/master/master-panel-shell'
 import { requireMasterPanelPageAccess } from '@/server/master/master-panel-page-access'
 import { hasMasterPanelCapability } from '@/server/master/staff-access'
@@ -17,9 +19,17 @@ export default async function MasterPanelPage() {
           .filter((item) => !item.capability || hasMasterPanelCapability(access, item.capability))
           .map((item) => (
             <Link className="av-stone-panel" href={item.href} key={item.id}>
-              <span className="av-master-glyph" aria-hidden="true">
-                {item.icon}
-              </span>
+              <AurevaneImage
+                assetId={
+                  item.id === 'combat'
+                    ? 'environment.battle-hall.courtyard'
+                    : item.id === 'events' || item.id === 'live-events'
+                      ? 'ui.foundation.vista'
+                      : 'environment.archive.interior'
+                }
+                className={styles.overviewArt}
+                sizes="(max-width: 760px) 100vw, 17vw"
+              />
               <span className="av-eyebrow">{item.detail}</span>
               <h2>{item.label}</h2>
               <p>

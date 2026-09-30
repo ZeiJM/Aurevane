@@ -99,6 +99,9 @@ test('Creation exposes twelve portraits per gender and preserves the complete au
         return { x: box.x, y: box.y, width: box.width, height: box.height, bottom: box.bottom }
       }
       const input = element.querySelector('#creation-name')!
+      const heading = element.querySelector('h1')!
+      const gender = element.querySelector('input[name="presentation"]')!.closest('fieldset')!
+      const gallery = element.querySelector('[data-portrait-grid]')!
       const preview = element.querySelector('[aria-label="Selected portrait preview"] img')!
       const primary = Array.from(element.querySelectorAll('button')).find((button) =>
         button.textContent?.includes('Choose your discipline'),
@@ -106,20 +109,40 @@ test('Creation exposes twelve portraits per gender and preserves the complete au
       return {
         library: rect(element.querySelector('[data-portrait-library]')!),
         name: rect(input),
+        heading: rect(heading),
+        gender: rect(gender),
+        gallery: rect(gallery),
+        galleryOverflow: gallery.scrollHeight - gallery.clientHeight,
         preview: rect(preview),
         primary: rect(primary),
         nameFont: parseFloat(getComputedStyle(input).fontSize),
         primaryFont: parseFloat(getComputedStyle(primary).fontSize),
-        background: getComputedStyle(element.lastElementChild!).backgroundColor,
+        background: getComputedStyle(element.lastElementChild!).backgroundImage,
         overflow: document.documentElement.scrollWidth - innerWidth,
+        overflowY: document.documentElement.scrollHeight - innerHeight,
       }
     })
     results.push({ viewport: size, ...metrics })
     const label = `${info.project.name}-${size.width}x${size.height}`
     expect.soft(metrics.library.width, `${label}: gallery is not hidden`).toBeGreaterThan(150)
-    expect
-      .soft(metrics.library.bottom, `${label}: gallery precedes identity fields`)
-      .toBeLessThanOrEqual(metrics.name.y + 1)
+    if (size.width >= 1100) {
+      expect
+        .soft(metrics.library.x, `${label}: collection sits left of the selected portrait`)
+        .toBeLessThan(metrics.preview.x)
+      expect
+        .soft(metrics.name.y, `${label}: name follows the selected portrait`)
+        .toBeGreaterThan(metrics.preview.y + metrics.preview.height)
+      expect
+        .soft(
+          Math.abs(metrics.name.x - metrics.preview.x),
+          `${label}: name belongs to the preview column`,
+        )
+        .toBeLessThanOrEqual(1)
+    } else {
+      expect
+        .soft(metrics.name.y, `${label}: selected portrait precedes the name`)
+        .toBeGreaterThan(metrics.preview.y + metrics.preview.height)
+    }
     expect.soft(metrics.overflow, `${label}: no horizontal overflow`).toBeLessThanOrEqual(1)
     expect
       .soft(metrics.preview.width / metrics.preview.height, `${label}: square preview`)
@@ -130,12 +153,20 @@ test('Creation exposes twelve portraits per gender and preserves the complete au
         .toBeGreaterThanOrEqual(128)
     expect.soft(metrics.nameFont, `${label}: readable name input`).toBeGreaterThanOrEqual(16)
     expect.soft(metrics.primaryFont, `${label}: readable action`).toBeGreaterThanOrEqual(14)
-    expect
-      .soft(
-        Math.max(...(metrics.background.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number)),
-        `${label}: dark workspace`,
-      )
-      .toBeLessThan(75)
+    expect.soft(metrics.background, `${label}: stone workspace`).toContain('linear-gradient')
+    if (size.width >= 1280 && size.height >= 768)
+      expect.soft(metrics.overflowY, `${label}: desktop page fits`).toBeLessThanOrEqual(1)
+    if (size.width >= 1280 && size.height >= 768) {
+      expect
+        .soft(metrics.gender.x, `${label}: Gender belongs to the header right`)
+        .toBeGreaterThan(metrics.heading.x)
+      expect
+        .soft(metrics.gender.bottom, `${label}: Gender precedes the collection`)
+        .toBeLessThanOrEqual(metrics.gallery.y)
+      expect
+        .soft(metrics.galleryOverflow, `${label}: all twelve portraits fit without gallery scroll`)
+        .toBeLessThanOrEqual(1)
+    }
     if (size.width >= 1280 && size.height >= 768)
       expect
         .soft(metrics.primary.bottom, `${label}: primary fits at normal zoom`)
@@ -166,12 +197,25 @@ test('Creation exposes twelve portraits per gender and preserves the complete au
   await page.keyboard.press('ArrowRight')
   await expect(portraits.last()).toBeChecked()
   await expect(portraits.last()).toBeInViewport({ ratio: 1 })
+  const focusedPortrait = await portraits.last().evaluate((input) => ({
+    top: input.parentElement!.getBoundingClientRect().top,
+    bottom: input.parentElement!.getBoundingClientRect().bottom,
+    viewportHeight: innerHeight,
+  }))
+  expect(focusedPortrait.top).toBeGreaterThanOrEqual(0)
+  expect(focusedPortrait.bottom).toBeLessThanOrEqual(focusedPortrait.viewportHeight + 1)
   await creation.getByRole('radio', { name: 'Female', exact: true }).check()
   await expect(portraits).toHaveCount(12)
   await portraits.last().check()
   await creation.locator('input[name="appearance"]').last().check()
   await next.click()
   await expect(creation).toHaveAttribute('data-step', 'discipline')
+  if (info.project.name !== 'mobile-chromium') {
+    await page.setViewportSize({ width: 1366, height: 768 })
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollHeight - innerHeight))
+      .toBeLessThanOrEqual(1)
+  }
   await expect(creation.getByRole('heading', { level: 1 })).toBeFocused()
   const disciplines = creation.locator('input[name="discipline"]')
   await disciplines.nth(1).check()
@@ -195,6 +239,10 @@ test('Creation exposes twelve portraits per gender and preserves the complete au
       fullPage: true,
     })
   await creation.getByRole('button', { name: 'Review character', exact: true }).click()
+  if (info.project.name !== 'mobile-chromium')
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollHeight - innerHeight))
+      .toBeLessThanOrEqual(1)
   await expect(creation.getByText('Portrait', { exact: true })).toBeVisible()
   await expect(creation.getByText('Female adventurer 12', { exact: true })).toBeVisible()
   await expect(creation.getByText('Lightstep travelwear', { exact: true })).toBeVisible()

@@ -37,6 +37,7 @@ export function CharacterIdentityCard({
       className={styles.card}
       data-testid={compactRail ? 'character-rail-profile' : 'character-profile'}
       data-profile-identity-banner="true"
+      data-compact-rail={compactRail || undefined}
       data-av-surface="ink"
     >
       <div className={styles.portraitFrame} data-character-portrait-frame>
@@ -44,7 +45,11 @@ export function CharacterIdentityCard({
           <CharacterPortraitImage
             imageUrl={imageUrl}
             fallbackAssetId={getStarterPortraitImageAssetId(profile.identity.portraitRef)}
-            sizes="(min-width: 1200px) 20vw, (min-width: 761px) 38vw, 92vw"
+            sizes={
+              compactRail
+                ? '(max-height: 620px) 88px, (max-height: 700px) 112px, 144px'
+                : '(min-width: 1200px) 20vw, (min-width: 761px) 38vw, 92vw'
+            }
             alt={`${profile.identity.name} portrait`}
           />
         </div>

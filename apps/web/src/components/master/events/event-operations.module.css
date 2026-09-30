@@ -1220,3 +1220,38 @@
 :global(.av-master) .operations button:disabled {
   opacity: 0.5;
 }
+
+/* Approved stone collection and authoring composition. */
+.operations {
+  grid-template-columns: minmax(12rem, 20%) minmax(0, 1fr) minmax(13rem, 23%);
+  gap: 0.7rem;
+}
+.runNavigator,
+.operationWorkspace,
+.operationDock,
+.card,
+.dockCard,
+.overviewPanel,
+.emptyOperations {
+  background: var(--master-stone);
+  border-radius: 2px;
+  box-shadow: none;
+}
+.runHeader {
+  background: #dbd0ba;
+}
+.runRow {
+  background: #d9cbb3;
+}
+.runRow[aria-pressed='true'] {
+  background: #b7cec4;
+}
+@media (max-width: 1000px) {
+  .operations {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .runNavigator,
+  .operationDock {
+    position: static;
+  }
+}

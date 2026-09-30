@@ -25,7 +25,7 @@ test('keeps the desktop PvP battle flow beside compact commands without resizing
   browser,
 }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-chromium', 'Desktop PvP battle-log regression')
-  test.slow()
+  test.setTimeout(180_000)
 
   const password = 'AurevaneTest!42'
   const hostIdentity = uniqueIdentity('LogHost')
@@ -99,6 +99,9 @@ test('keeps the desktop PvP battle flow beside compact commands without resizing
     await spectator.goto('/game/battle')
     await spectator.getByRole('button', { name: 'Spectate', exact: true }).click()
     await spectator.getByLabel('Battle Key').fill(spectatorKey!)
+    const historyResponse = spectator.waitForResponse((response) =>
+      /\/api\/battles\/[^/]+\/events(?:\?|$)/.test(response.url()),
+    )
     await spectator.getByRole('button', { name: 'Spectate Battle' }).click()
     await expect(spectator).toHaveURL(
       new RegExp(`/game/battle/spectate/${spectatorKey!.replaceAll('-', '\\-')}$`),
@@ -107,28 +110,26 @@ test('keeps the desktop PvP battle flow beside compact commands without resizing
 
     const spectatorRoot = spectator.locator("main[data-pvp-spectator='true']")
     await expect(spectatorRoot).toBeVisible()
-    const spectatorChatTab = spectator.getByRole('tab', { name: 'Battle Chat' })
-    const spectatorLogTab = spectator.getByRole('tab', { name: 'Battle Log' })
-    await expect(spectatorLogTab).toHaveAttribute('aria-selected', 'true')
-    await spectatorChatTab.click()
-    await expect(spectatorChatTab).toHaveAttribute('aria-selected', 'true')
+    expect((await historyResponse).ok()).toBe(true)
+    const spectatorLog = spectatorRoot.locator('[data-battle-inline-log]')
+    await expect(spectatorLog).toBeVisible()
+    await expect(spectatorLog.getByRole('button', { name: 'Expand battle history' })).toBeVisible()
+    const chat = spectatorRoot
+      .locator('details')
+      .filter({ has: spectator.getByText('Battle Chat', { exact: true }) })
+    await chat.locator('summary').click()
+    await expect(chat).toHaveAttribute('open', '')
+    await expect(chat.getByRole('textbox')).toBeVisible()
+    await chat.locator('summary').click()
+    await expect(chat).not.toHaveAttribute('open', '')
+    await spectatorLog.getByRole('button', { name: 'Expand battle history' }).click()
+    const history = spectator.getByRole('dialog', { name: 'Battle Log', exact: true })
+    await expect(history).toBeVisible()
+    await expect(history).not.toContainText('temporarily unavailable')
+    await spectator.keyboard.press('Escape')
+    await expect(history).toHaveCount(0)
 
-    const spectatorLogResponse = spectator.waitForResponse((response) => {
-      const url = new URL(response.url())
-      return (
-        url.pathname.startsWith('/api/pvp/battles/') &&
-        url.pathname.endsWith('/chat') &&
-        url.searchParams.get('includeLog') === '1' &&
-        response.ok()
-      )
-    })
-    await spectatorLogTab.click()
-    await spectatorLogResponse
-    await expect(spectatorLogTab).toHaveAttribute('aria-selected', 'true')
-    await expect(spectator.getByText('Recent 4 turns · actions · outcomes')).toBeVisible()
-
-    const combatLog = root.locator('[data-battle-flow] > button')
-    if ((await combatLog.getAttribute('aria-expanded')) !== 'true') await combatLog.click()
+    await expect(root.locator('[data-battle-inline-log]')).toBeVisible()
     await expectMapKey(host)
     await expectBattleReferenceLayout(host, testInfo, 'combat-pvp-short-window')
     await expectBattleFlowKeepsBoardSize(host)
@@ -141,13 +142,10 @@ test('keeps the desktop PvP battle flow beside compact commands without resizing
       await expectBattleReferenceLayout(host, testInfo, `combat-pvp-${size.width}x${size.height}`)
       await expectBattleFlowKeepsBoardSize(host)
     }
-    await combatLog.click()
-    await expect(host.getByTestId('battle-log-panel')).toHaveCount(0)
     await host.reload()
-    await expect(host.getByTestId('battle-log-panel')).toHaveCount(0)
-    await host.getByRole('region', { name: 'Battle flow', exact: true }).getByRole('button').click()
-    await expectBattleReferenceLayout(host, testInfo, 'combat-pvp-flow-reopened')
+    await expect(root.locator('[data-battle-inline-log]')).toBeVisible()
+    await expectBattleReferenceLayout(host, testInfo, 'combat-pvp-history-after-reload')
   } finally {
-    await Promise.all([hostContext.close(), guestContext.close(), spectatorContext.close()])
+    await Promise.allSettled([hostContext.close(), guestContext.close(), spectatorContext.close()])
   }
 })

@@ -11,6 +11,15 @@ vi.mock('./pvp-lobby-modal', () => ({ PvpLobbyModal: () => null }))
 import { BattleLaunch } from './battle-launch'
 
 describe('Battle Hall concept composition', () => {
+  it('offers the three standard arena widths with matching labels', () => {
+    const markup = renderToStaticMarkup(
+      createElement(BattleLaunch, { characterId: 'character-1', characterName: 'Eira Vale' }),
+    )
+    expect(markup).toMatch(/value="duel-yard"[^>]*>Duel Yard · 9×7<\/option>/)
+    expect(markup).toMatch(/value="crossroads-court"[^>]*>Crossroads Court · 12×7<\/option>/)
+    expect(markup).toMatch(/value="terraced-yard"[^>]*>Terraced Yard · 15×7<\/option>/)
+  })
+
   it('renders three real workspaces with AI Sparring selected by default and no public matches', () => {
     const markup = renderToStaticMarkup(
       createElement(BattleLaunch, {

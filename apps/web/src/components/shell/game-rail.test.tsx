@@ -17,6 +17,22 @@ function renderRail(props: Parameters<typeof GameRail>[0] = {}) {
 }
 
 describe('shared game rail', () => {
+  it('uses a decorative flowing field and preserves the identity content', () => {
+    const markup = renderRail({ characterIdentity: <article>Character resources</article> })
+    expect(markup).toContain('data-aether-wisp="true"')
+    expect(markup).toContain('data-aether-runes="true"')
+    expect(markup).not.toContain('data-aether-orb')
+    expect(markup).toContain('aria-hidden="true"')
+    expect(markup).toContain('Character resources')
+  })
+
+  it('preserves title, audio and control settings access', () => {
+    const markup = renderRail()
+    expect(markup).toContain('href="/game/account/titles"')
+    expect(markup).toContain('href="/game/settings/audio"')
+    expect(markup).toContain('href="/game/settings/controls"')
+  })
+
   it('starts at Haven, groups Nexus and Items under Loadout, and uses compact labels', () => {
     navigationState.pathname = '/game/haven'
     const markup = renderRail()
@@ -55,6 +71,8 @@ describe('shared game rail', () => {
     expect(markup).not.toContain('href="/game/nexus"')
     expect(markup).not.toContain('href="/game/training"')
     expect(markup).not.toContain('href="/game/online"')
+    expect(markup).not.toContain('href="/game/settings/audio"')
+    expect(markup).not.toContain('href="/game/settings/controls"')
   })
 
   it('keeps Loadout active inside Nexus', () => {

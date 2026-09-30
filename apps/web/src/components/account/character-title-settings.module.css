@@ -475,3 +475,58 @@
 .layout :is(h2, h3) {
   color: #29372e;
 }
+
+/* Board 12: compact equipped identity and title/display controls. */
+.layout {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto;
+  overflow: auto;
+  max-height: calc(100dvh - 13rem);
+  gap: 0.7rem !important;
+  background: transparent !important;
+  border: 0;
+}
+.current,
+.personal,
+.profileImage,
+.future {
+  grid-column: 1;
+  grid-row: auto;
+  padding: 0.7rem;
+  border: 1px solid #ab9673;
+  background: #dfd4bf80;
+}
+.current {
+  grid-template-columns: 5rem minmax(0, 1fr);
+}
+.heroPortrait {
+  width: 5rem;
+  height: 5rem;
+}
+.personal h2,
+.profileImage h2 {
+  font-size: 1.2rem;
+}
+.current > p,
+.explanation,
+.lockedState p,
+.profileImage > div > p,
+.future p {
+  font-size: 0.79rem;
+  line-height: 1.45;
+}
+.profileImage {
+  grid-template-columns: minmax(0, 1fr) 5rem;
+}
+.confirmButton,
+.reviewButton {
+  background: #743f31;
+  color: #f4e8d0;
+  border-color: #744a39;
+}
+@media (max-width: 760px) {
+  .layout {
+    overflow: visible;
+    max-height: none;
+  }
+}

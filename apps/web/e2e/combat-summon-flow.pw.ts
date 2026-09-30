@@ -3,6 +3,7 @@ import { expect, test, type Page, type TestInfo } from '@playwright/test'
 
 import type { BattleSessionView } from '../src/server/battle/battle-session-service'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
+import { openSelectedCombatantDetails } from './refined-battle-helpers'
 
 function readPersistedDeferredInitiative(sessionId: string): readonly string[] {
   if (!/^[0-9a-f-]{36}$/i.test(sessionId)) throw new Error('Invalid test battle ID')
@@ -60,7 +61,9 @@ async function equipRenewingHerbs(page: Page): Promise<void> {
 
   await page.getByRole('button', { name: /Manage Disciplines/ }).click()
   const management = page.getByRole('dialog', { name: 'Discipline Management', exact: true })
-  await management.getByLabel('Primary Discipline').selectOption('wildwarden')
+  await management
+    .getByRole('combobox', { name: 'Primary Discipline', exact: true })
+    .selectOption('wildwarden')
   await management.getByRole('button', { name: /Confirm Change/ }).click()
   await expect(page.getByTestId('primary-discipline-chip')).toHaveText('Wildwarden')
   await management.getByRole('button', { name: 'Close', exact: true }).click()
@@ -122,10 +125,12 @@ test('current Renewing Herbs summons, inspects and survives reload with its pinn
   )
   expect(actorPlacement).toBeTruthy()
 
-  await root.getByRole('button', { name: /Choose Heal skill/ }).click()
-  await page.getByRole('option', { name: /Renewing Herbs 45 AP/ }).click()
-  await root.locator('[data-battle-command="recover"]').click()
-
+  const armedPreview = page.waitForResponse(
+    (response) => response.url().endsWith('/preview') && response.request().method() === 'POST',
+  )
+  await root.getByRole('button', { name: 'Selected Renewing Herbs, 45 AP', exact: true }).click()
+  expect((await armedPreview).status()).toBe(200)
+  expect(await readBattle(page, sessionId)).toEqual(before)
   const candidates = before.snapshot.tactical.tiles.filter((tile) => {
     if (!actorPlacement) return false
     const distance =
@@ -143,14 +148,18 @@ test('current Renewing Herbs summons, inspects and survives reload with its pinn
 
   let chosen: (typeof candidates)[number] | null = null
   for (const candidate of candidates) {
-    const tile = root.getByRole('button', {
-      name: new RegExp(`^Tile ${candidate.position.x + 1}, ${candidate.position.y + 1};`),
+    const previewResponse = await page.request.post(`/api/battles/${sessionId}/preview`, {
+      data: {
+        expectedBattleVersion: before.battleVersion,
+        intent: {
+          kind: 'action',
+          actionId: 'wildwarden.renewing-herbs',
+          target: { kind: 'tile', position: candidate.position },
+        },
+      },
     })
-    const previewResponse = page.waitForResponse(
-      (response) => response.url().endsWith('/preview') && response.request().method() === 'POST',
-    )
-    await tile.click()
-    const preview = (await (await previewResponse).json()).battlePreview.preview
+    expect(previewResponse.status()).toBe(200)
+    const preview = (await previewResponse.json()).battlePreview.preview
     if (preview.legal) {
       chosen = candidate
       break
@@ -158,13 +167,16 @@ test('current Renewing Herbs summons, inspects and survives reload with its pinn
   }
 
   expect(chosen).not.toBeNull()
-  await expect(root.getByRole('button', { name: 'Confirm Action', exact: true })).toBeEnabled()
 
   const committed = page.waitForResponse(
     (response) =>
       /\/(intents|commit)$/.test(response.url()) && response.request().method() === 'POST',
   )
-  await root.getByRole('button', { name: 'Confirm Action', exact: true }).click()
+  await root
+    .getByRole('button', {
+      name: new RegExp(`^Tile ${chosen!.position.x + 1}, ${chosen!.position.y + 1};`),
+    })
+    .click()
   const commitResponse = await committed
   expect(commitResponse.status()).toBe(200)
   const after = (await commitResponse.json()).battle as BattleSessionView
@@ -206,8 +218,7 @@ test('current Renewing Herbs summons, inspects and survives reload with its pinn
   await root.getByRole('button', { name: /^Inspect,/ }).click()
   await summonTile.click()
 
-  const inspect = page.getByRole('dialog', { name: 'Verdant Stalker battle details', exact: true })
-  await expect(inspect).toBeVisible()
+  const inspect = await openSelectedCombatantDetails(page, 'Verdant Stalker')
   await expect(inspect).toContainText(`Summoner: ${characterName}`)
   await expect(inspect).toContainText('5/5 turns')
   await expect(inspect).toContainText('Thorn Rake')
@@ -248,10 +259,7 @@ test('current Renewing Herbs summons, inspects and survives reload with its pinn
       ),
     })
     .click()
-  const reloadedInspect = page.getByRole('dialog', {
-    name: 'Verdant Stalker battle details',
-    exact: true,
-  })
+  const reloadedInspect = await openSelectedCombatantDetails(page, 'Verdant Stalker')
   await expect(reloadedInspect).toContainText('5/5 turns')
   await expect(reloadedInspect).toContainText('Thorn Rake')
   await expect(reloadedInspect).toContainText('Verdant Mend')

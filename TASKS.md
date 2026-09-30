@@ -2,6 +2,12 @@
 
 **PHASE 4 CLOSED — 2026-09-23:** the Owner explicitly accepted Phase 4 as closed. A03, A04, A07 and A10 are **COMPLETE**. A07 concerns battle SFX/audio identities, not background music. Post-closeout UI cleanup/regression work is maintenance and does not reopen Phase 4 by default. See `docs/PHASE_4_CLOSEOUT.md`.
 
+## Accepted UI and combat correction — 2026-09-30
+
+Owner-authorized correction candidate `agent/approved-ui-combat-correction-20260930` implements structural changes against the nineteen original concept boards and the newly accepted battle composition. It includes the fixed 1–9 cockpit, arming with authoritative forecasts, subsequent single-input execution, Space facing/end-turn, larger square gameplay art, seven-row arenas, compact combatant cards, terrain key/log and shared playable/spectator presentation. Existing operations, historical snapshots and server mechanics are preserved.
+
+Scope and evidence: `docs/superpowers/specs/2026-09-30-ui-combat-correction.md`, `docs/superpowers/plans/2026-09-30-ui-combat-correction.md`, `docs/superpowers/verification/2026-09-30-ui-combat-correction.md`. Draft PR #775 is published. Tenth head `cab6afb3` completed twelve successful workflows; Browser Smoke stopped early with 34 passed, eleven skips and one failure. Its authenticated trace identifies a hover Severance / Ascension panel under the pointer retained from the lobby. The eleventh test-only correction moves the pointer clear before keyboard turn verification, retaining zero-dialog, repeat suppression, ten handoffs and unchanged facing checks. The local gate passes 3,028 tests, seven Node checks and production builds. Fresh full Chromium/Edge validation, complete data-dependent subview fidelity and Owner visual acceptance remain open. This correction has not been merged or deployed; Vercel Git deployments remain disabled.
+
 ## Approved full UI redesign — 2026-09-29
 
 Candidate `agent/approved-aurevane-ui` implements the Owner-approved adventure/stone presentation, Haven as the post-selection destination, Loadout with Nexus and future Items, a compact shared character/navigation rail, onboarding portraits (12 Male / 12 Female), fixed frame with scrolling content, and consistent square gameplay media. Matchmaking alone is Coming Soon; direct PvP and all existing mechanics/editor operations remain available. Skill parameter and effect renderers are preserved.

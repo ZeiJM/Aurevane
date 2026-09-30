@@ -78,7 +78,7 @@ async function createCharacterAfterSignIn(input: {
   await page.getByRole('button', { name: 'Create character' }).click()
 
   await expect(page).toHaveURL(/\/game\/haven$/)
-  await expect(page.getByRole('heading', { name: 'Haven', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /^Welcome home,/ })).toBeVisible()
   await page.goto('/game/character')
   await expect(page.getByTestId('character-profile')).toContainText(characterName)
 }

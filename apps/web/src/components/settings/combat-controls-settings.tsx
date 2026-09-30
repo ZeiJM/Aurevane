@@ -13,7 +13,6 @@ import {
 } from '@aurevane/validation/player/combat-controls'
 import { useEffect, useMemo, useState } from 'react'
 
-import { AurevaneImage } from '@/components/media/aurevane-image'
 import styles from './combat-controls-settings.module.css'
 
 interface CombatControlsSettingsProps {
@@ -23,29 +22,54 @@ interface CombatControlsSettingsProps {
 const ACTION_COPY: Record<CombatKeybindAction, { label: string; description: string }> = {
   inspect: { label: 'Inspect', description: 'Open optional terrain and combatant inspection.' },
   move: {
-    label: 'Movement Skill',
-    description: `Activate the currently equipped Movement skill. With Move equipped, a normal tile costs ${PV1F_MOVEMENT_COST_PER_TERRAIN_POINT} AP and obeys your remaining Movement allowance.`,
+    label: 'Move',
+    description: `Select movement. A normal tile costs ${PV1F_MOVEMENT_COST_PER_TERRAIN_POINT} AP and obeys your remaining Movement allowance.`,
   },
   basicAttack: {
-    label: 'Attack Skill',
-    description:
-      'Activate the currently equipped Attack skill and enter its targeting or preview flow.',
+    label: 'Basic Attack',
+    description: 'Select Basic Attack and preview a legal target.',
   },
   guard: {
-    label: 'Defense Skill',
-    description: 'Activate the currently equipped Defense skill and enter its preview flow.',
+    label: 'Guard',
+    description: 'Select Guard and preview its effect.',
   },
   recover: {
-    label: 'Heal Skill',
-    description: 'Activate the currently equipped Heal skill, such as HP Recovery or MP Recovery.',
+    label: 'Recover',
+    description: 'Open the secondary recovery command.',
+  },
+  skill1: {
+    label: 'Discipline Skill 1',
+    description: 'Select the first committed Discipline Skill and preview its legal target.',
+  },
+  skill2: {
+    label: 'Discipline Skill 2',
+    description: 'Select the second committed Discipline Skill and preview its legal target.',
+  },
+  skill3: {
+    label: 'Discipline Skill 3',
+    description: 'Select the third committed Discipline Skill and preview its legal target.',
+  },
+  skill4: {
+    label: 'Discipline Skill 4',
+    description: 'Select the fourth committed Discipline Skill and preview its legal target.',
+  },
+  essence: {
+    label: 'Essence / Resonance',
+    description:
+      'Select an actionable Essence, or inspect passive Essence and Resonance information.',
+  },
+  supernatural: {
+    label: 'Severance / Ascension',
+    description: 'Inspect the future supernatural path slot. This does not issue a battle command.',
   },
   endTurn: {
     label: 'Finish Turn',
-    description: 'Choose final facing; the chosen direction immediately ends the turn.',
+    description:
+      'Enter final-facing selection. A second distinct press keeps your facing; a direction finishes with that facing.',
   },
   confirm: {
-    label: 'Confirm Action',
-    description: 'Commit the current legal move or action preview.',
+    label: 'Execute selected action',
+    description: 'Optional keyboard execution of the current legal preview.',
   },
   cancel: { label: 'Cancel Action', description: 'Clear current planning without committing.' },
   faceNorth: { label: 'Face North', description: 'Finish the turn facing north.' },
@@ -161,11 +185,9 @@ export function CombatControlsSettings({ initialBindings }: CombatControlsSettin
       aria-label="Combat controls settings"
     >
       <p className={styles.intro}>
-        Keybinds follow your account and trigger the same visible cockpit slots you can click.
-        Movement, Attack, Defense, and Heal bindings stay with their slot when you switch the
-        equipped skill. They never bypass battle previews, confirmation, legality checks, or server
-        authority. When Move is the equipped Movement skill and active, WASD and the arrow keys
-        select adjacent destinations; Enter confirms a legal proposal.
+        Keybinds follow your account and activate the visible battle commands. Select a command to
+        inspect its forecast, then click a legal target or use a deliberate directional input to
+        act. The server validates every action. Choose a binding below, then save your changes.
       </p>
 
       <div className={styles.grid}>
@@ -194,16 +216,6 @@ export function CombatControlsSettings({ initialBindings }: CombatControlsSettin
           </div>
         ))}
       </div>
-
-      <aside className={styles.companion} data-av-surface="ink">
-        <h2>Fight with intention</h2>
-        <AurevaneImage
-          assetId="environment.battle-hall.courtyard"
-          sizes="(min-width: 761px) 26vw, 100vw"
-        />
-        <p>Choose a binding, then press a key.</p>
-        <small>Changes apply when you save your controls.</small>
-      </aside>
 
       {error ? (
         <p className={styles.error} role="alert">

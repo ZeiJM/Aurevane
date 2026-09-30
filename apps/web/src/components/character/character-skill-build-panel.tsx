@@ -402,8 +402,8 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                   >
                     <Image
                       src={battleSkillArtwork(entry.definition.id)}
-                      width={96}
-                      height={96}
+                      width={160}
+                      height={160}
                       unoptimized
                       alt=""
                     />

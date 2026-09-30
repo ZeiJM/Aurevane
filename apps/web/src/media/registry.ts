@@ -1,4 +1,5 @@
 import { WORLD_ART } from './world-art'
+import { BATTLE_ART } from './battle-art'
 import { disciplineSigilArtwork } from './discipline-sigil-art'
 import { GENERATED_STARTER_PORTRAITS_1 } from './generated-starter-portraits-1'
 import { GENERATED_STARTER_PORTRAITS_2 } from './generated-starter-portraits-2'
@@ -105,6 +106,7 @@ const IMAGE_ASSETS = [
     height: 941,
   },
   ...WORLD_ART,
+  ...BATTLE_ART,
   ...phase4Sigils.map(([discipline, requestId]) => ({
     id: `art.phase4.${discipline}.identity.v01`,
     kind: 'icon' as const,

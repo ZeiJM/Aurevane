@@ -54,7 +54,33 @@ describe('full layout composition v3', () => {
 
       for (const marker of markers) expect(componentSource).toContain(marker)
       expect(stylesheetSource).toContain('@media (max-width: 760px)')
-      expect(stylesheetSource).toContain('composition-v3')
+      if (component.includes('offline-training-shell')) {
+        expect(componentSource).toContain('assetId="environment.passive-training.cloister"')
+        expect(stylesheetSource).toContain(
+          'grid-template-columns: minmax(15rem, 1fr) minmax(0, 1fr)',
+        )
+        expect(stylesheetSource).toContain('.heroMedia')
+        expect(componentSource).toContain('<PracticePlanCard')
+        expect(componentSource).toContain('<TrainingReportCard')
+      } else if (component.includes('character-profile-shell')) {
+        expect(componentSource).toContain('data-composition="correction"')
+        expect(stylesheetSource).toContain('grid-template-columns: minmax(0, 1fr)')
+        expect(stylesheetSource).toContain('[data-character-portrait-frame]')
+        expect(stylesheetSource).not.toContain('height: var(--character-rail-height')
+      } else if (component.includes('character-arsenal-shell')) {
+        expect(componentSource).toContain('data-composition="correction"')
+        expect(componentSource).not.toContain('<CharacterIdentityCard')
+        expect(stylesheetSource).toContain(
+          'grid-template-columns: minmax(17rem, 0.85fr) minmax(0, 1.65fr)',
+        )
+        expect(stylesheetSource).toContain('width: min(7rem, 100%)')
+      } else if (component.includes('character-select-shell')) {
+        expect(stylesheetSource).toContain('grid-template-columns: repeat(3, minmax(0, 1fr))')
+        expect(stylesheetSource).toContain('aspect-ratio: 1')
+        expect(stylesheetSource).not.toContain('min-height: clamp(30rem')
+      } else {
+        expect(stylesheetSource).toContain('composition-v3')
+      }
     },
   )
 

@@ -8,6 +8,7 @@ import { getImageAsset } from '@/media/registry'
 import railStyles from '../public-information/public-header-rail.module.css'
 import { AccountMenu } from './account-menu'
 import { GameRail, type GameRailProps } from './game-rail'
+import { MobileShellInsets } from './mobile-shell-insets'
 import { OnlinePresenceLink } from './online-presence-link'
 import styles from './authenticated-game-shell.module.css'
 
@@ -60,8 +61,10 @@ export function AuthenticatedShellPresentation({
         data-testid="authenticated-shell"
         data-av-shell="concept"
         data-av-layout={layout}
+        data-av-session-restricted={Boolean(activeSessionHref) || undefined}
       >
         <PvpBattleKeyInputAssist />
+        {layout === 'standard' ? <MobileShellInsets /> : null}
         <a className="skip-link" href="#game-main">
           Skip to game content
         </a>

@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 
+import { AurevaneImage } from '@/components/media/aurevane-image'
+
 import { AuthenticatedShellFrame } from '@/components/shell/authenticated-game-shell'
 import {
   hasMasterPanelCapability,
@@ -85,8 +87,17 @@ export function MasterPanelShell({
 }: MasterPanelShellProps) {
   return (
     <AuthenticatedShellFrame sessionLabel="Master Panel">
-      <section className="av-master" data-testid="master-panel-shell">
-        <header className="av-page-heading">
+      <section
+        className={`av-master ${styles.workspace}`}
+        data-testid="master-panel-shell"
+        data-master-composition={activeSection}
+      >
+        <header className={styles.heading}>
+          <AurevaneImage
+            assetId="environment.archive.interior"
+            className={styles.headingArt}
+            sizes="85vw"
+          />
           <div>
             <span className="av-eyebrow">
               Master Panel ·{' '}
@@ -96,7 +107,7 @@ export function MasterPanelShell({
           </div>
           <p>{description}</p>
         </header>
-        <nav className="av-master-navigation" aria-label="Master Panel navigation">
+        <nav className={styles.navigation} aria-label="Master Panel navigation">
           <Link href="/master" aria-current={activeSection === 'overview' ? 'page' : undefined}>
             Overview
           </Link>

@@ -11,7 +11,7 @@ function uniqueCharacterName(): string {
   return `Align ${letters}`
 }
 
-test('single-Discipline Nexus and Technique modal align live and locked slots', async ({
+test('single-Discipline Nexus aligns its four selected slots and preserves locked modal choices', async ({
   page,
 }, testInfo) => {
   test.skip(
@@ -29,30 +29,20 @@ test('single-Discipline Nexus and Technique modal align live and locked slots', 
   await page.goto('/game/nexus')
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
 
-  const lanes = page.locator('[data-nexus-technique-lane="true"]')
-  await expect(lanes).toHaveCount(2)
-
-  const activeLane = lanes.nth(0)
-  const lockedLane = lanes.nth(1)
-  await expect(lockedLane).toHaveAttribute('data-locked', 'true')
-
-  const activeHeaderBox = await activeLane.locator('header').boundingBox()
-  const lockedHeaderBox = await lockedLane.locator('header').boundingBox()
-  const activeSlotBox = await activeLane
-    .locator('[data-arsenal-technique-row="true"]')
-    .first()
-    .boundingBox()
-  const lockedSlotBox = await lockedLane
-    .locator('[data-arsenal-technique-row="true"]')
-    .first()
-    .boundingBox()
-
-  if (!activeHeaderBox || !lockedHeaderBox || !activeSlotBox || !lockedSlotBox) {
-    throw new Error('Nexus Technique geometry is unavailable.')
-  }
-
-  expect(Math.abs(activeHeaderBox.height - lockedHeaderBox.height)).toBeLessThanOrEqual(1)
-  expect(Math.abs(activeSlotBox.y - lockedSlotBox.y)).toBeLessThanOrEqual(1)
+  const lane = page.locator('[data-nexus-technique-lane="true"]')
+  await expect(lane).toHaveCount(1)
+  const slots = lane.locator('[data-arsenal-technique-row="true"]')
+  await expect(slots).toHaveCount(4)
+  const geometry = await slots.evaluateAll((elements) =>
+    elements.map((element) => {
+      const rect = element.getBoundingClientRect()
+      return { y: rect.y, width: rect.width, height: rect.height }
+    }),
+  )
+  expect(
+    Math.max(...geometry.map((slot) => slot.y)) - Math.min(...geometry.map((slot) => slot.y)),
+  ).toBeLessThanOrEqual(1)
+  await expect(page.locator('[data-arsenal-panel="disciplines"]')).toContainText('Locked')
 
   await page
     .getByTestId('skill-build-panel')

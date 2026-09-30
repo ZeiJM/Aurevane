@@ -7,8 +7,6 @@ import {
 } from '@aurevane/game-core/character/wayfarers-practice'
 import { GameButton } from '@aurevane/ui'
 
-import { AurevaneImage } from '@/components/media/aurevane-image'
-import type { ImageAssetId } from '@/media/registry'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 
@@ -38,6 +36,9 @@ interface PracticePlanCardProps {
 
 export function PracticePlanCard({ practice, report, hasReport = false }: PracticePlanCardProps) {
   const router = useRouter()
+  const [selectedWindow, setSelectedWindow] = useState<PracticePlanWindow>(
+    practice.plannedWindow ?? 'short',
+  )
   const [submittingWindow, setSubmittingWindow] = useState<PracticePlanWindow | null>(null)
   const [stopping, setStopping] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -79,25 +80,21 @@ export function PracticePlanCard({ practice, report, hasReport = false }: Practi
     window: PracticePlanWindow
     seconds: number
     description: string
-    imageAssetId: ImageAssetId
   }[] = [
     {
       window: 'short',
       seconds: practice.shortWindowSeconds,
       description: 'Best hourly return.',
-      imageAssetId: 'environment.passive-training.cloister',
     },
     {
       window: 'overnight',
       seconds: practice.overnightWindowSeconds,
       description: 'Moderate hourly return.',
-      imageAssetId: 'environment.battle-hall.courtyard',
     },
     {
       window: 'extended',
       seconds: practice.extendedWindowSeconds,
       description: 'Lowest hourly return.',
-      imageAssetId: 'environment.archive.interior',
     },
   ]
 
@@ -199,16 +196,20 @@ export function PracticePlanCard({ practice, report, hasReport = false }: Practi
                 key={option.window}
                 data-active={selected || undefined}
               >
-                <div className={styles.windowMedia} aria-hidden="true">
-                  <AurevaneImage
-                    assetId={option.imageAssetId}
-                    className={styles.windowImage}
-                    sizes="7rem"
-                  />
-                </div>
+                <input
+                  type="radio"
+                  name="training-duration"
+                  id={`training-duration-${option.window}`}
+                  aria-label={`${passiveTrainingWindowLabel(option.window)} Plan`}
+                  checked={selectedWindow === option.window}
+                  disabled={submittingWindow !== null || stopping || trainingActive}
+                  onChange={() => setSelectedWindow(option.window)}
+                />
                 <div className={styles.windowBody}>
                   <div className={styles.windowHeading}>
-                    <strong>{passiveTrainingWindowLabel(option.window)}</strong>
+                    <label htmlFor={`training-duration-${option.window}`}>
+                      {passiveTrainingWindowLabel(option.window)} Plan
+                    </label>
                     <span>{formatPracticeDuration(option.seconds)}</span>
                   </div>
                   <p>{option.description}</p>
@@ -222,24 +223,19 @@ export function PracticePlanCard({ practice, report, hasReport = false }: Practi
                       <dd>+{reward} XP</dd>
                     </div>
                   </dl>
-                  <GameButton
-                    className={styles.startButton}
-                    type="button"
-                    variant={selected ? 'quiet' : 'primary'}
-                    disabled={submittingWindow !== null || stopping || trainingActive}
-                    onClick={() => void setPlan(option.window)}
-                  >
-                    {submittingWindow === option.window
-                      ? 'Starting…'
-                      : selected
-                        ? 'Training now'
-                        : `Start ${passiveTrainingWindowLabel(option.window)}`}
-                  </GameButton>
                 </div>
               </article>
             )
           })}
         </div>
+        <GameButton
+          className={styles.startButton}
+          type="button"
+          disabled={submittingWindow !== null || stopping || trainingActive}
+          onClick={() => void setPlan(selectedWindow)}
+        >
+          {submittingWindow ? 'Starting…' : trainingActive ? 'Training now' : 'Start Training'}
+        </GameButton>
         {errorMessage ? (
           <p className={styles.error} role="status">
             {errorMessage}
@@ -341,7 +337,14 @@ export function PracticePlanCard({ practice, report, hasReport = false }: Practi
           The server keeps time. This page does not need to stay open.
         </p>
       </section>
-      {report}
+      {hasReport ? (
+        report
+      ) : (
+        <details className={styles.reportDisclosure}>
+          <summary>Training Report</summary>
+          {report}
+        </details>
+      )}
     </div>
   )
 }

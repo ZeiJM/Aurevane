@@ -241,20 +241,44 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
 
         {step === 'identity' ? (
           <div className={styles.step}>
-            <h1 ref={stepHeading} tabIndex={-1}>
-              Give your legend a face.
-            </h1>
-            <p className={styles.intro}>
-              Choose the name, visage, and bearing by which AUREVANE will know you. These choices
-              shape identity, not combat power.
-            </p>
+            <div className={styles.identityHeading}>
+              <h1 ref={stepHeading} tabIndex={-1}>
+                Give your legend a face.
+              </h1>
+              <p className={styles.intro}>Choose your name, visage, and appearance.</p>
+              <fieldset className={styles.genderChoices}>
+                <legend>Gender</legend>
+                <div className={styles.presentationChoices}>
+                  {CHARACTER_PRESENTATIONS.filter((option) => option.id !== 'androgynous').map(
+                    (option) => (
+                      <label key={option.id} className={styles.inlineChoice}>
+                        <input
+                          checked={presentationId === option.id}
+                          name="presentation"
+                          onChange={() => {
+                            changed()
+                            setPresentationId(option.id)
+                            setPortraitRef(
+                              ADVENTURE_CHARACTER_PORTRAITS.find(
+                                (portrait) => portrait.presentationId === option.id,
+                              )!.ref,
+                            )
+                          }}
+                          type="radio"
+                        />
+                        <span>{option.id === 'masculine' ? 'Male' : 'Female'}</span>
+                      </label>
+                    ),
+                  )}
+                </div>
+              </fieldset>
+            </div>
 
             <div className={styles.identityWorkspace}>
-              <fieldset className={styles.choiceGroup} data-portrait-library="true">
-                <legend>Choose your visage</legend>
+              <div className={styles.choiceGroup} data-portrait-library="true">
+                <h2 className={styles.collectionHeading}>Choose your visage</h2>
                 <p className={styles.choiceHint}>
-                  {portraitChoices.length} faces await. Choose the likeness that will represent this
-                  character throughout AUREVANE.
+                  {portraitChoices.length} portraits. Choose your likeness.
                 </p>
                 <div className={styles.portraitGrid} data-portrait-grid="true">
                   {portraitChoices.map((option) => (
@@ -282,7 +306,7 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
                     </label>
                   ))}
                 </div>
-              </fieldset>
+              </div>
               <aside className={styles.portraitPreview} aria-label="Selected portrait preview">
                 <span className={styles.previewLabel}>Your likeness</span>
                 <div className={styles.previewFrame}>
@@ -292,65 +316,38 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
                   />
                 </div>
                 <div className={styles.previewCopy}>
-                  <strong>{name.trim() || 'Unnamed wayfarer'}</strong>
                   <span>{selectedPortrait.label}</span>
                   <small>
                     {CHARACTER_PRESENTATIONS.find((option) => option.id === presentationId)?.label}
                   </small>
                 </div>
+                <label
+                  className={styles.field}
+                  data-invalid={invalidFields.includes('name') || undefined}
+                >
+                  <span id="creation-name-label">Name</span>
+                  <input
+                    id="creation-name"
+                    aria-label="Character name"
+                    aria-describedby="creation-name-hint"
+                    aria-invalid={invalidFields.includes('name') || undefined}
+                    autoComplete="off"
+                    maxLength={CHARACTER_CREATION_RULES_V1.name.maximumCodePoints}
+                    minLength={CHARACTER_CREATION_RULES_V1.name.minimumCodePoints}
+                    onChange={(event) => {
+                      changed()
+                      setName(event.target.value)
+                    }}
+                    placeholder="Enter a name…"
+                    value={name}
+                  />
+                  <small id="creation-name-hint">
+                    3–24 letters; spaces, apostrophes, and hyphens.
+                  </small>
+                </label>
               </aside>
             </div>
             <div className={styles.identityDetails}>
-              <label
-                className={styles.field}
-                data-invalid={invalidFields.includes('name') || undefined}
-              >
-                <span id="creation-name-label">Name carried into AUREVANE</span>
-                <input
-                  id="creation-name"
-                  aria-label="Character name"
-                  aria-describedby="creation-name-hint"
-                  aria-invalid={invalidFields.includes('name') || undefined}
-                  autoComplete="off"
-                  maxLength={CHARACTER_CREATION_RULES_V1.name.maximumCodePoints}
-                  minLength={CHARACTER_CREATION_RULES_V1.name.minimumCodePoints}
-                  onChange={(event) => {
-                    changed()
-                    setName(event.target.value)
-                  }}
-                  placeholder="Enter a name…"
-                  value={name}
-                />
-                <small id="creation-name-hint">
-                  3–24 letters. Spaces, apostrophes, and hyphens may bind the parts of a name.
-                </small>
-              </label>
-              <fieldset className={styles.choiceGroup}>
-                <legend>Character</legend>
-                <div className={styles.presentationChoices}>
-                  {CHARACTER_PRESENTATIONS.filter((option) => option.id !== 'androgynous').map(
-                    (option) => (
-                      <label key={option.id} className={styles.inlineChoice}>
-                        <input
-                          checked={presentationId === option.id}
-                          name="presentation"
-                          onChange={() => {
-                            changed()
-                            setPresentationId(option.id)
-                            setPortraitRef(
-                              ADVENTURE_CHARACTER_PORTRAITS.find(
-                                (portrait) => portrait.presentationId === option.id,
-                              )!.ref,
-                            )
-                          }}
-                          type="radio"
-                        />
-                        <span>{option.id === 'masculine' ? 'Male' : 'Female'}</span>
-                      </label>
-                    ),
-                  )}
-                </div>
-              </fieldset>
               <fieldset className={styles.choiceGroup}>
                 <legend>First appearance</legend>
                 <p className={styles.choiceHint}>
@@ -406,109 +403,117 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
             data-creation-surface="moonstone"
           >
             <h1 ref={stepHeading} tabIndex={-1}>
-              Choose the Discipline that answers you.
+              Choose your Discipline.
             </h1>
             <p className={styles.intro}>
-              Your Primary Discipline shapes the foundation of your starting attributes while it is
-              equipped. Your personal points remain your own, even if you later walk another path.
+              Your Primary Discipline sets your base attributes. Personal points remain yours.
             </p>
 
-            <fieldset
-              className={styles.choiceGroup}
-              data-invalid={invalidFields.includes('foundationDisciplineId') || undefined}
-            >
-              <legend>Disciplines of AUREVANE</legend>
-              <div className={styles.disciplineGrid}>
-                {FOUNDATION_DISCIPLINES.map((discipline) => (
-                  <label
-                    key={discipline.id}
-                    className={styles.optionCard}
-                    data-selected={foundationDisciplineId === discipline.id}
-                    data-testid="creation-discipline-choice"
-                  >
-                    <input
-                      checked={foundationDisciplineId === discipline.id}
-                      name="discipline"
-                      onChange={() => {
-                        changed()
-                        setFoundationDisciplineId(discipline.id)
-                        setAttributeBonuses(starterBonusesForDiscipline(discipline.id))
-                      }}
-                      type="radio"
-                    />
-                    <FoundationDisciplineSigil
-                      disciplineId={discipline.id}
-                      className={styles.disciplineSigil}
-                    />
-                    <strong>{discipline.name}</strong>
-                    <small>{discipline.summary}</small>
-                  </label>
-                ))}
-              </div>
-            </fieldset>
+            <div className={styles.disciplineWorkspace}>
+              <fieldset
+                className={styles.choiceGroup}
+                data-invalid={invalidFields.includes('foundationDisciplineId') || undefined}
+              >
+                <legend>Disciplines of AUREVANE</legend>
+                <div className={styles.disciplineGrid}>
+                  {FOUNDATION_DISCIPLINES.map((discipline) => (
+                    <label
+                      key={discipline.id}
+                      className={styles.optionCard}
+                      data-selected={foundationDisciplineId === discipline.id}
+                      data-testid="creation-discipline-choice"
+                    >
+                      <input
+                        checked={foundationDisciplineId === discipline.id}
+                        name="discipline"
+                        onChange={() => {
+                          changed()
+                          setFoundationDisciplineId(discipline.id)
+                          setAttributeBonuses(starterBonusesForDiscipline(discipline.id))
+                        }}
+                        type="radio"
+                      />
+                      <FoundationDisciplineSigil
+                        disciplineId={discipline.id}
+                        className={styles.disciplineSigil}
+                      />
+                      <strong>{discipline.name}</strong>
+                      <small>{discipline.summary}</small>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
 
-            <div className={styles.attributeHeader}>
-              <div>
-                <h2>Shape your starting attributes</h2>
-                <p>
-                  {selectedDiscipline.name} lends{' '}
-                  {CHARACTER_CREATION_RULES_V1.attributes.disciplineBaseTotal} points to its base
-                  profile. You hold {CHARACTER_CREATION_RULES_V1.attributes.bonusBudget} personal
-                  points to shape as you wish. Those points—and every point earned through later
-                  Levels—remain yours if your Primary Discipline changes.
-                </p>
-              </div>
-              <strong data-testid="attribute-points">
-                {remainingPoints} personal points remaining
-              </strong>
-            </div>
-
-            <div className={styles.attributeGrid}>
-              {CHARACTER_ATTRIBUTE_IDS.map((attributeId) => {
-                const bonus = attributeBonuses[attributeId]
-                const base = selectedDiscipline.baseAttributes[attributeId]
-                const total = base + bonus
-                return (
-                  <div
-                    className={styles.attributeCard}
-                    data-testid="creation-attribute-row"
-                    key={attributeId}
-                    data-invalid={
-                      invalidFields.some((field) => field.includes(attributeId)) || undefined
-                    }
-                  >
-                    <div>
-                      <strong>{attributeId[0].toUpperCase() + attributeId.slice(1)}</strong>
-                      <small>{attributeCopy[attributeId]}</small>
-                      <small>
-                        Discipline base {base} · Personal +{bonus} · Total {total}
-                      </small>
-                    </div>
-                    <div className={styles.attributeControl}>
-                      <button
-                        aria-label={`Decrease ${attributeId} bonus`}
-                        disabled={bonus === 0}
-                        onClick={() => changeAttribute(attributeId, -1)}
-                        type="button"
-                      >
-                        −
-                      </button>
-                      <output aria-label={`${attributeId} bonus`}>+{bonus}</output>
-                      <button
-                        aria-label={`Increase ${attributeId} bonus`}
-                        disabled={
-                          remainingPoints === 0 ||
-                          bonus === CHARACTER_CREATION_RULES_V1.attributes.maximumBonusPerAttribute
-                        }
-                        onClick={() => changeAttribute(attributeId, 1)}
-                        type="button"
-                      >
-                        +
-                      </button>
-                    </div>
+              <section
+                className={styles.attributeDock}
+                aria-label="Selected Discipline and starting attributes"
+              >
+                <header className={styles.selectedDiscipline}>
+                  <h2>{selectedDiscipline.name}</h2>
+                  <p>{selectedDiscipline.summary}</p>
+                </header>
+                <div className={styles.attributeHeader}>
+                  <div>
+                    <h3>Starting attributes</h3>
+                    <p>
+                      {CHARACTER_CREATION_RULES_V1.attributes.disciplineBaseTotal} Discipline points
+                      · {CHARACTER_CREATION_RULES_V1.attributes.bonusBudget} personal points
+                    </p>
                   </div>
-                )
-              })}
+                  <strong data-testid="attribute-points">
+                    {remainingPoints} personal points remaining
+                  </strong>
+                </div>
+
+                <div className={styles.attributeGrid}>
+                  {CHARACTER_ATTRIBUTE_IDS.map((attributeId) => {
+                    const bonus = attributeBonuses[attributeId]
+                    const base = selectedDiscipline.baseAttributes[attributeId]
+                    const total = base + bonus
+                    return (
+                      <div
+                        className={styles.attributeCard}
+                        data-testid="creation-attribute-row"
+                        title={attributeCopy[attributeId]}
+                        key={attributeId}
+                        data-invalid={
+                          invalidFields.some((field) => field.includes(attributeId)) || undefined
+                        }
+                      >
+                        <div>
+                          <strong>{attributeId[0].toUpperCase() + attributeId.slice(1)}</strong>
+                          <small>
+                            Base {base} · +{bonus} · Total {total}
+                          </small>
+                        </div>
+                        <div className={styles.attributeControl}>
+                          <button
+                            aria-label={`Decrease ${attributeId} bonus`}
+                            disabled={bonus === 0}
+                            onClick={() => changeAttribute(attributeId, -1)}
+                            type="button"
+                          >
+                            −
+                          </button>
+                          <output aria-label={`${attributeId} bonus`}>+{bonus}</output>
+                          <button
+                            aria-label={`Increase ${attributeId} bonus`}
+                            disabled={
+                              remainingPoints === 0 ||
+                              bonus ===
+                                CHARACTER_CREATION_RULES_V1.attributes.maximumBonusPerAttribute
+                            }
+                            onClick={() => changeAttribute(attributeId, 1)}
+                            type="button"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </section>
             </div>
 
             {errorMessage ? (

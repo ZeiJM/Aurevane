@@ -27,10 +27,10 @@ export function OfflineTrainingShell({
     <CharacterRailSynchronizedLayout className={styles.layout} data-training-concept="true">
       <CharacterIdentityCard {...identity} />
 
-      <section className={styles.sheet} data-av-surface="moonstone" data-training-sheet="true">
+      <section className={styles.sheet} data-training-sheet="true">
         <section className={styles.hero} data-training-scene="true">
           <AurevaneImage
-            assetId="ui.foundation.vista"
+            assetId="environment.passive-training.cloister"
             className={styles.heroMedia}
             sizes="(max-width: 760px) 100vw, 72vw"
           />
