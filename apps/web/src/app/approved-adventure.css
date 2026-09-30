@@ -247,40 +247,11 @@ body {
   text-align: center;
 }
 
-[data-battle-hall-workspace] {
-  grid-template-columns: minmax(0, 1fr) !important;
-  gap: 1rem !important;
-  height: auto !important;
-  min-height: 0 !important;
-}
-:is([data-training-concept], [data-battle-hall-workspace]) > [data-profile-identity-banner] {
-  display: none !important;
+[data-battle-hall-workspace] > [data-profile-identity-banner],
+[data-training-concept] > [data-profile-identity-banner] {
+  display: none;
 }
 
-[data-hall-concept] {
-  height: auto !important;
-  min-height: 0 !important;
-  max-height: none !important;
-  overflow: visible !important;
-  padding: 1.25rem !important;
-}
-
-[data-hall-mode-rail] {
-  display: grid !important;
-  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-  gap: 0.6rem !important;
-  margin-block: 1rem;
-}
-[data-hall-mode-rail] button {
-  min-height: 4.5rem !important;
-  border: 1px solid #8d7959 !important;
-  color: #353b32;
-  background: #af9c7d36 !important;
-}
-[data-hall-mode-rail] button[data-active] {
-  color: #f0e5ce !important;
-  background: linear-gradient(120deg, #345954, #263e3c) !important;
-}
 .av-matchmaking {
   padding: 2rem;
   min-height: 24rem;
@@ -365,13 +336,6 @@ body {
   .av-loadout-card {
     min-height: 21rem;
     padding: 1.4rem;
-  }
-
-  [data-hall-mode-rail] {
-    grid-template-columns: 1fr 1fr !important;
-  }
-  [data-hall-concept] {
-    padding: 0.8rem !important;
   }
 }
 

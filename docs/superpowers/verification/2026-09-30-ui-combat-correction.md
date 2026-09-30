@@ -27,7 +27,7 @@ Representative screenshots and measured outputs are in [the verification directo
 ## Final-candidate checks and remaining acceptance
 
 Final local check: `pnpm check` passed on the candidate after the interaction and Training/Profile/Nexus fixes: formatting, lint, all typechecks, 3,027 tests (893 web, 2,005 game-core, 45 validation, 62 database, 17 audio, three realtime, two worker) and production builds. `git diff --check` passed. Playwright discovered 441 tests in 72 files.
-Authenticated CI: pending PR publication.
+Authenticated CI on the first published head (`0d11a0a8`, draft PR #775): CI, Skill Engine, Essence Build, Resonance Build, Profile Skill Build, Shared Build Snapshots and Attribute Allocation passed. Six browser/layout workflows failed. Most failed at the shared character-provisioning helper's obsolete exact “Haven” heading. The public entry test still assumed a CSS background instead of the real scene image; creation tests still required stacked attributes and gallery-before-name, and a 1366×768 creation action exceeded the viewport by seven pixels. These failures prompted selector/structural-assertion corrections and a smaller short-desktop creation spacing rule. A fresh authenticated run is required for the follow-up head; the initial failures do not prove downstream gameplay passed.
 
 The changed browser journeys use the new single-input contract while retaining persistence, damage/effects, summon scheduling, victory rewards, keyboard handoff and modal boundaries. Training journeys retain explicit-start, stop, elapsed-time, server-frozen reward and claim assertions.
 
@@ -36,3 +36,11 @@ Automated fit and interaction checks are evidence, not visual acceptance. Exact 
 ## Media provenance
 
 New terrain/background sources and runtime derivatives are recorded in `content/media-candidates/battle-task7/provenance.json` and `content/art-requests/ART-BATTLE-007.md`. They depict existing terrain rules; they introduce no new terrain mechanics. Existing approved portrait/scene assets retain their provenance.
+
+## Follow-up layout and browser correction
+
+Hall now has the full scenic backdrop, compact mode tabs and a lower stone arena workspace. Staff has the reference's directory/detail two-column structure with existing authority and audit operations. Audio now has separate Volume settings and Now playing panels backed by the existing route music player, with actual track/progress and pause/resume. Two-channel volume persistence remains intact. Manual pause survives volume changes, visibility return and general audio-unlock gestures. Local Chromium exercised pause/resume, actual media time progression, volume application and the pause/volume boundary, with and without forced autoplay. A durable authenticated Audio journey was added to the layout suite.
+
+Extended actual-component fixtures covered Hall, Audio, Rules, News and the Staff/Music/Event Master workspaces at 1366×768, 1440×900, 1920×1080 and 390×844. Desktop document/main overflow checks passed; Rules reading and Master editor regions retain intentional internal scrolling. Hall and Staff fixtures were regenerated after their structural corrections. Public empty News and sparse Master collections reflect actual data rather than fabricated reference entries.
+
+The final follow-up `pnpm check` passed formatting, lint, all typechecks, 3,027 unit tests and production builds. Playwright discovery now lists 444 tests in 73 files. Fresh CI and remaining exact visual acceptance are still open.

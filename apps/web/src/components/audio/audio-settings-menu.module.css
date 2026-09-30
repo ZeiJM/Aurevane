@@ -157,3 +157,33 @@
     top: calc(4rem + env(safe-area-inset-top, 0px));
   }
 }
+
+.root:has(> :global(.av-audio-inline)) {
+  width: 100%;
+  justify-self: stretch;
+  z-index: auto;
+}
+:global(.av-audio-inline) .mix {
+  margin-top: 0;
+}
+:global(.av-audio-inline) .channel {
+  grid-template-columns: minmax(9rem, 0.6fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 1rem;
+}
+:global(.av-audio-inline) .actions {
+  margin-top: 0;
+  justify-self: end;
+}
+:global(.av-audio-inline) .actions button {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #978264;
+  color: #30392f;
+  background: #d6c9b0;
+}
+@media (max-width: 760px) {
+  :global(.av-audio-inline) .channel {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+}

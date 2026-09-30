@@ -1124,7 +1124,7 @@
 
 /* Approved stone collection and authoring composition. */
 .layout {
-  grid-template-columns: minmax(12rem, 23%) minmax(0, 1fr) minmax(14rem, 25%);
+  grid-template-columns: minmax(12rem, 23%) minmax(0, 1fr);
   gap: 0.7rem;
 }
 .rosterPane,
@@ -1150,5 +1150,24 @@
 @media (max-width: 1000px) {
   .layout {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (min-width: 1001px) {
+  .rosterPane {
+    grid-column: 1;
+    grid-row: 1 / 3;
+  }
+  .authorityWorkspace,
+  .authorityDock {
+    grid-column: 2;
+  }
+  .authorityDock {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
+    align-items: start;
+  }
+  .auditCard {
+    grid-column: 1 / -1;
   }
 }

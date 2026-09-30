@@ -117,9 +117,18 @@ test('Creation exposes twelve portraits per gender and preserves the complete au
     results.push({ viewport: size, ...metrics })
     const label = `${info.project.name}-${size.width}x${size.height}`
     expect.soft(metrics.library.width, `${label}: gallery is not hidden`).toBeGreaterThan(150)
-    expect
-      .soft(metrics.library.bottom, `${label}: gallery precedes identity fields`)
-      .toBeLessThanOrEqual(metrics.name.y + 1)
+    if (size.width >= 1100) {
+      expect
+        .soft(metrics.name.x, `${label}: identity sits left of the portrait collection`)
+        .toBeLessThan(metrics.library.x)
+      expect
+        .soft(metrics.library.x, `${label}: collection sits left of the selected portrait`)
+        .toBeLessThan(metrics.preview.x)
+    } else {
+      expect
+        .soft(metrics.library.bottom, `${label}: collection precedes identity on narrow screens`)
+        .toBeLessThanOrEqual(metrics.name.y + 1)
+    }
     expect.soft(metrics.overflow, `${label}: no horizontal overflow`).toBeLessThanOrEqual(1)
     expect
       .soft(metrics.preview.width / metrics.preview.height, `${label}: square preview`)

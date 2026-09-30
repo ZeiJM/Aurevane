@@ -332,7 +332,6 @@ export function BattleLaunch({ characterId, initialJoinKey = null }: BattleLaunc
       className={styles.page}
       id="battle-launch"
       aria-labelledby="battle-launch-title"
-      data-av-surface="moonstone"
     >
       <header className={styles.heading} data-hall-scene="true">
         <AurevaneImage

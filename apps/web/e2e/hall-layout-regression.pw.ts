@@ -73,7 +73,7 @@ async function capture(page: Page, testInfo: TestInfo, state: string) {
   })
 }
 
-test('Battle Hall shows one full-width parchment workspace at a time with all real controls', async ({
+test('Battle Hall places one arena workspace below the scenic mode tabs with all real controls', async ({
   page,
 }, testInfo) => {
   test.setTimeout(90_000)
@@ -97,9 +97,9 @@ test('Battle Hall shows one full-width parchment workspace at a time with all re
   await expect(page.getByRole('button', { name: 'Enter Battle', exact: true })).toBeEnabled()
   await expect(page.getByText('No battle selected.', { exact: true })).toHaveCount(0)
   if (!mobile) {
-    await expect(ai.getByText('Recommended for', { exact: true })).toBeVisible()
-    await expect(ai.getByText('Ideal for', { exact: true })).toBeVisible()
-    await expect(ai.getByText('For experienced', { exact: true })).toBeVisible()
+    await expect(ai.getByText('Recommended for', { exact: true })).toBeHidden()
+    await expect(ai.getByText('Ideal for', { exact: true })).toBeHidden()
+    await expect(ai.getByText('For experienced', { exact: true })).toBeHidden()
   }
   await expect(ai.getByText('01 / AI Battles', { exact: true })).toHaveCount(0)
   await expect(

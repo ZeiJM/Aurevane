@@ -80,3 +80,10 @@
     font-size: 2.1rem;
   }
 }
+
+.workspace:has(> [data-audio-workspace]) {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}

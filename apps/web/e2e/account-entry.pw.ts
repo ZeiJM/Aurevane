@@ -11,15 +11,10 @@ test('account entry is responsive, focusable, stable, and media-safe', async ({ 
   await expect(title).toBeVisible()
   const hero = page.locator('[aria-labelledby="aurevane-title"]')
   await expect(hero).toBeVisible()
-  expect(await hero.evaluate((element) => getComputedStyle(element).backgroundImage)).toContain(
-    'adventure/threshold-v01.webp',
-  )
-  const artworkWidth = await hero.evaluate(async (element) => {
-    const background = getComputedStyle(element).backgroundImage
-    const url = background.match(/url\("?([^"\)]+)"?\)/)?.[1]
-    if (!url) throw new Error('The login hero has no artwork URL')
-    const image = new Image()
-    image.src = url
+  const artwork = hero.locator('img').first()
+  await expect(artwork).toHaveAttribute('src', /adventure%2Fthreshold-v01|adventure\/threshold-v01/)
+  const artworkWidth = await artwork.evaluate(async (element) => {
+    const image = element as HTMLImageElement
     await image.decode()
     return image.naturalWidth
   })

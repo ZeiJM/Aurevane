@@ -57,15 +57,18 @@ test('Creation Discipline follows its own subject composition without losing rea
       overflow: document.documentElement.scrollWidth - innerWidth,
       firstX: firstRow.getBoundingClientRect().x,
       secondX: secondRow.getBoundingClientRect().x,
+      firstY: firstRow.getBoundingClientRect().y,
+      secondY: secondRow.getBoundingClientRect().y,
       firstWidth: firstRow.getBoundingClientRect().width,
       secondWidth: secondRow.getBoundingClientRect().width,
     }
   })
 
   expect(metrics.overflow).toBeLessThanOrEqual(1)
-  expect(Math.abs(metrics.firstX - metrics.secondX)).toBeLessThanOrEqual(2)
+  expect(metrics.secondX).toBeGreaterThan(metrics.firstX)
+  expect(Math.abs(metrics.firstY - metrics.secondY)).toBeLessThanOrEqual(2)
   expect(Math.abs(metrics.firstWidth - metrics.secondWidth)).toBeLessThanOrEqual(2)
-  expect(metrics.firstWidth).toBeGreaterThan(700)
+  expect(metrics.firstWidth).toBeGreaterThan(250)
   const channels = (metrics.background.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number)
   expect(Math.min(...channels)).toBeGreaterThan(150)
 })
@@ -114,14 +117,10 @@ test('Creation Confirm follows its own subject composition and keeps genuine sub
     const summaryElement = document.querySelector<HTMLElement>(
       '[data-testid="creation-confirm-summary"]',
     )!
-    const workspaceElement = document.querySelector<HTMLElement>(
-      '[data-testid="creation-confirm-workspace"]',
-    )!
     const portraitBox = portraitElement.getBoundingClientRect()
     const summaryBox = summaryElement.getBoundingClientRect()
-    const background = getComputedStyle(workspaceElement).backgroundColor
     return {
-      background,
+      background: getComputedStyle(summaryElement.querySelector('dl > div')!).backgroundColor,
       overflow: document.documentElement.scrollWidth - innerWidth,
       portraitRight: portraitBox.right,
       summaryLeft: summaryBox.left,
