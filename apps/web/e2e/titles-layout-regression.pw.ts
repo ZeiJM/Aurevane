@@ -17,7 +17,7 @@ function maxRgbChannel(value: string) {
   return Math.max(...(value.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number))
 }
 
-test('Titles keeps the approved stone two-column account composition at normal desktop zoom', async ({
+test('Titles keeps the scenic account workspace and its stacked editing controls at normal desktop zoom', async ({
   page,
 }, info) => {
   test.skip(info.project.name !== 'desktop-chromium', 'Desktop Titles composition only')
@@ -41,6 +41,7 @@ test('Titles keeps the approved stone two-column account composition at normal d
   await expect(current).toBeVisible()
   await expect(profileImage).toBeVisible()
   await expect(save).toBeVisible()
+  await save.scrollIntoViewIfNeeded()
   await settle(page)
 
   const metrics = await page.evaluate(() => {
@@ -71,8 +72,8 @@ test('Titles keeps the approved stone two-column account composition at normal d
       save: { y: saveBox.y, bottom: saveBox.bottom },
       footerTop: footer.top,
       surface: root.dataset.avSurface ?? null,
-      background: getComputedStyle(root).backgroundColor,
-      personalHeadingColor: getComputedStyle(root.querySelector('h1')!).color,
+      background: getComputedStyle(root.parentElement!).backgroundImage,
+      personalHeadingColor: getComputedStyle(root.querySelector('#personal-title-heading')!).color,
       profileHeadingColor: getComputedStyle(root.querySelector('#profile-image-heading')!).color,
       overflow: document.documentElement.scrollWidth - innerWidth,
     }
@@ -80,14 +81,22 @@ test('Titles keeps the approved stone two-column account composition at normal d
 
   expect.soft(metrics.overflow, 'no horizontal overflow').toBeLessThanOrEqual(1)
   expect.soft(metrics.surface, 'Titles uses the stone surface token contract').toBe('moonstone')
-  expect.soft(maxRgbChannel(metrics.background), 'stone Titles workspace').toBeGreaterThan(140)
+  expect.soft(metrics.background, 'stone Titles workspace').toContain('linear-gradient')
   expect
     .soft(maxRgbChannel(metrics.personalHeadingColor), 'personal-title heading remains readable')
     .toBeLessThan(110)
   expect
     .soft(maxRgbChannel(metrics.profileHeadingColor), 'profile-image heading remains readable')
     .toBeLessThan(110)
-  expect.soft(metrics.personal.x, 'title workflow is left').toBeLessThan(metrics.current.x)
+  expect
+    .soft(
+      Math.abs(metrics.personal.x - metrics.current.x),
+      'title workflow follows the equipped identity in one column',
+    )
+    .toBeLessThanOrEqual(2)
+  expect
+    .soft(metrics.personal.y, 'title editor follows current identity')
+    .toBeGreaterThan(metrics.current.y)
   expect
     .soft(
       Math.abs(metrics.current.x - metrics.profileImage.x),
@@ -148,8 +157,8 @@ test('Titles stacks cleanly on phone without inventing desktop-only overflow', a
     const root = document.querySelector<HTMLElement>('[data-character-concept="titles"]')!
     return {
       surface: root.dataset.avSurface ?? null,
-      rootBackground: getComputedStyle(root).backgroundColor,
-      personalHeadingColor: getComputedStyle(root.querySelector('h1')!).color,
+      rootBackground: getComputedStyle(root.parentElement!).backgroundImage,
+      personalHeadingColor: getComputedStyle(root.querySelector('#personal-title-heading')!).color,
       current: rect('section[aria-labelledby="current-title-heading"]'),
       personal: rect('section[aria-labelledby="personal-title-heading"]'),
       profileImage: rect('section[aria-labelledby="profile-image-heading"]'),
@@ -161,7 +170,7 @@ test('Titles stacks cleanly on phone without inventing desktop-only overflow', a
   expect
     .soft(metrics.surface, 'phone Titles uses the stone surface token contract')
     .toBe('moonstone')
-  expect.soft(maxRgbChannel(metrics.rootBackground), 'phone stone workspace').toBeGreaterThan(140)
+  expect.soft(metrics.rootBackground, 'phone stone workspace').toContain('linear-gradient')
   expect
     .soft(maxRgbChannel(metrics.personalHeadingColor), 'phone title heading remains readable')
     .toBeLessThan(110)

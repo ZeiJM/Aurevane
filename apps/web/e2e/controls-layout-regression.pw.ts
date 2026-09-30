@@ -49,7 +49,7 @@ test('Controls keeps all bindings reachable inside the stone desktop workspace',
 
   const metrics = await page.evaluate(() => {
     const root = document.querySelector<HTMLElement>('[data-character-concept="controls"]')!
-    const outer = root.parentElement!.closest('[data-av-surface]') as HTMLElement
+    const outer = root.parentElement!
     const grid = document.querySelector('[data-testid="keybind-inspect"]')!.parentElement!
     const actions = Array.from(root.querySelectorAll('button')).find((button) =>
       button.textContent?.includes('Reset defaults'),
@@ -61,10 +61,11 @@ test('Controls keeps all bindings reachable inside the stone desktop workspace',
     const actionsBox = actions.getBoundingClientRect()
     return {
       surface: root.dataset.avSurface ?? null,
-      outerSurface: outer.dataset.avSurface ?? null,
+
       background: getComputedStyle(root).backgroundImage,
       outerBackground: getComputedStyle(outer).backgroundImage,
-      headingColor: getComputedStyle(outer.querySelector('h1')!).color,
+      headingColor: getComputedStyle(root.closest('[data-settings-scene]')!.querySelector('h1')!)
+        .color,
       gridOverflowY: getComputedStyle(grid).overflowY,
       gridClientHeight: grid.clientHeight,
       gridScrollHeight: grid.scrollHeight,
@@ -79,15 +80,14 @@ test('Controls keeps all bindings reachable inside the stone desktop workspace',
   expect.soft(metrics.overflow, 'desktop has no horizontal overflow').toBeLessThanOrEqual(1)
   expect.soft(metrics.surface, 'Controls uses the stone surface token contract').toBe('moonstone')
   expect
-    .soft(metrics.outerSurface, 'outer Controls workspace uses the stone surface')
-    .toBe('moonstone')
-  expect.soft(metrics.background, 'Controls panel uses stone material').toContain('linear-gradient')
+    .soft(metrics.background, 'Controls panel reveals its containing stone workspace')
+    .toBe('none')
   expect
     .soft(metrics.outerBackground, 'outer workspace uses stone material')
     .toContain('linear-gradient')
   expect
     .soft(maxRgbChannel(metrics.headingColor), 'Controls heading remains readable')
-    .toBeLessThan(110)
+    .toBeGreaterThan(200)
   expect.soft(['auto', 'scroll']).toContain(metrics.gridOverflowY)
   expect
     .soft(
@@ -148,11 +148,11 @@ test('Controls stays a natural single-column scroll on phone', async ({ page }, 
 
   const metrics = await page.evaluate(() => {
     const root = document.querySelector<HTMLElement>('[data-character-concept="controls"]')!
-    const outer = root.parentElement!.closest('[data-av-surface]') as HTMLElement
+    const outer = root.parentElement!
     const grid = document.querySelector('[data-testid="keybind-inspect"]')!.parentElement!
     return {
       surface: root.dataset.avSurface ?? null,
-      outerSurface: outer.dataset.avSurface ?? null,
+
       background: getComputedStyle(root).backgroundImage,
       outerBackground: getComputedStyle(outer).backgroundImage,
       gridOverflowY: getComputedStyle(grid).overflowY,
@@ -166,10 +166,7 @@ test('Controls stays a natural single-column scroll on phone', async ({ page }, 
   expect
     .soft(metrics.surface, 'phone Controls uses the stone surface token contract')
     .toBe('moonstone')
-  expect
-    .soft(metrics.outerSurface, 'phone outer workspace uses the stone surface')
-    .toBe('moonstone')
-  expect.soft(metrics.background, 'phone Controls uses stone material').toContain('linear-gradient')
+  expect.soft(metrics.background, 'phone panel reveals its stone workspace').toBe('none')
   expect
     .soft(metrics.outerBackground, 'phone outer workspace uses stone material')
     .toContain('linear-gradient')

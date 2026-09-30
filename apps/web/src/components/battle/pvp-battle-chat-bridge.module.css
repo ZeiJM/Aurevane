@@ -121,12 +121,12 @@
 
 .footerPresenceButton span,
 .footerPresenceButton strong {
-  font-size: 0.5rem;
+  font-size: 0.75rem;
 }
 
 .footerPresenceButton small {
   color: var(--av-text-dim);
-  font: 700 0.34rem/1 var(--av-font-mono);
+  font: 700 0.6875rem/1 var(--av-font-mono);
   text-transform: uppercase;
 }
 

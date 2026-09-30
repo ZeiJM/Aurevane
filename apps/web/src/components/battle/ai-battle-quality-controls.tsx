@@ -252,9 +252,8 @@ export function AiBattleQualityControls({
       const target =
         strip?.firstElementChild instanceof HTMLElement ? strip.firstElementChild : null
       if (strip && target) markInstructionStructure(strip, target)
-      const clockHost = desktopLayout
-        ? root.querySelector<HTMLElement>('[data-battle-turn-clock-slot="true"]')
-        : target
+      const clockHost =
+        root.querySelector<HTMLElement>('[data-battle-turn-clock-slot="true"]') ?? target
       setClockTarget((current) => (current === clockHost ? current : clockHost))
 
       if (commandTargetRef.current !== target) {
@@ -463,28 +462,28 @@ export function AiBattleQualityControls({
 
   const seconds = remainingSeconds(clock?.deadlineAt ?? null, now)
 
-  if (!commandTarget) return null
-
   return (
     <>
-      {createPortal(
-        <>
-          {chips.length > 0 ? (
-            <span data-battle-target-preview="true" aria-label="Action preview">
-              {chips.map((chip, index) => (
-                <span
-                  key={`${chip.label}-${index}`}
-                  data-battle-preview-chip="true"
-                  data-battle-preview-tone={chip.tone}
-                >
-                  {chip.label}
+      {commandTarget
+        ? createPortal(
+            <>
+              {chips.length > 0 ? (
+                <span data-battle-target-preview="true" aria-label="Action preview">
+                  {chips.map((chip, index) => (
+                    <span
+                      key={`${chip.label}-${index}`}
+                      data-battle-preview-chip="true"
+                      data-battle-preview-tone={chip.tone}
+                    >
+                      {chip.label}
+                    </span>
+                  ))}
                 </span>
-              ))}
-            </span>
-          ) : null}
-        </>,
-        commandTarget,
-      )}
+              ) : null}
+            </>,
+            commandTarget,
+          )
+        : null}
       {clockTarget
         ? createPortal(
             <span
@@ -501,7 +500,7 @@ export function AiBattleQualityControls({
                 border: '1px solid rgba(111,172,143,.42)',
                 borderRadius: '999px',
                 background: 'rgba(75,143,111,.055)',
-                font: '750 .4rem/1 var(--av-font-mono)',
+                font: '750 .75rem/1 var(--av-font-mono)',
                 whiteSpace: 'nowrap',
               }}
               aria-live="polite"

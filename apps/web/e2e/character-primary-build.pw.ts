@@ -74,7 +74,7 @@ test('Nexus previews and commits Primary Discipline while Character preserves pe
   await expect(dialog).toContainText('Secondary Discipline')
   await expect(dialog).toContainText('Locked')
 
-  const primarySelect = dialog.getByLabel('Primary Discipline')
+  const primarySelect = dialog.getByRole('combobox', { name: 'Primary Discipline', exact: true })
 
   await expect(primarySelect).toBeEnabled()
   await primarySelect.selectOption('aetherist')

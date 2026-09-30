@@ -55,7 +55,9 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
   await expect(management).toBeVisible()
   await page.reload()
   await expect(management).toBeVisible()
-  await management.getByLabel('Primary Discipline').selectOption('ironfist')
+  await management
+    .getByRole('combobox', { name: 'Primary Discipline', exact: true })
+    .selectOption('ironfist')
   await management.getByRole('button', { name: /Confirm Change/ }).click()
   await expect(page.getByTestId('primary-discipline-chip')).toHaveText('Ironfist')
   await management.getByRole('button', { name: 'Close', exact: true }).click()
@@ -255,7 +257,7 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
       }),
     ]),
   )
-  const primary = management.getByLabel('Primary Discipline')
+  const primary = management.getByRole('combobox', { name: 'Primary Discipline', exact: true })
   await expect(primary.locator('option[value="bastion"]')).toHaveCount(1)
   // Existing Owner-authorized testing access covers all published Disciplines without fake Mastery.
   // Earned prerequisites and 4/2/2 acquisition are independently verified in database CI.
@@ -384,7 +386,9 @@ test('Chronist provisions its full testing library, Essence artwork and explicit
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
   await page.getByRole('button', { name: /Manage Disciplines/ }).click()
   const management = page.getByRole('dialog', { name: 'Discipline Management' })
-  await management.getByLabel('Primary Discipline').selectOption('chronist')
+  await management
+    .getByRole('combobox', { name: 'Primary Discipline', exact: true })
+    .selectOption('chronist')
   await management.getByRole('button', { name: /Confirm Change/ }).click()
   await expect(page.getByTestId('primary-discipline-chip')).toHaveText('Chronist')
   await management.getByRole('button', { name: 'Close', exact: true }).click()

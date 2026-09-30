@@ -85,8 +85,11 @@ test('Nexus equips a mastered Secondary with independent attunement authority', 
   await expect(dialog).toContainText('Secondary Discipline')
   await expect(dialog).toContainText('Locked')
 
-  const primarySelect = dialog.getByLabel('Primary Discipline')
-  const secondarySelect = dialog.getByLabel('Secondary Discipline')
+  const primarySelect = dialog.getByRole('combobox', { name: 'Primary Discipline', exact: true })
+  const secondarySelect = dialog.getByRole('combobox', {
+    name: 'Secondary Discipline',
+    exact: true,
+  })
 
   await expect(primarySelect).toBeEnabled()
   await expect(secondarySelect).toBeEnabled()

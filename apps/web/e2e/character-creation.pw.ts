@@ -59,7 +59,10 @@ test('creates a slotted character, persists its profile, and resumes it across s
   await expect(levelProgress).toContainText('Character Level 1')
   await expect(levelProgress).toContainText('0 / 100 XP')
   await expect(
-    page.getByRole('progressbar', { name: 'Level progress', exact: true }),
+    page.getByRole('progressbar', {
+      name: testInfo.project.name === 'mobile-chromium' ? 'Level progress' : 'Rail level progress',
+      exact: true,
+    }),
   ).toHaveAttribute('aria-valuenow', '0')
 
   // Starter portrait filenames are registry-driven; verify the rendered image and decoded asset.

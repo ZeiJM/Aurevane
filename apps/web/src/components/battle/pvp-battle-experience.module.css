@@ -44,6 +44,19 @@
   font: 650 1.0625rem/1.1 var(--av-font-display);
   overflow-wrap: anywhere;
 }
+.header :global([data-battle-header-utilities='true']) {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+.header :global([data-battle-header-utilities='true'] > button) {
+  height: 2rem;
+  font-size: 12px;
+}
+.header :global([data-battle-header-utilities='true'] > button > span) {
+  font: inherit;
+}
 .economy {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -410,10 +423,14 @@
 }
 .battleKey {
   display: grid;
+  align-content: center;
   gap: 0.15rem;
-  border: 0;
+  height: 2.7rem;
+  padding: 0.2rem 0.75rem;
+  border: 1px solid #9f8758;
+  border-radius: 999px;
   color: #d2be96;
-  background: transparent;
+  background: #26343b;
   cursor: pointer;
   font-size: 0.75rem;
 }

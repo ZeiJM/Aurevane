@@ -296,7 +296,9 @@ export function CharacterArsenalShell({
               </span>
               <div>
                 <span>Primary Discipline</span>
-                <strong>{disciplineBuild.current.definition.name}</strong>
+                <strong data-testid="primary-discipline-chip">
+                  {disciplineBuild.current.definition.name}
+                </strong>
                 <p>{disciplineBuild.current.definition.summary}</p>
               </div>
             </article>
@@ -308,7 +310,9 @@ export function CharacterArsenalShell({
                 </span>
                 <div>
                   <span>Secondary Discipline</span>
-                  <strong>{disciplineBuild.currentSecondary.name}</strong>
+                  <strong data-testid="secondary-discipline-chip">
+                    {disciplineBuild.currentSecondary.name}
+                  </strong>
                   <p>{disciplineBuild.currentSecondary.summary}</p>
                 </div>
               </article>

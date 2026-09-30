@@ -637,6 +637,7 @@ export function CharacterDisciplineBuildPanel({
                             >
                               <span>Primary Discipline</span>
                               <select
+                                aria-label="Primary Discipline"
                                 value={selectedPrimaryId}
                                 onChange={(event) => {
                                   setActiveSlot('primary')
@@ -667,6 +668,7 @@ export function CharacterDisciplineBuildPanel({
                             >
                               <span>Secondary Discipline</span>
                               <select
+                                aria-label="Secondary Discipline"
                                 value={selectedSecondaryId}
                                 onChange={(event) => {
                                   setActiveSlot('secondary')

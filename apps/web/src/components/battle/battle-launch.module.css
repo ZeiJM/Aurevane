@@ -1385,6 +1385,8 @@
 }
 .workspaceGrid {
   align-self: end;
+  max-height: 100%;
+  grid-template-rows: minmax(0, 1fr);
   overflow: visible;
 }
 .workspace {

@@ -99,7 +99,9 @@ test('a populated hybrid loadout keeps all four Techniques and management action
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
   await page.locator('[data-testid="primary-build-panel"] > button').click()
   const management = page.getByRole('dialog', { name: 'Discipline Management', exact: true })
-  await management.getByLabel('Secondary Discipline').selectOption('lifebinder')
+  await management
+    .getByRole('combobox', { name: 'Secondary Discipline', exact: true })
+    .selectOption('lifebinder')
   const commitBuild = management.getByRole('button', { name: /Confirm Change/ })
   await expect(commitBuild).toBeEnabled()
   const buildSaved = page.waitForResponse(

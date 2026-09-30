@@ -160,10 +160,11 @@ test('training composition preserves idle, active, report and claim flows', asyn
   }
 
   await capture('idle')
-  await expect(page.locator('button')).toHaveCount(3)
+  await expect(page.getByTestId('practice-plan-card').getByRole('radio')).toHaveCount(3)
+  await expect(page.getByRole('button', { name: 'Start Training', exact: true })).toBeEnabled()
   await submit(page, 'Start Training', '/api/wayfarers-practice/plan')
   await expect(page.getByTestId('passive-training-active')).toBeVisible()
-  for (const action of await page.locator('button').all()) {
+  for (const action of await page.getByTestId('practice-plan-card').locator('button').all()) {
     await expect(action).toBeDisabled()
   }
   await capture('active')

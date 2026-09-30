@@ -265,6 +265,7 @@ test('mobile page panels clear the navigation bar at the end of scrolling', asyn
       await page
         .locator('#game-main')
         .evaluate((element) => element.scrollTo(0, element.scrollHeight))
+      await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
       await settleLayout(page)
       const measure = () =>
         page.evaluate(() => {

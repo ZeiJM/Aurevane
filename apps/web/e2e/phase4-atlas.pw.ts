@@ -46,8 +46,12 @@ test('Mastery authority remains available while Discipline Management uses the c
   await expect(management).not.toContainText('Select New Discipline')
   await expect(management).not.toContainText('Explore. Compare. Commit.')
   await expect(management).not.toContainText('Your foundation in battle')
-  await expect(management.getByLabel('Primary Discipline')).toBeVisible()
-  await expect(management.getByLabel('Secondary Discipline')).toBeVisible()
+  await expect(
+    management.getByRole('combobox', { name: 'Primary Discipline', exact: true }),
+  ).toBeVisible()
+  await expect(
+    management.getByRole('combobox', { name: 'Secondary Discipline', exact: true }),
+  ).toBeVisible()
   expect(
     await management.evaluate((element) => element.scrollWidth <= element.clientWidth + 1),
   ).toBe(true)

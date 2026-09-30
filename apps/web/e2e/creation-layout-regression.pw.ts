@@ -110,8 +110,9 @@ test('Creation exposes twelve portraits per gender and preserves the complete au
         primary: rect(primary),
         nameFont: parseFloat(getComputedStyle(input).fontSize),
         primaryFont: parseFloat(getComputedStyle(primary).fontSize),
-        background: getComputedStyle(element.lastElementChild!).backgroundColor,
+        background: getComputedStyle(element.lastElementChild!).backgroundImage,
         overflow: document.documentElement.scrollWidth - innerWidth,
+        overflowY: document.documentElement.scrollHeight - innerHeight,
       }
     })
     results.push({ viewport: size, ...metrics })
@@ -119,15 +120,21 @@ test('Creation exposes twelve portraits per gender and preserves the complete au
     expect.soft(metrics.library.width, `${label}: gallery is not hidden`).toBeGreaterThan(150)
     if (size.width >= 1100) {
       expect
-        .soft(metrics.name.x, `${label}: identity sits left of the portrait collection`)
-        .toBeLessThan(metrics.library.x)
-      expect
         .soft(metrics.library.x, `${label}: collection sits left of the selected portrait`)
         .toBeLessThan(metrics.preview.x)
+      expect
+        .soft(metrics.name.y, `${label}: name follows the selected portrait`)
+        .toBeGreaterThan(metrics.preview.y + metrics.preview.height)
+      expect
+        .soft(
+          Math.abs(metrics.name.x - metrics.preview.x),
+          `${label}: name belongs to the preview column`,
+        )
+        .toBeLessThanOrEqual(1)
     } else {
       expect
-        .soft(metrics.library.bottom, `${label}: collection precedes identity on narrow screens`)
-        .toBeLessThanOrEqual(metrics.name.y + 1)
+        .soft(metrics.name.y, `${label}: selected portrait precedes the name`)
+        .toBeGreaterThan(metrics.preview.y + metrics.preview.height)
     }
     expect.soft(metrics.overflow, `${label}: no horizontal overflow`).toBeLessThanOrEqual(1)
     expect
@@ -139,12 +146,9 @@ test('Creation exposes twelve portraits per gender and preserves the complete au
         .toBeGreaterThanOrEqual(128)
     expect.soft(metrics.nameFont, `${label}: readable name input`).toBeGreaterThanOrEqual(16)
     expect.soft(metrics.primaryFont, `${label}: readable action`).toBeGreaterThanOrEqual(14)
-    expect
-      .soft(
-        Math.max(...(metrics.background.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number)),
-        `${label}: dark workspace`,
-      )
-      .toBeLessThan(75)
+    expect.soft(metrics.background, `${label}: stone workspace`).toContain('linear-gradient')
+    if (size.width >= 1280 && size.height >= 768)
+      expect.soft(metrics.overflowY, `${label}: desktop page fits`).toBeLessThanOrEqual(1)
     if (size.width >= 1280 && size.height >= 768)
       expect
         .soft(metrics.primary.bottom, `${label}: primary fits at normal zoom`)
@@ -181,6 +185,12 @@ test('Creation exposes twelve portraits per gender and preserves the complete au
   await creation.locator('input[name="appearance"]').last().check()
   await next.click()
   await expect(creation).toHaveAttribute('data-step', 'discipline')
+  if (info.project.name !== 'mobile-chromium') {
+    await page.setViewportSize({ width: 1366, height: 768 })
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollHeight - innerHeight))
+      .toBeLessThanOrEqual(1)
+  }
   await expect(creation.getByRole('heading', { level: 1 })).toBeFocused()
   const disciplines = creation.locator('input[name="discipline"]')
   await disciplines.nth(1).check()
@@ -204,6 +214,10 @@ test('Creation exposes twelve portraits per gender and preserves the complete au
       fullPage: true,
     })
   await creation.getByRole('button', { name: 'Review character', exact: true }).click()
+  if (info.project.name !== 'mobile-chromium')
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollHeight - innerHeight))
+      .toBeLessThanOrEqual(1)
   await expect(creation.getByText('Portrait', { exact: true })).toBeVisible()
   await expect(creation.getByText('Female adventurer 12', { exact: true })).toBeVisible()
   await expect(creation.getByText('Lightstep travelwear', { exact: true })).toBeVisible()

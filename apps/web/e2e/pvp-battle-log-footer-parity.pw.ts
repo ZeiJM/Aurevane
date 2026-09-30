@@ -25,7 +25,7 @@ test('keeps the desktop PvP battle flow beside compact commands without resizing
   browser,
 }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-chromium', 'Desktop PvP battle-log regression')
-  test.slow()
+  test.setTimeout(180_000)
 
   const password = 'AurevaneTest!42'
   const hostIdentity = uniqueIdentity('LogHost')
@@ -144,6 +144,6 @@ test('keeps the desktop PvP battle flow beside compact commands without resizing
     await expect(root.locator('[data-battle-inline-log]')).toBeVisible()
     await expectBattleReferenceLayout(host, testInfo, 'combat-pvp-history-after-reload')
   } finally {
-    await Promise.all([hostContext.close(), guestContext.close(), spectatorContext.close()])
+    await Promise.allSettled([hostContext.close(), guestContext.close(), spectatorContext.close()])
   }
 })

@@ -234,6 +234,8 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
     ]),
   )
   await expect(
-    management.getByLabel('Primary Discipline').locator('option[value="bastion"]'),
+    management
+      .getByRole('combobox', { name: 'Primary Discipline', exact: true })
+      .locator('option[value="bastion"]'),
   ).toHaveCount(1)
 })

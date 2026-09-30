@@ -122,7 +122,7 @@ test('Character Select keeps its heading above three readable, reachable roster 
         deleteJustify: deleteStyle.justifyContent,
         deleteTextAlign: deleteStyle.textAlign,
         deleteSupportAlign: deleteSupport ? getComputedStyle(deleteSupport).textAlign : '',
-        viewportCenter: innerWidth / 2,
+        viewportCenter: document.documentElement.clientWidth / 2,
       }
     })
     results.push({ viewport: size, ...metrics })
@@ -173,9 +173,9 @@ test('Character Select keeps its heading above three readable, reachable roster 
     expect
       .soft(
         Math.max(...(metrics.lockedBackground.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number)),
-        `${label}: dark locked cards`,
+        `${label}: stone locked cards`,
       )
-      .toBeLessThan(75)
+      .toBeGreaterThan(150)
     if (size.width >= 1280 && size.height >= 768) {
       expect
         .soft(metrics.play.bottom, `${label}: play fits at normal zoom`)

@@ -26,7 +26,9 @@ async function equipMist(page: Page) {
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
   await page.getByRole('button', { name: /Manage Disciplines/ }).click()
   const management = page.getByRole('dialog', { name: 'Discipline Management', exact: true })
-  await management.getByLabel('Primary Discipline').selectOption('frostweaver')
+  await management
+    .getByRole('combobox', { name: 'Primary Discipline', exact: true })
+    .selectOption('frostweaver')
   await management.getByRole('button', { name: /Confirm Change/ }).click()
   await expect(page.getByTestId('primary-discipline-chip')).toHaveText('Frostweaver')
   await management.getByRole('button', { name: 'Close', exact: true }).click()

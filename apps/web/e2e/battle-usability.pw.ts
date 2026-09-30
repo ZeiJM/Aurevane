@@ -28,7 +28,7 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
   await page.getByRole('button', { name: 'Account' }).click()
   await page.getByRole('menuitem', { name: 'Controls & Keybinds' }).click()
   await expect(page).toHaveURL(/\/game\/settings\/controls$/)
-  await page.getByRole('button', { name: 'Change Movement Skill keybind' }).click()
+  await page.getByRole('button', { name: 'Change Move keybind' }).click()
   await page.keyboard.press('m')
   await expect(page.getByTestId('keybind-move')).toContainText('M')
   await expect(page.getByTestId('keybind-recover')).toContainText('R')

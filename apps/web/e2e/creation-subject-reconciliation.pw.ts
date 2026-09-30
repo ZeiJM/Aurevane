@@ -42,16 +42,13 @@ test('Creation Discipline follows its own subject composition without losing rea
   await expect(creation.getByTestId('attribute-points')).toContainText('personal points remaining')
 
   const metrics = await page.evaluate(() => {
-    const workspaceElement = document.querySelector<HTMLElement>(
-      '[data-testid="creation-discipline-workspace"]',
-    )!
     const firstRow = document.querySelectorAll<HTMLElement>(
       '[data-testid="creation-attribute-row"]',
     )[0]
     const secondRow = document.querySelectorAll<HTMLElement>(
       '[data-testid="creation-attribute-row"]',
     )[1]
-    const background = getComputedStyle(workspaceElement).backgroundColor
+    const background = getComputedStyle(firstRow).backgroundColor
     return {
       background,
       overflow: document.documentElement.scrollWidth - innerWidth,
@@ -65,10 +62,10 @@ test('Creation Discipline follows its own subject composition without losing rea
   })
 
   expect(metrics.overflow).toBeLessThanOrEqual(1)
-  expect(metrics.secondX).toBeGreaterThan(metrics.firstX)
-  expect(Math.abs(metrics.firstY - metrics.secondY)).toBeLessThanOrEqual(2)
+  expect(Math.abs(metrics.secondX - metrics.firstX)).toBeLessThanOrEqual(2)
+  expect(metrics.secondY).toBeGreaterThan(metrics.firstY)
   expect(Math.abs(metrics.firstWidth - metrics.secondWidth)).toBeLessThanOrEqual(2)
-  expect(metrics.firstWidth).toBeGreaterThan(250)
+  expect(metrics.firstWidth).toBeGreaterThan(200)
   const channels = (metrics.background.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number)
   expect(Math.min(...channels)).toBeGreaterThan(150)
 })

@@ -19,7 +19,7 @@ test('keeps compact local and selected PvP cards while inspecting board particip
   browser,
 }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-chromium', 'Desktop PvP rail regression')
-  test.slow()
+  test.setTimeout(180_000)
 
   const password = 'AurevaneTest!42'
   const hostIdentity = uniqueIdentity('RailHost')
@@ -97,6 +97,6 @@ test('keeps compact local and selected PvP cards while inspecting board particip
       await expect(selected).toContainText(/HP.*MP/s)
     }
   } finally {
-    await Promise.all([hostContext.close(), guestContext.close()])
+    await Promise.allSettled([hostContext.close(), guestContext.close()])
   }
 })

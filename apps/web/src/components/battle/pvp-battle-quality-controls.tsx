@@ -97,9 +97,10 @@ export function PvpBattleQualityControls({
         commandDeck?.firstElementChild instanceof HTMLElement ? commandDeck.firstElementChild : null
       setCommandTarget(target)
 
-      let clockSlot = desktopLayout
-        ? (root?.querySelector<HTMLElement>('[data-battle-turn-clock-slot="true"]') ?? null)
-        : (target?.querySelector<HTMLElement>(':scope > [data-pvp-turn-clock-slot="true"]') ?? null)
+      let clockSlot =
+        root?.querySelector<HTMLElement>('[data-battle-turn-clock-slot="true"]') ??
+        target?.querySelector<HTMLElement>(':scope > [data-pvp-turn-clock-slot="true"]') ??
+        null
       if (target && !clockSlot) {
         clockSlot = document.createElement('div')
         clockSlot.dataset.pvpTurnClockSlot = 'true'
@@ -326,7 +327,7 @@ export function PvpBattleQualityControls({
                 border: '1px solid rgba(111,172,143,.42)',
                 borderRadius: '999px',
                 background: 'rgba(75,143,111,.055)',
-                font: '750 .4rem/1 var(--av-font-mono)',
+                font: '750 .75rem/1 var(--av-font-mono)',
                 whiteSpace: 'nowrap',
                 visibility: 'visible',
                 opacity: 1,
@@ -369,7 +370,7 @@ export function PvpBattleQualityControls({
                 borderRadius: '999px',
                 color: opponentTimerColor,
                 background: 'rgba(154, 54, 54, .08)',
-                font: '800 .42rem/1 var(--av-font-mono)',
+                font: '800 .75rem/1 var(--av-font-mono)',
                 letterSpacing: '.02em',
                 textOverflow: 'clip',
                 textTransform: 'none',

@@ -197,7 +197,9 @@
 .profile {
   position: relative;
   min-height: 0;
-  align-self: end;
+  align-self: stretch;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   width: 100%;
   padding: 0.85rem;
 }
@@ -228,6 +230,11 @@
   }
   .profile {
     padding: 0.75rem;
+  }
+  .layout :global([data-testid='level-progress']),
+  .layout :global([data-character-resources]) {
+    display: grid;
+    grid-column: 1 / -1;
   }
 }
 @media (min-width: 1100px) and (max-height: 800px) {
