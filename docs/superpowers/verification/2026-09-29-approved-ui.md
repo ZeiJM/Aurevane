@@ -50,8 +50,18 @@ The summon state was persisted correctly, including the deferred initiative queu
 
 The next exact-candidate full run passed Nexus alignment and the live summon/Inspect content checks, with 240 passed, 190 intentionally skipped and two later failures: Escape dismissal of the summon Inspect window at desktop/laptop sizes. The configured Cancel shortcut captured Escape before the window's bubbling dismissal handler. The existing shared shortcut scope now yields all keyboard input while a combatant Inspect window is mounted, including desktop, mobile PvE and PvP popups. A local replay first reproduced the failure, then passed dismissal, blocked background shortcuts and restored combat shortcuts in desktop PvE, desktop PvP and mobile PvP. The authenticated summon regression also asserts that Inspect retains its mode while open, dismisses on Escape and restores battlefield focus. Temporary fixtures were removed. The full local `pnpm check` passed: formatting, lint, types, 2,988 tests and production builds. The initial sandboxed build could not capture TypeScript configuration output; the unchanged build and complete gate passed outside that restriction. `git diff --check` passed. Exact-candidate CI remains required after this correction.
 
+## Live testing release — 2026-09-30
+
+The Owner requested making the verified UI live for testing. Candidate `0ceb881e1aa2b029247bca3a5e7fc4b7a68a8524` passed all eleven workflows. Browser smoke completed with 20 shared-preflight tests passed / six intentionally skipped, 242 full desktop/laptop/mobile tests passed / 190 intentionally skipped, and four Microsoft Edge keyboard tests passed. No tests failed. The fresh local `pnpm check` passed formatting, lint, types, 2,988 tests and production builds. These final results supersede the historical pending-CI notes above.
+
+PR #772 merged as `27b9f29fcdf1edca1c12cc1fbf8c272ace89bd93`, retaining the exact verified tree `288df0a3cc7879f44984d8595c53a68e31e9a5b5`. PR #773 temporarily enabled deployment for main only. Production release `349df24e8757c89ba4d55fb3fb489f0a803ddc46` differs from that tested tree only in `apps/web/vercel.json`; no application or database changes were added. Vercel deployment `dpl_GmVGDKZmMxDmDDRyarHk6HsdoNYw` reached READY with the production alias https://aurevane.vercel.app/.
+
+Live public browser checks at 1363×936 confirmed the new account-entry painting and stone presentation, no horizontal document overflow, and working Manual, Rules and News navigation. No application console warnings/errors appeared; observed extension errors came from the browser extension. Production error/fatal runtime logs were empty for this deployment from 2026-09-30 08:57:00 to 09:01:19 UTC. The available browser required sign-in again, so authenticated production gameplay and Owner visual acceptance remain testing outcomes. No production account or gameplay state was modified by these public checks.
+
+This follow-up restores the automatic deployment lock for all branches and records the release. The authorization covered this UI testing release only; future deployment requires its own Owner request.
+
 ## Verification boundary
 
-Authenticated browser workflows ran in CI and require a fresh successful run on the corrected candidate. Local Supabase credentials remain unavailable. A complete state-by-state review of every privileged dialog and real-user live multiplayer acceptance are not established by synthetic fixtures or disposable CI accounts.
+Authenticated browser workflows passed on the exact final candidate in CI. Local Supabase credentials remain unavailable. A complete state-by-state review of every privileged dialog and real-user live multiplayer acceptance are not established by synthetic fixtures or disposable CI accounts.
 
 Vercel deployment remains disabled for all branches in `apps/web/vercel.json`.
