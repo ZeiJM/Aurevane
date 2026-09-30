@@ -118,10 +118,12 @@ export function PvpBattleQualityControls({
 
       const footer = root?.querySelector<HTMLElement>('footer') ?? null
       const footerActions = footer
-        ? (Array.from(footer.querySelectorAll<HTMLElement>('div')).find((candidate) => {
+        ? (footer.querySelector<HTMLElement>('[data-battle-footer-actions="true"]') ??
+          Array.from(footer.querySelectorAll<HTMLElement>('div')).find((candidate) => {
             const text = candidate.textContent ?? ''
             return text.includes('Cancel Action') && text.includes('Confirm Action')
-          }) ?? null)
+          }) ??
+          null)
         : null
       setFooterActionsTarget(footerActions)
     }

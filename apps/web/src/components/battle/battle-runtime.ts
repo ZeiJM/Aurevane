@@ -1,5 +1,7 @@
 import type { CharacterPortraitRef } from '@aurevane/game-core/character/creation'
 import type { CombatTargetKind, CombatTargetTeamPolicy } from '@aurevane/game-core/combat/actions'
+import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
+import type { AnyResonanceDefinition } from '@aurevane/game-core/combat/resonance'
 import { normalizeCombatEffectState } from '@aurevane/game-core/combat/combat-effect-state'
 
 import { getStarterPortraitImageAssetId } from '@/media/character'
@@ -10,6 +12,7 @@ import type { BattleSessionView } from '@/server/battle/battle-session-service'
 export type BattleTechniqueCategory = 'attack' | 'defense' | 'heal'
 
 export interface BattleSkillForecastPresentation {
+  definition?: MatureSkillDefinition
   id: string
   name: string
   iconKey?: string | null
@@ -39,6 +42,7 @@ export interface BattleCopiedSkillPresentation extends BattleSkillForecastPresen
 }
 
 export interface BattleResonancePresentation {
+  definition?: AnyResonanceDefinition
   id: string
   contentVersion: number
   name: string

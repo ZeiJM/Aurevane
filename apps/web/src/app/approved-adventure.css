@@ -1,7 +1,6 @@
 /* Owner-approved 29 September direction. Shared geometry and material authority.
    Gameplay and editor state remain owned by their existing components. */
 :root {
-  --av-shell-rail-width: 11.875rem;
   --av-gameplay-art-size: 4rem;
   --av-moonstone: #c5b69c;
   --av-moonstone-quiet: #b8a88e;
@@ -47,136 +46,7 @@ body {
   background: linear-gradient(125deg, #d1c4ae, #bdad92), #bdad92 !important;
   border-color: #9c8561 !important;
 }
-[data-av-shell='concept'] {
-  --av-shell-rail-width: 11.875rem !important;
-  --av-shell-header-height: 3.75rem;
-  --av-shell-footer-height: 2rem;
-  display: grid !important;
-  grid-template-columns: var(--av-shell-rail-width) minmax(0, 1fr) !important;
-  grid-template-rows: 3.75rem minmax(0, 1fr) 2rem !important;
-  width: 100% !important;
-  height: 100dvh !important;
-  min-height: 0 !important;
-  padding: 0 !important;
-  overflow: hidden !important;
-  background: #313839 !important;
-  border: 0 !important;
-}
-[data-av-shell='concept'] > header {
-  grid-column: 1 / -1;
-  grid-row: 1;
-  background: #272d2eef !important;
-  border-bottom: 1px solid #9e8663;
-}
-[data-av-shell='concept'] > footer {
-  position: relative !important;
-  inset: auto !important;
-  grid-column: 1 / -1;
-  grid-row: 3;
-  min-height: 0 !important;
-  height: 2rem !important;
-  background: #242b2c !important;
-}
-[data-av-shell='concept'] > main {
-  grid-column: 2;
-  grid-row: 2;
-  width: 100% !important;
-  min-width: 0;
-  min-height: 0 !important;
-  height: 100% !important;
-  max-height: none !important;
-  padding: clamp(1rem, 2vw, 1.75rem) !important;
-  overflow: auto !important;
-  overscroll-behavior: contain;
-  background: linear-gradient(125deg, #66706d24, transparent), #363e3e;
-  scrollbar-color: #8d8069 #303636;
-  scrollbar-width: thin;
-}
-[data-av-game-rail] {
-  position: relative !important;
-  inset: auto !important;
-  grid-column: 1;
-  grid-row: 2;
-  width: 11.875rem !important;
-  height: 100% !important;
-  max-height: none !important;
-  overflow-y: auto !important;
-  padding: 0.75rem !important;
-  background: linear-gradient(155deg, #3a3e3b, #262d30 65%) !important;
-  border-right: 1px solid #806c4c !important;
-}
-[data-av-game-rail] nav {
-  display: grid !important;
-  gap: 0.25rem;
-  padding-top: 0.65rem;
-}
-[data-av-game-rail] nav :is(a, button) {
-  display: flex !important;
-  flex-direction: row !important;
-  align-items: center;
-  justify-content: flex-start !important;
-  width: 100%;
-  min-height: 2.7rem !important;
-  padding: 0.6rem 0.8rem !important;
-  gap: 0.7rem !important;
-  font: 500 0.875rem/1.2 var(--av-font-body) !important;
-  color: #e0d7c5;
-  border: 1px solid transparent;
-  border-radius: 3px;
-  text-align: left !important;
-}
-[data-av-game-rail] nav :is(a, button) svg {
-  width: 1.25rem !important;
-  height: 1.25rem !important;
-  flex-shrink: 0;
-}
-[data-av-game-rail] nav a[aria-current='page'] {
-  color: #fff4da;
-  background: linear-gradient(90deg, #87714f75, #79644920) !important;
-  border-color: #a28b635e;
-  box-shadow: inset 2px 0 #d6b47c;
-}
-[data-av-game-rail] nav a:hover {
-  background: #aa906029;
-}
-.av-rail-identity {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  justify-items: center;
-  gap: 0.35rem;
-  padding: 0.5rem 0 1rem;
-  border-bottom: 1px solid #8e795548;
-}
-.av-rail-identity > span:first-child {
-  display: block;
-  width: 5.5rem !important;
-  height: 5.5rem !important;
-  aspect-ratio: 1;
-  border: 1px solid #b0966a;
-  padding: 3px;
-}
-.av-rail-identity img {
-  width: 100% !important;
-  height: 100% !important;
-  aspect-ratio: 1;
-  object-fit: cover;
-  border-radius: 2px !important;
-}
-.av-rail-identity strong {
-  font: 500 1.3rem/1.2 var(--av-font-display);
-  color: #f0e5ce;
-  overflow-wrap: anywhere;
-  text-align: center;
-}
-.av-rail-identity small {
-  color: #c4b9a5;
-  font-size: 0.75rem;
-}
-.av-rail-identity > span:last-child {
-  color: #b5ac9b;
-  font-size: 0.65rem;
-}
+
 [data-av-shell='concept'][data-av-layout='battlefield'] {
   grid-template-columns: minmax(0, 1fr) !important;
 }
@@ -376,183 +246,25 @@ body {
   gap: 1rem;
   text-align: center;
 }
-/* The actual form is HTML. The approved artwork contains no baked-in interface. */
-[data-testid='account-shell'] {
-  width: 100% !important;
-  margin: 0 !important;
-  border: 0 !important;
-  grid-template-rows: 3.75rem minmax(0, 1fr) 2rem !important;
-  background: #b9aa90 !important;
-}
-[data-testid='account-shell'] > header {
-  background: #293030 !important;
-}
-[data-testid='account-shell'] > main {
-  width: 100% !important;
-  max-width: none !important;
-  gap: 0 !important;
-  padding: 0 !important;
-  grid-template-columns: minmax(0, 1.6fr) minmax(23rem, 0.8fr) !important;
-}
-[data-testid='account-shell'] > main > section:first-child {
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: url('/media/art/adventure/threshold-v01.webp') 35% center/cover !important;
-}
-[data-testid='account-shell'] > main > section:first-child > img {
-  display: none;
-}
-[data-testid='account-shell'] > main > section:first-child > div:first-of-type {
-  background: linear-gradient(0deg, #142328ba, transparent 60%) !important;
-}
-[data-testid='account-shell'] [data-account-concept='true'] {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: clamp(1.5rem, 4vw, 4rem) !important;
-  border: 0;
-  border-left: 1px solid #907651 !important;
-  box-shadow: -12px 0 40px #18232944;
-  color: #292b28;
-  background: linear-gradient(110deg, #baaa91, #d1c3ac) !important;
-}
-[data-account-concept='true'] :is(h2, label > span, p, .av-kicker) {
-  color: #34362f !important;
-}
-[data-account-concept='true'] h2 {
-  font-size: clamp(1.8rem, 2.8vw, 2.6rem) !important;
-  margin-bottom: 1.5rem !important;
-}
-[data-account-concept='true'] input {
-  color: #242a27 !important;
-  -webkit-text-fill-color: #242a27 !important;
-  background: #e0d5c055 !important;
-  border: 1px solid #8d7a5d !important;
-  min-height: 3rem !important;
-}
-[data-account-concept='true'] input::placeholder {
-  -webkit-text-fill-color: #625b4d !important;
-}
-[data-account-concept='true'] [type='submit'] {
-  background: linear-gradient(120deg, #783c2d, #542b23) !important;
-  color: #f4e4c9 !important;
-  border: 1px solid #ae8853;
-  min-height: 3rem;
-}
-[data-testid='account-shell'] > footer {
-  background: #283030 !important;
-}
-/* Onboarding scenes intentionally have no game rail. */
-[data-character-select],
-[data-character-creation-page] {
-  background: #303738 !important;
-}
-[data-character-concept='creation'] {
-  background: linear-gradient(120deg, #cdbfa6, #b6a68d) !important;
-  color: #2c302b;
-}
-[data-character-concept='creation'] :is(h1, h2, h3, legend, label, p, small) {
-  color: inherit;
-}
-[data-portrait-grid='true'] {
-  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-  gap: 0.55rem !important;
-}
-[data-portrait-grid='true'] label {
-  aspect-ratio: 1;
-  padding: 3px !important;
-  border: 1px solid #8c795c;
-  background: #303839;
-}
-[data-portrait-grid='true'] img {
-  aspect-ratio: 1;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-[data-portrait-grid='true'] label[data-selected='true'] {
-  border-color: #347e79;
-  box-shadow: 0 0 0 2px #387f79;
-}
-/* Reclaim repeated oversized identity columns. Profile retains a compact summary. */
-:is(
-  [data-profile-workspace],
-  [data-arsenal-workspace],
-  [data-training-concept],
-  [data-battle-hall-workspace]
-) {
+
+[data-battle-hall-workspace] {
   grid-template-columns: minmax(0, 1fr) !important;
   gap: 1rem !important;
   height: auto !important;
   min-height: 0 !important;
 }
-:is([data-arsenal-workspace], [data-training-concept], [data-battle-hall-workspace])
-  > [data-profile-identity-banner] {
+:is([data-training-concept], [data-battle-hall-workspace]) > [data-profile-identity-banner] {
   display: none !important;
 }
-[data-profile-workspace] > [data-profile-identity-banner] {
-  display: grid !important;
-  grid-template-columns: 6rem minmax(10rem, 1fr) minmax(10rem, 1fr) !important;
-  grid-template-rows: auto auto !important;
-  height: auto !important;
-  max-height: none !important;
-  min-height: 0 !important;
-  padding: 1rem !important;
-  gap: 0.65rem 1.2rem;
-}
-[data-profile-workspace] [data-character-portrait-frame] {
-  grid-row: 1/3;
-  width: 6rem !important;
-  height: 6rem !important;
-  min-height: 0 !important;
-}
-[data-profile-workspace] [data-character-portrait-frame] > div {
-  width: 100%;
-  height: 100%;
-}
-[data-profile-workspace] [data-character-portrait-frame] img {
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover;
-}
-[data-profile-workspace] [data-character-identity-copy] {
-  padding: 0 !important;
-}
-[data-profile-workspace] [data-character-identity-copy] h1 {
-  font-size: 1.6rem !important;
-}
-[data-profile-workspace] [data-character-identity-copy] p,
-[data-profile-workspace] [data-character-creed] {
-  display: none !important;
-}
-[data-profile-workspace] [data-character-resources] {
-  grid-column: 3;
-  grid-row: 1 / 3;
-  padding: 0;
-  align-self: center;
-}
-[data-profile-sheet] {
-  width: 100% !important;
-  height: auto !important;
-  max-height: none !important;
-  overflow: visible !important;
-  padding: 1.25rem !important;
-}
-:is([data-arsenal-sheet], [data-training-sheet], [data-hall-concept]) {
+
+[data-hall-concept] {
   height: auto !important;
   min-height: 0 !important;
   max-height: none !important;
   overflow: visible !important;
   padding: 1.25rem !important;
 }
-[data-arsenal-panel] {
-  background: #e8dcc321 !important;
-  border-color: #998160 !important;
-}
-[data-arsenal-panel] :is(h2, strong) {
-  color: #2b342d;
-}
+
 [data-hall-mode-rail] {
   display: grid !important;
   grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
@@ -605,15 +317,12 @@ body {
   border: 1px solid #958466;
   background: linear-gradient(130deg, #8b998b40, transparent), #c5b69c !important;
 }
-/* Shared square gameplay art, including popup and active-battle instances. */
-[data-arsenal-media],
 [data-gameplay-art] {
   flex: 0 0 var(--av-gameplay-art-size) !important;
   width: var(--av-gameplay-art-size) !important;
   height: var(--av-gameplay-art-size) !important;
   aspect-ratio: 1 !important;
 }
-[data-arsenal-media] img,
 [data-gameplay-art] img {
   width: 100% !important;
   height: 100% !important;
@@ -629,51 +338,8 @@ body {
   .av-quick-links {
     grid-template-columns: 1fr;
   }
-  [data-testid='account-shell'] > main {
-    grid-template-columns: 1fr 1fr !important;
-  }
 }
 @media (max-width: 760px) {
-  [data-av-shell='concept'] {
-    grid-template-columns: minmax(0, 1fr) !important;
-    grid-template-rows: 3.5rem minmax(0, 1fr) 4rem 1.6rem !important;
-  }
-  [data-av-shell='concept'] > header {
-    height: 3.5rem;
-  }
-  [data-av-shell='concept'] > main {
-    grid-column: 1;
-    grid-row: 2;
-    padding: 0.75rem !important;
-  }
-  [data-av-shell='concept'] > footer {
-    grid-row: 4;
-    height: 1.6rem !important;
-  }
-  [data-av-game-rail] {
-    grid-column: 1;
-    grid-row: 3;
-    width: 100% !important;
-    height: 4rem !important;
-    padding: 0.2rem !important;
-    border-top: 1px solid #887249;
-    overflow: auto !important;
-  }
-  [data-av-game-rail] > .av-rail-identity {
-    display: none;
-  }
-  [data-av-game-rail] nav {
-    grid-template-columns: repeat(6, minmax(3.5rem, 1fr));
-    gap: 0;
-    padding: 0;
-  }
-  [data-av-game-rail] nav :is(a, button) {
-    flex-direction: column !important;
-    justify-content: center !important;
-    gap: 0.3rem !important;
-    padding: 0.3rem !important;
-    font-size: 0.65rem !important;
-  }
   [data-av-shell='concept'][data-av-layout='battlefield'] {
     grid-template-rows: 3.5rem minmax(0, 1fr) 1.6rem !important;
   }
@@ -700,48 +366,15 @@ body {
     min-height: 21rem;
     padding: 1.4rem;
   }
-  [data-testid='account-shell'] {
-    height: auto !important;
-    min-height: 100dvh !important;
-    overflow: auto !important;
-  }
-  [data-testid='account-shell'] > main {
-    display: flex !important;
-    flex-direction: column;
-    overflow: visible !important;
-  }
-  [data-testid='account-shell'] > main > section:first-child {
-    min-height: 21rem !important;
-    max-height: 45dvh;
-  }
-  [data-testid='account-shell'] [data-account-concept='true'] {
-    width: 100%;
-    height: auto;
-    padding: 1.5rem !important;
-  }
-  [data-profile-workspace] > [data-profile-identity-banner] {
-    grid-template-columns: 4rem 1fr !important;
-  }
-  [data-profile-workspace] [data-character-portrait-frame] {
-    width: 4rem !important;
-    height: 4rem !important;
-  }
-  [data-profile-workspace] [data-character-resources] {
-    grid-row: auto;
-    grid-column: 1/-1;
-  }
+
   [data-hall-mode-rail] {
     grid-template-columns: 1fr 1fr !important;
   }
-  :is([data-arsenal-sheet], [data-training-sheet], [data-hall-concept], [data-profile-sheet]) {
+  [data-hall-concept] {
     padding: 0.8rem !important;
   }
 }
-@media (prefers-reduced-motion: reduce) {
-  [data-av-game-rail] [data-aether-orb] {
-    animation: none !important;
-  }
-}
+
 /* Master workspaces share the game frame; domain navigation stays beside the work. */
 .av-master-navigation {
   display: flex;
@@ -908,29 +541,7 @@ body {
     white-space: nowrap;
   }
 }
-.av-rail-utilities {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  gap: 0.2rem;
-  margin-top: 1rem;
-  padding-top: 0.7rem;
-  border-top: 1px solid #9e88604f;
-}
-.av-rail-utilities a {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  min-height: 2.4rem;
-  padding: 0.5rem 0.8rem;
-  color: #c5baa4;
-  text-decoration: none;
-  font-size: 0.8rem;
-}
-.av-rail-utilities a:hover {
-  color: #f4e5c6;
-  background: #b4986324;
-}
+
 .av-settings-page {
   max-width: 65rem;
   margin: auto;
@@ -968,93 +579,10 @@ body {
   border-color: #a28b62;
   gap: 1rem !important;
 }
-[data-character-select-page='true'] {
-  background: transparent !important;
-}
-[data-character-slot-board='true'] {
-  gap: 1.3rem !important;
-}
-[data-character-slot-board='true'] > article {
-  background: linear-gradient(155deg, #414840ed, #2b3437f5) !important;
-  border: 1px solid #a18a60 !important;
-  border-radius: 5px;
-  box-shadow: 0 12px 40px #19212670;
-}
-[data-character-slot-board='true'] > article[data-selected='true'] {
-  border-color: #d1b079 !important;
-  box-shadow:
-    0 0 0 2px #b097632e,
-    0 15px 45px #141c1e80;
-}
+
 @media (max-width: 760px) {
-  .av-rail-utilities {
-    display: none;
-  }
   .av-audio-inline {
     padding: 0.5rem;
-  }
-}
-.av-rail-full-identity {
-  position: relative;
-  z-index: 1;
-}
-.av-rail-full-identity [data-profile-identity-banner] {
-  display: grid !important;
-  grid-template-columns: 1fr !important;
-  grid-template-rows: auto !important;
-  gap: 0.5rem;
-  width: 100% !important;
-  height: auto !important;
-  max-height: none !important;
-  min-height: 0 !important;
-  padding: 0.25rem 0.4rem 0.8rem !important;
-  border: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
-}
-.av-rail-full-identity [data-character-portrait-frame] {
-  width: 5.5rem !important;
-  height: 5.5rem !important;
-  min-height: 0 !important;
-  margin: 0 auto;
-  grid-row: auto !important;
-}
-.av-rail-full-identity [data-character-portrait-frame] > div {
-  width: 100%;
-  height: 100%;
-}
-.av-rail-full-identity [data-character-portrait-frame] img {
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover !important;
-}
-.av-rail-full-identity [data-character-identity-copy] {
-  padding: 0 !important;
-  text-align: center;
-}
-.av-rail-full-identity [data-character-identity-copy] > :is(h1, strong) {
-  font: 500 1.2rem var(--av-font-display) !important;
-}
-.av-rail-full-identity [data-character-identity-copy] p,
-.av-rail-full-identity [data-character-identity-copy] > div,
-.av-rail-full-identity [data-character-creed] {
-  display: none !important;
-}
-.av-rail-full-identity [data-testid='rail-level-progress'],
-.av-rail-full-identity [data-character-resources] {
-  padding: 0 !important;
-  margin: 0;
-}
-.av-rail-full-identity [data-testid='rail-level-progress'] :is(strong, span),
-.av-rail-full-identity [data-character-resources] :is(strong, b) {
-  font-size: 0.65rem !important;
-}
-.av-rail-full-identity [data-character-resources] {
-  gap: 0.45rem;
-}
-@media (max-width: 760px) {
-  .av-rail-full-identity {
-    display: none;
   }
 }
 
@@ -1068,64 +596,10 @@ body {
   border-top: 1px solid #87745266;
   font-size: 0.75rem;
 }
-/* Retire icon-only rail clipping; labels are part of the compact navigation. */
-[data-av-game-rail] nav :is(a, button) > span {
-  position: static !important;
-  width: auto !important;
-  height: auto !important;
-  margin: 0 !important;
-  overflow: visible !important;
-  clip: auto !important;
-  clip-path: none !important;
-  white-space: normal !important;
-}
-[data-av-shell='concept'] > main {
-  display: block !important;
-}
-[data-profile-workspace],
-[data-arsenal-workspace] {
-  grid-template-rows: none !important;
-  align-content: start !important;
-  overflow: visible !important;
-}
-[data-profile-workspace] > [data-profile-identity-banner] {
-  background: linear-gradient(110deg, #45504a, #2e393b) !important;
-}
-[data-arsenal-sheet] {
-  grid-template-rows: none !important;
-  align-content: start !important;
-  gap: 0.8rem;
-}
-[data-arsenal-panel] {
-  overflow: visible !important;
-}
-[data-arsenal-panel] button strong {
-  color: inherit;
-}
+
 @media (max-width: 760px) {
-  [data-av-shell='concept'] {
-    grid-template-rows: 5.5rem minmax(0, 1fr) 4rem 1.6rem !important;
-  }
-  [data-av-shell='concept'] > header {
-    height: 5.5rem;
-  }
   [data-av-shell='concept'][data-av-layout='battlefield'] {
     grid-template-rows: 5.5rem minmax(0, 1fr) 1.6rem !important;
-  }
-  [data-profile-workspace] > [data-profile-identity-banner] {
-    min-height: min-content !important;
-  }
-  [data-arsenal-panel] {
-    min-height: min-content !important;
-    height: auto !important;
-  }
-  [data-arsenal-sheet] > div:last-child {
-    display: grid !important;
-    grid-template-columns: 1fr !important;
-    gap: 1rem;
-  }
-  [data-arsenal-sheet] > div:last-child > section {
-    min-height: min-content !important;
   }
 }
 

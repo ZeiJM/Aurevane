@@ -56,13 +56,13 @@ const ARENAS: readonly { id: TacticalHallArenaId; name: string; scale: string; s
     {
       id: 'crossroads-court',
       name: 'Crossroads Court',
-      scale: '7×7',
+      scale: '12×7',
       summary: 'Close engagement: cross the difficult center or take an open flank.',
     },
     {
       id: 'terraced-yard',
       name: 'Terraced Yard',
-      scale: '11×7',
+      scale: '15×7',
       summary: 'Long approach with raised side platforms and a ground-level route.',
     },
   ]

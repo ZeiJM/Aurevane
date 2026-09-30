@@ -35,7 +35,7 @@ type BattleScaleGeometry = {
   commandButton: { width: number; height: number }
   footer: { width: number; height: number }
   cancel: { width: number; height: number }
-  confirm: { width: number; height: number }
+  finish: { width: number; height: number }
 }
 
 async function captureBattleScaleGeometry(page: Page): Promise<BattleScaleGeometry> {
@@ -49,10 +49,8 @@ async function captureBattleScaleGeometry(page: Page): Promise<BattleScaleGeomet
       "main[data-unified-battle='true'][data-battle-visual-contract='true']",
     )!
     const header = root.querySelector<HTMLElement>(':scope > header')!
-    const economy = header.querySelector<HTMLElement>('[data-battle-shared-economy="true"]')!
-    const victory = header.querySelector<HTMLElement>(
-      '[data-battle-shared-header-action="victory"]',
-    )!
+    const economy = header.querySelector<HTMLElement>('[data-unified-battle-economy="true"]')!
+    const victory = header.querySelector<HTMLElement>('[aria-label="Victory Conditions"]')!
     const mapKey = header.querySelector<HTMLElement>('[aria-label="Map Key"]')!
     const content = root.querySelector<HTMLElement>('[data-unified-battle-content="true"]')!
     const battlefield = root.querySelector<HTMLElement>('#battlefield')!
@@ -61,14 +59,14 @@ async function captureBattleScaleGeometry(page: Page): Promise<BattleScaleGeomet
       'button[aria-label*="occupied by"] > span:last-child',
     )!
     const commandDeck = root.querySelector<HTMLElement>('[data-unified-command-deck="true"]')!
-    const commandContext = commandDeck.querySelector<HTMLElement>('[data-battle-instruction-host]')!
+    const commandContext = root.querySelector<HTMLElement>('[data-battle-preview-strip]')!
     const commandButton = commandDeck.querySelector<HTMLElement>(
       '[data-command-card] > button[data-battle-command]',
     )!
     const footer = root.querySelector<HTMLElement>(':scope > footer')!
     const footerButtons = Array.from(footer.querySelectorAll<HTMLButtonElement>('button'))
     const cancel = footerButtons.find((button) => button.textContent?.includes('Cancel Action'))!
-    const confirm = footerButtons.find((button) => button.textContent?.includes('Confirm Action'))!
+    const finish = commandDeck.querySelector<HTMLElement>('[data-battle-command="finish"]')!
 
     const visibleArticles = Array.from(
       content.querySelectorAll<HTMLElement>('aside article'),
@@ -114,7 +112,7 @@ async function captureBattleScaleGeometry(page: Page): Promise<BattleScaleGeomet
       commandButton: rect(commandButton),
       footer: rect(footer),
       cancel: rect(cancel),
-      confirm: rect(confirm),
+      finish: rect(finish),
     }
   })
 }
@@ -332,7 +330,7 @@ test('keeps PvE desktop battle scale locked to PvP', async ({ browser, page }, t
       'commandButton',
       'footer',
       'cancel',
-      'confirm',
+      'finish',
     ] as const) {
       expectBattleScaleParity(label, pve, pvp)
     }

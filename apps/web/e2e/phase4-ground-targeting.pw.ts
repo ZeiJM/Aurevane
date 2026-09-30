@@ -86,42 +86,17 @@ async function castOnEmptyGround(page: Page, name: string, testInfo: TestInfo) {
   const actorBefore = before.snapshot.tactical.battle.combatants.find(
     (row) => row.id === actor.combatantId,
   )!
-  await root.getByRole('button', { name: /Choose Guard skill/ }).click()
-  const mistOption = page.getByRole('option', { name: 'Chilling Mist 45 AP', exact: true })
-  const optionTags = mistOption.locator('[data-battle-skill-tags="option"]')
-  await expect(optionTags).toContainText('Ground')
-  await expect(optionTags).toContainText('Freeze Ground')
-  await expect(optionTags).toContainText('Slow')
-  await testInfo.attach(`technique-picker-${testInfo.project.name}`, {
-    body: await page.screenshot(),
-    contentType: 'image/png',
-  })
-  await mistOption.click()
   await root.getByRole('button', { name: 'About Chilling Mist', exact: true }).click()
   const details = page.getByRole('dialog', { name: 'Chilling Mist', exact: true })
-  const commandTags = details.locator('[data-battle-skill-tags="details"]')
-  await expect(commandTags).toContainText('Ground')
-  await expect(commandTags).toContainText('Freeze Ground')
-  await expect(commandTags).toContainText('Slow')
-  const tagFit = await commandTags.evaluate((element) => {
-    const panel = element.closest('[role="dialog"]')!.getBoundingClientRect()
-    return Array.from(element.children).every((tag) => {
-      const box = tag.getBoundingClientRect()
-      return (
-        box.width > 0 &&
-        box.height > 0 &&
-        box.left >= panel.left &&
-        box.right <= panel.right &&
-        box.top >= panel.top &&
-        box.bottom <= panel.bottom &&
-        Number.parseFloat(getComputedStyle(tag).fontSize) >= 12
-      )
-    })
+  for (const label of ['Ground', 'Freeze Ground', 'Slow', '45 AP'])
+    await expect(details).toContainText(label)
+  const fit = await details.evaluate((element) => {
+    const rect = element.getBoundingClientRect()
+    return rect.left >= 0 && rect.right <= innerWidth && rect.top >= 0 && rect.bottom <= innerHeight
   })
-  expect(tagFit).toBe(true)
+  expect(fit).toBe(true)
   await page.keyboard.press('Escape')
   await expect(details).toHaveCount(0)
-  await root.getByRole('button', { name: 'Chilling Mist, 45 AP', exact: true }).click()
   const candidates = before.snapshot.tactical.tiles.filter((tile) => {
     const distance =
       Math.abs(tile.position.x - actor.position.x) + Math.abs(tile.position.y - actor.position.y)
@@ -146,22 +121,20 @@ async function castOnEmptyGround(page: Page, name: string, testInfo: TestInfo) {
   })
   let chosen = candidates[0]!
   let legal = false
-  // Each candidate is selected through the real board; the server decides LoS and legality.
+  // Read-only server preflight finds legal empty ground without issuing a combat intent.
   for (const candidate of candidates) {
-    const tile = root.getByRole('button', {
-      name: new RegExp(`^Tile ${candidate.position.x + 1}, ${candidate.position.y + 1};`),
+    const response = await page.request.post(`/api/battles/${sessionId}/preview`, {
+      data: {
+        expectedBattleVersion: before.battleVersion,
+        intent: {
+          kind: 'action',
+          actionId: 'frostweaver.chilling-mist',
+          target: { kind: 'tile', position: candidate.position },
+        },
+      },
     })
-    const response = page.waitForResponse(
-      (result) => result.url().endsWith('/preview') && result.request().method() === 'POST',
-    )
-    await tile.focus()
-    await page.keyboard.press('Enter')
-    const previewResponse = await response
-    expect(previewResponse.request().postDataJSON().intent.target).toEqual({
-      kind: 'tile',
-      position: candidate.position,
-    })
-    const preview = (await previewResponse.json()).battlePreview.preview
+    expect(response.status()).toBe(200)
+    const preview = (await response.json()).battlePreview.preview
     if (preview.legal) {
       expect(preview.projectedTerrain.length).toBeGreaterThan(0)
       expect(preview.affectedCombatantIds).toHaveLength(0)
@@ -171,13 +144,42 @@ async function castOnEmptyGround(page: Page, name: string, testInfo: TestInfo) {
     }
   }
   expect(legal).toBe(true)
-  await expect(root.getByRole('button', { name: 'Confirm Action', exact: true })).toBeEnabled()
-  // Enter on the already focused tile previews again. It must not commit the first preview.
+  const selectedPreview = page.waitForResponse(
+    (response) => response.url().endsWith('/preview') && response.request().method() === 'POST',
+  )
+  await root.getByRole('button', { name: 'Selected Chilling Mist, 45 AP', exact: true }).click()
+  expect((await selectedPreview).status()).toBe(200)
+  expect(commits).toHaveLength(0)
+  expect(audioRequests).toHaveLength(0)
+  expect(await read()).toEqual(before)
+  await root.getByRole('button', { name: 'Forecast details', exact: true }).click()
+  const forecast = page.getByRole('dialog', { name: 'Action forecast', exact: true })
+  await expect(forecast).toBeVisible()
+  const bounds = await forecast.evaluate((element) => {
+    const rect = element.getBoundingClientRect()
+    return {
+      left: rect.left,
+      right: rect.right,
+      top: rect.top,
+      bottom: rect.bottom,
+      w: innerWidth,
+      h: innerHeight,
+    }
+  })
+  expect(bounds.left).toBeGreaterThanOrEqual(0)
+  expect(bounds.top).toBeGreaterThanOrEqual(0)
+  expect(bounds.right).toBeLessThanOrEqual(bounds.w)
+  expect(bounds.bottom).toBeLessThanOrEqual(bounds.h)
+  await expect(forecast).toContainText('Frozen')
+  await expect(forecast).toContainText('2 round boundaries')
+  await expect(forecast).toContainText('either team')
+  await page.keyboard.press('Escape')
+  // A new deliberate tile input waits for its fresh forecast before exactly one mutation.
   let releasePreview!: () => void
-  let observedRequest!: () => void
   const held = new Promise<void>((resolve) => {
     releasePreview = resolve
   })
+  let observedRequest!: () => void
   const observed = new Promise<void>((resolve) => {
     observedRequest = resolve
   })
@@ -186,59 +188,26 @@ async function castOnEmptyGround(page: Page, name: string, testInfo: TestInfo) {
     await held
     await route.continue()
   })
-  const again = page.waitForResponse((response) => response.url().endsWith('/preview'))
-  await page.keyboard.press('Enter')
-  await observed
-  try {
-    await expect(root.getByRole('button', { name: 'Confirm Action', exact: true })).toBeDisabled()
-    expect(commits).toHaveLength(0)
-  } finally {
-    releasePreview()
-  }
-  expect((await again).status()).toBe(200)
-  await page.unroute('**/preview')
-  expect(commits).toHaveLength(0)
-  await expect(root.getByLabel('Action preview').first()).not.toContainText('Slow')
-  expect(audioRequests).toHaveLength(0)
-  expect(await read()).toEqual(before)
-  await root.getByRole('button', { name: 'Forecast details', exact: true }).click()
-  const forecast = page.getByRole('dialog', { name: 'Action forecast', exact: true })
-  await expect(forecast).toBeVisible()
-  // A panel can have no internal/document overflow while still opening at negative x.
-  // This shared cast helper checks all four viewport edges in both PvE and PvP.
-  const forecastBounds = await forecast.evaluate((element) => {
-    const rect = element.getBoundingClientRect()
-    return {
-      left: rect.left,
-      right: rect.right,
-      top: rect.top,
-      bottom: rect.bottom,
-      viewportWidth: window.innerWidth,
-      viewportHeight: window.innerHeight,
-    }
-  })
-  expect(forecastBounds.left).toBeGreaterThanOrEqual(0)
-  expect(forecastBounds.top).toBeGreaterThanOrEqual(0)
-  expect(forecastBounds.right).toBeLessThanOrEqual(forecastBounds.viewportWidth)
-  expect(forecastBounds.bottom).toBeLessThanOrEqual(forecastBounds.viewportHeight)
-  await expect(forecast).toContainText('Frozen')
-  await expect(forecast).toContainText('2 round boundaries')
-  await expect(forecast).toContainText('either team')
-  expect(await forecast.evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(
-    true,
-  )
-  expect(
-    await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1),
-  ).toBe(true)
-  await page.keyboard.press('Escape')
-  await expect(forecast).toHaveCount(0)
   const committed = page.waitForResponse(
     (response) =>
       response.url().endsWith(`/api/battles/${sessionId}${commitEndpoint}`) &&
       response.request().method() === 'POST',
-    { timeout: 15_000 },
+    { timeout: 15000 },
   )
-  await root.getByRole('button', { name: 'Confirm Action', exact: true }).click()
+  const tile = root.getByRole('button', {
+    name: new RegExp(`^Tile ${chosen.position.x + 1}, ${chosen.position.y + 1};`),
+  })
+  await tile.focus()
+  await page.keyboard.press('Enter')
+  await observed
+  try {
+    expect(commits).toHaveLength(0)
+    await expect(
+      root.getByRole('button', { name: 'Selected Chilling Mist, 45 AP', exact: true }),
+    ).toBeDisabled()
+  } finally {
+    releasePreview()
+  }
   const committedResponse = await committed
   expect(committedResponse.status()).toBe(200)
   const after = (await committedResponse.json()).battle as BattleSessionView
@@ -260,9 +229,7 @@ async function castOnEmptyGround(page: Page, name: string, testInfo: TestInfo) {
   )
   await root.getByRole('button', { name: 'Inspect, Free', exact: true }).click()
   await overlay.click()
-  const instructionHost = root.locator(
-    'section[aria-label="Command Deck"] > [data-battle-instruction-host="true"]',
-  )
+  const instructionHost = root.locator('[data-battle-preview-strip]')
   await expect(instructionHost).toHaveCount(1)
   await expect(instructionHost).toContainText('Frozen terrain')
   await page.reload()
@@ -275,7 +242,7 @@ async function castOnEmptyGround(page: Page, name: string, testInfo: TestInfo) {
   return { position: chosen.position, overlays: after.snapshot.terrainOverlays }
 }
 
-test('ground Skill keyboard preview stays silent, confirms once and survives reload in PvE', async ({
+test('ground Skill selection stays silent, one tile input executes once and survives reload in PvE', async ({
   page,
 }, testInfo) => {
   test.setTimeout(180_000)
@@ -355,7 +322,7 @@ test('PvP ground Skill uses the same forecast and spectator terrain inspection',
     if ((await root.getAttribute('data-local-turn')) !== 'true') {
       const guestRoot = guest.locator('main[data-unified-battle="true"]')
       await expect(guestRoot).toHaveAttribute('data-local-turn', 'true')
-      await guestRoot.getByRole('button', { name: /Finish Turn, / }).click()
+      await guestRoot.getByRole('button', { name: /End Turn, / }).click()
       // The inline Face controls are intentionally hidden; confirm via the visible board guide.
       const eastGuide = guestRoot.locator(
         '#battlefield button[data-facing-guide="true"][data-facing-direction="east"]',
@@ -367,9 +334,8 @@ test('PvP ground Skill uses the same forecast and spectator terrain inspection',
       )
       if (testInfo.project.use.hasTouch) {
         await eastGuide.tap()
-        await eastGuide.tap()
       } else {
-        await eastGuide.dblclick()
+        await eastGuide.click()
       }
       const facingResponse = await facingCommit
       expect(facingResponse.status()).toBe(200)

@@ -1,0 +1,231 @@
+.haven {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-height: 0;
+  height: 100%;
+  gap: 1rem;
+  padding: 0.6rem 1rem;
+}
+.heading {
+  padding: 0.5rem 1rem;
+  text-align: center;
+  color: #f3ead7;
+  text-shadow: 0 2px 10px #000;
+}
+.heading h1 {
+  margin: 0;
+  font: 500 clamp(2rem, 3vw, 3rem)/1.15 var(--av-font-display);
+}
+.heading p {
+  margin: 0.5rem 0 0;
+  font: 1.1rem var(--av-font-display);
+}
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.96fr) minmax(10rem, 0.5fr);
+  grid-template-rows: minmax(9rem, 0.8fr) minmax(0, 1fr);
+  gap: 0.7rem;
+  min-height: 0;
+}
+.panel {
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid #9c8664;
+  color: #343a33;
+  background: linear-gradient(120deg, #e0d4beef, #c9baa0f5);
+  box-shadow:
+    inset 0 0 0 3px #e4d8c040,
+    0 5px 16px #0004;
+}
+.panel h2 {
+  margin: 0 0 0.5rem;
+  font: 500 1.4rem var(--av-font-display);
+  color: #31382f;
+}
+.panel p {
+  margin: 0.4rem 0;
+  font-size: 0.9375rem;
+  line-height: 1.4;
+}
+.panel a {
+  color: #344e47;
+}
+.path {
+  grid-column: 1;
+  grid-row: 1 / 3;
+  display: grid;
+  grid-template-rows: auto minmax(5rem, 1fr) auto;
+  gap: 0.6rem;
+}
+.path > span {
+  font: 500 1.4rem var(--av-font-display);
+}
+.pathArt {
+  min-height: 0;
+  border: 1px solid #8f7956;
+  background: url('/media/art/concept-ui/world-v01.webp') center / cover;
+}
+.pathContent {
+  display: grid;
+  gap: 0.5rem;
+}
+.pathContent h2 {
+  margin: 0;
+}
+.pathContent p {
+  margin: 0;
+}
+.pathContent :global(.av-action) {
+  margin-top: 0.2rem;
+  text-align: center;
+}
+.training {
+  grid-column: 2 / 4;
+  background:
+    linear-gradient(90deg, #ded2bfee 0%, #d6c9b6d9 55%, #d6c9b62a),
+    url('/media/art/concept-ui/world-v01.webp') center / cover;
+}
+.training a {
+  display: inline-block;
+  padding: 0.5rem 1.5rem;
+  margin-top: 0.4rem;
+  border: 1px solid #668178;
+  background: #345951;
+  color: #f4ead8;
+  text-decoration: none;
+}
+.news {
+  grid-column: 2;
+  display: grid;
+  align-content: start;
+  gap: 0.65rem;
+}
+.news > a {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #9c866455;
+  font-size: 0.9375rem;
+  text-decoration: none;
+}
+.rewards {
+  grid-column: 3;
+  text-align: center;
+  display: grid;
+  align-content: center;
+  gap: 0.5rem;
+}
+.rewards > span {
+  font-size: 3rem;
+  color: #948464;
+}
+.rewards p {
+  font-size: 0.875rem;
+}
+.shortcuts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+.shortcuts a {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  min-width: 0;
+  padding: 0.7rem 1rem;
+  border: 1px solid #a18a61;
+  background: #222d30e8;
+  color: #ecdfc4;
+  text-decoration: none;
+}
+.shortcuts b {
+  font-size: 1.7rem;
+}
+.shortcuts span {
+  flex: 1;
+  font: 1.1rem var(--av-font-display);
+}
+.shortcuts small {
+  display: block;
+  font: 0.8125rem/1.4 var(--av-font-body);
+  color: #cec8b8;
+}
+@media (max-width: 1000px) {
+  .workspace {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .training {
+    grid-column: 2;
+  }
+  .news {
+    grid-column: 2;
+  }
+  .rewards {
+    grid-column: 1 / -1;
+  }
+  .haven {
+    height: auto;
+  }
+}
+@media (max-width: 760px) {
+  .haven {
+    padding: 0;
+  }
+  .workspace,
+  .shortcuts {
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
+  }
+  .path,
+  .training,
+  .news,
+  .rewards {
+    grid-column: 1;
+    grid-row: auto;
+  }
+  .path > :global(section) {
+    overflow: visible;
+  }
+  .heading h1 {
+    font-size: 1.8rem;
+  }
+}
+
+@media (min-width: 1001px) and (max-height: 720px) {
+  .haven {
+    gap: 0.5rem;
+    padding: 0;
+  }
+  .heading {
+    padding: 0.25rem;
+  }
+  .heading h1 {
+    font-size: 2rem;
+  }
+  .heading p {
+    margin-top: 0.25rem;
+  }
+  .panel {
+    padding: 0.65rem;
+  }
+  .panel h2 {
+    font-size: 1.2rem;
+  }
+  .panel p {
+    font-size: 0.875rem;
+  }
+  .workspace {
+    grid-template-rows: minmax(8rem, 0.8fr) minmax(0, 1fr);
+  }
+  .news {
+    gap: 0.3rem;
+  }
+  .news > a {
+    padding: 0.3rem 0;
+    font-size: 0.875rem;
+  }
+  .shortcuts a {
+    padding: 0.5rem 0.7rem;
+  }
+  .shortcuts span {
+    font-size: 1rem;
+  }
+}

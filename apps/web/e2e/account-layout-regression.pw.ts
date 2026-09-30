@@ -103,8 +103,11 @@ test('Account gateway keeps the desktop entry workspace clear and readable', asy
     .soft(metrics.cardOverflowY, 'desktop account card is not a scroll box')
     .not.toMatch(/auto|scroll/)
   expect
-    .soft(metrics.headingTop, 'AUREVANE title is restored to the lower hero composition')
-    .toBeGreaterThan(metrics.heroTop + (metrics.heroBottom - metrics.heroTop) * 0.45)
+    .soft(
+      metrics.headingTop,
+      'AUREVANE title crowns the landscape scene as in the approved login board',
+    )
+    .toBeLessThan(metrics.heroTop + (metrics.heroBottom - metrics.heroTop) * 0.25)
   expect.soft(metrics.inputColor, 'typed account text is readable on stone').toBe('rgb(36, 42, 39)')
   expect
     .soft(metrics.inputFillColor, 'browser text fill stays readable on stone')

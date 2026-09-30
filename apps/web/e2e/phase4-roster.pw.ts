@@ -137,10 +137,11 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
         if (/\/api\/battles\/[^/]+\/audio\?/.test(request.url())) audioRequests.push(request.url())
       }
       page.on('request', trackAudio)
-      await root.getByRole('button', { name: /Choose Guard skill/ }).click()
-      await page.getByRole('option', { name: 'Breakfall 35 AP', exact: true }).click()
-      await root.getByRole('button', { name: 'Breakfall, 35 AP', exact: true }).click()
-      await expect(root.getByRole('button', { name: 'Confirm Action', exact: true })).toBeEnabled()
+      const armed = page.waitForResponse(
+        (response) => response.url().endsWith('/preview') && response.request().method() === 'POST',
+      )
+      await root.getByRole('button', { name: 'Selected Breakfall, 35 AP', exact: true }).click()
+      expect((await armed).status()).toBe(200)
       expect(audioRequests).toEqual([])
       const committed = page.waitForResponse(
         (response) => response.url().endsWith('/intents') && response.request().method() === 'POST',
@@ -151,7 +152,7 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
       const sound = page.waitForResponse((response) =>
         response.url().includes('/media/audio/sfx/phase4/ironfist-action-'),
       )
-      await root.getByRole('button', { name: 'Confirm Action', exact: true }).click()
+      await root.locator('#battlefield button[aria-label*="occupied by"]').first().click()
       const committedResponse = await committed
       expect(committedResponse.status()).toBe(200)
       const battle = (await committedResponse.json()).battle
@@ -306,29 +307,20 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
   page.on('request', (request) => {
     if (/\/api\/battles\/[^/]+\/audio\?/.test(request.url())) audioRequests.push(request.url())
   })
-  await root.getByRole('button', { name: /Choose Guard skill/ }).click()
-  await page.getByRole('option', { name: 'Fortress 35 AP', exact: true }).click()
-  await root.getByRole('button', { name: 'Fortress, 35 AP', exact: true }).click()
-  await expect(root.getByRole('button', { name: 'Confirm Action', exact: true })).toBeEnabled()
-  await expect(root.locator('#battlefield button[data-target="friendly"]')).toHaveCount(1)
-  await expect(
-    root.getByRole('button', { name: new RegExp(`occupied by Mastery ${suffix}$`) }),
-  ).toHaveAttribute('data-target', 'friendly')
-  // A new invalid target must discard the earlier accepted self projection and confirmation.
-  await root.locator('#battlefield button:not([aria-label*="occupied by"])').first().click()
-  await expect(root.getByRole('button', { name: 'Confirm Action', exact: true })).toBeDisabled()
-  await expect(root.getByLabel('Action preview')).not.toContainText('Success 100%')
   const selfPreview = page.waitForResponse(
     (response) => response.url().endsWith('/preview') && response.request().method() === 'POST',
   )
-  // Re-selecting the caster on the board must not replace self with an illegal unit target.
-  await root.getByRole('button', { name: new RegExp(`occupied by Mastery ${suffix}$`) }).click()
+  await root.getByRole('button', { name: 'Selected Fortress, 35 AP', exact: true }).click()
   const previewResponse = await selfPreview
   expect(previewResponse.request().postDataJSON().intent.target).toEqual({ kind: 'self' })
   const preview = (await previewResponse.json()).battlePreview.preview
   expect(preview.legal).toBe(true)
   expect(preview.projectedStatuses).toEqual(
     expect.arrayContaining([expect.objectContaining({ statusId: 'fortified' })]),
+  )
+  await expect(root.getByRole('progressbar', { name: 'Action Economy remaining' })).toHaveAttribute(
+    'aria-valuenow',
+    '100',
   )
   const committed = page.waitForResponse(
     (response) => response.url().endsWith('/intents') && response.request().method() === 'POST',
@@ -340,7 +332,7 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
   const playedAsset = page.waitForResponse((response) =>
     response.url().includes('/media/audio/sfx/phase4/bastion-action-'),
   )
-  await root.getByRole('button', { name: 'Confirm Action', exact: true }).click()
+  await root.locator('#battlefield button:not([aria-label*="occupied by"])').first().click()
   const commitResponse = await committed
   expect(commitResponse.status()).toBe(200)
   const battle = (await commitResponse.json()).battle

@@ -92,26 +92,20 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
   const enemyId = battle.snapshot.tactical.battle.combatants.find(
     (unit) => unit.teamId === 'opponents',
   )!.id
-  const confirm = root.getByRole('button', { name: 'Confirm Action', exact: true })
-  const finish = root.getByRole('button', { name: /^Finish Turn,/ })
+  const finish = root.getByRole('button', { name: /^End Turn,/ })
   let skillCommands = 0
   let braced = false
-  const commit = async () => {
-    await expect(confirm).toBeEnabled()
+  const commit = async (
+    target = root.getByRole('button', { name: new RegExp(`occupied by Earned ${suffix}`) }),
+  ) => {
     const response = page.waitForResponse(
       (r) => r.url().endsWith('/intents') && r.request().method() === 'POST',
     )
-    await confirm.click()
+    await target.click()
     const result = await response
     expect(result.status()).toBe(200)
     battle = (await result.json()).battle
   }
-  const chooseSkill = async (category: string, id: string) => {
-    await root.locator(`[data-battle-skill-selector-category="${category}"]`).click()
-    await page.locator(`[data-battle-skill-option-id="${id}"]`).click()
-  }
-  await chooseSkill('Guard', 'vanguard.brace')
-  await chooseSkill('Attack', 'vanguard.forceful-strike')
   for (
     let command = 0;
     command < 100 && battle.snapshot.tactical.battle.lifecycle === 'active';
@@ -137,7 +131,7 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
       root.getByRole('progressbar', { name: 'Action Economy remaining' }),
     ).toHaveAttribute('aria-valuenow', String(ap))
     if (!braced && ap >= 35) {
-      await root.getByRole('button', { name: 'Brace, 35 AP', exact: true }).click()
+      await root.getByRole('button', { name: 'Selected Brace, 35 AP', exact: true }).click()
       await commit()
       braced = true
       skillCommands++
@@ -146,17 +140,16 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
     const nextPrimarySkillCost = 45
     if (distance === 1 && ap >= (skillCommands < 3 ? nextPrimarySkillCost : 50)) {
       if (skillCommands === 1) {
-        await root.getByRole('button', { name: 'Forceful Strike, 45 AP', exact: true }).click()
+        await root
+          .getByRole('button', { name: 'Selected Forceful Strike, 45 AP', exact: true })
+          .click()
       } else if (skillCommands === 2) {
-        await chooseSkill('Attack', 'vanguard.shield-bash')
-        await root.getByRole('button', { name: 'Shield Bash, 45 AP', exact: true }).click()
+        await root.getByRole('button', { name: 'Selected Shield Bash, 45 AP', exact: true }).click()
       } else {
-        await chooseSkill('Attack', 'basic.attack.unarmed.basic')
         await root.locator('[data-battle-command="attack"]').click()
       }
       await expect(enemyTile).toHaveAttribute('data-target', 'enemy')
-      await enemyTile.click()
-      await commit()
+      await commit(enemyTile)
       if (skillCommands < 3) skillCommands++
       continue
     }
@@ -180,8 +173,7 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
         enemy,
       )
       if (destination && destination.distance < distance) {
-        await root.getByRole('button', { name: destination.label, exact: true }).click()
-        await commit()
+        await commit(root.getByRole('button', { name: destination.label, exact: true }))
         continue
       }
     }

@@ -47,7 +47,9 @@ export async function PublicInformationShell({ active, children }: PublicInforma
   if (character)
     return (
       <AuthenticatedShellFrame>
-        <div data-public-reading>{children}</div>
+        <div className={styles.reading} data-public-reading>
+          {children}
+        </div>
       </AuthenticatedShellFrame>
     )
   const gameHref = identity.authenticated ? (character ? '/game/character' : '/game') : '/'

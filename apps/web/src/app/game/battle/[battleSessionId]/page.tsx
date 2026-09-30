@@ -88,6 +88,7 @@ async function battleBuildExtensions(
           return null
         const override = combatContext ? definition.overrides[combatContext] : undefined
         return {
+          definition,
           id: definition.id,
           contentVersion: definition.contentVersion,
           sourceDisciplineId: definition.sourceDisciplineId,
@@ -129,6 +130,7 @@ async function battleBuildExtensions(
               )
               if (!definition) return null
               return {
+                definition,
                 id: copiedSkillCommandId(definition.id, definition.contentVersion),
                 sourceSkillId: definition.id,
                 contentVersion: definition.contentVersion,
@@ -160,6 +162,7 @@ async function battleBuildExtensions(
     copiedSkills,
     resonance: resonanceDefinition
       ? {
+          definition: resonanceDefinition,
           id: resonanceDefinition.id,
           contentVersion: resonanceDefinition.contentVersion,
           name: resonanceDefinition.name,
@@ -168,6 +171,7 @@ async function battleBuildExtensions(
       : null,
     essence: essenceDefinition
       ? {
+          definition: essenceDefinition.skill,
           id: essenceDefinition.skill.id,
           contentVersion: essenceDefinition.contentVersion,
           name: essenceDefinition.name,

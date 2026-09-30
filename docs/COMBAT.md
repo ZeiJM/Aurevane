@@ -1,5 +1,15 @@
 # AUREVANE Combat Design Bible
 
+## Accepted battle cockpit and interaction — 2026-09-30
+
+New standard sessions use 9×7, 12×7, or 15×7 arenas. Historical battle snapshots retain their recorded dimensions. All three widths share the same seven-row tile scale within a viewport; movement legality and authored training maps remain authoritative.
+
+The shared playable cockpit is Inspect, Move [1], Basic Attack [2], Guard [3], four committed Discipline Skill slots [4–7], Essence/Resonance [8], the future Severance/Ascension information placeholder [9], and End Turn [Space]. Unfilled Skill slots remain visible. Recover remains available under Recovery and [R]. Customized account bindings are preserved; inherited legacy defaults are migrated without occupying customized chords.
+
+Selecting an action only arms it and fetches a deterministic informational target forecast. A subsequent single target click or WASD direction requests a current legal server preview and submits the intent once. Self actions also require that deliberate second input. Enter retains the explicit execute binding for keyboard accessibility. Key repeats, open dialogs, stale previews, nonlocal or completed turns, pending execution, and component exit cannot dispatch a new action. First Space enters final-facing selection; a second distinct Space keeps the current facing and ends the turn. A facing direction ends with that facing.
+
+The local card remains left; the selected/inspected card swaps on the right. Status icons, full Skill parameters, per-target projections and expandable committed history remain accessible. Playable PvE/PvP and live spectators reuse the battlefield presentation bundle. The client never decides combat outcomes, costs, rewards or legality.
+
 ## P4.K4 player-facing Amplify/Curse forecast boundary — 2026-09-16
 
 The shared battle forecast now presents the authoritative `copy-statuses` projections already produced by the staged Amplify/Curse kernel. Ordinary status rows are humanized from their pinned before/after state, Poison shows its current movement-counter state, Burn shows its current stage transition and Bleed projections remain in the authoritative stable order. These clone projections stay alongside any later authored damage, healing or resource projections in a composed command.

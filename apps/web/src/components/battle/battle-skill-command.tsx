@@ -220,7 +220,7 @@ export function BattleSkillCommand({
       <BattleInfoPopover
         label={`About ${label}`}
         title={label}
-        trigger="ⓘ"
+        trigger="i"
         className={styles.infoTrigger}
       >
         <p>
@@ -237,14 +237,16 @@ export function BattleSkillCommand({
             {slot === 'inspect'
               ? 'Select a character or tile to inspect it for free.'
               : slot === 'move'
-                ? 'Select reachable tiles to preview your path and its AP cost.'
+                ? 'Arm Move, then click a reachable tile or use a direction to move. The server checks the path and AP cost.'
                 : slot === 'finish'
                   ? 'Choose your final facing on the map, then finish your turn.'
-                  : 'Select a target to preview the result and AP cost before confirming.'}
+                  : 'Arm this action to see its target forecast. Then click a target or use a direction to execute it.'}
           </p>
         )}
         {tags.length > 0 ? (
-          <p>Select a target to see the projected result before confirming.</p>
+          <p>
+            Arm this action to see its forecast, then use a deliberate target input to execute it.
+          </p>
         ) : null}
       </BattleInfoPopover>
 

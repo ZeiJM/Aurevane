@@ -31,7 +31,7 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
   await page.getByRole('button', { name: 'Change Movement Skill keybind' }).click()
   await page.keyboard.press('m')
   await expect(page.getByTestId('keybind-move')).toContainText('M')
-  await expect(page.getByTestId('keybind-recover')).toContainText('5')
+  await expect(page.getByTestId('keybind-recover')).toContainText('R')
   await page.getByRole('button', { name: 'Save Controls' }).click()
   await expect(page.getByRole('status')).toContainText('Combat controls saved to your account.')
 
@@ -92,7 +92,7 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
   await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
   const battlefield = page.getByRole('region', { name: 'Tactical battlefield' })
   const commandDeck = page.getByRole('region', { name: 'Command Deck' })
-  const commandContext = commandDeck.locator(':scope > div').first()
+  const commandContext = page.locator('[data-battle-preview-strip]')
   await expect(battlefield).toBeVisible()
   await expectVictoryConditionsBesideMapKey(page)
   await expect(
@@ -110,26 +110,27 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
     'aria-valuenow',
     '100',
   )
-  await expect(commandDeck.getByRole('button', { name: /^Move,/ })).toContainText('M · WASD')
-  await expect(commandDeck.locator('button[data-battle-command="attack"]')).toContainText('3')
-  await expect(commandDeck.locator('button[data-battle-command="guard"]')).toContainText('4')
-  await expect(commandDeck.locator('button[data-battle-command="recover"]')).toContainText('5')
+  await expect(commandDeck.getByRole('button', { name: /^Move,/ })).toContainText('M')
+  await expect(commandDeck.locator('button[data-battle-command="attack"]')).toContainText('2')
+  await expect(commandDeck.locator('button[data-battle-command="guard"]')).toContainText('3')
+  await expect(page.locator('[data-battle-secondary-actions]')).toContainText('Recovery')
   expect(await hasHorizontalOverflow(page)).toBe(false)
   if (testInfo.project.name !== 'mobile-chromium') {
     expect(await hasVerticalPageOverflow(page)).toBe(false)
   }
 
   await page.keyboard.press('m')
-  await expect(commandContext).toContainText('Move · 20 AP per normal tile')
-  await expect(commandContext).toContainText('Rough ground costs 40 AP')
+  await expect(commandContext).toContainText('Move')
 
   const beforeKeyboardMove = page.getByRole('button', {
     name: new RegExp(`Tile 2, 4;.*occupied by ${characterName}`),
   })
   await expect(beforeKeyboardMove).toBeVisible()
   await page.keyboard.press('ArrowRight')
-  await expect(commandContext).toContainText('20 AP')
-  await expect(commandContext).toContainText('80 AP left')
+  await expect(page.getByRole('progressbar', { name: 'Action Economy remaining' })).toHaveAttribute(
+    'aria-valuenow',
+    '80',
+  )
   await page.getByRole('button', { name: 'Cancel Action' }).click()
 
   await commandDeck.getByRole('button', { name: /^Inspect,/ }).click()

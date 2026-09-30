@@ -19,25 +19,27 @@
   object-position: center;
 }
 
-.shell {
-  --av-shell-rail-width: 4.75rem;
+.worldFrame .shell {
+  --av-shell-rail-width: 11.875rem;
+  --av-rail-portrait-size: 9rem;
   --av-shell-header-height: 4rem;
-  --av-shell-footer-height: 2.5rem;
+  --av-shell-footer-height: 2rem;
   display: grid;
   grid-template-columns: var(--av-shell-rail-width) minmax(0, 1fr);
   grid-template-rows: var(--av-shell-header-height) minmax(0, 1fr) var(--av-shell-footer-height);
-  width: calc(100% - clamp(0.5rem, 1.2vw, 1.25rem));
+  width: 100%;
   height: 100dvh;
   min-width: 0;
   min-height: 0;
+  padding: 0;
   margin-inline: auto;
   overflow: hidden;
-  border-inline: 1px solid var(--av-border-strong);
-  background: rgba(7, 15, 24, 0.7);
+  border-inline: 0;
+  background: #313839;
   box-shadow: 0 0 3rem rgba(0, 0, 0, 0.3);
 }
 
-.masthead {
+.shell .masthead {
   position: relative;
   z-index: 900;
   grid-column: 1 / -1;
@@ -94,6 +96,7 @@
   color: #ff9e96;
 }
 
+/* The rail owns a single compact identity, six destinations and utilities. */
 .rail {
   position: relative;
   isolation: isolate;
@@ -103,294 +106,231 @@
   min-width: 0;
   min-height: 0;
   flex-direction: column;
-  overflow: hidden;
-  border-right: 1px solid var(--av-border-strong);
-  background: linear-gradient(180deg, rgba(8, 18, 28, 0.98), rgba(5, 12, 20, 0.96));
-  scrollbar-width: thin;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-right: 1px solid #806c4c;
+  background: linear-gradient(155deg, #3a3e3b, #262d30 65%);
 }
 
 .railAetherField {
   position: absolute;
   z-index: 0;
   inset: 0;
-  display: none;
   overflow: hidden;
   pointer-events: none;
 }
 
-.railAetherOrb {
+.railAetherWisp {
   position: absolute;
-  bottom: -2rem;
-  left: var(--orb-left);
-  width: var(--orb-size);
-  height: var(--orb-size);
-  border: 1px solid rgb(var(--orb-rgb) / 0.22);
-  border-radius: 50%;
-  opacity: 0;
-  background: radial-gradient(
-    circle at 50% 50%,
-    rgb(236 255 253 / 0.26) 0 8%,
-    rgb(var(--orb-rgb) / 0.27) 18%,
-    rgb(var(--orb-rgb) / 0.15) 43%,
-    rgb(var(--orb-rgb) / 0.23) 66%,
-    rgb(var(--orb-rgb) / 0.09) 79%,
-    transparent 90%
+  inset: -20% -50%;
+  opacity: 0.2;
+  background: linear-gradient(
+    106deg,
+    transparent 37%,
+    #5cbab516 44%,
+    #69c7c549 49%,
+    #488d9820 53%,
+    transparent 62%
   );
-  box-shadow:
-    0 0 0.56rem rgb(var(--orb-rgb) / 0.24),
-    0 0 1.08rem rgb(var(--orb-rgb) / 0.12),
-    inset 0 0 0.4rem rgb(229 255 252 / 0.13);
-  filter: blur(var(--orb-blur));
-  will-change: transform, opacity;
-  animation: railOrbFloatA var(--orb-duration) ease-in-out var(--orb-delay) infinite;
+  filter: blur(10px);
+  animation: railWispFlow 32s ease-in-out infinite alternate;
 }
 
-.railAetherOrb::before,
-.railAetherOrb::after {
-  position: absolute;
-  border-radius: 50%;
-  content: '';
-  pointer-events: none;
+.railAetherWisp:nth-child(2) {
+  inset: -35% -90%;
+  opacity: 0.12;
+  animation-duration: 43s;
+  animation-delay: -19s;
+  animation-direction: alternate-reverse;
 }
 
-.railAetherOrb::before {
-  inset: 21%;
-  background: radial-gradient(
-    circle,
-    rgb(244 255 254 / 0.31) 0 8%,
-    rgb(var(--orb-rgb) / 0.2) 34%,
-    transparent 76%
-  );
-  filter: blur(0.08rem);
-  opacity: 0.8;
+.railAetherRunes {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: #72c7c0;
+  stroke-width: 0.65;
+  opacity: 0.16;
 }
 
-.railAetherOrb::after {
-  inset: -42%;
-  background: radial-gradient(
-    circle,
-    rgb(var(--orb-rgb) / 0.14) 0 18%,
-    rgb(var(--orb-rgb) / 0.07) 36%,
-    transparent 68%
-  );
-  filter: blur(0.22rem);
-  opacity: 0.82;
+@keyframes railWispFlow {
+  from {
+    transform: translate3d(-12%, 18%, 0) rotate(-9deg);
+  }
+  to {
+    transform: translate3d(12%, -18%, 0) rotate(9deg);
+  }
 }
 
-.railAetherOrb:nth-child(3n + 2) {
-  animation-name: railOrbFloatB;
+.railCharacter,
+.railNavigation,
+.railUtilities,
+.railSession {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  min-width: 0;
 }
 
-.railAetherOrb:nth-child(4n) {
-  animation-name: railOrbFloatC;
+.railCharacter :global([data-compact-rail]) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.4rem;
+  width: 100%;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.railCharacter :global([data-compact-rail])::before,
+.railCharacter :global([data-compact-rail])::after {
+  content: none;
+}
+
+.railCharacter :global([data-character-portrait-frame]) {
+  box-sizing: content-box;
+  grid-row: auto;
+  width: var(--av-rail-portrait-size);
+  height: var(--av-rail-portrait-size);
+  min-height: 0;
+  justify-self: center;
+  padding: 0;
+  border: 1px solid #b0966a;
+  box-shadow: none;
+}
+
+.railCharacter :global([data-character-portrait-frame]) > div {
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.railCharacter :global([data-character-identity-copy]) {
+  justify-items: start;
+  gap: 0;
+  padding: 0;
+  text-align: left;
+}
+
+.railCharacter :global([data-character-identity-copy]) > strong {
+  font: 500 1.25rem/1.15 var(--av-font-display);
+  overflow-wrap: anywhere;
+}
+
+.railCharacter :global([data-character-identity-copy]) p,
+.railCharacter :global([data-character-identity-copy]) > div,
+.railCharacter :global([data-character-creed]) {
+  display: none;
+}
+
+.railCharacter :global([data-testid='rail-level-progress']) {
+  gap: 0.25rem;
+  padding: 0;
+}
+
+.railCharacter :global([data-testid='rail-level-progress']) > div:first-child {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.2rem;
+}
+
+.railCharacter :global([data-testid='rail-level-progress']) :is(strong, span),
+.railCharacter :global([data-character-resources]) :is(strong, b) {
+  font-size: 0.75rem;
+  line-height: 1.1;
+}
+
+.railCharacter :global([data-character-resources]) {
+  gap: 0.4rem;
+  padding: 0;
+}
+
+.railCharacter :global([data-character-resources]) > div {
+  gap: 0.2rem;
+}
+
+.railCharacter :global([data-character-resources]) i {
+  height: 0.3rem;
+}
+
+.railCharacter :global(.av-rail-identity) {
+  display: grid;
+  justify-items: center;
+  gap: 0.4rem;
+  padding-bottom: 0.5rem;
+}
+
+.railCharacter :global(.av-rail-identity) > span:first-child {
+  width: var(--av-rail-portrait-size);
+  height: var(--av-rail-portrait-size);
+  border: 1px solid #b0966a;
+  border-radius: 0;
+}
+
+.railCharacter :global(.av-rail-identity) strong {
+  color: #f0e5ce;
+  font: 500 1.25rem/1.15 var(--av-font-display);
+  overflow-wrap: anywhere;
+}
+
+.railCharacter :global(.av-rail-identity) small {
+  color: #c4b9a5;
+  font-size: 0.75rem;
+}
+
+.railCharacter :global(.av-rail-identity) > span:last-child:not(:first-child) {
+  display: none;
 }
 
 .railNavigation {
-  position: relative;
-  z-index: 1;
   display: grid;
-  padding-top: 0.35rem;
+  gap: 0.15rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid #8e795548;
 }
 
 .railLink {
-  position: relative;
   display: flex;
   width: 100%;
-  min-height: 4.35rem;
+  min-height: 2.25rem;
   align-items: center;
-  justify-content: center;
-  padding: 0.7rem 0.25rem;
-  border: 0;
-  border-block: 1px solid transparent;
-  border-left: 3px solid transparent;
-  color: var(--av-text-muted);
+  gap: 0.6rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  color: #e0d7c5;
   background: transparent;
-  text-align: center;
+  font: 500 0.875rem/1.2 var(--av-font-body);
+  text-align: left;
+  text-decoration: none;
   transition:
     background var(--av-fast) ease,
-    color var(--av-fast) ease,
-    border-color var(--av-fast) ease;
+    color var(--av-fast) ease;
 }
 
 .railLink svg {
-  width: 1.65rem;
-  height: 1.65rem;
+  width: 1.2rem;
+  height: 1.2rem;
   flex: 0 0 auto;
 }
 
-.railLink svg[data-nav-icon='arsenal'],
-.railLink svg[data-nav-icon='nexus'] {
-  width: 1.84rem;
-  height: 1.84rem;
-}
-
 .railLink > span {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
-@media (min-width: 761px) {
-  .rail::before {
-    position: absolute;
-    pointer-events: none;
-    content: '';
-    z-index: 0;
-    top: -30%;
-    left: -35%;
-    width: 170%;
-    height: 160%;
-    opacity: 0.24;
-    background:
-      linear-gradient(
-        180deg,
-        transparent 0%,
-        rgba(48, 150, 178, 0.03) 14%,
-        rgba(72, 225, 218, 0.14) 43%,
-        rgba(55, 174, 205, 0.08) 68%,
-        transparent 100%
-      ),
-      radial-gradient(
-        ellipse at 50% 48%,
-        rgba(82, 226, 218, 0.1) 0 4%,
-        rgba(58, 161, 192, 0.04) 18%,
-        transparent 46%
-      );
-    filter: blur(14px);
-    will-change: transform, opacity;
-    animation: railAetherRise 28s ease-in-out infinite alternate;
-  }
-
-  .railAetherField {
-    display: block;
-  }
-}
-
-@keyframes railAetherRise {
-  0% {
-    opacity: 0.16;
-    transform: translate3d(-4%, 16%, 0) rotate(-2deg);
-  }
-
-  50% {
-    opacity: 0.27;
-    transform: translate3d(3%, -4%, 0) rotate(1deg);
-  }
-
-  100% {
-    opacity: 0.19;
-    transform: translate3d(-2%, -20%, 0) rotate(3deg);
-  }
-}
-
-@keyframes railOrbFloatA {
-  0% {
-    opacity: 0;
-    transform: translate3d(0, 2rem, 0) scale(0.82);
-  }
-
-  16% {
-    opacity: var(--orb-opacity);
-  }
-
-  36% {
-    transform: translate3d(var(--orb-drift-a), -31vh, 0) scale(0.97);
-  }
-
-  62% {
-    transform: translate3d(var(--orb-drift-b), -64vh, 0) scale(0.9);
-  }
-
-  85% {
-    opacity: var(--orb-opacity);
-    transform: translate3d(var(--orb-drift-c), -92vh, 0) scale(1.04);
-  }
-
-  100% {
-    opacity: 0;
-    transform: translate3d(var(--orb-drift-a), -120vh, 0) scale(0.86);
-  }
-}
-
-@keyframes railOrbFloatB {
-  0% {
-    opacity: 0;
-    transform: translate3d(0, 3rem, 0) scale(0.88);
-  }
-
-  18% {
-    opacity: var(--orb-opacity);
-  }
-
-  40% {
-    transform: translate3d(var(--orb-drift-b), -29vh, 0) scale(1.03);
-  }
-
-  66% {
-    transform: translate3d(var(--orb-drift-a), -62vh, 0) scale(0.92);
-  }
-
-  87% {
-    opacity: var(--orb-opacity);
-    transform: translate3d(var(--orb-drift-c), -91vh, 0) scale(1.06);
-  }
-
-  100% {
-    opacity: 0;
-    transform: translate3d(var(--orb-drift-b), -118vh, 0) scale(0.9);
-  }
-}
-
-@keyframes railOrbFloatC {
-  0% {
-    opacity: 0;
-    transform: translate3d(0, 1.5rem, 0) scale(0.84);
-  }
-
-  14% {
-    opacity: var(--orb-opacity);
-  }
-
-  31% {
-    transform: translate3d(var(--orb-drift-c), -26vh, 0) scale(1);
-  }
-
-  56% {
-    transform: translate3d(var(--orb-drift-b), -57vh, 0) scale(0.91);
-  }
-
-  82% {
-    transform: translate3d(var(--orb-drift-a), -86vh, 0) scale(1.05);
-  }
-
-  92% {
-    opacity: var(--orb-opacity);
-  }
-
-  100% {
-    opacity: 0;
-    transform: translate3d(var(--orb-drift-c), -116vh, 0) scale(0.87);
-  }
+  min-width: 0;
 }
 
 .railLink[aria-current='page'] {
-  border-block-color: rgba(120, 226, 219, 0.22);
-  border-left-color: var(--av-teal-bright);
-  color: var(--av-teal-bright);
-  background:
-    linear-gradient(90deg, rgba(30, 111, 117, 0.48), rgba(13, 39, 50, 0.72)), rgba(9, 22, 32, 0.92);
-  box-shadow: inset 0 0 1.1rem rgba(64, 208, 199, 0.08);
+  color: #fff4da;
+  background: linear-gradient(90deg, #87714f75, #79644920);
+  border-color: #a28b6380;
+  box-shadow: inset 2px 0 #d6b47c;
 }
 
-.railLink:hover:not(:disabled) {
-  border-left-color: var(--av-brass-300);
-  color: var(--av-on-primary);
-  background: rgba(21, 79, 86, 0.86);
+.railLink:hover:not(:disabled),
+.railUtilities a:hover {
+  color: #fff4da;
+  background: #aa906029;
 }
 
 .railLink:disabled {
@@ -398,31 +338,75 @@
   cursor: not-allowed;
 }
 
-.railSession {
-  position: relative;
-  z-index: 1;
-  display: none;
-}
-
-.railIdentity {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  justify-content: center;
+.railUtilities {
+  display: grid;
   margin-top: auto;
-  padding: 0.7rem 0.35rem;
-  border-top: 1px solid var(--av-border-strong);
+  padding-top: 0.4rem;
+  border-top: 1px solid #9e88604f;
 }
 
-.railIdentity > div {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  clip-path: inset(50%);
-  white-space: nowrap;
+.railUtilities a {
+  display: flex;
+  min-height: 1.875rem;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.25rem 0.5rem;
+  color: #d2c7b1;
+  text-decoration: none;
+  font-size: 0.8rem;
+  line-height: 1.2;
+}
+
+.railSession {
+  display: flex;
+  min-height: 2.5rem;
+  align-items: center;
+  margin-top: auto;
+  padding: 0.4rem;
+  border: 1px solid #a28b6380;
+  color: #fff4da;
+  font-size: 0.8rem;
+}
+
+@media (min-width: 761px) and (max-height: 700px) {
+  .worldFrame .shell {
+    --av-rail-portrait-size: 7rem;
+  }
+  .rail {
+    gap: 0.3rem;
+    padding-block: 0.5rem;
+  }
+  .railLink {
+    min-height: 2rem;
+    padding-block: 0.25rem;
+  }
+  .railUtilities a {
+    min-height: 1.75rem;
+  }
+}
+
+@media (min-width: 761px) and (max-height: 620px) {
+  .worldFrame .shell {
+    --av-rail-portrait-size: 5.5rem;
+  }
+  .railCharacter :global([data-compact-rail]) {
+    gap: 0.25rem;
+  }
+  .railNavigation {
+    gap: 0;
+    padding-top: 0.25rem;
+  }
+  .railLink {
+    min-height: 1.75rem;
+    padding-block: 0.15rem;
+  }
+  .railUtilities {
+    padding-top: 0.25rem;
+  }
+  .railUtilities a {
+    min-height: 1.625rem;
+    padding-block: 0.15rem;
+  }
 }
 
 .screenPortrait {
@@ -533,7 +517,8 @@
   min-width: 0;
   min-height: 0;
   margin: 0;
-  padding: clamp(0.45rem, 0.85vw, 0.8rem);
+  padding: clamp(0.65rem, 0.85vw, 1rem);
+  background: linear-gradient(125deg, #66706d24, transparent), #363e3e;
   overflow: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
@@ -589,8 +574,11 @@
   cursor: pointer;
 }
 
-.footer {
+.shell .footer {
+  position: relative;
+  inset: auto;
   display: flex;
+  background: #242b2c;
   grid-column: 1 / -1;
   grid-row: 3;
   min-height: 0 !important;
@@ -638,7 +626,7 @@
     min-height: 100dvh;
   }
 
-  .shell {
+  .worldFrame .shell {
     width: 100%;
     height: auto;
     min-height: 100dvh;
@@ -648,7 +636,7 @@
     grid-template-rows: auto auto minmax(0, 1fr) auto;
   }
 
-  .masthead {
+  .shell .masthead {
     grid-column: 1;
     grid-row: 1;
   }
@@ -703,6 +691,8 @@
     grid-column: 1;
     grid-row: 2;
     min-height: 0;
+    gap: 0;
+    padding: 0;
     overflow: visible;
     border-right: 0;
     border-bottom: 1px solid var(--av-border-strong);
@@ -710,7 +700,9 @@
 
   .railNavigation {
     grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 0;
     padding: 0;
+    border: 0;
   }
 
   .railLink {
@@ -719,20 +711,15 @@
     gap: 0.22rem;
     justify-content: center;
     padding: 0.38rem 0.08rem;
+    border: 0;
     border-left: 0;
     border-bottom: 2px solid transparent;
-    font: 500 0.6rem/1.15 var(--av-font-display);
+    font: 500 0.75rem/1.15 var(--av-font-body);
   }
 
   .railLink svg {
     width: 1.2rem;
     height: 1.2rem;
-  }
-
-  .railLink svg[data-nav-icon='arsenal'],
-  .railLink svg[data-nav-icon='nexus'] {
-    width: 1.34rem;
-    height: 1.34rem;
   }
 
   .railLink > span {
@@ -747,11 +734,14 @@
   }
 
   .railLink[aria-current='page'] {
+    box-shadow: none;
     border-top-color: transparent;
     border-bottom-color: var(--av-teal-bright);
   }
 
-  .railIdentity {
+  .railCharacter,
+  .railUtilities,
+  .railAetherField {
     display: none;
   }
 
@@ -769,7 +759,7 @@
     overflow: hidden;
   }
 
-  .footer {
+  .shell .footer {
     grid-column: 1;
     grid-row: 4;
     min-height: 2.5rem !important;
@@ -797,19 +787,14 @@
     transition: none;
   }
 
-  .rail::before,
-  .railAetherOrb {
+  .railAetherWisp {
     animation: none;
-  }
-
-  .railAetherField {
-    display: none;
   }
 }
 
 /* composition-v3 mobile primary dock */
 @media (max-width: 760px) {
-  .shell {
+  .worldFrame .shell {
     grid-template-rows: auto minmax(0, 1fr) auto;
     padding-bottom: calc(4.25rem + env(safe-area-inset-bottom));
   }
@@ -843,6 +828,7 @@
   }
 
   .railLink[aria-current='page'] {
+    box-shadow: none;
     border-top-color: var(--av-teal-bright);
     border-bottom-color: transparent;
     background: linear-gradient(180deg, rgba(31, 111, 117, 0.4), rgba(5, 13, 21, 0.98));
@@ -853,7 +839,7 @@
     padding-bottom: 0.75rem;
   }
 
-  .footer {
+  .shell .footer {
     grid-row: 3;
     margin-bottom: 0;
   }
@@ -872,5 +858,33 @@
   .headerCharacter .screenPortrait {
     width: 2rem;
     height: 2rem;
+  }
+}
+
+.shell[data-av-layout='battlefield'] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.shell[data-av-layout='battlefield'] .main {
+  grid-column: 1;
+}
+
+@media (min-width: 761px) {
+  .shell .masthead {
+    background: #272d2eef;
+  }
+}
+
+@media (max-width: 760px) {
+  .worldFrame .shell[data-av-layout='standard'][data-av-session-restricted] {
+    padding-bottom: calc(7rem + env(safe-area-inset-bottom));
+  }
+
+  .shell[data-av-layout='battlefield'] {
+    padding-bottom: 0;
+  }
+
+  .railSession {
+    margin: 0.2rem 0.5rem;
   }
 }

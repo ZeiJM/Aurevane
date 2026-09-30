@@ -131,19 +131,10 @@ test('legal Vanguard 3 + Lifebinder 1 mixed build can enter AI Sparring from its
     'Mending Light',
   )
 
-  await expect(
-    commandDeck
-      .locator('[data-command-card="attack"]')
-      .getByRole('button', { name: /Choose Attack skill/i }),
-  ).toHaveAttribute('data-battle-selected-skill-id', /forceful-strike/)
-  await expect(
-    commandDeck
-      .locator('[data-command-card="guard"]')
-      .getByRole('button', { name: /Choose Guard skill/i }),
-  ).toHaveAttribute('data-battle-selected-skill-id', /brace/)
-  await expect(
-    commandDeck
-      .locator('[data-command-card="recover"]')
-      .getByRole('button', { name: /Choose Heal skill/i }),
-  ).toHaveAttribute('data-battle-selected-skill-id', /mending-light/)
+  await expect(commandDeck.locator('[data-battle-skill-slot]')).toHaveCount(4)
+  for (const name of ['Forceful Strike', 'Brace', 'Mending Light']) {
+    await expect(
+      commandDeck.getByRole('button', { name: new RegExp(`^Selected ${name},`) }),
+    ).toBeVisible()
+  }
 })

@@ -127,9 +127,9 @@ test('keeps the live desktop PvP header, opponent timer, and full board stable',
     expect(secondCountdown).toBeLessThan(firstCountdown)
 
     const header = root.locator(':scope > header')
-    const economy = header.locator('[data-pvp-header-economy="true"]')
-    await expect(header).toHaveAttribute('data-pvp-header-layout', 'approved')
-    await expect(economy).toHaveAttribute('data-pvp-header-layout', 'approved')
+    const economy = header.locator('[data-unified-battle-economy="true"]')
+    await expect(root).toHaveAttribute('data-battle-layout', 'refined')
+    await expect(economy).toBeVisible()
     await expectMapKey(host)
     await expect(header.getByRole('button', { name: /Round .*Combat Log/i })).toHaveCount(0)
     await expect(root.locator('#battlefield button[aria-label^="Tile "]')).toHaveCount(63)

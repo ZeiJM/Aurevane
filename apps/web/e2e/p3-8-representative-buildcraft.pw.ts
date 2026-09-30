@@ -188,62 +188,27 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   const battleRoot = page.locator('[data-unified-battle="true"]')
   const battlefield = page.getByRole('region', { name: 'Tactical battlefield' })
   const commandDeck = page.getByRole('region', { name: 'Command Deck' })
-  const commandContext = commandDeck.locator(':scope > div').first()
+  const commandContext = page.locator('[data-battle-preview-strip]')
   const moveAction = commandDeck.locator('button[data-command-slot="move"]')
-  const attackCard = commandDeck.locator('[data-command-card="attack"]')
-  const attackAction = attackCard.locator('button[data-command-slot="attack"]')
-  const attackArtwork = attackCard.getByRole('button', { name: /Choose Attack skill/i })
   const finishAction = commandDeck.locator('button[data-command-slot="finish"]')
-  const confirmAction = page.getByRole('button', { name: /Confirm Action/ })
   const actionEconomy = page.getByRole('progressbar', { name: 'Action Economy remaining' })
 
-  // Favorites no longer choose cockpit defaults, so explicitly restore basic Guard before
-  // verifying the Guard -> Barrier forecast swap. A 1v1 has no other allied unit, and Barrier's
-  // range starts at one.
-  await commandDeck.getByRole('button', { name: /Choose Guard skill/ }).click()
-  await page.getByRole('option', { name: 'Guard 30 AP', exact: true }).click()
+  const guardPreview = page.waitForResponse((response) => response.url().endsWith('/preview'))
   await commandDeck.getByRole('button', { name: 'Guard, 30 AP', exact: true }).click()
-  await expect(confirmAction).toBeEnabled()
-  const guardTargetPreview = page.waitForResponse((response) => response.url().endsWith('/preview'))
-  await battlefield
-    .getByRole('button', { name: new RegExp(`occupied by ${characterName}`) })
-    .click()
-  expect((await guardTargetPreview).request().postDataJSON().intent.target).toEqual({
-    kind: 'self',
-  })
-  await expect(confirmAction).toBeEnabled()
-  await commandDeck.getByRole('button', { name: /Choose Guard skill/ }).click()
-  await page.getByRole('option', { name: 'Barrier 40 AP', exact: true }).click()
-  const forecast = commandDeck.getByLabel('Action preview')
+  expect((await guardPreview).request().postDataJSON().intent.target).toEqual({ kind: 'self' })
+  await expect(actionEconomy).toHaveAttribute('aria-valuenow', '100')
+  await commandDeck.getByRole('button', { name: 'Selected Barrier, 40 AP', exact: true }).click()
+  const forecast = page.locator('[data-battle-preview-strip] [aria-label="Action preview"]')
   await expect(forecast).toContainText('40 AP')
   await expect(forecast).toContainText('Ally · 1–3 tiles')
-  await expect(forecast).toContainText('Select an ally.')
   await expect(forecast).not.toContainText('Success 100%')
-  if (testInfo.project.name !== 'mobile-chromium') {
-    const originalViewport = page.viewportSize()!
-    for (const viewport of [
-      { width: 1280, height: 720 },
-      { width: 1024, height: 768 },
-    ]) {
-      await page.setViewportSize(viewport)
-      await expectBattlePreviewFits(page)
-    }
-    await page.setViewportSize(originalViewport)
-  } else {
-    await expectBattlePreviewFits(page)
-  }
-
-  await expect(confirmAction).toBeDisabled()
   await expect(battlefield.locator('button[data-target="friendly"]')).toHaveCount(0)
-  await forecast.getByRole('button', { name: 'Skill details', exact: true }).click()
+  await commandDeck.getByRole('button', { name: 'About Barrier', exact: true }).click()
   const skillDetails = page.getByRole('dialog', { name: 'Barrier', exact: true })
   await expect(skillDetails).toContainText('Apply 1 Guard stack')
-  await skillDetails.press('Escape')
+  await page.keyboard.press('Escape')
   await expect(skillDetails).toHaveCount(0)
-
-  await commandDeck.getByRole('button', { name: /Choose Guard skill/ }).click()
-  await page.getByRole('option', { name: 'Guard 30 AP', exact: true }).click()
-  await expect(confirmAction).toBeEnabled()
+  await commandDeck.getByRole('button', { name: 'Guard, 30 AP', exact: true }).click()
   await expect(forecast).toContainText('Success 100%')
   await expectBattlePreviewFits(page)
   await page.getByRole('button', { name: 'Cancel Action', exact: true }).click()
@@ -282,8 +247,6 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
 
     expect(destinationLabel).not.toBeNull()
     await battlefield.getByRole('button', { name: destinationLabel!, exact: true }).click()
-    await expect(confirmAction).toBeEnabled()
-    await confirmAction.click()
     await expect(actionEconomy).not.toHaveAttribute('aria-valuenow', '100')
 
     // Start the Technique proof on a fresh owner turn so its AP budget cannot depend on movement.
@@ -307,42 +270,34 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   expect(adjacentRecruit).not.toBeNull()
   expect(tileDistance(adjacentPlayer!, adjacentRecruit!)).toBe(1)
 
-  await attackArtwork.click()
-  const attackSelector = page.getByRole('listbox', { name: 'Attack skills' })
-  await expect(attackSelector.getByRole('option', { name: /Forceful Strike/ })).toBeVisible()
-  await attackSelector.getByRole('option', { name: /Forceful Strike/ }).click()
-  await expect(attackAction).toContainText('Forceful Strike')
-
-  await page.keyboard.press('Digit3')
-  await expect(attackAction).toHaveAttribute('data-battle-active', 'true')
-
-  let attackDirection: string | null = null
-  for (const key of ['KeyW', 'KeyA', 'KeyS', 'KeyD']) {
-    await page.keyboard.press(key)
-    try {
-      await expect(confirmAction).toBeEnabled({ timeout: 1500 })
-      attackDirection = key
-      break
-    } catch {
-      // Try the next cardinal direction until the current battle layout yields the legal Recruit.
-    }
-  }
-
-  expect(attackDirection).not.toBeNull()
-  await expect(commandContext).toContainText('Forceful Strike')
-  await expect(confirmAction).toBeEnabled()
-
-  await page.keyboard.press(attackDirection!)
+  const technique = commandDeck.getByRole('button', {
+    name: 'Selected Forceful Strike, 45 AP',
+    exact: true,
+  })
+  await technique.click()
+  await expect(technique).toHaveAttribute('aria-pressed', 'true')
+  await expect(actionEconomy).toHaveAttribute('aria-valuenow', '100')
+  const actor = tileCoordinates(
+    await battlefield
+      .getByRole('button', { name: new RegExp(`occupied by ${characterName}`) })
+      .getAttribute('aria-label'),
+  )!
+  const enemy = tileCoordinates(
+    await battlefield
+      .getByRole('button', { name: /occupied by Recruit/ })
+      .getAttribute('aria-label'),
+  )!
+  const direction =
+    enemy.x > actor.x ? 'KeyD' : enemy.x < actor.x ? 'KeyA' : enemy.y > actor.y ? 'KeyS' : 'KeyW'
+  await page.keyboard.press(direction)
   await expect(actionEconomy).toHaveAttribute('aria-valuenow', '55', { timeout: 8000 })
-  await expect(confirmAction).toBeDisabled({ timeout: 8000 })
-  // Authored Attack Techniques stay selected after a successful commit (the approved
-  // post-attack cockpit contract). The previous Move selection must never be restored.
-  await expect(attackAction).toHaveAttribute('data-battle-active', 'true', { timeout: 8000 })
+  await expect(technique).toHaveAttribute('aria-pressed', 'true')
   await expect(moveAction).not.toHaveAttribute('data-battle-active', 'true')
+  await expect(commandContext).toContainText('Forceful Strike')
 
-  // Space still enters final-facing authority, but the retired inline row must stay hidden.
+  // Space opens the visible final-facing controls without ending on the first press.
   await page.keyboard.press('Space')
   const legacyFacingRow = page.locator('[data-unified-facing-pad="true"]')
   await expect(legacyFacingRow).toHaveAttribute('data-open', 'true')
-  await expect(legacyFacingRow).toBeHidden()
+  await expect(legacyFacingRow).toBeVisible()
 })

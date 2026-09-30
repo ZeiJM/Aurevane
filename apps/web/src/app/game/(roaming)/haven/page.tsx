@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Suspense } from 'react'
+import styles from './page.module.css'
 import { isAurevaneError } from '@aurevane/game-core/errors'
 import {
   loadPracticeStatus,
@@ -38,46 +39,33 @@ export default async function HavenPage() {
       )
     : []
   return (
-    <div className="av-haven">
-      <header className="av-page-heading">
-        <div>
-          <span className="av-eyebrow">A place to return to</span>
-          <h1>Haven</h1>
-        </div>
-        <span>
-          Level {character.level} · Cycle {character.progressionCycle.number}
-        </span>
+    <div className={styles.haven} data-composition="correction">
+      <header className={styles.heading}>
+        <h1>Welcome home, {character.name}.</h1>
+        <p>A longer road awaits.</p>
       </header>
-      <section className="av-haven-hero">
-        <div>
-          <span className="av-eyebrow">Welcome home, {character.name}</span>
-          <h2>Your next chapter awaits.</h2>
-          <p>Catch your breath. Gather your strength. The road will be there when you are ready.</p>
-          <Link className="av-action" href="/game/world">
-            Continue your journey <span aria-hidden="true">→</span>
-          </Link>
-        </div>
-      </section>
-      <div className="av-haven-grid">
-        <aside className="av-stone-panel av-current-path" aria-label="Current Path">
+      <div className={styles.workspace}>
+        <aside className={`${styles.panel} ${styles.path}`} aria-label="Current Path">
           <span className="av-eyebrow">Current Path</span>
-          <CharacterSupernaturalPath state={state} choices={choices} />
+          <div className={styles.pathArt} aria-hidden="true" />
+          <div className={styles.pathContent}>
+            <CharacterSupernaturalPath state={state} choices={choices} />
+            <Link className="av-action" href="/game/world">
+              Continue your journey →
+            </Link>
+          </div>
         </aside>
-        <section className="av-stone-panel">
+        <section className={`${styles.panel} ${styles.training}`}>
           <span className="av-eyebrow">Your practice</span>
           <Suspense fallback={<p>Reading your training status…</p>}>
             <HavenTraining userId={actor.userId} characterId={character.id} />
           </Suspense>
-          <div className="av-daily-note">
-            <span>Daily rewards</span>
-            <span className="av-soon">Coming Soon</span>
-          </div>
         </section>
-        <section className="av-stone-panel">
+        <section className={`${styles.panel} ${styles.news}`}>
           <span className="av-eyebrow">From the chronicle</span>
           <h2>Latest news</h2>
           {newsArticles.length ? (
-            newsArticles.slice(0, 2).map((article) => (
+            newsArticles.slice(0, 3).map((article) => (
               <Link key={article.id} href={`/news/${article.slug}`}>
                 {article.title}
               </Link>
@@ -87,8 +75,14 @@ export default async function HavenPage() {
           )}
           <Link href="/news">Read the chronicle →</Link>
         </section>
+        <section className={`${styles.panel} ${styles.rewards}`} aria-label="Daily rewards">
+          <h2>Daily Rewards</h2>
+          <span aria-hidden="true">◇</span>
+          <strong>Coming Soon</strong>
+          <p>Daily rewards will be available in a future update.</p>
+        </section>
       </div>
-      <nav className="av-quick-links" aria-label="Haven shortcuts">
+      <nav className={styles.shortcuts} aria-label="Haven shortcuts">
         <Link href="/game/loadout">
           <b>✦</b>
           <span>

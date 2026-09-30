@@ -4,6 +4,7 @@ import type { CharacterPortraitRef } from '@aurevane/game-core/character/creatio
 import { useRouter } from 'next/navigation'
 import { useMemo, useState } from 'react'
 
+import { SettingsScene } from '@/components/settings/settings-scene'
 import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
 import { getStarterPortraitImageAssetId } from '@/media/character'
 import styles from './character-title-settings.module.css'
@@ -127,222 +128,226 @@ export function CharacterTitleSettings({
   const currentHostMessage = imageHostPageMessage(imageDraft)
 
   return (
-    <div className={styles.layout} data-character-concept="titles" data-av-surface="moonstone">
-      <section
-        className={styles.current}
-        data-av-surface="moonstone"
-        aria-labelledby="current-title-heading"
-      >
-        <div className={styles.heroPortrait}>
-          <CharacterPortraitImage
-            imageUrl={imageUrl}
-            fallbackAssetId={getStarterPortraitImageAssetId(
-              portraitRef ?? 'portrait.starter.wayfarer-01',
-            )}
-            sizes="(min-width: 761px) 38vw, 100vw"
-            alt={`${characterName} portrait`}
-          />
-        </div>
-        <div className={styles.headingLine}>
-          <div>
-            <span>Current profile display</span>
-            <h2 id="current-title-heading">{characterName}</h2>
+    <SettingsScene title="Portrait & Title" description="Carry the marks of your journey.">
+      <div className={styles.layout} data-character-concept="titles" data-av-surface="moonstone">
+        <section
+          className={styles.current}
+          data-av-surface="moonstone"
+          aria-labelledby="current-title-heading"
+        >
+          <div className={styles.heroPortrait}>
+            <CharacterPortraitImage
+              imageUrl={imageUrl}
+              fallbackAssetId={getStarterPortraitImageAssetId(
+                portraitRef ?? 'portrait.starter.wayfarer-01',
+              )}
+              sizes="(min-width: 761px) 38vw, 100vw"
+              alt={`${characterName} portrait`}
+            />
           </div>
-          <div className={styles.pills} aria-label="Profile identity badges">
-            <span className={styles.disciplinePill}>{disciplineName}</span>
-            {personalTitle ? <span className={styles.titlePill}>{personalTitle}</span> : null}
+          <div className={styles.headingLine}>
+            <div>
+              <span>Current profile display</span>
+              <h2 id="current-title-heading">{characterName}</h2>
+            </div>
+            <div className={styles.pills} aria-label="Profile identity badges">
+              <span className={styles.disciplinePill}>{disciplineName}</span>
+              {personalTitle ? <span className={styles.titlePill}>{personalTitle}</span> : null}
+            </div>
           </div>
-        </div>
-        <p>
-          Discipline and title are identity labels. Neither grants stats, permissions, or combat
-          power. The same display identity follows this character across Profile and battle.
-        </p>
-      </section>
+          <p>
+            Discipline and title are identity labels. Neither grants stats, permissions, or combat
+            power. The same display identity follows this character across Profile and battle.
+          </p>
+        </section>
 
-      <section className={styles.personal} aria-labelledby="personal-title-heading">
-        <h1>Portrait &amp; Title</h1>
-        <header>
-          <div>
-            <span>Personal title</span>
-            <h2 id="personal-title-heading">One character, one personal title choice.</h2>
-          </div>
-          <strong>{personalTitleSetAt ? 'Choice used' : 'Available'}</strong>
-        </header>
-
-        {personalTitleSetAt && personalTitle ? (
-          <div className={styles.lockedState}>
-            <span>Confirmed title</span>
-            <strong>{personalTitle}</strong>
-            <p>
-              This character has used its one personal-title opportunity. The title is permanent as
-              a personal identity record; future earned prestige distinctions can occupy the visible
-              title slot when that progression system unlocks.
-            </p>
-          </div>
-        ) : (
-          <>
-            <p className={styles.explanation}>
-              Choose 1–20 characters using letters, numbers, and spaces. AUREVANE checks the title
-              for collisions before committing it. You can review the exact display before the final
-              server-authoritative confirmation.
-            </p>
-
-            <label className={styles.field}>
+        <section className={styles.personal} aria-labelledby="personal-title-heading">
+          <header>
+            <div>
               <span>Personal title</span>
-              <input
-                value={draft}
-                onChange={(event) => {
-                  setDraft(event.target.value)
-                  setReviewing(false)
-                  setConfirmedPermanent(false)
-                  setMessage(null)
-                }}
-                maxLength={20}
-                autoComplete="off"
-                placeholder="e.g. Dawn Warden"
-                aria-invalid={draft.length > 0 && !valid ? true : undefined}
-                disabled={pending}
-              />
-              <small>{normalizedDraft.length}/20 · letters, numbers, spaces</small>
-            </label>
+              <h2 id="personal-title-heading">One character, one personal title choice.</h2>
+            </div>
+            <strong>{personalTitleSetAt ? 'Choice used' : 'Available'}</strong>
+          </header>
 
-            {!reviewing ? (
-              <button
-                type="button"
-                className={styles.reviewButton}
-                disabled={!valid || pending}
-                onClick={() => setReviewing(true)}
-              >
-                Review Title
-              </button>
-            ) : (
-              <div className={styles.confirmation}>
-                <span>Final profile preview</span>
-                <div className={styles.previewName}>
-                  <strong>{characterName}</strong>
-                  <div className={styles.pills}>
-                    <span className={styles.disciplinePill}>{disciplineName}</span>
-                    <span className={styles.titlePill}>{normalizedDraft}</span>
+          {personalTitleSetAt && personalTitle ? (
+            <div className={styles.lockedState}>
+              <span>Confirmed title</span>
+              <strong>{personalTitle}</strong>
+              <p>
+                This character has used its one personal-title opportunity. The title is permanent
+                as a personal identity record; future earned prestige distinctions can occupy the
+                visible title slot when that progression system unlocks.
+              </p>
+            </div>
+          ) : (
+            <>
+              <p className={styles.explanation}>
+                Choose 1–20 characters using letters, numbers, and spaces. AUREVANE checks the title
+                for collisions before committing it. You can review the exact display before the
+                final server-authoritative confirmation.
+              </p>
+
+              <label className={styles.field}>
+                <span>Personal title</span>
+                <input
+                  value={draft}
+                  onChange={(event) => {
+                    setDraft(event.target.value)
+                    setReviewing(false)
+                    setConfirmedPermanent(false)
+                    setMessage(null)
+                  }}
+                  maxLength={20}
+                  autoComplete="off"
+                  placeholder="e.g. Dawn Warden"
+                  aria-invalid={draft.length > 0 && !valid ? true : undefined}
+                  disabled={pending}
+                />
+                <small>{normalizedDraft.length}/20 · letters, numbers, spaces</small>
+              </label>
+
+              {!reviewing ? (
+                <button
+                  type="button"
+                  className={styles.reviewButton}
+                  disabled={!valid || pending}
+                  onClick={() => setReviewing(true)}
+                >
+                  Review Title
+                </button>
+              ) : (
+                <div className={styles.confirmation}>
+                  <span>Final profile preview</span>
+                  <div className={styles.previewName}>
+                    <strong>{characterName}</strong>
+                    <div className={styles.pills}>
+                      <span className={styles.disciplinePill}>{disciplineName}</span>
+                      <span className={styles.titlePill}>{normalizedDraft}</span>
+                    </div>
+                  </div>
+                  <label className={styles.confirmCheck}>
+                    <input
+                      type="checkbox"
+                      checked={confirmedPermanent}
+                      onChange={(event) => setConfirmedPermanent(event.target.checked)}
+                      disabled={pending}
+                    />
+                    <span>
+                      I understand this is this character&apos;s one personal-title choice and
+                      cannot be repeatedly edited.
+                    </span>
+                  </label>
+                  <div className={styles.actions}>
+                    <button
+                      type="button"
+                      className={styles.quietButton}
+                      disabled={pending}
+                      onClick={() => {
+                        setReviewing(false)
+                        setConfirmedPermanent(false)
+                      }}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.confirmButton}
+                      disabled={!confirmedPermanent || pending}
+                      onClick={() => void confirmTitle()}
+                    >
+                      {pending ? 'Confirming…' : 'Confirm Final Title'}
+                    </button>
                   </div>
                 </div>
-                <label className={styles.confirmCheck}>
-                  <input
-                    type="checkbox"
-                    checked={confirmedPermanent}
-                    onChange={(event) => setConfirmedPermanent(event.target.checked)}
-                    disabled={pending}
-                  />
-                  <span>
-                    I understand this is this character&apos;s one personal-title choice and cannot
-                    be repeatedly edited.
-                  </span>
-                </label>
-                <div className={styles.actions}>
-                  <button
-                    type="button"
-                    className={styles.quietButton}
-                    disabled={pending}
-                    onClick={() => {
-                      setReviewing(false)
-                      setConfirmedPermanent(false)
-                    }}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.confirmButton}
-                    disabled={!confirmedPermanent || pending}
-                    onClick={() => void confirmTitle()}
-                  >
-                    {pending ? 'Confirming…' : 'Confirm Final Title'}
-                  </button>
-                </div>
-              </div>
-            )}
-          </>
-        )}
+              )}
+            </>
+          )}
 
-        {message ? (
-          <p className={styles.message} role="status" aria-live="polite">
-            {message}
-          </p>
-        ) : null}
-      </section>
+          {message ? (
+            <p className={styles.message} role="status" aria-live="polite">
+              {message}
+            </p>
+          ) : null}
+        </section>
 
-      <section className={styles.profileImage} aria-labelledby="profile-image-heading">
-        <div>
-          <span>Character image</span>
-          <h2 id="profile-image-heading">Portrait URL</h2>
-          <p>
-            Paste the image itself, not an image-host webpage. JPG, PNG, WebP, and animated GIF are
-            suitable. Portraits are square-cropped and never stretched; for good performance use
-            128–4096 px artwork, keep static images at or below 8 MB and animated GIFs at or below
-            12 MB.
-          </p>
-        </div>
-        {imageDraft.trim() && !imagePreviewFailed && !currentHostMessage ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={imageDraft.trim()}
-            alt={`${characterName} profile preview`}
-            referrerPolicy="no-referrer"
-            onError={() => {
-              setImagePreviewFailed(true)
-              setImageMessage(
-                'That URL did not load as an image. Copy the direct image link from your host, then try again.',
-              )
-            }}
-          />
-        ) : (
-          <div className={styles.imagePlaceholder}>
-            {imagePreviewFailed || currentHostMessage ? 'Direct image required' : 'No custom image'}
+        <section className={styles.profileImage} aria-labelledby="profile-image-heading">
+          <div>
+            <span>Character image</span>
+            <h2 id="profile-image-heading">Portrait URL</h2>
+            <p>
+              Paste the image itself, not an image-host webpage. JPG, PNG, WebP, and animated GIF
+              are suitable. Portraits are square-cropped and never stretched; for good performance
+              use 128–4096 px artwork, keep static images at or below 8 MB and animated GIFs at or
+              below 12 MB.
+            </p>
           </div>
-        )}
-        <label className={styles.field}>
-          <span>Direct image URL</span>
-          <input
-            value={imageDraft}
-            onChange={(event) => {
-              setImageDraft(event.target.value)
-              setImagePreviewFailed(false)
-              setImageMessage(null)
-            }}
-            maxLength={2048}
-            inputMode="url"
-            autoComplete="url"
-            placeholder="https://i.ibb.co/.../portrait.png"
-            disabled={imagePending}
-            aria-invalid={currentHostMessage ? true : undefined}
-          />
-          <small>
-            ImgBB: use its “Direct link” (i.ibb.co), not the ibb.co sharing page. Leave blank and
-            save to restore the built-in portrait.
-          </small>
-        </label>
-        <button
-          type="button"
-          className={styles.reviewButton}
-          onClick={() => void saveImage()}
-          disabled={imagePending || Boolean(currentHostMessage)}
-        >
-          {imagePending ? 'Saving…' : 'Save Profile Image'}
-        </button>
-        {currentHostMessage ? <p className={styles.message}>{currentHostMessage}</p> : null}
-        {imageMessage && imageMessage !== currentHostMessage ? (
-          <p className={styles.message} role="status" aria-live="polite">
-            {imageMessage}
-          </p>
-        ) : null}
-      </section>
+          {imageDraft.trim() && !imagePreviewFailed && !currentHostMessage ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={imageDraft.trim()}
+              alt={`${characterName} profile preview`}
+              referrerPolicy="no-referrer"
+              onError={() => {
+                setImagePreviewFailed(true)
+                setImageMessage(
+                  'That URL did not load as an image. Copy the direct image link from your host, then try again.',
+                )
+              }}
+            />
+          ) : (
+            <div className={styles.imagePlaceholder}>
+              {imagePreviewFailed || currentHostMessage
+                ? 'Direct image required'
+                : 'No custom image'}
+            </div>
+          )}
+          <label className={styles.field}>
+            <span>Direct image URL</span>
+            <input
+              value={imageDraft}
+              onChange={(event) => {
+                setImageDraft(event.target.value)
+                setImagePreviewFailed(false)
+                setImageMessage(null)
+              }}
+              maxLength={2048}
+              inputMode="url"
+              autoComplete="url"
+              placeholder="https://i.ibb.co/.../portrait.png"
+              disabled={imagePending}
+              aria-invalid={currentHostMessage ? true : undefined}
+            />
+            <small>
+              ImgBB: use its “Direct link” (i.ibb.co), not the ibb.co sharing page. Leave blank and
+              save to restore the built-in portrait.
+            </small>
+          </label>
+          <button
+            type="button"
+            className={styles.reviewButton}
+            onClick={() => void saveImage()}
+            disabled={imagePending || Boolean(currentHostMessage)}
+          >
+            {imagePending ? 'Saving…' : 'Save Profile Image'}
+          </button>
+          {currentHostMessage ? <p className={styles.message}>{currentHostMessage}</p> : null}
+          {imageMessage && imageMessage !== currentHostMessage ? (
+            <p className={styles.message} role="status" aria-live="polite">
+              {imageMessage}
+            </p>
+          ) : null}
+        </section>
 
-      <section className={styles.future}>
-        <span>Distinctions &amp; prestige titles</span>
-        <p>
-          Earned titles and distinctions will appear here as their progression sources come online.
-          They will use the same profile-display area without turning titles into stat bonuses.
-        </p>
-      </section>
-    </div>
+        <section className={styles.future}>
+          <span>Distinctions &amp; prestige titles</span>
+          <p>
+            Earned titles and distinctions will appear here as their progression sources come
+            online. They will use the same profile-display area without turning titles into stat
+            bonuses.
+          </p>
+        </section>
+      </div>
+    </SettingsScene>
   )
 }

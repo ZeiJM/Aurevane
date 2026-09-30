@@ -122,10 +122,12 @@ test('current Renewing Herbs summons, inspects and survives reload with its pinn
   )
   expect(actorPlacement).toBeTruthy()
 
-  await root.getByRole('button', { name: /Choose Heal skill/ }).click()
-  await page.getByRole('option', { name: /Renewing Herbs 45 AP/ }).click()
-  await root.locator('[data-battle-command="recover"]').click()
-
+  const armedPreview = page.waitForResponse(
+    (response) => response.url().endsWith('/preview') && response.request().method() === 'POST',
+  )
+  await root.getByRole('button', { name: 'Selected Renewing Herbs, 45 AP', exact: true }).click()
+  expect((await armedPreview).status()).toBe(200)
+  expect(await readBattle(page, sessionId)).toEqual(before)
   const candidates = before.snapshot.tactical.tiles.filter((tile) => {
     if (!actorPlacement) return false
     const distance =
@@ -143,14 +145,18 @@ test('current Renewing Herbs summons, inspects and survives reload with its pinn
 
   let chosen: (typeof candidates)[number] | null = null
   for (const candidate of candidates) {
-    const tile = root.getByRole('button', {
-      name: new RegExp(`^Tile ${candidate.position.x + 1}, ${candidate.position.y + 1};`),
+    const previewResponse = await page.request.post(`/api/battles/${sessionId}/preview`, {
+      data: {
+        expectedBattleVersion: before.battleVersion,
+        intent: {
+          kind: 'action',
+          actionId: 'wildwarden.renewing-herbs',
+          target: { kind: 'tile', position: candidate.position },
+        },
+      },
     })
-    const previewResponse = page.waitForResponse(
-      (response) => response.url().endsWith('/preview') && response.request().method() === 'POST',
-    )
-    await tile.click()
-    const preview = (await (await previewResponse).json()).battlePreview.preview
+    expect(previewResponse.status()).toBe(200)
+    const preview = (await previewResponse.json()).battlePreview.preview
     if (preview.legal) {
       chosen = candidate
       break
@@ -158,13 +164,16 @@ test('current Renewing Herbs summons, inspects and survives reload with its pinn
   }
 
   expect(chosen).not.toBeNull()
-  await expect(root.getByRole('button', { name: 'Confirm Action', exact: true })).toBeEnabled()
 
   const committed = page.waitForResponse(
     (response) =>
       /\/(intents|commit)$/.test(response.url()) && response.request().method() === 'POST',
   )
-  await root.getByRole('button', { name: 'Confirm Action', exact: true }).click()
+  await root
+    .getByRole('button', {
+      name: new RegExp(`^Tile ${chosen!.position.x + 1}, ${chosen!.position.y + 1};`),
+    })
+    .click()
   const commitResponse = await committed
   expect(commitResponse.status()).toBe(200)
   const after = (await commitResponse.json()).battle as BattleSessionView

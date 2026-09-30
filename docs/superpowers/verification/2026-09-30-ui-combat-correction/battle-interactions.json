@@ -1,0 +1,97 @@
+[
+  {
+    "mode": "pve",
+    "case": "arming, repeat, modal suppression, single click",
+    "pass": true
+  },
+  {
+    "mode": "pve",
+    "case": "Digit4 unit directional execution",
+    "pass": true
+  },
+  {
+    "mode": "pve",
+    "case": "Digit5 self directional execution",
+    "pass": true
+  },
+  {
+    "mode": "pve",
+    "case": "Digit6 tile directional execution",
+    "pass": true
+  },
+  {
+    "mode": "pve",
+    "case": "Digit7 tile directional execution",
+    "pass": true
+  },
+  {
+    "mode": "pve",
+    "case": "8/9 informational, Space facing preserves direction",
+    "pass": true
+  },
+  {
+    "mode": "pve",
+    "case": "illegal preview cannot mutate",
+    "pass": true
+  },
+  {
+    "mode": "pve",
+    "case": "busy selection locked and unmount cannot mutate",
+    "pass": true
+  },
+  {
+    "mode": "pvp",
+    "case": "arming, repeat, modal suppression, single click",
+    "pass": true
+  },
+  {
+    "mode": "pvp",
+    "case": "Digit4 unit directional execution",
+    "pass": true
+  },
+  {
+    "mode": "pvp",
+    "case": "Digit5 self directional execution",
+    "pass": true
+  },
+  {
+    "mode": "pvp",
+    "case": "Digit6 tile directional execution",
+    "pass": true
+  },
+  {
+    "mode": "pvp",
+    "case": "Digit7 tile directional execution",
+    "pass": true
+  },
+  {
+    "mode": "pvp",
+    "case": "8/9 informational, Space facing preserves direction",
+    "pass": true
+  },
+  {
+    "mode": "pvp",
+    "case": "illegal preview cannot mutate",
+    "pass": true
+  },
+  {
+    "mode": "pvp",
+    "case": "busy selection locked and unmount cannot mutate",
+    "pass": true
+  },
+  {
+    "mode": "pvp",
+    "case": "nonlocal turn",
+    "pass": true
+  },
+  {
+    "mode": "pvp",
+    "case": "surrender modal",
+    "pass": true
+  },
+  {
+    "mode": "spectator",
+    "case": "read-only",
+    "pass": true
+  }
+]

@@ -1,57 +1,37 @@
+/* Account entry is a full landscape scene beside the stone waystone panel. */
 .shell {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: 3.5rem minmax(0, 1fr) 2rem;
   width: 100%;
   min-width: 0;
   min-height: 100dvh;
-  overflow-x: clip;
-  background:
-    linear-gradient(rgba(255, 255, 255, 0.012) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.01) 1px, transparent 1px), var(--av-ink-950);
-  background-size: 4.5rem 4.5rem;
+  background: #151e21;
 }
-
 .masthead {
-  z-index: 20;
+  position: relative;
+  z-index: 700;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, auto);
-  min-width: 0;
-  min-height: 3.7rem;
-  gap: clamp(0.45rem, 1.2vw, 1rem);
+  grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
-  padding: 0.35rem clamp(0.65rem, 1.6vw, 1.25rem);
-  border-bottom: 1px solid var(--av-border);
-  background: rgba(7, 9, 13, 0.96);
-  backdrop-filter: blur(1rem);
+  gap: 1rem;
+  padding: 0.35rem 1.2rem;
+  border-bottom: 1px solid #9d886344;
+  background: #222b2bcc;
 }
-
 .main {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(17rem, 0.65fr);
-  gap: clamp(0.55rem, 1.2vw, 0.9rem);
-  align-items: stretch;
-  width: min(100%, 88rem);
+  grid-template-columns: minmax(0, 1.85fr) minmax(23rem, 0.9fr);
   min-width: 0;
   min-height: 0;
-  margin: 0 auto;
-  padding: clamp(0.55rem, 1.25vw, 0.9rem);
-  overflow: hidden;
 }
-
 .hero {
   position: relative;
-  width: 100%;
+  isolation: isolate;
   min-width: 0;
-  min-height: 27rem;
-  height: 100%;
-  max-height: calc(100dvh - 7rem);
+  min-height: 0;
   overflow: hidden;
-  border: 1px solid var(--av-border);
-  border-radius: var(--av-radius-lg);
-  background: var(--av-ink-850);
-  box-shadow: var(--av-shadow-deep);
+  background: #182a30;
 }
-
 .heroMedia,
 .heroShade {
   position: absolute;
@@ -59,582 +39,288 @@
   width: 100%;
   height: 100%;
 }
-
 .heroMedia {
+  z-index: -2;
   object-fit: cover;
+  object-position: 58% center;
 }
-
 .heroShade {
-  background:
-    linear-gradient(90deg, rgba(5, 6, 9, 0.9), rgba(5, 6, 9, 0.34) 64%, rgba(5, 6, 9, 0.62)),
-    linear-gradient(0deg, rgba(5, 6, 9, 0.88), transparent 52%);
+  z-index: -1;
+  background: linear-gradient(180deg, #06101626, transparent 60%, #06101670);
+  pointer-events: none;
 }
-
 .heroContent {
   position: absolute;
-  bottom: 0;
-  left: 0;
-  z-index: 2;
-  width: min(43rem, 92%);
-  min-width: 0;
-  padding: clamp(1.25rem, 3.5vw, 2.8rem);
+  top: 2rem;
+  left: 2rem;
+  width: min(80%, 42rem);
+  color: #f3e6ca;
+  text-shadow: 0 2px 12px #000;
 }
-
 .heroContent h1 {
-  max-width: 100%;
-  margin: 0.35rem 0 0.7rem;
-  overflow-wrap: anywhere;
-  font: 500 clamp(2.8rem, 5.8vw, 5.4rem) / 0.86 var(--av-font-display);
-  letter-spacing: 0.035em;
-  text-shadow: 0 0.35rem 2.5rem rgba(0, 0, 0, 0.72);
+  margin: 0.5rem 0;
+  color: #dec28c;
+  font: 500 clamp(3rem, 6vw, 6rem)/1 var(--av-font-display);
+  letter-spacing: 0.08em;
 }
-
 .heroContent > p {
-  max-width: 36rem;
-  margin: 0;
-  color: var(--av-text-muted);
-  font-size: clamp(0.78rem, 1.15vw, 0.94rem);
-  line-height: 1.55;
+  max-width: 32rem;
+  margin: 0.7rem 0;
+  font: 1.05rem/1.5 var(--av-font-display);
 }
-
 .identityNotes {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem;
-  margin-top: 0.8rem;
+  gap: 1rem;
+  font-size: 0.875rem;
 }
-
-.identityNotes span {
-  padding: 0.34rem 0.48rem;
-  border: 1px solid rgba(212, 186, 130, 0.16);
-  border-radius: var(--av-radius-sm);
-  color: var(--av-text-dim);
-  background: rgba(5, 6, 9, 0.58);
-  font: 600 0.48rem/1.2 var(--av-font-mono);
-  letter-spacing: 0.035em;
-  text-transform: uppercase;
-}
-
-.mediaStatus {
-  position: absolute;
-  top: 0.7rem;
-  right: 0.7rem;
-  z-index: 3;
-  display: grid;
-  gap: 0.12rem;
-  padding: 0.5rem 0.58rem;
-  border-left: 1px solid var(--av-border-strong);
-  color: var(--av-text-dim);
-  background: rgba(5, 6, 9, 0.58);
-  font: 600 0.44rem/1.2 var(--av-font-mono);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
-.mediaStatus strong {
-  color: var(--av-text-muted);
-}
-.mediaStatus em {
-  color: var(--av-brass-300);
-  font-style: normal;
-}
-
-.entryCard {
-  align-self: center;
-  min-width: 0;
-  max-height: none;
-  padding: clamp(0.8rem, 1.7vw, 1.25rem);
-  overflow: visible;
-}
-
-/* The account gate is the deliberate moonstone counterpoint to the ink world frame. Keep this
- * contract local so auth copy remains readable even when the surrounding shell is dark. */
 .entryCard[data-account-concept='true'] {
-  color: var(--av-text);
-  border-color: rgba(212, 186, 130, 0.58);
-  background:
-    linear-gradient(145deg, rgba(22, 48, 49, 0.34), rgba(4, 10, 16, 0.94) 46%),
-    rgba(4, 10, 16, 0.92);
-  box-shadow:
-    0 1.5rem 4rem rgba(2, 9, 14, 0.42),
-    0 0 1.6rem rgba(77, 196, 184, 0.055),
-    inset 0 1px rgba(239, 218, 174, 0.1);
+  display: grid;
+  align-content: center;
+  min-width: 0;
+  min-height: 0;
+  padding: clamp(1.5rem, 3vw, 3.5rem);
+  border: 0;
+  border-left: 1px solid #a18a61;
+  border-radius: 0;
+  color: #343b33;
+  background: linear-gradient(110deg, #cfbea0, #e1d5bf 45%, #cbbb9e);
+  box-shadow: inset 5px 0 12px #675b3e44;
 }
-
-.entryCard[data-account-concept='true'] :global(.av-kicker) {
-  color: var(--av-brass-200);
+.entryCard :global(.av-kicker) {
+  color: #706043;
 }
-
-.entryCard[data-account-concept='true'] h2 {
-  color: #f3ead5;
-}
-
 .entryCard h2 {
-  margin: 0.35rem 0 0.35rem;
-  font: 500 clamp(1.45rem, 2.5vw, 2rem) / 1.05 var(--av-font-display);
+  margin: 0.5rem 0 1.5rem;
+  color: #333a33;
+  font: 500 2rem/1.2 var(--av-font-display);
+  text-align: center;
 }
-
 .accessPanel {
   display: grid;
-  gap: 0.6rem;
+  gap: 1rem;
 }
-
 .environmentNotice {
-  padding: 0.65rem;
-  border: 1px solid var(--av-border);
-  border-left: 2px solid var(--av-brass-500);
-  border-radius: var(--av-radius-sm);
-  color: var(--av-text-muted);
-  background: rgba(185, 154, 92, 0.055);
+  padding: 0.75rem;
+  border: 1px solid #a18a61;
+  background: #dacdb6;
+  color: #343b33;
 }
-
-.entryCard[data-account-concept='true'] .environmentNotice {
-  color: var(--av-text-muted);
-  border-color: rgba(212, 186, 130, 0.18);
-  border-left-color: var(--av-brass-300);
-  background: rgba(8, 17, 23, 0.66);
-}
-
-.entryCard[data-account-concept='true'] .environmentNotice strong {
-  color: var(--av-text);
-}
-
 .environmentNotice strong {
   display: block;
-  color: var(--av-text);
-  font-size: 0.68rem;
-  letter-spacing: 0.02em;
+  font-size: 0.9375rem;
 }
-
 .environmentNotice p {
-  margin: 0.28rem 0 0;
-  font-size: 0.62rem;
+  margin: 0.4rem 0 0;
+  font-size: 0.875rem;
   line-height: 1.45;
 }
-
 .modeSwitch {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  padding: 0.18rem;
-  border: 1px solid var(--av-border);
-  border-radius: var(--av-radius-md);
-  background: rgba(5, 6, 9, 0.46);
+  gap: 0.25rem;
+  padding: 0.2rem;
+  border: 1px solid #a18a61;
+  background: #c0af91;
 }
-
-.entryCard[data-account-concept='true'] .modeSwitch {
-  border-color: rgba(212, 186, 130, 0.2);
-  background: rgba(3, 8, 13, 0.72);
-}
-
 .modeSwitch button {
-  min-height: 2.25rem;
+  min-height: 2.75rem;
   border: 0;
-  border-radius: calc(var(--av-radius-md) - 0.15rem);
-  color: var(--av-text-dim);
+  color: #343b33;
   background: transparent;
   cursor: pointer;
-  touch-action: manipulation;
-}
-
-.modeSwitch button:hover {
-  color: var(--av-text);
-}
-
-.entryCard[data-account-concept='true'] .modeSwitch button {
-  color: var(--av-text-dim);
-}
-
-.entryCard[data-account-concept='true'] .modeSwitch button:hover {
-  color: var(--av-text);
-}
-
-.entryCard[data-account-concept='true'] .modeSwitch .modeActive {
-  color: #f3ead5;
-  background: rgba(31, 60, 62, 0.72);
-  box-shadow: inset 0 0 0 1px rgba(212, 186, 130, 0.24);
+  font-size: 0.9375rem;
 }
 .modeSwitch .modeActive {
-  color: var(--av-text);
-  background: rgba(212, 186, 130, 0.1);
-  box-shadow: inset 0 0 0 1px rgba(212, 186, 130, 0.16);
+  color: #f2e7d4;
+  background: #345951;
 }
-
 .form {
   display: grid;
-  gap: 0.55rem;
+  gap: 1rem;
 }
-
 .form label {
   display: grid;
-  gap: 0.28rem;
+  gap: 0.4rem;
 }
-
 .form label > span {
-  color: var(--av-text-muted);
-  font-size: 0.61rem;
-  font-weight: 650;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  color: #343b33;
+  font-size: 0.9375rem;
 }
-
-.entryCard[data-account-concept='true'] .form label > span {
-  color: var(--av-text-muted);
-}
-
 .form input {
   box-sizing: border-box;
   width: 100%;
   min-width: 0;
-  min-height: 2.45rem;
-  padding: 0.55rem 0.65rem;
-  border: 1px solid var(--av-border-strong);
-  border-radius: var(--av-radius-sm);
-  color: var(--av-text);
-  background: rgba(5, 6, 9, 0.72);
-  touch-action: manipulation;
+  min-height: 2.85rem;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid #8f7956;
+  border-radius: 0.15rem;
+  color: #242a27;
+  -webkit-text-fill-color: #242a27;
+  caret-color: #345951;
+  background: #c5b89f;
+  font-size: 1rem;
 }
-
-.entryCard[data-account-concept='true'] .form input {
-  color: #fffdf7;
-  -webkit-text-fill-color: #fffdf7;
-  caret-color: var(--av-teal-bright);
-  border-color: rgba(212, 186, 130, 0.45);
-  background: rgba(2, 8, 13, 0.92);
-  box-shadow: inset 0 1px rgba(255, 255, 255, 0.035);
+.form input::placeholder {
+  color: #6c685b;
+  -webkit-text-fill-color: #6c685b;
 }
-
-.entryCard[data-account-concept='true'] .form input::placeholder {
-  color: rgba(227, 231, 229, 0.48);
-  -webkit-text-fill-color: rgba(227, 231, 229, 0.48);
-}
-
 .form input:disabled {
+  opacity: 0.6;
   cursor: not-allowed;
-  opacity: 0.58;
 }
 .submit {
   width: 100%;
-  margin-top: 0.12rem;
+  min-height: 2.85rem;
+  border: 1px solid #a37655;
+  color: #f3e7d0;
+  background: #713128;
+  font: 500 1.1rem var(--av-font-display);
 }
-
 .formMessage {
-  min-height: 1.55rem;
+  min-height: 1.5rem;
   margin: 0;
-  color: var(--av-text-dim);
-  font-size: 0.61rem;
+  font-size: 0.875rem;
   line-height: 1.4;
+  color: #515347;
 }
-
-.entryCard[data-account-concept='true'] .formMessage {
-  color: var(--av-text-dim);
-}
-
-.entryCard[data-account-concept='true'] .formMessage[data-tone='error'] {
-  color: #9a4e48;
-}
-
 .formMessage[data-tone='error'] {
-  color: var(--av-danger-400);
-  font-weight: 650;
+  color: #842c27;
+  font-weight: 600;
 }
-
 .footer {
   display: flex;
-  min-height: 2.1rem;
   align-items: center;
-  padding: 0 clamp(0.65rem, 1.5vw, 1.1rem);
-  border-top: 1px solid var(--av-border);
-  color: var(--av-text-dim);
-  background: rgba(5, 6, 9, 0.94);
-  font: 600 0.46rem/1 var(--av-font-mono);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  justify-content: flex-end;
+  padding: 0.5rem 1.2rem;
+  border-top: 1px solid #a18a6144;
+  color: #ded3bc;
+  background: #222b2b;
+  font-size: 0.8125rem;
 }
-
-@media (max-width: 980px) {
-  .masthead {
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-  .main {
-    grid-template-columns: minmax(0, 1.1fr) minmax(17rem, 0.9fr);
-  }
+.form input:-webkit-autofill,
+.form input:-webkit-autofill:hover,
+.form input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #242a27;
+  box-shadow: 0 0 0 1000px #c5b89f inset;
 }
-
-@media (max-width: 760px) {
-  .main {
-    grid-template-columns: 1fr;
-    overflow: visible;
-  }
-
-  .hero {
-    height: min(25rem, 48dvh);
-    min-height: 20rem;
-  }
-
-  .entryCard {
-    max-height: none;
-    overflow: visible;
-  }
-}
-
-@media (max-width: 560px) {
-  .masthead {
-    gap: 0.35rem;
-    padding-inline: max(0.5rem, env(safe-area-inset-left, 0px));
-  }
-
-  .masthead :global(.brand) {
-    min-width: 0;
-    gap: 0.35rem;
-  }
-  .masthead :global(.brand__crest) {
-    width: 2rem;
-    height: 2rem;
-    flex: 0 0 auto;
-    font-size: 0.9rem;
-  }
-  .masthead :global(.brand__wordmark) {
-    min-width: 0;
-  }
-  .masthead :global(.brand__wordmark strong) {
-    font-size: 0.78rem;
-    letter-spacing: 0.09em;
-    white-space: nowrap;
-  }
-  .masthead :global(.brand__wordmark small) {
-    display: none;
-  }
-
-  .main {
-    gap: 0.5rem;
-    padding: 0.5rem;
-  }
-
-  .hero {
-    height: 19rem;
-    min-height: 19rem;
-  }
-
-  .heroContent {
-    width: 100%;
-    padding: 1rem;
-  }
-
-  .heroContent h1 {
-    margin-bottom: 0.55rem;
-    font-size: clamp(2.4rem, 12vw, 3.25rem);
-    line-height: 0.88;
-    letter-spacing: 0.018em;
-  }
-
-  .heroContent > p {
-    font-size: 0.78rem;
-    line-height: 1.45;
-  }
-  .identityNotes {
-    margin-top: 0.55rem;
-  }
-  .identityNotes span {
-    padding: 0.3rem 0.4rem;
-    font-size: 0.43rem;
-  }
-  .mediaStatus {
-    display: none;
-  }
-  .entryCard {
-    padding: 0.75rem;
-  }
-  .form input {
-    font-size: 16px;
-  }
-  .footer {
-    padding-inline: 0.5rem;
-  }
-}
-
-@media (max-height: 670px) and (min-width: 761px) {
-  .hero {
-    min-height: 24rem;
-  }
-  .heroContent {
-    padding: 1.2rem;
-  }
-  .identityNotes {
-    display: none;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .modeSwitch button,
-  .form input {
-    transition: none;
-  }
-}
-
-.entryCard[data-account-concept='true'] .form input:-webkit-autofill,
-.entryCard[data-account-concept='true'] .form input:-webkit-autofill:hover,
-.entryCard[data-account-concept='true'] .form input:-webkit-autofill:focus {
-  -webkit-text-fill-color: #fffdf7;
-  caret-color: var(--av-teal-bright);
-  box-shadow: 0 0 0 1000px rgba(2, 8, 13, 0.98) inset;
-  transition: background-color 9999s ease-out 0s;
-}
-
-/* Flowing aether: broad slow teal/gold currents and sparse motes, kept behind all readable UI. */
-.heroMedia {
-  z-index: 0;
-}
-
-.heroShade {
-  z-index: 1;
-  overflow: hidden;
-}
-
 .heroShade::before,
 .heroShade::after {
   position: absolute;
-  inset: -38%;
+  inset: -30%;
   pointer-events: none;
   content: '';
   mix-blend-mode: screen;
   filter: blur(18px);
-  will-change: transform, opacity;
+  background: conic-gradient(
+    from 12deg at 50% 50%,
+    transparent 0deg,
+    #70bfb51c 30deg,
+    transparent 65deg 140deg,
+    #70bfb526 170deg,
+    transparent 220deg
+  );
+  animation: accountAetherTeal 20s ease-in-out infinite alternate;
 }
-
-.heroShade::before {
-  background:
-    radial-gradient(
-      ellipse at 48% 50%,
-      rgba(82, 222, 210, 0.22) 0 7%,
-      rgba(58, 168, 165, 0.1) 20%,
-      transparent 54%
-    ),
-    radial-gradient(ellipse at 68% 34%, rgba(138, 224, 209, 0.12) 0 5%, transparent 38%);
-  opacity: 0.48;
-  transform: translate3d(-18%, 10%, 0) rotate(-8deg) scale(1.08);
-  animation: accountAetherTeal 14s ease-in-out infinite alternate;
-}
-
 .heroShade::after {
-  background:
-    radial-gradient(
-      ellipse at 50% 50%,
-      rgba(237, 201, 126, 0.18) 0 5%,
-      rgba(190, 154, 85, 0.07) 18%,
-      transparent 50%
-    ),
-    radial-gradient(ellipse at 34% 72%, rgba(123, 219, 206, 0.1) 0 4%, transparent 34%);
-  opacity: 0.38;
-  transform: translate3d(20%, -12%, 0) rotate(10deg) scale(0.94);
-  animation: accountAetherGold 18s ease-in-out infinite alternate;
+  opacity: 0.5;
+  background: conic-gradient(
+    from 24deg at 55% 70%,
+    transparent,
+    #d0b57222,
+    transparent 90deg 260deg,
+    #7ecbc31a,
+    transparent
+  );
+  animation: accountAetherGold 28s ease-in-out infinite alternate;
 }
-
 .hero::after {
   position: absolute;
-  z-index: 2;
-  inset: -2rem;
+  inset: 0;
   pointer-events: none;
-  opacity: 0.2;
-  background-image:
-    radial-gradient(circle, rgba(206, 244, 235, 0.72) 0 1px, transparent 1.35px),
-    radial-gradient(circle, rgba(232, 204, 140, 0.58) 0 0.8px, transparent 1.25px);
-  background-position:
-    0 0,
-    6rem 9rem;
-  background-size:
-    14rem 18rem,
-    19rem 24rem;
   content: '';
-  will-change: transform;
-  animation: accountAetherMotes 20s linear infinite;
+  opacity: 0.2;
+  background: linear-gradient(112deg, transparent 35%, #a5e5d818 45%, transparent 52%);
+  animation: accountAetherMotes 24s ease-in-out infinite alternate;
 }
-
-.heroContent {
-  z-index: 3;
-}
-
 @keyframes accountAetherTeal {
-  0% {
-    opacity: 0.28;
-    transform: translate3d(-18%, 10%, 0) rotate(-8deg) scale(1.08);
-  }
-  50% {
-    opacity: 0.52;
-    transform: translate3d(4%, -5%, 0) rotate(-2deg) scale(1.14);
-  }
-  100% {
-    opacity: 0.34;
-    transform: translate3d(22%, -14%, 0) rotate(6deg) scale(1.02);
+  to {
+    transform: translate(8%, -3%) rotate(9deg);
   }
 }
-
 @keyframes accountAetherGold {
-  0% {
-    opacity: 0.22;
-    transform: translate3d(20%, -12%, 0) rotate(10deg) scale(0.94);
-  }
-  50% {
-    opacity: 0.4;
-    transform: translate3d(-2%, 7%, 0) rotate(2deg) scale(1.05);
-  }
-  100% {
-    opacity: 0.26;
-    transform: translate3d(-24%, 16%, 0) rotate(-7deg) scale(1);
+  to {
+    transform: translate(-5%, 8%) rotate(-12deg);
   }
 }
-
 @keyframes accountAetherMotes {
-  0% {
-    transform: translate3d(0, 1.5rem, 0);
-  }
-  50% {
-    transform: translate3d(0.8rem, -0.35rem, 0);
-  }
-  100% {
-    transform: translate3d(-0.45rem, -2rem, 0);
+  to {
+    transform: translateX(15%);
+    opacity: 0.45;
   }
 }
-
+@media (min-width: 761px) {
+  .shell {
+    height: 100dvh;
+  }
+}
+@media (max-width: 1000px) {
+  .main {
+    grid-template-columns: minmax(0, 1fr) minmax(22rem, 1fr);
+  }
+  .heroContent {
+    left: 1rem;
+    top: 1rem;
+  }
+  .heroContent h1 {
+    font-size: 3.5rem;
+  }
+  .entryCard[data-account-concept='true'] {
+    padding: 1.5rem;
+  }
+}
+@media (max-width: 760px) {
+  .shell {
+    grid-template-rows: auto auto auto;
+  }
+  .masthead {
+    padding: 0.5rem;
+    gap: 0.5rem;
+  }
+  .main {
+    grid-template-columns: 1fr;
+  }
+  .hero {
+    min-height: 21rem;
+  }
+  .heroContent {
+    top: 1.5rem;
+  }
+  .heroContent h1 {
+    font-size: clamp(2.5rem, 10vw, 4rem);
+  }
+  .identityNotes {
+    gap: 0.5rem;
+  }
+  .entryCard[data-account-concept='true'] {
+    padding: 1.5rem;
+    border-left: 0;
+  }
+  .masthead :global(.brand__wordmark small) {
+    display: none;
+  }
+  .masthead :global(.brand__wordmark strong) {
+    font-size: 0.875rem;
+  }
+  .masthead :global(.brand__crest) {
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .heroShade::before,
   .heroShade::after,
   .hero::after {
     animation: none;
   }
-
-  .heroShade::before {
-    opacity: 0.18;
-    transform: none;
-  }
-
-  .heroShade::after {
-    opacity: 0.12;
-    transform: none;
-  }
-
-  .hero::after {
-    opacity: 0.08;
-    transform: none;
-  }
-}
-
-/* Stone account gate: preserve notice and tab contrast in both modes. */
-.entryCard[data-account-concept='true'] .environmentNotice {
-  background: #d8cbb2;
-  color: #383b31;
-  border-color: #998360;
-}
-.entryCard[data-account-concept='true'] .environmentNotice strong {
-  color: #30372e;
-}
-.entryCard[data-account-concept='true'] .modeSwitch {
-  background: #b2a184;
-  border-color: #97815c;
-}
-.entryCard[data-account-concept='true'] .modeSwitch button {
-  color: #343b31;
-}
-.entryCard[data-account-concept='true'] .modeSwitch .modeActive {
-  color: #f3ead5;
-  background: #345951;
 }

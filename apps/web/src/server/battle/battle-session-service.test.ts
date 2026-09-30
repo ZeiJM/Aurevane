@@ -277,6 +277,72 @@ describe('P2.4 battle session service', () => {
     expect(result.snapshot.tactical.battle).not.toHaveProperty('rng')
   })
 
+  it.each([
+    ['duel-yard', 9, 63],
+    ['crossroads-court', 12, 84],
+    ['terraced-yard', 15, 105],
+  ] as const)('creates new %s sparring sessions with seven rows', async (arenaId, width, count) => {
+    const characters = createCharacterRepository()
+    const battles = createBattleRepository()
+    const service = createBattleSessionService({
+      characters: characters.repository,
+      battles: battles.repository,
+    })
+    const created = await service.createSession({
+      userId: USER_ID,
+      characterId: CHARACTER_ID,
+      idempotencyKey: IDEMPOTENCY_KEY,
+      arenaId,
+      battleHallRecordId: 'recruit-sparring',
+    })
+    expect(created.snapshot.tactical).toMatchObject({ width, height: 7 })
+    expect(created.snapshot.tactical.tiles).toHaveLength(count)
+  })
+
+  it.each([
+    ['crossroads-court', 7, 49],
+    ['terraced-yard', 11, 77],
+  ] as const)(
+    'loads historical %s geometry without replacing it with the current arena',
+    async (arenaId, width, count) => {
+      const fixture = await createPersistedFixture()
+      const historical = structuredClone(fixture.persistedSnapshot)
+      historical.tactical = {
+        ...historical.tactical,
+        width,
+        height: 7,
+        tiles: Array.from({ length: count }, (_, index) => ({
+          position: { x: index % width, y: Math.floor(index / width) },
+          elevation: 0,
+          terrainId: 'open-ground',
+        })),
+      }
+      historical.statBridge = {
+        ...historical.statBridge,
+        combatants: historical.statBridge.combatants.map((profile) =>
+          profile.provenance.kind === 'scenario'
+            ? {
+                ...profile,
+                provenance: {
+                  ...profile.provenance,
+                  sourceId: `scenario:p2-7-recruit:${arenaId}:recruit-sparring:standard`,
+                },
+              }
+            : profile,
+        ),
+      }
+      fixture.battles.findBattleSession.mockResolvedValue({
+        ...fixture.record,
+        snapshot: historical,
+      })
+      const loaded = await fixture.service.getSession(USER_ID, SESSION_ID)
+      expect(loaded.snapshot.tactical).toMatchObject({ width, height: 7 })
+      expect(loaded.snapshot.tactical.tiles).toEqual(historical.tactical.tiles)
+      expect(loaded.snapshot.tactical.placements).toEqual(historical.tactical.placements)
+      expect(fixture.record.snapshot).toEqual(fixture.persistedSnapshot)
+    },
+  )
+
   it('owns Battle Hall AI difficulty and the Mastery Trial arena on the server', async () => {
     const characters = createCharacterRepository()
     const battles = createBattleRepository()

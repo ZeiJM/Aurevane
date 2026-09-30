@@ -52,6 +52,28 @@ const runtime: BattleRuntime = {
 }
 
 describe('battle copied Skill presentation', () => {
+  it('renders four hotkey slots followed by power and supernatural information, without replacing basic commands', () => {
+    const markup = renderToStaticMarkup(
+      <BattleSelectedSkills
+        runtime={{
+          ...runtime,
+          techniques: [
+            { ...runtime.copiedSkills![0]!, id: 'vanguard.forceful-strike', cooldownOwnerTurns: 1 },
+          ],
+        }}
+        disabled={false}
+        actionEconomy={100}
+        onSelect={vi.fn()}
+      />,
+    )
+    expect(markup).toContain('data-battle-skill-slot="1"')
+    expect(markup).toContain('data-battle-skill-slot="4"')
+    expect(markup).toContain('data-battle-skill-hotkey="4"')
+    expect(markup).toContain('About Forceful Strike')
+    expect(markup).toContain('Vanguard')
+    expect(markup).toContain('Severance / Ascension')
+    expect(markup).toContain('Coming soon')
+  })
   it('renders one compact Copied Skills group instead of extra committed Skill slots', () => {
     const markup = renderToStaticMarkup(
       <BattleSelectedSkills

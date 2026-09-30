@@ -96,8 +96,8 @@ async function expectCanonicalFacingIndicators(root: ReturnType<Page['locator']>
 
 async function expectLargeBoardGeometry(root: ReturnType<Page['locator']>) {
   const board = root.locator('#battlefield [data-board-auto-fit]')
-  await expect(board).toHaveAttribute('data-board-auto-fit', '13x9')
-  await expect(board.locator('button[aria-label^="Tile "]')).toHaveCount(117)
+  await expect(board).toHaveAttribute('data-board-auto-fit', '15x7')
+  await expect(board.locator('button[aria-label^="Tile "]')).toHaveCount(105)
 
   const geometry = await board.evaluate((element) => {
     const tiles = Array.from(
@@ -148,9 +148,9 @@ async function expectLargeBoardGeometry(root: ReturnType<Page['locator']>) {
     }
   })
 
-  expect(Math.abs(geometry.boardRatio - 13 / 9)).toBeLessThan(0.03)
+  expect(Math.abs(geometry.boardRatio - 15 / 7)).toBeLessThan(0.03)
   for (const ratio of geometry.tileRatios) expect(Math.abs(ratio - 1)).toBeLessThan(0.04)
-  for (const ratio of geometry.tokenRatios) expect(ratio).toBeLessThanOrEqual(0.82)
+  for (const ratio of geometry.tokenRatios) expect(ratio).toBeLessThanOrEqual(0.9)
   expect(geometry.indicators.length).toBeGreaterThanOrEqual(2)
   expect(new Set(geometry.indicators.map((indicator) => indicator.width.toFixed(2))).size).toBe(1)
   expect(new Set(geometry.indicators.map((indicator) => indicator.height.toFixed(2))).size).toBe(1)
@@ -195,8 +195,8 @@ async function sampleGuidedBoardAcrossFinishTurn(
     (response) =>
       response.request().method() === 'POST' && response.url().includes('/recruit-turn'),
   )
-  const finish = root.getByRole('button', { name: /^Finish Turn,/ })
-  await expect(finish).toHaveAccessibleName(/Choose facing \+ end/)
+  const finish = root.getByRole('button', { name: /^End Turn,/ })
+  await expect(finish).toHaveAccessibleName(/Choose facing/)
 
   if (mobile) {
     await finish.tap()

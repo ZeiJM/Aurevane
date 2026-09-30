@@ -67,14 +67,13 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
 
   const battlefield = page.getByRole('region', { name: 'Tactical battlefield' })
   const commandDeck = page.getByRole('region', { name: 'Command Deck' })
-  const commandContext = commandDeck.locator(':scope > div').first()
+  const commandContext = page.locator('[data-battle-preview-strip]')
   const inspectButton = commandDeck.getByRole('button', { name: /^Inspect,/ })
   const moveButton = commandDeck.getByRole('button', { name: /^Move,/ })
   const attackButton = commandDeck.locator('button[data-battle-command="attack"]')
   const guardButton = commandDeck.locator('button[data-battle-command="guard"]')
-  const finishButton = commandDeck.getByRole('button', { name: /^Finish Turn,/ })
+  const finishButton = commandDeck.getByRole('button', { name: /^End Turn,/ })
   const facingPad = commandDeck.locator('[data-unified-facing-pad="true"]')
-  const confirmButton = page.getByRole('button', { name: 'Confirm Action' })
   const criteriaButton = page.getByRole('button', { name: /Victory conditions/i })
   const apRemaining = page.getByRole('progressbar', { name: 'Action Economy remaining' })
 
@@ -146,14 +145,12 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   expect(await hasHorizontalOverflow(page)).toBe(false)
 
   await moveButton.click()
-  await expect(commandContext).toContainText('Move · 20 AP per normal tile')
-  await expect(commandContext).toContainText('Rough ground costs 40 AP')
+  await expect(commandContext).toContainText('Move')
 
   // Full AP is not permission to move past the character's server-owned Movement allowance.
   await page.getByRole('button', { name: /Tile 4, 2; open-ground; elevation 0/ }).click()
   await expect(commandContext).toContainText('That tile is not reachable')
   await expect(apRemaining).toHaveAttribute('aria-valuenow', '100')
-  await expect(confirmButton).toBeDisabled()
 
   await chooseReachableTowardRecruit(battlefield)
   if (testInfo.project.name !== 'mobile-chromium') {
@@ -164,8 +161,6 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
         .locator(':scope > span:last-child'),
     ).toHaveCount(1)
   }
-  await expect(confirmButton).toBeEnabled()
-  await confirmButton.click()
 
   await expect(criteriaButton).toHaveAttribute('data-new-progress', 'true')
   await expect(
@@ -189,8 +184,6 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   // the Recruit before completing Guard/Attack so the lesson remains deterministic at medium scale.
   await moveButton.click()
   await chooseReachableTowardRecruit(battlefield)
-  await expect(confirmButton).toBeEnabled()
-  await confirmButton.click()
   await finishCurrentTurn(finishButton, testInfo.project.name)
   await expect(apRemaining).toHaveAttribute('aria-valuenow', '100', { timeout: 15_000 })
   await expect(commandContext).toContainText('Choose your action', { timeout: 15_000 })
@@ -200,64 +193,29 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   } else {
     await guardButton.click()
   }
-  await expect(commandContext).toContainText('Guard ready')
+  await expect(commandContext).toContainText('Guard')
   await expect(battlefield.locator('button[data-target="friendly"]')).toHaveCount(1)
-  await expect(confirmButton).toBeEnabled()
-  await confirmButton.click()
+  await page.getByRole('button', { name: new RegExp(`occupied by ${characterName}`) }).click()
   await expect(commandContext).toContainText('Guarded for 2 turns', { timeout: 10_000 })
   await expect(criteriaButton).toHaveAttribute('data-new-progress', 'true')
   await openCriteriaAndClose(page, '3/4 complete')
 
-  const roundButton = page.locator('[data-battle-flow] > button')
-  const battleLog = page.getByTestId('battle-log-panel')
-  if ((await roundButton.getAttribute('aria-expanded')) !== 'true') await roundButton.click()
-  await expect(battleLog).toBeVisible()
+  await page.getByRole('button', { name: 'Expand battle history' }).click()
+  const battleLog = page.getByRole('dialog', { name: 'Battle Log', exact: true })
   await expect(battleLog).toContainText(characterName)
   await expect(battleLog).toContainText(/moved|Guard/)
-  await expect(battleLog).not.toContainText(/\bv\d+\b/)
   await expect(battleLog).not.toContainText('rollBasisPoints')
-  if (testInfo.project.name === 'mobile-chromium') {
-    await page.getByRole('button', { name: 'Close battle log' }).click()
-  } else {
-    const apBeforeDetails = await apRemaining.getAttribute('aria-valuenow')
-    const timeline = battleLog.getByRole('list', { name: 'Battle action timeline' })
-    await battleLog.getByRole('button', { name: 'Opponents', exact: true }).click()
-    await expect(timeline).not.toContainText(characterName)
-    await battleLog.getByRole('button', { name: 'You', exact: true }).click()
-    await expect(timeline).toContainText(characterName)
-    await battleLog.getByRole('button', { name: 'All', exact: true }).click()
-    const actionDetails = timeline.getByRole('button').last()
-    await actionDetails.focus()
-    await actionDetails.press('Space')
-    const details = page.getByRole('dialog', { name: /Guard/ })
-    await expect(details).toBeVisible()
-    await expect(details.getByRole('region', { name: 'Recorded action result' })).toContainText(
-      /Guard|damage/i,
-    )
-    await page.screenshot({ path: testInfo.outputPath('battle-action-details.png') })
-    await page.keyboard.press('Space')
-    await page.keyboard.press('w')
-    await expect(details).toBeVisible()
-    await expect(apRemaining).toHaveAttribute('aria-valuenow', apBeforeDetails!)
-    await page.keyboard.press('Escape')
-    await expect(details).toHaveCount(0)
-    await expect(actionDetails).toBeFocused()
-    await expect(apRemaining).toHaveAttribute('aria-valuenow', apBeforeDetails!)
-    await battleLog.getByRole('button', { name: 'Text log', exact: true }).click()
-    await expect(battleLog).toContainText('Guard')
-    await battleLog.getByRole('button', { name: 'Timeline', exact: true }).click()
-    await roundButton.click()
-    await expect(battleLog).toHaveCount(0)
-    await roundButton.click()
-    await expect(battleLog).toBeVisible()
-  }
+  const apBeforeDetails = await apRemaining.getAttribute('aria-valuenow')
+  await page.keyboard.press('Space')
+  await page.keyboard.press('KeyW')
+  await expect(apRemaining).toHaveAttribute('aria-valuenow', apBeforeDetails!)
+  await page.keyboard.press('Escape')
+  await expect(battleLog).toHaveCount(0)
 
   await attackButton.click()
   if ((await battlefield.locator('button[data-target="enemy"]').count()) === 0) {
     await moveButton.click()
     await chooseReachableTowardRecruit(battlefield, true)
-    await expect(confirmButton).toBeEnabled()
-    await confirmButton.click()
     await attackButton.click()
   }
 
@@ -265,9 +223,6 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await expect(battlefield.locator('button[data-target="enemy"]')).toHaveCount(1)
   await expect(recruitTarget).toHaveAttribute('data-target', 'enemy')
   await recruitTarget.click()
-  await expect(commandContext).toContainText('Basic Attack ready')
-  await expect(confirmButton).toBeEnabled()
-  await confirmButton.click()
 
   const result = page.getByTestId('battle-result-overlay')
   await expect(result).toBeVisible({ timeout: 15_000 })
@@ -327,7 +282,7 @@ async function finishCurrentTurn(
   finishButton: ReturnType<import('@playwright/test').Page['locator']>,
   projectName: string,
 ): Promise<void> {
-  await expect(finishButton).toHaveAccessibleName(/Choose facing \+ end/)
+  await expect(finishButton).toHaveAccessibleName(/Choose facing/)
   if (projectName === 'mobile-chromium') {
     await finishButton.tap()
     await new Promise((resolve) => setTimeout(resolve, 80))

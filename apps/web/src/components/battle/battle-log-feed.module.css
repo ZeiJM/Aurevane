@@ -11,7 +11,7 @@
   margin: 0;
   padding: 1rem 0.8rem;
   color: var(--av-text-dim);
-  font-size: 0.62rem;
+  font-size: 0.75rem;
   line-height: 1.45;
   text-align: center;
 }
@@ -62,7 +62,7 @@
   width: 0.72rem;
   height: 0.72rem;
   place-items: center;
-  color: rgba(218, 229, 237, 0.78);
+  color: var(--av-text-muted);
   font: 800 0.72rem/1 var(--av-font-mono);
   transform: rotate(0deg);
   transition: transform 120ms ease;
@@ -74,8 +74,8 @@
 
 .roundTitle {
   min-width: 0;
-  color: rgba(184, 196, 208, 0.88);
-  font-size: 0.66rem;
+  color: var(--av-text-muted);
+  font-size: 0.8125rem;
   font-weight: 720;
   line-height: 1.1;
   letter-spacing: 0;
@@ -119,8 +119,8 @@
   grid-template-columns: var(--battle-log-number-column) minmax(0, 1fr);
   column-gap: var(--battle-log-number-gap);
   align-items: baseline;
-  color: rgba(229, 236, 241, 0.94);
-  font-size: 0.62rem;
+  color: var(--av-text);
+  font-size: 0.75rem;
   font-weight: 460;
   line-height: 1.43;
 }
@@ -131,9 +131,9 @@
 
 .eventNumber {
   justify-self: start;
-  color: rgba(229, 236, 241, 0.94);
+  color: var(--av-text);
   font-family: var(--av-font-mono);
-  font-size: 0.57rem;
+  font-size: 0.625rem;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -147,48 +147,48 @@
 
 .primaryLine span[data-role='actor'],
 .primaryLine span[data-role='target'] {
-  color: rgba(229, 236, 241, 0.94);
+  color: var(--av-text);
 }
 
 /* Most action prose stays neutral. Color is reserved for identity and meaning, not decoration. */
 .primaryLine span[data-role='action'],
 .secondaryLine span[data-role='action'] {
-  color: #dfe6ea;
+  color: var(--av-text-muted);
   font-weight: 640;
 }
 
 /* Blue means an explicit defensive action such as Guard. */
 .action[data-kind='defense'] .primaryLine span[data-role='action'] {
-  color: #6c91c6;
+  color: var(--battle-log-defense, #6c91c6);
 }
 
 .primaryLine span[data-role='outcome'] {
-  color: rgba(232, 238, 242, 0.94);
+  color: var(--av-text);
   font-weight: 680;
 }
 
 /* Red is used only for direct HP damage. */
 .primaryLine span[data-role='outcome'][data-tone='damage'],
 .secondaryLine span[data-role='outcome'][data-tone='damage'] {
-  color: #ff766f;
+  color: var(--battle-log-damage, #ff766f);
 }
 
 /* Green is used only for HP recovery/healing. */
 .primaryLine span[data-role='outcome'][data-tone='healing'],
 .secondaryLine span[data-role='outcome'][data-tone='healing'] {
-  color: #59d39b;
+  color: var(--battle-log-healing, #59d39b);
 }
 
 /* Generic benefits stay neutral; named effects receive the dedicated effect color below. */
 .primaryLine span[data-role='outcome'][data-tone='benefit'],
 .secondaryLine span[data-role='outcome'][data-tone='benefit'] {
-  color: #c8d2d8;
+  color: var(--av-text-muted);
 }
 
 /* Orange means a warning/result failure such as Miss. */
 .primaryLine span[data-role='outcome'][data-tone='warning'],
 .secondaryLine span[data-role='outcome'][data-tone='warning'] {
-  color: #e8a15f;
+  color: var(--battle-log-warning, #e8a15f);
 }
 
 /* A timeout reads as one neutral thought; keep its emphasized ending without the orange warning color. */
@@ -199,7 +199,7 @@
 /* Cyan always means a named combat effect. The same effect keeps this color when applied or fading. */
 .primaryLine span[data-semantic='effect'],
 .secondaryLine span[data-semantic='effect'] {
-  color: #72c7e8;
+  color: var(--battle-log-effect, #72c7e8);
   font-weight: 680;
 }
 
@@ -217,30 +217,30 @@
 .secondaryLine {
   margin-top: 0.07rem;
   margin-left: calc(var(--battle-log-number-column) + var(--battle-log-number-gap));
-  color: rgba(229, 236, 241, 0.94);
-  font-size: 0.58rem;
+  color: var(--av-text);
+  font-size: 0.6875rem;
   font-weight: 500;
   line-height: 1.4;
 }
 
 .secondaryLine span[data-role='actor'],
 .secondaryLine span[data-role='target'] {
-  color: rgba(226, 235, 241, 0.9);
+  color: var(--av-text-muted);
 }
 
 .action[data-kind='movement'] .primaryLine {
-  color: rgba(153, 171, 183, 0.76);
+  color: var(--av-text-dim);
 }
 
 /* Neutral lifecycle/system narration stays readable; semantic colors and combatant accents still override it. */
 .action[data-kind='status'] .primaryLine,
 .action[data-kind='turn'] .primaryLine,
 .action[data-kind='system'] .primaryLine {
-  color: rgba(229, 236, 241, 0.94);
+  color: var(--av-text);
 }
 
 .action[data-kind='system'][data-significance='highlight'] .primaryLine {
-  color: #d4c79d;
+  color: var(--av-brass-200);
 }
 
 @media (max-width: 760px) {

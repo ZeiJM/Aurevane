@@ -15,7 +15,7 @@ function uniqueIdentity(prefix: string): { email: string; characterName: string 
   }
 }
 
-test('keeps three portrait and status cards accessible in each desktop PvP rail', async ({
+test('keeps compact local and selected PvP cards while inspecting board participants', async ({
   browser,
 }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-chromium', 'Desktop PvP rail regression')
@@ -69,120 +69,32 @@ test('keeps three portrait and status cards accessible in each desktop PvP rail'
     await hostDialog.getByRole('button', { name: 'Mark Ready' }).click()
     await expect(host).toHaveURL(/\/game\/battle\/[0-9a-f-]+$/i, { timeout: 20_000 })
 
-    const rails = host.locator("aside[data-unified-combatant-rail='true']")
-    await expect(rails).toHaveCount(2)
-    await expect(rails.nth(0).locator('article')).toHaveCount(1)
-    await expect(rails.nth(1).locator('article')).toHaveCount(1)
-
-    // A rendered 1v1 supplies the real card markup. Clones exercise six-card
-    // presentation capacity only; battle membership and gameplay remain untouched.
     for (const viewport of [
-      { width: 1536, height: 614 },
-      { width: 1920, height: 982 },
-      { width: 2400, height: 1228 },
+      { width: 1366, height: 768 },
+      { width: 1920, height: 1080 },
     ]) {
       await host.setViewportSize(viewport)
-      const geometries = await rails.evaluateAll(async (elements) => {
-        await document.fonts.ready
-        await new Promise<void>((resolve) =>
-          requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
-        )
-        return elements.map((rail) => {
-          const railElement = rail as HTMLElement
-          const stack = railElement.firstElementChild as HTMLElement
-          const source = stack.querySelector<HTMLElement>('article')!
-          const sourcePortrait = source.querySelector<HTMLElement>(
-            'button[data-desktop-inspect-combatant]',
-          )!
-          const singleCard = source.getBoundingClientRect().toJSON()
-          const singlePortrait = sourcePortrait.getBoundingClientRect().toJSON()
-          const originalCount = stack.dataset.count
-          const clones = [source.cloneNode(true), source.cloneNode(true)] as HTMLElement[]
-          for (const clone of clones) stack.appendChild(clone)
-          stack.dataset.count = '3'
-
-          const geometry = {
-            rail: railElement.getBoundingClientRect().toJSON(),
-            stack: stack.getBoundingClientRect().toJSON(),
-            singleCard,
-            singlePortrait,
-            scrollHeight: railElement.scrollHeight,
-            clientHeight: railElement.clientHeight,
-            cards: Array.from(stack.querySelectorAll<HTMLElement>('article')).map((card) => {
-              const portrait = card.querySelector<HTMLElement>(
-                'button[data-desktop-inspect-combatant]',
-              )!
-              const image = portrait.querySelector<HTMLElement>('.character-portrait-media')!
-              const effects = card.lastElementChild as HTMLElement
-              return {
-                card: card.getBoundingClientRect().toJSON(),
-                heading: card.firstElementChild!.getBoundingClientRect().toJSON(),
-                portrait: portrait.getBoundingClientRect().toJSON(),
-                image: image.getBoundingClientRect().toJSON(),
-                imageFit: getComputedStyle(image).objectFit,
-                effects: effects.getBoundingClientRect().toJSON(),
-                effectsHeight: effects.clientHeight,
-                effectsScrollHeight: effects.scrollHeight,
-              }
-            }),
-          }
-          for (const clone of clones) clone.remove()
-          if (originalCount === undefined) delete stack.dataset.count
-          else stack.dataset.count = originalCount
-          return geometry
-        })
+      const local = host.locator('[data-battle-combatant-card="local"]')
+      const selected = host.locator('[data-battle-combatant-card="selected"]')
+      await expect(local).toHaveCount(1)
+      await expect(selected).toHaveCount(1)
+      await expect(local).toContainText(hostIdentity.characterName)
+      await host.locator('[data-battle-command="inspect"]').click()
+      await host
+        .locator('#battlefield')
+        .getByRole('button', { name: new RegExp(`occupied by ${guestIdentity.characterName}`) })
+        .click()
+      const details = host.getByRole('dialog', {
+        name: `${guestIdentity.characterName} battle details`,
       })
-
-      for (const geometry of geometries) {
-        expect(geometry.rail.height).toBeGreaterThan(0)
-        expect(geometry.cards).toHaveLength(3)
-        expect(geometry.stack.width).toBeLessThanOrEqual(geometry.rail.width + 1)
-        expect(Math.abs(geometry.stack.top - geometry.rail.top)).toBeLessThanOrEqual(1)
-        expect(geometry.scrollHeight).toBeLessThanOrEqual(geometry.clientHeight + 1)
-        expect(geometry.cards[2]!.card.bottom).toBeLessThanOrEqual(geometry.rail.bottom + 1)
-        const firstHeight = geometry.cards[0]!.card.height
-        expect(
-          geometry.singleCard.height,
-          'A one-on-one card should fill the rail until team members are added.',
-        ).toBeGreaterThan(firstHeight * 2)
-        expect(geometry.singleCard.bottom).toBeLessThanOrEqual(geometry.rail.bottom + 1)
-        expect(
-          Math.abs(geometry.singlePortrait.width - geometry.singlePortrait.height),
-          'A one-on-one rail portrait must remain square.',
-        ).toBeLessThanOrEqual(1)
-        expect(firstHeight).toBeLessThanOrEqual(geometry.rail.height / 3)
-
-        for (const {
-          card,
-          heading,
-          portrait,
-          image,
-          imageFit,
-          effects,
-          effectsHeight,
-          effectsScrollHeight,
-        } of geometry.cards) {
-          expect(Math.abs(card.height - firstHeight)).toBeLessThanOrEqual(1)
-          expect(portrait.width).toBeGreaterThan(32)
-          expect(
-            Math.abs(portrait.width - portrait.height),
-            'Rail portraits must remain square.',
-          ).toBeLessThanOrEqual(1)
-          expect(portrait.bottom).toBeLessThanOrEqual(card.bottom + 1)
-          expect(portrait.top).toBeGreaterThanOrEqual(heading.bottom - 1)
-          expect(imageFit).toBe('contain')
-          expect(Math.abs(image.width - image.height)).toBeLessThanOrEqual(1)
-          expect(Math.abs(image.left - portrait.left)).toBeLessThanOrEqual(1)
-          expect(Math.abs(image.right - portrait.right)).toBeLessThanOrEqual(1)
-          expect(Math.abs(image.top - portrait.top)).toBeLessThanOrEqual(1)
-          expect(Math.abs(image.bottom - portrait.bottom)).toBeLessThanOrEqual(1)
-          expect(portrait.left).toBeGreaterThanOrEqual(card.left)
-          expect(portrait.right).toBeLessThanOrEqual(card.right + 1)
-          expect(effects.bottom).toBeLessThanOrEqual(card.bottom + 1)
-          expect(effects.right).toBeLessThanOrEqual(card.right + 1)
-          expect(effectsScrollHeight).toBeLessThanOrEqual(effectsHeight + 1)
-        }
-      }
+      await expect(details).toBeVisible()
+      await host.keyboard.press('Escape')
+      await expect(selected).toContainText(guestIdentity.characterName)
+      const geometry = await selected
+        .locator('[data-av-square-media]')
+        .evaluate((element) => element.getBoundingClientRect().toJSON())
+      expect(Math.abs(geometry.width - geometry.height)).toBeLessThanOrEqual(1)
+      await expect(selected).toContainText(/HP.*MP/s)
     }
   } finally {
     await Promise.all([hostContext.close(), guestContext.close()])

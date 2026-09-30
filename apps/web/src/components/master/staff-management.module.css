@@ -1121,3 +1121,34 @@
 :global(.av-master) .layout button:disabled {
   opacity: 0.5;
 }
+
+/* Approved stone collection and authoring composition. */
+.layout {
+  grid-template-columns: minmax(12rem, 23%) minmax(0, 1fr) minmax(14rem, 25%);
+  gap: 0.7rem;
+}
+.rosterPane,
+.staffCard,
+.authorityDock,
+.statusCard,
+.guardrail,
+.auditCard,
+.emptyState {
+  background: var(--master-stone);
+  border-radius: 2px;
+  box-shadow: none;
+}
+.rosterRow {
+  background: #d9cbb3;
+}
+.rosterRow[aria-pressed='true'] {
+  background: #bfd0c5;
+}
+.accountHeader {
+  background: #e0d6c3;
+}
+@media (max-width: 1000px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

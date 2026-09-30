@@ -127,8 +127,7 @@ test('keeps the desktop PvP battle flow beside compact commands without resizing
     await expect(spectatorLogTab).toHaveAttribute('aria-selected', 'true')
     await expect(spectator.getByText('Recent 4 turns · actions · outcomes')).toBeVisible()
 
-    const combatLog = root.locator('[data-battle-flow] > button')
-    if ((await combatLog.getAttribute('aria-expanded')) !== 'true') await combatLog.click()
+    await expect(root.locator('[data-battle-inline-log]')).toBeVisible()
     await expectMapKey(host)
     await expectBattleReferenceLayout(host, testInfo, 'combat-pvp-short-window')
     await expectBattleFlowKeepsBoardSize(host)
@@ -141,12 +140,9 @@ test('keeps the desktop PvP battle flow beside compact commands without resizing
       await expectBattleReferenceLayout(host, testInfo, `combat-pvp-${size.width}x${size.height}`)
       await expectBattleFlowKeepsBoardSize(host)
     }
-    await combatLog.click()
-    await expect(host.getByTestId('battle-log-panel')).toHaveCount(0)
     await host.reload()
-    await expect(host.getByTestId('battle-log-panel')).toHaveCount(0)
-    await host.getByRole('region', { name: 'Battle flow', exact: true }).getByRole('button').click()
-    await expectBattleReferenceLayout(host, testInfo, 'combat-pvp-flow-reopened')
+    await expect(root.locator('[data-battle-inline-log]')).toBeVisible()
+    await expectBattleReferenceLayout(host, testInfo, 'combat-pvp-history-after-reload')
   } finally {
     await Promise.all([hostContext.close(), guestContext.close(), spectatorContext.close()])
   }

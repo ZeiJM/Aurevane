@@ -19,7 +19,58 @@ export function BattleCombatantEffects({
   compact?: boolean
 }) {
   const effects = aggregateBattleStatusStacks(statuses)
-  const limit = compact ? 1 : 2
+  if (compact)
+    return (
+      <section className={styles.icons} aria-label={`${name} active combat effects`}>
+        {effects.length === 0 ? (
+          <span>No active effects</span>
+        ) : (
+          effects.map((effect) => {
+            const details = combatStatusDetails(effect.statusId)
+            const label = statusLabel(effect.statusId)
+            const tone =
+              details.kind === 'Buff'
+                ? 'positive'
+                : details.kind === 'Debuff'
+                  ? 'negative'
+                  : 'mixed'
+            const duration = `${effect.remainingOwnerTurnStarts} turns remaining`
+            return (
+              <span
+                key={`${effect.statusId}:${effect.statusVersion}`}
+                data-tone={tone}
+                title={`${label}: ${details.description} ${duration}`}
+              >
+                <BattleInfoPopover
+                  label={`Explain ${label}, ${duration}`}
+                  title={label}
+                  className={styles.icon}
+                  hover
+                  trigger={
+                    <>
+                      <i aria-hidden="true">
+                        {tone === 'positive' ? '↑' : tone === 'negative' ? '↓' : '◇'}
+                      </i>
+                      <small>
+                        {effect.stacks > 1 ? `×${effect.stacks}` : effect.remainingOwnerTurnStarts}
+                      </small>
+                    </>
+                  }
+                >
+                  <p>{details.description}</p>
+                  <p>
+                    {duration}
+                    {effect.stacks > 1 ? ` · ${effect.stacks} stacks` : ''}
+                  </p>
+                  <BattleCombatantEffects name={name} statuses={[effect]} />
+                </BattleInfoPopover>
+              </span>
+            )
+          })
+        )}
+      </section>
+    )
+  const limit = 2
   return (
     <section
       className={styles.effects}

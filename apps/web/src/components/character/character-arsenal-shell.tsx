@@ -10,11 +10,7 @@ import {
   battleSkillArtwork,
 } from '@/components/battle/battle-skill-presentation'
 import { CharacterDisciplineBuildPanel } from '@/components/character/character-discipline-build-panel'
-import { CharacterIdentityCard } from '@/components/character/character-identity-card'
-import {
-  characterDisciplineSummary,
-  type CharacterWorkspaceProps,
-} from '@/components/character/character-profile-shell'
+import { type CharacterWorkspaceProps } from '@/components/character/character-profile-shell'
 import { CharacterSkillBuildPanel } from '@/components/character/character-skill-build-panel'
 import { FoundationDisciplineSigil } from '@/components/character/foundation-discipline-sigil'
 
@@ -207,8 +203,8 @@ function TechniqueLane({
               <span className={styles.overviewTechniqueArt} data-arsenal-media="true">
                 <Image
                   src={battleSkillArtwork(skill.id)}
-                  width={64}
-                  height={64}
+                  width={160}
+                  height={160}
                   unoptimized
                   alt=""
                 />
@@ -241,8 +237,6 @@ export function CharacterArsenalShell({
   profile,
   attributeAllocation,
   disciplineBuild,
-  personalTitle = null,
-  imageUrl = null,
 }: CharacterWorkspaceProps) {
   const learnedSkillCatalogKey = disciplineBuild.disciplineSkills.learnedSkills
     .map((entry) => entry.definition.id + '@' + entry.definition.contentVersion)
@@ -256,47 +250,17 @@ export function CharacterArsenalShell({
   ].join(':')
   const resonance = disciplineBuild.disciplineSkills.extensions.resonance
   const essence = disciplineBuild.disciplineSkills.extensions.essence
-  const disciplineSummary = characterDisciplineSummary(
-    disciplineBuild.current.definition,
-    disciplineBuild.currentSecondary,
-  )
-  const maxHp = disciplineBuild.current.derived.stats.maxHp.value
-  const maxMp = disciplineBuild.current.derived.stats.maxMp.value
   const equipped = [...disciplineBuild.disciplineSkills.equippedSkills].sort(
     (left, right) => left.slotIndex - right.slotIndex,
   )
-  const primarySkills = equipped
-    .filter(
-      (entry) => entry.definition.sourceDisciplineId === disciplineBuild.current.definition.id,
-    )
-    .map((entry) => entry.definition)
-  const secondarySkills = disciplineBuild.currentSecondary
-    ? equipped
-        .filter(
-          (entry) => entry.definition.sourceDisciplineId === disciplineBuild.currentSecondary?.id,
-        )
-        .map((entry) => entry.definition)
-    : []
-
   return (
-    <div className={styles.layout} data-arsenal-workspace data-character-concept="nexus">
-      <CharacterIdentityCard
-        profile={profile}
-        primary={disciplineBuild.current.definition}
-        secondary={disciplineBuild.currentSecondary}
-        personalTitle={personalTitle}
-        imageUrl={imageUrl}
-        disciplineSummary={disciplineSummary}
-        maxHp={maxHp}
-        maxMp={maxMp}
-      />
-
-      <Surface
-        className={styles.arsenal}
-        tone="elevated"
-        data-av-surface="moonstone"
-        data-arsenal-sheet="true"
-      >
+    <div
+      className={styles.layout}
+      data-arsenal-workspace
+      data-character-concept="nexus"
+      data-composition="correction"
+    >
+      <Surface className={styles.arsenal} tone="elevated" data-arsenal-sheet="true">
         <header className={styles.pageHeading}>
           <div className={styles.pageHeadingTitle}>
             <span className={styles.pageIcon} aria-hidden="true">
@@ -381,7 +345,9 @@ export function CharacterArsenalShell({
           <header className={styles.sectionHeading}>
             <div>
               <span>✦</span>
-              <h2 id="nexus-techniques-heading">Techniques</h2>
+              <h2 id="nexus-techniques-heading">
+                {equipped.length} / {disciplineBuild.disciplineSkills.capacity} selected Techniques
+              </h2>
             </div>
           </header>
 
@@ -390,22 +356,9 @@ export function CharacterArsenalShell({
               kind="primary"
               discipline={{
                 id: disciplineBuild.current.definition.id,
-                name: disciplineBuild.current.definition.name,
+                name: `${equipped.length} / ${disciplineBuild.disciplineSkills.capacity} selected Techniques`,
               }}
-              skills={primarySkills}
-            />
-            <TechniqueLane
-              kind="secondary"
-              discipline={
-                disciplineBuild.currentSecondary
-                  ? {
-                      id: disciplineBuild.currentSecondary.id,
-                      name: disciplineBuild.currentSecondary.name,
-                    }
-                  : null
-              }
-              skills={secondarySkills}
-              locked={!disciplineBuild.currentSecondary}
+              skills={equipped.map((entry) => entry.definition)}
             />
           </div>
 
@@ -458,8 +411,8 @@ export function CharacterArsenalShell({
                     <span className={styles.attunementArt} data-gameplay-art="attunement">
                       <Image
                         src={battleSkillArtwork(essence.skill.id)}
-                        width={64}
-                        height={64}
+                        width={160}
+                        height={160}
                         unoptimized
                         alt=""
                       />
@@ -487,8 +440,8 @@ export function CharacterArsenalShell({
                     <span className={styles.attunementArt} data-gameplay-art="attunement">
                       <Image
                         src={battleResonanceArtwork(resonance.id)}
-                        width={64}
-                        height={64}
+                        width={160}
+                        height={160}
                         unoptimized
                         alt=""
                       />
@@ -546,7 +499,7 @@ export function CharacterArsenalShell({
                   />
                 </span>
                 <div>
-                  <strong>Severed</strong>
+                  <strong>Severance</strong>
                   <b>▣ Coming Soon</b>
                 </div>
               </article>

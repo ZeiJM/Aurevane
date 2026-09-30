@@ -1,6 +1,12 @@
 import { expect, test, type Page } from '@playwright/test'
 
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
+import {
+  moveOneStep,
+  targetForecast,
+  expectRefinedCockpit,
+  commitGesture,
+} from './refined-battle-helpers'
 import { expectBattlePreviewFits } from './battle-reference-layout-helpers'
 
 const SHARED_HEADER =
@@ -126,7 +132,7 @@ async function selectMoveAndVerifySharedTreatment(root: ReturnType<Page['locator
     .getByRole('region', { name: 'Command Deck' })
     .getByRole('button', { name: /^Move,/ })
   await move.click()
-  await expect(root).toHaveAttribute('data-battle-action-mode', 'move')
+  await expect(move).toHaveAttribute('data-battle-active', 'true')
 
   const reachable = battlefield.locator('button[data-reachable]')
   await expect.poll(() => reachable.count()).toBeGreaterThan(0)
@@ -138,79 +144,21 @@ async function selectMoveAndVerifySharedTreatment(root: ReturnType<Page['locator
 
 async function plotOneDesktopWasdStep(
   page: Page,
-  root: ReturnType<Page['locator']>,
+  _root: ReturnType<Page['locator']>,
   playerName: string,
 ) {
-  const battlefield = root.locator('#battlefield')
-  const key = await battlefield.evaluate((element, name) => {
-    const tiles = Array.from(
-      element.querySelectorAll<HTMLButtonElement>('button[aria-label^="Tile "]'),
-    )
-    const actor = tiles.find((tile) =>
-      (tile.getAttribute('aria-label') ?? '').includes(`occupied by ${name}`),
-    )
-    const actorMatch = actor?.getAttribute('aria-label')?.match(/^Tile\s+(\d+),\s*(\d+)/i)
-    if (!actorMatch) return null
-    const x = Number(actorMatch[1])
-    const y = Number(actorMatch[2])
-    const candidates = [
-      { x, y: y - 1, key: 'w' },
-      { x: x + 1, y, key: 'd' },
-      { x, y: y + 1, key: 's' },
-      { x: x - 1, y, key: 'a' },
-    ]
-    for (const candidate of candidates) {
-      const prefix = `Tile ${candidate.x}, ${candidate.y};`
-      const tile = tiles.find((item) => (item.getAttribute('aria-label') ?? '').startsWith(prefix))
-      if (tile?.hasAttribute('data-reachable')) return candidate.key
-    }
-    return null
-  }, playerName)
-
-  expect(key).not.toBeNull()
-  await page.keyboard.press(key!)
-  await expect.poll(() => battlefield.locator('button[data-path]').count()).toBeGreaterThan(1)
-  await expect(battlefield.getByText('0', { exact: true })).toHaveCount(1)
-  await expect(battlefield.getByText('1', { exact: true })).toHaveCount(1)
+  await moveOneStep(page, playerName)
 }
 
 async function expectDesktopCombatantCard(root: ReturnType<Page['locator']>) {
-  const card = root.locator('[data-unified-combatant-rail="true"] article').first()
+  const card = root.locator('[data-battle-combatant-card="local"]')
   await expect(card).toBeVisible()
-  const geometry = await card.evaluate((element) => {
-    const heading = element.firstElementChild as HTMLElement
-    const portrait = element.querySelector<HTMLButtonElement>(
-      'button[data-desktop-inspect-combatant]',
-    )!
-    const cardRect = element.getBoundingClientRect()
-    const headingRect = heading.getBoundingClientRect()
-    const portraitRect = portrait.getBoundingClientRect()
-    const effectsRect = element.lastElementChild!.getBoundingClientRect()
-    return {
-      cardLeft: cardRect.left,
-      cardRight: cardRect.right,
-      cardBottom: cardRect.bottom,
-      headingBottom: headingRect.bottom,
-      portraitLeft: portraitRect.left,
-      portraitRight: portraitRect.right,
-      portraitTop: portraitRect.top,
-      portraitBottom: portraitRect.bottom,
-      portraitWidth: portraitRect.width,
-      portraitHeight: portraitRect.height,
-      effectsBottom: effectsRect.bottom,
-    }
-  })
-  expect(geometry.portraitLeft).toBeGreaterThanOrEqual(geometry.cardLeft)
-  expect(geometry.portraitRight).toBeLessThanOrEqual(geometry.cardRight)
-  expect(
-    Math.abs(geometry.portraitWidth - geometry.portraitHeight),
-    'A one-on-one desktop rail portrait must remain square.',
-  ).toBeLessThanOrEqual(1)
-  await expect(card.locator('button[data-desktop-inspect-combatant]')).toContainText(/HP.*MP/s)
-  expect(Math.abs(geometry.effectsBottom - geometry.cardBottom)).toBeLessThanOrEqual(2)
   await expect(card).toContainText(/HP.*MP/s)
+  const geometry = await card
+    .locator('[data-av-square-media]')
+    .evaluate((element) => element.getBoundingClientRect().toJSON())
+  expect(Math.abs(geometry.width - geometry.height)).toBeLessThanOrEqual(1)
   await expect(card.getByRole('region', { name: /active combat effects/ })).toBeVisible()
-  expect(geometry.portraitTop).toBeGreaterThanOrEqual(geometry.headingBottom)
 }
 
 test('keeps requested PvE presentation parity on desktop and mobile', async ({
@@ -242,8 +190,8 @@ test('keeps requested PvE presentation parity on desktop and mobile', async ({
   const context = root.getByRole('region', { name: 'Command Deck' })
   await expect(root.locator('[data-ai-turn-clock="true"]')).toHaveText(/^\d+s$/)
   await context.getByRole('button', { name: /^Guard,/ }).click()
-  const preview = context.locator('[data-react-battle-preview="true"]:visible')
-  await expect(context.locator('[aria-label="Action preview"]')).toHaveCount(1)
+  const preview = targetForecast(page).locator('[data-react-battle-preview="true"]:visible')
+  await expect(targetForecast(page).locator('[aria-label="Action preview"]')).toHaveCount(1)
   await expect(preview).toContainText('Success 100%')
   expect(
     await preview
@@ -266,138 +214,40 @@ test('keeps requested PvE presentation parity on desktop and mobile', async ({
     await expect(root.locator('[data-battle-notice="true"] > span')).toBeHidden()
     await expectMobileTokenMeters(root)
 
-    const surrender = root.getByRole('button', { name: 'Surrender', exact: true })
-    await expect(surrender).toBeVisible()
-    const widths = await surrender.evaluate((button) => {
-      const parent = button.parentElement!
-      return {
-        button: button.getBoundingClientRect().width,
-        parent: parent.getBoundingClientRect().width,
-      }
-    })
-    expect(Math.abs(widths.button - widths.parent)).toBeLessThanOrEqual(2)
+    await expectRefinedCockpit(page)
   } else {
     await expectDesktopCombatantCard(root)
     await plotOneDesktopWasdStep(page, root, identity.characterName)
     await root.getByRole('button', { name: 'Cancel Action' }).click()
     await context.getByRole('button', { name: /^Guard,/ }).click()
-    await root.getByRole('button', { name: 'Confirm Action', exact: true }).click()
-    const flow = root.getByRole('region', { name: 'Battle flow', exact: true })
-    await expect(flow.getByTestId('battle-log-feed')).toContainText('Guard')
-    const flowBounds = await flow.evaluate((element) => {
-      const feed = element.querySelector<HTMLElement>('[data-testid="battle-log-feed"]')!
-      return {
-        bottom: element.getBoundingClientRect().bottom,
-        feedBottom: feed.getBoundingClientRect().bottom,
-        height: feed.clientHeight,
-        scrollHeight: feed.scrollHeight,
-      }
-    })
-    expect(flowBounds.feedBottom).toBeLessThanOrEqual(flowBounds.bottom + 1)
-    expect(flowBounds.scrollHeight).toBeLessThanOrEqual(flowBounds.height + 1)
-    await testInfo.attach('combat-populated-command-dock', {
-      body: await page.screenshot({
-        path: testInfo.outputPath('combat-populated-command-dock.png'),
-      }),
-      contentType: 'image/png',
-    })
-    await flow.getByRole('button', { name: 'Text log', exact: true }).click()
-    const transcript = flow.getByRole('list', { name: 'Battle action transcript' })
-    await expect(transcript).toContainText(/Round 1/)
-    await expect(transcript).toContainText(/#\d+:/)
-    await expect(transcript).toContainText(/braces with Guard/)
-    await expect(transcript).toContainText(/gains Guarded/)
-    await expect(transcript.getByRole('button', { name: 'Explain Guarded' })).toBeVisible()
-    const textBounds = await transcript.evaluate((element) => ({
-      height: element.clientHeight,
-      scrollHeight: element.scrollHeight,
-      width: element.clientWidth,
-      scrollWidth: element.scrollWidth,
-      firstLineLeft: element.querySelector('article p')!.getBoundingClientRect().left,
-      resultLineLeft: element.querySelector('article p + p')!.getBoundingClientRect().left,
-    }))
-    expect(textBounds.scrollHeight).toBeLessThanOrEqual(textBounds.height + 1)
-    expect(textBounds.scrollWidth).toBeLessThanOrEqual(textBounds.width + 1)
-    expect(textBounds.resultLineLeft).toBeGreaterThan(textBounds.firstLineLeft)
-    await testInfo.attach('combat-rich-text-log', {
-      body: await page.screenshot({ path: testInfo.outputPath('combat-rich-text-log.png') }),
-      contentType: 'image/png',
-    })
-    const actionDetails = transcript.getByRole('button', { name: /^Action details:/ }).first()
-    if (await actionDetails.count()) {
-      await actionDetails.click()
-    } else {
-      await transcript
-        .getByRole('button', { name: /^View full action and results:/ })
-        .first()
-        .click()
-    }
-    await expect(page.getByRole('dialog', { name: 'Guard', exact: true })).toBeVisible()
-    await page.getByRole('button', { name: 'Close action details', exact: true }).click()
-
-    // A narrow dock makes this real committed result wrap like a multi-result action.
-    // Constrain the presentation only; full details must still come from the saved Guard event.
-    await flow.evaluate((element) => {
-      ;(element as HTMLElement).style.width = '15rem'
-      const list = element.querySelector<HTMLElement>('[aria-label="Battle action transcript"]')!
-      const measured = element.querySelector<HTMLElement>('[aria-hidden="true"][inert] ol li')!
-      const heading = list.querySelector<HTMLElement>(':scope > li > div')!
-      list.style.height = `${Math.min(list.clientHeight, measured.getBoundingClientRect().height + heading.getBoundingClientRect().height - 1)}px`
-    })
-    await expect(transcript).toHaveAttribute('data-oversized', 'true')
-    const fullResults = transcript.getByRole('button', {
-      name: /^(?:View full action and results|Action details):/,
-    })
-    await expect(fullResults).toBeVisible()
-    await expect(
-      transcript.locator('[inert]').getByRole('button', { name: /^Action details:/ }),
-    ).toHaveCount(0)
-    const overflowBounds = await transcript.evaluate((element) => {
-      const item = element.firstElementChild!
-      const heading = item.firstElementChild!
-      const body = item.children[1] as HTMLElement
-      const button = item.lastElementChild!
-      return {
-        top: element.getBoundingClientRect().top,
-        bottom: element.getBoundingClientRect().bottom,
-        height: element.clientHeight,
-        scrollHeight: element.scrollHeight,
-        headingTop: heading.getBoundingClientRect().top,
-        headingBottom: heading.getBoundingClientRect().bottom,
-        bodyTop: body.getBoundingClientRect().top,
-        bodyBottom: body.getBoundingClientRect().bottom,
-        lineHeight: parseFloat(getComputedStyle(body.querySelector('p')!).lineHeight),
-        buttonTop: button.getBoundingClientRect().top,
-        buttonBottom: button.getBoundingClientRect().bottom,
-        inert: body.inert,
-      }
-    })
-    expect(overflowBounds.headingTop).toBeGreaterThanOrEqual(overflowBounds.top)
-    expect(overflowBounds.headingBottom).toBeLessThanOrEqual(overflowBounds.bodyTop + 1)
-    expect(overflowBounds.bodyBottom - overflowBounds.bodyTop).toBeGreaterThanOrEqual(
-      overflowBounds.lineHeight,
+    await commitGesture(
+      page,
+      root.getByRole('button', { name: new RegExp(`occupied by ${identity.characterName}`) }),
     )
-    expect(overflowBounds.bodyBottom).toBeLessThanOrEqual(overflowBounds.buttonTop + 1)
-    expect(overflowBounds.buttonBottom).toBeLessThanOrEqual(overflowBounds.bottom + 1)
-    expect(overflowBounds.scrollHeight).toBeLessThanOrEqual(overflowBounds.height + 1)
-    expect(overflowBounds.inert).toBe(true)
-    await fullResults.click()
-    const completeResult = page.getByRole('dialog', { name: 'Guard', exact: true })
-    await expect(completeResult).toBeVisible()
-    await expect(
-      completeResult.getByRole('region', { name: 'Recorded action result' }),
-    ).toContainText('Guarded')
+    const inline = root.locator('[data-battle-inline-log]')
+    await expect(inline).toContainText('Guard')
+    await page.getByRole('button', { name: 'Expand battle history' }).click()
+    const history = page.getByRole('dialog', { name: 'Battle Log', exact: true })
+    await expect(history).toContainText('Guard')
+    await expect(history).toContainText('Guarded')
+    await expect(history.getByRole('button', { name: 'Text log', exact: true })).toBeVisible()
+    await history.getByRole('button', { name: 'Text log', exact: true }).click()
+    const transcript = history.getByRole('list', { name: 'Battle action transcript' })
+    await expect(transcript).toContainText('Guarded')
+    const details = transcript
+      .getByRole('button', { name: /^(?:View full action and results|Action details):/ })
+      .first()
+    await details.click()
+    const result = page.getByRole('dialog', { name: 'Guard', exact: true })
+    await expect(result.getByRole('region', { name: 'Recorded action result' })).toContainText(
+      'Guarded',
+    )
     await page.getByRole('button', { name: 'Close action details', exact: true }).click()
-    await flow.evaluate((element) => {
-      ;(element as HTMLElement).style.removeProperty('width')
-      element
-        .querySelector<HTMLElement>('[aria-label="Battle action transcript"]')!
-        .style.removeProperty('height')
+    await page.keyboard.press('Escape')
+    await testInfo.attach('combat-populated-history', {
+      body: await page.screenshot(),
+      contentType: 'image/png',
     })
-    await expect(transcript).not.toHaveAttribute('data-oversized', 'true')
-    await expect(transcript.getByRole('button', { name: 'Explain Guarded' })).toBeVisible()
-    await flow.getByRole('button', { name: 'Timeline', exact: true }).click()
-    await expect(flow.getByRole('list', { name: 'Battle action timeline' })).toBeVisible()
   }
 })
 

@@ -16,6 +16,7 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransiti
 import { createPortal } from 'react-dom'
 
 import { FoundationDisciplineSigil } from './foundation-discipline-sigil'
+import { DisciplineMasteryPanel } from './discipline-mastery-panel'
 import styles from './character-discipline-build-panel.module.css'
 
 interface DisciplineDefinitionView {
@@ -149,7 +150,7 @@ interface DisciplineLibraryProps {
   onSelect: (primaryId: string, secondaryId: string) => void
 }
 
-/** Retained as a compatibility export for interaction contracts; Nexus no longer renders the library. */
+/** Available choices submit the same authoritative preview as the selection controls. */
 export function DisciplineLibrary({
   options,
   selectedPrimaryId,
@@ -212,6 +213,7 @@ export function CharacterDisciplineBuildPanel({
   const [selectedPrimaryId, setSelectedPrimaryId] = useState(initialCurrent.definition.id)
   const [selectedSecondaryId, setSelectedSecondaryId] = useState(initialCurrentSecondary?.id ?? '')
   const [activeSlot, setActiveSlot] = useState<DisciplineSlot>('primary')
+  const [managementView, setManagementView] = useState<'disciplines' | 'atlas'>('disciplines')
   const [preview, setPreview] = useState<BuildPreviewResponse['preview'] | null>(null)
   const [remaining, setRemaining] = useState({
     primary: initialAttunement.primaryRemainingSeconds,
@@ -538,240 +540,285 @@ export function CharacterDisciplineBuildPanel({
                   </button>
                 </header>
 
-                <section className={styles.committedSection} aria-label="Currently committed">
-                  <div className={styles.sectionTitle}>
-                    <h3>Currently Committed</h3>
-                  </div>
-                  <div className={styles.current}>
-                    <article className={styles.currentDiscipline} data-av-surface="ink">
-                      <FoundationDisciplineSigil
-                        disciplineId={current.definition.id}
-                        className={styles.currentSigil}
-                      />
-                      <div>
-                        <span>Primary Discipline</span>
-                        <strong>{current.definition.name}</strong>
-                        <p>{committedDisciplineSummary(current.definition.summary)}</p>
-                      </div>
-                    </article>
-                    {currentSecondary ? (
-                      <article className={styles.currentDiscipline} data-av-surface="ink">
-                        <FoundationDisciplineSigil
-                          disciplineId={currentSecondary.id}
-                          className={styles.currentSigil}
-                        />
-                        <div>
-                          <span>Secondary Discipline</span>
-                          <strong>{currentSecondary.name}</strong>
-                          <p>{committedDisciplineSummary(currentSecondary.summary)}</p>
-                        </div>
-                      </article>
-                    ) : (
-                      <article
-                        className={styles.currentDiscipline}
-                        data-av-surface="ink"
-                        data-locked="true"
-                      >
-                        <span className={styles.currentLock} aria-hidden="true">
-                          ▣
-                        </span>
-                        <div>
-                          <span>Secondary Discipline</span>
-                          <strong>Locked</strong>
-                          <p>A second discipline awaits.</p>
-                        </div>
-                      </article>
-                    )}
-                  </div>
-                </section>
-
-                <section className={styles.selectionSection} aria-label="Discipline selection">
-                  <div className={styles.selectionControls}>
-                    <label
-                      className={styles.slotSelector}
-                      data-active={activeSlot === 'primary' ? 'true' : 'false'}
-                      onFocus={() => setActiveSlot('primary')}
-                    >
-                      <span>Primary Discipline</span>
-                      <select
-                        value={selectedPrimaryId}
-                        onChange={(event) => {
-                          setActiveSlot('primary')
-                          void previewSelection(event.target.value, selectedSecondaryId)
-                        }}
-                        disabled={
-                          pendingPreview ||
-                          pendingCommit ||
-                          refreshingProfile ||
-                          remaining.primary > 0
-                        }
-                      >
-                        {visiblePrimaryOptions.map((entry) => (
-                          <option
-                            key={`${entry.definition.id}:${entry.definition.definitionVersion}`}
-                            value={entry.definition.id}
-                          >
-                            {entry.definition.name}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-
-                    <label
-                      className={styles.slotSelector}
-                      data-active={activeSlot === 'secondary' ? 'true' : 'false'}
-                      onFocus={() => setActiveSlot('secondary')}
-                    >
-                      <span>Secondary Discipline</span>
-                      <select
-                        value={selectedSecondaryId}
-                        onChange={(event) => {
-                          setActiveSlot('secondary')
-                          void previewSelection(selectedPrimaryId, event.target.value)
-                        }}
-                        disabled={
-                          pendingPreview ||
-                          pendingCommit ||
-                          refreshingProfile ||
-                          remaining.secondary > 0 ||
-                          !secondarySelectable
-                        }
-                      >
-                        <option value="">None</option>
-                        {visibleSecondaryOptions.map((entry) => (
-                          <option
-                            key={`${entry.definition.id}:${entry.definition.definitionVersion}`}
-                            value={entry.definition.id}
-                          >
-                            {entry.definition.name}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  </div>
-                </section>
-
-                <section
-                  className={styles.comparisonGrid}
-                  data-testid="primary-build-preview"
-                  aria-label="Discipline stat preview"
-                >
-                  <article className={styles.previewCard}>
-                    <header>
-                      <span>{`Current ${activeSlot === 'primary' ? 'Primary' : 'Secondary'}`}</span>
-                      <b>● Committed</b>
-                    </header>
-                    <div className={styles.previewIdentity}>
-                      <div>
-                        <strong>{currentSlotDefinition?.name ?? 'Locked'}</strong>
-                        {currentSlotDefinition ? (
-                          <FocusBadges disciplineId={currentSlotDefinition.id} />
-                        ) : (
-                          <small>No Secondary Discipline committed.</small>
-                        )}
-                      </div>
-                    </div>
-                    <div className={styles.statRows}>
-                      {coreDeltas.map((entry) => (
-                        <div className={styles.statValue} key={entry.id}>
-                          <span>{entry.label}</span>
-                          <strong>{entry.current}</strong>
-                        </div>
-                      ))}
-                    </div>
-                  </article>
-
-                  <article className={styles.previewCard}>
-                    <header>
-                      <span>{`Preview ${activeSlot === 'primary' ? 'Primary' : 'Secondary'}`}</span>
-                      <b data-preview="true">● Preview</b>
-                    </header>
-                    <div className={styles.previewIdentity}>
-                      <div>
-                        <strong>{proposedSlotDefinition?.name ?? 'None'}</strong>
-                        {proposedSlotDefinition ? (
-                          <FocusBadges disciplineId={proposedSlotDefinition.id} />
-                        ) : (
-                          <small>No Secondary Discipline selected.</small>
-                        )}
-                      </div>
-                    </div>
-                    <div className={styles.statRows}>
-                      {coreDeltas.map((entry) => (
-                        <div
-                          className={styles.statValue}
-                          data-direction={entry.direction}
-                          key={entry.id}
-                        >
-                          <span>{entry.label}</span>
-                          <strong>
-                            {entry.proposed}
-                            {entry.direction === 'increase'
-                              ? ' ▲'
-                              : entry.direction === 'decrease'
-                                ? ' ▼'
-                                : ''}
-                          </strong>
-                        </div>
-                      ))}
-                    </div>
-                  </article>
-
-                  <aside className={styles.impactPanel}>
-                    <header>
-                      <span>Change Impact</span>
-                    </header>
-                    <div className={styles.impactRows}>
-                      {changedCore.map((entry) => {
-                        const delta = entry.proposed - entry.current
-                        return (
-                          <div data-direction={entry.direction} key={entry.id}>
-                            <strong>
-                              {delta > 0 ? '+' : ''}
-                              {delta} {entry.label}
-                            </strong>
-                            <span>
-                              {entry.current} → {entry.proposed}
-                            </span>
-                          </div>
-                        )
-                      })}
-                      {changedAdventure.map((entry) => (
-                        <div data-direction={entry.direction} key={entry.id}>
-                          <strong>{entry.label}</strong>
-                          <span>
-                            {formatDerivedValue(entry.current, entry.unit)} →{' '}
-                            {formatDerivedValue(entry.proposed, entry.unit)}
-                          </span>
-                        </div>
-                      ))}
-                      {changedCore.length === 0 && changedAdventure.length === 0 ? (
-                        <p>No stat changes in the current preview.</p>
-                      ) : null}
-                    </div>
-                  </aside>
-                </section>
-
-                <footer className={styles.dialogActions}>
+                <nav className={styles.managementTabs} aria-label="Discipline management views">
                   <button
                     type="button"
-                    className={styles.confirmAction}
-                    onClick={() => void commit()}
-                    disabled={commitBlocked}
+                    aria-pressed={managementView === 'disciplines'}
+                    onClick={() => setManagementView('disciplines')}
                   >
-                    <span aria-hidden="true">⚔</span>
-                    {pendingCommit ? 'Committing…' : 'Confirm Change'}
+                    Disciplines
                   </button>
-                </footer>
+                  <button
+                    type="button"
+                    aria-pressed={managementView === 'atlas'}
+                    onClick={() => setManagementView('atlas')}
+                  >
+                    Atlas &amp; Mastery
+                  </button>
+                </nav>
+                <div className={styles.managementBody}>
+                  {managementView === 'atlas' ? (
+                    <DisciplineMasteryPanel initiallyOpen />
+                  ) : (
+                    <>
+                      <DisciplineLibrary
+                        options={visiblePrimaryOptions}
+                        selectedPrimaryId={selectedPrimaryId}
+                        selectedSecondaryId={selectedSecondaryId}
+                        pendingPreview={pendingPreview}
+                        pendingCommit={pendingCommit}
+                        refreshingProfile={refreshingProfile}
+                        primaryRemainingSeconds={remaining.primary}
+                        onSelect={(primaryId, secondaryId) => {
+                          setActiveSlot('primary')
+                          void previewSelection(primaryId, secondaryId)
+                        }}
+                      />
+                      <div className={styles.disciplineDetail}>
+                        <section
+                          className={styles.committedSection}
+                          aria-label="Currently committed"
+                        >
+                          <div className={styles.sectionTitle}>
+                            <h3>Currently Committed</h3>
+                          </div>
+                          <div className={styles.current}>
+                            <article className={styles.currentDiscipline} data-av-surface="ink">
+                              <FoundationDisciplineSigil
+                                disciplineId={current.definition.id}
+                                className={styles.currentSigil}
+                              />
+                              <div>
+                                <span>Primary Discipline</span>
+                                <strong>{current.definition.name}</strong>
+                                <p>{committedDisciplineSummary(current.definition.summary)}</p>
+                              </div>
+                            </article>
+                            {currentSecondary ? (
+                              <article className={styles.currentDiscipline} data-av-surface="ink">
+                                <FoundationDisciplineSigil
+                                  disciplineId={currentSecondary.id}
+                                  className={styles.currentSigil}
+                                />
+                                <div>
+                                  <span>Secondary Discipline</span>
+                                  <strong>{currentSecondary.name}</strong>
+                                  <p>{committedDisciplineSummary(currentSecondary.summary)}</p>
+                                </div>
+                              </article>
+                            ) : (
+                              <article
+                                className={styles.currentDiscipline}
+                                data-av-surface="ink"
+                                data-locked="true"
+                              >
+                                <span className={styles.currentLock} aria-hidden="true">
+                                  ▣
+                                </span>
+                                <div>
+                                  <span>Secondary Discipline</span>
+                                  <strong>Locked</strong>
+                                  <p>A second discipline awaits.</p>
+                                </div>
+                              </article>
+                            )}
+                          </div>
+                        </section>
 
-                {pendingPreview ? (
-                  <p className={styles.status}>Calculating authoritative preview…</p>
-                ) : null}
-                {message ? (
-                  <p className={styles.status} role="status">
-                    {message}
-                  </p>
-                ) : null}
+                        <section
+                          className={styles.selectionSection}
+                          aria-label="Discipline selection"
+                        >
+                          <div className={styles.selectionControls}>
+                            <label
+                              className={styles.slotSelector}
+                              data-active={activeSlot === 'primary' ? 'true' : 'false'}
+                              onFocus={() => setActiveSlot('primary')}
+                            >
+                              <span>Primary Discipline</span>
+                              <select
+                                value={selectedPrimaryId}
+                                onChange={(event) => {
+                                  setActiveSlot('primary')
+                                  void previewSelection(event.target.value, selectedSecondaryId)
+                                }}
+                                disabled={
+                                  pendingPreview ||
+                                  pendingCommit ||
+                                  refreshingProfile ||
+                                  remaining.primary > 0
+                                }
+                              >
+                                {visiblePrimaryOptions.map((entry) => (
+                                  <option
+                                    key={`${entry.definition.id}:${entry.definition.definitionVersion}`}
+                                    value={entry.definition.id}
+                                  >
+                                    {entry.definition.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+
+                            <label
+                              className={styles.slotSelector}
+                              data-active={activeSlot === 'secondary' ? 'true' : 'false'}
+                              onFocus={() => setActiveSlot('secondary')}
+                            >
+                              <span>Secondary Discipline</span>
+                              <select
+                                value={selectedSecondaryId}
+                                onChange={(event) => {
+                                  setActiveSlot('secondary')
+                                  void previewSelection(selectedPrimaryId, event.target.value)
+                                }}
+                                disabled={
+                                  pendingPreview ||
+                                  pendingCommit ||
+                                  refreshingProfile ||
+                                  remaining.secondary > 0 ||
+                                  !secondarySelectable
+                                }
+                              >
+                                <option value="">None</option>
+                                {visibleSecondaryOptions.map((entry) => (
+                                  <option
+                                    key={`${entry.definition.id}:${entry.definition.definitionVersion}`}
+                                    value={entry.definition.id}
+                                  >
+                                    {entry.definition.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                          </div>
+                        </section>
+
+                        <section
+                          className={styles.comparisonGrid}
+                          data-testid="primary-build-preview"
+                          aria-label="Discipline stat preview"
+                        >
+                          <article className={styles.previewCard}>
+                            <header>
+                              <span>{`Current ${activeSlot === 'primary' ? 'Primary' : 'Secondary'}`}</span>
+                              <b>● Committed</b>
+                            </header>
+                            <div className={styles.previewIdentity}>
+                              <div>
+                                <strong>{currentSlotDefinition?.name ?? 'Locked'}</strong>
+                                {currentSlotDefinition ? (
+                                  <FocusBadges disciplineId={currentSlotDefinition.id} />
+                                ) : (
+                                  <small>No Secondary Discipline committed.</small>
+                                )}
+                              </div>
+                            </div>
+                            <div className={styles.statRows}>
+                              {coreDeltas.map((entry) => (
+                                <div className={styles.statValue} key={entry.id}>
+                                  <span>{entry.label}</span>
+                                  <strong>{entry.current}</strong>
+                                </div>
+                              ))}
+                            </div>
+                          </article>
+
+                          <article className={styles.previewCard}>
+                            <header>
+                              <span>{`Preview ${activeSlot === 'primary' ? 'Primary' : 'Secondary'}`}</span>
+                              <b data-preview="true">● Preview</b>
+                            </header>
+                            <div className={styles.previewIdentity}>
+                              <div>
+                                <strong>{proposedSlotDefinition?.name ?? 'None'}</strong>
+                                {proposedSlotDefinition ? (
+                                  <FocusBadges disciplineId={proposedSlotDefinition.id} />
+                                ) : (
+                                  <small>No Secondary Discipline selected.</small>
+                                )}
+                              </div>
+                            </div>
+                            <div className={styles.statRows}>
+                              {coreDeltas.map((entry) => (
+                                <div
+                                  className={styles.statValue}
+                                  data-direction={entry.direction}
+                                  key={entry.id}
+                                >
+                                  <span>{entry.label}</span>
+                                  <strong>
+                                    {entry.proposed}
+                                    {entry.direction === 'increase'
+                                      ? ' ▲'
+                                      : entry.direction === 'decrease'
+                                        ? ' ▼'
+                                        : ''}
+                                  </strong>
+                                </div>
+                              ))}
+                            </div>
+                          </article>
+
+                          <aside className={styles.impactPanel}>
+                            <header>
+                              <span>Change Impact</span>
+                            </header>
+                            <div className={styles.impactRows}>
+                              {changedCore.map((entry) => {
+                                const delta = entry.proposed - entry.current
+                                return (
+                                  <div data-direction={entry.direction} key={entry.id}>
+                                    <strong>
+                                      {delta > 0 ? '+' : ''}
+                                      {delta} {entry.label}
+                                    </strong>
+                                    <span>
+                                      {entry.current} → {entry.proposed}
+                                    </span>
+                                  </div>
+                                )
+                              })}
+                              {changedAdventure.map((entry) => (
+                                <div data-direction={entry.direction} key={entry.id}>
+                                  <strong>{entry.label}</strong>
+                                  <span>
+                                    {formatDerivedValue(entry.current, entry.unit)} →{' '}
+                                    {formatDerivedValue(entry.proposed, entry.unit)}
+                                  </span>
+                                </div>
+                              ))}
+                              {changedCore.length === 0 && changedAdventure.length === 0 ? (
+                                <p>No stat changes in the current preview.</p>
+                              ) : null}
+                            </div>
+                          </aside>
+                        </section>
+
+                        <footer className={styles.dialogActions}>
+                          <button
+                            type="button"
+                            className={styles.confirmAction}
+                            onClick={() => void commit()}
+                            disabled={commitBlocked}
+                          >
+                            <span aria-hidden="true">⚔</span>
+                            {pendingCommit ? 'Committing…' : 'Confirm Change'}
+                          </button>
+                        </footer>
+
+                        {pendingPreview ? (
+                          <p className={styles.status}>Calculating authoritative preview…</p>
+                        ) : null}
+                        {message ? (
+                          <p className={styles.status} role="status">
+                            {message}
+                          </p>
+                        ) : null}
+                      </div>
+                    </>
+                  )}
+                </div>
               </section>
             </div>,
             document.body,

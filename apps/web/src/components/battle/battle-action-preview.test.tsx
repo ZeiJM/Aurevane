@@ -205,6 +205,35 @@ describe('current selection forecast', () => {
     expect(markup).not.toContain('17 dmg')
   })
 
+  it('shows every affected target with its own projected outcome for an area cast', () => {
+    const markup = renderToStaticMarkup(
+      <BattleActionPreview
+        pending={false}
+        preview={{
+          ...attack,
+          affectedCombatantIds: ['enemy', 'second', 'you'],
+          projectedEffects: [
+            { effectType: 'damage', combatantId: 'enemy', before: 100, after: 83 },
+            { effectType: 'damage', combatantId: 'second', before: 80, after: 71 },
+            { effectType: 'healing', combatantId: 'you', before: 20, after: 25 },
+          ],
+        }}
+      />,
+    )
+    for (const label of [
+      'data-battle-target-forecast="enemy"',
+      'data-battle-target-forecast="second"',
+      'data-battle-target-forecast="you"',
+      'Damage 17',
+      'Damage 9',
+      'Heal +5',
+    ])
+      expect(markup).toContain(label)
+    expect(
+      markup.split('data-battle-target-forecast="second"')[1]?.split('</article>')[0],
+    ).not.toContain('Hit 69%')
+  })
+
   it('does not advertise damage or success for a blocked action', () => {
     const markup = renderToStaticMarkup(
       <BattleActionPreview

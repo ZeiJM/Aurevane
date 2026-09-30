@@ -60,6 +60,7 @@ export function AuthenticatedShellPresentation({
         data-testid="authenticated-shell"
         data-av-shell="concept"
         data-av-layout={layout}
+        data-av-session-restricted={Boolean(activeSessionHref) || undefined}
       >
         <PvpBattleKeyInputAssist />
         <a className="skip-link" href="#game-main">

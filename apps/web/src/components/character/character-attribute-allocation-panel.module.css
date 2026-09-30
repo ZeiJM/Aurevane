@@ -22,7 +22,7 @@
 .close {
   min-height: 2.75rem;
   padding: 0.55rem 0.9rem;
-  font: 750 0.75rem/1 var(--av-font-mono);
+  font: 750 0.8125rem/1 var(--av-font-mono);
   letter-spacing: 0.035em;
   text-transform: uppercase;
 }
@@ -131,7 +131,7 @@
   color: #c49f4d;
   background: var(--av-moonstone);
   transform: translateX(-50%);
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   content: '✦';
 }
 
@@ -144,7 +144,7 @@
 .modalMeta span,
 .forcedCounter span {
   color: var(--av-text-dim);
-  font: 700 0.75rem/1.25 var(--av-font-mono);
+  font: 700 0.8125rem/1.25 var(--av-font-mono);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -228,7 +228,7 @@
 
 .attribute small {
   color: var(--av-text-dim);
-  font: 650 0.75rem/1.2 var(--av-font-mono);
+  font: 650 0.8125rem/1.2 var(--av-font-mono);
 }
 
 .controls {
@@ -292,7 +292,7 @@
 .message {
   margin: 0.75rem 0 0;
   color: var(--av-text);
-  font-size: 0.72rem;
+  font-size: 0.8125rem;
   text-align: center;
 }
 
@@ -570,7 +570,7 @@
 
 .portraitIdentity small {
   color: #c8a154;
-  font: 700 0.68rem/1.62 var(--av-font-mono);
+  font: 700 0.8125rem/1.62 var(--av-font-mono);
   letter-spacing: 0.25em;
   text-transform: uppercase;
 }

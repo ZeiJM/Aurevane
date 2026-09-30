@@ -937,3 +937,41 @@
 :global(.av-master) .builder button:disabled {
   opacity: 0.5;
 }
+
+/* Approved stone collection and authoring composition. */
+.builder {
+  grid-template-columns: minmax(12rem, 20%) minmax(0, 1fr) minmax(13rem, 23%);
+  gap: 0.7rem;
+}
+.eventNavigator,
+.builderWorkspace,
+.controlCard,
+.card,
+.phaseCard,
+.status {
+  background: var(--master-stone);
+  border-radius: 2px;
+}
+.eventHeader {
+  background: #d8cdb7;
+}
+.eventNavigator,
+.controlCard {
+  top: 0;
+}
+.builderWorkspace {
+  padding: 0.75rem;
+}
+.card,
+.phaseCard {
+  box-shadow: none;
+}
+@media (max-width: 1000px) {
+  .builder {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .eventNavigator,
+  .controlCard {
+    position: static;
+  }
+}
