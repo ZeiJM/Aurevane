@@ -378,15 +378,16 @@ test('PvP ground Skill uses the same forecast and spectator terrain inspection',
       name: new RegExp(`^Tile ${result.position.x + 1}, ${result.position.y + 1};`),
     })
     await expect(tile).toHaveAttribute('data-terrain-overlay', 'frozen')
-    const spectatorInspect = spectatorRoot.locator('[aria-label="Spectator inspect controls"]')
+    const spectatorInspect = spectatorRoot.locator('[data-battle-command-dock="true"]')
     const inspectButton = spectatorInspect.getByRole('button', { name: /Inspect/ })
     await inspectButton.click()
     await expect(inspectButton).toHaveAttribute('aria-pressed', 'true')
     await tile.focus()
     await spectator.keyboard.press('Enter')
     await expect(tile).toHaveAttribute('aria-pressed', 'true')
-    await expect(spectatorInspect).toContainText('Frozen terrain; 2 round boundaries remaining')
-    await expect(spectatorInspect).toContainText('either team')
+    const terrainDetails = spectatorRoot.locator('[data-battle-preview-strip="true"]')
+    await expect(terrainDetails).toContainText('Frozen terrain; 2 round boundaries remaining')
+    await expect(terrainDetails).toContainText('either team')
     await testInfo.attach(`ground-spectator-${testInfo.project.name}`, {
       body: await spectator.screenshot(),
       contentType: 'image/png',

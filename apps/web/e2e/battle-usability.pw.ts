@@ -157,7 +157,15 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
   )
   await page.keyboard.press('Escape')
   await expect(combatantDetails).toHaveCount(0)
-  await expect(commandContext).toContainText('40 AP')
+  await expect(commandContext).toContainText('Choose your action')
+  await expect(page.locator('main[data-unified-battle="true"]')).toHaveAttribute(
+    'data-battle-action-mode',
+    'none',
+  )
+  await expect(page.getByRole('progressbar', { name: 'Action Economy remaining' })).toHaveAttribute(
+    'aria-valuenow',
+    '80',
+  )
 
   const battleUrl = page.url()
   await page.getByRole('button', { name: 'Surrender', exact: true }).click()

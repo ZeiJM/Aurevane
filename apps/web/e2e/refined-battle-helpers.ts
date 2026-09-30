@@ -4,6 +4,16 @@ export function targetForecast(page: Page) {
   return page.locator('[data-battle-preview-strip="true"]')
 }
 
+export async function openSelectedCombatantDetails(page: Page, name: string) {
+  const card = page.locator('[data-battle-combatant-card="selected"]')
+  await expect(card).toContainText(name)
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await card.getByRole('button', { name: `Inspect ${name}`, exact: true }).click()
+  const details = page.getByRole('dialog', { name: `${name} battle details`, exact: true })
+  await expect(details).toBeVisible()
+  return details
+}
+
 export async function commitGesture(page: Page, target: Locator) {
   const response = page.waitForResponse(
     (result) =>

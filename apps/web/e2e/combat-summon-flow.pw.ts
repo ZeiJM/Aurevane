@@ -3,6 +3,7 @@ import { expect, test, type Page, type TestInfo } from '@playwright/test'
 
 import type { BattleSessionView } from '../src/server/battle/battle-session-service'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
+import { openSelectedCombatantDetails } from './refined-battle-helpers'
 
 function readPersistedDeferredInitiative(sessionId: string): readonly string[] {
   if (!/^[0-9a-f-]{36}$/i.test(sessionId)) throw new Error('Invalid test battle ID')
@@ -217,8 +218,7 @@ test('current Renewing Herbs summons, inspects and survives reload with its pinn
   await root.getByRole('button', { name: /^Inspect,/ }).click()
   await summonTile.click()
 
-  const inspect = page.getByRole('dialog', { name: 'Verdant Stalker battle details', exact: true })
-  await expect(inspect).toBeVisible()
+  const inspect = await openSelectedCombatantDetails(page, 'Verdant Stalker')
   await expect(inspect).toContainText(`Summoner: ${characterName}`)
   await expect(inspect).toContainText('5/5 turns')
   await expect(inspect).toContainText('Thorn Rake')
@@ -259,10 +259,7 @@ test('current Renewing Herbs summons, inspects and survives reload with its pinn
       ),
     })
     .click()
-  const reloadedInspect = page.getByRole('dialog', {
-    name: 'Verdant Stalker battle details',
-    exact: true,
-  })
+  const reloadedInspect = await openSelectedCombatantDetails(page, 'Verdant Stalker')
   await expect(reloadedInspect).toContainText('5/5 turns')
   await expect(reloadedInspect).toContainText('Thorn Rake')
   await expect(reloadedInspect).toContainText('Verdant Mend')

@@ -190,6 +190,10 @@
   height: 100%;
   object-fit: cover;
 }
+.portraitChoice input {
+  /* Native radio focus scrolls its invisible input; also clear the painted border and outline. */
+  scroll-margin-block: 3px;
+}
 .portraitChoice > span {
   display: none;
 }

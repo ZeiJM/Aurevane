@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
+import { openSelectedCombatantDetails } from './refined-battle-helpers'
 
 function uniqueIdentity(prefix: string): { email: string; characterName: string } {
   const seed = `${Date.now()}${Math.floor(Math.random() * 100_000)}`
@@ -84,11 +85,13 @@ test('keeps compact local and selected PvP cards while inspecting board particip
         .locator('#battlefield')
         .getByRole('button', { name: new RegExp(`occupied by ${guestIdentity.characterName}`) })
         .click()
-      const details = host.getByRole('dialog', {
-        name: `${guestIdentity.characterName} battle details`,
-      })
-      await expect(details).toBeVisible()
+      const ap = host.getByRole('progressbar', { name: 'Action Economy remaining' })
+      const beforeInspect = await ap.getAttribute('aria-valuenow')
+      const details = await openSelectedCombatantDetails(host, guestIdentity.characterName)
+      await expect(details).toContainText('Initiative')
       await host.keyboard.press('Escape')
+      await expect(details).toHaveCount(0)
+      await expect(ap).toHaveAttribute('aria-valuenow', beforeInspect!)
       await expect(selected).toContainText(guestIdentity.characterName)
       const geometry = await selected
         .locator('[data-av-square-media]')

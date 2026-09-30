@@ -197,6 +197,13 @@ test('Creation exposes twelve portraits per gender and preserves the complete au
   await page.keyboard.press('ArrowRight')
   await expect(portraits.last()).toBeChecked()
   await expect(portraits.last()).toBeInViewport({ ratio: 1 })
+  const focusedPortrait = await portraits.last().evaluate((input) => ({
+    top: input.parentElement!.getBoundingClientRect().top,
+    bottom: input.parentElement!.getBoundingClientRect().bottom,
+    viewportHeight: innerHeight,
+  }))
+  expect(focusedPortrait.top).toBeGreaterThanOrEqual(0)
+  expect(focusedPortrait.bottom).toBeLessThanOrEqual(focusedPortrait.viewportHeight + 1)
   await creation.getByRole('radio', { name: 'Female', exact: true }).check()
   await expect(portraits).toHaveCount(12)
   await portraits.last().check()

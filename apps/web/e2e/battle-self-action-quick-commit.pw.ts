@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 
-import { targetForecast } from './refined-battle-helpers'
+import { openSelectedCombatantDetails, targetForecast } from './refined-battle-helpers'
 
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
@@ -81,8 +81,7 @@ async function openInspectAndDismiss(page: Page, root: Locator, targetName: stri
   const target = root.locator(`#battlefield button[aria-label*="occupied by ${targetName}"]`)
   await target.click()
 
-  const dialog = page.getByRole('dialog', { name: `${targetName} battle details` })
-  await expect(dialog).toBeVisible({ timeout: 5_000 })
+  const dialog = await openSelectedCombatantDetails(page, targetName)
   const backdrop = page.locator('[data-desktop-battle-inspect="true"]')
   await expect(backdrop).toBeVisible()
   await backdrop.click({ position: { x: 5, y: 5 } })
@@ -101,7 +100,7 @@ async function finishTurnKeepingFacing(page: Page, root: Locator, testRepeat = f
 
   await page.keyboard.press('Space')
   await expect(root.locator('[data-unified-facing-pad="true"]')).toBeVisible()
-  await expect(root.locator('#battlefield [data-facing-guide="true"]')).toHaveCount(4)
+  await expect(root.locator('[data-unified-facing-pad="true"] button')).toHaveCount(4)
 
   if (testRepeat) {
     await page.evaluate(() => {
@@ -184,8 +183,8 @@ test('keeps Guard selection and single-input execution reliable after Inspect cl
   await inspect.click()
   const target = root.locator('#battlefield button[aria-label*="occupied by Recruit"]')
   await target.click()
-  const dialog = page.getByRole('dialog', { name: /Recruit battle details/ })
-  await expect(dialog).toBeVisible({ timeout: 5_000 })
+  const selectedName = (await target.getAttribute('aria-label'))!.split('; occupied by ')[1]
+  const dialog = await openSelectedCombatantDetails(page, selectedName)
   const backdrop = page.locator('[data-desktop-battle-inspect="true"]')
   await backdrop.click({ position: { x: 5, y: 5 } })
   await expect(dialog).toBeHidden()

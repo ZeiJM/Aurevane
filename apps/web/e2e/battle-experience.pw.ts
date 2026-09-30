@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 
 import { createAccountAndEnterCharacter } from './pv1f-test-helpers'
+import { openSelectedCombatantDetails } from './refined-battle-helpers'
 
 function uniqueCharacterName(): string {
   const letters = Date.now()
@@ -105,22 +106,23 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
     await expect(combatantDialog).toHaveCount(0)
     await inspectButton.click()
     await playerTile.click()
-    await expect(combatantDialog).toBeVisible()
+    await openSelectedCombatantDetails(page, characterName)
     await expect(combatantDialog.getByText('Initiative', { exact: true })).toBeVisible()
     await page.mouse.click(1, 1)
     await expect(combatantDialog).toHaveCount(0)
     await expect(playerTile).toBeVisible()
     await expect(recruitTile).toBeVisible()
-    await expect(
-      page.getByRole('button', { name: `Inspect ${characterName}`, exact: true }),
-    ).toBeHidden()
+    await expect(page.locator('[data-battle-combatant-card="selected"]')).toContainText(
+      characterName,
+    )
   } else {
     await inspectButton.click()
-    const playerRailButton = page.getByRole('button', {
+    const playerRail = page.locator('[data-battle-combatant-card="local"]')
+    const recruitRail = page.locator('[data-battle-combatant-card="selected"]')
+    const playerRailButton = playerRail.getByRole('button', {
       name: `Inspect ${characterName}`,
       exact: true,
     })
-    const recruitRailButton = page.getByRole('button', { name: 'Inspect Recruit', exact: true })
     await playerRailButton.click()
     const combatantDialog = page.getByRole('dialog', { name: `${characterName} battle details` })
     await expect(combatantDialog).toBeVisible()
@@ -128,8 +130,6 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
     await expect(combatantDialog.getByText('AP', { exact: true })).toHaveCount(0)
     await page.mouse.click(1, 1)
     await expect(combatantDialog).toHaveCount(0)
-    const playerRail = playerRailButton.locator('..')
-    const recruitRail = recruitRailButton.locator('..')
     await expect(playerRail.getByText(characterName, { exact: true })).toBeVisible()
     await expect(recruitRail.getByText('Recruit', { exact: true })).toBeVisible()
     const playerTokenName = page
