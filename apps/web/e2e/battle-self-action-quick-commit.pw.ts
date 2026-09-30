@@ -98,6 +98,9 @@ async function finishTurnKeepingFacing(page: Page, root: Locator, testRepeat = f
   await expect(finish).toBeEnabled()
   await expect(finish).toContainText('Space')
   await expect(root.locator('[data-pvp-turn-clock="true"]')).toBeVisible()
+  // The lobby click can leave the pointer over a cockpit info trigger after navigation.
+  // Leave hover reading before exercising combat keys; pinned dialogs must still block them.
+  await page.mouse.move(0, 0)
   await expect(page.getByRole('dialog')).toHaveCount(0)
   await root.focus()
   await expect(root).toBeFocused()
