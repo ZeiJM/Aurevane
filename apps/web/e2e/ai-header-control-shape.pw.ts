@@ -26,7 +26,7 @@ test('keeps Map Key immediately left of Victory Conditions at desktop and mobile
 
   const battleHallLink = page
     .getByRole('navigation', { name: 'Primary game navigation', exact: true })
-    .getByRole('link', { name: /Battle Hall/ })
+    .getByRole('link', { name: /Battle/ })
   await battleHallLink.focus()
   await battleHallLink.press('Enter')
 

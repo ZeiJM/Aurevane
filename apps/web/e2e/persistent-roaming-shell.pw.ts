@@ -51,27 +51,29 @@ test('roaming pages preserve one authenticated shell while Battle Hall refreshes
   await rememberShell(page, '__roamingShell')
   const rail = page.getByRole('navigation', { name: 'Primary game navigation', exact: true })
 
-  await expect(rail.getByRole('button', { name: 'Arsenal', exact: true })).toBeDisabled()
-  await rail.getByRole('link', { name: 'Nexus', exact: true }).click()
+  await expect(rail.getByRole('link', { name: 'Items', exact: true })).toHaveCount(0)
+  await rail.getByRole('link', { name: 'Loadout', exact: true }).click()
+  await expect(page).toHaveURL(/\/game\/loadout$/)
+  await page.locator('main a[href="/game/nexus"]').click()
   await expect(page).toHaveURL(/\/game\/nexus$/)
   expect(await rememberedShellIsCurrent(page, '__roamingShell')).toBe(true)
 
-  await rail.getByRole('link', { name: /Passive Training/ }).click()
+  await rail.getByRole('link', { name: /Training/ }).click()
   await expect(page).toHaveURL(/\/game\/training$/)
   expect(await rememberedShellIsCurrent(page, '__roamingShell')).toBe(true)
 
-  await rail.getByRole('link', { name: /World/ }).click()
+  await rail.getByRole('link', { name: /Travel/ }).click()
   await expect(page).toHaveURL(/\/game\/world$/)
   await expect(page.locator('[data-world-workspace]')).toBeVisible()
   expect(await rememberedShellIsCurrent(page, '__roamingShell')).toBe(true)
 
-  await rail.getByRole('link', { name: /Battle Hall/ }).click()
+  await rail.getByRole('link', { name: /Battle/ }).click()
   await expect(page).toHaveURL(/\/game\/battle$/)
   expect(await rememberedShellIsCurrent(page, '__roamingShell')).toBe(false)
 
   await page
     .getByRole('navigation', { name: 'Primary game navigation', exact: true })
-    .getByRole('link', { name: 'Character', exact: true })
+    .getByRole('link', { name: 'Profile', exact: true })
     .click()
   await expect(page).toHaveURL(/\/game\/character$/)
   expect(await rememberedShellIsCurrent(page, '__roamingShell')).toBe(false)
@@ -96,6 +98,7 @@ test('switching character selection refreshes the roaming shell', async ({ page 
   await expect(page).toHaveURL(/\/game$/)
 
   await page.getByRole('link', { name: `Play ${characterName}`, exact: true }).click()
-  await expect(page).toHaveURL(/\/game\/character$/)
+  await expect(page).toHaveURL(/\/game\/haven$/)
+  await page.goto('/game/character')
   expect(await rememberedShellIsCurrent(page, '__beforeSwitch')).toBe(false)
 })

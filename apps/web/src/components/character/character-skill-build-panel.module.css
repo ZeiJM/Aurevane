@@ -419,8 +419,8 @@
 
 .lockedSkill > span {
   display: grid;
-  width: 4.6rem;
-  height: 4.6rem;
+  width: 4rem;
+  height: 4rem;
   aspect-ratio: 1 / 1;
   place-items: center;
   border: 1px solid #4c5e67;
@@ -801,4 +801,16 @@
 
 .effectExplanations strong {
   color: #f0e8dc;
+}
+
+/* Keep small labels readable against the approved stone editor surface. */
+.headingCopy p,
+.autoSaveNote,
+.selectedCounter span,
+.selectedCounter small,
+.techniqueGroup > header > small {
+  color: #293b40;
+}
+.autoSaveNote {
+  font-size: max(0.6875rem, 11px);
 }

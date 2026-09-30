@@ -357,9 +357,15 @@ test('Master combat authoring publishes versioned content, pins battles, and rol
   await page.getByRole('button', { name: /Account/ }).click()
   await expect(page.getByRole('menuitem', { name: /Master Panel/ })).toBeVisible()
   await page.getByRole('menuitem', { name: /Master Panel/ }).click()
+  await expect(page).toHaveURL(/\/master$/)
+  await expect(page.getByRole('heading', { name: 'The worldwright’s desk' })).toBeVisible()
+  await page
+    .getByRole('navigation', { name: 'Master Panel navigation' })
+    .getByRole('link', { name: /Combat Content/ })
+    .click()
   await expect(page).toHaveURL(/\/master\/combat-content$/)
   await expect(page.getByRole('heading', { name: 'Combat Content' })).toBeVisible()
-  await expect(page.getByText('Worldwright control', { exact: true })).toBeVisible()
+  await expect(page.getByText('Master Panel · Worldwright', { exact: true })).toBeVisible()
   await expect(
     page
       .getByRole('navigation', { name: 'Master Panel navigation' })

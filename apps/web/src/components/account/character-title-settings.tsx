@@ -127,10 +127,10 @@ export function CharacterTitleSettings({
   const currentHostMessage = imageHostPageMessage(imageDraft)
 
   return (
-    <div className={styles.layout} data-character-concept="titles" data-av-surface="ink">
+    <div className={styles.layout} data-character-concept="titles" data-av-surface="moonstone">
       <section
         className={styles.current}
-        data-av-surface="ink"
+        data-av-surface="moonstone"
         aria-labelledby="current-title-heading"
       >
         <div className={styles.heroPortrait}>

@@ -213,3 +213,31 @@
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* Stone settings console with readable key bindings. */
+.panel {
+  color: #30392f;
+  background: #b5a88d5e;
+  border-color: #998360;
+}
+.panel :is(p, span, label, small) {
+  color: inherit;
+}
+.grid {
+  height: auto;
+  max-height: 55dvh;
+}
+.row {
+  padding-block: 0.5rem;
+  border-bottom: 1px solid #96806155;
+}
+.panel button {
+  color: #eee1c7;
+  background: #34584f;
+  border-color: #8c7955;
+}
+@media (max-width: 900px) {
+  .grid {
+    max-height: none;
+  }
+}

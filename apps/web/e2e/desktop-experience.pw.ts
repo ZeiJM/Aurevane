@@ -587,19 +587,19 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
     }
     for (const width of [360, 393, 1366]) {
       await page.setViewportSize({ width, height: 800 })
-      const hero = page.getByTestId('character-profile')
       if (width < 760) {
         await page.evaluate(() => {
           document.querySelector('#game-main')?.scrollTo(0, 0)
           window.scrollTo(0, 0)
         })
         await settle(page)
-        const portrait = await hero.locator('.character-portrait-media').locator('..').boundingBox()
-        const identity = await hero.locator('[data-character-identity-copy]').boundingBox()
-        if (!portrait || !identity) throw new Error('Profile hero geometry is unavailable')
-        expect(portrait.width).toBeGreaterThan(0)
-        expect(portrait.height).toBeGreaterThan(0)
-        expect(identity.y).toBeGreaterThanOrEqual(portrait.y + portrait.height - 1)
+        const dock = await page.locator('[data-av-game-rail]').boundingBox()
+        expect(dock).not.toBeNull()
+        expect(dock!.width).toBeGreaterThan(0)
+        expect(dock!.height).toBeGreaterThan(0)
+        await expect(
+          page.getByRole('navigation', { name: 'Primary game navigation', exact: true }),
+        ).toBeVisible()
         await testInfo.attach(`phone-hero-${width}-${mixed}`, {
           body: await page.screenshot(),
           contentType: 'image/png',
@@ -711,7 +711,7 @@ test('supplementary presence never blocks primary rail navigation', async ({ pag
     })
     await page
       .getByRole('navigation', { name: 'Primary game navigation', exact: true })
-      .getByRole('link', { name: /Battle Hall/ })
+      .getByRole('link', { name: /Battle/ })
       .click()
     releaseNavigation()
     await expect(page).toHaveURL(/\/game\/battle$/)

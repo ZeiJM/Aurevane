@@ -18,7 +18,7 @@ function maxRgbChannel(value: string) {
   return Math.max(...(value.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number))
 }
 
-test('Controls keeps all bindings reachable inside a dark desktop workspace', async ({
+test('Controls keeps all bindings reachable inside the stone desktop workspace', async ({
   page,
 }, info) => {
   test.skip(info.project.name !== 'desktop-chromium', 'Desktop Controls composition only')
@@ -44,6 +44,7 @@ test('Controls keeps all bindings reachable inside a dark desktop workspace', as
   await expect(rows).toHaveCount(COMBAT_KEYBIND_ACTIONS.length)
   await expect(reset).toBeVisible()
   await expect(save).toBeVisible()
+  await save.scrollIntoViewIfNeeded()
   await settle(page)
 
   const metrics = await page.evaluate(() => {
@@ -61,8 +62,8 @@ test('Controls keeps all bindings reachable inside a dark desktop workspace', as
     return {
       surface: root.dataset.avSurface ?? null,
       outerSurface: outer.dataset.avSurface ?? null,
-      background: getComputedStyle(root).backgroundColor,
-      outerBackground: getComputedStyle(outer).backgroundColor,
+      background: getComputedStyle(root).backgroundImage,
+      outerBackground: getComputedStyle(outer).backgroundImage,
       headingColor: getComputedStyle(outer.querySelector('h1')!).color,
       gridOverflowY: getComputedStyle(grid).overflowY,
       gridClientHeight: grid.clientHeight,
@@ -76,13 +77,17 @@ test('Controls keeps all bindings reachable inside a dark desktop workspace', as
   })
 
   expect.soft(metrics.overflow, 'desktop has no horizontal overflow').toBeLessThanOrEqual(1)
-  expect.soft(metrics.surface, 'Controls uses the dark surface token contract').toBe('ink')
-  expect.soft(metrics.outerSurface, 'outer Controls workspace uses the dark surface').toBe('ink')
-  expect.soft(maxRgbChannel(metrics.background), 'Controls panel stays dark').toBeLessThan(90)
-  expect.soft(maxRgbChannel(metrics.outerBackground), 'outer workspace stays dark').toBeLessThan(90)
+  expect.soft(metrics.surface, 'Controls uses the stone surface token contract').toBe('moonstone')
+  expect
+    .soft(metrics.outerSurface, 'outer Controls workspace uses the stone surface')
+    .toBe('moonstone')
+  expect.soft(metrics.background, 'Controls panel uses stone material').toContain('linear-gradient')
+  expect
+    .soft(metrics.outerBackground, 'outer workspace uses stone material')
+    .toContain('linear-gradient')
   expect
     .soft(maxRgbChannel(metrics.headingColor), 'Controls heading remains readable')
-    .toBeGreaterThanOrEqual(160)
+    .toBeLessThan(110)
   expect.soft(['auto', 'scroll']).toContain(metrics.gridOverflowY)
   expect
     .soft(
@@ -148,8 +153,8 @@ test('Controls stays a natural single-column scroll on phone', async ({ page }, 
     return {
       surface: root.dataset.avSurface ?? null,
       outerSurface: outer.dataset.avSurface ?? null,
-      background: getComputedStyle(root).backgroundColor,
-      outerBackground: getComputedStyle(outer).backgroundColor,
+      background: getComputedStyle(root).backgroundImage,
+      outerBackground: getComputedStyle(outer).backgroundImage,
       gridOverflowY: getComputedStyle(grid).overflowY,
       gridClientHeight: grid.clientHeight,
       gridScrollHeight: grid.scrollHeight,
@@ -158,12 +163,16 @@ test('Controls stays a natural single-column scroll on phone', async ({ page }, 
   })
 
   expect.soft(metrics.overflow, 'phone has no horizontal overflow').toBeLessThanOrEqual(1)
-  expect.soft(metrics.surface, 'phone Controls uses the dark surface token contract').toBe('ink')
-  expect.soft(metrics.outerSurface, 'phone outer workspace uses the dark surface').toBe('ink')
-  expect.soft(maxRgbChannel(metrics.background), 'phone Controls panel stays dark').toBeLessThan(90)
   expect
-    .soft(maxRgbChannel(metrics.outerBackground), 'phone outer workspace stays dark')
-    .toBeLessThan(90)
+    .soft(metrics.surface, 'phone Controls uses the stone surface token contract')
+    .toBe('moonstone')
+  expect
+    .soft(metrics.outerSurface, 'phone outer workspace uses the stone surface')
+    .toBe('moonstone')
+  expect.soft(metrics.background, 'phone Controls uses stone material').toContain('linear-gradient')
+  expect
+    .soft(metrics.outerBackground, 'phone outer workspace uses stone material')
+    .toContain('linear-gradient')
   expect.soft(metrics.gridOverflowY, 'phone binding list uses natural page scroll').not.toBe('auto')
   expect
     .soft(

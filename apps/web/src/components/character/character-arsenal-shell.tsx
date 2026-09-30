@@ -225,7 +225,7 @@ function TechniqueLane({
 function LockedAttunementCard({ label }: { label: 'Essence' | 'Resonance' }) {
   return (
     <article className={styles.attunementCard} data-active="false">
-      <span className={styles.attunementArt} aria-hidden="true">
+      <span className={styles.attunementArt} data-gameplay-art="attunement" aria-hidden="true">
         <span className={styles.lockGlyph}>▣</span>
       </span>
       <div>
@@ -455,7 +455,7 @@ export function CharacterArsenalShell({
                     aria-label={`Preview Essence: ${essence.name}`}
                     aria-describedby={`essence-preview-${essence.essenceId}`}
                   >
-                    <span className={styles.attunementArt}>
+                    <span className={styles.attunementArt} data-gameplay-art="attunement">
                       <Image
                         src={battleSkillArtwork(essence.skill.id)}
                         width={64}
@@ -484,7 +484,7 @@ export function CharacterArsenalShell({
                     aria-label={`Preview Resonance: ${resonance.name}`}
                     aria-describedby={`resonance-preview-${resonance.id}`}
                   >
-                    <span className={styles.attunementArt}>
+                    <span className={styles.attunementArt} data-gameplay-art="attunement">
                       <Image
                         src={battleResonanceArtwork(resonance.id)}
                         width={64}
@@ -521,7 +521,7 @@ export function CharacterArsenalShell({
 
             <div className={styles.powerGrid}>
               <article className={styles.futurePowerCard} data-power="ascension">
-                <span className={styles.powerGlyph} aria-hidden="true">
+                <span className={styles.powerGlyph} data-gameplay-art="power" aria-hidden="true">
                   <Image
                     src="/media/art/nexus/nexus-ascension-default-v01.webp"
                     width={160}
@@ -536,7 +536,7 @@ export function CharacterArsenalShell({
                 </div>
               </article>
               <article className={styles.futurePowerCard} data-power="severed">
-                <span className={styles.powerGlyph} aria-hidden="true">
+                <span className={styles.powerGlyph} data-gameplay-art="power" aria-hidden="true">
                   <Image
                     src="/media/art/nexus/nexus-severed-default-v01.webp"
                     width={160}

@@ -47,7 +47,7 @@ async function reloadNexus(page: Page): Promise<void> {
     await page.goto('/game/nexus')
   }
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
-  await expect(page.getByTestId('character-profile')).toBeVisible()
+  await expect(page.locator('[data-av-game-rail]')).toBeVisible()
 
   // Nexus build panels intentionally persist through refresh via URL state. Confirm that
   // persisted panel is restored, then close it so the next buildcraft step can open the other
@@ -178,7 +178,7 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   await techniquesDialog.getByRole('button', { name: 'Close' }).click()
   await page
     .getByRole('navigation', { name: 'Primary game navigation', exact: true })
-    .getByRole('link', { name: 'Battle Hall', exact: true })
+    .getByRole('link', { name: 'Battle', exact: true })
     .click()
   await expect(page).toHaveURL(/\/game\/battle$/)
   await page.getByLabel('Battle mode').selectOption('recruit-sparring')

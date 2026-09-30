@@ -86,16 +86,16 @@ test('Nexus build launchers stay centered and typographically matched', async ({
     name: 'Primary game navigation',
     exact: true,
   })
-  await expect(navigation.getByRole('button', { name: 'Arsenal', exact: true })).toBeDisabled()
-  await expect(navigation.getByRole('link', { name: 'Nexus', exact: true })).toHaveAttribute(
+  await expect(navigation.getByRole('link', { name: 'Items', exact: true })).toHaveCount(0)
+  await expect(navigation.getByRole('link', { name: 'Loadout', exact: true })).toHaveAttribute(
     'aria-current',
     'page',
   )
-  await expect(navigation.getByRole('link', { name: 'Character', exact: true })).toHaveAttribute(
+  await expect(navigation.getByRole('link', { name: 'Profile', exact: true })).toHaveAttribute(
     'href',
     '/game/character',
   )
-  await expect(navigation.getByRole('link', { name: 'Battle Hall', exact: true })).toHaveAttribute(
+  await expect(navigation.getByRole('link', { name: 'Battle', exact: true })).toHaveAttribute(
     'href',
     '/game/battle',
   )

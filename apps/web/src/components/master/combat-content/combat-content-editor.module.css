@@ -1655,3 +1655,70 @@
   color: var(--av-text);
   background: rgba(3, 10, 17, 0.86);
 }
+
+/* Approved adventure workspace: readable stone work surfaces. */
+:global(.av-master) .editor {
+  --av-text: #2d332d;
+  --av-text-muted: #535448;
+  --av-text-dim: #625e4f;
+  --av-brass-300: #69532d;
+  --av-brass-200: #6d572e;
+  --av-border: #99826366;
+  --av-border-strong: #9b8362;
+  color: #2d332d;
+}
+:global(.av-master) .skillBrowser,
+:global(.av-master) .editorMain,
+:global(.av-master) .workspace,
+:global(.av-master) .typedGroup,
+:global(.av-master) .reviewPanel,
+:global(.av-master) .reviewBlock,
+:global(.av-master) .confirmation,
+:global(.av-master) .history,
+:global(.av-master) .publicationCard,
+:global(.av-master) .validationCard,
+:global(.av-master) .effectCard,
+:global(.av-master) .versionGrid,
+:global(.av-master) .mediaPreview,
+:global(.av-master) .publicationFacts {
+  color: #30372f;
+  background: linear-gradient(125deg, #d0c2a8, #bdad90);
+  border-color: #9d8865;
+  border-radius: 4px;
+  box-shadow: inset 0 1px #f5e6c44d;
+}
+:global(.av-master) .editor :is(h2, h3, h4, label, legend, p, small, dt, dd) {
+  color: inherit;
+}
+:global(.av-master) .editor :is(button, a)[data-selected='true'] {
+  color: #f1e5ce;
+  background: #345b52;
+  border-color: #437367;
+}
+:global(.av-master) .editor button:disabled {
+  opacity: 0.5;
+}
+:global(.av-master) .header,
+:global(.av-master) .tags {
+  color: #30372f;
+  background: #c8b89b;
+  border: 1px solid #998262;
+  border-radius: 4px;
+  padding: 0.8rem;
+}
+:global(.av-master) .header :is(h1, strong),
+:global(.av-master) .skillBrowserHeader strong {
+  color: #30392e;
+}
+:global(.av-master) .editorMain {
+  align-content: start;
+  gap: 0.65rem;
+}
+:global(.av-master) .skillBrowser button[data-selected='true'] strong {
+  color: #f1e5ce;
+}
+@media (min-width: 1181px) {
+  :global(.av-master) .skillBrowser {
+    grid-row: 1 / span 20;
+  }
+}

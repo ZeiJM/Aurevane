@@ -70,7 +70,9 @@ test('Nexus equips a mastered Secondary with independent attunement authority', 
   const launcher = panel.getByRole('button', { name: /Manage Disciplines/ })
   const primaryDisciplineChip = page.getByTestId('primary-discipline-chip')
   const secondaryDisciplineChip = page.getByTestId('secondary-discipline-chip')
-  const maxHp = page.locator('[data-character-resource="hp"] b')
+  const maxHp = page
+    .getByTestId('character-rail-profile')
+    .locator('[data-character-resource="hp"] b')
 
   await expect(launcher).toHaveText(/Manage Disciplines/)
   await expect(primaryDisciplineChip).toHaveText('Vanguard')
@@ -147,8 +149,8 @@ test('mobile Character keeps its portrait readable and Nexus centers Discipline 
   const portraitBox = await portrait.boundingBox()
   if (!portraitBox) throw new Error('Character portrait geometry is unavailable')
   expect(Math.abs(portraitBox.width - portraitBox.height)).toBeLessThanOrEqual(1)
-  await expect(page.locator('[data-character-resource="hp"]')).toBeVisible()
-  await expect(page.locator('[data-character-resource="mp"]')).toBeVisible()
+  await expect(profile.locator('[data-character-resource="hp"]')).toBeVisible()
+  await expect(profile.locator('[data-character-resource="mp"]')).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(
     true,
   )

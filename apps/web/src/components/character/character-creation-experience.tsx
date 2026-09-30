@@ -13,6 +13,7 @@ import {
   defaultPronounPresetForPresentation,
   STARTER_CHARACTER_APPEARANCES,
   STARTER_CHARACTER_PORTRAITS,
+  ADVENTURE_CHARACTER_PORTRAITS,
 } from '@aurevane/game-core/character/starter-options'
 import { GameButton } from '@aurevane/ui'
 import Link from 'next/link'
@@ -59,8 +60,8 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
   const router = useRouter()
   const [step, setStep] = useState<Step>('identity')
   const [name, setName] = useState('')
-  const [presentationId, setPresentationId] = useState<CharacterPresentationId>('androgynous')
-  const [portraitRef, setPortraitRef] = useState(STARTER_CHARACTER_PORTRAITS[0].ref)
+  const [presentationId, setPresentationId] = useState<CharacterPresentationId>('masculine')
+  const [portraitRef, setPortraitRef] = useState(ADVENTURE_CHARACTER_PORTRAITS[0].ref)
   const [starterAppearanceRef, setStarterAppearanceRef] = useState(
     STARTER_CHARACTER_APPEARANCES[0].ref,
   )
@@ -74,6 +75,9 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
   const idempotencyKey = useRef<string | null>(null)
   const stepHeading = useRef<HTMLHeadingElement>(null)
 
+  const portraitChoices = ADVENTURE_CHARACTER_PORTRAITS.filter(
+    (option) => option.presentationId === presentationId,
+  )
   const selectedDiscipline =
     FOUNDATION_DISCIPLINES.find((candidate) => candidate.id === foundationDisciplineId) ??
     FOUNDATION_DISCIPLINES[0]
@@ -190,7 +194,7 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
         return
       }
 
-      router.replace('/game/character')
+      router.replace('/game/haven')
       router.refresh()
     } catch {
       setErrorMessage('Character creation could not reach the server. Your choices are still here.')
@@ -208,7 +212,7 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
     >
       <div className={styles.scene} aria-hidden="true">
         <AurevaneImage
-          assetId="environment.character-creation.threshold"
+          assetId="environment.adventure.threshold"
           sizes="(min-width: 761px) 28vw, 100vw"
         />
         <div className={styles.sceneVeil} />
@@ -249,11 +253,11 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
               <fieldset className={styles.choiceGroup} data-portrait-library="true">
                 <legend>Choose your visage</legend>
                 <p className={styles.choiceHint}>
-                  {STARTER_CHARACTER_PORTRAITS.length} faces await. Choose the likeness that will
-                  represent this character throughout AUREVANE.
+                  {portraitChoices.length} faces await. Choose the likeness that will represent this
+                  character throughout AUREVANE.
                 </p>
                 <div className={styles.portraitGrid} data-portrait-grid="true">
-                  {STARTER_CHARACTER_PORTRAITS.map((option) => (
+                  {portraitChoices.map((option) => (
                     <label
                       key={option.ref}
                       className={styles.portraitChoice}
@@ -322,22 +326,29 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
                 </small>
               </label>
               <fieldset className={styles.choiceGroup}>
-                <legend>Bearing</legend>
+                <legend>Character</legend>
                 <div className={styles.presentationChoices}>
-                  {CHARACTER_PRESENTATIONS.map((option) => (
-                    <label key={option.id} className={styles.inlineChoice}>
-                      <input
-                        checked={presentationId === option.id}
-                        name="presentation"
-                        onChange={() => {
-                          changed()
-                          setPresentationId(option.id)
-                        }}
-                        type="radio"
-                      />
-                      <span>{option.label}</span>
-                    </label>
-                  ))}
+                  {CHARACTER_PRESENTATIONS.filter((option) => option.id !== 'androgynous').map(
+                    (option) => (
+                      <label key={option.id} className={styles.inlineChoice}>
+                        <input
+                          checked={presentationId === option.id}
+                          name="presentation"
+                          onChange={() => {
+                            changed()
+                            setPresentationId(option.id)
+                            setPortraitRef(
+                              ADVENTURE_CHARACTER_PORTRAITS.find(
+                                (portrait) => portrait.presentationId === option.id,
+                              )!.ref,
+                            )
+                          }}
+                          type="radio"
+                        />
+                        <span>{option.id === 'masculine' ? 'Male' : 'Female'}</span>
+                      </label>
+                    ),
+                  )}
                 </div>
               </fieldset>
               <fieldset className={styles.choiceGroup}>

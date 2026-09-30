@@ -20,7 +20,6 @@ import { CharacterIdentityCard } from '@/components/character/character-identity
 import { CharacterRailSynchronizedLayout } from '@/components/character/character-rail-synchronized-layout'
 import { CharacterProfileDetails } from '@/components/character/character-profile-details'
 import { type SupernaturalChoiceOption } from '@/components/character/character-supernatural-choice-controls'
-import { CharacterSupernaturalPath } from './character-supernatural-path'
 import { getStarterPortraitImageAssetId } from '@/media/character'
 
 import styles from './character-profile-shell.module.css'
@@ -134,7 +133,6 @@ export function CharacterProfileShell({
   disciplineBuild,
   personalTitle = null,
   imageUrl = null,
-  supernatural = { state: null, choices: [] },
 }: CharacterWorkspaceProps) {
   const disciplineSummary = characterDisciplineSummary(
     disciplineBuild.current.definition,
@@ -223,28 +221,6 @@ export function CharacterProfileShell({
           }
         />
       </Surface>
-
-      <aside className={styles.story} aria-label="Current Path">
-        <header className={styles.storyHeading}>
-          <div>
-            <span aria-hidden="true">♜</span>
-            <strong>Current Path</strong>
-          </div>
-          <small>
-            {supernatural.state?.path === 'ascended'
-              ? 'Ascension bound.'
-              : supernatural.state?.path === 'severed'
-                ? 'Severence bound.'
-                : supernatural.choices.length
-                  ? 'A permanent threshold.'
-                  : 'Your story continues.'}
-          </small>
-        </header>
-        <div className={styles.storyArt} aria-hidden="true" />
-        <div className={styles.storyCopy}>
-          <CharacterSupernaturalPath state={supernatural.state} choices={supernatural.choices} />
-        </div>
-      </aside>
     </CharacterRailSynchronizedLayout>
   )
 }

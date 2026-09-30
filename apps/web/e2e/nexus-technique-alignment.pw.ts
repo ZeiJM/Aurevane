@@ -3,7 +3,12 @@ import { expect, test } from '@playwright/test'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 function uniqueCharacterName(): string {
-  return `Align ${Date.now().toString(36)}`
+  const letters = Date.now()
+    .toString()
+    .split('')
+    .map((digit) => String.fromCharCode(65 + Number(digit)))
+    .join('')
+  return `Align ${letters}`
 }
 
 test('single-Discipline Nexus and Technique modal align live and locked slots', async ({
@@ -66,5 +71,9 @@ test('single-Discipline Nexus and Technique modal align live and locked slots', 
   if (!liveArtBox || !lockedArtBox) {
     throw new Error('Technique modal slot geometry is unavailable.')
   }
-  expect(Math.abs(liveArtBox.y - lockedArtBox.y)).toBeLessThanOrEqual(1)
+  // The approved modal stacks Discipline groups; both groups retain the same square art size.
+  for (const artwork of [liveArtBox, lockedArtBox]) {
+    expect(Math.abs(artwork.width - artwork.height)).toBeLessThanOrEqual(1)
+    expect(Math.abs(artwork.width - 64)).toBeLessThanOrEqual(1)
+  }
 })

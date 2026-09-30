@@ -13,6 +13,7 @@ const CHANNEL_LABELS: Record<UserAudioChannel, string> = {
 }
 
 interface AudioSettingsMenuProps {
+  inline?: boolean
   rootClassName?: string
   triggerClassName?: string
   triggerLabel?: string
@@ -21,6 +22,7 @@ interface AudioSettingsMenuProps {
 }
 
 export function AudioSettingsMenu({
+  inline = false,
   rootClassName,
   triggerClassName,
   triggerLabel = 'Sound',
@@ -35,7 +37,7 @@ export function AudioSettingsMenu({
   const panelId = useId()
 
   useEffect(() => {
-    if (!open) {
+    if (!open || inline) {
       return
     }
 
@@ -69,7 +71,7 @@ export function AudioSettingsMenu({
       document.removeEventListener('pointerdown', closeFromOutsidePointer, true)
       document.removeEventListener('keydown', closeFromEscape)
     }
-  }, [open])
+  }, [open, inline])
 
   function updateVolume(channel: UserAudioChannel, value: string) {
     setVolume(channel, Number(value) / 100)
@@ -84,32 +86,34 @@ export function AudioSettingsMenu({
       data-audio-state={audioState}
       ref={rootRef}
     >
-      <button
-        ref={triggerRef}
-        type="button"
-        className={triggerClassName ?? styles.trigger}
-        role={triggerRole}
-        aria-label={triggerAriaLabel}
-        aria-expanded={open}
-        aria-haspopup="dialog"
-        aria-controls={panelId}
-        onClick={() => setOpen((current) => !current)}
-      >
-        {showTriggerMarker ? (
-          <span className={styles.speaker} aria-hidden="true">
-            ◇
-          </span>
-        ) : null}
-        <span className={triggerClassName ? undefined : styles.triggerLabel}>{triggerLabel}</span>
-      </button>
+      {!inline ? (
+        <button
+          ref={triggerRef}
+          type="button"
+          className={triggerClassName ?? styles.trigger}
+          role={triggerRole}
+          aria-label={triggerAriaLabel}
+          aria-expanded={open}
+          aria-haspopup="dialog"
+          aria-controls={panelId}
+          onClick={() => setOpen((current) => !current)}
+        >
+          {showTriggerMarker ? (
+            <span className={styles.speaker} aria-hidden="true">
+              ◇
+            </span>
+          ) : null}
+          <span className={triggerClassName ? undefined : styles.triggerLabel}>{triggerLabel}</span>
+        </button>
+      ) : null}
 
-      {open ? (
+      {open || inline ? (
         <div
           ref={panelRef}
           id={panelId}
-          popover="manual"
-          className={styles.panel}
-          role="dialog"
+          popover={inline ? undefined : 'manual'}
+          className={inline ? 'av-audio-inline' : styles.panel}
+          role={inline ? 'region' : 'dialog'}
           aria-modal="false"
           aria-label="Audio settings"
         >

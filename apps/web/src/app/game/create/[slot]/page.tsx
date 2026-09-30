@@ -36,7 +36,7 @@ export default async function CharacterCreationPage({
   return (
     <div className={styles.shell} data-character-creation-page="true">
       <div className={styles.world} aria-hidden="true">
-        <AurevaneImage assetId="ui.foundation.vista" />
+        <AurevaneImage assetId="environment.adventure.threshold" />
       </div>
       <header className={styles.header}>
         <Link className="brand" href="/game" aria-label="AUREVANE Character Select">

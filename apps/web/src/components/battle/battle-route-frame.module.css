@@ -102,3 +102,25 @@
   text-decoration: none;
   flex-shrink: 0;
 }
+
+/* Active PvE, PvP and live spectation share the rail-free adventure frame. */
+.frame {
+  grid-template-columns: minmax(0, 1fr);
+  background: #303a3b;
+}
+.field {
+  grid-column: 1;
+}
+.masthead {
+  background: #293132;
+}
+.frame {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+.field {
+  height: 100%;
+  overflow: auto;
+  overscroll-behavior: contain;
+}

@@ -20,7 +20,7 @@ test('Account gateway keeps the desktop entry workspace clear and readable', asy
 
   const shell = page.getByTestId('account-shell')
   const heroHeading = page.getByRole('heading', { level: 1, name: 'AUREVANE' })
-  const entryHeading = page.getByRole('heading', { level: 2, name: 'Begin or return.' })
+  const entryHeading = page.getByRole('heading', { level: 2, name: 'Your journey continues.' })
   const entryCard = entryHeading.locator('xpath=ancestor::*[@data-account-concept="true"]')
   const submit = page.getByRole('button', { name: 'Enter AUREVANE' })
   const footer = shell.locator('footer')
@@ -105,12 +105,10 @@ test('Account gateway keeps the desktop entry workspace clear and readable', asy
   expect
     .soft(metrics.headingTop, 'AUREVANE title is restored to the lower hero composition')
     .toBeGreaterThan(metrics.heroTop + (metrics.heroBottom - metrics.heroTop) * 0.45)
+  expect.soft(metrics.inputColor, 'typed account text is readable on stone').toBe('rgb(36, 42, 39)')
   expect
-    .soft(metrics.inputColor, 'typed account text is white and readable')
-    .toBe('rgb(255, 253, 247)')
-  expect
-    .soft(metrics.inputFillColor, 'browser text fill stays white and readable')
-    .toBe('rgb(255, 253, 247)')
+    .soft(metrics.inputFillColor, 'browser text fill stays readable on stone')
+    .toBe('rgb(36, 42, 39)')
   await expect(entryCard).toHaveAttribute('data-av-surface', 'moonstone')
 
   const aetherMotion = await page.evaluate(() => {

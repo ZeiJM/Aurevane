@@ -45,12 +45,12 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
 
   await page
     .getByRole('navigation', { name: 'Primary game navigation', exact: true })
-    .getByRole('link', { name: 'Character', exact: true })
+    .getByRole('link', { name: 'Profile', exact: true })
     .click()
   await expect(page).toHaveURL(/\/game\/character$/)
   await page
     .getByRole('navigation', { name: 'Primary game navigation', exact: true })
-    .getByRole('link', { name: /Battle Hall/ })
+    .getByRole('link', { name: /Battle/ })
     .click()
   await expect(page).toHaveURL(/\/game\/battle$/)
 

@@ -1052,3 +1052,139 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* New creation direction: a square gallery and a focused identity/discipline workspace. */
+.experience {
+  --av-text: #2f362e;
+  --av-text-muted: #555b4c;
+  --av-text-dim: #656653;
+}
+.content {
+  padding: clamp(1.1rem, 2vw, 2rem);
+}
+.scene img {
+  object-position: 27% center;
+}
+.sceneCopy {
+  color: #f5e4c4;
+  text-shadow: 0 2px 12px #102029;
+}
+.portraitGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.presentationChoices {
+  display: flex;
+  gap: 0.75rem;
+}
+.presentationChoices label {
+  flex: 1;
+  border: 1px solid #927b55;
+  background: #dac9a940;
+  padding: 0.7rem;
+}
+.progress {
+  border-bottom: 1px solid #9f8965;
+}
+.progress li[data-active='true'] {
+  color: #245d55;
+}
+.field input {
+  color: #29352d;
+  background: #e0d4be;
+  border-color: #9c835d;
+}
+.optionCard {
+  color: #303a30;
+  background: #d9ccb154;
+  border-color: #948060;
+}
+.optionCard:has(input:checked) {
+  color: #253c32;
+  border-color: #3d786b;
+  background: #adc0a759;
+}
+.actions {
+  border-top: 1px solid #9e8761;
+}
+@media (min-width: 981px) {
+  .identityWorkspace {
+    grid-template-columns: minmax(19rem, 1.25fr) minmax(17rem, 1fr);
+  }
+  .portraitChoice {
+    max-width: 8rem;
+  }
+}
+/* Approved stone workspace; preserve darker scene art independently. */
+.experience .content,
+.experience .identityWorkspace {
+  background: linear-gradient(120deg, #cdbfa6, #b8a88d);
+  color: #30372e;
+}
+.experience {
+  --av-text: #30372e;
+  --av-text-muted: #505346;
+  --av-text-dim: #605d4e;
+  --av-brass-100: #315e56;
+  --av-brass-300: #755c34;
+}
+.experience .progress li {
+  color: #62604f;
+}
+.experience .progress [data-active='true'] {
+  color: #245b51;
+}
+.experience :is(.intro, .choiceHint, .previewCopy, .fieldHint) {
+  color: #4a4f42;
+}
+.experience :is(h2, legend, .previewLabel) {
+  color: #303d31;
+}
+.experience .inlineChoice {
+  color: #30372e;
+  background: #d5c7ac;
+}
+.experience .inlineChoice:has(input:checked) {
+  color: #f2e6ca;
+  background: #365c51;
+}
+.experience .portraitChoice > span {
+  display: none;
+}
+.experience .portraitChoice {
+  aspect-ratio: 1;
+  max-width: none;
+}
+.experience .portraitChoice > :is(img, div) {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+.experience .portraitGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  max-height: 24rem;
+  overflow-y: auto;
+}
+.experience .actions button {
+  color: #f4e6c9;
+  background: #365c51;
+}
+.experience .actions button:disabled {
+  opacity: 0.55;
+}
+@media (min-width: 981px) {
+  .experience .portraitGrid {
+    grid-template-columns: repeat(4, minmax(0, 6.4rem));
+    justify-content: space-between;
+  }
+}
+.experience .previewCopy :is(span, small),
+.experience .field small {
+  color: #4a4f42;
+}
+@media (min-width: 981px) {
+  .experience [data-portrait-grid='true'] {
+    grid-template-columns: repeat(4, minmax(0, 6.4rem)) !important;
+    justify-content: space-between;
+  }
+}

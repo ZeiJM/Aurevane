@@ -1179,3 +1179,44 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Approved adventure workspace: readable stone work surfaces. */
+:global(.av-master) .operations {
+  --av-text: #2d332d;
+  --av-text-muted: #535448;
+  --av-text-dim: #625e4f;
+  --av-brass-300: #69532d;
+  --av-brass-200: #6d572e;
+  --av-border: #99826366;
+  --av-border-strong: #9b8362;
+  color: #2d332d;
+}
+:global(.av-master) .card,
+:global(.av-master) .runNavigator,
+:global(.av-master) .operationDock,
+:global(.av-master) .operationWorkspace,
+:global(.av-master) .runHeader,
+:global(.av-master) .overviewPanel,
+:global(.av-master) .dockCard,
+:global(.av-master) .phase,
+:global(.av-master) .objective,
+:global(.av-master) .overviewFacts,
+:global(.av-master) .metricGrid,
+:global(.av-master) .compactFacts {
+  color: #30372f;
+  background: linear-gradient(125deg, #d0c2a8, #bdad90);
+  border-color: #9d8865;
+  border-radius: 4px;
+  box-shadow: inset 0 1px #f5e6c44d;
+}
+:global(.av-master) .operations :is(h2, h3, h4, label, legend, p, small, dt, dd) {
+  color: inherit;
+}
+:global(.av-master) .operations :is(button, a)[data-selected='true'] {
+  color: #f1e5ce;
+  background: #345b52;
+  border-color: #437367;
+}
+:global(.av-master) .operations button:disabled {
+  opacity: 0.5;
+}

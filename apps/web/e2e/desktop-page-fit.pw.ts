@@ -53,10 +53,7 @@ async function expectHallFits(page: Page, label: string): Promise<void> {
     const hallRect = hall.getBoundingClientRect()
     const footerRect = footer.getBoundingClientRect()
     const concept = hall.matches('[data-hall-concept]')
-    const railRect = document
-      .querySelector('[data-battle-hall-workspace] [data-profile-identity-banner]')
-      ?.getBoundingClientRect()
-    const mainPaddingBottom = Number.parseFloat(getComputedStyle(main).paddingBottom)
+    const railRect = document.querySelector('[data-av-game-rail]')?.getBoundingClientRect()
     const controls = Array.from(hall.querySelectorAll('button, input, select, label, legend'))
       .filter((element) => element.checkVisibility())
       .map((element) => {
@@ -80,9 +77,7 @@ async function expectHallFits(page: Page, label: string): Promise<void> {
       concept,
       alignedDesktop: concept && window.innerWidth >= 1200,
       railBottom: railRect?.bottom ?? null,
-      naturalRailOverflow: railRect
-        ? Math.max(0, railRect.bottom + mainPaddingBottom - mainRect.bottom)
-        : 0,
+      railWidth: railRect?.width ?? null,
       pageOverflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       mainOverflowY: main.scrollHeight - main.clientHeight,
       mainOverflowX: main.scrollWidth - main.clientWidth,
@@ -99,15 +94,12 @@ async function expectHallFits(page: Page, label: string): Promise<void> {
     expect(metrics.mainOverflowY, `${label}: inner page vertical overflow`).toBeLessThanOrEqual(1)
   }
   if (metrics.alignedDesktop) {
-    expect(metrics.railBottom, `${label}: natural character rail exists`).not.toBeNull()
+    expect(metrics.railBottom, `${label}: shared character rail exists`).not.toBeNull()
+    expect(metrics.railWidth, `${label}: compact shared character rail`).toBeCloseTo(190, 0)
     expect(
-      Math.abs(metrics.hallBottom - metrics.railBottom!),
-      `${label}: Hall ends with the natural character rail`,
+      Math.abs(metrics.footerTop - metrics.railBottom!),
+      `${label}: shared rail ends above the frozen footer`,
     ).toBeLessThanOrEqual(2)
-    expect(
-      metrics.mainOverflowY,
-      `${label}: page scrolling is bounded by the natural character rail`,
-    ).toBeLessThanOrEqual(Math.ceil(metrics.naturalRailOverflow) + 1)
   }
   expect(metrics.mainOverflowX, `${label}: inner page horizontal overflow`).toBeLessThanOrEqual(1)
   if (!metrics.concept) {
@@ -217,9 +209,10 @@ test('desktop Profile and all Battle Hall setups fit without clipped controls or
   await page.setViewportSize({ width: 1366, height: 768 })
   await page
     .getByRole('navigation', { name: 'Primary game navigation' })
-    .getByRole('link', { name: 'Nexus', exact: true })
+    .getByRole('link', { name: 'Loadout', exact: true })
     .click()
-  await expect(page).toHaveURL(/\/game\/nexus$/)
+  await expect(page).toHaveURL(/\/game\/loadout$/)
+  await page.goto('/game/nexus')
   for (const [panel, name] of [
     ['primary-build-panel', 'Discipline Management'],
     ['skill-build-panel', 'Techniques'],
@@ -248,11 +241,12 @@ test('phone Battle Hall keeps its existing scrolling layout and functional tabs'
     )
     await capture(page, testInfo, `mobile-${tone}`)
   }
-  expect(
-    await page
-      .locator('[data-testid="authenticated-shell"] > footer')
-      .evaluate((element) => getComputedStyle(element).position),
-  ).toBe('sticky')
+  const footer = page.locator('[data-testid="authenticated-shell"] > footer')
+  const before = await footer.boundingBox()
+  await page.locator('#game-main').evaluate((element) => element.scrollTo(0, element.scrollHeight))
+  const after = await footer.boundingBox()
+  expect(before).not.toBeNull()
+  expect(after!.y).toBe(before!.y)
 })
 
 test('mobile page panels clear the navigation bar at the end of scrolling', async ({
@@ -268,7 +262,9 @@ test('mobile page panels clear the navigation bar at the end of scrolling', asyn
     for (const height of [740, 620]) {
       await page.setViewportSize({ width: 393, height })
       await settleLayout(page)
-      await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
+      await page
+        .locator('#game-main')
+        .evaluate((element) => element.scrollTo(0, element.scrollHeight))
       await settleLayout(page)
       const measure = () =>
         page.evaluate(() => {
@@ -289,18 +285,18 @@ test('mobile page panels clear the navigation bar at the end of scrolling', asyn
           }
         })
       const metrics = await measure()
-      expect(metrics.mainBottom, `${path}: content clears footer`).toBeLessThanOrEqual(
-        metrics.footerTop + 1,
+      expect(metrics.mainBottom, `${path}: content clears navigation`).toBeLessThanOrEqual(
+        metrics.dockTop + 1,
       )
       expect(
         metrics.bottomPadding,
         `${path}: panel border has breathing room`,
       ).toBeGreaterThanOrEqual(8)
       expect(
-        metrics.footerBottom,
-        `${path}: Online Users clears the bottom dock`,
-      ).toBeLessThanOrEqual(metrics.dockTop + 1)
-      expect(Math.abs(metrics.dockBottom - metrics.viewportHeight)).toBeLessThanOrEqual(1)
+        metrics.dockBottom,
+        `${path}: navigation clears the Online Users footer`,
+      ).toBeLessThanOrEqual(metrics.footerTop + 1)
+      expect(Math.abs(metrics.footerBottom - metrics.viewportHeight)).toBeLessThanOrEqual(1)
       expect(metrics.overflowX).toBeLessThanOrEqual(1)
       await capture(page, testInfo, `mobile-bottom-${path.replaceAll('/', '-')}-${height}`)
     }

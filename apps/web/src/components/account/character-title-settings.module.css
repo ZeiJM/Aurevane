@@ -450,3 +450,28 @@
     height: 5rem;
   }
 }
+
+/* Personal identity workshop, retaining every title/image edit control. */
+.layout {
+  gap: 1rem;
+  background: transparent;
+  border: 0;
+}
+.current,
+.personal,
+.profileImage,
+.future {
+  color: #30382e;
+  background: linear-gradient(125deg, #d1c3a9, #b9a88b);
+  border: 1px solid #99815b;
+  border-radius: 4px;
+  padding: 1.2rem;
+}
+.layout :is(input, textarea) {
+  color: #30382e;
+  background: #e0d3ba;
+  border-color: #98815c;
+}
+.layout :is(h2, h3) {
+  color: #29372e;
+}

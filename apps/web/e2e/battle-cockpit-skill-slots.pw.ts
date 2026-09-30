@@ -33,7 +33,7 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
 
   await page
     .getByRole('navigation', { name: 'Primary game navigation', exact: true })
-    .getByRole('link', { name: /Battle Hall/ })
+    .getByRole('link', { name: /Battle/ })
     .click()
   await expect(page).toHaveURL(/\/game\/battle$/)
 

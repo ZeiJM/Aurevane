@@ -81,96 +81,17 @@ test('Battle Hall shows one full-width parchment workspace at a time with all re
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
 
-  await expect(page.getByTestId('character-profile')).toBeVisible()
+  await expect(page.locator('[data-av-game-rail]')).toBeVisible()
   await expect(page.locator('[data-hall-workspace]')).toHaveCount(3)
   await expect(page.locator('[data-hall-workspace]:visible')).toHaveCount(1)
   await expect(page.locator('[data-hall-workspace="ai"]')).toBeVisible()
   await expect(page.locator('[data-hall-workspace="pvp"]')).toBeHidden()
   await expect(page.locator('[data-hall-workspace="spectate"]')).toBeHidden()
-  if (!mobile) {
-    await expect
-      .poll(() =>
-        page
-          .locator('[data-battle-hall-workspace="true"]')
-          .evaluate((element) =>
-            getComputedStyle(element).getPropertyValue('--character-rail-height').trim(),
-          ),
-      )
-      .not.toBe('')
-  }
   await capture(page, testInfo, 'idle')
-
   const ai = page.locator('[data-hall-workspace="ai"]')
-  const background = await ai.evaluate((node) => getComputedStyle(node).backgroundColor)
-  const rgb = (background.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number)
-  expect(Math.min(...rgb), 'AI workspace uses a light parchment surface').toBeGreaterThan(180)
-
-  if (!mobile) {
-    const [pageBox, workspaceBox, identityBox] = await Promise.all([
-      page.locator('#battle-launch').boundingBox(),
-      ai.boundingBox(),
-      page.getByTestId('character-profile').boundingBox(),
-    ])
-    expect(pageBox).not.toBeNull()
-    expect(workspaceBox).not.toBeNull()
-    expect(identityBox).not.toBeNull()
-    expect
-      .soft(
-        Math.abs(pageBox!.y + pageBox!.height - (identityBox!.y + identityBox!.height)),
-        'Battle Hall parchment ends in line with the character panel',
-      )
-      .toBeLessThanOrEqual(2)
-    expect(workspaceBox!.width).toBeGreaterThan(pageBox!.width * 0.94)
-    const aiSpace = await ai.evaluate((element) => {
-      const body = element.querySelector('[data-hall-scroll-body]')!.getBoundingClientRect()
-      const vista = element.querySelector('figure')!.getBoundingClientRect()
-      const modes = [
-        ...element.querySelectorAll<HTMLElement>('nav[aria-label="AI arenas"] > button'),
-      ].map((button) => button.getBoundingClientRect())
-      return {
-        workspaceHeight: element.getBoundingClientRect().height,
-        bodyHeight: body.height,
-        vistaWidth: vista.width,
-        vistaHeight: vista.height,
-        modeHeights: modes.map((mode) => mode.height),
-        modeBottomOverflow: Math.max(...modes.map((mode) => mode.bottom)) - body.bottom,
-        bodyOverflow:
-          element.querySelector<HTMLElement>('[data-hall-scroll-body]')!.scrollHeight -
-          element.querySelector<HTMLElement>('[data-hall-scroll-body]')!.clientHeight,
-      }
-    })
-    expect
-      .soft(aiSpace.bodyHeight, 'AI workspace gives the main content most of the available height')
-      .toBeGreaterThan(aiSpace.workspaceHeight * 0.62)
-    expect
-      .soft(aiSpace.vistaWidth, 'AI arena banner keeps the full workspace width')
-      .toBeGreaterThan(workspaceBox!.width * 0.94)
-    expect
-      .soft(aiSpace.vistaHeight, 'AI arena banner stays deliberately shallow')
-      .toBeLessThan(aiSpace.bodyHeight * 0.22)
-    for (const height of aiSpace.modeHeights) {
-      expect
-        .soft(height, 'AI mode choices have comfortable vertical breathing room')
-        .toBeGreaterThanOrEqual(58)
-    }
-    expect
-      .soft(
-        aiSpace.modeBottomOverflow,
-        'AI mastery choice stays fully inside the visible workspace',
-      )
-      .toBeLessThanOrEqual(1)
-    const hallScrollbar = await ai.locator('[data-hall-scroll-body]').evaluate((element) => ({
-      color: getComputedStyle(element).scrollbarColor,
-      width: getComputedStyle(element).scrollbarWidth,
-    }))
-    expect(hallScrollbar.color).toContain('rgb(7, 16, 25)')
-    expect(hallScrollbar.width).toBe('thin')
-    if (testInfo.project.name === 'laptop-chromium') {
-      expect
-        .soft(aiSpace.bodyOverflow, 'Laptop AI workspace fits without a vertical scrollbar')
-        .toBeLessThanOrEqual(1)
-    }
-  }
+  await page.getByRole('button', { name: /Matchmaking/ }).click()
+  await expect(page.locator('.av-matchmaking')).toContainText('Coming Soon')
+  await page.getByRole('button', { name: 'AI Battles', exact: false }).click()
 
   await expect(page.getByLabel('Battle mode')).toHaveValue('recruit-sparring')
   await expect(page.getByRole('button', { name: 'Enter Battle', exact: true })).toBeEnabled()

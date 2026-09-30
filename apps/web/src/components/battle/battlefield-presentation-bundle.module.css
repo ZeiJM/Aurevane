@@ -64,7 +64,7 @@
    owned by the real tiles; the courtyard is atmospheric scenery around the board only. */
 :global(main[data-battle-concept='true']) {
   background:
-    linear-gradient(#0b1623cc, #0b1623d9),
+    linear-gradient(#39484399, #293837bd),
     url('/media/art/concept-ui/battle-hall-v01.webp') center / cover !important;
 }
 :global(main[data-battle-concept='true'] > header),
@@ -77,7 +77,7 @@
   --av-border: #c8bca5;
   --av-border-strong: #a28b60;
   color: #192d41 !important;
-  background: #eeeae0 !important;
+  background: #cbbca1 !important;
   border-color: #a28b60 !important;
   border-radius: 0 !important;
 }
@@ -88,7 +88,7 @@
 }
 :global(main[data-battle-concept='true'] > header button) {
   color: #284252 !important;
-  background: #e5e0d6 !important;
+  background: #d2c4aa !important;
   border-color: #b7a989 !important;
 }
 :global(main[data-battle-concept='true'] [data-battle-instruction-row='true']) {
@@ -102,7 +102,7 @@
 :global(main[data-battle-concept='true'] [data-unified-combatant-rail='true'] > div > article) {
   border-radius: 0 !important;
   border-color: #938061 !important;
-  background: linear-gradient(130deg, #132836f0, #07141df5) !important;
+  background: linear-gradient(130deg, #3c4945f0, #2a3439f5) !important;
 }
 :global(
   main[data-battle-concept='true']
@@ -194,6 +194,6 @@
   main[data-battle-concept='true'][data-unified-battle='true']
     [data-unified-battle-economy='true']::before
 ) {
-  background: #eeeae0 !important;
+  background: #cbbca1 !important;
   color: #192d41 !important;
 }

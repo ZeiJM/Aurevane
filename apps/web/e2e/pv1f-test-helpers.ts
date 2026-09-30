@@ -28,7 +28,8 @@ async function confirmTestAccountEmail(email: string): Promise<void> {
 
   if (error) throw error
 
-  const user = data.users.find((candidate) => candidate.email === email)
+  const normalizedEmail = email.trim().toLowerCase()
+  const user = data.users.find((candidate) => candidate.email?.toLowerCase() === normalizedEmail)
   if (!user) throw new Error('The browser-test account was not created in local Supabase.')
 
   const { error: confirmError } = await supabase.auth.admin.updateUserById(user.id, {
@@ -76,7 +77,9 @@ async function createCharacterAfterSignIn(input: {
   await reviewCharacter.click()
   await page.getByRole('button', { name: 'Create character' }).click()
 
-  await expect(page).toHaveURL(/\/game\/character$/)
+  await expect(page).toHaveURL(/\/game\/haven$/)
+  await expect(page.getByRole('heading', { name: 'Haven', exact: true })).toBeVisible()
+  await page.goto('/game/character')
   await expect(page.getByTestId('character-profile')).toContainText(characterName)
 }
 
@@ -144,7 +147,7 @@ export async function signOutFromAccountMenu(page: Page): Promise<void> {
 export async function openOfflineTraining(page: Page): Promise<void> {
   await page
     .getByRole('navigation', { name: 'Primary game navigation', exact: true })
-    .getByRole('link', { name: /Passive Training/ })
+    .getByRole('link', { name: /Training/ })
     .click()
   await expect(page).toHaveURL(/\/game\/training$/)
   await expect(page.getByRole('heading', { name: 'Passive Training' })).toBeVisible()

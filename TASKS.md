@@ -2,6 +2,16 @@
 
 **PHASE 4 CLOSED — 2026-09-23:** the Owner explicitly accepted Phase 4 as closed. A03, A04, A07 and A10 are **COMPLETE**. A07 concerns battle SFX/audio identities, not background music. Post-closeout UI cleanup/regression work is maintenance and does not reopen Phase 4 by default. See `docs/PHASE_4_CLOSEOUT.md`.
 
+## Approved full UI redesign — 2026-09-29
+
+Candidate `agent/approved-aurevane-ui` implements the Owner-approved adventure/stone presentation, Haven as the post-selection destination, Loadout with Nexus and future Items, a compact shared character/navigation rail, onboarding portraits (12 Male / 12 Female), fixed frame with scrolling content, and consistent square gameplay media. Matchmaking alone is Coming Soon; direct PvP and all existing mechanics/editor operations remain available. Skill parameter and effect renderers are preserved.
+
+Specification and verification plan: `docs/superpowers/specs/2026-09-29-approved-ui.md`, `docs/superpowers/plans/2026-09-29-approved-ui.md`. Local representative desktop/mobile visual checks use synthetic component fixtures; authenticated persistence and live multiplayer verification require the configured game environment. Vercel remains locked; no deployment is part of this change.
+
+Implementation checks passed: full `pnpm check` (including 2,988 tests and production builds), independent review with both material findings corrected, and representative desktop/mobile component previews. Evidence and remaining authenticated-browser verification boundary: `docs/superpowers/verification/2026-09-29-approved-ui.md`. Main was refreshed at `f82f8176fead0024572bfa53f497430602740880` before handover.
+
+Authenticated CI follow-up: initial build/Skill/Essence/Resonance/attribute workflows passed; browser workflows exposed stale layout selectors and real mobile action/controls/overflow defects. Those findings are corrected on the candidate, including the dedicated X vs Y lobby visual pass. A fresh exact-candidate CI run is required before release acceptance; see the verification record. No merge or deployment is authorized.
+
 ## Nexus Technique Preview and Manual — 2026-09-27
 
 Owner-requested maintenance candidate `agent/technique-preview-manual-20260927` adds the ordered Technique characteristics, effect magnitudes and compact explanations, current zero-turn cooldown display, and content-aligned preview height. Nexus Technique lane names are centered without class icons; the two requested header captions are removed; the power heading is “Ascension / Severance”. Mobile first-tap selection and server-owned auto-save remain on the existing path.

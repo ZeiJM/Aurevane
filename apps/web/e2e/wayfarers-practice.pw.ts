@@ -101,7 +101,7 @@ test('Passive Training requires an explicit plan and freezes a server-timed rewa
 
   await page
     .getByRole('navigation', { name: 'Primary game navigation', exact: true })
-    .getByRole('link', { name: /Battle Hall/ })
+    .getByRole('link', { name: /Battle/ })
     .click()
   await expect(page.getByRole('heading', { name: 'Choose your arena.' })).toBeVisible()
   const battleMode = page.getByLabel('Battle mode')
@@ -116,7 +116,7 @@ test('Passive Training requires an explicit plan and freezes a server-timed rewa
 
   await page
     .getByRole('navigation', { name: 'Primary game navigation', exact: true })
-    .getByRole('link', { name: /Passive Training/ })
+    .getByRole('link', { name: /Training/ })
     .click()
   await expect(page.getByRole('heading', { name: 'Passive Training' })).toBeVisible()
 

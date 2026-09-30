@@ -621,3 +621,66 @@
     padding: 4rem 1.45rem 1.35rem;
   }
 }
+/* Compact reset sheet: square identity and complete controls inside the viewport. */
+.dialog[data-has-portrait='true'] {
+  width: min(70rem, calc(100vw - 2rem));
+  max-height: 88dvh;
+  grid-template-columns: 15rem minmax(0, 1fr);
+  gap: 0.7rem 1.4rem;
+}
+.dialog[data-has-portrait='true'] .portrait {
+  min-height: 0;
+  grid-template-rows: auto minmax(0, 1fr);
+  padding: 1rem;
+  background: linear-gradient(140deg, #455349, #263439);
+}
+.dialog[data-has-portrait='true'] .portraitFrame {
+  width: 100%;
+  aspect-ratio: 1;
+  margin: 0;
+}
+.dialog[data-has-portrait='true'] .portraitImage {
+  transform: none;
+}
+.dialog[data-has-portrait='true'] .portraitLower {
+  min-height: 12rem;
+}
+.dialog[data-has-portrait='true'] .portraitAtmosphere {
+  min-height: 0;
+}
+.dialog[data-has-portrait='true'] .portraitQuote {
+  font-size: 1rem;
+}
+.dialog[data-has-portrait='true'] .portraitIdentity {
+  position: relative;
+  inset: auto;
+  padding: 1rem 0;
+}
+.dialog[data-has-portrait='true'] .portraitIdentity strong {
+  font-size: 1.4rem;
+}
+.dialog[data-has-portrait='true'] .grid {
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+.dialog[data-has-portrait='true'] .attribute {
+  padding: 0.75rem;
+}
+@media (max-width: 760px) {
+  .dialog[data-has-portrait='true'] {
+    display: block;
+    width: calc(100vw - 1rem);
+    padding: 1rem;
+    max-height: 92dvh;
+  }
+  .dialog[data-has-portrait='true'] .portrait {
+    display: none;
+  }
+  .dialog[data-has-portrait='true'] .grid {
+    grid-template-columns: 1fr;
+  }
+  .dialog[data-has-portrait='true'] .confirmReset {
+    width: 100%;
+    min-width: 0;
+  }
+}
