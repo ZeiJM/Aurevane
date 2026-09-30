@@ -303,14 +303,16 @@ test('mobile page panels clear the navigation bar at the end of scrolling', asyn
     }
 
     // Exercise a taller bar, as produced by safe-area padding or larger text.
-    await page.addStyleTag({
-      content: '[data-testid="authenticated-shell"] > footer { padding-bottom: 40px; }',
+    await page.locator('[data-testid="authenticated-shell"] > footer').evaluate((element) => {
+      ;(element as HTMLElement).style.setProperty('padding-bottom', '40px', 'important')
     })
     await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
     await settleLayout(page)
     const main = await page.locator('#game-main').boundingBox()
     const footer = await page.locator('[data-testid="authenticated-shell"] > footer').boundingBox()
-    expect(main!.y + main!.height).toBeLessThanOrEqual(footer!.y + 1)
+    const dock = await page.locator('[data-av-game-rail]').boundingBox()
+    expect(main!.y + main!.height).toBeLessThanOrEqual(dock!.y + 1)
+    expect(dock!.y + dock!.height).toBeLessThanOrEqual(footer!.y + 1)
     await expect(page.getByRole('link', { name: /Online Users/ })).toBeVisible()
   }
 })

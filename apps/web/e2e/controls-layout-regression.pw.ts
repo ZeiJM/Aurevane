@@ -81,7 +81,7 @@ test('Controls keeps all bindings reachable inside the stone desktop workspace',
   expect.soft(metrics.surface, 'Controls uses the stone surface token contract').toBe('moonstone')
   expect
     .soft(metrics.background, 'Controls panel reveals its containing stone workspace')
-    .toBe('none')
+    .toContain('linear-gradient')
   expect
     .soft(metrics.outerBackground, 'outer workspace uses stone material')
     .toContain('linear-gradient')
@@ -104,7 +104,9 @@ test('Controls keeps all bindings reachable inside the stone desktop workspace',
 
   const lastBinding = page.getByTestId('keybind-combatLog')
   await lastBinding.scrollIntoViewIfNeeded()
-  await expect(lastBinding).toBeInViewport({ ratio: 1 })
+  const lastControl = lastBinding.getByRole('button', { name: /^Change/ })
+  await expect(lastControl).toBeInViewport({ ratio: 1 })
+  await lastControl.click({ trial: true })
   expect
     .soft(await list.evaluate((element) => element.scrollTop), 'last binding uses list scroll')
     .toBeGreaterThan(0)
@@ -166,7 +168,9 @@ test('Controls stays a natural single-column scroll on phone', async ({ page }, 
   expect
     .soft(metrics.surface, 'phone Controls uses the stone surface token contract')
     .toBe('moonstone')
-  expect.soft(metrics.background, 'phone panel reveals its stone workspace').toBe('none')
+  expect
+    .soft(metrics.background, 'phone panel reveals its stone workspace')
+    .toContain('linear-gradient')
   expect
     .soft(metrics.outerBackground, 'phone outer workspace uses stone material')
     .toContain('linear-gradient')
@@ -180,7 +184,9 @@ test('Controls stays a natural single-column scroll on phone', async ({ page }, 
 
   const lastBinding = page.getByTestId('keybind-combatLog')
   await lastBinding.scrollIntoViewIfNeeded()
-  await expect(lastBinding).toBeInViewport({ ratio: 1 })
+  const lastControl = lastBinding.getByRole('button', { name: /^Change/ })
+  await expect(lastControl).toBeInViewport({ ratio: 1 })
+  await lastControl.click({ trial: true })
   expect
     .soft(await list.evaluate((element) => element.scrollTop), 'phone list itself does not scroll')
     .toBe(0)

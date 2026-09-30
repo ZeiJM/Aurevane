@@ -107,3 +107,5 @@
 - [x] Publish non-deploying branch/PR and report exact evidence and remaining limitations.
 
 Third-candidate local quality gate passed with 3,028 tests and production builds. Representative browser checks passed; all-subview visual acceptance and authenticated CI remain open. See the verification record for exact boundaries.
+
+Fourth-candidate follow-up: the third published head passed seven workflows and failed six. Corrected real mobile footer/dock overlap, Hall scroll alignment/clipping and spectator pill sizing; reconciled downstream assertions with the accepted structures while retaining authoritative gameplay checks. Next.js/eslint-config-next 16.3.6 is a narrow compatible security exception under Technology Policy §5. Local production audit and the 3,028-test quality gate pass. Fresh authenticated CI and full visual acceptance remain required.

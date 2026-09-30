@@ -294,6 +294,9 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
     enemy.x > actor.x ? 'KeyD' : enemy.x < actor.x ? 'KeyA' : enemy.y > actor.y ? 'KeyS' : 'KeyW'
   await page.keyboard.press(direction)
   await expect(actionEconomy).toHaveAttribute('aria-valuenow', '55', { timeout: 8000 })
+  await expect(technique).toHaveAttribute('aria-pressed', 'false')
+  await expect(commandContext).toContainText('Inspect')
+  await technique.click()
   await expect(technique).toHaveAttribute('aria-pressed', 'true')
   await expect(moveAction).not.toHaveAttribute('data-battle-active', 'true')
   await expect(commandContext).toContainText('Forceful Strike')

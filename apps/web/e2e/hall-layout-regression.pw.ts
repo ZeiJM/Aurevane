@@ -378,8 +378,13 @@ test('intermediate Hall layouts keep settings clear of the action row', async ({
       const contentBottom = Math.max(
         ...[...body.children].map((child) => child.getBoundingClientRect().bottom),
       )
+      const visibleBottom = ['auto', 'scroll', 'hidden', 'clip'].includes(
+        getComputedStyle(body).overflowY,
+      )
+        ? Math.min(contentBottom, body.getBoundingClientRect().bottom)
+        : contentBottom
       return {
-        overlap: contentBottom - actions.getBoundingClientRect().top,
+        overlap: visibleBottom - actions.getBoundingClientRect().top,
         actionsOutsidePanel:
           actions.getBoundingClientRect().bottom - node.getBoundingClientRect().bottom,
         overflowX: document.documentElement.scrollWidth - innerWidth,

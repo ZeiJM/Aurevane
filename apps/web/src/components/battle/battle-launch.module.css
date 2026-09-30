@@ -1459,6 +1459,25 @@
 .pvpVista {
   display: none;
 }
+@media (min-width: 761px) {
+  .workspace[data-hall-workspace='pvp'] {
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .pvpStage,
+  .pvpContent {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .pvpContent {
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+  }
+  .workspace[data-hall-workspace='pvp'] .workspaceBody {
+    min-height: 0;
+    overflow: auto;
+    align-content: start;
+  }
+}
 @media (max-width: 760px) {
   .page {
     height: auto;

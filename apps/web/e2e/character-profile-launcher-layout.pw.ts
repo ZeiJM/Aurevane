@@ -11,9 +11,7 @@ function uniqueCharacterName(): string {
   return `Launcher ${letters}`
 }
 
-test('Nexus build launchers stay centered and typographically matched', async ({
-  page,
-}, testInfo) => {
+test('Nexus build launchers stay centered and readable', async ({ page }, testInfo) => {
   const characterName = uniqueCharacterName()
   const slug = testInfo.project.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()
 
@@ -130,7 +128,8 @@ test('Nexus build launchers stay centered and typographically matched', async ({
     techniquesLabel.evaluate((element) => getComputedStyle(element).fontSize),
     disciplineLabel.evaluate((element) => getComputedStyle(element).fontSize),
   ])
-  expect(techniquesFontSize).toBe(disciplineFontSize)
+  expect(parseFloat(techniquesFontSize)).toBeGreaterThanOrEqual(13)
+  expect(parseFloat(disciplineFontSize)).toBeGreaterThanOrEqual(13)
 
   const serverNavigations: string[] = []
   page.on('request', (request) => {

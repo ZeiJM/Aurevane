@@ -121,8 +121,8 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
     contentType: 'image/png',
   })
   for (const [id, dimensions, tiles, name] of [
-    ['crossroads-court', '7x7', 49, 'Crossroads Court'],
-    ['terraced-yard', '11x7', 77, 'Terraced Yard'],
+    ['crossroads-court', '12x7', 84, 'Crossroads Court'],
+    ['terraced-yard', '15x7', 105, 'Terraced Yard'],
   ] as const) {
     await arena.selectOption(id)
     await page.getByRole('button', { name: 'Enter Battle', exact: true }).click()

@@ -1086,9 +1086,16 @@
   --av-text-dim: #625e4f;
   --av-brass-300: #69532d;
   --av-brass-200: #6d572e;
+  --av-teal-bright: #285f58;
   --av-border: #99826366;
   --av-border-strong: #9b8362;
   color: #2d332d;
+}
+:global(.av-master) .workspaceTabs span {
+  font-size: 0.75rem;
+}
+:global(.av-master) .rosterFilters span {
+  font-size: 0.6875rem;
 }
 :global(.av-master) .rosterPane,
 :global(.av-master) .detailPane,
@@ -1114,9 +1121,13 @@
   color: inherit;
 }
 :global(.av-master) .layout :is(button, a)[data-selected='true'] {
+  --av-teal-bright: #b8e4dc;
   color: #f1e5ce;
   background: #345b52;
   border-color: #437367;
+}
+:global(.av-master) .layout .rosterRow[data-selected='true'] strong {
+  color: inherit;
 }
 :global(.av-master) .layout button:disabled {
   opacity: 0.5;

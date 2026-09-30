@@ -13,11 +13,16 @@ test('training follows the scenic reference with stacked plan and status cards',
     width: mobile ? 390 : testInfo.project.name === 'laptop-chromium' ? 1366 : 1728,
     height: mobile ? 844 : 768,
   })
+  const nameSuffix = String(Date.now())
+    .slice(-7)
+    .split('')
+    .map((digit) => String.fromCharCode(65 + Number(digit)))
+    .join('')
   await provisionAccountAndEnterCharacter({
     page,
     email: `training-concept-${testInfo.project.name}-${Date.now()}@example.test`,
     password: 'Disposable-layout-review-2026!',
-    characterName: mobile ? 'Lyra Dawn' : 'Lyra Vale',
+    characterName: `Lyra ${nameSuffix}`,
   })
   await page.goto('/game/training')
   const frame = page.locator('[data-training-concept]')

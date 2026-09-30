@@ -134,7 +134,7 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
   await page.getByRole('button', { name: 'Cancel Action' }).click()
 
   await commandDeck.getByRole('button', { name: /^Inspect,/ }).click()
-  await expect(commandContext).toContainText('Review terrain and unit details')
+  await expect(commandContext).toContainText('Choose a character or tile to inspect')
   await page.getByRole('button', { name: /Tile 4, 3; rough-ground; elevation 0/ }).click()
   await expect(commandContext).toContainText('Rough ground')
   await expect(commandContext).toContainText('40 AP')

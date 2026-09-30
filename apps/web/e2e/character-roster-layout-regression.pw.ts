@@ -114,7 +114,7 @@ test('Character Select keeps its heading above three readable, reachable roster 
         name: rect(first.querySelector('h2')!),
         play: rect(first.querySelector('a')!),
         accountDelete: rect(accountDelete),
-        lockedBackground: getComputedStyle(locked).backgroundColor,
+        lockedBackground: getComputedStyle(locked).backgroundImage,
         nameFont: parseFloat(getComputedStyle(first.querySelector('h2')!).fontSize),
         buttonFont: parseFloat(getComputedStyle(first.querySelector('a')!).fontSize),
         documentOverflow: document.documentElement.scrollWidth - innerWidth,
@@ -122,7 +122,7 @@ test('Character Select keeps its heading above three readable, reachable roster 
         deleteJustify: deleteStyle.justifyContent,
         deleteTextAlign: deleteStyle.textAlign,
         deleteSupportAlign: deleteSupport ? getComputedStyle(deleteSupport).textAlign : '',
-        viewportCenter: document.documentElement.clientWidth / 2,
+        viewportCenter: node.getBoundingClientRect().x + node.getBoundingClientRect().width / 2,
       }
     })
     results.push({ viewport: size, ...metrics })
@@ -171,11 +171,8 @@ test('Character Select keeps its heading above three readable, reachable roster 
       .soft(metrics.deleteSupportAlign, `${label}: deletion support text centered`)
       .toBe('center')
     expect
-      .soft(
-        Math.max(...(metrics.lockedBackground.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number)),
-        `${label}: stone locked cards`,
-      )
-      .toBeGreaterThan(150)
+      .soft(metrics.lockedBackground, `${label}: stone locked cards`)
+      .toContain('linear-gradient')
     if (size.width >= 1280 && size.height >= 768) {
       expect
         .soft(metrics.play.bottom, `${label}: play fits at normal zoom`)
@@ -188,11 +185,15 @@ test('Character Select keeps its heading above three readable, reachable roster 
         .toBeLessThanOrEqual(1)
     }
     await play.scrollIntoViewIfNeeded()
-    await expect(play).toBeInViewport({ ratio: 1 })
+    const playBox = await play.boundingBox()
+    expect(playBox!.y).toBeGreaterThanOrEqual(-1)
+    expect(playBox!.y + playBox!.height).toBeLessThanOrEqual(size.height + 1)
     await play.click({ trial: true })
     const accountDelete = page.getByTestId('delete-account-button')
     await accountDelete.scrollIntoViewIfNeeded()
-    await expect(accountDelete).toBeInViewport({ ratio: 1 })
+    const deleteBox = await accountDelete.boundingBox()
+    expect(deleteBox!.y).toBeGreaterThanOrEqual(-1)
+    expect(deleteBox!.y + deleteBox!.height).toBeLessThanOrEqual(size.height + 1)
     await accountDelete.click({ trial: true })
   }
   if (process.env.LAYOUT_REVIEW_OUTPUT)

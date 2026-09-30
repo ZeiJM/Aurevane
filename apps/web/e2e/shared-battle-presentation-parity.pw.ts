@@ -27,7 +27,8 @@ function uniqueIdentity(prefix: string): { email: string; characterName: string 
 
 async function expectSharedHeader(root: ReturnType<Page['locator']>) {
   const message = root.locator('[data-battle-header-message="true"]')
-  await expect(message).toBeVisible()
+  await expect(root.locator('[data-unified-battle-header]')).toBeVisible()
+  await expect(root.getByRole('progressbar', { name: 'Action Economy remaining' })).toBeVisible()
   await expect(message).toHaveText(SHARED_HEADER)
 }
 
@@ -139,7 +140,7 @@ async function selectMoveAndVerifySharedTreatment(root: ReturnType<Page['locator
   const borderColor = await reachable
     .first()
     .evaluate((element) => getComputedStyle(element).borderColor)
-  expect(borderColor).toMatch(/98, 205, 132|98, 210, 138/)
+  expect(borderColor).toMatch(/105, 210, 204/)
 }
 
 async function plotOneDesktopWasdStep(

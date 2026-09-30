@@ -90,7 +90,7 @@ async function castOnEmptyGround(page: Page, name: string, testInfo: TestInfo) {
   )!
   await root.getByRole('button', { name: 'About Chilling Mist', exact: true }).click()
   const details = page.getByRole('dialog', { name: 'Chilling Mist', exact: true })
-  for (const label of ['Ground', 'Freeze Ground', 'Slow', '45 AP'])
+  for (const label of ['Ground', 'Frozen Terrain', 'Slow', '45 AP'])
     await expect(details).toContainText(label)
   const fit = await details.evaluate((element) => {
     const rect = element.getBoundingClientRect()
@@ -325,10 +325,7 @@ test('PvP ground Skill uses the same forecast and spectator terrain inspection',
       const guestRoot = guest.locator('main[data-unified-battle="true"]')
       await expect(guestRoot).toHaveAttribute('data-local-turn', 'true')
       await guestRoot.getByRole('button', { name: /End Turn, / }).click()
-      // The inline Face controls are intentionally hidden; confirm via the visible board guide.
-      const eastGuide = guestRoot.locator(
-        '#battlefield button[data-facing-guide="true"][data-facing-direction="east"]',
-      )
+      const eastGuide = guestRoot.getByRole('button', { name: 'Face east', exact: true })
       await expect(eastGuide).toBeVisible()
       const facingCommit = guest.waitForResponse(
         (response) => response.url().endsWith('/commit') && response.request().method() === 'POST',

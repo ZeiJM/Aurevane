@@ -99,6 +99,9 @@ test('keeps the desktop PvP battle flow beside compact commands without resizing
     await spectator.goto('/game/battle')
     await spectator.getByRole('button', { name: 'Spectate', exact: true }).click()
     await spectator.getByLabel('Battle Key').fill(spectatorKey!)
+    const historyResponse = spectator.waitForResponse((response) =>
+      /\/api\/battles\/[^/]+\/events(?:\?|$)/.test(response.url()),
+    )
     await spectator.getByRole('button', { name: 'Spectate Battle' }).click()
     await expect(spectator).toHaveURL(
       new RegExp(`/game/battle/spectate/${spectatorKey!.replaceAll('-', '\\-')}$`),
@@ -107,25 +110,24 @@ test('keeps the desktop PvP battle flow beside compact commands without resizing
 
     const spectatorRoot = spectator.locator("main[data-pvp-spectator='true']")
     await expect(spectatorRoot).toBeVisible()
-    const spectatorChatTab = spectator.getByRole('tab', { name: 'Battle Chat' })
-    const spectatorLogTab = spectator.getByRole('tab', { name: 'Battle Log' })
-    await expect(spectatorLogTab).toHaveAttribute('aria-selected', 'true')
-    await spectatorChatTab.click()
-    await expect(spectatorChatTab).toHaveAttribute('aria-selected', 'true')
-
-    const spectatorLogResponse = spectator.waitForResponse((response) => {
-      const url = new URL(response.url())
-      return (
-        url.pathname.startsWith('/api/pvp/battles/') &&
-        url.pathname.endsWith('/chat') &&
-        url.searchParams.get('includeLog') === '1' &&
-        response.ok()
-      )
-    })
-    await spectatorLogTab.click()
-    await spectatorLogResponse
-    await expect(spectatorLogTab).toHaveAttribute('aria-selected', 'true')
-    await expect(spectator.getByText('Recent 4 turns · actions · outcomes')).toBeVisible()
+    expect((await historyResponse).ok()).toBe(true)
+    const spectatorLog = spectatorRoot.locator('[data-battle-inline-log]')
+    await expect(spectatorLog).toBeVisible()
+    await expect(spectatorLog.getByRole('button', { name: 'Expand battle history' })).toBeVisible()
+    const chat = spectatorRoot
+      .locator('details')
+      .filter({ has: spectator.getByText('Battle Chat', { exact: true }) })
+    await chat.locator('summary').click()
+    await expect(chat).toHaveAttribute('open', '')
+    await expect(chat.getByRole('textbox')).toBeVisible()
+    await chat.locator('summary').click()
+    await expect(chat).not.toHaveAttribute('open', '')
+    await spectatorLog.getByRole('button', { name: 'Expand battle history' }).click()
+    const history = spectator.getByRole('dialog', { name: 'Battle Log', exact: true })
+    await expect(history).toBeVisible()
+    await expect(history).not.toContainText('temporarily unavailable')
+    await spectator.keyboard.press('Escape')
+    await expect(history).toHaveCount(0)
 
     await expect(root.locator('[data-battle-inline-log]')).toBeVisible()
     await expectMapKey(host)
