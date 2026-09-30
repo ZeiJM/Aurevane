@@ -8,11 +8,17 @@ test('ordinary desktop shell fits its identity and every navigation control with
   test.skip(info.project.name !== 'desktop-chromium', 'Viewport matrix runs once on Chromium.')
   test.setTimeout(180_000)
   const seed = Date.now()
+  const nameSuffix = seed
+    .toString()
+    .slice(-7)
+    .split('')
+    .map((digit) => String.fromCharCode(65 + Number(digit)))
+    .join('')
   await provisionAccountAndEnterCharacter({
     page,
     email: `shell-fit-${seed}-${info.workerIndex}@example.test`,
     password: 'Shell-viewport-fit-2026!',
-    characterName: 'Frame Explorer',
+    characterName: `Frame Explorer ${nameSuffix}`,
   })
 
   for (const viewport of [
@@ -52,6 +58,21 @@ test('ordinary desktop shell fits its identity and every navigation control with
             )
           })
           .map((control) => control.textContent),
+        overflowingLabels: Array.from(
+          rail.querySelectorAll('[aria-label="Primary game navigation"] a > span'),
+        )
+          .filter((label) => {
+            const linkBox = label.parentElement!.getBoundingClientRect()
+            const range = document.createRange()
+            range.selectNodeContents(label)
+            const textBox = range.getBoundingClientRect()
+            return (
+              label.scrollWidth > label.clientWidth + 1 ||
+              textBox.left < linkBox.left - 1 ||
+              textBox.right > linkBox.right + 1
+            )
+          })
+          .map((label) => label.textContent),
       }
     })
     const label = `${viewport.width}×${viewport.height}`
@@ -64,6 +85,7 @@ test('ordinary desktop shell fits its identity and every navigation control with
     ).toBeLessThanOrEqual(1)
     expect(Math.abs(metrics.footerGap), `${label}: rail ends above footer`).toBeLessThanOrEqual(1)
     expect(metrics.unreachable, `${label}: clipped navigation`).toEqual([])
+    expect(metrics.overflowingLabels, `${label}: navigation text outside its control`).toEqual([])
     expect(metrics.portrait.width, `${label}: crisp actual portrait size`).toBeCloseTo(
       viewport.height > 700 ? 144 : 88,
       0,

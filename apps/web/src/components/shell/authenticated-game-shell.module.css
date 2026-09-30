@@ -397,11 +397,14 @@
     align-items: center;
   }
   .railNavigation {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0;
     padding-top: 0.25rem;
   }
   .railLink {
     min-height: 1.75rem;
+    gap: 0.25rem;
+    padding-inline: 0;
     padding-block: 0.15rem;
   }
   .railUtilities {

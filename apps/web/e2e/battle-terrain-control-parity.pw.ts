@@ -102,7 +102,7 @@ function expectBattleScaleParity(
 }
 
 async function enterScaleParityPveBattle(page: Page) {
-  const identity = uniqueIdentity('ScalePvE')
+  const identity = uniqueIdentity('PvE')
   await provisionAccountAndEnterCharacter({
     page,
     email: identity.email,

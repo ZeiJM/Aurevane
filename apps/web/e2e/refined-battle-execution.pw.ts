@@ -83,9 +83,9 @@ test('leaving during a slow target preview cannot submit a late action', async (
   await page.getByRole('button', { name: 'Account', exact: true }).click()
   await page.getByRole('menuitem', { name: 'Controls & Keybinds', exact: true }).click()
   await expect(page).toHaveURL(/\/game\/settings\/controls$/)
-  releasePreview()
   // Presence polling prevents network-idle; settle the held response after the battle unmounts.
   await expect(page.locator('[data-battle-layout="refined"]')).toHaveCount(0)
+  releasePreview()
   await Promise.all(previewHandlers)
   await page.evaluate(
     () =>
