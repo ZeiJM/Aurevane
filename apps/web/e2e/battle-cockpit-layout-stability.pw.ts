@@ -149,7 +149,7 @@ test('keeps the shared PvP desktop cockpit at the same compact scale', async ({
   }
 })
 
-test('mobile End Turn opens battlefield facing guides and commits a single tapped direction', async ({
+test('mobile End Turn opens facing controls and commits a single tapped direction', async ({
   page,
 }, testInfo) => {
   test.skip(testInfo.project.name !== 'mobile-chromium', 'Mobile shared cockpit regression')
@@ -170,7 +170,7 @@ test('mobile End Turn opens battlefield facing guides and commits a single tappe
   const deck = page.locator('section[aria-label="Command Deck"]')
   const facingPad = deck.locator('[data-unified-facing-pad="true"]')
   const finishTurn = deck.getByRole('button', { name: /^End Turn,/ })
-  const facingGuides = page.locator('#battlefield button[data-facing-guide="true"]')
+  const facingGuides = facingPad.getByRole('button')
   const tokenArrows = page.locator('#battlefield [data-battle-facing-indicator="true"]')
 
   await expect(facingPad).toBeHidden()
@@ -214,9 +214,7 @@ test('mobile End Turn opens battlefield facing guides and commits a single tappe
   await page.waitForTimeout(200)
   expect(finalTurnRequests).toBe(0)
 
-  const northGuide = page.locator(
-    '#battlefield button[data-facing-guide="true"][data-facing-direction="north"]',
-  )
+  const northGuide = facingPad.getByRole('button', { name: 'Face north', exact: true })
   const finalTurnResponse = page.waitForResponse(
     (response) =>
       response.request().method() === 'POST' &&

@@ -2059,20 +2059,22 @@ export function BattleExperience({
               Surrendering ends the battle immediately as a loss. Practice grants no normal
               progression rewards.
             </p>
-            <button
-              type="button"
-              onClick={() => setSurrenderOpen(false)}
-              disabled={surrenderPending}
-            >
-              Stay in battle
-            </button>
-            <button
-              type="button"
-              onClick={() => void confirmPveSurrender()}
-              disabled={surrenderPending}
-            >
-              {surrenderPending ? 'Surrendering…' : 'Confirm Surrender'}
-            </button>
+            <div className={styles.modalActions}>
+              <button
+                type="button"
+                onClick={() => setSurrenderOpen(false)}
+                disabled={surrenderPending}
+              >
+                Stay in battle
+              </button>
+              <button
+                type="button"
+                onClick={() => void confirmPveSurrender()}
+                disabled={surrenderPending}
+              >
+                {surrenderPending ? 'Surrendering…' : 'Confirm Surrender'}
+              </button>
+            </div>
           </section>
         </div>
       ) : null}

@@ -322,6 +322,7 @@ async function expectBattlefieldContained(page: import('@playwright/test').Page)
     const boardRect = board.getBoundingClientRect()
     const viewportRect = viewport.getBoundingClientRect()
     return {
+      scrollable: innerWidth <= 820 && getComputedStyle(viewport).overflowX === 'auto',
       board: {
         left: boardRect.left,
         top: boardRect.top,
@@ -341,7 +342,19 @@ async function expectBattlefieldContained(page: import('@playwright/test').Page)
   if (!bounds) return
   expect(bounds.board.left).toBeGreaterThanOrEqual(bounds.viewport.left - 1)
   expect(bounds.board.top).toBeGreaterThanOrEqual(bounds.viewport.top - 1)
-  expect(bounds.board.right).toBeLessThanOrEqual(bounds.viewport.right + 1)
+  if (bounds.scrollable) {
+    // Phone arenas retain their tile scale in an intentional horizontal pan region.
+    const tiles = page.locator('#battlefield [data-board-auto-fit] > button')
+    for (const tile of [tiles.last(), tiles.first()]) {
+      await tile.scrollIntoViewIfNeeded()
+      const visible = await tile.evaluate((element) => {
+        const rect = element.getBoundingClientRect()
+        const clip = element.parentElement!.parentElement!.getBoundingClientRect()
+        return rect.left >= clip.left - 1 && rect.right <= clip.right + 1
+      })
+      expect(visible).toBe(true)
+    }
+  } else expect(bounds.board.right).toBeLessThanOrEqual(bounds.viewport.right + 1)
   expect(bounds.board.bottom).toBeLessThanOrEqual(bounds.viewport.bottom + 1)
 }
 

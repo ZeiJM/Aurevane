@@ -5,6 +5,9 @@
   height: 100%;
   gap: 1rem;
   padding: 0.6rem 1rem;
+  background:
+    linear-gradient(#192a2933, #192a2925),
+    url('/media/art/adventure/haven-v01.webp') center / cover;
 }
 .heading {
   padding: 0.5rem 1rem;

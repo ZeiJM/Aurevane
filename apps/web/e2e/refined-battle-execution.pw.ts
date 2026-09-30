@@ -59,16 +59,37 @@ test('leaving during a slow target preview cannot submit a late action', async (
   const hold = new Promise<void>((resolve) => {
     releasePreview = resolve
   })
+  const previewHandlers: Promise<void>[] = []
   await page.route('**/api/battles/*/preview', async (route) => {
-    const response = await route.fetch()
-    await hold
-    await route.fulfill({ response }).catch(() => undefined)
+    let previewSettled!: () => void
+    previewHandlers.push(
+      new Promise<void>((resolve) => {
+        previewSettled = resolve
+      }),
+    )
+    try {
+      const response = await route.fetch()
+      await hold
+      await route.fulfill({ response }).catch(() => undefined)
+    } finally {
+      previewSettled()
+    }
   })
   await page.keyboard.press('Digit3')
+  const executionPreview = page.waitForRequest('**/api/battles/*/preview')
   await localTile.click()
+  await executionPreview
   await expect(page.getByRole('button', { name: /^Basic Attack,/ })).toBeDisabled()
   await page.goto('/game/battle')
   releasePreview()
-  await page.waitForLoadState('networkidle')
+  // Presence polling prevents network-idle; settle the held response after the battle unmounts.
+  await expect(page.locator('[data-battle-layout="refined"]')).toHaveCount(0)
+  await Promise.all(previewHandlers)
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+      }),
+  )
   expect(commits).toBe(0)
 })

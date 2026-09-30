@@ -22,7 +22,9 @@ test('ordinary desktop shell fits its identity and every navigation control with
     { width: 1366, height: 576 },
   ]) {
     await page.setViewportSize(viewport)
-    await expect(page.getByTestId('character-rail-profile')).toBeVisible()
+    await expect(
+      page.locator('[data-av-game-rail]').getByTestId('character-rail-profile'),
+    ).toBeVisible()
     await page.evaluate(() => document.fonts.ready)
     const metrics = await page.locator('[data-av-game-rail]').evaluate((rail) => {
       const box = rail.getBoundingClientRect()
@@ -83,7 +85,9 @@ test('ordinary desktop shell fits its identity and every navigation control with
     for (const label of ['Haven', 'Profile', 'Loadout', 'Travel', 'Battle', 'Training']) {
       await expect(nav.getByRole('link', { name: label, exact: true })).toBeInViewport()
     }
-    await expect(page.getByTestId('character-rail-profile')).toBeHidden()
+    await expect(
+      page.locator('[data-av-game-rail]').getByTestId('character-rail-profile'),
+    ).toBeHidden()
     await info.attach(`shell-mobile-${width}`, {
       body: await page.screenshot(),
       contentType: 'image/png',

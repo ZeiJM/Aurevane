@@ -17,7 +17,7 @@ function uniqueIdentity(project: string): { email: string; characterName: string
   }
 }
 
-test('keeps Move reachable tiles rich green and executes one clicked path through the server', async ({
+test('keeps Move reachable tiles distinct and executes one clicked path through the server', async ({
   page,
 }, testInfo) => {
   test.skip(
@@ -65,19 +65,30 @@ test('keeps Move reachable tiles rich green and executes one clicked path throug
     return { borderColor: style.borderColor, boxShadow: style.boxShadow }
   })
 
-  expect(reachableStyle.borderColor).toBe('rgba(98, 210, 138, 0.86)')
+  expect(reachableStyle.borderColor).toBe('rgb(105, 210, 204)')
   expect(reachableStyle.boxShadow).toContain('inset')
-  expect(reachableStyle.boxShadow).toContain('98, 210, 138')
+  expect(reachableStyle.boxShadow).toContain('39, 190, 182')
   expect(neutralStyle.borderColor).not.toContain('226, 83, 83')
   expect(neutralStyle.boxShadow).not.toContain('206, 62, 62')
 
   const before = await page
     .getByRole('progressbar', { name: 'Action Economy remaining' })
     .getAttribute('aria-valuenow')
+  const destination = (await reachable.getAttribute('aria-label'))!.split(';')[0]!
   const result = await commitGesture(page, reachable)
   expect(result.request().postDataJSON().intent.kind).toBe('move')
   await expect(
     page.getByRole('progressbar', { name: 'Action Economy remaining' }),
   ).not.toHaveAttribute('aria-valuenow', before!)
-  await expect(moveButton).toHaveAttribute('data-battle-active', 'true')
+  await expect(moveButton).toHaveAttribute('data-battle-active', 'false')
+  const occupiedDestination = page.getByRole('button', {
+    name: new RegExp(`^${destination};.*occupied by ${identity.characterName}`),
+  })
+  await expect(occupiedDestination).toBeVisible()
+  await page.reload()
+  await expect(
+    page.getByRole('button', {
+      name: new RegExp(`^${destination};.*occupied by ${identity.characterName}`),
+    }),
+  ).toBeVisible()
 })

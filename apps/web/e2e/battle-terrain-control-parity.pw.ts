@@ -82,9 +82,7 @@ async function captureBattleScaleGeometry(page: Page): Promise<BattleScaleGeomet
     })
     const railCard = visibleArticles[0]!
     const rail = railCard.closest('aside') as HTMLElement
-    const portrait = railCard.querySelector<HTMLElement>(
-      'button[data-desktop-inspect-combatant], button[aria-label^="Show "]',
-    )!
+    const portrait = railCard.querySelector<HTMLElement>('button[aria-label^="Inspect "]')!
 
     const rect = (element: Element) => {
       const value = element.getBoundingClientRect()

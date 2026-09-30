@@ -576,6 +576,15 @@
   font-size: 0.68rem;
   line-height: 1.48;
 }
+.modalActions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.8rem;
+}
+.modal .modalActions button {
+  margin: 0;
+}
 
 .modal button,
 .result button {
