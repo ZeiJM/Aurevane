@@ -212,8 +212,19 @@ test('current Renewing Herbs summons, inspects and survives reload with its pinn
   await expect(inspect).toContainText('5/5 turns')
   await expect(inspect).toContainText('Thorn Rake')
   await expect(inspect).toContainText('Verdant Mend')
+  await page.keyboard.press('4')
+  await expect(root.getByRole('button', { name: /^Inspect,/ })).toHaveAttribute(
+    'data-active',
+    'true',
+  )
+  await expect(inspect).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(inspect).toHaveCount(0)
+  await expect(root.getByRole('button', { name: /^Inspect,/ })).not.toHaveAttribute(
+    'data-active',
+    'true',
+  )
+  await expect(root).toBeFocused()
 
   await page.reload()
   const reloaded = await readBattle(page, sessionId)

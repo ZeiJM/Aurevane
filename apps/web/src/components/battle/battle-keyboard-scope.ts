@@ -1,5 +1,12 @@
 /** Reading controls and native action-details dialogs own keyboard input instead of combat shortcuts. */
 export function isBattleShortcutBlocked(target: EventTarget | null): boolean {
+  // Inspect owns keyboard input even when focus remains on the tile that opened it.
+  if (
+    document.querySelector(
+      '[data-desktop-battle-inspect="true"], [data-pvp-inspect-popup="true"], [data-mobile-battle-popup]',
+    )
+  )
+    return true
   if (!(target instanceof HTMLElement)) return false
   return Boolean(
     target.closest(
