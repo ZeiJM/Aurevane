@@ -166,3 +166,10 @@ Move's inactive attribute is absent rather than the string `false`; the correcte
 
 
 The five affected journey files also run in the early desktop/mobile Browser Smoke stage. The full Chromium invocation and Edge keyboard invocation remain unchanged. Independent review caught a readiness selector that excluded the opponent's PvP clock; it now accepts both initiative states. Four viewport comparisons pass with either local or opponent turns, using the original eighteen dimensions and tolerance. The final scoped review is clean.
+
+
+## Ninth candidate: visible phone navigation during a held preview
+
+Eighth head `bd6f67fc` completed twelve successful workflows. The expanded early Browser Smoke invocation ran 46 cases: 34 passed, eleven skipped and one failed. The sole failure was the phone slow-preview journey trying to click the Rules link, which the current phone battle frame intentionally hides. The complete Chromium and Edge invocations did not run after this early failure. All other affected early journeys passed, including shared scale, short-window rail fit, Move occupancy/reload and repeated PvP Space handoffs.
+
+The unmount journey now uses the visible Account button and Controls & Keybinds menu item on every viewport. This is the existing Next Link route and remains allowed during an active session. It verifies the Controls URL, absence of the old battle component, completion of every held preview handler and zero command requests. No product code changed in this follow-up. The actual component menu/link is visible with the correct route at 1366×768, 1440×900, 1920×1080, 390×844 and 412×915. Fresh `pnpm check` passes formatting, lint, types, 3,028 Vitest tests, seven Node checks and builds; scoped independent review is clean. Fresh authenticated full Chromium and Edge validation remains required.
