@@ -18,36 +18,30 @@ import {
 import { CharacterSkillBuildPanel } from '@/components/character/character-skill-build-panel'
 import { FoundationDisciplineSigil } from '@/components/character/foundation-discipline-sigil'
 
+import { CompactSkillEffectSummary } from './compact-skill-effect-summary'
 import {
   skillCompactRangeDescription,
   skillCooldownDescription,
   skillCostDescription,
   skillDisplayName,
-  skillEffectSummaries,
   skillRequirementsSummary,
   skillTargetDescription,
   skillTargetMethodDescription,
   skillTypeDescription,
 } from './skill-detail-presentation'
-import { effectSummary, previewEffect } from './skill-effect-preview'
+import { previewEffect, skillPreviewEffects } from './skill-effect-preview'
 import styles from './character-arsenal-shell.module.css'
 
 const OVERVIEW_TECHNIQUE_SLOTS = 4
 
-function effectSummaryWithDuration(effect: Parameters<typeof previewEffect>[0]): string {
-  const base = effectSummary(previewEffect(effect))
-  const turns = effect.durationTurns ?? 0
-  return turns > 0 ? `${base} [${turns} ${turns === 1 ? 'Turn' : 'Turns'}]` : base
-}
-
 function EssenceHoverPreview({ essence }: { essence: EssenceDefinition }) {
   const skill = essence.skill
+  const effectDetails = skillPreviewEffects(skill)
   const rows: readonly (readonly [string, string | readonly string[]])[] = [
     ['Skill Type', skillTypeDescription(skill)],
     ['Cost', skillCostDescription(skill)],
     ['Cooldown', skillCooldownDescription(skill)],
     ['Requirements', skillRequirementsSummary(skill)],
-    ['Effects', skillEffectSummaries(skill)],
     ['Range', skillCompactRangeDescription(skill)],
     ['Target', skillTargetDescription(skill)],
     ['Target Method', skillTargetMethodDescription(skill)],
@@ -77,6 +71,30 @@ function EssenceHoverPreview({ essence }: { essence: EssenceDefinition }) {
             </dd>
           </div>
         ))}
+        <div>
+          <dt>Effects</dt>
+          <dd>
+            <ul className={styles.attunementEffectSummaryList}>
+              {skill.effects.map((effect, index) => (
+                <li key={`${index}:${effect.type}`}>
+                  <CompactSkillEffectSummary effect={effect} />
+                </li>
+              ))}
+            </ul>
+          </dd>
+        </div>
+        <div>
+          <dt>Effect details</dt>
+          <dd>
+            <ul className={styles.attunementEffectDetails}>
+              {effectDetails.map((effect, index) => (
+                <li key={`${index}:${effect.label}`}>
+                  <strong>{effect.label}</strong> — {effect.explanation}
+                </li>
+              ))}
+            </ul>
+          </dd>
+        </div>
       </dl>
     </aside>
   )
@@ -84,10 +102,7 @@ function EssenceHoverPreview({ essence }: { essence: EssenceDefinition }) {
 
 function ResonanceHoverPreview({ resonance }: { resonance: AnyResonanceDefinition }) {
   const mechanics = normalizedResonanceMechanics(resonance)
-  const effects = mechanics.resultEffects.map(effectSummaryWithDuration)
-  const effectExplanations = mechanics.resultEffects.map(
-    (effect) => previewEffect(effect).explanation,
-  )
+  const effectDetails = mechanics.resultEffects.map((effect) => previewEffect(effect))
   const setup = mechanics.setup
   const trigger = mechanics.trigger
   return (
@@ -119,9 +134,11 @@ function ResonanceHoverPreview({ resonance }: { resonance: AnyResonanceDefinitio
         <div>
           <dt>Result</dt>
           <dd>
-            <ul>
-              {effects.map((entry, index) => (
-                <li key={`${index}:${entry}`}>{entry}</li>
+            <ul className={styles.attunementEffectSummaryList}>
+              {mechanics.resultEffects.map((effect, index) => (
+                <li key={`${index}:${effect.type}`}>
+                  <CompactSkillEffectSummary effect={effect} />
+                </li>
               ))}
             </ul>
           </dd>
@@ -129,9 +146,11 @@ function ResonanceHoverPreview({ resonance }: { resonance: AnyResonanceDefinitio
         <div>
           <dt>Result details</dt>
           <dd>
-            <ul>
-              {effectExplanations.map((entry, index) => (
-                <li key={`${index}:${entry}`}>{entry}</li>
+            <ul className={styles.attunementEffectDetails}>
+              {effectDetails.map((effect, index) => (
+                <li key={`${index}:${effect.label}`}>
+                  <strong>{effect.label}</strong> — {effect.explanation}
+                </li>
               ))}
             </ul>
           </dd>
@@ -546,7 +565,7 @@ export function CharacterArsenalShell({
                   />
                 </span>
                 <div>
-                  <strong>Severed</strong>
+                  <strong>Severance</strong>
                   <b>▣ Coming Soon</b>
                 </div>
               </article>

@@ -1297,7 +1297,10 @@ export function BattleExperience({
       battleRef.current = nextBattle
       setBattle(nextBattle)
       const recruitId =
-        viewModel.participants.find((participant) => !participant.local)?.combatantId ?? null
+        viewModel.participants.find(
+          (participant) =>
+            participant.kind === 'scenario' && participant.teamIndex !== localTeamIndex,
+        )?.combatantId ?? null
       setNotice(
         describeRecruitTurn(
           before,
@@ -1322,6 +1325,7 @@ export function BattleExperience({
     clearPlanning,
     handleApiFailure,
     localCombatantId,
+    localTeamIndex,
     localTurn,
     recruitPending,
     runtime,
@@ -1505,7 +1509,7 @@ export function BattleExperience({
       <section className={styles.roster} aria-label="Battle roster">
         {Array.from({ length: viewModel.teamCount }, (_, teamIndex) => {
           const members = viewModel.participants.filter(
-            (participant) => participant.teamIndex === teamIndex,
+            (participant) => participant.teamIndex === teamIndex && participant.kind !== 'summon',
           )
           return (
             <div
@@ -1599,7 +1603,8 @@ export function BattleExperience({
           side="left"
           battle={battle}
           participants={viewModel.participants.filter(
-            (participant) => participant.teamIndex === localTeamIndex,
+            (participant) =>
+              participant.teamIndex === localTeamIndex && participant.kind !== 'summon',
           )}
           teamCount={viewModel.teamCount}
         />
@@ -1740,7 +1745,8 @@ export function BattleExperience({
           side="right"
           battle={battle}
           participants={viewModel.participants.filter(
-            (participant) => participant.teamIndex !== localTeamIndex,
+            (participant) =>
+              participant.teamIndex !== localTeamIndex && participant.kind !== 'summon',
           )}
           teamCount={viewModel.teamCount}
         />

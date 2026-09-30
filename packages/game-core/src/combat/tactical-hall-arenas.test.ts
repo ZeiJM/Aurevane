@@ -52,6 +52,12 @@ describe('P2.7 Tactical Hall arenas', () => {
     }
   })
 
+  it('uses the approved 9×7, 12×7 and 15×7 sparring footprints', () => {
+    expect(getTacticalHallArena('duel-yard')).toMatchObject({ width: 9, height: 7 })
+    expect(getTacticalHallArena('crossroads-court')).toMatchObject({ width: 12, height: 7 })
+    expect(getTacticalHallArena('terraced-yard')).toMatchObject({ width: 15, height: 7 })
+  })
+
   it('gives the Duel Yard multiple terrain decisions and non-immediate first contact', () => {
     const duel = getTacticalHallArena('duel-yard')
     const roughTiles = duel.tiles.filter((tile) => tile.terrainId === 'rough-ground')

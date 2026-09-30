@@ -70,12 +70,12 @@ const CROSSROADS_COURT: TacticalHallArenaDefinition = {
   name: 'Crossroads Court',
   scale: 'duel',
   exitPolicy: 'ABORT_PRACTICE',
-  width: 7,
+  width: 12,
   height: 7,
   // A short costly center competes with two longer open flanks. Ground routes need no Jump.
-  tiles: createTiles(7, 7, new Set(['3:2', '3:3', '3:4']), new Set()),
+  tiles: createTiles(12, 7, new Set(['5:2', '5:3', '5:4', '6:2', '6:3', '6:4']), new Set()),
   playerSpawn: { x: 1, y: 3 },
-  recruitSpawn: { x: 5, y: 3 },
+  recruitSpawn: { x: 10, y: 3 },
 }
 
 const TERRACED_YARD: TacticalHallArenaDefinition = {
@@ -83,17 +83,17 @@ const TERRACED_YARD: TacticalHallArenaDefinition = {
   name: 'Terraced Yard',
   scale: 'duel',
   exitPolicy: 'ABORT_PRACTICE',
-  width: 11,
+  width: 15,
   height: 7,
   // Side platforms reward Jump investment; the center stays passable at Movement 2 / Jump 0.
   tiles: createTiles(
-    11,
+    15,
     7,
-    new Set(['4:3', '6:3', '5:2', '5:4']),
-    new Set(['3:1', '4:1', '6:1', '7:1', '3:5', '4:5', '6:5', '7:5']),
+    new Set(['6:3', '8:3', '7:2', '7:4']),
+    new Set(['4:1', '5:1', '9:1', '10:1', '4:5', '5:5', '9:5', '10:5']),
   ),
   playerSpawn: { x: 1, y: 3 },
-  recruitSpawn: { x: 9, y: 3 },
+  recruitSpawn: { x: 13, y: 3 },
 }
 
 export const P2_7_TACTICAL_HALL_ARENAS: readonly TacticalHallArenaDefinition[] = [
