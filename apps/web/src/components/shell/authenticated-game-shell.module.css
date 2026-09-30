@@ -392,6 +392,10 @@
   .railCharacter :global([data-compact-rail]) {
     gap: 0.25rem;
   }
+  .railCharacter :global([data-testid='rail-level-progress']) > div:first-child {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
   .railNavigation {
     gap: 0;
     padding-top: 0.25rem;

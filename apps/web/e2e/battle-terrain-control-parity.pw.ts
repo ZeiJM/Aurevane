@@ -39,80 +39,50 @@ type BattleScaleGeometry = {
 }
 
 async function captureBattleScaleGeometry(page: Page): Promise<BattleScaleGeometry> {
+  const root = page.locator("main[data-unified-battle='true'][data-battle-visual-contract='true']")
+  const header = root.locator(':scope > header')
+  const battlefield = root.locator('#battlefield')
+  const commandDeck = root.locator('[data-unified-command-deck="true"]')
+  const rail = root.locator('aside[data-battle-side="local"]')
+  const railCard = rail.locator('[data-battle-combatant-card="local"]')
+  const footer = root.locator(':scope > footer')
   await expect(
-    page.locator("main[data-unified-battle='true'][data-battle-visual-contract='true']"),
+    header.locator(
+      '[data-ai-turn-clock="true"], [data-pvp-turn-clock="true"], [data-pvp-opponent-turn-clock="true"]',
+    ),
   ).toBeVisible()
-  await expect(page.locator('#battlefield [data-board-auto-fit="9x7"]')).toBeVisible()
-
-  return page.evaluate(() => {
-    const root = document.querySelector<HTMLElement>(
-      "main[data-unified-battle='true'][data-battle-visual-contract='true']",
-    )!
-    const header = root.querySelector<HTMLElement>(':scope > header')!
-    const economy = header.querySelector<HTMLElement>('[data-unified-battle-economy="true"]')!
-    const victory = header.querySelector<HTMLElement>('[aria-label="Victory Conditions"]')!
-    const mapKey = header.querySelector<HTMLElement>('[aria-label="Map Key"]')!
-    const content = root.querySelector<HTMLElement>('[data-unified-battle-content="true"]')!
-    const battlefield = root.querySelector<HTMLElement>('#battlefield')!
-    const board = battlefield.querySelector<HTMLElement>('[data-board-auto-fit="9x7"]')!
-    const token = battlefield.querySelector<HTMLElement>(
-      'button[aria-label*="occupied by"] > span:last-child',
-    )!
-    const commandDeck = root.querySelector<HTMLElement>('[data-unified-command-deck="true"]')!
-    const commandContext = root.querySelector<HTMLElement>('[data-battle-preview-strip]')!
-    const commandButton = commandDeck.querySelector<HTMLElement>(
-      '[data-command-card] > button[data-battle-command]',
-    )!
-    const footer = root.querySelector<HTMLElement>(':scope > footer')!
-    const footerButtons = Array.from(footer.querySelectorAll<HTMLButtonElement>('button'))
-    const cancel = footerButtons.find((button) => button.textContent?.includes('Cancel Action'))!
-    const finish = commandDeck.querySelector<HTMLElement>('[data-battle-command="finish"]')!
-
-    const visibleArticles = Array.from(
-      content.querySelectorAll<HTMLElement>('aside article'),
-    ).filter((article) => {
-      const articleRect = article.getBoundingClientRect()
-      const style = window.getComputedStyle(article)
-      return (
-        articleRect.width > 0 &&
-        articleRect.height > 0 &&
-        style.display !== 'none' &&
-        style.visibility !== 'hidden'
-      )
-    })
-    const railCard = visibleArticles[0]!
-    const rail = railCard.closest('aside') as HTMLElement
-    const portrait = railCard.querySelector<HTMLElement>('button[aria-label^="Inspect "]')!
-
-    const rect = (element: Element) => {
-      const value = element.getBoundingClientRect()
-      return {
-        width: Math.round(value.width * 10) / 10,
-        height: Math.round(value.height * 10) / 10,
-      }
+  await page.evaluate(() => document.fonts.ready)
+  const surfaces = {
+    root,
+    header,
+    economy: header.locator('[data-unified-battle-economy="true"]'),
+    victory: header.getByRole('button', { name: /^Victory Conditions/i }),
+    mapKey: header.getByRole('button', { name: 'Map Key', exact: true }),
+    content: root.locator('[data-unified-battle-content="true"]'),
+    rail,
+    railCard,
+    portrait: railCard.locator('[data-desktop-inspect-combatant]'),
+    battlefield,
+    board: battlefield.locator('[data-board-auto-fit="9x7"]'),
+    token: battlefield.locator('button[aria-label*="occupied by"] > span:last-child').first(),
+    commandDeck,
+    commandContext: root.locator('[data-battle-preview-strip]'),
+    commandButton: commandDeck.locator('[data-command-card] > button[data-battle-command]').first(),
+    footer,
+    cancel: footer.getByRole('button', { name: 'Cancel Action', exact: true }),
+    finish: commandDeck.locator('[data-battle-command="finish"]'),
+  }
+  const geometry = {} as BattleScaleGeometry
+  for (const label of Object.keys(surfaces) as (keyof BattleScaleGeometry)[]) {
+    await expect(surfaces[label], `${label} scale surface`).toBeVisible()
+    const box = await surfaces[label].boundingBox()
+    expect(box, `${label} scale measurement`).not.toBeNull()
+    geometry[label] = {
+      width: Math.round(box!.width * 10) / 10,
+      height: Math.round(box!.height * 10) / 10,
     }
-
-    return {
-      root: rect(root),
-      header: rect(header),
-      economy: rect(economy),
-      victory: rect(victory),
-      mapKey: rect(mapKey),
-      content: rect(content),
-      rail: rect(rail),
-      railCard: rect(railCard),
-      portrait: rect(portrait),
-      battlefield: rect(battlefield),
-      board: rect(board),
-      token: rect(token),
-      commandDeck: rect(commandDeck),
-      commandContext: rect(commandContext),
-      commandButton: rect(commandButton),
-      footer: rect(footer),
-      cancel: rect(cancel),
-      finish: rect(finish),
-    }
-  })
+  }
+  return geometry
 }
 
 function expectBattleScaleParity(

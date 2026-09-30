@@ -402,7 +402,8 @@
   grid-template-columns: 1fr auto 1fr;
   gap: 0.5rem;
   align-items: center;
-  min-height: 2.5rem;
+  /* Reserve the same row for PvE actions and PvP's 2.7rem spectator control. */
+  min-height: calc(2.7rem + 0.5rem + 1px);
   padding: 0.25rem 0.7rem;
   border-top: 1px solid #95805b;
   background: #15212bee;

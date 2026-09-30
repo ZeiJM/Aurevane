@@ -80,7 +80,8 @@ test('leaving during a slow target preview cannot submit a late action', async (
   await localTile.click()
   await executionPreview
   await expect(page.getByRole('button', { name: /^Basic Attack,/ })).toBeDisabled()
-  await page.goto('/game/battle')
+  await page.getByRole('link', { name: 'Rules', exact: true }).click()
+  await expect(page).toHaveURL(/\/rules$/)
   releasePreview()
   // Presence polling prevents network-idle; settle the held response after the battle unmounts.
   await expect(page.locator('[data-battle-layout="refined"]')).toHaveCount(0)
