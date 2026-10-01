@@ -25,6 +25,7 @@ async function prepareInjuredActor(page: Page) {
   const response = await page.request.get(`/api/battles/${sessionId}`)
   expect(response.ok()).toBe(true)
   const before = (await response.json()).battle as BattleSessionView
+  expect(before.battleVersion).toBe(1)
   const actorIndex = before.snapshot.tactical.battle.combatants.findIndex(
     (unit) => unit.id === before.snapshot.tactical.battle.currentTurn?.combatantId,
   )
@@ -40,8 +41,9 @@ async function prepareInjuredActor(page: Page) {
     .trim()
     .split('\n')[0]
   if (!container) throw new Error('Disposable local Supabase database is required.')
-  // Change only this disposable session's current HP, preserving its pinned rules/build.
-  execFileSync(
+  // Keep the disposable initial snapshot and current state coherent for commit provenance.
+  // Change only actor HP; retain the pinned rules/build and original battle version.
+  const updated = execFileSync(
     'docker',
     [
       'exec',
@@ -54,15 +56,32 @@ async function prepareInjuredActor(page: Page) {
       '-d',
       'postgres',
       '-Atqc',
-      `update app_private.battle_sessions set current_snapshot = jsonb_set(current_snapshot, '{tactical,battle,combatants,${actorIndex},hp}', '${hp}'::jsonb), current_version = current_version + 1 where id = '${sessionId}'::uuid;`,
+      `with prepared_session as (
+        update app_private.battle_sessions
+        set current_snapshot = jsonb_set(current_snapshot, '{tactical,battle,combatants,${actorIndex},hp}', '${hp}'::jsonb)
+        where id = '${sessionId}'::uuid and current_version = 1
+        returning id, current_version, current_snapshot
+      ), prepared_snapshot as (
+        update app_private.battle_snapshots snapshot
+        set snapshot = session.current_snapshot
+        from prepared_session session
+        where snapshot.battle_session_id = session.id
+          and snapshot.battle_version = session.current_version
+        returning snapshot.battle_version
+      )
+      select jsonb_build_object(
+        'sessions', (select count(*) from prepared_session),
+        'snapshots', (select count(*) from prepared_snapshot)
+      );`,
     ],
     { encoding: 'utf8' },
   )
+  expect(JSON.parse(updated.trim())).toEqual({ sessions: 1, snapshots: 1 })
   await page.reload()
   const prepared = await page.request.get(`/api/battles/${sessionId}`)
   expect(prepared.ok()).toBe(true)
   const battle = (await prepared.json()).battle as BattleSessionView
-  expect(battle.battleVersion).toBe(before.battleVersion + 1)
+  expect(battle.battleVersion).toBe(before.battleVersion)
   expect(battle.snapshot.tactical.battle.combatants[actorIndex]!.hp).toBe(hp)
   return battle
 }
@@ -143,13 +162,14 @@ test('retains default HP Recovery keyboard input without exposing the deferred R
   )
   await page.keyboard.press('Enter')
   const committedResponse = await committed
-  expect(committedResponse.ok()).toBe(true)
+  const committedPayload = await committedResponse.json()
+  expect(committedResponse.ok(), JSON.stringify(committedPayload)).toBe(true)
   expect(committedResponse.request().postDataJSON().intent).toEqual({
     kind: 'action',
     actionId: 'basic.recover',
     target: { kind: 'self' },
   })
-  const after = (await committedResponse.json()).battle as BattleSessionView
+  const after = committedPayload.battle as BattleSessionView
   expect(after.battleVersion).toBe(prepared.battleVersion + 1)
   const actorId = prepared.snapshot.tactical.battle.currentTurn!.combatantId
   const beforeActor = prepared.snapshot.tactical.battle.combatants.find(
