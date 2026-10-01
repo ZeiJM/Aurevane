@@ -238,8 +238,8 @@ export function CharacterTitleSettings({
             <span>Character image</span>
             <h2 id="profile-image-heading">Portrait URL</h2>
             <p>
-              Use a direct JPG, PNG, WebP, or animated GIF link. Portraits are square-cropped.
-              Choose 128–4096 px artwork, up to 8 MB for static images or 12 MB for GIFs.
+              Direct JPG, PNG, WebP or GIF link; square-cropped. Use 128–4096 px artwork, up to 8 MB
+              static or 12 MB GIF.
             </p>
           </div>
           {imageDraft.trim() && !imagePreviewFailed && !currentHostMessage ? (
@@ -279,8 +279,8 @@ export function CharacterTitleSettings({
               aria-invalid={currentHostMessage ? true : undefined}
             />
             <small>
-              ImgBB: use its “Direct link” (i.ibb.co), not the ibb.co sharing page. Leave blank and
-              save to restore the built-in portrait.
+              ImgBB: use “Direct link” (i.ibb.co). Leave blank and save to restore your built-in
+              portrait.
             </small>
           </label>
           <button
@@ -302,9 +302,8 @@ export function CharacterTitleSettings({
         <section className={styles.future}>
           <span>Distinctions &amp; prestige titles</span>
           <p>
-            Earned titles and distinctions will appear here as their progression sources come
-            online. They will use the same profile-display area without turning titles into stat
-            bonuses.
+            Earned titles and distinctions will appear as progression sources unlock. Titles grant
+            no stat bonuses.
           </p>
         </section>
       </div>

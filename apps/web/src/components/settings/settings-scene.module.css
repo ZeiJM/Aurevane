@@ -88,10 +88,8 @@
   box-shadow: none;
 }
 
-/* Let the shell grid stretch this scene without a percentage-height sizing cycle. */
+/* Title editing needs the full desktop width, including its final review state. */
 .scene:has([data-character-concept='titles']) {
-  height: auto;
-  align-self: stretch;
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr);
   gap: 0.65rem;

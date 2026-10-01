@@ -198,6 +198,17 @@ test('Titles keeps the scenic account workspace and its side-by-side editing con
   )
   await expect(personal.getByRole('button', { name: 'Review Title', exact: true })).toBeVisible()
   await expectDesktopTitlesFitWithoutScroll(page, '1536x614 title editor')
+  const saveResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'POST' &&
+      new URL(response.url()).pathname === '/api/account/profile-display',
+  )
+  await save.click()
+  expect((await saveResponse).status()).toBe(200)
+  await expect(
+    profileImage.getByText('Custom profile image removed.', { exact: true }),
+  ).toBeVisible()
+  await expectDesktopTitlesFitWithoutScroll(page, '1536x614 portrait save confirmation')
   await page.setViewportSize({ width: 1366, height: 768 })
 
   if (process.env.LAYOUT_REVIEW_OUTPUT) {
