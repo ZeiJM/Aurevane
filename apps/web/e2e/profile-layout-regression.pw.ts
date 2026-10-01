@@ -35,6 +35,41 @@ test('approved Profile and Haven keep the frame fixed and complete controls reac
   await expect(page.getByTestId('character-rail-profile')).toContainText(`Wayfarer ${suffix}`)
   for (const attribute of ['might', 'finesse', 'vitality', 'agility', 'intellect', 'resolve'])
     await expect(page.getByTestId(`profile-attribute-${attribute}`)).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Core Stats', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Combat Stats', exact: true })).toBeVisible()
+  const combatGrid = page.locator('[data-profile-combat-grid]')
+  await expect(combatGrid.locator('[data-profile-stat-group]')).toHaveCount(6)
+  if (!mobile) {
+    for (const attribute of ['might', 'finesse', 'vitality', 'agility', 'intellect', 'resolve']) {
+      const core = await page.getByTestId(`profile-attribute-${attribute}`).boundingBox()
+      const combat = await combatGrid
+        .locator(`[data-profile-stat-group="${attribute}"]`)
+        .boundingBox()
+      expect(combat!.y).toBeGreaterThan(core!.y + core!.height)
+      expect(Math.abs(combat!.x - core!.x)).toBeLessThanOrEqual(1)
+      expect(Math.abs(combat!.width - core!.width)).toBeLessThanOrEqual(1)
+    }
+  }
+  for (const stat of await combatGrid.getByRole('button').all()) {
+    expect(await stat.evaluate((node) => node.scrollWidth - node.clientWidth)).toBeLessThanOrEqual(
+      1,
+    )
+  }
+  await page.getByTestId('derived-stat-physicalPower').click()
+  const statHelp = page.getByTestId('profile-detail-popover')
+  await expect(statHelp.getByRole('heading', { name: 'Physical Power', exact: true })).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(statHelp).toHaveCount(0)
+  await expect(combatGrid.locator('[data-profile-stat-group] > header')).toHaveCount(0)
+  await expect(combatGrid.getByRole('button')).toHaveCount(13)
+  await page.getByRole('button', { name: 'About Build Tendencies', exact: true }).click()
+  await expect(
+    statHelp.getByRole('heading', { name: 'Build Tendencies', exact: true }),
+  ).toBeVisible()
+  await expect(statHelp).toContainText('scaled to your highest Core Stat')
+  await expect(statHelp).toContainText('Damage follows Might')
+  await page.keyboard.press('Escape')
+  await expect(statHelp).toHaveCount(0)
   await expect(page.getByRole('complementary', { name: 'Current Path' })).toHaveCount(0)
   const headerBefore = await shell.locator(':scope > header').boundingBox()
   const railBefore = await rail.boundingBox()
@@ -44,7 +79,7 @@ test('approved Profile and Haven keep the frame fixed and complete controls reac
   expect(await rail.boundingBox()).toEqual(railBefore)
   expect(await shell.locator(':scope > footer').boundingBox()).toEqual(footerBefore)
   if (!mobile) expect(railBefore!.width).toBeCloseTo(190, 0)
-  await page.getByRole('button', { name: 'Reset Attributes' }).click()
+  await page.getByRole('button', { name: 'Reset Stats' }).click()
   const reset = page.getByRole('dialog', { name: 'Redistribute Attributes' })
   await expect(reset).toBeVisible()
   for (const attribute of ['Might', 'Finesse', 'Vitality', 'Agility', 'Intellect', 'Resolve'])
@@ -54,8 +89,13 @@ test('approved Profile and Haven keep the frame fixed and complete controls reac
   await expect(page.getByRole('heading', { name: /^Welcome home,/ })).toBeVisible()
   await expect(page.getByText('Current Path', { exact: true })).toBeVisible()
   await page.goto('/game/loadout')
-  await expect(page.getByRole('link', { name: /Nexus/ })).toHaveAttribute('href', '/game/nexus')
-  await expect(page.getByRole('link', { name: /Items/ })).toHaveAttribute(
+  await expect(page).toHaveURL(/\/game\/nexus$/)
+  const loadoutTabs = page.getByRole('navigation', { name: 'Loadout sections' })
+  await expect(loadoutTabs.getByRole('link', { name: 'Nexus', exact: true })).toHaveAttribute(
+    'href',
+    '/game/nexus',
+  )
+  await expect(loadoutTabs.getByRole('link', { name: 'Items', exact: true })).toHaveAttribute(
     'href',
     '/game/loadout/items',
   )

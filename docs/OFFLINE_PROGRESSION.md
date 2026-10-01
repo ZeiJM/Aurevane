@@ -60,7 +60,7 @@ While a block is active:
 - starting a new Battle Hall fight/live combat entry is disabled under the current model;
 - profile, account, Manual/News/Rules, Online Users, and social/chat surfaces may remain available;
 - the player may stop the unfinished block at any time;
-- stopping early grants no partial reward.
+- stopping early freezes the earned proportional report under the implemented server policy; the current UI settles it idempotently and returns to plan selection, retaining the report for retry if settlement fails.
 
 The long-horizon progression target still comes primarily from meaningful active progression, Discipline use and mastery challenges, Primary/Secondary build development, Resonance or pure-Discipline Essence, world/story progress, Expeditions and bosses, Soulmark or Soul-Severed/Mantle progression, Archive/lore development, endgame qualification, and live-world cadence.
 
@@ -459,7 +459,7 @@ Implemented/current foundation:
 - decreasing hourly efficiency as duration increases;
 - no automatic reward for being offline/idle;
 - deterministic Character XP completion reward;
-- stop command with no partial reward;
+- stop command with an authoritative proportional report and idempotent settlement;
 - Battle Hall new-fight exclusion while active;
 - idempotent completion/claim behavior;
 - Training Report UI/countdown;
@@ -518,7 +518,7 @@ The Adventurer's Guide explains:
 - what Passive Training is;
 - that it starts only after explicit duration choice;
 - Short / Medium / Extended efficiency tradeoffs;
-- stopping early forfeits the unfinished reward;
+- stopping early settles only the server-frozen earned portion, without granting the unelapsed remainder;
 - what currently progresses (Character XP);
 - what cannot progress passively;
 - future Rested Momentum/Mastery rules only after release;

@@ -701,3 +701,98 @@
     font-size: 1rem;
   }
 }
+
+/* A compact battle crest stays inside the existing gap between rival cards. */
+.vs {
+  isolation: isolate;
+  pointer-events: none;
+  width: 3rem;
+  height: 3.65rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  font: 700 1.65rem/1 var(--av-font-display);
+  font-style: italic;
+  letter-spacing: -0.1em;
+}
+.vs::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  clip-path: polygon(50% 0, 94% 19%, 86% 76%, 50% 100%, 14% 76%, 6% 19%);
+  background:
+    linear-gradient(125deg, transparent 22%, #fff0bc75 24%, transparent 29%) center / cover,
+    radial-gradient(ellipse at 50% 20%, #ef785954, transparent 60%),
+    linear-gradient(
+      145deg,
+      #ffe4a1,
+      #936b33 18%,
+      #d5a35c 20%,
+      #391b22 22%,
+      #621c25 55%,
+      #200f18 79%,
+      #e0ae64 82%,
+      #78552b
+    );
+  filter: drop-shadow(0 3px 3px #3518208c);
+}
+.vs::after {
+  content: '';
+  position: absolute;
+  inset: -12% -20%;
+  z-index: -2;
+  background:
+    radial-gradient(circle at 15% 23%, #ffe4a4 0 1px, transparent 2px),
+    radial-gradient(circle at 84% 35%, #ffbc75 0 1px, transparent 2px),
+    radial-gradient(circle at 75% 78%, #e9b367 0 1px, transparent 2px),
+    radial-gradient(circle at 29% 87%, #ffb68f 0 1px, transparent 2px),
+    radial-gradient(ellipse, #a6253859, transparent 70%);
+  opacity: 0.75;
+  animation: versusEmbers 3.6s ease-in-out infinite;
+}
+.vs > span {
+  padding-right: 0.12em;
+  color: #ffe6ad;
+  text-shadow:
+    0 1px 0 #fff6d8,
+    0 3px 0 #6d351f,
+    0 4px 8px #0c0307,
+    0 0 12px #ed9b5359;
+}
+@keyframes versusEmbers {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: translateY(1px) scale(0.98);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-1px) scale(1.04);
+  }
+}
+@media (max-width: 800px) {
+  .vs {
+    width: 1.7rem;
+    height: 2.35rem;
+    font-size: 1rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vs::after {
+    animation: none;
+    opacity: 0.8;
+  }
+}
+@media (min-width: 801px) {
+  .teams[data-team-count='2'] {
+    gap: 4.5rem;
+  }
+  .teams[data-team-count='2'] .vs {
+    left: -2.25rem;
+    width: 4rem;
+    height: 5rem;
+    font-size: 2.2rem;
+  }
+}

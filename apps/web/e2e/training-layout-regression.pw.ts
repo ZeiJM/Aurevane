@@ -46,64 +46,32 @@ test('training composition preserves idle, active, report and claim flows', asyn
       document.getElementById('game-main')?.scrollTo(0, 0)
     })
     const metrics = await frame.evaluate((element) => {
-      const bounds = (node: Element) => {
-        const r = node.getBoundingClientRect()
-        return { x: r.x, y: r.y, width: r.width, height: r.height, bottom: r.bottom }
-      }
-      const scene = element.querySelector('[data-training-scene]')!
-      const planner = element.querySelector('[data-testid="practice-plan-card"]')!
-      const actions = [...planner.querySelectorAll<HTMLButtonElement>('button')]
-      const report = element.querySelector('[aria-label="Training report workspace"]')
+      const panel = element.querySelector(
+        '[data-training-stage] > section, [data-training-stage] > aside',
+      )!
+      const main = document.getElementById('game-main')!
+      const rect = panel.getBoundingClientRect()
+      const mainRect = main.getBoundingClientRect()
+      const controls = [...panel.querySelectorAll<HTMLButtonElement>('button')]
       return {
-        countdownSize: (() => {
-          const clock = [...element.querySelectorAll('#training-current strong')].find((node) =>
-            /^\d{2}:\d{2}:\d{2}$/.test(node.textContent?.trim() ?? ''),
-          )
-          return clock ? parseFloat(getComputedStyle(clock).fontSize) : null
-        })(),
-        durationActionsInPanel: actions.every((button) => {
-          const rect = button.getBoundingClientRect()
-          return (
-            rect.y >= planner.getBoundingClientRect().y &&
-            rect.bottom <= planner.getBoundingClientRect().bottom
-          )
-        }),
-        stopActionInPanel: (() => {
-          const activity = element.querySelector('#training-current')!
-          const button = activity.querySelector('button')
-          return (
-            !button ||
-            button.getBoundingClientRect().bottom <= activity.getBoundingClientRect().bottom
-          )
-        })(),
-        frame: bounds(element),
-        scene: bounds(scene),
-        planner: bounds(planner),
+        panelCount: element.querySelectorAll(
+          '[data-training-stage] > section, [data-training-stage] > aside',
+        ).length,
+        stage: element.querySelector('[data-training-stage]')?.getAttribute('data-training-stage'),
         overflowX: document.documentElement.scrollWidth - innerWidth,
-        mainOverflowY: (() => {
-          const main = document.getElementById('game-main')
-          return main ? main.scrollHeight - main.clientHeight : 0
-        })(),
-        plannerOverflowX: planner.scrollWidth - planner.clientWidth,
-        panelOverflowY: [planner, element.querySelector('#training-current')!, report!].map(
-          (panel) => panel.scrollHeight - panel.clientHeight,
+        mainOverflowY: main.scrollHeight - main.clientHeight,
+        panelOverflowY: panel.scrollHeight - panel.clientHeight,
+        panelOverflowX: panel.scrollWidth - panel.clientWidth,
+        panelInsideMain: rect.top >= mainRect.top && rect.bottom <= mainRect.bottom,
+        panelCentered:
+          Math.abs((rect.left + rect.right) / 2 - (mainRect.left + mainRect.right) / 2) <= 2,
+        controlsInPanel: controls.every(
+          (button) => button.getBoundingClientRect().bottom <= rect.bottom,
         ),
-        panelsInsideMain: [planner, element.querySelector('#training-current')!, report!].every(
-          (panel) => {
-            const rect = panel.getBoundingClientRect()
-            const main = document.getElementById('game-main')!.getBoundingClientRect()
-            return rect.top >= main.top && rect.bottom <= main.bottom
-          },
+        minActionHeight: Math.min(
+          ...controls.map((button) => button.getBoundingClientRect().height),
         ),
         reportDisclosureCount: element.querySelectorAll('details, [role="dialog"]').length,
-        hasReportWorkspace: report !== null,
-        minActionHeight: Math.min(
-          ...actions.map((button) => button.getBoundingClientRect().height),
-        ),
-        descriptionSize: parseFloat(
-          getComputedStyle(planner.querySelector('[aria-label="Passive Training durations"] p')!)
-            .fontSize,
-        ),
       }
     })
     const label = `training-${state}-${capturedViewport.width}x${capturedViewport.height}`
@@ -118,49 +86,19 @@ test('training composition preserves idle, active, report and claim flows', asyn
         await page.screenshot({ path: path.join(output, `${label}-claim.png`) })
       }
     }
+    expect.soft(metrics.panelCount, `${label}: one active panel`).toBe(1)
     expect
-      .soft(metrics.overflowX, `${label}: document stays inside viewport`)
-      .toBeLessThanOrEqual(1)
-    expect
-      .soft(metrics.plannerOverflowX, `${label}: planner never clips controls`)
-      .toBeLessThanOrEqual(1)
-    expect
-      .soft(metrics.hasReportWorkspace, `${label}: dedicated real report/empty state`)
-      .toBe(true)
-    expect.soft(metrics.reportDisclosureCount, `${label}: report is always inline`).toBe(0)
+      .soft(metrics.stage)
+      .toBe(state.includes('report') ? 'report' : state === 'active' ? 'current' : 'plan')
+    expect.soft(metrics.overflowX).toBeLessThanOrEqual(1)
+    expect.soft(metrics.panelOverflowX).toBeLessThanOrEqual(1)
+    expect.soft(metrics.reportDisclosureCount).toBe(0)
+    expect.soft(metrics.minActionHeight).toBeGreaterThanOrEqual(40)
+    expect.soft(metrics.controlsInPanel).toBe(true)
     if (!mobile) {
-      expect
-        .soft(metrics.mainOverflowY, `${label}: 100% zoom does not require page scrolling`)
-        .toBeLessThanOrEqual(1)
-      expect.soft(metrics.panelsInsideMain, `${label}: every panel fits`).toBe(true)
-      for (const overflow of metrics.panelOverflowY) {
-        expect.soft(overflow, `${label}: no panel needs vertical scrolling`).toBeLessThanOrEqual(1)
-      }
-    }
-    expect
-      .soft(metrics.minActionHeight, `${label}: usable duration actions`)
-      .toBeGreaterThanOrEqual(40)
-    expect
-      .soft(metrics.descriptionSize, `${label}: readable option descriptions`)
-      .toBeGreaterThanOrEqual(12)
-    if (state === 'active') {
-      expect
-        .soft(metrics.countdownSize, `${label}: readable live countdown`)
-        .toBeGreaterThanOrEqual(28)
-    }
-    if (!mobile) {
-      expect
-        .soft(
-          metrics.durationActionsInPanel,
-          `${label}: all duration actions visible without scrolling`,
-        )
-        .toBe(true)
-      expect
-        .soft(metrics.stopActionInPanel, `${label}: stop action visible without scrolling`)
-        .toBe(true)
-      expect
-        .soft(metrics.planner.y, `${label}: shallow scenic title leaves room for actions`)
-        .toBeGreaterThanOrEqual(metrics.scene.bottom)
+      expect.soft(metrics.mainOverflowY).toBeLessThanOrEqual(1)
+      expect.soft(metrics.panelOverflowY).toBeLessThanOrEqual(1)
+      expect.soft(metrics.panelInsideMain).toBe(true)
     }
   }
 
@@ -172,11 +110,31 @@ test('training composition preserves idle, active, report and claim flows', asyn
   }
   await expect(page.getByTestId('practice-plan-card').getByRole('radio')).toHaveCount(3)
   await expect(page.getByRole('button', { name: 'Start Training', exact: true })).toBeEnabled()
+  // A second tab can settle the plan while this tab still shows its old active card.
   await submit(page, 'Start Training', '/api/wayfarers-practice/plan')
   await expect(page.getByTestId('passive-training-active')).toBeVisible()
-  for (const action of await page.getByTestId('practice-plan-card').locator('button').all()) {
-    await expect(action).toBeDisabled()
+  const otherTab = await page.context().newPage()
+  try {
+    await otherTab.goto('/game/training')
+    await submit(otherTab, 'Stop Training', '/api/wayfarers-practice/stop')
+    await expect(otherTab.getByTestId('practice-plan-card')).toBeVisible()
+    const staleStop = page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname === '/api/wayfarers-practice/stop' &&
+        response.request().method() === 'POST',
+    )
+    await page.getByRole('button', { name: 'Stop Training', exact: true }).click()
+    const staleStopResponse = await staleStop
+    expect(staleStopResponse.ok()).toBe(true)
+    expect((await staleStopResponse.json()).stopped).toBe(false)
+    await expect(page.getByTestId('practice-plan-card')).toBeVisible()
+    await expect(page.getByText('Settling your earned progress…')).toHaveCount(0)
+  } finally {
+    await otherTab.close()
   }
+  await submit(page, 'Start Training', '/api/wayfarers-practice/plan')
+  await expect(page.getByTestId('passive-training-active')).toBeVisible()
+  await expect(page.getByTestId('practice-plan-card')).toHaveCount(0)
   await capture('active')
   if (!mobile) {
     await page.setViewportSize({ width: 1536, height: 614 })
@@ -185,17 +143,44 @@ test('training composition preserves idle, active, report and claim flows', asyn
   }
 
   await submit(page, 'Stop Training', '/api/wayfarers-practice/stop')
-  await expect(page.getByTestId('training-report')).toBeVisible()
+  await expect(page.getByTestId('practice-plan-card')).toBeVisible()
   await expect(page.getByTestId('passive-training-active')).toHaveCount(0)
-  await capture('stopped-report')
-  await submit(page, 'Claim Training', '/api/wayfarers-practice/claim')
+  await capture('stopped-idle')
   await expect(page.getByTestId('training-report')).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Start Training', exact: true })).toBeEnabled()
   await submit(page, 'Start Training', '/api/wayfarers-practice/plan')
   await expect(page.getByTestId('passive-training-active')).toBeVisible()
+  const claimKeys: string[] = []
+  await page.route('**/api/wayfarers-practice/claim', async (route) => {
+    claimKeys.push(route.request().postDataJSON().idempotencyKey)
+    if (claimKeys.length === 1) {
+      await route.fulfill({
+        status: 503,
+        json: { error: { message: 'Settlement temporarily unavailable.' } },
+      })
+    } else await route.continue()
+  })
+  await submit(page, 'Stop Training', '/api/wayfarers-practice/stop')
+  await expect(page.getByTestId('training-report')).toBeVisible()
+  await expect(page.getByText('Settlement temporarily unavailable.')).toBeVisible()
+  await expect(page.getByTestId('practice-plan-card')).toHaveCount(0)
+  await capture('stopped-report')
+  await submit(page, 'Claim Training', '/api/wayfarers-practice/claim')
+  await expect(page.getByTestId('practice-plan-card')).toBeVisible()
+  expect(claimKeys).toHaveLength(2)
+  expect(claimKeys[0]).toBe(claimKeys[1])
+  await page.unroute('**/api/wayfarers-practice/claim')
+  await submit(page, 'Start Training', '/api/wayfarers-practice/plan')
+  await expect(page.getByTestId('passive-training-active')).toBeVisible()
+  let automaticCompletionClaims = 0
+  const countClaims = (request: import('@playwright/test').Request) => {
+    if (request.method() === 'POST' && request.url().endsWith('/api/wayfarers-practice/claim'))
+      automaticCompletionClaims++
+  }
+  page.on('request', countClaims)
   queryLocalDatabase(`
     update app_private.wayfarers_practice_state
-    set plan_set_at = clock_timestamp() - interval '25 hours', updated_at = clock_timestamp()
+    set plan_set_at = clock_timestamp() - interval '10796 seconds', updated_at = clock_timestamp()
     where character_id = (
       select character.id from public.characters character
       join auth.users account on account.id = character.user_id
@@ -206,6 +191,8 @@ test('training composition preserves idle, active, report and claim flows', asyn
   await page.reload()
   await expect(page.getByTestId('training-report')).toBeVisible()
   await expect(page.getByTestId('passive-training-active')).toHaveCount(0)
+  expect(automaticCompletionClaims).toBe(0)
+  page.off('request', countClaims)
   await capture('report')
   if (!mobile) {
     await page.setViewportSize({ width: 1536, height: 614 })

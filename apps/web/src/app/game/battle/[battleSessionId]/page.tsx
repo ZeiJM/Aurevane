@@ -3,6 +3,10 @@ import {
   copiedSkillApCost,
   copiedSkillCommandId,
 } from '@aurevane/game-core/combat/combat-skill-copy'
+import {
+  DEFAULT_SUPPORT_ACTION_ID,
+  parseSupportActionId,
+} from '@aurevane/game-core/combat/support-actions'
 import { isAurevaneError } from '@aurevane/game-core/errors'
 import { parseBattleSessionId } from '@aurevane/validation/combat/battle-session'
 import { headers } from 'next/headers'
@@ -158,6 +162,7 @@ async function battleBuildExtensions(
     : []
 
   return {
+    supportActionId: parseSupportActionId(build?.supportActionId) ?? DEFAULT_SUPPORT_ACTION_ID,
     techniques,
     copiedSkills,
     resonance: resonanceDefinition
@@ -260,6 +265,7 @@ export default async function BattleSessionPage({
           runtime={{
             kind: 'pvp',
             playerName: localParticipant.characterName,
+            supportActionId: buildExtensions.supportActionId,
             techniques: buildExtensions.techniques,
             copiedSkills: buildExtensions.copiedSkills,
             resonance: buildExtensions.resonance,
@@ -300,6 +306,7 @@ export default async function BattleSessionPage({
         runtime={{
           kind: 'pve',
           playerName: character.name,
+          supportActionId: buildExtensions.supportActionId,
           techniques: buildExtensions.techniques,
           copiedSkills: buildExtensions.copiedSkills,
           resonance: buildExtensions.resonance,

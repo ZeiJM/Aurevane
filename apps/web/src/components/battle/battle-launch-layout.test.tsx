@@ -11,6 +11,17 @@ vi.mock('./pvp-lobby-modal', () => ({ PvpLobbyModal: () => null }))
 import { BattleLaunch } from './battle-launch'
 
 describe('Battle Hall concept composition', () => {
+  it('offers AI-aligned Small, Medium and Large PvP sizes with Medium selected by default', () => {
+    const markup = renderToStaticMarkup(
+      createElement(BattleLaunch, { characterId: 'character-1', characterName: 'Eira Vale' }),
+    )
+    const group =
+      markup.match(/<fieldset[^>]*>[\s\S]*?<legend>Map size<\/legend>[\s\S]*?<\/fieldset>/)?.[0] ??
+      ''
+    for (const label of ['Small · 9×7', 'Medium · 12×7', 'Large · 15×7'])
+      expect(group).toContain(label)
+    expect(group).toMatch(/aria-pressed="true"[^>]*>Medium · 12×7<\/button>/)
+  })
   it('orders clear battle destinations and omits the redundant AI arena banner', () => {
     const markup = renderToStaticMarkup(
       createElement(BattleLaunch, { characterId: 'character-1', characterName: 'Eira Vale' }),

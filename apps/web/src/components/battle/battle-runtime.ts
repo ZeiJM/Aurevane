@@ -1,5 +1,6 @@
 import type { CharacterPortraitRef } from '@aurevane/game-core/character/creation'
 import type { CombatTargetKind, CombatTargetTeamPolicy } from '@aurevane/game-core/combat/actions'
+import type { SupportActionId } from '@aurevane/game-core/combat/support-actions'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
 import type { AnyResonanceDefinition } from '@aurevane/game-core/combat/resonance'
 import { normalizeCombatEffectState } from '@aurevane/game-core/combat/combat-effect-state'
@@ -56,6 +57,7 @@ export interface BattleEssencePresentation extends BattleSkillForecastPresentati
 }
 
 interface BattleBuildPresentation {
+  supportActionId?: SupportActionId
   techniques?: readonly BattleTechniquePresentation[]
   copiedSkills?: readonly BattleCopiedSkillPresentation[]
   resonance?: BattleResonancePresentation | null

@@ -46,18 +46,6 @@
   grid-row: 1;
 }
 
-.brandGroup {
-  display: flex;
-  min-width: 0;
-  gap: 0.8rem;
-  align-items: center;
-}
-
-.headerLinks {
-  display: flex;
-  align-items: center;
-}
-
 .mastheadUtility {
   display: flex;
   min-width: 0;
@@ -897,12 +885,6 @@
 
 .shell[data-av-layout='battlefield'] .main {
   grid-column: 1;
-}
-
-@media (min-width: 761px) {
-  .shell .masthead {
-    background: #272d2eef;
-  }
 }
 
 @media (max-width: 760px) {

@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
-test('training keeps plan, status and report inline within the desktop viewport', async ({
+test('training centers one active panel within the desktop viewport', async ({
   page,
 }, testInfo) => {
   test.setTimeout(90_000)
@@ -31,10 +31,9 @@ test('training keeps plan, status and report inline within the desktop viewport'
   await expect(frame).toBeVisible()
   await expect(page.locator('[data-av-game-rail]')).toBeVisible()
   await expect(planner).toBeVisible()
-  await expect(current).toBeVisible()
+  await expect(current).toHaveCount(0)
   const report = page.getByRole('complementary', { name: 'Training report workspace' })
-  await expect(report).toBeVisible()
-  await expect(report.getByRole('heading', { name: 'No report waiting' })).toBeVisible()
+  await expect(report).toHaveCount(0)
   await expect(frame.locator('details, [role="dialog"]')).toHaveCount(0)
   await expect(page.getByRole('radio')).toHaveCount(3)
   await expect(page.getByRole('button', { name: 'Start Training', exact: true })).toBeEnabled()
@@ -56,15 +55,12 @@ test('training keeps plan, status and report inline within the desktop viewport'
     ]) {
       await page.setViewportSize(viewport)
       const planBox = (await planner.boundingBox())!
-      const currentBox = (await current.boundingBox())!
-      const reportBox = (await report.boundingBox())!
-      expect(currentBox.x).toBeGreaterThanOrEqual(planBox.x + planBox.width)
-      expect(reportBox.x).toBeGreaterThanOrEqual(currentBox.x + currentBox.width)
-      expect(Math.abs(currentBox.y - planBox.y)).toBeLessThanOrEqual(1)
-      for (const panel of [planner, current, report]) {
-        expect(await panel.evaluate((e) => e.scrollHeight - e.clientHeight)).toBeLessThanOrEqual(1)
-        await expect(panel).toBeInViewport({ ratio: 1 })
-      }
+      const workspaceBox = (await page.locator('[data-training-workspace]').boundingBox())!
+      expect(
+        Math.abs(planBox.x + planBox.width / 2 - workspaceBox.x - workspaceBox.width / 2),
+      ).toBeLessThanOrEqual(1)
+      expect(await planner.evaluate((e) => e.scrollHeight - e.clientHeight)).toBeLessThanOrEqual(1)
+      await expect(planner).toBeInViewport({ ratio: 1 })
       expect(
         await page.locator('#game-main').evaluate((e) => e.scrollHeight - e.clientHeight),
       ).toBeLessThanOrEqual(1)

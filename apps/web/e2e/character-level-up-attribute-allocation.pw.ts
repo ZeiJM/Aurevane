@@ -172,7 +172,7 @@ test('level-up forces Core Stat allocation until every gained point is committed
   await expect(page.getByTestId('profile-attribute-might').locator('strong')).toHaveText(
     String(mightBefore + 1),
   )
-  await page.getByRole('button', { name: 'Reset Attributes', exact: true }).click()
+  await page.getByRole('button', { name: 'Reset Stats', exact: true }).click()
   const reset = page.getByRole('dialog', { name: 'Redistribute Attributes', exact: true })
   await expect(reset).toBeVisible()
   await expectAttributeCardsAndPortraitName(reset, characterName)

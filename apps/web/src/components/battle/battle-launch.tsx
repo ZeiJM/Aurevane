@@ -18,6 +18,8 @@ import { AurevaneImage } from '@/components/media/aurevane-image'
 
 import type { PvpLobbyView } from '@/server/battle/pvp-lobby-service'
 
+import { PVP_MAP_SIZES, pvpMapProfile } from '@/lib/battle/pvp-map-presentation'
+
 import styles from './battle-launch.module.css'
 import { PvpLobbyModal } from './pvp-lobby-modal'
 
@@ -454,7 +456,7 @@ export function BattleLaunch({ characterId, initialJoinKey = null }: BattleLaunc
                   }
                 >
                   {(recordId === 'guided-fundamentals'
-                    ? ARENAS.filter((arena) => arena.id === 'basic-training-floor')
+                    ? ARENAS.filter((arena) => arena.id === selectedRecord?.defaultArenaId)
                     : recordId === 'mastery-trial'
                       ? ARENAS.filter((arena) => arena.id === 'terraced-yard')
                       : ARENAS.filter((arena) => arena.id !== 'basic-training-floor')
@@ -690,7 +692,7 @@ export function BattleLaunch({ characterId, initialJoinKey = null }: BattleLaunc
                       <fieldset data-pvp-setting-group>
                         <legend>Map size</legend>
                         <div data-pvp-setting-options>
-                          {(['medium', 'large'] as const).map((value) => (
+                          {PVP_MAP_SIZES.map((value) => (
                             <button
                               key={value}
                               type="button"
@@ -699,7 +701,7 @@ export function BattleLaunch({ characterId, initialJoinKey = null }: BattleLaunc
                               onClick={() => setMapSize(value)}
                               disabled={pending}
                             >
-                              {value === 'medium' ? 'Standard' : 'Expanded'}
+                              {pvpMapProfile(value).description}
                             </button>
                           ))}
                         </div>

@@ -31,3 +31,24 @@
   font-size: 0.75rem;
   cursor: pointer;
 }
+.guidedPractice {
+  min-height: 2rem;
+  padding: 0.25rem 0.55rem;
+  border: 1px solid rgba(196, 157, 87, 0.55);
+  border-radius: 0.35rem;
+  background: linear-gradient(135deg, rgba(103, 62, 38, 0.9), rgba(48, 34, 28, 0.95));
+  color: #f3dfb1;
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.guidedPractice:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.guidedPractice:focus-visible {
+  outline: 2px solid #dfc58e;
+  outline-offset: 2px;
+}

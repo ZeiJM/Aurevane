@@ -145,6 +145,7 @@ describe('battle session committed Primary stat authority', () => {
       changeDisciplines: vi.fn(async () => {
         throw new Error('Not used.')
       }),
+      saveSupportAction: vi.fn(async () => ({ buildVersion: 2, replayed: false })),
       saveDisciplineSkills: vi.fn(async () => {
         throw new Error('Not used.')
       }),

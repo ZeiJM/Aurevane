@@ -26,6 +26,7 @@ interface CharacterProfileDetailsProps {
   attributes: CharacterAttributes
   derived: DerivedStatSnapshot
   attributeResetControl?: ReactNode
+  buildTendencies?: ReactNode
 }
 
 interface DetailContent {
@@ -131,6 +132,7 @@ export function CharacterProfileDetails({
   attributes,
   derived,
   attributeResetControl,
+  buildTendencies,
 }: CharacterProfileDetailsProps) {
   const [detail, setDetail] = useState<Detail>(null)
   const [popoverPosition, setPopoverPosition] = useState<{ top: number; left: number } | null>(null)
@@ -193,7 +195,7 @@ export function CharacterProfileDetails({
   }, [detail])
 
   return (
-    <div className={styles.details}>
+    <div className={styles.details} data-profile-has-tendencies={Boolean(buildTendencies)}>
       <div
         className={styles.identityFacts}
         data-profile-facts
@@ -260,7 +262,7 @@ export function CharacterProfileDetails({
               ✧
             </span>
             <div>
-              <h2 id="attributes-title">Core Attributes</h2>
+              <h2 id="attributes-title">Core Stats</h2>
               <p>Your innate potential, shaping what you can become.</p>
             </div>
             <i aria-hidden="true" />
@@ -317,17 +319,14 @@ export function CharacterProfileDetails({
               ✧
             </span>
             <div>
-              <h2 id="derived-title">Combat &amp; Adventure Stats</h2>
+              <h2 id="derived-title">Combat Stats</h2>
               <p>Capabilities derived from your attributes, refined through experience.</p>
             </div>
             <i aria-hidden="true" />
           </div>
-          {attributeResetControl ? (
-            <div className={styles.sectionAction}>{attributeResetControl}</div>
-          ) : null}
         </header>
 
-        <div className={styles.statGroups} data-profile-stat-groups>
+        <div className={styles.statGroups} data-profile-combat-grid>
           {CHARACTER_ATTRIBUTE_IDS.map((attributeId) => {
             const color = ATTRIBUTE_COLORS[attributeId]
             const style = {
@@ -343,19 +342,6 @@ export function CharacterProfileDetails({
                 style={style}
                 aria-label={`${attributeLabels[attributeId]} derived statistics`}
               >
-                <header>
-                  <span className={styles.statGroupIcon} aria-hidden="true">
-                    <Image
-                      className={styles.attributeIcon}
-                      src={attributeIconSources[attributeId]}
-                      width={72}
-                      height={72}
-                      sizes="1.4rem"
-                      alt=""
-                    />
-                  </span>
-                  <strong>{attributeLabels[attributeId]}</strong>
-                </header>
                 <div>
                   {ATTRIBUTE_STAT_GROUPS[attributeId].map((statId) => {
                     const stat = derived.stats[statId]
@@ -386,6 +372,31 @@ export function CharacterProfileDetails({
           })}
         </div>
       </section>
+
+      {attributeResetControl ? (
+        <footer className={styles.sectionAction} data-profile-reset-control>
+          {attributeResetControl}
+        </footer>
+      ) : null}
+
+      {buildTendencies ? (
+        <aside className={styles.buildTendencies} aria-label="Build tendencies">
+          <button
+            type="button"
+            className={styles.tendenciesTrigger}
+            aria-label="About Build Tendencies"
+            onClick={(event) =>
+              openDetail(event.currentTarget, {
+                eyebrow: 'Character build',
+                title: 'Build Tendencies',
+                body: 'This chart shows your relative Core Stat emphasis. Each axis is scaled to your highest Core Stat: Damage follows Might (physical power); Precision follows Finesse; Defense follows Vitality; Mobility follows Agility; Arcane follows Intellect; and Tenacity follows Resolve. A longer axis means more emphasis in that attribute. This is a build overview, not a prediction of damage, control strength or battle outcomes. Skills, equipment, terrain and effects also matter.',
+              })
+            }
+          >
+            {buildTendencies}
+          </button>
+        </aside>
+      ) : null}
 
       {detail ? (
         <section

@@ -5,11 +5,26 @@ import { skillPreviewEffects } from './skill-effect-preview'
 
 import Image from 'next/image'
 
+import { pv1fFlatActionCost, pv1fSkillByActionId } from '@aurevane/game-core/combat/pv1f-skills'
+import { PV1F_RECOVERY_COOLDOWN_OWNER_TURNS } from '@aurevane/game-core/combat/pv1f-action-economy'
+import {
+  DEFAULT_SUPPORT_ACTION_ID,
+  SUPPORT_ACTION_IDS,
+  type SupportActionId,
+} from '@aurevane/game-core/combat/support-actions'
+
 import type { EssenceDefinition } from '@aurevane/game-core/combat/essence'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
 import type { AnyResonanceDefinition } from '@aurevane/game-core/combat/resonance'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useMemo, useState, useSyncExternalStore, type CSSProperties } from 'react'
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type CSSProperties,
+} from 'react'
 import { createPortal } from 'react-dom'
 
 import { battleSkillArtwork } from '../battle/battle-skill-presentation'
@@ -36,6 +51,7 @@ interface EquippedSkillView {
 interface CharacterSkillBuildPanelProps {
   characterId: string
   initialBuildVersion: number
+  initialSupportActionId?: SupportActionId
   primaryDiscipline: { id: string; name: string }
   secondaryDiscipline: { id: string; name: string } | null
   initialCapacity: number
@@ -47,7 +63,7 @@ interface CharacterSkillBuildPanelProps {
 
 interface SkillCommitResponse {
   context?: {
-    build: { buildVersion: number }
+    build: { buildVersion: number; supportActionId?: SupportActionId }
     disciplineSkills: {
       capacity: number
       learnedSkills: readonly SkillCatalogEntryView[]
@@ -124,7 +140,15 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
   const initialFocusedId =
     initialIds[0] ?? initialLearnedSkills.find((entry) => entry.activeSource)?.definition.id ?? null
   const open = searchParams.get(PROFILE_PANEL_QUERY) === TECHNIQUES_PANEL
-  const [buildVersion, setBuildVersion] = useState(initialBuildVersion)
+  const buildVersionRef = useRef(initialBuildVersion)
+  const pendingRef = useRef(false)
+  const [supportActionId, setSupportActionId] = useState(
+    props.initialSupportActionId ?? DEFAULT_SUPPORT_ACTION_ID,
+  )
+  const [committedSupportActionId, setCommittedSupportActionId] = useState(
+    props.initialSupportActionId ?? DEFAULT_SUPPORT_ACTION_ID,
+  )
+  const [focusedSupportActionId, setFocusedSupportActionId] = useState<SupportActionId | null>(null)
   const [capacity, setCapacity] = useState(initialCapacity)
   const [learnedSkills, setLearnedSkills] =
     useState<readonly SkillCatalogEntryView[]>(initialLearnedSkills)
@@ -198,7 +222,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
   }, [open])
 
   function setPanelOpen(nextOpen: boolean) {
-    if (!nextOpen && pending) return
+    if (!nextOpen && pendingRef.current) return
 
     const params = new URLSearchParams(searchParams.toString())
     if (nextOpen) {
@@ -255,13 +279,14 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
     nextIds: string[],
     successMessage = 'Techniques saved automatically.',
   ) {
-    if (pending || sameSelection(nextIds, selectedIds)) return
+    if (pendingRef.current || sameSelection(nextIds, selectedIds)) return
     if (!mixedSelectionValid(nextIds)) {
       setMessage('A full mixed loadout needs at least one Technique from each active Discipline.')
       return
     }
 
     setSelectedIds(nextIds)
+    pendingRef.current = true
     setPending(true)
     setMessage(null)
 
@@ -270,7 +295,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          expectedBuildVersion: buildVersion,
+          expectedBuildVersion: buildVersionRef.current,
           skillIds: nextIds,
           idempotencyKey: crypto.randomUUID(),
         }),
@@ -278,12 +303,16 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
       const body = (await response.json()) as SkillCommitResponse
       if (!response.ok || !body.context) {
         setSelectedIds(committedIds)
+        setRefreshOnClose(true)
         setMessage(body.error?.message ?? 'The selected Techniques could not be saved.')
         return
       }
 
       const committed = orderedSkillIds(body.context.disciplineSkills.equippedSkills)
-      setBuildVersion(body.context.build.buildVersion)
+      buildVersionRef.current = body.context.build.buildVersion
+      const committedSupport = body.context.build.supportActionId ?? committedSupportActionId
+      setSupportActionId(committedSupport)
+      setCommittedSupportActionId(committedSupport)
       setCapacity(body.context.disciplineSkills.capacity)
       setLearnedSkills(body.context.disciplineSkills.learnedSkills)
       setCommittedIds(committed)
@@ -292,19 +321,125 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
       setMessage(successMessage)
     } catch {
       setSelectedIds(committedIds)
-      setMessage('The build service could not be reached. Nothing was changed.')
+      setRefreshOnClose(true)
+      setMessage('The save could not be confirmed. Close Techniques to refresh your build.')
     } finally {
+      pendingRef.current = false
       setPending(false)
     }
   }
 
   function toggleAndCommit(skill: SkillCatalogEntryView) {
-    if (!skill.activeSource || pending) return
+    if (!skill.activeSource || pendingRef.current) return
+    setFocusedSupportActionId(null)
     setFocusedSkillId(skill.definition.id)
     setMessage(null)
     const nextIds = nextSelectionFor(skill)
     if (sameSelection(nextIds, selectedIds)) return
     void commitSelection(nextIds)
+  }
+
+  async function commitSupportAction(nextId: SupportActionId) {
+    setFocusedSupportActionId(nextId)
+    if (pendingRef.current || nextId === supportActionId) return
+    pendingRef.current = true
+    setSupportActionId(nextId)
+    setPending(true)
+    setMessage(null)
+    try {
+      const response = await fetch('/api/character/build/support-action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          characterId: props.characterId,
+          expectedBuildVersion: buildVersionRef.current,
+          supportActionId: nextId,
+          idempotencyKey: crypto.randomUUID(),
+        }),
+      })
+      const body = (await response.json()) as SkillCommitResponse
+      if (!response.ok || !body.context) {
+        setSupportActionId(committedSupportActionId)
+        setRefreshOnClose(true)
+        setMessage(body.error?.message ?? 'The Support Action could not be saved.')
+        return
+      }
+      const committedSupport = body.context.build.supportActionId ?? DEFAULT_SUPPORT_ACTION_ID
+      const committed = orderedSkillIds(body.context.disciplineSkills.equippedSkills)
+      buildVersionRef.current = body.context.build.buildVersion
+      setSupportActionId(committedSupport)
+      setCommittedSupportActionId(committedSupport)
+      setCapacity(body.context.disciplineSkills.capacity)
+      setLearnedSkills(body.context.disciplineSkills.learnedSkills)
+      setCommittedIds(committed)
+      setSelectedIds(committed)
+      setRefreshOnClose(true)
+      setMessage('Support Action saved for battle slot 3.')
+    } catch {
+      setSupportActionId(committedSupportActionId)
+      setRefreshOnClose(true)
+      setMessage('The save could not be confirmed. Close Techniques to refresh your build.')
+    } finally {
+      pendingRef.current = false
+      setPending(false)
+    }
+  }
+
+  function renderSupportActions() {
+    return (
+      <section className={styles.techniqueGroup} data-support-action-group="true">
+        <header>
+          <div>
+            <span aria-hidden="true">✦</span>
+            <h3>Support Action</h3>
+          </div>
+          <small>Choose one · Battle slot 3</small>
+        </header>
+        <div className={styles.supportGrid} role="radiogroup" aria-label="Support Action">
+          {SUPPORT_ACTION_IDS.map((id) => {
+            const selected = supportActionId === id
+            const name = pv1fSkillByActionId(id)!.name
+            return (
+              <article
+                className={styles.skill}
+                key={id}
+                data-selected={selected ? 'true' : 'false'}
+                onMouseEnter={() => setFocusedSupportActionId(id)}
+                onFocusCapture={() => setFocusedSupportActionId(id)}
+              >
+                <label>
+                  <input
+                    type="radio"
+                    name={`support-action-${props.characterId}`}
+                    checked={selected}
+                    disabled={pending}
+                    aria-label={name}
+                    onChange={() => void commitSupportAction(id)}
+                  />
+                  <span
+                    className={styles.skillArt}
+                    data-av-square-media="true"
+                    data-av-square-media-fit="contain"
+                    aria-hidden="true"
+                  >
+                    <Image
+                      src={battleSkillArtwork(id)}
+                      width={160}
+                      height={160}
+                      unoptimized
+                      alt=""
+                    />
+                    {selected ? <b>✓</b> : null}
+                  </span>
+                  <strong>{name}</strong>
+                  <span className={styles.skillMeta}>{pv1fFlatActionCost(id)} AP</span>
+                </label>
+              </article>
+            )
+          })}
+        </div>
+      </section>
+    )
   }
 
   function renderTechniqueGroup(
@@ -377,8 +512,14 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                 key={`${entry.definition.id}:${entry.definition.contentVersion}`}
                 data-selected={selected ? 'true' : 'false'}
                 style={skillPaletteStyle(entry.definition.sourceDisciplineId)}
-                onMouseEnter={() => setFocusedSkillId(entry.definition.id)}
-                onFocusCapture={() => setFocusedSkillId(entry.definition.id)}
+                onMouseEnter={() => {
+                  setFocusedSupportActionId(null)
+                  setFocusedSkillId(entry.definition.id)
+                }}
+                onFocusCapture={() => {
+                  setFocusedSupportActionId(null)
+                  setFocusedSkillId(entry.definition.id)
+                }}
               >
                 <label>
                   <input
@@ -463,7 +604,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                     <div>
                       <h2 id="skill-build-heading">Techniques</h2>
                       <small className={styles.autoSaveNote} data-testid="skill-capacity">
-                        {selectedIds.length} / {capacity} selected
+                        Discipline Skills — {selectedIds.length} / {capacity} selected
                       </small>
                     </div>
                   </div>
@@ -486,6 +627,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                   >
                     {renderTechniqueGroup(primaryDiscipline, primarySkills, false)}
                     {renderTechniqueGroup(secondaryDiscipline, secondarySkills, true)}
+                    {renderSupportActions()}
                   </section>
 
                   <aside
@@ -494,8 +636,59 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                     data-testid="technique-preview"
                   >
                     <section className={styles.selectedTechnique}>
-                      <span>Technique Preview</span>
-                      {focusedSkill ? (
+                      <span>
+                        {focusedSupportActionId ? 'Support Action Preview' : 'Technique Preview'}
+                      </span>
+                      {focusedSupportActionId ? (
+                        <>
+                          <div className={styles.selectedTechniqueHeading}>
+                            <span
+                              className={styles.detailArt}
+                              data-av-square-media="true"
+                              data-av-square-media-fit="contain"
+                            >
+                              <Image
+                                src={battleSkillArtwork(focusedSupportActionId)}
+                                width={192}
+                                height={192}
+                                unoptimized
+                                alt=""
+                              />
+                            </span>
+                            <div>
+                              <strong>{pv1fSkillByActionId(focusedSupportActionId)!.name}</strong>
+                              <small>One Support Action, separate from Discipline Skills.</small>
+                            </div>
+                          </div>
+                          <dl className={styles.characteristics}>
+                            <div>
+                              <dt>AP cost</dt>
+                              <dd>{pv1fFlatActionCost(focusedSupportActionId)} AP</dd>
+                            </div>
+                            <div>
+                              <dt>Target</dt>
+                              <dd>Self</dd>
+                            </div>
+                            <div>
+                              <dt>Battle slot</dt>
+                              <dd>3</dd>
+                            </div>
+                            <div>
+                              <dt>Cooldown</dt>
+                              <dd>
+                                {focusedSupportActionId === 'basic.guard'
+                                  ? 'None'
+                                  : `${PV1F_RECOVERY_COOLDOWN_OWNER_TURNS} owner turns, shared by HP / MP Recovery`}
+                              </dd>
+                            </div>
+                          </dl>
+                          <p>
+                            {focusedSupportActionId === 'basic.guard'
+                              ? 'Brace with Guarded to reduce incoming damage.'
+                              : `Restore ${focusedSupportActionId === 'basic.recover' ? 'HP' : 'MP'}. The battle forecast shows the recovery amount and whether recovery is available.`}
+                          </p>
+                        </>
+                      ) : focusedSkill ? (
                         <>
                           <div className={styles.selectedTechniqueHeading}>
                             <span

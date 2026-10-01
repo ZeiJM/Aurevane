@@ -116,6 +116,7 @@ function repository(overrides: Partial<CharacterBuildRepository> = {}): Characte
       },
     })),
     changeDisciplines: vi.fn(async () => ({ build: activeBuild(), replayed: false })),
+    saveSupportAction: vi.fn(async () => ({ buildVersion: 2, replayed: false })),
     saveDisciplineSkills: vi.fn(async () => ({ buildVersion: 1, replayed: false })),
     ...overrides,
   }

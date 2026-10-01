@@ -178,7 +178,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
     page.getByRole('dialog', { name: 'Complete the tactical fundamentals' }),
   ).toHaveCount(0)
 
-  // Guided Fundamentals now uses the full 9x7 Duel Yard. Traverse a second movement turn toward
+  // Guided Fundamentals uses the full 9x7 Duel Yard. Traverse a second movement turn toward
   // the Recruit before completing Guard/Attack so the lesson remains deterministic at medium scale.
   await moveButton.click()
   await chooseReachableTowardRecruit(page, battlefield)

@@ -33,6 +33,7 @@ interface AttributeAllocationState {
 
 interface CharacterAttributeAllocationPanelProps {
   initialAllocation: AttributeAllocationState
+  resetLabel?: string
   portrait?: { name: string; imageUrl: string | null; assetId: ImageAssetId }
   focusAttributes: readonly CharacterAttributeId[]
   attributeCaps: Readonly<Partial<Record<CharacterAttributeId, number>>>
@@ -47,6 +48,7 @@ const ATTRIBUTE_MODE_QUERY = 'attributeMode'
 
 export function CharacterAttributeAllocationPanel({
   initialAllocation,
+  resetLabel = 'Reset Attributes',
   portrait,
   focusAttributes,
   attributeCaps,
@@ -185,7 +187,7 @@ export function CharacterAttributeAllocationPanel({
         onClick={beginReset}
         disabled={allocation.resetRemaining <= 0 || forced || saveState === 'saving'}
       >
-        Reset Attributes
+        {resetLabel}
       </button>
 
       {open ? (

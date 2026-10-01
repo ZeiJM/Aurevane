@@ -25,7 +25,28 @@ test('Character Select keeps its heading above three readable, reachable roster 
     password: 'Disposable-roster-layout-2026!',
     characterName,
   })
+  const headerAppearance = async () =>
+    page.locator('[data-av-site-header]').evaluate((node) => {
+      const wordmark = node.querySelector('.brand__wordmark strong')!
+      const crest = node.querySelector('.brand__crest')!
+      const style = getComputedStyle(wordmark)
+      return {
+        height: node.getBoundingClientRect().height,
+        crestWidth: crest.getBoundingClientRect().width,
+        color: style.color,
+        font: style.font,
+        spacing: style.letterSpacing,
+        background: getComputedStyle(node).backgroundColor,
+      }
+    })
+  const inGameHeader = await headerAppearance()
   await page.goto('/game')
+  expect(await headerAppearance()).toEqual(inGameHeader)
+  await expect(page.getByRole('navigation', { name: 'Public information' })).toBeVisible()
+  await expect(page.locator('[data-av-site-header] a').filter({ hasText: 'News' })).toHaveAttribute(
+    'href',
+    '/news',
+  )
   await expect(page.locator('[data-character-select-page] > header img')).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Switch account', exact: true })).toHaveCount(0)
   const board = page.locator('[data-character-slot-board]')
@@ -75,6 +96,7 @@ test('Character Select keeps its heading above three readable, reachable roster 
       : info.project.name === 'laptop-chromium'
         ? [{ width: 1366, height: 768 }]
         : [
+            { width: 1917, height: 987 },
             { width: 1728, height: 887 },
             { width: 1440, height: 900 },
             { width: 1024, height: 576 },
@@ -173,7 +195,7 @@ test('Character Select keeps its heading above three readable, reachable roster 
     expect
       .soft(metrics.lockedBackground, `${label}: stone locked cards`)
       .toContain('linear-gradient')
-    if (size.width >= 1280 && size.height >= 768) {
+    if (size.width > 760) {
       expect
         .soft(metrics.play.bottom, `${label}: play fits at normal zoom`)
         .toBeLessThanOrEqual(size.height)
@@ -201,9 +223,13 @@ test('Character Select keeps its heading above three readable, reachable roster 
       path.join(process.env.LAYOUT_REVIEW_OUTPUT, `character-roster-${info.project.name}.json`),
       JSON.stringify(results, null, 2),
     )
+  const rosterHeader = await headerAppearance()
   // Sign-out remains available through Account; it no longer occupies roster page content.
   await page.getByRole('button', { name: /Account/ }).click()
   await page.getByRole('menuitem', { name: 'Sign out', exact: true }).click()
   await expect(page).toHaveURL(/\/$/)
+  await expect(page.getByTestId('account-shell')).toBeVisible()
+  expect(await headerAppearance()).toEqual(rosterHeader)
+  await expect(page.getByRole('button', { name: /Sound/ })).toBeVisible()
   expect(pageErrors).toEqual([])
 })

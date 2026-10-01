@@ -138,7 +138,7 @@ test('desktop Profile and every Battle Hall tab fit without sacrificing readable
     await expect(page.locator('[data-profile-workspace]')).toBeVisible()
     await readable(page.getByTestId('derived-stat-movement').locator('span').first(), 13)
     await fit(page, `Profile-${suffix}`, testInfo)
-    const reset = page.getByRole('button', { name: 'Reset Attributes' })
+    const reset = page.getByRole('button', { name: 'Reset Stats' })
     await readable(reset, 11.5)
     await reset.click({ trial: true })
 
@@ -187,7 +187,7 @@ test('desktop Profile and every Battle Hall tab fit without sacrificing readable
 
   await page.setViewportSize({ width: 1366, height: 768 })
   await page.goto('/game/character')
-  await page.getByRole('button', { name: 'Reset Attributes' }).click()
+  await page.getByRole('button', { name: 'Reset Stats' }).click()
   const allocation = page.getByRole('dialog', { name: 'Redistribute Attributes' })
   await expect(allocation).toBeVisible()
   await testInfo.attach('Attributes-dialog', {
@@ -239,7 +239,7 @@ test('desktop Profile and every Battle Hall tab fit without sacrificing readable
   await page.setViewportSize({ width: 1024, height: 576 })
   await page.goto('/game/character')
   await expect(page.locator('[data-profile-workspace]')).toBeVisible()
-  await reachable(page, page.getByRole('button', { name: 'Reset Attributes' }))
+  await reachable(page, page.getByRole('button', { name: 'Reset Stats' }))
   await page.goto('/game/battle')
   await page
     .getByRole('navigation', { name: 'Battle Hall sections' })
@@ -487,7 +487,7 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
   await page.keyboard.press('Escape')
   await expect(statPopover).toHaveCount(0)
 
-  await page.getByRole('button', { name: 'Reset Attributes' }).click()
+  await page.getByRole('button', { name: 'Reset Stats' }).click()
   const attributeDialog = page.getByRole('dialog', { name: 'Redistribute Attributes' })
   await expect(attributeDialog).toBeVisible()
   await testInfo.attach('phone-attributes', {

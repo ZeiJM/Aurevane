@@ -10,6 +10,7 @@ import type {
 } from '@aurevane/game-core/character/discipline-build'
 import type { CharacterProfileReadModel } from '@aurevane/game-core/character/profile'
 import type { SupernaturalStoryState } from '@aurevane/game-core/character/supernatural-state'
+import type { SupportActionId } from '@aurevane/game-core/combat/support-actions'
 import type { EssenceDefinition } from '@aurevane/game-core/combat/essence'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
 import type { AnyResonanceDefinition } from '@aurevane/game-core/combat/resonance'
@@ -17,6 +18,7 @@ import { Surface } from '@aurevane/ui'
 
 import { CharacterAttributeAllocationPanel } from '@/components/character/character-attribute-allocation-panel'
 import { CharacterRailSynchronizedLayout } from '@/components/character/character-rail-synchronized-layout'
+import { CharacterBuildTendencies } from '@/components/character/character-build-tendencies'
 import { CharacterProfileDetails } from '@/components/character/character-profile-details'
 import { type SupernaturalChoiceOption } from '@/components/character/character-supernatural-choice-controls'
 import { getStarterPortraitImageAssetId } from '@/media/character'
@@ -53,6 +55,7 @@ export interface CharacterWorkspaceProps {
   profile: CharacterProfileReadModel
   attributeAllocation: AttributeAllocationView
   disciplineBuild: {
+    supportActionId?: SupportActionId
     buildVersion: number
     current: PrimaryDisciplinePreview
     currentSecondary: DisciplineDefinition | null
@@ -197,9 +200,11 @@ export function CharacterProfileShell({
           cycleNumber={profile.progression.cycleNumber}
           attributes={profile.attributes}
           derived={disciplineBuild.current.derived}
+          buildTendencies={<CharacterBuildTendencies attributes={profile.attributes} />}
           attributeResetControl={
             <CharacterAttributeAllocationPanel
               initialAllocation={attributeAllocation}
+              resetLabel="Reset Stats"
               portrait={{
                 name: profile.identity.name,
                 imageUrl,

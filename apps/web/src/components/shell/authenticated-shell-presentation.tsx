@@ -5,8 +5,8 @@ import type { ReactNode } from 'react'
 import { PvpBattleKeyInputAssist } from '@/components/battle/pvp-battle-key-input-assist'
 import { getImageAsset } from '@/media/registry'
 
-import railStyles from '../public-information/public-header-rail.module.css'
 import { AccountMenu } from './account-menu'
+import { SiteHeader } from './site-header'
 import { GameRail, type GameRailProps } from './game-rail'
 import { MobileShellInsets } from './mobile-shell-insets'
 import { OnlinePresenceLink } from './online-presence-link'
@@ -68,61 +68,44 @@ export function AuthenticatedShellPresentation({
         <a className="skip-link" href="#game-main">
           Skip to game content
         </a>
-        <header className={`${styles.masthead} ${railStyles.masthead}`} data-av-surface="ink">
-          <div className={styles.brandGroup}>
-            <Link className="brand" href="/game/haven" prefetch={false} aria-label="AUREVANE Haven">
-              <span className="brand__crest" aria-hidden="true">
-                <span>A</span>
-              </span>
-              <span className="brand__wordmark">
-                <strong>AUREVANE</strong>
-                <small>Persistent tactical fantasy</small>
-              </span>
-            </Link>
-          </div>
-
-          <nav className={`${styles.headerLinks} ${railStyles.navigation}`} aria-label="Reference">
-            <Link href="/news" prefetch={false}>
-              News
-            </Link>
-            <Link href="/manual" prefetch={false}>
-              Manual
-            </Link>
-            <Link href="/rules" prefetch={false}>
-              Rules
-            </Link>
-          </nav>
-
-          <div className={`${railStyles.utility} ${styles.mastheadUtility}`}>
-            {activeBattleHref ? (
-              <Link className={styles.activeBattleLink} href={activeBattleHref} prefetch={false}>
-                <span aria-hidden="true">●</span> IN BATTLE
-              </Link>
-            ) : activeSpectatingHref ? (
-              <Link
-                className={styles.activeBattleLink}
-                href={activeSpectatingHref}
-                prefetch={false}
-              >
-                <span aria-hidden="true">●</span> SPECTATING
-              </Link>
-            ) : null}
-            {character ? (
-              <div
-                className={styles.headerCharacter}
-                aria-label={`Current character: ${character.name}`}
-              >
-                {characterPortrait}
-              </div>
-            ) : null}
-            <AccountMenu
-              activeSessionHref={activeSessionHref}
-              activeSessionLabel={activeSessionLabel}
-              characterName={character?.name ?? null}
-              masterPanelHref={masterPanelHref}
-            />
-          </div>
-        </header>
+        <SiteHeader
+          className={styles.masthead}
+          brandHref="/game/haven"
+          brandLabel="AUREVANE Haven"
+          navigationLabel="Reference"
+          utilityClassName={styles.mastheadUtility}
+          utility={
+            <>
+              {activeBattleHref ? (
+                <Link className={styles.activeBattleLink} href={activeBattleHref} prefetch={false}>
+                  <span aria-hidden="true">●</span> IN BATTLE
+                </Link>
+              ) : activeSpectatingHref ? (
+                <Link
+                  className={styles.activeBattleLink}
+                  href={activeSpectatingHref}
+                  prefetch={false}
+                >
+                  <span aria-hidden="true">●</span> SPECTATING
+                </Link>
+              ) : null}
+              {character ? (
+                <div
+                  className={styles.headerCharacter}
+                  aria-label={`Current character: ${character.name}`}
+                >
+                  {characterPortrait}
+                </div>
+              ) : null}
+              <AccountMenu
+                activeSessionHref={activeSessionHref}
+                activeSessionLabel={activeSessionLabel}
+                characterName={character?.name ?? null}
+                masterPanelHref={masterPanelHref}
+              />
+            </>
+          }
+        />
 
         {layout !== 'battlefield' ? (
           <GameRail

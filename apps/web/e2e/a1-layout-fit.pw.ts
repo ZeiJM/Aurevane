@@ -64,7 +64,7 @@ test('keeps A1 surfaces readable and within viewport', async ({ page }, testInfo
     11.5,
     'Character Profile derived-stat label',
   )
-  const resetAttributes = page.getByRole('button', { name: 'Reset Attributes' })
+  const resetAttributes = page.getByRole('button', { name: 'Reset Stats' })
   await expectMinimumFontSize(resetAttributes, 11, 'Character Profile reset control')
   await expectReachableByVerticalScroll(page, resetAttributes, 'Character Profile reset control')
   await expectInitialViewportFit(page, 'Character Profile', { allowVerticalScroll: true })

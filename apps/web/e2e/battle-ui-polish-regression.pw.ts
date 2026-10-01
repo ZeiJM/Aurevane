@@ -334,7 +334,7 @@ test('uses medium Guided Fundamentals and keeps PvE surrender/results', async ({
   await page.goto('/game/battle')
   await page.getByLabel('Battle mode').selectOption('guided-fundamentals')
   await expect(page.getByLabel('AI sparring arena').locator('option:checked')).toContainText(
-    'Basic Training Floor · 5×3',
+    'Duel Yard · 9×7',
   )
   await expect(page.locator('#ai-arena-description')).toHaveCount(0)
   await page.getByRole('button', { name: 'Enter Battle' }).click()
@@ -412,7 +412,7 @@ test('keeps large PvP geometry, tokens, surrender, and results', async ({ browse
     await host.getByRole('button', { name: 'PVP - Direct', exact: true }).click()
     await host
       .getByRole('group', { name: 'Map size' })
-      .getByRole('button', { name: 'Expanded' })
+      .getByRole('button', { name: 'Large · 15×7' })
       .click()
     await host.getByRole('button', { name: 'Create Battle Lobby' }).click()
 

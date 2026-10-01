@@ -27,6 +27,9 @@ export function toCombatBuildSnapshot(
     disciplineSkills: [...committed.disciplineSkills]
       .sort((left, right) => left.slotIndex - right.slotIndex)
       .map((skill) => ({ ...skill })),
+    ...(committed.supportActionId === undefined
+      ? {}
+      : { supportActionId: committed.supportActionId }),
     extensions: {
       resonance: committed.extensions.resonance
         ? {

@@ -82,29 +82,6 @@ export default async function HavenPage() {
           <p>Daily rewards will be available in a future update.</p>
         </section>
       </div>
-      <nav className={styles.shortcuts} aria-label="Haven shortcuts">
-        <Link href="/game/loadout">
-          <b>✦</b>
-          <span>
-            Prepare your loadout<small>Disciplines & techniques</small>
-          </span>
-          →
-        </Link>
-        <Link href="/game/training">
-          <b>◷</b>
-          <span>
-            Passive Training<small>Review your training & reports</small>
-          </span>
-          →
-        </Link>
-        <Link href="/game/battle">
-          <b>⚔</b>
-          <span>
-            Enter the Battle Hall<small>Practice, challenge & spectate</small>
-          </span>
-          →
-        </Link>
-      </nav>
     </div>
   )
 }

@@ -1,5 +1,9 @@
 import 'server-only'
 
+import {
+  parseSupportActionId,
+  type SupportActionId,
+} from '@aurevane/game-core/combat/support-actions'
 import { createHash } from 'node:crypto'
 
 import {
@@ -32,6 +36,7 @@ import type { CombatContentResolver } from '@/server/combat/combat-content-resol
 export const BATTLE_BUILD_AUTHORITY_SCHEMA_VERSION = 1 as const
 
 export interface BattleBuildAuthorityCombatantSnapshot {
+  supportActionId?: SupportActionId
   combatantId: string
   characterId: string
   snapshotSchemaVersion: typeof COMBAT_BUILD_SNAPSHOT_SCHEMA_VERSION
@@ -155,6 +160,9 @@ function combatSnapshotFromCommitted(
     disciplineSkills: [...snapshot.disciplineSkills]
       .sort((left, right) => left.slotIndex - right.slotIndex)
       .map((skill) => ({ ...skill })),
+    ...(snapshot.supportActionId === undefined
+      ? {}
+      : { supportActionId: snapshot.supportActionId }),
     extensions: {
       resonance: snapshot.extensions.resonance
         ? {
@@ -192,6 +200,9 @@ function validateCanonicalCombatSnapshot(
       primary: snapshot.primary,
       secondary: snapshot.secondary,
       disciplineSkills: snapshot.disciplineSkills,
+      ...(snapshot.supportActionId === undefined
+        ? {}
+        : { supportActionId: snapshot.supportActionId }),
       extensions: snapshot.extensions,
     }) === snapshot.fingerprint
   )
@@ -239,6 +250,8 @@ function parseCombatant(
   const essence = parseEssenceReference(value.extensions.essence)
   if (!disciplineSkills || resonance === undefined || essence === undefined) return null
 
+  const supportActionId = parseSupportActionId(value.supportActionId)
+  if (Object.hasOwn(value, 'supportActionId') && !supportActionId) return null
   const combatSnapshot: CombatBuildSnapshot = {
     schemaVersion: COMBAT_BUILD_SNAPSHOT_SCHEMA_VERSION,
     sourceBuildSchemaVersion: value.buildSchemaVersion,
@@ -251,6 +264,7 @@ function parseCombatant(
     },
     secondary,
     disciplineSkills,
+    ...(supportActionId ? { supportActionId } : {}),
     extensions: {
       resonance,
       essence,
@@ -324,6 +338,7 @@ function parseCombatant(
     primary: combatSnapshot.primary,
     secondary,
     disciplineSkills,
+    ...(supportActionId ? { supportActionId } : {}),
     extensions: { resonance, essence },
   }
 }
@@ -390,6 +405,9 @@ function createBattleBuildAuthoritySnapshotForCatalog(
         primary: { ...combatSnapshot.primary },
         secondary: combatSnapshot.secondary ? { ...combatSnapshot.secondary } : null,
         disciplineSkills: combatSnapshot.disciplineSkills.map((skill) => ({ ...skill })),
+        ...(combatSnapshot.supportActionId === undefined
+          ? {}
+          : { supportActionId: combatSnapshot.supportActionId }),
         extensions: {
           resonance: combatSnapshot.extensions.resonance
             ? {

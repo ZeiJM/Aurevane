@@ -141,7 +141,7 @@ test('desktop Profile and all Battle Hall setups fit without clipped controls or
     await page.goto('/game/character')
     await expect(page.locator('[data-profile-workspace]')).toBeVisible()
     await settleLayout(page)
-    const reset = page.getByRole('button', { name: 'Reset Attributes' })
+    const reset = page.getByRole('button', { name: 'Reset Stats' })
     await expectAboveFooter(page, reset)
     const profileBottom = await page
       .locator('section[aria-label="Attribute redistribution"]')
@@ -182,8 +182,8 @@ test('desktop Profile and all Battle Hall setups fit without clipped controls or
       await expectHallFits(page, `${mode} ${size}`)
     }
     await capture(page, testInfo, `hall-pvp-flex-${size}`)
-    await page.getByRole('button', { name: 'Expanded', exact: true }).click()
-    await expect(page.getByRole('button', { name: 'Expanded', exact: true })).toHaveAttribute(
+    await page.getByRole('button', { name: 'Large · 15×7', exact: true }).click()
+    await expect(page.getByRole('button', { name: 'Large · 15×7', exact: true })).toHaveAttribute(
       'aria-pressed',
       'true',
     )
@@ -211,8 +211,7 @@ test('desktop Profile and all Battle Hall setups fit without clipped controls or
     .getByRole('navigation', { name: 'Primary game navigation' })
     .getByRole('link', { name: 'Loadout', exact: true })
     .click()
-  await expect(page).toHaveURL(/\/game\/loadout$/)
-  await page.goto('/game/nexus')
+  await expect(page).toHaveURL(/\/game\/nexus$/)
   for (const [panel, name] of [
     ['primary-build-panel', 'Discipline Management'],
     ['skill-build-panel', 'Techniques'],

@@ -116,6 +116,8 @@ BOUNDED PRESTIGE / VETERAN EDGE
 
 Each fully authored Discipline provides eight learnable Skills. A pure build draws its four battle selections from eight; a mixed build draws four total from the two libraries (16 learned Skills across a fully authored pair). Its Essence or Resonance is separate from these four selections.
 
+Owner-approved 2026-10-01: one separately saved Support Action (Guard, HP Recovery or MP Recovery) occupies battle slot 3 without consuming the four Discipline Skill selections. Guard remains the legacy default. New battles pin the choice; named loadouts retain it. Existing recovery costs, shared cooldown and resource legality remain authoritative. Guided Fundamentals retains an exercise-only Guard practice control when Recovery occupies slot 3.
+
 Pure build:
 
 ```text
