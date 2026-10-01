@@ -86,7 +86,7 @@
     text-align: center;
   }
 }
-@media (min-width: 821px) and (max-height: 700px), (min-width: 821px) and (max-width: 1100px) {
+@media (min-width: 821px) {
   .inline {
     padding: 0.3rem;
   }
@@ -109,7 +109,7 @@
   }
 }
 
-@media (min-width: 821px) and (max-width: 1100px) and (max-height: 620px) {
+@media (min-width: 821px) and (max-width: 1100px) {
   .inline {
     padding: 0.2rem;
   }
