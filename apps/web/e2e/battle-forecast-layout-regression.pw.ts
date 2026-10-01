@@ -197,6 +197,16 @@ async function capture(page: Page, testInfo: TestInfo, label: string) {
       ].map((card) => ({
         controls: rect(card.querySelector('[data-battle-cockpit-controls]')),
         name: rect(card.querySelector('strong')),
+        nameLines: (() => {
+          const range = document.createRange()
+          range.selectNodeContents(card.querySelector('strong')!)
+          return [...range.getClientRects()].map(({ x, y, width, height }) => ({
+            x,
+            y,
+            width,
+            height,
+          }))
+        })(),
         artwork: rect(
           card.querySelector(
             '[data-battle-command-artwork], [data-av-square-media], :scope > span',
@@ -318,11 +328,13 @@ function expectStable(geometry: Awaited<ReturnType<typeof capture>>, baseline: R
   expect(geometry.cockpit!.height).toBeLessThanOrEqual(168)
   expect(geometry.strip!.height).toBeCloseTo(44, 0)
   expect(geometry.info).toBeNull()
-  for (const command of geometry.commandAlignment)
+  for (const command of geometry.commandAlignment) {
     expect(
       command.name!.y + command.name!.height,
       'skill names fit above info/hotkey row',
     ).toBeLessThanOrEqual(command.controls!.y + 1)
+    for (const line of command.nameLines) contained(line, command.name!)
+  }
   const controls = geometry.commandAlignment.map((command) => command.controls!.y)
   expect(
     Math.max(...controls) - Math.min(...controls),

@@ -251,11 +251,18 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
 export async function expectBattleFlowKeepsBoardSize(page: Page) {
   const board = page.locator('#battlefield [data-board-auto-fit]')
   const before = await board.boundingBox()
-  await page.getByRole('button', { name: 'Expand battle history' }).click()
-  const dialog = page.getByRole('dialog', { name: 'Battle Log', exact: true })
-  await expect(dialog).toBeVisible()
-  await page.keyboard.press('Escape')
-  await expect(dialog).toHaveCount(0)
+  const log = page.locator('[data-battle-inline-log]')
+  await log.getByRole('button', { name: 'Switch to Text log', exact: true }).click()
+  await expect(log.getByRole('button', { name: 'Switch to Timeline', exact: true })).toHaveText(
+    'Text log',
+  )
+  const during = await board.boundingBox()
+  expect(during?.width).toBe(before?.width)
+  expect(during?.height).toBe(before?.height)
+  await log.getByRole('button', { name: 'Switch to Timeline', exact: true }).click()
+  await expect(log.getByRole('button', { name: 'Switch to Text log', exact: true })).toHaveText(
+    'Timeline',
+  )
   const after = await board.boundingBox()
   expect(after?.width).toBe(before?.width)
   expect(after?.height).toBe(before?.height)

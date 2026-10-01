@@ -1,6 +1,6 @@
-# Terrain Key rail fill — 2026-10-01
+# Battle rails, cockpit and turn history — 2026-10-01
 
-Owner asks the Terrain Key to fill the empty rail space like the Battle Log, leaving a tiny gap above the cockpit and room for additional terrains. Base: `11f199c72d02e2b2d9b8705b7c94437611b25b52`; branch: `agent/terrain-key-rail-fill-20261001`. Existing UI-maintenance merge/deploy authorization applies.
+Owner asks the Terrain Key and Battle Log to fill their rail space with a tiny cockpit gap, a shorter centered cockpit with full skill names and color accents, and a turn-based history browser with one format toggle, all actors and all selected-turn actions, boundary-aware arrows and no visible scrollbar or redundant controls. Base: `11f199c72d02e2b2d9b8705b7c94437611b25b52`; branch: `agent/terrain-key-rail-fill-20261001`. Existing UI-maintenance merge/deploy authorization applies.
 
 The playable shared layout aligned the key to the start of an already allocated flexible row. Replace that alignment with stretch; make the shared desktop key a fixed-heading grid with top-aligned, bounded terrain samples. No new fixed rail height, gameplay rule, asset, dependency, migration or content activation is introduced. Mobile remains intrinsic-height.
 
@@ -10,8 +10,17 @@ The playable shared layout aligned the key to the start of an already allocated 
 - After the fix, all 42 cases passed: AI/PvP/spectator × ordinary/all-six-terrain dense states × 1917×987, 1440×900, 1366×768, 1536×614, 1024×576, 821×768 and 390×844. Desktop key bottoms match their rail bottoms within 1px, with 5.59–7.19px above the cockpit. All six current terrain kinds fit without meaningful list scrolling, no desktop page/card overflow, and opening final facing preserves board height.
 - Six oversized-list probes (AI/PvP/spectator at 1440×900 and 1024×576) added sixty sample buttons to the real component DOM. The heading remains visible, the last button is keyboard-accessible through internal list scrolling, and key/board height and page containment remain unchanged. This validates capacity, not new authored terrain content.
 - Durable server-backed E2E geometry assertions now require rail fill and a small cockpit gap in `battle-forecast-layout-regression.pw.ts`. Local rendered checks use real presentation components with fixture transport; authenticated execution belongs to disposable CI.
-- Independent review found no blocking issue. The spectator fixture omits optional participant titles; that unchanged parent-layout edge was not exercised.
+- Independent Terrain Key review found no blocking issue. The spectator fixture omits optional participant titles; that unchanged parent-layout edge was not exercised.
+
+## Cockpit and history continuation
+
+- The shared desktop cockpit uses aligned artwork, natural-height names, compact info/hotkey controls and reserved caption/facing tracks. Centered groups and restrained teal, blue, gold and violet accents preserve the red End Turn action. Artwork caps adapt to narrow and short desktop dimensions; names wrap fully instead of being clipped. Mobile keeps intrinsic flow.
+- A 42-case actual-component matrix across the same AI/PvP/spectator modes, viewport sizes and ordinary/dense states passes board containment, matched icon/control rows, full names, rail fill and stable final-facing geometry. Shorter cockpit height increases the usable rails and, where height is the limiting factor, the board.
+- Independent review exposed an overlapping Copied Skills trigger. It now occupies the supernatural caption track, and copied option pointer selection works at normal, narrow and short desktop dimensions. A fixed mobile menu escapes the horizontally scrolling command container; pointer selection also passes at 390×844. Selecting a copied skill only arms it.
+- History groups all authorized entries by their annotated round/turn, preserving empty current turns and stable older-turn selection as events append. Legacy unannotated entries use round groups. One header button switches Timeline/Text log; previous/next arrows disappear at their boundaries, with keyboard focus restored when an activated arrow disappears. Expand, actor filters and bottom pagination/counts are removed. All actions for the selected turn are retained. Large text/history remains internally wheel/keyboard accessible without a visible scrollbar.
+- Twelve dense-history rendered checks (AI/PvP/spectator at 1440×900, 821×768, 1024×576 and 390×844) show all eight action icons for each of three turns without icon-list scrolling, one format toggle, hidden boundary arrows, readable action details and unchanged board dimensions. Icon names and actors remain available through accessible labels, hover titles, Text log and detail popups.
+- Focused unit coverage verifies grouping, live updates, turn boundaries, all actors and action-detail/transcript preservation. Authenticated E2E selectors were updated to the new controls while preserving geometry and action-detail checks. Popup text owns readable light palette tokens.
 
 ## Quality and release
 
-Format, lint, typecheck, the fresh uncached suite (3,098 Vitest tests and seven Node checks) and fresh Production builds passed. Exact-head CI/release evidence will be recorded after completion. Normal branch deployments remain disabled.
+Format, lint, typecheck, the fresh uncached suite (3,102 Vitest tests and seven Node checks) and fresh Production builds passed. Exact-head CI/release evidence will be recorded after completion. Normal branch deployments remain disabled.

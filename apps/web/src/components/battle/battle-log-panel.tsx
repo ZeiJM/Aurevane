@@ -7,7 +7,6 @@ import type { BattleLogView } from '@/server/battle/battle-log-service'
 
 import { BattleLogFeed, countBattleLogActions, type BattleLogFlowView } from './battle-log-feed'
 import { useBattlePlayerName } from './battle-runtime-context'
-import { BattleInfoPopover } from './battle-info-popover'
 import styles from './battle-log-panel.module.css'
 
 interface BattleLogPanelProps {
@@ -232,15 +231,13 @@ export function BattleLogPanel({
       <div className={styles.inline} data-battle-inline-log="true">
         <header>
           <strong>Battle Log</strong>
-          <BattleInfoPopover label="Expand battle history" title="Battle Log" trigger="Expand">
-            <BattleLogFeed
-              compactFlow
-              entries={entries}
-              playerName={effectivePlayerName}
-              combatantNames={combatantNames}
-              emptyMessage="No committed battle actions yet."
-            />
-          </BattleInfoPopover>
+          <button
+            type="button"
+            aria-label={`Switch to ${flowView === 'timeline' ? 'Text log' : 'Timeline'}`}
+            onClick={() => setFlowView(flowView === 'timeline' ? 'text' : 'timeline')}
+          >
+            {flowView === 'timeline' ? 'Timeline' : 'Text log'}
+          </button>
         </header>
         {loading && entries.length === 0 ? (
           <p className={styles.empty}>Reading battle history…</p>
@@ -253,8 +250,7 @@ export function BattleLogPanel({
             compactFlow
             entries={entries}
             flowView={flowView}
-            onFlowViewChange={setFlowView}
-            recentTurnCount={recentTurnCount ?? 2}
+            hideFlowViewControl
             playerName={effectivePlayerName}
             combatantNames={combatantNames}
             emptyMessage="No committed battle actions yet."

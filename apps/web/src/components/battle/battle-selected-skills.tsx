@@ -238,9 +238,12 @@ export function BattleSelectedSkills({
       </article>
       {(runtime.copiedSkills?.length ?? 0) > 0 ? (
         <details className={styles.copied} data-battle-copied-skills="true">
-          <summary>
-            <strong>Copied Skills</strong>
-            <small>{runtime.copiedSkills!.length} battle-only</small>
+          <summary
+            aria-label={`Copied Skills · ${runtime.copiedSkills!.length} battle-only`}
+            title={`Copied Skills · ${runtime.copiedSkills!.length} battle-only`}
+          >
+            <strong>Copied</strong>
+            <small>{runtime.copiedSkills!.length}</small>
           </summary>
           <div className={styles.copiedMenu} role="group" aria-label="Copied Skills">
             {runtime.copiedSkills!.map((skill) => (

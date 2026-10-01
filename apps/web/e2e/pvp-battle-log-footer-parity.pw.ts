@@ -107,7 +107,11 @@ test('keeps the desktop PvP battle flow beside compact commands without resizing
       activePage,
       activeRoot.getByRole('button', { name: new RegExp(`occupied by ${activeName}`) }),
     )
-    await expect(root.locator('[data-battle-inline-log]')).toContainText('Guard')
+    await expect(
+      root
+        .locator('[data-battle-inline-log]')
+        .getByRole('button', { name: /^Action details:.*Guard/ }),
+    ).toBeVisible()
     const spectatorKey = (
       await root.locator("[data-pvp-spectator-key='true'] strong").textContent()
     )?.trim()
@@ -130,7 +134,7 @@ test('keeps the desktop PvP battle flow beside compact commands without resizing
     expect((await historyResponse).ok()).toBe(true)
     const spectatorLog = spectatorRoot.locator('[data-battle-inline-log]')
     await expect(spectatorLog).toBeVisible()
-    await expect(spectatorLog.getByRole('button', { name: 'Expand battle history' })).toBeVisible()
+    await expect(spectatorLog.getByRole('button', { name: 'Switch to Text log' })).toBeVisible()
     await expectReadableBattleLog(spectator, testInfo, 'spectator-short-log', spectatorLog)
     const chat = spectatorRoot
       .locator('details')
@@ -140,11 +144,15 @@ test('keeps the desktop PvP battle flow beside compact commands without resizing
     await expect(chat.getByRole('textbox')).toBeVisible()
     await chat.locator('summary').click()
     await expect(chat).not.toHaveAttribute('open', '')
-    await spectatorLog.getByRole('button', { name: 'Expand battle history' }).click()
-    const history = spectator.getByRole('dialog', { name: 'Battle Log', exact: true })
+    await spectatorLog.getByRole('button', { name: 'Switch to Text log' }).click()
+    const history = spectatorLog.getByRole('list', {
+      name: 'Battle action transcript',
+      exact: true,
+    })
     await expect(history).toBeVisible()
     await expect(history).not.toContainText('temporarily unavailable')
-    await spectator.keyboard.press('Escape')
+    await expect(history).toContainText('Guard')
+    await spectatorLog.getByRole('button', { name: 'Switch to Timeline', exact: true }).click()
     await expect(history).toHaveCount(0)
 
     await expect(root.locator('[data-battle-inline-log]')).toBeVisible()

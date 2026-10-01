@@ -12,7 +12,7 @@ import {
   selectRecentBattleLogEntries,
 } from './battle-log-feed'
 import { summarizeConsecutiveBattleLogMovement } from './battle-log-movement-summary'
-import { BattleActionTimeline, paginateBattleTranscript } from './battle-action-timeline'
+import { BattleActionTimeline } from './battle-action-timeline'
 import { buildBattleLogPresentation } from './battle-log-presentation'
 import type {
   BattleLogSegment,
@@ -307,7 +307,7 @@ describe('Battle Log recent history window', () => {
     expect(recent).not.toContain('In progress')
   })
 
-  it('applies the same actor-turn window to the compact action timeline', () => {
+  it('defaults compact history to the latest turn while retaining older-turn navigation', () => {
     const recent = renderToStaticMarkup(
       <BattleLogFeed
         entries={entries}
@@ -317,9 +317,12 @@ describe('Battle Log recent history window', () => {
       />,
     )
     expect(recent).toContain('Battle action timeline')
-    expect(recent).toContain('Recent 4 turns')
+    expect(recent).not.toContain('Recent 4 turns')
     expect(recent).toContain('Actor6')
-    expect(recent).toContain('Actor3')
+    expect(recent).not.toContain('Actor3')
+    expect(recent).toContain('Previous turn')
+    expect(recent).not.toContain('Next turn')
+    expect(recent).not.toContain('Filter battle actions')
     expect(recent).not.toContain('Actor2')
     expect(recent).not.toContain('Actor1')
   })
@@ -390,7 +393,6 @@ describe('Battle Flow rich Text log', () => {
         rounds={[{ key: 'round:2', round: 2, occurredAt: guard.occurredAt, actions: [guard] }]}
         entries={[]}
         view="text"
-        recentTurnCount={4}
         renderTranscript={(item) => <BattleLogTranscriptAction action={item} number={9} />}
       />,
     )
@@ -402,8 +404,8 @@ describe('Battle Flow rich Text log', () => {
     expect(markup).toContain('data-semantic="effect"')
     expect(markup).toContain('data-battle-effect-name="Guarded"')
     expect(markup).toContain('data-battle-effect-duration="1 turn"')
-    expect(markup).toContain('Recent 4 turns')
-    expect(markup).toContain('Filter battle actions')
+    expect(markup).not.toContain('Recent 4 turns')
+    expect(markup).not.toContain('Filter battle actions')
     expect(markup).toContain('Action details: battle:9')
     expect(markup).not.toContain('Zei · R2')
   })
@@ -442,40 +444,26 @@ describe('Battle Flow rich Text log', () => {
     expect(moved.message).toContain('from (1, 2) to (2, 2)')
   })
 
-  it('paginates complete results by their rendered height, accounting for round headings', () => {
-    const blocks = [
-      { height: 20, round: 1 },
-      { height: 38, round: 1 },
-      { height: 20, round: 2 },
-      { height: 55, round: 2 },
-    ]
-    expect(paginateBattleTranscript(blocks, 100, 16, 4)).toEqual([
-      { start: 2, end: 4 },
-      { start: 0, end: 2 },
-    ])
-    expect(paginateBattleTranscript(blocks, 75, 16, 4)).toEqual([
-      { start: 3, end: 4 },
-      { start: 2, end: 3 },
-      { start: 1, end: 2 },
-      { start: 0, end: 1 },
-    ])
-    expect(paginateBattleTranscript([], 100, 16, 4)).toEqual([])
-  })
-
-  it('marks an oversized result for an explicit full-details fallback instead of silently clipping it', () => {
-    const blocks = [
-      { height: 20, round: 1 },
-      { height: 160, round: 2 },
-      { height: 20, round: 2 },
-    ]
-    expect(paginateBattleTranscript(blocks, 100, 16, 4)).toEqual([
-      { start: 2, end: 3 },
-      { start: 1, end: 2, oversized: true },
-      { start: 0, end: 1 },
-    ])
-    expect(paginateBattleTranscript(blocks, 220, 16, 4)).toEqual([
-      { start: 1, end: 3 },
-      { start: 0, end: 1 },
-    ])
+  it('renders every selected-turn icon without filters or action pagination', () => {
+    const actions = Array.from({ length: 12 }, (_, index) => ({
+      ...action(`action:${index}`, index + 1, '2026-10-01T00:00:00Z'),
+      round: 1,
+      turnNumber: 1,
+    }))
+    const markup = renderToStaticMarkup(
+      <BattleActionTimeline
+        rounds={[{ key: 'round:1', round: 1, occurredAt: '', actions }]}
+        entries={[]}
+        renderTranscript={() => null}
+      />,
+    )
+    expect((markup.match(/title="action:/g) ?? []).length).toBe(12)
+    expect(markup).not.toContain('<strong>Attack</strong>')
+    expect(markup).not.toContain('<span>Battle</span>')
+    expect(markup).not.toContain('Filter battle actions')
+    expect(markup).not.toContain('Battle history pages')
+    expect(markup).not.toContain('Previous turn')
+    expect(markup).not.toContain('Next turn')
+    expect(markup).toContain('Turn 1')
   })
 })

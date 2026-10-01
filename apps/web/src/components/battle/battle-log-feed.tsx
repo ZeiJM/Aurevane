@@ -33,6 +33,7 @@ interface BattleLogFeedProps {
   recentTurnCount?: number
   currentTurnNumber?: number
   flowView?: BattleLogFlowView
+  hideFlowViewControl?: boolean
   onFlowViewChange?: (view: BattleLogFlowView) => void
 }
 
@@ -324,6 +325,7 @@ export function BattleLogFeed({
   compactFlow = false,
   recentTurnCount,
   currentTurnNumber,
+  hideFlowViewControl = false,
   flowView: controlledFlowView,
   onFlowViewChange,
 }: BattleLogFeedProps) {
@@ -339,8 +341,11 @@ export function BattleLogFeed({
   }, [combatantNames, entries, playerName, skillNarrations])
   const latestRound = entries.reduce((latest, entry) => Math.max(latest, entry.round ?? 0), 0)
   const recentEntries = useMemo(
-    () => selectRecentBattleLogEntries(entries, recentTurnCount, currentTurnNumber),
-    [currentTurnNumber, entries, recentTurnCount],
+    () =>
+      compactFlow
+        ? entries
+        : selectRecentBattleLogEntries(entries, recentTurnCount, currentTurnNumber),
+    [compactFlow, currentTurnNumber, entries, recentTurnCount],
   )
   const rounds = useMemo(() => {
     if (recentEntries === entries) return allRounds
@@ -374,30 +379,22 @@ export function BattleLogFeed({
       className={styles.feed}
       role="region"
       aria-label={
-        recentTurnCount
+        !compactFlow && recentTurnCount
           ? `Battle history, latest ${recentTurnCount} turns`
           : 'Complete battle history'
       }
       data-testid="battle-log-feed"
       data-compact-flow={compactFlow || undefined}
     >
-      {compactFlow ? (
-        <div className={styles.flowViews} role="group" aria-label="Battle history view">
-          <button
-            type="button"
-            aria-pressed={activeFlowView === 'timeline'}
-            onClick={() => setFlowView('timeline')}
-          >
-            Timeline
-          </button>
-          <button
-            type="button"
-            aria-pressed={activeFlowView === 'text'}
-            onClick={() => setFlowView('text')}
-          >
-            Text log
-          </button>
-        </div>
+      {compactFlow && !hideFlowViewControl ? (
+        <button
+          className={styles.flowToggle}
+          type="button"
+          aria-label={`Switch to ${activeFlowView === 'timeline' ? 'Text log' : 'Timeline'}`}
+          onClick={() => setFlowView(activeFlowView === 'timeline' ? 'text' : 'timeline')}
+        >
+          {activeFlowView === 'timeline' ? 'Timeline' : 'Text log'}
+        </button>
       ) : null}
       {compactFlow ? (
         <BattleActionTimeline
@@ -409,7 +406,6 @@ export function BattleLogFeed({
               combatantAccents={combatantAccents}
             />
           )}
-          recentTurnCount={recentTurnCount}
           rounds={rounds}
           entries={entries}
           playerName={playerName}
