@@ -157,6 +157,12 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
           portraitLimit:
             parseFloat(rootStyle.getPropertyValue('--av-navigation-portrait-size')) *
             parseFloat(rootStyle.fontSize),
+          portraitRowHeight: parseFloat(cardStyle.gridTemplateRows.split(' ')[1]!),
+          vitals: card
+            .querySelector('[data-resource]')!
+            .parentElement!.getBoundingClientRect()
+            .toJSON(),
+          overflow: card.scrollHeight - card.clientHeight,
           cardContentWidth:
             card.clientWidth -
             parseFloat(cardStyle.paddingLeft) -
@@ -222,9 +228,18 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
     ).toBeLessThanOrEqual(1)
     if (geometry.w > 820) {
       expect(
-        Math.abs(card.portrait.width - Math.min(card.portraitLimit, card.cardContentWidth)),
-        'battle portrait uses navigation size within its rail',
+        Math.abs(
+          card.portrait.width -
+            Math.min(card.portraitLimit, card.cardContentWidth, card.portraitRowHeight),
+        ),
+        'battle portrait uses navigation size within its available rail row',
       ).toBeLessThanOrEqual(1)
+    }
+    expect(Math.abs(card.portrait.width - card.portrait.height)).toBeLessThanOrEqual(1)
+    if (geometry.w > 820) {
+      expect(card.portrait.height).toBeGreaterThanOrEqual(32)
+      expect(card.portrait.bottom).toBeLessThanOrEqual(card.vitals.top + 1)
+      expect(card.overflow).toBeLessThanOrEqual(1)
     }
     expect(card.gridColumns, 'ten effect icons per row').toBe(10)
     expect(
