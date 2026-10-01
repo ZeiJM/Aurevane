@@ -37,6 +37,18 @@ async function provision(page: Page, prefix: string) {
     password: 'Forecast-layout-2026!',
     characterName: name,
   })
+  // Exercise the direct-image path, which previously received a second legacy map portrait.
+  await page.goto('/game/account/titles')
+  await page
+    .getByLabel('Direct image URL')
+    .fill('http://127.0.0.1:3100/media/art/adventure/male-01-v01.webp')
+  const saved = page.waitForResponse(
+    (response) =>
+      response.url().endsWith('/api/account/profile-display') &&
+      response.request().method() === 'POST',
+  )
+  await page.getByRole('button', { name: 'Save Profile Image', exact: true }).click()
+  expect((await saved).ok()).toBe(true)
   return name
 }
 
@@ -177,6 +189,50 @@ async function capture(page: Page, testInfo: TestInfo, label: string) {
       loaded: node instanceof HTMLImageElement && node.complete && node.naturalWidth > 0,
     })
     return {
+      cockpit: rect(root.querySelector('[data-unified-command-deck]')),
+      commandContents: [
+        ...root.querySelectorAll(
+          '[data-command-card] > *, [data-battle-skill-slot] > *, [data-battle-special] > *',
+        ),
+      ]
+        .filter((node) => node.getBoundingClientRect().height > 0)
+        .map(rect),
+      cards: [...root.querySelectorAll<HTMLElement>('[data-battle-combatant-card]')].map(
+        (card) => ({
+          rect: rect(card),
+          portrait: rect(card.querySelector('button[aria-label^="Inspect "]')),
+          vitals: rect(card.querySelector('[data-resource]')?.parentElement ?? null),
+          overflow: card.scrollHeight - card.clientHeight,
+          resources: [...card.querySelectorAll('[data-resource]')].map((row) => ({
+            label: rect(row.querySelector('span')),
+            bar: rect(row.querySelector('i')),
+          })),
+          effects: rect(card.querySelector('section')),
+        }),
+      ),
+      terrainLabels: [...root.querySelectorAll('[data-battle-terrain-key] button span')].map(
+        (label) => {
+          const range = document.createRange()
+          range.selectNodeContents(label)
+          return {
+            button: rect(label.closest('button')),
+            lines: [...range.getClientRects()].map(({ x, y, width, height }) => ({
+              x,
+              y,
+              width,
+              height,
+            })),
+          }
+        },
+      ),
+      tokens: [...root.querySelectorAll('#battlefield button[aria-label*="occupied by"]')].map(
+        (tile) => ({
+          tile: rect(tile),
+          token: rect(tile.querySelector(':scope > [data-team]')),
+          portraits: [...tile.querySelectorAll('img')].map(rect),
+          duplicatePortraits: tile.querySelectorAll('[data-map-token-portrait]').length,
+        }),
+      ),
       board: rect(root.querySelector('[data-board-auto-fit]')),
       strip: rect(root.querySelector('[data-battle-preview-strip]')),
       preview: rect(preview),
@@ -243,6 +299,30 @@ function expectStable(geometry: Awaited<ReturnType<typeof capture>>, baseline: R
     ).toBeLessThanOrEqual(1)
   expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.viewport.width + 1)
   expect(geometry.scrollHeight).toBeLessThanOrEqual(geometry.viewport.height + 1)
+  expect(geometry.cockpit!.height).toBeLessThanOrEqual(168)
+  expect(geometry.strip!.height).toBeCloseTo(68, 0)
+  expect(geometry.info).toBeNull()
+  for (const content of geometry.commandContents) contained(content!, geometry.cockpit!)
+  for (const card of geometry.cards) {
+    expect(card.overflow, 'combatant summary fits without scrolling').toBeLessThanOrEqual(1)
+    contained(card.effects!, card.rect!)
+    contained(card.portrait!, card.rect!)
+    expect(card.portrait!.height).toBeGreaterThanOrEqual(32)
+    expect(Math.abs(card.portrait!.width - card.portrait!.height)).toBeLessThanOrEqual(1)
+    expect(card.portrait!.y + card.portrait!.height).toBeLessThanOrEqual(card.vitals!.y + 1)
+    for (const resource of card.resources) {
+      expect(resource.bar!.x).toBeGreaterThan(resource.label!.x)
+      expect(Math.abs(resource.bar!.y - resource.label!.y)).toBeLessThanOrEqual(4)
+    }
+  }
+  for (const label of geometry.terrainLabels)
+    for (const line of label.lines) contained(line, label.button!)
+  for (const token of geometry.tokens) {
+    expect(token.duplicatePortraits).toBe(0)
+    contained(token.token!, token.tile!)
+    expect(Math.abs(token.token!.width - token.token!.height)).toBeLessThanOrEqual(1)
+    for (const portrait of token.portraits) contained(portrait!, token.token!)
+  }
   for (const lane of geometry.lanes) {
     contained(lane.rect!, geometry.preview!)
     expect(lane.overflowX).toBe('auto')
@@ -332,17 +412,26 @@ async function exerciseForecast(
         await page.locator(`button[data-battle-command="${command}"]`).click()
         if (command !== 'move')
           await expect(
-            page.getByRole('button', { name: 'Forecast details', exact: true }),
+            page
+              .getByLabel('Action preview', { exact: true })
+              .locator('[data-battle-preview-lane="outcomes"] [data-battle-preview-chip]')
+              .first(),
           ).toBeVisible()
         if (command === 'guard')
           await expect(page.getByLabel('Action preview', { exact: true })).toContainText('30 AP')
         await check(`${command}-armed`)
       }
+      await page.locator('button[data-battle-command="finish"]').click()
+      await expect(page.getByRole('group', { name: 'Final facing' })).toBeVisible()
+      await check('finish-facing')
+      await page.getByRole('button', { name: 'Cancel Action', exact: true }).click()
       for (const name of ['Ice Lance', 'Frost Guard', 'Chilling Mist']) {
         await page.getByRole('button', { name: new RegExp(`^Selected ${name},`) }).click()
         const preview = page.getByLabel('Action preview', { exact: true })
         await expect(
-          preview.getByRole('button', { name: 'Forecast details', exact: true }),
+          preview
+            .locator('[data-battle-preview-lane="outcomes"] [data-battle-preview-chip]')
+            .first(),
         ).toBeVisible()
         await check(`${name}-ready`)
         const parameters = preview.locator('[data-battle-preview-lane="parameters"]')
@@ -423,8 +512,8 @@ async function exerciseForecast(
         await check(`${name}-keyboard-scrolled`)
         expect([...visibleTags]).toEqual(tags)
         expect(commits).toBe(0)
-        await preview.getByRole('button', { name: 'Forecast details', exact: true }).click()
-        const popup = page.getByRole('dialog', { name: 'Action forecast', exact: true })
+        await page.getByRole('button', { name: 'About ' + name, exact: true }).click()
+        const popup = page.getByRole('dialog', { name, exact: true })
         await expect(popup).toBeVisible()
         await check(`${name}-details`)
         expect(await popup.locator('[data-battle-skill-parameters] dt').allTextContents()).toEqual(
@@ -440,7 +529,10 @@ async function exerciseForecast(
           .locator('[data-battle-preview-lane="parameters"]'),
       ).toBeVisible()
       await expect(
-        page.getByRole('button', { name: 'Forecast details', exact: true }),
+        page
+          .getByLabel('Action preview', { exact: true })
+          .locator('[data-battle-preview-lane="outcomes"] [data-battle-preview-chip]')
+          .first(),
       ).toBeVisible()
       await check('essence-armed')
       await page.getByRole('button', { name: 'Cancel Action', exact: true }).click()
@@ -482,7 +574,10 @@ async function exerciseForecast(
         await page.unroute(previewUrl, holdPreview)
       }
       await expect(
-        page.getByRole('button', { name: 'Forecast details', exact: true }),
+        page
+          .getByLabel('Action preview', { exact: true })
+          .locator('[data-battle-preview-lane="outcomes"] [data-battle-preview-chip]')
+          .first(),
       ).toBeVisible()
       await check('pending-resolved')
     }

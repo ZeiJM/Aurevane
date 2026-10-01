@@ -5,8 +5,6 @@ import {
   combatInteractionDescription,
   gameplayStatusName,
 } from '../../lib/battle/combat-interaction-presentation'
-import { BattleInfoPopover } from './battle-info-popover'
-import { BattleSkillParameters } from './battle-skill-parameters'
 import {
   battleGroundTargetPresentation,
   previewChips,
@@ -180,25 +178,21 @@ export function BattleActionPreview({
               </article>
             ) : null}
             {targets}
-          </div>
-          <BattleInfoPopover label="Forecast details" trigger="ⓘ" title="Action forecast">
-            <div className={styles.details}>
-              {chips.map((chip, index) => (
-                <span key={index}>{chip.label}</span>
-              ))}
-            </div>
-            {skill ? <BattleSkillParameters skill={skill} /> : null}
-            <div className={styles.targetDetails}>{targets}</div>
-            {preview.issues.map((issue) => (
-              <p key={issue.code}>{issue.message}</p>
+            {preview.issues.map((issue, index) => (
+              <span
+                key={issue.code ?? index}
+                data-battle-preview-chip="true"
+                data-battle-preview-tone="blocked"
+              >
+                {issue.message}
+              </span>
             ))}
             {interactions.map((description, index) => (
-              <p key={index}>{description}</p>
+              <span key={index} data-battle-preview-chip="true">
+                {description}
+              </span>
             ))}
-            <p>
-              Projected result before execution. Damage with a hit chance assumes the hit lands.
-            </p>
-          </BattleInfoPopover>
+          </div>
         </>
       ) : skill ? (
         <>
@@ -210,13 +204,6 @@ export function BattleActionPreview({
           >
             <span>{notice || 'Choose a target for the exact forecast.'}</span>
           </div>
-          <BattleInfoPopover label="Skill details" trigger="ⓘ" title={skill.name}>
-            <BattleSkillParameters skill={skill} />
-            <p>
-              Select a target to calculate the current result, including defenses, active effects
-              and consecutive-use penalties.
-            </p>
-          </BattleInfoPopover>
         </>
       ) : (
         <div

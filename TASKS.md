@@ -16,7 +16,7 @@ PR #778 merged the exact tested application tree after all ten applicable workfl
 
 ## Training and Battle Hall live-review refinement — 2026-10-01
 
-Owner requests removal of the decorative Training copy, restoration of the centered Spectate access note with a smaller desktop layout requiring no scrolling at 100% zoom, and removal of unused AI Battles parchment height. Candidate `agent/training-hall-review-20261001` is limited to presentation and rendered geometry coverage; training/launch/private-spectation authority is unchanged. Local and exact-candidate CI verification and the previously authorized release are pending. Evidence: `docs/superpowers/verification/2026-10-01-training-hall-review.md`.
+Owner requests removal of the decorative Training copy, restoration of the centered Spectate access note with a smaller desktop layout requiring no scrolling at 100% zoom, and removal of unused AI Battles parchment height. Candidate `agent/training-hall-review-20261001` is limited to presentation and rendered geometry coverage; training/launch/private-spectation authority is unchanged. The same release now includes the Owner’s battle live-review request: native circular custom-portrait tokens, shorter cockpit and compact info/hotkey/facing controls, single-row HP/MP and visible effects in the rails, and a smaller fixed preview without its info button. The first Hall/Training candidate passed all six applicable workflows; the expanded battle candidate requires fresh review, full verification and the previously authorized release. Evidence: `docs/superpowers/verification/2026-10-01-training-hall-review.md`.
 
 ## Owner live-review visual follow-up — 2026-09-30 to 2026-10-01
 

@@ -75,7 +75,7 @@
 .broadcast {
   display: grid;
   grid-template-columns: clamp(10rem, 14vw, 14rem) minmax(0, 1fr) clamp(10rem, 14vw, 14rem);
-  grid-template-rows: minmax(0, 1fr) 5.5rem auto;
+  grid-template-rows: minmax(0, 1fr) 4.25rem auto;
   grid-template-areas: 'local board selected' 'local preview selected' 'cockpit cockpit cockpit';
   gap: 0.45rem;
   min-width: 0;
@@ -96,17 +96,19 @@
 .localSide > :first-child,
 .selectedSide > :first-child {
   min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-width: thin;
+  overflow: visible;
 }
 .localSide {
   grid-area: local;
 }
 .selectedSide {
   grid-area: selected;
-  /* Spectation reserves the same readable log track as the playable battle rails. */
   grid-template-rows: minmax(0, 1fr) minmax(11rem, 0.65fr);
+}
+@media (min-width: 821px) and (max-height: 700px) {
+  .selectedSide {
+    grid-template-rows: minmax(0, 1fr) minmax(8rem, 0.65fr);
+  }
 }
 .battlefieldWrap {
   grid-area: board;

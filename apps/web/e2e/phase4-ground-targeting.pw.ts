@@ -153,8 +153,8 @@ async function castOnEmptyGround(page: Page, name: string, testInfo: TestInfo) {
   expect(commits).toHaveLength(0)
   expect(audioRequests).toHaveLength(0)
   expect(await read()).toEqual(before)
-  await root.getByRole('button', { name: 'Forecast details', exact: true }).click()
-  const forecast = page.getByRole('dialog', { name: 'Action forecast', exact: true })
+  await root.getByRole('button', { name: 'About Chilling Mist', exact: true }).click()
+  const forecast = page.getByRole('dialog', { name: 'Chilling Mist', exact: true })
   await expect(forecast).toBeVisible()
   const bounds = await forecast.evaluate((element) => {
     const rect = element.getBoundingClientRect()

@@ -127,7 +127,9 @@ test('retains default HP Recovery keyboard input without exposing the deferred R
     issues: [expect.objectContaining({ code: 'requirement-not-met' })],
   })
   await expect(targetForecast(page)).toContainText('HP Recovery')
-  await expect(root.getByRole('button', { name: 'Forecast details', exact: true })).toBeVisible()
+  await expect(
+    root.locator('[data-battle-preview-lane="outcomes"] [data-battle-preview-chip]').first(),
+  ).toBeVisible()
   await expect(economy).toHaveAttribute('aria-valuenow', '100')
   await root.focus()
   await page.keyboard.press('Enter')
@@ -151,7 +153,9 @@ test('retains default HP Recovery keyboard input without exposing the deferred R
     actionEconomyCost: 50,
   })
   await expect(targetForecast(page)).toContainText('HP Recovery')
-  await expect(root.getByRole('button', { name: 'Forecast details', exact: true })).toBeVisible()
+  await expect(
+    root.locator('[data-battle-preview-lane="outcomes"] [data-battle-preview-chip]').first(),
+  ).toBeVisible()
   await expect(economy).toHaveAttribute('aria-valuenow', '100')
   await expect(deck.locator('[data-battle-skill-slot]')).toHaveCount(4)
   await expect(root).toBeFocused()

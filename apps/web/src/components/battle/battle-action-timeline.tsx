@@ -247,7 +247,9 @@ export function BattleActionTimeline({
         >
           ‹
         </button>
-        <span>
+        <span
+          title={`${visible.length ? `${start + 1}–${end} of ${visible.length}` : 'No actions'}${recentTurnCount ? ` · Recent ${recentTurnCount} turns` : ''}`}
+        >
           {visible.length ? `${start + 1}–${end} of ${visible.length}` : 'No actions'}
           {recentTurnCount ? ` · Recent ${recentTurnCount} turns` : ''}
         </span>
