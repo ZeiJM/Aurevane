@@ -55,3 +55,48 @@ The final Profile correction fits the real shared shell at thirteen viewport siz
 The Support Action display race was reproduced with the production component and actual Next.js 16.3.6 App Router: a successful save and updated RSC response still left the summary stale when `history.replaceState` and `router.refresh` ran in the same handler. Refresh now runs after the closed query state commits. A ref records dirty state without another render; no provider, optimistic summary, timer or persistence change was introduced. The actual-router regression passes confirmed Guard/HP/MP save-close-reopen with sequential server versions, one refresh for each dirty close, zero refresh for a clean close, pending dismissal exclusion and failed-write rollback. Root independently repeated that matrix successfully. The original authenticated summary assertion remains and now also checks the closed query, reopening and failed-save summary.
 
 The frozen corrective patch passed fresh `pnpm check` (format, app/worker and package lint, types, full suite and Production build), explicit changed-E2E lint, and discovery of 96 cases across its seven changed browser suites. Independent review found no critical or important blockers after inspecting actual-router and actual-shell evidence. Final candidate CI and release remain required.
+
+## Exact candidate and Production release — completed
+
+All seventeen workflows passed on exact candidate `e16da79096291e8d623eadb152e9a3b2e7087d31` (tree `81128b9c494205e8e9e04e253b745281100fc711`). Browser smoke passed 61 focused scenarios, 289 full-suite Chromium scenarios and ten Edge scenarios, with 19/212/2 intentional project skips respectively. The complete workflow ran all three stages. Its server logs include destination-stream-closed notices during browser navigation; every scenario and workflow passed. UI review passed 104 cases plus one navigation check, with 61/2 intentional skips; Desktop experience passed 48 scenarios with 27 intentional skips. Actual Profile bounds, mobile Nexus launchers, committed Support save/close/reopen, rollback, battle Support and Guided Guard cases passed.
+
+| Workflow                  | Successful run |
+| ------------------------- | -------------- |
+| Skill Engine              | 36928605865    |
+| Shared Build Snapshots    | 36928605875    |
+| Profile Skill Build       | 36928605804    |
+| Resonance Build           | 36928605765    |
+| Essence Build             | 36928605772    |
+| Wayfarer's Practice DB    | 36928605976    |
+| Attribute Allocation      | 36928606114    |
+| Foundation Security DB    | 36928606001    |
+| Battle Session DB         | 36928605959    |
+| CI                        | 36928605863    |
+| Discipline Build DB       | 36928605890    |
+| Desktop page fit          | 36928606004    |
+| Desktop experience        | 36928605747    |
+| Representative Buildcraft | 36928605883    |
+| UI layout review          | 36928605798    |
+| Living Atlas browser      | 36928605982    |
+| Browser smoke             | 36928605729    |
+
+Fresh Main still matched `ae9cc3f5aeddfa72651339855a17f1c53f443b85` before merge. PR #791 merged at `d44f03c4c101db02e51e804bd26d9aa864387c93`; the merged tree is identical to the tested candidate. Configuration-only PR #792 enabled Main for the one approved release. Its merge/source is `768f80b8a7f24c55345471e3d0094fb6eb369224`. A local comparison confirms the sole difference from the tested tree is the Main deployment switch.
+
+### Production migration verification
+
+The final read-only preflight confirmed predecessor migration `20260928042812`, absent Support columns, the legacy medium/large map constraint, the four expected function-body hashes and service-only execute grants. Only the two reviewed SQL files were applied, sequentially, before deployment:
+
+| Repository migration                          | SHA-256                                                            | Actual Production history                     |
+| --------------------------------------------- | ------------------------------------------------------------------ | --------------------------------------------- |
+| `20261001184328_character_support_action.sql` | `1e6786fce97764c889eb2a5a7d4505c335eda9b6292b2ae966ebc33af8bee834` | `20261001221022` / `character_support_action` |
+| `20261001190915_pvp_three_map_sizes.sql`      | `410d692e326e9a97bdc1f6586cfed629c6c7d1d663136225d4de009508126c9f` | `20261001221030` / `pvp_three_map_sizes`      |
+
+Postflight confirms both Support columns are NOT NULL with `basic.guard` defaults; both allowed-action constraints and the small/medium/large constraint are validated. The two new private receipt/audit tables have RLS and no anon/authenticated SELECT grants. All seven relevant RPCs retain fixed search paths and service-only execute grants. Security advisors retain the existing leaked-password-protection warning; the only new INFO findings are the two intentionally closed private RLS tables (43 versus 41 baseline). No new public exposure, unrelated world/story migration, combat-content activation or Production gameplay mutation was performed.
+
+### Live deployment and closeout
+
+Deployment `dpl_5CWVV3mEiYLKV7sJZkghQGUDej5y` is READY, source `768f80b8a7f24c55345471e3d0094fb6eb369224`, with the canonical alias https://aurevane.vercel.app/. READY time is `2026-10-01T22:12:49.674Z`. The canonical deployment lookup independently confirms that identity.
+
+Live cloud-browser checks verified account entry with the shared header, Manual navigation and Battle Hall search, the released battle guide/current input and Movement/AP instructions, Rules and News. Public HTTP returned 200. No app-origin browser warning/error was observed; the browser extension emitted unrelated metadata errors. The deployment-scoped Production warning/error/fatal count query was empty over `2026-10-01T22:12:49.674Z`–`2026-10-01T22:14:58Z`; the upper bound is the public HTTP Date header.
+
+This configuration/documentation closeout restores `git.deploymentEnabled` to `{ "**": false }` without changing application bytes. Authenticated flows and persistence were verified in disposable CI; no Production sign-in, independent human multiplayer study or Owner visual acceptance is claimed.
