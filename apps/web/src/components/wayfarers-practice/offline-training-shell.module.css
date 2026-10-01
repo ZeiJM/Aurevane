@@ -57,16 +57,6 @@
 .heroCopy :global(.av-kicker) {
   color: #d6c6a5;
 }
-.heroIdentity {
-  display: grid;
-  gap: 0.3rem;
-  color: #e0d9c7;
-  text-align: right;
-  text-shadow: 0 2px 5px #101817;
-}
-.heroIdentity span {
-  font: 500 1rem var(--av-font-display);
-}
 .workspace {
   min-width: 0;
   min-height: 0;
@@ -99,9 +89,6 @@
   }
   .hero {
     min-height: 8rem;
-  }
-  .heroIdentity {
-    display: none;
   }
   .heroCopy h1 {
     font-size: 2.1rem;

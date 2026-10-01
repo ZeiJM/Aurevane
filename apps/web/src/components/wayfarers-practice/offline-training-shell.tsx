@@ -40,11 +40,6 @@ export function OfflineTrainingShell({
             <h1>Passive Training</h1>
             <p>Even in silence, you grow.</p>
           </header>
-          <div className={styles.heroIdentity}>
-            <span>Same steps. A farther horizon.</span>
-            <small>Your time away.</small>
-            <small>Your progress forward.</small>
-          </div>
         </section>
 
         <div className={styles.workspace} data-training-workspace="true">

@@ -153,6 +153,11 @@ async function captureDesktopHallGeometry(
               purpose: rect(purpose),
               action: rect(footer),
               workspaceTop: workspace.top,
+              workspaceBottom: workspace.bottom,
+              contentBottom: Math.max(
+                modes.getBoundingClientRect().bottom,
+                footer.getBoundingClientRect().bottom,
+              ),
               categoryBottom: modeRail.getBoundingClientRect().bottom,
               categoryGap: parseFloat(getComputedStyle(hall).rowGap),
               rightColumnCenter:
@@ -168,7 +173,11 @@ async function captureDesktopHallGeometry(
         note && vista
           ? {
               vista: rect(vista),
+              workspaceTop: workspace.top,
+              categoryBottom: modeRail.getBoundingClientRect().bottom,
+              categoryGap: parseFloat(getComputedStyle(hall).rowGap),
               note: rect(note),
+              noteIcon: rect(note.querySelector('span')!),
               noteFontSize: parseFloat(getComputedStyle(note.querySelector('p')!).fontSize),
               contained:
                 note.getBoundingClientRect().bottom <=
@@ -205,6 +214,12 @@ async function captureDesktopHallGeometry(
   if (metrics.ai) {
     expect
       .soft(
+        metrics.ai.workspaceBottom - metrics.ai.contentBottom,
+        `${name}: AI parchment ends just below its controls`,
+      )
+      .toBeLessThanOrEqual(24)
+    expect
+      .soft(
         Math.abs(metrics.ai.workspaceTop - metrics.ai.categoryBottom - metrics.ai.categoryGap),
         `${name}: AI workspace starts directly below the category tabs`,
       )
@@ -235,6 +250,22 @@ async function captureDesktopHallGeometry(
       .toBeLessThanOrEqual(24)
   }
   if (metrics.spectate) {
+    expect
+      .soft(
+        Math.abs(
+          metrics.spectate.workspaceTop -
+            metrics.spectate.categoryBottom -
+            metrics.spectate.categoryGap,
+        ),
+        `${name}: Spectate workspace follows its tabs`,
+      )
+      .toBeLessThanOrEqual(1)
+    expect
+      .soft(
+        Math.abs(metrics.spectate.noteIcon.center - metrics.spectate.note.center),
+        `${name}: restored access note keeps its emblem centered`,
+      )
+      .toBeLessThanOrEqual(1)
     expect.soft(metrics.spectate.contained, `${name}: full access note is visible`).toBe(true)
     expect
       .soft(metrics.spectate.noteFontSize, `${name}: access note stays readable`)
@@ -330,6 +361,8 @@ test('Battle Hall places one arena workspace below the scenic mode tabs with all
       for (const viewport of [
         { width: 1366, height: 768 },
         { width: 1536, height: 614 },
+        { width: 1024, height: 768 },
+        { width: 1024, height: 576 },
       ]) {
         await page.setViewportSize(viewport)
         await captureDesktopHallGeometry(page, testInfo, 'ai', mode)
@@ -411,6 +444,8 @@ test('Battle Hall places one arena workspace below the scenic mode tabs with all
     for (const viewport of [
       { width: 1366, height: 768 },
       { width: 1536, height: 614 },
+      { width: 1024, height: 768 },
+      { width: 1024, height: 576 },
     ]) {
       await page.setViewportSize(viewport)
       await captureDesktopHallGeometry(page, testInfo, 'spectate', 'spectate')
