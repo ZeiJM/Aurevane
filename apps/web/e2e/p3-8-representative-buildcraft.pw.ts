@@ -172,6 +172,19 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   await expect(skillRow(page, 'Cleave').getByRole('checkbox')).toBeChecked()
   await expect(skillRow(page, 'Mending Light').getByRole('checkbox')).toBeChecked()
   await expect(skillRow(page, 'Barrier').getByRole('checkbox')).toBeChecked()
+  await skillRow(page, 'Barrier').hover()
+  const nexusBarrierPreview = page.getByTestId('technique-preview')
+  await expect(nexusBarrierPreview.locator('strong').first()).toHaveText('Barrier')
+  const nexusBarrierParameters = await nexusBarrierPreview
+    .locator('dl > div')
+    .evaluateAll((rows) =>
+      rows
+        .filter((row) => row.querySelector('dt')?.textContent !== 'Effects')
+        .map(
+          (row) =>
+            `${row.querySelector('dt')!.textContent}: ${row.querySelector('dd')!.textContent}`,
+        ),
+    )
 
   // Tagged Techniques must keep the cockpit slot's keyboard contract and reach the same
   // authoritative preview/confirm path used by mouse input after a skill swap.
@@ -202,13 +215,43 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   const forecast = page.locator('[data-battle-preview-strip] [aria-label="Action preview"]')
   await expect(forecast).toContainText('40 AP')
   await expect(
-    forecast.locator('[data-battle-preview-chip]').filter({ hasText: /^Target:/ }),
-  ).toHaveText('Target: Ally')
-  await expect(
     forecast.locator('[data-battle-preview-chip]').filter({ hasText: /^Range:/ }),
   ).toHaveText('Range: 3')
   await expect(forecast).not.toContainText('Success 100%')
   await expect(battlefield.locator('button[data-target="friendly"]')).toHaveCount(0)
+  const parameterTrigger = forecast.getByRole('button', {
+    name: 'Show Barrier parameters',
+    exact: true,
+  })
+  await parameterTrigger.click()
+  const barrierParameters = page.getByRole('dialog', { name: 'Barrier parameters', exact: true })
+  await expect(barrierParameters).toBeVisible()
+  await expect(
+    barrierParameters
+      .locator('dl > div')
+      .filter({ has: page.getByText('Target', { exact: true }) })
+      .locator('dd'),
+  ).toHaveText('Ally')
+  await expect(
+    barrierParameters
+      .locator('dl > div')
+      .filter({ has: page.getByText('Range', { exact: true }) })
+      .locator('dd'),
+  ).toHaveText('3')
+  expect(
+    await barrierParameters
+      .locator('dl > div')
+      .evaluateAll((rows) =>
+        rows.map(
+          (row) =>
+            `${row.querySelector('dt')!.textContent}: ${row.querySelector('dd')!.textContent}`,
+        ),
+      ),
+  ).toEqual(nexusBarrierParameters)
+  await page.keyboard.press('Escape')
+  await expect(barrierParameters).toHaveCount(0)
+  await expect(parameterTrigger).toBeFocused()
+  await expect(actionEconomy).toHaveAttribute('aria-valuenow', '100')
   await commandDeck.getByRole('button', { name: 'About Barrier', exact: true }).click()
   const skillDetails = page.getByRole('dialog', { name: 'Barrier', exact: true })
   await expect(skillDetails).toContainText('Guarded [11%] [2 Turns]')

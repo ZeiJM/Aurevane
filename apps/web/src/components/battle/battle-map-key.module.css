@@ -88,13 +88,21 @@
 }
 @media (min-width: 821px) {
   .inline {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    min-height: 0;
     padding: 0.3rem;
   }
   .inline header {
     margin-bottom: 0.15rem;
   }
   .samples {
+    min-height: 0;
+    align-content: start;
     gap: 0.125rem;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #756b56 #e5d8be;
   }
   .sample {
     grid-template-columns: 1.75rem minmax(0, 1fr);

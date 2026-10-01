@@ -131,7 +131,7 @@ test('the same Guard hotkey repeats with fresh authority until AP is insufficien
   expect(commits).toBe(3)
   await page.keyboard.press('Digit3')
   await expect(page.getByLabel('Action preview', { exact: true })).toContainText(
-    /AP|legal|economy/i,
+    /AP|legal|economy|already spent its Action/i,
   )
   expect(commits).toBe(3)
   await page.keyboard.press('Escape')

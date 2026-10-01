@@ -175,9 +175,11 @@ async function castOnEmptyGround(page: Page, name: string, testInfo: TestInfo) {
   await expect(forecast).toContainText('[2 Turns]')
   await expect(forecast).toContainText('Both teams pay extra movement AP')
   await page.keyboard.press('Escape')
-  const outcomes = root.locator('[data-battle-preview-lane="outcomes"]')
+  await root.getByRole('button', { name: 'Show forecast details', exact: true }).click()
+  const outcomes = page.getByRole('dialog', { name: 'Forecast details', exact: true })
   await expect(outcomes).toContainText('2 round boundaries')
   await expect(outcomes).toContainText('either team')
+  await page.keyboard.press('Escape')
   // A new deliberate tile input waits for its fresh forecast before exactly one mutation.
   let releasePreview!: () => void
   const held = new Promise<void>((resolve) => {

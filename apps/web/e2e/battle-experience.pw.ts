@@ -200,8 +200,12 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await expect(criteriaButton).toHaveAttribute('data-new-progress', 'true')
   await openCriteriaAndClose(page, '3/4 complete')
 
-  await page.getByRole('button', { name: 'Expand battle history' }).click()
-  const battleLog = page.getByRole('dialog', { name: 'Battle Log', exact: true })
+  const inlineLog = page.locator('[data-battle-inline-log]')
+  await inlineLog.getByRole('button', { name: 'Switch to Text log', exact: true }).click()
+  const transcript = inlineLog.getByRole('list', { name: 'Battle action transcript' })
+  await expect(transcript).toContainText('Guard')
+  await transcript.getByRole('button', { name: /Action details:.*Guard/ }).click()
+  const battleLog = page.getByRole('dialog', { name: 'Guard', exact: true })
   await expect(battleLog).toContainText(characterName)
   await expect(battleLog).toContainText(/moved|Guard/)
   await expect(battleLog).not.toContainText('rollBasisPoints')
@@ -211,6 +215,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await expect(apRemaining).toHaveAttribute('aria-valuenow', apBeforeDetails!)
   await page.keyboard.press('Escape')
   await expect(battleLog).toHaveCount(0)
+  await inlineLog.getByRole('button', { name: 'Switch to Timeline', exact: true }).click()
 
   await attackButton.click()
   if ((await battlefield.locator('button[data-target="enemy"]').count()) === 0) {

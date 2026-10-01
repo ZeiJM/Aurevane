@@ -231,24 +231,23 @@ test('keeps requested PvE presentation parity on desktop and mobile', async ({
       root.getByRole('button', { name: new RegExp(`occupied by ${identity.characterName}`) }),
     )
     const inline = root.locator('[data-battle-inline-log]')
-    await expect(inline).toContainText('Guard')
-    await page.getByRole('button', { name: 'Expand battle history' }).click()
-    const history = page.getByRole('dialog', { name: 'Battle Log', exact: true })
-    await expect(history).toContainText('Guard')
-    await expect(history.getByRole('button', { name: 'Text log', exact: true })).toBeVisible()
-    await history.getByRole('button', { name: 'Text log', exact: true }).click()
+    await expect(inline.getByRole('button', { name: /^Action details:.*Guard/ })).toBeVisible()
+    const history = inline
+    await expect(history.getByRole('button', { name: /^Action details:.*Guard/ })).toBeVisible()
+    await expect(
+      history.getByRole('button', { name: 'Switch to Text log', exact: true }),
+    ).toBeVisible()
+    await history.getByRole('button', { name: 'Switch to Text log', exact: true }).click()
     const transcript = history.getByRole('list', { name: 'Battle action transcript' })
     await expect(transcript).toContainText('Guarded')
-    const details = transcript
-      .getByRole('button', { name: /^(?:View full action and results|Action details):/ })
-      .first()
+    const details = transcript.getByRole('button', { name: /^Action details:.*Guard/ }).first()
     await details.click()
     const result = page.getByRole('dialog', { name: 'Guard', exact: true })
     await expect(result.getByRole('region', { name: 'Recorded action result' })).toContainText(
       'Guarded',
     )
     await page.getByRole('button', { name: 'Close action details', exact: true }).click()
-    await page.keyboard.press('Escape')
+    await history.getByRole('button', { name: 'Switch to Timeline', exact: true }).click()
     for (const size of [
       { width: 1536, height: 614 },
       { width: 1280, height: 720 },
@@ -357,7 +356,11 @@ test('keeps requested PvP presentation parity on desktop and mobile', async ({
       activePage,
       activeRoot.getByRole('button', { name: new RegExp(`occupied by ${activeName}`) }),
     )
-    await expect(activeRoot.locator('[data-battle-inline-log]')).toContainText('Guard')
+    await expect(
+      activeRoot
+        .locator('[data-battle-inline-log]')
+        .getByRole('button', { name: /^Action details:.*Guard/ }),
+    ).toBeVisible()
     await expectReadableBattleLog(activePage, testInfo, mobile ? 'pvp-mobile-log' : 'pvp-log')
   } finally {
     await Promise.all([hostContext.close(), guestContext.close()])

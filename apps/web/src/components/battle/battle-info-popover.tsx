@@ -12,6 +12,7 @@ export function BattleInfoPopover({
   className,
   children,
   hover = false,
+  consumeOutsideClick = false,
 }: {
   label: string
   title?: string
@@ -19,6 +20,7 @@ export function BattleInfoPopover({
   className?: string
   children: ReactNode
   hover?: boolean
+  consumeOutsideClick?: boolean
 }) {
   const id = useId()
   const [open, setOpen] = useState(false)
@@ -79,9 +81,22 @@ export function BattleInfoPopover({
   useEffect(() => {
     if (!open) return
     const dismiss = (event: PointerEvent) => {
+      if (consumeOutsideClick) return
       const target = event.target as Node | null
       if (target && !panelRef.current?.contains(target) && !buttonRef.current?.contains(target)) {
         setOpen(false)
+      }
+    }
+    const dismissClick = (event: MouseEvent) => {
+      if (!consumeOutsideClick) return
+      const target = event.target as Node | null
+      if (target && !panelRef.current?.contains(target) && !buttonRef.current?.contains(target)) {
+        event.preventDefault()
+        event.stopPropagation()
+        pinned.current = false
+        suppressFocus.current = true
+        setOpen(false)
+        buttonRef.current?.focus()
       }
     }
     const escape = (event: KeyboardEvent) => {
@@ -93,12 +108,14 @@ export function BattleInfoPopover({
       buttonRef.current?.focus()
     }
     document.addEventListener('pointerdown', dismiss, true)
+    document.addEventListener('click', dismissClick, true)
     document.addEventListener('keydown', escape)
     return () => {
       document.removeEventListener('pointerdown', dismiss, true)
+      document.removeEventListener('click', dismissClick, true)
       document.removeEventListener('keydown', escape)
     }
-  }, [open])
+  }, [open, consumeOutsideClick])
 
   return (
     <>

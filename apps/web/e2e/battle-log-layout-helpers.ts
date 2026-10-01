@@ -1,90 +1,86 @@
 import { expect, type Locator, type Page, type TestInfo } from '@playwright/test'
 
-/** Exercise the real compact log, including empty actor filters, before checking its geometry. */
+/** Exercise both formats and turn navigation before checking the shared log's geometry. */
 export async function expectReadableBattleLog(
   page: Page,
   testInfo: TestInfo,
   label: string,
   log: Locator = page.locator('[data-battle-inline-log]'),
 ) {
-  const views = log.getByRole('group', { name: 'Battle history view', exact: true })
-  const filters = log.getByRole('group', { name: 'Filter battle actions', exact: true })
-  const pages = log.getByRole('group', { name: 'Battle history pages', exact: true })
-  await expect(views).toBeVisible()
+  await expect(log.getByRole('button', { name: 'Expand battle history', exact: true })).toHaveCount(
+    0,
+  )
+  await expect(log.getByRole('group', { name: 'Filter battle actions', exact: true })).toHaveCount(
+    0,
+  )
+  await expect(log.getByRole('group', { name: 'Battle history pages', exact: true })).toHaveCount(0)
   for (const mode of ['Timeline', 'Text log']) {
-    await views.getByRole('button', { name: mode, exact: true }).click()
+    const switchToMode = log.getByRole('button', { name: `Switch to ${mode}`, exact: true })
+    if (await switchToMode.count()) await switchToMode.click()
+    const toggle = log.locator(':scope > header button')
+    await expect(toggle).toHaveCount(1)
+    await expect(toggle).toHaveText(mode)
     const track = log.getByRole('list', {
       name: mode === 'Timeline' ? 'Battle action timeline' : 'Battle action transcript',
       exact: true,
     })
-    for (const actor of ['All', 'You', 'Opponents']) {
-      await filters.getByRole('button', { name: actor, exact: true }).click()
-      await testInfo.attach(`${label}-${mode}-${actor}`, {
-        body: await page.screenshot(),
-        contentType: 'image/png',
-      })
-      await expect(views.getByRole('button', { name: mode, exact: true })).toHaveAttribute(
-        'aria-pressed',
-        'true',
-      )
-      await expect(filters.getByRole('button', { name: actor, exact: true })).toHaveAttribute(
-        'aria-pressed',
-        'true',
-      )
-      await expect(track).toBeVisible()
-      await expect(pages).toBeVisible()
-      const geometry = await log.evaluate((element) => {
-        const rect = (node: Element) => {
-          const box = node.getBoundingClientRect()
-          return { top: box.top, bottom: box.bottom, left: box.left, right: box.right }
-        }
-        const groups = Array.from(element.querySelectorAll('[role="group"]'))
-        const view = element.querySelector('[aria-label="Battle history view"]')!
-        const filter = element.querySelector('[aria-label="Filter battle actions"]')!
-        const pager = element.querySelector('[aria-label="Battle history pages"]')!
-        const list = element.querySelector('ol')!
-        return {
-          log: rect(element),
-          header: rect(element.querySelector(':scope > header')!),
-          views: rect(view),
-          filters: rect(filter),
-          pager: rect(pager),
-          track: rect(list),
-          horizontalOverflow: list.scrollWidth - list.clientWidth,
-          controls: groups.flatMap((group) => Array.from(group.querySelectorAll('button'), rect)),
-          viewportHeight: window.innerHeight,
-        }
-      })
-      expect(geometry.views.top).toBeGreaterThanOrEqual(geometry.header.bottom - 1)
-      expect(geometry.filters.top).toBeGreaterThanOrEqual(geometry.views.bottom - 1)
-      expect(geometry.track.top).toBeGreaterThanOrEqual(geometry.filters.bottom - 1)
-      expect(geometry.pager.top).toBeGreaterThanOrEqual(geometry.track.bottom - 1)
-      expect(geometry.pager.bottom).toBeLessThanOrEqual(geometry.log.bottom + 1)
-      expect(geometry.track.bottom - geometry.track.top).toBeGreaterThan(24)
-      expect(geometry.horizontalOverflow).toBeLessThanOrEqual(1)
-      for (const control of geometry.controls) {
-        expect(control.left).toBeGreaterThanOrEqual(geometry.log.left - 1)
-        expect(control.right).toBeLessThanOrEqual(geometry.log.right + 1)
+    await expect(track).toBeVisible()
+    await testInfo.attach(`${label}-${mode}`, {
+      body: await page.screenshot(),
+      contentType: 'image/png',
+    })
+    const geometry = await log.evaluate((element) => {
+      const rect = (node: Element) => {
+        const box = node.getBoundingClientRect()
+        return { top: box.top, bottom: box.bottom, left: box.left, right: box.right }
       }
-      if ((page.viewportSize()?.width ?? 0) > 820) {
-        expect(geometry.log.top).toBeGreaterThanOrEqual(-1)
-        expect(geometry.log.bottom).toBeLessThanOrEqual(geometry.viewportHeight + 1)
+      const list = element.querySelector('ol')!
+      const turnControls = element.querySelector('[aria-label="Battle history turns"]')!
+      return {
+        log: rect(element),
+        header: rect(element.querySelector(':scope > header')!),
+        track: rect(list),
+        turns: rect(turnControls),
+        horizontalOverflow: list.scrollWidth - list.clientWidth,
+        scrollbar: getComputedStyle(list).scrollbarWidth,
+        controls: Array.from(
+          element.querySelectorAll('header button, [aria-label="Battle history turns"] button'),
+          rect,
+        ),
+        viewportHeight: window.innerHeight,
       }
+    })
+    expect(geometry.turns.top).toBeGreaterThanOrEqual(geometry.header.bottom - 1)
+    expect(geometry.track.top).toBeGreaterThanOrEqual(geometry.turns.bottom - 1)
+    expect(geometry.track.bottom).toBeLessThanOrEqual(geometry.log.bottom + 1)
+    expect(geometry.track.bottom - geometry.track.top).toBeGreaterThan(24)
+    expect(geometry.horizontalOverflow).toBeLessThanOrEqual(1)
+    expect(geometry.scrollbar).toBe('none')
+    for (const control of geometry.controls) {
+      expect(control.left).toBeGreaterThanOrEqual(geometry.log.left - 1)
+      expect(control.right).toBeLessThanOrEqual(geometry.log.right + 1)
     }
-    await filters.getByRole('button', { name: 'All', exact: true }).click()
-    const older = pages.getByRole('button', { name: 'Older actions', exact: true })
-    if (await older.isEnabled()) {
+    if ((page.viewportSize()?.width ?? 0) > 820) {
+      expect(geometry.log.top).toBeGreaterThanOrEqual(-1)
+      expect(geometry.log.bottom).toBeLessThanOrEqual(geometry.viewportHeight + 1)
+    }
+    const labelBefore = await log.locator('[data-view] > div > span').textContent()
+    const older = log.getByRole('button', { name: 'Previous turn', exact: true })
+    if (await older.count()) {
       await older.click()
-      await testInfo.attach(`${label}-${mode}-older-page`, {
+      await expect(log.locator('[data-view] > div > span')).not.toHaveText(labelBefore!)
+      await testInfo.attach(`${label}-${mode}-previous-turn`, {
         body: await page.screenshot(),
         contentType: 'image/png',
       })
-      const newer = pages.getByRole('button', { name: 'Newer actions', exact: true })
-      await expect(newer).toBeEnabled()
+      const newer = log.getByRole('button', { name: 'Next turn', exact: true })
+      await expect(newer).toBeVisible()
+      if ((await older.count()) === 0) await expect(newer).toBeFocused()
       await newer.click()
-      await expect(newer).toBeDisabled()
+      await expect(log.locator('[data-view] > div > span')).toHaveText(labelBefore!)
+      await expect(newer).toHaveCount(0)
+      await expect(older).toBeFocused()
     }
   }
-  await filters.getByRole('button', { name: 'All', exact: true }).click()
-  await views.getByRole('button', { name: 'Timeline', exact: true }).click()
+  await log.getByRole('button', { name: 'Switch to Timeline', exact: true }).click()
 }
