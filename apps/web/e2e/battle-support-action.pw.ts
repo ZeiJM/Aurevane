@@ -285,7 +285,13 @@ for (const [supportActionId, label, cost] of [
     }
     if (supportActionId !== 'basic.guard') {
       // The independent legacy R shortcut keeps HP Recovery, sharing the canonical cooldown.
-      const blocked = page.waitForResponse('**/api/battles/*/preview')
+      // Ignore the just-committed Support Action's automatic rearm preview.
+      const blocked = page.waitForResponse(
+        (response) =>
+          response.request().method() === 'POST' &&
+          new URL(response.url()).pathname.endsWith('/preview') &&
+          response.request().postDataJSON().intent.actionId === 'basic.recover',
+      )
       await page.keyboard.press('KeyR')
       const preview = (await (await blocked).json()).battlePreview.preview
       expect(preview).toMatchObject({ actionId: 'basic.recover', legal: false })
@@ -309,6 +315,7 @@ test('PvP pins independent HP/MP Support Actions into the shared slot 3', async 
   const guestContext = await browser.newContext({ baseURL })
   const host = await hostContext.newPage()
   const guest = await guestContext.newPage()
+  let closed: PromiseSettledResult<void>[] = []
   try {
     const hostCharacter = await provisionSupport(host, 'basic.recover.mp')
     const guestCharacter = await provisionSupport(guest, 'basic.recover')
@@ -355,7 +362,7 @@ test('PvP pins independent HP/MP Support Actions into the shared slot 3', async 
       legal: true,
       actionId,
     })
-    const committed = actorPage.waitForResponse('**/api/battles/*/intents')
+    const committed = actorPage.waitForResponse('**/api/battles/*/commit', { timeout: 10_000 })
     await actorPage.keyboard.press('KeyG')
     const response = await committed
     expect(response.ok()).toBe(true)
@@ -364,8 +371,10 @@ test('PvP pins independent HP/MP Support Actions into the shared slot 3', async 
       actorRoot.getByRole('progressbar', { name: 'Action Economy remaining' }),
     ).toHaveAttribute('aria-valuenow', '50')
   } finally {
-    await hostContext.close()
-    await guestContext.close()
+    closed = await Promise.allSettled([hostContext.close(), guestContext.close()])
+  }
+  for (const result of closed) {
+    if (result.status === 'rejected') throw result.reason
   }
 })
 

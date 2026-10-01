@@ -564,7 +564,7 @@
     grid-template-columns: minmax(0, 1fr);
   }
   .techniqueSummary .supportSummary {
-    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-columns: var(--av-cockpit-art-size) minmax(0, 1fr);
     justify-items: start;
     text-align: left;
   }

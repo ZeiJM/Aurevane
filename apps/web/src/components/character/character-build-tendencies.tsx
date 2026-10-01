@@ -109,9 +109,7 @@ export function CharacterBuildTendencies({ attributes }: { attributes: Character
                 stroke="#f0e4cb"
                 strokeWidth="1.5"
               >
-                <title>
-                  {axis.description}: {attributes[axis.attribute]}
-                </title>
+                <title>{`${axis.description}: ${attributes[axis.attribute]}`}</title>
               </circle>
               <text
                 x={label.x}

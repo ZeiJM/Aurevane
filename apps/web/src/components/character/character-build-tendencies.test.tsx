@@ -1,4 +1,4 @@
-import { renderToStaticMarkup } from 'react-dom/server'
+import { renderToStaticMarkup, renderToString } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { CharacterBuildTendencies, coreStatTendencies } from './character-build-tendencies'
 
@@ -38,5 +38,19 @@ describe('Core-stat build tendencies', () => {
     expect(markup).toContain('role="img"')
     expect(markup).toContain('Arcane: 10')
     expect(markup).toContain('not predicted damage or skill effectiveness')
+  })
+  it('server-renders complete SVG point titles for hydration and native tooltips', () => {
+    const markup = renderToString(<CharacterBuildTendencies attributes={attributes} />)
+    const pointTitles = [...markup.matchAll(/<circle\b[^>]*><title>(.*?)<\/title><\/circle>/g)]
+
+    expect(pointTitles.map((match) => match[1])).toEqual([
+      'Might · physical power: 8',
+      'Finesse · accuracy and critical chance: 3',
+      'Vitality · HP and armor: 5',
+      'Agility · movement, initiative and evasion: 3',
+      'Intellect · MP and mystic power: 10',
+      'Resolve · ward and status resistance: 8',
+    ])
+    expect(markup).not.toContain('<title></title>')
   })
 })

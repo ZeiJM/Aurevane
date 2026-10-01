@@ -27,7 +27,8 @@ test('Techniques saves one Support Action separately from four Discipline Skills
     return page.getByRole('dialog', { name: 'Techniques' })
   }
   let dialog = await open()
-  const initialCount = await dialog.getByTestId('skill-capacity').innerText()
+  const initialCount = (await dialog.getByTestId('skill-capacity').textContent()) ?? ''
+  expect(initialCount).toMatch(/Discipline Skills — 0 \/ 4 selected/)
   await expect(dialog.getByRole('radio', { name: 'Guard', exact: true })).toBeChecked()
   for (const name of ['HP Recovery', 'MP Recovery']) {
     const save = page.waitForResponse(

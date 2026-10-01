@@ -135,6 +135,12 @@ async function enterScaleParityPvpBattle(host: Page, guest: Page) {
 
   await host.goto('/game/battle')
   await host.getByRole('button', { name: 'PVP - Direct', exact: true }).click()
+  // Scale parity compares the same 9×7 board in both modes.
+  const smallMap = host
+    .getByRole('group', { name: 'Map size' })
+    .getByRole('button', { name: 'Small · 9×7', exact: true })
+  await smallMap.click()
+  await expect(smallMap).toHaveAttribute('aria-pressed', 'true')
   await host.getByRole('button', { name: 'Create Battle Lobby' }).click()
 
   const hostDialog = host.getByRole('dialog', { name: 'The arena is waiting.' })
