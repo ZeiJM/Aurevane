@@ -40,3 +40,11 @@ PR #778 candidate `93fb65da79da122cafc545c0c71dcbb47ad67d8f` passed CI, Attribut
 - Mobile selected-skill grid tracks now reserve the same minimum widths as their contents, preventing group overlap inside the existing horizontal command scroller. Geometry checks cover group separation and actual artwork sizes.
 
 Independent review of these eight changed files found no blockers and passed 21 focused tests across five files. The corrected candidate's full local `pnpm check` exited 0 again: formatting, lint, types, 3,043 Vitest tests, seven Node checks and Production builds. `git diff --check` also passed. Fresh authenticated browser CI remains required before release.
+
+## Second authenticated candidate
+
+Candidate `b0143c922f4f26041fb4ef27750cf3445ac57961` passed eight applicable workflows, including Desktop experience (48 passed / 27 skipped) and Desktop page fit (eight passed / seven skipped). UI layout review passed 99 / skipped 50 and failed only the 1536×614 title-review no-scroll assertion; its separate directory invocation passed one / skipped two. Training's compact idle JSON now records zero main/panel overflow and its actions fully inside the planner. Early-stop and completed-report claim journeys pass.
+
+Replacing the title editor with review did not remove the outer 40px overflow. The follow-up targets the Titles scene's inherited percentage height inside the shell's implicit-auto-row grid: scoped automatic height with stretching, preserving type sizes and controls. This remains a layout hypothesis until strict authenticated geometry passes. The Title fit helper now saves actual main/scene/workspace sizing and viewport captures before asserting, so any failure is inspectable rather than omitting the failing state. No fit threshold or overflow assertion was relaxed.
+
+The title sizing follow-up passed the full local `pnpm check` (3,043 Vitest tests, seven Node checks, formatting/lint/types and Production builds). Independent review found no blockers in the scoped CSS/diagnostic changes; `git diff --check` passed. The browser run for the superseded candidate is not completion evidence for this revision.

@@ -1,4 +1,4 @@
-import { mkdir } from 'node:fs/promises'
+import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { expect, test, type Page } from '@playwright/test'
 
@@ -26,7 +26,23 @@ async function expectDesktopTitlesFitWithoutScroll(page: Page, label: string) {
       .querySelector('[data-testid="authenticated-shell"] > footer')!
       .getBoundingClientRect()
     const candidates = [...root.querySelectorAll<HTMLElement>(':scope > section, button, input')]
+    const describe = (element: Element) => {
+      const style = getComputedStyle(element)
+      return {
+        box: element.getBoundingClientRect().toJSON(),
+        height: style.height,
+        minHeight: style.minHeight,
+        gridRows: style.gridTemplateRows,
+        padding: style.padding,
+        alignSelf: style.alignSelf,
+      }
+    }
     return {
+      sizing: {
+        main: describe(main),
+        scene: describe(root.closest('[data-settings-scene]')!),
+        workspace: describe(root.parentElement!),
+      },
       main: mainBox.toJSON(),
       root: root.getBoundingClientRect().toJSON(),
       footer: footerBox.toJSON(),
@@ -42,6 +58,18 @@ async function expectDesktopTitlesFitWithoutScroll(page: Page, label: string) {
           box: child.getBoundingClientRect().toJSON(),
         })),
     }
+  })
+  const name = `titles-fit-${label.replace(/[^a-z0-9-]+/gi, '-')}`
+  const outputDirectory = process.env.LAYOUT_REVIEW_OUTPUT
+  if (outputDirectory) {
+    await mkdir(outputDirectory, { recursive: true })
+    await writeFile(path.join(outputDirectory, `${name}.json`), JSON.stringify(metrics, null, 2))
+  }
+  await test.info().attach(name, { body: JSON.stringify(metrics), contentType: 'application/json' })
+  await page.screenshot({
+    path: outputDirectory
+      ? path.join(outputDirectory, `${name}.png`)
+      : test.info().outputPath(`${name}.png`),
   })
   expect(metrics.mainOverflow, `${label}: main fits without scrolling`).toBeLessThanOrEqual(1)
   expect(
