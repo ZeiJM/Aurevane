@@ -710,6 +710,12 @@
   text-align: center;
 }
 
+@media (min-width: 1201px) and (max-height: 699px) {
+  .selectedTechnique {
+    gap: 0.3rem;
+  }
+}
+
 @media (max-width: 1200px) {
   .backdrop {
     overflow-y: auto;

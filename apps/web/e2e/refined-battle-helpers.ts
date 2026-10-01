@@ -78,7 +78,7 @@ export async function expectRefinedCockpit(page: Page) {
   await expect(deck.locator('[data-battle-special]')).toHaveCount(2)
   await expect(
     deck.locator('[data-command-card="inspect"] [data-battle-command-hotkey]'),
-  ).toBeEmpty()
+  ).toHaveText('I')
   const order = await deck.evaluate((element) =>
     [
       ...element.querySelectorAll(
