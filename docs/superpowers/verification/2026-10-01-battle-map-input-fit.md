@@ -30,6 +30,21 @@ Initial candidate `220ca88190e0f93494a05870fb60aeebafa326e4`: CI and authenticat
 
 Follow-up `fdb52729d406ea122c5db4b962f34c261ec8ff83`: CI and Representative Buildcraft passed. Browser smoke exposed name-dependent portrait geometry at 1440×900: a wrapped ScaleHost name reduced the portrait from 178.8px to 167.3px while the card stayed equal. Actual-component reproduction matched those values. The desktop identity now uses one line with ellipsis/full hover title and a bounded grid column; phone wrapping is preserved. The same reproduction passes with zero portrait drift at 1440×900, 1366×768, 900×768 and 821×768. Forecast layout checks now require equal portrait height as well as equal card height. Independent review also caught Guided Fundamentals' obsolete illegal-Move notice, updated to the adjacent-step wording.
 
-Pending exact-head CI, application merge, configuration-only Production release, bounded live smoke/runtime checks and relock. Deployment configuration remains fully disabled during development.
+Final candidate `c344dab2ce60b30aa83398f430aea1f2b86659a0`, tree `b54480b678689c20a7c3654d0adaf781ae463405`, passed every applicable workflow:
 
-Independent review: no remaining P0/P1/P2 blocker after the two reproduced findings were resolved. Local fixtures are controlled receipts and are not represented as independent human playtesting or Production gameplay acceptance.
+| Workflow | Run | Result |
+| --- | --- | --- |
+| CI | 36878261241 | Success; quality gates and disposable database checks |
+| Representative Buildcraft | 36878261085 | Success; 24 browser scenarios, six project skips |
+| UI layout review | 36878261130 | Success; 104 layout checks plus one additional browser check |
+| Browser smoke | 36878261185 | Success; 45 early battle checks, 266 full-suite checks and four Edge checks; project-inapplicable cases retain their existing skips |
+
+PR #787 merged as `688b441f3bb7d608059b98eaaf9810f31cdeda2a`; both the proposed and actual merge trees equal the tested tree. Fresh main had no unrelated drift. Configuration-only release PR #788 merged as `f411aff6bdb611d8750bd455c77fa53ede149115`; its tree `acf09c5cee3ba18c0e88b37c652e5288110239b6` differs from the tested candidate only in `apps/web/vercel.json`.
+
+Production deployment `dpl_5vtkaM4Lbi2566F3XwdvNswnGkSc` is READY on that exact release SHA as of `2026-10-01T15:18:52.426Z`, with canonical alias https://aurevane.vercel.app/ and no alias error. Immutable URL: https://aurevane-jh5lbsv22-zeijms-projects.vercel.app/.
+
+Public HTTP checks returned 200 for Manual, Rules, News and the Battle Hall guide. The root HTTP helper returned an error code, so account entry was verified directly in the browser. Live account entry, Manual navigation/search, the new adjacent-step/retained-action/second-self-hotkey instructions, Rules and News all rendered and responded. Browser diagnostics after READY contained no application warning/error; observed browser-extension metadata errors were excluded. No Production login, character mutation, migration or content activation was performed.
+
+Deployment-scoped warning/error/fatal runtime counts were empty over `2026-10-01T15:18:52.426Z`–`2026-10-01T15:22:08Z` (the upper bound comes from the public HTTP Date header). This configuration/docs-only checkpoint restores `deploymentEnabled: { "**": false }`; application bytes remain identical to the verified release. Independent review approved both the bounded main-only release and the restoration boundary.
+
+Independent review: no remaining P0/P1/P2 blocker after the reproduced findings were resolved. Local fixtures are controlled receipts and are not represented as independent human playtesting or Production gameplay acceptance.

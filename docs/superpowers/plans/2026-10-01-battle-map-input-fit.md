@@ -46,5 +46,5 @@ Files: BattleExperience controller, geometry/preview helpers as needed, focused 
 ## Task 3: Combined verification and release
 
 - [x] Run format, lint, typecheck, complete tests and build separately; inspect results.
-- [ ] Review the complete diff independently, reconcile fresh main and pass all applicable exact-head CI workflows.
-- [ ] Merge application bytes; release with configuration-only main enablement, verify READY canonical deployment and public smoke/runtime logs, then relock and record evidence.
+- [x] Review the complete diff independently, reconcile fresh main and pass all applicable exact-head CI workflows.
+- [x] Merge application bytes; release with configuration-only main enablement, verify READY canonical deployment and public smoke/runtime logs, then relock and record evidence.
