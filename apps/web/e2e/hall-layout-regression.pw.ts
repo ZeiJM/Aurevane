@@ -89,7 +89,20 @@ test('Battle Hall places one arena workspace below the scenic mode tabs with all
   await expect(page.locator('[data-hall-workspace="spectate"]')).toBeHidden()
   await capture(page, testInfo, 'idle')
   const ai = page.locator('[data-hall-workspace="ai"]')
-  await page.getByRole('button', { name: /Matchmaking/ }).click()
+  const modes = page.getByRole('navigation', { name: 'Battle Hall sections', exact: true })
+  const modeButtons = modes.getByRole('button')
+  await expect(modeButtons).toHaveCount(4)
+  for (const [index, name] of [
+    'AI Battles',
+    'PVP - Direct',
+    'PVP - Matchmaking (coming soon)',
+    'Spectate',
+  ].entries()) {
+    await expect(modeButtons.nth(index)).toHaveAccessibleName(name)
+  }
+  await expect(ai.locator('figure')).toHaveCount(0)
+  await expect(page.getByLabel('AI sparring arena')).toBeVisible()
+  await modes.getByRole('button', { name: 'PVP - Matchmaking (coming soon)', exact: true }).click()
   await expect(page.locator('.av-matchmaking')).toContainText('Coming Soon')
   await page.getByRole('button', { name: 'AI Battles', exact: false }).click()
 
@@ -135,13 +148,15 @@ test('Battle Hall places one arena workspace below the scenic mode tabs with all
       await expect(page.getByRole('button', { name: 'Easy', exact: true })).toHaveCount(0)
       await expect(page.getByLabel('AI sparring arena')).toHaveValue('terraced-yard')
       await expect(page.getByLabel('AI sparring arena')).toBeDisabled()
-      await expect(ai.getByText('Terraced Yard', { exact: true })).toBeVisible()
+      await expect(page.getByLabel('AI sparring arena').locator('option:checked')).toHaveText(
+        /Terraced Yard/,
+      )
     }
     await capture(page, testInfo, mode)
   }
 
   const navigation = page.getByRole('navigation', { name: 'Battle Hall sections', exact: true })
-  await navigation.getByRole('button', { name: /Player vs Player/ }).click()
+  await navigation.getByRole('button', { name: 'PVP - Direct', exact: true }).click()
   await expect(page.locator('[data-hall-workspace]:visible')).toHaveCount(1)
   const pvpWorkspace = page.locator('[data-hall-workspace="pvp"]')
   await expect(pvpWorkspace).toBeVisible()
@@ -271,7 +286,7 @@ test('real multi-seat lobby remains a keyboard-contained dialog with square port
   await enterHall(page, testInfo, 'lobby')
   await page
     .getByRole('navigation', { name: 'Battle Hall sections' })
-    .getByRole('button', { name: /Player vs Player/ })
+    .getByRole('button', { name: 'PVP - Direct', exact: true })
     .click()
   await page.locator('#pvp-mode').selectOption('3v3')
   await page.getByRole('button', { name: '120 second turn timer', exact: true }).click()
@@ -355,7 +370,7 @@ test('intermediate Hall layouts keep settings clear of the action row', async ({
   await enterHall(page, testInfo, 'intermediate')
   await page
     .getByRole('navigation', { name: 'Battle Hall sections' })
-    .getByRole('button', { name: /Player vs Player/ })
+    .getByRole('button', { name: 'PVP - Direct', exact: true })
     .click()
   await page.locator('#pvp-mode').selectOption('flex-teams')
   for (const select of await page.locator('[data-pvp-team-sizes] select').all()) {

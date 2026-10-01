@@ -5,8 +5,6 @@ import { useRouter } from 'next/navigation'
 import { useMemo, useState } from 'react'
 
 import { SettingsScene } from '@/components/settings/settings-scene'
-import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
-import { getStarterPortraitImageAssetId } from '@/media/character'
 import styles from './character-title-settings.module.css'
 
 interface CharacterTitleSettingsProps {
@@ -42,7 +40,6 @@ export function CharacterTitleSettings({
   personalTitle,
   personalTitleSetAt,
   imageUrl,
-  portraitRef,
 }: CharacterTitleSettingsProps) {
   const router = useRouter()
   const [draft, setDraft] = useState('')
@@ -130,42 +127,11 @@ export function CharacterTitleSettings({
   return (
     <SettingsScene title="Portrait & Title" description="Carry the marks of your journey.">
       <div className={styles.layout} data-character-concept="titles" data-av-surface="moonstone">
-        <section
-          className={styles.current}
-          data-av-surface="moonstone"
-          aria-labelledby="current-title-heading"
-        >
-          <div className={styles.heroPortrait}>
-            <CharacterPortraitImage
-              imageUrl={imageUrl}
-              fallbackAssetId={getStarterPortraitImageAssetId(
-                portraitRef ?? 'portrait.starter.wayfarer-01',
-              )}
-              sizes="(min-width: 761px) 38vw, 100vw"
-              alt={`${characterName} portrait`}
-            />
-          </div>
-          <div className={styles.headingLine}>
-            <div>
-              <span>Current profile display</span>
-              <h2 id="current-title-heading">{characterName}</h2>
-            </div>
-            <div className={styles.pills} aria-label="Profile identity badges">
-              <span className={styles.disciplinePill}>{disciplineName}</span>
-              {personalTitle ? <span className={styles.titlePill}>{personalTitle}</span> : null}
-            </div>
-          </div>
-          <p>
-            Discipline and title are identity labels. Neither grants stats, permissions, or combat
-            power. The same display identity follows this character across Profile and battle.
-          </p>
-        </section>
-
         <section className={styles.personal} aria-labelledby="personal-title-heading">
           <header>
             <div>
               <span>Personal title</span>
-              <h2 id="personal-title-heading">One character, one personal title choice.</h2>
+              <h2 id="personal-title-heading">Choose your personal title.</h2>
             </div>
             <strong>{personalTitleSetAt ? 'Choice used' : 'Available'}</strong>
           </header>
@@ -175,17 +141,15 @@ export function CharacterTitleSettings({
               <span>Confirmed title</span>
               <strong>{personalTitle}</strong>
               <p>
-                This character has used its one personal-title opportunity. The title is permanent
-                as a personal identity record; future earned prestige distinctions can occupy the
-                visible title slot when that progression system unlocks.
+                Your one personal-title choice is confirmed. This identity record is permanent;
+                future earned distinctions can use the visible title slot.
               </p>
             </div>
           ) : (
             <>
               <p className={styles.explanation}>
-                Choose 1–20 characters using letters, numbers, and spaces. AUREVANE checks the title
-                for collisions before committing it. You can review the exact display before the
-                final server-authoritative confirmation.
+                Choose 1–20 characters using letters, numbers, and spaces. Review the exact display
+                before confirming your one personal-title choice.
               </p>
 
               <label className={styles.field}>
@@ -276,10 +240,8 @@ export function CharacterTitleSettings({
             <span>Character image</span>
             <h2 id="profile-image-heading">Portrait URL</h2>
             <p>
-              Paste the image itself, not an image-host webpage. JPG, PNG, WebP, and animated GIF
-              are suitable. Portraits are square-cropped and never stretched; for good performance
-              use 128–4096 px artwork, keep static images at or below 8 MB and animated GIFs at or
-              below 12 MB.
+              Use a direct JPG, PNG, WebP, or animated GIF link. Portraits are square-cropped.
+              Choose 128–4096 px artwork, up to 8 MB for static images or 12 MB for GIFs.
             </p>
           </div>
           {imageDraft.trim() && !imagePreviewFailed && !currentHostMessage ? (

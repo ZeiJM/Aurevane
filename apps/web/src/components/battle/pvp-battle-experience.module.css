@@ -22,7 +22,7 @@
   position: relative;
   z-index: 90;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(20rem, 28rem) auto;
+  grid-template-columns: minmax(0, 1fr) clamp(15rem, 30vw, 28rem) minmax(0, 1fr);
   gap: 1rem;
   align-items: center;
   min-height: 3rem;
@@ -48,6 +48,7 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  justify-self: end;
   gap: 0.4rem;
 }
 .header :global([data-battle-header-utilities='true'] > button) {
@@ -59,7 +60,7 @@
 }
 .economy {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.2rem 0.7rem;
   min-width: 0;
 }
@@ -451,6 +452,15 @@
   opacity: 0.45;
   cursor: not-allowed;
 }
+@media (min-width: 821px) {
+  /* Centering the economy must not make a long battle message grow the board's header row. */
+  .objective > span,
+  .objective > strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
 @media (max-width: 1100px) and (min-width: 821px) {
   .content {
     grid-template-columns: 9rem minmax(0, 1fr) 9rem;
@@ -460,7 +470,6 @@
     gap: 0.3rem;
   }
   .header {
-    grid-template-columns: minmax(0, 1fr) minmax(15rem, 22rem) auto;
     gap: 0.4rem;
   }
 }

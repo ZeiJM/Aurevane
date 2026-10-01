@@ -245,13 +245,14 @@ export function CharacterAttributeAllocationPanel({
                   <div
                     className={styles.portraitAtmosphere}
                     data-testid="attribute-redistribution-atmosphere"
-                    aria-hidden="true"
                   >
-                    <span className={styles.atmosphereOrbital} />
-                    <span className={styles.atmosphereSpark}>✦</span>
+                    <span className={styles.atmosphereOrbital} aria-hidden="true" />
+                    <span className={styles.atmosphereSpark} aria-hidden="true">
+                      ✦
+                    </span>
                     <div className={styles.portraitIdentity}>
                       <strong>{portrait.name}</strong>
-                      <i />
+                      <i aria-hidden="true" />
                       <small>
                         Strength finds
                         <br />

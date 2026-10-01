@@ -69,7 +69,7 @@ export function TrainingReportCard({ report }: TrainingReportCardProps) {
 
   return (
     <section
-      className={styles.panel}
+      className={`${styles.panel} ${styles.reportPanel}`}
       data-testid="training-report"
       data-training-surface="moonstone"
       data-av-surface="moonstone"

@@ -314,9 +314,9 @@ test('Creation exposes twelve portraits per gender and preserves the complete au
   expect(requests[1].intent.pronounPresetId).toBe('she_her')
   await expect(page).toHaveURL(/\/game\/haven$/)
   await page.goto('/game/character')
-  await expect(page.getByTestId('character-profile')).toContainText(characterName)
+  await expect(page.getByTestId('character-rail-profile')).toContainText(characterName)
   await page.reload()
-  await expect(page.getByTestId('character-profile')).toContainText(characterName)
+  await expect(page.getByTestId('character-rail-profile')).toContainText(characterName)
   expect(pageErrors).toEqual([])
   if (process.env.LAYOUT_REVIEW_OUTPUT)
     await writeFile(

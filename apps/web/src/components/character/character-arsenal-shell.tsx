@@ -1,4 +1,5 @@
 import Image from 'next/image'
+import Link from 'next/link'
 import type { EssenceDefinition } from '@aurevane/game-core/combat/essence'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
 import type { AnyResonanceDefinition } from '@aurevane/game-core/combat/resonance'
@@ -263,6 +264,13 @@ export function CharacterArsenalShell({
       <Surface className={styles.arsenal} tone="elevated" data-arsenal-sheet="true">
         <header className={styles.pageHeading}>
           <div className={styles.pageHeadingTitle}>
+            <Link
+              href="/game/loadout"
+              className={styles.backLink}
+              aria-label="Back to Nexus and Items"
+            >
+              <span aria-hidden="true">‹</span> Back
+            </Link>
             <span className={styles.pageIcon} aria-hidden="true">
               ⚔
             </span>
@@ -424,9 +432,11 @@ export function CharacterArsenalShell({
                     <EssenceHoverPreview essence={essence} />
                   </span>
                   <div>
-                    <strong>{`Essence: ${essence.name}`}</strong>
+                    <div className={styles.attunementIdentity}>
+                      <strong>{`Essence: ${essence.name}`}</strong>
+                      <b>● Active</b>
+                    </div>
                     <p>{essence.flavorLine ?? essence.description}</p>
-                    <b>● Active</b>
                   </div>
                 </article>
               ) : (
@@ -453,9 +463,11 @@ export function CharacterArsenalShell({
                     <ResonanceHoverPreview resonance={resonance} />
                   </span>
                   <div>
-                    <strong>{`Resonance: ${resonance.name}`}</strong>
+                    <div className={styles.attunementIdentity}>
+                      <strong>{`Resonance: ${resonance.name}`}</strong>
+                      <b>● Active</b>
+                    </div>
                     <p>{resonance.flavorLine ?? resonance.description}</p>
-                    <b>● Active</b>
                   </div>
                 </article>
               ) : (

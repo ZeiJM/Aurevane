@@ -128,19 +128,6 @@ export function GameRail({
           )
         })}
       </nav>
-      {!restricted ? (
-        <div className={styles.railUtilities}>
-          <Link href="/game/account/titles" prefetch={false}>
-            ♜ <span>Titles</span>
-          </Link>
-          <Link href="/game/settings/audio" prefetch={false}>
-            ♫ <span>Audio</span>
-          </Link>
-          <Link href="/game/settings/controls" prefetch={false}>
-            ⚙ <span>Controls</span>
-          </Link>
-        </div>
-      ) : null}
       {activeSessionHref ? (
         <Link className={styles.railSession} href={activeSessionHref} prefetch={false}>
           {activeSessionLabel ?? 'Return to Active Session'}

@@ -237,10 +237,11 @@
     overflow-x: auto;
   }
   .skills {
-    min-width: 22rem;
+    /* Four full command-size frames plus action padding, borders and the three gaps. */
+    min-width: 24rem;
   }
   .special,
   .future {
-    min-width: 5.25rem;
+    min-width: 6rem;
   }
 }

@@ -1,15 +1,23 @@
-/* The profile is a landscape identity banner above a readable stat sheet. */
+/* Profile labels and stat sheet share the portrait scene without repeating the rail identity. */
 .layout {
+  position: relative;
+  isolation: isolate;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
   align-content: start;
+  height: 100%;
   min-width: 0;
   min-height: 0;
   gap: 0.75rem;
-  padding: 0.5rem;
+  padding: 1rem;
+  background:
+    linear-gradient(#18242325, #18242325),
+    url('/media/art/adventure/haven-v01.webp') center / cover;
 }
 .pageHeading {
-  min-height: 4.5rem;
+  position: relative;
+  z-index: 1;
   color: #f1e5cd;
   text-shadow: 0 2px 8px #000;
 }
@@ -20,151 +28,6 @@
 .pageHeading p {
   margin: 0.3rem 0;
   font-size: 1rem;
-}
-.layout > :global([data-testid='character-profile']) {
-  display: grid;
-  grid-template-columns: 6rem minmax(12rem, 1fr) minmax(12rem, 0.9fr) minmax(12rem, 0.9fr);
-  align-items: center;
-  gap: 1rem;
-  width: 100%;
-  height: auto;
-  min-height: 7.5rem;
-  padding: 0.75rem;
-  border: 1px solid #a18a61;
-  color: #333a33;
-  background: linear-gradient(120deg, #e0d4bef2, #c9baa0f7);
-}
-.layout :global([data-character-portrait-frame]) {
-  width: 6rem;
-  height: 6rem;
-  padding: 0;
-  border: 1px solid #9f875b;
-  border-radius: 0;
-}
-.layout :global([data-character-portrait-frame] > div) {
-  width: 100%;
-  height: 100%;
-  aspect-ratio: 1;
-}
-.layout :global([data-character-portrait-frame] img) {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.layout :global([data-character-identity-copy]) {
-  padding: 0;
-  text-align: left;
-}
-.layout :global([data-character-identity-copy] h1) {
-  margin: 0;
-  color: #333a33;
-  font-size: 1.65rem;
-}
-.layout :global([data-character-identity-copy] p),
-.layout :global([data-character-creed]) {
-  display: none;
-}
-.layout :global([data-character-identity-copy] > div) {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-}
-.layout :global([data-character-identity-copy] > div > span) {
-  color: #494e43;
-  background: transparent;
-  border: 0;
-  padding: 0;
-  font-size: 0.875rem;
-}
-.layout :global([data-testid='level-progress']) {
-  padding: 0;
-  width: auto;
-  margin: 0;
-  color: #333a33;
-}
-.layout :global([data-testid='level-progress'] strong),
-.layout :global([data-testid='level-progress'] span) {
-  color: #333a33;
-  font-size: 0.875rem;
-}
-.layout :global([data-character-resources]) {
-  display: grid;
-  gap: 0.5rem;
-  padding: 0;
-}
-.layout :global([data-character-resource]) {
-  padding: 0;
-  border: 0;
-  background: transparent;
-}
-.layout :global([data-character-resource] strong),
-.layout :global([data-character-resource] b) {
-  color: #333a33;
-  font-size: 0.875rem;
-}
-.profile {
-  min-width: 0;
-  padding: 1rem;
-  border: 1px solid #a18a61;
-  border-radius: 0;
-  color: #333a33;
-  background: linear-gradient(120deg, #e0d4bef2, #c9baa0f7);
-  box-shadow:
-    inset 0 0 0 3px #e4d8c050,
-    0 5px 16px #0003;
-}
-.sheetHeading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid #a18a6155;
-}
-.sheetHeading > div {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-}
-.sheetHeading h2 {
-  margin: 0;
-  color: #333a33;
-  font: 500 1.5rem var(--av-font-display);
-}
-.sheetHeading small {
-  font: italic 0.9375rem var(--av-font-display);
-}
-.sheetMarker {
-  color: #8f7956;
-  font-size: 1.4rem;
-}
-.buildIdentity {
-  color: #333a33;
-  margin-top: 0.5rem;
-  font-size: 0.9375rem;
-}
-.buildIdentity summary {
-  cursor: pointer;
-}
-.buildIdentity p {
-  margin: 0.5rem 0;
-  line-height: 1.5;
-}
-/* Compact identity at the upper left, portrait scene at right, stat sheet below. */
-.layout {
-  position: relative;
-  isolation: isolate;
-  height: 100%;
-  padding: 1rem;
-  grid-template-rows: auto 7rem minmax(0, 1fr);
-  background:
-    linear-gradient(#18242325, #18242325),
-    url('/media/art/adventure/haven-v01.webp') center / cover;
-}
-.pageHeading {
-  position: relative;
-  z-index: 1;
-  min-height: 0;
 }
 .scenePortrait {
   position: absolute;
@@ -182,34 +45,83 @@
   object-fit: cover;
   object-position: center 25%;
 }
-.layout > :global([data-testid='character-profile']) {
-  position: relative;
-  grid-template-columns: 6rem minmax(0, 1fr);
-  width: min(100%, 25rem);
-  min-height: 0;
-  padding: 0.5rem;
-  gap: 0.75rem;
-}
-.layout :global([data-testid='level-progress']),
-.layout :global([data-character-resources]) {
-  display: none;
-}
 .profile {
   position: relative;
+  min-width: 0;
   min-height: 0;
   align-self: stretch;
   overflow-y: auto;
   overscroll-behavior: contain;
   width: 100%;
   padding: 0.85rem;
+  border: 1px solid #a18a61;
+  border-radius: 0;
+  color: #333a33;
+  background: linear-gradient(120deg, #e0d4bef2, #c9baa0f7);
+  box-shadow:
+    inset 0 0 0 3px #e4d8c050,
+    0 5px 16px #0003;
+}
+.identityTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px solid #a18a6155;
+}
+.identityTag {
+  --tag-color: #35594c;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--tag-color) 55%, #c5b48e);
+  border-left: 3px solid var(--tag-color);
+  background: linear-gradient(120deg, #f0e7d5, #e0d5be);
+  box-shadow: inset 0 1px #fff7e8;
+}
+.identityTag[data-profile-tag='secondary'] {
+  --tag-color: #3e5970;
+}
+.identityTag[data-profile-tag='title'] {
+  --tag-color: #785323;
+  background: linear-gradient(120deg, #f0dfb6, #dcc591);
+}
+.identityTag > span {
+  color: var(--tag-color);
+  font-size: 1.2rem;
+}
+.identityTag > div {
+  display: grid;
+  min-width: 0;
+  gap: 0.12rem;
+}
+.identityTag small {
+  color: #5a5448;
+  font: 600 0.75rem/1.2 var(--av-font-body);
+}
+.identityTag strong {
+  color: var(--tag-color);
+  font: 600 1rem/1.2 var(--av-font-display);
+  overflow-wrap: anywhere;
 }
 .buildIdentity {
-  margin: 0 0 0.35rem;
+  color: #333a33;
+  margin: 0.65rem 0 0.35rem;
+  font-size: 0.9375rem;
+}
+.buildIdentity summary {
+  cursor: pointer;
+}
+.buildIdentity p {
+  margin: 0.5rem 0;
+  line-height: 1.5;
 }
 @media (max-width: 1100px) {
   .layout {
     height: auto;
-    grid-template-rows: auto auto auto;
+    grid-template-rows: auto auto;
   }
 }
 @media (max-width: 760px) {
@@ -220,34 +132,16 @@
     height: 15rem;
     width: 45%;
   }
-  .layout > :global([data-testid='character-profile']) {
-    width: 70%;
-    grid-template-columns: 4rem minmax(0, 1fr);
-  }
-  .layout :global([data-character-portrait-frame]) {
-    width: 4rem;
-    height: 4rem;
-  }
   .profile {
     padding: 0.75rem;
-  }
-  .layout :global([data-testid='level-progress']),
-  .layout :global([data-character-resources]) {
-    display: grid;
-    grid-column: 1 / -1;
   }
 }
 @media (min-width: 1100px) and (max-height: 800px) {
   .layout {
     padding: 0.75rem;
     gap: 0.5rem;
-    grid-template-rows: auto 6rem minmax(0, 1fr);
   }
   .pageHeading h1 {
     font-size: 2.1rem;
-  }
-  .layout :global([data-character-portrait-frame]) {
-    width: 5rem;
-    height: 5rem;
   }
 }

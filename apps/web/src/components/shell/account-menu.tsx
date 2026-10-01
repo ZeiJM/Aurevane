@@ -5,8 +5,6 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 
-import { AudioSettingsMenu } from '@/components/audio/audio-settings-menu'
-
 import styles from './account-menu.module.css'
 
 interface AccountMenuProps {
@@ -88,13 +86,14 @@ export function AccountMenu({
               <strong>Welcome back, {characterName}.</strong>
             </div>
           ) : null}
-          <AudioSettingsMenu
-            rootClassName={styles.audioRoot}
-            triggerClassName={styles.audioTrigger}
-            triggerLabel="Audio"
-            triggerRole="menuitem"
-            showTriggerMarker={false}
-          />
+          <Link
+            href="/game/settings/audio"
+            prefetch={false}
+            role="menuitem"
+            onClick={() => setOpen(false)}
+          >
+            Audio
+          </Link>
           {pathname !== '/game/settings/controls' ? (
             <Link
               href="/game/settings/controls"

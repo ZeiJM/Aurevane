@@ -7,7 +7,10 @@ import {
   expectRefinedCockpit,
   commitGesture,
 } from './refined-battle-helpers'
-import { expectBattlePreviewFits } from './battle-reference-layout-helpers'
+import {
+  expectBattlePreviewFits,
+  expectBattleHeaderAndArtworkGeometry,
+} from './battle-reference-layout-helpers'
 
 const SHARED_HEADER =
   /^(Steel is drawn\. The battle is underway\.|Stand fast\. The field belongs to the resolute\.|Hold your nerve\. One clear move can turn the tide\.|Press forward\. Fortune follows the decisive\.|Every step has weight\. Make this one count\.)$/
@@ -187,6 +190,7 @@ test('keeps requested PvE presentation parity on desktop and mobile', async ({
   const root = page.locator("main[data-unified-battle='true'][data-battle-kind='pve']")
   await expect(root).toBeVisible()
   await expectSharedHeader(root)
+  await expectBattleHeaderAndArtworkGeometry(page)
 
   const context = root.getByRole('region', { name: 'Command Deck' })
   await expect(root.locator('[data-ai-turn-clock="true"]')).toHaveText(/^\d+s$/)
@@ -292,7 +296,7 @@ test('keeps requested PvP presentation parity on desktop and mobile', async ({
     })
 
     await host.goto('/game/battle')
-    await host.getByRole('button', { name: /Player vs Player/ }).click()
+    await host.getByRole('button', { name: 'PVP - Direct', exact: true }).click()
     await host.getByRole('button', { name: 'Create Battle Lobby' }).click()
     const hostDialog = host.getByRole('dialog', { name: 'The arena is waiting.' })
     await expect(hostDialog).toBeVisible()
@@ -324,6 +328,7 @@ test('keeps requested PvP presentation parity on desktop and mobile', async ({
     const activeName = hostTurn ? hostIdentity.characterName : guestIdentity.characterName
 
     await expectSharedHeader(activeRoot)
+    await expectBattleHeaderAndArtworkGeometry(activePage)
     await selectMoveAndVerifySharedTreatment(activeRoot)
 
     if (mobile) {

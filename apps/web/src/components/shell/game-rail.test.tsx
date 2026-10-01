@@ -26,11 +26,11 @@ describe('shared game rail', () => {
     expect(markup).toContain('Character resources')
   })
 
-  it('preserves title, audio and control settings access', () => {
+  it('keeps settings in Account rather than duplicating them in the rail', () => {
     const markup = renderRail()
-    expect(markup).toContain('href="/game/account/titles"')
-    expect(markup).toContain('href="/game/settings/audio"')
-    expect(markup).toContain('href="/game/settings/controls"')
+    expect(markup).not.toContain('href="/game/account/titles"')
+    expect(markup).not.toContain('href="/game/settings/audio"')
+    expect(markup).not.toContain('href="/game/settings/controls"')
   })
 
   it('starts at Haven, groups Nexus and Items under Loadout, and uses compact labels', () => {

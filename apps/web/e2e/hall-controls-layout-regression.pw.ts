@@ -57,7 +57,7 @@ test('desktop Hall keeps selected-workspace arena, difficulty and PvP controls r
   }
   await page
     .getByRole('navigation', { name: 'Battle Hall sections' })
-    .getByRole('button', { name: /Player vs Player/ })
+    .getByRole('button', { name: 'PVP - Direct', exact: true })
     .click()
   for (const mode of ['1v1', 'flex-teams']) {
     await page.locator('#pvp-mode').selectOption(mode)

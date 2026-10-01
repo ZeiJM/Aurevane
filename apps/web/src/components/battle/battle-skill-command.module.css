@@ -4,6 +4,10 @@
   min-width: 0;
   align-self: stretch;
 }
+.shell:not([data-command-card='finish']) {
+  /* Standard commands follow the selected Skill frame, including the global square-media rule. */
+  --av-gameplay-art-size: 4.875rem;
+}
 .action {
   position: relative;
   display: grid;
@@ -47,6 +51,10 @@
   border-radius: 3px;
   background: #132430;
   overflow: hidden;
+}
+.shell:not([data-command-card='finish']) .artwork {
+  width: min(100%, var(--av-gameplay-art-size)) !important;
+  height: auto !important;
 }
 .artwork img {
   width: 100%;
@@ -166,6 +174,9 @@
   font-size: 0.75rem;
 }
 @media (max-width: 1100px) and (min-width: 821px) {
+  .shell:not([data-command-card='finish']) {
+    --av-gameplay-art-size: 4.25rem;
+  }
   .action {
     grid-template-rows: 4.25rem auto;
   }

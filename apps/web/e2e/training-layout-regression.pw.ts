@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process'
 import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { expect, test, type Page } from '@playwright/test'
@@ -21,9 +22,10 @@ test('training composition preserves idle, active, report and claim flows', asyn
   await page.setViewportSize(viewport)
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
+  const email = `training-layout-${testInfo.project.name}-${Date.now()}@example.test`
   await provisionAccountAndEnterCharacter({
     page,
-    email: `training-layout-${testInfo.project.name}-${Date.now()}@example.test`,
+    email,
     password: 'Disposable-layout-review-2026!',
     characterName: mobile
       ? 'Eira Dawn'
@@ -37,6 +39,7 @@ test('training composition preserves idle, active, report and claim flows', asyn
   await expect(page.getByRole('navigation', { name: 'Training sections' })).toHaveCount(0)
 
   async function capture(state: string) {
+    const capturedViewport = page.viewportSize()!
     const frame = page.locator('[data-training-concept]')
     await page.evaluate(() => {
       window.scrollTo(0, 0)
@@ -82,14 +85,17 @@ test('training composition preserves idle, active, report and claim flows', asyn
           return main ? main.scrollHeight - main.clientHeight : 0
         })(),
         plannerOverflowX: planner.scrollWidth - planner.clientWidth,
-        reportSceneBottom: (() => {
-          const scene = report?.querySelector('img')
-          return scene?.getBoundingClientRect().bottom ?? null
-        })(),
-        reportGlyphTop: (() => {
-          const glyph = report?.querySelector('[aria-hidden="true"]')
-          return glyph?.getBoundingClientRect().top ?? null
-        })(),
+        panelOverflowY: [planner, element.querySelector('#training-current')!, report!].map(
+          (panel) => panel.scrollHeight - panel.clientHeight,
+        ),
+        panelsInsideMain: [planner, element.querySelector('#training-current')!, report!].every(
+          (panel) => {
+            const rect = panel.getBoundingClientRect()
+            const main = document.getElementById('game-main')!.getBoundingClientRect()
+            return rect.top >= main.top && rect.bottom <= main.bottom
+          },
+        ),
+        reportDisclosureCount: element.querySelectorAll('details, [role="dialog"]').length,
         hasReportWorkspace: report !== null,
         minActionHeight: Math.min(
           ...actions.map((button) => button.getBoundingClientRect().height),
@@ -100,7 +106,7 @@ test('training composition preserves idle, active, report and claim flows', asyn
         ),
       }
     })
-    const label = `training-${state}-${viewport.width}x${viewport.height}`
+    const label = `training-${state}-${capturedViewport.width}x${capturedViewport.height}`
     const output = process.env.LAYOUT_REVIEW_OUTPUT
     if (output) {
       await mkdir(output, { recursive: true })
@@ -121,10 +127,15 @@ test('training composition preserves idle, active, report and claim flows', asyn
     expect
       .soft(metrics.hasReportWorkspace, `${label}: dedicated real report/empty state`)
       .toBe(true)
-    if (state === 'idle' && !mobile) {
+    expect.soft(metrics.reportDisclosureCount, `${label}: report is always inline`).toBe(0)
+    if (!mobile) {
       expect
         .soft(metrics.mainOverflowY, `${label}: 100% zoom does not require page scrolling`)
         .toBeLessThanOrEqual(1)
+      expect.soft(metrics.panelsInsideMain, `${label}: every panel fits`).toBe(true)
+      for (const overflow of metrics.panelOverflowY) {
+        expect.soft(overflow, `${label}: no panel needs vertical scrolling`).toBeLessThanOrEqual(1)
+      }
     }
     expect
       .soft(metrics.minActionHeight, `${label}: usable duration actions`)
@@ -148,18 +159,17 @@ test('training composition preserves idle, active, report and claim flows', asyn
         .soft(metrics.stopActionInPanel, `${label}: stop action visible without scrolling`)
         .toBe(true)
       expect
-        .soft(metrics.scene.width, `${label}: scenic header fills the parchment workspace`)
-        .toBeLessThan(metrics.frame.width * 0.6)
-      expect
-        .soft(metrics.scene.height, `${label}: scenery leaves room for actions`)
-        .toBeGreaterThan(viewport.height * 0.5)
-      expect
-        .soft(metrics.planner.y, `${label}: planner shares the scene height`)
-        .toBeLessThan(metrics.scene.bottom)
+        .soft(metrics.planner.y, `${label}: shallow scenic title leaves room for actions`)
+        .toBeGreaterThanOrEqual(metrics.scene.bottom)
     }
   }
 
   await capture('idle')
+  if (!mobile) {
+    await page.setViewportSize({ width: 1536, height: 614 })
+    await capture('compact-idle')
+    await page.setViewportSize(viewport)
+  }
   await expect(page.getByTestId('practice-plan-card').getByRole('radio')).toHaveCount(3)
   await expect(page.getByRole('button', { name: 'Start Training', exact: true })).toBeEnabled()
   await submit(page, 'Start Training', '/api/wayfarers-practice/plan')
@@ -168,11 +178,37 @@ test('training composition preserves idle, active, report and claim flows', asyn
     await expect(action).toBeDisabled()
   }
   await capture('active')
+  if (!mobile) {
+    await page.setViewportSize({ width: 1536, height: 614 })
+    await capture('active')
+    await page.setViewportSize(viewport)
+  }
 
   await submit(page, 'Stop Training', '/api/wayfarers-practice/stop')
+  await expect(page.getByTestId('training-report')).toHaveCount(0)
+  await expect(page.getByTestId('passive-training-active')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Start Training', exact: true })).toBeEnabled()
+  await submit(page, 'Start Training', '/api/wayfarers-practice/plan')
+  await expect(page.getByTestId('passive-training-active')).toBeVisible()
+  queryLocalDatabase(`
+    update app_private.wayfarers_practice_state
+    set plan_set_at = clock_timestamp() - interval '25 hours', updated_at = clock_timestamp()
+    where character_id = (
+      select character.id from public.characters character
+      join auth.users account on account.id = character.user_id
+      where account.email = '${email.replaceAll("'", "''")}'
+      limit 1
+    );
+  `)
+  await page.reload()
   await expect(page.getByTestId('training-report')).toBeVisible()
   await expect(page.getByTestId('passive-training-active')).toHaveCount(0)
   await capture('report')
+  if (!mobile) {
+    await page.setViewportSize({ width: 1536, height: 614 })
+    await capture('compact-report')
+    await page.setViewportSize(viewport)
+  }
   await submit(page, 'Claim Training', '/api/wayfarers-practice/claim')
   await expect(page.getByTestId('training-report')).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Start Training', exact: true })).toBeEnabled()
@@ -192,4 +228,32 @@ async function submit(page: Page, name: string, endpoint: string) {
   )
   await page.getByRole('button', { name, exact: true }).click()
   expect((await response).ok()).toBe(true)
+}
+
+function queryLocalDatabase(sql: string): string {
+  const dbContainer = execFileSync(
+    'docker',
+    ['ps', '--filter', 'name=supabase_db_', '--format', '{{.Names}}'],
+    { encoding: 'utf8' },
+  )
+    .trim()
+    .split('\n')[0]
+  if (!dbContainer) throw new Error('Local Supabase database container is unavailable.')
+  return execFileSync(
+    'docker',
+    [
+      'exec',
+      dbContainer,
+      'psql',
+      '-v',
+      'ON_ERROR_STOP=1',
+      '-U',
+      'postgres',
+      '-d',
+      'postgres',
+      '-Atqc',
+      sql,
+    ],
+    { encoding: 'utf8' },
+  ).trim()
 }

@@ -1,6 +1,7 @@
 import { getFoundationDiscipline } from '@aurevane/game-core/character/foundation-disciplines'
 import { expect, test } from '@playwright/test'
 
+import { previewDiscipline } from './discipline-library-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 const ATTRIBUTE_IDS = ['might', 'finesse', 'vitality', 'agility', 'intellect', 'resolve'] as const
@@ -74,10 +75,10 @@ test('Nexus previews and commits Primary Discipline while Character preserves pe
   await expect(dialog).toContainText('Secondary Discipline')
   await expect(dialog).toContainText('Locked')
 
-  const primarySelect = dialog.getByRole('combobox', { name: 'Primary Discipline', exact: true })
-
-  await expect(primarySelect).toBeEnabled()
-  await primarySelect.selectOption('aetherist')
+  await expect(
+    dialog.getByRole('button', { name: 'Edit Primary Discipline', exact: true }),
+  ).toBeEnabled()
+  await previewDiscipline(dialog, 'Primary', 'Aetherist')
 
   const preview = dialog.locator('[aria-label="Discipline stat preview"]')
   await expect(preview).toBeVisible()
@@ -92,7 +93,7 @@ test('Nexus previews and commits Primary Discipline while Character preserves pe
   await dialog.getByRole('button', { name: 'Close', exact: true }).click()
 
   await page.goto('/game/character')
-  await expect(page.getByTestId('character-profile')).toBeVisible()
+  await expect(page.locator('[data-profile-workspace]')).toBeVisible()
 
   for (const id of ATTRIBUTE_IDS) {
     const expected = expectedAetheristAttributes.get(id)
@@ -112,7 +113,7 @@ test('Nexus previews and commits Primary Discipline while Character preserves pe
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
   await launcher.click()
   await expect(dialog).toBeVisible()
-  await primarySelect.selectOption('vanguard')
+  await previewDiscipline(dialog, 'Primary', 'Vanguard')
   await expect(preview).toBeVisible()
   await expect(preview).toContainText('Vanguard')
 

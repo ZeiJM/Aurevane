@@ -59,7 +59,7 @@ test('keeps the unified PvP battle usable on mobile', async ({ browser }, testIn
     })
 
     await host.goto('/game/battle')
-    await host.getByRole('button', { name: /Player vs Player/ }).click()
+    await host.getByRole('button', { name: 'PVP - Direct', exact: true }).click()
     const createLobbyButton = host.getByRole('button', { name: 'Create Battle Lobby' })
     await expect(createLobbyButton).toBeVisible()
     await createLobbyButton.click()

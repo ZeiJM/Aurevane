@@ -61,18 +61,16 @@ export function OfflineTrainingShell({
                 {trainingReport ? (
                   <TrainingReportCard report={trainingReport} />
                 ) : (
-                  <section className={panels.panel} data-av-surface="moonstone">
+                  <section
+                    className={`${panels.panel} ${panels.reportPanel}`}
+                    data-av-surface="moonstone"
+                  >
                     <header className={panels.heading}>
                       <div>
                         <span className={panels.eyebrow}>03 / Training Report</span>
                         <h2>Training Report</h2>
                       </div>
                     </header>
-                    <AurevaneImage
-                      assetId="environment.passive-training.cloister"
-                      className={panels.reportScene}
-                      sizes="(max-width: 760px) 100vw, 24vw"
-                    />
                     <div className={panels.emptyState}>
                       <span className={panels.reportGlyph} aria-hidden="true">
                         ▤

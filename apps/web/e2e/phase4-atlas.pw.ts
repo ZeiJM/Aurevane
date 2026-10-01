@@ -46,12 +46,19 @@ test('Mastery authority remains available while Discipline Management uses the c
   await expect(management).not.toContainText('Select New Discipline')
   await expect(management).not.toContainText('Explore. Compare. Commit.')
   await expect(management).not.toContainText('Your foundation in battle')
+  await expect(management.getByRole('tab')).toHaveCount(0)
   await expect(
-    management.getByRole('combobox', { name: 'Primary Discipline', exact: true }),
-  ).toBeVisible()
-  await expect(
-    management.getByRole('combobox', { name: 'Secondary Discipline', exact: true }),
-  ).toBeVisible()
+    management.getByRole('button', { name: 'Atlas & Mastery', exact: true }),
+  ).toHaveCount(0)
+  for (const slot of ['Primary', 'Secondary']) {
+    const editor = management.getByRole('button', { name: `Edit ${slot} Discipline`, exact: true })
+    await expect(editor).toBeEnabled()
+    await editor.click()
+    await expect(
+      management.getByRole('region', { name: `${slot} Discipline library`, exact: true }),
+    ).toBeVisible()
+    await expect(editor).toHaveAttribute('aria-pressed', 'true')
+  }
   expect(
     await management.evaluate((element) => element.scrollWidth <= element.clientWidth + 1),
   ).toBe(true)

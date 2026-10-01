@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page, type Locator } from '@playwright/test'
 
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
@@ -23,11 +23,100 @@ async function expectSurrenderActionsInline(page: Page, dialogName = 'Surrender 
   await expect(stay).toBeVisible()
   await expect(confirm).toBeVisible()
 
-  const geometry = await Promise.all([stay.boundingBox(), confirm.boundingBox()])
-  expect(geometry[0]).not.toBeNull()
-  expect(geometry[1]).not.toBeNull()
-  expect(Math.abs(geometry[0]!.y - geometry[1]!.y)).toBeLessThanOrEqual(2)
-  expect(geometry[0]!.x + geometry[0]!.width).toBeLessThanOrEqual(geometry[1]!.x + 2)
+  const geometry = await dialog.evaluate((element) => {
+    const buttons = [...element.querySelectorAll('button')].map((button) => {
+      const style = getComputedStyle(button)
+      return {
+        box: button.getBoundingClientRect().toJSON(),
+        font: parseFloat(style.fontSize),
+        background: style.backgroundImage,
+        color: style.color,
+      }
+    })
+    return {
+      box: element.getBoundingClientRect().toJSON(),
+      buttons,
+      width: innerWidth,
+      height: innerHeight,
+      bodyFont: parseFloat(getComputedStyle(element.querySelector('p')!).fontSize),
+      bodyLineHeight: parseFloat(getComputedStyle(element.querySelector('p')!).lineHeight),
+    }
+  })
+  expect(geometry.box.left).toBeGreaterThanOrEqual(0)
+  expect(geometry.box.right).toBeLessThanOrEqual(geometry.width)
+  expect(geometry.box.top).toBeGreaterThanOrEqual(0)
+  expect(geometry.box.bottom).toBeLessThanOrEqual(geometry.height)
+  expect(geometry.bodyFont).toBeGreaterThanOrEqual(16)
+  expect(geometry.bodyLineHeight).toBeGreaterThanOrEqual(geometry.bodyFont * 1.4)
+  expect(geometry.buttons).toHaveLength(2)
+  const [stayMetrics, confirmMetrics] = geometry.buttons as [
+    (typeof geometry.buttons)[number],
+    (typeof geometry.buttons)[number],
+  ]
+  expect(
+    stayMetrics.background,
+    'retain and destructive actions have distinct visual treatments',
+  ).not.toBe(confirmMetrics.background)
+  for (const { box, font, background, color } of geometry.buttons) {
+    expect(box.height).toBeGreaterThanOrEqual(44)
+    expect(box.width).toBeGreaterThanOrEqual(44)
+    expect(font).toBeGreaterThanOrEqual(15)
+    expect(background).not.toBe('none')
+    expect(color).not.toBe('rgba(0, 0, 0, 0)')
+    expect(box.left).toBeGreaterThanOrEqual(geometry.box.left)
+    expect(box.right).toBeLessThanOrEqual(geometry.box.right)
+    expect(box.top).toBeGreaterThanOrEqual(geometry.box.top)
+    expect(box.bottom).toBeLessThanOrEqual(geometry.box.bottom)
+  }
+  if (geometry.width > 480) {
+    expect(Math.abs(stayMetrics.box.y - confirmMetrics.box.y)).toBeLessThanOrEqual(2)
+    expect(stayMetrics.box.right).toBeLessThanOrEqual(confirmMetrics.box.left)
+  } else {
+    expect(stayMetrics.box.bottom).toBeLessThanOrEqual(confirmMetrics.box.top)
+    expect(Math.abs(stayMetrics.box.width - confirmMetrics.box.width)).toBeLessThanOrEqual(1)
+  }
+}
+
+async function expectOutcomePanelFits(result: Locator) {
+  const panel = result.locator(':scope > section')
+  await expect(panel).toBeVisible()
+  const metrics = await panel.evaluate((element) => {
+    const style = getComputedStyle(element)
+    return {
+      box: element.getBoundingClientRect().toJSON(),
+      width: innerWidth,
+      height: innerHeight,
+      background: style.backgroundImage,
+      headlineFont: parseFloat(getComputedStyle(element.querySelector('h2')!).fontSize),
+      outcome: element.getAttribute('data-result'),
+    }
+  })
+  expect(metrics.box.left).toBeGreaterThanOrEqual(0)
+  expect(metrics.box.right).toBeLessThanOrEqual(metrics.width)
+  expect(metrics.box.top).toBeGreaterThanOrEqual(0)
+  if (metrics.width > 520) expect(metrics.box.bottom).toBeLessThanOrEqual(metrics.height)
+  expect(metrics.background).toContain('linear-gradient')
+  const channels = [...metrics.background.matchAll(/rgb\((\d+), (\d+), (\d+)\)/g)]
+  expect(channels.length, 'result surface uses the light parchment treatment').toBeGreaterThan(0)
+  expect(
+    channels.some((match) => [match[1], match[2], match[3]].every((value) => Number(value) > 160)),
+  ).toBe(true)
+  expect(metrics.headlineFont).toBeGreaterThanOrEqual(32)
+  expect(['victory', 'defeat', 'draw', 'complete']).toContain(metrics.outcome)
+  const buttons = result.getByRole('button')
+  expect(await buttons.count()).toBeGreaterThan(0)
+  for (const button of await buttons.all()) {
+    await button.scrollIntoViewIfNeeded()
+    await expect(button).toBeInViewport({ ratio: 1 })
+    const geometry = await button.boundingBox()
+    const currentPanel = await panel.boundingBox()
+    expect(geometry!.height).toBeGreaterThanOrEqual(44)
+    expect(geometry!.width).toBeGreaterThanOrEqual(44)
+    expect(geometry!.y).toBeGreaterThanOrEqual(Math.max(0, currentPanel!.y))
+    expect(geometry!.y + geometry!.height).toBeLessThanOrEqual(
+      Math.min(metrics.height, currentPanel!.y + currentPanel!.height) + 1,
+    )
+  }
 }
 
 async function expectCanonicalFacingIndicators(root: ReturnType<Page['locator']>) {
@@ -281,6 +370,7 @@ test('uses medium Guided Fundamentals and keeps PvE surrender/results', async ({
   await expect(result.getByRole('heading', { name: 'Defeat' })).toBeVisible()
   await expect(result.getByRole('button', { name: 'Return to Battle Hall' })).toBeVisible()
   await expect(result.getByRole('button', { name: 'Run Lesson Again' })).toBeVisible()
+  await expectOutcomePanelFits(result)
 })
 
 test('keeps large PvP geometry, tokens, surrender, and results', async ({ browser }, testInfo) => {
@@ -319,7 +409,7 @@ test('keeps large PvP geometry, tokens, surrender, and results', async ({ browse
     })
 
     await host.goto('/game/battle')
-    await host.getByRole('button', { name: /Player vs Player/ }).click()
+    await host.getByRole('button', { name: 'PVP - Direct', exact: true }).click()
     await host
       .getByRole('group', { name: 'Map size' })
       .getByRole('button', { name: 'Expanded' })
@@ -369,6 +459,13 @@ test('keeps large PvP geometry, tokens, surrender, and results', async ({ browse
     expect(surrenderDocumentRequests).toBe(0)
     await expect(result.getByRole('heading', { name: /Defeat|Draw/ })).toBeVisible()
     await expect(result.getByRole('button', { name: 'Return to Battle Hall' })).toBeVisible()
+    await expect(result.getByRole('button', { name: 'Review Battle Log' })).toBeVisible()
+    await expect(result.getByRole('button', { name: 'Copy Full Log' })).toBeVisible()
+    await expectOutcomePanelFits(result)
+    const guestResult = guest.getByTestId('pvp-battle-result-overlay')
+    await expect(guestResult).toBeVisible({ timeout: 20_000 })
+    await expect(guestResult.getByRole('heading', { name: /Victory|Draw/ })).toBeVisible()
+    await expectOutcomePanelFits(guestResult)
   } finally {
     await Promise.all([hostContext.close(), guestContext.close()])
   }

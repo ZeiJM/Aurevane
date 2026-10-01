@@ -1,6 +1,75 @@
 import { expect, type Page, type TestInfo } from '@playwright/test'
 import { expectRefinedCockpit, targetForecast } from './refined-battle-helpers'
 
+export async function expectBattleHeaderAndArtworkGeometry(page: Page) {
+  const root = page.locator('main[data-unified-battle="true"]')
+  const geometry = await root.evaluate((element) => {
+    const header = element.querySelector('[data-unified-battle-header]')!.getBoundingClientRect()
+    const economy = element.querySelector('[data-unified-battle-economy]')!.getBoundingClientRect()
+    const standards = Array.from(
+      element.querySelectorAll<HTMLElement>(
+        '[data-command-card]:not([data-command-card="finish"]) [data-battle-command-artwork="static"]',
+      ),
+    ).map((frame) => frame.getBoundingClientRect().toJSON())
+    const selected = Array.from(
+      element.querySelectorAll<HTMLElement>(
+        '[data-battle-selected-skills] [data-battle-skill-slot] [data-av-square-media]:has(> img), ' +
+          '[data-battle-selected-skills] [data-battle-special="essence"] [data-av-square-media]:has(> img), ' +
+          '[data-battle-selected-skills] [data-battle-special="resonance"] [data-av-square-media]:has(> img)',
+      ),
+    ).map((frame) => ({
+      frame: frame.getBoundingClientRect().toJSON(),
+      image: frame.querySelector('img')!.getBoundingClientRect().toJSON(),
+    }))
+    return {
+      header: header.toJSON(),
+      economy: economy.toJSON(),
+      standards,
+      selected,
+      width: innerWidth,
+    }
+  })
+  if (geometry.width > 820) {
+    expect(
+      Math.abs(
+        geometry.economy.x +
+          geometry.economy.width / 2 -
+          (geometry.header.x + geometry.header.width / 2),
+      ),
+      'AP panel centers against the whole header',
+    ).toBeLessThanOrEqual(1)
+  }
+  expect(geometry.standards).toHaveLength(4)
+  expect(
+    geometry.selected.length,
+    'authored selected Skill or Essence artwork provides the size baseline',
+  ).toBeGreaterThan(0)
+  const baseline = geometry.selected[0]!.frame
+  expect(baseline.width).toBeGreaterThan(0)
+  for (const frame of [...geometry.standards, ...geometry.selected.map((item) => item.frame)]) {
+    expect(
+      Math.abs(frame.width - frame.height),
+      'command and selected artwork stay square',
+    ).toBeLessThanOrEqual(1)
+    expect(
+      Math.abs(frame.width - baseline.width),
+      'standard commands match authored selected artwork width',
+    ).toBeLessThanOrEqual(1)
+    expect(
+      Math.abs(frame.height - baseline.height),
+      'standard commands match authored selected artwork height',
+    ).toBeLessThanOrEqual(1)
+  }
+  for (const { frame, image } of geometry.selected) {
+    expect(image.width).toBeLessThanOrEqual(frame.width + 1)
+    expect(image.height).toBeLessThanOrEqual(frame.height + 1)
+    expect(
+      Math.abs(image.width - image.height),
+      'Skill imagery preserves its square proportions',
+    ).toBeLessThanOrEqual(1)
+  }
+}
+
 export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo, label: string) {
   const root = page.locator('main[data-unified-battle="true"]')
   await expect(root).toHaveAttribute('data-battle-layout', 'refined')
@@ -11,6 +80,7 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
       requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
     )
   })
+  await expectBattleHeaderAndArtworkGeometry(page)
   const geometry = await root.evaluate((element) => {
     const rect = (selector: string) =>
       element.querySelector(selector)!.getBoundingClientRect().toJSON()
