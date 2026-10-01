@@ -70,3 +70,30 @@ The retained archive is 560,414,036 bytes and exceeds the GitHub connector's 512
 Static review identifies an explicit permission dependency in the existing setter: it selects character id while filtering user_id, but repository migrations explicitly grant service_role only id/personal_title reads on characters. A read-only Production metadata query confirms broader character-table/user_id SELECT and profile-display INSERT/UPDATE permissions there; no Production state was changed. The minimal permission hypothesis replaces the setter's direct table read with the already-authoritative playable-owned-character helper used by the route. This reuses its explicitly granted RPC and preserves ownership, pending-deletion and persistence-failure guards without broadening privileges or adding a migration. Fresh real save CI must confirm this hypothesis.
 
 Six focused regressions keep the actual slot helper and persistence parsing, simulate the unavailable direct table read, and check owned save, blank removal, unowned/pending-deletion denial, ownership persistence failure and failed writes. The owned/denial cases failed before the correction and all six pass after it; the two adjacent title tests also pass. The fresh full local `pnpm check` exited 0 with 3,049 Vitest tests, seven Node checks, formatting/lint/types and Production builds. Workflow YAML parses and `git diff --check` passes. Fresh authenticated exact-candidate layout, complete Chromium and Edge checks remain required before merge/release.
+
+## Final exact-candidate verification
+
+Candidate `9b7dac3711422168670508638ea07c07aa08b28a`, tree `8cef9c92dbdaa7c05e02f57801605585f0d40e84`, passed all ten applicable workflows:
+
+- CI: `36807082658`.
+- Desktop experience: `36807082525`; Desktop page fit: `36807082611`.
+- Representative Buildcraft: `36807082491`; Attribute Allocation: `36807082604`; Profile Skill Build: `36807082651`.
+- Essence Build: `36807082632`; Resonance Build: `36807082538`.
+- UI layout review: `36807082599`, with 100 passed / 50 intentional skips, plus one passed / two skipped in its separate directory invocation.
+- Browser Smoke: `36807082502`, with 35 passed / 11 skipped in its initial invocation, 252 passed / 192 intentional skips in the complete Chromium suite, and all four Edge checks passed.
+
+The fresh local `pnpm check` exited 0 with 3,049 Vitest tests, seven Node checks, formatting, lint, types and Production builds. Independent review found no blockers; the six portrait ownership/persistence regressions also passed independently. Browser discovery remains 444 cases across three projects. Existing viewport-specific skips are retained.
+
+The actual blank portrait save returned HTTP 200 with `{ "display": { "imageUrl": null } }`. All five captured desktop states (1366 initial/review and 1536 review/editor/save confirmation) record zero main, root and document overflow and zero measured scroll positions. Root independently inspected the 1536×614 save-confirmation screenshot: both editors, 44px actions, success feedback and the full-width note are readable and unclipped. Training's strict idle/active/report containment assertions and both stop/report/claim and completed-report flows pass. The full Chromium and Edge runs also pass the synchronized two-participant PvP result journey. The earlier permission and layout hypotheses are historical investigation records; this revision has real-save and rendered-fit evidence.
+
+## Authorized merge and Production release
+
+Main remained `1e7140b729c12e7be22f0eaf3d50699398b7dbb8` before integration. PR #778's synthetic merge `26a62a8efb759608e8f38fbe6b886061c811cf0f` and actual application merge `9be4e43beb021a7d895e8f65fc7d599c5b8338b1` have the same tested application tree. PR #779 changes only `apps/web/vercel.json` relative to that application merge, permitting main while keeping the wildcard deployment lock. It merged as `f6b0fd009dbc686af4ab4a4c880c0f1014cb8ab0`.
+
+Vercel Production deployment `dpl_BQWJyWCyBWdvEg7uMrWWksWwCnT2` reached READY at **2026-10-01 03:30:27.932 UTC** from that exact main commit. `aliasError` is null and the canonical alias is https://aurevane.vercel.app/. Immutable deployment: https://aurevane-fw285b27e-zeijms-projects.vercel.app.
+
+Live connector requests returned HTTP 200 for `/`, `/manual` and `/news`. Actual cloud-browser checks rendered the account entry, the Manual catalog, a successful “Battle Hall” search returning one guide, and Rules. The browser was signed out: no authenticated Production gameplay is claimed. The connector returned generic unsuccessful access results for `/rules`, `/api/auth/status` and `/game`; these are not recorded as HTTP 200, and Rules was instead verified in the actual browser. Build-log retrieval was unavailable, so no build-log inspection is claimed.
+
+The deployment-scoped grouped runtime query for warning/error/fatal entries from **2026-10-01 03:30:27.932 UTC through 03:36:16.647 UTC** returned no matching counts. This is bounded smoke evidence, not a long-term stability claim. Complete authenticated gameplay and persistence verification ran against the identical application in disposable CI.
+
+The release closeout restores `git.deploymentEnabled` to `{ "**": false }`, updates this verification record and reconciles TASKS. It contains no application changes. No Production migration, privilege change or combat-content activation was required or performed. Owner visual acceptance and authenticated Production testing remain testing outcomes.
