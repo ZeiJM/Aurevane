@@ -14,7 +14,7 @@ The existing authenticated Hall regression now guards adjacency, centered Specta
 
 ## Verification
 
-A temporary local synthetic render checks AI and Spectate at 1728×885, 1440×900, 1366×768, 1536×614, 1280×720, 1024×768, 1024×576 and 390×844. All seven desktop sizes show no document/main/panel/body overflow, all controls at least 44px and contained, no tab-to-panel gap, centered Spectate note, and AI parchment ending within 24px of its controls. This checks presentation with fixture identity, not authenticated persistence. Exact-candidate CI, final quality gate, review and release details are pending.
+A temporary local synthetic render checks AI and Spectate at 1728×885, 1440×900, 1366×768, 1536×614, 1280×720, 1024×768, 1024×576 and 390×844. All seven desktop sizes show no document/main/panel/body overflow, all controls at least 44px and contained, no tab-to-panel gap, centered Spectate note, and AI parchment ending within 24px of its controls. This checks presentation with fixture identity, not authenticated persistence. The final exact-candidate CI and release evidence are recorded below.
 
 ## Additional Owner battle live review
 
@@ -32,6 +32,29 @@ The final actual-component matrix passed all 36 AI/PvP/spectator states at 1917�
 
 Review exposed and corrected a populated-log regression during implementation: reducing its allocation without compacting controls hid filters/pagers. The native desktop log now has compact header/view/filter/pager rows, retains the ordinary 11rem minimum, and uses an 8rem minimum only on short desktops. Its complete pager text remains available through the DOM and title. The final matrix passed the original strict containment guard. Portrait sizing now uses the actual reserved grid row rather than a heuristic height subtraction, preventing resource overlap; its height is also bounded by the card inline width to preserve a square at narrow desktop sizes. Terrain labels wrap within their buttons; desktop samples use 18px icons, with 14px icons on narrow desktops to preserve whole-word label wrapping. At 821–1100px width and at most 620px height, a 44.8px masthead and 44px cockpit art preserve usable portrait space; larger desktop presentations retain their normal sizes.
 
-The frozen local gate passed formatting, app/package lint, types, 3,094 Vitest tests, seven Node checks and Production builds. The final gate was invoked individually because the aggregate script returned without running its children in this workspace; successful Turbo cache replays were inspected for lint, types, tests and builds, and formatting plus package lint ran directly. Focused presentation tests also passed. Independent review found no P0/P1/P2 blockers. Fresh expanded-candidate CI and release evidence are pending.
+The frozen local gate passed formatting, app/package lint, types, 3,094 Vitest tests, seven Node checks and Production builds. The final gate was invoked individually because the aggregate script returned without running its children in this workspace; successful Turbo cache replays were inspected for lint, types, tests and builds, and formatting plus package lint ran directly. Focused presentation tests also passed. Independent review found no P0/P1/P2 blockers. Final exact-candidate CI and release evidence are recorded below.
 
 The expanded candidate `dad1aadc7150dfe0d0bd6cff8ea1db7883d87fa8` passed CI, Desktop page fit and Desktop experience; authenticated UI page inspection also passed before evidence upload completed. Buildcraft/Browser Smoke exposed two stale test contracts: forecast duration/team wording was still asserted inside the authored Skill dialog after removal of the preview popup, and the older shared geometry helper required the maximum navigation portrait size regardless of available row height. The test revision preserves the exact server forecast duration/team assertions in the inline outcomes lane and authored effect checks in cockpit details. Portrait sizing is checked against the minimum of navigation limit, rail width and allocated image row, with additional square/minimum-32px/non-overlap/no-scroll checks. No application code changes are part of this correction; fresh exact-head CI remains required. Direct lint of the ground-targeting test also exposed its pre-existing `no-unsafe-finally` cleanup warning/error, identical on main; cleanup behavior is preserved.
+
+## Final verification and release
+
+Final candidate `8d0e5f5479f6199f646a49fe362383296726af32`, tree `0f478454d4b5bf249b26a762f3047467d6a5f491`, passed all six applicable workflows:
+
+| Workflow | Run | Result |
+| --- | --- | --- |
+| CI | 36853280442 | Success |
+| Desktop page fit | 36853280545 | Success |
+| Desktop experience | 36853280478 | Success on retry |
+| Representative Buildcraft | 36853280458 | Success |
+| UI layout review | 36853280487 | Success |
+| Browser smoke | 36853280449 | Success |
+
+Browser Smoke passed 37 early scenarios (13 intentional skips), 254 full Chromium scenarios (199 intentional skips) and four Edge checks. UI review passed 104 authenticated checks (61 intentional skips), plus one directory check (two intentional skips). Its saved actual AI/PvP screenshots at 1366×768 and 1536×614 were inspected: custom portraits remain native circular map tokens, rails fit, terrain names wrap by whole words, and command/forecast composition is compact. Desktop experience passed 48 checks (27 intentional skips) on retry. Its initial run encountered two matching rail cards during a character-creation route transition; the application was unchanged from the preceding passing candidate, so the failed job was rerun without a source patch. The retry passed. This is recorded as a transient test/navigation failure, not a new application defect or independent human study.
+
+Independent final review found no P0/P1/P2 blockers. The final 36-state matrix checks square portraits of at least 32px, exact reserved-row sizing, non-overlap with resources, contained rendered terrain text, stable board dimensions, compact command/preview tracks, all six populated log combinations and phone flow. A separate reviewer recomputed exact portrait expectations across 30 desktop states, with a maximum difference of 0.0063px. All original forecast duration/team effects, single-mutation/AP/audio and server terrain assertions remain after their surface adaptation.
+
+PR #784 merged at `1dc2b9d9a51ba8130f74854a7738e3281905f238`. Fresh main was unchanged from the inspected base, and the actual merged tree equals the tested tree. Configuration-only PR #785 adds main deployment permission while retaining the wildcard lock; its actual release merge `9071c392012c33bbc2b3f27207e163bd9c6eb48d` has tree `01f1797da3538347d67b1983932d957b62e40f52` and contains identical application bytes. Vercel deployment `dpl_AHYNwyudrkLCehktPYP3auX1iqDF` reached READY at **2026-10-01 11:45:51.727 UTC** from that exact source, with `aurevane.vercel.app` assigned and no alias error. Immutable deployment: https://aurevane-c78s9dqwx-zeijms-projects.vercel.app/.
+
+Live public entry, Manual, Rules and News returned HTTP 200. Browser verification showed the enabled Enter AUREVANE action, Manual search for “battle” reducing the list to Battle Hall & Action Economy, Rules content and the intentional News empty state. Browser diagnostics contained only extension-origin metadata errors; no application-origin warnings/errors were observed. The deployment-scoped warning/error/fatal count scan was empty for **2026-10-01 11:45:51.727–11:48:49.301 UTC**.
+
+This documentation/configuration follow-up restores `deploymentEnabled: {"**": false}`. No application change, Production migration, privilege change or combat-content activation follows the verified release. Authenticated gameplay/persistence was verified in disposable CI; no Production sign-in or real-user multiplayer/visual acceptance is claimed.
