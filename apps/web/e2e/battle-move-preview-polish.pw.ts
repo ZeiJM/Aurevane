@@ -80,7 +80,7 @@ test('keeps Move reachable tiles distinct and executes one clicked path through 
   await expect(
     page.getByRole('progressbar', { name: 'Action Economy remaining' }),
   ).not.toHaveAttribute('aria-valuenow', before!)
-  await expect(moveButton).not.toHaveAttribute('data-battle-active', 'true')
+  await expect(moveButton).toHaveAttribute('data-battle-active', 'true')
   const occupiedDestination = page.getByRole('button', {
     name: new RegExp(`^${destination};.*occupied by ${identity.characterName}`),
   })

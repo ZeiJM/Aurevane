@@ -26,6 +26,8 @@ Owner-requested continuation of the approved UI maintenance release. Starting ma
 
 ## Candidate, CI and release
 
+Initial candidate `220ca88190e0f93494a05870fb60aeebafa326e4`: CI and authenticated UI layout review passed. Representative Buildcraft failed an obsolete post-cast deselection assertion; the early Browser smoke suite failed the equivalent post-Move assertion on desktop and mobile. New repeated-input, immediate-step, pending-input and rapid-rearm scenarios passed in that run. The follow-up changes only E2E expectations and this evidence: retained selection replaces automatic deselection, Guided Fundamentals traverses two individually accepted adjacent steps instead of one full path, and its Guard proof uses AP/selection/criteria rather than a transient commit notice. Damage/AP, server commit, reload persistence, turn handoff and terminal checks remain intact.
+
 Pending exact-head CI, application merge, configuration-only Production release, bounded live smoke/runtime checks and relock. Deployment configuration remains fully disabled during development.
 
 Independent review: no remaining P0/P1/P2 blocker after the two reproduced findings were resolved. Local fixtures are controlled receipts and are not represented as independent human playtesting or Production gameplay acceptance.

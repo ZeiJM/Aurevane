@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 
 import { createAccountAndEnterCharacter } from './pv1f-test-helpers'
-import { openSelectedCombatantDetails } from './refined-battle-helpers'
+import { commitGesture, openSelectedCombatantDetails } from './refined-battle-helpers'
 
 function uniqueCharacterName(): string {
   const letters = Date.now()
@@ -152,15 +152,11 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await expect(commandContext).toContainText('That tile is not reachable')
   await expect(apRemaining).toHaveAttribute('aria-valuenow', '100')
 
-  await chooseReachableTowardRecruit(battlefield)
-  if (testInfo.project.name !== 'mobile-chromium') {
-    await expect(battlefield.getByText('0', { exact: true })).toHaveCount(1)
-    await expect(
-      page
-        .getByRole('button', { name: new RegExp(`occupied by ${characterName}`) })
-        .locator(':scope > span:last-child'),
-    ).toHaveCount(1)
-  }
+  await chooseReachableTowardRecruit(page, battlefield)
+  await expect(battlefield.getByText('0', { exact: true })).toHaveCount(0)
+  await expect(battlefield.locator('[data-path-index]')).toHaveCount(0)
+  await expect(moveButton).toHaveAttribute('data-battle-active', 'true')
+  await chooseReachableTowardRecruit(page, battlefield)
 
   await expect(criteriaButton).toHaveAttribute('data-new-progress', 'true')
   await expect(
@@ -183,7 +179,8 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   // Guided Fundamentals now uses the full 9x7 Duel Yard. Traverse a second movement turn toward
   // the Recruit before completing Guard/Attack so the lesson remains deterministic at medium scale.
   await moveButton.click()
-  await chooseReachableTowardRecruit(battlefield)
+  await chooseReachableTowardRecruit(page, battlefield)
+  await chooseReachableTowardRecruit(page, battlefield)
   await finishCurrentTurn(finishButton, testInfo.project.name)
   await expect(apRemaining).toHaveAttribute('aria-valuenow', '100', { timeout: 15_000 })
   await expect(commandContext).toContainText('Choose your action', { timeout: 15_000 })
@@ -196,7 +193,8 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await expect(commandContext).toContainText('Guard')
   await expect(battlefield.locator('button[data-target="friendly"]')).toHaveCount(1)
   await page.getByRole('button', { name: new RegExp(`occupied by ${characterName}`) }).click()
-  await expect(commandContext).toContainText('Guarded for 2 turns', { timeout: 10_000 })
+  await expect(apRemaining).toHaveAttribute('aria-valuenow', '70', { timeout: 10_000 })
+  await expect(guardButton).toHaveAttribute('data-battle-active', 'true')
   await expect(criteriaButton).toHaveAttribute('data-new-progress', 'true')
   await openCriteriaAndClose(page, '3/4 complete')
 
@@ -215,7 +213,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await attackButton.click()
   if ((await battlefield.locator('button[data-target="enemy"]').count()) === 0) {
     await moveButton.click()
-    await chooseReachableTowardRecruit(battlefield, true)
+    await chooseReachableTowardRecruit(page, battlefield, true)
     await attackButton.click()
   }
 
@@ -233,6 +231,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
 })
 
 async function chooseReachableTowardRecruit(
+  page: import('@playwright/test').Page,
   battlefield: ReturnType<import('@playwright/test').Page['locator']>,
   adjacentOnly = false,
 ): Promise<void> {
@@ -275,7 +274,17 @@ async function chooseReachableTowardRecruit(
   }, adjacentOnly)
 
   expect(targetLabel).not.toBeNull()
-  await battlefield.getByRole('button', { name: targetLabel!, exact: true }).click()
+  const result = await commitGesture(
+    page,
+    battlefield.getByRole('button', { name: targetLabel!, exact: true }),
+  )
+  expect(result.request().postDataJSON().intent.kind).toBe('move')
+  // Wait for the accepted position before reading adjacent candidates for the next step.
+  await expect(
+    battlefield.getByRole('button', {
+      name: new RegExp(`^${targetLabel!.split(';')[0]};.*occupied by Wayfarer`),
+    }),
+  ).toBeVisible()
 }
 
 async function finishCurrentTurn(
