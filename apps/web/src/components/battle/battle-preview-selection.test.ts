@@ -256,3 +256,39 @@ it('ties quick confirmation to the actual tile across move, unit, self and groun
   ).toBe('0:1')
   expect(battleIntentTileKey(null, placements, 'actor')).toBeUndefined()
 })
+
+it('executes the identified unit in the aimed direction before considering a nearer unit', () => {
+  const skill = { ...barrier, targetTeamPolicy: 'enemy' as const }
+  const current = {
+    ...selection,
+    selectedCombatantId: 'chosen',
+    combatants: [
+      ...combatants,
+      { combatantId: 'chosen', teamIndex: 1, hp: 100, position: { x: 2, y: 0 } },
+    ],
+  }
+  expect(selectDirectionalBattleSkillPreviewIntent(skill, current, { x: 1, y: 0 })?.target).toEqual(
+    { kind: 'unit', combatantId: 'chosen' },
+  )
+  expect(selectDirectionalBattleSkillPreviewIntent(skill, current, { x: -1, y: 0 })).toBeNull()
+})
+
+it('keeps the identified ground tile in the aimed direction instead of retargeting an enemy', () => {
+  const skill = {
+    ...barrier,
+    targetKind: 'ground-tile' as const,
+    targetTeamPolicy: 'enemy' as const,
+  }
+  const current = {
+    ...selection,
+    selectedTile: { x: 2, y: 1 },
+    tiles: [
+      { x: 1, y: 0 },
+      { x: 2, y: 1 },
+    ],
+  }
+  expect(selectDirectionalBattleSkillPreviewIntent(skill, current, { x: 1, y: 0 })?.target).toEqual(
+    { kind: 'tile', position: { x: 2, y: 1 } },
+  )
+  expect(selectDirectionalBattleSkillPreviewIntent(skill, current, { x: -1, y: 0 })).toBeNull()
+})

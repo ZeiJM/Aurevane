@@ -129,7 +129,7 @@
 .content {
   display: grid;
   grid-template-columns: clamp(10rem, 14vw, 14rem) minmax(0, 1fr) clamp(10rem, 14vw, 14rem);
-  grid-template-rows: minmax(0, 1fr) 4.25rem auto;
+  grid-template-rows: minmax(0, 1fr) 2.75rem auto;
   grid-template-areas: 'local board selected' 'local preview selected' 'cockpit cockpit cockpit';
   min-width: 0;
   min-height: 0;
@@ -151,11 +151,11 @@
 }
 .content > :global([data-battle-side='local']) {
   grid-area: local;
-  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr);
 }
 .content > :global([data-battle-side='selected']) {
   grid-area: selected;
-  grid-template-rows: minmax(0, 1fr) minmax(11rem, 0.65fr);
+  grid-template-rows: auto minmax(0, 1fr);
   overflow: hidden;
 }
 .content > :global([data-battle-side]) > :first-child {
@@ -168,17 +168,20 @@
 .content > :global([data-battle-preview-strip]) {
   grid-area: preview;
   display: grid;
-  grid-template-rows: 0.9rem minmax(0, 1fr);
+  grid-template-columns: minmax(5rem, 9rem) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  align-items: center;
   gap: 0.15rem;
   min-height: 0;
   min-width: 0;
-  padding: 0.3rem 0.6rem;
+  padding: 0 0.4rem;
   border: 1px solid #a99269;
   color: #332b22;
   background: linear-gradient(135deg, #e7dac1ed, #ccba9ded);
   box-shadow: inset 0 0 0 3px #e5d7bc55;
 }
 .content > :global([data-battle-preview-strip]) > strong {
+  min-width: 0;
   overflow-x: auto;
   white-space: nowrap;
   font: 650 0.875rem/1 var(--av-font-display);
@@ -252,16 +255,18 @@
     inset 0 0 0 100px #38b96a44,
     inset 0 0 0 2px #69d99c;
 }
-.tile[data-target='enemy'],
 .tile[data-target='ground'] {
   border-color: #f7aa62;
   box-shadow:
     inset 0 0 0 100px #d87e3855,
     inset 0 0 0 2px #ed9754;
 }
+.tile[data-target='enemy'],
 .tile[data-target='illegal'] {
   border-color: #e27e70;
-  box-shadow: inset 0 0 0 2px #c45044;
+  box-shadow:
+    inset 0 0 0 100px #c4504448,
+    inset 0 0 0 1px #e27e70;
 }
 .tile[data-selected] {
   z-index: 3;
@@ -285,15 +290,6 @@
   top: 1px;
   right: 2px;
   font-size: 0.6875rem;
-}
-.pathNumber {
-  position: absolute;
-  bottom: 2px;
-  left: 2px;
-  z-index: 5;
-  font: 800 0.6875rem/1 var(--av-font-mono);
-  color: #d2faf2;
-  text-shadow: 0 1px #002724;
 }
 .unit {
   position: absolute;
@@ -339,6 +335,10 @@
   font-size: 0.75rem;
 }
 .commandDeck {
+  --av-cockpit-art-size: min(4.875rem, calc((100cqi - 16rem) / 10));
+  container-type: inline-size;
+  --battle-command-name-height: 1.625rem;
+  --battle-command-gap: 0.125rem;
   position: relative;
   display: grid;
   grid-template-columns: minmax(0, 4fr) minmax(0, 6fr) minmax(9.5rem, 1.5fr);
@@ -500,10 +500,7 @@
 }
 @media (min-width: 821px) and (max-height: 700px) {
   .commandDeck {
-    --av-cockpit-art-size: 3.75rem;
-  }
-  .content > :global([data-battle-side='selected']) {
-    grid-template-rows: minmax(0, 1fr) minmax(8rem, 0.65fr);
+    --av-cockpit-art-size: min(3.75rem, calc((100cqi - 16rem) / 10));
   }
   .header {
     min-height: 2.5rem;
@@ -527,7 +524,7 @@
 }
 @media (min-width: 821px) and (max-width: 1100px) and (max-height: 620px) {
   .commandDeck {
-    --av-cockpit-art-size: 2.75rem;
+    --av-cockpit-art-size: min(2.75rem, calc((100cqi - 16rem) / 10));
   }
 }
 @media (max-width: 820px) {
@@ -562,6 +559,7 @@
     overflow: visible;
   }
   .content > :global([data-battle-preview-strip]) {
+    grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto auto;
   }
   .content > :global([data-battle-preview-strip]) > strong {
@@ -583,6 +581,8 @@
     max-height: none;
   }
   .commandDeck {
+    container-type: normal;
+    --av-cockpit-art-size: 4.25rem;
     grid-template-columns: minmax(0, 1fr);
   }
   .commands {

@@ -235,7 +235,6 @@ export function BattleSelectedSkills({
         >
           <p>This supernatural path is coming soon. No combat ability is equipped here yet.</p>
         </SkillControls>
-        <small>Coming soon</small>
       </article>
       {(runtime.copiedSkills?.length ?? 0) > 0 ? (
         <details className={styles.copied} data-battle-copied-skills="true">

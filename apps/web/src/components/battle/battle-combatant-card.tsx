@@ -70,7 +70,7 @@ export function BattleCombatantCard({
           <CharacterPortraitImage
             imageUrl={participant.profileImageUrl}
             fallbackAssetId={participant.portraitAssetId}
-            sizes="(max-width: 820px) 72px, (max-height: 620px) 88px, (max-height: 700px) 112px, 165px"
+            sizes="(max-width: 820px) 72px, (max-width: 1100px) 124px, 204px"
             alt=""
           />
         ) : (

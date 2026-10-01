@@ -16,7 +16,11 @@ import {
 } from '@aurevane/game-core/combat/pv1f-action-economy'
 import { describe, expect, it } from 'vitest'
 
-import { buildReachablePaths, retractProjectedPath } from './battle-geometry'
+import {
+  buildImmediateStepPaths,
+  buildReachablePaths,
+  retractProjectedPath,
+} from './battle-geometry'
 
 describe('retractProjectedPath', () => {
   const path = [
@@ -326,4 +330,38 @@ it('keeps a shorter costly route when the cheapest merge route exhausts MOVE bef
   const destination = evaluatePv1fMovement(state, paths.get('4:0')!)
   expect(destination.movement).toMatchObject({ legal: true, cost: 4, movementRemainingAfter: 1 })
   expect(destination.economyCost).toBe(70)
+})
+
+describe('immediate Move destinations', () => {
+  it('offers only legal cardinal steps while keeping the full movement budget', () => {
+    const state = encounter()
+    const placement = state.tactical.placements[0]!
+    const paths = buildImmediateStepPaths(state, placement, 100)
+    expect([...paths.keys()].sort()).toEqual(['0:1', '1:0'])
+    expect(paths.has('0:0')).toBe(false)
+    for (const path of paths.values()) {
+      expect(path).toHaveLength(2)
+      expect(evaluatePv1fMovement(state, path).movement.legal).toBe(true)
+    }
+    expect(state.tactical.battle.currentTurn!.movementRemaining).toBe(5)
+    expect(buildReachablePaths(state, placement, 100).has('0:0')).toBe(true)
+  })
+
+  it('still respects AP, rough terrain, elevation, blocked movement and exhausted Movement', () => {
+    const state = encounter()
+    state.tactical.terrains = [...state.tactical.terrains, { id: 'rough', traversalCost: 2 }]
+    state.tactical.tiles = state.tactical.tiles.map((tile) => ({
+      ...tile,
+      terrainId: tile.position.x === 0 && tile.position.y === 1 ? 'rough' : 'open',
+      elevation: tile.position.x === 1 && tile.position.y === 0 ? 1 : 0,
+    }))
+    expect(buildImmediateStepPaths(state, state.tactical.placements[0]!, 39).size).toBe(0)
+    expect([...buildImmediateStepPaths(state, state.tactical.placements[0]!, 40).keys()]).toEqual([
+      '0:1',
+    ])
+    const rooted = withStatus(state, 'actor', 'root')
+    expect(buildImmediateStepPaths(rooted, rooted.tactical.placements[0]!, 100).size).toBe(0)
+    state.tactical.battle.currentTurn!.movementRemaining = 0
+    expect(buildImmediateStepPaths(state, state.tactical.placements[0]!, 100).size).toBe(0)
+  })
 })

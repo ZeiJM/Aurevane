@@ -190,6 +190,20 @@ async function capture(page: Page, testInfo: TestInfo, label: string) {
     })
     return {
       cockpit: rect(root.querySelector('[data-unified-command-deck]')),
+      commandAlignment: [
+        ...root.querySelectorAll(
+          '[data-command-card], [data-battle-skill-slot], [data-battle-special]',
+        ),
+      ].map((card) => ({
+        controls: rect(card.querySelector('[data-battle-cockpit-controls]')),
+        name: rect(card.querySelector('strong')),
+        artwork: rect(
+          card.querySelector(
+            '[data-battle-command-artwork], [data-av-square-media], :scope > span',
+          ),
+        ),
+      })),
+      terrainSamples: [...root.querySelectorAll('[data-battle-terrain-key] i')].map(rect),
       commandContents: [
         ...root.querySelectorAll(
           '[data-command-card] > *, [data-battle-skill-slot] > *, [data-battle-special] > *',
@@ -300,8 +314,30 @@ function expectStable(geometry: Awaited<ReturnType<typeof capture>>, baseline: R
   expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.viewport.width + 1)
   expect(geometry.scrollHeight).toBeLessThanOrEqual(geometry.viewport.height + 1)
   expect(geometry.cockpit!.height).toBeLessThanOrEqual(168)
-  expect(geometry.strip!.height).toBeCloseTo(68, 0)
+  expect(geometry.strip!.height).toBeCloseTo(44, 0)
   expect(geometry.info).toBeNull()
+  for (const command of geometry.commandAlignment)
+    expect(
+      command.name!.y + command.name!.height,
+      'skill names fit above info/hotkey row',
+    ).toBeLessThanOrEqual(command.controls!.y + 1)
+  const controls = geometry.commandAlignment.map((command) => command.controls!.y)
+  expect(
+    Math.max(...controls) - Math.min(...controls),
+    'cockpit info and hotkeys share one row',
+  ).toBeLessThanOrEqual(1)
+  const artwork = geometry.commandAlignment.map((command) => command.artwork!.y)
+  expect(
+    Math.max(...artwork) - Math.min(...artwork),
+    'all cockpit artwork shares one row',
+  ).toBeLessThanOrEqual(1)
+  if (geometry.cards.length === 2)
+    expect(
+      Math.abs(geometry.cards[0]!.rect!.height - geometry.cards[1]!.rect!.height),
+      'rail cards have equal height',
+    ).toBeLessThanOrEqual(1)
+  for (const sample of geometry.terrainSamples)
+    expect(sample!.width, 'terrain artwork remains recognizable').toBeGreaterThanOrEqual(24)
   for (const content of geometry.commandContents) contained(content!, geometry.cockpit!)
   for (const card of geometry.cards) {
     expect(card.overflow, 'combatant summary fits without scrolling').toBeLessThanOrEqual(1)

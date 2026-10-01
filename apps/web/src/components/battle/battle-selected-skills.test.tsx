@@ -84,7 +84,7 @@ describe('battle copied Skill presentation', () => {
     expect(markup).toContain('About Forceful Strike')
     expect(markup).toContain('Vanguard')
     expect(markup).toContain('Severance / Ascension')
-    expect(markup).toContain('Coming soon')
+    expect(markup).not.toContain('Coming soon')
   })
   it('renders one compact Copied Skills group instead of extra committed Skill slots', () => {
     const markup = renderToStaticMarkup(
