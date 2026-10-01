@@ -147,7 +147,7 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
   await commandDeck.getByRole('button', { name: /^Inspect,/ }).click()
   await expect(commandContext).toContainText('Choose a character or tile to inspect')
   await page.getByRole('button', { name: /Tile 4, 3; rough-ground; elevation 0/ }).click()
-  await expect(commandContext).toContainText('Rough ground')
+  await expect(commandContext).toContainText('Difficult terrain')
   await page.getByRole('button', { name: new RegExp(`occupied by ${characterName}`) }).click()
   await expect(page.locator('[data-battle-combatant-card="selected"]')).toContainText(characterName)
   await expect(page.getByRole('dialog')).toHaveCount(0)

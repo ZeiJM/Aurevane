@@ -206,7 +206,9 @@ test('Controls shows every binding and account action without desktop scrolling 
 
     await page.getByRole('button', { name: 'Change Move keybind' }).click()
     await page.keyboard.press('q')
-    await expect(page.getByRole('alert')).toContainText('already assigned to Inspect')
+    await expect(page.locator('#game-main').getByRole('alert')).toContainText(
+      'already assigned to Inspect',
+    )
     await expect(page.getByTestId('keybind-move').locator('kbd')).toHaveText('1')
     await expect(save).toBeDisabled()
     await expectDesktopControlsFit(page, info, `${label}-duplicate`)

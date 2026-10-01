@@ -1,11 +1,12 @@
 .timeline {
   position: relative;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(2rem, 1fr) auto;
   gap: 0.25rem;
   min-width: 0;
   min-height: 0;
   padding: 0.3rem 0.55rem;
+  overflow: hidden;
 }
 .filter {
   display: flex;
@@ -29,6 +30,8 @@
 }
 .track {
   display: flex;
+  grid-row: 2;
+  box-sizing: border-box;
   min-width: 0;
   min-height: 0;
   align-items: flex-start;
@@ -227,6 +230,7 @@
 .pageControls {
   display: grid;
   grid-row: 3;
+  min-height: 1.55rem;
   grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 0.3rem;
   align-items: center;

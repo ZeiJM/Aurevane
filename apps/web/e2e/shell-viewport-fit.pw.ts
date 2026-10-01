@@ -35,12 +35,18 @@ test('ordinary desktop shell fits its identity and every navigation control with
     const metrics = await page.locator('[data-av-game-rail]').evaluate((rail) => {
       const box = rail.getBoundingClientRect()
       const portrait = rail.querySelector('[data-character-portrait-frame] img')!
+      const portraitFrame = rail.querySelector('[data-character-portrait-frame]')!
+      const frameStyle = getComputedStyle(portraitFrame)
       const footer = document.querySelector('[data-testid="authenticated-shell"] > footer')!
       const main = document.getElementById('game-main')!
       return {
         portrait: {
           width: portrait.getBoundingClientRect().width,
           height: portrait.getBoundingClientRect().height,
+          frameWidth: portraitFrame.getBoundingClientRect().width,
+          frameHeight: portraitFrame.getBoundingClientRect().height,
+          borderX: parseFloat(frameStyle.borderLeftWidth) + parseFloat(frameStyle.borderRightWidth),
+          borderY: parseFloat(frameStyle.borderTopWidth) + parseFloat(frameStyle.borderBottomWidth),
         },
         railOverflow: rail.scrollHeight - rail.clientHeight,
         mainOverflow: main.scrollHeight - main.clientHeight,
@@ -86,8 +92,16 @@ test('ordinary desktop shell fits its identity and every navigation control with
     expect(Math.abs(metrics.footerGap), `${label}: rail ends above footer`).toBeLessThanOrEqual(1)
     expect(metrics.unreachable, `${label}: clipped navigation`).toEqual([])
     expect(metrics.overflowingLabels, `${label}: navigation text outside its control`).toEqual([])
-    expect(metrics.portrait.width, `${label}: crisp actual portrait size`).toBeCloseTo(
+    expect(metrics.portrait.frameWidth, `${label}: portrait frame size`).toBeCloseTo(
       viewport.height > 700 ? 165 : viewport.height > 620 ? 112 : 88,
+      0,
+    )
+    expect(metrics.portrait.width + metrics.portrait.borderX).toBeCloseTo(
+      metrics.portrait.frameWidth,
+      0,
+    )
+    expect(metrics.portrait.height + metrics.portrait.borderY).toBeCloseTo(
+      metrics.portrait.frameHeight,
       0,
     )
     expect(metrics.portrait.height).toBeCloseTo(metrics.portrait.width, 0)

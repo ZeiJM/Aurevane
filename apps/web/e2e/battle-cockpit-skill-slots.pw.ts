@@ -61,7 +61,7 @@ test('keeps square empty Skill slots and consistent cockpit info controls withou
     rows.map((row) => {
       const name = row.parentElement!.querySelector(':scope > button > strong, :scope > strong')!
       const info = row.querySelector('button')!
-      const key = row.querySelector('span')!
+      const key = row.querySelector(':scope > span')!
       return {
         name: name.getBoundingClientRect().toJSON(),
         row: row.getBoundingClientRect().toJSON(),

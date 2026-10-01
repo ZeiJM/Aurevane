@@ -201,7 +201,12 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   await commandDeck.getByRole('button', { name: 'Selected Barrier, 40 AP', exact: true }).click()
   const forecast = page.locator('[data-battle-preview-strip] [aria-label="Action preview"]')
   await expect(forecast).toContainText('40 AP')
-  await expect(forecast).toContainText('Ally · 1–3 tiles')
+  await expect(
+    forecast.locator('[data-battle-preview-chip]').filter({ hasText: /^Target:/ }),
+  ).toHaveText('Target: Ally')
+  await expect(
+    forecast.locator('[data-battle-preview-chip]').filter({ hasText: /^Range:/ }),
+  ).toHaveText('Range: 3')
   await expect(forecast).not.toContainText('Success 100%')
   await expect(battlefield.locator('button[data-target="friendly"]')).toHaveCount(0)
   await commandDeck.getByRole('button', { name: 'About Barrier', exact: true }).click()

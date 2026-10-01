@@ -85,7 +85,9 @@ async function captureDesktopHallGeometry(
     const bodyRect = body.getBoundingClientRect()
     const main = document.getElementById('game-main')!
     const mainRect = main.getBoundingClientRect()
-    const scene = element.closest('[data-hall-scene]')!
+    const hall = element.closest('[data-hall-concept]')!
+    const heading = hall.querySelector('[data-hall-scene]')!
+    const modeRail = hall.querySelector('[data-hall-mode-rail]')!
     const rect = (node: Element) => {
       const bounds = node.getBoundingClientRect()
       return {
@@ -95,7 +97,7 @@ async function captureDesktopHallGeometry(
         center: (bounds.left + bounds.right) / 2,
       }
     }
-    const scrolling = [document.documentElement, document.body, main, scene, element, body].map(
+    const scrolling = [document.documentElement, document.body, main, hall, element, body].map(
       (node) => ({
         name: node.id || node.getAttribute('data-hall-workspace') || node.tagName,
         overflowY: node.scrollHeight - node.clientHeight,
@@ -128,6 +130,8 @@ async function captureDesktopHallGeometry(
     const vista = element.querySelector('figure')
     return {
       viewport: { width: innerWidth, height: innerHeight },
+      heading: rect(heading),
+      modeRail: rect(modeRail),
       scrolling,
       controls,
       ai:
@@ -138,9 +142,8 @@ async function captureDesktopHallGeometry(
               purpose: rect(purpose),
               action: rect(footer),
               workspaceTop: workspace.top,
-              categoryBottom: scene.querySelector('[data-hall-mode-rail]')!.getBoundingClientRect()
-                .bottom,
-              categoryGap: parseFloat(getComputedStyle(scene).rowGap),
+              categoryBottom: modeRail.getBoundingClientRect().bottom,
+              categoryGap: parseFloat(getComputedStyle(hall).rowGap),
               rightColumnCenter:
                 (modes.getBoundingClientRect().right +
                   parseFloat(getComputedStyle(body).columnGap) +

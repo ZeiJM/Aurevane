@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process'
 import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
-import { expect, test, type Page, type TestInfo } from '@playwright/test'
+import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test'
 import type { BattleSessionView } from '../src/server/battle/battle-session-service'
 import { previewDiscipline } from './discipline-library-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
@@ -258,6 +258,29 @@ function expectStable(geometry: Awaited<ReturnType<typeof capture>>, baseline: R
     contained(dialog.rect!, { x: 0, y: 0, ...geometry.viewport })
 }
 
+async function waitForNativeScrollToSettle(lane: Locator) {
+  await lane.evaluate(
+    (element) =>
+      new Promise<void>((resolve, reject) => {
+        const started = performance.now()
+        let previous = element.scrollLeft
+        let stableFrames = 0
+        const sample = () => {
+          const current = element.scrollLeft
+          stableFrames = Math.abs(current - previous) < 0.01 ? stableFrames + 1 : 0
+          previous = current
+          // Native ArrowRight scrolling animates after the first movement. Read tags only
+          // after that animation has stopped, including its final visible right-hand tag.
+          if (stableFrames >= 4 && performance.now() - started >= 100) resolve()
+          else if (performance.now() - started > 2000)
+            reject(new Error('Native preview-lane scrolling did not settle.'))
+          else requestAnimationFrame(sample)
+        }
+        requestAnimationFrame(sample)
+      }),
+  )
+}
+
 async function exerciseForecast(
   page: Page,
   testInfo: TestInfo,
@@ -363,8 +386,14 @@ async function exerciseForecast(
               ),
           ).toBe(true)
         }
+        // Each reading pass begins at the first tag, regardless of the previous Skill's scroll.
+        await parameters.evaluate((lane) => {
+          lane.scrollLeft = 0
+        })
         await parameters.focus()
         await expect(parameters).toBeFocused()
+        await waitForNativeScrollToSettle(parameters)
+        expect(await parameters.evaluate((lane) => lane.scrollLeft)).toBe(0)
         const visibleTags = new Set<string>()
         for (let step = 0; step < 120; step += 1) {
           const state = await parameters.evaluate((lane) => {
@@ -389,6 +418,7 @@ async function exerciseForecast(
               intervals: [20, 40, 80],
             })
             .toBeGreaterThan(state.scrollLeft)
+          await waitForNativeScrollToSettle(parameters)
         }
         await check(`${name}-keyboard-scrolled`)
         expect([...visibleTags]).toEqual(tags)

@@ -1,3 +1,5 @@
+import { mkdir, writeFile } from 'node:fs/promises'
+import path from 'node:path'
 import { expect, test, type Page, type TestInfo } from '@playwright/test'
 
 import { previewDiscipline } from './discipline-library-helpers'
@@ -81,11 +83,12 @@ async function assertDesktopOverviewGeometry(page: Page, testInfo: TestInfo, bui
       ).map((slot) => ({
         slot: slot.getAttribute('data-slot'),
         frame: box(slot.firstElementChild!),
+        borderWidth: parseFloat(getComputedStyle(slot.firstElementChild!).borderTopWidth),
         copy: box(slot.querySelector(':scope > div')!),
       }))
       const frames = Array.from(
         element.querySelectorAll(
-          '[data-arsenal-media], [data-empty-technique-slot], [data-gameplay-art]',
+          '[data-arsenal-media], [data-empty-technique-slot], [data-gameplay-art="attunement"], [data-gameplay-art="power"]',
         ),
       ).map((frame) => {
         const frameStyle = getComputedStyle(frame)
@@ -124,18 +127,26 @@ async function assertDesktopOverviewGeometry(page: Page, testInfo: TestInfo, bui
       }
     })
     const evidenceName = `nexus-overview-${build}-${viewport.width}x${viewport.height}`
+    const output = process.env.LAYOUT_REVIEW_OUTPUT ?? testInfo.outputPath()
+    await mkdir(output, { recursive: true })
+    await writeFile(path.join(output, `${evidenceName}.json`), JSON.stringify(metrics, null, 2))
+    const screenshot = await page.screenshot({
+      fullPage: true,
+      path: path.join(output, `${evidenceName}.png`),
+    })
     await testInfo.attach(`${evidenceName}-metrics`, {
       body: JSON.stringify(metrics, null, 2),
       contentType: 'application/json',
     })
     await testInfo.attach(`${evidenceName}-screenshot`, {
-      body: await page.screenshot({ fullPage: true }),
+      body: screenshot,
       contentType: 'image/png',
     })
     expect(metrics.disciplines).toHaveLength(2)
     const [primary, secondary] = metrics.disciplines
     expect(primary.slot).toBe('primary')
     expect(secondary.slot).toBe('secondary')
+    for (const discipline of metrics.disciplines) expect(discipline.borderWidth).toBeGreaterThan(0)
     expect(Math.abs(primary.frame.x - secondary.frame.x)).toBeLessThanOrEqual(1)
     expect(Math.abs(primary.copy.x - secondary.copy.x)).toBeLessThanOrEqual(1)
     expect(metrics.frames.length).toBeGreaterThanOrEqual(8)

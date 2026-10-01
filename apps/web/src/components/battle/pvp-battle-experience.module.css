@@ -147,12 +147,24 @@
   gap: 0.45rem;
   min-width: 0;
   min-height: 0;
+  overflow: hidden;
 }
 .content > :global([data-battle-side='local']) {
   grid-area: local;
+  /* Terrain samples keep their full content height; only the combatant card may scroll. */
+  grid-template-rows: minmax(0, 1fr) auto;
 }
 .content > :global([data-battle-side='selected']) {
   grid-area: selected;
+  /* The log owns a usable track even when the combatant card is taller than the rail. */
+  grid-template-rows: minmax(0, 1fr) minmax(11rem, 0.65fr);
+  overflow: hidden;
+}
+.content > :global([data-battle-side]) > :first-child {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
 }
 .content > :global([data-battle-side='local']) > :last-child {
   align-self: start;
@@ -528,6 +540,10 @@
     container-type: normal;
     display: flex;
     flex-direction: column;
+  }
+  .content > :global([data-battle-side]),
+  .content > :global([data-battle-side]) > :first-child {
+    overflow: visible;
   }
   .content > :global([data-battle-preview-strip]) {
     grid-template-rows: auto auto;
