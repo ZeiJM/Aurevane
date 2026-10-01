@@ -3,7 +3,7 @@ import { CharacterPortraitImage } from '@/components/character/character-portrai
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 import { pvpParticipantAccent } from './battle-combatant-colors'
 import { BattleCombatantEffects } from './battle-combatant-effects'
-import { facingGlyph, meterPercent } from './battle-geometry'
+import { meterPercent } from './battle-geometry'
 import type { BattlePresentationParticipant } from './battle-runtime'
 import styles from './battle-combatant-card.module.css'
 
@@ -36,6 +36,29 @@ export function BattleCombatantCard({
       data-defeated={combatant.hp <= 0 || undefined}
       style={{ '--battle-combatant-accent': accent } as CSSProperties}
     >
+      <header className={styles.identity}>
+        <strong>{participant.name}</strong>
+        <span
+          className={styles.facing}
+          aria-label={`${participant.name} facing ${placement?.facing ?? 'unknown'}`}
+        >
+          {placement ? (
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M5 12h14m-6-6 6 6-6 6"
+                transform={`rotate(${{ north: -90, east: 0, south: 90, west: 180 }[placement.facing]} 12 12)`}
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          ) : (
+            <i aria-hidden="true">—</i>
+          )}
+        </span>
+      </header>
       <button
         type="button"
         className={styles.portrait}
@@ -47,7 +70,7 @@ export function BattleCombatantCard({
           <CharacterPortraitImage
             imageUrl={participant.profileImageUrl}
             fallbackAssetId={participant.portraitAssetId}
-            sizes="(max-width: 820px) 72px, (min-width: 1600px) 224px, 176px"
+            sizes="(max-width: 820px) 72px, (max-height: 620px) 88px, (max-height: 700px) 112px, 165px"
             alt=""
           />
         ) : (
@@ -56,24 +79,6 @@ export function BattleCombatantCard({
           </span>
         )}
       </button>
-      <header className={styles.identity}>
-        <div>
-          <strong>{participant.name}</strong>
-          <span>
-            {role === 'local'
-              ? 'Your character'
-              : role === 'acting'
-                ? 'Acting character'
-                : 'Selected character'}
-          </span>
-        </div>
-        <span
-          className={styles.facing}
-          aria-label={`${participant.name} facing ${placement?.facing ?? 'unknown'}`}
-        >
-          {placement ? facingGlyph(placement.facing) : '—'}
-        </span>
-      </header>
       <div className={styles.vitals}>
         {(['hp', 'mp'] as const).map((resource) => {
           const maximum = resource === 'hp' ? combatant.maxHp : combatant.maxMp

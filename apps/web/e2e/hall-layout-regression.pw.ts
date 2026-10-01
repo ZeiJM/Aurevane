@@ -73,6 +73,163 @@ async function capture(page: Page, testInfo: TestInfo, state: string) {
   })
 }
 
+async function captureDesktopHallGeometry(
+  page: Page,
+  testInfo: TestInfo,
+  mode: 'ai' | 'spectate',
+  state: string,
+) {
+  const metrics = await page.locator(`[data-hall-workspace="${mode}"]`).evaluate((element) => {
+    const body = element.querySelector('[data-hall-scroll-body]')!
+    const workspace = element.getBoundingClientRect()
+    const bodyRect = body.getBoundingClientRect()
+    const main = document.getElementById('game-main')!
+    const mainRect = main.getBoundingClientRect()
+    const scene = element.closest('[data-hall-scene]')!
+    const rect = (node: Element) => {
+      const bounds = node.getBoundingClientRect()
+      return {
+        top: bounds.top,
+        bottom: bounds.bottom,
+        height: bounds.height,
+        center: (bounds.left + bounds.right) / 2,
+      }
+    }
+    const scrolling = [document.documentElement, document.body, main, scene, element, body].map(
+      (node) => ({
+        name: node.id || node.getAttribute('data-hall-workspace') || node.tagName,
+        overflowY: node.scrollHeight - node.clientHeight,
+        overflowX: node.scrollWidth - node.clientWidth,
+        scrollTop: node.scrollTop,
+        scrollLeft: node.scrollLeft,
+      }),
+    )
+    const controls = [...element.querySelectorAll('button, input, select')]
+      .filter((node) => node.getClientRects().length > 0 && getComputedStyle(node).opacity !== '0')
+      .map((node) => {
+        const bounds = node.getBoundingClientRect()
+        return {
+          label: node.getAttribute('aria-label') || node.textContent?.trim(),
+          height: bounds.height,
+          contained:
+            bounds.top >= Math.max(workspace.top, mainRect.top, 0) &&
+            bounds.bottom <= Math.min(workspace.bottom, mainRect.bottom, innerHeight) &&
+            bounds.left >= workspace.left &&
+            bounds.right <= workspace.right,
+        }
+      })
+    const arena = element
+      .querySelector('[aria-label="AI sparring arena"]')
+      ?.closest('label')?.parentElement
+    const modes = element.querySelector('[aria-label="AI arenas"]')
+    const purpose = element.querySelector('#ai-record-purpose')
+    const footer = element.querySelector('footer')!
+    const note = element.querySelector('aside')
+    const vista = element.querySelector('figure')
+    return {
+      viewport: { width: innerWidth, height: innerHeight },
+      scrolling,
+      controls,
+      ai:
+        arena && modes && purpose
+          ? {
+              arena: rect(arena),
+              modes: rect(modes),
+              purpose: rect(purpose),
+              action: rect(footer),
+              workspaceTop: workspace.top,
+              categoryBottom: scene.querySelector('[data-hall-mode-rail]')!.getBoundingClientRect()
+                .bottom,
+              categoryGap: parseFloat(getComputedStyle(scene).rowGap),
+              rightColumnCenter:
+                (modes.getBoundingClientRect().right +
+                  parseFloat(getComputedStyle(body).columnGap) +
+                  bodyRect.right) /
+                2,
+            }
+          : null,
+      spectate:
+        note && vista
+          ? {
+              vista: rect(vista),
+              note: rect(note),
+              noteFontSize: parseFloat(getComputedStyle(note.querySelector('p')!).fontSize),
+              contained:
+                note.getBoundingClientRect().bottom <=
+                Math.min(workspace.bottom, mainRect.bottom, innerHeight),
+              bodyOverflow: getComputedStyle(body).overflowY,
+            }
+          : null,
+    }
+  })
+  const name = `hall-${state}-${metrics.viewport.width}x${metrics.viewport.height}-${testInfo.project.name}`
+  const output = process.env.LAYOUT_REVIEW_OUTPUT ?? testInfo.outputPath('hall-geometry')
+  await mkdir(output, { recursive: true })
+  await writeFile(path.join(output, `${name}.json`), JSON.stringify(metrics, null, 2))
+  await page.screenshot({ path: path.join(output, `${name}.png`) })
+  // Record the rendered state before asserting, so failed fits retain their evidence.
+  for (const scrolling of metrics.scrolling) {
+    expect
+      .soft(scrolling.overflowY, `${name}: ${scrolling.name} vertical overflow`)
+      .toBeLessThanOrEqual(1)
+    expect
+      .soft(scrolling.overflowX, `${name}: ${scrolling.name} horizontal overflow`)
+      .toBeLessThanOrEqual(1)
+    expect.soft(scrolling.scrollTop, `${name}: ${scrolling.name} scroll position`).toBe(0)
+    expect
+      .soft(scrolling.scrollLeft, `${name}: ${scrolling.name} horizontal scroll position`)
+      .toBe(0)
+  }
+  for (const control of metrics.controls) {
+    expect
+      .soft(control.height, `${name}: ${control.label} remains usable`)
+      .toBeGreaterThanOrEqual(44)
+    expect.soft(control.contained, `${name}: ${control.label} is fully visible`).toBe(true)
+  }
+  if (metrics.ai) {
+    expect
+      .soft(
+        Math.abs(metrics.ai.workspaceTop - metrics.ai.categoryBottom - metrics.ai.categoryGap),
+        `${name}: AI workspace starts directly below the category tabs`,
+      )
+      .toBeLessThanOrEqual(1)
+    expect
+      .soft(
+        Math.abs(metrics.ai.arena.top - metrics.ai.modes.top),
+        `${name}: Arena starts beside the first mode`,
+      )
+      .toBeLessThanOrEqual(4)
+    for (const [name, bounds] of Object.entries({
+      arena: metrics.ai.arena,
+      purpose: metrics.ai.purpose,
+      action: metrics.ai.action,
+    })) {
+      expect
+        .soft(
+          Math.abs(bounds.center - metrics.ai.rightColumnCenter),
+          `${state}: ${name} is centered in the right column`,
+        )
+        .toBeLessThanOrEqual(2)
+    }
+    expect
+      .soft(
+        metrics.ai.action.top - metrics.ai.purpose.bottom,
+        `${name}: Enter Battle follows its description`,
+      )
+      .toBeLessThanOrEqual(24)
+  }
+  if (metrics.spectate) {
+    expect.soft(metrics.spectate.contained, `${name}: full access note is visible`).toBe(true)
+    expect
+      .soft(metrics.spectate.noteFontSize, `${name}: access note stays readable`)
+      .toBeGreaterThanOrEqual(14)
+    expect
+      .soft(metrics.spectate.vista.height, `${name}: banner leaves room for real controls`)
+      .toBeLessThanOrEqual(128)
+    expect.soft(metrics.spectate.bodyOverflow, `${name}: content is not masked`).toBe('visible')
+  }
+}
+
 test('Battle Hall places one arena workspace below the scenic mode tabs with all real controls', async ({
   page,
 }, testInfo) => {
@@ -138,7 +295,7 @@ test('Battle Hall places one arena workspace below the scenic mode tabs with all
       'ai-record-purpose',
     )
     await expect(purpose).toHaveText(record.purpose)
-    await purpose.scrollIntoViewIfNeeded()
+    if (mobile) await purpose.scrollIntoViewIfNeeded()
     await expect(purpose).toBeInViewport()
     expect(
       await purpose.evaluate((node) => parseFloat(getComputedStyle(node).fontSize)),
@@ -151,6 +308,17 @@ test('Battle Hall places one arena workspace below the scenic mode tabs with all
       await expect(page.getByLabel('AI sparring arena').locator('option:checked')).toHaveText(
         /Terraced Yard/,
       )
+    }
+    if (!mobile) {
+      const originalViewport = page.viewportSize()!
+      for (const viewport of [
+        { width: 1366, height: 768 },
+        { width: 1536, height: 614 },
+      ]) {
+        await page.setViewportSize(viewport)
+        await captureDesktopHallGeometry(page, testInfo, 'ai', mode)
+      }
+      await page.setViewportSize(originalViewport)
     }
     await capture(page, testInfo, mode)
   }
@@ -218,42 +386,21 @@ test('Battle Hall places one arena workspace below the scenic mode tabs with all
   expect(readOnlyPresentation.backgroundImage).toBe('none')
   expect(readOnlyPresentation.textAlign).toBe('center')
 
-  if (!mobile) {
-    const spectateSpace = await spectateWorkspace.evaluate((element) => {
-      const body = element.querySelector('[data-hall-scroll-body]')!.getBoundingClientRect()
-      const vista = element.querySelector('figure')!.getBoundingClientRect()
-      const actions = element.querySelector('footer')!.getBoundingClientRect()
-      const note = element.querySelector('aside')!.getBoundingClientRect()
-      const workspace = element.getBoundingClientRect()
-      return {
-        workspaceHeight: workspace.height,
-        bodyHeight: body.height,
-        vistaHeight: vista.height,
-        vistaToActionsGap: actions.top - vista.bottom,
-        actionsToNoteGap: note.top - actions.bottom,
-        noteBottomGap: body.bottom - note.bottom,
-      }
-    })
-    expect
-      .soft(spectateSpace.bodyHeight, 'Spectate content fills the parchment workspace')
-      .toBeGreaterThan(spectateSpace.workspaceHeight * 0.9)
-    expect
-      .soft(spectateSpace.vistaHeight, 'Spectate vista remains visually substantial')
-      .toBeGreaterThan(spectateSpace.bodyHeight * 0.25)
-    expect
-      .soft(spectateSpace.vistaToActionsGap, 'Spectate controls have room below the vista')
-      .toBeGreaterThanOrEqual(10)
-    expect
-      .soft(spectateSpace.actionsToNoteGap, 'Spectate footer has room below the controls')
-      .toBeGreaterThanOrEqual(10)
-    expect
-      .soft(spectateSpace.noteBottomGap, 'Read-only footer settles at the bottom of the workspace')
-      .toBeLessThanOrEqual(4)
-  }
   await expect(page.getByRole('button', { name: 'Spectate Battle', exact: true })).toBeDisabled()
   await page.getByRole('textbox', { name: 'Battle Key', exact: true }).fill('avb-abcd-1234')
   await expect(page.getByRole('button', { name: 'Spectate Battle', exact: true })).toBeEnabled()
   await expect(page.getByText('Featured Matches', { exact: true })).toHaveCount(0)
+  if (!mobile) {
+    const originalViewport = page.viewportSize()!
+    for (const viewport of [
+      { width: 1366, height: 768 },
+      { width: 1536, height: 614 },
+    ]) {
+      await page.setViewportSize(viewport)
+      await captureDesktopHallGeometry(page, testInfo, 'spectate', 'spectate')
+    }
+    await page.setViewportSize(originalViewport)
+  }
   await capture(page, testInfo, 'spectate')
 
   expect(

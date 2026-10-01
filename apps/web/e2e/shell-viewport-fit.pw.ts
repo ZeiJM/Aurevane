@@ -87,12 +87,23 @@ test('ordinary desktop shell fits its identity and every navigation control with
     expect(metrics.unreachable, `${label}: clipped navigation`).toEqual([])
     expect(metrics.overflowingLabels, `${label}: navigation text outside its control`).toEqual([])
     expect(metrics.portrait.width, `${label}: crisp actual portrait size`).toBeCloseTo(
-      viewport.height > 700 ? 144 : 88,
+      viewport.height > 700 ? 165 : viewport.height > 620 ? 112 : 88,
       0,
     )
     expect(metrics.portrait.height).toBeCloseTo(metrics.portrait.width, 0)
     await info.attach(`shell-${label}`, { body: await page.screenshot(), contentType: 'image/png' })
   }
+
+  const runes = page.locator('[data-aether-runes] > path')
+  expect(
+    await runes.evaluateAll((paths) =>
+      paths.every((path) => getComputedStyle(path).animationName !== 'none'),
+    ),
+  ).toBe(true)
+  const initialTransform = await runes.first().evaluate((path) => getComputedStyle(path).transform)
+  await expect
+    .poll(() => runes.first().evaluate((path) => getComputedStyle(path).transform))
+    .not.toBe(initialTransform)
 
   await page.emulateMedia({ reducedMotion: 'reduce' })
   expect(
@@ -100,6 +111,12 @@ test('ordinary desktop shell fits its identity and every navigation control with
       .locator('[data-aether-wisp]')
       .evaluateAll((wisps) => wisps.map((wisp) => getComputedStyle(wisp).animationName)),
   ).toEqual(['none', 'none'])
+
+  expect(
+    await runes.evaluateAll((paths) =>
+      paths.every((path) => getComputedStyle(path).animationName === 'none'),
+    ),
+  ).toBe(true)
 
   for (const width of [390, 360]) {
     await page.setViewportSize({ width, height: 844 })

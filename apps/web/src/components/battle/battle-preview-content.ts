@@ -5,28 +5,74 @@ import {
 } from '../../lib/battle/combat-interaction-presentation'
 import type { BattlePreviewView } from '@/server/battle/battle-preview-service'
 import type { BattleSkillForecastPresentation } from './battle-runtime'
+import { skillParameterRows } from '../character/skill-detail-presentation'
+import type { ImageAssetId } from '@/media/registry'
+import { battleTerrainName, BATTLE_TERRAIN_KEY_DETAILS } from './battle-terrain-key-presentation'
 type IntentPreview = BattlePreviewView['preview']
 type ActionPreview = Extract<IntentPreview, { kind: 'action' }>
 type ProjectedEffect = ActionPreview['projectedEffects'][number]
+export function battleGroundTargetPresentation(
+  tile: { terrainId: string; elevation: number },
+  overlay?: 'frozen' | 'steam' | null,
+): { assetId: ImageAssetId; label: string; glyph: string } {
+  const terrain = battleTerrainName(tile.terrainId)
+  const assetId =
+    terrain === 'Difficult terrain'
+      ? 'terrain.battle.rough-moss.v01'
+      : tile.elevation > 0
+        ? 'terrain.battle.raised-ledge.v02'
+        : 'terrain.battle.open-stone.v01'
+  return {
+    assetId,
+    label: [
+      battleTerrainName(tile.terrainId, tile.elevation),
+      overlay ? BATTLE_TERRAIN_KEY_DETAILS[overlay].name : null,
+    ]
+      .filter(Boolean)
+      .join(' · '),
+    glyph: overlay
+      ? BATTLE_TERRAIN_KEY_DETAILS[overlay].glyph
+      : tile.terrainId === 'blocked'
+        ? '×'
+        : tile.elevation > 0
+          ? '▲'
+          : '',
+  }
+}
 export interface PreviewChip {
   label: string
   tone: 'chance' | 'damage' | 'heal' | 'effect' | 'cost' | 'blocked'
 }
 
-export function skillPreviewChips(skill: BattleSkillForecastPresentation): PreviewChip[] {
+export function battleSkillParameterRows(
+  skill: BattleSkillForecastPresentation,
+): readonly (readonly [string, string])[] {
+  if (skill.definition) {
+    return skillParameterRows(skill.definition, skill)
+  }
   const range =
     skill.minimumRange === skill.maximumRange
       ? `${skill.maximumRange} ${skill.maximumRange === 1 ? 'tile' : 'tiles'}`
       : `${skill.minimumRange}–${skill.maximumRange} tiles`
   return [
-    { label: `${skill.apCost} AP`, tone: 'cost' },
-    ...(skill.mpCost > 0 ? [{ label: `${skill.mpCost} MP`, tone: 'cost' as const }] : []),
-    {
-      label: skill.targetKind === 'self' ? 'Self' : `${skill.tags[0] ?? 'Target'} · ${range}`,
-      tone: 'effect',
-    },
-    ...skill.tags.slice(2, 4).map((label) => ({ label, tone: 'effect' as const })),
+    ['Cost', `${skill.apCost} AP${skill.mpCost > 0 ? ` / ${skill.mpCost} MP` : ''}`],
+    ['Range', skill.targetKind === 'self' ? 'N/A' : range],
+    [
+      'Target',
+      skill.targetKind === 'self'
+        ? 'Self'
+        : skill.targetTeamPolicy === 'any'
+          ? 'Any Unit'
+          : skill.targetTeamPolicy.replace(/^./, (letter) => letter.toUpperCase()),
+    ],
   ]
+}
+
+export function skillPreviewChips(skill: BattleSkillForecastPresentation): PreviewChip[] {
+  return battleSkillParameterRows(skill).map(([label, value]) => ({
+    label: `${label}: ${value}`,
+    tone: label === 'Cost' ? 'cost' : 'effect',
+  }))
 }
 
 function humanizeStatus(value: string): string {

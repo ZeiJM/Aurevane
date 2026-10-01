@@ -252,7 +252,8 @@ export function BattleLogPanel({
           <BattleLogFeed
             compactFlow
             entries={entries}
-            flowView="timeline"
+            flowView={flowView}
+            onFlowViewChange={setFlowView}
             recentTurnCount={recentTurnCount ?? 2}
             playerName={effectivePlayerName}
             combatantNames={combatantNames}

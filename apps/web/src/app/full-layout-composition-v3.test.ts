@@ -63,7 +63,7 @@ describe('full layout composition v3', () => {
       } else if (component.includes('character-profile-shell')) {
         expect(componentSource).toContain('data-composition="correction"')
         expect(stylesheetSource).toContain('grid-template-columns: minmax(0, 1fr)')
-        expect(stylesheetSource).toContain('.scenePortrait')
+        expect(stylesheetSource).not.toContain('.scenePortrait')
         expect(stylesheetSource).not.toContain('height: var(--character-rail-height')
       } else if (component.includes('character-arsenal-shell')) {
         expect(componentSource).toContain('data-composition="correction"')
@@ -71,7 +71,7 @@ describe('full layout composition v3', () => {
         expect(stylesheetSource).toContain(
           'grid-template-columns: minmax(17rem, 0.85fr) minmax(0, 1.65fr)',
         )
-        expect(stylesheetSource).toContain('width: min(7rem, 100%)')
+        expect(stylesheetSource).toContain('width: min(var(--av-cockpit-art-size), 100%)')
       } else if (component.includes('character-select-shell')) {
         expect(stylesheetSource).toContain('grid-template-columns: repeat(3, minmax(0, 1fr))')
         expect(stylesheetSource).toContain('aspect-ratio: 1')

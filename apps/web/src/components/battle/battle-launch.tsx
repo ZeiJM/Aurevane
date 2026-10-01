@@ -534,22 +534,19 @@ export function BattleLaunch({ characterId, initialJoinKey = null }: BattleLaunc
                 <p className={styles.recordPurpose} id="ai-record-purpose">
                   {selectedRecord.purpose}
                 </p>
+                <footer className={styles.panelActions} data-hall-action-row="true">
+                  <button
+                    type="button"
+                    className={styles.primaryAction}
+                    onClick={() => void launchAiBattle()}
+                    disabled={pending}
+                  >
+                    {pending ? 'Entering…' : 'Enter Battle'}
+                  </button>
+                </footer>
               </div>
             ) : null}
           </div>
-
-          {selectedRecord ? (
-            <footer className={styles.panelActions} data-hall-action-row="true">
-              <button
-                type="button"
-                className={styles.primaryAction}
-                onClick={() => void launchAiBattle()}
-                disabled={pending}
-              >
-                {pending ? 'Entering…' : 'Enter Battle'}
-              </button>
-            </footer>
-          ) : null}
         </section>
 
         <section

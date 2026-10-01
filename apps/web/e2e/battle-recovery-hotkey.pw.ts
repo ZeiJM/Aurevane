@@ -13,7 +13,7 @@ function uniqueCharacterName(): string {
   return `Recovery ${letters}`
 }
 
-test('routes the Recovery hotkey to the stable slot after swapping HP Recovery to MP Recovery', async ({
+test('retains default HP Recovery keyboard input without exposing the deferred Recovery menu', async ({
   page,
 }, testInfo) => {
   test.skip(testInfo.project.name === 'mobile-chromium', 'Desktop keyboard shortcut contract')
@@ -34,12 +34,18 @@ test('routes the Recovery hotkey to the stable slot after swapping HP Recovery t
   await expect(root).toBeVisible()
   const deck = root.getByRole('region', { name: 'Command Deck' })
   const economy = root.getByRole('progressbar', { name: 'Action Economy remaining' })
-  await root.locator('[data-battle-secondary-actions] summary').click()
-  await root.getByRole('button', { name: 'MP Recovery · 50 AP', exact: true }).click()
-  await expect(targetForecast(page)).toContainText('MP Recovery')
-  await root.getByRole('button', { name: 'Cancel Action' }).click()
+  await expect(root.locator('[data-battle-secondary-actions]')).toHaveCount(0)
   await page.keyboard.press('KeyR')
-  await expect(targetForecast(page)).toContainText('MP Recovery')
+  await expect(targetForecast(page)).toContainText('HP Recovery')
+  await expect(economy).toHaveAttribute('aria-valuenow', '100')
+  await root.getByRole('button', { name: 'Cancel Action' }).click()
+  // Move focus off the footer button so Enter remains a battle shortcut.
+  await page.locator('body').click({ position: { x: 1, y: 1 } })
+  await page.keyboard.press('KeyR')
+  await expect(targetForecast(page)).toContainText('HP Recovery')
   await expect(economy).toHaveAttribute('aria-valuenow', '100')
   await expect(deck.locator('[data-battle-skill-slot]')).toHaveCount(4)
+  await page.keyboard.press('Enter')
+  await expect(economy).toHaveAttribute('aria-valuenow', '50')
+  await expect(root.locator('[data-battle-secondary-actions]')).toHaveCount(0)
 })

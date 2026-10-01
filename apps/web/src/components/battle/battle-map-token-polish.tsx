@@ -187,6 +187,9 @@ function polishBattlefieldTokens(
     token.style.setProperty('top', '50%', 'important')
     token.style.setProperty('left', '50%', 'important')
     token.style.setProperty('z-index', '4', 'important')
+    token.style.setProperty('box-sizing', 'border-box', 'important')
+    token.style.setProperty('padding', '0', 'important')
+    token.style.setProperty('border-radius', '50%', 'important')
     token.style.setProperty('width', tokenSize, 'important')
     token.style.setProperty('height', tokenSize, 'important')
     token.style.setProperty('aspect-ratio', '1', 'important')
@@ -211,12 +214,24 @@ function polishBattlefieldTokens(
 
     if (name) name.style.display = 'none'
 
-    for (const image of Array.from(token.querySelectorAll<HTMLImageElement>('img'))) {
-      image.style.width = '100%'
-      image.style.height = '100%'
-      image.style.objectFit = 'cover'
-      image.style.objectPosition = '50% 50%'
-      image.style.borderRadius = '50%'
+    for (const portrait of Array.from(
+      token.querySelectorAll<HTMLElement>(
+        ':scope > .character-portrait-media, :scope > [class*="unitPortraitFallback"]',
+      ),
+    )) {
+      // The ring owns the outer square; portrait sizing uses its inner box, with no inherited
+      // media margin or padding. Keep overflow on the token itself for its facing indicator.
+      portrait.style.setProperty('position', 'absolute', 'important')
+      portrait.style.setProperty('inset', '0', 'important')
+      portrait.style.setProperty('box-sizing', 'border-box', 'important')
+      portrait.style.setProperty('width', '100%', 'important')
+      portrait.style.setProperty('height', '100%', 'important')
+      portrait.style.setProperty('margin', '0', 'important')
+      portrait.style.setProperty('padding', '0', 'important')
+      portrait.style.setProperty('object-fit', 'cover', 'important')
+      portrait.style.setProperty('object-position', '50% 50%', 'important')
+      portrait.style.setProperty('border-radius', '50%', 'important')
+      portrait.style.setProperty('clip-path', 'circle(50% at 50% 50%)', 'important')
     }
   }
 }

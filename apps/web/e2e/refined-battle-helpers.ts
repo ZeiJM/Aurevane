@@ -121,5 +121,5 @@ export async function expectRefinedCockpit(page: Page) {
   }
   await expect(page.getByRole('button', { name: 'Confirm Action', exact: true })).toHaveCount(0)
   await expect(targetForecast(page)).toBeVisible()
-  await expect(page.locator('[data-battle-secondary-actions]')).toContainText('Recovery')
+  await expect(page.locator('[data-battle-secondary-actions]')).toHaveCount(0)
 }

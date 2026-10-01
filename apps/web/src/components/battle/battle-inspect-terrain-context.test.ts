@@ -10,13 +10,13 @@ describe('battle Inspect terrain context', () => {
     })
   })
 
-  it('keeps rough and open ground labels unchanged at base elevation', () => {
+  it('uses current terrain names at base elevation', () => {
     expect(describeTerrainLabel('Tile 4, 5; rough-ground; elevation 0')).toEqual({
-      title: 'Rough ground · Tile 4,5',
+      title: 'Difficult terrain · Tile 4,5',
       description: 'Entry costs 40 AP · Elevation 0.',
     })
     expect(describeTerrainLabel('Tile 4, 4; open-ground; elevation 0')).toEqual({
-      title: 'Open ground · Tile 4,4',
+      title: 'Neutral ground · Tile 4,4',
       description: 'Entry costs 20 AP · Elevation 0.',
     })
   })

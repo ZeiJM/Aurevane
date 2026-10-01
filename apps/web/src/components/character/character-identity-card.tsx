@@ -47,7 +47,7 @@ export function CharacterIdentityCard({
             fallbackAssetId={getStarterPortraitImageAssetId(profile.identity.portraitRef)}
             sizes={
               compactRail
-                ? '(max-height: 620px) 88px, (max-height: 700px) 112px, 144px'
+                ? '(max-height: 620px) 88px, (max-height: 700px) 112px, 165px'
                 : '(min-width: 1200px) 20vw, (min-width: 761px) 38vw, 92vw'
             }
             alt={`${profile.identity.name} portrait`}

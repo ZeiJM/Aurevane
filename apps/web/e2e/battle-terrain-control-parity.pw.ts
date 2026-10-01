@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 
-import { expectMapKey } from './battle-map-key-helpers'
+import { expectTerrainKey } from './battle-map-key-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 function uniqueIdentity(prefix: string): { email: string; characterName: string } {
@@ -22,7 +22,7 @@ type BattleScaleGeometry = {
   header: { width: number; height: number }
   economy: { width: number; height: number }
   victory: { width: number; height: number }
-  mapKey: { width: number; height: number }
+  terrainKey: { width: number; height: number }
   content: { width: number; height: number }
   rail: { width: number; height: number }
   railCard: { width: number; height: number }
@@ -57,7 +57,7 @@ async function captureBattleScaleGeometry(page: Page): Promise<BattleScaleGeomet
     header,
     economy: header.locator('[data-unified-battle-economy="true"]'),
     victory: header.getByRole('button', { name: /^Victory Conditions/i }),
-    mapKey: header.getByRole('button', { name: 'Map Key', exact: true }),
+    terrainKey: rail.getByRole('region', { name: 'Terrain Key', exact: true }),
     content: root.locator('[data-unified-battle-content="true"]'),
     rail,
     railCard,
@@ -179,7 +179,7 @@ test('keeps PvE terrain controls visually unified on desktop and mobile', async 
   await page.getByRole('button', { name: 'Enter Battle' }).click()
   await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
 
-  await expectMapKey(page)
+  await expectTerrainKey(page)
 })
 
 test('keeps PvP terrain controls visually unified on desktop and mobile', async ({
@@ -248,7 +248,7 @@ test('keeps PvP terrain controls visually unified on desktop and mobile', async 
     await hostDialog.getByRole('button', { name: 'Mark Ready' }).click()
 
     await expect(host).toHaveURL(/\/game\/battle\/[0-9a-f-]+$/i, { timeout: 20_000 })
-    await expectMapKey(host)
+    await expectTerrainKey(host)
   } finally {
     await Promise.all([hostContext.close(), guestContext.close()])
   }
@@ -285,7 +285,7 @@ test('keeps PvE desktop battle scale locked to PvP', async ({ browser, page }, t
       'header',
       'economy',
       'victory',
-      'mapKey',
+      'terrainKey',
       'content',
       'rail',
       'railCard',

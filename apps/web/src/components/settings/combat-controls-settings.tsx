@@ -23,7 +23,7 @@ const ACTION_COPY: Record<CombatKeybindAction, { label: string; description: str
   inspect: { label: 'Inspect', description: 'Open optional terrain and combatant inspection.' },
   move: {
     label: 'Move',
-    description: `Select movement. A normal tile costs ${PV1F_MOVEMENT_COST_PER_TERRAIN_POINT} AP and obeys your remaining Movement allowance.`,
+    description: `Select movement: normal tiles cost ${PV1F_MOVEMENT_COST_PER_TERRAIN_POINT} AP, within remaining Movement.`,
   },
   basicAttack: {
     label: 'Basic Attack',
@@ -39,33 +39,32 @@ const ACTION_COPY: Record<CombatKeybindAction, { label: string; description: str
   },
   skill1: {
     label: 'Discipline Skill 1',
-    description: 'Select the first committed Discipline Skill and preview its legal target.',
+    description: 'Preview a legal target for your first committed Discipline Skill.',
   },
   skill2: {
     label: 'Discipline Skill 2',
-    description: 'Select the second committed Discipline Skill and preview its legal target.',
+    description: 'Preview a legal target for your second committed Discipline Skill.',
   },
   skill3: {
     label: 'Discipline Skill 3',
-    description: 'Select the third committed Discipline Skill and preview its legal target.',
+    description: 'Preview a legal target for your third committed Discipline Skill.',
   },
   skill4: {
     label: 'Discipline Skill 4',
-    description: 'Select the fourth committed Discipline Skill and preview its legal target.',
+    description: 'Preview a legal target for your fourth committed Discipline Skill.',
   },
   essence: {
     label: 'Essence / Resonance',
-    description:
-      'Select an actionable Essence, or inspect passive Essence and Resonance information.',
+    description: 'Select actionable Essence; inspect passive Essence or Resonance.',
   },
   supernatural: {
     label: 'Severance / Ascension',
-    description: 'Inspect the future supernatural path slot. This does not issue a battle command.',
+    description: 'Inspect the future path slot without issuing a battle command.',
   },
   endTurn: {
     label: 'Finish Turn',
     description:
-      'Enter final-facing selection. A second distinct press keeps your facing; a direction finishes with that facing.',
+      'Choose final facing. A second distinct press keeps it; a direction finishes with that facing.',
   },
   confirm: {
     label: 'Execute selected action',
@@ -185,9 +184,9 @@ export function CombatControlsSettings({ initialBindings }: CombatControlsSettin
       aria-label="Combat controls settings"
     >
       <p className={styles.intro}>
-        Keybinds follow your account and activate the visible battle commands. Select a command to
-        inspect its forecast, then click a legal target or use a deliberate directional input to
-        act. The server validates every action. Choose a binding below, then save your changes.
+        Account keybinds activate visible battle commands. Preview a forecast, then act via a legal
+        target or deliberate directional input. The server validates every action. Change a key and
+        save.
       </p>
 
       <div className={styles.grid}>
@@ -195,13 +194,13 @@ export function CombatControlsSettings({ initialBindings }: CombatControlsSettin
           <div className={styles.row} key={action} data-testid={`keybind-${action}`}>
             <div>
               <strong>{ACTION_COPY[action].label}</strong>
-              <small>{ACTION_COPY[action].description}</small>
+              <small id={`keybind-${action}-description`}>{ACTION_COPY[action].description}</small>
             </div>
-            <kbd className={styles.key}>{formatCombatKeybind(draft[action])}</kbd>
             <button
               type="button"
               className={styles.button}
               aria-label={`Change ${ACTION_COPY[action].label} keybind`}
+              aria-describedby={`keybind-${action}-key keybind-${action}-description`}
               onClick={() => {
                 setCapturing(action)
                 setError(null)
@@ -211,47 +210,53 @@ export function CombatControlsSettings({ initialBindings }: CombatControlsSettin
               }}
               disabled={pending || capturing !== null}
             >
-              {capturing === action ? 'Press a key…' : 'Change'}
+              <kbd className={styles.key} id={`keybind-${action}-key`}>
+                {formatCombatKeybind(draft[action])}
+              </kbd>
+              <span>{capturing === action ? 'Press…' : 'Change'}</span>
             </button>
           </div>
         ))}
       </div>
 
-      {error ? (
-        <p className={styles.error} role="alert">
-          {error}
-        </p>
-      ) : null}
-      {notice ? (
-        <p className={styles.notice} role="status">
-          {notice}
-        </p>
-      ) : null}
-
-      <div className={styles.actions}>
-        <button
-          type="button"
-          className={styles.button}
-          onClick={() => {
-            setDraft(cloneBindings(DEFAULT_COMBAT_KEYBINDS))
-            setCapturing(null)
-            setError(null)
-            setNotice(
-              'Default combat bindings restored locally. Save to keep them on your account.',
-            )
-          }}
-          disabled={pending}
-        >
-          Reset defaults
-        </button>
-        <button
-          type="button"
-          className={styles.primary}
-          onClick={() => void save()}
-          disabled={pending || !changed}
-        >
-          {pending ? 'Saving…' : 'Save Controls'}
-        </button>
+      <div className={styles.footer}>
+        <div className={styles.feedback}>
+          {error ? (
+            <p className={styles.error} role="alert">
+              {error}
+            </p>
+          ) : null}
+          {notice ? (
+            <p className={styles.notice} role="status">
+              {notice}
+            </p>
+          ) : null}
+        </div>
+        <div className={styles.actions}>
+          <button
+            type="button"
+            className={styles.button}
+            onClick={() => {
+              setDraft(cloneBindings(DEFAULT_COMBAT_KEYBINDS))
+              setCapturing(null)
+              setError(null)
+              setNotice(
+                'Default combat bindings restored locally. Save to keep them on your account.',
+              )
+            }}
+            disabled={pending}
+          >
+            Reset defaults
+          </button>
+          <button
+            type="button"
+            className={styles.primary}
+            onClick={() => void save()}
+            disabled={pending || !changed}
+          >
+            {pending ? 'Saving…' : 'Save Controls'}
+          </button>
+        </div>
       </div>
     </section>
   )

@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-import { expectMapKey } from './battle-map-key-helpers'
+import { expectTerrainKey } from './battle-map-key-helpers'
 import { expectBattleFlowKeepsBoardSize } from './battle-reference-layout-helpers'
 import { expectRefinedCockpit } from './refined-battle-helpers'
 
@@ -102,7 +102,7 @@ test('keeps the unified PvP battle usable on mobile', async ({ browser }, testIn
     await expect(battlefield).toBeVisible()
     await expect(commandDeck).toBeVisible()
     await expect(board.locator(":scope > button[aria-label^='Tile ']")).toHaveCount(63)
-    await expectMapKey(hostHasTurn ? host : guest)
+    await expectTerrainKey(hostHasTurn ? host : guest)
 
     await expect(commandDeck.getByRole('button', { name: /^Move, / })).toBeVisible()
     await expect(commandDeck.getByRole('button', { name: /^Basic Attack, / })).toBeVisible()

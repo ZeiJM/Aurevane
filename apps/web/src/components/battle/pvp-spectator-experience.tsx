@@ -3,6 +3,7 @@
 import { BattleRouteFrame } from './battle-route-frame'
 
 import { BattleMapKey } from './battle-map-key'
+import { battleTerrainName } from './battle-terrain-key-presentation'
 import { BattleCombatantCard } from './battle-combatant-card'
 import { BattleLogPanel } from './battle-log-panel'
 import type { BattlePresentationParticipant } from './battle-runtime'
@@ -275,8 +276,7 @@ export function PvpSpectatorExperience({
     }
 
     if (selectedTile && !selectedPlacement) {
-      const terrainName =
-        terrainPresentation(selectedTile.terrainId) === 'rough' ? 'Difficult ground' : 'Open ground'
+      const terrainName = battleTerrainName(selectedTile.terrainId, selectedTile.elevation)
       const traversalCost = selectedTerrain?.traversalCost ?? null
       return (
         <>
@@ -327,7 +327,6 @@ export function PvpSpectatorExperience({
             {connectionNote ? <p>{connectionNote}</p> : null}
           </div>
           <div className={styles.headerActions}>
-            <BattleMapKey />
             <button
               type="button"
               className={styles.keyButton}
@@ -370,7 +369,7 @@ export function PvpSpectatorExperience({
             {activeParticipant && participantTitles[activeParticipant.characterId] ? (
               <small>{participantTitles[activeParticipant.characterId]}</small>
             ) : null}
-            <BattleMapKey variant="inline" />
+            <BattleMapKey snapshot={battle.snapshot} />
           </aside>
 
           <section

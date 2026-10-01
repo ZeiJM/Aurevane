@@ -217,7 +217,7 @@ export function CharacterAttributeAllocationPanel({
                     imageUrl={portrait.imageUrl}
                     fallbackAssetId={portrait.assetId}
                     className={styles.portraitImage}
-                    sizes="(min-width: 761px) 28rem, 100vw"
+                    sizes="(max-height: 620px) 88px, (max-height: 700px) 112px, 165px"
                     alt={`${portrait.name} portrait`}
                   />
                 </div>

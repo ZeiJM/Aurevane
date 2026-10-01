@@ -21,8 +21,6 @@ import { CharacterProfileDetails } from '@/components/character/character-profil
 import { type SupernaturalChoiceOption } from '@/components/character/character-supernatural-choice-controls'
 import { getStarterPortraitImageAssetId } from '@/media/character'
 
-import { CharacterPortraitImage } from './character-portrait-image'
-
 import styles from './character-profile-shell.module.css'
 
 interface PrimaryOption {
@@ -150,14 +148,6 @@ export function CharacterProfileShell({
         <h1>Profile</h1>
         <p>Your journey, your choices, your story.</p>
       </header>
-      <div className={styles.scenePortrait} aria-hidden="true">
-        <CharacterPortraitImage
-          imageUrl={imageUrl}
-          fallbackAssetId={getStarterPortraitImageAssetId(profile.identity.portraitRef)}
-          sizes="(max-width: 760px) 40vw, 32vw"
-          alt=""
-        />
-      </div>
       <Surface
         className={styles.profile}
         tone="elevated"
@@ -165,60 +155,42 @@ export function CharacterProfileShell({
         data-profile-sheet="true"
       >
         <div className={styles.identityTags} aria-label="Disciplines and titles">
-          <div className={styles.identityTag} data-profile-tag="primary">
+          <div
+            className={styles.identityTag}
+            data-profile-tag="primary"
+            role="group"
+            aria-label="Primary Discipline"
+          >
             <span aria-hidden="true">✦</span>
-            <div>
-              <small>Primary Discipline</small>
-              <strong data-testid="primary-discipline-chip">
-                {disciplineBuild.current.definition.name}
-              </strong>
-            </div>
+            <strong data-testid="primary-discipline-chip">
+              {disciplineBuild.current.definition.name}
+            </strong>
           </div>
           {disciplineBuild.currentSecondary ? (
-            <div className={styles.identityTag} data-profile-tag="secondary">
+            <div
+              className={styles.identityTag}
+              data-profile-tag="secondary"
+              role="group"
+              aria-label="Secondary Discipline"
+            >
               <span aria-hidden="true">◇</span>
-              <div>
-                <small>Secondary Discipline</small>
-                <strong data-testid="secondary-discipline-chip">
-                  {disciplineBuild.currentSecondary.name}
-                </strong>
-              </div>
+              <strong data-testid="secondary-discipline-chip">
+                {disciplineBuild.currentSecondary.name}
+              </strong>
             </div>
           ) : null}
           {personalTitle ? (
-            <div className={styles.identityTag} data-profile-tag="title">
+            <div
+              className={styles.identityTag}
+              data-profile-tag="title"
+              role="group"
+              aria-label="Personal title"
+            >
               <span aria-hidden="true">✧</span>
-              <div>
-                <small>Personal title</small>
-                <strong>{personalTitle}</strong>
-              </div>
+              <strong>{personalTitle}</strong>
             </div>
           ) : null}
         </div>
-        <details className={styles.buildIdentity}>
-          <summary>
-            {disciplineBuild.currentSecondary ? 'Mixed build' : 'Pure build'} ·{' '}
-            {disciplineBuild.current.definition.name}
-            {disciplineBuild.currentSecondary ? ` + ${disciplineBuild.currentSecondary.name}` : ''}
-          </summary>
-          <p>
-            Your Primary Discipline supplies your base-stat profile.
-            {disciplineBuild.currentSecondary
-              ? ' Your Secondary adds its Skill library, not a second base-stat profile.'
-              : ' With no Secondary equipped, your build uses Essence instead of Resonance.'}
-          </p>
-          <p>
-            {disciplineBuild.currentSecondary
-              ? `Resonance: ${disciplineBuild.disciplineSkills.extensions.resonance?.name ?? 'None active'}.`
-              : `Essence: ${disciplineBuild.disciplineSkills.extensions.essence?.name ?? 'None active'}.`}{' '}
-            {disciplineBuild.disciplineSkills.equippedSkills.length} /{' '}
-            {disciplineBuild.disciplineSkills.capacity} selected Discipline Techniques.{' '}
-            {disciplineBuild.currentSecondary
-              ? 'The selection limit is shared across both Disciplines.'
-              : 'An active Essence sits outside these selections.'}
-          </p>
-        </details>
-
         <CharacterProfileDetails
           presentationLabel={profile.identity.presentationLabel}
           buildTypeLabel={buildTypeLabel}

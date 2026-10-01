@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-import { expectMapKey } from './battle-map-key-helpers'
+import { expectTerrainKey } from './battle-map-key-helpers'
 import {
   expectBattleFlowKeepsBoardSize,
   expectBattleReferenceLayout,
@@ -42,7 +42,7 @@ test('keeps the desktop AI 9x7 grid, header map key, and battle log dock structu
   await expect(board).toHaveCount(1)
   await expect(board.locator("button[aria-label^='Tile ']")).toHaveCount(63)
 
-  await expectMapKey(page)
+  await expectTerrainKey(page)
 
   const geometry = await board.evaluate((element) => {
     const tile11 = element.querySelector<HTMLButtonElement>('button[aria-label^="Tile 1, 1;"]')!

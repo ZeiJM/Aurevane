@@ -323,7 +323,8 @@ describe('Task 2 Haste and Slow movement AP', () => {
     )
     expect(rough.economyCost).toBe(40)
     expect(roughHaste.economyCost).toBe(30)
-    expect(roughHaste.movement.cost).toBe(2)
+    expect(rough.movement.cost).toBe(1)
+    expect(roughHaste.movement.cost).toBe(1)
   })
 
   it('combines Frozen, Slow, Airborne and Haste in the approved per-tile order', () => {
@@ -456,6 +457,91 @@ describe('displacement edge cases and preview parity', () => {
 })
 
 describe('movement AP floor and committed resources', () => {
+  const twoStepPath = [
+    { x: 1, y: 1 },
+    { x: 0, y: 1 },
+    { x: 0, y: 0 },
+  ]
+
+  function twoMoveEncounter(roughTiles: number, ap = 100): StatDrivenCombatEncounterState {
+    const state = movementEncounter()
+    const turn = state.tactical.battle.currentTurn!
+    turn.movementMaximum = 2
+    turn.movementRemaining = 2
+    state.tactical.battle.combatants[0]!.baseMovementBudget = 2
+    state.tactical.tiles = state.tactical.tiles.map((tile) => ({
+      ...tile,
+      terrainId: twoStepPath
+        .slice(1, roughTiles + 1)
+        .some((position) => position.x === tile.position.x && position.y === tile.position.y)
+        ? ROUGH
+        : OPEN,
+    }))
+    // Initialize the turn marker before reducing AP, as in a persisted in-progress turn.
+    const prepared = evaluatePv1fMovement(state, twoStepPath).prepared
+    prepared.tactical.battle.combatants[0]!.temporaryResources =
+      prepared.tactical.battle.combatants[0]!.temporaryResources.map((resource) =>
+        resource.key === 'pv1f.action-economy' ? { ...resource, current: ap } : resource,
+      )
+    return prepared
+  }
+
+  it.each([
+    [2, 80],
+    [1, 60],
+  ] as const)('MOVE 2 enters two tiles including %i rough tiles for %i AP', (roughTiles, ap) => {
+    const state = twoMoveEncounter(roughTiles, ap)
+    const before = JSON.stringify(state)
+    const preview = evaluatePv1fMovement(state, twoStepPath)
+    expect(preview.movement).toMatchObject({ legal: true, cost: 2, movementRemainingAfter: 0 })
+    expect(preview.economyCost).toBe(ap)
+    const moved = executePv1fMovement(state, twoStepPath)
+    expect(moved.state.tactical.battle.currentTurn).toMatchObject({
+      movementRemaining: 0,
+      movementSpent: 2,
+    })
+    expect(readPv1fActionEconomy(moved.state)?.current).toBe(0)
+    expect(at(moved.state, 'actor')).toEqual(twoStepPath[2])
+    expect(JSON.stringify(state)).toBe(before)
+    expect(moved.events).toContainEqual(
+      expect.objectContaining({ event: 'movement_spent', amount: 2 }),
+    )
+  })
+
+  it('rejects a third step even with enough AP and rejects two rough tiles with insufficient AP', () => {
+    const thirdStep = [...twoStepPath, { x: 1, y: 0 }]
+    const extra = evaluatePv1fMovement(twoMoveEncounter(0), thirdStep)
+    expect(extra.movement.issues).toContainEqual(
+      expect.objectContaining({ code: 'movement-budget-exceeded' }),
+    )
+    expect(() => executePv1fMovement(twoMoveEncounter(0), thirdStep)).toThrow(/Movement/)
+    const insufficient = twoMoveEncounter(2, 79)
+    expect(evaluatePv1fMovement(insufficient, twoStepPath).economyCost).toBe(80)
+    expect(() => executePv1fMovement(insufficient, twoStepPath)).toThrow(/Action Economy/)
+  })
+
+  it.each([
+    [[], false, 80],
+    [['haste'], false, 60],
+    [['slow'], false, 100],
+    [['haste', 'slow'], false, 80],
+    [['haste'], true, 70],
+    [['haste', 'airborne'], true, 60],
+  ] as [string[], boolean, number][])(
+    'keeps two MOVE steps with statuses %j and Frozen %j while charging %i AP',
+    (statuses, frozen, expected) => {
+      let state = twoMoveEncounter(2)
+      for (const status of statuses) state = withStatus(state, 'actor', status)
+      if (frozen) state = withFrozenDestination(state)
+      const preview = evaluatePv1fMovement(state, twoStepPath)
+      expect(preview.movement).toMatchObject({ legal: true, cost: 2, movementRemainingAfter: 0 })
+      expect(preview.economyCost).toBe(expected)
+      const result = executePv1fMovement(state, twoStepPath)
+      expect(result.state.tactical.battle.currentTurn?.movementRemaining).toBe(0)
+      expect(readPv1fActionEconomy(result.state)?.current).toBe(100 - expected)
+    },
+  )
+
   it.each([
     [1, -10, 10],
     [1, -20, 10],

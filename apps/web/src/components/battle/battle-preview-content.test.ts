@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { BattleActionPreview } from '@/server/battle/battle-preview-service'
-import { previewChips } from './battle-preview-content'
+import { previewChips, skillPreviewChips } from './battle-preview-content'
+import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 
 function actionPreview(
   projectedEffects: BattleActionPreview['projectedEffects'] = [],
@@ -36,6 +37,34 @@ function labels(preview: BattleActionPreview): string[] {
 }
 
 describe('copy-statuses player forecast presentation', () => {
+  it('uses Nexus parameter names and pinned values with current battle costs before a forecast', () => {
+    const definition = resolveMatureSkillVersion('vanguard.forceful-strike', 2)!
+    const result = skillPreviewChips({
+      definition,
+      id: definition.id,
+      name: 'Forceful Strike',
+      apCost: 31,
+      mpCost: 6,
+      targetKind: 'unit',
+      targetTeamPolicy: 'enemy',
+      minimumRange: 1,
+      maximumRange: 1,
+      tags: ['Old ad-hoc tag'],
+      effectDescriptions: [],
+      requirementDescriptions: [],
+    }).map((chip) => chip.label)
+    expect(result).toEqual([
+      'Skill Type: Attack',
+      'Cost: 31 AP / 6 MP',
+      'Cooldown: 2 turns',
+      'Requirements: None',
+      'Range: 1',
+      'Target: Enemy',
+      'Target Method: Single',
+      'Target Elevation: 1',
+      'Line of Sight: Not required',
+    ])
+  })
   it('humanizes an ordinary copied status from an empty receiver', () => {
     const result = labels(
       actionPreview([

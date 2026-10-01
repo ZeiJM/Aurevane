@@ -46,7 +46,6 @@ describe('shared compact combatant card', () => {
       <BattleCombatantCard participant={participant} battle={battle} teamCount={2} role="local" />,
     )
     for (const label of [
-      'Your character',
       'HP 152 / 152',
       'MP 58 / 58',
       'Inspect Wayfarer',
@@ -55,13 +54,14 @@ describe('shared compact combatant card', () => {
     ])
       expect(markup).toContain(label)
     expect(markup).not.toContain('Recruit')
+    expect(markup).not.toContain('Your character')
+    expect(markup.indexOf('<header')).toBeLessThan(markup.indexOf('data-av-square-media'))
   })
   it('swaps to the selected combatant without showing an opposing roster or stale local vitals', () => {
     const markup = renderToStaticMarkup(
       <BattleCombatantCard participant={selected} battle={battle} teamCount={2} role="selected" />,
     )
     for (const label of [
-      'Selected character',
       'HP 35 / 80',
       'MP 14 / 25',
       'Inspect Recruit',
@@ -69,13 +69,14 @@ describe('shared compact combatant card', () => {
     ])
       expect(markup).toContain(label)
     expect(markup).not.toContain('Wayfarer')
+    expect(markup).not.toContain('Selected character')
     expect(markup).not.toContain('HP 152')
   })
   it('uses the same card in read-only spectation without combat command controls', () => {
     const markup = renderToStaticMarkup(
       <BattleCombatantCard participant={participant} battle={battle} teamCount={2} role="acting" />,
     )
-    expect(markup).toContain('Acting character')
+    expect(markup).not.toContain('Acting character')
     expect(markup).not.toContain('data-battle-command')
   })
 })

@@ -92,6 +92,9 @@ export interface MovementPathPreview {
   issues: readonly MovementPathIssue[]
 }
 
+/** Legacy board callers use terrain weight; the AP action economy spends MOVE per entered tile. */
+export type MovementAllowanceCostMode = 'terrain-weight' | 'entered-tiles'
+
 export type FacingRelation = 'front' | 'side' | 'rear'
 
 export type TacticalBattleEvent =
@@ -160,6 +163,7 @@ export function createTacticalBattleState(
 export function evaluateCurrentMovementPath(
   state: TacticalBattleState,
   path: readonly GridPosition[],
+  allowanceCostMode: MovementAllowanceCostMode = 'terrain-weight',
 ): MovementPathPreview {
   assertValidTacticalBattleState(state)
 
@@ -246,7 +250,7 @@ export function evaluateCurrentMovementPath(
         break
       }
 
-      cost += traversalCost
+      cost += allowanceCostMode === 'entered-tiles' ? 1 : traversalCost
       if (!Number.isSafeInteger(cost)) {
         throw new RangeError('Movement path cost exceeded the safe integer range.')
       }
@@ -257,7 +261,7 @@ export function evaluateCurrentMovementPath(
     issues.push({
       code: 'movement-budget-exceeded',
       stepIndex: copiedPath.length - 1,
-      message: 'Movement path costs more than the remaining Movement Budget.',
+      message: 'Movement path costs more than the remaining Movement allowance.',
     })
   }
 
@@ -273,7 +277,7 @@ export function evaluateCurrentMovementPath(
   }
 }
 
-/** Read an entered tile's movement cost using the combatant's pinned movement profile. */
+/** Read an entered tile's terrain weight using the combatant's pinned movement profile. */
 export function movementTraversalCostAt(
   state: TacticalBattleState,
   combatantId: string,
@@ -290,8 +294,9 @@ export function movementTraversalCostAt(
 export function moveCurrentCombatant(
   state: TacticalBattleState,
   path: readonly GridPosition[],
+  allowanceCostMode: MovementAllowanceCostMode = 'terrain-weight',
 ): TacticalBattleTransition {
-  const preview = evaluateCurrentMovementPath(state, path)
+  const preview = evaluateCurrentMovementPath(state, path, allowanceCostMode)
   if (!preview.legal) {
     const issue = preview.issues[0]
     if (!issue) {

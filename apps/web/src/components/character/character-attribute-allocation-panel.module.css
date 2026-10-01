@@ -648,9 +648,12 @@
   background: linear-gradient(140deg, #455349, #263439);
 }
 .dialog[data-has-portrait='true'] .portraitFrame {
-  width: 100%;
+  box-sizing: border-box;
+  width: min(var(--av-rail-portrait-size, 10.3125rem), 100%);
   aspect-ratio: 1;
+  justify-self: center;
   margin: 0;
+  padding: 0;
 }
 .dialog[data-has-portrait='true'] .portraitImage {
   transform: none;

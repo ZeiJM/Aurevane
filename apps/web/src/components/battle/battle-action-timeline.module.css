@@ -1,25 +1,25 @@
 .timeline {
   position: relative;
   display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   gap: 0.25rem;
   min-width: 0;
+  min-height: 0;
   padding: 0.3rem 0.55rem;
 }
 .filter {
-  position: absolute;
-  top: -1.75rem;
-  right: 0.6rem;
   display: flex;
+  flex-wrap: wrap;
   gap: 0.15rem;
 }
 .filter button {
   min-height: 1.55rem;
-  padding: 0.2rem 0.45rem;
+  padding: 0.2rem 0.3rem;
   border: 1px solid transparent;
   border-radius: 0.3rem;
   color: var(--av-text-muted);
   background: transparent;
-  font: 550 0.75rem/1 var(--av-font-body);
+  font: 550 0.75rem/1.2 var(--av-font-body);
   cursor: pointer;
 }
 .filter button[aria-pressed='true'] {
@@ -30,10 +30,13 @@
 .track {
   display: flex;
   min-width: 0;
+  min-height: 0;
+  align-items: flex-start;
   gap: 0.35rem;
   margin: 0;
   padding: 0.2rem 0.3rem;
-  overflow: hidden;
+  overflow: auto;
+  overscroll-behavior: contain;
   list-style: none;
   scrollbar-width: thin;
 }
@@ -76,16 +79,12 @@
 }
 .track strong {
   width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
   font: 600 0.75rem/1.2 var(--av-font-display);
 }
 .track button > span:last-child {
   width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
   color: var(--av-text-muted);
   font: 500 0.6875rem/1.2 var(--av-font-body);
 }
@@ -226,13 +225,18 @@
 }
 
 .pageControls {
-  display: flex;
-  order: 1;
-  justify-content: center;
+  display: grid;
+  grid-row: 3;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 0.3rem;
   align-items: center;
   color: var(--av-text-muted);
-  font: 500 0.6875rem/1 var(--av-font-body);
+  font: 500 0.6875rem/1.2 var(--av-font-body);
+  text-align: center;
+}
+.pageControls span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .pageControls button {
   width: 1.6rem;
@@ -250,7 +254,6 @@
   cursor: default;
 }
 .timeline[data-view='text'] {
-  grid-template-rows: minmax(0, 1fr) auto;
   min-height: 0;
 }
 .track[data-view='text'] {
@@ -301,11 +304,6 @@
   padding: 0;
   list-style: none;
 }
-@media (max-width: 820px) {
-  .timeline[data-view='text'] {
-    height: 12rem;
-  }
-}
 
 /* A long result keeps its complete detail view reachable inside the fixed dock. */
 .track[data-oversized] {
@@ -350,16 +348,4 @@
   margin-top: 0.05rem;
   padding: 0.05rem 0.35rem;
   font: 650 0.6875rem/1.15 var(--av-font-body);
-}
-
-/* At compact desktop widths the dock is too narrow to overlay both control groups safely. */
-@media (min-width: 821px) and (max-width: 1399px) {
-  :global([data-docked-battle-log='true']) .filter {
-    position: static;
-    justify-content: flex-end;
-  }
-
-  :global([data-docked-battle-log='true']) .timeline[data-view='text'] {
-    grid-template-rows: auto minmax(0, 1fr) auto;
-  }
 }

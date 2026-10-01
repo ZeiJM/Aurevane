@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-import { expectMapKey } from './battle-map-key-helpers'
+import { expectTerrainKey } from './battle-map-key-helpers'
 import { expectBattleReferenceLayout } from './battle-reference-layout-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
@@ -130,7 +130,7 @@ test('keeps the live desktop PvP header, opponent timer, and full board stable',
     const economy = header.locator('[data-unified-battle-economy="true"]')
     await expect(root).toHaveAttribute('data-battle-layout', 'refined')
     await expect(economy).toBeVisible()
-    await expectMapKey(host)
+    await expectTerrainKey(host)
     await expect(header.getByRole('button', { name: /Round .*Combat Log/i })).toHaveCount(0)
     await expect(root.locator('#battlefield button[aria-label^="Tile "]')).toHaveCount(63)
     await expectBattleReferenceLayout(host, testInfo, 'pvp-header-map-first')

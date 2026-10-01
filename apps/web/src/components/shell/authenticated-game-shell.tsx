@@ -46,7 +46,7 @@ function ShellCharacterPortrait({
         className={styles.screenPortraitImage}
         sizes={
           rail
-            ? '(max-height: 620px) 88px, (max-height: 700px) 112px, 144px'
+            ? '(max-height: 620px) 88px, (max-height: 700px) 112px, 165px'
             : '(max-width: 760px) 2rem, 3rem'
         }
         alt=""

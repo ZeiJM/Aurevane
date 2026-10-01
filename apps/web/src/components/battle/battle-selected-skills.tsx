@@ -1,6 +1,7 @@
 'use client'
 
 import Image from 'next/image'
+import type { ReactNode } from 'react'
 import { normalizedResonanceMechanics } from '@aurevane/game-core/combat/resonance-v2'
 import {
   DEFAULT_COMBAT_KEYBINDS,
@@ -20,6 +21,30 @@ function disciplineName(id: string): string {
     .split(/[-_.]/)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ')
+}
+
+function SkillControls({
+  title,
+  hotkey,
+  children,
+}: {
+  title: string
+  hotkey: string
+  children: ReactNode
+}) {
+  return (
+    <div className={styles.controls} data-battle-cockpit-controls="true">
+      <BattleInfoPopover
+        label={`About ${title}`}
+        title={title}
+        trigger="i"
+        className={styles.infoTrigger}
+      >
+        {children}
+      </BattleInfoPopover>
+      <span className={styles.number}>{hotkey}</span>
+    </div>
+  )
 }
 
 /** Four committed slots, followed by the exclusive Essence/Resonance and future path. */
@@ -74,30 +99,24 @@ export function BattleSelectedSkills({
                         unoptimized
                       />
                     </span>
-                    <span className={styles.number} aria-hidden="true">
-                      {hotkey}
-                    </span>
                     <strong>{skill.name}</strong>
-                    <small className={styles.discipline}>
-                      {disciplineName(skill.sourceDisciplineId)}
-                    </small>
                   </button>
-                  <BattleInfoPopover
-                    label={`About ${skill.name}`}
-                    title={skill.name}
-                    trigger="i"
-                    className={styles.infoTrigger}
-                  >
+                  <SkillControls title={skill.name} hotkey={hotkey}>
                     <BattleSkillParameters skill={skill} />
-                  </BattleInfoPopover>
+                  </SkillControls>
+                  <small className={styles.discipline}>
+                    {disciplineName(skill.sourceDisciplineId)}
+                  </small>
                 </>
               ) : (
                 <>
-                  <span className={styles.number}>{hotkey}</span>
                   <span className={styles.emptyArt} aria-label="Empty selected Skill slot">
                     +
                   </span>
                   <strong>Empty</strong>
+                  <SkillControls title={`selected Skill slot ${index + 1}`} hotkey={hotkey}>
+                    <p>No Skill is equipped in this committed battle slot.</p>
+                  </SkillControls>
                 </>
               )}
             </article>
@@ -127,19 +146,16 @@ export function BattleSelectedSkills({
                   unoptimized
                 />
               </span>
-              <span className={styles.number}>{formatCombatKeybind(bindings.essence)}</span>
-              <strong>Essence</strong>
-              <small>{runtime.essence.name}</small>
+              <strong>{runtime.essence.name}</strong>
             </button>
-            <BattleInfoPopover
-              label={`About ${runtime.essence.name}`}
+            <SkillControls
               title={runtime.essence.name}
-              trigger="i"
-              className={styles.infoTrigger}
+              hotkey={formatCombatKeybind(bindings.essence)}
             >
               <p>{runtime.essence.description}</p>
               <BattleSkillParameters skill={runtime.essence} />
-            </BattleInfoPopover>
+            </SkillControls>
+            <small>Essence</small>
           </>
         ) : runtime.resonance ? (
           <>
@@ -152,17 +168,13 @@ export function BattleSelectedSkills({
                 unoptimized
               />
             </span>
-            <span className={styles.number}>{formatCombatKeybind(bindings.essence)}</span>
-            <strong>Resonance</strong>
-            <small>{runtime.resonance.name} · Passive</small>
-            <BattleInfoPopover
-              label={`About ${runtime.resonance.name}`}
+            <strong>{runtime.resonance.name}</strong>
+            <SkillControls
               title={runtime.resonance.name}
-              trigger="i"
-              className={styles.infoTrigger}
-              hover
+              hotkey={formatCombatKeybind(bindings.essence)}
             >
               <p>{runtime.resonance.description}</p>
+              <strong>Parameters</strong>
               {resonanceMechanics ? (
                 <>
                   <dl>
@@ -195,33 +207,35 @@ export function BattleSelectedSkills({
                   ))}
                 </>
               ) : null}
-            </BattleInfoPopover>
+            </SkillControls>
+            <small>Resonance · Passive</small>
           </>
         ) : (
           <>
-            <span className={styles.number}>{formatCombatKeybind(bindings.essence)}</span>
             <span className={styles.emptyArt}>—</span>
             <strong>Essence / Resonance</strong>
+            <SkillControls
+              title="Essence / Resonance"
+              hotkey={formatCombatKeybind(bindings.essence)}
+            >
+              <p>No Essence or Resonance is equipped in this battle.</p>
+            </SkillControls>
             <small>Not equipped</small>
           </>
         )}
       </article>
       <article className={styles.future} data-battle-special="supernatural">
-        <span className={styles.number}>{formatCombatKeybind(bindings.supernatural)}</span>
         <span className={styles.emptyArt} aria-hidden="true">
           ◇
         </span>
         <strong>Severance / Ascension</strong>
-        <small>Coming soon</small>
-        <BattleInfoPopover
-          label="About Severance / Ascension"
+        <SkillControls
           title="Severance / Ascension"
-          trigger="i"
-          className={styles.infoTrigger}
-          hover
+          hotkey={formatCombatKeybind(bindings.supernatural)}
         >
           <p>This supernatural path is coming soon. No combat ability is equipped here yet.</p>
-        </BattleInfoPopover>
+        </SkillControls>
+        <small>Coming soon</small>
       </article>
       {(runtime.copiedSkills?.length ?? 0) > 0 ? (
         <details className={styles.copied} data-battle-copied-skills="true">

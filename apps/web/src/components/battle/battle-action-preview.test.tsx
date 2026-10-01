@@ -4,6 +4,7 @@ import type { BattleActionPreview as ActionPreview } from '@/server/battle/battl
 import { BattleActionPreview } from './battle-action-preview'
 import { previewChips } from './battle-preview-content'
 import type { BattleSkillForecastPresentation } from './battle-runtime'
+import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 
 const barrier: BattleSkillForecastPresentation = {
   id: 'lifebinder.barrier',
@@ -43,11 +44,47 @@ const attack: ActionPreview = {
 }
 
 describe('current selection forecast', () => {
+  it('keeps all Nexus parameters beside the current server forecast without replacing its costs or outcomes', () => {
+    const definition = resolveMatureSkillVersion('vanguard.forceful-strike', 2)!
+    const skill = { ...barrier, definition, id: definition.id, apCost: 31, mpCost: 6 }
+    const markup = renderToStaticMarkup(
+      <BattleActionPreview
+        preview={{ ...attack, actionId: skill.id }}
+        skill={skill}
+        pending={false}
+      />,
+    )
+    expect(markup).toContain('Cost: 31 AP / 6 MP')
+    expect(markup).toContain('Skill Type: Attack')
+    expect(markup).toContain('Line of Sight: Not required')
+    for (const label of ['30 AP', '70 AP left', 'Hit 69%', 'On hit 17 dmg', 'Damage 17'])
+      expect(markup).toContain(label)
+    expect(markup).toContain('data-battle-preview-lane="parameters"')
+    expect(markup).toContain('data-battle-preview-lane="outcomes"')
+  })
+
+  it('gives targets without portraits a framed identity and shows the selected ground terrain', () => {
+    const markup = renderToStaticMarkup(
+      <BattleActionPreview
+        preview={attack}
+        pending={false}
+        targetTile={{ position: { x: 2, y: 3 }, terrainId: 'open', elevation: 1 }}
+        targetOverlay="frozen"
+      />,
+    )
+    expect(markup).toContain('data-battle-target-portrait-fallback="true"')
+    expect(markup).toContain('data-battle-ground-target="true"')
+    expect(markup).toContain('terrain-raised-ledge-v02.webp')
+    expect(markup).toContain('Tile 3, 4')
+    expect(markup).toContain('Elevated ground')
+    expect(markup).toContain('Frozen')
+    expect(markup).toContain('Damage 17')
+  })
   it('shows the authored Discipline skill context before a target without inventing an outcome', () => {
     const markup = renderToStaticMarkup(
       <BattleActionPreview preview={null} pending={false} skill={barrier} />,
     )
-    for (const label of ['40 AP', 'Ally', '1–3 tiles', 'Guarded', 'Skill details'])
+    for (const label of ['Cost: 40 AP', 'Target: Ally', 'Range: 1–3 tiles', 'Skill details'])
       expect(markup).toContain(label)
     expect(markup).not.toContain('Success 100%')
     expect(markup).not.toContain('Forecast details')

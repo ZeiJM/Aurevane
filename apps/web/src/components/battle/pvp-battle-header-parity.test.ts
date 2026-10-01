@@ -75,11 +75,12 @@ describe('PvP desktop battle layout authority', () => {
     expect(mobileCss).not.toContain('width: 8.4rem')
   })
 
-  it('moves terrain help into Map Key without reserving a battlefield row', () => {
+  it('keeps live terrain help in the side key without a standalone header button', () => {
     const experience = readLocalFile('battle-experience.tsx')
     const presentationPolish = readLocalFile('battle-terrain-presentation-polish.tsx')
     expect(experience).not.toContain('aria-label="Terrain legend"')
-    expect(experience).toContain('<BattleMapKey />')
+    expect(experience).not.toContain('<BattleMapKey />')
+    expect(experience).toContain('<BattleMapKey snapshot={battle.snapshot} />')
     expect(presentationPolish).toContain('syncLegendTerminology(battlefield)')
     expect(presentationPolish).toContain("[aria-label='Terrain legend'] > span")
     expect(presentationPolish).not.toContain("document.createElement('div')")

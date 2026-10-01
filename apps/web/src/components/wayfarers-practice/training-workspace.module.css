@@ -17,7 +17,8 @@
   border: 1px solid #948267;
   border-radius: 2px;
   color: #303b36;
-  background: linear-gradient(135deg, #d9cfbdf5, #bdad93fa);
+  background: linear-gradient(135deg, #d9cfbdd9, #bdad93d4);
+  backdrop-filter: blur(3px);
   box-shadow: inset 0 0 0 1px #ffffff40;
   scroll-margin-top: 6rem;
 }

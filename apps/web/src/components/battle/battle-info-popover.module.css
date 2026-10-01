@@ -24,11 +24,13 @@
   max-height: calc(100dvh - 1rem);
   padding: 0.9rem;
   overflow: auto;
-  border: 1px solid var(--av-border-strong);
-  border-radius: 0.65rem;
-  color: var(--av-text);
-  background: linear-gradient(145deg, #1b242d, #0b1118);
-  box-shadow: 0 0.8rem 3rem #000b;
+  border: 1px solid #a88548;
+  border-radius: 0.2rem;
+  color: #172d3c;
+  background: linear-gradient(180deg, #fffdf7, #f4f0e4);
+  box-shadow:
+    0 0.8rem 3rem #000b,
+    inset 0 0 0 1px #ffffff8f;
   font: 400 0.8125rem/1.5 var(--av-font-body);
 }
 .panel > header {
@@ -39,19 +41,47 @@
   margin-bottom: 0.65rem;
 }
 .panel > header > strong {
-  color: var(--av-brass-200);
+  color: #4f3922;
   font: 600 1.1rem/1.2 var(--av-font-display);
 }
 .panel > header > button {
   flex: none;
   width: 1.65rem;
   height: 1.65rem;
-  border: 1px solid var(--av-border);
+  border: 1px solid #a88548;
   border-radius: 0.3rem;
-  color: var(--av-text);
-  background: #ffffff08;
+  color: #172d3c;
+  background: #e5dcc8;
   cursor: pointer;
 }
 .panel p {
   margin: 0.5rem 0;
+}
+.panel dl {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.5rem 0 0.8rem;
+}
+.panel dl > div {
+  display: grid;
+  grid-template-columns: minmax(6rem, 0.8fr) minmax(0, 1.2fr);
+  gap: 0.45rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid #a8854833;
+}
+.panel dt {
+  color: #62513c;
+  font-weight: 600;
+}
+.panel dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.panel [data-compact-skill-effect] {
+  display: block;
+  margin: 0.25rem 0;
+}
+.panel :is([data-compact-effect-magnitude], [data-compact-effect-duration]) {
+  color: #775019;
+  font-weight: 650;
 }

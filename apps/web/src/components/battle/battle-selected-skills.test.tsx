@@ -52,6 +52,18 @@ const runtime: BattleRuntime = {
 }
 
 describe('battle copied Skill presentation', () => {
+  it('places click information before the hotkey below every cockpit name, including empty slots', () => {
+    const markup = renderToStaticMarkup(
+      <BattleSelectedSkills runtime={runtime} disabled actionEconomy={0} onSelect={vi.fn()} />,
+    )
+    expect(markup.match(/data-battle-cockpit-controls="true"/g)).toHaveLength(6)
+    expect(markup).toMatch(
+      /<strong>Empty<\/strong><div[^>]*data-battle-cockpit-controls="true"[^>]*><button[^>]*aria-label="About selected Skill slot 1"[^>]*>i<\/button><span[^>]*>4<\/span>/,
+    )
+    expect(markup).toMatch(
+      /<strong>Severance \/ Ascension<\/strong><div[^>]*data-battle-cockpit-controls="true"[^>]*><button[^>]*>i<\/button><span[^>]*>9<\/span>/,
+    )
+  })
   it('renders four hotkey slots followed by power and supernatural information, without replacing basic commands', () => {
     const markup = renderToStaticMarkup(
       <BattleSelectedSkills
