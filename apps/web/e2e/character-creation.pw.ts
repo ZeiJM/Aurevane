@@ -67,7 +67,9 @@ test('creates a slotted character, persists its profile, and resumes it across s
   ).toHaveAttribute('aria-valuenow', '0')
 
   // Starter portrait filenames are registry-driven; verify the rendered image and decoded asset.
-  const profilePortrait = page.locator('[data-profile-workspace] .character-portrait-media')
+  const profilePortrait = page.locator(
+    '[data-testid="authenticated-shell"] > header .character-portrait-media',
+  )
   await expect(profilePortrait).toBeVisible()
   await expect
     .poll(() =>

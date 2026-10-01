@@ -7,7 +7,11 @@ import type {
 import type { CharacterRecord, CharacterRepository } from '@aurevane/db/character'
 import { createCombatEncounterState } from '@aurevane/game-core/combat/actions'
 import { moveCurrentCombatant } from '@aurevane/game-core/combat/board'
-import { finishPv1fTurn } from '@aurevane/game-core/combat/pv1f-action-economy'
+import {
+  finishPv1fTurn,
+  preparePv1fTurnEconomy,
+  PV1F_ACTION_ECONOMY_RESOURCE_KEY,
+} from '@aurevane/game-core/combat/pv1f-action-economy'
 import {
   reattachStatDrivenCombatBridge,
   type StatDrivenCombatEncounterState,
@@ -205,6 +209,60 @@ describe('P2.5 authoritative battle preview service', () => {
       issues: [expect.objectContaining({ code: 'non-adjacent-step' })],
     })
   })
+
+  it.each([
+    [100, true, 20],
+    [79, false, 0],
+  ] as const)(
+    'previews two rough tiles as two MOVE steps with %i AP and affordability %j',
+    async (ap, legal, remainingAp) => {
+      const { service, snapshot, record, battles } = await createFixture()
+      const rough = snapshot.tactical.terrains.find((terrain) => terrain.traversalCost === 2)!
+      const path = [
+        { x: 0, y: 1 },
+        { x: 1, y: 1 },
+        { x: 2, y: 1 },
+      ]
+      const modified = {
+        ...snapshot,
+        tactical: {
+          ...snapshot.tactical,
+          tiles: snapshot.tactical.tiles.map((tile) => ({
+            ...tile,
+            terrainId: path
+              .slice(1)
+              .some((position) => position.x === tile.position.x && position.y === tile.position.y)
+              ? rough.id
+              : tile.terrainId,
+          })),
+        },
+      }
+      const prepared = preparePv1fTurnEconomy(modified)
+      const actor = prepared.tactical.battle.combatants.find(
+        (combatant) => combatant.id === `character:${CHARACTER_ID}`,
+      )!
+      actor.temporaryResources = actor.temporaryResources.map((resource) =>
+        resource.key === PV1F_ACTION_ECONOMY_RESOURCE_KEY ? { ...resource, current: ap } : resource,
+      )
+      battles.findBattleSession.mockResolvedValue({ ...record, snapshot: prepared })
+      const result = await service.previewIntent({
+        userId: USER_ID,
+        battleSessionId: SESSION_ID,
+        expectedBattleVersion: 1,
+        intent: { kind: 'move', path },
+      })
+      expect(result.preview).toMatchObject({
+        legal,
+        cost: 2,
+        terrainCost: 4,
+        movementRemainingAfter: 0,
+        actionEconomyCost: 80,
+        actionEconomyAfter: remainingAp,
+        issues: legal ? [] : [expect.objectContaining({ code: 'insufficient-action-economy' })],
+      })
+      expect(battles.commitBattleIntent).not.toHaveBeenCalled()
+    },
+  )
 
   it('uses the stat-driven attack forecast without consuming authoritative RNG', async () => {
     const { battles, service, snapshot, record } = await createFixture()

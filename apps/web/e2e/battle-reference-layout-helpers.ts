@@ -3,12 +3,13 @@ import { expectRefinedCockpit, targetForecast } from './refined-battle-helpers'
 
 export async function expectBattleHeaderAndArtworkGeometry(page: Page) {
   const root = page.locator('main[data-unified-battle="true"]')
+  await expect(root.locator(':scope > header')).not.toContainText('Battle Hall ·')
   const geometry = await root.evaluate((element) => {
     const header = element.querySelector('[data-unified-battle-header]')!.getBoundingClientRect()
     const economy = element.querySelector('[data-unified-battle-economy]')!.getBoundingClientRect()
     const standards = Array.from(
       element.querySelectorAll<HTMLElement>(
-        '[data-command-card]:not([data-command-card="finish"]) [data-battle-command-artwork="static"]',
+        '[data-command-card] [data-battle-command-artwork="static"]',
       ),
     ).map((frame) => frame.getBoundingClientRect().toJSON())
     const selected = Array.from(
@@ -26,6 +27,11 @@ export async function expectBattleHeaderAndArtworkGeometry(page: Page) {
       economy: economy.toJSON(),
       standards,
       selected,
+      empty: Array.from(
+        element.querySelectorAll<HTMLElement>(
+          '[data-battle-selected-skills] [aria-label="Empty selected Skill slot"]',
+        ),
+      ).map((frame) => frame.getBoundingClientRect().toJSON()),
       selectedGroups: [
         '[aria-label="Selected Discipline Skills"]',
         '[data-battle-special="essence"], [data-battle-special="resonance"]',
@@ -54,14 +60,18 @@ export async function expectBattleHeaderAndArtworkGeometry(page: Page) {
       'Essence or Resonance does not overlap the future group',
     ).toBeLessThanOrEqual(future!.left)
   }
-  expect(geometry.standards).toHaveLength(4)
+  expect(geometry.standards).toHaveLength(5)
   expect(
     geometry.selected.length,
     'authored selected Skill or Essence artwork provides the size baseline',
   ).toBeGreaterThan(0)
   const baseline = geometry.selected[0]!.frame
   expect(baseline.width).toBeGreaterThan(0)
-  for (const frame of [...geometry.standards, ...geometry.selected.map((item) => item.frame)]) {
+  for (const frame of [
+    ...geometry.standards,
+    ...geometry.selected.map((item) => item.frame),
+    ...geometry.empty,
+  ]) {
     expect(
       Math.abs(frame.width - frame.height),
       'command and selected artwork stay square',
@@ -113,15 +123,59 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
       forecast: rect('[data-battle-preview-strip]'),
       key: rect('[data-battle-terrain-key]'),
       log: rect('[data-battle-inline-log]'),
-      tokens: [...board.querySelectorAll('[data-battle-shared-token]')].map((token) => ({
-        token: token.getBoundingClientRect().toJSON(),
-        tile: token.parentElement!.getBoundingClientRect().toJSON(),
-      })),
+      tokens: [...board.querySelectorAll('button[aria-label*="occupied by"] > [data-team]')].map(
+        (token) => ({
+          token: token.getBoundingClientRect().toJSON(),
+          tile: token.parentElement!.getBoundingClientRect().toJSON(),
+          portrait: token
+            .querySelector(
+              ':scope > .character-portrait-media, :scope > [class*="unitPortraitFallback"]',
+            )!
+            .getBoundingClientRect()
+            .toJSON(),
+          border: parseFloat(getComputedStyle(token).borderLeftWidth),
+        }),
+      ),
+      cards: [...element.querySelectorAll('[data-battle-combatant-card]')].map((card) => {
+        const portrait = card.querySelector('[data-av-square-media]')!
+        const header = card.querySelector('header')!
+        const facing = header.querySelector('span')!
+        const arrow = facing.querySelector('svg')!
+        const grid = card.querySelector('section[aria-label$="active combat effects"] > div')!
+        const gridStyle = getComputedStyle(grid)
+        const cardStyle = getComputedStyle(card)
+        const rootStyle = getComputedStyle(document.documentElement)
+        return {
+          portrait: portrait.getBoundingClientRect().toJSON(),
+          header: header.getBoundingClientRect().toJSON(),
+          facing: facing.getBoundingClientRect().toJSON(),
+          arrow: arrow.getBoundingClientRect().toJSON(),
+          grid: grid.getBoundingClientRect().toJSON(),
+          gridColumns: gridStyle.gridTemplateColumns.split(' ').length,
+          rowSize: parseFloat(gridStyle.gridAutoRows),
+          rowGap: parseFloat(gridStyle.rowGap),
+          portraitLimit:
+            parseFloat(rootStyle.getPropertyValue('--av-navigation-portrait-size')) *
+            parseFloat(rootStyle.fontSize),
+          cardContentWidth:
+            card.clientWidth -
+            parseFloat(cardStyle.paddingLeft) -
+            parseFloat(cardStyle.paddingRight),
+        }
+      }),
       scrollWidth: document.documentElement.scrollWidth,
       scrollHeight: document.documentElement.scrollHeight,
       w: innerWidth,
       h: innerHeight,
     }
+  })
+  await testInfo.attach(`${label}-geometry.json`, {
+    body: JSON.stringify(geometry, null, 2),
+    contentType: 'application/json',
+  })
+  await testInfo.attach(label, {
+    body: await page.screenshot({ path: testInfo.outputPath(`${label}.png`) }),
+    contentType: 'image/png',
   })
   expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.w + 1)
   expect(Math.abs(geometry.tile.width - geometry.tile.height)).toBeLessThanOrEqual(1)
@@ -135,16 +189,50 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
     expect(geometry.forecast.top).toBeGreaterThanOrEqual(geometry.viewport.bottom - 1)
     expect(geometry.deck.top).toBeGreaterThanOrEqual(geometry.forecast.bottom - 1)
   }
-  for (const { token, tile } of geometry.tokens) {
+  expect(geometry.tokens.length, 'occupied map tokens are measured').toBeGreaterThan(0)
+  for (const { token, tile, portrait, border } of geometry.tokens) {
     expect(token.width).toBeGreaterThan(tile.width * 0.8)
     expect(token.width).toBeLessThanOrEqual(tile.width * 0.9)
     expect(Math.abs(token.width - token.height)).toBeLessThanOrEqual(1)
+    expect(
+      Math.abs(portrait.width - portrait.height),
+      'portrait crop stays circular',
+    ).toBeLessThanOrEqual(1)
+    expect(
+      Math.abs(portrait.x + portrait.width / 2 - (token.x + token.width / 2)),
+      'portrait centers in identity ring',
+    ).toBeLessThanOrEqual(1)
+    expect(
+      Math.abs(portrait.y + portrait.height / 2 - (token.y + token.height / 2)),
+    ).toBeLessThanOrEqual(1)
+    expect(
+      Math.abs(portrait.width + border * 2 - token.width),
+      'ring fits around portrait',
+    ).toBeLessThanOrEqual(1)
+  }
+  for (const card of geometry.cards) {
+    expect(card.header.bottom, 'name and facing are above the portrait').toBeLessThanOrEqual(
+      card.portrait.top + 1,
+    )
+    expect(
+      Math.abs(card.arrow.x + card.arrow.width / 2 - (card.facing.x + card.facing.width / 2)),
+    ).toBeLessThanOrEqual(1)
+    expect(
+      Math.abs(card.arrow.y + card.arrow.height / 2 - (card.facing.y + card.facing.height / 2)),
+    ).toBeLessThanOrEqual(1)
+    if (geometry.w > 820) {
+      expect(
+        Math.abs(card.portrait.width - Math.min(card.portraitLimit, card.cardContentWidth)),
+        'battle portrait uses navigation size within its rail',
+      ).toBeLessThanOrEqual(1)
+    }
+    expect(card.gridColumns, 'ten effect icons per row').toBe(10)
+    expect(
+      Math.abs(card.grid.height - (card.rowSize * 2 + card.rowGap)),
+      'two effect rows are reserved',
+    ).toBeLessThanOrEqual(1)
   }
   await expectBattlePreviewFits(page)
-  await testInfo.attach(label, {
-    body: await page.screenshot({ path: testInfo.outputPath(`${label}.png`) }),
-    contentType: 'image/png',
-  })
 }
 
 export async function expectBattleFlowKeepsBoardSize(page: Page) {

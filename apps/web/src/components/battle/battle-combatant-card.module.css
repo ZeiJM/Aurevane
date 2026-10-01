@@ -11,7 +11,7 @@
 }
 .portrait {
   display: block;
-  width: min(100%, max(5rem, calc(100cqh - 21rem)));
+  width: min(100%, var(--av-navigation-portrait-size, 10.3125rem));
   margin-inline: auto;
   aspect-ratio: 1;
   padding: 0;
@@ -40,28 +40,32 @@
   gap: 0.35rem;
   padding: 0.4rem 0.35rem 0.25rem;
 }
-.identity > div {
-  display: grid;
-  gap: 0.1rem;
-  min-width: 0;
-}
 .identity strong {
+  min-width: 0;
   overflow-wrap: anywhere;
   font: 600 1.05rem/1.1 var(--av-font-display);
-}
-.identity > div > span {
-  font-size: 0.75rem;
-  color: #d0c9bc;
 }
 .facing {
   display: grid;
   flex: none;
   width: 1.8rem;
   aspect-ratio: 1;
+  height: 1.8rem;
   place-items: center;
   border: 1px solid var(--battle-combatant-accent);
   border-radius: 50%;
   color: var(--battle-combatant-accent);
+}
+.facing svg {
+  display: block;
+  width: 1.15rem;
+  height: 1.15rem;
+}
+.facing i {
+  display: block;
+  font: 600 1.15rem/1 var(--av-font-body);
+  font-style: normal;
+  text-align: center;
 }
 .vitals {
   display: grid;
@@ -108,11 +112,14 @@
     column-gap: 0.35rem;
   }
   .portrait {
-    grid-row: 1 / 4;
+    grid-column: 1;
+    grid-row: 2 / 4;
+    width: 4.5rem;
     align-self: start;
   }
   .identity {
-    padding: 0.1rem 0.2rem;
+    grid-column: 1 / -1;
+    padding: 0.1rem 0.2rem 0.3rem;
   }
   .identity strong {
     font-size: 0.9375rem;

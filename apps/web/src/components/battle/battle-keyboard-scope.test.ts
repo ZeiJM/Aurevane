@@ -39,3 +39,23 @@ describe('closed information trigger focus', () => {
     expect(isBattleShortcutBlocked(trigger, 'Enter')).toBe(true)
   })
 })
+
+describe('forecast lane focus', () => {
+  it.each(['ArrowRight', 'ArrowLeft', 'KeyD', 'Space', 'Digit4'])(
+    'keeps %s inside a scrollable reading lane',
+    (code) => {
+      class ForecastLane {
+        isContentEditable = false
+        closest(selector: string) {
+          return selector.includes('[data-battle-preview-lane]') ? this : null
+        }
+      }
+      vi.stubGlobal('document', { querySelector: () => null })
+      vi.stubGlobal('HTMLElement', ForecastLane)
+      vi.stubGlobal('HTMLInputElement', class {})
+      vi.stubGlobal('HTMLTextAreaElement', class {})
+      vi.stubGlobal('HTMLSelectElement', class {})
+      expect(isBattleShortcutBlocked(new ForecastLane() as unknown as EventTarget, code)).toBe(true)
+    },
+  )
+})

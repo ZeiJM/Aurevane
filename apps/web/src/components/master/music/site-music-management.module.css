@@ -84,7 +84,7 @@
 
 .masterToggle,
 .ruleToggle,
-.loopToggle {
+.loopNotice {
   display: inline-flex !important;
   flex-direction: row !important;
   align-items: center;
@@ -94,8 +94,7 @@
 }
 
 .masterToggle input,
-.ruleToggle input,
-.loopToggle input {
+.ruleToggle input {
   accent-color: #c9a653;
 }
 
@@ -380,7 +379,7 @@
 .ruleTopline label,
 .masterToggle,
 .ruleToggle,
-.loopToggle {
+.loopNotice {
   color: #596053;
 }
 .preview {

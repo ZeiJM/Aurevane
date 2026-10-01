@@ -11,8 +11,10 @@ describe('Combat v5 Nexus and Technique presentation contracts', () => {
     const source = readFileSync(join(here, 'character-skill-build-panel.tsx'), 'utf8')
 
     expect(source).toContain('focusedSkill.definition.flavorLine')
-    expect(source).toContain("['Skill Type', skillTypeDescription(focusedSkill.definition)]")
-    expect(source).toContain("['Cooldown', skillCooldownDescription(focusedSkill.definition)]")
+    expect(source).toContain('skillParameterRows(focusedSkill.definition)')
+    const parameters = readFileSync(join(here, 'skill-detail-presentation.ts'), 'utf8')
+    expect(parameters).toContain("['Skill Type', skillTypeDescription(skill)]")
+    expect(parameters).toContain("['Cooldown', skillCooldownDescription(skill)]")
     expect(source).toContain("['Effects', skillEffectSummaries(focusedSkill.definition)]")
     expect(source).toContain('className={styles.effectSummaryList}')
     expect(source).toContain('aria-label="Effect explanations"')

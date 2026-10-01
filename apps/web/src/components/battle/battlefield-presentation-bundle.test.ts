@@ -40,7 +40,7 @@ describe('shared battlefield presentation bundle', () => {
     const mobileControls = readLocalFile('pvp-spectator-mobile-control-balance.module.css')
 
     expect(spectator).toContain('data-board-auto-fit={`${tactical.width}x${tactical.height}`}')
-    expect(spectator).toContain('<BattleMapKey />')
+    expect(spectator).not.toContain('<BattleMapKey />')
     expect(spectator).not.toContain('className={styles.tileMeta}')
     expect(mobileLayout).toContain("[data-spectator-terrain-cost='true']")
     expect(mobileLayout).toContain('display: none !important;')
@@ -63,7 +63,7 @@ describe('shared battlefield presentation bundle', () => {
     for (const file of [
       'terrain-open-stone-v01.webp',
       'terrain-rough-moss-v01.webp',
-      'terrain-raised-stone-v01.webp',
+      'terrain-raised-ledge-v02.webp',
     ])
       expect(styles).toContain(file)
     expect(styles).toContain("button[data-terrain-presentation='difficult']")
@@ -78,7 +78,7 @@ describe('shared battlefield presentation bundle', () => {
     expect(spectator).toContain('data-battle-side="local"')
     expect(spectator).toContain('data-battle-side="selected"')
     expect(spectator).toContain('<BattleCombatantCard')
-    expect(spectator).toContain('<BattleMapKey variant="inline" />')
+    expect(spectator).toContain('<BattleMapKey snapshot={battle.snapshot} />')
     expect(spectator).toMatch(/<BattleLogPanel\s+presentation="inline"/)
     expect(spectator).toContain('setSelectedCombatantId(placement.combatantId)')
     expect(spectator).toContain('data-battle-command-dock="true"')

@@ -75,7 +75,7 @@
 .broadcast {
   display: grid;
   grid-template-columns: clamp(10rem, 14vw, 14rem) minmax(0, 1fr) clamp(10rem, 14vw, 14rem);
-  grid-template-rows: minmax(0, 1fr) auto auto;
+  grid-template-rows: minmax(0, 1fr) 5.5rem auto;
   grid-template-areas: 'local board selected' 'local preview selected' 'cockpit cockpit cockpit';
   gap: 0.45rem;
   min-width: 0;
@@ -84,20 +84,29 @@
 }
 .localSide,
 .selectedSide {
-  display: flex;
-  flex-direction: column;
+  container-type: size;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  align-content: start;
   gap: 0.45rem;
   min-width: 0;
   min-height: 0;
+  overflow: hidden;
+}
+.localSide > :first-child,
+.selectedSide > :first-child {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
 }
 .localSide {
   grid-area: local;
 }
 .selectedSide {
   grid-area: selected;
-}
-.selectedSide > :last-child {
-  flex: 1;
+  /* Spectation reserves the same readable log track as the playable battle rails. */
+  grid-template-rows: minmax(0, 1fr) minmax(11rem, 0.65fr);
 }
 .battlefieldWrap {
   grid-area: board;
@@ -184,10 +193,13 @@
 .preview {
   grid-area: preview;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 0.5rem;
   min-width: 0;
+  min-height: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
   padding: 0.6rem 0.7rem;
   border: 1px solid #a99269;
   color: #332b22;
@@ -195,6 +207,7 @@
   font-size: 0.8125rem;
 }
 .preview strong {
+  flex: none;
   font: 650 1rem/1.1 var(--av-font-display);
 }
 .inspectDock {
@@ -257,6 +270,21 @@
     grid-template-rows: auto auto auto auto;
     grid-template-areas: 'local selected' 'board board' 'preview preview' 'cockpit cockpit';
     padding: 0.4rem;
+  }
+  .localSide,
+  .selectedSide {
+    container-type: normal;
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
+  }
+  .localSide > :first-child,
+  .selectedSide > :first-child {
+    overflow: visible;
+  }
+  .preview {
+    flex-wrap: wrap;
+    overflow: visible;
   }
   .battlefieldWrap,
   .boardScroller {

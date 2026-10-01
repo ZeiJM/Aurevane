@@ -1,11 +1,13 @@
 import { expect, test } from '@playwright/test'
 
-import { expectMapKey } from './battle-map-key-helpers'
+import { expectTerrainKey } from './battle-map-key-helpers'
 import {
   expectBattleFlowKeepsBoardSize,
   expectBattleReferenceLayout,
 } from './battle-reference-layout-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
+import { commitGesture } from './refined-battle-helpers'
+import { expectReadableBattleLog } from './battle-log-layout-helpers'
 
 function uniqueIdentity(prefix: string): { email: string; characterName: string } {
   const seed = `${Date.now()}${Math.floor(Math.random() * 100_000)}`
@@ -91,6 +93,21 @@ test('keeps the desktop PvP battle flow beside compact commands without resizing
     await expect(host).toHaveURL(/\/game\/battle\/[0-9a-f-]+$/i, { timeout: 20_000 })
 
     const root = host.locator("main[data-pvp-battle='true']")
+    await expect(root).toBeVisible()
+    await expect(guest.locator("main[data-pvp-battle='true']")).toBeVisible()
+    const hostHasTurn = (await root.getAttribute('data-local-turn')) === 'true'
+    const activePage = hostHasTurn ? host : guest
+    const activeRoot = activePage.locator("main[data-pvp-battle='true']")
+    const activeName = hostHasTurn ? hostIdentity.characterName : guestIdentity.characterName
+    await activeRoot
+      .getByRole('region', { name: 'Command Deck' })
+      .getByRole('button', { name: /^Guard,/ })
+      .click()
+    await commitGesture(
+      activePage,
+      activeRoot.getByRole('button', { name: new RegExp(`occupied by ${activeName}`) }),
+    )
+    await expect(root.locator('[data-battle-inline-log]')).toContainText('Guard')
     const spectatorKey = (
       await root.locator("[data-pvp-spectator-key='true'] strong").textContent()
     )?.trim()
@@ -114,6 +131,7 @@ test('keeps the desktop PvP battle flow beside compact commands without resizing
     const spectatorLog = spectatorRoot.locator('[data-battle-inline-log]')
     await expect(spectatorLog).toBeVisible()
     await expect(spectatorLog.getByRole('button', { name: 'Expand battle history' })).toBeVisible()
+    await expectReadableBattleLog(spectator, testInfo, 'spectator-short-log', spectatorLog)
     const chat = spectatorRoot
       .locator('details')
       .filter({ has: spectator.getByText('Battle Chat', { exact: true }) })
@@ -130,8 +148,9 @@ test('keeps the desktop PvP battle flow beside compact commands without resizing
     await expect(history).toHaveCount(0)
 
     await expect(root.locator('[data-battle-inline-log]')).toBeVisible()
-    await expectMapKey(host)
+    await expectTerrainKey(host)
     await expectBattleReferenceLayout(host, testInfo, 'combat-pvp-short-window')
+    await expectReadableBattleLog(host, testInfo, 'pvp-short-log')
     await expectBattleFlowKeepsBoardSize(host)
     for (const size of [
       { width: 2400, height: 1350 },
@@ -140,6 +159,7 @@ test('keeps the desktop PvP battle flow beside compact commands without resizing
     ]) {
       await host.setViewportSize(size)
       await expectBattleReferenceLayout(host, testInfo, `combat-pvp-${size.width}x${size.height}`)
+      await expectReadableBattleLog(host, testInfo, `pvp-log-${size.width}x${size.height}`)
       await expectBattleFlowKeepsBoardSize(host)
     }
     await host.reload()

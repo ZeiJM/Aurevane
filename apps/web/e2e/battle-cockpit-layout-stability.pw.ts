@@ -45,6 +45,36 @@ async function expectStableCompactDesktopCockpit(page: Page) {
   after.forEach((height, index) => {
     expect(Math.abs(height - before[index]!)).toBeLessThanOrEqual(1)
   })
+  const finishCard = deck.locator('[data-command-card="finish"]')
+  const closedFinishHeight = await finishCard.evaluate(
+    (card) => card.getBoundingClientRect().height,
+  )
+  await deck.getByRole('button', { name: /^End Turn,/ }).click()
+  await expectInlineFacingPad(page, closedFinishHeight)
+  await page.getByRole('button', { name: 'Cancel Action', exact: true }).click()
+  await expect(facingPad).toBeHidden()
+}
+
+async function expectInlineFacingPad(page: Page, closedHeight: number) {
+  const finishCard = page.locator('[data-command-card="finish"]')
+  const facingPad = finishCard.locator('[data-unified-facing-pad="true"]')
+  await expect(facingPad).toBeVisible()
+  await expect(facingPad.getByRole('button')).toHaveCount(4)
+  const cardBox = await finishCard.boundingBox()
+  expect(cardBox).not.toBeNull()
+  if (!cardBox) return
+  expect(Math.abs(cardBox.height - closedHeight)).toBeLessThanOrEqual(1)
+  for (const facing of ['north', 'west', 'east', 'south']) {
+    const button = facingPad.getByRole('button', { name: `Face ${facing}`, exact: true })
+    await expect(button).toBeVisible()
+    const buttonBox = await button.boundingBox()
+    expect(buttonBox).not.toBeNull()
+    if (!buttonBox) continue
+    expect(buttonBox.x).toBeGreaterThanOrEqual(cardBox.x)
+    expect(buttonBox.y).toBeGreaterThanOrEqual(cardBox.y)
+    expect(buttonBox.x + buttonBox.width).toBeLessThanOrEqual(cardBox.x + cardBox.width)
+    expect(buttonBox.y + buttonBox.height).toBeLessThanOrEqual(cardBox.y + cardBox.height)
+  }
 }
 
 test('keeps the shared PvE desktop cockpit at its compact scale before and after action selection', async ({
@@ -209,7 +239,11 @@ test('mobile End Turn opens facing controls and commits a single tapped directio
   }
   page.on('request', countFinalTurn)
 
+  const closedFinishHeight = await deck
+    .locator('[data-command-card="finish"]')
+    .evaluate((card) => card.getBoundingClientRect().height)
   await finishTurn.tap()
+  await expectInlineFacingPad(page, closedFinishHeight)
   await expect(facingGuides).toHaveCount(4)
   await page.waitForTimeout(200)
   expect(finalTurnRequests).toBe(0)

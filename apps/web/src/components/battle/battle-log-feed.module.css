@@ -290,13 +290,15 @@
 }
 
 .flowViews {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.25rem;
   min-height: 1.8rem;
-  padding: 0.2rem 0.6rem;
+  padding: 0.2rem 0.4rem;
   border-bottom: 1px solid var(--av-border);
 }
 .flowViews button {
+  min-width: 0;
   padding: 0.2rem 0.45rem;
   border: 0;
   border-radius: 0.3rem;
@@ -314,6 +316,7 @@
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   min-height: 0;
+  overflow: hidden;
 }
 .feed[data-compact-flow] .primaryLine,
 .feed[data-compact-flow] .secondaryLine {

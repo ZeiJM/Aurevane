@@ -2,6 +2,8 @@
    Gameplay and editor state remain owned by their existing components. */
 :root {
   --av-gameplay-art-size: 4rem;
+  --av-cockpit-art-size: 4.875rem;
+  --av-navigation-portrait-size: 10.3125rem;
   --av-moonstone: #c5b69c;
   --av-moonstone-quiet: #b8a88e;
   --av-moonstone-elevated: #d4c6ae;
@@ -430,6 +432,11 @@ body {
 [data-profile-section-header] p {
   color: #625844 !important;
 }
+@media (max-width: 1100px) and (min-width: 821px) {
+  :root {
+    --av-cockpit-art-size: 4.25rem;
+  }
+}
 [data-av-square-media='true'][data-battle-command-artwork],
 [data-testid='technique-preview'] [data-av-square-media='true'],
 [data-testid='learned-skill-list'] [data-av-square-media='true'] {
@@ -577,5 +584,16 @@ body {
   [data-world-workspace] {
     height: 100% !important;
     min-height: 0 !important;
+  }
+}
+
+@media (min-width: 761px) and (max-height: 700px) {
+  :root {
+    --av-navigation-portrait-size: 7rem;
+  }
+}
+@media (min-width: 761px) and (max-height: 620px) {
+  :root {
+    --av-navigation-portrait-size: 5.5rem;
   }
 }

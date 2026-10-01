@@ -11,6 +11,7 @@ import {
   expectBattlePreviewFits,
   expectBattleHeaderAndArtworkGeometry,
 } from './battle-reference-layout-helpers'
+import { expectReadableBattleLog } from './battle-log-layout-helpers'
 
 const SHARED_HEADER =
   /^(Steel is drawn\. The battle is underway\.|Stand fast\. The field belongs to the resolute\.|Hold your nerve\. One clear move can turn the tide\.|Press forward\. Fortune follows the decisive\.|Every step has weight\. Make this one count\.)$/
@@ -248,6 +249,14 @@ test('keeps requested PvE presentation parity on desktop and mobile', async ({
     )
     await page.getByRole('button', { name: 'Close action details', exact: true }).click()
     await page.keyboard.press('Escape')
+    for (const size of [
+      { width: 1536, height: 614 },
+      { width: 1280, height: 720 },
+      { width: 412, height: 915 },
+    ]) {
+      await page.setViewportSize(size)
+      await expectReadableBattleLog(page, testInfo, `ai-log-${size.width}x${size.height}`)
+    }
     await testInfo.attach('combat-populated-history', {
       body: await page.screenshot(),
       contentType: 'image/png',
@@ -339,6 +348,17 @@ test('keeps requested PvP presentation parity on desktop and mobile', async ({
       await expectDesktopCombatantCard(activeRoot)
       await plotOneDesktopWasdStep(activePage, activeRoot, activeName)
     }
+    await activeRoot.getByRole('button', { name: 'Cancel Action' }).click()
+    await activeRoot
+      .getByRole('region', { name: 'Command Deck' })
+      .getByRole('button', { name: /^Guard,/ })
+      .click()
+    await commitGesture(
+      activePage,
+      activeRoot.getByRole('button', { name: new RegExp(`occupied by ${activeName}`) }),
+    )
+    await expect(activeRoot.locator('[data-battle-inline-log]')).toContainText('Guard')
+    await expectReadableBattleLog(activePage, testInfo, mobile ? 'pvp-mobile-log' : 'pvp-log')
   } finally {
     await Promise.all([hostContext.close(), guestContext.close()])
   }

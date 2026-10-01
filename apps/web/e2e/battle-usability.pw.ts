@@ -94,7 +94,7 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
   const commandDeck = page.getByRole('region', { name: 'Command Deck' })
   const commandContext = page.locator('[data-battle-preview-strip]')
   await expect(battlefield).toBeVisible()
-  await expectVictoryConditionsBesideMapKey(page)
+  await expectVictoryConditionsAndTerrainKey(page)
   await expect(
     page.getByRole('button', { name: new RegExp(`Tile 2, 4;.*occupied by ${characterName}`) }),
   ).toBeVisible()
@@ -110,10 +110,21 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
     'aria-valuenow',
     '100',
   )
-  await expect(commandDeck.getByRole('button', { name: /^Move,/ })).toContainText('M')
-  await expect(commandDeck.locator('button[data-battle-command="attack"]')).toContainText('2')
-  await expect(commandDeck.locator('button[data-battle-command="guard"]')).toContainText('3')
-  await expect(page.locator('[data-battle-secondary-actions]')).toContainText('Recovery')
+  await expect(commandDeck.locator('[data-command-card="move"]')).toContainText('M')
+  await expect(commandDeck.locator('[data-command-card="attack"]')).toContainText('2')
+  await expect(commandDeck.locator('[data-command-card="guard"]')).toContainText('3')
+  await expect(page.locator('[data-battle-secondary-actions]')).toHaveCount(0)
+  const footerBox = await page.locator('[data-unified-battle-footer]').boundingBox()
+  const surrenderBox = await page
+    .getByRole('button', { name: 'Surrender', exact: true })
+    .boundingBox()
+  expect(footerBox).not.toBeNull()
+  expect(surrenderBox).not.toBeNull()
+  if (footerBox && surrenderBox) {
+    const rightInset = footerBox.x + footerBox.width - (surrenderBox.x + surrenderBox.width)
+    expect(rightInset).toBeGreaterThanOrEqual(0)
+    expect(rightInset).toBeLessThanOrEqual(24)
+  }
   expect(await hasHorizontalOverflow(page)).toBe(false)
   if (testInfo.project.name !== 'mobile-chromium') {
     expect(await hasVerticalPageOverflow(page)).toBe(false)
@@ -136,7 +147,7 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
   await commandDeck.getByRole('button', { name: /^Inspect,/ }).click()
   await expect(commandContext).toContainText('Choose a character or tile to inspect')
   await page.getByRole('button', { name: /Tile 4, 3; rough-ground; elevation 0/ }).click()
-  await expect(commandContext).toContainText('Rough ground')
+  await expect(commandContext).toContainText('Difficult terrain')
   await page.getByRole('button', { name: new RegExp(`occupied by ${characterName}`) }).click()
   await expect(page.locator('[data-battle-combatant-card="selected"]')).toContainText(characterName)
   await expect(page.getByRole('dialog')).toHaveCount(0)
@@ -237,28 +248,12 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
   expect(winningTeam).toBe('opponents')
 })
 
-async function expectVictoryConditionsBesideMapKey(
+async function expectVictoryConditionsAndTerrainKey(
   page: import('@playwright/test').Page,
 ): Promise<void> {
-  const key = page.getByRole('button', { name: 'Map Key', exact: true })
-  const victoryConditions = page.getByRole('button', { name: /Victory conditions/i })
-  await expect(victoryConditions).toBeVisible()
-
-  const [keyBox, victoryBox] = await Promise.all([
-    key.boundingBox(),
-    victoryConditions.boundingBox(),
-  ])
-  expect(keyBox).not.toBeNull()
-  expect(victoryBox).not.toBeNull()
-  if (!keyBox || !victoryBox) return
-
-  const horizontalGap = victoryBox.x - (keyBox.x + keyBox.width)
-  expect(horizontalGap).toBeGreaterThanOrEqual(-1)
-  expect(horizontalGap).toBeLessThanOrEqual(24)
-
-  const keyCenterY = keyBox.y + keyBox.height / 2
-  const victoryCenterY = victoryBox.y + victoryBox.height / 2
-  expect(Math.abs(keyCenterY - victoryCenterY)).toBeLessThanOrEqual(1)
+  await expect(page.getByRole('button', { name: 'Map Key', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /Victory conditions/i })).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Terrain Key', exact: true })).toBeVisible()
 }
 
 async function hasHorizontalOverflow(page: import('@playwright/test').Page): Promise<boolean> {

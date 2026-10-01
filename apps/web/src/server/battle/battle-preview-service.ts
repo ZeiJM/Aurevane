@@ -183,16 +183,18 @@ async function previewIntent(
   combatContentResolver?: CombatContentResolver,
 ): Promise<BattleIntentPreview> {
   if (intent.kind === 'move') {
-    const { prepared, movement, economyCost } = evaluatePv1fMovement(state, intent.path)
+    const { prepared, movement, terrainCost, economyCost } = evaluatePv1fMovement(
+      state,
+      intent.path,
+    )
     const economy = readPv1fActionEconomy(prepared)
     const before = economy?.current ?? 0
     const affordable = before >= economyCost
-    const movementRemainingBefore = prepared.tactical.battle.currentTurn?.movementRemaining ?? 0
     return {
       kind: 'move',
       legal: movement.legal && affordable,
       path: movement.path,
-      terrainCost: movement.cost,
+      terrainCost,
       actionEconomyCost: economyCost,
       actionEconomyBefore: before,
       actionEconomyAfter: Math.max(0, before - economyCost),
@@ -209,7 +211,7 @@ async function previewIntent(
             ]),
       ],
       cost: movement.cost,
-      movementRemainingAfter: Math.max(0, movementRemainingBefore - movement.cost),
+      movementRemainingAfter: movement.movementRemainingAfter,
     }
   }
 

@@ -176,6 +176,36 @@ test('level-up forces Core Stat allocation until every gained point is committed
   const reset = page.getByRole('dialog', { name: 'Redistribute Attributes', exact: true })
   await expect(reset).toBeVisible()
   await expectAttributeCardsAndPortraitName(reset, characterName)
+  const railPortrait = page.locator('[data-av-game-rail] [data-character-portrait-frame]')
+  const railName = page.locator('[data-av-game-rail] [data-character-identity-copy] > strong')
+  const resetPortrait = reset.getByTestId('attribute-redistribution-portrait')
+  const portraitMetrics = await Promise.all([
+    railPortrait.boundingBox(),
+    railName.boundingBox(),
+    resetPortrait.boundingBox(),
+  ])
+  await testInfo.attach('reset-navigation-portrait-sizing.json', {
+    body: JSON.stringify(portraitMetrics, null, 2),
+    contentType: 'application/json',
+  })
+  await testInfo.attach('reset-navigation-portrait-sizing.png', {
+    body: await page.screenshot(),
+    contentType: 'image/png',
+  })
+  const [railBox, nameBox, resetBox] = portraitMetrics
+  if (!railBox || !nameBox || !resetBox) throw new Error('Portrait sizing is unavailable')
+  expect(
+    Math.abs(railBox.x - nameBox.x),
+    'rail portrait starts in line with the name',
+  ).toBeLessThanOrEqual(1)
+  expect(
+    Math.abs(railBox.width - resetBox.width),
+    'reset and navigation portraits have equal width',
+  ).toBeLessThanOrEqual(1)
+  expect(
+    Math.abs(railBox.height - resetBox.height),
+    'reset and navigation portraits have equal height',
+  ).toBeLessThanOrEqual(1)
   for (const label of ['Might', 'Finesse', 'Vitality', 'Agility', 'Intellect', 'Resolve']) {
     await expect(
       reset.getByRole('button', { name: `Decrease ${label}`, exact: true }),

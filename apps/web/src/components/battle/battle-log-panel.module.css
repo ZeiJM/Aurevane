@@ -318,6 +318,8 @@
   --av-brass-300: #72542e;
   --av-brass-200: #67502d;
   --av-border: #98836466;
+  --av-border-strong: #8e775b;
+  box-sizing: border-box;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   min-width: 0;
@@ -334,13 +336,16 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.3rem;
-  padding: 0.55rem;
+  min-width: 0;
+  padding: 0.4rem 0.55rem;
   border-bottom: 1px solid #99876a66;
 }
 .inline > header strong {
+  min-width: 0;
   font: 650 0.9375rem/1.1 var(--av-font-display);
 }
 .inline > header button {
+  flex: none;
   border: 0;
   padding: 0.2rem;
   color: #58472f;
@@ -349,6 +354,7 @@
   cursor: pointer;
 }
 .inline > :not(header) {
+  min-width: 0;
   min-height: 0;
   overflow: auto;
   overscroll-behavior: contain;
@@ -356,7 +362,7 @@
 }
 @media (max-width: 820px) {
   .inline {
-    min-height: 10rem;
-    max-height: 16rem;
+    height: 16rem;
+    min-height: 0;
   }
 }

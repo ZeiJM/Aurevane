@@ -59,7 +59,7 @@ describe('PvP-first shared battle visual contract', () => {
       "grid-template-areas: 'local board selected' 'local preview selected' 'cockpit cockpit cockpit';",
     )
     expect(selectedSkills).toContain('min-width: 0;')
-    expect(selectedSkills).toContain('width: min(100%, 4.875rem);')
+    expect(selectedSkills).toContain('width: min(100%, var(--av-cockpit-art-size));')
   })
 
   it('keeps command text dark and artwork square on the pale cockpit', () => {

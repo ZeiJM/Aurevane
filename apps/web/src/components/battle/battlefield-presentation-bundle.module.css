@@ -43,7 +43,7 @@
     #battlefield
     button[data-terrain-elevated='true']:not([data-terrain='rough'])
 ) {
-  background-image: url('/media/art/battle/terrain-raised-stone-v01.webp');
+  background-image: url('/media/art/battle/terrain-raised-ledge-v02.webp');
 }
 @media (max-width: 820px) {
   :global(

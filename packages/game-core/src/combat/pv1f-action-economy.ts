@@ -1261,7 +1261,7 @@ export function evaluatePv1fMovement(
   path: readonly GridPosition[],
 ) {
   const prepared = preparePv1fTurnEconomy(state)
-  let movement = evaluateCurrentMovementPath(prepared.tactical, path)
+  let movement = evaluateCurrentMovementPath(prepared.tactical, path, 'entered-tiles')
   const modifiers = pv1fMovementModifiers(prepared)
   if (modifiers.blocked) {
     movement.legal = false
@@ -1282,8 +1282,15 @@ export function evaluatePv1fMovement(
     movement = evaluateCurrentMovementPath(
       prepared.tactical,
       path.slice(0, poisonForecast.traversedTiles + 1),
+      'entered-tiles',
     )
   }
+  // Retain the terrain-weight preview contract, including a validated prefix of an illegal path.
+  const terrainCost = movement.path.slice(1, movement.cost + 1).reduce((sum, position) => {
+    const traversal = movementTraversalCostAt(prepared.tactical, movement.combatantId, position)
+    if (traversal === null) throw new Error('Validated movement cannot enter blocked terrain.')
+    return sum + traversal
+  }, 0)
   const economyCost = movement.legal
     ? movement.path.slice(1).reduce((sum, position) => {
         const traversal = movementTraversalCostAt(prepared.tactical, movement.combatantId, position)
@@ -1291,7 +1298,7 @@ export function evaluatePv1fMovement(
         return sum + movementApCostForTile(traversal, modifiers.additionalApAt(position))
       }, 0)
     : 0
-  return { prepared, movement, economyCost, poisonForecast }
+  return { prepared, movement, terrainCost, economyCost, poisonForecast }
 }
 
 export function executePv1fMovement(
@@ -1306,7 +1313,7 @@ export function executePv1fMovement(
   }
   const actorId = prepared.tactical.battle.currentTurn?.combatantId
   if (!actorId) throw new Error('PV-1F movement requires an active turn.')
-  const moved = moveCurrentCombatant(prepared.tactical, movement.path)
+  const moved = moveCurrentCombatant(prepared.tactical, movement.path, 'entered-tiles')
   let next = reattachStatDrivenCombatBridge(
     { ...prepared, ...createCombatEncounterState(moved.state, prepared.statusState) },
     prepared.statBridge,

@@ -288,7 +288,7 @@ export function BattleExperience({
   }, [mode])
   const { registerFinishTurnHandler, registerInspectCloseHandler } = useBattleInteractionLifecycle()
 
-  const { selectedSkillId, selectSkill } = useBattleSkillSelections(
+  const { selectedSkillId } = useBattleSkillSelections(
     initialBattle.battleSessionId,
     BATTLE_SKILL_CATEGORIES,
   )
@@ -1064,7 +1064,7 @@ export function BattleExperience({
         armAction('attack', skillId)
       }
     },
-    [armAction],
+    [armAction, setSelectedAttackActionId, setSelectedDefenseActionId, setSelectedTechniqueHealId],
   )
 
   const chooseMode = useCallback(
@@ -1098,7 +1098,14 @@ export function BattleExperience({
       else if (nextMode === 'inspect')
         setNotice('Choose a character or tile to inspect. No AP is spent.')
     },
-    [armAction, clearPlanning, effectiveHealActionId, planningDisabled],
+    [
+      armAction,
+      clearPlanning,
+      effectiveHealActionId,
+      planningDisabled,
+      setSelectedAttackActionId,
+      setSelectedDefenseActionId,
+    ],
   )
 
   const currentActionId =
@@ -1511,6 +1518,10 @@ export function BattleExperience({
   const contextDescription = terrainInspection
     ? `${terrainInspection.title} · ${terrainInspection.description}${selectedParticipant ? ` · ${characterInspection}` : ''}`
     : characterInspection
+  const previewTargetPosition =
+    pendingIntent?.kind === 'action' && pendingIntent.target.kind === 'tile'
+      ? pendingIntent.target.position
+      : null
 
   return (
     <main
@@ -1530,7 +1541,6 @@ export function BattleExperience({
     >
       <header className={styles.header} data-unified-battle-header="true">
         <div className={styles.objective}>
-          <span>{viewModel.objectiveEyebrow}</span>
           <strong>{viewModel.objective}</strong>
         </div>
 
@@ -1570,7 +1580,6 @@ export function BattleExperience({
         </div>
 
         <div data-battle-header-utilities="true">
-          <BattleMapKey />
           <BattleInfoPopover
             label="Victory Conditions"
             trigger={
@@ -1689,7 +1698,7 @@ export function BattleExperience({
             teamCount={viewModel.teamCount}
             role="local"
           />
-          <BattleMapKey variant="inline" />
+          <BattleMapKey snapshot={battle.snapshot} />
         </aside>
 
         <section
@@ -1877,6 +1886,18 @@ export function BattleExperience({
             preview={preview?.battleVersion === battle.battleVersion ? preview.preview : null}
             pending={previewPending}
             skill={activeTechnique}
+            targetTile={
+              previewTargetPosition
+                ? tactical.tiles.find((tile) =>
+                    positionsEqual(tile.position, previewTargetPosition),
+                  )
+                : undefined
+            }
+            targetOverlay={
+              previewTargetPosition
+                ? terrainOverlayAt(battle.snapshot, previewTargetPosition)?.kind
+                : undefined
+            }
             participants={Array.from(viewModel.participantByCombatant.values())}
             notice={contextDescription}
           />
@@ -1890,7 +1911,7 @@ export function BattleExperience({
             <div className={styles.commands} data-battle-command-group="true">
               <BattleSkillCommand
                 slot="inspect"
-                hotkey=""
+                hotkey={formatCombatKeybind(bindings.inspect)}
                 label="Inspect"
                 cost="Free"
                 artworkSrc={BATTLE_COMMAND_ARTWORK.inspect}
@@ -1950,23 +1971,29 @@ export function BattleExperience({
                   void commitValue({ kind: 'face', facing: localPlacement.facing })
                 else chooseMode('finish')
               }}
-            />
-            {mode === 'finish' ? (
-              <div className={styles.facingRow} data-open="true" data-unified-facing-pad="true">
-                <span>Final facing</span>
-                {(['north', 'west', 'east', 'south'] as const).map((facing) => (
-                  <button
-                    type="button"
-                    key={facing}
-                    disabled={planningDisabled}
-                    onClick={() => void commitValue({ kind: 'face', facing })}
-                    aria-label={`Face ${facing}`}
-                  >
-                    {facingGlyph(facing)}
-                  </button>
-                ))}
-              </div>
-            ) : null}
+            >
+              {mode === 'finish' ? (
+                <div
+                  className={styles.facingRow}
+                  data-open="true"
+                  data-unified-facing-pad="true"
+                  role="group"
+                  aria-label="Final facing"
+                >
+                  {(['north', 'west', 'east', 'south'] as const).map((facing) => (
+                    <button
+                      type="button"
+                      key={facing}
+                      disabled={planningDisabled}
+                      onClick={() => void commitValue({ kind: 'face', facing })}
+                      aria-label={`Face ${facing}`}
+                    >
+                      {facingGlyph(facing)}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </BattleSkillCommand>
           </section>
         </div>
       </section>
@@ -1991,6 +2018,7 @@ export function BattleExperience({
         <div className={styles.footerActions} data-battle-footer-actions="true">
           <button
             type="button"
+            className={styles.cancelAction}
             onClick={() => {
               clearPlanning()
               setNotice('Selection cleared.')
@@ -1999,25 +2027,6 @@ export function BattleExperience({
           >
             Cancel Action
           </button>
-          <details data-battle-secondary-actions="true">
-            <summary>Recovery</summary>
-            {recoveryOptions.map((option) => (
-              <button
-                type="button"
-                key={option.id}
-                disabled={planningDisabled || actionEconomy < Number.parseInt(option.cost, 10)}
-                onClick={() => {
-                  if (option.id === RECOVER_ID || option.id === MP_RECOVER_ID) {
-                    selectSkill('heal', option.id)
-                    setSelectedTechniqueHealId(null)
-                    armAction('recover', option.id)
-                  } else selectAction(option.id, 'heal')
-                }}
-              >
-                {option.label} · {option.cost}
-              </button>
-            ))}
-          </details>
           {runtime.kind === 'pve' ? (
             <button
               type="button"

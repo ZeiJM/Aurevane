@@ -35,12 +35,18 @@ test('ordinary desktop shell fits its identity and every navigation control with
     const metrics = await page.locator('[data-av-game-rail]').evaluate((rail) => {
       const box = rail.getBoundingClientRect()
       const portrait = rail.querySelector('[data-character-portrait-frame] img')!
+      const portraitFrame = rail.querySelector('[data-character-portrait-frame]')!
+      const frameStyle = getComputedStyle(portraitFrame)
       const footer = document.querySelector('[data-testid="authenticated-shell"] > footer')!
       const main = document.getElementById('game-main')!
       return {
         portrait: {
           width: portrait.getBoundingClientRect().width,
           height: portrait.getBoundingClientRect().height,
+          frameWidth: portraitFrame.getBoundingClientRect().width,
+          frameHeight: portraitFrame.getBoundingClientRect().height,
+          borderX: parseFloat(frameStyle.borderLeftWidth) + parseFloat(frameStyle.borderRightWidth),
+          borderY: parseFloat(frameStyle.borderTopWidth) + parseFloat(frameStyle.borderBottomWidth),
         },
         railOverflow: rail.scrollHeight - rail.clientHeight,
         mainOverflow: main.scrollHeight - main.clientHeight,
@@ -86,13 +92,32 @@ test('ordinary desktop shell fits its identity and every navigation control with
     expect(Math.abs(metrics.footerGap), `${label}: rail ends above footer`).toBeLessThanOrEqual(1)
     expect(metrics.unreachable, `${label}: clipped navigation`).toEqual([])
     expect(metrics.overflowingLabels, `${label}: navigation text outside its control`).toEqual([])
-    expect(metrics.portrait.width, `${label}: crisp actual portrait size`).toBeCloseTo(
-      viewport.height > 700 ? 144 : 88,
+    expect(metrics.portrait.frameWidth, `${label}: portrait frame size`).toBeCloseTo(
+      viewport.height > 700 ? 165 : viewport.height > 620 ? 112 : 88,
+      0,
+    )
+    expect(metrics.portrait.width + metrics.portrait.borderX).toBeCloseTo(
+      metrics.portrait.frameWidth,
+      0,
+    )
+    expect(metrics.portrait.height + metrics.portrait.borderY).toBeCloseTo(
+      metrics.portrait.frameHeight,
       0,
     )
     expect(metrics.portrait.height).toBeCloseTo(metrics.portrait.width, 0)
     await info.attach(`shell-${label}`, { body: await page.screenshot(), contentType: 'image/png' })
   }
+
+  const runes = page.locator('[data-aether-runes] > path')
+  expect(
+    await runes.evaluateAll((paths) =>
+      paths.every((path) => getComputedStyle(path).animationName !== 'none'),
+    ),
+  ).toBe(true)
+  const initialTransform = await runes.first().evaluate((path) => getComputedStyle(path).transform)
+  await expect
+    .poll(() => runes.first().evaluate((path) => getComputedStyle(path).transform))
+    .not.toBe(initialTransform)
 
   await page.emulateMedia({ reducedMotion: 'reduce' })
   expect(
@@ -100,6 +125,12 @@ test('ordinary desktop shell fits its identity and every navigation control with
       .locator('[data-aether-wisp]')
       .evaluateAll((wisps) => wisps.map((wisp) => getComputedStyle(wisp).animationName)),
   ).toEqual(['none', 'none'])
+
+  expect(
+    await runes.evaluateAll((paths) =>
+      paths.every((path) => getComputedStyle(path).animationName === 'none'),
+    ),
+  ).toBe(true)
 
   for (const width of [390, 360]) {
     await page.setViewportSize({ width, height: 844 })

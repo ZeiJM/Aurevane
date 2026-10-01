@@ -11,6 +11,7 @@ import {
   useState,
   type CSSProperties,
   type SyntheticEvent,
+  type ReactNode,
 } from 'react'
 import { createPortal } from 'react-dom'
 
@@ -78,6 +79,7 @@ export function BattleSkillCommand({
   onActivate,
   selector,
   tags = [],
+  children,
 }: {
   slot: BattleCommandSlot
   hotkey: string
@@ -89,6 +91,7 @@ export function BattleSkillCommand({
   onActivate: () => void
   selector?: BattleSkillSelectorConfig
   tags?: readonly string[]
+  children?: ReactNode
 }) {
   const informationId = useId()
   const [selectorOpen, setSelectorOpen] = useState(false)
@@ -195,10 +198,6 @@ export function BattleSkillCommand({
         onClick={onActivate}
         aria-label={`${label}, ${cost}`}
       >
-        <span className={styles.hotkey} data-battle-command-hotkey="true">
-          {hotkey}
-        </span>
-        <strong>{label}</strong>
         <span
           className={`${styles.artwork} ${artworkFitStyles.frame}`}
           data-battle-command-artwork="static"
@@ -215,40 +214,55 @@ export function BattleSkillCommand({
             onError={fallbackBrokenArtwork}
           />
         </span>
+        <strong>{label}</strong>
       </button>
+      <div className={styles.controls} data-battle-cockpit-controls="true">
+        <BattleInfoPopover
+          label={`About ${label}`}
+          title={label}
+          trigger="i"
+          className={styles.infoTrigger}
+        >
+          <strong>Parameters</strong>
+          <dl>
+            <div>
+              <dt>Cost</dt>
+              <dd>{cost}</dd>
+            </div>
+          </dl>
+          {tags.length > 0 ? (
+            <div className={styles.tags} data-battle-skill-tags="details">
+              {tags.map((tag) => (
+                <span key={tag}>{tag}</span>
+              ))}
+            </div>
+          ) : (
+            <p>
+              {slot === 'inspect'
+                ? 'Select a character or tile to inspect it for free.'
+                : slot === 'move'
+                  ? 'Arm Move, then click a reachable tile or use a direction to move. The server checks the path and AP cost.'
+                  : slot === 'finish'
+                    ? 'Choose your final facing on the map, then finish your turn.'
+                    : 'Arm this action to see its target forecast. Then click a target or use a direction to execute it.'}
+            </p>
+          )}
+          {tags.length > 0 ? (
+            <p>
+              Arm this action to see its forecast, then use a deliberate target input to execute it.
+            </p>
+          ) : null}
+        </BattleInfoPopover>
+        <span className={styles.hotkey} data-battle-command-hotkey="true">
+          {hotkey}
+        </span>
+      </div>
 
-      <BattleInfoPopover
-        label={`About ${label}`}
-        title={label}
-        trigger="i"
-        className={styles.infoTrigger}
-      >
-        <p>
-          <strong>{cost}</strong>
-        </p>
-        {tags.length > 0 ? (
-          <div className={styles.tags} data-battle-skill-tags="details">
-            {tags.map((tag) => (
-              <span key={tag}>{tag}</span>
-            ))}
-          </div>
-        ) : (
-          <p>
-            {slot === 'inspect'
-              ? 'Select a character or tile to inspect it for free.'
-              : slot === 'move'
-                ? 'Arm Move, then click a reachable tile or use a direction to move. The server checks the path and AP cost.'
-                : slot === 'finish'
-                  ? 'Choose your final facing on the map, then finish your turn.'
-                  : 'Arm this action to see its target forecast. Then click a target or use a direction to execute it.'}
-          </p>
-        )}
-        {tags.length > 0 ? (
-          <p>
-            Arm this action to see its forecast, then use a deliberate target input to execute it.
-          </p>
-        ) : null}
-      </BattleInfoPopover>
+      {slot === 'finish' || children ? (
+        <div className={styles.extraControls} data-battle-command-extra-controls="true">
+          {children}
+        </div>
+      ) : null}
 
       {canSwap && selector ? (
         <button

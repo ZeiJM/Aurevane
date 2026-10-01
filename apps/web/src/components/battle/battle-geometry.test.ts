@@ -196,9 +196,56 @@ describe('authoritative movement highlights', () => {
     state.tactical.battle.currentTurn!.movementRemaining = 1
     expect(buildReachablePaths(state, state.tactical.placements[0]!, 100).has('0:0')).toBe(false)
   })
+
+  it.each([
+    [2, 80],
+    [1, 60],
+  ] as const)('highlights two MOVE steps across %i rough tiles for %i AP', (roughTiles, ap) => {
+    const state = encounter()
+    state.tactical.battle.currentTurn!.movementMaximum = 2
+    state.tactical.battle.currentTurn!.movementRemaining = 2
+    state.tactical.battle.combatants[0]!.baseMovementBudget = 2
+    state.tactical.terrains = [
+      ...state.tactical.terrains,
+      { id: 'rough', traversalCost: 2 },
+      { id: 'wall', traversalCost: null },
+    ]
+    state.tactical.tiles = state.tactical.tiles.map((tile) => ({
+      ...tile,
+      terrainId:
+        tile.position.x === 1 && tile.position.y === 0
+          ? 'wall'
+          : (tile.position.x === 0 && tile.position.y === 1) ||
+              (roughTiles === 2 && tile.position.x === 0 && tile.position.y === 0)
+            ? 'rough'
+            : 'open',
+    }))
+    const paths = buildReachablePaths(state, state.tactical.placements[0]!, ap)
+    const selected = paths.get('0:0')!
+    expect(selected).toHaveLength(3)
+    expect(evaluatePv1fMovement(state, selected).movement).toMatchObject({
+      legal: true,
+      cost: 2,
+      movementRemainingAfter: 0,
+    })
+    expect(evaluatePv1fMovement(state, selected).economyCost).toBe(ap)
+    expect(paths.has('0:2')).toBe(true)
+    expect(paths.has('0:3')).toBe(false)
+  })
+
+  it('does not highlight a rough tile when its AP cost cannot be paid', () => {
+    const state = encounter()
+    state.tactical.terrains = [...state.tactical.terrains, { id: 'rough', traversalCost: 2 }]
+    state.tactical.tiles = state.tactical.tiles.map((tile) => ({
+      ...tile,
+      terrainId: tile.position.x === 0 && tile.position.y === 1 ? 'rough' : 'open',
+    }))
+    expect(buildReachablePaths(state, state.tactical.placements[0]!, 39).has('0:1')).toBe(false)
+    expect(buildReachablePaths(state, state.tactical.placements[0]!, 40).has('0:1')).toBe(true)
+  })
 })
 
-it('retains both AP-cheaper and Movement-cheaper routes through a merge', () => {
+it('chooses the lower-AP route when both routes through a merge have equal MOVE steps', () => {
   const base = encounter()
   const state = {
     ...base,
@@ -237,13 +284,46 @@ it('retains both AP-cheaper and Movement-cheaper routes through a merge', () => 
     })),
   }
   const placement = state.tactical.placements[0]!
-  // Top: 4 Movement / 110 AP. Bottom: 5 Movement / 100 AP.
+  // Top: 4 Movement / 110 AP. Bottom: 4 Movement / 100 AP.
   const affordable = buildReachablePaths(state, placement, 100).get('2:2')!
   expect(evaluatePv1fMovement(state, affordable).economyCost).toBe(100)
-  expect(evaluatePv1fMovement(state, affordable).movement.cost).toBe(5)
-  // A hypothetical larger AP budget still must preserve the shorter Movement route
-  // through the merge to reach the next tile within the unchanged 5 Movement cap.
+  expect(evaluatePv1fMovement(state, affordable).movement.cost).toBe(4)
+  // The lower-AP route can extend to the next tile within the unchanged 5 Movement cap.
   const extended = buildReachablePaths(state, placement, 130).get('3:2')!
-  expect(evaluatePv1fMovement(state, extended).economyCost).toBe(130)
+  expect(evaluatePv1fMovement(state, extended).economyCost).toBe(120)
   expect(evaluatePv1fMovement(state, extended).movement.cost).toBe(5)
+})
+
+it('keeps a shorter costly route when the cheapest merge route exhausts MOVE before the destination', () => {
+  const base = withStatus(encounter(), 'actor', 'haste')
+  const state = {
+    ...base,
+    tactical: {
+      ...base.tactical,
+      terrains: [...base.tactical.terrains, { id: 'rough', traversalCost: 2 }],
+      placements: base.tactical.placements.map((row, index) => ({
+        ...row,
+        position: index === 0 ? { x: 0, y: 0 } : { x: index + 1, y: 3 },
+      })),
+      tiles: base.tactical.tiles.map((tile) => ({
+        ...tile,
+        terrainId: tile.position.x === 1 && tile.position.y === 0 ? 'rough' : 'open',
+      })),
+    },
+    terrainOverlays: [
+      {
+        kind: 'frozen' as const,
+        position: { x: 1, y: 0 },
+        remainingRoundBoundaries: 2,
+        sourceCombatantId: 'actor',
+      },
+    ],
+  }
+  const paths = buildReachablePaths(state, state.tactical.placements[0]!, 100)
+  const merge = evaluatePv1fMovement(state, paths.get('2:0')!)
+  expect(merge.movement.cost).toBe(4)
+  expect(merge.economyCost).toBe(40)
+  const destination = evaluatePv1fMovement(state, paths.get('4:0')!)
+  expect(destination.movement).toMatchObject({ legal: true, cost: 4, movementRemainingAfter: 1 })
+  expect(destination.economyCost).toBe(70)
 })

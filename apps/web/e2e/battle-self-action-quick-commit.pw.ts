@@ -96,7 +96,7 @@ async function finishTurnKeepingFacing(page: Page, root: Locator, testRepeat = f
     'section[aria-label="Command Deck"] button[data-battle-command="finish"]',
   )
   await expect(finish).toBeEnabled()
-  await expect(finish).toContainText('Space')
+  await expect(finish.locator('..').locator('[data-battle-command-hotkey]')).toHaveText('Space')
   await expect(root.locator('[data-pvp-turn-clock="true"]')).toBeVisible()
   // The lobby click can leave the pointer over a cockpit info trigger after navigation.
   // Leave hover reading before exercising combat keys; pinned dialogs must still block them.
@@ -140,7 +140,7 @@ test('arms Guard without spending AP and executes once on a deliberate direction
   const guard = deck.getByRole('button', { name: /^Guard,/ })
   const economy = root.getByRole('progressbar', { name: 'Action Economy remaining' })
 
-  await expect(guard).toContainText('3')
+  await expect(guard.locator('..').locator('[data-battle-command-hotkey]')).toHaveText('3')
   await expect(economy).toHaveAttribute('aria-valuenow', '100')
 
   await page.keyboard.press('Digit3')

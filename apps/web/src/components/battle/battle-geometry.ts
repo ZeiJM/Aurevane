@@ -155,7 +155,7 @@ export function buildReachablePaths(
         activePlacement.movementProfileId,
       )
       if (traversalCost === null) continue
-      const movement = current.movement + traversalCost
+      const movement = current.movement + 1
       const ap =
         current.ap + movementApCostForTile(traversalCost, modifiers.additionalApAt(neighbor))
       if (movement > turn.movementRemaining || ap > actionEconomy) continue

@@ -2,12 +2,6 @@
   display: none;
 }
 
-/* Facing is selected on the battlefield. These hidden controls retain the existing authoritative
-   commit path for map guides and keyboard shortcuts; opening facing mode must never reveal a pad. */
-:global(main[data-unified-battle='true'][data-battle-kind] [data-unified-facing-pad='true']) {
-  display: none !important;
-}
-
 @media (min-width: 821px) {
   :global(main[data-unified-battle='true'] [data-unified-command-deck='true']) {
     grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr) !important;

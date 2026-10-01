@@ -1,4 +1,4 @@
-/* Profile labels and stat sheet share the portrait scene without repeating the rail identity. */
+/* Profile tags and stat sheet complement the single identity in the navigation rail. */
 .layout {
   position: relative;
   isolation: isolate;
@@ -29,22 +29,6 @@
   margin: 0.3rem 0;
   font-size: 1rem;
 }
-.scenePortrait {
-  position: absolute;
-  z-index: -1;
-  right: 1rem;
-  top: 0;
-  width: 35%;
-  height: 48%;
-  overflow: hidden;
-  mask-image: linear-gradient(#000 70%, transparent);
-}
-.scenePortrait img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center 25%;
-}
 .profile {
   position: relative;
   min-width: 0;
@@ -73,50 +57,34 @@
   --tag-color: #35594c;
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.4rem;
   min-width: 0;
-  padding: 0.45rem 0.75rem;
-  border: 1px solid color-mix(in srgb, var(--tag-color) 55%, #c5b48e);
-  border-left: 3px solid var(--tag-color);
-  background: linear-gradient(120deg, #f0e7d5, #e0d5be);
-  box-shadow: inset 0 1px #fff7e8;
+  max-width: 100%;
+  padding: 0.3rem 0.75rem;
+  border: 1px solid #a58a53;
+  border-radius: 0.25rem 0.9rem;
+  background: linear-gradient(135deg, #f7efdd, #e6d9bd 65%, #d5c29d);
+  box-shadow:
+    inset 0 0 0 2px #fff4d855,
+    0 1px 3px #65533120;
 }
 .identityTag[data-profile-tag='secondary'] {
   --tag-color: #3e5970;
 }
 .identityTag[data-profile-tag='title'] {
   --tag-color: #785323;
-  background: linear-gradient(120deg, #f0dfb6, #dcc591);
+  border-color: #a37a36;
+  background: linear-gradient(135deg, #fff0c8, #e8ce92 65%, #d2b375);
 }
 .identityTag > span {
   color: var(--tag-color);
-  font-size: 1.2rem;
-}
-.identityTag > div {
-  display: grid;
-  min-width: 0;
-  gap: 0.12rem;
-}
-.identityTag small {
-  color: #5a5448;
-  font: 600 0.75rem/1.2 var(--av-font-body);
+  font-size: 0.95rem;
 }
 .identityTag strong {
   color: var(--tag-color);
-  font: 600 1rem/1.2 var(--av-font-display);
+  min-width: 0;
+  font: 600 0.95rem/1.2 var(--av-font-display);
   overflow-wrap: anywhere;
-}
-.buildIdentity {
-  color: #333a33;
-  margin: 0.65rem 0 0.35rem;
-  font-size: 0.9375rem;
-}
-.buildIdentity summary {
-  cursor: pointer;
-}
-.buildIdentity p {
-  margin: 0.5rem 0;
-  line-height: 1.5;
 }
 @media (max-width: 1100px) {
   .layout {
@@ -127,10 +95,6 @@
 @media (max-width: 760px) {
   .layout {
     padding: 0.75rem;
-  }
-  .scenePortrait {
-    height: 15rem;
-    width: 45%;
   }
   .profile {
     padding: 0.75rem;

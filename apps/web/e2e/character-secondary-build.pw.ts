@@ -160,7 +160,7 @@ test('Nexus equips a mastered Secondary with independent attunement authority', 
   await expect(page.getByText('Resonance Build', { exact: true })).toBeVisible()
 })
 
-test('mobile Profile keeps its artwork and identity tags readable and Nexus centers Discipline Management', async ({
+test('mobile Profile retains the navigation portrait and readable identity tags and Nexus centers Discipline Management', async ({
   page,
 }, testInfo) => {
   test.skip(
@@ -177,12 +177,12 @@ test('mobile Profile keeps its artwork and identity tags readable and Nexus cent
   })
 
   const profile = page.locator('[data-profile-workspace]')
-  const portrait = profile.locator('[aria-hidden="true"] > .character-portrait-media').locator('..')
-  await expect(portrait).toBeVisible()
-  const portraitBox = await portrait.boundingBox()
-  if (!portraitBox) throw new Error('Character portrait geometry is unavailable')
-  expect(portraitBox.width).toBeGreaterThan(0)
-  expect(portraitBox.height).toBeGreaterThan(0)
+  await expect(
+    profile.locator(':scope > [aria-hidden="true"] .character-portrait-media'),
+  ).toHaveCount(0)
+  await expect(
+    page.locator('[data-testid="authenticated-shell"] > header .character-portrait-media'),
+  ).toBeVisible()
   await expect(profile.locator('[aria-label="Disciplines and titles"]')).toBeVisible()
   await expect(profile.getByTestId('primary-discipline-chip')).toHaveText('Vanguard')
   await expect(profile.getByTestId('derived-stat-maxHp')).toBeVisible()

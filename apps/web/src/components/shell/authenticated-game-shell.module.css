@@ -21,7 +21,7 @@
 
 .worldFrame .shell {
   --av-shell-rail-width: 11.875rem;
-  --av-rail-portrait-size: 9rem;
+  --av-rail-portrait-size: var(--av-navigation-portrait-size);
   --av-shell-header-height: 4rem;
   --av-shell-footer-height: 2rem;
   display: grid;
@@ -150,7 +150,35 @@
   fill: none;
   stroke: #72c7c0;
   stroke-width: 0.65;
-  opacity: 0.16;
+  opacity: 0.26;
+}
+
+.railAetherRunes > * {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: railRuneDrift 11s ease-in-out infinite alternate;
+}
+
+.railAetherRunes > :nth-child(2n) {
+  animation-duration: 15s;
+  animation-delay: -7s;
+  animation-direction: alternate-reverse;
+}
+
+.railAetherRunes > :nth-child(3n) {
+  animation-duration: 18s;
+  animation-delay: -4s;
+}
+
+@keyframes railRuneDrift {
+  from {
+    opacity: 0.55;
+    transform: translate(-3px, -5px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(3px, 6px);
+  }
 }
 
 @keyframes railWispFlow {
@@ -191,12 +219,12 @@
 }
 
 .railCharacter :global([data-character-portrait-frame]) {
-  box-sizing: content-box;
+  box-sizing: border-box;
   grid-row: auto;
   width: var(--av-rail-portrait-size);
   height: var(--av-rail-portrait-size);
   min-height: 0;
-  justify-self: center;
+  justify-self: start;
   padding: 0;
   border: 1px solid #b0966a;
   box-shadow: none;
@@ -369,9 +397,6 @@
 }
 
 @media (min-width: 761px) and (max-height: 700px) {
-  .worldFrame .shell {
-    --av-rail-portrait-size: 7rem;
-  }
   .rail {
     gap: 0.3rem;
     padding-block: 0.5rem;
@@ -386,9 +411,6 @@
 }
 
 @media (min-width: 761px) and (max-height: 620px) {
-  .worldFrame .shell {
-    --av-rail-portrait-size: 5.5rem;
-  }
   .railCharacter :global([data-compact-rail]) {
     gap: 0.25rem;
   }
@@ -794,7 +816,8 @@
     transition: none;
   }
 
-  .railAetherWisp {
+  .railAetherWisp,
+  .railAetherRunes > * {
     animation: none;
   }
 }

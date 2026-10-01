@@ -87,14 +87,7 @@ function TrackEditor({
         />
       </label>
 
-      <label className={styles.loopToggle}>
-        <input
-          type="checkbox"
-          checked={track.loop}
-          onChange={(event) => onChange({ ...track, loop: event.currentTarget.checked })}
-        />
-        <span>Loop continuously</span>
-      </label>
+      <p className={styles.loopNotice}>Background music loops continuously.</p>
 
       <label className={styles.uploadButton}>
         <span>{uploading ? 'Uploading…' : 'Upload from PC'}</span>
@@ -111,13 +104,7 @@ function TrackEditor({
       </label>
 
       {track.url ? (
-        <audio
-          className={styles.preview}
-          controls
-          loop={track.loop}
-          preload="metadata"
-          src={track.url}
-        >
+        <audio className={styles.preview} controls loop preload="metadata" src={track.url}>
           Your browser cannot preview this audio source.
         </audio>
       ) : null}

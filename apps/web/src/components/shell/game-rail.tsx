@@ -14,7 +14,9 @@ function RailAetherField() {
       <span className={styles.railAetherWisp} data-aether-wisp="true" />
       <span className={styles.railAetherWisp} data-aether-wisp="true" />
       <svg className={styles.railAetherRunes} viewBox="0 0 190 640" data-aether-runes="true">
-        <path d="m18 55 8 14-8 14-8-14Z M18 83v56m0 9v55m-7-38 14 14m-14 0 14-14 M167 330v84m-9-62 18 20-18 20m9 22v44 M42 480l12 20-12 20-12-20Z M42 520v42m-8 14 8 14 8-14" />
+        <path d="m18 55 8 14-8 14-8-14Z M18 83v56m0 9v55m-7-38 14 14m-14 0 14-14" />
+        <path d="M167 330v84m-9-62 18 20-18 20m9 22v44" />
+        <path d="M42 480l12 20-12 20-12-20Z M42 520v42m-8 14 8 14 8-14" />
       </svg>
     </div>
   )

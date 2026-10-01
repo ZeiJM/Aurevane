@@ -14,16 +14,9 @@ import { createPortal } from 'react-dom'
 
 import { battleSkillArtwork } from '../battle/battle-skill-presentation'
 import {
-  skillCompactRangeDescription,
-  skillCooldownDescription,
-  skillCostDescription,
   skillDisplayName,
   skillEffectSummaries,
-  skillLineOfSightDescription,
-  skillRequirementsSummary,
-  skillTargetDescription,
-  skillTargetElevationDescription,
-  skillTargetMethodDescription,
+  skillParameterRows,
   skillTypeDescription,
 } from './skill-detail-presentation'
 import styles from './character-skill-build-panel.module.css'
@@ -176,16 +169,9 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
     : null
   const focusedCharacteristics: readonly SkillCharacteristic[] = focusedSkill
     ? [
-        ['Skill Type', skillTypeDescription(focusedSkill.definition)],
-        ['Cost', skillCostDescription(focusedSkill.definition)],
-        ['Cooldown', skillCooldownDescription(focusedSkill.definition)],
-        ['Requirements', skillRequirementsSummary(focusedSkill.definition)],
+        ...skillParameterRows(focusedSkill.definition).slice(0, 4),
         ['Effects', skillEffectSummaries(focusedSkill.definition)],
-        ['Range', skillCompactRangeDescription(focusedSkill.definition)],
-        ['Target', skillTargetDescription(focusedSkill.definition)],
-        ['Target Method', skillTargetMethodDescription(focusedSkill.definition)],
-        ['Target Elevation', skillTargetElevationDescription(focusedSkill.definition)],
-        ['Line of Sight', skillLineOfSightDescription(focusedSkill.definition)],
+        ...skillParameterRows(focusedSkill.definition).slice(4),
       ]
     : []
 
@@ -328,7 +314,11 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
   ) {
     const locked = secondary && !discipline
     return (
-      <section className={styles.techniqueGroup} data-locked={locked ? 'true' : 'false'}>
+      <section
+        className={styles.techniqueGroup}
+        data-technique-group="true"
+        data-locked={locked ? 'true' : 'false'}
+      >
         <header>
           <div>
             <span aria-hidden="true">✦</span>
@@ -340,12 +330,17 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
           </div>
           <small>{locked ? '0 / 8 unlocked' : `${skills.length} techniques available`}</small>
         </header>
-        <div className={styles.skillGrid}>
+        <div className={styles.skillGrid} data-technique-grid="true">
           {Array.from({ length: TECHNIQUES_PER_DISCIPLINE }, (_, index) => {
             if (locked) {
               return (
-                <div className={styles.lockedSkill} key={`locked-${index}`} aria-hidden="true">
-                  <span>▣</span>
+                <div
+                  className={styles.lockedSkill}
+                  data-technique-card="true"
+                  key={`locked-${index}`}
+                  aria-hidden="true"
+                >
+                  <span data-technique-art="true">▣</span>
                   <strong>Locked</strong>
                 </div>
               )
@@ -354,8 +349,13 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
             const entry = skills[index]
             if (!entry) {
               return (
-                <div className={styles.lockedSkill} key={`void-${index}`} aria-hidden="true">
-                  <span>◇</span>
+                <div
+                  className={styles.lockedSkill}
+                  data-technique-card="true"
+                  key={`void-${index}`}
+                  aria-hidden="true"
+                >
+                  <span data-technique-art="true">◇</span>
                   <strong>Unavailable</strong>
                 </div>
               )
@@ -373,6 +373,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
             return (
               <article
                 className={styles.skill}
+                data-technique-card="true"
                 key={`${entry.definition.id}:${entry.definition.contentVersion}`}
                 data-selected={selected ? 'true' : 'false'}
                 style={skillPaletteStyle(entry.definition.sourceDisciplineId)}
@@ -396,6 +397,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                   />
                   <span
                     className={styles.skillArt}
+                    data-technique-art="true"
                     data-av-square-media="true"
                     data-av-square-media-fit="contain"
                     aria-hidden="true"
@@ -410,7 +412,9 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                     {selected ? <b>✓</b> : null}
                   </span>
                   <strong>{label}</strong>
-                  <span className={styles.skillMeta}>{skillTypeDescription(entry.definition)}</span>
+                  <span className={styles.skillMeta} data-technique-meta="true">
+                    {skillTypeDescription(entry.definition)}
+                  </span>
                 </label>
               </article>
             )
@@ -474,7 +478,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                   </button>
                 </header>
 
-                <div className={styles.workspace}>
+                <div className={styles.workspace} data-technique-workspace="true">
                   <section
                     className={styles.techniqueArea}
                     aria-label="Available Techniques"

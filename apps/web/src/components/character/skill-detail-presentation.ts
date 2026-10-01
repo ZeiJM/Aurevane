@@ -130,6 +130,24 @@ export function skillCostDescription(skill: MatureSkillDefinition): string {
   return skill.mpCost ? `${skill.apCost} AP / ${skill.mpCost} MP` : `${skill.apCost} AP`
 }
 
+/** Parameter order and wording shared by Nexus and committed battle Skills. */
+export function skillParameterRows(
+  skill: MatureSkillDefinition,
+  costs: Pick<MatureSkillDefinition, 'apCost' | 'mpCost'> = skill,
+): readonly (readonly [string, string])[] {
+  return [
+    ['Skill Type', skillTypeDescription(skill)],
+    ['Cost', skillCostDescription({ ...skill, ...costs })],
+    ['Cooldown', skillCooldownDescription(skill)],
+    ['Requirements', skillRequirementsSummary(skill)],
+    ['Range', skillCompactRangeDescription(skill)],
+    ['Target', skillTargetDescription(skill)],
+    ['Target Method', skillTargetMethodDescription(skill)],
+    ['Target Elevation', skillTargetElevationDescription(skill)],
+    ['Line of Sight', skillLineOfSightDescription(skill)],
+  ]
+}
+
 export interface CompactSkillEffectSummaryParts {
   label: string
   magnitude: string | null

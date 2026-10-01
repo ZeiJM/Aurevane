@@ -11,7 +11,7 @@ function uniqueCharacterName(): string {
   return `Preview ${letters}`
 }
 
-test('Technique Preview keeps compact effects aligned and unwrapped', async ({
+test('Technique Preview keeps compact effects aligned and contained', async ({
   page,
 }, testInfo) => {
   test.skip(
@@ -46,12 +46,31 @@ test('Technique Preview keeps compact effects aligned and unwrapped', async ({
 
   const firstEffect = compactEffects.first()
   await expect(firstEffect).toBeVisible()
-  expect(
-    await firstEffect.evaluate((element) => ({
-      textAlign: getComputedStyle(element).textAlign,
-      whiteSpace: getComputedStyle(element).whiteSpace,
-    })),
-  ).toEqual({ textAlign: 'right', whiteSpace: 'nowrap' })
+  const effectGeometry = await firstEffect.evaluate((element) => {
+    const styles = getComputedStyle(element)
+    const text = document.createRange()
+    text.selectNodeContents(element)
+    const textBox = text.getBoundingClientRect()
+    const box = element.getBoundingClientRect()
+    const cell = element.closest('dd')!.getBoundingClientRect()
+    return {
+      textAlign: styles.textAlign,
+      lineHeight: parseFloat(styles.lineHeight),
+      textHeight: textBox.height,
+      overflowX: element.scrollWidth - element.clientWidth,
+      left: box.left,
+      right: box.right,
+      cellLeft: cell.left,
+      cellRight: cell.right,
+    }
+  })
+  expect(effectGeometry.textAlign).toBe('right')
+  // Short values stay on one rendered line; longer authored values may wrap
+  // within their cell so the complete preview remains readable and contained.
+  expect(effectGeometry.textHeight).toBeLessThanOrEqual(effectGeometry.lineHeight + 1)
+  expect(effectGeometry.overflowX).toBe(0)
+  expect(effectGeometry.left).toBeGreaterThanOrEqual(effectGeometry.cellLeft)
+  expect(effectGeometry.right).toBeLessThanOrEqual(effectGeometry.cellRight)
 
   const magnitude = preview.locator('[data-compact-effect-magnitude="true"]').first()
   await expect(magnitude).toBeVisible()
