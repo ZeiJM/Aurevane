@@ -76,6 +76,7 @@ export function buildReachablePaths(
   state: BattleSessionView['snapshot'],
   activePlacement: Placement | null,
   actionEconomy: number,
+  maximumSteps = Infinity,
 ): Map<string, BattleGridPosition[]> {
   const tactical = state.tactical
   const turn = tactical.battle.currentTurn
@@ -158,7 +159,7 @@ export function buildReachablePaths(
       const movement = current.movement + 1
       const ap =
         current.ap + movementApCostForTile(traversalCost, modifiers.additionalApAt(neighbor))
-      if (movement > turn.movementRemaining || ap > actionEconomy) continue
+      if (movement > Math.min(turn.movementRemaining, maximumSteps) || ap > actionEconomy) continue
       const known = bestCosts.get(neighborKey) ?? []
       if (known.some((cost) => cost.movement <= movement && cost.ap <= ap)) continue
       bestCosts.set(neighborKey, [
@@ -175,4 +176,14 @@ export function buildReachablePaths(
   }
 
   return result
+}
+
+/** Board Move input presents one legal step; remaining Movement and AP stay authoritative. */
+export function buildImmediateStepPaths(
+  state: BattleSessionView['snapshot'],
+  activePlacement: Placement | null,
+  actionEconomy: number,
+): Map<string, BattleGridPosition[]> {
+  const paths = buildReachablePaths(state, activePlacement, actionEconomy, 1)
+  return new Map([...paths].filter(([, path]) => path.length === 2))
 }

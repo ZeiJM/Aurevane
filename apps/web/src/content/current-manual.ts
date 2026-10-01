@@ -387,8 +387,8 @@ const battleHallArticle: ManualArticle = {
       id: 'planning',
       title: 'Choose first — nothing is forced',
       paragraphs: [
-        'The battle does not begin in Move mode. You can Inspect, Move, Basic Attack, Guard, Recover, or Finish Turn as the situation allows. Confirm Action, Enter, or a deliberate double-click/double-tap commits a legal proposal.',
-        'Cancel Action clears the current proposal without committing it. Abort Battle ends the practice battle as abandoned.',
+        'Choose a cockpit action or press its hotkey to select it and see a server-checked forecast. Click a valid target or use WASD in its direction to execute. For a Skill aimed at yourself, press its hotkey again to cast. The action stays selected while the same turn continues. Move highlights legal adjacent steps; Movement allowance and terrain AP costs still apply.',
+        'Cancel Action clears the selection without committing it. Surrender ends the practice battle as abandoned.',
       ],
     },
     {

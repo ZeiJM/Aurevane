@@ -144,7 +144,7 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
         const grid = card.querySelector('section[aria-label$="active combat effects"] > div')!
         const gridStyle = getComputedStyle(grid)
         const cardStyle = getComputedStyle(card)
-        const rootStyle = getComputedStyle(document.documentElement)
+        const headerStyle = getComputedStyle(header)
         return {
           portrait: portrait.getBoundingClientRect().toJSON(),
           header: header.getBoundingClientRect().toJSON(),
@@ -154,9 +154,10 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
           gridColumns: gridStyle.gridTemplateColumns.split(' ').length,
           rowSize: parseFloat(gridStyle.gridAutoRows),
           rowGap: parseFloat(gridStyle.rowGap),
-          portraitLimit:
-            parseFloat(rootStyle.getPropertyValue('--av-navigation-portrait-size')) *
-            parseFloat(rootStyle.fontSize),
+          identityWidth:
+            header.clientWidth -
+            parseFloat(headerStyle.paddingLeft) -
+            parseFloat(headerStyle.paddingRight),
           portraitRowHeight: parseFloat(cardStyle.gridTemplateRows.split(' ')[1]!),
           vitals: card
             .querySelector('[data-resource]')!
@@ -228,11 +229,8 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
     ).toBeLessThanOrEqual(1)
     if (geometry.w > 820) {
       expect(
-        Math.abs(
-          card.portrait.width -
-            Math.min(card.portraitLimit, card.cardContentWidth, card.portraitRowHeight),
-        ),
-        'battle portrait uses navigation size within its available rail row',
+        Math.abs(card.portrait.width - Math.min(card.identityWidth, card.portraitRowHeight)),
+        'battle portrait spans name to facing within its available rail row',
       ).toBeLessThanOrEqual(1)
     }
     expect(Math.abs(card.portrait.width - card.portrait.height)).toBeLessThanOrEqual(1)

@@ -35,6 +35,7 @@
 }
 .identity {
   display: flex;
+  min-width: 0;
   align-items: center;
   justify-content: space-between;
   gap: 0.35rem;
@@ -103,18 +104,25 @@
   .card {
     container-type: size;
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto minmax(0, 1fr) auto auto;
-    height: 100%;
+    /* Equal rail allocation; reserve the utility track, then fit the identity-width portrait. */
+    height: min(calc(100cqi + 7rem), calc(100cqh - 8rem - 0.45rem));
     min-height: 0;
   }
   .card .portrait {
     container-type: size;
     width: auto;
-    height: min(100%, 100cqi, var(--av-navigation-portrait-size, 10.3125rem)) !important;
+    height: min(100%, calc(100cqi - 0.7rem)) !important;
     min-height: 0;
     max-width: 100%;
     justify-self: center;
     align-self: start;
+  }
+  .identity strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .portrait .fallback {
     font-size: min(3rem, 70cqh);
@@ -140,11 +148,6 @@
   }
   .identity {
     padding-block: 0.1rem;
-  }
-  .identity strong {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
   .vitals {
     gap: 0.125rem;

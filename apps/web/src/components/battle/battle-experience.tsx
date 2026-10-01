@@ -46,7 +46,7 @@ import { pvpParticipantAccent } from './battle-combatant-colors'
 import { BattleFacingIndicator } from './battle-facing-indicator'
 import { useBattleInteractionLifecycle } from './battle-interaction-lifecycle'
 import {
-  buildReachablePaths,
+  buildImmediateStepPaths,
   facingGlyph,
   meterPercent,
   MOVE_COST_PER_TERRAIN_POINT,
@@ -282,6 +282,10 @@ export function BattleExperience({
   const battlePollController = useRef<AbortController | null>(null)
   const recruitAttemptedVersion = useRef<number | null>(null)
   const recruitLock = useRef(false)
+  const rearmActionAfterCommit = useRef<{
+    intent: Extract<BattleIntent, { kind: 'action' }>
+    version: number
+  } | null>(null)
   const modeRef = useRef<Mode>('none')
   useLayoutEffect(() => {
     modeRef.current = mode
@@ -449,7 +453,7 @@ export function BattleExperience({
   const reachablePaths = useMemo(
     () =>
       localTurn
-        ? buildReachablePaths(battle.snapshot, localPlacement, actionEconomy)
+        ? buildImmediateStepPaths(battle.snapshot, localPlacement, actionEconomy)
         : new Map<string, BattleGridPosition[]>(),
     [actionEconomy, battle.snapshot, localPlacement, localTurn],
   )
@@ -500,6 +504,8 @@ export function BattleExperience({
       previewSequence.current += 1
       readyPreview.current = null
       previewController.current?.abort()
+      rearmActionAfterCommit.current = null
+      modeRef.current = nextMode
       setMode(nextMode)
       updatePlanningPath([])
       setPendingIntent(null)
@@ -593,7 +599,11 @@ export function BattleExperience({
       if (nextBattleState.lifecycle === 'completed') {
         clearPlanning()
         setNotice('Battle complete.')
-      } else if (!wasLocal && isLocal) {
+      } else if (
+        isLocal &&
+        (!wasLocal || current.snapshot.tactical.battle.turnNumber !== nextBattleState.turnNumber)
+      ) {
+        clearPlanning()
         setNotice('Your turn. Choose your action.')
       } else if (wasLocal && !isLocal) {
         clearPlanning()
@@ -719,7 +729,7 @@ export function BattleExperience({
         if (!mounted.current || controller.signal.aborted || sequence !== previewSequence.current)
           return
         if (!response.ok || !body.battlePreview) {
-          setPreview(null)
+          clearPlanning()
           await handleApiFailure(response, body, 'That command could not be checked.')
           return
         }
@@ -758,7 +768,7 @@ export function BattleExperience({
         if (previewController.current === controller) previewController.current = null
       }
     },
-    [battle.battleSessionId, battle.battleVersion, handleApiFailure],
+    [battle.battleSessionId, battle.battleVersion, clearPlanning, handleApiFailure],
   )
 
   const commitValue = useCallback(
@@ -816,6 +826,7 @@ export function BattleExperience({
         })
         const body = (await response.json()) as { battle?: BattleSessionView } & ApiErrorBody
         if (!response.ok || !body.battle) {
+          clearPlanning()
           await handleApiFailure(response, body, 'That action could not be committed.')
           return
         }
@@ -842,35 +853,29 @@ export function BattleExperience({
           body.battle.snapshot.tactical.battle.currentTurn?.combatantId === localCombatantId
         const remaining = nextLocalTurn ? readEconomy(nextLocalCombatant) : 0
 
+        const nextBattleState = body.battle.snapshot.tactical.battle
+        const keepAction =
+          intent.kind !== 'face' &&
+          nextBattleState.lifecycle === 'active' &&
+          nextLocalTurn &&
+          before.snapshot.tactical.battle.turnNumber === nextBattleState.turnNumber &&
+          ['move', 'attack', 'guard', 'recover'].includes(modeRef.current)
+        clearPlanning(keepAction ? modeRef.current : 'none')
+        if (keepAction && intent.kind === 'action') {
+          rearmActionAfterCommit.current = { intent, version: body.battle.battleVersion }
+        }
+
         if (runtime.kind === 'pvp') {
-          if (
-            intent.kind === 'action' &&
-            intent.actionId === BASIC_ATTACK_ID &&
-            body.battle.snapshot.tactical.battle.lifecycle === 'active' &&
-            nextLocalTurn &&
-            remaining >= ATTACK_COST
-          ) {
-            clearPlanning('attack')
-            setNotice(
-              `Basic Attack committed. ${remaining} AP remains — choose another target or another action.`,
-            )
+          if (nextBattleState.lifecycle === 'completed') {
+            setNotice('Battle complete.')
+          } else if (nextLocalTurn) {
+            setNotice(`Action committed. ${remaining} AP remains.`)
           } else {
-            clearPlanning()
-            if (body.battle.snapshot.tactical.battle.lifecycle === 'completed') {
-              setNotice('Battle complete.')
-            } else if (nextLocalTurn) {
-              setNotice(`Action committed. ${remaining} AP remains.`)
-            } else {
-              setNotice(
-                `Turn handed to ${battleParticipantName(
-                  viewModel,
-                  body.battle.snapshot.tactical.battle.currentTurn?.combatantId,
-                )}.`,
-              )
-            }
+            setNotice(
+              `Turn handed to ${battleParticipantName(viewModel, nextBattleState.currentTurn?.combatantId)}.`,
+            )
           }
         } else {
-          clearPlanning()
           if (intent.kind === 'face') {
             setNotice(
               `Finished facing ${intent.facing} ${facingGlyph(intent.facing)}. Recruit turn begins.`,
@@ -920,6 +925,7 @@ export function BattleExperience({
         }
         if (gainedCopiedSkill) router.refresh()
       } catch (error) {
+        clearPlanning()
         setNotice(error instanceof Error ? error.message : 'That action could not be committed.')
       } finally {
         setCommitPending(false)
@@ -1024,6 +1030,42 @@ export function BattleExperience({
     ],
   )
 
+  useEffect(() => {
+    const prior = rearmActionAfterCommit.current
+    if (
+      !prior ||
+      battle.battleVersion !== prior.version ||
+      battleRef.current.battleVersion !== prior.version
+    )
+      return
+    rearmActionAfterCommit.current = null
+    if (!localTurn || battleState.lifecycle !== 'active') return
+    const intent = selectInitialBattleSkillPreviewIntent(actionDescriptor(prior.intent.actionId), {
+      ...selection,
+      selectedCombatantId:
+        prior.intent.target.kind === 'unit' ? prior.intent.target.combatantId : null,
+      selectedTile: prior.intent.target.kind === 'tile' ? prior.intent.target.position : null,
+    })
+    if (intent) {
+      setSelectedUnitId(
+        intent.target.kind === 'self'
+          ? localCombatantId
+          : intent.target.kind === 'unit'
+            ? intent.target.combatantId
+            : null,
+      )
+      void requestPreview(intent)
+    }
+  }, [
+    actionDescriptor,
+    battle.battleVersion,
+    battleState.lifecycle,
+    localCombatantId,
+    localTurn,
+    requestPreview,
+    selection,
+  ])
+
   const armAction = useCallback(
     (nextMode: 'attack' | 'guard' | 'recover', actionId: string) => {
       if (planningDisabled || executionLock.current) return
@@ -1089,7 +1131,7 @@ export function BattleExperience({
       clearPlanning(nextMode)
       if (nextMode === 'move')
         setNotice(
-          'Click a reachable tile or press WASD to move. The server checks the path and AP cost.',
+          'Click a highlighted adjacent tile or press WASD to move one step. The server checks Movement and AP.',
         )
       else if (nextMode === 'finish')
         setNotice(
@@ -1132,7 +1174,7 @@ export function BattleExperience({
       if (mode === 'move') {
         const nextPath = reachablePaths.get(positionKey(position))
         if (!nextPath || nextPath.length < 2) {
-          setNotice('That tile is not reachable with the AP you have left.')
+          setNotice('Choose a highlighted adjacent tile with enough Movement and AP.')
           return
         }
         updatePlanningPath(nextPath)
@@ -1278,21 +1320,48 @@ export function BattleExperience({
         return
       }
       if (planningDisabled || executionLock.current) return
+      const executeArmedSelf = (actionId: string, nextMode: Mode) => {
+        if (mode !== nextMode || currentActionId !== actionId) return false
+        const descriptor = actionDescriptor(actionId)
+        const intent = selectBattleSkillPreviewIntent(descriptor, selection)
+        if (
+          intent?.kind !== 'action' ||
+          !(
+            intent.target.kind === 'self' ||
+            (intent.target.kind === 'unit' && intent.target.combatantId === localCombatantId)
+          )
+        )
+          return false
+        void executeIntent(intent)
+        return true
+      }
       if (selected === 'move') chooseMode('move')
       else if (selected === 'basicAttack') chooseMode('attack')
-      else if (selected === 'guard') chooseMode('guard')
-      else if (selected === 'recover') chooseMode('recover')
-      else if (selected === 'endTurn') {
+      else if (selected === 'guard') {
+        if (!executeArmedSelf(GUARD_ID, 'guard')) chooseMode('guard')
+      } else if (selected === 'recover') {
+        if (!executeArmedSelf(effectiveHealActionId, 'recover')) chooseMode('recover')
+      } else if (selected === 'endTurn') {
         if (mode === 'finish' && localPlacement)
           void commitValue({ kind: 'face', facing: localPlacement.facing })
         else chooseMode('finish')
       } else if (selected === 'confirm') commitSelected()
       else if (selected.startsWith('skill')) {
         const skill = runtime.techniques?.[Number(selected.slice(-1)) - 1]
-        if (skill) selectAction(skill.id, skill.category)
+        if (skill) {
+          const nextMode =
+            skill.category === 'defense'
+              ? 'guard'
+              : skill.category === 'heal'
+                ? 'recover'
+                : 'attack'
+          if (!executeArmedSelf(skill.id, nextMode)) selectAction(skill.id, skill.category)
+        }
       } else if (selected === 'essence') {
-        if (runtime.essence) selectAction(runtime.essence.id, 'attack')
-        else
+        if (runtime.essence) {
+          if (!executeArmedSelf(runtime.essence.id, 'attack'))
+            selectAction(runtime.essence.id, 'attack')
+        } else
           document
             .querySelector<HTMLButtonElement>(
               '[data-battle-special="resonance"] [data-battle-info-trigger]',
@@ -1315,8 +1384,10 @@ export function BattleExperience({
     commitSelected,
     commitValue,
     currentActionId,
+    effectiveHealActionId,
     executeIntent,
     handleTile,
+    localCombatantId,
     localPlacement,
     mode,
     planningDisabled,
@@ -1807,7 +1878,6 @@ export function BattleExperience({
                       </i>
                     ) : null}
                     {tile.elevation > 0 ? <span className={styles.elevation}>▲</span> : null}
-                    {pathIndex >= 0 ? <span className={styles.pathNumber}>{pathIndex}</span> : null}
                     {participant && placement ? (
                       <span
                         className={styles.unit}

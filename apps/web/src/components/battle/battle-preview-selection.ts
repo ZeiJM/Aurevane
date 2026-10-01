@@ -91,6 +91,17 @@ export function selectDirectionalBattleSkillPreviewIntent(
   const aimed = (position: { x: number; y: number }) =>
     (position.x - actor.position.x) * direction.x + (position.y - actor.position.y) * direction.y >
     0
+  const chosen = selectBattleSkillPreviewIntent(skill, selection)
+  if (chosen?.kind === 'action') {
+    const position =
+      chosen.target.kind === 'tile'
+        ? chosen.target.position
+        : chosen.target.kind === 'unit'
+          ? selection.combatants.find((row) => row.combatantId === selection.selectedCombatantId)
+              ?.position
+          : null
+    if (position && aimed(position)) return chosen
+  }
   if (skill.targetKind === 'unit') {
     const candidates = selection.combatants
       .filter((row) => aimed(row.position))
