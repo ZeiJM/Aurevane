@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 
+import { previewDiscipline } from './discipline-library-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 function uniqueCharacterName(): string {
@@ -73,7 +74,7 @@ test('legal Vanguard 3 + Lifebinder 1 mixed build can enter AI Sparring from its
   expect(prepared.body).toMatchObject({ result: { masteredDisciplines: 6, learnedSkills: 16 } })
 
   await page.reload()
-  await expect(page.getByTestId('character-profile')).toBeVisible()
+  await expect(page.locator('[data-profile-workspace]')).toBeVisible()
   await closeOpenDialog(page)
   await page.goto('/game/nexus')
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
@@ -82,9 +83,7 @@ test('legal Vanguard 3 + Lifebinder 1 mixed build can enter AI Sparring from its
   await disciplinePanel.getByRole('button', { name: /Manage Disciplines/ }).click()
   const disciplineDialog = page.getByRole('dialog', { name: 'Discipline Management' })
   await expect(disciplineDialog).toBeVisible()
-  await disciplineDialog
-    .getByRole('combobox', { name: 'Secondary Discipline', exact: true })
-    .selectOption('lifebinder')
+  await previewDiscipline(disciplineDialog, 'Secondary', 'Lifebinder')
   await disciplineDialog.getByRole('button', { name: /Confirm Change/ }).click()
   await expect(page.getByRole('status')).toContainText('Discipline changes committed.')
   await disciplineDialog.getByRole('button', { name: 'Close' }).click()

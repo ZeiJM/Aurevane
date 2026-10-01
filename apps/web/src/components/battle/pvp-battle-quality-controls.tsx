@@ -7,7 +7,8 @@ import { useDesktopBattleLayout } from './battle-responsive-layout'
 import type { PvpBattleMetadata } from '@/server/battle/pvp-lobby-service'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
-import styles from './pvp-battle-quality-controls.module.css'
+import './pvp-battle-quality-controls.module.css'
+import surrenderStyles from './battle-surrender-dialog.module.css'
 
 interface ClockView {
   active: boolean
@@ -420,13 +421,13 @@ export function PvpBattleQualityControls({
       {surrenderDialogOpen
         ? createPortal(
             <div
-              className={styles.backdrop}
+              className={surrenderStyles.backdrop}
               onPointerDown={() => {
                 if (!surrendering) setSurrenderDialogOpen(false)
               }}
             >
               <section
-                className={styles.modal}
+                className={surrenderStyles.dialog}
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="pvp-surrender-title"
@@ -438,10 +439,10 @@ export function PvpBattleQualityControls({
                   Surrendering ends the battle immediately as a loss. The normal PvP result screen
                   will follow and the committed battle history remains available for review.
                 </p>
-                <div className={styles.actions}>
+                <div className={surrenderStyles.actions}>
                   <button
                     type="button"
-                    className={styles.stay}
+                    className={surrenderStyles.stay}
                     disabled={surrendering}
                     onClick={() => setSurrenderDialogOpen(false)}
                   >
@@ -449,7 +450,7 @@ export function PvpBattleQualityControls({
                   </button>
                   <button
                     type="button"
-                    className={styles.confirm}
+                    className={surrenderStyles.confirm}
                     disabled={surrendering}
                     onClick={() => void confirmSurrender()}
                   >

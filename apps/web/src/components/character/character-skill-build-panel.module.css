@@ -308,7 +308,7 @@
   min-height: 0;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.45rem;
-  align-items: start;
+  align-items: stretch;
 }
 
 .skill,
@@ -317,9 +317,9 @@
   position: relative;
   display: grid;
   min-width: 0;
-  min-height: 0;
-  align-content: start;
-  align-self: start;
+  min-height: 11.5rem;
+  align-content: center;
+  align-self: stretch;
   overflow: hidden;
   border: 1px solid rgba(73, 91, 101, 0.7);
   background: #0d2230;
@@ -336,7 +336,7 @@
   min-width: 0;
   grid-template-rows: auto auto auto;
   justify-items: center;
-  align-content: start;
+  align-content: center;
   gap: 0.22rem;
   padding: 0.42rem 0.32rem 0.38rem;
   cursor: pointer;

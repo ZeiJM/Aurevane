@@ -11,6 +11,24 @@ vi.mock('./pvp-lobby-modal', () => ({ PvpLobbyModal: () => null }))
 import { BattleLaunch } from './battle-launch'
 
 describe('Battle Hall concept composition', () => {
+  it('orders clear battle destinations and omits the redundant AI arena banner', () => {
+    const markup = renderToStaticMarkup(
+      createElement(BattleLaunch, { characterId: 'character-1', characterName: 'Eira Vale' }),
+    )
+    const rail = markup.slice(
+      markup.indexOf('aria-label="Battle Hall sections"'),
+      markup.indexOf('</nav>'),
+    )
+    const labels = ['AI Battles', 'PVP - Direct', 'PVP - Matchmaking (coming soon)', 'Spectate']
+    const positions = labels.map((label) => {
+      expect(rail).toContain(label)
+      return rail.indexOf(label)
+    })
+    expect(positions).toEqual([...positions].sort((a, b) => a - b))
+    expect(markup).not.toContain('A classic proving ground for focused combat.')
+    expect(markup).toContain('aria-label="AI sparring arena"')
+  })
+
   it('offers the three standard arena widths with matching labels', () => {
     const markup = renderToStaticMarkup(
       createElement(BattleLaunch, { characterId: 'character-1', characterName: 'Eira Vale' }),

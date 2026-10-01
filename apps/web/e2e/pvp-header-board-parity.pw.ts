@@ -60,7 +60,7 @@ test('keeps the live desktop PvP header, opponent timer, and full board stable',
     })
 
     await host.goto('/game/battle')
-    await host.getByRole('button', { name: /Player vs Player/ }).click()
+    await host.getByRole('button', { name: 'PVP - Direct', exact: true }).click()
     const createLobbyButton = host.getByRole('button', { name: 'Create Battle Lobby' })
     await expect(createLobbyButton).toBeVisible()
     await createLobbyButton.click()

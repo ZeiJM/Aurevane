@@ -33,8 +33,12 @@
 }
 .pageHeadingTitle {
   display: flex;
+  min-width: 0;
   align-items: center;
   gap: 0.8rem;
+}
+.pageHeadingTitle > div {
+  min-width: 0;
 }
 .pageIcon {
   font-size: 2rem;
@@ -455,5 +459,48 @@
   }
   .arsenal {
     padding: 0;
+  }
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  min-height: 2.25rem;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid #ad9768;
+  color: #f1e5cd;
+  background: #203e38;
+  font-size: 0.875rem;
+  text-decoration: none;
+  text-shadow: none;
+}
+.backLink:focus-visible {
+  outline: 2px solid #ead08a;
+  outline-offset: 3px;
+}
+.attunementIdentity {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.attunementIdentity > b {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.attunementIdentity > strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.disciplineCard[data-locked='true'] {
+  grid-template-columns: 5.5rem minmax(0, max-content);
+  justify-content: center;
+  align-content: center;
+  text-align: center;
+}
+@media (min-width: 1600px) {
+  .disciplineCard[data-locked='true'] {
+    grid-template-columns: 7rem minmax(0, max-content);
   }
 }

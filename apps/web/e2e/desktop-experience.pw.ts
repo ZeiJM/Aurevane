@@ -1,6 +1,7 @@
 import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test'
 import { createClient } from '@supabase/supabase-js'
 
+import { previewDiscipline } from './discipline-library-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 const rosterListSelector =
@@ -134,7 +135,7 @@ test('desktop Profile and every Battle Hall tab fit without sacrificing readable
     await page.setViewportSize(size)
     const suffix = `${size.width}x${size.height}`
     await page.goto('/game/character')
-    await expect(page.getByTestId('character-profile')).toBeVisible()
+    await expect(page.locator('[data-profile-workspace]')).toBeVisible()
     await readable(page.getByTestId('derived-stat-movement').locator('span').first(), 13)
     await fit(page, `Profile-${suffix}`, testInfo)
     const reset = page.getByRole('button', { name: 'Reset Attributes' })
@@ -173,7 +174,7 @@ test('desktop Profile and every Battle Hall tab fit without sacrificing readable
       await readable(page.getByLabel('Battle mode'), 13)
       await fit(page, `AI-${mode}-${suffix}`, testInfo)
     }
-    await tabs.getByRole('button', { name: /Player vs Player/ }).click()
+    await tabs.getByRole('button', { name: 'PVP - Direct', exact: true }).click()
     for (const mode of ['1v1', '2v2', '3v3', '1v1v1', 'flex-teams']) {
       await page.getByLabel('Battle format').selectOption(mode)
       await readable(page.locator('[data-pvp-setting-options] button').first(), 12)
@@ -201,7 +202,10 @@ test('desktop Profile and every Battle Hall tab fit without sacrificing readable
   await page.getByTestId('primary-build-panel').getByRole('button').click()
   const disciplines = page.getByRole('dialog', { name: 'Discipline Management', exact: true })
   await expect(disciplines).toBeVisible()
-  await readable(disciplines.locator('select').first(), 14)
+  await readable(
+    disciplines.getByRole('button', { name: 'Edit Primary Discipline', exact: true }),
+    14,
+  )
   await testInfo.attach('Disciplines-dialog', {
     body: await page.screenshot(),
     contentType: 'image/png',
@@ -234,12 +238,12 @@ test('desktop Profile and every Battle Hall tab fit without sacrificing readable
   // Very short windows may scroll, but cannot trap the Character controls underneath the footer.
   await page.setViewportSize({ width: 1024, height: 576 })
   await page.goto('/game/character')
-  await expect(page.getByTestId('character-profile')).toBeVisible()
+  await expect(page.locator('[data-profile-workspace]')).toBeVisible()
   await reachable(page, page.getByRole('button', { name: 'Reset Attributes' }))
   await page.goto('/game/battle')
   await page
     .getByRole('navigation', { name: 'Battle Hall sections' })
-    .getByRole('button', { name: /Player vs Player/ })
+    .getByRole('button', { name: 'PVP - Direct', exact: true })
     .click()
   await page.getByLabel('Battle format').selectOption('flex-teams')
   await reachable(page, page.getByRole('button', { name: 'Create Battle Lobby' }))
@@ -455,7 +459,7 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
   await page.goto('/game/battle')
   await page
     .getByRole('navigation', { name: 'Battle Hall sections' })
-    .getByRole('button', { name: /Player vs Player/ })
+    .getByRole('button', { name: 'PVP - Direct', exact: true })
     .click()
   await page.getByLabel('Battle format').selectOption('3v3')
   await testInfo.attach('phone-pvp-settings', {
@@ -493,7 +497,7 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
   await attributeDialog.getByRole('button', { name: 'Close', exact: true }).click()
   await expect(attributeDialog).toBeHidden()
 
-  const audio = page.getByRole('dialog', { name: 'Audio settings' })
+  const audio = page.locator('[data-audio-workspace]')
   for (const width of [360, 430, 1366]) {
     await page.setViewportSize({ width, height: 800 })
     await page.getByRole('button', { name: 'Account', exact: true }).click()
@@ -516,13 +520,16 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
       contentType: 'image/png',
     })
 
+    await expect(audioAction).toHaveAttribute('href', '/game/settings/audio')
     await audioAction.click()
+    await expect(page).toHaveURL(/\/game\/settings\/audio$/)
+    await expect(page.getByRole('dialog', { name: 'Audio settings' })).toHaveCount(0)
     await expect(audio).toBeVisible()
     const bounds = await audio.boundingBox()
-    expect(bounds!.x).toBeGreaterThanOrEqual(8)
-    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width - 8)
-    expect(bounds!.y).toBeGreaterThanOrEqual(8)
-    expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(792)
+    expect(bounds!.x).toBeGreaterThanOrEqual(0)
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width + 1)
+    await expect(audio.getByRole('heading', { name: 'Volume settings', exact: true })).toBeVisible()
+    await expect(audio.getByRole('heading', { name: 'Now playing', exact: true })).toBeVisible()
     await expect(audio.getByText('Soundscape', { exact: true })).toHaveCount(0)
     await expect(audio.getByRole('button', { name: 'Close audio settings' })).toHaveCount(0)
     await expect(audio.getByText(/locked until/i)).toHaveCount(0)
@@ -541,8 +548,8 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
       body: await page.screenshot(),
       contentType: 'image/png',
     })
-    await page.keyboard.press('Escape')
-    await expect(audio).toBeHidden()
+    await page.goto('/game/character')
+    await expect(audio).toHaveCount(0)
   }
   await page.setViewportSize({ width: 360, height: 800 })
   const phoneNavigation = page.getByRole('navigation', {
@@ -576,9 +583,7 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
       await page.reload()
       await page.getByTestId('primary-build-panel').getByRole('button').click()
       const discipline = page.getByRole('dialog', { name: 'Discipline Management' })
-      await discipline
-        .getByRole('combobox', { name: 'Secondary Discipline', exact: true })
-        .selectOption('lifebinder')
+      await previewDiscipline(discipline, 'Secondary', 'Lifebinder')
       await discipline.getByRole('button', { name: /Confirm Change/ }).click()
       await expect(page.getByRole('status')).toContainText('Discipline changes committed.')
       await testInfo.attach('phone-discipline-preview', {
@@ -702,7 +707,7 @@ test('supplementary presence never blocks primary rail navigation', async ({ pag
   })
   try {
     await page.goto('/game/character')
-    await expect(page.getByTestId('character-profile')).toBeVisible()
+    await expect(page.locator('[data-profile-workspace]')).toBeVisible()
     await expect(page.getByLabel('Loading online count')).toHaveText('—')
     await page.evaluate(() => {
       ;(window as Window & { navigationProbe?: string }).navigationProbe = 'preserved'

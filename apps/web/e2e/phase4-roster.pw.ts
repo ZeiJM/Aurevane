@@ -3,6 +3,7 @@ import {
   BATTLE_MISSING_ARTWORK,
   battleSkillArtwork,
 } from '../src/components/battle/battle-skill-presentation'
+import { previewDiscipline } from './discipline-library-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 // Keep the screenshots and interaction trace when this release gate passes, too.
@@ -55,9 +56,7 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
   await expect(management).toBeVisible()
   await page.reload()
   await expect(management).toBeVisible()
-  await management
-    .getByRole('combobox', { name: 'Primary Discipline', exact: true })
-    .selectOption('ironfist')
+  await previewDiscipline(management, 'Primary', 'Ironfist')
   await management.getByRole('button', { name: /Confirm Change/ }).click()
   await expect(page.getByTestId('primary-discipline-chip')).toHaveText('Ironfist')
   await management.getByRole('button', { name: 'Close', exact: true }).click()
@@ -257,11 +256,17 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
       }),
     ]),
   )
-  const primary = management.getByRole('combobox', { name: 'Primary Discipline', exact: true })
-  await expect(primary.locator('option[value="bastion"]')).toHaveCount(1)
+  await management.getByRole('button', { name: 'Edit Primary Discipline', exact: true }).click()
+  const primary = management.getByRole('region', {
+    name: 'Primary Discipline library',
+    exact: true,
+  })
+  await expect(
+    primary.getByRole('button', { name: 'Preview Bastion as Primary Discipline', exact: true }),
+  ).toHaveCount(1)
   // Existing Owner-authorized testing access covers all published Disciplines without fake Mastery.
   // Earned prerequisites and 4/2/2 acquisition are independently verified in database CI.
-  await primary.selectOption('bastion')
+  await previewDiscipline(management, 'Primary', 'Bastion')
   await management.getByRole('button', { name: /Confirm Change/ }).click()
   await expect(page.getByTestId('primary-discipline-chip')).toHaveText('Bastion')
   await management.getByRole('button', { name: 'Close', exact: true }).click()
@@ -386,9 +391,7 @@ test('Chronist provisions its full testing library, Essence artwork and explicit
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
   await page.getByRole('button', { name: /Manage Disciplines/ }).click()
   const management = page.getByRole('dialog', { name: 'Discipline Management' })
-  await management
-    .getByRole('combobox', { name: 'Primary Discipline', exact: true })
-    .selectOption('chronist')
+  await previewDiscipline(management, 'Primary', 'Chronist')
   await management.getByRole('button', { name: /Confirm Change/ }).click()
   await expect(page.getByTestId('primary-discipline-chip')).toHaveText('Chronist')
   await management.getByRole('button', { name: 'Close', exact: true }).click()

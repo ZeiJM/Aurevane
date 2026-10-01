@@ -104,7 +104,7 @@ test('keeps the shared PvP desktop cockpit at the same compact scale', async ({
     })
 
     await host.goto('/game/battle')
-    await host.getByRole('button', { name: /Player vs Player/ }).click()
+    await host.getByRole('button', { name: 'PVP - Direct', exact: true }).click()
     await host.getByRole('button', { name: 'Create Battle Lobby' }).click()
 
     const hostDialog = host.getByRole('dialog', { name: 'The arena is waiting.' })

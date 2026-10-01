@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { expect, test } from '@playwright/test'
 
+import { previewDiscipline } from './discipline-library-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 function uniqueCharacterName(): string {
@@ -85,19 +86,35 @@ test('Nexus equips a mastered Secondary with independent attunement authority', 
   await expect(dialog).toContainText('Secondary Discipline')
   await expect(dialog).toContainText('Locked')
 
-  const primarySelect = dialog.getByRole('combobox', { name: 'Primary Discipline', exact: true })
-  const secondarySelect = dialog.getByRole('combobox', {
-    name: 'Secondary Discipline',
+  const primaryEditor = dialog.getByRole('button', { name: 'Edit Primary Discipline', exact: true })
+  const secondaryEditor = dialog.getByRole('button', {
+    name: 'Edit Secondary Discipline',
     exact: true,
   })
+  await expect(primaryEditor).toBeEnabled()
+  await expect(secondaryEditor).toBeEnabled()
+  await secondaryEditor.click()
+  const secondaryLibrary = dialog.getByRole('region', {
+    name: 'Secondary Discipline library',
+    exact: true,
+  })
+  await expect(
+    secondaryLibrary.getByRole('button', { name: 'Use Primary only', exact: true }),
+  ).toBeDisabled()
+  await expect(
+    secondaryLibrary.getByRole('button', {
+      name: 'Preview Aetherist as Secondary Discipline',
+      exact: true,
+    }),
+  ).toBeEnabled()
+  await expect(
+    secondaryLibrary.getByRole('button', {
+      name: 'Preview Vanguard as Secondary Discipline',
+      exact: true,
+    }),
+  ).toHaveCount(0)
 
-  await expect(primarySelect).toBeEnabled()
-  await expect(secondarySelect).toBeEnabled()
-  await expect(secondarySelect.locator('option[value=""]')).toHaveText('None')
-  await expect(secondarySelect.locator('option[value="aetherist"]')).toHaveText('Aetherist')
-  await expect(secondarySelect.locator('option[value="vanguard"]')).toHaveCount(0)
-
-  await secondarySelect.selectOption('aetherist')
+  await previewDiscipline(dialog, 'Secondary', 'Aetherist')
   const preview = dialog.locator('[aria-label="Discipline stat preview"]')
   await expect(preview).toBeVisible()
   await expect(preview).toContainText('Preview Secondary')
@@ -110,7 +127,7 @@ test('Nexus equips a mastered Secondary with independent attunement authority', 
   await expect(secondaryDisciplineChip).toHaveText('Aetherist')
   await expect(maxHp).toContainText(maxHpBeforeSecondary)
 
-  await primarySelect.selectOption('lifebinder')
+  await previewDiscipline(dialog, 'Primary', 'Lifebinder')
   await expect(preview).toContainText('Preview Primary')
   await expect(preview).toContainText('Lifebinder')
 
@@ -123,14 +140,27 @@ test('Nexus equips a mastered Secondary with independent attunement authority', 
   await expect(dialog).toBeVisible()
   await expect(dialog).toContainText('Lifebinder')
   await expect(dialog).toContainText('Aetherist')
-  await expect(primarySelect).toBeEnabled()
-  await expect(secondarySelect).toBeEnabled()
+  await expect(primaryEditor).toBeEnabled()
+  await expect(secondaryEditor).toBeEnabled()
+
+  // Clearing previews the pure build; abandoning that preview preserves the committed Secondary.
+  await secondaryEditor.click()
+  const clearSecondary = dialog.getByRole('button', { name: 'Use Primary only', exact: true })
+  await expect(clearSecondary).toBeEnabled()
+  await clearSecondary.click()
+  await expect(clearSecondary).toBeDisabled()
+  await expect(preview).toContainText('Preview Secondary')
+  await expect(preview).toContainText('None')
+  await expect(secondaryDisciplineChip).toHaveText('Aetherist')
+  await page.reload()
+  await expect(dialog).toBeVisible()
+  await expect(secondaryDisciplineChip).toHaveText('Aetherist')
 
   await page.goto('/game/character')
   await expect(page.getByText('Resonance Build', { exact: true })).toBeVisible()
 })
 
-test('mobile Character keeps its portrait readable and Nexus centers Discipline Management', async ({
+test('mobile Profile keeps its artwork and identity tags readable and Nexus centers Discipline Management', async ({
   page,
 }, testInfo) => {
   test.skip(
@@ -146,14 +176,18 @@ test('mobile Character keeps its portrait readable and Nexus centers Discipline 
     characterName,
   })
 
-  const profile = page.getByTestId('character-profile')
-  const portrait = profile.locator('.character-portrait-media').locator('..')
+  const profile = page.locator('[data-profile-workspace]')
+  const portrait = profile.locator('[aria-hidden="true"] > .character-portrait-media').locator('..')
   await expect(portrait).toBeVisible()
   const portraitBox = await portrait.boundingBox()
   if (!portraitBox) throw new Error('Character portrait geometry is unavailable')
-  expect(Math.abs(portraitBox.width - portraitBox.height)).toBeLessThanOrEqual(1)
-  await expect(profile.locator('[data-character-resource="hp"]')).toBeVisible()
-  await expect(profile.locator('[data-character-resource="mp"]')).toBeVisible()
+  expect(portraitBox.width).toBeGreaterThan(0)
+  expect(portraitBox.height).toBeGreaterThan(0)
+  await expect(profile.locator('[aria-label="Disciplines and titles"]')).toBeVisible()
+  await expect(profile.getByTestId('primary-discipline-chip')).toHaveText('Vanguard')
+  await expect(profile.getByTestId('derived-stat-maxHp')).toBeVisible()
+  await expect(profile.getByTestId('derived-stat-maxMp')).toBeVisible()
+  await expect(page.getByTestId('character-profile')).toHaveCount(0)
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(
     true,
   )

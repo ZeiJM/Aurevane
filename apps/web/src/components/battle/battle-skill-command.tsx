@@ -207,8 +207,8 @@ export function BattleSkillCommand({
           aria-hidden="true"
         >
           <Image
-            width={64}
-            height={64}
+            width={192}
+            height={192}
             unoptimized
             src={artworkSrc}
             alt=""

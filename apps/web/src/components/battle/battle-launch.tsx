@@ -118,7 +118,6 @@ export function BattleLaunch({ characterId, initialJoinKey = null }: BattleLaunc
   const [error, setError] = useState<string | null>(null)
 
   const selectedRecord = recordId ? getTacticalHallRecord(recordId) : null
-  const selectedArena = ARENAS.find((arena) => arena.id === arenaId) ?? ARENAS[1]
 
   function chooseSection(next: HallSection) {
     setSection(next)
@@ -381,7 +380,16 @@ export function BattleLaunch({ characterId, initialJoinKey = null }: BattleLaunc
           onClick={() => chooseSection('pvp')}
         >
           <span aria-hidden="true">♟</span>
-          <strong>Player vs Player</strong>
+          <strong>PVP - Direct</strong>
+        </button>
+        <button
+          type="button"
+          data-active={section === 'matchmaking' || undefined}
+          aria-pressed={section === 'matchmaking'}
+          onClick={() => chooseSection('matchmaking')}
+        >
+          <span aria-hidden="true">✧</span>
+          <strong>PVP - Matchmaking (coming soon)</strong>
         </button>
         <button
           type="button"
@@ -392,16 +400,6 @@ export function BattleLaunch({ characterId, initialJoinKey = null }: BattleLaunc
         >
           <span aria-hidden="true">◉</span>
           <strong>Spectate</strong>
-        </button>
-        <button
-          type="button"
-          data-active={section === 'matchmaking' || undefined}
-          aria-pressed={section === 'matchmaking'}
-          onClick={() => chooseSection('matchmaking')}
-        >
-          <span aria-hidden="true">✧</span>
-          <strong>Matchmaking</strong>
-          <small>Coming Soon</small>
         </button>
       </nav>
 
@@ -444,20 +442,6 @@ export function BattleLaunch({ characterId, initialJoinKey = null }: BattleLaunc
           </div>
 
           <div className={styles.workspaceBody} data-hall-scroll-body="true">
-            <figure className={styles.arenaVista}>
-              <AurevaneImage
-                assetId="environment.battle-hall.courtyard"
-                sizes="(max-width: 900px) 100vw, 64vw"
-              />
-              <figcaption>
-                <div>
-                  <strong>{selectedArena.name}</strong>
-                  <span>{selectedArena.scale}</span>
-                </div>
-                <em>A classic proving ground for focused combat.</em>
-              </figcaption>
-            </figure>
-
             <div className={styles.arenaControlRow}>
               <label>
                 <span>Arena</span>
@@ -593,7 +577,7 @@ export function BattleLaunch({ characterId, initialJoinKey = null }: BattleLaunc
             <div className={styles.pvpContent}>
               <div className={styles.workspaceHeading}>
                 <div>
-                  <h2 id="pvp-heading">Player vs Player</h2>
+                  <h2 id="pvp-heading">PVP - Direct</h2>
                   <p>Create a private battle or join with a key to fight another player.</p>
                 </div>
                 <blockquote>“Greater minds make a greater tomorrow.”</blockquote>

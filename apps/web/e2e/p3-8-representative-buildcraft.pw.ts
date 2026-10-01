@@ -1,6 +1,7 @@
 import { expectBattlePreviewFits } from './battle-reference-layout-helpers'
 import { expect, test, type Locator, type Page } from '@playwright/test'
 
+import { previewDiscipline } from './discipline-library-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 function uniqueCharacterName(): string {
@@ -120,9 +121,7 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   await disciplineLauncher.click()
   const disciplineDialog = page.getByRole('dialog', { name: 'Discipline Management' })
   await expect(disciplineDialog).toBeVisible()
-  await disciplineDialog
-    .getByRole('combobox', { name: 'Secondary Discipline', exact: true })
-    .selectOption('lifebinder')
+  await previewDiscipline(disciplineDialog, 'Secondary', 'Lifebinder')
   await expect(page.getByTestId('primary-build-preview')).toContainText('Lifebinder')
   await disciplineDialog.getByRole('button', { name: /Confirm Change/ }).click()
   await expect(page.getByRole('status')).toContainText('Discipline changes committed.')

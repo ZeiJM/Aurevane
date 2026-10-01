@@ -1,6 +1,7 @@
 import { expect, test, type Page, type TestInfo } from '@playwright/test'
 import { createClient } from '@supabase/supabase-js'
 import type { BattleSessionView } from '../src/server/battle/battle-session-service'
+import { previewDiscipline } from './discipline-library-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 test.use({ trace: 'on', actionTimeout: 15_000 })
@@ -26,9 +27,7 @@ async function equipMist(page: Page) {
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
   await page.getByRole('button', { name: /Manage Disciplines/ }).click()
   const management = page.getByRole('dialog', { name: 'Discipline Management', exact: true })
-  await management
-    .getByRole('combobox', { name: 'Primary Discipline', exact: true })
-    .selectOption('frostweaver')
+  await previewDiscipline(management, 'Primary', 'Frostweaver')
   await management.getByRole('button', { name: /Confirm Change/ }).click()
   await expect(page.getByTestId('primary-discipline-chip')).toHaveText('Frostweaver')
   await management.getByRole('button', { name: 'Close', exact: true }).click()
@@ -280,7 +279,7 @@ test('PvP ground Skill uses the same forecast and spectator terrain inspection',
     await provision(guest, 'GroundGuest', testInfo)
     await provision(spectator, 'GroundWatch', testInfo)
     await page.goto('/game/battle')
-    await page.getByRole('button', { name: /Player vs Player/ }).click()
+    await page.getByRole('button', { name: 'PVP - Direct', exact: true }).click()
     await page.getByRole('button', { name: 'Create Battle Lobby' }).click()
     const hostDialog = page.getByRole('dialog', { name: 'The arena is waiting.' })
     const key = (await hostDialog

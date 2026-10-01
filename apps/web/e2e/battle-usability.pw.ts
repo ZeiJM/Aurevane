@@ -56,7 +56,7 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
 
   await expect(page.getByRole('heading', { name: 'Choose your arena.' })).toBeVisible()
 
-  await page.getByRole('button', { name: 'Player vs Player' }).click()
+  await page.getByRole('button', { name: 'PVP - Direct', exact: true }).click()
   const pvpMode = page.getByLabel('Battle format')
   const pvpSummary = page
     .locator('article[data-pvp-create-card] p')

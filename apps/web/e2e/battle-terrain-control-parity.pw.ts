@@ -134,7 +134,7 @@ async function enterScaleParityPvpBattle(host: Page, guest: Page) {
   })
 
   await host.goto('/game/battle')
-  await host.getByRole('button', { name: /Player vs Player/ }).click()
+  await host.getByRole('button', { name: 'PVP - Direct', exact: true }).click()
   await host.getByRole('button', { name: 'Create Battle Lobby' }).click()
 
   const hostDialog = host.getByRole('dialog', { name: 'The arena is waiting.' })
@@ -227,7 +227,7 @@ test('keeps PvP terrain controls visually unified on desktop and mobile', async 
     })
 
     await host.goto('/game/battle')
-    await host.getByRole('button', { name: /Player vs Player/ }).click()
+    await host.getByRole('button', { name: 'PVP - Direct', exact: true }).click()
     await host.getByRole('button', { name: 'Create Battle Lobby' }).click()
 
     const hostDialog = host.getByRole('dialog', { name: 'The arena is waiting.' })

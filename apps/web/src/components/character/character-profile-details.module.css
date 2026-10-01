@@ -405,14 +405,14 @@
   padding: 0.85rem 0.95rem 0.9rem;
   border: 1px solid var(--av-border-strong);
   border-radius: var(--av-radius-md);
-  color: var(--av-text);
-  background: rgba(8, 11, 16, 0.985);
+  color: #2d352d;
+  background: #ddd0b7;
   box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.55);
   backdrop-filter: blur(1rem);
 }
 
 .detailPopover > span {
-  color: rgba(255, 255, 255, 0.74);
+  color: #625438;
   font: 650 0.8125rem/1.1 var(--av-font-body);
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -420,13 +420,13 @@
 
 .detailPopover h2 {
   margin: 0.28rem 0 0.4rem;
-  color: var(--av-brass-100);
+  color: #253c33;
   font: 600 1.05rem/1.2 var(--av-font-display);
 }
 
 .detailPopover p {
   margin: 0;
-  color: #f5f7fa;
+  color: #2d352d;
   font-size: 0.9375rem;
   line-height: 1.5;
 }

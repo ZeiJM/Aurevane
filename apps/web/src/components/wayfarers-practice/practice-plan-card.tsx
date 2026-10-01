@@ -337,14 +337,7 @@ export function PracticePlanCard({ practice, report, hasReport = false }: Practi
           The server keeps time. This page does not need to stay open.
         </p>
       </section>
-      {hasReport ? (
-        report
-      ) : (
-        <details className={styles.reportDisclosure}>
-          <summary>Training Report</summary>
-          {report}
-        </details>
-      )}
+      {report}
     </div>
   )
 }

@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
-test('training follows the scenic reference with stacked plan and status cards', async ({
+test('training keeps plan, status and report inline within the desktop viewport', async ({
   page,
 }, testInfo) => {
   test.setTimeout(90_000)
@@ -32,6 +32,10 @@ test('training follows the scenic reference with stacked plan and status cards',
   await expect(page.locator('[data-av-game-rail]')).toBeVisible()
   await expect(planner).toBeVisible()
   await expect(current).toBeVisible()
+  const report = page.getByRole('complementary', { name: 'Training report workspace' })
+  await expect(report).toBeVisible()
+  await expect(report.getByRole('heading', { name: 'No report waiting' })).toBeVisible()
+  await expect(frame.locator('details, [role="dialog"]')).toHaveCount(0)
   await expect(page.getByRole('radio')).toHaveCount(3)
   await expect(page.getByRole('button', { name: 'Start Training', exact: true })).toBeEnabled()
   await expect(page.getByRole('radio', { name: 'Short Plan', exact: true })).toBeChecked()
@@ -46,16 +50,26 @@ test('training follows the scenic reference with stacked plan and status cards',
     await page.evaluate(() => document.documentElement.scrollWidth - innerWidth),
   ).toBeLessThanOrEqual(1)
   if (!mobile) {
-    const planBox = (await planner.boundingBox())!
-    const currentBox = (await current.boundingBox())!
-    expect(currentBox.y).toBeGreaterThanOrEqual(planBox.y + planBox.height)
-    expect(Math.abs(currentBox.x - planBox.x)).toBeLessThanOrEqual(1)
-    expect(
-      await page.locator('#game-main').evaluate((e) => e.scrollHeight - e.clientHeight),
-    ).toBeLessThanOrEqual(1)
+    for (const viewport of [
+      { width: 1366, height: 768 },
+      { width: 1536, height: 614 },
+    ]) {
+      await page.setViewportSize(viewport)
+      const planBox = (await planner.boundingBox())!
+      const currentBox = (await current.boundingBox())!
+      const reportBox = (await report.boundingBox())!
+      expect(currentBox.x).toBeGreaterThanOrEqual(planBox.x + planBox.width)
+      expect(reportBox.x).toBeGreaterThanOrEqual(currentBox.x + currentBox.width)
+      expect(Math.abs(currentBox.y - planBox.y)).toBeLessThanOrEqual(1)
+      for (const panel of [planner, current, report]) {
+        expect(await panel.evaluate((e) => e.scrollHeight - e.clientHeight)).toBeLessThanOrEqual(1)
+        await expect(panel).toBeInViewport({ ratio: 1 })
+      }
+      expect(
+        await page.locator('#game-main').evaluate((e) => e.scrollHeight - e.clientHeight),
+      ).toBeLessThanOrEqual(1)
+    }
   }
-  await page.getByText('Training Report', { exact: true }).first().click()
-  await expect(page.getByRole('complementary', { name: 'Training report workspace' })).toBeVisible()
   await expect(page.getByRole('navigation', { name: 'Training sections' })).toHaveCount(0)
   await expect(
     page.getByRole('button', { name: /Load Preset|Apply Plan|View History/ }),

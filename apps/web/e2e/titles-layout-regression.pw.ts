@@ -1,4 +1,4 @@
-import { mkdir } from 'node:fs/promises'
+import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { expect, test, type Page } from '@playwright/test'
 
@@ -17,7 +17,82 @@ function maxRgbChannel(value: string) {
   return Math.max(...(value.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number))
 }
 
-test('Titles keeps the scenic account workspace and its stacked editing controls at normal desktop zoom', async ({
+async function expectDesktopTitlesFitWithoutScroll(page: Page, label: string) {
+  await settle(page)
+  const metrics = await page.locator('[data-character-concept="titles"]').evaluate((root) => {
+    const main = document.getElementById('game-main')!
+    const mainBox = main.getBoundingClientRect()
+    const footerBox = document
+      .querySelector('[data-testid="authenticated-shell"] > footer')!
+      .getBoundingClientRect()
+    const candidates = [...root.querySelectorAll<HTMLElement>(':scope > section, button, input')]
+    const describe = (element: Element) => {
+      const style = getComputedStyle(element)
+      return {
+        box: element.getBoundingClientRect().toJSON(),
+        height: style.height,
+        minHeight: style.minHeight,
+        gridRows: style.gridTemplateRows,
+        padding: style.padding,
+        alignSelf: style.alignSelf,
+      }
+    }
+    return {
+      sizing: {
+        main: describe(main),
+        scene: describe(root.closest('[data-settings-scene]')!),
+        workspace: describe(root.parentElement!),
+      },
+      main: mainBox.toJSON(),
+      root: root.getBoundingClientRect().toJSON(),
+      footer: footerBox.toJSON(),
+      mainOverflow: main.scrollHeight - main.clientHeight,
+      rootOverflow: root.scrollHeight - root.clientHeight,
+      mainScrollTop: main.scrollTop,
+      rootScrollTop: root.scrollTop,
+      documentOverflow: document.documentElement.scrollHeight - innerHeight,
+      children: candidates
+        .filter((child) => child.getClientRects().length > 0)
+        .map((child) => ({
+          name: child.textContent ?? child.getAttribute('aria-label'),
+          box: child.getBoundingClientRect().toJSON(),
+        })),
+    }
+  })
+  const name = `titles-fit-${label.replace(/[^a-z0-9-]+/gi, '-')}`
+  const outputDirectory = process.env.LAYOUT_REVIEW_OUTPUT
+  if (outputDirectory) {
+    await mkdir(outputDirectory, { recursive: true })
+    await writeFile(path.join(outputDirectory, `${name}.json`), JSON.stringify(metrics, null, 2))
+  }
+  await test.info().attach(name, { body: JSON.stringify(metrics), contentType: 'application/json' })
+  await page.screenshot({
+    path: outputDirectory
+      ? path.join(outputDirectory, `${name}.png`)
+      : test.info().outputPath(`${name}.png`),
+  })
+  expect(metrics.mainOverflow, `${label}: main fits without scrolling`).toBeLessThanOrEqual(1)
+  expect(
+    metrics.rootOverflow,
+    `${label}: editors fit without internal scrolling`,
+  ).toBeLessThanOrEqual(1)
+  expect(metrics.mainScrollTop).toBe(0)
+  expect(metrics.rootScrollTop).toBe(0)
+  expect(metrics.documentOverflow).toBeLessThanOrEqual(1)
+  expect(metrics.root.top).toBeGreaterThanOrEqual(metrics.main.top)
+  expect(metrics.root.bottom).toBeLessThanOrEqual(metrics.main.bottom + 1)
+  expect(metrics.main.bottom).toBeLessThanOrEqual(metrics.footer.top + 1)
+  for (const { name, box } of metrics.children) {
+    expect(box.top, `${label}: ${name} is below main top`).toBeGreaterThanOrEqual(metrics.main.top)
+    expect(box.bottom, `${label}: ${name} is above footer`).toBeLessThanOrEqual(
+      metrics.main.bottom + 1,
+    )
+    expect(box.left).toBeGreaterThanOrEqual(metrics.main.left)
+    expect(box.right).toBeLessThanOrEqual(metrics.main.right + 1)
+  }
+}
+
+test('Titles keeps the scenic account workspace and its side-by-side editing controls at normal desktop zoom', async ({
   page,
 }, info) => {
   test.skip(info.project.name !== 'desktop-chromium', 'Desktop Titles composition only')
@@ -38,11 +113,11 @@ test('Titles keeps the scenic account workspace and its stacked editing controls
   const save = page.getByRole('button', { name: 'Save Profile Image' })
   await expect(concept).toBeVisible()
   await expect(personal).toBeVisible()
-  await expect(current).toBeVisible()
+  await expect(current).toHaveCount(0)
   await expect(profileImage).toBeVisible()
   await expect(save).toBeVisible()
-  await save.scrollIntoViewIfNeeded()
   await settle(page)
+  await expectDesktopTitlesFitWithoutScroll(page, '1366x768 initial')
 
   const metrics = await page.evaluate(() => {
     const rect = (selector: string) => {
@@ -67,7 +142,6 @@ test('Titles keeps the scenic account workspace and its stacked editing controls
     return {
       root: rect('[data-character-concept="titles"]'),
       personal: rect('section[aria-labelledby="personal-title-heading"]'),
-      current: rect('section[aria-labelledby="current-title-heading"]'),
       profileImage: rect('section[aria-labelledby="profile-image-heading"]'),
       save: { y: saveBox.y, bottom: saveBox.bottom },
       footerTop: footer.top,
@@ -89,21 +163,17 @@ test('Titles keeps the scenic account workspace and its stacked editing controls
     .soft(maxRgbChannel(metrics.profileHeadingColor), 'profile-image heading remains readable')
     .toBeLessThan(110)
   expect
-    .soft(
-      Math.abs(metrics.personal.x - metrics.current.x),
-      'title workflow follows the equipped identity in one column',
-    )
+    .soft(metrics.profileImage.x, 'portrait editor sits beside the title editor')
+    .toBeGreaterThanOrEqual(metrics.personal.right)
+  expect
+    .soft(Math.abs(metrics.personal.y - metrics.profileImage.y), 'desktop editor headings align')
     .toBeLessThanOrEqual(2)
   expect
-    .soft(metrics.personal.y, 'title editor follows current identity')
-    .toBeGreaterThan(metrics.current.y)
-  expect
     .soft(
-      Math.abs(metrics.current.x - metrics.profileImage.x),
-      'profile display and configuration share the right column',
+      Math.abs(metrics.personal.width - metrics.profileImage.width),
+      'desktop editors share available width',
     )
     .toBeLessThanOrEqual(2)
-  expect.soft(metrics.current.height, 'profile preview stays compact').toBeLessThanOrEqual(320)
   expect
     .soft(metrics.save.bottom, 'profile image action stays above footer')
     .toBeLessThanOrEqual(metrics.footerTop + 1)
@@ -113,8 +183,41 @@ test('Titles keeps the scenic account workspace and its stacked editing controls
 
   await page.getByPlaceholder('e.g. Dawn Warden').fill('Dawn Keeper')
   await page.getByRole('button', { name: 'Review Title' }).click()
+  await expect(personal.getByRole('textbox', { name: /^Personal title/ })).toHaveCount(0)
+  await expect(personal.getByText('Dawn Keeper', { exact: true })).toBeVisible()
+  await expect(personal.getByRole('checkbox')).toBeVisible()
+  await expect(profileImage.getByRole('textbox', { name: /^Direct image URL/ })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Confirm Final Title' })).toBeDisabled()
   await expect(page.getByRole('button', { name: 'Edit', exact: true })).toBeVisible()
+  await expectDesktopTitlesFitWithoutScroll(page, '1366x768 title confirmation')
+  await page.setViewportSize({ width: 1536, height: 614 })
+  await expectDesktopTitlesFitWithoutScroll(page, '1536x614 title confirmation')
+  await page.getByRole('button', { name: 'Edit', exact: true }).click()
+  await expect(personal.getByRole('textbox', { name: /^Personal title/ })).toHaveValue(
+    'Dawn Keeper',
+  )
+  await expect(personal.getByRole('button', { name: 'Review Title', exact: true })).toBeVisible()
+  await expectDesktopTitlesFitWithoutScroll(page, '1536x614 title editor')
+  const saveResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'POST' &&
+      new URL(response.url()).pathname === '/api/account/profile-display',
+  )
+  await save.click()
+  const response = await saveResponse
+  const saveResult = { status: response.status(), body: await response.json() }
+  if (process.env.LAYOUT_REVIEW_OUTPUT) {
+    await writeFile(
+      path.join(process.env.LAYOUT_REVIEW_OUTPUT, 'titles-portrait-save-response.json'),
+      JSON.stringify(saveResult, null, 2),
+    )
+  }
+  expect(saveResult.status, JSON.stringify(saveResult.body)).toBe(200)
+  await expect(
+    profileImage.getByText('Custom profile image removed.', { exact: true }),
+  ).toBeVisible()
+  await expectDesktopTitlesFitWithoutScroll(page, '1536x614 portrait save confirmation')
+  await page.setViewportSize({ width: 1366, height: 768 })
 
   if (process.env.LAYOUT_REVIEW_OUTPUT) {
     await mkdir(process.env.LAYOUT_REVIEW_OUTPUT, { recursive: true })
@@ -141,6 +244,7 @@ test('Titles stacks cleanly on phone without inventing desktop-only overflow', a
 
   const concept = page.locator('[data-character-concept="titles"]')
   await expect(concept).toBeVisible()
+  await expect(page.locator('section[aria-labelledby="current-title-heading"]')).toHaveCount(0)
   await settle(page)
 
   const metrics = await page.evaluate(() => {
@@ -159,7 +263,6 @@ test('Titles stacks cleanly on phone without inventing desktop-only overflow', a
       surface: root.dataset.avSurface ?? null,
       rootBackground: getComputedStyle(root.parentElement!).backgroundImage,
       personalHeadingColor: getComputedStyle(root.querySelector('#personal-title-heading')!).color,
-      current: rect('section[aria-labelledby="current-title-heading"]'),
       personal: rect('section[aria-labelledby="personal-title-heading"]'),
       profileImage: rect('section[aria-labelledby="profile-image-heading"]'),
       overflow: document.documentElement.scrollWidth - innerWidth,
@@ -175,14 +278,11 @@ test('Titles stacks cleanly on phone without inventing desktop-only overflow', a
     .soft(maxRgbChannel(metrics.personalHeadingColor), 'phone title heading remains readable')
     .toBeLessThan(110)
   expect
-    .soft(Math.abs(metrics.current.x - metrics.personal.x), 'phone sections share one column')
+    .soft(Math.abs(metrics.personal.x - metrics.profileImage.x), 'phone editors share one column')
     .toBeLessThanOrEqual(2)
   expect
-    .soft(Math.abs(metrics.personal.x - metrics.profileImage.x), 'profile config shares the stack')
-    .toBeLessThanOrEqual(2)
-  expect
-    .soft(metrics.current.height, 'phone profile preview stays compact')
-    .toBeLessThanOrEqual(360)
+    .soft(metrics.profileImage.y, 'portrait configuration follows the title editor')
+    .toBeGreaterThanOrEqual(metrics.personal.bottom)
 
   const save = page.getByRole('button', { name: 'Save Profile Image' })
   await save.scrollIntoViewIfNeeded()

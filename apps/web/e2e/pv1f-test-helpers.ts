@@ -80,7 +80,17 @@ async function createCharacterAfterSignIn(input: {
   await expect(page).toHaveURL(/\/game\/haven$/)
   await expect(page.getByRole('heading', { name: /^Welcome home,/ })).toBeVisible()
   await page.goto('/game/character')
-  await expect(page.getByTestId('character-profile')).toContainText(characterName)
+  await expect(page.locator('[data-profile-workspace]')).toBeVisible()
+  const railIdentity = page
+    .getByTestId('authenticated-shell')
+    .locator('[data-av-game-rail]')
+    .getByTestId('character-rail-profile')
+  await expect(railIdentity).toHaveCount(1)
+  await expect(railIdentity).toContainText(characterName)
+  const visibleRailIdentities = page.getByTestId('character-rail-profile').filter({ visible: true })
+  // The desktop rail renders one identity; the phone shell intentionally hides its rail identity.
+  const desktopRail = await page.evaluate(() => matchMedia('(min-width: 761px)').matches)
+  await expect(visibleRailIdentities).toHaveCount(desktopRail ? 1 : 0)
 }
 
 export async function createVerifiedAccountAndSignIn(input: {

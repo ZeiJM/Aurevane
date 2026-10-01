@@ -3,7 +3,6 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('./foundation-discipline-sigil', () => ({ FoundationDisciplineSigil: () => null }))
-vi.mock('./discipline-mastery-panel', () => ({ DisciplineMasteryPanel: () => null }))
 
 import { DisciplineLibrary } from './character-discipline-build-panel'
 
@@ -33,11 +32,13 @@ function props() {
     pendingCommit: false,
     refreshingProfile: false,
     primaryRemainingSeconds: 0,
+    secondaryRemainingSeconds: 0,
+    activeSlot: 'primary' as const,
     onSelect: vi.fn(),
   }
 }
 
-describe('Primary Discipline library interaction', () => {
+describe('Discipline library slot interaction', () => {
   it.each(['lifebinder', ''])('previews the activated Primary with Secondary %j', (secondary) => {
     const input = { ...props(), selectedSecondaryId: secondary }
     const cards = buttons(DisciplineLibrary(input))
@@ -67,5 +68,31 @@ describe('Primary Discipline library interaction', () => {
     expect(markup).not.toContain('disabled=""')
     expect(markup).toContain('aria-pressed="true"')
     expect(markup).toContain('aria-pressed="false"')
+  })
+
+  it('previews a Secondary library choice while preserving the draft Primary', () => {
+    const input = { ...props(), activeSlot: 'secondary' as const }
+    const cards = buttons(DisciplineLibrary(input))
+    // The first card clears Secondary; library choices retain their supplied order.
+    expect(cards).toHaveLength(3)
+    cards[2].props.onClick?.()
+    expect(input.onSelect).toHaveBeenCalledExactlyOnceWith('vanguard', 'runeblade')
+  })
+
+  it('lets a Secondary draft return to a pure build without changing Primary', () => {
+    const input = { ...props(), activeSlot: 'secondary' as const }
+    const cards = buttons(DisciplineLibrary(input))
+    cards[0].props.onClick?.()
+    expect(input.onSelect).toHaveBeenCalledExactlyOnceWith('vanguard', '')
+  })
+
+  it('uses the edited slot cooldown independently', () => {
+    const input = { ...props(), activeSlot: 'secondary' as const, primaryRemainingSeconds: 60 }
+    expect(buttons(DisciplineLibrary(input)).every((card) => !card.props.disabled)).toBe(true)
+    expect(
+      buttons(DisciplineLibrary({ ...input, secondaryRemainingSeconds: 60 })).every(
+        (card) => card.props.disabled,
+      ),
+    ).toBe(true)
   })
 })

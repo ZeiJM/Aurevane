@@ -16,7 +16,6 @@ import type { AnyResonanceDefinition } from '@aurevane/game-core/combat/resonanc
 import { Surface } from '@aurevane/ui'
 
 import { CharacterAttributeAllocationPanel } from '@/components/character/character-attribute-allocation-panel'
-import { CharacterIdentityCard } from '@/components/character/character-identity-card'
 import { CharacterRailSynchronizedLayout } from '@/components/character/character-rail-synchronized-layout'
 import { CharacterProfileDetails } from '@/components/character/character-profile-details'
 import { type SupernaturalChoiceOption } from '@/components/character/character-supernatural-choice-controls'
@@ -136,15 +135,9 @@ export function CharacterProfileShell({
   personalTitle = null,
   imageUrl = null,
 }: CharacterWorkspaceProps) {
-  const disciplineSummary = characterDisciplineSummary(
-    disciplineBuild.current.definition,
-    disciplineBuild.currentSecondary,
-  )
   const attributePolicy = foundationDisciplineAttributePolicy(disciplineBuild.current.definition.id)
   const focusAttributes: readonly CharacterAttributeId[] = attributePolicy?.focusAttributes ?? []
   const buildTypeLabel = disciplineBuild.currentSecondary ? 'Resonance Build' : 'Essence Build'
-  const maxHp = disciplineBuild.current.derived.stats.maxHp.value
-  const maxMp = disciplineBuild.current.derived.stats.maxMp.value
 
   return (
     <CharacterRailSynchronizedLayout
@@ -165,23 +158,43 @@ export function CharacterProfileShell({
           alt=""
         />
       </div>
-      <CharacterIdentityCard
-        profile={profile}
-        primary={disciplineBuild.current.definition}
-        secondary={disciplineBuild.currentSecondary}
-        personalTitle={personalTitle}
-        imageUrl={imageUrl}
-        disciplineSummary={disciplineSummary}
-        maxHp={maxHp}
-        maxMp={maxMp}
-      />
-
       <Surface
         className={styles.profile}
         tone="elevated"
         data-av-surface="moonstone"
         data-profile-sheet="true"
       >
+        <div className={styles.identityTags} aria-label="Disciplines and titles">
+          <div className={styles.identityTag} data-profile-tag="primary">
+            <span aria-hidden="true">✦</span>
+            <div>
+              <small>Primary Discipline</small>
+              <strong data-testid="primary-discipline-chip">
+                {disciplineBuild.current.definition.name}
+              </strong>
+            </div>
+          </div>
+          {disciplineBuild.currentSecondary ? (
+            <div className={styles.identityTag} data-profile-tag="secondary">
+              <span aria-hidden="true">◇</span>
+              <div>
+                <small>Secondary Discipline</small>
+                <strong data-testid="secondary-discipline-chip">
+                  {disciplineBuild.currentSecondary.name}
+                </strong>
+              </div>
+            </div>
+          ) : null}
+          {personalTitle ? (
+            <div className={styles.identityTag} data-profile-tag="title">
+              <span aria-hidden="true">✧</span>
+              <div>
+                <small>Personal title</small>
+                <strong>{personalTitle}</strong>
+              </div>
+            </div>
+          ) : null}
+        </div>
         <details className={styles.buildIdentity}>
           <summary>
             {disciplineBuild.currentSecondary ? 'Mixed build' : 'Pure build'} ·{' '}

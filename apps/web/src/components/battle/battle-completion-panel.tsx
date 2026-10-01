@@ -201,6 +201,12 @@ export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
         data-result={guidedTrainingSucceeded ? 'complete' : result.toLowerCase()}
       >
         <div className={styles.resultHero}>
+          <span className={styles.resultSeal} aria-hidden="true">
+            <svg viewBox="0 0 40 40" fill="none">
+              <path d="M20 4 24 16 36 20 24 24 20 36 16 24 4 20 16 16Z" />
+              <circle cx="20" cy="20" r="4" />
+            </svg>
+          </span>
           <p className={styles.eyebrow}>
             Battle Hall ·{' '}
             {guidedTraining

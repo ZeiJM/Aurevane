@@ -5,8 +5,6 @@ import { useRouter } from 'next/navigation'
 import { useMemo, useState } from 'react'
 
 import { SettingsScene } from '@/components/settings/settings-scene'
-import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
-import { getStarterPortraitImageAssetId } from '@/media/character'
 import styles from './character-title-settings.module.css'
 
 interface CharacterTitleSettingsProps {
@@ -42,7 +40,6 @@ export function CharacterTitleSettings({
   personalTitle,
   personalTitleSetAt,
   imageUrl,
-  portraitRef,
 }: CharacterTitleSettingsProps) {
   const router = useRouter()
   const [draft, setDraft] = useState('')
@@ -130,42 +127,11 @@ export function CharacterTitleSettings({
   return (
     <SettingsScene title="Portrait & Title" description="Carry the marks of your journey.">
       <div className={styles.layout} data-character-concept="titles" data-av-surface="moonstone">
-        <section
-          className={styles.current}
-          data-av-surface="moonstone"
-          aria-labelledby="current-title-heading"
-        >
-          <div className={styles.heroPortrait}>
-            <CharacterPortraitImage
-              imageUrl={imageUrl}
-              fallbackAssetId={getStarterPortraitImageAssetId(
-                portraitRef ?? 'portrait.starter.wayfarer-01',
-              )}
-              sizes="(min-width: 761px) 38vw, 100vw"
-              alt={`${characterName} portrait`}
-            />
-          </div>
-          <div className={styles.headingLine}>
-            <div>
-              <span>Current profile display</span>
-              <h2 id="current-title-heading">{characterName}</h2>
-            </div>
-            <div className={styles.pills} aria-label="Profile identity badges">
-              <span className={styles.disciplinePill}>{disciplineName}</span>
-              {personalTitle ? <span className={styles.titlePill}>{personalTitle}</span> : null}
-            </div>
-          </div>
-          <p>
-            Discipline and title are identity labels. Neither grants stats, permissions, or combat
-            power. The same display identity follows this character across Profile and battle.
-          </p>
-        </section>
-
         <section className={styles.personal} aria-labelledby="personal-title-heading">
           <header>
             <div>
               <span>Personal title</span>
-              <h2 id="personal-title-heading">One character, one personal title choice.</h2>
+              <h2 id="personal-title-heading">Choose your personal title.</h2>
             </div>
             <strong>{personalTitleSetAt ? 'Choice used' : 'Available'}</strong>
           </header>
@@ -175,17 +141,15 @@ export function CharacterTitleSettings({
               <span>Confirmed title</span>
               <strong>{personalTitle}</strong>
               <p>
-                This character has used its one personal-title opportunity. The title is permanent
-                as a personal identity record; future earned prestige distinctions can occupy the
-                visible title slot when that progression system unlocks.
+                Your one personal-title choice is confirmed. This identity record is permanent;
+                future earned distinctions can use the visible title slot.
               </p>
             </div>
-          ) : (
+          ) : !reviewing ? (
             <>
               <p className={styles.explanation}>
-                Choose 1–20 characters using letters, numbers, and spaces. AUREVANE checks the title
-                for collisions before committing it. You can review the exact display before the
-                final server-authoritative confirmation.
+                Choose 1–20 characters using letters, numbers, and spaces. Review the exact display
+                before confirming your one personal-title choice.
               </p>
 
               <label className={styles.field}>
@@ -207,61 +171,59 @@ export function CharacterTitleSettings({
                 <small>{normalizedDraft.length}/20 · letters, numbers, spaces</small>
               </label>
 
-              {!reviewing ? (
+              <button
+                type="button"
+                className={styles.reviewButton}
+                disabled={!valid || pending}
+                onClick={() => setReviewing(true)}
+              >
+                Review Title
+              </button>
+            </>
+          ) : (
+            <div className={styles.confirmation}>
+              <span>Final profile preview</span>
+              <div className={styles.previewName}>
+                <strong>{characterName}</strong>
+                <div className={styles.pills}>
+                  <span className={styles.disciplinePill}>{disciplineName}</span>
+                  <span className={styles.titlePill}>{normalizedDraft}</span>
+                </div>
+              </div>
+              <label className={styles.confirmCheck}>
+                <input
+                  type="checkbox"
+                  checked={confirmedPermanent}
+                  onChange={(event) => setConfirmedPermanent(event.target.checked)}
+                  disabled={pending}
+                />
+                <span>
+                  I understand this is this character&apos;s one personal-title choice and cannot be
+                  repeatedly edited.
+                </span>
+              </label>
+              <div className={styles.actions}>
                 <button
                   type="button"
-                  className={styles.reviewButton}
-                  disabled={!valid || pending}
-                  onClick={() => setReviewing(true)}
+                  className={styles.quietButton}
+                  disabled={pending}
+                  onClick={() => {
+                    setReviewing(false)
+                    setConfirmedPermanent(false)
+                  }}
                 >
-                  Review Title
+                  Edit
                 </button>
-              ) : (
-                <div className={styles.confirmation}>
-                  <span>Final profile preview</span>
-                  <div className={styles.previewName}>
-                    <strong>{characterName}</strong>
-                    <div className={styles.pills}>
-                      <span className={styles.disciplinePill}>{disciplineName}</span>
-                      <span className={styles.titlePill}>{normalizedDraft}</span>
-                    </div>
-                  </div>
-                  <label className={styles.confirmCheck}>
-                    <input
-                      type="checkbox"
-                      checked={confirmedPermanent}
-                      onChange={(event) => setConfirmedPermanent(event.target.checked)}
-                      disabled={pending}
-                    />
-                    <span>
-                      I understand this is this character&apos;s one personal-title choice and
-                      cannot be repeatedly edited.
-                    </span>
-                  </label>
-                  <div className={styles.actions}>
-                    <button
-                      type="button"
-                      className={styles.quietButton}
-                      disabled={pending}
-                      onClick={() => {
-                        setReviewing(false)
-                        setConfirmedPermanent(false)
-                      }}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.confirmButton}
-                      disabled={!confirmedPermanent || pending}
-                      onClick={() => void confirmTitle()}
-                    >
-                      {pending ? 'Confirming…' : 'Confirm Final Title'}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </>
+                <button
+                  type="button"
+                  className={styles.confirmButton}
+                  disabled={!confirmedPermanent || pending}
+                  onClick={() => void confirmTitle()}
+                >
+                  {pending ? 'Confirming…' : 'Confirm Final Title'}
+                </button>
+              </div>
+            </div>
           )}
 
           {message ? (
@@ -276,10 +238,8 @@ export function CharacterTitleSettings({
             <span>Character image</span>
             <h2 id="profile-image-heading">Portrait URL</h2>
             <p>
-              Paste the image itself, not an image-host webpage. JPG, PNG, WebP, and animated GIF
-              are suitable. Portraits are square-cropped and never stretched; for good performance
-              use 128–4096 px artwork, keep static images at or below 8 MB and animated GIFs at or
-              below 12 MB.
+              Direct JPG, PNG, WebP or GIF link; square-cropped. Use 128–4096 px artwork, up to 8 MB
+              static or 12 MB GIF.
             </p>
           </div>
           {imageDraft.trim() && !imagePreviewFailed && !currentHostMessage ? (
@@ -319,8 +279,8 @@ export function CharacterTitleSettings({
               aria-invalid={currentHostMessage ? true : undefined}
             />
             <small>
-              ImgBB: use its “Direct link” (i.ibb.co), not the ibb.co sharing page. Leave blank and
-              save to restore the built-in portrait.
+              ImgBB: use “Direct link” (i.ibb.co). Leave blank and save to restore your built-in
+              portrait.
             </small>
           </label>
           <button
@@ -342,9 +302,8 @@ export function CharacterTitleSettings({
         <section className={styles.future}>
           <span>Distinctions &amp; prestige titles</span>
           <p>
-            Earned titles and distinctions will appear here as their progression sources come
-            online. They will use the same profile-display area without turning titles into stat
-            bonuses.
+            Earned titles and distinctions will appear as progression sources unlock. Titles grant
+            no stat bonuses.
           </p>
         </section>
       </div>

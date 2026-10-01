@@ -56,16 +56,14 @@ describe('full layout composition v3', () => {
       expect(stylesheetSource).toContain('@media (max-width: 760px)')
       if (component.includes('offline-training-shell')) {
         expect(componentSource).toContain('assetId="environment.passive-training.cloister"')
-        expect(stylesheetSource).toContain(
-          'grid-template-columns: minmax(15rem, 1fr) minmax(0, 1fr)',
-        )
+        expect(stylesheetSource).toContain('grid-template-rows: auto minmax(0, 1fr)')
         expect(stylesheetSource).toContain('.heroMedia')
         expect(componentSource).toContain('<PracticePlanCard')
         expect(componentSource).toContain('<TrainingReportCard')
       } else if (component.includes('character-profile-shell')) {
         expect(componentSource).toContain('data-composition="correction"')
         expect(stylesheetSource).toContain('grid-template-columns: minmax(0, 1fr)')
-        expect(stylesheetSource).toContain('[data-character-portrait-frame]')
+        expect(stylesheetSource).toContain('.scenePortrait')
         expect(stylesheetSource).not.toContain('height: var(--character-rail-height')
       } else if (component.includes('character-arsenal-shell')) {
         expect(componentSource).toContain('data-composition="correction"')

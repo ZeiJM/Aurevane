@@ -541,7 +541,6 @@ body {
   color: #30392f;
   background: #c6b698 !important;
   border-color: #a28b62;
-  gap: 1rem !important;
 }
 
 @media (max-width: 760px) {

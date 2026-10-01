@@ -233,9 +233,10 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
       expect.objectContaining({ disciplineId: 'bastion', releaseEligible: true }),
     ]),
   )
+  await management.getByRole('button', { name: 'Edit Primary Discipline', exact: true }).click()
   await expect(
     management
-      .getByRole('combobox', { name: 'Primary Discipline', exact: true })
-      .locator('option[value="bastion"]'),
+      .getByRole('region', { name: 'Primary Discipline library', exact: true })
+      .getByRole('button', { name: 'Preview Bastion as Primary Discipline', exact: true }),
   ).toHaveCount(1)
 })

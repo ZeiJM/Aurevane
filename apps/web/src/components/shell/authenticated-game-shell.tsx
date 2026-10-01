@@ -55,6 +55,10 @@ function ShellCharacterPortrait({
   )
 }
 
+function PendingCharacterPortrait() {
+  return <span className={styles.screenPortrait} data-portrait-pending="true" aria-hidden="true" />
+}
+
 async function AuthenticatedCharacterPortrait({
   userId,
   character,
@@ -174,9 +178,7 @@ export async function AuthenticatedShellFrame({
       }
       characterPortrait={
         activeCharacter && activeUserId ? (
-          <Suspense
-            fallback={<ShellCharacterPortrait character={activeCharacter} imageUrl={null} />}
-          >
+          <Suspense fallback={<PendingCharacterPortrait />}>
             <AuthenticatedCharacterPortrait userId={activeUserId} character={activeCharacter} />
           </Suspense>
         ) : null
@@ -186,7 +188,7 @@ export async function AuthenticatedShellFrame({
           <Suspense
             fallback={
               <div className="av-rail-identity">
-                <ShellCharacterPortrait character={activeCharacter} imageUrl={null} rail />
+                <PendingCharacterPortrait />
                 <strong>{activeCharacter.name}</strong>
               </div>
             }

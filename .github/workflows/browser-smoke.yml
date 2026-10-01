@@ -140,6 +140,19 @@ jobs:
             apps/web/test-results-edge
           retention-days: 7
 
+      - name: Save compact browser diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-smoke-diagnostics
+          path: |
+            apps/web/test-results/**/*.zip
+            apps/web/test-results/**/*.json
+            apps/web/test-results/**/*.md
+            apps/web/test-results/battle-ui-polish-regressio*/**
+            apps/web/test-results-edge
+          retention-days: 7
+
       - name: Stop local Supabase services
         if: always()
         run: pnpm exec supabase stop --no-backup

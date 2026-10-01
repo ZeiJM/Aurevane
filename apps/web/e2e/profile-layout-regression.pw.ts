@@ -6,6 +6,7 @@ import { expect, test } from '@playwright/test'
 import { SUPERNATURAL_STORY_DEFINITION } from '@aurevane/game-core/character/supernatural-content'
 import type { SupernaturalStoryState } from '@aurevane/game-core/character/supernatural-state'
 import type { SupernaturalChoiceOption } from '../src/components/character/character-supernatural-choice-controls'
+import { previewDiscipline } from './discipline-library-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 // Exercise real authentication, character creation, production CSS and existing dialogs.
@@ -31,7 +32,7 @@ test('approved Profile and Haven keep the frame fixed and complete controls reac
   const shell = page.getByTestId('authenticated-shell')
   const rail = shell.locator('[data-av-game-rail]')
   await expect(rail).toBeVisible()
-  await expect(page.getByTestId('character-profile')).toContainText(`Wayfarer ${suffix}`)
+  await expect(page.getByTestId('character-rail-profile')).toContainText(`Wayfarer ${suffix}`)
   for (const attribute of ['might', 'finesse', 'vitality', 'agility', 'intellect', 'resolve'])
     await expect(page.getByTestId(`profile-attribute-${attribute}`)).toBeVisible()
   await expect(page.getByRole('complementary', { name: 'Current Path' })).toHaveCount(0)
@@ -99,9 +100,7 @@ test('a populated hybrid loadout keeps all four Techniques and management action
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
   await page.locator('[data-testid="primary-build-panel"] > button').click()
   const management = page.getByRole('dialog', { name: 'Discipline Management', exact: true })
-  await management
-    .getByRole('combobox', { name: 'Secondary Discipline', exact: true })
-    .selectOption('lifebinder')
+  await previewDiscipline(management, 'Secondary', 'Lifebinder')
   const commitBuild = management.getByRole('button', { name: /Confirm Change/ })
   await expect(commitBuild).toBeEnabled()
   const buildSaved = page.waitForResponse(

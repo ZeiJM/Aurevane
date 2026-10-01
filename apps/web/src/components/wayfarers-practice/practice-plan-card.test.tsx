@@ -41,6 +41,27 @@ const practice = {
 } as const
 
 describe('practice plan card', () => {
+  it.each([false, true])('keeps the report inline when hasReport is %s', (hasReport) => {
+    const markup = renderToStaticMarkup(
+      createElement(PracticePlanCard, {
+        practice,
+        hasReport,
+        report: createElement(
+          'aside',
+          { 'aria-label': 'Training report workspace' },
+          hasReport ? 'Completed training rewards' : 'No report waiting',
+        ),
+      }),
+    )
+
+    expect(markup).toContain('aria-label="Training report workspace"')
+    expect(markup).toContain(hasReport ? 'Completed training rewards' : 'No report waiting')
+    expect(markup).not.toContain('<details')
+    expect(markup).not.toContain('<summary')
+    expect(markup).not.toContain('role="dialog"')
+    expect(markup).toContain(hasReport ? 'A chapter completed' : 'Ready when you are')
+  })
+
   it('keeps duration choices and adds a permanent current activity panel', () => {
     const markup = renderToStaticMarkup(createElement(PracticePlanCard, { practice }))
 

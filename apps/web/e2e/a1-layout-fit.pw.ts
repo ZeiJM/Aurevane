@@ -48,7 +48,7 @@ test('keeps A1 surfaces readable and within viewport', async ({ page }, testInfo
 
   await createAccountAndEnterCharacter({ page, email, password, characterName })
 
-  await expect(page.getByTestId('character-profile')).toContainText(characterName)
+  await expect(page.getByTestId('character-rail-profile')).toContainText(characterName)
   await expectMinimumFontSize(
     page.locator('[data-profile-fact] small').first(),
     11,

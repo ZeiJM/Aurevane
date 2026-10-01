@@ -76,6 +76,7 @@ import { BattleSkillCommand } from './battle-skill-command'
 import { BATTLE_COMMAND_ARTWORK, battleSkillArtwork } from './battle-skill-presentation'
 import { useBattleSkillSelections } from './battle-skill-selection'
 import styles from './pvp-battle-experience.module.css'
+import surrenderStyles from './battle-surrender-dialog.module.css'
 import bridgeStyles from './unified-battle-experience.module.css'
 
 const BASIC_ATTACK_ID = PV1F_BASIC_ATTACK_ID
@@ -2045,9 +2046,9 @@ export function BattleExperience({
       ) : null}
 
       {surrenderOpen && runtime.kind === 'pve' ? (
-        <div className={styles.modalBackdrop} onPointerDown={() => setSurrenderOpen(false)}>
+        <div className={surrenderStyles.backdrop} onPointerDown={() => setSurrenderOpen(false)}>
           <section
-            className={styles.modal}
+            className={surrenderStyles.dialog}
             role="dialog"
             aria-modal="true"
             aria-labelledby="battle-surrender-title"
@@ -2059,9 +2060,10 @@ export function BattleExperience({
               Surrendering ends the battle immediately as a loss. Practice grants no normal
               progression rewards.
             </p>
-            <div className={styles.modalActions}>
+            <div className={surrenderStyles.actions}>
               <button
                 type="button"
+                className={surrenderStyles.stay}
                 onClick={() => setSurrenderOpen(false)}
                 disabled={surrenderPending}
               >
@@ -2069,6 +2071,7 @@ export function BattleExperience({
               </button>
               <button
                 type="button"
+                className={surrenderStyles.confirm}
                 onClick={() => void confirmPveSurrender()}
                 disabled={surrenderPending}
               >
