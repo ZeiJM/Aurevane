@@ -204,6 +204,8 @@ async function capture(page: Page, testInfo: TestInfo, label: string) {
         ),
       })),
       terrainSamples: [...root.querySelectorAll('[data-battle-terrain-key] i')].map(rect),
+      terrainKey: rect(root.querySelector('[data-battle-terrain-key]')),
+      terrainRail: rect(root.querySelector('[data-battle-side="local"]')),
       commandContents: [
         ...root.querySelectorAll(
           '[data-command-card] > *, [data-battle-skill-slot] > *, [data-battle-special] > *',
@@ -343,6 +345,24 @@ function expectStable(geometry: Awaited<ReturnType<typeof capture>>, baseline: R
   }
   for (const sample of geometry.terrainSamples)
     expect(sample!.width, 'terrain artwork remains recognizable').toBeGreaterThanOrEqual(24)
+  expect(geometry.terrainKey).not.toBeNull()
+  contained(geometry.terrainKey!, geometry.terrainRail!)
+  expect(
+    Math.abs(
+      geometry.terrainKey!.y +
+        geometry.terrainKey!.height -
+        (geometry.terrainRail!.y + geometry.terrainRail!.height),
+    ),
+    'terrain key fills the remaining rail height',
+  ).toBeLessThanOrEqual(1)
+  expect(
+    geometry.cockpit!.y - (geometry.terrainKey!.y + geometry.terrainKey!.height),
+    'a small gap separates the terrain key from the cockpit',
+  ).toBeGreaterThanOrEqual(4)
+  expect(
+    geometry.cockpit!.y - (geometry.terrainKey!.y + geometry.terrainKey!.height),
+    'terrain key leaves no unused rail space',
+  ).toBeLessThanOrEqual(8)
   for (const content of geometry.commandContents) contained(content!, geometry.cockpit!)
   for (const card of geometry.cards) {
     expect(card.overflow, 'combatant summary fits without scrolling').toBeLessThanOrEqual(1)

@@ -162,8 +162,8 @@
   min-height: 0;
   overflow: visible;
 }
-.content > :global([data-battle-side='local']) > :last-child {
-  align-self: start;
+.content > :global([data-battle-side='local']) > :global([data-battle-terrain-key]) {
+  align-self: stretch;
 }
 .content > :global([data-battle-preview-strip]) {
   grid-area: preview;
@@ -564,9 +564,6 @@
   }
   .content > :global([data-battle-preview-strip]) > strong {
     white-space: normal;
-  }
-  .content > :global([data-battle-side='local']) > :last-child {
-    align-self: stretch;
   }
   .battlefield {
     min-height: 20rem;
