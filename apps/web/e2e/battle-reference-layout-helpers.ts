@@ -26,6 +26,11 @@ export async function expectBattleHeaderAndArtworkGeometry(page: Page) {
       economy: economy.toJSON(),
       standards,
       selected,
+      selectedGroups: [
+        '[aria-label="Selected Discipline Skills"]',
+        '[data-battle-special="essence"], [data-battle-special="resonance"]',
+        '[data-battle-special="supernatural"]',
+      ].map((selector) => element.querySelector(selector)!.getBoundingClientRect().toJSON()),
       width: innerWidth,
     }
   })
@@ -38,6 +43,16 @@ export async function expectBattleHeaderAndArtworkGeometry(page: Page) {
       ),
       'AP panel centers against the whole header',
     ).toBeLessThanOrEqual(1)
+  } else {
+    const [skills, extension, future] = geometry.selectedGroups
+    expect(
+      skills!.right,
+      'selected Skill group does not overlap Essence or Resonance',
+    ).toBeLessThanOrEqual(extension!.left)
+    expect(
+      extension!.right,
+      'Essence or Resonance does not overlap the future group',
+    ).toBeLessThanOrEqual(future!.left)
   }
   expect(geometry.standards).toHaveLength(4)
   expect(

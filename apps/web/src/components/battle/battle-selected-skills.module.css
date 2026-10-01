@@ -230,7 +230,7 @@
 }
 @media (max-width: 820px) {
   .root {
-    grid-template-columns: minmax(0, 4fr) minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-columns: minmax(24rem, 4fr) minmax(6rem, 1fr) minmax(6rem, 1fr);
     padding: 0.5rem 0;
     border-left: 0;
     border-top: 1px solid #9b876966;

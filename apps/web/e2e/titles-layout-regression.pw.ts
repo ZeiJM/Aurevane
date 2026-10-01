@@ -155,12 +155,20 @@ test('Titles keeps the scenic account workspace and its side-by-side editing con
 
   await page.getByPlaceholder('e.g. Dawn Warden').fill('Dawn Keeper')
   await page.getByRole('button', { name: 'Review Title' }).click()
+  await expect(personal.getByRole('textbox', { name: /^Personal title/ })).toHaveCount(0)
+  await expect(personal.getByText('Dawn Keeper', { exact: true })).toBeVisible()
+  await expect(personal.getByRole('checkbox')).toBeVisible()
+  await expect(profileImage.getByRole('textbox', { name: /^Direct image URL/ })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Confirm Final Title' })).toBeDisabled()
   await expect(page.getByRole('button', { name: 'Edit', exact: true })).toBeVisible()
   await expectDesktopTitlesFitWithoutScroll(page, '1366x768 title confirmation')
   await page.setViewportSize({ width: 1536, height: 614 })
   await expectDesktopTitlesFitWithoutScroll(page, '1536x614 title confirmation')
   await page.getByRole('button', { name: 'Edit', exact: true }).click()
+  await expect(personal.getByRole('textbox', { name: /^Personal title/ })).toHaveValue(
+    'Dawn Keeper',
+  )
+  await expect(personal.getByRole('button', { name: 'Review Title', exact: true })).toBeVisible()
   await expectDesktopTitlesFitWithoutScroll(page, '1536x614 title editor')
   await page.setViewportSize({ width: 1366, height: 768 })
 

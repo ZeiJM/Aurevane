@@ -145,7 +145,7 @@ export function CharacterTitleSettings({
                 future earned distinctions can use the visible title slot.
               </p>
             </div>
-          ) : (
+          ) : !reviewing ? (
             <>
               <p className={styles.explanation}>
                 Choose 1–20 characters using letters, numbers, and spaces. Review the exact display
@@ -171,61 +171,59 @@ export function CharacterTitleSettings({
                 <small>{normalizedDraft.length}/20 · letters, numbers, spaces</small>
               </label>
 
-              {!reviewing ? (
+              <button
+                type="button"
+                className={styles.reviewButton}
+                disabled={!valid || pending}
+                onClick={() => setReviewing(true)}
+              >
+                Review Title
+              </button>
+            </>
+          ) : (
+            <div className={styles.confirmation}>
+              <span>Final profile preview</span>
+              <div className={styles.previewName}>
+                <strong>{characterName}</strong>
+                <div className={styles.pills}>
+                  <span className={styles.disciplinePill}>{disciplineName}</span>
+                  <span className={styles.titlePill}>{normalizedDraft}</span>
+                </div>
+              </div>
+              <label className={styles.confirmCheck}>
+                <input
+                  type="checkbox"
+                  checked={confirmedPermanent}
+                  onChange={(event) => setConfirmedPermanent(event.target.checked)}
+                  disabled={pending}
+                />
+                <span>
+                  I understand this is this character&apos;s one personal-title choice and cannot be
+                  repeatedly edited.
+                </span>
+              </label>
+              <div className={styles.actions}>
                 <button
                   type="button"
-                  className={styles.reviewButton}
-                  disabled={!valid || pending}
-                  onClick={() => setReviewing(true)}
+                  className={styles.quietButton}
+                  disabled={pending}
+                  onClick={() => {
+                    setReviewing(false)
+                    setConfirmedPermanent(false)
+                  }}
                 >
-                  Review Title
+                  Edit
                 </button>
-              ) : (
-                <div className={styles.confirmation}>
-                  <span>Final profile preview</span>
-                  <div className={styles.previewName}>
-                    <strong>{characterName}</strong>
-                    <div className={styles.pills}>
-                      <span className={styles.disciplinePill}>{disciplineName}</span>
-                      <span className={styles.titlePill}>{normalizedDraft}</span>
-                    </div>
-                  </div>
-                  <label className={styles.confirmCheck}>
-                    <input
-                      type="checkbox"
-                      checked={confirmedPermanent}
-                      onChange={(event) => setConfirmedPermanent(event.target.checked)}
-                      disabled={pending}
-                    />
-                    <span>
-                      I understand this is this character&apos;s one personal-title choice and
-                      cannot be repeatedly edited.
-                    </span>
-                  </label>
-                  <div className={styles.actions}>
-                    <button
-                      type="button"
-                      className={styles.quietButton}
-                      disabled={pending}
-                      onClick={() => {
-                        setReviewing(false)
-                        setConfirmedPermanent(false)
-                      }}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.confirmButton}
-                      disabled={!confirmedPermanent || pending}
-                      onClick={() => void confirmTitle()}
-                    >
-                      {pending ? 'Confirming…' : 'Confirm Final Title'}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </>
+                <button
+                  type="button"
+                  className={styles.confirmButton}
+                  disabled={!confirmedPermanent || pending}
+                  onClick={() => void confirmTitle()}
+                >
+                  {pending ? 'Confirming…' : 'Confirm Final Title'}
+                </button>
+              </div>
+            </div>
           )}
 
           {message ? (

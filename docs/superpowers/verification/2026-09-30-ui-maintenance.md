@@ -28,3 +28,15 @@ The local Chromium download returned an invalid archive and no local browser or 
 The final integrated `pnpm check` exited 0: formatting, lint, TypeScript, 3,043 Vitest tests across seven tested packages, seven Node checks, and Production builds. The exact patched pnpm fallback install was preserved by setting `pnpm_config_verify_deps_before_run=false` for local execution only; no repository/CI configuration changed. The final helper selector refinement separately passed TypeScript, lint, formatting and diff checks.
 
 Independent review's mobile sizing finding was corrected by reserving sufficient selected-card track width for full-size frames while preserving the existing local mobile command-row scrolling. The rendered geometry guard compares standard commands to actual Skill/Essence/Resonance artwork and excludes locked future placeholders. Browser discovery remains 444 cases across three projects; fresh authenticated CI must validate these dimensions before release.
+
+## First authenticated candidate and corrections
+
+PR #778 candidate `93fb65da79da122cafc545c0c71dcbb47ad67d8f` passed CI, Attribute Allocation, Profile Skill Build, Essence Build, Resonance Build, Representative Buildcraft and Desktop page fit. Desktop experience and UI layout review exposed concrete failures before release:
+
+- Document-wide rail identity locators matched the active rail and a hidden streamed SSR payload. Locators now scope to the active shell; a separate document-wide visible identity count continues to catch real duplicate UI.
+- At 1536×614, permanent-title review overflowed the main pane by 40px. Review now replaces the draft editor with the exact final preview, permanent-choice checkbox and Edit/Confirm actions. Edit restores the draft. Strict no-scroll assertions remain.
+- Training's compact planner overflowed by 4px and its Start action extended past the panel. Compact duration-card padding and row spacing recover space while retaining 14px descriptions and 44px actions. Strict overflow and action containment assertions remain.
+- An early-stop test incorrectly expected no report. Migration `20260821170500_passive_training_partial_stop.sql` authoritatively freezes a proportional pending report on stop; the test now checks stop → report → claim and separately checks completed training. No production reward or claim logic changed.
+- Mobile selected-skill grid tracks now reserve the same minimum widths as their contents, preventing group overlap inside the existing horizontal command scroller. Geometry checks cover group separation and actual artwork sizes.
+
+Independent review of these eight changed files found no blockers and passed 21 focused tests across five files. The corrected candidate's full local `pnpm check` exited 0 again: formatting, lint, types, 3,043 Vitest tests, seven Node checks and Production builds. `git diff --check` also passed. Fresh authenticated browser CI remains required before release.

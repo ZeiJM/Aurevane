@@ -341,7 +341,10 @@
     font-size: 1.25rem;
   }
   .window {
-    padding: 0.4rem;
+    padding: 0.3rem 0.4rem;
+  }
+  .windowBody {
+    gap: 0.15rem;
   }
   .windowGrid,
   .activityBody {
