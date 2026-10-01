@@ -84,7 +84,7 @@ describe('current selection forecast', () => {
     const markup = renderToStaticMarkup(
       <BattleActionPreview preview={null} pending={false} skill={barrier} />,
     )
-    for (const label of ['Cost: 40 AP', 'Target: Ally', 'Range: 1–3 tiles', 'Skill details'])
+    for (const label of ['Cost: 40 AP', 'Target: Ally', 'Range: 1–3 tiles'])
       expect(markup).toContain(label)
     expect(markup).not.toContain('Success 100%')
     expect(markup).not.toContain('Forecast details')
@@ -120,7 +120,7 @@ describe('current selection forecast', () => {
     expect(markup).toContain('Guard')
     expect(markup).not.toContain('Guarded')
     expect(markup).toContain('Success 100%')
-    expect(markup).toContain('Forecast details')
+    expect(markup).not.toContain('data-battle-info-trigger')
     expect(markup).not.toContain('Skill details')
   })
 
@@ -128,7 +128,7 @@ describe('current selection forecast', () => {
     const markup = renderToStaticMarkup(<BattleActionPreview preview={attack} pending={false} />)
     for (const label of ['Hit 69%', 'On hit 17 dmg', '30 AP', '70 AP left'])
       expect(markup).toContain(label)
-    expect(markup).toContain('aria-label="Forecast details"')
+    expect(markup).not.toContain('data-battle-info-trigger')
   })
 
   it('renders authoritative copied ordinary, Poison, Burn and Bleed status forecasts without machine encodings', () => {
@@ -199,7 +199,7 @@ describe('current selection forecast', () => {
     }
   })
 
-  it('keeps the compact forecast bounded while preserving every mixed projection for Forecast details', () => {
+  it('keeps the compact forecast bounded while preserving every mixed projection inline', () => {
     const mixedPreview: ActionPreview = {
       ...attack,
       actionId: 'test.copy-statuses.mixed',
@@ -226,7 +226,7 @@ describe('current selection forecast', () => {
     for (const label of ['Copied Inspire · 1 stack · 2 turns', '7 dmg', 'Heal +5']) {
       expect(markup).toContain(label)
     }
-    expect(markup).toContain('aria-label="Forecast details"')
+    expect(markup).not.toContain('data-battle-info-trigger')
     expect(markup).not.toContain('status.inspired:1:2')
 
     const detailLabels = previewChips(mixedPreview).map((chip) => chip.label)

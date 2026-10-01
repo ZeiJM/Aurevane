@@ -153,8 +153,8 @@ async function castOnEmptyGround(page: Page, name: string, testInfo: TestInfo) {
   expect(commits).toHaveLength(0)
   expect(audioRequests).toHaveLength(0)
   expect(await read()).toEqual(before)
-  await root.getByRole('button', { name: 'Forecast details', exact: true }).click()
-  const forecast = page.getByRole('dialog', { name: 'Action forecast', exact: true })
+  await root.getByRole('button', { name: 'About Chilling Mist', exact: true }).click()
+  const forecast = page.getByRole('dialog', { name: 'Chilling Mist', exact: true })
   await expect(forecast).toBeVisible()
   const bounds = await forecast.evaluate((element) => {
     const rect = element.getBoundingClientRect()
@@ -172,9 +172,12 @@ async function castOnEmptyGround(page: Page, name: string, testInfo: TestInfo) {
   expect(bounds.right).toBeLessThanOrEqual(bounds.w)
   expect(bounds.bottom).toBeLessThanOrEqual(bounds.h)
   await expect(forecast).toContainText('Frozen')
-  await expect(forecast).toContainText('2 round boundaries')
-  await expect(forecast).toContainText('either team')
+  await expect(forecast).toContainText('[2 Turns]')
+  await expect(forecast).toContainText('Both teams pay extra movement AP')
   await page.keyboard.press('Escape')
+  const outcomes = root.locator('[data-battle-preview-lane="outcomes"]')
+  await expect(outcomes).toContainText('2 round boundaries')
+  await expect(outcomes).toContainText('either team')
   // A new deliberate tile input waits for its fresh forecast before exactly one mutation.
   let releasePreview!: () => void
   const held = new Promise<void>((resolve) => {
