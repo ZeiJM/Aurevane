@@ -153,7 +153,7 @@
   border-radius: 0.15rem;
   color: #3a3025;
   background: #a6926d22;
-  font: 600 0.6875rem/1 var(--av-font-body);
+  font: 600 0.75rem/1 var(--av-font-body);
   white-space: nowrap;
 }
 .preview .inlineChips > [data-battle-preview-tone='cost'] {
@@ -175,7 +175,7 @@
   border-radius: 0.15rem;
   color: #44331e;
   background: #f0e2c999;
-  font: 650 0.6875rem/1 var(--av-font-body);
+  font: 650 0.75rem/1 var(--av-font-body);
   cursor: pointer;
 }
 .readingTrigger:hover,
@@ -196,7 +196,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
 }
 .targetSummary > :global(img) {
   flex: none;
