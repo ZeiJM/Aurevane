@@ -12,6 +12,7 @@ import { BattleActionPreview } from './battle-action-preview'
 import { BattleMapKey } from './battle-map-key'
 import { BattleInfoPopover } from './battle-info-popover'
 import { terrainOverlayAt } from '@aurevane/game-core/combat/terrain-overlays'
+import { getTacticalHallRecordFromScenarioSourceId } from '@aurevane/game-core/combat/tactical-hall-records'
 import { terrainOverlayDescription } from '../../lib/battle/combat-interaction-presentation'
 import { describeTerrainLabel } from './battle-inspect-terrain-context'
 
@@ -19,12 +20,16 @@ import {
   PV1F_BASIC_ATTACK_COST,
   PV1F_BASIC_ATTACK_ID,
   PV1F_GUARD_ACTION_ID,
-  PV1F_GUARD_COST,
   PV1F_MP_RECOVER_ACTION_ID,
   PV1F_MP_RECOVER_COST,
   PV1F_RECOVER_ACTION_ID,
   PV1F_RECOVER_COST,
+  pv1fSkillByActionId,
 } from '@aurevane/game-core/combat/pv1f-skills'
+import {
+  DEFAULT_SUPPORT_ACTION_ID,
+  parseSupportActionId,
+} from '@aurevane/game-core/combat/support-actions'
 import type { BattleIntent } from '@aurevane/validation/combat/battle-session'
 import { useRouter } from 'next/navigation'
 import {
@@ -85,7 +90,6 @@ const RECOVER_ID = PV1F_RECOVER_ACTION_ID
 const MP_RECOVER_ID = PV1F_MP_RECOVER_ACTION_ID
 const ACTION_ECONOMY_KEY = 'pv1f.action-economy'
 const ATTACK_COST = PV1F_BASIC_ATTACK_COST
-const GUARD_COST = PV1F_GUARD_COST
 const RECOVER_COST = PV1F_RECOVER_COST
 const MP_RECOVER_COST = PV1F_MP_RECOVER_COST
 const ACTIVE_PLAYER_POLL_MS = 900
@@ -314,7 +318,19 @@ export function BattleExperience({
       technique.iconKey,
     )
   const [selectedAttackActionId, setSelectedAttackActionId] = useState<string>(BASIC_ATTACK_ID)
-  const [selectedDefenseActionId, setSelectedDefenseActionId] = useState<string>(GUARD_ID)
+  const supportActionId = parseSupportActionId(runtime.supportActionId) ?? DEFAULT_SUPPORT_ACTION_ID
+  const supportSkill = pv1fSkillByActionId(supportActionId)!
+  const supportCost = supportSkill.cost.kind === 'flat' ? supportSkill.cost.amount : 0
+  const guidedGuardPractice =
+    runtime.kind === 'pve' &&
+    supportActionId !== GUARD_ID &&
+    battle.snapshot.statBridge.combatants.some(
+      (profile) =>
+        profile.provenance.kind === 'scenario' &&
+        getTacticalHallRecordFromScenarioSourceId(profile.provenance.sourceId)?.id ===
+          'guided-fundamentals',
+    )
+  const [selectedDefenseActionId, setSelectedDefenseActionId] = useState<string>(supportActionId)
   const [selectedTechniqueHealId, setSelectedTechniqueHealId] = useState<string | null>(null)
   const attackOptions = [
     {
@@ -345,12 +361,23 @@ export function BattleExperience({
   ]
   const defenseOptions = [
     {
-      id: GUARD_ID,
-      label: 'Guard',
-      cost: `${GUARD_COST} AP`,
-      artworkSrc: BATTLE_COMMAND_ARTWORK.guard,
-      tags: ['Self', 'Guarded'],
+      id: supportActionId,
+      label: supportSkill.name,
+      cost: `${supportCost} AP`,
+      artworkSrc: battleSkillArtwork(supportActionId),
+      tags: ['Self', 'Support Action'],
     },
+    ...(guidedGuardPractice
+      ? [
+          {
+            id: GUARD_ID,
+            label: 'Guard',
+            cost: '30 AP',
+            artworkSrc: battleSkillArtwork(GUARD_ID),
+            tags: ['Self', 'Guard'],
+          },
+        ]
+      : []),
     ...defenseTechniques.map((technique) => ({
       id: technique.id,
       label: technique.name,
@@ -978,6 +1005,7 @@ export function BattleExperience({
           : await requestPreview(intent)
         if (
           mounted.current &&
+          !isTextEntryTarget(null) &&
           ready &&
           isCurrentBattlePreview(
             readyPreview.current,
@@ -1120,8 +1148,8 @@ export function BattleExperience({
         return
       }
       if (nextMode === 'guard') {
-        setSelectedDefenseActionId(GUARD_ID)
-        armAction('guard', GUARD_ID)
+        setSelectedDefenseActionId(supportActionId)
+        armAction('guard', supportActionId)
         return
       }
       if (nextMode === 'recover') {
@@ -1147,6 +1175,7 @@ export function BattleExperience({
       planningDisabled,
       setSelectedAttackActionId,
       setSelectedDefenseActionId,
+      supportActionId,
     ],
   )
 
@@ -1338,7 +1367,7 @@ export function BattleExperience({
       if (selected === 'move') chooseMode('move')
       else if (selected === 'basicAttack') chooseMode('attack')
       else if (selected === 'guard') {
-        if (!executeArmedSelf(GUARD_ID, 'guard')) chooseMode('guard')
+        if (!executeArmedSelf(supportActionId, 'guard')) chooseMode('guard')
       } else if (selected === 'recover') {
         if (!executeArmedSelf(effectiveHealActionId, 'recover')) chooseMode('recover')
       } else if (selected === 'endTurn') {
@@ -1385,6 +1414,7 @@ export function BattleExperience({
     commitValue,
     currentActionId,
     effectiveHealActionId,
+    supportActionId,
     executeIntent,
     handleTile,
     localCombatantId,
@@ -1600,7 +1630,12 @@ export function BattleExperience({
       className={styles.shell}
       data-unified-battle="true"
       data-battle-layout="refined"
-      data-battle-action-mode={mode}
+      data-battle-action-mode={
+        mode === 'guard' &&
+        (selectedDefenseActionId === RECOVER_ID || selectedDefenseActionId === MP_RECOVER_ID)
+          ? 'recover'
+          : mode
+      }
       data-battle-kind={runtime.kind}
       data-battle-mode={runtime.kind}
       data-battle-visual-contract="true"
@@ -1651,6 +1686,34 @@ export function BattleExperience({
         </div>
 
         <div data-battle-header-utilities="true">
+          {guidedGuardPractice ? (
+            <button
+              type="button"
+              className={bridgeStyles.guidedPractice}
+              aria-label="Practice Guard, 30 AP"
+              title="Practice Guard for this lesson. Your saved Support Action stays in slot 3."
+              disabled={planningDisabled || actionEconomy < 30}
+              onKeyDown={(event) => {
+                if (event.repeat && (event.key === 'Enter' || event.key === ' '))
+                  event.preventDefault()
+              }}
+              onClick={() => {
+                if (executionLock.current || commitLock.current || planningDisabled) return
+                if (mode === 'guard' && currentActionId === GUARD_ID) {
+                  const intent = selectBattleSkillPreviewIntent(
+                    actionDescriptor(GUARD_ID),
+                    selection,
+                  )
+                  if (intent) void executeIntent(intent)
+                  return
+                }
+                setSelectedDefenseActionId(GUARD_ID)
+                armAction('guard', GUARD_ID)
+              }}
+            >
+              <span>Practice Guard</span>
+            </button>
+          ) : null}
           <BattleInfoPopover
             label="Victory Conditions"
             trigger={
@@ -2012,11 +2075,11 @@ export function BattleExperience({
               <BattleSkillCommand
                 slot="guard"
                 hotkey={formatCombatKeybind(bindings.guard)}
-                label="Guard"
-                cost={`${GUARD_COST} AP`}
-                artworkSrc={BATTLE_COMMAND_ARTWORK.guard}
-                active={mode === 'guard' && selectedDefenseActionId === GUARD_ID}
-                disabled={planningDisabled || actionEconomy < GUARD_COST}
+                label={supportSkill.name}
+                cost={`${supportCost} AP`}
+                artworkSrc={battleSkillArtwork(supportActionId)}
+                active={mode === 'guard' && selectedDefenseActionId === supportActionId}
+                disabled={planningDisabled || actionEconomy < supportCost}
                 onActivate={() => chooseMode('guard')}
               />
             </div>

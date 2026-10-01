@@ -617,7 +617,7 @@ export function createBattleSessionService({
 
       const battleHallRecordId = command.battleHallRecordId ?? 'recruit-sparring'
       const arenaId =
-        battleHallRecordId === 'mastery-trial'
+        battleHallRecordId === 'mastery-trial' || battleHallRecordId === 'guided-fundamentals'
           ? getTacticalHallRecord(battleHallRecordId).defaultArenaId
           : (command.arenaId ?? 'basic-training-floor')
       // Battle Hall difficulty is server-owned: full duels always use High AI,

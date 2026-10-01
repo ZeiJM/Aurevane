@@ -10,6 +10,7 @@ import {
   previewCharacterDisciplines,
   previewCharacterPrimaryDiscipline,
   saveCharacterDisciplineSkills,
+  saveCharacterSupportAction,
   type CharacterActiveBuildRecord,
   type CharacterBuildRepository,
   type CharacterEquippedDisciplineSkillRecord,
@@ -155,6 +156,7 @@ function repository(overrides: Partial<CharacterBuildRepository> = {}): Characte
       build: build(aetherist, 2),
       replayed: false,
     })),
+    saveSupportAction: vi.fn(async () => ({ buildVersion: 2, replayed: false })),
     saveDisciplineSkills: vi.fn(async () => ({ buildVersion: 2, replayed: false })),
     ...overrides,
   }
@@ -456,5 +458,79 @@ describe('character build service', () => {
       contentVersion: 1,
       disciplinePair: ['lifebinder', 'vanguard'],
     })
+  })
+})
+
+describe('Support Action build intent', () => {
+  it.each(['basic.guard', 'basic.recover', 'basic.recover.mp'] as const)(
+    'commits %s independently of the four Discipline Skill slots',
+    async (supportActionId) => {
+      let active = build()
+      const repo = repository({
+        findActiveBuild: async () => active,
+        listEquippedDisciplineSkills: async () => [equippedVanguard()],
+        saveSupportAction: async (input) => {
+          expect(input).toMatchObject({
+            userId,
+            characterId: character().id,
+            expectedBuildVersion: 1,
+            supportActionId,
+          })
+          expect(input.requestFingerprint).toMatch(/^sha256:[a-f0-9]{64}$/)
+          active = { ...active, buildVersion: 2, supportActionId: input.supportActionId }
+          return { buildVersion: 2, replayed: false }
+        },
+      })
+      const result = await saveCharacterSupportAction(
+        userId,
+        character(),
+        {
+          expectedBuildVersion: 1,
+          supportActionId,
+          idempotencyKey: '00000000-0000-4000-8000-000000000810',
+        },
+        repo,
+      )
+      expect(result.build).toMatchObject({ buildVersion: 2, supportActionId })
+      expect(result.disciplineSkills.capacity).toBe(4)
+      expect(result.disciplineSkills.equippedSkills.map((skill) => skill.definition.id)).toEqual([
+        'vanguard.forceful-strike',
+      ])
+    },
+  )
+  it.each(['basic.attack', '', null, 3])(
+    'rejects invalid action %s before writing',
+    async (supportActionId) => {
+      const saveSupportAction = vi.fn()
+      await expect(
+        saveCharacterSupportAction(
+          userId,
+          character(),
+          {
+            expectedBuildVersion: 1,
+            supportActionId,
+            idempotencyKey: '00000000-0000-4000-8000-000000000810',
+          },
+          repository({ saveSupportAction }),
+        ),
+      ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+      expect(saveSupportAction).not.toHaveBeenCalled()
+    },
+  )
+  it('rejects a foreign character before writing', async () => {
+    const saveSupportAction = vi.fn()
+    await expect(
+      saveCharacterSupportAction(
+        'foreign-user',
+        character(),
+        {
+          expectedBuildVersion: 1,
+          supportActionId: 'basic.recover',
+          idempotencyKey: '00000000-0000-4000-8000-000000000810',
+        },
+        repository({ findActiveBuild: async () => null, saveSupportAction }),
+      ),
+    ).rejects.toMatchObject({ code: 'PERSISTENCE_UNAVAILABLE' })
+    expect(saveSupportAction).not.toHaveBeenCalled()
   })
 })

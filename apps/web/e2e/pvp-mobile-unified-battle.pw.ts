@@ -60,6 +60,11 @@ test('keeps the unified PvP battle usable on mobile', async ({ browser }, testIn
 
     await host.goto('/game/battle')
     await host.getByRole('button', { name: 'PVP - Direct', exact: true }).click()
+    await expect(
+      host
+        .getByRole('group', { name: 'Map size' })
+        .getByRole('button', { name: 'Medium · 12×7', exact: true }),
+    ).toHaveAttribute('aria-pressed', 'true')
     const createLobbyButton = host.getByRole('button', { name: 'Create Battle Lobby' })
     await expect(createLobbyButton).toBeVisible()
     await createLobbyButton.click()
@@ -96,12 +101,12 @@ test('keeps the unified PvP battle usable on mobile', async ({ browser }, testIn
     const waitingPage = hostHasTurn ? guest : host
 
     const battlefield = activeRoot.locator('#battlefield')
-    const board = battlefield.locator("[data-board-auto-fit='9x7']")
+    const board = battlefield.locator("[data-board-auto-fit='12x7']")
     const commandDeck = activeRoot.getByRole('region', { name: 'Command Deck' })
 
     await expect(battlefield).toBeVisible()
     await expect(commandDeck).toBeVisible()
-    await expect(board.locator(":scope > button[aria-label^='Tile ']")).toHaveCount(63)
+    await expect(board.locator(":scope > button[aria-label^='Tile ']")).toHaveCount(84)
     await expectTerrainKey(hostHasTurn ? host : guest)
 
     await expect(commandDeck.getByRole('button', { name: /^Move, / })).toBeVisible()

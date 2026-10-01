@@ -1,0 +1,66 @@
+.panel {
+  display: grid;
+  align-content: start;
+  justify-items: center;
+  min-width: 0;
+  padding: 0.9rem;
+  border: 1px solid #ab9468;
+  background: radial-gradient(circle at 50% 48%, #f0e7d135, transparent 72%);
+  color: #213d42;
+}
+.panel h2 {
+  margin: 0;
+  font: 600 1.2rem/1.2 var(--av-font-display);
+}
+.panel p {
+  margin: 0.3rem 0 0;
+  color: #625b48;
+  font-size: 0.8125rem;
+}
+.panel svg {
+  display: block;
+  width: min(100%, 23rem);
+  overflow: visible;
+}
+.panel small {
+  max-width: 23rem;
+  text-align: center;
+  color: #625b48;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+.ring {
+  fill: none;
+  stroke: #9b835745;
+  stroke-width: 0.8;
+}
+.outerRing {
+  fill: none;
+  stroke: #9b8357;
+  stroke-width: 1.2;
+}
+.spoke {
+  stroke: #9b835755;
+  stroke-width: 0.8;
+}
+.shape {
+  fill: #2b918b45;
+  stroke: #276e70;
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+.label {
+  fill: #243c42;
+  font: 600 16px var(--av-font-display);
+}
+.value {
+  transform: translateY(6px);
+  fill: #625b48;
+  font: 600 13px var(--av-font-body);
+}
+
+.panel h2::before {
+  content: '✧';
+  color: #92763f;
+  margin-right: 0.5rem;
+}

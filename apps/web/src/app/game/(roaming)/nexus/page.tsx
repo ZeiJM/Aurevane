@@ -165,6 +165,7 @@ export default async function CharacterNexusPage() {
       attributeAllocation={attributeAllocation}
       disciplineBuild={{
         buildVersion: disciplineBuild.build.buildVersion,
+        supportActionId: disciplineBuild.build.supportActionId,
         current: disciplineBuild.current,
         currentSecondary: disciplineBuild.currentSecondary,
         availablePrimaries: disciplineBuild.availablePrimaries,

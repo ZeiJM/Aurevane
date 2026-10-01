@@ -172,6 +172,7 @@ function buildRepository(initial: CharacterCommittedBuildSnapshotRecord) {
     changeDisciplines: vi.fn(async () => {
       throw new Error('Not used by the P3.6 battle authority test.')
     }),
+    saveSupportAction: vi.fn(async () => ({ buildVersion: 2, replayed: false })),
     saveDisciplineSkills: vi.fn(async () => {
       throw new Error('Not used by the P3.6 battle authority test.')
     }),

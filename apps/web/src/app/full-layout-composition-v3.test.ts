@@ -59,7 +59,11 @@ describe('full layout composition v3', () => {
         expect(stylesheetSource).toContain('grid-template-rows: auto minmax(0, 1fr)')
         expect(stylesheetSource).toContain('.heroMedia')
         expect(componentSource).toContain('<PracticePlanCard')
-        expect(componentSource).toContain('<TrainingReportCard')
+        expect(componentSource).toContain('trainingReport={trainingReport}')
+        expect(componentSource).not.toContain('<TrainingReportCard')
+        expect(source('../components/wayfarers-practice/practice-plan-card.tsx')).toContain(
+          '<TrainingReportCard',
+        )
       } else if (component.includes('character-profile-shell')) {
         expect(componentSource).toContain('data-composition="correction"')
         expect(stylesheetSource).toContain('grid-template-columns: minmax(0, 1fr)')

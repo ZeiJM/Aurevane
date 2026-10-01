@@ -1,5 +1,9 @@
 # AUREVANE Combat Design Bible
 
+## Support Action and Hall map sizes — 2026-10-01
+
+Battle slot 3 uses the character build's separately saved Support Action: Guard, HP Recovery or MP Recovery, with Guard as the legacy default. New battles and named loadouts retain the committed choice; existing battles do not change when a character edits Techniques. Existing costs, recovery cooldown and resource legality remain unchanged. Guided Fundamentals is pinned to its 9×7 Duel Yard and provides an exercise-only Practice Guard control when Recovery occupies slot 3. PvP Direct offers Small (9×7), Medium (12×7), Large (15×7), sharing authored AI geometry; historic sessions retain their recorded boards. Release evidence is tracked in `superpowers/verification/2026-10-01-techniques-support-action.md`.
+
 ## Accepted battle cockpit and interaction — 2026-09-30
 
 New standard sessions use 9×7, 12×7, or 15×7 arenas. Historical battle snapshots retain their recorded dimensions. All three widths share the same seven-row tile scale within a viewport; movement legality and authored training maps remain authoritative.
@@ -762,4 +766,3 @@ has been retired after the discrete repeat-use ruling.
 This remains distinct from random temporary-Skill **Copy**, whose encounter-state, deterministic RNG,
 half-AP command grant, UI, AI, privacy and persistence behavior are implemented through its separate
 typed effect and synthetic pinned command identity.
-

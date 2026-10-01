@@ -6,6 +6,8 @@
 
 This roadmap reflects the game that actually exists today. It formally credits early-delivered battle-platform work instead of pretending later phases must rebuild it.
 
+2026-10-01 Owner-authorized UI maintenance adds an independent persisted Support Action and three AI-aligned PvP map sizes while preserving existing combat authority and historical battles. Profile/Training/loadout/header refinements and Guided Fundamentals geometry are part of the same continuation, not a new phase. Verification/release status is tracked in `superpowers/verification/2026-10-01-techniques-support-action.md` and `../TASKS.md`.
+
 A phase is a **development milestone**, not a calendar promise.
 
 ---

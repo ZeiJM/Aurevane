@@ -30,8 +30,8 @@ const ACTION_COPY: Record<CombatKeybindAction, { label: string; description: str
     description: 'Select Basic Attack and preview a legal target.',
   },
   guard: {
-    label: 'Guard',
-    description: 'Select Guard and preview its effect.',
+    label: 'Support Action',
+    description: 'Select your saved Support Action and preview its effect.',
   },
   recover: {
     label: 'Recover',

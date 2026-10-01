@@ -2,6 +2,10 @@
 
 **PHASE 4 CLOSED — 2026-09-23:** the Owner explicitly accepted Phase 4 as closed. A03, A04, A07 and A10 are **COMPLETE**. A07 concerns battle SFX/audio identities, not background music. Post-closeout UI cleanup/regression work is maintenance and does not reopen Phase 4 by default. See `docs/PHASE_4_CLOSEOUT.md`.
 
+## Techniques, Support Action and continued UI review — 2026-10-01
+
+Owner-authorized continuation on `agent/techniques-support-action-20261001` builds on the battle rail/cockpit/forecast follow-up PR #790 (merged at `ae9cc3f5aeddfa72651339855a17f1c53f443b85` after all four exact-head workflows passed). The expanded scope is recorded in `docs/superpowers/specs/2026-10-01-techniques-support-action.md`: eight-card Discipline rows and separately persisted Support Action/battle slot 3; approved Profile concept/tendencies help; single-panel Training; automatic Nexus entry/persistent Items tabs; Haven duplicate shortcut removal; shared headers/Character Select fit; three AI-aligned PvP map sizes and dramatic VS; Guided Fundamentals at 9×7 with Guard practice available for Recovery builds. Local quality checks and independent review are recorded in `docs/superpowers/verification/2026-10-01-techniques-support-action.md`; exact-candidate CI, additive SQL migrations and final release evidence remain required before marking this continuation released. Normal branch deployments remain locked; the Owner’s existing merge/deploy authorization applies only to this reviewed UI release.
+
 ## Accepted UI and combat correction — 2026-09-30
 
 Owner-authorized correction candidate `agent/approved-ui-combat-correction-20260930` implements structural changes against the nineteen original concept boards and the newly accepted battle composition. It includes the fixed 1–9 cockpit, arming with authoritative forecasts, subsequent single-input execution, Space facing/end-turn, larger square gameplay art, seven-row arenas, compact combatant cards, terrain key/log and shared playable/spectator presentation. Existing operations, historical snapshots and server mechanics are preserved.

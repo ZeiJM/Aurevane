@@ -10,6 +10,7 @@ import { CharacterDeletionDialog } from './character-deletion-dialog'
 
 import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
 import { AccountMenu } from '@/components/shell/account-menu'
+import { SiteHeader } from '@/components/shell/site-header'
 import { getStarterPortraitImageAssetId } from '@/media/character'
 import type { AccountDeletionState } from '@/server/account/account-deletion-service'
 import type { CharacterSlotCharacter } from '@/server/character/character-slot-service'
@@ -197,21 +198,12 @@ export function CharacterSelectShell({
       <div className={styles.world} aria-hidden="true">
         <AurevaneImage assetId="environment.adventure.threshold" />
       </div>
-      <header className={styles.header}>
-        <Link className="brand" href="/game" aria-label="AUREVANE Character Select">
-          <span className="brand__crest" aria-hidden="true">
-            <span>A</span>
-          </span>
-          <span className="brand__wordmark">
-            <strong>AUREVANE</strong>
-            <small>Character Select</small>
-          </span>
-        </Link>
-
-        <div className={styles.headerActions}>
-          <AccountMenu />
-        </div>
-      </header>
+      <SiteHeader
+        className={styles.header}
+        brandHref="/game"
+        brandLabel="AUREVANE Character Select"
+        utility={<AccountMenu />}
+      />
 
       <main className={styles.main} data-roster-stage="true">
         <header className={styles.hero}>

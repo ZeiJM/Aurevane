@@ -76,7 +76,7 @@ test('Nexus build launchers stay centered and readable', async ({ page }, testIn
   await expect(disciplineLauncher).toBeVisible()
   await expect(techniquesLauncher).toBeVisible()
   await expect(page.locator('#nexus-disciplines-heading')).toHaveText('Disciplines')
-  await expect(page.locator('#nexus-techniques-heading')).toHaveText('0 / 4 selected Techniques')
+  await expect(page.locator('#nexus-techniques-heading')).toHaveText('Discipline Skills — 0 / 4')
   await expect(page.locator('#nexus-power-heading')).toHaveText('Ascension / Severance')
   await expect(page.getByText('Your foundation in battle', { exact: true })).toHaveCount(0)
   await expect(page.getByText('Align with greater potential', { exact: true })).toHaveCount(0)
@@ -138,6 +138,69 @@ test('Nexus build launchers stay centered and readable', async ({ page }, testIn
       serverNavigations.push(request.url())
     }
   })
+
+  const originalViewport = page.viewportSize()
+  const launcherViewports =
+    testInfo.project.name === 'mobile-chromium'
+      ? [
+          { width: 393, height: 851 },
+          { width: 390, height: 844 },
+          { width: 320, height: 700 },
+        ]
+      : [originalViewport!]
+
+  for (const viewport of launcherViewports) {
+    await page.setViewportSize(viewport)
+    const supportSummary = page.getByTestId('nexus-support-action')
+    await expect(supportSummary).toBeVisible()
+    await expect(supportSummary).toContainText('Support Action · Slot 3')
+    await expect(supportSummary.locator('strong')).toHaveText('Guard')
+
+    const [summaryBox, launcherBox] = await Promise.all([
+      supportSummary.boundingBox(),
+      techniquesLauncher.boundingBox(),
+    ])
+    if (!summaryBox || !launcherBox) {
+      throw new Error('The Support Action summary or Techniques launcher geometry is unavailable.')
+    }
+    expect(
+      summaryBox.y + summaryBox.height,
+      'Support Action ends above its launcher',
+    ).toBeLessThanOrEqual(launcherBox.y + 1)
+    for (const content of await supportSummary.locator('span, small, strong').all()) {
+      const contentBox = await content.boundingBox()
+      expect(contentBox).not.toBeNull()
+      expect(contentBox!.x, 'Support Action content fits its summary').toBeGreaterThanOrEqual(
+        summaryBox.x - 1,
+      )
+      expect(contentBox!.x + contentBox!.width).toBeLessThanOrEqual(
+        summaryBox.x + summaryBox.width + 1,
+      )
+      expect(
+        contentBox!.y + contentBox!.height,
+        'Support Action cannot cover its launcher',
+      ).toBeLessThanOrEqual(launcherBox.y + 1)
+    }
+    expect(
+      await page.evaluate(
+        (width) => document.documentElement.scrollWidth <= width + 1,
+        viewport.width,
+      ),
+      `The Nexus fits the ${viewport.width}px viewport`,
+    ).toBe(true)
+
+    for (const position of [
+      { x: 5, y: 5 },
+      { x: launcherBox.width - 5, y: launcherBox.height - 5 },
+    ]) {
+      await techniquesLauncher.click({ trial: true, position })
+    }
+    await techniquesLauncher.click()
+    const dialog = page.getByRole('dialog', { name: 'Techniques' })
+    await expect(dialog).toBeVisible()
+    await dialog.getByRole('button', { name: 'Close' }).click()
+  }
+  if (originalViewport) await page.setViewportSize(originalViewport)
 
   await techniquesLauncher.click()
   const techniquesDialog = page.getByRole('dialog', { name: 'Techniques' })

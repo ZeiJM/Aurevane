@@ -74,7 +74,7 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
   await page.getByRole('button', { name: /Manage Techniques/ }).click()
   const dialog = page.getByRole('dialog', { name: 'Techniques', exact: true })
   const list = page.getByTestId('learned-skill-list')
-  await expect(list.locator('article')).toHaveCount(8)
+  await expect(list.getByRole('checkbox')).toHaveCount(8)
   const palm = list.locator('article').filter({ hasText: 'Counter Palm' })
   await palm.getByRole('checkbox').focus()
   await expect(dialog).toContainText('RequirementsSelf: Guard')
@@ -90,7 +90,7 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
   // by independently checking persisted selections after reload.
   await page.reload()
   await expect(dialog).toBeVisible()
-  await expect(list.locator('input:checked')).toHaveCount(4)
+  await expect(list.getByRole('checkbox', { checked: true })).toHaveCount(4)
   for (const name of ['Rising Fist', 'Sweep', 'Breakfall', 'Counter Palm']) {
     await expect(
       list.locator('article').filter({ hasText: name }).getByRole('checkbox'),
@@ -286,7 +286,7 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
   await page.getByRole('button', { name: /Manage Techniques/ }).click()
   const dialog = page.getByRole('dialog', { name: 'Techniques', exact: true })
   const list = page.getByTestId('learned-skill-list')
-  await expect(list.locator('article')).toHaveCount(8)
+  await expect(list.getByRole('checkbox')).toHaveCount(8)
   const fortress = list.locator('article').filter({ hasText: 'Fortress' })
   await fortress.getByRole('checkbox').focus()
   await expect(dialog).toContainText('EffectsFortified [−30% incoming / −20% outgoing]')
@@ -409,7 +409,7 @@ test('Chronist provisions its full testing library, Essence artwork and explicit
   await page.getByRole('button', { name: /Manage Techniques/ }).click()
   const dialog = page.getByRole('dialog', { name: 'Techniques', exact: true })
   const list = page.getByTestId('learned-skill-list')
-  await expect(list.locator('article')).toHaveCount(8)
+  await expect(list.getByRole('checkbox')).toHaveCount(8)
   const haste = list.locator('article').filter({ hasText: 'Haste' }).first()
   await haste.getByRole('checkbox').focus()
   await expect(dialog).toContainText('EffectsHaste')

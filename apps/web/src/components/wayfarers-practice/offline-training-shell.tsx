@@ -8,9 +8,8 @@ import { CharacterRailSynchronizedLayout } from '@/components/character/characte
 import { AurevaneImage } from '@/components/media/aurevane-image'
 
 import { PracticePlanCard, type PracticePlanCardData } from './practice-plan-card'
-import { TrainingReportCard, type TrainingReportCardData } from './training-report-card'
+import type { TrainingReportCardData } from './training-report-card'
 import styles from './offline-training-shell.module.css'
-import panels from './training-workspace.module.css'
 
 interface OfflineTrainingShellProps {
   identity: CharacterIdentityCardProps
@@ -43,42 +42,7 @@ export function OfflineTrainingShell({
         </section>
 
         <div className={styles.workspace} data-training-workspace="true">
-          <PracticePlanCard
-            practice={practicePlan}
-            hasReport={trainingReport !== null}
-            report={
-              <aside
-                className={panels.reportWorkspace}
-                id="training-report-workspace"
-                aria-label="Training report workspace"
-                tabIndex={-1}
-              >
-                {trainingReport ? (
-                  <TrainingReportCard report={trainingReport} />
-                ) : (
-                  <section
-                    className={`${panels.panel} ${panels.reportPanel}`}
-                    data-av-surface="moonstone"
-                  >
-                    <header className={panels.heading}>
-                      <div>
-                        <span className={panels.eyebrow}>03 / Training Report</span>
-                        <h2>Training Report</h2>
-                      </div>
-                    </header>
-                    <div className={panels.emptyState}>
-                      <span className={panels.reportGlyph} aria-hidden="true">
-                        ▤
-                      </span>
-                      <h3>No report waiting</h3>
-                      <p>Your completed training sessions will appear here with their rewards.</p>
-                    </div>
-                    <p className={panels.footnote}>“Even in absence, discipline bears fruit.”</p>
-                  </section>
-                )}
-              </aside>
-            }
-          />
+          <PracticePlanCard practice={practicePlan} trainingReport={trainingReport} />
         </div>
       </section>
     </CharacterRailSynchronizedLayout>

@@ -1,6 +1,7 @@
 import 'server-only'
 
 import type { DisciplineSkillReference } from '@aurevane/game-core/character/discipline-skill-loadout'
+import { parseSupportActionId } from '@aurevane/game-core/combat/support-actions'
 import { AurevaneError } from '@aurevane/game-core/errors'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
@@ -39,6 +40,8 @@ function parseSkill(value: unknown): DisciplineSkillReference | null {
 
 function parseLoadout(row: unknown): CharacterSavedBuildLoadoutRecord | null {
   if (!isRecord(row) || !Array.isArray(row.discipline_skills)) return null
+  const supportActionId = parseSupportActionId(row.support_action_id)
+  if (!supportActionId) return null
   const slotIndex = integer(row.slot_index)
   const sourceBuildVersion = integer(row.source_build_version)
   const skills = row.discipline_skills.map(parseSkill)
@@ -59,6 +62,7 @@ function parseLoadout(row: unknown): CharacterSavedBuildLoadoutRecord | null {
   }
   return {
     slotIndex,
+    supportActionId,
     name: row.name,
     primaryDisciplineId: row.primary_discipline_id,
     secondaryDisciplineId: row.secondary_discipline_id,
@@ -157,7 +161,7 @@ export function createSupabaseCharacterSavedBuildLoadoutRepository(): CharacterS
   return {
     async list(userId, characterId) {
       const supabase = createSupabaseAdminClient()
-      const { data, error } = await supabase.rpc('get_character_saved_build_loadouts_v1', {
+      const { data, error } = await supabase.rpc('get_character_saved_build_loadouts_v2', {
         p_user_id: userId,
         p_character_id: characterId,
       })

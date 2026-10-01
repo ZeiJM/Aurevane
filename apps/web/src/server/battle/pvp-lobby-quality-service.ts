@@ -31,6 +31,7 @@ import {
 import { AurevaneError } from '@aurevane/game-core/errors'
 import type { PvpMapBias, PvpMapSize, PvpTurnTimerSeconds } from '@aurevane/validation/combat/pvp'
 
+import { pvpMapProfile } from '@/lib/battle/pvp-map-presentation'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createSupabaseCharacterBuildRepository } from '@/server/character/supabase-character-build-repository'
 import { createSupabaseCharacterRepository } from '@/server/character/supabase-character-repository'
@@ -104,7 +105,7 @@ export async function getPvpLobbyMapSettings(
   const terrainBias = row.terrain_bias
   const turnTimerSeconds = row.turn_timer_seconds
   if (
-    (mapSize !== 'medium' && mapSize !== 'large') ||
+    (mapSize !== 'small' && mapSize !== 'medium' && mapSize !== 'large') ||
     (elevationBias !== 'less' && elevationBias !== 'neutral' && elevationBias !== 'more') ||
     (terrainBias !== 'less' && terrainBias !== 'neutral' && terrainBias !== 'more') ||
     (turnTimerSeconds !== null && turnTimerSeconds !== 60 && turnTimerSeconds !== 120)
@@ -222,8 +223,7 @@ function createPvpEncounter(
   settings: PvpLobbyMapSettings,
   buildAuthority: BattleBuildAuthoritySnapshot,
 ) {
-  const width = settings.mapSize === 'large' ? 15 : 9
-  const height = 7
+  const { width, height } = pvpMapProfile(settings.mapSize)
   const spawnRows = roster.map(({ member }) => ({
     member,
     spawn: spawnFor(

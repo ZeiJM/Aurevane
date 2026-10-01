@@ -186,7 +186,7 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
     ).toBeVisible()
     expect(railBox.height).toBeLessThan(100)
   } else {
-    const identity = page.getByTestId('character-rail-profile')
+    const identity = page.getByTestId('authenticated-shell').getByTestId('character-rail-profile')
     await expect(identity).toBeVisible()
     const identityBox = (await identity.boundingBox())!
     for (const content of [

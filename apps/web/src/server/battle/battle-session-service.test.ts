@@ -370,8 +370,8 @@ describe('P2.4 battle session service', () => {
       },
       {
         recordId: 'guided-fundamentals' as const,
-        proposedArenaId: 'basic-training-floor' as const,
-        expectedArenaId: 'basic-training-floor' as const,
+        proposedArenaId: 'crossroads-court' as const,
+        expectedArenaId: 'duel-yard' as const,
         proposedDifficulty: 'high' as const,
         expectedDifficulty: 'easy',
         idempotencyKey: '11111111-2222-4333-8444-555555555553',
@@ -392,6 +392,10 @@ describe('P2.4 battle session service', () => {
       if (!input) throw new Error('Expected battle create input.')
 
       const state = input.initialSnapshot as StatDrivenCombatEncounterState
+      if (testCase.recordId === 'guided-fundamentals') {
+        expect(state.tactical).toMatchObject({ width: 9, height: 7 })
+        expect(state.tactical.tiles).toHaveLength(63)
+      }
       const recruitProfile = state.statBridge.combatants.find(
         (profile) => profile.combatantId === 'recruit:p2-4-1',
       )

@@ -103,14 +103,14 @@ jobs:
           SUPABASE_SECRET_KEY="$server_key" \
           pnpm --filter @aurevane/web exec playwright test \
             e2e/ai-header-control-shape.pw.ts e2e/ai-grid-legend-regression.pw.ts \
-            e2e/battle-cockpit-skill-slots.pw.ts e2e/pvp-six-combatant-rails.pw.ts \
+            e2e/battle-cockpit-skill-slots.pw.ts e2e/pvp-six-combatant-rails.pw.ts e2e/pvp-map-sizes.pw.ts \
             e2e/shared-battle-presentation-parity.pw.ts e2e/pvp-battle-log-footer-parity.pw.ts \
             e2e/phase4-ground-targeting.pw.ts \
             e2e/pvp-mobile-unified-battle.pw.ts e2e/discipline-sigil-art.pw.ts \
             e2e/character-secondary-build.pw.ts \
             e2e/battle-move-preview-polish.pw.ts e2e/battle-self-action-quick-commit.pw.ts \
             e2e/battle-terrain-control-parity.pw.ts e2e/refined-battle-execution.pw.ts \
-            e2e/battle-recovery-hotkey.pw.ts e2e/technique-preview-layout.pw.ts \
+            e2e/battle-recovery-hotkey.pw.ts e2e/battle-support-action.pw.ts e2e/techniques-support-action.pw.ts e2e/technique-preview-layout.pw.ts \
             e2e/shell-viewport-fit.pw.ts \
             --project=desktop-chromium --project=mobile-chromium
 
@@ -128,7 +128,7 @@ jobs:
           SUPABASE_SECRET_KEY="$server_key" \
           pnpm --filter @aurevane/web exec playwright test \
             e2e/battle-self-action-quick-commit.pw.ts \
-            e2e/battle-recovery-hotkey.pw.ts \
+            e2e/battle-recovery-hotkey.pw.ts e2e/battle-support-action.pw.ts e2e/techniques-support-action.pw.ts \
             --config=playwright.edge.config.ts --output=test-results-edge
 
       - name: Save browser evidence

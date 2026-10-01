@@ -78,7 +78,7 @@ test('Passive Training requires an explicit plan and freezes a server-timed rewa
   await page.getByRole('radio', { name: 'Medium Plan', exact: true }).check()
   expect(planPayload).toBeNull()
   await page.getByRole('button', { name: 'Start Training', exact: true }).click()
-  await expect(planner).toContainText('Training active')
+  await expect(planner).toHaveCount(0)
   await expect(page.getByTestId('passive-training-active')).toContainText('Medium')
   await expect(page.getByTestId('passive-training-active')).toContainText('+56 XP')
   await expect(page.getByRole('button', { name: 'Stop Training' })).toBeVisible()
@@ -142,8 +142,7 @@ test('Passive Training requires an explicit plan and freezes a server-timed rewa
   await expect(trainingReport).not.toContainText('Balanced Training')
 
   const consumedPlanner = page.getByTestId('practice-plan-card')
-  await expect(consumedPlanner).toContainText('Idle')
-  await expect(consumedPlanner).not.toContainText('Training active')
+  await expect(consumedPlanner).toHaveCount(0)
   expect(await hasHorizontalOverflow(page)).toBe(false)
 
   const frozenReport = queryLocalDatabase(`
@@ -161,6 +160,7 @@ test('Passive Training requires an explicit plan and freezes a server-timed rewa
 
   await page.getByRole('button', { name: 'Claim Training' }).click()
   await expect(page.getByTestId('training-report')).toHaveCount(0)
+  await expect(page.getByTestId('practice-plan-card')).toBeVisible()
 
   const claimedCount = queryLocalDatabase(`
     select count(*)::text

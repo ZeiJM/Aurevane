@@ -56,6 +56,12 @@ test('single-Discipline Nexus aligns its four selected slots and preserves locke
   const dialog = page.getByRole('dialog', { name: 'Techniques' })
   await expect(dialog).toBeVisible()
 
+  await expect(
+    dialog.locator('[data-technique-group][data-locked="true"] [data-technique-card]'),
+  ).toHaveCount(8)
+  await expect(
+    dialog.getByRole('radiogroup', { name: 'Support Action' }).getByRole('radio'),
+  ).toHaveCount(3)
   await assertDesktopTechniqueGeometry(page, testInfo, 'pure')
 })
 
@@ -310,7 +316,9 @@ async function assertDesktopTechniqueGeometry(page: Page, testInfo: TestInfo, bu
       expect(image.objectFit).toBe('contain')
     }
     expect(metrics.groups).toHaveLength(2)
-    expect(Math.abs(metrics.groups[0].box.y - metrics.groups[1].box.y)).toBeLessThanOrEqual(1)
+    expect(metrics.groups[1].box.y).toBeGreaterThanOrEqual(
+      metrics.groups[0].box.y + metrics.groups[0].box.height,
+    )
     for (const container of metrics.containers) {
       contained(container.box, metrics.dialog)
       noOverflow(container.overflow)
@@ -319,6 +327,10 @@ async function assertDesktopTechniqueGeometry(page: Page, testInfo: TestInfo, bu
       contained(group.box, metrics.dialog)
       noOverflow(group.overflow)
       expect(group.cards).toHaveLength(8)
+      expect(
+        Math.max(...group.cards.map((card) => card.box.y)) -
+          Math.min(...group.cards.map((card) => card.box.y)),
+      ).toBeLessThanOrEqual(1)
       for (const card of group.cards) {
         contained(card.box, group.box)
         contained(card.art, card.box)

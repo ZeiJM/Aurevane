@@ -1,10 +1,8 @@
 import { Kicker, Surface } from '@aurevane/ui'
-import Link from 'next/link'
 
+import { SiteHeader } from '@/components/shell/site-header'
 import { AudioSettingsMenu } from '@/components/audio/audio-settings-menu'
 import { AurevaneImage } from '@/components/media/aurevane-image'
-import railStyles from '@/components/public-information/public-header-rail.module.css'
-import publicStyles from '@/components/public-information/public-information-shell.module.css'
 import type { BrowserSupabaseConfig } from '@/lib/supabase/client'
 
 import { AccountAccessPanel } from './account-access-panel'
@@ -22,39 +20,12 @@ export function AccountEntryShell({ authConfig, sessionNotice }: AccountEntryShe
         Skip to account entry
       </a>
 
-      <header
-        className={`${styles.masthead} ${railStyles.masthead}`}
-        style={{ position: 'sticky', top: 0, zIndex: 700 }}
-      >
-        <a className="brand" href="#account-main" aria-label="AUREVANE account entry home">
-          <span className="brand__crest" aria-hidden="true">
-            <span>A</span>
-          </span>
-          <span className="brand__wordmark">
-            <strong>AUREVANE</strong>
-            <small>Persistent tactical fantasy</small>
-          </span>
-        </a>
-
-        <nav
-          className={`${publicStyles.mastheadNav} ${railStyles.navigation}`}
-          aria-label="Public information"
-        >
-          <Link className={publicStyles.navLink} href="/news">
-            News
-          </Link>
-          <Link className={publicStyles.navLink} href="/manual">
-            Manual
-          </Link>
-          <Link className={publicStyles.navLink} href="/rules">
-            Rules
-          </Link>
-        </nav>
-
-        <div className={railStyles.utility}>
-          <AudioSettingsMenu />
-        </div>
-      </header>
+      <SiteHeader
+        className={styles.masthead}
+        brandHref="#account-main"
+        brandLabel="AUREVANE account entry home"
+        utility={<AudioSettingsMenu />}
+      />
 
       <main className={styles.main} id="account-main">
         <section className={styles.hero} aria-labelledby="aurevane-title">

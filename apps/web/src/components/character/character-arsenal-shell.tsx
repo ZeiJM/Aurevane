@@ -1,5 +1,6 @@
 import Image from 'next/image'
-import Link from 'next/link'
+import { DEFAULT_SUPPORT_ACTION_ID } from '@aurevane/game-core/combat/support-actions'
+import { pv1fSkillByActionId } from '@aurevane/game-core/combat/pv1f-skills'
 import type { EssenceDefinition } from '@aurevane/game-core/combat/essence'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
 import type { AnyResonanceDefinition } from '@aurevane/game-core/combat/resonance'
@@ -14,6 +15,7 @@ import { CharacterDisciplineBuildPanel } from '@/components/character/character-
 import { type CharacterWorkspaceProps } from '@/components/character/character-profile-shell'
 import { CharacterSkillBuildPanel } from '@/components/character/character-skill-build-panel'
 import { FoundationDisciplineSigil } from '@/components/character/foundation-discipline-sigil'
+import { LoadoutTabs } from '@/components/character/loadout-tabs'
 
 import {
   skillCompactRangeDescription,
@@ -251,6 +253,8 @@ export function CharacterArsenalShell({
   ].join(':')
   const resonance = disciplineBuild.disciplineSkills.extensions.resonance
   const essence = disciplineBuild.disciplineSkills.extensions.essence
+  const supportActionId = disciplineBuild.supportActionId ?? DEFAULT_SUPPORT_ACTION_ID
+  const supportAction = pv1fSkillByActionId(supportActionId)!
   const equipped = [...disciplineBuild.disciplineSkills.equippedSkills].sort(
     (left, right) => left.slotIndex - right.slotIndex,
   )
@@ -264,13 +268,6 @@ export function CharacterArsenalShell({
       <Surface className={styles.arsenal} tone="elevated" data-arsenal-sheet="true">
         <header className={styles.pageHeading}>
           <div className={styles.pageHeadingTitle}>
-            <Link
-              href="/game/loadout"
-              className={styles.backLink}
-              aria-label="Back to Nexus and Items"
-            >
-              <span aria-hidden="true">‹</span> Back
-            </Link>
             <span className={styles.pageIcon} aria-hidden="true">
               ⚔
             </span>
@@ -279,10 +276,10 @@ export function CharacterArsenalShell({
               <p>Master disciplines. Refine techniques. Prepare for what comes.</p>
             </div>
           </div>
-          <small>
-            A sharper mind. A steadier hand.
-            <br />A kinder world.
-          </small>
+          <div className={styles.loadoutNavigation}>
+            <LoadoutTabs active="nexus" />
+            <small>A sharper mind. A steadier hand. A kinder world.</small>
+          </div>
         </header>
 
         <section
@@ -358,26 +355,45 @@ export function CharacterArsenalShell({
             <div>
               <span>✦</span>
               <h2 id="nexus-techniques-heading">
-                {equipped.length} / {disciplineBuild.disciplineSkills.capacity} selected Techniques
+                Discipline Skills — {equipped.length} / {disciplineBuild.disciplineSkills.capacity}
               </h2>
             </div>
           </header>
 
-          <div className={styles.techniqueLanes}>
-            <TechniqueLane
-              kind="primary"
-              discipline={{
-                id: disciplineBuild.current.definition.id,
-                name: `${equipped.length} / ${disciplineBuild.disciplineSkills.capacity} selected Techniques`,
-              }}
-              skills={equipped.map((entry) => entry.definition)}
-            />
+          <div className={styles.techniqueSummary}>
+            <div className={styles.techniqueLanes}>
+              <TechniqueLane
+                kind="primary"
+                discipline={{
+                  id: disciplineBuild.current.definition.id,
+                  name: `Discipline Skills — ${equipped.length} / ${disciplineBuild.disciplineSkills.capacity}`,
+                }}
+                skills={equipped.map((entry) => entry.definition)}
+              />
+            </div>
+
+            <div className={styles.supportSummary} data-testid="nexus-support-action">
+              <span className={styles.overviewTechniqueArt} data-arsenal-media="true">
+                <Image
+                  src={battleSkillArtwork(supportActionId)}
+                  width={160}
+                  height={160}
+                  unoptimized
+                  alt=""
+                />
+              </span>
+              <div>
+                <small>Support Action · Slot 3</small>
+                <strong>{supportAction.name}</strong>
+              </div>
+            </div>
           </div>
 
           <CharacterSkillBuildPanel
             key={skillBuildKey}
             characterId={attributeAllocation.characterId}
             initialBuildVersion={disciplineBuild.buildVersion}
+            initialSupportActionId={supportActionId}
             primaryDiscipline={{
               id: disciplineBuild.current.definition.id,
               name: disciplineBuild.current.definition.name,

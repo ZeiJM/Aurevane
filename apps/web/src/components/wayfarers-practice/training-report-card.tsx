@@ -3,7 +3,7 @@
 import { passiveTrainingWindowLabel } from '@aurevane/game-core/character/wayfarers-practice'
 import { GameButton } from '@aurevane/ui'
 import { useRouter } from 'next/navigation'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import styles from './training-workspace.module.css'
 
@@ -27,16 +27,26 @@ export interface TrainingReportCardData {
 
 interface TrainingReportCardProps {
   report: TrainingReportCardData
+  autoClaim?: boolean
+  onClaimed?: () => void
 }
 
-export function TrainingReportCard({ report }: TrainingReportCardProps) {
+export function TrainingReportCard({
+  report,
+  autoClaim = false,
+  onClaimed,
+}: TrainingReportCardProps) {
   const router = useRouter()
   const [submitting, setSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const idempotencyKey = useRef<string | null>(null)
+  const automaticClaimAttempted = useRef(false)
+  const requestInFlight = useRef(false)
+  const [claimed, setClaimed] = useState(false)
 
   async function claimTraining() {
-    if (submitting) return
+    if (requestInFlight.current || claimed) return
+    requestInFlight.current = true
     setSubmitting(true)
     setErrorMessage(null)
     idempotencyKey.current ??= crypto.randomUUID()
@@ -56,13 +66,24 @@ export function TrainingReportCard({ report }: TrainingReportCardProps) {
         setErrorMessage(payload.error?.message ?? 'The Training Report could not be claimed.')
         return
       }
+      setClaimed(true)
+      onClaimed?.()
       router.refresh()
     } catch {
       setErrorMessage('The Training Report could not reach the server. You can safely try again.')
     } finally {
+      requestInFlight.current = false
       setSubmitting(false)
     }
   }
+
+  useEffect(() => {
+    if (!autoClaim || automaticClaimAttempted.current) return
+    automaticClaimAttempted.current = true
+    void claimTraining()
+    // One automatic attempt per stopped report; manual retry retains the same idempotency key.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoClaim])
 
   const passive = report.practiceSource === 'passive_training'
   const planLabel = report.plannedWindow ? passiveTrainingWindowLabel(report.plannedWindow) : null
@@ -76,7 +97,7 @@ export function TrainingReportCard({ report }: TrainingReportCardProps) {
     >
       <header className={styles.heading}>
         <div>
-          <span className={styles.eyebrow}>03 / Training Report</span>
+          <span className={styles.eyebrow}>Training Report</span>
           <h2>{passive ? 'Training Complete' : 'Training Report'}</h2>
         </div>
         <span className={styles.badge}>
@@ -133,11 +154,11 @@ export function TrainingReportCard({ report }: TrainingReportCardProps) {
       <div className={styles.actions}>
         <GameButton
           className={styles.startButton}
-          disabled={submitting}
+          disabled={submitting || claimed}
           onClick={claimTraining}
           type="button"
         >
-          {submitting ? 'Claiming…' : 'Claim Training'}
+          {claimed ? 'Claimed' : submitting ? 'Claiming…' : 'Claim Training'}
         </GameButton>
         <span>Claims are idempotent: refreshing or retrying cannot duplicate the reward.</span>
       </div>
