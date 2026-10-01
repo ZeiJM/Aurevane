@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process'
 import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
-import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test'
+import { expect, test, type Locator, type Page, type Route, type TestInfo } from '@playwright/test'
 import type { BattleSessionView } from '../src/server/battle/battle-session-service'
 import { previewDiscipline } from './discipline-library-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
@@ -452,12 +452,21 @@ async function exerciseForecast(
       const fetched = new Promise<void>((resolve) => {
         observed = resolve
       })
-      await page.route('**/api/battles/*/preview', async (route) => {
-        const response = await route.fetch()
-        observed()
-        await hold
-        await route.fulfill({ response })
-      })
+      const previewUrl = new URL(
+        `/api/battles/${baselineState.battleSessionId}/preview`,
+        page.url(),
+      ).toString()
+      let handled: Promise<void> | undefined
+      const holdPreview = (route: Route) => {
+        handled = (async () => {
+          const response = await route.fetch()
+          observed()
+          await hold
+          await route.fulfill({ response })
+        })()
+        return handled
+      }
+      await page.route(previewUrl, holdPreview, { times: 1 })
       try {
         await page.getByRole('button', { name: /^Selected Chilling Mist,/ }).click()
         await fetched
@@ -467,7 +476,10 @@ async function exerciseForecast(
         await check('pending-ground')
       } finally {
         release()
-        await page.unroute('**/api/battles/*/preview')
+        // Removing interception can release a paused route itself. Let the held real
+        // response finish exactly once before removing this viewport's handler.
+        await handled
+        await page.unroute(previewUrl, holdPreview)
       }
       await expect(
         page.getByRole('button', { name: 'Forecast details', exact: true }),

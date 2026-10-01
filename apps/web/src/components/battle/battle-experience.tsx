@@ -1911,7 +1911,7 @@ export function BattleExperience({
             <div className={styles.commands} data-battle-command-group="true">
               <BattleSkillCommand
                 slot="inspect"
-                hotkey=""
+                hotkey={formatCombatKeybind(bindings.inspect)}
                 label="Inspect"
                 cost="Free"
                 artworkSrc={BATTLE_COMMAND_ARTWORK.inspect}

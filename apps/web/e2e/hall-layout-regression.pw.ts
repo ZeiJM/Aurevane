@@ -79,8 +79,14 @@ async function captureDesktopHallGeometry(
   mode: 'ai' | 'spectate',
   state: string,
 ) {
+  await page.evaluate(async () => {
+    await document.fonts.ready
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+    )
+  })
   const metrics = await page.locator(`[data-hall-workspace="${mode}"]`).evaluate((element) => {
-    const body = element.querySelector('[data-hall-scroll-body]')!
+    const body = element.querySelector<HTMLElement>('[data-hall-scroll-body]')!
     const workspace = element.getBoundingClientRect()
     const bodyRect = body.getBoundingClientRect()
     const main = document.getElementById('game-main')!
@@ -93,6 +99,9 @@ async function captureDesktopHallGeometry(
       return {
         top: bounds.top,
         bottom: bounds.bottom,
+        left: bounds.left,
+        right: bounds.right,
+        width: bounds.width,
         height: bounds.height,
         center: (bounds.left + bounds.right) / 2,
       }
@@ -132,6 +141,8 @@ async function captureDesktopHallGeometry(
       viewport: { width: innerWidth, height: innerHeight },
       heading: rect(heading),
       modeRail: rect(modeRail),
+      body: rect(body),
+      scrollbarGutter: body.offsetWidth - body.clientWidth,
       scrolling,
       controls,
       ai:
@@ -147,7 +158,9 @@ async function captureDesktopHallGeometry(
               rightColumnCenter:
                 (modes.getBoundingClientRect().right +
                   parseFloat(getComputedStyle(body).columnGap) +
-                  bodyRect.right) /
+                  bodyRect.left +
+                  body.clientLeft +
+                  body.clientWidth) /
                 2,
             }
           : null,

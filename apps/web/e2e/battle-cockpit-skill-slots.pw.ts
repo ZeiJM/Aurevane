@@ -53,6 +53,9 @@ test('keeps square empty Skill slots and consistent cockpit info controls withou
   })
   await expectBattleHeaderAndArtworkGeometry(page)
   const deck = page.getByRole('region', { name: 'Command Deck' })
+  await expect(
+    deck.locator('[data-command-card="inspect"] [data-battle-command-hotkey]'),
+  ).toHaveText('I')
   const before = await deck.boundingBox()
   await expect(page.locator('[data-battle-secondary-actions]')).toHaveCount(0)
   const controls = page.locator('[data-battle-cockpit-controls]')

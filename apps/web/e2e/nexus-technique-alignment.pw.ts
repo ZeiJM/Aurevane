@@ -188,27 +188,37 @@ async function assertDesktopTechniqueGeometry(page: Page, testInfo: TestInfo, bu
     await dialog.locator('img').evaluateAll(async (images) => {
       await Promise.all(images.map((image) => (image as HTMLImageElement).decode()))
     })
+    const evidenceName = `techniques-${build}-${viewport.width}x${viewport.height}`
+    const output = process.env.LAYOUT_REVIEW_OUTPUT ?? testInfo.outputPath()
+    await mkdir(output, { recursive: true })
     const previews = []
     const liveCards = dialog.locator('[data-technique-card]:has(input)')
     for (let index = 0; index < (await liveCards.count()); index += 1) {
       await liveCards.nth(index).hover()
-      previews.push(
-        await dialog.getByTestId('technique-preview').evaluate((element) => {
-          const box = (node: Element) => {
-            const rect = node.getBoundingClientRect()
-            return { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
-          }
-          return {
-            name: element.querySelector('strong')?.textContent,
-            box: box(element),
-            overflow: {
-              x: Math.max(0, element.scrollWidth - element.clientWidth),
-              y: Math.max(0, element.scrollHeight - element.clientHeight),
-            },
-            contents: Array.from(element.querySelectorAll('dt, dd, li, img')).map(box),
-          }
-        }),
-      )
+      const preview = await dialog.getByTestId('technique-preview').evaluate((element) => {
+        const box = (node: Element) => {
+          const rect = node.getBoundingClientRect()
+          return { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
+        }
+        return {
+          name: element.querySelector('strong')?.textContent,
+          box: box(element),
+          sizing: {
+            width: getComputedStyle(element).width,
+            height: getComputedStyle(element).height,
+            workspaceColumns: getComputedStyle(element.parentElement!).gridTemplateColumns,
+          },
+          overflow: {
+            x: Math.max(0, element.scrollWidth - element.clientWidth),
+            y: Math.max(0, element.scrollHeight - element.clientHeight),
+          },
+          contents: Array.from(element.querySelectorAll('dt, dd, li, img')).map(box),
+        }
+      })
+      previews.push(preview)
+      const hoverName = `${evidenceName}-hover-${index + 1}`
+      await writeFile(path.join(output, `${hoverName}.json`), JSON.stringify(preview, null, 2))
+      await page.screenshot({ fullPage: true, path: path.join(output, `${hoverName}.png`) })
     }
     const metrics = await dialog.evaluate((element) => {
       const box = (node: Element) => {
@@ -263,13 +273,18 @@ async function assertDesktopTechniqueGeometry(page: Page, testInfo: TestInfo, bu
         },
       }
     })
-    const evidenceName = `techniques-${build}-${viewport.width}x${viewport.height}`
+    const evidence = JSON.stringify({ ...metrics, previews }, null, 2)
+    await writeFile(path.join(output, `${evidenceName}.json`), evidence)
+    const screenshot = await page.screenshot({
+      fullPage: true,
+      path: path.join(output, `${evidenceName}.png`),
+    })
     await testInfo.attach(`${evidenceName}-metrics`, {
-      body: JSON.stringify({ ...metrics, previews }, null, 2),
+      body: evidence,
       contentType: 'application/json',
     })
     await testInfo.attach(`${evidenceName}-screenshot`, {
-      body: await page.screenshot({ fullPage: true }),
+      body: screenshot,
       contentType: 'image/png',
     })
     const contained = (

@@ -1547,6 +1547,11 @@
     align-content: start;
   }
 }
+@media (min-width: 1200px) and (max-height: 699px) {
+  .workspace[data-hall-workspace='ai'] .modePicker {
+    gap: 0.35rem;
+  }
+}
 @media (max-width: 760px) {
   .page {
     height: auto;

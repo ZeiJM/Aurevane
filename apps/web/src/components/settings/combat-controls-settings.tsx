@@ -23,7 +23,7 @@ const ACTION_COPY: Record<CombatKeybindAction, { label: string; description: str
   inspect: { label: 'Inspect', description: 'Open optional terrain and combatant inspection.' },
   move: {
     label: 'Move',
-    description: `Select movement: normal tiles cost ${PV1F_MOVEMENT_COST_PER_TERRAIN_POINT} AP, within remaining Movement.`,
+    description: `Move within your allowance; normal tiles cost ${PV1F_MOVEMENT_COST_PER_TERRAIN_POINT} AP.`,
   },
   basicAttack: {
     label: 'Basic Attack',
@@ -63,8 +63,7 @@ const ACTION_COPY: Record<CombatKeybindAction, { label: string; description: str
   },
   endTurn: {
     label: 'Finish Turn',
-    description:
-      'Choose final facing. A second distinct press keeps it; a direction finishes with that facing.',
+    description: 'Press twice to keep facing, or choose a direction to finish.',
   },
   confirm: {
     label: 'Execute selected action',
@@ -184,9 +183,8 @@ export function CombatControlsSettings({ initialBindings }: CombatControlsSettin
       aria-label="Combat controls settings"
     >
       <p className={styles.intro}>
-        Account keybinds activate visible battle commands. Preview a forecast, then act via a legal
-        target or deliberate directional input. The server validates every action. Change a key and
-        save.
+        Change a battle key, then save. Preview actions before choosing a legal target. The server
+        validates every action.
       </p>
 
       <div className={styles.grid}>
