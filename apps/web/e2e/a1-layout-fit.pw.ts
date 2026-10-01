@@ -48,7 +48,11 @@ test('keeps A1 surfaces readable and within viewport', async ({ page }, testInfo
 
   await createAccountAndEnterCharacter({ page, email, password, characterName })
 
-  await expect(page.getByTestId('character-rail-profile')).toContainText(characterName)
+  const characterRail = page
+    .getByTestId('authenticated-shell')
+    .getByTestId('character-rail-profile')
+  await expect(characterRail).toHaveCount(1)
+  await expect(characterRail).toContainText(characterName)
   await expectMinimumFontSize(
     page.locator('[data-profile-fact] small').first(),
     11,
@@ -60,7 +64,7 @@ test('keeps A1 surfaces readable and within viewport', async ({ page }, testInfo
     'Character Profile attribute label',
   )
   await expectMinimumFontSize(
-    page.locator("[data-testid^='derived-stat-']").first().locator(':scope > span:first-child'),
+    page.locator("[data-testid^='derived-stat-']").first().locator(':scope > span:nth-child(2)'),
     11.5,
     'Character Profile derived-stat label',
   )

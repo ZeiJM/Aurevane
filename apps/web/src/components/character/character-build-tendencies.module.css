@@ -54,6 +54,7 @@
   font: 600 16px var(--av-font-display);
 }
 .value {
+  transform: translateY(6px);
   fill: #625b48;
   font: 600 13px var(--av-font-body);
 }

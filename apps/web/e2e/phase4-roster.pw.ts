@@ -90,7 +90,7 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
   // by independently checking persisted selections after reload.
   await page.reload()
   await expect(dialog).toBeVisible()
-  await expect(list.locator('input:checked')).toHaveCount(4)
+  await expect(list.getByRole('checkbox', { checked: true })).toHaveCount(4)
   for (const name of ['Rising Fist', 'Sweep', 'Breakfall', 'Counter Palm']) {
     await expect(
       list.locator('article').filter({ hasText: name }).getByRole('checkbox'),

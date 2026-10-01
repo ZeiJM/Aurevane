@@ -72,6 +72,7 @@ test('Nexus equips a mastered Secondary with independent attunement authority', 
   const primaryDisciplineChip = page.getByTestId('primary-discipline-chip')
   const secondaryDisciplineChip = page.getByTestId('secondary-discipline-chip')
   const maxHp = page
+    .getByTestId('authenticated-shell')
     .getByTestId('character-rail-profile')
     .locator('[data-character-resource="hp"] b')
 

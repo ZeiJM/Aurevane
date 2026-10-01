@@ -62,10 +62,13 @@ test('Techniques saves one Support Action separately from four Discipline Skills
   )
   await expect(dialog.getByRole('radio', { name: 'MP Recovery', exact: true })).toBeChecked()
   await dialog.getByRole('button', { name: 'Close', exact: true }).click()
+  await expect(dialog).toBeHidden()
+  await expect(page).not.toHaveURL(/profilePanel=techniques/)
   await expect(page.getByTestId('nexus-support-action')).toContainText('MP Recovery')
   await page.reload()
   await expect(page.getByTestId('nexus-support-action')).toContainText('MP Recovery')
   dialog = await open()
+  await expect(dialog.getByRole('radio', { name: 'MP Recovery', exact: true })).toBeChecked()
   // A failed write restores the committed choice and does not consume a Discipline slot.
   await page.route('**/api/character/build/support-action', (route) =>
     route.fulfill({
@@ -79,4 +82,7 @@ test('Techniques saves one Support Action separately from four Discipline Skills
   await expect(dialog.getByTestId('skill-capacity')).toHaveText(
     /Discipline Skills — 0 \/ 4 selected/,
   )
+  await dialog.getByRole('button', { name: 'Close', exact: true }).click()
+  await expect(dialog).toBeHidden()
+  await expect(page.getByTestId('nexus-support-action')).toContainText('MP Recovery')
 })

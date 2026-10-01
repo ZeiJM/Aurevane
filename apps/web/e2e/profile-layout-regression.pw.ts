@@ -32,7 +32,7 @@ test('approved Profile and Haven keep the frame fixed and complete controls reac
   const shell = page.getByTestId('authenticated-shell')
   const rail = shell.locator('[data-av-game-rail]')
   await expect(rail).toBeVisible()
-  await expect(page.getByTestId('character-rail-profile')).toContainText(`Wayfarer ${suffix}`)
+  await expect(shell.getByTestId('character-rail-profile')).toContainText(`Wayfarer ${suffix}`)
   for (const attribute of ['might', 'finesse', 'vitality', 'agility', 'intellect', 'resolve'])
     await expect(page.getByTestId(`profile-attribute-${attribute}`)).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Core Stats', exact: true })).toBeVisible()
@@ -62,6 +62,101 @@ test('approved Profile and Haven keep the frame fixed and complete controls reac
   await expect(statHelp).toHaveCount(0)
   await expect(combatGrid.locator('[data-profile-stat-group] > header')).toHaveCount(0)
   await expect(combatGrid.getByRole('button')).toHaveCount(13)
+  {
+    const fitViewports = mobile
+      ? [
+          [320, 740],
+          [390, 844],
+        ]
+      : [
+          [1280, 720],
+          [1366, 768],
+          [1536, 614],
+          [1585, 900],
+          [1440, 900],
+          [1728, 887],
+          [1917, 987],
+          [1920, 1080],
+        ]
+    for (const [width, height] of fitViewports) {
+      await page.setViewportSize({ width, height })
+      const fit = await shell.locator('[data-profile-sheet]').evaluate((sheet, mobile) => {
+        const bounds = sheet.getBoundingClientRect()
+        const main = document.querySelector<HTMLElement>('#game-main')!
+        const mainBounds = main.getBoundingClientRect()
+        const controls = sheet.querySelectorAll<HTMLElement>(
+          '[data-attribute], [data-profile-stat-group] button, [data-profile-reset-control] button, [data-testid="profile-build-tendencies"]',
+        )
+        return {
+          overflow: sheet.scrollHeight - sheet.clientHeight,
+          mainOverflow: main.scrollHeight - main.clientHeight,
+          statCount: sheet.querySelectorAll('[data-attribute], [data-profile-stat-group] button')
+            .length,
+          textOverflow: [
+            ...sheet.querySelectorAll<HTMLElement>(
+              'button[data-attribute], [data-profile-stat-group] button',
+            ),
+          ].flatMap((button) => {
+            const buttonBounds = button.getBoundingClientRect()
+            return [...button.querySelectorAll('span, strong')].flatMap((label) => {
+              const text = label.firstChild
+              if (!text || text.nodeType !== Node.TEXT_NODE) return []
+              return [...(text.textContent ?? '').matchAll(/\S+/g)].flatMap((word) => {
+                const range = document.createRange()
+                range.setStart(text, word.index!)
+                range.setEnd(text, word.index! + word[0].length)
+                const rects = [...range.getClientRects()]
+                return rects.length > 1 ||
+                  rects.some(
+                    (rect) =>
+                      rect.left < buttonBounds.left - 1 ||
+                      rect.right > buttonBounds.right + 1 ||
+                      rect.top < buttonBounds.top - 1 ||
+                      rect.bottom > buttonBounds.bottom + 1,
+                  )
+                  ? [word[0]]
+                  : []
+              })
+            })
+          }),
+          graphOverlap: [
+            ...sheet.querySelectorAll('[data-testid="profile-build-tendencies"] svg g'),
+          ].flatMap((group) => {
+            const texts = group.querySelectorAll('text')
+            if (texts.length !== 2) return []
+            return texts[0].getBoundingClientRect().bottom >
+              texts[1].getBoundingClientRect().top + 0.5
+              ? [texts[0].textContent]
+              : []
+          }),
+          clipped: [...controls]
+            .filter((control) => {
+              const rect = control.getBoundingClientRect()
+              return (
+                rect.top < (mobile ? bounds.top : Math.max(bounds.top, mainBounds.top)) - 1 ||
+                rect.bottom >
+                  (mobile ? bounds.bottom : Math.min(bounds.bottom, mainBounds.bottom)) + 1 ||
+                rect.left < bounds.left - 1 ||
+                rect.right > bounds.right + 1
+              )
+            })
+            .map((control) => control.getAttribute('data-testid') ?? control.textContent),
+        }
+      }, mobile)
+      if (!mobile)
+        expect(fit.overflow, `Profile inner scrolling at ${width}×${height}`).toBeLessThanOrEqual(1)
+      if (!mobile)
+        expect(
+          fit.mainOverflow,
+          `Profile main scrolling at ${width}×${height}`,
+        ).toBeLessThanOrEqual(1)
+      expect(fit.statCount).toBe(19)
+      expect(fit.textOverflow, `Profile broken or clipped words at ${width}×${height}`).toEqual([])
+      expect(fit.graphOverlap, `Profile overlapping graph labels at ${width}×${height}`).toEqual([])
+      expect(fit.clipped, `Profile clipped controls at ${width}×${height}`).toEqual([])
+    }
+    await page.setViewportSize({ width: mobile ? 390 : 1366, height: mobile ? 844 : 900 })
+  }
   await page.getByRole('button', { name: 'About Build Tendencies', exact: true }).click()
   await expect(
     statHelp.getByRole('heading', { name: 'Build Tendencies', exact: true }),

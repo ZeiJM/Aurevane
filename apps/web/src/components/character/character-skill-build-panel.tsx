@@ -158,7 +158,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
   const [pending, setPending] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [coarsePointer, setCoarsePointer] = useState(false)
-  const [refreshOnClose, setRefreshOnClose] = useState(false)
+  const refreshOnCloseRef = useRef(false)
 
   const visibleSkills = useMemo(
     () => learnedSkills.filter((entry) => entry.activeSource),
@@ -221,6 +221,14 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
     }
   }, [open])
 
+  useEffect(() => {
+    if (open || !refreshOnCloseRef.current) return
+
+    // Wait for the history update to commit before refreshing the server summary.
+    refreshOnCloseRef.current = false
+    router.refresh()
+  }, [open, router])
+
   function setPanelOpen(nextOpen: boolean) {
     if (!nextOpen && pendingRef.current) return
 
@@ -233,11 +241,6 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
     const query = params.toString()
     const href = query ? `${pathname}?${query}` : pathname
     window.history.replaceState(null, '', href)
-
-    if (!nextOpen && refreshOnClose) {
-      setRefreshOnClose(false)
-      router.refresh()
-    }
   }
 
   function selectedSourceCount(
@@ -303,7 +306,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
       const body = (await response.json()) as SkillCommitResponse
       if (!response.ok || !body.context) {
         setSelectedIds(committedIds)
-        setRefreshOnClose(true)
+        refreshOnCloseRef.current = true
         setMessage(body.error?.message ?? 'The selected Techniques could not be saved.')
         return
       }
@@ -317,11 +320,11 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
       setLearnedSkills(body.context.disciplineSkills.learnedSkills)
       setCommittedIds(committed)
       setSelectedIds(committed)
-      setRefreshOnClose(true)
+      refreshOnCloseRef.current = true
       setMessage(successMessage)
     } catch {
       setSelectedIds(committedIds)
-      setRefreshOnClose(true)
+      refreshOnCloseRef.current = true
       setMessage('The save could not be confirmed. Close Techniques to refresh your build.')
     } finally {
       pendingRef.current = false
@@ -360,7 +363,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
       const body = (await response.json()) as SkillCommitResponse
       if (!response.ok || !body.context) {
         setSupportActionId(committedSupportActionId)
-        setRefreshOnClose(true)
+        refreshOnCloseRef.current = true
         setMessage(body.error?.message ?? 'The Support Action could not be saved.')
         return
       }
@@ -373,11 +376,11 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
       setLearnedSkills(body.context.disciplineSkills.learnedSkills)
       setCommittedIds(committed)
       setSelectedIds(committed)
-      setRefreshOnClose(true)
+      refreshOnCloseRef.current = true
       setMessage('Support Action saved for battle slot 3.')
     } catch {
       setSupportActionId(committedSupportActionId)
-      setRefreshOnClose(true)
+      refreshOnCloseRef.current = true
       setMessage('The save could not be confirmed. Close Techniques to refresh your build.')
     } finally {
       pendingRef.current = false
