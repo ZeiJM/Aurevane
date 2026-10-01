@@ -37,7 +37,7 @@ export function BattleCombatantCard({
       style={{ '--battle-combatant-accent': accent } as CSSProperties}
     >
       <header className={styles.identity}>
-        <strong>{participant.name}</strong>
+        <strong title={participant.name}>{participant.name}</strong>
         <span
           className={styles.facing}
           aria-label={`${participant.name} facing ${placement?.facing ?? 'unknown'}`}

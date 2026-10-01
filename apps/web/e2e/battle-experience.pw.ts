@@ -149,7 +149,9 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
 
   // Full AP is not permission to move past the character's server-owned Movement allowance.
   await page.getByRole('button', { name: /Tile 4, 2; open-ground; elevation 0/ }).click()
-  await expect(commandContext).toContainText('That tile is not reachable')
+  await expect(commandContext).toContainText(
+    'Choose a highlighted adjacent tile with enough Movement and AP.',
+  )
   await expect(apRemaining).toHaveAttribute('aria-valuenow', '100')
 
   await chooseReachableTowardRecruit(page, battlefield)

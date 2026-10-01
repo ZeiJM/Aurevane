@@ -331,11 +331,16 @@ function expectStable(geometry: Awaited<ReturnType<typeof capture>>, baseline: R
     Math.max(...artwork) - Math.min(...artwork),
     'all cockpit artwork shares one row',
   ).toBeLessThanOrEqual(1)
-  if (geometry.cards.length === 2)
+  if (geometry.cards.length === 2) {
     expect(
       Math.abs(geometry.cards[0]!.rect!.height - geometry.cards[1]!.rect!.height),
       'rail cards have equal height',
     ).toBeLessThanOrEqual(1)
+    expect(
+      Math.abs(geometry.cards[0]!.portrait!.height - geometry.cards[1]!.portrait!.height),
+      'rail portraits have equal height regardless of character name',
+    ).toBeLessThanOrEqual(1)
+  }
   for (const sample of geometry.terrainSamples)
     expect(sample!.width, 'terrain artwork remains recognizable').toBeGreaterThanOrEqual(24)
   for (const content of geometry.commandContents) contained(content!, geometry.cockpit!)
