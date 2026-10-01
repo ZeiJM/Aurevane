@@ -17,15 +17,14 @@
   gap: 0.3rem;
   min-width: 0;
   min-height: 0;
-  overflow-x: auto;
-  scrollbar-width: thin;
+  overflow: visible;
 }
 .parameters {
   grid-row: 1;
   font-size: 0.75rem;
 }
 .forecast {
-  grid-row: 1 / -1;
+  grid-row: 2;
 }
 .preview[data-battle-preview-has-parameters] .forecast {
   grid-row: 2;
@@ -137,6 +136,125 @@
 .targets [data-result='healing'] {
   color: #286541;
 }
+
+.inlineChips {
+  display: flex;
+  align-items: center;
+  flex: none;
+  gap: 0.2rem;
+  min-width: 0;
+}
+.preview .inlineChips > span {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0.2rem;
+  min-height: 1rem;
+  border: 1px solid #93826444;
+  border-radius: 0.15rem;
+  color: #3a3025;
+  background: #a6926d22;
+  font: 600 0.6875rem/1 var(--av-font-body);
+  white-space: nowrap;
+}
+.preview .inlineChips > [data-battle-preview-tone='cost'] {
+  color: #245d38;
+}
+.preview .inlineChips > [data-battle-preview-tone='damage'] {
+  color: #783b2c;
+}
+.preview .inlineChips > [data-battle-preview-tone='heal'] {
+  color: #245d38;
+}
+.readingTrigger {
+  flex: none;
+  align-self: center;
+  padding: 0.05rem 0.25rem;
+  min-height: 1.0625rem;
+  margin-left: auto;
+  border: 1px solid #94764d;
+  border-radius: 0.15rem;
+  color: #44331e;
+  background: #f0e2c999;
+  font: 650 0.6875rem/1 var(--av-font-body);
+  cursor: pointer;
+}
+.readingTrigger:hover,
+.readingTrigger:focus-visible {
+  color: #172d3c;
+  background: #fff8e5;
+  outline: 1px solid #775c34;
+}
+.targetSummary {
+  display: flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+  max-width: 8rem;
+}
+.targetSummary > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.6875rem;
+}
+.targetSummary > :global(img) {
+  flex: none;
+  width: 1.125rem;
+  height: 1.125rem;
+  object-fit: cover;
+  border: 1px solid #9e6754;
+}
+.details {
+  color: #172d3c;
+}
+.detailChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+.details .targets {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.details .targets article {
+  min-width: 0;
+  padding: 0.3rem;
+  border: 1px solid #9b866966;
+}
+.details .targets article > div {
+  flex-wrap: wrap;
+  min-width: 0;
+  white-space: normal;
+}
+.details .targets strong {
+  width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.details .ground {
+  margin-top: 0.5rem;
+  white-space: normal;
+}
+.instruction {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (min-width: 821px) and (max-width: 1100px) {
+  .targetSummary > span:last-child {
+    display: none;
+  }
+  .preview .inlineChips > span {
+    padding-inline: 0.1rem;
+    font-size: 0.625rem;
+  }
+  .readingTrigger {
+    padding-inline: 0.2rem;
+    font-size: 0.625rem;
+  }
+}
 @media (max-width: 820px) {
   .preview {
     grid-template-rows: auto auto;
@@ -145,38 +263,34 @@
   .parameters,
   .forecast {
     flex-wrap: wrap;
-    overflow: visible;
   }
-  .parameters > span,
-  .forecast > span {
-    flex: 0 1 auto;
-    white-space: normal;
-    overflow-wrap: anywhere;
-  }
-  .targets {
-    flex-basis: 100%;
+  .inlineChips {
     flex-wrap: wrap;
-    min-width: 0;
   }
-  .targets article {
-    flex: 1 1 8rem;
-    min-width: 0;
-  }
-  .targets article > div {
-    display: flex;
-    flex-wrap: wrap;
-    min-width: 0;
-  }
-  .targets strong {
-    flex-basis: 100%;
-    white-space: normal;
-    overflow-wrap: anywhere;
-  }
-  .targets span {
+  .instruction {
     white-space: normal;
   }
-  .ground {
-    flex: 0 1 auto;
-    white-space: normal;
-  }
+}
+
+.detailChips > span[data-battle-preview-chip] {
+  display: inline-flex;
+  padding: 0.15rem 0.35rem;
+  border: 1px solid #a8854866;
+  border-radius: 0.2rem;
+  min-height: 1.25rem;
+  color: #172d3c;
+  background: #e8dfcd;
+  font: 600 0.75rem/1.3 var(--av-font-body);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.detailChips > [data-battle-preview-tone='damage'] {
+  color: #783b2c;
+}
+.details [data-battle-preview-tone='blocked'] {
+  color: #822f29;
+}
+.detailChips > [data-battle-preview-tone='heal'],
+.detailChips > [data-battle-preview-tone='cost'] {
+  color: #245d38;
 }

@@ -1,10 +1,20 @@
 import { renderToStaticMarkup } from 'react-dom/server'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import type { ReactNode } from 'react'
 import type { BattleActionPreview as ActionPreview } from '@/server/battle/battle-preview-service'
 import { BattleActionPreview } from './battle-action-preview'
 import { previewChips } from './battle-preview-content'
 import type { BattleSkillForecastPresentation } from './battle-runtime'
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
+
+vi.mock('./battle-info-popover', () => ({
+  BattleInfoPopover: ({ trigger, children }: { trigger: ReactNode; children: ReactNode }) => (
+    <>
+      <button type="button">{trigger}</button>
+      <aside>{children}</aside>
+    </>
+  ),
+}))
 
 const barrier: BattleSkillForecastPresentation = {
   id: 'lifebinder.barrier',
@@ -54,9 +64,9 @@ describe('current selection forecast', () => {
         pending={false}
       />,
     )
-    expect(markup).toContain('Cost: 31 AP / 6 MP')
-    expect(markup).toContain('Skill Type: Attack')
-    expect(markup).toContain('Line of Sight: Not required')
+    expect(markup).toContain('<dt>Cost</dt><dd>31 AP / 6 MP</dd>')
+    expect(markup).toContain('<dt>Skill Type</dt><dd>Attack</dd>')
+    expect(markup).toContain('<dt>Line of Sight</dt><dd>Not required</dd>')
     for (const label of ['30 AP', '70 AP left', 'Hit 69%', 'On hit 17 dmg', 'Damage 17'])
       expect(markup).toContain(label)
     expect(markup).toContain('data-battle-preview-lane="parameters"')
@@ -84,10 +94,10 @@ describe('current selection forecast', () => {
     const markup = renderToStaticMarkup(
       <BattleActionPreview preview={null} pending={false} skill={barrier} />,
     )
-    for (const label of ['Cost: 40 AP', 'Target: Ally', 'Range: 1–3 tiles'])
+    for (const label of ['Cost: 40 AP', '<dt>Target</dt><dd>Ally</dd>', 'Range: 1–3 tiles'])
       expect(markup).toContain(label)
     expect(markup).not.toContain('Success 100%')
-    expect(markup).not.toContain('Forecast details')
+    expect(markup).not.toContain('Show forecast details')
   })
 
   it('never presents the previous skill projection after switching Discipline choices', () => {
@@ -199,7 +209,7 @@ describe('current selection forecast', () => {
     }
   })
 
-  it('keeps the compact forecast bounded while preserving every mixed projection inline', () => {
+  it('keeps the compact forecast bounded while preserving every mixed projection in its reading panel', () => {
     const mixedPreview: ActionPreview = {
       ...attack,
       actionId: 'test.copy-statuses.mixed',

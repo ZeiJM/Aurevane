@@ -1,3 +1,5 @@
+'use client'
+
 import type { BattlePreviewView } from '@/server/battle/battle-preview-service'
 import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
 import { AurevaneImage } from '@/components/media/aurevane-image'
@@ -15,6 +17,7 @@ import type {
   BattleSkillForecastPresentation,
 } from './battle-runtime'
 import styles from './battle-action-preview.module.css'
+import { BattleInfoPopover } from './battle-info-popover'
 
 export function BattleActionPreview({
   preview: suppliedPreview,
@@ -114,6 +117,68 @@ export function BattleActionPreview({
       </div>
     ) : null
 
+  const primaryResults = chips.filter((chip) =>
+    ['chance', 'damage', 'heal', 'blocked'].includes(chip.tone),
+  )
+  const keyResults =
+    preview?.kind !== 'action'
+      ? chips.filter((chip) => chip.tone !== 'cost' && !chip.label.endsWith('AP left'))
+      : [
+          ...primaryResults,
+          ...chips
+            .filter(
+              (chip) =>
+                chip.tone === 'effect' &&
+                chip.label.length <= 20 &&
+                !chip.label.endsWith('AP left'),
+            )
+            .slice(0, Math.max(0, 3 - primaryResults.length)),
+        ]
+  const costs = chips.filter((chip) => chip.tone === 'cost' || chip.label.endsWith('AP left'))
+  const compactParameters = skillChips.filter((chip) => /^Cost:|^Range:/.test(chip.label))
+  const rangeParameter = skillChips.find((chip) => chip.label.startsWith('Range:'))
+  const primaryTarget =
+    preview?.kind === 'action'
+      ? participants.find((item) => item.combatantId === preview.primaryCombatantId)
+      : undefined
+  const forecastDetails = (
+    <div className={styles.details}>
+      <div className={styles.detailChips}>
+        {chips.map((chip, index) => (
+          <span key={index} data-battle-preview-chip="true" data-battle-preview-tone={chip.tone}>
+            {chip.label}
+          </span>
+        ))}
+      </div>
+      {ground && targetTile ? (
+        <article
+          className={styles.ground}
+          data-battle-ground-target="true"
+          aria-label={`Target tile ${targetTile.position.x + 1}, ${targetTile.position.y + 1}`}
+        >
+          <span
+            className={styles.terrainThumbnail}
+            data-terrain-overlay={targetOverlay || undefined}
+          >
+            <AurevaneImage assetId={ground.assetId} sizes="24px" />
+            {ground.glyph ? <b aria-hidden="true">{ground.glyph}</b> : null}
+          </span>
+          <span>
+            Tile {targetTile.position.x + 1}, {targetTile.position.y + 1} · {ground.label}
+          </span>
+        </article>
+      ) : null}
+      {targets}
+      {preview?.issues.map((issue, index) => (
+        <p key={issue.code ?? index} data-battle-preview-tone="blocked">
+          {issue.message}
+        </p>
+      ))}
+      {interactions.map((description, index) => (
+        <p key={index}>{description}</p>
+      ))}
+    </div>
+  )
   return (
     <div
       className={styles.preview}
@@ -124,47 +189,66 @@ export function BattleActionPreview({
       aria-live="polite"
     >
       {preview && notice ? <span className={styles.notice}>{notice}</span> : null}
-      {skill ? (
-        <div
-          className={styles.parameters}
-          data-battle-preview-lane="parameters"
-          tabIndex={0}
-          aria-label="Skill parameters"
-        >
-          {skillChips.map((chip, index) => (
+      <div
+        className={styles.parameters}
+        data-battle-preview-lane="parameters"
+        aria-label="Skill parameters"
+      >
+        <div className={styles.inlineChips}>
+          {(preview && !pending
+            ? [...costs, ...(rangeParameter ? [rangeParameter] : [])]
+            : compactParameters
+          ).map((chip, index) => (
             <span key={index} data-battle-preview-chip="true" data-battle-preview-tone={chip.tone}>
               {chip.label}
             </span>
           ))}
         </div>
-      ) : null}
-      {pending ? (
-        <div className={styles.forecast} data-battle-preview-lane="outcomes">
-          <span>Calculating preview…</span>
-        </div>
-      ) : preview ? (
-        <>
-          <div
-            className={styles.forecast}
-            data-battle-preview-lane="outcomes"
-            tabIndex={0}
-            aria-label="Forecast outcomes"
+        {skill ? (
+          <BattleInfoPopover
+            consumeOutsideClick
+            key={skill.id}
+            label={`Show ${skill.name} parameters`}
+            title={`${skill.name} parameters`}
+            trigger="Parameters"
+            className={styles.readingTrigger}
           >
-            {chips.map((chip, index) => (
-              <span
-                key={index}
-                data-battle-preview-chip="true"
-                data-battle-preview-tone={chip.tone}
-              >
-                {chip.label}
-              </span>
-            ))}
-            {ground && targetTile ? (
-              <article
-                className={styles.ground}
-                data-battle-ground-target="true"
-                aria-label={`Target tile ${targetTile.position.x + 1}, ${targetTile.position.y + 1}`}
-              >
+            <dl>
+              {skillChips.map((chip, index) => {
+                const separator = chip.label.indexOf(': ')
+                return (
+                  <div key={index}>
+                    <dt>{chip.label.slice(0, separator)}</dt>
+                    <dd>{chip.label.slice(separator + 2)}</dd>
+                  </div>
+                )
+              })}
+            </dl>
+          </BattleInfoPopover>
+        ) : null}
+      </div>
+      <div
+        className={styles.forecast}
+        data-battle-preview-lane="outcomes"
+        aria-label="Forecast outcomes"
+      >
+        {pending ? (
+          <span>Calculating preview…</span>
+        ) : preview ? (
+          <>
+            <div className={styles.inlineChips}>
+              {keyResults.map((chip, index) => (
+                <span
+                  key={index}
+                  data-battle-preview-chip="true"
+                  data-battle-preview-tone={chip.tone}
+                >
+                  {chip.label}
+                </span>
+              ))}
+            </div>
+            {ground ? (
+              <span className={styles.targetSummary} title={ground.label}>
                 <span
                   className={styles.terrainThumbnail}
                   data-terrain-overlay={targetOverlay || undefined}
@@ -173,48 +257,42 @@ export function BattleActionPreview({
                   {ground.glyph ? <b aria-hidden="true">{ground.glyph}</b> : null}
                 </span>
                 <span>
-                  Tile {targetTile.position.x + 1}, {targetTile.position.y + 1} · {ground.label}
+                  Tile {targetTile!.position.x + 1}, {targetTile!.position.y + 1}
                 </span>
-              </article>
+              </span>
+            ) : primaryTarget ? (
+              <span className={styles.targetSummary} title={primaryTarget.name}>
+                {primaryTarget.portraitAssetId ? (
+                  <CharacterPortraitImage
+                    imageUrl={primaryTarget.profileImageUrl}
+                    fallbackAssetId={primaryTarget.portraitAssetId}
+                    sizes="24px"
+                    alt=""
+                  />
+                ) : (
+                  <span className={styles.portraitFallback} aria-hidden="true">
+                    {primaryTarget.name.charAt(0)}
+                  </span>
+                )}
+                <span>{primaryTarget.name}</span>
+              </span>
             ) : null}
-            {targets}
-            {preview.issues.map((issue, index) => (
-              <span
-                key={issue.code ?? index}
-                data-battle-preview-chip="true"
-                data-battle-preview-tone="blocked"
-              >
-                {issue.message}
-              </span>
-            ))}
-            {interactions.map((description, index) => (
-              <span key={index} data-battle-preview-chip="true">
-                {description}
-              </span>
-            ))}
-          </div>
-        </>
-      ) : skill ? (
-        <>
-          <div
-            className={styles.forecast}
-            data-battle-preview-lane="outcomes"
-            tabIndex={0}
-            aria-label="Target instructions"
-          >
-            <span>{notice || 'Choose a target for the exact forecast.'}</span>
-          </div>
-        </>
-      ) : (
-        <div
-          className={styles.forecast}
-          data-battle-preview-lane="outcomes"
-          tabIndex={0}
-          aria-label="Target instructions"
-        >
-          <span>{notice || 'Select a target to preview the result.'}</span>
-        </div>
-      )}
+            <BattleInfoPopover
+              consumeOutsideClick
+              label="Show forecast details"
+              title="Forecast details"
+              trigger="Details"
+              className={styles.readingTrigger}
+            >
+              {forecastDetails}
+            </BattleInfoPopover>
+          </>
+        ) : (
+          <span className={styles.instruction}>
+            {notice || 'Choose a target for the exact forecast.'}
+          </span>
+        )}
+      </div>
     </div>
   )
 }

@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process'
 import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
-import { expect, test, type Locator, type Page, type Route, type TestInfo } from '@playwright/test'
+import { expect, test, type Page, type Route, type TestInfo } from '@playwright/test'
 import type { BattleSessionView } from '../src/server/battle/battle-session-service'
 import { previewDiscipline } from './discipline-library-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
@@ -270,12 +270,21 @@ async function capture(page: Page, testInfo: TestInfo, label: string) {
         scrollLeft: lane.scrollLeft,
         scrollWidth: lane.scrollWidth,
         clientWidth: lane.clientWidth,
+        scrollHeight: lane.scrollHeight,
+        clientHeight: lane.clientHeight,
         chips: [...lane.querySelectorAll('[data-battle-preview-chip]')].map((chip) => ({
           text: chip.textContent,
           rect: rect(chip),
         })),
       })),
-      info: rect(preview?.querySelector('button[data-battle-info-trigger]') ?? null),
+      info: rect(
+        [...(preview?.querySelectorAll('button[data-battle-info-trigger]') ?? [])].find((button) =>
+          /^(i|ⓘ)$/i.test(button.textContent?.trim() ?? ''),
+        ) ?? null,
+      ),
+      readingTriggers: [
+        ...(preview?.querySelectorAll('button[data-battle-info-trigger]') ?? []),
+      ].map(rect),
       targets: [...root.querySelectorAll('[data-battle-target-forecast]')].map((target) => ({
         name: target.querySelector('strong')?.textContent,
         rect: rect(target),
@@ -398,7 +407,9 @@ function expectStable(geometry: Awaited<ReturnType<typeof capture>>, baseline: R
   }
   for (const lane of geometry.lanes) {
     contained(lane.rect!, geometry.preview!)
-    expect(lane.overflowX).toBe('auto')
+    expect(lane.overflowX).toBe('visible')
+    expect(lane.scrollWidth).toBeLessThanOrEqual(lane.clientWidth + 1)
+    expect(lane.scrollHeight).toBeLessThanOrEqual(lane.clientHeight + 1)
     for (const chip of lane.chips) {
       expect(chip.rect!.y).toBeGreaterThanOrEqual(lane.rect!.y - 1)
       expect(chip.rect!.y + chip.rect!.height).toBeLessThanOrEqual(
@@ -406,32 +417,9 @@ function expectStable(geometry: Awaited<ReturnType<typeof capture>>, baseline: R
       )
     }
   }
-  if (geometry.info) contained(geometry.info, geometry.preview!)
+  for (const trigger of geometry.readingTriggers) contained(trigger!, geometry.preview!)
   for (const dialog of geometry.dialogs)
     contained(dialog.rect!, { x: 0, y: 0, ...geometry.viewport })
-}
-
-async function waitForNativeScrollToSettle(lane: Locator) {
-  await lane.evaluate(
-    (element) =>
-      new Promise<void>((resolve, reject) => {
-        const started = performance.now()
-        let previous = element.scrollLeft
-        let stableFrames = 0
-        const sample = () => {
-          const current = element.scrollLeft
-          stableFrames = Math.abs(current - previous) < 0.01 ? stableFrames + 1 : 0
-          previous = current
-          // Native ArrowRight scrolling animates after the first movement. Read tags only
-          // after that animation has stopped, including its final visible right-hand tag.
-          if (stableFrames >= 4 && performance.now() - started >= 100) resolve()
-          else if (performance.now() - started > 2000)
-            reject(new Error('Native preview-lane scrolling did not settle.'))
-          else requestAnimationFrame(sample)
-        }
-        requestAnimationFrame(sample)
-      }),
-  )
 }
 
 async function exerciseForecast(
@@ -507,12 +495,33 @@ async function exerciseForecast(
             .first(),
         ).toBeVisible()
         await check(`${name}-ready`)
-        const parameters = preview.locator('[data-battle-preview-lane="parameters"]')
-        const tags = await parameters.locator('[data-battle-preview-chip]').allTextContents()
+        await preview.getByRole('button', { name: `Show ${name} parameters`, exact: true }).click()
+        const parameters = page.getByRole('dialog', { name: `${name} parameters`, exact: true })
+        await expect(parameters).toBeVisible()
+        const tags = await parameters
+          .locator('dl > div')
+          .evaluateAll((rows) =>
+            rows.map(
+              (row) =>
+                `${row.querySelector('dt')!.textContent}: ${row.querySelector('dd')!.textContent}`,
+            ),
+          )
         expect(tags.map((tag) => tag.split(':')[0])).toEqual(parameterLabels)
         expect(tags).toEqual(nexusRows[name])
+        await check(`${name}-parameters`)
+        await page.keyboard.press('w')
+        await page.keyboard.press('Space')
+        expect(commits).toBe(0)
+        await page.keyboard.press('Escape')
+        await expect(parameters).toHaveCount(0)
+        await expect(
+          preview.getByRole('button', { name: `Show ${name} parameters`, exact: true }),
+        ).toBeFocused()
+        await preview.getByRole('button', { name: 'Show forecast details', exact: true }).click()
+        const forecastDetails = page.getByRole('dialog', { name: 'Forecast details', exact: true })
+        await expect(forecastDetails).toBeVisible()
         if (name === 'Ice Lance') {
-          const target = preview.locator('[data-battle-target-forecast]')
+          const target = forecastDetails.locator('[data-battle-target-forecast]')
           await expect(target).toHaveCount(1)
           const identity = await target.evaluate((element) => ({
             name: element.querySelector('strong')?.textContent,
@@ -537,7 +546,7 @@ async function exerciseForecast(
           }
         }
         if (name === 'Chilling Mist') {
-          const ground = preview.locator('[data-battle-ground-target]')
+          const ground = forecastDetails.locator('[data-battle-ground-target]')
           await expect(ground).toHaveCount(1)
           expect(
             await ground
@@ -548,42 +557,10 @@ async function exerciseForecast(
               ),
           ).toBe(true)
         }
-        // Each reading pass begins at the first tag, regardless of the previous Skill's scroll.
-        await parameters.evaluate((lane) => {
-          lane.scrollLeft = 0
-        })
-        await parameters.focus()
-        await expect(parameters).toBeFocused()
-        await waitForNativeScrollToSettle(parameters)
-        expect(await parameters.evaluate((lane) => lane.scrollLeft)).toBe(0)
-        const visibleTags = new Set<string>()
-        for (let step = 0; step < 120; step += 1) {
-          const state = await parameters.evaluate((lane) => {
-            const box = lane.getBoundingClientRect()
-            return {
-              visible: [...lane.querySelectorAll('[data-battle-preview-chip]')]
-                .filter((chip) => {
-                  const item = chip.getBoundingClientRect()
-                  return item.left >= box.left - 1 && item.right <= box.right + 1
-                })
-                .map((chip) => chip.textContent!),
-              end: lane.scrollLeft + lane.clientWidth >= lane.scrollWidth - 1,
-              scrollLeft: lane.scrollLeft,
-            }
-          })
-          state.visible.forEach((tag) => visibleTags.add(tag))
-          if (state.end) break
-          await parameters.press('ArrowRight')
-          await expect
-            .poll(() => parameters.evaluate((lane) => lane.scrollLeft), {
-              timeout: 1500,
-              intervals: [20, 40, 80],
-            })
-            .toBeGreaterThan(state.scrollLeft)
-          await waitForNativeScrollToSettle(parameters)
-        }
-        await check(`${name}-keyboard-scrolled`)
-        expect([...visibleTags]).toEqual(tags)
+        await check(`${name}-forecast-details`)
+        // The first outside target click dismisses the reading panel; it cannot also cast.
+        await page.locator('#battlefield button[aria-label^="Tile "]').first().click()
+        await expect(forecastDetails).toHaveCount(0)
         expect(commits).toBe(0)
         await page.getByRole('button', { name: 'About ' + name, exact: true }).click()
         const popup = page.getByRole('dialog', { name, exact: true })
