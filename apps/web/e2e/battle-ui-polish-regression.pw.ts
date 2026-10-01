@@ -433,6 +433,10 @@ test('keeps large PvP geometry, tokens, surrender, and results', async ({ browse
     await guestDialog.getByRole('button', { name: 'Mark Ready' }).click()
     await hostDialog.getByRole('button', { name: 'Mark Ready' }).click()
     await expect(host).toHaveURL(/\/game\/battle\/[0-9a-f-]+$/i, { timeout: 20_000 })
+    await expect(guest).toHaveURL(host.url(), { timeout: 20_000 })
+    await expect(
+      guest.locator("main[data-unified-battle='true'][data-battle-kind='pvp']"),
+    ).toBeVisible()
 
     const root = host.locator("main[data-unified-battle='true'][data-battle-kind='pvp']")
     await expect(root).toBeVisible()

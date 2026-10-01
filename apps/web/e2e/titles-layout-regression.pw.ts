@@ -204,7 +204,15 @@ test('Titles keeps the scenic account workspace and its side-by-side editing con
       new URL(response.url()).pathname === '/api/account/profile-display',
   )
   await save.click()
-  expect((await saveResponse).status()).toBe(200)
+  const response = await saveResponse
+  const saveResult = { status: response.status(), body: await response.json() }
+  if (process.env.LAYOUT_REVIEW_OUTPUT) {
+    await writeFile(
+      path.join(process.env.LAYOUT_REVIEW_OUTPUT, 'titles-portrait-save-response.json'),
+      JSON.stringify(saveResult, null, 2),
+    )
+  }
+  expect(saveResult.status, JSON.stringify(saveResult.body)).toBe(200)
   await expect(
     profileImage.getByText('Custom profile image removed.', { exact: true }),
   ).toBeVisible()
