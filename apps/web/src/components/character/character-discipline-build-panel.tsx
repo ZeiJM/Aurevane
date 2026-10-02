@@ -261,6 +261,7 @@ export function CharacterDisciplineBuildPanel({
   const [current, setCurrent] = useState(initialCurrent)
   const [currentSecondary, setCurrentSecondary] = useState(initialCurrentSecondary)
   const [committedAttributes, setCommittedAttributes] = useState(coreAttributes)
+  const [buildVersion, setBuildVersion] = useState<number | null>(null)
   const selectedPrimaryId = current.definition.id
   const selectedSecondaryId = currentSecondary?.id ?? ''
   const [activeSlot, setActiveSlot] = useState<DisciplineSlot>('primary')
@@ -334,6 +335,7 @@ export function CharacterDisciplineBuildPanel({
         setMessage('The selected character changed. Reopen Discipline Management to continue.')
         return
       }
+      setBuildVersion(body.context.build.buildVersion)
       setCurrent(body.context.current)
       setCurrentSecondary(body.context.currentSecondary)
       setCommittedAttributes(body.context.attributes)
@@ -493,6 +495,7 @@ export function CharacterDisciplineBuildPanel({
       synchronizing ||
       synchronizationFailed ||
       !open ||
+      buildVersion === null ||
       (activeSlot === 'primary' ? remaining.primary : remaining.secondary) > 0
     )
       return
@@ -520,47 +523,18 @@ export function CharacterDisciplineBuildPanel({
       identityRef.current.open &&
       window.location.pathname === pathname
     setMessage(null)
-    setPendingPreview(true)
+    setPendingCommit(true)
     let commitStarted = false
     try {
-      const response = await fetch('/api/character/build/disciplines', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(selection),
-      })
-      const body = (await response.json()) as BuildPreviewResponse
-      if (!isCurrentRequest()) return
-      if (!response.ok || !body.preview) {
-        setMessage(
-          body.error?.message ?? 'The Discipline change is unavailable. Nothing was changed.',
-        )
-        return
-      }
-      const preview = body.preview
-      if (preview.characterId !== characterId) {
-        setMessage('The selected character changed. Reopen Discipline Management to continue.')
-        return
-      }
-      setRemaining({
-        primary: preview.attunement.primaryRemainingSeconds,
-        secondary: preview.attunement.secondaryRemainingSeconds,
-      })
-      if (
-        (preview.changes.primary && preview.attunement.primaryRemainingSeconds > 0) ||
-        (preview.changes.secondary && preview.attunement.secondaryRemainingSeconds > 0)
-      ) {
-        setMessage('That Discipline is still attuning. Nothing was changed.')
-        return
-      }
-      setPendingPreview(false)
-      setPendingCommit(true)
+      // The synchronized context already supplies the expected version. PUT remains authoritative
+      // for identity, attunement, compatibility, allocation, and stale-version checks.
       commitStarted = true
       const commitCompletion = fetch('/api/character/build/disciplines', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           expectedCharacterId: characterId,
-          expectedBuildVersion: preview.buildVersion,
+          expectedBuildVersion: buildVersion,
           ...selection,
           idempotencyKey: crypto.randomUUID(),
         }),
@@ -573,6 +547,8 @@ export function CharacterDisciplineBuildPanel({
       if (!isCurrentRequest()) return
       if (!committedResponse.ok || !committedBody.context) {
         setMessage(committedBody.error?.message ?? 'The Discipline build could not be changed.')
+        setSynchronizing(true)
+        void synchronizeCommittedBuild()
         return
       }
       const context = committedBody.context
@@ -580,6 +556,7 @@ export function CharacterDisciplineBuildPanel({
         setMessage('The selected character changed. Reopen Discipline Management to continue.')
         return
       }
+      setBuildVersion(context.build.buildVersion)
       setCommittedAttributes(context.attributes)
       setCurrent(context.current)
       setCurrentSecondary(context.currentSecondary)
@@ -588,7 +565,16 @@ export function CharacterDisciplineBuildPanel({
         secondary: context.attunement.secondaryRemainingSeconds,
       })
       setLastChange({
-        ...preview,
+        characterId,
+        current,
+        currentSecondary,
+        currentAttributes: committedAttributes,
+        buildVersion,
+        changes: {
+          primary: current.definition.id !== context.current.definition.id,
+          secondary: (currentSecondary?.id ?? null) !== (context.currentSecondary?.id ?? null),
+        },
+        attunement: context.attunement,
         proposed: context.current,
         proposedAttributes: context.attributes,
         proposedSecondary: context.currentSecondary,

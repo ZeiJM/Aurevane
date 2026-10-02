@@ -46,6 +46,7 @@ describe('authoritative inherent action descriptors', () => {
     expect(attack['Target Elevation']).toBe('1')
     expect(attack['Line of Sight']).toBe('Not required')
     expect(attack.Cooldown).toBe('None')
+    expect(basicActionEffectExplanation('basic.attack.unarmed.basic')).toContain('physical damage')
   })
 
   it('states movement limits without treating spare AP as unlimited movement or hardcoding Jump', () => {
@@ -56,6 +57,7 @@ describe('authoritative inherent action descriptors', () => {
     expect(move.Requirements).toContain('no movement-blocking status')
     expect(move['Target Elevation']).toContain('committed Jump / movement profile')
     expect(move['Target Elevation']).not.toBe('1')
+    expect(basicActionEffectExplanation('basic.move')).toContain('1 Movement per entered tile')
   })
 
   it('recognizes the saved Support Action name without creating basic rules for other Skills', () => {

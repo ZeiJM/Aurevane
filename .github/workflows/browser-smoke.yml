@@ -102,7 +102,7 @@ jobs:
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY" \
           SUPABASE_SECRET_KEY="$server_key" \
           pnpm --filter @aurevane/web exec playwright test \
-            e2e/ai-header-control-shape.pw.ts e2e/ai-grid-legend-regression.pw.ts \
+            e2e/ai-header-control-shape.pw.ts e2e/ai-grid-legend-regression.pw.ts e2e/ai-sparring-teams.pw.ts \
             e2e/battle-cockpit-skill-slots.pw.ts e2e/pvp-six-combatant-rails.pw.ts e2e/pvp-map-sizes.pw.ts \
             e2e/shared-battle-presentation-parity.pw.ts e2e/pvp-battle-log-footer-parity.pw.ts \
             e2e/phase4-ground-targeting.pw.ts \

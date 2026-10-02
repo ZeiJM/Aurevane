@@ -17,11 +17,47 @@ import {
   PV1F_RECOVER_ACTION_ID,
   PV1F_SKILLS,
 } from '@aurevane/game-core/combat/pv1f-skills'
-import { skillParameterRows } from './skill-detail-presentation'
+import {
+  skillParameterRows,
+  type CompactSkillEffectSummaryParts,
+} from './skill-detail-presentation'
 
 import { skillInformationRows, type SkillCharacteristic } from './skill-information-contract'
 export type { SkillCharacteristic } from './skill-information-contract'
 export type BasicActionPresentationId = (typeof PV1F_SKILLS)[number]['id']
+
+/** Inherent effects retain their authoritative formulas in the same visual grammar as Skills. */
+export function basicActionEffectSummaryParts(
+  id: BasicActionPresentationId,
+): CompactSkillEffectSummaryParts {
+  if (id === PV1F_GUARD_ACTION_ID) {
+    return {
+      label: 'Guarded',
+      magnitude: `${(10_000 - PV1F_GUARDED_STATUS.damageTakenMultiplierBasisPoints!) / 100}%`,
+      duration: `${PV1F_GUARDED_STATUS.durationOwnerTurnStarts} Turns`,
+    }
+  }
+  if (id === PV1F_BASIC_ATTACK_ID) {
+    return {
+      label: 'Dmg',
+      magnitude: `${PV1F_BASIC_ATTACK_BASE_DAMAGE} + floor(${PV1F_BASIC_ATTACK_POWER_SCALING_BASIS_POINTS / 100}% Physical Power)`,
+      duration: 'Immediate',
+    }
+  }
+  if (id === 'basic.move') {
+    return { label: 'Move', magnitude: '1 Movement per entered tile', duration: 'Immediate' }
+  }
+  return {
+    label: id === PV1F_RECOVER_ACTION_ID ? 'HP Recovery' : 'MP Recovery',
+    magnitude: `${id === PV1F_RECOVER_ACTION_ID ? PV1F_RECOVER_PERCENT : PV1F_MP_RECOVER_PERCENT}% max ${id === PV1F_RECOVER_ACTION_ID ? 'HP' : 'MP'}`,
+    duration: 'Immediate',
+  }
+}
+
+function basicActionEffectsSummary(id: BasicActionPresentationId): string {
+  const { label, magnitude, duration } = basicActionEffectSummaryParts(id)
+  return `${label}${magnitude ? ` [${magnitude}]` : ''}${duration ? ` [${duration}]` : ''}`
+}
 
 /** Inherent commands reuse Skill parameter grammar without fabricating authored Skill identities. */
 export function basicActionCharacteristicRows(
@@ -35,8 +71,7 @@ export function basicActionCharacteristicRows(
       Cooldown: 'None',
       Requirements:
         'AP and Movement remaining; a legal, unoccupied path; no movement-blocking status',
-      Effects:
-        'Move along orthogonally adjacent tiles, spending AP and 1 Movement per entered tile [Immediate]',
+      Effects: basicActionEffectsSummary(id),
       Range: 'Remaining Movement allowance',
       Target: 'Empty Ground',
       'Target Method': 'Path',
@@ -62,14 +97,8 @@ export function basicActionCharacteristicRows(
     mpCost: action.cost.mp,
     cooldown,
   })
-  const effects =
-    id === PV1F_GUARD_ACTION_ID
-      ? `Guarded [${(10_000 - PV1F_GUARDED_STATUS.damageTakenMultiplierBasisPoints!) / 100}%] [${PV1F_GUARDED_STATUS.durationOwnerTurnStarts} Turns]`
-      : id === PV1F_BASIC_ATTACK_ID
-        ? `Physical damage [${PV1F_BASIC_ATTACK_BASE_DAMAGE} + floor(${PV1F_BASIC_ATTACK_POWER_SCALING_BASIS_POINTS / 100}% Physical Power)] [Immediate]`
-        : `${skill.name} [${id === PV1F_RECOVER_ACTION_ID ? PV1F_RECOVER_PERCENT : PV1F_MP_RECOVER_PERCENT}% max ${id === PV1F_RECOVER_ACTION_ID ? 'HP' : 'MP'}] [Immediate]`
   return rows.map(([label, value]): SkillCharacteristic => {
-    if (label === 'Effects') return [label, effects]
+    if (label === 'Effects') return [label, basicActionEffectsSummary(id)]
     // Server battle-action-resource-availability rejects MP Recovery when MP is full.
     if (label === 'Requirements' && id === PV1F_MP_RECOVER_ACTION_ID) {
       return [label, 'Missing MP']
@@ -88,14 +117,17 @@ export function basicActionIdForCommand(
 }
 
 /** Explain the single inherent effect separately from its numeric parameter fields. */
-export function basicActionEffectExplanation(id: BasicActionPresentationId): string | null {
+export function basicActionEffectExplanation(id: BasicActionPresentationId): string {
   if (id === PV1F_GUARD_ACTION_ID) {
     return `Reduces incoming damage by ${(10_000 - PV1F_GUARDED_STATUS.damageTakenMultiplierBasisPoints!) / 100}% per stack, maximum ${PV1F_GUARDED_STATUS.maximumStacks} stacks. Each use refreshes the duration.`
   }
   if (id === PV1F_RECOVER_ACTION_ID || id === PV1F_MP_RECOVER_ACTION_ID) {
     return 'Restores the resource immediately, up to its maximum. HP and MP Recovery share a cooldown.'
   }
-  return null
+  if (id === PV1F_BASIC_ATTACK_ID) {
+    return 'Deals physical damage to the selected enemy using the shown formula.'
+  }
+  return 'Move along orthogonally adjacent tiles, spending AP and 1 Movement per entered tile. Terrain changes AP cost rather than your Movement allowance.'
 }
 
 /** Read-only Inspect and Final Facing use the same report, without inventing Skill content. */

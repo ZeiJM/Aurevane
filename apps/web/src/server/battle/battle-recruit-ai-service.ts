@@ -333,6 +333,7 @@ export function createBattleRecruitAiService(
         )
       }
 
+      const initialTurnNumber = state.tactical.battle.turnNumber
       let battleVersion = initial.battleVersion
       let committedAt = initial.updatedAt
       const decisions: Array<RecruitTurnView['decisions'][number]> = []
@@ -343,7 +344,8 @@ export function createBattleRecruitAiService(
         if (
           battle.lifecycle !== 'active' ||
           turn === null ||
-          controlledIds.includes(turn.combatantId)
+          controlledIds.includes(turn.combatantId) ||
+          battle.turnNumber !== initialTurnNumber
         ) {
           return {
             battleSessionId: initial.battleSessionId,

@@ -106,6 +106,8 @@ export function BattleLaunch({ characterId, initialJoinKey = null }: BattleLaunc
   const [pvpEntry, setPvpEntry] = useState<'create' | 'join'>(initialJoinKey ? 'join' : 'create')
   const [recordId, setRecordId] = useState<TacticalHallRecordId | null>('recruit-sparring')
   const [arenaId, setArenaId] = useState<TacticalHallArenaId>('duel-yard')
+  const [allyCount, setAllyCount] = useState(0)
+  const [enemyCount, setEnemyCount] = useState(1)
   const [pvpMode, setPvpMode] = useState<PvpMode | null>(DEFAULT_PVP_MODE)
   const [teamASize, setTeamASize] = useState(1)
   const [teamBSize, setTeamBSize] = useState(1)
@@ -158,6 +160,7 @@ export function BattleLaunch({ characterId, initialJoinKey = null }: BattleLaunc
           characterId,
           arenaId,
           battleHallRecordId: selectedRecord.id,
+          ...(selectedRecord.id === 'recruit-sparring' ? { allyCount, enemyCount } : {}),
           idempotencyKey: crypto.randomUUID(),
         }),
       })
@@ -467,6 +470,53 @@ export function BattleLaunch({ characterId, initialJoinKey = null }: BattleLaunc
                   ))}
                 </select>
               </label>
+              {recordId === 'recruit-sparring' ? (
+                <fieldset className={styles.participants}>
+                  <legend>Participants</legend>
+                  <div>
+                    <label>
+                      <span>Allies</span>
+                      <select
+                        aria-label="AI sparring allies"
+                        value={allyCount}
+                        disabled={pending}
+                        onChange={(event) => {
+                          const next = Number(event.target.value)
+                          setAllyCount(next)
+                          setEnemyCount((count) => Math.min(count, 5 - next))
+                        }}
+                      >
+                        {[0, 1, 2].map((count) => (
+                          <option key={count} value={count}>
+                            {count}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      <span>Enemies</span>
+                      <select
+                        aria-label="AI sparring enemies"
+                        value={enemyCount}
+                        disabled={pending}
+                        onChange={(event) => setEnemyCount(Number(event.target.value))}
+                      >
+                        {Array.from({ length: 5 - allyCount }, (_, index) => index + 1).map(
+                          (count) => (
+                            <option key={count} value={count}>
+                              {count}
+                            </option>
+                          ),
+                        )}
+                      </select>
+                    </label>
+                  </div>
+                  <small>
+                    You + {allyCount} {allyCount === 1 ? 'ally' : 'allies'} vs {enemyCount}{' '}
+                    {enemyCount === 1 ? 'enemy' : 'enemies'} · {1 + allyCount + enemyCount}/6
+                  </small>
+                </fieldset>
+              ) : null}
             </div>
 
             <nav className={styles.modePicker} aria-label="AI arenas">

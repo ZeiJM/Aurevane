@@ -228,28 +228,22 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
     expect(
       Math.abs(card.arrow.y + card.arrow.height / 2 - (card.facing.y + card.facing.height / 2)),
     ).toBeLessThanOrEqual(1)
-    if (geometry.w > 820) {
-      expect(
-        Math.abs(card.portrait.width - Math.min(card.identityWidth, card.portraitRowHeight)),
-        'battle portrait spans name to facing within its available rail row',
-      ).toBeLessThanOrEqual(1)
-    }
     expect(Math.abs(card.portrait.width - card.portrait.height)).toBeLessThanOrEqual(1)
     if (geometry.w > 820) {
       expect(card.portrait.height).toBeGreaterThanOrEqual(32)
-      if (geometry.h <= 700) {
-        expect(
-          card.portrait.right,
-          'short desktop portrait sits beside vitals',
-        ).toBeLessThanOrEqual(card.vitals.left + 1)
-        expect(
-          Math.min(card.portrait.bottom, card.vitals.bottom) -
-            Math.max(card.portrait.top, card.vitals.top),
-          'short desktop portrait and vitals share a row',
-        ).toBeGreaterThan(0)
-      } else {
-        expect(card.portrait.bottom).toBeLessThanOrEqual(card.vitals.top + 1)
-      }
+      expect(card.portrait.right, 'portrait sits left of vitals').toBeLessThanOrEqual(
+        card.vitals.left + 1,
+      )
+      expect(
+        Math.abs(
+          (card.portrait.top + card.portrait.bottom) / 2 -
+            (card.vitals.top + card.vitals.bottom) / 2,
+        ),
+        'vitals are centered beside the avatar',
+      ).toBeLessThanOrEqual(1)
+      expect(card.grid.top, 'effects sit below the avatar and vitals').toBeGreaterThanOrEqual(
+        Math.max(card.portrait.bottom, card.vitals.bottom) - 1,
+      )
       for (const content of [card.header, card.portrait, card.vitals, card.grid]) {
         expect(content.left).toBeGreaterThanOrEqual(card.bounds.left - 1)
         expect(content.right).toBeLessThanOrEqual(card.bounds.right + 1)

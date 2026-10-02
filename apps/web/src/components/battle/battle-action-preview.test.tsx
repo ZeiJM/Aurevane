@@ -94,13 +94,9 @@ describe('current selection forecast', () => {
     const markup = renderToStaticMarkup(
       <BattleActionPreview preview={null} pending={false} skill={barrier} />,
     )
-    for (const label of [
-      'Cost: 40 AP',
-      '<dt>Target</dt><dd>Ally</dd>',
-      'Range: 3',
-      'Legal range: 1–3 tiles',
-    ])
+    for (const label of ['Cost: 40 AP', '<dt>Target</dt><dd>Ally</dd>', 'Range: 3'])
       expect(markup).toContain(label)
+    expect(markup).not.toContain('Legal range')
     expect(markup).not.toContain('Success 100%')
     expect(markup).not.toContain('Show forecast details')
   })

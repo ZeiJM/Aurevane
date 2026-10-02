@@ -11,13 +11,13 @@ Owner-approved 2026-10-02. This is the minimum report for **every full Skill det
 | Cooldown | `1 turn`, `2 turns`, etc., using the definition's owner-turn boundary. `None` means an active action has no cooldown; a passive without an independent cooldown uses `N/A`. |
 | Requirements | Actual use prerequisites/trigger conditions. `None` means no additional prerequisites. Passive equipment, setup and trigger conditions remain visible. |
 | Effects | Every executable effect, in authored order, with magnitude and duration when applicable. Compact values use `Dmg [12]` or `Guarded [15%] [2 Turns]`; formulas/percentage recovery remain formulas instead of fabricated character-specific amounts. Retain recipient information and full explanations where needed. |
-| Range | Maximum tile range, matching the current compact parameter design. Self-only and untargeted passive actions use `N/A`. Full detail views retain legal minimum–maximum range as additional information when applicable. Movement states its remaining allowance. |
+| Range | Maximum tile range, matching the current compact parameter design. Self-only and untargeted passive actions use `N/A`. Movement states its remaining allowance. Owner refinement 2026-10-02: omit the duplicate Legal range prose from full detail views; engine targeting constraints remain authoritative. |
 | Target | Actual target policy/recipient: Self, Enemy, Ally, Any Unit, Ground or Empty Ground. Passive reports identify result recipients instead of pretending the passive has a separate selection. |
 | Target Method | Single, Circle or Line for authored targeting; Path/Facing where appropriate to an inherent command. Untargeted passives use `N/A`. |
 | Target Elevation | Authored maximum elevation difference; `N/A` when no independent elevation constraint applies. Movement states its committed Jump/profile rule. |
 | Line of Sight | Required or Not required for targeted actions; `N/A` for self-only actions or passives with no independent targeting. |
 
-All ten labels must appear exactly once, in this order. Applicable additional information follows them: area geometry, legal range, recipient/friendly-fire behavior, effect explanations, trigger timing, caps, repeat-use rules and mode overrides. A compact action bar, forecast or card may summarize information, but its full detail view must provide the complete minimum report. Do not enlarge or reflow the fixed battle cockpit/forecast to hold this report.
+All ten labels must appear exactly once, in this order. Applicable additional information follows them: area geometry, recipient/friendly-fire behavior, effect explanations, trigger timing, caps, repeat-use rules and mode overrides. A compact action bar, forecast or card may summarize information, but its full detail view must provide the complete minimum report. Do not enlarge or reflow the fixed battle cockpit/forecast to hold this report.
 
 ## N/A, None and unavailable history
 

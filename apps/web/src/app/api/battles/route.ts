@@ -54,6 +54,8 @@ export async function POST(request: Request) {
       arenaId: parsed.arenaId,
       aiDifficulty: parsed.aiDifficulty,
       battleHallRecordId: parsed.battleHallRecordId,
+      allyCount: parsed.allyCount,
+      enemyCount: parsed.enemyCount,
       idempotencyKey: parsed.idempotencyKey,
     })
     return Response.json(

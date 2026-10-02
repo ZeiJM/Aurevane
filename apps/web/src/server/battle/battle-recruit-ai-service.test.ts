@@ -24,6 +24,7 @@ import {
   createBattleRecruitAiService,
   deriveRecruitTieBreakSeed,
 } from './battle-recruit-ai-service'
+import { battleSparringTeamCounts } from '@/components/battle/battle-runtime'
 import { createBattleSessionService } from './battle-session-service'
 
 const USER_ID = '11111111-1111-4111-8111-111111111111'
@@ -68,7 +69,9 @@ function characterRepository(): CharacterRepository {
   }
 }
 
-async function initialEncounter(): Promise<StatDrivenCombatEncounterState> {
+async function initialEncounter(
+  teams: { allyCount?: number; enemyCount?: number } = {},
+): Promise<StatDrivenCombatEncounterState> {
   let initialSnapshot: unknown = null
   const repository: BattleSessionRepository = {
     createBattleSession: vi.fn(async (input: CreateBattleSessionInput) => {
@@ -97,6 +100,7 @@ async function initialEncounter(): Promise<StatDrivenCombatEncounterState> {
     userId: USER_ID,
     characterId: CHARACTER_ID,
     idempotencyKey: '44444444-4444-4444-8444-444444444444',
+    ...(Object.keys(teams).length ? { arenaId: 'duel-yard' as const, ...teams } : {}),
   })
   if (!initialSnapshot) throw new Error('Expected an initial battle snapshot.')
   return initialSnapshot as StatDrivenCombatEncounterState
@@ -254,6 +258,104 @@ function createStatefulRepository(
 }
 
 describe('P2.6 authoritative Recruit AI turn service', () => {
+  it.each([
+    [0, 5],
+    [1, 4],
+    [2, 3],
+  ])(
+    'resolves consecutive allied/enemy AI turns for %s allies and %s enemies',
+    async (allyCount, enemyCount) => {
+      const initial = await initialEncounter({ allyCount, enemyCount })
+      const adjacent = {
+        ...initial,
+        tactical: {
+          ...initial.tactical,
+          battle: {
+            ...initial.tactical.battle,
+            combatants: initial.tactical.battle.combatants.map((c) => ({
+              ...c,
+              hp: 10_000,
+              maxHp: 10_000,
+            })),
+          },
+          placements: initial.tactical.placements.map((placement, index) => ({
+            ...placement,
+            position: { x: index, y: 3 },
+          })),
+        },
+      }
+      const state = advanceToRecruitTurn(adjacent)
+      const fixture = createStatefulRepository(state),
+        service = createBattleRecruitAiService(fixture.repository)
+      let version = 1
+      const acted = new Set<string>()
+      let damageEvents = 0
+      for (let request = 0; request < 5; request++) {
+        const actor = fixture.currentState().tactical.battle.currentTurn?.combatantId
+        expect(actor).not.toBe(`character:${CHARACTER_ID}`)
+        const result = await service.runTurn({
+          userId: USER_ID,
+          battleSessionId: SESSION_ID,
+          expectedBattleVersion: version,
+        })
+        expect(result.decisions.length).toBeGreaterThan(0)
+        expect(result.decisions.every((d) => d.combatantId === actor)).toBe(true)
+        expect(result.snapshot.tactical.battle.currentTurn?.combatantId).not.toBe(actor)
+        for (const commit of fixture.commits.slice(-result.decisions.length)) {
+          for (const event of commit.events) {
+            if (
+              event &&
+              typeof event === 'object' &&
+              'event' in event &&
+              event.event === 'damage_applied' &&
+              'sourceCombatantId' in event &&
+              'targetCombatantId' in event
+            ) {
+              const source = state.tactical.battle.combatants.find(
+                (c) => c.id === event.sourceCombatantId,
+              )
+              const target = state.tactical.battle.combatants.find(
+                (c) => c.id === event.targetCombatantId,
+              )
+              expect(source).toBeDefined()
+              expect(target).toBeDefined()
+              expect(target!.teamId).not.toBe(source!.teamId)
+              damageEvents++
+            }
+          }
+        }
+        acted.add(actor!)
+        version = result.battleVersion
+        if (result.snapshot.tactical.battle.lifecycle !== 'active') break
+      }
+      expect(damageEvents).toBeGreaterThan(0)
+      expect(acted.size).toBe(5)
+      expect(fixture.currentState().tactical.battle.currentTurn?.combatantId).toBe(
+        `character:${CHARACTER_ID}`,
+      )
+      expect([...acted].filter((id) => id.startsWith('recruit:ally-'))).toHaveLength(allyCount)
+    },
+  )
+  it('preserves original Sparring counts when a combat summon is still in the snapshot', async () => {
+    const state = await initialEncounter({ allyCount: 2, enemyCount: 3 })
+    const spawned = spawnCombatSummon(state, {
+      ownerCombatantId: `character:${CHARACTER_ID}`,
+      sourceSkillId: 'test.rematch-summon',
+      sourceSkillVersion: 1,
+      profile: summonProfile(),
+      position: { x: 0, y: 0 },
+      facing: 'east',
+    })
+    expect(
+      battleSparringTeamCounts({
+        battleSessionId: SESSION_ID,
+        battleVersion: 1,
+        snapshot: spawned.state,
+        replayed: false,
+        invalidation: null,
+      }),
+    ).toEqual({ allyCount: 2, enemyCount: 3 })
+  })
   it('derives deterministic tie-break seeds only from committed battle metadata', () => {
     const committedContext = {
       battleId: 'battle:test',

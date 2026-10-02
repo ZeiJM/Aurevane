@@ -83,14 +83,7 @@ export function battleSkillParameterRows(
 
 export function battleSkillTargetingDetails(skill: BattleSkillForecastPresentation): string {
   if (skill.definition) return skillTargetingDetails(skill.definition)
-  const { minimumRange: min, maximumRange: max } = skill
-  const range =
-    skill.targetKind === 'self'
-      ? 'Self only'
-      : min === max
-        ? `${min} ${min === 1 ? 'tile' : 'tiles'}`
-        : `${min}–${max} tiles`
-  return `Legal range: ${range}. Area and affected-team rules unavailable.`
+  return 'Area and affected-team rules unavailable.'
 }
 
 export function skillPreviewChips(skill: BattleSkillForecastPresentation): PreviewChip[] {

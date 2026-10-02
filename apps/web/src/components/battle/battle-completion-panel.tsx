@@ -15,6 +15,7 @@ import type { BattleSessionView } from '@/server/battle/battle-session-service'
 import styles from './battle-completion-panel.module.css'
 import { formatBattleLogForClipboard } from './battle-log-clipboard'
 import { BattleLogFeed, countBattleLogActions } from './battle-log-feed'
+import { battleSparringTeamCounts } from './battle-runtime'
 import { useBattlePlayerName } from './battle-runtime-context'
 
 interface BattleCompletionPanelProps {
@@ -169,6 +170,7 @@ export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
           arenaId,
           aiDifficulty,
           battleHallRecordId: recordId,
+          ...(recordId === 'recruit-sparring' ? battleSparringTeamCounts(battle) : {}),
           idempotencyKey: crypto.randomUUID(),
         }),
       })
