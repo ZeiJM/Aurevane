@@ -96,7 +96,7 @@ test('Techniques saves one Support Action separately from four Discipline Skills
       json: { error: { message: 'The build changed. Please refresh.' } },
     }),
   )
-  await dialog.getByRole('radio', { name: 'Guard', exact: true }).check()
+  await dialog.getByRole('radio', { name: 'Guard', exact: true }).click()
   await expect(dialog.getByRole('status')).toHaveText('The build changed. Please refresh.')
   await expect(dialog.getByRole('radio', { name: 'MP Recovery', exact: true })).toBeChecked()
   await expect(dialog.getByTestId('skill-capacity')).toHaveText(
