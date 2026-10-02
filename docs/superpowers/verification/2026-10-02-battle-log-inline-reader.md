@@ -17,3 +17,7 @@ Server context uses only viewer-projected records and validated actor-specific i
 - The final application-source full `pnpm check` exited 0: formatting, lint, TypeScript, 3,212 Vitest tests, seven Node checks and Production builds. Unchanged package tasks reused Turbo cache. A subsequent browser-test visibility assertion passed explicit scoped formatting/ESLint. Five changed browser suites passed scoped ESLint and discovery for 21 cases; discovery is not authenticated execution. Exact-head authenticated CI, integration and Production release remain pending.
 
 Owner visual acceptance and authenticated Production gameplay remain testing outcomes.
+
+## Combined continuation
+
+PR #800 also includes the Owner’s minimum Skill report and Nexus refinements, recorded in `2026-10-02-skill-information-nexus.md`. The first candidate’s Browser smoke caught two obsolete geometry-helper assumptions; corrected helpers retain strict containment and invariance, account for short cards beside their vitals and scrolling offsets, and prove that an actual 40px resize still fails. Eight mounted PvP/PvE cases pass. The final combined local gate passes 3,225 Vitest tests, seven Node checks and Production builds. Authenticated CI for the updated exact head remains required before merge/release.

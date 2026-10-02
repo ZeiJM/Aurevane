@@ -14,7 +14,8 @@ export async function expectReadableBattleLog(
     0,
   )
   await expect(log.getByRole('group', { name: 'Battle history pages', exact: true })).toHaveCount(0)
-  let fixedGeometry: { top: number; bottom: number; left: number; right: number } | undefined
+  let fixedGeometry:
+    Record<string, { x: number; y: number; width: number; height: number }> | undefined
   for (const mode of ['Timeline', 'Text log']) {
     const switchToMode = log.getByRole('button', { name: `Switch to ${mode}`, exact: true })
     if (await switchToMode.count()) await switchToMode.click()
@@ -46,8 +47,34 @@ export async function expectReadableBattleLog(
       const list = element.querySelector('ol')!
       const turnControls = element.querySelector('[aria-label="Battle history turns"]')!
       const reading = element.querySelector<HTMLElement>('[data-battle-log-reading]')!
+      // Playwright may scroll the mobile battle container when clicking its controls.
+      // Compare layout coordinates while keeping viewport coordinates for containment checks.
+      const layoutRect = (node: Element) => {
+        const box = node.getBoundingClientRect()
+        let x = box.x + window.scrollX
+        let y = box.y + window.scrollY
+        for (let parent = node.parentElement; parent; parent = parent.parentElement) {
+          if (parent === document.scrollingElement) continue
+          x += parent.scrollLeft
+          y += parent.scrollTop
+        }
+        return { x, y, width: box.width, height: box.height }
+      }
+      const stableRegions: Record<string, ReturnType<typeof layoutRect>> = {
+        log: layoutRect(element),
+      }
+      for (const selector of [
+        '[data-board-auto-fit]',
+        '[data-unified-command-deck]',
+        '[data-battle-preview-strip]',
+        '[data-battle-terrain-key]',
+      ]) {
+        const region = document.querySelector(selector)
+        if (region) stableRegions[selector] = layoutRect(region)
+      }
       return {
         log: rect(element),
+        stableRegions,
         header: rect(element.querySelector(':scope > header')!),
         track: rect(list),
         turns: rect(turnControls),
@@ -76,10 +103,16 @@ export async function expectReadableBattleLog(
     for (const overflow of geometry.readingOverflow) expect(overflow).toBeLessThanOrEqual(1)
     expect(geometry.scrollbar).toBe('none')
     if (fixedGeometry) {
-      for (const edge of ['top', 'bottom', 'left', 'right'] as const) {
-        expect(Math.abs(geometry.log[edge] - fixedGeometry[edge])).toBeLessThanOrEqual(1)
+      expect(Object.keys(geometry.stableRegions)).toEqual(Object.keys(fixedGeometry))
+      for (const [region, bounds] of Object.entries(geometry.stableRegions)) {
+        for (const dimension of ['x', 'y', 'width', 'height'] as const) {
+          expect(
+            Math.abs(bounds[dimension] - fixedGeometry[region]![dimension]),
+            `${region} ${dimension} stays fixed between battle-log formats`,
+          ).toBeLessThanOrEqual(1)
+        }
       }
-    } else fixedGeometry = geometry.log
+    } else fixedGeometry = geometry.stableRegions
     for (const control of geometry.controls) {
       expect(control.left).toBeGreaterThanOrEqual(geometry.log.left - 1)
       expect(control.right).toBeLessThanOrEqual(geometry.log.right + 1)

@@ -13,6 +13,7 @@ import type { BattleSessionView } from '@/server/battle/battle-session-service'
 export type BattleTechniqueCategory = 'attack' | 'defense' | 'heal'
 
 export interface BattleSkillForecastPresentation {
+  cooldownOwnerTurns?: number | null
   definition?: MatureSkillDefinition
   id: string
   name: string

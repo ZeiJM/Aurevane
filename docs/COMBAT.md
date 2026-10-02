@@ -771,3 +771,8 @@ has been retired after the discrete repeat-use ruling.
 This remains distinct from random temporary-Skill **Copy**, whose encounter-state, deterministic RNG,
 half-AP command grant, UI, AI, privacy and persistence behavior are implemented through its separate
 typed effect and synthetic pinned command identity.
+
+
+## Minimum Skill reporting
+
+Owner-approved 2026-10-02: every full Skill detail, including inherent commands, Support Actions, Essence and Resonance/passives, follows `docs/SKILL_INFORMATION_CONTRACT.md`. Preserve all ten ordered fields; use N/A only for inapplicable rules, None for absent applicable prerequisites/cooldowns and Unavailable for missing immutable metadata. Shared reports derive from canonical definitions and committed battle snapshots; this requirement changes presentation, not combat resolution.

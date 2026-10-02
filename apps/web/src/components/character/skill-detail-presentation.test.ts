@@ -18,6 +18,8 @@ import {
   skillTargetMethodDescription,
   skillTargetTags,
   skillTypeDescription,
+  skillParameterRows,
+  skillTargetingDetails,
 } from './skill-detail-presentation'
 
 describe('Player-facing Skill targeting and effects', () => {
@@ -69,7 +71,7 @@ it('describes source-specific modifiers, cleansing and periodic timing', () => {
   const mark = resolveMatureSkillVersion('wildwarden.hunters-mark')!
   expect(skillEffectDescription(mark.effects[0]!)).toContain('Other attackers gain no benefit')
   const burn = resolveMatureSkillVersion('cinderweaver.cinder-bolt')!
-  expect(skillEffectDescription(burn.effects[1]!)).toContain('4, then 3, then 2')
+  expect(skillEffectDescription(burn.effects[1]!)).toContain('2, then 1, then 1')
   expect(skillEffectDescription(burn.effects[1]!)).toContain('end-turn boundaries')
   expect(skillTargetTags(resolveMatureSkillVersion('runeblade.unbinding-rune')!)).toContain(
     'Cleanse',
@@ -360,4 +362,60 @@ describe('Combat v5.1 compact targeting labels', () => {
       }),
     ).toBe('Circle')
   })
+})
+
+it('reports the full minimum field set once in reference order, including Effects and N/A', () => {
+  const labels = [
+    'Skill Type',
+    'Cost',
+    'Cooldown',
+    'Requirements',
+    'Effects',
+    'Range',
+    'Target',
+    'Target Method',
+    'Target Elevation',
+    'Line of Sight',
+  ]
+  const skill = resolveMatureSkillVersion('ironfist.focus-breath')!
+  const rows = skillParameterRows(skill)
+  expect(rows.map(([label]) => label)).toEqual(labels)
+  expect(Object.fromEntries(rows)).toMatchObject({
+    Effects: skillEffectsSummary(skill),
+    Range: 'N/A',
+    'Line of Sight': 'N/A',
+  })
+  expect(rows.every(([, value]) => value.trim().length > 0)).toBe(true)
+})
+
+it('distinguishes zero cost and no cooldown from inapplicable self-target constraints', () => {
+  const base = resolveMatureSkillVersion('ironfist.focus-breath')!
+  const rows = Object.fromEntries(
+    skillParameterRows({ ...base, apCost: 0, mpCost: 0, cooldown: null, requirements: [] }),
+  )
+  expect(rows.Cost).toBe('0 AP')
+  expect(rows.Cooldown).toBe('None')
+  expect(rows.Requirements).toBe('None')
+  expect(rows.Range).toBe('N/A')
+  expect(rows['Line of Sight']).toBe('N/A')
+})
+
+it('describes the authored Burn schedule rather than substituting the default stages', () => {
+  const description = skillEffectDescription({
+    type: 'burn',
+    recipient: 'primary-unit',
+    power: 2,
+    durationTurns: 2,
+  })
+  expect(description).toContain('2, then 1 fixed damage')
+  expect(description).toContain('next 2 end-turn boundaries')
+  expect(description).not.toContain('4, then 3, then 2')
+})
+
+it('preserves minimum range, area dimensions and affected teams beyond the compact fields', () => {
+  const volley = resolveMatureSkillVersion('farstrider.volley')!
+  const details = skillTargetingDetails(volley)
+  expect(details).toContain('Legal range: 2–5 tiles')
+  expect(details).toContain('Circle radius: 1 tile')
+  expect(details).toContain('Affects: Enemies only')
 })

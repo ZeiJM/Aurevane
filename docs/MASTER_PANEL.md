@@ -641,6 +641,10 @@ future Master Panel module from this specification is complete.
 - Published version rows are immutable. Rollback changes only the current publication pointer (or
   clears that pointer when returning to a valid static fallback); historical rows are retained.
 
+### Minimum Skill information
+
+Owner-approved 2026-10-02: full active/passive Skill reports and read-only draft projections follow `docs/SKILL_INFORMATION_CONTRACT.md`. All ten fields use the same names, order, value conventions and canonical adapters as Nexus/battle details. N/A denotes inapplicability; missing immutable metadata remains Unavailable. These are derived reports, not independently editable mechanics. Current Skill, Essence and Resonance editors display this report without bypassing validation, deterministic preview or publication gates.
+
 ### Typed Skill workflow
 
 The current Skill editor uses the canonical `packages/game-core` Skill/effect contracts and

@@ -9,6 +9,8 @@ vi.mock('./battle-info-popover', () => ({
 
 describe('inherent action characteristics', () => {
   it.each([
+    ['inspect', 'Inspect', '0 AP', 'Inspect visible'],
+    ['finish', 'End Turn', '0 AP', 'Choose final facing'],
     ['move', 'Move', '20 AP', 'Movement'],
     ['attack', 'Basic Attack', '30 AP', '15% Physical Power'],
     ['guard', 'Guard', '30 AP', '15%'],

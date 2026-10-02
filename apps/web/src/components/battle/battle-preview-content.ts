@@ -1,3 +1,4 @@
+import { skillInformationRows } from '../character/skill-information-contract'
 import {
   combatInteractionDescription,
   gameplayStatusName,
@@ -5,7 +6,7 @@ import {
 } from '../../lib/battle/combat-interaction-presentation'
 import type { BattlePreviewView } from '@/server/battle/battle-preview-service'
 import type { BattleSkillForecastPresentation } from './battle-runtime'
-import { skillParameterRows } from '../character/skill-detail-presentation'
+import { skillParameterRows, skillTargetingDetails } from '../character/skill-detail-presentation'
 import type { ImageAssetId } from '@/media/registry'
 import { battleTerrainName, BATTLE_TERRAIN_KEY_DETAILS } from './battle-terrain-key-presentation'
 type IntentPreview = BattlePreviewView['preview']
@@ -50,22 +51,46 @@ export function battleSkillParameterRows(
   if (skill.definition) {
     return skillParameterRows(skill.definition, skill)
   }
-  const range =
-    skill.minimumRange === skill.maximumRange
-      ? `${skill.maximumRange} ${skill.maximumRange === 1 ? 'tile' : 'tiles'}`
-      : `${skill.minimumRange}–${skill.maximumRange} tiles`
-  return [
-    ['Cost', `${skill.apCost} AP${skill.mpCost > 0 ? ` / ${skill.mpCost} MP` : ''}`],
-    ['Range', skill.targetKind === 'self' ? 'N/A' : range],
-    [
-      'Target',
+  // Legacy presentations may not retain an immutable definition. Never infer missing
+  // mechanics from a current catalogue or silently describe unknown fields as inapplicable.
+  return skillInformationRows({
+    'Skill Type': skill.tags.includes('attack') ? 'Attack' : 'Unavailable',
+    Cost: `${skill.apCost} AP${skill.mpCost > 0 ? ` / ${skill.mpCost} MP` : ''}`,
+    Cooldown:
+      skill.cooldownOwnerTurns === undefined
+        ? 'Unavailable'
+        : skill.cooldownOwnerTurns === null
+          ? 'None'
+          : `${skill.cooldownOwnerTurns} ${skill.cooldownOwnerTurns === 1 ? 'turn' : 'turns'}`,
+    Requirements: skill.requirementDescriptions.join(', ') || 'None',
+    Effects: skill.effectDescriptions.join(', ') || 'Unavailable',
+    Range: skill.targetKind === 'self' ? 'N/A' : String(skill.maximumRange),
+    Target:
       skill.targetKind === 'self'
         ? 'Self'
-        : skill.targetTeamPolicy === 'any'
-          ? 'Any Unit'
-          : skill.targetTeamPolicy.replace(/^./, (letter) => letter.toUpperCase()),
-    ],
-  ]
+        : skill.targetKind === 'ground-tile'
+          ? 'Ground'
+          : skill.targetKind === 'empty-tile'
+            ? 'Empty Ground'
+            : skill.targetTeamPolicy === 'any'
+              ? 'Any Unit'
+              : skill.targetTeamPolicy.replace(/^./, (letter) => letter.toUpperCase()),
+    'Target Method': 'Unavailable',
+    'Target Elevation': skill.targetKind === 'self' ? 'N/A' : 'Unavailable',
+    'Line of Sight': skill.targetKind === 'self' ? 'N/A' : 'Unavailable',
+  })
+}
+
+export function battleSkillTargetingDetails(skill: BattleSkillForecastPresentation): string {
+  if (skill.definition) return skillTargetingDetails(skill.definition)
+  const { minimumRange: min, maximumRange: max } = skill
+  const range =
+    skill.targetKind === 'self'
+      ? 'Self only'
+      : min === max
+        ? `${min} ${min === 1 ? 'tile' : 'tiles'}`
+        : `${min}–${max} tiles`
+  return `Legal range: ${range}. Area and affected-team rules unavailable.`
 }
 
 export function skillPreviewChips(skill: BattleSkillForecastPresentation): PreviewChip[] {

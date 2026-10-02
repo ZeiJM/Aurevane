@@ -19,8 +19,9 @@ import {
 } from '@aurevane/game-core/combat/pv1f-skills'
 import { skillParameterRows } from './skill-detail-presentation'
 
+import { skillInformationRows, type SkillCharacteristic } from './skill-information-contract'
+export type { SkillCharacteristic } from './skill-information-contract'
 export type BasicActionPresentationId = (typeof PV1F_SKILLS)[number]['id']
-export type SkillCharacteristic = readonly [string, string | readonly string[]]
 
 /** Inherent commands reuse Skill parameter grammar without fabricating authored Skill identities. */
 export function basicActionCharacteristicRows(
@@ -28,27 +29,20 @@ export function basicActionCharacteristicRows(
 ): readonly SkillCharacteristic[] {
   const skill = PV1F_SKILLS.find((entry) => entry.id === id)!
   if (id === 'basic.move') {
-    return [
-      ['Skill Type', 'Utility'],
-      [
-        'Cost',
-        `${skill.cost.amount} AP per terrain-cost point; terrain and active movement modifiers apply`,
-      ],
-      ['Cooldown', 'None'],
-      [
-        'Requirements',
+    return skillInformationRows({
+      'Skill Type': 'Utility',
+      Cost: `${skill.cost.amount} AP per terrain-cost point; terrain and active movement modifiers apply`,
+      Cooldown: 'None',
+      Requirements:
         'AP and Movement remaining; a legal, unoccupied path; no movement-blocking status',
-      ],
-      [
-        'Effects',
+      Effects:
         'Move along orthogonally adjacent tiles, spending AP and 1 Movement per entered tile [Immediate]',
-      ],
-      ['Range', 'Remaining Movement allowance'],
-      ['Target', 'Empty Ground'],
-      ['Target Method', 'Path'],
-      ['Target Elevation', 'Each step must fit the committed Jump / movement profile'],
-      ['Line of Sight', 'Not required'],
-    ]
+      Range: 'Remaining Movement allowance',
+      Target: 'Empty Ground',
+      'Target Method': 'Path',
+      'Target Elevation': 'Each step must fit the committed Jump / movement profile',
+      'Line of Sight': 'Not required',
+    })
   }
 
   // Reference magnitudes materialize only target/requirement metadata; the Effects row displays
@@ -74,20 +68,14 @@ export function basicActionCharacteristicRows(
       : id === PV1F_BASIC_ATTACK_ID
         ? `Physical damage [${PV1F_BASIC_ATTACK_BASE_DAMAGE} + floor(${PV1F_BASIC_ATTACK_POWER_SCALING_BASIS_POINTS / 100}% Physical Power)] [Immediate]`
         : `${skill.name} [${id === PV1F_RECOVER_ACTION_ID ? PV1F_RECOVER_PERCENT : PV1F_MP_RECOVER_PERCENT}% max ${id === PV1F_RECOVER_ACTION_ID ? 'HP' : 'MP'}] [Immediate]`
-  return [
-    ...rows.slice(0, 4).map(([label, value]): SkillCharacteristic => {
-      if (label === 'Cooldown' && cooldown) {
-        return [label, `${cooldown.ownerTurns} turns`]
-      }
-      // Server battle-action-resource-availability rejects MP Recovery when MP is full.
-      if (label === 'Requirements' && id === PV1F_MP_RECOVER_ACTION_ID) {
-        return [label, 'Missing MP']
-      }
-      return [label, value]
-    }),
-    ['Effects', effects],
-    ...rows.slice(4),
-  ]
+  return rows.map(([label, value]): SkillCharacteristic => {
+    if (label === 'Effects') return [label, effects]
+    // Server battle-action-resource-availability rejects MP Recovery when MP is full.
+    if (label === 'Requirements' && id === PV1F_MP_RECOVER_ACTION_ID) {
+      return [label, 'Missing MP']
+    }
+    return [label, value]
+  })
 }
 
 /** Match registered inherent names, never infer mechanics from an authored Technique's label. */
@@ -108,4 +96,43 @@ export function basicActionEffectExplanation(id: BasicActionPresentationId): str
     return 'Restores the resource immediately, up to its maximum. HP and MP Recovery share a cooldown.'
   }
   return null
+}
+
+/** Read-only Inspect and Final Facing use the same report, without inventing Skill content. */
+export function commandCharacteristicRows(
+  slot: string,
+  label: string,
+  cost: string,
+): readonly SkillCharacteristic[] {
+  const id = basicActionIdForCommand(slot, label)
+  if (id) return basicActionCharacteristicRows(id)
+  if (slot === 'inspect' || slot === 'finish') {
+    const inspect = slot === 'inspect'
+    return skillInformationRows({
+      'Skill Type': 'Utility',
+      Cost: cost,
+      Cooldown: inspect ? 'N/A' : 'None',
+      Requirements: inspect ? 'None' : 'Your active turn',
+      Effects: inspect
+        ? 'Inspect visible character or tile information'
+        : 'Choose final facing and end your turn',
+      Range: 'N/A',
+      Target: inspect ? 'Character or Ground' : 'Self',
+      'Target Method': inspect ? 'Single' : 'Facing',
+      'Target Elevation': 'N/A',
+      'Line of Sight': 'N/A',
+    })
+  }
+  return skillInformationRows({
+    'Skill Type': 'Unavailable',
+    Cost: cost,
+    Cooldown: 'Unavailable',
+    Requirements: 'Unavailable',
+    Effects: 'Unavailable',
+    Range: 'Unavailable',
+    Target: 'Unavailable',
+    'Target Method': 'Unavailable',
+    'Target Elevation': 'Unavailable',
+    'Line of Sight': 'Unavailable',
+  })
 }

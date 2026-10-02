@@ -160,6 +160,50 @@ test('Techniques saves one Support Action separately from four Discipline Skills
       )
       expect(Math.abs(box.width - box.height), 'Nexus artwork stays square').toBeLessThanOrEqual(1)
     }
-    await expect(page.getByTestId('nexus-support-action')).toContainText('MP Recovery')
+    const support = page.getByTestId('nexus-support-action')
+    const technique = workspace
+      .locator('[data-arsenal-technique-row][data-equipped="true"]')
+      .first()
+    const supportArt = (await support.locator('[data-arsenal-media]').boundingBox())!
+    const techniqueArt = (await technique.locator('[data-arsenal-media]').boundingBox())!
+    expect(
+      Math.abs(supportArt.y - techniqueArt.y),
+      'Support artwork aligns with Discipline artwork',
+    ).toBeLessThanOrEqual(1)
+    const supportName = (await support.locator('strong').boundingBox())!
+    const techniqueName = (await technique.locator('strong').boundingBox())!
+    expect(
+      Math.abs(supportName.y - techniqueName.y),
+      'Support name aligns with Discipline names',
+    ).toBeLessThanOrEqual(1)
+    await expect(support).toContainText('MP Recovery')
+    const selector = page.getByRole('navigation', { name: 'Loadout sections' })
+    const nexusPosition = (await selector.boundingBox())!
+    await selector.getByRole('link', { name: 'Items', exact: true }).click()
+    await expect(selector.getByRole('link', { name: 'Items', exact: true })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
+    const itemsPosition = (await selector.boundingBox())!
+    for (const key of ['x', 'y', 'width', 'height'] as const) {
+      expect(
+        Math.abs(nexusPosition[key] - itemsPosition[key]),
+        `selector ${key} matches both routes`,
+      ).toBeLessThanOrEqual(1)
+    }
+    await selector.getByRole('link', { name: 'Nexus', exact: true }).click()
+    await expect(page.locator('#nexus-techniques-heading')).toHaveText('Discipline Skills — 4 / 4')
+    const fitDialog = await open()
+    const clearButton = fitDialog.getByRole('button', { name: /Clear Selections/ })
+    await clearButton.click({ trial: true })
+    const footerBox = (await fitDialog.locator('footer').boundingBox())!
+    const previewBox = (await fitDialog.getByTestId('technique-preview').boundingBox())!
+    if (height <= 800) {
+      expect(
+        footerBox.x + footerBox.width,
+        'library actions leave the extended preview unobstructed',
+      ).toBeLessThanOrEqual(previewBox.x + 1)
+    }
+    await fitDialog.getByRole('button', { name: 'Close', exact: true }).click()
   }
 })

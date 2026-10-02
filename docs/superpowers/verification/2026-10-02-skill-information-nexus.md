@@ -1,0 +1,19 @@
+# Minimum Skill information and Nexus refinements — verification
+
+Owner-authorized continuation of PR #800, based on Main `4dfed8a5b0423250145fe7f3e4e987fe4fd3ee66`. Existing merge/release authorization applies after all gates pass. The Battle Log evidence remains in `2026-10-02-battle-log-inline-reader.md`.
+
+## Scope and authority
+
+The ten ordered minimum fields in `docs/SKILL_INFORMATION_CONTRACT.md` now share one typed presentation contract across active Skills, inherent commands, Support Actions, Essence and passive Resonance. Nexus uses resolved definitions; battle reports use committed definitions and effective battle costs/cooldowns; Master Panel shows read-only reports of editable drafts without replacing validation/publication gates. Genuine inapplicability uses N/A, applicable absent constraints use None, and missing historical metadata uses Unavailable. Supplementary targeting retains legal minimum range, area geometry and affected recipients. Burn prose derives its actual authored damage schedule rather than a fixed unrelated example.
+
+Nexus and Items share a left selector/header and matched responsive route insets. Support artwork/name align with the Discipline summary. Techniques flavor wraps naturally with no fixed text height or internal scrollbar; every field remains visible. No schema migration, content activation, dependency or executable combat-rule change.
+
+## Verification
+
+- The full local `pnpm check` passed formatting, lint, TypeScript, 3,225 Vitest tests, seven Node checks and Production builds. The final rerun also passed after the CSS fit refinements; the frozen CSS SHA-256 was `e5347e6cfe951f335eebb43c728c662806b5386888e23d9b87bcf012d0b53764`.
+- Independent source review found no remaining Critical, Important or Minor findings after correcting authored Burn values and supplementary targeting omissions. Its final targeted runs passed 55 tests across seven files and 53 adjacent tests across five files. Shared adapters preserve copied/version-pinned metadata, mode cooldowns and actual passive recipients.
+- Production-component checks cover all 136 current canonical Skills across 1280×720, 1366×768, 1536×614 and 1920×1080, plus the exact valid 160-character flavor boundary. All ten fields are populated and flavor has no internal overflow or scrollbar. The final matrix also has zero outer preview scrolling. The preview uses otherwise-unused footer/status height at short desktop sizes, while the library reserves the unchanged controls budget.
+- The shared Nexus/Items selector has identical x/y/width/height on all four desktop sizes. Support artwork/name alignment is checked with the production markup/styles. Independent final checks also passed exact 160-character flavor combined with Chilling Mist/Static Burst at all four sizes: all text including supplementary targeting stays contained, artwork origin stays fixed across focus, gallery art minima are 76.2/82.5/74/88px, and the enabled Clear Selections trial click succeeds with a 10.25px short-desktop gap from the preview. These mounted checks use mocked services and do not claim authenticated route execution.
+- Earlier candidate Browser smoke exposed outdated short-card stacking and viewport-coordinate assumptions in shared layout helpers. Short cards now assert beside-vitals containment and preserve both effect rows; log invariance removes scrolling offsets and still detects a genuine 40px resize. Eight mounted PvP/PvE component cases pass across desktop/mobile, with zero runtime errors. The authenticated suites retain strict map, cockpit, preview, terrain and log geometry checks.
+
+Exact-head authenticated CI, merge, Production release and bounded live verification remain pending. Owner visual acceptance and authenticated Production gameplay remain testing outcomes.

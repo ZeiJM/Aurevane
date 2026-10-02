@@ -101,6 +101,21 @@ describe('Master Panel combat content editor shell', () => {
       }),
     )
 
+    expect(markup).toContain('aria-label="Player-facing Skill information"')
+    for (const label of [
+      'Skill Type',
+      'Cost',
+      'Cooldown',
+      'Requirements',
+      'Effects',
+      'Range',
+      'Target',
+      'Target Method',
+      'Target Elevation',
+      'Line of Sight',
+    ]) {
+      expect(markup).toContain(`<dt>${label}</dt>`)
+    }
     expect(markup).toContain('<legend>Media</legend>')
     expect(markup).toContain('aria-label="Skill artwork hook"')
     expect(markup).toContain('aria-label="Player-facing flavor line"')

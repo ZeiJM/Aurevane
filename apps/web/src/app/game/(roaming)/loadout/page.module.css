@@ -10,23 +10,6 @@
     linear-gradient(#192a2933, #192a2925),
     url('/media/art/adventure/haven-v01.webp') center / cover;
 }
-.heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  min-width: 0;
-  color: #eee3cd;
-  text-shadow: 0 2px 8px #000;
-}
-.heading h1 {
-  margin: 0;
-  font: 500 2.6rem/1.1 var(--av-font-display);
-}
-.heading p {
-  margin: 0.4rem 0 0;
-  font-size: 1rem;
-}
 .items {
   display: grid;
   grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
@@ -78,14 +61,22 @@
   .itemsWorkspace {
     height: auto;
     min-height: 100%;
-    padding: 0.5rem;
-  }
-  .heading {
-    align-items: stretch;
-    flex-direction: column;
+    padding: 0;
   }
   .items {
     grid-template-columns: 1fr;
     margin: 1rem 0;
+  }
+}
+
+/* Match the Nexus workspace inset so the shared selector never shifts between routes. */
+@media (min-width: 1101px) and (max-height: 800px) {
+  .itemsWorkspace {
+    padding: 0.5rem;
+  }
+}
+@media (min-width: 1101px) and (max-height: 700px) {
+  .itemsWorkspace {
+    padding: 0;
   }
 }

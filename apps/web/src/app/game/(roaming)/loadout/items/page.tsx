@@ -1,4 +1,4 @@
-import { LoadoutTabs } from '@/components/character/loadout-tabs'
+import { LoadoutHeader } from '@/components/character/loadout-header'
 import { requireRoamingCharacter } from '@/server/character/require-roaming-character'
 
 import styles from '../page.module.css'
@@ -9,13 +9,7 @@ export default async function ItemsPage() {
   await requireRoamingCharacter()
   return (
     <section className={styles.itemsWorkspace} data-composition="correction">
-      <header className={styles.heading}>
-        <div>
-          <h1>Items</h1>
-          <p>Equipment, keepsakes, and discoveries.</p>
-        </div>
-        <LoadoutTabs active="items" />
-      </header>
+      <LoadoutHeader active="items" />
       <div className={styles.items}>
         <div className={styles.equipment} aria-label="Future equipment slots">
           {['Weapon', 'Head', 'Body', 'Hands', 'Legs', 'Feet', 'Accessory 1', 'Accessory 2'].map(

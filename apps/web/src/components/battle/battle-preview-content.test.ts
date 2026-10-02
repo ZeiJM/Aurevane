@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { BattleActionPreview } from '@/server/battle/battle-preview-service'
-import { previewChips, skillPreviewChips } from './battle-preview-content'
+import { previewChips, skillPreviewChips, battleSkillParameterRows } from './battle-preview-content'
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 
 function actionPreview(
@@ -58,6 +58,7 @@ describe('copy-statuses player forecast presentation', () => {
       'Cost: 31 AP / 6 MP',
       'Cooldown: 2 turns',
       'Requirements: None',
+      'Effects: Dmg [12]',
       'Range: 1',
       'Target: Enemy',
       'Target Method: Single',
@@ -289,5 +290,40 @@ describe('copy-statuses player forecast presentation', () => {
     )
 
     expect(result).toEqual(['30 AP', '70 AP left', 'Hit 69%', 'On hit 17 dmg'])
+  })
+})
+
+it('keeps legacy rows complete without inferring missing pinned mechanics', () => {
+  const rows = battleSkillParameterRows({
+    id: 'legacy',
+    name: 'Legacy',
+    apCost: 45,
+    mpCost: 0,
+    targetKind: 'ground-tile',
+    targetTeamPolicy: 'enemy',
+    minimumRange: 0,
+    maximumRange: 3,
+    tags: [],
+    effectDescriptions: ['Recorded effect'],
+    requirementDescriptions: [],
+  })
+  expect(rows.map(([label]) => label)).toEqual([
+    'Skill Type',
+    'Cost',
+    'Cooldown',
+    'Requirements',
+    'Effects',
+    'Range',
+    'Target',
+    'Target Method',
+    'Target Elevation',
+    'Line of Sight',
+  ])
+  expect(Object.fromEntries(rows)).toMatchObject({
+    Target: 'Ground',
+    Effects: 'Recorded effect',
+    Cooldown: 'Unavailable',
+    'Target Method': 'Unavailable',
+    'Line of Sight': 'Unavailable',
   })
 })

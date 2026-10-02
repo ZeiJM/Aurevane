@@ -2,14 +2,16 @@
 
 import Image from 'next/image'
 import type { ReactNode } from 'react'
-import { normalizedResonanceMechanics } from '@aurevane/game-core/combat/resonance-v2'
 import {
   DEFAULT_COMBAT_KEYBINDS,
   formatCombatKeybind,
   type CombatKeybindMap,
 } from '@aurevane/validation/player/combat-controls'
-import { CompactSkillEffectSummary } from '../character/compact-skill-effect-summary'
-import { previewEffect } from '../character/skill-effect-preview'
+import {
+  resonanceCharacteristicRows,
+  resonanceSupplementalRows,
+} from '../character/resonance-detail-presentation'
+import { SkillCharacteristicRows } from '../character/skill-characteristic-rows'
 import { BattleInfoPopover } from './battle-info-popover'
 import { BattleSkillParameters } from './battle-skill-parameters'
 import type { BattleRuntime } from './battle-runtime'
@@ -63,9 +65,6 @@ export function BattleSelectedSkills({
   bindings?: CombatKeybindMap
   onSelect: (skillId: string, category: 'attack' | 'defense' | 'heal') => void
 }) {
-  const resonanceMechanics = runtime.resonance?.definition
-    ? normalizedResonanceMechanics(runtime.resonance.definition)
-    : null
   return (
     <div className={styles.root} data-battle-selected-skills="true">
       <div className={styles.skills} aria-label="Selected Discipline Skills">
@@ -175,38 +174,14 @@ export function BattleSelectedSkills({
             >
               <p>{runtime.resonance.description}</p>
               <strong>Parameters</strong>
-              {resonanceMechanics ? (
-                <>
-                  <dl>
-                    <div>
-                      <dt>Type</dt>
-                      <dd>
-                        {resonanceMechanics.mode === 'immediate'
-                          ? 'Immediate Resonance'
-                          : 'Sequence Resonance'}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Setup</dt>
-                      <dd>
-                        {resonanceMechanics.setup
-                          ? `${disciplineName(resonanceMechanics.setup.sourceDisciplineId)} · ${resonanceMechanics.setup.requiredTags.join(' + ')}`
-                          : 'None'}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Trigger</dt>
-                      <dd>{`${disciplineName(resonanceMechanics.trigger.sourceDisciplineId)} · ${resonanceMechanics.trigger.requiredTags.join(' + ')}`}</dd>
-                    </div>
-                  </dl>
-                  {resonanceMechanics.resultEffects.map((effect, index) => (
-                    <div key={index}>
-                      <CompactSkillEffectSummary effect={effect} />
-                      <p>{previewEffect(effect).explanation}</p>
-                    </div>
-                  ))}
-                </>
-              ) : null}
+              <dl>
+                <SkillCharacteristicRows
+                  rows={resonanceCharacteristicRows(runtime.resonance.definition)}
+                />
+                <SkillCharacteristicRows
+                  rows={resonanceSupplementalRows(runtime.resonance.definition)}
+                />
+              </dl>
             </SkillControls>
             <small>Resonance · Passive</small>
           </>

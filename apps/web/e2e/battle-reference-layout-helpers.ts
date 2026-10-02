@@ -146,6 +146,7 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
         const cardStyle = getComputedStyle(card)
         const headerStyle = getComputedStyle(header)
         return {
+          bounds: card.getBoundingClientRect().toJSON(),
           portrait: portrait.getBoundingClientRect().toJSON(),
           header: header.getBoundingClientRect().toJSON(),
           facing: facing.getBoundingClientRect().toJSON(),
@@ -236,7 +237,25 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
     expect(Math.abs(card.portrait.width - card.portrait.height)).toBeLessThanOrEqual(1)
     if (geometry.w > 820) {
       expect(card.portrait.height).toBeGreaterThanOrEqual(32)
-      expect(card.portrait.bottom).toBeLessThanOrEqual(card.vitals.top + 1)
+      if (geometry.h <= 700) {
+        expect(
+          card.portrait.right,
+          'short desktop portrait sits beside vitals',
+        ).toBeLessThanOrEqual(card.vitals.left + 1)
+        expect(
+          Math.min(card.portrait.bottom, card.vitals.bottom) -
+            Math.max(card.portrait.top, card.vitals.top),
+          'short desktop portrait and vitals share a row',
+        ).toBeGreaterThan(0)
+      } else {
+        expect(card.portrait.bottom).toBeLessThanOrEqual(card.vitals.top + 1)
+      }
+      for (const content of [card.header, card.portrait, card.vitals, card.grid]) {
+        expect(content.left).toBeGreaterThanOrEqual(card.bounds.left - 1)
+        expect(content.right).toBeLessThanOrEqual(card.bounds.right + 1)
+        expect(content.top).toBeGreaterThanOrEqual(card.bounds.top - 1)
+        expect(content.bottom).toBeLessThanOrEqual(card.bounds.bottom + 1)
+      }
       expect(card.overflow).toBeLessThanOrEqual(1)
     }
     expect(card.gridColumns, 'ten effect icons per row').toBe(10)

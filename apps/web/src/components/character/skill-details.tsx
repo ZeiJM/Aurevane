@@ -1,8 +1,9 @@
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
 import {
-  skillAffectedDescription,
   skillEffectDescription,
-  skillRangeDescription,
+  skillCooldownDescription,
+  skillParameterRows,
+  skillTargetingDetails,
   skillRequirementDescription,
   skillTargetTags,
 } from './skill-detail-presentation'
@@ -12,51 +13,37 @@ function SkillDetailBody({ skill }: { skill: MatureSkillDefinition }) {
   return (
     <>
       <dl>
-        <div>
-          <dt>Range</dt>
-          <dd>{skillRangeDescription(skill)}</dd>
-        </div>
-        <div>
-          <dt>Affects</dt>
-          <dd>{skillAffectedDescription(skill)}</dd>
-        </div>
-        {skill.target.kind !== 'self' ? (
-          <>
-            <div>
-              <dt>Line of sight</dt>
-              <dd>{skill.target.requiresLineOfSight ? 'Required' : 'Not required'}</dd>
-            </div>
-            <div>
-              <dt>Elevation gap</dt>
-              <dd>
-                {skill.target.maximumElevationDifference === null
-                  ? 'No limit'
-                  : `Up to ${skill.target.maximumElevationDifference}`}
-              </dd>
-            </div>
-          </>
-        ) : null}
-        <div>
-          <dt>AP cost</dt>
-          <dd>
-            {skill.apCost}
-            {skill.overrides.pvp?.apCost !== undefined &&
-            skill.overrides.pvp.apCost !== skill.apCost
-              ? ` · PvP ${skill.overrides.pvp.apCost}`
-              : ''}
-          </dd>
-        </div>
-        {(skill.mpCost ?? 0) > 0 ? (
+        {skillParameterRows(skill).map(([label, value]) => (
+          <div key={label}>
+            <dt>{label}</dt>
+            <dd>{value}</dd>
+          </div>
+        ))}
+        {skill.overrides.pvp?.apCost !== undefined &&
+        skill.overrides.pvp.apCost !== skill.apCost ? (
           <div>
-            <dt>MP cost</dt>
-            <dd>{skill.mpCost}</dd>
+            <dt>PvP Cost</dt>
+            <dd>
+              {skill.overrides.pvp.apCost} AP{skill.mpCost ? ` / ${skill.mpCost} MP` : ''}
+            </dd>
+          </div>
+        ) : null}
+        {skill.cooldown !== null &&
+        skill.overrides.pvp?.cooldownOwnerTurns !== undefined &&
+        skill.overrides.pvp.cooldownOwnerTurns !== skill.cooldown.ownerTurns ? (
+          <div>
+            <dt>PvP Cooldown</dt>
+            <dd>{skillCooldownDescription(skill, skill.overrides.pvp.cooldownOwnerTurns)}</dd>
           </div>
         ) : null}
       </dl>
+      <p>{skillTargetingDetails(skill)}</p>
       <strong>Effects, in order</strong>
       <ol>
         {skill.effects.map((effect, index) => (
-          <li key={index}>{skillEffectDescription(effect)}</li>
+          <li key={index}>
+            {skill.effectDescriptions?.[index]?.trim() || skillEffectDescription(effect)}
+          </li>
         ))}
       </ol>
       {skill.requirements.length ? (

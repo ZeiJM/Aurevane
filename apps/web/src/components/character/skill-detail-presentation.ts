@@ -1,3 +1,4 @@
+import { skillInformationRows } from './skill-information-contract'
 import { previewEffect } from './skill-effect-preview'
 import { combatActionPresentationTags } from '@aurevane/game-core/combat/gameplay-tags'
 import { gameplayStatusName } from '../../lib/battle/combat-interaction-presentation'
@@ -47,8 +48,11 @@ export function skillEffectDescription(effect: MatureSkillEffectDefinition): str
       return `${effect.direction === 'pull' ? 'Pull' : 'Push'} ${target} up to ${effect.distance} ${effect.distance === 1 ? 'tile' : 'tiles'} ${effect.direction === 'pull' ? 'toward you' : 'away'}, one legal tile at a time. Stops before occupied, blocked or illegal-elevation tiles. Pull never enters your tile. Root prevents displacement. Failure grants no refund.`
     case 'poison':
       return `Apply Poison (Poisoned) to ${target}.`
-    case 'burn':
-      return `Apply Burn (Scorched) to ${target}. Burn deals 4, then 3, then 2 fixed damage at the target's next three end-turn boundaries; reapplication restarts the sequence.`
+    case 'burn': {
+      const preview = previewEffect(effect)
+      const stages = preview.magnitude!.split('/')
+      return `Apply Burn (Scorched) to ${target}. Burn deals ${stages.join(', then ')} fixed damage at the target's next ${stages.length} ${stages.length === 1 ? 'end-turn boundary' : 'end-turn boundaries'}; reapplication restarts the sequence.`
+    }
     case 'bleed':
       return `Apply Bleed (Bleeding) to ${target} for ${effect.ticks} ${effect.ticks === 1 ? 'end-turn tick' : 'end-turn ticks'} at ${effect.damagePerTick} damage per tick. Bleed stacks independently up to three times.`
     case 'return-to-turn-start':
@@ -138,19 +142,22 @@ export function skillParameterRows(
     MatureSkillDefinition,
     'tags' | 'effects' | 'apCost' | 'mpCost' | 'cooldown' | 'requirements' | 'target'
   >,
-  costs: Pick<MatureSkillDefinition, 'apCost' | 'mpCost'> = skill,
+  costs: Pick<MatureSkillDefinition, 'apCost' | 'mpCost'> & {
+    cooldownOwnerTurns?: number | null
+  } = skill,
 ): readonly (readonly [string, string])[] {
-  return [
-    ['Skill Type', skillTypeDescription(skill)],
-    ['Cost', skillCostDescription({ ...skill, ...costs })],
-    ['Cooldown', skillCooldownDescription(skill)],
-    ['Requirements', skillRequirementsSummary(skill)],
-    ['Range', skillCompactRangeDescription(skill)],
-    ['Target', skillTargetDescription(skill)],
-    ['Target Method', skillTargetMethodDescription(skill)],
-    ['Target Elevation', skillTargetElevationDescription(skill)],
-    ['Line of Sight', skillLineOfSightDescription(skill)],
-  ]
+  return skillInformationRows({
+    'Skill Type': skillTypeDescription(skill),
+    Cost: skillCostDescription({ ...skill, ...costs }),
+    Cooldown: skillCooldownDescription(skill, costs.cooldownOwnerTurns),
+    Requirements: skillRequirementsSummary(skill),
+    Effects: skillEffectsSummary(skill),
+    Range: skillCompactRangeDescription(skill),
+    Target: skillTargetDescription(skill),
+    'Target Method': skillTargetMethodDescription(skill),
+    'Target Elevation': skillTargetElevationDescription(skill),
+    'Line of Sight': skillLineOfSightDescription(skill),
+  })
 }
 
 export interface CompactSkillEffectSummaryParts {
@@ -197,11 +204,15 @@ function compactEffectSummary(effect: MatureSkillEffectDefinition): string {
     .join(' ')
 }
 
-export function skillEffectSummaries(skill: MatureSkillDefinition): readonly string[] {
+export function skillEffectSummaries(
+  skill: Pick<MatureSkillDefinition, 'effects'>,
+): readonly string[] {
   return skill.effects.map(compactEffectSummary)
 }
 
-export function skillEffectsSummary(skill: MatureSkillDefinition): string {
+export function skillEffectsSummary<Skill extends Pick<MatureSkillDefinition, 'effects'>>(
+  skill: Skill,
+): string {
   return skillEffectSummaries(skill).join(', ') || 'N/A'
 }
 
@@ -276,9 +287,12 @@ export function skillLineOfSightDescription(skill: Pick<MatureSkillDefinition, '
   return skill.target.requiresLineOfSight ? 'Required' : 'Not required'
 }
 
-export function skillCooldownDescription(skill: Pick<MatureSkillDefinition, 'cooldown'>): string {
-  if (skill.cooldown === null) return 'None'
-  return `${skill.cooldown.ownerTurns} ${skill.cooldown.ownerTurns === 1 ? 'turn' : 'turns'}`
+export function skillCooldownDescription(
+  skill: Pick<MatureSkillDefinition, 'cooldown'>,
+  ownerTurns: number | null = skill.cooldown?.ownerTurns ?? null,
+): string {
+  if (ownerTurns === null) return 'None'
+  return `${ownerTurns} ${ownerTurns === 1 ? 'turn' : 'turns'}`
 }
 
 export function skillRangeDescription(skill: MatureSkillDefinition): string {
@@ -302,6 +316,18 @@ export function skillAffectedDescription(skill: MatureSkillDefinition): string {
       ? '. Unit-targeted Resonance payoffs require a unit selection; ground selection leaves that setup armed'
       : ''
   return unitAffectedDescription(skill) + terrain + resonance
+}
+
+/** Additional legality/area information follows the compact ten-field report. */
+export function skillTargetingDetails(skill: MatureSkillDefinition): string {
+  const shape = skill.target.shape
+  const area =
+    shape.kind === 'circle'
+      ? `Circle radius: ${shape.radius} ${shape.radius === 1 ? 'tile' : 'tiles'}`
+      : shape.kind === 'line'
+        ? `Line length: ${shape.length} ${shape.length === 1 ? 'tile' : 'tiles'}`
+        : 'Single target'
+  return `Legal range: ${skillRangeDescription(skill)} · ${area} · Affects: ${skillAffectedDescription(skill)}`
 }
 
 function unitAffectedDescription(skill: MatureSkillDefinition): string {

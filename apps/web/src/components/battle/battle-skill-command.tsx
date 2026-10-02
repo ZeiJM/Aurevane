@@ -17,7 +17,7 @@ import { createPortal } from 'react-dom'
 
 import { BattleInfoPopover } from './battle-info-popover'
 import {
-  basicActionCharacteristicRows,
+  commandCharacteristicRows,
   basicActionEffectExplanation,
   basicActionIdForCommand,
 } from '../character/basic-action-presentation'
@@ -233,14 +233,7 @@ export function BattleSkillCommand({
         >
           <strong>Parameters</strong>
           <dl>
-            {basicActionId ? (
-              <SkillCharacteristicRows rows={basicActionCharacteristicRows(basicActionId)} />
-            ) : (
-              <div>
-                <dt>Cost</dt>
-                <dd>{cost}</dd>
-              </div>
-            )}
+            <SkillCharacteristicRows rows={commandCharacteristicRows(slot, label, cost)} />
           </dl>
           {basicActionExplanation ? (
             <p data-basic-action-effect-explanation="true">{basicActionExplanation}</p>

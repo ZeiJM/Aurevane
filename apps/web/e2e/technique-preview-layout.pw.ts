@@ -62,6 +62,13 @@ test('Technique Preview keeps compact effects aligned and contained', async ({
     await expect(compactEffects.first()).toHaveText(/^Guarded \[[\d.]+%\] \[2 Turns\]$/)
     await expectEffectsContained(compactEffects)
     await expectPreviewContained(preview)
+    const flavor = preview.locator('small').first()
+    const flavorLayout = await flavor.evaluate((element) => ({
+      overflow: element.parentElement!.scrollHeight - element.parentElement!.clientHeight,
+      overflowY: getComputedStyle(element.parentElement!).overflowY,
+    }))
+    expect(flavorLayout.overflow).toBeLessThanOrEqual(1)
+    expect(flavorLayout.overflowY).toBe('visible')
 
     const magnitude = preview.locator('[data-compact-effect-magnitude="true"]').first()
     const duration = preview.locator('[data-compact-effect-duration="true"]').first()
@@ -113,7 +120,7 @@ async function expectPreviewContained(preview: Locator) {
     const box = element.getBoundingClientRect()
     const dialog = element.closest('[role="dialog"]')!
     const workspace = dialog.querySelector('[data-technique-workspace]')!
-    const content = Array.from(element.querySelectorAll('dt, dd, li, img, strong, small'))
+    const content = Array.from(element.querySelectorAll('dt, dd, li, img, strong, small, p'))
     return {
       contentTop: Math.min(...content.map((child) => child.getBoundingClientRect().top)),
       contentBottom: Math.max(...content.map((child) => child.getBoundingClientRect().bottom)),
