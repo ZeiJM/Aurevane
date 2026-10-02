@@ -12,7 +12,16 @@ import {
 import type { PrimaryDisciplinePreview } from '@aurevane/game-core/character/discipline-build'
 import type { DerivedStatUnit } from '@aurevane/game-core/character/derived-stats'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  useTransition,
+} from 'react'
 import { createPortal } from 'react-dom'
 
 import { FoundationDisciplineSigil } from './foundation-discipline-sigil'
@@ -54,7 +63,7 @@ interface AttunementView {
 }
 
 interface CharacterDisciplineBuildPanelProps {
-  initialBuildVersion: number
+  characterId: string
   initialCurrent: PrimaryDisciplinePreview
   initialCurrentSecondary: DisciplineDefinitionView | null
   availablePrimaries: readonly PrimaryOption[]
@@ -65,6 +74,7 @@ interface CharacterDisciplineBuildPanelProps {
 
 interface BuildPreviewResponse {
   preview?: {
+    characterId: string
     current: PrimaryDisciplinePreview
     currentSecondary: DisciplineDefinitionView | null
     proposed: PrimaryDisciplinePreview
@@ -80,9 +90,10 @@ interface BuildPreviewResponse {
 
 interface BuildCommitResponse {
   context?: {
-    build: { buildVersion: number }
+    build: { characterId: string; buildVersion: number }
     current: PrimaryDisciplinePreview
     currentSecondary: DisciplineDefinitionView | null
+    attributes: CharacterAttributes
     attunement: AttunementView
   }
   error?: { message?: string }
@@ -143,6 +154,7 @@ interface DisciplineLibraryProps {
   selectedPrimaryId: string
   selectedSecondaryId: string
   pendingPreview: boolean
+  synchronizing?: boolean
   pendingCommit: boolean
   refreshingProfile: boolean
   primaryRemainingSeconds: number
@@ -151,12 +163,13 @@ interface DisciplineLibraryProps {
   onSelect: (primaryId: string, secondaryId: string) => void
 }
 
-/** Library choices preview the edited slot; only confirmation commits the build. */
+/** Library choices immediately submit the edited slot to server authority. */
 export function DisciplineLibrary({
   options,
   selectedPrimaryId,
   selectedSecondaryId,
   pendingPreview,
+  synchronizing = false,
   pendingCommit,
   refreshingProfile,
   primaryRemainingSeconds,
@@ -165,6 +178,7 @@ export function DisciplineLibrary({
   onSelect,
 }: DisciplineLibraryProps) {
   const disabled =
+    synchronizing ||
     pendingPreview ||
     pendingCommit ||
     refreshingProfile ||
@@ -175,10 +189,15 @@ export function DisciplineLibrary({
       className={styles.roster}
       aria-label={`${activeSlot === 'primary' ? 'Primary' : 'Secondary'} Discipline library`}
       tabIndex={0}
+      aria-busy={synchronizing || pendingPreview || pendingCommit}
     >
       <h3>Discipline library</h3>
       <p className={styles.libraryHint}>
-        Choose a {activeSlot === 'primary' ? 'Primary' : 'Secondary'} Discipline to preview.
+        {synchronizing
+          ? 'Refreshing committed Disciplines…'
+          : pendingPreview || pendingCommit
+            ? `Applying ${activeSlot === 'primary' ? 'Primary' : 'Secondary'} Discipline…`
+            : `Choose a ${activeSlot === 'primary' ? 'Primary' : 'Secondary'} Discipline to apply immediately.`}
       </p>
       {options.length === 0 ? (
         <p className={styles.libraryHint}>No eligible Disciplines are available for this slot.</p>
@@ -190,7 +209,7 @@ export function DisciplineLibrary({
           disabled={disabled || !selectedSecondaryId}
           onClick={() => onSelect(selectedPrimaryId, '')}
         >
-          Use Primary only
+          Remove Secondary Discipline
         </button>
       ) : null}
       <div className={styles.rosterGrid}>
@@ -201,7 +220,7 @@ export function DisciplineLibrary({
             className={styles.disciplineCard}
             data-selected={selectedId === definition.id}
             aria-pressed={selectedId === definition.id}
-            aria-label={`Preview ${definition.name} as ${activeSlot === 'primary' ? 'Primary' : 'Secondary'} Discipline`}
+            aria-label={`Select ${definition.name} as ${activeSlot === 'primary' ? 'Primary' : 'Secondary'} Discipline`}
             disabled={disabled}
             onClick={() =>
               activeSlot === 'primary'
@@ -222,7 +241,7 @@ export function DisciplineLibrary({
 }
 
 export function CharacterDisciplineBuildPanel({
-  initialBuildVersion,
+  characterId,
   initialCurrent,
   initialCurrentSecondary,
   availablePrimaries,
@@ -239,17 +258,19 @@ export function CharacterDisciplineBuildPanel({
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const open = searchParams.get(PROFILE_PANEL_QUERY) === DISCIPLINES_PANEL
-  const [buildVersion, setBuildVersion] = useState(initialBuildVersion)
   const [current, setCurrent] = useState(initialCurrent)
   const [currentSecondary, setCurrentSecondary] = useState(initialCurrentSecondary)
-  const [selectedPrimaryId, setSelectedPrimaryId] = useState(initialCurrent.definition.id)
-  const [selectedSecondaryId, setSelectedSecondaryId] = useState(initialCurrentSecondary?.id ?? '')
+  const [committedAttributes, setCommittedAttributes] = useState(coreAttributes)
+  const selectedPrimaryId = current.definition.id
+  const selectedSecondaryId = currentSecondary?.id ?? ''
   const [activeSlot, setActiveSlot] = useState<DisciplineSlot>('primary')
-  const [preview, setPreview] = useState<BuildPreviewResponse['preview'] | null>(null)
+  const [lastChange, setLastChange] = useState<BuildPreviewResponse['preview'] | null>(null)
   const [remaining, setRemaining] = useState({
     primary: initialAttunement.primaryRemainingSeconds,
     secondary: initialAttunement.secondaryRemainingSeconds,
   })
+  const [synchronizing, setSynchronizing] = useState(open)
+  const [synchronizationFailed, setSynchronizationFailed] = useState(false)
   const [pendingPreview, setPendingPreview] = useState(false)
   const [pendingCommit, setPendingCommit] = useState(false)
   const [refreshingProfile, startProfileRefresh] = useTransition()
@@ -257,6 +278,93 @@ export function CharacterDisciplineBuildPanel({
   const countdownActive = shouldRunAttunementCountdown(open, remaining)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const dialogRef = useRef<HTMLElement>(null)
+  const requestRef = useRef<symbol | null>(null)
+  const syncRef = useRef<symbol | null>(null)
+  const commitCompletionRef = useRef<Promise<unknown> | null>(null)
+  const identityRef = useRef({ characterId, pathname, open })
+  const [wasOpen, setWasOpen] = useState(open)
+  if (wasOpen !== open) {
+    setWasOpen(open)
+    setSynchronizing(open)
+    setSynchronizationFailed(false)
+    if (!open) {
+      setLastChange(null)
+      setMessage(null)
+      setPendingPreview(false)
+      setPendingCommit(false)
+    }
+  }
+
+  useLayoutEffect(() => {
+    identityRef.current = { characterId, pathname, open }
+    return () => {
+      requestRef.current = null
+    }
+  }, [open, characterId, pathname])
+
+  const synchronizeCommittedBuild = useCallback(async () => {
+    const sync = Symbol('committed build refresh')
+    syncRef.current = sync
+    const isCurrentSync = () =>
+      syncRef.current === sync &&
+      identityRef.current.characterId === characterId &&
+      identityRef.current.pathname === pathname &&
+      identityRef.current.open &&
+      window.location.pathname === pathname
+    try {
+      // A reopened dialog must read after any abandoned commit settles.
+      await commitCompletionRef.current?.catch(() => undefined)
+      if (!isCurrentSync()) return
+      const response = await fetch('/api/character/build/disciplines', {
+        method: 'GET',
+        cache: 'no-store',
+      })
+      const body = (await response.json()) as BuildCommitResponse
+      if (!isCurrentSync()) return
+      if (!response.ok || !body.context) {
+        setSynchronizationFailed(true)
+        setMessage(
+          body.error?.message ??
+            'Committed Disciplines could not be refreshed. Close and reopen to retry.',
+        )
+        return
+      }
+      if (body.context.build.characterId !== characterId) {
+        setSynchronizationFailed(true)
+        setMessage('The selected character changed. Reopen Discipline Management to continue.')
+        return
+      }
+      setCurrent(body.context.current)
+      setCurrentSecondary(body.context.currentSecondary)
+      setCommittedAttributes(body.context.attributes)
+      setRemaining({
+        primary: body.context.attunement.primaryRemainingSeconds,
+        secondary: body.context.attunement.secondaryRemainingSeconds,
+      })
+      setSynchronizationFailed(false)
+    } catch {
+      if (!isCurrentSync()) return
+      setSynchronizationFailed(true)
+      setMessage('Committed Disciplines could not be refreshed. Close and reopen to retry.')
+    } finally {
+      if (isCurrentSync()) {
+        syncRef.current = null
+        setSynchronizing(false)
+      }
+    }
+  }, [characterId, pathname])
+
+  useEffect(() => {
+    let active = true
+    if (open)
+      queueMicrotask(() => {
+        if (active) void synchronizeCommittedBuild()
+      })
+    return () => {
+      active = false
+      syncRef.current = null
+    }
+  }, [open, synchronizeCommittedBuild])
 
   useEffect(() => {
     if (!open || !mounted) return
@@ -331,8 +439,8 @@ export function CharacterDisciplineBuildPanel({
   )
 
   const coreDeltas = useMemo(() => {
-    const currentAttributes = preview?.currentAttributes ?? coreAttributes
-    const proposedAttributes = preview?.proposedAttributes ?? coreAttributes
+    const currentAttributes = lastChange?.currentAttributes ?? committedAttributes
+    const proposedAttributes = lastChange?.proposedAttributes ?? committedAttributes
     return CHARACTER_ATTRIBUTE_IDS.map((attributeId) => ({
       id: attributeId,
       label: CHARACTER_ATTRIBUTE_LABELS[attributeId],
@@ -340,11 +448,12 @@ export function CharacterDisciplineBuildPanel({
       proposed: proposedAttributes[attributeId],
       direction: deltaDirection(currentAttributes[attributeId], proposedAttributes[attributeId]),
     }))
-  }, [coreAttributes, preview])
+  }, [committedAttributes, lastChange])
 
   const adventureDeltas = useMemo(() => {
-    const proposed = preview?.proposed ?? current
-    return Object.values(current.derived.stats).map((stat) => ({
+    const baseline = lastChange?.current ?? current
+    const proposed = lastChange?.proposed ?? current
+    return Object.values(baseline.derived.stats).map((stat) => ({
       id: stat.id,
       label: stat.label,
       unit: stat.unit,
@@ -352,30 +461,20 @@ export function CharacterDisciplineBuildPanel({
       proposed: proposed.derived.stats[stat.id].value,
       direction: deltaDirection(stat.value, proposed.derived.stats[stat.id].value),
     }))
-  }, [current, preview])
+  }, [current, lastChange])
 
   const currentSlotDefinition = activeSlot === 'primary' ? current.definition : currentSecondary
-  const proposedSlotDefinition =
-    activeSlot === 'primary'
-      ? (preview?.proposed.definition ?? current.definition)
-      : preview
-        ? preview.proposedSecondary
-        : currentSecondary
-  const changedCore = coreDeltas.filter((entry) => entry.direction !== 'neutral').slice(0, 4)
+  const changedCore = coreDeltas.filter((entry) => entry.direction !== 'neutral')
   const changedAdventure = adventureDeltas
     .filter((entry) => entry.direction !== 'neutral')
-    .slice(0, Math.max(0, 4 - changedCore.length))
-
-  const commitBlocked = Boolean(
-    pendingCommit ||
-    refreshingProfile ||
-    !preview ||
-    (preview.changes.primary && remaining.primary > 0) ||
-    (preview.changes.secondary && remaining.secondary > 0),
-  )
+    .slice(0, Math.max(0, 6 - changedCore.length))
 
   function setPanelOpen(nextOpen: boolean) {
-    if (!nextOpen && (pendingCommit || refreshingProfile)) return
+    if (!nextOpen && (requestRef.current || refreshingProfile)) return
+    if (!nextOpen) {
+      setLastChange(null)
+      setMessage(null)
+    }
     const params = new URLSearchParams(searchParams.toString())
     if (nextOpen) {
       params.set(PROFILE_PANEL_QUERY, DISCIPLINES_PANEL)
@@ -387,93 +486,132 @@ export function CharacterDisciplineBuildPanel({
     window.history.replaceState(null, '', href)
   }
 
-  async function previewSelection(primaryDisciplineId: string, secondaryDisciplineId: string) {
+  async function applySelection(primaryDisciplineId: string, secondaryDisciplineId: string) {
+    if (
+      requestRef.current ||
+      refreshingProfile ||
+      synchronizing ||
+      synchronizationFailed ||
+      !open ||
+      (activeSlot === 'primary' ? remaining.primary : remaining.secondary) > 0
+    )
+      return
     if (secondaryDisciplineId && primaryDisciplineId === secondaryDisciplineId) {
       setMessage('Primary and Secondary Disciplines must be different.')
       return
     }
-
-    setSelectedPrimaryId(primaryDisciplineId)
-    setSelectedSecondaryId(secondaryDisciplineId)
-    setMessage(null)
-
     if (
       primaryDisciplineId === current.definition.id &&
       secondaryDisciplineId === (currentSecondary?.id ?? '')
-    ) {
-      setPreview(null)
+    )
       return
-    }
 
+    const selection =
+      activeSlot === 'primary'
+        ? { primaryDisciplineId }
+        : { secondaryDisciplineId: secondaryDisciplineId || null }
+
+    const request = Symbol('discipline change')
+    requestRef.current = request
+    const isCurrentRequest = () =>
+      requestRef.current === request &&
+      identityRef.current.characterId === characterId &&
+      identityRef.current.pathname === pathname &&
+      identityRef.current.open &&
+      window.location.pathname === pathname
+    setMessage(null)
     setPendingPreview(true)
+    let commitStarted = false
     try {
       const response = await fetch('/api/character/build/disciplines', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          primaryDisciplineId,
-          secondaryDisciplineId: secondaryDisciplineId || null,
-        }),
+        body: JSON.stringify(selection),
       })
       const body = (await response.json()) as BuildPreviewResponse
+      if (!isCurrentRequest()) return
       if (!response.ok || !body.preview) {
-        setPreview(null)
-        setMessage(body.error?.message ?? 'The Discipline preview is unavailable.')
+        setMessage(
+          body.error?.message ?? 'The Discipline change is unavailable. Nothing was changed.',
+        )
         return
       }
-      setBuildVersion(body.preview.buildVersion)
-      setCurrent(body.preview.current)
-      setCurrentSecondary(body.preview.currentSecondary)
+      const preview = body.preview
+      if (preview.characterId !== characterId) {
+        setMessage('The selected character changed. Reopen Discipline Management to continue.')
+        return
+      }
       setRemaining({
-        primary: body.preview.attunement.primaryRemainingSeconds,
-        secondary: body.preview.attunement.secondaryRemainingSeconds,
+        primary: preview.attunement.primaryRemainingSeconds,
+        secondary: preview.attunement.secondaryRemainingSeconds,
       })
-      setPreview(body.preview)
-    } catch {
-      setPreview(null)
-      setMessage('The build preview service could not be reached. Nothing was changed.')
-    } finally {
+      if (
+        (preview.changes.primary && preview.attunement.primaryRemainingSeconds > 0) ||
+        (preview.changes.secondary && preview.attunement.secondaryRemainingSeconds > 0)
+      ) {
+        setMessage('That Discipline is still attuning. Nothing was changed.')
+        return
+      }
       setPendingPreview(false)
-    }
-  }
-
-  async function commit() {
-    if (!preview || commitBlocked) return
-    setPendingCommit(true)
-    setMessage(null)
-    try {
-      const response = await fetch('/api/character/build/disciplines', {
+      setPendingCommit(true)
+      commitStarted = true
+      const commitCompletion = fetch('/api/character/build/disciplines', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          expectedBuildVersion: buildVersion,
-          primaryDisciplineId: preview.proposed.definition.id,
-          secondaryDisciplineId: preview.proposedSecondary?.id ?? null,
+          expectedCharacterId: characterId,
+          expectedBuildVersion: preview.buildVersion,
+          ...selection,
           idempotencyKey: crypto.randomUUID(),
         }),
-      })
-      const body = (await response.json()) as BuildCommitResponse
-      if (!response.ok || !body.context) {
-        setMessage(body.error?.message ?? 'The Discipline build could not be changed.')
+      }).then(async (response) => ({
+        response,
+        body: (await response.json()) as BuildCommitResponse,
+      }))
+      commitCompletionRef.current = commitCompletion
+      const { response: committedResponse, body: committedBody } = await commitCompletion
+      if (!isCurrentRequest()) return
+      if (!committedResponse.ok || !committedBody.context) {
+        setMessage(committedBody.error?.message ?? 'The Discipline build could not be changed.')
         return
       }
-
-      setBuildVersion(body.context.build.buildVersion)
-      setCurrent(body.context.current)
-      setCurrentSecondary(body.context.currentSecondary)
-      setSelectedPrimaryId(body.context.current.definition.id)
-      setSelectedSecondaryId(body.context.currentSecondary?.id ?? '')
+      const context = committedBody.context
+      if (context.build.characterId !== characterId) {
+        setMessage('The selected character changed. Reopen Discipline Management to continue.')
+        return
+      }
+      setCommittedAttributes(context.attributes)
+      setCurrent(context.current)
+      setCurrentSecondary(context.currentSecondary)
       setRemaining({
-        primary: body.context.attunement.primaryRemainingSeconds,
-        secondary: body.context.attunement.secondaryRemainingSeconds,
+        primary: context.attunement.primaryRemainingSeconds,
+        secondary: context.attunement.secondaryRemainingSeconds,
       })
-      setPreview(null)
+      setLastChange({
+        ...preview,
+        proposed: context.current,
+        proposedAttributes: context.attributes,
+        proposedSecondary: context.currentSecondary,
+      })
       setMessage('Discipline changes committed.')
       startProfileRefresh(() => router.refresh())
     } catch {
-      setMessage('The build service could not be reached. Nothing was changed.')
+      if (!isCurrentRequest()) return
+      setMessage(
+        commitStarted
+          ? 'The build service could not confirm the change. Refresh to check your committed Disciplines.'
+          : 'The build service could not be reached. Nothing was changed.',
+      )
+      if (commitStarted) {
+        setSynchronizing(true)
+        void synchronizeCommittedBuild()
+      }
     } finally {
-      setPendingCommit(false)
+      if (isCurrentRequest()) {
+        requestRef.current = null
+        setPendingPreview(false)
+        setPendingCommit(false)
+      }
     }
   }
 
@@ -558,13 +696,13 @@ export function CharacterDisciplineBuildPanel({
                     </span>
                     <div>
                       <h2 id="discipline-build-heading">Discipline Management</h2>
-                      <p>Shape your path. Compare the build before you commit.</p>
+                      <p>Shape your path. Choose a slot, then select a Discipline to apply it.</p>
                     </div>
                   </div>
                   <button
                     type="button"
                     className={styles.close}
-                    disabled={pendingCommit || refreshingProfile}
+                    disabled={pendingPreview || pendingCommit || refreshingProfile}
                     onClick={() => setPanelOpen(false)}
                   >
                     <span aria-hidden="true">×</span>
@@ -580,19 +718,27 @@ export function CharacterDisciplineBuildPanel({
                     selectedPrimaryId={selectedPrimaryId}
                     selectedSecondaryId={selectedSecondaryId}
                     pendingPreview={pendingPreview}
+                    synchronizing={synchronizing}
                     pendingCommit={pendingCommit}
-                    refreshingProfile={refreshingProfile}
+                    refreshingProfile={refreshingProfile || synchronizationFailed}
                     primaryRemainingSeconds={remaining.primary}
                     secondaryRemainingSeconds={remaining.secondary}
                     activeSlot={activeSlot}
                     onSelect={(primaryId, secondaryId) => {
-                      void previewSelection(primaryId, secondaryId)
+                      void applySelection(primaryId, secondaryId)
                     }}
                   />
                   <div className={styles.disciplineDetail}>
                     <section className={styles.committedSection} aria-label="Currently committed">
                       <div className={styles.sectionTitle}>
-                        <h3>Currently Committed</h3>
+                        <h3>
+                          {synchronizing
+                            ? 'Loading Committed Disciplines…'
+                            : synchronizationFailed
+                              ? 'Committed Disciplines Unavailable'
+                              : 'Currently Committed'}
+                        </h3>
+                        <span>Click a card to edit its slot</span>
                       </div>
                       <div className={styles.current}>
                         <button
@@ -602,7 +748,13 @@ export function CharacterDisciplineBuildPanel({
                           data-active={activeSlot === 'primary'}
                           aria-pressed={activeSlot === 'primary'}
                           aria-label="Edit Primary Discipline"
-                          disabled={pendingPreview || pendingCommit || refreshingProfile}
+                          disabled={
+                            pendingPreview ||
+                            pendingCommit ||
+                            refreshingProfile ||
+                            synchronizing ||
+                            synchronizationFailed
+                          }
                           onClick={() => setActiveSlot('primary')}
                         >
                           <FoundationDisciplineSigil
@@ -613,6 +765,11 @@ export function CharacterDisciplineBuildPanel({
                             <span>Primary Discipline</span>
                             <strong>{current.definition.name}</strong>
                             <p>{committedDisciplineSummary(current.definition.summary)}</p>
+                            <small>
+                              {activeSlot === 'primary'
+                                ? 'Editing Primary · Choose from library'
+                                : 'Click to edit Primary'}
+                            </small>
                           </div>
                         </button>
                         {currentSecondary ? (
@@ -623,7 +780,13 @@ export function CharacterDisciplineBuildPanel({
                             data-active={activeSlot === 'secondary'}
                             aria-pressed={activeSlot === 'secondary'}
                             aria-label="Edit Secondary Discipline"
-                            disabled={pendingPreview || pendingCommit || refreshingProfile}
+                            disabled={
+                              pendingPreview ||
+                              pendingCommit ||
+                              refreshingProfile ||
+                              synchronizing ||
+                              synchronizationFailed
+                            }
                             onClick={() => setActiveSlot('secondary')}
                           >
                             <FoundationDisciplineSigil
@@ -634,6 +797,11 @@ export function CharacterDisciplineBuildPanel({
                               <span>Secondary Discipline</span>
                               <strong>{currentSecondary.name}</strong>
                               <p>{committedDisciplineSummary(currentSecondary.summary)}</p>
+                              <small>
+                                {activeSlot === 'secondary'
+                                  ? 'Editing Secondary · Choose from library'
+                                  : 'Click to edit Secondary'}
+                              </small>
                             </div>
                           </button>
                         ) : (
@@ -643,7 +811,13 @@ export function CharacterDisciplineBuildPanel({
                             data-active={activeSlot === 'secondary'}
                             aria-pressed={activeSlot === 'secondary'}
                             aria-label="Edit Secondary Discipline"
-                            disabled={pendingPreview || pendingCommit || refreshingProfile}
+                            disabled={
+                              pendingPreview ||
+                              pendingCommit ||
+                              refreshingProfile ||
+                              synchronizing ||
+                              synchronizationFailed
+                            }
                             onClick={() => setActiveSlot('secondary')}
                             data-av-surface="ink"
                             data-locked="true"
@@ -653,8 +827,13 @@ export function CharacterDisciplineBuildPanel({
                             </span>
                             <div>
                               <span>Secondary Discipline</span>
-                              <strong>Locked</strong>
+                              <strong>None</strong>
                               <p>A second discipline awaits.</p>
+                              <small>
+                                {activeSlot === 'secondary'
+                                  ? 'Editing Secondary · Choose from library'
+                                  : 'Click to edit Secondary'}
+                              </small>
                             </div>
                           </button>
                         )}
@@ -664,16 +843,22 @@ export function CharacterDisciplineBuildPanel({
                     <section
                       className={styles.comparisonGrid}
                       data-testid="primary-build-preview"
-                      aria-label="Discipline stat preview"
+                      aria-label="Selected Discipline and change impact"
                     >
                       <article className={styles.previewCard}>
                         <header>
-                          <span>{`Current ${activeSlot === 'primary' ? 'Primary' : 'Secondary'}`}</span>
-                          <b>● Committed</b>
+                          <span>{`Selected ${activeSlot === 'primary' ? 'Primary' : 'Secondary'}`}</span>
+                          <b>
+                            {synchronizing
+                              ? '● Refreshing'
+                              : synchronizationFailed
+                                ? '● Last known'
+                                : '● Committed'}
+                          </b>
                         </header>
                         <div className={styles.previewIdentity}>
                           <div>
-                            <strong>{currentSlotDefinition?.name ?? 'Locked'}</strong>
+                            <strong>{currentSlotDefinition?.name ?? 'None'}</strong>
                             {currentSlotDefinition ? (
                               <FocusBadges disciplineId={currentSlotDefinition.id} />
                             ) : (
@@ -682,54 +867,19 @@ export function CharacterDisciplineBuildPanel({
                           </div>
                         </div>
                         <div className={styles.statRows}>
-                          {coreDeltas.map((entry) => (
-                            <div className={styles.statValue} key={entry.id}>
-                              <span>{entry.label}</span>
-                              <strong>{entry.current}</strong>
+                          {CHARACTER_ATTRIBUTE_IDS.map((id) => (
+                            <div className={styles.statValue} key={id}>
+                              <span>{CHARACTER_ATTRIBUTE_LABELS[id]}</span>
+                              <strong>{committedAttributes[id]}</strong>
                             </div>
                           ))}
                         </div>
                       </article>
 
-                      <article className={styles.previewCard}>
-                        <header>
-                          <span>{`Preview ${activeSlot === 'primary' ? 'Primary' : 'Secondary'}`}</span>
-                          <b data-preview="true">● Preview</b>
-                        </header>
-                        <div className={styles.previewIdentity}>
-                          <div>
-                            <strong>{proposedSlotDefinition?.name ?? 'None'}</strong>
-                            {proposedSlotDefinition ? (
-                              <FocusBadges disciplineId={proposedSlotDefinition.id} />
-                            ) : (
-                              <small>No Secondary Discipline selected.</small>
-                            )}
-                          </div>
-                        </div>
-                        <div className={styles.statRows}>
-                          {coreDeltas.map((entry) => (
-                            <div
-                              className={styles.statValue}
-                              data-direction={entry.direction}
-                              key={entry.id}
-                            >
-                              <span>{entry.label}</span>
-                              <strong>
-                                {entry.proposed}
-                                {entry.direction === 'increase'
-                                  ? ' ▲'
-                                  : entry.direction === 'decrease'
-                                    ? ' ▼'
-                                    : ''}
-                              </strong>
-                            </div>
-                          ))}
-                        </div>
-                      </article>
-
-                      <aside className={styles.impactPanel}>
+                      <aside className={styles.impactPanel} aria-label="Change Impact">
                         <header>
                           <span>Change Impact</span>
+                          {lastChange ? <small>Last successful change</small> : null}
                         </header>
                         <div className={styles.impactRows}>
                           {changedCore.map((entry) => {
@@ -756,26 +906,20 @@ export function CharacterDisciplineBuildPanel({
                             </div>
                           ))}
                           {changedCore.length === 0 && changedAdventure.length === 0 ? (
-                            <p>No stat changes in the current preview.</p>
+                            <p>
+                              {lastChange
+                                ? 'No stat changes in the last successful change.'
+                                : 'Select a Discipline to see the change impact.'}
+                            </p>
                           ) : null}
                         </div>
                       </aside>
                     </section>
 
-                    <footer className={styles.dialogActions}>
-                      <button
-                        type="button"
-                        className={styles.confirmAction}
-                        onClick={() => void commit()}
-                        disabled={commitBlocked}
-                      >
-                        <span aria-hidden="true">⚔</span>
-                        {pendingCommit ? 'Committing…' : 'Confirm Change'}
-                      </button>
-                    </footer>
-
-                    {pendingPreview ? (
-                      <p className={styles.status}>Calculating authoritative preview…</p>
+                    {pendingPreview || pendingCommit ? (
+                      <p className={styles.status} role="status">
+                        Applying Discipline change…
+                      </p>
                     ) : null}
                     {message ? (
                       <p className={styles.status} role="status">

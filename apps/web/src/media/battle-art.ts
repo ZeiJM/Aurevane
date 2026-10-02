@@ -2,6 +2,18 @@
  * Source masters, prompts and deterministic derivative provenance: ART-BATTLE-007. */
 export const BATTLE_ART = [
   {
+    id: 'ui.battle.cockpit-ornament.v01',
+    kind: 'ui',
+    status: 'approved',
+    requestId: 'ART-BATTLE-COCKPIT-20261002',
+    generationRequestId: 'exec-d9e8652b-aa7a-43d9-b6d0-752f9d10aa61',
+    decorative: true,
+    alt: '',
+    src: '/media/art/battle/cockpit-ornament-v01.webp',
+    width: 2172,
+    height: 724,
+  },
+  {
     id: 'environment.battle.citadel-dusk.v01',
     kind: 'environment',
     status: 'approved',

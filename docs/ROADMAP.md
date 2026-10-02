@@ -4,6 +4,8 @@
 
 **Synchronized:** 2026-09-25 — world-experience scope and delivery ownership
 
+2026-10-02 Owner refinement adds immediate authoritative Discipline changes, committed-build roster labels, stable Techniques previews, compact Nexus panels and translucent shared cockpit material. Guard receives an explicitly approved independent two-owner-turn cooldown; Recovery timing is unchanged. This maintenance requires no migration or P5 activation. Battle Log redesign remains a proposal only. Evidence: `superpowers/verification/2026-10-02-roster-discipline-live-fixes.md`.
+
 This roadmap reflects the game that actually exists today. It formally credits early-delivered battle-platform work instead of pretending later phases must rebuild it.
 
 2026-10-01 Owner-authorized UI maintenance adds an independent persisted Support Action and three AI-aligned PvP map sizes while preserving existing combat authority and historical battles. Profile/Training/loadout/header refinements and Guided Fundamentals geometry are part of the same continuation, not a new phase. Verification/release status is tracked in `superpowers/verification/2026-10-01-techniques-support-action.md` and `../TASKS.md`.

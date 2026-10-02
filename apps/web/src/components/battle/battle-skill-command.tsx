@@ -18,6 +18,7 @@ import { createPortal } from 'react-dom'
 import { BattleInfoPopover } from './battle-info-popover'
 import {
   basicActionCharacteristicRows,
+  basicActionEffectExplanation,
   basicActionIdForCommand,
 } from '../character/basic-action-presentation'
 import { SkillCharacteristicRows } from '../character/skill-characteristic-rows'
@@ -105,6 +106,7 @@ export function BattleSkillCommand({
   const selectorRef = useRef<HTMLDivElement | null>(null)
   const canSwap = Boolean(selector && selector.options.length > 1)
   const basicActionId = basicActionIdForCommand(slot, label)
+  const basicActionExplanation = basicActionId ? basicActionEffectExplanation(basicActionId) : null
 
   const closeSelector = useCallback((restoreFocus = false) => {
     setSelectorOpen(false)
@@ -240,6 +242,9 @@ export function BattleSkillCommand({
               </div>
             )}
           </dl>
+          {basicActionExplanation ? (
+            <p data-basic-action-effect-explanation="true">{basicActionExplanation}</p>
+          ) : null}
           {tags.length > 0 ? (
             <div className={styles.tags} data-battle-skill-tags="details">
               {tags.map((tag) => (

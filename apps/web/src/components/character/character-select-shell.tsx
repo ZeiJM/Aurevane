@@ -1,7 +1,6 @@
 'use client'
 
 import type { PersistedCharacter } from '@aurevane/game-core/character/persistence'
-import { getFoundationDiscipline } from '@aurevane/game-core/character/foundation-disciplines'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
@@ -279,7 +278,7 @@ export function CharacterSelectShell({
               )
             }
 
-            const discipline = getFoundationDiscipline(character.foundationDisciplineId)
+            const { primary, secondary } = character.disciplines
             const pending = Boolean(character.deletionExecuteAfter)
             return (
               <article
@@ -306,7 +305,14 @@ export function CharacterSelectShell({
                 <div className={styles.identity}>
                   <h2>{character.name}</h2>
                   <p>
-                    Level {character.level} · {discipline?.name ?? 'Adventurer'}
+                    Level {character.level} ·{' '}
+                    <span aria-label="Primary Discipline">{primary.name}</span>
+                    {secondary ? (
+                      <>
+                        {' / '}
+                        <span aria-label="Secondary Discipline">{secondary.name}</span>
+                      </>
+                    ) : null}
                   </p>
                 </div>
                 <div className={styles.slotActions}>
@@ -368,7 +374,6 @@ export function CharacterSelectShell({
                 'Delete Account'
               )}
             </button>
-            <small>Account removal has a cancellable 24-hour grace period.</small>
           </div>
         </footer>
       </main>

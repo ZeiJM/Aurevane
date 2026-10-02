@@ -2,7 +2,7 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { expect, test, type Page, type TestInfo } from '@playwright/test'
 
-import { previewDiscipline } from './discipline-library-helpers'
+import { selectDiscipline } from './discipline-library-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 function uniqueCharacterName(): string {
@@ -68,8 +68,10 @@ test('single-Discipline Nexus aligns its four selected slots and preserves locke
 async function assertDesktopOverviewGeometry(page: Page, testInfo: TestInfo, build: string) {
   const workspace = page.locator('[data-arsenal-workspace]')
   for (const viewport of [
+    { width: 1280, height: 720 },
     { width: 1366, height: 768 },
     { width: 1536, height: 614 },
+    { width: 1920, height: 1080 },
   ]) {
     await page.setViewportSize(viewport)
     await page.evaluate(() => document.fonts.ready)
@@ -127,8 +129,14 @@ async function assertDesktopOverviewGeometry(page: Page, testInfo: TestInfo, bui
               : null,
         }
       })
+      const techniques = element.querySelector('[data-arsenal-panel="techniques"]')!
+      const summary = techniques.firstElementChild!
+      const manage = techniques.querySelector('[data-testid="skill-build-panel"] > button')!
+      const attunement = element.querySelector('[data-arsenal-panel="attunement"]')!
       return {
         artSize: token.endsWith('rem') ? parseFloat(token) * rem : parseFloat(token),
+        managementGap: box(manage).y - (box(summary).y + box(summary).height),
+        attunementGap: box(attunement).y - (box(techniques).y + box(techniques).height),
         disciplines,
         frames,
       }
@@ -149,6 +157,19 @@ async function assertDesktopOverviewGeometry(page: Page, testInfo: TestInfo, bui
       body: screenshot,
       contentType: 'image/png',
     })
+    expect(
+      metrics.managementGap,
+      'Manage Techniques follows the visible Skills content',
+    ).toBeGreaterThanOrEqual(0)
+    expect(
+      metrics.managementGap,
+      'free viewport height must not become an empty Skills gap',
+    ).toBeLessThanOrEqual(14)
+    expect(
+      metrics.attunementGap,
+      'Attunement starts immediately below the Skills panel',
+    ).toBeGreaterThanOrEqual(0)
+    expect(metrics.attunementGap).toBeLessThanOrEqual(14)
     expect(metrics.disciplines).toHaveLength(2)
     const [primary, secondary] = metrics.disciplines
     expect(primary.slot).toBe('primary')
@@ -355,7 +376,7 @@ async function assertDesktopTechniqueGeometry(page: Page, testInfo: TestInfo, bu
         noOverflow(card.overflow)
         expect(
           card.art.width,
-          'readable artwork survives the compact gallery budget',
+          `${viewport.width}×${viewport.height}: readable artwork survives the compact gallery budget`,
         ).toBeGreaterThanOrEqual(64)
         expect(card.art.width).toBeLessThanOrEqual(metrics.artSize + 1)
         expect(
@@ -404,8 +425,7 @@ test('mixed Techniques shows every primary and secondary card without desktop sc
     .getByRole('button', { name: /Manage Disciplines/ })
     .click()
   const disciplineDialog = page.getByRole('dialog', { name: 'Discipline Management' })
-  await previewDiscipline(disciplineDialog, 'Secondary', 'Lifebinder')
-  await disciplineDialog.getByRole('button', { name: /Confirm Change/ }).click()
+  await selectDiscipline(disciplineDialog, 'Secondary', 'Lifebinder')
   await expect(page.getByRole('status')).toContainText('Discipline changes committed.')
   await disciplineDialog.getByRole('button', { name: 'Close' }).click()
   await assertDesktopOverviewGeometry(page, testInfo, 'mixed')

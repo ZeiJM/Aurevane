@@ -1,7 +1,7 @@
 import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test'
 import { createClient } from '@supabase/supabase-js'
 
-import { previewDiscipline } from './discipline-library-helpers'
+import { selectDiscipline } from './discipline-library-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 const rosterListSelector =
@@ -583,8 +583,7 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
       await page.reload()
       await page.getByTestId('primary-build-panel').getByRole('button').click()
       const discipline = page.getByRole('dialog', { name: 'Discipline Management' })
-      await previewDiscipline(discipline, 'Secondary', 'Lifebinder')
-      await discipline.getByRole('button', { name: /Confirm Change/ }).click()
+      await selectDiscipline(discipline, 'Secondary', 'Lifebinder')
       await expect(page.getByRole('status')).toContainText('Discipline changes committed.')
       await testInfo.attach('phone-discipline-preview', {
         body: await page.screenshot(),

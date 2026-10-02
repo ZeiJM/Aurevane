@@ -118,6 +118,8 @@ Each fully authored Discipline provides eight learnable Skills. A pure build dra
 
 Owner-approved 2026-10-01: one separately saved Support Action (Guard, HP Recovery or MP Recovery) occupies battle slot 3 without consuming the four Discipline Skill selections. Guard remains the legacy default. New battles pin the choice; named loadouts retain it. Existing recovery costs, shared cooldown and resource legality remain authoritative. Guided Fundamentals retains an exercise-only Guard practice control when Recovery occupies slot 3.
 
+Owner-approved 2026-10-02: Guard has its own two-owner-turn cooldown through canonical inherent-action authority. HP/MP Recovery retain their separate shared two-turn cooldown. Resumed battles begin Guard cooldown on their next successful use; no retroactive lock or schema migration is needed. Preserve AP costs and Guarded potency, stacking and duration.
+
 Pure build:
 
 ```text

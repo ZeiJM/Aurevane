@@ -2,6 +2,8 @@
 
 ## Support Action — Owner-approved 2026-10-01
 
+2026-10-02 refinement: Guard has an independent two-owner-turn cooldown. Recovery retains its separate shared two-turn cooldown. Discipline library choices now save immediately through authoritative build services; no separate confirmation is required. Existing eligibility, attunement, version and identity checks remain required.
+
 Techniques contains two eight-Skill Discipline libraries and one independent Support Action choice: Guard, HP Recovery or MP Recovery. Four Discipline Skills retain their existing capacity/source rules. The Support Action is saved with the character build and named loadouts, and new battles pin it in slot 3. Legacy characters/snapshots default to Guard. Existing AP costs, recovery cooldown, potency and full-resource legality remain unchanged. Guided Fundamentals retains access to its Guard lesson without replacing a saved Recovery choice. See `superpowers/specs/2026-10-01-techniques-support-action.md` and the same-date verification record for implementation and release status.
 
 ## Phase 4 roster and effect implementation — 2026-09-11

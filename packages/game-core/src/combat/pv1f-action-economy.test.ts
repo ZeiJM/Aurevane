@@ -389,13 +389,18 @@ describe('PV-1F MP Recovery', () => {
 })
 
 describe('PV-1F status stacking', () => {
-  it('allows Guard to add another Guarded stack and charges AP for each application', () => {
-    const firstGuard = executePv1fAction(lethalEncounter('player'), PV1F_GUARD_ACTION_ID, {
+  it('adds Guard to an existing Guarded stack without changing its duration or AP cost', () => {
+    const initial = lethalEncounter('player')
+    const firstGuard = executePv1fAction(initial, PV1F_GUARD_ACTION_ID, {
       kind: 'self',
     })
-    const secondGuard = executePv1fAction(firstGuard.state, PV1F_GUARD_ACTION_ID, {
-      kind: 'self',
-    })
+    const secondGuard = executePv1fAction(
+      { ...initial, statusState: firstGuard.state.statusState },
+      PV1F_GUARD_ACTION_ID,
+      {
+        kind: 'self',
+      },
+    )
     const player = secondGuard.state.tactical.battle.combatants.find(
       (combatant) => combatant.id === 'player',
     )
@@ -407,7 +412,7 @@ describe('PV-1F status stacking', () => {
       ?.statuses.find((status) => status.statusId === 'guarded')
 
     expect(guarded).toMatchObject({ stacks: 2, remainingOwnerTurnStarts: 2 })
-    expect(economy?.current).toBe(100 - PV1F_GUARD_COST * 2)
+    expect(economy?.current).toBe(100 - PV1F_GUARD_COST)
   })
 })
 
@@ -416,6 +421,54 @@ describe('P3.3 recovery cooldown authority', () => {
     const recruitTurn = finishPv1fTurn(state, 'east').state
     return finishPv1fTurn(recruitTurn, 'west').state
   }
+
+  it('gives Guard an independent two-owner-turn cooldown that survives reload and expires', () => {
+    const encounter = lethalEncounter('player')
+    const player = encounter.tactical.battle.combatants.find((entry) => entry.id === 'player')!
+    player.hp = 25
+    player.mp = 5
+    const used = executePv1fAction(encounter, PV1F_GUARD_ACTION_ID, { kind: 'self' })
+    expect(readPv1fActionEconomy(used.state, 'player')?.current).toBe(70)
+    expect(readPv1fActionCooldown(used.state, 'player', PV1F_GUARD_ACTION_ID)).toMatchObject({
+      active: true,
+      cooldownKey: 'basic.guard',
+      ownerTurns: 2,
+      ticksRemaining: 3,
+    })
+    expect(
+      evaluatePv1fAction(used.state, PV1F_GUARD_ACTION_ID, { kind: 'self' }).evaluation.issues,
+    ).toContainEqual(expect.objectContaining({ code: 'cooldown-active' }))
+    expect(() => executePv1fAction(used.state, PV1F_GUARD_ACTION_ID, { kind: 'self' })).toThrow(
+      'cooling down',
+    )
+    expect(readPv1fActionCooldown(used.state, 'player', PV1F_RECOVER_ACTION_ID)?.active).toBe(false)
+    const recovered = executePv1fAction(used.state, PV1F_RECOVER_ACTION_ID, { kind: 'self' })
+    expect(
+      readPv1fActionCooldown(recovered.state, 'player', PV1F_GUARD_ACTION_ID)?.ticksRemaining,
+    ).toBe(3)
+    expect(
+      readPv1fActionCooldown(recovered.state, 'player', PV1F_MP_RECOVER_ACTION_ID)?.active,
+    ).toBe(true)
+    let restored = JSON.parse(JSON.stringify(recovered.state)) as StatDrivenCombatEncounterState
+    for (const ticksRemaining of [2, 1]) {
+      restored = backToPlayer(restored)
+      expect(readPv1fActionCooldown(restored, 'player', PV1F_GUARD_ACTION_ID)?.ticksRemaining).toBe(
+        ticksRemaining,
+      )
+      expect(
+        evaluatePv1fAction(restored, PV1F_GUARD_ACTION_ID, { kind: 'self' }).evaluation.legal,
+      ).toBe(false)
+    }
+    restored = backToPlayer(restored)
+    expect(readPv1fActionCooldown(restored, 'player', PV1F_GUARD_ACTION_ID)?.active).toBe(false)
+    expect(
+      evaluatePv1fAction(restored, PV1F_GUARD_ACTION_ID, { kind: 'self' }).evaluation.legal,
+    ).toBe(true)
+    const reused = executePv1fAction(restored, PV1F_GUARD_ACTION_ID, { kind: 'self' })
+    expect(
+      readPv1fActionCooldown(reused.state, 'player', PV1F_GUARD_ACTION_ID)?.ticksRemaining,
+    ).toBe(3)
+  })
 
   it('shares the canonical two-own-turn Recovery cooldown across HP and MP recovery', () => {
     const encounter = lethalEncounter('player')

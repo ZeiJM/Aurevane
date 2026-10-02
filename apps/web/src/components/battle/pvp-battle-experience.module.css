@@ -335,11 +335,16 @@
   font-size: 0.75rem;
 }
 .commandDeck {
+  --av-battle-cockpit-material:
+    radial-gradient(ellipse at 12% 100%, #437e7420, transparent 42%),
+    radial-gradient(ellipse at 72% 0%, #697a9d18, transparent 50%),
+    linear-gradient(125deg, #e7d9bcd9, #cabb9cd9);
   --av-cockpit-art-size: min(4.875rem, calc((100cqi - 16rem) / 10));
   container-type: inline-size;
   --battle-command-name-height: 1.625rem;
   --battle-command-gap: 0.125rem;
   position: relative;
+  isolation: isolate;
   display: grid;
   grid-template-columns: minmax(0, 4fr) minmax(0, 6fr) minmax(9.5rem, 1.5fr);
   gap: 0.3rem;
@@ -351,10 +356,19 @@
   --av-text-dim: #685944;
   --av-brass-300: #766037;
   color: #302a22;
-  background: linear-gradient(125deg, #e7d9bc, #cabb9c);
+  background: var(--av-battle-cockpit-material);
   box-shadow:
     inset 0 0 0 3px #e5d7bc66,
     inset 0 0 0 4px #9c865744;
+}
+.commandDeck::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--av-battle-cockpit-ornament) center / 100% 100% no-repeat;
+  opacity: 0.2;
 }
 .context {
   grid-column: 1 / -1;
@@ -508,10 +522,7 @@
     --battle-command-gap: 1px;
     padding: 4px max(0.5rem, calc((100% - 88rem) / 2)) 0;
     align-content: start;
-    background:
-      radial-gradient(ellipse at 12% 100%, #437e7433, transparent 42%),
-      radial-gradient(ellipse at 72% 0%, #697a9d26, transparent 50%),
-      linear-gradient(125deg, #e7d9bc, #cabb9c);
+    background: var(--av-battle-cockpit-material);
   }
   .commands > article strong {
     font-size: max(0.625rem, calc(var(--battle-command-name-font) * 0.923));

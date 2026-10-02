@@ -1,5 +1,9 @@
 # AUREVANE Combat Design Bible
 
+## Guard timing — Owner-approved 2026-10-02
+
+Guard has an independent **two-owner-turn cooldown**, beginning when it is successfully used. HP/MP Recovery retain their separate shared two-turn cooldown. The cooldown applies through the canonical inherent-action rule to new and resumed battles; an old battle begins it on its next Guard use, without retroactive state or changes to pinned authored Skills. AP costs, Guarded potency/stacking/duration and recovery legality remain unchanged. Implementation/release evidence: `superpowers/verification/2026-10-02-roster-discipline-live-fixes.md`.
+
 ## Support Action and Hall map sizes — 2026-10-01
 
 Battle slot 3 uses the character build's separately saved Support Action: Guard, HP Recovery or MP Recovery, with Guard as the legacy default. New battles and named loadouts retain the committed choice; existing battles do not change when a character edits Techniques. Existing costs, recovery cooldown and resource legality remain unchanged. Guided Fundamentals is pinned to its 9×7 Duel Yard and provides an exercise-only Practice Guard control when Recovery occupies slot 3. PvP Direct offers Small (9×7), Medium (12×7), Large (15×7), sharing authored AI geometry; historic sessions retain their recorded boards. Release evidence is tracked in `superpowers/verification/2026-10-01-techniques-support-action.md`.
@@ -316,7 +320,8 @@ Guard applies one stack of **15% incoming-damage reduction for 2 authoritative t
 current validation rules. Guarded may be reapplied up to three stacks; each application spends AP,
 adds a stack until the cap, and refreshes the shared authoritative duration.
 
-The duration follows authoritative turn progression, not client animation timing.
+The duration follows authoritative turn progression, not client animation timing. Guard itself has
+a two-owner-turn cooldown independent of Recovery. Both effects and cooldowns advance on the server.
 
 Released buffs and debuffs use their authored stack cap rather than a universal one-stack block.
 Lowered Guard uses the same three-stack cap and retains its one-owner-turn-start duration.

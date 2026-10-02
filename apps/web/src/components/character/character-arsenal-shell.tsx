@@ -336,7 +336,8 @@ export function CharacterArsenalShell({
           </div>
 
           <CharacterDisciplineBuildPanel
-            initialBuildVersion={disciplineBuild.buildVersion}
+            key={profile.characterId}
+            characterId={profile.characterId}
             initialCurrent={disciplineBuild.current}
             initialCurrentSecondary={disciplineBuild.currentSecondary}
             availablePrimaries={disciplineBuild.availablePrimaries}

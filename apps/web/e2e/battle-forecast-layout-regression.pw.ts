@@ -4,7 +4,7 @@ import path from 'node:path'
 
 import { expect, test, type Page, type Route, type TestInfo } from '@playwright/test'
 import type { BattleSessionView } from '../src/server/battle/battle-session-service'
-import { previewDiscipline } from './discipline-library-helpers'
+import { selectDiscipline } from './discipline-library-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 const viewports = [
@@ -56,8 +56,7 @@ async function equipForecastSkills(page: Page) {
   await page.goto('/game/nexus')
   await page.getByRole('button', { name: /Manage Disciplines/ }).click()
   const management = page.getByRole('dialog', { name: 'Discipline Management', exact: true })
-  await previewDiscipline(management, 'Primary', 'Frostweaver')
-  await management.getByRole('button', { name: /Confirm Change/ }).click()
+  await selectDiscipline(management, 'Primary', 'Frostweaver')
   await expect(page.getByTestId('primary-discipline-chip')).toHaveText('Frostweaver')
   await management.getByRole('button', { name: 'Close', exact: true }).click()
   await page.getByRole('button', { name: /Manage Techniques/ }).click()

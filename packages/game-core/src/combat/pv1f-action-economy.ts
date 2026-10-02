@@ -109,6 +109,7 @@ export const PV1F_RECOVER_PERCENT = 10 as const
 export const PV1F_MP_RECOVER_PERCENT = 10 as const
 export const PV1F_STATUS_MAXIMUM_STACKS = 3 as const
 export const PV1F_RECOVERY_COOLDOWN_OWNER_TURNS = 2 as const
+export const PV1F_GUARD_COOLDOWN_OWNER_TURNS = 2 as const
 export const PV1F_REPEAT_SKILL_EFFECTIVENESS_BASIS_POINTS = 5_000 as const
 export const PV1F_LAST_MATURE_SKILL_RESOURCE_PREFIX = 'pv1f.last-mature-skill.' as const
 export const PV1F_SUMMON_ABILITY_USED_TURN_KEY = 'pv1f.summon-ability-used-turn' as const
@@ -116,6 +117,11 @@ export const PV1F_SUMMON_ABILITY_USED_TURN_KEY = 'pv1f.summon-ability-used-turn'
 export const PV1F_RECOVERY_COOLDOWN: SkillCooldownDefinition = {
   key: 'basic.recovery',
   ownerTurns: PV1F_RECOVERY_COOLDOWN_OWNER_TURNS,
+}
+
+export const PV1F_GUARD_COOLDOWN: SkillCooldownDefinition = {
+  key: PV1F_GUARD_ACTION_ID,
+  ownerTurns: PV1F_GUARD_COOLDOWN_OWNER_TURNS,
 }
 
 export const PV1F_ACTION_ECONOMY_RESOURCE_KEY = 'pv1f.action-economy' as const
@@ -392,6 +398,7 @@ export function preparePv1fTurnEconomy(
 }
 
 export function pv1fCooldownForAction(actionId: string): SkillCooldownDefinition | null {
+  if (actionId === PV1F_GUARD_ACTION_ID) return PV1F_GUARD_COOLDOWN
   if (actionId === PV1F_RECOVER_ACTION_ID || actionId === PV1F_MP_RECOVER_ACTION_ID) {
     return PV1F_RECOVERY_COOLDOWN
   }

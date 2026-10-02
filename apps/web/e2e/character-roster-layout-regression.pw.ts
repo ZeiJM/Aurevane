@@ -148,7 +148,6 @@ for (const longName of [false, true]) {
         const accountDelete = document.querySelector('[data-testid="delete-account-button"]')!
         const locked = node.querySelector('[data-locked="true"]')!
         const deleteStyle = getComputedStyle(accountDelete)
-        const deleteSupport = accountDelete.parentElement?.querySelector('small')
         return {
           board: rect(node),
           hero: rect(hero),
@@ -164,7 +163,6 @@ for (const longName of [false, true]) {
           documentScroll: document.documentElement.scrollHeight - innerHeight,
           deleteJustify: deleteStyle.justifyContent,
           deleteTextAlign: deleteStyle.textAlign,
-          deleteSupportAlign: deleteSupport ? getComputedStyle(deleteSupport).textAlign : '',
           viewportCenter: node.getBoundingClientRect().x + node.getBoundingClientRect().width / 2,
         }
       })
@@ -217,9 +215,16 @@ for (const longName of [false, true]) {
         .toBeLessThanOrEqual(2)
       expect.soft(metrics.deleteJustify, `${label}: Delete Account content centered`).toBe('center')
       expect.soft(metrics.deleteTextAlign, `${label}: Delete Account text centered`).toBe('center')
-      expect
-        .soft(metrics.deleteSupportAlign, `${label}: deletion support text centered`)
-        .toBe('center')
+      const accountManagement = page.locator(
+        '[data-roster-stage] > footer[aria-label="Account management"]',
+      )
+      await expect(
+        accountManagement.locator('p, small'),
+        `${label}: removed decorative deletion support text stays absent`,
+      ).toHaveCount(0)
+      await expect(accountManagement).not.toContainText(
+        'Account removal has a cancellable 24-hour grace period.',
+      )
       expect
         .soft(metrics.lockedBackground, `${label}: approved parchment locked cards`)
         .toContain('radial-gradient')
