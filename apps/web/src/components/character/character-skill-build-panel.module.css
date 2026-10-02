@@ -700,7 +700,7 @@
 
 .saveState {
   min-height: 1rem;
-  color: #5b707d;
+  color: #263d46;
   font: 700 0.8125rem/1.2 var(--av-font-body);
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -719,7 +719,7 @@
   scrollbar-gutter: stable;
   margin: 0;
   padding: 0 0.8rem 0.45rem;
-  color: #5b707d;
+  color: #263d46;
   font-size: 0.8125rem;
   text-align: center;
 }
