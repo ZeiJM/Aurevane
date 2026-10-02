@@ -144,13 +144,15 @@
 }
 @media (min-width: 821px) and (max-height: 700px) {
   .card {
-    padding: 0.2rem;
+    /* Reclaim padding before the fixed rail budget reduces the portrait below 32px. */
+    padding: 0.1rem;
   }
   .identity {
     padding-block: 0.1rem;
   }
   .vitals {
     gap: 0.125rem;
+    padding-bottom: 0.2rem;
   }
 }
 @media (max-width: 820px) {

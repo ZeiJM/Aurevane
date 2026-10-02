@@ -210,7 +210,7 @@ Explain current behavior precisely:
 - Short / Medium / Extended are server-timed;
 - longer plans trade hourly efficiency for convenience;
 - simply being offline/idle creates no new reward;
-- stopping an unfinished plan settles its server-frozen earned portion and returns to plan selection; if settlement fails, the report remains available to retry;
+- stopping an unfinished plan freezes its server-earned portion into a Training Report; stopped and completed reports wait for an explicit Claim action. A successful claim returns to plan selection; a failed claim keeps the report available to retry;
 - completed Training Reports are server-owned/idempotent;
 - active training blocks starting a new Battle Hall/live fight under current rules;
 - ordinary non-combat account/reference/social surfaces may remain usable;

@@ -11,8 +11,8 @@ test('account entry is responsive, focusable, stable, and media-safe', async ({ 
   await expect(title).toBeVisible()
   const hero = page.locator('[aria-labelledby="aurevane-title"]')
   await expect(hero).toBeVisible()
-  const artwork = hero.locator('img').first()
-  await expect(artwork).toHaveAttribute('src', /adventure%2Fthreshold-v01|adventure\/threshold-v01/)
+  const artwork = page.locator('[data-approved-entry="gateway"] main > [aria-hidden="true"] img')
+  await expect(artwork).toHaveAttribute('src', /entry%2Fgateway-v01|entry\/gateway-v01/)
   const artworkWidth = await artwork.evaluate(async (element) => {
     const image = element as HTMLImageElement
     await image.decode()
@@ -110,7 +110,7 @@ test('a new account persists its private profile across refresh, sign-out, and s
   await expect(page.getByText('Available later', { exact: true })).toBeVisible()
 
   await page.reload()
-  await expect(page.getByRole('heading', { name: 'Choose your character.' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Choose your character' })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Create Character' })).toHaveCount(1)
   await expect(page.getByText('Additional character slot', { exact: true })).toBeVisible()
   await expect(
@@ -126,7 +126,7 @@ test('a new account persists its private profile across refresh, sign-out, and s
   await page.getByRole('button', { name: 'Enter AUREVANE' }).click()
 
   await expect(page).toHaveURL(/\/game$/)
-  await expect(page.getByRole('heading', { name: 'Choose your character.' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Choose your character' })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Create Character' })).toHaveCount(1)
 })
 

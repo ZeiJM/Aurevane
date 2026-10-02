@@ -59,8 +59,43 @@
   font: 600 13px var(--av-font-body);
 }
 
+.axis {
+  cursor: pointer;
+  outline: none;
+}
+.axisHitTarget {
+  stroke: transparent;
+  stroke-width: 14;
+  pointer-events: stroke;
+}
+.labelHitTarget {
+  fill: transparent;
+  stroke: transparent;
+  pointer-events: all;
+}
+.axis:hover .label,
+.axis:focus-visible .label {
+  fill: #126768;
+}
+.axis:focus-visible .labelHitTarget {
+  stroke: var(--av-focus);
+  stroke-width: 2;
+}
+
 .panel h2::before {
   content: '✧';
   color: #92763f;
   margin-right: 0.5rem;
+}
+
+@media (min-width: 1101px) and (max-height: 680px) {
+  .panel svg {
+    width: min(100%, 12.5rem);
+  }
+  .label {
+    font-size: 18px;
+  }
+  .value {
+    font-size: 15px;
+  }
 }

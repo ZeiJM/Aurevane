@@ -254,6 +254,16 @@
   .root {
     padding-left: 0.35rem;
   }
+  .skillAction strong,
+  .specialAction strong,
+  .empty > strong,
+  .special > strong {
+    font-size: max(0.625rem, calc(var(--battle-command-name-font) * 0.923));
+  }
+  .future strong {
+    font-size: calc(var(--battle-command-name-font, 0.8125rem) * 0.875);
+    line-height: 1.1;
+  }
   .skill,
   .empty,
   .special,
@@ -318,7 +328,7 @@
   }
   .root,
   .skills {
-    gap: 0.3rem;
+    gap: var(--battle-command-gap) 0.3rem;
   }
   .artworkFrame {
     width: min(100%, var(--av-cockpit-art-size));

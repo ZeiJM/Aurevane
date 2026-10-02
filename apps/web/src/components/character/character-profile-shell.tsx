@@ -18,7 +18,6 @@ import { Surface } from '@aurevane/ui'
 
 import { CharacterAttributeAllocationPanel } from '@/components/character/character-attribute-allocation-panel'
 import { CharacterRailSynchronizedLayout } from '@/components/character/character-rail-synchronized-layout'
-import { CharacterBuildTendencies } from '@/components/character/character-build-tendencies'
 import { CharacterProfileDetails } from '@/components/character/character-profile-details'
 import { type SupernaturalChoiceOption } from '@/components/character/character-supernatural-choice-controls'
 import { getStarterPortraitImageAssetId } from '@/media/character'
@@ -200,7 +199,7 @@ export function CharacterProfileShell({
           cycleNumber={profile.progression.cycleNumber}
           attributes={profile.attributes}
           derived={disciplineBuild.current.derived}
-          buildTendencies={<CharacterBuildTendencies attributes={profile.attributes} />}
+          showBuildTendencies
           attributeResetControl={
             <CharacterAttributeAllocationPanel
               initialAllocation={attributeAllocation}

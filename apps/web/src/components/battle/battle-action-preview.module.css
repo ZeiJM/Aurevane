@@ -1,7 +1,8 @@
 .preview {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: 1.125rem minmax(0, 1fr);
+  grid-template-rows: max-content max-content;
+  align-content: center;
   gap: 0.15rem 0.35rem;
   min-width: 0;
   min-height: 0;
@@ -25,9 +26,18 @@
 }
 .forecast {
   grid-row: 2;
+  /* Target portraits and font ink retain room within the fixed-height preview strip. */
+  min-height: 1.25rem;
 }
-.preview[data-battle-preview-has-parameters] .forecast {
-  grid-row: 2;
+/* An idle forecast has one centered line; an empty parameter lane must not reserve row one. */
+.preview:has(.parameters > .inlineChips:empty):not([data-battle-preview-has-parameters]) {
+  grid-template-rows: max-content;
+}
+.preview:not([data-battle-preview-has-parameters]) .parameters:has(> .inlineChips:empty) {
+  display: none;
+}
+.preview:has(.parameters > .inlineChips:empty):not([data-battle-preview-has-parameters]) .forecast {
+  grid-row: 1;
 }
 .parameters > span,
 .forecast > span {

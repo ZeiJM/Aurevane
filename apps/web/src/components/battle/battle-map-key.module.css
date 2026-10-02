@@ -21,7 +21,7 @@
 }
 .sample {
   display: grid;
-  grid-template-columns: 2rem minmax(0, 1fr);
+  grid-template-columns: min(2rem, 35%) minmax(0, 1fr);
   align-items: center;
   gap: 0.2rem;
   min-width: 0;
@@ -105,14 +105,14 @@
     scrollbar-color: #756b56 #e5d8be;
   }
   .sample {
-    grid-template-columns: 1.75rem minmax(0, 1fr);
+    grid-template-columns: min(2.75rem, 38%) minmax(0, 1fr);
     padding: 0;
     font-size: 0.6875rem;
     line-height: 1.1;
     gap: 0.2rem;
   }
   .sample i {
-    width: 1.75rem;
+    width: 100%;
     height: 1.75rem;
   }
 }
@@ -124,13 +124,23 @@
     gap: 0.125rem;
   }
   .sample {
-    grid-template-columns: 1.5rem minmax(0, 1fr);
+    grid-template-columns: min(2rem, 35%) minmax(0, 1fr);
     gap: 0.1rem;
     padding: 0;
     font-size: 0.625rem;
   }
   .sample i {
-    width: 1.5rem;
+    width: 100%;
     height: 1.5rem;
+  }
+}
+
+@media (min-width: 1101px) and (max-width: 1400px) {
+  .sample {
+    grid-template-columns: min(2.25rem, 38%) minmax(0, 1fr);
+    font-size: 0.625rem;
+  }
+  .sample i {
+    width: 100%;
   }
 }

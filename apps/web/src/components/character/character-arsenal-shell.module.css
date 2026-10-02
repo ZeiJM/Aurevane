@@ -505,10 +505,6 @@
   gap: 0.2rem;
   min-width: 0;
 }
-.supportSummary small {
-  color: #4c4f42;
-  font-size: 0.75rem;
-}
 .supportSummary strong {
   color: #293a32;
   font: 600 1rem/1.2 var(--av-font-display);
@@ -553,8 +549,10 @@
 .techniqueSummary .supportSummary > div {
   justify-items: center;
 }
-.techniqueSummary .supportSummary small {
-  font-size: 0.6875rem;
+.techniqueSummary .supportSummary > header {
+  align-self: stretch;
+  width: 100%;
+  justify-content: center;
 }
 .techniqueSummary .supportSummary strong {
   font-size: 0.875rem;
@@ -571,25 +569,104 @@
   .techniqueSummary .supportSummary > div {
     justify-items: start;
   }
+  .techniqueSummary .supportSummary > header {
+    grid-column: 1 / -1;
+    justify-content: start;
+    text-align: left;
+  }
 }
 
 @media (min-width: 821px) {
   .layout {
-    --av-cockpit-art-size: 4rem;
+    --av-cockpit-art-size: 5.5rem;
   }
 }
 @media (min-width: 821px) and (max-height: 700px) {
   .layout {
-    --av-cockpit-art-size: 3.25rem;
+    --av-cockpit-art-size: 4.625rem;
   }
 }
 @media (min-width: 821px) and (max-width: 1100px) {
   .layout {
-    --av-cockpit-art-size: 2.75rem;
+    --av-cockpit-art-size: 4.25rem;
   }
 }
 @media (min-width: 821px) and (max-width: 1100px) and (max-height: 620px) {
   .layout {
-    --av-cockpit-art-size: 2.5rem;
+    --av-cockpit-art-size: 4rem;
+  }
+}
+
+/* Populated Nexus rows must reserve their real artwork, labels and management controls. */
+@media (min-width: 1101px) and (max-height: 800px) {
+  .arsenal {
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    padding: 0.5rem;
+    gap: 0.5rem;
+  }
+  .pageHeading {
+    padding: 0;
+  }
+  .pageHeading h1 {
+    font-size: 2.2rem;
+  }
+  .pageHeading p {
+    margin-top: 0.25rem;
+    font-size: 0.875rem;
+  }
+  .loadoutNavigation {
+    gap: 0.2rem;
+  }
+  .loadoutNavigation > small {
+    font-size: 0.875rem;
+    line-height: 1.2;
+  }
+  .panel {
+    padding: 0.6rem;
+  }
+  .sectionHeading {
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.35rem;
+  }
+  .techniqueLanes {
+    margin-bottom: 0.5rem;
+  }
+  .techniquesPanel {
+    container-type: size;
+  }
+  .layout {
+    --av-nexus-art-cap: var(--av-cockpit-art-size);
+  }
+  .techniqueSummary {
+    /* Retain two readable label lines plus the heading and management control. */
+    --av-cockpit-art-size: min(var(--av-nexus-art-cap), calc(100cqb - 8.125rem));
+  }
+  .techniqueSummary,
+  .techniquesPanel :global([data-testid='skill-build-panel']) {
+    flex-shrink: 0;
+  }
+}
+@media (min-width: 1101px) and (max-height: 700px) {
+  .arsenal {
+    padding: 0;
+    gap: 0.35rem;
+  }
+  .panel {
+    padding: 0.45rem;
+  }
+  .sectionHeading {
+    margin-bottom: 0.3rem;
+    padding-bottom: 0.3rem;
+  }
+  .techniqueLanes {
+    margin-bottom: 0.35rem;
+  }
+  .techniqueSummary {
+    --av-cockpit-art-size: min(var(--av-nexus-art-cap), calc(100cqb - 7.375rem));
+  }
+  .disciplinesPanel :global([data-testid='primary-build-panel'] > button),
+  .techniquesPanel :global([data-testid='skill-build-panel'] > button) {
+    min-height: 2.5rem;
+    padding-block: 0.35rem;
   }
 }

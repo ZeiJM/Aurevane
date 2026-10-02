@@ -16,7 +16,9 @@ import {
 } from '@aurevane/game-core/character/profile-stat-content'
 import Image from 'next/image'
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 
+import { CharacterBuildTendencies } from './character-build-tendencies'
 import styles from './character-profile-details.module.css'
 
 interface CharacterProfileDetailsProps {
@@ -26,16 +28,16 @@ interface CharacterProfileDetailsProps {
   attributes: CharacterAttributes
   derived: DerivedStatSnapshot
   attributeResetControl?: ReactNode
-  buildTendencies?: ReactNode
+  showBuildTendencies?: boolean
 }
 
-interface DetailContent {
+export interface ProfileDetailContent {
   title: string
   eyebrow: string
   body: string
 }
 
-type Detail = (DetailContent & { anchor: HTMLElement }) | null
+type Detail = (ProfileDetailContent & { anchor: Element }) | null
 
 const attributeLabels: Readonly<Record<CharacterAttributeId, string>> = {
   might: 'Might',
@@ -132,13 +134,14 @@ export function CharacterProfileDetails({
   attributes,
   derived,
   attributeResetControl,
-  buildTendencies,
+  showBuildTendencies = false,
 }: CharacterProfileDetailsProps) {
   const [detail, setDetail] = useState<Detail>(null)
   const [popoverPosition, setPopoverPosition] = useState<{ top: number; left: number } | null>(null)
   const popoverRef = useRef<HTMLElement>(null)
+  const popoverIsPositioned = popoverPosition !== null
 
-  function openDetail(anchor: HTMLElement, content: DetailContent) {
+  function openDetail(anchor: Element, content: ProfileDetailContent) {
     setPopoverPosition(null)
     setDetail({ ...content, anchor })
   }
@@ -151,7 +154,12 @@ export function CharacterProfileDetails({
       }
     }
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setDetail(null)
+      if (event.key === 'Escape') {
+        setDetail(null)
+        if (detail.anchor instanceof HTMLElement || detail.anchor instanceof SVGElement) {
+          detail.anchor.focus({ preventScroll: true })
+        }
+      }
     }
     document.addEventListener('pointerdown', closeOnOutside, true)
     document.addEventListener('keydown', closeOnEscape)
@@ -160,6 +168,10 @@ export function CharacterProfileDetails({
       document.removeEventListener('keydown', closeOnEscape)
     }
   }, [detail])
+
+  useEffect(() => {
+    if (detail && popoverIsPositioned) popoverRef.current?.focus({ preventScroll: true })
+  }, [detail, popoverIsPositioned])
 
   useEffect(() => {
     if (!detail) return
@@ -174,7 +186,7 @@ export function CharacterProfileDetails({
       let left = anchorRect.left + anchorRect.width / 2 - popoverRect.width / 2
       left = Math.min(
         Math.max(inset, left),
-        Math.max(inset, window.innerWidth - popoverRect.width - inset),
+        Math.max(inset, document.documentElement.clientWidth - popoverRect.width - inset),
       )
 
       let top = anchorRect.bottom + gap
@@ -195,7 +207,7 @@ export function CharacterProfileDetails({
   }, [detail])
 
   return (
-    <div className={styles.details} data-profile-has-tendencies={Boolean(buildTendencies)}>
+    <div className={styles.details} data-profile-has-tendencies={showBuildTendencies}>
       <div
         className={styles.identityFacts}
         data-profile-facts
@@ -379,44 +391,36 @@ export function CharacterProfileDetails({
         </footer>
       ) : null}
 
-      {buildTendencies ? (
+      {showBuildTendencies ? (
         <aside className={styles.buildTendencies} aria-label="Build tendencies">
-          <button
-            type="button"
-            className={styles.tendenciesTrigger}
-            aria-label="About Build Tendencies"
-            onClick={(event) =>
-              openDetail(event.currentTarget, {
-                eyebrow: 'Character build',
-                title: 'Build Tendencies',
-                body: 'This chart shows your relative Core Stat emphasis. Each axis is scaled to your highest Core Stat: Damage follows Might (physical power); Precision follows Finesse; Defense follows Vitality; Mobility follows Agility; Arcane follows Intellect; and Tenacity follows Resolve. A longer axis means more emphasis in that attribute. This is a build overview, not a prediction of damage, control strength or battle outcomes. Skills, equipment, terrain and effects also matter.',
-              })
-            }
-          >
-            {buildTendencies}
-          </button>
+          <CharacterBuildTendencies attributes={attributes} onAxisSelect={openDetail} />
         </aside>
       ) : null}
 
-      {detail ? (
-        <section
-          ref={popoverRef}
-          className={styles.detailPopover}
-          data-testid="profile-detail-popover"
-          role="dialog"
-          aria-modal="false"
-          aria-labelledby="profile-detail-title"
-          style={{
-            top: popoverPosition?.top ?? 0,
-            left: popoverPosition?.left ?? 0,
-            visibility: popoverPosition ? 'visible' : 'hidden',
-          }}
-        >
-          <span>{detail.eyebrow}</span>
-          <h2 id="profile-detail-title">{detail.title}</h2>
-          <p>{detail.body}</p>
-        </section>
-      ) : null}
+      {detail
+        ? createPortal(
+            <section
+              ref={popoverRef}
+              className={styles.detailPopover}
+              data-testid="profile-detail-popover"
+              role="dialog"
+              tabIndex={-1}
+              aria-modal="false"
+              aria-labelledby="profile-detail-title"
+              aria-describedby="profile-detail-description"
+              style={{
+                top: popoverPosition?.top ?? 0,
+                left: popoverPosition?.left ?? 0,
+                visibility: popoverPosition ? 'visible' : 'hidden',
+              }}
+            >
+              <span>{detail.eyebrow}</span>
+              <h2 id="profile-detail-title">{detail.title}</h2>
+              <p id="profile-detail-description">{detail.body}</p>
+            </section>,
+            document.body,
+          )
+        : null}
     </div>
   )
 }

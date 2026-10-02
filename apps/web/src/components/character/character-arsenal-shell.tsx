@@ -351,17 +351,17 @@ export function CharacterArsenalShell({
           data-arsenal-panel="techniques"
           aria-labelledby="nexus-techniques-heading"
         >
-          <header className={styles.sectionHeading}>
-            <div>
-              <span>✦</span>
-              <h2 id="nexus-techniques-heading">
-                Discipline Skills — {equipped.length} / {disciplineBuild.disciplineSkills.capacity}
-              </h2>
-            </div>
-          </header>
-
           <div className={styles.techniqueSummary}>
             <div className={styles.techniqueLanes}>
+              <header className={styles.sectionHeading}>
+                <div>
+                  <span>✦</span>
+                  <h2 id="nexus-techniques-heading">
+                    Discipline Skills — {equipped.length} /{' '}
+                    {disciplineBuild.disciplineSkills.capacity}
+                  </h2>
+                </div>
+              </header>
               <TechniqueLane
                 kind="primary"
                 discipline={{
@@ -373,6 +373,9 @@ export function CharacterArsenalShell({
             </div>
 
             <div className={styles.supportSummary} data-testid="nexus-support-action">
+              <header className={styles.sectionHeading}>
+                <h2>Support Action</h2>
+              </header>
               <span className={styles.overviewTechniqueArt} data-arsenal-media="true">
                 <Image
                   src={battleSkillArtwork(supportActionId)}
@@ -383,7 +386,6 @@ export function CharacterArsenalShell({
                 />
               </span>
               <div>
-                <small>Support Action · Slot 3</small>
                 <strong>{supportAction.name}</strong>
               </div>
             </div>
