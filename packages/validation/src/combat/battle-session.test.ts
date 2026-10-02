@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { parseBattleIntentRequest } from './battle-session'
+import { parseBattleIntentRequest, parseBattleSessionCreateRequest } from './battle-session'
 
 const IDEMPOTENCY_KEY = '11111111-1111-4111-8111-111111111111'
 
@@ -66,6 +66,53 @@ describe('P2.4 battle intent validation', () => {
           target: { kind: 'self' },
           damage: 999999,
         },
+      }),
+    ).toBeNull()
+  })
+})
+
+describe('AI Sparring participant validation', () => {
+  const request = {
+    idempotencyKey: IDEMPOTENCY_KEY,
+    characterId: IDEMPOTENCY_KEY,
+    battleHallRecordId: 'recruit-sparring',
+  }
+  it.each([0, 1, 2])(
+    'accepts every enemy count within the six-person limit with %s allies',
+    (allyCount) => {
+      for (let enemyCount = 1; enemyCount <= 5 - allyCount; enemyCount++) {
+        expect(
+          parseBattleSessionCreateRequest({ ...request, allyCount, enemyCount }),
+        ).toMatchObject({ allyCount, enemyCount })
+      }
+    },
+  )
+  it.each([
+    [0, 6],
+    [1, 5],
+    [2, 4],
+    [3, 1],
+    [-1, 1],
+    [0, 0],
+    [0, 1.5],
+  ])('rejects invalid counts %s / %s', (allyCount, enemyCount) => {
+    expect(parseBattleSessionCreateRequest({ ...request, allyCount, enemyCount })).toBeNull()
+  })
+  it('keeps guided exercises and mastery trials as duels', () => {
+    expect(
+      parseBattleSessionCreateRequest({
+        ...request,
+        battleHallRecordId: 'guided-fundamentals',
+        allyCount: 1,
+        enemyCount: 1,
+      }),
+    ).toBeNull()
+    expect(
+      parseBattleSessionCreateRequest({
+        ...request,
+        battleHallRecordId: 'mastery-trial',
+        allyCount: 0,
+        enemyCount: 2,
       }),
     ).toBeNull()
   })

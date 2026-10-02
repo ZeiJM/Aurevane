@@ -1647,3 +1647,38 @@
     line-height: 1.35;
   }
 }
+
+.participants {
+  margin: 0;
+  min-width: 0;
+  padding: 0.3rem 0.5rem 0.4rem;
+  border: 1px solid #927d5366;
+  color: #334b50;
+  background: #eee4d126;
+}
+.participants legend {
+  padding: 0 0.25rem;
+  font-weight: 650;
+  font-size: 0.75rem;
+}
+.participants > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+.workspace[data-hall-workspace='ai'] .participants label {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.35rem;
+  align-items: center;
+}
+.workspace[data-hall-workspace='ai'] .participants select {
+  min-height: 2.5rem;
+  padding: 0.2rem 0.4rem;
+}
+.participants small {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 0.6875rem;
+  text-align: center;
+}

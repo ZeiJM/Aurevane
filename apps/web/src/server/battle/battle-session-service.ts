@@ -126,6 +126,8 @@ export interface CreateBattleSessionCommand {
   arenaId?: TacticalHallArenaId
   aiDifficulty?: BattleAiDifficulty
   battleHallRecordId?: BattleHallRecordId
+  allyCount?: number
+  enemyCount?: number
   idempotencyKey: string
 }
 
@@ -212,10 +214,21 @@ function createVerticalSliceEncounter(
   aiDifficulty: BattleAiDifficulty,
   battleHallRecordId: BattleHallRecordId,
   committedBuild: CharacterActiveBuildRecord | null,
+  allyCount: number,
+  enemyCount: number,
 ): StatDrivenCombatEncounterState {
   const arena = getTacticalHallArena(arenaId)
   const playerCombatantId = `character:${character.id}`
-  const recruitCombatantId = 'recruit:p2-4-1'
+  const recruits = [
+    ...Array.from({ length: allyCount }, (_, index) => ({
+      id: `recruit:ally-${index + 1}`,
+      teamId: 'players',
+    })),
+    ...Array.from({ length: enemyCount }, (_, index) => ({
+      id: `recruit:p2-4-${index + 1}`,
+      teamId: 'opponents',
+    })),
+  ]
   const attributes = {
     might: character.might,
     finesse: character.finesse,
@@ -238,10 +251,10 @@ function createVerticalSliceEncounter(
     character.level,
     derived,
   )
-  const recruitProfile: StatDrivenCombatProfile = {
-    combatantId: recruitCombatantId,
+  const recruitProfiles: StatDrivenCombatProfile[] = recruits.map(({ id }) => ({
+    combatantId: id,
     ...recruitScenarioProfile(arenaId, aiDifficulty, battleHallRecordId, character.level),
-  }
+  }))
   const playerMovementProfile = {
     ...P2_2_ORDINARY_GROUND_PROFILE,
     id: `character-ground:${character.id}`,
@@ -272,9 +285,9 @@ function createVerticalSliceEncounter(
           maxMp: derived.stats.maxMp.value,
           temporaryResources: createPv1fTemporaryResources(playerAttackDamage),
         },
-        {
-          id: recruitCombatantId,
-          teamId: 'opponents',
+        ...recruits.map(({ id, teamId }) => ({
+          id,
+          teamId,
           initiative: 5,
           baseMovementBudget: PV1F_RECRUIT_MOVEMENT_UNITS,
           hp: 80,
@@ -282,10 +295,34 @@ function createVerticalSliceEncounter(
           mp: 25,
           maxMp: 25,
           temporaryResources: createPv1fTemporaryResources(recruitAttackDamage),
-        },
+        })),
       ],
     }),
   ).state
+
+  const occupied = new Set([`${arena.playerSpawn.x}:${arena.playerSpawn.y}`])
+  const recruitPlacements = recruits.map(({ id, teamId }) => {
+    const origin = teamId === 'players' ? arena.playerSpawn : arena.recruitSpawn
+    const candidates = arena.tiles
+      .filter((tile) => !occupied.has(`${tile.position.x}:${tile.position.y}`))
+      .sort(
+        (a, b) =>
+          Math.abs(a.position.x - origin.x) +
+            Math.abs(a.position.y - origin.y) -
+            (Math.abs(b.position.x - origin.x) + Math.abs(b.position.y - origin.y)) ||
+          a.position.x - b.position.x ||
+          a.position.y - b.position.y,
+      )
+    const position = candidates[0]?.position
+    if (!position) throw invalidBattleIntent('The selected arena cannot fit these teams.')
+    occupied.add(`${position.x}:${position.y}`)
+    return {
+      combatantId: id,
+      position,
+      facing: teamId === 'players' ? ('east' as const) : ('west' as const),
+      movementProfileId: P2_2_ORDINARY_GROUND_PROFILE.id,
+    }
+  })
 
   const encounter = createCombatEncounterState(
     createTacticalBattleState({
@@ -302,18 +339,13 @@ function createVerticalSliceEncounter(
           facing: 'east',
           movementProfileId: playerMovementProfile.id,
         },
-        {
-          combatantId: recruitCombatantId,
-          position: arena.recruitSpawn,
-          facing: 'west',
-          movementProfileId: P2_2_ORDINARY_GROUND_PROFILE.id,
-        },
+        ...recruitPlacements,
       ],
     }),
   )
 
   return preparePv1fTurnEconomy(
-    createStatDrivenCombatEncounterState(encounter, [playerProfile, recruitProfile]),
+    createStatDrivenCombatEncounterState(encounter, [playerProfile, ...recruitProfiles]),
   )
 }
 
@@ -616,6 +648,21 @@ export function createBattleSessionService({
       }
 
       const battleHallRecordId = command.battleHallRecordId ?? 'recruit-sparring'
+      const allyCount = command.allyCount ?? 0,
+        enemyCount = command.enemyCount ?? 1
+      if (
+        !Number.isInteger(allyCount) ||
+        allyCount < 0 ||
+        allyCount > 2 ||
+        !Number.isInteger(enemyCount) ||
+        enemyCount < 1 ||
+        enemyCount > 5 ||
+        1 + allyCount + enemyCount > 6 ||
+        (battleHallRecordId !== 'recruit-sparring' && (allyCount !== 0 || enemyCount !== 1))
+      ) {
+        throw invalidBattleIntent('AI Sparring supports two teams and at most six participants.')
+      }
+
       const arenaId =
         battleHallRecordId === 'mastery-trial' || battleHallRecordId === 'guided-fundamentals'
           ? getTacticalHallRecord(battleHallRecordId).defaultArenaId
@@ -629,6 +676,8 @@ export function createBattleSessionService({
         aiDifficulty,
         battleHallRecordId,
         committedBuild,
+        allyCount,
+        enemyCount,
       )
       let encounter: BattleAuthoritativeEncounterState = baseEncounter
       if (builds) {
@@ -666,12 +715,14 @@ export function createBattleSessionService({
         actorKey: command.userId,
         idempotencyKey: command.idempotencyKey,
         requestFingerprint: fingerprint({
-          command: 'battle.create.v4',
+          command: 'battle.create.v5',
           userId: command.userId,
           characterId: command.characterId,
           arenaId,
           aiDifficulty,
           battleHallRecordId,
+          allyCount,
+          enemyCount,
         }),
         userId: command.userId,
         battleId: battle.battleId,
@@ -684,11 +735,14 @@ export function createBattleSessionService({
             participantRole: 'player',
             characterId: character.id,
           },
-          {
-            combatantId: 'recruit:p2-4-1',
-            participantRole: 'opponent',
-            characterId: null,
-          },
+          // Persistence roles describe control/ownership; team membership lives in the snapshot.
+          ...battle.combatants
+            .filter((combatant) => combatant.id !== `character:${character.id}`)
+            .map((combatant) => ({
+              combatantId: combatant.id,
+              participantRole: 'opponent' as const,
+              characterId: null,
+            })),
         ],
       })
       const persistedState = readPersistedEncounter(persisted.result.snapshot)

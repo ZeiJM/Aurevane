@@ -125,6 +125,34 @@ export function deriveBattleCapabilities(runtime: BattleRuntime): BattleCapabili
   }
 }
 
+/** Original AI team sizes, excluding combat summons, for a like-for-like Sparring rematch. */
+export function battleSparringTeamCounts(battle: BattleSessionView): {
+  allyCount: number
+  enemyCount: number
+} {
+  const localId = battle.snapshot.statBridge.combatants.find(
+    (profile) => profile.provenance.kind === 'character-derived',
+  )?.combatantId
+  const localTeam = battle.snapshot.tactical.battle.combatants.find(
+    (combatant) => combatant.id === localId,
+  )?.teamId
+  const summons = new Set(
+    (normalizeCombatEffectState(battle.snapshot.effectState).summons ?? []).map(
+      (summon) => summon.combatantId,
+    ),
+  )
+  const profiles = battle.snapshot.statBridge.combatants.filter(
+    (profile) => profile.provenance.kind === 'scenario' && !summons.has(profile.combatantId),
+  )
+  const allyCount = profiles.filter(
+    (profile) =>
+      battle.snapshot.tactical.battle.combatants.find(
+        (combatant) => combatant.id === profile.combatantId,
+      )?.teamId === localTeam,
+  ).length
+  return { allyCount, enemyCount: profiles.length - allyCount }
+}
+
 function pveParticipants(
   battle: BattleSessionView,
   runtime: Extract<BattleRuntime, { kind: 'pve' }>,
@@ -151,14 +179,31 @@ function pveParticipants(
     })
   }
 
-  scenarioProfiles.forEach((profile, index) => {
+  const localTeamId = battle.snapshot.tactical.battle.combatants.find(
+    (c) => c.id === localProfile?.combatantId,
+  )?.teamId
+  const seats = [1, 0]
+  const allies = scenarioProfiles.filter(
+    (p) =>
+      battle.snapshot.tactical.battle.combatants.find((c) => c.id === p.combatantId)?.teamId ===
+      localTeamId,
+  )
+  const enemies = scenarioProfiles.filter((p) => !allies.includes(p))
+  scenarioProfiles.forEach((profile) => {
+    const allied = allies.includes(profile),
+      teamIndex = allied ? 0 : 1
+    const index = (allied ? allies : enemies).indexOf(profile)
     participants.push({
       combatantId: profile.combatantId,
       characterId: null,
-      name: scenarioProfiles.length === 1 ? 'Recruit' : `Recruit ${index + 1}`,
-      level: 1,
-      teamIndex: 1,
-      seatIndex: index,
+      name: allied
+        ? `Ally ${index + 1}`
+        : enemies.length === 1
+          ? 'Recruit'
+          : `Recruit ${index + 1}`,
+      level: profile.level ?? 1,
+      teamIndex,
+      seatIndex: seats[teamIndex]++,
       profileImageUrl: null,
       portraitAssetId: null,
       local: false,
@@ -231,7 +276,7 @@ export function buildBattleViewModel(
         ? `Battle Hall · Player vs Player · ${runtime.metadata.mode.toUpperCase()}`
         : 'Battle Hall · Controlled Exercise',
     objective:
-      runtime.kind === 'pvp' ? 'Defeat every opposing combatant' : 'Defeat the opposing Recruit',
+      runtime.kind === 'pvp' ? 'Defeat every opposing combatant' : 'Defeat every opposing Recruit',
   }
 }
 

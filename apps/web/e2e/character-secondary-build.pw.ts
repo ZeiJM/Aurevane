@@ -115,6 +115,14 @@ test('Nexus equips a mastered Secondary with independent attunement authority', 
     }),
   ).toHaveCount(0)
 
+  const disciplineWrites: string[] = []
+  page.on('request', (request) => {
+    if (
+      request.url().endsWith('/api/character/build/disciplines') &&
+      ['POST', 'PUT'].includes(request.method())
+    )
+      disciplineWrites.push(request.method())
+  })
   await selectDiscipline(dialog, 'Secondary', 'Aetherist')
   const preview = dialog.locator('[aria-label="Selected Discipline and change impact"]')
   await expect(preview).toBeVisible()
@@ -125,6 +133,7 @@ test('Nexus equips a mastered Secondary with independent attunement authority', 
   await expect(launcher).toHaveText(/Manage Disciplines/)
   await expect(primaryDisciplineChip).toHaveText('Vanguard')
   await expect(secondaryDisciplineChip).toHaveText('Aetherist')
+  expect(disciplineWrites).toEqual(Array(disciplineWrites.length).fill('PUT'))
   await expect(maxHp).toContainText(maxHpBeforeSecondary)
 
   await selectDiscipline(dialog, 'Primary', 'Lifebinder')
@@ -133,6 +142,7 @@ test('Nexus equips a mastered Secondary with independent attunement authority', 
 
   await expect(page.getByRole('status')).toContainText('Discipline changes committed.')
   await expect(primaryDisciplineChip).toHaveText('Lifebinder')
+  expect(disciplineWrites).toEqual(['PUT', 'PUT'])
   await expect(secondaryDisciplineChip).toHaveText('Aetherist')
 
   await page.reload()

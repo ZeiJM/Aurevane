@@ -22,6 +22,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
 
+import { buildBattleViewModel, battleSparringTeamCounts } from '@/components/battle/battle-runtime'
 import { createBattleSessionService } from './battle-session-service'
 
 const USER_ID = '11111111-1111-4111-8111-111111111111'
@@ -161,6 +162,88 @@ async function createPersistedFixture(character = characterRecord()) {
 }
 
 describe('P2.4 battle session service', () => {
+  it.each([0, 1, 2])(
+    'creates every supported two-team sparring setup with %s allies',
+    async (allyCount) => {
+      for (const arenaId of ['duel-yard', 'crossroads-court', 'terraced-yard'] as const) {
+        for (let enemyCount = 1; enemyCount <= 5 - allyCount; enemyCount++) {
+          const characters = createCharacterRepository(),
+            battles = createBattleRepository()
+          const service = createBattleSessionService({
+            characters: characters.repository,
+            battles: battles.repository,
+          })
+          const result = await service.createSession({
+            userId: USER_ID,
+            characterId: CHARACTER_ID,
+            idempotencyKey: IDEMPOTENCY_KEY,
+            arenaId,
+            battleHallRecordId: 'recruit-sparring',
+            allyCount,
+            enemyCount,
+          })
+          const state = result.snapshot,
+            combatants = state.tactical.battle.combatants
+          expect(combatants).toHaveLength(1 + allyCount + enemyCount)
+          expect(battleSparringTeamCounts(result)).toEqual({ allyCount, enemyCount })
+          expect(combatants.filter((c) => c.teamId === 'players')).toHaveLength(1 + allyCount)
+          expect(combatants.filter((c) => c.teamId === 'opponents')).toHaveLength(enemyCount)
+          expect(new Set(combatants.map((c) => c.teamId)).size).toBe(2)
+          const view = buildBattleViewModel(result, {
+            kind: 'pve',
+            playerName: 'Wayfarer',
+            playerLevel: 1,
+            playerPortraitAssetId: 'character.adventure.male-01',
+            playerProfileImageUrl: null,
+          })
+          expect(view.participants.filter((p) => p.teamIndex === 0)).toHaveLength(1 + allyCount)
+          expect(view.participants.filter((p) => p.teamIndex === 1)).toHaveLength(enemyCount)
+          expect(new Set(view.participants.map((p) => `${p.teamIndex}:${p.seatIndex}`)).size).toBe(
+            combatants.length,
+          )
+
+          const positions = state.tactical.placements.map((p) => `${p.position.x}:${p.position.y}`)
+          expect(new Set(positions).size).toBe(combatants.length)
+          expect(state.statBridge.combatants).toHaveLength(combatants.length)
+          expect(battles.createBattleSession.mock.calls[0]?.[0].participants).toHaveLength(
+            combatants.length,
+          )
+          expect(
+            state.tactical.placements.every(
+              (p) =>
+                p.position.x >= 0 &&
+                p.position.x < state.tactical.width &&
+                p.position.y >= 0 &&
+                p.position.y < state.tactical.height,
+            ),
+          ).toBe(true)
+        }
+      }
+    },
+  )
+  it('rejects forged over-capacity or non-sparring team setups before persistence', async () => {
+    const characters = createCharacterRepository(),
+      battles = createBattleRepository()
+    const service = createBattleSessionService({
+      characters: characters.repository,
+      battles: battles.repository,
+    })
+    for (const extra of [
+      { allyCount: 2, enemyCount: 4 },
+      { allyCount: 3, enemyCount: 1 },
+      { allyCount: 1, enemyCount: 1, battleHallRecordId: 'guided-fundamentals' as const },
+    ]) {
+      await expect(
+        service.createSession({
+          userId: USER_ID,
+          characterId: CHARACTER_ID,
+          idempotencyKey: IDEMPOTENCY_KEY,
+          ...extra,
+        }),
+      ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+    }
+    expect(battles.createBattleSession).not.toHaveBeenCalled()
+  })
   it('creates authority state from persisted Phase 1 stats without exposing deterministic RNG', async () => {
     const characters = createCharacterRepository()
     const battles = createBattleRepository()

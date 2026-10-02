@@ -25,8 +25,9 @@
   font: 600 0.9rem/1.15 var(--av-font-display);
 }
 .tabs a[aria-current='page'] {
-  color: #f0e3cb;
-  background: #73392c;
+  border-color: #799287;
+  color: #f3e7cd;
+  background: #345951;
 }
 .tabs a[aria-current='page'] > span {
   color: #dfbf72;

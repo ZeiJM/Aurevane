@@ -166,11 +166,11 @@ function describeRecruitTurn(
   before: BattleSessionView,
   after: BattleSessionView,
   decisions: RecruitTurnView['decisions'],
-  playerName: string,
   recruitId: string | null,
-  playerId: string | null,
+  recruitName: string,
+  participants: ReadonlyMap<string, BattlePresentationParticipant>,
 ): string {
-  if (!recruitId) return 'Recruit turn resolved.'
+  if (!recruitId) return `${recruitName} turn resolved.`
 
   const beforeRecruitPlacement = before.snapshot.tactical.placements.find(
     (placement) => placement.combatantId === recruitId,
@@ -183,12 +183,6 @@ function describeRecruitTurn(
   )
   const afterRecruit = after.snapshot.tactical.battle.combatants.find(
     (combatant) => combatant.id === recruitId,
-  )
-  const beforePlayer = before.snapshot.tactical.battle.combatants.find(
-    (combatant) => combatant.id === playerId,
-  )
-  const afterPlayer = after.snapshot.tactical.battle.combatants.find(
-    (combatant) => combatant.id === playerId,
   )
   const recruitStatuses =
     after.snapshot.statusState.find((row) => row.combatantId === recruitId)?.statuses ?? []
@@ -203,11 +197,18 @@ function describeRecruitTurn(
       `moved ${beforeRecruitPlacement.position.x + 1},${beforeRecruitPlacement.position.y + 1} → ${afterRecruitPlacement.position.x + 1},${afterRecruitPlacement.position.y + 1}`,
     )
   }
-  if (beforePlayer && afterPlayer && beforePlayer.hp > afterPlayer.hp) {
-    parts.push(`hit ${playerName} for ${beforePlayer.hp - afterPlayer.hp}`)
-  } else if (decisions.some((decision) => decision.reason === 'legal-damage')) {
+  const damageTargets = before.snapshot.tactical.battle.combatants.flatMap((combatant) => {
+    const afterCombatant = after.snapshot.tactical.battle.combatants.find(
+      (row) => row.id === combatant.id,
+    )
+    const damage = afterCombatant ? combatant.hp - afterCombatant.hp : 0
+    return combatant.id !== recruitId && damage > 0
+      ? [`${participants.get(combatant.id)?.name ?? combatant.id} for ${damage}`]
+      : []
+  })
+  if (damageTargets.length) parts.push(`hit ${damageTargets.join(', ')}`)
+  else if (decisions.some((decision) => decision.reason === 'legal-damage'))
     parts.push('attacked but dealt no damage')
-  }
   if (beforeRecruit && afterRecruit && afterRecruit.hp > beforeRecruit.hp) {
     parts.push(`recovered ${afterRecruit.hp - beforeRecruit.hp} HP`)
   }
@@ -220,7 +221,9 @@ function describeRecruitTurn(
     )
   }
 
-  return parts.length > 0 ? `Recruit: ${parts.join(' → ')}.` : 'Recruit turn resolved.'
+  return parts.length > 0
+    ? `${recruitName}: ${parts.join(' → ')}.`
+    : `${recruitName} turn resolved.`
 }
 
 export function BattleExperience({
@@ -1478,16 +1481,15 @@ export function BattleExperience({
       }
       battleRef.current = nextBattle
       setBattle(nextBattle)
-      const recruitId =
-        viewModel.participants.find((participant) => !participant.local)?.combatantId ?? null
+      const recruitId = before.snapshot.tactical.battle.currentTurn?.combatantId ?? null
       setNotice(
         describeRecruitTurn(
           before,
           nextBattle,
           body.battle.decisions,
-          runtime.playerName,
           recruitId,
-          localCombatantId,
+          battleParticipantName(viewModel, recruitId),
+          viewModel.participantByCombatant,
         ),
       )
     } catch (error) {
@@ -1503,11 +1505,10 @@ export function BattleExperience({
     battleState.lifecycle,
     clearPlanning,
     handleApiFailure,
-    localCombatantId,
     localTurn,
     recruitPending,
     runtime,
-    viewModel.participants,
+    viewModel,
   ])
 
   useEffect(() => {

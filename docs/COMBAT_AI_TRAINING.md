@@ -76,6 +76,9 @@ The current player-facing practice-combat feature and navigation destination.
 
 The first explicit full training duel inside Battle Hall. It uses the authoritative combat engine and released Recruit AI behavior.
 
+Owner refinement (2026-10-02): AI Sparring permits two teams with at most six initial participants. The local character has 0–2 AI allies and 1–5 enemies, with enemy maximum `5 - allies`. Both selectors remain consistent; increasing allies clamps an incompatible enemy count. Each AI combatant uses the existing visible Recruit profile and authoritative AI. All allies share the local character's team; all enemies share the opposing team. Guided Fundamentals and Discipline Mastery Trial remain fixed duels. Sparring rematches preserve original team sizes (excluding summoned units), and surrender concedes the whole practice team immediately. This adds no rewards, opponent catalog, free-for-all mode, or migration.
+
+
 ### Practice drill / practice scenario
 
 A controlled Battle Hall encounter intended for learning/testing rather than normal progression farming.
