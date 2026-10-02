@@ -168,6 +168,7 @@ test('training composition preserves idle, active, report and claim flows', asyn
   })
   let releaseRefresh!: () => void
   let blockedRefreshes = 0
+  const refreshCallbacks: Promise<void>[] = []
   const refreshGate = new Promise<void>((resolve) => {
     releaseRefresh = resolve
   })
@@ -175,9 +176,12 @@ test('training composition preserves idle, active, report and claim flows', asyn
   await page.route(refreshRoute, async (route) => {
     if (route.request().headers()['rsc'] === '1') {
       blockedRefreshes++
-      await refreshGate
+      const continued = refreshGate.then(() => route.continue())
+      refreshCallbacks.push(continued)
+      await continued
+    } else {
+      await route.continue()
     }
-    await route.continue()
   })
   const claimedResponse = page.waitForResponse(
     (response) =>
@@ -211,18 +215,13 @@ test('training composition preserves idle, active, report and claim flows', asyn
     await expect(page.getByTestId('practice-plan-card')).toBeVisible()
     await expect(page.getByTestId('training-report')).toHaveCount(0)
   } finally {
-    const refreshedResponse =
-      blockedRefreshes > 0
-        ? page.waitForResponse(
-            (response) =>
-              new URL(response.url()).pathname === '/game/training' &&
-              response.request().headers()['rsc'] === '1',
-          )
-        : null
     releaseRefresh()
-    if (refreshedResponse) await (await refreshedResponse).finished()
+    await Promise.all(refreshCallbacks)
     await page.unroute(refreshRoute)
   }
+  // A refresh may keep streaming; reload cancels it and verifies the persisted idle state.
+  await page.reload()
+  await expect(page.getByTestId('practice-plan-card')).toBeVisible()
   expect(claimRequests).toBe(1)
   await capture('stopped-idle')
   await expect(page.getByTestId('training-report')).toHaveCount(0)
