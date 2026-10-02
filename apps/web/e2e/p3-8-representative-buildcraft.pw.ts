@@ -142,10 +142,27 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
     hasText: "Mercy's Edge",
   })
   await expect(resonancePreview).toBeVisible()
-  await expect(resonancePreview).toContainText('Setup:')
-  await expect(resonancePreview).toContainText('Trigger:')
-  await expect(resonancePreview).toContainText('Result')
-  await expect(resonancePreview).toContainText('Result details')
+  const resonanceField = (label: string) =>
+    resonancePreview
+      .locator('dt', { hasText: new RegExp(`^${label}$`) })
+      .locator('..')
+      .locator('dd')
+  await expect(resonanceField('Setup')).toHaveText('Lifebinder · heal')
+  await expect(resonanceField('Trigger')).toHaveText('Vanguard · attack + melee')
+  await expect(resonanceField('Effects')).toHaveText(
+    'Dmg [6] → Trigger Skill selected unit, Healing [4] → Self',
+  )
+  await expect(resonanceField('Result details')).toContainText('Restores HP to you.')
+  for (const field of [
+    'Cost',
+    'Cooldown',
+    'Range',
+    'Target Method',
+    'Target Elevation',
+    'Line of Sight',
+  ]) {
+    await expect(resonanceField(field)).toHaveText('N/A')
+  }
   await expect(resonancePreview).not.toContainText('Payoff')
   await resonancePreviewAnchor.evaluate((element) => (element as HTMLElement).blur())
   await page.mouse.move(0, 0)
