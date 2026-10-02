@@ -14,6 +14,7 @@ export async function expectReadableBattleLog(
     0,
   )
   await expect(log.getByRole('group', { name: 'Battle history pages', exact: true })).toHaveCount(0)
+  let fixedGeometry: { top: number; bottom: number; left: number; right: number } | undefined
   for (const mode of ['Timeline', 'Text log']) {
     const switchToMode = log.getByRole('button', { name: `Switch to ${mode}`, exact: true })
     if (await switchToMode.count()) await switchToMode.click()
@@ -25,6 +26,14 @@ export async function expectReadableBattleLog(
       exact: true,
     })
     await expect(track).toBeVisible()
+    const readingViewport = log.locator('[data-battle-log-reading]')
+    await expect(readingViewport).toBeVisible()
+    const selected = log.getByRole('region', { name: 'Recorded action result', exact: true })
+    if (await selected.getAttribute('data-selected-action')) {
+      await expect(readingViewport).toHaveAttribute('data-measured', 'true')
+    }
+    await expect(page.locator('dialog[data-battle-action-details]')).toHaveCount(0)
+    await expect(log.locator('[data-battle-effect-trigger]')).toHaveCount(0)
     await testInfo.attach(`${label}-${mode}`, {
       body: await page.screenshot(),
       contentType: 'image/png',
@@ -36,12 +45,19 @@ export async function expectReadableBattleLog(
       }
       const list = element.querySelector('ol')!
       const turnControls = element.querySelector('[aria-label="Battle history turns"]')!
+      const reading = element.querySelector<HTMLElement>('[data-battle-log-reading]')!
       return {
         log: rect(element),
         header: rect(element.querySelector(':scope > header')!),
         track: rect(list),
         turns: rect(turnControls),
         horizontalOverflow: list.scrollWidth - list.clientWidth,
+        verticalOverflow: list.scrollHeight - list.clientHeight,
+        readingHeight: reading.clientHeight,
+        readingOverflow: [
+          reading.scrollWidth - reading.clientWidth,
+          reading.scrollHeight - reading.clientHeight,
+        ],
         scrollbar: getComputedStyle(list).scrollbarWidth,
         controls: Array.from(
           element.querySelectorAll('header button, [aria-label="Battle history turns"] button'),
@@ -55,7 +71,15 @@ export async function expectReadableBattleLog(
     expect(geometry.track.bottom).toBeLessThanOrEqual(geometry.log.bottom + 1)
     expect(geometry.track.bottom - geometry.track.top).toBeGreaterThan(24)
     expect(geometry.horizontalOverflow).toBeLessThanOrEqual(1)
+    expect(geometry.verticalOverflow).toBeLessThanOrEqual(1)
+    expect(geometry.readingHeight).toBeGreaterThanOrEqual(36)
+    for (const overflow of geometry.readingOverflow) expect(overflow).toBeLessThanOrEqual(1)
     expect(geometry.scrollbar).toBe('none')
+    if (fixedGeometry) {
+      for (const edge of ['top', 'bottom', 'left', 'right'] as const) {
+        expect(Math.abs(geometry.log[edge] - fixedGeometry[edge])).toBeLessThanOrEqual(1)
+      }
+    } else fixedGeometry = geometry.log
     for (const control of geometry.controls) {
       expect(control.left).toBeGreaterThanOrEqual(geometry.log.left - 1)
       expect(control.right).toBeLessThanOrEqual(geometry.log.right + 1)
@@ -64,11 +88,11 @@ export async function expectReadableBattleLog(
       expect(geometry.log.top).toBeGreaterThanOrEqual(-1)
       expect(geometry.log.bottom).toBeLessThanOrEqual(geometry.viewportHeight + 1)
     }
-    const labelBefore = await log.locator('[data-view] > div > span').textContent()
+    const labelBefore = await log.locator('[data-view] > div:first-child > span').textContent()
     const older = log.getByRole('button', { name: 'Previous turn', exact: true })
     if (await older.count()) {
       await older.click()
-      await expect(log.locator('[data-view] > div > span')).not.toHaveText(labelBefore!)
+      await expect(log.locator('[data-view] > div:first-child > span')).not.toHaveText(labelBefore!)
       await testInfo.attach(`${label}-${mode}-previous-turn`, {
         body: await page.screenshot(),
         contentType: 'image/png',
@@ -77,7 +101,7 @@ export async function expectReadableBattleLog(
       await expect(newer).toBeVisible()
       if ((await older.count()) === 0) await expect(newer).toBeFocused()
       await newer.click()
-      await expect(log.locator('[data-view] > div > span')).toHaveText(labelBefore!)
+      await expect(log.locator('[data-view] > div:first-child > span')).toHaveText(labelBefore!)
       await expect(newer).toHaveCount(0)
       await expect(older).toBeFocused()
     }

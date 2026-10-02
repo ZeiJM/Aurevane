@@ -371,7 +371,7 @@ describe('Battle Log recent history window', () => {
 })
 
 describe('Battle Flow rich Text log', () => {
-  it('reuses numbered action and indented consequence lines with named-effect semantics', () => {
+  it('reads one selected action inline without opening named-effect popups', () => {
     const guard: PresentedBattleLogAction = {
       ...action('battle:9', 9, '2026-08-31T17:50:09.000Z'),
       kind: 'defense',
@@ -393,20 +393,16 @@ describe('Battle Flow rich Text log', () => {
         rounds={[{ key: 'round:2', round: 2, occurredAt: guard.occurredAt, actions: [guard] }]}
         entries={[]}
         view="text"
-        renderTranscript={(item) => <BattleLogTranscriptAction action={item} number={9} />}
       />,
     )
     expect(markup).toContain('Battle action transcript')
     expect(markup).toContain('Round 2')
-    expect(markup).toContain('#9:')
-    expect(markup).toContain(' braces with ')
-    expect(markup).toContain(' gains ')
-    expect(markup).toContain('data-semantic="effect"')
-    expect(markup).toContain('data-battle-effect-name="Guarded"')
-    expect(markup).toContain('data-battle-effect-duration="1 turn"')
+    expect(markup).toContain('Recorded action result')
+    expect(markup).toContain('Guarded')
+    expect(markup).not.toContain('data-battle-effect-trigger')
+    expect(markup).not.toContain('<dialog')
     expect(markup).not.toContain('Recent 4 turns')
     expect(markup).not.toContain('Filter battle actions')
-    expect(markup).toContain('Action details: battle:9')
     expect(markup).not.toContain('Zei · R2')
   })
 
@@ -421,7 +417,7 @@ describe('Battle Flow rich Text log', () => {
     expect(markup).toContain('aria-label="Explain Guarded"')
   })
 
-  it('keeps movement abbreviated in the main transcript without changing recorded coordinates', () => {
+  it('keeps the abbreviated summary and complete recorded movement coordinates accessible inline', () => {
     const moved = {
       ...movementEntry(2, 'character:zei'),
       message: 'Zei moves from (1, 2) to (2, 2).',
@@ -431,20 +427,15 @@ describe('Battle Flow rich Text log', () => {
       combatantNames: { 'character:zei': 'Zei' },
     })
     const markup = renderToStaticMarkup(
-      <BattleActionTimeline
-        rounds={rounds}
-        entries={[moved]}
-        view="text"
-        renderTranscript={(item) => <BattleLogTranscriptAction action={item} number={1} />}
-      />,
+      <BattleActionTimeline rounds={rounds} entries={[moved]} view="text" />,
     )
     expect(markup).toContain('Zei moves')
-    expect(markup).not.toContain('(1, 2)')
-    expect(markup).not.toContain('(2, 2)')
+    expect(markup).toContain('(1, 2)')
+    expect(markup).toContain('(2, 2)')
     expect(moved.message).toContain('from (1, 2) to (2, 2)')
   })
 
-  it('renders every selected-turn icon without filters or action pagination', () => {
+  it('pages an overflowing turn while retaining all twelve actions', () => {
     const actions = Array.from({ length: 12 }, (_, index) => ({
       ...action(`action:${index}`, index + 1, '2026-10-01T00:00:00Z'),
       round: 1,
@@ -454,10 +445,13 @@ describe('Battle Flow rich Text log', () => {
       <BattleActionTimeline
         rounds={[{ key: 'round:1', round: 1, occurredAt: '', actions }]}
         entries={[]}
-        renderTranscript={() => null}
       />,
     )
-    expect((markup.match(/title="action:/g) ?? []).length).toBe(12)
+    expect(actions).toHaveLength(12)
+    expect((markup.match(/title="action:/g) ?? []).length).toBe(4)
+    expect(markup).toContain('Actions 9–12 / 12')
+    expect(markup).toContain('Previous actions')
+    expect(markup).toContain('Next actions')
     expect(markup).not.toContain('<strong>Attack</strong>')
     expect(markup).not.toContain('<span>Battle</span>')
     expect(markup).not.toContain('Filter battle actions')

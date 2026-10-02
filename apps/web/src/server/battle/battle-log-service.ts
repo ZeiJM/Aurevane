@@ -11,6 +11,8 @@ import type {
 
 import type { BattleHistoryPrivacyRepository } from './battle-history-privacy-authority'
 import { projectBattleHistoryForViewer } from './battle-history-privacy'
+import type { CombatContentResolver } from '../combat/combat-content-resolver'
+import { attachRecordedBattleLogSkillContext } from './battle-log-skill-context'
 
 export type BattleLogKind =
   'offense' | 'movement' | 'defense' | 'recovery' | 'status' | 'resource' | 'turn' | 'system'
@@ -34,6 +36,13 @@ export interface BattleLogEntry {
   targetCombatantId: string | null
   actionId: string | null
   actionLabel: string | null
+  actionContext?: {
+    skillId: string
+    contentVersion: number
+    name: string
+    description: string
+    flavor: string | null
+  }
   round: number | null
   turnNumber: number | null
   kind: BattleLogKind
@@ -759,6 +768,7 @@ export function createBattleLogService(repository: BattleEventRepository): Battl
 export function createViewerSafeBattleLogService(
   repository: BattleEventRepository,
   privacyRepository: BattleHistoryPrivacyRepository,
+  resolver?: Pick<CombatContentResolver, 'resolvePinnedSkillDefinition'>,
 ): BattleLogService {
   return {
     async getLog(userId, battleSessionId) {
@@ -774,7 +784,12 @@ export function createViewerSafeBattleLogService(
         battleVersions,
       )
       const projected = projectBattleHistoryForViewer(records, authority.journals, authority.viewer)
-      return buildBattleLogView(battleSessionId, projected)
+      return attachRecordedBattleLogSkillContext(
+        buildBattleLogView(battleSessionId, projected),
+        projected,
+        authority.buildAuthority,
+        resolver,
+      )
     },
   }
 }

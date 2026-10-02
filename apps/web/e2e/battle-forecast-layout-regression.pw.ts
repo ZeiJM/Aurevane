@@ -417,7 +417,12 @@ function expectStable(geometry: Awaited<ReturnType<typeof capture>>, baseline: R
     contained(card.portrait!, card.rect!)
     expect(card.portrait!.height).toBeGreaterThanOrEqual(32)
     expect(Math.abs(card.portrait!.width - card.portrait!.height)).toBeLessThanOrEqual(1)
-    expect(card.portrait!.y + card.portrait!.height).toBeLessThanOrEqual(card.vitals!.y + 1)
+    if (geometry.viewport.height <= 700 && geometry.viewport.width > 820) {
+      expect(card.portrait!.x + card.portrait!.width).toBeLessThanOrEqual(card.vitals!.x + 1)
+      expect(Math.abs(card.portrait!.y - card.vitals!.y)).toBeLessThanOrEqual(1)
+    } else {
+      expect(card.portrait!.y + card.portrait!.height).toBeLessThanOrEqual(card.vitals!.y + 1)
+    }
     for (const resource of card.resources) {
       expect(resource.bar!.x).toBeGreaterThan(resource.label!.x)
       expect(Math.abs(resource.bar!.y - resource.label!.y)).toBeLessThanOrEqual(4)
