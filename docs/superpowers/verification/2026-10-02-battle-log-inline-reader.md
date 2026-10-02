@@ -21,3 +21,8 @@ Owner visual acceptance and authenticated Production gameplay remain testing out
 ## Combined continuation
 
 PR #800 also includes the Owner’s minimum Skill report and Nexus refinements, recorded in `2026-10-02-skill-information-nexus.md`. The first candidate’s Browser smoke caught two obsolete geometry-helper assumptions; corrected helpers retain strict containment and invariance, account for short cards beside their vitals and scrolling offsets, and prove that an actual 40px resize still fails. Eight mounted PvP/PvE cases pass. The final combined local gate passes 3,225 Vitest tests, seven Node checks and Production builds. Authenticated CI for the updated exact head remains required before merge/release.
+
+
+## Combined release closeout
+
+The final avatar-inclusive candidate `10070e83ce1de2e2d8a78a5925f679a7d2ad1199` passed all ten exact-head workflows, including 63 focused, 299 full Chromium and ten Edge cases, plus 107 authenticated UI-layout cases and the directory check. PR #800 merged the identical tested tree as `0579a2ad4653cbfc3d3833568e49a954f2bfcc19`. Configuration-only PR #801 released source `e8336a35e52d6c47ac2489e7b988a9b8668eef46` as READY deployment `dpl_8C627iVrdxKi7k13PUgkrJMgWzXi` at https://aurevane.vercel.app/ on 2026-10-02T16:44:53.497Z. Public entry, Manual search/battle guide, Rules and News checks passed; the READY-to-16:48 UTC bounded warning/error/fatal scan was empty. This configuration/docs-only closeout restores the deployment lock without application, schema or content-activation changes. Complete workflow and avatar evidence: `2026-10-02-skill-information-nexus.md`. Authenticated Production gameplay and Owner visual acceptance remain testing outcomes.

@@ -32,3 +32,27 @@ The final avatar-inclusive local `pnpm check` passed formatting, lint, TypeScrip
 
 
 The avatar-inclusive candidate `b3852e492df8a0b4b46ea70f861bcc6fb0b3b9dc` passed quality/database, all four buildcraft gates, Representative Buildcraft (24 cases), Desktop page fit (eight cases) and Desktop experience (48 cases). UI layout review passed 105 cases and its directory check, but the two forecast comparisons exposed a DOM extraction mismatch for multi-effect Skills: Nexus renders separate rich effect chips while battle joins their values with commas. The extraction now joins every actual chip in order with the same separator; the strict ten-field label/value parity and all geometry/keyboard checks remain. Application source is unchanged by this test-only correction. Independent review found no material issue; a mounted Chromium check of all 136 canonical Skills (58 with multiple effects) preserved all ten ordered rows and exact values after extraction. Scoped formatting, ESLint, TypeScript and six-scenario discovery pass. Exact-head UI/browser completion remains required.
+
+
+## Verified release and closeout
+
+Final candidate `10070e83ce1de2e2d8a78a5925f679a7d2ad1199` passed all ten exact-head workflows:
+
+| Workflow | Successful run |
+| --- | --- |
+| CI (quality and database) | 37025977882 |
+| Skill Engine | 37025977313 |
+| Profile Skill Build | 37025977609 |
+| Essence Build | 37025977711 |
+| Resonance Build | 37025977835 |
+| Representative Buildcraft | 37025978414 |
+| Desktop page fit | 37025977332 |
+| Desktop experience | 37025977355 |
+| UI layout review | 37025977515 |
+| Browser smoke | 37025977632 |
+
+Browser smoke passed 63 focused cases, 299 full Chromium cases and ten Edge cases, with the existing intentional project skips preserved. The custom-avatar Account save, completed Haven/Profile/Loadout navigation, hard-refresh HTML/image and fixed desktop/mobile shell checks passed. UI layout review passed 107 cases plus the directory check, including complete ten-field forecast parity; Representative Buildcraft passed 24 cases, Desktop page fit eight and Desktop experience 48.
+
+PR #800 merged as `0579a2ad4653cbfc3d3833568e49a954f2bfcc19` with tree `9e3d3e55b173481579d84ac9c2843564d019ac23`, identical to the verified candidate. Configuration-only PR #801 enabled Main-only deployment without application changes. Its released source `e8336a35e52d6c47ac2489e7b988a9b8668eef46` is READY as `dpl_8C627iVrdxKi7k13PUgkrJMgWzXi` at https://aurevane.vercel.app/ from 2026-10-02T16:44:53.497Z. Vercel metadata confirms the exact source and canonical alias.
+
+Live public entry, Manual search and battle-guide navigation, Rules and News checks passed; all five HTTP checks returned 200. The bounded Production warning/error/fatal scan from READY through 2026-10-02T16:48:00Z returned no counts. Browser error entries came from the browser extension, not the application. This configuration/docs-only closeout restores `deploymentEnabled: {"**": false}` and changes no application bytes. No migration or content activation was performed. Owner visual acceptance and authenticated Production gameplay remain testing outcomes; the authenticated functional proof above ran in disposable CI.
