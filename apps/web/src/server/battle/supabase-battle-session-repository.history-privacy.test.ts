@@ -2,6 +2,10 @@ import { createCombatEncounterState } from '@aurevane/game-core/combat/actions'
 import { createPendingBattle, startBattle } from '@aurevane/game-core/combat/battle-state'
 import { createTacticalBattleState } from '@aurevane/game-core/combat/board'
 import {
+  essenceSnapshotReference,
+  resolveEssenceForBuild,
+} from '@aurevane/game-core/combat/essence'
+import {
   createStatDrivenCombatEncounterState,
   type StatDrivenCombatProfile,
 } from '@aurevane/game-core/combat/stat-driven-combat'
@@ -15,6 +19,7 @@ vi.mock('@/lib/supabase/admin', () => ({
 }))
 
 import { createSupabaseBattleSessionRepository } from './supabase-battle-session-repository'
+import { createBattleBuildAuthoritySnapshot } from './battle-build-authority'
 
 const USER_ID = '11111111-1111-4111-8111-111111111111'
 const SESSION_ID = '33333333-3333-4333-8333-333333333333'
@@ -83,6 +88,60 @@ function snapshot() {
 }
 
 describe('CSR-3 history privacy repository', () => {
+  it('retains validated immutable Skill references privately for recorded log enrichment', async () => {
+    const buildAuthority = createBattleBuildAuthoritySnapshot('pvp', [
+      {
+        combatantId: PLAYER,
+        characterId: 'player',
+        snapshot: {
+          schemaVersion: 1,
+          buildVersion: 1,
+          primary: { disciplineId: 'vanguard', definitionVersion: 1, profileVersion: 1 },
+          secondary: null,
+          disciplineSkills: [
+            {
+              slotIndex: 1,
+              skillId: 'vanguard.forceful-strike',
+              contentVersion: 2,
+              sourceDisciplineId: 'vanguard',
+            },
+          ],
+          extensions: {
+            resonance: null,
+            essence: essenceSnapshotReference(resolveEssenceForBuild('vanguard', null)!),
+            equipmentSkills: [],
+            supernatural: null,
+            prestige: null,
+          },
+        },
+      },
+    ])
+    rpc.mockResolvedValueOnce({
+      data: [
+        {
+          viewer_kind: 'participant',
+          controlled_combatant_ids: [PLAYER],
+          snapshot: { ...snapshot(), buildAuthority },
+          journals: [],
+        },
+      ],
+      error: null,
+    })
+    const result = await createSupabaseBattleSessionRepository().findBattleHistoryPrivacy(
+      USER_ID,
+      SESSION_ID,
+      [],
+    )
+    expect(result.buildAuthority?.combatants[0]?.disciplineSkills).toEqual([
+      {
+        slotIndex: 1,
+        skillId: 'vanguard.forceful-strike',
+        contentVersion: 2,
+        sourceDisciplineId: 'vanguard',
+      },
+    ])
+  })
+
   it('derives the existing participant entitlement from private persisted authority', async () => {
     rpc.mockResolvedValueOnce({
       data: [

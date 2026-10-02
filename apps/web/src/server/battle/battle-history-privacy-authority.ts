@@ -7,6 +7,10 @@ import {
 
 import type { BattleHistoryPrivacyJournal, BattlePrivacyVisibility } from './battle-history-privacy'
 import {
+  parseBattleBuildAuthoritySnapshot,
+  type BattleBuildAuthoritySnapshot,
+} from './battle-build-authority'
+import {
   createSpectatorBattleViewerEntitlement,
   deriveParticipantBattleViewerEntitlement,
   type BattleViewerEntitlement,
@@ -15,6 +19,7 @@ import {
 export interface BattleHistoryPrivacyAuthority {
   readonly viewer: BattleViewerEntitlement
   readonly journals: readonly BattleHistoryPrivacyJournal[]
+  readonly buildAuthority?: BattleBuildAuthoritySnapshot
 }
 
 export interface BattleHistoryPrivacyRepository {
@@ -118,6 +123,9 @@ export function parseBattleHistoryPrivacyAuthorityRow(
 
   const snapshot = record.snapshot as StatDrivenCombatEncounterState
   if (validateStatDrivenCombatEncounterState(snapshot).length > 0) return null
+  const buildAuthority = parseBattleBuildAuthoritySnapshot(
+    objectValue(record.snapshot)?.buildAuthority,
+  )
 
   const controlledCombatantIds: string[] = []
   for (const controlled of record.controlled_combatant_ids) {
@@ -144,6 +152,7 @@ export function parseBattleHistoryPrivacyAuthorityRow(
         controlledCombatantIds,
       ),
       journals,
+      ...(buildAuthority ? { buildAuthority } : {}),
     }
   }
 
@@ -151,6 +160,7 @@ export function parseBattleHistoryPrivacyAuthorityRow(
     return {
       viewer: createSpectatorBattleViewerEntitlement(),
       journals,
+      ...(buildAuthority ? { buildAuthority } : {}),
     }
   }
 

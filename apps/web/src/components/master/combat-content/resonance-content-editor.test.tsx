@@ -39,6 +39,36 @@ function option(
 }
 
 describe('Master Panel Resonance v2 editor', () => {
+  it('previews every passive Skill field in the shared order without inventing independent targeting', () => {
+    const resonance = option('lifebinder', 'vanguard')
+    const markup = renderToStaticMarkup(
+      createElement(ResonanceContentEditor, { resonances: [resonance] }),
+    )
+    const preview = markup.match(
+      /<section[^>]*aria-label="Resonance Skill preview"[^>]*>([\s\S]*?)<\/section>/,
+    )?.[1]
+    expect(preview).toBeDefined()
+    expect(
+      [...preview!.matchAll(/<dt>(.*?)<\/dt>/g)].slice(0, 10).map((match) => match[1]),
+    ).toEqual([
+      'Skill Type',
+      'Cost',
+      'Cooldown',
+      'Requirements',
+      'Effects',
+      'Range',
+      'Target',
+      'Target Method',
+      'Target Elevation',
+      'Line of Sight',
+    ])
+    expect(preview).toContain('<dt>Cost</dt><dd>N/A</dd>')
+    expect(preview).toContain('<dt>Cooldown</dt><dd>N/A</dd>')
+    expect(preview).toContain('Trigger Skill selected unit')
+    expect(preview).toContain('Trigger targeting')
+    expect(preview).not.toContain('0 AP')
+  })
+
   it('authors sequence Resonance as Setup, Trigger and Result without Payoff terminology', () => {
     const resonance = option('lifebinder', 'vanguard')
     const markup = renderToStaticMarkup(

@@ -4,7 +4,6 @@ import { pv1fSkillByActionId } from '@aurevane/game-core/combat/pv1f-skills'
 import type { EssenceDefinition } from '@aurevane/game-core/combat/essence'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
 import type { AnyResonanceDefinition } from '@aurevane/game-core/combat/resonance'
-import { normalizedResonanceMechanics } from '@aurevane/game-core/combat/resonance-v2'
 import { Surface } from '@aurevane/ui'
 
 import {
@@ -15,42 +14,25 @@ import { CharacterDisciplineBuildPanel } from '@/components/character/character-
 import { type CharacterWorkspaceProps } from '@/components/character/character-profile-shell'
 import { CharacterSkillBuildPanel } from '@/components/character/character-skill-build-panel'
 import { FoundationDisciplineSigil } from '@/components/character/foundation-discipline-sigil'
-import { LoadoutTabs } from '@/components/character/loadout-tabs'
+import { LoadoutHeader } from '@/components/character/loadout-header'
 
 import {
-  skillCompactRangeDescription,
-  skillCooldownDescription,
-  skillCostDescription,
   skillDisplayName,
-  skillEffectSummaries,
-  skillRequirementsSummary,
-  skillTargetDescription,
-  skillTargetMethodDescription,
-  skillTypeDescription,
+  skillParameterRows,
+  skillTargetingDetails,
 } from './skill-detail-presentation'
-import { effectSummary, previewEffect } from './skill-effect-preview'
+import {
+  resonanceCharacteristicRows,
+  resonanceSupplementalRows,
+} from './resonance-detail-presentation'
+import { SkillCharacteristicRows } from './skill-characteristic-rows'
 import styles from './character-arsenal-shell.module.css'
 
 const OVERVIEW_TECHNIQUE_SLOTS = 4
 
-function effectSummaryWithDuration(effect: Parameters<typeof previewEffect>[0]): string {
-  const base = effectSummary(previewEffect(effect))
-  const turns = effect.durationTurns ?? 0
-  return turns > 0 ? `${base} [${turns} ${turns === 1 ? 'Turn' : 'Turns'}]` : base
-}
-
 function EssenceHoverPreview({ essence }: { essence: EssenceDefinition }) {
   const skill = essence.skill
-  const rows: readonly (readonly [string, string | readonly string[]])[] = [
-    ['Skill Type', skillTypeDescription(skill)],
-    ['Cost', skillCostDescription(skill)],
-    ['Cooldown', skillCooldownDescription(skill)],
-    ['Requirements', skillRequirementsSummary(skill)],
-    ['Effects', skillEffectSummaries(skill)],
-    ['Range', skillCompactRangeDescription(skill)],
-    ['Target', skillTargetDescription(skill)],
-    ['Target Method', skillTargetMethodDescription(skill)],
-  ]
+  const rows = skillParameterRows(skill)
   return (
     <aside
       id={`essence-preview-${essence.essenceId}`}
@@ -63,32 +45,16 @@ function EssenceHoverPreview({ essence }: { essence: EssenceDefinition }) {
         {rows.map(([label, value]) => (
           <div key={label}>
             <dt>{label}</dt>
-            <dd>
-              {typeof value === 'string' ? (
-                value
-              ) : (
-                <ul>
-                  {value.map((entry, index) => (
-                    <li key={`${index}:${entry}`}>{entry}</li>
-                  ))}
-                </ul>
-              )}
-            </dd>
+            <dd>{value}</dd>
           </div>
         ))}
       </dl>
+      <p>{skillTargetingDetails(skill)}</p>
     </aside>
   )
 }
 
 function ResonanceHoverPreview({ resonance }: { resonance: AnyResonanceDefinition }) {
-  const mechanics = normalizedResonanceMechanics(resonance)
-  const effects = mechanics.resultEffects.map(effectSummaryWithDuration)
-  const effectExplanations = mechanics.resultEffects.map(
-    (effect) => previewEffect(effect).explanation,
-  )
-  const setup = mechanics.setup
-  const trigger = mechanics.trigger
   return (
     <aside
       id={`resonance-preview-${resonance.id}`}
@@ -98,43 +64,8 @@ function ResonanceHoverPreview({ resonance }: { resonance: AnyResonanceDefinitio
       <span>Resonance Preview</span>
       <strong>{`Resonance: ${resonance.name}`}</strong>
       <dl>
-        <div>
-          <dt>Type</dt>
-          <dd>{mechanics.mode === 'immediate' ? 'Immediate Resonance' : 'Sequence Resonance'}</dd>
-        </div>
-        <div>
-          <dt>Requirements</dt>
-          <dd>
-            <ul>
-              <li>
-                {setup
-                  ? `Setup: ${setup.sourceDisciplineId} · ${setup.requiredTags.join(' + ')}`
-                  : 'Setup: None'}
-              </li>
-              <li>{`Trigger: ${trigger.sourceDisciplineId} · ${trigger.requiredTags.join(' + ')}`}</li>
-            </ul>
-          </dd>
-        </div>
-        <div>
-          <dt>Result</dt>
-          <dd>
-            <ul>
-              {effects.map((entry, index) => (
-                <li key={`${index}:${entry}`}>{entry}</li>
-              ))}
-            </ul>
-          </dd>
-        </div>
-        <div>
-          <dt>Result details</dt>
-          <dd>
-            <ul>
-              {effectExplanations.map((entry, index) => (
-                <li key={`${index}:${entry}`}>{entry}</li>
-              ))}
-            </ul>
-          </dd>
-        </div>
+        <SkillCharacteristicRows rows={resonanceCharacteristicRows(resonance)} />
+        <SkillCharacteristicRows rows={resonanceSupplementalRows(resonance)} />
       </dl>
     </aside>
   )
@@ -266,21 +197,7 @@ export function CharacterArsenalShell({
       data-composition="correction"
     >
       <Surface className={styles.arsenal} tone="elevated" data-arsenal-sheet="true">
-        <header className={styles.pageHeading}>
-          <div className={styles.pageHeadingTitle}>
-            <span className={styles.pageIcon} aria-hidden="true">
-              ⚔
-            </span>
-            <div>
-              <h1>Nexus</h1>
-              <p>Master disciplines. Refine techniques. Prepare for what comes.</p>
-            </div>
-          </div>
-          <div className={styles.loadoutNavigation}>
-            <LoadoutTabs active="nexus" />
-            <small>A sharper mind. A steadier hand. A kinder world.</small>
-          </div>
-        </header>
+        <LoadoutHeader active="nexus" />
 
         <section
           className={[styles.panel, styles.disciplinesPanel].join(' ')}

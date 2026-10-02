@@ -21,6 +21,70 @@ test('ordinary desktop shell fits its identity and every navigation control with
     characterName: `Frame Explorer ${nameSuffix}`,
   })
 
+  // Save a direct custom portrait through the same account flow as a player.
+  const imageUrl = 'http://127.0.0.1:3100/media/art/adventure/male-01-v01.webp'
+  await page.goto('/game/account/titles')
+  await page.getByLabel('Direct image URL').fill(imageUrl)
+  const saved = page.waitForResponse(
+    (response) =>
+      response.url().endsWith('/api/account/profile-display') &&
+      response.request().method() === 'POST',
+  )
+  await page.getByRole('button', { name: 'Save Profile Image', exact: true }).click()
+  expect((await saved).ok()).toBe(true)
+  const railImage = page.locator('[data-av-game-rail] [data-character-portrait-frame] img')
+  await expect(railImage).toHaveAttribute('src', imageUrl)
+  await expect(railImage).toHaveAttribute('loading', 'eager')
+  await expect(railImage).toHaveAttribute('fetchpriority', 'high')
+  await expect
+    .poll(() => railImage.evaluate((image) => (image as HTMLImageElement).naturalWidth))
+    .toBeGreaterThan(0)
+
+  await page.evaluate(() => {
+    const failures: string[] = []
+    const observer = new MutationObserver(() => {
+      const rail = document.querySelector('[data-av-game-rail]')
+      const image = rail?.querySelector('[data-character-portrait-frame] img')
+      if (!image || rail?.querySelector('[data-portrait-pending]'))
+        failures.push('missing portrait')
+      else if (!image.getAttribute('src')?.endsWith('/media/art/adventure/male-01-v01.webp'))
+        failures.push('replaced portrait')
+    })
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['src'],
+    })
+    Object.assign(window, { avatarNavigationFailures: failures })
+  })
+  const navigation = page.getByRole('navigation', { name: 'Primary game navigation', exact: true })
+  for (const [label, destination] of [
+    ['Haven', '/game/haven'],
+    ['Profile', '/game/character'],
+    ['Loadout', '/game/nexus'],
+    ['Haven', '/game/haven'],
+  ]) {
+    await navigation.getByRole('link', { name: label, exact: true }).click()
+    await expect(page).toHaveURL(new RegExp(`${destination}$`))
+    await expect(railImage).toHaveAttribute('src', imageUrl)
+    await expect(page.locator('[data-portrait-pending]')).toHaveCount(0)
+  }
+  expect(
+    await page.evaluate(
+      () => (window as Window & { avatarNavigationFailures?: string[] }).avatarNavigationFailures,
+    ),
+  ).toEqual([])
+  const refresh = await page.reload()
+  expect(refresh).not.toBeNull()
+  // A hard refresh must also emit the resolved portrait, without an intermediate
+  // streamed blank identity. Image network/decode time itself remains browser-owned.
+  expect(await refresh!.text()).not.toContain('data-portrait-pending')
+  await expect(railImage).toHaveAttribute('src', imageUrl)
+  await expect
+    .poll(() => railImage.evaluate((image) => (image as HTMLImageElement).naturalWidth))
+    .toBeGreaterThan(0)
+
   for (const viewport of [
     { width: 1366, height: 768 },
     { width: 1440, height: 900 },

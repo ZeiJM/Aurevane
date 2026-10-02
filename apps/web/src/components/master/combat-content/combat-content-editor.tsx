@@ -8,6 +8,7 @@ import { isMaterializedCombatEffect } from '@aurevane/game-core/combat/summon-co
 import { useRouter } from 'next/navigation'
 import { useMemo, useRef, useState } from 'react'
 
+import { SkillDetails } from '../../character/skill-details'
 import styles from './combat-content-editor.module.css'
 import { postCombatContentAuthoring } from './combat-content-client'
 import { CombatContentReviewPanel } from './combat-content-review-panel'
@@ -640,6 +641,16 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
             ))}
           </output>
         </section>
+
+        {selectedDraft ? (
+          <section className={styles.tags} aria-label="Player-facing Skill information">
+            <div>
+              <p className={styles.sectionLabel}>Read-only draft projection</p>
+              <h2>Skill information</h2>
+            </div>
+            <SkillDetails skill={selectedDraft} expanded />
+          </section>
+        ) : null}
 
         <CombatContentReviewPanel
           contentKey={selectedSkill.id}

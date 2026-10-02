@@ -240,13 +240,9 @@ test('keeps requested PvE presentation parity on desktop and mobile', async ({
     await history.getByRole('button', { name: 'Switch to Text log', exact: true }).click()
     const transcript = history.getByRole('list', { name: 'Battle action transcript' })
     await expect(transcript).toContainText('Guarded')
-    const details = transcript.getByRole('button', { name: /^Action details:.*Guard/ }).first()
-    await details.click()
-    const result = page.getByRole('dialog', { name: 'Guard', exact: true })
-    await expect(result.getByRole('region', { name: 'Recorded action result' })).toContainText(
-      'Guarded',
-    )
-    await page.getByRole('button', { name: 'Close action details', exact: true }).click()
+    const result = history.getByRole('region', { name: 'Recorded action result', exact: true })
+    await expect(result).toContainText('Guarded')
+    await expect(page.locator('dialog[data-battle-action-details]')).toHaveCount(0)
     await history.getByRole('button', { name: 'Switch to Timeline', exact: true }).click()
     for (const size of [
       { width: 1536, height: 614 },

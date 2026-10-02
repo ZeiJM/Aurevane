@@ -9,6 +9,54 @@ import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 import { commitGesture } from './refined-battle-helpers'
 import { expectReadableBattleLog } from './battle-log-layout-helpers'
 
+test('battle-log geometry ignores scrolling but rejects a reader resize', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.setContent(`
+    <style>
+      body { margin: 0; }
+      main { height: 300px; overflow: auto; }
+      .spacer { height: 700px; }
+      [data-battle-inline-log] { width: 264px; height: 200px; }
+      header, [aria-label="Battle history turns"] { height: 28px; }
+      ol { margin: 0; padding: 0; height: 44px; scrollbar-width: none; }
+      [data-battle-log-reading] { height: 100px; }
+    </style>
+    <main><div class="spacer"></div><aside data-battle-inline-log>
+      <header><button aria-label="Switch to Text log">Timeline</button></header>
+      <div data-view><div aria-label="Battle history turns"><span>Turn 1</span></div>
+        <ol aria-label="Battle action timeline"><li>Guard</li></ol>
+        <div data-battle-log-reading><section role="region" aria-label="Recorded action result">Guard recorded</section></div>
+      </div>
+    </aside></main>
+    <script>
+      document.querySelector('header button').onclick = (event) => {
+        const button = event.currentTarget;
+        const textMode = button.textContent === 'Timeline';
+        button.textContent = textMode ? 'Text log' : 'Timeline';
+        button.setAttribute('aria-label', textMode ? 'Switch to Timeline' : 'Switch to Text log');
+        document.querySelector('ol').setAttribute('aria-label', textMode ? 'Battle action transcript' : 'Battle action timeline');
+      };
+    </script>
+  `)
+  await expectReadableBattleLog(page, testInfo, 'nested-scroll')
+  expect(await page.locator('main').evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
+  await page.locator('header button').evaluate((button) => {
+    button.addEventListener(
+      'click',
+      () => {
+        const log = document.querySelector<HTMLElement>('[data-battle-inline-log]')!
+        log.style.height = '240px'
+      },
+      { once: true },
+    )
+  })
+  await expect(expectReadableBattleLog(page, testInfo, 'reader-resize')).rejects.toThrow(
+    /log height stays fixed/,
+  )
+})
+
 function uniqueIdentity(prefix: string): { email: string; characterName: string } {
   const seed = `${Date.now()}${Math.floor(Math.random() * 100_000)}`
   const nameSuffix = seed

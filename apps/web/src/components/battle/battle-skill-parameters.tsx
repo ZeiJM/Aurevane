@@ -1,5 +1,5 @@
 import { CompactSkillEffectSummary } from '../character/compact-skill-effect-summary'
-import { battleSkillParameterRows } from './battle-preview-content'
+import { battleSkillParameterRows, battleSkillTargetingDetails } from './battle-preview-content'
 import { skillPreviewEffects } from '../character/skill-effect-preview'
 import type { BattleSkillForecastPresentation } from './battle-runtime'
 
@@ -14,34 +14,31 @@ export function BattleSkillParameters({ skill }: { skill: BattleSkillForecastPre
         {rows.map(([label, value]) => (
           <div key={label}>
             <dt>{label}</dt>
-            <dd>{value}</dd>
+            <dd>
+              {label === 'Effects' && definition
+                ? definition.effects.length > 0
+                  ? definition.effects.map((effect, index) => (
+                      <div key={index}>
+                        <CompactSkillEffectSummary effect={effect} />
+                      </div>
+                    ))
+                  : 'N/A'
+                : value}
+            </dd>
           </div>
         ))}
       </dl>
-      <strong>Effects</strong>
+      <p>{battleSkillTargetingDetails(skill)}</p>
       {definition ? (
-        <>
-          <div>
-            {definition.effects.map((effect, index) => (
-              <CompactSkillEffectSummary key={index} effect={effect} />
-            ))}
-          </div>
-          <ul aria-label="Effect explanations">
-            {skillPreviewEffects(definition).map((effect, index) => (
-              <li key={index}>{effect.explanation}</li>
-            ))}
-          </ul>
-        </>
-      ) : (
-        <ul>
-          {skill.effectDescriptions.map((effect, index) => (
-            <li key={index}>{effect}</li>
+        <ul aria-label="Effect explanations">
+          {skillPreviewEffects(definition).map((effect, index) => (
+            <li key={index}>{effect.explanation}</li>
           ))}
         </ul>
-      )}
+      ) : null}
       {skill.requirementDescriptions.length > 0 ? (
         <>
-          <strong>Requirements</strong>
+          <strong>Requirement details</strong>
           <ul>
             {skill.requirementDescriptions.map((requirement, index) => (
               <li key={index}>{requirement}</li>

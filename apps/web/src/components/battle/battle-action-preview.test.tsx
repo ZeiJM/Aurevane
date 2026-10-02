@@ -94,7 +94,12 @@ describe('current selection forecast', () => {
     const markup = renderToStaticMarkup(
       <BattleActionPreview preview={null} pending={false} skill={barrier} />,
     )
-    for (const label of ['Cost: 40 AP', '<dt>Target</dt><dd>Ally</dd>', 'Range: 1–3 tiles'])
+    for (const label of [
+      'Cost: 40 AP',
+      '<dt>Target</dt><dd>Ally</dd>',
+      'Range: 3',
+      'Legal range: 1–3 tiles',
+    ])
       expect(markup).toContain(label)
     expect(markup).not.toContain('Success 100%')
     expect(markup).not.toContain('Show forecast details')
@@ -128,7 +133,11 @@ describe('current selection forecast', () => {
       />,
     )
     expect(markup).toContain('Guard')
-    expect(markup).not.toContain('Guarded')
+    // The full Parameters panel preserves the authored effect; the outcome lane
+    // must only display current server-projected status names.
+    const outcomes = markup.slice(markup.indexOf('data-battle-preview-lane="outcomes"'))
+    expect(outcomes).not.toContain('Guarded')
+    expect(markup).toContain('<dt>Effects</dt><dd>Apply Guarded to the selected ally.</dd>')
     expect(markup).toContain('Success 100%')
     expect(markup).not.toContain('data-battle-info-trigger')
     expect(markup).not.toContain('Skill details')

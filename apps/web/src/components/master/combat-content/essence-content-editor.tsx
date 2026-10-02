@@ -5,6 +5,7 @@ import { isMaterializedCombatEffect } from '@aurevane/game-core/combat/summon-co
 import { useRouter } from 'next/navigation'
 import { useMemo, useRef, useState } from 'react'
 
+import { SkillDetails } from '../../character/skill-details'
 import styles from './combat-content-editor.module.css'
 import { postCombatContentAuthoring } from './combat-content-client'
 import { CombatContentReviewPanel } from './combat-content-review-panel'
@@ -458,6 +459,16 @@ export function EssenceContentEditor({ essences, initialEssenceId }: EssenceCont
             ))}
           </output>
         </section>
+
+        {skill ? (
+          <section className={styles.tags} aria-label="Player-facing Skill information">
+            <div>
+              <p className={styles.sectionLabel}>Read-only draft projection</p>
+              <h2>Skill information</h2>
+            </div>
+            <SkillDetails skill={skill} expanded />
+          </section>
+        ) : null}
 
         <CombatContentReviewPanel
           contentKey={selected.id}

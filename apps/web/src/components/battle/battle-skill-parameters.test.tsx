@@ -16,6 +16,7 @@ describe('cockpit Skill Parameters', () => {
           name: 'Forceful Strike',
           apCost: 31,
           mpCost: 6,
+          cooldownOwnerTurns: 1,
           minimumRange: 1,
           maximumRange: 1,
           targetKind: 'unit',
@@ -31,6 +32,7 @@ describe('cockpit Skill Parameters', () => {
       'Cost',
       'Cooldown',
       'Requirements',
+      'Effects',
       'Range',
       'Target',
       'Target Method',
@@ -42,11 +44,14 @@ describe('cockpit Skill Parameters', () => {
     expect(markup).toContain('<strong>Parameters</strong>')
     expect(markup).toContain('31 AP')
     expect(markup).toContain('6 MP')
+    expect(markup).toContain('<dt>Cooldown</dt><dd>1 turn</dd>')
     expect(markup.match(/data-compact-skill-effect="true"/g)).toHaveLength(
       definition.effects.length,
     )
     expect(markup).toContain(skillPreviewEffects(definition)[0]!.explanation)
     expect(markup).not.toContain('Do not replace pinned Nexus effects')
+    expect(markup).toContain('Legal range: 1 tile')
+    expect(markup).toContain('Affects: Enemies only')
     expect(JSON.stringify(definition)).toBe(before)
   })
 })

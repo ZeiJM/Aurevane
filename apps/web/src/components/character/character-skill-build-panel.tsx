@@ -29,8 +29,8 @@ import { createPortal } from 'react-dom'
 import { battleSkillArtwork } from '../battle/battle-skill-presentation'
 import {
   skillDisplayName,
-  skillEffectSummaries,
   skillParameterRows,
+  skillTargetingDetails,
   skillTypeDescription,
 } from './skill-detail-presentation'
 import styles from './character-skill-build-panel.module.css'
@@ -195,11 +195,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
         : titleCase(focusedSkill.definition.sourceDisciplineId)
     : null
   const focusedCharacteristics: readonly SkillCharacteristic[] = focusedSkill
-    ? [
-        ...skillParameterRows(focusedSkill.definition).slice(0, 4),
-        ['Effects', skillEffectSummaries(focusedSkill.definition)],
-        ...skillParameterRows(focusedSkill.definition).slice(4),
-      ]
+    ? skillParameterRows(focusedSkill.definition)
     : []
 
   useEffect(() => {
@@ -730,6 +726,9 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                               </div>
                             ))}
                           </dl>
+                          <p className={styles.targetingDetails}>
+                            {skillTargetingDetails(focusedSkill.definition)}
+                          </p>
                           <ul
                             className={styles.effectExplanations}
                             aria-label="Effect explanations"

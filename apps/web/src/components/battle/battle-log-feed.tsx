@@ -399,13 +399,6 @@ export function BattleLogFeed({
       {compactFlow ? (
         <BattleActionTimeline
           view={activeFlowView}
-          renderTranscript={(action) => (
-            <BattleLogTranscriptAction
-              action={action}
-              number={actionNumbers.get(action.key)}
-              combatantAccents={combatantAccents}
-            />
-          )}
           rounds={rounds}
           entries={entries}
           playerName={playerName}

@@ -17,6 +17,7 @@ const parameterLabels = [
   'Cost',
   'Cooldown',
   'Requirements',
+  'Effects',
   'Range',
   'Target',
   'Target Method',
@@ -81,12 +82,17 @@ async function equipForecastSkills(page: Page) {
       .getByTestId('technique-preview')
       .locator('dl > div')
       .evaluateAll((rows) =>
-        rows
-          .filter((row) => row.querySelector('dt')?.textContent !== 'Effects')
-          .map(
-            (row) =>
-              `${row.querySelector('dt')!.textContent}: ${row.querySelector('dd')!.textContent}`,
-          ),
+        rows.map((row) => {
+          const label = row.querySelector('dt')!.textContent
+          const value = row.querySelector('dd')!
+          const effects = value.querySelectorAll('[data-compact-skill-effect="true"]')
+          // Nexus renders separate effect chips; battle uses a comma-separated value.
+          // Compare every chip, in order, without concatenating their DOM text together.
+          const text = effects.length
+            ? Array.from(effects, (effect) => effect.textContent).join(', ')
+            : value.textContent
+          return `${label}: ${text}`
+        }),
       )
     const saved = page.waitForResponse(
       (response) =>
@@ -417,7 +423,12 @@ function expectStable(geometry: Awaited<ReturnType<typeof capture>>, baseline: R
     contained(card.portrait!, card.rect!)
     expect(card.portrait!.height).toBeGreaterThanOrEqual(32)
     expect(Math.abs(card.portrait!.width - card.portrait!.height)).toBeLessThanOrEqual(1)
-    expect(card.portrait!.y + card.portrait!.height).toBeLessThanOrEqual(card.vitals!.y + 1)
+    if (geometry.viewport.height <= 700 && geometry.viewport.width > 820) {
+      expect(card.portrait!.x + card.portrait!.width).toBeLessThanOrEqual(card.vitals!.x + 1)
+      expect(Math.abs(card.portrait!.y - card.vitals!.y)).toBeLessThanOrEqual(1)
+    } else {
+      expect(card.portrait!.y + card.portrait!.height).toBeLessThanOrEqual(card.vitals!.y + 1)
+    }
     for (const resource of card.resources) {
       expect(resource.bar!.x).toBeGreaterThan(resource.label!.x)
       expect(Math.abs(resource.bar!.y - resource.label!.y)).toBeLessThanOrEqual(4)

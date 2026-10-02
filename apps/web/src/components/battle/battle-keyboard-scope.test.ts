@@ -59,3 +59,26 @@ describe('forecast lane focus', () => {
     },
   )
 })
+
+describe.each(['[data-battle-log-reader]', '[data-battle-inline-log]'])(
+  'inline Battle Log focus within %s',
+  (surface) => {
+    it.each(['ArrowRight', 'KeyW', 'Space', 'Enter', 'Digit4'])(
+      'keeps %s within log reading controls instead of dispatching combat',
+      (code) => {
+        class LogControl {
+          isContentEditable = false
+          closest(selector: string) {
+            return selector.includes(surface) ? this : null
+          }
+        }
+        vi.stubGlobal('document', { querySelector: () => null })
+        vi.stubGlobal('HTMLElement', LogControl)
+        vi.stubGlobal('HTMLInputElement', class {})
+        vi.stubGlobal('HTMLTextAreaElement', class {})
+        vi.stubGlobal('HTMLSelectElement', class {})
+        expect(isBattleShortcutBlocked(new LogControl() as unknown as EventTarget, code)).toBe(true)
+      },
+    )
+  },
+)

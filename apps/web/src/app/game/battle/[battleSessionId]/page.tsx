@@ -146,6 +146,11 @@ async function battleBuildExtensions(
                 ),
                 iconKey: definition.media.iconKey,
                 apCost: copiedSkillApCost(definition, authority.combatContext),
+                cooldownOwnerTurns:
+                  definition.cooldown === null
+                    ? null
+                    : (definition.overrides[authority.combatContext]?.cooldownOwnerTurns ??
+                      definition.cooldown.ownerTurns),
                 mpCost: definition.mpCost ?? 0,
                 category: techniqueCategory(definition.tags),
                 targetKind: definition.target.kind,

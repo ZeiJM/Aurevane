@@ -307,6 +307,7 @@ Soulmark/Severance/Mantle belongs later. Frontier implementation is not Phase-3 
 - Never import server-only authority into Client Components.
 - Use migrations for schema changes.
 - Prefer one authoritative source of truth for rules/configuration.
+- Every full Skill report, including passives/inherent actions and Master Panel previews, must follow `docs/SKILL_INFORMATION_CONTRACT.md`: Skill Type, Cost, Cooldown, Requirements, Effects, Range, Target, Target Method, Target Elevation and Line of Sight in that order. N/A means inapplicable, None means no applicable prerequisite/cooldown, and missing immutable metadata is Unavailable. Reuse the shared presentation adapters; do not author parallel mechanical claims.
 - Reuse existing services/schemas/components before creating parallel systems.
 - Stable IDs/versioned definitions should connect gameplay, AI, Manual, Master Panel, media, analytics and support.
 - Do not permit arbitrary JavaScript/SQL inside content editors.
