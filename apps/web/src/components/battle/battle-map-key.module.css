@@ -105,7 +105,7 @@
     scrollbar-color: #756b56 #e5d8be;
   }
   .sample {
-    grid-template-columns: min(3rem, 36%) minmax(0, 1fr);
+    grid-template-columns: min(3rem, 50%) minmax(0, 1fr);
     padding: 0;
     font-size: 0.75rem;
     line-height: 1.1;
@@ -121,23 +121,30 @@
     padding: 0.25rem;
   }
   .samples {
-    gap: 0.125rem;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
   }
   .sample {
-    grid-template-columns: min(2.5rem, 36%) minmax(0, 1fr);
+    grid-template-columns: min(2.5rem, 35%) minmax(0, 1fr);
     gap: 0.1rem;
     padding: 0;
     font-size: 0.6875rem;
+    border: 0;
+  }
+  .sample:hover,
+  .sample:focus-visible,
+  .sample[aria-expanded='true'] {
+    box-shadow: inset 0 0 0 1px #756b56;
   }
   .sample i {
     width: 100%;
-    height: 2rem;
+    height: 1.375rem;
   }
 }
 
 @media (min-width: 1101px) and (max-width: 1400px) {
   .sample {
-    grid-template-columns: min(2.75rem, 36%) minmax(0, 1fr);
+    grid-template-columns: min(2.75rem, 50%) minmax(0, 1fr);
     font-size: 0.6875rem;
   }
   .sample i {
