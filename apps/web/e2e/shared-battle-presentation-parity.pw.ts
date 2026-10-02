@@ -247,6 +247,7 @@ test('keeps requested PvE presentation parity on desktop and mobile', async ({
     for (const size of [
       { width: 1536, height: 614 },
       { width: 1280, height: 720 },
+      { width: 1024, height: 576 },
       { width: 412, height: 915 },
     ]) {
       await page.setViewportSize(size)

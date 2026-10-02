@@ -164,6 +164,48 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
           }),
         )
         .toBe(true)
+        .catch(async (error) => {
+          console.error(
+            'Nexus report geometry',
+            viewport,
+            await resonancePreview.evaluate((panel) => ({
+              rect: panel.getBoundingClientRect().toJSON(),
+              scroll: panel.scrollHeight,
+              client: panel.clientHeight,
+              layout: panel.getAttribute('data-battle-info-layout'),
+              page: panel.getAttribute('data-battle-info-page'),
+              viewport: { width: innerWidth, height: innerHeight, scrollY },
+            })),
+          )
+          throw error
+        })
+    }
+    // A resized/scrolling workspace may move the source artwork offscreen while its reader stays open.
+    const priorTriggerStyle = await resonancePreviewAnchor.getAttribute('style')
+    try {
+      await resonancePreviewAnchor.evaluate((trigger) => {
+        trigger.style.transform = 'translateY(2000px)'
+        window.dispatchEvent(new Event('resize'))
+      })
+      expect(
+        await resonancePreviewAnchor.evaluate(
+          (trigger) => trigger.getBoundingClientRect().top > innerHeight,
+        ),
+      ).toBe(true)
+      await expect
+        .poll(() =>
+          resonancePreview.evaluate((panel) => {
+            const rect = panel.getBoundingClientRect()
+            return rect.top >= 7 && rect.bottom <= innerHeight - 7
+          }),
+        )
+        .toBe(true)
+    } finally {
+      await resonancePreviewAnchor.evaluate((trigger, priorStyle) => {
+        if (priorStyle === null) trigger.removeAttribute('style')
+        else trigger.setAttribute('style', priorStyle)
+        window.dispatchEvent(new Event('resize'))
+      }, priorTriggerStyle)
     }
   }
   const resonanceField = (label: string) =>

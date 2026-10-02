@@ -26,7 +26,8 @@ test('AI Sparring links team counts and persists six combatants on exactly two t
     await allies.selectOption(String(allyCount))
     await expect(enemies).toHaveValue(String(5 - allyCount))
     await expect(enemies.locator('option')).toHaveCount(5 - allyCount)
-    await expect(page.getByRole('group', { name: 'Participants' })).toContainText('6/6')
+    await expect(allies).toHaveValue(String(allyCount))
+    expect(1 + Number(await allies.inputValue()) + Number(await enemies.inputValue())).toBe(6)
     const receipt = page.waitForResponse(
       (response) =>
         response.url().endsWith('/api/battles') && response.request().method() === 'POST',

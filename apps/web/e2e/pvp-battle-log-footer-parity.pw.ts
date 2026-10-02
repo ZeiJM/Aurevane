@@ -212,6 +212,7 @@ test('keeps the desktop PvP battle flow beside compact commands without resizing
       { width: 2400, height: 1350 },
       { width: 1440, height: 900 },
       { width: 1280, height: 720 },
+      { width: 1024, height: 576 },
     ]) {
       await host.setViewportSize(size)
       await expectBattleReferenceLayout(host, testInfo, `combat-pvp-${size.width}x${size.height}`)

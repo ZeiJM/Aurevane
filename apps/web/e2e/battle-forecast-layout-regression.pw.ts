@@ -611,7 +611,30 @@ async function exerciseForecast(
         }
         await check(`${name}-forecast-details`)
         // The first outside target click dismisses the reading panel; it cannot also cast.
-        await page.locator('#battlefield button[aria-label^="Tile "]').first().click()
+        const outsideTileIndex = await page
+          .locator('#battlefield button[aria-label^="Tile "]')
+          .evaluateAll((tiles) => {
+            const reader = document
+              .querySelector('[data-battle-info-panel]')!
+              .getBoundingClientRect()
+            return tiles.findIndex((tile) => {
+              const bounds = tile.getBoundingClientRect()
+              const x = bounds.x + bounds.width / 2,
+                y = bounds.y + bounds.height / 2
+              return (
+                x >= 0 &&
+                x < innerWidth &&
+                y >= 0 &&
+                y < innerHeight &&
+                (x < reader.left || x > reader.right || y < reader.top || y > reader.bottom)
+              )
+            })
+          })
+        expect(
+          outsideTileIndex,
+          'a visible battlefield target stays outside the reader',
+        ).toBeGreaterThanOrEqual(0)
+        await page.locator('#battlefield button[aria-label^="Tile "]').nth(outsideTileIndex).click()
         await expect(forecastDetails).toHaveCount(0)
         expect(commits).toBe(0)
         await page.getByRole('button', { name: 'About ' + name, exact: true }).click()

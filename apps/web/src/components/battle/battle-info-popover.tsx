@@ -75,16 +75,20 @@ export function BattleInfoPopover({
         return
       }
       const pagePositioned = getComputedStyle(panelRef.current!).position === 'absolute'
+      const preferredTop =
+        anchor.bottom + panel.height + 16 <= window.innerHeight
+          ? anchor.bottom + 8
+          : anchor.top - panel.height - 8
+      // Responsive layouts can move the source artwork outside the viewport while its reader stays open.
+      const viewportTop =
+        panel.height > window.innerHeight - 16
+          ? 8
+          : Math.max(8, Math.min(preferredTop, window.innerHeight - panel.height - 8))
       setPosition({
         left:
           Math.max(8, Math.min(anchor.right - panel.width, window.innerWidth - panel.width - 8)) +
           (pagePositioned ? window.scrollX : 0),
-        top:
-          (panel.height > window.innerHeight - 16
-            ? 8
-            : anchor.bottom + panel.height + 16 <= window.innerHeight
-              ? anchor.bottom + 8
-              : Math.max(8, anchor.top - panel.height - 8)) + (pagePositioned ? window.scrollY : 0),
+        top: viewportTop + (pagePositioned ? window.scrollY : 0),
       })
     }
     place()

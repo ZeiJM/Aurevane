@@ -96,7 +96,7 @@ test('leaving during a slow target preview cannot submit a late action', async (
   expect(commits).toBe(0)
 })
 
-test('Guard re-arms at fresh authority but its cooldown blocks further deliberate hotkeys', async ({
+test('Guard clears its armed mode and blocks deliberate inputs during its authoritative cooldown', async ({
   page,
 }) => {
   test.slow()
@@ -104,9 +104,15 @@ test('Guard re-arms at fresh authority but its cooldown blocks further deliberat
   const guard = page.locator('[data-battle-command="guard"]')
   const economy = page.getByRole('progressbar', { name: 'Action Economy remaining' })
   let commits = 0
+  const previewVersions: number[] = []
+  const requests: string[] = []
   page.on('request', (request) => {
-    if (request.method() === 'POST' && /\/(intents|commit)$/.test(new URL(request.url()).pathname))
-      commits++
+    if (request.method() !== 'POST') return
+    const path = new URL(request.url()).pathname
+    if (/\/(preview|intents|commit|final-turn)$/.test(path)) requests.push(path)
+    if (/\/(intents|commit)$/.test(path)) commits++
+    if (path.endsWith('/preview'))
+      previewVersions.push(request.postDataJSON().expectedBattleVersion)
   })
   await page.mouse.move(0, 0)
   await page.locator('main[data-unified-battle="true"]').focus()
@@ -117,37 +123,40 @@ test('Guard re-arms at fresh authority but its cooldown blocks further deliberat
   await expect(page.getByLabel('Action preview', { exact: true })).toContainText('30 AP')
   expect(commits).toBe(0)
 
-  const rearmedPreview = page.waitForResponse(
+  const committed = page.waitForResponse(
     (response) =>
       response.request().method() === 'POST' &&
-      new URL(response.url()).pathname.endsWith('/preview') &&
-      response.request().postDataJSON().expectedBattleVersion === initialVersion + 1,
+      /\/(intents|commit)$/.test(new URL(response.url()).pathname),
   )
   await page.keyboard.press('Digit3')
-  const forecast = (await (await rearmedPreview).json()).battlePreview.preview
-  expect(forecast).toMatchObject({ actionId: 'basic.guard', legal: false })
-  expect(forecast.issues).toEqual(
-    expect.arrayContaining([expect.objectContaining({ code: 'cooldown-active' })]),
-  )
+  const response = await committed
+  expect(response.status()).toBe(200)
+  const after = (await response.json()).battle
+  expect(after.battleVersion).toBe(initialVersion + 1)
   await expect(economy).toHaveAttribute('aria-valuenow', '70')
-  await expect(guard).toHaveAttribute('data-active', 'true')
+  await expect(guard).toBeDisabled()
+  await expect(guard).toHaveAccessibleName('Guard, 30 AP, Cooldown: 2 turns remaining')
+  await expect(guard).not.toHaveAttribute('data-active', 'true')
+  await expect(
+    page.locator('[data-command-card="guard"] [data-battle-cooldown-countdown]'),
+  ).toHaveText('2')
+  // The cast may refresh its legal receipt, but never re-previews the now cooling action.
+  expect(previewVersions.length).toBeGreaterThanOrEqual(1)
+  expect(previewVersions.every((version) => version === initialVersion)).toBe(true)
   expect(commits).toBe(1)
 
-  for (const key of ['Digit3', 'Digit3', 'KeyD']) {
-    const blockedPreview = page.waitForResponse('**/api/battles/*/preview')
-    await page.keyboard.press(key)
-    const response = await blockedPreview
-    expect(response.request().postDataJSON().expectedBattleVersion).toBe(initialVersion + 1)
-    const blocked = (await response.json()).battlePreview.preview
-    expect(blocked.issues).toEqual(
-      expect.arrayContaining([expect.objectContaining({ code: 'cooldown-active' })]),
-    )
-    await expect(economy).toHaveAttribute('aria-valuenow', '70')
-    await expect(guard).toHaveAttribute('data-active', 'true')
-    expect(commits).toBe(1)
-  }
+  const requestCount = requests.length
+  for (const key of ['Digit3', 'Digit3', 'KeyD']) await page.keyboard.press(key)
+  await guard.evaluate((button) => (button as HTMLButtonElement).click())
   await page.keyboard.press('Escape')
   await expect(guard).not.toHaveAttribute('data-active', 'true')
+  await expect(guard).toBeDisabled()
+  await expect(economy).toHaveAttribute('aria-valuenow', '70')
+  expect(requests).toHaveLength(requestCount)
+  expect(commits).toBe(1)
+  const authority = await page.request.get(`/api/battles/${after.battleSessionId}`)
+  expect(authority.ok()).toBe(true)
+  expect((await authority.json()).battle.battleVersion).toBe(after.battleVersion)
 })
 
 test('Move shows and commits adjacent steps while staying armed for the next step', async ({
@@ -232,8 +241,16 @@ test('a second pointer or hotkey during a pending commit cannot queue another ac
   })
   await page.mouse.move(0, 0)
   await page.locator('main[data-unified-battle="true"]').focus()
+  const initialPreview = page.waitForResponse('**/api/battles/*/preview')
   await page.keyboard.press('Digit3')
+  const initialVersion = (await initialPreview).request().postDataJSON()
+    .expectedBattleVersion as number
   await expect(page.getByLabel('Action preview', { exact: true })).toContainText('30 AP')
+  const committed = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'POST' &&
+      /\/(intents|commit)$/.test(new URL(response.url()).pathname),
+  )
   try {
     await localTile.click()
     await expect(page.locator('[data-battle-command="guard"]')).toBeDisabled()
@@ -243,11 +260,20 @@ test('a second pointer or hotkey during a pending commit cannot queue another ac
   } finally {
     release()
   }
+  const response = await committed
+  expect(response.status()).toBe(200)
+  expect((await response.json()).battle.battleVersion).toBe(initialVersion + 1)
   await expect(page.getByRole('progressbar', { name: 'Action Economy remaining' })).toHaveAttribute(
     'aria-valuenow',
     '70',
   )
-  await expect(page.locator('[data-battle-command="guard"]')).toHaveAttribute('data-active', 'true')
+  const guard = page.locator('[data-battle-command="guard"]')
+  await expect(guard).toBeDisabled()
+  await expect(guard).toHaveAccessibleName('Guard, 30 AP, Cooldown: 2 turns remaining')
+  await expect(guard).not.toHaveAttribute('data-active', 'true')
+  await expect(
+    page.locator('[data-command-card="guard"] [data-battle-cooldown-countdown]'),
+  ).toHaveText('2')
   expect(commits).toBe(1)
 })
 

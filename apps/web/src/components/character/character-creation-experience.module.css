@@ -337,6 +337,7 @@
 }
 .disciplineSigil {
   width: 5.5rem;
+  height: auto;
   aspect-ratio: 1;
   object-fit: contain;
 }
@@ -433,6 +434,7 @@
 }
 .reviewDisciplineSigil {
   width: 5rem;
+  height: auto;
   aspect-ratio: 1;
   flex: 0 0 auto;
 }
