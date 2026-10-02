@@ -54,4 +54,35 @@ Head `d1d919264931ca9a0f4e0ba859741d2c3a79e6cc` again passed eight workflows. UI
 
 An eight-uppercase-character fixture reproduces the remaining roster overflow. Decorative diamonds now use reserved side insets, and the short-desktop artwork budget reserves another 12px, keeping full names, normal readable fonts and all controls. Independent rendering repeated all 84 cases plus 876 child-bound checks with this stronger name and maximum-length names: zero desktop scroll, no overflow/errors. Training cleanup now waits only for route-continuation callbacks, removes its handler, reloads and checks persisted Plan before the next command. The held-refresh and identity assertions remain intact; no timeout or fit assertion was relaxed. Root and independent review repeated the streaming reproduction: old body-completion wait stalls; revised cleanup completes and reload verifies persisted Plan. Independent signoff is clear.
 
-This latest frozen two-file correction passed the complete `pnpm check` with telemetry disabled. Corrected-head CI, final Main freshness, merge identity, deployment source, live checks and restored deployment lock will be recorded after they complete. Current Production has not yet changed for this work item.
+This latest frozen two-file correction passed the complete `pnpm check` with telemetry disabled. The final exact-head CI and integration evidence follows; deployment/live verification is recorded separately below.
+
+## Final exact-head CI and integration — 2026-10-02
+
+All ten applicable workflows passed on `db2a9940dbb8afdb5b56f46d25729ca65e7ae4dc`, tree `91aa10d75d704b80873f0eb9ae43928ca75a8341`.
+
+| Workflow                  | Run         | Result                                                                                        |
+| ------------------------- | ----------- | --------------------------------------------------------------------------------------------- |
+| CI                        | 36952860972 | Passed                                                                                        |
+| Browser smoke             | 36952860983 | Passed: 61 focused, 292 full Chromium and ten Edge; intentional skips 19 / 212 / 2            |
+| UI layout review          | 36952861009 | Passed: 107 authenticated layout scenarios plus one directory check; intentional skips 61 / 2 |
+| Desktop page fit          | 36952861023 | Passed                                                                                        |
+| Desktop experience        | 36952860973 | Passed                                                                                        |
+| Representative Buildcraft | 36952861011 | Passed                                                                                        |
+| Profile Skill Build       | 36952860957 | Passed                                                                                        |
+| Attribute Allocation      | 36952860971 | Passed                                                                                        |
+| Essence Build             | 36952861096 | Passed                                                                                        |
+| Resonance Build           | 36952860929 | Passed                                                                                        |
+
+Fresh Main remained `491e687ed0dc9be364c136f2202b02e555a72cad` immediately before integration. PR #794 merged at `5bd480d947c74b842d5f3330cd432a6897c6ca79`; a fresh Git fetch proves the merged tree is exactly the tested tree above.
+
+Configuration-only PR #795 adds only `main: true` to `apps/web/vercel.json`, leaving every other branch disabled. Independent local Git-tree construction and the fetched merged tree both match `b8d0f22645ed8b66d0b976b7d27aa79c4a7e0f36`; no application bytes changed. This path is excluded by the workflows, so the release commit has no applicable new CI workflows. Main remained the implementation merge before release integration. Release source is `4dc50dd0760b45d812ca4063dfffcaeb1cea17d6`.
+
+## Production verification and lock restoration
+
+The Owner-authorized release is READY deployment `dpl_G2trePWZEzPVW9VqqsKRvqyRXADY`, source `4dc50dd0760b45d812ca4063dfffcaeb1cea17d6`, ready at **2026-10-02 02:41:22.521 UTC**. The canonical alias https://aurevane.vercel.app/ resolves to that exact deployment/source.
+
+Live HTTP returned 200 and the approved gateway marker and image. A refreshed public browser loaded the new artwork and real form; at 1363×936 the document height is 936, there is no horizontal overflow, and all form/footer content is visible. Manual search filtered to the Passive Training guide, the article opened, and Rules/News rendered through their public navigation. The browser returned to the canonical entry URL. No app-origin warning/error was captured; browser-extension metadata errors are unrelated to the application and were excluded.
+
+A bounded Production warning/error/fatal query for this deployment from **2026-10-02T02:41:22.521Z** through **2026-10-02T02:43:43.000Z** returned no grouped counts. This is a bounded live smoke result, not a claim of unrestricted historical log cleanliness.
+
+The configuration/documentation-only closeout restores `git.deploymentEnabled` to `{ "**": false }` and records this evidence in `TASKS.md`. Application bytes remain unchanged. No Production migration or combat-content activation occurred. Authenticated end-to-end behavior passed the exact-head CI gates above; authenticated Production gameplay and Owner visual acceptance remain testing outcomes.
