@@ -22,6 +22,8 @@ No migration, content activation, game-core rule, server mutation or combat layo
 
 Mounted local fixtures replace Next routing/image adapters; authenticated route/persistence and complete browser coverage are delegated to existing exact-head CI. Production private gameplay is not claimed by public smoke checks.
 
+Independent review found no critical/important issues. Its minor Basic Attack wording concern was corrected: the explanation now states the physical-damage formula without claiming a mitigation path. The full local quality gate was rerun on that final source.
+
 ## Integration and release
 
 Exact-head CI, merge, deployment and live verification pending. Keep Git deployments locked until the authorized verified release; restore the lock after readiness.

@@ -125,7 +125,7 @@ export function basicActionEffectExplanation(id: BasicActionPresentationId): str
     return 'Restores the resource immediately, up to its maximum. HP and MP Recovery share a cooldown.'
   }
   if (id === PV1F_BASIC_ATTACK_ID) {
-    return 'Deals physical damage to the selected enemy. The battle engine evaluates the shown formula and applies target defenses.'
+    return 'Deals physical damage to the selected enemy using the shown formula.'
   }
   return 'Move along orthogonally adjacent tiles, spending AP and 1 Movement per entered tile. Terrain changes AP cost rather than your Movement allowance.'
 }
