@@ -809,6 +809,9 @@
   .previewFrame {
     width: min(100%, 11rem);
   }
+  .reviewDisciplineSigil {
+    width: 4rem;
+  }
   .attributeControl button {
     min-height: 2.25rem;
   }

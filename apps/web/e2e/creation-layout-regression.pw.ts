@@ -16,7 +16,7 @@ test('Creation exposes twelve portraits per gender and preserves the complete au
     .split('')
     .map((digit) => String.fromCharCode(65 + Number(digit)))
     .join('')
-  const characterName = `Aurelia ${suffix}`
+  const characterName = `Aurelia AB${suffix}`
   const pageErrors: string[] = []
   page.on('pageerror', (error) => pageErrors.push(error.message))
   await createVerifiedAccountAndSignIn({
