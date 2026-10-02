@@ -867,6 +867,13 @@
     /* Eight-column galleries retain their assigned row and reserve readable name/type lines. */
     --av-gameplay-art-size: min(var(--av-cockpit-art-size), calc(100cqb - 3.5rem));
   }
+  .lockedSkill {
+    /* Match the available card's container budget; its padding belongs to the inner label. */
+    padding: 0;
+  }
+  .lockedSkill > span {
+    width: min(calc(100% - 0.32rem), var(--av-gameplay-art-size));
+  }
   .skill label {
     padding: 0.2rem 0.16rem;
     grid-template-rows: auto minmax(1.85rem, auto) auto;

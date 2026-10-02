@@ -363,8 +363,8 @@ async function assertDesktopTechniqueGeometry(page: Page, testInfo: TestInfo, bu
           'artwork stays square',
         ).toBeLessThanOrEqual(1)
         expect(
-          Math.abs(card.art.width - group.cards[0].art.width),
-          'all slots share the available artwork size',
+          Math.abs(card.art.width - metrics.groups[0].cards[0].art.width),
+          'available and locked slots share the artwork size',
         ).toBeLessThanOrEqual(1)
         if (card.image) contained(card.image, card.art)
         for (const content of card.contents) contained(content, card.box)
