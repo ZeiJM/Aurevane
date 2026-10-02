@@ -305,6 +305,9 @@
     font-size: 0.6875rem;
     line-height: 12px;
   }
+  .detailControls span {
+    line-height: 12px;
+  }
   .track li {
     min-width: 40px;
   }
