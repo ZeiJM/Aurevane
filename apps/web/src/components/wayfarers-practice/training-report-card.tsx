@@ -55,9 +55,21 @@ export function TrainingReportCard({ report, onClaimed }: TrainingReportCardProp
           idempotencyKey: idempotencyKey.current,
         }),
       })
-      const payload = (await response.json()) as { error?: { message?: string } }
+      const payload = (await response.json()) as {
+        claim?: { reportId?: string; characterId?: string }
+        error?: { message?: string }
+      }
       if (!response.ok) {
         setErrorMessage(payload.error?.message ?? 'The Training Report could not be claimed.')
+        return
+      }
+      if (
+        payload.claim?.reportId !== report.reportId ||
+        payload.claim?.characterId !== report.characterId
+      ) {
+        setErrorMessage(
+          'The server did not confirm this Training Report. You can safely try again.',
+        )
         return
       }
       setClaimed(true)

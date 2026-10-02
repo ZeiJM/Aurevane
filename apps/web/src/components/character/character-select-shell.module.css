@@ -427,10 +427,22 @@
 /* Art takes the remaining viewport height after labels and all live controls. */
 @media (min-width: 761px) {
   .slots {
+    --roster-art-ceiling: 18rem;
+    --roster-art-overhead: 32.5rem;
+    --roster-name-space: 0rem;
+    --roster-state-space: 0rem;
     --roster-art-size: min(
       100%,
-      18rem,
-      max(3rem, calc(100dvh - 32.5rem - var(--roster-name-space, 0rem)))
+      max(
+        2rem,
+        calc(var(--roster-art-ceiling) - var(--roster-name-space) - var(--roster-state-space))
+      ),
+      max(
+        2rem,
+        calc(
+          100dvh - var(--roster-art-overhead) - var(--roster-name-space) - var(--roster-state-space)
+        )
+      )
     );
   }
   .main {
@@ -441,30 +453,19 @@
     width: min(100%, 62vw, 66rem);
   }
   .slots:has([data-long-name]) {
-    --roster-name-space: 4.5rem;
+    --roster-name-space: 6.5rem;
   }
   .slots:has(.swapCooldown) {
-    --roster-art-size: min(
-      100%,
-      18rem,
-      max(3rem, calc(100dvh - 37rem - var(--roster-name-space, 0rem)))
-    );
+    --roster-state-space: 4.5rem;
   }
   .slots:has(.pendingDelete) {
-    --roster-art-size: min(
-      100%,
-      18rem,
-      max(3rem, calc(100dvh - 38rem - var(--roster-name-space, 0rem)))
-    );
+    --roster-state-space: 5.5rem;
   }
 }
 @media (min-width: 761px) and (max-height: 800px) {
   .slots {
-    --roster-art-size: min(
-      100%,
-      13rem,
-      max(3rem, calc(100dvh - 34.5rem - var(--roster-name-space, 0rem)))
-    );
+    --roster-art-ceiling: 13rem;
+    --roster-art-overhead: 34.5rem;
   }
   .main {
     gap: 0.5rem;
@@ -487,19 +488,12 @@
 }
 @media (min-width: 761px) and (max-height: 650px) {
   .slots {
-    --roster-art-size: min(
-      100%,
-      10rem,
-      max(3rem, calc(100dvh - 30.5rem - var(--roster-name-space, 0rem)))
-    );
+    --roster-art-ceiling: 10rem;
+    --roster-art-overhead: 30.5rem;
   }
   .slots:has(.pendingDelete),
   .slots:has(.swapCooldown) {
-    --roster-art-size: min(
-      100%,
-      8rem,
-      max(3rem, calc(100dvh - 33.5rem - var(--roster-name-space, 0rem)))
-    );
+    --roster-state-space: 3.5rem;
   }
   .main {
     width: min(calc(100% - 2.5rem), 55rem);
@@ -528,6 +522,9 @@
   .identity h2 {
     font-size: 1.35rem;
   }
+  .slot[data-long-name] .identity h2 {
+    font-size: 1.125rem;
+  }
   .empty h2 {
     font-size: 1.0625rem;
   }
@@ -537,9 +534,14 @@
   }
   .primaryAction,
   .deleteAction,
+  .pendingDelete button,
   .accountDeleteButton {
     min-height: 40px;
     padding-block: 0.3rem;
+  }
+  .pendingDelete,
+  .swapCooldown {
+    padding: 0.375rem;
   }
   .lockedBadge {
     padding-top: 0.5rem;
@@ -547,6 +549,16 @@
   }
   .accountManagement small {
     font-size: 0.75rem;
+  }
+}
+@media (min-width: 761px) and (max-width: 1100px) {
+  .slots {
+    width: 100%;
+  }
+}
+@media (min-width: 761px) and (max-width: 1100px) and (max-height: 650px) {
+  .slot[data-long-name] .identity h2 {
+    font-size: 1rem;
   }
 }
 @media (min-width: 761px) and (max-width: 980px) {

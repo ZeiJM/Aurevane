@@ -166,6 +166,19 @@ test('training composition preserves idle, active, report and claim flows', asyn
     await claimGate
     await route.continue()
   })
+  let releaseRefresh!: () => void
+  let blockedRefreshes = 0
+  const refreshGate = new Promise<void>((resolve) => {
+    releaseRefresh = resolve
+  })
+  const refreshRoute = /\/game\/training(?:\?.*)?$/
+  await page.route(refreshRoute, async (route) => {
+    if (route.request().headers()['rsc'] === '1') {
+      blockedRefreshes++
+      await refreshGate
+    }
+    await route.continue()
+  })
   const claimedResponse = page.waitForResponse(
     (response) =>
       new URL(response.url()).pathname === '/api/wayfarers-practice/claim' &&
@@ -183,9 +196,33 @@ test('training composition preserves idle, active, report and claim flows', asyn
   await expect(page.getByTestId('practice-plan-card')).toHaveCount(0)
   expect(claimRequests).toBe(1)
   releaseClaim()
-  expect((await claimedResponse).ok()).toBe(true)
+  const claimResponse = await claimedResponse
+  expect(claimResponse.ok()).toBe(true)
+  const claimBody = await claimResponse.json()
+  const claimIntent = claimResponse.request().postDataJSON()
+  expect(claimBody.claim).toMatchObject({
+    reportId: claimIntent.reportId,
+    characterId: claimIntent.characterId,
+  })
   await page.unroute('**/api/wayfarers-practice/claim')
-  await expect(page.getByTestId('practice-plan-card')).toBeVisible()
+  try {
+    await expect.poll(() => blockedRefreshes).toBeGreaterThan(0)
+    // The acknowledged report clears even while the authoritative page refresh is pending.
+    await expect(page.getByTestId('practice-plan-card')).toBeVisible()
+    await expect(page.getByTestId('training-report')).toHaveCount(0)
+  } finally {
+    const refreshedResponse =
+      blockedRefreshes > 0
+        ? page.waitForResponse(
+            (response) =>
+              new URL(response.url()).pathname === '/game/training' &&
+              response.request().headers()['rsc'] === '1',
+          )
+        : null
+    releaseRefresh()
+    if (refreshedResponse) await (await refreshedResponse).finished()
+    await page.unroute(refreshRoute)
+  }
   expect(claimRequests).toBe(1)
   await capture('stopped-idle')
   await expect(page.getByTestId('training-report')).toHaveCount(0)
@@ -196,6 +233,18 @@ test('training composition preserves idle, active, report and claim flows', asyn
   await page.route('**/api/wayfarers-practice/claim', async (route) => {
     claimKeys.push(route.request().postDataJSON().idempotencyKey)
     if (claimKeys.length === 1) {
+      await route.fulfill({ status: 200, json: { claim: null } })
+    } else if (claimKeys.length === 2) {
+      await route.fulfill({
+        status: 200,
+        json: {
+          claim: {
+            reportId: '00000000-0000-4000-8000-000000000001',
+            characterId: route.request().postDataJSON().characterId,
+          },
+        },
+      })
+    } else if (claimKeys.length === 3) {
       await route.fulfill({
         status: 503,
         json: { error: { message: 'Settlement temporarily unavailable.' } },
@@ -206,6 +255,15 @@ test('training composition preserves idle, active, report and claim flows', asyn
   await expect(page.getByTestId('training-report')).toBeVisible()
   expect(claimKeys).toHaveLength(0)
   expect(claimRequests).toBe(1)
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await submit(page, 'Claim Training', '/api/wayfarers-practice/claim')
+    await expect(
+      page.getByText('The server did not confirm this Training Report. You can safely try again.'),
+    ).toBeVisible()
+    await expect(page.getByTestId('training-report')).toBeVisible()
+    await expect(page.getByTestId('practice-plan-card')).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Claim Training', exact: true })).toBeEnabled()
+  }
   const failedClaim = page.waitForResponse(
     (response) =>
       new URL(response.url()).pathname === '/api/wayfarers-practice/claim' &&
@@ -218,8 +276,8 @@ test('training composition preserves idle, active, report and claim flows', asyn
   await capture('failed-report')
   await submit(page, 'Claim Training', '/api/wayfarers-practice/claim')
   await expect(page.getByTestId('practice-plan-card')).toBeVisible()
-  expect(claimKeys).toHaveLength(2)
-  expect(claimKeys[0]).toBe(claimKeys[1])
+  expect(claimKeys).toHaveLength(4)
+  expect(new Set(claimKeys).size).toBe(1)
   await page.unroute('**/api/wayfarers-practice/claim')
   await submit(page, 'Start Training', '/api/wayfarers-practice/plan')
   await expect(page.getByTestId('passive-training-active')).toBeVisible()

@@ -48,6 +48,27 @@ export function PracticePlanCard({ practice, trainingReport = null }: PracticePl
     characterId: string
     serverNow: string
   } | null>(null)
+  const [claimedReport, setClaimedReport] = useState<{
+    characterId: string
+    reportId: string
+  } | null>(null)
+  const visibleReport =
+    trainingReport?.characterId === claimedReport?.characterId &&
+    trainingReport?.reportId === claimedReport?.reportId
+      ? null
+      : trainingReport
+  const currentReportIdentity = useRef({
+    characterId: practice.characterId,
+    reportId: trainingReport?.reportId,
+    reportCharacterId: trainingReport?.characterId,
+  })
+  useEffect(() => {
+    currentReportIdentity.current = {
+      characterId: practice.characterId,
+      reportId: trainingReport?.reportId,
+      reportCharacterId: trainingReport?.characterId,
+    }
+  }, [practice.characterId, trainingReport?.characterId, trainingReport?.reportId])
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const retryKey = useRef<{ window: PracticePlanWindow; key: string } | null>(null)
   const stopRequestInFlight = useRef(false)
@@ -122,7 +143,7 @@ export function PracticePlanCard({ practice, trainingReport = null }: PracticePl
   ]
 
   async function setPlan(window: PracticePlanWindow) {
-    if (submittingWindow || stopping || currentVisible || trainingReport) return
+    if (submittingWindow || stopping || currentVisible || visibleReport) return
     setSubmittingWindow(window)
     setErrorMessage(null)
     if (!retryKey.current || retryKey.current.window !== window) {
@@ -202,9 +223,9 @@ export function PracticePlanCard({ practice, trainingReport = null }: PracticePl
   return (
     <div
       className={styles.columns}
-      data-training-stage={trainingReport ? 'report' : currentVisible ? 'current' : 'plan'}
+      data-training-stage={visibleReport ? 'report' : currentVisible ? 'current' : 'plan'}
     >
-      {trainingReport ? (
+      {visibleReport ? (
         <aside
           className={styles.reportWorkspace}
           id="training-report-workspace"
@@ -212,9 +233,22 @@ export function PracticePlanCard({ practice, trainingReport = null }: PracticePl
           tabIndex={-1}
         >
           <TrainingReportCard
-            key={trainingReport.reportId}
-            report={trainingReport}
-            onClaimed={() => setStoppedSnapshot(null)}
+            key={`${visibleReport.characterId}:${visibleReport.reportId}`}
+            report={visibleReport}
+            onClaimed={() => {
+              const current = currentReportIdentity.current
+              if (
+                current.characterId !== visibleReport.characterId ||
+                current.reportCharacterId !== visibleReport.characterId ||
+                current.reportId !== visibleReport.reportId
+              )
+                return
+              setClaimedReport({
+                characterId: visibleReport.characterId,
+                reportId: visibleReport.reportId,
+              })
+              setStoppedSnapshot(null)
+            }}
           />
         </aside>
       ) : !currentVisible ? (
