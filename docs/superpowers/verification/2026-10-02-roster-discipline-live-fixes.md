@@ -2,7 +2,7 @@
 
 Scope: `../specs/2026-10-02-roster-discipline-live-fixes.md`. Branch `agent/roster-discipline-live-fixes-20261002`, based on fresh Main `439549e4f957d245aceb92e45e628a9fd57a96e1`. Existing Owner merge and Production release authorization applies after verification. No migration or P5 content activation is required. Battle Log is a proposal only.
 
-## Local evidence so far
+## Local evidence
 
 - Initial complete `pnpm check` exited 0: formatting, lint, TypeScript, 3,177 Vitest tests across seven packages, seven Node checks and Production builds. This precedes the independent review corrections below and is not the final candidate gate.
 - Roster: 92 targeted tests across 13 adjacent files and 36 actual-component desktop/phone renders passed. Projected equipped Disciplines, mixed/pure/long-name rows and deletion/cooldown/account actions were checked. Desktop outer scroll and runtime errors were zero. Existing card framing has a 6px internal scrollHeight excess without clipped labels or actions.
@@ -16,7 +16,7 @@ Mounted checks render genuine components/styles against mocked services; they do
 
 ## Review, final gates and release
 
-Independent code review found no remaining Critical or Important issues after the two Discipline corrections. Worker once-mode boot passed. No candidate commit/PR, merge or new Production deployment has occurred yet. Final frozen-source checks, exact-head workflow results, merge/deployment identities and public/runtime verification will be recorded here when performed.
+Independent code review found no remaining Critical or Important issues after the two Discipline corrections. Worker once-mode boot passed. The candidate history below records the intermediate failures and corrections; final CI, merge and release evidence follows it.
 
 The frozen-source `pnpm check` exited 0 after review corrections: format, lint, types, 3,177 Vitest tests, seven Node checks and Production builds. Unchanged package tasks reused Turbo cache. Root independently reran the retained Discipline browser harness: 22 scenarios, seven viewports and zero browser errors; desktop and 320px summary screenshots were inspected. Git diff checks passed. The first attempted post-review gate stopped at a formatting-only issue before compilation; the final gate followed its correction. Main was refreshed and remains the base above.
 
@@ -35,3 +35,21 @@ The final frozen-source `pnpm check` exited 0 after these corrections: format, l
 Candidate `b79b058f442904f30a6183ff6b2beade63cedcff`, tree `bcbe830a171afebad1d81987214ce885e544c24b`, passed eleven workflows, including UI layout review (107 authenticated layout cases plus one directory check; existing skips 61/2). Browser smoke passed all 61 focused cases, including Guard cooldown and repeated Basic Attack with stale forecast settlement. The full Chromium stage passed 292 cases and skipped 214, but one negative-path Support save test failed: its immediate mocked 409 correctly restored MP Recovery before Playwright's `radio.check()` could assert Guard was checked. The separate Techniques pending/failure geometry test passed. The failing input operation will be changed to a normal click while retaining the error, restored Support selection and unchanged Discipline capacity assertions. No application correction or assertion relaxation is required; new exact-head CI remains the release gate.
 
 The correction is exactly one E2E input line, `check()` → `click()`, with every error/rollback assertion unchanged. Root independently reproduced the original error and passing ordinary click on the actual mounted Techniques component: both rejected attempts use `expectedBuildVersion: 2`, MP Recovery stays committed, capacity remains 0/4 and runtime errors are zero. Independent review signed off this negative-path input correction. The final frozen-source full `pnpm check` exited 0 again; explicit scoped ESLint passed. Only this test and the verification record differ from the previous candidate; application bytes remain unchanged. Corrected exact-head CI and release are pending.
+
+## Final CI and Production release
+
+Final candidate `70dde68364c11b382cd22d2c8bbe2d57bb64655d` matches tree `c900bbe965ad761f95586559a0c515c8e8fe421e`. All twelve exact-head workflows passed: CI, Browser smoke, UI layout review, Desktop page fit, Desktop experience, Skill Engine, Attribute Allocation, Essence Build, Resonance Build, Shared Build Snapshots, Representative Buildcraft and Profile Skill Build.
+
+- Browser smoke: 61 focused cases passed / 19 existing skips; full Chromium 293 passed / 214 existing skips; Edge keyboard 10 passed / 2 existing skips. The previously failing negative-path Support test and the separate geometry-stability test both pass. No skips, assertions or timeouts were relaxed.
+- UI layout review: 107 cases passed / 61 existing skips, followed by the directory check with one pass / two existing skips.
+- The frozen-source local gate passed formatting, lint, types, 3,177 Vitest tests, seven Node checks and Production builds. Independent review found no remaining blocking issues.
+
+Main was refreshed immediately before integration and still matched `439549e4f957d245aceb92e45e628a9fd57a96e1`. PR #797 merged as `31e4f6e2581d5ea4e5d05156ba7263dddafee5d5`; fetching Main proved its tree exactly equals the tested candidate tree. Deployment was still locked.
+
+Configuration-only PR #798 added only `main: true` to the deployment configuration. Local and independent review confirmed release tree `f39d4f2b4cc2e44eb76702966872434c1a203ffb` changes no application bytes. Its commit `81c95ce94416c60aa8adaee3872194919a29d5b9` has no applicable CI workflows under the existing path filters. Main was refreshed again before the expected-head merge. The release source is merge `4b521f1acf28d0da7cadf8d7b4c8bb59802fbba7`.
+
+Production deployment `dpl_DuZRQzZX1Xw9tiWFYbvh3pRpb9TZ` reached READY on 2026-10-02 at 06:52:48.985 UTC. The canonical `https://aurevane.vercel.app/` alias was verified against that exact deployment and source. Public HTTP returned 200. Browser checks passed for the entry artwork and document fit at 1363×936, Manual search for Battle, the published Battle Hall guide with Guard's independent cooldown, Rules, News and return to the canonical entry. The empty Guard title search also rendered its proper no-match state; Manual search is not a full-body search. No application-origin browser warning/error was observed; extension metadata errors are excluded explicitly.
+
+The deployment-scoped Production warning/error/fatal query from `2026-10-02T06:52:48.985Z` through `2026-10-02T06:55:13.428Z` after the browser/public HTTP checks returned no rows. This is bounded smoke evidence, not an authenticated Production gameplay or Owner visual acceptance claim. No migration or combat-content activation occurred.
+
+This configuration/docs-only closeout restores `deploymentEnabled: { "**": false }` and records these results without changing application bytes. Battle Log remains a proposal: fixed geometry, action selection with recorded result/short description/flavor, distinct turn and overflow pages, and historical/private projection safeguards. The separate conversation mockup uses illustrative events and is not shipped application code.
