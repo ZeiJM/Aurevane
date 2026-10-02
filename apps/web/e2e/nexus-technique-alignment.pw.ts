@@ -101,6 +101,7 @@ async function assertDesktopOverviewGeometry(page: Page, testInfo: TestInfo, bui
         const image = frame.querySelector('img') as HTMLImageElement | null
         const imageStyle = image ? getComputedStyle(image) : null
         return {
+          technique: Boolean(frame.closest('[data-arsenal-panel="techniques"]')),
           box: box(frame),
           border: {
             top: parseFloat(frameStyle.borderTopWidth),
@@ -156,9 +157,26 @@ async function assertDesktopOverviewGeometry(page: Page, testInfo: TestInfo, bui
     expect(Math.abs(primary.frame.x - secondary.frame.x)).toBeLessThanOrEqual(1)
     expect(Math.abs(primary.copy.x - secondary.copy.x)).toBeLessThanOrEqual(1)
     expect(metrics.frames.length).toBeGreaterThanOrEqual(8)
+    const techniqueFrames = metrics.frames.filter((frame) => frame.technique)
+    expect(techniqueFrames).toHaveLength(5)
     for (const frame of metrics.frames) {
-      expect(Math.abs(frame.box.width - metrics.artSize)).toBeLessThanOrEqual(1)
-      expect(Math.abs(frame.box.height - metrics.artSize)).toBeLessThanOrEqual(1)
+      expect(
+        Math.abs(frame.box.width - frame.box.height),
+        'artwork stays square',
+      ).toBeLessThanOrEqual(1)
+      if (frame.technique) {
+        expect(
+          frame.box.width,
+          'selected, empty and Support artwork stays readable',
+        ).toBeGreaterThanOrEqual(64)
+        expect(frame.box.width).toBeLessThanOrEqual(metrics.artSize + 1)
+        expect(
+          Math.abs(frame.box.width - techniqueFrames[0].box.width),
+          'selected, empty and Support frames match',
+        ).toBeLessThanOrEqual(1)
+      } else {
+        expect(Math.abs(frame.box.width - metrics.artSize)).toBeLessThanOrEqual(1)
+      }
       for (const border of Object.values(frame.border)) expect(border).toBeGreaterThan(0)
       if (!frame.image) continue
       // Approved source pixels remain intact; this checks CSS size rather than promising 2x assets.
@@ -335,8 +353,19 @@ async function assertDesktopTechniqueGeometry(page: Page, testInfo: TestInfo, bu
         contained(card.box, group.box)
         contained(card.art, card.box)
         noOverflow(card.overflow)
-        expect(Math.abs(card.art.width - metrics.artSize)).toBeLessThanOrEqual(1)
-        expect(Math.abs(card.art.height - metrics.artSize)).toBeLessThanOrEqual(1)
+        expect(
+          card.art.width,
+          'readable artwork survives the compact gallery budget',
+        ).toBeGreaterThanOrEqual(64)
+        expect(card.art.width).toBeLessThanOrEqual(metrics.artSize + 1)
+        expect(
+          Math.abs(card.art.width - card.art.height),
+          'artwork stays square',
+        ).toBeLessThanOrEqual(1)
+        expect(
+          Math.abs(card.art.width - group.cards[0].art.width),
+          'all slots share the available artwork size',
+        ).toBeLessThanOrEqual(1)
         if (card.image) contained(card.image, card.art)
         for (const content of card.contents) contained(content, card.box)
       }

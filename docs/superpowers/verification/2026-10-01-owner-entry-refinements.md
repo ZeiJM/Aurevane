@@ -14,6 +14,7 @@ Support Action uses the same heading and ten characteristic rows as Discipline S
 
 - Two complete `pnpm check` executions exited 0: repository formatting, lint, types, 3,157 Vitest tests, seven Node checks and Production builds. The second execution followed the final source freeze; unchanged package tasks may use Turbo cache.
 - Worker `check:boot` passed in once mode.
+- Explicit ESLint of changed browser suites passed with no warnings.
 - Changed browser suites discovered 51 cases across nine files; this is discovery, not execution.
 - Actual mounted entry checks: 35 desktop state cases across 1280×720, 1366×768, 1536×614 and 1920×1080, including long names and pending/cooldown/account-deletion states. No desktop scrolling or horizontal overflow; mobile 390/320 has no horizontal overflow. Signup/error and deletion/cancellation intent checks passed with mocked service responses.
 - Actual mounted battle checks: 28 PvP/PvE cases across seven viewport sizes and dense/empty states. Initial, armed and final-facing states preserve board dimensions; complete command boxes and facing arrows fit, artwork is square, and six terrain types fit. Dock baseline height delta is at most 0.25px.
@@ -31,4 +32,12 @@ Existing best direct artwork sources are retained: inherent artwork is 1254², a
 
 ## Integration and release
 
-Exact-head CI, final Main freshness, merge identity, deployment source, live checks and restored deployment lock will be recorded after they complete. Current Production has not yet changed for this work item.
+PR #794 first head `00fc4854788a68b6051366b7cd19829a5fec6d24` matched local tested tree `3160d6bd17703ed508777238283c04fc1ff29a51`. Eight workflows passed. UI layout review and early Browser smoke exposed real account-frame overflow, account-menu obstruction, a forecast row with 20px intrinsic content in an 18px lane and a short-desktop portrait below the existing 32px floor. They also exposed stale radial-parchment and rigid-art-cap assertions. This head was not merged or released; the full Browser suite and Edge stage did not run after the early-stage failure.
+
+The corrective patch sizes the decorative account SVG within the card, puts the shared battle masthead above ordinary battlefield layers, reserves 20px for forecast content inside the unchanged 44px strip, and reclaims short-card padding for the portrait. Existing containment and behavior guards remain; material assertions now reflect the approved parchment design and art guards check responsive caps, readable floors, equal squares and complete content containment.
+
+A final populated Nexus check also exposed outer scrolling and management controls overlapping the Attunement row. The Arsenal layout now budgets actual row content and available height. Root repeated the full pure/mixed matrix: all four requested desktop sizes and both phone sizes have contained controls and artwork, without desktop scrolling or horizontal overflow. Overview/Support art is 80.42 / 88 / 68.73 / 88px on the four desktops. An authenticated regression now equips and reloads all four Skills before checking complete panel fit and a 64px artwork floor. Independent review also checked empty, long-label and valid mixed 2+2 loadouts.
+
+The frozen correction passed another complete `pnpm check` and explicit E2E ESLint. Mounted account checks show internal overflow zero. The account menu reproduced an intercepted hit on the old source and now permits actual Controls & Keybinds clicks on desktop/mobile PvP/PvE. Two header tests passed. The final battle correction matrix passed 98 states (PvP/PvE × seven viewports × seven action states), including real Ice Lance and direct portrait URLs: forecast inner content fits, preview/map geometry stays fixed, portraits meet the desktop floor, and card content stays inside its bounds. The original CI forecast font/intrinsic-content difference was not reproduced locally; exact corrected-head CI remains the definitive check.
+
+Corrected-head CI, final Main freshness, merge identity, deployment source, live checks and restored deployment lock will be recorded after they complete. Current Production has not yet changed for this work item.

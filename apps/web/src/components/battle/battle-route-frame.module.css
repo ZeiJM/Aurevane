@@ -9,6 +9,10 @@
   overflow: hidden;
   background: #303a3b;
 }
+.header {
+  position: relative;
+  z-index: 1000;
+}
 .field {
   grid-column: 1;
   grid-row: 2;

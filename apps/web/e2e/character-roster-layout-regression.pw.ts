@@ -61,6 +61,7 @@ for (const longName of [false, true]) {
     const cards = board.locator(':scope > article')
     await expect(cards).toHaveCount(3)
     await expect(board.locator('[data-locked="true"]')).toHaveCount(2)
+    await expect(board.locator('[data-locked="true"] > svg[aria-hidden="true"]')).toHaveCount(2)
     await expect(board.locator('[data-slot-doorway="additional"] img')).toHaveAttribute(
       'src',
       /additional-doorway-v01/,
@@ -220,8 +221,8 @@ for (const longName of [false, true]) {
         .soft(metrics.deleteSupportAlign, `${label}: deletion support text centered`)
         .toBe('center')
       expect
-        .soft(metrics.lockedBackground, `${label}: stone locked cards`)
-        .toContain('linear-gradient')
+        .soft(metrics.lockedBackground, `${label}: approved parchment locked cards`)
+        .toContain('radial-gradient')
       if (size.width > 760) {
         expect
           .soft(metrics.play.bottom, `${label}: play fits at normal zoom`)

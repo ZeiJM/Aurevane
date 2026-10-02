@@ -146,9 +146,9 @@
 .frame {
   position: absolute;
   pointer-events: none;
-  inset: -7px;
-  width: calc(100% + 14px);
-  height: calc(100% + 14px);
+  inset: 0;
+  width: 100%;
+  height: 100%;
   fill: none;
   stroke: #d2af6d;
   stroke-width: 1;

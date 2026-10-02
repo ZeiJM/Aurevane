@@ -105,4 +105,61 @@ test('Techniques saves one Support Action separately from four Discipline Skills
   await dialog.getByRole('button', { name: 'Close', exact: true }).click()
   await expect(dialog).toBeHidden()
   await expect(page.getByTestId('nexus-support-action')).toContainText('MP Recovery')
+
+  // A populated Nexus has a larger content budget than the empty-slot state.
+  dialog = await open()
+  for (let index = 0; index < 4; index += 1) {
+    const save = page.waitForResponse(
+      (response) =>
+        response.url().endsWith('/api/character/build/skills') &&
+        response.request().method() === 'PUT',
+    )
+    await dialog.locator('[data-technique-card] input:not(:checked):not(:disabled)').first().check()
+    expect((await save).ok()).toBe(true)
+  }
+  await expect(dialog.getByTestId('skill-capacity')).toHaveText(
+    /Discipline Skills — 4 \/ 4 selected/,
+  )
+  await dialog.getByRole('button', { name: 'Close', exact: true }).click()
+  await page.reload()
+  await expect(page.locator('#nexus-techniques-heading')).toHaveText('Discipline Skills — 4 / 4')
+  for (const [width, height] of [
+    [1280, 720],
+    [1366, 768],
+    [1536, 614],
+    [1920, 1080],
+  ]) {
+    await page.setViewportSize({ width, height })
+    await expect
+      .poll(() =>
+        page.evaluate(() => {
+          const main = document.querySelector('main')!
+          return Math.max(
+            main.scrollHeight - main.clientHeight,
+            document.documentElement.scrollHeight - window.innerHeight,
+          )
+        }),
+      )
+      .toBeLessThanOrEqual(1)
+    const workspace = page.locator('[data-arsenal-workspace]')
+    const panels = workspace.locator('[data-arsenal-panel]')
+    const bounds = (await workspace.boundingBox())!
+    for (const panel of await panels.all()) {
+      const box = (await panel.boundingBox())!
+      expect(box.y + box.height).toBeLessThanOrEqual(bounds.y + bounds.height + 1)
+      expect(
+        await panel.evaluate((node) => node.scrollHeight - node.clientHeight),
+      ).toBeLessThanOrEqual(1)
+    }
+    for (const artwork of await workspace
+      .locator('[data-arsenal-panel="techniques"] [data-arsenal-media]')
+      .all()) {
+      const box = (await artwork.boundingBox())!
+      expect(box.width, 'populated Nexus retains larger readable artwork').toBeGreaterThanOrEqual(
+        64,
+      )
+      expect(Math.abs(box.width - box.height), 'Nexus artwork stays square').toBeLessThanOrEqual(1)
+    }
+    await expect(page.getByTestId('nexus-support-action')).toContainText('MP Recovery')
+  }
 })

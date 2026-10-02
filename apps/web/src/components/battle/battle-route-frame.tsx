@@ -22,6 +22,7 @@ export function BattleRouteFrame({
         Skip to battlefield
       </a>
       <SiteHeader
+        className={styles.header}
         brandHref={sessionHref as Route}
         brandLabel="AUREVANE current battle"
         navigationLabel="Reference"
