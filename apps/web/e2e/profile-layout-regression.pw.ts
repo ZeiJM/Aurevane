@@ -6,7 +6,7 @@ import { expect, test } from '@playwright/test'
 import { SUPERNATURAL_STORY_DEFINITION } from '@aurevane/game-core/character/supernatural-content'
 import type { SupernaturalStoryState } from '@aurevane/game-core/character/supernatural-state'
 import type { SupernaturalChoiceOption } from '../src/components/character/character-supernatural-choice-controls'
-import { previewDiscipline } from './discipline-library-helpers'
+import { selectDiscipline } from './discipline-library-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 // Exercise real authentication, character creation, production CSS and existing dialogs.
@@ -277,16 +277,7 @@ test('a populated hybrid loadout keeps all four Techniques and management action
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
   await page.locator('[data-testid="primary-build-panel"] > button').click()
   const management = page.getByRole('dialog', { name: 'Discipline Management', exact: true })
-  await previewDiscipline(management, 'Secondary', 'Lifebinder')
-  const commitBuild = management.getByRole('button', { name: /Confirm Change/ })
-  await expect(commitBuild).toBeEnabled()
-  const buildSaved = page.waitForResponse(
-    (response) =>
-      response.url().endsWith('/api/character/build/disciplines') &&
-      response.request().method() === 'PUT',
-  )
-  await commitBuild.click()
-  expect((await buildSaved).status()).toBe(200)
+  await selectDiscipline(management, 'Secondary', 'Lifebinder')
   await expect(page.getByTestId('secondary-discipline-chip')).toHaveText('Lifebinder')
   await management.getByRole('button', { name: 'Close', exact: true }).click()
   await page.locator('[data-testid="skill-build-panel"] > button').click()

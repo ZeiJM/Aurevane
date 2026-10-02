@@ -119,10 +119,10 @@
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto 1.125rem 1.25rem;
   padding: 0 0.2rem 0.15rem;
-  border: 1px solid #a37b5a;
-  color: #f0dfc4;
-  background: linear-gradient(#74372f, #452122);
-  box-shadow: inset 0 0 0 3px #d4aa7033;
+  border: 1px solid #82745188;
+  color: #332b22;
+  background: linear-gradient(#749b8733, #42655b18);
+  box-shadow: inset 0 0 0 3px #d4aa7022;
 }
 .shell[data-command-card='finish'] .action {
   grid-column: 1 / -1;

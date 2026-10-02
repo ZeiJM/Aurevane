@@ -372,6 +372,7 @@ const battleHallArticle: ManualArticle = {
       title: 'Action Economy',
       paragraphs: [
         `A turn starts with 100 AP. Normal ground costs ${PV1F_MOVEMENT_COST_PER_TERRAIN_POINT} AP per tile; rough ground has terrain weight 2 and costs ${2 * PV1F_MOVEMENT_COST_PER_TERRAIN_POINT} AP. Basic Attack and Guard cost 30 AP; Recover costs 50 AP. Every tile entered spends 1 Movement, including rough or Frozen terrain; terrain, Haste and Slow change AP cost, not the number of Movement steps. Movement also obeys your remaining Movement allowance, even when AP remains. Movement starts at 2 and caps at 5; Jump starts at 0 and caps at 3.`,
+        'Guard has its own two-owner-turn cooldown. HP Recovery and MP Recovery share a separate two-turn cooldown. A successful use starts that action’s cooldown; server turn progression makes it available again. Recovery immediately restores 10% of the maximum resource, capped at its maximum.',
         'Selecting a legal action proposes the AP spend before commitment. The AP bar shows the proposed segment with a temporary glow; after confirmation the authoritative committed value becomes the new solid remainder.',
       ],
     },

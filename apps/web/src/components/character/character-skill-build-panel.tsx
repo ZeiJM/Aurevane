@@ -36,6 +36,7 @@ import {
 import styles from './character-skill-build-panel.module.css'
 import {
   basicActionCharacteristicRows,
+  basicActionEffectExplanation,
   type SkillCharacteristic,
 } from './basic-action-presentation'
 import { SkillCharacteristicRows } from './skill-characteristic-rows'
@@ -559,7 +560,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                     />
                     {selected ? <b>✓</b> : null}
                   </span>
-                  <strong>{label}</strong>
+                  <strong title={label}>{label}</strong>
                   <span className={styles.skillMeta} data-technique-meta="true">
                     {skillTypeDescription(entry.definition)}
                   </span>
@@ -672,6 +673,9 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                               rows={basicActionCharacteristicRows(focusedSupportActionId)}
                             />
                           </dl>
+                          <p className={styles.supportExplanation}>
+                            {basicActionEffectExplanation(focusedSupportActionId)}
+                          </p>
                         </>
                       ) : focusedSkill ? (
                         <>
@@ -753,18 +757,14 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                   >
                     ↻ Clear Selections
                   </button>
-                  {pending ? (
-                    <span className={styles.saveState} aria-live="polite">
-                      Saving selection…
-                    </span>
-                  ) : null}
+                  <span className={styles.saveState} aria-live="polite">
+                    {pending ? 'Saving selection…' : ''}
+                  </span>
                 </footer>
 
-                {message ? (
-                  <p className={styles.status} role="status">
-                    {message}
-                  </p>
-                ) : null}
+                <p className={styles.status} role="status">
+                  {message}
+                </p>
               </section>
             </div>,
             document.body,

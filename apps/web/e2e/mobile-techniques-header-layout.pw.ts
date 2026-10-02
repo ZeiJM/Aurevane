@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 
-import { previewDiscipline } from './discipline-library-helpers'
+import { selectDiscipline } from './discipline-library-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 function uniqueCharacterName(): string {
@@ -65,8 +65,7 @@ test('mobile Techniques header keeps capacity status clear of title and Close', 
     .click()
   const disciplineDialog = page.getByRole('dialog', { name: 'Discipline Management' })
   await expect(disciplineDialog).toBeVisible()
-  await previewDiscipline(disciplineDialog, 'Secondary', 'Lifebinder')
-  await disciplineDialog.getByRole('button', { name: /Confirm Change/ }).click()
+  await selectDiscipline(disciplineDialog, 'Secondary', 'Lifebinder')
   await expect(page.getByRole('status')).toContainText('Discipline changes committed.')
   await disciplineDialog.getByRole('button', { name: 'Close' }).click()
 

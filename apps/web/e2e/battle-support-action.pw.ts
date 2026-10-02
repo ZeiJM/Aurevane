@@ -283,7 +283,33 @@ for (const [supportActionId, label, cost] of [
         after.snapshot.statusState.find((row) => row.combatantId === beforeActor.id)?.statuses,
       ).toEqual(expect.arrayContaining([expect.objectContaining({ statusId: 'guarded' })]))
     }
-    if (supportActionId !== 'basic.guard') {
+    if (supportActionId === 'basic.guard') {
+      // A saved Guard cooldown survives reload and a deliberate second key cannot spend AP again.
+      await page.reload()
+      await expect(slot).toHaveAccessibleName('Guard, 30 AP')
+      await page.mouse.move(0, 0)
+      await root.focus()
+      const blocked = page.waitForResponse(
+        (response) =>
+          response.request().method() === 'POST' &&
+          new URL(response.url()).pathname.endsWith('/preview') &&
+          response.request().postDataJSON().intent.actionId === 'basic.guard',
+      )
+      await page.keyboard.press('KeyG')
+      const preview = (await (await blocked).json()).battlePreview.preview
+      expect(preview).toMatchObject({ actionId: 'basic.guard', legal: false })
+      expect(preview.issues).toEqual(
+        expect.arrayContaining([expect.objectContaining({ code: 'cooldown-active' })]),
+      )
+      await page.keyboard.press('KeyG')
+      await expect(targetForecast(page)).toContainText('Guard')
+      expect(commits).toBe(1)
+      const reloaded = await readBattle(page)
+      expect(reloaded.battleVersion).toBe(after.battleVersion)
+      await expect(
+        root.getByRole('progressbar', { name: 'Action Economy remaining' }),
+      ).toHaveAttribute('aria-valuenow', '70')
+    } else {
       // The independent legacy R shortcut keeps HP Recovery, sharing the canonical cooldown.
       // Ignore the just-committed Support Action's automatic rearm preview.
       const blocked = page.waitForResponse(

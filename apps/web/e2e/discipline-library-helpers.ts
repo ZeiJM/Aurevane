@@ -1,7 +1,7 @@
 import { expect, type Locator } from '@playwright/test'
 
-/** Preview through the public slot card and library; callers still explicitly confirm commits. */
-export async function previewDiscipline(
+/** Apply a Discipline through its public slot card and wait for the authoritative commit. */
+export async function selectDiscipline(
   dialog: Locator,
   slot: 'Primary' | 'Secondary',
   name: string,
@@ -10,10 +10,11 @@ export async function previewDiscipline(
   const library = dialog.getByRole('region', { name: `${slot} Discipline library`, exact: true })
   await expect(library).toBeVisible()
   const choice = library.getByRole('button', {
-    name: `Preview ${name} as ${slot} Discipline`,
+    name: `Select ${name} as ${slot} Discipline`,
     exact: true,
   })
   await expect(choice).toBeEnabled()
   await choice.click()
   await expect(choice).toHaveAttribute('aria-pressed', 'true')
+  await expect(dialog.getByRole('button', { name: 'Close', exact: true })).toBeEnabled()
 }

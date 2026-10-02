@@ -237,6 +237,6 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
   await expect(
     management
       .getByRole('region', { name: 'Primary Discipline library', exact: true })
-      .getByRole('button', { name: 'Preview Bastion as Primary Discipline', exact: true }),
+      .getByRole('button', { name: 'Select Bastion as Primary Discipline', exact: true }),
   ).toHaveCount(1)
 })

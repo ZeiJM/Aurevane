@@ -39,7 +39,7 @@ function props() {
 }
 
 describe('Discipline library slot interaction', () => {
-  it.each(['lifebinder', ''])('previews the activated Primary with Secondary %j', (secondary) => {
+  it.each(['lifebinder', ''])('commits the activated Primary with Secondary %j', (secondary) => {
     const input = { ...props(), selectedSecondaryId: secondary }
     const cards = buttons(DisciplineLibrary(input))
     expect(cards).toHaveLength(2)
@@ -59,18 +59,24 @@ describe('Discipline library slot interaction', () => {
     expect(cards.every((card) => card.props.disabled)).toBe(true)
     const markup = renderToStaticMarkup(createElement(DisciplineLibrary, input))
     expect(markup.match(/disabled=""/g)).toHaveLength(options.length)
+    if ('pendingPreview' in restriction || 'pendingCommit' in restriction) {
+      expect(markup).toContain('Applying Primary Discipline…')
+      expect(markup).toContain('aria-busy="true"')
+    }
     expect(input.onSelect).not.toHaveBeenCalled()
   })
 
   it('leaves every card available when all restrictions are clear', () => {
     const input = props()
     const markup = renderToStaticMarkup(createElement(DisciplineLibrary, input))
+    expect(markup).toContain('Choose a Primary Discipline to apply immediately.')
+    expect(markup).toContain('Select Runeblade as Primary Discipline')
     expect(markup).not.toContain('disabled=""')
     expect(markup).toContain('aria-pressed="true"')
     expect(markup).toContain('aria-pressed="false"')
   })
 
-  it('previews a Secondary library choice while preserving the draft Primary', () => {
+  it('commits a Secondary library choice while preserving Primary', () => {
     const input = { ...props(), activeSlot: 'secondary' as const }
     const cards = buttons(DisciplineLibrary(input))
     // The first card clears Secondary; library choices retain their supplied order.
@@ -79,8 +85,11 @@ describe('Discipline library slot interaction', () => {
     expect(input.onSelect).toHaveBeenCalledExactlyOnceWith('vanguard', 'runeblade')
   })
 
-  it('lets a Secondary draft return to a pure build without changing Primary', () => {
+  it('removes Secondary from a mixed build without changing Primary', () => {
     const input = { ...props(), activeSlot: 'secondary' as const }
+    expect(renderToStaticMarkup(createElement(DisciplineLibrary, input))).toContain(
+      'Remove Secondary Discipline',
+    )
     const cards = buttons(DisciplineLibrary(input))
     cards[0].props.onClick?.()
     expect(input.onSelect).toHaveBeenCalledExactlyOnceWith('vanguard', '')

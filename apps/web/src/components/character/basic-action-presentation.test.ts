@@ -1,18 +1,22 @@
 import { describe, expect, it } from 'vitest'
-import { basicActionCharacteristicRows, basicActionIdForCommand } from './basic-action-presentation'
+import {
+  basicActionCharacteristicRows,
+  basicActionEffectExplanation,
+  basicActionIdForCommand,
+} from './basic-action-presentation'
 
 const values = (id: Parameters<typeof basicActionCharacteristicRows>[0]) =>
   Object.fromEntries(basicActionCharacteristicRows(id))
 
 describe('authoritative inherent action descriptors', () => {
-  it('shows Guard mitigation, expiration and stack cap without assigning a cooldown', () => {
+  it('shows Guard mitigation, expiration and stack cap with its independent cooldown', () => {
     const guard = values('basic.guard')
     expect(guard['Skill Type']).toBe('Utility')
     expect(guard.Cost).toBe('30 AP')
-    expect(guard.Cooldown).toBe('None')
-    expect(guard.Effects).toContain('15% less incoming damage')
+    expect(guard.Cooldown).toBe('2 turns')
+    expect(guard.Effects).toBe('Guarded [15%] [2 Turns]')
     expect(guard.Effects).toContain('2 Turns')
-    expect(guard.Effects).toContain('maximum 3')
+    expect(basicActionEffectExplanation('basic.guard')).toContain('maximum 3 stacks')
     expect(guard.Target).toBe('Self')
     expect(guard.Range).toBe('N/A')
     expect(guard['Target Elevation']).toBe('N/A')
@@ -24,12 +28,12 @@ describe('authoritative inherent action descriptors', () => {
     const mp = values('basic.recover.mp')
     expect(hp.Requirements).toBe('HP ≤ 99.99%')
     expect(mp.Requirements).toBe('Missing MP')
-    expect(hp.Cooldown).toBe('2 owner turns, shared by HP / MP Recovery')
+    expect(hp.Cooldown).toBe('2 turns')
     expect(mp.Cooldown).toBe(hp.Cooldown)
-    expect(hp.Effects).toContain('10% maximum HP')
-    expect(mp.Effects).toContain('10% maximum MP')
+    expect(hp.Effects).toBe('HP Recovery [10% max HP] [Immediate]')
+    expect(mp.Effects).toBe('MP Recovery [10% max MP] [Immediate]')
     expect(hp.Effects).toContain('[Immediate]')
-    expect(mp.Effects).toContain('minimum 1, capped at maximum')
+    expect(basicActionEffectExplanation('basic.recover.mp')).toContain('share a cooldown')
   })
 
   it('uses the Basic Attack targeting contract and current physical power coefficient', () => {

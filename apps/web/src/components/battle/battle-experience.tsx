@@ -46,6 +46,7 @@ import { CharacterPortraitImage } from '@/components/character/character-portrai
 import type { BattlePreviewView } from '@/server/battle/battle-preview-service'
 import type { RecruitTurnView } from '@/server/battle/battle-recruit-ai-service'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
+import { getImageAsset } from '@/media/registry'
 
 import { pvpParticipantAccent } from './battle-combatant-colors'
 import { BattleFacingIndicator } from './battle-facing-indicator'
@@ -85,6 +86,9 @@ import surrenderStyles from './battle-surrender-dialog.module.css'
 import bridgeStyles from './unified-battle-experience.module.css'
 
 const BASIC_ATTACK_ID = PV1F_BASIC_ATTACK_ID
+const COCKPIT_ORNAMENT_STYLE = {
+  '--av-battle-cockpit-ornament': `url("${getImageAsset('ui.battle.cockpit-ornament.v01').src}")`,
+} as CSSProperties
 const GUARD_ID = PV1F_GUARD_ACTION_ID
 const RECOVER_ID = PV1F_RECOVER_ACTION_ID
 const MP_RECOVER_ID = PV1F_MP_RECOVER_ACTION_ID
@@ -2040,6 +2044,7 @@ export function BattleExperience({
             className={styles.commandDeck}
             aria-label="Command Deck"
             data-unified-command-deck="true"
+            style={COCKPIT_ORNAMENT_STYLE}
           >
             <div className={styles.commands} data-battle-command-group="true">
               <BattleSkillCommand

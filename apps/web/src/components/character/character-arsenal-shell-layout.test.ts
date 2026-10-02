@@ -12,3 +12,16 @@ describe('Nexus Attunement preview placement', () => {
     )
   })
 })
+
+describe('Nexus content row budget', () => {
+  it('keeps Skills and Attunement together instead of spending free height above Manage Techniques', () => {
+    expect(css).toMatch(
+      /\.arsenal\s*\{[^}]*grid-template-rows:\s*auto max-content auto[^}]*align-content:\s*start/su,
+    )
+    expect(css).not.toMatch(/grid-template-rows:\s*(?:6\.5rem|8rem|auto) minmax\([^;]*1fr/su)
+    expect(css).not.toMatch(
+      /\.techniquesPanel :global\(\[data-testid='skill-build-panel'\]\)\s*\{[^}]*margin-top:\s*auto/su,
+    )
+    expect(css).not.toContain('container-type: size')
+  })
+})

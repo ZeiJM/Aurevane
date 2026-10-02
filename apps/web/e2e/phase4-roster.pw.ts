@@ -3,7 +3,7 @@ import {
   BATTLE_MISSING_ARTWORK,
   battleSkillArtwork,
 } from '../src/components/battle/battle-skill-presentation'
-import { previewDiscipline } from './discipline-library-helpers'
+import { selectDiscipline } from './discipline-library-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 // Keep the screenshots and interaction trace when this release gate passes, too.
@@ -56,8 +56,7 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
   await expect(management).toBeVisible()
   await page.reload()
   await expect(management).toBeVisible()
-  await previewDiscipline(management, 'Primary', 'Ironfist')
-  await management.getByRole('button', { name: /Confirm Change/ }).click()
+  await selectDiscipline(management, 'Primary', 'Ironfist')
   await expect(page.getByTestId('primary-discipline-chip')).toHaveText('Ironfist')
   await management.getByRole('button', { name: 'Close', exact: true }).click()
   const attunement = page.locator('[aria-labelledby="nexus-attunement-heading"]')
@@ -262,12 +261,11 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
     exact: true,
   })
   await expect(
-    primary.getByRole('button', { name: 'Preview Bastion as Primary Discipline', exact: true }),
+    primary.getByRole('button', { name: 'Select Bastion as Primary Discipline', exact: true }),
   ).toHaveCount(1)
   // Existing Owner-authorized testing access covers all published Disciplines without fake Mastery.
   // Earned prerequisites and 4/2/2 acquisition are independently verified in database CI.
-  await previewDiscipline(management, 'Primary', 'Bastion')
-  await management.getByRole('button', { name: /Confirm Change/ }).click()
+  await selectDiscipline(management, 'Primary', 'Bastion')
   await expect(page.getByTestId('primary-discipline-chip')).toHaveText('Bastion')
   await management.getByRole('button', { name: 'Close', exact: true }).click()
   const attunement = page.locator('[aria-labelledby="nexus-attunement-heading"]')
@@ -391,8 +389,7 @@ test('Chronist provisions its full testing library, Essence artwork and explicit
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
   await page.getByRole('button', { name: /Manage Disciplines/ }).click()
   const management = page.getByRole('dialog', { name: 'Discipline Management' })
-  await previewDiscipline(management, 'Primary', 'Chronist')
-  await management.getByRole('button', { name: /Confirm Change/ }).click()
+  await selectDiscipline(management, 'Primary', 'Chronist')
   await expect(page.getByTestId('primary-discipline-chip')).toHaveText('Chronist')
   await management.getByRole('button', { name: 'Close', exact: true }).click()
   const attunement = page.locator('[aria-labelledby="nexus-attunement-heading"]')

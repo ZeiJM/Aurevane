@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process'
 import { expect, test, type Page, type TestInfo } from '@playwright/test'
 
 import type { BattleSessionView } from '../src/server/battle/battle-session-service'
-import { previewDiscipline } from './discipline-library-helpers'
+import { selectDiscipline } from './discipline-library-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 import { openSelectedCombatantDetails } from './refined-battle-helpers'
 
@@ -62,8 +62,7 @@ async function equipRenewingHerbs(page: Page): Promise<void> {
 
   await page.getByRole('button', { name: /Manage Disciplines/ }).click()
   const management = page.getByRole('dialog', { name: 'Discipline Management', exact: true })
-  await previewDiscipline(management, 'Primary', 'Wildwarden')
-  await management.getByRole('button', { name: /Confirm Change/ }).click()
+  await selectDiscipline(management, 'Primary', 'Wildwarden')
   await expect(page.getByTestId('primary-discipline-chip')).toHaveText('Wildwarden')
   await management.getByRole('button', { name: 'Close', exact: true }).click()
 

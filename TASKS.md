@@ -1,5 +1,9 @@
 # AUREVANE — Active Task Ledger
 
+## Roster, immediate Discipline and Support refinement — 2026-10-02
+
+Owner-authorized continuation on `agent/roster-discipline-live-fixes-20261002`, based on Main `439549e4`: committed Primary/Secondary roster labels and decorative footer removal; immediate slot-aware Discipline saving with two lower summaries; stable Techniques geometry and concise Support fields; explicitly approved independent Guard two-owner-turn cooldown; translucent generated shared cockpit material without red End Turn surround; compact Nexus panel spacing. No migration or P5 activation. Battle Log remains a requested proposal only. Frozen-source full gate passed 3,177 Vitest tests, seven Node checks and Production builds; independent review has no remaining blockers. Root reran 22 Discipline scenarios at seven sizes. Exact-head CI/release remain pending. Scope/evidence: `docs/superpowers/specs/2026-10-02-roster-discipline-live-fixes.md` and matching verification record. Existing Owner merge/deploy authorization applies after verification.
+
 **PHASE 4 CLOSED — 2026-09-23:** the Owner explicitly accepted Phase 4 as closed. A03, A04, A07 and A10 are **COMPLETE**. A07 concerns battle SFX/audio identities, not background music. Post-closeout UI cleanup/regression work is maintenance and does not reopen Phase 4 by default. See `docs/PHASE_4_CLOSEOUT.md`.
 
 ## Approved entry redesign and gameplay refinement — 2026-10-01

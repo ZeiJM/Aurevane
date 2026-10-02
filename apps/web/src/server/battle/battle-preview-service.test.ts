@@ -132,6 +132,7 @@ async function createFixture() {
   return {
     battles,
     service: createBattlePreviewService(battles.repository),
+    sessionService,
     snapshot,
     record,
   }
@@ -185,6 +186,51 @@ describe('P2.5 authoritative battle preview service', () => {
       issues: [],
     })
     expect(battles.commitBattleIntent).not.toHaveBeenCalled()
+  })
+
+  it('persists Guard cooldown and rejects repeated Guard forecasts and commits after reload', async () => {
+    const { battles, service, sessionService, record } = await createFixture()
+    const intent = { kind: 'action', actionId: 'basic.guard', target: { kind: 'self' } } as const
+    const command = {
+      userId: USER_ID,
+      battleSessionId: SESSION_ID,
+      expectedBattleVersion: 1,
+      intent,
+    }
+    expect((await service.previewIntent(command)).preview).toMatchObject({ legal: true })
+    await sessionService.submitIntent({
+      ...command,
+      idempotencyKey: '55555555-5555-4555-8555-555555555555',
+    })
+    const commit = battles.commitBattleIntent.mock.calls[0]?.[0]
+    if (!commit) throw new Error('Expected Guard commit input.')
+    const restored = JSON.parse(
+      JSON.stringify(commit.nextSnapshot),
+    ) as StatDrivenCombatEncounterState
+    const actor = restored.tactical.battle.combatants.find(
+      (entry) => entry.id === `character:${CHARACTER_ID}`,
+    )!
+    expect(actor.temporaryResources).toContainEqual({
+      key: 'p3.skill-cooldown.basic.guard',
+      current: 3,
+      maximum: 3,
+    })
+    battles.findBattleSession.mockResolvedValue({ ...record, battleVersion: 2, snapshot: restored })
+    const repeated = { ...command, expectedBattleVersion: 2 }
+    expect((await service.previewIntent(repeated)).preview).toMatchObject({
+      legal: false,
+      issues: expect.arrayContaining([expect.objectContaining({ code: 'cooldown-active' })]),
+    })
+    await expect(
+      sessionService.submitIntent({
+        ...repeated,
+        idempotencyKey: '66666666-6666-4666-8666-666666666666',
+      }),
+    ).rejects.toMatchObject({
+      code: 'INVALID_REQUEST',
+      message: expect.stringContaining('cooling down'),
+    })
+    expect(battles.commitBattleIntent).toHaveBeenCalledTimes(1)
   })
 
   it('returns useful movement legality reasons instead of pretending a path can commit', async () => {

@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { expect, test } from '@playwright/test'
 
-import { previewDiscipline } from './discipline-library-helpers'
+import { selectDiscipline } from './discipline-library-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 function uniqueCharacterName(): string {
@@ -85,7 +85,7 @@ test('Nexus equips a mastered Secondary with independent attunement authority', 
   await expect(dialog).toContainText('Currently Committed')
   await expect(dialog).toContainText('Vanguard')
   await expect(dialog).toContainText('Secondary Discipline')
-  await expect(dialog).toContainText('Locked')
+  await expect(dialog).toContainText('None')
 
   const primaryEditor = dialog.getByRole('button', { name: 'Edit Primary Discipline', exact: true })
   const secondaryEditor = dialog.getByRole('button', {
@@ -100,39 +100,37 @@ test('Nexus equips a mastered Secondary with independent attunement authority', 
     exact: true,
   })
   await expect(
-    secondaryLibrary.getByRole('button', { name: 'Use Primary only', exact: true }),
+    secondaryLibrary.getByRole('button', { name: 'Remove Secondary Discipline', exact: true }),
   ).toBeDisabled()
   await expect(
     secondaryLibrary.getByRole('button', {
-      name: 'Preview Aetherist as Secondary Discipline',
+      name: 'Select Aetherist as Secondary Discipline',
       exact: true,
     }),
   ).toBeEnabled()
   await expect(
     secondaryLibrary.getByRole('button', {
-      name: 'Preview Vanguard as Secondary Discipline',
+      name: 'Select Vanguard as Secondary Discipline',
       exact: true,
     }),
   ).toHaveCount(0)
 
-  await previewDiscipline(dialog, 'Secondary', 'Aetherist')
-  const preview = dialog.locator('[aria-label="Discipline stat preview"]')
+  await selectDiscipline(dialog, 'Secondary', 'Aetherist')
+  const preview = dialog.locator('[aria-label="Selected Discipline and change impact"]')
   await expect(preview).toBeVisible()
-  await expect(preview).toContainText('Preview Secondary')
+  await expect(preview).toContainText('Selected Secondary')
   await expect(preview).toContainText('Aetherist')
 
-  await dialog.getByRole('button', { name: /Confirm Change/ }).click()
   await expect(page.getByRole('status')).toContainText('Discipline changes committed.')
   await expect(launcher).toHaveText(/Manage Disciplines/)
   await expect(primaryDisciplineChip).toHaveText('Vanguard')
   await expect(secondaryDisciplineChip).toHaveText('Aetherist')
   await expect(maxHp).toContainText(maxHpBeforeSecondary)
 
-  await previewDiscipline(dialog, 'Primary', 'Lifebinder')
-  await expect(preview).toContainText('Preview Primary')
+  await selectDiscipline(dialog, 'Primary', 'Lifebinder')
+  await expect(preview).toContainText('Selected Primary')
   await expect(preview).toContainText('Lifebinder')
 
-  await dialog.getByRole('button', { name: /Confirm Change/ }).click()
   await expect(page.getByRole('status')).toContainText('Discipline changes committed.')
   await expect(primaryDisciplineChip).toHaveText('Lifebinder')
   await expect(secondaryDisciplineChip).toHaveText('Aetherist')
@@ -144,21 +142,24 @@ test('Nexus equips a mastered Secondary with independent attunement authority', 
   await expect(primaryEditor).toBeEnabled()
   await expect(secondaryEditor).toBeEnabled()
 
-  // Clearing previews the pure build; abandoning that preview preserves the committed Secondary.
+  // Removing Secondary commits a pure build immediately and survives reload.
   await secondaryEditor.click()
-  const clearSecondary = dialog.getByRole('button', { name: 'Use Primary only', exact: true })
+  const clearSecondary = dialog.getByRole('button', {
+    name: 'Remove Secondary Discipline',
+    exact: true,
+  })
   await expect(clearSecondary).toBeEnabled()
   await clearSecondary.click()
   await expect(clearSecondary).toBeDisabled()
-  await expect(preview).toContainText('Preview Secondary')
+  await expect(preview).toContainText('Selected Secondary')
   await expect(preview).toContainText('None')
-  await expect(secondaryDisciplineChip).toHaveText('Aetherist')
+  await expect(secondaryDisciplineChip).toHaveCount(0)
   await page.reload()
   await expect(dialog).toBeVisible()
-  await expect(secondaryDisciplineChip).toHaveText('Aetherist')
+  await expect(secondaryDisciplineChip).toHaveCount(0)
 
   await page.goto('/game/character')
-  await expect(page.getByText('Resonance Build', { exact: true })).toBeVisible()
+  await expect(page.getByText('Essence Build', { exact: true })).toBeVisible()
 })
 
 test('mobile Profile retains the navigation portrait and readable identity tags and Nexus centers Discipline Management', async ({

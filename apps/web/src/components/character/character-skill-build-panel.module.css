@@ -67,7 +67,7 @@
   height: min(50rem, calc(100dvh - 1.5rem));
   max-height: calc(100dvh - 1.5rem);
   min-height: 0;
-  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  grid-template-rows: auto minmax(0, 1fr) auto 2.8rem;
   overflow: hidden;
   border: 1px solid #a88548;
   border-radius: 0.2rem;
@@ -391,6 +391,10 @@
 }
 
 .skill label > strong {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
   box-sizing: border-box;
   width: 100%;
   color: #f0e5d3;
@@ -436,7 +440,8 @@
 }
 
 .detailRail {
-  overflow: visible;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
   overscroll-behavior: contain;
   display: grid;
   min-width: 0;
@@ -508,6 +513,7 @@
   display: grid;
   grid-template-columns: var(--av-gameplay-art-size) minmax(0, 1fr);
   gap: 0.6rem;
+  height: var(--av-gameplay-art-size);
   align-items: center;
   text-align: left;
 }
@@ -531,6 +537,9 @@
 
 .selectedTechniqueHeading > div {
   display: grid;
+  max-height: 100%;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
   min-width: 0;
   justify-items: start;
   gap: 0.28rem;
@@ -690,6 +699,7 @@
 }
 
 .saveState {
+  min-height: 1rem;
   color: #5b707d;
   font: 700 0.8125rem/1.2 var(--av-font-body);
   letter-spacing: 0.06em;
@@ -703,6 +713,10 @@
 }
 
 .status {
+  min-height: 0;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+  scrollbar-gutter: stable;
   margin: 0;
   padding: 0 0.8rem 0.45rem;
   color: #5b707d;
@@ -718,28 +732,31 @@
 
 @media (max-width: 820px) {
   .backdrop {
-    overflow-y: auto;
-    place-items: start center;
+    overflow: hidden;
+    place-items: center;
   }
 
   .dialog {
-    height: auto;
-    max-height: none;
-    overflow: visible;
+    width: calc(100vw - 1.4rem);
+    height: calc(100dvh - 1.5rem);
+    max-height: calc(100dvh - 1.5rem);
+    overflow: hidden;
   }
 
   .workspace {
     grid-template-columns: 1fr;
-    overflow: visible;
+    grid-template-rows: max-content 38rem;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+    overscroll-behavior: contain;
   }
 
   .detailRail {
     overflow-y: auto;
     overscroll-behavior: contain;
-    height: auto;
+    height: 38rem;
     grid-template-rows: auto;
     margin-top: 0;
-    overflow: visible;
   }
 
   .skillGrid {
@@ -978,4 +995,11 @@
   .detailRail {
     padding-block: 0.4rem;
   }
+}
+
+.supportExplanation {
+  margin: 0;
+  color: #c4d0d2;
+  font-size: 0.8125rem;
+  line-height: 1.3;
 }

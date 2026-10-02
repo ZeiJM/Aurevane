@@ -45,6 +45,16 @@ describe('inherent action characteristics', () => {
       }
       expect(markup).toContain(effect)
       expect(markup).not.toContain('aria-haspopup="listbox"')
+      if (slot === 'guard') {
+        expect(markup).toContain('<dt>Cooldown</dt><dd>2 turns</dd>')
+        expect(markup.match(/data-basic-action-effect-explanation="true"/g)).toHaveLength(1)
+        if (label === 'Guard') {
+          expect(markup).toContain('<dt>Effects</dt><dd>Guarded [15%] [2 Turns]</dd>')
+          expect(markup).toContain('Reduces incoming damage by 15% per stack, maximum 3 stacks.')
+        } else {
+          expect(markup).toContain('HP and MP Recovery share a cooldown.')
+        }
+      }
     },
   )
 })

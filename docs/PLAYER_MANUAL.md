@@ -5,6 +5,8 @@
 **Initial direction approved:** 2026-08-15.  
 **Terminology/current-state synchronization:** 2026-09-11.
 
+2026-10-02 Support timing: Guard has an independent two-owner-turn cooldown. HP/MP Recovery share their existing separate two-turn cooldown. The live Action Economy article explains this timing alongside costs and authoritative preview/commit behavior.
+
 AUREVANE must eventually ship with a comprehensive, attractive, easy-to-read Manual covering beginner fundamentals through advanced systems, plus separate protected Owner/Staff operational documentation.
 
 The Manual is a maintained product system, not a static wiki dump.
