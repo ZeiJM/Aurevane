@@ -194,12 +194,9 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   const nexusBarrierParameters = await nexusBarrierPreview
     .locator('dl > div')
     .evaluateAll((rows) =>
-      rows
-        .filter((row) => row.querySelector('dt')?.textContent !== 'Effects')
-        .map(
-          (row) =>
-            `${row.querySelector('dt')!.textContent}: ${row.querySelector('dd')!.textContent}`,
-        ),
+      rows.map(
+        (row) => `${row.querySelector('dt')!.textContent}: ${row.querySelector('dd')!.textContent}`,
+      ),
     )
 
   // Tagged Techniques must keep the cockpit slot's keyboard contract and reach the same

@@ -44,6 +44,7 @@ export function CharacterIdentityCard({
         <div className={styles.portrait}>
           <CharacterPortraitImage
             imageUrl={imageUrl}
+            priority={compactRail}
             fallbackAssetId={getStarterPortraitImageAssetId(profile.identity.portraitRef)}
             sizes={
               compactRail

@@ -17,6 +17,7 @@ const parameterLabels = [
   'Cost',
   'Cooldown',
   'Requirements',
+  'Effects',
   'Range',
   'Target',
   'Target Method',
@@ -81,12 +82,10 @@ async function equipForecastSkills(page: Page) {
       .getByTestId('technique-preview')
       .locator('dl > div')
       .evaluateAll((rows) =>
-        rows
-          .filter((row) => row.querySelector('dt')?.textContent !== 'Effects')
-          .map(
-            (row) =>
-              `${row.querySelector('dt')!.textContent}: ${row.querySelector('dd')!.textContent}`,
-          ),
+        rows.map(
+          (row) =>
+            `${row.querySelector('dt')!.textContent}: ${row.querySelector('dd')!.textContent}`,
+        ),
       )
     const saved = page.waitForResponse(
       (response) =>

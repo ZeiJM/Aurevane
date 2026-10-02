@@ -1,7 +1,7 @@
 import { Kicker, Surface } from '@aurevane/ui'
 import type { PersistedCharacter } from '@aurevane/game-core/character/persistence'
 import type { Route } from 'next'
-import { Suspense, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 
 import { CharacterIdentityCard } from '@/components/character/character-identity-card'
 import { loadCharacterIdentityRailContext } from '@/server/character/character-identity-rail-context'
@@ -50,46 +50,28 @@ function ShellCharacterPortrait({
             : '(max-width: 760px) 2rem, 3rem'
         }
         alt=""
+        priority
       />
     </span>
   )
 }
 
-function PendingCharacterPortrait() {
-  return <span className={styles.screenPortrait} data-portrait-pending="true" aria-hidden="true" />
-}
-
-async function AuthenticatedCharacterPortrait({
-  userId,
+function RailIdentity({
   character,
+  identity,
+  imageUrl,
 }: {
-  userId: string
   character: PersistedCharacter
+  identity: Awaited<ReturnType<typeof loadCharacterIdentityRailContext>> | null
+  imageUrl: string | null
 }) {
-  let imageUrl: string | null = null
-  try {
-    imageUrl = (await loadCharacterProfileDisplay(userId, character.id)).imageUrl
-  } catch {
-    // The built-in portrait keeps the shell complete if cosmetic display data is unavailable.
-  }
-  return <ShellCharacterPortrait character={character} imageUrl={imageUrl} />
-}
-
-async function RailIdentity({
-  userId,
-  character,
-}: {
-  userId: string
-  character: PersistedCharacter
-}) {
-  const identity = await loadCharacterIdentityRailContext({ userId }, character).catch(() => null)
   return identity ? (
     <div className="av-rail-full-identity">
       <CharacterIdentityCard {...identity} compactRail />
     </div>
   ) : (
     <div className="av-rail-identity">
-      <ShellCharacterPortrait character={character} imageUrl={null} rail />
+      <ShellCharacterPortrait character={character} imageUrl={imageUrl} rail />
       <strong>{character.name}</strong>
       <small>Level {character.level}</small>
     </div>
@@ -167,6 +149,21 @@ export async function AuthenticatedShellFrame({
       ? 'Return to Spectated Battle'
       : null
 
+  // Resolve both cosmetic reads before publishing a new shell. Streaming an empty
+  // portrait boundary briefly replaced the existing custom avatar on navigation/refresh.
+  const [display, identity] =
+    activeCharacter && activeUserId
+      ? await Promise.all([
+          loadCharacterProfileDisplay(activeUserId, activeCharacter.id).catch(() => null),
+          layout !== 'battlefield'
+            ? loadCharacterIdentityRailContext({ userId: activeUserId }, activeCharacter).catch(
+                () => null,
+              )
+            : Promise.resolve(null),
+        ])
+      : [null, null]
+  const imageUrl = display ? display.imageUrl : (identity?.imageUrl ?? null)
+
   return (
     <AuthenticatedShellPresentation
       sessionLabel={sessionLabel}
@@ -178,23 +175,12 @@ export async function AuthenticatedShellFrame({
       }
       characterPortrait={
         activeCharacter && activeUserId ? (
-          <Suspense fallback={<PendingCharacterPortrait />}>
-            <AuthenticatedCharacterPortrait userId={activeUserId} character={activeCharacter} />
-          </Suspense>
+          <ShellCharacterPortrait character={activeCharacter} imageUrl={imageUrl} />
         ) : null
       }
       railIdentity={
         layout !== 'battlefield' && activeCharacter && activeUserId ? (
-          <Suspense
-            fallback={
-              <div className="av-rail-identity">
-                <PendingCharacterPortrait />
-                <strong>{activeCharacter.name}</strong>
-              </div>
-            }
-          >
-            <RailIdentity userId={activeUserId} character={activeCharacter} />
-          </Suspense>
+          <RailIdentity character={activeCharacter} identity={identity} imageUrl={imageUrl} />
         ) : null
       }
       activeBattleHref={activeBattleHref}

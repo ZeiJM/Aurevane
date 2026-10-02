@@ -1,13 +1,15 @@
 import { createElement, type ReactElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('@aurevane/ui', () => ({ Kicker: () => null, Surface: () => null }))
 vi.mock('@/components/character/character-identity-card', () => ({
-  CharacterIdentityCard: () => null,
+  CharacterIdentityCard: ({ imageUrl }: { imageUrl?: string }) =>
+    createElement('img', { src: imageUrl ?? 'built-in-portrait.webp', alt: '' }),
 }))
 vi.mock('@/components/character/character-portrait-image', () => ({
-  CharacterPortraitImage: () => createElement('img', { src: 'built-in-portrait.webp', alt: '' }),
+  CharacterPortraitImage: ({ imageUrl }: { imageUrl?: string }) =>
+    createElement('img', { src: imageUrl ?? 'built-in-portrait.webp', alt: '' }),
 }))
 vi.mock('@/media/character', () => ({ getStarterPortraitImageAssetId: () => 'starter' }))
 vi.mock('@/server/auth/actor', () => ({
@@ -38,27 +40,77 @@ vi.mock('./authenticated-shell-presentation', () => ({
 import { AuthenticatedShellFrame } from './authenticated-game-shell'
 import { loadCharacterProfileDisplay } from '@/server/character/character-profile-display-service'
 
-type Boundary = ReactElement<{ fallback: ReactElement; children: ReactElement }>
+import { loadCharacterIdentityRailContext } from '@/server/character/character-identity-rail-context'
+
 describe('portrait loading in the authenticated shell', () => {
-  it('reserves portrait space without flashing a default while cosmetic data loads', async () => {
-    const shell = await AuthenticatedShellFrame({ children: null })
-    const props = shell.props as { characterPortrait: Boundary; railIdentity: Boundary }
-    for (const boundary of [props.characterPortrait, props.railIdentity]) {
-      const markup = renderToStaticMarkup(boundary.props.fallback)
-      expect(markup).not.toContain('<img')
-      expect(markup).toContain('data-portrait-pending="true"')
+  beforeEach(() => {
+    vi.mocked(loadCharacterProfileDisplay).mockReset().mockResolvedValue({ imageUrl: null })
+    vi.mocked(loadCharacterIdentityRailContext)
+      .mockReset()
+      .mockResolvedValue(null as never)
+  })
+
+  it('waits for both identity reads before exposing the shell on navigation or refresh', async () => {
+    const imageUrl = 'https://portraits.example/zei.gif'
+    let resolveDisplay!: (value: { imageUrl: string }) => void
+    let resolveIdentity!: (
+      value: Awaited<ReturnType<typeof loadCharacterIdentityRailContext>>,
+    ) => void
+    vi.mocked(loadCharacterProfileDisplay).mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveDisplay = resolve
+      }),
+    )
+    vi.mocked(loadCharacterIdentityRailContext).mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveIdentity = resolve
+      }),
+    )
+    let settled = false
+    const pendingShell = AuthenticatedShellFrame({ children: null }).then((shell) => {
+      settled = true
+      return shell
+    })
+    await vi.waitFor(() => {
+      expect(loadCharacterProfileDisplay).toHaveBeenCalledWith('user-1', 'character-1')
+      expect(loadCharacterIdentityRailContext).toHaveBeenCalled()
+    })
+    expect(settled).toBe(false)
+    resolveDisplay({ imageUrl })
+    await Promise.resolve()
+    expect(settled).toBe(false)
+    resolveIdentity({ imageUrl } as Awaited<ReturnType<typeof loadCharacterIdentityRailContext>>)
+    const shell = await pendingShell
+    for (const portrait of [shell.props.characterPortrait, shell.props.railIdentity]) {
+      const markup = renderToStaticMarkup(portrait as ReactElement)
+      expect(markup).toContain(imageUrl)
+      expect(markup).not.toContain('data-portrait-pending')
+      expect(markup).not.toContain('built-in-portrait.webp')
     }
-    expect(renderToStaticMarkup(props.railIdentity.props.fallback)).toContain('Zei')
+  })
+
+  it('keeps the resolved custom portrait if the remaining rail identity cannot load', async () => {
+    vi.mocked(loadCharacterProfileDisplay).mockResolvedValueOnce({
+      imageUrl: 'https://portraits.example/zei.webp',
+    })
+    vi.mocked(loadCharacterIdentityRailContext).mockRejectedValueOnce(new Error('unavailable'))
+    const shell = await AuthenticatedShellFrame({ children: null })
+    expect(renderToStaticMarkup(shell.props.railIdentity as ReactElement)).toContain(
+      'https://portraits.example/zei.webp',
+    )
   })
 
   it('retains the built-in portrait after cosmetic data is unavailable', async () => {
     vi.mocked(loadCharacterProfileDisplay).mockRejectedValueOnce(new Error('unavailable'))
     const shell = await AuthenticatedShellFrame({ children: null })
-    const boundary = shell.props.characterPortrait as Boundary
-    const portrait = boundary.props.children as ReactElement<{ userId: string; character: unknown }>
-    const resolved = await (
-      portrait.type as (props: typeof portrait.props) => Promise<ReactElement>
-    )(portrait.props)
-    expect(renderToStaticMarkup(resolved)).toContain('built-in-portrait.webp')
+    expect(renderToStaticMarkup(shell.props.characterPortrait as ReactElement)).toContain(
+      'built-in-portrait.webp',
+    )
+  })
+
+  it('does not load the unused roaming rail on the battlefield', async () => {
+    const shell = await AuthenticatedShellFrame({ children: null, layout: 'battlefield' })
+    expect(shell.props.railIdentity).toBeNull()
+    expect(loadCharacterIdentityRailContext).not.toHaveBeenCalled()
   })
 })
