@@ -54,4 +54,10 @@ Independent review found no critical/important issues. Its minor Basic Attack wo
 
 ## Integration and release
 
-Exact-head CI, merge, deployment and live verification pending. Keep Git deployments locked until the authorized verified release; restore the lock after readiness.
+Final exact-head candidate: `852a117b31775121dbd53c905136ad05228ac1ab`, tree `ccb6ba9b71c81a428837f568092fcf6c77f46b0f`. All eleven applicable GitHub workflows succeeded: Shared Build Snapshots 37050991119, Profile Skill Build 37050991114, Skill Engine 37050991044, Resonance Build 37050991055, Essence Build 37050991099, Desktop page fit 37050991067, Desktop experience 37050991167, CI 37050991074, Representative Buildcraft 37050991103, UI layout review 37050991049 and Browser smoke 37050991041. Browser smoke passed 65 focused, 302 full Chromium and ten Edge cases; UI review passed 107 layout cases plus the directory case. Desktop experience passed 48 and page fit eight.
+
+Application PR #803 merged as `5903ab29ff8f0f146a40d9c51a11a46949304831`; its tree exactly matches the tested candidate. Configuration-only PR #804 enabled Main only and released source `b978091facd4f9968605f0613442ad80607e519a`. Vercel deployment `dpl_5XsdMWmjMm8boJVYnETS8iUxs65i` became READY at 2026-10-02T19:51:10.503Z. Deployment and canonical-alias reads independently confirmed the intended ID/source at https://aurevane.vercel.app/.
+
+Live entry, `/manual`, `/manual/battle-hall`, `/rules`, `/news` and both new fire SVG assets returned HTTP 200. Browser verification covered the approved public entry, Manual search for combat, the Battle Hall guide, Rules and News navigation. No application warning/error console entries were recorded during this bounded public smoke; browser-extension metadata errors are outside the application. The Production warning/error/fatal runtime count query scoped to this deployment from READY through the smoke was empty.
+
+This config/docs-only closeout restores `deploymentEnabled: { "**": false }` without changing application bytes. No Production migration, content activation or P5 activation occurred. Authenticated Production gameplay and Owner visual acceptance remain testing outcomes; authenticated CI does not substitute for Owner acceptance.
