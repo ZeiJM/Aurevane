@@ -16,6 +16,11 @@ import {
 import { createPortal } from 'react-dom'
 
 import { BattleInfoPopover } from './battle-info-popover'
+import {
+  basicActionCharacteristicRows,
+  basicActionIdForCommand,
+} from '../character/basic-action-presentation'
+import { SkillCharacteristicRows } from '../character/skill-characteristic-rows'
 
 import artworkFitStyles from './battle-skill-artwork-fit.module.css'
 import {
@@ -99,6 +104,7 @@ export function BattleSkillCommand({
   const artworkRef = useRef<HTMLButtonElement | null>(null)
   const selectorRef = useRef<HTMLDivElement | null>(null)
   const canSwap = Boolean(selector && selector.options.length > 1)
+  const basicActionId = basicActionIdForCommand(slot, label)
 
   const closeSelector = useCallback((restoreFocus = false) => {
     setSelectorOpen(false)
@@ -225,10 +231,14 @@ export function BattleSkillCommand({
         >
           <strong>Parameters</strong>
           <dl>
-            <div>
-              <dt>Cost</dt>
-              <dd>{cost}</dd>
-            </div>
+            {basicActionId ? (
+              <SkillCharacteristicRows rows={basicActionCharacteristicRows(basicActionId)} />
+            ) : (
+              <div>
+                <dt>Cost</dt>
+                <dd>{cost}</dd>
+              </div>
+            )}
           </dl>
           {tags.length > 0 ? (
             <div className={styles.tags} data-battle-skill-tags="details">

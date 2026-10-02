@@ -91,7 +91,7 @@ test('keeps A1 surfaces readable and within viewport', async ({ page }, testInfo
   await expectInitialViewportFit(page, 'Passive Training')
 
   await page.goto('/game')
-  await expect(page.getByRole('heading', { name: 'Choose your character.' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Choose your character' })).toBeVisible()
   await expectMinimumFontSize(
     page.locator("[data-character-select-page='true'] main p").first(),
     13,
@@ -101,7 +101,7 @@ test('keeps A1 surfaces readable and within viewport', async ({ page }, testInfo
 
   await page.setViewportSize({ width: 1024, height: 576 })
   await page.goto('/game')
-  await expect(page.getByRole('heading', { name: 'Choose your character.' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Choose your character' })).toBeVisible()
   await expectInitialViewportFit(page, 'Character Select at 1024x576', {
     allowVerticalScroll: true,
   })

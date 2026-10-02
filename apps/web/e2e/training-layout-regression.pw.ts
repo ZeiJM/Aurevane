@@ -110,13 +110,21 @@ test('training composition preserves idle, active, report and claim flows', asyn
   }
   await expect(page.getByTestId('practice-plan-card').getByRole('radio')).toHaveCount(3)
   await expect(page.getByRole('button', { name: 'Start Training', exact: true })).toBeEnabled()
-  // A second tab can settle the plan while this tab still shows its old active card.
+  let claimRequests = 0
+  page.on('request', (request) => {
+    if (request.method() === 'POST' && request.url().endsWith('/api/wayfarers-practice/claim'))
+      claimRequests++
+  })
+  // A second tab can stop and deliberately claim while this tab still shows its old active card.
   await submit(page, 'Start Training', '/api/wayfarers-practice/plan')
   await expect(page.getByTestId('passive-training-active')).toBeVisible()
   const otherTab = await page.context().newPage()
   try {
     await otherTab.goto('/game/training')
     await submit(otherTab, 'Stop Training', '/api/wayfarers-practice/stop')
+    await expect(otherTab.getByTestId('training-report')).toBeVisible()
+    await expect(otherTab.getByTestId('practice-plan-card')).toHaveCount(0)
+    await submit(otherTab, 'Claim Training', '/api/wayfarers-practice/claim')
     await expect(otherTab.getByTestId('practice-plan-card')).toBeVisible()
     const staleStop = page.waitForResponse(
       (response) =>
@@ -128,7 +136,8 @@ test('training composition preserves idle, active, report and claim flows', asyn
     expect(staleStopResponse.ok()).toBe(true)
     expect((await staleStopResponse.json()).stopped).toBe(false)
     await expect(page.getByTestId('practice-plan-card')).toBeVisible()
-    await expect(page.getByText('Settling your earned progress…')).toHaveCount(0)
+    await expect(page.getByTestId('training-report')).toHaveCount(0)
+    expect(claimRequests).toBe(0)
   } finally {
     await otherTab.close()
   }
@@ -143,8 +152,41 @@ test('training composition preserves idle, active, report and claim flows', asyn
   }
 
   await submit(page, 'Stop Training', '/api/wayfarers-practice/stop')
-  await expect(page.getByTestId('practice-plan-card')).toBeVisible()
+  await expect(page.getByTestId('training-report')).toBeVisible()
   await expect(page.getByTestId('passive-training-active')).toHaveCount(0)
+  await expect(page.getByTestId('practice-plan-card')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Claim Training', exact: true })).toBeEnabled()
+  expect(claimRequests).toBe(0)
+  await capture('stopped-report')
+  let releaseClaim!: () => void
+  const claimGate = new Promise<void>((resolve) => {
+    releaseClaim = resolve
+  })
+  await page.route('**/api/wayfarers-practice/claim', async (route) => {
+    await claimGate
+    await route.continue()
+  })
+  const claimedResponse = page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname === '/api/wayfarers-practice/claim' &&
+      response.request().method() === 'POST',
+  )
+  await page.getByRole('button', { name: 'Claim Training', exact: true }).evaluate((button) => {
+    // Immediate repeated intent must still issue only one in-flight command.
+    const claimButton = button as HTMLButtonElement
+    claimButton.click()
+    claimButton.click()
+    claimButton.click()
+  })
+  await expect(page.getByRole('button', { name: 'Claiming…', exact: true })).toBeDisabled()
+  await expect(page.getByTestId('training-report')).toBeVisible()
+  await expect(page.getByTestId('practice-plan-card')).toHaveCount(0)
+  expect(claimRequests).toBe(1)
+  releaseClaim()
+  expect((await claimedResponse).ok()).toBe(true)
+  await page.unroute('**/api/wayfarers-practice/claim')
+  await expect(page.getByTestId('practice-plan-card')).toBeVisible()
+  expect(claimRequests).toBe(1)
   await capture('stopped-idle')
   await expect(page.getByTestId('training-report')).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Start Training', exact: true })).toBeEnabled()
@@ -162,9 +204,18 @@ test('training composition preserves idle, active, report and claim flows', asyn
   })
   await submit(page, 'Stop Training', '/api/wayfarers-practice/stop')
   await expect(page.getByTestId('training-report')).toBeVisible()
+  expect(claimKeys).toHaveLength(0)
+  expect(claimRequests).toBe(1)
+  const failedClaim = page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname === '/api/wayfarers-practice/claim' &&
+      response.request().method() === 'POST',
+  )
+  await page.getByRole('button', { name: 'Claim Training', exact: true }).click()
+  expect((await failedClaim).status()).toBe(503)
   await expect(page.getByText('Settlement temporarily unavailable.')).toBeVisible()
   await expect(page.getByTestId('practice-plan-card')).toHaveCount(0)
-  await capture('stopped-report')
+  await capture('failed-report')
   await submit(page, 'Claim Training', '/api/wayfarers-practice/claim')
   await expect(page.getByTestId('practice-plan-card')).toBeVisible()
   expect(claimKeys).toHaveLength(2)
@@ -172,10 +223,10 @@ test('training composition preserves idle, active, report and claim flows', asyn
   await page.unroute('**/api/wayfarers-practice/claim')
   await submit(page, 'Start Training', '/api/wayfarers-practice/plan')
   await expect(page.getByTestId('passive-training-active')).toBeVisible()
-  let automaticCompletionClaims = 0
+  let completionClaimRequests = 0
   const countClaims = (request: import('@playwright/test').Request) => {
     if (request.method() === 'POST' && request.url().endsWith('/api/wayfarers-practice/claim'))
-      automaticCompletionClaims++
+      completionClaimRequests++
   }
   page.on('request', countClaims)
   queryLocalDatabase(`
@@ -191,8 +242,7 @@ test('training composition preserves idle, active, report and claim flows', asyn
   await page.reload()
   await expect(page.getByTestId('training-report')).toBeVisible()
   await expect(page.getByTestId('passive-training-active')).toHaveCount(0)
-  expect(automaticCompletionClaims).toBe(0)
-  page.off('request', countClaims)
+  expect(completionClaimRequests).toBe(0)
   await capture('report')
   if (!mobile) {
     await page.setViewportSize({ width: 1536, height: 614 })
@@ -201,6 +251,9 @@ test('training composition preserves idle, active, report and claim flows', asyn
   }
   await submit(page, 'Claim Training', '/api/wayfarers-practice/claim')
   await expect(page.getByTestId('training-report')).toHaveCount(0)
+  expect(completionClaimRequests).toBe(1)
+  page.off('request', countClaims)
+  await expect(page.getByTestId('practice-plan-card')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Start Training', exact: true })).toBeEnabled()
   if (mobile) {
     await page.setViewportSize({ width: 320, height: 740 })

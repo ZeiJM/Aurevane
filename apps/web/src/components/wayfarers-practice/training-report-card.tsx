@@ -3,7 +3,7 @@
 import { passiveTrainingWindowLabel } from '@aurevane/game-core/character/wayfarers-practice'
 import { GameButton } from '@aurevane/ui'
 import { useRouter } from 'next/navigation'
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 
 import styles from './training-workspace.module.css'
 
@@ -27,20 +27,14 @@ export interface TrainingReportCardData {
 
 interface TrainingReportCardProps {
   report: TrainingReportCardData
-  autoClaim?: boolean
   onClaimed?: () => void
 }
 
-export function TrainingReportCard({
-  report,
-  autoClaim = false,
-  onClaimed,
-}: TrainingReportCardProps) {
+export function TrainingReportCard({ report, onClaimed }: TrainingReportCardProps) {
   const router = useRouter()
   const [submitting, setSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const idempotencyKey = useRef<string | null>(null)
-  const automaticClaimAttempted = useRef(false)
   const requestInFlight = useRef(false)
   const [claimed, setClaimed] = useState(false)
 
@@ -77,15 +71,11 @@ export function TrainingReportCard({
     }
   }
 
-  useEffect(() => {
-    if (!autoClaim || automaticClaimAttempted.current) return
-    automaticClaimAttempted.current = true
-    void claimTraining()
-    // One automatic attempt per stopped report; manual retry retains the same idempotency key.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoClaim])
-
   const passive = report.practiceSource === 'passive_training'
+  const stopped =
+    passive &&
+    report.plannedWindowSeconds !== null &&
+    report.elapsedSeconds < report.plannedWindowSeconds
   const planLabel = report.plannedWindow ? passiveTrainingWindowLabel(report.plannedWindow) : null
 
   return (
@@ -98,17 +88,21 @@ export function TrainingReportCard({
       <header className={styles.heading}>
         <div>
           <span className={styles.eyebrow}>Training Report</span>
-          <h2>{passive ? 'Training Complete' : 'Training Report'}</h2>
+          <h2>
+            {passive ? (stopped ? 'Training Stopped' : 'Training Complete') : 'Training Report'}
+          </h2>
         </div>
         <span className={styles.badge}>
-          {planLabel ? `${planLabel} complete` : 'Legacy report'}
+          {planLabel ? `${planLabel} ${stopped ? 'stopped' : 'complete'}` : 'Legacy report'}
         </span>
       </header>
 
       {passive ? (
         <>
           <p className={styles.intro}>
-            The server completed this training block. The reward is frozen until you claim it.
+            {stopped
+              ? 'Training stopped. Your earned reward is frozen until you claim it.'
+              : 'The server completed this training block. The reward is frozen until you claim it.'}
           </p>
           <dl className={styles.rewards} data-testid="passive-training-reward">
             <div>

@@ -360,8 +360,8 @@
 .skillArt {
   position: relative;
   display: grid;
-  width: var(--av-gameplay-art-size);
-  height: var(--av-gameplay-art-size);
+  width: min(100%, var(--av-gameplay-art-size));
+  height: auto;
   aspect-ratio: 1 / 1;
   place-items: center;
   overflow: hidden;
@@ -422,8 +422,8 @@
 
 .lockedSkill > span {
   display: grid;
-  width: var(--av-gameplay-art-size);
-  height: var(--av-gameplay-art-size);
+  width: min(100%, var(--av-gameplay-art-size));
+  height: auto;
   aspect-ratio: 1 / 1;
   place-items: center;
   border: 1px solid #9f875b;
@@ -514,8 +514,8 @@
 
 .detailArt {
   display: block;
-  width: var(--av-gameplay-art-size);
-  height: var(--av-gameplay-art-size);
+  width: min(100%, var(--av-gameplay-art-size));
+  height: auto;
   aspect-ratio: 1 / 1;
   overflow: hidden;
   border: 1px solid #a48750;
@@ -844,7 +844,7 @@
 
 @media (min-width: 821px) {
   .dialog {
-    --av-cockpit-art-size: 4rem;
+    --av-cockpit-art-size: 5.5rem;
   }
   .techniqueGroup > header {
     display: flex;
@@ -855,9 +855,21 @@
     font-size: 0.6875rem;
     letter-spacing: 0.035em;
   }
+  .techniqueArea {
+    grid-template-rows: repeat(3, minmax(0, 1fr));
+  }
+  .techniqueGroup {
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  .skill,
+  .lockedSkill {
+    container-type: size;
+    /* Eight-column galleries retain their assigned row and reserve readable name/type lines. */
+    --av-gameplay-art-size: min(var(--av-cockpit-art-size), calc(100cqb - 3.5rem));
+  }
   .skill label {
-    padding: 0.32rem 0.16rem;
-    grid-template-rows: auto minmax(2.15rem, auto) auto;
+    padding: 0.2rem 0.16rem;
+    grid-template-rows: auto minmax(1.85rem, auto) auto;
   }
   .skill label > strong {
     font-size: 0.8125rem;
@@ -877,7 +889,7 @@
 
 @media (min-width: 821px) and (max-width: 1100px) {
   .dialog {
-    --av-cockpit-art-size: 2.75rem;
+    --av-cockpit-art-size: 4.25rem;
   }
   .workspace {
     gap: 0.5rem;
@@ -899,7 +911,7 @@
 
 @media (min-width: 821px) and (max-height: 700px) {
   .dialog {
-    --av-cockpit-art-size: 3.25rem;
+    --av-cockpit-art-size: 4.625rem;
   }
   .header {
     min-height: 3rem;
@@ -933,6 +945,9 @@
 }
 
 @media (max-width: 820px) {
+  .dialog {
+    --av-cockpit-art-size: 6.875rem;
+  }
   .supportGrid {
     width: 100%;
   }
@@ -940,12 +955,12 @@
 
 @media (min-width: 821px) and (max-width: 1100px) {
   .dialog {
-    --av-cockpit-art-size: 2.75rem;
+    --av-cockpit-art-size: 4.25rem;
   }
 }
 @media (min-width: 821px) and (max-width: 1100px) and (max-height: 620px) {
   .dialog {
-    --av-cockpit-art-size: 2.5rem;
+    --av-cockpit-art-size: 4rem;
   }
 }
 

@@ -30,6 +30,24 @@ test('Techniques saves one Support Action separately from four Discipline Skills
   const initialCount = (await dialog.getByTestId('skill-capacity').textContent()) ?? ''
   expect(initialCount).toMatch(/Discipline Skills — 0 \/ 4 selected/)
   await expect(dialog.getByRole('radio', { name: 'Guard', exact: true })).toBeChecked()
+  await dialog.getByRole('radio', { name: 'Guard', exact: true }).focus()
+  const preview = dialog.getByTestId('technique-preview')
+  for (const label of [
+    'Skill Type',
+    'Cost',
+    'Cooldown',
+    'Requirements',
+    'Effects',
+    'Range',
+    'Target',
+    'Target Method',
+    'Target Elevation',
+    'Line of Sight',
+  ]) {
+    await expect(preview.locator('dt', { hasText: new RegExp(`^${label}$`) })).toBeVisible()
+  }
+  await expect(preview).toContainText('15% less incoming damage')
+  await expect(preview).toContainText('2 Turns')
   for (const name of ['HP Recovery', 'MP Recovery']) {
     const save = page.waitForResponse(
       (response) =>
@@ -39,6 +57,8 @@ test('Techniques saves one Support Action separately from four Discipline Skills
     await dialog.getByRole('radio', { name, exact: true }).check()
     expect((await save).ok()).toBe(true)
     await expect(dialog.getByRole('radio', { name, exact: true })).toBeChecked()
+    await expect(preview).toContainText(`10% maximum ${name === 'HP Recovery' ? 'HP' : 'MP'}`)
+    await expect(preview).toContainText('2 owner turns, shared by HP / MP Recovery')
     await expect(dialog.getByTestId('skill-capacity')).toHaveText(initialCount)
   }
   const skill = dialog.locator('[data-technique-card] input:not(:checked):not(:disabled)').first()

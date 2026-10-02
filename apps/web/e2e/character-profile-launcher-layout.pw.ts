@@ -153,7 +153,10 @@ test('Nexus build launchers stay centered and readable', async ({ page }, testIn
     await page.setViewportSize(viewport)
     const supportSummary = page.getByTestId('nexus-support-action')
     await expect(supportSummary).toBeVisible()
-    await expect(supportSummary).toContainText('Support Action · Slot 3')
+    await expect(
+      supportSummary.getByRole('heading', { name: 'Support Action', exact: true }),
+    ).toBeVisible()
+    await expect(supportSummary).not.toContainText('Support Action · Slot 3')
     await expect(supportSummary.locator('strong')).toHaveText('Guard')
 
     const [summaryBox, launcherBox] = await Promise.all([
@@ -167,7 +170,12 @@ test('Nexus build launchers stay centered and readable', async ({ page }, testIn
       summaryBox.y + summaryBox.height,
       'Support Action ends above its launcher',
     ).toBeLessThanOrEqual(launcherBox.y + 1)
-    for (const content of await supportSummary.locator('span, small, strong').all()) {
+    const supportHeadingBox = await supportSummary
+      .getByRole('heading', { name: 'Support Action', exact: true })
+      .boundingBox()
+    const supportArtBox = await supportSummary.locator('[data-arsenal-media]').boundingBox()
+    expect(supportHeadingBox!.y + supportHeadingBox!.height).toBeLessThanOrEqual(supportArtBox!.y)
+    for (const content of await supportSummary.locator('h2, span, strong').all()) {
       const contentBox = await content.boundingBox()
       expect(contentBox).not.toBeNull()
       expect(contentBox!.x, 'Support Action content fits its summary').toBeGreaterThanOrEqual(

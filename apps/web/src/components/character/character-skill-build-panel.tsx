@@ -5,8 +5,7 @@ import { skillPreviewEffects } from './skill-effect-preview'
 
 import Image from 'next/image'
 
-import { pv1fFlatActionCost, pv1fSkillByActionId } from '@aurevane/game-core/combat/pv1f-skills'
-import { PV1F_RECOVERY_COOLDOWN_OWNER_TURNS } from '@aurevane/game-core/combat/pv1f-action-economy'
+import { pv1fSkillByActionId } from '@aurevane/game-core/combat/pv1f-skills'
 import {
   DEFAULT_SUPPORT_ACTION_ID,
   SUPPORT_ACTION_IDS,
@@ -35,6 +34,11 @@ import {
   skillTypeDescription,
 } from './skill-detail-presentation'
 import styles from './character-skill-build-panel.module.css'
+import {
+  basicActionCharacteristicRows,
+  type SkillCharacteristic,
+} from './basic-action-presentation'
+import { SkillCharacteristicRows } from './skill-characteristic-rows'
 
 interface SkillCatalogEntryView {
   definition: MatureSkillDefinition
@@ -72,8 +76,6 @@ interface SkillCommitResponse {
   }
   error?: { message?: string }
 }
-
-type SkillCharacteristic = readonly [string, string | readonly string[]]
 
 const PROFILE_PANEL_QUERY = 'profilePanel'
 const TECHNIQUES_PANEL = 'techniques'
@@ -435,7 +437,9 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                     {selected ? <b>✓</b> : null}
                   </span>
                   <strong>{name}</strong>
-                  <span className={styles.skillMeta}>{pv1fFlatActionCost(id)} AP</span>
+                  <span className={styles.skillMeta}>
+                    {id === 'basic.guard' ? 'Utility' : 'Recovery'}
+                  </span>
                 </label>
               </article>
             )
@@ -664,32 +668,10 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                             </div>
                           </div>
                           <dl className={styles.characteristics}>
-                            <div>
-                              <dt>AP cost</dt>
-                              <dd>{pv1fFlatActionCost(focusedSupportActionId)} AP</dd>
-                            </div>
-                            <div>
-                              <dt>Target</dt>
-                              <dd>Self</dd>
-                            </div>
-                            <div>
-                              <dt>Battle slot</dt>
-                              <dd>3</dd>
-                            </div>
-                            <div>
-                              <dt>Cooldown</dt>
-                              <dd>
-                                {focusedSupportActionId === 'basic.guard'
-                                  ? 'None'
-                                  : `${PV1F_RECOVERY_COOLDOWN_OWNER_TURNS} owner turns, shared by HP / MP Recovery`}
-                              </dd>
-                            </div>
+                            <SkillCharacteristicRows
+                              rows={basicActionCharacteristicRows(focusedSupportActionId)}
+                            />
                           </dl>
-                          <p>
-                            {focusedSupportActionId === 'basic.guard'
-                              ? 'Brace with Guarded to reduce incoming damage.'
-                              : `Restore ${focusedSupportActionId === 'basic.recover' ? 'HP' : 'MP'}. The battle forecast shows the recovery amount and whether recovery is available.`}
-                          </p>
                         </>
                       ) : focusedSkill ? (
                         <>

@@ -1,4 +1,7 @@
+'use client'
+
 import type { CharacterAttributes } from '@aurevane/game-core/character/creation'
+import type { ProfileDetailContent } from './character-profile-details'
 import styles from './character-build-tendencies.module.css'
 
 const axes = [
@@ -6,36 +9,42 @@ const axes = [
     attribute: 'might',
     label: 'Damage',
     description: 'Might · physical power',
+    help: 'Favors characters who overwhelm opponents with strong physical attacks.',
     color: '#b83a36',
   },
   {
     attribute: 'finesse',
     label: 'Precision',
     description: 'Finesse · accuracy and critical chance',
+    help: 'Favors characters who rely on accurate strikes and critical hits.',
     color: '#53687d',
   },
   {
     attribute: 'vitality',
     label: 'Defense',
     description: 'Vitality · HP and armor',
+    help: 'Favors durable frontline characters who can withstand physical punishment.',
     color: '#26874d',
   },
   {
     attribute: 'agility',
     label: 'Mobility',
     description: 'Agility · movement, initiative and evasion',
+    help: 'Favors agile characters who act early, reposition and evade attacks.',
     color: '#b7862f',
   },
   {
     attribute: 'intellect',
     label: 'Arcane',
     description: 'Intellect · MP and mystic power',
+    help: 'Favors spellcasters who draw on deep MP reserves and mystic power.',
     color: '#7648a8',
   },
   {
     attribute: 'resolve',
     label: 'Tenacity',
     description: 'Resolve · ward and status resistance',
+    help: 'Favors steadfast characters who resist mystic attacks and hostile status effects.',
     color: '#2872a8',
   },
 ] as const
@@ -51,7 +60,13 @@ function point(index: number, radius: number) {
   return { x: 180 + Math.cos(angle) * radius, y: 180 + Math.sin(angle) * radius }
 }
 
-export function CharacterBuildTendencies({ attributes }: { attributes: CharacterAttributes }) {
+export function CharacterBuildTendencies({
+  attributes,
+  onAxisSelect,
+}: {
+  attributes: CharacterAttributes
+  onAxisSelect?: (anchor: Element, content: ProfileDetailContent) => void
+}) {
   const values = coreStatTendencies(attributes)
   const shape = values
     .map((value, index) => {
@@ -69,7 +84,7 @@ export function CharacterBuildTendencies({ attributes }: { attributes: Character
       <p>Relative core-stat emphasis</p>
       <svg
         viewBox="0 0 360 360"
-        role="img"
+        role="group"
         aria-labelledby="build-tendencies-title build-tendencies-description"
       >
         <title id="build-tendencies-title">Character core-stat tendencies</title>
@@ -99,8 +114,38 @@ export function CharacterBuildTendencies({ attributes }: { attributes: Character
         {axes.map((axis, index) => {
           const vertex = point(index, values[index] * 105)
           const label = point(index, 140)
+          const end = point(index, 105)
+          const openAxis = (anchor: Element) =>
+            onAxisSelect?.(anchor, {
+              eyebrow: 'Build tendency',
+              title: axis.label,
+              body: axis.help,
+            })
           return (
-            <g key={axis.attribute}>
+            <g
+              key={axis.attribute}
+              className={styles.axis}
+              role="button"
+              tabIndex={0}
+              aria-label={`About ${axis.label} tendency`}
+              aria-haspopup="dialog"
+              onClick={(event) => openAxis(event.currentTarget)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault()
+                  openAxis(event.currentTarget)
+                }
+              }}
+            >
+              <line x1="180" y1="180" x2={end.x} y2={end.y} className={styles.axisHitTarget} />
+              <rect
+                x={label.x - 48}
+                y={label.y - 14}
+                width="96"
+                height="44"
+                rx="4"
+                className={styles.labelHitTarget}
+              />
               <circle
                 cx={vertex.x}
                 cy={vertex.y}

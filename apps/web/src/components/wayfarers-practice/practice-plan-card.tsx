@@ -44,10 +44,13 @@ export function PracticePlanCard({ practice, trainingReport = null }: PracticePl
   )
   const [submittingWindow, setSubmittingWindow] = useState<PracticePlanWindow | null>(null)
   const [stopping, setStopping] = useState(false)
-  const [settleStoppedReport, setSettleStoppedReport] = useState(false)
-  const [settledNotice, setSettledNotice] = useState<string | null>(null)
+  const [stoppedSnapshot, setStoppedSnapshot] = useState<{
+    characterId: string
+    serverNow: string
+  } | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const retryKey = useRef<{ window: PracticePlanWindow; key: string } | null>(null)
+  const stopRequestInFlight = useRef(false)
   const refreshedEndMs = useRef<number | null>(null)
   const baseServerTime = useMemo(() => Date.parse(practice.serverNow), [practice.serverNow])
   const [clock, setClock] = useState({ serverNow: practice.serverNow, elapsedMs: 0 })
@@ -73,8 +76,13 @@ export function PracticePlanCard({ practice, trainingReport = null }: PracticePl
   const hasPlan = Boolean(
     practice.plannedWindow && practice.planSetAt && practice.plannedWindowSeconds,
   )
-  const trainingActive = hasPlan && remainingSeconds > 0
-  const currentVisible = hasPlan || settleStoppedReport
+  // Hold the stopped session only until a fresh authoritative snapshot arrives.
+  const awaitingStoppedReport =
+    stoppedSnapshot !== null &&
+    stoppedSnapshot.characterId === practice.characterId &&
+    stoppedSnapshot.serverNow === practice.serverNow
+  const trainingActive = hasPlan && remainingSeconds > 0 && !awaitingStoppedReport
+  const currentVisible = hasPlan || awaitingStoppedReport
 
   useEffect(() => {
     if (
@@ -116,7 +124,6 @@ export function PracticePlanCard({ practice, trainingReport = null }: PracticePl
   async function setPlan(window: PracticePlanWindow) {
     if (submittingWindow || stopping || currentVisible || trainingReport) return
     setSubmittingWindow(window)
-    setSettledNotice(null)
     setErrorMessage(null)
     if (!retryKey.current || retryKey.current.window !== window) {
       retryKey.current = { window, key: crypto.randomUUID() }
@@ -148,7 +155,8 @@ export function PracticePlanCard({ practice, trainingReport = null }: PracticePl
   }
 
   async function stopTraining() {
-    if (stopping || settleStoppedReport || !trainingActive) return
+    if (stopRequestInFlight.current || awaitingStoppedReport || !trainingActive) return
+    stopRequestInFlight.current = true
     setStopping(true)
     setErrorMessage(null)
     try {
@@ -165,11 +173,16 @@ export function PracticePlanCard({ practice, trainingReport = null }: PracticePl
         setErrorMessage(payload.error?.message ?? 'Passive Training could not be stopped.')
         return
       }
-      setSettleStoppedReport(payload.stopped === true)
+      setStoppedSnapshot(
+        payload.stopped === true
+          ? { characterId: practice.characterId, serverNow: practice.serverNow }
+          : null,
+      )
       router.refresh()
     } catch {
       setErrorMessage('Passive Training could not reach the server. Nothing was changed.')
     } finally {
+      stopRequestInFlight.current = false
       setStopping(false)
     }
   }
@@ -201,12 +214,7 @@ export function PracticePlanCard({ practice, trainingReport = null }: PracticePl
           <TrainingReportCard
             key={trainingReport.reportId}
             report={trainingReport}
-            autoClaim={settleStoppedReport}
-            onClaimed={() => {
-              if (settleStoppedReport)
-                setSettledNotice('Training stopped. Your earned progress has been claimed.')
-              setSettleStoppedReport(false)
-            }}
+            onClaimed={() => setStoppedSnapshot(null)}
           />
         </aside>
       ) : !currentVisible ? (
@@ -278,11 +286,6 @@ export function PracticePlanCard({ practice, trainingReport = null }: PracticePl
           >
             {submittingWindow ? 'Starting…' : 'Start Training'}
           </GameButton>
-          {settledNotice ? (
-            <p className={styles.intro} role="status">
-              {settledNotice}
-            </p>
-          ) : null}
           {errorMessage ? (
             <p className={styles.error} role="status">
               {errorMessage}
@@ -361,7 +364,7 @@ export function PracticePlanCard({ practice, trainingReport = null }: PracticePl
                 </dd>
               </div>
             </dl>
-            {trainingActive && !settleStoppedReport ? (
+            {trainingActive ? (
               <GameButton
                 className={styles.stopButton}
                 type="button"
@@ -371,11 +374,6 @@ export function PracticePlanCard({ practice, trainingReport = null }: PracticePl
               >
                 {stopping ? 'Stopping…' : 'Stop Training'}
               </GameButton>
-            ) : null}
-            {settleStoppedReport ? (
-              <p className={styles.intro} role="status">
-                Settling your earned progress…
-              </p>
             ) : null}
             {errorMessage ? (
               <p className={styles.error} role="status">

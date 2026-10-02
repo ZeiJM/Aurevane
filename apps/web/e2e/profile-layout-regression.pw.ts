@@ -129,6 +129,11 @@ test('approved Profile and Haven keep the frame fixed and complete controls reac
               ? [texts[0].textContent]
               : []
           }),
+          graphTop: sheet
+            .querySelector('[data-testid="profile-build-tendencies"]')!
+            .getBoundingClientRect().top,
+          metadataBottom: sheet.querySelector('[data-profile-facts]')!.getBoundingClientRect()
+            .bottom,
           clipped: [...controls]
             .filter((control) => {
               const rect = control.getBoundingClientRect()
@@ -154,17 +159,54 @@ test('approved Profile and Haven keep the frame fixed and complete controls reac
       expect(fit.textOverflow, `Profile broken or clipped words at ${width}×${height}`).toEqual([])
       expect(fit.graphOverlap, `Profile overlapping graph labels at ${width}×${height}`).toEqual([])
       expect(fit.clipped, `Profile clipped controls at ${width}×${height}`).toEqual([])
+      if (!mobile) {
+        expect(
+          fit.graphTop,
+          `Graph begins below metadata at ${width}×${height}`,
+        ).toBeGreaterThanOrEqual(fit.metadataBottom - 1)
+        expect(fit.graphTop - fit.metadataBottom).toBeLessThanOrEqual(12)
+      }
     }
     await page.setViewportSize({ width: mobile ? 390 : 1366, height: mobile ? 844 : 900 })
   }
-  await page.getByRole('button', { name: 'About Build Tendencies', exact: true }).click()
   await expect(
-    statHelp.getByRole('heading', { name: 'Build Tendencies', exact: true }),
-  ).toBeVisible()
-  await expect(statHelp).toContainText('scaled to your highest Core Stat')
-  await expect(statHelp).toContainText('Damage follows Might')
-  await page.keyboard.press('Escape')
-  await expect(statHelp).toHaveCount(0)
+    page.getByRole('button', { name: 'About Build Tendencies', exact: true }),
+  ).toHaveCount(0)
+  for (const label of ['Damage', 'Precision', 'Defense', 'Mobility', 'Arcane', 'Tenacity']) {
+    const axis = page.getByRole('button', { name: `About ${label} tendency`, exact: true })
+    await axis.locator('text').first().click()
+    await expect(statHelp.getByRole('heading', { name: label, exact: true })).toBeVisible()
+    const copy = await statHelp.locator('p').innerText()
+    expect(copy).toMatch(/^Favors .+\.$/)
+    expect(copy.length).toBeLessThan(130)
+    const helpBox = await statHelp.boundingBox()
+    expect(helpBox!.y).toBeGreaterThanOrEqual(0)
+    expect(helpBox!.y + helpBox!.height).toBeLessThanOrEqual(page.viewportSize()!.height)
+    expect(helpBox!.x).toBeGreaterThanOrEqual(12)
+    expect(helpBox!.x + helpBox!.width).toBeLessThanOrEqual(
+      await page.evaluate(() => document.documentElement.clientWidth - 12),
+    )
+    expect(
+      await statHelp.evaluate((node) => {
+        const box = node.getBoundingClientRect()
+        return [
+          [8, 8],
+          [box.width - 8, 8],
+          [8, box.height - 8],
+          [box.width - 8, box.height - 8],
+        ].every(([x, y]) => node.contains(document.elementFromPoint(box.x + x, box.y + y)))
+      }),
+    ).toBe(true)
+    await page.getByRole('heading', { name: 'Profile', exact: true }).click()
+    await expect(statHelp).toHaveCount(0)
+    await axis.focus()
+    await axis.press(label === 'Damage' ? 'Space' : 'Enter')
+    await expect(statHelp.getByRole('heading', { name: label, exact: true })).toBeVisible()
+    await expect(statHelp).toBeFocused()
+    await page.keyboard.press('Escape')
+    await expect(statHelp).toHaveCount(0)
+    await expect(axis).toBeFocused()
+  }
   await expect(page.getByRole('complementary', { name: 'Current Path' })).toHaveCount(0)
   const headerBefore = await shell.locator(':scope > header').boundingBox()
   const railBefore = await rail.boundingBox()

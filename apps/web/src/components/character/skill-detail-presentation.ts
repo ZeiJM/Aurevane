@@ -115,7 +115,7 @@ export function skillTargetTags(skill: MatureSkillDefinition): readonly string[]
 }
 
 export function skillTypeDescription(
-  skill: MatureSkillDefinition,
+  skill: Pick<MatureSkillDefinition, 'tags' | 'effects'>,
 ): 'Attack' | 'Recovery' | 'Utility' {
   if (skill.tags.includes('attack')) return 'Attack'
 
@@ -126,13 +126,18 @@ export function skillTypeDescription(
   return recoversHpOrMp ? 'Recovery' : 'Utility'
 }
 
-export function skillCostDescription(skill: MatureSkillDefinition): string {
+export function skillCostDescription(
+  skill: Pick<MatureSkillDefinition, 'apCost' | 'mpCost'>,
+): string {
   return skill.mpCost ? `${skill.apCost} AP / ${skill.mpCost} MP` : `${skill.apCost} AP`
 }
 
 /** Parameter order and wording shared by Nexus and committed battle Skills. */
 export function skillParameterRows(
-  skill: MatureSkillDefinition,
+  skill: Pick<
+    MatureSkillDefinition,
+    'tags' | 'effects' | 'apCost' | 'mpCost' | 'cooldown' | 'requirements' | 'target'
+  >,
   costs: Pick<MatureSkillDefinition, 'apCost' | 'mpCost'> = skill,
 ): readonly (readonly [string, string])[] {
   return [
@@ -200,7 +205,9 @@ export function skillEffectsSummary(skill: MatureSkillDefinition): string {
   return skillEffectSummaries(skill).join(', ') || 'N/A'
 }
 
-export function skillRequirementsSummary(skill: MatureSkillDefinition): string {
+export function skillRequirementsSummary(
+  skill: Pick<MatureSkillDefinition, 'requirements'>,
+): string {
   if (skill.requirements.length === 0) return 'None'
   return skill.requirements
     .map((requirement) => {
@@ -224,7 +231,7 @@ export function skillRequirementsSummary(skill: MatureSkillDefinition): string {
     .join(', ')
 }
 
-export function skillTargetDescription(skill: MatureSkillDefinition): string {
+export function skillTargetDescription(skill: Pick<MatureSkillDefinition, 'target'>): string {
   if (skill.target.kind === 'self') return 'Self'
   if (skill.target.kind === 'ground-tile') return 'Ground'
   if (skill.target.kind === 'empty-tile') return 'Empty Ground'
@@ -240,7 +247,7 @@ export function skillTargetDescription(skill: MatureSkillDefinition): string {
   }
 }
 
-export function skillTargetMethodDescription(skill: MatureSkillDefinition): string {
+export function skillTargetMethodDescription(skill: Pick<MatureSkillDefinition, 'target'>): string {
   switch (skill.target.shape.kind) {
     case 'single':
       return 'Single'
@@ -251,23 +258,25 @@ export function skillTargetMethodDescription(skill: MatureSkillDefinition): stri
   }
 }
 
-export function skillTargetElevationDescription(skill: MatureSkillDefinition): string {
+export function skillTargetElevationDescription(
+  skill: Pick<MatureSkillDefinition, 'target'>,
+): string {
   return skill.target.maximumElevationDifference === null
     ? 'N/A'
     : String(skill.target.maximumElevationDifference)
 }
 
-export function skillCompactRangeDescription(skill: MatureSkillDefinition): string {
+export function skillCompactRangeDescription(skill: Pick<MatureSkillDefinition, 'target'>): string {
   if (skill.target.kind === 'self') return 'N/A'
   return String(skill.target.maximumRange)
 }
 
-export function skillLineOfSightDescription(skill: MatureSkillDefinition): string {
+export function skillLineOfSightDescription(skill: Pick<MatureSkillDefinition, 'target'>): string {
   if (skill.target.kind === 'self') return 'N/A'
   return skill.target.requiresLineOfSight ? 'Required' : 'Not required'
 }
 
-export function skillCooldownDescription(skill: MatureSkillDefinition): string {
+export function skillCooldownDescription(skill: Pick<MatureSkillDefinition, 'cooldown'>): string {
   if (skill.cooldown === null) return 'None'
   return `${skill.cooldown.ownerTurns} ${skill.cooldown.ownerTurns === 1 ? 'turn' : 'turns'}`
 }

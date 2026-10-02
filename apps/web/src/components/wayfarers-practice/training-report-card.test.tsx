@@ -69,4 +69,27 @@ describe('training report card', () => {
     expect(markup).toContain('Claim Training')
     expect(markup).not.toContain('Rested Momentum')
   })
+
+  it('shows an early-stopped report with only its frozen earned XP and a manual claim', () => {
+    const markup = renderToStaticMarkup(
+      createElement(TrainingReportCard, {
+        report: {
+          ...report,
+          practiceSource: 'passive_training',
+          elapsedSeconds: 3_600,
+          plannedElapsedSeconds: 3_600,
+          requestedCharacterXp: 7,
+          restedMomentumGain: 0,
+        },
+      }),
+    )
+
+    expect(markup).toContain('Training Stopped')
+    expect(markup).toContain('Medium stopped')
+    expect(markup).toContain('1h 0m')
+    expect(markup).toContain('+7')
+    expect(markup).toContain('Claim Training')
+    expect(markup).not.toContain('Training Complete')
+    expect(markup).not.toContain('Training Plan')
+  })
 })

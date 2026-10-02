@@ -526,20 +526,6 @@
   }
 }
 
-.tendenciesTrigger {
-  display: block;
-  width: 100%;
-  padding: 0;
-  border: 0;
-  color: inherit;
-  background: transparent;
-  cursor: pointer;
-  text-align: inherit;
-}
-.tendenciesTrigger:hover {
-  filter: brightness(1.035);
-}
-
 /* Match the approved Profile concept: larger core emblems, related values below,
    and a substantial circular build overview alongside the stat columns. */
 @media (min-width: 1101px) {
@@ -616,6 +602,9 @@
   .details[data-profile-has-tendencies='true'] > :not(.buildTendencies):not(.detailPopover) {
     grid-column: 1;
   }
+  .details[data-profile-has-tendencies='true'] > .identityFacts {
+    grid-column: 1 / -1;
+  }
   .buildTendencies {
     grid-column: 2;
     grid-row: 2 / span 3;
@@ -653,7 +642,7 @@
     padding-top: 0 !important;
   }
   .buildTendencies {
-    grid-row: 1 / span 4;
+    grid-row: 2 / span 3;
   }
 }
 

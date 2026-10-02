@@ -35,9 +35,19 @@ describe('Core-stat build tendencies', () => {
   })
   it('exposes actual values and scope to assistive technology', () => {
     const markup = renderToStaticMarkup(<CharacterBuildTendencies attributes={attributes} />)
-    expect(markup).toContain('role="img"')
+    expect(markup).toContain('role="group"')
     expect(markup).toContain('Arcane: 10')
     expect(markup).toContain('not predicted damage or skill effectiveness')
+  })
+  it('makes each axis independently reachable without turning the whole chart into a button', () => {
+    const markup = renderToStaticMarkup(<CharacterBuildTendencies attributes={attributes} />)
+    const axisControls = [...markup.matchAll(/<g\b([^>]*)role="button"([^>]*)>/g)]
+    expect(axisControls).toHaveLength(6)
+    for (const label of ['Damage', 'Precision', 'Defense', 'Mobility', 'Arcane', 'Tenacity']) {
+      expect(markup).toContain(`aria-label="About ${label} tendency"`)
+    }
+    for (const control of axisControls) expect(control[0]).toContain('tabindex="0"')
+    expect(markup).not.toContain('About Build Tendencies')
   })
   it('server-renders complete SVG point titles for hydration and native tooltips', () => {
     const markup = renderToString(<CharacterBuildTendencies attributes={attributes} />)

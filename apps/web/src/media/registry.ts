@@ -70,6 +70,35 @@ const legacySquareStarterPortraitAssetIds = [
 ] as const
 
 const IMAGE_ASSETS = [
+  ...(['additional', 'prestige'] as const).map((name) => ({
+    id: `environment.entry.${name}-doorway` as const,
+    kind: 'environment' as const,
+    status: 'approved' as const,
+    requestId: 'ART-UI-ENTRY-20261001',
+    generationRequestId: 'ART-UI-ENTRY-20261001',
+    decorative: true,
+    alt: '',
+    src: `/media/art/entry/${name}-doorway-v01.webp`,
+    width: 640,
+    height: 640,
+  })),
+  ...(
+    [
+      ['gateway', 'environment.entry.gateway'],
+      ['roster-gallery', 'environment.entry.roster-gallery'],
+    ] as const
+  ).map(([name, id]) => ({
+    id,
+    kind: 'environment' as const,
+    status: 'approved' as const,
+    requestId: 'ART-UI-ENTRY-20261001',
+    generationRequestId: 'ART-UI-ENTRY-20261001',
+    decorative: true,
+    alt: '',
+    src: `/media/art/entry/${name}-v01.webp`,
+    width: 1672,
+    height: 941,
+  })),
   ...(['male', 'female'] as const).flatMap((gender) =>
     Array.from({ length: 12 }, (_, index) => ({
       id: `character.adventure.${gender}-${String(index + 1).padStart(2, '0')}`,

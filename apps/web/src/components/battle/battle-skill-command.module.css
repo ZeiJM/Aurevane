@@ -209,6 +209,14 @@
     grid-template-rows: subgrid;
     row-gap: var(--battle-command-gap);
   }
+  .extraControls {
+    height: 1.125rem;
+  }
+  .shell[data-command-card='finish'] {
+    min-height: 0;
+    padding-bottom: 0;
+    box-sizing: border-box;
+  }
   .action {
     grid-row: 1 / span 2;
     grid-template-rows: subgrid;

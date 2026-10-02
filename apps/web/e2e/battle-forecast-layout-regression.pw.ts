@@ -218,7 +218,7 @@ async function capture(page: Page, testInfo: TestInfo, label: string) {
       terrainRail: rect(root.querySelector('[data-battle-side="local"]')),
       commandContents: [
         ...root.querySelectorAll(
-          '[data-command-card] > *, [data-battle-skill-slot] > *, [data-battle-special] > *',
+          '[data-command-card], [data-command-card] > *, [data-unified-facing-pad] button, [data-battle-skill-slot] > *, [data-battle-special] > *',
         ),
       ]
         .filter((node) => node.getBoundingClientRect().height > 0)
@@ -262,21 +262,23 @@ async function capture(page: Page, testInfo: TestInfo, label: string) {
       board: rect(root.querySelector('[data-board-auto-fit]')),
       strip: rect(root.querySelector('[data-battle-preview-strip]')),
       preview: rect(preview),
-      lanes: [...root.querySelectorAll<HTMLElement>('[data-battle-preview-lane]')].map((lane) => ({
-        name: lane.dataset.battlePreviewLane,
-        rect: rect(lane),
-        tabIndex: lane.tabIndex,
-        overflowX: getComputedStyle(lane).overflowX,
-        scrollLeft: lane.scrollLeft,
-        scrollWidth: lane.scrollWidth,
-        clientWidth: lane.clientWidth,
-        scrollHeight: lane.scrollHeight,
-        clientHeight: lane.clientHeight,
-        chips: [...lane.querySelectorAll('[data-battle-preview-chip]')].map((chip) => ({
-          text: chip.textContent,
-          rect: rect(chip),
+      lanes: [...root.querySelectorAll<HTMLElement>('[data-battle-preview-lane]')]
+        .filter((lane) => lane.offsetWidth > 0)
+        .map((lane) => ({
+          name: lane.dataset.battlePreviewLane,
+          rect: rect(lane),
+          tabIndex: lane.tabIndex,
+          overflowX: getComputedStyle(lane).overflowX,
+          scrollLeft: lane.scrollLeft,
+          scrollWidth: lane.scrollWidth,
+          clientWidth: lane.clientWidth,
+          scrollHeight: lane.scrollHeight,
+          clientHeight: lane.clientHeight,
+          chips: [...lane.querySelectorAll('[data-battle-preview-chip]')].map((chip) => ({
+            text: chip.textContent,
+            rect: rect(chip),
+          })),
         })),
-      })),
       info: rect(
         [...(preview?.querySelectorAll('button[data-battle-info-trigger]') ?? [])].find((button) =>
           /^(i|ⓘ)$/i.test(button.textContent?.trim() ?? ''),
@@ -349,6 +351,26 @@ function expectStable(geometry: Awaited<ReturnType<typeof capture>>, baseline: R
     Math.max(...controls) - Math.min(...controls),
     'cockpit info and hotkeys share one row',
   ).toBeLessThanOrEqual(1)
+  const sizes = geometry.commandAlignment.map((command) => command.artwork!.width)
+  expect(
+    Math.min(...sizes),
+    'cockpit art is visibly larger within its existing dock budget',
+  ).toBeGreaterThanOrEqual(68)
+  expect(
+    Math.max(...sizes) - Math.min(...sizes),
+    'empty and populated cockpit squares have equal size',
+  ).toBeLessThanOrEqual(1)
+  for (const command of geometry.commandAlignment) {
+    expect(
+      Math.abs(command.artwork!.width - command.artwork!.height),
+      'artwork keeps a square frame',
+    ).toBeLessThanOrEqual(1)
+    expect(
+      command.artwork!.y - geometry.cockpit!.y,
+      'artwork retains a small space above it',
+    ).toBeLessThanOrEqual(8)
+    expect(command.artwork!.y - geometry.cockpit!.y).toBeGreaterThanOrEqual(4)
+  }
   const artwork = geometry.commandAlignment.map((command) => command.artwork!.y)
   expect(
     Math.max(...artwork) - Math.min(...artwork),
@@ -364,8 +386,13 @@ function expectStable(geometry: Awaited<ReturnType<typeof capture>>, baseline: R
       'rail portraits have equal height regardless of character name',
     ).toBeLessThanOrEqual(1)
   }
-  for (const sample of geometry.terrainSamples)
+  for (const sample of geometry.terrainSamples) {
     expect(sample!.width, 'terrain artwork remains recognizable').toBeGreaterThanOrEqual(24)
+    expect(
+      sample!.width,
+      'terrain textures use longer samples without growing the rail',
+    ).toBeGreaterThan(sample!.height)
+  }
   expect(geometry.terrainKey).not.toBeNull()
   contained(geometry.terrainKey!, geometry.terrainRail!)
   expect(
@@ -405,6 +432,17 @@ function expectStable(geometry: Awaited<ReturnType<typeof capture>>, baseline: R
     expect(Math.abs(token.token!.width - token.token!.height)).toBeLessThanOrEqual(1)
     for (const portrait of token.portraits) contained(portrait!, token.token!)
   }
+  const visibleLaneTop = Math.min(...geometry.lanes.map((lane) => lane.rect!.y))
+  const visibleLaneBottom = Math.max(
+    ...geometry.lanes.map((lane) => lane.rect!.y + lane.rect!.height),
+  )
+  expect(
+    Math.abs(
+      (visibleLaneTop + visibleLaneBottom) / 2 -
+        (geometry.preview!.y + geometry.preview!.height / 2),
+    ),
+    'the preview text lanes are vertically centered',
+  ).toBeLessThanOrEqual(1)
   for (const lane of geometry.lanes) {
     contained(lane.rect!, geometry.preview!)
     expect(lane.overflowX).toBe('visible')

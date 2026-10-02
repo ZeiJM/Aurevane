@@ -25,6 +25,23 @@ test('Audio has real playback controls and loops without refreshing the game', a
   await page.goto('/game/settings/audio')
   await expect(page.getByRole('heading', { name: 'Volume settings', exact: true })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Now playing', exact: true })).toBeVisible()
+  if (info.project.name !== 'mobile-chromium') {
+    const centered = await page.locator('[data-audio-workspace]').evaluate((workspace) => {
+      const scene = workspace.closest('[data-settings-scene]')!
+      const workspaceRect = workspace.getBoundingClientRect()
+      const sceneRect = scene.getBoundingClientRect()
+      const headingRect = scene.querySelector('header')!.getBoundingClientRect()
+      return {
+        centerOffset: Math.abs(
+          (workspaceRect.left + workspaceRect.right) / 2 - (sceneRect.left + sceneRect.right) / 2,
+        ),
+        workspaceTop: workspaceRect.top,
+        headingBottom: headingRect.bottom,
+      }
+    })
+    expect(centered.centerOffset).toBeLessThanOrEqual(1)
+    expect(centered.workspaceTop).toBeGreaterThanOrEqual(centered.headingBottom)
+  }
   const player = page.getByTestId('site-music-player')
   await expect
     .poll(() => player.evaluate((element) => (element as HTMLAudioElement).currentSrc))
