@@ -376,7 +376,7 @@ async function assertDesktopTechniqueGeometry(page: Page, testInfo: TestInfo, bu
         noOverflow(card.overflow)
         expect(
           card.art.width,
-          'readable artwork survives the compact gallery budget',
+          `${viewport.width}×${viewport.height}: readable artwork survives the compact gallery budget`,
         ).toBeGreaterThanOrEqual(64)
         expect(card.art.width).toBeLessThanOrEqual(metrics.artSize + 1)
         expect(
