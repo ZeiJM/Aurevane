@@ -18,9 +18,12 @@ import { createPortal } from 'react-dom'
 import { BattleInfoPopover } from './battle-info-popover'
 import {
   commandCharacteristicRows,
-  basicActionEffectExplanation,
   basicActionIdForCommand,
 } from '../character/basic-action-presentation'
+import {
+  BasicActionEffectExplanations,
+  BasicActionEffectSummary,
+} from '../character/basic-action-effect-details'
 import { SkillCharacteristicRows } from '../character/skill-characteristic-rows'
 
 import artworkFitStyles from './battle-skill-artwork-fit.module.css'
@@ -106,7 +109,6 @@ export function BattleSkillCommand({
   const selectorRef = useRef<HTMLDivElement | null>(null)
   const canSwap = Boolean(selector && selector.options.length > 1)
   const basicActionId = basicActionIdForCommand(slot, label)
-  const basicActionExplanation = basicActionId ? basicActionEffectExplanation(basicActionId) : null
 
   const closeSelector = useCallback((restoreFocus = false) => {
     setSelectorOpen(false)
@@ -233,11 +235,12 @@ export function BattleSkillCommand({
         >
           <strong>Parameters</strong>
           <dl>
-            <SkillCharacteristicRows rows={commandCharacteristicRows(slot, label, cost)} />
+            <SkillCharacteristicRows
+              rows={commandCharacteristicRows(slot, label, cost)}
+              effectSummary={basicActionId ? <BasicActionEffectSummary id={basicActionId} /> : null}
+            />
           </dl>
-          {basicActionExplanation ? (
-            <p data-basic-action-effect-explanation="true">{basicActionExplanation}</p>
-          ) : null}
+          {basicActionId ? <BasicActionEffectExplanations id={basicActionId} /> : null}
           {tags.length > 0 ? (
             <div className={styles.tags} data-battle-skill-tags="details">
               {tags.map((tag) => (

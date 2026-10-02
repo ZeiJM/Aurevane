@@ -8,11 +8,7 @@ export function LoadoutHeader({ active }: { active: 'nexus' | 'items' }) {
       <h1 className={styles.accessibleTitle}>{active === 'nexus' ? 'Nexus' : 'Items'}</h1>
       <div className={styles.identity}>
         <LoadoutTabs active={active} />
-        <p>
-          {active === 'nexus'
-            ? 'Master disciplines. Refine techniques. Prepare for what comes.'
-            : 'Equipment, keepsakes, and discoveries.'}
-        </p>
+        {active === 'items' ? <p>Equipment, keepsakes, and discoveries.</p> : null}
       </div>
       <small>A sharper mind. A steadier hand. A kinder world.</small>
     </header>

@@ -474,6 +474,7 @@
   grid-template-columns: minmax(0, 4fr) minmax(0, 1.25fr);
   gap: 0.65rem;
   align-items: start;
+  margin-bottom: 0.65rem;
 }
 .techniqueSummary .supportSummary {
   display: grid;

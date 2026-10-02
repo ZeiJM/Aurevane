@@ -4,7 +4,7 @@ import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-ski
 import { SkillDetails } from './skill-details'
 import { MINIMUM_SKILL_INFORMATION_FIELDS } from './skill-information-contract'
 
-it('shows the minimum report in order once, preserving legal range and PvP overrides', () => {
+it('shows the minimum report in order once, preserving Range and PvP overrides', () => {
   const base = resolveMatureSkillVersion('farstrider.volley')!
   const skill = {
     ...base,
@@ -20,7 +20,9 @@ it('shows the minimum report in order once, preserving legal range and PvP overr
     expect(index).toBeGreaterThan(previous)
     previous = index
   }
-  expect(markup).toContain('Legal range: 2–5 tiles')
+  expect(markup).not.toContain('Legal range')
+  expect(markup).toContain('<dt>Range</dt><dd>5</dd>')
+  expect(markup).toContain('Circle radius: 1 tile')
   expect(markup).toContain(`<dt>PvP Cost</dt><dd>${base.apCost + 1} AP`)
   expect(markup).not.toContain('<dt>AP cost</dt>')
   expect(markup).toContain('Authored explanation of the real effect.')

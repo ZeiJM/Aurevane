@@ -295,15 +295,6 @@ export function skillCooldownDescription(
   return `${ownerTurns} ${ownerTurns === 1 ? 'turn' : 'turns'}`
 }
 
-export function skillRangeDescription(skill: MatureSkillDefinition): string {
-  const { minimumRange: min, maximumRange: max } = skill.target
-  return skill.target.kind === 'self'
-    ? 'Self only'
-    : min === max
-      ? `${min} ${min === 1 ? 'tile' : 'tiles'}`
-      : `${min}–${max} tiles`
-}
-
 export function skillAffectedDescription(skill: MatureSkillDefinition): string {
   const terrain = skill.effects.some(
     (effect) =>
@@ -318,7 +309,7 @@ export function skillAffectedDescription(skill: MatureSkillDefinition): string {
   return unitAffectedDescription(skill) + terrain + resonance
 }
 
-/** Additional legality/area information follows the compact ten-field report. */
+/** Area and recipient information follows the compact ten-field report. */
 export function skillTargetingDetails(skill: MatureSkillDefinition): string {
   const shape = skill.target.shape
   const area =
@@ -327,7 +318,7 @@ export function skillTargetingDetails(skill: MatureSkillDefinition): string {
       : shape.kind === 'line'
         ? `Line length: ${shape.length} ${shape.length === 1 ? 'tile' : 'tiles'}`
         : 'Single target'
-  return `Legal range: ${skillRangeDescription(skill)} · ${area} · Affects: ${skillAffectedDescription(skill)}`
+  return `${area} · Affects: ${skillAffectedDescription(skill)}`
 }
 
 function unitAffectedDescription(skill: MatureSkillDefinition): string {

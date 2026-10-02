@@ -36,9 +36,12 @@ import {
 import styles from './character-skill-build-panel.module.css'
 import {
   basicActionCharacteristicRows,
-  basicActionEffectExplanation,
   type SkillCharacteristic,
 } from './basic-action-presentation'
+import {
+  BasicActionEffectExplanations,
+  BasicActionEffectSummary,
+} from './basic-action-effect-details'
 import { SkillCharacteristicRows } from './skill-characteristic-rows'
 
 interface SkillCatalogEntryView {
@@ -667,11 +670,17 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                           <dl className={styles.characteristics}>
                             <SkillCharacteristicRows
                               rows={basicActionCharacteristicRows(focusedSupportActionId)}
+                              effectSummary={
+                                <div className={styles.effectSummaryList}>
+                                  <BasicActionEffectSummary id={focusedSupportActionId} />
+                                </div>
+                              }
                             />
                           </dl>
-                          <p className={styles.supportExplanation}>
-                            {basicActionEffectExplanation(focusedSupportActionId)}
-                          </p>
+                          <BasicActionEffectExplanations
+                            id={focusedSupportActionId}
+                            className={styles.effectExplanations}
+                          />
                         </>
                       ) : focusedSkill ? (
                         <>

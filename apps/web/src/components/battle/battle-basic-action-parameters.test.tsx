@@ -47,11 +47,19 @@ describe('inherent action characteristics', () => {
       }
       expect(markup).toContain(effect)
       expect(markup).not.toContain('aria-haspopup="listbox"')
+      if (slot === 'move' || slot === 'attack' || slot === 'guard') {
+        expect(markup.match(/data-compact-skill-effect="true"/g)).toHaveLength(1)
+        expect(markup.match(/data-compact-effect-magnitude="true"/g)).toHaveLength(1)
+        expect(markup.match(/data-compact-effect-duration="true"/g)).toHaveLength(1)
+        expect(markup).toMatch(/<ul[^>]*aria-label="Effect explanations"[^>]*><li><strong>/)
+      }
       if (slot === 'guard') {
         expect(markup).toContain('<dt>Cooldown</dt><dd>2 turns</dd>')
         expect(markup.match(/data-basic-action-effect-explanation="true"/g)).toHaveLength(1)
         if (label === 'Guard') {
-          expect(markup).toContain('<dt>Effects</dt><dd>Guarded [15%] [2 Turns]</dd>')
+          expect(markup).toContain('<span data-compact-effect-label="true">Guarded</span>')
+          expect(markup).toContain('<span data-compact-effect-magnitude="true">[15%]</span>')
+          expect(markup).toContain('<span data-compact-effect-duration="true">[2 Turns]</span>')
           expect(markup).toContain('Reduces incoming damage by 15% per stack, maximum 3 stacks.')
         } else {
           expect(markup).toContain('HP and MP Recovery share a cooldown.')

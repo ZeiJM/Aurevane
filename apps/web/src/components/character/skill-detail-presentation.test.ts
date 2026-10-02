@@ -10,7 +10,6 @@ import {
   skillEffectSummaries,
   skillEffectsSummary,
   skillLineOfSightDescription,
-  skillRangeDescription,
   skillRequirementDescription,
   skillRequirementsSummary,
   skillTargetDescription,
@@ -27,11 +26,11 @@ describe('Player-facing Skill targeting and effects', () => {
     const volley = resolveMatureSkillVersion('farstrider.volley')!
     const before = JSON.stringify(volley)
     expect(skillTargetTags(volley)).toEqual(['Enemy', 'Circle 1', 'Dmg'])
-    expect(skillRangeDescription(volley)).toBe('2–5 tiles')
+    expect(skillCompactRangeDescription(volley)).toBe('5')
     expect(skillAffectedDescription(volley)).toBe('Enemies only')
     const breath = resolveMatureSkillVersion('ironfist.focus-breath')!
     expect(skillTargetTags(breath)).toEqual(['Self', 'Single', 'Heal 1', 'MP Rec 1'])
-    expect(skillRangeDescription(breath)).toBe('Self only')
+    expect(skillCompactRangeDescription(breath)).toBe('N/A')
     expect(JSON.stringify(volley)).toBe(before)
   })
   it('describes prerequisites, negative resource changes, and facing explicitly', () => {
@@ -412,10 +411,10 @@ it('describes the authored Burn schedule rather than substituting the default st
   expect(description).not.toContain('4, then 3, then 2')
 })
 
-it('preserves minimum range, area dimensions and affected teams beyond the compact fields', () => {
+it('keeps area dimensions and affected teams without repeating the Range field', () => {
   const volley = resolveMatureSkillVersion('farstrider.volley')!
   const details = skillTargetingDetails(volley)
-  expect(details).toContain('Legal range: 2–5 tiles')
+  expect(details).not.toContain('Legal range')
   expect(details).toContain('Circle radius: 1 tile')
   expect(details).toContain('Affects: Enemies only')
 })
