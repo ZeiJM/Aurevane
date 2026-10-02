@@ -138,10 +138,34 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
 
   const resonancePreviewAnchor = mixedAttunement.getByLabel(/Preview Resonance: Mercy's Edge/)
   await resonancePreviewAnchor.hover()
-  const resonancePreview = page.locator('[id^="resonance-preview-"]').filter({
-    hasText: "Mercy's Edge",
-  })
+  const resonancePreview = page.getByRole('dialog', { name: "Resonance: Mercy's Edge" })
   await expect(resonancePreview).toBeVisible()
+  await resonancePreviewAnchor.press('Enter')
+  if (testInfo.project.name === 'desktop-chromium') {
+    for (const viewport of [
+      { width: 1280, height: 720 },
+      { width: 1024, height: 576 },
+      { width: 1366, height: 768 },
+      { width: 1536, height: 614 },
+      { width: 1920, height: 1080 },
+    ]) {
+      await page.setViewportSize(viewport)
+      await expect
+        .poll(async () =>
+          resonancePreview.evaluate((panel) => {
+            const rect = panel.getBoundingClientRect()
+            return (
+              panel.scrollHeight <= panel.clientHeight + 1 &&
+              rect.top >= 7 &&
+              rect.bottom <= innerHeight - 7 &&
+              rect.left >= 7 &&
+              rect.right <= innerWidth - 7
+            )
+          }),
+        )
+        .toBe(true)
+    }
+  }
   const resonanceField = (label: string) =>
     resonancePreview
       .locator('dt', { hasText: new RegExp(`^${label}$`) })
@@ -164,10 +188,8 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
     await expect(resonanceField(field)).toHaveText('N/A')
   }
   await expect(resonancePreview).not.toContainText('Payoff')
-  await resonancePreviewAnchor.evaluate((element) => (element as HTMLElement).blur())
-  await page.mouse.move(0, 0)
-  await expect(resonancePreview).toHaveCSS('opacity', '0')
-  await expect(resonancePreview).toHaveCSS('pointer-events', 'none')
+  await page.keyboard.press('Escape')
+  await expect(resonancePreview).not.toBeVisible()
 
   await page.getByRole('button', { name: /Manage Techniques/ }).click()
   const mixedCapacity = page.getByTestId('skill-capacity')
@@ -219,6 +241,47 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   const moveAction = commandDeck.locator('button[data-command-slot="move"]')
   const finishAction = commandDeck.locator('button[data-command-slot="finish"]')
   const actionEconomy = page.getByRole('progressbar', { name: 'Action Economy remaining' })
+
+  if (testInfo.project.name === 'desktop-chromium') {
+    // Reports remain readable on a locked battle route even in a short landscape viewport.
+    const priorViewport = page.viewportSize()!
+    await commandDeck.getByRole('button', { name: "About Mercy's Edge", exact: true }).click()
+    const report = page.getByRole('dialog', { name: "Mercy's Edge", exact: true })
+    await page.setViewportSize({ width: 844, height: 390 })
+    await expect(report).toHaveAttribute('data-battle-info-page', 'true')
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          [document.documentElement, document.body].every(
+            (node) => getComputedStyle(node).overflowY === 'auto',
+          ),
+        ),
+      )
+      .toBe(true)
+    expect(await report.evaluate((panel) => panel.scrollHeight <= panel.clientHeight + 1)).toBe(
+      true,
+    )
+    await page.mouse.move(400, 80)
+    await page.mouse.wheel(0, 1000)
+    await expect
+      .poll(() =>
+        report.evaluate((panel) => panel.getBoundingClientRect().bottom <= innerHeight + 1),
+      )
+      .toBe(true)
+    await expect(
+      report.locator('dt', { hasText: /^Result details$/ }).locator('..'),
+    ).toBeInViewport()
+    await page.keyboard.press('Escape')
+    await expect(report).toHaveCount(0)
+    expect(
+      await page.evaluate(() =>
+        [document.documentElement, document.body].every(
+          (node) => getComputedStyle(node).overflowY === 'hidden',
+        ),
+      ),
+    ).toBe(true)
+    await page.setViewportSize(priorViewport)
+  }
 
   const guardPreview = page.waitForResponse((response) => response.url().endsWith('/preview'))
   await commandDeck.getByRole('button', { name: 'Guard, 30 AP', exact: true }).click()
@@ -334,8 +397,7 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   expect(tileDistance(adjacentPlayer!, adjacentRecruit!)).toBe(1)
 
   const technique = commandDeck.getByRole('button', {
-    name: 'Selected Forceful Strike, 45 AP',
-    exact: true,
+    name: /^Selected Forceful Strike, 45 AP(?:,|$)/,
   })
   await technique.click()
   await expect(technique).toHaveAttribute('aria-pressed', 'true')
@@ -354,10 +416,13 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
     enemy.x > actor.x ? 'KeyD' : enemy.x < actor.x ? 'KeyA' : enemy.y > actor.y ? 'KeyS' : 'KeyW'
   await page.keyboard.press(direction)
   await expect(actionEconomy).toHaveAttribute('aria-valuenow', '55', { timeout: 8000 })
-  // A successful same-turn cast keeps the Skill armed for deliberate repeat inputs.
-  await expect(technique).toHaveAttribute('aria-pressed', 'true')
+  // The committed cooldown replaces the armed preview; no unusable Skill stays selected.
+  await expect(technique).toBeDisabled()
+  await expect(technique).toHaveAttribute('aria-pressed', 'false')
+  await expect(technique).toHaveAccessibleName(/Cooldown: [1-3] turns? remaining$/)
+  await expect(technique.locator('[data-battle-cooldown-countdown]')).toHaveText(/^[1-3]$/)
   await expect(moveAction).not.toHaveAttribute('data-battle-active', 'true')
-  await expect(commandContext).toContainText('Forceful Strike')
+  await expect(commandContext).toContainText('Choose your action')
 
   // Space opens the visible final-facing controls without ending on the first press.
   await page.keyboard.press('Space')

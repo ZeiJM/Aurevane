@@ -98,3 +98,25 @@ describe('Battle Technique command information', () => {
     expect(markup).not.toContain('cockpit:')
   })
 })
+
+describe('cooling Support Actions', () => {
+  it('disables selection with an artwork countdown while retaining information', () => {
+    const markup = renderToStaticMarkup(
+      createElement(BattleSkillCommand, {
+        slot: 'guard',
+        hotkey: '3',
+        label: 'Guard',
+        cost: '30 AP',
+        artworkSrc: '/guard.webp',
+        active: false,
+        disabled: false,
+        cooldownTurns: 2,
+        onActivate: () => undefined,
+      }),
+    )
+    expect(markup).toMatch(/data-battle-command="guard"[^>]*disabled/)
+    expect(markup).toContain('Cooldown: 2 turns remaining')
+    expect(markup).toContain('data-battle-cooldown-countdown="true"')
+    expect(markup).not.toMatch(/data-battle-info-trigger="true"[^>]*disabled/)
+  })
+})

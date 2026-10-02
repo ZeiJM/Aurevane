@@ -70,7 +70,7 @@ export function BattleCombatantCard({
           <CharacterPortraitImage
             imageUrl={participant.profileImageUrl}
             fallbackAssetId={participant.portraitAssetId}
-            sizes="(max-width: 820px) 72px, (max-width: 1100px) 124px, 204px"
+            sizes="(max-width: 820px) 68px, 81px"
             alt=""
           />
         ) : (
@@ -84,11 +84,22 @@ export function BattleCombatantCard({
           const maximum = resource === 'hp' ? combatant.maxHp : combatant.maxMp
           return (
             <div key={resource} data-resource={resource}>
-              <span>
-                {resource.toUpperCase()} {combatant[resource]} / {maximum}
-              </span>
-              <i aria-hidden="true">
-                <b style={{ width: `${meterPercent(combatant[resource], maximum)}%` }} />
+              <span aria-hidden="true">{resource.toUpperCase()}</span>
+              <i
+                role="meter"
+                aria-label={`${resource.toUpperCase()} ${combatant[resource]} / ${maximum}`}
+                aria-valuemin={0}
+                aria-valuenow={combatant[resource]}
+                aria-valuemax={maximum}
+                aria-valuetext={`${combatant[resource]} / ${maximum}`}
+              >
+                <b
+                  aria-hidden="true"
+                  style={{ width: `${meterPercent(combatant[resource], maximum)}%` }}
+                />
+                <span className={styles.value} aria-hidden="true">
+                  {combatant[resource]}/{maximum}
+                </span>
               </i>
             </div>
           )

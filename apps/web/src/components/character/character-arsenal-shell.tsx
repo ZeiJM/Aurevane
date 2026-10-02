@@ -1,4 +1,5 @@
 import Image from 'next/image'
+import { BattleInfoPopover } from '@/components/battle/battle-info-popover'
 import { DEFAULT_SUPPORT_ACTION_ID } from '@aurevane/game-core/combat/support-actions'
 import { pv1fSkillByActionId } from '@aurevane/game-core/combat/pv1f-skills'
 import type { EssenceDefinition } from '@aurevane/game-core/combat/essence'
@@ -32,42 +33,54 @@ const OVERVIEW_TECHNIQUE_SLOTS = 4
 
 function EssenceHoverPreview({ essence }: { essence: EssenceDefinition }) {
   const skill = essence.skill
-  const rows = skillParameterRows(skill)
   return (
-    <aside
-      id={`essence-preview-${essence.essenceId}`}
-      className={styles.attunementHover}
-      role="tooltip"
+    <BattleInfoPopover
+      label={`Preview Essence: ${essence.name}`}
+      title={`Essence: ${essence.name}`}
+      className={styles.attunementPreviewAnchor}
+      hover
+      trigger={
+        <span className={styles.attunementArt} data-gameplay-art="attunement">
+          <Image src={battleSkillArtwork(skill.id)} width={160} height={160} unoptimized alt="" />
+        </span>
+      }
     >
-      <span>Essence Preview</span>
-      <strong>{`Essence: ${essence.name}`}</strong>
-      <dl>
-        {rows.map(([label, value]) => (
-          <div key={label}>
-            <dt>{label}</dt>
-            <dd>{value}</dd>
-          </div>
-        ))}
-      </dl>
-      <p>{skillTargetingDetails(skill)}</p>
-    </aside>
+      <aside id={`essence-preview-${essence.essenceId}`} role="tooltip">
+        <dl>
+          <SkillCharacteristicRows rows={skillParameterRows(skill)} />
+        </dl>
+        <p>{skillTargetingDetails(skill)}</p>
+      </aside>
+    </BattleInfoPopover>
   )
 }
 
 function ResonanceHoverPreview({ resonance }: { resonance: AnyResonanceDefinition }) {
   return (
-    <aside
-      id={`resonance-preview-${resonance.id}`}
-      className={styles.attunementHover}
-      role="tooltip"
+    <BattleInfoPopover
+      label={`Preview Resonance: ${resonance.name}`}
+      title={`Resonance: ${resonance.name}`}
+      className={styles.attunementPreviewAnchor}
+      hover
+      trigger={
+        <span className={styles.attunementArt} data-gameplay-art="attunement">
+          <Image
+            src={battleResonanceArtwork(resonance.id)}
+            width={160}
+            height={160}
+            unoptimized
+            alt=""
+          />
+        </span>
+      }
     >
-      <span>Resonance Preview</span>
-      <strong>{`Resonance: ${resonance.name}`}</strong>
-      <dl>
-        <SkillCharacteristicRows rows={resonanceCharacteristicRows(resonance)} />
-        <SkillCharacteristicRows rows={resonanceSupplementalRows(resonance)} />
-      </dl>
-    </aside>
+      <aside id={`resonance-preview-${resonance.id}`} role="tooltip">
+        <dl>
+          <SkillCharacteristicRows rows={resonanceCharacteristicRows(resonance)} />
+          <SkillCharacteristicRows rows={resonanceSupplementalRows(resonance)} />
+        </dl>
+      </aside>
+    </BattleInfoPopover>
   )
 }
 
@@ -350,23 +363,7 @@ export function CharacterArsenalShell({
             <div className={styles.attunementGrid}>
               {essence ? (
                 <article className={styles.attunementCard} data-active="true">
-                  <span
-                    className={styles.attunementPreviewAnchor}
-                    tabIndex={0}
-                    aria-label={`Preview Essence: ${essence.name}`}
-                    aria-describedby={`essence-preview-${essence.essenceId}`}
-                  >
-                    <span className={styles.attunementArt} data-gameplay-art="attunement">
-                      <Image
-                        src={battleSkillArtwork(essence.skill.id)}
-                        width={160}
-                        height={160}
-                        unoptimized
-                        alt=""
-                      />
-                    </span>
-                    <EssenceHoverPreview essence={essence} />
-                  </span>
+                  <EssenceHoverPreview essence={essence} />
                   <div>
                     <div className={styles.attunementIdentity}>
                       <strong>{`Essence: ${essence.name}`}</strong>
@@ -381,23 +378,7 @@ export function CharacterArsenalShell({
 
               {resonance ? (
                 <article className={styles.attunementCard} data-active="true">
-                  <span
-                    className={styles.attunementPreviewAnchor}
-                    tabIndex={0}
-                    aria-label={`Preview Resonance: ${resonance.name}`}
-                    aria-describedby={`resonance-preview-${resonance.id}`}
-                  >
-                    <span className={styles.attunementArt} data-gameplay-art="attunement">
-                      <Image
-                        src={battleResonanceArtwork(resonance.id)}
-                        width={160}
-                        height={160}
-                        unoptimized
-                        alt=""
-                      />
-                    </span>
-                    <ResonanceHoverPreview resonance={resonance} />
-                  </span>
+                  <ResonanceHoverPreview resonance={resonance} />
                   <div>
                     <div className={styles.attunementIdentity}>
                       <strong>{`Resonance: ${resonance.name}`}</strong>

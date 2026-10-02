@@ -77,6 +77,7 @@ import {
   type CombatKeybindMap,
 } from '@aurevane/validation/player/combat-controls'
 import { BattleSelectedSkills } from './battle-selected-skills'
+import { battleActionCooldownTurns } from './battle-action-cooldown'
 
 import { BattleSkillCommand } from './battle-skill-command'
 import { BATTLE_COMMAND_ARTWORK, battleSkillArtwork } from './battle-skill-presentation'
@@ -419,6 +420,24 @@ export function BattleExperience({
   const localCombatant = localCombatantId
     ? (battleState.combatants.find((combatant) => combatant.id === localCombatantId) ?? null)
     : null
+  const actionCooldownTurns = useCallback(
+    (actionId: string) =>
+      battleActionCooldownTurns(battleRef.current, runtime, localCombatantId, actionId),
+    [localCombatantId, runtime],
+  )
+  const cooldowns = useMemo(
+    () =>
+      Object.fromEntries(
+        [
+          GUARD_ID,
+          RECOVER_ID,
+          MP_RECOVER_ID,
+          ...selectableTechniques.map((skill) => skill.id),
+          ...(runtime.essence ? [runtime.essence.id] : []),
+        ].map((id) => [id, battleActionCooldownTurns(battle, runtime, localCombatantId, id)]),
+      ),
+    [battle, localCombatantId, runtime, selectableTechniques],
+  )
   const localPlacement = localCombatantId
     ? (tactical.placements.find((placement) => placement.combatantId === localCombatantId) ?? null)
     : null
@@ -744,6 +763,7 @@ export function BattleExperience({
   const requestPreview = useCallback(
     async (intent: BattleIntent) => {
       if (!mounted.current) return null
+      if (intent.kind === 'action' && actionCooldownTurns(intent.actionId) > 0) return null
       previewController.current?.abort()
       const controller = new AbortController()
       previewController.current = controller
@@ -802,7 +822,13 @@ export function BattleExperience({
         if (previewController.current === controller) previewController.current = null
       }
     },
-    [battle.battleSessionId, battle.battleVersion, clearPlanning, handleApiFailure],
+    [
+      actionCooldownTurns,
+      battle.battleSessionId,
+      battle.battleVersion,
+      clearPlanning,
+      handleApiFailure,
+    ],
   )
 
   const commitValue = useCallback(
@@ -815,6 +841,7 @@ export function BattleExperience({
         battleRef.current.snapshot.tactical.battle.lifecycle !== 'active'
       )
         return
+      if (intent.kind === 'action' && actionCooldownTurns(intent.actionId) > 0) return
       commitLock.current = true
       if (runtime.kind === 'pvp') {
         battlePollController.current?.abort()
@@ -893,6 +920,9 @@ export function BattleExperience({
           nextBattleState.lifecycle === 'active' &&
           nextLocalTurn &&
           before.snapshot.tactical.battle.turnNumber === nextBattleState.turnNumber &&
+          (intent.kind !== 'action' ||
+            battleActionCooldownTurns(body.battle, runtime, localCombatantId, intent.actionId) ===
+              0) &&
           ['move', 'attack', 'guard', 'recover'].includes(modeRef.current)
         clearPlanning(keepAction ? modeRef.current : 'none')
         if (keepAction && intent.kind === 'action') {
@@ -967,6 +997,7 @@ export function BattleExperience({
       }
     },
     [
+      actionCooldownTurns,
       battle,
       clearPlanning,
       commitPending,
@@ -974,7 +1005,7 @@ export function BattleExperience({
       localCombatantId,
       localTurn,
       router,
-      runtime.kind,
+      runtime,
       viewModel,
     ],
   )
@@ -999,6 +1030,7 @@ export function BattleExperience({
   const executeIntent = useCallback(
     async (intent: BattleIntent) => {
       if (planningDisabledRef.current || executionLock.current || commitLock.current) return
+      if (intent.kind === 'action' && actionCooldownTurns(intent.actionId) > 0) return
       executionLock.current = true
       setExecutionPending(true)
       try {
@@ -1028,7 +1060,7 @@ export function BattleExperience({
         if (mounted.current) setExecutionPending(false)
       }
     },
-    [commitValue, requestPreview],
+    [actionCooldownTurns, commitValue, requestPreview],
   )
 
   const actionDescriptor = useCallback(
@@ -1104,6 +1136,7 @@ export function BattleExperience({
   const armAction = useCallback(
     (nextMode: 'attack' | 'guard' | 'recover', actionId: string) => {
       if (planningDisabled || executionLock.current) return
+      if (actionCooldownTurns(actionId) > 0) return
       const intent = selectInitialBattleSkillPreviewIntent(actionDescriptor(actionId), selection)
       clearPlanning(nextMode)
       if (intent) {
@@ -1118,6 +1151,7 @@ export function BattleExperience({
       } else setNotice('No eligible target is in range. Select a different action or target.')
     },
     [
+      actionCooldownTurns,
       actionDescriptor,
       clearPlanning,
       localCombatantId,
@@ -1130,6 +1164,7 @@ export function BattleExperience({
   const selectAction = useCallback(
     (skillId: string, category: 'attack' | 'defense' | 'heal') => {
       if (planningDisabledRef.current || executionLock.current || commitLock.current) return
+      if (actionCooldownTurns(skillId) > 0) return
       if (category === 'defense') {
         setSelectedDefenseActionId(skillId)
         armAction('guard', skillId)
@@ -1141,13 +1176,21 @@ export function BattleExperience({
         armAction('attack', skillId)
       }
     },
-    [armAction, setSelectedAttackActionId, setSelectedDefenseActionId, setSelectedTechniqueHealId],
+    [
+      actionCooldownTurns,
+      armAction,
+      setSelectedAttackActionId,
+      setSelectedDefenseActionId,
+      setSelectedTechniqueHealId,
+    ],
   )
 
   const chooseMode = useCallback(
     (nextMode: Mode) => {
       if (executionLock.current || commitLock.current) return
       if (planningDisabled && nextMode !== 'inspect') return
+      if (nextMode === 'guard' && actionCooldownTurns(supportActionId) > 0) return
+      if (nextMode === 'recover' && actionCooldownTurns(effectiveHealActionId) > 0) return
       setInspectedTile(null)
       if (nextMode === 'attack') {
         setSelectedAttackActionId(BASIC_ATTACK_ID)
@@ -1176,6 +1219,7 @@ export function BattleExperience({
         setNotice('Choose a character or tile to inspect. No AP is spent.')
     },
     [
+      actionCooldownTurns,
       armAction,
       clearPlanning,
       effectiveHealActionId,
@@ -1697,7 +1741,7 @@ export function BattleExperience({
               className={bridgeStyles.guidedPractice}
               aria-label="Practice Guard, 30 AP"
               title="Practice Guard for this lesson. Your saved Support Action stays in slot 3."
-              disabled={planningDisabled || actionEconomy < 30}
+              disabled={planningDisabled || actionEconomy < 30 || (cooldowns[GUARD_ID] ?? 0) > 0}
               onKeyDown={(event) => {
                 if (event.repeat && (event.key === 'Enter' || event.key === ' '))
                   event.preventDefault()
@@ -2086,6 +2130,7 @@ export function BattleExperience({
                 artworkSrc={battleSkillArtwork(supportActionId)}
                 active={mode === 'guard' && selectedDefenseActionId === supportActionId}
                 disabled={planningDisabled || actionEconomy < supportCost}
+                cooldownTurns={cooldowns[supportActionId] ?? 0}
                 onActivate={() => chooseMode('guard')}
               />
             </div>
@@ -2094,6 +2139,7 @@ export function BattleExperience({
               activeId={activeTechnique?.id}
               disabled={planningDisabled}
               actionEconomy={actionEconomy}
+              cooldowns={cooldowns}
               bindings={bindings}
               onSelect={selectAction}
             />

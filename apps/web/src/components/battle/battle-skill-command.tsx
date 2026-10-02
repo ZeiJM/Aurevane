@@ -16,6 +16,8 @@ import {
 import { createPortal } from 'react-dom'
 
 import { BattleInfoPopover } from './battle-info-popover'
+import { battleCooldownLabel } from './battle-action-cooldown'
+import { BattleSkillCooldown } from './battle-skill-cooldown'
 import {
   commandCharacteristicRows,
   basicActionIdForCommand,
@@ -85,6 +87,7 @@ export function BattleSkillCommand({
   artworkSrc,
   active,
   disabled,
+  cooldownTurns = 0,
   onActivate,
   selector,
   tags = [],
@@ -97,6 +100,7 @@ export function BattleSkillCommand({
   artworkSrc: string
   active: boolean
   disabled: boolean
+  cooldownTurns?: number
   onActivate: () => void
   selector?: BattleSkillSelectorConfig
   tags?: readonly string[]
@@ -204,13 +208,15 @@ export function BattleSkillCommand({
         data-battle-command={slot}
         data-command-slot={slot}
         data-action-cost={cost}
-        disabled={disabled}
+        disabled={disabled || cooldownTurns > 0}
+        data-battle-cooldown-active={cooldownTurns > 0 || undefined}
         onClick={onActivate}
-        aria-label={`${label}, ${cost}`}
+        aria-label={`${label}, ${cost}${battleCooldownLabel(cooldownTurns)}`}
       >
         <span
           className={`${styles.artwork} ${artworkFitStyles.frame}`}
           data-battle-command-artwork="static"
+          data-battle-skill-cooldown={cooldownTurns || undefined}
           data-av-square-media="true"
           data-av-square-media-fit="contain"
           aria-hidden="true"
@@ -223,6 +229,7 @@ export function BattleSkillCommand({
             alt=""
             onError={fallbackBrokenArtwork}
           />
+          <BattleSkillCooldown turns={cooldownTurns} />
         </span>
         <strong>{label}</strong>
       </button>

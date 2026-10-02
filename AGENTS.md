@@ -11,7 +11,7 @@
 - `docs/GAME_MASTER_PLAN_BUILD_SYSTEM_ADDENDUM.md` governs Primary/Secondary Disciplines, Skills, Resonance, Essence, Soulmarks, Severance/Mantles and related build rules.
 - `docs/ROADMAP_BUILD_SYSTEM_REWORK.md` is the current build-system sequencing companion.
 - `docs/COMBAT.md` is current combat authority.
-- `docs/GAME_MASTER_PLAN_TECHNIQUE_REPEAT_USE_ADDENDUM.md` and `docs/ROADMAP_TECHNIQUE_REPEAT_USE.md` supersede the older 8-pure/6-mixed selection limits and ordinary authored-Skill cooldown rules. Current selection is four total in either build; ordinary authored Skills use 50% consecutive-use effectiveness at unchanged AP cost, not turn cooldowns.
+- `docs/GAME_MASTER_PLAN_TECHNIQUE_REPEAT_USE_ADDENDUM.md` and `docs/ROADMAP_TECHNIQUE_REPEAT_USE.md` retain the historical repeat-use rules for pre-v5 Skill versions. Current selection is four total in either build. Current Owner-approved v5 Skills follow their authored 1–3 owner-turn cooldowns (or explicit Requirements without a cooldown), as specified by `docs/COMBAT.md`; do not restore retired consecutive-repeat falloff for current versions.
 - `docs/GAME_MASTER_PLAN_ATTRIBUTE_PROGRESSION_ADDENDUM.md` governs the Level-50 progression and stat/mobility guardrails; later approved changes supersede historical values.
 - `docs/ROADMAP_PRODUCT_VALIDATION.md` defines evidence gates.
 - `docs/REKINDLING_FRONTIER.md` governs Rekindling replay differentiation and the Unwritten Reach.

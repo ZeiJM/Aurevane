@@ -147,7 +147,17 @@ export function FoundationDisciplineSigil({
 
   const phase4 = phase4DisciplineSigil(disciplineId)
   if (phase4)
-    return <Image src={phase4} alt="" width={96} height={96} unoptimized className={className} />
+    return (
+      <Image
+        data-gameplay-art="discipline"
+        src={phase4}
+        alt=""
+        width={96}
+        height={96}
+        unoptimized
+        className={className}
+      />
+    )
 
   return (
     <Frame className={className}>

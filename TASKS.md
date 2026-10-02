@@ -1,5 +1,9 @@
 # AUREVANE — Active Task Ledger
 
+## Nexus reports, battle artwork, terrain catalog and cooldown feedback — 2026-10-02 (verification)
+
+Owner screenshot follow-up on `agent/nexus-popup-art-fit-20261002` from fresh Main `2d77c9bb4`: equal Discipline images, lower matched Nexus/Items controls, full scroll-free reading panels, remove redundant AI participant summary, legal multi-AI detours, cockpit-size battle portraits with equal HP/MP tracks, all terrain types with live Active/Inactive indicators and greyed inactive textures, and authoritative cooldown locks with grey artwork/countdowns. The shared backend policy preserves current v5/version/context authority and historical behavior. Mounted geometry and eighteen cooldown state cases pass; independent review has no remaining Critical or Important findings. The frozen local `pnpm check` gate passes 3,286 Vitest tests, seven Node checks, formatting/lint/type checks and Production builds. Exact-head CI and release remain pending. Existing merge/deploy authorization applies; deployment lock remains intact during development. Regression evidence and verification boundary: `docs/superpowers/verification/2026-10-02-nexus-popup-ai-refinement.md`.
+
 
 ## Nexus reports, compact battle rails, fire and AI teams — 2026-10-02 (released)
 

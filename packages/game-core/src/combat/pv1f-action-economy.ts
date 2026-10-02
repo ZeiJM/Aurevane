@@ -405,6 +405,14 @@ export function pv1fCooldownForAction(actionId: string): SkillCooldownDefinition
   return null
 }
 
+export function pv1fCooldownForMatureSkill(
+  definition: MatureSkillDefinition,
+  combatContext: MatureSkillCombatContext = 'pve',
+): SkillCooldownDefinition | null {
+  if (!definition.authoring.validationTags.includes('owner-rebalance-v5')) return null
+  return resolveMatureSkillForContext(definition, combatContext).cooldown
+}
+
 export function readPv1fActionCooldown(
   state: StatDrivenCombatEncounterState,
   combatantId: string,
@@ -857,7 +865,7 @@ export function evaluatePv1fMatureSkill(
   )
   const action: CombatActionDefinition = {
     ...baseAction,
-    ...(usesV5BalanceRules ? {} : { cooldown: undefined }),
+    cooldown: pv1fCooldownForMatureSkill(definition, combatContext) ?? undefined,
     effects: repeatPenaltyApplied
       ? scaleRepeatedMatureSkillEffects(defendedEffects)
       : defendedEffects,

@@ -13,6 +13,8 @@ import {
 } from '../character/resonance-detail-presentation'
 import { SkillCharacteristicRows } from '../character/skill-characteristic-rows'
 import { BattleInfoPopover } from './battle-info-popover'
+import { battleCooldownLabel } from './battle-action-cooldown'
+import { BattleSkillCooldown } from './battle-skill-cooldown'
 import { BattleSkillParameters } from './battle-skill-parameters'
 import type { BattleRuntime } from './battle-runtime'
 import { battleResonanceArtwork, battleSkillArtwork } from './battle-skill-presentation'
@@ -55,6 +57,7 @@ export function BattleSelectedSkills({
   activeId,
   disabled,
   actionEconomy,
+  cooldowns = {},
   onSelect,
   bindings = DEFAULT_COMBAT_KEYBINDS,
 }: {
@@ -62,6 +65,7 @@ export function BattleSelectedSkills({
   activeId?: string
   disabled: boolean
   actionEconomy: number
+  cooldowns?: Readonly<Record<string, number>>
   bindings?: CombatKeybindMap
   onSelect: (skillId: string, category: 'attack' | 'defense' | 'heal') => void
 }) {
@@ -70,6 +74,7 @@ export function BattleSelectedSkills({
       <div className={styles.skills} aria-label="Selected Discipline Skills">
         {Array.from({ length: 4 }, (_, index) => {
           const skill = runtime.techniques?.[index]
+          const cooldownTurns = skill ? (cooldowns[skill.id] ?? 0) : 0
           const binding = bindings[(['skill1', 'skill2', 'skill3', 'skill4'] as const)[index]!]
           const hotkey = formatCombatKeybind(binding)
           return (
@@ -84,12 +89,17 @@ export function BattleSelectedSkills({
                     type="button"
                     className={styles.skillAction}
                     data-battle-skill-hotkey={hotkey}
-                    aria-label={`Selected ${skill.name}, ${skill.apCost} AP`}
+                    aria-label={`Selected ${skill.name}, ${skill.apCost} AP${battleCooldownLabel(cooldownTurns)}`}
                     aria-pressed={activeId === skill.id}
-                    disabled={disabled || actionEconomy < skill.apCost}
+                    disabled={disabled || actionEconomy < skill.apCost || cooldownTurns > 0}
+                    data-battle-cooldown-active={cooldownTurns > 0 || undefined}
                     onClick={() => onSelect(skill.id, skill.category)}
                   >
-                    <span className={styles.artworkFrame} data-av-square-media="true">
+                    <span
+                      className={styles.artworkFrame}
+                      data-av-square-media="true"
+                      data-battle-skill-cooldown={cooldownTurns || undefined}
+                    >
                       <Image
                         src={battleSkillArtwork(skill.id, skill.iconKey)}
                         width={192}
@@ -97,6 +107,7 @@ export function BattleSelectedSkills({
                         alt=""
                         unoptimized
                       />
+                      <BattleSkillCooldown turns={cooldownTurns} />
                     </span>
                     <strong>{skill.name}</strong>
                   </button>
@@ -131,12 +142,21 @@ export function BattleSelectedSkills({
             <button
               className={styles.specialAction}
               type="button"
-              aria-label={`${runtime.essence.name}, Essence, ${runtime.essence.apCost} AP`}
+              aria-label={`${runtime.essence.name}, Essence, ${runtime.essence.apCost} AP${battleCooldownLabel(cooldowns[runtime.essence.id] ?? 0)}`}
               aria-pressed={activeId === runtime.essence.id}
-              disabled={disabled || actionEconomy < runtime.essence.apCost}
+              disabled={
+                disabled ||
+                actionEconomy < runtime.essence.apCost ||
+                (cooldowns[runtime.essence.id] ?? 0) > 0
+              }
+              data-battle-cooldown-active={(cooldowns[runtime.essence.id] ?? 0) > 0 || undefined}
               onClick={() => onSelect(runtime.essence!.id, 'attack')}
             >
-              <span className={styles.artworkFrame} data-av-square-media="true">
+              <span
+                className={styles.artworkFrame}
+                data-av-square-media="true"
+                data-battle-skill-cooldown={cooldowns[runtime.essence.id] || undefined}
+              >
                 <Image
                   src={battleSkillArtwork(runtime.essence.id, runtime.essence.iconKey)}
                   width={192}
@@ -144,6 +164,7 @@ export function BattleSelectedSkills({
                   alt=""
                   unoptimized
                 />
+                <BattleSkillCooldown turns={cooldowns[runtime.essence.id] ?? 0} />
               </span>
               <strong>{runtime.essence.name}</strong>
             </button>
@@ -227,16 +248,25 @@ export function BattleSelectedSkills({
                   type="button"
                   data-battle-copied-skill-option={skill.id}
                   aria-pressed={activeId === skill.id}
-                  disabled={disabled || actionEconomy < skill.apCost}
+                  aria-label={`${skill.name}, ${skill.apCost} AP, ${skill.mpCost} MP${battleCooldownLabel(cooldowns[skill.id] ?? 0)}`}
+                  disabled={
+                    disabled || actionEconomy < skill.apCost || (cooldowns[skill.id] ?? 0) > 0
+                  }
                   onClick={() => onSelect(skill.id, skill.category)}
                 >
-                  <Image
-                    src={battleSkillArtwork(skill.sourceSkillId, skill.iconKey)}
-                    width={96}
-                    height={96}
-                    alt=""
-                    unoptimized
-                  />
+                  <span
+                    className={styles.copiedArtwork}
+                    data-battle-skill-cooldown={cooldowns[skill.id] || undefined}
+                  >
+                    <Image
+                      src={battleSkillArtwork(skill.sourceSkillId, skill.iconKey)}
+                      width={96}
+                      height={96}
+                      alt=""
+                      unoptimized
+                    />
+                    <BattleSkillCooldown turns={cooldowns[skill.id] ?? 0} />
+                  </span>
                   <span>
                     <strong>{skill.name}</strong>
                     <small>

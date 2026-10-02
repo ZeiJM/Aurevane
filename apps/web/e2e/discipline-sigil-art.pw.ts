@@ -73,6 +73,23 @@ test('Foundation Discipline sigils resolve to production artwork on desktop and 
   await launcher.click()
   const dialog = page.getByRole('dialog', { name: 'Discipline Management' })
   await expect(dialog).toBeVisible()
+  const libraryArt = dialog.locator(
+    '[aria-label^="Select "][aria-label$=" as Primary Discipline"] img',
+  )
+  await expect(libraryArt).not.toHaveCount(0)
+  const sizes = await libraryArt.evaluateAll((images) =>
+    images.map((image) => {
+      const rect = image.getBoundingClientRect()
+      return { width: rect.width, height: rect.height }
+    }),
+  )
+  expect(
+    Math.max(...sizes.map((image) => image.width)) - Math.min(...sizes.map((image) => image.width)),
+  ).toBeLessThanOrEqual(1)
+  for (const image of sizes) {
+    expect(image.width).toBeGreaterThanOrEqual(72)
+    expect(Math.abs(image.width - image.height)).toBeLessThanOrEqual(1)
+  }
   const committedSigil = dialog.locator('[aria-label="Currently committed"] img').first()
   const renderedSigilSrc = await committedSigil.getAttribute('src')
   expect(renderedSigilSrc).not.toBeNull()

@@ -1,0 +1,17 @@
+.countdown {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.7rem;
+  padding: 0.15rem 0.25rem;
+  border: 1px solid #d6c5a3;
+  border-radius: 3px;
+  color: #fff5db;
+  background: #17212bf2;
+  font: 700 0.875rem/1 var(--av-font-mono);
+  pointer-events: none;
+}
