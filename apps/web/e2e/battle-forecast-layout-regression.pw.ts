@@ -82,10 +82,17 @@ async function equipForecastSkills(page: Page) {
       .getByTestId('technique-preview')
       .locator('dl > div')
       .evaluateAll((rows) =>
-        rows.map(
-          (row) =>
-            `${row.querySelector('dt')!.textContent}: ${row.querySelector('dd')!.textContent}`,
-        ),
+        rows.map((row) => {
+          const label = row.querySelector('dt')!.textContent
+          const value = row.querySelector('dd')!
+          const effects = value.querySelectorAll('[data-compact-skill-effect="true"]')
+          // Nexus renders separate effect chips; battle uses a comma-separated value.
+          // Compare every chip, in order, without concatenating their DOM text together.
+          const text = effects.length
+            ? Array.from(effects, (effect) => effect.textContent).join(', ')
+            : value.textContent
+          return `${label}: ${text}`
+        }),
       )
     const saved = page.waitForResponse(
       (response) =>
