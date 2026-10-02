@@ -194,9 +194,23 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   }
   await expect(commandContext).toContainText('Guard')
   await expect(battlefield.locator('button[data-target="friendly"]')).toHaveCount(1)
-  await page.getByRole('button', { name: new RegExp(`occupied by ${characterName}`) }).click()
+  const guardCommit = await commitGesture(
+    page,
+    page.getByRole('button', { name: new RegExp(`occupied by ${characterName}`) }),
+  )
+  const guardRequest = guardCommit.request().postDataJSON()
+  expect(guardRequest.intent).toMatchObject({ kind: 'action', actionId: 'basic.guard' })
+  expect((await guardCommit.json()).battle.battleVersion).toBe(
+    guardRequest.expectedBattleVersion + 1,
+  )
   await expect(apRemaining).toHaveAttribute('aria-valuenow', '70', { timeout: 10_000 })
-  await expect(guardButton).toHaveAttribute('data-battle-active', 'true')
+  await expect(guardButton).toBeDisabled()
+  await expect(guardButton).toHaveAccessibleName('Guard, 30 AP, Cooldown: 2 turns remaining')
+  await expect(guardButton).not.toHaveAttribute('data-battle-active', 'true')
+  await expect(guardButton).not.toHaveAttribute('data-active', 'true')
+  await expect(
+    commandDeck.locator('[data-command-card="guard"] [data-battle-cooldown-countdown]'),
+  ).toHaveText('2')
   await expect(criteriaButton).toHaveAttribute('data-new-progress', 'true')
   await openCriteriaAndClose(page, '3/4 complete')
 

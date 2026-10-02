@@ -1,8 +1,27 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Locator } from '@playwright/test'
 
 import type { BattleLogEntry } from '../src/server/battle/battle-log-service'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 import { commitGesture } from './refined-battle-helpers'
+
+async function readBoardGeometry(board: Locator) {
+  return board.evaluate((element) => {
+    const rect = element.getBoundingClientRect()
+    let scrollX = window.scrollX
+    let scrollY = window.scrollY
+    // Mobile's BattleRouteFrame scrolls its field, independently of window.scrollY.
+    for (let parent = element.parentElement; parent; parent = parent.parentElement) {
+      if (parent === document.scrollingElement) continue
+      scrollX += parent.scrollLeft
+      scrollY += parent.scrollTop
+    }
+    return {
+      viewport: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
+      layout: { x: rect.x + scrollX, y: rect.y + scrollY, width: rect.width, height: rect.height },
+      scrollOffset: { x: scrollX, y: scrollY },
+    }
+  })
+}
 
 function fixtureEntry(action: number, turn: number): BattleLogEntry {
   return {
@@ -60,7 +79,8 @@ test('pages long Battle Log turns inline and preserves reviewed history after a 
   await expect(reader.locator('[data-reader-part="Result"] p')).toBeVisible()
   await expect(reader).toContainText('20 damage')
   await expect(page.locator('dialog[data-battle-action-details]')).toHaveCount(0)
-  const before = await page.locator('[data-board-auto-fit]').boundingBox()
+  const board = page.locator('[data-board-auto-fit]')
+  const before = await readBoardGeometry(board)
 
   // Every older action remains reachable through labelled pages, with no scrolling.
   const previousPage = log.getByRole('button', { name: 'Previous actions', exact: true })
@@ -82,7 +102,17 @@ test('pages long Battle Log turns inline and preserves reviewed history after a 
   }))
   expect(geometry.horizontal).toBeLessThanOrEqual(1)
   expect(geometry.vertical).toBeLessThanOrEqual(1)
-  expect(await page.locator('[data-board-auto-fit]').boundingBox()).toEqual(before)
+  const after = await readBoardGeometry(board)
+  await testInfo.attach('inline-log-board-geometry', {
+    body: Buffer.from(JSON.stringify({ before, after }, null, 2)),
+    contentType: 'application/json',
+  })
+  if (testInfo.project.name === 'mobile-chromium') {
+    // Clicking the off-screen log may scroll its field; its board layout and scale must stay fixed.
+    expect(after.layout).toEqual(before.layout)
+  } else {
+    expect(after.viewport).toEqual(before.viewport)
+  }
 
   entries = [...entries, fixtureEntry(21, 2)]
   const refreshed = page.waitForResponse(
