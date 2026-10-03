@@ -51,7 +51,10 @@ test('leaving during a slow target preview cannot submit a late action', async (
   test.slow()
   const localTile = await enterBattle(page)
   let commits = 0
+  let previews = 0
   page.on('request', (request) => {
+    if (request.method() === 'POST' && new URL(request.url()).pathname.endsWith('/preview'))
+      previews++
     if (request.method() === 'POST' && /\/(intents|commit)$/.test(new URL(request.url()).pathname))
       commits++
   })
@@ -75,11 +78,13 @@ test('leaving during a slow target preview cannot submit a late action', async (
       previewSettled()
     }
   })
+  const firstPreview = page.waitForRequest('**/api/battles/*/preview')
   await page.keyboard.press('Digit3')
-  const executionPreview = page.waitForRequest('**/api/battles/*/preview')
+  await firstPreview
   await localTile.click()
-  await executionPreview
   await expect(page.getByRole('button', { name: /^Basic Attack,/ })).toBeDisabled()
+  expect(previews).toBe(1)
+  expect(commits).toBe(0)
   await page.getByRole('button', { name: 'Account', exact: true }).click()
   await page.getByRole('menuitem', { name: 'Controls & Keybinds', exact: true }).click()
   await expect(page).toHaveURL(/\/game\/settings\/controls$/)
@@ -93,6 +98,7 @@ test('leaving during a slow target preview cannot submit a late action', async (
         requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
       }),
   )
+  expect(previews).toBe(1)
   expect(commits).toBe(0)
 })
 
@@ -277,7 +283,7 @@ test('a second pointer or hotkey during a pending commit cannot queue another ac
   expect(commits).toBe(1)
 })
 
-test('a rapid second Basic Attack supersedes its held informational forecast at fresh authority', async ({
+test('a rapid second Basic Attack shares its held current-version forecast before committing', async ({
   page,
 }) => {
   test.slow()
@@ -415,8 +421,14 @@ test('a rapid second Basic Attack supersedes its held informational forecast at 
   try {
     await recruitTile.click()
     await heldReady
-    // The deliberate second execution must fetch fresh authority while its older informational
-    // receipt remains held. Releasing that receipt afterward must not replace the latest forecast.
+    // The deliberate second execution waits for the same current-version legal receipt.
+    // Only after that receipt arrives may it commit and forecast from the accepted next version.
+    const currentPreview = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' &&
+        new URL(response.url()).pathname.endsWith('/preview') &&
+        response.request().postDataJSON().expectedBattleVersion === initialVersion + 1,
+    )
     const secondCommit = page.waitForResponse(
       (response) =>
         response.request().method() === 'POST' &&
@@ -430,6 +442,28 @@ test('a rapid second Basic Attack supersedes its held informational forecast at 
         response.request().postDataJSON().expectedBattleVersion === initialVersion + 2,
     )
     await recruitTile.click()
+    await expect(attack).toBeDisabled()
+    expect(
+      requests.filter(
+        (request) => request.endpoint === 'preview' && request.version === initialVersion + 1,
+      ),
+    ).toHaveLength(1)
+    expect(
+      requests
+        .filter((request) => request.endpoint !== 'preview')
+        .map((request) => request.version),
+    ).toEqual([initialVersion])
+    await expect(
+      page.getByRole('progressbar', { name: 'Action Economy remaining' }),
+    ).toHaveAttribute('aria-valuenow', '70')
+    releasePreview()
+    const sharedForecast = (await (await currentPreview).json()).battlePreview
+    expect(sharedForecast.battleVersion).toBe(initialVersion + 1)
+    expect(sharedForecast.preview).toMatchObject({
+      legal: true,
+      actionEconomyBefore: 70,
+      actionEconomyAfter: 40,
+    })
     const response = await secondCommit
     expect(response.status()).toBe(200)
     const accepted = (await response.json()).battle
@@ -457,7 +491,6 @@ test('a rapid second Basic Attack supersedes its held informational forecast at 
     const forecast = page.getByLabel('Action preview', { exact: true })
     await expect(forecast).toContainText('10 AP left')
     await expect(forecast).not.toContainText('40 AP left')
-    releasePreview()
     await Promise.all(handlers)
     await page.evaluate(
       () =>
@@ -475,6 +508,11 @@ test('a rapid second Basic Attack supersedes its held informational forecast at 
           .map((request) => request.version),
       )
       .toEqual([acceptedVersion])
+    expect(
+      requests.filter(
+        (request) => request.endpoint === 'preview' && request.version === initialVersion + 1,
+      ),
+    ).toHaveLength(1)
     await expect(attack).toHaveAttribute('data-active', 'true')
   } finally {
     releasePreview()

@@ -118,7 +118,8 @@ for (const [size, label, width, tiles] of [
       await expect(spectator.locator('#battlefield button[aria-label^="Tile "]')).toHaveCount(tiles)
       await expectRecordedBattleRound(spectator)
       // Complete both real PvP activations, then compare playable and spectator projections.
-      let committed = after
+      const roundStart = await currentBattle(host)
+      let committed = roundStart
       for (let turn = 0; turn < 2; turn += 1) {
         await expect
           .poll(
@@ -134,14 +135,25 @@ for (const [size, label, width, tiles] of [
           'true'
             ? host
             : guest
+        const beforeTurn = await currentBattle(active)
+        expect(beforeTurn.snapshot.tactical.battle.turnNumber).toBe(
+          roundStart.snapshot.tactical.battle.turnNumber + turn,
+        )
         const response = await active.request.post(
-          `/api/battles/${committed.battleSessionId}/commit`,
+          `/api/battles/${beforeTurn.battleSessionId}/commit`,
           {
-            data: { expectedBattleVersion: committed.battleVersion, intent: { kind: 'end-turn' } },
+            data: {
+              expectedBattleVersion: beforeTurn.battleVersion,
+              intent: { kind: 'face', facing: 'east' },
+            },
           },
         )
-        expect(response.ok()).toBe(true)
-        committed = (await response.json()).battle
+        const body = await response.json()
+        expect(response.ok(), JSON.stringify(body.error)).toBe(true)
+        committed = body.battle
+        expect(committed.snapshot.tactical.battle.turnNumber).toBe(
+          beforeTurn.snapshot.tactical.battle.turnNumber + 1,
+        )
         await expect(active.locator('main[data-unified-battle]')).not.toHaveAttribute(
           'data-local-turn',
           'true',
@@ -154,7 +166,7 @@ for (const [size, label, width, tiles] of [
         }
       }
       expect(committed.snapshot.tactical.battle.round).toBe(
-        after.snapshot.tactical.battle.round + 1,
+        roundStart.snapshot.tactical.battle.round + 1,
       )
       for (const page of [host, guest, spectator]) await expectRecordedBattleRound(page)
       await spectator.reload()

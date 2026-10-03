@@ -415,12 +415,15 @@ test('a Support Action preview arriving while a reading panel is open cannot com
   test.slow()
   const { characterId } = await provisionSupport(page, 'basic.recover.mp')
   const root = await enterAi(page)
-  await lowerResources(page, characterId)
+  const before = await lowerResources(page, characterId)
   await expect(root.locator('[data-command-card="guard"] [data-battle-command-hotkey]')).toHaveText(
     'G',
   )
   let commits = 0
+  let previews = 0
   page.on('request', (request) => {
+    if (request.method() === 'POST' && new URL(request.url()).pathname.endsWith('/preview'))
+      previews++
     if (request.method() === 'POST' && /\/(intents|commit)$/.test(new URL(request.url()).pathname))
       commits++
   })
@@ -446,11 +449,14 @@ test('a Support Action preview arriving while a reading panel is open cannot com
   })
   await page.mouse.move(0, 0)
   await root.focus()
+  const firstPreview = page.waitForRequest('**/api/battles/*/preview')
   await page.keyboard.press('KeyG')
+  await firstPreview
   await expect(root.locator('[data-battle-command="guard"]')).toHaveAttribute('data-active', 'true')
-  const secondPreview = page.waitForRequest('**/api/battles/*/preview')
   await page.keyboard.press('KeyG')
-  await secondPreview
+  await expect(root.locator('[data-battle-command="guard"]')).toBeDisabled()
+  expect(previews).toBe(1)
+  expect(commits).toBe(0)
   await root.getByRole('button', { name: 'About MP Recovery', exact: true }).click()
   await expect(page.locator('[data-battle-info-panel]')).toBeVisible()
   releasePreview()
@@ -460,5 +466,11 @@ test('a Support Action preview arriving while a reading panel is open cannot com
     'aria-valuenow',
     '100',
   )
+  expect(previews).toBe(1)
   expect(commits).toBe(0)
+  const after = await readBattle(page)
+  expect(after.battleVersion).toBe(before.battleVersion)
+  expect(after.snapshot.tactical.battle.combatants).toEqual(
+    before.snapshot.tactical.battle.combatants,
+  )
 })
