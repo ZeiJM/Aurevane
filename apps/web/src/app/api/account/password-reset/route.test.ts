@@ -59,6 +59,36 @@ describe('recovery password update', () => {
     )
   })
 
+  it('accepts the same browser origin when Next supplies an internal localhost URL', async () => {
+    const response = await POST(
+      new Request('http://localhost:3100/api/account/password-reset', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Host: '127.0.0.1:3100',
+          Origin: 'http://127.0.0.1:3100',
+        },
+        body: JSON.stringify({
+          password: 'New-password-2026!',
+          confirmPassword: 'New-password-2026!',
+        }),
+      }),
+    )
+    expect(response.status).toBe(200)
+    expect(auth.updateUser).toHaveBeenCalledOnce()
+  })
+
+  it('still rejects a foreign Origin with a valid browser Host', async () => {
+    const response = await POST(
+      new Request('http://localhost:3100/api/account/password-reset', {
+        method: 'POST',
+        headers: { Host: '127.0.0.1:3100', Origin: 'https://evil.test' },
+      }),
+    )
+    expect(response.status).toBe(403)
+    expect(auth.getUser).not.toHaveBeenCalled()
+  })
+
   it.each([null, { id: 'user-1' }])(
     'rejects absent or unconfirmed verified users',
     async (user) => {

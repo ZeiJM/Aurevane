@@ -102,7 +102,11 @@ test('email recovery updates the password, signs out, and requires a fresh gamep
     if (new URL(request.url()).pathname === '/api/account/game-session/claim') claims += 1
   })
   await page.goto(link)
+  expect(new URL(page.url()).origin).toBe(new URL(test.info().project.use.baseURL!).origin)
   await expect(page).toHaveURL(/\/auth\/reset-password$/)
+  const recoveryCookieNames = (await page.context().cookies()).map((cookie) => cookie.name)
+  expect(recoveryCookieNames).toContain('aurevane-password-recovery')
+  expect(recoveryCookieNames.some((name) => /-auth-token(?:\.\d+)?$/.test(name))).toBe(true)
   await expect(page.getByLabel('New password', { exact: true })).toBeVisible()
   expect(claims).toBe(0)
   await page.getByLabel('New password', { exact: true }).fill(newPassword)

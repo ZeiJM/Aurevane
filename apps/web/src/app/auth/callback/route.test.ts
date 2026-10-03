@@ -28,6 +28,30 @@ describe('authentication callback', () => {
     expect(response.headers.get('location')).toBe('https://aurevane.test/auth/claim?next=%2Fgame')
   })
 
+  it('keeps recovery on the browser host when Next supplies an internal localhost URL', async () => {
+    exchangeCodeForSession.mockResolvedValue({ data: { redirectType: 'recovery' }, error: null })
+    const response = await GET(
+      new Request('http://localhost:3100/auth/callback?code=ok&next=/game', {
+        headers: { Host: '127.0.0.1:3100' },
+      }),
+    )
+    expect(response.headers.get('location')).toBe('http://127.0.0.1:3100/auth/reset-password')
+    expect(response.headers.get('set-cookie')).toContain(
+      'aurevane-password-recovery=recovery-session',
+    )
+  })
+
+  it('rejects a foreign Host before exchanging a code', async () => {
+    const response = await GET(
+      new Request('http://localhost:3100/auth/callback?code=ok&next=/game', {
+        headers: { Host: 'evil.test' },
+      }),
+    )
+    expect(response.status).toBe(400)
+    expect(response.headers.get('location')).toBeNull()
+    expect(exchangeCodeForSession).not.toHaveBeenCalled()
+  })
+
   it('routes verified recovery to password reset without claiming gameplay or honoring next', async () => {
     exchangeCodeForSession.mockResolvedValue({ data: { redirectType: 'recovery' }, error: null })
     const response = await GET(

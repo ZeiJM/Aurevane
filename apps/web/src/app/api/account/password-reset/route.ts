@@ -7,18 +7,18 @@ import { hasVerifiedRecoverySession, PASSWORD_RECOVERY_COOKIE } from '@/lib/auth
 import { cookies } from 'next/headers'
 import { getOptionalPublicSupabaseConfig } from '@/lib/supabase/config'
 import { getCurrentAccountServicesReadiness } from '@/server/account/account-services-readiness'
+import { getAuthRequestOrigin } from '@/lib/auth/request-origin'
 
 const headers = { 'Cache-Control': 'private, no-store' }
 
 export async function POST(request: Request) {
-  if (request.headers.get('origin') !== new URL(request.url).origin) {
+  const origin = getAuthRequestOrigin(request)
+  if (!origin || request.headers.get('origin') !== origin) {
     return Response.json({ error: 'Request this change from AUREVANE.' }, { status: 403, headers })
   }
   if (
-    !getCurrentAccountServicesReadiness(
-      getOptionalPublicSupabaseConfig(),
-      new URL(request.url).host,
-    ).available
+    !getCurrentAccountServicesReadiness(getOptionalPublicSupabaseConfig(), new URL(origin).host)
+      .available
   ) {
     return Response.json(
       { error: 'Account services are not enabled in this environment.' },

@@ -2,14 +2,18 @@ import { NextResponse } from 'next/server'
 
 import { getSafeInternalRedirect } from '@/lib/auth/redirect'
 import { PASSWORD_RECOVERY_COOKIE } from '@/lib/auth/recovery-session'
+import { getAuthRequestOrigin } from '@/lib/auth/request-origin'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
+  const origin = getAuthRequestOrigin(request)
+  if (!origin)
+    return NextResponse.json({ error: 'Invalid account callback host.' }, { status: 400 })
   const code = requestUrl.searchParams.get('code')
   const recovery = requestUrl.searchParams.get('flow') === 'recovery'
   const invalidRecovery = () =>
-    NextResponse.redirect(new URL('/auth/reset-password?error=invalid-link', requestUrl.origin))
+    NextResponse.redirect(new URL('/auth/reset-password?error=invalid-link', origin))
   const redirectPath = getSafeInternalRedirect(requestUrl.searchParams.get('next'))
 
   if (!code) {
@@ -33,7 +37,7 @@ export async function GET(request: Request) {
       const { data: verified, error: verificationError } = await supabase.auth.getClaims()
       const sessionId = verified?.claims.session_id
       if (verificationError || typeof sessionId !== 'string') return invalidRecovery()
-      const response = NextResponse.redirect(new URL('/auth/reset-password', requestUrl.origin))
+      const response = NextResponse.redirect(new URL('/auth/reset-password', origin))
       response.cookies.set(PASSWORD_RECOVERY_COOKIE, sessionId, {
         httpOnly: true,
         secure: requestUrl.protocol === 'https:',
@@ -45,7 +49,7 @@ export async function GET(request: Request) {
     }
     if (recovery) return invalidRecovery()
 
-    const claimUrl = new URL('/auth/claim', requestUrl.origin)
+    const claimUrl = new URL('/auth/claim', origin)
     claimUrl.searchParams.set('next', redirectPath)
     return NextResponse.redirect(claimUrl)
   } catch {
