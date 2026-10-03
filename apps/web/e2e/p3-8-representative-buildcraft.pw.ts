@@ -217,7 +217,7 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   await expect(resonancePreview.locator('dt', { hasText: /^(Mode|Setup|Trigger)$/ })).toHaveCount(0)
   await expect(resonanceField('Effects').locator(':scope > div')).toHaveText([
     'Vanguard · attack + melee: Dmg [6] → Trigger Skill selected unit',
-    'Vanguard · attack + melee: Healing [4]',
+    'Vanguard · attack + melee: Healing [4] [Instant]',
   ])
   await expect(resonancePreview.getByRole('list', { name: 'Effect explanations' })).toContainText(
     'Restores HP to you.',
