@@ -18,6 +18,7 @@ import {
   finishPv1fTurn,
   readPv1fActionCooldown,
   readPv1fActionEconomy,
+  pv1fCooldownForMatureSkill,
   PV1F_ACTION_ECONOMY_RESOURCE_KEY,
   PV1F_BASIC_ATTACK_COST,
   PV1F_BASIC_ATTACK_ID,
@@ -273,6 +274,32 @@ describe('Level-100 offensive scaling', () => {
 })
 
 describe('Combat v5 Skill cooldown lifecycle', () => {
+  it('resolves the authored cooldown key and combat-context duration without changing the definition', () => {
+    const base = resolveMatureSkillVersion('vanguard.forceful-strike')!
+    const definition: MatureSkillDefinition = {
+      ...base,
+      cooldown: { key: 'test.shared-authored-clock', ownerTurns: 1 },
+      overrides: { pvp: { cooldownOwnerTurns: 3 } },
+    }
+    const original = JSON.stringify(definition)
+    expect(pv1fCooldownForMatureSkill(definition, 'pve')).toEqual({
+      key: 'test.shared-authored-clock',
+      ownerTurns: 1,
+    })
+    expect(pv1fCooldownForMatureSkill(definition, 'pvp')).toEqual({
+      key: 'test.shared-authored-clock',
+      ownerTurns: 3,
+    })
+    expect(JSON.stringify(definition)).toBe(original)
+  })
+
+  it('does not expose inert historical cooldown metadata or add a timer to Requirement-limited Skills', () => {
+    const historical = resolveMatureSkillVersion('vanguard.forceful-strike', 2)!
+    const requirementLimited = resolveMatureSkillVersion('vanguard.brace')!
+    expect(pv1fCooldownForMatureSkill(historical, 'pve')).toBeNull()
+    expect(pv1fCooldownForMatureSkill(requirementLimited, 'pve')).toBeNull()
+  })
+
   function backToPlayer(state: StatDrivenCombatEncounterState): StatDrivenCombatEncounterState {
     const recruitTurn = finishPv1fTurn(state, 'east').state
     return finishPv1fTurn(recruitTurn, 'west').state

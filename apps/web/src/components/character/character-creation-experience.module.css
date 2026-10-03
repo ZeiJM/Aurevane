@@ -337,6 +337,7 @@
 }
 .disciplineSigil {
   width: 5.5rem;
+  height: auto;
   aspect-ratio: 1;
   object-fit: contain;
 }
@@ -433,6 +434,7 @@
 }
 .reviewDisciplineSigil {
   width: 5rem;
+  height: auto;
   aspect-ratio: 1;
   flex: 0 0 auto;
 }
@@ -806,6 +808,9 @@
 @media (min-width: 1100px) and (max-height: 800px) {
   .previewFrame {
     width: min(100%, 11rem);
+  }
+  .reviewDisciplineSigil {
+    width: 4rem;
   }
   .attributeControl button {
     min-height: 2.25rem;

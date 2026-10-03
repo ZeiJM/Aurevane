@@ -290,7 +290,8 @@ body {
   border: 1px solid #958466;
   background: linear-gradient(130deg, #8b998b40, transparent), #c5b69c !important;
 }
-[data-gameplay-art] {
+/* Discipline contexts own their sigil sizes (library, identity and compact controls). */
+[data-gameplay-art]:not([data-gameplay-art='discipline']) {
   flex: 0 0 var(--av-gameplay-art-size) !important;
   width: var(--av-gameplay-art-size) !important;
   height: var(--av-gameplay-art-size) !important;

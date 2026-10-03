@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
-import { expect, test } from '@playwright/test'
+import { expect, test, type Locator } from '@playwright/test'
 
 import { createVerifiedAccountAndSignIn } from './pv1f-test-helpers'
 
@@ -16,7 +16,7 @@ test('Creation exposes twelve portraits per gender and preserves the complete au
     .split('')
     .map((digit) => String.fromCharCode(65 + Number(digit)))
     .join('')
-  const characterName = `Aurelia ${suffix}`
+  const characterName = `Aurelia AB${suffix}`
   const pageErrors: string[] = []
   page.on('pageerror', (error) => pageErrors.push(error.message))
   await createVerifiedAccountAndSignIn({
@@ -210,6 +210,11 @@ test('Creation exposes twelve portraits per gender and preserves the complete au
   await creation.locator('input[name="appearance"]').last().check()
   await next.click()
   await expect(creation).toHaveAttribute('data-step', 'discipline')
+  const disciplineSigils = creation
+    .getByTestId('creation-discipline-choice')
+    .locator('[data-gameplay-art="discipline"]')
+  await expect(disciplineSigils).toHaveCount(6)
+  await assertSquareSigils(disciplineSigils)
   if (info.project.name !== 'mobile-chromium') {
     await page.setViewportSize({ width: 1366, height: 768 })
     await expect
@@ -239,6 +244,11 @@ test('Creation exposes twelve portraits per gender and preserves the complete au
       fullPage: true,
     })
   await creation.getByRole('button', { name: 'Review character', exact: true }).click()
+  await assertSquareSigils(
+    creation
+      .getByTestId('creation-confirm-discipline-sigil')
+      .locator('[data-gameplay-art="discipline"]'),
+  )
   if (info.project.name !== 'mobile-chromium')
     await expect
       .poll(() => page.evaluate(() => document.documentElement.scrollHeight - innerHeight))
@@ -344,3 +354,25 @@ test('Creation exposes twelve portraits per gender and preserves the complete au
       ),
     )
 })
+
+async function assertSquareSigils(sigils: Locator) {
+  const boxes = await sigils.evaluateAll((elements) =>
+    elements.map((element) => {
+      const artwork = element.getBoundingClientRect()
+      const owner = element.parentElement!.getBoundingClientRect()
+      return {
+        width: artwork.width,
+        height: artwork.height,
+        ownerWidth: owner.width,
+        ownerHeight: owner.height,
+      }
+    }),
+  )
+  expect(boxes.length).toBeGreaterThan(0)
+  for (const box of boxes) {
+    expect(box.width, 'Creation owns a readable sigil size').toBeGreaterThanOrEqual(32)
+    expect(Math.abs(box.width - box.height), 'Creation sigil stays square').toBeLessThanOrEqual(1)
+    expect(box.width, 'Sigil fits its creation card').toBeLessThanOrEqual(box.ownerWidth + 1)
+    expect(box.height, 'Sigil fits its creation card').toBeLessThanOrEqual(box.ownerHeight + 1)
+  }
+}

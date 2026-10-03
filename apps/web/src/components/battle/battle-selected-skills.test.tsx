@@ -104,3 +104,35 @@ describe('battle copied Skill presentation', () => {
     expect(markup.match(/aria-label="Empty selected Skill slot"/g)).toHaveLength(4)
   })
 })
+
+describe('selected Skill cooldown presentation', () => {
+  it('blocks Technique, Essence and copied selection but keeps all information accessible', () => {
+    const technique = {
+      ...runtime.copiedSkills![0]!,
+      id: 'vanguard.forceful-strike',
+      cooldownOwnerTurns: 2,
+    }
+    const essence = {
+      ...technique,
+      id: 'essence.fixture',
+      name: 'Fixture Essence',
+      description: '',
+    }
+    const markup = renderToStaticMarkup(
+      <BattleSelectedSkills
+        runtime={{ ...runtime, techniques: [technique], essence }}
+        disabled={false}
+        actionEconomy={100}
+        cooldowns={{ [technique.id]: 2, [essence.id]: 1, [runtime.copiedSkills![0]!.id]: 2 }}
+        onSelect={vi.fn()}
+      />,
+    )
+    expect(markup.match(/data-battle-cooldown-countdown="true"/g)).toHaveLength(3)
+    expect(markup).toMatch(/aria-label="Selected Forceful Strike[^>]*disabled/)
+    expect(markup).toMatch(/aria-label="Fixture Essence[^>]*disabled/)
+    expect(markup).toMatch(
+      /data-battle-copied-skill-option="temporary.copy.vanguard.forceful-strike.v2"[^>]*disabled/,
+    )
+    expect(markup).not.toMatch(/data-battle-info-trigger="true"[^>]*disabled/)
+  })
+})

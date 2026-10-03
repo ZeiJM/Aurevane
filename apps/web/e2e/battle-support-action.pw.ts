@@ -283,50 +283,54 @@ for (const [supportActionId, label, cost] of [
         after.snapshot.statusState.find((row) => row.combatantId === beforeActor.id)?.statuses,
       ).toEqual(expect.arrayContaining([expect.objectContaining({ statusId: 'guarded' })]))
     }
+    // The server snapshot drives the visual lock; blocked gestures send no authority request.
+    await expect(slot).toBeDisabled()
+    await expect(slot).toHaveAccessibleName(`${label}, ${cost} AP, Cooldown: 2 turns remaining`)
+    const supportArt = root.locator('[data-command-card="guard"] [data-battle-command-artwork]')
+    await expect(supportArt).toHaveAttribute('data-battle-skill-cooldown', '2')
+    await expect(supportArt.locator('[data-battle-cooldown-countdown]')).toContainText('2')
+    expect(
+      await supportArt.locator('img').evaluate((image) => getComputedStyle(image).filter),
+    ).toContain('grayscale(1)')
     if (supportActionId === 'basic.guard') {
-      // A saved Guard cooldown survives reload and a deliberate second key cannot spend AP again.
       await page.reload()
-      await expect(slot).toHaveAccessibleName('Guard, 30 AP')
+      await expect(slot).toBeDisabled()
+      await expect(slot).toHaveAccessibleName('Guard, 30 AP, Cooldown: 2 turns remaining')
+    }
+    const cooldownRequests: string[] = []
+    const observeCooldown = (request: import('@playwright/test').Request) => {
+      if (
+        request.method() === 'POST' &&
+        /\/(preview|intents|commit|final-turn)$/.test(new URL(request.url()).pathname)
+      )
+        cooldownRequests.push(request.url())
+    }
+    page.on('request', observeCooldown)
+    try {
       await page.mouse.move(0, 0)
       await root.focus()
-      const blocked = page.waitForResponse(
-        (response) =>
-          response.request().method() === 'POST' &&
-          new URL(response.url()).pathname.endsWith('/preview') &&
-          response.request().postDataJSON().intent.actionId === 'basic.guard',
-      )
+      await slot.evaluate((button) => (button as HTMLButtonElement).click())
       await page.keyboard.press('KeyG')
-      const preview = (await (await blocked).json()).battlePreview.preview
-      expect(preview).toMatchObject({ actionId: 'basic.guard', legal: false })
-      expect(preview.issues).toEqual(
-        expect.arrayContaining([expect.objectContaining({ code: 'cooldown-active' })]),
-      )
       await page.keyboard.press('KeyG')
-      await expect(targetForecast(page)).toContainText('Guard')
+      if (supportActionId !== 'basic.guard') {
+        // HP and MP Recovery share one canonical lock, including the independent R shortcut.
+        await page.keyboard.press('KeyR')
+        await page.keyboard.press('KeyR')
+      }
+      const information = root.getByRole('button', { name: `About ${label}`, exact: true })
+      await expect(information).toBeEnabled()
+      await information.click()
+      await expect(page.locator('[data-battle-info-panel]')).toBeVisible()
+      await page.keyboard.press('Escape')
+      expect(cooldownRequests).toEqual([])
       expect(commits).toBe(1)
-      const reloaded = await readBattle(page)
-      expect(reloaded.battleVersion).toBe(after.battleVersion)
+      const unchanged = await readBattle(page)
+      expect(unchanged.battleVersion).toBe(after.battleVersion)
       await expect(
         root.getByRole('progressbar', { name: 'Action Economy remaining' }),
-      ).toHaveAttribute('aria-valuenow', '70')
-    } else {
-      // The independent legacy R shortcut keeps HP Recovery, sharing the canonical cooldown.
-      // Ignore the just-committed Support Action's automatic rearm preview.
-      const blocked = page.waitForResponse(
-        (response) =>
-          response.request().method() === 'POST' &&
-          new URL(response.url()).pathname.endsWith('/preview') &&
-          response.request().postDataJSON().intent.actionId === 'basic.recover',
-      )
-      await page.keyboard.press('KeyR')
-      const preview = (await (await blocked).json()).battlePreview.preview
-      expect(preview).toMatchObject({ actionId: 'basic.recover', legal: false })
-      expect(preview.issues).toEqual(
-        expect.arrayContaining([expect.objectContaining({ code: 'cooldown-active' })]),
-      )
-      await page.keyboard.press('KeyR')
-      await expect(targetForecast(page)).toContainText('HP Recovery')
-      expect(commits).toBe(1)
+      ).toHaveAttribute('aria-valuenow', `${100 - cost}`)
+    } finally {
+      page.off('request', observeCooldown)
     }
   })
 }

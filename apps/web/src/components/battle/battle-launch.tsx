@@ -511,10 +511,6 @@ export function BattleLaunch({ characterId, initialJoinKey = null }: BattleLaunc
                       </select>
                     </label>
                   </div>
-                  <small>
-                    You + {allyCount} {allyCount === 1 ? 'ally' : 'allies'} vs {enemyCount}{' '}
-                    {enemyCount === 1 ? 'enemy' : 'enemies'} · {1 + allyCount + enemyCount}/6
-                  </small>
                 </fieldset>
               ) : null}
             </div>

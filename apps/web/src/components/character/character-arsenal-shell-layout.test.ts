@@ -3,13 +3,13 @@ import { describe, expect, it } from 'vitest'
 
 const css = readFileSync(new URL('./character-arsenal-shell.module.css', import.meta.url), 'utf8')
 
-describe('Nexus Attunement preview placement', () => {
-  it('prefers the right side on desktop and keeps the mobile above-anchor fallback', () => {
-    expect(css).toMatch(/\.attunementHover\s*\{[^}]*left:\s*calc\(100% \+ 0\.5rem\)/su)
-    expect(css).not.toMatch(/\.attunementHover\s*\{[^}]*right:\s*calc\(100% \+ 0\.5rem\)/su)
-    expect(css).toMatch(
-      /@media \(max-width: 760px\)[\s\S]*?\.attunementHover\s*\{[^}]*bottom:\s*calc\(100% \+ 0\.45rem\)[^}]*left:\s*0/su,
-    )
+describe('Nexus Attunement reading panels', () => {
+  it('uses the shared positioned, dismissible report instead of a capped scrolling tooltip', () => {
+    const source = readFileSync(new URL('./character-arsenal-shell.tsx', import.meta.url), 'utf8')
+    expect(source).toContain('BattleInfoPopover')
+    expect(source).toContain('resonanceCharacteristicRows(resonance)')
+    expect(source).toContain('resonanceSupplementalRows(resonance)')
+    expect(css).not.toContain('.attunementHover')
   })
 })
 

@@ -96,12 +96,31 @@ test('keeps square empty Skill slots and consistent cockpit info controls withou
     const panel = page.locator('[data-battle-info-panel]')
     await expect(panel).toBeVisible()
     await expect(panel).not.toHaveText('')
-    const box = await panel.boundingBox()
     const viewport = page.viewportSize()!
-    expect(box!.x).toBeGreaterThanOrEqual(0)
-    expect(box!.y).toBeGreaterThanOrEqual(0)
-    expect(box!.x + box!.width).toBeLessThanOrEqual(viewport.width + 1)
-    expect(box!.y + box!.height).toBeLessThanOrEqual(viewport.height + 1)
+    await expect
+      .poll(async () => {
+        const box = await panel.boundingBox()
+        return !!box && box.x >= 0 && box.x + box.width <= viewport.width + 1
+      })
+      .toBe(true)
+    const height = await panel.evaluate((element) => element.getBoundingClientRect().height)
+    if (height > viewport.height - 16) {
+      await expect(panel).toHaveAttribute('data-battle-info-page', 'true')
+      expect(
+        await panel.evaluate((element) => element.scrollHeight <= element.clientHeight + 1),
+      ).toBe(true)
+      await panel.locator('header').scrollIntoViewIfNeeded()
+      await expect(panel.locator('header')).toBeInViewport()
+      await panel.locator(':scope > :last-child').scrollIntoViewIfNeeded()
+      await expect(panel.locator(':scope > :last-child')).toBeInViewport()
+    } else {
+      await expect
+        .poll(async () => {
+          const box = await panel.boundingBox()
+          return !!box && box.y >= 0 && box.y + box.height <= viewport.height + 1
+        })
+        .toBe(true)
+    }
     await page.keyboard.press('Escape')
     await expect(panel).toHaveCount(0)
     await expect(info).toBeFocused()

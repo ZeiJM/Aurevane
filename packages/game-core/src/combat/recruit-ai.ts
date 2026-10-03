@@ -10,7 +10,12 @@ import {
 } from './pv1f-action-economy'
 import { forecastStatDrivenAttack, type StatDrivenCombatEncounterState } from './stat-driven-combat'
 import type { CombatTargetSelection } from './actions'
-import type { CombatPlacement, CombatTile, GridPosition } from './board'
+import {
+  evaluateCurrentMovementPath,
+  type CombatPlacement,
+  type CombatTile,
+  type GridPosition,
+} from './board'
 
 export const RECRUIT_AI_RULES_VERSION = 2 as const
 export const RECRUIT_AI_PROFILE_VERSION = 2 as const
@@ -260,26 +265,27 @@ function buildCandidates(
   }
 
   if (enemies.length > 0) {
-    const nearestBefore = nearestEnemyDistance(
+    const routeDistances = enemyApproachDistances(
+      state,
       knowledge,
-      actorPlacement.position,
       enemies.map((enemy) => enemy.id),
     )
+    const distanceBefore = routeDistances.get(positionKey(actorPlacement.position))
     for (const destination of orthogonalNeighbors(actorPlacement.position)) {
       const preview = evaluatePv1fMovement(state, [actorPlacement.position, destination])
       if (!preview.movement.legal || preview.economyCost <= 0) continue
       if (preview.economyCost > knowledge.actionEconomyRemaining) continue
-      const nearestAfter = nearestEnemyDistance(
-        knowledge,
-        destination,
-        enemies.map((enemy) => enemy.id),
+      const distanceAfter = routeDistances.get(positionKey(destination))
+      if (
+        distanceBefore === undefined ||
+        distanceAfter === undefined ||
+        distanceAfter >= distanceBefore
       )
-      const improvement = nearestBefore - nearestAfter
-      if (improvement <= 0) continue
+        continue
       pushCandidate(candidates, profile, {
         intent: { kind: 'move', path: preview.movement.path },
         reason: 'close-distance',
-        utility: profile.movementUtility + improvement * 7 - preview.economyCost / 5,
+        utility: profile.movementUtility + 7 - preview.economyCost / 5,
         stableKey: `move:${destination.x},${destination.y}`,
       })
     }
@@ -380,13 +386,58 @@ function pushCandidate(
   candidates.push(candidate)
 }
 
-function nearestEnemyDistance(
+function enemyApproachDistances(
+  state: StatDrivenCombatEncounterState,
   knowledge: RecruitAiKnowledge,
-  from: GridPosition,
   enemyIds: readonly string[],
-): number {
-  const placement = nearestEnemyPlacement(knowledge, from, enemyIds)
-  return placement ? manhattanDistance(from, placement.position) : Number.MAX_SAFE_INTEGER
+): ReadonlyMap<string, number> {
+  const distances = new Map<string, number>()
+  if (!state.tactical.battle.currentTurn?.movementRemaining) return distances
+  const actorId = knowledge.activeCombatantId
+  const tiles = new Set(knowledge.tiles.map((tile) => positionKey(tile.position)))
+  const occupied = new Set(
+    knowledge.placements
+      .filter((placement) => placement.combatantId !== actorId)
+      .map((placement) => positionKey(placement.position)),
+  )
+  const enemySet = new Set(enemyIds)
+  const queue: GridPosition[] = []
+  for (const enemy of knowledge.placements.filter((placement) =>
+    enemySet.has(placement.combatantId),
+  )) {
+    for (const position of orthogonalNeighbors(enemy.position)) {
+      const key = positionKey(position)
+      if (!tiles.has(key) || occupied.has(key) || distances.has(key)) continue
+      distances.set(key, 0)
+      queue.push(position)
+    }
+  }
+
+  // Plan through visible free tiles toward an attack position. Only the next step is
+  // submitted, through the unchanged AP/status/Movement legality boundary above.
+  for (let index = 0; index < queue.length; index += 1) {
+    const destination = queue[index]
+    const distance = distances.get(positionKey(destination))!
+    for (const from of orthogonalNeighbors(destination)) {
+      const key = positionKey(from)
+      if (!tiles.has(key) || occupied.has(key) || distances.has(key)) continue
+      const planningBoard = {
+        ...state.tactical,
+        placements: state.tactical.placements.map((placement) =>
+          placement.combatantId === actorId ? { ...placement, position: from } : placement,
+        ),
+      }
+      if (!evaluateCurrentMovementPath(planningBoard, [from, destination], 'entered-tiles').legal)
+        continue
+      distances.set(key, distance + 1)
+      queue.push(from)
+    }
+  }
+  return distances
+}
+
+function positionKey(position: GridPosition): string {
+  return `${position.x},${position.y}`
 }
 
 function nearestEnemyPlacement(

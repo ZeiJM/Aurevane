@@ -8,7 +8,7 @@ export async function expectTerrainKey(page: Page) {
   await expect(page.getByRole('switch', { name: 'Tile coordinates' })).toHaveCount(0)
   await expect(page.locator('#battlefield > [aria-label="Terrain legend"]')).toHaveCount(0)
 
-  // Compare with the rendered current board rather than the static terrain catalog.
+  // All catalog entries remain visible; activity follows the rendered current board.
   const projection = await page.evaluate(() => {
     const expected = new Set<string>()
     for (const tile of document.querySelectorAll<HTMLElement>(
@@ -27,13 +27,57 @@ export async function expectTerrainKey(page: Page) {
       if (tile.dataset.terrainOverlay === 'steam') expected.add('Steam')
     }
     const actual = Array.from(document.querySelectorAll('[data-battle-terrain-key="true"] button'))
-      .map((button) => button.getAttribute('aria-label'))
-      .sort()
+      .map((button) => ({
+        name: button.getAttribute('aria-label')!,
+        active:
+          button.querySelector('[data-terrain-active]')?.getAttribute('data-terrain-active') ===
+          'true',
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name))
     return { expected: [...expected].sort(), actual }
   })
-  expect(projection.actual).toEqual(projection.expected)
+  expect(projection.actual.map((entry) => entry.name).sort()).toEqual(
+    [
+      'Neutral ground',
+      'Difficult terrain',
+      'Elevated ground',
+      'Blocked terrain',
+      'Frozen',
+      'Steam',
+    ].sort(),
+  )
+  expect(
+    projection.actual
+      .filter((entry) => entry.active)
+      .map((entry) => entry.name)
+      .sort(),
+  ).toEqual(projection.expected)
+  const rows = await key.locator('button').evaluateAll((entries) =>
+    entries.map((entry) => {
+      const rect = entry.getBoundingClientRect()
+      return {
+        x: rect.x,
+        y: rect.y,
+        bottom: rect.bottom,
+        contentFits: Array.from(entry.children).every((child) => {
+          const content = child.getBoundingClientRect()
+          return (
+            content.top >= rect.top - 1 &&
+            content.bottom <= rect.bottom + 1 &&
+            content.left >= rect.left - 1 &&
+            content.right <= rect.right + 1
+          )
+        }),
+      }
+    }),
+  )
+  expect(rows.every((row) => row.contentFits)).toBe(true)
+  for (let i = 1; i < rows.length; i++) {
+    expect(Math.abs(rows[i]!.x - rows[0]!.x)).toBeLessThanOrEqual(1)
+    expect(rows[i]!.y).toBeGreaterThanOrEqual(rows[i - 1]!.bottom - 1)
+  }
 
-  for (const label of projection.expected) {
+  for (const { name: label } of projection.actual) {
     const entry = key.getByRole('button', { name: label, exact: true })
     await entry.focus()
     await entry.press('Enter')

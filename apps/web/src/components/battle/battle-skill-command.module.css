@@ -252,3 +252,11 @@
     min-height: 6.5rem;
   }
 }
+
+.action[data-battle-cooldown-active]:disabled {
+  opacity: 1;
+  cursor: not-allowed;
+}
+.artwork[data-battle-skill-cooldown] img {
+  filter: grayscale(1) brightness(0.55);
+}

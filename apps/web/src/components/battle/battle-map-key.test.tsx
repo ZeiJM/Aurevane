@@ -74,25 +74,53 @@ describe('live battle terrain key', () => {
     ).toEqual(['open', 'rough', 'elevated', 'frozen', 'steam'])
   })
 
-  it('renders one keyboard-accessible help trigger per present type and no extra key button', () => {
+  it('renders all terrain help triggers and distinguishes active and inactive types', () => {
     const markup = renderToStaticMarkup(createElement(BattleMapKey, { snapshot: board() }))
     expect(markup).toContain('aria-label="Terrain Key"')
     expect(markup).toContain('aria-label="Neutral ground"')
     expect(markup).toContain('aria-haspopup="dialog"')
-    expect(markup.match(/<button\b/g)).toHaveLength(1)
+    expect(markup.match(/<button\b/g)).toHaveLength(6)
+    expect(markup.match(/data-terrain-active="true"/g)).toHaveLength(2)
+    expect(markup.match(/data-terrain-active="false"/g)).toHaveLength(10)
     expect(markup).not.toContain('Map Key')
     expect(markup).not.toContain('Full terrain key')
     expect(markup).not.toContain('Open ground')
-    expect(markup).not.toContain('Frozen')
-    expect(markup).not.toContain('Steam')
+    expect(markup).toContain('aria-label="Frozen"')
+    expect(markup).toContain('aria-label="Steam"')
     const steamMarkup = renderToStaticMarkup(
       createElement(BattleMapKey, {
         snapshot: { ...board(), terrainOverlays: [overlay('steam')] },
       }),
     )
     expect(steamMarkup).toContain('aria-label="Steam"')
-    expect(steamMarkup).not.toContain('Frozen')
+    expect(steamMarkup.match(/data-terrain-active="true"/g)).toHaveLength(4)
   })
+
+  it.each([
+    { overlays: [], frozen: false, steam: false },
+    { overlays: [overlay('frozen')], frozen: true, steam: false },
+    { overlays: [overlay('steam')], frozen: false, steam: true },
+    { overlays: [overlay('frozen', 0)], frozen: false, steam: false },
+    { overlays: [overlay('steam', 2, 99)], frozen: false, steam: false },
+  ])(
+    'reports live overlay activity without losing inactive entries: $overlays',
+    ({ overlays, frozen, steam }) => {
+      const markup = renderToStaticMarkup(
+        createElement(BattleMapKey, { snapshot: { ...board(), terrainOverlays: overlays } }),
+      )
+      for (const [label, active] of [
+        ['Frozen', frozen],
+        ['Steam', steam],
+      ] as const) {
+        const entry = markup.match(
+          new RegExp(`<button[^>]*aria-label="${label}"[\\s\\S]*?</button>`),
+        )?.[0]
+        expect(entry).toContain(`data-terrain-active="${active}"`)
+        expect(entry).toMatch(new RegExp(`<i[^>]*data-terrain-active="${active}"`))
+        expect(entry).toContain(active ? 'Active' : 'Inactive')
+      }
+    },
+  )
 
   it('uses authoritative overlay descriptions and durations', () => {
     for (const kind of ['frozen', 'steam'] as const) {

@@ -22,7 +22,22 @@ export async function expectBattleHeaderAndArtworkGeometry(page: Page) {
       frame: frame.getBoundingClientRect().toJSON(),
       image: frame.querySelector('img')!.getBoundingClientRect().toJSON(),
     }))
+    const cards = [...element.querySelectorAll('[data-battle-combatant-card]')].map((card) => ({
+      portrait: card.querySelector('[data-av-square-media]')!.getBoundingClientRect().toJSON(),
+      resources: [...card.querySelectorAll('[data-resource]')].map((resource) => ({
+        track: resource.querySelector('i')!.getBoundingClientRect().toJSON(),
+        fill: resource.querySelector('b')!.getBoundingClientRect().toJSON(),
+        maximum: Number(resource.querySelector('[role="meter"]')!.getAttribute('aria-valuemax')),
+        current: Number(resource.querySelector('[role="meter"]')!.getAttribute('aria-valuenow')),
+        valueLines: (() => {
+          const range = document.createRange()
+          range.selectNodeContents(resource.querySelector('[role="meter"] span')!)
+          return [...range.getClientRects()].map((line) => line.toJSON())
+        })(),
+      })),
+    }))
     return {
+      cards,
       header: header.toJSON(),
       economy: economy.toJSON(),
       standards,
@@ -67,6 +82,33 @@ export async function expectBattleHeaderAndArtworkGeometry(page: Page) {
   ).toBeGreaterThan(0)
   const baseline = geometry.selected[0]!.frame
   expect(baseline.width).toBeGreaterThan(0)
+  for (const card of geometry.cards) {
+    expect(
+      Math.abs(card.portrait.width - baseline.width),
+      'combatant portraits match cockpit artwork',
+    ).toBeLessThanOrEqual(1)
+    const [hp, mp] = card.resources
+    expect(hp!.track.width, 'resource tracks stay visible').toBeGreaterThan(0)
+    expect(
+      Math.abs(hp!.track.width - mp!.track.width),
+      'HP and MP share one track width regardless of label length',
+    ).toBeLessThanOrEqual(1)
+    for (const resource of card.resources) {
+      expect(resource.fill.width).toBeLessThanOrEqual(resource.track.width + 1)
+      if (resource.maximum > 0 && resource.current === resource.maximum) {
+        expect(
+          Math.abs(resource.fill.width - resource.track.width),
+          'full resources fill their equal tracks',
+        ).toBeLessThanOrEqual(1)
+      }
+      for (const line of resource.valueLines) {
+        expect(line.left, 'complete resource value remains visible').toBeGreaterThanOrEqual(
+          resource.track.left - 1,
+        )
+        expect(line.right).toBeLessThanOrEqual(resource.track.right + 1)
+      }
+    }
+  }
   for (const frame of [
     ...geometry.standards,
     ...geometry.selected.map((item) => item.frame),

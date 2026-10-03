@@ -357,3 +357,18 @@
     min-width: 6rem;
   }
 }
+
+.skillAction[data-battle-cooldown-active]:disabled,
+.specialAction[data-battle-cooldown-active]:disabled {
+  opacity: 1;
+}
+.artworkFrame[data-battle-skill-cooldown] img,
+.copiedArtwork[data-battle-skill-cooldown] img {
+  filter: grayscale(1) brightness(0.55);
+}
+.copiedArtwork {
+  position: relative;
+  display: block;
+  width: 3rem;
+  height: 3rem;
+}

@@ -254,9 +254,13 @@
 
 /* Short desktop rails keep navigation together and reserve space for readable results. */
 @media (pointer: fine) and (max-height: 700px) {
+  .page {
+    padding-block: 2px;
+  }
   .timeline,
   .timeline[data-overflow='false'] {
     grid-template-rows: 24px 40px minmax(0, 1fr);
+    gap: 2px;
   }
   .timeline[data-view='text'] {
     grid-template-rows: 24px 24px minmax(0, 1fr);
@@ -299,6 +303,9 @@
     min-width: 0;
     overflow-wrap: anywhere;
     font-size: 0.6875rem;
+    line-height: 12px;
+  }
+  .detailControls span {
     line-height: 12px;
   }
   .track li {
