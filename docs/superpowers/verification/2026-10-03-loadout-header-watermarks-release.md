@@ -20,6 +20,9 @@ Branch `agent/loadout-header-watermarks-20261003` includes the complete precedin
 - Portrait SSR regression demonstrated red before the modal change and green afterward. Three portrait SSR tests and six targeted character-component tests pass.
 - Existing standalone Discipline regression fixture fails because it expects POST then PUT while the current commit flow makes PUT directly. This is a fixture/API expectation mismatch, not a watermark behavior change. No claim that this standalone fixture passes.
 - Authenticated end-to-end portrait persistence and desktop page fit are covered by GitHub browser workflows against disposable local Supabase accounts, including the new portrait modal test.
+- Exact-head `618cade` passed thirteen workflows, including Desktop page fit, Desktop experience and Representative Buildcraft. Browser smoke caught an 8.4375px cross-route tab-position change caused by the flexible tab rail beside unequal title widths. The compact rail now keeps its 26rem basis, with an equal title reservation and explicit font sizing on short phones. All sixteen local viewport cases additionally verify identical tab position and size across both routes.
+- UI layout review passed the portrait persistence flow on desktop; laptop and phone fixture creation reused the same globally unique character name and were rejected before reaching the portrait page. The test now gives each account a unique letter-only name within the 24-character limit. Full exact-head workflows must pass again for these corrections.
+- Independent read-only review of the combined application, SQL, immutable narration and security boundaries found no Critical or Important defects. The later compact-rail correction is covered by the existing authenticated route-parity regression and the extended local matrix.
 
 ## Release preconditions
 
