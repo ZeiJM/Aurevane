@@ -408,47 +408,35 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   await expectBattlePreviewFits(page)
   await page.getByRole('button', { name: 'Cancel Action', exact: true }).click()
 
-  // Forceful Strike is melee (range 1). Approach the Recruit through real movement/turn flow so
-  // the keyboard regression test never depends on a lucky adjacent spawn.
+  // Current Forceful Strike is melee at equal elevation. Keep the player on the
+  // protected flat spawn while the real Recruit approaches; adjacency alone can
+  // otherwise select an illegal raised target on a randomized standard map.
+  const playerTile = battlefield.getByRole('button', {
+    name: new RegExp(`occupied by ${characterName}`),
+  })
+  const playerSpawn = tileCoordinates(await playerTile.getAttribute('aria-label'))
+  expect(playerSpawn).not.toBeNull()
   for (let approachTurn = 0; approachTurn < 3; approachTurn += 1) {
-    const playerTile = battlefield.getByRole('button', {
-      name: new RegExp(`occupied by ${characterName}`),
-    })
     const recruitTile = battlefield.getByRole('button', { name: /occupied by Recruit/ })
     const playerPosition = tileCoordinates(await playerTile.getAttribute('aria-label'))
     const recruitPosition = tileCoordinates(await recruitTile.getAttribute('aria-label'))
-    expect(playerPosition).not.toBeNull()
+    expect(playerPosition).toEqual(playerSpawn)
     expect(recruitPosition).not.toBeNull()
-    if (!playerPosition || !recruitPosition) break
-    if (tileDistance(playerPosition, recruitPosition) === 1) break
+    if (tileDistance(playerPosition!, recruitPosition!) === 1) break
 
-    await moveAction.click()
-    const reachableTiles = battlefield.locator('button[data-reachable="true"]')
-    await expect(reachableTiles.first()).toBeVisible()
-
-    let destinationLabel: string | null = null
-    let destinationDistance = Number.POSITIVE_INFINITY
-    for (let index = 0; index < (await reachableTiles.count()); index += 1) {
-      const candidate = reachableTiles.nth(index)
-      const label = await candidate.getAttribute('aria-label')
-      const position = tileCoordinates(label)
-      if (!position || !label) continue
-      const distance = tileDistance(position, recruitPosition)
-      if (distance < destinationDistance) {
-        destinationDistance = distance
-        destinationLabel = label
-      }
-    }
-
-    expect(destinationLabel).not.toBeNull()
-    await battlefield.getByRole('button', { name: destinationLabel!, exact: true }).click()
-    await expect(actionEconomy).not.toHaveAttribute('aria-valuenow', '100')
-
-    // Start the Technique proof on a fresh owner turn so its AP budget cannot depend on movement.
     await finishAction.click()
+    const finalTurn = page.waitForResponse('**/api/battles/*/final-turn')
+    const recruitTurn = page.waitForResponse('**/api/battles/*/recruit-turn')
     await finishAction.press('KeyD')
-    await expect(actionEconomy).toHaveAttribute('aria-valuenow', '100', { timeout: 15000 })
+    const handedOff = await finalTurn
+    expect(handedOff.status()).toBe(200)
+    const handedOffVersion = (await handedOff.json()).battle.battleVersion as number
+    const returned = await recruitTurn
+    expect(returned.status()).toBe(200)
+    expect(returned.request().postDataJSON().expectedBattleVersion).toBe(handedOffVersion)
+    expect((await returned.json()).battle.battleVersion).toBeGreaterThan(handedOffVersion)
     await expect(battleRoot).toHaveAttribute('data-local-turn', 'true')
+    await expect(actionEconomy).toHaveAttribute('aria-valuenow', '100')
   }
 
   const adjacentPlayer = tileCoordinates(
@@ -463,12 +451,28 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   )
   expect(adjacentPlayer).not.toBeNull()
   expect(adjacentRecruit).not.toBeNull()
+  expect(adjacentPlayer).toEqual(playerSpawn)
   expect(tileDistance(adjacentPlayer!, adjacentRecruit!)).toBe(1)
+  await expect(playerTile).toHaveAttribute('aria-label', /; elevation 0;/)
+  await expect(battlefield.getByRole('button', { name: /occupied by Recruit/ })).toHaveAttribute(
+    'aria-label',
+    /; elevation 0;/,
+  )
 
   const technique = commandDeck.getByRole('button', {
     name: /^Selected Forceful Strike, 45 AP(?:,|$)/,
   })
+  const skillPreview = page.waitForResponse('**/api/battles/*/preview')
   await technique.click()
+  const forecastResponse = await skillPreview
+  expect(forecastResponse.status()).toBe(200)
+  const legalForecast = (await forecastResponse.json()).battlePreview
+  expect(legalForecast.preview, JSON.stringify(legalForecast)).toMatchObject({
+    actionId: 'vanguard.forceful-strike',
+    legal: true,
+    actionEconomyBefore: 100,
+    actionEconomyAfter: 55,
+  })
   await expect(technique).toHaveAttribute('aria-pressed', 'true')
   await expect(actionEconomy).toHaveAttribute('aria-valuenow', '100')
   const actor = tileCoordinates(
@@ -483,7 +487,19 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   )!
   const direction =
     enemy.x > actor.x ? 'KeyD' : enemy.x < actor.x ? 'KeyA' : enemy.y > actor.y ? 'KeyS' : 'KeyW'
+  const skillCommit = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'POST' &&
+      /\/(intents|commit)$/.test(new URL(response.url()).pathname),
+  )
   await page.keyboard.press(direction)
+  const committedSkill = await skillCommit
+  expect(committedSkill.status()).toBe(200)
+  expect(committedSkill.request().postDataJSON()).toMatchObject({
+    expectedBattleVersion: legalForecast.battleVersion,
+    intent: { kind: 'action', actionId: 'vanguard.forceful-strike' },
+  })
+  expect((await committedSkill.json()).battle.battleVersion).toBe(legalForecast.battleVersion + 1)
   await expect(actionEconomy).toHaveAttribute('aria-valuenow', '55', { timeout: 8000 })
   // The committed cooldown replaces the armed preview; no unusable Skill stays selected.
   await expect(technique).toBeDisabled()
