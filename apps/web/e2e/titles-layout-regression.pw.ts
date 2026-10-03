@@ -38,7 +38,11 @@ test('default portrait gallery is modal, cancels safely, and locks after its one
   await dialog.getByRole('button', { name: 'Close', exact: true }).click()
   await page.reload()
   await expect(choose).toHaveCount(0)
-  await expect(page.getByText('Default portrait choice used.', { exact: true })).toBeVisible()
+  await expect(
+    page
+      .locator('section[aria-labelledby="profile-image-heading"]')
+      .getByText('Default portrait choice used.', { exact: true }),
+  ).toBeVisible()
   await expect(page.getByRole('button', { name: 'Save Profile Image', exact: true })).toBeVisible()
 })
 
