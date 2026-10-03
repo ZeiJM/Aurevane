@@ -9,7 +9,7 @@ function disciplineName(id: string): string {
   return id.replace(/[._-]/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
 }
 
-function resultRecipient(effect: CombatEffectDefinition): string {
+export function resonanceResultRecipient(effect: CombatEffectDefinition): string {
   switch (effect.recipient) {
     case 'actor':
       return 'Self'
@@ -58,14 +58,15 @@ export function resonanceCharacteristicRows(
         ]
       : []),
   ]
-  const recipients = [...new Set(mechanics.resultEffects.map(resultRecipient))]
+  const recipients = [...new Set(mechanics.resultEffects.map(resonanceResultRecipient))]
   return skillInformationRows<string | readonly string[]>({
     'Skill Type': 'Passive · Resonance',
     Cost: 'N/A',
     Cooldown: 'N/A',
     Requirements: requirements,
     Effects: skillEffectSummaries({ effects: mechanics.resultEffects }).map(
-      (summary, index) => `${summary} → ${resultRecipient(mechanics.resultEffects[index]!)}`,
+      (summary, index) =>
+        `${summary} → ${resonanceResultRecipient(mechanics.resultEffects[index]!)}`,
     ),
     Range: 'N/A',
     Target: recipients.join('; ') || 'N/A',

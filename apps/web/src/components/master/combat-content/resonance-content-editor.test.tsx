@@ -39,6 +39,22 @@ function option(
 }
 
 describe('Master Panel Resonance v2 editor', () => {
+  it('presents Resonance results with Skill effect highlights and explanation bullets', () => {
+    const markup = renderToStaticMarkup(
+      createElement(ResonanceContentEditor, {
+        resonances: [option('wildwarden', 'edgedancer')],
+      }),
+    )
+    const preview = markup.match(
+      /<section[^>]*aria-label="Resonance Skill preview"[^>]*>([\s\S]*?)<\/section>/,
+    )?.[1]
+    expect(preview).toContain('data-compact-effect-magnitude="true">[4]</span>')
+    expect(preview).toContain('→ Self')
+    expect(preview).toContain('<ul aria-label="Effect explanations">')
+    expect(preview).toContain('Restores MP to you.')
+    expect(preview).toContain('Another Discipline Skill expires the armed Setup.')
+  })
+
   it('previews every passive Skill field in the shared order without inventing independent targeting', () => {
     const resonance = option('lifebinder', 'vanguard')
     const markup = renderToStaticMarkup(

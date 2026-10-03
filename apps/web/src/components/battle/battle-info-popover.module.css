@@ -83,16 +83,10 @@
   margin-block: 0.35rem;
 }
 .panel[data-battle-info-layout='wide'] dl > div {
-  display: block;
+  grid-template-columns: 7.5rem minmax(0, 1fr);
   break-inside: avoid;
   margin-bottom: 0.25rem;
   padding-bottom: 0.2rem;
-}
-.panel[data-battle-info-layout='wide'] :is(dt, dd) {
-  display: inline;
-}
-.panel[data-battle-info-layout='wide'] dt::after {
-  content: ': ';
 }
 .panel[data-battle-info-page='true'] {
   position: absolute;

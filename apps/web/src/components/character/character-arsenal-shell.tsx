@@ -22,10 +22,7 @@ import {
   skillParameterRows,
   skillTargetingDetails,
 } from './skill-detail-presentation'
-import {
-  resonanceCharacteristicRows,
-  resonanceSupplementalRows,
-} from './resonance-detail-presentation'
+import { ResonanceParameters } from './resonance-parameters'
 import { SkillCharacteristicRows } from './skill-characteristic-rows'
 import styles from './character-arsenal-shell.module.css'
 
@@ -75,10 +72,7 @@ function ResonanceHoverPreview({ resonance }: { resonance: AnyResonanceDefinitio
       }
     >
       <aside id={`resonance-preview-${resonance.id}`} role="tooltip">
-        <dl>
-          <SkillCharacteristicRows rows={resonanceCharacteristicRows(resonance)} />
-          <SkillCharacteristicRows rows={resonanceSupplementalRows(resonance)} />
-        </dl>
+        <ResonanceParameters definition={resonance} />
       </aside>
     </BattleInfoPopover>
   )

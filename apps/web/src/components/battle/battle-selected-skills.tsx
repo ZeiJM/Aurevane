@@ -7,11 +7,7 @@ import {
   formatCombatKeybind,
   type CombatKeybindMap,
 } from '@aurevane/validation/player/combat-controls'
-import {
-  resonanceCharacteristicRows,
-  resonanceSupplementalRows,
-} from '../character/resonance-detail-presentation'
-import { SkillCharacteristicRows } from '../character/skill-characteristic-rows'
+import { ResonanceParameters } from '../character/resonance-parameters'
 import { BattleInfoPopover } from './battle-info-popover'
 import { battleCooldownLabel } from './battle-action-cooldown'
 import { BattleSkillCooldown } from './battle-skill-cooldown'
@@ -194,15 +190,7 @@ export function BattleSelectedSkills({
               hotkey={formatCombatKeybind(bindings.essence)}
             >
               <p>{runtime.resonance.description}</p>
-              <strong>Parameters</strong>
-              <dl>
-                <SkillCharacteristicRows
-                  rows={resonanceCharacteristicRows(runtime.resonance.definition)}
-                />
-                <SkillCharacteristicRows
-                  rows={resonanceSupplementalRows(runtime.resonance.definition)}
-                />
-              </dl>
+              <ResonanceParameters definition={runtime.resonance.definition} />
             </SkillControls>
             <small>Resonance · Passive</small>
           </>

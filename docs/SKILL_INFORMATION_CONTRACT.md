@@ -19,6 +19,8 @@ Owner-approved 2026-10-02. This is the minimum report for **every full Skill det
 
 All ten labels must appear exactly once, in this order. Applicable additional information follows them: area geometry, recipient/friendly-fire behavior, effect explanations, trigger timing, caps, repeat-use rules and mode overrides. A compact action bar, forecast or card may summarize information, but its full detail view must provide the complete minimum report. Do not enlarge or reflow the fixed battle cockpit/forecast to hold this report.
 
+Owner refinement 2026-10-02: Resonance uses the same aligned label/value rows, highlighted effect magnitudes/durations and explanation bullets as active Skills. Keep recipient labels beside each compact Result. Mode, Setup and Trigger follow the ten fields; Trigger targeting and full effect explanations remain readable below. Nexus, battle-pinned reports and Master draft previews share `ResonanceParameters`, without changing passive mechanics or inventing independent costs/cooldowns.
+
 ## N/A, None and unavailable history
 
 Use **N/A only for genuinely inapplicable fields**. Do not hide the label, display an empty value, replace a numerical zero with N/A, or imply that an active action has no cost/cooldown because metadata is missing. **None** describes an applicable rule with no prerequisite/cooldown. **Unavailable** honestly describes missing immutable historical metadata; never reconstruct old battle mechanics from today's catalogue.
