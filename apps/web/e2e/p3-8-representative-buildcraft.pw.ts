@@ -292,7 +292,31 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
     const priorViewport = page.viewportSize()!
     await commandDeck.getByRole('button', { name: "About Mercy's Edge", exact: true }).click()
     const report = page.getByRole('dialog', { name: "Mercy's Edge", exact: true })
-    await page.setViewportSize({ width: 844, height: 390 })
+    await page.setViewportSize({ width: 844, height: 400 })
+    // Give the compact report a clear fit margin, independent of fractional font metrics.
+    await expect(report).toHaveAttribute('data-battle-info-page', 'false')
+    await expect
+      .poll(() =>
+        report.evaluate((panel) => {
+          const bounds = panel.getBoundingClientRect()
+          return (
+            getComputedStyle(panel).position === 'fixed' &&
+            bounds.top >= 8 &&
+            bounds.bottom <= innerHeight - 7 &&
+            panel.scrollHeight <= panel.clientHeight + 1
+          )
+        }),
+      )
+      .toBe(true)
+    expect(
+      await page.evaluate(() =>
+        [document.documentElement, document.body].every(
+          (node) => getComputedStyle(node).overflowY === 'hidden',
+        ),
+      ),
+    ).toBe(true)
+    // Retain the complete oversized-report fallback in a genuinely shorter viewport.
+    await page.setViewportSize({ width: 844, height: 200 })
     await expect(report).toHaveAttribute('data-battle-info-page', 'true')
     await expect
       .poll(() =>

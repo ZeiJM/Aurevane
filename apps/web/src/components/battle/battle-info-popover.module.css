@@ -174,5 +174,5 @@
 :global(body:has([data-battle-info-page='true'])) {
   height: auto !important;
   overflow-y: auto !important;
-  overscroll-behavior-y: auto;
+  overscroll-behavior-y: auto !important;
 }
