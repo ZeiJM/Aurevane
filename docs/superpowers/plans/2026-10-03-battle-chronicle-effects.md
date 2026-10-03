@@ -67,6 +67,8 @@ Current application candidate is `172d276b9cfaa2b2a3daa46fd7cf97b0bcda0222` on `
 ### Task 5: Integration and release
 
 - [x] Inspect every worker diff, resolve interface conflicts and update docs/ledger to the final scope.
-- [ ] Run full `pnpm check`, relevant local database/authoring tests, independent review and exact-head remote workflows.
-- [ ] Refresh Main and reconcile overlaps; rewrite PR #809 title/body around the final implementation.
-- [ ] Merge only the verified candidate, release through config-only deployment gating, verify exact READY source/alias and smoke, then restore the lock with evidence. Authenticated live smoke is bounded by the existing unsuccessful sign-in; do not claim unavailable evidence.
+- [x] Run full `pnpm check`, relevant local database/authoring tests, independent review and exact-head remote workflows.
+- [x] Refresh Main and reconcile overlaps; rewrite PR #809 title/body around the final implementation.
+- [x] Merge only the verified candidate, release through config-only deployment gating, verify exact READY source/alias and smoke, then restore the lock with evidence. Authenticated live smoke is bounded by the existing unsuccessful sign-in; do not claim unavailable evidence.
+
+Release: verified candidate `990d6c3`, application merge `8a0f1f6`, Production source `96b468dc`, hosted timing migration `20261003040911` and READY deployment `dpl_AFvAEsDpi49ovcvaS6XdnJmPZ1t9`. Full evidence and retained testing limits: `docs/superpowers/verification/2026-10-03-battle-chronicle-effects.md`.
