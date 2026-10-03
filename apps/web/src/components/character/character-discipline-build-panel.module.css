@@ -71,6 +71,8 @@
 }
 
 .dialog {
+  position: relative;
+  isolation: isolate;
   display: grid;
   width: min(79rem, 96vw);
   height: min(46rem, 92dvh);
@@ -89,6 +91,19 @@
   box-shadow:
     0 1.6rem 5rem rgba(0, 0, 0, 0.48),
     inset 0 0 0 1px rgba(255, 255, 255, 0.56);
+}
+
+/* Decorative only: the archive sits behind the library, comparisons, and real controls. */
+.dialog::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: url('/media/art/concept-ui/archive-v01.webp') center bottom / cover no-repeat;
+  filter: grayscale(1) sepia(0.35);
+  opacity: 0.08;
+  mask-image: linear-gradient(transparent 8%, #000 65%);
 }
 
 .header {

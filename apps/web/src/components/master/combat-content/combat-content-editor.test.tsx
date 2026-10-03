@@ -1,5 +1,6 @@
 import { createElement } from 'react'
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
+import { resolveEssenceForBuild } from '@aurevane/game-core/combat/essence'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -8,6 +9,7 @@ vi.mock('next/navigation', () => ({
 }))
 
 import { CombatContentEditor, type CombatContentEditorSkillOption } from './combat-content-editor'
+import { EssenceContentEditor } from './essence-content-editor'
 
 const skills: readonly CombatContentEditorSkillOption[] = [
   {
@@ -40,6 +42,34 @@ const skills: readonly CombatContentEditorSkillOption[] = [
 ]
 
 describe('Master Panel combat content editor shell', () => {
+  it('keeps Essence action text independently editable from its catalogue flavor', () => {
+    const definition = resolveEssenceForBuild('vanguard', null)!
+    const markup = renderToStaticMarkup(
+      createElement(EssenceContentEditor, {
+        essences: [
+          {
+            id: definition.essenceId,
+            sourceDisciplineId: definition.sourceDisciplineId,
+            label: definition.name,
+            currentVersion: definition.contentVersion,
+            baseVersion: definition.contentVersion,
+            draftVersion: null,
+            derivedTags: [],
+            definition: {
+              ...definition,
+              flavorLine: 'Catalogue flavor stays separate.',
+              skill: { ...definition.skill, battleText: '{actor} raises {ability}.' },
+            },
+            history: [],
+          },
+        ],
+      }),
+    )
+    expect(markup).toContain('aria-label="Essence in-battle text"')
+    expect(markup).toContain('value="{actor} raises {ability}."')
+    expect(markup).toContain('value="Catalogue flavor stays separate."')
+    expect(markup).toContain('aria-label="Battle narration tokens"')
+  })
   it('renders real Discipline and Skill selectors with stable ids', () => {
     const markup = renderToStaticMarkup(
       createElement(CombatContentEditor, {
@@ -119,6 +149,7 @@ describe('Master Panel combat content editor shell', () => {
     expect(markup).toContain('<legend>Media</legend>')
     expect(markup).toContain('aria-label="Skill artwork hook"')
     expect(markup).toContain('aria-label="Player-facing flavor line"')
+    expect(markup).toContain('aria-label="Skill in-battle text"')
     expect(markup).toContain('aria-label="Battle narration tokens"')
     expect(markup).toContain('aria-label="Battle narration sample"')
     expect(markup).toContain('aria-label="Neutral historical narration preview"')

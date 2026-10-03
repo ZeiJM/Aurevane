@@ -401,6 +401,31 @@ export function EssenceContentEditor({ essences, initialEssenceId }: EssenceCont
                 ability={selectedDraft.name}
                 onChange={(flavorLine) => updateDraft({ ...selectedDraft, flavorLine })}
               />
+              <label className={styles.field}>
+                <span>In-battle text</span>
+                <input
+                  aria-label="Essence in-battle text"
+                  maxLength={160}
+                  value={skill.battleText ?? ''}
+                  onChange={(event) => {
+                    const next = { ...skill }
+                    if (event.currentTarget.value.trim())
+                      next.battleText = event.currentTarget.value
+                    else Reflect.deleteProperty(next, 'battleText')
+                    updateDraft({ ...selectedDraft, skill: next })
+                  }}
+                />
+                <small className={styles.fieldHint}>
+                  Describe the action in battle. Leave blank to use the default action narration.
+                </small>
+              </label>
+              <BattleFlavorTemplateHelp
+                value={skill.battleText ?? ''}
+                ability={selectedDraft.name}
+                onChange={(battleText) =>
+                  updateDraft({ ...selectedDraft, skill: { ...skill, battleText } })
+                }
+              />
             </fieldset>
 
             <SkillTargetingEditor

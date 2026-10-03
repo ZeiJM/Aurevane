@@ -34,16 +34,10 @@ describe('passive Resonance Skill information', () => {
       'Target Elevation': 'N/A',
       'Line of Sight': 'N/A',
     })
-    expect(JSON.stringify(Object.fromEntries(rows).Requirements)).toContain('next Discipline Skill')
+    expect(Object.fromEntries(rows).Requirements).toBe('Lifebinder · heal')
+    expect(JSON.stringify(Object.fromEntries(rows).Effects)).toContain('Vanguard · attack + melee:')
     const supplemental = Object.fromEntries(resonanceSupplementalRows(definition))
-    expect(supplemental.Mode).toBe('Sequence Resonance')
-    expect(supplemental.Setup).toContain('Lifebinder')
-    expect(supplemental.Trigger).toContain('Vanguard')
-    expect(supplemental['Trigger targeting']).toBeUndefined()
-    expect(JSON.stringify(Object.fromEntries(rows).Requirements)).toContain('unit selection')
-    expect(JSON.stringify(Object.fromEntries(rows).Requirements)).toContain(
-      'Uses the Trigger Skill’s range',
-    )
+    expect(Object.keys(supplemental)).toEqual(['Result details'])
     expect(supplemental['Result details']).not.toEqual([])
   })
 
@@ -68,13 +62,16 @@ describe('passive Resonance Skill information', () => {
     }
     const rows = Object.fromEntries(resonanceCharacteristicRows(definition))
     expect(rows.Target).toBe('Self; Trigger Skill affected units')
-    expect(rows.Effects).toEqual(['Healing [3] → Self', 'Dmg [2] → Trigger Skill affected units'])
+    expect(rows.Effects).toEqual([
+      'Farstrider · attack + ranged: Healing [3]',
+      'Farstrider · attack + ranged: Dmg [2] → Trigger Skill affected units',
+    ])
     expect(rows.Range).toBe('N/A')
     expect(JSON.stringify(rows.Requirements)).not.toContain('next Discipline Skill')
-    expect(Object.fromEntries(resonanceSupplementalRows(definition))).toMatchObject({
-      Mode: 'Immediate Resonance',
-      Setup: 'N/A',
-    })
+    expect(rows.Requirements).toBe('N/A')
+    expect(Object.keys(Object.fromEntries(resonanceSupplementalRows(definition)))).toEqual([
+      'Result details',
+    ])
   })
 
   it('reports absent pinned mechanics as unavailable rather than inventing triggers or effects', () => {
@@ -102,8 +99,6 @@ describe('passive Resonance Skill information', () => {
     const rows = Object.fromEntries(resonanceCharacteristicRows(definition))
     expect(rows.Target).toBe('Trigger Skill affected tiles')
     expect(JSON.stringify(rows.Effects)).toContain('→ Trigger Skill affected tiles')
-    expect(Object.fromEntries(resonanceSupplementalRows(definition)).Mode).toBe(
-      'Sequence Resonance',
-    )
+    expect(Object.fromEntries(resonanceSupplementalRows(definition)).Mode).toBeUndefined()
   })
 })

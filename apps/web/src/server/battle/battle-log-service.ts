@@ -48,6 +48,7 @@ export interface BattleLogEntry {
     name: string
     description: string
     flavor: string | null
+    battleText?: string | null
     narrator?: { actor: BattleNarratorIdentitySnapshot; target?: BattleNarratorIdentitySnapshot }
   }
   round: number | null

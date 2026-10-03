@@ -59,6 +59,38 @@ function render(entries: readonly BattleLogEntry[]) {
 }
 
 describe('approved Battle Chronicle', () => {
+  it('keeps movement-only rounds with one short move per actor per round', () => {
+    const html = render([
+      entry(1, 0, 'combatant_moved', { round: 1 }),
+      entry(2, 0, 'combatant_moved', { round: 1 }),
+      entry(3, 0, 'combatant_moved', { round: 1, actorCombatantId: enemy }),
+      entry(4, 0, 'combatant_moved', { round: 2 }),
+    ])
+    expect(html).toContain('ROUND 1')
+    expect(html.match(/Zei moves\./gu)).toHaveLength(2)
+    expect(html.match(/Weon moves\./gu)).toHaveLength(1)
+  })
+
+  it('puts a miss recorded before the command beneath that command', () => {
+    const html = render([
+      entry(1, 0, 'stat_driven_attack_resolved', { templateValues: { outcome: 'MISSED' } }),
+      { ...technique(1), eventIndex: 1 },
+    ])
+    expect(html.match(/data-chronicle-action=/gu)).toHaveLength(1)
+    expect(html.indexOf('Hollow Reflection')).toBeLessThan(html.indexOf('The strike misses Weon.'))
+    expect(html).toContain('data-outcome-tone="neutral"')
+  })
+
+  it('shows a recorded hit even if it has no damage event, and marks missing results honestly', () => {
+    const html = render([
+      entry(1, 0, 'stat_driven_attack_resolved', { templateValues: { outcome: 'HIT' } }),
+      { ...technique(1), eventIndex: 1 },
+      technique(2),
+    ])
+    expect(html).toContain('The strike hits Weon.')
+    expect(html).toContain('No outcome recorded.')
+    expect(html).not.toContain('0 damage')
+  })
   it('renders pinned identities and authorized outcome pronouns without rewriting old scenes', () => {
     const command = technique(1)
     command.actionContext = {

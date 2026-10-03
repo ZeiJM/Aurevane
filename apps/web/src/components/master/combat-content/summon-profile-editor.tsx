@@ -7,6 +7,7 @@ import type {
 } from '@aurevane/game-core/combat/summon-content'
 
 import styles from './combat-content-editor.module.css'
+import { BattleFlavorTemplateHelp } from './battle-flavor-template-help'
 import { SkillEffectListEditor } from './skill-effect-list-editor'
 import { SkillTargetingEditor } from './skill-targeting-editor'
 
@@ -406,6 +407,26 @@ export function SummonProfileEditor({ value, onChange }: SummonProfileEditorProp
               />
             </label>
 
+            <label className={styles.field}>
+              <span>In-battle text</span>
+              <input
+                aria-label={`Summon ability ${index + 1} in-battle text`}
+                maxLength={160}
+                placeholder="{actor} calls upon {ability}."
+                value={ability.battleText ?? ''}
+                onChange={(event) => {
+                  const next = { ...ability }
+                  if (event.currentTarget.value.trim()) next.battleText = event.currentTarget.value
+                  else Reflect.deleteProperty(next, 'battleText')
+                  updateAbility(index, next)
+                }}
+              />
+            </label>
+            <BattleFlavorTemplateHelp
+              value={ability.battleText ?? ''}
+              ability={ability.name}
+              onChange={(battleText) => updateAbility(index, { ...ability, battleText })}
+            />
             <SkillTargetingEditor
               value={ability.target}
               v51Rules

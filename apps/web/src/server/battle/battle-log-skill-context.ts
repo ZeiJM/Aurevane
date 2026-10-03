@@ -3,7 +3,10 @@ import 'server-only'
 import type { BattleEventRecord } from '@aurevane/db/battle-session'
 import { parseCopiedSkillCommandId } from '@aurevane/game-core/combat/combat-skill-copy'
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
-import { battleFlavorTemplateIssues } from '@aurevane/game-core/combat/battle-narration'
+import {
+  battleFlavorTemplateIssues,
+  defaultSkillBattleText,
+} from '@aurevane/game-core/combat/battle-narration'
 import { resolveEssenceForBuild } from '@aurevane/game-core/combat/essence'
 import { resolveResonanceForPair } from '@aurevane/game-core/combat/resonance'
 import type { CombatEffectOrigin } from '@aurevane/game-core/combat/actions'
@@ -61,7 +64,10 @@ function copyGrant(
   }
 }
 
-function precedes(grant: BattleEventRecord, record: BattleEventRecord): boolean {
+function precedes(
+  grant: Pick<BattleEventRecord, 'battleVersion' | 'eventIndex'>,
+  record: Pick<BattleEventRecord, 'battleVersion' | 'eventIndex'>,
+): boolean {
   return (
     grant.battleVersion < record.battleVersion ||
     (grant.battleVersion === record.battleVersion && grant.eventIndex <= record.eventIndex)
@@ -149,6 +155,7 @@ export async function attachRecordedBattleLogSkillContext(
               )
               .join(' '),
             flavor: safeFlavor(definition.flavorLine),
+            battleText: safeFlavor(definition.battleText) ?? defaultSkillBattleText(definition),
           })
           sourceDisciplines.set(referenceKey(reference), definition.sourceDisciplineId)
         } catch {
@@ -178,9 +185,15 @@ export async function attachRecordedBattleLogSkillContext(
     authority,
     resolver,
   )
+  const summonView = await attachRecordedSummonSkillContext(
+    extensionView,
+    projected,
+    authority,
+    resolver,
+  )
   return {
-    ...extensionView,
-    entries: extensionView.entries.map((entry) => {
+    ...summonView,
+    entries: summonView.entries.map((entry) => {
       const record = records.get(recordKey(entry))
       const effectOrigin = record
         ? verifiedRecordedEffectOrigin(entry, record, authority, visibleGrants)
@@ -362,6 +375,8 @@ async function attachRecordedBuildExtensionContext(
               name: definition.name,
               description: definition.description,
               flavor: safeFlavor(definition.flavorLine),
+              battleText:
+                safeFlavor(definition.skill.battleText) ?? defaultSkillBattleText(definition.skill),
             })
           } else {
             const reference = build.extensions.resonance!
@@ -404,6 +419,96 @@ async function attachRecordedBuildExtensionContext(
       const key = keys.get(entry)
       const actionContext = key ? contexts.get(key) : undefined
       return actionContext ? { ...entry, actionContext } : entry
+    }),
+  }
+}
+
+/** Visible spawn receipts pin ability names/text even after a summon is removed from live state. */
+async function attachRecordedSummonSkillContext(
+  view: BattleLogView,
+  projected: readonly BattleEventRecord[],
+  authority: BattleBuildAuthoritySnapshot,
+  resolver?: ContextResolver,
+): Promise<BattleLogView> {
+  const sources = new Map<
+    string,
+    { record: BattleEventRecord; skillId: string; version: number; profileId: string }
+  >()
+  for (const record of projected) {
+    const event = eventObject(record)
+    if (
+      event?.event !== 'summon_spawned' ||
+      typeof event.combatantId !== 'string' ||
+      typeof event.sourceSkillId !== 'string' ||
+      typeof event.sourceSkillVersion !== 'number' ||
+      typeof event.profileId !== 'string'
+    )
+      continue
+    sources.set(event.combatantId, {
+      record,
+      skillId: event.sourceSkillId,
+      version: event.sourceSkillVersion,
+      profileId: event.profileId,
+    })
+  }
+  const contexts = new Map<string, SkillContext>()
+  const activeSources = new Set(
+    view.entries.filter((entry) => entry.actionId).map((entry) => entry.actorCombatantId),
+  )
+  const pending = [...sources.entries()].filter(([id]) => activeSources.has(id))
+  let nextIndex = 0
+  await Promise.all(
+    Array.from({ length: Math.min(4, pending.length) }, async () => {
+      while (nextIndex < pending.length) {
+        const [id, source] = pending[nextIndex++]!
+        try {
+          const definition =
+            authority.catalogVersion === 3
+              ? await resolver?.resolvePinnedSkillDefinition(source.skillId, source.version)
+              : resolveMatureSkillVersion(source.skillId, source.version)
+          if (
+            !definition?.enabled ||
+            definition.id !== source.skillId ||
+            definition.contentVersion !== source.version ||
+            definition.summonProfile?.id !== source.profileId
+          )
+            continue
+          for (const ability of definition.summonProfile.abilities)
+            contexts.set(`${id}:${ability.id}`, {
+              family: 'skill',
+              skillId: ability.id,
+              contentId: ability.id,
+              contentVersion: source.version,
+              name: ability.name,
+              description: ability.description,
+              flavor: null,
+              battleText: safeFlavor(ability.battleText) ?? defaultSkillBattleText(ability),
+              narrator: { actor: { name: definition.summonProfile.name } },
+            })
+        } catch {
+          /* Optional pinned prose must not block recorded outcomes. */
+        }
+      }
+    }),
+  )
+  return {
+    ...view,
+    entries: view.entries.map((entry) => {
+      const source = entry.actorCombatantId ? sources.get(entry.actorCombatantId) : undefined
+      const context = contexts.get(`${entry.actorCombatantId}:${entry.actionId}`)
+      const target = entry.targetCombatantId
+        ? authority.combatants.find((build) => build.combatantId === entry.targetCombatantId)
+            ?.narratorIdentity
+        : undefined
+      return source && context && precedes(source.record, entry)
+        ? {
+            ...entry,
+            actionContext: {
+              ...context,
+              narrator: { ...context.narrator!, ...(target ? { target: { ...target } } : {}) },
+            },
+          }
+        : entry
     }),
   }
 }

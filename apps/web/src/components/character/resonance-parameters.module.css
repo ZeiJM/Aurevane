@@ -1,5 +1,9 @@
 .report {
   min-width: 0;
+  padding: 0.5rem;
+  color: #b8c7cc;
+  background: #0a202b;
+  font: 400 0.875rem/1.25 var(--av-font-body);
 }
 
 .report .effectRow :global([data-compact-skill-effect]) {
@@ -7,9 +11,9 @@
   margin: 0;
 }
 
-.report :global([data-compact-effect-magnitude]),
-.report :global([data-compact-effect-duration]) {
-  color: var(--resonance-effect-accent, #775019);
+.report dl :global([data-compact-effect-magnitude]),
+.report dl :global([data-compact-effect-duration]) {
+  color: #e1b758;
   font-weight: 650;
 }
 
@@ -20,4 +24,32 @@
 
 .report li + li {
   margin-top: 0.25rem;
+}
+
+.report dl {
+  display: block !important;
+  columns: auto !important;
+  margin: 0;
+  border: 1px solid rgb(183 199 212 / 20%);
+  background: rgb(4 17 25 / 42%);
+}
+.report dl > div {
+  display: grid;
+  grid-template-columns: minmax(7.1rem, max-content) minmax(0, 1fr) !important;
+  gap: 0.65rem;
+  padding: 0.22rem 0.5rem;
+  border-bottom: 1px solid rgb(183 199 212 / 14%);
+}
+.report dl dt {
+  color: #b8c7cc;
+  font-weight: 400;
+}
+.report dl dd {
+  color: #f0e8dc;
+  margin: 0;
+  text-align: right;
+  font-weight: 650;
+}
+.report dl > div:last-child {
+  border-bottom: 0;
 }

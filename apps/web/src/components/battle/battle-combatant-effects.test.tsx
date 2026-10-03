@@ -19,6 +19,12 @@ function render(statusId?: string, stacks = 1) {
   return renderToStaticMarkup(<BattleCombatantEffects name="Archer" statuses={statuses} />)
 }
 describe('combatant effect presentation', () => {
+  it('uses only the accessible effect popover without a native hover tooltip', () => {
+    const markup = render('root')
+    expect(markup).toContain('aria-haspopup="dialog"')
+    expect(markup).toContain('aria-describedby=')
+    expect(markup).not.toContain(' title=')
+  })
   it('shows both the advantage and drawback of a mixed effect', () => {
     const markup = render('fortified')
     expect(markup).toContain('Damage received')

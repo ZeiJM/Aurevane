@@ -302,3 +302,60 @@
     flex: 1 1 auto;
   }
 }
+
+.defaultPortrait {
+  width: min(52rem, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid var(--av-border-strong);
+  color: #30382e;
+  background: #d3c5ac;
+  overflow: auto;
+}
+.defaultPortrait::backdrop {
+  background: #02080dd1;
+}
+.portraitHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.portraitHeading h2 {
+  margin: 0;
+  font: 550 1.5rem/1.15 var(--av-font-display);
+}
+.portraitActions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 0.5rem;
+}
+.portraitActions > button {
+  flex: 1;
+}
+.portraitGallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr));
+  gap: 0.5rem;
+  max-height: 24rem;
+  overflow: auto;
+}
+.portraitGallery label {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.3rem;
+  border: 2px solid transparent;
+  cursor: pointer;
+}
+.portraitGallery label[data-selected='true'] {
+  border-color: #743f31;
+}
+.portraitGallery img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+.portraitGallery span {
+  font-size: 0.7rem;
+}
