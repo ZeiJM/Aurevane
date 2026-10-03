@@ -1,3 +1,5 @@
+import { defaultCombatEffectTimingPolicy } from '@aurevane/game-core/combat/combat-effect-timing'
+import type { SkillEffectTimingPolicy } from '../character/skill-effect-timing-context'
 import { skillInformationRows } from '../character/skill-information-contract'
 import {
   combatInteractionDescription,
@@ -47,9 +49,11 @@ export interface PreviewChip {
 
 export function battleSkillParameterRows(
   skill: BattleSkillForecastPresentation,
+  timingPolicy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
+  copyPolicyVersion: number | null = 1,
 ): readonly (readonly [string, string])[] {
   if (skill.definition) {
-    return skillParameterRows(skill.definition, skill)
+    return skillParameterRows(skill.definition, skill, timingPolicy, copyPolicyVersion)
   }
   // Legacy presentations may not retain an immutable definition. Never infer missing
   // mechanics from a current catalogue or silently describe unknown fields as inapplicable.
@@ -157,6 +161,25 @@ function bleedStateLabel(state: { damage: number; ticks: number }): string {
   return `${state.damage} dmg × ${state.ticks} tick${state.ticks === 1 ? '' : 's'}`
 }
 
+function parseRecoveryCopyState(
+  value: string,
+): { resource: 'hp' | 'mp'; amount: number; ticks: number } | null {
+  const parts = value.split(':')
+  if (parts.length !== 4 || parts[0] !== 'recovery' || (parts[1] !== 'hp' && parts[1] !== 'mp'))
+    return null
+  const amount = parseProjectedInteger(parts[2]!)
+  const ticks = parseProjectedInteger(parts[3]!)
+  return amount === null || ticks === null ? null : { resource: parts[1], amount, ticks }
+}
+
+function recoveryCopyStateLabel(state: {
+  resource: 'hp' | 'mp'
+  amount: number
+  ticks: number
+}): string {
+  return `${state.amount} ${state.resource.toUpperCase()} × ${countLabel(state.ticks, 'tick')}`
+}
+
 function copyStatusPreviewChip(effect: ProjectedEffect): PreviewChip | null {
   if (
     effect.effectType !== 'copy-statuses' ||
@@ -164,6 +187,39 @@ function copyStatusPreviewChip(effect: ProjectedEffect): PreviewChip | null {
     typeof effect.after !== 'string'
   ) {
     return null
+  }
+
+  if (effect.after === 'concealed' && effect.statusId === 'beneficial-copy') {
+    return {
+      label: `Copy beneficial effects${effect.activationRound === undefined ? '' : ` · Starts round ${effect.activationRound}`} · Details hidden by Covert`,
+      tone: 'effect',
+    }
+  }
+
+  if (effect.after.startsWith('barrier:')) {
+    const parts = effect.after.split(':')
+    const after = parts.length === 2 ? parseProjectedInteger(parts[1]!) : null
+    if (after === null) return null
+    const beforeParts = effect.before.split(':')
+    const before =
+      beforeParts.length === 2 && beforeParts[0] === 'barrier'
+        ? parseProjectedInteger(beforeParts[1]!)
+        : null
+    return {
+      label: `Copied Barrier · ${before === null || before === after ? after : `${before}→${after}`} shield`,
+      tone: 'effect',
+    }
+  }
+  if (effect.after.startsWith('recovery:')) {
+    const after = parseRecoveryCopyState(effect.after)
+    if (!after) return null
+    const before = parseRecoveryCopyState(effect.before)
+    const afterLabel = recoveryCopyStateLabel(after)
+    const beforeLabel = before?.resource === after.resource ? recoveryCopyStateLabel(before) : null
+    return {
+      label: `Copied ${after.resource.toUpperCase()} Recovery · ${beforeLabel === null || beforeLabel === afterLabel ? afterLabel : `${beforeLabel} → ${afterLabel}`}`,
+      tone: 'effect',
+    }
   }
 
   const ordinaryAfter = parseOrdinaryCopyState(effect.after)

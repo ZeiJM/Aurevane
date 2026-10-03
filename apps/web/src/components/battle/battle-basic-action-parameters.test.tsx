@@ -50,7 +50,16 @@ describe('inherent action characteristics', () => {
       if (slot === 'move' || slot === 'attack' || slot === 'guard') {
         expect(markup.match(/data-compact-skill-effect="true"/g)).toHaveLength(1)
         expect(markup.match(/data-compact-effect-magnitude="true"/g)).toHaveLength(1)
-        expect(markup.match(/data-compact-effect-duration="true"/g)).toHaveLength(1)
+        if (label === 'Guard') {
+          expect(markup.match(/data-compact-effect-duration="true"/g)).toHaveLength(1)
+        } else {
+          expect(markup).not.toContain('data-compact-effect-duration')
+        }
+        if (slot === 'move' || label === 'HP Recovery' || label === 'MP Recovery') {
+          expect(markup).toContain('data-compact-effect-timing="true">[Instant]</span>')
+        } else {
+          expect(markup).not.toContain('data-compact-effect-timing')
+        }
         expect(markup).toMatch(/<ul[^>]*aria-label="Effect explanations"[^>]*><li><strong>/)
       }
       if (slot === 'guard') {

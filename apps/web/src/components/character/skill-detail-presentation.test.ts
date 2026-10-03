@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
+import { defaultCombatEffectTimingPolicy } from '@aurevane/game-core/combat/combat-effect-timing'
 import {
   compactSkillEffectSummaryParts,
   skillCompactRangeDescription,
@@ -18,6 +19,51 @@ import {
   skillTypeDescription,
   skillParameterRows,
 } from './skill-detail-presentation'
+
+it('marks instant effects from their timing tags, retaining duration and excluding direct damage', () => {
+  const effect = {
+    type: 'apply-status' as const,
+    recipient: 'actor' as const,
+    statusId: 'guarded',
+    stacks: 1,
+    durationTurns: 2,
+  }
+  expect(compactSkillEffectSummaryParts(effect).timing).toBeUndefined()
+  expect(
+    compactSkillEffectSummaryParts(effect, { version: 2, modes: { guarded: 'instant' } }),
+  ).toMatchObject({ duration: '2 Turns', timing: 'Instant' })
+  expect(compactSkillEffectSummaryParts(effect, null).timing).toBe('Instant')
+  expect(
+    compactSkillEffectSummaryParts({ type: 'healing', recipient: 'actor', amount: 5 }).timing,
+  ).toBe('Instant')
+  expect(
+    compactSkillEffectSummaryParts({
+      type: 'resource-change',
+      recipient: 'actor',
+      resource: 'mp',
+      delta: -5,
+    }).timing,
+  ).toBeUndefined()
+  expect(
+    compactSkillEffectSummaryParts(
+      { type: 'resource-change', recipient: 'actor', resource: 'mp', delta: -5 },
+      { version: 2, modes: { 'mp-drain': 'instant' } },
+    ).timing,
+  ).toBe('Instant')
+  expect(
+    compactSkillEffectSummaryParts(
+      { type: 'damage', recipient: 'primary-unit', amount: 9 },
+      defaultCombatEffectTimingPolicy(),
+    ).timing,
+  ).toBeUndefined()
+})
+
+it('keeps configured timing in the text report for mixed damage and utility effects', () => {
+  const skill = resolveMatureSkillVersion('cinderweaver.cinder-bolt')!
+  const summaries = skillEffectSummaries(skill, { version: 2, modes: { burn: 'instant' } })
+  expect(summaries[0]).not.toContain('Instant')
+  expect(summaries[1]).toContain('[Instant]')
+})
 
 describe('Player-facing Skill targeting and effects', () => {
   it('distinguishes ranged area targeting from self recovery without changing the definition', () => {
@@ -204,7 +250,7 @@ it('returns one effect summary per authored effect with positive durations only'
   expect(skillEffectSummaries(siphon)).toEqual([
     expect.stringMatching(/^Dmg \[\d+\]$/),
     expect.stringMatching(/^MP Drain \[\d+\]$/),
-    expect.stringMatching(/^MP Restore \[\d+\]$/),
+    expect.stringMatching(/^MP Restore \[\d+\] \[Instant\]$/),
   ])
   const guard = resolveMatureSkillVersion('runeblade.rune-guard')!
   expect(skillEffectSummaries(guard).some((line) => /\[\d+ Turns?\]$/.test(line))).toBe(true)
@@ -212,7 +258,7 @@ it('returns one effect summary per authored effect with positive durations only'
 
 it('lists authored magnitudes as effects without leaking design tags', () => {
   const siphon = resolveMatureSkillVersion('runeblade.siphon-slash')!
-  expect(skillEffectsSummary(siphon)).toBe('Dmg [13], MP Drain [7], MP Restore [7]')
+  expect(skillEffectsSummary(siphon)).toBe('Dmg [13], MP Drain [7], MP Restore [7] [Instant]')
   expect(skillEffectsSummary({ ...siphon, tags: [...siphon.tags, 'setup', 'melee'] })).toBe(
     skillEffectsSummary(siphon),
   )
@@ -427,4 +473,14 @@ it('keeps area dimensions and distinct recipients in canonical parameter rows', 
   expect(Object.fromEntries(skillParameterRows(friendlyFire)).Target).toBe(
     'Enemy · All units, including allies',
   )
+})
+
+it('uses the pinned historical Copy label throughout the textual report', () => {
+  const skill = resolveMatureSkillVersion('wildwarden.snare')!
+  const copy = {
+    ...skill,
+    effects: [{ type: 'copy' as const, recipient: 'primary-unit' as const }],
+  }
+  expect(skillEffectsSummary(copy, null, null)).toContain('Skill Copy')
+  expect(skillEffectsSummary(copy)).not.toContain('Skill Copy')
 })

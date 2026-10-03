@@ -32,7 +32,7 @@ describe('Master Panel Skill effect list editor', () => {
     )
   })
 
-  it('creates the typed temporary Skill Copy effect without scriptable fields', () => {
+  it('creates the typed beneficial-tag Copy effect without scriptable fields', () => {
     const appended = appendCombatEffect(effects, 'copy')
     expect(appended.at(-1)).toEqual({ type: 'copy', recipient: 'primary-unit' })
   })

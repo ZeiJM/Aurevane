@@ -1,4 +1,5 @@
 import { Kicker, Surface } from '@aurevane/ui'
+import type { ReactNode } from 'react'
 
 import { SiteHeader } from '@/components/shell/site-header'
 import { AudioSettingsMenu } from '@/components/audio/audio-settings-menu'
@@ -11,9 +12,18 @@ import styles from './account-entry-shell.module.css'
 interface AccountEntryShellProps {
   authConfig: BrowserSupabaseConfig | null
   sessionNotice?: string
+  initialRecovery?: boolean
+  heading?: string
+  children?: ReactNode
 }
 
-export function AccountEntryShell({ authConfig, sessionNotice }: AccountEntryShellProps) {
+export function AccountEntryShell({
+  authConfig,
+  sessionNotice,
+  initialRecovery,
+  heading = 'Your journey continues.',
+  children,
+}: AccountEntryShellProps) {
   return (
     <div className={styles.shell} data-testid="account-shell" data-approved-entry="gateway">
       <a className="skip-link" href="#account-main">
@@ -57,8 +67,14 @@ export function AccountEntryShell({ authConfig, sessionNotice }: AccountEntryShe
         >
           <EntryFrame />
           <Kicker marker="◇">Cross the threshold</Kicker>
-          <h2>Your journey continues.</h2>
-          <AccountAccessPanel authConfig={authConfig} initialMessage={sessionNotice} />
+          <h2>{heading}</h2>
+          {children ?? (
+            <AccountAccessPanel
+              authConfig={authConfig}
+              initialMessage={sessionNotice}
+              initialRecovery={initialRecovery}
+            />
+          )}
         </Surface>
       </main>
 

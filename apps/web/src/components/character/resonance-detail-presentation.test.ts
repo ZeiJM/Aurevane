@@ -63,7 +63,7 @@ describe('passive Resonance Skill information', () => {
     const rows = Object.fromEntries(resonanceCharacteristicRows(definition))
     expect(rows.Target).toBe('Self; Trigger Skill affected units')
     expect(rows.Effects).toEqual([
-      'Farstrider · attack + ranged: Healing [3]',
+      'Farstrider · attack + ranged: Healing [3] [Instant]',
       'Farstrider · attack + ranged: Dmg [2] → Trigger Skill affected units',
     ])
     expect(rows.Range).toBe('N/A')

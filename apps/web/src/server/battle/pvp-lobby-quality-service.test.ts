@@ -242,6 +242,7 @@ describe('P3.7 direct PvP committed build snapshots', () => {
       mocks.mapSize = size
       await startPvpLobbyWithQuality(hostUserId, lobbyId)
       const state = mocks.createdBattleArgs!.p_initial_snapshot as BattleAuthoritativeEncounterState
+      expect(state.copyPolicyVersion).toBe(1)
       expect(state.tactical).toMatchObject({ width, height: 7 })
       expect(state.tactical.tiles).toHaveLength(count)
       expect(state.tactical.tiles.at(-1)?.position).toEqual({ x: width - 1, y: 6 })

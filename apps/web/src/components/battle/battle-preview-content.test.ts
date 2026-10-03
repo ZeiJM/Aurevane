@@ -327,3 +327,74 @@ it('keeps legacy rows complete without inferring missing pinned mechanics', () =
     'Line of Sight': 'Unavailable',
   })
 })
+
+it('humanizes copied Barrier and remaining HP/MP recovery schedules from authoritative projections', () => {
+  const result = labels(
+    actionPreview([
+      {
+        effectType: 'copy-statuses',
+        combatantId: 'actor',
+        before: 'barrier:2',
+        after: 'barrier:8',
+      },
+      {
+        effectType: 'copy-statuses',
+        combatantId: 'actor',
+        before: 'none',
+        after: 'recovery:hp:4:2',
+      },
+      {
+        effectType: 'copy-statuses',
+        combatantId: 'actor',
+        before: 'recovery:mp:1:1',
+        after: 'recovery:mp:3:2',
+      },
+    ]),
+  )
+  expect(result).toContain('Copied Barrier · 2→8 shield')
+  expect(result).toContain('Copied HP Recovery · 4 HP × 2 ticks')
+  expect(result).toContain('Copied MP Recovery · 1 MP × 1 tick → 3 MP × 2 ticks')
+  expect(result.join(' ')).not.toMatch(/barrier:|recovery:/u)
+})
+
+it.each(['barrier:NaN', 'barrier:-1', 'recovery:hp:4', 'recovery:xp:4:2', 'recovery:mp:4:NaN'])(
+  'does not expose malformed copied persistent-state encoding %s',
+  (after) => {
+    const result = labels(
+      actionPreview([{ effectType: 'copy-statuses', combatantId: 'actor', before: 'none', after }]),
+    )
+    expect(result.join(' ')).not.toContain(after)
+  },
+)
+
+it('uses a generic Copy forecast when opposing Covert hides donor benefits', () => {
+  const result = labels(
+    actionPreview([
+      {
+        effectType: 'copy-statuses',
+        combatantId: 'actor',
+        before: 'none',
+        after: 'concealed',
+        statusId: 'beneficial-copy',
+      },
+    ]),
+  )
+  expect(result).toContain('Copy beneficial effects · Details hidden by Covert')
+  expect(result.join(' ')).not.toContain('concealed')
+})
+
+it('retains recorded activation timing in a concealed Copy forecast', () => {
+  const result = labels(
+    actionPreview([
+      {
+        effectType: 'copy-statuses',
+        combatantId: 'actor',
+        before: 'none',
+        after: 'concealed',
+        statusId: 'beneficial-copy',
+        activationRound: 6,
+      },
+    ]),
+  )
+  expect(result).toContain('Copy beneficial effects · Starts round 6 · Details hidden by Covert')
+})

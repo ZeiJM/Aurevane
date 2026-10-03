@@ -2,6 +2,10 @@ import {
   defaultCombatEffectTimingPolicy,
   type CombatEffectTimingPolicy,
 } from '@aurevane/game-core/combat/combat-effect-timing'
+import {
+  CURRENT_COMBAT_COPY_POLICY_VERSION,
+  usesBeneficialCombatCopy,
+} from '@aurevane/game-core/combat/combat-status-copy'
 import { omitPendingBattlePayloads } from './battle-live-viewer-projection'
 import 'server-only'
 
@@ -515,6 +519,7 @@ async function resolveIntent(
       if (copiedCommand) {
         if (!copiedCommand.definition || !state.buildAuthority) throw persistenceInvalid()
         const copyContext =
+          !usesBeneficialCombatCopy(state) &&
           copiedCommand.definition.effects.some((effect) => effect.type === 'copy') &&
           intent.target.kind === 'unit'
             ? await resolveBattleSkillCopyContext(
@@ -565,6 +570,7 @@ async function resolveIntent(
           throw invalidBattleIntent('That tagged Technique is no longer available.')
         }
         const copyContext =
+          !usesBeneficialCombatCopy(state) &&
           definition.effects.some((effect) => effect.type === 'copy') &&
           intent.target.kind === 'unit'
             ? await resolveBattleSkillCopyContext(
@@ -690,6 +696,7 @@ export function createBattleSessionService({
       baseEncounter.effectTimingPolicy = readEffectTimingPolicy
         ? await readEffectTimingPolicy()
         : defaultCombatEffectTimingPolicy()
+      baseEncounter.copyPolicyVersion = CURRENT_COMBAT_COPY_POLICY_VERSION
       let encounter: BattleAuthoritativeEncounterState = baseEncounter
       if (builds) {
         if (!committedBuildSnapshot) {

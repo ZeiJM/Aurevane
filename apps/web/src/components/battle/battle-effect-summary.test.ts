@@ -8,6 +8,28 @@ import {
 } from './battle-effect-summary'
 
 describe('battle effect summary', () => {
+  it('compounds recorded Guard/Expose potency instead of the catalog defaults', () => {
+    expect(
+      summarizeBattleEffects([
+        { statusId: 'guarded', statusVersion: 1, stacks: 2, potencyBasisPoints: 1000 },
+      ]),
+    ).toEqual([{ label: 'DMG IN', value: '−19%', tone: 'buff' }])
+    expect(
+      summarizeBattleEffects([
+        { statusId: 'exposed', statusVersion: 1, stacks: 1, potencyBasisPoints: 1100 },
+      ]),
+    ).toEqual([{ label: 'DMG IN', value: '111%', tone: 'debuff' }])
+  })
+
+  it('keeps same-identity effects with different recorded potency independently inspectable', () => {
+    const first = { statusId: 'guarded', statusVersion: 1, stacks: 1, potencyBasisPoints: 1000 }
+    const second = { ...first, potencyBasisPoints: 2000 }
+    expect(aggregateBattleStatusStacks([first, second])).toEqual([first, second])
+    expect(summarizeBattleEffects([first, second])).toEqual([
+      { label: 'DMG IN', value: '−28%', tone: 'buff' },
+    ])
+    expect(summarizeBattleEffects([{ ...second, timingState: 'pending' }])).toEqual([])
+  })
   it('shows Lowered Guard as 250% incoming damage instead of a +150% delta', () => {
     expect(
       summarizeBattleEffects([{ statusId: 'lowered-guard', statusVersion: 1, stacks: 1 }]),

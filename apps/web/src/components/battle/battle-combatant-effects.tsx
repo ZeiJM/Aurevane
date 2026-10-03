@@ -4,6 +4,7 @@ import { PHASE4_STATUSES } from '@aurevane/game-core/combat/status-content'
 import { aggregateBattleStatusStacks, summarizeBattleEffects } from './battle-effect-summary'
 import { BattleInfoPopover } from './battle-info-popover'
 import { describeBattleEffect } from './battle-effect-identity'
+import { statusDamageMultiplierBasisPoints } from '../../lib/status-potency-presentation'
 import styles from './battle-combatant-effects.module.css'
 
 function effectDefinition(effect: CombatStatusInstance) {
@@ -27,7 +28,13 @@ function EffectModifiers({ effect }: { effect: CombatStatusInstance }) {
         </span>
       ))}
       {definition?.damageModifiers?.map((modifier, index) => {
-        const delta = (modifier.multiplierBasisPoints - 10000) / 100
+        const delta =
+          (statusDamageMultiplierBasisPoints(
+            modifier.multiplierBasisPoints,
+            effect.potencyBasisPoints,
+          ) -
+            10000) /
+          100
         const positive = modifier.direction === 'outgoing' ? delta > 0 : delta < 0
         return (
           <span

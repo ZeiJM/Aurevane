@@ -1,3 +1,9 @@
+'use client'
+
+import {
+  useSkillEffectTimingPolicy,
+  useSkillCopyPolicyVersion,
+} from './skill-effect-timing-context'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
 import {
   skillEffectDescription,
@@ -9,10 +15,12 @@ import {
 import styles from './skill-details.module.css'
 
 function SkillDetailBody({ skill }: { skill: MatureSkillDefinition }) {
+  const timingPolicy = useSkillEffectTimingPolicy()
+  const copyPolicyVersion = useSkillCopyPolicyVersion()
   return (
     <>
       <dl>
-        {skillParameterRows(skill).map(([label, value]) => (
+        {skillParameterRows(skill, skill, timingPolicy, copyPolicyVersion).map(([label, value]) => (
           <div key={label}>
             <dt>{label}</dt>
             <dd>{value}</dd>
@@ -40,7 +48,10 @@ function SkillDetailBody({ skill }: { skill: MatureSkillDefinition }) {
       <ol>
         {skill.effects.map((effect, index) => (
           <li key={index}>
-            {skill.effectDescriptions?.[index]?.trim() || skillEffectDescription(effect)}
+            {effect.type === 'copy' && copyPolicyVersion !== null
+              ? skillEffectDescription(effect, copyPolicyVersion)
+              : skill.effectDescriptions?.[index]?.trim() ||
+                skillEffectDescription(effect, copyPolicyVersion)}
           </li>
         ))}
       </ol>

@@ -1,5 +1,9 @@
 'use client'
 
+import {
+  useSkillEffectTimingPolicy,
+  useSkillCopyPolicyVersion,
+} from './skill-effect-timing-context'
 import { CompactSkillEffectSummary } from './compact-skill-effect-summary'
 import { skillPreviewEffects } from './skill-effect-preview'
 
@@ -126,6 +130,8 @@ function sameSelection(left: readonly string[], right: readonly string[]): boole
 }
 
 export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
+  const timingPolicy = useSkillEffectTimingPolicy()
+  const copyPolicyVersion = useSkillCopyPolicyVersion()
   const {
     initialBuildVersion,
     primaryDiscipline,
@@ -198,7 +204,12 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
         : titleCase(focusedSkill.definition.sourceDisciplineId)
     : null
   const focusedCharacteristics: readonly SkillCharacteristic[] = focusedSkill
-    ? skillParameterRows(focusedSkill.definition)
+    ? skillParameterRows(
+        focusedSkill.definition,
+        focusedSkill.definition,
+        timingPolicy,
+        copyPolicyVersion,
+      )
     : []
 
   useEffect(() => {
@@ -669,7 +680,10 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                           </div>
                           <dl className={styles.characteristics}>
                             <SkillCharacteristicRows
-                              rows={basicActionCharacteristicRows(focusedSupportActionId)}
+                              rows={basicActionCharacteristicRows(
+                                focusedSupportActionId,
+                                timingPolicy,
+                              )}
                               effectSummary={
                                 <div className={styles.effectSummaryList}>
                                   <BasicActionEffectSummary id={focusedSupportActionId} />
@@ -740,11 +754,13 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                             className={styles.effectExplanations}
                             aria-label="Effect explanations"
                           >
-                            {skillPreviewEffects(focusedSkill.definition).map((effect) => (
-                              <li key={JSON.stringify(effect)}>
-                                <strong>{effect.label}</strong> — {effect.explanation}
-                              </li>
-                            ))}
+                            {skillPreviewEffects(focusedSkill.definition, copyPolicyVersion).map(
+                              (effect) => (
+                                <li key={JSON.stringify(effect)}>
+                                  <strong>{effect.label}</strong> — {effect.explanation}
+                                </li>
+                              ),
+                            )}
                           </ul>
                         </>
                       ) : (

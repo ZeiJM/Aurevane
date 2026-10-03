@@ -63,6 +63,7 @@ async function getLog(
   resolvePinnedSkillDefinition: CombatContentResolver['resolvePinnedSkillDefinition'],
   options: {
     hidden?: boolean
+    copyPolicyVersion?: 1
     legacy?: boolean
     build?: BattleBuildAuthoritySnapshot
     resolver?: Partial<CombatContentResolver>
@@ -71,6 +72,7 @@ async function getLog(
 ) {
   const authority: BattleHistoryPrivacyAuthority = {
     viewer: createSpectatorBattleViewerEntitlement(),
+    ...(options.copyPolicyVersion ? { copyPolicyVersion: options.copyPolicyVersion } : {}),
     journals: [
       {
         schemaVersion: 1,
@@ -937,4 +939,18 @@ describe('in-battle Skill text', () => {
         ?.target,
     ).toEqual(build.combatants[0]!.narratorIdentity)
   })
+})
+
+it('enriches Copy descriptions from the encounter policy, preserving historical Skill copying', async () => {
+  const skill = definition({
+    effects: [{ type: 'copy', recipient: 'primary-unit' }],
+    effectDescriptions: undefined,
+  })
+  const records = [record({ event: 'combat_action_used', actorId: ACTOR, actionId: SKILL })]
+  const historical = await getLog(records, async () => skill)
+  expect(historical.entries[0]?.actionContext?.description).toContain(
+    'one random eligible regular battle Skill',
+  )
+  const current = await getLog(records, async () => skill, { copyPolicyVersion: 1 })
+  expect(current.entries[0]?.actionContext?.description).toContain('active beneficial effect tags')
 })

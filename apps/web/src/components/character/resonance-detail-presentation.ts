@@ -1,3 +1,5 @@
+import { defaultCombatEffectTimingPolicy } from '@aurevane/game-core/combat/combat-effect-timing'
+import type { SkillEffectTimingPolicy } from './skill-effect-timing-context'
 import type { AnyResonanceDefinition } from '@aurevane/game-core/combat/resonance'
 import type { CombatEffectDefinition } from '@aurevane/game-core/combat/actions'
 import { normalizedResonanceMechanics } from '@aurevane/game-core/combat/resonance-v2'
@@ -32,6 +34,8 @@ export function resonanceMatcher(value: {
 /** Resonance adds effects to its Trigger Skill; it has no independent action or Target Spec. */
 export function resonanceCharacteristicRows(
   definition: AnyResonanceDefinition | null | undefined,
+  timingPolicy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
+  copyPolicyVersion: number | null = 1,
 ): readonly SkillCharacteristic[] {
   if (!definition) {
     return skillInformationRows({
@@ -54,7 +58,11 @@ export function resonanceCharacteristicRows(
     Cost: 'N/A',
     Cooldown: 'N/A',
     Requirements: mechanics.setup ? resonanceMatcher(mechanics.setup) : 'N/A',
-    Effects: skillEffectSummaries({ effects: mechanics.resultEffects }).map(
+    Effects: skillEffectSummaries(
+      { effects: mechanics.resultEffects },
+      timingPolicy,
+      copyPolicyVersion,
+    ).map(
       (summary, index) =>
         `${resonanceMatcher(mechanics.trigger)}: ${summary}${mechanics.resultEffects[index]!.recipient === 'actor' ? '' : ` → ${resonanceResultRecipient(mechanics.resultEffects[index]!)}`}`,
     ),
@@ -69,10 +77,14 @@ export function resonanceCharacteristicRows(
 /** Effect explanations follow the shared ten-field report. */
 export function resonanceSupplementalRows(
   definition: AnyResonanceDefinition | null | undefined,
+  copyPolicyVersion: number | null = 1,
 ): readonly SkillCharacteristic[] {
   if (!definition) return []
   const mechanics = normalizedResonanceMechanics(definition)
   return [
-    ['Result details', mechanics.resultEffects.map((effect) => previewEffect(effect).explanation)],
+    [
+      'Result details',
+      mechanics.resultEffects.map((effect) => previewEffect(effect, copyPolicyVersion).explanation),
+    ],
   ]
 }

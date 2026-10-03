@@ -2,6 +2,7 @@ import type { CombatStatusInstance } from '@aurevane/game-core/combat/actions'
 import { gameplayStatusName } from '../../lib/battle/combat-interaction-presentation'
 import { combatStatusDetails } from '@aurevane/game-core/combat/status-content'
 import { PV1F_COMBAT_CONTENT } from '@aurevane/game-core/combat/pv1f-action-economy'
+import { statusDamageMultiplierBasisPoints } from '../../lib/status-potency-presentation'
 
 const BASIS_POINTS = 10_000
 
@@ -27,6 +28,7 @@ export type BattleStatusSummaryInput = Pick<
       | 'remainingOwnerTurnEnds'
       | 'sourceScopedMark'
       | 'sourceCombatantId'
+      | 'potencyBasisPoints'
     >
   >
 
@@ -79,6 +81,7 @@ export function aggregateBattleStatusStacks<T extends BattleStatusSummaryInput>(
       status.remainingRoundBoundaries,
       status.remainingOwnerTurnEnds ?? status.remainingOwnerTurnStarts,
       status.sourceScopedMark ? status.sourceCombatantId : undefined,
+      status.potencyBasisPoints,
     ])
     const existing = grouped.get(key)
     if (!existing) {
@@ -111,11 +114,13 @@ export function summarizeBattleEffects(
     )
     if (!definition || definition.damageTakenMultiplierBasisPoints === BASIS_POINTS) continue
 
+    const multiplier = statusDamageMultiplierBasisPoints(
+      definition.damageTakenMultiplierBasisPoints,
+      status.potencyBasisPoints,
+    )
     measuredDamageTaken = true
     for (let stack = 0; stack < stacks; stack += 1) {
-      damageTakenMultiplier = Math.round(
-        (damageTakenMultiplier * definition.damageTakenMultiplierBasisPoints) / BASIS_POINTS,
-      )
+      damageTakenMultiplier = Math.round((damageTakenMultiplier * multiplier) / BASIS_POINTS)
     }
   }
 

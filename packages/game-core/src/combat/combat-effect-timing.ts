@@ -81,13 +81,19 @@ export function pendingCombatStatusRows(
   const pendingRows = (state.pendingEffects ?? []).flatMap((pending) => {
     const effect = pending.effect
     const statusId =
-      effect.type === 'apply-status'
-        ? effect.statusId
-        : effect.type === 'barrier-change'
-          ? 'barrier'
-          : combatEffectTimingTag(effect)
+      effect.type === 'copy-statuses' && effect.beneficialEffects === true
+        ? 'beneficial-copy'
+        : effect.type === 'apply-status'
+          ? effect.statusId
+          : effect.type === 'barrier-change'
+            ? 'barrier'
+            : combatEffectTimingTag(effect)
     const definition = pending.content.statuses.find((status) => status.id === statusId)
-    const tuning = effect as typeof effect & { durationTurns?: number; ticks?: number }
+    const tuning = effect as typeof effect & {
+      durationTurns?: number
+      ticks?: number
+      potencyBasisPoints?: number
+    }
     const remaining =
       tuning.durationTurns ??
       tuning.ticks ??
@@ -124,6 +130,9 @@ export function pendingCombatStatusRows(
         statusId,
         statusVersion: definition?.version ?? 1,
         stacks: effect.type === 'apply-status' ? effect.stacks : 1,
+        ...(effect.type === 'apply-status' && tuning.potencyBasisPoints !== undefined
+          ? { potencyBasisPoints: tuning.potencyBasisPoints }
+          : {}),
         sourceCombatantId: pending.actorId,
         remainingOwnerTurnStarts: remaining,
         ...(durationScope

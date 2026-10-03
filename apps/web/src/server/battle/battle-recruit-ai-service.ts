@@ -1,5 +1,6 @@
 import { omitPendingBattlePayloads } from './battle-live-viewer-projection'
 import 'server-only'
+import { usesBeneficialCombatCopy } from '@aurevane/game-core/combat/combat-status-copy'
 
 import { createHash, randomUUID } from 'node:crypto'
 
@@ -234,7 +235,10 @@ async function resolveRecruitSkillOptions(
     string,
     Awaited<ReturnType<typeof resolveBattleSkillCopyContext>>
   > = {}
-  if (all.some((definition) => definition.effects.some((effect) => effect.type === 'copy'))) {
+  if (
+    !usesBeneficialCombatCopy(state) &&
+    all.some((definition) => definition.effects.some((effect) => effect.type === 'copy'))
+  ) {
     for (const source of state.tactical.battle.combatants) {
       const context = await resolveBattleSkillCopyContext(state, actorId, source.id, resolver)
       if (context === null) throw persistenceInvalid('Stored Copy source build is invalid.')

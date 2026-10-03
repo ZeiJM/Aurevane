@@ -1,3 +1,6 @@
+'use client'
+
+import { useSkillEffectTimingPolicy } from './skill-effect-timing-context'
 import {
   basicActionEffectExplanation,
   basicActionEffectSummaryParts,
@@ -6,7 +9,8 @@ import {
 import { CompactEffectSummary } from './compact-skill-effect-summary'
 
 export function BasicActionEffectSummary({ id }: { id: BasicActionPresentationId }) {
-  return <CompactEffectSummary parts={basicActionEffectSummaryParts(id)} />
+  const timingPolicy = useSkillEffectTimingPolicy()
+  return <CompactEffectSummary parts={basicActionEffectSummaryParts(id, timingPolicy)} />
 }
 
 export function BasicActionEffectExplanations({

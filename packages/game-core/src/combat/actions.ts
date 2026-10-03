@@ -23,6 +23,7 @@ import { calculateScaledRawDamage, validateCombatDamageScaling } from './damage-
 import { applyCommittedAbsorbRecovery } from './combat-absorb-recovery'
 import { recordCommittedDamageHistory } from './combat-damage-history'
 import { attachCombatEffectProvenance } from './combat-effect-provenance'
+import { materializeBeneficialCombatCopyAction } from './combat-status-copy'
 import {
   filterBlockedCovertApplication,
   materializeCsrCommittedAction,
@@ -111,6 +112,7 @@ export function evaluateCombatAction(
   selection: legacy.CombatTargetSelection,
   content: legacy.CombatContentCatalog,
 ): CombatActionEvaluation {
+  action = materializeBeneficialCombatCopyAction(state, action)
   validateCombatAccuracyDefinition(action)
   const csrPreviewAction = materializeCsrPreviewAction(action)
   const materialized = materializeVengeanceDamage(state, csrPreviewAction)
@@ -143,6 +145,7 @@ export function executeCombatAction(
   content: legacy.CombatContentCatalog,
   context?: CombatResolutionContext,
 ): CombatResolutionTransition {
+  action = materializeBeneficialCombatCopyAction(state, action)
   validateCombatAccuracyDefinition(action)
   const round = state.tactical.battle.round
   const actorId = state.tactical.battle.currentTurn?.combatantId ?? null

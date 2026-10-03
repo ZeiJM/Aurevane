@@ -12,6 +12,12 @@ import type {
   MatureSkillEffectDefinition,
 } from '@aurevane/game-core/combat/mature-skills'
 import { isMaterializedCombatEffect } from '@aurevane/game-core/combat/summon-content'
+import {
+  combatEffectTimingMode,
+  combatEffectTimingTag,
+  defaultCombatEffectTimingPolicy,
+} from '@aurevane/game-core/combat/combat-effect-timing'
+import type { SkillEffectTimingPolicy } from './skill-effect-timing-context'
 
 function title(value: string): string {
   return value.replace(/[-_]/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
@@ -24,7 +30,10 @@ function recipient(effect: MatureSkillEffectDefinition): string {
   return 'the selected unit'
 }
 
-export function skillEffectDescription(effect: MatureSkillEffectDefinition): string {
+export function skillEffectDescription(
+  effect: MatureSkillEffectDefinition,
+  copyPolicyVersion: number | null = 1,
+): string {
   const target = recipient(effect)
   switch (effect.type) {
     case 'summon':
@@ -68,7 +77,9 @@ export function skillEffectDescription(effect: MatureSkillEffectDefinition): str
         ? 'Copy eligible positive active statuses from the selected unit onto yourself. The selected unit keeps its statuses; copied stacks respect caps and remaining durations are not restarted.'
         : 'Copy eligible negative active statuses from yourself onto the selected unit. You keep the original statuses; copied stacks respect caps and remaining durations are not restarted.'
     case 'copy':
-      return 'Copy one random eligible regular battle Skill from the selected unit for the rest of this battle. The copied Skill keeps its original MP, targeting, effects and requirements, but costs half AP rounded up.'
+      return copyPolicyVersion === null
+        ? 'Copy one random eligible regular battle Skill from the selected unit for the rest of this battle. The copied Skill keeps its original MP, targeting, effects and requirements, but costs half AP rounded up.'
+        : 'Copy the selected unit’s active beneficial effect tags onto yourself. The selected unit keeps its effects; copied stacks respect caps and remaining durations are not restarted.'
     case 'sensory':
       return `Attempt Sensory on ${target}. On a successful hit against Covert, remove eligible positive statuses and Covert, then apply Revealed for ${effect.revealedDurationOwnerTurnStarts} owner-turn starts. Otherwise the Sensory block has no effect.`
     case 'remove-status': {
@@ -83,9 +94,7 @@ export function skillEffectDescription(effect: MatureSkillEffectDefinition): str
           ? `Lasts ${effect.durationTurns} ${effect.durationTurns === 1 ? 'turn' : 'turns'}.`
           : combatStatusDuration(effect.statusId)
       const explanation =
-        effect.potencyBasisPoints !== undefined
-          ? `${preview.explanation}${effect.statusId === 'mark' ? ' Other attackers gain no benefit.' : ''}`
-          : status.description
+        effect.potencyBasisPoints !== undefined ? preview.explanation : status.description
       return `Apply ${effect.stacks} ${gameplayStatusName(effect.statusId)} ${effect.stacks === 1 ? 'stack' : 'stacks'} to ${target}. ${explanation} ${duration}`
     }
   }
@@ -145,13 +154,15 @@ export function skillParameterRows(
   costs: Pick<MatureSkillDefinition, 'apCost' | 'mpCost'> & {
     cooldownOwnerTurns?: number | null
   } = skill,
+  timingPolicy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
+  copyPolicyVersion: number | null = 1,
 ): readonly (readonly [string, string])[] {
   return skillInformationRows({
     'Skill Type': skillTypeDescription(skill),
     Cost: skillCostDescription({ ...skill, ...costs }),
     Cooldown: skillCooldownDescription(skill, costs.cooldownOwnerTurns),
     Requirements: skillRequirementsSummary(skill),
-    Effects: skillEffectsSummary(skill),
+    Effects: skillEffectsSummary(skill, timingPolicy, copyPolicyVersion),
     Range: skillCompactRangeDescription(skill),
     Target: skillTargetRecipientDescription(skill),
     'Target Method': skillTargetMethodDescription(skill),
@@ -164,6 +175,17 @@ export interface CompactSkillEffectSummaryParts {
   label: string
   magnitude: string | null
   duration: string | null
+  timing?: 'Instant'
+}
+
+export function skillEffectInstantTiming(
+  effect: MatureSkillEffectDefinition,
+  policy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
+): 'Instant' | undefined {
+  const tag = effect.type === 'summon' ? 'summon' : combatEffectTimingTag(effect)
+  return effect.type !== 'damage' && combatEffectTimingMode(policy ?? undefined, tag) === 'instant'
+    ? 'Instant'
+    : undefined
 }
 
 function compactDuration(effect: MatureSkillEffectDefinition): string | null {
@@ -188,32 +210,55 @@ function compactMagnitude(effect: MatureSkillEffectDefinition): string | null {
 
 export function compactSkillEffectSummaryParts(
   effect: MatureSkillEffectDefinition,
+  timingPolicy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
+  copyPolicyVersion: number | null = 1,
 ): CompactSkillEffectSummaryParts {
-  const preview = previewEffect(effect)
+  const preview = previewEffect(effect, copyPolicyVersion)
+  const timing = skillEffectInstantTiming(effect, timingPolicy)
   return {
     label: preview.label,
     magnitude: compactMagnitude(effect),
     duration: compactDuration(effect),
+    ...(timing ? { timing } : {}),
   }
 }
 
-function compactEffectSummary(effect: MatureSkillEffectDefinition): string {
-  const { label, magnitude, duration } = compactSkillEffectSummaryParts(effect)
-  return [label, magnitude ? `[${magnitude}]` : null, duration ? `[${duration}]` : null]
+function compactEffectSummary(
+  effect: MatureSkillEffectDefinition,
+  timingPolicy: SkillEffectTimingPolicy,
+  copyPolicyVersion: number | null,
+): string {
+  const { label, magnitude, duration, timing } = compactSkillEffectSummaryParts(
+    effect,
+    timingPolicy,
+    copyPolicyVersion,
+  )
+  return [
+    label,
+    magnitude ? `[${magnitude}]` : null,
+    duration ? `[${duration}]` : null,
+    timing ? `[${timing}]` : null,
+  ]
     .filter((part): part is string => part !== null)
     .join(' ')
 }
 
 export function skillEffectSummaries(
   skill: Pick<MatureSkillDefinition, 'effects'>,
+  timingPolicy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
+  copyPolicyVersion: number | null = 1,
 ): readonly string[] {
-  return skill.effects.map(compactEffectSummary)
+  return skill.effects.map((effect) =>
+    compactEffectSummary(effect, timingPolicy, copyPolicyVersion),
+  )
 }
 
 export function skillEffectsSummary<Skill extends Pick<MatureSkillDefinition, 'effects'>>(
   skill: Skill,
+  timingPolicy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
+  copyPolicyVersion: number | null = 1,
 ): string {
-  return skillEffectSummaries(skill).join(', ') || 'N/A'
+  return skillEffectSummaries(skill, timingPolicy, copyPolicyVersion).join(', ') || 'N/A'
 }
 
 export function skillRequirementsSummary(
@@ -333,7 +378,7 @@ function unitAffectedDescription(skill: Pick<MatureSkillDefinition, 'target'>): 
 
 function recoveryTiming(ticks: number | undefined): string {
   if (ticks === undefined || ticks <= 1) return ''
-  return ` ${ticks} total applications: once immediately, then once at each of the recipient's next ${ticks - 1} end-of-turn boundaries. Amount is per application; recovery cannot revive a defeated unit.`
+  return ` ${ticks} total applications: once when the effect activates, then once at each of the recipient's next ${ticks - 1} end-of-turn boundaries. Amount is per application; recovery cannot revive a defeated unit.`
 }
 
 export function skillDisplayName(skill: MatureSkillDefinition): string {

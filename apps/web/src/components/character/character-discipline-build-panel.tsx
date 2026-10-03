@@ -230,7 +230,10 @@ export function DisciplineLibrary({
           >
             <FoundationDisciplineSigil disciplineId={definition.id} className={styles.cardSigil} />
             <span className={styles.cardCopy}>
-              <strong>{definition.name}</strong>
+              <strong>
+                {selectedId === definition.id ? <span aria-hidden="true">✓ </span> : null}
+                {definition.name}
+              </strong>
               <FocusBadges disciplineId={definition.id} />
             </span>
           </button>
@@ -753,7 +756,7 @@ export function CharacterDisciplineBuildPanel({
                             <p>{committedDisciplineSummary(current.definition.summary)}</p>
                             <small>
                               {activeSlot === 'primary'
-                                ? 'Editing Primary · Choose from library'
+                                ? '✓ Editing Primary'
                                 : 'Click to edit Primary'}
                             </small>
                           </div>
@@ -785,7 +788,7 @@ export function CharacterDisciplineBuildPanel({
                               <p>{committedDisciplineSummary(currentSecondary.summary)}</p>
                               <small>
                                 {activeSlot === 'secondary'
-                                  ? 'Editing Secondary · Choose from library'
+                                  ? '✓ Editing Secondary'
                                   : 'Click to edit Secondary'}
                               </small>
                             </div>
@@ -817,7 +820,7 @@ export function CharacterDisciplineBuildPanel({
                               <p>A second discipline awaits.</p>
                               <small>
                                 {activeSlot === 'secondary'
-                                  ? 'Editing Secondary · Choose from library'
+                                  ? '✓ Editing Secondary'
                                   : 'Click to edit Secondary'}
                               </small>
                             </div>

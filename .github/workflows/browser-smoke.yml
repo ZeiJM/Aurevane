@@ -94,6 +94,14 @@ jobs:
             select public.activate_phase4_discipline_rebalance_v1();
           "
 
+          # Prove real recovery email and expired-link handling before longer gameplay scenarios.
+          AUREVANE_ENV=local \
+          NEXT_PUBLIC_AUREVANE_ENV=local \
+          NEXT_PUBLIC_SUPABASE_URL="$api_url" \
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY" \
+          SUPABASE_SECRET_KEY="$server_key" \
+          pnpm --filter @aurevane/web exec playwright test e2e/password-reset.pw.ts
+
           # Catch shared battle composition regressions before the longer all-page run.
           # A successful candidate still runs the entire suite and the Edge keyboard checks below.
           AUREVANE_ENV=local \

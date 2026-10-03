@@ -10,6 +10,28 @@ const USER_ID = '11111111-1111-4111-8111-111111111111'
 const SESSION_ID = '33333333-3333-4333-8333-333333333333'
 
 describe('sanitized battle log service', () => {
+  it('labels pending current Copy as beneficial effects while retaining historical Copy wording', () => {
+    const result = buildBattleLogView(
+      SESSION_ID,
+      ['beneficial-copy', 'copy'].map((effectTag, eventIndex) => ({
+        battleVersion: 1,
+        eventIndex,
+        createdAt: '2026-10-03T00:00:00.000Z',
+        event: {
+          event: 'effect_pending',
+          actionId: 'test.copy',
+          sourceCombatantId: 'character:player-1',
+          targetCombatantId: 'character:player-1',
+          activationRound: 2,
+          effectTag,
+        },
+      })),
+    )
+    expect(result.entries.find((entry) => entry.eventIndex === 0)?.headline).toBe(
+      'Copy beneficial effects',
+    )
+    expect(result.entries.find((entry) => entry.eventIndex === 1)?.headline).toBe('Copy')
+  })
   it('projects committed events into rich readable entries without returning raw resolution payloads', async () => {
     const repository: BattleEventRepository = {
       findBattleEvents: vi.fn(async () => [

@@ -51,6 +51,7 @@ const STATUS_TAG_ALIASES: Readonly<Record<string, GameplayTag>> = {
 }
 
 const STATUS_PRESENTATION_TAGS: Readonly<Record<string, string>> = {
+  'beneficial-copy': 'Copy beneficial effects',
   guarded: 'Guard',
   exposed: 'Expose',
   wet: 'Wet',

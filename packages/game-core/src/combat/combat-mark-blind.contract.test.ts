@@ -190,6 +190,55 @@ function context(actorId: string, chainId: string): CombatResolutionContext {
 }
 
 describe('Mark and Blind: public-entry contract', () => {
+  it.each(['guarded', 'inspired', 'hexed', 'warded', 'mark', 'reckless', 'fortified', 'exposed'])(
+    'does not interpret authored %s potency as an actor Blind penalty',
+    (statusId) => {
+      const content = { statuses: [...PV1F_COMBAT_CONTENT.statuses, MARK, BLIND] }
+      const state = executeCombatAction(
+        world(),
+        {
+          ...statusAction(statusId),
+          effects: [
+            {
+              type: 'apply-status',
+              recipient: 'actor',
+              statusId,
+              stacks: 1,
+              potencyBasisPoints: 2000,
+            },
+          ],
+        },
+        TARGET,
+        content,
+      ).state
+      expect(chance(state, content)).toBe(5000)
+      const committed = executeCombatAction(state, attack(), TARGET, content)
+      expect(committed.events).toContainEqual(
+        expect.objectContaining({
+          event: 'combat_accuracy_resolved',
+          hitChanceBasisPoints: 5000,
+        }),
+      )
+      const blinded = executeCombatAction(
+        state,
+        {
+          ...statusAction(BLIND.id),
+          effects: [
+            {
+              type: 'apply-status',
+              recipient: 'actor',
+              statusId: BLIND.id,
+              stacks: 1,
+              potencyBasisPoints: 1100,
+            },
+          ],
+        },
+        TARGET,
+        content,
+      ).state
+      expect(chance(blinded, content)).toBe(3900)
+    },
+  )
   it('adds fifteen percentage points for the Mark source, not fifteen percent of accuracy', () => {
     expect(chance(apply(world(), MARK.id))).toBe(6_500)
   })

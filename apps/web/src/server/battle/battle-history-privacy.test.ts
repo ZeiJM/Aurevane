@@ -541,3 +541,54 @@ describe('CSR-3 viewer-relative historical projection', () => {
     expect(projectBattleHistoryForViewer(records, [], opponent)).toEqual(records)
   })
 })
+
+it('conceals all current Copy benefits in a command that gains Covert, including earlier named effects and typed pools', () => {
+  const before = encounter()
+  before.copyPolicyVersion = 1
+  const after = encounter({ actorStatuses: [status('airborne', ACTOR), status('covert', ACTOR)] })
+  const events = [
+    { event: 'combat_action_used', actorId: ACTOR, actionId: 'test.copy' },
+    {
+      event: 'status_applied',
+      sourceCombatantId: ACTOR,
+      targetCombatantId: ACTOR,
+      statusId: 'airborne',
+    },
+    {
+      event: 'status_applied',
+      sourceCombatantId: ACTOR,
+      targetCombatantId: ACTOR,
+      statusId: 'covert',
+    },
+    { event: 'barrier_changed', sourceCombatantId: ACTOR, targetCombatantId: ACTOR, amount: 30 },
+    {
+      event: 'recovery_scheduled',
+      sourceCombatantId: ACTOR,
+      targetCombatantId: ACTOR,
+      amountPerTick: 8,
+    },
+  ]
+  const journal = {
+    ...buildBattlePrivacyJournalInput({ before, after, commandKind: 'action', events }),
+    battleVersion: 9,
+    actorCombatantId: ACTOR,
+    actorTeamId: 'team:a',
+    eventCount: events.length,
+  }
+  const records = events.map((event, index) => record(9, index, event))
+  for (const viewer of [
+    deriveParticipantBattleViewerEntitlement(before.tactical.battle.combatants, [TARGET]),
+    createSpectatorBattleViewerEntitlement(),
+  ]) {
+    expect(
+      projectBattleHistoryForViewer(records, [journal], viewer).map((row) => row.event),
+    ).toEqual([events[0]])
+  }
+  expect(
+    projectBattleHistoryForViewer(
+      records,
+      [journal],
+      deriveParticipantBattleViewerEntitlement(before.tactical.battle.combatants, [ACTOR]),
+    ),
+  ).toEqual(records)
+})

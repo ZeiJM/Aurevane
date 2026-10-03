@@ -12,7 +12,8 @@
 }
 
 .report dl :global([data-compact-effect-magnitude]),
-.report dl :global([data-compact-effect-duration]) {
+.report dl :global([data-compact-effect-duration]),
+.report dl :global([data-compact-effect-timing]) {
   color: #e1b758;
   font-weight: 650;
 }

@@ -1,6 +1,7 @@
 import type { CombatStatusInstance } from '@aurevane/game-core/combat/actions'
 import { combatStatusDetails, PHASE4_STATUSES } from '@aurevane/game-core/combat/status-content'
 import { statusLabel } from './battle-effect-summary'
+import { statusPotencyDescription } from '../../lib/status-potency-presentation'
 
 /** Stable reading codes preserve distinct identities, including historical Mark. */
 const identifiers: Readonly<Record<string, string>> = {
@@ -47,6 +48,7 @@ const identifiers: Readonly<Record<string, string>> = {
   'remove-status': 'CLR',
   'copy-statuses': 'ECP',
   copy: 'CPY',
+  'beneficial-copy': 'BCP',
   sensory: 'SEN',
   summon: 'ENT',
 }
@@ -61,7 +63,10 @@ export function battleEffectIdentity(statusId: string) {
 }
 
 export function describeBattleEffect(effect: CombatStatusInstance) {
-  const identity = battleEffectIdentity(effect.statusId)
+  const identity = {
+    ...battleEffectIdentity(effect.statusId),
+    description: statusPotencyDescription(effect.statusId, effect.potencyBasisPoints),
+  }
   const count =
     effect.durationScope === 'rounds'
       ? (effect.remainingRoundBoundaries ?? null)

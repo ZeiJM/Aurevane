@@ -54,6 +54,7 @@
     "./combat/gameplay-tags": "./src/combat/gameplay-tags.ts",
     "./combat/terrain-overlays": "./src/combat/terrain-overlays.ts",
     "./combat/combat-skill-copy": "./src/combat/combat-skill-copy.ts",
+    "./combat/combat-status-copy": "./src/combat/combat-status-copy.ts",
     "./events/persistent-event": "./src/events/persistent-event.ts",
     "./combat/combat-dots": "./src/combat/combat-dots.ts",
     "./combat/combat-level-scaling": "./src/combat/combat-level-scaling.ts",

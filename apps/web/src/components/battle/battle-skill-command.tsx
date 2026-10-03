@@ -1,5 +1,6 @@
 'use client'
 
+import { useSkillEffectTimingPolicy } from '../character/skill-effect-timing-context'
 import Image from 'next/image'
 
 import {
@@ -106,6 +107,7 @@ export function BattleSkillCommand({
   tags?: readonly string[]
   children?: ReactNode
 }) {
+  const timingPolicy = useSkillEffectTimingPolicy()
   const informationId = useId()
   const [selectorOpen, setSelectorOpen] = useState(false)
   const [selectorStyle, setSelectorStyle] = useState<CSSProperties>({})
@@ -243,7 +245,7 @@ export function BattleSkillCommand({
           <strong>Parameters</strong>
           <dl>
             <SkillCharacteristicRows
-              rows={commandCharacteristicRows(slot, label, cost)}
+              rows={commandCharacteristicRows(slot, label, cost, timingPolicy)}
               effectSummary={basicActionId ? <BasicActionEffectSummary id={basicActionId} /> : null}
             />
           </dl>

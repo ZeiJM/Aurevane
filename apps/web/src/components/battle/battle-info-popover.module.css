@@ -109,7 +109,12 @@
   display: block;
   margin: 0.25rem 0;
 }
-.panel :is([data-compact-effect-magnitude], [data-compact-effect-duration]) {
+.panel
+  :is(
+    [data-compact-effect-magnitude],
+    [data-compact-effect-duration],
+    [data-compact-effect-timing]
+  ) {
   color: #775019;
   font-weight: 650;
 }

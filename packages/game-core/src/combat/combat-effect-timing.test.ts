@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { pendingCombatStatusRows } from './combat-effect-timing'
 import { createPendingBattle, startBattle } from './battle-state'
 import {
   createTacticalBattleState,
@@ -562,4 +563,25 @@ it('forecasts delayed terrain and support lifetimes without changing the encount
     ]),
   )
   expect(state).toEqual(before)
+})
+
+it('retains authored status potency in the pending icon projection', () => {
+  const cast = executeCombatAction(
+    encounter(),
+    {
+      ...action,
+      effects: [
+        {
+          type: 'apply-status',
+          recipient: 'primary-unit',
+          statusId: 'hexed',
+          stacks: 1,
+          potencyBasisPoints: 2500,
+        },
+      ],
+    },
+    { kind: 'unit', combatantId: 'actor1' },
+    content,
+  )
+  expect(pendingCombatStatusRows(cast.state)[0]?.status.potencyBasisPoints).toBe(2500)
 })

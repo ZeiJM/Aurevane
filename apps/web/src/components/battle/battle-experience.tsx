@@ -1,5 +1,7 @@
 'use client'
 
+import { SkillEffectTimingProvider } from '../character/skill-effect-timing-context'
+
 import { isBattleShortcutBlocked as isTextEntryTarget } from './battle-keyboard-scope'
 
 import {
@@ -217,9 +219,7 @@ function describeRecruitTurn(
     parts.push('Guarded (-15% damage)')
   }
   if (afterRecruitPlacement) {
-    parts.push(
-      `finished facing ${afterRecruitPlacement.facing} ${facingGlyph(afterRecruitPlacement.facing)}`,
-    )
+    parts.push(`finished facing ${afterRecruitPlacement.facing}`)
   }
 
   return parts.length > 0
@@ -227,7 +227,21 @@ function describeRecruitTurn(
     : `${recruitName} turn resolved.`
 }
 
-export function BattleExperience({
+export function BattleExperience(props: {
+  initialBattle: BattleSessionView
+  runtime: BattleRuntime
+}) {
+  return (
+    <SkillEffectTimingProvider
+      policy={props.initialBattle.snapshot.effectTimingPolicy ?? null}
+      copyPolicyVersion={props.initialBattle.snapshot.copyPolicyVersion ?? null}
+    >
+      <BattleExperienceContent {...props} />
+    </SkillEffectTimingProvider>
+  )
+}
+
+function BattleExperienceContent({
   initialBattle,
   runtime,
 }: {
@@ -877,7 +891,7 @@ export function BattleExperience({
           setNotice(
             runtime.kind === 'pvp'
               ? 'Committing final facing and ending turn…'
-              : `Finishing facing ${intent.facing} ${facingGlyph(intent.facing)}…`,
+              : `Finishing facing ${intent.facing}…`,
           )
         }
 
@@ -942,9 +956,7 @@ export function BattleExperience({
           }
         } else {
           if (intent.kind === 'face') {
-            setNotice(
-              `Finished facing ${intent.facing} ${facingGlyph(intent.facing)}. Recruit turn begins.`,
-            )
+            setNotice(`Finished facing ${intent.facing}. Recruit turn begins.`)
           } else if (intent.kind === 'move') {
             setNotice(`Movement committed. ${remaining} AP remains.`)
           } else if (intent.kind === 'action' && intent.actionId === BASIC_ATTACK_ID) {
