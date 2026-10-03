@@ -109,7 +109,11 @@ export async function expectReadableBattleLog(
     )
     expect(await reader.locator('[data-chronicle-actor] h3').count()).toBeGreaterThan(0)
     for (const action of await actions.all()) {
-      await expect(action.locator(':scope > h4')).not.toHaveText('')
+      if ((await action.getAttribute('data-chronicle-family')) === 'movement') {
+        await expect(action.locator(':scope > p')).toHaveText(/.+ moves\./)
+      } else {
+        await expect(action.locator(':scope > h4')).not.toHaveText('')
+      }
       expect(await action.locator(':scope > p').count()).toBeGreaterThan(0)
     }
   }

@@ -4,6 +4,44 @@ import { expect, test, type Page } from '@playwright/test'
 
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
+test('default portrait gallery is modal, cancels safely, and locks after its one persisted choice', async ({
+  page,
+}) => {
+  test.setTimeout(90_000)
+  await provisionAccountAndEnterCharacter({
+    page,
+    email: `portrait-choice-${Date.now()}@example.com`,
+    password: 'AurevaneTest!42',
+    characterName: 'Portrait Wayfarer',
+  })
+  await page.goto('/game/account/titles')
+  const choose = page.getByRole('button', { name: 'Choose Default Portrait', exact: true })
+  const dialog = page.getByRole('dialog', { name: 'Default portrait', exact: true })
+  await expect(dialog).toBeHidden()
+  await choose.click()
+  await expect(dialog.getByRole('radio')).toHaveCount(64)
+  await page.keyboard.press('Escape')
+  await expect(dialog).toBeHidden()
+  await expect(choose).toBeFocused()
+  await choose.click()
+  await dialog.getByRole('radio', { name: 'Female adventurer 02', exact: true }).check()
+  await dialog.getByRole('checkbox', { name: /one default portrait change/ }).check()
+  const receipt = page.waitForResponse(
+    (response) =>
+      response.url().endsWith('/api/account/default-portrait') && response.status() === 200,
+  )
+  await dialog.getByRole('button', { name: 'Confirm Default Portrait', exact: true }).click()
+  const body = await (await receipt).json()
+  expect(body.choice.portraitRef).toBe('portrait.adventure.female-02')
+  expect(body.choice.changedAt).toEqual(expect.any(String))
+  await expect(dialog.getByText('Default portrait choice used.', { exact: true })).toBeVisible()
+  await dialog.getByRole('button', { name: 'Close', exact: true }).click()
+  await page.reload()
+  await expect(choose).toHaveCount(0)
+  await expect(page.getByText('Default portrait choice used.', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Save Profile Image', exact: true })).toBeVisible()
+})
+
 async function settle(page: Page) {
   await page.evaluate(async () => {
     await document.fonts.ready

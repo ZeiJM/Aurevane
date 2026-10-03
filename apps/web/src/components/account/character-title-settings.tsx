@@ -5,7 +5,7 @@ import { AurevaneImage } from '@/components/media/aurevane-image'
 import { getStarterPortraitImageAssetId } from '@/media/character'
 import type { CharacterPortraitRef } from '@aurevane/game-core/character/creation'
 import { useRouter } from 'next/navigation'
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 
 import { SettingsScene } from '@/components/settings/settings-scene'
 import styles from './character-title-settings.module.css'
@@ -135,6 +135,7 @@ export function CharacterTitleSettings({
   const [portraitPending, setPortraitPending] = useState(false)
   const [portraitUsedAt, setPortraitUsedAt] = useState(portraitChoiceUsedAt)
   const [portraitMessage, setPortraitMessage] = useState<string | null>(null)
+  const portraitDialog = useRef<HTMLDialogElement>(null)
   async function saveDefaultPortrait() {
     if (
       !portraitDraft ||
@@ -285,8 +286,25 @@ export function CharacterTitleSettings({
           ) : null}
         </section>
 
-        <section className={styles.defaultPortrait} aria-labelledby="default-portrait-heading">
-          <h2 id="default-portrait-heading">Default portrait</h2>
+        <dialog
+          ref={portraitDialog}
+          className={styles.defaultPortrait}
+          aria-labelledby="default-portrait-heading"
+          onCancel={(event) => {
+            if (portraitPending) event.preventDefault()
+          }}
+        >
+          <header className={styles.portraitHeading}>
+            <h2 id="default-portrait-heading">Default portrait</h2>
+            <button
+              type="button"
+              className={styles.quietButton}
+              disabled={portraitPending}
+              onClick={() => portraitDialog.current?.close()}
+            >
+              Close
+            </button>
+          </header>
           {portraitUsedAt ? (
             <p>Default portrait choice used.</p>
           ) : !portraitChoiceAvailable ? (
@@ -357,7 +375,7 @@ export function CharacterTitleSettings({
               {portraitMessage}
             </p>
           ) : null}
-        </section>
+        </dialog>
 
         <section className={styles.profileImage} aria-labelledby="profile-image-heading">
           <div>
@@ -409,14 +427,27 @@ export function CharacterTitleSettings({
               portrait.
             </small>
           </label>
-          <button
-            type="button"
-            className={styles.reviewButton}
-            onClick={() => void saveImage()}
-            disabled={imagePending || Boolean(currentHostMessage)}
-          >
-            {imagePending ? 'Saving…' : 'Save Profile Image'}
-          </button>
+          <div className={styles.portraitActions}>
+            <button
+              type="button"
+              className={styles.reviewButton}
+              onClick={() => void saveImage()}
+              disabled={imagePending || Boolean(currentHostMessage)}
+            >
+              {imagePending ? 'Saving…' : 'Save Profile Image'}
+            </button>
+            {portraitChoiceAvailable && !portraitUsedAt ? (
+              <button
+                type="button"
+                className={styles.quietButton}
+                aria-haspopup="dialog"
+                onClick={() => portraitDialog.current?.showModal()}
+              >
+                Choose Default Portrait
+              </button>
+            ) : null}
+          </div>
+          {portraitUsedAt ? <p className={styles.message}>Default portrait choice used.</p> : null}
           {currentHostMessage ? <p className={styles.message}>{currentHostMessage}</p> : null}
           {imageMessage && imageMessage !== currentHostMessage ? (
             <p className={styles.message} role="status" aria-live="polite">

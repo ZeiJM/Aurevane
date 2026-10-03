@@ -29,6 +29,9 @@ describe('Portrait & Title settings', () => {
     expect(markup).toContain('name="default-portrait"')
     expect(markup).toContain('This character can change its default portrait only once.')
     expect(markup.match(/name="default-portrait"/gu)).toHaveLength(64)
+    expect(markup).toContain('Choose Default Portrait')
+    expect(markup).toContain('<dialog')
+    expect(markup).not.toContain('<dialog open')
     const locked = renderToStaticMarkup(
       createElement(CharacterTitleSettings, {
         ...character,

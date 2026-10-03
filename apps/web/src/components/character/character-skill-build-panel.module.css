@@ -62,6 +62,8 @@
 
 .dialog {
   --av-gameplay-art-size: var(--av-cockpit-art-size);
+  position: relative;
+  isolation: isolate;
   display: grid;
   width: min(100rem, 97vw);
   height: min(50rem, calc(100dvh - 1.5rem));
@@ -78,6 +80,19 @@
   box-shadow:
     0 1.6rem 5rem rgba(0, 0, 0, 0.48),
     inset 0 0 0 1px rgba(255, 255, 255, 0.56);
+}
+
+/* Decorative only: the training courtyard fades beneath the existing opaque reading panels. */
+.dialog::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: url('/media/art/concept-ui/training-v01.webp') center bottom / cover no-repeat;
+  filter: grayscale(1) sepia(0.35);
+  opacity: 0.08;
+  mask-image: linear-gradient(transparent 8%, #000 65%);
 }
 
 .header {
