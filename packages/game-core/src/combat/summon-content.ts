@@ -1,3 +1,4 @@
+import { battleFlavorTemplateIssues } from './battle-narration'
 import type { CombatEffectDefinition, CombatTargetSpec, CombatUseRequirement } from './actions'
 
 export const SUMMON_PROFILE_SCHEMA_VERSION = 1 as const
@@ -27,6 +28,7 @@ export interface SummonAbilityDefinition {
   readonly id: string
   readonly name: string
   readonly description: string
+  readonly battleText?: string
   readonly apCost: number
   readonly mpCost: number
   readonly tags: readonly string[]
@@ -82,6 +84,8 @@ function validAbility(ability: SummonAbilityDefinition): boolean {
     STABLE_ID_PATTERN.test(ability.id) &&
     ability.name.trim().length > 0 &&
     ability.description.trim().length > 0 &&
+    (ability.battleText === undefined ||
+      battleFlavorTemplateIssues(ability.battleText).length === 0) &&
     positiveSafeInteger(ability.apCost) &&
     ability.apCost <= 100 &&
     nonNegativeSafeInteger(ability.mpCost) &&

@@ -16,6 +16,30 @@ const character = {
 }
 
 describe('Portrait & Title settings', () => {
+  it('offers the default gallery and permanent-choice confirmation only while available', () => {
+    const markup = renderToStaticMarkup(
+      createElement(CharacterTitleSettings, {
+        ...character,
+        portraitChoiceAvailable: true,
+        portraitChoiceUsedAt: null,
+        portraitRef: 'portrait.adventure.male-01',
+      }),
+    )
+    expect(markup).toContain('Confirm Default Portrait')
+    expect(markup).toContain('name="default-portrait"')
+    expect(markup).toContain('This character can change its default portrait only once.')
+    expect(markup.match(/name="default-portrait"/gu)).toHaveLength(64)
+    const locked = renderToStaticMarkup(
+      createElement(CharacterTitleSettings, {
+        ...character,
+        portraitChoiceAvailable: true,
+        portraitChoiceUsedAt: '2026-10-03T00:00:00Z',
+      }),
+    )
+    expect(locked).not.toContain('Confirm Default Portrait')
+    expect(locked).toContain('Default portrait choice used')
+    expect(locked).toContain('Save Profile Image')
+  })
   it('opens directly on editable title and portrait controls without a duplicate identity summary', () => {
     const markup = renderToStaticMarkup(createElement(CharacterTitleSettings, character))
 

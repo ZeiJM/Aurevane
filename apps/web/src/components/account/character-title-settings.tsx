@@ -1,5 +1,8 @@
 'use client'
 
+import { STARTER_CHARACTER_PORTRAITS } from '@aurevane/game-core/character/starter-options'
+import { AurevaneImage } from '@/components/media/aurevane-image'
+import { getStarterPortraitImageAssetId } from '@/media/character'
 import type { CharacterPortraitRef } from '@aurevane/game-core/character/creation'
 import { useRouter } from 'next/navigation'
 import { useMemo, useState } from 'react'
@@ -15,6 +18,8 @@ interface CharacterTitleSettingsProps {
   personalTitleSetAt: string | null
   imageUrl: string | null
   portraitRef?: CharacterPortraitRef
+  portraitChoiceAvailable?: boolean
+  portraitChoiceUsedAt?: string | null
 }
 
 const TITLE_PATTERN = /^[A-Za-z0-9 ]+$/
@@ -40,6 +45,9 @@ export function CharacterTitleSettings({
   personalTitle,
   personalTitleSetAt,
   imageUrl,
+  portraitRef,
+  portraitChoiceAvailable = false,
+  portraitChoiceUsedAt = null,
 }: CharacterTitleSettingsProps) {
   const router = useRouter()
   const [draft, setDraft] = useState('')
@@ -119,6 +127,50 @@ export function CharacterTitleSettings({
       setImageMessage('The profile display service could not be reached. Nothing was changed.')
     } finally {
       setImagePending(false)
+    }
+  }
+
+  const [portraitDraft, setPortraitDraft] = useState<CharacterPortraitRef | null>(null)
+  const [portraitConfirmed, setPortraitConfirmed] = useState(false)
+  const [portraitPending, setPortraitPending] = useState(false)
+  const [portraitUsedAt, setPortraitUsedAt] = useState(portraitChoiceUsedAt)
+  const [portraitMessage, setPortraitMessage] = useState<string | null>(null)
+  async function saveDefaultPortrait() {
+    if (
+      !portraitDraft ||
+      !portraitConfirmed ||
+      portraitPending ||
+      portraitUsedAt ||
+      !portraitChoiceAvailable
+    )
+      return
+    setPortraitPending(true)
+    setPortraitMessage(null)
+    try {
+      const response = await fetch('/api/account/default-portrait', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ characterId, portraitRef: portraitDraft }),
+      })
+      const body = (await response.json()) as {
+        choice?: { portraitRef?: string; changedAt?: string }
+        error?: { message?: string }
+      }
+      if (!response.ok || !body.choice?.changedAt) {
+        setPortraitMessage(body.error?.message ?? 'The portrait change could not be confirmed.')
+        return
+      }
+      setPortraitUsedAt(body.choice.changedAt)
+      setImageDraft('')
+      setImagePreviewFailed(false)
+      setPortraitMessage('Default portrait changed. Your one-time choice is now used.')
+      router.refresh()
+    } catch {
+      setPortraitMessage(
+        'The portrait service could not be reached. Your choice was not confirmed.',
+      )
+    } finally {
+      setPortraitPending(false)
     }
   }
 
@@ -229,6 +281,80 @@ export function CharacterTitleSettings({
           {message ? (
             <p className={styles.message} role="status" aria-live="polite">
               {message}
+            </p>
+          ) : null}
+        </section>
+
+        <section className={styles.defaultPortrait} aria-labelledby="default-portrait-heading">
+          <h2 id="default-portrait-heading">Default portrait</h2>
+          {portraitUsedAt ? (
+            <p>Default portrait choice used.</p>
+          ) : !portraitChoiceAvailable ? (
+            <p>Default portrait choices are temporarily unavailable.</p>
+          ) : (
+            <>
+              <p>
+                This character can change its default portrait only once. Confirming replaces any
+                custom image with the portrait you choose.
+              </p>
+              <fieldset className={styles.portraitGallery} disabled={portraitPending}>
+                <legend>Choose your default portrait</legend>
+                {STARTER_CHARACTER_PORTRAITS.map((option) => (
+                  <label key={option.ref} data-selected={portraitDraft === option.ref}>
+                    <input
+                      type="radio"
+                      name="default-portrait"
+                      aria-label={option.label}
+                      checked={portraitDraft === option.ref}
+                      disabled={option.ref === portraitRef}
+                      onChange={() => {
+                        setPortraitDraft(option.ref)
+                        setPortraitConfirmed(false)
+                        setPortraitMessage(null)
+                      }}
+                    />
+                    <AurevaneImage
+                      assetId={getStarterPortraitImageAssetId(option.ref)}
+                      sizes="96px"
+                    />
+                    <span>
+                      {option.label}
+                      {option.ref === portraitRef ? ' (current)' : ''}
+                    </span>
+                  </label>
+                ))}
+              </fieldset>
+              {portraitDraft ? (
+                <p>
+                  Selected:{' '}
+                  {
+                    STARTER_CHARACTER_PORTRAITS.find((option) => option.ref === portraitDraft)
+                      ?.label
+                  }
+                </p>
+              ) : null}
+              <label className={styles.confirmCheck}>
+                <input
+                  type="checkbox"
+                  checked={portraitConfirmed}
+                  disabled={!portraitDraft || portraitPending}
+                  onChange={(event) => setPortraitConfirmed(event.target.checked)}
+                />
+                <span>I understand this is my character’s one default portrait change.</span>
+              </label>
+              <button
+                type="button"
+                className={styles.confirmButton}
+                disabled={!portraitDraft || !portraitConfirmed || portraitPending}
+                onClick={() => void saveDefaultPortrait()}
+              >
+                {portraitPending ? 'Saving…' : 'Confirm Default Portrait'}
+              </button>
+            </>
+          )}
+          {portraitMessage ? (
+            <p className={styles.message} role="status">
+              {portraitMessage}
             </p>
           ) : null}
         </section>

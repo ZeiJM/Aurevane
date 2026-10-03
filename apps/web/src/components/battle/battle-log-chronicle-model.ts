@@ -2,7 +2,8 @@ import type { BattleLogEntry } from '@/server/battle/battle-log-service'
 
 import { renderBattleLogEntry } from './battle-log-presentation'
 
-export type ChronicleFamily = 'skill' | 'essence' | 'resonance' | 'ascension' | 'severence'
+export type ChronicleFamily =
+  'movement' | 'skill' | 'essence' | 'resonance' | 'ascension' | 'severence'
 export interface ChronicleOutcome {
   key: string
   text: string
@@ -35,7 +36,6 @@ export interface ChronicleNames {
 }
 
 const OMITTED_EVENTS = new Set([
-  'combatant_moved',
   'movement_spent',
   'combatant_facing_changed',
   'final_facing_selected',
@@ -52,6 +52,7 @@ const OMITTED_EVENTS = new Set([
   'pvp_turn_timed_out',
   'ai_turn_timed_out',
   'mp_spent',
+  'summon_ability_used',
 ])
 
 export function chronicleCombatantName(id: string | null, names: ChronicleNames): string {
@@ -87,7 +88,8 @@ function fallbackNarration(entry: BattleLogEntry, actor: string): string {
     default:
       if (entry.eventType === 'resonance_activated')
         return `${actor}'s disciplines answer together.`
-      if (entry.eventType === 'combat_action_used') return `${actor} commits to the technique.`
+      if (entry.eventType === 'combat_action_used')
+        return `${actor} uses ${entry.actionLabel ?? 'the skill'}.`
       return ''
   }
 }
@@ -102,7 +104,7 @@ function action(entry: BattleLogEntry, names: ChronicleNames, ownerId: string): 
     family: family(entry),
     contentId: entry.actionContext?.contentId ?? entry.actionContext?.skillId ?? null,
     contentVersion: entry.actionContext?.contentVersion ?? null,
-    flavorTemplate: entry.actionContext?.flavor ?? null,
+    flavorTemplate: entry.actionContext?.battleText ?? entry.actionContext?.flavor ?? null,
     narrator: entry.actionContext?.narrator,
     targetName,
     fallbackNarration: fallbackNarration(entry, actorName),
@@ -175,7 +177,13 @@ function outcome(entry: BattleLogEntry, names: ChronicleNames): ChronicleOutcome
       }
     }
     case 'stat_driven_attack_resolved':
-      return value.outcome === 'MISSED' ? { ...base, text: `The strike misses ${target}.` } : null
+      return {
+        ...base,
+        text:
+          value.outcome === 'MISSED'
+            ? `The strike misses ${target}.`
+            : `The strike hits ${target}.`,
+      }
     case 'combat_action_used':
     case 'resonance_activated':
       return null
@@ -197,6 +205,15 @@ export function buildBattleChronicle(
   const ordered = [...entries].sort(
     (a, b) => a.battleVersion - b.battleVersion || a.eventIndex - b.eventIndex,
   )
+  const damageTargets = new Set(
+    ordered
+      .filter((entry) => entry.eventType === 'damage_applied')
+      .map((entry) => `${entry.battleVersion}:${entry.targetCombatantId}`),
+  )
+  const commands = new Map<number, BattleLogEntry>()
+  for (const entry of ordered)
+    if (entry.eventType === 'combat_action_used') commands.set(entry.battleVersion, entry)
+  const pendingOutcomes = new Map<number, BattleLogEntry[]>()
   const pinnedNames = new Map<string, string>()
   for (const entry of ordered) {
     const narrator = entry.actionContext?.narrator
@@ -209,6 +226,7 @@ export function buildBattleChronicle(
     ...names,
     combatantNames: { ...names.combatantNames, ...Object.fromEntries(pinnedNames) },
   }
+  const moved = new Set<string>()
   const specialContexts = new Map<string, BattleLogEntry>()
   const originKey = (actorId: string, id: string, version: number) => `${actorId}:${id}@${version}`
   let command: ChronicleAction | null = null
@@ -242,9 +260,31 @@ export function buildBattleChronicle(
       rounds.set(roundNumber, round)
       return group
     }
+    if (entry.eventType === 'combatant_moved') {
+      const key = `${roundNumber}:${ownerId}`
+      if (!moved.has(key)) {
+        moved.add(key)
+        actorGroup().actions.push({
+          ...action(entry, names, ownerId),
+          family: 'movement',
+          title: '',
+          fallbackNarration: `${chronicleCombatantName(ownerId, names)} moves.`,
+          flavorTemplate: null,
+        })
+      }
+      continue
+    }
     if (entry.eventType === 'combat_action_used') {
       const committed = action(entry, names, ownerId)
       command = committed
+      for (const pending of pendingOutcomes.get(entry.battleVersion) ?? []) {
+        const result = outcome(pending, names)
+        if (result) committed.outcomes.push(result)
+        attachOutcomeNarrator(committed, pending)
+        if (pending.targetCombatantId)
+          committed.targetName = chronicleCombatantName(pending.targetCombatantId, names)
+      }
+      pendingOutcomes.delete(entry.battleVersion)
       actorGroup().actions.push(committed)
       continue
     }
@@ -254,6 +294,22 @@ export function buildBattleChronicle(
         specialContexts.set(originKey(ownerId, special.contentId, special.contentVersion), entry)
       if (command?.actorId === ownerId) command.specials.push(special)
       else actorGroup().actions.push(special)
+      continue
+    }
+    if (
+      entry.eventType === 'stat_driven_attack_resolved' &&
+      entry.templateValues.outcome === 'HIT' &&
+      damageTargets.has(`${entry.battleVersion}:${entry.targetCombatantId}`)
+    )
+      continue
+    if (
+      !command &&
+      commands.get(entry.battleVersion)?.actorCombatantId === entry.actorCombatantId &&
+      entry.eventType === 'stat_driven_attack_resolved'
+    ) {
+      const pending = pendingOutcomes.get(entry.battleVersion) ?? []
+      pending.push(entry)
+      pendingOutcomes.set(entry.battleVersion, pending)
       continue
     }
     const result = outcome(entry, names)

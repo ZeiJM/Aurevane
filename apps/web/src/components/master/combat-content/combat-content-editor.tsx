@@ -551,6 +551,31 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
                   ability={selectedSkill.label}
                   onChange={(flavorLine) => updateSelectedDraft({ ...selectedDraft, flavorLine })}
                 />
+
+                <label className={styles.field}>
+                  <span>In-battle text</span>
+                  <input
+                    aria-label="Skill in-battle text"
+                    maxLength={160}
+                    placeholder="{actor} calls upon {ability}."
+                    value={selectedDraft.battleText ?? ''}
+                    onChange={(event) => {
+                      const next = { ...selectedDraft }
+                      if (event.currentTarget.value.trim())
+                        next.battleText = event.currentTarget.value
+                      else Reflect.deleteProperty(next, 'battleText')
+                      updateSelectedDraft(next)
+                    }}
+                  />
+                  <small className={styles.fieldHint}>
+                    Shown when a player or AI uses this Skill. Recorded outcomes appear below it.
+                  </small>
+                </label>
+                <BattleFlavorTemplateHelp
+                  value={selectedDraft.battleText ?? ''}
+                  ability={selectedSkill.label}
+                  onChange={(battleText) => updateSelectedDraft({ ...selectedDraft, battleText })}
+                />
               </fieldset>
               <SkillTargetingEditor
                 value={selectedDraft.target}

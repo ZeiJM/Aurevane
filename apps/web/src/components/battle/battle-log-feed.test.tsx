@@ -281,12 +281,12 @@ describe('Battle Log complete chronicle and legacy history selection', () => {
     }
   })
 
-  it('leaves a movement-only history empty without deleting the recorded entries', () => {
+  it('keeps a movement-only history readable without deleting the recorded entries', () => {
     const html = renderToStaticMarkup(
       <BattleLogFeed entries={entries} combatantNames={combatantNames} />,
     )
-    expect(html).toContain('No committed battle actions yet.')
-    expect(html).not.toContain('Actor6')
+    expect(html).not.toContain('No committed battle actions yet.')
+    expect(html).toContain('Actor6 moves.')
     expect(entries).toHaveLength(6)
   })
 

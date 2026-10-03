@@ -22,6 +22,13 @@ export function resonanceResultRecipient(effect: CombatEffectDefinition): string
   }
 }
 
+export function resonanceMatcher(value: {
+  sourceDisciplineId: string
+  requiredTags: readonly string[]
+}): string {
+  return `${disciplineName(value.sourceDisciplineId)} · ${value.requiredTags.join(' + ')}`
+}
+
 /** Resonance adds effects to its Trigger Skill; it has no independent action or Target Spec. */
 export function resonanceCharacteristicRows(
   definition: AnyResonanceDefinition | null | undefined,
@@ -41,35 +48,15 @@ export function resonanceCharacteristicRows(
     })
   }
   const mechanics = normalizedResonanceMechanics(definition)
-  const setup = mechanics.setup
-  const matcher = (value: typeof mechanics.trigger) =>
-    `${disciplineName(value.sourceDisciplineId)} Skill with ${value.requiredTags.join(' + ')}`
-  const requirements = [
-    `Equipped Primary + Secondary pair: ${definition.disciplinePair.map(disciplineName).join(' + ')}`,
-    ...(setup
-      ? [
-          `Use ${matcher(setup)} as Setup, then ${matcher(mechanics.trigger)} as the next Discipline Skill. Another Discipline Skill expires the armed Setup.`,
-        ]
-      : [`Use ${matcher(mechanics.trigger)}; no Setup required.`]),
-    'Uses the Trigger Skill’s range, target selection, elevation and line of sight rules.',
-    ...(mechanics.resultEffects.some((effect) => effect.recipient === 'primary-unit')
-      ? [
-          'A unit selection is required for the selected-unit Result.' +
-            (setup ? ' Ground selection preserves the armed Setup.' : ''),
-        ]
-      : []),
-    'Attack Results require an eligible affected unit.' +
-      (setup ? ' Empty-ground attacks preserve the armed Setup.' : ''),
-  ]
   const recipients = [...new Set(mechanics.resultEffects.map(resonanceResultRecipient))]
   return skillInformationRows<string | readonly string[]>({
     'Skill Type': 'Passive · Resonance',
     Cost: 'N/A',
     Cooldown: 'N/A',
-    Requirements: requirements,
+    Requirements: mechanics.setup ? resonanceMatcher(mechanics.setup) : 'N/A',
     Effects: skillEffectSummaries({ effects: mechanics.resultEffects }).map(
       (summary, index) =>
-        `${summary} → ${resonanceResultRecipient(mechanics.resultEffects[index]!)}`,
+        `${resonanceMatcher(mechanics.trigger)}: ${summary}${mechanics.resultEffects[index]!.recipient === 'actor' ? '' : ` → ${resonanceResultRecipient(mechanics.resultEffects[index]!)}`}`,
     ),
     Range: 'N/A',
     Target: recipients.join('; ') || 'N/A',
@@ -79,18 +66,13 @@ export function resonanceCharacteristicRows(
   })
 }
 
-/** Additional trigger and effect explanations follow the minimum ten-field report everywhere. */
+/** Effect explanations follow the shared ten-field report. */
 export function resonanceSupplementalRows(
   definition: AnyResonanceDefinition | null | undefined,
 ): readonly SkillCharacteristic[] {
   if (!definition) return []
   const mechanics = normalizedResonanceMechanics(definition)
-  const matcher = (value: typeof mechanics.trigger) =>
-    `${disciplineName(value.sourceDisciplineId)} · ${value.requiredTags.join(' + ')}`
   return [
-    ['Mode', mechanics.mode === 'immediate' ? 'Immediate Resonance' : 'Sequence Resonance'],
-    ['Setup', mechanics.setup ? matcher(mechanics.setup) : 'N/A'],
-    ['Trigger', matcher(mechanics.trigger)],
     ['Result details', mechanics.resultEffects.map((effect) => previewEffect(effect).explanation)],
   ]
 }

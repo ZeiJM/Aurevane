@@ -1,7 +1,37 @@
+import { latestEnabledMatureSkills, validateMatureSkillDefinition } from './mature-skills'
+import { validateSummonProfileDefinition } from './summon-content'
 import { describe, expect, it } from 'vitest'
-import { battleFlavorTemplateIssues, renderBattleFlavorTemplate } from './battle-narration'
+import {
+  battleFlavorTemplateIssues,
+  renderBattleFlavorTemplate,
+  defaultSkillBattleText,
+} from './battle-narration'
 
 describe('versioned battle flavor templates', () => {
+  it('gives every current Skill actor-led in-battle wording without mutating mechanics', () => {
+    for (const skill of latestEnabledMatureSkills()) {
+      const before = JSON.stringify(skill)
+      const template = defaultSkillBattleText(skill)
+      expect(template).toContain('{actor}')
+      expect(battleFlavorTemplateIssues(template), skill.id).toEqual([])
+      expect(JSON.stringify(skill)).toBe(before)
+    }
+  })
+  it('rejects executable or unknown-token battle text in Skills and summon abilities', () => {
+    const skill = latestEnabledMatureSkills().find((item) => item.summonProfile)!
+    expect(
+      validateMatureSkillDefinition({ ...skill, battleText: '<script>bad</script>' }),
+    ).toContain('battleText')
+    expect(
+      validateSummonProfileDefinition({
+        ...skill.summonProfile!,
+        abilities: skill.summonProfile!.abilities.map((item) => ({
+          ...item,
+          battleText: '{secret}',
+        })),
+      }),
+    ).toContain('abilities')
+  })
   it('substitutes names, ability and explicitly supplied pronouns without inferring gender', () => {
     expect(
       renderBattleFlavorTemplate(

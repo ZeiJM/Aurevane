@@ -51,10 +51,11 @@ describe('Master Panel Resonance v2 editor', () => {
     expect(markup).toContain('aria-label="Battle narration tokens"')
     expect(markup).toContain('aria-label="Neutral historical narration preview"')
     expect(preview).toContain('data-compact-effect-magnitude="true">[4]</span>')
-    expect(preview).toContain('→ Self')
+    expect(preview).not.toContain('→ Self')
+    expect(preview).toContain('Edgedancer · attack:')
     expect(preview).toContain('<ul aria-label="Effect explanations">')
     expect(preview).toContain('Restores MP to you.')
-    expect(preview).toContain('Another Discipline Skill expires the armed Setup.')
+    expect(preview).toContain('<dt>Requirements</dt><dd>Wildwarden · mark</dd>')
   })
 
   it('previews every passive Skill field in the shared order without inventing independent targeting', () => {
@@ -84,7 +85,10 @@ describe('Master Panel Resonance v2 editor', () => {
     expect(preview).toContain('<dt>Cooldown</dt><dd>N/A</dd>')
     expect(preview).toContain('Trigger Skill selected unit')
     expect(preview).not.toContain('Trigger targeting')
-    expect(preview).toContain('Uses the Trigger Skill’s range')
+    expect(preview).toContain('Vanguard · attack + melee:')
+    expect(preview).not.toContain('<dt>Mode</dt>')
+    expect(preview).not.toContain('<dt>Setup</dt>')
+    expect(preview).not.toContain('<dt>Trigger</dt>')
     expect(preview).not.toContain('0 AP')
   })
 

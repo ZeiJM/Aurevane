@@ -405,3 +405,12 @@ Release checkpoint: local `pnpm check` passed (1,095 tests including the six rep
 - [x] Ship the real protected Master Panel Combat Content editor with typed validation, diff/preview and immutable publication; do not substitute hard-coded source edits or speculative UI.
 - [x] Resolve the Owner rule for consecutive-use Amplify/Curse clone transfer — clone transfer is discrete and omitted on a consecutive repeat; later effects retain their normal repeat scaling, pure clone repeats are full-cost no-ops, and the former `effects.status-copy-staged` publication guard is retired. This does not by itself publish or deploy a specific clone Skill.
 - [x] A10 — explicit Owner Phase-4 acceptance/closeout decision — **COMPLETE 2026-09-23**. The Owner accepted Phase 4 as closed. This is an Owner phase-exit decision, not fabricated independent validation, and it requires no new Production deployment or database mutation.
+
+## Owner battle and portrait refinements — 2026-10-03
+
+- [x] Implement the requested single-table Resonance report, setup Requirements and trigger-prefixed Effects.
+- [x] Retain one movement beat per character/round and group pre-command hit/miss results beneath their Skill use.
+- [x] Remove duplicate native effect tooltips; preserve the rich accessible popup across shared battle surfaces.
+- [x] Add editable in-battle action text for player/AI Skills, Essence Skills and summon abilities; use exact pinned summon ability names and saved identity tokens.
+- [x] Add the one-time default-portrait gallery with authenticated, atomic server/database authority and a staged migration.
+- [ ] Release the verified candidate and portrait migration through the separately authorized workflow. Evidence and boundaries: `docs/superpowers/verification/2026-10-03-battle-log-popups-portrait.md`.

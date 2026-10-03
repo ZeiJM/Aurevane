@@ -4,6 +4,7 @@ import { CompactSkillEffectSummary } from './compact-skill-effect-summary'
 import {
   resonanceCharacteristicRows,
   resonanceResultRecipient,
+  resonanceMatcher,
   resonanceSupplementalRows,
 } from './resonance-detail-presentation'
 import { SkillCharacteristicRows } from './skill-characteristic-rows'
@@ -17,7 +18,8 @@ export function ResonanceParameters({
   definition: AnyResonanceDefinition | null | undefined
   className?: string
 }) {
-  const effects = definition ? normalizedResonanceMechanics(definition).resultEffects : []
+  const mechanics = definition ? normalizedResonanceMechanics(definition) : null
+  const effects = mechanics?.resultEffects ?? []
   const supplemental = resonanceSupplementalRows(definition)
   const explanations = supplemental.find(([label]) => label === 'Result details')?.[1]
   return (
@@ -25,7 +27,6 @@ export function ResonanceParameters({
       className={[styles.report, className].filter(Boolean).join(' ')}
       data-resonance-parameters="true"
     >
-      <strong>Parameters</strong>
       <dl>
         <SkillCharacteristicRows
           rows={resonanceCharacteristicRows(definition)}
@@ -34,9 +35,11 @@ export function ResonanceParameters({
               ? effects.length
                 ? effects.map((effect, index) => (
                     <div className={styles.effectRow} key={index}>
+                      {resonanceMatcher(mechanics!.trigger)}:{' '}
                       <CompactSkillEffectSummary effect={effect} />
-                      {' → '}
-                      {resonanceResultRecipient(effect)}
+                      {effect.recipient !== 'actor'
+                        ? ` → ${resonanceResultRecipient(effect)}`
+                        : null}
                     </div>
                   ))
                 : 'N/A'

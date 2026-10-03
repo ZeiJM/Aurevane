@@ -32,10 +32,14 @@ function ChronicleTechnique({ action, actorName }: { action: ChronicleAction; ac
       data-chronicle-family={action.family}
       data-chronicle-action={action.key}
     >
-      <h4>
-        {action.family === 'skill' ? null : <span>{action.family.toUpperCase()} · </span>}
-        {action.title}
-      </h4>
+      {action.title ? (
+        <h4>
+          {action.family === 'skill' || action.family === 'movement' ? null : (
+            <span>{action.family.toUpperCase()} · </span>
+          )}
+          {action.title}
+        </h4>
+      ) : null}
       {narration ? <p className={styles.narration}>{narration}</p> : null}
       {action.outcomes.length > 0 ? (
         <p className={styles.outcomes}>
@@ -63,6 +67,8 @@ function ChronicleTechnique({ action, actorName }: { action: ChronicleAction; ac
             </span>
           ))}
         </p>
+      ) : action.family !== 'movement' ? (
+        <p className={styles.outcomes}>No outcome recorded.</p>
       ) : null}
       {action.specials.map((special) => (
         <ChronicleTechnique key={special.key} action={special} actorName={actorName} />

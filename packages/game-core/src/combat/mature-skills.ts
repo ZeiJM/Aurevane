@@ -74,6 +74,8 @@ export interface MatureSkillDefinition extends CombatAccuracyAuthoring {
   readonly nameRef: string
   readonly descriptionRef: string
   readonly flavorLine?: string
+  /** Optional versioned action prose, separate from catalogue flavor. */
+  readonly battleText?: string
   readonly sourceDisciplineId: string
   readonly unlockRequirement: MatureSkillUnlockRequirement
   readonly apCost: number
@@ -1078,6 +1080,11 @@ export function validateMatureSkillDefinition(
   ) {
     issues.push('flavorLine')
   }
+  if (
+    definition.battleText !== undefined &&
+    battleFlavorTemplateIssues(definition.battleText).length > 0
+  )
+    issues.push('battleText')
   if (!idPattern.test(definition.sourceDisciplineId)) issues.push('sourceDisciplineId')
   if (
     !Number.isSafeInteger(definition.apCost) ||

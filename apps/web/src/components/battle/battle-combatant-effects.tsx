@@ -89,7 +89,6 @@ export function BattleCombatantEffects({
                   key={`${effect.statusId}:${effect.statusVersion}:${index}`}
                   data-tone={tone}
                   data-effect-timing={details.timingState}
-                  title={`${details.label}: ${details.explanation}`}
                 >
                   <BattleInfoPopover
                     label={`Explain ${details.label}, ${details.timing} · ${details.duration}`}
@@ -172,7 +171,6 @@ export function BattleCombatantEffects({
                 data-tone={tone}
                 data-effect-timing={details.timingState}
                 data-battle-effect-kind={details.kind}
-                title={details.explanation}
               >
                 <BattleInfoPopover
                   label={`Explain ${details.label}, ${details.timing} · ${details.duration}`}

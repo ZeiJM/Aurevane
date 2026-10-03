@@ -127,3 +127,22 @@ export function renderBattleFlavorTemplate(
     }
   })
 }
+
+/** Action prose derived only from the exact pinned definition; amounts stay in recorded outcomes. */
+export function defaultSkillBattleText(definition: {
+  readonly sourceDisciplineId?: string
+  readonly effects: readonly { readonly type: string }[]
+  readonly summonProfile?: { readonly name: string }
+}): string {
+  if (definition.summonProfile)
+    return definition.sourceDisciplineId === 'wildwarden'
+      ? `{actor} calls upon {actor.possessive} bond with nature to bring forth ${definition.summonProfile.name}.`
+      : `{actor} calls upon ${definition.summonProfile.name}.`
+  const discipline = definition.sourceDisciplineId?.replace(/[._-]/gu, ' ')
+  const force = discipline ? `${discipline} power` : '{actor.possessive} strength'
+  if (definition.effects.some((effect) => effect.type === 'damage'))
+    return `{actor} channels ${force} into {ability}.`
+  if (definition.effects.some((effect) => effect.type === 'healing'))
+    return `{actor} draws on ${force} to weave {ability}.`
+  return '{actor} calls upon {ability}.'
+}

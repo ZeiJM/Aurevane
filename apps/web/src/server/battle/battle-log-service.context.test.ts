@@ -709,6 +709,7 @@ describe('recorded Battle Log Skill context', () => {
       name: 'Forceful Strike',
       description: 'Strike with the recorded force.',
       flavor: 'The recorded blade holds its old promise.',
+      battleText: '{actor} channels vanguard power into {ability}.',
     })
     expect(JSON.stringify(result)).not.toContain('unsafe event copy')
     expect(JSON.stringify(result)).not.toContain('private-build-fingerprint')
@@ -860,5 +861,80 @@ describe('recorded Battle Log Skill context', () => {
     expect(result.entries.every((entry) => entry.actionContext?.flavor === null)).toBe(true)
     expect(resolve).toHaveBeenCalledTimes(1)
     expect(resolve).toHaveBeenCalledWith(SKILL, 12)
+  })
+})
+
+describe('in-battle Skill text', () => {
+  it('uses editable action text separately from the catalogue flavor', async () => {
+    const result = await getLog(
+      [record({ event: 'combat_action_used', actorId: ACTOR, actionId: SKILL })],
+      async () =>
+        definition({ battleText: '{actor} raises {actor.possessive} blade toward {target}.' }),
+    )
+    expect(result.entries[0]?.actionContext?.battleText).toBe(
+      '{actor} raises {actor.possessive} blade toward {target}.',
+    )
+  })
+  it('derives actor-led action text when an old Skill has only descriptive flavor', async () => {
+    const result = await getLog(
+      [record({ event: 'combat_action_used', actorId: ACTOR, actionId: SKILL })],
+      async () => definition(),
+    )
+    expect(result.entries[0]?.actionContext?.battleText).toContain('{actor}')
+  })
+  it('uses the exact spawned summon ability name and editable text after the summon expires', async () => {
+    const parent = resolveMatureSkillVersion('wildwarden.renewing-herbs')!
+    const ability = {
+      ...parent.summonProfile!.abilities[1]!,
+      battleText: '{actor} weaves living roots around {target}.',
+    }
+    const pinned = { ...parent, summonProfile: { ...parent.summonProfile!, abilities: [ability] } }
+    const summonId = 'summon:recorded'
+    const build = buildAuthority()
+    build.combatants[0]!.narratorIdentity = {
+      name: 'Asha',
+      pronounPresetId: 'she_her',
+    }
+    const result = await getLog(
+      [
+        record(
+          {
+            event: 'summon_spawned',
+            combatantId: summonId,
+            ownerCombatantId: ACTOR,
+            sourceSkillId: parent.id,
+            sourceSkillVersion: parent.contentVersion,
+            profileId: parent.summonProfile!.id,
+          },
+          0,
+        ),
+        record({ event: 'combat_action_used', actorId: summonId, actionId: ability.id }, 1),
+        record(
+          {
+            event: 'healing_applied',
+            sourceCombatantId: summonId,
+            targetCombatantId: ACTOR,
+            actionId: ability.id,
+            amount: 4,
+          },
+          2,
+        ),
+        record({ event: 'summon_expired', combatantId: summonId }, 3),
+      ],
+      async (id, version) =>
+        id === parent.id && version === parent.contentVersion ? pinned : null,
+      { build },
+    )
+    expect(
+      result.entries.find((entry) => entry.eventType === 'combat_action_used')?.actionContext,
+    ).toMatchObject({
+      name: 'Verdant Mend',
+      battleText: ability.battleText,
+      narrator: { actor: { name: 'Verdant Stalker' } },
+    })
+    expect(
+      result.entries.find((entry) => entry.eventType === 'healing_applied')?.actionContext?.narrator
+        ?.target,
+    ).toEqual(build.combatants[0]!.narratorIdentity)
   })
 })
