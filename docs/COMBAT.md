@@ -1,5 +1,9 @@
 # AUREVANE Combat Design Bible
 
+## Standard map and readability continuation — Owner-approved 2026-10-03
+
+New standard encounters randomize terrain from server-owned encounter seeds without consuming combat RNG. Default maps favor neutral ground; elevation forms joined groups with legal ground approaches. Explicit PvP size and terrain/elevation biases retain their configured meaning. Authored micro, Guided, Mastery and content-preview scenarios remain authored; stored battle/replay tiles are never regenerated. Shared round counters read the recorded battle round. Chronicle consequence colors use canonical effect identity, with beneficial/recovery green, harmful red and ambiguous effects neutral. Second-hotkey-press self casting reuses legal server preview/commit authority and must preserve ordinary targeting and stale-context guards. Verification/release status: `superpowers/verification/2026-10-03-battle-map-preview-readability.md`.
+
 ## Guard timing — Owner-approved 2026-10-02
 
 Guard has an independent **two-owner-turn cooldown**, beginning when it is successfully used. HP/MP Recovery retain their separate shared two-turn cooldown. The cooldown applies through the canonical inherent-action rule to new and resumed battles; an old battle begins it on its next Guard use, without retroactive state or changes to pinned authored Skills. AP costs, Guarded potency/stacking/duration and recovery legality remain unchanged. Implementation/release evidence: `superpowers/verification/2026-10-02-roster-discipline-live-fixes.md`.

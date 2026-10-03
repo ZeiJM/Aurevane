@@ -1,7 +1,16 @@
 'use client'
 
-import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import {
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from 'react'
 import { createPortal } from 'react-dom'
+import { battleInfoPopoverPosition } from './battle-info-popover-position'
 import styles from './battle-info-popover.module.css'
 
 /** Small reading panels share outside-click, Escape, focus and combat-shortcut behavior. */
@@ -34,6 +43,7 @@ export function BattleInfoPopover({
   const pinned = useRef(false)
   const focusOnOpen = useRef(true)
   const suppressFocus = useRef(false)
+  const suppressHover = useRef(false)
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const cancelClose = () => {
     if (closeTimer.current) clearTimeout(closeTimer.current)
@@ -45,6 +55,7 @@ export function BattleInfoPopover({
   const restoreFocus = () => {
     pinned.current = false
     suppressFocus.current = true
+    suppressHover.current = true
     setOpen(false)
     buttonRef.current?.focus()
   }
@@ -61,11 +72,11 @@ export function BattleInfoPopover({
       const anchor = buttonRef.current?.getBoundingClientRect()
       const panel = panelRef.current?.getBoundingClientRect()
       if (!anchor || !panel) return
-      if (wideReport && window.innerWidth < 640) {
+      if (wideReport && window.innerWidth < 720) {
         setWideReport(false)
         return
       }
-      if (!wideReport && panel.height > window.innerHeight - 16 && window.innerWidth >= 640) {
+      if (!wideReport && panel.height > window.innerHeight - 16 && window.innerWidth >= 720) {
         setWideReport(true)
         return
       }
@@ -75,21 +86,17 @@ export function BattleInfoPopover({
         return
       }
       const pagePositioned = getComputedStyle(panelRef.current!).position === 'absolute'
-      const preferredTop =
-        anchor.bottom + panel.height + 16 <= window.innerHeight
-          ? anchor.bottom + 8
-          : anchor.top - panel.height - 8
-      // Responsive layouts can move the source artwork outside the viewport while its reader stays open.
-      const viewportTop =
-        panel.height > window.innerHeight - 16
-          ? 8
-          : Math.max(8, Math.min(preferredTop, window.innerHeight - panel.height - 8))
-      setPosition({
-        left:
-          Math.max(8, Math.min(anchor.right - panel.width, window.innerWidth - panel.width - 8)) +
-          (pagePositioned ? window.scrollX : 0),
-        top: viewportTop + (pagePositioned ? window.scrollY : 0),
-      })
+      setPosition(
+        battleInfoPopoverPosition(
+          anchor,
+          panel,
+          {
+            width: Math.min(window.innerWidth, document.documentElement.clientWidth),
+            height: window.innerHeight,
+          },
+          pagePositioned ? { x: window.scrollX, y: window.scrollY } : undefined,
+        ),
+      )
     }
     place()
     if (focusOnOpen.current) panelRef.current?.focus()
@@ -131,6 +138,7 @@ export function BattleInfoPopover({
         event.stopPropagation()
         pinned.current = false
         suppressFocus.current = true
+        suppressHover.current = true
         setOpen(false)
         buttonRef.current?.focus()
       }
@@ -140,6 +148,7 @@ export function BattleInfoPopover({
       event.preventDefault()
       pinned.current = false
       suppressFocus.current = true
+      suppressHover.current = true
       setOpen(false)
       buttonRef.current?.focus()
     }
@@ -152,6 +161,16 @@ export function BattleInfoPopover({
       document.removeEventListener('keydown', escape)
     }
   }, [open, consumeOutsideClick])
+
+  const openHover = () => {
+    cancelClose()
+    focusOnOpen.current = false
+    if (!open) {
+      setWideReport(false)
+      setPageReport(false)
+    }
+    setOpen(true)
+  }
 
   return (
     <>
@@ -173,17 +192,30 @@ export function BattleInfoPopover({
         onMouseEnter={
           hover
             ? () => {
-                cancelClose()
-                focusOnOpen.current = false
-                if (!open) {
-                  setWideReport(false)
-                  setPageReport(false)
-                }
-                setOpen(true)
+                if (!suppressHover.current) openHover()
               }
             : undefined
         }
-        onMouseLeave={hover ? queueClose : undefined}
+        onMouseMove={
+          hover
+            ? () => {
+                // Removing the panel can expose its trigger under a stationary pointer.
+                // A new pointer movement is a deliberate hover; layout-induced entry is not.
+                if (suppressHover.current) {
+                  suppressHover.current = false
+                  openHover()
+                }
+              }
+            : undefined
+        }
+        onMouseLeave={
+          hover
+            ? () => {
+                suppressHover.current = false
+                queueClose()
+              }
+            : undefined
+        }
         onFocus={
           hover
             ? () => {
@@ -191,13 +223,8 @@ export function BattleInfoPopover({
                   suppressFocus.current = false
                   return
                 }
-                cancelClose()
-                focusOnOpen.current = false
-                if (!open) {
-                  setWideReport(false)
-                  setPageReport(false)
-                }
-                setOpen(true)
+                suppressHover.current = false
+                openHover()
               }
             : undefined
         }
@@ -209,6 +236,7 @@ export function BattleInfoPopover({
             : undefined
         }
         onClick={() => {
+          suppressHover.current = false
           cancelClose()
           focusOnOpen.current = true
           const next = hover && !pinned.current ? true : !open
@@ -237,7 +265,9 @@ export function BattleInfoPopover({
             onMouseEnter={hover ? cancelClose : undefined}
             onMouseLeave={hover ? queueClose : undefined}
             className={styles.panel}
-            style={position}
+            style={
+              { '--battle-info-left': `${position.left}px`, top: position.top } as CSSProperties
+            }
           >
             <header>
               <strong>{title}</strong>

@@ -1,5 +1,7 @@
 # AUREVANE — Implementation Roadmap
 
+2026-10-03 Owner live-review continuation requests varied neutral-heavy standard maps with joined elevations, a recorded-round preview badge, compact uniform information popups, quieter italic colored Chronicle outcomes and explicit misses, neutral initial Discipline selection self-target second-hotkey-press casting and safe rapid-input responsiveness. This is maintenance of the existing shared battle/Nexus platform; authored/configured/historical map authority and server legality remain protected. One combined release is authorized after verification. Status: `superpowers/verification/2026-10-03-battle-map-preview-readability.md`.
+
 **Authority:** Derived from `docs/GAME_MASTER_PLAN.md` and Owner-approved domain specifications. If conflict exists, the Master Game Plan and applicable canonical domain specification win.
 
 **Synchronized:** 2026-09-25 — world-experience scope and delivery ownership

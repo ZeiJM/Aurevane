@@ -27,6 +27,37 @@ test('keeps square empty Skill slots and consistent cockpit info controls withou
   await createAccountAndEnterCharacter({ page, email, password, characterName })
 
   await page.goto('/game/nexus')
+  const attunementPreview = page.getByRole('button', { name: /^Preview Essence:/ }).first()
+  const hoverReader = page.locator('[data-battle-info-panel]')
+  await attunementPreview.hover()
+  await expect(hoverReader).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(hoverReader).toHaveCount(0)
+  // Wait for the exposed trigger's next paint while leaving the pointer stationary.
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      ),
+  )
+  await expect(hoverReader).toHaveCount(0)
+  await expect(attunementPreview).toBeFocused()
+  await page.mouse.move(1, 1)
+  await attunementPreview.hover()
+  await expect(hoverReader).toBeVisible()
+  await page.mouse.move(1, 1)
+  await expect(hoverReader).toHaveCount(0)
+  await attunementPreview.click()
+  await expect(hoverReader).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(hoverReader).toHaveCount(0)
+  await page.keyboard.press('Tab')
+  await expect(attunementPreview).not.toBeFocused()
+  await page.keyboard.press('Shift+Tab')
+  await expect(attunementPreview).toBeFocused()
+  await expect(hoverReader).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(hoverReader).toHaveCount(0)
   await page.getByTestId('skill-build-panel').getByRole('button').click()
   const techniques = page.getByRole('dialog', { name: 'Techniques', exact: true })
   await expect(techniques).toBeVisible()
@@ -97,11 +128,30 @@ test('keeps square empty Skill slots and consistent cockpit info controls withou
     await expect(panel).toBeVisible()
     await expect(panel).not.toHaveText('')
     const viewport = page.viewportSize()!
+    // A stable scrollbar gutter can narrow the fixed containing block even when
+    // html's minimum width makes clientWidth equal innerWidth on a 320px phone.
     await expect
-      .poll(async () => {
-        const box = await panel.boundingBox()
-        return !!box && box.x >= 0 && box.x + box.width <= viewport.width + 1
-      })
+      .poll(async () =>
+        panel.evaluate((element) => {
+          const viewportProbe = document.createElement('div')
+          viewportProbe.style.cssText =
+            'position:fixed;inset:0;visibility:hidden;pointer-events:none'
+          document.body.append(viewportProbe)
+          const usableWidth = viewportProbe.getBoundingClientRect().width
+          viewportProbe.remove()
+          const bounds = element.getBoundingClientRect()
+          const border = document.elementFromPoint(
+            bounds.right - 1,
+            bounds.top + Math.min(20, bounds.height / 2),
+          )
+          return (
+            bounds.left >= 8 &&
+            bounds.right <= usableWidth - 7 &&
+            border !== null &&
+            (border === element || element.contains(border))
+          )
+        }),
+      )
       .toBe(true)
     const height = await panel.evaluate((element) => element.getBoundingClientRect().height)
     if (height > viewport.height - 16) {

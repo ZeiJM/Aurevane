@@ -94,7 +94,13 @@ test('Nexus equips a mastered Secondary with independent attunement authority', 
   })
   await expect(primaryEditor).toBeEnabled()
   await expect(secondaryEditor).toBeEnabled()
+  await expect(primaryEditor).toHaveAttribute('aria-pressed', 'false')
+  await expect(secondaryEditor).toHaveAttribute('aria-pressed', 'false')
+  await expect(dialog.getByText('✓ Editing Primary', { exact: true })).toHaveCount(0)
+  await expect(dialog.getByText('✓ Editing Secondary', { exact: true })).toHaveCount(0)
   await secondaryEditor.click()
+  await expect(secondaryEditor).toHaveAttribute('aria-pressed', 'true')
+  await expect(primaryEditor).toHaveAttribute('aria-pressed', 'false')
   const secondaryLibrary = dialog.getByRole('region', {
     name: 'Secondary Discipline library',
     exact: true,
@@ -151,6 +157,17 @@ test('Nexus equips a mastered Secondary with independent attunement authority', 
   await expect(dialog).toContainText('Aetherist')
   await expect(primaryEditor).toBeEnabled()
   await expect(secondaryEditor).toBeEnabled()
+
+  await expect(primaryEditor).toHaveAttribute('aria-pressed', 'false')
+  await expect(secondaryEditor).toHaveAttribute('aria-pressed', 'false')
+
+  await primaryEditor.click()
+  await expect(primaryEditor).toHaveAttribute('aria-pressed', 'true')
+  await dialog.getByRole('button', { name: 'Close', exact: true }).click()
+  await launcher.click()
+  await expect(dialog).toBeVisible()
+  await expect(primaryEditor).toHaveAttribute('aria-pressed', 'false')
+  await expect(secondaryEditor).toHaveAttribute('aria-pressed', 'false')
 
   // Removing Secondary commits a pure build immediately and survives reload.
   await secondaryEditor.click()

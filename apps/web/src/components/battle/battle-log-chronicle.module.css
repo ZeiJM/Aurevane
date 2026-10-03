@@ -66,17 +66,22 @@
   font: 700 0.75em/1 var(--av-font-body);
   vertical-align: 0.08em;
 }
-.narration {
+.chronicle .narration {
   color: #423a2e;
+  font-size: 14px;
 }
-.outcomes {
+.chronicle .outcomes {
   padding-top: 0.16rem;
-  font-weight: 650;
+  font-size: 13px;
+  font-weight: 400;
+  font-style: italic;
 }
-.outcomes [data-outcome-tone='damage'] {
+.outcomes [data-outcome-tone='damage'],
+.outcomes [data-outcome-tone='harm'] {
   color: #943d36;
 }
-.outcomes [data-outcome-tone='recovery'] {
+.outcomes [data-outcome-tone='recovery'],
+.outcomes [data-outcome-tone='benefit'] {
   color: #42653c;
 }
 .separator {
@@ -115,5 +120,5 @@
 
 .recipient {
   color: #302a23;
-  font-weight: 500;
+  font-weight: 400;
 }

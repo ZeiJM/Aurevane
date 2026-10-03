@@ -67,7 +67,7 @@ describe('shared battlefield presentation bundle', () => {
     ])
       expect(styles).toContain(file)
     expect(styles).toContain("button[data-terrain-presentation='difficult']")
-    expect(styles).not.toContain('grid-template-columns')
+    expect(styles).not.toContain('data-battle-combatant-card')
     expect(styles).not.toContain('data-unified-command-deck')
   })
 

@@ -63,6 +63,21 @@ const records = [
     },
     createdAt: '2026-09-17T12:00:00.000Z',
   },
+  {
+    battleVersion: 9,
+    eventIndex: 4,
+    event: {
+      event: 'combat_accuracy_resolved',
+      actionId: 'secret.sensory',
+      sourceCombatantId: ACTOR,
+      targetCombatantId: TARGET,
+      hit: false,
+      rollBasisPoints: 9000,
+      hitChanceBasisPoints: 7400,
+      accuracyRulesVersion: 1,
+    },
+    createdAt: '2026-09-17T12:00:00.000Z',
+  },
 ] as const
 
 describe('CSR-3 battle log privacy integration', () => {
@@ -84,7 +99,7 @@ describe('CSR-3 battle log privacy integration', () => {
           battleVersion: 9,
           actorCombatantId: ACTOR,
           actorTeamId: 'team:a',
-          eventCount: 4,
+          eventCount: 5,
           commandVisibility: { kind: 'team-only', teamId: 'team:a' },
           eventVisibilityOverrides: [
             { eventIndex: 2, visibility: { kind: 'public' } },
@@ -124,5 +139,8 @@ describe('CSR-3 battle log privacy integration', () => {
     )
     expect(JSON.stringify(result)).not.toContain('secret.sensory')
     expect(JSON.stringify(result)).not.toContain('damage_applied')
+    expect(JSON.stringify(result)).not.toContain('combat_accuracy_resolved')
+    expect(JSON.stringify(result)).not.toContain('MISSED')
+    expect(JSON.stringify(result)).not.toContain('rollBasisPoints')
   })
 })

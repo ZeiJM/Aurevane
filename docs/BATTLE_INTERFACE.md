@@ -1,5 +1,9 @@
 # AUREVANE — Battlefield Interface, Combat Cockpit & Command Deck
 
+## Owner readability continuation — 2026-10-03
+
+The preview strip shows the authoritative current round at its right edge without increasing battlefield/cockpit scroll requirements. Battle, Nexus and Chronicle information popups share compact report typography and restrained parchment treatment while retaining all ordered fields and interaction/accessibility behavior. Chronicle effects use smaller italic outcome text, green for beneficial/recovery and red for harmful effects; action headings and narrative remain primary. Recorded misses receive explicit ordinary result lines; missing historical results cannot be inferred as misses. A second distinct configured hotkey press may confirm a legally selected self-target Skill through the existing preview/commit path. Native keyboard controls observe the current rendered selection immediately. Matching in-flight previews may be reused for rapid confirmation only while the intent, battle version and request sequence remain current; the legal server receipt and commit validation remain required. Verification/release status: `superpowers/verification/2026-10-03-battle-map-preview-readability.md`.
+
 **Status:** Authoritative battle-interface specification subordinate to `docs/GAME_MASTER_PLAN.md` and `docs/COMBAT.md`, and complementary to `docs/RESPONSIVE_EXPERIENCE_STANDARD.md`, `docs/PRODUCT_EXPERIENCE_CONTENT_SYSTEM.md`, `docs/ART_BIBLE.md`, `docs/AUDIO_BIBLE.md`, `docs/COMBAT_AI_TRAINING.md`, and `docs/ROADMAP_PRODUCT_VALIDATION.md`.
 
 **Direction approved:** 2026-08-16.

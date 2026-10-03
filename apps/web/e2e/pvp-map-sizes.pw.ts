@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
 import type { BattleSessionView } from '../src/server/battle/battle-session-service'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
+import { expectRecordedBattleRound } from './battle-round-badge-helpers'
 
 async function provision(page: Page, prefix: string) {
   const seed = randomUUID()
@@ -86,6 +87,7 @@ for (const [size, label, width, tiles] of [
       expect(before.snapshot.tactical).toMatchObject({ width, height: 7 })
       expect(before.snapshot.tactical.tiles).toHaveLength(tiles)
       for (const page of [host, guest]) {
+        await expectRecordedBattleRound(page)
         await expect(page.locator('[data-board-auto-fit]')).toHaveAttribute(
           'data-board-auto-fit',
           `${width}x7`,
@@ -97,6 +99,7 @@ for (const [size, label, width, tiles] of [
       expect((await startedSettings.json()).settings.mapSize).toBe(size)
       await host.reload()
       const after = await currentBattle(host)
+      await expectRecordedBattleRound(host)
       expect(after.snapshot.tactical.tiles).toEqual(before.snapshot.tactical.tiles)
       expect(after.snapshot.tactical).toMatchObject({ width, height: 7 })
       await expect(host.locator('[data-board-auto-fit]')).toHaveAttribute(
@@ -113,6 +116,49 @@ for (const [size, label, width, tiles] of [
         `${width}x7`,
       )
       await expect(spectator.locator('#battlefield button[aria-label^="Tile "]')).toHaveCount(tiles)
+      await expectRecordedBattleRound(spectator)
+      // Complete both real PvP activations, then compare playable and spectator projections.
+      let committed = after
+      for (let turn = 0; turn < 2; turn += 1) {
+        await expect
+          .poll(
+            async () =>
+              [
+                await host.locator('main[data-unified-battle]').getAttribute('data-local-turn'),
+                await guest.locator('main[data-unified-battle]').getAttribute('data-local-turn'),
+              ].filter((value) => value === 'true').length,
+          )
+          .toBe(1)
+        const active =
+          (await host.locator('main[data-unified-battle]').getAttribute('data-local-turn')) ===
+          'true'
+            ? host
+            : guest
+        const response = await active.request.post(
+          `/api/battles/${committed.battleSessionId}/commit`,
+          {
+            data: { expectedBattleVersion: committed.battleVersion, intent: { kind: 'end-turn' } },
+          },
+        )
+        expect(response.ok()).toBe(true)
+        committed = (await response.json()).battle
+        await expect(active.locator('main[data-unified-battle]')).not.toHaveAttribute(
+          'data-local-turn',
+          'true',
+        )
+        for (const page of [host, guest, spectator]) {
+          await expect(page.locator('[data-battle-round-badge]')).toHaveAttribute(
+            'data-battle-round',
+            String(committed.snapshot.tactical.battle.round),
+          )
+        }
+      }
+      expect(committed.snapshot.tactical.battle.round).toBe(
+        after.snapshot.tactical.battle.round + 1,
+      )
+      for (const page of [host, guest, spectator]) await expectRecordedBattleRound(page)
+      await spectator.reload()
+      await expectRecordedBattleRound(spectator)
       await testInfo.attach(`pvp-${size}-lobby-and-board`, {
         body: await host.screenshot(),
         contentType: 'image/png',

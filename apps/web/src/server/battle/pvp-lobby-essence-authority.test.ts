@@ -1,4 +1,5 @@
 import type { CharacterRecord } from '@aurevane/db/character'
+import { createStandardBattlefieldTiles } from '@aurevane/game-core/combat/standard-battlefield'
 import {
   essenceSnapshotReference,
   resolveEssenceForBuild,
@@ -125,6 +126,42 @@ function mixedSnapshot(): CharacterCommittedBuildSnapshotRecord {
 }
 
 describe('P3.6 direct PvP Essence authority', () => {
+  it('generates fresh seeded neutral maps for the shared world/legacy PvP creator', () => {
+    const roster = [
+      {
+        member: lobbyMember(USER_A_ID, CHARACTER_A_ID, 'Aster', 0),
+        character: characterRecord(CHARACTER_A_ID, USER_A_ID, 'Aster'),
+        buildSnapshot: pureSnapshot(),
+      },
+      {
+        member: lobbyMember(USER_B_ID, CHARACTER_B_ID, 'Briar', 1),
+        character: characterRecord(CHARACTER_B_ID, USER_B_ID, 'Briar'),
+        buildSnapshot: mixedSnapshot(),
+      },
+    ]
+    const first = createPvpEncounter(roster, [1, 1, 0])
+    const second = createPvpEncounter(roster, [1, 1, 0])
+    expect(second.tactical.tiles).not.toEqual(first.tactical.tiles)
+    for (const state of [first, second]) {
+      expect(
+        state.tactical.tiles.filter(
+          (tile) => tile.terrainId === 'open-ground' && tile.elevation === 0,
+        ).length,
+      ).toBeGreaterThan(state.tactical.tiles.length * 0.7)
+      expect(state.tactical.tiles).toEqual(
+        createStandardBattlefieldTiles({
+          width: 9,
+          height: 7,
+          seed: state.tactical.battle.rng.seed,
+          spawns: state.tactical.placements.map((placement) => placement.position),
+        }),
+      )
+      expect(state.tactical.battle.rng).toMatchObject({
+        state: state.tactical.battle.rng.seed,
+        draws: 0,
+      })
+    }
+  })
   it('pins each seated character committed extension authority into the PvP encounter', () => {
     const encounter = createPvpEncounter(
       [

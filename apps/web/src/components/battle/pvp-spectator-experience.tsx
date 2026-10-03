@@ -6,6 +6,7 @@ import { BattleMapKey } from './battle-map-key'
 import { battleTerrainName } from './battle-terrain-key-presentation'
 import { BattleCombatantCard } from './battle-combatant-card'
 import { BattleLogPanel } from './battle-log-panel'
+import { BattleRoundBadge } from './battle-round-badge'
 import type { BattlePresentationParticipant } from './battle-runtime'
 
 import { terrainOverlayAt } from '@aurevane/game-core/combat/terrain-overlays'
@@ -492,7 +493,8 @@ export function PvpSpectatorExperience({
             />
           </aside>
           <div className={styles.preview} data-battle-preview-strip="true">
-            {inspectContext()}
+            <div data-battle-spectator-preview-content="true">{inspectContext()}</div>
+            <BattleRoundBadge round={battleState.round} />
           </div>
           <div className={styles.inspectDock} data-battle-command-dock="true">
             <button type="button" aria-pressed={inspectMode} onClick={toggleInspect}>

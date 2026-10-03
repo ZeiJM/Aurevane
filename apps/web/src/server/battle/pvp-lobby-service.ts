@@ -32,6 +32,7 @@ import {
 } from '@aurevane/game-core/combat/stat-driven-combat'
 import { getTacticalHallArena } from '@aurevane/game-core/combat/tactical-hall-arenas'
 import { AurevaneError } from '@aurevane/game-core/errors'
+import { createStandardBattlefieldTiles } from '@aurevane/game-core/combat/standard-battlefield'
 import type { PvpMode } from '@aurevane/validation/combat/pvp'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
@@ -455,7 +456,12 @@ export function createPvpEncounter(
           width: arena.width,
           height: arena.height,
           terrains: P2_2_VERTICAL_SLICE_TERRAINS,
-          tiles: arena.tiles,
+          tiles: createStandardBattlefieldTiles({
+            width: arena.width,
+            height: arena.height,
+            seed: battle.rng.seed,
+            spawns: placements.map((placement) => placement.position),
+          }),
           movementProfiles,
           placements,
         }),

@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test'
 
 import { createAccountAndEnterCharacter } from './pv1f-test-helpers'
 import { commitGesture, openSelectedCombatantDetails } from './refined-battle-helpers'
+import { expectRecordedBattleRound } from './battle-round-badge-helpers'
 
 function uniqueCharacterName(): string {
   const letters = Date.now()
@@ -69,6 +70,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   const battlefield = page.getByRole('region', { name: 'Tactical battlefield' })
   const commandDeck = page.getByRole('region', { name: 'Command Deck' })
   const commandContext = page.locator('[data-battle-preview-strip]')
+  const initialRound = await expectRecordedBattleRound(page)
   const inspectButton = commandDeck.getByRole('button', { name: /^Inspect,/ })
   const moveButton = commandDeck.getByRole('button', { name: /^Move,/ })
   const attackButton = commandDeck.locator('button[data-battle-command="attack"]')
@@ -174,6 +176,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await expect(commandContext).toContainText('Choose your action', { timeout: 15_000 })
   await expect(facingPad).toBeHidden()
   await expect(criteriaButton).toHaveAttribute('data-new-progress', 'true')
+  expect(await expectRecordedBattleRound(page)).toBeGreaterThan(initialRound)
   await expect(
     page.getByRole('dialog', { name: 'Complete the tactical fundamentals' }),
   ).toHaveCount(0)

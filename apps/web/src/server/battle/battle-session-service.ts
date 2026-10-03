@@ -50,6 +50,7 @@ import {
   type TacticalHallArenaId,
 } from '@aurevane/game-core/combat/tactical-hall-arenas'
 import { getTacticalHallRecord } from '@aurevane/game-core/combat/tactical-hall-records'
+import { createStandardBattlefieldTiles } from '@aurevane/game-core/combat/standard-battlefield'
 import { AurevaneError, StaleBattleVersionError } from '@aurevane/game-core/errors'
 import {
   createBattleSessionChangedInvalidation,
@@ -341,7 +342,18 @@ function createVerticalSliceEncounter(
       width: arena.width,
       height: arena.height,
       terrains: P2_2_VERTICAL_SLICE_TERRAINS,
-      tiles: arena.tiles,
+      tiles:
+        battleHallRecordId === 'recruit-sparring' && arena.scale === 'duel'
+          ? createStandardBattlefieldTiles({
+              width: arena.width,
+              height: arena.height,
+              seed: battle.rng.seed,
+              spawns: [
+                arena.playerSpawn,
+                ...recruitPlacements.map((placement) => placement.position),
+              ],
+            })
+          : arena.tiles,
       movementProfiles: [playerMovementProfile, P2_2_ORDINARY_GROUND_PROFILE],
       placements: [
         {

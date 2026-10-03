@@ -4,11 +4,14 @@ import { readCombatBuildSnapshot } from '@aurevane/game-core/combat/build-snapsh
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 import { surrenderPvpCombatant, timeoutPvpTurn } from '@aurevane/game-core/combat/pvp-quality'
 import { readPv1fActionEconomy } from '@aurevane/game-core/combat/pv1f-action-economy'
+import { createStandardBattlefieldTiles } from '@aurevane/game-core/combat/standard-battlefield'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   groundSkill: false,
   mapSize: 'medium' as 'small' | 'medium' | 'large',
+  terrainBias: 'neutral' as 'less' | 'neutral' | 'more',
+  elevationBias: 'neutral' as 'less' | 'neutral' | 'more',
   createdBattleArgs: null as Record<string, unknown> | null,
 }))
 
@@ -196,8 +199,8 @@ vi.mock('@/lib/supabase/admin', () => ({
         return {
           data: {
             map_size: mocks.mapSize,
-            elevation_bias: 'neutral',
-            terrain_bias: 'neutral',
+            elevation_bias: mocks.elevationBias,
+            terrain_bias: mocks.terrainBias,
             turn_timer_seconds: null,
           },
           error: null,
@@ -230,6 +233,58 @@ describe('P3.7 direct PvP committed build snapshots', () => {
     mocks.createdBattleArgs = null
     mocks.groundSkill = false
     mocks.mapSize = 'medium'
+    mocks.terrainBias = 'neutral'
+    mocks.elevationBias = 'neutral'
+  })
+
+  it.each([
+    ['less', 'more', 6],
+    ['more', 'less', 25],
+  ] as const)(
+    'preserves explicit %s rough/%s elevation settings in a seeded large arena',
+    async (terrainBias, elevationBias, roughCount) => {
+      mocks.mapSize = 'large'
+      mocks.terrainBias = terrainBias
+      mocks.elevationBias = elevationBias
+      await startPvpLobbyWithQuality(hostUserId, lobbyId)
+      const state = mocks.createdBattleArgs!.p_initial_snapshot as BattleAuthoritativeEncounterState
+      expect(state.tactical.width).toBe(15)
+      expect(state.tactical.tiles.filter((tile) => tile.terrainId === 'rough-ground')).toHaveLength(
+        roughCount,
+      )
+      expect(state.tactical.tiles).toEqual(
+        createStandardBattlefieldTiles({
+          width: 15,
+          height: 7,
+          seed: state.tactical.battle.rng.seed,
+          spawns: state.tactical.placements.map((placement) => placement.position),
+          terrainBias,
+          elevationBias,
+        }),
+      )
+    },
+  )
+
+  it('generates elevated PvP platforms with an orthogonal neighbor on every raised tile', async () => {
+    for (let attempt = 0; attempt < 20; attempt++) {
+      await startPvpLobbyWithQuality(hostUserId, lobbyId)
+      const state = mocks.createdBattleArgs!.p_initial_snapshot as BattleAuthoritativeEncounterState
+      for (const tile of state.tactical.tiles.filter((tile) => tile.elevation > 0)) {
+        expect(
+          state.tactical.tiles.some(
+            (neighbor) =>
+              neighbor.elevation === tile.elevation &&
+              Math.abs(neighbor.position.x - tile.position.x) +
+                Math.abs(neighbor.position.y - tile.position.y) ===
+                1,
+          ),
+        ).toBe(true)
+      }
+      expect(state.tactical.battle.rng).toMatchObject({
+        state: state.tactical.battle.rng.seed,
+        draws: 0,
+      })
+    }
   })
 
   it.each([
