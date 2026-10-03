@@ -11,6 +11,7 @@ import {
   selectDirectionalBattleSkillPreviewIntent,
 } from './battle-preview-selection'
 import { BattleActionPreview } from './battle-action-preview'
+import { BattleRoundBadge } from './battle-round-badge'
 import { BattleMapKey } from './battle-map-key'
 import { BattleInfoPopover } from './battle-info-popover'
 import { terrainOverlayAt } from '@aurevane/game-core/combat/terrain-overlays'
@@ -138,6 +139,8 @@ type ApiErrorBody = {
     currentVersion?: number
   }
 }
+
+type ReadyBattlePreview = { intent: BattleIntent; version: number; sequence: number }
 
 function readEconomy(combatant: Combatant | null): number {
   if (!combatant) return 0
@@ -290,15 +293,17 @@ function BattleExperienceContent({
   const previewSequence = useRef(0)
   const mounted = useRef(true)
   const previewController = useRef<AbortController | null>(null)
-  const readyPreview = useRef<{ intent: BattleIntent; version: number; sequence: number } | null>(
-    null,
-  )
+  const readyPreview = useRef<ReadyBattlePreview | null>(null)
+  const inFlightPreview = useRef<
+    (ReadyBattlePreview & { result: Promise<ReadyBattlePreview | null | undefined> }) | null
+  >(null)
   useEffect(() => {
     mounted.current = true
     return () => {
       mounted.current = false
       previewSequence.current += 1
       readyPreview.current = null
+      inFlightPreview.current = null
       previewController.current?.abort()
     }
   }, [])
@@ -570,6 +575,7 @@ function BattleExperienceContent({
     (nextMode: Mode = 'none') => {
       previewSequence.current += 1
       readyPreview.current = null
+      inFlightPreview.current = null
       previewController.current?.abort()
       rearmActionAfterCommit.current = null
       modeRef.current = nextMode
@@ -776,9 +782,23 @@ function BattleExperienceContent({
   ])
 
   const requestPreview = useCallback(
-    async (intent: BattleIntent) => {
+    (intent: BattleIntent) => {
       if (!mounted.current) return null
       if (intent.kind === 'action' && actionCooldownTurns(intent.actionId) > 0) return null
+      const pending = inFlightPreview.current
+      if (
+        pending &&
+        previewController.current &&
+        !previewController.current.signal.aborted &&
+        isCurrentBattlePreview(
+          pending,
+          intent,
+          battleRef.current.battleVersion,
+          previewSequence.current,
+        )
+      ) {
+        return pending.result
+      }
       previewController.current?.abort()
       const controller = new AbortController()
       previewController.current = controller
@@ -787,55 +807,66 @@ function BattleExperienceContent({
       setPreview(null)
       setPreviewPending(true)
       setPendingIntent(intent)
-      try {
-        const response = await fetch(`/api/battles/${battle.battleSessionId}/preview`, {
-          method: 'POST',
-          signal: controller.signal,
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ expectedBattleVersion: battle.battleVersion, intent }),
-        })
-        const body = (await response.json()) as { battlePreview?: BattlePreviewView } & ApiErrorBody
-        if (!mounted.current || controller.signal.aborted || sequence !== previewSequence.current)
-          return
-        if (!response.ok || !body.battlePreview) {
-          clearPlanning()
-          await handleApiFailure(response, body, 'That command could not be checked.')
-          return
+      const result = (async () => {
+        try {
+          const response = await fetch(`/api/battles/${battle.battleSessionId}/preview`, {
+            method: 'POST',
+            signal: controller.signal,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ expectedBattleVersion: battle.battleVersion, intent }),
+          })
+          const body = (await response.json()) as {
+            battlePreview?: BattlePreviewView
+          } & ApiErrorBody
+          if (!mounted.current || controller.signal.aborted || sequence !== previewSequence.current)
+            return
+          if (!response.ok || !body.battlePreview) {
+            clearPlanning()
+            await handleApiFailure(response, body, 'That command could not be checked.')
+            return
+          }
+          setPreview(body.battlePreview)
+          const result = body.battlePreview.preview
+          readyPreview.current = result.legal
+            ? { intent, version: battle.battleVersion, sequence }
+            : null
+          if (!result.legal) {
+            setNotice(result.issues[0]?.message ?? 'That command is not legal right now.')
+          } else if (result.kind === 'move') {
+            setNotice(
+              `Movement ready · ${result.actionEconomyCost} AP · ${result.actionEconomyAfter} AP remains.`,
+            )
+          } else if (result.kind === 'action' && result.actionId === BASIC_ATTACK_ID) {
+            setNotice(`Basic Attack ready · ${result.actionEconomyCost} AP.`)
+          } else if (result.kind === 'action' && result.actionId === GUARD_ID) {
+            setNotice('Guard ready · 30 AP · incoming damage reduced for 2 turns.')
+          } else if (result.kind === 'action' && result.actionId === RECOVER_ID) {
+            setNotice('HP Recovery ready · 50 AP · restores 10% maximum HP.')
+          } else if (result.kind === 'action' && result.actionId === MP_RECOVER_ID) {
+            setNotice('MP Recovery ready · 50 AP · restores 10% maximum MP.')
+          } else if (result.kind === 'action') {
+            setNotice(
+              `Skill ready · ${result.actionEconomyCost} AP · click a target or press WASD to execute.`,
+            )
+          }
+          return readyPreview.current
+        } catch (error) {
+          if (
+            mounted.current &&
+            !controller.signal.aborted &&
+            sequence === previewSequence.current
+          ) {
+            setPreview(null)
+            setNotice(error instanceof Error ? error.message : 'That command could not be checked.')
+          }
+        } finally {
+          if (mounted.current && sequence === previewSequence.current) setPreviewPending(false)
+          if (previewController.current === controller) previewController.current = null
+          if (inFlightPreview.current?.sequence === sequence) inFlightPreview.current = null
         }
-        setPreview(body.battlePreview)
-        const result = body.battlePreview.preview
-        readyPreview.current = result.legal
-          ? { intent, version: battle.battleVersion, sequence }
-          : null
-        if (!result.legal) {
-          setNotice(result.issues[0]?.message ?? 'That command is not legal right now.')
-        } else if (result.kind === 'move') {
-          setNotice(
-            `Movement ready · ${result.actionEconomyCost} AP · ${result.actionEconomyAfter} AP remains.`,
-          )
-        } else if (result.kind === 'action' && result.actionId === BASIC_ATTACK_ID) {
-          setNotice(`Basic Attack ready · ${result.actionEconomyCost} AP.`)
-        } else if (result.kind === 'action' && result.actionId === GUARD_ID) {
-          setNotice('Guard ready · 30 AP · incoming damage reduced for 2 turns.')
-        } else if (result.kind === 'action' && result.actionId === RECOVER_ID) {
-          setNotice('HP Recovery ready · 50 AP · restores 10% maximum HP.')
-        } else if (result.kind === 'action' && result.actionId === MP_RECOVER_ID) {
-          setNotice('MP Recovery ready · 50 AP · restores 10% maximum MP.')
-        } else if (result.kind === 'action') {
-          setNotice(
-            `Skill ready · ${result.actionEconomyCost} AP · click a target or press WASD to execute.`,
-          )
-        }
-        return readyPreview.current
-      } catch (error) {
-        if (mounted.current && !controller.signal.aborted && sequence === previewSequence.current) {
-          setPreview(null)
-          setNotice(error instanceof Error ? error.message : 'That command could not be checked.')
-        }
-      } finally {
-        if (mounted.current && sequence === previewSequence.current) setPreviewPending(false)
-        if (previewController.current === controller) previewController.current = null
-      }
+      })()
+      inFlightPreview.current = { intent, version: battle.battleVersion, sequence, result }
+      return result
     },
     [
       actionCooldownTurns,
@@ -1041,7 +1072,7 @@ function BattleExperienceContent({
 
   // A user gesture may refresh its target forecast, but only the current legal receipt can commit.
   const executeIntent = useCallback(
-    async (intent: BattleIntent) => {
+    async (intent: BattleIntent, keyboardCode?: string) => {
       if (planningDisabledRef.current || executionLock.current || commitLock.current) return
       if (intent.kind === 'action' && actionCooldownTurns(intent.actionId) > 0) return
       executionLock.current = true
@@ -1057,7 +1088,9 @@ function BattleExperienceContent({
           : await requestPreview(intent)
         if (
           mounted.current &&
-          !isTextEntryTarget(null) &&
+          !document.hidden &&
+          document.hasFocus() &&
+          !isTextEntryTarget(document.activeElement, keyboardCode) &&
           ready &&
           isCurrentBattlePreview(
             readyPreview.current,
@@ -1308,7 +1341,9 @@ function BattleExperienceContent({
     ],
   )
 
-  useEffect(() => {
+  // Native hotkeys must observe the selection and legal preview as soon as their DOM is rendered.
+  // A passive listener refresh can otherwise drop a fast second press or confirmation.
+  useLayoutEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (
         event.defaultPrevented ||
@@ -1370,7 +1405,7 @@ function BattleExperienceContent({
           selection,
           delta,
         )
-        if (intent) void executeIntent(intent)
+        if (intent) void executeIntent(intent, event.code)
         else setNotice('No eligible target in that direction.')
         return
       }
@@ -1425,7 +1460,7 @@ function BattleExperienceContent({
           )
         )
           return false
-        void executeIntent(intent)
+        void executeIntent(intent, event.code)
         return true
       }
       if (selected === 'move') chooseMode('move')
@@ -2096,6 +2131,7 @@ function BattleExperienceContent({
             participants={Array.from(viewModel.participantByCombatant.values())}
             notice={contextDescription}
           />
+          <BattleRoundBadge round={battleState.round} />
         </section>
         <div data-battle-command-dock="true">
           <section

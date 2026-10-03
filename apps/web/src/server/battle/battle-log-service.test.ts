@@ -5,11 +5,80 @@ vi.mock('server-only', () => ({}))
 
 import { buildBattleLogView, createBattleLogService } from './battle-log-service'
 import { buildBattleLogPresentation } from '../../components/battle/battle-log-presentation'
+import { buildBattleChronicle } from '../../components/battle/battle-log-chronicle-model'
 
 const USER_ID = '11111111-1111-4111-8111-111111111111'
 const SESSION_ID = '33333333-3333-4333-8333-333333333333'
 
 describe('sanitized battle log service', () => {
+  it('retains actual per-target Skill accuracy receipts without exposing RNG or inventing malformed misses', () => {
+    const result = buildBattleLogView(
+      SESSION_ID,
+      [false, true, undefined, 'false'].map((hit, eventIndex) => ({
+        battleVersion: 1,
+        eventIndex,
+        createdAt: '2026-10-03T00:00:00.000Z',
+        event: {
+          event: 'combat_accuracy_resolved',
+          actionId: 'skill.reflection',
+          sourceCombatantId: 'character:player-1',
+          targetCombatantId: 'recruit:p2-4-1',
+          hit,
+          hitChanceBasisPoints: 7400,
+          rollBasisPoints: 8000,
+          accuracyRulesVersion: 1,
+        },
+      })),
+    )
+    expect(result.entries).toHaveLength(2)
+    expect(result.entries[0]).toMatchObject({
+      eventType: 'combat_accuracy_resolved',
+      actorCombatantId: 'character:player-1',
+      targetCombatantId: 'recruit:p2-4-1',
+      actionId: 'skill.reflection',
+      templateValues: { outcome: 'MISSED' },
+    })
+    expect(result.entries[1].templateValues.outcome).toBe('HIT')
+    expect(JSON.stringify(result)).not.toContain('rollBasisPoints')
+    expect(JSON.stringify(result)).not.toContain('8000')
+    expect(JSON.stringify(result)).not.toContain('accuracyRulesVersion')
+  })
+
+  it('carries a saved Skill miss into its own action without deriving a miss for unknown history', () => {
+    const records = [
+      {
+        event: 'combat_accuracy_resolved',
+        sourceCombatantId: 'character:player-1',
+        targetCombatantId: 'recruit:p2-4-1',
+        actionId: 'skill.reflection',
+        hit: false,
+      },
+      {
+        event: 'combat_action_used',
+        actorId: 'character:player-1',
+        targetCombatantId: 'recruit:p2-4-1',
+        actionId: 'skill.reflection',
+      },
+    ].map((event, eventIndex) => ({
+      battleVersion: 1,
+      eventIndex,
+      createdAt: '2026-10-03T00:00:00.000Z',
+      event,
+    }))
+    const view = buildBattleLogView(SESSION_ID, records)
+    const chronicle = buildBattleChronicle(view.entries, {
+      combatantNames: { 'recruit:p2-4-1': 'Weon' },
+    })
+    expect(chronicle[0].actors[0].actions).toHaveLength(1)
+    expect(chronicle[0].actors[0].actions[0].outcomes.map((result) => result.text)).toEqual([
+      'The skill misses Weon.',
+    ])
+    const historical = buildBattleChronicle(
+      buildBattleLogView(SESSION_ID, records.slice(1)).entries,
+    )
+    expect(historical[0].actors[0].actions[0].outcomes).toEqual([])
+  })
+
   it('labels pending current Copy as beneficial effects while retaining historical Copy wording', () => {
     const result = buildBattleLogView(
       SESSION_ID,

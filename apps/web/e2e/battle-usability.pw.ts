@@ -99,12 +99,29 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
     page.getByRole('button', { name: new RegExp(`Tile 2, 4;.*occupied by ${characterName}`) }),
   ).toBeVisible()
   await expect(page.getByRole('button', { name: /Tile 8, 4;.*occupied by Recruit/ })).toBeVisible()
-  await expect(
-    page.getByRole('button', { name: /Tile 4, 3; rough-ground; elevation 0/ }),
-  ).toBeVisible()
-  await expect(
-    page.getByRole('button', { name: /Tile 5, 2; open-ground; elevation 1/ }),
-  ).toBeVisible()
+  // Standard maps vary; inspect actual terrain instead of restoring historical fixed tiles.
+  const roughGround = page
+    .getByRole('button', { name: /^Tile \d+, \d+; rough-ground; elevation 0/ })
+    .first()
+  await expect(roughGround).toBeVisible()
+  const raisedTiles = battlefield.locator('button[data-elevation]')
+  expect(await raisedTiles.count()).toBeGreaterThanOrEqual(2)
+  const raisedPositions = await raisedTiles.evaluateAll((tiles) =>
+    tiles.map((tile) => {
+      const match = tile.getAttribute('aria-label')!.match(/^Tile (\d+), (\d+);/)
+      return { x: Number(match![1]), y: Number(match![2]) }
+    }),
+  )
+  for (const position of raisedPositions) {
+    expect(
+      raisedPositions.some(
+        (neighbor) => Math.abs(neighbor.x - position.x) + Math.abs(neighbor.y - position.y) === 1,
+      ),
+    ).toBe(true)
+  }
+  expect(
+    await battlefield.locator('button[data-terrain="open"]:not([data-elevation])').count(),
+  ).toBeGreaterThan(63 * 0.7)
   await expect(page.getByRole('button', { name: /^Tile / })).toHaveCount(63)
   await expect(page.getByRole('progressbar', { name: 'Action Economy remaining' })).toHaveAttribute(
     'aria-valuenow',
@@ -146,7 +163,7 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
 
   await commandDeck.getByRole('button', { name: /^Inspect,/ }).click()
   await expect(commandContext).toContainText('Choose a character or tile to inspect')
-  await page.getByRole('button', { name: /Tile 4, 3; rough-ground; elevation 0/ }).click()
+  await roughGround.click()
   await expect(commandContext).toContainText('Difficult terrain')
   await page.getByRole('button', { name: new RegExp(`occupied by ${characterName}`) }).click()
   await expect(page.locator('[data-battle-combatant-card="selected"]')).toContainText(characterName)

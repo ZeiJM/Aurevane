@@ -12,6 +12,8 @@ import {
   endCombatTurn,
 } from '@aurevane/game-core/combat/actions'
 import { moveCurrentCombatant, selectCurrentFinalFacing } from '@aurevane/game-core/combat/board'
+import { getTacticalHallArena } from '@aurevane/game-core/combat/tactical-hall-arenas'
+import { createStandardBattlefieldTiles } from '@aurevane/game-core/combat/standard-battlefield'
 import {
   reattachStatDrivenCombatBridge,
   type StatDrivenCombatEncounterState,
@@ -162,6 +164,86 @@ async function createPersistedFixture(character = characterRecord()) {
 }
 
 describe('P2.4 battle session service', () => {
+  it.each(['duel-yard', 'crossroads-court', 'terraced-yard'] as const)(
+    'gives a fresh standard %s sparring battle a new mostly neutral map',
+    async (arenaId) => {
+      const battles = createBattleRepository()
+      const service = createBattleSessionService({
+        characters: createCharacterRepository().repository,
+        battles: battles.repository,
+      })
+      const first = await service.createSession({
+        userId: USER_ID,
+        characterId: CHARACTER_ID,
+        idempotencyKey: IDEMPOTENCY_KEY,
+        arenaId,
+        battleHallRecordId: 'recruit-sparring',
+        allyCount: 2,
+        enemyCount: 3,
+      })
+      const rematch = await service.createSession({
+        userId: USER_ID,
+        characterId: CHARACTER_ID,
+        idempotencyKey: '44444444-4444-4444-8444-444444444445',
+        arenaId,
+        battleHallRecordId: 'recruit-sparring',
+        allyCount: 2,
+        enemyCount: 3,
+      })
+      expect(rematch.snapshot.tactical.tiles).not.toEqual(first.snapshot.tactical.tiles)
+      for (const state of [first.snapshot, rematch.snapshot]) {
+        expect(
+          state.tactical.tiles.filter(
+            (tile) => tile.terrainId === 'open-ground' && tile.elevation === 0,
+          ).length,
+        ).toBeGreaterThan(state.tactical.tiles.length * 0.7)
+        for (const placement of state.tactical.placements) {
+          expect(
+            state.tactical.tiles.find(
+              (tile) =>
+                tile.position.x === placement.position.x &&
+                tile.position.y === placement.position.y,
+            ),
+          ).toMatchObject({ terrainId: 'open-ground', elevation: 0 })
+        }
+      }
+      for (const call of battles.createBattleSession.mock.calls) {
+        const state = call[0].initialSnapshot as StatDrivenCombatEncounterState
+        expect(state.tactical.battle.rng).toMatchObject({
+          state: state.tactical.battle.rng.seed,
+          draws: 0,
+        })
+        expect(state.tactical.tiles).toEqual(
+          createStandardBattlefieldTiles({
+            width: state.tactical.width,
+            height: state.tactical.height,
+            seed: state.tactical.battle.rng.seed,
+            spawns: state.tactical.placements.map((placement) => placement.position),
+          }),
+        )
+      }
+    },
+  )
+
+  it.each([
+    ['guided-fundamentals', 'duel-yard'],
+    ['mastery-trial', 'terraced-yard'],
+    ['movement-drill', 'basic-training-floor'],
+  ] as const)('preserves the authored %s teaching map', async (recordId, arenaId) => {
+    const service = createBattleSessionService({
+      characters: createCharacterRepository().repository,
+      battles: createBattleRepository().repository,
+    })
+    const created = await service.createSession({
+      userId: USER_ID,
+      characterId: CHARACTER_ID,
+      idempotencyKey: IDEMPOTENCY_KEY,
+      arenaId,
+      battleHallRecordId: recordId,
+    })
+    expect(created.snapshot.tactical.tiles).toEqual(getTacticalHallArena(arenaId).tiles)
+  })
+
   it.each([0, 1, 2])(
     'creates every supported two-team sparring setup with %s allies',
     async (allyCount) => {

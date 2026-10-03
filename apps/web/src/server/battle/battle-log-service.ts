@@ -671,6 +671,27 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
         headline: 'Turn End',
       })
     }
+    case 'combat_accuracy_resolved': {
+      const actorCombatantId = stringValue(event.sourceCombatantId)
+      const targetCombatantId = stringValue(event.targetCombatantId)
+      const actionId = presentationActionId(event.actionId)
+      // Missing or malformed receipts cannot establish either a hit or a miss.
+      if (typeof event.hit !== 'boolean' || !actorCombatantId || !targetCombatantId || !actionId)
+        return null
+      const label = actionLabel(actionId)
+      return createEntry(record, eventType, {
+        messageTemplate: '{action} {outcome} {target}.',
+        templateValues: { action: label, outcome: event.hit ? 'HIT' : 'MISSED' },
+        actorCombatantId,
+        targetCombatantId,
+        actionId,
+        actionLabel: label,
+        kind: 'offense',
+        headline: label,
+        tone: event.hit ? 'neutral' : 'warning',
+        facts: fact(event.hit ? 'HIT' : 'MISS', event.hit ? 'neutral' : 'warning'),
+      })
+    }
     case 'stat_driven_attack_resolved': {
       const actorCombatantId = stringValue(event.actorId)
       const targetCombatantId = stringValue(event.targetId)

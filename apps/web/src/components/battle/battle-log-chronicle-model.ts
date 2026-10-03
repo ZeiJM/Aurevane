@@ -9,7 +9,7 @@ export interface ChronicleOutcome {
   key: string
   text: string
   recipient?: string
-  tone: 'neutral' | 'damage' | 'recovery'
+  tone: 'neutral' | 'damage' | 'recovery' | 'benefit' | 'harm'
   statusId?: string
   duration?: string
 }
@@ -129,6 +129,19 @@ function attachOutcomeNarrator(action: ChronicleAction, entry: BattleLogEntry) {
   }
 }
 
+/** Classify only the identity preserved by viewer-safe history; display names are not authority. */
+function effectTone(statusId: string | undefined): ChronicleOutcome['tone'] {
+  const kind = statusId ? combatStatusDetails(statusId).kind : 'Effect'
+  return kind === 'Buff' ? 'benefit' : kind === 'Debuff' ? 'harm' : 'neutral'
+}
+
+function isAccuracyReceipt(entry: BattleLogEntry): boolean {
+  return (
+    entry.eventType === 'stat_driven_attack_resolved' ||
+    entry.eventType === 'combat_accuracy_resolved'
+  )
+}
+
 function outcome(entry: BattleLogEntry, names: ChronicleNames): ChronicleOutcome | null {
   const target = chronicleCombatantName(entry.targetCombatantId, names)
   const value = entry.templateValues
@@ -144,6 +157,7 @@ function outcome(entry: BattleLogEntry, names: ChronicleNames): ChronicleOutcome
           : 'a future round'
       return {
         ...base,
+        tone: effectTone(entry.statusId),
         text: `${label} will take effect${entry.targetCombatantId ? ` on ${target}` : ''} at the start of ${round}!`,
         ...(entry.statusId ? { statusId: entry.statusId, duration: duration(entry) } : {}),
       }
@@ -165,11 +179,18 @@ function outcome(entry: BattleLogEntry, names: ChronicleNames): ChronicleOutcome
     case 'resource_changed': {
       const recovered = value.direction === 'gained' || value.direction === 'recovered'
       const resource = value.resource ?? 'resource'
+      const lost = value.direction === 'spent'
+      const recoveryResource = resource === 'MP' || resource === 'HP'
       return {
         ...base,
         text: `${recovered ? '+' : '−'}${value.amount ?? 'Resolved'} ${resource}`,
         recipient: entry.targetCombatantId === entry.actorCombatantId ? undefined : ` to ${target}`,
-        tone: recovered && (resource === 'MP' || resource === 'HP') ? 'recovery' : 'neutral',
+        tone:
+          recoveryResource && recovered
+            ? 'recovery'
+            : recoveryResource && lost
+              ? 'harm'
+              : 'neutral',
       }
     }
     case 'status_applied':
@@ -182,6 +203,7 @@ function outcome(entry: BattleLogEntry, names: ChronicleNames): ChronicleOutcome
         (entry.eventType.includes('lowered_guard') ? 'lowered-guard' : undefined)
       return {
         ...base,
+        tone: effectTone(statusId),
         text: `${value.status ?? entry.headline}${turns ? `, ${turns}` : ''}${value.stacks && value.stacks !== '1' ? ` · ×${value.stacks}` : ''}`,
         recipient:
           entry.targetCombatantId && entry.targetCombatantId !== entry.actorCombatantId
@@ -192,12 +214,28 @@ function outcome(entry: BattleLogEntry, names: ChronicleNames): ChronicleOutcome
       }
     }
     case 'stat_driven_attack_resolved':
+    case 'combat_accuracy_resolved':
       return {
         ...base,
         text:
           value.outcome === 'MISSED'
-            ? `The strike misses ${target}.`
-            : `The strike hits ${target}.`,
+            ? `The ${entry.eventType === 'combat_accuracy_resolved' ? 'skill' : 'strike'} misses ${target}.`
+            : `The ${entry.eventType === 'combat_accuracy_resolved' ? 'skill' : 'strike'} hits ${target}.`,
+      }
+    case 'status_removed': {
+      const tone = effectTone(entry.statusId)
+      return {
+        ...base,
+        text: renderBattleLogEntry(entry, names),
+        tone: tone === 'benefit' ? 'harm' : tone === 'harm' ? 'benefit' : 'neutral',
+        ...(entry.statusId ? { statusId: entry.statusId } : {}),
+      }
+    }
+    case 'recovery_scheduled':
+      return {
+        ...base,
+        text: renderBattleLogEntry(entry, names),
+        tone: value.resource === 'HP' || value.resource === 'MP' ? 'recovery' : 'neutral',
       }
     case 'combat_action_used':
     case 'resonance_activated':
@@ -206,6 +244,7 @@ function outcome(entry: BattleLogEntry, names: ChronicleNames): ChronicleOutcome
       return {
         ...base,
         text: renderBattleLogEntry(entry, names),
+        tone: effectTone(entry.statusId),
         ...(entry.statusId ? { statusId: entry.statusId, duration: duration(entry) } : {}),
       }
   }
@@ -312,7 +351,7 @@ export function buildBattleChronicle(
       continue
     }
     if (
-      entry.eventType === 'stat_driven_attack_resolved' &&
+      isAccuracyReceipt(entry) &&
       entry.templateValues.outcome === 'HIT' &&
       damageTargets.has(`${entry.battleVersion}:${entry.targetCombatantId}`)
     )
@@ -320,7 +359,7 @@ export function buildBattleChronicle(
     if (
       !command &&
       commands.get(entry.battleVersion)?.actorCombatantId === entry.actorCombatantId &&
-      entry.eventType === 'stat_driven_attack_resolved'
+      isAccuracyReceipt(entry)
     ) {
       const pending = pendingOutcomes.get(entry.battleVersion) ?? []
       pending.push(entry)

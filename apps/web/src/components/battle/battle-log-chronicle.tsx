@@ -71,7 +71,7 @@ function ChronicleTechnique({ action, actorName }: { action: ChronicleAction; ac
           ))}
         </p>
       ) : action.family !== 'movement' ? (
-        <p className={styles.outcomes}>No outcome recorded.</p>
+        <p className={styles.outcomes}>Action recorded; no effect result available.</p>
       ) : null}
       {action.specials.map((special) => (
         <ChronicleTechnique key={special.key} action={special} actorName={actorName} />

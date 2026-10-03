@@ -5,6 +5,7 @@ import type { BattleLogEntry } from '@/server/battle/battle-log-service'
 
 import { BattleLogFeed } from './battle-log-feed'
 import { BattleLogPanel } from './battle-log-panel'
+import { buildBattleChronicle } from './battle-log-chronicle-model'
 
 const actor = 'character:zei'
 const enemy = 'recruit:weon'
@@ -59,6 +60,125 @@ function render(entries: readonly BattleLogEntry[]) {
 }
 
 describe('approved Battle Chronicle', () => {
+  it.each([
+    ['guarded', 'benefit'],
+    ['lowered-guard', 'harm'],
+    ['root', 'harm'],
+    ['barrier', 'benefit'],
+    ['healing', 'benefit'],
+    ['mp-recovery', 'benefit'],
+    ['reckless', 'neutral'],
+    ['fortified', 'neutral'],
+    ['unknown-guard', 'neutral'],
+  ] as const)(
+    'classifies recorded %s identity consistently for pending and active outcomes',
+    (statusId, tone) => {
+      for (const eventType of ['effect_pending', 'status_applied', 'persistent_effect_applied']) {
+        const recorded = entry(1, 1, eventType, {
+          statusId,
+          // Neither display copy nor unrelated event tone is classification authority.
+          tone: 'benefit',
+          templateValues: { effect: 'Guard', status: 'Guard', round: '3' },
+        })
+        const result = buildBattleChronicle([technique(1), recorded], { combatantNames: names })
+        expect(result[0].actors[0].actions[0].outcomes[0].tone).toBe(tone)
+        expect(render([technique(1), recorded])).toContain('aria-label="Explain ')
+      }
+    },
+  )
+
+  it('keeps recorded HP/MP scheduled recovery beneficial without treating other resources as recovery', () => {
+    for (const resource of ['HP', 'MP', 'AP']) {
+      const result = buildBattleChronicle([
+        technique(1),
+        entry(1, 1, 'recovery_scheduled', {
+          templateValues: { resource },
+        }),
+      ])
+      expect(result[0].actors[0].actions[0].outcomes[0].tone).toBe(
+        resource === 'AP' ? 'neutral' : 'recovery',
+      )
+    }
+  })
+
+  it.each([
+    ['root', 'benefit'],
+    ['guarded', 'harm'],
+    ['reckless', 'neutral'],
+    ['unknown-guard', 'neutral'],
+  ] as const)(
+    'colors removing %s for the consequence while preserving its canonical explainer',
+    (statusId, tone) => {
+      const removal = entry(1, 1, 'status_removed', {
+        statusId,
+        messageTemplate: '{status} was removed from {target}.',
+        templateValues: { status: statusId },
+      })
+      expect(
+        buildBattleChronicle([technique(1), removal])[0].actors[0].actions[0].outcomes[0].tone,
+      ).toBe(tone)
+      expect(render([technique(1), removal])).toContain('aria-label="Explain ')
+    },
+  )
+
+  it.each(['HP', 'MP'])(
+    'colors recorded %s effect losses red and recovery ticks green',
+    (resource) => {
+      const results = buildBattleChronicle([
+        technique(1),
+        entry(1, 1, 'resource_changed', {
+          templateValues: { resource, direction: 'spent', amount: '4' },
+        }),
+        entry(1, 2, 'resource_changed', {
+          templateValues: { resource, direction: 'gained', amount: '3' },
+        }),
+      ])[0].actors[0].actions[0].outcomes
+      expect(results.map((result) => result.tone)).toEqual(['harm', 'recovery'])
+      expect(results.map((result) => result.text)).toEqual([`−4 ${resource}`, `+3 ${resource}`])
+    },
+  )
+
+  it('keeps viewer-redacted consequences neutral without reconstructing concealed effect identities', () => {
+    const html = render([
+      technique(1),
+      entry(1, 1, 'hidden_combat_action', {
+        statusId: undefined,
+        actionId: null,
+        templateValues: {},
+        messageTemplate: '{actor} uses a concealed action.',
+        tone: 'benefit',
+      }),
+    ])
+    expect(html).toContain('concealed action')
+    expect(html).toContain('data-outcome-tone="neutral"')
+    expect(html).not.toContain('Explain')
+    expect(html).not.toContain('Covert')
+  })
+
+  it('places authoritative per-target Skill misses under the action without inventing misses from absent results', () => {
+    const html = render([
+      entry(1, 0, 'combat_accuracy_resolved', { templateValues: { outcome: 'MISSED' } }),
+      { ...technique(1), eventIndex: 1 },
+      technique(2),
+    ])
+    expect(html.match(/data-chronicle-action=/gu)).toHaveLength(2)
+    expect(html).toContain('The skill misses Weon.')
+    expect(html.match(/Action recorded; no effect result available\./gu)).toHaveLength(1)
+    expect(html.indexOf('Hollow Reflection')).toBeLessThan(html.indexOf('The skill misses'))
+  })
+
+  it('shows a recorded Skill hit without damage but omits redundant hits when damage is recorded', () => {
+    const html = render([
+      entry(1, 0, 'combat_accuracy_resolved', { templateValues: { outcome: 'HIT' } }),
+      { ...technique(1), eventIndex: 1 },
+      entry(2, 0, 'combat_accuracy_resolved', { templateValues: { outcome: 'HIT' } }),
+      { ...technique(2), eventIndex: 1 },
+      entry(2, 2, 'damage_applied', { templateValues: { amount: '8' } }),
+    ])
+    expect(html.match(/The skill hits Weon\./gu)).toHaveLength(1)
+    expect(html.replace(/<[^>]+>/gu, '')).toContain('8 damage to Weon')
+  })
+
   it('marks every named action start consistently without marking its outcomes or movement', () => {
     const html = render([
       technique(1, actor, 'Basic Attack'),
@@ -100,7 +220,7 @@ describe('approved Battle Chronicle', () => {
       technique(2),
     ])
     expect(html).toContain('The strike hits Weon.')
-    expect(html).toContain('No outcome recorded.')
+    expect(html).toContain('Action recorded; no effect result available.')
     expect(html).not.toContain('0 damage')
   })
   it('renders pinned identities and authorized outcome pronouns without rewriting old scenes', () => {

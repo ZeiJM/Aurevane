@@ -45,6 +45,7 @@
     "./combat/recruit-ai-build": "./src/combat/recruit-ai-build.ts",
     "./combat/stat-driven-combat": "./src/combat/stat-driven-combat.ts",
     "./combat/tactical-hall-arenas": "./src/combat/tactical-hall-arenas.ts",
+    "./combat/standard-battlefield": "./src/combat/standard-battlefield.ts",
     "./combat/tactical-hall-records": "./src/combat/tactical-hall-records.ts",
     "./command": "./src/command.ts",
     "./errors": "./src/errors.ts",

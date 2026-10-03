@@ -7,6 +7,8 @@ import type {
 import type { CharacterRecord, CharacterRepository } from '@aurevane/db/character'
 import { P2_3_COMBAT_CONTENT, endCombatTurn } from '@aurevane/game-core/combat/actions'
 import { selectCurrentFinalFacing } from '@aurevane/game-core/combat/board'
+import { createBattleRngState } from '@aurevane/game-core/combat/battle-state'
+import { createStandardBattlefieldTiles } from '@aurevane/game-core/combat/standard-battlefield'
 import { spawnCombatSummon } from '@aurevane/game-core/combat/combat-summons'
 import {
   evaluatePv1fMovement,
@@ -77,6 +79,7 @@ function characterRepository(): CharacterRepository {
 
 async function initialEncounter(
   teams: { allyCount?: number; enemyCount?: number; arenaId?: TacticalHallArenaId } = {},
+  mapSeed?: number,
 ): Promise<StatDrivenCombatEncounterState> {
   let initialSnapshot: unknown = null
   const repository: BattleSessionRepository = {
@@ -109,7 +112,22 @@ async function initialEncounter(
     ...(Object.keys(teams).length ? { arenaId: 'duel-yard' as const, ...teams } : {}),
   })
   if (!initialSnapshot) throw new Error('Expected an initial battle snapshot.')
-  return initialSnapshot as StatDrivenCombatEncounterState
+  const state = initialSnapshot as StatDrivenCombatEncounterState
+  if (mapSeed === undefined) return state
+  // Routing fixtures cover repeatable generated maps, independently of the pinned hit-roll stream.
+  return {
+    ...state,
+    tactical: {
+      ...state.tactical,
+      battle: { ...state.tactical.battle, rng: createBattleRngState(mapSeed) },
+      tiles: createStandardBattlefieldTiles({
+        width: state.tactical.width,
+        height: state.tactical.height,
+        seed: mapSeed,
+        spawns: state.tactical.placements.map((placement) => placement.position),
+      }),
+    },
+  }
 }
 
 function advanceToRecruitTurn(
@@ -311,14 +329,16 @@ function createStatefulRepository(
 
 describe('P2.6 authoritative Recruit AI turn service', () => {
   it.each(
-    (['duel-yard', 'crossroads-court', 'terraced-yard'] as const).flatMap((arenaId) => [
-      { arenaId, allyCount: 0, enemyCount: 5 },
-      { arenaId, allyCount: 2, enemyCount: 3 },
-    ]),
+    (['duel-yard', 'crossroads-court', 'terraced-yard'] as const).flatMap((arenaId) =>
+      [1, 47_399_736, 987_654_321].flatMap((mapSeed) => [
+        { arenaId, allyCount: 0, enemyCount: 5, mapSeed },
+        { arenaId, allyCount: 2, enemyCount: 3, mapSeed },
+      ]),
+    ),
   )(
-    'routes actual $arenaId AI spawns into combat ($allyCount allies/$enemyCount enemies)',
+    'routes actual $arenaId AI spawns into combat ($allyCount allies/$enemyCount enemies, map seed $mapSeed)',
     async (teams) => {
-      const spawned = await initialEncounter(teams)
+      const spawned = await initialEncounter(teams, teams.mapSeed)
       const durable = {
         ...spawned,
         tactical: {
@@ -389,7 +409,9 @@ describe('P2.6 authoritative Recruit AI turn service', () => {
         .filter((c) => c.id.startsWith('recruit:'))
         .map((c) => c.id)
         .sort()
-      expect([...moved].sort()).toEqual(aiIds)
+      // An approaching enemy can enter melee before this actor's first turn. Attacking
+      // directly from the original spawn is participation, without a gratuitous move.
+      expect([...new Set([...moved, ...attacked])].sort()).toEqual(aiIds)
       expect(fixture.playerMoveCount()).toBeGreaterThan(0)
       if (teams.allyCount > 0) {
         expect([...attacked].sort()).toEqual(aiIds)
@@ -413,6 +435,7 @@ describe('P2.6 authoritative Recruit AI turn service', () => {
         expect([...attacked].sort()).toEqual(aiIds)
       }
     },
+    15_000,
   )
   it.each([
     [0, 5],

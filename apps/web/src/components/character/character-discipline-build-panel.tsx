@@ -268,6 +268,7 @@ export function CharacterDisciplineBuildPanel({
   const selectedPrimaryId = current.definition.id
   const selectedSecondaryId = currentSecondary?.id ?? ''
   const [activeSlot, setActiveSlot] = useState<DisciplineSlot>('primary')
+  const [slotChosen, setSlotChosen] = useState(false)
   const [lastChange, setLastChange] = useState<BuildPreviewResponse['preview'] | null>(null)
   const [remaining, setRemaining] = useState({
     primary: initialAttunement.primaryRemainingSeconds,
@@ -289,6 +290,7 @@ export function CharacterDisciplineBuildPanel({
   const [wasOpen, setWasOpen] = useState(open)
   if (wasOpen !== open) {
     setWasOpen(open)
+    setSlotChosen(false)
     setSynchronizing(open)
     setSynchronizationFailed(false)
     if (!open) {
@@ -469,10 +471,17 @@ export function CharacterDisciplineBuildPanel({
   }, [current, lastChange])
 
   const currentSlotDefinition = activeSlot === 'primary' ? current.definition : currentSecondary
+  const primarySlotSelected = slotChosen && activeSlot === 'primary'
+  const secondarySlotSelected = slotChosen && activeSlot === 'secondary'
   const changedCore = coreDeltas.filter((entry) => entry.direction !== 'neutral')
   const changedAdventure = adventureDeltas
     .filter((entry) => entry.direction !== 'neutral')
     .slice(0, Math.max(0, 6 - changedCore.length))
+
+  function selectSlot(slot: DisciplineSlot) {
+    setActiveSlot(slot)
+    setSlotChosen(true)
+  }
 
   function setPanelOpen(nextOpen: boolean) {
     if (!nextOpen && (requestRef.current || refreshingProfile)) return
@@ -714,6 +723,7 @@ export function CharacterDisciplineBuildPanel({
                     secondaryRemainingSeconds={remaining.secondary}
                     activeSlot={activeSlot}
                     onSelect={(primaryId, secondaryId) => {
+                      setSlotChosen(true)
                       void applySelection(primaryId, secondaryId)
                     }}
                   />
@@ -734,8 +744,8 @@ export function CharacterDisciplineBuildPanel({
                           type="button"
                           className={styles.currentDiscipline}
                           data-av-surface="ink"
-                          data-active={activeSlot === 'primary'}
-                          aria-pressed={activeSlot === 'primary'}
+                          data-active={primarySlotSelected}
+                          aria-pressed={primarySlotSelected}
                           aria-label="Edit Primary Discipline"
                           disabled={
                             pendingPreview ||
@@ -744,7 +754,7 @@ export function CharacterDisciplineBuildPanel({
                             synchronizing ||
                             synchronizationFailed
                           }
-                          onClick={() => setActiveSlot('primary')}
+                          onClick={() => selectSlot('primary')}
                         >
                           <FoundationDisciplineSigil
                             disciplineId={current.definition.id}
@@ -755,9 +765,7 @@ export function CharacterDisciplineBuildPanel({
                             <strong>{current.definition.name}</strong>
                             <p>{committedDisciplineSummary(current.definition.summary)}</p>
                             <small>
-                              {activeSlot === 'primary'
-                                ? '✓ Editing Primary'
-                                : 'Click to edit Primary'}
+                              {primarySlotSelected ? '✓ Editing Primary' : 'Click to edit Primary'}
                             </small>
                           </div>
                         </button>
@@ -766,8 +774,8 @@ export function CharacterDisciplineBuildPanel({
                             type="button"
                             className={styles.currentDiscipline}
                             data-av-surface="ink"
-                            data-active={activeSlot === 'secondary'}
-                            aria-pressed={activeSlot === 'secondary'}
+                            data-active={secondarySlotSelected}
+                            aria-pressed={secondarySlotSelected}
                             aria-label="Edit Secondary Discipline"
                             disabled={
                               pendingPreview ||
@@ -776,7 +784,7 @@ export function CharacterDisciplineBuildPanel({
                               synchronizing ||
                               synchronizationFailed
                             }
-                            onClick={() => setActiveSlot('secondary')}
+                            onClick={() => selectSlot('secondary')}
                           >
                             <FoundationDisciplineSigil
                               disciplineId={currentSecondary.id}
@@ -787,7 +795,7 @@ export function CharacterDisciplineBuildPanel({
                               <strong>{currentSecondary.name}</strong>
                               <p>{committedDisciplineSummary(currentSecondary.summary)}</p>
                               <small>
-                                {activeSlot === 'secondary'
+                                {secondarySlotSelected
                                   ? '✓ Editing Secondary'
                                   : 'Click to edit Secondary'}
                               </small>
@@ -797,8 +805,8 @@ export function CharacterDisciplineBuildPanel({
                           <button
                             type="button"
                             className={styles.currentDiscipline}
-                            data-active={activeSlot === 'secondary'}
-                            aria-pressed={activeSlot === 'secondary'}
+                            data-active={secondarySlotSelected}
+                            aria-pressed={secondarySlotSelected}
                             aria-label="Edit Secondary Discipline"
                             disabled={
                               pendingPreview ||
@@ -807,7 +815,7 @@ export function CharacterDisciplineBuildPanel({
                               synchronizing ||
                               synchronizationFailed
                             }
-                            onClick={() => setActiveSlot('secondary')}
+                            onClick={() => selectSlot('secondary')}
                             data-av-surface="ink"
                             data-locked="true"
                           >
@@ -819,7 +827,7 @@ export function CharacterDisciplineBuildPanel({
                               <strong>None</strong>
                               <p>A second discipline awaits.</p>
                               <small>
-                                {activeSlot === 'secondary'
+                                {secondarySlotSelected
                                   ? '✓ Editing Secondary'
                                   : 'Click to edit Secondary'}
                               </small>

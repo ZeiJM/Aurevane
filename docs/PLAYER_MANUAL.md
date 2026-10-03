@@ -1,5 +1,7 @@
 # AUREVANE — Comprehensive Manual & Knowledge System
 
+2026-10-03 Owner battle readability continuation: new standard battles vary mostly neutral terrain with joined elevations while authored teaching boards, configured PvP biases and saved battles retain their authority. The preview strip displays the recorded round. Shared information popups retain complete reports in a compact design; Chronicle consequences use smaller italic text with beneficial/recovery green and harmful red, and recorded misses are explicit. A second distinct configured hotkey press confirms a legally self-targeted Skill through the usual server checks. Rapid confirmation shares a matching pending forecast instead of restarting it; final action results still wait for the server. Implementation/release status: `superpowers/verification/2026-10-03-battle-map-preview-readability.md`.
+
 Owner refinement 2026-10-03: current Copy copies active beneficial effect tags from the selected target onto the user while preserving the target, caps and remaining lifetime. New encounters pin this policy; historical encounters retain recorded Skill Copy. Shared effect reports display configured Instant timing except direct damage, and pending Root becomes movement-blocking only at its recorded activation round. Release status is recorded in TASKS.md.
 
 **Status:** Authoritative documentation/player-help specification subordinate to `docs/GAME_MASTER_PLAN.md` and the owner-approved domain specifications it indexes.

@@ -1,5 +1,9 @@
 # AUREVANE — Combat Intelligence, Battle Hall & Practice Systems
 
+## Standard sparring map variation — Owner-approved 2026-10-03
+
+New standard AI sparring and rematches vary neutral/rough ground and joined elevations through the server-seeded shared map generator, preserving legal low-mobility approaches and combat RNG. Authored micro/Guided/Mastery scenarios remain fixed. Stored sessions retain their maps; replay and reconnect do not regenerate tiles. Configured PvP map size and terrain/elevation biases remain separate explicit inputs to the shared generator. Automated legality and AI regression checks do not establish human matchup balance. Evidence: `superpowers/verification/2026-10-03-battle-map-preview-readability.md`.
+
 **Status:** Authoritative feature specification subordinate to `docs/GAME_MASTER_PLAN.md`, `docs/GAME_MASTER_PLAN_BUILD_SYSTEM_ADDENDUM.md`, and the canonical combat rules in `docs/COMBAT.md`.
 
 **Initial direction approved:** 2026-08-15.  
