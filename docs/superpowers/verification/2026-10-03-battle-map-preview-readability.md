@@ -45,4 +45,28 @@ A deterministic real-authority fixture reproduces the uncovered precondition at 
 
 The corrected buildcraft journey keeps the player on the protected original flat spawn while the actual Recruit approaches, retaining its three-handoff limit. It asserts unchanged player position, flat actor/target tiles, successful final/recruit response versions and fresh AP 100, then requires the canonical legal 100→55 Skill forecast before directional keyboard confirmation. The accepted action/version increment and all existing AP, cooldown, selection, popup and Space assertions remain. Independent movement journeys retain movement coverage. A real server/AI fixture with memory persistence passes 150 generated-map simulations: 50 seeds each at 9×7, 12×7 and 15×7; maximum handoffs are 2, 3 and 3 respectively, with every final target adjacent, flat 0/0 and canonically legal. Root independently repeats this full simulation and inspects the seed-6 and bound receipts. Scoped formatting, forced ESLint, web typecheck, three-case discovery and diff checks pass. Product maps, targeting authority and keyboard execution are unchanged.
 
-All workflows must pass on the final updated candidate before the authorized Production merge. Production/lock-closeout receipts follow after CI passes.
+The release gate required every applicable workflow to pass on the final exact candidate before the authorized Production merge. Final CI, Production and lock-closeout receipts are recorded below.
+
+## Verified release and deployment lock
+
+PR #817 merged the exact tested tree as `9dab90f3c1bafd8c34118ac5731ea46dc47b224d` and released READY deployment `dpl_4BKzCuaYMTukNMPVA86zfZThKp83` at `2026-10-03T22:14:23.885Z` on https://aurevane.vercel.app/. All eleven applicable workflows pass exact candidate `f509b54923c55b6981b8f33cccbc117113e3dde2`. Browser smoke passes six real-mail recovery cases, 66 focused cases, 312 full Chromium cases and ten Edge cases. UI layout review passes 110 cases plus the directory check; desktop interaction, page fit and representative buildcraft pass 48, eight and 24 cases. Public entry/recovery/Manual/Rules/News responses pass, and the bounded READY-to-verification warning/error/fatal scan is empty. This configuration/docs-only closeout restores the automatic deployment lock without another application release. No database migration or hosted content/Auth setting change.
+
+Local final candidate `8b9691708eddbfb97615dfc00bf8280291712d10`, published candidate `f509b54923c55b6981b8f33cccbc117113e3dde2` and the Main merge share exact tree `36502d46804afc6d16267e4eb17955208910e950`. Fresh Main remained `409df76d0db8a395dd93941f258de52d48eb28e9` immediately before merge. Independent review finds no issues in the final buildcraft correction; its protected-spawn bounds and every existing keyboard/cooldown/report assertion remain verified. The superseded candidate also completed all 66 focused battle cases successfully before cancellation, resolving the duplicate-preview and legacy PvP test failures.
+
+| Workflow | Exact-head result | Run |
+|---|---|---|
+| Browser smoke | Passed | [Run 37155489218](https://github.com/ZeiJM/Aurevane/actions/runs/37155489218) |
+| CI | Passed | [Run 37155489246](https://github.com/ZeiJM/Aurevane/actions/runs/37155489246) |
+| Desktop experience | Passed | [Run 37155489238](https://github.com/ZeiJM/Aurevane/actions/runs/37155489238) |
+| Desktop page fit | Passed | [Run 37155489220](https://github.com/ZeiJM/Aurevane/actions/runs/37155489220) |
+| Essence Build | Passed | [Run 37155489181](https://github.com/ZeiJM/Aurevane/actions/runs/37155489181) |
+| Profile Skill Build | Passed | [Run 37155489192](https://github.com/ZeiJM/Aurevane/actions/runs/37155489192) |
+| Representative Buildcraft | Passed | [Run 37155489183](https://github.com/ZeiJM/Aurevane/actions/runs/37155489183) |
+| Resonance Build | Passed | [Run 37155489186](https://github.com/ZeiJM/Aurevane/actions/runs/37155489186) |
+| Shared Build Snapshots | Passed | [Run 37155489188](https://github.com/ZeiJM/Aurevane/actions/runs/37155489188) |
+| Skill Engine | Passed | [Run 37155489209](https://github.com/ZeiJM/Aurevane/actions/runs/37155489209) |
+| UI layout review | Passed | [Run 37155489201](https://github.com/ZeiJM/Aurevane/actions/runs/37155489201) |
+
+The Vercel Production alias resolves to the READY deployment above and its exact merged source. Anonymous `/`, `/?account=recovery`, `/auth/reset-password`, `/manual`, `/rules` and `/news` responses return HTTP 200; an unverified reset visit shows the safe expired/retry path. These receipts do not claim authenticated Production combat or a new live-account password mutation. No warning/error/fatal entries are reported in the READY-to-public-verification window. The deployment build-log connector is unavailable; READY/source/alias metadata and public responses are the Production build receipts.
+
+The closeout changes only this verification record, `TASKS.md`, `apps/web/DEPLOYMENT.md` and `apps/web/vercel.json`; all automatic branch deployments are disabled again. Existing authored/persisted encounters and the preceding header/watermark, effect-tag/beneficial-Copy and password-recovery release remain included. New randomized maps apply only to newly created standard encounters.
