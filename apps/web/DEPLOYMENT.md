@@ -4,4 +4,4 @@ This file intentionally lives inside the web app project root so documentation-o
 
 Runtime behavior is unchanged.
 
-Production release marker: Battle Chronicle and effect timing, application revision `8a0f1f6da25a1bbadd1be80248fc8c5331d6aa44`, verified candidate `990d6c3aa545adc5461c0c0b6fc997371d691d82`. Only Main is temporarily enabled for this Owner-authorized release.
+Battle Chronicle and effect timing released from `96b468dc01e717e34f493849a18b49a4bcc3f453` as READY deployment `dpl_AFvAEsDpi49ovcvaS6XdnJmPZ1t9`. The closeout restores the full automatic deployment lock after source/alias, public response and bounded runtime checks.
