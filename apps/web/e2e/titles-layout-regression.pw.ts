@@ -8,11 +8,13 @@ test('default portrait gallery is modal, cancels safely, and locks after its one
   page,
 }) => {
   test.setTimeout(90_000)
+  const stamp = Date.now()
+  const suffix = String(stamp).replace(/\d/g, (digit) => String.fromCharCode(97 + Number(digit)))
   await provisionAccountAndEnterCharacter({
     page,
-    email: `portrait-choice-${Date.now()}@example.com`,
+    email: `portrait-choice-${stamp}@example.com`,
     password: 'AurevaneTest!42',
-    characterName: 'Portrait Wayfarer',
+    characterName: `Portrait ${suffix}`,
   })
   await page.goto('/game/account/titles')
   const choose = page.getByRole('button', { name: 'Choose Default Portrait', exact: true })
