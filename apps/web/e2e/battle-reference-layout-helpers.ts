@@ -163,8 +163,15 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
       last: last.toJSON(),
       deck: rect('[data-unified-command-deck]'),
       forecast: rect('[data-battle-preview-strip]'),
-      key: rect('[data-battle-terrain-key]'),
+      key: rect('button[aria-label="Terrain"]'),
+      cancel: rect('[data-battle-footer-actions] > button:nth-child(2)'),
       log: rect('[data-battle-inline-log]'),
+      leftCardRoles: [
+        ...element.querySelectorAll('[data-battle-side="local"] > [data-battle-combatant-card]'),
+      ].map((card) => card.getAttribute('data-battle-combatant-card')),
+      rightCardCount: element.querySelectorAll(
+        '[data-battle-side="selected"] [data-battle-combatant-card]',
+      ).length,
       tokens: [...board.querySelectorAll('button[aria-label*="occupied by"] > [data-team]')].map(
         (token) => ({
           token: token.getBoundingClientRect().toJSON(),
@@ -228,13 +235,16 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
     contentType: 'image/png',
   })
   expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.w + 1)
+  expect(geometry.leftCardRoles).toEqual(['local', 'selected'])
+  expect(geometry.rightCardCount).toBe(0)
   expect(Math.abs(geometry.tile.width - geometry.tile.height)).toBeLessThanOrEqual(1)
   if (geometry.w > 820) {
     expect(geometry.scrollHeight).toBeLessThanOrEqual(geometry.h + 1)
     expect(geometry.board.left).toBeGreaterThanOrEqual(geometry.viewport.left - 1)
     expect(geometry.last.right).toBeLessThanOrEqual(geometry.viewport.right + 1)
     expect(geometry.last.bottom).toBeLessThanOrEqual(geometry.viewport.bottom + 1)
-    expect(geometry.key.right).toBeLessThanOrEqual(geometry.viewport.left + 1)
+    expect(geometry.key.top).toBeGreaterThanOrEqual(geometry.deck.bottom - 1)
+    expect(geometry.key.right).toBeLessThanOrEqual(geometry.cancel.left + 1)
     expect(geometry.log.left).toBeGreaterThanOrEqual(geometry.viewport.right - 1)
     expect(geometry.forecast.top).toBeGreaterThanOrEqual(geometry.viewport.bottom - 1)
     expect(geometry.deck.top).toBeGreaterThanOrEqual(geometry.forecast.bottom - 1)

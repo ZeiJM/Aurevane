@@ -57,7 +57,7 @@ async function captureBattleScaleGeometry(page: Page): Promise<BattleScaleGeomet
     header,
     economy: header.locator('[data-unified-battle-economy="true"]'),
     victory: header.getByRole('button', { name: /^Victory Conditions/i }),
-    terrainKey: rail.getByRole('region', { name: 'Terrain Key', exact: true }),
+    terrainKey: footer.getByRole('button', { name: 'Terrain', exact: true }),
     content: root.locator('[data-unified-battle-content="true"]'),
     rail,
     railCard,

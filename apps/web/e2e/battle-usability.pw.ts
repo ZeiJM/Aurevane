@@ -270,7 +270,7 @@ async function expectVictoryConditionsAndTerrainKey(
 ): Promise<void> {
   await expect(page.getByRole('button', { name: 'Map Key', exact: true })).toHaveCount(0)
   await expect(page.getByRole('button', { name: /Victory conditions/i })).toBeVisible()
-  await expect(page.getByRole('region', { name: 'Terrain Key', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Terrain', exact: true })).toBeVisible()
 }
 
 async function hasHorizontalOverflow(page: import('@playwright/test').Page): Promise<boolean> {

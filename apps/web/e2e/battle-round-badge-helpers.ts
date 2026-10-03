@@ -13,13 +13,14 @@ export async function expectRecordedBattleRound(page: Page): Promise<number> {
   const body = await response.json()
   const battle: BattleSessionView = spectating ? body.spectator.battle : body.battle
   const round = battle.snapshot.tactical.battle.round
-  const badge = page.locator('[data-battle-preview-strip] [data-battle-round-badge]')
+  const badge = page.locator('[data-battle-chronicle-heading] [data-battle-round]')
   await expect(badge).toBeVisible()
+  await expect(page.locator('[data-battle-preview-strip] [data-battle-round]')).toHaveCount(0)
   await expect(badge).toHaveAttribute('data-battle-round', String(round))
   await expect(badge).toHaveAttribute('aria-label', `Current battle round ${round}`)
   const geometry = await badge.evaluate((element) => {
     const box = element.getBoundingClientRect()
-    const strip = element.closest('[data-battle-preview-strip]')!.getBoundingClientRect()
+    const strip = element.closest('[data-battle-chronicle-heading]')!.getBoundingClientRect()
     return {
       contained:
         box.left >= strip.left &&

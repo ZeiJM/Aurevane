@@ -2,6 +2,8 @@ import { execFileSync } from 'node:child_process'
 import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
+import { expectTerrainKey } from './battle-map-key-helpers'
+
 import { expect, test, type Page, type Route, type TestInfo } from '@playwright/test'
 import type { BattleSessionView } from '../src/server/battle/battle-session-service'
 import { selectDiscipline } from './discipline-library-helpers'
@@ -218,9 +220,9 @@ async function capture(page: Page, testInfo: TestInfo, label: string) {
           ),
         ),
       })),
-      terrainSamples: [...root.querySelectorAll('[data-battle-terrain-key] i')].map(rect),
-      terrainKey: rect(root.querySelector('[data-battle-terrain-key]')),
-      terrainRail: rect(root.querySelector('[data-battle-side="local"]')),
+      terrainToggle: rect(root.querySelector('button[aria-label="Terrain"]')),
+      cancel: rect(root.querySelector('[data-battle-footer-actions] > button:nth-child(2)')),
+      footer: rect(root.querySelector('footer')),
       commandContents: [
         ...root.querySelectorAll(
           '[data-command-card], [data-command-card] > *, [data-unified-facing-pad] button, [data-battle-skill-slot] > *, [data-battle-special] > *',
@@ -240,21 +242,6 @@ async function capture(page: Page, testInfo: TestInfo, label: string) {
           })),
           effects: rect(card.querySelector('section')),
         }),
-      ),
-      terrainLabels: [...root.querySelectorAll('[data-battle-terrain-key] button span')].map(
-        (label) => {
-          const range = document.createRange()
-          range.selectNodeContents(label)
-          return {
-            button: rect(label.closest('button')),
-            lines: [...range.getClientRects()].map(({ x, y, width, height }) => ({
-              x,
-              y,
-              width,
-              height,
-            })),
-          }
-        },
       ),
       tokens: [...root.querySelectorAll('#battlefield button[aria-label*="occupied by"]')].map(
         (tile) => ({
@@ -391,31 +378,11 @@ function expectStable(geometry: Awaited<ReturnType<typeof capture>>, baseline: R
       'rail portraits have equal height regardless of character name',
     ).toBeLessThanOrEqual(1)
   }
-  for (const sample of geometry.terrainSamples) {
-    expect(sample!.width, 'terrain artwork remains recognizable').toBeGreaterThanOrEqual(24)
-    expect(
-      sample!.width,
-      'terrain textures use longer samples without growing the rail',
-    ).toBeGreaterThan(sample!.height)
-  }
-  expect(geometry.terrainKey).not.toBeNull()
-  contained(geometry.terrainKey!, geometry.terrainRail!)
-  expect(
-    Math.abs(
-      geometry.terrainKey!.y +
-        geometry.terrainKey!.height -
-        (geometry.terrainRail!.y + geometry.terrainRail!.height),
-    ),
-    'terrain key fills the remaining rail height',
-  ).toBeLessThanOrEqual(1)
-  expect(
-    geometry.cockpit!.y - (geometry.terrainKey!.y + geometry.terrainKey!.height),
-    'a small gap separates the terrain key from the cockpit',
-  ).toBeGreaterThanOrEqual(4)
-  expect(
-    geometry.cockpit!.y - (geometry.terrainKey!.y + geometry.terrainKey!.height),
-    'terrain key leaves no unused rail space',
-  ).toBeLessThanOrEqual(8)
+  expect(geometry.terrainToggle).not.toBeNull()
+  contained(geometry.terrainToggle!, geometry.footer!)
+  expect(geometry.terrainToggle!.x + geometry.terrainToggle!.width).toBeLessThanOrEqual(
+    geometry.cancel!.x + 1,
+  )
   for (const content of geometry.commandContents) contained(content!, geometry.cockpit!)
   for (const card of geometry.cards) {
     expect(card.overflow, 'combatant summary fits without scrolling').toBeLessThanOrEqual(1)
@@ -438,8 +405,6 @@ function expectStable(geometry: Awaited<ReturnType<typeof capture>>, baseline: R
       expect(Math.abs(resource.bar!.y - resource.label!.y)).toBeLessThanOrEqual(4)
     }
   }
-  for (const label of geometry.terrainLabels)
-    for (const line of label.lines) contained(line, label.button!)
   for (const token of geometry.tokens) {
     expect(token.duplicatePortraits).toBe(0)
     contained(token.token!, token.tile!)
@@ -498,6 +463,7 @@ async function exerciseForecast(
       expect(initial.board).not.toBeNull()
       const baseline = initial.board!
       expectStable(initial, baseline)
+      await expectTerrainKey(page)
       const check = async (label: string) =>
         expectStable(await capture(page, testInfo, `${kind}-${label}`), baseline)
       await page.locator('button[data-battle-command="inspect"]').click()

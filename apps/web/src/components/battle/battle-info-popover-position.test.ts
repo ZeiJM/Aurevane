@@ -41,3 +41,26 @@ describe('reading-panel viewport placement', () => {
     ).toEqual({ left: 22, top: 86 })
   })
 })
+
+describe('footer placement preference', () => {
+  it('opens above a mid-viewport footer trigger even when there is room below', () => {
+    const result = battleInfoPopoverPosition(
+      { right: 300, top: 300, bottom: 330 },
+      { width: 280, height: 180 },
+      { width: 390, height: 844 },
+      undefined,
+      'above',
+    )
+    expect(result.top).toBe(112)
+  })
+  it('keeps its safe placement when the complete reader cannot fit above', () => {
+    const result = battleInfoPopoverPosition(
+      { right: 300, top: 70, bottom: 100 },
+      { width: 280, height: 180 },
+      { width: 390, height: 844 },
+      undefined,
+      'above',
+    )
+    expect(result.top).toBe(108)
+  })
+})

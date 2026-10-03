@@ -12,6 +12,7 @@ import styles from './battle-log-panel.module.css'
 interface BattleLogPanelProps {
   battleSessionId: string
   battleVersion?: number
+  currentRound?: number
   open?: boolean
   onClose?: () => void
   playerName?: string
@@ -128,6 +129,7 @@ function findDesktopDockTarget(): HTMLElement | null {
 export function BattleLogPanel({
   battleSessionId,
   battleVersion,
+  currentRound,
   open,
   onClose,
   playerName,
@@ -236,6 +238,7 @@ export function BattleLogPanel({
         ) : (
           <BattleLogFeed
             compactFlow
+            currentRound={currentRound}
             entries={entries}
             playerName={effectivePlayerName}
             combatantNames={combatantNames}
@@ -260,6 +263,7 @@ export function BattleLogPanel({
         {visible ? (
           <LogPanel
             entries={entries}
+            currentRound={currentRound}
             recentTurnCount={recentTurnCount}
             loading={loading}
             error={error}
@@ -281,6 +285,7 @@ export function BattleLogPanel({
         <LogPanel
           compactFlow={dockTarget.hasAttribute('data-battle-flow-log-target')}
           entries={entries}
+          currentRound={currentRound}
           recentTurnCount={recentTurnCount}
           loading={loading}
           error={error}
@@ -296,6 +301,7 @@ export function BattleLogPanel({
     <div ref={controlledPanelRef} className={styles.controlled} data-testid="battle-log-panel">
       <LogPanel
         entries={entries}
+        currentRound={currentRound}
         recentTurnCount={recentTurnCount}
         loading={loading}
         error={error}
@@ -319,6 +325,7 @@ function LogPanel({
   compactFlow = false,
   recentTurnCount,
   entries,
+  currentRound,
   loading,
   error,
   onClose,
@@ -329,6 +336,7 @@ function LogPanel({
   compactFlow?: boolean
   recentTurnCount?: number
   entries: readonly BattleLogView['entries'][number][]
+  currentRound?: number
   loading: boolean
   error: string | null
   onClose?: () => void
@@ -373,6 +381,7 @@ function LogPanel({
       ) : (
         <BattleLogFeed
           compactFlow={compactFlow}
+          currentRound={currentRound}
           entries={entries}
           recentTurnCount={recentTurnCount}
           playerName={playerName}

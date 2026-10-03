@@ -1,4 +1,7 @@
+import { PV1F_ACTION_ECONOMY_RESOURCE_KEY } from '@aurevane/game-core/combat/pv1f-action-economy'
 import { expect, test, type Page } from '@playwright/test'
+import type { BattleSessionView } from '../src/server/battle/battle-session-service'
+import { buildMovementPaths } from '../src/components/battle/battle-geometry'
 import { createAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 async function enterBattle(page: Page) {
@@ -16,6 +19,7 @@ async function enterBattle(page: Page) {
   await page.goto('/game/battle')
   await page.getByLabel('Battle mode').selectOption('recruit-sparring')
   await page.getByRole('button', { name: 'Enter Battle' }).click()
+  await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
   await expect(page.locator('[data-battle-layout="refined"]')).toBeVisible()
   return page.getByRole('button', { name: new RegExp(`occupied by ${name}`) })
 }
@@ -31,6 +35,7 @@ test('single target input executes Guard once and repeated keys do not dispatch'
       commits++
   })
   await page.keyboard.press('Digit3')
+  await expect(page.locator('[data-battle-combatant-card="selected"]')).toContainText('Recruit')
   await expect(page.getByLabel('Action preview', { exact: true })).toContainText('30 AP')
   expect(commits).toBe(0)
   await page.evaluate(() =>
@@ -47,9 +52,9 @@ test('single target input executes Guard once and repeated keys do not dispatch'
   expect(commits).toBe(1)
 })
 
-test('leaving during a slow target preview cannot submit a late action', async ({ page }) => {
+test('leaving during an informational preview cannot submit a late action', async ({ page }) => {
   test.slow()
-  const localTile = await enterBattle(page)
+  await enterBattle(page)
   let commits = 0
   let previews = 0
   page.on('request', (request) => {
@@ -81,8 +86,7 @@ test('leaving during a slow target preview cannot submit a late action', async (
   const firstPreview = page.waitForRequest('**/api/battles/*/preview')
   await page.keyboard.press('Digit3')
   await firstPreview
-  await localTile.click()
-  await expect(page.getByRole('button', { name: /^Basic Attack,/ })).toBeDisabled()
+  // Arming supplies information only; leaving without a target gesture must never commit.
   expect(previews).toBe(1)
   expect(commits).toBe(0)
   await page.getByRole('button', { name: 'Account', exact: true }).click()
@@ -165,64 +169,89 @@ test('Guard clears its armed mode and blocks deliberate inputs during its author
   expect((await authority.json()).battle.battleVersion).toBe(after.battleVersion)
 })
 
-test('Move shows and commits adjacent steps while staying armed for the next step', async ({
+test('Move displays the full legal range and commits a multi-tile route in one gesture', async ({
   page,
 }) => {
   test.slow()
-  const localTile = await enterBattle(page)
-  const move = page.locator('[data-battle-command="move"]')
+  await enterBattle(page)
+  const battleId = new URL(page.url()).pathname.split('/').at(-1)!
+  const authority = await page.request.get(`/api/battles/${battleId}`)
+  expect(authority.ok()).toBe(true)
+  const before = (await authority.json()).battle as BattleSessionView
+  const turn = before.snapshot.tactical.battle.currentTurn!
+  const placement = before.snapshot.tactical.placements.find(
+    (unit) => unit.combatantId === turn.combatantId,
+  )!
+  const actor = before.snapshot.tactical.battle.combatants.find(
+    (unit) => unit.id === turn.combatantId,
+  )!
+  const economy = actor.temporaryResources.find(
+    (resource) => resource.key === PV1F_ACTION_ECONOMY_RESOURCE_KEY,
+  )!.current
+  const paths = buildMovementPaths(before.snapshot, placement, economy)
+  const longest = [...paths.values()].sort((a, b) => b.length - a.length)[0]
+  expect(longest.length).toBeGreaterThan(2)
+  // Read the server's canonical cost without changing the persisted encounter.
+  const forecastResponse = await page.request.post(`/api/battles/${battleId}/preview`, {
+    data: { expectedBattleVersion: before.battleVersion, intent: { kind: 'move', path: longest } },
+  })
+  expect(forecastResponse.ok()).toBe(true)
+  const evaluated = (await forecastResponse.json()).battlePreview.preview
+  expect(evaluated.legal).toBe(true)
   let commits = 0
+  let movePreviews = 0
   page.on('request', (request) => {
-    if (request.method() === 'POST' && /\/(intents|commit)$/.test(new URL(request.url()).pathname))
-      commits++
+    if (request.method() !== 'POST') return
+    const path = new URL(request.url()).pathname
+    if (/\/(intents|commit)$/.test(path)) commits++
+    if (path.endsWith('/preview') && request.postDataJSON().intent.kind === 'move') movePreviews++
   })
   await page.mouse.move(0, 0)
   await page.locator('main[data-unified-battle="true"]').focus()
   await page.keyboard.press('Digit1')
-  const origin = (await localTile.getAttribute('aria-label'))!.match(/^Tile (\d+), (\d+)/)!
-  const reachable = page.locator('#battlefield [data-reachable="true"]')
-  const labels = await reachable.evaluateAll((tiles) =>
-    tiles.map((tile) => tile.getAttribute('aria-label')!),
-  )
-  expect(labels.length).toBeGreaterThan(0)
-  expect(labels.length).toBeLessThanOrEqual(4)
-  for (const label of labels) {
-    const point = label.match(/^Tile (\d+), (\d+)/)!
-    expect(
-      Math.abs(Number(point[1]) - Number(origin[1])) +
-        Math.abs(Number(point[2]) - Number(origin[2])),
-    ).toBe(1)
-  }
-  const distant = await page.locator('#battlefield button').evaluateAll(
-    (tiles, origin) => {
-      return tiles
-        .find((tile) => {
-          const xy = tile.getAttribute('aria-label')?.match(/^Tile (\d+), (\d+)/)
-          return (
-            xy &&
-            Math.abs(Number(xy[1]) - origin.x) + Math.abs(Number(xy[2]) - origin.y) > 1 &&
-            !tile.hasAttribute('data-reachable')
-          )
+  const highlighted = await page
+    .locator('#battlefield [data-reachable="true"]')
+    .evaluateAll((tiles) =>
+      tiles
+        .map((tile) => {
+          const xy = tile.getAttribute('aria-label')!.match(/^Tile (\d+), (\d+)/)!
+          return `${Number(xy[1]) - 1}:${Number(xy[2]) - 1}`
         })
-        ?.getAttribute('aria-label')
-    },
-    { x: Number(origin[1]), y: Number(origin[2]) },
-  )
-  expect(distant).toBeTruthy()
-  await page.getByRole('button', { name: distant!, exact: true }).click()
-  expect(commits).toBe(0)
-  for (let step = 0; step < 2; step++) {
-    const response = page.waitForResponse(
-      (result) =>
-        result.request().method() === 'POST' &&
-        /\/(intents|commit)$/.test(new URL(result.url()).pathname),
+        .sort(),
     )
-    await reachable.first().click()
-    expect((await response).status()).toBe(200)
-    await expect(move).toHaveAttribute('data-active', 'true')
-    await expect(move).toBeEnabled()
-    expect(commits).toBe(step + 1)
-  }
+  expect(highlighted).toEqual([...paths.keys()].sort())
+  await expect(page.locator('[data-battle-preview-strip]')).toContainText(
+    `Range: ${longest.length - 1} tiles`,
+  )
+  const destination = longest.at(-1)!
+  const committed = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'POST' &&
+      /\/(intents|commit)$/.test(new URL(response.url()).pathname),
+  )
+  await page
+    .getByRole('button', { name: new RegExp(`^Tile ${destination.x + 1}, ${destination.y + 1};`) })
+    .click()
+  const response = await committed
+  expect(response.status()).toBe(200)
+  expect(response.request().postDataJSON().intent.path).toEqual(longest)
+  const after = (await response.json()).battle as BattleSessionView
+  expect(after.battleVersion).toBe(before.battleVersion + 1)
+  expect(
+    after.snapshot.tactical.placements.find((unit) => unit.combatantId === turn.combatantId)!
+      .position,
+  ).toEqual(destination)
+  expect(after.snapshot.tactical.battle.currentTurn!.movementRemaining).toBe(
+    evaluated.movementRemainingAfter,
+  )
+  expect(
+    after.snapshot.tactical.battle.combatants
+      .find((unit) => unit.id === turn.combatantId)!
+      .temporaryResources.find((resource) => resource.key === PV1F_ACTION_ECONOMY_RESOURCE_KEY)!
+      .current,
+  ).toBe(economy - evaluated.actionEconomyCost)
+  expect(commits).toBe(1)
+  expect(movePreviews).toBe(0)
   await expect(page.locator('#battlefield [data-path-index]')).toHaveCount(0)
 })
 
@@ -283,7 +312,7 @@ test('a second pointer or hotkey during a pending commit cannot queue another ac
   expect(commits).toBe(1)
 })
 
-test('a rapid second Basic Attack shares its held current-version forecast before committing', async ({
+test('a rapid second Basic Attack commits without waiting for an informational forecast', async ({
   page,
 }) => {
   test.slow()
@@ -421,14 +450,7 @@ test('a rapid second Basic Attack shares its held current-version forecast befor
   try {
     await recruitTile.click()
     await heldReady
-    // The deliberate second execution waits for the same current-version legal receipt.
-    // Only after that receipt arrives may it commit and forecast from the accepted next version.
-    const currentPreview = page.waitForResponse(
-      (response) =>
-        response.request().method() === 'POST' &&
-        new URL(response.url()).pathname.endsWith('/preview') &&
-        response.request().postDataJSON().expectedBattleVersion === initialVersion + 1,
-    )
+    // A deliberate gesture commits immediately; the server validates the accepted version.
     const secondCommit = page.waitForResponse(
       (response) =>
         response.request().method() === 'POST' &&
@@ -442,31 +464,19 @@ test('a rapid second Basic Attack shares its held current-version forecast befor
         response.request().postDataJSON().expectedBattleVersion === initialVersion + 2,
     )
     await recruitTile.click()
-    await expect(attack).toBeDisabled()
+    // The held forecast has not been released when the authoritative commit completes.
+    const response = await secondCommit
+    expect(response.status()).toBe(200)
+    const accepted = (await response.json()).battle
+    await expect(
+      page.getByRole('progressbar', { name: 'Action Economy remaining' }),
+    ).toHaveAttribute('aria-valuenow', '40')
     expect(
       requests.filter(
         (request) => request.endpoint === 'preview' && request.version === initialVersion + 1,
       ),
     ).toHaveLength(1)
-    expect(
-      requests
-        .filter((request) => request.endpoint !== 'preview')
-        .map((request) => request.version),
-    ).toEqual([initialVersion])
-    await expect(
-      page.getByRole('progressbar', { name: 'Action Economy remaining' }),
-    ).toHaveAttribute('aria-valuenow', '70')
     releasePreview()
-    const sharedForecast = (await (await currentPreview).json()).battlePreview
-    expect(sharedForecast.battleVersion).toBe(initialVersion + 1)
-    expect(sharedForecast.preview).toMatchObject({
-      legal: true,
-      actionEconomyBefore: 70,
-      actionEconomyAfter: 40,
-    })
-    const response = await secondCommit
-    expect(response.status()).toBe(200)
-    const accepted = (await response.json()).battle
     const acceptedVersion = accepted.battleVersion as number
     expect(accepted.snapshot.tactical.battle.lifecycle).toBe('active')
     const targetId = (await initial.json()).battlePreview.preview.primaryCombatantId as string
