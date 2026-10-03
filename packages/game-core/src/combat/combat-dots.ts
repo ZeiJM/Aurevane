@@ -117,6 +117,8 @@ export function advanceCurrentPoisonEndTurn(
 ): CombatEncounterState {
   const effectState = normalizeCombatEffectState(state.effectState)
   const poison = effectState.poison.flatMap((instance) => {
+    if (instance.targetCombatantId === targetCombatantId && instance.skipCurrentOwnerTurnEnd)
+      return [{ ...instance, skipCurrentOwnerTurnEnd: undefined }]
     if (instance.targetCombatantId !== targetCombatantId || instance.remainingTicks === undefined) {
       return [instance]
     }
@@ -287,12 +289,16 @@ export function advanceCurrentBleedEndTurn(
 ): { state: CombatEncounterState; stacks: readonly CombatBleedStack[] } {
   const effectState = normalizeCombatEffectState(state.effectState)
   const stacks = effectState.bleed
-    .filter((stack) => stack.targetCombatantId === targetCombatantId)
+    .filter(
+      (stack) => stack.targetCombatantId === targetCombatantId && !stack.skipCurrentOwnerTurnEnd,
+    )
     .sort((left, right) => left.applicationOrder - right.applicationOrder)
-  if (stacks.length === 0) return { state, stacks: [] }
+  if (!effectState.bleed.some((stack) => stack.targetCombatantId === targetCombatantId))
+    return { state, stacks: [] }
 
   const bleed = effectState.bleed.flatMap((stack) => {
     if (stack.targetCombatantId !== targetCombatantId) return [stack]
+    if (stack.skipCurrentOwnerTurnEnd) return [{ ...stack, skipCurrentOwnerTurnEnd: undefined }]
     if (stack.remainingTicks <= 1) return []
     return [{ ...stack, remainingTicks: stack.remainingTicks - 1 }]
   })
@@ -398,6 +404,20 @@ export function advanceCurrentBurnEndTurn(
     (candidate) => candidate.targetCombatantId === targetCombatantId,
   )
   if (!instance) return { state, instance: null, damage: 0 }
+  if (instance.skipCurrentOwnerTurnEnd)
+    return {
+      state: {
+        ...state,
+        effectState: {
+          ...effectState,
+          burn: effectState.burn.map((row) =>
+            row === instance ? { ...row, skipCurrentOwnerTurnEnd: undefined } : row,
+          ),
+        },
+      },
+      instance: null,
+      damage: 0,
+    }
 
   const damage =
     instance.basePower === undefined

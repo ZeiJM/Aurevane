@@ -14,6 +14,7 @@ import {
   type MatureSkillDefinition,
 } from './mature-skills'
 import { copiedSkillCommandId } from './combat-skill-copy'
+import { usesBeneficialCombatCopy } from './combat-status-copy'
 import {
   committedResonanceForecast,
   executePv1fAction,
@@ -288,7 +289,11 @@ export function projectedCombatEffectUtility(
   state: StatDrivenCombatEncounterState,
   effects: readonly CombatEffectDefinition[],
 ): number {
-  const copyMode = effects.find((effect) => effect.type === 'copy-statuses')?.mode
+  const copyMode =
+    effects.find((effect) => effect.type === 'copy-statuses')?.mode ??
+    (usesBeneficialCombatCopy(state) && effects.some((effect) => effect.type === 'copy')
+      ? 'amplify'
+      : undefined)
   const actorTeam = state.tactical.battle.combatants.find(
     (unit) => unit.id === evaluation.actorId,
   )?.teamId

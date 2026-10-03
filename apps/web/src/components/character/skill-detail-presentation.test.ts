@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
+import { defaultCombatEffectTimingPolicy } from '@aurevane/game-core/combat/combat-effect-timing'
 import {
   compactSkillEffectSummaryParts,
-  skillAffectedDescription,
   skillCompactRangeDescription,
   skillCooldownDescription,
   skillCostDescription,
@@ -10,7 +10,6 @@ import {
   skillEffectSummaries,
   skillEffectsSummary,
   skillLineOfSightDescription,
-  skillRangeDescription,
   skillRequirementDescription,
   skillRequirementsSummary,
   skillTargetDescription,
@@ -18,18 +17,64 @@ import {
   skillTargetMethodDescription,
   skillTargetTags,
   skillTypeDescription,
+  skillParameterRows,
 } from './skill-detail-presentation'
+
+it('marks instant effects from their timing tags, retaining duration and excluding direct damage', () => {
+  const effect = {
+    type: 'apply-status' as const,
+    recipient: 'actor' as const,
+    statusId: 'guarded',
+    stacks: 1,
+    durationTurns: 2,
+  }
+  expect(compactSkillEffectSummaryParts(effect).timing).toBeUndefined()
+  expect(
+    compactSkillEffectSummaryParts(effect, { version: 2, modes: { guarded: 'instant' } }),
+  ).toMatchObject({ duration: '2 Turns', timing: 'Instant' })
+  expect(compactSkillEffectSummaryParts(effect, null).timing).toBe('Instant')
+  expect(
+    compactSkillEffectSummaryParts({ type: 'healing', recipient: 'actor', amount: 5 }).timing,
+  ).toBe('Instant')
+  expect(
+    compactSkillEffectSummaryParts({
+      type: 'resource-change',
+      recipient: 'actor',
+      resource: 'mp',
+      delta: -5,
+    }).timing,
+  ).toBeUndefined()
+  expect(
+    compactSkillEffectSummaryParts(
+      { type: 'resource-change', recipient: 'actor', resource: 'mp', delta: -5 },
+      { version: 2, modes: { 'mp-drain': 'instant' } },
+    ).timing,
+  ).toBe('Instant')
+  expect(
+    compactSkillEffectSummaryParts(
+      { type: 'damage', recipient: 'primary-unit', amount: 9 },
+      defaultCombatEffectTimingPolicy(),
+    ).timing,
+  ).toBeUndefined()
+})
+
+it('keeps configured timing in the text report for mixed damage and utility effects', () => {
+  const skill = resolveMatureSkillVersion('cinderweaver.cinder-bolt')!
+  const summaries = skillEffectSummaries(skill, { version: 2, modes: { burn: 'instant' } })
+  expect(summaries[0]).not.toContain('Instant')
+  expect(summaries[1]).toContain('[Instant]')
+})
 
 describe('Player-facing Skill targeting and effects', () => {
   it('distinguishes ranged area targeting from self recovery without changing the definition', () => {
     const volley = resolveMatureSkillVersion('farstrider.volley')!
     const before = JSON.stringify(volley)
     expect(skillTargetTags(volley)).toEqual(['Enemy', 'Circle 1', 'Dmg'])
-    expect(skillRangeDescription(volley)).toBe('2–5 tiles')
-    expect(skillAffectedDescription(volley)).toBe('Enemies only')
+    expect(skillCompactRangeDescription(volley)).toBe('5')
+    expect(Object.fromEntries(skillParameterRows(volley)).Target).toBe('Enemy')
     const breath = resolveMatureSkillVersion('ironfist.focus-breath')!
     expect(skillTargetTags(breath)).toEqual(['Self', 'Single', 'Heal 1', 'MP Rec 1'])
-    expect(skillRangeDescription(breath)).toBe('Self only')
+    expect(skillCompactRangeDescription(breath)).toBe('N/A')
     expect(JSON.stringify(volley)).toBe(before)
   })
   it('describes prerequisites, negative resource changes, and facing explicitly', () => {
@@ -69,7 +114,7 @@ it('describes source-specific modifiers, cleansing and periodic timing', () => {
   const mark = resolveMatureSkillVersion('wildwarden.hunters-mark')!
   expect(skillEffectDescription(mark.effects[0]!)).toContain('Other attackers gain no benefit')
   const burn = resolveMatureSkillVersion('cinderweaver.cinder-bolt')!
-  expect(skillEffectDescription(burn.effects[1]!)).toContain('4, then 3, then 2')
+  expect(skillEffectDescription(burn.effects[1]!)).toContain('2, then 1, then 1')
   expect(skillEffectDescription(burn.effects[1]!)).toContain('end-turn boundaries')
   expect(skillTargetTags(resolveMatureSkillVersion('runeblade.unbinding-rune')!)).toContain(
     'Cleanse',
@@ -116,8 +161,9 @@ it('explains elemental interactions and typed status aliases without changing hi
     }),
   ).toContain('Scorched')
   expect(
-    skillAffectedDescription(resolveMatureSkillVersion('frostweaver.chilling-mist')!),
-  ).toContain('Terrain affects both teams')
+    Object.fromEntries(skillParameterRows(resolveMatureSkillVersion('frostweaver.chilling-mist')!))
+      .Target,
+  ).toContain('Terrain: both teams')
 })
 
 it('shows the executable element and canonical status names on current Technique tags', () => {
@@ -204,7 +250,7 @@ it('returns one effect summary per authored effect with positive durations only'
   expect(skillEffectSummaries(siphon)).toEqual([
     expect.stringMatching(/^Dmg \[\d+\]$/),
     expect.stringMatching(/^MP Drain \[\d+\]$/),
-    expect.stringMatching(/^MP Restore \[\d+\]$/),
+    expect.stringMatching(/^MP Restore \[\d+\] \[Instant\]$/),
   ])
   const guard = resolveMatureSkillVersion('runeblade.rune-guard')!
   expect(skillEffectSummaries(guard).some((line) => /\[\d+ Turns?\]$/.test(line))).toBe(true)
@@ -212,7 +258,7 @@ it('returns one effect summary per authored effect with positive durations only'
 
 it('lists authored magnitudes as effects without leaking design tags', () => {
   const siphon = resolveMatureSkillVersion('runeblade.siphon-slash')!
-  expect(skillEffectsSummary(siphon)).toBe('Dmg [13], MP Drain [7], MP Restore [7]')
+  expect(skillEffectsSummary(siphon)).toBe('Dmg [13], MP Drain [7], MP Restore [7] [Instant]')
   expect(skillEffectsSummary({ ...siphon, tags: [...siphon.tags, 'setup', 'melee'] })).toBe(
     skillEffectsSummary(siphon),
   )
@@ -352,12 +398,89 @@ describe('Combat v5.1 compact targeting labels', () => {
         ...base,
         target: { ...base.target, shape: { kind: 'line', length: 3 } },
       }),
-    ).toBe('Line')
+    ).toBe('Line · Length: 3 tiles')
     expect(
       skillTargetMethodDescription({
         ...base,
         target: { ...base.target, shape: { kind: 'circle', radius: 1 } },
       }),
-    ).toBe('Circle')
+    ).toBe('Circle · Radius: 1 tile')
   })
+})
+
+it('reports the full minimum field set once in reference order, including Effects and N/A', () => {
+  const labels = [
+    'Skill Type',
+    'Cost',
+    'Cooldown',
+    'Requirements',
+    'Effects',
+    'Range',
+    'Target',
+    'Target Method',
+    'Target Elevation',
+    'Line of Sight',
+  ]
+  const skill = resolveMatureSkillVersion('ironfist.focus-breath')!
+  const rows = skillParameterRows(skill)
+  expect(rows.map(([label]) => label)).toEqual(labels)
+  expect(Object.fromEntries(rows)).toMatchObject({
+    Effects: skillEffectsSummary(skill),
+    Range: 'N/A',
+    'Line of Sight': 'N/A',
+  })
+  expect(rows.every(([, value]) => value.trim().length > 0)).toBe(true)
+})
+
+it('distinguishes zero cost and no cooldown from inapplicable self-target constraints', () => {
+  const base = resolveMatureSkillVersion('ironfist.focus-breath')!
+  const rows = Object.fromEntries(
+    skillParameterRows({ ...base, apCost: 0, mpCost: 0, cooldown: null, requirements: [] }),
+  )
+  expect(rows.Cost).toBe('0 AP')
+  expect(rows.Cooldown).toBe('None')
+  expect(rows.Requirements).toBe('None')
+  expect(rows.Range).toBe('N/A')
+  expect(rows['Line of Sight']).toBe('N/A')
+})
+
+it('describes the authored Burn schedule rather than substituting the default stages', () => {
+  const description = skillEffectDescription({
+    type: 'burn',
+    recipient: 'primary-unit',
+    power: 2,
+    durationTurns: 2,
+  })
+  expect(description).toContain('2, then 1 fixed damage')
+  expect(description).toContain('next 2 end-turn boundaries')
+  expect(description).not.toContain('4, then 3, then 2')
+})
+
+it('keeps area dimensions and distinct recipients in canonical parameter rows', () => {
+  const volley = resolveMatureSkillVersion('farstrider.volley')!
+  const rows = Object.fromEntries(skillParameterRows(volley))
+  expect(rows['Target Method']).toBe('Circle · Radius: 1 tile')
+  expect(rows.Target).toBe('Enemy')
+  const ground = resolveMatureSkillVersion('frostweaver.chilling-mist')!
+  const groundRows = Object.fromEntries(skillParameterRows(ground))
+  expect(groundRows.Target).toContain('Ground')
+  expect(groundRows.Target).toContain('Enemies only')
+  expect(groundRows.Target).toContain('Terrain: both teams')
+  const friendlyFire = {
+    ...volley,
+    target: { ...volley.target, friendlyFire: 'all-units' as const },
+  }
+  expect(Object.fromEntries(skillParameterRows(friendlyFire)).Target).toBe(
+    'Enemy · All units, including allies',
+  )
+})
+
+it('uses the pinned historical Copy label throughout the textual report', () => {
+  const skill = resolveMatureSkillVersion('wildwarden.snare')!
+  const copy = {
+    ...skill,
+    effects: [{ type: 'copy' as const, recipient: 'primary-unit' as const }],
+  }
+  expect(skillEffectsSummary(copy, null, null)).toContain('Skill Copy')
+  expect(skillEffectsSummary(copy)).not.toContain('Skill Copy')
 })

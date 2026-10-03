@@ -286,15 +286,17 @@ export function DesktopBattleCombatantInspect({
     }
 
     function handleClick(event: MouseEvent) {
-      if (!window.matchMedia(DESKTOP_POINTER_QUERY).matches || !inspectModeActive()) return
+      if (!window.matchMedia(DESKTOP_POINTER_QUERY).matches) return
       const target = event.target instanceof Element ? event.target : null
       if (!target) return
 
       const railCombatant = target.closest<HTMLElement>('[data-desktop-inspect-combatant]')
+      if (!railCombatant && !inspectModeActive()) return
       const railName = target.closest<HTMLElement>('[data-desktop-inspect-name]')
       const tile = target.closest<HTMLButtonElement>(
         '#battlefield button[aria-label^="Tile "][aria-label*="occupied by"]',
       )
+      if (tile?.closest('main[data-battle-layout="refined"]')) return
 
       let openTarget: OpenTarget | null = null
       const combatantId = railCombatant?.dataset.desktopInspectCombatant

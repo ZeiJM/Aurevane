@@ -1,204 +1,73 @@
 import { expect, test } from '@playwright/test'
-
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
-test('training uses the approved character rail and parchment three-workspace composition', async ({
+test('training centers one active panel within the desktop viewport', async ({
   page,
 }, testInfo) => {
   test.setTimeout(90_000)
   const host = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://invalid').hostname
-  if (!['127.0.0.1', 'localhost'].includes(host)) {
+  if (!['127.0.0.1', 'localhost'].includes(host))
     throw new Error('Training layout review requires disposable local Supabase.')
-  }
   const mobile = testInfo.project.name === 'mobile-chromium'
-  const width = mobile ? 390 : testInfo.project.name === 'laptop-chromium' ? 1366 : 1728
-  await page.setViewportSize({ width, height: mobile ? 844 : 887 })
+  await page.setViewportSize({
+    width: mobile ? 390 : testInfo.project.name === 'laptop-chromium' ? 1366 : 1728,
+    height: mobile ? 844 : 768,
+  })
+  const nameSuffix = String(Date.now())
+    .slice(-7)
+    .split('')
+    .map((digit) => String.fromCharCode(65 + Number(digit)))
+    .join('')
   await provisionAccountAndEnterCharacter({
     page,
     email: `training-concept-${testInfo.project.name}-${Date.now()}@example.test`,
     password: 'Disposable-layout-review-2026!',
-    characterName: mobile ? 'Lyra Dawn' : width === 1366 ? 'Lyra Reed' : 'Lyra Vale',
+    characterName: `Lyra ${nameSuffix}`,
   })
   await page.goto('/game/training')
-
   const frame = page.locator('[data-training-concept]')
-  const identity = page.getByTestId('character-profile')
   const planner = page.getByTestId('practice-plan-card')
   const current = page.getByRole('region', { name: 'Current training activity' })
-  const report = page.getByRole('complementary', { name: 'Training report workspace' })
-
   await expect(frame).toBeVisible()
-  await expect(identity).toBeVisible()
+  await expect(page.locator('[data-av-game-rail]')).toBeVisible()
   await expect(planner).toBeVisible()
-  await expect(current).toBeVisible()
-  await expect(report).toBeVisible()
-  await expect(page.getByRole('navigation', { name: 'Training sections' })).toHaveCount(0)
-  await expect(frame.locator('[data-training-scene] img')).toHaveCount(1)
-  if (width >= 1200) {
-    await expect
-      .poll(() =>
-        frame.evaluate((element) =>
-          getComputedStyle(element).getPropertyValue('--character-rail-height').trim(),
-        ),
-      )
-      .not.toBe('')
-  }
-
-  const metrics = await frame.evaluate((element) => {
-    const bounds = (node: Element | null) => {
-      if (!node) return null
-      const rect = node.getBoundingClientRect()
-      return {
-        x: rect.x,
-        y: rect.y,
-        width: rect.width,
-        height: rect.height,
-        right: rect.right,
-      }
-    }
-    const plannerNode = element.querySelector('[data-testid="practice-plan-card"]')!
-    const currentNode = element.querySelector('[aria-label="Current training activity"]')
-    const reportNode = element.querySelector('[aria-label="Training report workspace"]')
-    const identityNode = element.querySelector('[data-testid="character-profile"]')
-    const sheetNode = element.querySelector('[data-training-sheet="true"]')
-    return {
-      identity: bounds(identityNode),
-      sheet: bounds(sheetNode),
-      planner: bounds(plannerNode)!,
-      current: bounds(currentNode),
-      report: bounds(reportNode),
-      plannerColor: getComputedStyle(plannerNode).color,
-      plannerBackground: getComputedStyle(plannerNode).backgroundColor,
-      overflowX: document.documentElement.scrollWidth - innerWidth,
-    }
+  await expect(current).toHaveCount(0)
+  const report = page.getByRole('complementary', { name: 'Training report workspace' })
+  await expect(report).toHaveCount(0)
+  await expect(frame.locator('details, [role="dialog"]')).toHaveCount(0)
+  await expect(page.getByRole('radio')).toHaveCount(3)
+  await expect(page.getByRole('button', { name: 'Start Training', exact: true })).toBeEnabled()
+  await expect(page.getByRole('radio', { name: 'Short Plan', exact: true })).toBeChecked()
+  let starts = 0
+  page.on('request', (r) => {
+    if (r.method() === 'POST' && r.url().endsWith('/api/wayfarers-practice/plan')) starts++
   })
-
-  const rgb = (value: string) => (value.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number)
-  expect
-    .soft(Math.min(...rgb(metrics.plannerBackground)), 'light parchment planner')
-    .toBeGreaterThan(180)
-  expect
-    .soft(Math.max(...rgb(metrics.plannerColor)), 'dark readable planner text')
-    .toBeLessThan(100)
-  expect.soft(metrics.overflowX, 'no sideways page clipping').toBeLessThanOrEqual(1)
-
-  if (!mobile && metrics.identity && metrics.sheet && metrics.current && metrics.report) {
-    expect.soft(metrics.planner.x).toBeGreaterThanOrEqual(metrics.identity.right)
-    expect.soft(metrics.current.x).toBeGreaterThanOrEqual(metrics.planner.right - 1)
-    expect.soft(metrics.report.x).toBeGreaterThanOrEqual(metrics.current.right - 1)
-    expect.soft(Math.abs(metrics.current.y - metrics.planner.y)).toBeLessThanOrEqual(2)
-    expect.soft(Math.abs(metrics.report.y - metrics.planner.y)).toBeLessThanOrEqual(2)
-
-    if (width >= 1200) {
-      expect
-        .soft(
-          Math.abs(
-            metrics.sheet.y + metrics.sheet.height - (metrics.identity.y + metrics.identity.height),
-          ),
-          'Passive Training sheet ends in line with the character panel',
-        )
-        .toBeLessThanOrEqual(2)
-      expect
-        .soft(
-          Math.abs(metrics.current.height - metrics.planner.height),
-          'Training panels share one height',
-        )
-        .toBeLessThanOrEqual(2)
-      expect
-        .soft(
-          Math.abs(metrics.report.height - metrics.planner.height),
-          'Training Report matches plan height',
-        )
-        .toBeLessThanOrEqual(2)
-
-      const planSpacing = await planner.evaluate((panel) => {
-        const grid = panel.querySelector<HTMLElement>('[aria-label="Passive Training durations"]')
-        if (!grid) throw new Error('Missing Passive Training duration grid.')
-        const cards = [...grid.querySelectorAll<HTMLElement>('article')].map((card) =>
-          card.getBoundingClientRect(),
-        )
-        return {
-          alignContent: getComputedStyle(grid).alignContent,
-          gaps: cards.slice(1).map((card, index) => card.top - cards[index]!.bottom),
-        }
-      })
-      expect(planSpacing.alignContent).toBe('space-between')
-      expect(Math.min(...planSpacing.gaps)).toBeGreaterThanOrEqual(6)
+  await page.getByRole('radio', { name: 'Medium Plan', exact: true }).check()
+  await expect(page.getByRole('radio', { name: 'Medium Plan', exact: true })).toBeChecked()
+  expect(starts).toBe(0)
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth - innerWidth),
+  ).toBeLessThanOrEqual(1)
+  if (!mobile) {
+    for (const viewport of [
+      { width: 1366, height: 768 },
+      { width: 1536, height: 614 },
+    ]) {
+      await page.setViewportSize(viewport)
+      const planBox = (await planner.boundingBox())!
+      const workspaceBox = (await page.locator('[data-training-workspace]').boundingBox())!
+      expect(
+        Math.abs(planBox.x + planBox.width / 2 - workspaceBox.x - workspaceBox.width / 2),
+      ).toBeLessThanOrEqual(1)
+      expect(await planner.evaluate((e) => e.scrollHeight - e.clientHeight)).toBeLessThanOrEqual(1)
+      await expect(planner).toBeInViewport({ ratio: 1 })
+      expect(
+        await page.locator('#game-main').evaluate((e) => e.scrollHeight - e.clientHeight),
+      ).toBeLessThanOrEqual(1)
     }
   }
-
-  await expect(page.getByRole('button', { name: 'Start Short', exact: true })).toBeEnabled()
-  const durationCards = page.locator('[aria-label="Passive Training durations"] article')
-  await expect(durationCards).toHaveCount(3)
-  const durationImages = durationCards.locator('img')
-  const durationImageSources = await durationImages.evaluateAll((images) =>
-    images.map((image) => image.getAttribute('src')),
-  )
-  expect(new Set(durationImageSources).size).toBe(3)
-  const durationImageShapes = await durationImages.evaluateAll((images) =>
-    images.map((image) => {
-      const bounds = image.getBoundingClientRect()
-      return { width: bounds.width, height: bounds.height }
-    }),
-  )
-  for (const shape of durationImageShapes) {
-    expect(Math.abs(shape.width - shape.height)).toBeLessThanOrEqual(1)
-  }
-  const imageToCopyBalance = await durationCards.evaluateAll((cards) =>
-    cards.map((card) => {
-      const media = card.querySelector<HTMLElement>('img')
-      const heading = card.querySelector<HTMLElement>('div > div > strong')?.parentElement
-      const description = heading?.parentElement?.querySelector<HTMLElement>('p')
-      const rewards = heading?.parentElement?.querySelector<HTMLElement>('dl')
-      if (!media || !heading || !description || !rewards) return null
-      const mediaBounds = media.getBoundingClientRect()
-      const top = Math.min(
-        heading.getBoundingClientRect().top,
-        description.getBoundingClientRect().top,
-        rewards.getBoundingClientRect().top,
-      )
-      const bottom = Math.max(
-        heading.getBoundingClientRect().bottom,
-        description.getBoundingClientRect().bottom,
-        rewards.getBoundingClientRect().bottom,
-      )
-      return { mediaHeight: mediaBounds.height, copyHeight: bottom - top }
-    }),
-  )
-  for (const balance of imageToCopyBalance) {
-    expect(balance).not.toBeNull()
-    if (!balance) continue
-    expect(balance.mediaHeight).toBeGreaterThanOrEqual(balance.copyHeight - 8)
-  }
-  for (const number of ['01', '02', '03']) {
-    await expect(durationCards.getByText(number, { exact: true })).toHaveCount(0)
-  }
-
-  const rewardValues = page.locator('[aria-label="Passive Training durations"] dd')
-  await expect(rewardValues).toHaveCount(6)
-  const obscuredRewards = await durationCards.evaluateAll((cards) =>
-    cards.flatMap((card) => {
-      const button = card.querySelector('button')?.getBoundingClientRect()
-      if (!button) return ['Missing duration action']
-      return Array.from(card.querySelectorAll('dl dt, dl dd')).flatMap((label) => {
-        const bounds = label.getBoundingClientRect()
-        const overlaps =
-          bounds.left < button.right &&
-          bounds.right > button.left &&
-          bounds.top < button.bottom &&
-          bounds.bottom > button.top
-        return overlaps ? [label.textContent] : []
-      })
-    }),
-  )
-  expect(obscuredRewards, 'Duration actions must not cover reward labels or values').toEqual([])
-  expect(
-    await rewardValues
-      .first()
-      .evaluate((element) => Number.parseInt(getComputedStyle(element).fontWeight, 10)),
-  ).toBeLessThanOrEqual(500)
+  await expect(page.getByRole('navigation', { name: 'Training sections' })).toHaveCount(0)
   await expect(
     page.getByRole('button', { name: /Load Preset|Apply Plan|View History/ }),
   ).toHaveCount(0)
-  await expect(page.getByText('How Passive Training works', { exact: true })).toHaveCount(0)
 })

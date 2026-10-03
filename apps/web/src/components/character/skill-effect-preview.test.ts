@@ -1,8 +1,48 @@
 import { describe, expect, it } from 'vitest'
+
+it('describes current Copy as beneficial tags while retaining pinned historical Skill Copy', () => {
+  const effect = { type: 'copy' as const, recipient: 'primary-unit' as const }
+  expect(previewEffect(effect).label).toBe('Copy')
+  expect(previewEffect(effect).explanation).toContain('beneficial')
+  expect(previewEffect(effect).explanation).not.toContain('Skill for this battle')
+  expect(previewEffect(effect, null).label).toBe('Skill Copy')
+  expect(previewEffect(effect, null).explanation).toContain('half AP')
+})
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 import { previewEffect, skillPreviewEffects } from './skill-effect-preview'
 
 describe('compact Technique explanations', () => {
+  it('replaces stale authored Skill Copy prose only for the current Copy policy', () => {
+    const skill = {
+      ...resolveMatureSkillVersion('runeblade.siphon-slash')!,
+      effects: [{ type: 'copy' as const, recipient: 'primary-unit' as const }],
+      effectDescriptions: ['Steal a random Skill for this battle at half AP.'],
+    }
+    expect(skillPreviewEffects(skill)[0]?.explanation).toContain('beneficial')
+    expect(skillPreviewEffects(skill)[0]?.explanation).not.toContain('random Skill')
+    expect(skillPreviewEffects(skill, null)[0]?.explanation).toBe(skill.effectDescriptions[0])
+  })
+  it.each([
+    ['inspired', '+11% outgoing', 'Deal 11% more damage'],
+    ['warded', '−11% incoming', 'Take 11% less damage from opponents affected by Burn'],
+    ['reckless', '+11% outgoing / +11% incoming', 'Deal 11% more damage and take 11% more damage'],
+    ['fortified', '−11% incoming / −11% outgoing', 'Take 11% less damage and deal 11% less damage'],
+    ['mark', '+11 pp Accuracy', '+11 percentage points Accuracy'],
+    ['blind', '−11 pp Accuracy', 'Lose 11 percentage points Accuracy'],
+  ])(
+    'shows actual authored %s potency in magnitude and explanation',
+    (statusId, magnitude, explanation) => {
+      const preview = previewEffect({
+        type: 'apply-status',
+        recipient: 'actor',
+        statusId,
+        stacks: 1,
+        potencyBasisPoints: 1100,
+      })
+      expect(preview.magnitude).toBe(magnitude)
+      expect(preview.explanation).toContain(explanation)
+    },
+  )
   it('keeps Haste a reduction with its floor and preserves facing magnitudes', () => {
     expect(
       previewEffect({ type: 'apply-status', recipient: 'actor', statusId: 'haste', stacks: 1 })

@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { AurevaneImage } from '@/components/media/aurevane-image'
 import { CharacterCreationExperience } from '@/components/character/character-creation-experience'
 import { AccountMenu } from '@/components/shell/account-menu'
+import { SiteHeader } from '@/components/shell/site-header'
 import { getAuthenticatedActor } from '@/server/auth/actor'
 import { isCharacterSlotIndex, loadCharacterSlots } from '@/server/character/character-slot-service'
 
@@ -36,20 +37,14 @@ export default async function CharacterCreationPage({
   return (
     <div className={styles.shell} data-character-creation-page="true">
       <div className={styles.world} aria-hidden="true">
-        <AurevaneImage assetId="ui.foundation.vista" />
+        <AurevaneImage assetId="environment.adventure.threshold" />
       </div>
-      <header className={styles.header}>
-        <Link className="brand" href="/game" aria-label="AUREVANE Character Select">
-          <span className="brand__crest" aria-hidden="true">
-            <span>A</span>
-          </span>
-          <span className="brand__wordmark">
-            <strong>AUREVANE</strong>
-            <small>Begin Your Legend</small>
-          </span>
-        </Link>
-        <AccountMenu />
-      </header>
+      <SiteHeader
+        className={styles.header}
+        brandHref="/game"
+        brandLabel="AUREVANE Character Select"
+        utility={<AccountMenu />}
+      />
 
       <main className={creationStyles.pageMain}>
         <section className={styles.creationPanel}>

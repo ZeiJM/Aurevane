@@ -1,3 +1,4 @@
+import { skillInformationRows } from './skill-information-contract'
 import { previewEffect } from './skill-effect-preview'
 import { combatActionPresentationTags } from '@aurevane/game-core/combat/gameplay-tags'
 import { gameplayStatusName } from '../../lib/battle/combat-interaction-presentation'
@@ -11,6 +12,12 @@ import type {
   MatureSkillEffectDefinition,
 } from '@aurevane/game-core/combat/mature-skills'
 import { isMaterializedCombatEffect } from '@aurevane/game-core/combat/summon-content'
+import {
+  combatEffectTimingMode,
+  combatEffectTimingTag,
+  defaultCombatEffectTimingPolicy,
+} from '@aurevane/game-core/combat/combat-effect-timing'
+import type { SkillEffectTimingPolicy } from './skill-effect-timing-context'
 
 function title(value: string): string {
   return value.replace(/[-_]/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
@@ -23,7 +30,10 @@ function recipient(effect: MatureSkillEffectDefinition): string {
   return 'the selected unit'
 }
 
-export function skillEffectDescription(effect: MatureSkillEffectDefinition): string {
+export function skillEffectDescription(
+  effect: MatureSkillEffectDefinition,
+  copyPolicyVersion: number | null = 1,
+): string {
   const target = recipient(effect)
   switch (effect.type) {
     case 'summon':
@@ -47,8 +57,11 @@ export function skillEffectDescription(effect: MatureSkillEffectDefinition): str
       return `${effect.direction === 'pull' ? 'Pull' : 'Push'} ${target} up to ${effect.distance} ${effect.distance === 1 ? 'tile' : 'tiles'} ${effect.direction === 'pull' ? 'toward you' : 'away'}, one legal tile at a time. Stops before occupied, blocked or illegal-elevation tiles. Pull never enters your tile. Root prevents displacement. Failure grants no refund.`
     case 'poison':
       return `Apply Poison (Poisoned) to ${target}.`
-    case 'burn':
-      return `Apply Burn (Scorched) to ${target}. Burn deals 4, then 3, then 2 fixed damage at the target's next three end-turn boundaries; reapplication restarts the sequence.`
+    case 'burn': {
+      const preview = previewEffect(effect)
+      const stages = preview.magnitude!.split('/')
+      return `Apply Burn (Scorched) to ${target}. Burn deals ${stages.join(', then ')} fixed damage at the target's next ${stages.length} ${stages.length === 1 ? 'end-turn boundary' : 'end-turn boundaries'}; reapplication restarts the sequence.`
+    }
     case 'bleed':
       return `Apply Bleed (Bleeding) to ${target} for ${effect.ticks} ${effect.ticks === 1 ? 'end-turn tick' : 'end-turn ticks'} at ${effect.damagePerTick} damage per tick. Bleed stacks independently up to three times.`
     case 'return-to-turn-start':
@@ -64,7 +77,9 @@ export function skillEffectDescription(effect: MatureSkillEffectDefinition): str
         ? 'Copy eligible positive active statuses from the selected unit onto yourself. The selected unit keeps its statuses; copied stacks respect caps and remaining durations are not restarted.'
         : 'Copy eligible negative active statuses from yourself onto the selected unit. You keep the original statuses; copied stacks respect caps and remaining durations are not restarted.'
     case 'copy':
-      return 'Copy one random eligible regular battle Skill from the selected unit for the rest of this battle. The copied Skill keeps its original MP, targeting, effects and requirements, but costs half AP rounded up.'
+      return copyPolicyVersion === null
+        ? 'Copy one random eligible regular battle Skill from the selected unit for the rest of this battle. The copied Skill keeps its original MP, targeting, effects and requirements, but costs half AP rounded up.'
+        : 'Copy the selected unit’s active beneficial effect tags onto yourself. The selected unit keeps its effects; copied stacks respect caps and remaining durations are not restarted.'
     case 'sensory':
       return `Attempt Sensory on ${target}. On a successful hit against Covert, remove eligible positive statuses and Covert, then apply Revealed for ${effect.revealedDurationOwnerTurnStarts} owner-turn starts. Otherwise the Sensory block has no effect.`
     case 'remove-status': {
@@ -79,9 +94,7 @@ export function skillEffectDescription(effect: MatureSkillEffectDefinition): str
           ? `Lasts ${effect.durationTurns} ${effect.durationTurns === 1 ? 'turn' : 'turns'}.`
           : combatStatusDuration(effect.statusId)
       const explanation =
-        effect.potencyBasisPoints !== undefined
-          ? `${preview.explanation}${effect.statusId === 'mark' ? ' Other attackers gain no benefit.' : ''}`
-          : status.description
+        effect.potencyBasisPoints !== undefined ? preview.explanation : status.description
       return `Apply ${effect.stacks} ${gameplayStatusName(effect.statusId)} ${effect.stacks === 1 ? 'stack' : 'stacks'} to ${target}. ${explanation} ${duration}`
     }
   }
@@ -115,7 +128,7 @@ export function skillTargetTags(skill: MatureSkillDefinition): readonly string[]
 }
 
 export function skillTypeDescription(
-  skill: MatureSkillDefinition,
+  skill: Pick<MatureSkillDefinition, 'tags' | 'effects'>,
 ): 'Attack' | 'Recovery' | 'Utility' {
   if (skill.tags.includes('attack')) return 'Attack'
 
@@ -126,14 +139,53 @@ export function skillTypeDescription(
   return recoversHpOrMp ? 'Recovery' : 'Utility'
 }
 
-export function skillCostDescription(skill: MatureSkillDefinition): string {
+export function skillCostDescription(
+  skill: Pick<MatureSkillDefinition, 'apCost' | 'mpCost'>,
+): string {
   return skill.mpCost ? `${skill.apCost} AP / ${skill.mpCost} MP` : `${skill.apCost} AP`
+}
+
+/** Parameter order and wording shared by Nexus and committed battle Skills. */
+export function skillParameterRows(
+  skill: Pick<
+    MatureSkillDefinition,
+    'tags' | 'effects' | 'apCost' | 'mpCost' | 'cooldown' | 'requirements' | 'target'
+  >,
+  costs: Pick<MatureSkillDefinition, 'apCost' | 'mpCost'> & {
+    cooldownOwnerTurns?: number | null
+  } = skill,
+  timingPolicy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
+  copyPolicyVersion: number | null = 1,
+): readonly (readonly [string, string])[] {
+  return skillInformationRows({
+    'Skill Type': skillTypeDescription(skill),
+    Cost: skillCostDescription({ ...skill, ...costs }),
+    Cooldown: skillCooldownDescription(skill, costs.cooldownOwnerTurns),
+    Requirements: skillRequirementsSummary(skill),
+    Effects: skillEffectsSummary(skill, timingPolicy, copyPolicyVersion),
+    Range: skillCompactRangeDescription(skill),
+    Target: skillTargetRecipientDescription(skill),
+    'Target Method': skillTargetMethodDescription(skill),
+    'Target Elevation': skillTargetElevationDescription(skill),
+    'Line of Sight': skillLineOfSightDescription(skill),
+  })
 }
 
 export interface CompactSkillEffectSummaryParts {
   label: string
   magnitude: string | null
   duration: string | null
+  timing?: 'Instant'
+}
+
+export function skillEffectInstantTiming(
+  effect: MatureSkillEffectDefinition,
+  policy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
+): 'Instant' | undefined {
+  const tag = effect.type === 'summon' ? 'summon' : combatEffectTimingTag(effect)
+  return effect.type !== 'damage' && combatEffectTimingMode(policy ?? undefined, tag) === 'instant'
+    ? 'Instant'
+    : undefined
 }
 
 function compactDuration(effect: MatureSkillEffectDefinition): string | null {
@@ -158,31 +210,60 @@ function compactMagnitude(effect: MatureSkillEffectDefinition): string | null {
 
 export function compactSkillEffectSummaryParts(
   effect: MatureSkillEffectDefinition,
+  timingPolicy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
+  copyPolicyVersion: number | null = 1,
 ): CompactSkillEffectSummaryParts {
-  const preview = previewEffect(effect)
+  const preview = previewEffect(effect, copyPolicyVersion)
+  const timing = skillEffectInstantTiming(effect, timingPolicy)
   return {
     label: preview.label,
     magnitude: compactMagnitude(effect),
     duration: compactDuration(effect),
+    ...(timing ? { timing } : {}),
   }
 }
 
-function compactEffectSummary(effect: MatureSkillEffectDefinition): string {
-  const { label, magnitude, duration } = compactSkillEffectSummaryParts(effect)
-  return [label, magnitude ? `[${magnitude}]` : null, duration ? `[${duration}]` : null]
+function compactEffectSummary(
+  effect: MatureSkillEffectDefinition,
+  timingPolicy: SkillEffectTimingPolicy,
+  copyPolicyVersion: number | null,
+): string {
+  const { label, magnitude, duration, timing } = compactSkillEffectSummaryParts(
+    effect,
+    timingPolicy,
+    copyPolicyVersion,
+  )
+  return [
+    label,
+    magnitude ? `[${magnitude}]` : null,
+    duration ? `[${duration}]` : null,
+    timing ? `[${timing}]` : null,
+  ]
     .filter((part): part is string => part !== null)
     .join(' ')
 }
 
-export function skillEffectSummaries(skill: MatureSkillDefinition): readonly string[] {
-  return skill.effects.map(compactEffectSummary)
+export function skillEffectSummaries(
+  skill: Pick<MatureSkillDefinition, 'effects'>,
+  timingPolicy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
+  copyPolicyVersion: number | null = 1,
+): readonly string[] {
+  return skill.effects.map((effect) =>
+    compactEffectSummary(effect, timingPolicy, copyPolicyVersion),
+  )
 }
 
-export function skillEffectsSummary(skill: MatureSkillDefinition): string {
-  return skillEffectSummaries(skill).join(', ') || 'N/A'
+export function skillEffectsSummary<Skill extends Pick<MatureSkillDefinition, 'effects'>>(
+  skill: Skill,
+  timingPolicy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
+  copyPolicyVersion: number | null = 1,
+): string {
+  return skillEffectSummaries(skill, timingPolicy, copyPolicyVersion).join(', ') || 'N/A'
 }
 
-export function skillRequirementsSummary(skill: MatureSkillDefinition): string {
+export function skillRequirementsSummary(
+  skill: Pick<MatureSkillDefinition, 'requirements'>,
+): string {
   if (skill.requirements.length === 0) return 'None'
   return skill.requirements
     .map((requirement) => {
@@ -206,7 +287,7 @@ export function skillRequirementsSummary(skill: MatureSkillDefinition): string {
     .join(', ')
 }
 
-export function skillTargetDescription(skill: MatureSkillDefinition): string {
+export function skillTargetDescription(skill: Pick<MatureSkillDefinition, 'target'>): string {
   if (skill.target.kind === 'self') return 'Self'
   if (skill.target.kind === 'ground-tile') return 'Ground'
   if (skill.target.kind === 'empty-tile') return 'Empty Ground'
@@ -222,62 +303,67 @@ export function skillTargetDescription(skill: MatureSkillDefinition): string {
   }
 }
 
-export function skillTargetMethodDescription(skill: MatureSkillDefinition): string {
+/** Include affected recipients only when they differ from the selected target policy. */
+function skillTargetRecipientDescription(
+  skill: Pick<MatureSkillDefinition, 'target' | 'effects'>,
+): string {
+  const target = skillTargetDescription(skill)
+  const { kind, teamPolicy, friendlyFire } = skill.target
+  const recipientsMatch =
+    (kind === 'self' && friendlyFire === 'allies-only') ||
+    (kind === 'unit' &&
+      ((teamPolicy === 'enemy' && friendlyFire === 'enemies-only') ||
+        (teamPolicy === 'ally' && friendlyFire === 'allies-only') ||
+        (teamPolicy === 'self' && friendlyFire === 'allies-only') ||
+        (teamPolicy === 'any' && friendlyFire === 'all-units')))
+  const recipients = recipientsMatch ? '' : ` · ${unitAffectedDescription(skill)}`
+  const terrain = skill.effects.some(
+    (effect) =>
+      effect.type === 'create-terrain' || (effect.type === 'damage' && effect.element === 'fire'),
+  )
+    ? ' · Terrain: both teams'
+    : ''
+  return target + recipients + terrain
+}
+
+export function skillTargetMethodDescription(skill: Pick<MatureSkillDefinition, 'target'>): string {
   switch (skill.target.shape.kind) {
     case 'single':
       return 'Single'
     case 'circle':
-      return 'Circle'
+      return `Circle · Radius: ${skill.target.shape.radius} ${skill.target.shape.radius === 1 ? 'tile' : 'tiles'}`
     case 'line':
-      return 'Line'
+      return `Line · Length: ${skill.target.shape.length} ${skill.target.shape.length === 1 ? 'tile' : 'tiles'}`
   }
 }
 
-export function skillTargetElevationDescription(skill: MatureSkillDefinition): string {
+export function skillTargetElevationDescription(
+  skill: Pick<MatureSkillDefinition, 'target'>,
+): string {
   return skill.target.maximumElevationDifference === null
     ? 'N/A'
     : String(skill.target.maximumElevationDifference)
 }
 
-export function skillCompactRangeDescription(skill: MatureSkillDefinition): string {
+export function skillCompactRangeDescription(skill: Pick<MatureSkillDefinition, 'target'>): string {
   if (skill.target.kind === 'self') return 'N/A'
   return String(skill.target.maximumRange)
 }
 
-export function skillLineOfSightDescription(skill: MatureSkillDefinition): string {
+export function skillLineOfSightDescription(skill: Pick<MatureSkillDefinition, 'target'>): string {
   if (skill.target.kind === 'self') return 'N/A'
   return skill.target.requiresLineOfSight ? 'Required' : 'Not required'
 }
 
-export function skillCooldownDescription(skill: MatureSkillDefinition): string {
-  if (skill.cooldown === null) return 'None'
-  return `${skill.cooldown.ownerTurns} ${skill.cooldown.ownerTurns === 1 ? 'turn' : 'turns'}`
+export function skillCooldownDescription(
+  skill: Pick<MatureSkillDefinition, 'cooldown'>,
+  ownerTurns: number | null = skill.cooldown?.ownerTurns ?? null,
+): string {
+  if (ownerTurns === null) return 'None'
+  return `${ownerTurns} ${ownerTurns === 1 ? 'turn' : 'turns'}`
 }
 
-export function skillRangeDescription(skill: MatureSkillDefinition): string {
-  const { minimumRange: min, maximumRange: max } = skill.target
-  return skill.target.kind === 'self'
-    ? 'Self only'
-    : min === max
-      ? `${min} ${min === 1 ? 'tile' : 'tiles'}`
-      : `${min}–${max} tiles`
-}
-
-export function skillAffectedDescription(skill: MatureSkillDefinition): string {
-  const terrain = skill.effects.some(
-    (effect) =>
-      effect.type === 'create-terrain' || (effect.type === 'damage' && effect.element === 'fire'),
-  )
-    ? '. Terrain affects both teams; unit effects follow the listed recipients'
-    : ''
-  const resonance =
-    skill.target.kind === 'ground-tile' || skill.target.kind === 'empty-tile'
-      ? '. Unit-targeted Resonance payoffs require a unit selection; ground selection leaves that setup armed'
-      : ''
-  return unitAffectedDescription(skill) + terrain + resonance
-}
-
-function unitAffectedDescription(skill: MatureSkillDefinition): string {
+function unitAffectedDescription(skill: Pick<MatureSkillDefinition, 'target'>): string {
   switch (skill.target.friendlyFire) {
     case 'enemies-only':
       return 'Enemies only'
@@ -292,7 +378,7 @@ function unitAffectedDescription(skill: MatureSkillDefinition): string {
 
 function recoveryTiming(ticks: number | undefined): string {
   if (ticks === undefined || ticks <= 1) return ''
-  return ` ${ticks} total applications: once immediately, then once at each of the recipient's next ${ticks - 1} end-of-turn boundaries. Amount is per application; recovery cannot revive a defeated unit.`
+  return ` ${ticks} total applications: once when the effect activates, then once at each of the recipient's next ${ticks - 1} end-of-turn boundaries. Amount is per application; recovery cannot revive a defeated unit.`
 }
 
 export function skillDisplayName(skill: MatureSkillDefinition): string {

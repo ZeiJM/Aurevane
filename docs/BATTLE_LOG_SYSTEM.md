@@ -155,3 +155,23 @@ Narration is evaluated only after committed combat events exist. It can change w
 Battle Log history is the complete sanitized projection of the persisted battle event stream for the authorized battle, not a rolling recent-event window. Database reads remain bounded and keyset-paginated, while the server composes the pages before projection so early rounds do not disappear as a battle grows.
 
 Numbered rounds remain available for the entire battle and keep the existing newest-first/collapsed presentation. A genuinely roundless prelude may use the neutral `Battle` grouping, but the renderer does not expose a synthetic `Recent` bucket. Participant and active-spectator reads follow the same retention rule without changing combat authority or exposing raw event internals.
+
+
+## 2026-10-02 fixed inline action reader
+
+This addendum supersedes the earlier compact rail examples. The in-battle rail has one Timeline / Text log toggle and a fixed allocation. Boundary-aware turn arrows retain all authorized turns. Timeline opens the latest committed action; its artwork stays in one row and long turns use separately labelled action pages. Text mode reads one selected action with Previous / Next action controls. Selecting an older action pins that review while new history arrives.
+
+The inline reader presents the action identity and recorded result, followed by a concise Skill description and one authored flavor line when an exact historical context is available. Long names, descriptions and multi-target results use separate Details pages; every sanitized source message and outcome fact remains reachable. Compact history opens no action/effect popup and has no scroll track. Focused reading controls suppress combat shortcuts; unfocused history does not interfere with combat input.
+
+Skill context is optional, server-owned presentation data. Enrichment occurs only after viewer privacy projection. Regular Discipline Skills resolve from that actor's validated battle build reference; copied Skills require a visible preceding grant and preserve its exact encoded content version. Published/static resolution must match the saved identity, version and source Discipline. Resolution is deduplicated with bounded concurrency. Flavor comes only from the exact definition's authored `flavorLine`. Missing/disabled/mismatched definitions, old snapshots without references, inherent actions and Essence actions retain recorded results without inventing current-catalog prose. This changes no combat authority, content activation or persistence schema.
+
+Both combatant cards reserve the same utility space. Short desktop screens place a small square portrait beside HP/MP and retain two rows of effect icons; the map, preview and cockpit keep their existing geometry. Normal desktop and touch layouts retain their respective controls and artwork. Verification and release evidence: `docs/superpowers/verification/2026-10-02-battle-log-inline-reader.md`.
+
+
+## 2026-10-03 Owner refinements
+
+The shared Chronicle shows one short `{actor} moves.` beat per character per round, retaining movement-only rounds. Repeated steps, facing and end-turn chatter stay out of the reader; raw committed history remains intact. Hit/miss receipts emitted before a command are grouped beneath that Skill use. An authoritative hit without a damage event remains visible as a hit; incomplete history says `No outcome recorded.` and never invents zero damage or a successful effect.
+
+Regular Skills, Essence Skills and summon abilities expose separate optional versioned `battleText`, using the existing plain-text name/pronoun/gender token validator and Master Panel preview. Catalogue description/flavor remains independent. Without authored action text, the exact pinned effects derive concise actor-led prose. Summon ability name and narration resolve only from a preceding viewer-visible spawn receipt and its exact parent Skill/profile/version, including after expiry. Current catalogue definitions never replace missing historical versions. All player and AI Skill uses share this path. Names and pronouns use saved battle identity; gender alternatives remain neutral when no explicit gender metadata was recorded.
+
+Effect hover retains the accessible rich popup and removes the duplicate native `title` tooltip. No effect-timing mechanics change.

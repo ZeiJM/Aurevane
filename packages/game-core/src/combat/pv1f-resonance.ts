@@ -1,4 +1,4 @@
-import type { CombatTargetSelection } from './actions'
+import type { CombatEffectOrigin, CombatTargetSelection } from './actions'
 import type { MatureSkillCombatContext, MatureSkillDefinition } from './mature-skills'
 import {
   committedResonanceForecast,
@@ -78,6 +78,21 @@ export function executePv1fMatureSkillWithResonance(input: {
     resolvedSkill,
     input.selection,
     input.combatContext,
+    {
+      effectOrigins: resolvedSkill.effects.map((_effect, index): CombatEffectOrigin =>
+        index < input.skill.effects.length
+          ? {
+              family: input.skill.tags.includes('essence') ? 'essence' : 'skill',
+              contentId: input.skill.id,
+              contentVersion: input.skill.contentVersion,
+            }
+          : {
+              family: 'resonance',
+              contentId: input.resonance.id,
+              contentVersion: input.resonance.contentVersion,
+            },
+      ),
+    },
   )
   const actorId = readActionActorId(resolution.events)
   if (!actorId) throw new Error('PV-1F Resonance resolution did not emit a combat action event.')

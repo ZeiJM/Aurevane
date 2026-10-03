@@ -1,6 +1,7 @@
 import { getFoundationDiscipline } from '@aurevane/game-core/character/foundation-disciplines'
 import { expect, test } from '@playwright/test'
 
+import { selectDiscipline } from './discipline-library-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 const ATTRIBUTE_IDS = ['might', 'finesse', 'vitality', 'agility', 'intellect', 'resolve'] as const
@@ -14,7 +15,7 @@ function uniqueCharacterName(): string {
   return `Primary ${letters}`
 }
 
-test('Nexus previews and commits Primary Discipline while Character preserves personal allocation', async ({
+test('Nexus immediately commits Primary Discipline while Character preserves personal allocation', async ({
   page,
 }, testInfo) => {
   test.skip(
@@ -72,27 +73,26 @@ test('Nexus previews and commits Primary Discipline while Character preserves pe
   await expect(dialog).toContainText('Currently Committed')
   await expect(dialog).toContainText('Vanguard')
   await expect(dialog).toContainText('Secondary Discipline')
-  await expect(dialog).toContainText('Locked')
+  await expect(dialog).toContainText('None')
 
-  const primarySelect = dialog.getByLabel('Primary Discipline')
+  await expect(
+    dialog.getByRole('button', { name: 'Edit Primary Discipline', exact: true }),
+  ).toBeEnabled()
+  await selectDiscipline(dialog, 'Primary', 'Aetherist')
 
-  await expect(primarySelect).toBeEnabled()
-  await primarySelect.selectOption('aetherist')
-
-  const preview = dialog.locator('[aria-label="Discipline stat preview"]')
+  const preview = dialog.locator('[aria-label="Selected Discipline and change impact"]')
   await expect(preview).toBeVisible()
-  await expect(preview).toContainText('Preview Primary')
+  await expect(preview).toContainText('Selected Primary')
   await expect(preview).toContainText('Aetherist')
   await expect(preview).toContainText('Change Impact')
 
-  await dialog.getByRole('button', { name: /Confirm Change/ }).click()
   await expect(page.getByRole('status')).toContainText('Discipline changes committed.')
   await expect(launcher).toHaveText(/Manage Disciplines/)
   await expect(primaryDisciplineChip).toHaveText('Aetherist')
   await dialog.getByRole('button', { name: 'Close', exact: true }).click()
 
   await page.goto('/game/character')
-  await expect(page.getByTestId('character-profile')).toBeVisible()
+  await expect(page.locator('[data-profile-workspace]')).toBeVisible()
 
   for (const id of ATTRIBUTE_IDS) {
     const expected = expectedAetheristAttributes.get(id)
@@ -106,28 +106,27 @@ test('Nexus previews and commits Primary Discipline while Character preserves pe
 
   const maxHp = page.getByTestId('derived-stat-maxHp').locator('strong')
   await expect(maxHp).not.toHaveText(maxHpBefore)
-  const maxHpAfter = await maxHp.innerText()
 
   await page.goto('/game/nexus')
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
   await launcher.click()
   await expect(dialog).toBeVisible()
-  await primarySelect.selectOption('vanguard')
+  await selectDiscipline(dialog, 'Primary', 'Vanguard')
   await expect(preview).toBeVisible()
   await expect(preview).toContainText('Vanguard')
 
   await page.reload()
   await expect(dialog).toBeVisible()
   await expect(dialog).toContainText('Currently Committed')
-  await expect(dialog).toContainText('Aetherist')
+  await expect(dialog).toContainText('Vanguard')
   await expect(dialog).toContainText('Secondary Discipline')
   await page.mouse.click(1, 1)
   await expect(dialog).toBeHidden()
 
   await page.goto('/game/character')
-  await expect(page.getByTestId('derived-stat-maxHp').locator('strong')).toHaveText(maxHpAfter)
+  await expect(page.getByTestId('derived-stat-maxHp').locator('strong')).toHaveText(maxHpBefore)
   for (const id of ATTRIBUTE_IDS) {
-    const expected = expectedAetheristAttributes.get(id)
+    const expected = attributesBefore.get(id)
     if (!expected) throw new Error(`Missing expected persisted ${id} value.`)
     await expect(page.getByTestId(`profile-attribute-${id}`).locator('strong')).toHaveText(expected)
   }

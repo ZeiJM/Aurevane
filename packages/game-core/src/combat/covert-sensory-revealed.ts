@@ -67,7 +67,9 @@ export function hasCombatStatus(
   return (
     state.statusState
       .find((row) => row.combatantId === combatantId)
-      ?.statuses.some((status) => status.statusId === statusId) === true
+      ?.statuses.some(
+        (status) => status.statusId === statusId && status.timingState !== 'pending',
+      ) === true
   )
 }
 
@@ -114,6 +116,20 @@ export function materializeCsrPreviewAction(
   return {
     ...action,
     effects: action.effects.filter((effect) => effect.type !== 'sensory'),
+    ...(action.effectTimingTags
+      ? {
+          effectTimingTags: action.effectTimingTags.filter(
+            (_, index) => action.effects[index]?.type !== 'sensory',
+          ),
+        }
+      : {}),
+    ...(action.effectOrigins
+      ? {
+          effectOrigins: action.effectOrigins.filter(
+            (_, index) => action.effects[index]?.type !== 'sensory',
+          ),
+        }
+      : {}),
   }
 }
 
@@ -130,47 +146,67 @@ export function materializeCsrCommittedAction(input: {
   const primaryCombatantId = evaluation?.primaryCombatantId ?? null
   let sensoryDuration: number | null = null
   const effects: CombatActionDefinition['effects'][number][] = []
+  const effectTimingTags: (string | undefined)[] = []
+  const effectOrigins: NonNullable<CombatActionDefinition['effectOrigins']>[number][] = []
 
   for (const [effectIndex, effect] of action.effects.entries()) {
-    if (effect.type !== 'sensory') {
-      effects.push(effect)
-      continue
-    }
+    const initialEffectCount = effects.length
+    try {
+      if (effect.type !== 'sensory') {
+        effects.push(effect)
+        continue
+      }
 
-    if (
-      !primaryCombatantId ||
-      missedCombatantIds.has(primaryCombatantId) ||
-      !primaryWouldBeCovertAtEffect(state, action, evaluation, primaryCombatantId, effectIndex)
-    ) {
-      continue
-    }
+      if (
+        !primaryCombatantId ||
+        missedCombatantIds.has(primaryCombatantId) ||
+        !primaryWouldBeCovertAtEffect(state, action, evaluation, primaryCombatantId, effectIndex)
+      ) {
+        continue
+      }
 
-    sensoryDuration = effect.revealedDurationOwnerTurnStarts
-    const purgeIds = content.statuses
-      .filter(isSensoryPurgeEligibleStatus)
-      .map((status) => status.id)
-      .sort(compareIdentity)
-    if (!purgeIds.includes(COVERT_STATUS_ID)) {
-      throw new TypeError('Sensory requires Covert to be an explicitly positive removable status.')
-    }
+      sensoryDuration = effect.revealedDurationOwnerTurnStarts
+      const purgeIds = content.statuses
+        .filter(isSensoryPurgeEligibleStatus)
+        .map((status) => status.id)
+        .sort(compareIdentity)
+      if (!purgeIds.includes(COVERT_STATUS_ID)) {
+        throw new TypeError(
+          'Sensory requires Covert to be an explicitly positive removable status.',
+        )
+      }
 
-    for (let index = 0; index < purgeIds.length; index += 8) {
+      for (let index = 0; index < purgeIds.length; index += 8) {
+        effects.push({
+          type: 'remove-status',
+          recipient: 'primary-unit',
+          statusIds: purgeIds.slice(index, index + 8),
+        })
+      }
       effects.push({
-        type: 'remove-status',
+        type: 'apply-status',
         recipient: 'primary-unit',
-        statusIds: purgeIds.slice(index, index + 8),
+        statusId: REVEALED_STATUS_ID,
+        stacks: 1,
       })
+    } finally {
+      for (let index = initialEffectCount; index < effects.length; index += 1) {
+        effectOrigins.push(action.effectOrigins?.[effectIndex])
+        effectTimingTags.push(
+          action.effectTimingTags?.[effectIndex] ??
+            (effect.type === 'sensory' ? 'sensory' : undefined),
+        )
+      }
     }
-    effects.push({
-      type: 'apply-status',
-      recipient: 'primary-unit',
-      statusId: REVEALED_STATUS_ID,
-      stacks: 1,
-    })
   }
 
   return {
-    action: { ...action, effects },
+    action: {
+      ...action,
+      effects,
+      effectTimingTags,
+      ...(action.effectOrigins ? { effectOrigins } : {}),
+    },
     content: sensoryDuration === null ? content : withRevealedDuration(content, sensoryDuration),
   }
 }

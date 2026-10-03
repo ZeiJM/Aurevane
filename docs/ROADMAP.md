@@ -1,10 +1,18 @@
 # AUREVANE — Implementation Roadmap
 
+2026-10-03 Owner live-review continuation requests varied neutral-heavy standard maps with joined elevations, a recorded-round preview badge, compact uniform information popups, quieter italic colored Chronicle outcomes and explicit misses, neutral initial Discipline selection self-target second-hotkey-press casting and safe rapid-input responsiveness. This is maintenance of the existing shared battle/Nexus platform; authored/configured/historical map authority and server legality remain protected. One combined release is authorized after verification. Status: `superpowers/verification/2026-10-03-battle-map-preview-readability.md`.
+
 **Authority:** Derived from `docs/GAME_MASTER_PLAN.md` and Owner-approved domain specifications. If conflict exists, the Master Game Plan and applicable canonical domain specification win.
 
 **Synchronized:** 2026-09-25 — world-experience scope and delivery ownership
 
+2026-10-02 Owner refinement adds immediate authoritative Discipline changes, committed-build roster labels, stable Techniques previews, compact Nexus panels and translucent shared cockpit material. Guard receives an explicitly approved independent two-owner-turn cooldown; Recovery timing is unchanged. This maintenance requires no migration or P5 activation. Battle Log redesign remains a proposal only. Evidence: `superpowers/verification/2026-10-02-roster-discipline-live-fixes.md`.
+
+2026-10-03 Owner approved the Battle Chronicle and effect-lifecycle continuation: text rounds/actor groups, versioned Master narration, pinned tag-specific following-round activation, affected-turn-end expiry, standard rail readers, redundant targeting-prose removal and Arena selector containment. A dedicated protected timing-policy migration is part of this maintenance; no P5/story activation is implied. Validation and release remain tracked in `../TASKS.md`.
+
 This roadmap reflects the game that actually exists today. It formally credits early-delivered battle-platform work instead of pretending later phases must rebuild it.
+
+2026-10-01 Owner-authorized UI maintenance adds an independent persisted Support Action and three AI-aligned PvP map sizes while preserving existing combat authority and historical battles. Profile/Training/loadout/header refinements and Guided Fundamentals geometry are part of the same continuation, not a new phase. Verification/release status is tracked in `superpowers/verification/2026-10-01-techniques-support-action.md` and `../TASKS.md`.
 
 A phase is a **development milestone**, not a calendar promise.
 
@@ -895,3 +903,5 @@ The immediate development priority is therefore:
 Automatic performance/scaling checkpoints continue at the defined future boundaries; they are maintenance/hardening work, not permission to expand feature scope.
 
 The frontier, Rekindling replay systems and Owner-created Anomalies remain approved long-horizon direction, outside this closeout scope.
+
+Owner-approved 2026-10-03 combat refinement: Copy now transfers active beneficial effect tags from target to user in newly created, policy-pinned encounters; historical encounters preserve temporary-Skill Copy. See `docs/COMBAT.md` and the active task ledger for validation/release status.

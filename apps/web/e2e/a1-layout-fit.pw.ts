@@ -48,7 +48,11 @@ test('keeps A1 surfaces readable and within viewport', async ({ page }, testInfo
 
   await createAccountAndEnterCharacter({ page, email, password, characterName })
 
-  await expect(page.getByTestId('character-profile')).toContainText(characterName)
+  const characterRail = page
+    .getByTestId('authenticated-shell')
+    .getByTestId('character-rail-profile')
+  await expect(characterRail).toHaveCount(1)
+  await expect(characterRail).toContainText(characterName)
   await expectMinimumFontSize(
     page.locator('[data-profile-fact] small').first(),
     11,
@@ -60,11 +64,11 @@ test('keeps A1 surfaces readable and within viewport', async ({ page }, testInfo
     'Character Profile attribute label',
   )
   await expectMinimumFontSize(
-    page.locator("[data-testid^='derived-stat-']").first().locator(':scope > span:first-child'),
+    page.locator("[data-testid^='derived-stat-']").first().locator(':scope > span:nth-child(2)'),
     11.5,
     'Character Profile derived-stat label',
   )
-  const resetAttributes = page.getByRole('button', { name: 'Reset Attributes' })
+  const resetAttributes = page.getByRole('button', { name: 'Reset Stats' })
   await expectMinimumFontSize(resetAttributes, 11, 'Character Profile reset control')
   await expectReachableByVerticalScroll(page, resetAttributes, 'Character Profile reset control')
   await expectInitialViewportFit(page, 'Character Profile', { allowVerticalScroll: true })
@@ -87,7 +91,7 @@ test('keeps A1 surfaces readable and within viewport', async ({ page }, testInfo
   await expectInitialViewportFit(page, 'Passive Training')
 
   await page.goto('/game')
-  await expect(page.getByRole('heading', { name: 'Choose your character.' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Choose your character' })).toBeVisible()
   await expectMinimumFontSize(
     page.locator("[data-character-select-page='true'] main p").first(),
     13,
@@ -97,7 +101,7 @@ test('keeps A1 surfaces readable and within viewport', async ({ page }, testInfo
 
   await page.setViewportSize({ width: 1024, height: 576 })
   await page.goto('/game')
-  await expect(page.getByRole('heading', { name: 'Choose your character.' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Choose your character' })).toBeVisible()
   await expectInitialViewportFit(page, 'Character Select at 1024x576', {
     allowVerticalScroll: true,
   })

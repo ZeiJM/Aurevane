@@ -3,7 +3,7 @@ import { buildAuthoredSectorCrossing } from './sector-crossings'
 
 export const GRID_WIDTH = 13
 export const GRID_HEIGHT = 9
-export const STEP_MS = 1100
+export const STEP_MS = 275
 export const WORLD_REGIONS: readonly WorldRegion[] = [
   {
     id: 'aureth-crown',

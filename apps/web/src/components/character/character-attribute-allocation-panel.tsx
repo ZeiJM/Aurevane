@@ -33,6 +33,7 @@ interface AttributeAllocationState {
 
 interface CharacterAttributeAllocationPanelProps {
   initialAllocation: AttributeAllocationState
+  resetLabel?: string
   portrait?: { name: string; imageUrl: string | null; assetId: ImageAssetId }
   focusAttributes: readonly CharacterAttributeId[]
   attributeCaps: Readonly<Partial<Record<CharacterAttributeId, number>>>
@@ -47,6 +48,7 @@ const ATTRIBUTE_MODE_QUERY = 'attributeMode'
 
 export function CharacterAttributeAllocationPanel({
   initialAllocation,
+  resetLabel = 'Reset Attributes',
   portrait,
   focusAttributes,
   attributeCaps,
@@ -185,7 +187,7 @@ export function CharacterAttributeAllocationPanel({
         onClick={beginReset}
         disabled={allocation.resetRemaining <= 0 || forced || saveState === 'saving'}
       >
-        Reset Attributes
+        {resetLabel}
       </button>
 
       {open ? (
@@ -217,7 +219,7 @@ export function CharacterAttributeAllocationPanel({
                     imageUrl={portrait.imageUrl}
                     fallbackAssetId={portrait.assetId}
                     className={styles.portraitImage}
-                    sizes="(min-width: 761px) 28rem, 100vw"
+                    sizes="(max-height: 620px) 88px, (max-height: 700px) 112px, 165px"
                     alt={`${portrait.name} portrait`}
                   />
                 </div>
@@ -245,13 +247,14 @@ export function CharacterAttributeAllocationPanel({
                   <div
                     className={styles.portraitAtmosphere}
                     data-testid="attribute-redistribution-atmosphere"
-                    aria-hidden="true"
                   >
-                    <span className={styles.atmosphereOrbital} />
-                    <span className={styles.atmosphereSpark}>✦</span>
+                    <span className={styles.atmosphereOrbital} aria-hidden="true" />
+                    <span className={styles.atmosphereSpark} aria-hidden="true">
+                      ✦
+                    </span>
                     <div className={styles.portraitIdentity}>
                       <strong>{portrait.name}</strong>
-                      <i />
+                      <i aria-hidden="true" />
                       <small>
                         Strength finds
                         <br />

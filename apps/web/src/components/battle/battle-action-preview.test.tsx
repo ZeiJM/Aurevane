@@ -1,9 +1,20 @@
 import { renderToStaticMarkup } from 'react-dom/server'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import type { ReactNode } from 'react'
 import type { BattleActionPreview as ActionPreview } from '@/server/battle/battle-preview-service'
 import { BattleActionPreview } from './battle-action-preview'
 import { previewChips } from './battle-preview-content'
 import type { BattleSkillForecastPresentation } from './battle-runtime'
+import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
+
+vi.mock('./battle-info-popover', () => ({
+  BattleInfoPopover: ({ trigger, children }: { trigger: ReactNode; children: ReactNode }) => (
+    <>
+      <button type="button">{trigger}</button>
+      <aside>{children}</aside>
+    </>
+  ),
+}))
 
 const barrier: BattleSkillForecastPresentation = {
   id: 'lifebinder.barrier',
@@ -43,14 +54,114 @@ const attack: ActionPreview = {
 }
 
 describe('current selection forecast', () => {
+  it('shows delayed terrain details from the canonical projection without a committed event', () => {
+    const markup = renderToStaticMarkup(
+      <BattleActionPreview
+        preview={{
+          ...attack,
+          affectedCombatantIds: [],
+          projectedEffects: [],
+          projectedEvents: [],
+          projectedTerrain: [
+            {
+              position: { x: 1, y: 2 },
+              before: null,
+              after: 'frozen',
+              remainingRoundBoundaries: 2,
+              activationRound: 3,
+            },
+          ],
+        }}
+        pending={false}
+      />,
+    )
+    expect(markup).toContain('Starts round 3')
+    expect(markup).toContain('Frozen at tile 2,3')
+    expect(markup).toContain('2 round boundaries')
+    expect(markup).toContain('either team')
+  })
+
+  it('names pending unit effects and their lifetime without presenting them as active', () => {
+    const markup = renderToStaticMarkup(
+      <BattleActionPreview
+        preview={{
+          ...attack,
+          mitigatedBaseDamage: null,
+          projectedEffects: [
+            {
+              effectType: 'apply-status',
+              combatantId: 'enemy',
+              before: '',
+              after: 'pending',
+              statusId: 'guarded',
+              activationRound: 3,
+              remainingOwnerTurnEnds: 1,
+            },
+            {
+              effectType: 'summon',
+              combatantId: 'you',
+              before: '',
+              after: 'pending',
+              statusId: 'summon',
+              activationRound: 3,
+              remainingOwnerTurnEnds: 5,
+            },
+          ],
+        }}
+        pending={false}
+      />,
+    )
+    expect(markup).toContain('Guard · Starts round 3 · 1 turn')
+    expect(markup).toContain('Summon · Starts round 3 · 5 turns')
+    expect(markup).not.toContain('>Pending</span>')
+    expect(markup).not.toContain('Damage 17')
+  })
+
+  it('keeps all Nexus parameters beside the current server forecast without replacing its costs or outcomes', () => {
+    const definition = resolveMatureSkillVersion('vanguard.forceful-strike', 2)!
+    const skill = { ...barrier, definition, id: definition.id, apCost: 31, mpCost: 6 }
+    const markup = renderToStaticMarkup(
+      <BattleActionPreview
+        preview={{ ...attack, actionId: skill.id }}
+        skill={skill}
+        pending={false}
+      />,
+    )
+    expect(markup).toContain('<dt>Cost</dt><dd>31 AP / 6 MP</dd>')
+    expect(markup).toContain('<dt>Skill Type</dt><dd>Attack</dd>')
+    expect(markup).toContain('<dt>Line of Sight</dt><dd>Not required</dd>')
+    for (const label of ['30 AP', '70 AP left', 'Hit 69%', 'On hit 17 dmg', 'Damage 17'])
+      expect(markup).toContain(label)
+    expect(markup).toContain('data-battle-preview-lane="parameters"')
+    expect(markup).toContain('data-battle-preview-lane="outcomes"')
+  })
+
+  it('gives targets without portraits a framed identity and shows the selected ground terrain', () => {
+    const markup = renderToStaticMarkup(
+      <BattleActionPreview
+        preview={attack}
+        pending={false}
+        targetTile={{ position: { x: 2, y: 3 }, terrainId: 'open', elevation: 1 }}
+        targetOverlay="frozen"
+      />,
+    )
+    expect(markup).toContain('data-battle-target-portrait-fallback="true"')
+    expect(markup).toContain('data-battle-ground-target="true"')
+    expect(markup).toContain('terrain-raised-ledge-v02.webp')
+    expect(markup).toContain('Tile 3, 4')
+    expect(markup).toContain('Elevated ground')
+    expect(markup).toContain('Frozen')
+    expect(markup).toContain('Damage 17')
+  })
   it('shows the authored Discipline skill context before a target without inventing an outcome', () => {
     const markup = renderToStaticMarkup(
       <BattleActionPreview preview={null} pending={false} skill={barrier} />,
     )
-    for (const label of ['40 AP', 'Ally', '1–3 tiles', 'Guarded', 'Skill details'])
+    for (const label of ['Cost: 40 AP', '<dt>Target</dt><dd>Ally</dd>', 'Range: 3'])
       expect(markup).toContain(label)
+    expect(markup).not.toContain('Legal range')
     expect(markup).not.toContain('Success 100%')
-    expect(markup).not.toContain('Forecast details')
+    expect(markup).not.toContain('Show forecast details')
   })
 
   it('never presents the previous skill projection after switching Discipline choices', () => {
@@ -81,9 +192,13 @@ describe('current selection forecast', () => {
       />,
     )
     expect(markup).toContain('Guard')
-    expect(markup).not.toContain('Guarded')
+    // The full Parameters panel preserves the authored effect; the outcome lane
+    // must only display current server-projected status names.
+    const outcomes = markup.slice(markup.indexOf('data-battle-preview-lane="outcomes"'))
+    expect(outcomes).not.toContain('Guarded')
+    expect(markup).toContain('<dt>Effects</dt><dd>Apply Guarded to the selected ally.</dd>')
     expect(markup).toContain('Success 100%')
-    expect(markup).toContain('Forecast details')
+    expect(markup).not.toContain('data-battle-info-trigger')
     expect(markup).not.toContain('Skill details')
   })
 
@@ -91,7 +206,7 @@ describe('current selection forecast', () => {
     const markup = renderToStaticMarkup(<BattleActionPreview preview={attack} pending={false} />)
     for (const label of ['Hit 69%', 'On hit 17 dmg', '30 AP', '70 AP left'])
       expect(markup).toContain(label)
-    expect(markup).toContain('aria-label="Forecast details"')
+    expect(markup).not.toContain('data-battle-info-trigger')
   })
 
   it('renders authoritative copied ordinary, Poison, Burn and Bleed status forecasts without machine encodings', () => {
@@ -162,7 +277,7 @@ describe('current selection forecast', () => {
     }
   })
 
-  it('keeps the compact forecast bounded while preserving every mixed projection for Forecast details', () => {
+  it('keeps the compact forecast bounded while preserving every mixed projection in its reading panel', () => {
     const mixedPreview: ActionPreview = {
       ...attack,
       actionId: 'test.copy-statuses.mixed',
@@ -189,7 +304,7 @@ describe('current selection forecast', () => {
     for (const label of ['Copied Inspire · 1 stack · 2 turns', '7 dmg', 'Heal +5']) {
       expect(markup).toContain(label)
     }
-    expect(markup).toContain('aria-label="Forecast details"')
+    expect(markup).not.toContain('data-battle-info-trigger')
     expect(markup).not.toContain('status.inspired:1:2')
 
     const detailLabels = previewChips(mixedPreview).map((chip) => chip.label)
@@ -203,6 +318,35 @@ describe('current selection forecast', () => {
     expect(markup).toContain('Calculating preview')
     expect(markup).not.toContain('Hit 69%')
     expect(markup).not.toContain('17 dmg')
+  })
+
+  it('shows every affected target with its own projected outcome for an area cast', () => {
+    const markup = renderToStaticMarkup(
+      <BattleActionPreview
+        pending={false}
+        preview={{
+          ...attack,
+          affectedCombatantIds: ['enemy', 'second', 'you'],
+          projectedEffects: [
+            { effectType: 'damage', combatantId: 'enemy', before: 100, after: 83 },
+            { effectType: 'damage', combatantId: 'second', before: 80, after: 71 },
+            { effectType: 'healing', combatantId: 'you', before: 20, after: 25 },
+          ],
+        }}
+      />,
+    )
+    for (const label of [
+      'data-battle-target-forecast="enemy"',
+      'data-battle-target-forecast="second"',
+      'data-battle-target-forecast="you"',
+      'Damage 17',
+      'Damage 9',
+      'Heal +5',
+    ])
+      expect(markup).toContain(label)
+    expect(
+      markup.split('data-battle-target-forecast="second"')[1]?.split('</article>')[0],
+    ).not.toContain('Hit 69%')
   })
 
   it('does not advertise damage or success for a blocked action', () => {

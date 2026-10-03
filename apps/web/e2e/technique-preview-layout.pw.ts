@@ -1,12 +1,17 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Locator } from '@playwright/test'
 
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 function uniqueCharacterName(): string {
-  return `Preview ${Date.now().toString(36)}`
+  const letters = Date.now()
+    .toString()
+    .split('')
+    .map((digit) => String.fromCharCode(65 + Number(digit)))
+    .join('')
+  return `Preview ${letters}`
 }
 
-test('Technique Preview keeps compact effects aligned and unwrapped', async ({
+test('Technique Preview keeps compact effects aligned and contained', async ({
   page,
 }, testInfo) => {
   test.skip(
@@ -33,26 +38,41 @@ test('Technique Preview keeps compact effects aligned and unwrapped', async ({
   const preview = dialog.getByTestId('technique-preview')
   await expect(preview).toBeVisible()
 
-  const effectsRow = preview.locator('dt', { hasText: 'Effects' }).locator('..')
-  await expect(effectsRow.locator('ul')).toHaveCount(0)
+  for (const viewport of [
+    { width: 1440, height: 900 },
+    { width: 1366, height: 768 },
+    { width: 1536, height: 614 },
+  ]) {
+    await page.setViewportSize(viewport)
 
-  const compactEffects = effectsRow.locator('[data-compact-skill-effect="true"]')
-  expect(await compactEffects.count()).toBeGreaterThan(0)
+    // Focus a known short value: initial focus follows the learned-skill order,
+    // which can start with a longer effect such as Brace's Guarded parameters.
+    await dialog.getByRole('checkbox', { name: 'Select Forceful Strike', exact: true }).hover()
+    const effectsRow = preview.locator('dt', { hasText: 'Effects' }).locator('..')
+    await expect(effectsRow.locator('ul')).toHaveCount(0)
+    const compactEffects = effectsRow.locator('[data-compact-skill-effect="true"]')
+    await expect(compactEffects.first()).toHaveText(/^Dmg \[\d+\]$/)
+    const shortGeometry = await effectGeometry(compactEffects.first())
+    expect(shortGeometry.textHeight).toBeLessThanOrEqual(shortGeometry.lineHeight + 1)
+    await expectEffectsContained(compactEffects)
+    await expectPreviewContained(preview)
 
-  const firstEffect = compactEffects.first()
-  await expect(firstEffect).toBeVisible()
-  expect(
-    await firstEffect.evaluate((element) => ({
-      textAlign: getComputedStyle(element).textAlign,
-      whiteSpace: getComputedStyle(element).whiteSpace,
-    })),
-  ).toEqual({ textAlign: 'right', whiteSpace: 'nowrap' })
+    // Longer authored values may wrap, while retaining every parameter.
+    await dialog.getByRole('checkbox', { name: 'Select Brace', exact: true }).hover()
+    await expect(compactEffects.first()).toHaveText(/^Guarded \[[\d.]+%\] \[2 Turns\]$/)
+    await expectEffectsContained(compactEffects)
+    await expectPreviewContained(preview)
+    const flavor = preview.locator('small').first()
+    const flavorLayout = await flavor.evaluate((element) => ({
+      overflow: element.parentElement!.scrollHeight - element.parentElement!.clientHeight,
+      overflowY: getComputedStyle(element.parentElement!).overflowY,
+    }))
+    expect(flavorLayout.overflow).toBeLessThanOrEqual(1)
+    expect(flavorLayout.overflowY).toBe('visible')
 
-  const magnitude = preview.locator('[data-compact-effect-magnitude="true"]').first()
-  await expect(magnitude).toBeVisible()
-
-  const duration = preview.locator('[data-compact-effect-duration="true"]').first()
-  if (await duration.count()) {
+    const magnitude = preview.locator('[data-compact-effect-magnitude="true"]').first()
+    const duration = preview.locator('[data-compact-effect-duration="true"]').first()
+    await expect(magnitude).toBeVisible()
     await expect(duration).toBeVisible()
     const [magnitudeColor, durationColor] = await Promise.all([
       magnitude.evaluate((element) => getComputedStyle(element).color),
@@ -61,3 +81,59 @@ test('Technique Preview keeps compact effects aligned and unwrapped', async ({
     expect(durationColor).not.toBe(magnitudeColor)
   }
 })
+
+async function effectGeometry(effect: Locator) {
+  return effect.evaluate((element) => {
+    const styles = getComputedStyle(element)
+    const text = document.createRange()
+    text.selectNodeContents(element)
+    const textBox = text.getBoundingClientRect()
+    const box = element.getBoundingClientRect()
+    const cell = element.closest('dd')!.getBoundingClientRect()
+    return {
+      textAlign: styles.textAlign,
+      lineHeight: parseFloat(styles.lineHeight),
+      textHeight: textBox.height,
+      overflowX: element.scrollWidth - element.clientWidth,
+      left: Math.min(box.left, textBox.left),
+      right: Math.max(box.right, textBox.right),
+      cellLeft: cell.left,
+      cellRight: cell.right,
+    }
+  })
+}
+
+async function expectEffectsContained(effects: Locator) {
+  expect(await effects.count()).toBeGreaterThan(0)
+  for (const effect of await effects.all()) {
+    await expect(effect).toBeVisible()
+    const geometry = await effectGeometry(effect)
+    expect(geometry.textAlign).toBe('right')
+    expect(geometry.overflowX).toBe(0)
+    expect(geometry.left).toBeGreaterThanOrEqual(geometry.cellLeft)
+    expect(geometry.right).toBeLessThanOrEqual(geometry.cellRight)
+  }
+}
+
+async function expectPreviewContained(preview: Locator) {
+  const geometry = await preview.evaluate((element) => {
+    const box = element.getBoundingClientRect()
+    const dialog = element.closest('[role="dialog"]')!
+    const workspace = dialog.querySelector('[data-technique-workspace]')!
+    const content = Array.from(element.querySelectorAll('dt, dd, li, img, strong, small, p'))
+    return {
+      contentTop: Math.min(...content.map((child) => child.getBoundingClientRect().top)),
+      contentBottom: Math.max(...content.map((child) => child.getBoundingClientRect().bottom)),
+      top: box.top,
+      bottom: box.bottom,
+      previewOverflowY: element.scrollHeight - element.clientHeight,
+      dialogOverflowY: dialog.scrollHeight - dialog.clientHeight,
+      workspaceOverflowY: workspace.scrollHeight - workspace.clientHeight,
+    }
+  })
+  expect(geometry.contentTop).toBeGreaterThanOrEqual(geometry.top)
+  expect(geometry.contentBottom).toBeLessThanOrEqual(geometry.bottom)
+  expect(geometry.previewOverflowY).toBeLessThanOrEqual(1)
+  expect(geometry.dialogOverflowY).toBeLessThanOrEqual(1)
+  expect(geometry.workspaceOverflowY).toBeLessThanOrEqual(1)
+}

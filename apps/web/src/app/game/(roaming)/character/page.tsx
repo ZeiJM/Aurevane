@@ -1,3 +1,5 @@
+import { SkillEffectTimingProvider } from '@/components/character/skill-effect-timing-context'
+import { readCombatEffectTimingPolicy } from '@/server/master/combat-effect-timing-policy-store'
 import { availableSupernaturalChoiceTransitions } from '@aurevane/game-core/character/supernatural-content'
 import { buildCharacterProfileReadModel } from '@aurevane/game-core/character/profile'
 import { isAurevaneError } from '@aurevane/game-core/errors'
@@ -35,7 +37,12 @@ function isPersistenceUnavailable(error: unknown) {
 }
 
 function renderPersistenceRecovery(
-  stage: 'selected_character' | 'level_curve' | 'discipline_build' | 'attribute_allocation',
+  stage:
+    | 'selected_character'
+    | 'level_curve'
+    | 'discipline_build'
+    | 'attribute_allocation'
+    | 'effect_timing',
 ) {
   serverLogger.error('character_profile.persistence_unavailable', {
     route: '/game/character',
@@ -96,6 +103,7 @@ export default async function CharacterProfilePage() {
   )
 
   const [
+    timingPolicyResult,
     levelCurveResult,
     disciplineBuildResult,
     currentDisciplineSkillsResult,
@@ -104,6 +112,7 @@ export default async function CharacterProfilePage() {
     displayStateResult,
     supernaturalStateResult,
   ] = await Promise.allSettled([
+    readCombatEffectTimingPolicy(),
     loadLevelProgressionCurve(
       character.progressionCycle.number,
       createSupabaseProgressionRepository(),
@@ -124,6 +133,11 @@ export default async function CharacterProfilePage() {
     ),
   ])
 
+  if (timingPolicyResult.status === 'rejected') {
+    if (isPersistenceUnavailable(timingPolicyResult.reason))
+      return renderPersistenceRecovery('effect_timing')
+    throw timingPolicyResult.reason
+  }
   if (levelCurveResult.status === 'rejected') {
     if (isPersistenceUnavailable(levelCurveResult.reason)) {
       return renderPersistenceRecovery('level_curve')
@@ -190,26 +204,28 @@ export default async function CharacterProfilePage() {
       )
     : []
   return (
-    <CharacterProfileShell
-      profile={buildCharacterProfileReadModel(character, levelCurve)}
-      attributeAllocation={attributeAllocation}
-      disciplineBuild={{
-        buildVersion: disciplineBuild.build.buildVersion,
-        current: disciplineBuild.current,
-        currentSecondary: disciplineBuild.currentSecondary,
-        availablePrimaries: disciplineBuild.availablePrimaries,
-        availableSecondaries: disciplineBuild.availableSecondaries,
-        attunement: disciplineBuild.attunement,
-        disciplineSkills: {
-          capacity: currentDisciplineSkills.capacity,
-          learnedSkills: currentDisciplineSkills.learnedSkills,
-          equippedSkills: currentDisciplineSkills.equippedSkills,
-          extensions: currentDisciplineSkills.extensions,
-        },
-      }}
-      personalTitle={personalTitle}
-      imageUrl={imageUrl}
-      supernatural={{ state: supernaturalState, choices: supernaturalChoices }}
-    />
+    <SkillEffectTimingProvider policy={timingPolicyResult.value}>
+      <CharacterProfileShell
+        profile={buildCharacterProfileReadModel(character, levelCurve)}
+        attributeAllocation={attributeAllocation}
+        disciplineBuild={{
+          buildVersion: disciplineBuild.build.buildVersion,
+          current: disciplineBuild.current,
+          currentSecondary: disciplineBuild.currentSecondary,
+          availablePrimaries: disciplineBuild.availablePrimaries,
+          availableSecondaries: disciplineBuild.availableSecondaries,
+          attunement: disciplineBuild.attunement,
+          disciplineSkills: {
+            capacity: currentDisciplineSkills.capacity,
+            learnedSkills: currentDisciplineSkills.learnedSkills,
+            equippedSkills: currentDisciplineSkills.equippedSkills,
+            extensions: currentDisciplineSkills.extensions,
+          },
+        }}
+        personalTitle={personalTitle}
+        imageUrl={imageUrl}
+        supernatural={{ state: supernaturalState, choices: supernaturalChoices }}
+      />
+    </SkillEffectTimingProvider>
   )
 }

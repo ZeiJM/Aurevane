@@ -145,6 +145,7 @@ describe('battle session committed Primary stat authority', () => {
       changeDisciplines: vi.fn(async () => {
         throw new Error('Not used.')
       }),
+      saveSupportAction: vi.fn(async () => ({ buildVersion: 2, replayed: false })),
       saveDisciplineSkills: vi.fn(async () => {
         throw new Error('Not used.')
       }),
@@ -160,6 +161,13 @@ describe('battle session committed Primary stat authority', () => {
     const persistedInput = readCreateInput()
     if (!persistedInput) throw new Error('Expected a persisted battle snapshot.')
     const state = persistedInput.initialSnapshot as StatDrivenCombatEncounterState
+    expect(
+      (
+        persistedInput.initialSnapshot as {
+          buildAuthority: { combatants: { narratorIdentity?: unknown }[] }
+        }
+      ).buildAuthority.combatants[0]?.narratorIdentity,
+    ).toEqual({ name: 'Wayfarer', pronounPresetId: 'they_them' })
     const player = state.tactical.battle.combatants.find(
       (combatant) => combatant.id === `character:${CHARACTER_ID}`,
     )

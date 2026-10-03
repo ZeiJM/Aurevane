@@ -6,482 +6,246 @@ import { expect, test } from '@playwright/test'
 import { SUPERNATURAL_STORY_DEFINITION } from '@aurevane/game-core/character/supernatural-content'
 import type { SupernaturalStoryState } from '@aurevane/game-core/character/supernatural-state'
 import type { SupernaturalChoiceOption } from '../src/components/character/character-supernatural-choice-controls'
+import { selectDiscipline } from './discipline-library-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 // Exercise real authentication, character creation, production CSS and existing dialogs.
 // Only disposable accounts in the local Supabase instance are used.
-test('profile identity, sheet and loadout remain readable without overlap', async ({
+test('approved Profile and Haven keep the frame fixed and complete controls reachable', async ({
   page,
 }, info) => {
   test.setTimeout(180_000)
-  const api = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://invalid')
-  expect(['127.0.0.1', 'localhost']).toContain(api.hostname)
-  const errors: string[] = []
-  page.on('pageerror', (error) => errors.push(error.message))
-  const suffix = `${Date.now()}${info.workerIndex}`.replace(/\d/g, (digit) =>
-    String.fromCharCode(65 + Number(digit)),
+  expect(['localhost', '127.0.0.1']).toContain(
+    new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://invalid').hostname,
   )
-  const characterName = `Wayfarer ${suffix}`
+  const suffix = `${Date.now()}${info.workerIndex}`.replace(/\d/g, (d) =>
+    String.fromCharCode(65 + Number(d)),
+  )
   await provisionAccountAndEnterCharacter({
     page,
-    email: `layout-${suffix.toLowerCase()}@example.com`,
+    email: `adventure-${suffix}@example.test`,
     password: 'Disposable-layout-review-2026!',
-    characterName,
+    characterName: `Wayfarer ${suffix}`,
   })
-
-  const viewports =
-    info.project.name === 'mobile-chromium'
-      ? [
-          { width: 390, height: 844 },
-          { width: 320, height: 740 },
-        ]
-      : info.project.name === 'laptop-chromium'
-        ? [
-            { width: 1366, height: 768 },
-            { width: 980, height: 1000 },
-          ]
-        : [
-            { width: 1728, height: 887 },
-            { width: 1440, height: 900 },
-          ]
-
-  const output = process.env.LAYOUT_REVIEW_OUTPUT
-  if (output) await mkdir(output, { recursive: true })
-
-  for (const viewport of viewports) {
-    await page.setViewportSize(viewport)
-    await page.goto('/game/character')
-    await expect(page.getByTestId('character-profile')).toBeVisible()
-    if (viewport.width >= 1200) {
-      await expect
-        .poll(() =>
-          page
-            .locator('[data-profile-workspace]')
-            .evaluate((element) =>
-              getComputedStyle(element).getPropertyValue('--character-rail-height').trim(),
-            ),
-        )
-        .not.toBe('')
-    }
-    await expect(page.locator('[data-profile-loadout]')).toHaveCount(0)
-    await expect(page.getByRole('heading', { name: 'Identity', exact: true })).toBeVisible()
-    await expect(
-      page.getByRole('heading', { name: 'Character Overview', exact: true }),
-    ).toHaveCount(0)
-    await expect(page.getByRole('complementary', { name: 'Current Path' })).toBeVisible()
-    const primaryNavigation = page.getByRole('navigation', { name: 'Primary game navigation' })
-    await expect(
-      primaryNavigation.getByRole('button', { name: 'Arsenal', exact: true }),
-    ).toBeDisabled()
-    await expect(primaryNavigation.getByRole('link', { name: 'Nexus', exact: true })).toBeVisible()
-    await expect(page.locator('[data-character-resource="hp"]')).toBeVisible()
-    await expect(page.locator('[data-character-resource="mp"]')).toBeVisible()
-
-    const shell = page.getByTestId('authenticated-shell')
-    const masthead = shell.locator('header').first()
-    const headerIdentity = masthead.locator('[aria-label^="Current character:"]')
-    await expect(shell.locator('[data-av-context-strip]')).toHaveCount(0)
-    await expect(shell.locator('[data-av-game-rail] .character-portrait-media')).toHaveCount(0)
-    await expect(headerIdentity).toHaveCount(1)
-    await expect(headerIdentity.locator('.character-portrait-media')).toHaveCount(1)
-    await expect(headerIdentity.getByText(characterName, { exact: true })).toHaveCount(0)
-    await expect(headerIdentity.getByText(/^Level /)).toHaveCount(0)
-    const separatorMetrics = await headerIdentity.evaluate((element) => {
-      const identity = getComputedStyle(element)
-      const utility = getComputedStyle(element.parentElement!)
-      return {
-        identityLeft: identity.borderLeftWidth,
-        identityRight: identity.borderRightWidth,
-        utilityLeft: utility.borderLeftWidth,
-      }
-    })
-    expect(separatorMetrics.identityLeft).toBe('0px')
-    expect(separatorMetrics.identityRight).toBe('0px')
-    expect(separatorMetrics.utilityLeft).toBe('1px')
-    const accountButton = masthead.getByRole('button', { name: /Account/ })
-    await expect(accountButton).toBeVisible()
-    await accountButton.click()
-    await expect(
-      page.getByRole('menu', { name: 'Account menu' }).getByText(`Welcome back, ${characterName}.`),
-    ).toBeVisible()
-    await accountButton.click()
-
-    if (viewport.width > 760) {
-      const rail = shell.locator('[data-av-game-rail]')
-      const railAnimation = await rail.evaluate(
-        (node) => getComputedStyle(node, '::before').animationName,
-      )
-      expect.soft(railAnimation, 'desktop game rail has subtle aether motion').not.toBe('none')
-      const railStart = await rail.evaluate((node) => getComputedStyle(node, '::before').transform)
-      await page.waitForTimeout(500)
-      const railAfter = await rail.evaluate((node) => getComputedStyle(node, '::before').transform)
-      expect.soft(railAfter, 'game rail aether physically advances').not.toBe(railStart)
-
-      const railLinkMetrics = await rail
-        .locator('[aria-label="Primary game navigation"] > :is(a, button)')
-        .evaluateAll((links) =>
-          links.map((link) => {
-            const rect = link.getBoundingClientRect()
-            const icon = link.querySelector<SVGElement>('svg')
-            const iconRect = icon?.getBoundingClientRect()
-            return {
-              label: link.getAttribute('aria-label'),
-              height: rect.height,
-              iconWidth: iconRect?.width ?? 0,
-            }
-          }),
-        )
-      const railHeights = railLinkMetrics.map((item) => item.height)
-      expect(Math.max(...railHeights) - Math.min(...railHeights)).toBeLessThanOrEqual(1)
-      const nexusIcon = railLinkMetrics.find((item) => item.label === 'Nexus')
-      const characterIcon = railLinkMetrics.find((item) => item.label === 'Character')
-      expect(nexusIcon?.iconWidth ?? 0).toBeGreaterThan(characterIcon?.iconWidth ?? 0)
-    }
-
-    await page.evaluate(async () => {
-      await document.fonts.ready
-    })
-    await expect
-      .poll(() =>
-        page
-          .locator('[data-testid="character-profile"] img')
-          .first()
-          .evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0),
-      )
-      .toBe(true)
-
-    const metrics = await page.evaluate(() => {
-      const required = (selector: string): HTMLElement => {
-        const element = document.querySelector<HTMLElement>(selector)
-        if (!element) throw new Error(`Missing profile element: ${selector}`)
-        return element
-      }
-      const rect = (element: Element) => {
-        const r = element.getBoundingClientRect()
-        return {
-          x: r.x,
-          y: r.y,
-          width: r.width,
-          height: r.height,
-          right: r.right,
-          bottom: r.bottom,
-        }
-      }
-      const identity = required('[data-profile-identity-banner]')
-      const hero = required('[data-testid="character-profile"]')
-      const portrait = hero.querySelector('img')!
-      const portraitFrame = portrait.parentElement?.parentElement as HTMLElement
-      const heading = hero.querySelector('h1')!
-      const sheet = required('[data-profile-sheet]')
-      const story = required('[aria-label="Current Path"]')
-      const workspace = required('[data-profile-workspace]')
-      const p = rect(portrait),
-        h = rect(heading)
-      return {
-        identity: rect(identity),
-        portrait: p,
-        name: h,
-        sheet: rect(sheet),
-        story: rect(story),
-        workspace: rect(workspace),
-        overlap:
-          Math.max(0, Math.min(p.right, h.right) - Math.max(p.x, h.x)) *
-          Math.max(0, Math.min(p.bottom, h.bottom) - Math.max(p.y, h.y)),
-        overflowX: document.documentElement.scrollWidth - window.innerWidth,
-        sheetOverflowX: sheet.scrollWidth - sheet.clientWidth,
-        identityOverflowY: getComputedStyle(identity).overflowY,
-        sheetOverflowY: getComputedStyle(sheet).overflowY,
-        sheetClientHeight: sheet.clientHeight,
-        sheetScrollHeight: sheet.scrollHeight,
-        portraitFrameBefore: getComputedStyle(portraitFrame, '::before').content,
-        portraitFrameAfter: getComputedStyle(portraitFrame, '::after').content,
-        primaryLinks: document.querySelectorAll('[aria-label="Primary game navigation"] a').length,
-      }
-    })
-    const label = `profile-${viewport.width}x${viewport.height}`
-    const screenshot = await page.screenshot({ fullPage: true })
-    await info.attach(label, { body: screenshot, contentType: 'image/png' })
-    if (output) {
-      await writeFile(path.join(output, `${label}.png`), screenshot)
-      await writeFile(path.join(output, `${label}.json`), JSON.stringify(metrics, null, 2))
-    }
-    expect.soft(metrics.overlap, `${label}: portrait must not cover character name`).toBe(0)
-    expect.soft(metrics.overflowX, `${label}: no sideways document overflow`).toBeLessThanOrEqual(1)
-    expect.soft(metrics.sheetOverflowX, `${label}: no clipped sheet`).toBeLessThanOrEqual(1)
-    expect
-      .soft(metrics.identity.width, `${label}: identity card keeps usable width`)
-      .toBeGreaterThan(250)
-    expect
-      .soft(metrics.identityOverflowY, `${label}: no identity-card scrollbar`)
-      .not.toMatch(/auto|scroll/)
-    if (viewport.width < 1200) {
-      expect
-        .soft(metrics.sheetOverflowY, `${label}: stacked profile sheet keeps natural scrolling`)
-        .not.toMatch(/auto|scroll/)
-    }
-    expect.soft(metrics.portraitFrameBefore, `${label}: no black top diamond ornament`).toBe('none')
-    expect
-      .soft(metrics.portraitFrameAfter, `${label}: no black bottom diamond ornament`)
-      .toBe('none')
-    expect.soft(metrics.primaryLinks).toBe(5)
-
-    const intellectHeaderSpacing = await page
-      .locator('[data-profile-stat-group="intellect"] > header')
-      .evaluate((header) => {
-        const labelElement = header.querySelector('strong')
-        if (!labelElement) throw new Error('Missing Intellect Adventure Stat label.')
-        const headerRect = header.getBoundingClientRect()
-        const labelRect = labelElement.getBoundingClientRect()
-        return {
-          dividerGap: headerRect.right - labelRect.right,
-          overflow: header.scrollWidth - header.clientWidth,
-        }
-      })
-    expect
-      .soft(intellectHeaderSpacing.dividerGap, `${label}: Intellect divider follows the full label`)
-      .toBeGreaterThanOrEqual(8)
-    expect
-      .soft(intellectHeaderSpacing.overflow, `${label}: Intellect label is not clipped`)
-      .toBeLessThanOrEqual(1)
-
-    if (viewport.width >= 1200) {
-      expect
-        .soft(
-          Math.abs(metrics.identity.bottom - metrics.sheet.bottom),
-          `${label}: center panel aligns to character panel bottom`,
-        )
-        .toBeLessThanOrEqual(2)
-      expect
-        .soft(
-          Math.abs(metrics.identity.bottom - metrics.story.bottom),
-          `${label}: Current Path aligns to character panel bottom`,
-        )
-        .toBeLessThanOrEqual(2)
-      expect
-        .soft(metrics.sheetOverflowY, `${label}: center profile sheet owns vertical scrolling`)
-        .toMatch(/auto|scroll/)
-      const profileScrollbar = await page.locator('[data-profile-sheet]').evaluate((element) => ({
-        color: getComputedStyle(element).scrollbarColor,
-        width: getComputedStyle(element).scrollbarWidth,
-      }))
-      expect(profileScrollbar.color).toContain('rgb(201, 168, 93)')
-      expect(profileScrollbar.color).toContain('rgb(7, 16, 25)')
-      expect(profileScrollbar.width).toBe('thin')
-      expect
-        .soft(
-          metrics.sheetScrollHeight,
-          `${label}: center profile sheet contains scrollable Adventure Stats`,
-        )
-        .toBeGreaterThan(metrics.sheetClientHeight)
-
-      const profileSheet = page.locator('[data-profile-sheet]')
-      const identityPanel = page.getByTestId('character-profile')
-      const currentPath = page.getByRole('complementary', { name: 'Current Path' })
-      const mainPanel = page.locator('#game-main')
-      const beforeScroll = {
-        identity: await identityPanel.boundingBox(),
-        story: await currentPath.boundingBox(),
-        mainScrollTop: await mainPanel.evaluate((element) => element.scrollTop),
-      }
-      await profileSheet.evaluate((element) => element.scrollTo({ top: element.scrollHeight }))
-      expect(await profileSheet.evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
-      const afterScroll = {
-        identity: await identityPanel.boundingBox(),
-        story: await currentPath.boundingBox(),
-        mainScrollTop: await mainPanel.evaluate((element) => element.scrollTop),
-      }
-      expect(afterScroll.mainScrollTop).toBe(beforeScroll.mainScrollTop)
-      expect(
-        Math.abs((afterScroll.identity?.y ?? 0) - (beforeScroll.identity?.y ?? 0)),
-      ).toBeLessThanOrEqual(1)
-      expect(
-        Math.abs((afterScroll.story?.y ?? 0) - (beforeScroll.story?.y ?? 0)),
-      ).toBeLessThanOrEqual(1)
-      await profileSheet.evaluate((element) => element.scrollTo({ top: 0 }))
-
-      expect
-        .soft(metrics.identity.width, `${label}: no empty full-width banner`)
-        .toBeLessThan(metrics.workspace.width * 0.35)
-      expect
-        .soft(
-          Math.abs(metrics.sheet.y - metrics.identity.y),
-          `${label}: sheet starts alongside identity`,
-        )
-        .toBeLessThanOrEqual(2)
-      expect.soft(metrics.portrait.width, `${label}: readable portrait`).toBeGreaterThanOrEqual(150)
-    }
-    if (viewport.width <= 760) {
-      expect.soft(metrics.sheet.y).toBeGreaterThanOrEqual(metrics.identity.bottom - 1)
-    }
-
-    // Profile keeps attribute management; combat build management lives on Nexus.
-    const redistribute = page
-      .locator('section[aria-label="Attribute redistribution"] > button')
-      .first()
-    await redistribute.scrollIntoViewIfNeeded()
-    await redistribute.click()
-    const redistributionDialog = page.getByRole('dialog', {
-      name: 'Redistribute Attributes',
-      exact: true,
-    })
-    await expect(redistributionDialog).toBeVisible()
-    await redistributionDialog.getByRole('button', { name: 'Close', exact: true }).click()
-    await expect(redistributionDialog).toHaveCount(0)
-
-    await page.goto('/game/nexus')
-    await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
-    await expect(page.getByRole('heading', { name: 'Nexus', exact: true })).toBeVisible()
-    await expect(
-      page.getByRole('navigation', { name: 'Primary game navigation' }).getByRole('button', {
-        name: 'Arsenal',
-        exact: true,
-      }),
-    ).toBeDisabled()
-    await expect(page.locator('[data-arsenal-panel="power"]')).toBeVisible()
-    const arsenalIdentity = page.locator('[data-profile-identity-banner]')
-    const arsenalIdentityBox = await arsenalIdentity.boundingBox()
-    expect(arsenalIdentityBox).not.toBeNull()
-    expect(Math.abs(arsenalIdentityBox!.width - metrics.identity.width)).toBeLessThanOrEqual(2)
-    expect(
-      await arsenalIdentity.evaluate((element) => getComputedStyle(element).overflowY),
-    ).not.toMatch(/auto|scroll/)
-    const arsenalSheet = page.locator('[data-arsenal-sheet="true"]')
-    await expect(arsenalSheet).toBeVisible()
-    expect(
-      await arsenalSheet.evaluate((element) => getComputedStyle(element).overflowY),
-    ).not.toMatch(/auto|scroll/)
-    const arsenalSections = page.locator('[data-arsenal-panel]')
-    expect(await arsenalSections.count()).toBe(4)
-    const arsenalSectionMetrics = await arsenalSections.evaluateAll((nodes) =>
-      nodes.map((node) => {
-        const rect = node.getBoundingClientRect()
-        const heading = node.querySelector('header')
-        const headingRect = heading?.getBoundingClientRect()
-        return {
-          width: rect.width,
-          height: rect.height,
-          headingOverflow: heading ? heading.scrollWidth - heading.clientWidth : 0,
-          headingBottom: headingRect?.bottom ?? 0,
-        }
-      }),
-    )
-    for (const metric of arsenalSectionMetrics) {
-      expect(metric.width).toBeGreaterThan(250)
-      expect(metric.height).toBeGreaterThan(110)
-      expect(metric.headingOverflow).toBeLessThanOrEqual(1)
-    }
-    const secondaryDisciplineSummary = page.locator('[data-slot="secondary"] p')
-    if (await secondaryDisciplineSummary.count()) {
-      expect(
-        await secondaryDisciplineSummary.evaluate(
-          (element) => element.scrollWidth - element.clientWidth,
-        ),
-      ).toBeLessThanOrEqual(1)
-    }
-
-    const techniqueCards = page.locator('[data-arsenal-technique-row="true"]')
-    await expect(techniqueCards).toHaveCount(8)
-    if (viewport.width >= 1200) {
-      const lanes = page.locator('[data-nexus-technique-lane="true"]')
-      await expect(lanes).toHaveCount(2)
-      const [leftLane, rightLane] = await lanes.evaluateAll((nodes) =>
-        nodes.map((node) => {
-          const rect = node.getBoundingClientRect()
-          return { x: rect.x, y: rect.y, right: rect.right, width: rect.width }
-        }),
-      )
-      expect(Math.abs(leftLane!.y - rightLane!.y)).toBeLessThanOrEqual(2)
-      expect(leftLane!.right).toBeLessThanOrEqual(rightLane!.x + 1)
-      expect(leftLane!.width).toBeGreaterThan(250)
-      expect(rightLane!.width).toBeGreaterThan(250)
-    }
-    const emptySlots = page.locator('[data-empty-technique-slot="true"]')
-    if (await emptySlots.count()) {
-      const plusOffsets = await emptySlots.evaluateAll((nodes) =>
-        nodes.map((node) => {
-          const rect = node.getBoundingClientRect()
-          const plus = node.querySelector('span')!.getBoundingClientRect()
-          return {
-            x: Math.abs(rect.x + rect.width / 2 - (plus.x + plus.width / 2)),
-            y: Math.abs(rect.y + rect.height / 2 - (plus.y + plus.height / 2)),
-            squareDelta: Math.abs(rect.width - rect.height),
-          }
-        }),
-      )
-      for (const offset of plusOffsets) {
-        expect(offset.x).toBeLessThanOrEqual(1)
-        expect(offset.y).toBeLessThanOrEqual(1)
-        expect(offset.squareDelta).toBeLessThanOrEqual(1)
-      }
-    }
-    const techniqueChrome = await techniqueCards.evaluateAll((cards) =>
-      cards.map((card) => {
-        const style = getComputedStyle(card)
-        return {
-          horizontalChrome:
-            Number.parseFloat(style.paddingLeft) +
-            Number.parseFloat(style.paddingRight) +
-            Number.parseFloat(style.borderLeftWidth) +
-            Number.parseFloat(style.borderRightWidth),
-          verticalChrome:
-            Number.parseFloat(style.paddingTop) +
-            Number.parseFloat(style.paddingBottom) +
-            Number.parseFloat(style.borderTopWidth) +
-            Number.parseFloat(style.borderBottomWidth),
-        }
-      }),
-    )
-    for (const metric of techniqueChrome) {
-      expect(metric.horizontalChrome).toBeLessThanOrEqual(4)
-      expect(metric.verticalChrome).toBeLessThanOrEqual(8)
-    }
-
-    const arsenalMedia = page.locator('[data-arsenal-media="true"]')
-    expect(await arsenalMedia.count()).toBeGreaterThanOrEqual(2)
-    const arsenalMetrics = await arsenalMedia.evaluateAll((nodes) =>
-      nodes.map((node) => {
-        const rect = node.getBoundingClientRect()
-        return { width: rect.width, height: rect.height }
-      }),
-    )
-    for (const metric of arsenalMetrics) {
-      expect(Math.abs(metric.width - metric.height)).toBeLessThanOrEqual(1)
-      expect(metric.width).toBeCloseTo(64, 0)
-    }
-    for (const [launcher, dialogName] of [
-      ['[data-testid="primary-build-panel"] > button', 'Discipline Management'],
-      ['[data-testid="skill-build-panel"] > button', 'Techniques'],
-    ]) {
-      const button = page.locator(launcher!).first()
-      await button.scrollIntoViewIfNeeded()
-      await button.click()
-      const dialog = page.getByRole('dialog', { name: dialogName!, exact: true })
-      await expect(dialog).toBeVisible()
-      await dialog.getByRole('button', { name: 'Close', exact: true }).click()
-      await expect(dialog).toHaveCount(0)
-    }
-    if (viewport.width <= 760) {
-      const online = page.locator('footer').getByRole('link', { name: /Online Users/ })
-      await online.scrollIntoViewIfNeeded()
-      const uncovered = await online.evaluate((element) => {
-        const rect = element.getBoundingClientRect()
-        const hit = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2)
-        return hit !== null && element.contains(hit)
-      })
-      expect.soft(uncovered, 'Online Users must remain above the fixed primary dock').toBe(true)
-      if (output) {
-        await writeFile(
-          path.join(output, `${label}-footer.png`),
-          await page.screenshot({ scale: 'css' }),
-        )
-      }
-      if (uncovered) {
-        await online.click()
-        await expect(page).toHaveURL(/\/game\/online$/)
-      }
+  const mobile = info.project.name === 'mobile-chromium'
+  await page.setViewportSize({ width: mobile ? 390 : 1366, height: mobile ? 844 : 900 })
+  const shell = page.getByTestId('authenticated-shell')
+  const rail = shell.locator('[data-av-game-rail]')
+  await expect(rail).toBeVisible()
+  await expect(shell.getByTestId('character-rail-profile')).toContainText(`Wayfarer ${suffix}`)
+  for (const attribute of ['might', 'finesse', 'vitality', 'agility', 'intellect', 'resolve'])
+    await expect(page.getByTestId(`profile-attribute-${attribute}`)).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Core Stats', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Combat Stats', exact: true })).toBeVisible()
+  const combatGrid = page.locator('[data-profile-combat-grid]')
+  await expect(combatGrid.locator('[data-profile-stat-group]')).toHaveCount(6)
+  if (!mobile) {
+    for (const attribute of ['might', 'finesse', 'vitality', 'agility', 'intellect', 'resolve']) {
+      const core = await page.getByTestId(`profile-attribute-${attribute}`).boundingBox()
+      const combat = await combatGrid
+        .locator(`[data-profile-stat-group="${attribute}"]`)
+        .boundingBox()
+      expect(combat!.y).toBeGreaterThan(core!.y + core!.height)
+      expect(Math.abs(combat!.x - core!.x)).toBeLessThanOrEqual(1)
+      expect(Math.abs(combat!.width - core!.width)).toBeLessThanOrEqual(1)
     }
   }
-  expect(errors).toEqual([])
+  for (const stat of await combatGrid.getByRole('button').all()) {
+    expect(await stat.evaluate((node) => node.scrollWidth - node.clientWidth)).toBeLessThanOrEqual(
+      1,
+    )
+  }
+  await page.getByTestId('derived-stat-physicalPower').click()
+  const statHelp = page.getByTestId('profile-detail-popover')
+  await expect(statHelp.getByRole('heading', { name: 'Physical Power', exact: true })).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(statHelp).toHaveCount(0)
+  await expect(combatGrid.locator('[data-profile-stat-group] > header')).toHaveCount(0)
+  await expect(combatGrid.getByRole('button')).toHaveCount(13)
+  {
+    const fitViewports = mobile
+      ? [
+          [320, 740],
+          [390, 844],
+        ]
+      : [
+          [1280, 720],
+          [1366, 768],
+          [1536, 614],
+          [1585, 900],
+          [1440, 900],
+          [1728, 887],
+          [1917, 987],
+          [1920, 1080],
+        ]
+    for (const [width, height] of fitViewports) {
+      await page.setViewportSize({ width, height })
+      const fit = await shell.locator('[data-profile-sheet]').evaluate((sheet, mobile) => {
+        const bounds = sheet.getBoundingClientRect()
+        const main = document.querySelector<HTMLElement>('#game-main')!
+        const mainBounds = main.getBoundingClientRect()
+        const controls = sheet.querySelectorAll<HTMLElement>(
+          '[data-attribute], [data-profile-stat-group] button, [data-profile-reset-control] button, [data-testid="profile-build-tendencies"]',
+        )
+        return {
+          overflow: sheet.scrollHeight - sheet.clientHeight,
+          mainOverflow: main.scrollHeight - main.clientHeight,
+          statCount: sheet.querySelectorAll('[data-attribute], [data-profile-stat-group] button')
+            .length,
+          textOverflow: [
+            ...sheet.querySelectorAll<HTMLElement>(
+              'button[data-attribute], [data-profile-stat-group] button',
+            ),
+          ].flatMap((button) => {
+            const buttonBounds = button.getBoundingClientRect()
+            return [...button.querySelectorAll('span, strong')].flatMap((label) => {
+              const text = label.firstChild
+              if (!text || text.nodeType !== Node.TEXT_NODE) return []
+              return [...(text.textContent ?? '').matchAll(/\S+/g)].flatMap((word) => {
+                const range = document.createRange()
+                range.setStart(text, word.index!)
+                range.setEnd(text, word.index! + word[0].length)
+                const rects = [...range.getClientRects()]
+                return rects.length > 1 ||
+                  rects.some(
+                    (rect) =>
+                      rect.left < buttonBounds.left - 1 ||
+                      rect.right > buttonBounds.right + 1 ||
+                      rect.top < buttonBounds.top - 1 ||
+                      rect.bottom > buttonBounds.bottom + 1,
+                  )
+                  ? [word[0]]
+                  : []
+              })
+            })
+          }),
+          graphOverlap: [
+            ...sheet.querySelectorAll('[data-testid="profile-build-tendencies"] svg g'),
+          ].flatMap((group) => {
+            const texts = group.querySelectorAll('text')
+            if (texts.length !== 2) return []
+            return texts[0].getBoundingClientRect().bottom >
+              texts[1].getBoundingClientRect().top + 0.5
+              ? [texts[0].textContent]
+              : []
+          }),
+          graphTop: sheet
+            .querySelector('[data-testid="profile-build-tendencies"]')!
+            .getBoundingClientRect().top,
+          metadataBottom: sheet.querySelector('[data-profile-facts]')!.getBoundingClientRect()
+            .bottom,
+          clipped: [...controls]
+            .filter((control) => {
+              const rect = control.getBoundingClientRect()
+              return (
+                rect.top < (mobile ? bounds.top : Math.max(bounds.top, mainBounds.top)) - 1 ||
+                rect.bottom >
+                  (mobile ? bounds.bottom : Math.min(bounds.bottom, mainBounds.bottom)) + 1 ||
+                rect.left < bounds.left - 1 ||
+                rect.right > bounds.right + 1
+              )
+            })
+            .map((control) => control.getAttribute('data-testid') ?? control.textContent),
+        }
+      }, mobile)
+      if (!mobile)
+        expect(fit.overflow, `Profile inner scrolling at ${width}×${height}`).toBeLessThanOrEqual(1)
+      if (!mobile)
+        expect(
+          fit.mainOverflow,
+          `Profile main scrolling at ${width}×${height}`,
+        ).toBeLessThanOrEqual(1)
+      expect(fit.statCount).toBe(19)
+      expect(fit.textOverflow, `Profile broken or clipped words at ${width}×${height}`).toEqual([])
+      expect(fit.graphOverlap, `Profile overlapping graph labels at ${width}×${height}`).toEqual([])
+      expect(fit.clipped, `Profile clipped controls at ${width}×${height}`).toEqual([])
+      if (!mobile) {
+        expect(
+          fit.graphTop,
+          `Graph begins below metadata at ${width}×${height}`,
+        ).toBeGreaterThanOrEqual(fit.metadataBottom - 1)
+        expect(fit.graphTop - fit.metadataBottom).toBeLessThanOrEqual(12)
+      }
+    }
+    await page.setViewportSize({ width: mobile ? 390 : 1366, height: mobile ? 844 : 900 })
+  }
+  await expect(
+    page.getByRole('button', { name: 'About Build Tendencies', exact: true }),
+  ).toHaveCount(0)
+  for (const label of ['Damage', 'Precision', 'Defense', 'Mobility', 'Arcane', 'Tenacity']) {
+    const axis = page.getByRole('button', { name: `About ${label} tendency`, exact: true })
+    await axis.locator('text').first().click()
+    await expect(statHelp.getByRole('heading', { name: label, exact: true })).toBeVisible()
+    const copy = await statHelp.locator('p').innerText()
+    expect(copy).toMatch(/^Favors .+\.$/)
+    expect(copy.length).toBeLessThan(130)
+    const helpBox = await statHelp.boundingBox()
+    expect(helpBox!.y).toBeGreaterThanOrEqual(0)
+    expect(helpBox!.y + helpBox!.height).toBeLessThanOrEqual(page.viewportSize()!.height)
+    expect(helpBox!.x).toBeGreaterThanOrEqual(12)
+    expect(helpBox!.x + helpBox!.width).toBeLessThanOrEqual(
+      await page.evaluate(() => document.documentElement.clientWidth - 12),
+    )
+    expect(
+      await statHelp.evaluate((node) => {
+        const box = node.getBoundingClientRect()
+        return [
+          [8, 8],
+          [box.width - 8, 8],
+          [8, box.height - 8],
+          [box.width - 8, box.height - 8],
+        ].every(([x, y]) => node.contains(document.elementFromPoint(box.x + x, box.y + y)))
+      }),
+    ).toBe(true)
+    await page.getByRole('heading', { name: 'Profile', exact: true }).click()
+    await expect(statHelp).toHaveCount(0)
+    await axis.focus()
+    await axis.press(label === 'Damage' ? 'Space' : 'Enter')
+    await expect(statHelp.getByRole('heading', { name: label, exact: true })).toBeVisible()
+    await expect(statHelp).toBeFocused()
+    await page.keyboard.press('Escape')
+    await expect(statHelp).toHaveCount(0)
+    await expect(axis).toBeFocused()
+  }
+  await expect(page.getByRole('complementary', { name: 'Current Path' })).toHaveCount(0)
+  const headerBefore = await shell.locator(':scope > header').boundingBox()
+  const railBefore = await rail.boundingBox()
+  const footerBefore = await shell.locator(':scope > footer').boundingBox()
+  await page.locator('#game-main').evaluate((node) => node.scrollTo(0, node.scrollHeight))
+  expect(await shell.locator(':scope > header').boundingBox()).toEqual(headerBefore)
+  expect(await rail.boundingBox()).toEqual(railBefore)
+  expect(await shell.locator(':scope > footer').boundingBox()).toEqual(footerBefore)
+  if (!mobile) expect(railBefore!.width).toBeCloseTo(190, 0)
+  await page.getByRole('button', { name: 'Reset Stats' }).click()
+  const reset = page.getByRole('dialog', { name: 'Redistribute Attributes' })
+  await expect(reset).toBeVisible()
+  for (const attribute of ['Might', 'Finesse', 'Vitality', 'Agility', 'Intellect', 'Resolve'])
+    await expect(reset.getByRole('button', { name: `Increase ${attribute}` })).toBeVisible()
+  await reset.getByRole('button', { name: 'Close', exact: true }).click()
+  await page.goto('/game/haven')
+  await expect(page.getByRole('heading', { name: /^Welcome home,/ })).toBeVisible()
+  await expect(page.getByText('Current Path', { exact: true })).toBeVisible()
+  await page.goto('/game/loadout')
+  await expect(page).toHaveURL(/\/game\/nexus$/)
+  const loadoutTabs = page.getByRole('navigation', { name: 'Loadout sections' })
+  await expect(loadoutTabs.getByRole('link', { name: 'Nexus', exact: true })).toHaveAttribute(
+    'href',
+    '/game/nexus',
+  )
+  await expect(loadoutTabs.getByRole('link', { name: 'Items', exact: true })).toHaveAttribute(
+    'href',
+    '/game/loadout/items',
+  )
+  await page.goto('/game/nexus')
+  for (const name of ['Manage Disciplines', 'Manage Techniques']) {
+    await page.getByRole('button', { name: new RegExp(name) }).click()
+    const dialog = page.getByRole('dialog')
+    await expect(dialog).toBeVisible()
+    await dialog.getByRole('button', { name: 'Close', exact: true }).click()
+  }
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth - innerWidth),
+  ).toBeLessThanOrEqual(1)
 })
 
 test('a populated hybrid loadout keeps all four Techniques and management actions reachable', async ({
@@ -513,16 +277,7 @@ test('a populated hybrid loadout keeps all four Techniques and management action
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
   await page.locator('[data-testid="primary-build-panel"] > button').click()
   const management = page.getByRole('dialog', { name: 'Discipline Management', exact: true })
-  await management.getByLabel('Secondary Discipline').selectOption('lifebinder')
-  const commitBuild = management.getByRole('button', { name: /Confirm Change/ })
-  await expect(commitBuild).toBeEnabled()
-  const buildSaved = page.waitForResponse(
-    (response) =>
-      response.url().endsWith('/api/character/build/disciplines') &&
-      response.request().method() === 'PUT',
-  )
-  await commitBuild.click()
-  expect((await buildSaved).status()).toBe(200)
+  await selectDiscipline(management, 'Secondary', 'Lifebinder')
   await expect(page.getByTestId('secondary-discipline-chip')).toHaveText('Lifebinder')
   await management.getByRole('button', { name: 'Close', exact: true }).click()
   await page.locator('[data-testid="skill-build-panel"] > button').click()
@@ -617,7 +372,7 @@ for (const pathChoice of [
   { path: 'ascended', label: 'Ascension', identity: 'Ascended' },
   { path: 'severed', label: 'Severence', identity: 'Severed' },
 ] as const) {
-  test(`Profile ${pathChoice.label} requires confirmation and stays bound after reload`, async ({
+  test(`Haven ${pathChoice.label} requires confirmation and stays bound after reload`, async ({
     page,
   }, info) => {
     test.setTimeout(120_000)
@@ -634,6 +389,7 @@ for (const pathChoice of [
       password: 'Disposable-path-review-2026!',
       characterName,
     })
+    await page.goto('/game/haven')
     const panel = page.getByRole('complementary', { name: 'Current Path' })
     async function currentPath() {
       const response = await page.request.get('/api/character/supernatural')

@@ -7,12 +7,14 @@ import {
 } from '@aurevane/game-core/character/wayfarers-practice'
 import { GameButton } from '@aurevane/ui'
 
-import { AurevaneImage } from '@/components/media/aurevane-image'
-import type { ImageAssetId } from '@/media/registry'
 import { useRouter } from 'next/navigation'
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
-import { formatPracticeDuration } from './training-report-card'
+import {
+  formatPracticeDuration,
+  TrainingReportCard,
+  type TrainingReportCardData,
+} from './training-report-card'
 import styles from './training-workspace.module.css'
 
 export type PracticePlanWindow = 'short' | 'overnight' | 'extended'
@@ -32,25 +34,57 @@ export interface PracticePlanCardData {
 
 interface PracticePlanCardProps {
   practice: PracticePlanCardData
-  report?: ReactNode
-  hasReport?: boolean
+  trainingReport?: TrainingReportCardData | null
 }
 
-export function PracticePlanCard({ practice, report, hasReport = false }: PracticePlanCardProps) {
+export function PracticePlanCard({ practice, trainingReport = null }: PracticePlanCardProps) {
   const router = useRouter()
+  const [selectedWindow, setSelectedWindow] = useState<PracticePlanWindow>(
+    practice.plannedWindow ?? 'short',
+  )
   const [submittingWindow, setSubmittingWindow] = useState<PracticePlanWindow | null>(null)
   const [stopping, setStopping] = useState(false)
+  const [stoppedSnapshot, setStoppedSnapshot] = useState<{
+    characterId: string
+    serverNow: string
+  } | null>(null)
+  const [claimedReport, setClaimedReport] = useState<{
+    characterId: string
+    reportId: string
+  } | null>(null)
+  const visibleReport =
+    trainingReport?.characterId === claimedReport?.characterId &&
+    trainingReport?.reportId === claimedReport?.reportId
+      ? null
+      : trainingReport
+  const currentReportIdentity = useRef({
+    characterId: practice.characterId,
+    reportId: trainingReport?.reportId,
+    reportCharacterId: trainingReport?.characterId,
+  })
+  useEffect(() => {
+    currentReportIdentity.current = {
+      characterId: practice.characterId,
+      reportId: trainingReport?.reportId,
+      reportCharacterId: trainingReport?.characterId,
+    }
+  }, [practice.characterId, trainingReport?.characterId, trainingReport?.reportId])
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const retryKey = useRef<{ window: PracticePlanWindow; key: string } | null>(null)
-  const refreshQueued = useRef(false)
+  const stopRequestInFlight = useRef(false)
+  const refreshedEndMs = useRef<number | null>(null)
   const baseServerTime = useMemo(() => Date.parse(practice.serverNow), [practice.serverNow])
-  const [elapsedMs, setElapsedMs] = useState(0)
+  const [clock, setClock] = useState({ serverNow: practice.serverNow, elapsedMs: 0 })
+  const elapsedMs = clock.serverNow === practice.serverNow ? clock.elapsedMs : 0
 
   useEffect(() => {
     const started = Date.now()
-    const timer = window.setInterval(() => setElapsedMs(Date.now() - started), 1000)
+    const timer = window.setInterval(
+      () => setClock({ serverNow: practice.serverNow, elapsedMs: Date.now() - started }),
+      1000,
+    )
     return () => window.clearInterval(timer)
-  }, [])
+  }, [practice.serverNow])
 
   const trainingEndMs =
     practice.planSetAt && practice.plannedWindowSeconds
@@ -60,18 +94,29 @@ export function PracticePlanCard({ practice, report, hasReport = false }: Practi
   const remainingSeconds = trainingEndMs
     ? Math.max(0, Math.ceil((trainingEndMs - synchronizedNow) / 1000))
     : 0
-  const trainingActive = Boolean(
-    practice.plannedWindow &&
-    practice.planSetAt &&
-    practice.plannedWindowSeconds &&
-    remainingSeconds > 0,
+  const hasPlan = Boolean(
+    practice.plannedWindow && practice.planSetAt && practice.plannedWindowSeconds,
   )
+  // Hold the stopped session only until a fresh authoritative snapshot arrives.
+  const awaitingStoppedReport =
+    stoppedSnapshot !== null &&
+    stoppedSnapshot.characterId === practice.characterId &&
+    stoppedSnapshot.serverNow === practice.serverNow
+  const trainingActive = hasPlan && remainingSeconds > 0 && !awaitingStoppedReport
+  const currentVisible = hasPlan || awaitingStoppedReport
 
   useEffect(() => {
-    if (!practice.plannedWindow || !trainingEndMs || remainingSeconds > 0 || refreshQueued.current)
+    if (
+      !practice.plannedWindow ||
+      !trainingEndMs ||
+      remainingSeconds > 0 ||
+      refreshedEndMs.current === trainingEndMs
+    )
       return
-    refreshQueued.current = true
-    const timer = window.setTimeout(() => router.refresh(), 250)
+    const timer = window.setTimeout(() => {
+      refreshedEndMs.current = trainingEndMs
+      router.refresh()
+    }, 250)
     return () => window.clearTimeout(timer)
   }, [practice.plannedWindow, remainingSeconds, router, trainingEndMs])
 
@@ -79,30 +124,26 @@ export function PracticePlanCard({ practice, report, hasReport = false }: Practi
     window: PracticePlanWindow
     seconds: number
     description: string
-    imageAssetId: ImageAssetId
   }[] = [
     {
       window: 'short',
       seconds: practice.shortWindowSeconds,
       description: 'Best hourly return.',
-      imageAssetId: 'environment.passive-training.cloister',
     },
     {
       window: 'overnight',
       seconds: practice.overnightWindowSeconds,
       description: 'Moderate hourly return.',
-      imageAssetId: 'environment.battle-hall.courtyard',
     },
     {
       window: 'extended',
       seconds: practice.extendedWindowSeconds,
       description: 'Lowest hourly return.',
-      imageAssetId: 'environment.archive.interior',
     },
   ]
 
   async function setPlan(window: PracticePlanWindow) {
-    if (submittingWindow || stopping || trainingActive) return
+    if (submittingWindow || stopping || currentVisible || visibleReport) return
     setSubmittingWindow(window)
     setErrorMessage(null)
     if (!retryKey.current || retryKey.current.window !== window) {
@@ -135,7 +176,8 @@ export function PracticePlanCard({ practice, report, hasReport = false }: Practi
   }
 
   async function stopTraining() {
-    if (stopping || !practice.plannedWindow) return
+    if (stopRequestInFlight.current || awaitingStoppedReport || !trainingActive) return
+    stopRequestInFlight.current = true
     setStopping(true)
     setErrorMessage(null)
     try {
@@ -144,21 +186,30 @@ export function PracticePlanCard({ practice, report, hasReport = false }: Practi
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ characterId: practice.characterId }),
       })
-      const payload = (await response.json()) as { error?: { message?: string } }
+      const payload = (await response.json()) as {
+        stopped?: boolean
+        error?: { message?: string }
+      }
       if (!response.ok) {
         setErrorMessage(payload.error?.message ?? 'Passive Training could not be stopped.')
         return
       }
+      setStoppedSnapshot(
+        payload.stopped === true
+          ? { characterId: practice.characterId, serverNow: practice.serverNow }
+          : null,
+      )
       router.refresh()
     } catch {
       setErrorMessage('Passive Training could not reach the server. Nothing was changed.')
     } finally {
+      stopRequestInFlight.current = false
       setStopping(false)
     }
   }
 
   const progressPercent =
-    trainingActive && practice.plannedWindowSeconds
+    hasPlan && practice.plannedWindowSeconds
       ? Math.max(
           0,
           Math.min(
@@ -170,178 +221,205 @@ export function PracticePlanCard({ practice, report, hasReport = false }: Practi
       : 0
 
   return (
-    <div className={styles.columns} data-training-active={trainingActive || undefined}>
-      <section
-        className={styles.panel}
-        id="training-plan"
-        data-testid="practice-plan-card"
-        data-training-surface="moonstone"
-        data-av-surface="moonstone"
-        aria-labelledby="practice-plan-title"
-        tabIndex={-1}
-      >
-        <header className={styles.heading}>
-          <div>
-            <span className={styles.eyebrow}>01 / Choose your pace</span>
-            <h2 id="practice-plan-title">Training Plan</h2>
-          </div>
-          <span className={styles.badge}>{trainingActive ? 'Training active' : 'Idle'}</span>
-        </header>
-        <p className={styles.intro}>Choose a training duration.</p>
-        <div className={styles.windowGrid} aria-label="Passive Training durations">
-          {windows.map((option) => {
-            const rate = getPassiveTrainingXpPerHour(option.window)
-            const reward = calculatePassiveTrainingXp(option.window)
-            const selected = practice.plannedWindow === option.window
-            return (
-              <article
-                className={styles.window}
-                key={option.window}
-                data-active={selected || undefined}
-              >
-                <div className={styles.windowMedia} aria-hidden="true">
-                  <AurevaneImage
-                    assetId={option.imageAssetId}
-                    className={styles.windowImage}
-                    sizes="7rem"
-                  />
-                </div>
-                <div className={styles.windowBody}>
-                  <div className={styles.windowHeading}>
-                    <strong>{passiveTrainingWindowLabel(option.window)}</strong>
-                    <span>{formatPracticeDuration(option.seconds)}</span>
-                  </div>
-                  <p>{option.description}</p>
-                  <dl className={styles.rewardLine}>
-                    <div>
-                      <dt>Rate</dt>
-                      <dd>{rate} XP/hr</dd>
-                    </div>
-                    <div>
-                      <dt>Complete</dt>
-                      <dd>+{reward} XP</dd>
-                    </div>
-                  </dl>
-                  <GameButton
-                    className={styles.startButton}
-                    type="button"
-                    variant={selected ? 'quiet' : 'primary'}
-                    disabled={submittingWindow !== null || stopping || trainingActive}
-                    onClick={() => void setPlan(option.window)}
-                  >
-                    {submittingWindow === option.window
-                      ? 'Starting…'
-                      : selected
-                        ? 'Training now'
-                        : `Start ${passiveTrainingWindowLabel(option.window)}`}
-                  </GameButton>
-                </div>
-              </article>
-            )
-          })}
-        </div>
-        {errorMessage ? (
-          <p className={styles.error} role="status">
-            {errorMessage}
-          </p>
-        ) : null}
-      </section>
-
-      <section
-        className={`${styles.panel} ${styles.activity}`}
-        id="training-current"
-        data-av-surface="moonstone"
-        data-testid={trainingActive ? 'passive-training-active' : undefined}
-        aria-label="Current training activity"
-        tabIndex={-1}
-      >
-        <header className={styles.heading}>
-          <div>
-            <span className={styles.eyebrow}>02 / In the stillness</span>
-            <h2>Current Training</h2>
-          </div>
-          <span
-            className={styles.statusDot}
-            data-active={trainingActive || undefined}
-            aria-hidden="true"
+    <div
+      className={styles.columns}
+      data-training-stage={visibleReport ? 'report' : currentVisible ? 'current' : 'plan'}
+    >
+      {visibleReport ? (
+        <aside
+          className={styles.reportWorkspace}
+          id="training-report-workspace"
+          aria-label="Training report workspace"
+          tabIndex={-1}
+        >
+          <TrainingReportCard
+            key={`${visibleReport.characterId}:${visibleReport.reportId}`}
+            report={visibleReport}
+            onClaimed={() => {
+              const current = currentReportIdentity.current
+              if (
+                current.characterId !== visibleReport.characterId ||
+                current.reportCharacterId !== visibleReport.characterId ||
+                current.reportId !== visibleReport.reportId
+              )
+                return
+              setClaimedReport({
+                characterId: visibleReport.characterId,
+                reportId: visibleReport.reportId,
+              })
+              setStoppedSnapshot(null)
+            }}
           />
-        </header>
-        <div className={styles.activityBody}>
-          {!trainingActive ? (
-            <div className={styles.activitySigil} aria-hidden="true">
-              <span>❧</span>
-            </div>
-          ) : null}
-          <div className={styles.activitySummary}>
+        </aside>
+      ) : !currentVisible ? (
+        <section
+          className={styles.panel}
+          id="training-plan"
+          data-testid="practice-plan-card"
+          data-training-surface="moonstone"
+          data-av-surface="moonstone"
+          aria-labelledby="practice-plan-title"
+          tabIndex={-1}
+        >
+          <header className={styles.heading}>
             <div>
-              <span className={styles.eyebrow}>CHARACTER XP</span>
-              <h3>
-                {trainingActive
-                  ? `${passiveTrainingWindowLabel(practice.plannedWindow!)} Training`
-                  : hasReport
-                    ? 'A chapter completed'
-                    : 'Ready when you are'}
-              </h3>
+              <span className={styles.eyebrow}>Choose your pace</span>
+              <h2 id="practice-plan-title">Training Plan</h2>
             </div>
-            <div className={styles.countdown}>
-              <span>{trainingActive ? 'Time remaining' : 'No active session'}</span>
-              <strong>{trainingActive ? formatCountdown(remainingSeconds) : '— : — : —'}</strong>
-            </div>
+            <span className={styles.badge}>Idle</span>
+          </header>
+          <p className={styles.intro}>Choose a training duration.</p>
+          <div className={styles.windowGrid} aria-label="Passive Training durations">
+            {windows.map((option) => {
+              const rate = getPassiveTrainingXpPerHour(option.window)
+              const reward = calculatePassiveTrainingXp(option.window)
+              const selected = practice.plannedWindow === option.window
+              return (
+                <article
+                  className={styles.window}
+                  key={option.window}
+                  data-active={selected || undefined}
+                >
+                  <input
+                    type="radio"
+                    name="training-duration"
+                    id={`training-duration-${option.window}`}
+                    aria-label={`${passiveTrainingWindowLabel(option.window)} Plan`}
+                    checked={selectedWindow === option.window}
+                    disabled={submittingWindow !== null || stopping || trainingActive}
+                    onChange={() => setSelectedWindow(option.window)}
+                  />
+                  <div className={styles.windowBody}>
+                    <div className={styles.windowHeading}>
+                      <label htmlFor={`training-duration-${option.window}`}>
+                        {passiveTrainingWindowLabel(option.window)} Plan
+                      </label>
+                      <span>{formatPracticeDuration(option.seconds)}</span>
+                    </div>
+                    <p>{option.description}</p>
+                    <dl className={styles.rewardLine}>
+                      <div>
+                        <dt>Rate</dt>
+                        <dd>{rate} XP/hr</dd>
+                      </div>
+                      <div>
+                        <dt>Complete</dt>
+                        <dd>+{reward} XP</dd>
+                      </div>
+                    </dl>
+                  </div>
+                </article>
+              )
+            })}
           </div>
-          <p className={styles.intro}>
-            {trainingActive
-              ? 'Training in progress. Your discipline continues while you are away.'
-              : hasReport
-                ? 'Your Training Report is ready. Claim your earned progress in the next panel.'
-                : 'Choose Short, Medium or Extended to begin. Your training continues while you are away.'}
-          </p>
-          <div
-            className={styles.progressTrack}
-            role="progressbar"
-            aria-label="Training progress"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={Math.floor(progressPercent)}
+          <GameButton
+            className={styles.startButton}
+            type="button"
+            disabled={submittingWindow !== null || stopping || trainingActive}
+            onClick={() => void setPlan(selectedWindow)}
           >
-            <span style={{ width: `${progressPercent}%` }} />
-          </div>
-          <div className={styles.progressLegend}>
-            <span>{Math.floor(progressPercent)}% complete</span>
-            <span>{trainingActive ? 'Server-timed session' : 'Ready when you are'}</span>
-          </div>
-          <dl className={styles.rewards}>
-            <div>
-              <dt>Completion reward</dt>
-              <dd>
-                {trainingActive
-                  ? `+${calculatePassiveTrainingXp(practice.plannedWindow!)} XP`
-                  : '—'}
-              </dd>
-            </div>
-            <div>
-              <dt>Training duration</dt>
-              <dd>
-                {trainingActive ? formatPracticeDuration(practice.plannedWindowSeconds!) : '—'}
-              </dd>
-            </div>
-          </dl>
-          {trainingActive ? (
-            <GameButton
-              className={styles.stopButton}
-              type="button"
-              variant="quiet"
-              disabled={stopping}
-              onClick={() => void stopTraining()}
-            >
-              {stopping ? 'Stopping…' : 'Stop Training'}
-            </GameButton>
+            {submittingWindow ? 'Starting…' : 'Start Training'}
+          </GameButton>
+          {errorMessage ? (
+            <p className={styles.error} role="status">
+              {errorMessage}
+            </p>
           ) : null}
-        </div>
-        <p className={styles.footnote}>
-          The server keeps time. This page does not need to stay open.
-        </p>
-      </section>
-      {report}
+        </section>
+      ) : (
+        <section
+          className={`${styles.panel} ${styles.activity}`}
+          id="training-current"
+          data-av-surface="moonstone"
+          data-testid="passive-training-active"
+          aria-label="Current training activity"
+          tabIndex={-1}
+        >
+          <header className={styles.heading}>
+            <div>
+              <span className={styles.eyebrow}>In the stillness</span>
+              <h2>Current Training</h2>
+            </div>
+            <span
+              className={styles.statusDot}
+              data-active={trainingActive || undefined}
+              aria-hidden="true"
+            />
+          </header>
+          <div className={styles.activityBody}>
+            <div className={styles.activitySummary}>
+              <div>
+                <span className={styles.eyebrow}>CHARACTER XP</span>
+                <h3>
+                  {trainingActive
+                    ? `${passiveTrainingWindowLabel(practice.plannedWindow!)} Training`
+                    : 'Finalizing your report'}
+                </h3>
+              </div>
+              <div className={styles.countdown}>
+                <span>{trainingActive ? 'Time remaining' : 'Session ended'}</span>
+                <strong>{formatCountdown(remainingSeconds)}</strong>
+              </div>
+            </div>
+            <p className={styles.intro}>
+              {trainingActive
+                ? 'Training in progress. Your discipline continues while you are away.'
+                : 'Waiting for the server to deliver your frozen Training Report.'}
+            </p>
+            <div
+              className={styles.progressTrack}
+              role="progressbar"
+              aria-label="Training progress"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.floor(progressPercent)}
+            >
+              <span style={{ width: `${progressPercent}%` }} />
+            </div>
+            <div className={styles.progressLegend}>
+              <span>{Math.floor(progressPercent)}% complete</span>
+              <span>
+                {trainingActive ? 'Server-timed session' : 'Awaiting server confirmation'}
+              </span>
+            </div>
+            <dl className={styles.rewards}>
+              <div>
+                <dt>Completion reward</dt>
+                <dd>
+                  {trainingActive
+                    ? `+${calculatePassiveTrainingXp(practice.plannedWindow!)} XP`
+                    : '—'}
+                </dd>
+              </div>
+              <div>
+                <dt>Training duration</dt>
+                <dd>
+                  {trainingActive ? formatPracticeDuration(practice.plannedWindowSeconds!) : '—'}
+                </dd>
+              </div>
+            </dl>
+            {trainingActive ? (
+              <GameButton
+                className={styles.stopButton}
+                type="button"
+                variant="quiet"
+                disabled={stopping}
+                onClick={() => void stopTraining()}
+              >
+                {stopping ? 'Stopping…' : 'Stop Training'}
+              </GameButton>
+            ) : null}
+            {errorMessage ? (
+              <p className={styles.error} role="status">
+                {errorMessage}
+              </p>
+            ) : null}
+          </div>
+          <p className={styles.footnote}>
+            The server keeps time. This page does not need to stay open.
+          </p>
+        </section>
+      )}
     </div>
   )
 }

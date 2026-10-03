@@ -6,6 +6,7 @@ import { createTacticalBattleState } from './board'
 import type { CombatSummonInstance } from './combat-effect-state'
 import { spawnCombatSummon } from './combat-summons'
 import {
+  executePv1fMovement,
   executePv1fSummonAbility,
   preparePv1fTurnEconomy,
   readPv1fActionEconomy,
@@ -272,6 +273,48 @@ describe('Combat v5.1 summon AI', () => {
 
     expect(chosenAbility(a)).not.toBeNull()
     expect(chosenAbility(b)).toBe(chosenAbility(a))
+  })
+
+  it('moves under normal movement authority until an authored ability is in legal range, then attacks', () => {
+    const meleeOnly = summonProfile({
+      abilities: [
+        {
+          ...summonProfile().abilities[0]!,
+          target: {
+            ...summonProfile().abilities[0]!.target,
+            minimumRange: 1,
+            maximumRange: 1,
+          },
+        },
+      ],
+    })
+    const { state, summon } = summonTurn(50, meleeOnly)
+
+    const first = chooseSummonAiDecision({ state, summon, tieBreakSeed: 301 })
+    expect(first.intent.kind).toBe('move')
+    if (first.intent.kind !== 'move') throw new Error('Expected summon movement.')
+
+    const moved = executePv1fMovement(state, first.intent.path)
+    const movedPlacement = moved.state.tactical.placements.find(
+      (placement) => placement.combatantId === summon.combatantId,
+    )
+    expect(movedPlacement?.position).toEqual({ x: 2, y: 0 })
+
+    const currentSummon = moved.state.effectState?.summons?.find(
+      (row) => row.combatantId === summon.combatantId,
+    )
+    if (!currentSummon) throw new Error('Expected active summon after movement.')
+
+    const second = chooseSummonAiDecision({
+      state: moved.state,
+      summon: currentSummon,
+      tieBreakSeed: 302,
+    })
+    expect(second.intent).toMatchObject({
+      kind: 'action',
+      actionId: 'wildwarden.verdant-stalker.thorn-rake',
+      target: { kind: 'unit', combatantId: 'enemy' },
+    })
   })
 
   it('allows at most one authored ability per summon turn while leaving movement/facing/end available', () => {

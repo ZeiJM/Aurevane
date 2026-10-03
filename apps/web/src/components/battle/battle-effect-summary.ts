@@ -1,6 +1,8 @@
+import type { CombatStatusInstance } from '@aurevane/game-core/combat/actions'
 import { gameplayStatusName } from '../../lib/battle/combat-interaction-presentation'
 import { combatStatusDetails } from '@aurevane/game-core/combat/status-content'
 import { PV1F_COMBAT_CONTENT } from '@aurevane/game-core/combat/pv1f-action-economy'
+import { statusDamageMultiplierBasisPoints } from '../../lib/status-potency-presentation'
 
 const BASIS_POINTS = 10_000
 
@@ -11,11 +13,24 @@ export type BattleEffectSummaryItem = {
   tone: BattleEffectSummaryTone
 }
 
-export type BattleStatusSummaryInput = {
-  statusId: string
-  statusVersion: number
-  stacks: number
-}
+export type BattleStatusSummaryInput = Pick<
+  CombatStatusInstance,
+  'statusId' | 'statusVersion' | 'stacks'
+> &
+  Partial<
+    Pick<
+      CombatStatusInstance,
+      | 'timingState'
+      | 'activationRound'
+      | 'durationScope'
+      | 'remainingRoundBoundaries'
+      | 'remainingOwnerTurnStarts'
+      | 'remainingOwnerTurnEnds'
+      | 'sourceScopedMark'
+      | 'sourceCombatantId'
+      | 'potencyBasisPoints'
+    >
+  >
 
 function compactPercent(value: number): string {
   const percent = Math.abs(value) / 100
@@ -57,7 +72,17 @@ export function aggregateBattleStatusStacks<T extends BattleStatusSummaryInput>(
 
   for (const status of statuses) {
     const stacks = Math.max(1, status.stacks)
-    const key = `${status.statusId}:${status.statusVersion}`
+    const key = JSON.stringify([
+      status.statusId,
+      status.statusVersion,
+      status.timingState ?? 'active',
+      status.activationRound,
+      status.durationScope,
+      status.remainingRoundBoundaries,
+      status.remainingOwnerTurnEnds ?? status.remainingOwnerTurnStarts,
+      status.sourceScopedMark ? status.sourceCombatantId : undefined,
+      status.potencyBasisPoints,
+    ])
     const existing = grouped.get(key)
     if (!existing) {
       grouped.set(key, { ...status, stacks })
@@ -81,6 +106,7 @@ export function summarizeBattleEffects(
   const groupedStatuses = aggregateBattleStatusStacks(statuses)
 
   for (const status of groupedStatuses) {
+    if (status.timingState === 'pending') continue
     const stacks = Math.max(1, status.stacks)
 
     const definition = PV1F_COMBAT_CONTENT.statuses.find(
@@ -88,11 +114,13 @@ export function summarizeBattleEffects(
     )
     if (!definition || definition.damageTakenMultiplierBasisPoints === BASIS_POINTS) continue
 
+    const multiplier = statusDamageMultiplierBasisPoints(
+      definition.damageTakenMultiplierBasisPoints,
+      status.potencyBasisPoints,
+    )
     measuredDamageTaken = true
     for (let stack = 0; stack < stacks; stack += 1) {
-      damageTakenMultiplier = Math.round(
-        (damageTakenMultiplier * definition.damageTakenMultiplierBasisPoints) / BASIS_POINTS,
-      )
+      damageTakenMultiplier = Math.round((damageTakenMultiplier * multiplier) / BASIS_POINTS)
     }
   }
 

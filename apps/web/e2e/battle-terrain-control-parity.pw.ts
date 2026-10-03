@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 
-import { expectMapKey } from './battle-map-key-helpers'
+import { expectTerrainKey } from './battle-map-key-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 function uniqueIdentity(prefix: string): { email: string; characterName: string } {
@@ -22,7 +22,7 @@ type BattleScaleGeometry = {
   header: { width: number; height: number }
   economy: { width: number; height: number }
   victory: { width: number; height: number }
-  mapKey: { width: number; height: number }
+  terrainKey: { width: number; height: number }
   content: { width: number; height: number }
   rail: { width: number; height: number }
   railCard: { width: number; height: number }
@@ -35,88 +35,54 @@ type BattleScaleGeometry = {
   commandButton: { width: number; height: number }
   footer: { width: number; height: number }
   cancel: { width: number; height: number }
-  confirm: { width: number; height: number }
+  finish: { width: number; height: number }
 }
 
 async function captureBattleScaleGeometry(page: Page): Promise<BattleScaleGeometry> {
+  const root = page.locator("main[data-unified-battle='true'][data-battle-visual-contract='true']")
+  const header = root.locator(':scope > header')
+  const battlefield = root.locator('#battlefield')
+  const commandDeck = root.locator('[data-unified-command-deck="true"]')
+  const rail = root.locator('aside[data-battle-side="local"]')
+  const railCard = rail.locator('[data-battle-combatant-card="local"]')
+  const footer = root.locator(':scope > footer')
   await expect(
-    page.locator("main[data-unified-battle='true'][data-battle-visual-contract='true']"),
+    header.locator(
+      '[data-ai-turn-clock="true"], [data-pvp-turn-clock="true"], [data-pvp-opponent-turn-clock="true"]',
+    ),
   ).toBeVisible()
-  await expect(page.locator('#battlefield [data-board-auto-fit="9x7"]')).toBeVisible()
-
-  return page.evaluate(() => {
-    const root = document.querySelector<HTMLElement>(
-      "main[data-unified-battle='true'][data-battle-visual-contract='true']",
-    )!
-    const header = root.querySelector<HTMLElement>(':scope > header')!
-    const economy = header.querySelector<HTMLElement>('[data-battle-shared-economy="true"]')!
-    const victory = header.querySelector<HTMLElement>(
-      '[data-battle-shared-header-action="victory"]',
-    )!
-    const mapKey = header.querySelector<HTMLElement>('[aria-label="Map Key"]')!
-    const content = root.querySelector<HTMLElement>('[data-unified-battle-content="true"]')!
-    const battlefield = root.querySelector<HTMLElement>('#battlefield')!
-    const board = battlefield.querySelector<HTMLElement>('[data-board-auto-fit="9x7"]')!
-    const token = battlefield.querySelector<HTMLElement>(
-      'button[aria-label*="occupied by"] > span:last-child',
-    )!
-    const commandDeck = root.querySelector<HTMLElement>('[data-unified-command-deck="true"]')!
-    const commandContext = commandDeck.querySelector<HTMLElement>('[data-battle-instruction-host]')!
-    const commandButton = commandDeck.querySelector<HTMLElement>(
-      '[data-command-card] > button[data-battle-command]',
-    )!
-    const footer = root.querySelector<HTMLElement>(':scope > footer')!
-    const footerButtons = Array.from(footer.querySelectorAll<HTMLButtonElement>('button'))
-    const cancel = footerButtons.find((button) => button.textContent?.includes('Cancel Action'))!
-    const confirm = footerButtons.find((button) => button.textContent?.includes('Confirm Action'))!
-
-    const visibleArticles = Array.from(
-      content.querySelectorAll<HTMLElement>('aside article'),
-    ).filter((article) => {
-      const articleRect = article.getBoundingClientRect()
-      const style = window.getComputedStyle(article)
-      return (
-        articleRect.width > 0 &&
-        articleRect.height > 0 &&
-        style.display !== 'none' &&
-        style.visibility !== 'hidden'
-      )
-    })
-    const railCard = visibleArticles[0]!
-    const rail = railCard.closest('aside') as HTMLElement
-    const portrait = railCard.querySelector<HTMLElement>(
-      'button[data-desktop-inspect-combatant], button[aria-label^="Show "]',
-    )!
-
-    const rect = (element: Element) => {
-      const value = element.getBoundingClientRect()
-      return {
-        width: Math.round(value.width * 10) / 10,
-        height: Math.round(value.height * 10) / 10,
-      }
+  await page.evaluate(() => document.fonts.ready)
+  const surfaces = {
+    root,
+    header,
+    economy: header.locator('[data-unified-battle-economy="true"]'),
+    victory: header.getByRole('button', { name: /^Victory Conditions/i }),
+    terrainKey: rail.getByRole('region', { name: 'Terrain Key', exact: true }),
+    content: root.locator('[data-unified-battle-content="true"]'),
+    rail,
+    railCard,
+    portrait: railCard.locator('[data-desktop-inspect-combatant]'),
+    battlefield,
+    board: battlefield.locator('[data-board-auto-fit="9x7"]'),
+    token: battlefield.locator('button[aria-label*="occupied by"] > span:last-child').first(),
+    commandDeck,
+    commandContext: root.locator('[data-battle-preview-strip]'),
+    commandButton: commandDeck.locator('[data-command-card] > button[data-battle-command]').first(),
+    footer,
+    cancel: footer.getByRole('button', { name: 'Cancel Action', exact: true }),
+    finish: commandDeck.locator('[data-battle-command="finish"]'),
+  }
+  const geometry = {} as BattleScaleGeometry
+  for (const label of Object.keys(surfaces) as (keyof BattleScaleGeometry)[]) {
+    await expect(surfaces[label], `${label} scale surface`).toBeVisible()
+    const box = await surfaces[label].boundingBox()
+    expect(box, `${label} scale measurement`).not.toBeNull()
+    geometry[label] = {
+      width: Math.round(box!.width * 10) / 10,
+      height: Math.round(box!.height * 10) / 10,
     }
-
-    return {
-      root: rect(root),
-      header: rect(header),
-      economy: rect(economy),
-      victory: rect(victory),
-      mapKey: rect(mapKey),
-      content: rect(content),
-      rail: rect(rail),
-      railCard: rect(railCard),
-      portrait: rect(portrait),
-      battlefield: rect(battlefield),
-      board: rect(board),
-      token: rect(token),
-      commandDeck: rect(commandDeck),
-      commandContext: rect(commandContext),
-      commandButton: rect(commandButton),
-      footer: rect(footer),
-      cancel: rect(cancel),
-      confirm: rect(confirm),
-    }
-  })
+  }
+  return geometry
 }
 
 function expectBattleScaleParity(
@@ -136,7 +102,7 @@ function expectBattleScaleParity(
 }
 
 async function enterScaleParityPveBattle(page: Page) {
-  const identity = uniqueIdentity('ScalePvE')
+  const identity = uniqueIdentity('PvE')
   await provisionAccountAndEnterCharacter({
     page,
     email: identity.email,
@@ -168,7 +134,13 @@ async function enterScaleParityPvpBattle(host: Page, guest: Page) {
   })
 
   await host.goto('/game/battle')
-  await host.getByRole('button', { name: /Player vs Player/ }).click()
+  await host.getByRole('button', { name: 'PVP - Direct', exact: true }).click()
+  // Scale parity compares the same 9×7 board in both modes.
+  const smallMap = host
+    .getByRole('group', { name: 'Map size' })
+    .getByRole('button', { name: 'Small · 9×7', exact: true })
+  await smallMap.click()
+  await expect(smallMap).toHaveAttribute('aria-pressed', 'true')
   await host.getByRole('button', { name: 'Create Battle Lobby' }).click()
 
   const hostDialog = host.getByRole('dialog', { name: 'The arena is waiting.' })
@@ -213,7 +185,7 @@ test('keeps PvE terrain controls visually unified on desktop and mobile', async 
   await page.getByRole('button', { name: 'Enter Battle' }).click()
   await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
 
-  await expectMapKey(page)
+  await expectTerrainKey(page)
 })
 
 test('keeps PvP terrain controls visually unified on desktop and mobile', async ({
@@ -261,7 +233,7 @@ test('keeps PvP terrain controls visually unified on desktop and mobile', async 
     })
 
     await host.goto('/game/battle')
-    await host.getByRole('button', { name: /Player vs Player/ }).click()
+    await host.getByRole('button', { name: 'PVP - Direct', exact: true }).click()
     await host.getByRole('button', { name: 'Create Battle Lobby' }).click()
 
     const hostDialog = host.getByRole('dialog', { name: 'The arena is waiting.' })
@@ -282,7 +254,7 @@ test('keeps PvP terrain controls visually unified on desktop and mobile', async 
     await hostDialog.getByRole('button', { name: 'Mark Ready' }).click()
 
     await expect(host).toHaveURL(/\/game\/battle\/[0-9a-f-]+$/i, { timeout: 20_000 })
-    await expectMapKey(host)
+    await expectTerrainKey(host)
   } finally {
     await Promise.all([hostContext.close(), guestContext.close()])
   }
@@ -319,7 +291,7 @@ test('keeps PvE desktop battle scale locked to PvP', async ({ browser, page }, t
       'header',
       'economy',
       'victory',
-      'mapKey',
+      'terrainKey',
       'content',
       'rail',
       'railCard',
@@ -332,7 +304,7 @@ test('keeps PvE desktop battle scale locked to PvP', async ({ browser, page }, t
       'commandButton',
       'footer',
       'cancel',
-      'confirm',
+      'finish',
     ] as const) {
       expectBattleScaleParity(label, pve, pvp)
     }

@@ -11,7 +11,12 @@ import {
   essenceSnapshotReference,
   resolveEssenceForBuild,
 } from '@aurevane/game-core/combat/essence'
-import { readPv1fActionEconomy } from '@aurevane/game-core/combat/pv1f-action-economy'
+import {
+  finishPv1fTurn,
+  pv1fCooldownForMatureSkill,
+  readPv1fActionEconomy,
+} from '@aurevane/game-core/combat/pv1f-action-economy'
+import { readSkillCooldown } from '@aurevane/game-core/combat/skill-cooldowns'
 import {
   resonanceSnapshotReference,
   resolveResonanceForPair,
@@ -31,6 +36,7 @@ import {
   createBattleSessionService,
   type BattleAuthoritativeEncounterState,
 } from './battle-session-service'
+import { createBattlePreviewService } from './battle-preview-service'
 
 const USER_ID = '11111111-1111-4111-8111-111111111111'
 const CHARACTER_ID = '22222222-2222-4222-8222-222222222222'
@@ -172,6 +178,7 @@ function buildRepository(initial: CharacterCommittedBuildSnapshotRecord) {
     changeDisciplines: vi.fn(async () => {
       throw new Error('Not used by the P3.6 battle authority test.')
     }),
+    saveSupportAction: vi.fn(async () => ({ buildVersion: 2, replayed: false })),
     saveDisciplineSkills: vi.fn(async () => {
       throw new Error('Not used by the P3.6 battle authority test.')
     }),
@@ -275,6 +282,99 @@ function positionPlayerAdjacent(state: BattleAuthoritativeEncounterState) {
 }
 
 describe('P3.6 battle Essence authority', () => {
+  it.each(['pve', 'pvp'] as const)(
+    'enforces persisted Essence cooldown through preview, recast and owner-turn readiness in %s',
+    async (combatContext) => {
+      const builds = buildRepository(pureSnapshot())
+      const battles = battleRepository()
+      const service = createBattleSessionService({
+        characters: characterRepository(),
+        battles: battles.repository,
+        builds: builds.repository,
+      })
+      const preview = createBattlePreviewService(battles.repository)
+      await service.createSession({
+        userId: USER_ID,
+        characterId: CHARACTER_ID,
+        idempotencyKey: '88888888-8888-4888-8888-888888888888',
+      })
+      const spawned = battles.record!.snapshot as BattleAuthoritativeEncounterState
+      battles.replaceSnapshot({
+        ...positionPlayerAdjacent(spawned),
+        buildAuthority: { ...spawned.buildAuthority!, combatContext },
+      })
+      const essence = resolveEssenceForBuild('vanguard', null)!
+      const cooldown = pv1fCooldownForMatureSkill(essence.skill, combatContext)!
+      const intent = {
+        kind: 'action',
+        actionId: essence.skill.id,
+        target: { kind: 'unit', combatantId: 'recruit:p2-4-1' },
+      } as const
+      const castCommand = () => ({
+        userId: USER_ID,
+        battleSessionId: SESSION_ID,
+        expectedBattleVersion: battles.record!.battleVersion,
+        intent,
+      })
+      await service.submitIntent({
+        ...castCommand(),
+        idempotencyKey: '99999999-9999-4999-8999-999999999999',
+      })
+
+      for (const ticksRemaining of [4, 3, 2, 1]) {
+        battles.replaceSnapshot(JSON.parse(JSON.stringify(battles.record!.snapshot)))
+        const persisted = battles.record!.snapshot as BattleAuthoritativeEncounterState
+        const actor = persisted.tactical.battle.combatants.find((c) => c.id === PLAYER_ID)!
+        expect(readSkillCooldown(actor, cooldown)).toMatchObject({ active: true, ticksRemaining })
+        expect((await preview.previewIntent(castCommand())).preview).toMatchObject({
+          legal: false,
+          issues: expect.arrayContaining([expect.objectContaining({ code: 'cooldown-active' })]),
+        })
+        const before = JSON.stringify(battles.record)
+        await expect(
+          service.submitIntent({
+            ...castCommand(),
+            idempotencyKey: `aaaaaaa${ticksRemaining}-aaaa-4aaa-8aaa-aaaaaaaaaaaa`,
+          }),
+        ).rejects.toMatchObject({
+          code: 'INVALID_REQUEST',
+          message: expect.stringContaining('cooling down'),
+        })
+        expect(JSON.stringify(battles.record)).toBe(before)
+        await service.submitIntent({
+          userId: USER_ID,
+          battleSessionId: SESSION_ID,
+          expectedBattleVersion: battles.record!.battleVersion,
+          idempotencyKey: `bbbbbbb${ticksRemaining}-bbbb-4bbb-8bbb-bbbbbbbbbbbb`,
+          intent: { kind: 'face', facing: 'east' },
+        })
+        const opponentTurn = battles.record!.snapshot as BattleAuthoritativeEncounterState
+        // An opponent's legal final facing brings the clock to the next owner turn.
+        const nextOwnerTurn = finishPv1fTurn(opponentTurn, 'west').state
+        battles.replaceSnapshot({ ...nextOwnerTurn, buildAuthority: opponentTurn.buildAuthority })
+      }
+      const ready = battles.record!.snapshot as BattleAuthoritativeEncounterState
+      expect(
+        readSkillCooldown(
+          ready.tactical.battle.combatants.find((c) => c.id === PLAYER_ID)!,
+          cooldown,
+        ),
+      ).toMatchObject({ active: false, ticksRemaining: 0 })
+      expect((await preview.previewIntent(castCommand())).preview).toMatchObject({ legal: true })
+      await service.submitIntent({
+        ...castCommand(),
+        idempotencyKey: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+      })
+      const reused = battles.record!.snapshot as BattleAuthoritativeEncounterState
+      expect(
+        readSkillCooldown(
+          reused.tactical.battle.combatants.find((c) => c.id === PLAYER_ID)!,
+          cooldown,
+        ),
+      ).toMatchObject({ active: true, ticksRemaining: 4 })
+    },
+  )
+
   it('pins the committed pure build and executes Essence through that battle-owned snapshot', async () => {
     const builds = buildRepository(pureSnapshot())
     const battles = battleRepository()

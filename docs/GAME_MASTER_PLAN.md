@@ -1,5 +1,9 @@
 AUREVANE
 
+## Current Guard timing — Owner-approved 2026-10-02
+
+Guard now has an independent two-owner-turn cooldown. HP/MP Recovery retain their existing shared two-turn cooldown. This inherent-action timing applies on the next successful use in new or resumed battles without changing AP costs, Guarded effects or pinned authored definitions. See `COMBAT.md` and `superpowers/specs/2026-10-02-roster-discipline-live-fixes.md`.
+
 
 ## Current selected-Technique and repeat-use authority — 2026-09-11 synchronization
 

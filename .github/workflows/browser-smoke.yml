@@ -94,6 +94,14 @@ jobs:
             select public.activate_phase4_discipline_rebalance_v1();
           "
 
+          # Prove real recovery email and expired-link handling before longer gameplay scenarios.
+          AUREVANE_ENV=local \
+          NEXT_PUBLIC_AUREVANE_ENV=local \
+          NEXT_PUBLIC_SUPABASE_URL="$api_url" \
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY" \
+          SUPABASE_SECRET_KEY="$server_key" \
+          pnpm --filter @aurevane/web exec playwright test e2e/password-reset.pw.ts
+
           # Catch shared battle composition regressions before the longer all-page run.
           # A successful candidate still runs the entire suite and the Edge keyboard checks below.
           AUREVANE_ENV=local \
@@ -102,12 +110,16 @@ jobs:
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY" \
           SUPABASE_SECRET_KEY="$server_key" \
           pnpm --filter @aurevane/web exec playwright test \
-            e2e/ai-header-control-shape.pw.ts e2e/ai-grid-legend-regression.pw.ts \
-            e2e/battle-cockpit-skill-slots.pw.ts e2e/pvp-six-combatant-rails.pw.ts \
+            e2e/ai-header-control-shape.pw.ts e2e/ai-grid-legend-regression.pw.ts e2e/ai-sparring-teams.pw.ts \
+            e2e/battle-cockpit-skill-slots.pw.ts e2e/pvp-six-combatant-rails.pw.ts e2e/pvp-map-sizes.pw.ts \
             e2e/shared-battle-presentation-parity.pw.ts e2e/pvp-battle-log-footer-parity.pw.ts \
             e2e/phase4-ground-targeting.pw.ts \
             e2e/pvp-mobile-unified-battle.pw.ts e2e/discipline-sigil-art.pw.ts \
             e2e/character-secondary-build.pw.ts \
+            e2e/battle-move-preview-polish.pw.ts e2e/battle-self-action-quick-commit.pw.ts e2e/battle-self-skill-hotkey.pw.ts \
+            e2e/battle-terrain-control-parity.pw.ts e2e/refined-battle-execution.pw.ts \
+            e2e/battle-recovery-hotkey.pw.ts e2e/battle-support-action.pw.ts e2e/techniques-support-action.pw.ts e2e/technique-preview-layout.pw.ts \
+            e2e/shell-viewport-fit.pw.ts \
             --project=desktop-chromium --project=mobile-chromium
 
           AUREVANE_ENV=local \
@@ -124,7 +136,7 @@ jobs:
           SUPABASE_SECRET_KEY="$server_key" \
           pnpm --filter @aurevane/web exec playwright test \
             e2e/battle-self-action-quick-commit.pw.ts \
-            e2e/battle-recovery-hotkey.pw.ts \
+            e2e/battle-recovery-hotkey.pw.ts e2e/battle-support-action.pw.ts e2e/techniques-support-action.pw.ts \
             --config=playwright.edge.config.ts --output=test-results-edge
 
       - name: Save browser evidence
@@ -134,6 +146,19 @@ jobs:
           name: browser-smoke-evidence
           path: |
             apps/web/test-results
+            apps/web/test-results-edge
+          retention-days: 7
+
+      - name: Save compact browser diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-smoke-diagnostics
+          path: |
+            apps/web/test-results/**/*.zip
+            apps/web/test-results/**/*.json
+            apps/web/test-results/**/*.md
+            apps/web/test-results/battle-ui-polish-regressio*/**
             apps/web/test-results-edge
           retention-days: 7
 

@@ -1,3 +1,4 @@
+import { battleFlavorTemplateIssues } from './battle-narration'
 import {
   validateCombatAccuracyDefinition,
   type CombatAccuracyAuthoring,
@@ -73,6 +74,8 @@ export interface MatureSkillDefinition extends CombatAccuracyAuthoring {
   readonly nameRef: string
   readonly descriptionRef: string
   readonly flavorLine?: string
+  /** Optional versioned action prose, separate from catalogue flavor. */
+  readonly battleText?: string
   readonly sourceDisciplineId: string
   readonly unlockRequirement: MatureSkillUnlockRequirement
   readonly apCost: number
@@ -1073,13 +1076,15 @@ export function validateMatureSkillDefinition(
   if (!definition.descriptionRef.trim()) issues.push('descriptionRef')
   if (
     definition.flavorLine !== undefined &&
-    (typeof definition.flavorLine !== 'string' ||
-      definition.flavorLine.trim().length === 0 ||
-      definition.flavorLine.length > 160 ||
-      /[\r\n]/u.test(definition.flavorLine))
+    battleFlavorTemplateIssues(definition.flavorLine).length > 0
   ) {
     issues.push('flavorLine')
   }
+  if (
+    definition.battleText !== undefined &&
+    battleFlavorTemplateIssues(definition.battleText).length > 0
+  )
+    issues.push('battleText')
   if (!idPattern.test(definition.sourceDisciplineId)) issues.push('sourceDisciplineId')
   if (
     !Number.isSafeInteger(definition.apCost) ||

@@ -8,7 +8,9 @@ import { isMaterializedCombatEffect } from '@aurevane/game-core/combat/summon-co
 import { useRouter } from 'next/navigation'
 import { useMemo, useRef, useState } from 'react'
 
+import { SkillDetails } from '../../character/skill-details'
 import styles from './combat-content-editor.module.css'
+import { BattleFlavorTemplateHelp } from './battle-flavor-template-help'
 import { postCombatContentAuthoring } from './combat-content-client'
 import { CombatContentReviewPanel } from './combat-content-review-panel'
 import {
@@ -527,7 +529,7 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
                     aria-label="Player-facing flavor line"
                     type="text"
                     maxLength={160}
-                    placeholder="One evocative line; mechanics belong in the effect fields"
+                    placeholder="One or two short story sentences; mechanics belong in Effects"
                     value={selectedDraft.flavorLine ?? ''}
                     onChange={(event) => {
                       const flavorLine = event.currentTarget.value
@@ -544,6 +546,36 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
                     Presentation only. Keep exact mechanics in Effects, Requirements, and targeting.
                   </small>
                 </label>
+                <BattleFlavorTemplateHelp
+                  value={selectedDraft.flavorLine ?? ''}
+                  ability={selectedSkill.label}
+                  onChange={(flavorLine) => updateSelectedDraft({ ...selectedDraft, flavorLine })}
+                />
+
+                <label className={styles.field}>
+                  <span>In-battle text</span>
+                  <input
+                    aria-label="Skill in-battle text"
+                    maxLength={160}
+                    placeholder="{actor} calls upon {ability}."
+                    value={selectedDraft.battleText ?? ''}
+                    onChange={(event) => {
+                      const next = { ...selectedDraft }
+                      if (event.currentTarget.value.trim())
+                        next.battleText = event.currentTarget.value
+                      else Reflect.deleteProperty(next, 'battleText')
+                      updateSelectedDraft(next)
+                    }}
+                  />
+                  <small className={styles.fieldHint}>
+                    Shown when a player or AI uses this Skill. Recorded outcomes appear below it.
+                  </small>
+                </label>
+                <BattleFlavorTemplateHelp
+                  value={selectedDraft.battleText ?? ''}
+                  ability={selectedSkill.label}
+                  onChange={(battleText) => updateSelectedDraft({ ...selectedDraft, battleText })}
+                />
               </fieldset>
               <SkillTargetingEditor
                 value={selectedDraft.target}
@@ -640,6 +672,16 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
             ))}
           </output>
         </section>
+
+        {selectedDraft ? (
+          <section className={styles.tags} aria-label="Player-facing Skill information">
+            <div>
+              <p className={styles.sectionLabel}>Read-only draft projection</p>
+              <h2>Skill information</h2>
+            </div>
+            <SkillDetails skill={selectedDraft} expanded />
+          </section>
+        ) : null}
 
         <CombatContentReviewPanel
           contentKey={selectedSkill.id}

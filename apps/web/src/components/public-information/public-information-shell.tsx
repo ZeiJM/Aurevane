@@ -1,11 +1,12 @@
 import Link from 'next/link'
+import { AuthenticatedShellFrame } from '@/components/shell/authenticated-game-shell'
 import type { ReactNode } from 'react'
 
 import { AurevaneImage } from '@/components/media/aurevane-image'
 import { getAuthenticatedActor } from '@/server/auth/actor'
 import { loadSelectedCharacter } from '@/server/character/selected-character'
 
-import railStyles from './public-header-rail.module.css'
+import { SiteHeader } from '@/components/shell/site-header'
 import styles from './public-information-shell.module.css'
 
 export type PublicInformationSection = 'news' | 'manual' | 'rules'
@@ -14,16 +15,6 @@ interface PublicInformationShellProps {
   active: PublicInformationSection
   children: ReactNode
 }
-
-const navigation: readonly {
-  href: '/news' | '/manual' | '/rules'
-  label: string
-  section: PublicInformationSection
-}[] = [
-  { href: '/news', label: 'News', section: 'news' },
-  { href: '/manual', label: 'Manual', section: 'manual' },
-  { href: '/rules', label: 'Rules', section: 'rules' },
-]
 
 async function loadOptionalGameIdentity() {
   try {
@@ -43,6 +34,14 @@ async function loadOptionalGameIdentity() {
 export async function PublicInformationShell({ active, children }: PublicInformationShellProps) {
   const identity = await loadOptionalGameIdentity()
   const character = identity.character
+  if (character)
+    return (
+      <AuthenticatedShellFrame>
+        <div className={styles.reading} data-public-reading>
+          {children}
+        </div>
+      </AuthenticatedShellFrame>
+    )
   const gameHref = identity.authenticated ? (character ? '/game/character' : '/game') : '/'
   const gameLabel = identity.authenticated
     ? character
@@ -63,39 +62,16 @@ export async function PublicInformationShell({ active, children }: PublicInforma
         Skip to public information
       </a>
 
-      <header className={railStyles.masthead}>
-        <Link
-          className="brand"
-          href={gameHref}
-          aria-label={identity.authenticated ? 'AUREVANE game home' : 'AUREVANE account entry home'}
-        >
-          <span className="brand__crest" aria-hidden="true">
-            <span>A</span>
-          </span>
-          <span className="brand__wordmark">
-            <strong>AUREVANE</strong>
-            <small>Persistent tactical fantasy</small>
-          </span>
-        </Link>
-
-        <nav className={railStyles.navigation} aria-label="Public information">
-          {navigation.map((item) => (
-            <Link
-              key={item.section}
-              href={item.href}
-              aria-current={active === item.section ? 'page' : undefined}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-
-        <div className={railStyles.utility}>
+      <SiteHeader
+        brandHref={gameHref}
+        brandLabel={identity.authenticated ? 'AUREVANE game home' : 'AUREVANE account entry home'}
+        activeSection={active}
+        utility={
           <Link className={styles.playLink} href={gameHref}>
             {gameLabel}
           </Link>
-        </div>
-      </header>
+        }
+      />
 
       <main className={styles.main} id="public-information-main">
         {children}

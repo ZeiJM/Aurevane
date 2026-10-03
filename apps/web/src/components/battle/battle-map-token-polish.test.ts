@@ -3,7 +3,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { describe, expect, it } from 'vitest'
-import { fitBattleBoard } from './battle-map-token-polish'
+import { fitBattleArenaBoard, fitBattleBoard } from './battle-map-token-polish'
 
 const here = dirname(fileURLToPath(import.meta.url))
 
@@ -19,6 +19,25 @@ describe('battle board viewport fit', () => {
     expect(fit.height).toBeLessThanOrEqual(height)
     expect(fit.width / fit.height).toBeCloseTo(columns / rows)
     expect(Math.min(width - fit.width, height - fit.height)).toBeCloseTo(0)
+  })
+
+  it('keeps the same seven-row tile scale across all standard arena widths', () => {
+    const fits = [9, 12, 15].map((width) => fitBattleArenaBoard(width, 7, 900, 470))
+    expect(fits.map((fit) => fit.height)).toEqual([420, 420, 420])
+    expect(fits.map((fit, index) => fit.width / [9, 12, 15][index])).toEqual([60, 60, 60])
+    expect(fitBattleArenaBoard(3, 3, 900, 470)).toEqual(fitBattleBoard(3, 3, 900, 470))
+  })
+
+  it('accounts for grid gutters so tiles stay exactly the same size across standard widths', () => {
+    const widths = [9, 12, 15]
+    const fits = widths.map((width) => fitBattleArenaBoard(width, 7, 900, 470, 2))
+    const cells = fits.map((fit, index) => (fit.width - (widths[index]! - 1) * 2) / widths[index]!)
+    for (const [index, fit] of fits.entries()) {
+      expect(cells[index]).toBeCloseTo(cells[0]!, 8)
+      expect((fit.height - 12) / 7).toBeCloseTo(cells[0]!, 8)
+      expect(fit.width).toBeLessThanOrEqual(900)
+      expect(fit.height).toBeLessThanOrEqual(470)
+    }
   })
 
   it('uses the dedicated map area beyond the retired desktop size ceiling', () => {
@@ -47,7 +66,9 @@ describe('battlefield semantic target polish', () => {
     expect(source).toContain(
       "if (activeCommand === 'guard' && targetRelation === 'friendly') return DEFENSE_COLOR",
     )
-    expect(source).toContain("attributeFilter: ['data-active', 'data-battle-active']")
+    expect(source).toContain(
+      "attributeFilter: ['data-active', 'data-battle-active', 'data-battle-action-mode']",
+    )
     expect(source).toContain("tile.style.setProperty('background-color', background, 'important')")
     expect(source).toContain("tile.style.setProperty('border-color', semanticAccent, 'important')")
     expect(source).toContain("tile.style.setProperty('box-shadow', shadow, 'important')")
@@ -74,6 +95,13 @@ describe('battlefield semantic target polish', () => {
     expect(playable).not.toContain('COMBATANT_COLORS')
     expect(playable).not.toContain('token.style.borderColor')
     expect(playable).not.toContain('token.style.boxShadow')
+  })
+
+  it('keeps identity rings distinct from target highlights and fills 85% of each tile', () => {
+    const source = readLocalFile('battle-map-token-polish.tsx')
+    expect(source).toContain('Math.min(cell.width, cell.height) * 0.85')
+    expect(source).toContain('const tokenAccent = identityAccent')
+    expect(source).not.toContain('semanticAccent ?? identityAccent')
   })
 
   it('keeps participant card accents on tokens even when the hidden token name is absent', () => {

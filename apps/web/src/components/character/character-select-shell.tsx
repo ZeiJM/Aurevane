@@ -1,7 +1,6 @@
 'use client'
 
 import type { PersistedCharacter } from '@aurevane/game-core/character/persistence'
-import { getFoundationDiscipline } from '@aurevane/game-core/character/foundation-disciplines'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
@@ -10,6 +9,7 @@ import { CharacterDeletionDialog } from './character-deletion-dialog'
 
 import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
 import { AccountMenu } from '@/components/shell/account-menu'
+import { SiteHeader } from '@/components/shell/site-header'
 import { getStarterPortraitImageAssetId } from '@/media/character'
 import type { AccountDeletionState } from '@/server/account/account-deletion-service'
 import type { CharacterSlotCharacter } from '@/server/character/character-slot-service'
@@ -195,29 +195,25 @@ export function CharacterSelectShell({
   return (
     <div className={styles.shell} data-character-select-page="true" data-character-concept="roster">
       <div className={styles.world} aria-hidden="true">
-        <AurevaneImage assetId="ui.foundation.vista" />
+        <AurevaneImage assetId="environment.entry.roster-gallery" />
       </div>
-      <header className={styles.header}>
-        <Link className="brand" href="/game" aria-label="AUREVANE Character Select">
-          <span className="brand__crest" aria-hidden="true">
-            <span>A</span>
-          </span>
-          <span className="brand__wordmark">
-            <strong>AUREVANE</strong>
-            <small>Character Select</small>
-          </span>
-        </Link>
+      <a className="skip-link" href="#roster-main">
+        Skip to character selection
+      </a>
+      <SiteHeader
+        className={styles.header}
+        brandHref="/game"
+        brandLabel="AUREVANE Character Select"
+        utility={<AccountMenu />}
+      />
 
-        <div className={styles.headerActions}>
-          <AccountMenu />
-        </div>
-      </header>
-
-      <main className={styles.main} data-roster-stage="true">
+      <main className={styles.main} id="roster-main" data-roster-stage="true">
         <header className={styles.hero}>
           <div>
-            <span>Account roster</span>
-            <h1>Choose your character.</h1>
+            <span className={styles.headingOrnament} aria-hidden="true">
+              ◇
+            </span>
+            <h1>Choose your character</h1>
           </div>
           <p>A new journey awaits. Choose an adventurer or begin in an open slot.</p>
         </header>
@@ -243,11 +239,10 @@ export function CharacterSelectShell({
                   data-slot-index={slotIndex}
                   key={slotIndex}
                 >
+                  <SlotFrame />
                   <span className={styles.slotNumber}>Slot {slotIndex + 1}</span>
                   <div className={styles.emptyBody}>
-                    <div className={styles.emptyCrest} aria-hidden="true">
-                      ◇
-                    </div>
+                    <SlotDoorway prestige={slotIndex === 2} />
                     <h2>{lock.title}</h2>
                     <p>{lock.body}</p>
                   </div>
@@ -263,13 +258,12 @@ export function CharacterSelectShell({
                   data-slot-index={slotIndex}
                   key={slotIndex}
                 >
+                  <SlotFrame />
                   <span className={styles.slotNumber}>
                     Slot {slotIndex + 1} · {slotIndex === 0 ? 'Free' : 'Prestige unlocked'}
                   </span>
                   <div className={styles.emptyBody}>
-                    <div className={styles.emptyCrest} aria-hidden="true">
-                      +
-                    </div>
+                    <SlotDoorway prestige={slotIndex === 2} />
                     <h2>Open character slot</h2>
                     <p>
                       {slotIndex === 2
@@ -284,7 +278,7 @@ export function CharacterSelectShell({
               )
             }
 
-            const discipline = getFoundationDiscipline(character.foundationDisciplineId)
+            const { primary, secondary } = character.disciplines
             const pending = Boolean(character.deletionExecuteAfter)
             return (
               <article
@@ -293,7 +287,9 @@ export function CharacterSelectShell({
                 data-slot-index={slotIndex}
                 data-selected={selectedCharacter?.id === character.id || undefined}
                 data-pending-delete={pending || undefined}
+                data-long-name={character.name.length > 16 || undefined}
               >
+                <SlotFrame />
                 <span className={styles.slotNumber}>
                   Slot {slotIndex + 1} ·{' '}
                   {selectedCharacter?.id === character.id ? 'Selected' : 'Unlocked'}
@@ -302,14 +298,21 @@ export function CharacterSelectShell({
                   <CharacterPortraitImage
                     imageUrl={profileImageUrls[character.id]}
                     fallbackAssetId={getStarterPortraitImageAssetId(character.portraitRef)}
-                    sizes="(max-width: 760px) 9rem, (max-height: 650px) 8rem, 22rem"
+                    sizes="(max-width: 760px) 7rem, (max-height: 650px) 10rem, 18rem"
                     alt={`${character.name} portrait`}
                   />
                 </div>
                 <div className={styles.identity}>
                   <h2>{character.name}</h2>
                   <p>
-                    Character Level {character.level} · {discipline?.name ?? 'Adventurer'}
+                    Level {character.level} ·{' '}
+                    <span aria-label="Primary Discipline">{primary.name}</span>
+                    {secondary ? (
+                      <>
+                        {' / '}
+                        <span aria-label="Secondary Discipline">{secondary.name}</span>
+                      </>
+                    ) : null}
                   </p>
                 </div>
                 <div className={styles.slotActions}>
@@ -371,7 +374,6 @@ export function CharacterSelectShell({
                 'Delete Account'
               )}
             </button>
-            <small>Account removal has a cancellable 24-hour grace period.</small>
           </div>
         </footer>
       </main>
@@ -516,6 +518,41 @@ export function CharacterSelectShell({
         </CharacterDeletionDialog>
       ) : null}
     </div>
+  )
+}
+
+function SlotDoorway({ prestige }: { prestige: boolean }) {
+  return (
+    <div
+      className={styles.emptyCrest}
+      aria-hidden="true"
+      data-slot-doorway={prestige ? 'prestige' : 'additional'}
+    >
+      <AurevaneImage
+        assetId={
+          prestige ? 'environment.entry.prestige-doorway' : 'environment.entry.additional-doorway'
+        }
+        sizes="(max-width: 760px) 6rem, 18rem"
+      />
+    </div>
+  )
+}
+
+function SlotFrame() {
+  return (
+    <svg
+      className={styles.slotFrame}
+      viewBox="0 0 320 560"
+      preserveAspectRatio="none"
+      aria-hidden="true"
+    >
+      <path d="M3 3H317V557H3ZM9 9H311V551H9ZM27 17H130l30 12 30-12H293M27 543H130l30-12 30 12H293M17 40V520M303 40V520" />
+      <path
+        className={styles.cornerFill}
+        d="M12 12h38l-14 6-6 13-12 6-6 17ZM308 12h-38l14 6 6 13 12 6 6 17ZM12 548h38l-14-6-6-13-12-6-6-17ZM308 548h-38l14-6 6-13 12-6 6-17Z"
+      />
+      <path d="M16 27q25-20 31 4M304 27q-25-20-31 4M16 533q25 20 31-4M304 533q-25 20-31-4M160 3l8 12-8 12-8-12ZM160 533l8 12-8 12-8-12Z" />
+    </svg>
   )
 }
 

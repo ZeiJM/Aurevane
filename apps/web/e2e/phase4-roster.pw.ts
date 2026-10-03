@@ -3,6 +3,7 @@ import {
   BATTLE_MISSING_ARTWORK,
   battleSkillArtwork,
 } from '../src/components/battle/battle-skill-presentation'
+import { selectDiscipline } from './discipline-library-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 // Keep the screenshots and interaction trace when this release gate passes, too.
@@ -55,8 +56,7 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
   await expect(management).toBeVisible()
   await page.reload()
   await expect(management).toBeVisible()
-  await management.getByLabel('Primary Discipline').selectOption('ironfist')
-  await management.getByRole('button', { name: /Confirm Change/ }).click()
+  await selectDiscipline(management, 'Primary', 'Ironfist')
   await expect(page.getByTestId('primary-discipline-chip')).toHaveText('Ironfist')
   await management.getByRole('button', { name: 'Close', exact: true }).click()
   const attunement = page.locator('[aria-labelledby="nexus-attunement-heading"]')
@@ -73,7 +73,7 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
   await page.getByRole('button', { name: /Manage Techniques/ }).click()
   const dialog = page.getByRole('dialog', { name: 'Techniques', exact: true })
   const list = page.getByTestId('learned-skill-list')
-  await expect(list.locator('article')).toHaveCount(8)
+  await expect(list.getByRole('checkbox')).toHaveCount(8)
   const palm = list.locator('article').filter({ hasText: 'Counter Palm' })
   await palm.getByRole('checkbox').focus()
   await expect(dialog).toContainText('RequirementsSelf: Guard')
@@ -89,7 +89,7 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
   // by independently checking persisted selections after reload.
   await page.reload()
   await expect(dialog).toBeVisible()
-  await expect(list.locator('input:checked')).toHaveCount(4)
+  await expect(list.getByRole('checkbox', { checked: true })).toHaveCount(4)
   for (const name of ['Rising Fist', 'Sweep', 'Breakfall', 'Counter Palm']) {
     await expect(
       list.locator('article').filter({ hasText: name }).getByRole('checkbox'),
@@ -119,8 +119,8 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
     contentType: 'image/png',
   })
   for (const [id, dimensions, tiles, name] of [
-    ['crossroads-court', '7x7', 49, 'Crossroads Court'],
-    ['terraced-yard', '11x7', 77, 'Terraced Yard'],
+    ['crossroads-court', '12x7', 84, 'Crossroads Court'],
+    ['terraced-yard', '15x7', 105, 'Terraced Yard'],
   ] as const) {
     await arena.selectOption(id)
     await page.getByRole('button', { name: 'Enter Battle', exact: true }).click()
@@ -137,10 +137,11 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
         if (/\/api\/battles\/[^/]+\/audio\?/.test(request.url())) audioRequests.push(request.url())
       }
       page.on('request', trackAudio)
-      await root.getByRole('button', { name: /Choose Guard skill/ }).click()
-      await page.getByRole('option', { name: 'Breakfall 35 AP', exact: true }).click()
-      await root.getByRole('button', { name: 'Breakfall, 35 AP', exact: true }).click()
-      await expect(root.getByRole('button', { name: 'Confirm Action', exact: true })).toBeEnabled()
+      const armed = page.waitForResponse(
+        (response) => response.url().endsWith('/preview') && response.request().method() === 'POST',
+      )
+      await root.getByRole('button', { name: 'Selected Breakfall, 35 AP', exact: true }).click()
+      expect((await armed).status()).toBe(200)
       expect(audioRequests).toEqual([])
       const committed = page.waitForResponse(
         (response) => response.url().endsWith('/intents') && response.request().method() === 'POST',
@@ -151,7 +152,7 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
       const sound = page.waitForResponse((response) =>
         response.url().includes('/media/audio/sfx/phase4/ironfist-action-'),
       )
-      await root.getByRole('button', { name: 'Confirm Action', exact: true }).click()
+      await root.locator('#battlefield button[aria-label*="occupied by"]').first().click()
       const committedResponse = await committed
       expect(committedResponse.status()).toBe(200)
       const battle = (await committedResponse.json()).battle
@@ -254,12 +255,17 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
       }),
     ]),
   )
-  const primary = management.getByLabel('Primary Discipline')
-  await expect(primary.locator('option[value="bastion"]')).toHaveCount(1)
+  await management.getByRole('button', { name: 'Edit Primary Discipline', exact: true }).click()
+  const primary = management.getByRole('region', {
+    name: 'Primary Discipline library',
+    exact: true,
+  })
+  await expect(
+    primary.getByRole('button', { name: 'Select Bastion as Primary Discipline', exact: true }),
+  ).toHaveCount(1)
   // Existing Owner-authorized testing access covers all published Disciplines without fake Mastery.
   // Earned prerequisites and 4/2/2 acquisition are independently verified in database CI.
-  await primary.selectOption('bastion')
-  await management.getByRole('button', { name: /Confirm Change/ }).click()
+  await selectDiscipline(management, 'Primary', 'Bastion')
   await expect(page.getByTestId('primary-discipline-chip')).toHaveText('Bastion')
   await management.getByRole('button', { name: 'Close', exact: true }).click()
   const attunement = page.locator('[aria-labelledby="nexus-attunement-heading"]')
@@ -278,7 +284,7 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
   await page.getByRole('button', { name: /Manage Techniques/ }).click()
   const dialog = page.getByRole('dialog', { name: 'Techniques', exact: true })
   const list = page.getByTestId('learned-skill-list')
-  await expect(list.locator('article')).toHaveCount(8)
+  await expect(list.getByRole('checkbox')).toHaveCount(8)
   const fortress = list.locator('article').filter({ hasText: 'Fortress' })
   await fortress.getByRole('checkbox').focus()
   await expect(dialog).toContainText('EffectsFortified [−30% incoming / −20% outgoing]')
@@ -306,29 +312,20 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
   page.on('request', (request) => {
     if (/\/api\/battles\/[^/]+\/audio\?/.test(request.url())) audioRequests.push(request.url())
   })
-  await root.getByRole('button', { name: /Choose Guard skill/ }).click()
-  await page.getByRole('option', { name: 'Fortress 35 AP', exact: true }).click()
-  await root.getByRole('button', { name: 'Fortress, 35 AP', exact: true }).click()
-  await expect(root.getByRole('button', { name: 'Confirm Action', exact: true })).toBeEnabled()
-  await expect(root.locator('#battlefield button[data-target="friendly"]')).toHaveCount(1)
-  await expect(
-    root.getByRole('button', { name: new RegExp(`occupied by Mastery ${suffix}$`) }),
-  ).toHaveAttribute('data-target', 'friendly')
-  // A new invalid target must discard the earlier accepted self projection and confirmation.
-  await root.locator('#battlefield button:not([aria-label*="occupied by"])').first().click()
-  await expect(root.getByRole('button', { name: 'Confirm Action', exact: true })).toBeDisabled()
-  await expect(root.getByLabel('Action preview')).not.toContainText('Success 100%')
   const selfPreview = page.waitForResponse(
     (response) => response.url().endsWith('/preview') && response.request().method() === 'POST',
   )
-  // Re-selecting the caster on the board must not replace self with an illegal unit target.
-  await root.getByRole('button', { name: new RegExp(`occupied by Mastery ${suffix}$`) }).click()
+  await root.getByRole('button', { name: 'Selected Fortress, 35 AP', exact: true }).click()
   const previewResponse = await selfPreview
   expect(previewResponse.request().postDataJSON().intent.target).toEqual({ kind: 'self' })
   const preview = (await previewResponse.json()).battlePreview.preview
   expect(preview.legal).toBe(true)
   expect(preview.projectedStatuses).toEqual(
     expect.arrayContaining([expect.objectContaining({ statusId: 'fortified' })]),
+  )
+  await expect(root.getByRole('progressbar', { name: 'Action Economy remaining' })).toHaveAttribute(
+    'aria-valuenow',
+    '100',
   )
   const committed = page.waitForResponse(
     (response) => response.url().endsWith('/intents') && response.request().method() === 'POST',
@@ -340,7 +337,7 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
   const playedAsset = page.waitForResponse((response) =>
     response.url().includes('/media/audio/sfx/phase4/bastion-action-'),
   )
-  await root.getByRole('button', { name: 'Confirm Action', exact: true }).click()
+  await root.locator('#battlefield button:not([aria-label*="occupied by"])').first().click()
   const commitResponse = await committed
   expect(commitResponse.status()).toBe(200)
   const battle = (await commitResponse.json()).battle
@@ -392,8 +389,7 @@ test('Chronist provisions its full testing library, Essence artwork and explicit
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
   await page.getByRole('button', { name: /Manage Disciplines/ }).click()
   const management = page.getByRole('dialog', { name: 'Discipline Management' })
-  await management.getByLabel('Primary Discipline').selectOption('chronist')
-  await management.getByRole('button', { name: /Confirm Change/ }).click()
+  await selectDiscipline(management, 'Primary', 'Chronist')
   await expect(page.getByTestId('primary-discipline-chip')).toHaveText('Chronist')
   await management.getByRole('button', { name: 'Close', exact: true }).click()
   const attunement = page.locator('[aria-labelledby="nexus-attunement-heading"]')
@@ -410,7 +406,7 @@ test('Chronist provisions its full testing library, Essence artwork and explicit
   await page.getByRole('button', { name: /Manage Techniques/ }).click()
   const dialog = page.getByRole('dialog', { name: 'Techniques', exact: true })
   const list = page.getByTestId('learned-skill-list')
-  await expect(list.locator('article')).toHaveCount(8)
+  await expect(list.getByRole('checkbox')).toHaveCount(8)
   const haste = list.locator('article').filter({ hasText: 'Haste' }).first()
   await haste.getByRole('checkbox').focus()
   await expect(dialog).toContainText('EffectsHaste')

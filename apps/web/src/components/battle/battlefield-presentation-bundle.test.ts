@@ -40,7 +40,7 @@ describe('shared battlefield presentation bundle', () => {
     const mobileControls = readLocalFile('pvp-spectator-mobile-control-balance.module.css')
 
     expect(spectator).toContain('data-board-auto-fit={`${tactical.width}x${tactical.height}`}')
-    expect(spectator).toContain('<BattleMapKey />')
+    expect(spectator).not.toContain('<BattleMapKey />')
     expect(spectator).not.toContain('className={styles.tileMeta}')
     expect(mobileLayout).toContain("[data-spectator-terrain-cost='true']")
     expect(mobileLayout).toContain('display: none !important;')
@@ -58,42 +58,34 @@ describe('shared battlefield presentation bundle', () => {
     expect(styles).toContain('border-width: 1px !important;')
   })
 
-  it('places courtyard atmosphere beneath the real grid while retaining state exclusions', () => {
+  it('uses separate production terrain materials without owning command or card geometry', () => {
     const styles = readLocalFile('battlefield-presentation-bundle.module.css')
-
-    expect(styles).toContain("[data-battlefield-backdrop='true']")
-    expect(styles).toContain(":not([data-pvp-spectator='true'])")
-    expect(styles).toContain("url('/media/art/concept-ui/battle-hall-v01.webp')")
-    expect(styles).toContain('background-color: rgba(42, 53, 59, 0.58) !important;')
+    for (const file of [
+      'terrain-open-stone-v01.webp',
+      'terrain-rough-moss-v01.webp',
+      'terrain-raised-ledge-v02.webp',
+    ])
+      expect(styles).toContain(file)
     expect(styles).toContain("button[data-terrain-presentation='difficult']")
-    expect(styles).toContain(':not([data-reachable])')
-    expect(styles).toContain(':not([data-target])')
-    expect(styles).toContain(':not([data-terrain-overlay])')
+    expect(styles).not.toContain('data-battle-combatant-card')
+    expect(styles).not.toContain('data-unified-command-deck')
   })
 
-  it('composes spectator teams as portrait rails around a central board and communication dock', () => {
+  it('composes spectators with the shared compact card, terrain key and side log', () => {
     const spectator = readLocalFile('pvp-spectator-experience.tsx')
     const spectatorStyles = readLocalFile('pvp-spectator-experience.module.css')
-    const battleChat = readLocalFile('pvp-battle-chat.tsx')
     const viewportPolish = readLocalFile('pvp-spectator-viewport-polish.tsx')
-
-    expect(spectator).toContain('data-spectator-team-rail="left"')
-    expect(spectator).toContain('data-spectator-team-rail="right"')
-    expect(spectator).toContain('data-member-count={String(team.members.length)}')
-    expect(spectator).toContain('data-battlefield-backdrop="true"')
-    expect(spectator).toContain('showBattleLog')
-    expect(spectator).toContain('requestedTab="log"')
-    expect(spectator).toContain(
-      "logRecentTurnCount={battleState.lifecycle === 'active' ? 4 : null}",
+    expect(spectator).toContain('data-battle-side="local"')
+    expect(spectator).toContain('data-battle-side="selected"')
+    expect(spectator).toContain('<BattleCombatantCard')
+    expect(spectator).toContain('<BattleMapKey snapshot={battle.snapshot} />')
+    expect(spectator).toMatch(/<BattleLogPanel\s+presentation="inline"/)
+    expect(spectator).toContain('setSelectedCombatantId(placement.combatantId)')
+    expect(spectator).toContain('data-battle-command-dock="true"')
+    expect(spectator).not.toContain('teamSummaries.filter((team) => team.teamIndex %')
+    expect(spectatorStyles.replace(/\s+/g, ' ')).toContain(
+      "'local board selected' 'local preview selected' 'cockpit cockpit cockpit'",
     )
-    expect(spectator).toContain('logCurrentTurnNumber={battleState.turnNumber}')
-    expect(battleChat).toContain('logRecentTurnCount = 4')
-    expect(battleChat).toContain('recentTurnCount={logRecentTurnCount ?? undefined}')
-    expect(battleChat).toContain('currentTurnNumber={logCurrentTurnNumber}')
-    expect(spectatorStyles).toContain(".teamCard[data-member-count='1'] .memberPortrait")
-    expect(spectatorStyles).toContain(
-      'grid-template-columns: clamp(10rem, 13vw, 15rem) minmax(0, 1fr) clamp(10rem, 13vw, 15rem);',
-    )
-    expect(viewportPolish).not.toContain('pvp-spectator-viewport-polish.module.css')
+    expect(viewportPolish).not.toContain('pvp-spectator-mobile-board-layout.module.css')
   })
 })

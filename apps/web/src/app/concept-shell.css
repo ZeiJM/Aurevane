@@ -1,22 +1,3 @@
-/* Final shared shell geometry. Route CSS owns the page composition inside main. */
-[data-av-shell='concept'] {
-  width: calc(100% - clamp(2rem, 5vw, 5rem));
-  padding-bottom: 0;
-  --av-radius-sm: 0.2rem;
-  --av-radius-md: 0.3rem;
-  --av-radius-lg: 0.45rem;
-}
-
-[data-av-shell='concept'] > footer {
-  position: sticky;
-  inset: auto;
-  bottom: 0;
-  width: 100%;
-  min-height: 3.5rem;
-  overflow: visible;
-  backdrop-filter: none;
-}
-
 [data-av-shell='concept'] > header nav a,
 [data-av-shell='concept'] > header button {
   font: 600 0.75rem/1.2 var(--av-font-body);
@@ -44,19 +25,5 @@
   }
   [data-av-shell='concept'][data-av-layout='battlefield'] > main {
     padding: 0.35rem;
-  }
-}
-
-@media (max-width: 760px) {
-  [data-av-shell='concept'] {
-    width: 100%;
-    grid-template-rows: auto auto minmax(0, 1fr) auto;
-    padding-bottom: calc(4.25rem + env(safe-area-inset-bottom));
-  }
-
-  /* Keep presence above the fixed primary dock, including when links scroll into view. */
-  [data-av-shell='concept'] > footer {
-    position: sticky;
-    bottom: calc(4.25rem + env(safe-area-inset-bottom));
   }
 }

@@ -6,10 +6,8 @@ import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
 import { AiBattleQualityControls } from './ai-battle-quality-controls'
 import { BattleFeedbackAssist } from './battle-feedback-assist'
-import { BattleKeyboardAssist } from './battle-keyboard-assist'
 import { BattleLessonCoach } from './battle-lesson-coach'
 import { BattleLessonCoachSemantics } from './battle-lesson-coach-semantics'
-import { BattlePveCommandContextParity } from './battle-pve-command-context-parity'
 import { BattleRecruitRecoveryAssist } from './battle-recruit-recovery-assist'
 import type { BattleRuntime } from './battle-runtime'
 import { BattleUtilityWindows } from './battle-utility-windows'
@@ -40,7 +38,6 @@ export function BattlePveEnhancements({
         battleSessionId={initialBattle.battleSessionId}
         playerName={runtime.playerName}
       />
-      <BattlePveCommandContextParity />
       <BattleLessonCoachSemantics />
       {lessonActive ? (
         <BattleLessonCoach
@@ -56,7 +53,6 @@ export function BattlePveEnhancements({
         playerProfileImageUrl={runtime.playerProfileImageUrl}
       />
       <BattleRecruitRecoveryAssist />
-      <BattleKeyboardAssist playerName={runtime.playerName} />
       <BattleFeedbackAssist
         playerName={runtime.playerName}
         playerProfileImageUrl={runtime.playerProfileImageUrl}

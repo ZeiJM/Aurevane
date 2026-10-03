@@ -328,8 +328,8 @@
     0 0 0 2px #071b23,
     0 2px 8px #0009;
   transition:
-    left 850ms linear,
-    top 850ms linear;
+    left 210ms linear,
+    top 210ms linear;
 }
 .playerToken img {
   width: 100%;
@@ -1694,4 +1694,191 @@
 .globeOutline polygon[data-current='true'][data-selected='true'] {
   fill: #d8d89924;
   stroke: #f3d88f;
+}
+
+/* Approved expedition workspace. Geography and travel authority are unchanged. */
+.workspace {
+  --map-paper: #c5b79d;
+  --map-gold: #9b8359;
+  grid-template-columns: minmax(0, 1fr) minmax(14rem, 22%);
+  gap: 0.8rem;
+}
+.mapColumn {
+  border-radius: 5px;
+  overflow: hidden;
+  box-shadow: 0 8px 25px #17282738;
+}
+.toolbar {
+  background: linear-gradient(120deg, #d0c3aa, #b6a789);
+  padding: 0.8rem 1rem;
+}
+.mapViewport {
+  background: radial-gradient(ellipse at 40% 45%, #7d948167, #2b4248e6);
+  border-block: 1px solid #8d795a;
+}
+.sidebar {
+  gap: 0.8rem;
+}
+.panel {
+  color: #303a31;
+  background: linear-gradient(135deg, #d7cab1, #bdac8e);
+  border-color: #9c8762;
+  border-radius: 4px;
+}
+.travelBar {
+  background: #c4b496;
+  border-color: #927d57;
+}
+.workspace button {
+  background: #d9cdb4;
+  border-color: #96805b;
+}
+.workspace button:hover:not(:disabled) {
+  background: #e4d6b9;
+}
+.tabs button[aria-pressed='true'] {
+  background: #325950;
+  color: #eee0bc;
+}
+@media (max-width: 980px) {
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+  .sidebar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 760px) {
+  .sidebar {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 761px) {
+  .workspace {
+    height: 100%;
+    grid-template-columns: minmax(0, 1fr) minmax(12rem, 22%);
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .sidebar {
+    display: flex;
+    overflow: auto;
+  }
+  .mapColumn,
+  .mapViewport,
+  .globeStage {
+    min-height: 0;
+  }
+  .globeStage {
+    height: 100%;
+  }
+  .mapViewport {
+    container-type: size;
+  }
+  .sectorFrame {
+    width: min(100cqw, calc((100cqh - 1.7rem) * 13 / 9 + 2rem));
+  }
+}
+
+/* Board 07: globe-first exploration and a framed sector map with location detail. */
+.workspace {
+  grid-template-columns: minmax(0, 1fr) minmax(14rem, 24%);
+  gap: 0.7rem;
+  background: #2f4445;
+  border: 1px solid #897759;
+  padding: 0.7rem;
+}
+.mapColumn {
+  border: 1px solid #8f7b5d;
+  border-radius: 2px;
+  box-shadow: none;
+}
+.toolbar {
+  padding: 0.75rem 1rem;
+  background: linear-gradient(135deg, #dbd0b8, #c1ae8b);
+}
+.heading h1 {
+  font-size: clamp(1.6rem, 2.4vw, 2.3rem);
+}
+.toolbarBottom {
+  padding-top: 0.35rem;
+}
+.panel {
+  background: linear-gradient(135deg, #dcd0b8, #bfab89);
+  border: 1px solid #9d8762;
+  border-radius: 2px;
+  padding: 0.9rem;
+}
+.panel h2 {
+  font-size: 1.4rem;
+  margin: 0.3rem 0 0.6rem;
+}
+.panel .quiet {
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+.locationArt {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  margin-bottom: 0.65rem;
+  border: 1px solid #9a8059;
+}
+.locationArt img {
+  object-fit: cover;
+}
+.workspace[data-world-view='globe'] .sidebar .toolbar {
+  display: grid;
+  gap: 0.65rem;
+  border: 1px solid #9d8762;
+}
+.workspace[data-world-view='globe'] .tools {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.workspace[data-world-view='globe'] .toolbarBottom {
+  flex-wrap: wrap;
+}
+.workspace[data-world-view='globe'] .compass {
+  display: none;
+}
+.workspace[data-world-view='globe'] .mapViewport {
+  border: 0;
+  background: #203739;
+}
+.workspace .primary {
+  background: linear-gradient(#7f4939, #593127);
+  color: #f0e2c8;
+  border: 1px solid #794935;
+}
+@media (min-width: 761px) {
+  .workspace {
+    height: 100%;
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .sidebar {
+    overflow: auto;
+    scrollbar-width: thin;
+  }
+}
+@media (max-width: 1000px) {
+  .workspace {
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+  }
+  .workspace[data-world-view='globe'] .sidebar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 760px) {
+  .workspace {
+    display: grid;
+    padding: 0.5rem;
+  }
+  .panel {
+    padding: 0.75rem;
+  }
+  .sidebar {
+    display: grid;
+  }
 }

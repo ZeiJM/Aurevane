@@ -1,5 +1,15 @@
 # AUREVANE — Build System Rework: Disciplines, Skills, Resonance, Ascension & Severence
 
+## Effect timing and Battle Chronicle — Owner-approved 2026-10-03
+
+New battles pin Owner-versioned tag timing: following global round by default, with direct damage and HP/MP recovery instant. Pending icons appear immediately; active durations expire after the affected character completes the specified turns. Master Panel controls tag timing without rewriting existing battles. The shared Battle Chronicle presents actor-grouped short authored scenes and actual outcomes. See `COMBAT.md` and `superpowers/specs/2026-10-03-battle-chronicle-effects.md`.
+
+## Support Action — Owner-approved 2026-10-01
+
+2026-10-02 refinement: Guard has an independent two-owner-turn cooldown. Recovery retains its separate shared two-turn cooldown. Discipline library choices now save immediately through authoritative build services; no separate confirmation is required. Existing eligibility, attunement, version and identity checks remain required.
+
+Techniques contains two eight-Skill Discipline libraries and one independent Support Action choice: Guard, HP Recovery or MP Recovery. Four Discipline Skills retain their existing capacity/source rules. The Support Action is saved with the character build and named loadouts, and new battles pin it in slot 3. Legacy characters/snapshots default to Guard. Existing AP costs, recovery cooldown, potency and full-resource legality remain unchanged. Guided Fundamentals retains access to its Guard lesson without replacing a saved Recovery choice. See `superpowers/specs/2026-10-01-techniques-support-action.md` and the same-date verification record for implementation and release status.
+
 ## Phase 4 roster and effect implementation — 2026-09-11
 
 The sixteen-Discipline candidate contains 128 regular Skills, 16 pure Essences and all 120 unordered Resonance pairs. Eight learned Skills per mature library remain distinct from four battle selections. Full mixed builds use 1+3, 2+2 or 3+1; Essence and Resonance are exclusive. See `PHASE_4_TICKETS.md` for exact verification and release status.

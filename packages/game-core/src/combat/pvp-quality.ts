@@ -207,18 +207,27 @@ function timeoutTrackedTurn(
   if (options.loweredGuardEveryTimeout || nextStreak >= 2) {
     const applied = executeCombatAction(
       nextState,
-      APPLY_LOWERED_GUARD,
+      nextState.effectTimingPolicy
+        ? {
+            ...APPLY_LOWERED_GUARD,
+            effects: APPLY_LOWERED_GUARD.effects.map((effect) => ({ ...effect, durationTurns: 1 })),
+          }
+        : APPLY_LOWERED_GUARD,
       { kind: 'self' },
       PV1F_COMBAT_CONTENT,
     )
     const statusApplied = applied.events.find(
       (event) => event.event === 'status_applied' && event.statusId === PVP_LOWERED_GUARD_STATUS_ID,
     )
-    if (!statusApplied || statusApplied.event !== 'status_applied') {
+    const statusPending = applied.events.some(
+      (event) =>
+        event.event === 'effect_pending' && event.effectTag === PVP_LOWERED_GUARD_STATUS_ID,
+    )
+    if ((!statusApplied || statusApplied.event !== 'status_applied') && !statusPending) {
       throw new Error('Lowered Guard application did not produce a status event.')
     }
     nextState = reattachStatDrivenCombatBridge(applied.state, nextState.statBridge)
-    if (options.loweredGuardDurationOwnerTurnStarts !== null) {
+    if (options.loweredGuardDurationOwnerTurnStarts !== null && !nextState.effectTimingPolicy) {
       nextState = setStatusRemainingOwnerTurnStarts(
         nextState,
         actor.id,
@@ -232,8 +241,9 @@ function timeoutTrackedTurn(
       combatantId: actor.id,
       remainingOwnerTurnStarts: options.loweredGuardDurationOwnerTurnStarts,
       damageTakenMultiplierBasisPoints: 25_000,
-      stacks: statusApplied.stacks,
-      stacked: statusApplied.stacked,
+      stacks: statusApplied?.event === 'status_applied' ? statusApplied.stacks : 1,
+      stacked: statusApplied?.event === 'status_applied' ? statusApplied.stacked : false,
+      ...(statusPending ? { timingState: 'pending' } : {}),
     })
   }
 

@@ -242,6 +242,10 @@ export function resolveSiteMusicTrack(
     .filter((entry) => matchesPathPrefix(pathname, entry.pathPrefix))
     .sort((left, right) => right.pathPrefix.length - left.pathPrefix.length)[0]
 
-  if (!override) return config.defaultTrack
-  return override.enabled ? override.track : null
+  if (override && !override.enabled) return null
+
+  const track = override?.track ?? config.defaultTrack
+  // Background music stays on the same native media element at the loop boundary,
+  // including older saved tracks whose optional loop setting was disabled.
+  return track.loop ? track : { ...track, loop: true }
 }

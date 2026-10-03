@@ -1,3 +1,6 @@
+import { defaultCombatEffectTimingPolicy } from '@aurevane/game-core/combat/combat-effect-timing'
+import type { SkillEffectTimingPolicy } from '../character/skill-effect-timing-context'
+import { skillInformationRows } from '../character/skill-information-contract'
 import {
   combatInteractionDescription,
   gameplayStatusName,
@@ -5,28 +8,88 @@ import {
 } from '../../lib/battle/combat-interaction-presentation'
 import type { BattlePreviewView } from '@/server/battle/battle-preview-service'
 import type { BattleSkillForecastPresentation } from './battle-runtime'
+import { skillParameterRows } from '../character/skill-detail-presentation'
+import type { ImageAssetId } from '@/media/registry'
+import { battleTerrainName, BATTLE_TERRAIN_KEY_DETAILS } from './battle-terrain-key-presentation'
 type IntentPreview = BattlePreviewView['preview']
 type ActionPreview = Extract<IntentPreview, { kind: 'action' }>
 type ProjectedEffect = ActionPreview['projectedEffects'][number]
+export function battleGroundTargetPresentation(
+  tile: { terrainId: string; elevation: number },
+  overlay?: 'frozen' | 'steam' | null,
+): { assetId: ImageAssetId; label: string; glyph: string } {
+  const terrain = battleTerrainName(tile.terrainId)
+  const assetId =
+    terrain === 'Difficult terrain'
+      ? 'terrain.battle.rough-moss.v01'
+      : tile.elevation > 0
+        ? 'terrain.battle.raised-ledge.v02'
+        : 'terrain.battle.open-stone.v01'
+  return {
+    assetId,
+    label: [
+      battleTerrainName(tile.terrainId, tile.elevation),
+      overlay ? BATTLE_TERRAIN_KEY_DETAILS[overlay].name : null,
+    ]
+      .filter(Boolean)
+      .join(' · '),
+    glyph: overlay
+      ? BATTLE_TERRAIN_KEY_DETAILS[overlay].glyph
+      : tile.terrainId === 'blocked'
+        ? '×'
+        : tile.elevation > 0
+          ? '▲'
+          : '',
+  }
+}
 export interface PreviewChip {
   label: string
   tone: 'chance' | 'damage' | 'heal' | 'effect' | 'cost' | 'blocked'
 }
 
+export function battleSkillParameterRows(
+  skill: BattleSkillForecastPresentation,
+  timingPolicy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
+  copyPolicyVersion: number | null = 1,
+): readonly (readonly [string, string])[] {
+  if (skill.definition) {
+    return skillParameterRows(skill.definition, skill, timingPolicy, copyPolicyVersion)
+  }
+  // Legacy presentations may not retain an immutable definition. Never infer missing
+  // mechanics from a current catalogue or silently describe unknown fields as inapplicable.
+  return skillInformationRows({
+    'Skill Type': skill.tags.includes('attack') ? 'Attack' : 'Unavailable',
+    Cost: `${skill.apCost} AP${skill.mpCost > 0 ? ` / ${skill.mpCost} MP` : ''}`,
+    Cooldown:
+      skill.cooldownOwnerTurns === undefined
+        ? 'Unavailable'
+        : skill.cooldownOwnerTurns === null
+          ? 'None'
+          : `${skill.cooldownOwnerTurns} ${skill.cooldownOwnerTurns === 1 ? 'turn' : 'turns'}`,
+    Requirements: skill.requirementDescriptions.join(', ') || 'None',
+    Effects: skill.effectDescriptions.join(', ') || 'Unavailable',
+    Range: skill.targetKind === 'self' ? 'N/A' : String(skill.maximumRange),
+    Target:
+      skill.targetKind === 'self'
+        ? 'Self'
+        : skill.targetKind === 'ground-tile'
+          ? 'Ground'
+          : skill.targetKind === 'empty-tile'
+            ? 'Empty Ground'
+            : skill.targetTeamPolicy === 'any'
+              ? 'Any Unit'
+              : skill.targetTeamPolicy.replace(/^./, (letter) => letter.toUpperCase()),
+    'Target Method': 'Unavailable',
+    'Target Elevation': skill.targetKind === 'self' ? 'N/A' : 'Unavailable',
+    'Line of Sight': skill.targetKind === 'self' ? 'N/A' : 'Unavailable',
+  })
+}
+
 export function skillPreviewChips(skill: BattleSkillForecastPresentation): PreviewChip[] {
-  const range =
-    skill.minimumRange === skill.maximumRange
-      ? `${skill.maximumRange} ${skill.maximumRange === 1 ? 'tile' : 'tiles'}`
-      : `${skill.minimumRange}–${skill.maximumRange} tiles`
-  return [
-    { label: `${skill.apCost} AP`, tone: 'cost' },
-    ...(skill.mpCost > 0 ? [{ label: `${skill.mpCost} MP`, tone: 'cost' as const }] : []),
-    {
-      label: skill.targetKind === 'self' ? 'Self' : `${skill.tags[0] ?? 'Target'} · ${range}`,
-      tone: 'effect',
-    },
-    ...skill.tags.slice(2, 4).map((label) => ({ label, tone: 'effect' as const })),
-  ]
+  return battleSkillParameterRows(skill).map(([label, value]) => ({
+    label: `${label}: ${value}`,
+    tone: label === 'Cost' ? 'cost' : 'effect',
+  }))
 }
 
 function humanizeStatus(value: string): string {
@@ -98,6 +161,25 @@ function bleedStateLabel(state: { damage: number; ticks: number }): string {
   return `${state.damage} dmg × ${state.ticks} tick${state.ticks === 1 ? '' : 's'}`
 }
 
+function parseRecoveryCopyState(
+  value: string,
+): { resource: 'hp' | 'mp'; amount: number; ticks: number } | null {
+  const parts = value.split(':')
+  if (parts.length !== 4 || parts[0] !== 'recovery' || (parts[1] !== 'hp' && parts[1] !== 'mp'))
+    return null
+  const amount = parseProjectedInteger(parts[2]!)
+  const ticks = parseProjectedInteger(parts[3]!)
+  return amount === null || ticks === null ? null : { resource: parts[1], amount, ticks }
+}
+
+function recoveryCopyStateLabel(state: {
+  resource: 'hp' | 'mp'
+  amount: number
+  ticks: number
+}): string {
+  return `${state.amount} ${state.resource.toUpperCase()} × ${countLabel(state.ticks, 'tick')}`
+}
+
 function copyStatusPreviewChip(effect: ProjectedEffect): PreviewChip | null {
   if (
     effect.effectType !== 'copy-statuses' ||
@@ -105,6 +187,39 @@ function copyStatusPreviewChip(effect: ProjectedEffect): PreviewChip | null {
     typeof effect.after !== 'string'
   ) {
     return null
+  }
+
+  if (effect.after === 'concealed' && effect.statusId === 'beneficial-copy') {
+    return {
+      label: `Copy beneficial effects${effect.activationRound === undefined ? '' : ` · Starts round ${effect.activationRound}`} · Details hidden by Covert`,
+      tone: 'effect',
+    }
+  }
+
+  if (effect.after.startsWith('barrier:')) {
+    const parts = effect.after.split(':')
+    const after = parts.length === 2 ? parseProjectedInteger(parts[1]!) : null
+    if (after === null) return null
+    const beforeParts = effect.before.split(':')
+    const before =
+      beforeParts.length === 2 && beforeParts[0] === 'barrier'
+        ? parseProjectedInteger(beforeParts[1]!)
+        : null
+    return {
+      label: `Copied Barrier · ${before === null || before === after ? after : `${before}→${after}`} shield`,
+      tone: 'effect',
+    }
+  }
+  if (effect.after.startsWith('recovery:')) {
+    const after = parseRecoveryCopyState(effect.after)
+    if (!after) return null
+    const before = parseRecoveryCopyState(effect.before)
+    const afterLabel = recoveryCopyStateLabel(after)
+    const beforeLabel = before?.resource === after.resource ? recoveryCopyStateLabel(before) : null
+    return {
+      label: `Copied ${after.resource.toUpperCase()} Recovery · ${beforeLabel === null || beforeLabel === afterLabel ? afterLabel : `${beforeLabel} → ${afterLabel}`}`,
+      tone: 'effect',
+    }
   }
 
   const ordinaryAfter = parseOrdinaryCopyState(effect.after)
@@ -150,6 +265,27 @@ function copyStatusPreviewChip(effect: ProjectedEffect): PreviewChip | null {
   return null
 }
 
+export function scheduledEffectPreviewLabel(
+  effect: ActionPreview['projectedEffects'][number],
+): string | null {
+  if (effect.after !== 'pending' || effect.activationRound === undefined) return null
+  const turns = effect.remainingOwnerTurnEnds
+  const rounds = effect.remainingRoundBoundaries
+  const lifetime =
+    turns !== undefined
+      ? `${turns} ${turns === 1 ? 'turn' : 'turns'}`
+      : rounds !== undefined
+        ? `${rounds} round ${rounds === 1 ? 'boundary' : 'boundaries'}`
+        : effect.durationScope === 'until-removed'
+          ? 'Until removed'
+          : effect.durationScope === 'until-spent'
+            ? 'Until spent'
+            : effect.durationScope === 'battle'
+              ? 'Battle-long'
+              : null
+  return `${gameplayStatusName(effect.statusId ?? effect.effectType)} · Starts round ${effect.activationRound}${lifetime ? ` · ${lifetime}` : ''}`
+}
+
 function actionPreviewChips(preview: ActionPreview): PreviewChip[] {
   if (!preview.legal) {
     return [{ label: 'Blocked', tone: 'blocked' }]
@@ -169,6 +305,12 @@ function actionPreviewChips(preview: ActionPreview): PreviewChip[] {
   })
 
   for (const effect of preview.projectedEffects) {
+    const scheduled = scheduledEffectPreviewLabel(effect)
+    if (scheduled) {
+      if (!chips.some((chip) => chip.label === scheduled))
+        chips.push({ label: scheduled, tone: 'effect' })
+      continue
+    }
     const copyChip = copyStatusPreviewChip(effect)
     if (copyChip) chips.push(copyChip)
   }
@@ -237,7 +379,10 @@ function actionPreviewChips(preview: ActionPreview): PreviewChip[] {
     const statuses = new Set(
       preview.projectedEffects
         .filter(
-          (effect) => effect.effectType === 'apply-status' && typeof effect.after === 'string',
+          (effect) =>
+            effect.effectType === 'apply-status' &&
+            typeof effect.after === 'string' &&
+            !scheduledEffectPreviewLabel(effect),
         )
         .map((effect) => gameplayStatusName(String(effect.after))),
     )
@@ -246,6 +391,9 @@ function actionPreviewChips(preview: ActionPreview): PreviewChip[] {
     }
   }
 
+  if (preview.projectedTerrain?.length) {
+    chips.push({ label: 'Terrain & effect details available', tone: 'effect' })
+  }
   for (const event of preview.projectedEvents ?? []) {
     const label = combatInteractionDescription(event)
     if (label && !chips.some((chip) => chip.label === 'Terrain & effect details available'))

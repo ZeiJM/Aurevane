@@ -1,6 +1,7 @@
 'use client'
 
 import { GameButton } from '@aurevane/ui'
+import { AurevaneImage } from '@/components/media/aurevane-image'
 import { useMemo, useState } from 'react'
 
 import {
@@ -86,14 +87,7 @@ function TrackEditor({
         />
       </label>
 
-      <label className={styles.loopToggle}>
-        <input
-          type="checkbox"
-          checked={track.loop}
-          onChange={(event) => onChange({ ...track, loop: event.currentTarget.checked })}
-        />
-        <span>Loop continuously</span>
-      </label>
+      <p className={styles.loopNotice}>Background music loops continuously.</p>
 
       <label className={styles.uploadButton}>
         <span>{uploading ? 'Uploading…' : 'Upload from PC'}</span>
@@ -110,13 +104,7 @@ function TrackEditor({
       </label>
 
       {track.url ? (
-        <audio
-          className={styles.preview}
-          controls
-          loop={track.loop}
-          preload="metadata"
-          src={track.url}
-        >
+        <audio className={styles.preview} controls loop preload="metadata" src={track.url}>
           Your browser cannot preview this audio source.
         </audio>
       ) : null}
@@ -130,6 +118,10 @@ export function SiteMusicManagement({ initialConfig }: SiteMusicManagementProps)
   const [saving, setSaving] = useState(false)
   const [uploadingTarget, setUploadingTarget] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+  const [selectedTrack, setSelectedTrack] = useState('default')
+  const selectedTrackId = config.routeOverrides.some((entry) => entry.id === selectedTrack)
+    ? selectedTrack
+    : 'default'
   const dirty = useMemo(
     () => JSON.stringify(config) !== JSON.stringify(savedConfig),
     [config, savedConfig],
@@ -196,6 +188,7 @@ export function SiteMusicManagement({ initialConfig }: SiteMusicManagementProps)
 
   function addOverride() {
     const id = crypto.randomUUID()
+    setSelectedTrack(id)
     setConfig((current) => ({
       ...current,
       routeOverrides: [
@@ -263,115 +256,159 @@ export function SiteMusicManagement({ initialConfig }: SiteMusicManagementProps)
 
       {message ? <p className={styles.notice}>{message}</p> : null}
 
-      <article className={styles.card}>
-        <div className={styles.cardHeading}>
-          <div>
-            <h3>Default site track</h3>
-            <p>Used on signup, login, character creation, and every page without an override.</p>
-          </div>
-          <label className={styles.masterToggle}>
-            <input
-              type="checkbox"
-              checked={config.enabled}
-              onChange={(event) =>
-                setConfig((current) => ({ ...current, enabled: event.currentTarget.checked }))
-              }
-            />
-            <span>{config.enabled ? 'Music enabled' : 'Music disabled'}</span>
-          </label>
-        </div>
-        <TrackEditor
-          track={config.defaultTrack}
-          onChange={updateDefaultTrack}
-          onUpload={(file) => void upload(file, { kind: 'default' })}
-          uploading={uploadingTarget === 'default'}
-        />
-      </article>
-
-      <div className={styles.rulesHeading}>
-        <div>
-          <p className={styles.eyebrow}>Route-specific soundtrack</p>
-          <h3>Page overrides</h3>
-          <p>
-            Examples: <code>/</code>, <code>/game/create</code>, or <code>/game/battle</code>.
-            Disable a rule to make that area silent.
-          </p>
-        </div>
-        <GameButton type="button" variant="quiet" onClick={addOverride}>
-          Add page rule
-        </GameButton>
-      </div>
-
-      <div className={styles.rules}>
-        {config.routeOverrides.length === 0 ? (
-          <div className={styles.empty}>No page overrides. The default track plays everywhere.</div>
-        ) : null}
-        {config.routeOverrides.map((entry, index) => (
-          <article className={styles.card} key={entry.id}>
-            <div className={styles.ruleTopline}>
-              <span className={styles.ruleNumber}>{String(index + 1).padStart(2, '0')}</span>
-              <label>
-                <span>Rule name</span>
-                <input
-                  value={entry.label}
-                  maxLength={80}
-                  onChange={(event) =>
-                    updateOverride(entry.id, (current) => ({
-                      ...current,
-                      label: event.currentTarget.value,
-                    }))
-                  }
-                />
-              </label>
-              <label>
-                <span>Page path prefix</span>
-                <input
-                  value={entry.pathPrefix}
-                  placeholder="/game/battle"
-                  onChange={(event) =>
-                    updateOverride(entry.id, (current) => ({
-                      ...current,
-                      pathPrefix: event.currentTarget.value,
-                    }))
-                  }
-                />
-              </label>
-              <label className={styles.ruleToggle}>
+      <div className={styles.musicWorkspace}>
+        <nav className={styles.trackLibrary} aria-label="Music library">
+          <h3>Music Library</h3>
+          <button
+            type="button"
+            aria-pressed={selectedTrackId === 'default'}
+            onClick={() => setSelectedTrack('default')}
+          >
+            <span aria-hidden="true">♫</span>
+            <strong>{config.defaultTrack.label || 'Default site track'}</strong>
+            <small>All pages · {config.enabled ? 'Enabled' : 'Disabled'}</small>
+          </button>
+          {config.routeOverrides.map((entry) => (
+            <button
+              type="button"
+              key={entry.id}
+              aria-pressed={selectedTrackId === entry.id}
+              onClick={() => setSelectedTrack(entry.id)}
+            >
+              <span aria-hidden="true">♫</span>
+              <strong>{entry.label}</strong>
+              <small>
+                {entry.pathPrefix} · {entry.enabled ? 'Play track' : 'Silent'}
+              </small>
+            </button>
+          ))}
+          <GameButton type="button" variant="quiet" onClick={addOverride}>
+            Add page rule
+          </GameButton>
+        </nav>
+        <div className={styles.trackDetail}>
+          <AurevaneImage
+            assetId="environment.archive.interior"
+            className={styles.trackScene}
+            sizes="(max-width: 760px) 100vw, 45vw"
+          />
+          <article className={styles.card} hidden={selectedTrackId !== 'default'}>
+            <div className={styles.cardHeading}>
+              <div>
+                <h3>Default site track</h3>
+                <p>
+                  Used on signup, login, character creation, and every page without an override.
+                </p>
+              </div>
+              <label className={styles.masterToggle}>
                 <input
                   type="checkbox"
-                  checked={entry.enabled}
+                  checked={config.enabled}
                   onChange={(event) =>
-                    updateOverride(entry.id, (current) => ({
-                      ...current,
-                      enabled: event.currentTarget.checked,
-                    }))
+                    setConfig((current) => ({ ...current, enabled: event.currentTarget.checked }))
                   }
                 />
-                <span>{entry.enabled ? 'Play track' : 'Silent section'}</span>
+                <span>{config.enabled ? 'Music enabled' : 'Music disabled'}</span>
               </label>
-              <button
-                className={styles.removeButton}
-                type="button"
-                onClick={() =>
-                  setConfig((current) => ({
-                    ...current,
-                    routeOverrides: current.routeOverrides.filter(
-                      (candidate) => candidate.id !== entry.id,
-                    ),
-                  }))
-                }
-              >
-                Remove
-              </button>
             </div>
             <TrackEditor
-              track={entry.track}
-              onChange={(track) => updateOverride(entry.id, (current) => ({ ...current, track }))}
-              onUpload={(file) => void upload(file, { kind: 'override', id: entry.id })}
-              uploading={uploadingTarget === entry.id}
+              track={config.defaultTrack}
+              onChange={updateDefaultTrack}
+              onUpload={(file) => void upload(file, { kind: 'default' })}
+              uploading={uploadingTarget === 'default'}
             />
           </article>
-        ))}
+
+          <div className={styles.rulesHeading} hidden={selectedTrackId === 'default'}>
+            <div>
+              <p className={styles.eyebrow}>Route-specific soundtrack</p>
+              <h3>Page overrides</h3>
+              <p>
+                Examples: <code>/</code>, <code>/game/create</code>, or <code>/game/battle</code>.
+                Disable a rule to make that area silent.
+              </p>
+            </div>
+            <GameButton type="button" variant="quiet" onClick={addOverride}>
+              Add page rule
+            </GameButton>
+          </div>
+
+          <div className={styles.rules}>
+            {config.routeOverrides.length === 0 ? (
+              <div className={styles.empty}>
+                No page overrides. The default track plays everywhere.
+              </div>
+            ) : null}
+            {config.routeOverrides.map((entry, index) => (
+              <article className={styles.card} key={entry.id} hidden={selectedTrackId !== entry.id}>
+                <div className={styles.ruleTopline}>
+                  <span className={styles.ruleNumber}>{String(index + 1).padStart(2, '0')}</span>
+                  <label>
+                    <span>Rule name</span>
+                    <input
+                      value={entry.label}
+                      maxLength={80}
+                      onChange={(event) =>
+                        updateOverride(entry.id, (current) => ({
+                          ...current,
+                          label: event.currentTarget.value,
+                        }))
+                      }
+                    />
+                  </label>
+                  <label>
+                    <span>Page path prefix</span>
+                    <input
+                      value={entry.pathPrefix}
+                      placeholder="/game/battle"
+                      onChange={(event) =>
+                        updateOverride(entry.id, (current) => ({
+                          ...current,
+                          pathPrefix: event.currentTarget.value,
+                        }))
+                      }
+                    />
+                  </label>
+                  <label className={styles.ruleToggle}>
+                    <input
+                      type="checkbox"
+                      checked={entry.enabled}
+                      onChange={(event) =>
+                        updateOverride(entry.id, (current) => ({
+                          ...current,
+                          enabled: event.currentTarget.checked,
+                        }))
+                      }
+                    />
+                    <span>{entry.enabled ? 'Play track' : 'Silent section'}</span>
+                  </label>
+                  <button
+                    className={styles.removeButton}
+                    type="button"
+                    onClick={() =>
+                      setConfig((current) => ({
+                        ...current,
+                        routeOverrides: current.routeOverrides.filter(
+                          (candidate) => candidate.id !== entry.id,
+                        ),
+                      }))
+                    }
+                  >
+                    Remove
+                  </button>
+                </div>
+                <TrackEditor
+                  track={entry.track}
+                  onChange={(track) =>
+                    updateOverride(entry.id, (current) => ({ ...current, track }))
+                  }
+                  onUpload={(file) => void upload(file, { kind: 'override', id: entry.id })}
+                  uploading={uploadingTarget === entry.id}
+                />
+              </article>
+            ))}
+          </div>
+        </div>
       </div>
     </section>
   )

@@ -4,6 +4,7 @@ import type { BattleEventRecord, BattleEventCursor } from '@aurevane/db/battle-s
 import { AurevaneError } from '@aurevane/game-core/errors'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { createServerCombatContentResolver } from '@/server/combat/combat-content-resolver'
 
 import { createViewerSafeBattleLogService, type BattleLogView } from './battle-log-service'
 import { createSupabaseBattleSessionRepository } from './supabase-battle-session-repository'
@@ -196,7 +197,11 @@ export async function getPvpBattleLog(
   battleSessionId: string,
 ): Promise<BattleLogView> {
   const repository = createSupabaseBattleSessionRepository()
-  return createViewerSafeBattleLogService(repository, repository).getLog(userId, battleSessionId)
+  return createViewerSafeBattleLogService(
+    repository,
+    repository,
+    createServerCombatContentResolver(),
+  ).getLog(userId, battleSessionId)
 }
 
 export async function findPvpBattleEvents(

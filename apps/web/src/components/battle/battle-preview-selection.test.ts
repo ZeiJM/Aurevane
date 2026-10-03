@@ -3,6 +3,8 @@ import {
   isCurrentBattlePreview,
   battleIntentTileKey,
   selectBattleSkillPreviewIntent,
+  selectInitialBattleSkillPreviewIntent,
+  selectDirectionalBattleSkillPreviewIntent,
 } from './battle-preview-selection'
 
 const barrier = {
@@ -25,6 +27,90 @@ const selection = {
   selectedTile: null,
   combatants,
 }
+
+it('automatically chooses the nearest eligible living target while preserving a legal chosen target', () => {
+  expect(selectInitialBattleSkillPreviewIntent(barrier, selection)?.target).toEqual({
+    kind: 'unit',
+    combatantId: 'ally',
+  })
+  const enemySkill = { ...barrier, targetTeamPolicy: 'enemy' as const }
+  expect(selectInitialBattleSkillPreviewIntent(enemySkill, selection)?.target).toEqual({
+    kind: 'unit',
+    combatantId: 'enemy',
+  })
+  expect(
+    selectInitialBattleSkillPreviewIntent(enemySkill, {
+      ...selection,
+      combatants: combatants.filter((row) => row.combatantId !== 'enemy'),
+    }),
+  ).toBeNull()
+})
+
+it('automatically selects bounded ground and vacant summon tiles without changing explicit-target validation', () => {
+  const tiles = Array.from({ length: 9 }, (_, index) => ({
+    x: index % 3,
+    y: Math.floor(index / 3),
+  }))
+  const ground = {
+    ...barrier,
+    targetKind: 'ground-tile' as const,
+    targetTeamPolicy: 'enemy' as const,
+  }
+  expect(selectInitialBattleSkillPreviewIntent(ground, { ...selection, tiles })?.target).toEqual({
+    kind: 'tile',
+    position: { x: 1, y: 0 },
+  })
+  const summon = { ...ground, targetKind: 'empty-tile' as const }
+  const intent = selectInitialBattleSkillPreviewIntent(summon, { ...selection, tiles })
+  expect(intent?.target).toEqual({ kind: 'tile', position: { x: 0, y: 1 } })
+  expect(selectInitialBattleSkillPreviewIntent(summon, { ...selection, tiles: [] })).toBeNull()
+  expect(selectBattleSkillPreviewIntent(ground, selection)).toBeNull()
+})
+
+it('directional targeting selects only an eligible target in that direction and keeps self casts self', () => {
+  const skill = { ...barrier, targetTeamPolicy: 'enemy' as const }
+  expect(
+    selectDirectionalBattleSkillPreviewIntent(skill, selection, { x: 1, y: 0 })?.target,
+  ).toEqual({
+    kind: 'unit',
+    combatantId: 'enemy',
+  })
+  expect(selectDirectionalBattleSkillPreviewIntent(skill, selection, { x: -1, y: 0 })).toBeNull()
+  expect(
+    selectDirectionalBattleSkillPreviewIntent({ ...barrier, targetKind: 'self' }, selection, {
+      x: -1,
+      y: 0,
+    })?.target,
+  ).toEqual({ kind: 'self' })
+})
+
+it.each(['ally', 'any'] as const)(
+  'aims zero-minimum-range %s unit Skills at a living target in the requested direction',
+  (targetTeamPolicy) => {
+    const skill = { ...barrier, targetTeamPolicy, minimumRange: 0 }
+    expect(
+      selectDirectionalBattleSkillPreviewIntent(
+        skill,
+        {
+          ...selection,
+          selectedCombatantId: 'actor',
+        },
+        { x: 0, y: 1 },
+      )?.target,
+    ).toEqual({ kind: 'unit', combatantId: 'ally' })
+    expect(selectDirectionalBattleSkillPreviewIntent(skill, selection, { x: 0, y: -1 })).toBeNull()
+    expect(
+      selectDirectionalBattleSkillPreviewIntent(
+        skill,
+        {
+          ...selection,
+          combatants: combatants.filter((row) => row.combatantId !== 'ally'),
+        },
+        { x: 0, y: 1 },
+      ),
+    ).toBeNull()
+  },
+)
 
 it('previews a Discipline skill for the explicitly selected in-range ally', () => {
   expect(
@@ -169,4 +255,40 @@ it('ties quick confirmation to the actual tile across move, unit, self and groun
     ),
   ).toBe('0:1')
   expect(battleIntentTileKey(null, placements, 'actor')).toBeUndefined()
+})
+
+it('executes the identified unit in the aimed direction before considering a nearer unit', () => {
+  const skill = { ...barrier, targetTeamPolicy: 'enemy' as const }
+  const current = {
+    ...selection,
+    selectedCombatantId: 'chosen',
+    combatants: [
+      ...combatants,
+      { combatantId: 'chosen', teamIndex: 1, hp: 100, position: { x: 2, y: 0 } },
+    ],
+  }
+  expect(selectDirectionalBattleSkillPreviewIntent(skill, current, { x: 1, y: 0 })?.target).toEqual(
+    { kind: 'unit', combatantId: 'chosen' },
+  )
+  expect(selectDirectionalBattleSkillPreviewIntent(skill, current, { x: -1, y: 0 })).toBeNull()
+})
+
+it('keeps the identified ground tile in the aimed direction instead of retargeting an enemy', () => {
+  const skill = {
+    ...barrier,
+    targetKind: 'ground-tile' as const,
+    targetTeamPolicy: 'enemy' as const,
+  }
+  const current = {
+    ...selection,
+    selectedTile: { x: 2, y: 1 },
+    tiles: [
+      { x: 1, y: 0 },
+      { x: 2, y: 1 },
+    ],
+  }
+  expect(selectDirectionalBattleSkillPreviewIntent(skill, current, { x: 1, y: 0 })?.target).toEqual(
+    { kind: 'tile', position: { x: 2, y: 1 } },
+  )
+  expect(selectDirectionalBattleSkillPreviewIntent(skill, current, { x: -1, y: 0 })).toBeNull()
 })

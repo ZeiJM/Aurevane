@@ -40,7 +40,7 @@ const overrides: Record<string, ManualArticle> = {
         bullets: [
           'Create or sign in to an account and safely return to the same private profile.',
           'Create characters in three roster slots with six core attributes and a starting Discipline.',
-          'Configure your Primary and optional Secondary Discipline in Profile, with server-calculated stats and committed Skill choices.',
+          'Configure your Primary and optional Secondary Discipline in Loadout → Nexus, with server-calculated stats and committed Skill choices.',
           `Pure builds select up to ${PURE_DISCIPLINE_SKILL_CAPACITY} learned Discipline Techniques plus Essence. Mixed builds select up to ${MIXED_DISCIPLINE_SKILL_CAPACITY} total Techniques plus an eligible Resonance; a full loadout must use both Disciplines (1+3, 2+2 or 3+1). Each mature Discipline has eight learnable Skills: eight available to a pure build, or 16 across a fully authored pair. The pure-Discipline Essence or matching mixed-Discipline Resonance is separate from those four selections. Signature coverage depends on the authored Disciplines.`,
           'Set the current character’s one personal title from Account → Titles & Profile Display.',
           'Progress through the versioned Character XP and level foundation.',
@@ -52,7 +52,7 @@ const overrides: Record<string, ManualArticle> = {
         id: 'navigation',
         title: 'Finding things',
         paragraphs: [
-          'Manual, News, and Rules live in the authenticated header. Account contains audio, Controls & Keybinds, Titles & Profile Display, Switch Character, and sign-out. The compact footer Navigation menu contains the destinations other than the page you are currently viewing, including Profile, Battle Hall, Passive Training, and Online Users where applicable.',
+          'Manual, News, and Rules live in the authenticated header. Account contains audio, Controls & Keybinds, Titles & Profile Display, Switch Character, and sign-out. The compact character rail links Haven, Profile, Loadout, Travel, Battle and Training. On phones these destinations move to a fixed bottom bar. Items is a Coming Soon destination inside Loadout; Online Users remains in the footer.',
           'Normal game screens show a small circular portrait beside the green screen-name indicator in the shared header. The AUREVANE A-in-diamond remains the brand crest. Active battle uses its own combat HUD instead of the shared screen header.',
         ],
       },
@@ -98,14 +98,14 @@ const overrides: Record<string, ManualArticle> = {
         title: 'What is a Discipline?',
         paragraphs: [
           'A Discipline is a learnable combat tradition that establishes your first tactical direction. It is not a permanent class lock. Discipline Mastery Trials let characters deepen, broaden, and combine what they know.',
-          'The starting choices are Vanguard, Farstrider, Shadehand, Ironfist, Aetherist and Lifebinder. Profile supports Primary and optional Secondary configuration. Published mature Disciplines have eight learnable Techniques and a pure Essence, with mixed pairs receiving authored Resonances as their content is published. Technique cards show targeting and effect tags; expand Skill details for range, effects and requirements. Mastery Trials and the Discipline Atlas track the eventual acquisition paths. During development testing, a separate server-owned testing entitlement keeps every published Discipline available without counting that access as earned Mastery or satisfying its release requirements. Planned Disciplines remain unavailable until their combat content is actually published. Supernatural paths and later world-based acquisition remain later work.',
+          'The starting choices are Vanguard, Farstrider, Shadehand, Ironfist, Aetherist and Lifebinder. Loadout → Nexus supports Primary and optional Secondary configuration. Published mature Disciplines have eight learnable Techniques and a pure Essence, with mixed pairs receiving authored Resonances as their content is published. Technique cards show targeting and effect tags; expand Skill details for range, effects and requirements. Mastery Trials and the Discipline Atlas track the eventual acquisition paths. During development testing, a separate server-owned testing entitlement keeps every published Discipline available without counting that access as earned Mastery or satisfying its release requirements. Planned Disciplines remain unavailable until their combat content is actually published. Supernatural paths and later world-based acquisition remain later work.',
         ],
       },
       {
         id: 'slots-and-entry',
         title: 'Slots, creation, and switching',
         paragraphs: [
-          'Accounts have three character slots. Successful creation makes the new character active and takes you directly into the game instead of bouncing back to Character Select.',
+          'Accounts have three character slots. Successful creation makes the new character active and takes you to Haven, your personal hub for Current Path, training and updates.',
           'Character Select is available when entering an authenticated session and through Account → Switch Character. If you swap away from a character, that character has a server-authoritative one-hour return cooldown before you can select it again.',
         ],
       },
@@ -326,7 +326,7 @@ const battleHallArticle: ManualArticle = {
       title: 'Discipline Mastery Trials',
       paragraphs: [
         'Choose Discipline Mastery Trial. Its opponent uses the server-owned High AI profile. Win using at least two different regular Primary Skills across at least three Primary Skill commands, without a player turn-timer expiry, then claim up to 50 Mastery XP from the result panel. Each battle awards once. Your frozen Primary at battle entry receives the XP.',
-        'Stages are Initiate, Practiced at 100 XP, Adept at 300, Expert at 600 and Master at 1,000. Master also requires demonstrating all eight regular Skills across qualifying victories. Mastery makes a Discipline eligible as Secondary. Profile → Discipline Management → Discipline Atlas & Mastery shows earned progress, unmet prerequisites and separate testing access. Named Mastery Rites are planned future content.',
+        'Stages are Initiate, Practiced at 100 XP, Adept at 300, Expert at 600 and Master at 1,000. Master also requires demonstrating all eight regular Skills across qualifying victories. Mastery makes a Discipline eligible as Secondary. Loadout → Nexus → Manage Disciplines → Discipline Atlas & Mastery shows earned progress, unmet prerequisites and separate testing access. Named Mastery Rites are planned future content.',
         'Advanced Disciplines teach four Skills at Initiate, two more at Practiced and two at Adept. Ordinary AI Sparring, Guided Fundamentals and Passive Training do not award Discipline Mastery. Trials grant no Character XP, loot or Crowns.',
       ],
     },
@@ -334,9 +334,17 @@ const battleHallArticle: ManualArticle = {
       id: 'named-effects',
       title: 'Targeting and named effects',
       paragraphs: [
+        'New battles pin their effect timing. Effects default to the following global round; direct damage and HP/MP recovery happen instantly. Delayed icons appear immediately as Pending, then become Active. An active effect expires after the affected character completes its stated number of turns. Hover or select its icon for the meaning and turns remaining. Older battles keep their original timing.',
         'Technique tags show who a Skill targets, its single/area/line shape and its effects. Expand Skill details for exact recipients, range, AP/MP cost and requirements. Burn, Bleed and Poison cause fixed damage at affected turn end; Regeneration restores HP then. Slow raises movement AP cost; Root prevents movement while leaving other commands available. Cleanse removes its listed negative effects.',
         'Current Mark gives its source +15 percentage points Accuracy against the marked target. Historical Marked versions increased incoming damage only from their source. Challenged reduces damage dealt to anyone except its source. Warded reduces damage taken from burning opponents. The rare Reckless effect increases both damage dealt and damage taken; Fortified reduces both. Each tradeoff keeps its benefit and drawback together when it expires or is removed.',
         'Skill damage checks armor for physical attacks and ward for mystic attacks, separately for each hit and affected unit. Current effect power is authored on a bounded 1–20 scale where applicable, and persistent duration is part of the Skill’s balance budget. Percentage-based statuses can use per-Skill potency overrides; the preview shows the actual value for that Skill version. Conditional modifiers remain bounded to a safe combined range.',
+      ],
+    },
+    {
+      id: 'battle-chronicle',
+      title: 'Reading the Battle Chronicle',
+      paragraphs: [
+        'The Battle Chronicle groups short technique scenes and recorded outcomes by character within each round. Damage is crimson, HP/MP recovery green, and Essence or Resonance headings gold. Hover or select a named effect for its standard explanation. Movement, final facing, end turn and fading effects stay on the board and character rails rather than interrupting the story. Scroll back to review earlier rounds; live entries follow only when you are already at the bottom.',
       ],
     },
     {
@@ -355,7 +363,8 @@ const battleHallArticle: ManualArticle = {
         'Ground Skills select a tile, including empty ground. Choose the Skill, select its tile and review the affected area before confirming. Previews spend no AP or MP and stay silent. A Skill’s affected-team rule governs its unit effects; temporary terrain affects either team.',
         `${COMBAT_TERRAIN_OVERLAY_DETAILS.frozen.name} terrain: ${COMBAT_TERRAIN_OVERLAY_DETAILS.frozen.description} Fire on affected Frozen tiles converts them to Steam, including empty tiles. ${COMBAT_TERRAIN_OVERLAY_DETAILS.steam.name}: ${COMBAT_TERRAIN_OVERLAY_DETAILS.steam.description} Both overlays last ${COMBAT_TERRAIN_OVERLAY_DETAILS.frozen.roundBoundaries} round boundaries. Refreshing an overlay renews its duration without stacking it.`,
         'Slow and base-terrain AP costs still apply with Airborne, and Root still prevents movement. Inspect the tile and movement preview for its current cost and remaining duration. Your Movement allowance remains a separate limit even when AP is available.',
-        'Single-unit Resonance payoffs wait for a unit-targeted Skill. Ground casts preserve that setup for a later eligible action, and empty ground cannot generate an actor reward. Current Skill versions use authored 1–3 turn cooldowns rather than the retired consecutive-repeat falloff.',
+        'Single-unit Resonance payoffs wait for a unit-targeted Skill. Ground casts preserve that setup for a later eligible action, and empty ground cannot generate an actor reward. Current Skill versions use authored 1–3 turn cooldowns rather than the retired consecutive-repeat falloff. Cooling-down actions show grey artwork and a remaining-turn number in the cockpit. They cannot be selected or cast by click or hotkey until the authoritative cooldown clears; the number advances on your turns, not on a wall-clock timer.',
+        'The Terrain Key lists every terrain type, one per row. A green dot marks Active terrain present on the battlefield; a red dot and greyed texture mark Inactive terrain. These markers update as terrain overlays appear or expire. Select a terrain to read its effects.',
       ],
     },
     {
@@ -371,7 +380,8 @@ const battleHallArticle: ManualArticle = {
       id: 'ap',
       title: 'Action Economy',
       paragraphs: [
-        `A turn starts with 100 AP. Normal ground costs ${PV1F_MOVEMENT_COST_PER_TERRAIN_POINT} AP per tile; rough ground has terrain weight 2 and costs ${2 * PV1F_MOVEMENT_COST_PER_TERRAIN_POINT} AP. Basic Attack and Guard cost 30 AP; Recover costs 50 AP. Movement also obeys your remaining Movement allowance, even when AP remains. Movement starts at 2 and caps at 5; Jump starts at 0 and caps at 3.`,
+        `A turn starts with 100 AP. Normal ground costs ${PV1F_MOVEMENT_COST_PER_TERRAIN_POINT} AP per tile; rough ground has terrain weight 2 and costs ${2 * PV1F_MOVEMENT_COST_PER_TERRAIN_POINT} AP. Basic Attack and Guard cost 30 AP; Recover costs 50 AP. Every tile entered spends 1 Movement, including rough or Frozen terrain; terrain, Haste and Slow change AP cost, not the number of Movement steps. Movement also obeys your remaining Movement allowance, even when AP remains. Movement starts at 2 and caps at 5; Jump starts at 0 and caps at 3.`,
+        'Guard has its own two-owner-turn cooldown. HP Recovery and MP Recovery share a separate two-turn cooldown. A successful use starts that action’s cooldown; server turn progression makes it available again. Recovery immediately restores 10% of the maximum resource, capped at its maximum.',
         'Selecting a legal action proposes the AP spend before commitment. The AP bar shows the proposed segment with a temporary glow; after confirmation the authoritative committed value becomes the new solid remainder.',
       ],
     },
@@ -387,8 +397,8 @@ const battleHallArticle: ManualArticle = {
       id: 'planning',
       title: 'Choose first — nothing is forced',
       paragraphs: [
-        'The battle does not begin in Move mode. You can Inspect, Move, Basic Attack, Guard, Recover, or Finish Turn as the situation allows. Confirm Action, Enter, or a deliberate double-click/double-tap commits a legal proposal.',
-        'Cancel Action clears the current proposal without committing it. Abort Battle ends the practice battle as abandoned.',
+        'Choose a cockpit action or press its hotkey to select it and see a server-checked forecast. Click a valid target or use WASD in its direction to execute. For a Skill aimed at yourself, press its hotkey again to cast. The action stays selected while the same turn continues. Move highlights legal adjacent steps; Movement allowance and terrain AP costs still apply.',
+        'Cancel Action clears the selection without committing it. Surrender ends the practice battle as abandoned.',
       ],
     },
     {

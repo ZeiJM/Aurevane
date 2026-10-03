@@ -11,7 +11,7 @@ function uniqueCharacterName(): string {
   return `Sticky ${letters}`
 }
 
-test('custom Attack labels never restore a stale Move selection after action confirmation', async ({
+test('custom Attack labels never restore a stale Move selection after selecting the Basic Attack shortcut', async ({
   page,
 }, testInfo) => {
   test.slow()
@@ -26,7 +26,7 @@ test('custom Attack labels never restore a stale Move selection after action con
 
   await page
     .getByRole('navigation', { name: 'Primary game navigation', exact: true })
-    .getByRole('link', { name: /Battle Hall/ })
+    .getByRole('link', { name: /Battle/ })
     .click()
   await page.getByLabel('Battle mode').selectOption('recruit-sparring')
   await page.getByRole('button', { name: 'Enter Battle' }).click()
@@ -35,29 +35,18 @@ test('custom Attack labels never restore a stale Move selection after action con
   const commandDeck = page.getByRole('region', { name: 'Command Deck' })
   const move = commandDeck.locator('button[data-battle-command="move"]')
   const attack = commandDeck.locator('button[data-battle-command="attack"]')
-  const confirm = page.getByRole('button', { name: 'Confirm Action' })
-
-  // Reproduce the legacy failure seam directly: Move was the previous repeatable command, then an
-  // authored Technique changes the visible Attack label away from "Basic Attack". Before the fix,
-  // the PvE keyboard helper kept the stale Move label and re-selected Move after confirmation.
   await move.click()
   await expect(move).toHaveAttribute('data-battle-active', 'true')
-
   await attack.locator(':scope > strong').evaluate((label) => {
     label.textContent = 'Forceful Strike'
   })
   await attack.click()
   await expect(attack).toHaveAttribute('data-battle-active', 'true')
-  await expect(move).not.toHaveAttribute('data-battle-active', 'true')
-
-  // The repeat helper listens to the confirmation event before the server response. Dispatching the
-  // same bubbling click event isolates that state transition without spending AP or depending on a
-  // particular battlefield spawn distance.
-  await confirm.evaluate((button) => {
-    button.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
-  })
-
-  await page.waitForTimeout(250)
+  await page.keyboard.press('Digit2')
   await expect(attack).toHaveAttribute('data-battle-active', 'true')
   await expect(move).not.toHaveAttribute('data-battle-active', 'true')
+  await expect(page.getByRole('progressbar', { name: 'Action Economy remaining' })).toHaveAttribute(
+    'aria-valuenow',
+    '100',
+  )
 })

@@ -48,10 +48,10 @@
 }
 
 @media (max-width: 820px) {
-  .indicator,
-  .compatibilityGlyph {
-    top: calc(var(--battle-token-size, 2rem) * -0.24) !important;
-    width: calc(var(--battle-token-size, 2rem) * 0.2) !important;
-    height: calc(var(--battle-token-size, 2rem) * 0.2) !important;
+  .indicator {
+    /* Size against the actual portrait: the refined 85% token leaves a narrow tile margin. */
+    top: calc(-12% + 1px) !important;
+    width: 12% !important;
+    height: 12% !important;
   }
 }

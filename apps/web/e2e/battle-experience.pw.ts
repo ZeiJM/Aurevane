@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test'
 
 import { createAccountAndEnterCharacter } from './pv1f-test-helpers'
+import { commitGesture, openSelectedCombatantDetails } from './refined-battle-helpers'
+import { expectRecordedBattleRound } from './battle-round-badge-helpers'
 
 function uniqueCharacterName(): string {
   const letters = Date.now()
@@ -25,7 +27,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
 
   const battleHallLink = page
     .getByRole('navigation', { name: 'Primary game navigation', exact: true })
-    .getByRole('link', { name: /Battle Hall/ })
+    .getByRole('link', { name: /Battle/ })
   await battleHallLink.focus()
   await expect(battleHallLink).toBeFocused()
   await battleHallLink.press('Enter')
@@ -67,14 +69,14 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
 
   const battlefield = page.getByRole('region', { name: 'Tactical battlefield' })
   const commandDeck = page.getByRole('region', { name: 'Command Deck' })
-  const commandContext = commandDeck.locator(':scope > div').first()
+  const commandContext = page.locator('[data-battle-preview-strip]')
+  const initialRound = await expectRecordedBattleRound(page)
   const inspectButton = commandDeck.getByRole('button', { name: /^Inspect,/ })
   const moveButton = commandDeck.getByRole('button', { name: /^Move,/ })
   const attackButton = commandDeck.locator('button[data-battle-command="attack"]')
   const guardButton = commandDeck.locator('button[data-battle-command="guard"]')
-  const finishButton = commandDeck.getByRole('button', { name: /^Finish Turn,/ })
+  const finishButton = commandDeck.getByRole('button', { name: /^End Turn,/ })
   const facingPad = commandDeck.locator('[data-unified-facing-pad="true"]')
-  const confirmButton = page.getByRole('button', { name: 'Confirm Action' })
   const criteriaButton = page.getByRole('button', { name: /Victory conditions/i })
   const apRemaining = page.getByRole('progressbar', { name: 'Action Economy remaining' })
 
@@ -106,22 +108,23 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
     await expect(combatantDialog).toHaveCount(0)
     await inspectButton.click()
     await playerTile.click()
-    await expect(combatantDialog).toBeVisible()
+    await openSelectedCombatantDetails(page, characterName)
     await expect(combatantDialog.getByText('Initiative', { exact: true })).toBeVisible()
     await page.mouse.click(1, 1)
     await expect(combatantDialog).toHaveCount(0)
     await expect(playerTile).toBeVisible()
     await expect(recruitTile).toBeVisible()
-    await expect(
-      page.getByRole('button', { name: `Inspect ${characterName}`, exact: true }),
-    ).toBeHidden()
+    await expect(page.locator('[data-battle-combatant-card="selected"]')).toContainText(
+      characterName,
+    )
   } else {
     await inspectButton.click()
-    const playerRailButton = page.getByRole('button', {
+    const playerRail = page.locator('[data-battle-combatant-card="local"]')
+    const recruitRail = page.locator('[data-battle-combatant-card="selected"]')
+    const playerRailButton = playerRail.getByRole('button', {
       name: `Inspect ${characterName}`,
       exact: true,
     })
-    const recruitRailButton = page.getByRole('button', { name: 'Inspect Recruit', exact: true })
     await playerRailButton.click()
     const combatantDialog = page.getByRole('dialog', { name: `${characterName} battle details` })
     await expect(combatantDialog).toBeVisible()
@@ -129,8 +132,6 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
     await expect(combatantDialog.getByText('AP', { exact: true })).toHaveCount(0)
     await page.mouse.click(1, 1)
     await expect(combatantDialog).toHaveCount(0)
-    const playerRail = playerRailButton.locator('..')
-    const recruitRail = recruitRailButton.locator('..')
     await expect(playerRail.getByText(characterName, { exact: true })).toBeVisible()
     await expect(recruitRail.getByText('Recruit', { exact: true })).toBeVisible()
     const playerTokenName = page
@@ -146,26 +147,20 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   expect(await hasHorizontalOverflow(page)).toBe(false)
 
   await moveButton.click()
-  await expect(commandContext).toContainText('Move · 20 AP per normal tile')
-  await expect(commandContext).toContainText('Rough ground costs 40 AP')
+  await expect(commandContext).toContainText('Move')
 
   // Full AP is not permission to move past the character's server-owned Movement allowance.
   await page.getByRole('button', { name: /Tile 4, 2; open-ground; elevation 0/ }).click()
-  await expect(commandContext).toContainText('That tile is not reachable')
+  await expect(commandContext).toContainText(
+    'Choose a highlighted adjacent tile with enough Movement and AP.',
+  )
   await expect(apRemaining).toHaveAttribute('aria-valuenow', '100')
-  await expect(confirmButton).toBeDisabled()
 
-  await chooseReachableTowardRecruit(battlefield)
-  if (testInfo.project.name !== 'mobile-chromium') {
-    await expect(battlefield.getByText('0', { exact: true })).toHaveCount(1)
-    await expect(
-      page
-        .getByRole('button', { name: new RegExp(`occupied by ${characterName}`) })
-        .locator(':scope > span:last-child'),
-    ).toHaveCount(1)
-  }
-  await expect(confirmButton).toBeEnabled()
-  await confirmButton.click()
+  await chooseReachableTowardRecruit(page, battlefield)
+  await expect(battlefield.getByText('0', { exact: true })).toHaveCount(0)
+  await expect(battlefield.locator('[data-path-index]')).toHaveCount(0)
+  await expect(moveButton).toHaveAttribute('data-battle-active', 'true')
+  await chooseReachableTowardRecruit(page, battlefield)
 
   await expect(criteriaButton).toHaveAttribute('data-new-progress', 'true')
   await expect(
@@ -181,16 +176,16 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await expect(commandContext).toContainText('Choose your action', { timeout: 15_000 })
   await expect(facingPad).toBeHidden()
   await expect(criteriaButton).toHaveAttribute('data-new-progress', 'true')
+  expect(await expectRecordedBattleRound(page)).toBeGreaterThan(initialRound)
   await expect(
     page.getByRole('dialog', { name: 'Complete the tactical fundamentals' }),
   ).toHaveCount(0)
 
-  // Guided Fundamentals now uses the full 9x7 Duel Yard. Traverse a second movement turn toward
+  // Guided Fundamentals uses the full 9x7 Duel Yard. Traverse a second movement turn toward
   // the Recruit before completing Guard/Attack so the lesson remains deterministic at medium scale.
   await moveButton.click()
-  await chooseReachableTowardRecruit(battlefield)
-  await expect(confirmButton).toBeEnabled()
-  await confirmButton.click()
+  await chooseReachableTowardRecruit(page, battlefield)
+  await chooseReachableTowardRecruit(page, battlefield)
   await finishCurrentTurn(finishButton, testInfo.project.name)
   await expect(apRemaining).toHaveAttribute('aria-valuenow', '100', { timeout: 15_000 })
   await expect(commandContext).toContainText('Choose your action', { timeout: 15_000 })
@@ -200,64 +195,49 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   } else {
     await guardButton.click()
   }
-  await expect(commandContext).toContainText('Guard ready')
+  await expect(commandContext).toContainText('Guard')
   await expect(battlefield.locator('button[data-target="friendly"]')).toHaveCount(1)
-  await expect(confirmButton).toBeEnabled()
-  await confirmButton.click()
-  await expect(commandContext).toContainText('Guarded for 2 turns', { timeout: 10_000 })
+  const guardCommit = await commitGesture(
+    page,
+    page.getByRole('button', { name: new RegExp(`occupied by ${characterName}`) }),
+  )
+  const guardRequest = guardCommit.request().postDataJSON()
+  expect(guardRequest.intent).toMatchObject({ kind: 'action', actionId: 'basic.guard' })
+  expect((await guardCommit.json()).battle.battleVersion).toBe(
+    guardRequest.expectedBattleVersion + 1,
+  )
+  await expect(apRemaining).toHaveAttribute('aria-valuenow', '70', { timeout: 10_000 })
+  await expect(guardButton).toBeDisabled()
+  await expect(guardButton).toHaveAccessibleName('Guard, 30 AP, Cooldown: 2 turns remaining')
+  await expect(guardButton).not.toHaveAttribute('data-battle-active', 'true')
+  await expect(guardButton).not.toHaveAttribute('data-active', 'true')
+  await expect(
+    commandDeck.locator('[data-command-card="guard"] [data-battle-cooldown-countdown]'),
+  ).toHaveText('2')
   await expect(criteriaButton).toHaveAttribute('data-new-progress', 'true')
   await openCriteriaAndClose(page, '3/4 complete')
 
-  const roundButton = page.locator('[data-battle-flow] > button')
-  const battleLog = page.getByTestId('battle-log-panel')
-  if ((await roundButton.getAttribute('aria-expanded')) !== 'true') await roundButton.click()
+  const inlineLog = page.locator('[data-battle-inline-log]')
+  const battleLog = inlineLog.getByRole('region', { name: 'Battle chronicle', exact: true })
   await expect(battleLog).toBeVisible()
+  await expect(page.locator('dialog[data-battle-action-details]')).toHaveCount(0)
   await expect(battleLog).toContainText(characterName)
-  await expect(battleLog).toContainText(/moved|Guard/)
-  await expect(battleLog).not.toContainText(/\bv\d+\b/)
+  await expect(battleLog).toContainText('Guard')
+  await expect(battleLog).not.toContainText('moved')
   await expect(battleLog).not.toContainText('rollBasisPoints')
-  if (testInfo.project.name === 'mobile-chromium') {
-    await page.getByRole('button', { name: 'Close battle log' }).click()
-  } else {
-    const apBeforeDetails = await apRemaining.getAttribute('aria-valuenow')
-    const timeline = battleLog.getByRole('list', { name: 'Battle action timeline' })
-    await battleLog.getByRole('button', { name: 'Opponents', exact: true }).click()
-    await expect(timeline).not.toContainText(characterName)
-    await battleLog.getByRole('button', { name: 'You', exact: true }).click()
-    await expect(timeline).toContainText(characterName)
-    await battleLog.getByRole('button', { name: 'All', exact: true }).click()
-    const actionDetails = timeline.getByRole('button').last()
-    await actionDetails.focus()
-    await actionDetails.press('Space')
-    const details = page.getByRole('dialog', { name: /Guard/ })
-    await expect(details).toBeVisible()
-    await expect(details.getByRole('region', { name: 'Recorded action result' })).toContainText(
-      /Guard|damage/i,
-    )
-    await page.screenshot({ path: testInfo.outputPath('battle-action-details.png') })
-    await page.keyboard.press('Space')
-    await page.keyboard.press('w')
-    await expect(details).toBeVisible()
-    await expect(apRemaining).toHaveAttribute('aria-valuenow', apBeforeDetails!)
-    await page.keyboard.press('Escape')
-    await expect(details).toHaveCount(0)
-    await expect(actionDetails).toBeFocused()
-    await expect(apRemaining).toHaveAttribute('aria-valuenow', apBeforeDetails!)
-    await battleLog.getByRole('button', { name: 'Text log', exact: true }).click()
-    await expect(battleLog).toContainText('Guard')
-    await battleLog.getByRole('button', { name: 'Timeline', exact: true }).click()
-    await roundButton.click()
-    await expect(battleLog).toHaveCount(0)
-    await roundButton.click()
-    await expect(battleLog).toBeVisible()
-  }
+  await expect(inlineLog.locator(':scope > header')).toHaveCount(0)
+  await expect(inlineLog.getByRole('button', { name: /Switch to/ })).toHaveCount(0)
+  const apBeforeDetails = await apRemaining.getAttribute('aria-valuenow')
+  await battleLog.focus()
+  await page.keyboard.press('Space')
+  await page.keyboard.press('KeyW')
+  await expect(apRemaining).toHaveAttribute('aria-valuenow', apBeforeDetails!)
+  await expect(battleLog).toBeVisible()
 
   await attackButton.click()
   if ((await battlefield.locator('button[data-target="enemy"]').count()) === 0) {
     await moveButton.click()
-    await chooseReachableTowardRecruit(battlefield, true)
-    await expect(confirmButton).toBeEnabled()
-    await confirmButton.click()
+    await chooseReachableTowardRecruit(page, battlefield, true)
     await attackButton.click()
   }
 
@@ -265,9 +245,6 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await expect(battlefield.locator('button[data-target="enemy"]')).toHaveCount(1)
   await expect(recruitTarget).toHaveAttribute('data-target', 'enemy')
   await recruitTarget.click()
-  await expect(commandContext).toContainText('Basic Attack ready')
-  await expect(confirmButton).toBeEnabled()
-  await confirmButton.click()
 
   const result = page.getByTestId('battle-result-overlay')
   await expect(result).toBeVisible({ timeout: 15_000 })
@@ -278,6 +255,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
 })
 
 async function chooseReachableTowardRecruit(
+  page: import('@playwright/test').Page,
   battlefield: ReturnType<import('@playwright/test').Page['locator']>,
   adjacentOnly = false,
 ): Promise<void> {
@@ -320,14 +298,24 @@ async function chooseReachableTowardRecruit(
   }, adjacentOnly)
 
   expect(targetLabel).not.toBeNull()
-  await battlefield.getByRole('button', { name: targetLabel!, exact: true }).click()
+  const result = await commitGesture(
+    page,
+    battlefield.getByRole('button', { name: targetLabel!, exact: true }),
+  )
+  expect(result.request().postDataJSON().intent.kind).toBe('move')
+  // Wait for the accepted position before reading adjacent candidates for the next step.
+  await expect(
+    battlefield.getByRole('button', {
+      name: new RegExp(`^${targetLabel!.split(';')[0]};.*occupied by Wayfarer`),
+    }),
+  ).toBeVisible()
 }
 
 async function finishCurrentTurn(
   finishButton: ReturnType<import('@playwright/test').Page['locator']>,
   projectName: string,
 ): Promise<void> {
-  await expect(finishButton).toHaveAccessibleName(/Choose facing \+ end/)
+  await expect(finishButton).toHaveAccessibleName(/Choose facing/)
   if (projectName === 'mobile-chromium') {
     await finishButton.tap()
     await new Promise((resolve) => setTimeout(resolve, 80))
@@ -367,6 +355,7 @@ async function expectBattlefieldContained(page: import('@playwright/test').Page)
     const boardRect = board.getBoundingClientRect()
     const viewportRect = viewport.getBoundingClientRect()
     return {
+      scrollable: innerWidth <= 820 && getComputedStyle(viewport).overflowX === 'auto',
       board: {
         left: boardRect.left,
         top: boardRect.top,
@@ -386,7 +375,19 @@ async function expectBattlefieldContained(page: import('@playwright/test').Page)
   if (!bounds) return
   expect(bounds.board.left).toBeGreaterThanOrEqual(bounds.viewport.left - 1)
   expect(bounds.board.top).toBeGreaterThanOrEqual(bounds.viewport.top - 1)
-  expect(bounds.board.right).toBeLessThanOrEqual(bounds.viewport.right + 1)
+  if (bounds.scrollable) {
+    // Phone arenas retain their tile scale in an intentional horizontal pan region.
+    const tiles = page.locator('#battlefield [data-board-auto-fit] > button')
+    for (const tile of [tiles.last(), tiles.first()]) {
+      await tile.scrollIntoViewIfNeeded()
+      const visible = await tile.evaluate((element) => {
+        const rect = element.getBoundingClientRect()
+        const clip = element.parentElement!.parentElement!.getBoundingClientRect()
+        return rect.left >= clip.left - 1 && rect.right <= clip.right + 1
+      })
+      expect(visible).toBe(true)
+    }
+  } else expect(bounds.board.right).toBeLessThanOrEqual(bounds.viewport.right + 1)
   expect(bounds.board.bottom).toBeLessThanOrEqual(bounds.viewport.bottom + 1)
 }
 

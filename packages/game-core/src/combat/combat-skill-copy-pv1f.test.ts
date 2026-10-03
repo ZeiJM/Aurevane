@@ -10,6 +10,7 @@ import {
   executePv1fMatureSkill,
   evaluatePv1fCopiedSkill,
   evaluatePv1fMatureSkill,
+  finishPv1fTurn,
 } from './pv1f-action-economy'
 import { resolveMatureSkillVersion, type MatureSkillDefinition } from './mature-skills'
 import {
@@ -391,5 +392,296 @@ describe('PV-1F temporary Skill Copy integration', () => {
     expect(repeated.events).toContainEqual(
       expect.objectContaining({ event: 'skill_repeat_penalty_applied' }),
     )
+  })
+})
+it('pins the selected copied Skill but grants access only in the following global round', () => {
+  const result = executePv1fMatureSkill(
+    { ...state(), effectTimingPolicy: { version: 1, modes: {} } },
+    copySkill(),
+    { kind: 'unit', combatantId: SOURCE },
+    'pve',
+    {
+      copyContext: {
+        sourceCombatantId: SOURCE,
+        sourceSkills: [staticSkill('vanguard.cleave', 1)],
+        actorCommittedSkills: [],
+      },
+    },
+  )
+  expect(result.state.effectState?.temporarySkills ?? []).toHaveLength(0)
+  expect(result.state.pendingSkillGrants).toHaveLength(1)
+})
+
+it('forecasts Copy activation and battle lifetime without selecting the random Skill', () => {
+  const encounter = { ...state(), effectTimingPolicy: { version: 1, modes: {} } }
+  const before = JSON.parse(JSON.stringify(encounter))
+  const preview = evaluatePv1fMatureSkill(
+    encounter,
+    copySkill(),
+    { kind: 'unit', combatantId: SOURCE },
+    'pve',
+    {
+      copyContext: {
+        sourceCombatantId: SOURCE,
+        sourceSkills: [staticSkill('vanguard.cleave', 1)],
+        actorCommittedSkills: [],
+      },
+    },
+  )
+  expect(preview.evaluation.projectedEffects).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        effectType: 'copy',
+        statusId: 'copy',
+        after: 'pending',
+        activationRound: 2,
+        durationScope: 'battle',
+      }),
+    ]),
+  )
+  expect(encounter).toEqual(before)
+})
+
+describe('current beneficial effect Copy policy', () => {
+  function beneficialState(modes: Record<string, 'instant' | 'next-round'> = { copy: 'instant' }) {
+    const initial = state()
+    return {
+      ...initial,
+      copyPolicyVersion: 1 as const,
+      effectTimingPolicy: { version: 1, modes },
+      statusState: initial.statusState.map((entry) => ({
+        ...entry,
+        statuses:
+          entry.combatantId === SOURCE
+            ? ['airborne', 'fortified', 'guarded', 'hexed', 'regeneration', 'warded'].map(
+                (statusId) => ({
+                  statusId,
+                  statusVersion: 1,
+                  stacks: statusId === 'guarded' ? 2 : 1,
+                  sourceCombatantId: SOURCE,
+                  remainingOwnerTurnStarts: 1,
+                  remainingOwnerTurnEnds: 1,
+                  timingState: 'active' as const,
+                }),
+              )
+            : entry.combatantId === ACTOR
+              ? [
+                  {
+                    statusId: 'guarded',
+                    statusVersion: 1,
+                    stacks: 2,
+                    sourceCombatantId: ACTOR,
+                    remainingOwnerTurnStarts: 1,
+                    remainingOwnerTurnEnds: 1,
+                    timingState: 'active' as const,
+                  },
+                ]
+              : entry.statuses,
+      })),
+    }
+  }
+  function currentCopy() {
+    return copySkill({
+      flavorLine: 'Borrow the blessing.',
+      authoring: { ...copySkill().authoring, validationTags: ['owner-rebalance-v5'] },
+    })
+  }
+  it('supports an authored occupied ground-tile Copy source and rejects an empty tile', () => {
+    const before = beneficialState()
+    const skill: MatureSkillDefinition = {
+      ...currentCopy(),
+      target: { ...currentCopy().target, kind: 'ground-tile', maximumRange: 2 },
+    }
+    const target = { kind: 'tile' as const, position: { x: 1, y: 0 } }
+    expect(evaluatePv1fMatureSkill(before, skill, target).evaluation.legal).toBe(true)
+    expect(
+      executePv1fMatureSkill(before, skill, target)
+        .state.statusState.find((row) => row.combatantId === ACTOR)
+        ?.statuses.map((row) => row.statusId),
+    ).toEqual(['airborne', 'guarded', 'regeneration', 'warded'])
+    expect(
+      evaluatePv1fMatureSkill(before, skill, { kind: 'tile', position: { x: 2, y: 0 } }).evaluation
+        .legal,
+    ).toBe(false)
+  })
+  it('spends normal AP on a missed hostile Copy without transferring effects or drawing a Skill roll', () => {
+    const before = beneficialState()
+    before.statBridge = {
+      ...before.statBridge,
+      combatants: before.statBridge.combatants.map((profile) =>
+        profile.combatantId === SOURCE ? { ...profile, evasion: 10_000 } : profile,
+      ),
+    }
+    const skill: MatureSkillDefinition = {
+      ...currentCopy(),
+      accuracyMode: 'per-target',
+      accuracyModifierBasisPoints: 0,
+    }
+    const preview = evaluatePv1fMatureSkill(before, skill, { kind: 'unit', combatantId: SOURCE })
+    expect(preview.evaluation.targetHitChances).toEqual([
+      { targetCombatantId: SOURCE, hitChanceBasisPoints: 0 },
+    ])
+    const result = executePv1fMatureSkill(before, skill, { kind: 'unit', combatantId: SOURCE })
+    expect(result.state.statusState).toEqual(before.statusState)
+    expect(result.state.tactical.battle.rng.draws).toBe(1)
+    expect(result.events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ event: 'action_economy_spent', amount: 40, remaining: 60 }),
+      ]),
+    )
+    expect(
+      result.events.some(
+        (event) =>
+          typeof event === 'object' &&
+          event !== null &&
+          'event' in event &&
+          event.event === 'temporary_skill_copied',
+      ),
+    ).toBe(false)
+  })
+  it('keeps composed authored effect origins aligned when the Copy operation is materialized first', () => {
+    const before = beneficialState()
+    const copyOrigin = { family: 'skill' as const, contentId: 'copy-origin', contentVersion: 1 }
+    const damageOrigin = { family: 'skill' as const, contentId: 'damage-origin', contentVersion: 1 }
+    const skill: MatureSkillDefinition = {
+      ...currentCopy(),
+      effects: [{ type: 'damage', recipient: 'primary-unit', amount: 5 }, ...currentCopy().effects],
+    }
+    const result = evaluatePv1fMatureSkill(
+      before,
+      skill,
+      { kind: 'unit', combatantId: SOURCE },
+      'pve',
+      { effectOrigins: [damageOrigin, copyOrigin] },
+    )
+    expect(result.evaluation.legal).toBe(true)
+    expect(result.action.effectOrigins).toEqual([copyOrigin, damageOrigin])
+    expect(result.action.effectTimingTags).toEqual(['copy', 'damage'])
+  })
+  it('preserves authored positive potency when copying a named effect', () => {
+    const before = beneficialState()
+    before.statusState = before.statusState.map((row) =>
+      row.combatantId === SOURCE
+        ? { ...row, statuses: [{ ...row.statuses[0]!, potencyBasisPoints: 2500 }] }
+        : row,
+    )
+    const result = executePv1fMatureSkill(before, currentCopy(), {
+      kind: 'unit',
+      combatantId: SOURCE,
+    })
+    expect(
+      result.state.statusState
+        .find((row) => row.combatantId === ACTOR)
+        ?.statuses.find((status) => status.statusId === 'airborne')?.potencyBasisPoints,
+    ).toBe(2500)
+  })
+  it('copies Covert under current Copy while pending donor tags remain inactive', () => {
+    const before = beneficialState()
+    before.statusState = before.statusState.map((row) =>
+      row.combatantId === SOURCE
+        ? {
+            ...row,
+            statuses: [
+              { ...row.statuses[0]!, timingState: 'pending' as const, activationRound: 2 },
+              { ...row.statuses[0]!, statusId: 'covert', statusVersion: 1 },
+            ],
+          }
+        : row,
+    )
+    const result = executePv1fMatureSkill(before, currentCopy(), {
+      kind: 'unit',
+      combatantId: SOURCE,
+    })
+    expect(
+      result.state.statusState
+        .find((row) => row.combatantId === ACTOR)
+        ?.statuses.map((status) => status.statusId),
+    ).toEqual(['covert', 'guarded'])
+  })
+  it('previews and commits all positive named effects without Skills, RNG or donor mutation', () => {
+    const before = beneficialState()
+    const frozen = JSON.stringify(before)
+    const preview = evaluatePv1fMatureSkill(before, currentCopy(), {
+      kind: 'unit',
+      combatantId: SOURCE,
+    })
+    expect(preview.evaluation.legal).toBe(true)
+    expect(preview.evaluation.skillCopy).toBeUndefined()
+    expect(
+      preview.evaluation.projectedEffects.filter((row) => row.effectType === 'copy-statuses'),
+    ).toHaveLength(4)
+    const result = executePv1fMatureSkill(before, currentCopy(), {
+      kind: 'unit',
+      combatantId: SOURCE,
+    })
+    expect(result.state.statusState.find((row) => row.combatantId === ACTOR)?.statuses).toEqual([
+      expect.objectContaining({ statusId: 'airborne', stacks: 1, remainingOwnerTurnEnds: 1 }),
+      expect.objectContaining({ statusId: 'guarded', stacks: 3, remainingOwnerTurnEnds: 1 }),
+      expect.objectContaining({ statusId: 'regeneration', stacks: 1, remainingOwnerTurnEnds: 1 }),
+      expect.objectContaining({ statusId: 'warded', stacks: 1, remainingOwnerTurnEnds: 1 }),
+    ])
+    expect(result.state.effectState?.temporarySkills ?? []).toEqual([])
+    expect(result.state.tactical.battle.rng.draws).toBe(0)
+    expect(result.state.statusState.find((row) => row.combatantId === SOURCE)).toEqual(
+      before.statusState.find((row) => row.combatantId === SOURCE),
+    )
+    expect(JSON.stringify(before)).toBe(frozen)
+  })
+  it('rejects an empty or exclusively negative donor before spending', () => {
+    const before = beneficialState()
+    before.statusState = before.statusState.map((row) =>
+      row.combatantId === SOURCE
+        ? { ...row, statuses: row.statuses.filter((status) => status.statusId === 'hexed') }
+        : row,
+    )
+    expect(
+      evaluatePv1fMatureSkill(before, currentCopy(), { kind: 'unit', combatantId: SOURCE })
+        .evaluation.legal,
+    ).toBe(false)
+    expect(() =>
+      executePv1fMatureSkill(before, currentCopy(), { kind: 'unit', combatantId: SOURCE }),
+    ).toThrow(/eligible active statuses/)
+  })
+  it('schedules Copy using its own timing override and captures remaining lifetimes', () => {
+    const before = beneficialState({ 'copy-statuses': 'instant' })
+    const preview = evaluatePv1fMatureSkill(before, currentCopy(), {
+      kind: 'unit',
+      combatantId: SOURCE,
+    })
+    expect(preview.evaluation.projectedEffects).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          effectType: 'copy-statuses',
+          statusId: 'beneficial-copy',
+          after: 'pending',
+          activationRound: 2,
+          combatantId: ACTOR,
+        }),
+      ]),
+    )
+    let result = executePv1fMatureSkill(before, currentCopy(), {
+      kind: 'unit',
+      combatantId: SOURCE,
+    }).state
+    expect(result.pendingEffects).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          timingTag: 'copy',
+          activationRound: 2,
+          effect: expect.objectContaining({ type: 'copy-statuses', beneficialEffects: true }),
+        }),
+      ]),
+    )
+    result = finishPv1fTurn(result, 'east').state
+    result = finishPv1fTurn(result, 'west').state
+    expect(result.tactical.battle.round).toBe(2)
+    expect(result.statusState.find((row) => row.combatantId === SOURCE)?.statuses).toHaveLength(0)
+    expect(result.statusState.find((row) => row.combatantId === ACTOR)?.statuses).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ statusId: 'airborne', remainingOwnerTurnEnds: 1 }),
+      ]),
+    )
+    result = finishPv1fTurn(result, 'east').state
+    expect(result.statusState.find((row) => row.combatantId === ACTOR)?.statuses).toHaveLength(0)
   })
 })

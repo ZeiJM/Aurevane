@@ -12,7 +12,7 @@ import {
   selectRecentBattleLogEntries,
 } from './battle-log-feed'
 import { summarizeConsecutiveBattleLogMovement } from './battle-log-movement-summary'
-import { BattleActionTimeline, paginateBattleTranscript } from './battle-action-timeline'
+import { BattleActionTimeline } from './battle-action-timeline'
 import { buildBattleLogPresentation } from './battle-log-presentation'
 import type {
   BattleLogSegment,
@@ -247,9 +247,8 @@ describe('Battle Log transcript consequence layout', () => {
   })
 })
 
-// Rendering the real feed guards the boundary: the live window must not leak old actor turns,
-// while the post-battle caller must still receive the complete saved history.
-describe('Battle Log recent history window', () => {
+// The chronicle supersedes the old recent-turn window and shows all non-bookkeeping techniques.
+describe('Battle Log complete chronicle and legacy history selection', () => {
   const combatantNames = Object.fromEntries(
     [1, 2, 3, 4, 5, 6, 7].map((turn) => [`character:unit-${turn}`, `Actor${turn}`]),
   )
@@ -258,70 +257,37 @@ describe('Battle Log recent history window', () => {
     round: 1,
   }))
 
-  it('limits six actors in one round to the latest four turns while preserving complete review', () => {
-    const recent = renderToStaticMarkup(
-      <BattleLogFeed entries={entries} combatantNames={combatantNames} recentTurnCount={4} />,
-    )
-    expect(recent).toContain('Actor6')
-    expect(recent).toContain('Actor3')
-    expect(recent).not.toContain('Actor2')
-    expect(recent).not.toContain('Actor1')
-    expect(recent).toContain('#6:')
-    expect(recent).toContain('aria-label="Battle history, latest 4 turns"')
+  it('keeps all six actors techniques in compact and complete readers without pagination', () => {
+    const techniques = entries.map((entry) => ({
+      ...entry,
+      eventType: 'combat_action_used',
+      kind: 'offense' as const,
+      actionId: 'basic.attack.unarmed.basic',
+      actionLabel: 'Basic Attack',
+    }))
+    for (const compactFlow of [true, false]) {
+      const html = renderToStaticMarkup(
+        <BattleLogFeed
+          entries={techniques}
+          combatantNames={combatantNames}
+          compactFlow={compactFlow}
+          recentTurnCount={4}
+        />,
+      )
+      for (let actor = 1; actor <= 6; actor++) expect(html).toContain(`Actor${actor}`)
+      expect(html).toContain('data-battle-chronicle="true"')
+      expect(html).not.toContain('Previous turn')
+      expect(html).not.toContain('In progress')
+    }
+  })
 
-    const complete = renderToStaticMarkup(
+  it('keeps a movement-only history readable without deleting the recorded entries', () => {
+    const html = renderToStaticMarkup(
       <BattleLogFeed entries={entries} combatantNames={combatantNames} />,
     )
-    expect(complete).toContain('Actor6')
-    expect(complete).toContain('Actor1')
-    expect(complete).not.toContain('latest 4 turns')
+    expect(html).not.toContain('No committed battle actions yet.')
+    expect(html).toContain('Actor6 moves.')
     expect(entries).toHaveLength(6)
-  })
-
-  it('counts an empty current actor turn in the four-turn window', () => {
-    const recent = renderToStaticMarkup(
-      <BattleLogFeed
-        entries={entries}
-        combatantNames={combatantNames}
-        recentTurnCount={4}
-        currentTurnNumber={7}
-      />,
-    )
-    expect(recent).toContain('Actor4')
-    expect(recent).not.toContain('Actor3')
-  })
-
-  it('keeps the window across round boundaries using hidden turn-start metadata', () => {
-    const recent = renderToStaticMarkup(
-      <BattleLogFeed
-        entries={[
-          { ...movementEntry(20, 'character:unit-7', 7), round: 2, eventType: 'turn_started' },
-          ...entries,
-        ]}
-        combatantNames={combatantNames}
-        recentTurnCount={4}
-      />,
-    )
-    expect(recent).toContain('Actor4')
-    expect(recent).not.toContain('Actor3')
-    expect(recent).not.toContain('In progress')
-  })
-
-  it('applies the same actor-turn window to the compact action timeline', () => {
-    const recent = renderToStaticMarkup(
-      <BattleLogFeed
-        entries={entries}
-        combatantNames={combatantNames}
-        compactFlow
-        recentTurnCount={4}
-      />,
-    )
-    expect(recent).toContain('Battle action timeline')
-    expect(recent).toContain('Recent 4 turns')
-    expect(recent).toContain('Actor6')
-    expect(recent).toContain('Actor3')
-    expect(recent).not.toContain('Actor2')
-    expect(recent).not.toContain('Actor1')
   })
 
   it('keeps only recent entries within a handoff commit and retains recent untagged boundary effects', () => {
@@ -368,7 +334,7 @@ describe('Battle Log recent history window', () => {
 })
 
 describe('Battle Flow rich Text log', () => {
-  it('reuses numbered action and indented consequence lines with named-effect semantics', () => {
+  it('reads one selected action inline without opening named-effect popups', () => {
     const guard: PresentedBattleLogAction = {
       ...action('battle:9', 9, '2026-08-31T17:50:09.000Z'),
       kind: 'defense',
@@ -390,21 +356,16 @@ describe('Battle Flow rich Text log', () => {
         rounds={[{ key: 'round:2', round: 2, occurredAt: guard.occurredAt, actions: [guard] }]}
         entries={[]}
         view="text"
-        recentTurnCount={4}
-        renderTranscript={(item) => <BattleLogTranscriptAction action={item} number={9} />}
       />,
     )
     expect(markup).toContain('Battle action transcript')
     expect(markup).toContain('Round 2')
-    expect(markup).toContain('#9:')
-    expect(markup).toContain(' braces with ')
-    expect(markup).toContain(' gains ')
-    expect(markup).toContain('data-semantic="effect"')
-    expect(markup).toContain('data-battle-effect-name="Guarded"')
-    expect(markup).toContain('data-battle-effect-duration="1 turn"')
-    expect(markup).toContain('Recent 4 turns')
-    expect(markup).toContain('Filter battle actions')
-    expect(markup).toContain('Action details: battle:9')
+    expect(markup).toContain('Recorded action result')
+    expect(markup).toContain('Guarded')
+    expect(markup).not.toContain('data-battle-effect-trigger')
+    expect(markup).not.toContain('<dialog')
+    expect(markup).not.toContain('Recent 4 turns')
+    expect(markup).not.toContain('Filter battle actions')
     expect(markup).not.toContain('Zei · R2')
   })
 
@@ -419,7 +380,7 @@ describe('Battle Flow rich Text log', () => {
     expect(markup).toContain('aria-label="Explain Guarded"')
   })
 
-  it('keeps movement abbreviated in the main transcript without changing recorded coordinates', () => {
+  it('keeps the abbreviated summary and complete recorded movement coordinates accessible inline', () => {
     const moved = {
       ...movementEntry(2, 'character:zei'),
       message: 'Zei moves from (1, 2) to (2, 2).',
@@ -429,53 +390,37 @@ describe('Battle Flow rich Text log', () => {
       combatantNames: { 'character:zei': 'Zei' },
     })
     const markup = renderToStaticMarkup(
-      <BattleActionTimeline
-        rounds={rounds}
-        entries={[moved]}
-        view="text"
-        renderTranscript={(item) => <BattleLogTranscriptAction action={item} number={1} />}
-      />,
+      <BattleActionTimeline rounds={rounds} entries={[moved]} view="text" />,
     )
     expect(markup).toContain('Zei moves')
-    expect(markup).not.toContain('(1, 2)')
-    expect(markup).not.toContain('(2, 2)')
+    expect(markup).toContain('(1, 2)')
+    expect(markup).toContain('(2, 2)')
     expect(moved.message).toContain('from (1, 2) to (2, 2)')
   })
 
-  it('paginates complete results by their rendered height, accounting for round headings', () => {
-    const blocks = [
-      { height: 20, round: 1 },
-      { height: 38, round: 1 },
-      { height: 20, round: 2 },
-      { height: 55, round: 2 },
-    ]
-    expect(paginateBattleTranscript(blocks, 100, 16, 4)).toEqual([
-      { start: 2, end: 4 },
-      { start: 0, end: 2 },
-    ])
-    expect(paginateBattleTranscript(blocks, 75, 16, 4)).toEqual([
-      { start: 3, end: 4 },
-      { start: 2, end: 3 },
-      { start: 1, end: 2 },
-      { start: 0, end: 1 },
-    ])
-    expect(paginateBattleTranscript([], 100, 16, 4)).toEqual([])
-  })
-
-  it('marks an oversized result for an explicit full-details fallback instead of silently clipping it', () => {
-    const blocks = [
-      { height: 20, round: 1 },
-      { height: 160, round: 2 },
-      { height: 20, round: 2 },
-    ]
-    expect(paginateBattleTranscript(blocks, 100, 16, 4)).toEqual([
-      { start: 2, end: 3 },
-      { start: 1, end: 2, oversized: true },
-      { start: 0, end: 1 },
-    ])
-    expect(paginateBattleTranscript(blocks, 220, 16, 4)).toEqual([
-      { start: 1, end: 3 },
-      { start: 0, end: 1 },
-    ])
+  it('pages an overflowing turn while retaining all twelve actions', () => {
+    const actions = Array.from({ length: 12 }, (_, index) => ({
+      ...action(`action:${index}`, index + 1, '2026-10-01T00:00:00Z'),
+      round: 1,
+      turnNumber: 1,
+    }))
+    const markup = renderToStaticMarkup(
+      <BattleActionTimeline
+        rounds={[{ key: 'round:1', round: 1, occurredAt: '', actions }]}
+        entries={[]}
+      />,
+    )
+    expect(actions).toHaveLength(12)
+    expect((markup.match(/title="action:/g) ?? []).length).toBe(4)
+    expect(markup).toContain('Actions 9–12 / 12')
+    expect(markup).toContain('Previous actions')
+    expect(markup).toContain('Next actions')
+    expect(markup).not.toContain('<strong>Attack</strong>')
+    expect(markup).not.toContain('<span>Battle</span>')
+    expect(markup).not.toContain('Filter battle actions')
+    expect(markup).not.toContain('Battle history pages')
+    expect(markup).not.toContain('Previous turn')
+    expect(markup).not.toContain('Next turn')
+    expect(markup).toContain('Turn 1')
   })
 })

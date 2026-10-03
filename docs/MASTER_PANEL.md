@@ -641,6 +641,10 @@ future Master Panel module from this specification is complete.
 - Published version rows are immutable. Rollback changes only the current publication pointer (or
   clears that pointer when returning to a valid static fallback); historical rows are retained.
 
+### Minimum Skill information
+
+Owner-approved 2026-10-02: full active/passive Skill reports and read-only draft projections follow `docs/SKILL_INFORMATION_CONTRACT.md`. All ten fields use the same names, order, value conventions and canonical adapters as Nexus/battle details. N/A denotes inapplicability; missing immutable metadata remains Unavailable. These are derived reports, not independently editable mechanics. Current Skill, Essence and Resonance editors display this report without bypassing validation, deterministic preview or publication gates.
+
 ### Typed Skill workflow
 
 The current Skill editor uses the canonical `packages/game-core` Skill/effect contracts and
@@ -737,4 +741,8 @@ immutable version records. The broader searchable Master Panel audit log, granul
 system, re-authentication/break-glass workflows and other future operational modules remain governed
 by the later phases of this specification; this slice must not pretend those wider systems already
 exist.
+## Owner-approved combat timing and short narration — 2026-10-03
 
+`/master/combat-timing` is Owner-only. Registered effect tags choose Instant or Next global round. Publishing requires a reason and the current version; immutable private rows record actor/time/version. New encounters pin the full policy. Existing encounters and logs never re-read today’s policy. Direct damage/HP/MP recovery default instant; other effects default following global round. A pending icon is presentation only.
+
+Current Skill, Essence and Resonance short battle scenes reuse their immutable `flavorLine` (160 characters). The common editor supplies whitelisted actor/target/ability name tokens, explicit subject/object/possessive/reflexive pronoun handlers and explicit three-way gender wording. Unknown or malformed tokens fail canonical validation. Missing immutable identity uses neutral pronouns/wording; never infer gender from portraits or read a current profile to reinterpret history. The separate historical 180-character hit/miss/critical template contract remains unchanged. Versioned description/effect fields remain editable through existing publication authority; text changes do not mutate recorded damage or outcomes.

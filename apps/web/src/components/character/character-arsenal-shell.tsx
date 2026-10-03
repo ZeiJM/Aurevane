@@ -1,8 +1,11 @@
 import Image from 'next/image'
+import { BattleInfoPopover } from '@/components/battle/battle-info-popover'
+import { renderBattleFlavorTemplate } from '@aurevane/game-core/combat/battle-narration'
+import { DEFAULT_SUPPORT_ACTION_ID } from '@aurevane/game-core/combat/support-actions'
+import { pv1fSkillByActionId } from '@aurevane/game-core/combat/pv1f-skills'
 import type { EssenceDefinition } from '@aurevane/game-core/combat/essence'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
 import type { AnyResonanceDefinition } from '@aurevane/game-core/combat/resonance'
-import { normalizedResonanceMechanics } from '@aurevane/game-core/combat/resonance-v2'
 import { Surface } from '@aurevane/ui'
 
 import {
@@ -10,134 +13,64 @@ import {
   battleSkillArtwork,
 } from '@/components/battle/battle-skill-presentation'
 import { CharacterDisciplineBuildPanel } from '@/components/character/character-discipline-build-panel'
-import { CharacterIdentityCard } from '@/components/character/character-identity-card'
-import {
-  characterDisciplineSummary,
-  type CharacterWorkspaceProps,
-} from '@/components/character/character-profile-shell'
+import { type CharacterWorkspaceProps } from '@/components/character/character-profile-shell'
 import { CharacterSkillBuildPanel } from '@/components/character/character-skill-build-panel'
 import { FoundationDisciplineSigil } from '@/components/character/foundation-discipline-sigil'
+import { LoadoutHeader } from '@/components/character/loadout-header'
 
-import {
-  skillCompactRangeDescription,
-  skillCooldownDescription,
-  skillCostDescription,
-  skillDisplayName,
-  skillEffectSummaries,
-  skillRequirementsSummary,
-  skillTargetDescription,
-  skillTargetMethodDescription,
-  skillTypeDescription,
-} from './skill-detail-presentation'
-import { effectSummary, previewEffect } from './skill-effect-preview'
+import { skillDisplayName } from './skill-detail-presentation'
+import { ResonanceParameters } from './resonance-parameters'
+import { SkillParameters } from './skill-parameters'
 import styles from './character-arsenal-shell.module.css'
 
 const OVERVIEW_TECHNIQUE_SLOTS = 4
 
-function effectSummaryWithDuration(effect: Parameters<typeof previewEffect>[0]): string {
-  const base = effectSummary(previewEffect(effect))
-  const turns = effect.durationTurns ?? 0
-  return turns > 0 ? `${base} [${turns} ${turns === 1 ? 'Turn' : 'Turns'}]` : base
-}
-
 function EssenceHoverPreview({ essence }: { essence: EssenceDefinition }) {
   const skill = essence.skill
-  const rows: readonly (readonly [string, string | readonly string[]])[] = [
-    ['Skill Type', skillTypeDescription(skill)],
-    ['Cost', skillCostDescription(skill)],
-    ['Cooldown', skillCooldownDescription(skill)],
-    ['Requirements', skillRequirementsSummary(skill)],
-    ['Effects', skillEffectSummaries(skill)],
-    ['Range', skillCompactRangeDescription(skill)],
-    ['Target', skillTargetDescription(skill)],
-    ['Target Method', skillTargetMethodDescription(skill)],
-  ]
   return (
-    <aside
-      id={`essence-preview-${essence.essenceId}`}
-      className={styles.attunementHover}
-      role="tooltip"
+    <BattleInfoPopover
+      label={`Preview Essence: ${essence.name}`}
+      title={`Essence: ${essence.name}`}
+      className={styles.attunementPreviewAnchor}
+      hover
+      trigger={
+        <span className={styles.attunementArt} data-gameplay-art="attunement">
+          <Image src={battleSkillArtwork(skill.id)} width={160} height={160} unoptimized alt="" />
+        </span>
+      }
     >
-      <span>Essence Preview</span>
-      <strong>{`Essence: ${essence.name}`}</strong>
-      <dl>
-        {rows.map(([label, value]) => (
-          <div key={label}>
-            <dt>{label}</dt>
-            <dd>
-              {typeof value === 'string' ? (
-                value
-              ) : (
-                <ul>
-                  {value.map((entry, index) => (
-                    <li key={`${index}:${entry}`}>{entry}</li>
-                  ))}
-                </ul>
-              )}
-            </dd>
-          </div>
-        ))}
-      </dl>
-    </aside>
+      <aside id={`essence-preview-${essence.essenceId}`} role="tooltip">
+        <dl>
+          <SkillParameters skill={skill} />
+        </dl>
+      </aside>
+    </BattleInfoPopover>
   )
 }
 
 function ResonanceHoverPreview({ resonance }: { resonance: AnyResonanceDefinition }) {
-  const mechanics = normalizedResonanceMechanics(resonance)
-  const effects = mechanics.resultEffects.map(effectSummaryWithDuration)
-  const effectExplanations = mechanics.resultEffects.map(
-    (effect) => previewEffect(effect).explanation,
-  )
-  const setup = mechanics.setup
-  const trigger = mechanics.trigger
   return (
-    <aside
-      id={`resonance-preview-${resonance.id}`}
-      className={styles.attunementHover}
-      role="tooltip"
+    <BattleInfoPopover
+      label={`Preview Resonance: ${resonance.name}`}
+      title={`Resonance: ${resonance.name}`}
+      className={styles.attunementPreviewAnchor}
+      hover
+      trigger={
+        <span className={styles.attunementArt} data-gameplay-art="attunement">
+          <Image
+            src={battleResonanceArtwork(resonance.id)}
+            width={160}
+            height={160}
+            unoptimized
+            alt=""
+          />
+        </span>
+      }
     >
-      <span>Resonance Preview</span>
-      <strong>{`Resonance: ${resonance.name}`}</strong>
-      <dl>
-        <div>
-          <dt>Type</dt>
-          <dd>{mechanics.mode === 'immediate' ? 'Immediate Resonance' : 'Sequence Resonance'}</dd>
-        </div>
-        <div>
-          <dt>Requirements</dt>
-          <dd>
-            <ul>
-              <li>
-                {setup
-                  ? `Setup: ${setup.sourceDisciplineId} · ${setup.requiredTags.join(' + ')}`
-                  : 'Setup: None'}
-              </li>
-              <li>{`Trigger: ${trigger.sourceDisciplineId} · ${trigger.requiredTags.join(' + ')}`}</li>
-            </ul>
-          </dd>
-        </div>
-        <div>
-          <dt>Result</dt>
-          <dd>
-            <ul>
-              {effects.map((entry, index) => (
-                <li key={`${index}:${entry}`}>{entry}</li>
-              ))}
-            </ul>
-          </dd>
-        </div>
-        <div>
-          <dt>Result details</dt>
-          <dd>
-            <ul>
-              {effectExplanations.map((entry, index) => (
-                <li key={`${index}:${entry}`}>{entry}</li>
-              ))}
-            </ul>
-          </dd>
-        </div>
-      </dl>
-    </aside>
+      <aside id={`resonance-preview-${resonance.id}`} role="tooltip">
+        <ResonanceParameters definition={resonance} />
+      </aside>
+    </BattleInfoPopover>
   )
 }
 
@@ -207,8 +140,8 @@ function TechniqueLane({
               <span className={styles.overviewTechniqueArt} data-arsenal-media="true">
                 <Image
                   src={battleSkillArtwork(skill.id)}
-                  width={64}
-                  height={64}
+                  width={160}
+                  height={160}
                   unoptimized
                   alt=""
                 />
@@ -225,7 +158,7 @@ function TechniqueLane({
 function LockedAttunementCard({ label }: { label: 'Essence' | 'Resonance' }) {
   return (
     <article className={styles.attunementCard} data-active="false">
-      <span className={styles.attunementArt} aria-hidden="true">
+      <span className={styles.attunementArt} data-gameplay-art="attunement" aria-hidden="true">
         <span className={styles.lockGlyph}>▣</span>
       </span>
       <div>
@@ -241,8 +174,6 @@ export function CharacterArsenalShell({
   profile,
   attributeAllocation,
   disciplineBuild,
-  personalTitle = null,
-  imageUrl = null,
 }: CharacterWorkspaceProps) {
   const learnedSkillCatalogKey = disciplineBuild.disciplineSkills.learnedSkills
     .map((entry) => entry.definition.id + '@' + entry.definition.contentVersion)
@@ -256,62 +187,20 @@ export function CharacterArsenalShell({
   ].join(':')
   const resonance = disciplineBuild.disciplineSkills.extensions.resonance
   const essence = disciplineBuild.disciplineSkills.extensions.essence
-  const disciplineSummary = characterDisciplineSummary(
-    disciplineBuild.current.definition,
-    disciplineBuild.currentSecondary,
-  )
-  const maxHp = disciplineBuild.current.derived.stats.maxHp.value
-  const maxMp = disciplineBuild.current.derived.stats.maxMp.value
+  const supportActionId = disciplineBuild.supportActionId ?? DEFAULT_SUPPORT_ACTION_ID
+  const supportAction = pv1fSkillByActionId(supportActionId)!
   const equipped = [...disciplineBuild.disciplineSkills.equippedSkills].sort(
     (left, right) => left.slotIndex - right.slotIndex,
   )
-  const primarySkills = equipped
-    .filter(
-      (entry) => entry.definition.sourceDisciplineId === disciplineBuild.current.definition.id,
-    )
-    .map((entry) => entry.definition)
-  const secondarySkills = disciplineBuild.currentSecondary
-    ? equipped
-        .filter(
-          (entry) => entry.definition.sourceDisciplineId === disciplineBuild.currentSecondary?.id,
-        )
-        .map((entry) => entry.definition)
-    : []
-
   return (
-    <div className={styles.layout} data-arsenal-workspace data-character-concept="nexus">
-      <CharacterIdentityCard
-        profile={profile}
-        primary={disciplineBuild.current.definition}
-        secondary={disciplineBuild.currentSecondary}
-        personalTitle={personalTitle}
-        imageUrl={imageUrl}
-        disciplineSummary={disciplineSummary}
-        maxHp={maxHp}
-        maxMp={maxMp}
-      />
-
-      <Surface
-        className={styles.arsenal}
-        tone="elevated"
-        data-av-surface="moonstone"
-        data-arsenal-sheet="true"
-      >
-        <header className={styles.pageHeading}>
-          <div className={styles.pageHeadingTitle}>
-            <span className={styles.pageIcon} aria-hidden="true">
-              ⚔
-            </span>
-            <div>
-              <h1>Nexus</h1>
-              <p>Master disciplines. Refine techniques. Prepare for what comes.</p>
-            </div>
-          </div>
-          <small>
-            A sharper mind. A steadier hand.
-            <br />A kinder world.
-          </small>
-        </header>
+    <div
+      className={styles.layout}
+      data-arsenal-workspace
+      data-character-concept="nexus"
+      data-composition="correction"
+    >
+      <Surface className={styles.arsenal} tone="elevated" data-arsenal-sheet="true">
+        <LoadoutHeader active="nexus" />
 
         <section
           className={[styles.panel, styles.disciplinesPanel].join(' ')}
@@ -332,7 +221,9 @@ export function CharacterArsenalShell({
               </span>
               <div>
                 <span>Primary Discipline</span>
-                <strong>{disciplineBuild.current.definition.name}</strong>
+                <strong data-testid="primary-discipline-chip">
+                  {disciplineBuild.current.definition.name}
+                </strong>
                 <p>{disciplineBuild.current.definition.summary}</p>
               </div>
             </article>
@@ -344,7 +235,9 @@ export function CharacterArsenalShell({
                 </span>
                 <div>
                   <span>Secondary Discipline</span>
-                  <strong>{disciplineBuild.currentSecondary.name}</strong>
+                  <strong data-testid="secondary-discipline-chip">
+                    {disciplineBuild.currentSecondary.name}
+                  </strong>
                   <p>{disciplineBuild.currentSecondary.summary}</p>
                 </div>
               </article>
@@ -363,7 +256,8 @@ export function CharacterArsenalShell({
           </div>
 
           <CharacterDisciplineBuildPanel
-            initialBuildVersion={disciplineBuild.buildVersion}
+            key={profile.characterId}
+            characterId={profile.characterId}
             initialCurrent={disciplineBuild.current}
             initialCurrentSecondary={disciplineBuild.currentSecondary}
             availablePrimaries={disciplineBuild.availablePrimaries}
@@ -378,41 +272,51 @@ export function CharacterArsenalShell({
           data-arsenal-panel="techniques"
           aria-labelledby="nexus-techniques-heading"
         >
-          <header className={styles.sectionHeading}>
-            <div>
-              <span>✦</span>
-              <h2 id="nexus-techniques-heading">Techniques</h2>
+          <div className={styles.techniqueSummary}>
+            <div className={styles.techniqueLanes}>
+              <header className={styles.sectionHeading}>
+                <div>
+                  <span>✦</span>
+                  <h2 id="nexus-techniques-heading">
+                    Discipline Skills — {equipped.length} /{' '}
+                    {disciplineBuild.disciplineSkills.capacity}
+                  </h2>
+                </div>
+              </header>
+              <TechniqueLane
+                kind="primary"
+                discipline={{
+                  id: disciplineBuild.current.definition.id,
+                  name: `Discipline Skills — ${equipped.length} / ${disciplineBuild.disciplineSkills.capacity}`,
+                }}
+                skills={equipped.map((entry) => entry.definition)}
+              />
             </div>
-          </header>
 
-          <div className={styles.techniqueLanes}>
-            <TechniqueLane
-              kind="primary"
-              discipline={{
-                id: disciplineBuild.current.definition.id,
-                name: disciplineBuild.current.definition.name,
-              }}
-              skills={primarySkills}
-            />
-            <TechniqueLane
-              kind="secondary"
-              discipline={
-                disciplineBuild.currentSecondary
-                  ? {
-                      id: disciplineBuild.currentSecondary.id,
-                      name: disciplineBuild.currentSecondary.name,
-                    }
-                  : null
-              }
-              skills={secondarySkills}
-              locked={!disciplineBuild.currentSecondary}
-            />
+            <div className={styles.supportSummary} data-testid="nexus-support-action">
+              <header className={styles.sectionHeading}>
+                <h2>Support Action</h2>
+              </header>
+              <span className={styles.overviewTechniqueArt} data-arsenal-media="true">
+                <Image
+                  src={battleSkillArtwork(supportActionId)}
+                  width={160}
+                  height={160}
+                  unoptimized
+                  alt=""
+                />
+              </span>
+              <div>
+                <strong>{supportAction.name}</strong>
+              </div>
+            </div>
           </div>
 
           <CharacterSkillBuildPanel
             key={skillBuildKey}
             characterId={attributeAllocation.characterId}
             initialBuildVersion={disciplineBuild.buildVersion}
+            initialSupportActionId={supportActionId}
             primaryDiscipline={{
               id: disciplineBuild.current.definition.id,
               name: disciplineBuild.current.definition.name,
@@ -449,27 +353,16 @@ export function CharacterArsenalShell({
             <div className={styles.attunementGrid}>
               {essence ? (
                 <article className={styles.attunementCard} data-active="true">
-                  <span
-                    className={styles.attunementPreviewAnchor}
-                    tabIndex={0}
-                    aria-label={`Preview Essence: ${essence.name}`}
-                    aria-describedby={`essence-preview-${essence.essenceId}`}
-                  >
-                    <span className={styles.attunementArt}>
-                      <Image
-                        src={battleSkillArtwork(essence.skill.id)}
-                        width={64}
-                        height={64}
-                        unoptimized
-                        alt=""
-                      />
-                    </span>
-                    <EssenceHoverPreview essence={essence} />
-                  </span>
+                  <EssenceHoverPreview essence={essence} />
                   <div>
-                    <strong>{`Essence: ${essence.name}`}</strong>
-                    <p>{essence.flavorLine ?? essence.description}</p>
-                    <b>● Active</b>
+                    <div className={styles.attunementIdentity}>
+                      <strong>{`Essence: ${essence.name}`}</strong>
+                      <b>● Active</b>
+                    </div>
+                    <p>
+                      {renderBattleFlavorTemplate(essence.flavorLine, { ability: essence.name }) ??
+                        essence.description}
+                    </p>
                   </div>
                 </article>
               ) : (
@@ -478,27 +371,17 @@ export function CharacterArsenalShell({
 
               {resonance ? (
                 <article className={styles.attunementCard} data-active="true">
-                  <span
-                    className={styles.attunementPreviewAnchor}
-                    tabIndex={0}
-                    aria-label={`Preview Resonance: ${resonance.name}`}
-                    aria-describedby={`resonance-preview-${resonance.id}`}
-                  >
-                    <span className={styles.attunementArt}>
-                      <Image
-                        src={battleResonanceArtwork(resonance.id)}
-                        width={64}
-                        height={64}
-                        unoptimized
-                        alt=""
-                      />
-                    </span>
-                    <ResonanceHoverPreview resonance={resonance} />
-                  </span>
+                  <ResonanceHoverPreview resonance={resonance} />
                   <div>
-                    <strong>{`Resonance: ${resonance.name}`}</strong>
-                    <p>{resonance.flavorLine ?? resonance.description}</p>
-                    <b>● Active</b>
+                    <div className={styles.attunementIdentity}>
+                      <strong>{`Resonance: ${resonance.name}`}</strong>
+                      <b>● Active</b>
+                    </div>
+                    <p>
+                      {renderBattleFlavorTemplate(resonance.flavorLine, {
+                        ability: resonance.name,
+                      }) ?? resonance.description}
+                    </p>
                   </div>
                 </article>
               ) : (
@@ -521,7 +404,7 @@ export function CharacterArsenalShell({
 
             <div className={styles.powerGrid}>
               <article className={styles.futurePowerCard} data-power="ascension">
-                <span className={styles.powerGlyph} aria-hidden="true">
+                <span className={styles.powerGlyph} data-gameplay-art="power" aria-hidden="true">
                   <Image
                     src="/media/art/nexus/nexus-ascension-default-v01.webp"
                     width={160}
@@ -536,7 +419,7 @@ export function CharacterArsenalShell({
                 </div>
               </article>
               <article className={styles.futurePowerCard} data-power="severed">
-                <span className={styles.powerGlyph} aria-hidden="true">
+                <span className={styles.powerGlyph} data-gameplay-art="power" aria-hidden="true">
                   <Image
                     src="/media/art/nexus/nexus-severed-default-v01.webp"
                     width={160}
@@ -546,7 +429,7 @@ export function CharacterArsenalShell({
                   />
                 </span>
                 <div>
-                  <strong>Severed</strong>
+                  <strong>Severance</strong>
                   <b>▣ Coming Soon</b>
                 </div>
               </article>

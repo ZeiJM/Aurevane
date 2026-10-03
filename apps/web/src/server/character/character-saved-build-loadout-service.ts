@@ -4,9 +4,11 @@ import { createHash } from 'node:crypto'
 
 import type { DisciplineSkillReference } from '@aurevane/game-core/character/discipline-skill-loadout'
 import type { PersistedCharacter } from '@aurevane/game-core/character/persistence'
+import type { SupportActionId } from '@aurevane/game-core/combat/support-actions'
 import { AurevaneError } from '@aurevane/game-core/errors'
 
 export interface CharacterSavedBuildLoadoutRecord {
+  supportActionId?: SupportActionId
   slotIndex: number
   name: string
   primaryDisciplineId: string

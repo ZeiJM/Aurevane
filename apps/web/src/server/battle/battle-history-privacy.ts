@@ -12,7 +12,12 @@ import type { StatDrivenCombatEncounterState } from '@aurevane/game-core/combat/
 import type { BattleViewerEntitlement } from './battle-viewer-entitlement'
 
 export type BattlePrivacyVisibility =
-  { readonly kind: 'public' } | { readonly kind: 'team-only'; readonly teamId: string }
+  | { readonly kind: 'public' }
+  | {
+      readonly kind: 'team-only'
+      readonly teamId: string
+      readonly requiredTeamIds?: readonly string[]
+    }
 
 export interface BattlePrivacyEventOverride {
   readonly eventIndex: number
@@ -69,7 +74,13 @@ function visibilityAllowed(
   viewer: BattleViewerEntitlement,
 ): boolean {
   if (visibility.kind === 'public') return true
-  return viewer.kind === 'participant' && viewer.friendlyTeamIds.has(visibility.teamId)
+  return (
+    viewer.kind === 'participant' &&
+    viewer.friendlyTeamIds.has(visibility.teamId) &&
+    (visibility.requiredTeamIds === undefined ||
+      (Array.isArray(visibility.requiredTeamIds) &&
+        visibility.requiredTeamIds.every((teamId) => viewer.friendlyTeamIds.has(teamId))))
+  )
 }
 
 const STATUS_DEFINITIONS_BY_ID = new Map(
@@ -229,7 +240,12 @@ function sensoryPublicEventIndexes(events: readonly unknown[]): ReadonlySet<numb
 
 function lifecycleTarget(event: Record<string, unknown>): string | null {
   if (event.event === 'status_expired') return stringValue(event.combatantId)
-  if (event.event === 'status_applied' || event.event === 'status_removed') {
+  if (
+    event.event === 'status_applied' ||
+    event.event === 'status_removed' ||
+    event.event === 'barrier_changed' ||
+    event.event === 'recovery_scheduled'
+  ) {
     return stringValue(event.targetCombatantId)
   }
   return null
@@ -304,6 +320,18 @@ export function buildBattlePrivacyJournalInput(input: {
       ? teamVisibility(actor.actorTeamId)
       : publicVisibility()
   const sensoryPublicIndexes = sensoryPublicEventIndexes(input.events)
+  const gainsCovert = new Set(
+    input.before.copyPolicyVersion === 1
+      ? input.events.flatMap((raw) => {
+          const event = objectValue(raw)
+          return event?.event === 'status_applied' &&
+            event.statusId === PV1F_COVERT_STATUS.id &&
+            typeof event.targetCombatantId === 'string'
+            ? [event.targetCombatantId]
+            : []
+        })
+      : [],
+  )
   const eventVisibilityOverrides: BattlePrivacyEventOverride[] = []
 
   input.events.forEach((raw, eventIndex) => {
@@ -316,7 +344,8 @@ export function buildBattlePrivacyJournalInput(input: {
 
     const targetCombatantId = lifecycleTarget(event)
     if (!targetCombatantId) return
-    const targetWasCovert = hasCovert(statusesByCombatant, targetCombatantId)
+    const targetWasCovert =
+      hasCovert(statusesByCombatant, targetCombatantId) || gainsCovert.has(targetCombatantId)
     const identity = statusLifecycleIdentityBeforeOrAfter({
       event,
       targetCombatantId,
@@ -345,11 +374,46 @@ export function buildBattlePrivacyJournalInput(input: {
     })
   })
 
-  eventVisibilityOverrides.sort((left, right) => left.eventIndex - right.eventIndex)
+  // A delayed receipt keeps its original command restriction, even when emitted by a
+  // public turn transition. Additional target privacy is an intersection, never a grant.
+  const finalOverrides = new Map(
+    eventVisibilityOverrides.map((override) => [override.eventIndex, override]),
+  )
+  input.events.forEach((raw, eventIndex) => {
+    const event = objectValue(raw)
+    if (!event || !Object.hasOwn(event, 'sourceCommandVisibility')) return
+    const source = objectValue(event.sourceCommandVisibility)
+    const sourceTeamId = source ? stringValue(source.teamId) : null
+    if (
+      source?.kind !== 'team-only' ||
+      !sourceTeamId ||
+      ![...teamByCombatant.values()].includes(sourceTeamId) ||
+      Object.keys(source).some((key) => !['kind', 'teamId'].includes(key))
+    ) {
+      throw new Error('Invalid delayed source command visibility.')
+    }
+    const previous = finalOverrides.get(eventIndex)?.visibility ?? commandVisibility
+    const requiredTeamIds =
+      previous.kind === 'public'
+        ? []
+        : [...new Set([previous.teamId, ...(previous.requiredTeamIds ?? [])])]
+            .filter((teamId) => teamId !== sourceTeamId)
+            .sort()
+    finalOverrides.set(eventIndex, {
+      eventIndex,
+      visibility: {
+        kind: 'team-only',
+        teamId: sourceTeamId,
+        ...(requiredTeamIds.length ? { requiredTeamIds } : {}),
+      },
+    })
+  })
   return {
     schemaVersion: 1,
     commandVisibility,
-    eventVisibilityOverrides,
+    eventVisibilityOverrides: [...finalOverrides.values()].sort(
+      (left, right) => left.eventIndex - right.eventIndex,
+    ),
   }
 }
 

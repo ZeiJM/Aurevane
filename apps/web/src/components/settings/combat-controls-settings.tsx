@@ -13,7 +13,6 @@ import {
 } from '@aurevane/validation/player/combat-controls'
 import { useEffect, useMemo, useState } from 'react'
 
-import { AurevaneImage } from '@/components/media/aurevane-image'
 import styles from './combat-controls-settings.module.css'
 
 interface CombatControlsSettingsProps {
@@ -23,29 +22,52 @@ interface CombatControlsSettingsProps {
 const ACTION_COPY: Record<CombatKeybindAction, { label: string; description: string }> = {
   inspect: { label: 'Inspect', description: 'Open optional terrain and combatant inspection.' },
   move: {
-    label: 'Movement Skill',
-    description: `Activate the currently equipped Movement skill. With Move equipped, a normal tile costs ${PV1F_MOVEMENT_COST_PER_TERRAIN_POINT} AP and obeys your remaining Movement allowance.`,
+    label: 'Move',
+    description: `Move within your allowance; normal tiles cost ${PV1F_MOVEMENT_COST_PER_TERRAIN_POINT} AP.`,
   },
   basicAttack: {
-    label: 'Attack Skill',
-    description:
-      'Activate the currently equipped Attack skill and enter its targeting or preview flow.',
+    label: 'Basic Attack',
+    description: 'Select Basic Attack and preview a legal target.',
   },
   guard: {
-    label: 'Defense Skill',
-    description: 'Activate the currently equipped Defense skill and enter its preview flow.',
+    label: 'Support Action',
+    description: 'Select your saved Support Action and preview its effect.',
   },
   recover: {
-    label: 'Heal Skill',
-    description: 'Activate the currently equipped Heal skill, such as HP Recovery or MP Recovery.',
+    label: 'Recover',
+    description: 'Open the secondary recovery command.',
+  },
+  skill1: {
+    label: 'Discipline Skill 1',
+    description: 'Preview a legal target for your first committed Discipline Skill.',
+  },
+  skill2: {
+    label: 'Discipline Skill 2',
+    description: 'Preview a legal target for your second committed Discipline Skill.',
+  },
+  skill3: {
+    label: 'Discipline Skill 3',
+    description: 'Preview a legal target for your third committed Discipline Skill.',
+  },
+  skill4: {
+    label: 'Discipline Skill 4',
+    description: 'Preview a legal target for your fourth committed Discipline Skill.',
+  },
+  essence: {
+    label: 'Essence / Resonance',
+    description: 'Select actionable Essence; inspect passive Essence or Resonance.',
+  },
+  supernatural: {
+    label: 'Severance / Ascension',
+    description: 'Inspect the future path slot without issuing a battle command.',
   },
   endTurn: {
     label: 'Finish Turn',
-    description: 'Choose final facing; the chosen direction immediately ends the turn.',
+    description: 'Press twice to keep facing, or choose a direction to finish.',
   },
   confirm: {
-    label: 'Confirm Action',
-    description: 'Commit the current legal move or action preview.',
+    label: 'Execute selected action',
+    description: 'Optional keyboard execution of the current legal preview.',
   },
   cancel: { label: 'Cancel Action', description: 'Clear current planning without committing.' },
   faceNorth: { label: 'Face North', description: 'Finish the turn facing north.' },
@@ -157,15 +179,12 @@ export function CombatControlsSettings({ initialBindings }: CombatControlsSettin
     <section
       className={styles.panel}
       data-character-concept="controls"
-      data-av-surface="ink"
+      data-av-surface="moonstone"
       aria-label="Combat controls settings"
     >
       <p className={styles.intro}>
-        Keybinds follow your account and trigger the same visible cockpit slots you can click.
-        Movement, Attack, Defense, and Heal bindings stay with their slot when you switch the
-        equipped skill. They never bypass battle previews, confirmation, legality checks, or server
-        authority. When Move is the equipped Movement skill and active, WASD and the arrow keys
-        select adjacent destinations; Enter confirms a legal proposal.
+        Change a battle key, then save. Preview actions before choosing a legal target. The server
+        validates every action.
       </p>
 
       <div className={styles.grid}>
@@ -173,13 +192,13 @@ export function CombatControlsSettings({ initialBindings }: CombatControlsSettin
           <div className={styles.row} key={action} data-testid={`keybind-${action}`}>
             <div>
               <strong>{ACTION_COPY[action].label}</strong>
-              <small>{ACTION_COPY[action].description}</small>
+              <small id={`keybind-${action}-description`}>{ACTION_COPY[action].description}</small>
             </div>
-            <kbd className={styles.key}>{formatCombatKeybind(draft[action])}</kbd>
             <button
               type="button"
               className={styles.button}
               aria-label={`Change ${ACTION_COPY[action].label} keybind`}
+              aria-describedby={`keybind-${action}-key keybind-${action}-description`}
               onClick={() => {
                 setCapturing(action)
                 setError(null)
@@ -189,57 +208,53 @@ export function CombatControlsSettings({ initialBindings }: CombatControlsSettin
               }}
               disabled={pending || capturing !== null}
             >
-              {capturing === action ? 'Press a key…' : 'Change'}
+              <kbd className={styles.key} id={`keybind-${action}-key`}>
+                {formatCombatKeybind(draft[action])}
+              </kbd>
+              <span>{capturing === action ? 'Press…' : 'Change'}</span>
             </button>
           </div>
         ))}
       </div>
 
-      <aside className={styles.companion} data-av-surface="ink">
-        <h2>Fight with intention</h2>
-        <AurevaneImage
-          assetId="environment.battle-hall.courtyard"
-          sizes="(min-width: 761px) 26vw, 100vw"
-        />
-        <p>Choose a binding, then press a key.</p>
-        <small>Changes apply when you save your controls.</small>
-      </aside>
-
-      {error ? (
-        <p className={styles.error} role="alert">
-          {error}
-        </p>
-      ) : null}
-      {notice ? (
-        <p className={styles.notice} role="status">
-          {notice}
-        </p>
-      ) : null}
-
-      <div className={styles.actions}>
-        <button
-          type="button"
-          className={styles.button}
-          onClick={() => {
-            setDraft(cloneBindings(DEFAULT_COMBAT_KEYBINDS))
-            setCapturing(null)
-            setError(null)
-            setNotice(
-              'Default combat bindings restored locally. Save to keep them on your account.',
-            )
-          }}
-          disabled={pending}
-        >
-          Reset defaults
-        </button>
-        <button
-          type="button"
-          className={styles.primary}
-          onClick={() => void save()}
-          disabled={pending || !changed}
-        >
-          {pending ? 'Saving…' : 'Save Controls'}
-        </button>
+      <div className={styles.footer}>
+        <div className={styles.feedback}>
+          {error ? (
+            <p className={styles.error} role="alert">
+              {error}
+            </p>
+          ) : null}
+          {notice ? (
+            <p className={styles.notice} role="status">
+              {notice}
+            </p>
+          ) : null}
+        </div>
+        <div className={styles.actions}>
+          <button
+            type="button"
+            className={styles.button}
+            onClick={() => {
+              setDraft(cloneBindings(DEFAULT_COMBAT_KEYBINDS))
+              setCapturing(null)
+              setError(null)
+              setNotice(
+                'Default combat bindings restored locally. Save to keep them on your account.',
+              )
+            }}
+            disabled={pending}
+          >
+            Reset defaults
+          </button>
+          <button
+            type="button"
+            className={styles.primary}
+            onClick={() => void save()}
+            disabled={pending || !changed}
+          >
+            {pending ? 'Saving…' : 'Save Controls'}
+          </button>
+        </div>
       </div>
     </section>
   )

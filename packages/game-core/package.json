@@ -45,6 +45,7 @@
     "./combat/recruit-ai-build": "./src/combat/recruit-ai-build.ts",
     "./combat/stat-driven-combat": "./src/combat/stat-driven-combat.ts",
     "./combat/tactical-hall-arenas": "./src/combat/tactical-hall-arenas.ts",
+    "./combat/standard-battlefield": "./src/combat/standard-battlefield.ts",
     "./combat/tactical-hall-records": "./src/combat/tactical-hall-records.ts",
     "./command": "./src/command.ts",
     "./errors": "./src/errors.ts",
@@ -54,6 +55,7 @@
     "./combat/gameplay-tags": "./src/combat/gameplay-tags.ts",
     "./combat/terrain-overlays": "./src/combat/terrain-overlays.ts",
     "./combat/combat-skill-copy": "./src/combat/combat-skill-copy.ts",
+    "./combat/combat-status-copy": "./src/combat/combat-status-copy.ts",
     "./events/persistent-event": "./src/events/persistent-event.ts",
     "./combat/combat-dots": "./src/combat/combat-dots.ts",
     "./combat/combat-level-scaling": "./src/combat/combat-level-scaling.ts",
@@ -61,7 +63,9 @@
     "./combat/damage-modifiers": "./src/combat/damage-modifiers.ts",
     "./combat/summon-content": "./src/combat/summon-content.ts",
     "./combat/combat-summons": "./src/combat/combat-summons.ts",
-    "./combat/summon-ai": "./src/combat/summon-ai.ts"
+    "./combat/summon-ai": "./src/combat/summon-ai.ts",
+    "./combat/support-actions": "./src/combat/support-actions.ts",
+    "./combat/combat-effect-timing": "./src/combat/combat-effect-timing.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

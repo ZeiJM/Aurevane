@@ -46,6 +46,8 @@ export async function handleCreateBattleSessionRequest(
       arenaId: parsed.arenaId,
       aiDifficulty: parsed.aiDifficulty,
       battleHallRecordId: parsed.battleHallRecordId,
+      allyCount: parsed.allyCount,
+      enemyCount: parsed.enemyCount,
       idempotencyKey: parsed.idempotencyKey,
     })
     return battleResponse(battle)

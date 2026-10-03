@@ -591,3 +591,375 @@ describe('Status copying: K3 lineage and deterministic identity', () => {
     expect(validateCombatEffectInstanceProvenance(value)).toEqual([])
   })
 })
+
+it('copies affected-turn-end lifetimes without converting them to start-turn expiry', () => {
+  const initial = {
+    ...world([
+      {
+        combatantId: 'target',
+        statuses: [row(POSITIVE, { remainingOwnerTurnEnds: 1, timingState: 'active' })],
+      },
+    ]),
+    effectTimingPolicy: { version: 1, modes: { 'copy-statuses': 'instant' as const } },
+  }
+  const result = cast(initial, 'amplify')
+  expect(statuses(result.state, 'actor')[0]?.remainingOwnerTurnEnds).toBe(1)
+  expect(result.events.find((event) => event.event === 'status_applied')).toMatchObject({
+    expiryBoundary: 'owner-turn-end',
+  })
+})
+it('pins delayed Amplify source effects even when the donor expires before activation', () => {
+  let initial = {
+    ...world([
+      {
+        combatantId: 'target',
+        statuses: [
+          row(POSITIVE, {
+            remainingOwnerTurnEnds: 1,
+            remainingOwnerTurnStarts: 1,
+            timingState: 'active',
+          }),
+        ],
+      },
+    ]),
+    effectTimingPolicy: { version: 1, modes: {} },
+  }
+  initial = cast(initial, 'amplify').state as typeof initial
+  for (let turn = 0; turn < 3; turn += 1) initial = advance(initial, CONTENT) as typeof initial
+  expect(statuses(initial, 'actor')).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ statusId: POSITIVE.id, remainingOwnerTurnEnds: 1 }),
+    ]),
+  )
+  expect(statuses(initial, 'target')).toHaveLength(0)
+})
+
+describe('versioned beneficial Copy shared action contract', () => {
+  it('resolves authored Copy directly and preserves donor and instance lineage', () => {
+    const donor = row(POSITIVE, { stacks: 2, provenance: origin('target') })
+    const initial = {
+      ...world([{ combatantId: 'target', statuses: [donor] }]),
+      copyPolicyVersion: 1 as const,
+    }
+    const action: CombatActionDefinition = {
+      ...copying('amplify'),
+      effects: [{ type: 'copy', recipient: 'primary-unit' }],
+    }
+    const snapshot = JSON.stringify(initial)
+    expect(evaluateCombatAction(initial, action, TARGET, CONTENT).legal).toBe(true)
+    const result = executeCombatAction(initial, action, TARGET, CONTENT, context())
+    expect(statuses(result.state, 'actor')[0]).toMatchObject({
+      statusId: POSITIVE.id,
+      stacks: 2,
+      remainingOwnerTurnStarts: donor.remainingOwnerTurnStarts,
+      provenance: { copiedFromInstanceId: donor.provenance!.instanceId, copyOrdinal: 0 },
+    })
+    expect(statuses(result.state, 'target')).toEqual([donor])
+    expect(JSON.stringify(initial)).toBe(snapshot)
+  })
+  it.each(['system', 'self-cost'] as const)(
+    'excludes positive %s state even under current Copy',
+    (reactionClass) => {
+      const initial = {
+        ...world([{ combatantId: 'target', statuses: [row(POSITIVE)] }]),
+        copyPolicyVersion: 1 as const,
+      }
+      const action: CombatActionDefinition = {
+        ...copying('amplify'),
+        effects: [{ type: 'copy', recipient: 'primary-unit' }],
+      }
+      expect(
+        evaluateCombatAction(initial, action, TARGET, {
+          statuses: [{ ...POSITIVE, reactionClass }],
+        }).legal,
+      ).toBe(false)
+    },
+  )
+  it('rejects malformed beneficial policy flags and beneficial Curse authoring', () => {
+    for (const effect of [
+      { type: 'copy-statuses', recipient: 'primary-unit', mode: 'curse', beneficialEffects: true },
+      {
+        type: 'copy-statuses',
+        recipient: 'primary-unit',
+        mode: 'amplify',
+        beneficialEffects: 'true',
+      },
+    ])
+      expect(() =>
+        validateCombatActionDefinition(
+          { ...copying('amplify'), effects: [effect] } as unknown as CombatActionDefinition,
+          CONTENT,
+        ),
+      ).toThrow(/boolean Amplify policy/)
+  })
+  it('fails closed on unknown pinned Copy policies', () => {
+    expect(
+      validateCombatEncounterState({
+        ...world(),
+        copyPolicyVersion: 2,
+      } as unknown as CombatEncounterState),
+    ).toContainEqual({ field: 'copyPolicyVersion', message: 'Invalid pinned Copy policy.' })
+  })
+})
+
+describe('current Copy beneficial persistent pools and recovery schedules', () => {
+  function persistent() {
+    const initial = { ...world(), copyPolicyVersion: 1 as const }
+    initial.effectState = {
+      ...normalizeCombatEffectState(initial.effectState),
+      barriers: [
+        {
+          targetCombatantId: 'target',
+          sourceCombatantId: 'other',
+          sourceActionId: 'original.barrier',
+          amount: 50,
+          provenance: origin('target', 0),
+        },
+      ],
+      ongoingRecovery: [
+        {
+          kind: 'hp',
+          targetCombatantId: 'target',
+          sourceCombatantId: 'other',
+          sourceActionId: 'original.hp',
+          amountPerTick: 7,
+          remainingFutureTicks: 2,
+          provenance: origin('target', 1),
+        },
+        {
+          kind: 'mp',
+          targetCombatantId: 'target',
+          sourceCombatantId: 'other',
+          sourceActionId: 'original.mp',
+          amountPerTick: 3,
+          remainingFutureTicks: 1,
+          provenance: origin('target', 2),
+        },
+      ],
+    }
+    return { ...initial, effectState: initial.effectState! }
+  }
+  function action(): CombatActionDefinition {
+    return { ...copying('amplify'), effects: [{ type: 'copy', recipient: 'primary-unit' }] }
+  }
+  it('copies remaining Barrier and HP/MP schedules without restoring resources or touching the donor', () => {
+    const initial = persistent()
+    const snapshot = JSON.stringify(initial)
+    const preview = evaluateCombatAction(initial, action(), TARGET, CONTENT)
+    expect(preview.legal).toBe(true)
+    expect(preview.projectedEffects).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ after: 'barrier:50' }),
+        expect.objectContaining({ after: 'recovery:hp:7:2' }),
+        expect.objectContaining({ after: 'recovery:mp:3:1' }),
+      ]),
+    )
+    const result = executeCombatAction(initial, action(), TARGET, CONTENT, context())
+    expect(result.state.tactical.battle.combatants.find((unit) => unit.id === 'actor')?.hp).toBe(
+      100,
+    )
+    expect(result.state.tactical.battle.combatants.find((unit) => unit.id === 'actor')?.mp).toBe(16)
+    expect(
+      result.state.effectState?.barriers?.find((entry) => entry.targetCombatantId === 'actor'),
+    ).toMatchObject({
+      amount: 50,
+      sourceCombatantId: 'actor',
+      provenance: {
+        copiedFromInstanceId: initial.effectState.barriers![0]!.provenance!.instanceId,
+      },
+    })
+    expect(
+      result.state.effectState?.ongoingRecovery.filter(
+        (entry) => entry.targetCombatantId === 'actor',
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        kind: 'hp',
+        amountPerTick: 7,
+        remainingFutureTicks: 2,
+        skipCurrentOwnerTurnEnd: true,
+        provenance: expect.objectContaining({
+          copiedFromInstanceId: initial.effectState.ongoingRecovery[0]!.provenance!.instanceId,
+          copyOrdinal: 1,
+        }),
+      }),
+      expect.objectContaining({
+        kind: 'mp',
+        amountPerTick: 3,
+        remainingFutureTicks: 1,
+        skipCurrentOwnerTurnEnd: true,
+        provenance: expect.objectContaining({
+          copiedFromInstanceId: initial.effectState.ongoingRecovery[1]!.provenance!.instanceId,
+          copyOrdinal: 2,
+        }),
+      }),
+    ])
+    expect(
+      result.state.effectState?.ongoingRecovery.filter(
+        (entry) => entry.targetCombatantId === 'target',
+      ),
+    ).toEqual(initial.effectState.ongoingRecovery)
+    expect(JSON.stringify(initial)).toBe(snapshot)
+  })
+  it('honors the receiving Barrier cap and replaces matching recovery schedules with remaining donor ticks', () => {
+    const initial = persistent()
+    initial.effectState.barriers!.push({
+      targetCombatantId: 'actor',
+      sourceCombatantId: 'actor',
+      sourceActionId: 'guard',
+      amount: 80,
+    })
+    initial.effectState.ongoingRecovery.push({
+      kind: 'hp',
+      targetCombatantId: 'actor',
+      sourceCombatantId: 'actor',
+      sourceActionId: 'original.hp',
+      amountPerTick: 2,
+      remainingFutureTicks: 3,
+    })
+    const result = executeCombatAction(initial, action(), TARGET, CONTENT)
+    expect(
+      result.state.effectState?.barriers
+        ?.filter((entry) => entry.targetCombatantId === 'actor')
+        .reduce((total, entry) => total + entry.amount, 0),
+    ).toBe(100)
+    expect(
+      result.state.effectState?.ongoingRecovery.filter(
+        (entry) => entry.targetCombatantId === 'actor' && entry.kind === 'hp',
+      ),
+    ).toEqual([expect.objectContaining({ amountPerTick: 7, remainingFutureTicks: 2 })])
+  })
+  it('preserves prior receiving Barrier lineage when its cap prevents a transfer', () => {
+    const initial = persistent()
+    const previous = {
+      targetCombatantId: 'actor',
+      sourceCombatantId: 'actor',
+      sourceActionId: 'original.barrier',
+      amount: 100,
+      provenance: origin('actor', 8),
+    }
+    initial.effectState.barriers!.push(previous)
+    const result = executeCombatAction(initial, action(), TARGET, CONTENT, context())
+    expect(
+      result.state.effectState?.barriers?.find((entry) => entry.targetCombatantId === 'actor'),
+    ).toEqual(previous)
+  })
+  it('runs only the copied remaining recovery ticks and expires the schedules', () => {
+    const initial = persistent()
+    initial.tactical.battle.combatants = initial.tactical.battle.combatants.map((unit) =>
+      unit.id === 'actor' ? { ...unit, hp: 50, mp: 5 } : unit,
+    )
+    let result = executeCombatAction(initial, action(), TARGET, CONTENT).state
+    result = advance(result, CONTENT)
+    expect(result.tactical.battle.combatants.find((unit) => unit.id === 'actor')?.hp).toBe(50)
+    for (let turn = 0; turn < 6; turn += 1) result = advance(result, CONTENT)
+    expect(result.tactical.battle.combatants.find((unit) => unit.id === 'actor')?.hp).toBe(64)
+    expect(result.tactical.battle.combatants.find((unit) => unit.id === 'actor')?.mp).toBe(4)
+    expect(
+      result.effectState?.ongoingRecovery.some((entry) => entry.targetCombatantId === 'actor'),
+    ).toBe(false)
+  })
+  it('pins delayed pools and schedules even after the live donor changes', () => {
+    const initial = { ...persistent(), effectTimingPolicy: { version: 1, modes: {} } }
+    let queued = executeCombatAction(initial, action(), TARGET, CONTENT).state
+    queued = {
+      ...queued,
+      effectState: {
+        ...normalizeCombatEffectState(queued.effectState),
+        barriers: [],
+        ongoingRecovery: [],
+      },
+    }
+    for (let turn = 0; turn < 3; turn += 1) queued = advance(queued, CONTENT)
+    expect(
+      queued.effectState?.barriers?.find((entry) => entry.targetCombatantId === 'actor')?.amount,
+    ).toBe(50)
+    expect(
+      queued.effectState?.ongoingRecovery.filter((entry) => entry.targetCombatantId === 'actor'),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: 'hp', amountPerTick: 7, remainingFutureTicks: 2 }),
+        expect.objectContaining({ kind: 'mp', amountPerTick: 3, remainingFutureTicks: 1 }),
+      ]),
+    )
+    expect(
+      queued.effectState?.barriers?.some((entry) => entry.targetCombatantId === 'target'),
+    ).toBe(false)
+    expect(
+      queued.effectState?.ongoingRecovery.some((entry) => entry.targetCombatantId === 'target'),
+    ).toBe(false)
+  })
+  it('preserves donor lineage through delayed activation without reattributing a receiving pool before activation', () => {
+    const initial = { ...persistent(), effectTimingPolicy: { version: 1, modes: {} } }
+    const previous = {
+      targetCombatantId: 'actor',
+      sourceCombatantId: 'actor',
+      sourceActionId: 'original.barrier',
+      amount: 10,
+      provenance: origin('actor', 8),
+    }
+    initial.effectState.barriers!.push(previous)
+    let queued = executeCombatAction(initial, action(), TARGET, CONTENT, context()).state
+    expect(
+      queued.effectState?.barriers?.find((entry) => entry.targetCombatantId === 'actor'),
+    ).toEqual(previous)
+    for (let turn = 0; turn < 3; turn += 1) queued = advance(queued, CONTENT)
+    expect(
+      queued.effectState?.barriers?.find((entry) => entry.targetCombatantId === 'actor'),
+    ).toMatchObject({
+      amount: 60,
+      provenance: {
+        copiedFromInstanceId: initial.effectState.barriers![0]!.provenance!.instanceId,
+        inheritedFromInstanceId: previous.provenance.instanceId,
+      },
+    })
+    expect(
+      queued.effectState?.ongoingRecovery.find(
+        (entry) => entry.targetCombatantId === 'actor' && entry.kind === 'hp',
+      )?.provenance?.copiedFromInstanceId,
+    ).toBe(initial.effectState.ongoingRecovery[0]!.provenance!.instanceId)
+  })
+  it.each([false, 'true'])('rejects malformed delayed persistent Copy marker %s', (marker) => {
+    const initial = { ...persistent(), effectTimingPolicy: { version: 1, modes: {} } }
+    const queued = executeCombatAction(initial, action(), TARGET, CONTENT).state
+    const malformed = JSON.parse(JSON.stringify(queued)) as CombatEncounterState
+    ;(
+      malformed.pendingEffects![0]!.copySource as unknown as {
+        beneficialPersistentEffects: unknown
+      }
+    ).beneficialPersistentEffects = marker
+    expect(validateCombatEncounterState(malformed)).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: 'pendingEffects' })]),
+    )
+  })
+  it('leaves typed beneficial pools and schedules outside historical Amplify', () => {
+    const initial = persistent()
+    expect(evaluateCombatAction(initial, copying('amplify'), TARGET, CONTENT).legal).toBe(false)
+  })
+  it('rejects a queued beneficial Copy whose pinned encounter policy was removed', () => {
+    const initial = { ...persistent(), effectTimingPolicy: { version: 1, modes: {} } }
+    const queued = executeCombatAction(initial, action(), TARGET, CONTENT).state
+    expect(validateCombatEncounterState(queued)).toEqual([])
+    const malformed = JSON.parse(JSON.stringify(queued)) as CombatEncounterState
+    delete malformed.copyPolicyVersion
+    expect(validateCombatEncounterState(malformed)).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: 'pendingEffects' })]),
+    )
+  })
+})
+
+it('does not allow the beneficial Copy engine flag to bypass a historical encounter policy', () => {
+  const initial = world([{ combatantId: 'target', statuses: [row(POSITIVE)] }])
+  const action: CombatActionDefinition = {
+    ...copying('amplify'),
+    effects: [
+      {
+        type: 'copy-statuses',
+        mode: 'amplify',
+        recipient: 'primary-unit',
+        beneficialEffects: true,
+      },
+    ],
+  }
+  expect(evaluateCombatAction(initial, action, TARGET, CONTENT).legal).toBe(false)
+})

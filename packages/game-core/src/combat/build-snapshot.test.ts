@@ -254,3 +254,21 @@ describe('P3.7 immutable combat build snapshot bridge', () => {
     ).toBeNull()
   })
 })
+
+it('rejects arbitrary Support Actions when reading historic build bridges', () => {
+  const characterId = '00000000-0000-4000-8000-000000003701'
+  const state = {
+    ...encounter(),
+    buildBridge: {
+      schemaVersion: 1,
+      combatants: [
+        {
+          characterId,
+          combatantId: `character:${characterId}`,
+          snapshot: { ...pureSnapshot(), supportActionId: 'basic.attack' },
+        },
+      ],
+    },
+  }
+  expect(readCombatBuildSnapshot(state, `character:${characterId}`)).toBeNull()
+})

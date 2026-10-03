@@ -1,0 +1,600 @@
+/* Owner-approved 29 September direction. Shared geometry and material authority.
+   Gameplay and editor state remain owned by their existing components. */
+:root {
+  --av-gameplay-art-size: 4rem;
+  --av-cockpit-art-size: 5.5rem;
+  --av-navigation-portrait-size: 10.3125rem;
+  --av-moonstone: #c5b69c;
+  --av-moonstone-quiet: #b8a88e;
+  --av-moonstone-elevated: #d4c6ae;
+  --av-charcoal: #282b2b;
+  --av-charcoal-muted: #4d473e;
+  --av-charcoal-dim: #60594d;
+  --av-gold-rule: #897455;
+  --av-teal: #275753;
+  --av-teal-hover: #326b65;
+  --av-ink-950: #202629;
+  --av-ink-900: #292f31;
+  --av-ink-850: #303739;
+  --av-ink-800: #394143;
+  --av-stone-300: #c6bdab;
+  --av-surface: #343a3b;
+  --av-surface-elevated: #3b4141;
+  --av-border: #8f7b594d;
+  --av-radius-sm: 3px;
+  --av-radius-md: 5px;
+  --av-radius-lg: 8px;
+}
+body {
+  background: #282f30;
+}
+:where(button, a, input, select, textarea):focus-visible {
+  outline: 2px solid #45c9c0;
+  outline-offset: 3px;
+}
+:where(input, select, textarea) {
+  accent-color: #2c635d;
+}
+:where([role='dialog'], dialog) {
+  max-height: 88dvh;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+[data-av-surface='moonstone'] {
+  --av-text: #272925;
+  --av-text-muted: #49463e;
+  --av-text-dim: #61594c;
+  color: var(--av-text);
+  background: linear-gradient(125deg, #d1c4ae, #bdad92), #bdad92 !important;
+  border-color: #9c8561 !important;
+}
+
+[data-av-shell='concept'][data-av-layout='battlefield'] {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+[data-av-shell='concept'][data-av-layout='battlefield'] > main {
+  grid-column: 1;
+  padding: 0.5rem !important;
+}
+.av-page-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.15rem;
+  color: #e4d7bd;
+}
+.av-page-heading h1 {
+  margin: 0.25rem 0 0;
+  font: 500 clamp(1.9rem, 3vw, 2.6rem)/1.1 var(--av-font-display);
+}
+.av-page-heading > :is(p, span) {
+  font-size: 0.8rem;
+  color: #c1b59f;
+}
+.av-eyebrow {
+  display: block;
+  color: inherit;
+  opacity: 0.8;
+  font: 600 0.68rem/1.4 var(--av-font-body);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+.av-stone-panel {
+  padding: 1.3rem;
+  color: #2a2b26;
+  background: linear-gradient(125deg, #d5c7af, #bbae95);
+  border: 1px solid #a48c63;
+  border-radius: 5px;
+  box-shadow:
+    0 7px 22px #151b1c38,
+    inset 0 1px #f4e4c56b;
+}
+.av-stone-panel h2 {
+  margin: 0.6rem 0;
+  font: 500 1.4rem/1.2 var(--av-font-display);
+}
+.av-stone-panel p {
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+.av-stone-panel a {
+  color: #235650;
+  font-weight: 650;
+}
+.av-action {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1.5rem;
+  min-height: 2.9rem;
+  padding: 0.6rem 1.2rem;
+  border: 1px solid #b58e59;
+  border-radius: 3px;
+  color: #f2e3c9 !important;
+  background: linear-gradient(120deg, #783c2d, #542b23);
+  text-decoration: none;
+  font: 500 1rem/1.2 var(--av-font-display);
+  box-shadow:
+    inset 0 1px #f2d5a42e,
+    0 3px 8px #101b2138;
+}
+.av-action:hover {
+  filter: brightness(1.13);
+}
+.av-soon {
+  display: inline-flex;
+  gap: 0.4rem;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid #78684d75;
+  border-radius: 3px;
+  color: inherit;
+  font: 600 0.7rem/1.2 var(--av-font-body);
+  letter-spacing: 0.05em;
+}
+.av-haven-hero {
+  min-height: clamp(12rem, 28vh, 20rem);
+  display: flex;
+  align-items: center;
+  padding: 2rem;
+  border: 1px solid #b08e54;
+  border-radius: 5px;
+  color: #f5e7cd;
+  background:
+    linear-gradient(90deg, #151e24cf, transparent 90%),
+    url('/media/art/adventure/haven-v01.webp') center 55% / cover;
+}
+.av-haven-hero h2 {
+  font: 500 clamp(2rem, 3vw, 3.25rem)/1.08 var(--av-font-display);
+  margin: 0.6rem 0;
+}
+.av-haven-hero p {
+  max-width: 31rem;
+  line-height: 1.6;
+  margin-bottom: 1.3rem;
+}
+.av-haven-grid {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 1fr;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+.av-quick-links {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+.av-quick-links a {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.9rem 1rem;
+  color: #eadbc0;
+  border: 1px solid #9a81545c;
+  background: #252e2ea6;
+  text-decoration: none;
+}
+.av-quick-links b {
+  font-size: 1.8rem;
+  color: #b79b69;
+}
+.av-quick-links span {
+  flex: 1;
+  font: 500 1rem var(--av-font-display);
+}
+.av-quick-links small {
+  display: block;
+  margin-top: 0.3rem;
+  font: 400 0.7rem var(--av-font-body);
+  color: #bdb29d;
+}
+.av-loadout-choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.3rem;
+}
+.av-loadout-card {
+  position: relative;
+  display: flex;
+  align-items: end;
+  min-height: min(65vh, 39rem);
+  overflow: hidden;
+  padding: 2rem;
+  text-decoration: none;
+  border: 1px solid #b29668;
+  border-radius: 6px;
+  color: #f1e5cb;
+  background:
+    linear-gradient(0deg, #1f292afa, #1f292a10),
+    url('/media/art/adventure/haven-v01.webp') left center/cover;
+  transition: border-color 150ms;
+}
+.av-loadout-card[data-loadout='nexus'] {
+  background-image:
+    linear-gradient(0deg, #1a3335fa, #112f3010), url('/media/art/adventure/threshold-v01.webp');
+  background-position: 65% center;
+}
+.av-loadout-card:hover {
+  border-color: #f0c684;
+}
+.av-loadout-card h2 {
+  font: 500 2.6rem var(--av-font-display);
+  margin: 0.6rem 0;
+}
+.av-loadout-card p {
+  max-width: 25rem;
+  line-height: 1.6;
+}
+.av-loadout-card strong {
+  display: inline-block;
+  margin-top: 1rem;
+}
+.av-loadout-glyph {
+  font-size: 5rem;
+  color: #cdb27b;
+}
+.av-loadout-card > .av-loadout-glyph {
+  position: absolute;
+  top: 15%;
+  left: 40%;
+  text-shadow: 0 0 40px #3bcbb8;
+}
+.av-future-page {
+  min-height: 65vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  text-align: center;
+}
+
+[data-battle-hall-workspace] > [data-profile-identity-banner],
+[data-training-concept] > [data-profile-identity-banner] {
+  display: none;
+}
+
+.av-matchmaking {
+  padding: 2rem;
+  min-height: 24rem;
+  text-align: center;
+  border: 1px solid #9c8260;
+  color: #e9dfc7;
+  background: radial-gradient(ellipse at center, #28747b40, transparent 60%), #283638;
+}
+.av-matchmaking h2 {
+  font: 500 2.3rem var(--av-font-display);
+}
+.av-matchmaking p {
+  max-width: 33rem;
+  margin: 1rem auto;
+  line-height: 1.6;
+}
+.av-matchmaking-sigil {
+  display: grid;
+  place-items: center;
+  width: 8rem;
+  height: 8rem;
+  margin: 1.5rem auto;
+  border: 1px solid #84bdb4;
+  outline: 1px solid #ab925c;
+  outline-offset: 0.7rem;
+  border-radius: 50%;
+  color: #81d6d0;
+  font-size: 4rem;
+  box-shadow: 0 0 40px #3faaa62b;
+}
+[data-world-workspace] {
+  min-height: calc(100dvh - 10rem);
+  padding: 1rem !important;
+  border: 1px solid #958466;
+  background: linear-gradient(130deg, #8b998b40, transparent), #c5b69c !important;
+}
+/* Discipline contexts own their sigil sizes (library, identity and compact controls). */
+[data-gameplay-art]:not([data-gameplay-art='discipline']) {
+  flex: 0 0 var(--av-gameplay-art-size) !important;
+  width: var(--av-gameplay-art-size) !important;
+  height: var(--av-gameplay-art-size) !important;
+  aspect-ratio: 1 !important;
+}
+[data-gameplay-art] img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover;
+}
+@media (max-width: 980px) {
+  .av-haven-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .av-current-path {
+    grid-column: 1 / -1;
+  }
+  .av-quick-links {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 760px) {
+  [data-av-shell='concept'][data-av-layout='battlefield'] {
+    grid-template-rows: 3.5rem minmax(0, 1fr) 1.6rem !important;
+  }
+  [data-av-shell='concept'][data-av-layout='battlefield'] > footer {
+    grid-row: 3;
+  }
+  .av-page-heading {
+    align-items: start;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .av-haven-grid,
+  .av-loadout-choices {
+    grid-template-columns: 1fr;
+  }
+  .av-haven-hero {
+    padding: 1.2rem;
+    min-height: 18rem;
+  }
+  .av-haven-hero h2 {
+    font-size: 2rem;
+  }
+  .av-loadout-card {
+    min-height: 21rem;
+    padding: 1.4rem;
+  }
+}
+
+/* Master workspaces share the game frame; domain navigation stays beside the work. */
+.av-master-navigation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding: 0.4rem;
+  margin-bottom: 1.1rem;
+  border: 1px solid #8c775456;
+  background: #242d2e;
+  border-radius: 4px;
+}
+.av-master-navigation a {
+  padding: 0.65rem 0.8rem;
+  border: 1px solid transparent;
+  color: #d0c3a9;
+  text-decoration: none;
+  font-size: 0.8rem;
+}
+.av-master-navigation a[aria-current] {
+  color: #f1e5cb;
+  background: #6e5b3e75;
+  border-color: #a58d60;
+}
+.av-master-overview {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+.av-master-overview > a {
+  text-decoration: none;
+  min-height: 15rem;
+}
+.av-master-overview > a:hover {
+  background: #deceb2;
+}
+.av-master-glyph {
+  display: block;
+  font-size: 2.3rem;
+  margin-bottom: 1.2rem;
+  color: #4b695e;
+}
+.av-master :is(input, textarea, select) {
+  min-height: 2.6rem;
+  color: #29332d !important;
+  background: #ded4bf !important;
+  border: 1px solid #9b8769 !important;
+  border-radius: 3px;
+  font-size: 0.85rem !important;
+}
+.av-master :is(input, textarea)::placeholder {
+  color: #6b6658;
+}
+.av-master input[type='checkbox'] {
+  min-height: 1.1rem;
+}
+.av-master textarea {
+  min-height: 6rem;
+}
+.av-master button {
+  min-height: 2.5rem;
+  font-size: 0.8rem;
+}
+.av-master :is(nav[aria-label$='workspace']) {
+  position: sticky;
+  top: -1px;
+  z-index: 3;
+  background: #c5b69b;
+  border-block: 1px solid #978466;
+  padding: 0.5rem;
+}
+.av-master :is(nav[aria-label$='workspace']) a {
+  color: #384c41;
+}
+.av-master :is(h2, h3, h4) {
+  font-family: var(--av-font-display);
+}
+/* Profile uses the space released by Current Path for two balanced stat columns. */
+@media (min-width: 1100px) {
+  [data-profile-facts] {
+    grid-column: 1/-1;
+  }
+  [data-profile-facts] ~ [data-profile-section] {
+    padding-top: 0.7rem;
+  }
+  [data-profile-facts] ~ [data-profile-section] [data-profile-stat-groups] {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+[data-profile-section-header] p {
+  color: #625844 !important;
+}
+@media (max-width: 1100px) and (min-width: 821px) {
+  :root {
+    --av-cockpit-art-size: 4.25rem;
+  }
+}
+[data-av-square-media='true'][data-battle-command-artwork],
+[data-testid='technique-preview'] [data-av-square-media='true'],
+[data-testid='learned-skill-list'] [data-av-square-media='true'] {
+  width: min(100%, var(--av-gameplay-art-size)) !important;
+  height: auto !important;
+  aspect-ratio: 1 !important;
+  flex-basis: auto !important;
+}
+[data-character-concept='editor'] {
+  border: 1px solid #a48c60 !important;
+  box-shadow: 0 25px 100px #10191cc7 !important;
+  color: #29322c !important;
+  background: linear-gradient(120deg, #d1c3aa, #b4a489), #b4a489 !important;
+}
+[data-character-concept='editor'] :is(input, select) {
+  color: #29332d;
+  background: #e1d6c0;
+  border-color: #8f7e60;
+}
+[data-character-concept='editor'] > header {
+  border-bottom: 1px solid #9c8868;
+}
+[data-techniques-overlay] {
+  backdrop-filter: blur(5px);
+  background: #152329aa !important;
+}
+[data-testid='attribute-allocation-backdrop'] {
+  backdrop-filter: blur(5px);
+  background: #152329aa !important;
+}
+[data-testid='profile-detail-popover'] {
+  background: #ddd0b7 !important;
+  color: #2d352d !important;
+  border-color: #9c8055 !important;
+}
+[data-audio-state] [role='dialog'],
+[aria-label='Account menu'] {
+  color: #e9dec6;
+  background: linear-gradient(145deg, #46504a, #293336) !important;
+  border: 1px solid #a48a5c !important;
+  box-shadow: 0 12px 50px #101a1f80;
+}
+[data-audio-state] [role='dialog'] input[type='range'] {
+  accent-color: #77b3a1;
+}
+[data-public-reading] {
+  width: min(100%, 85rem);
+  margin: auto;
+}
+[data-public-reading] :is(article, [data-testid='news-index-board']) {
+  border-color: #9b8260;
+}
+[data-public-reading] :is(h1, h2) {
+  font-family: var(--av-font-display);
+}
+[hidden] {
+  display: none !important;
+}
+@media (max-width: 1100px) {
+  .av-master-overview {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 760px) {
+  .av-master-overview {
+    grid-template-columns: 1fr;
+  }
+  .av-master-navigation {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+  .av-master-navigation a {
+    white-space: nowrap;
+  }
+}
+
+.av-settings-page {
+  max-width: 65rem;
+  margin: auto;
+}
+.av-audio-inline {
+  position: static;
+  display: grid;
+  gap: 1.4rem;
+  padding: 1.5rem;
+  color: #30392f;
+}
+.av-audio-inline h2 {
+  color: #2f382e;
+}
+.av-audio-inline label {
+  color: #414938;
+}
+.av-audio-inline input {
+  width: 100%;
+  accent-color: #2b655b;
+}
+[data-world-shell] {
+  grid-template-columns: minmax(0, 1fr) !important;
+  height: 100%;
+}
+[data-world-shell] > [data-profile-identity-banner] {
+  display: none;
+}
+[data-character-concept='titles'] {
+  --av-text: #2b332c;
+  --av-text-muted: #525747;
+  --av-text-dim: #696450;
+  color: #30392f;
+  background: #c6b698 !important;
+  border-color: #a28b62;
+}
+
+@media (max-width: 760px) {
+  .av-audio-inline {
+    padding: 0.5rem;
+  }
+}
+
+.av-daily-note {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 1.1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #87745266;
+  font-size: 0.75rem;
+}
+
+@media (max-width: 760px) {
+  [data-av-shell='concept'][data-av-layout='battlefield'] {
+    grid-template-rows: 5.5rem minmax(0, 1fr) 1.6rem !important;
+  }
+}
+
+@media (min-width: 761px) {
+  [data-av-shell='concept'] > main:has(> [data-world-shell]) {
+    display: block;
+  }
+  [data-av-shell='concept'] #game-main > [data-world-shell] {
+    height: 100% !important;
+    grid-template-rows: minmax(0, 1fr);
+  }
+  [data-world-workspace] {
+    height: 100% !important;
+    min-height: 0 !important;
+  }
+}
+
+@media (min-width: 761px) and (max-height: 700px) {
+  :root {
+    --av-navigation-portrait-size: 7rem;
+  }
+}
+@media (min-width: 761px) and (max-height: 620px) {
+  :root {
+    --av-navigation-portrait-size: 5.5rem;
+  }
+}

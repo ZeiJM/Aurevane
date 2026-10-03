@@ -114,7 +114,7 @@
     margin: 0;
     padding-block: 0.3rem;
   }
-  :where(body:not(:has([data-character-concept])))
+  :where(body:not(:has([data-character-concept], [data-training-concept])))
     #game-main
     > div:has([data-testid='character-profile']) {
     height: auto !important;

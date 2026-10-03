@@ -1,0 +1,242 @@
+.card {
+  min-width: 0;
+  color: #eee9dd;
+  border: 1px solid var(--battle-combatant-accent, #b19a71);
+  background: linear-gradient(135deg, #263037ed, #10191fee);
+  box-shadow:
+    inset 0 0 0 3px #191f23,
+    inset 0 0 0 4px #8f7e5544,
+    0 5px 16px #0006;
+  padding: 0.3rem;
+}
+.portrait {
+  display: block;
+  width: min(100%, var(--av-navigation-portrait-size, 10.3125rem));
+  margin-inline: auto;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 1px solid #bca16d;
+  color: inherit;
+  background: #14212a;
+  overflow: hidden;
+  cursor: pointer;
+}
+.portrait :global(img) {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.fallback {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  font: 600 3rem/1 var(--av-font-display);
+}
+.identity {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+  padding: 0.15rem 0.35rem;
+}
+.identity strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font: 600 1.05rem/1.1 var(--av-font-display);
+}
+.facing {
+  display: grid;
+  flex: none;
+  width: 1.25rem;
+  aspect-ratio: 1;
+  height: 1.25rem;
+  place-items: center;
+  border: 1px solid var(--battle-combatant-accent);
+  border-radius: 50%;
+  color: var(--battle-combatant-accent);
+}
+.facing svg {
+  display: block;
+  width: 0.875rem;
+  height: 0.875rem;
+}
+.facing i {
+  display: block;
+  font: 600 1.15rem/1 var(--av-font-body);
+  font-style: normal;
+  text-align: center;
+}
+.vitals {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 0.25rem 0.2rem;
+  padding: 0.1rem 0.35rem 0.35rem;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+.vitals > div {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: center;
+}
+.vitals i {
+  position: relative;
+  display: block;
+  height: 1rem;
+  margin: 0;
+  background: #0007;
+  border-radius: 2px;
+  overflow: hidden;
+}
+.vitals .value {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #fff8ed;
+  white-space: nowrap;
+  font: 600 0.625rem/1 var(--av-font-body);
+  text-shadow:
+    0 1px 2px #000,
+    0 0 2px #000;
+}
+.vitals b {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #982b2a, #f46859);
+}
+.vitals [data-resource='mp'] b {
+  background: linear-gradient(90deg, #067dad, #4bd9ed);
+}
+.card[data-defeated] .portrait {
+  filter: grayscale(0.9);
+}
+.empty {
+  margin: 0;
+  padding: 0.6rem;
+  color: #eee4d3;
+  font-size: 0.8125rem;
+}
+@media (min-width: 821px) {
+  .card {
+    container-type: inline-size;
+    display: grid;
+    grid-template-columns: var(--av-cockpit-art-size) minmax(0, 1fr);
+    grid-template-rows: 1.25rem var(--av-cockpit-art-size) auto;
+    gap: 0.2rem;
+    /* Both summaries reserve the same portrait and two effect rows. */
+    height: auto;
+    min-height: 0;
+  }
+  .card .portrait {
+    container-type: size;
+    width: var(--av-cockpit-art-size);
+    height: var(--av-cockpit-art-size) !important;
+    grid-column: 1;
+    grid-row: 2;
+    min-height: 0;
+    max-width: 100%;
+    justify-self: center;
+    align-self: center;
+  }
+  .identity {
+    grid-column: 1 / -1;
+  }
+  .card .vitals {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: center;
+    padding: 0;
+  }
+  .card > section {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+  .identity strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .portrait .fallback {
+    font-size: min(3rem, 70cqh);
+  }
+  .vitals span {
+    white-space: nowrap;
+    font-size: 0.6875rem;
+    line-height: 1.1;
+  }
+  .vitals i {
+    height: 1rem;
+  }
+}
+@media (min-width: 821px) and (max-height: 800px) {
+  .card {
+    padding: 0.2rem;
+  }
+  .identity {
+    padding-block: 0.05rem;
+  }
+}
+@media (min-width: 821px) and (max-height: 700px) {
+  .card {
+    grid-template-rows: 1.125rem var(--av-cockpit-art-size) auto;
+    gap: 0 0.2rem;
+    padding: 1px;
+  }
+  .card > section {
+    padding-block: 0;
+  }
+  /* The section and its scroll region already expose the complete effects label. */
+  .card > section > header {
+    display: none;
+  }
+  .card > section > div {
+    --effect-icon-size: min(0.6875rem, calc((100cqw - 0.9rem) / 10));
+    grid-template-columns: repeat(10, var(--effect-icon-size));
+    justify-content: space-between;
+  }
+  .identity {
+    grid-column: 1 / -1;
+    padding-block: 0;
+  }
+  .identity strong {
+    font-size: 0.9375rem;
+  }
+  .facing {
+    width: 1.125rem;
+    height: 1.125rem;
+  }
+  .vitals {
+    gap: 0.125rem;
+    padding-bottom: 0;
+  }
+}
+@media (max-width: 820px) {
+  .card {
+    display: grid;
+    grid-template-columns: var(--av-cockpit-art-size) minmax(0, 1fr);
+    column-gap: 0.35rem;
+  }
+  .portrait {
+    grid-column: 1;
+    grid-row: 2 / 4;
+    width: var(--av-cockpit-art-size);
+    align-self: start;
+  }
+  .identity {
+    grid-column: 1 / -1;
+    padding: 0.1rem 0.2rem 0.3rem;
+  }
+  .identity strong {
+    font-size: 0.9375rem;
+  }
+  .vitals {
+    padding: 0.2rem;
+  }
+  .card > section {
+    grid-column: 2;
+  }
+}

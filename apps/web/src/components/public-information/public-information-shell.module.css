@@ -748,3 +748,59 @@
     flex-direction: column;
   }
 }
+
+/* Board 16: a compact scene header and an explicit reading workspace. */
+.reading {
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  color: #354035;
+}
+.shell {
+  height: 100dvh;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  padding: 0;
+}
+.main {
+  min-height: 0;
+  overflow: auto;
+  width: min(100%, 110rem);
+  padding: 1rem;
+}
+.article {
+  padding: 1.2rem;
+  color: #354035;
+  background: linear-gradient(130deg, #ded3bd, #c4b395);
+  border: 1px solid #9b8664;
+}
+.articleHeader h1 {
+  font-size: clamp(1.7rem, 3vw, 2.8rem);
+  color: #364038;
+}
+.articleHeader > p,
+.articleSection p,
+.articleSection li {
+  color: #535b4d;
+}
+.articleNav {
+  background: #c6b597;
+  color: #394437;
+}
+.articleNav a {
+  color: #394437;
+}
+@media (max-width: 760px) {
+  .shell {
+    height: auto;
+    min-height: 100dvh;
+  }
+  .main,
+  .reading {
+    overflow: visible;
+    height: auto;
+    padding: 0.5rem;
+  }
+}

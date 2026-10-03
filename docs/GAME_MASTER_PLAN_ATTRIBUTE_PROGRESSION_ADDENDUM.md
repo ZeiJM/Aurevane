@@ -130,7 +130,7 @@ Current global caps/defaults:
 - **Jump:** baseline **0**, maximum **3**;
 - **Movement Action Economy cost:** **20 AP per terrain-cost point**.
 
-Action Economy does not increase the character's Movement allowance. A character may only traverse up to the server-owned Movement budget for that turn even if sufficient AP remains.
+Each entered tile consumes one Movement, regardless of terrain weight. Neutral terrain costs 20 AP per tile and rough terrain costs 40 AP per tile before applicable modifiers; terrain and temporary AP modifiers do not consume additional Movement. This is the Owner-authorized 2026-10-01 correction. Action Economy does not increase the character's Movement allowance. A character may only traverse up to the server-owned Movement budget for that turn even if sufficient AP remains.
 
 The active committed Primary Discipline is part of the derived-stat calculation used when a battle session is created. Battle Movement, Jump/elevation reach, HP/MP and other derived combat bridge values therefore use the same committed Primary-derived snapshot represented by the Profile rather than a raw-attributes-only approximation.
 
@@ -182,7 +182,6 @@ New combat sessions use stat-driven combat rules v3.
 Persisted stat-bridge v1/v2 battles remain valid historical snapshots and retain their prior damage semantics. The v3 rewrite applies to newly created battle snapshots rather than mutating old battles in place.
 
 Primary Discipline offsets are applied after the base calculation and the final result is re-clamped. They may reinforce a class identity but do not make a Core Attribute feed an unrelated Adventure Stat or bypass global hard caps.
-
 
 ### 8.1 Optional Primary-derived ceilings
 

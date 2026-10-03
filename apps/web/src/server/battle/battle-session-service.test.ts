@@ -12,6 +12,8 @@ import {
   endCombatTurn,
 } from '@aurevane/game-core/combat/actions'
 import { moveCurrentCombatant, selectCurrentFinalFacing } from '@aurevane/game-core/combat/board'
+import { getTacticalHallArena } from '@aurevane/game-core/combat/tactical-hall-arenas'
+import { createStandardBattlefieldTiles } from '@aurevane/game-core/combat/standard-battlefield'
 import {
   reattachStatDrivenCombatBridge,
   type StatDrivenCombatEncounterState,
@@ -22,6 +24,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
 
+import { buildBattleViewModel, battleSparringTeamCounts } from '@/components/battle/battle-runtime'
 import { createBattleSessionService } from './battle-session-service'
 
 const USER_ID = '11111111-1111-4111-8111-111111111111'
@@ -161,6 +164,168 @@ async function createPersistedFixture(character = characterRecord()) {
 }
 
 describe('P2.4 battle session service', () => {
+  it.each(['duel-yard', 'crossroads-court', 'terraced-yard'] as const)(
+    'gives a fresh standard %s sparring battle a new mostly neutral map',
+    async (arenaId) => {
+      const battles = createBattleRepository()
+      const service = createBattleSessionService({
+        characters: createCharacterRepository().repository,
+        battles: battles.repository,
+      })
+      const first = await service.createSession({
+        userId: USER_ID,
+        characterId: CHARACTER_ID,
+        idempotencyKey: IDEMPOTENCY_KEY,
+        arenaId,
+        battleHallRecordId: 'recruit-sparring',
+        allyCount: 2,
+        enemyCount: 3,
+      })
+      const rematch = await service.createSession({
+        userId: USER_ID,
+        characterId: CHARACTER_ID,
+        idempotencyKey: '44444444-4444-4444-8444-444444444445',
+        arenaId,
+        battleHallRecordId: 'recruit-sparring',
+        allyCount: 2,
+        enemyCount: 3,
+      })
+      expect(rematch.snapshot.tactical.tiles).not.toEqual(first.snapshot.tactical.tiles)
+      for (const state of [first.snapshot, rematch.snapshot]) {
+        expect(
+          state.tactical.tiles.filter(
+            (tile) => tile.terrainId === 'open-ground' && tile.elevation === 0,
+          ).length,
+        ).toBeGreaterThan(state.tactical.tiles.length * 0.7)
+        for (const placement of state.tactical.placements) {
+          expect(
+            state.tactical.tiles.find(
+              (tile) =>
+                tile.position.x === placement.position.x &&
+                tile.position.y === placement.position.y,
+            ),
+          ).toMatchObject({ terrainId: 'open-ground', elevation: 0 })
+        }
+      }
+      for (const call of battles.createBattleSession.mock.calls) {
+        const state = call[0].initialSnapshot as StatDrivenCombatEncounterState
+        expect(state.tactical.battle.rng).toMatchObject({
+          state: state.tactical.battle.rng.seed,
+          draws: 0,
+        })
+        expect(state.tactical.tiles).toEqual(
+          createStandardBattlefieldTiles({
+            width: state.tactical.width,
+            height: state.tactical.height,
+            seed: state.tactical.battle.rng.seed,
+            spawns: state.tactical.placements.map((placement) => placement.position),
+          }),
+        )
+      }
+    },
+  )
+
+  it.each([
+    ['guided-fundamentals', 'duel-yard'],
+    ['mastery-trial', 'terraced-yard'],
+    ['movement-drill', 'basic-training-floor'],
+  ] as const)('preserves the authored %s teaching map', async (recordId, arenaId) => {
+    const service = createBattleSessionService({
+      characters: createCharacterRepository().repository,
+      battles: createBattleRepository().repository,
+    })
+    const created = await service.createSession({
+      userId: USER_ID,
+      characterId: CHARACTER_ID,
+      idempotencyKey: IDEMPOTENCY_KEY,
+      arenaId,
+      battleHallRecordId: recordId,
+    })
+    expect(created.snapshot.tactical.tiles).toEqual(getTacticalHallArena(arenaId).tiles)
+  })
+
+  it.each([0, 1, 2])(
+    'creates every supported two-team sparring setup with %s allies',
+    async (allyCount) => {
+      for (const arenaId of ['duel-yard', 'crossroads-court', 'terraced-yard'] as const) {
+        for (let enemyCount = 1; enemyCount <= 5 - allyCount; enemyCount++) {
+          const characters = createCharacterRepository(),
+            battles = createBattleRepository()
+          const service = createBattleSessionService({
+            characters: characters.repository,
+            battles: battles.repository,
+          })
+          const result = await service.createSession({
+            userId: USER_ID,
+            characterId: CHARACTER_ID,
+            idempotencyKey: IDEMPOTENCY_KEY,
+            arenaId,
+            battleHallRecordId: 'recruit-sparring',
+            allyCount,
+            enemyCount,
+          })
+          const state = result.snapshot,
+            combatants = state.tactical.battle.combatants
+          expect(combatants).toHaveLength(1 + allyCount + enemyCount)
+          expect(battleSparringTeamCounts(result)).toEqual({ allyCount, enemyCount })
+          expect(combatants.filter((c) => c.teamId === 'players')).toHaveLength(1 + allyCount)
+          expect(combatants.filter((c) => c.teamId === 'opponents')).toHaveLength(enemyCount)
+          expect(new Set(combatants.map((c) => c.teamId)).size).toBe(2)
+          const view = buildBattleViewModel(result, {
+            kind: 'pve',
+            playerName: 'Wayfarer',
+            playerLevel: 1,
+            playerPortraitAssetId: 'character.adventure.male-01',
+            playerProfileImageUrl: null,
+          })
+          expect(view.participants.filter((p) => p.teamIndex === 0)).toHaveLength(1 + allyCount)
+          expect(view.participants.filter((p) => p.teamIndex === 1)).toHaveLength(enemyCount)
+          expect(new Set(view.participants.map((p) => `${p.teamIndex}:${p.seatIndex}`)).size).toBe(
+            combatants.length,
+          )
+
+          const positions = state.tactical.placements.map((p) => `${p.position.x}:${p.position.y}`)
+          expect(new Set(positions).size).toBe(combatants.length)
+          expect(state.statBridge.combatants).toHaveLength(combatants.length)
+          expect(battles.createBattleSession.mock.calls[0]?.[0].participants).toHaveLength(
+            combatants.length,
+          )
+          expect(
+            state.tactical.placements.every(
+              (p) =>
+                p.position.x >= 0 &&
+                p.position.x < state.tactical.width &&
+                p.position.y >= 0 &&
+                p.position.y < state.tactical.height,
+            ),
+          ).toBe(true)
+        }
+      }
+    },
+  )
+  it('rejects forged over-capacity or non-sparring team setups before persistence', async () => {
+    const characters = createCharacterRepository(),
+      battles = createBattleRepository()
+    const service = createBattleSessionService({
+      characters: characters.repository,
+      battles: battles.repository,
+    })
+    for (const extra of [
+      { allyCount: 2, enemyCount: 4 },
+      { allyCount: 3, enemyCount: 1 },
+      { allyCount: 1, enemyCount: 1, battleHallRecordId: 'guided-fundamentals' as const },
+    ]) {
+      await expect(
+        service.createSession({
+          userId: USER_ID,
+          characterId: CHARACTER_ID,
+          idempotencyKey: IDEMPOTENCY_KEY,
+          ...extra,
+        }),
+      ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+    }
+    expect(battles.createBattleSession).not.toHaveBeenCalled()
+  })
   it('creates authority state from persisted Phase 1 stats without exposing deterministic RNG', async () => {
     const characters = createCharacterRepository()
     const battles = createBattleRepository()
@@ -203,6 +368,8 @@ describe('P2.4 battle session service', () => {
     expect(input.requestFingerprint).toMatch(/^sha256:[0-9a-f]{64}$/)
 
     const persistedSnapshot = input.initialSnapshot as StatDrivenCombatEncounterState
+    expect(persistedSnapshot.copyPolicyVersion).toBe(1)
+    expect(result.snapshot.copyPolicyVersion).toBe(1)
     const player = persistedSnapshot.tactical.battle.combatants.find(
       (combatant) => combatant.id === `character:${CHARACTER_ID}`,
     )
@@ -277,6 +444,72 @@ describe('P2.4 battle session service', () => {
     expect(result.snapshot.tactical.battle).not.toHaveProperty('rng')
   })
 
+  it.each([
+    ['duel-yard', 9, 63],
+    ['crossroads-court', 12, 84],
+    ['terraced-yard', 15, 105],
+  ] as const)('creates new %s sparring sessions with seven rows', async (arenaId, width, count) => {
+    const characters = createCharacterRepository()
+    const battles = createBattleRepository()
+    const service = createBattleSessionService({
+      characters: characters.repository,
+      battles: battles.repository,
+    })
+    const created = await service.createSession({
+      userId: USER_ID,
+      characterId: CHARACTER_ID,
+      idempotencyKey: IDEMPOTENCY_KEY,
+      arenaId,
+      battleHallRecordId: 'recruit-sparring',
+    })
+    expect(created.snapshot.tactical).toMatchObject({ width, height: 7 })
+    expect(created.snapshot.tactical.tiles).toHaveLength(count)
+  })
+
+  it.each([
+    ['crossroads-court', 7, 49],
+    ['terraced-yard', 11, 77],
+  ] as const)(
+    'loads historical %s geometry without replacing it with the current arena',
+    async (arenaId, width, count) => {
+      const fixture = await createPersistedFixture()
+      const historical = structuredClone(fixture.persistedSnapshot)
+      historical.tactical = {
+        ...historical.tactical,
+        width,
+        height: 7,
+        tiles: Array.from({ length: count }, (_, index) => ({
+          position: { x: index % width, y: Math.floor(index / width) },
+          elevation: 0,
+          terrainId: 'open-ground',
+        })),
+      }
+      historical.statBridge = {
+        ...historical.statBridge,
+        combatants: historical.statBridge.combatants.map((profile) =>
+          profile.provenance.kind === 'scenario'
+            ? {
+                ...profile,
+                provenance: {
+                  ...profile.provenance,
+                  sourceId: `scenario:p2-7-recruit:${arenaId}:recruit-sparring:standard`,
+                },
+              }
+            : profile,
+        ),
+      }
+      fixture.battles.findBattleSession.mockResolvedValue({
+        ...fixture.record,
+        snapshot: historical,
+      })
+      const loaded = await fixture.service.getSession(USER_ID, SESSION_ID)
+      expect(loaded.snapshot.tactical).toMatchObject({ width, height: 7 })
+      expect(loaded.snapshot.tactical.tiles).toEqual(historical.tactical.tiles)
+      expect(loaded.snapshot.tactical.placements).toEqual(historical.tactical.placements)
+      expect(fixture.record.snapshot).toEqual(fixture.persistedSnapshot)
+    },
+  )
+
   it('owns Battle Hall AI difficulty and the Mastery Trial arena on the server', async () => {
     const characters = createCharacterRepository()
     const battles = createBattleRepository()
@@ -304,8 +537,8 @@ describe('P2.4 battle session service', () => {
       },
       {
         recordId: 'guided-fundamentals' as const,
-        proposedArenaId: 'basic-training-floor' as const,
-        expectedArenaId: 'basic-training-floor' as const,
+        proposedArenaId: 'crossroads-court' as const,
+        expectedArenaId: 'duel-yard' as const,
         proposedDifficulty: 'high' as const,
         expectedDifficulty: 'easy',
         idempotencyKey: '11111111-2222-4333-8444-555555555553',
@@ -326,6 +559,10 @@ describe('P2.4 battle session service', () => {
       if (!input) throw new Error('Expected battle create input.')
 
       const state = input.initialSnapshot as StatDrivenCombatEncounterState
+      if (testCase.recordId === 'guided-fundamentals') {
+        expect(state.tactical).toMatchObject({ width: 9, height: 7 })
+        expect(state.tactical.tiles).toHaveLength(63)
+      }
       const recruitProfile = state.statBridge.combatants.find(
         (profile) => profile.combatantId === 'recruit:p2-4-1',
       )

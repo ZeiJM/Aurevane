@@ -23,7 +23,7 @@ const EFFECT_TYPES: readonly { value: CombatEffectType; label: string }[] = [
   { value: 'burn', label: 'Burn' },
   { value: 'barrier-change', label: 'Barrier' },
   { value: 'copy-statuses', label: 'Amplify / Curse status copy' },
-  { value: 'copy', label: 'Temporary Skill Copy' },
+  { value: 'copy', label: 'Copy beneficial effect tags' },
   { value: 'sensory', label: 'Sensory / Revealed' },
 ]
 

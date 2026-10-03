@@ -1,0 +1,82 @@
+.itemsWorkspace {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 0.8rem;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  padding: 1rem;
+  background:
+    linear-gradient(#192a2933, #192a2925),
+    url('/media/art/adventure/haven-v01.webp') center / cover;
+}
+.items {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 1.5rem;
+  width: min(100%, 52rem);
+  align-self: center;
+  justify-self: center;
+  padding: 1.2rem;
+  border: 1px solid #a18a61;
+  color: #333a33;
+  background: linear-gradient(120deg, #e0d4be, #c9baa0);
+}
+.equipment {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.6rem;
+  min-width: 0;
+}
+.equipment div {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 0.5rem;
+  text-align: center;
+}
+.equipment span {
+  display: grid;
+  width: 100%;
+  aspect-ratio: 1;
+  place-items: center;
+  border: 1px solid #ab997b;
+  color: #9b8b6c;
+  background: #c6b99f;
+  font-size: 2rem;
+}
+.equipment strong {
+  font-size: 0.875rem;
+  font-weight: 400;
+}
+.comingSoon h2 {
+  margin: 0.7rem 0 0;
+  font: 500 1.6rem/1.2 var(--av-font-display);
+}
+.comingSoon p {
+  line-height: 1.5;
+}
+@media (max-width: 760px) {
+  .itemsWorkspace {
+    height: auto;
+    min-height: 100%;
+    padding: 0;
+  }
+  .items {
+    grid-template-columns: 1fr;
+    margin: 1rem 0;
+  }
+}
+
+/* Match the Nexus workspace inset so the shared selector never shifts between routes. */
+@media (min-width: 1101px) and (max-height: 800px) {
+  .itemsWorkspace {
+    padding: 0.5rem;
+  }
+}
+@media (min-width: 1101px) and (max-height: 700px) {
+  .itemsWorkspace {
+    padding: 0;
+  }
+}

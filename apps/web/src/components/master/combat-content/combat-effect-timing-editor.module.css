@@ -1,0 +1,60 @@
+.editor {
+  display: grid;
+  gap: 1rem;
+  width: 100%;
+  max-width: 60rem;
+  margin-inline: auto;
+  color: var(--av-text, #ede3cb);
+}
+.editor h2,
+.editor p {
+  margin: 0;
+}
+.editor p {
+  line-height: 1.6;
+}
+.editor table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+.editor th,
+.editor td {
+  padding: 0.6rem;
+  border-bottom: 1px solid rgba(205, 177, 111, 0.22);
+}
+.editor select,
+.editor textarea,
+.editor button {
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  font: inherit;
+  color: inherit;
+  background: #171811;
+  border: 1px solid rgba(205, 177, 111, 0.5);
+  border-radius: 0.3rem;
+}
+.editor select {
+  width: 100%;
+}
+.editor > label {
+  display: grid;
+  gap: 0.5rem;
+}
+.editor textarea {
+  min-height: 6rem;
+  resize: vertical;
+}
+.editor button {
+  justify-self: start;
+}
+.editor :is(select, textarea, button):focus-visible {
+  outline: 2px solid #dfbd72;
+  outline-offset: 3px;
+}
+@media (max-width: 480px) {
+  .editor th,
+  .editor td {
+    padding: 0.45rem 0.25rem;
+  }
+}

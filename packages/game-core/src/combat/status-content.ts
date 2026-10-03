@@ -241,6 +241,96 @@ const legacyDescriptions: Record<
   string,
   Pick<NamedCombatStatus, 'name' | 'kind' | 'description'>
 > = {
+  summon: {
+    name: 'Summon',
+    kind: 'Effect',
+    description:
+      'Creates a temporary allied combatant with its own turns and the pinned summon profile.',
+  },
+  'mp-drain': {
+    name: 'MP Drain',
+    kind: 'Debuff',
+    description: 'Reduces the target’s MP when the effect activates.',
+  },
+  'mp-recovery': {
+    name: 'MP Recovery',
+    kind: 'Buff',
+    description: 'Restores MP when the effect activates.',
+  },
+  healing: {
+    name: 'HP Recovery',
+    kind: 'Buff',
+    description: 'Restores HP when the effect activates.',
+  },
+  damage: {
+    name: 'Damage',
+    kind: 'Debuff',
+    description: 'Applies a direct damage packet when the effect activates.',
+  },
+  'create-terrain': {
+    name: 'Terrain',
+    kind: 'Effect',
+    description:
+      'Creates the authored terrain overlay at the selected tiles when the effect activates.',
+  },
+  displace: {
+    name: 'Displacement',
+    kind: 'Effect',
+    description: 'Pushes or pulls the target along a legal path when the effect activates.',
+  },
+  'barrier-change': {
+    name: 'Barrier',
+    kind: 'Buff',
+    description: 'Grants a shield that absorbs damage before HP is lost.',
+  },
+  'return-to-turn-start': {
+    name: 'Return to turn start',
+    kind: 'Effect',
+    description:
+      'Returns the caster to the recorded turn-start position if the destination remains legal.',
+  },
+  'remove-status': {
+    name: 'Cleanse',
+    kind: 'Effect',
+    description: 'Removes the authored eligible statuses when the effect activates.',
+  },
+  'copy-statuses': {
+    name: 'Effect Copy',
+    kind: 'Effect',
+    description:
+      'Copies eligible positive or negative effects through Amplify or Curse when the effect activates.',
+  },
+  sensory: {
+    name: 'Sensory',
+    kind: 'Effect',
+    description: 'Removes eligible beneficial effects from Covert targets and applies Revealed.',
+  },
+  barrier: {
+    name: 'Barrier',
+    kind: 'Buff',
+    description: 'Absorbs incoming damage before HP is lost.',
+  },
+  covert: {
+    name: 'Covert',
+    kind: 'Buff',
+    description: 'Conceals beneficial effects from opposing viewers until revealed.',
+  },
+  revealed: {
+    name: 'Revealed',
+    kind: 'Debuff',
+    description: 'Counters Covert and increases Skill AP costs.',
+  },
+  copy: {
+    name: 'Skill Copy',
+    kind: 'Buff',
+    description: 'Grants temporary access to an exact pinned Skill from the target.',
+  },
+  'beneficial-copy': {
+    name: 'Copy beneficial effects',
+    kind: 'Effect',
+    description:
+      'Copies the selected unit’s active beneficial effect tags onto the user, preserving stack caps and remaining durations. The selected unit keeps its effects.',
+  },
   guarded: {
     name: 'Guarded',
     kind: 'Buff',
@@ -259,11 +349,21 @@ const legacyDescriptions: Record<
       'Each stack multiplies incoming damage by 2.5×, up to three stacks. Applied after a genuine PvP turn-timer expiry.',
   },
 }
+const persistentEffectDescriptions: Record<string, string> = {
+  poison:
+    'Takes poison damage at affected turn ends and after sufficient movement. The applied instance determines its power and lifetime.',
+  burn: 'Takes decreasing burn damage at affected turn ends. Attacking while burning causes additional damage. The applied instance determines its power and lifetime.',
+  bleed:
+    'Bleeding stacks deal damage at affected turn ends. Each applied stack retains its own power and remaining ticks.',
+}
 export function combatStatusDetails(
   id: string,
 ): Pick<NamedCombatStatus, 'name' | 'kind' | 'description'> {
+  const named = PHASE4_STATUSES.find((status) => status.id === id)
+  if (named && persistentEffectDescriptions[id])
+    return { ...named, description: persistentEffectDescriptions[id] }
   return (
-    PHASE4_STATUSES.find((status) => status.id === id) ??
+    named ??
     legacyDescriptions[id] ?? {
       name: id
         .replace(/^(buff|debuff)\./, '')

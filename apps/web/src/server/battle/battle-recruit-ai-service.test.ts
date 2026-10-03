@@ -7,7 +7,15 @@ import type {
 import type { CharacterRecord, CharacterRepository } from '@aurevane/db/character'
 import { P2_3_COMBAT_CONTENT, endCombatTurn } from '@aurevane/game-core/combat/actions'
 import { selectCurrentFinalFacing } from '@aurevane/game-core/combat/board'
+import { createBattleRngState } from '@aurevane/game-core/combat/battle-state'
+import { createStandardBattlefieldTiles } from '@aurevane/game-core/combat/standard-battlefield'
 import { spawnCombatSummon } from '@aurevane/game-core/combat/combat-summons'
+import {
+  evaluatePv1fMovement,
+  executePv1fMovement,
+  finishPv1fTurn,
+} from '@aurevane/game-core/combat/pv1f-action-economy'
+import type { TacticalHallArenaId } from '@aurevane/game-core/combat/tactical-hall-arenas'
 import {
   SUMMON_PROFILE_SCHEMA_VERSION,
   type SummonProfileDefinition,
@@ -24,6 +32,7 @@ import {
   createBattleRecruitAiService,
   deriveRecruitTieBreakSeed,
 } from './battle-recruit-ai-service'
+import { battleSparringTeamCounts } from '@/components/battle/battle-runtime'
 import { createBattleSessionService } from './battle-session-service'
 
 const USER_ID = '11111111-1111-4111-8111-111111111111'
@@ -68,7 +77,10 @@ function characterRepository(): CharacterRepository {
   }
 }
 
-async function initialEncounter(): Promise<StatDrivenCombatEncounterState> {
+async function initialEncounter(
+  teams: { allyCount?: number; enemyCount?: number; arenaId?: TacticalHallArenaId } = {},
+  mapSeed?: number,
+): Promise<StatDrivenCombatEncounterState> {
   let initialSnapshot: unknown = null
   const repository: BattleSessionRepository = {
     createBattleSession: vi.fn(async (input: CreateBattleSessionInput) => {
@@ -97,9 +109,25 @@ async function initialEncounter(): Promise<StatDrivenCombatEncounterState> {
     userId: USER_ID,
     characterId: CHARACTER_ID,
     idempotencyKey: '44444444-4444-4444-8444-444444444444',
+    ...(Object.keys(teams).length ? { arenaId: 'duel-yard' as const, ...teams } : {}),
   })
   if (!initialSnapshot) throw new Error('Expected an initial battle snapshot.')
-  return initialSnapshot as StatDrivenCombatEncounterState
+  const state = initialSnapshot as StatDrivenCombatEncounterState
+  if (mapSeed === undefined) return state
+  // Routing fixtures cover repeatable generated maps, independently of the pinned hit-roll stream.
+  return {
+    ...state,
+    tactical: {
+      ...state.tactical,
+      battle: { ...state.tactical.battle, rng: createBattleRngState(mapSeed) },
+      tiles: createStandardBattlefieldTiles({
+        width: state.tactical.width,
+        height: state.tactical.height,
+        seed: mapSeed,
+        spawns: state.tactical.placements.map((placement) => placement.position),
+      }),
+    },
+  }
 }
 
 function advanceToRecruitTurn(
@@ -210,6 +238,7 @@ function createStatefulRepository(
 ) {
   let version = initialVersion
   let state = initialState
+  let playerMoveCount = 0
   const commits: CommitBattleIntentInput[] = []
 
   const findBattleSession = vi.fn(async (): Promise<BattleSessionRecord> => ({
@@ -250,10 +279,271 @@ function createStatefulRepository(
     commitBattleIntent,
   }
 
-  return { repository, commits, findBattleSession, commitBattleIntent, currentState: () => state }
+  return {
+    repository,
+    commits,
+    findBattleSession,
+    commitBattleIntent,
+    currentState: () => state,
+    playerMoveCount: () => playerMoveCount,
+    retreatActiveAi: () => {
+      const actor = state.tactical.placements.find(
+        (p) => p.combatantId === state.tactical.battle.currentTurn?.combatantId,
+      )!
+      const player = state.tactical.placements.find(
+        (p) => p.combatantId === `character:${CHARACTER_ID}`,
+      )!
+      const distance = (p: { x: number; y: number }) =>
+        Math.abs(p.x - player.position.x) + Math.abs(p.y - player.position.y)
+      if (distance(actor.position) !== 1) return false
+      for (const destination of [
+        { x: actor.position.x, y: actor.position.y - 1 },
+        { x: actor.position.x + 1, y: actor.position.y },
+        { x: actor.position.x, y: actor.position.y + 1 },
+        { x: actor.position.x - 1, y: actor.position.y },
+      ]) {
+        if (distance(destination) <= 1) continue
+        const path = [actor.position, destination]
+        if (!evaluatePv1fMovement(state, path).movement.legal) continue
+        state = finishPv1fTurn(executePv1fMovement(state, path).state, 'west').state
+        return true
+      }
+      return false
+    },
+    playPlayerTurn: () => {
+      const placement = state.tactical.placements.find(
+        (p) => p.combatantId === `character:${CHARACTER_ID}`,
+      )!
+      // Patrol the spawn column through real movement, so crowded melee slots reopen.
+      const nextY = state.tactical.battle.round % 6
+      const destination = { x: placement.position.x, y: nextY <= 3 ? nextY : 6 - nextY }
+      const path = [placement.position, destination]
+      if (evaluatePv1fMovement(state, path).movement.legal) {
+        state = executePv1fMovement(state, path).state
+        playerMoveCount++
+      }
+      state = finishPv1fTurn(state, 'east').state
+    },
+  }
 }
 
 describe('P2.6 authoritative Recruit AI turn service', () => {
+  it.each(
+    (['duel-yard', 'crossroads-court', 'terraced-yard'] as const).flatMap((arenaId) =>
+      [1, 47_399_736, 987_654_321].flatMap((mapSeed) => [
+        { arenaId, allyCount: 0, enemyCount: 5, mapSeed },
+        { arenaId, allyCount: 2, enemyCount: 3, mapSeed },
+      ]),
+    ),
+  )(
+    'routes actual $arenaId AI spawns into combat ($allyCount allies/$enemyCount enemies, map seed $mapSeed)',
+    async (teams) => {
+      const spawned = await initialEncounter(teams, teams.mapSeed)
+      const durable = {
+        ...spawned,
+        tactical: {
+          ...spawned.tactical,
+          battle: {
+            ...spawned.tactical.battle,
+            battleId: 'battle:spawn-route-regression',
+            rng: {
+              algorithm: 'xorshift32-v1' as const,
+              seed: 987_654_321,
+              state: 987_654_321,
+              draws: 0,
+            },
+            combatants: spawned.tactical.battle.combatants.map((c) => ({
+              ...c,
+              hp: 10_000,
+              maxHp: 10_000,
+            })),
+          },
+        },
+      }
+      const fixture = createStatefulRepository(durable)
+      const service = createBattleRecruitAiService(fixture.repository)
+      const moved = new Set<string>()
+      const attacked = new Set<string>()
+      let version = 1
+      const runAiTurn = async () => {
+        const commitStart = fixture.commits.length
+        const result = await service.runTurn({
+          userId: USER_ID,
+          battleSessionId: SESSION_ID,
+          expectedBattleVersion: version,
+        })
+        version = result.battleVersion
+        for (const commit of fixture.commits.slice(commitStart)) {
+          for (const event of commit.events) {
+            if (!event || typeof event !== 'object' || !('event' in event)) continue
+            if (event.event === 'combatant_moved' && 'combatantId' in event)
+              moved.add(event.combatantId as string)
+            if (
+              event.event === 'damage_applied' &&
+              'sourceCombatantId' in event &&
+              'targetCombatantId' in event
+            ) {
+              const source = durable.tactical.battle.combatants.find(
+                (c) => c.id === event.sourceCombatantId,
+              )!
+              const target = durable.tactical.battle.combatants.find(
+                (c) => c.id === event.targetCombatantId,
+              )!
+              expect(target.teamId).not.toBe(source.teamId)
+              attacked.add(source.id)
+            }
+          }
+        }
+      }
+      for (let turn = 0; turn < 72; turn++) {
+        if (
+          fixture.currentState().tactical.battle.currentTurn?.combatantId ===
+          `character:${CHARACTER_ID}`
+        ) {
+          fixture.playPlayerTurn()
+          continue
+        }
+        await runAiTurn()
+      }
+      const aiIds = durable.tactical.battle.combatants
+        .filter((c) => c.id.startsWith('recruit:'))
+        .map((c) => c.id)
+        .sort()
+      // An approaching enemy can enter melee before this actor's first turn. Attacking
+      // directly from the original spawn is participation, without a gratuitous move.
+      expect([...new Set([...moved, ...attacked])].sort()).toEqual(aiIds)
+      expect(fixture.playerMoveCount()).toBeGreaterThan(0)
+      if (teams.allyCount > 0) {
+        expect([...attacked].sort()).toEqual(aiIds)
+      } else {
+        // Four melee slots fit around one surrounded player; the fifth must wait.
+        expect(attacked.size).toBe(4)
+        // Open a flank through legal movement on the blocking actor's own turn.
+        // The waiting AI must resume pursuit and attack when space becomes available.
+        let openedFlank = false
+        for (let turn = 0; turn < 24 && attacked.size < 5; turn++) {
+          const actorId = fixture.currentState().tactical.battle.currentTurn!.combatantId
+          if (actorId === `character:${CHARACTER_ID}`) {
+            fixture.playPlayerTurn()
+          } else if (attacked.has(actorId) && fixture.retreatActiveAi()) {
+            openedFlank = true
+          } else {
+            await runAiTurn()
+          }
+        }
+        expect(openedFlank).toBe(true)
+        expect([...attacked].sort()).toEqual(aiIds)
+      }
+    },
+    15_000,
+  )
+  it.each([
+    [0, 5],
+    [1, 4],
+    [2, 3],
+  ])(
+    'resolves consecutive allied/enemy AI turns for %s allies and %s enemies',
+    async (allyCount, enemyCount) => {
+      const initial = await initialEncounter({ allyCount, enemyCount })
+      const adjacent = {
+        ...initial,
+        tactical: {
+          ...initial.tactical,
+          battle: {
+            ...initial.tactical.battle,
+            // Session creation uses random IDs and accuracy rolls in production. Pin both
+            // here: this test checks turn routing and hostile recipients, not hit variance.
+            battleId: 'battle:consecutive-ai-turn-regression',
+            rng: {
+              algorithm: 'xorshift32-v1' as const,
+              seed: 987_654_321,
+              state: 987_654_321,
+              draws: 0,
+            },
+            combatants: initial.tactical.battle.combatants.map((c) => ({
+              ...c,
+              hp: 10_000,
+              maxHp: 10_000,
+            })),
+          },
+          placements: initial.tactical.placements.map((placement, index) => ({
+            ...placement,
+            position: { x: index, y: 3 },
+          })),
+        },
+      }
+      const state = advanceToRecruitTurn(adjacent)
+      const fixture = createStatefulRepository(state),
+        service = createBattleRecruitAiService(fixture.repository)
+      let version = 1
+      const acted = new Set<string>()
+      let damageEvents = 0
+      for (let request = 0; request < 5; request++) {
+        const actor = fixture.currentState().tactical.battle.currentTurn?.combatantId
+        expect(actor).not.toBe(`character:${CHARACTER_ID}`)
+        const result = await service.runTurn({
+          userId: USER_ID,
+          battleSessionId: SESSION_ID,
+          expectedBattleVersion: version,
+        })
+        expect(result.decisions.length).toBeGreaterThan(0)
+        expect(result.decisions.every((d) => d.combatantId === actor)).toBe(true)
+        expect(result.snapshot.tactical.battle.currentTurn?.combatantId).not.toBe(actor)
+        for (const commit of fixture.commits.slice(-result.decisions.length)) {
+          for (const event of commit.events) {
+            if (
+              event &&
+              typeof event === 'object' &&
+              'event' in event &&
+              event.event === 'damage_applied' &&
+              'sourceCombatantId' in event &&
+              'targetCombatantId' in event
+            ) {
+              const source = state.tactical.battle.combatants.find(
+                (c) => c.id === event.sourceCombatantId,
+              )
+              const target = state.tactical.battle.combatants.find(
+                (c) => c.id === event.targetCombatantId,
+              )
+              expect(source).toBeDefined()
+              expect(target).toBeDefined()
+              expect(target!.teamId).not.toBe(source!.teamId)
+              damageEvents++
+            }
+          }
+        }
+        acted.add(actor!)
+        version = result.battleVersion
+        if (result.snapshot.tactical.battle.lifecycle !== 'active') break
+      }
+      expect(damageEvents).toBeGreaterThan(0)
+      expect(acted.size).toBe(5)
+      expect(fixture.currentState().tactical.battle.currentTurn?.combatantId).toBe(
+        `character:${CHARACTER_ID}`,
+      )
+      expect([...acted].filter((id) => id.startsWith('recruit:ally-'))).toHaveLength(allyCount)
+    },
+  )
+  it('preserves original Sparring counts when a combat summon is still in the snapshot', async () => {
+    const state = await initialEncounter({ allyCount: 2, enemyCount: 3 })
+    const spawned = spawnCombatSummon(state, {
+      ownerCombatantId: `character:${CHARACTER_ID}`,
+      sourceSkillId: 'test.rematch-summon',
+      sourceSkillVersion: 1,
+      profile: summonProfile(),
+      position: { x: 0, y: 0 },
+      facing: 'east',
+    })
+    expect(
+      battleSparringTeamCounts({
+        battleSessionId: SESSION_ID,
+        battleVersion: 1,
+        snapshot: spawned.state,
+        replayed: false,
+        invalidation: null,
+      }),
+    ).toEqual({ allyCount: 2, enemyCount: 3 })
+  })
   it('derives deterministic tie-break seeds only from committed battle metadata', () => {
     const committedContext = {
       battleId: 'battle:test',

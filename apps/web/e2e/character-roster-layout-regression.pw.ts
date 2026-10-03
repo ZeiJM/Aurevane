@@ -4,205 +4,266 @@ import { expect, test } from '@playwright/test'
 
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
-test('Character Select keeps its heading above three readable, reachable roster cards', async ({
-  page,
-}, info) => {
-  test.setTimeout(120_000)
-  const host = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://invalid').hostname
-  if (!['localhost', '127.0.0.1'].includes(host))
-    throw new Error('Character roster review requires disposable local Supabase.')
-
-  const suffix = `${Date.now()}${info.workerIndex}`
-    .split('')
-    .map((digit) => String.fromCharCode(65 + Number(digit)))
-    .join('')
-  const characterName = `Aurelia ${suffix}`
-  const pageErrors: string[] = []
-  page.on('pageerror', (error) => pageErrors.push(error.message))
-  await provisionAccountAndEnterCharacter({
+for (const longName of [false, true]) {
+  test(`Character Select keeps ${longName ? 'long names and' : 'its heading above'} three readable, reachable roster cards`, async ({
     page,
-    email: `roster-layout-${info.project.name}-${Date.now()}@example.test`,
-    password: 'Disposable-roster-layout-2026!',
-    characterName,
-  })
-  await page.goto('/game')
-  await expect(page.locator('[data-character-select-page] > header img')).toHaveCount(0)
-  await expect(page.getByRole('button', { name: 'Switch account', exact: true })).toHaveCount(0)
-  const board = page.locator('[data-character-slot-board]')
-  const cards = board.locator(':scope > article')
-  await expect(cards).toHaveCount(3)
-  await expect(board.locator('[data-locked="true"]')).toHaveCount(2)
-  const selectedCard = board.locator('article[data-selected="true"]')
-  await expect(selectedCard).toHaveCount(1)
-  expect
-    .soft(
-      await selectedCard.evaluate((node) => getComputedStyle(node).animationName),
-      'selected character has a calm living glow',
-    )
-    .not.toBe('none')
+  }, info) => {
+    test.setTimeout(120_000)
+    const host = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://invalid').hostname
+    if (!['localhost', '127.0.0.1'].includes(host))
+      throw new Error('Character roster review requires disposable local Supabase.')
 
-  const atmosphere = page.locator('[data-character-select-page] > [aria-hidden="true"]').first()
-  const atmosphereStart = await atmosphere.evaluate(
-    (node) => getComputedStyle(node, '::before').transform,
-  )
-  await page.waitForTimeout(600)
-  const atmosphereAfter = await atmosphere.evaluate(
-    (node) => getComputedStyle(node, '::before').transform,
-  )
-  expect
-    .soft(atmosphereAfter, 'character-select ambient layer actually advances')
-    .not.toBe(atmosphereStart)
-
-  await page.emulateMedia({ reducedMotion: 'reduce' })
-  expect
-    .soft(
-      await selectedCard.evaluate((node) => getComputedStyle(node).animationName),
-      'reduced motion disables selected-character glow',
-    )
-    .toBe('none')
-  await page.emulateMedia({ reducedMotion: 'no-preference' })
-  const play = board.getByRole('link', { name: `Play ${characterName}`, exact: true })
-  await expect(play).toHaveAttribute('href', /\/game\/select\/[0-9a-f-]+$/)
-  await expect(board.getByRole('button', { name: 'Delete Character', exact: true })).toBeVisible()
-  await expect(page.getByTestId('delete-account-button')).toHaveText('Delete Account')
-
-  const sizes =
-    info.project.name === 'mobile-chromium'
-      ? [
-          { width: 390, height: 844 },
-          { width: 320, height: 740 },
-        ]
-      : info.project.name === 'laptop-chromium'
-        ? [{ width: 1366, height: 768 }]
-        : [
-            { width: 1728, height: 887 },
-            { width: 1440, height: 900 },
-            { width: 1024, height: 576 },
-            { width: 980, height: 768 },
-            { width: 768, height: 576 },
-          ]
-  const results = []
-  for (const size of sizes) {
-    await page.setViewportSize(size)
-    await page.evaluate(async () => {
-      await document.fonts.ready
-      scrollTo(0, 0)
+    const suffix = `${Date.now()}${info.workerIndex}`
+      .split('')
+      .map((digit) => String.fromCharCode(65 + Number(digit)))
+      .join('')
+    // Short-name cases retain the portrait prominence guard; long-name cases exercise wrapping.
+    const shortSuffix = (Date.now() % 26 ** 7)
+      .toString(26)
+      .split('')
+      .map((digit) => String.fromCharCode(65 + parseInt(digit, 26)))
+      .join('')
+    const characterName = longName
+      ? `Aurelia ${suffix}`
+      : `${shortSuffix}${String.fromCharCode(65 + info.workerIndex)}`
+    const pageErrors: string[] = []
+    page.on('pageerror', (error) => pageErrors.push(error.message))
+    await provisionAccountAndEnterCharacter({
+      page,
+      email: `roster-layout-${info.project.name}-${Date.now()}@example.test`,
+      password: 'Disposable-roster-layout-2026!',
+      characterName,
     })
-    const portrait = cards.first().locator('img').first()
-    await expect(portrait).toBeVisible()
-    await expect
-      .poll(() =>
-        portrait.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0),
+    const headerAppearance = async () =>
+      page.locator('[data-av-site-header]').evaluate((node) => {
+        const wordmark = node.querySelector('.brand__wordmark strong')!
+        const crest = node.querySelector('.brand__crest')!
+        const style = getComputedStyle(wordmark)
+        return {
+          height: node.getBoundingClientRect().height,
+          crestWidth: crest.getBoundingClientRect().width,
+          color: style.color,
+          font: style.font,
+          spacing: style.letterSpacing,
+          background: getComputedStyle(node).backgroundColor,
+        }
+      })
+    const inGameHeader = await headerAppearance()
+    await page.goto('/game')
+    expect(await headerAppearance()).toEqual(inGameHeader)
+    await expect(page.getByRole('navigation', { name: 'Public information' })).toBeVisible()
+    await expect(
+      page.locator('[data-av-site-header] a').filter({ hasText: 'News' }),
+    ).toHaveAttribute('href', '/news')
+    await expect(page.locator('[data-character-select-page] > header img')).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Switch account', exact: true })).toHaveCount(0)
+    const board = page.locator('[data-character-slot-board]')
+    const cards = board.locator(':scope > article')
+    await expect(cards).toHaveCount(3)
+    await expect(board.locator('[data-locked="true"]')).toHaveCount(2)
+    await expect(board.locator('[data-locked="true"] > svg[aria-hidden="true"]')).toHaveCount(2)
+    await expect(board.locator('[data-slot-doorway="additional"] img')).toHaveAttribute(
+      'src',
+      /additional-doorway-v01/,
+    )
+    await expect(board.locator('[data-slot-doorway="prestige"] img')).toHaveAttribute(
+      'src',
+      /prestige-doorway-v01/,
+    )
+    const selectedCard = board.locator('article[data-selected="true"]')
+    await expect(selectedCard).toHaveCount(1)
+    expect
+      .soft(
+        await selectedCard.evaluate((node) => getComputedStyle(node).animationName),
+        'selected character has a calm living glow',
       )
-      .toBe(true)
-    const metrics = await board.evaluate((node) => {
-      const rect = (element: Element) => {
-        const box = element.getBoundingClientRect()
-        return { x: box.x, y: box.y, width: box.width, height: box.height, bottom: box.bottom }
-      }
-      const first = node.querySelector('article')!
-      const hero = document.querySelector('[data-roster-stage] > header')!
-      const accountDelete = document.querySelector('[data-testid="delete-account-button"]')!
-      const locked = node.querySelector('[data-locked="true"]')!
-      const deleteStyle = getComputedStyle(accountDelete)
-      const deleteSupport = accountDelete.parentElement?.querySelector('small')
-      return {
-        board: rect(node),
-        hero: rect(hero),
-        card: rect(first),
-        portrait: rect(first.querySelector('img')!),
-        name: rect(first.querySelector('h2')!),
-        play: rect(first.querySelector('a')!),
-        accountDelete: rect(accountDelete),
-        lockedBackground: getComputedStyle(locked).backgroundColor,
-        nameFont: parseFloat(getComputedStyle(first.querySelector('h2')!).fontSize),
-        buttonFont: parseFloat(getComputedStyle(first.querySelector('a')!).fontSize),
-        documentOverflow: document.documentElement.scrollWidth - innerWidth,
-        documentScroll: document.documentElement.scrollHeight - innerHeight,
-        deleteJustify: deleteStyle.justifyContent,
-        deleteTextAlign: deleteStyle.textAlign,
-        deleteSupportAlign: deleteSupport ? getComputedStyle(deleteSupport).textAlign : '',
-        viewportCenter: innerWidth / 2,
-      }
-    })
-    results.push({ viewport: size, ...metrics })
-    const label = `${info.project.name}-${size.width}x${size.height}`
-    if (process.env.LAYOUT_REVIEW_OUTPUT) {
-      await mkdir(process.env.LAYOUT_REVIEW_OUTPUT, { recursive: true })
-      await page.screenshot({
-        path: path.join(process.env.LAYOUT_REVIEW_OUTPUT, `character-roster-${label}.png`),
-        fullPage: true,
-      })
-      await page.screenshot({
-        path: path.join(process.env.LAYOUT_REVIEW_OUTPUT, `character-roster-${label}-viewport.png`),
-      })
-    }
+      .not.toBe('none')
+
+    const atmosphere = page.locator('[data-character-select-page] > [aria-hidden="true"]').first()
+    const atmosphereStart = await atmosphere.evaluate(
+      (node) => getComputedStyle(node, '::before').transform,
+    )
+    await page.waitForTimeout(600)
+    const atmosphereAfter = await atmosphere.evaluate(
+      (node) => getComputedStyle(node, '::before').transform,
+    )
     expect
-      .soft(metrics.hero.bottom, `${label}: heading is above the board`)
-      .toBeLessThanOrEqual(metrics.board.y + 1)
-    expect.soft(metrics.documentOverflow, `${label}: no horizontal overflow`).toBeLessThanOrEqual(1)
+      .soft(atmosphereAfter, 'character-select ambient layer actually advances')
+      .not.toBe(atmosphereStart)
+
+    await page.emulateMedia({ reducedMotion: 'reduce' })
     expect
-      .soft(metrics.portrait.width / metrics.portrait.height, `${label}: square portrait ratio`)
-      .toBeCloseTo(1, 2)
-    if (size.width >= 1280 && size.height >= 768)
+      .soft(
+        await selectedCard.evaluate((node) => getComputedStyle(node).animationName),
+        'reduced motion disables selected-character glow',
+      )
+      .toBe('none')
+    await page.emulateMedia({ reducedMotion: 'no-preference' })
+    const play = board.getByRole('link', { name: `Play ${characterName}`, exact: true })
+    await expect(play).toHaveAttribute('href', /\/game\/select\/[0-9a-f-]+$/)
+    await expect(board.getByRole('button', { name: 'Delete Character', exact: true })).toBeVisible()
+    await expect(page.getByTestId('delete-account-button')).toHaveText('Delete Account')
+
+    const sizes =
+      info.project.name === 'mobile-chromium'
+        ? [
+            { width: 390, height: 844 },
+            { width: 320, height: 740 },
+          ]
+        : info.project.name === 'laptop-chromium'
+          ? [{ width: 1366, height: 768 }]
+          : [
+              { width: 1280, height: 720 },
+              { width: 1366, height: 768 },
+              { width: 1536, height: 614 },
+              { width: 1920, height: 1080 },
+              { width: 1917, height: 987 },
+              { width: 1728, height: 887 },
+              { width: 1440, height: 900 },
+              { width: 1024, height: 576 },
+              { width: 980, height: 768 },
+              { width: 768, height: 576 },
+            ]
+    const results = []
+    for (const size of sizes) {
+      await page.setViewportSize(size)
+      await page.evaluate(async () => {
+        await document.fonts.ready
+        scrollTo(0, 0)
+      })
+      const portrait = cards.first().locator('img').first()
+      await expect(portrait).toBeVisible()
+      await expect
+        .poll(() =>
+          portrait.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0),
+        )
+        .toBe(true)
+      const metrics = await board.evaluate((node) => {
+        const rect = (element: Element) => {
+          const box = element.getBoundingClientRect()
+          return { x: box.x, y: box.y, width: box.width, height: box.height, bottom: box.bottom }
+        }
+        const first = node.querySelector('article')!
+        const hero = document.querySelector('[data-roster-stage] > header')!
+        const accountDelete = document.querySelector('[data-testid="delete-account-button"]')!
+        const locked = node.querySelector('[data-locked="true"]')!
+        const deleteStyle = getComputedStyle(accountDelete)
+        return {
+          board: rect(node),
+          hero: rect(hero),
+          card: rect(first),
+          portrait: rect(first.querySelector('img')!),
+          name: rect(first.querySelector('h2')!),
+          play: rect(first.querySelector('a')!),
+          accountDelete: rect(accountDelete),
+          lockedBackground: getComputedStyle(locked).backgroundImage,
+          nameFont: parseFloat(getComputedStyle(first.querySelector('h2')!).fontSize),
+          buttonFont: parseFloat(getComputedStyle(first.querySelector('a')!).fontSize),
+          documentOverflow: document.documentElement.scrollWidth - innerWidth,
+          documentScroll: document.documentElement.scrollHeight - innerHeight,
+          deleteJustify: deleteStyle.justifyContent,
+          deleteTextAlign: deleteStyle.textAlign,
+          viewportCenter: node.getBoundingClientRect().x + node.getBoundingClientRect().width / 2,
+        }
+      })
+      results.push({ viewport: size, ...metrics })
+      const label = `${info.project.name}-${size.width}x${size.height}`
+      if (process.env.LAYOUT_REVIEW_OUTPUT) {
+        await mkdir(process.env.LAYOUT_REVIEW_OUTPUT, { recursive: true })
+        await page.screenshot({
+          path: path.join(process.env.LAYOUT_REVIEW_OUTPUT, `character-roster-${label}.png`),
+          fullPage: true,
+        })
+        await page.screenshot({
+          path: path.join(
+            process.env.LAYOUT_REVIEW_OUTPUT,
+            `character-roster-${label}-viewport.png`,
+          ),
+        })
+      }
+      expect
+        .soft(metrics.hero.bottom, `${label}: heading is above the board`)
+        .toBeLessThanOrEqual(metrics.board.y + 1)
+      expect
+        .soft(metrics.documentOverflow, `${label}: no horizontal overflow`)
+        .toBeLessThanOrEqual(1)
+      expect
+        .soft(metrics.portrait.width / metrics.portrait.height, `${label}: square portrait ratio`)
+        .toBeCloseTo(1, 2)
+      if (!longName && size.width >= 1280 && size.height >= 768)
+        expect
+          .soft(
+            metrics.portrait.width / metrics.card.width,
+            `${label}: portrait makes strong use of the character card`,
+          )
+          .toBeGreaterThanOrEqual(0.68)
+      expect.soft(metrics.nameFont, `${label}: readable name`).toBeGreaterThanOrEqual(16)
+      expect
+        .soft(metrics.buttonFont, `${label}: readable primary action`)
+        .toBeGreaterThanOrEqual(14)
+      expect.soft(metrics.play.height, `${label}: usable primary action`).toBeGreaterThanOrEqual(40)
+      expect
+        .soft(metrics.accountDelete.y, `${label}: account management follows the roster`)
+        .toBeGreaterThanOrEqual(metrics.board.bottom - 1)
       expect
         .soft(
-          metrics.portrait.width / metrics.card.width,
-          `${label}: portrait makes strong use of the character card`,
+          Math.abs(
+            metrics.accountDelete.x + metrics.accountDelete.width / 2 - metrics.viewportCenter,
+          ),
+          `${label}: Delete Account is horizontally centered`,
         )
-        .toBeGreaterThanOrEqual(0.68)
-    expect.soft(metrics.nameFont, `${label}: readable name`).toBeGreaterThanOrEqual(16)
-    expect.soft(metrics.buttonFont, `${label}: readable primary action`).toBeGreaterThanOrEqual(14)
-    expect.soft(metrics.play.height, `${label}: usable primary action`).toBeGreaterThanOrEqual(40)
-    expect
-      .soft(metrics.accountDelete.y, `${label}: account management follows the roster`)
-      .toBeGreaterThanOrEqual(metrics.board.bottom - 1)
-    expect
-      .soft(
-        Math.abs(
-          metrics.accountDelete.x + metrics.accountDelete.width / 2 - metrics.viewportCenter,
-        ),
-        `${label}: Delete Account is horizontally centered`,
+        .toBeLessThanOrEqual(2)
+      expect.soft(metrics.deleteJustify, `${label}: Delete Account content centered`).toBe('center')
+      expect.soft(metrics.deleteTextAlign, `${label}: Delete Account text centered`).toBe('center')
+      const accountManagement = page.locator(
+        '[data-roster-stage] > footer[aria-label="Account management"]',
       )
-      .toBeLessThanOrEqual(2)
-    expect.soft(metrics.deleteJustify, `${label}: Delete Account content centered`).toBe('center')
-    expect.soft(metrics.deleteTextAlign, `${label}: Delete Account text centered`).toBe('center')
-    expect
-      .soft(metrics.deleteSupportAlign, `${label}: deletion support text centered`)
-      .toBe('center')
-    expect
-      .soft(
-        Math.max(...(metrics.lockedBackground.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number)),
-        `${label}: dark locked cards`,
+      await expect(
+        accountManagement.locator('p, small'),
+        `${label}: removed decorative deletion support text stays absent`,
+      ).toHaveCount(0)
+      await expect(accountManagement).not.toContainText(
+        'Account removal has a cancellable 24-hour grace period.',
       )
-      .toBeLessThan(75)
-    if (size.width >= 1280 && size.height >= 768) {
       expect
-        .soft(metrics.play.bottom, `${label}: play fits at normal zoom`)
-        .toBeLessThanOrEqual(size.height)
-      expect
-        .soft(metrics.accountDelete.bottom, `${label}: account controls fit at normal zoom`)
-        .toBeLessThanOrEqual(size.height)
-      expect
-        .soft(metrics.documentScroll, `${label}: full roster fits without desktop page scroll`)
-        .toBeLessThanOrEqual(1)
+        .soft(metrics.lockedBackground, `${label}: approved parchment locked cards`)
+        .toContain('radial-gradient')
+      if (size.width > 760) {
+        expect
+          .soft(metrics.play.bottom, `${label}: play fits at normal zoom`)
+          .toBeLessThanOrEqual(size.height)
+        expect
+          .soft(metrics.accountDelete.bottom, `${label}: account controls fit at normal zoom`)
+          .toBeLessThanOrEqual(size.height)
+        expect
+          .soft(metrics.documentScroll, `${label}: full roster fits without desktop page scroll`)
+          .toBeLessThanOrEqual(1)
+      }
+      await play.scrollIntoViewIfNeeded()
+      const playBox = await play.boundingBox()
+      expect(playBox!.y).toBeGreaterThanOrEqual(-1)
+      expect(playBox!.y + playBox!.height).toBeLessThanOrEqual(size.height + 1)
+      await play.click({ trial: true })
+      const accountDelete = page.getByTestId('delete-account-button')
+      await accountDelete.scrollIntoViewIfNeeded()
+      const deleteBox = await accountDelete.boundingBox()
+      expect(deleteBox!.y).toBeGreaterThanOrEqual(-1)
+      expect(deleteBox!.y + deleteBox!.height).toBeLessThanOrEqual(size.height + 1)
+      await accountDelete.click({ trial: true })
     }
-    await play.scrollIntoViewIfNeeded()
-    await expect(play).toBeInViewport({ ratio: 1 })
-    await play.click({ trial: true })
-    const accountDelete = page.getByTestId('delete-account-button')
-    await accountDelete.scrollIntoViewIfNeeded()
-    await expect(accountDelete).toBeInViewport({ ratio: 1 })
-    await accountDelete.click({ trial: true })
-  }
-  if (process.env.LAYOUT_REVIEW_OUTPUT)
-    await writeFile(
-      path.join(process.env.LAYOUT_REVIEW_OUTPUT, `character-roster-${info.project.name}.json`),
-      JSON.stringify(results, null, 2),
-    )
-  // Sign-out remains available through Account; it no longer occupies roster page content.
-  await page.getByRole('button', { name: /Account/ }).click()
-  await page.getByRole('menuitem', { name: 'Sign out', exact: true }).click()
-  await expect(page).toHaveURL(/\/$/)
-  expect(pageErrors).toEqual([])
-})
+    if (process.env.LAYOUT_REVIEW_OUTPUT)
+      await writeFile(
+        path.join(process.env.LAYOUT_REVIEW_OUTPUT, `character-roster-${info.project.name}.json`),
+        JSON.stringify(results, null, 2),
+      )
+    const rosterHeader = await headerAppearance()
+    // Sign-out remains available through Account; it no longer occupies roster page content.
+    await page.getByRole('button', { name: /Account/ }).click()
+    await page.getByRole('menuitem', { name: 'Sign out', exact: true }).click()
+    await expect(page).toHaveURL(/\/$/)
+    await expect(page.getByTestId('account-shell')).toBeVisible()
+    expect(await headerAppearance()).toEqual(rosterHeader)
+    await expect(page.getByRole('button', { name: /Sound/ })).toBeVisible()
+    expect(pageErrors).toEqual([])
+  })
+}

@@ -1,4 +1,5 @@
 import { hasGameplayTag, validateGameplayTag, type GameplayTag } from './gameplay-tags'
+import { hasCurrentBleed, hasCurrentBurn, hasCurrentPoison } from './combat-dots'
 import type { CombatContentCatalog, CombatEncounterState } from './actions'
 import { classifyFacingRelation } from './board'
 
@@ -113,6 +114,12 @@ function matchesCondition(
     case 'opponent-tag':
       return hasGameplayTag(state, opponentId, condition.tag, content)
     case 'opponent-status':
+      if (
+        (condition.statusId === 'burn' && hasCurrentBurn(state, opponentId)) ||
+        (condition.statusId === 'poison' && hasCurrentPoison(state, opponentId)) ||
+        (condition.statusId === 'bleed' && hasCurrentBleed(state, opponentId))
+      )
+        return true
       return state.statusState.some(
         (row) =>
           row.combatantId === opponentId &&

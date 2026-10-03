@@ -1,3 +1,5 @@
+import { readCombatEffectTimingPolicy } from '@/server/master/combat-effect-timing-policy-store'
+import { CURRENT_COMBAT_COPY_POLICY_VERSION } from '@aurevane/game-core/combat/combat-status-copy'
 import 'server-only'
 
 import { randomInt, randomUUID } from 'node:crypto'
@@ -14,7 +16,6 @@ import {
   P2_2_ORDINARY_GROUND_PROFILE,
   P2_2_VERTICAL_SLICE_TERRAINS,
   createTacticalBattleState,
-  type CombatTile,
   type GridPosition,
 } from '@aurevane/game-core/combat/board'
 import { attachCombatBuildBridge } from '@aurevane/game-core/combat/build-snapshot'
@@ -29,8 +30,10 @@ import {
   createStatDrivenCombatEncounterState,
 } from '@aurevane/game-core/combat/stat-driven-combat'
 import { AurevaneError } from '@aurevane/game-core/errors'
+import { createStandardBattlefieldTiles } from '@aurevane/game-core/combat/standard-battlefield'
 import type { PvpMapBias, PvpMapSize, PvpTurnTimerSeconds } from '@aurevane/validation/combat/pvp'
 
+import { pvpMapProfile } from '@/lib/battle/pvp-map-presentation'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createSupabaseCharacterBuildRepository } from '@/server/character/supabase-character-build-repository'
 import { createSupabaseCharacterRepository } from '@/server/character/supabase-character-repository'
@@ -43,6 +46,7 @@ import {
 } from '../character/character-build-service'
 import {
   createResolvedBattleBuildAuthoritySnapshot,
+  narratorIdentityForCharacter,
   type BattleBuildAuthoritySnapshot,
 } from './battle-build-authority'
 import { getPvpLobby, type PvpLobbyMemberView } from './pvp-lobby-service'
@@ -104,7 +108,7 @@ export async function getPvpLobbyMapSettings(
   const terrainBias = row.terrain_bias
   const turnTimerSeconds = row.turn_timer_seconds
   if (
-    (mapSize !== 'medium' && mapSize !== 'large') ||
+    (mapSize !== 'small' && mapSize !== 'medium' && mapSize !== 'large') ||
     (elevationBias !== 'less' && elevationBias !== 'neutral' && elevationBias !== 'more') ||
     (terrainBias !== 'less' && terrainBias !== 'neutral' && terrainBias !== 'more') ||
     (turnTimerSeconds !== null && turnTimerSeconds !== 60 && turnTimerSeconds !== 120)
@@ -175,55 +179,13 @@ function spawnFor(
   return { position: { x: Math.floor(width / 2), y: 1 }, facing: 'south' }
 }
 
-function chance(bias: PvpMapBias, kind: 'terrain' | 'elevation'): number {
-  if (kind === 'terrain') return bias === 'less' ? 70 : bias === 'more' ? 270 : 150
-  return bias === 'less' ? 45 : bias === 'more' ? 220 : 115
-}
-
-function nearbyKeys(position: GridPosition): string[] {
-  return [
-    `${position.x}:${position.y}`,
-    `${position.x + 1}:${position.y}`,
-    `${position.x - 1}:${position.y}`,
-    `${position.x}:${position.y + 1}`,
-    `${position.x}:${position.y - 1}`,
-  ]
-}
-
-function createRandomPvpTiles(
-  width: number,
-  height: number,
-  spawns: readonly GridPosition[],
-  elevationBias: PvpMapBias,
-  terrainBias: PvpMapBias,
-): readonly CombatTile[] {
-  const protectedTiles = new Set(spawns.flatMap(nearbyKeys))
-  const roughChance = chance(terrainBias, 'terrain')
-  const raisedChance = chance(elevationBias, 'elevation')
-  const tiles: CombatTile[] = []
-  for (let y = 0; y < height; y += 1) {
-    for (let x = 0; x < width; x += 1) {
-      const key = `${x}:${y}`
-      const protectedSpawn = protectedTiles.has(key)
-      tiles.push({
-        position: { x, y },
-        elevation: !protectedSpawn && randomInt(0, 1000) < raisedChance ? 1 : 0,
-        terrainId:
-          !protectedSpawn && randomInt(0, 1000) < roughChance ? 'rough-ground' : 'open-ground',
-      })
-    }
-  }
-  return tiles
-}
-
 function createPvpEncounter(
   roster: readonly PvpRosterEntry[],
   teamSizes: readonly [number, number, number],
   settings: PvpLobbyMapSettings,
   buildAuthority: BattleBuildAuthoritySnapshot,
 ) {
-  const width = settings.mapSize === 'large' ? 13 : 9
-  const height = settings.mapSize === 'large' ? 9 : 7
+  const { width, height } = pvpMapProfile(settings.mapSize)
   const spawnRows = roster.map(({ member }) => ({
     member,
     spawn: spawnFor(
@@ -234,13 +196,6 @@ function createPvpEncounter(
       height,
     ),
   }))
-  const tiles = createRandomPvpTiles(
-    width,
-    height,
-    spawnRows.map((row) => row.spawn.position),
-    settings.elevationBias,
-    settings.terrainBias,
-  )
   const profiles = []
   const movementProfiles = []
   const placements = []
@@ -314,7 +269,14 @@ function createPvpEncounter(
           width,
           height,
           terrains: P2_2_VERTICAL_SLICE_TERRAINS,
-          tiles,
+          tiles: createStandardBattlefieldTiles({
+            width,
+            height,
+            seed: battle.rng.seed,
+            spawns: spawnRows.map((row) => row.spawn.position),
+            elevationBias: settings.elevationBias,
+            terrainBias: settings.terrainBias,
+          }),
           movementProfiles,
           placements,
         }),
@@ -376,10 +338,13 @@ export async function startPvpLobbyWithQuality(
       combatantId: `character:${character.id}`,
       characterId: character.id,
       snapshot: buildSnapshot,
+      narratorIdentity: narratorIdentityForCharacter(character),
     })),
     createServerCombatContentResolver(),
   )
   const encounter = createPvpEncounter(roster, lobby.teamSizes, settings, buildAuthority)
+  encounter.effectTimingPolicy = await readCombatEffectTimingPolicy()
+  encounter.copyPolicyVersion = CURRENT_COMBAT_COPY_POLICY_VERSION
   const battle = encounter.tactical.battle
   const supabase = createSupabaseAdminClient()
   const { data, error } = await supabase.rpc('create_pvp_battle_session_v1', {

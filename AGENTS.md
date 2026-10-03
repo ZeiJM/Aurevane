@@ -11,7 +11,7 @@
 - `docs/GAME_MASTER_PLAN_BUILD_SYSTEM_ADDENDUM.md` governs Primary/Secondary Disciplines, Skills, Resonance, Essence, Soulmarks, Severance/Mantles and related build rules.
 - `docs/ROADMAP_BUILD_SYSTEM_REWORK.md` is the current build-system sequencing companion.
 - `docs/COMBAT.md` is current combat authority.
-- `docs/GAME_MASTER_PLAN_TECHNIQUE_REPEAT_USE_ADDENDUM.md` and `docs/ROADMAP_TECHNIQUE_REPEAT_USE.md` supersede the older 8-pure/6-mixed selection limits and ordinary authored-Skill cooldown rules. Current selection is four total in either build; ordinary authored Skills use 50% consecutive-use effectiveness at unchanged AP cost, not turn cooldowns.
+- `docs/GAME_MASTER_PLAN_TECHNIQUE_REPEAT_USE_ADDENDUM.md` and `docs/ROADMAP_TECHNIQUE_REPEAT_USE.md` retain the historical repeat-use rules for pre-v5 Skill versions. Current selection is four total in either build. Current Owner-approved v5 Skills follow their authored 1–3 owner-turn cooldowns (or explicit Requirements without a cooldown), as specified by `docs/COMBAT.md`; do not restore retired consecutive-repeat falloff for current versions.
 - `docs/GAME_MASTER_PLAN_ATTRIBUTE_PROGRESSION_ADDENDUM.md` governs the Level-50 progression and stat/mobility guardrails; later approved changes supersede historical values.
 - `docs/ROADMAP_PRODUCT_VALIDATION.md` defines evidence gates.
 - `docs/REKINDLING_FRONTIER.md` governs Rekindling replay differentiation and the Unwritten Reach.
@@ -115,6 +115,10 @@ BOUNDED PRESTIGE / VETERAN EDGE
 ```
 
 Each fully authored Discipline provides eight learnable Skills. A pure build draws its four battle selections from eight; a mixed build draws four total from the two libraries (16 learned Skills across a fully authored pair). Its Essence or Resonance is separate from these four selections.
+
+Owner-approved 2026-10-01: one separately saved Support Action (Guard, HP Recovery or MP Recovery) occupies battle slot 3 without consuming the four Discipline Skill selections. Guard remains the legacy default. New battles pin the choice; named loadouts retain it. Existing recovery costs, shared cooldown and resource legality remain authoritative. Guided Fundamentals retains an exercise-only Guard practice control when Recovery occupies slot 3.
+
+Owner-approved 2026-10-02: Guard has its own two-owner-turn cooldown through canonical inherent-action authority. HP/MP Recovery retain their separate shared two-turn cooldown. Resumed battles begin Guard cooldown on their next successful use; no retroactive lock or schema migration is needed. Preserve AP costs and Guarded potency, stacking and duration.
 
 Pure build:
 
@@ -240,6 +244,12 @@ Do not restore the earlier four-attribute model.
 
 `docs/COMBAT.md` is definitive.
 
+Owner-approved 2026-10-03 live-review continuation: standard new maps vary from server-owned seeds without consuming combat RNG, favor neutral ground by default and use joined elevations with legal ground approaches. Explicit PvP biases, authored teaching/content-preview maps and persisted history retain authority. Shared preview rounds, compact popups, quiet italic canonically colored Chronicle outcomes and explicit recorded misses preserve PvE/PvP parity. Self-target hotkey confirmation must reuse legal preview/commit and existing focus/repeat/stale-state guards. Rapid confirmation may share only an identical current in-flight preview; cancellation, changed targets and versions must invalidate it. Native keyboard listeners must observe the rendered selection immediately. Track verified release separately in the active ledger.
+
+Owner-approved 2026-10-03: new battles pin a versioned effect-timing policy. Effects default to the following global round; direct damage and HP/MP recovery default to instant. Pending icons appear immediately. Active status duration runs through the affected character’s completed turn and expires at turn end. The Owner can version tag-specific timing in Master Panel. Historical snapshots without this policy preserve recorded legacy semantics. Cooldowns remain a separate authority. The shared Battle Chronicle groups short pinned narration and actual outcomes by actor within rounds; show the first ordinary movement per character per round, and omit repeated movement/facing/end-turn/expiry chatter. Every Skill use keeps its recorded outcome beneath it; pre-command hit/miss receipts belong to that same use.
+
+Owner-approved 2026-10-03 follow-up: current Copy copies active beneficial effect tags from the selected target onto the user, preserving donor state, remaining lifetime, authored potency and caps. New encounters pin the Copy policy; existing encounters without it retain their historical temporary-Skill Copy mechanics.
+
 Current combat uses one shared **Action Economy**, displayed as AP, normally 100 AP at turn start.
 
 Current implemented baseline costs:
@@ -303,6 +313,7 @@ Soulmark/Severance/Mantle belongs later. Frontier implementation is not Phase-3 
 - Never import server-only authority into Client Components.
 - Use migrations for schema changes.
 - Prefer one authoritative source of truth for rules/configuration.
+- Every full Skill report, including passives/inherent actions and Master Panel previews, must follow `docs/SKILL_INFORMATION_CONTRACT.md`: Skill Type, Cost, Cooldown, Requirements, Effects, Range, Target, Target Method, Target Elevation and Line of Sight in that order. N/A means inapplicable, None means no applicable prerequisite/cooldown, and missing immutable metadata is Unavailable. Reuse the shared presentation adapters; do not author parallel mechanical claims.
 - Reuse existing services/schemas/components before creating parallel systems.
 - Stable IDs/versioned definitions should connect gameplay, AI, Manual, Master Panel, media, analytics and support.
 - Do not permit arbitrary JavaScript/SQL inside content editors.

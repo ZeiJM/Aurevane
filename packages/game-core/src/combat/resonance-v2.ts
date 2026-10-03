@@ -1,3 +1,4 @@
+import { battleFlavorTemplateIssues } from './battle-narration'
 import type { CombatEffectDefinition } from './actions'
 import { validateGameplayEffectMetadata } from './gameplay-tags'
 import type { ResonanceDefinition, ResonanceMediaHooks, ResonanceSkillMatcher } from './resonance'
@@ -160,9 +161,7 @@ export function validateResonanceDefinitionV2(
   if (!definition.description.trim()) issues.push('description')
   if (
     definition.flavorLine !== undefined &&
-    (definition.flavorLine.trim().length === 0 ||
-      definition.flavorLine.length > 160 ||
-      /[\r\n]/u.test(definition.flavorLine))
+    battleFlavorTemplateIssues(definition.flavorLine).length > 0
   ) {
     issues.push('flavorLine')
   }

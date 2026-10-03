@@ -42,94 +42,6 @@
   color: #e29090;
 }
 
-/* Keep AI map portraits on the same tile-relative footprint as the native PvP unit contract.
-   This scales with short desktop boards instead of forcing a viewport-sized token over tile labels. */
-:global(#battlefield [data-map-portrait-ready]) {
-  isolation: isolate;
-  width: clamp(1.7rem, 56%, 2.75rem) !important;
-  height: auto !important;
-  aspect-ratio: 1;
-}
-
-:global(#battlefield [data-map-token-portrait]) {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-  border: 0;
-  border-radius: 50%;
-  background: #080b10;
-  box-shadow: none;
-  pointer-events: none;
-}
-
-:global(#battlefield [data-map-token-portrait] img),
-:global(#battlefield [data-map-token-portrait] picture),
-:global(#battlefield [data-map-token-portrait] picture img) {
-  display: block;
-  width: 100%;
-  height: 100%;
-  min-width: 100%;
-  min-height: 100%;
-  object-fit: cover;
-  object-position: 50% 50%;
-}
-
-/* AI opponents can use the rail's text fallback instead of an image. That rail fallback carries a
-   5rem minimum height and display-sized type, which overflows a map token. Normalize any cloned
-   non-image portrait source to the circular token frame so the glyph stays centered and uncropped. */
-:global(#battlefield [data-map-token-portrait] > :not(img):not(picture)) {
-  display: grid !important;
-  width: 100% !important;
-  height: 100% !important;
-  min-width: 0 !important;
-  min-height: 0 !important;
-  place-items: center !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  overflow: hidden !important;
-  border: 0 !important;
-  border-radius: 50% !important;
-  color: #d7a1a1 !important;
-  background: transparent !important;
-  font: 500 clamp(1rem, 2vw, 1.65rem)/1 var(--av-font-display) !important;
-  text-align: center !important;
-}
-
-:global(#battlefield [data-map-portrait-ready] > strong) {
-  display: none !important;
-}
-
-:global(aside[aria-label$=' combat status'] button[aria-label^='Show ']) {
-  padding: 0 !important;
-  line-height: 0;
-  appearance: none;
-}
-
-:global(aside[aria-label$=' combat status'] button[aria-label^='Show '] > img) {
-  position: absolute;
-  inset: 0;
-  display: block;
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover;
-  object-position: 50% 50%;
-}
-
-:global(#battlefield > div:first-child) {
-  box-sizing: border-box;
-  padding: clamp(0.7rem, 1.6vw, 1.1rem) !important;
-}
-
-:global(#battlefield [data-board-auto-fit]) {
-  align-self: center;
-  justify-self: center;
-  max-width: none !important;
-  max-height: none !important;
-}
-
 :global([data-floating-chat='true']) {
   width: min(24rem, calc(100vw - 1rem)) !important;
   height: min(20rem, calc(100dvh - 5rem));
@@ -187,10 +99,6 @@
 }
 
 @media (max-width: 760px) {
-  :global(#battlefield > div:first-child) {
-    padding: 0.65rem !important;
-  }
-
   :global([data-floating-chat='true']) {
     width: calc(100vw - 0.7rem) !important;
     min-width: calc(100vw - 0.7rem);

@@ -1,3 +1,6 @@
+import { readCombatEffectTimingPolicy } from '@/server/master/combat-effect-timing-policy-store'
+import { CURRENT_COMBAT_COPY_POLICY_VERSION } from '@aurevane/game-core/combat/combat-status-copy'
+import { omitPendingBattlePayloads } from './battle-live-viewer-projection'
 import 'server-only'
 
 import { randomInt, randomUUID } from 'node:crypto'
@@ -29,6 +32,7 @@ import {
 } from '@aurevane/game-core/combat/stat-driven-combat'
 import { getTacticalHallArena } from '@aurevane/game-core/combat/tactical-hall-arenas'
 import { AurevaneError } from '@aurevane/game-core/errors'
+import { createStandardBattlefieldTiles } from '@aurevane/game-core/combat/standard-battlefield'
 import type { PvpMode } from '@aurevane/validation/combat/pvp'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
@@ -44,6 +48,7 @@ import { createServerCombatContentResolver } from '@/server/combat/combat-conten
 import {
   createBattleBuildAuthoritySnapshot,
   createResolvedBattleBuildAuthoritySnapshot,
+  narratorIdentityForCharacter,
   type BattleBuildAuthoritySnapshot,
 } from './battle-build-authority'
 import { projectBattleStatusStateForViewer } from './battle-live-viewer-projection'
@@ -451,7 +456,12 @@ export function createPvpEncounter(
           width: arena.width,
           height: arena.height,
           terrains: P2_2_VERTICAL_SLICE_TERRAINS,
-          tiles: arena.tiles,
+          tiles: createStandardBattlefieldTiles({
+            width: arena.width,
+            height: arena.height,
+            seed: battle.rng.seed,
+            spawns: placements.map((placement) => placement.position),
+          }),
           movementProfiles,
           placements,
         }),
@@ -470,6 +480,7 @@ export function createPvpEncounter(
           combatantId: `character:${character.id}`,
           characterId: character.id,
           snapshot: buildSnapshot,
+          narratorIdentity: narratorIdentityForCharacter(character),
         })),
       ),
   }
@@ -483,7 +494,7 @@ function projectSnapshot(input: unknown): BattleSessionProjection {
   const viewer = createSpectatorBattleViewerEntitlement()
   const battle = candidate.tactical.battle
   return {
-    ...candidate,
+    ...omitPendingBattlePayloads(candidate),
     statusState: projectBattleStatusStateForViewer(candidate, viewer),
     tactical: {
       ...candidate.tactical,
@@ -609,10 +620,13 @@ export async function startPvpLobby(
       combatantId: `character:${character.id}`,
       characterId: character.id,
       snapshot: buildSnapshot,
+      narratorIdentity: narratorIdentityForCharacter(character),
     })),
     createServerCombatContentResolver(),
   )
   const encounter = createPvpEncounter(roster, lobby.teamSizes, buildAuthority)
+  encounter.effectTimingPolicy = await readCombatEffectTimingPolicy()
+  encounter.copyPolicyVersion = CURRENT_COMBAT_COPY_POLICY_VERSION
   const battle = encounter.tactical.battle
   const supabase = createSupabaseAdminClient()
   const { data, error } = await supabase.rpc('create_pvp_battle_session_v1', {

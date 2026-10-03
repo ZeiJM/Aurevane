@@ -3,6 +3,10 @@ import {
   copiedSkillApCost,
   copiedSkillCommandId,
 } from '@aurevane/game-core/combat/combat-skill-copy'
+import {
+  DEFAULT_SUPPORT_ACTION_ID,
+  parseSupportActionId,
+} from '@aurevane/game-core/combat/support-actions'
 import { isAurevaneError } from '@aurevane/game-core/errors'
 import { parseBattleSessionId } from '@aurevane/validation/combat/battle-session'
 import { headers } from 'next/headers'
@@ -88,6 +92,7 @@ async function battleBuildExtensions(
           return null
         const override = combatContext ? definition.overrides[combatContext] : undefined
         return {
+          definition,
           id: definition.id,
           contentVersion: definition.contentVersion,
           sourceDisciplineId: definition.sourceDisciplineId,
@@ -129,6 +134,7 @@ async function battleBuildExtensions(
               )
               if (!definition) return null
               return {
+                definition,
                 id: copiedSkillCommandId(definition.id, definition.contentVersion),
                 sourceSkillId: definition.id,
                 contentVersion: definition.contentVersion,
@@ -140,6 +146,11 @@ async function battleBuildExtensions(
                 ),
                 iconKey: definition.media.iconKey,
                 apCost: copiedSkillApCost(definition, authority.combatContext),
+                cooldownOwnerTurns:
+                  definition.cooldown === null
+                    ? null
+                    : (definition.overrides[authority.combatContext]?.cooldownOwnerTurns ??
+                      definition.cooldown.ownerTurns),
                 mpCost: definition.mpCost ?? 0,
                 category: techniqueCategory(definition.tags),
                 targetKind: definition.target.kind,
@@ -156,10 +167,12 @@ async function battleBuildExtensions(
     : []
 
   return {
+    supportActionId: parseSupportActionId(build?.supportActionId) ?? DEFAULT_SUPPORT_ACTION_ID,
     techniques,
     copiedSkills,
     resonance: resonanceDefinition
       ? {
+          definition: resonanceDefinition,
           id: resonanceDefinition.id,
           contentVersion: resonanceDefinition.contentVersion,
           name: resonanceDefinition.name,
@@ -168,6 +181,7 @@ async function battleBuildExtensions(
       : null,
     essence: essenceDefinition
       ? {
+          definition: essenceDefinition.skill,
           id: essenceDefinition.skill.id,
           contentVersion: essenceDefinition.contentVersion,
           name: essenceDefinition.name,
@@ -256,6 +270,7 @@ export default async function BattleSessionPage({
           runtime={{
             kind: 'pvp',
             playerName: localParticipant.characterName,
+            supportActionId: buildExtensions.supportActionId,
             techniques: buildExtensions.techniques,
             copiedSkills: buildExtensions.copiedSkills,
             resonance: buildExtensions.resonance,
@@ -296,6 +311,7 @@ export default async function BattleSessionPage({
         runtime={{
           kind: 'pve',
           playerName: character.name,
+          supportActionId: buildExtensions.supportActionId,
           techniques: buildExtensions.techniques,
           copiedSkills: buildExtensions.copiedSkills,
           resonance: buildExtensions.resonance,

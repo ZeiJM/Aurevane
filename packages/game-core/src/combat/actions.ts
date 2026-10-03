@@ -23,6 +23,7 @@ import { calculateScaledRawDamage, validateCombatDamageScaling } from './damage-
 import { applyCommittedAbsorbRecovery } from './combat-absorb-recovery'
 import { recordCommittedDamageHistory } from './combat-damage-history'
 import { attachCombatEffectProvenance } from './combat-effect-provenance'
+import { materializeBeneficialCombatCopyAction } from './combat-status-copy'
 import {
   filterBlockedCovertApplication,
   materializeCsrCommittedAction,
@@ -111,6 +112,7 @@ export function evaluateCombatAction(
   selection: legacy.CombatTargetSelection,
   content: legacy.CombatContentCatalog,
 ): CombatActionEvaluation {
+  action = materializeBeneficialCombatCopyAction(state, action)
   validateCombatAccuracyDefinition(action)
   const csrPreviewAction = materializeCsrPreviewAction(action)
   const materialized = materializeVengeanceDamage(state, csrPreviewAction)
@@ -143,6 +145,7 @@ export function executeCombatAction(
   content: legacy.CombatContentCatalog,
   context?: CombatResolutionContext,
 ): CombatResolutionTransition {
+  action = materializeBeneficialCombatCopyAction(state, action)
   validateCombatAccuracyDefinition(action)
   const round = state.tactical.battle.round
   const actorId = state.tactical.battle.currentTurn?.combatantId ?? null
@@ -268,7 +271,7 @@ export function endCombatTurn(
   const round = state.tactical.battle.round
   const transition = legacy.endCombatTurn(state, content, outgoingDefeatedAtTurnEnd)
   return {
-    state: recordCommittedDamageHistory(transition.state, transition.events, { round }),
+    state: recordTurnDamageHistory(transition.state, transition.events, round),
     events: transition.events,
   }
 }
@@ -280,9 +283,26 @@ export function waitCurrentTurn(
   const round = state.tactical.battle.round
   const transition = legacy.waitCurrentTurn(state, content)
   return {
-    state: recordCommittedDamageHistory(transition.state, transition.events, { round }),
+    state: recordTurnDamageHistory(transition.state, transition.events, round),
     events: transition.events,
   }
+}
+
+/** Delayed damage belongs to its activation round; outgoing periodic ticks retain their turn round. */
+function recordTurnDamageHistory(
+  state: CombatEncounterState,
+  events: readonly legacy.CombatResolutionEvent[],
+  turnRound: number,
+): CombatEncounterState {
+  const rounds = new Map<number, legacy.CombatResolutionEvent[]>()
+  for (const event of events) {
+    const round = event.effectActivationRound ?? turnRound
+    rounds.set(round, [...(rounds.get(round) ?? []), event])
+  }
+  let next = state
+  for (const [round, receipts] of rounds)
+    next = recordCommittedDamageHistory(next, receipts, { round })
+  return next
 }
 
 function materializeStatScaledDamage(

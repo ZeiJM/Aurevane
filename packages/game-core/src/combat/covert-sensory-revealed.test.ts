@@ -15,6 +15,7 @@ import { createTacticalBattleState, selectCurrentFinalFacing } from './board'
 import {
   createCovertStatusDefinition,
   createRevealedStatusDefinition,
+  hasCombatStatus,
 } from './covert-sensory-revealed'
 
 const covert = createCovertStatusDefinition(3)
@@ -215,6 +216,20 @@ function statuses(
 }
 
 describe('CSR-1 Covert and Revealed definitions', () => {
+  it('does not activate pending Covert or Revealed presentation rows', () => {
+    const state = encounter()
+    state.statusState = state.statusState.map((row) => ({
+      ...row,
+      statuses: [
+        { ...status('covert', row.combatantId, 2), timingState: 'pending', activationRound: 2 },
+        { ...status('revealed', row.combatantId, 2), timingState: 'pending', activationRound: 2 },
+      ],
+    }))
+    for (const row of state.statusState) {
+      expect(hasCombatStatus(state, row.combatantId, 'covert')).toBe(false)
+      expect(hasCombatStatus(state, row.combatantId, 'revealed')).toBe(false)
+    }
+  })
   it('pins positive/negative taxonomy, copy exclusions and authored duration bounds', () => {
     expect(covert).toMatchObject({
       id: 'covert',

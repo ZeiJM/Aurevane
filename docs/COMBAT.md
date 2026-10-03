@@ -1,12 +1,36 @@
 # AUREVANE Combat Design Bible
 
+## Standard map and readability continuation — Owner-approved 2026-10-03
+
+New standard encounters randomize terrain from server-owned encounter seeds without consuming combat RNG. Default maps favor neutral ground; elevation forms joined groups with legal ground approaches. Explicit PvP size and terrain/elevation biases retain their configured meaning. Authored micro, Guided, Mastery and content-preview scenarios remain authored; stored battle/replay tiles are never regenerated. Shared round counters read the recorded battle round. Chronicle consequence colors use canonical effect identity, with beneficial/recovery green, harmful red and ambiguous effects neutral. Second-hotkey-press self casting reuses legal server preview/commit authority and must preserve ordinary targeting and stale-context guards. Verification/release status: `superpowers/verification/2026-10-03-battle-map-preview-readability.md`.
+
+## Guard timing — Owner-approved 2026-10-02
+
+Guard has an independent **two-owner-turn cooldown**, beginning when it is successfully used. HP/MP Recovery retain their separate shared two-turn cooldown. The cooldown applies through the canonical inherent-action rule to new and resumed battles; an old battle begins it on its next Guard use, without retroactive state or changes to pinned authored Skills. AP costs, Guarded potency/stacking/duration and recovery legality remain unchanged. Implementation/release evidence: `superpowers/verification/2026-10-02-roster-discipline-live-fixes.md`.
+
+## Support Action and Hall map sizes — 2026-10-01
+
+Battle slot 3 uses the character build's separately saved Support Action: Guard, HP Recovery or MP Recovery, with Guard as the legacy default. New battles and named loadouts retain the committed choice; existing battles do not change when a character edits Techniques. Existing costs, recovery cooldown and resource legality remain unchanged. Guided Fundamentals is pinned to its 9×7 Duel Yard and provides an exercise-only Practice Guard control when Recovery occupies slot 3. PvP Direct offers Small (9×7), Medium (12×7), Large (15×7), sharing authored AI geometry; historic sessions retain their recorded boards. Release evidence is tracked in `superpowers/verification/2026-10-01-techniques-support-action.md`.
+
+## Accepted battle cockpit and interaction — 2026-09-30
+
+New standard sessions use 9×7, 12×7, or 15×7 arenas. Historical battle snapshots retain their recorded dimensions. All three widths share the same seven-row tile scale within a viewport; movement legality and authored training maps remain authoritative.
+
+The shared playable cockpit is Inspect, Move [1], Basic Attack [2], Guard [3], four committed Discipline Skill slots [4–7], Essence/Resonance [8], the future Severance/Ascension information placeholder [9], and End Turn [Space]. Unfilled Skill slots remain visible. Recover remains available under Recovery and [R]. Customized account bindings are preserved; inherited legacy defaults are migrated without occupying customized chords.
+
+Selecting an action only arms it and fetches a deterministic informational target forecast. A subsequent single target click or WASD direction requests a current legal server preview and submits the intent once. Self actions also require that deliberate second input. Enter retains the explicit execute binding for keyboard accessibility. Key repeats, open dialogs, stale previews, nonlocal or completed turns, pending execution, and component exit cannot dispatch a new action. First Space enters final-facing selection; a second distinct Space keeps the current facing and ends the turn. A facing direction ends with that facing.
+
+The local card remains left; the selected/inspected card swaps on the right. Status icons, full Skill parameters, per-target projections and expandable committed history remain accessible. Playable PvE/PvP and live spectators reuse the battlefield presentation bundle. The client never decides combat outcomes, costs, rewards or legality.
+
 ## P4.K4 player-facing Amplify/Curse forecast boundary — 2026-09-16
 
 The shared battle forecast now presents the authoritative `copy-statuses` projections already produced by the staged Amplify/Curse kernel. Ordinary status rows are humanized from their pinned before/after state, Poison shows its current movement-counter state, Burn shows its current stage transition and Bleed projections remain in the authoritative stable order. These clone projections stay alongside any later authored damage, healing or resource projections in a composed command.
 
 A composed command whose clone block explicitly permits an empty eligible donor produces no clone forecast for that block while retaining independently meaningful later outcomes. Malformed or unsupported copy projection strings fail closed instead of exposing machine projection text. Existing blocked-target and hit-chance behavior is preserved; the presentation does not mutate preview state, consume RNG or replace server legality/commit authority.
 
-Amplify/Curse status cloning is distinct from the separate random temporary-Skill `Copy` effect. `Copy` is implemented as a battle-long grant of one deterministic-random eligible regular battle Skill at half AP cost while preserving the source Skill's other pinned mechanics. Amplify/Curse instead copy eligible active effect state and never grant a command.
+Owner-approved 2026-10-03: current `Copy` transfers the selected unit's active beneficial effect tags onto the user. New PvE and PvP battles pin `copyPolicyVersion: 1`; authored `type: 'copy'` effects reuse the shared status-copy engine under that policy without rewriting immutable Skill definitions. Eligibility includes positive named ordinary, periodic and reactive statuses, including Covert, beyond the historical Amplify opt-in list, plus active Barrier pools and ongoing HP/MP recovery schedules. Negative, neutral mixed-benefit/tradeoff, system/self-cost and pending states are excluded. Copy does not clone actors, current HP/MP/AP, terrain or temporary Skills, or replay already-consumed instant gains. Donors retain their effects; copied stacks respect caps and copied remaining duration is not restarted. Positive per-application potency is retained. Barrier transfers respect the recipient's maximum-HP cap and retain existing lineage when the cap prevents any transfer. Recovery preserves the donor's per-tick amount and remaining future ticks under the existing recipient/resource/action replacement rule; Copy grants no immediate recovery tick. An Instant copied schedule skips the recipient's current partial turn, while delayed activation is available through complete affected turns. Delayed Copy captures eligible donor status, Barrier and recovery state at cast time and attaches copied/inherited K3 lineage only when those effects actually activate. Covert still obeys viewer-relative privacy for forecasts, live positive status/pool/schedule rows and Chronicle receipts; an opposing concealed donor produces only a generic Copy forecast. Empty eligible donors and self-copy are illegal before costs are spent; hostile misses spend normal costs without copying.
+
+Current Copy retains its independent `copy` timing override: effects default to the next global round and an Owner-pinned Instant override resolves immediately. Pending icons and Chronicle outcomes say **Copy beneficial effects**. Historical snapshots without `copyPolicyVersion` preserve the former battle-long deterministic-random eligible regular Skill grant at half AP cost, including recorded grants, pinned Skill mechanics and scheduling. Historical Amplify/Curse keep their separate explicit copy-permission contracts. This change requires no content identity/version rewrite, schema migration or live-content mutation.
 
 Historical pre-v5 ruling on 2026-09-18 classified `copy-statuses` clone transfer as a **discrete** consecutive-use effect. That behavior remains relevant only to battles pinned to those historical Skill/rules versions. Current combat-v5 authored Skills use cooldown/Requirement authority instead of consecutive-use falloff. Mature Skill publication no longer applies the former `effects.status-copy-staged` guard; canonical combat-action validation, typed copy policy, target legality, preview and server commit remain authoritative.
 
@@ -302,7 +326,8 @@ Guard applies one stack of **15% incoming-damage reduction for 2 authoritative t
 current validation rules. Guarded may be reapplied up to three stacks; each application spends AP,
 adds a stack until the cap, and refreshes the shared authoritative duration.
 
-The duration follows authoritative turn progression, not client animation timing.
+The duration follows authoritative turn progression, not client animation timing. Guard itself has
+a two-owner-turn cooldown independent of Recovery. Both effects and cooldowns advance on the server.
 
 Released buffs and debuffs use their authored stack cap rather than a universal one-stack block.
 Lowered Guard uses the same three-stack cap and retains its one-owner-turn-start duration.
@@ -377,6 +402,14 @@ Schedule next actor
 Reaction-like behavior may occur only at deterministic/authored trigger points. It is implemented as typed passive/triggered behavior rather than a separate universal player-facing Reaction slot.
 
 ---
+
+### Owner-approved activation and expiry — 2026-10-03
+
+New encounters pin an immutable effect-timing policy version and overrides. The default is **next global round**, with **direct damage and HP/MP recovery instant**. Master Panel lets the protected Owner publish tag-specific Instant/Next global round modes with a reason, stale-version protection and immutable provenance. Existing encounters retain their pinned policy; pre-policy snapshots retain legacy timing.
+
+A pending effect is shown immediately on its recipient’s rail but cannot influence damage, movement, initiative, resource costs or periodic ticks before activation. At the following round boundary queued effects activate before that round’s initiative calculation. One active turn lasts through the affected character’s entire activation and expires only after its end turn. Manual final-facing/end-turn, timeout and AI paths share this lifecycle. Periodic ticks occur at the affected turn end and before expiry. Dead/skipped characters and terminal encounters cannot create phantom turns or rewards. Cooldowns remain independent.
+
+The text Battle Chronicle uses Round dividers and actor-identity groups, pinned editable short narration and compact actual results. Names/story use charcoal, harm muted crimson, HP/MP recovery moss green, and special-family headings restrained gold. Ordinary movement, facing, end-turn and effect expiry are omitted from this view only; persisted history/export/privacy authority remains complete. Hover/focus/click explains effect identities using the same canonical meanings as rail icons.
 
 ## 8. HP, MP, Statuses & Combatant Presentation
 
@@ -606,8 +639,10 @@ source order for ties. Copied/inherited K3 lineage identifies the selected donor
 instance. Missing historical lineage remains absent. Distinct copies reuse the merged tuple-based
 `copyOrdinal` identity; no alternate identity format is introduced.
 
-This slice enumerates ordinary status rows only. Typed Poison/Burn/Bleed counters, ongoing recovery,
-Barrier pools, terrain, resources, build state and temporary Skills are not copied here. Mixed
+This original Amplify/Curse slice enumerates ordinary status rows only. Typed Poison/Burn/Bleed
+counters, ongoing recovery, Barrier pools, terrain, resources, build state and temporary Skills
+are not copied by this original slice. Current version-1 Copy separately includes active Barrier
+and ongoing HP/MP recovery through the same engine, as specified above. Mixed
 operation packages, area copies and the old Basic Attack path are rejected rather than partially
 executed. The mature-Skill boundary blocks this staged operation from publication/repeat adapters
 with `effects.status-copy-staged` until the remaining mechanics, repeat-use, player forecasts and
@@ -753,3 +788,6 @@ This remains distinct from random temporary-Skill **Copy**, whose encounter-stat
 half-AP command grant, UI, AI, privacy and persistence behavior are implemented through its separate
 typed effect and synthetic pinned command identity.
 
+## Minimum Skill reporting
+
+Owner-approved 2026-10-02: every full Skill detail, including inherent commands, Support Actions, Essence and Resonance/passives, follows `docs/SKILL_INFORMATION_CONTRACT.md`. Preserve all ten ordered fields; use N/A only for inapplicable rules, None for absent applicable prerequisites/cooldowns and Unavailable for missing immutable metadata. Shared reports derive from canonical definitions and committed battle snapshots; this requirement changes presentation, not combat resolution.

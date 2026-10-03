@@ -9,6 +9,10 @@ import type {
   MatureSkillDefinition,
   MatureSkillEffectDefinition,
 } from '@aurevane/game-core/combat/mature-skills'
+import {
+  statusDamageMultiplierBasisPoints,
+  statusPotencyDescription,
+} from '../../lib/status-potency-presentation'
 
 export interface PreviewEffect {
   label: string
@@ -19,7 +23,10 @@ export interface PreviewEffect {
 const signed = (value: number) => `${value < 0 ? '−' : '+'}${Math.abs(value)}`
 
 function statusPreview(id: string, potencyBasisPoints?: number): PreviewEffect {
-  const details = combatStatusDetails(id)
+  const details = {
+    ...combatStatusDetails(id),
+    description: statusPotencyDescription(id, potencyBasisPoints),
+  }
   const status = PV1F_COMBAT_CONTENT.statuses.find((entry) => entry.id === id)
   const result: PreviewEffect = { label: details.name, explanation: details.description }
   // These gameplay-tag rules live in the damage/healing resolvers. Their shared
@@ -34,8 +41,10 @@ function statusPreview(id: string, potencyBasisPoints?: number): PreviewEffect {
             ? `−${percent} healing`
             : `+${percent} Storm`
   } else if (status?.markAccuracyBonusBasisPoints !== undefined) {
-    result.magnitude = `+${status.markAccuracyBonusBasisPoints / 100} pp Accuracy`
+    result.magnitude = `+${(potencyBasisPoints ?? status.markAccuracyBonusBasisPoints) / 100} pp Accuracy`
     result.explanation = `Source gains ${result.magnitude} against this target.`
+  } else if (id === 'blind' && potencyBasisPoints !== undefined) {
+    result.magnitude = `−${potencyBasisPoints / 100} pp Accuracy`
   } else if (status?.movement?.additionalApPerTile !== undefined) {
     result.magnitude = `${signed(status.movement.additionalApPerTile)} AP`
     result.explanation = details.description
@@ -45,12 +54,12 @@ function statusPreview(id: string, potencyBasisPoints?: number): PreviewEffect {
     result.magnitude = status.damageModifiers
       .map(
         (modifier) =>
-          `${signed((modifier.multiplierBasisPoints - 10_000) / 100)}% ${modifier.direction}`,
+          `${signed((statusDamageMultiplierBasisPoints(modifier.multiplierBasisPoints, potencyBasisPoints) - 10_000) / 100)}% ${modifier.direction}`,
       )
       .join(' / ')
     result.explanation = details.description.split('. ')[0] + '.'
   } else if (status && status.damageTakenMultiplierBasisPoints !== 10_000) {
-    result.magnitude = `${signed((status.damageTakenMultiplierBasisPoints - 10_000) / 100)}% incoming${status.maximumStacks > 1 ? '/stack' : ''}`
+    result.magnitude = `${signed((statusDamageMultiplierBasisPoints(status.damageTakenMultiplierBasisPoints, potencyBasisPoints) - 10_000) / 100)}% incoming${status.maximumStacks > 1 ? '/stack' : ''}`
     result.explanation = `Recipient takes ${result.magnitude}.${status.maximumStacks > 1 ? ` Up to ${status.maximumStacks} stacks.` : ''}`
   } else if (status?.endOfTurn) {
     result.magnitude = `${status.endOfTurn.amount} × ${status.durationOwnerTurnStarts} ticks`
@@ -59,22 +68,18 @@ function statusPreview(id: string, potencyBasisPoints?: number): PreviewEffect {
     const percent = potencyBasisPoints / 100
     if (id === 'guarded') {
       result.magnitude = `−${percent}% incoming`
-      result.explanation = `Reduces incoming damage by ${percent}% per stack.`
     } else if (id === 'exposed') {
       result.magnitude = `+${percent}% incoming`
-      result.explanation = `Increases incoming damage by ${percent}%.`
-    } else if (id === 'mark') {
-      result.magnitude = `+${percent} pp Accuracy`
-      result.explanation = `Source gains +${percent} percentage points Accuracy against this target.`
-    } else if (id === 'hexed') {
-      result.magnitude = `−${percent}% healing`
-      result.explanation = `Reduces incoming healing by ${percent}%.`
     }
+    result.explanation = details.description
   }
   return result
 }
 
-export function previewEffect(effect: MatureSkillEffectDefinition): PreviewEffect {
+export function previewEffect(
+  effect: MatureSkillEffectDefinition,
+  copyPolicyVersion: number | null = 1,
+): PreviewEffect {
   const target =
     effect.recipient === 'actor'
       ? 'you'
@@ -99,7 +104,7 @@ export function previewEffect(effect: MatureSkillEffectDefinition): PreviewEffec
       return {
         label: 'Healing',
         magnitude: String(effect.amount),
-        explanation: `Restores HP to ${target}${effect.ticks && effect.ticks > 1 ? ` per application, ${effect.ticks} times (first immediately)` : ''}.`,
+        explanation: `Restores HP to ${target}${effect.ticks && effect.ticks > 1 ? ` per application, ${effect.ticks} times (first when the effect activates)` : ''}.`,
       }
     case 'barrier-change':
       return {
@@ -114,7 +119,7 @@ export function previewEffect(effect: MatureSkillEffectDefinition): PreviewEffec
         explanation:
           effect.delta < 0
             ? `Removes MP from ${target}.`
-            : `Restores MP to ${target}${effect.ticks && effect.ticks > 1 ? ` per application, ${effect.ticks} times (first immediately)` : ''}.`,
+            : `Restores MP to ${target}${effect.ticks && effect.ticks > 1 ? ` per application, ${effect.ticks} times (first when the effect activates)` : ''}.`,
       }
     case 'apply-status':
       return statusPreview(effect.statusId, effect.potencyBasisPoints)
@@ -183,8 +188,11 @@ export function previewEffect(effect: MatureSkillEffectDefinition): PreviewEffec
       }
     case 'copy':
       return {
-        label: 'Skill Copy',
-        explanation: 'Copies one eligible enemy Skill for this battle at half AP, rounded up.',
+        label: copyPolicyVersion === null ? 'Skill Copy' : 'Copy',
+        explanation:
+          copyPolicyVersion === null
+            ? 'Copies one eligible enemy Skill for this battle at half AP, rounded up.'
+            : 'Copies the target’s active beneficial effect tags onto you. The target keeps its effects; copied stacks respect caps and remaining durations are not restarted.',
       }
     case 'sensory':
       return {
@@ -194,10 +202,16 @@ export function previewEffect(effect: MatureSkillEffectDefinition): PreviewEffec
   }
 }
 
-export function skillPreviewEffects(skill: MatureSkillDefinition): readonly PreviewEffect[] {
+export function skillPreviewEffects(
+  skill: MatureSkillDefinition,
+  copyPolicyVersion: number | null = 1,
+): readonly PreviewEffect[] {
   return skill.effects.map((effect, index) => {
-    const entry = previewEffect(effect)
-    const override = skill.effectDescriptions?.[index]?.trim()
+    const entry = previewEffect(effect, copyPolicyVersion)
+    const override =
+      effect.type === 'copy' && copyPolicyVersion !== null
+        ? undefined
+        : skill.effectDescriptions?.[index]?.trim()
     return override ? { ...entry, explanation: override } : entry
   })
 }

@@ -25,6 +25,52 @@ describe('site music configuration', () => {
     expect(resolveSiteMusicTrack(config, '/game/select')?.label).toBe('Road to Aurevane')
   })
 
+  it.each(['bundled', 'upload', 'url'] as const)(
+    'keeps a legacy non-looping %s background track playing continuously',
+    (source) => {
+      const config = createDefaultSiteMusicConfig()
+      config.defaultTrack = {
+        label: 'Selected soundtrack',
+        url: '/selected-soundtrack.wav',
+        source,
+        loop: false,
+      }
+
+      expect(resolveSiteMusicTrack(config, '/game/settings/audio')).toEqual({
+        label: 'Selected soundtrack',
+        url: '/selected-soundtrack.wav',
+        source,
+        loop: true,
+      })
+      expect(config.defaultTrack.loop).toBe(false)
+    },
+  )
+
+  it('loops the selected page soundtrack without changing the configured source or silence rules', () => {
+    const config = createDefaultSiteMusicConfig()
+    config.routeOverrides = [
+      {
+        id: 'battle',
+        label: 'Battle',
+        pathPrefix: '/game/battle',
+        enabled: true,
+        track: { label: 'Battle', url: '/battle.wav', source: 'upload', loop: false },
+      },
+    ]
+
+    expect(resolveSiteMusicTrack(config, '/game/battle/123')).toEqual({
+      label: 'Battle',
+      url: '/battle.wav',
+      source: 'upload',
+      loop: true,
+    })
+    expect(config.routeOverrides[0]?.track.loop).toBe(false)
+    config.routeOverrides[0]!.enabled = false
+    expect(resolveSiteMusicTrack(config, '/game/battle/123')).toBeNull()
+    config.enabled = false
+    expect(resolveSiteMusicTrack(config, '/game/settings/audio')).toBeNull()
+  })
+
   it('uses the most specific matching page override', () => {
     const config = createDefaultSiteMusicConfig()
     config.routeOverrides = [

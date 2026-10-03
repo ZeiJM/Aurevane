@@ -51,6 +51,7 @@ const STATUS_TAG_ALIASES: Readonly<Record<string, GameplayTag>> = {
 }
 
 const STATUS_PRESENTATION_TAGS: Readonly<Record<string, string>> = {
+  'beneficial-copy': 'Copy beneficial effects',
   guarded: 'Guard',
   exposed: 'Expose',
   wet: 'Wet',
@@ -163,6 +164,7 @@ export function combatantGameplayTags(
   }
   for (const status of state.statusState.find((row) => row.combatantId === combatantId)?.statuses ??
     []) {
+    if (status.timingState === 'pending') continue
     const alias = STATUS_TAG_ALIASES[status.statusId]
     if (alias) tags.add(alias)
     const definition = content.statuses.find(
@@ -190,6 +192,7 @@ export function statusIdsForGameplayTag(
   content: CombatContentCatalog,
 ): readonly string[] {
   return (state.statusState.find((row) => row.combatantId === combatantId)?.statuses ?? [])
+    .filter((status) => status.timingState !== 'pending')
     .filter(
       (status) =>
         STATUS_TAG_ALIASES[status.statusId] === tag ||

@@ -1,9 +1,15 @@
 # AUREVANE — Comprehensive Manual & Knowledge System
 
+2026-10-03 Owner battle readability continuation: new standard battles vary mostly neutral terrain with joined elevations while authored teaching boards, configured PvP biases and saved battles retain their authority. The preview strip displays the recorded round. Shared information popups retain complete reports in a compact design; Chronicle consequences use smaller italic text with beneficial/recovery green and harmful red, and recorded misses are explicit. A second distinct configured hotkey press confirms a legally self-targeted Skill through the usual server checks. Rapid confirmation shares a matching pending forecast instead of restarting it; final action results still wait for the server. Implementation/release status: `superpowers/verification/2026-10-03-battle-map-preview-readability.md`.
+
+Owner refinement 2026-10-03: current Copy copies active beneficial effect tags from the selected target onto the user while preserving the target, caps and remaining lifetime. New encounters pin this policy; historical encounters retain recorded Skill Copy. Shared effect reports display configured Instant timing except direct damage, and pending Root becomes movement-blocking only at its recorded activation round. Release status is recorded in TASKS.md.
+
 **Status:** Authoritative documentation/player-help specification subordinate to `docs/GAME_MASTER_PLAN.md` and the owner-approved domain specifications it indexes.
 
 **Initial direction approved:** 2026-08-15.  
 **Terminology/current-state synchronization:** 2026-09-11.
+
+2026-10-02 Support timing: Guard has an independent two-owner-turn cooldown. HP/MP Recovery share their existing separate two-turn cooldown. The live Action Economy article explains this timing alongside costs and authoritative preview/commit behavior.
 
 AUREVANE must eventually ship with a comprehensive, attractive, easy-to-read Manual covering beginner fundamentals through advanced systems, plus separate protected Owner/Staff operational documentation.
 
@@ -24,6 +30,8 @@ Current player-facing terminology is:
 Retired player-facing terms such as Current Discipline, Legacy Discipline, Art as the generic ability term, Confluence, separate Trait/Reaction/Movement Art/Ultimate slots, Tactical Hall, the old four-attribute model, and the old Movement Budget + one Action combat model may remain only in clearly historical material.
 
 ---
+
+2026-10-03 battle effects: new battles show delayed effects as pending immediately, activate them at the following global round, and expire active durations after the affected character finishes the specified turns. Damage and HP/MP recovery default instant. The Battle Chronicle groups short scenes and results by character; movement/facing/expiry remain visible through board/rail state rather than story chatter.
 
 ## 1. Goals
 
@@ -210,7 +218,7 @@ Explain current behavior precisely:
 - Short / Medium / Extended are server-timed;
 - longer plans trade hourly efficiency for convenience;
 - simply being offline/idle creates no new reward;
-- stopping an unfinished plan grants no partial reward;
+- stopping an unfinished plan freezes its server-earned portion into a Training Report; stopped and completed reports wait for an explicit Claim action. A successful claim returns to plan selection; a failed claim keeps the report available to retry;
 - completed Training Reports are server-owned/idempotent;
 - active training blocks starting a new Battle Hall/live fight under current rules;
 - ordinary non-combat account/reference/social surfaces may remain usable;

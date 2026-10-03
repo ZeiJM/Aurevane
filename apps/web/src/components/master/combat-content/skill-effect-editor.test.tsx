@@ -151,9 +151,10 @@ describe('Master Panel Skill effect editor', () => {
     expect(copy).toContain('aria-label="Allow empty status copy"')
 
     const skillCopy = render({ type: 'copy', recipient: 'primary-unit' })
-    expect(skillCopy).toContain('Temporary Skill Copy')
+    expect(skillCopy).toContain('Copy beneficial effect tags')
     expect(skillCopy).toContain('Selected primary unit')
-    expect(skillCopy).toContain('half AP rounded up')
+    expect(skillCopy).toContain('beneficial effect tags')
+    expect(skillCopy).not.toContain('half AP rounded up')
     expect(skillCopy).not.toContain('Status copy mode')
 
     const sensory = render({

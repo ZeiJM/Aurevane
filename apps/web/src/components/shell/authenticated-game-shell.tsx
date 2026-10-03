@@ -1,8 +1,10 @@
 import { Kicker, Surface } from '@aurevane/ui'
 import type { PersistedCharacter } from '@aurevane/game-core/character/persistence'
 import type { Route } from 'next'
-import { Suspense, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 
+import { CharacterIdentityCard } from '@/components/character/character-identity-card'
+import { loadCharacterIdentityRailContext } from '@/server/character/character-identity-rail-context'
 import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
 import { getStarterPortraitImageAssetId } from '@/media/character'
 import {
@@ -30,9 +32,11 @@ interface AuthenticatedShellFrameProps {
 function ShellCharacterPortrait({
   character,
   imageUrl,
+  rail = false,
 }: {
   character: PersistedCharacter
   imageUrl: string | null
+  rail?: boolean
 }) {
   return (
     <span className={styles.screenPortrait} title={character.name}>
@@ -40,27 +44,38 @@ function ShellCharacterPortrait({
         imageUrl={imageUrl}
         fallbackAssetId={getStarterPortraitImageAssetId(character.portraitRef)}
         className={styles.screenPortraitImage}
-        sizes="(max-width: 760px) 2rem, 3rem"
+        sizes={
+          rail
+            ? '(max-height: 620px) 88px, (max-height: 700px) 112px, 165px'
+            : '(max-width: 760px) 2rem, 3rem'
+        }
         alt=""
+        priority
       />
     </span>
   )
 }
 
-async function AuthenticatedCharacterPortrait({
-  userId,
+function RailIdentity({
   character,
+  identity,
+  imageUrl,
 }: {
-  userId: string
   character: PersistedCharacter
+  identity: Awaited<ReturnType<typeof loadCharacterIdentityRailContext>> | null
+  imageUrl: string | null
 }) {
-  let imageUrl: string | null = null
-  try {
-    imageUrl = (await loadCharacterProfileDisplay(userId, character.id)).imageUrl
-  } catch {
-    // The built-in portrait keeps the shell complete if cosmetic display data is unavailable.
-  }
-  return <ShellCharacterPortrait character={character} imageUrl={imageUrl} />
+  return identity ? (
+    <div className="av-rail-full-identity">
+      <CharacterIdentityCard {...identity} compactRail />
+    </div>
+  ) : (
+    <div className="av-rail-identity">
+      <ShellCharacterPortrait character={character} imageUrl={imageUrl} rail />
+      <strong>{character.name}</strong>
+      <small>Level {character.level}</small>
+    </div>
+  )
 }
 
 export function AuthenticatedGameRecoveryContent() {
@@ -134,20 +149,38 @@ export async function AuthenticatedShellFrame({
       ? 'Return to Spectated Battle'
       : null
 
+  // Resolve both cosmetic reads before publishing a new shell. Streaming an empty
+  // portrait boundary briefly replaced the existing custom avatar on navigation/refresh.
+  const [display, identity] =
+    activeCharacter && activeUserId
+      ? await Promise.all([
+          loadCharacterProfileDisplay(activeUserId, activeCharacter.id).catch(() => null),
+          layout !== 'battlefield'
+            ? loadCharacterIdentityRailContext({ userId: activeUserId }, activeCharacter).catch(
+                () => null,
+              )
+            : Promise.resolve(null),
+        ])
+      : [null, null]
+  const imageUrl = display ? display.imageUrl : (identity?.imageUrl ?? null)
+
   return (
     <AuthenticatedShellPresentation
       sessionLabel={sessionLabel}
       backHref={backHref}
       backLabel={backLabel}
       layout={layout}
-      character={activeCharacter ? { name: activeCharacter.name } : null}
+      character={
+        activeCharacter ? { name: activeCharacter.name, level: activeCharacter.level } : null
+      }
       characterPortrait={
         activeCharacter && activeUserId ? (
-          <Suspense
-            fallback={<ShellCharacterPortrait character={activeCharacter} imageUrl={null} />}
-          >
-            <AuthenticatedCharacterPortrait userId={activeUserId} character={activeCharacter} />
-          </Suspense>
+          <ShellCharacterPortrait character={activeCharacter} imageUrl={imageUrl} />
+        ) : null
+      }
+      railIdentity={
+        layout !== 'battlefield' && activeCharacter && activeUserId ? (
+          <RailIdentity character={activeCharacter} identity={identity} imageUrl={imageUrl} />
         ) : null
       }
       activeBattleHref={activeBattleHref}

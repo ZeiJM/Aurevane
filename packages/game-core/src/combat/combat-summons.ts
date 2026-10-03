@@ -382,6 +382,38 @@ export function removeCombatSummon(
     },
     statusState: state.statusState.filter((row) => row.combatantId !== combatantId),
     effectState: cleanupEffectState(effectState, combatantId),
+    ...(state.pendingEffects === undefined
+      ? {}
+      : {
+          pendingEffects: state.pendingEffects.flatMap((pending) => {
+            if (
+              pending.actorId === combatantId ||
+              pending.copySource?.combatantId === combatantId ||
+              pending.turnOrigin?.combatantId === combatantId
+            )
+              return []
+            const recipientIds = pending.recipientIds.filter((id) => id !== combatantId)
+            return recipientIds.length || pending.effect.type === 'create-terrain'
+              ? [{ ...pending, recipientIds }]
+              : []
+          }),
+        }),
+    ...(state.pendingSkillGrants === undefined
+      ? {}
+      : {
+          pendingSkillGrants: state.pendingSkillGrants.filter(
+            (pending) =>
+              pending.grant.combatantId !== combatantId &&
+              pending.grant.sourceCombatantId !== combatantId,
+          ),
+        }),
+    ...(state.pendingSummons === undefined
+      ? {}
+      : {
+          pendingSummons: state.pendingSummons.filter(
+            (pending) => pending.input.ownerCombatantId !== combatantId,
+          ),
+        }),
     ...(state.turnOrigin?.combatantId === combatantId ? { turnOrigin: undefined } : {}),
   }
 

@@ -19,10 +19,14 @@ sql_paths = ["./seed.sql"]
 [auth]
 enabled = true
 site_url = "http://127.0.0.1:3000"
-additional_redirect_urls = ["http://localhost:3000/**", "http://127.0.0.1:3000/**"]
+additional_redirect_urls = ["http://localhost:3000/**", "http://127.0.0.1:3000/**", "http://127.0.0.1:3100/**"]
 jwt_expiry = 3600
 enable_signup = true
 minimum_password_length = 8
 
 [auth.email]
 enable_confirmations = true
+
+# Disposable local browser tests send confirmation and recovery emails across viewports.
+[auth.rate_limit]
+email_sent = 1000

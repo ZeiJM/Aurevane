@@ -62,7 +62,7 @@ export async function GET(
     throw error
   }
 
-  const response = redirectTo('/game/character')
+  const response = redirectTo('/game/haven')
   response.cookies.set(SELECTED_CHARACTER_COOKIE, character.id, {
     httpOnly: true,
     sameSite: 'lax',

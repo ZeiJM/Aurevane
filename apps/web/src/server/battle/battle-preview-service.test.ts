@@ -5,9 +5,19 @@ import type {
   CreateBattleSessionInput,
 } from '@aurevane/db/battle-session'
 import type { CharacterRecord, CharacterRepository } from '@aurevane/db/character'
+import {
+  resolveMatureSkillVersion,
+  type MatureSkillDefinition,
+} from '@aurevane/game-core/combat/mature-skills'
+import { evaluatePv1fMatureSkill } from '@aurevane/game-core/combat/pv1f-action-economy'
+import * as previewServiceExports from './battle-preview-service'
 import { createCombatEncounterState } from '@aurevane/game-core/combat/actions'
 import { moveCurrentCombatant } from '@aurevane/game-core/combat/board'
-import { finishPv1fTurn } from '@aurevane/game-core/combat/pv1f-action-economy'
+import {
+  finishPv1fTurn,
+  preparePv1fTurnEconomy,
+  PV1F_ACTION_ECONOMY_RESOURCE_KEY,
+} from '@aurevane/game-core/combat/pv1f-action-economy'
 import {
   reattachStatDrivenCombatBridge,
   type StatDrivenCombatEncounterState,
@@ -128,6 +138,7 @@ async function createFixture() {
   return {
     battles,
     service: createBattlePreviewService(battles.repository),
+    sessionService,
     snapshot,
     record,
   }
@@ -183,6 +194,51 @@ describe('P2.5 authoritative battle preview service', () => {
     expect(battles.commitBattleIntent).not.toHaveBeenCalled()
   })
 
+  it('persists Guard cooldown and rejects repeated Guard forecasts and commits after reload', async () => {
+    const { battles, service, sessionService, record } = await createFixture()
+    const intent = { kind: 'action', actionId: 'basic.guard', target: { kind: 'self' } } as const
+    const command = {
+      userId: USER_ID,
+      battleSessionId: SESSION_ID,
+      expectedBattleVersion: 1,
+      intent,
+    }
+    expect((await service.previewIntent(command)).preview).toMatchObject({ legal: true })
+    await sessionService.submitIntent({
+      ...command,
+      idempotencyKey: '55555555-5555-4555-8555-555555555555',
+    })
+    const commit = battles.commitBattleIntent.mock.calls[0]?.[0]
+    if (!commit) throw new Error('Expected Guard commit input.')
+    const restored = JSON.parse(
+      JSON.stringify(commit.nextSnapshot),
+    ) as StatDrivenCombatEncounterState
+    const actor = restored.tactical.battle.combatants.find(
+      (entry) => entry.id === `character:${CHARACTER_ID}`,
+    )!
+    expect(actor.temporaryResources).toContainEqual({
+      key: 'p3.skill-cooldown.basic.guard',
+      current: 3,
+      maximum: 3,
+    })
+    battles.findBattleSession.mockResolvedValue({ ...record, battleVersion: 2, snapshot: restored })
+    const repeated = { ...command, expectedBattleVersion: 2 }
+    expect((await service.previewIntent(repeated)).preview).toMatchObject({
+      legal: false,
+      issues: expect.arrayContaining([expect.objectContaining({ code: 'cooldown-active' })]),
+    })
+    await expect(
+      sessionService.submitIntent({
+        ...repeated,
+        idempotencyKey: '66666666-6666-4666-8666-666666666666',
+      }),
+    ).rejects.toMatchObject({
+      code: 'INVALID_REQUEST',
+      message: expect.stringContaining('cooling down'),
+    })
+    expect(battles.commitBattleIntent).toHaveBeenCalledTimes(1)
+  })
+
   it('returns useful movement legality reasons instead of pretending a path can commit', async () => {
     const { service } = await createFixture()
 
@@ -205,6 +261,60 @@ describe('P2.5 authoritative battle preview service', () => {
       issues: [expect.objectContaining({ code: 'non-adjacent-step' })],
     })
   })
+
+  it.each([
+    [100, true, 20],
+    [79, false, 0],
+  ] as const)(
+    'previews two rough tiles as two MOVE steps with %i AP and affordability %j',
+    async (ap, legal, remainingAp) => {
+      const { service, snapshot, record, battles } = await createFixture()
+      const rough = snapshot.tactical.terrains.find((terrain) => terrain.traversalCost === 2)!
+      const path = [
+        { x: 0, y: 1 },
+        { x: 1, y: 1 },
+        { x: 2, y: 1 },
+      ]
+      const modified = {
+        ...snapshot,
+        tactical: {
+          ...snapshot.tactical,
+          tiles: snapshot.tactical.tiles.map((tile) => ({
+            ...tile,
+            terrainId: path
+              .slice(1)
+              .some((position) => position.x === tile.position.x && position.y === tile.position.y)
+              ? rough.id
+              : tile.terrainId,
+          })),
+        },
+      }
+      const prepared = preparePv1fTurnEconomy(modified)
+      const actor = prepared.tactical.battle.combatants.find(
+        (combatant) => combatant.id === `character:${CHARACTER_ID}`,
+      )!
+      actor.temporaryResources = actor.temporaryResources.map((resource) =>
+        resource.key === PV1F_ACTION_ECONOMY_RESOURCE_KEY ? { ...resource, current: ap } : resource,
+      )
+      battles.findBattleSession.mockResolvedValue({ ...record, snapshot: prepared })
+      const result = await service.previewIntent({
+        userId: USER_ID,
+        battleSessionId: SESSION_ID,
+        expectedBattleVersion: 1,
+        intent: { kind: 'move', path },
+      })
+      expect(result.preview).toMatchObject({
+        legal,
+        cost: 2,
+        terrainCost: 4,
+        movementRemainingAfter: 0,
+        actionEconomyCost: 80,
+        actionEconomyAfter: remainingAp,
+        issues: legal ? [] : [expect.objectContaining({ code: 'insufficient-action-economy' })],
+      })
+      expect(battles.commitBattleIntent).not.toHaveBeenCalled()
+    },
+  )
 
   it('uses the stat-driven attack forecast without consuming authoritative RNG', async () => {
     const { battles, service, snapshot, record } = await createFixture()
@@ -312,4 +422,148 @@ describe('P2.5 authoritative battle preview service', () => {
       }),
     ).rejects.toMatchObject({ code: 'FORBIDDEN' })
   })
+})
+
+it('transports scheduled Guard identity and lifetime without committing or changing stored mechanics', async () => {
+  const { battles, service, snapshot } = await createFixture()
+  const before = structuredClone(snapshot)
+  const result = await service.previewIntent({
+    userId: USER_ID,
+    battleSessionId: SESSION_ID,
+    expectedBattleVersion: 1,
+    intent: { kind: 'action', actionId: 'basic.guard', target: { kind: 'self' } },
+  })
+  expect(result.preview).toMatchObject({
+    kind: 'action',
+    legal: true,
+    projectedEffects: expect.arrayContaining([
+      expect.objectContaining({
+        effectType: 'apply-status',
+        statusId: 'guarded',
+        after: 'pending',
+        activationRound: 2,
+        remainingOwnerTurnEnds: 1,
+      }),
+    ]),
+  })
+  if (result.preview.kind !== 'action') throw new Error('Expected action preview')
+  expect(result.preview.projectedEvents?.some((event) => event.event === 'status_applied')).toBe(
+    false,
+  )
+  expect(snapshot).toEqual(before)
+  expect(battles.commitBattleIntent).not.toHaveBeenCalled()
+})
+
+it('redacts current Copy forecasts from a concealed hostile donor while keeping allied details', async () => {
+  const { snapshot } = await createFixture()
+  const actorId = `character:${CHARACTER_ID}`
+  const donorId = 'recruit:p2-4-1'
+  snapshot.copyPolicyVersion = 1
+  snapshot.effectTimingPolicy = { version: 1, modes: { copy: 'instant' } }
+  snapshot.statusState = snapshot.statusState.map((entry) =>
+    entry.combatantId === donorId
+      ? {
+          ...entry,
+          statuses: [
+            {
+              statusId: 'covert',
+              statusVersion: 1,
+              stacks: 1,
+              remainingOwnerTurnStarts: 2,
+              sourceCombatantId: donorId,
+            },
+            {
+              statusId: 'guarded',
+              statusVersion: 1,
+              stacks: 2,
+              remainingOwnerTurnStarts: 2,
+              sourceCombatantId: donorId,
+            },
+          ],
+        }
+      : entry,
+  )
+  snapshot.effectState = {
+    ongoingRecovery: [
+      {
+        kind: 'hp',
+        targetCombatantId: donorId,
+        sourceCombatantId: donorId,
+        sourceActionId: 'concealed.recovery',
+        amountPerTick: 9,
+        remainingFutureTicks: 3,
+      },
+    ],
+    barriers: [
+      {
+        targetCombatantId: donorId,
+        sourceCombatantId: donorId,
+        sourceActionId: 'concealed.barrier',
+        amount: 40,
+      },
+    ],
+    poison: [],
+    burn: [],
+    bleed: [],
+    temporarySkills: [],
+    damageHistory: [],
+  }
+  const base = resolveMatureSkillVersion('vanguard.forceful-strike', 2)!
+  const skill: MatureSkillDefinition = {
+    ...base,
+    effects: [{ type: 'copy', recipient: 'primary-unit' }],
+    target: {
+      ...base.target,
+      teamPolicy: 'any',
+      maximumRange: 10,
+      requiresLineOfSight: false,
+      maximumElevationDifference: null,
+    },
+    accuracyMode: 'automatic',
+  }
+  const evaluated = evaluatePv1fMatureSkill(snapshot, skill, { kind: 'unit', combatantId: donorId })
+  expect(evaluated.evaluation.legal).toBe(true)
+  const project = (
+    previewServiceExports as unknown as {
+      projectBeneficialCopyPreview?: (
+        state: typeof snapshot,
+        action: typeof evaluated.action,
+        evaluation: typeof evaluated.evaluation,
+      ) => Pick<typeof evaluated.evaluation, 'projectedEffects' | 'projectedEvents'>
+    }
+  ).projectBeneficialCopyPreview
+  const publicPreview = project?.(snapshot, evaluated.action, evaluated.evaluation)
+  expect(publicPreview?.projectedEffects).toEqual([
+    {
+      effectType: 'copy-statuses',
+      statusId: 'beneficial-copy',
+      combatantId: actorId,
+      before: 'none',
+      after: 'concealed',
+    },
+  ])
+  expect(publicPreview?.projectedEvents).toEqual([])
+  expect(JSON.stringify(publicPreview)).not.toContain('recovery:hp:9:3')
+  expect(JSON.stringify(publicPreview)).not.toContain('barrier:40')
+  const allied = {
+    ...snapshot,
+    tactical: {
+      ...snapshot.tactical,
+      battle: {
+        ...snapshot.tactical.battle,
+        combatants: snapshot.tactical.battle.combatants.map((unit) =>
+          unit.id === donorId
+            ? {
+                ...unit,
+                teamId: snapshot.tactical.battle.combatants.find((unit) => unit.id === actorId)!
+                  .teamId,
+              }
+            : unit,
+        ),
+      },
+    },
+  }
+  expect(project?.(allied, evaluated.action, evaluated.evaluation)?.projectedEffects).toEqual(
+    evaluated.evaluation.projectedEffects,
+  )
 })

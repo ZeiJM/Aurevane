@@ -4,10 +4,14 @@ import { readCombatBuildSnapshot } from '@aurevane/game-core/combat/build-snapsh
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 import { surrenderPvpCombatant, timeoutPvpTurn } from '@aurevane/game-core/combat/pvp-quality'
 import { readPv1fActionEconomy } from '@aurevane/game-core/combat/pv1f-action-economy'
+import { createStandardBattlefieldTiles } from '@aurevane/game-core/combat/standard-battlefield'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   groundSkill: false,
+  mapSize: 'medium' as 'small' | 'medium' | 'large',
+  terrainBias: 'neutral' as 'less' | 'neutral' | 'more',
+  elevationBias: 'neutral' as 'less' | 'neutral' | 'more',
   createdBattleArgs: null as Record<string, unknown> | null,
 }))
 
@@ -189,12 +193,14 @@ vi.mock('./pvp-lobby-service', () => ({
 vi.mock('@/lib/supabase/admin', () => ({
   createSupabaseAdminClient: () => ({
     rpc: async (name: string, args: Record<string, unknown>) => {
+      if (name === 'read_combat_effect_timing_policy_v1')
+        return { data: { version: 1, modes: {} }, error: null }
       if (name === 'get_pvp_lobby_settings_v2') {
         return {
           data: {
-            map_size: 'medium',
-            elevation_bias: 'neutral',
-            terrain_bias: 'neutral',
+            map_size: mocks.mapSize,
+            elevation_bias: mocks.elevationBias,
+            terrain_bias: mocks.terrainBias,
             turn_timer_seconds: null,
           },
           error: null,
@@ -226,7 +232,88 @@ describe('P3.7 direct PvP committed build snapshots', () => {
   beforeEach(() => {
     mocks.createdBattleArgs = null
     mocks.groundSkill = false
+    mocks.mapSize = 'medium'
+    mocks.terrainBias = 'neutral'
+    mocks.elevationBias = 'neutral'
   })
+
+  it.each([
+    ['less', 'more', 6],
+    ['more', 'less', 25],
+  ] as const)(
+    'preserves explicit %s rough/%s elevation settings in a seeded large arena',
+    async (terrainBias, elevationBias, roughCount) => {
+      mocks.mapSize = 'large'
+      mocks.terrainBias = terrainBias
+      mocks.elevationBias = elevationBias
+      await startPvpLobbyWithQuality(hostUserId, lobbyId)
+      const state = mocks.createdBattleArgs!.p_initial_snapshot as BattleAuthoritativeEncounterState
+      expect(state.tactical.width).toBe(15)
+      expect(state.tactical.tiles.filter((tile) => tile.terrainId === 'rough-ground')).toHaveLength(
+        roughCount,
+      )
+      expect(state.tactical.tiles).toEqual(
+        createStandardBattlefieldTiles({
+          width: 15,
+          height: 7,
+          seed: state.tactical.battle.rng.seed,
+          spawns: state.tactical.placements.map((placement) => placement.position),
+          terrainBias,
+          elevationBias,
+        }),
+      )
+    },
+  )
+
+  it('generates elevated PvP platforms with an orthogonal neighbor on every raised tile', async () => {
+    for (let attempt = 0; attempt < 20; attempt++) {
+      await startPvpLobbyWithQuality(hostUserId, lobbyId)
+      const state = mocks.createdBattleArgs!.p_initial_snapshot as BattleAuthoritativeEncounterState
+      for (const tile of state.tactical.tiles.filter((tile) => tile.elevation > 0)) {
+        expect(
+          state.tactical.tiles.some(
+            (neighbor) =>
+              neighbor.elevation === tile.elevation &&
+              Math.abs(neighbor.position.x - tile.position.x) +
+                Math.abs(neighbor.position.y - tile.position.y) ===
+                1,
+          ),
+        ).toBe(true)
+      }
+      expect(state.tactical.battle.rng).toMatchObject({
+        state: state.tactical.battle.rng.seed,
+        draws: 0,
+      })
+    }
+  })
+
+  it.each([
+    ['small', 9, 63],
+    ['medium', 12, 84],
+    ['large', 15, 105],
+  ] as const)(
+    'persists a %s PvP arena with seven rows and safe spawns',
+    async (size, width, count) => {
+      mocks.mapSize = size
+      await startPvpLobbyWithQuality(hostUserId, lobbyId)
+      const state = mocks.createdBattleArgs!.p_initial_snapshot as BattleAuthoritativeEncounterState
+      expect(state.copyPolicyVersion).toBe(1)
+      expect(state.tactical).toMatchObject({ width, height: 7 })
+      expect(state.tactical.tiles).toHaveLength(count)
+      expect(state.tactical.tiles.at(-1)?.position).toEqual({ x: width - 1, y: 6 })
+      expect(state.tactical.placements.map((placement) => placement.position)).toEqual([
+        { x: 1, y: 3 },
+        { x: width - 2, y: 3 },
+      ])
+      for (const { position } of state.tactical.placements) {
+        expect(
+          state.tactical.tiles.find(
+            (tile) => tile.position.x === position.x && tile.position.y === position.y,
+          ),
+        ).toMatchObject({ elevation: 0, terrainId: 'open-ground' })
+      }
+    },
+  )
 
   it('persists the same frozen build grammar for both PvP participants', async () => {
     await startPvpLobbyWithQuality(hostUserId, lobbyId)
@@ -239,6 +326,12 @@ describe('P3.7 direct PvP committed build snapshots', () => {
     const host = readCombatBuildSnapshot(state, `character:${hostCharacterId}`)
     const guest = readCombatBuildSnapshot(state, `character:${guestCharacterId}`)
     expect(state.buildAuthority).toMatchObject({ catalogVersion: 3, combatContext: 'pvp' })
+    expect(state.buildAuthority?.combatants.map((combatant) => combatant.narratorIdentity)).toEqual(
+      [
+        { name: 'Host', pronounPresetId: 'they_them' },
+        { name: 'Guest', pronounPresetId: 'they_them' },
+      ],
+    )
     for (const combatant of state.buildAuthority!.combatants) {
       const bridge = readCombatBuildSnapshot(state, combatant.combatantId)!
       expect(combatant.primary).toEqual(bridge.primary)
@@ -290,211 +383,260 @@ describe('P3.7 direct PvP committed build snapshots', () => {
     )
   })
 
-  it('loads the actual quality-lobby snapshot through facing, ground preview/commit and reload', async () => {
-    mocks.groundSkill = true
-    await startPvpLobbyWithQuality(hostUserId, lobbyId)
-    const initial = structuredClone(
-      mocks.createdBattleArgs!.p_initial_snapshot,
-    ) as BattleAuthoritativeEncounterState
-    const battle = initial.tactical.battle
-    let record: BattleSessionRecord = {
-      battleSessionId: '00000000-0000-4000-8000-000000003726',
-      battleId: battle.battleId,
-      battleVersion: 1,
-      rulesVersion: battle.rulesVersion,
-      contentVersion: battle.contentVersion,
-      lifecycle: battle.lifecycle,
-      snapshot: initial,
-      controlledCombatantIds: [],
-      updatedAt: '2026-09-12T00:00:00.000Z',
-    }
-    const repository: BattleSessionRepository = {
-      createBattleSession: async () => {
-        throw new Error('Use the actual lobby RPC snapshot.')
-      },
-      findBattleSession: async (userId) => ({
-        ...structuredClone(record),
-        controlledCombatantIds: [
-          `character:${userId === hostUserId ? hostCharacterId : guestCharacterId}`,
-        ],
-      }),
-      findBattleIntentReplay: async () => null,
-      commitBattleIntent: async (input) => {
-        expect(input.expectedBattleVersion).toBe(record.battleVersion)
-        record = {
-          ...record,
-          battleVersion: record.battleVersion + 1,
-          snapshot: structuredClone(input.nextSnapshot),
+  it.each(['current', '9x7', '13x9'])(
+    'plays persisted %s geometry through reload',
+    async (geometry) => {
+      mocks.groundSkill = true
+      await startPvpLobbyWithQuality(hostUserId, lobbyId)
+      const initial = structuredClone(
+        mocks.createdBattleArgs!.p_initial_snapshot,
+      ) as BattleAuthoritativeEncounterState
+      if (geometry !== 'current') {
+        const width = geometry === '9x7' ? 9 : 13
+        const height = geometry === '9x7' ? 7 : 9
+        initial.tactical = {
+          ...initial.tactical,
+          width,
+          height,
+          placements: initial.tactical.placements.map((placement, index) => ({
+            ...placement,
+            position: { x: index === 0 ? 1 : width - 2, y: 3 },
+          })),
+          tiles: Array.from({ length: width * height }, (_, index) => ({
+            position: { x: index % width, y: Math.floor(index / width) },
+            elevation: 0,
+            terrainId: 'open-ground',
+          })),
         }
-        return {
-          replayed: false,
-          result: {
-            battleSessionId: record.battleSessionId,
-            battleVersion: record.battleVersion,
-            snapshot: record.snapshot,
-            committedAt: record.updatedAt,
-          },
-        }
-      },
-    }
-    const combatContentResolver = {
-      async resolveCurrentSkillDefinition(skillId: string) {
-        return resolveMatureSkillVersion(skillId)
-      },
-      async resolvePinnedSkillDefinition(skillId: string, contentVersion: number) {
-        return resolveMatureSkillVersion(skillId, contentVersion)
-      },
-    }
-    const service = createBattleSessionService({
-      battles: repository,
-      characters: {
-        findByOwnerSlot: async () => null,
-        createBaseCharacter: async () => {
-          throw new Error('Not a character creation test.')
-        },
-      },
-      combatContentResolver,
-    })
-    const hostId = `character:${hostCharacterId}`
-    // Always include a real server-facing transition, even if the host initially wins initiative.
-    for (let handoff = 0; handoff < 2; handoff += 1) {
-      const current = await service.getSession(hostUserId, record.battleSessionId)
-      const owner =
-        current.snapshot.tactical.battle.currentTurn!.combatantId === hostId
-          ? hostUserId
-          : guestUserId
-      await service.submitIntent({
-        userId: owner,
-        battleSessionId: record.battleSessionId,
-        expectedBattleVersion: record.battleVersion,
-        idempotencyKey: `00000000-0000-4000-8000-${String(record.battleVersion).padStart(12, '0')}`,
-        intent: { kind: 'face', facing: 'east' },
-      })
-      if (
-        (record.snapshot as BattleAuthoritativeEncounterState).tactical.battle.currentTurn!
-          .combatantId === hostId
-      )
-        break
-    }
-    const before = await service.getSession(hostUserId, record.battleSessionId)
-    const beforePersisted = structuredClone(record.snapshot) as BattleAuthoritativeEncounterState
-    expect(before.snapshot.tactical.battle.currentTurn!.combatantId).toBe(hostId)
-    expect(before.snapshot.buildAuthority).toEqual(initial.buildAuthority)
-    const hostBuild = before.snapshot.buildAuthority!.combatants.find(
-      (row) => row.combatantId === hostId,
-    )!
-    const currentMist = resolveMatureSkillVersion('frostweaver.chilling-mist')
-    if (!currentMist) throw new Error('Expected current Chilling Mist definition.')
-    expect(before.snapshot.buildAuthority?.catalogVersion).toBe(3)
-    expect(hostBuild.disciplineSkills).toEqual([
-      {
-        slotIndex: 1,
-        skillId: 'frostweaver.chilling-mist',
-        contentVersion: currentMist.contentVersion,
-        sourceDisciplineId: 'frostweaver',
-      },
-    ])
-    expect(readCombatBuildSnapshot(beforePersisted, hostId)!.disciplineSkills).toEqual([
-      {
-        slotIndex: 1,
-        skillId: 'frostweaver.chilling-mist',
-        contentVersion: 2,
-        sourceDisciplineId: 'frostweaver',
-      },
-    ])
-    const previewService = createBattlePreviewService(repository, combatContentResolver)
-    const occupied = new Set(
-      before.snapshot.tactical.placements.map(
-        (placement) => `${placement.position.x},${placement.position.y}`,
-      ),
-    )
-    let intent: {
-      kind: 'action'
-      actionId: string
-      target: { kind: 'tile'; position: { x: number; y: number } }
-    } | null = null
-    let preview: Awaited<ReturnType<typeof previewService.previewIntent>> | null = null
-
-    for (const tile of before.snapshot.tactical.tiles) {
-      if (occupied.has(`${tile.position.x},${tile.position.y}`)) continue
-      const candidateIntent = {
-        kind: 'action' as const,
-        actionId: 'frostweaver.chilling-mist',
-        target: { kind: 'tile' as const, position: { ...tile.position } },
       }
-      const candidatePreview = await previewService.previewIntent({
+      const battle = initial.tactical.battle
+      let record: BattleSessionRecord = {
+        battleSessionId: '00000000-0000-4000-8000-000000003726',
+        battleId: battle.battleId,
+        battleVersion: 1,
+        rulesVersion: battle.rulesVersion,
+        contentVersion: battle.contentVersion,
+        lifecycle: battle.lifecycle,
+        snapshot: initial,
+        controlledCombatantIds: [],
+        updatedAt: '2026-09-12T00:00:00.000Z',
+      }
+      const repository: BattleSessionRepository = {
+        createBattleSession: async () => {
+          throw new Error('Use the actual lobby RPC snapshot.')
+        },
+        findBattleSession: async (userId) => ({
+          ...structuredClone(record),
+          controlledCombatantIds: [
+            `character:${userId === hostUserId ? hostCharacterId : guestCharacterId}`,
+          ],
+        }),
+        findBattleIntentReplay: async () => null,
+        commitBattleIntent: async (input) => {
+          expect(input.expectedBattleVersion).toBe(record.battleVersion)
+          record = {
+            ...record,
+            battleVersion: record.battleVersion + 1,
+            snapshot: structuredClone(input.nextSnapshot),
+          }
+          return {
+            replayed: false,
+            result: {
+              battleSessionId: record.battleSessionId,
+              battleVersion: record.battleVersion,
+              snapshot: record.snapshot,
+              committedAt: record.updatedAt,
+            },
+          }
+        },
+      }
+      const combatContentResolver = {
+        async resolveCurrentSkillDefinition(skillId: string) {
+          return resolveMatureSkillVersion(skillId)
+        },
+        async resolvePinnedSkillDefinition(skillId: string, contentVersion: number) {
+          return resolveMatureSkillVersion(skillId, contentVersion)
+        },
+      }
+      const service = createBattleSessionService({
+        battles: repository,
+        characters: {
+          findByOwnerSlot: async () => null,
+          createBaseCharacter: async () => {
+            throw new Error('Not a character creation test.')
+          },
+        },
+        combatContentResolver,
+      })
+      const hostId = `character:${hostCharacterId}`
+      // Always include a real server-facing transition, even if the host initially wins initiative.
+      for (let handoff = 0; handoff < 2; handoff += 1) {
+        const current = await service.getSession(hostUserId, record.battleSessionId)
+        const owner =
+          current.snapshot.tactical.battle.currentTurn!.combatantId === hostId
+            ? hostUserId
+            : guestUserId
+        await service.submitIntent({
+          userId: owner,
+          battleSessionId: record.battleSessionId,
+          expectedBattleVersion: record.battleVersion,
+          idempotencyKey: `00000000-0000-4000-8000-${String(record.battleVersion).padStart(12, '0')}`,
+          intent: { kind: 'face', facing: 'east' },
+        })
+        if (
+          (record.snapshot as BattleAuthoritativeEncounterState).tactical.battle.currentTurn!
+            .combatantId === hostId
+        )
+          break
+      }
+      const before = await service.getSession(hostUserId, record.battleSessionId)
+      const beforePersisted = structuredClone(record.snapshot) as BattleAuthoritativeEncounterState
+      expect(before.snapshot.tactical.battle.currentTurn!.combatantId).toBe(hostId)
+      expect(before.snapshot.tactical).toMatchObject({
+        width: initial.tactical.width,
+        height: initial.tactical.height,
+      })
+      expect(before.snapshot.tactical.tiles).toEqual(initial.tactical.tiles)
+      expect(before.snapshot.buildAuthority).toEqual({
+        ...initial.buildAuthority,
+        combatants: initial.buildAuthority!.combatants.map((combatant) => {
+          const publicCombatant = { ...combatant }
+          delete publicCombatant.narratorIdentity
+          return publicCombatant
+        }),
+      })
+      const hostBuild = before.snapshot.buildAuthority!.combatants.find(
+        (row) => row.combatantId === hostId,
+      )!
+      const currentMist = resolveMatureSkillVersion('frostweaver.chilling-mist')
+      if (!currentMist) throw new Error('Expected current Chilling Mist definition.')
+      expect(before.snapshot.buildAuthority?.catalogVersion).toBe(3)
+      expect(hostBuild.disciplineSkills).toEqual([
+        {
+          slotIndex: 1,
+          skillId: 'frostweaver.chilling-mist',
+          contentVersion: currentMist.contentVersion,
+          sourceDisciplineId: 'frostweaver',
+        },
+      ])
+      expect(readCombatBuildSnapshot(beforePersisted, hostId)!.disciplineSkills).toEqual([
+        {
+          slotIndex: 1,
+          skillId: 'frostweaver.chilling-mist',
+          contentVersion: 2,
+          sourceDisciplineId: 'frostweaver',
+        },
+      ])
+      const previewService = createBattlePreviewService(repository, combatContentResolver)
+      const occupied = new Set(
+        before.snapshot.tactical.placements.map(
+          (placement) => `${placement.position.x},${placement.position.y}`,
+        ),
+      )
+      let intent: {
+        kind: 'action'
+        actionId: string
+        target: { kind: 'tile'; position: { x: number; y: number } }
+      } | null = null
+      let preview: Awaited<ReturnType<typeof previewService.previewIntent>> | null = null
+
+      for (const tile of before.snapshot.tactical.tiles) {
+        if (occupied.has(`${tile.position.x},${tile.position.y}`)) continue
+        const candidateIntent = {
+          kind: 'action' as const,
+          actionId: 'frostweaver.chilling-mist',
+          target: { kind: 'tile' as const, position: { ...tile.position } },
+        }
+        const candidatePreview = await previewService.previewIntent({
+          userId: hostUserId,
+          battleSessionId: record.battleSessionId,
+          expectedBattleVersion: record.battleVersion,
+          intent: candidateIntent,
+        })
+        if (
+          candidatePreview.preview.kind === 'action' &&
+          candidatePreview.preview.legal &&
+          candidatePreview.preview.affectedCombatantIds.length === 0 &&
+          candidatePreview.preview.projectedTerrain?.some((entry) => entry.after === 'frozen')
+        ) {
+          intent = candidateIntent
+          preview = candidatePreview
+          break
+        }
+      }
+
+      if (!intent || !preview || preview.preview.kind !== 'action') {
+        throw new Error('Expected a legal empty-ground Chilling Mist preview.')
+      }
+      expect(preview.preview).toMatchObject({
+        legal: true,
+        affectedCombatantIds: [],
+        projectedTerrain: expect.arrayContaining([
+          expect.objectContaining({ after: 'frozen', remainingRoundBoundaries: 2 }),
+        ]),
+      })
+      expect(await service.getSession(hostUserId, record.battleSessionId)).toEqual(before)
+      const after = await service.submitIntent({
         userId: hostUserId,
         battleSessionId: record.battleSessionId,
         expectedBattleVersion: record.battleVersion,
-        intent: candidateIntent,
+        idempotencyKey: '00000000-0000-4000-8000-000000000009',
+        intent,
       })
-      if (
-        candidatePreview.preview.kind === 'action' &&
-        candidatePreview.preview.legal &&
-        candidatePreview.preview.affectedCombatantIds.length === 0 &&
-        candidatePreview.preview.projectedTerrain?.some((entry) => entry.after === 'frozen')
-      ) {
-        intent = candidateIntent
-        preview = candidatePreview
-        break
+      expect(after.battleVersion).toBe(before.battleVersion + 1)
+      expect(
+        readPv1fActionEconomy(beforePersisted, hostId)!.current -
+          readPv1fActionEconomy(record.snapshot as BattleAuthoritativeEncounterState, hostId)!
+            .current,
+      ).toBe(45)
+      expect(after.snapshot.terrainOverlays ?? []).toHaveLength(0)
+      expect(after.snapshot).not.toHaveProperty('pendingEffects')
+      expect((record.snapshot as BattleAuthoritativeEncounterState).pendingEffects).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            activationRound: before.snapshot.tactical.battle.round + 1,
+            effect: expect.objectContaining({ type: 'create-terrain' }),
+          }),
+        ]),
+      )
+      expect(after.snapshot.buildAuthority).toEqual({
+        ...initial.buildAuthority,
+        combatants: initial.buildAuthority!.combatants.map((combatant) => {
+          const publicCombatant = { ...combatant }
+          delete publicCombatant.narratorIdentity
+          return publicCombatant
+        }),
+      })
+      expect((await service.getSession(hostUserId, record.battleSessionId)).snapshot).toEqual(
+        after.snapshot,
+      )
+
+      // The independent timeout/surrender transitions must keep the same frozen extension contract.
+      let timedOut = initial
+      for (let turn = 0; turn < 3; turn += 1) {
+        timedOut = timeoutPvpTurn(timedOut).state as BattleAuthoritativeEncounterState
+        expect(timedOut.buildAuthority).toEqual(initial.buildAuthority)
+        expect(readCombatBuildSnapshot(timedOut, hostId)).toEqual(
+          readCombatBuildSnapshot(initial, hostId),
+        )
       }
-    }
-
-    if (!intent || !preview || preview.preview.kind !== 'action') {
-      throw new Error('Expected a legal empty-ground Chilling Mist preview.')
-    }
-    expect(preview.preview).toMatchObject({
-      legal: true,
-      affectedCombatantIds: [],
-      projectedTerrain: expect.arrayContaining([
-        expect.objectContaining({ after: 'frozen', remainingRoundBoundaries: 2 }),
-      ]),
-    })
-    expect(await service.getSession(hostUserId, record.battleSessionId)).toEqual(before)
-    const after = await service.submitIntent({
-      userId: hostUserId,
-      battleSessionId: record.battleSessionId,
-      expectedBattleVersion: record.battleVersion,
-      idempotencyKey: '00000000-0000-4000-8000-000000000009',
-      intent,
-    })
-    expect(after.battleVersion).toBe(before.battleVersion + 1)
-    expect(
-      readPv1fActionEconomy(beforePersisted, hostId)!.current -
-        readPv1fActionEconomy(record.snapshot as BattleAuthoritativeEncounterState, hostId)!
-          .current,
-    ).toBe(45)
-    expect(after.snapshot.terrainOverlays?.length).toBeGreaterThan(0)
-    expect(after.snapshot.buildAuthority).toEqual(initial.buildAuthority)
-    expect((await service.getSession(hostUserId, record.battleSessionId)).snapshot).toEqual(
-      after.snapshot,
-    )
-
-    // The independent timeout/surrender transitions must keep the same frozen extension contract.
-    let timedOut = initial
-    for (let turn = 0; turn < 3; turn += 1) {
-      timedOut = timeoutPvpTurn(timedOut).state as BattleAuthoritativeEncounterState
-      expect(timedOut.buildAuthority).toEqual(initial.buildAuthority)
-      expect(readCombatBuildSnapshot(timedOut, hostId)).toEqual(
-        readCombatBuildSnapshot(initial, hostId),
-      )
-    }
-    for (const combatant of initial.tactical.battle.combatants) {
-      const surrendered = surrenderPvpCombatant(initial, combatant.id)
-        .state as BattleAuthoritativeEncounterState
-      expect(surrendered.buildAuthority).toEqual(initial.buildAuthority)
-      expect(readCombatBuildSnapshot(surrendered, hostId)).toEqual(
-        readCombatBuildSnapshot(initial, hostId),
-      )
-    }
-    // Historical bridge-only battles remain readable; never reconstruct them from today's Profile.
-    const legacy = structuredClone(initial)
-    delete legacy.buildAuthority
-    record = { ...record, snapshot: legacy }
-    const legacyView = await service.getSession(hostUserId, record.battleSessionId)
-    expect(legacyView.snapshot).not.toHaveProperty('buildAuthority')
-    expect(
-      readCombatBuildSnapshot(record.snapshot as BattleAuthoritativeEncounterState, hostId),
-    ).toEqual(readCombatBuildSnapshot(initial, hostId))
-  })
+      for (const combatant of initial.tactical.battle.combatants) {
+        const surrendered = surrenderPvpCombatant(initial, combatant.id)
+          .state as BattleAuthoritativeEncounterState
+        expect(surrendered.buildAuthority).toEqual(initial.buildAuthority)
+        expect(readCombatBuildSnapshot(surrendered, hostId)).toEqual(
+          readCombatBuildSnapshot(initial, hostId),
+        )
+      }
+      // Historical bridge-only battles remain readable; never reconstruct them from today's Profile.
+      const legacy = structuredClone(initial)
+      delete legacy.buildAuthority
+      record = { ...record, snapshot: legacy }
+      const legacyView = await service.getSession(hostUserId, record.battleSessionId)
+      expect(legacyView.snapshot).not.toHaveProperty('buildAuthority')
+      expect(
+        readCombatBuildSnapshot(record.snapshot as BattleAuthoritativeEncounterState, hostId),
+      ).toEqual(readCombatBuildSnapshot(initial, hostId))
+    },
+  )
 })

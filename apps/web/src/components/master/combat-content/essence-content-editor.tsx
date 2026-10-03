@@ -5,7 +5,9 @@ import { isMaterializedCombatEffect } from '@aurevane/game-core/combat/summon-co
 import { useRouter } from 'next/navigation'
 import { useMemo, useRef, useState } from 'react'
 
+import { SkillDetails } from '../../character/skill-details'
 import styles from './combat-content-editor.module.css'
+import { BattleFlavorTemplateHelp } from './battle-flavor-template-help'
 import { postCombatContentAuthoring } from './combat-content-client'
 import { CombatContentReviewPanel } from './combat-content-review-panel'
 import {
@@ -394,6 +396,36 @@ export function EssenceContentEditor({ essences, initialEssenceId }: EssenceCont
                   Presentation only. The nested Skill remains the authoritative mechanic.
                 </small>
               </label>
+              <BattleFlavorTemplateHelp
+                value={selectedDraft.flavorLine ?? ''}
+                ability={selectedDraft.name}
+                onChange={(flavorLine) => updateDraft({ ...selectedDraft, flavorLine })}
+              />
+              <label className={styles.field}>
+                <span>In-battle text</span>
+                <input
+                  aria-label="Essence in-battle text"
+                  maxLength={160}
+                  value={skill.battleText ?? ''}
+                  onChange={(event) => {
+                    const next = { ...skill }
+                    if (event.currentTarget.value.trim())
+                      next.battleText = event.currentTarget.value
+                    else Reflect.deleteProperty(next, 'battleText')
+                    updateDraft({ ...selectedDraft, skill: next })
+                  }}
+                />
+                <small className={styles.fieldHint}>
+                  Describe the action in battle. Leave blank to use the default action narration.
+                </small>
+              </label>
+              <BattleFlavorTemplateHelp
+                value={skill.battleText ?? ''}
+                ability={selectedDraft.name}
+                onChange={(battleText) =>
+                  updateDraft({ ...selectedDraft, skill: { ...skill, battleText } })
+                }
+              />
             </fieldset>
 
             <SkillTargetingEditor
@@ -458,6 +490,16 @@ export function EssenceContentEditor({ essences, initialEssenceId }: EssenceCont
             ))}
           </output>
         </section>
+
+        {skill ? (
+          <section className={styles.tags} aria-label="Player-facing Skill information">
+            <div>
+              <p className={styles.sectionLabel}>Read-only draft projection</p>
+              <h2>Skill information</h2>
+            </div>
+            <SkillDetails skill={skill} expanded />
+          </section>
+        ) : null}
 
         <CombatContentReviewPanel
           contentKey={selected.id}

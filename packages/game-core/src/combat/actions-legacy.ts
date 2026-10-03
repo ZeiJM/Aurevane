@@ -1,5 +1,25 @@
+import { applyCommittedAbsorbRecovery } from './combat-absorb-recovery'
+import { applyCommittedReflect } from './combat-reflect'
+import { filterBlockedCovertApplication } from './covert-sensory-revealed'
+import { validateSummonProfileDefinition } from './summon-content'
+import type { CombatSkillCopiedEvent } from './combat-skill-copy'
+import {
+  spawnCombatSummon,
+  type SpawnCombatSummonInput,
+  type CombatSummonEvent,
+} from './combat-summons'
+import type { StatDrivenCombatEncounterState } from './stat-driven-combat'
+import {
+  COMBAT_EFFECT_TIMING_TAGS,
+  combatEffectTimingMode,
+  combatEffectTimingTag,
+  parseCombatEffectTimingPolicy,
+  pendingCombatStatusRows,
+  type CombatEffectTimingPolicy,
+} from './combat-effect-timing'
 import {
   applyCombatStatusCopies,
+  attachCombatStatusCopyProvenance,
   planCombatStatusCopies,
   validateCombatStatusCopyAction,
   type CombatStatusCopyEffect,
@@ -52,9 +72,17 @@ import {
   validateCurrentBurnEffect,
   validateCurrentPoisonEffect,
 } from './combat-dots'
-import { validateCombatTemporarySkillState, type CombatEffectState } from './combat-effect-state'
+import {
+  normalizeCombatEffectState,
+  validateCombatTemporarySkillState,
+  type CombatEffectState,
+  type CombatTemporarySkillGrant,
+} from './combat-effect-state'
 import {
   validateCombatEffectInstanceProvenance,
+  createCombatActionProvenance,
+  createCombatTriggerGuard,
+  type CombatActionProvenance,
   type CombatEffectInstanceProvenance,
 } from './combat-kernel-types'
 import {
@@ -206,7 +234,15 @@ export type CombatEffectDefinition =
       stacks: number
     }
 
+export interface CombatEffectOrigin {
+  family: 'skill' | 'essence' | 'resonance' | 'basic'
+  contentId: string
+  contentVersion: number
+}
+
 export interface CombatActionDefinition {
+  effectOrigins?: readonly (CombatEffectOrigin | undefined)[]
+  effectTimingTags?: readonly (string | undefined)[]
   id: string
   version: number
   sourceType: CombatActionSourceType
@@ -250,6 +286,14 @@ export interface CombatContentCatalog {
 }
 
 export interface CombatStatusInstance {
+  durationScope?: 'battle' | 'instant' | 'until-spent' | 'until-removed' | 'rounds'
+
+  skipCurrentOwnerTurnEnd?: boolean
+  timingState?: 'pending' | 'active'
+  activationRound?: number
+  remainingOwnerTurnEnds?: number
+  remainingRoundBoundaries?: number
+
   /** Only current accuracy Mark definitions use independent source/target identities. */
   sourceScopedMark?: true
   statusId: string
@@ -267,7 +311,64 @@ export interface CombatantStatusState {
   statuses: readonly CombatStatusInstance[]
 }
 
+export interface CombatSourceCommandVisibility {
+  kind: 'team-only'
+  teamId: string
+}
+
+/** Pin the original cast privacy before its effects can reveal or expire Covert. */
+export function combatSourceCommandVisibility(
+  state: CombatEncounterState,
+  actorId: string,
+): CombatSourceCommandVisibility | undefined {
+  if (
+    !state.statusState
+      .find((row) => row.combatantId === actorId)
+      ?.statuses.some((status) => status.statusId === 'covert')
+  )
+    return undefined
+  return { kind: 'team-only', teamId: getCombatant(state.tactical.battle, actorId).teamId }
+}
+
+export interface PendingCombatEffect {
+  copyProvenance?: CombatActionProvenance
+  sourceCommandVisibility?: CombatSourceCommandVisibility
+  copySource?: {
+    beneficialPersistentEffects?: true
+    combatantId: string
+    statuses: readonly CombatStatusInstance[]
+    effectState: CombatEffectState
+  }
+
+  timingTag?: string
+  effectOrigin?: CombatEffectOrigin
+  criticalRecipientIds?: readonly string[]
+  actorId: string
+  actionId: string
+  effect: CombatEffectDefinition
+  recipientIds: readonly string[]
+  affectedTiles: readonly GridPosition[]
+  activationRound: number
+  content: CombatContentCatalog
+  turnOrigin?: CombatEncounterState['turnOrigin']
+}
+
 export interface CombatEncounterState {
+  /** Version 1 copies beneficial active tags; omitted historical battles grant a temporary Skill. */
+  copyPolicyVersion?: 1
+  pendingSkillGrants?: readonly {
+    grant: CombatTemporarySkillGrant
+    activationRound: number
+    sourceCommandVisibility?: CombatSourceCommandVisibility
+  }[]
+  pendingSummons?: readonly {
+    input: SpawnCombatSummonInput
+    activationRound: number
+    sourceCommandVisibility?: CombatSourceCommandVisibility
+  }[]
+  effectTimingPolicy?: CombatEffectTimingPolicy
+  pendingEffects?: readonly PendingCombatEffect[]
+
   schemaVersion: typeof COMBAT_ENCOUNTER_SCHEMA_VERSION
   tactical: TacticalBattleState
   statBridge?: {
@@ -316,7 +417,13 @@ export interface CombatActionIssue {
 }
 
 export interface CombatEffectProjection {
-  effectType: CombatEffectDefinition['type']
+  /** Forecast metadata describes scheduled application, never a committed result. */
+  activationRound?: number
+  statusId?: string
+  durationScope?: CombatStatusInstance['durationScope']
+  remainingOwnerTurnEnds?: number
+  remainingRoundBoundaries?: number
+  effectType: CombatEffectDefinition['type'] | 'summon'
   combatantId: string
   before: number | string
   after: number | string
@@ -338,9 +445,26 @@ export interface CombatActionEvaluation {
   issues: readonly CombatActionIssue[]
 }
 
-export type CombatResolutionEvent =
+export type CombatResolutionEvent = (
+  | {
+      event: 'persistent_effect_applied'
+      actionId: string
+      sourceCombatantId: string
+      targetCombatantId: string
+      statusId: 'poison' | 'burn' | 'bleed'
+    }
+  | {
+      event: 'effect_pending'
+      actionId: string
+      sourceCombatantId: string
+      targetCombatantId: string | null
+      effectTag: string
+      activationRound: number
+    }
   | CombatSkillAccuracyResolvedEvent
   | CombatCriticalResolvedEvent
+  | CombatSkillCopiedEvent
+  | CombatSummonEvent
   | TacticalBattleEvent
   | CombatTerrainEvent
   | {
@@ -413,6 +537,7 @@ export type CombatResolutionEvent =
     }
   | {
       event: 'status_applied'
+      expiryBoundary?: 'owner-turn-end'
       actionId: string
       sourceCombatantId: string
       targetCombatantId: string
@@ -448,6 +573,11 @@ export type CombatResolutionEvent =
     }
   | { event: 'combatant_waited'; combatantId: string }
   | { event: 'battle_completed'; winningTeamId: string | null }
+) & {
+  effectOrigin?: CombatEffectOrigin
+  sourceCommandVisibility?: CombatSourceCommandVisibility
+  effectActivationRound?: number
+}
 
 export type DisplacementFailureReason =
   | 'status-restricted'
@@ -713,10 +843,16 @@ export function evaluateCombatAction(
   if (issues.length === 0 && copyEffect?.type === 'copy-statuses' && target.combatantId) {
     if (
       target.combatantId === actorId ||
+      (copyEffect.beneficialEffects === true && state.copyPolicyVersion !== 1) ||
       (() => {
         const plan = planCombatStatusCopies(state, actorId, target.combatantId, copyEffect, content)
         const empty =
-          plan.copies.length === 0 && !plan.poison && !plan.burn && plan.bleed.length === 0
+          plan.copies.length === 0 &&
+          !plan.poison &&
+          !plan.burn &&
+          plan.bleed.length === 0 &&
+          plan.barriers.length === 0 &&
+          plan.recovery.length === 0
         return empty && copyEffect.allowNoEligibleEffects !== true
       })()
     ) {
@@ -932,13 +1068,20 @@ export function defeatCombatActionActor(
   actorId: string,
   content: CombatContentCatalog,
 ): CombatResolutionTransition {
-  const defeated = defeatCurrentCombatant(
+  let defeated = defeatCurrentCombatant(
     state.tactical.battle,
     actorId,
     collectNextRoundInitiativeModifiers(state, content),
   )
+  const summonBoundary = preparePendingSummonsForRound(state, defeated.state.round)
+  if (summonBoundary.state !== state)
+    defeated = defeatCurrentCombatant(
+      summonBoundary.state.tactical.battle,
+      actorId,
+      collectNextRoundInitiativeModifiers(summonBoundary.state, content),
+    )
   const boundary = applyCombatRoundBoundary(
-    withBattle(state, defeated.state),
+    withBattle(summonBoundary.state, defeated.state),
     state.tactical.battle.round,
     content,
   )
@@ -948,7 +1091,7 @@ export function defeatCombatActionActor(
     : { state: boundary.state, events: [] }
   return {
     state: successor.state,
-    events: [...defeated.events, ...boundary.events, ...successor.events],
+    events: [...defeated.events, ...summonBoundary.events, ...boundary.events, ...successor.events],
   }
 }
 
@@ -967,7 +1110,23 @@ function collectNextRoundInitiativeModifiers(
             (getStatusDefinition(content, status.statusId, status.statusVersion)
               .nextRoundInitiative ?? 0),
           0,
-        ),
+        ) +
+          (state.pendingEffects ?? [])
+            .filter(
+              (pending) =>
+                pending.activationRound === state.tactical.battle.round + 1 &&
+                pending.recipientIds.includes(row.combatantId) &&
+                pending.effect.type === 'apply-status',
+            )
+            .reduce(
+              (sum, pending) =>
+                sum +
+                (pending.content.statuses.find(
+                  (definition) =>
+                    definition.id === (pending.effect as { statusId: string }).statusId,
+                )?.nextRoundInitiative ?? 0),
+              0,
+            ),
       ),
     )
     return amount === 0 ? [] : [{ combatantId: row.combatantId, amount }]
@@ -1005,6 +1164,179 @@ function applyCombatRoundBoundary(
       })),
     )
   }
+  if (nextState.pendingSkillGrants?.length) {
+    const readyGrants = nextState.pendingSkillGrants.filter(
+      (row) => row.activationRound <= nextState.tactical.battle.round,
+    )
+    nextState = {
+      ...nextState,
+      pendingSkillGrants: nextState.pendingSkillGrants.filter(
+        (row) => row.activationRound > nextState.tactical.battle.round,
+      ),
+    }
+    const normalizedEffects = normalizeCombatEffectState(nextState.effectState)
+    const effectState = {
+      ...normalizedEffects,
+      temporarySkills: [...normalizedEffects.temporarySkills],
+    }
+    for (const pending of readyGrants) {
+      if (getCombatant(nextState.tactical.battle, pending.grant.combatantId).hp <= 0) continue
+      if (
+        !effectState.temporarySkills.some(
+          (grant) =>
+            grant.combatantId === pending.grant.combatantId &&
+            grant.skillId === pending.grant.skillId &&
+            grant.contentVersion === pending.grant.contentVersion,
+        )
+      )
+        effectState.temporarySkills.push({ ...pending.grant })
+      events.push({
+        event: 'temporary_skill_copied',
+        ...pending.grant,
+        ...(pending.sourceCommandVisibility
+          ? { sourceCommandVisibility: pending.sourceCommandVisibility }
+          : {}),
+      })
+    }
+    nextState = { ...nextState, effectState }
+  }
+  const ready = (nextState.pendingEffects ?? []).filter(
+    (effect) => effect.activationRound <= nextState.tactical.battle.round,
+  )
+  if (nextState.pendingEffects)
+    nextState = {
+      ...nextState,
+      pendingEffects: nextState.pendingEffects.filter(
+        (effect) => effect.activationRound > nextState.tactical.battle.round,
+      ),
+    }
+  for (const pending of ready) {
+    const action: CombatActionDefinition = {
+      id: pending.actionId,
+      version: 1,
+      sourceType: 'test',
+      tags: [],
+      cost: { spendsAction: false, mp: 0 },
+      requirements: [],
+      target: {
+        kind: 'unit',
+        teamPolicy: 'any',
+        shape: { kind: 'single' },
+        minimumRange: 0,
+        maximumRange: 0,
+        requiresLineOfSight: false,
+        maximumElevationDifference: null,
+        friendlyFire: 'all-units',
+      },
+      effectOrigins: [pending.effectOrigin],
+      effectTimingTags: [pending.timingTag],
+      effects: [pending.effect],
+    }
+    const recipients = pending.recipientIds.filter(
+      (id) => getCombatant(nextState.tactical.battle, id).hp > 0,
+    )
+    if (pending.effect.type !== 'create-terrain' && !recipients.length) continue
+    if (pending.effect.type === 'return-to-turn-start') {
+      const destination = pending.turnOrigin?.position
+      if (
+        !destination ||
+        nextState.tactical.placements.some(
+          (row) => row.combatantId !== pending.actorId && samePosition(row.position, destination),
+        )
+      )
+        continue
+    }
+    const policy = nextState.effectTimingPolicy
+    const sourceBefore = pending.copySource
+      ? captureStatusCopySource(
+          nextState,
+          pending.copySource.combatantId,
+          pending.copySource.beneficialPersistentEffects === true,
+        )
+      : null
+    const resolutionState = pending.copySource
+      ? withStatusCopySource(nextState, pending.copySource)
+      : nextState
+    const applied = resolveActionEffects(
+      { ...resolutionState, ...(pending.turnOrigin ? { turnOrigin: pending.turnOrigin } : {}) },
+      pending.actorId,
+      recipients[0] ?? null,
+      recipients,
+      pending.affectedTiles,
+      action,
+      pending.content,
+      undefined,
+      new Map((pending.criticalRecipientIds ?? []).map((id) => [id, new Set([0])])),
+      true,
+    )
+    const filtered = filterBlockedCovertApplication({
+      before: resolutionState,
+      after: applied.state,
+      events: applied.events,
+    })
+    const lineaged =
+      pending.copyProvenance && pending.effect.type === 'copy-statuses' && recipients[0]
+        ? attachCombatStatusCopyProvenance(
+            resolutionState,
+            filtered.state,
+            pending.actorId,
+            recipients[0],
+            pending.effect,
+            pending.content,
+            {
+              provenance: pending.copyProvenance,
+              triggerGuard: createCombatTriggerGuard({
+                triggerChainId: pending.copyProvenance.triggerChainId,
+              }),
+            },
+          )
+        : filtered.state
+    const command = { sourceCombatantId: pending.actorId, actionId: pending.actionId }
+    const recovered = applyCommittedAbsorbRecovery(
+      lineaged,
+      filtered.events as CombatResolutionEvent[],
+      pending.content,
+      command,
+    )
+    const reflected = applyCommittedReflect(
+      recovered.state,
+      filtered.events as CombatResolutionEvent[],
+      pending.content,
+      command,
+      undefined,
+      true,
+    )
+    const resolved = { state: reflected.state, events: [...recovered.events, ...reflected.events] }
+    nextState = {
+      ...(sourceBefore ? withStatusCopySource(resolved.state, sourceBefore) : resolved.state),
+      effectTimingPolicy: policy,
+      turnOrigin: nextState.turnOrigin,
+    }
+    events.push(
+      ...resolved.events.map((event) => ({
+        ...event,
+        effectActivationRound: state.tactical.battle.round,
+        ...(pending.sourceCommandVisibility
+          ? { sourceCommandVisibility: pending.sourceCommandVisibility }
+          : {}),
+      })),
+    )
+    if (
+      pending.effect.type === 'apply-status' &&
+      pending.content.statuses.find(
+        (definition) => definition.id === (pending.effect as { statusId: string }).statusId,
+      )?.nextRoundInitiative !== undefined
+    ) {
+      for (const recipientId of pending.recipientIds) {
+        nextState = removeStatuses(nextState, recipientId, [pending.effect.statusId])
+        events.push({
+          event: 'status_expired',
+          combatantId: recipientId,
+          statusId: pending.effect.statusId,
+        })
+      }
+    }
+  }
   return { state: nextState, events }
 }
 
@@ -1039,18 +1371,30 @@ export function endCombatTurn(
   )
   const outgoingHpAfterTicks = Math.max(
     0,
-    legacyOutgoingHpAfterTicks - currentPoisonEndTurnDamage(state, outgoingId),
+    legacyOutgoingHpAfterTicks -
+      (currentPoisonInstance(state, outgoingId)?.skipCurrentOwnerTurnEnd
+        ? 0
+        : currentPoisonEndTurnDamage(state, outgoingId)) -
+      advanceCurrentBleedEndTurn(state, outgoingId).stacks.reduce(
+        (sum, row) => sum + row.damagePerTick,
+        0,
+      ) -
+      advanceCurrentBurnEndTurn(state, outgoingId).damage,
   )
-  const ended = endTurn(
+  let ended = endTurn(
     state.tactical.battle,
     roundModifiers,
     outgoingDefeatedAtTurnEnd || outgoingHpAfterTicks === 0,
   )
-  let nextState = withBattle(state, ended.state)
-  const events: CombatResolutionEvent[] = [...ended.events]
-  const boundary = applyCombatRoundBoundary(nextState, state.tactical.battle.round, content)
-  nextState = boundary.state
-  events.push(...boundary.events)
+  const summonBoundary = preparePendingSummonsForRound(state, ended.state.round)
+  if (summonBoundary.state !== state)
+    ended = endTurn(
+      summonBoundary.state.tactical.battle,
+      roundModifiers,
+      outgoingDefeatedAtTurnEnd || outgoingHpAfterTicks === 0,
+    )
+  let nextState = withBattle(summonBoundary.state, ended.state)
+  const events: CombatResolutionEvent[] = [...ended.events, ...summonBoundary.events]
   // Resolve the outgoing unit's periodic effects after advancing initiative. This permits
   // lethal ticks without ever persisting a defeated combatant as the current actor.
   const periodic = resolveEndOfTurnStatuses(nextState, outgoingId, content)
@@ -1062,6 +1406,12 @@ export function endCombatTurn(
   const recovery = resolveEndOfTurnRecovery(nextState, outgoingId, content)
   nextState = recovery.state
   events.push(...recovery.events)
+  const ownerExpiry = expireOwnerTurnEndStatuses(nextState, outgoingId)
+  nextState = ownerExpiry.state
+  events.push(...ownerExpiry.events)
+  const boundary = applyCombatRoundBoundary(nextState, state.tactical.battle.round, content)
+  nextState = boundary.state
+  events.push(...boundary.events)
   const completed = completeBattleIfResolved(nextState)
   nextState = completed.state
   events.push(...completed.events)
@@ -1135,6 +1485,202 @@ export function validateCombatEncounterState(
     ...validateCombatDotState(state),
     ...validateCombatTemporarySkillState(state),
   ]
+  if (state.copyPolicyVersion !== undefined && state.copyPolicyVersion !== 1)
+    issues.push({ field: 'copyPolicyVersion', message: 'Invalid pinned Copy policy.' })
+  try {
+    if (state.effectTimingPolicy !== undefined)
+      parseCombatEffectTimingPolicy(state.effectTimingPolicy)
+  } catch {
+    issues.push({ field: 'effectTimingPolicy', message: 'Invalid pinned effect timing policy.' })
+  }
+  if (state.pendingEffects !== undefined) {
+    if (
+      !Array.isArray(state.pendingEffects) ||
+      (state.pendingEffects.length > 0 && !state.effectTimingPolicy)
+    )
+      issues.push({
+        field: 'pendingEffects',
+        message: 'Pending effects require an array and pinned policy.',
+      })
+    else
+      for (const pending of state.pendingEffects) {
+        try {
+          if (
+            !pending ||
+            !Number.isSafeInteger(pending.activationRound) ||
+            pending.activationRound < 1 ||
+            !state.tactical.battle.combatants.some((unit) => unit.id === pending.actorId) ||
+            !Array.isArray(pending.recipientIds) ||
+            pending.recipientIds.some(
+              (id: string) => !state.tactical.battle.combatants.some((unit) => unit.id === id),
+            ) ||
+            !Array.isArray(pending.affectedTiles)
+          )
+            throw new Error('Invalid pending identity.')
+          validateSourceCommandVisibility(state, pending.sourceCommandVisibility, pending.actorId)
+          if (
+            pending.effect.type === 'copy-statuses' &&
+            pending.effect.beneficialEffects === true &&
+            state.copyPolicyVersion !== 1
+          )
+            throw new TypeError('Pending beneficial Copy requires its pinned encounter policy.')
+          if (
+            pending.criticalRecipientIds !== undefined &&
+            (!Array.isArray(pending.criticalRecipientIds) ||
+              pending.criticalRecipientIds.some((id: string) => !pending.recipientIds.includes(id)))
+          )
+            throw new TypeError('Invalid pinned critical recipients.')
+          if (pending.copySource) {
+            if (
+              pending.effect.type !== 'copy-statuses' ||
+              !state.tactical.battle.combatants.some(
+                (unit) => unit.id === pending.copySource!.combatantId,
+              ) ||
+              !Array.isArray(pending.copySource.statuses) ||
+              (pending.copySource.beneficialPersistentEffects !== undefined &&
+                pending.copySource.beneficialPersistentEffects !== true) ||
+              (pending.copySource.beneficialPersistentEffects === true &&
+                pending.effect.beneficialEffects !== true)
+            )
+              throw new TypeError('Invalid pinned copy source.')
+            const snapshot = withStatusCopySource(
+              {
+                ...state,
+                pendingEffects: undefined,
+                pendingSkillGrants: undefined,
+                pendingSummons: undefined,
+              },
+              pending.copySource,
+            )
+            if (validateCombatEncounterState(snapshot).length)
+              throw new TypeError('Invalid pinned copy source state.')
+          }
+          if (pending.copyProvenance !== undefined) {
+            if (
+              pending.effect.type !== 'copy-statuses' ||
+              pending.effect.beneficialEffects !== true ||
+              pending.copyProvenance.sourceCombatantId !== pending.actorId ||
+              pending.copyProvenance.actionDefinitionId !== pending.actionId
+            )
+              throw new TypeError('Invalid pending Copy provenance.')
+            createCombatActionProvenance(pending.copyProvenance)
+          }
+          validateCombatContentCatalog(pending.content)
+          if (
+            !pending.effect ||
+            ![
+              'damage',
+              'healing',
+              'resource-change',
+              'apply-status',
+              'remove-status',
+              'displace',
+              'create-terrain',
+              'poison',
+              'burn',
+              'bleed',
+              'barrier-change',
+              'return-to-turn-start',
+              'copy-statuses',
+            ].includes(pending.effect.type)
+          )
+            throw new Error('Invalid pending effect.')
+          validateCombatActionDefinition(
+            {
+              ...P2_3_GUARD_ACTION,
+              id: pending.actionId,
+              target: {
+                ...P2_3_GUARD_ACTION.target,
+                kind: pending.effect.type === 'create-terrain' ? 'ground-tile' : 'unit',
+              },
+              effects: [
+                pending.effect.type === 'copy-statuses'
+                  ? { ...pending.effect, allowNoEligibleEffects: false }
+                  : pending.effect,
+              ],
+              effectOrigins: [pending.effectOrigin],
+              effectTimingTags: [pending.timingTag],
+            },
+            pending.content,
+          )
+          for (const tile of pending.affectedTiles) assertGridPosition(tile, 'pending tile')
+        } catch {
+          issues.push({ field: 'pendingEffects', message: 'Invalid pinned delayed effect.' })
+        }
+      }
+  }
+  if (state.pendingSummons !== undefined) {
+    if (!Array.isArray(state.pendingSummons) || !state.effectTimingPolicy)
+      issues.push({
+        field: 'pendingSummons',
+        message: 'Queued summons require an array and pinned policy.',
+      })
+    else
+      for (const pending of state.pendingSummons) {
+        try {
+          const input = pending.input
+          validateSourceCommandVisibility(
+            state,
+            pending.sourceCommandVisibility,
+            input?.ownerCombatantId,
+          )
+          if (
+            !Number.isSafeInteger(pending.activationRound) ||
+            pending.activationRound < 1 ||
+            !input ||
+            !state.tactical.battle.combatants.some((unit) => unit.id === input.ownerCombatantId) ||
+            typeof input.sourceSkillId !== 'string' ||
+            !input.sourceSkillId.trim() ||
+            !Number.isSafeInteger(input.sourceSkillVersion) ||
+            input.sourceSkillVersion < 1 ||
+            validateSummonProfileDefinition(input.profile).length ||
+            !['north', 'east', 'south', 'west'].includes(input.facing) ||
+            !isWithinBoard(state.tactical, input.position)
+          )
+            throw new Error('Invalid pending summon.')
+        } catch {
+          issues.push({
+            field: 'pendingSummons',
+            message: 'Queued summon identity and pinned profile must be valid.',
+          })
+        }
+      }
+  }
+  if (state.pendingSkillGrants !== undefined) {
+    if (!Array.isArray(state.pendingSkillGrants) || !state.effectTimingPolicy)
+      issues.push({
+        field: 'pendingSkillGrants',
+        message: 'Queued Skill grants require an array and pinned policy.',
+      })
+    else {
+      for (const pending of state.pendingSkillGrants) {
+        try {
+          validateSourceCommandVisibility(
+            state,
+            pending.sourceCommandVisibility,
+            pending.grant.combatantId,
+          )
+        } catch {
+          issues.push({ field: 'pendingSkillGrants', message: 'Invalid pinned grant visibility.' })
+        }
+      }
+      for (const pending of state.pendingSkillGrants)
+        if (!Number.isSafeInteger(pending.activationRound) || pending.activationRound < 1)
+          issues.push({
+            field: 'pendingSkillGrants',
+            message: 'Queued Skill activation round must be positive.',
+          })
+      issues.push(
+        ...validateCombatTemporarySkillState({
+          ...state,
+          effectState: {
+            ...normalizeCombatEffectState(state.effectState),
+            temporarySkills: state.pendingSkillGrants.map((row) => row.grant),
+          },
+        }),
+      )
+    }
+  }
   collectPersistentProvenanceIssues(state, issues)
 
   if (state.schemaVersion !== COMBAT_ENCOUNTER_SCHEMA_VERSION) {
@@ -1197,6 +1743,14 @@ export function validateCombatEncounterState(
         status.remainingOwnerTurnStarts,
         `${statusPrefix}.remainingOwnerTurnStarts`,
       )
+      if (
+        status.remainingOwnerTurnEnds !== undefined &&
+        (!Number.isSafeInteger(status.remainingOwnerTurnEnds) || status.remainingOwnerTurnEnds < 1)
+      )
+        issues.push({
+          field: `${statusPrefix}.remainingOwnerTurnEnds`,
+          message: 'Affected-turn lifetime must be positive.',
+        })
       if (
         status.potencyBasisPoints !== undefined &&
         (!Number.isSafeInteger(status.potencyBasisPoints) ||
@@ -1525,6 +2079,7 @@ function resolveActionEffects(
   content: CombatContentCatalog,
   missedCombatantIds?: ReadonlySet<string>,
   criticalEffectOrdinalsByTarget?: ReadonlyMap<string, ReadonlySet<number>>,
+  resolvingPending = false,
 ): CombatResolutionTransition & {
   projections: CombatEffectProjection[]
   terrain: CombatTerrainProjection[]
@@ -1547,142 +2102,320 @@ function resolveActionEffects(
     events.push(...revealed.events)
   }
   for (const [effectOrdinal, effect] of action.effects.entries()) {
-    if (effect.type === 'sensory') {
-      throw new TypeError('Sensory must be materialized before legacy effect resolution.')
-    }
-    if (effect.type === 'copy') {
-      throw new TypeError('Copy must be materialized before legacy effect resolution.')
-    }
-    if (
-      effect.type === 'create-terrain' ||
-      (effect.type === 'damage' && effect.element === 'fire')
-    ) {
-      for (const position of affectedTiles) {
-        if (
-          effect.type !== 'create-terrain' &&
-          terrainOverlayAt(nextState, position)?.kind !== 'frozen'
-        )
-          continue
-        const changed = setTerrainOverlay(
-          nextState,
-          position,
-          effect.type === 'create-terrain' ? 'frozen' : 'steam',
-          actorId,
-          action.id,
-        )
-        nextState = changed.state
-        events.push(...changed.events)
-        for (const event of changed.events)
-          if (event.event === 'terrain_overlay_changed') {
-            terrain.push({
-              position: event.position,
-              before: event.before,
-              after: event.after,
-              remainingRoundBoundaries: event.remainingRoundBoundaries,
-            })
-          }
+    const firstEvent = events.length
+    try {
+      if (effect.type === 'sensory') {
+        throw new TypeError('Sensory must be materialized before legacy effect resolution.')
       }
-      if (effect.type === 'create-terrain') continue
-    }
-    for (const recipientId of resolveEffectRecipients(
-      actorId,
-      primaryCombatantId,
-      affectedCombatantIds,
-      effect.recipient,
-    )) {
-      // Engine-owned target roll gates every unit effect, not just damage packets.
-      if (missedCombatantIds?.has(recipientId)) continue
-      if (effect.type === 'copy-statuses') {
-        const copied = applyCombatStatusCopies(
+      if (effect.type === 'copy') {
+        throw new TypeError('Copy must be materialized before legacy effect resolution.')
+      }
+      if (
+        !resolvingPending &&
+        combatEffectTimingMode(
+          state.effectTimingPolicy,
+          action.effectTimingTags?.[effectOrdinal] ?? combatEffectTimingTag(effect),
+        ) === 'next-round'
+      ) {
+        const recipientIds = (
+          effect.recipient === 'affected-tiles'
+            ? []
+            : resolveEffectRecipients(
+                actorId,
+                primaryCombatantId,
+                affectedCombatantIds,
+                effect.recipient,
+              )
+        ).filter((id) => !missedCombatantIds?.has(id))
+        if (!recipientIds.length && effect.type !== 'create-terrain') continue
+        nextState = {
+          ...nextState,
+          pendingEffects: [
+            ...(nextState.pendingEffects ?? []),
+            {
+              actorId,
+              sourceCommandVisibility: combatSourceCommandVisibility(state, actorId),
+              criticalRecipientIds: recipientIds.filter((id) =>
+                criticalEffectOrdinalsByTarget?.get(id)?.has(effectOrdinal),
+              ),
+              actionId: action.id,
+              ...(action.effectTimingTags?.[effectOrdinal]
+                ? { timingTag: action.effectTimingTags[effectOrdinal] }
+                : {}),
+              ...(action.effectOrigins?.[effectOrdinal]
+                ? { effectOrigin: { ...action.effectOrigins[effectOrdinal] } }
+                : {}),
+              ...(effect.type === 'copy-statuses'
+                ? {
+                    copySource: captureStatusCopySource(
+                      nextState,
+                      effect.mode === 'amplify' ? recipientIds[0]! : actorId,
+                      effect.beneficialEffects === true,
+                    ),
+                  }
+                : {}),
+              effect: JSON.parse(JSON.stringify(effect)) as CombatEffectDefinition,
+              recipientIds,
+              affectedTiles: affectedTiles.map((tile) => ({ ...tile })),
+              activationRound: state.tactical.battle.round + 1,
+              content: JSON.parse(JSON.stringify(content)) as CombatContentCatalog,
+              ...(state.turnOrigin
+                ? {
+                    turnOrigin: { ...state.turnOrigin, position: { ...state.turnOrigin.position } },
+                  }
+                : {}),
+            },
+          ],
+        }
+        if (effect.type === 'create-terrain') {
+          for (const position of affectedTiles) {
+            const projected = setTerrainOverlay(nextState, position, 'frozen', actorId, action.id)
+            for (const event of projected.events)
+              if (event.event === 'terrain_overlay_changed')
+                terrain.push({
+                  position: event.position,
+                  before: event.before,
+                  after: event.after,
+                  remainingRoundBoundaries: event.remainingRoundBoundaries,
+                  activationRound: state.tactical.battle.round + 1,
+                })
+          }
+        }
+        const latestPending = nextState.pendingEffects![nextState.pendingEffects!.length - 1]!
+        if (effect.type !== 'create-terrain')
+          for (const { combatantId, status } of pendingCombatStatusRows({
+            tactical: nextState.tactical,
+            pendingEffects: [latestPending],
+          }))
+            projections.push({
+              effectType: effect.type,
+              combatantId,
+              before: 'none',
+              after: 'pending',
+              activationRound: status.activationRound,
+              statusId: status.statusId,
+              ...(status.durationScope ? { durationScope: status.durationScope } : {}),
+              ...(status.remainingOwnerTurnEnds === undefined
+                ? {}
+                : { remainingOwnerTurnEnds: status.remainingOwnerTurnEnds }),
+              ...(status.remainingRoundBoundaries === undefined
+                ? {}
+                : { remainingRoundBoundaries: status.remainingRoundBoundaries }),
+            })
+        for (const targetCombatantId of recipientIds.length ? recipientIds : [null])
+          events.push({
+            event: 'effect_pending',
+            actionId: action.id,
+            sourceCombatantId: actorId,
+            targetCombatantId,
+            effectTag:
+              effect.type === 'copy-statuses' && effect.beneficialEffects === true
+                ? 'beneficial-copy'
+                : combatEffectTimingTag(effect),
+            activationRound: state.tactical.battle.round + 1,
+          })
+        continue
+      }
+      if (
+        effect.type === 'create-terrain' ||
+        (effect.type === 'damage' && effect.element === 'fire')
+      ) {
+        for (const position of affectedTiles) {
+          if (
+            effect.type !== 'create-terrain' &&
+            terrainOverlayAt(nextState, position)?.kind !== 'frozen'
+          )
+            continue
+          const changed = setTerrainOverlay(
+            nextState,
+            position,
+            effect.type === 'create-terrain' ? 'frozen' : 'steam',
+            actorId,
+            action.id,
+          )
+          nextState = changed.state
+          events.push(...changed.events)
+          for (const event of changed.events)
+            if (event.event === 'terrain_overlay_changed') {
+              terrain.push({
+                position: event.position,
+                before: event.before,
+                after: event.after,
+                remainingRoundBoundaries: event.remainingRoundBoundaries,
+              })
+            }
+        }
+        if (effect.type === 'create-terrain') continue
+      }
+      for (const recipientId of resolveEffectRecipients(
+        actorId,
+        primaryCombatantId,
+        affectedCombatantIds,
+        effect.recipient,
+      )) {
+        // Engine-owned target roll gates every unit effect, not just damage packets.
+        if (missedCombatantIds?.has(recipientId)) continue
+        if (effect.type === 'copy-statuses') {
+          const copied = applyCombatStatusCopies(
+            nextState,
+            actorId,
+            recipientId,
+            action.id,
+            effect,
+            content,
+            resolvingPending,
+          )
+          nextState = copied.state
+          events.push(...copied.events)
+          projections.push(...copied.projections)
+          continue
+        }
+        const before = nextState
+        const applied = applyEffect(
           nextState,
           actorId,
           recipientId,
           action.id,
           effect,
           content,
+          stormRecipients,
+          criticalEffectOrdinalsByTarget?.get(recipientId)?.has(effectOrdinal) === true,
+          resolvingPending,
         )
-        nextState = copied.state
-        events.push(...copied.events)
-        projections.push(...copied.projections)
-        continue
+        nextState = applied.state
+        if (
+          !resolvingPending &&
+          state.effectTimingPolicy &&
+          state.tactical.battle.currentTurn?.combatantId === recipientId &&
+          ['poison', 'burn', 'bleed'].includes(effect.type)
+        ) {
+          const effectState = normalizeCombatEffectState(nextState.effectState)
+          const mark = (row: {
+            targetCombatantId: string
+            sourceCombatantId: string
+            sourceActionId: string
+          }) =>
+            row.targetCombatantId === recipientId &&
+            row.sourceCombatantId === actorId &&
+            row.sourceActionId === action.id
+              ? { ...row, skipCurrentOwnerTurnEnd: true }
+              : row
+          nextState = {
+            ...nextState,
+            effectState: {
+              ...effectState,
+              poison: effectState.poison.map((row) => mark(row) as typeof row),
+              burn: effectState.burn.map((row) => mark(row) as typeof row),
+              bleed: effectState.bleed.map((row) => mark(row) as typeof row),
+            },
+          }
+        }
+        events.push(...applied.events)
+        if (effect.type === 'poison' || effect.type === 'burn' || effect.type === 'bleed')
+          events.push({
+            event: 'persistent_effect_applied',
+            actionId: action.id,
+            sourceCombatantId: actorId,
+            targetCombatantId: recipientId,
+            statusId: effect.type,
+          })
+        let beforeValue: number | string
+        let afterValue: number | string
+        if (
+          effect.type === 'damage' ||
+          effect.type === 'healing' ||
+          effect.type === 'resource-change'
+        ) {
+          const resource = effect.type === 'resource-change' ? 'mp' : 'hp'
+          beforeValue = getCombatant(before.tactical.battle, recipientId)[resource]
+          afterValue = getCombatant(nextState.tactical.battle, recipientId)[resource]
+        } else if (effect.type === 'barrier-change') {
+          beforeValue = currentBarrierAmount(before, recipientId)
+          afterValue = currentBarrierAmount(nextState, recipientId)
+        } else if (effect.type === 'return-to-turn-start' || effect.type === 'displace') {
+          const from = getPlacement(before.tactical, recipientId).position
+          const to = getPlacement(nextState.tactical, recipientId).position
+          beforeValue = `${from.x},${from.y}`
+          afterValue = `${to.x},${to.y}`
+        } else if (effect.type === 'poison') {
+          beforeValue =
+            before.effectState?.poison.some(
+              (instance) => instance.targetCombatantId === recipientId,
+            ) === true
+              ? 'active'
+              : 'none'
+          afterValue =
+            nextState.effectState?.poison.some(
+              (instance) => instance.targetCombatantId === recipientId,
+            ) === true
+              ? 'active'
+              : 'none'
+        } else if (effect.type === 'bleed') {
+          beforeValue = `x${currentBleedStacks(before, recipientId).length}`
+          afterValue = `x${currentBleedStacks(nextState, recipientId).length}`
+        } else if (effect.type === 'burn') {
+          beforeValue = currentBurnInstance(before, recipientId)?.stage ?? 'none'
+          afterValue = currentBurnInstance(nextState, recipientId)?.stage ?? 'none'
+        } else if (effect.type === 'remove-status') {
+          const removedStatusIds = getStatusRow(before, recipientId)
+            .statuses.filter((status) => effect.statusIds.includes(status.statusId))
+            .map((status) => status.statusId)
+          if (effect.statusIds.includes('poison') && hasCurrentPoison(before, recipientId)) {
+            removedStatusIds.push('poison')
+          }
+          if (effect.statusIds.includes('bleed') && hasCurrentBleed(before, recipientId)) {
+            removedStatusIds.push('bleed')
+          }
+          if (effect.statusIds.includes('burn') && hasCurrentBurn(before, recipientId)) {
+            removedStatusIds.push('burn')
+          }
+          beforeValue = [...new Set(removedStatusIds)].sort(compareStableString).join(',') || 'none'
+          afterValue = 'none'
+        } else {
+          const oldStatus = getStatus(before, recipientId, effect.statusId, actorId)
+          const newStatus = getStatus(nextState, recipientId, effect.statusId, actorId)
+          beforeValue = oldStatus ? `${oldStatus.statusId}:${oldStatus.stacks}` : 'none'
+          afterValue = newStatus ? `${newStatus.statusId}:${newStatus.stacks}` : 'none'
+        }
+        projections.push({
+          effectType: effect.type,
+          combatantId: recipientId,
+          before: beforeValue,
+          after: afterValue,
+        })
       }
-      const before = nextState
-      const applied = applyEffect(
-        nextState,
-        actorId,
-        recipientId,
-        action.id,
-        effect,
-        content,
-        stormRecipients,
-        criticalEffectOrdinalsByTarget?.get(recipientId)?.has(effectOrdinal) === true,
-      )
-      nextState = applied.state
-      events.push(...applied.events)
-      let beforeValue: number | string
-      let afterValue: number | string
-      if (
-        effect.type === 'damage' ||
-        effect.type === 'healing' ||
-        effect.type === 'resource-change'
-      ) {
-        const resource = effect.type === 'resource-change' ? 'mp' : 'hp'
-        beforeValue = getCombatant(before.tactical.battle, recipientId)[resource]
-        afterValue = getCombatant(nextState.tactical.battle, recipientId)[resource]
-      } else if (effect.type === 'barrier-change') {
-        beforeValue = currentBarrierAmount(before, recipientId)
-        afterValue = currentBarrierAmount(nextState, recipientId)
-      } else if (effect.type === 'return-to-turn-start' || effect.type === 'displace') {
-        const from = getPlacement(before.tactical, recipientId).position
-        const to = getPlacement(nextState.tactical, recipientId).position
-        beforeValue = `${from.x},${from.y}`
-        afterValue = `${to.x},${to.y}`
-      } else if (effect.type === 'poison') {
-        beforeValue =
-          before.effectState?.poison.some(
-            (instance) => instance.targetCombatantId === recipientId,
-          ) === true
-            ? 'active'
-            : 'none'
-        afterValue =
-          nextState.effectState?.poison.some(
-            (instance) => instance.targetCombatantId === recipientId,
-          ) === true
-            ? 'active'
-            : 'none'
-      } else if (effect.type === 'bleed') {
-        beforeValue = `x${currentBleedStacks(before, recipientId).length}`
-        afterValue = `x${currentBleedStacks(nextState, recipientId).length}`
-      } else if (effect.type === 'burn') {
-        beforeValue = currentBurnInstance(before, recipientId)?.stage ?? 'none'
-        afterValue = currentBurnInstance(nextState, recipientId)?.stage ?? 'none'
-      } else if (effect.type === 'remove-status') {
-        const removedStatusIds = getStatusRow(before, recipientId)
-          .statuses.filter((status) => effect.statusIds.includes(status.statusId))
-          .map((status) => status.statusId)
-        if (effect.statusIds.includes('poison') && hasCurrentPoison(before, recipientId)) {
-          removedStatusIds.push('poison')
-        }
-        if (effect.statusIds.includes('bleed') && hasCurrentBleed(before, recipientId)) {
-          removedStatusIds.push('bleed')
-        }
-        if (effect.statusIds.includes('burn') && hasCurrentBurn(before, recipientId)) {
-          removedStatusIds.push('burn')
-        }
-        beforeValue = [...new Set(removedStatusIds)].sort(compareStableString).join(',') || 'none'
-        afterValue = 'none'
-      } else {
-        const oldStatus = getStatus(before, recipientId, effect.statusId, actorId)
-        const newStatus = getStatus(nextState, recipientId, effect.statusId, actorId)
-        beforeValue = oldStatus ? `${oldStatus.statusId}:${oldStatus.stacks}` : 'none'
-        afterValue = newStatus ? `${newStatus.statusId}:${newStatus.stacks}` : 'none'
+    } finally {
+      if (!resolvingPending && nextState.effectTimingPolicy) {
+        const activeId = state.tactical.battle.currentTurn?.combatantId
+        const appliedStatusIds = events
+          .slice(firstEvent)
+          .flatMap((event) =>
+            event.event === 'status_applied' && event.targetCombatantId === activeId
+              ? [event.statusId]
+              : [],
+          )
+        if (appliedStatusIds.length)
+          nextState = {
+            ...nextState,
+            statusState: nextState.statusState.map((row) =>
+              row.combatantId === activeId
+                ? {
+                    ...row,
+                    statuses: row.statuses.map((status) =>
+                      appliedStatusIds.includes(status.statusId) &&
+                      status.remainingOwnerTurnEnds !== undefined
+                        ? { ...status, skipCurrentOwnerTurnEnd: true }
+                        : status,
+                    ),
+                  }
+                : row,
+            ),
+          }
       }
-      projections.push({
-        effectType: effect.type,
-        combatantId: recipientId,
-        before: beforeValue,
-        after: afterValue,
-      })
+      const origin = action.effectOrigins?.[effectOrdinal]
+      if (origin)
+        for (let index = firstEvent; index < events.length; index += 1)
+          events[index] = { ...events[index]!, effectOrigin: { ...origin } }
     }
   }
   return { state: nextState, events, projections, terrain }
@@ -1724,6 +2457,7 @@ function applyEffect(
   content: CombatContentCatalog,
   stormRecipients: Set<string>,
   critical: boolean,
+  resolvingPending = false,
 ): CombatResolutionTransition {
   if (effect.type === 'displace')
     return applyDisplacement(state, actorId, recipientId, actionId, effect, content)
@@ -1824,7 +2558,15 @@ function applyEffect(
     if (stormBonus && amount > 0) stormRecipients.add(recipientId)
     const barrier = absorbDirectDamageWithBarrier(state, recipientId, amount)
     const hpAfter = Math.max(0, target.hp - barrier.remainingDamage)
-    const updated = withUpdatedCombatant(barrier.state, recipientId, { ...target, hp: hpAfter })
+    const defeatedCurrent =
+      resolvingPending &&
+      hpAfter === 0 &&
+      barrier.state.tactical.battle.currentTurn?.combatantId === recipientId
+        ? defeatCombatActionActor(barrier.state, recipientId, content)
+        : null
+    const updated =
+      defeatedCurrent?.state ??
+      withUpdatedCombatant(barrier.state, recipientId, { ...target, hp: hpAfter })
     const removed =
       hpAfter < target.hp
         ? removeGameplayTags(
@@ -1866,6 +2608,7 @@ function applyEffect(
           hpAfter,
         },
         ...removed.events,
+        ...(defeatedCurrent?.events ?? []),
       ],
     }
   }
@@ -1946,6 +2689,9 @@ function applyEffect(
         statusId: status.statusId,
         stacks: status.stacks,
         remainingOwnerTurnStarts: status.remainingOwnerTurnStarts,
+        ...(status.remainingOwnerTurnEnds !== undefined
+          ? { expiryBoundary: 'owner-turn-end' as const }
+          : {}),
         refreshed: existingStatus !== null,
         stacked: existingStatus !== null && status.stacks > existingStatus.stacks,
       },
@@ -2096,6 +2842,13 @@ function applyStatusState(
         ...(potencyBasisPoints !== undefined ? { potencyBasisPoints } : {}),
       }
 
+  if (state.effectTimingPolicy) {
+    nextStatus.timingState = 'active'
+    nextStatus.remainingOwnerTurnEnds =
+      durationTurns ??
+      Math.max(1, definition.durationOwnerTurnStarts - (definition.endOfTurn ? 0 : 1))
+    nextStatus.remainingOwnerTurnStarts = nextStatus.remainingOwnerTurnEnds
+  }
   const statusState = state.statusState.map((candidate) =>
     candidate.combatantId === recipientId
       ? {
@@ -2123,7 +2876,11 @@ function expireOwnerTurnStartStatuses(
 
   for (const status of row.statuses) {
     const definition = getStatusDefinition(content, status.statusId, status.statusVersion)
-    if (definition.endOfTurn || definition.nextRoundInitiative !== undefined) {
+    if (
+      status.remainingOwnerTurnEnds !== undefined ||
+      definition.endOfTurn ||
+      definition.nextRoundInitiative !== undefined
+    ) {
       kept.push(status)
       continue
     }
@@ -2212,6 +2969,7 @@ function resolveEndOfTurnStatuses(
       nextState = revealed.state
       events.push(...revealed.events)
     }
+    if (status.remainingOwnerTurnEnds !== undefined) continue
     const remaining = status.remainingOwnerTurnStarts - 1
     if (remaining === 0) {
       nextState = removeStatuses(nextState, combatantId, [status.statusId])
@@ -2247,7 +3005,9 @@ function resolveCurrentEndOfTurnDots(
 
   const poison = currentPoisonInstance(nextState, combatantId)
   let target = getCombatant(nextState.tactical.battle, combatantId)
-  if (poison && target.hp > 0) {
+  if (poison?.skipCurrentOwnerTurnEnd)
+    nextState = advanceCurrentPoisonEndTurn(nextState, combatantId)
+  if (poison && !poison.skipCurrentOwnerTurnEnd && target.hp > 0) {
     const poisonDamage = currentPoisonEndTurnDamage(nextState, combatantId)
     const hpAfter = Math.max(0, target.hp - poisonDamage)
     nextState = withUpdatedCombatant(nextState, combatantId, { ...target, hp: hpAfter })
@@ -2603,6 +3363,35 @@ function validateCombatActionDefinition(
   }
   assertNonNegativeSafeInteger(action.cost.mp, 'MP cost')
 
+  if (action.effectTimingTags !== undefined) {
+    if (
+      !Array.isArray(action.effectTimingTags) ||
+      action.effectTimingTags.length !== action.effects.length ||
+      action.effectTimingTags.some(
+        (tag) => tag !== undefined && !COMBAT_EFFECT_TIMING_TAGS.includes(tag),
+      )
+    )
+      throw new TypeError('Internal effect timing tags must align with registered effects.')
+  }
+  if (action.effectOrigins !== undefined) {
+    if (
+      !Array.isArray(action.effectOrigins) ||
+      action.effectOrigins.length !== action.effects.length
+    )
+      throw new TypeError('Effect origins must align with the effect list.')
+    for (const origin of action.effectOrigins) {
+      if (!origin) continue
+      if (
+        !['skill', 'essence', 'resonance', 'basic'].includes(origin.family) ||
+        typeof origin.contentId !== 'string' ||
+        !origin.contentId.trim() ||
+        origin.contentId !== origin.contentId.trim() ||
+        !Number.isSafeInteger(origin.contentVersion) ||
+        origin.contentVersion < 1
+      )
+        throw new TypeError('Invalid pinned effect origin.')
+    }
+  }
   const tagSet = new Set<string>()
   for (const tag of action.tags) {
     collectRequiredIdentity(tag, 'action tag')
@@ -3341,4 +4130,186 @@ function applyImmediateRecovery(
       },
     ],
   }
+}
+
+function expireOwnerTurnEndStatuses(
+  state: CombatEncounterState,
+  combatantId: string,
+): CombatResolutionTransition {
+  const events: CombatResolutionEvent[] = []
+  return {
+    state: {
+      ...state,
+      statusState: state.statusState.map((row) =>
+        row.combatantId !== combatantId
+          ? row
+          : {
+              ...row,
+              statuses: row.statuses.flatMap((status) => {
+                if (status.remainingOwnerTurnEnds === undefined) return [status]
+                if (status.skipCurrentOwnerTurnEnd)
+                  return [{ ...status, skipCurrentOwnerTurnEnd: undefined }]
+                const remaining = status.remainingOwnerTurnEnds - 1
+                if (remaining > 0)
+                  return [
+                    {
+                      ...status,
+                      remainingOwnerTurnEnds: remaining,
+                      remainingOwnerTurnStarts: remaining,
+                    },
+                  ]
+                events.push({
+                  event: 'status_expired',
+                  combatantId,
+                  statusId: status.statusId,
+                  ...(status.sourceScopedMark
+                    ? { sourceCombatantId: status.sourceCombatantId }
+                    : {}),
+                })
+                return []
+              }),
+            },
+      ),
+    },
+    events,
+  }
+}
+
+function preparePendingSummonsForRound(
+  state: CombatEncounterState,
+  nextRound: number,
+): CombatResolutionTransition {
+  if (nextRound <= state.tactical.battle.round || !state.pendingSummons?.length)
+    return { state, events: [] }
+  let next: CombatEncounterState = {
+    ...state,
+    pendingSummons: state.pendingSummons.filter((row) => row.activationRound > nextRound),
+  }
+  const events: CombatResolutionEvent[] = []
+  const spawnedIds = new Set<string>()
+  for (const pending of state.pendingSummons.filter((row) => row.activationRound <= nextRound)) {
+    const owner = next.tactical.battle.combatants.find(
+      (unit) => unit.id === pending.input.ownerCombatantId,
+    )
+    const occupied = next.tactical.placements.some(
+      (row) =>
+        row.position.x === pending.input.position.x && row.position.y === pending.input.position.y,
+    )
+    if (!owner || owner.hp <= 0 || occupied) continue
+    const spawned = spawnCombatSummon(next as StatDrivenCombatEncounterState, pending.input)
+    next = spawned.state
+    for (const event of spawned.events)
+      if (event.event === 'summon_spawned') spawnedIds.add(event.combatantId)
+    events.push(
+      ...spawned.events.map((event) =>
+        pending.sourceCommandVisibility
+          ? { ...event, sourceCommandVisibility: pending.sourceCommandVisibility }
+          : event,
+      ),
+    )
+  }
+  if (spawnedIds.size) {
+    const effectState = normalizeCombatEffectState(next.effectState)
+    next = {
+      ...next,
+      effectState: {
+        ...effectState,
+        summons: effectState.summons?.map((row) =>
+          spawnedIds.has(row.combatantId) ? { ...row, spawnedRound: nextRound } : row,
+        ),
+      },
+    }
+  }
+  return { state: next, events }
+}
+
+function captureStatusCopySource(
+  state: CombatEncounterState,
+  combatantId: string,
+  beneficialPersistentEffects = false,
+): NonNullable<PendingCombatEffect['copySource']> {
+  const effects = normalizeCombatEffectState(state.effectState)
+  return JSON.parse(
+    JSON.stringify({
+      combatantId,
+      ...(beneficialPersistentEffects ? { beneficialPersistentEffects: true } : {}),
+      statuses: getStatusRow(state, combatantId).statuses,
+      effectState: {
+        ...effects,
+        poison: effects.poison.filter((row) => row.targetCombatantId === combatantId),
+        burn: effects.burn.filter((row) => row.targetCombatantId === combatantId),
+        bleed: effects.bleed.filter((row) => row.targetCombatantId === combatantId),
+        ...(beneficialPersistentEffects
+          ? {
+              barriers: (effects.barriers ?? []).filter(
+                (row) => row.targetCombatantId === combatantId,
+              ),
+              ongoingRecovery: effects.ongoingRecovery.filter(
+                (row) => row.targetCombatantId === combatantId,
+              ),
+            }
+          : {}),
+      },
+    }),
+  ) as NonNullable<PendingCombatEffect['copySource']>
+}
+function withStatusCopySource(
+  state: CombatEncounterState,
+  source: NonNullable<PendingCombatEffect['copySource']>,
+): CombatEncounterState {
+  const effects = normalizeCombatEffectState(state.effectState)
+  return {
+    ...state,
+    statusState: state.statusState.map((row) =>
+      row.combatantId === source.combatantId ? { ...row, statuses: source.statuses } : row,
+    ),
+    effectState: {
+      ...effects,
+      ...(source.beneficialPersistentEffects === true
+        ? {
+            barriers: [
+              ...(effects.barriers ?? []).filter(
+                (row) => row.targetCombatantId !== source.combatantId,
+              ),
+              ...(source.effectState.barriers ?? []),
+            ],
+            ongoingRecovery: [
+              ...effects.ongoingRecovery.filter(
+                (row) => row.targetCombatantId !== source.combatantId,
+              ),
+              ...source.effectState.ongoingRecovery,
+            ],
+          }
+        : {}),
+      poison: [
+        ...effects.poison.filter((row) => row.targetCombatantId !== source.combatantId),
+        ...source.effectState.poison,
+      ],
+      burn: [
+        ...effects.burn.filter((row) => row.targetCombatantId !== source.combatantId),
+        ...source.effectState.burn,
+      ],
+      bleed: [
+        ...effects.bleed.filter((row) => row.targetCombatantId !== source.combatantId),
+        ...source.effectState.bleed,
+      ],
+    },
+  }
+}
+
+function validateSourceCommandVisibility(
+  state: CombatEncounterState,
+  visibility: CombatSourceCommandVisibility | undefined,
+  sourceId: string,
+): void {
+  if (visibility === undefined) return
+  const source = state.tactical.battle.combatants.find((unit) => unit.id === sourceId)
+  if (
+    !visibility ||
+    visibility.kind !== 'team-only' ||
+    typeof visibility.teamId !== 'string' ||
+    visibility.teamId !== source?.teamId ||
+    Object.keys(visibility).some((key) => !['kind', 'teamId'].includes(key))
+  )
+    throw new TypeError('Invalid pinned source command visibility.')
 }

@@ -11,6 +11,7 @@ import { createPortal } from 'react-dom'
 import { useDesktopBattleLayout } from './battle-responsive-layout'
 
 import type { BattlePreviewView } from '@/server/battle/battle-preview-service'
+import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
 interface ClockView {
   active: boolean
@@ -23,6 +24,7 @@ interface ClockView {
 interface TickResponse {
   tick?: {
     clock: ClockView
+    battle: BattleSessionView | null
     timedOut: boolean
   }
   error?: { message?: string }
@@ -235,7 +237,6 @@ export function AiBattleQualityControls({
   const [clockTarget, setClockTarget] = useState<HTMLElement | null>(null)
   const [commandTarget, setCommandTarget] = useState<HTMLElement | null>(null)
   const commandTargetRef = useRef<HTMLElement | null>(null)
-  const reloading = useRef(false)
   const chips = useMemo(() => previewChips(preview), [preview])
 
   useEffect(() => {
@@ -252,9 +253,8 @@ export function AiBattleQualityControls({
       const target =
         strip?.firstElementChild instanceof HTMLElement ? strip.firstElementChild : null
       if (strip && target) markInstructionStructure(strip, target)
-      const clockHost = desktopLayout
-        ? root.querySelector<HTMLElement>('[data-battle-turn-clock-slot="true"]')
-        : target
+      const clockHost =
+        root.querySelector<HTMLElement>('[data-battle-turn-clock-slot="true"]') ?? target
       setClockTarget((current) => (current === clockHost ? current : clockHost))
 
       if (commandTargetRef.current !== target) {
@@ -362,6 +362,8 @@ export function AiBattleQualityControls({
     let requestTimeout: number | null = null
     let inFlight = false
     let reconnectDelay = CLOCK_RECONNECT_BASE_MS
+    let completed = false
+    let pendingTimeoutSnapshot = false
 
     const clearRequestTimeout = () => {
       if (requestTimeout === null) return
@@ -370,13 +372,13 @@ export function AiBattleQualityControls({
     }
 
     const schedule = (delay: number) => {
-      if (cancelled || reloading.current) return
+      if (cancelled || completed) return
       if (timer !== null) window.clearTimeout(timer)
       timer = window.setTimeout(() => void refresh(), delay)
     }
 
     async function refresh() {
-      if (cancelled || reloading.current || inFlight) return
+      if (cancelled || completed || inFlight) return
       if (document.visibilityState === 'hidden') {
         schedule(CLOCK_WATCHDOG_MS)
         return
@@ -409,10 +411,34 @@ export function AiBattleQualityControls({
           reconnectDelay = CLOCK_RECONNECT_BASE_MS
           nextDelay = nextClockRefreshDelay(nextClock)
 
-          if (body.tick.timedOut && !reloading.current) {
-            reloading.current = true
-            window.setTimeout(() => window.location.reload(), 80)
-            return
+          // The clock commits timeout authority and returns the resulting battle. Apply
+          // that snapshot in place so portraits, scenery and local media stay mounted.
+          if (body.tick.timedOut) pendingTimeoutSnapshot = true
+          if (body.tick.battle || pendingTimeoutSnapshot) {
+            let nextBattle = body.tick.battle
+            if (!nextBattle) {
+              const battleResponse = await fetch(`/api/battles/${battleSessionId}`, {
+                cache: 'no-store',
+                signal: activeController.signal,
+              })
+              const battleBody = (await battleResponse.json()) as {
+                battle?: BattleSessionView
+                error?: { message?: string }
+              }
+              if (!battleResponse.ok || !battleBody.battle) {
+                throw new Error(battleBody.error?.message ?? 'Battle state unavailable.')
+              }
+              nextBattle = battleBody.battle
+            }
+            if (cancelled || activeController.signal.aborted) return
+            if (nextBattle.battleSessionId !== battleSessionId) {
+              throw new Error('The turn clock returned a different battle.')
+            }
+            window.dispatchEvent(
+              new CustomEvent<BattleSessionView>('aurevane:battle-state', { detail: nextBattle }),
+            )
+            pendingTimeoutSnapshot = false
+            completed = nextBattle.snapshot.tactical.battle.lifecycle !== 'active'
           }
         }
       } catch (refreshError) {
@@ -430,7 +456,7 @@ export function AiBattleQualityControls({
         clearRequestTimeout()
         if (controller === activeController) controller = null
         inFlight = false
-        if (!cancelled && !reloading.current) schedule(nextDelay)
+        if (!cancelled && !completed) schedule(nextDelay)
       }
     }
 
@@ -463,28 +489,28 @@ export function AiBattleQualityControls({
 
   const seconds = remainingSeconds(clock?.deadlineAt ?? null, now)
 
-  if (!commandTarget) return null
-
   return (
     <>
-      {createPortal(
-        <>
-          {chips.length > 0 ? (
-            <span data-battle-target-preview="true" aria-label="Action preview">
-              {chips.map((chip, index) => (
-                <span
-                  key={`${chip.label}-${index}`}
-                  data-battle-preview-chip="true"
-                  data-battle-preview-tone={chip.tone}
-                >
-                  {chip.label}
+      {commandTarget
+        ? createPortal(
+            <>
+              {chips.length > 0 ? (
+                <span data-battle-target-preview="true" aria-label="Action preview">
+                  {chips.map((chip, index) => (
+                    <span
+                      key={`${chip.label}-${index}`}
+                      data-battle-preview-chip="true"
+                      data-battle-preview-tone={chip.tone}
+                    >
+                      {chip.label}
+                    </span>
+                  ))}
                 </span>
-              ))}
-            </span>
-          ) : null}
-        </>,
-        commandTarget,
-      )}
+              ) : null}
+            </>,
+            commandTarget,
+          )
+        : null}
       {clockTarget
         ? createPortal(
             <span
@@ -501,7 +527,7 @@ export function AiBattleQualityControls({
                 border: '1px solid rgba(111,172,143,.42)',
                 borderRadius: '999px',
                 background: 'rgba(75,143,111,.055)',
-                font: '750 .4rem/1 var(--av-font-mono)',
+                font: '750 .75rem/1 var(--av-font-mono)',
                 whiteSpace: 'nowrap',
               }}
               aria-live="polite"

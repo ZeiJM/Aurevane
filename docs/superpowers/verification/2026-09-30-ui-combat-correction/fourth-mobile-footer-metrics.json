@@ -1,0 +1,32 @@
+[
+  {
+    "padding": 0,
+    "footerTop": 804,
+    "footerBottom": 844,
+    "dockBottom": 804,
+    "dockTop": 739,
+    "contentBottom": 734.96875,
+    "viewport": 844,
+    "overflow": -15
+  },
+  {
+    "padding": 40,
+    "footerTop": 767.8125,
+    "footerBottom": 844,
+    "dockBottom": 767.8125,
+    "dockTop": 702.8125,
+    "contentBottom": 698.96875,
+    "viewport": 844,
+    "overflow": -15
+  },
+  {
+    "padding": 75,
+    "footerTop": 732.8125,
+    "footerBottom": 844,
+    "dockBottom": 732.8125,
+    "dockTop": 667.8125,
+    "contentBottom": 663.96875,
+    "viewport": 844,
+    "overflow": -15
+  }
+]

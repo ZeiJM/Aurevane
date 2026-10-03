@@ -1,6 +1,12 @@
 import 'server-only'
+import { usesBeneficialCombatCopy } from '@aurevane/game-core/combat/combat-status-copy'
 
-import type { CombatResolutionEvent } from '@aurevane/game-core/combat/actions'
+import type {
+  CombatEffectProjection,
+  CombatResolutionEvent,
+  CombatActionDefinition,
+  CombatActionEvaluation,
+} from '@aurevane/game-core/combat/actions'
 import type { CombatTerrainProjection } from '@aurevane/game-core/combat/terrain-overlays'
 
 import type { BattleSessionRecord, BattleSessionRepository } from '@aurevane/db/battle-session'
@@ -65,12 +71,7 @@ export interface BattleActionPreview {
   primaryCombatantId: string | null
   affectedTiles: readonly { x: number; y: number }[]
   affectedCombatantIds: readonly string[]
-  projectedEffects: readonly {
-    effectType: string
-    combatantId: string
-    before: number | string
-    after: number | string
-  }[]
+  projectedEffects: readonly CombatEffectProjection[]
   projectedTerrain?: readonly CombatTerrainProjection[]
   projectedEvents?: readonly CombatResolutionEvent[]
   projectedStatuses: readonly {
@@ -177,22 +178,74 @@ function issue(code: string, message: string): BattlePreviewIssue {
   return { code, message }
 }
 
+/** Preview must not turn an uncommitted Copy into inspection of a concealed hostile donor. */
+export function projectBeneficialCopyPreview(
+  state: StatDrivenCombatEncounterState,
+  action: CombatActionDefinition,
+  evaluation: CombatActionEvaluation,
+): Pick<CombatActionEvaluation, 'projectedEffects' | 'projectedEvents'> {
+  const actor = state.tactical.battle.combatants.find((row) => row.id === evaluation.actorId)
+  const donor = state.tactical.battle.combatants.find(
+    (row) => row.id === evaluation.primaryCombatantId,
+  )
+  const concealed =
+    actor &&
+    donor &&
+    actor.teamId !== donor.teamId &&
+    state.statusState
+      .find((row) => row.combatantId === donor.id)
+      ?.statuses.some((row) => row.statusId === 'covert' && row.timingState !== 'pending')
+  if (
+    !concealed ||
+    !action.effects.some(
+      (effect) => effect.type === 'copy-statuses' && effect.beneficialEffects === true,
+    )
+  )
+    return {
+      projectedEffects: evaluation.projectedEffects,
+      projectedEvents: evaluation.projectedEvents,
+    }
+  const copies = evaluation.projectedEffects.filter((row) => row.effectType === 'copy-statuses')
+  return {
+    projectedEffects: [
+      ...evaluation.projectedEffects.filter((row) => row.effectType !== 'copy-statuses'),
+      ...(copies.length
+        ? [
+            {
+              effectType: 'copy-statuses' as const,
+              statusId: 'beneficial-copy',
+              combatantId: actor.id,
+              before: 'none',
+              after: 'concealed',
+              ...(copies[0]!.activationRound !== undefined
+                ? { activationRound: copies[0]!.activationRound }
+                : {}),
+            },
+          ]
+        : []),
+    ],
+    projectedEvents: [],
+  }
+}
+
 async function previewIntent(
   state: StatDrivenCombatEncounterState,
   intent: BattleIntent,
   combatContentResolver?: CombatContentResolver,
 ): Promise<BattleIntentPreview> {
   if (intent.kind === 'move') {
-    const { prepared, movement, economyCost } = evaluatePv1fMovement(state, intent.path)
+    const { prepared, movement, terrainCost, economyCost } = evaluatePv1fMovement(
+      state,
+      intent.path,
+    )
     const economy = readPv1fActionEconomy(prepared)
     const before = economy?.current ?? 0
     const affordable = before >= economyCost
-    const movementRemainingBefore = prepared.tactical.battle.currentTurn?.movementRemaining ?? 0
     return {
       kind: 'move',
       legal: movement.legal && affordable,
       path: movement.path,
-      terrainCost: movement.cost,
+      terrainCost,
       actionEconomyCost: economyCost,
       actionEconomyBefore: before,
       actionEconomyAfter: Math.max(0, before - economyCost),
@@ -209,7 +262,7 @@ async function previewIntent(
             ]),
       ],
       cost: movement.cost,
-      movementRemainingAfter: Math.max(0, movementRemainingBefore - movement.cost),
+      movementRemainingAfter: movement.movementRemainingAfter,
     }
   }
 
@@ -247,6 +300,7 @@ async function previewIntent(
         : null
     if (taggedTechnique && !matureDefinition) throw persistenceInvalid()
     const copiedCopyContext =
+      !usesBeneficialCombatCopy(state) &&
       copiedCommand?.definition?.effects.some((effect) => effect.type === 'copy') &&
       intent.target.kind === 'unit'
         ? await resolveBattleSkillCopyContext(
@@ -260,6 +314,7 @@ async function previewIntent(
         : undefined
     if (copiedCopyContext === null) throw persistenceInvalid()
     const matureCopyContext =
+      !usesBeneficialCombatCopy(state) &&
       matureDefinition?.effects.some((effect) => effect.type === 'copy') &&
       intent.target.kind === 'unit'
         ? await resolveBattleSkillCopyContext(
@@ -296,6 +351,7 @@ async function previewIntent(
               )
             : evaluatePv1fAction(state, intent.actionId, intent.target)
     const { prepared, action, cost, evaluation } = resolved
+    const visibleCopyPreview = projectBeneficialCopyPreview(prepared, action, evaluation)
     const economy = readPv1fActionEconomy(prepared)
     const before = economy?.current ?? 0
     const affordable = before >= cost
@@ -325,10 +381,10 @@ async function previewIntent(
       primaryCombatantId: evaluation.primaryCombatantId,
       affectedTiles: evaluation.affectedTiles,
       affectedCombatantIds: evaluation.affectedCombatantIds,
-      projectedEffects: resourceIssue ? [] : evaluation.projectedEffects,
+      projectedEffects: resourceIssue ? [] : visibleCopyPreview.projectedEffects,
       projectedStatuses,
       projectedTerrain: resourceIssue ? [] : evaluation.projectedTerrain,
-      projectedEvents: resourceIssue ? [] : evaluation.projectedEvents,
+      projectedEvents: resourceIssue ? [] : visibleCopyPreview.projectedEvents,
       mpCost: evaluation.mpCost,
       actionEconomyCost: cost,
       actionEconomyBefore: before,

@@ -16,7 +16,9 @@ import {
 } from '@aurevane/game-core/character/profile-stat-content'
 import Image from 'next/image'
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 
+import { CharacterBuildTendencies } from './character-build-tendencies'
 import styles from './character-profile-details.module.css'
 
 interface CharacterProfileDetailsProps {
@@ -26,15 +28,16 @@ interface CharacterProfileDetailsProps {
   attributes: CharacterAttributes
   derived: DerivedStatSnapshot
   attributeResetControl?: ReactNode
+  showBuildTendencies?: boolean
 }
 
-interface DetailContent {
+export interface ProfileDetailContent {
   title: string
   eyebrow: string
   body: string
 }
 
-type Detail = (DetailContent & { anchor: HTMLElement }) | null
+type Detail = (ProfileDetailContent & { anchor: Element }) | null
 
 const attributeLabels: Readonly<Record<CharacterAttributeId, string>> = {
   might: 'Might',
@@ -131,12 +134,14 @@ export function CharacterProfileDetails({
   attributes,
   derived,
   attributeResetControl,
+  showBuildTendencies = false,
 }: CharacterProfileDetailsProps) {
   const [detail, setDetail] = useState<Detail>(null)
   const [popoverPosition, setPopoverPosition] = useState<{ top: number; left: number } | null>(null)
   const popoverRef = useRef<HTMLElement>(null)
+  const popoverIsPositioned = popoverPosition !== null
 
-  function openDetail(anchor: HTMLElement, content: DetailContent) {
+  function openDetail(anchor: Element, content: ProfileDetailContent) {
     setPopoverPosition(null)
     setDetail({ ...content, anchor })
   }
@@ -149,7 +154,12 @@ export function CharacterProfileDetails({
       }
     }
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setDetail(null)
+      if (event.key === 'Escape') {
+        setDetail(null)
+        if (detail.anchor instanceof HTMLElement || detail.anchor instanceof SVGElement) {
+          detail.anchor.focus({ preventScroll: true })
+        }
+      }
     }
     document.addEventListener('pointerdown', closeOnOutside, true)
     document.addEventListener('keydown', closeOnEscape)
@@ -158,6 +168,10 @@ export function CharacterProfileDetails({
       document.removeEventListener('keydown', closeOnEscape)
     }
   }, [detail])
+
+  useEffect(() => {
+    if (detail && popoverIsPositioned) popoverRef.current?.focus({ preventScroll: true })
+  }, [detail, popoverIsPositioned])
 
   useEffect(() => {
     if (!detail) return
@@ -172,7 +186,7 @@ export function CharacterProfileDetails({
       let left = anchorRect.left + anchorRect.width / 2 - popoverRect.width / 2
       left = Math.min(
         Math.max(inset, left),
-        Math.max(inset, window.innerWidth - popoverRect.width - inset),
+        Math.max(inset, document.documentElement.clientWidth - popoverRect.width - inset),
       )
 
       let top = anchorRect.bottom + gap
@@ -193,7 +207,7 @@ export function CharacterProfileDetails({
   }, [detail])
 
   return (
-    <div className={styles.details}>
+    <div className={styles.details} data-profile-has-tendencies={showBuildTendencies}>
       <div
         className={styles.identityFacts}
         data-profile-facts
@@ -260,7 +274,7 @@ export function CharacterProfileDetails({
               ✧
             </span>
             <div>
-              <h2 id="attributes-title">Core Attributes</h2>
+              <h2 id="attributes-title">Core Stats</h2>
               <p>Your innate potential, shaping what you can become.</p>
             </div>
             <i aria-hidden="true" />
@@ -317,17 +331,14 @@ export function CharacterProfileDetails({
               ✧
             </span>
             <div>
-              <h2 id="derived-title">Combat &amp; Adventure Stats</h2>
+              <h2 id="derived-title">Combat Stats</h2>
               <p>Capabilities derived from your attributes, refined through experience.</p>
             </div>
             <i aria-hidden="true" />
           </div>
-          {attributeResetControl ? (
-            <div className={styles.sectionAction}>{attributeResetControl}</div>
-          ) : null}
         </header>
 
-        <div className={styles.statGroups} data-profile-stat-groups>
+        <div className={styles.statGroups} data-profile-combat-grid>
           {CHARACTER_ATTRIBUTE_IDS.map((attributeId) => {
             const color = ATTRIBUTE_COLORS[attributeId]
             const style = {
@@ -343,19 +354,6 @@ export function CharacterProfileDetails({
                 style={style}
                 aria-label={`${attributeLabels[attributeId]} derived statistics`}
               >
-                <header>
-                  <span className={styles.statGroupIcon} aria-hidden="true">
-                    <Image
-                      className={styles.attributeIcon}
-                      src={attributeIconSources[attributeId]}
-                      width={72}
-                      height={72}
-                      sizes="1.4rem"
-                      alt=""
-                    />
-                  </span>
-                  <strong>{attributeLabels[attributeId]}</strong>
-                </header>
                 <div>
                   {ATTRIBUTE_STAT_GROUPS[attributeId].map((statId) => {
                     const stat = derived.stats[statId]
@@ -387,25 +385,42 @@ export function CharacterProfileDetails({
         </div>
       </section>
 
-      {detail ? (
-        <section
-          ref={popoverRef}
-          className={styles.detailPopover}
-          data-testid="profile-detail-popover"
-          role="dialog"
-          aria-modal="false"
-          aria-labelledby="profile-detail-title"
-          style={{
-            top: popoverPosition?.top ?? 0,
-            left: popoverPosition?.left ?? 0,
-            visibility: popoverPosition ? 'visible' : 'hidden',
-          }}
-        >
-          <span>{detail.eyebrow}</span>
-          <h2 id="profile-detail-title">{detail.title}</h2>
-          <p>{detail.body}</p>
-        </section>
+      {attributeResetControl ? (
+        <footer className={styles.sectionAction} data-profile-reset-control>
+          {attributeResetControl}
+        </footer>
       ) : null}
+
+      {showBuildTendencies ? (
+        <aside className={styles.buildTendencies} aria-label="Build tendencies">
+          <CharacterBuildTendencies attributes={attributes} onAxisSelect={openDetail} />
+        </aside>
+      ) : null}
+
+      {detail
+        ? createPortal(
+            <section
+              ref={popoverRef}
+              className={styles.detailPopover}
+              data-testid="profile-detail-popover"
+              role="dialog"
+              tabIndex={-1}
+              aria-modal="false"
+              aria-labelledby="profile-detail-title"
+              aria-describedby="profile-detail-description"
+              style={{
+                top: popoverPosition?.top ?? 0,
+                left: popoverPosition?.left ?? 0,
+                visibility: popoverPosition ? 'visible' : 'hidden',
+              }}
+            >
+              <span>{detail.eyebrow}</span>
+              <h2 id="profile-detail-title">{detail.title}</h2>
+              <p id="profile-detail-description">{detail.body}</p>
+            </section>,
+            document.body,
+          )
+        : null}
     </div>
   )
 }
