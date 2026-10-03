@@ -40,9 +40,14 @@ describe('shared Resonance parameter report', () => {
     expect(markup).toContain('→ Self')
     expect(markup).toContain('next Discipline Skill')
     expect(markup).toContain('Another Discipline Skill expires the armed Setup.')
-    expect(markup).toContain('empty-ground attacks preserve the armed Setup.')
+    expect(markup).toContain('Empty-ground attacks preserve the armed Setup.')
     expect(markup).toContain(
       '<ul aria-label="Effect explanations"><li>Restores MP to you.</li></ul>',
+    )
+    expect(markup).not.toContain('<p>')
+    expect(markup).not.toContain('Trigger targeting:')
+    expect(markup).toContain(
+      'Uses the Trigger Skill’s range, target selection, elevation and line of sight rules.',
     )
     expect(JSON.stringify(definition)).toBe(before)
   })
@@ -79,7 +84,7 @@ describe('shared Resonance parameter report', () => {
     expect(markup).toContain('data-compact-effect-duration="true">[2 Turns]</span>')
     expect(markup).toContain('→ Trigger Skill selected unit')
     expect(markup).toContain('<dt>Setup</dt><dd>N/A</dd>')
-    expect(markup).toContain('Selected-unit Results require a unit selection.')
+    expect(markup).toContain('A unit selection is required for the selected-unit Result.')
     expect(markup).toContain('Restores HP to you.')
     expect(markup).toContain('Increases incoming damage by 20%.')
     expect(markup).not.toContain('next Discipline Skill')

@@ -7,6 +7,7 @@ import { useMemo, useRef, useState } from 'react'
 
 import { SkillDetails } from '../../character/skill-details'
 import styles from './combat-content-editor.module.css'
+import { BattleFlavorTemplateHelp } from './battle-flavor-template-help'
 import { postCombatContentAuthoring } from './combat-content-client'
 import { CombatContentReviewPanel } from './combat-content-review-panel'
 import {
@@ -395,6 +396,11 @@ export function EssenceContentEditor({ essences, initialEssenceId }: EssenceCont
                   Presentation only. The nested Skill remains the authoritative mechanic.
                 </small>
               </label>
+              <BattleFlavorTemplateHelp
+                value={selectedDraft.flavorLine ?? ''}
+                ability={selectedDraft.name}
+                onChange={(flavorLine) => updateDraft({ ...selectedDraft, flavorLine })}
+              />
             </fieldset>
 
             <SkillTargetingEditor

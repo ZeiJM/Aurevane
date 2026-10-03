@@ -96,7 +96,8 @@ function assertPinnedStatus(
     instance.stacks > definition.maximumStacks ||
     !Number.isSafeInteger(instance.remainingOwnerTurnStarts) ||
     instance.remainingOwnerTurnStarts < 1 ||
-    instance.remainingOwnerTurnStarts > definition.durationOwnerTurnStarts
+    instance.remainingOwnerTurnStarts >
+      (instance.remainingOwnerTurnEnds !== undefined ? 4 : definition.durationOwnerTurnStarts)
   ) {
     throw new TypeError(
       'Copied status state must match its pinned version, stack cap and remaining duration.',
@@ -269,6 +270,15 @@ export function planCombatStatusCopies(
         previous?.remainingOwnerTurnStarts ?? 0,
       ),
       sourceCombatantId: actorId,
+      ...(donor.remainingOwnerTurnEnds !== undefined
+        ? {
+            remainingOwnerTurnEnds: Math.max(
+              donor.remainingOwnerTurnEnds,
+              previous?.remainingOwnerTurnEnds ?? 0,
+            ),
+            timingState: 'active' as const,
+          }
+        : {}),
     }
     return { donor, previous, next }
   })
@@ -394,6 +404,9 @@ export function applyCombatStatusCopies(
       statusId: next.statusId,
       stacks: next.stacks,
       remainingOwnerTurnStarts: next.remainingOwnerTurnStarts,
+      ...(next.remainingOwnerTurnEnds !== undefined
+        ? { expiryBoundary: 'owner-turn-end' as const }
+        : {}),
       refreshed: previous !== undefined,
       stacked: previous !== undefined && next.stacks > previous.stacks,
     })),

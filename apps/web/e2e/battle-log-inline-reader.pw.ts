@@ -1,6 +1,7 @@
 import { expect, test, type Locator } from '@playwright/test'
 
-import type { BattleLogEntry } from '../src/server/battle/battle-log-service'
+import { recordedChronicleAction } from './battle-log-chronicle-fixtures'
+import { expectReadableBattleLog } from './battle-log-layout-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 import { commitGesture } from './refined-battle-helpers'
 
@@ -15,37 +16,33 @@ async function readBoardGeometry(board: Locator) {
       scrollX += parent.scrollLeft
       scrollY += parent.scrollTop
     }
+    const content = element.closest('[data-unified-battle-content]')
+    const origin = content && innerWidth <= 820 ? content.getBoundingClientRect() : null
+    let originY = origin?.y ?? 0
+    let originX = origin?.x ?? 0
+    if (origin && content) {
+      originY += window.scrollY
+      originX += window.scrollX
+      for (let parent = content.parentElement; parent; parent = parent.parentElement) {
+        if (parent === document.scrollingElement) continue
+        originX += parent.scrollLeft
+        originY += parent.scrollTop
+      }
+    }
     return {
       viewport: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
-      layout: { x: rect.x + scrollX, y: rect.y + scrollY, width: rect.width, height: rect.height },
+      layout: {
+        x: rect.x + scrollX - originX,
+        y: rect.y + scrollY - originY,
+        width: rect.width,
+        height: rect.height,
+      },
       scrollOffset: { x: scrollX, y: scrollY },
     }
   })
 }
 
-function fixtureEntry(action: number, turn: number): BattleLogEntry {
-  return {
-    battleVersion: action,
-    eventIndex: 0,
-    occurredAt: '2026-10-02T09:00:00.000Z',
-    eventType: 'damage_applied',
-    message: `Target takes ${action} damage.`,
-    messageTemplate: '{target} takes {amount} damage.',
-    templateValues: { amount: String(action) },
-    actorCombatantId: 'character:fixture',
-    targetCombatantId: 'recruit:fixture',
-    actionId: 'basic.attack.unarmed.basic',
-    actionLabel: `Recorded action ${action}`,
-    round: 1,
-    turnNumber: turn,
-    kind: 'offense',
-    headline: `Recorded action ${action}`,
-    tone: 'damage',
-    facts: [{ label: `Complete result ${action}`, tone: 'damage' }],
-  }
-}
-
-test('pages long Battle Log turns inline and preserves reviewed history after a live commit', async ({
+test('scrolls the full chronicle and preserves reviewed history after a live commit', async ({
   page,
 }, testInfo) => {
   test.slow()
@@ -63,7 +60,7 @@ test('pages long Battle Log turns inline and preserves reviewed history after a 
   })
 
   // Only the read presentation is synthetic; the refresh below follows a real Guard commit.
-  let entries = [...Array.from({ length: 20 }, (_, index) => fixtureEntry(index + 1, 1))]
+  let entries = Array.from({ length: 20 }, (_, index) => recordedChronicleAction(index + 1)).flat()
   await page.route('**/api/battles/*/events', async (route) => {
     const battleSessionId = new URL(route.request().url()).pathname.split('/')[3]!
     await route.fulfill({ json: { battleLog: { battleSessionId, entries } } })
@@ -73,35 +70,28 @@ test('pages long Battle Log turns inline and preserves reviewed history after a 
   await page.getByRole('button', { name: 'Enter Battle' }).click()
   await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
   const log = page.locator('[data-battle-inline-log]')
-  const reader = log.getByRole('region', { name: 'Recorded action result', exact: true })
-  await expect(reader).toHaveAttribute('data-selected-action', 'battle:20')
-  await expect(log.locator('[data-battle-log-reading]')).toHaveAttribute('data-measured', 'true')
-  await expect(reader.locator('[data-reader-part="Result"] p')).toBeVisible()
+  const reader = log.getByRole('region', { name: 'Battle chronicle', exact: true })
+  const firstAction = reader.locator('[data-chronicle-action="1:0"]')
+  await expect(reader.locator('[data-chronicle-action]')).toHaveCount(20)
+  await expect(reader).toContainText('ROUND 1')
+  await expect(reader.locator('[data-chronicle-actor] > h3')).toHaveText(characterName)
+  await expect(reader).toContainText(`${characterName} finds an opening in Recruit’s guard.`)
   await expect(reader).toContainText('20 damage')
   await expect(page.locator('dialog[data-battle-action-details]')).toHaveCount(0)
   const board = page.locator('[data-board-auto-fit]')
   const before = await readBoardGeometry(board)
-
-  // Every older action remains reachable through labelled pages, with no scrolling.
-  const previousPage = log.getByRole('button', { name: 'Previous actions', exact: true })
-  for (let pageNumber = 0; pageNumber < 20 && (await previousPage.isVisible()); pageNumber++) {
-    if (!(await previousPage.isEnabled())) break
-    await previousPage.click()
-  }
-  const firstAction = log.getByRole('button', {
-    name: /Action details:.*Recorded action 1(?:\D|$)/,
-  })
-  await expect(firstAction).toBeVisible()
-  await firstAction.click()
-  await expect(reader).toHaveAttribute('data-selected-action', 'battle:1')
-  await expect(reader).toContainText('1 damage')
-  await expect(log.locator('[data-battle-log-reading]')).toHaveAttribute('data-measured', 'true')
-  const geometry = await log.locator('[data-battle-log-reading]').evaluate((element) => ({
+  await expectReadableBattleLog(page, testInfo, 'all-recorded-actions', log)
+  const geometry = await reader.evaluate((element) => ({
     horizontal: element.scrollWidth - element.clientWidth,
     vertical: element.scrollHeight - element.clientHeight,
   }))
   expect(geometry.horizontal).toBeLessThanOrEqual(1)
-  expect(geometry.vertical).toBeLessThanOrEqual(1)
+  expect(geometry.vertical).toBeGreaterThan(0)
+  await reader.evaluate((element) => {
+    element.scrollTop = 0
+  })
+  await expect(firstAction).toBeInViewport()
+  await expect(firstAction).toContainText('1 damage')
   const after = await readBoardGeometry(board)
   await testInfo.attach('inline-log-board-geometry', {
     body: Buffer.from(JSON.stringify({ before, after }, null, 2)),
@@ -114,7 +104,11 @@ test('pages long Battle Log turns inline and preserves reviewed history after a 
     expect(after.viewport).toEqual(before.viewport)
   }
 
-  entries = [...entries, fixtureEntry(21, 2)]
+  const anchor = await firstAction.evaluate((element) => {
+    const reader = element.closest('[data-battle-chronicle]')!
+    return element.getBoundingClientRect().top - reader.getBoundingClientRect().top
+  })
+  entries = [...entries, ...recordedChronicleAction(21, 2)]
   const refreshed = page.waitForResponse(
     (response) => response.url().endsWith('/events') && response.request().method() === 'GET',
   )
@@ -125,14 +119,25 @@ test('pages long Battle Log turns inline and preserves reviewed history after a 
     page.getByRole('button', { name: new RegExp(`occupied by ${characterName}`) }),
   )
   await refreshed
-  await expect(log.getByRole('button', { name: 'Next turn', exact: true })).toBeVisible()
-  await expect(reader).toHaveAttribute('data-selected-action', 'battle:1')
-  await expect(reader).toContainText('1 damage')
-  await expect(reader).not.toHaveAttribute('data-selected-action', 'battle:21')
-  await log.getByRole('button', { name: 'Next turn', exact: true }).click()
-  await expect(reader).toHaveAttribute('data-selected-action', 'battle:21')
-  await expect(reader).toContainText('21 damage')
-  await expect(log.getByRole('button', { name: 'Next turn', exact: true })).toHaveCount(0)
+  await expect(reader.locator('[data-chronicle-action]')).toHaveCount(21)
+  await expect(reader).toContainText('ROUND 2')
+  await reader.scrollIntoViewIfNeeded()
+  await expect(firstAction).toBeInViewport()
+  const refreshedAnchor = await firstAction.evaluate(
+    (element) =>
+      element.getBoundingClientRect().top -
+      element.closest('[data-battle-chronicle]')!.getBoundingClientRect().top,
+  )
+  expect(Math.abs(refreshedAnchor - anchor)).toBeLessThanOrEqual(1)
+  await reader.evaluate((element) => {
+    element.scrollTop = element.scrollHeight
+  })
+  const newest = reader.locator('[data-chronicle-action="21:0"]')
+  await expect(newest).toBeInViewport()
+  await expect(newest).toContainText('21 damage')
+  const finalBoard = await readBoardGeometry(board)
+  expect(finalBoard.layout.width).toBe(before.layout.width)
+  expect(finalBoard.layout.height).toBe(before.layout.height)
   await testInfo.attach('inline-log-history-after-refresh', {
     body: await page.screenshot(),
     contentType: 'image/png',

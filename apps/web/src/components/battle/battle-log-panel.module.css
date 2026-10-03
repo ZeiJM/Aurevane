@@ -321,7 +321,7 @@
   --av-border-strong: #8e775b;
   box-sizing: border-box;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   min-width: 0;
   min-height: 0;
   border: 1px solid #9e8862;
@@ -331,48 +331,12 @@
     inset 0 0 0 3px #e5d7bc66,
     0 3px 12px #0004;
 }
-.inline > header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.3rem;
-  min-width: 0;
-  padding: 0.4rem 0.55rem;
-  border-bottom: 1px solid #99876a66;
-}
-.inline > header strong {
-  min-width: 0;
-  font: 650 0.9375rem/1.1 var(--av-font-display);
-}
-.inline > header button {
-  flex: none;
-  border: 0;
-  padding: 0.2rem;
-  color: #58472f;
-  background: transparent;
-  font-size: 0.75rem;
-  cursor: pointer;
-}
-.inline > :not(header) {
+.inline > * {
   min-width: 0;
   min-height: 0;
-  overflow: hidden;
-  overscroll-behavior: contain;
-  scrollbar-width: none;
 }
-@media (min-width: 821px) {
-  .inline > header {
-    padding: 0.2rem 0.3rem;
-  }
-  .inline > header strong {
-    font-size: 0.8125rem;
-    white-space: nowrap;
-  }
-  .inline > header button {
-    min-height: 1rem;
-    padding: 0;
-    font: 550 0.6875rem/1.2 var(--av-font-body);
-  }
+.panel[data-chronicle-rail='true'] {
+  grid-template-rows: minmax(0, 1fr);
 }
 @media (max-width: 820px) {
   .inline {

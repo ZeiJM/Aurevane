@@ -19,7 +19,6 @@ export function ResonanceParameters({
 }) {
   const effects = definition ? normalizedResonanceMechanics(definition).resultEffects : []
   const supplemental = resonanceSupplementalRows(definition)
-  const targeting = supplemental.find(([label]) => label === 'Trigger targeting')?.[1]
   const explanations = supplemental.find(([label]) => label === 'Result details')?.[1]
   return (
     <div
@@ -45,17 +44,9 @@ export function ResonanceParameters({
           }
         />
         <SkillCharacteristicRows
-          rows={supplemental.filter(
-            ([label]) => label !== 'Trigger targeting' && label !== 'Result details',
-          )}
+          rows={supplemental.filter(([label]) => label !== 'Result details')}
         />
       </dl>
-      {targeting ? (
-        <p>
-          <strong>Trigger targeting: </strong>
-          {targeting}
-        </p>
-      ) : null}
       {Array.isArray(explanations) && explanations.length ? (
         <ul aria-label="Effect explanations">
           {explanations.map((explanation, index) => (

@@ -153,7 +153,7 @@ export function skillParameterRows(
     Requirements: skillRequirementsSummary(skill),
     Effects: skillEffectsSummary(skill),
     Range: skillCompactRangeDescription(skill),
-    Target: skillTargetDescription(skill),
+    Target: skillTargetRecipientDescription(skill),
     'Target Method': skillTargetMethodDescription(skill),
     'Target Elevation': skillTargetElevationDescription(skill),
     'Line of Sight': skillLineOfSightDescription(skill),
@@ -258,14 +258,37 @@ export function skillTargetDescription(skill: Pick<MatureSkillDefinition, 'targe
   }
 }
 
+/** Include affected recipients only when they differ from the selected target policy. */
+function skillTargetRecipientDescription(
+  skill: Pick<MatureSkillDefinition, 'target' | 'effects'>,
+): string {
+  const target = skillTargetDescription(skill)
+  const { kind, teamPolicy, friendlyFire } = skill.target
+  const recipientsMatch =
+    (kind === 'self' && friendlyFire === 'allies-only') ||
+    (kind === 'unit' &&
+      ((teamPolicy === 'enemy' && friendlyFire === 'enemies-only') ||
+        (teamPolicy === 'ally' && friendlyFire === 'allies-only') ||
+        (teamPolicy === 'self' && friendlyFire === 'allies-only') ||
+        (teamPolicy === 'any' && friendlyFire === 'all-units')))
+  const recipients = recipientsMatch ? '' : ` · ${unitAffectedDescription(skill)}`
+  const terrain = skill.effects.some(
+    (effect) =>
+      effect.type === 'create-terrain' || (effect.type === 'damage' && effect.element === 'fire'),
+  )
+    ? ' · Terrain: both teams'
+    : ''
+  return target + recipients + terrain
+}
+
 export function skillTargetMethodDescription(skill: Pick<MatureSkillDefinition, 'target'>): string {
   switch (skill.target.shape.kind) {
     case 'single':
       return 'Single'
     case 'circle':
-      return 'Circle'
+      return `Circle · Radius: ${skill.target.shape.radius} ${skill.target.shape.radius === 1 ? 'tile' : 'tiles'}`
     case 'line':
-      return 'Line'
+      return `Line · Length: ${skill.target.shape.length} ${skill.target.shape.length === 1 ? 'tile' : 'tiles'}`
   }
 }
 
@@ -295,33 +318,7 @@ export function skillCooldownDescription(
   return `${ownerTurns} ${ownerTurns === 1 ? 'turn' : 'turns'}`
 }
 
-export function skillAffectedDescription(skill: MatureSkillDefinition): string {
-  const terrain = skill.effects.some(
-    (effect) =>
-      effect.type === 'create-terrain' || (effect.type === 'damage' && effect.element === 'fire'),
-  )
-    ? '. Terrain affects both teams; unit effects follow the listed recipients'
-    : ''
-  const resonance =
-    skill.target.kind === 'ground-tile' || skill.target.kind === 'empty-tile'
-      ? '. Unit-targeted Resonance payoffs require a unit selection; ground selection leaves that setup armed'
-      : ''
-  return unitAffectedDescription(skill) + terrain + resonance
-}
-
-/** Area and recipient information follows the compact ten-field report. */
-export function skillTargetingDetails(skill: MatureSkillDefinition): string {
-  const shape = skill.target.shape
-  const area =
-    shape.kind === 'circle'
-      ? `Circle radius: ${shape.radius} ${shape.radius === 1 ? 'tile' : 'tiles'}`
-      : shape.kind === 'line'
-        ? `Line length: ${shape.length} ${shape.length === 1 ? 'tile' : 'tiles'}`
-        : 'Single target'
-  return `${area} · Affects: ${skillAffectedDescription(skill)}`
-}
-
-function unitAffectedDescription(skill: MatureSkillDefinition): string {
+function unitAffectedDescription(skill: Pick<MatureSkillDefinition, 'target'>): string {
   switch (skill.target.friendlyFire) {
     case 'enemies-only':
       return 'Enemies only'

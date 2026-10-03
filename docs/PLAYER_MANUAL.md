@@ -27,6 +27,8 @@ Retired player-facing terms such as Current Discipline, Legacy Discipline, Art a
 
 ---
 
+2026-10-03 battle effects: new battles show delayed effects as pending immediately, activate them at the following global round, and expire active durations after the affected character finishes the specified turns. Damage and HP/MP recovery default instant. The Battle Chronicle groups short scenes and results by character; movement/facing/expiry remain visible through board/rail state rather than story chatter.
+
 ## 1. Goals
 
 A new player should feel:

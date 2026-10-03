@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 import {
   compactSkillEffectSummaryParts,
-  skillAffectedDescription,
   skillCompactRangeDescription,
   skillCooldownDescription,
   skillCostDescription,
@@ -18,7 +17,6 @@ import {
   skillTargetTags,
   skillTypeDescription,
   skillParameterRows,
-  skillTargetingDetails,
 } from './skill-detail-presentation'
 
 describe('Player-facing Skill targeting and effects', () => {
@@ -27,7 +25,7 @@ describe('Player-facing Skill targeting and effects', () => {
     const before = JSON.stringify(volley)
     expect(skillTargetTags(volley)).toEqual(['Enemy', 'Circle 1', 'Dmg'])
     expect(skillCompactRangeDescription(volley)).toBe('5')
-    expect(skillAffectedDescription(volley)).toBe('Enemies only')
+    expect(Object.fromEntries(skillParameterRows(volley)).Target).toBe('Enemy')
     const breath = resolveMatureSkillVersion('ironfist.focus-breath')!
     expect(skillTargetTags(breath)).toEqual(['Self', 'Single', 'Heal 1', 'MP Rec 1'])
     expect(skillCompactRangeDescription(breath)).toBe('N/A')
@@ -117,8 +115,9 @@ it('explains elemental interactions and typed status aliases without changing hi
     }),
   ).toContain('Scorched')
   expect(
-    skillAffectedDescription(resolveMatureSkillVersion('frostweaver.chilling-mist')!),
-  ).toContain('Terrain affects both teams')
+    Object.fromEntries(skillParameterRows(resolveMatureSkillVersion('frostweaver.chilling-mist')!))
+      .Target,
+  ).toContain('Terrain: both teams')
 })
 
 it('shows the executable element and canonical status names on current Technique tags', () => {
@@ -353,13 +352,13 @@ describe('Combat v5.1 compact targeting labels', () => {
         ...base,
         target: { ...base.target, shape: { kind: 'line', length: 3 } },
       }),
-    ).toBe('Line')
+    ).toBe('Line · Length: 3 tiles')
     expect(
       skillTargetMethodDescription({
         ...base,
         target: { ...base.target, shape: { kind: 'circle', radius: 1 } },
       }),
-    ).toBe('Circle')
+    ).toBe('Circle · Radius: 1 tile')
   })
 })
 
@@ -411,10 +410,21 @@ it('describes the authored Burn schedule rather than substituting the default st
   expect(description).not.toContain('4, then 3, then 2')
 })
 
-it('keeps area dimensions and affected teams without repeating the Range field', () => {
+it('keeps area dimensions and distinct recipients in canonical parameter rows', () => {
   const volley = resolveMatureSkillVersion('farstrider.volley')!
-  const details = skillTargetingDetails(volley)
-  expect(details).not.toContain('Legal range')
-  expect(details).toContain('Circle radius: 1 tile')
-  expect(details).toContain('Affects: Enemies only')
+  const rows = Object.fromEntries(skillParameterRows(volley))
+  expect(rows['Target Method']).toBe('Circle · Radius: 1 tile')
+  expect(rows.Target).toBe('Enemy')
+  const ground = resolveMatureSkillVersion('frostweaver.chilling-mist')!
+  const groundRows = Object.fromEntries(skillParameterRows(ground))
+  expect(groundRows.Target).toContain('Ground')
+  expect(groundRows.Target).toContain('Enemies only')
+  expect(groundRows.Target).toContain('Terrain: both teams')
+  const friendlyFire = {
+    ...volley,
+    target: { ...volley.target, friendlyFire: 'all-units' as const },
+  }
+  expect(Object.fromEntries(skillParameterRows(friendlyFire)).Target).toBe(
+    'Enemy · All units, including allies',
+  )
 })

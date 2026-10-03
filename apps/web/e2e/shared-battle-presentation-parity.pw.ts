@@ -231,19 +231,18 @@ test('keeps requested PvE presentation parity on desktop and mobile', async ({
       root.getByRole('button', { name: new RegExp(`occupied by ${identity.characterName}`) }),
     )
     const inline = root.locator('[data-battle-inline-log]')
-    await expect(inline.getByRole('button', { name: /^Action details:.*Guard/ })).toBeVisible()
-    const history = inline
-    await expect(history.getByRole('button', { name: /^Action details:.*Guard/ })).toBeVisible()
+    const chronicle = inline.getByRole('region', { name: 'Battle chronicle', exact: true })
+    await expect(chronicle).toContainText('Guard')
+    await expect(chronicle).toContainText('Guarded')
+    await expect(chronicle.locator('[data-chronicle-actor] h3')).toContainText(
+      identity.characterName,
+    )
     await expect(
-      history.getByRole('button', { name: 'Switch to Text log', exact: true }),
+      chronicle.getByRole('button', { name: 'Explain Guarded', exact: true }),
     ).toBeVisible()
-    await history.getByRole('button', { name: 'Switch to Text log', exact: true }).click()
-    const transcript = history.getByRole('list', { name: 'Battle action transcript' })
-    await expect(transcript).toContainText('Guarded')
-    const result = history.getByRole('region', { name: 'Recorded action result', exact: true })
-    await expect(result).toContainText('Guarded')
+    await expect(inline.locator(':scope > header')).toHaveCount(0)
+    await expect(inline.getByRole('button', { name: /Switch to/ })).toHaveCount(0)
     await expect(page.locator('dialog[data-battle-action-details]')).toHaveCount(0)
-    await history.getByRole('button', { name: 'Switch to Timeline', exact: true }).click()
     for (const size of [
       { width: 1536, height: 614 },
       { width: 1280, height: 720 },
@@ -356,8 +355,8 @@ test('keeps requested PvP presentation parity on desktop and mobile', async ({
     await expect(
       activeRoot
         .locator('[data-battle-inline-log]')
-        .getByRole('button', { name: /^Action details:.*Guard/ }),
-    ).toBeVisible()
+        .getByRole('region', { name: 'Battle chronicle', exact: true }),
+    ).toContainText('Guard')
     await expectReadableBattleLog(activePage, testInfo, mobile ? 'pvp-mobile-log' : 'pvp-log')
   } finally {
     await Promise.all([hostContext.close(), guestContext.close()])

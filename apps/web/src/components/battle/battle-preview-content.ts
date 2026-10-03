@@ -6,7 +6,7 @@ import {
 } from '../../lib/battle/combat-interaction-presentation'
 import type { BattlePreviewView } from '@/server/battle/battle-preview-service'
 import type { BattleSkillForecastPresentation } from './battle-runtime'
-import { skillParameterRows, skillTargetingDetails } from '../character/skill-detail-presentation'
+import { skillParameterRows } from '../character/skill-detail-presentation'
 import type { ImageAssetId } from '@/media/registry'
 import { battleTerrainName, BATTLE_TERRAIN_KEY_DETAILS } from './battle-terrain-key-presentation'
 type IntentPreview = BattlePreviewView['preview']
@@ -79,11 +79,6 @@ export function battleSkillParameterRows(
     'Target Elevation': skill.targetKind === 'self' ? 'N/A' : 'Unavailable',
     'Line of Sight': skill.targetKind === 'self' ? 'N/A' : 'Unavailable',
   })
-}
-
-export function battleSkillTargetingDetails(skill: BattleSkillForecastPresentation): string {
-  if (skill.definition) return skillTargetingDetails(skill.definition)
-  return 'Area and affected-team rules unavailable.'
 }
 
 export function skillPreviewChips(skill: BattleSkillForecastPresentation): PreviewChip[] {

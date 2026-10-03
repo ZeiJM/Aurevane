@@ -334,9 +334,17 @@ const battleHallArticle: ManualArticle = {
       id: 'named-effects',
       title: 'Targeting and named effects',
       paragraphs: [
+        'New battles pin their effect timing. Effects default to the following global round; direct damage and HP/MP recovery happen instantly. Delayed icons appear immediately as Pending, then become Active. An active effect expires after the affected character completes its stated number of turns. Hover or select its icon for the meaning and turns remaining. Older battles keep their original timing.',
         'Technique tags show who a Skill targets, its single/area/line shape and its effects. Expand Skill details for exact recipients, range, AP/MP cost and requirements. Burn, Bleed and Poison cause fixed damage at affected turn end; Regeneration restores HP then. Slow raises movement AP cost; Root prevents movement while leaving other commands available. Cleanse removes its listed negative effects.',
         'Current Mark gives its source +15 percentage points Accuracy against the marked target. Historical Marked versions increased incoming damage only from their source. Challenged reduces damage dealt to anyone except its source. Warded reduces damage taken from burning opponents. The rare Reckless effect increases both damage dealt and damage taken; Fortified reduces both. Each tradeoff keeps its benefit and drawback together when it expires or is removed.',
         'Skill damage checks armor for physical attacks and ward for mystic attacks, separately for each hit and affected unit. Current effect power is authored on a bounded 1–20 scale where applicable, and persistent duration is part of the Skill’s balance budget. Percentage-based statuses can use per-Skill potency overrides; the preview shows the actual value for that Skill version. Conditional modifiers remain bounded to a safe combined range.',
+      ],
+    },
+    {
+      id: 'battle-chronicle',
+      title: 'Reading the Battle Chronicle',
+      paragraphs: [
+        'The Battle Chronicle groups short technique scenes and recorded outcomes by character within each round. Damage is crimson, HP/MP recovery green, and Essence or Resonance headings gold. Hover or select a named effect for its standard explanation. Movement, final facing, end turn and fading effects stay on the board and character rails rather than interrupting the story. Scroll back to review earlier rounds; live entries follow only when you are already at the bottom.',
       ],
     },
     {

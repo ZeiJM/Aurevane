@@ -1,5 +1,6 @@
 import Image from 'next/image'
 import { BattleInfoPopover } from '@/components/battle/battle-info-popover'
+import { renderBattleFlavorTemplate } from '@aurevane/game-core/combat/battle-narration'
 import { DEFAULT_SUPPORT_ACTION_ID } from '@aurevane/game-core/combat/support-actions'
 import { pv1fSkillByActionId } from '@aurevane/game-core/combat/pv1f-skills'
 import type { EssenceDefinition } from '@aurevane/game-core/combat/essence'
@@ -17,11 +18,7 @@ import { CharacterSkillBuildPanel } from '@/components/character/character-skill
 import { FoundationDisciplineSigil } from '@/components/character/foundation-discipline-sigil'
 import { LoadoutHeader } from '@/components/character/loadout-header'
 
-import {
-  skillDisplayName,
-  skillParameterRows,
-  skillTargetingDetails,
-} from './skill-detail-presentation'
+import { skillDisplayName, skillParameterRows } from './skill-detail-presentation'
 import { ResonanceParameters } from './resonance-parameters'
 import { SkillCharacteristicRows } from './skill-characteristic-rows'
 import styles from './character-arsenal-shell.module.css'
@@ -46,7 +43,6 @@ function EssenceHoverPreview({ essence }: { essence: EssenceDefinition }) {
         <dl>
           <SkillCharacteristicRows rows={skillParameterRows(skill)} />
         </dl>
-        <p>{skillTargetingDetails(skill)}</p>
       </aside>
     </BattleInfoPopover>
   )
@@ -363,7 +359,10 @@ export function CharacterArsenalShell({
                       <strong>{`Essence: ${essence.name}`}</strong>
                       <b>● Active</b>
                     </div>
-                    <p>{essence.flavorLine ?? essence.description}</p>
+                    <p>
+                      {renderBattleFlavorTemplate(essence.flavorLine, { ability: essence.name }) ??
+                        essence.description}
+                    </p>
                   </div>
                 </article>
               ) : (
@@ -378,7 +377,11 @@ export function CharacterArsenalShell({
                       <strong>{`Resonance: ${resonance.name}`}</strong>
                       <b>● Active</b>
                     </div>
-                    <p>{resonance.flavorLine ?? resonance.description}</p>
+                    <p>
+                      {renderBattleFlavorTemplate(resonance.flavorLine, {
+                        ability: resonance.name,
+                      }) ?? resonance.description}
+                    </p>
                   </div>
                 </article>
               ) : (

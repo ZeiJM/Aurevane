@@ -244,6 +244,8 @@ Do not restore the earlier four-attribute model.
 
 `docs/COMBAT.md` is definitive.
 
+Owner-approved 2026-10-03: new battles pin a versioned effect-timing policy. Effects default to the following global round; direct damage and HP/MP recovery default to instant. Pending icons appear immediately. Active status duration runs through the affected character’s completed turn and expires at turn end. The Owner can version tag-specific timing in Master Panel. Historical snapshots without this policy preserve recorded legacy semantics. Cooldowns remain a separate authority. The shared Battle Chronicle groups short pinned narration and actual outcomes by actor within rounds; omit ordinary movement/facing/end-turn/expiry chatter.
+
 Current combat uses one shared **Action Economy**, displayed as AP, normally 100 AP at turn start.
 
 Current implemented baseline costs:

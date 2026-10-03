@@ -305,22 +305,20 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
 
 export async function expectBattleFlowKeepsBoardSize(page: Page) {
   const board = page.locator('#battlefield [data-board-auto-fit]')
-  const before = await board.boundingBox()
-  const log = page.locator('[data-battle-inline-log]')
-  await log.getByRole('button', { name: 'Switch to Text log', exact: true }).click()
-  await expect(log.getByRole('button', { name: 'Switch to Timeline', exact: true })).toHaveText(
-    'Text log',
-  )
-  const during = await board.boundingBox()
-  expect(during?.width).toBe(before?.width)
-  expect(during?.height).toBe(before?.height)
-  await log.getByRole('button', { name: 'Switch to Timeline', exact: true }).click()
-  await expect(log.getByRole('button', { name: 'Switch to Text log', exact: true })).toHaveText(
-    'Timeline',
-  )
-  const after = await board.boundingBox()
-  expect(after?.width).toBe(before?.width)
-  expect(after?.height).toBe(before?.height)
+  const deck = page.locator('[data-unified-command-deck]')
+  const sizes = async () => ({ board: await board.boundingBox(), deck: await deck.boundingBox() })
+  const before = await sizes()
+  const reader = page.locator('[data-battle-inline-log] [data-battle-chronicle]')
+  await expect(reader).toBeVisible()
+  await reader.focus()
+  for (const key of ['Home', 'End']) {
+    await reader.press(key)
+    const after = await sizes()
+    for (const region of ['board', 'deck'] as const) {
+      expect(after[region]?.width).toBe(before[region]?.width)
+      expect(after[region]?.height).toBe(before[region]?.height)
+    }
+  }
 }
 
 export async function expectBattlePreviewFits(page: Page) {

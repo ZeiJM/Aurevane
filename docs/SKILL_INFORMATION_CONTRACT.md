@@ -17,15 +17,15 @@ Owner-approved 2026-10-02. This is the minimum report for **every full Skill det
 | Target Elevation | Authored maximum elevation difference; `N/A` when no independent elevation constraint applies. Movement states its committed Jump/profile rule. |
 | Line of Sight | Required or Not required for targeted actions; `N/A` for self-only actions or passives with no independent targeting. |
 
-All ten labels must appear exactly once, in this order. Applicable additional information follows them: area geometry, recipient/friendly-fire behavior, effect explanations, trigger timing, caps, repeat-use rules and mode overrides. A compact action bar, forecast or card may summarize information, but its full detail view must provide the complete minimum report. Do not enlarge or reflow the fixed battle cockpit/forecast to hold this report.
+All ten labels must appear exactly once, in this order. Area geometry belongs in Target Method (including radius/length), and distinct recipients/friendly-fire behavior belongs in Target. Applicable effect explanations, trigger timing, caps, repeat-use rules and mode overrides follow the fields. Do not add a redundant targeting-summary paragraph below the table. A compact action bar, forecast or card may summarize information, but its full detail view must provide the complete minimum report. Do not enlarge or reflow the fixed battle cockpit/forecast to hold this report.
 
-Owner refinement 2026-10-02: Resonance uses the same aligned label/value rows, highlighted effect magnitudes/durations and explanation bullets as active Skills. Keep recipient labels beside each compact Result. Mode, Setup and Trigger follow the ten fields; Trigger targeting and full effect explanations remain readable below. Nexus, battle-pinned reports and Master draft previews share `ResonanceParameters`, without changing passive mechanics or inventing independent costs/cooldowns.
+Owner refinement 2026-10-02: Resonance uses the same aligned label/value rows, highlighted effect magnitudes/durations and explanation bullets as active Skills. Keep recipient labels beside each compact Result. Mode, Setup and Trigger follow the ten fields; Trigger legality is included in Requirements, and full effect explanations remain readable below. Nexus, battle-pinned reports and Master draft previews share `ResonanceParameters`, without changing passive mechanics or inventing independent costs/cooldowns.
 
 ## N/A, None and unavailable history
 
 Use **N/A only for genuinely inapplicable fields**. Do not hide the label, display an empty value, replace a numerical zero with N/A, or imply that an active action has no cost/cooldown because metadata is missing. **None** describes an applicable rule with no prerequisite/cooldown. **Unavailable** honestly describes missing immutable historical metadata; never reconstruct old battle mechanics from today's catalogue.
 
-Resonance currently has no independent resource cost, cooldown, range, target shape, elevation or line-of-sight check. Those fields use N/A, and an additional Trigger targeting explanation states that the triggering Skill's legality governs execution. Preserve actual setup/trigger/recipient rules. If a future passive has an authored independent cooldown or targeting constraint, report it rather than inheriting today's N/A defaults.
+Resonance currently has no independent resource cost, cooldown, range, target shape, elevation or line-of-sight check. Those fields use N/A, and Requirements states that the triggering Skill's legality governs execution. Preserve actual setup/trigger/recipient rules. If a future passive has an authored independent cooldown or targeting constraint, report it rather than inheriting today's N/A defaults.
 
 ## Shared implementation and authoring
 

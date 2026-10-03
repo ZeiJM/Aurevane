@@ -539,6 +539,39 @@ describe('combat content authoring service', () => {
     expect(await store.findPublished(essence.essenceId)).toBeNull()
   })
 
+  it('validates shared narration tokens and rejects unknown or malformed templates before publishing', async () => {
+    const { store, service } = serviceFixture()
+    store.operators.set(OWNER, 'owner')
+    const valid =
+      '{actor} steadies {actor.possessive} hand; {actor.gender:he|she|they} faces {target}.'
+    expect(service.validateSkillDefinition({ ...staticSkill(), flavorLine: valid }).valid).toBe(
+      true,
+    )
+    expect(service.validateEssenceDefinition({ ...staticEssence(), flavorLine: valid }).valid).toBe(
+      true,
+    )
+    expect(
+      service.validateResonanceDefinition({ ...staticResonance(), flavorLine: valid }).valid,
+    ).toBe(true)
+    for (const flavorLine of ['{private_build}', '{actor.gender:he|she}', 'Broken {actor']) {
+      expect(service.validateSkillDefinition({ ...staticSkill(), flavorLine }).valid).toBe(false)
+      expect(service.validateEssenceDefinition({ ...staticEssence(), flavorLine }).valid).toBe(
+        false,
+      )
+      expect(service.validateResonanceDefinition({ ...staticResonance(), flavorLine }).valid).toBe(
+        false,
+      )
+    }
+    await expect(
+      service.publishSkill({
+        actorUserId: OWNER,
+        definition: { ...staticSkill(), flavorLine: '{private_build}' },
+        expectedBaseVersion: staticSkill().contentVersion,
+      }),
+    ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+    expect(await store.findPublished(staticSkill().id)).toBeNull()
+  })
+
   it('validates, publishes, and rolls back Resonance content without mutating history', async () => {
     const { store, service } = serviceFixture()
     store.operators.set(OWNER, 'owner')

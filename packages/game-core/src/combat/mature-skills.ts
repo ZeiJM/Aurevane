@@ -1,3 +1,4 @@
+import { battleFlavorTemplateIssues } from './battle-narration'
 import {
   validateCombatAccuracyDefinition,
   type CombatAccuracyAuthoring,
@@ -1073,10 +1074,7 @@ export function validateMatureSkillDefinition(
   if (!definition.descriptionRef.trim()) issues.push('descriptionRef')
   if (
     definition.flavorLine !== undefined &&
-    (typeof definition.flavorLine !== 'string' ||
-      definition.flavorLine.trim().length === 0 ||
-      definition.flavorLine.length > 160 ||
-      /[\r\n]/u.test(definition.flavorLine))
+    battleFlavorTemplateIssues(definition.flavorLine).length > 0
   ) {
     issues.push('flavorLine')
   }

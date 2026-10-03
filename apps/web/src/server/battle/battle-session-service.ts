@@ -1,3 +1,8 @@
+import {
+  defaultCombatEffectTimingPolicy,
+  type CombatEffectTimingPolicy,
+} from '@aurevane/game-core/combat/combat-effect-timing'
+import { omitPendingBattlePayloads } from './battle-live-viewer-projection'
 import 'server-only'
 
 import { createHash, randomInt, randomUUID } from 'node:crypto'
@@ -71,6 +76,7 @@ import {
   battleBuildAuthorityForCombatant,
   createBattleBuildAuthoritySnapshot,
   createResolvedBattleBuildAuthoritySnapshot,
+  narratorIdentityForCharacter,
   parseBattleBuildAuthoritySnapshot,
   resolveBattleDisciplineSkillDefinition,
   resolveBattleEssenceDefinition,
@@ -150,6 +156,7 @@ interface Dependencies {
   battles: BattleSessionRepository
   builds?: CharacterBuildRepository
   combatContentResolver?: CombatContentResolver
+  readEffectTimingPolicy?: () => Promise<CombatEffectTimingPolicy>
 }
 
 function battleIntentPrivacyKind(kind: BattleIntent['kind']): BattlePrivacyCommandKind {
@@ -410,7 +417,7 @@ function projectBattleSnapshot(
 ): BattleSessionProjection {
   const battle = state.tactical.battle
   return {
-    ...state,
+    ...omitPendingBattlePayloads(state),
     statusState: projectBattleStatusStateForViewer(state, viewer),
     ...(state.effectState ? { effectState: projectBattleEffectStateForViewer(state, viewer) } : {}),
     tactical: {
@@ -614,6 +621,7 @@ export function createBattleSessionService({
   battles,
   builds,
   combatContentResolver,
+  readEffectTimingPolicy,
 }: Dependencies): BattleSessionService {
   return {
     async createSession(command) {
@@ -679,6 +687,9 @@ export function createBattleSessionService({
         allyCount,
         enemyCount,
       )
+      baseEncounter.effectTimingPolicy = readEffectTimingPolicy
+        ? await readEffectTimingPolicy()
+        : defaultCombatEffectTimingPolicy()
       let encounter: BattleAuthoritativeEncounterState = baseEncounter
       if (builds) {
         if (!committedBuildSnapshot) {
@@ -697,6 +708,7 @@ export function createBattleSessionService({
                     combatantId: `character:${character.id}`,
                     characterId: character.id,
                     snapshot: committedBuildSnapshot,
+                    narratorIdentity: narratorIdentityForCharacter(character),
                   },
                 ],
                 combatContentResolver,
@@ -706,6 +718,7 @@ export function createBattleSessionService({
                   combatantId: `character:${character.id}`,
                   characterId: character.id,
                   snapshot: committedBuildSnapshot,
+                  narratorIdentity: narratorIdentityForCharacter(character),
                 },
               ]),
         }

@@ -305,3 +305,66 @@ describe('battle turn quality rules', () => {
     expect(loweredGuard(nextPlayerMiss.state, 'player')?.remainingOwnerTurnStarts).toBe(1)
   })
 })
+it('queues timeout Lowered Guard under a pinned next-round policy', () => {
+  const initial = { ...encounter(), effectTimingPolicy: { version: 1, modes: {} } }
+  const transition = timeoutPvpTurn(initial)
+  expect(transition.events).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ event: 'effect_pending', effectTag: 'lowered-guard' }),
+    ]),
+  )
+  expect(transition.state.pendingEffects).toHaveLength(1)
+})
+
+it('runs six participant timeout boundaries with pending effects and full affected turns', () => {
+  const ids = ['player', 'opponent', 'third', 'fourth', 'fifth', 'sixth']
+  const resources = [...createPv1fTemporaryResources(10), ...createPvpQualityResources()].sort(
+    (a, b) => a.key.localeCompare(b.key),
+  )
+  const battle = startBattle(
+    createPendingBattle({
+      battleId: 'six-timing',
+      rulesVersion: 2,
+      contentVersion: 2,
+      rngSeed: 123,
+      combatants: ids.map((id, index) => ({
+        id,
+        teamId: index % 2 ? 'b' : 'a',
+        initiative: 10 - index,
+        baseMovementBudget: 10,
+        hp: 100,
+        maxHp: 100,
+        mp: 20,
+        maxMp: 20,
+        temporaryResources: resources,
+      })),
+    }),
+  ).state
+  let initial = createStatDrivenCombatEncounterState(
+    createCombatEncounterState(
+      createTacticalBattleState({
+        battle,
+        width: 6,
+        height: 1,
+        terrains: [{ id: 'open', traversalCost: 1 }],
+        tiles: ids.map((_, x) => ({ position: { x, y: 0 }, elevation: 0, terrainId: 'open' })),
+        movementProfiles: [{ id: 'ground', maxElevationStep: 1, terrainCostOverrides: [] }],
+        placements: ids.map((id, x) => ({
+          combatantId: id,
+          position: { x, y: 0 },
+          facing: 'east' as const,
+          movementProfileId: 'ground',
+        })),
+      }),
+    ),
+    ids.map(profile),
+  )
+  initial = { ...initial, effectTimingPolicy: { version: 1, modes: {} } }
+  for (let index = 0; index < 6; index += 1) initial = timeoutPvpTurn(initial).state
+  expect(initial.tactical.battle.round).toBe(2)
+  expect(initial.tactical.battle.currentTurn?.combatantId).toBe('player')
+  expect(loweredGuard(initial, 'player')?.remainingOwnerTurnEnds).toBe(1)
+  initial = timeoutPvpTurn(initial).state
+  expect(loweredGuard(initial, 'player')).toBeUndefined()
+  expect(loweredGuard(initial, 'opponent')?.remainingOwnerTurnEnds).toBe(1)
+})

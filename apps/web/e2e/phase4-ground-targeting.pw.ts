@@ -66,7 +66,101 @@ async function equipMist(page: Page) {
   return mistVersion!
 }
 
-async function castOnEmptyGround(page: Page, name: string, testInfo: TestInfo) {
+async function advanceToNextRound(
+  page: Page,
+  participants: readonly Page[],
+  sessionId: string,
+  round: number,
+  testInfo: TestInfo,
+): Promise<BattleSessionView> {
+  const read = async () => {
+    const response = await page.request.get(`/api/battles/${sessionId}`)
+    expect(response.status()).toBe(200)
+    return (await response.json()).battle as BattleSessionView
+  }
+  let battle = await read()
+  for (let handoff = 0; handoff < 6 && battle.snapshot.tactical.battle.round === round; handoff++) {
+    expect(battle.snapshot.tactical.battle.lifecycle).toBe('active')
+    let activePage: Page | undefined
+    await expect
+      .poll(
+        async () => {
+          for (const participant of participants) {
+            const root = participant.locator('main[data-unified-battle="true"]')
+            if ((await root.getAttribute('data-local-turn')) === 'true') {
+              activePage = participant
+              return true
+            }
+          }
+          return false
+        },
+        { timeout: 15_000 },
+      )
+      .toBe(true)
+    const root = activePage!.locator('main[data-unified-battle="true"]')
+    const pvp = (await root.getAttribute('data-battle-kind')) === 'pvp'
+    const finished = activePage!.waitForResponse(
+      (response) =>
+        response.url().endsWith(`/api/battles/${sessionId}/${pvp ? 'commit' : 'final-turn'}`) &&
+        response.request().method() === 'POST',
+    )
+    const finish = root.getByRole('button', { name: /^End Turn,/ })
+    await expect(finish).toBeEnabled()
+    await finish.click()
+    if (pvp) {
+      await root.getByRole('button', { name: 'Face east', exact: true }).click()
+    } else if (testInfo.project.use.hasTouch) {
+      await finish.click()
+    } else {
+      await finish.press('KeyD')
+    }
+    const response = await finished
+    expect(response.status()).toBe(200)
+    expect(response.request().postDataJSON()).toMatchObject(
+      pvp ? { intent: { kind: 'face', facing: 'east' } } : { facing: expect.any(String) },
+    )
+    if (pvp) {
+      // The sender must render the handoff before choosing another authenticated
+      // page; an authoritative read can lead the prior page's local-turn DOM.
+      await expect(root).not.toHaveAttribute('data-local-turn', 'true')
+    }
+    const previousTurn = battle.snapshot.tactical.battle.turnNumber
+    await expect
+      .poll(
+        async () => {
+          battle = await read()
+          return battle.snapshot.tactical.battle.turnNumber
+        },
+        { timeout: 15_000 },
+      )
+      .toBeGreaterThan(previousTurn)
+    if (!pvp) {
+      // Recruit turns run through the authenticated page transport. Read-only polling
+      // waits for the global boundary, rather than treating one actor handoff as a round.
+      await expect
+        .poll(
+          async () => {
+            battle = await read()
+            return battle.snapshot.tactical.battle.round
+          },
+          { timeout: 15_000 },
+        )
+        .toBe(round + 1)
+    }
+  }
+  expect(battle.snapshot.tactical.battle.round).toBe(round + 1)
+  expect(battle.snapshot).not.toHaveProperty('pendingEffects')
+  expect(battle.snapshot).not.toHaveProperty('pendingSummons')
+  expect(battle.snapshot).not.toHaveProperty('pendingSkillGrants')
+  return battle
+}
+
+async function castOnEmptyGround(
+  page: Page,
+  name: string,
+  testInfo: TestInfo,
+  participants: readonly Page[] = [page],
+) {
   const root = page.locator('main[data-unified-battle="true"]')
   await expect(root).toHaveAttribute('data-local-turn', 'true')
   const sessionId = new URL(page.url()).pathname.split('/').at(-1)!
@@ -227,6 +321,53 @@ async function castOnEmptyGround(page: Page, name: string, testInfo: TestInfo) {
   const overlay = root.getByRole('button', {
     name: new RegExp(`^Tile ${chosen.position.x + 1}, ${chosen.position.y + 1};`),
   })
+  const activationRound = before.snapshot.tactical.battle.round + 1
+  expect(after.snapshot.tactical.battle.round).toBe(before.snapshot.tactical.battle.round)
+  expect(after.snapshot.terrainOverlays).toEqual(before.snapshot.terrainOverlays)
+  expect(
+    after.snapshot.statusState.find((row) => row.combatantId === actor.combatantId)?.statuses,
+  ).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        statusId: 'create-terrain',
+        timingState: 'pending',
+        activationRound,
+        remainingRoundBoundaries: 2,
+      }),
+    ]),
+  )
+  expect(after.snapshot).not.toHaveProperty('pendingEffects')
+  await expect(overlay).not.toHaveAttribute('data-terrain-overlay', 'frozen')
+  await page.reload()
+  const queued = await read()
+  expect(queued.battleVersion).toBe(after.battleVersion)
+  expect(queued.snapshot.terrainOverlays).toEqual(before.snapshot.terrainOverlays)
+  expect(queued.snapshot.statusState).toEqual(after.snapshot.statusState)
+  await expect(overlay).not.toHaveAttribute('data-terrain-overlay', 'frozen')
+  const activated = await advanceToNextRound(
+    page,
+    participants,
+    sessionId,
+    before.snapshot.tactical.battle.round,
+    testInfo,
+  )
+  expect(activated.snapshot.terrainOverlays).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        position: chosen.position,
+        kind: 'frozen',
+        remainingRoundBoundaries: 2,
+      }),
+    ]),
+  )
+  expect(
+    activated.snapshot.statusState.find((row) => row.combatantId === actor.combatantId)?.statuses ??
+      [],
+  ).not.toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ statusId: 'create-terrain', timingState: 'pending' }),
+    ]),
+  )
   await expect(overlay).toHaveAttribute('data-terrain-overlay', 'frozen')
   await expect(overlay).toHaveAttribute(
     'aria-label',
@@ -239,12 +380,12 @@ async function castOnEmptyGround(page: Page, name: string, testInfo: TestInfo) {
   await expect(instructionHost).toContainText('Frozen terrain')
   await page.reload()
   await expect(overlay).toHaveAttribute('data-terrain-overlay', 'frozen')
-  expect((await read()).snapshot.terrainOverlays).toEqual(after.snapshot.terrainOverlays)
+  expect((await read()).snapshot.terrainOverlays).toEqual(activated.snapshot.terrainOverlays)
   await testInfo.attach(`ground-${name}-${testInfo.project.name}`, {
     body: await page.screenshot(),
     contentType: 'image/png',
   })
-  return { position: chosen.position, overlays: after.snapshot.terrainOverlays }
+  return { position: chosen.position, overlays: activated.snapshot.terrainOverlays }
 }
 
 test('ground Skill selection stays silent, one tile input executes once and survives reload in PvE', async ({
@@ -348,7 +489,7 @@ test('PvP ground Skill uses the same forecast and spectator terrain inspection',
       await expect(guestRoot).not.toHaveAttribute('data-local-turn')
       await expect(root).toHaveAttribute('data-local-turn', 'true')
     }
-    const result = await castOnEmptyGround(page, name, testInfo)
+    const result = await castOnEmptyGround(page, name, testInfo, [page, guest])
     const battleKey = (await root
       .locator('[data-pvp-spectator-key="true"] strong')
       .textContent())!.trim()

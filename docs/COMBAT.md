@@ -397,6 +397,14 @@ Reaction-like behavior may occur only at deterministic/authored trigger points. 
 
 ---
 
+### Owner-approved activation and expiry — 2026-10-03
+
+New encounters pin an immutable effect-timing policy version and overrides. The default is **next global round**, with **direct damage and HP/MP recovery instant**. Master Panel lets the protected Owner publish tag-specific Instant/Next global round modes with a reason, stale-version protection and immutable provenance. Existing encounters retain their pinned policy; pre-policy snapshots retain legacy timing.
+
+A pending effect is shown immediately on its recipient’s rail but cannot influence damage, movement, initiative, resource costs or periodic ticks before activation. At the following round boundary queued effects activate before that round’s initiative calculation. One active turn lasts through the affected character’s entire activation and expires only after its end turn. Manual final-facing/end-turn, timeout and AI paths share this lifecycle. Periodic ticks occur at the affected turn end and before expiry. Dead/skipped characters and terminal encounters cannot create phantom turns or rewards. Cooldowns remain independent.
+
+The text Battle Chronicle uses Round dividers and actor-identity groups, pinned editable short narration and compact actual results. Names/story use charcoal, harm muted crimson, HP/MP recovery moss green, and special-family headings restrained gold. Ordinary movement, facing, end-turn and effect expiry are omitted from this view only; persisted history/export/privacy authority remains complete. Hover/focus/click explains effect identities using the same canonical meanings as rail icons.
+
 ## 8. HP, MP, Statuses & Combatant Presentation
 
 HP and MP are represented visually on combatant rails/cards rather than redundantly repeated everywhere.

@@ -48,6 +48,8 @@ describe('Master Panel Resonance v2 editor', () => {
     const preview = markup.match(
       /<section[^>]*aria-label="Resonance Skill preview"[^>]*>([\s\S]*?)<\/section>/,
     )?.[1]
+    expect(markup).toContain('aria-label="Battle narration tokens"')
+    expect(markup).toContain('aria-label="Neutral historical narration preview"')
     expect(preview).toContain('data-compact-effect-magnitude="true">[4]</span>')
     expect(preview).toContain('→ Self')
     expect(preview).toContain('<ul aria-label="Effect explanations">')
@@ -81,7 +83,8 @@ describe('Master Panel Resonance v2 editor', () => {
     expect(preview).toContain('<dt>Cost</dt><dd>N/A</dd>')
     expect(preview).toContain('<dt>Cooldown</dt><dd>N/A</dd>')
     expect(preview).toContain('Trigger Skill selected unit')
-    expect(preview).toContain('Trigger targeting')
+    expect(preview).not.toContain('Trigger targeting')
+    expect(preview).toContain('Uses the Trigger Skill’s range')
     expect(preview).not.toContain('0 AP')
   })
 

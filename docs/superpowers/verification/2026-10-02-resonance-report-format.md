@@ -1,5 +1,7 @@
 # Resonance report presentation — 2026-10-02
 
+Historical verification of candidate `172d276`, before PR #809 expanded to the approved Chronicle and effect lifecycle. The continuation and its release gate are recorded in `2026-10-03-battle-chronicle-effects.md`.
+
 Owner request: give Resonance the same parameter presentation as Skills. Base Main: `979176da6dcfc79a2f581d1bbf8a93200ed4012a`; isolated branch `agent/resonance-report-format-20261002`.
 
 ## Change and boundaries

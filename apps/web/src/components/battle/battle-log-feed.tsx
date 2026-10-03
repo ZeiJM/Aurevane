@@ -1,25 +1,17 @@
 'use client'
 
-import { BattleActionTimeline } from './battle-action-timeline'
-import { useMemo, useState } from 'react'
-
 import type { SkillNarrationTemplate } from '@aurevane/game-core/combat/battle-narration'
 
 import type { BattleLogView } from '@/server/battle/battle-log-service'
 
 import {
-  buildBattleLogPresentation,
   type BattleLogSegment,
   type PresentedBattleLogAction,
   type PresentedBattleLogRound,
 } from './battle-log-presentation'
-import { consolidatePresentedBattleLogRounds } from './battle-log-round-groups'
-import {
-  countSummarizedBattleLogActions,
-  summarizeConsecutiveBattleLogMovement,
-} from './battle-log-movement-summary'
-import { useBattleCombatantAccents } from './battle-runtime-context'
+import { countSummarizedBattleLogActions } from './battle-log-movement-summary'
 import styles from './battle-log-feed.module.css'
+import { BattleLogChronicle } from './battle-log-chronicle'
 
 export type BattleLogFlowView = 'timeline' | 'text'
 
@@ -48,16 +40,6 @@ interface EffectMetadata {
   name: string
   kind: 'Buff' | 'Debuff' | 'Effect'
   duration: string | null
-}
-
-function expandedRoundKey(
-  rounds: readonly PresentedBattleLogRound[],
-  requestedRound: string | null | undefined,
-): string | null {
-  const defaultRound = rounds[0]?.key ?? null
-  if (requestedRound === undefined) return defaultRound
-  if (requestedRound === null) return null
-  return rounds.some((round) => round.key === requestedRound) ? requestedRound : defaultRound
 }
 
 function combatantAccent(
@@ -316,144 +298,7 @@ export function selectRecentBattleLogEntries(
   })
 }
 
-export function BattleLogFeed({
-  entries,
-  playerName,
-  combatantNames,
-  skillNarrations,
-  emptyMessage = 'No committed battle actions yet.',
-  compactFlow = false,
-  recentTurnCount,
-  currentTurnNumber,
-  hideFlowViewControl = false,
-  flowView: controlledFlowView,
-  onFlowViewChange,
-}: BattleLogFeedProps) {
-  const combatantAccents = useBattleCombatantAccents()
-  const allRounds = useMemo(() => {
-    const presented = buildBattleLogPresentation(entries, {
-      playerName,
-      combatantNames,
-      skillNarrations,
-    })
-    const consolidated = consolidatePresentedBattleLogRounds(presented)
-    return summarizeConsecutiveBattleLogMovement(consolidated, entries)
-  }, [combatantNames, entries, playerName, skillNarrations])
-  const latestRound = entries.reduce((latest, entry) => Math.max(latest, entry.round ?? 0), 0)
-  const recentEntries = useMemo(
-    () =>
-      compactFlow
-        ? entries
-        : selectRecentBattleLogEntries(entries, recentTurnCount, currentTurnNumber),
-    [compactFlow, currentTurnNumber, entries, recentTurnCount],
-  )
-  const rounds = useMemo(() => {
-    if (recentEntries === entries) return allRounds
-    const presented = buildBattleLogPresentation(recentEntries, {
-      playerName,
-      combatantNames,
-      skillNarrations,
-    })
-    return summarizeConsecutiveBattleLogMovement(
-      consolidatePresentedBattleLogRounds(presented),
-      recentEntries,
-    )
-  }, [allRounds, combatantNames, entries, playerName, recentEntries, skillNarrations])
-  const actionNumbers = useMemo(() => buildBattleLogActionNumbers(allRounds), [allRounds])
-  const [internalFlowView, setInternalFlowView] = useState<BattleLogFlowView>('timeline')
-  const activeFlowView = controlledFlowView ?? internalFlowView
-  const setFlowView = (next: BattleLogFlowView) => {
-    if (controlledFlowView === undefined) setInternalFlowView(next)
-    onFlowViewChange?.(next)
-  }
-  const [requestedRound, setRequestedRound] = useState<string | null | undefined>(undefined)
-  const expandedRound = expandedRoundKey(rounds, requestedRound)
-  const battleFinished = entries.some(
-    (entry) => entry.eventType === 'battle_completed' || entry.eventType === 'battle_abandoned',
-  )
-
-  if (rounds.length === 0) return <p className={styles.empty}>{emptyMessage}</p>
-
-  return (
-    <div
-      className={styles.feed}
-      role="region"
-      aria-label={
-        !compactFlow && recentTurnCount
-          ? `Battle history, latest ${recentTurnCount} turns`
-          : 'Complete battle history'
-      }
-      data-testid="battle-log-feed"
-      data-compact-flow={compactFlow || undefined}
-    >
-      {compactFlow && !hideFlowViewControl ? (
-        <button
-          className={styles.flowToggle}
-          type="button"
-          aria-label={`Switch to ${activeFlowView === 'timeline' ? 'Text log' : 'Timeline'}`}
-          onClick={() => setFlowView(activeFlowView === 'timeline' ? 'text' : 'timeline')}
-        >
-          {activeFlowView === 'timeline' ? 'Timeline' : 'Text log'}
-        </button>
-      ) : null}
-      {compactFlow ? (
-        <BattleActionTimeline
-          view={activeFlowView}
-          rounds={rounds}
-          entries={entries}
-          playerName={playerName}
-          combatantNames={combatantNames}
-        />
-      ) : (
-        rounds.map((round) => {
-          const open = expandedRound === round.key
-          const roundLabel = round.round === null ? 'Battle' : `Round ${round.round}`
-          const inProgress = !battleFinished && round.round === latestRound
-          return (
-            <section className={styles.round} data-open={open || undefined} key={round.key}>
-              <button
-                type="button"
-                className={styles.roundHeader}
-                aria-expanded={open}
-                onClick={() =>
-                  setRequestedRound((current) =>
-                    expandedRoundKey(rounds, current) === round.key ? null : round.key,
-                  )
-                }
-              >
-                <span className={styles.chevron} aria-hidden="true">
-                  ›
-                </span>
-                <strong className={styles.roundTitle}>
-                  {roundLabel}
-                  {inProgress ? (
-                    <>
-                      {' · '}
-                      <span className={styles.inProgress}>In progress</span>
-                    </>
-                  ) : null}
-                </strong>
-              </button>
-
-              {open ? (
-                <ol className={styles.actions} aria-label={`${roundLabel} battle events`}>
-                  {round.actions.map((action) => {
-                    return (
-                      <li key={action.key}>
-                        <BattleLogTranscriptAction
-                          action={action}
-                          number={actionNumbers.get(action.key)}
-                          combatantAccents={combatantAccents}
-                        />
-                      </li>
-                    )
-                  })}
-                </ol>
-              ) : null}
-            </section>
-          )
-        })
-      )}
-    </div>
-  )
+/** The shared playable, spectator and post-battle reader uses the approved text chronicle. */
+export function BattleLogFeed(props: BattleLogFeedProps) {
+  return <BattleLogChronicle {...props} />
 }

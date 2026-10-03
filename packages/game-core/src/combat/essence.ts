@@ -1,3 +1,4 @@
+import { battleFlavorTemplateIssues } from './battle-narration'
 import { ADVANCED_DISCIPLINE_ESSENCES } from './advanced-discipline-content'
 import type { CombatActionEvaluation, CombatTargetSelection } from './actions'
 import { FOUNDATION_TRIO_ESSENCES } from './foundation-trio-essences'
@@ -565,9 +566,7 @@ export function validateEssenceDefinition(definition: EssenceDefinition): readon
   if (!definition.description.trim()) issues.push('description')
   if (
     definition.flavorLine !== undefined &&
-    (definition.flavorLine.trim().length === 0 ||
-      definition.flavorLine.length > 160 ||
-      /[\r\n]/u.test(definition.flavorLine))
+    battleFlavorTemplateIssues(definition.flavorLine).length > 0
   ) {
     issues.push('flavorLine')
   }

@@ -1,5 +1,5 @@
 import { CompactSkillEffectSummary } from '../character/compact-skill-effect-summary'
-import { battleSkillParameterRows, battleSkillTargetingDetails } from './battle-preview-content'
+import { battleSkillParameterRows } from './battle-preview-content'
 import { skillPreviewEffects } from '../character/skill-effect-preview'
 import type { BattleSkillForecastPresentation } from './battle-runtime'
 
@@ -28,7 +28,6 @@ export function BattleSkillParameters({ skill }: { skill: BattleSkillForecastPre
           </div>
         ))}
       </dl>
-      <p>{battleSkillTargetingDetails(skill)}</p>
       {definition ? (
         <ul aria-label="Effect explanations">
           {skillPreviewEffects(definition).map((effect, index) => (

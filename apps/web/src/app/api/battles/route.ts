@@ -1,3 +1,4 @@
+import { readCombatEffectTimingPolicy } from '@/server/master/combat-effect-timing-policy-store'
 import { AurevaneError } from '@aurevane/game-core/errors'
 import { parseBattleSessionCreateRequest } from '@aurevane/validation/combat/battle-session'
 
@@ -48,6 +49,7 @@ export async function POST(request: Request) {
       battles: createSupabaseBattleSessionRepository(),
       builds: createSupabaseCharacterBuildRepository(),
       combatContentResolver: createServerCombatContentResolver(),
+      readEffectTimingPolicy: readCombatEffectTimingPolicy,
     }).createSession({
       userId: actor.userId,
       characterId: parsed.characterId,

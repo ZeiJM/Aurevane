@@ -1417,11 +1417,17 @@
   grid-row: 1 / 3;
 }
 .workspace[data-hall-workspace='ai'] .arenaControlRow {
+  --arena-label-width: 3.4rem;
+  --arena-control-gap: 0.45rem;
   grid-column: 2;
   grid-row: 1;
   grid-template-columns: minmax(0, 1fr);
   width: min(100%, 30rem);
   justify-self: center;
+}
+.workspace[data-hall-workspace='ai'] .arenaControlRow > label {
+  grid-template-columns: var(--arena-label-width) minmax(0, 1fr);
+  gap: var(--arena-control-gap);
 }
 .workspace[data-hall-workspace='ai'] .selectedPanel {
   grid-column: 2;
@@ -1649,7 +1655,7 @@
 }
 
 .participants {
-  margin: 0;
+  margin: 0 0 0 calc(var(--arena-label-width) + var(--arena-control-gap));
   min-width: 0;
   padding: 0.3rem 0.5rem 0.4rem;
   border: 1px solid #927d5366;
@@ -1694,5 +1700,11 @@
   }
   .participants small {
     margin-top: 0.15rem;
+  }
+}
+
+@media (max-width: 760px) {
+  .workspace[data-hall-workspace='ai'] .participants label {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

@@ -28,6 +28,7 @@ export function applyCommittedReflect(
   content: CombatContentCatalog,
   command: CommittedCombatCommand,
   guard?: CombatTriggerGuard,
+  allowOutOfTurnSource = false,
 ): CombatResolutionTransition & { triggerGuard: CombatTriggerGuard } {
   const battle = state.tactical.battle
   let triggerGuard =
@@ -47,7 +48,7 @@ export function applyCommittedReflect(
     battle.lifecycle !== 'active' ||
     !attacker ||
     attacker.hp <= 0 ||
-    battle.currentTurn?.combatantId !== attacker.id
+    (!allowOutOfTurnSource && battle.currentTurn?.combatantId !== attacker.id)
   ) {
     return { state, events: [], triggerGuard }
   }
@@ -82,7 +83,10 @@ export function applyCommittedReflect(
       hpAfter,
     })
     // Run encounter upkeep as well as selecting the next living combatant.
-    const defeated = hpAfter === 0 ? defeatCombatActionActor(nextState, attacker.id, content) : null
+    const defeated =
+      hpAfter === 0 && nextState.tactical.battle.currentTurn?.combatantId === attacker.id
+        ? defeatCombatActionActor(nextState, attacker.id, content)
+        : null
     nextState =
       defeated?.state ??
       clearDefeatedRecovery({

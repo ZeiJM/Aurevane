@@ -11,7 +11,6 @@ import {
   battleGroundTargetPresentation,
   previewChips,
   skillPreviewChips,
-  battleSkillTargetingDetails,
 } from './battle-preview-content'
 import type {
   BattlePresentationParticipant,
@@ -225,7 +224,6 @@ export function BattleActionPreview({
                 )
               })}
             </dl>
-            <p>{battleSkillTargetingDetails(skill)}</p>
           </BattleInfoPopover>
         ) : null}
       </div>

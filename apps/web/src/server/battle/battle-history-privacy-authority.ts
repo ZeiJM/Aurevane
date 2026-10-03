@@ -47,9 +47,21 @@ function integerValue(value: unknown): number | null {
 function visibility(value: unknown): BattlePrivacyVisibility | null {
   const record = objectValue(value)
   if (!record) return null
-  if (record.kind === 'public' && !('teamId' in record)) return { kind: 'public' }
+  if (record.kind === 'public' && !('teamId' in record) && !('requiredTeamIds' in record))
+    return { kind: 'public' }
   const teamId = stringValue(record.teamId)
-  if (record.kind === 'team-only' && teamId) return { kind: 'team-only', teamId }
+  if (record.kind === 'team-only' && teamId) {
+    if (!Object.hasOwn(record, 'requiredTeamIds')) return { kind: 'team-only', teamId }
+    if (
+      !Array.isArray(record.requiredTeamIds) ||
+      record.requiredTeamIds.length < 1 ||
+      record.requiredTeamIds.length > 6 ||
+      record.requiredTeamIds.some((required) => !stringValue(required) || required === teamId) ||
+      new Set(record.requiredTeamIds).size !== record.requiredTeamIds.length
+    )
+      return null
+    return { kind: 'team-only', teamId, requiredTeamIds: [...record.requiredTeamIds] as string[] }
+  }
   return null
 }
 

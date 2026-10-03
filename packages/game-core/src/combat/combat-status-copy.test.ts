@@ -591,3 +591,45 @@ describe('Status copying: K3 lineage and deterministic identity', () => {
     expect(validateCombatEffectInstanceProvenance(value)).toEqual([])
   })
 })
+
+it('copies affected-turn-end lifetimes without converting them to start-turn expiry', () => {
+  const initial = {
+    ...world([
+      {
+        combatantId: 'target',
+        statuses: [row(POSITIVE, { remainingOwnerTurnEnds: 1, timingState: 'active' })],
+      },
+    ]),
+    effectTimingPolicy: { version: 1, modes: { 'copy-statuses': 'instant' as const } },
+  }
+  const result = cast(initial, 'amplify')
+  expect(statuses(result.state, 'actor')[0]?.remainingOwnerTurnEnds).toBe(1)
+  expect(result.events.find((event) => event.event === 'status_applied')).toMatchObject({
+    expiryBoundary: 'owner-turn-end',
+  })
+})
+it('pins delayed Amplify source effects even when the donor expires before activation', () => {
+  let initial = {
+    ...world([
+      {
+        combatantId: 'target',
+        statuses: [
+          row(POSITIVE, {
+            remainingOwnerTurnEnds: 1,
+            remainingOwnerTurnStarts: 1,
+            timingState: 'active',
+          }),
+        ],
+      },
+    ]),
+    effectTimingPolicy: { version: 1, modes: {} },
+  }
+  initial = cast(initial, 'amplify').state as typeof initial
+  for (let turn = 0; turn < 3; turn += 1) initial = advance(initial, CONTENT) as typeof initial
+  expect(statuses(initial, 'actor')).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ statusId: POSITIVE.id, remainingOwnerTurnEnds: 1 }),
+    ]),
+  )
+  expect(statuses(initial, 'target')).toHaveLength(0)
+})

@@ -1,3 +1,4 @@
+import { battleFlavorTemplateIssues } from './battle-narration'
 import { validateGameplayEffectMetadata } from './gameplay-tags'
 import { ADVANCED_RESONANCES } from './advanced-resonances'
 import { FOUNDATION_TRIO_RESONANCES } from './foundation-trio-resonances'
@@ -187,9 +188,7 @@ export function validateResonanceDefinition(definition: AnyResonanceDefinition):
   if (!definition.description.trim()) issues.push('description')
   if (
     definition.flavorLine !== undefined &&
-    (definition.flavorLine.trim().length === 0 ||
-      definition.flavorLine.length > 160 ||
-      /[\r\n]/u.test(definition.flavorLine))
+    battleFlavorTemplateIssues(definition.flavorLine).length > 0
   ) {
     issues.push('flavorLine')
   }

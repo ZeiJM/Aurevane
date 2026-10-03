@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation'
 import { useMemo, useRef, useState } from 'react'
 
 import styles from './combat-content-editor.module.css'
+import { BattleFlavorTemplateHelp } from './battle-flavor-template-help'
 import { postCombatContentAuthoring } from './combat-content-client'
 import { CombatContentReviewPanel } from './combat-content-review-panel'
 import {
@@ -464,6 +465,11 @@ export function ResonanceContentEditor({
                     }
                   />
                 </label>
+                <BattleFlavorTemplateHelp
+                  value={selectedDraft.flavorLine ?? ''}
+                  ability={selectedDraft.name}
+                  onChange={(flavorLine) => updateDraft({ ...selectedDraft, flavorLine })}
+                />
               </div>
             </fieldset>
 

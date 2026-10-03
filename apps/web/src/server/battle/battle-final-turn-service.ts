@@ -1,3 +1,4 @@
+import { omitPendingBattlePayloads } from './battle-live-viewer-projection'
 import 'server-only'
 
 import { createHash } from 'node:crypto'
@@ -131,7 +132,7 @@ function resolveFinalTurn(
 function projectBattleSnapshot(state: StatDrivenCombatEncounterState): BattleSessionProjection {
   const battle = state.tactical.battle
   return {
-    ...state,
+    ...omitPendingBattlePayloads(state),
     tactical: {
       ...state.tactical,
       battle: {

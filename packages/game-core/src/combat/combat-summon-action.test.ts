@@ -319,3 +319,20 @@ describe('Combat v5.1 summon Skill execution', () => {
     expect(summonTurns).toBe(5)
   })
 })
+it('keeps a summon pending until the next global round and lets it join that round', () => {
+  let state = executePv1fMatureSkill(
+    { ...encounter(), effectTimingPolicy: { version: 1, modes: {} } },
+    summoningSkill(),
+    { kind: 'tile', position: { x: 1, y: 0 } },
+    'pve',
+  ).state
+  expect(state.effectState?.summons ?? []).toHaveLength(0)
+  expect(state.pendingSummons).toHaveLength(1)
+  state = finishPv1fTurn(state, 'east').state
+  state = finishPv1fTurn(state, 'west').state
+  expect(state.tactical.battle.round).toBe(2)
+  expect(state.effectState?.summons).toHaveLength(1)
+  expect(state.tactical.battle.initiativeOrder).toContain(
+    state.effectState!.summons![0]!.combatantId,
+  )
+})

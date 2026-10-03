@@ -741,4 +741,8 @@ immutable version records. The broader searchable Master Panel audit log, granul
 system, re-authentication/break-glass workflows and other future operational modules remain governed
 by the later phases of this specification; this slice must not pretend those wider systems already
 exist.
+## Owner-approved combat timing and short narration — 2026-10-03
 
+`/master/combat-timing` is Owner-only. Registered effect tags choose Instant or Next global round. Publishing requires a reason and the current version; immutable private rows record actor/time/version. New encounters pin the full policy. Existing encounters and logs never re-read today’s policy. Direct damage/HP/MP recovery default instant; other effects default following global round. A pending icon is presentation only.
+
+Current Skill, Essence and Resonance short battle scenes reuse their immutable `flavorLine` (160 characters). The common editor supplies whitelisted actor/target/ability name tokens, explicit subject/object/possessive/reflexive pronoun handlers and explicit three-way gender wording. Unknown or malformed tokens fail canonical validation. Missing immutable identity uses neutral pronouns/wording; never infer gender from portraits or read a current profile to reinterpret history. The separate historical 180-character hit/miss/critical template contract remains unchanged. Versioned description/effect fields remain editable through existing publication authority; text changes do not mutate recorded damage or outcomes.

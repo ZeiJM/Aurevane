@@ -393,3 +393,20 @@ describe('PV-1F temporary Skill Copy integration', () => {
     )
   })
 })
+it('pins the selected copied Skill but grants access only in the following global round', () => {
+  const result = executePv1fMatureSkill(
+    { ...state(), effectTimingPolicy: { version: 1, modes: {} } },
+    copySkill(),
+    { kind: 'unit', combatantId: SOURCE },
+    'pve',
+    {
+      copyContext: {
+        sourceCombatantId: SOURCE,
+        sourceSkills: [staticSkill('vanguard.cleave', 1)],
+        actorCommittedSkills: [],
+      },
+    },
+  )
+  expect(result.state.effectState?.temporarySkills ?? []).toHaveLength(0)
+  expect(result.state.pendingSkillGrants).toHaveLength(1)
+})

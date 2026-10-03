@@ -1,0 +1,113 @@
+.chronicle {
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #9b835c #d2c3a5;
+  padding: 0.4rem 0.65rem 0.65rem;
+  color: #302a23;
+  background: linear-gradient(115deg, #eee4d0, #d9cbae);
+  font: 400 0.8125rem/1.3 var(--av-font-body);
+  overflow-wrap: anywhere;
+}
+.round + .round {
+  margin-top: 0.65rem;
+}
+.roundTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0 0 0.35rem;
+  color: #695c46;
+  font: 700 0.8125rem/1.2 var(--av-font-display);
+  letter-spacing: 0.09em;
+}
+.roundTitle::before,
+.roundTitle::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #9b865854;
+}
+.actor {
+  min-width: 0;
+  border-left: 1px solid #9b865866;
+  padding-left: 0.45rem;
+}
+.actor + .actor {
+  margin-top: 0.55rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid #9b865842;
+}
+.actor > h3 {
+  margin: 0 0 0.25rem;
+  font: 750 0.9375rem/1.15 var(--av-font-display);
+}
+.technique {
+  min-width: 0;
+  margin: 0;
+}
+.technique + .technique {
+  margin-top: 0.4rem;
+}
+.technique h4 {
+  margin: 0 0 0.15rem;
+  font: 650 0.875rem/1.2 var(--av-font-display);
+}
+.technique p {
+  margin: 0;
+}
+.narration {
+  color: #423a2e;
+}
+.outcomes {
+  padding-top: 0.16rem;
+  font-weight: 650;
+}
+.outcomes [data-outcome-tone='damage'] {
+  color: #943d36;
+}
+.outcomes [data-outcome-tone='recovery'] {
+  color: #42653c;
+}
+.separator {
+  color: #6d614e;
+  font-weight: 400;
+}
+.technique[data-chronicle-family='resonance'],
+.technique[data-chronicle-family='essence'],
+.technique[data-chronicle-family='ascension'],
+.technique[data-chronicle-family='severence'] {
+  margin-top: 0.4rem;
+  padding-left: 0.45rem;
+  border-left: 1px solid #a0854a66;
+}
+.technique[data-chronicle-family='resonance'] h4,
+.technique[data-chronicle-family='essence'] h4,
+.technique[data-chronicle-family='ascension'] h4,
+.technique[data-chronicle-family='severence'] h4 {
+  color: #82672e;
+}
+.effect {
+  all: unset;
+  cursor: help;
+  text-decoration: underline dotted #8b785766;
+  text-underline-offset: 0.14em;
+}
+.effect:focus-visible {
+  outline: 2px solid #82672e;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+.empty {
+  margin: 0;
+  color: #625344;
+}
+
+.recipient {
+  color: #302a23;
+  font-weight: 500;
+}
