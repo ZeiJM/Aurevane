@@ -69,6 +69,17 @@ function copyProjection(
 }
 
 describe('P4.K4 clone-aware Recruit AI projected utility', () => {
+  it('values current authored Copy as positive effect transfer while historical Copy stays separate', () => {
+    const effects: readonly CombatEffectDefinition[] = [{ type: 'copy', recipient: 'primary-unit' }]
+    expect(
+      utility()?.(
+        evaluation([copyProjection('actor')]),
+        { ...state(), copyPolicyVersion: 1 },
+        effects,
+      ),
+    ).toBe(8)
+    expect(utility()?.(evaluation([copyProjection('actor')]), state(), effects)).toBe(0)
+  })
   it('rewards Amplify projections that add eligible state to the acting side', () => {
     expect(utility()?.(evaluation([copyProjection('actor')]), state(), amplify)).toBe(8)
   })
@@ -118,4 +129,18 @@ describe('P4.K4 clone-aware Recruit AI projected utility', () => {
     ]
     expect(utility()?.(evaluation([copyProjection('enemy')]), state(), ordinary)).toBe(0)
   })
+})
+
+it('scores typed Barrier and recovery-only Copy projections as useful current benefits', () => {
+  const effects: readonly CombatEffectDefinition[] = [{ type: 'copy', recipient: 'primary-unit' }]
+  expect(
+    utility()?.(
+      evaluation([
+        copyProjection('actor', 'barrier:0', 'barrier:30'),
+        copyProjection('actor', 'none', 'recovery:hp:8:2'),
+      ]),
+      { ...state(), copyPolicyVersion: 1 },
+      effects,
+    ),
+  ).toBe(16)
 })

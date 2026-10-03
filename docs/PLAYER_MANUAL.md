@@ -1,5 +1,7 @@
 # AUREVANE — Comprehensive Manual & Knowledge System
 
+Owner refinement 2026-10-03: current Copy copies active beneficial effect tags from the selected target onto the user while preserving the target, caps and remaining lifetime. New encounters pin this policy; historical encounters retain recorded Skill Copy. Shared effect reports display configured Instant timing except direct damage, and pending Root becomes movement-blocking only at its recorded activation round. Release status is recorded in TASKS.md.
+
 **Status:** Authoritative documentation/player-help specification subordinate to `docs/GAME_MASTER_PLAN.md` and the owner-approved domain specifications it indexes.
 
 **Initial direction approved:** 2026-08-15.  

@@ -116,6 +116,13 @@ export function materializeCsrPreviewAction(
   return {
     ...action,
     effects: action.effects.filter((effect) => effect.type !== 'sensory'),
+    ...(action.effectTimingTags
+      ? {
+          effectTimingTags: action.effectTimingTags.filter(
+            (_, index) => action.effects[index]?.type !== 'sensory',
+          ),
+        }
+      : {}),
     ...(action.effectOrigins
       ? {
           effectOrigins: action.effectOrigins.filter(

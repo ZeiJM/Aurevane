@@ -325,6 +325,12 @@ const legacyDescriptions: Record<
     kind: 'Buff',
     description: 'Grants temporary access to an exact pinned Skill from the target.',
   },
+  'beneficial-copy': {
+    name: 'Copy beneficial effects',
+    kind: 'Effect',
+    description:
+      'Copies the selected unit’s active beneficial effect tags onto the user, preserving stack caps and remaining durations. The selected unit keeps its effects.',
+  },
   guarded: {
     name: 'Guarded',
     kind: 'Buff',

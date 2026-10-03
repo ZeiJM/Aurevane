@@ -143,7 +143,10 @@ export function combatAccuracyStatusModifier(
         (candidate) =>
           candidate.id === status.statusId && candidate.version === status.statusVersion,
       )
-      if (row.combatantId === actorId) {
+      if (
+        row.combatantId === actorId &&
+        definition?.blindAccuracyPenaltyBasisPoints !== undefined
+      ) {
         blind = Math.max(
           blind,
           status.potencyBasisPoints ?? definition?.blindAccuracyPenaltyBasisPoints ?? 0,

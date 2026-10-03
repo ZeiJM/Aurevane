@@ -5,6 +5,12 @@ import type {
   CreateBattleSessionInput,
 } from '@aurevane/db/battle-session'
 import type { CharacterRecord, CharacterRepository } from '@aurevane/db/character'
+import {
+  resolveMatureSkillVersion,
+  type MatureSkillDefinition,
+} from '@aurevane/game-core/combat/mature-skills'
+import { evaluatePv1fMatureSkill } from '@aurevane/game-core/combat/pv1f-action-economy'
+import * as previewServiceExports from './battle-preview-service'
 import { createCombatEncounterState } from '@aurevane/game-core/combat/actions'
 import { moveCurrentCombatant } from '@aurevane/game-core/combat/board'
 import {
@@ -446,4 +452,118 @@ it('transports scheduled Guard identity and lifetime without committing or chang
   )
   expect(snapshot).toEqual(before)
   expect(battles.commitBattleIntent).not.toHaveBeenCalled()
+})
+
+it('redacts current Copy forecasts from a concealed hostile donor while keeping allied details', async () => {
+  const { snapshot } = await createFixture()
+  const actorId = `character:${CHARACTER_ID}`
+  const donorId = 'recruit:p2-4-1'
+  snapshot.copyPolicyVersion = 1
+  snapshot.effectTimingPolicy = { version: 1, modes: { copy: 'instant' } }
+  snapshot.statusState = snapshot.statusState.map((entry) =>
+    entry.combatantId === donorId
+      ? {
+          ...entry,
+          statuses: [
+            {
+              statusId: 'covert',
+              statusVersion: 1,
+              stacks: 1,
+              remainingOwnerTurnStarts: 2,
+              sourceCombatantId: donorId,
+            },
+            {
+              statusId: 'guarded',
+              statusVersion: 1,
+              stacks: 2,
+              remainingOwnerTurnStarts: 2,
+              sourceCombatantId: donorId,
+            },
+          ],
+        }
+      : entry,
+  )
+  snapshot.effectState = {
+    ongoingRecovery: [
+      {
+        kind: 'hp',
+        targetCombatantId: donorId,
+        sourceCombatantId: donorId,
+        sourceActionId: 'concealed.recovery',
+        amountPerTick: 9,
+        remainingFutureTicks: 3,
+      },
+    ],
+    barriers: [
+      {
+        targetCombatantId: donorId,
+        sourceCombatantId: donorId,
+        sourceActionId: 'concealed.barrier',
+        amount: 40,
+      },
+    ],
+    poison: [],
+    burn: [],
+    bleed: [],
+    temporarySkills: [],
+    damageHistory: [],
+  }
+  const base = resolveMatureSkillVersion('vanguard.forceful-strike', 2)!
+  const skill: MatureSkillDefinition = {
+    ...base,
+    effects: [{ type: 'copy', recipient: 'primary-unit' }],
+    target: {
+      ...base.target,
+      teamPolicy: 'any',
+      maximumRange: 10,
+      requiresLineOfSight: false,
+      maximumElevationDifference: null,
+    },
+    accuracyMode: 'automatic',
+  }
+  const evaluated = evaluatePv1fMatureSkill(snapshot, skill, { kind: 'unit', combatantId: donorId })
+  expect(evaluated.evaluation.legal).toBe(true)
+  const project = (
+    previewServiceExports as unknown as {
+      projectBeneficialCopyPreview?: (
+        state: typeof snapshot,
+        action: typeof evaluated.action,
+        evaluation: typeof evaluated.evaluation,
+      ) => Pick<typeof evaluated.evaluation, 'projectedEffects' | 'projectedEvents'>
+    }
+  ).projectBeneficialCopyPreview
+  const publicPreview = project?.(snapshot, evaluated.action, evaluated.evaluation)
+  expect(publicPreview?.projectedEffects).toEqual([
+    {
+      effectType: 'copy-statuses',
+      statusId: 'beneficial-copy',
+      combatantId: actorId,
+      before: 'none',
+      after: 'concealed',
+    },
+  ])
+  expect(publicPreview?.projectedEvents).toEqual([])
+  expect(JSON.stringify(publicPreview)).not.toContain('recovery:hp:9:3')
+  expect(JSON.stringify(publicPreview)).not.toContain('barrier:40')
+  const allied = {
+    ...snapshot,
+    tactical: {
+      ...snapshot.tactical,
+      battle: {
+        ...snapshot.tactical.battle,
+        combatants: snapshot.tactical.battle.combatants.map((unit) =>
+          unit.id === donorId
+            ? {
+                ...unit,
+                teamId: snapshot.tactical.battle.combatants.find((unit) => unit.id === actorId)!
+                  .teamId,
+              }
+            : unit,
+        ),
+      },
+    },
+  }
+  expect(project?.(allied, evaluated.action, evaluated.evaluation)?.projectedEffects).toEqual(
+    evaluated.evaluation.projectedEffects,
+  )
 })

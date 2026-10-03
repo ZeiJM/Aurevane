@@ -1,8 +1,11 @@
 import 'server-only'
+import { usesBeneficialCombatCopy } from '@aurevane/game-core/combat/combat-status-copy'
 
 import type {
   CombatEffectProjection,
   CombatResolutionEvent,
+  CombatActionDefinition,
+  CombatActionEvaluation,
 } from '@aurevane/game-core/combat/actions'
 import type { CombatTerrainProjection } from '@aurevane/game-core/combat/terrain-overlays'
 
@@ -175,6 +178,56 @@ function issue(code: string, message: string): BattlePreviewIssue {
   return { code, message }
 }
 
+/** Preview must not turn an uncommitted Copy into inspection of a concealed hostile donor. */
+export function projectBeneficialCopyPreview(
+  state: StatDrivenCombatEncounterState,
+  action: CombatActionDefinition,
+  evaluation: CombatActionEvaluation,
+): Pick<CombatActionEvaluation, 'projectedEffects' | 'projectedEvents'> {
+  const actor = state.tactical.battle.combatants.find((row) => row.id === evaluation.actorId)
+  const donor = state.tactical.battle.combatants.find(
+    (row) => row.id === evaluation.primaryCombatantId,
+  )
+  const concealed =
+    actor &&
+    donor &&
+    actor.teamId !== donor.teamId &&
+    state.statusState
+      .find((row) => row.combatantId === donor.id)
+      ?.statuses.some((row) => row.statusId === 'covert' && row.timingState !== 'pending')
+  if (
+    !concealed ||
+    !action.effects.some(
+      (effect) => effect.type === 'copy-statuses' && effect.beneficialEffects === true,
+    )
+  )
+    return {
+      projectedEffects: evaluation.projectedEffects,
+      projectedEvents: evaluation.projectedEvents,
+    }
+  const copies = evaluation.projectedEffects.filter((row) => row.effectType === 'copy-statuses')
+  return {
+    projectedEffects: [
+      ...evaluation.projectedEffects.filter((row) => row.effectType !== 'copy-statuses'),
+      ...(copies.length
+        ? [
+            {
+              effectType: 'copy-statuses' as const,
+              statusId: 'beneficial-copy',
+              combatantId: actor.id,
+              before: 'none',
+              after: 'concealed',
+              ...(copies[0]!.activationRound !== undefined
+                ? { activationRound: copies[0]!.activationRound }
+                : {}),
+            },
+          ]
+        : []),
+    ],
+    projectedEvents: [],
+  }
+}
+
 async function previewIntent(
   state: StatDrivenCombatEncounterState,
   intent: BattleIntent,
@@ -247,6 +300,7 @@ async function previewIntent(
         : null
     if (taggedTechnique && !matureDefinition) throw persistenceInvalid()
     const copiedCopyContext =
+      !usesBeneficialCombatCopy(state) &&
       copiedCommand?.definition?.effects.some((effect) => effect.type === 'copy') &&
       intent.target.kind === 'unit'
         ? await resolveBattleSkillCopyContext(
@@ -260,6 +314,7 @@ async function previewIntent(
         : undefined
     if (copiedCopyContext === null) throw persistenceInvalid()
     const matureCopyContext =
+      !usesBeneficialCombatCopy(state) &&
       matureDefinition?.effects.some((effect) => effect.type === 'copy') &&
       intent.target.kind === 'unit'
         ? await resolveBattleSkillCopyContext(
@@ -296,6 +351,7 @@ async function previewIntent(
               )
             : evaluatePv1fAction(state, intent.actionId, intent.target)
     const { prepared, action, cost, evaluation } = resolved
+    const visibleCopyPreview = projectBeneficialCopyPreview(prepared, action, evaluation)
     const economy = readPv1fActionEconomy(prepared)
     const before = economy?.current ?? 0
     const affordable = before >= cost
@@ -325,10 +381,10 @@ async function previewIntent(
       primaryCombatantId: evaluation.primaryCombatantId,
       affectedTiles: evaluation.affectedTiles,
       affectedCombatantIds: evaluation.affectedCombatantIds,
-      projectedEffects: resourceIssue ? [] : evaluation.projectedEffects,
+      projectedEffects: resourceIssue ? [] : visibleCopyPreview.projectedEffects,
       projectedStatuses,
       projectedTerrain: resourceIssue ? [] : evaluation.projectedTerrain,
-      projectedEvents: resourceIssue ? [] : evaluation.projectedEvents,
+      projectedEvents: resourceIssue ? [] : visibleCopyPreview.projectedEvents,
       mpCost: evaluation.mpCost,
       actionEconomyCost: cost,
       actionEconomyBefore: before,

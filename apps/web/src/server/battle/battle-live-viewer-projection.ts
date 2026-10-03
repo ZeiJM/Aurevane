@@ -96,7 +96,7 @@ export function projectBattleStatusStateForViewer(
 }
 
 export function projectBattleEffectStateForViewer(
-  state: Pick<StatDrivenCombatEncounterState, 'effectState' | 'tactical'>,
+  state: Pick<StatDrivenCombatEncounterState, 'effectState' | 'tactical' | 'statusState'>,
   viewer: BattleViewerEntitlement,
 ): CombatEffectState | undefined {
   if (!state.effectState) return undefined
@@ -109,6 +109,20 @@ export function projectBattleEffectStateForViewer(
     if (!source) return false
     const relationship = battleViewerRelationship(viewer, source)
     return relationship === 'self' || relationship === 'ally'
+  }
+  const positiveHolderVisible = (instance: { targetCombatantId: string }) => {
+    const holder = combatantById.get(instance.targetCombatantId)
+    if (!holder) return false
+    const relationship = battleViewerRelationship(viewer, holder)
+    return (
+      relationship === 'self' ||
+      relationship === 'ally' ||
+      !state.statusState
+        .find((row) => row.combatantId === holder.id)
+        ?.statuses.some(
+          (row) => row.statusId === PV1F_COVERT_STATUS.id && row.timingState !== 'pending',
+        )
+    )
   }
   const publicInstance = <
     T extends { sourceCombatantId: string; sourceActionId: string; provenance?: unknown },
@@ -125,9 +139,11 @@ export function projectBattleEffectStateForViewer(
     poison: state.effectState.poison.map(publicInstance),
     burn: state.effectState.burn.map(publicInstance),
     bleed: state.effectState.bleed.map(publicInstance),
-    ongoingRecovery: state.effectState.ongoingRecovery.map(publicInstance),
+    ongoingRecovery: state.effectState.ongoingRecovery
+      .filter(positiveHolderVisible)
+      .map(publicInstance),
     ...(state.effectState.barriers
-      ? { barriers: state.effectState.barriers.map(publicInstance) }
+      ? { barriers: state.effectState.barriers.filter(positiveHolderVisible).map(publicInstance) }
       : {}),
     ...(state.effectState.summons
       ? {

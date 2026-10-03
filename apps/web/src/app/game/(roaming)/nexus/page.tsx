@@ -1,3 +1,5 @@
+import { SkillEffectTimingProvider } from '@/components/character/skill-effect-timing-context'
+import { readCombatEffectTimingPolicy } from '@/server/master/combat-effect-timing-policy-store'
 import { buildCharacterProfileReadModel } from '@aurevane/game-core/character/profile'
 import { isAurevaneError } from '@aurevane/game-core/errors'
 import { headers } from 'next/headers'
@@ -32,7 +34,12 @@ function isPersistenceUnavailable(error: unknown) {
 }
 
 function renderPersistenceRecovery(
-  stage: 'selected_character' | 'level_curve' | 'discipline_build' | 'attribute_allocation',
+  stage:
+    | 'selected_character'
+    | 'level_curve'
+    | 'discipline_build'
+    | 'attribute_allocation'
+    | 'effect_timing',
 ) {
   serverLogger.error('character_nexus.persistence_unavailable', {
     route: '/game/nexus',
@@ -93,6 +100,7 @@ export default async function CharacterNexusPage() {
   )
 
   const [
+    timingPolicyResult,
     levelCurveResult,
     disciplineBuildResult,
     currentDisciplineSkillsResult,
@@ -100,6 +108,7 @@ export default async function CharacterNexusPage() {
     titleStateResult,
     displayStateResult,
   ] = await Promise.allSettled([
+    readCombatEffectTimingPolicy(),
     loadLevelProgressionCurve(
       character.progressionCycle.number,
       createSupabaseProgressionRepository(),
@@ -115,6 +124,11 @@ export default async function CharacterNexusPage() {
     loadCharacterProfileDisplay(actor.userId, character.id),
   ])
 
+  if (timingPolicyResult.status === 'rejected') {
+    if (isPersistenceUnavailable(timingPolicyResult.reason))
+      return renderPersistenceRecovery('effect_timing')
+    throw timingPolicyResult.reason
+  }
   if (levelCurveResult.status === 'rejected') {
     if (isPersistenceUnavailable(levelCurveResult.reason)) {
       return renderPersistenceRecovery('level_curve')
@@ -160,26 +174,28 @@ export default async function CharacterNexusPage() {
   const imageUrl =
     displayStateResult.status === 'fulfilled' ? displayStateResult.value.imageUrl : null
   return (
-    <CharacterArsenalShell
-      profile={buildCharacterProfileReadModel(character, levelCurve)}
-      attributeAllocation={attributeAllocation}
-      disciplineBuild={{
-        buildVersion: disciplineBuild.build.buildVersion,
-        supportActionId: disciplineBuild.build.supportActionId,
-        current: disciplineBuild.current,
-        currentSecondary: disciplineBuild.currentSecondary,
-        availablePrimaries: disciplineBuild.availablePrimaries,
-        availableSecondaries: disciplineBuild.availableSecondaries,
-        attunement: disciplineBuild.attunement,
-        disciplineSkills: {
-          capacity: currentDisciplineSkills.capacity,
-          learnedSkills: currentDisciplineSkills.learnedSkills,
-          equippedSkills: currentDisciplineSkills.equippedSkills,
-          extensions: currentDisciplineSkills.extensions,
-        },
-      }}
-      personalTitle={personalTitle}
-      imageUrl={imageUrl}
-    />
+    <SkillEffectTimingProvider policy={timingPolicyResult.value}>
+      <CharacterArsenalShell
+        profile={buildCharacterProfileReadModel(character, levelCurve)}
+        attributeAllocation={attributeAllocation}
+        disciplineBuild={{
+          buildVersion: disciplineBuild.build.buildVersion,
+          supportActionId: disciplineBuild.build.supportActionId,
+          current: disciplineBuild.current,
+          currentSecondary: disciplineBuild.currentSecondary,
+          availablePrimaries: disciplineBuild.availablePrimaries,
+          availableSecondaries: disciplineBuild.availableSecondaries,
+          attunement: disciplineBuild.attunement,
+          disciplineSkills: {
+            capacity: currentDisciplineSkills.capacity,
+            learnedSkills: currentDisciplineSkills.learnedSkills,
+            equippedSkills: currentDisciplineSkills.equippedSkills,
+            extensions: currentDisciplineSkills.extensions,
+          },
+        }}
+        personalTitle={personalTitle}
+        imageUrl={imageUrl}
+      />
+    </SkillEffectTimingProvider>
   )
 }

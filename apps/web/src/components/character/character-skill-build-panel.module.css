@@ -625,7 +625,8 @@
   color: #e4bd67;
 }
 
-.effectSummaryList [data-compact-effect-duration='true'] {
+.effectSummaryList [data-compact-effect-duration='true'],
+.effectSummaryList [data-compact-effect-timing='true'] {
   color: #70d7ce;
 }
 

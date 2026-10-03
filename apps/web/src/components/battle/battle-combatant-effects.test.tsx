@@ -19,6 +19,49 @@ function render(statusId?: string, stacks = 1) {
   return renderToStaticMarkup(<BattleCombatantEffects name="Archer" statuses={statuses} />)
 }
 describe('combatant effect presentation', () => {
+  it('shows recorded conditional and linked outgoing/incoming potency in shared battle readers', () => {
+    for (const compact of [false, true]) {
+      const statuses = ['warded', 'reckless'].map((statusId) => ({
+        statusId,
+        statusVersion: 1,
+        stacks: 1,
+        remainingOwnerTurnStarts: 2,
+        sourceCombatantId: 'caster',
+        potencyBasisPoints: 1100,
+      }))
+      const markup = renderToStaticMarkup(
+        <BattleCombatantEffects name="Archer" compact={compact} statuses={statuses} />,
+      )
+      expect(markup).toContain('Take 11% less damage from opponents affected by Burn')
+      expect(markup).toContain('Deal 11% more damage and take 11% more damage')
+      expect(markup).not.toContain('Take 20% less damage')
+      if (!compact) {
+        expect(markup).toContain('−11%')
+        expect(markup).toContain('+11%')
+        expect(markup).toContain('conditional')
+      }
+    }
+  })
+
+  it('compounds recorded Guard potency in its visible modifier', () => {
+    const markup = renderToStaticMarkup(
+      <BattleCombatantEffects
+        name="Archer"
+        statuses={[
+          {
+            statusId: 'guarded',
+            statusVersion: 1,
+            stacks: 2,
+            remainingOwnerTurnStarts: 2,
+            sourceCombatantId: 'caster',
+            potencyBasisPoints: 1000,
+          },
+        ]}
+      />,
+    )
+    expect(markup).toContain('−19%')
+    expect(markup).not.toContain('−27.8%')
+  })
   it('uses only the accessible effect popover without a native hover tooltip', () => {
     const markup = render('root')
     expect(markup).toContain('aria-haspopup="dialog"')

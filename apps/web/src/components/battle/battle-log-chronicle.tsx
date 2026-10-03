@@ -34,6 +34,9 @@ function ChronicleTechnique({ action, actorName }: { action: ChronicleAction; ac
     >
       {action.title ? (
         <h4>
+          <span className={styles.actionIcon} aria-hidden="true" data-chronicle-action-start="true">
+            ◆
+          </span>{' '}
           {action.family === 'skill' || action.family === 'movement' ? null : (
             <span>{action.family.toUpperCase()} · </span>
           )}

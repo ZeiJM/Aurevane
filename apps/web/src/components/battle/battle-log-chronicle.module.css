@@ -60,6 +60,12 @@
 .technique p {
   margin: 0;
 }
+.actionIcon {
+  display: inline-block;
+  color: #42653c;
+  font: 700 0.75em/1 var(--av-font-body);
+  vertical-align: 0.08em;
+}
 .narration {
   color: #423a2e;
 }

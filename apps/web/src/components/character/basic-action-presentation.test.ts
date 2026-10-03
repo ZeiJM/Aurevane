@@ -30,9 +30,9 @@ describe('authoritative inherent action descriptors', () => {
     expect(mp.Requirements).toBe('Missing MP')
     expect(hp.Cooldown).toBe('2 turns')
     expect(mp.Cooldown).toBe(hp.Cooldown)
-    expect(hp.Effects).toBe('HP Recovery [10% max HP] [Immediate]')
-    expect(mp.Effects).toBe('MP Recovery [10% max MP] [Immediate]')
-    expect(hp.Effects).toContain('[Immediate]')
+    expect(hp.Effects).toBe('HP Recovery [10% max HP] [Instant]')
+    expect(mp.Effects).toBe('MP Recovery [10% max MP] [Instant]')
+    expect(hp.Effects).toContain('[Instant]')
     expect(basicActionEffectExplanation('basic.recover.mp')).toContain('share a cooldown')
   })
 
@@ -40,6 +40,7 @@ describe('authoritative inherent action descriptors', () => {
     const attack = values('basic.attack.unarmed.basic')
     expect(attack['Skill Type']).toBe('Attack')
     expect(attack.Effects).toContain('6 + floor(15% Physical Power)')
+    expect(attack.Effects).not.toMatch(/Instant|Immediate/)
     expect(attack.Range).toBe('1')
     expect(attack.Target).toBe('Enemy')
     expect(attack['Target Method']).toBe('Single')
@@ -65,4 +66,24 @@ describe('authoritative inherent action descriptors', () => {
     expect(basicActionIdForCommand('attack', 'Forceful Strike')).toBeNull()
     expect(basicActionIdForCommand('finish', 'Guard')).toBeNull()
   })
+})
+
+it('uses the configured Guard and recovery timing in Support Action reports', () => {
+  const policy = {
+    version: 2,
+    modes: {
+      guarded: 'instant' as const,
+      healing: 'next-round' as const,
+      'mp-recovery': 'next-round' as const,
+    },
+  }
+  expect(Object.fromEntries(basicActionCharacteristicRows('basic.guard', policy)).Effects).toBe(
+    'Guarded [15%] [2 Turns] [Instant]',
+  )
+  expect(
+    Object.fromEntries(basicActionCharacteristicRows('basic.recover', policy)).Effects,
+  ).not.toContain('Instant')
+  expect(
+    Object.fromEntries(basicActionCharacteristicRows('basic.recover.mp', policy)).Effects,
+  ).not.toContain('Instant')
 })

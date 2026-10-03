@@ -15,11 +15,54 @@ const pendingFamilies = [
   'sensory',
   'summon',
   'copy',
+  'beneficial-copy',
   'damage',
   'healing',
 ]
 
 describe('battle effect identity', () => {
+  it.each([
+    ['guarded', 'Each stack reduces incoming damage by 11%'],
+    ['exposed', 'Take 11% more damage'],
+    ['inspired', 'Deal 11% more damage'],
+    ['hexed', 'Receive 11% less healing'],
+    ['mark', '+11 percentage points Accuracy'],
+    ['blind', 'Lose 11 percentage points Accuracy'],
+    ['warded', 'Take 11% less damage from opponents affected by Burn'],
+    ['marked', 'Take 11% more damage from the unit that applied Mark'],
+  ])(
+    'describes recorded %s potency in both active and pending readers',
+    (statusId, description) => {
+      for (const timingState of ['active', 'pending'] as const) {
+        const effect: CombatStatusInstance = {
+          statusId,
+          statusVersion: 1,
+          stacks: 1,
+          remainingOwnerTurnStarts: 2,
+          sourceCombatantId: 'caster',
+          potencyBasisPoints: 1100,
+          timingState,
+        }
+        const details = describeBattleEffect(effect)
+        expect(details.description).toContain(description)
+        expect(details.explanation).toContain(description)
+      }
+    },
+  )
+
+  it('retains canonical descriptions when historical instances have no recorded potency', () => {
+    for (const statusId of ['guarded', 'warded', 'marked', 'hexed', 'inspired', 'fortified']) {
+      expect(
+        describeBattleEffect({
+          statusId,
+          statusVersion: 1,
+          stacks: 1,
+          remainingOwnerTurnStarts: 2,
+          sourceCombatantId: 'caster',
+        }).description,
+      ).toBe(combatStatusDetails(statusId).description)
+    }
+  })
   it('gives every pending family a simple distinct code separate from named statuses', () => {
     const ids = [...PHASE4_STATUSES.map((status) => status.id), ...pendingFamilies, 'barrier']
     const identities = ids.map(battleEffectIdentity)

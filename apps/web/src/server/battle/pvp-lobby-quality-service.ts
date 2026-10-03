@@ -1,4 +1,5 @@
 import { readCombatEffectTimingPolicy } from '@/server/master/combat-effect-timing-policy-store'
+import { CURRENT_COMBAT_COPY_POLICY_VERSION } from '@aurevane/game-core/combat/combat-status-copy'
 import 'server-only'
 
 import { randomInt, randomUUID } from 'node:crypto'
@@ -384,6 +385,7 @@ export async function startPvpLobbyWithQuality(
   )
   const encounter = createPvpEncounter(roster, lobby.teamSizes, settings, buildAuthority)
   encounter.effectTimingPolicy = await readCombatEffectTimingPolicy()
+  encounter.copyPolicyVersion = CURRENT_COMBAT_COPY_POLICY_VERSION
   const battle = encounter.tactical.battle
   const supabase = createSupabaseAdminClient()
   const { data, error } = await supabase.rpc('create_pvp_battle_session_v1', {

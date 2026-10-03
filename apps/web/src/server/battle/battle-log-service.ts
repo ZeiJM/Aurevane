@@ -109,6 +109,7 @@ function actionKind(value: unknown): BattleLogKind {
 }
 
 function statusLabel(value: unknown): string {
+  if (value === 'beneficial-copy') return combatStatusDetails(value).name
   if (value === 'guarded') return 'Guarded'
   if (value === 'lowered-guard') return 'Lowered Guard'
   if (typeof value !== 'string' || value.length === 0) return 'Status'
@@ -932,6 +933,7 @@ export function createViewerSafeBattleLogService(
         projected,
         authority.buildAuthority,
         resolver,
+        authority.copyPolicyVersion ?? null,
       )
     },
   }

@@ -759,7 +759,8 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
             <span>Allow empty status copy on composed command</span>
           </label>
           <p className={styles.effectNote}>
-            Amplify/Curse clone eligible active statuses. This is not temporary-Skill Copy.
+            Amplify/Curse clone their eligible active statuses. Copy transfers beneficial effect
+            tags from the target to the user.
           </p>
         </div>
       )
@@ -770,16 +771,16 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
         <div className={styles.effectStaticGrid}>
           <div className={styles.effectStatic}>
             <span>Effect</span>
-            <strong>Temporary Skill Copy</strong>
+            <strong>Copy beneficial effect tags</strong>
           </div>
           <div className={styles.effectStatic}>
             <span>Source</span>
             <strong>Selected primary unit</strong>
           </div>
           <p className={styles.effectNote}>
-            On a successful resolution, the server randomly grants one eligible committed regular
-            Skill from the selected unit for this battle. The copied Skill keeps its original MP,
-            targeting, effects, and requirements and costs half AP rounded up.
+            On a successful resolution, copies active beneficial effect tags from the selected unit
+            onto the user. The target keeps its effects; stack caps and remaining durations are
+            preserved. Historical battles retain their recorded Copy behavior.
           </p>
         </div>
       )

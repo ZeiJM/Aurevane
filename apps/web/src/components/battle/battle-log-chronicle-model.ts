@@ -1,3 +1,4 @@
+import { combatStatusDetails } from '@aurevane/game-core/combat/status-content'
 import type { BattleLogEntry } from '@/server/battle/battle-log-service'
 
 import { renderBattleLogEntry } from './battle-log-presentation'
@@ -133,6 +134,20 @@ function outcome(entry: BattleLogEntry, names: ChronicleNames): ChronicleOutcome
   const value = entry.templateValues
   const base = { key: eventKey(entry), tone: 'neutral' as const }
   switch (entry.eventType) {
+    case 'effect_pending': {
+      const label =
+        value.effect ?? (entry.statusId ? combatStatusDetails(entry.statusId).name : entry.headline)
+      const recordedRound = value.round ?? value.activation?.match(/^ until round ([1-9]\d*)$/)?.[1]
+      const round =
+        recordedRound && /^[1-9]\d*$/.test(recordedRound)
+          ? `round ${recordedRound}`
+          : 'a future round'
+      return {
+        ...base,
+        text: `${label} will take effect${entry.targetCombatantId ? ` on ${target}` : ''} at the start of ${round}!`,
+        ...(entry.statusId ? { statusId: entry.statusId, duration: duration(entry) } : {}),
+      }
+    }
     case 'damage_applied':
       return {
         ...base,

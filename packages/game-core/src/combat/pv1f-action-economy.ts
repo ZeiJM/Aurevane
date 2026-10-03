@@ -1,4 +1,8 @@
 import { combatEffectTimingMode } from './combat-effect-timing'
+import {
+  materializeBeneficialCombatCopyAction,
+  usesBeneficialCombatCopy,
+} from './combat-status-copy'
 import { materializeVengeanceDamage } from './combat-vengeance'
 import {
   calculateScaledRawDamage,
@@ -25,7 +29,7 @@ import {
 } from './combat-summons'
 import { isMaterializedCombatEffect, type SummonAbilityDefinition } from './summon-content'
 import { hasGameplayTag } from './gameplay-tags'
-import { CURRENT_POISON_DAMAGE, advanceCurrentPoisonMovement } from './combat-dots'
+import { advanceCurrentPoisonMovement, currentPoisonEndTurnDamage } from './combat-dots'
 import { terrainOverlayAt, COMBAT_TERRAIN_OVERLAY_DETAILS } from './terrain-overlays'
 import { readBattleAuthorityCombatBuildSnapshot } from './battle-authority-build-snapshot'
 import {
@@ -840,7 +844,23 @@ export function evaluatePv1fMatureSkill(
   const resolved = resolveMatureSkillForContext(definition, combatContext)
   const authoredCost = options.apCostOverride ?? resolved.apCost
   const resonance = committedResonanceForecast(prepared, definition, target)
-  const authoredAction = toMaterializedCombatActionDefinition(definition, combatContext)
+  const materializedAuthoredAction = toMaterializedCombatActionDefinition(definition, combatContext)
+  const authoredAction = materializeBeneficialCombatCopyAction(prepared, {
+    ...materializedAuthoredAction,
+    effectOrigins: definition.effects.flatMap((effect, index) =>
+      isMaterializedCombatEffect(effect)
+        ? [
+            options.effectOrigins?.[index] ?? {
+              family: definition.tags.includes('essence')
+                ? ('essence' as const)
+                : ('skill' as const),
+              contentId: definition.id,
+              contentVersion: definition.contentVersion,
+            },
+          ]
+        : [],
+    ),
+  })
   const powerScaledAuthoredEffects = applyCurrentMatureSkillPowerScaling(
     prepared,
     definition,
@@ -851,17 +871,19 @@ export function evaluatePv1fMatureSkill(
   const usageKey = options.repeatHistoryKey ?? definition.id
   const repeatPenaltyApplied =
     !usesV5BalanceRules && lastMatureSkillId(prepared, actorId) === usageKey
-  const copyEffect = repeatPenaltyApplied
-    ? undefined
-    : authoredAction.effects.find((effect) => effect.type === 'copy')
+  const copyEffect =
+    repeatPenaltyApplied || usesBeneficialCombatCopy(prepared)
+      ? undefined
+      : authoredAction.effects.find((effect) => effect.type === 'copy')
   const baseAction: CombatActionDefinition = {
     ...authoredAction,
     id: options.actionIdOverride ?? authoredAction.id,
     effects: powerScaledAuthoredEffects.filter((effect) => effect.type !== 'copy'),
-    effectOrigins: definition.effects.flatMap((effect, index) =>
+    effectTimingTags: authoredAction.effectTimingTags,
+    effectOrigins: authoredAction.effects.flatMap((effect, index) =>
       isMaterializedCombatEffect(effect) && effect.type !== 'copy'
         ? [
-            options.effectOrigins?.[index] ?? {
+            authoredAction.effectOrigins?.[index] ?? {
               family: definition.tags.includes('essence')
                 ? ('essence' as const)
                 : ('skill' as const),
@@ -874,6 +896,11 @@ export function evaluatePv1fMatureSkill(
   }
   if (resonance?.forecast.willActivate) {
     baseAction.effects = [...baseAction.effects, ...resonance.forecast.bonusEffects]
+    if (baseAction.effectTimingTags)
+      baseAction.effectTimingTags = [
+        ...baseAction.effectTimingTags,
+        ...resonance.forecast.bonusEffects.map(() => undefined),
+      ]
     baseAction.effectOrigins = [
       ...(baseAction.effectOrigins ?? []),
       ...resonance.forecast.bonusEffects.map(() => ({
@@ -895,6 +922,7 @@ export function evaluatePv1fMatureSkill(
       (resolvedEffect) => ({
         effect: resolvedEffect,
         origin: baseAction.effectOrigins?.[index],
+        timingTag: baseAction.effectTimingTags?.[index],
       }),
     ),
   )
@@ -903,6 +931,9 @@ export function evaluatePv1fMatureSkill(
     cooldown: pv1fCooldownForMatureSkill(definition, combatContext) ?? undefined,
     effects: effectRows.map((row) => row.effect),
     effectOrigins: effectRows.map((row) => row.origin),
+    ...(baseAction.effectTimingTags
+      ? { effectTimingTags: effectRows.map((row) => row.timingTag) }
+      : {}),
   }
   let evaluation = evaluateCombatAction(prepared, action, target, PV1F_COMBAT_CONTENT)
   if (
@@ -1396,7 +1427,7 @@ function forecastPv1fPoisonMovement(
     traversedTiles += 1
     triggeredTicks += advanced.triggeredTicks
     if (advanced.triggeredTicks > 0) {
-      hp = Math.max(0, hp - advanced.triggeredTicks * CURRENT_POISON_DAMAGE)
+      hp = Math.max(0, hp - advanced.triggeredTicks * currentPoisonEndTurnDamage(shadow, actorId))
       if (hp === 0) break
     }
   }

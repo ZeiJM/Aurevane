@@ -59,6 +59,18 @@ function render(entries: readonly BattleLogEntry[]) {
 }
 
 describe('approved Battle Chronicle', () => {
+  it('marks every named action start consistently without marking its outcomes or movement', () => {
+    const html = render([
+      technique(1, actor, 'Basic Attack'),
+      entry(1, 1, 'damage_applied', { templateValues: { amount: '10' } }),
+      technique(2),
+      entry(3, 0, 'combatant_moved'),
+    ])
+    expect(html.match(/data-chronicle-action-start="true"/gu)).toHaveLength(2)
+    expect(html.match(/aria-hidden="true" data-chronicle-action-start/gu)).toHaveLength(2)
+    expect(html).toContain('Basic Attack')
+    expect(html).toContain('Hollow Reflection')
+  })
   it('keeps movement-only rounds with one short move per actor per round', () => {
     const html = render([
       entry(1, 0, 'combatant_moved', { round: 1 }),
@@ -278,7 +290,26 @@ describe('approved Battle Chronicle', () => {
     ])
     expect(html).toContain('aria-label="Explain Root"')
     expect(html).toContain('aria-label="Explain Barrier"')
-    expect(html).toContain('Root pending until round 3.')
+    expect(html).toContain('Root will take effect on Weon at the start of round 3!')
+    expect(html).not.toContain('Root pending')
     expect(html).toContain('gained 9 Barrier.')
+  })
+  it('uses recorded activation timing and recipients, without inventing a round when metadata is missing', () => {
+    const html = render([
+      technique(1),
+      entry(1, 1, 'effect_pending', {
+        statusId: 'root',
+        templateValues: { effect: 'Root', activation: ' until round 6' },
+      }),
+      technique(2),
+      entry(2, 1, 'effect_pending', {
+        statusId: 'slow',
+        targetCombatantId: actor,
+        templateValues: { effect: 'Slow' },
+      }),
+    ])
+    expect(html).toContain('Root will take effect on Weon at the start of round 6!')
+    expect(html).toContain('Slow will take effect on Zei at the start of a future round!')
+    expect(html).not.toContain('round undefined')
   })
 })

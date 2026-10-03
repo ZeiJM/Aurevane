@@ -80,6 +80,7 @@ export async function attachRecordedBattleLogSkillContext(
   projected: readonly BattleEventRecord[],
   authority: BattleBuildAuthoritySnapshot | undefined,
   resolver?: ContextResolver,
+  copyPolicyVersion: number | null = null,
 ): Promise<BattleLogView> {
   if (!authority) return view
   const records = new Map(projected.map((record) => [recordKey(record), record]))
@@ -149,9 +150,10 @@ export async function attachRecordedBattleLogSkillContext(
             contentVersion: definition.contentVersion,
             name: skillDisplayName(definition),
             description: definition.effects
-              .map(
-                (effect, index) =>
-                  definition.effectDescriptions?.[index] ?? skillEffectDescription(effect),
+              .map((effect, index) =>
+                effect.type === 'copy'
+                  ? skillEffectDescription(effect, copyPolicyVersion)
+                  : (definition.effectDescriptions?.[index] ?? skillEffectDescription(effect)),
               )
               .join(' '),
             flavor: safeFlavor(definition.flavorLine),

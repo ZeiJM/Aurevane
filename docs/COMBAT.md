@@ -24,7 +24,9 @@ The shared battle forecast now presents the authoritative `copy-statuses` projec
 
 A composed command whose clone block explicitly permits an empty eligible donor produces no clone forecast for that block while retaining independently meaningful later outcomes. Malformed or unsupported copy projection strings fail closed instead of exposing machine projection text. Existing blocked-target and hit-chance behavior is preserved; the presentation does not mutate preview state, consume RNG or replace server legality/commit authority.
 
-Amplify/Curse status cloning is distinct from the separate random temporary-Skill `Copy` effect. `Copy` is implemented as a battle-long grant of one deterministic-random eligible regular battle Skill at half AP cost while preserving the source Skill's other pinned mechanics. Amplify/Curse instead copy eligible active effect state and never grant a command.
+Owner-approved 2026-10-03: current `Copy` transfers the selected unit's active beneficial effect tags onto the user. New PvE and PvP battles pin `copyPolicyVersion: 1`; authored `type: 'copy'` effects reuse the shared status-copy engine under that policy without rewriting immutable Skill definitions. Eligibility includes positive named ordinary, periodic and reactive statuses, including Covert, beyond the historical Amplify opt-in list, plus active Barrier pools and ongoing HP/MP recovery schedules. Negative, neutral mixed-benefit/tradeoff, system/self-cost and pending states are excluded. Copy does not clone actors, current HP/MP/AP, terrain or temporary Skills, or replay already-consumed instant gains. Donors retain their effects; copied stacks respect caps and copied remaining duration is not restarted. Positive per-application potency is retained. Barrier transfers respect the recipient's maximum-HP cap and retain existing lineage when the cap prevents any transfer. Recovery preserves the donor's per-tick amount and remaining future ticks under the existing recipient/resource/action replacement rule; Copy grants no immediate recovery tick. An Instant copied schedule skips the recipient's current partial turn, while delayed activation is available through complete affected turns. Delayed Copy captures eligible donor status, Barrier and recovery state at cast time and attaches copied/inherited K3 lineage only when those effects actually activate. Covert still obeys viewer-relative privacy for forecasts, live positive status/pool/schedule rows and Chronicle receipts; an opposing concealed donor produces only a generic Copy forecast. Empty eligible donors and self-copy are illegal before costs are spent; hostile misses spend normal costs without copying.
+
+Current Copy retains its independent `copy` timing override: effects default to the next global round and an Owner-pinned Instant override resolves immediately. Pending icons and Chronicle outcomes say **Copy beneficial effects**. Historical snapshots without `copyPolicyVersion` preserve the former battle-long deterministic-random eligible regular Skill grant at half AP cost, including recorded grants, pinned Skill mechanics and scheduling. Historical Amplify/Curse keep their separate explicit copy-permission contracts. This change requires no content identity/version rewrite, schema migration or live-content mutation.
 
 Historical pre-v5 ruling on 2026-09-18 classified `copy-statuses` clone transfer as a **discrete** consecutive-use effect. That behavior remains relevant only to battles pinned to those historical Skill/rules versions. Current combat-v5 authored Skills use cooldown/Requirement authority instead of consecutive-use falloff. Mature Skill publication no longer applies the former `effects.status-copy-staged` guard; canonical combat-action validation, typed copy policy, target legality, preview and server commit remain authoritative.
 
@@ -633,8 +635,10 @@ source order for ties. Copied/inherited K3 lineage identifies the selected donor
 instance. Missing historical lineage remains absent. Distinct copies reuse the merged tuple-based
 `copyOrdinal` identity; no alternate identity format is introduced.
 
-This slice enumerates ordinary status rows only. Typed Poison/Burn/Bleed counters, ongoing recovery,
-Barrier pools, terrain, resources, build state and temporary Skills are not copied here. Mixed
+This original Amplify/Curse slice enumerates ordinary status rows only. Typed Poison/Burn/Bleed
+counters, ongoing recovery, Barrier pools, terrain, resources, build state and temporary Skills
+are not copied by this original slice. Current version-1 Copy separately includes active Barrier
+and ongoing HP/MP recovery through the same engine, as specified above. Mixed
 operation packages, area copies and the old Basic Attack path are rejected rather than partially
 executed. The mature-Skill boundary blocks this staged operation from publication/repeat adapters
 with `effects.status-copy-staged` until the remaining mechanics, repeat-use, player forecasts and
@@ -779,7 +783,6 @@ has been retired after the discrete repeat-use ruling.
 This remains distinct from random temporary-Skill **Copy**, whose encounter-state, deterministic RNG,
 half-AP command grant, UI, AI, privacy and persistence behavior are implemented through its separate
 typed effect and synthetic pinned command identity.
-
 
 ## Minimum Skill reporting
 

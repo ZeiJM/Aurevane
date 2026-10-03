@@ -183,6 +183,26 @@
   display: grid;
   gap: 1.25rem;
 }
+.textAction {
+  justify-self: end;
+  padding: 0.15rem 0;
+  border: 0;
+  color: #304b3f;
+  background: transparent;
+  font: inherit;
+  font-size: 0.875rem;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+.textAction:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.recoveryIntro p {
+  margin: 0 0 0.75rem;
+  line-height: 1.45;
+}
 .environmentNotice {
   padding: 0.75rem;
   border: 1px solid #9f865a;
@@ -272,7 +292,8 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
-.shell .submit {
+.shell .submit,
+.shell .submit:hover:not(:disabled) {
   position: relative;
   width: 100%;
   min-height: clamp(3rem, 7vh, 4.5rem);

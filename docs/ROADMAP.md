@@ -901,3 +901,5 @@ The immediate development priority is therefore:
 Automatic performance/scaling checkpoints continue at the defined future boundaries; they are maintenance/hardening work, not permission to expand feature scope.
 
 The frontier, Rekindling replay systems and Owner-created Anomalies remain approved long-horizon direction, outside this closeout scope.
+
+Owner-approved 2026-10-03 combat refinement: Copy now transfers active beneficial effect tags from target to user in newly created, policy-pinned encounters; historical encounters preserve temporary-Skill Copy. See `docs/COMBAT.md` and the active task ledger for validation/release status.
