@@ -27,3 +27,14 @@ Branch `agent/loadout-header-watermarks-20261003` includes the complete precedin
 ## Release preconditions
 
 Require passing exact-head GitHub workflows, refresh Main, apply only `20261003120343_character_default_portrait_choice.sql`, verify service-only RPC grants, merge the combined batch, then verify the precise Production revision and alias. Do not consume an existing user's portrait choice for live smoke. Record hosted migration and deployment receipts in the release closeout.
+
+## Hosted release and closeout
+
+- Final candidate `9b68524ae3a1d6c0cd34b18125bd3fdf7b3ddfa6` passed all fifteen exact-head workflows. Browser smoke passed 65 focused cases, 305 full-suite cases and ten Edge cases. UI layout review passed 110 cases plus its directory scenario, including portrait persistence and lock at desktop, laptop and phone sizes.
+- Final local `pnpm check` passed again after the compact-rail and fixture corrections: 3,430 Vitest tests, seven Node checks, formatting, lint, types and Production builds. The independent reviewer found no blocking issue in the final delta.
+- Main remained `cfe4dbf96cc9bec17111ddcfafe4deff9b0a4106` through final release preflight. PR #813 merged as `f4643e5dbaf6b07a34cae53d02f202314a23a0d8`; its tree `e17e0b9c2b2e7ca496964a560bc750a9f9b98d42` exactly matches the tested candidate. Included ancestor PR #812 is also marked merged.
+- Only the reviewed portrait migration applied, hosted as `20261003142740_character_default_portrait_choice`. The nullable timestamp column, both security-definer RPCs, empty search path and service-only execution were verified. Anonymous and authenticated roles cannot execute either RPC. No existing user's portrait choice was consumed for live verification; no unrelated migration or combat-content activation occurred.
+- Production deployment `dpl_ACERFdca39wvytj8y6EGHxLj7ngC` reached READY at `2026-10-03T14:29:52.466Z`, with exact source `f4643e5dbaf6b07a34cae53d02f202314a23a0d8` and alias `https://aurevane.vercel.app`.
+- Live entry, Manual search, Rules and News responses returned 200. Nexus, Items and Titles correctly returned the sign-in entry to unauthenticated requests. No application-error page was observed. Authenticated Production gameplay and Owner aesthetic acceptance are not claimed; authenticated interactions passed in CI.
+- The deployment-scoped warning/error/fatal count query from READY through live smoke returned no entries. No separate Vercel build-log inspection is claimed.
+- This configuration/docs-only closeout restores the full deployment lock. Application source remains byte-identical to the verified Production release, with one Production deployment for the batch.
