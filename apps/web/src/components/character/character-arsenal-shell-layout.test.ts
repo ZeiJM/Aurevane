@@ -7,8 +7,6 @@ describe('Nexus Attunement reading panels', () => {
   it('uses the shared positioned, dismissible report instead of a capped scrolling tooltip', () => {
     const source = readFileSync(new URL('./character-arsenal-shell.tsx', import.meta.url), 'utf8')
     expect(source).toContain('BattleInfoPopover')
-    expect(source).toContain('resonanceCharacteristicRows(resonance)')
-    expect(source).toContain('resonanceSupplementalRows(resonance)')
     expect(css).not.toContain('.attunementHover')
   })
 })

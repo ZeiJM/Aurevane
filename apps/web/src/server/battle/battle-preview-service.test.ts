@@ -417,3 +417,33 @@ describe('P2.5 authoritative battle preview service', () => {
     ).rejects.toMatchObject({ code: 'FORBIDDEN' })
   })
 })
+
+it('transports scheduled Guard identity and lifetime without committing or changing stored mechanics', async () => {
+  const { battles, service, snapshot } = await createFixture()
+  const before = structuredClone(snapshot)
+  const result = await service.previewIntent({
+    userId: USER_ID,
+    battleSessionId: SESSION_ID,
+    expectedBattleVersion: 1,
+    intent: { kind: 'action', actionId: 'basic.guard', target: { kind: 'self' } },
+  })
+  expect(result.preview).toMatchObject({
+    kind: 'action',
+    legal: true,
+    projectedEffects: expect.arrayContaining([
+      expect.objectContaining({
+        effectType: 'apply-status',
+        statusId: 'guarded',
+        after: 'pending',
+        activationRound: 2,
+        remainingOwnerTurnEnds: 1,
+      }),
+    ]),
+  })
+  if (result.preview.kind !== 'action') throw new Error('Expected action preview')
+  expect(result.preview.projectedEvents?.some((event) => event.event === 'status_applied')).toBe(
+    false,
+  )
+  expect(snapshot).toEqual(before)
+  expect(battles.commitBattleIntent).not.toHaveBeenCalled()
+})

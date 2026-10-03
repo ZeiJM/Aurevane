@@ -39,7 +39,11 @@ describe('passive Resonance Skill information', () => {
     expect(supplemental.Mode).toBe('Sequence Resonance')
     expect(supplemental.Setup).toContain('Lifebinder')
     expect(supplemental.Trigger).toContain('Vanguard')
-    expect(supplemental['Trigger targeting']).toContain('unit selection')
+    expect(supplemental['Trigger targeting']).toBeUndefined()
+    expect(JSON.stringify(Object.fromEntries(rows).Requirements)).toContain('unit selection')
+    expect(JSON.stringify(Object.fromEntries(rows).Requirements)).toContain(
+      'Uses the Trigger Skill’s range',
+    )
     expect(supplemental['Result details']).not.toEqual([])
   })
 

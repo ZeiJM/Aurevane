@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation'
 import { useMemo, useRef, useState } from 'react'
 
 import styles from './combat-content-editor.module.css'
+import { BattleFlavorTemplateHelp } from './battle-flavor-template-help'
 import { postCombatContentAuthoring } from './combat-content-client'
 import { CombatContentReviewPanel } from './combat-content-review-panel'
 import {
@@ -24,11 +25,7 @@ import {
 } from './combat-content-workflow'
 import { SkillEffectListEditor } from './skill-effect-list-editor'
 import { SkillMediaEditor } from './skill-media-editor'
-import {
-  resonanceCharacteristicRows,
-  resonanceSupplementalRows,
-} from '../../character/resonance-detail-presentation'
-import { SkillCharacteristicRows } from '../../character/skill-characteristic-rows'
+import { ResonanceParameters } from '../../character/resonance-parameters'
 
 export interface ResonanceContentEditorOption {
   readonly id: string
@@ -441,10 +438,7 @@ export function ResonanceContentEditor({
           <div className={styles.authoringStack}>
             <section className={styles.reviewBlock} aria-label="Resonance Skill preview">
               <h3>Skill preview</h3>
-              <dl className={styles.previewFacts}>
-                <SkillCharacteristicRows rows={resonanceCharacteristicRows(selectedDraft)} />
-                <SkillCharacteristicRows rows={resonanceSupplementalRows(selectedDraft)} />
-              </dl>
+              <ResonanceParameters definition={selectedDraft} className={styles.resonancePreview} />
             </section>
             <fieldset className={styles.typedGroup}>
               <legend>Identity &amp; presentation</legend>
@@ -471,6 +465,11 @@ export function ResonanceContentEditor({
                     }
                   />
                 </label>
+                <BattleFlavorTemplateHelp
+                  value={selectedDraft.flavorLine ?? ''}
+                  ability={selectedDraft.name}
+                  onChange={(flavorLine) => updateDraft({ ...selectedDraft, flavorLine })}
+                />
               </div>
             </fieldset>
 

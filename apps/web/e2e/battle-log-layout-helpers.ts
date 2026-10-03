@@ -1,54 +1,42 @@
 import { expect, type Locator, type Page, type TestInfo } from '@playwright/test'
 
-/** Exercise both formats and turn navigation before checking the shared log's geometry. */
+/** Exercise the full text reader and effect explanations without changing battle geometry. */
 export async function expectReadableBattleLog(
   page: Page,
   testInfo: TestInfo,
   label: string,
   log: Locator = page.locator('[data-battle-inline-log]'),
 ) {
-  await expect(log.getByRole('button', { name: 'Expand battle history', exact: true })).toHaveCount(
-    0,
-  )
-  await expect(log.getByRole('group', { name: 'Filter battle actions', exact: true })).toHaveCount(
-    0,
-  )
-  await expect(log.getByRole('group', { name: 'Battle history pages', exact: true })).toHaveCount(0)
-  let fixedGeometry:
-    Record<string, { x: number; y: number; width: number; height: number }> | undefined
-  for (const mode of ['Timeline', 'Text log']) {
-    const switchToMode = log.getByRole('button', { name: `Switch to ${mode}`, exact: true })
-    if (await switchToMode.count()) await switchToMode.click()
-    const toggle = log.locator(':scope > header button')
-    await expect(toggle).toHaveCount(1)
-    await expect(toggle).toHaveText(mode)
-    const track = log.getByRole('list', {
-      name: mode === 'Timeline' ? 'Battle action timeline' : 'Battle action transcript',
-      exact: true,
-    })
-    await expect(track).toBeVisible()
-    const readingViewport = log.locator('[data-battle-log-reading]')
-    await expect(readingViewport).toBeVisible()
-    const selected = log.getByRole('region', { name: 'Recorded action result', exact: true })
-    if (await selected.getAttribute('data-selected-action')) {
-      await expect(readingViewport).toHaveAttribute('data-measured', 'true')
-    }
-    await expect(page.locator('dialog[data-battle-action-details]')).toHaveCount(0)
-    await expect(log.locator('[data-battle-effect-trigger]')).toHaveCount(0)
-    await testInfo.attach(`${label}-${mode}`, {
-      body: await page.screenshot(),
-      contentType: 'image/png',
-    })
-    const geometry = await log.evaluate((element) => {
+  const reader = log.getByRole('region', { name: 'Battle chronicle', exact: true })
+  await expect(reader).toBeVisible()
+  await expect(reader).toHaveAttribute('tabindex', '0')
+  await expect(log.locator(':scope > header')).toHaveCount(0)
+  await expect(log.getByText('Battle Log', { exact: true })).toHaveCount(0)
+  await expect(log.getByText('Live', { exact: true })).toHaveCount(0)
+  await expect(
+    log.getByRole('button', {
+      name: /Switch to (?:Timeline|Text log)|(?:Previous|Next) (?:turn|actions|details page)|Expand battle history|Action details:/,
+    }),
+  ).toHaveCount(0)
+  await expect(
+    log.getByRole('group', {
+      name: /Filter battle actions|Battle history pages|Battle history turns/,
+    }),
+  ).toHaveCount(0)
+  await expect(
+    log.getByRole('list', { name: /Battle action timeline|Battle action transcript/ }),
+  ).toHaveCount(0)
+  await expect(page.locator('dialog[data-battle-action-details]')).toHaveCount(0)
+  await expect(reader).not.toContainText('rollBasisPoints')
+
+  const measure = () =>
+    log.evaluate((element) => {
+      const reading = element.querySelector<HTMLElement>('[data-battle-chronicle]')!
       const rect = (node: Element) => {
         const box = node.getBoundingClientRect()
         return { top: box.top, bottom: box.bottom, left: box.left, right: box.right }
       }
-      const list = element.querySelector('ol')!
-      const turnControls = element.querySelector('[aria-label="Battle history turns"]')!
-      const reading = element.querySelector<HTMLElement>('[data-battle-log-reading]')!
-      // Playwright may scroll the mobile battle container when clicking its controls.
-      // Compare layout coordinates while keeping viewport coordinates for containment checks.
+      // Mobile BattleRouteFrame can scroll independently from the document.
       const layoutRect = (node: Element) => {
         const box = node.getBoundingClientRect()
         let x = box.x + window.scrollX
@@ -60,8 +48,21 @@ export async function expectReadableBattleLog(
         }
         return { x, y, width: box.width, height: box.height }
       }
+      const origin =
+        innerWidth <= 820
+          ? layoutRect(
+              element.closest('[data-unified-battle-content]') ??
+                element.closest('main') ??
+                document.body,
+            )
+          : { x: 0, y: 0 }
+      const relativeLayout = (node: Element) => {
+        const bounds = layoutRect(node)
+        return { ...bounds, x: bounds.x - origin.x, y: bounds.y - origin.y }
+      }
       const stableRegions: Record<string, ReturnType<typeof layoutRect>> = {
-        log: layoutRect(element),
+        log: relativeLayout(element),
+        reader: relativeLayout(reading),
       }
       for (const selector of [
         '[data-board-auto-fit]',
@@ -70,74 +71,87 @@ export async function expectReadableBattleLog(
         '[data-battle-terrain-key]',
       ]) {
         const region = document.querySelector(selector)
-        if (region) stableRegions[selector] = layoutRect(region)
+        if (region) stableRegions[selector] = relativeLayout(region)
       }
       return {
         log: rect(element),
+        reader: rect(reading),
         stableRegions,
-        header: rect(element.querySelector(':scope > header')!),
-        track: rect(list),
-        turns: rect(turnControls),
-        horizontalOverflow: list.scrollWidth - list.clientWidth,
-        verticalOverflow: list.scrollHeight - list.clientHeight,
+        horizontalOverflow: reading.scrollWidth - reading.clientWidth,
+        verticalOverflow: reading.scrollHeight - reading.clientHeight,
+        overflowY: getComputedStyle(reading).overflowY,
         readingHeight: reading.clientHeight,
-        readingOverflow: [
-          reading.scrollWidth - reading.clientWidth,
-          reading.scrollHeight - reading.clientHeight,
-        ],
-        scrollbar: getComputedStyle(list).scrollbarWidth,
-        controls: Array.from(
-          element.querySelectorAll('header button, [aria-label="Battle history turns"] button'),
-          rect,
-        ),
-        viewportHeight: window.innerHeight,
+        viewportHeight: innerHeight,
       }
     })
-    expect(geometry.turns.top).toBeGreaterThanOrEqual(geometry.header.bottom - 1)
-    expect(geometry.track.top).toBeGreaterThanOrEqual(geometry.turns.bottom - 1)
-    expect(geometry.track.bottom).toBeLessThanOrEqual(geometry.log.bottom + 1)
-    expect(geometry.track.bottom - geometry.track.top).toBeGreaterThan(24)
-    expect(geometry.horizontalOverflow).toBeLessThanOrEqual(1)
-    expect(geometry.verticalOverflow).toBeLessThanOrEqual(1)
-    expect(geometry.readingHeight).toBeGreaterThanOrEqual(36)
-    for (const overflow of geometry.readingOverflow) expect(overflow).toBeLessThanOrEqual(1)
-    expect(geometry.scrollbar).toBe('none')
-    if (fixedGeometry) {
-      expect(Object.keys(geometry.stableRegions)).toEqual(Object.keys(fixedGeometry))
-      for (const [region, bounds] of Object.entries(geometry.stableRegions)) {
-        for (const dimension of ['x', 'y', 'width', 'height'] as const) {
-          expect(
-            Math.abs(bounds[dimension] - fixedGeometry[region]![dimension]),
-            `${region} ${dimension} stays fixed between battle-log formats`,
-          ).toBeLessThanOrEqual(1)
-        }
-      }
-    } else fixedGeometry = geometry.stableRegions
-    for (const control of geometry.controls) {
-      expect(control.left).toBeGreaterThanOrEqual(geometry.log.left - 1)
-      expect(control.right).toBeLessThanOrEqual(geometry.log.right + 1)
-    }
-    if ((page.viewportSize()?.width ?? 0) > 820) {
-      expect(geometry.log.top).toBeGreaterThanOrEqual(-1)
-      expect(geometry.log.bottom).toBeLessThanOrEqual(geometry.viewportHeight + 1)
-    }
-    const labelBefore = await log.locator('[data-view] > div:first-child > span').textContent()
-    const older = log.getByRole('button', { name: 'Previous turn', exact: true })
-    if (await older.count()) {
-      await older.click()
-      await expect(log.locator('[data-view] > div:first-child > span')).not.toHaveText(labelBefore!)
-      await testInfo.attach(`${label}-${mode}-previous-turn`, {
-        body: await page.screenshot(),
-        contentType: 'image/png',
-      })
-      const newer = log.getByRole('button', { name: 'Next turn', exact: true })
-      await expect(newer).toBeVisible()
-      if ((await older.count()) === 0) await expect(newer).toBeFocused()
-      await newer.click()
-      await expect(log.locator('[data-view] > div:first-child > span')).toHaveText(labelBefore!)
-      await expect(newer).toHaveCount(0)
-      await expect(older).toBeFocused()
+  await page.evaluate(async () => {
+    await document.fonts.ready
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+    )
+  })
+  const before = await measure()
+  expect(before.reader.top).toBeGreaterThanOrEqual(before.log.top - 1)
+  expect(before.reader.bottom).toBeLessThanOrEqual(before.log.bottom + 1)
+  expect(before.reader.left).toBeGreaterThanOrEqual(before.log.left - 1)
+  expect(before.reader.right).toBeLessThanOrEqual(before.log.right + 1)
+  expect(before.readingHeight).toBeGreaterThanOrEqual(36)
+  expect(before.horizontalOverflow).toBeLessThanOrEqual(1)
+  expect(['auto', 'scroll']).toContain(before.overflowY)
+  if ((page.viewportSize()?.width ?? 0) > 820) {
+    expect(before.log.top).toBeGreaterThanOrEqual(-1)
+    expect(before.log.bottom).toBeLessThanOrEqual(before.viewportHeight + 1)
+  }
+  const actions = reader.locator('[data-chronicle-action]')
+  if (await actions.count()) {
+    expect(await reader.locator('h2').allTextContents()).toEqual(
+      expect.arrayContaining([expect.stringMatching(/^ROUND \d+$/)]),
+    )
+    expect(await reader.locator('[data-chronicle-actor] h3').count()).toBeGreaterThan(0)
+    for (const action of await actions.all()) {
+      await expect(action.locator(':scope > h4')).not.toHaveText('')
+      expect(await action.locator(':scope > p').count()).toBeGreaterThan(0)
     }
   }
-  await log.getByRole('button', { name: 'Switch to Timeline', exact: true }).click()
+  const scrollTop = await reader.evaluate((element) => element.scrollTop)
+  await reader.focus()
+  await reader.evaluate((element) => {
+    element.scrollTop = 0
+  })
+  if (before.verticalOverflow > 1) {
+    await reader.hover()
+    await page.mouse.wheel(0, before.readingHeight)
+    await expect.poll(() => reader.evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
+  }
+  const effect = reader.getByRole('button', { name: /^Explain / }).first()
+  if (await effect.count()) {
+    const effectName = (await effect.getAttribute('aria-label'))!.replace(/^Explain /, '')
+    await effect.click()
+    const panel = page.getByRole('dialog', { name: effectName, exact: true })
+    await expect(panel).toBeVisible()
+    await expect(panel.locator(':scope > p').first()).not.toHaveText('')
+    await page.keyboard.press('Escape')
+    await expect(panel).toHaveCount(0)
+  }
+  const after = await measure()
+  await testInfo.attach(`${label}-chronicle-geometry`, {
+    body: JSON.stringify({ before, after }, null, 2),
+    contentType: 'application/json',
+  })
+  expect(Object.keys(after.stableRegions)).toEqual(Object.keys(before.stableRegions))
+  for (const [region, bounds] of Object.entries(after.stableRegions)) {
+    for (const dimension of ['x', 'y', 'width', 'height'] as const) {
+      expect(
+        Math.abs(bounds[dimension] - before.stableRegions[region]![dimension]),
+        `${region} ${dimension} stays fixed while reading the chronicle`,
+      ).toBeLessThanOrEqual(1)
+    }
+  }
+  await reader.evaluate((element, top) => {
+    element.scrollTop = top
+  }, scrollTop)
+  await testInfo.attach(`${label}-chronicle`, {
+    body: await page.screenshot(),
+    contentType: 'image/png',
+  })
 }

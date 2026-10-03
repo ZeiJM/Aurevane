@@ -9,6 +9,8 @@ export interface CombatTerrainOverlay {
   sourceCombatantId: string
 }
 export interface CombatTerrainProjection {
+  /** Forecast-only activation boundary; absent on immediate committed terrain receipts. */
+  activationRound?: number
   position: GridPosition
   before: CombatTerrainOverlayKind | null
   after: CombatTerrainOverlayKind | null

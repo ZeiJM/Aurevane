@@ -88,6 +88,71 @@ function snapshot() {
 }
 
 describe('CSR-3 history privacy repository', () => {
+  it('retains an optional team intersection through persisted authority parsing', async () => {
+    const visibility = { kind: 'team-only', teamId: 'team:a', requiredTeamIds: ['team:b'] }
+    rpc.mockResolvedValueOnce({
+      data: [
+        {
+          viewer_kind: 'participant',
+          controlled_combatant_ids: [PLAYER],
+          snapshot: snapshot(),
+          journals: [
+            {
+              schemaVersion: 1,
+              battleVersion: 9,
+              actorCombatantId: ENEMY,
+              actorTeamId: 'team:b',
+              eventCount: 1,
+              commandVisibility: { kind: 'public' },
+              eventVisibilityOverrides: [{ eventIndex: 0, visibility }],
+            },
+          ],
+        },
+      ],
+      error: null,
+    })
+    const result = await createSupabaseBattleSessionRepository().findBattleHistoryPrivacy(
+      USER_ID,
+      SESSION_ID,
+      [9],
+    )
+    expect(result.journals[0]?.eventVisibilityOverrides[0]?.visibility).toEqual(visibility)
+  })
+
+  it.each([[], ['team:a'], ['team:b', 'team:b'], [null], 'team:b'])(
+    'fails closed on malformed persisted required teams %j',
+    async (requiredTeamIds) => {
+      rpc.mockResolvedValueOnce({
+        data: [
+          {
+            viewer_kind: 'participant',
+            controlled_combatant_ids: [PLAYER],
+            snapshot: snapshot(),
+            journals: [
+              {
+                schemaVersion: 1,
+                battleVersion: 9,
+                actorCombatantId: ENEMY,
+                actorTeamId: 'team:b',
+                eventCount: 1,
+                commandVisibility: { kind: 'public' },
+                eventVisibilityOverrides: [
+                  {
+                    eventIndex: 0,
+                    visibility: { kind: 'team-only', teamId: 'team:a', requiredTeamIds },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        error: null,
+      })
+      await expect(
+        createSupabaseBattleSessionRepository().findBattleHistoryPrivacy(USER_ID, SESSION_ID, [9]),
+      ).rejects.toMatchObject({ code: 'PERSISTENCE_UNAVAILABLE' })
+    },
+  )
   it('retains validated immutable Skill references privately for recorded log enrichment', async () => {
     const buildAuthority = createBattleBuildAuthoritySnapshot('pvp', [
       {

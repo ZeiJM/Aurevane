@@ -1,6 +1,9 @@
 import 'server-only'
 
-import type { CombatResolutionEvent } from '@aurevane/game-core/combat/actions'
+import type {
+  CombatEffectProjection,
+  CombatResolutionEvent,
+} from '@aurevane/game-core/combat/actions'
 import type { CombatTerrainProjection } from '@aurevane/game-core/combat/terrain-overlays'
 
 import type { BattleSessionRecord, BattleSessionRepository } from '@aurevane/db/battle-session'
@@ -65,12 +68,7 @@ export interface BattleActionPreview {
   primaryCombatantId: string | null
   affectedTiles: readonly { x: number; y: number }[]
   affectedCombatantIds: readonly string[]
-  projectedEffects: readonly {
-    effectType: string
-    combatantId: string
-    before: number | string
-    after: number | string
-  }[]
+  projectedEffects: readonly CombatEffectProjection[]
   projectedTerrain?: readonly CombatTerrainProjection[]
   projectedEvents?: readonly CombatResolutionEvent[]
   projectedStatuses: readonly {

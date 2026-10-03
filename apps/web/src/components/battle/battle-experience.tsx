@@ -684,7 +684,8 @@ export function BattleExperience({
   }, [battle, runtime.kind])
 
   useEffect(() => {
-    if (runtime.kind !== 'pvp') return
+    const stateEvent =
+      runtime.kind === 'pvp' ? 'aurevane:pvp-battle-state' : 'aurevane:battle-state'
 
     const receiveExternalBattleState = (event: Event) => {
       if (!(event instanceof CustomEvent)) return
@@ -693,8 +694,8 @@ export function BattleExperience({
       applyRemoteBattle(next)
     }
 
-    window.addEventListener('aurevane:pvp-battle-state', receiveExternalBattleState)
-    return () => window.removeEventListener('aurevane:pvp-battle-state', receiveExternalBattleState)
+    window.addEventListener(stateEvent, receiveExternalBattleState)
+    return () => window.removeEventListener(stateEvent, receiveExternalBattleState)
   }, [applyRemoteBattle, battle.battleSessionId, runtime.kind])
 
   useEffect(() => {

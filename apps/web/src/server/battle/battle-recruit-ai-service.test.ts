@@ -428,6 +428,15 @@ describe('P2.6 authoritative Recruit AI turn service', () => {
           ...initial.tactical,
           battle: {
             ...initial.tactical.battle,
+            // Session creation uses random IDs and accuracy rolls in production. Pin both
+            // here: this test checks turn routing and hostile recipients, not hit variance.
+            battleId: 'battle:consecutive-ai-turn-regression',
+            rng: {
+              algorithm: 'xorshift32-v1' as const,
+              seed: 987_654_321,
+              state: 987_654_321,
+              draws: 0,
+            },
             combatants: initial.tactical.battle.combatants.map((c) => ({
               ...c,
               hp: 10_000,

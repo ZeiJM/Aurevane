@@ -3,7 +3,6 @@ import {
   skillEffectDescription,
   skillCooldownDescription,
   skillParameterRows,
-  skillTargetingDetails,
   skillRequirementDescription,
   skillTargetTags,
 } from './skill-detail-presentation'
@@ -37,7 +36,6 @@ function SkillDetailBody({ skill }: { skill: MatureSkillDefinition }) {
           </div>
         ) : null}
       </dl>
-      <p>{skillTargetingDetails(skill)}</p>
       <strong>Effects, in order</strong>
       <ol>
         {skill.effects.map((effect, index) => (

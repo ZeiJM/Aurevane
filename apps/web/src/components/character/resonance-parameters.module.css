@@ -1,0 +1,23 @@
+.report {
+  min-width: 0;
+}
+
+.report .effectRow :global([data-compact-skill-effect]) {
+  display: inline;
+  margin: 0;
+}
+
+.report :global([data-compact-effect-magnitude]),
+.report :global([data-compact-effect-duration]) {
+  color: var(--resonance-effect-accent, #775019);
+  font-weight: 650;
+}
+
+.report ul {
+  margin: 0.5rem 0 0;
+  padding-left: 1.2rem;
+}
+
+.report li + li {
+  margin-top: 0.25rem;
+}

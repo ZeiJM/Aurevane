@@ -9,7 +9,7 @@ function disciplineName(id: string): string {
   return id.replace(/[._-]/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
 }
 
-function resultRecipient(effect: CombatEffectDefinition): string {
+export function resonanceResultRecipient(effect: CombatEffectDefinition): string {
   switch (effect.recipient) {
     case 'actor':
       return 'Self'
@@ -51,21 +51,25 @@ export function resonanceCharacteristicRows(
           `Use ${matcher(setup)} as Setup, then ${matcher(mechanics.trigger)} as the next Discipline Skill. Another Discipline Skill expires the armed Setup.`,
         ]
       : [`Use ${matcher(mechanics.trigger)}; no Setup required.`]),
+    'Uses the Trigger Skill’s range, target selection, elevation and line of sight rules.',
     ...(mechanics.resultEffects.some((effect) => effect.recipient === 'primary-unit')
       ? [
           'A unit selection is required for the selected-unit Result.' +
             (setup ? ' Ground selection preserves the armed Setup.' : ''),
         ]
       : []),
+    'Attack Results require an eligible affected unit.' +
+      (setup ? ' Empty-ground attacks preserve the armed Setup.' : ''),
   ]
-  const recipients = [...new Set(mechanics.resultEffects.map(resultRecipient))]
+  const recipients = [...new Set(mechanics.resultEffects.map(resonanceResultRecipient))]
   return skillInformationRows<string | readonly string[]>({
     'Skill Type': 'Passive · Resonance',
     Cost: 'N/A',
     Cooldown: 'N/A',
     Requirements: requirements,
     Effects: skillEffectSummaries({ effects: mechanics.resultEffects }).map(
-      (summary, index) => `${summary} → ${resultRecipient(mechanics.resultEffects[index]!)}`,
+      (summary, index) =>
+        `${summary} → ${resonanceResultRecipient(mechanics.resultEffects[index]!)}`,
     ),
     Range: 'N/A',
     Target: recipients.join('; ') || 'N/A',
@@ -83,20 +87,10 @@ export function resonanceSupplementalRows(
   const mechanics = normalizedResonanceMechanics(definition)
   const matcher = (value: typeof mechanics.trigger) =>
     `${disciplineName(value.sourceDisciplineId)} · ${value.requiredTags.join(' + ')}`
-  const requiresUnit = mechanics.resultEffects.some((effect) => effect.recipient === 'primary-unit')
   return [
     ['Mode', mechanics.mode === 'immediate' ? 'Immediate Resonance' : 'Sequence Resonance'],
     ['Setup', mechanics.setup ? matcher(mechanics.setup) : 'N/A'],
     ['Trigger', matcher(mechanics.trigger)],
-    [
-      'Trigger targeting',
-      'Uses the Trigger Skill’s range, target selection, elevation and line of sight rules. No separate selection, resource cost or cooldown.' +
-        (requiresUnit ? ' Selected-unit Results require a unit selection.' : '') +
-        ' Attack Results require an eligible affected unit.' +
-        (mechanics.setup
-          ? ' Ground selection for selected-unit Results and empty-ground attacks preserve the armed Setup.'
-          : ''),
-    ],
     ['Result details', mechanics.resultEffects.map((effect) => previewEffect(effect).explanation)],
   ]
 }

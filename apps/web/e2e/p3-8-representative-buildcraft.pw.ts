@@ -215,10 +215,13 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
       .locator('dd')
   await expect(resonanceField('Setup')).toHaveText('Lifebinder · heal')
   await expect(resonanceField('Trigger')).toHaveText('Vanguard · attack + melee')
-  await expect(resonanceField('Effects')).toHaveText(
-    'Dmg [6] → Trigger Skill selected unit, Healing [4] → Self',
+  await expect(resonanceField('Effects').locator(':scope > div')).toHaveText([
+    'Dmg [6] → Trigger Skill selected unit',
+    'Healing [4] → Self',
+  ])
+  await expect(resonancePreview.getByRole('list', { name: 'Effect explanations' })).toContainText(
+    'Restores HP to you.',
   )
-  await expect(resonanceField('Result details')).toContainText('Restores HP to you.')
   for (const field of [
     'Cost',
     'Cooldown',
@@ -310,9 +313,7 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
         report.evaluate((panel) => panel.getBoundingClientRect().bottom <= innerHeight + 1),
       )
       .toBe(true)
-    await expect(
-      report.locator('dt', { hasText: /^Result details$/ }).locator('..'),
-    ).toBeInViewport()
+    await expect(report.getByRole('list', { name: 'Effect explanations' })).toBeInViewport()
     await page.keyboard.press('Escape')
     await expect(report).toHaveCount(0)
     expect(

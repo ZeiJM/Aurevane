@@ -1,3 +1,4 @@
+import { readCombatEffectTimingPolicy } from '@/server/master/combat-effect-timing-policy-store'
 import 'server-only'
 
 import { randomInt, randomUUID } from 'node:crypto'
@@ -44,6 +45,7 @@ import {
 } from '../character/character-build-service'
 import {
   createResolvedBattleBuildAuthoritySnapshot,
+  narratorIdentityForCharacter,
   type BattleBuildAuthoritySnapshot,
 } from './battle-build-authority'
 import { getPvpLobby, type PvpLobbyMemberView } from './pvp-lobby-service'
@@ -376,10 +378,12 @@ export async function startPvpLobbyWithQuality(
       combatantId: `character:${character.id}`,
       characterId: character.id,
       snapshot: buildSnapshot,
+      narratorIdentity: narratorIdentityForCharacter(character),
     })),
     createServerCombatContentResolver(),
   )
   const encounter = createPvpEncounter(roster, lobby.teamSizes, settings, buildAuthority)
+  encounter.effectTimingPolicy = await readCombatEffectTimingPolicy()
   const battle = encounter.tactical.battle
   const supabase = createSupabaseAdminClient()
   const { data, error } = await supabase.rpc('create_pvp_battle_session_v1', {

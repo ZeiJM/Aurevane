@@ -9,6 +9,7 @@ import {
   type StatDrivenCombatEncounterState,
 } from '@aurevane/game-core/combat/stat-driven-combat'
 import { createPvpQualityResources } from '@aurevane/game-core/combat/pvp-quality'
+import { hasGameplayTag, statusIdsForGameplayTag } from '@aurevane/game-core/combat/gameplay-tags'
 import {
   createPv1fTemporaryResources,
   PV1F_COMBAT_CONTENT,
@@ -333,6 +334,31 @@ it('keeps a shorter costly route when the cheapest merge route exhausts MOVE bef
 })
 
 describe('immediate Move destinations', () => {
+  it('keeps pending rail statuses out of movement and gameplay tag calculations', () => {
+    let state = encounter()
+    for (const status of ['root', 'airborne', 'covert']) state = withStatus(state, 'actor', status)
+    state.statusState = state.statusState.map((row) => ({
+      ...row,
+      statuses: row.statuses.map((status) => ({
+        ...status,
+        timingState: 'pending',
+        activationRound: 2,
+      })),
+    }))
+    state.terrainOverlays = [
+      {
+        kind: 'frozen',
+        position: { x: 1, y: 0 },
+        remainingRoundBoundaries: 2,
+        sourceCombatantId: 'actor',
+      },
+    ]
+    const paths = buildImmediateStepPaths(state, state.tactical.placements[0]!, 100)
+    expect([...paths.keys()].sort()).toEqual(['0:1', '1:0'])
+    expect(buildImmediateStepPaths(state, state.tactical.placements[0]!, 29).has('1:0')).toBe(false)
+    expect(hasGameplayTag(state, 'actor', 'Airborne', PV1F_COMBAT_CONTENT)).toBe(false)
+    expect(statusIdsForGameplayTag(state, 'actor', 'Airborne', PV1F_COMBAT_CONTENT)).toEqual([])
+  })
   it('offers only legal cardinal steps while keeping the full movement budget', () => {
     const state = encounter()
     const placement = state.tactical.placements[0]!

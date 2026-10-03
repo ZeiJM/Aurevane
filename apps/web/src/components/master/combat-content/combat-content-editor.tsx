@@ -10,6 +10,7 @@ import { useMemo, useRef, useState } from 'react'
 
 import { SkillDetails } from '../../character/skill-details'
 import styles from './combat-content-editor.module.css'
+import { BattleFlavorTemplateHelp } from './battle-flavor-template-help'
 import { postCombatContentAuthoring } from './combat-content-client'
 import { CombatContentReviewPanel } from './combat-content-review-panel'
 import {
@@ -528,7 +529,7 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
                     aria-label="Player-facing flavor line"
                     type="text"
                     maxLength={160}
-                    placeholder="One evocative line; mechanics belong in the effect fields"
+                    placeholder="One or two short story sentences; mechanics belong in Effects"
                     value={selectedDraft.flavorLine ?? ''}
                     onChange={(event) => {
                       const flavorLine = event.currentTarget.value
@@ -545,6 +546,11 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
                     Presentation only. Keep exact mechanics in Effects, Requirements, and targeting.
                   </small>
                 </label>
+                <BattleFlavorTemplateHelp
+                  value={selectedDraft.flavorLine ?? ''}
+                  ability={selectedSkill.label}
+                  onChange={(flavorLine) => updateSelectedDraft({ ...selectedDraft, flavorLine })}
+                />
               </fieldset>
               <SkillTargetingEditor
                 value={selectedDraft.target}

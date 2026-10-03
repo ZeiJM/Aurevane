@@ -1,3 +1,5 @@
+import { readCombatEffectTimingPolicy } from '@/server/master/combat-effect-timing-policy-store'
+import { omitPendingBattlePayloads } from './battle-live-viewer-projection'
 import 'server-only'
 
 import { randomInt, randomUUID } from 'node:crypto'
@@ -44,6 +46,7 @@ import { createServerCombatContentResolver } from '@/server/combat/combat-conten
 import {
   createBattleBuildAuthoritySnapshot,
   createResolvedBattleBuildAuthoritySnapshot,
+  narratorIdentityForCharacter,
   type BattleBuildAuthoritySnapshot,
 } from './battle-build-authority'
 import { projectBattleStatusStateForViewer } from './battle-live-viewer-projection'
@@ -470,6 +473,7 @@ export function createPvpEncounter(
           combatantId: `character:${character.id}`,
           characterId: character.id,
           snapshot: buildSnapshot,
+          narratorIdentity: narratorIdentityForCharacter(character),
         })),
       ),
   }
@@ -483,7 +487,7 @@ function projectSnapshot(input: unknown): BattleSessionProjection {
   const viewer = createSpectatorBattleViewerEntitlement()
   const battle = candidate.tactical.battle
   return {
-    ...candidate,
+    ...omitPendingBattlePayloads(candidate),
     statusState: projectBattleStatusStateForViewer(candidate, viewer),
     tactical: {
       ...candidate.tactical,
@@ -609,10 +613,12 @@ export async function startPvpLobby(
       combatantId: `character:${character.id}`,
       characterId: character.id,
       snapshot: buildSnapshot,
+      narratorIdentity: narratorIdentityForCharacter(character),
     })),
     createServerCombatContentResolver(),
   )
   const encounter = createPvpEncounter(roster, lobby.teamSizes, buildAuthority)
+  encounter.effectTimingPolicy = await readCombatEffectTimingPolicy()
   const battle = encounter.tactical.battle
   const supabase = createSupabaseAdminClient()
   const { data, error } = await supabase.rpc('create_pvp_battle_session_v1', {

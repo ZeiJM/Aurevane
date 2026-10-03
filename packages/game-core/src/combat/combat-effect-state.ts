@@ -64,6 +64,7 @@ export interface CombatOngoingRecovery {
 }
 
 export interface CombatPoisonInstance {
+  skipCurrentOwnerTurnEnd?: boolean
   targetCombatantId: string
   sourceCombatantId: string
   sourceActionId: string
@@ -78,6 +79,7 @@ export interface CombatPoisonInstance {
 }
 
 export interface CombatBleedStack {
+  skipCurrentOwnerTurnEnd?: boolean
   targetCombatantId: string
   sourceCombatantId: string
   sourceActionId: string
@@ -90,6 +92,7 @@ export interface CombatBleedStack {
 }
 
 export interface CombatBurnInstance {
+  skipCurrentOwnerTurnEnd?: boolean
   targetCombatantId: string
   sourceCombatantId: string
   sourceActionId: string

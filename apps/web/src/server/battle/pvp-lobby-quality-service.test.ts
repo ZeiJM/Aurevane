@@ -190,6 +190,8 @@ vi.mock('./pvp-lobby-service', () => ({
 vi.mock('@/lib/supabase/admin', () => ({
   createSupabaseAdminClient: () => ({
     rpc: async (name: string, args: Record<string, unknown>) => {
+      if (name === 'read_combat_effect_timing_policy_v1')
+        return { data: { version: 1, modes: {} }, error: null }
       if (name === 'get_pvp_lobby_settings_v2') {
         return {
           data: {
@@ -268,6 +270,12 @@ describe('P3.7 direct PvP committed build snapshots', () => {
     const host = readCombatBuildSnapshot(state, `character:${hostCharacterId}`)
     const guest = readCombatBuildSnapshot(state, `character:${guestCharacterId}`)
     expect(state.buildAuthority).toMatchObject({ catalogVersion: 3, combatContext: 'pvp' })
+    expect(state.buildAuthority?.combatants.map((combatant) => combatant.narratorIdentity)).toEqual(
+      [
+        { name: 'Host', pronounPresetId: 'they_them' },
+        { name: 'Guest', pronounPresetId: 'they_them' },
+      ],
+    )
     for (const combatant of state.buildAuthority!.combatants) {
       const bridge = readCombatBuildSnapshot(state, combatant.combatantId)!
       expect(combatant.primary).toEqual(bridge.primary)
@@ -433,7 +441,14 @@ describe('P3.7 direct PvP committed build snapshots', () => {
         height: initial.tactical.height,
       })
       expect(before.snapshot.tactical.tiles).toEqual(initial.tactical.tiles)
-      expect(before.snapshot.buildAuthority).toEqual(initial.buildAuthority)
+      expect(before.snapshot.buildAuthority).toEqual({
+        ...initial.buildAuthority,
+        combatants: initial.buildAuthority!.combatants.map((combatant) => {
+          const publicCombatant = { ...combatant }
+          delete publicCombatant.narratorIdentity
+          return publicCombatant
+        }),
+      })
       const hostBuild = before.snapshot.buildAuthority!.combatants.find(
         (row) => row.combatantId === hostId,
       )!
@@ -518,8 +533,24 @@ describe('P3.7 direct PvP committed build snapshots', () => {
           readPv1fActionEconomy(record.snapshot as BattleAuthoritativeEncounterState, hostId)!
             .current,
       ).toBe(45)
-      expect(after.snapshot.terrainOverlays?.length).toBeGreaterThan(0)
-      expect(after.snapshot.buildAuthority).toEqual(initial.buildAuthority)
+      expect(after.snapshot.terrainOverlays ?? []).toHaveLength(0)
+      expect(after.snapshot).not.toHaveProperty('pendingEffects')
+      expect((record.snapshot as BattleAuthoritativeEncounterState).pendingEffects).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            activationRound: before.snapshot.tactical.battle.round + 1,
+            effect: expect.objectContaining({ type: 'create-terrain' }),
+          }),
+        ]),
+      )
+      expect(after.snapshot.buildAuthority).toEqual({
+        ...initial.buildAuthority,
+        combatants: initial.buildAuthority!.combatants.map((combatant) => {
+          const publicCombatant = { ...combatant }
+          delete publicCombatant.narratorIdentity
+          return publicCombatant
+        }),
+      })
       expect((await service.getSession(hostUserId, record.battleSessionId)).snapshot).toEqual(
         after.snapshot,
       )

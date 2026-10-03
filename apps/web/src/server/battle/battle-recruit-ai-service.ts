@@ -1,3 +1,4 @@
+import { omitPendingBattlePayloads } from './battle-live-viewer-projection'
 import 'server-only'
 
 import { createHash, randomUUID } from 'node:crypto'
@@ -137,7 +138,7 @@ function preserveFrozenBuildMetadata(
 function projectBattleSnapshot(state: StatDrivenCombatEncounterState): RecruitBattleProjection {
   const battle = state.tactical.battle
   return {
-    ...state,
+    ...omitPendingBattlePayloads(state),
     tactical: {
       ...state.tactical,
       battle: {

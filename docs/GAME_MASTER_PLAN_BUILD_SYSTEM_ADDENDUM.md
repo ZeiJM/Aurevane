@@ -1,5 +1,9 @@
 # AUREVANE — Build System Rework: Disciplines, Skills, Resonance, Ascension & Severence
 
+## Effect timing and Battle Chronicle — Owner-approved 2026-10-03
+
+New battles pin Owner-versioned tag timing: following global round by default, with direct damage and HP/MP recovery instant. Pending icons appear immediately; active durations expire after the affected character completes the specified turns. Master Panel controls tag timing without rewriting existing battles. The shared Battle Chronicle presents actor-grouped short authored scenes and actual outcomes. See `COMBAT.md` and `superpowers/specs/2026-10-03-battle-chronicle-effects.md`.
+
 ## Support Action — Owner-approved 2026-10-01
 
 2026-10-02 refinement: Guard has an independent two-owner-turn cooldown. Recovery retains its separate shared two-turn cooldown. Discipline library choices now save immediately through authoritative build services; no separate confirmation is required. Existing eligibility, attunement, version and identity checks remain required.

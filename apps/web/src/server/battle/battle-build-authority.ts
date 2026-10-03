@@ -1,4 +1,6 @@
 import 'server-only'
+import { PRONOUN_PRESETS, type PronounPresetId } from '@aurevane/game-core/character/creation'
+import type { CharacterRecord } from '@aurevane/db/character'
 
 import {
   parseSupportActionId,
@@ -35,7 +37,34 @@ import type { CombatContentResolver } from '@/server/combat/combat-content-resol
 
 export const BATTLE_BUILD_AUTHORITY_SCHEMA_VERSION = 1 as const
 
+export interface BattleNarratorIdentitySnapshot {
+  name: string
+  pronounPresetId?: PronounPresetId
+}
+
+export function narratorIdentityForCharacter(
+  character: Pick<CharacterRecord, 'name' | 'pronounPresetId'>,
+): BattleNarratorIdentitySnapshot {
+  const pronouns = PRONOUN_PRESETS.find((preset) => preset.id === character.pronounPresetId)
+  return { name: character.name, ...(pronouns ? { pronounPresetId: pronouns.id } : {}) }
+}
+
+function parseNarratorIdentity(value: unknown): BattleNarratorIdentitySnapshot | null {
+  if (
+    !isRecord(value) ||
+    Object.keys(value).some((key) => !['name', 'pronounPresetId'].includes(key)) ||
+    !nonEmptyString(value.name) ||
+    value.name.length > 48 ||
+    /[<>\r\n\u0000-\u001f]/u.test(value.name)
+  )
+    return null
+  const pronouns = PRONOUN_PRESETS.find((preset) => preset.id === value.pronounPresetId)
+  if (Object.hasOwn(value, 'pronounPresetId') && !pronouns) return null
+  return { name: value.name, ...(pronouns ? { pronounPresetId: pronouns.id } : {}) }
+}
+
 export interface BattleBuildAuthorityCombatantSnapshot {
+  narratorIdentity?: BattleNarratorIdentitySnapshot
   supportActionId?: SupportActionId
   combatantId: string
   characterId: string
@@ -61,6 +90,7 @@ export interface BattleBuildAuthoritySnapshot {
 }
 
 interface BattleBuildAuthorityInput {
+  narratorIdentity?: BattleNarratorIdentitySnapshot
   combatantId: string
   characterId: string
   snapshot: CharacterCommittedBuildSnapshotRecord
@@ -252,6 +282,10 @@ function parseCombatant(
 
   const supportActionId = parseSupportActionId(value.supportActionId)
   if (Object.hasOwn(value, 'supportActionId') && !supportActionId) return null
+  const narratorIdentity = Object.hasOwn(value, 'narratorIdentity')
+    ? parseNarratorIdentity(value.narratorIdentity)
+    : undefined
+  if (narratorIdentity === null) return null
   const combatSnapshot: CombatBuildSnapshot = {
     schemaVersion: COMBAT_BUILD_SNAPSHOT_SCHEMA_VERSION,
     sourceBuildSchemaVersion: value.buildSchemaVersion,
@@ -330,6 +364,7 @@ function parseCombatant(
 
   return {
     combatantId: value.combatantId,
+    ...(narratorIdentity ? { narratorIdentity } : {}),
     characterId: value.characterId,
     snapshotSchemaVersion: COMBAT_BUILD_SNAPSHOT_SCHEMA_VERSION,
     buildSchemaVersion: value.buildSchemaVersion,
@@ -393,10 +428,11 @@ function createBattleBuildAuthoritySnapshotForCatalog(
     schemaVersion: BATTLE_BUILD_AUTHORITY_SCHEMA_VERSION,
     catalogVersion,
     combatContext,
-    combatants: inputs.map(({ combatantId, characterId, snapshot }) => {
+    combatants: inputs.map(({ combatantId, characterId, snapshot, narratorIdentity }) => {
       const combatSnapshot = combatSnapshotFromCommitted(snapshot)
       return {
         combatantId,
+        ...(narratorIdentity ? { narratorIdentity: { ...narratorIdentity } } : {}),
         characterId,
         snapshotSchemaVersion: combatSnapshot.schemaVersion,
         buildSchemaVersion: combatSnapshot.sourceBuildSchemaVersion,

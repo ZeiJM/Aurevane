@@ -388,3 +388,33 @@ describe('Combat v5.1 summon runtime state', () => {
     )
   })
 })
+
+it('removes queued summon references while preserving remaining area recipients', () => {
+  const spawned = spawn({ ...encounter(), effectTimingPolicy: { version: 1, modes: {} } })
+  const id = spawned.events[0]!.combatantId
+  const state = spawned.state
+  state.pendingEffects = [
+    {
+      actorId: 'player',
+      actionId: 'queued',
+      effect: { type: 'apply-status', recipient: 'affected-units', statusId: 'hexed', stacks: 1 },
+      recipientIds: [id, 'enemy'],
+      affectedTiles: [],
+      activationRound: 2,
+      content: {
+        statuses: [
+          {
+            id: 'hexed',
+            version: 1,
+            maximumStacks: 1,
+            durationOwnerTurnStarts: 1,
+            damageTakenMultiplierBasisPoints: 15000,
+          },
+        ],
+      },
+    },
+  ]
+  const removed = removeCombatSummon(state, id, 'expired').state
+  expect(removed.pendingEffects?.[0]?.recipientIds).toEqual(['enemy'])
+  expect(validateStatDrivenCombatEncounterState(removed)).toEqual([])
+})

@@ -8,52 +8,51 @@ import {
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 import { commitGesture } from './refined-battle-helpers'
 import { expectReadableBattleLog } from './battle-log-layout-helpers'
+import { recordedChronicleAction } from './battle-log-chronicle-fixtures'
 
-test('battle-log geometry ignores scrolling but rejects a reader resize', async ({
+test('actual battle-log geometry ignores mobile scrolling but rejects a reader resize', async ({
   page,
 }, testInfo) => {
+  test.slow()
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.setContent(`
-    <style>
-      body { margin: 0; }
-      main { height: 300px; overflow: auto; }
-      .spacer { height: 700px; }
-      [data-battle-inline-log] { width: 264px; height: 200px; }
-      header, [aria-label="Battle history turns"] { height: 28px; }
-      ol { margin: 0; padding: 0; height: 44px; scrollbar-width: none; }
-      [data-battle-log-reading] { height: 100px; }
-    </style>
-    <main><div class="spacer"></div><aside data-battle-inline-log>
-      <header><button aria-label="Switch to Text log">Timeline</button></header>
-      <div data-view><div aria-label="Battle history turns"><span>Turn 1</span></div>
-        <ol aria-label="Battle action timeline"><li>Guard</li></ol>
-        <div data-battle-log-reading><section role="region" aria-label="Recorded action result">Guard recorded</section></div>
-      </div>
-    </aside></main>
-    <script>
-      document.querySelector('header button').onclick = (event) => {
-        const button = event.currentTarget;
-        const textMode = button.textContent === 'Timeline';
-        button.textContent = textMode ? 'Text log' : 'Timeline';
-        button.setAttribute('aria-label', textMode ? 'Switch to Timeline' : 'Switch to Text log');
-        document.querySelector('ol').setAttribute('aria-label', textMode ? 'Battle action transcript' : 'Battle action timeline');
-      };
-    </script>
-  `)
-  await expectReadableBattleLog(page, testInfo, 'nested-scroll')
-  expect(await page.locator('main').evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
-  await page.locator('header button').evaluate((button) => {
-    button.addEventListener(
-      'click',
+  const identity = uniqueIdentity('ScrollLog')
+  await provisionAccountAndEnterCharacter({
+    page,
+    ...identity,
+    password: 'AurevaneTest!42',
+  })
+  const entries = Array.from({ length: 20 }, (_, index) =>
+    recordedChronicleAction(index + 1),
+  ).flat()
+  await page.route('**/api/battles/*/events', async (route) => {
+    const battleSessionId = new URL(route.request().url()).pathname.split('/')[3]!
+    await route.fulfill({ json: { battleLog: { battleSessionId, entries } } })
+  })
+  await page.goto('/game/battle')
+  await page.getByRole('button', { name: 'Enter Battle', exact: true }).click()
+  await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
+  const reader = page.locator('[data-battle-inline-log] [data-battle-chronicle]')
+  await expect(reader.locator('[data-chronicle-action]')).toHaveCount(20)
+  await expectReadableBattleLog(page, testInfo, 'actual-mobile-scroll')
+  expect(
+    await reader.evaluate((element) => element.scrollHeight - element.clientHeight),
+  ).toBeGreaterThan(0)
+  await reader.evaluate(async (element) => {
+    element.scrollTop = element.scrollHeight
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+    )
+    element.addEventListener(
+      'scroll',
       () => {
-        const log = document.querySelector<HTMLElement>('[data-battle-inline-log]')!
-        log.style.height = '240px'
+        const log = element.closest<HTMLElement>('[data-battle-inline-log]')!
+        log.style.height = `${log.getBoundingClientRect().height + 40}px`
       },
       { once: true },
     )
   })
   await expect(expectReadableBattleLog(page, testInfo, 'reader-resize')).rejects.toThrow(
-    /log height stays fixed/,
+    /stays fixed while reading the chronicle/,
   )
 })
 
@@ -156,10 +155,8 @@ test('keeps the desktop PvP battle flow beside compact commands without resizing
       activeRoot.getByRole('button', { name: new RegExp(`occupied by ${activeName}`) }),
     )
     await expect(
-      root
-        .locator('[data-battle-inline-log]')
-        .getByRole('button', { name: /^Action details:.*Guard/ }),
-    ).toBeVisible()
+      root.locator('[data-battle-inline-log]').locator('[data-battle-chronicle]'),
+    ).toContainText('Guard')
     const spectatorKey = (
       await root.locator("[data-pvp-spectator-key='true'] strong").textContent()
     )?.trim()
@@ -182,7 +179,7 @@ test('keeps the desktop PvP battle flow beside compact commands without resizing
     expect((await historyResponse).ok()).toBe(true)
     const spectatorLog = spectatorRoot.locator('[data-battle-inline-log]')
     await expect(spectatorLog).toBeVisible()
-    await expect(spectatorLog.getByRole('button', { name: 'Switch to Text log' })).toBeVisible()
+    await expect(spectatorLog.getByRole('region', { name: 'Battle chronicle' })).toBeVisible()
     await expectReadableBattleLog(spectator, testInfo, 'spectator-short-log', spectatorLog)
     const chat = spectatorRoot
       .locator('details')
@@ -192,16 +189,15 @@ test('keeps the desktop PvP battle flow beside compact commands without resizing
     await expect(chat.getByRole('textbox')).toBeVisible()
     await chat.locator('summary').click()
     await expect(chat).not.toHaveAttribute('open', '')
-    await spectatorLog.getByRole('button', { name: 'Switch to Text log' }).click()
-    const history = spectatorLog.getByRole('list', {
-      name: 'Battle action transcript',
-      exact: true,
-    })
+    const history = spectatorLog.getByRole('region', { name: 'Battle chronicle', exact: true })
     await expect(history).toBeVisible()
     await expect(history).not.toContainText('temporarily unavailable')
     await expect(history).toContainText('Guard')
-    await spectatorLog.getByRole('button', { name: 'Switch to Timeline', exact: true }).click()
-    await expect(history).toHaveCount(0)
+    await expect(history.locator('[data-chronicle-actor]')).toHaveCount(1)
+    await expect(history.locator('[data-chronicle-actor] > h3')).toHaveText(activeName)
+    await expect(
+      history.getByRole('button', { name: 'Explain Guarded', exact: true }),
+    ).toBeVisible()
 
     await expect(root.locator('[data-battle-inline-log]')).toBeVisible()
     await expectTerrainKey(host)

@@ -20,6 +20,13 @@ function articleText(slug: string): string {
 }
 
 describe('published Manual rule consistency', () => {
+  it('explains pinned pending activation, affected-turn expiry and the text chronicle', () => {
+    const text = articleText('battle-hall')
+    expect(text).toContain('following global round')
+    expect(text).toContain('after the affected character completes')
+    expect(text).toContain('direct damage and HP/MP recovery')
+    expect(text).toContain('Battle Chronicle')
+  })
   it('uses the current progression cap and preserves XP authority', () => {
     const text = articleText('character-xp')
     expect(text).toContain(`Level ${CURRENT_LEVEL_CAP}`)

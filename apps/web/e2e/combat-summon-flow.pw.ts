@@ -94,7 +94,7 @@ async function readBattle(page: Page, sessionId: string): Promise<BattleSessionV
   return (await response.json()).battle as BattleSessionView
 }
 
-test('current Renewing Herbs summons, inspects and survives reload with its pinned profile', async ({
+test('current Renewing Herbs queues, activates next round, inspects and survives reload with its pinned profile', async ({
   page,
 }, testInfo) => {
   test.setTimeout(180_000)
@@ -179,7 +179,69 @@ test('current Renewing Herbs summons, inspects and survives reload with its pinn
   expect(commitResponse.status()).toBe(200)
   const after = (await commitResponse.json()).battle as BattleSessionView
 
-  const summon = after.snapshot.effectState?.summons?.find(
+  const activationRound = before.snapshot.tactical.battle.round + 1
+  expect(after.battleVersion).toBe(before.battleVersion + 1)
+  expect(after.snapshot.tactical.battle.round).toBe(before.snapshot.tactical.battle.round)
+  expect(after.snapshot.effectState?.summons ?? []).toEqual(
+    before.snapshot.effectState?.summons ?? [],
+  )
+  expect(after.snapshot.tactical.placements).toEqual(before.snapshot.tactical.placements)
+  expect(after.snapshot.statusState.find((row) => row.combatantId === actorId)?.statuses).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        statusId: 'summon',
+        timingState: 'pending',
+        activationRound,
+        remainingOwnerTurnEnds: 5,
+      }),
+    ]),
+  )
+  expect(after.snapshot).not.toHaveProperty('pendingSummons')
+  expect(after.snapshot).not.toHaveProperty('pendingEffects')
+  expect(after.snapshot).not.toHaveProperty('pendingSkillGrants')
+  const targetTile = root.getByRole('button', {
+    name: new RegExp(`^Tile ${chosen!.position.x + 1}, ${chosen!.position.y + 1};`),
+  })
+  await expect(targetTile).not.toHaveAttribute('aria-label', /occupied by Verdant Stalker/)
+  await page.reload()
+  const queued = await readBattle(page, sessionId)
+  expect(queued.battleVersion).toBe(after.battleVersion)
+  expect(queued.snapshot.effectState?.summons ?? []).toEqual(
+    after.snapshot.effectState?.summons ?? [],
+  )
+  expect(queued.snapshot.statusState).toEqual(after.snapshot.statusState)
+  await expect(targetTile).not.toHaveAttribute('aria-label', /occupied by Verdant Stalker/)
+  await expect(root).toHaveAttribute('data-local-turn', 'true')
+
+  // Capture the first global-boundary transition before the summon AI can move
+  // or complete its first turn. The page continues to run real Recruit/summon turns.
+  const boundary = page.waitForResponse(
+    async (response) => {
+      if (
+        !response.url().match(new RegExp(`/api/battles/${sessionId}/(final-turn|recruit-turn)$`)) ||
+        response.request().method() !== 'POST' ||
+        response.status() !== 200
+      )
+        return false
+      const body = await response.json()
+      return body.battle.snapshot.tactical.battle.round === activationRound
+    },
+    { timeout: 30_000 },
+  )
+  const finished = page.waitForResponse(
+    (response) =>
+      response.url().endsWith(`/api/battles/${sessionId}/final-turn`) &&
+      response.request().method() === 'POST',
+  )
+  const finish = root.getByRole('button', { name: /^End Turn,/ })
+  await expect(finish).toBeEnabled()
+  await finish.click()
+  await finish.press('KeyD')
+  expect((await finished).status()).toBe(200)
+  await expect(root).not.toHaveAttribute('data-local-turn', 'true')
+  const activated = (await (await boundary).json()).battle as BattleSessionView
+  expect(activated.snapshot.tactical.battle.round).toBe(activationRound)
+  const summon = activated.snapshot.effectState?.summons?.find(
     (entry) => entry.ownerCombatantId === actorId,
   )
   expect(summon).toMatchObject({
@@ -196,13 +258,36 @@ test('current Renewing Herbs summons, inspects and survives reload with its pinn
     'Verdant Mend',
   ])
 
-  const placement = after.snapshot.tactical.placements.find(
+  const spawnedPlacement = activated.snapshot.tactical.placements.find(
     (entry) => entry.combatantId === summon?.combatantId,
   )
-  expect(placement?.position).toEqual(chosen!.position)
-  expect(after.snapshot.tactical.battle.initiativeOrder).not.toContain(summon?.combatantId)
-  // The player projection omits this internal queue; retain the assertion on persisted authority.
-  expect(readPersistedDeferredInitiative(sessionId)).toContain(summon?.combatantId)
+  expect(spawnedPlacement?.position).toEqual(chosen!.position)
+  expect(activated.snapshot.effectState?.summons).toHaveLength(
+    (before.snapshot.effectState?.summons?.length ?? 0) + 1,
+  )
+  expect(activated.snapshot.tactical.battle.initiativeOrder).toContain(summon?.combatantId)
+  // The summon joins the activation round, without a second deferred-initiative wait.
+  expect(readPersistedDeferredInitiative(sessionId) ?? []).not.toContain(summon?.combatantId)
+  await expect(root).toHaveAttribute('data-local-turn', 'true', { timeout: 30_000 })
+  const current = await readBattle(page, sessionId)
+  expect(current.snapshot.tactical.battle.round).toBe(activationRound)
+  expect(current.snapshot).not.toHaveProperty('pendingSummons')
+  expect(
+    current.snapshot.statusState.find((row) => row.combatantId === actorId)?.statuses ?? [],
+  ).not.toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ statusId: 'summon', timingState: 'pending' }),
+    ]),
+  )
+  const currentSummon = current.snapshot.effectState!.summons!.find(
+    (entry) => entry.combatantId === summon!.combatantId,
+  )!
+  expect(currentSummon).toBeTruthy()
+  expect(currentSummon.turnsCompleted).toBeLessThanOrEqual(1)
+  const remainingTurns = currentSummon.profile.lifetimeTurns - currentSummon.turnsCompleted
+  const placement = current.snapshot.tactical.placements.find(
+    (entry) => entry.combatantId === summon!.combatantId,
+  )!
 
   await expect(
     page.getByRole('button', { name: 'Inspect Verdant Stalker', exact: true }),
@@ -218,7 +303,7 @@ test('current Renewing Herbs summons, inspects and survives reload with its pinn
 
   const inspect = await openSelectedCombatantDetails(page, 'Verdant Stalker')
   await expect(inspect).toContainText(`Summoner: ${characterName}`)
-  await expect(inspect).toContainText('5/5 turns')
+  await expect(inspect).toContainText(`${remainingTurns}/5 turns`)
   await expect(inspect).toContainText('Thorn Rake')
   await expect(inspect).toContainText('Verdant Mend')
   await page.keyboard.press('4')
@@ -241,6 +326,7 @@ test('current Renewing Herbs summons, inspects and survives reload with its pinn
     expect.objectContaining({
       combatantId: summon?.combatantId,
       sourceSkillId: 'wildwarden.renewing-herbs',
+      turnsCompleted: currentSummon.turnsCompleted,
       profile: expect.objectContaining({
         id: 'summon.wildwarden.verdant-stalker',
         lifetimeTurns: 5,
@@ -258,7 +344,7 @@ test('current Renewing Herbs summons, inspects and survives reload with its pinn
     })
     .click()
   const reloadedInspect = await openSelectedCombatantDetails(page, 'Verdant Stalker')
-  await expect(reloadedInspect).toContainText('5/5 turns')
+  await expect(reloadedInspect).toContainText(`${remainingTurns}/5 turns`)
   await expect(reloadedInspect).toContainText('Thorn Rake')
   await expect(reloadedInspect).toContainText('Verdant Mend')
 

@@ -702,6 +702,36 @@
   font-family: var(--av-font-mono);
 }
 
+.resonancePreview {
+  --resonance-effect-accent: var(--av-brass-300);
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+.resonancePreview dl {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.5rem 0 0.8rem;
+}
+
+.resonancePreview dl > div {
+  display: grid;
+  grid-template-columns: minmax(6rem, 0.8fr) minmax(0, 1.2fr);
+  gap: 0.45rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--av-border);
+}
+
+.resonancePreview dt {
+  color: var(--av-text-dim);
+  font-weight: 600;
+}
+
+.resonancePreview dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
 .previewFacts,
 .confirmationFacts {
   display: flex;

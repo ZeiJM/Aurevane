@@ -5,6 +5,7 @@ import { skillPreviewEffects } from './skill-effect-preview'
 
 import Image from 'next/image'
 
+import { renderBattleFlavorTemplate } from '@aurevane/game-core/combat/battle-narration'
 import { pv1fSkillByActionId } from '@aurevane/game-core/combat/pv1f-skills'
 import {
   DEFAULT_SUPPORT_ACTION_ID,
@@ -30,7 +31,6 @@ import { battleSkillArtwork } from '../battle/battle-skill-presentation'
 import {
   skillDisplayName,
   skillParameterRows,
-  skillTargetingDetails,
   skillTypeDescription,
 } from './skill-detail-presentation'
 import styles from './character-skill-build-panel.module.css'
@@ -701,8 +701,9 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                             <div>
                               <strong>{skillDisplayName(focusedSkill.definition)}</strong>
                               <small>
-                                {focusedSkill.definition.flavorLine ??
-                                  `${focusedSkillDisciplineName} Technique`}
+                                {renderBattleFlavorTemplate(focusedSkill.definition.flavorLine, {
+                                  ability: skillDisplayName(focusedSkill.definition),
+                                }) ?? `${focusedSkillDisciplineName} Technique`}
                               </small>
                             </div>
                           </div>
@@ -735,9 +736,6 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                               </div>
                             ))}
                           </dl>
-                          <p className={styles.targetingDetails}>
-                            {skillTargetingDetails(focusedSkill.definition)}
-                          </p>
                           <ul
                             className={styles.effectExplanations}
                             aria-label="Effect explanations"

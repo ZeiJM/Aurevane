@@ -393,3 +393,50 @@ describe('PV-1F temporary Skill Copy integration', () => {
     )
   })
 })
+it('pins the selected copied Skill but grants access only in the following global round', () => {
+  const result = executePv1fMatureSkill(
+    { ...state(), effectTimingPolicy: { version: 1, modes: {} } },
+    copySkill(),
+    { kind: 'unit', combatantId: SOURCE },
+    'pve',
+    {
+      copyContext: {
+        sourceCombatantId: SOURCE,
+        sourceSkills: [staticSkill('vanguard.cleave', 1)],
+        actorCommittedSkills: [],
+      },
+    },
+  )
+  expect(result.state.effectState?.temporarySkills ?? []).toHaveLength(0)
+  expect(result.state.pendingSkillGrants).toHaveLength(1)
+})
+
+it('forecasts Copy activation and battle lifetime without selecting the random Skill', () => {
+  const encounter = { ...state(), effectTimingPolicy: { version: 1, modes: {} } }
+  const before = JSON.parse(JSON.stringify(encounter))
+  const preview = evaluatePv1fMatureSkill(
+    encounter,
+    copySkill(),
+    { kind: 'unit', combatantId: SOURCE },
+    'pve',
+    {
+      copyContext: {
+        sourceCombatantId: SOURCE,
+        sourceSkills: [staticSkill('vanguard.cleave', 1)],
+        actorCommittedSkills: [],
+      },
+    },
+  )
+  expect(preview.evaluation.projectedEffects).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        effectType: 'copy',
+        statusId: 'copy',
+        after: 'pending',
+        activationRound: 2,
+        durationScope: 'battle',
+      }),
+    ]),
+  )
+  expect(encounter).toEqual(before)
+})

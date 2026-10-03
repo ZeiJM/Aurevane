@@ -13,7 +13,7 @@ import {
 import styles from './master-panel-shell.module.css'
 
 export type MasterPanelSection =
-  'overview' | 'combat' | 'staff' | 'events' | 'live-events' | 'music'
+  'overview' | 'combat' | 'combat-timing' | 'staff' | 'events' | 'live-events' | 'music'
 
 interface MasterPanelShellProps {
   access: MasterPanelAccess
@@ -24,6 +24,15 @@ interface MasterPanelShellProps {
 }
 
 export const masterNavigation = [
+  {
+    id: 'combat-timing',
+    href: '/master/combat-timing',
+    label: 'Effect Timing',
+    detail: 'Activation & duration',
+    icon: '◷',
+    capability: 'staff.manage',
+    ownerOnly: true,
+  },
   {
     id: 'combat',
     href: '/master/combat-content',
@@ -68,6 +77,7 @@ export const masterNavigation = [
   id: MasterPanelSection
   href:
     | '/master/combat-content'
+    | '/master/combat-timing'
     | '/master/music'
     | '/master/staff'
     | '/master/events'
@@ -76,7 +86,16 @@ export const masterNavigation = [
   detail: string
   icon: string
   capability: MasterPanelCapability | null
+  ownerOnly?: boolean
 }[]
+
+export function masterNavigationForAccess(access: MasterPanelAccess) {
+  return masterNavigation.filter(
+    (item) =>
+      (!('ownerOnly' in item) || !item.ownerOnly || access.roles.includes('game-owner')) &&
+      (!item.capability || hasMasterPanelCapability(access, item.capability)),
+  )
+}
 
 export function MasterPanelShell({
   access,
@@ -111,17 +130,15 @@ export function MasterPanelShell({
           <Link href="/master" aria-current={activeSection === 'overview' ? 'page' : undefined}>
             Overview
           </Link>
-          {masterNavigation
-            .filter((item) => !item.capability || hasMasterPanelCapability(access, item.capability))
-            .map((item) => (
-              <Link
-                key={item.id}
-                href={item.href}
-                aria-current={activeSection === item.id ? 'page' : undefined}
-              >
-                <span aria-hidden="true">{item.icon}</span> {item.label}
-              </Link>
-            ))}
+          {masterNavigationForAccess(access).map((item) => (
+            <Link
+              key={item.id}
+              href={item.href}
+              aria-current={activeSection === item.id ? 'page' : undefined}
+            >
+              <span aria-hidden="true">{item.icon}</span> {item.label}
+            </Link>
+          ))}
         </nav>
         <div className={styles.content}>{children}</div>
       </section>

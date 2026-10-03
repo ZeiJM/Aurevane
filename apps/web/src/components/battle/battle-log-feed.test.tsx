@@ -247,9 +247,8 @@ describe('Battle Log transcript consequence layout', () => {
   })
 })
 
-// Rendering the real feed guards the boundary: the live window must not leak old actor turns,
-// while the post-battle caller must still receive the complete saved history.
-describe('Battle Log recent history window', () => {
+// The chronicle supersedes the old recent-turn window and shows all non-bookkeeping techniques.
+describe('Battle Log complete chronicle and legacy history selection', () => {
   const combatantNames = Object.fromEntries(
     [1, 2, 3, 4, 5, 6, 7].map((turn) => [`character:unit-${turn}`, `Actor${turn}`]),
   )
@@ -258,73 +257,37 @@ describe('Battle Log recent history window', () => {
     round: 1,
   }))
 
-  it('limits six actors in one round to the latest four turns while preserving complete review', () => {
-    const recent = renderToStaticMarkup(
-      <BattleLogFeed entries={entries} combatantNames={combatantNames} recentTurnCount={4} />,
-    )
-    expect(recent).toContain('Actor6')
-    expect(recent).toContain('Actor3')
-    expect(recent).not.toContain('Actor2')
-    expect(recent).not.toContain('Actor1')
-    expect(recent).toContain('#6:')
-    expect(recent).toContain('aria-label="Battle history, latest 4 turns"')
+  it('keeps all six actors techniques in compact and complete readers without pagination', () => {
+    const techniques = entries.map((entry) => ({
+      ...entry,
+      eventType: 'combat_action_used',
+      kind: 'offense' as const,
+      actionId: 'basic.attack.unarmed.basic',
+      actionLabel: 'Basic Attack',
+    }))
+    for (const compactFlow of [true, false]) {
+      const html = renderToStaticMarkup(
+        <BattleLogFeed
+          entries={techniques}
+          combatantNames={combatantNames}
+          compactFlow={compactFlow}
+          recentTurnCount={4}
+        />,
+      )
+      for (let actor = 1; actor <= 6; actor++) expect(html).toContain(`Actor${actor}`)
+      expect(html).toContain('data-battle-chronicle="true"')
+      expect(html).not.toContain('Previous turn')
+      expect(html).not.toContain('In progress')
+    }
+  })
 
-    const complete = renderToStaticMarkup(
+  it('leaves a movement-only history empty without deleting the recorded entries', () => {
+    const html = renderToStaticMarkup(
       <BattleLogFeed entries={entries} combatantNames={combatantNames} />,
     )
-    expect(complete).toContain('Actor6')
-    expect(complete).toContain('Actor1')
-    expect(complete).not.toContain('latest 4 turns')
+    expect(html).toContain('No committed battle actions yet.')
+    expect(html).not.toContain('Actor6')
     expect(entries).toHaveLength(6)
-  })
-
-  it('counts an empty current actor turn in the four-turn window', () => {
-    const recent = renderToStaticMarkup(
-      <BattleLogFeed
-        entries={entries}
-        combatantNames={combatantNames}
-        recentTurnCount={4}
-        currentTurnNumber={7}
-      />,
-    )
-    expect(recent).toContain('Actor4')
-    expect(recent).not.toContain('Actor3')
-  })
-
-  it('keeps the window across round boundaries using hidden turn-start metadata', () => {
-    const recent = renderToStaticMarkup(
-      <BattleLogFeed
-        entries={[
-          { ...movementEntry(20, 'character:unit-7', 7), round: 2, eventType: 'turn_started' },
-          ...entries,
-        ]}
-        combatantNames={combatantNames}
-        recentTurnCount={4}
-      />,
-    )
-    expect(recent).toContain('Actor4')
-    expect(recent).not.toContain('Actor3')
-    expect(recent).not.toContain('In progress')
-  })
-
-  it('defaults compact history to the latest turn while retaining older-turn navigation', () => {
-    const recent = renderToStaticMarkup(
-      <BattleLogFeed
-        entries={entries}
-        combatantNames={combatantNames}
-        compactFlow
-        recentTurnCount={4}
-      />,
-    )
-    expect(recent).toContain('Battle action timeline')
-    expect(recent).not.toContain('Recent 4 turns')
-    expect(recent).toContain('Actor6')
-    expect(recent).not.toContain('Actor3')
-    expect(recent).toContain('Previous turn')
-    expect(recent).not.toContain('Next turn')
-    expect(recent).not.toContain('Filter battle actions')
-    expect(recent).not.toContain('Actor2')
-    expect(recent).not.toContain('Actor1')
   })
 
   it('keeps only recent entries within a handoff commit and retains recent untagged boundary effects', () => {

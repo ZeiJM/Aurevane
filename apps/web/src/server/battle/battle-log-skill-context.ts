@@ -3,6 +3,10 @@ import 'server-only'
 import type { BattleEventRecord } from '@aurevane/db/battle-session'
 import { parseCopiedSkillCommandId } from '@aurevane/game-core/combat/combat-skill-copy'
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
+import { battleFlavorTemplateIssues } from '@aurevane/game-core/combat/battle-narration'
+import { resolveEssenceForBuild } from '@aurevane/game-core/combat/essence'
+import { resolveResonanceForPair } from '@aurevane/game-core/combat/resonance'
+import type { CombatEffectOrigin } from '@aurevane/game-core/combat/actions'
 import {
   skillDisplayName,
   skillEffectDescription,
@@ -13,6 +17,16 @@ import type { BattleLogEntry, BattleLogView } from './battle-log-service'
 
 type SkillReference = { skillId: string; contentVersion: number; sourceDisciplineId?: string }
 type SkillContext = NonNullable<BattleLogEntry['actionContext']>
+type ContextResolver = Pick<
+  CombatContentResolver,
+  | 'resolvePinnedSkillDefinition'
+  | 'resolvePinnedEssenceDefinition'
+  | 'resolvePinnedResonanceDefinition'
+>
+
+function safeFlavor(flavor: string | undefined): string | null {
+  return battleFlavorTemplateIssues(flavor).length === 0 ? flavor! : null
+}
 
 function eventObject(record: BattleEventRecord): Record<string, unknown> | null {
   return record.event && typeof record.event === 'object' && !Array.isArray(record.event)
@@ -59,7 +73,7 @@ export async function attachRecordedBattleLogSkillContext(
   view: BattleLogView,
   projected: readonly BattleEventRecord[],
   authority: BattleBuildAuthoritySnapshot | undefined,
-  resolver?: Pick<CombatContentResolver, 'resolvePinnedSkillDefinition'>,
+  resolver?: ContextResolver,
 ): Promise<BattleLogView> {
   if (!authority) return view
   const records = new Map(projected.map((record) => [recordKey(record), record]))
@@ -124,6 +138,7 @@ export async function attachRecordedBattleLogSkillContext(
           )
             continue
           contexts.set(referenceKey(reference), {
+            family: 'skill',
             skillId: definition.id,
             contentVersion: definition.contentVersion,
             name: skillDisplayName(definition),
@@ -133,7 +148,7 @@ export async function attachRecordedBattleLogSkillContext(
                   definition.effectDescriptions?.[index] ?? skillEffectDescription(effect),
               )
               .join(' '),
-            flavor: definition.flavorLine ?? null,
+            flavor: safeFlavor(definition.flavorLine),
           })
           sourceDisciplines.set(referenceKey(reference), definition.sourceDisciplineId)
         } catch {
@@ -143,7 +158,7 @@ export async function attachRecordedBattleLogSkillContext(
     }),
   )
 
-  return {
+  const skillView = {
     ...view,
     entries: view.entries.map((entry) => {
       const reference = referencesByEntry.get(entry)
@@ -155,6 +170,240 @@ export async function attachRecordedBattleLogSkillContext(
       )
         return entry
       return { ...entry, actionContext }
+    }),
+  }
+  const extensionView = await attachRecordedBuildExtensionContext(
+    skillView,
+    projected,
+    authority,
+    resolver,
+  )
+  return {
+    ...extensionView,
+    entries: extensionView.entries.map((entry) => {
+      const record = records.get(recordKey(entry))
+      const effectOrigin = record
+        ? verifiedRecordedEffectOrigin(entry, record, authority, visibleGrants)
+        : null
+      const actorIdentity =
+        entry.actionContext && entry.actorCombatantId
+          ? authority.combatants.find(
+              (combatant) => combatant.combatantId === entry.actorCombatantId,
+            )?.narratorIdentity
+          : undefined
+      // Copy's recorded source is its donor, not the recipient of an authored action.
+      const targetIdentity =
+        actorIdentity && entry.targetCombatantId && entry.eventType !== 'temporary_skill_copied'
+          ? authority.combatants.find(
+              (combatant) => combatant.combatantId === entry.targetCombatantId,
+            )?.narratorIdentity
+          : undefined
+      return {
+        ...entry,
+        ...(effectOrigin ? { effectOrigin } : {}),
+        ...(actorIdentity && entry.actionContext
+          ? {
+              actionContext: {
+                ...entry.actionContext,
+                narrator: {
+                  actor: { ...actorIdentity },
+                  ...(targetIdentity ? { target: { ...targetIdentity } } : {}),
+                },
+              },
+            }
+          : {}),
+      }
+    }),
+  }
+}
+
+/** Origin attribution is a receipt, never guessed from matching amounts or current content. */
+function verifiedRecordedEffectOrigin(
+  entry: BattleLogEntry,
+  record: BattleEventRecord,
+  authority: BattleBuildAuthoritySnapshot,
+  visibleGrants: ReadonlyMap<string, BattleEventRecord>,
+): CombatEffectOrigin | null {
+  const event = eventObject(record)
+  const candidate = event?.effectOrigin
+  if (
+    !candidate ||
+    typeof candidate !== 'object' ||
+    Array.isArray(candidate) ||
+    typeof event?.actionId !== 'string' ||
+    !entry.actorCombatantId
+  )
+    return null
+  const origin = candidate as Record<string, unknown>
+  if (
+    Object.keys(origin).some((key) => !['family', 'contentId', 'contentVersion'].includes(key)) ||
+    typeof origin.contentId !== 'string' ||
+    !Number.isSafeInteger(origin.contentVersion) ||
+    (origin.contentVersion as number) < 1
+  )
+    return null
+  const copied = parseCopiedSkillCommandId(event.actionId)
+  const grant = copied
+    ? visibleGrants.get(`${entry.actorCombatantId}:${referenceKey(copied)}`)
+    : undefined
+  const validCopy = copied && grant && precedes(grant, record) ? copied : null
+  const build = authority.combatants.find(
+    (combatant) => combatant.combatantId === entry.actorCombatantId,
+  )
+  const skill = build?.disciplineSkills.find((reference) => reference.skillId === event.actionId)
+  const essence = build?.extensions.essence
+  const resonance = build?.extensions.resonance
+  let valid = false
+  if (origin.family === 'skill') {
+    const reference = validCopy ?? skill
+    valid =
+      reference?.skillId === origin.contentId && reference?.contentVersion === origin.contentVersion
+  } else if (origin.family === 'essence') {
+    valid =
+      essence?.skillId === event.actionId &&
+      essence?.essenceId === origin.contentId &&
+      essence?.contentVersion === origin.contentVersion
+  } else if (origin.family === 'resonance') {
+    valid =
+      Boolean(skill || validCopy || essence?.skillId === event.actionId) &&
+      resonance?.resonanceId === origin.contentId &&
+      resonance?.contentVersion === origin.contentVersion
+  }
+  return valid
+    ? {
+        family: origin.family as CombatEffectOrigin['family'],
+        contentId: origin.contentId,
+        contentVersion: origin.contentVersion as number,
+      }
+    : null
+}
+
+async function attachRecordedBuildExtensionContext(
+  view: BattleLogView,
+  projected: readonly BattleEventRecord[],
+  authority: BattleBuildAuthoritySnapshot,
+  resolver?: ContextResolver,
+): Promise<BattleLogView> {
+  const records = new Map(projected.map((record) => [recordKey(record), record]))
+  const builds = new Map(authority.combatants.map((build) => [build.combatantId, build]))
+  type Build = BattleBuildAuthoritySnapshot['combatants'][number]
+  const pending = new Map<string, { family: 'essence' | 'resonance'; build: Build }>()
+  const keys = new Map<BattleLogEntry, string>()
+  for (const entry of view.entries) {
+    if (!entry.actorCombatantId || !entry.actionId || entry.actionContext) continue
+    const build = builds.get(entry.actorCombatantId)
+    const record = records.get(recordKey(entry))
+    const event = record ? eventObject(record) : null
+    if (!build || !event) continue
+    const essence = build.extensions.essence
+    const resonance = build.extensions.resonance
+    let family: 'essence' | 'resonance'
+    let id: string
+    let version: number
+    if (essence && event.actionId === essence.skillId && entry.actionId === essence.skillId) {
+      family = 'essence'
+      id = essence.essenceId
+      version = essence.contentVersion
+    } else if (
+      resonance &&
+      event.event === 'resonance_activated' &&
+      event.actorId === build.combatantId &&
+      event.resonanceId === resonance.resonanceId &&
+      event.contentVersion === resonance.contentVersion &&
+      entry.actionId === resonance.resonanceId
+    ) {
+      family = 'resonance'
+      id = resonance.resonanceId
+      version = resonance.contentVersion
+    } else continue
+    // Include build identity so content cannot be borrowed across a mismatched Discipline pair.
+    const key = `${family}:${id}@${version}:${build.combatantId}`
+    pending.set(key, { family, build })
+    keys.set(entry, key)
+  }
+
+  const contexts = new Map<string, SkillContext>()
+  const lookups = [...pending.entries()]
+  let nextIndex = 0
+  await Promise.all(
+    Array.from({ length: Math.min(4, lookups.length) }, async () => {
+      while (nextIndex < lookups.length) {
+        const [key, { family, build }] = lookups[nextIndex++]!
+        const primary = build.primary.disciplineId
+        const secondary = build.secondary?.disciplineId ?? null
+        try {
+          if (family === 'essence') {
+            const reference = build.extensions.essence!
+            const definition =
+              authority.catalogVersion === 3
+                ? await resolver?.resolvePinnedEssenceDefinition?.(
+                    primary,
+                    secondary,
+                    reference.essenceId,
+                    reference.contentVersion,
+                  )
+                : resolveEssenceForBuild(primary, secondary, reference.contentVersion)
+            if (
+              !definition?.enabled ||
+              !definition.skill.enabled ||
+              definition.essenceId !== reference.essenceId ||
+              definition.contentVersion !== reference.contentVersion ||
+              definition.sourceDisciplineId !== reference.sourceDisciplineId ||
+              definition.skill.id !== reference.skillId ||
+              definition.skill.contentVersion !== reference.skillContentVersion ||
+              definition.skill.sourceDisciplineId !== reference.sourceDisciplineId
+            )
+              continue
+            contexts.set(key, {
+              family,
+              contentId: definition.essenceId,
+              skillId: definition.skill.id,
+              contentVersion: definition.contentVersion,
+              name: definition.name,
+              description: definition.description,
+              flavor: safeFlavor(definition.flavorLine),
+            })
+          } else {
+            const reference = build.extensions.resonance!
+            const definition =
+              authority.catalogVersion === 3
+                ? await resolver?.resolvePinnedResonanceDefinition?.(
+                    primary,
+                    secondary,
+                    reference.resonanceId,
+                    reference.contentVersion,
+                  )
+                : resolveResonanceForPair(primary, secondary, reference.contentVersion)
+            if (
+              !definition?.enabled ||
+              definition.id !== reference.resonanceId ||
+              definition.contentVersion !== reference.contentVersion ||
+              definition.disciplinePair[0] !== reference.disciplinePair[0] ||
+              definition.disciplinePair[1] !== reference.disciplinePair[1]
+            )
+              continue
+            contexts.set(key, {
+              family,
+              contentId: definition.id,
+              skillId: definition.id,
+              contentVersion: definition.contentVersion,
+              name: definition.name,
+              description: definition.description,
+              flavor: safeFlavor(definition.flavorLine),
+            })
+          }
+        } catch {
+          // Optional presentation content never prevents access to authorized recorded outcomes.
+        }
+      }
+    }),
+  )
+  return {
+    ...view,
+    entries: view.entries.map((entry) => {
+      const key = keys.get(entry)
+      const actionContext = key ? contexts.get(key) : undefined
+      return actionContext ? { ...entry, actionContext } : entry
     }),
   }
 }

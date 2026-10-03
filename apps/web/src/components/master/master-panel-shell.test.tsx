@@ -20,6 +20,21 @@ const access: MasterPanelAccess = {
   effectiveCapabilities: ['master.access', 'content.combat.author'],
 }
 describe('Master workspace composition', () => {
+  it('exposes effect timing only to the Owner and keeps staff settings distinct', () => {
+    const render = (roles: MasterPanelAccess['roles']) =>
+      renderToStaticMarkup(
+        <MasterPanelShell
+          access={{ ...access, roles, effectiveCapabilities: ['master.access', 'staff.manage'] }}
+          activeSection="combat"
+          title="Combat"
+          description="Review"
+        >
+          <p>Content</p>
+        </MasterPanelShell>,
+      )
+    expect(render(['game-owner'])).toContain('href="/master/combat-timing"')
+    expect(render(['content-staff'])).not.toContain('href="/master/combat-timing"')
+  })
   it('keeps authorized workspaces reachable and guards staff and event navigation', () => {
     const markup = renderToStaticMarkup(
       <MasterPanelShell

@@ -6,7 +6,7 @@ import {
 } from '../../lib/battle/combat-interaction-presentation'
 import type { BattlePreviewView } from '@/server/battle/battle-preview-service'
 import type { BattleSkillForecastPresentation } from './battle-runtime'
-import { skillParameterRows, skillTargetingDetails } from '../character/skill-detail-presentation'
+import { skillParameterRows } from '../character/skill-detail-presentation'
 import type { ImageAssetId } from '@/media/registry'
 import { battleTerrainName, BATTLE_TERRAIN_KEY_DETAILS } from './battle-terrain-key-presentation'
 type IntentPreview = BattlePreviewView['preview']
@@ -79,11 +79,6 @@ export function battleSkillParameterRows(
     'Target Elevation': skill.targetKind === 'self' ? 'N/A' : 'Unavailable',
     'Line of Sight': skill.targetKind === 'self' ? 'N/A' : 'Unavailable',
   })
-}
-
-export function battleSkillTargetingDetails(skill: BattleSkillForecastPresentation): string {
-  if (skill.definition) return skillTargetingDetails(skill.definition)
-  return 'Area and affected-team rules unavailable.'
 }
 
 export function skillPreviewChips(skill: BattleSkillForecastPresentation): PreviewChip[] {
@@ -214,6 +209,27 @@ function copyStatusPreviewChip(effect: ProjectedEffect): PreviewChip | null {
   return null
 }
 
+export function scheduledEffectPreviewLabel(
+  effect: ActionPreview['projectedEffects'][number],
+): string | null {
+  if (effect.after !== 'pending' || effect.activationRound === undefined) return null
+  const turns = effect.remainingOwnerTurnEnds
+  const rounds = effect.remainingRoundBoundaries
+  const lifetime =
+    turns !== undefined
+      ? `${turns} ${turns === 1 ? 'turn' : 'turns'}`
+      : rounds !== undefined
+        ? `${rounds} round ${rounds === 1 ? 'boundary' : 'boundaries'}`
+        : effect.durationScope === 'until-removed'
+          ? 'Until removed'
+          : effect.durationScope === 'until-spent'
+            ? 'Until spent'
+            : effect.durationScope === 'battle'
+              ? 'Battle-long'
+              : null
+  return `${gameplayStatusName(effect.statusId ?? effect.effectType)} · Starts round ${effect.activationRound}${lifetime ? ` · ${lifetime}` : ''}`
+}
+
 function actionPreviewChips(preview: ActionPreview): PreviewChip[] {
   if (!preview.legal) {
     return [{ label: 'Blocked', tone: 'blocked' }]
@@ -233,6 +249,12 @@ function actionPreviewChips(preview: ActionPreview): PreviewChip[] {
   })
 
   for (const effect of preview.projectedEffects) {
+    const scheduled = scheduledEffectPreviewLabel(effect)
+    if (scheduled) {
+      if (!chips.some((chip) => chip.label === scheduled))
+        chips.push({ label: scheduled, tone: 'effect' })
+      continue
+    }
     const copyChip = copyStatusPreviewChip(effect)
     if (copyChip) chips.push(copyChip)
   }
@@ -301,7 +323,10 @@ function actionPreviewChips(preview: ActionPreview): PreviewChip[] {
     const statuses = new Set(
       preview.projectedEffects
         .filter(
-          (effect) => effect.effectType === 'apply-status' && typeof effect.after === 'string',
+          (effect) =>
+            effect.effectType === 'apply-status' &&
+            typeof effect.after === 'string' &&
+            !scheduledEffectPreviewLabel(effect),
         )
         .map((effect) => gameplayStatusName(String(effect.after))),
     )
@@ -310,6 +335,9 @@ function actionPreviewChips(preview: ActionPreview): PreviewChip[] {
     }
   }
 
+  if (preview.projectedTerrain?.length) {
+    chips.push({ label: 'Terrain & effect details available', tone: 'effect' })
+  }
   for (const event of preview.projectedEvents ?? []) {
     const label = combatInteractionDescription(event)
     if (label && !chips.some((chip) => chip.label === 'Terrain & effect details available'))
