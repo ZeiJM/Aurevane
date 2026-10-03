@@ -14,6 +14,7 @@ import {
   combatEffectTimingMode,
   combatEffectTimingTag,
   parseCombatEffectTimingPolicy,
+  pendingCombatStatusRows,
   type CombatEffectTimingPolicy,
 } from './combat-effect-timing'
 import {
@@ -408,7 +409,13 @@ export interface CombatActionIssue {
 }
 
 export interface CombatEffectProjection {
-  effectType: CombatEffectDefinition['type']
+  /** Forecast metadata describes scheduled application, never a committed result. */
+  activationRound?: number
+  statusId?: string
+  durationScope?: CombatStatusInstance['durationScope']
+  remainingOwnerTurnEnds?: number
+  remainingRoundBoundaries?: number
+  effectType: CombatEffectDefinition['type'] | 'summon'
   combatantId: string
   before: number | string
   after: number | string
@@ -2112,16 +2119,31 @@ function resolveActionEffects(
                   before: event.before,
                   after: event.after,
                   remainingRoundBoundaries: event.remainingRoundBoundaries,
+                  activationRound: state.tactical.battle.round + 1,
                 })
           }
         }
-        for (const combatantId of recipientIds)
-          projections.push({
-            effectType: effect.type,
-            combatantId,
-            before: 'none',
-            after: 'pending',
-          })
+        const latestPending = nextState.pendingEffects![nextState.pendingEffects!.length - 1]!
+        if (effect.type !== 'create-terrain')
+          for (const { combatantId, status } of pendingCombatStatusRows({
+            tactical: nextState.tactical,
+            pendingEffects: [latestPending],
+          }))
+            projections.push({
+              effectType: effect.type,
+              combatantId,
+              before: 'none',
+              after: 'pending',
+              activationRound: status.activationRound,
+              statusId: status.statusId,
+              ...(status.durationScope ? { durationScope: status.durationScope } : {}),
+              ...(status.remainingOwnerTurnEnds === undefined
+                ? {}
+                : { remainingOwnerTurnEnds: status.remainingOwnerTurnEnds }),
+              ...(status.remainingRoundBoundaries === undefined
+                ? {}
+                : { remainingRoundBoundaries: status.remainingRoundBoundaries }),
+            })
         for (const targetCombatantId of recipientIds.length ? recipientIds : [null])
           events.push({
             event: 'effect_pending',

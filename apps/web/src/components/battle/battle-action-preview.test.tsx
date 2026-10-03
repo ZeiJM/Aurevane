@@ -54,6 +54,69 @@ const attack: ActionPreview = {
 }
 
 describe('current selection forecast', () => {
+  it('shows delayed terrain details from the canonical projection without a committed event', () => {
+    const markup = renderToStaticMarkup(
+      <BattleActionPreview
+        preview={{
+          ...attack,
+          affectedCombatantIds: [],
+          projectedEffects: [],
+          projectedEvents: [],
+          projectedTerrain: [
+            {
+              position: { x: 1, y: 2 },
+              before: null,
+              after: 'frozen',
+              remainingRoundBoundaries: 2,
+              activationRound: 3,
+            },
+          ],
+        }}
+        pending={false}
+      />,
+    )
+    expect(markup).toContain('Starts round 3')
+    expect(markup).toContain('Frozen at tile 2,3')
+    expect(markup).toContain('2 round boundaries')
+    expect(markup).toContain('either team')
+  })
+
+  it('names pending unit effects and their lifetime without presenting them as active', () => {
+    const markup = renderToStaticMarkup(
+      <BattleActionPreview
+        preview={{
+          ...attack,
+          mitigatedBaseDamage: null,
+          projectedEffects: [
+            {
+              effectType: 'apply-status',
+              combatantId: 'enemy',
+              before: '',
+              after: 'pending',
+              statusId: 'guarded',
+              activationRound: 3,
+              remainingOwnerTurnEnds: 1,
+            },
+            {
+              effectType: 'summon',
+              combatantId: 'you',
+              before: '',
+              after: 'pending',
+              statusId: 'summon',
+              activationRound: 3,
+              remainingOwnerTurnEnds: 5,
+            },
+          ],
+        }}
+        pending={false}
+      />,
+    )
+    expect(markup).toContain('Guard · Starts round 3 · 1 turn')
+    expect(markup).toContain('Summon · Starts round 3 · 5 turns')
+    expect(markup).not.toContain('>Pending</span>')
+    expect(markup).not.toContain('Damage 17')
+  })
+
   it('keeps all Nexus parameters beside the current server forecast without replacing its costs or outcomes', () => {
     const definition = resolveMatureSkillVersion('vanguard.forceful-strike', 2)!
     const skill = { ...barrier, definition, id: definition.id, apCost: 31, mpCost: 6 }

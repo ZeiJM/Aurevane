@@ -5,12 +5,14 @@ import { CharacterPortraitImage } from '@/components/character/character-portrai
 import { AurevaneImage } from '@/components/media/aurevane-image'
 import {
   combatInteractionDescription,
+  combatTerrainProjectionDescription,
   gameplayStatusName,
 } from '../../lib/battle/combat-interaction-presentation'
 import {
   battleGroundTargetPresentation,
   previewChips,
   skillPreviewChips,
+  scheduledEffectPreviewLabel,
 } from './battle-preview-content'
 import type {
   BattlePresentationParticipant,
@@ -47,7 +49,14 @@ export function BattleActionPreview({
   const ground = targetTile ? battleGroundTargetPresentation(targetTile, targetOverlay) : null
   const interactions =
     preview?.kind === 'action'
-      ? (preview.projectedEvents ?? []).map(combatInteractionDescription).filter(Boolean)
+      ? [
+          ...new Set(
+            [
+              ...(preview.projectedTerrain ?? []).map(combatTerrainProjectionDescription),
+              ...(preview.projectedEvents ?? []).map(combatInteractionDescription),
+            ].filter(Boolean),
+          ),
+        ]
       : []
   const targets =
     preview?.kind === 'action' && preview.legal ? (
@@ -107,7 +116,10 @@ export function BattleActionPreview({
                       effect.effectType === 'apply-status' && typeof effect.after === 'string',
                   )
                   .map((effect, effectIndex) => (
-                    <span key={effectIndex}>{gameplayStatusName(String(effect.after))}</span>
+                    <span key={effectIndex}>
+                      {scheduledEffectPreviewLabel(effect) ??
+                        gameplayStatusName(String(effect.after))}
+                    </span>
                   ))}
                 {effects.length === 0 ? <span>Included in affected area</span> : null}
               </div>

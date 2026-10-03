@@ -6,6 +6,7 @@ import { createTacticalBattleState } from './board'
 import {
   finishPv1fTurn,
   executePv1fMatureSkill,
+  evaluatePv1fMatureSkill,
   preparePv1fTurnEconomy,
   readPv1fActionEconomy,
 } from './pv1f-action-economy'
@@ -335,4 +336,27 @@ it('keeps a summon pending until the next global round and lets it join that rou
   expect(state.tactical.battle.initiativeOrder).toContain(
     state.effectState!.summons![0]!.combatantId,
   )
+})
+
+it('forecasts scheduled summon lifetime without spawning or spending resources', () => {
+  const state = { ...encounter(), effectTimingPolicy: { version: 1, modes: {} } }
+  const before = JSON.parse(JSON.stringify(state))
+  const preview = evaluatePv1fMatureSkill(
+    state,
+    summoningSkill(),
+    { kind: 'tile', position: { x: 1, y: 0 } },
+    'pve',
+  )
+  expect(preview.evaluation.projectedEffects).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        effectType: 'summon',
+        statusId: 'summon',
+        after: 'pending',
+        activationRound: 2,
+        remainingOwnerTurnEnds: 5,
+      }),
+    ]),
+  )
+  expect(state).toEqual(before)
 })

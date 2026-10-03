@@ -9,6 +9,7 @@ import {
 import {
   createCombatEncounterState,
   executeCombatAction,
+  evaluateCombatAction,
   endCombatTurn,
   type CombatActionDefinition,
   type CombatEncounterState,
@@ -499,4 +500,66 @@ it('persists and reloads delayed tile effects with ground-target validation', ()
       expect.objectContaining({ kind: 'frozen', remainingRoundBoundaries: 2 }),
     ]),
   )
+})
+
+it('forecasts delayed terrain and support lifetimes without changing the encounter or inventing active receipts', () => {
+  const state = encounter()
+  const before = JSON.parse(JSON.stringify(state))
+  const terrain = evaluateCombatAction(
+    state,
+    {
+      ...action,
+      target: {
+        ...action.target,
+        kind: 'ground-tile',
+        teamPolicy: 'any',
+        friendlyFire: 'all-units',
+      },
+      effects: [{ type: 'create-terrain', recipient: 'affected-tiles', terrain: 'frozen' }],
+    },
+    { kind: 'tile', position: { x: 1, y: 0 } },
+    content,
+  )
+  expect(terrain.projectedTerrain).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ after: 'frozen', remainingRoundBoundaries: 2, activationRound: 2 }),
+    ]),
+  )
+  expect(terrain.projectedEvents.some((event) => event.event === 'terrain_overlay_changed')).toBe(
+    false,
+  )
+  const support = evaluateCombatAction(
+    state,
+    action,
+    { kind: 'unit', combatantId: 'actor1' },
+    content,
+  )
+  expect(support.projectedEffects).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        after: 'pending',
+        statusId: 'hexed',
+        remainingOwnerTurnEnds: 1,
+        activationRound: 2,
+      }),
+    ]),
+  )
+  expect(support.projectedEvents.some((event) => event.event === 'status_applied')).toBe(false)
+  const poison = evaluateCombatAction(
+    state,
+    { ...action, effects: [{ type: 'poison', recipient: 'primary-unit' }] },
+    { kind: 'unit', combatantId: 'actor1' },
+    content,
+  )
+  expect(poison.projectedEffects).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        after: 'pending',
+        statusId: 'poison',
+        durationScope: 'until-removed',
+        activationRound: 2,
+      }),
+    ]),
+  )
+  expect(state).toEqual(before)
 })

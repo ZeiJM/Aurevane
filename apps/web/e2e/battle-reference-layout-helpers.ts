@@ -183,7 +183,7 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
         const header = card.querySelector('header')!
         const facing = header.querySelector('span')!
         const arrow = facing.querySelector('svg')!
-        const grid = card.querySelector('section[aria-label$="active combat effects"] > div')!
+        const grid = card.querySelector('section[aria-label$=" combat effects"] > div')!
         const gridStyle = getComputedStyle(grid)
         const cardStyle = getComputedStyle(card)
         const headerStyle = getComputedStyle(header)

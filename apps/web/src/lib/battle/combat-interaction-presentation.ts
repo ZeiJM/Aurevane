@@ -2,6 +2,7 @@ import { combatStatusPresentationTag } from '@aurevane/game-core/combat/gameplay
 import {
   COMBAT_TERRAIN_OVERLAY_DETAILS,
   type CombatTerrainOverlay,
+  type CombatTerrainProjection,
 } from '@aurevane/game-core/combat/terrain-overlays'
 
 export function gameplayStatusName(id: string): string {
@@ -38,6 +39,21 @@ const PUSH_FAILURES: Readonly<Record<string, string>> = {
   'target-defeated': 'target is defeated',
 }
 
+/** A forecast is a projection, never a fabricated history event. */
+export function combatTerrainProjectionDescription(
+  projection: CombatTerrainProjection,
+): string | null {
+  const position = tile(projection.position)
+  if (!position || (projection.after !== 'frozen' && projection.after !== 'steam')) return null
+  const rounds = projection.remainingRoundBoundaries
+  if (rounds !== 1 && rounds !== 2) return null
+  const details = COMBAT_TERRAIN_OVERLAY_DETAILS[projection.after]
+  const before = projection.before ? COMBAT_TERRAIN_OVERLAY_DETAILS[projection.before].name : null
+  const timing =
+    projection.activationRound !== undefined ? `Starts round ${projection.activationRound} · ` : ''
+  return `${timing}${before ? `${before} → ` : ''}${details.name} at tile ${position} · ${rounds} round ${rounds === 1 ? 'boundary' : 'boundaries'}. ${details.description}`
+}
+
 /** Shared forecast and sanitized log text. Unknown payloads never become player-facing text. */
 export function combatInteractionDescription(event: object): string | null {
   const data = event as Record<string, unknown>
@@ -47,14 +63,14 @@ export function combatInteractionDescription(event: object): string | null {
     position &&
     (data.after === 'frozen' || data.after === 'steam')
   ) {
-    const details = COMBAT_TERRAIN_OVERLAY_DETAILS[data.after]
-    const before =
-      data.before === 'frozen' || data.before === 'steam'
-        ? COMBAT_TERRAIN_OVERLAY_DETAILS[data.before].name
-        : null
     const rounds = data.remainingRoundBoundaries
     if (rounds !== 1 && rounds !== 2) return null
-    return `${before ? `${before} → ` : ''}${details.name} at tile ${position} · ${rounds} round ${rounds === 1 ? 'boundary' : 'boundaries'}. ${details.description}`
+    return combatTerrainProjectionDescription({
+      position: data.position as CombatTerrainProjection['position'],
+      before: data.before === 'frozen' || data.before === 'steam' ? data.before : null,
+      after: data.after,
+      remainingRoundBoundaries: rounds,
+    })
   }
   if (
     data.event === 'terrain_overlay_expired' &&

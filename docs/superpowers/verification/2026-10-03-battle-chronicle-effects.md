@@ -40,3 +40,13 @@ Broader roaming, manual-refresh or tab-return flicker has not been reproduced; t
 The frozen final `pnpm check` passed: 3,404 Vitest tests (core2,057, web1,202, db63, validation60, audio17, realtime3, worker2), seven Node checks, formatting, lint, all types and Production builds. Worker boot passes. Terrain/summon browser files pass type/lint/format checks and discover nine project cases (existing mobile summon skip retained); database-backed execution is delegated to exact-head remote CI. Final log: `/tmp/av-chronicle-final-check.log`.
 
 Exact-head CI, dedicated Production migration, merge, deployment source/alias verification and deployment-lock restoration remain pending. No new Production release is claimed here.
+
+## Exact-head CI correction
+
+Published candidate `395b410e55e23130b8b1c7eb339925636c698735` (tree `8dfd48d84da216f6698aaeb5866d3b997a07ecde`) passed fourteen of sixteen workflows, including full quality, database authority, UI layout review, Desktop experience and Desktop page fit. Browser smoke and Representative Buildcraft caught missing delayed-terrain forecast descriptions and two stale effect-region selectors. No merge, migration or deployment occurred.
+
+The forecast now reads canonical terrain projections without fabricating history events, and labels queued unit effects with their planned activation round and truthful lifetime. Two rendered tests reproduced the omission before the fix;32 adjacent renderer/interaction tests pass. Ten actual shared PvP/PvE cases show all nine projected terrain tiles, activation/duration/both-team rules, no inner scroll, Escape dismissal and fixed map/cockpit dimensions; desktop selection and full readers preserve the fixed strip. Existing mobile idle-to-selection strip reflow is unchanged. Source-specific queued projection purity and final broad gates follow.
+
+The two E2E selectors now match the shared `combat effects` region. Unmodified selectors reproduced all four exact failures on real PvE/PvP mounts; corrected selectors pass, preserving all geometry and two-row/ten-column checks.
+
+Correction freeze: three core forecast purity/scheduling regressions and the server transport regression pass, with31 focused core /18 service-PvP tests. The final corrected `pnpm check` passes3,410 Vitest tests (core2,060/web1,205), seven Node checks, formatting/lint/types and Production builds. Evidence `/tmp/av-chronicle-correction-check.log`, `/tmp/av-delayed-forecast-green.log`, `/tmp/av-delayed-forecast-browser.log`, `/tmp/av-rail-contracts/report.json`. Exact-head corrected CI/release remains pending.

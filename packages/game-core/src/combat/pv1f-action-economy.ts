@@ -970,6 +970,51 @@ export function evaluatePv1fMatureSkill(
       }
     }
   }
+  // Specialized effects are materialized outside legacy resolution. Forecast their pinned
+  // scheduling without spawning entities, selecting a random copied Skill, or spending RNG.
+  if (evaluation.legal) {
+    const activationRound = prepared.tactical.battle.round + 1
+    if (
+      copyEffect &&
+      evaluation.skillCopy &&
+      combatEffectTimingMode(prepared.effectTimingPolicy, 'copy') === 'next-round'
+    )
+      evaluation = {
+        ...evaluation,
+        projectedEffects: [
+          ...evaluation.projectedEffects,
+          {
+            effectType: 'copy',
+            statusId: 'copy',
+            combatantId: actorId,
+            before: 'none',
+            after: 'pending',
+            activationRound,
+            durationScope: 'battle',
+          },
+        ],
+      }
+    if (
+      definition.effects.some((effect) => effect.type === 'summon') &&
+      definition.summonProfile &&
+      combatEffectTimingMode(prepared.effectTimingPolicy, 'summon') === 'next-round'
+    )
+      evaluation = {
+        ...evaluation,
+        projectedEffects: [
+          ...evaluation.projectedEffects,
+          {
+            effectType: 'summon',
+            statusId: 'summon',
+            combatantId: actorId,
+            before: 'none',
+            after: 'pending',
+            activationRound,
+            remainingOwnerTurnEnds: definition.summonProfile.lifetimeTurns,
+          },
+        ],
+      }
+  }
   const evaluatedWithVengeance =
     evaluation.legal && vengeance.basis.length > 0
       ? {

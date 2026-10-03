@@ -163,7 +163,7 @@ async function expectDesktopCombatantCard(root: ReturnType<Page['locator']>) {
     .locator('[data-av-square-media]')
     .evaluate((element) => element.getBoundingClientRect().toJSON())
   expect(Math.abs(geometry.width - geometry.height)).toBeLessThanOrEqual(1)
-  await expect(card.getByRole('region', { name: /active combat effects/ })).toBeVisible()
+  await expect(card.getByRole('region', { name: / combat effects$/ })).toBeVisible()
 }
 
 test('keeps requested PvE presentation parity on desktop and mobile', async ({
