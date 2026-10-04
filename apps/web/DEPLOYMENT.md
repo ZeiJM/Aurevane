@@ -2,6 +2,14 @@
 
 This file intentionally lives inside the web app project root so documentation-only production redeploys are not skipped by Vercel's monorepo unaffected-project optimization.
 
+## Battle review, ally inspection and unlimited applications — verified release gate
+
+The Owner authorized one combined Production release. PR #824 merges as `bc0dd2456caa7e17d090919d677b0976a362f520`, exactly matching tested tree `e1adc3d8b78212ff17a5cfe0f1a35acdb31c772b` from candidate `5466ff9bfb5277fc4d24539a966dfa67afd35af8`. All ten workflows pass: CI, Skill Engine, Shared Build Snapshots, Essence Build, Resonance Build, Desktop page fit, Desktop experience, Representative Buildcraft, UI layout review and Browser smoke. The full local quality gate passes formatting, lint, types, 3,841 Vitest tests, seven Node checks and production build. Independent engine and UI/privacy reviews have no remaining blockers.
+
+Browser smoke passes four desktop/mobile PvE/PvP ally/forecast fixtures, six real-mail recovery, three training, 71 focused, 317 full Chromium and ten Edge cases. Desktop page fit passes eight cases; desktop experience passes 48; buildcraft passes 24; layout review passes native mobile Profile swiping, 110 scenarios and the directory check. Existing project-specific skips remain unchanged. Final playable/spectator rail captures, two-line 32px target portraits, matched 40px footers and fitted short-desktop Hall are reviewed without reducing existing artwork.
+
+This configuration/documentation-only release enables Main while leaving other branches disabled. Application files remain identical to the tested tree. New battles pin unlimited effect applications; historical encounters preserve recorded rules. No migration, hosted Auth/content setting or production-account mutation is included. READY, primary-alias and public/runtime receipts remain pending and will be recorded in the deployment-lock closeout. Evidence: `docs/superpowers/verification/2026-10-04-battle-review-unlimited-effects.md`.
+
 ## Mobile Profile, idle turns, animated VS and wider Chronicle — released
 
 PR #821 merges the exact verified application tree as `e625853bf64e11c5e54c18aa61ed41764b8bc936` (tree `66fb646e75cb53ad4dbd97f3b409304d46bc79a8`). All seven workflows pass candidate `f92eac4db2ac50ccbca0ae6bc99c90c7209e8265`: quality/database/builds, Skill Engine, Desktop page fit, Desktop experience, Representative Buildcraft, UI layout and Browser smoke. Browser results are six real-mail recovery, three training, 70 focused, 317 full Chromium and ten Edge cases. UI layout passes the native mobile swipe regression, 110 scenarios and the directory check. Final wide playable/spectator and populated-title screenshots are reviewed; existing artwork and map geometry remain preserved. The local and CI quality gates pass 3,706 Vitest tests and seven Node checks.
