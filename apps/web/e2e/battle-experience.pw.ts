@@ -1,4 +1,11 @@
 import { expect, test } from '@playwright/test'
+import {
+  PV1F_ACTION_ECONOMY_RESOURCE_KEY,
+  pv1fMovementModifiers,
+} from '@aurevane/game-core/combat/pv1f-action-economy'
+import { movementApCostForTile } from '@aurevane/game-core/combat/pv1f-skills'
+import type { GridPosition } from '@aurevane/game-core/combat/board'
+import type { BattleSessionView } from '../src/server/battle/battle-session-service'
 
 import { createAccountAndEnterCharacter } from './pv1f-test-helpers'
 import { commitGesture } from './refined-battle-helpers'
@@ -159,8 +166,14 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await expect(apRemaining).toHaveAttribute('aria-valuenow', '100')
 
   const fullMovement = await chooseReachableTowardRecruit(page, battlefield)
-  expect(fullMovement.request().postDataJSON().intent.path).toHaveLength(3)
-  await expect(apRemaining).toHaveAttribute('aria-valuenow', '60')
+  expect(fullMovement.response.request().postDataJSON().intent.path).toEqual([
+    { x: 1, y: 3 },
+    { x: 2, y: 3 },
+    { x: 3, y: 3 },
+  ])
+  // Open ground costs 20 AP; the entered rough tile costs 40 AP.
+  expect(fullMovement.actionEconomyCost).toBe(60)
+  await expect(apRemaining).toHaveAttribute('aria-valuenow', '40')
   await expect(battlefield.getByText('0', { exact: true })).toHaveCount(0)
   await expect(battlefield.locator('[data-path-index]')).toHaveCount(0)
   await expect(moveButton).toHaveAttribute('data-battle-active', 'true')
@@ -188,12 +201,12 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   // the Recruit before completing Guard/Attack so the lesson remains deterministic at medium scale.
   await moveButton.click()
   const nextFullMovement = await chooseReachableTowardRecruit(page, battlefield)
-  const nextPathLength = nextFullMovement.request().postDataJSON().intent.path.length
+  const nextPathLength = nextFullMovement.response.request().postDataJSON().intent.path.length
   expect(nextPathLength).toBeGreaterThanOrEqual(2)
   expect(nextPathLength).toBeLessThanOrEqual(3)
   await expect(apRemaining).toHaveAttribute(
     'aria-valuenow',
-    String(100 - 20 * (nextPathLength - 1)),
+    String(100 - nextFullMovement.actionEconomyCost),
   )
   await finishCurrentTurn(finishButton, testInfo.project.name)
   await expect(apRemaining).toHaveAttribute('aria-valuenow', '100', { timeout: 15_000 })
@@ -267,7 +280,7 @@ async function chooseReachableTowardRecruit(
   page: import('@playwright/test').Page,
   battlefield: ReturnType<import('@playwright/test').Page['locator']>,
   adjacentOnly = false,
-): Promise<import('@playwright/test').Response> {
+): Promise<{ response: import('@playwright/test').Response; actionEconomyCost: number }> {
   const reachable = battlefield.locator('button[data-reachable]')
   await expect.poll(() => reachable.count()).toBeGreaterThan(0)
 
@@ -307,13 +320,63 @@ async function chooseReachableTowardRecruit(
   }, adjacentOnly)
 
   expect(targetLabel).not.toBeNull()
+  const sessionId = new URL(page.url()).pathname.split('/').at(-1)
+  const beforeResponse = await page.request.get(`/api/battles/${sessionId}`)
+  expect(beforeResponse.ok()).toBe(true)
+  const before = (await beforeResponse.json()) as { battle: BattleSessionView }
+  const tactical = before.battle.snapshot.tactical
+  const turn = tactical.battle.currentTurn!
+  const actor = tactical.battle.combatants.find((unit) => unit.id === turn.combatantId)!
+  const economyBefore = actor.temporaryResources.find(
+    (resource) => resource.key === PV1F_ACTION_ECONOMY_RESOURCE_KEY,
+  )!.current
+  const placement = tactical.placements.find((unit) => unit.combatantId === actor.id)!
+  const profile = tactical.movementProfiles.find(
+    (candidate) => candidate.id === placement.movementProfileId,
+  )!
+  const modifiers = pv1fMovementModifiers(before.battle.snapshot)
+  expect(modifiers.blocked).toBe(false)
   const result = await commitGesture(
     page,
     battlefield.getByRole('button', { name: targetLabel!, exact: true }),
   )
-  expect(result.request().postDataJSON().intent.kind).toBe('move')
-  expect((await result.json()).battle.battleVersion).toBe(
-    result.request().postDataJSON().expectedBattleVersion + 1,
+  const request = result.request().postDataJSON() as {
+    expectedBattleVersion: number
+    intent: { kind: 'move'; path: GridPosition[] }
+  }
+  expect(request.intent.kind).toBe('move')
+  expect(request.expectedBattleVersion).toBe(before.battle.battleVersion)
+  expect(request.intent.path[0]).toEqual(placement.position)
+  expect(request.intent.path.length - 1).toBeLessThanOrEqual(turn.movementRemaining)
+  const actionEconomyCost = request.intent.path.slice(1).reduce((sum, position) => {
+    const tile = tactical.tiles.find(
+      (candidate) => candidate.position.x === position.x && candidate.position.y === position.y,
+    )!
+    const override = profile.terrainCostOverrides.find(
+      (candidate) => candidate.terrainId === tile.terrainId,
+    )
+    const traversal = override
+      ? override.traversalCost
+      : tactical.terrains.find((candidate) => candidate.id === tile.terrainId)!.traversalCost
+    expect(traversal).not.toBeNull()
+    return sum + movementApCostForTile(traversal!, modifiers.additionalApAt(position))
+  }, 0)
+  expect(actionEconomyCost).toBeGreaterThan(0)
+  const expectedAp = economyBefore - actionEconomyCost
+  expect(expectedAp).toBeGreaterThanOrEqual(0)
+  const after = (await result.json()) as { battle: BattleSessionView }
+  expect(after.battle.battleVersion).toBe(request.expectedBattleVersion + 1)
+  const actorAfter = after.battle.snapshot.tactical.battle.combatants.find(
+    (unit) => unit.id === actor.id,
+  )!
+  expect(
+    actorAfter.temporaryResources.find(
+      (resource) => resource.key === PV1F_ACTION_ECONOMY_RESOURCE_KEY,
+    )?.current,
+  ).toBe(expectedAp)
+  await expect(page.getByRole('progressbar', { name: 'Action Economy remaining' })).toHaveAttribute(
+    'aria-valuenow',
+    String(expectedAp),
   )
   // Wait for the accepted destination before reading the next command's targets.
   await expect(
@@ -321,7 +384,7 @@ async function chooseReachableTowardRecruit(
       name: new RegExp(`^${targetLabel!.split(';')[0]};.*occupied by Wayfarer`),
     }),
   ).toBeVisible()
-  return result
+  return { response: result, actionEconomyCost }
 }
 
 async function finishCurrentTurn(
