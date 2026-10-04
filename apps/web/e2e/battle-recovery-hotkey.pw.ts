@@ -131,9 +131,27 @@ test('retains default HP Recovery keyboard input without exposing the deferred R
     root.locator('[data-battle-preview-lane="outcomes"] [data-battle-preview-chip]').first(),
   ).toBeVisible()
   await expect(economy).toHaveAttribute('aria-valuenow', '100')
+  const sessionId = new URL(page.url()).pathname.split('/').at(-1)!
+  const beforeBlockedResponse = await page.request.get(`/api/battles/${sessionId}`)
+  expect(beforeBlockedResponse.ok()).toBe(true)
+  const beforeBlocked = (await beforeBlockedResponse.json()).battle as BattleSessionView
+  const rejected = page.waitForResponse('**/api/battles/*/intents')
   await root.focus()
   await page.keyboard.press('Enter')
-  expect(commits).toBe(0)
+  const rejectedResponse = await rejected
+  expect(rejectedResponse.status()).toBe(400)
+  expect((await rejectedResponse.json()).error.code).toBe('INVALID_REQUEST')
+  // A deliberate input reaches authority without relying on the informational forecast.
+  // Full HP is still rejected without spending resources or advancing the battle.
+  expect(commits).toBe(1)
+  const unchangedResponse = await page.request.get(`/api/battles/${sessionId}`)
+  expect(unchangedResponse.ok()).toBe(true)
+  const unchanged = (await unchangedResponse.json()).battle as BattleSessionView
+  expect(unchanged.battleVersion).toBe(beforeBlocked.battleVersion)
+  expect(unchanged.snapshot).toEqual(beforeBlocked.snapshot)
+  await expect(economy).toHaveAttribute('aria-valuenow', '100')
+  await expect(root).toHaveAttribute('data-battle-action-mode', 'none')
+  commits = 0
   await root.getByRole('button', { name: 'Cancel Action' }).click()
   const prepared = await prepareInjuredActor(page)
   await expect(root).toHaveAttribute('data-local-turn', 'true')

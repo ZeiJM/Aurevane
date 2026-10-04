@@ -71,19 +71,22 @@ describe('shared battlefield presentation bundle', () => {
     expect(styles).not.toContain('data-unified-command-deck')
   })
 
-  it('composes spectators with the shared compact card, terrain key and side log', () => {
+  it('composes spectators with stacked summaries, footer terrain and a full Chronicle rail', () => {
     const spectator = readLocalFile('pvp-spectator-experience.tsx')
     const spectatorStyles = readLocalFile('pvp-spectator-experience.module.css')
     const viewportPolish = readLocalFile('pvp-spectator-viewport-polish.tsx')
     expect(spectator).toContain('data-battle-side="local"')
     expect(spectator).toContain('data-battle-side="selected"')
     expect(spectator).toContain('<BattleCombatantCard')
-    expect(spectator).toContain('<BattleMapKey snapshot={battle.snapshot} />')
+    expect(spectator).toContain('<BattleTerrainToggle snapshot={battle.snapshot} />')
+    expect(spectator).toContain('<BattleChronicleHeading round={battleState.round} />')
+    expect(spectator).not.toContain('BattleRoundBadge')
     expect(spectator).toMatch(/<BattleLogPanel\s+presentation="inline"/)
     expect(spectator).toContain('setSelectedCombatantId(placement.combatantId)')
     expect(spectator).toContain('data-battle-command-dock="true"')
     expect(spectator).not.toContain('teamSummaries.filter((team) => team.teamIndex %')
-    expect(spectatorStyles.replace(/\s+/g, ' ')).toContain(
+    expect(spectatorStyles).toContain("composes: stage from './battle-approved-layout.module.css'")
+    expect(readLocalFile('battle-approved-layout.module.css').replace(/\s+/g, ' ')).toContain(
       "'local board selected' 'local preview selected' 'cockpit cockpit cockpit'",
     )
     expect(viewportPolish).not.toContain('pvp-spectator-mobile-board-layout.module.css')

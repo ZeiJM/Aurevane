@@ -22,6 +22,7 @@ import {
 } from './battle-summon-inspect'
 import styles from './desktop-battle-combatant-inspect.module.css'
 import { useBattleInteractionLifecycle } from './battle-interaction-lifecycle'
+import { battleInfoPopoverSession } from './battle-info-popover-session'
 import { PvpBattleInspectPopup } from './pvp-battle-inspect-popup'
 
 const DESKTOP_POINTER_QUERY = '(any-hover: hover) and (any-pointer: fine)'
@@ -240,6 +241,7 @@ export function DesktopBattleCombatantInspect({
     let requestSequence = 0
 
     async function openCombatant(target: OpenTarget) {
+      battleInfoPopoverSession.dismissActive()
       const sequence = ++requestSequence
       openRef.current = true
       setOpen(true)
@@ -296,7 +298,7 @@ export function DesktopBattleCombatantInspect({
       const tile = target.closest<HTMLButtonElement>(
         '#battlefield button[aria-label^="Tile "][aria-label*="occupied by"]',
       )
-      if (tile?.closest('main[data-battle-layout="refined"]')) return
+      if (tile?.closest('main[data-battle-layout="refined"]') && !railCombatant) return
 
       let openTarget: OpenTarget | null = null
       const combatantId = railCombatant?.dataset.desktopInspectCombatant

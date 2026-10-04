@@ -247,7 +247,9 @@
   margin-top: 0.5rem;
   white-space: normal;
 }
-.instruction {
+.forecast > .instruction {
+  flex: 0 1 auto;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -277,7 +279,7 @@
   .inlineChips {
     flex-wrap: wrap;
   }
-  .instruction {
+  .forecast > .instruction {
     white-space: normal;
   }
 }

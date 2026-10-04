@@ -38,6 +38,7 @@ function SkillControls({
         label={`About ${title}`}
         title={title}
         trigger="i"
+        consumeOutsideClick
         className={styles.infoTrigger}
       >
         {children}
@@ -266,6 +267,7 @@ export function BattleSelectedSkills({
                   label={`About copied ${skill.name}`}
                   title={skill.name}
                   trigger="i"
+                  consumeOutsideClick
                 >
                   <BattleSkillParameters skill={skill} />
                 </BattleInfoPopover>

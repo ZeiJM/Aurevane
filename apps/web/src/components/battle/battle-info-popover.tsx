@@ -1,6 +1,7 @@
 'use client'
 
 import {
+  useCallback,
   useEffect,
   useId,
   useLayoutEffect,
@@ -11,6 +12,7 @@ import {
 } from 'react'
 import { createPortal } from 'react-dom'
 import { battleInfoPopoverPosition } from './battle-info-popover-position'
+import { battleInfoPopoverSession } from './battle-info-popover-session'
 import styles from './battle-info-popover.module.css'
 
 /** Small reading panels share outside-click, Escape, focus and combat-shortcut behavior. */
@@ -23,6 +25,7 @@ export function BattleInfoPopover({
   children,
   hover = false,
   consumeOutsideClick = false,
+  placement = 'auto',
 }: {
   label: string
   description?: string
@@ -32,6 +35,7 @@ export function BattleInfoPopover({
   children: ReactNode
   hover?: boolean
   consumeOutsideClick?: boolean
+  placement?: 'auto' | 'above'
 }) {
   const id = useId()
   const [open, setOpen] = useState(false)
@@ -45,25 +49,38 @@ export function BattleInfoPopover({
   const suppressFocus = useRef(false)
   const suppressHover = useRef(false)
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const cancelClose = () => {
+  const cancelClose = useCallback(() => {
     if (closeTimer.current) clearTimeout(closeTimer.current)
+  }, [])
+  const close = useCallback(() => {
+    cancelClose()
+    pinned.current = false
+    battleInfoPopoverSession.close(id)
+    setOpen(false)
+  }, [cancelClose, id])
+  const show = () => {
+    battleInfoPopoverSession.open(id, () => {
+      suppressHover.current = true
+      close()
+    })
+    setOpen(true)
   }
   const queueClose = () => {
     cancelClose()
-    if (!pinned.current) closeTimer.current = setTimeout(() => setOpen(false), 150)
+    if (!pinned.current) closeTimer.current = setTimeout(close, 150)
   }
-  const restoreFocus = () => {
-    pinned.current = false
-    suppressFocus.current = true
+  const restoreFocus = useCallback(() => {
+    suppressFocus.current = document.activeElement !== buttonRef.current
     suppressHover.current = true
-    setOpen(false)
+    close()
     buttonRef.current?.focus()
-  }
+  }, [close])
   useEffect(
     () => () => {
       if (closeTimer.current) clearTimeout(closeTimer.current)
+      battleInfoPopoverSession.close(id)
     },
-    [],
+    [id],
   )
 
   useLayoutEffect(() => {
@@ -95,6 +112,7 @@ export function BattleInfoPopover({
             height: window.innerHeight,
           },
           pagePositioned ? { x: window.scrollX, y: window.scrollY } : undefined,
+          placement,
         ),
       )
     }
@@ -119,38 +137,35 @@ export function BattleInfoPopover({
       window.removeEventListener('resize', place)
       window.removeEventListener('scroll', placeOnScroll, true)
     }
-  }, [open, wideReport, pageReport])
+  }, [open, wideReport, pageReport, placement])
 
   useEffect(() => {
     if (!open) return
     const dismiss = (event: PointerEvent) => {
-      if (consumeOutsideClick) return
+      if (consumeOutsideClick || !battleInfoPopoverSession.isActive(id)) return
       const target = event.target as Node | null
       if (target && !panelRef.current?.contains(target) && !buttonRef.current?.contains(target)) {
-        setOpen(false)
+        close()
       }
     }
     const dismissClick = (event: MouseEvent) => {
-      if (!consumeOutsideClick) return
+      if (!consumeOutsideClick || !battleInfoPopoverSession.isActive(id)) return
       const target = event.target as Node | null
       if (target && !panelRef.current?.contains(target) && !buttonRef.current?.contains(target)) {
+        // An information trigger owns the next reader; battlefield commands remain consumed.
+        if (target instanceof Element && target.closest('[data-battle-info-trigger]')) {
+          close()
+          return
+        }
         event.preventDefault()
         event.stopPropagation()
-        pinned.current = false
-        suppressFocus.current = true
-        suppressHover.current = true
-        setOpen(false)
-        buttonRef.current?.focus()
+        restoreFocus()
       }
     }
     const escape = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return
+      if (event.key !== 'Escape' || !battleInfoPopoverSession.isActive(id)) return
       event.preventDefault()
-      pinned.current = false
-      suppressFocus.current = true
-      suppressHover.current = true
-      setOpen(false)
-      buttonRef.current?.focus()
+      restoreFocus()
     }
     document.addEventListener('pointerdown', dismiss, true)
     document.addEventListener('click', dismissClick, true)
@@ -160,7 +175,7 @@ export function BattleInfoPopover({
       document.removeEventListener('click', dismissClick, true)
       document.removeEventListener('keydown', escape)
     }
-  }, [open, consumeOutsideClick])
+  }, [close, consumeOutsideClick, id, open, restoreFocus])
 
   const openHover = () => {
     cancelClose()
@@ -169,7 +184,7 @@ export function BattleInfoPopover({
       setWideReport(false)
       setPageReport(false)
     }
-    setOpen(true)
+    show()
   }
 
   return (
@@ -245,7 +260,8 @@ export function BattleInfoPopover({
             setWideReport(false)
             setPageReport(false)
           }
-          setOpen(next)
+          if (next) show()
+          else close()
           if (next && open) panelRef.current?.focus()
         }}
       >
@@ -271,9 +287,6 @@ export function BattleInfoPopover({
           >
             <header>
               <strong>{title}</strong>
-              <button type="button" aria-label={`Close ${title}`} onClick={restoreFocus}>
-                ×
-              </button>
             </header>
             {children}
           </div>,

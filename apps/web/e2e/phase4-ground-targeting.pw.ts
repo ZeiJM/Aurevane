@@ -1,4 +1,4 @@
-import { expect, test, type Page, type TestInfo } from '@playwright/test'
+import { expect, test, type Page, type Response, type Route, type TestInfo } from '@playwright/test'
 import { createClient } from '@supabase/supabase-js'
 import type { BattleSessionView } from '../src/server/battle/battle-session-service'
 import { selectDiscipline } from './discipline-library-helpers'
@@ -273,41 +273,82 @@ async function castOnEmptyGround(
   await expect(outcomes).toContainText('2 round boundaries')
   await expect(outcomes).toContainText('either team')
   await page.keyboard.press('Escape')
-  // A new deliberate tile input waits for its fresh forecast before exactly one mutation.
+  // Hold an actual informational forecast; a deliberate tile gesture must still commit directly.
   let releasePreview!: () => void
   const held = new Promise<void>((resolve) => {
     releasePreview = resolve
   })
-  let observedRequest!: () => void
-  const observed = new Promise<void>((resolve) => {
-    observedRequest = resolve
-  })
-  await page.route('**/preview', async (route) => {
-    observedRequest()
-    await held
-    await route.continue()
-  })
-  const committed = page.waitForResponse(
-    (response) =>
-      response.url().endsWith(`/api/battles/${sessionId}${commitEndpoint}`) &&
-      response.request().method() === 'POST',
-    { timeout: 15000 },
-  )
-  const tile = root.getByRole('button', {
-    name: new RegExp(`^Tile ${chosen.position.x + 1}, ${chosen.position.y + 1};`),
-  })
-  await tile.focus()
-  await page.keyboard.press('Enter')
-  await observed
+  let informationalReady = false
+  let heldPreviewRequests = 0
+  const handlers: Promise<void>[] = []
+  const previewPattern = '**/api/battles/*/preview'
+  const holdInformationalPreview = async (route: Route) => {
+    const payload = route.request().postDataJSON()
+    if (payload.expectedBattleVersion !== before.battleVersion) return route.continue()
+    heldPreviewRequests += 1
+    if (heldPreviewRequests > 1) return route.continue()
+    let settled!: () => void
+    handlers.push(
+      new Promise<void>((resolve) => {
+        settled = resolve
+      }),
+    )
+    try {
+      const response = await route.fetch({ timeout: 15_000 })
+      expect(response.status()).toBe(200)
+      informationalReady = true
+      await held
+      // Direct execution aborts the obsolete informational request before its reply is released.
+      await route.fulfill({ response }).catch(() => undefined)
+    } finally {
+      settled()
+    }
+  }
+  await page.route(previewPattern, holdInformationalPreview)
+  let committedResponse!: Response
   try {
+    const selected = root.getByRole('button', {
+      name: 'Selected Chilling Mist, 45 AP',
+      exact: true,
+    })
+    await selected.click()
+    await expect
+      .poll(() => informationalReady, {
+        timeout: 15_000,
+        message: 'Rearming must produce the held informational forecast before target input.',
+      })
+      .toBe(true)
     expect(commits).toHaveLength(0)
-    await expect(
-      root.getByRole('button', { name: 'Selected Chilling Mist, 45 AP', exact: true }),
-    ).toBeDisabled()
+    expect(audioRequests).toHaveLength(0)
+    expect(await read()).toEqual(before)
+    await expect(selected).toBeEnabled()
+    const committed = page.waitForResponse(
+      (response) =>
+        response.url().endsWith(`/api/battles/${sessionId}${commitEndpoint}`) &&
+        response.request().method() === 'POST',
+      { timeout: 15_000 },
+    )
+    const tile = root.getByRole('button', {
+      name: new RegExp(`^Tile ${chosen.position.x + 1}, ${chosen.position.y + 1};`),
+    })
+    await tile.focus()
+    await page.keyboard.press('Enter')
+    // The authoritative response arrives while the informational response remains held.
+    committedResponse = await committed
+    expect(heldPreviewRequests).toBe(1)
+    expect(committedResponse.request().postDataJSON()).toMatchObject({
+      expectedBattleVersion: before.battleVersion,
+      intent: {
+        kind: 'action',
+        actionId: 'frostweaver.chilling-mist',
+        target: { kind: 'tile', position: chosen.position },
+      },
+    })
   } finally {
     releasePreview()
+    await page.unroute(previewPattern, holdInformationalPreview)
+    await Promise.all(handlers)
   }
-  const committedResponse = await committed
   expect(committedResponse.status()).toBe(200)
   const after = (await committedResponse.json()).battle as BattleSessionView
   expect(after.battleVersion).toBe(before.battleVersion + 1)

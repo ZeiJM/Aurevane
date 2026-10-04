@@ -13,6 +13,11 @@ import {
   statusLabel,
 } from './battle-effect-summary'
 import { useBattleInteractionLifecycle } from './battle-interaction-lifecycle'
+import { battleInfoPopoverSession } from './battle-info-popover-session'
+import {
+  readSummonInspectMetadata,
+  type BattleSummonInspectMetadata,
+} from './battle-summon-inspect'
 import styles from './mobile-battle-combatant-popup.module.css'
 
 const DESKTOP_POINTER_QUERY = '(any-hover: hover) and (any-pointer: fine)'
@@ -41,6 +46,7 @@ interface SelectedCombatant {
   isPlayer: boolean
   active: boolean
   actionEconomy: number | null
+  summon: (BattleSummonInspectMetadata & { ownerName: string }) | null
 }
 
 interface BattleApiBody {
@@ -110,16 +116,29 @@ function readSelectedCombatant(
   const economy = combatant.temporaryResources.find(
     (resource) => resource.key === ACTION_ECONOMY_KEY,
   )
+  const summon = readSummonInspectMetadata(battle.snapshot, combatant.id)
 
   return {
     combatant,
     placement,
     profile,
     statuses,
-    name: isPlayer ? playerName : combatant.id.startsWith('recruit:') ? 'Recruit' : 'Combatant',
+    name:
+      summon?.name ??
+      (isPlayer ? playerName : combatant.id.startsWith('recruit:') ? 'Recruit' : 'Combatant'),
     isPlayer,
     active: battle.snapshot.tactical.battle.currentTurn?.combatantId === combatant.id,
     actionEconomy: economy?.current ?? null,
+    summon: summon
+      ? {
+          ...summon,
+          ownerName: summon.ownerCombatantId.startsWith('character:')
+            ? playerName
+            : summon.ownerCombatantId.startsWith('recruit:')
+              ? 'Recruit'
+              : 'Combatant',
+        }
+      : null,
   }
 }
 
@@ -147,6 +166,7 @@ export function MobileBattleCombatantPopup({
     let requestSequence = 0
 
     async function openCombatant(target: GridPosition | string) {
+      battleInfoPopoverSession.dismissActive()
       const sequence = ++requestSequence
       openRef.current = true
       setOpen(true)
@@ -266,15 +286,27 @@ export function MobileBattleCombatantPopup({
                     alt={`${selected.name} portrait`}
                   />
                 ) : (
-                  <span className={styles.recruitPortrait} aria-label="Recruit default portrait">
-                    R
+                  <span
+                    className={styles.recruitPortrait}
+                    aria-label={
+                      selected.summon
+                        ? `${selected.name} summon portrait`
+                        : 'Recruit default portrait'
+                    }
+                  >
+                    {selected.summon ? selected.name.slice(0, 1).toUpperCase() : 'R'}
                   </span>
                 )}
               </div>
               <div className={styles.identityCopy}>
-                <span>{selected.isPlayer ? 'Character' : 'Opponent'}</span>
+                <span>
+                  {selected.summon ? 'Summon' : selected.isPlayer ? 'Character' : 'Opponent'}
+                </span>
                 <h2>{selected.name}</h2>
                 <p>
+                  {selected.summon
+                    ? `Summoner: ${selected.summon.ownerName} · ${selected.summon.remainingTurns} summon turn${selected.summon.remainingTurns === 1 ? '' : 's'} remaining · `
+                    : ''}
                   {selected.active ? 'Active turn · ' : ''}
                   Facing {selected.placement.facing} {facingGlyph(selected.placement.facing)}
                 </p>
@@ -344,6 +376,32 @@ export function MobileBattleCombatantPopup({
                 </dd>
               </div>
             </dl>
+
+            {selected.summon ? (
+              <section className={styles.effects} aria-label={`${selected.name} summon profile`}>
+                <span>Summon profile</span>
+                <p>
+                  {selected.summon.description} · {selected.summon.remainingTurns}/
+                  {selected.summon.lifetimeTurns} turns remaining.
+                </p>
+                <p>{selected.summon.flavorLine}</p>
+                <p>{selected.summon.tags.join(' · ')}</p>
+                <ul>
+                  {selected.summon.abilities.map((ability) => (
+                    <li key={ability.id}>
+                      <strong>
+                        {ability.name}
+                        <b>
+                          {ability.apCost} AP
+                          {ability.mpCost > 0 ? ` · ${ability.mpCost} MP` : ''}
+                        </b>
+                      </strong>
+                      <p>{ability.description}</p>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
 
             <section className={styles.effects} aria-label={`${selected.name} active effects`}>
               <span>Active effects</span>

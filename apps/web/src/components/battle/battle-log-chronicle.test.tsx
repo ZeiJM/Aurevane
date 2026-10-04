@@ -5,6 +5,7 @@ import type { BattleLogEntry } from '@/server/battle/battle-log-service'
 
 import { BattleLogFeed } from './battle-log-feed'
 import { BattleLogPanel } from './battle-log-panel'
+import { BattleLogChronicle } from './battle-log-chronicle'
 import { buildBattleChronicle } from './battle-log-chronicle-model'
 
 const actor = 'character:zei'
@@ -60,6 +61,46 @@ function render(entries: readonly BattleLogEntry[]) {
 }
 
 describe('approved Battle Chronicle', () => {
+  it('expands the current and previous round while preserving all older history behind controls', () => {
+    const entries = [1, 2, 3, 4].map((round) => ({ ...technique(round), round }))
+    const html = renderToStaticMarkup(<BattleLogChronicle entries={entries} currentRound={4} />)
+    for (const round of [1, 2]) {
+      expect(html).toMatch(
+        new RegExp(`aria-label="Expand round ${round}"[^>]*aria-expanded="false"`),
+      )
+      expect(html).toMatch(new RegExp(`data-chronicle-round-content="${round}"[^>]*hidden=""`))
+    }
+    expect(html).toContain('aria-label="Collapse round 3" aria-expanded="true"')
+    expect(html).toContain('data-chronicle-current-round="true"')
+    expect(html).not.toContain('Collapse round 4')
+    expect(html.match(/data-chronicle-action=/gu)).toHaveLength(4)
+  })
+
+  it('infers the latest recorded round even when its entries are hidden bookkeeping', () => {
+    const html = render([
+      { ...technique(1), round: 1 },
+      { ...technique(2), round: 2 },
+      entry(3, 0, 'round_started', { round: 3 }),
+    ])
+    expect(html).toContain('aria-label="Expand round 1" aria-expanded="false"')
+    expect(html).toContain('aria-label="Collapse round 2" aria-expanded="true"')
+    expect(html).not.toContain('data-chronicle-current-round="true"')
+  })
+
+  it('uses the live snapshot round before the first recorded action of that round', () => {
+    const html = renderToStaticMarkup(
+      <BattleLogFeed
+        entries={[
+          { ...technique(1), round: 1 },
+          { ...technique(2), round: 2 },
+        ]}
+        currentRound={3}
+      />,
+    )
+    expect(html).toContain('aria-label="Expand round 1" aria-expanded="false"')
+    expect(html).toContain('aria-label="Collapse round 2" aria-expanded="true"')
+  })
+
   it.each([
     ['guarded', 'benefit'],
     ['lowered-guard', 'harm'],

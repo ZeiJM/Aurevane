@@ -16,7 +16,7 @@ test('Creation exposes twelve portraits per gender and preserves the complete au
     .split('')
     .map((digit) => String.fromCharCode(65 + Number(digit)))
     .join('')
-  const characterName = `Aurelia AB${suffix}`
+  const characterName = `Aurelia ${suffix.slice(-16)}`
   const pageErrors: string[] = []
   page.on('pageerror', (error) => pageErrors.push(error.message))
   await createVerifiedAccountAndSignIn({
@@ -35,6 +35,8 @@ test('Creation exposes twelve portraits per gender and preserves the complete au
   await expect(name).toHaveAttribute('aria-invalid', 'true')
   await expect(creation.getByRole('alert')).toBeVisible()
   await name.fill(characterName)
+  await expect(name).toHaveAttribute('maxlength', '24')
+  await expect(name).toHaveValue(characterName)
 
   const library = creation.locator('[data-portrait-library]')
   const portraits = library.locator('input[name="portrait"]')

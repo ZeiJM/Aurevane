@@ -1,10 +1,9 @@
 import { execFileSync } from 'node:child_process'
-import { expect, test, type Page, type TestInfo } from '@playwright/test'
+import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test'
 
 import type { BattleSessionView } from '../src/server/battle/battle-session-service'
 import { selectDiscipline } from './discipline-library-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
-import { openSelectedCombatantDetails } from './refined-battle-helpers'
 
 function readPersistedDeferredInitiative(sessionId: string): readonly string[] {
   if (!/^[0-9a-f-]{36}$/i.test(sessionId)) throw new Error('Invalid test battle ID')
@@ -298,10 +297,54 @@ test('current Renewing Herbs queues, activates next round, inspects and survives
       `^Tile ${placement!.position.x + 1}, ${placement!.position.y + 1};.*occupied by`,
     ),
   })
+  await expect(summonTile).not.toHaveAttribute('data-desktop-inspect-combatant')
+  let inspectCommands = 0
+  page.on('request', (request) => {
+    if (
+      request.method() === 'POST' &&
+      /\/(intents|commit|final-turn|recruit-turn)$/.test(new URL(request.url()).pathname)
+    )
+      inspectCommands++
+  })
   await root.getByRole('button', { name: /^Inspect,/ }).click()
+  await expect(summonTile).toHaveAttribute('data-desktop-inspect-combatant', summon!.combatantId)
   await summonTile.click()
 
-  const inspect = await openSelectedCombatantDetails(page, 'Verdant Stalker')
+  const enemyCard = page.locator('[data-battle-combatant-card="selected"]')
+  await expect(enemyCard).toContainText('Recruit')
+  await expect(enemyCard).not.toContainText('Verdant Stalker')
+  const inspect = page.getByRole('dialog', {
+    name: 'Verdant Stalker battle details',
+    exact: true,
+  })
+  await expect(inspect).toBeVisible()
+  const summonCombatant = current.snapshot.tactical.battle.combatants.find(
+    (entry) => entry.id === summon!.combatantId,
+  )!
+  const summonStats = current.snapshot.statBridge.combatants.find(
+    (entry) => entry.combatantId === summon!.combatantId,
+  )!
+  const expectPinnedSummonStats = async (details: Locator) => {
+    await expect(details).toContainText(`${summonCombatant.hp}/${summonCombatant.maxHp}`)
+    await expect(details).toContainText(`${summonCombatant.mp}/${summonCombatant.maxMp}`)
+    for (const [label, value] of [
+      ['Initiative', String(summonCombatant.initiative)],
+      ['Movement', String(summonCombatant.baseMovementBudget)],
+      ['Jump', String(summonStats.jump)],
+      ['Accuracy', `${Math.round(summonStats.accuracy / 100)}%`],
+      ['Evasion', `${Math.round(summonStats.evasion / 100)}%`],
+      ['Armor', String(summonStats.armor)],
+      ['Ward', String(summonStats.ward)],
+    ] as const) {
+      await expect(
+        details
+          .locator('dl > div')
+          .filter({ has: page.getByText(label, { exact: true }) })
+          .locator('dd'),
+      ).toHaveText(value)
+    }
+  }
+  await expectPinnedSummonStats(inspect)
   await expect(inspect).toContainText(`Summoner: ${characterName}`)
   await expect(inspect).toContainText(`${remainingTurns}/5 turns`)
   await expect(inspect).toContainText('Thorn Rake')
@@ -319,6 +362,10 @@ test('current Renewing Herbs queues, activates next round, inspects and survives
     'true',
   )
   await expect(root).toBeFocused()
+  await expect(enemyCard).toContainText('Recruit')
+  await expect(summonTile).not.toHaveAttribute('data-desktop-inspect-combatant')
+  expect(inspectCommands).toBe(0)
+  expect(await readBattle(page, sessionId)).toEqual(current)
 
   await page.reload()
   const reloaded = await readBattle(page, sessionId)
@@ -343,7 +390,14 @@ test('current Renewing Herbs queues, activates next round, inspects and survives
       ),
     })
     .click()
-  const reloadedInspect = await openSelectedCombatantDetails(page, 'Verdant Stalker')
+  await expect(enemyCard).toContainText('Recruit')
+  await expect(enemyCard).not.toContainText('Verdant Stalker')
+  const reloadedInspect = page.getByRole('dialog', {
+    name: 'Verdant Stalker battle details',
+    exact: true,
+  })
+  await expect(reloadedInspect).toBeVisible()
+  await expectPinnedSummonStats(reloadedInspect)
   await expect(reloadedInspect).toContainText(`${remainingTurns}/5 turns`)
   await expect(reloadedInspect).toContainText('Thorn Rake')
   await expect(reloadedInspect).toContainText('Verdant Mend')

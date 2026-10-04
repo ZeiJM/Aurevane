@@ -102,6 +102,14 @@ jobs:
           SUPABASE_SECRET_KEY="$server_key" \
           pnpm --filter @aurevane/web exec playwright test e2e/password-reset.pw.ts
 
+          # Prove complete training and terrain-weighted movement before the longer suites.
+          AUREVANE_ENV=local \
+          NEXT_PUBLIC_AUREVANE_ENV=local \
+          NEXT_PUBLIC_SUPABASE_URL="$api_url" \
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY" \
+          SUPABASE_SECRET_KEY="$server_key" \
+          pnpm --filter @aurevane/web exec playwright test e2e/battle-experience.pw.ts
+
           # Catch shared battle composition regressions before the longer all-page run.
           # A successful candidate still runs the entire suite and the Edge keyboard checks below.
           AUREVANE_ENV=local \
@@ -117,7 +125,7 @@ jobs:
             e2e/pvp-mobile-unified-battle.pw.ts e2e/discipline-sigil-art.pw.ts \
             e2e/character-secondary-build.pw.ts \
             e2e/battle-move-preview-polish.pw.ts e2e/battle-self-action-quick-commit.pw.ts e2e/battle-self-skill-hotkey.pw.ts \
-            e2e/battle-terrain-control-parity.pw.ts e2e/refined-battle-execution.pw.ts \
+            e2e/battle-terrain-control-parity.pw.ts e2e/refined-battle-execution.pw.ts e2e/battle-info-popover.pw.ts \
             e2e/battle-recovery-hotkey.pw.ts e2e/battle-support-action.pw.ts e2e/techniques-support-action.pw.ts e2e/technique-preview-layout.pw.ts \
             e2e/shell-viewport-fit.pw.ts \
             --project=desktop-chromium --project=mobile-chromium

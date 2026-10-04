@@ -74,39 +74,8 @@
   cursor: not-allowed;
 }
 .broadcast {
-  display: grid;
-  grid-template-columns: clamp(10rem, 14vw, 14rem) minmax(0, 1fr) clamp(10rem, 14vw, 14rem);
-  grid-template-rows: minmax(0, 1fr) 2.75rem auto;
-  grid-template-areas: 'local board selected' 'local preview selected' 'cockpit cockpit cockpit';
-  gap: 0.45rem;
-  min-width: 0;
-  min-height: 0;
-  padding: 0.6rem;
+  composes: stage from './battle-approved-layout.module.css';
 }
-.localSide,
-.selectedSide {
-  container-type: size;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  align-content: start;
-  gap: 0.45rem;
-  min-width: 0;
-  min-height: 0;
-  overflow: hidden;
-}
-.localSide > :first-child,
-.selectedSide > :first-child {
-  min-height: 0;
-  overflow: visible;
-}
-.localSide {
-  grid-area: local;
-}
-.selectedSide {
-  grid-area: selected;
-  grid-template-rows: auto minmax(0, 1fr);
-}
-
 .battlefieldWrap {
   grid-area: board;
   display: grid;
@@ -247,11 +216,6 @@
   max-height: 50dvh;
   overflow: auto;
 }
-@media (max-width: 1100px) and (min-width: 821px) {
-  .broadcast {
-    grid-template-columns: 9rem minmax(0, 1fr) 9rem;
-  }
-}
 @media (max-width: 820px) {
   .page {
     height: auto;
@@ -263,23 +227,6 @@
   }
   .headerActions {
     flex-wrap: wrap;
-  }
-  .broadcast {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-rows: auto auto auto auto;
-    grid-template-areas: 'local selected' 'board board' 'preview preview' 'cockpit cockpit';
-    padding: 0.4rem;
-  }
-  .localSide,
-  .selectedSide {
-    container-type: normal;
-    display: flex;
-    flex-direction: column;
-    overflow: visible;
-  }
-  .localSide > :first-child,
-  .selectedSide > :first-child {
-    overflow: visible;
   }
   .preview {
     flex-wrap: wrap;
@@ -301,9 +248,22 @@
     flex-wrap: wrap;
   }
 }
-@media (max-width: 480px) {
-  .broadcast {
-    grid-template-columns: 1fr;
-    grid-template-areas: 'local' 'selected' 'board' 'preview' 'cockpit';
-  }
+
+.localSide,
+.selectedSide {
+  min-width: 0;
+}
+.actorTitle {
+  position: absolute;
+  bottom: calc(50% + 0.225rem);
+  left: 0;
+  margin: 0.2rem 0.35rem;
+  font-size: 0.6875rem;
+  color: #d1bb8c;
+}
+.terrainControl {
+  margin-left: auto;
+}
+.chatDock {
+  margin-left: 0;
 }

@@ -10,7 +10,7 @@ describe('refined battle controller wiring', () => {
     expect(source).toContain('participants={Array.from(viewModel.participantByCombatant.values())}')
     expect(source).not.toContain('Confirm Action')
   })
-  it('separates informational automatic aim from deliberate preview-validated execution', () => {
+  it('separates informational automatic aim from deliberate server-validated execution', () => {
     expect(source).toContain('selectInitialBattleSkillPreviewIntent')
     expect(source).toContain('selectDirectionalBattleSkillPreviewIntent')
     expect(source).toContain('executeIntent')

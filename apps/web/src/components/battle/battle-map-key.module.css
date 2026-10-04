@@ -96,6 +96,59 @@
 .status b {
   font-size: 0.7em;
 }
+.inline.compact {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.compact > header {
+  display: none;
+}
+.compact .samples {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: auto;
+  gap: 0.4rem;
+}
+.compact .sample {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto auto;
+  justify-items: center;
+  gap: 0.2rem;
+  min-height: 3rem;
+  padding: 0.2rem;
+  font-size: 13px;
+  text-align: center;
+}
+.compact .sample i {
+  grid-row: auto;
+  width: 4rem;
+  height: 2.5rem;
+}
+.compact .status {
+  grid-column: auto;
+  font-size: 11px;
+}
+.entry {
+  min-width: 0;
+  border: 1px solid #9e886255;
+  border-radius: 2px;
+}
+.entry[open] {
+  grid-column: 1 / -1;
+}
+.entry > summary {
+  list-style: none;
+}
+.entry > summary::-webkit-details-marker {
+  display: none;
+}
+.entry > p {
+  margin: 0;
+  padding: 0 0.4rem 0.4rem;
+  font: 400 13px/1.3 var(--av-font-body);
+}
 @media (min-width: 821px) {
   .inline {
     display: grid;

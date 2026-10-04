@@ -2,7 +2,11 @@
 
 ## Owner readability continuation — 2026-10-03
 
-The preview strip shows the authoritative current round at its right edge without increasing battlefield/cockpit scroll requirements. Battle, Nexus and Chronicle information popups share compact report typography and restrained parchment treatment while retaining all ordered fields and interaction/accessibility behavior. Chronicle effects use smaller italic outcome text, green for beneficial/recovery and red for harmful effects; action headings and narrative remain primary. Recorded misses receive explicit ordinary result lines; missing historical results cannot be inferred as misses. A second distinct configured hotkey press may confirm a legally selected self-target Skill through the existing preview/commit path. Native keyboard controls observe the current rendered selection immediately. Matching in-flight previews may be reused for rapid confirmation only while the intent, battle version and request sequence remain current; the legal server receipt and commit validation remain required. Verification/release status: `superpowers/verification/2026-10-03-battle-map-preview-readability.md`.
+The latest Owner-approved continuation places equal-size local-character and selected-enemy cards together in the left rail and the full Battle Chronicle in the right rail. The Chronicle header shows the authoritative recorded round in gold, replacing the preview-strip round badge and redundant Latest/arrow header controls. Current and previous rounds expand by default; earlier rounds have labelled chevrons. The current round cannot collapse. Explicitly opened history and a round being read remain available across live updates without pulling the reader to the latest entry; explicit collapse remains respected. Recorded narration, actual outcomes, complete history and viewer privacy remain authoritative.
+
+Terrain sits beside Cancel in the command footer and opens the shared terrain reader. Information popups retain their complete ordered reports in a compact parchment design, with one active reader across battle surfaces, no X control, outside-click/Escape dismissal and accessible focus behavior. Preserve the approved portrait and Skill artwork dimensions; layout changes must not shrink images to recover space. Chronicle outcomes retain smaller italic text, canonical beneficial/recovery green, harmful red and explicit recorded misses.
+
+Deliberate target clicks, destination clicks and configured execution gestures send the selected intent directly to canonical versioned server commit. Move can reach the full legal destination range in one click, within remaining AP, Movement, terrain/elevation and status limits. Informational aim forecasts remain available, but a matching completed or in-flight preview is not a prerequisite for commitment. Native keyboard controls observe the current rendered selection immediately; focus, repeat, pending-command and stale-context guards remain. This supersedes the earlier required matching-preview/receipt wording. Current-batch verification: `superpowers/verification/2026-10-03-approved-battle-layout-direct-input.md`; final integrated verification and release status remain in `../TASKS.md`. This specification does not claim the continuation is released.
 
 **Status:** Authoritative battle-interface specification subordinate to `docs/GAME_MASTER_PLAN.md` and `docs/COMBAT.md`, and complementary to `docs/RESPONSIVE_EXPERIENCE_STANDARD.md`, `docs/PRODUCT_EXPERIENCE_CONTENT_SYSTEM.md`, `docs/ART_BIBLE.md`, `docs/AUDIO_BIBLE.md`, `docs/COMBAT_AI_TRAINING.md`, and `docs/ROADMAP_PRODUCT_VALIDATION.md`.
 
@@ -133,27 +137,17 @@ Layer C uses drawers, sheets, overlays, inspectors, or dedicated post-battle sur
 
 ## 5. Desktop Battle Cockpit
 
-On a large desktop, the preferred conceptual structure is:
+The Owner-approved desktop composition is:
 
-```text
-┌────────────────────────────────────────────────────────────────────────────┐
-│ OBJECTIVE / ROUND           INITIATIVE TIMELINE              TIMER / STATE │
-├───────────────┬───────────────────────────────────────┬────────────────────┤
-│ PARTY / SELF  │                                       │ SELECTED CONTEXT   │
-│ COMBAT RAIL   │              BATTLEFIELD              │ INSPECTOR          │
-│               │                                       │                    │
-│ compact HP/MP │     movement / targeting / terrain    │ unit or tile       │
-│ statuses      │          / facing / objects           │ forecast/status    │
-│ actor state   │                                       │                    │
-├───────────────┴───────────────────────────────────────┴────────────────────┤
-│ EVENT TICKER / TURN ECONOMY TRACKER                                        │
-├────────────────────────────────────────────────────────────────────────────┤
-│                              COMMAND DECK                                  │
-│ Basics | Current | Legacy | Movement | Signature | Items | Confirm/Cancel │
-└────────────────────────────────────────────────────────────────────────────┘
-```
+| Location | Persistent content |
+| --- | --- |
+| Header | Objective, initiative, timer and battle state |
+| Left rail | Equal-size local-character and selected-enemy cards, portraits, vitals and effects |
+| Center | Battlefield and informational aim forecast |
+| Right rail | Full Chronicle with a gold recorded-round counter |
+| Command footer | Committed-build actions, execution controls, Cancel and adjacent Terrain |
 
-This is a composition rule, not a demand for fixed pixel dimensions or a visual copy of any reference game.
+PvE, playable PvP and spectators share the applicable layout. Spectators retain read-only controls. Responsive stacking preserves complete readers and artwork dimensions without forcing desktop rail widths onto mobile. This is a composition rule, not a demand for fixed pixel dimensions or a visual copy of any reference game.
 
 The center must remain visually dominant.
 
@@ -177,13 +171,11 @@ The exact renderer and dimensions remain an implementation decision, but the bat
 
 ---
 
-## 7. Left Combat Rail — Self / Party State
+## 7. Left Combat Rail — Local Character and Selected Enemy State
 
 The useful idea of keeping the player's state persistently visible is retained, but condensed.
 
-For solo combat, the left rail can show the active player character and important summons/companions when relevant.
-
-For co-op, it becomes the party combat rail.
+The left rail pairs the local character with the currently selected enemy at equal size. The selected-enemy panel lists enemy combatants rather than duplicating the local party. A self-targeted command does not replace the selected enemy card. Selection must not enlarge one card or duplicate the full party/enemy roster in the rail. Group-battle roster, allied-character and companion information remain available through contextual inspection.
 
 Each compact party card may show:
 
@@ -215,11 +207,11 @@ Do not rely on color alone.
 
 ---
 
-## 8. Right Context Inspector — Not a Permanent Enemy Sheet
+## 8. Selected Context — Character Card and Information Readers
 
 AUREVANE often has multiple enemies, allies, summons, battle objects, zones, and terrain states. Therefore a fixed panel dedicated to one enemy is too rigid.
 
-The right-side contextual inspector changes according to selection.
+The selected-enemy card in the left rail follows enemy selection. The right rail belongs to the Chronicle; deeper unit and tile information uses contextual readers.
 
 ### When a unit is selected
 
@@ -240,7 +232,7 @@ It may show information the player is entitled to know:
 
 ### When a tile is selected
 
-The same inspector becomes a terrain/objective panel:
+The contextual tile reader exposes terrain/objective information:
 
 - terrain type;
 - elevation;
@@ -255,7 +247,7 @@ The same inspector becomes a terrain/objective panel:
 
 It can collapse to a concise objective/tactical summary instead of remaining a blank large panel.
 
-This removes duplicate information and makes the right rail useful in every kind of battle.
+This preserves useful selection context while keeping the complete Chronicle available on the right.
 
 ---
 
@@ -397,9 +389,8 @@ NEUTRAL / INSPECT
 ACTION SELECTED
   ↓ choose target / destination / direction
 AIM / TARGET
-  ↓ preview
-FORECAST READY
-  ↓ explicit commit
+  ↓ optional informational aim forecast
+  ↓ deliberate target / destination / execution gesture
 PENDING SERVER ACCEPTANCE
   ↓ authoritative events
 RESOLUTION
@@ -413,11 +404,11 @@ Multi-stage Arts add finite steps:
 Art
 → entrance tile
 → exit tile
-→ forecast
-→ confirm
+→ optional informational forecast
+→ deliberate execution
 ```
 
-A small breadcrumb/step indicator should make multi-stage targeting understandable.
+A small breadcrumb/step indicator should make multi-stage targeting understandable. A completed matching preview receipt is not an execution gate: the deliberate gesture submits intent and the expected battle version to canonical server commit, which revalidates every rule. One-click Move may submit the full legal path to a selected destination; remaining Movement, AP, terrain, elevation, occupied tiles and active statuses remain limiting authorities.
 
 `Escape`/Cancel moves backward before commitment where safe.
 
@@ -441,7 +432,7 @@ Click/tap a unit or tile to inspect it.
 
 An action is selected.
 
-Click/tap a legal unit/tile to select the action target.
+With an action armed, click/tap a legal target or destination to deliberately execute that intent. Hover/aim can show an informational forecast without committing.
 
 The interface should visibly indicate when the player is in Target mode through:
 
@@ -457,25 +448,11 @@ The player should never wonder whether clicking a unit will merely inspect it or
 
 ## 16. Explicit Commit / Confirm Rule
 
-AUREVANE's tactical actions can have meaningful irreversible consequences. Normal substantive actions should therefore use an explicit commit step after target selection.
+Selecting an action arms a command. The deliberate legal target/destination click, self-target second-hotkey press or configured execution gesture is the explicit commitment; ordinary commands do not require a separate confirmation overlay or a matching preview receipt. Hovering, opening an information reader and selecting Inspect remain informational gestures.
 
-The compact commit summary can look conceptually like:
+The aim summary may show the chosen Skill, intended target/destination, AP/MP costs, projected effects and known tactical risks. Its forecast is informational and may still be pending when the player executes. Canonical commit validates the submitted intent and expected battle version against current server state, then returns the actual outcome. Cancel clears uncommitted intent; it cannot undo an accepted command.
 
-```text
-RIFT EDGE
-Target: Ashbound Sentinel
-Destination: (8, 4)
-MP: 15
-Expected: 44–51 physical damage
-Also: blink 1 tile; Exposed 1 turn
-Known risk: enemy Reaction may trigger
-
-[Cancel]                      [CONFIRM]
-```
-
-Not every harmless camera/inspection action needs confirmation.
-
-Repeated low-risk actions may eventually support carefully tested faster input modes in PvE, but the default interface should protect players from accidental major commitments.
+Existing explicit confirmation for distinct high-consequence controls such as Surrender remains governed by those controls. Direct execution retains focus/repeat, pending-command and stale-context guards across PvE and PvP.
 
 ---
 
@@ -626,11 +603,9 @@ This makes unavailable actions educational rather than frustrating.
 
 ---
 
-## 21. Event Ticker + Full Combat Log Drawer
+## 21. Event Ticker + Full Battle Chronicle
 
-The permanent large combat log panel from form-driven battle screens does not justify its space in a tactical board interface.
-
-AUREVANE instead uses two levels.
+The shared right rail presents the full viewer-safe Chronicle while the board remains central. The ticker and Chronicle serve two reading depths.
 
 ### Event ticker
 
@@ -642,9 +617,11 @@ Stormsinger's Reaction triggered: Static Rebuke
 North Seal: 2 / 3 captured
 ```
 
-### Combat Log drawer
+### Battle Chronicle
 
-A deeper on-demand history containing:
+Current and previous rounds expand by default. Earlier round headers use chevrons with keyboard reveal/hide; the current round is fixed open. Explicitly opened history and the visible reading position survive live updates. The header shows the gold recorded-round counter. Disclosure does not discard saved events or recorded results.
+
+The complete underlying history contains:
 
 - round/turn;
 - action;
@@ -661,7 +638,7 @@ A deeper on-demand history containing:
 
 The log uses structured authoritative battle events and supports keyboard/screen-reader access.
 
-A player who wants to study exactly what happened can do so without everyone paying the screen-space cost every turn.
+The Chronicle keeps pinned narration and actual results together by actor within each round. Collapsed history remains available for study without increasing the live reading footprint.
 
 ---
 

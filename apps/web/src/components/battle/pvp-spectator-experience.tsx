@@ -2,11 +2,11 @@
 
 import { BattleRouteFrame } from './battle-route-frame'
 
-import { BattleMapKey } from './battle-map-key'
+import { BattleTerrainToggle } from './battle-terrain-toggle'
 import { battleTerrainName } from './battle-terrain-key-presentation'
 import { BattleCombatantCard } from './battle-combatant-card'
 import { BattleLogPanel } from './battle-log-panel'
-import { BattleRoundBadge } from './battle-round-badge'
+import { BattleChronicleHeading } from './battle-chronicle-heading'
 import type { BattlePresentationParticipant } from './battle-runtime'
 
 import { terrainOverlayAt } from '@aurevane/game-core/combat/terrain-overlays'
@@ -134,6 +134,7 @@ export function PvpSpectatorExperience({
   const activeParticipant = activeCombatantId
     ? (participantByCombatant.get(activeCombatantId) ?? null)
     : null
+  const actingTeamIndex = activeParticipant?.teamIndex ?? presentationParticipants[0]?.teamIndex
   const activeCombatant = activeCombatantId
     ? (battleState.combatants.find((combatant) => combatant.id === activeCombatantId) ?? null)
     : null
@@ -368,9 +369,23 @@ export function PvpSpectatorExperience({
               role="acting"
             />
             {activeParticipant && participantTitles[activeParticipant.characterId] ? (
-              <small>{participantTitles[activeParticipant.characterId]}</small>
+              <small className={styles.actorTitle}>
+                {participantTitles[activeParticipant.characterId]}
+              </small>
             ) : null}
-            <BattleMapKey snapshot={battle.snapshot} />
+            <BattleCombatantCard
+              participant={
+                presentationParticipants.find(
+                  (item) =>
+                    item.combatantId === selectedCombatantId && item.teamIndex !== actingTeamIndex,
+                ) ??
+                presentationParticipants.find((item) => item.teamIndex !== actingTeamIndex) ??
+                null
+              }
+              battle={battle}
+              teamCount={teamCount}
+              role="selected"
+            />
           </aside>
 
           <section
@@ -428,7 +443,8 @@ export function PvpSpectatorExperience({
                       data-selected={selected || undefined}
                       key={key}
                       onClick={() => {
-                        if (placement) setSelectedCombatantId(placement.combatantId)
+                        if (placement && participant?.teamIndex !== actingTeamIndex)
+                          setSelectedCombatantId(placement.combatantId)
                         if (inspectMode) setSelectedPosition({ ...tile.position })
                       }}
                       aria-label={`Tile ${x}, ${y}; ${tile.terrainId}; elevation ${tile.elevation}${participant ? `; occupied by ${participant.characterName}` : ''}${overlay ? `; ${terrainOverlayDescription(overlay)}` : ''}`}
@@ -471,36 +487,29 @@ export function PvpSpectatorExperience({
           <aside
             className={styles.selectedSide}
             data-battle-side="selected"
-            aria-label="Selected character"
+            aria-label="Battle Chronicle"
           >
-            <BattleCombatantCard
-              participant={
-                presentationParticipants.find((item) => item.combatantId === selectedCombatantId) ??
-                presentationParticipants.find((item) => item.combatantId !== activeCombatantId) ??
-                presentationParticipants[0] ??
-                null
-              }
-              battle={battle}
-              teamCount={teamCount}
-              role="selected"
-            />
+            <BattleChronicleHeading round={battleState.round} />
             <BattleLogPanel
               presentation="inline"
               battleSessionId={battle.battleSessionId}
               battleVersion={battle.battleVersion}
               combatantNames={combatantNames}
+              currentRound={battleState.round}
               recentTurnCount={2}
             />
           </aside>
           <div className={styles.preview} data-battle-preview-strip="true">
             <div data-battle-spectator-preview-content="true">{inspectContext()}</div>
-            <BattleRoundBadge round={battleState.round} />
           </div>
           <div className={styles.inspectDock} data-battle-command-dock="true">
             <button type="button" aria-pressed={inspectMode} onClick={toggleInspect}>
               Inspect
             </button>
             <span>Read-only battlefield · Select a character to view its current state.</span>
+            <div className={styles.terrainControl}>
+              <BattleTerrainToggle snapshot={battle.snapshot} />
+            </div>
             <details className={styles.chatDock}>
               <summary>Battle Chat</summary>
               <PvpBattleChat

@@ -11,8 +11,8 @@ import {
   selectDirectionalBattleSkillPreviewIntent,
 } from './battle-preview-selection'
 import { BattleActionPreview } from './battle-action-preview'
-import { BattleRoundBadge } from './battle-round-badge'
-import { BattleMapKey } from './battle-map-key'
+import { BattleChronicleHeading } from './battle-chronicle-heading'
+import { BattleTerrainToggle } from './battle-terrain-toggle'
 import { BattleInfoPopover } from './battle-info-popover'
 import { terrainOverlayAt } from '@aurevane/game-core/combat/terrain-overlays'
 import { getTacticalHallRecordFromScenarioSourceId } from '@aurevane/game-core/combat/tactical-hall-records'
@@ -55,7 +55,7 @@ import { pvpParticipantAccent } from './battle-combatant-colors'
 import { BattleFacingIndicator } from './battle-facing-indicator'
 import { useBattleInteractionLifecycle } from './battle-interaction-lifecycle'
 import {
-  buildImmediateStepPaths,
+  buildMovementPaths,
   facingGlyph,
   meterPercent,
   MOVE_COST_PER_TERRAIN_POINT,
@@ -260,6 +260,7 @@ function BattleExperienceContent({
   const [preview, setPreview] = useState<BattlePreviewView | null>(null)
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null)
   const [inspectedUnitId, setInspectedUnitId] = useState<string | null>(null)
+  const [inspectedEnemyUnitId, setInspectedEnemyUnitId] = useState<string | null>(null)
   const [inspectedTile, setInspectedTile] = useState<BattleGridPosition | null>(null)
   const [bindings, setBindings] = useState<CombatKeybindMap>(DEFAULT_COMBAT_KEYBINDS)
   const executionLock = useRef(false)
@@ -461,6 +462,12 @@ function BattleExperienceContent({
     ? (tactical.placements.find((placement) => placement.combatantId === localCombatantId) ?? null)
     : null
   const localTeamIndex = viewModel.localTeamIndex ?? -1
+  const enemyParticipant =
+    [selectedUnitId, inspectedEnemyUnitId]
+      .map((id) => viewModel.participantByCombatant.get(id ?? ''))
+      .find((participant) => participant && participant.teamIndex !== localTeamIndex) ??
+    viewModel.participants.find((participant) => participant.teamIndex !== localTeamIndex) ??
+    null
   const localTurn = Boolean(
     localCombatantId && battleState.currentTurn?.combatantId === localCombatantId,
   )
@@ -525,9 +532,13 @@ function BattleExperienceContent({
   const reachablePaths = useMemo(
     () =>
       localTurn
-        ? buildImmediateStepPaths(battle.snapshot, localPlacement, actionEconomy)
+        ? buildMovementPaths(battle.snapshot, localPlacement, actionEconomy)
         : new Map<string, BattleGridPosition[]>(),
     [actionEconomy, battle.snapshot, localPlacement, localTurn],
+  )
+  const maximumMoveDistance = Math.max(
+    0,
+    ...Array.from(reachablePaths.values(), (path) => path.length - 1),
   )
   const attackRange = useMemo(() => {
     const result = new Set<string>()
@@ -883,6 +894,7 @@ function BattleExperienceContent({
         !mounted.current ||
         commitLock.current ||
         commitPending ||
+        battleRef.current.battleVersion !== battle.battleVersion ||
         !localTurn ||
         battleRef.current.snapshot.tactical.battle.lifecycle !== 'active'
       )
@@ -1054,60 +1066,42 @@ function BattleExperienceContent({
     ],
   )
 
-  const commitSelected = useCallback(() => {
-    if (
-      !pendingIntent ||
-      !preview?.preview.legal ||
-      previewPending ||
-      !isCurrentBattlePreview(
-        readyPreview.current,
-        pendingIntent,
-        battle.battleVersion,
-        previewSequence.current,
-      )
-    )
-      return
-    void commitValue(pendingIntent)
-  }, [battle.battleVersion, commitValue, pendingIntent, preview, previewPending])
-
-  // A user gesture may refresh its target forecast, but only the current legal receipt can commit.
+  // Forecasts are informational. A deliberate gesture goes straight to the server's
+  // versioned legality/commit boundary instead of waiting for a second round trip.
   const executeIntent = useCallback(
     async (intent: BattleIntent, keyboardCode?: string) => {
-      if (planningDisabledRef.current || executionLock.current || commitLock.current) return
+      if (
+        !mounted.current ||
+        planningDisabledRef.current ||
+        executionLock.current ||
+        commitLock.current ||
+        document.hidden ||
+        !document.hasFocus() ||
+        isTextEntryTarget(document.activeElement, keyboardCode)
+      )
+        return
       if (intent.kind === 'action' && actionCooldownTurns(intent.actionId) > 0) return
       executionLock.current = true
       setExecutionPending(true)
+      previewController.current?.abort()
+      previewController.current = null
+      previewSequence.current += 1
+      readyPreview.current = null
+      inFlightPreview.current = null
+      setPreviewPending(false)
       try {
-        const ready = isCurrentBattlePreview(
-          readyPreview.current,
-          intent,
-          battleRef.current.battleVersion,
-          previewSequence.current,
-        )
-          ? readyPreview.current
-          : await requestPreview(intent)
-        if (
-          mounted.current &&
-          !document.hidden &&
-          document.hasFocus() &&
-          !isTextEntryTarget(document.activeElement, keyboardCode) &&
-          ready &&
-          isCurrentBattlePreview(
-            readyPreview.current,
-            intent,
-            battleRef.current.battleVersion,
-            ready.sequence,
-          )
-        ) {
-          await commitValue(intent)
-        }
+        await commitValue(intent)
       } finally {
         executionLock.current = false
         if (mounted.current) setExecutionPending(false)
       }
     },
-    [actionCooldownTurns, commitValue, requestPreview],
+    [actionCooldownTurns, commitValue],
   )
+
+  const commitSelected = useCallback(() => {
+    if (pendingIntent) void executeIntent(pendingIntent, 'Enter')
+  }, [executeIntent, pendingIntent])
 
   const actionDescriptor = useCallback(
     (actionId: string) =>
@@ -1255,7 +1249,7 @@ function BattleExperienceContent({
       clearPlanning(nextMode)
       if (nextMode === 'move')
         setNotice(
-          'Click a highlighted adjacent tile or press WASD to move one step. The server checks Movement and AP.',
+          'Choose any highlighted destination to move the full route, or use WASD for one step. Movement and AP limits apply.',
         )
       else if (nextMode === 'finish')
         setNotice(
@@ -1285,6 +1279,11 @@ function BattleExperienceContent({
   const handleTile = useCallback(
     (position: BattleGridPosition) => {
       const placement = placementByTile.get(positionKey(position))
+      if (
+        placement &&
+        viewModel.participantByCombatant.get(placement.combatantId)?.teamIndex !== localTeamIndex
+      )
+        setInspectedEnemyUnitId(placement.combatantId)
       if (mode === 'none') {
         if (placement && placement.combatantId !== localCombatantId)
           setInspectedUnitId(placement.combatantId)
@@ -1300,7 +1299,7 @@ function BattleExperienceContent({
       if (mode === 'move') {
         const nextPath = reachablePaths.get(positionKey(position))
         if (!nextPath || nextPath.length < 2) {
-          setNotice('Choose a highlighted adjacent tile with enough Movement and AP.')
+          setNotice('Choose a highlighted destination within your remaining Movement and AP.')
           return
         }
         updatePlanningPath(nextPath)
@@ -1332,12 +1331,14 @@ function BattleExperienceContent({
       currentActionId,
       executeIntent,
       localCombatantId,
+      localTeamIndex,
       mode,
       placementByTile,
       planningDisabled,
       reachablePaths,
       selection,
       updatePlanningPath,
+      viewModel.participantByCombatant,
     ],
   )
 
@@ -1695,12 +1696,14 @@ function BattleExperienceContent({
                 : mode === 'guard'
                   ? selectedDefense.label
                   : mode === 'move'
-                    ? 'Move'
+                    ? `Move · up to ${maximumMoveDistance} tiles`
                     : 'Inspect'
   const characterInspection =
-    mode === 'inspect' && selectedParticipant && selectedCombatant && selectedPlacement
-      ? `Team ${selectedParticipant.teamIndex + 1} · HP ${selectedCombatant.hp}/${selectedCombatant.maxHp} · MP ${selectedCombatant.mp}/${selectedCombatant.maxMp} · Facing ${selectedPlacement.facing} ${facingGlyph(selectedPlacement.facing)}`
-      : notice
+    mode === 'move'
+      ? `Range: ${maximumMoveDistance} tiles · ${notice}`
+      : mode === 'inspect' && selectedParticipant && selectedCombatant && selectedPlacement
+        ? `Team ${selectedParticipant.teamIndex + 1} · HP ${selectedCombatant.hp}/${selectedCombatant.maxHp} · MP ${selectedCombatant.mp}/${selectedCombatant.maxMp} · Facing ${selectedPlacement.facing} ${facingGlyph(selectedPlacement.facing)}`
+        : notice
   const inspectedTerrain =
     mode === 'inspect' && inspectedTile
       ? tactical.tiles.find((tile) => positionsEqual(tile.position, inspectedTile))
@@ -1813,6 +1816,7 @@ function BattleExperienceContent({
           ) : null}
           <BattleInfoPopover
             label="Victory Conditions"
+            consumeOutsideClick
             trigger={
               <>
                 <span>Victory Conditions</span>
@@ -1929,7 +1933,12 @@ function BattleExperienceContent({
             teamCount={viewModel.teamCount}
             role="local"
           />
-          <BattleMapKey snapshot={battle.snapshot} />
+          <BattleCombatantCard
+            participant={enemyParticipant}
+            battle={battle}
+            teamCount={viewModel.teamCount}
+            role="selected"
+          />
         </aside>
 
         <section
@@ -2016,6 +2025,14 @@ function BattleExperienceContent({
                     data-path-index={pathIndex >= 0 ? pathIndex : undefined}
                     data-target={targetRelation}
                     data-selected={selected || undefined}
+                    data-desktop-inspect-combatant={
+                      mode === 'inspect' &&
+                      placement &&
+                      participant?.teamIndex === localTeamIndex &&
+                      placement.combatantId !== localCombatantId
+                        ? placement.combatantId
+                        : undefined
+                    }
                     data-preview-tile={
                       (pendingIntent?.kind === 'action' &&
                         pendingIntent.target.kind === 'tile' &&
@@ -2084,23 +2101,17 @@ function BattleExperienceContent({
           </div>
         </section>
 
-        <aside data-battle-side="selected" data-battle-flow-log-target="true">
-          <BattleCombatantCard
-            participant={
-              viewModel.participantByCombatant.get(selectedUnitId ?? inspectedUnitId ?? '') ??
-              viewModel.participants.find(
-                (participant) => participant.combatantId !== localCombatantId,
-              ) ??
-              null
-            }
-            battle={battle}
-            teamCount={viewModel.teamCount}
-            role="selected"
-          />
+        <aside
+          data-battle-side="selected"
+          data-battle-flow-log-target="true"
+          aria-label="Battle Chronicle"
+        >
+          <BattleChronicleHeading round={battleState.round} />
           <BattleLogPanel
             presentation="inline"
             battleSessionId={battle.battleSessionId}
             battleVersion={battle.battleVersion}
+            currentRound={battleState.round}
             playerName={runtime.playerName}
             combatantNames={Object.fromEntries(
               Array.from(viewModel.participantByCombatant.values()).map((participant) => [
@@ -2131,7 +2142,6 @@ function BattleExperienceContent({
             participants={Array.from(viewModel.participantByCombatant.values())}
             notice={contextDescription}
           />
-          <BattleRoundBadge round={battleState.round} />
         </section>
         <div data-battle-command-dock="true">
           <section
@@ -2158,7 +2168,7 @@ function BattleExperienceContent({
                 cost={`${MOVE_COST_PER_TERRAIN_POINT} AP`}
                 artworkSrc={BATTLE_COMMAND_ARTWORK.move}
                 active={mode === 'move'}
-                disabled={planningDisabled || actionEconomy < MOVE_COST_PER_TERRAIN_POINT}
+                disabled={planningDisabled || reachablePaths.size === 0}
                 onActivate={() => chooseMode('move')}
               />
               <BattleSkillCommand
@@ -2250,6 +2260,7 @@ function BattleExperienceContent({
           </button>
         ) : null}
         <div className={styles.footerActions} data-battle-footer-actions="true">
+          <BattleTerrainToggle snapshot={battle.snapshot} />
           <button
             type="button"
             className={styles.cancelAction}
