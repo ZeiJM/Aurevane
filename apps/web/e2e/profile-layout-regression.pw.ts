@@ -159,6 +159,90 @@ test('approved Profile and Haven keep the frame fixed and complete controls reac
       expect(fit.textOverflow, `Profile broken or clipped words at ${width}×${height}`).toEqual([])
       expect(fit.graphOverlap, `Profile overlapping graph labels at ${width}×${height}`).toEqual([])
       expect(fit.clipped, `Profile clipped controls at ${width}×${height}`).toEqual([])
+      if (mobile) {
+        await page.evaluate(() => window.scrollTo(0, 0))
+        const swipe = await shell.locator('[data-profile-sheet]').evaluate((sheet) => {
+          const bounds = sheet.getBoundingClientRect()
+          const dock = document.querySelector('[data-av-game-rail]')!.getBoundingClientRect()
+          const x = bounds.left + bounds.width / 2
+          const y = Math.min(innerHeight * 0.6, dock.top - 24)
+          const ancestors = []
+          for (let node = document.elementFromPoint(x, y); node; node = node.parentElement) {
+            const style = getComputedStyle(node)
+            ancestors.push({
+              tag: node.tagName,
+              id: node.id,
+              className: node.getAttribute('class'),
+              overflowY: style.overflowY,
+              overscrollY: style.overscrollBehaviorY,
+              touchAction: style.touchAction,
+              height: node.clientHeight,
+              scrollHeight: node.scrollHeight,
+              scrollTop: node.scrollTop,
+            })
+          }
+          return {
+            x,
+            y,
+            startsOnSheet: sheet.contains(document.elementFromPoint(x, y)),
+            pageRange: document.documentElement.scrollHeight - innerHeight,
+            ancestors,
+          }
+        })
+        await info.attach(`profile-native-swipe-${width}x${height}.json`, {
+          body: JSON.stringify(swipe, null, 2),
+          contentType: 'application/json',
+        })
+        expect(swipe.startsOnSheet).toBe(true)
+        expect(swipe.pageRange).toBeGreaterThan(100)
+        const touch = await page.context().newCDPSession(page)
+        const drag = async () => {
+          await touch.send('Input.dispatchTouchEvent', {
+            type: 'touchStart',
+            touchPoints: [{ x: swipe.x, y: swipe.y }],
+          })
+          // One native finger drag, with browser frames rather than timed sleeps.
+          for (let step = 1; step <= 8; step += 1) {
+            await touch.send('Input.dispatchTouchEvent', {
+              type: 'touchMove',
+              touchPoints: [{ x: swipe.x, y: swipe.y - step * 35 }],
+            })
+            await page.evaluate(
+              () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())),
+            )
+          }
+          await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+        }
+        if (width === 320) {
+          // Controlled regression: the original contained sheet traps the same finger drag.
+          const sheet = shell.locator('[data-profile-sheet]')
+          const inlineStyle = await sheet.getAttribute('style')
+          try {
+            await sheet.evaluate((node) => {
+              const element = node as HTMLElement
+              element.style.overflowY = 'auto'
+              element.style.overscrollBehavior = 'contain'
+            })
+            await drag()
+            expect(await page.evaluate(() => window.scrollY)).toBeLessThanOrEqual(1)
+          } finally {
+            await sheet.evaluate((node, original) => {
+              if (original === null) node.removeAttribute('style')
+              else node.setAttribute('style', original)
+            }, inlineStyle)
+          }
+        }
+        await drag()
+        await expect
+          .poll(() => page.evaluate(() => window.scrollY), {
+            message: `A native Profile swipe must scroll the page at ${width}×${height}`,
+          })
+          .toBeGreaterThan(40)
+        await touch.detach()
+        expect(
+          await page.evaluate(() => document.documentElement.scrollWidth - innerWidth),
+        ).toBeLessThanOrEqual(1)
+      }
       if (!mobile) {
         expect(
           fit.graphTop,

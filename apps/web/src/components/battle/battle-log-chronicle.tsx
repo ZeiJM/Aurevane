@@ -70,7 +70,7 @@ function ChronicleTechnique({ action, actorName }: { action: ChronicleAction; ac
             </span>
           ))}
         </p>
-      ) : action.family !== 'movement' ? (
+      ) : action.family !== 'movement' && action.family !== 'idle' ? (
         <p className={styles.outcomes}>Action recorded; no effect result available.</p>
       ) : null}
       {action.specials.map((special) => (

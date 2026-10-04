@@ -3,7 +3,11 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { describe, expect, it } from 'vitest'
-import { fitBattleArenaBoard, fitBattleBoard } from './battle-map-token-polish'
+import {
+  battleChronicleGutterWidth,
+  fitBattleArenaBoard,
+  fitBattleBoard,
+} from './battle-map-token-polish'
 
 const here = dirname(fileURLToPath(import.meta.url))
 
@@ -44,6 +48,40 @@ describe('battle board viewport fit', () => {
     const fit = fitBattleBoard(11, 7, 1300, 640)
     expect(fit.height).toBe(640)
     expect(fit.width).toBeCloseTo(1005.714, 2)
+  })
+
+  it.each([9, 12, 15])(
+    'widens Chronicle from real spare width without shrinking a %s×7 arena',
+    (columns) => {
+      const transfer = battleChronicleGutterWidth(columns, 7, 1314, 500, 2, 16)
+      expect(transfer).toBe(160)
+      const original = fitBattleArenaBoard(columns, 7, 1314, 500, 2)
+      const widened = fitBattleArenaBoard(columns, 7, 1314 - transfer, 500, 2)
+      expect(widened).toEqual(original)
+      expect(widened.height).toBeCloseTo(500, 8)
+    },
+  )
+
+  it.each([9, 12, 15])(
+    'retains the widest footprint when a %s×7 map is width-limited',
+    (columns) => {
+      expect(battleChronicleGutterWidth(columns, 7, 900, 470, 2, 16)).toBe(0)
+    },
+  )
+
+  it('keeps a safety gutter and caps expansion at the current text scale', () => {
+    expect(battleChronicleGutterWidth(15, 7, 1314, 590, 2, 16)).toBe(0)
+    expect(battleChronicleGutterWidth(15, 7, 1314, 560, 2, 16)).toBe(63)
+    expect(battleChronicleGutterWidth(15, 7, 1800, 500, 2, 20)).toBe(200)
+  })
+
+  it('also retains historical arena dimensions and remains stable after a transferred gutter', () => {
+    const transfer = battleChronicleGutterWidth(13, 9, 1000.5, 500.25, 2, 16)
+    expect(transfer).toBe(160)
+    expect(fitBattleArenaBoard(13, 9, 1000.5 - transfer, 500.25, 2)).toEqual(
+      fitBattleArenaBoard(13, 9, 1000.5, 500.25, 2),
+    )
+    expect(battleChronicleGutterWidth(13, 9, 840.5 + transfer, 500.25, 2, 16)).toBe(160)
   })
 })
 

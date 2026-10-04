@@ -1,6 +1,79 @@
 import { expect, type Page, type TestInfo } from '@playwright/test'
 import { expectRefinedCockpit, targetForecast } from './refined-battle-helpers'
 
+export async function expectBattleChronicleGutterGeometry(page: Page, requireGrowth = false) {
+  const geometry = await page.locator('#battlefield [data-board-auto-fit]').evaluate((board) => {
+    const viewport = board.parentElement!
+    const stage = board.closest('#battlefield')!.parentElement!
+    const viewportStyle = getComputedStyle(viewport)
+    const [columns, rows] = board.getAttribute('data-board-auto-fit')!.split('x').map(Number)
+    return {
+      screenWidth: innerWidth,
+      rootFont: parseFloat(getComputedStyle(document.documentElement).fontSize),
+      transfer:
+        parseFloat(
+          getComputedStyle(stage).getPropertyValue('--battle-chronicle-gutter-transfer'),
+        ) || 0,
+      availableWidth:
+        viewport.clientWidth -
+        parseFloat(viewportStyle.paddingLeft) -
+        parseFloat(viewportStyle.paddingRight),
+      availableHeight:
+        viewport.clientHeight -
+        parseFloat(viewportStyle.paddingTop) -
+        parseFloat(viewportStyle.paddingBottom),
+      columns,
+      rows,
+      gap: parseFloat(getComputedStyle(board).columnGap) || 0,
+      board: board.getBoundingClientRect().toJSON(),
+      chronicle: stage
+        .querySelector('[data-battle-side="selected"]')!
+        .getBoundingClientRect()
+        .toJSON(),
+    }
+  })
+  if (geometry.screenWidth <= 1100) {
+    expect(geometry.transfer, 'smaller layouts keep their existing rail allocation').toBe(0)
+    return
+  }
+  const { rootFont, columns, rows, gap, transfer } = geometry
+  const originalWidth = geometry.availableWidth + transfer
+  const footprintColumns = rows === 7 && [9, 12, 15].includes(columns!) ? 15 : columns!
+  const originalTile = Math.max(
+    0,
+    Math.min(
+      (originalWidth - (footprintColumns - 1) * gap) / footprintColumns,
+      (geometry.availableHeight - (rows! - 1) * gap) / rows!,
+    ),
+  )
+  expect(
+    Math.abs(geometry.board.width - (columns! * originalTile + (columns! - 1) * gap)),
+    'Chronicle growth preserves the original fitted board width',
+  ).toBeLessThanOrEqual(1)
+  expect(
+    Math.abs(geometry.board.height - (rows! * originalTile + (rows! - 1) * gap)),
+    'Chronicle growth preserves the original fitted board height',
+  ).toBeLessThanOrEqual(1)
+  const originalRail =
+    Math.min(14 * rootFont, Math.max(10 * rootFont, geometry.screenWidth * 0.14)) - rootFont
+  expect(
+    Math.abs(geometry.chronicle.width - originalRail - transfer),
+    'all reclaimed gutter goes to the Chronicle',
+  ).toBeLessThanOrEqual(1)
+  expect(transfer).toBeGreaterThanOrEqual(0)
+  expect(transfer).toBeLessThanOrEqual(10 * rootFont)
+  if (transfer > 0) {
+    expect(
+      geometry.availableWidth - (footprintColumns * originalTile + (footprintColumns - 1) * gap),
+      'the widest arena footprint retains its safety gutter',
+    ).toBeGreaterThanOrEqual(3 * rootFont - 1)
+  }
+  if (requireGrowth)
+    expect(transfer, 'a wide, short stage gives spare map space to the Chronicle').toBeGreaterThan(
+      0,
+    )
+}
+
 export async function expectBattleHeaderAndArtworkGeometry(page: Page) {
   const root = page.locator('main[data-unified-battle="true"]')
   await expect(root.locator(':scope > header')).not.toContainText('Battle Hall ·')
@@ -148,6 +221,7 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
     )
   })
   await expectBattleHeaderAndArtworkGeometry(page)
+  await expectBattleChronicleGutterGeometry(page)
   const geometry = await root.evaluate((element) => {
     const rect = (selector: string) =>
       element.querySelector(selector)!.getBoundingClientRect().toJSON()
@@ -172,6 +246,14 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
       rightCardCount: element.querySelectorAll(
         '[data-battle-side="selected"] [data-battle-combatant-card]',
       ).length,
+      versus: {
+        bounds: rect('[data-battle-versus]'),
+        pointerEvents: getComputedStyle(element.querySelector('[data-battle-versus]')!)
+          .pointerEvents,
+        animation: getComputedStyle(element.querySelector('[data-battle-versus-flames]')!)
+          .animationName,
+        reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches,
+      },
       tokens: [...board.querySelectorAll('button[aria-label*="occupied by"] > [data-team]')].map(
         (token) => ({
           token: token.getBoundingClientRect().toJSON(),
@@ -237,6 +319,24 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
   expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.w + 1)
   expect(geometry.leftCardRoles).toEqual(['local', 'selected'])
   expect(geometry.rightCardCount).toBe(0)
+  const [localCard, enemyCard] = geometry.cards
+  const seam = (localCard!.bounds.bottom + enemyCard!.bounds.top) / 2
+  expect(
+    Math.abs(geometry.versus.bounds.top + geometry.versus.bounds.height / 2 - seam),
+    'VS centers on the existing card seam without adding a grid row',
+  ).toBeLessThanOrEqual(1)
+  expect(geometry.versus.bounds.width).toBeLessThanOrEqual(108)
+  expect(geometry.versus.bounds.left).toBeGreaterThanOrEqual(localCard!.bounds.left)
+  expect(geometry.versus.bounds.right).toBeLessThanOrEqual(localCard!.bounds.right)
+  expect(geometry.versus.pointerEvents).toBe('none')
+  expect(geometry.versus.animation === 'none').toBe(geometry.versus.reducedMotion)
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  expect(
+    await root
+      .locator('[data-battle-versus-flames]')
+      .evaluate((node) => getComputedStyle(node).animationName),
+  ).toBe('none')
+  await page.emulateMedia({ reducedMotion: null })
   expect(Math.abs(geometry.tile.width - geometry.tile.height)).toBeLessThanOrEqual(1)
   if (geometry.w > 820) {
     expect(geometry.scrollHeight).toBeLessThanOrEqual(geometry.h + 1)

@@ -1,5 +1,11 @@
 # AUREVANE Combat Design Bible
 
+## Battle presentation follow-up — Owner-approved 2026-10-04
+
+A provably completed turn without a chosen action says the character stands around and does nothing in the shared Chronicle and Recruit preview. Real actions, misses and incomplete history must not receive that sentence. The approved compact metallic VS sits across the existing seam between the left cards, with restrained animated flames and a static reduced-motion form. Keep all existing card, portrait, cockpit and map dimensions and server-owned combat/history authority. Verification and release: `superpowers/verification/2026-10-04-profile-idle-versus.md` and `../TASKS.md`.
+
+Wide desktop stages may give unused horizontal map gutter to the Chronicle. Preserve the board's existing fitted dimensions, the shared 15-column footprint for standard arena tile scale, all left-card and cockpit artwork, and smaller-screen layouts. Apply the same bounded sizing rule to playable PvE/PvP and spectation.
+
 ## Standard map and readability continuation — Owner-approved 2026-10-03
 
 New standard encounters randomize terrain from server-owned encounter seeds without consuming combat RNG. Default maps favor neutral ground; elevation forms joined groups with legal ground approaches. Explicit PvP size and terrain/elevation biases retain their configured meaning. Authored micro, Guided, Mastery and content-preview scenarios remain authored; stored battle/replay tiles are never regenerated. Shared round counters read the recorded battle round. Chronicle consequence colors use canonical effect identity, with beneficial/recovery green, harmful red and ambiguous effects neutral. Second-hotkey-press self casting submits deliberate intent directly to canonical versioned server commit and preserves ordinary targeting, focus/repeat, pending-command and stale-context guards. Informational forecasts remain available without becoming a required matching-preview receipt. Earlier map/readability release evidence: `superpowers/verification/2026-10-03-battle-map-preview-readability.md`; current-batch verification: `superpowers/verification/2026-10-03-approved-battle-layout-direct-input.md`, with integrated verification and release tracked in `../TASKS.md`.

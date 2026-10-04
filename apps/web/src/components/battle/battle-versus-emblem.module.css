@@ -1,0 +1,49 @@
+.emblem {
+  position: absolute;
+  /* The first grid row ends at the local card, including unequal mobile cards. */
+  grid-column: 1 / 2;
+  grid-row: 1 / 2;
+  top: 100%;
+  left: 50%;
+  z-index: 3;
+  width: min(6.75rem, 65%);
+  aspect-ratio: 2;
+  transform: translate(-50%, calc(-50% + 0.225rem));
+  pointer-events: none;
+  user-select: none;
+  background: var(--battle-versus-art) center / contain no-repeat;
+  contain: paint;
+}
+.flames {
+  position: absolute;
+  inset: 0;
+  background: var(--battle-versus-art) center / contain no-repeat;
+  /* Only the outer fire flickers; the gold lettering stays steady. */
+  mask-image: radial-gradient(ellipse 27% 48% at 50% 50%, transparent 96%, #000 100%);
+  opacity: 0;
+  filter: brightness(1.35) saturate(1.15);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .flames {
+    animation: versusFlames 2.8s ease-in-out infinite;
+  }
+}
+@keyframes versusFlames {
+  0%,
+  100% {
+    opacity: 0.1;
+    transform: translateY(0) scale(1);
+  }
+  23% {
+    opacity: 0.45;
+    transform: translateY(-0.5px) scale(1.025);
+  }
+  47% {
+    opacity: 0.2;
+    transform: translateY(0.3px) scale(1.01);
+  }
+  72% {
+    opacity: 0.55;
+    transform: translateY(-0.8px) scale(1.035);
+  }
+}

@@ -116,13 +116,21 @@ export async function expectTerrainKey(page: Page) {
     await expect(entry.locator('..').locator('p')).not.toBeEmpty()
     await expect(page.locator('[data-battle-info-panel]')).toHaveCount(1)
     await expect(key.locator('details[open]')).toHaveCount(1)
-    const fit = await overlay.evaluate((element) => {
-      const rect = element.getBoundingClientRect()
-      return (
-        rect.left >= 0 && rect.right <= innerWidth && rect.top >= 0 && rect.bottom <= innerHeight
+    // Native details expand before ResizeObserver repositions the shared reading panel.
+    // Observe the settled bounds, including when another browser page currently has focus.
+    await expect
+      .poll(() =>
+        overlay.evaluate((element) => {
+          const rect = element.getBoundingClientRect()
+          return (
+            rect.left >= 0 &&
+            rect.right <= innerWidth &&
+            rect.top >= 0 &&
+            rect.bottom <= innerHeight
+          )
+        }),
       )
-    })
-    expect(fit).toBe(true)
+      .toBe(true)
     expect(await battlefieldGeometry()).toEqual(before)
   }
   await page.keyboard.press('Escape')

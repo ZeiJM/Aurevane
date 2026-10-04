@@ -1,5 +1,15 @@
 # AUREVANE — Active Task Ledger
 
+## Mobile Profile, idle battle turns, animated VS and wider Chronicle — 2026-10-04
+
+Owner-requested continuation on `agent/profile-mobile-scroll-20261004`: restore real mobile Profile swipes without changing the desktop frame; completed idle turns say the actor stands around and does nothing in shared Chronicle and Recruit notices; implement the approved metallic gold VS between the left cards with modest border overlap and subtle animated flames, preserving all existing card/portrait/cockpit/map dimensions. Shared PvE/PvP/spectator presentation, recorded history and mechanics remain authoritative. Evidence: `docs/superpowers/verification/2026-10-04-profile-idle-versus.md`.
+
+- [x] Reproduce the native mobile Profile failure before applying the scoped CSS repair; real swipe on test-only candidate leaves page position zero.
+- [x] Verify focused idle narration against actual emitted command events, including opening turns and conservative missing-history guards; add noninteractive reduced-motion-aware VS art with provenance.
+- [ ] Reclaim unused desktop map gutters for the Chronicle without reducing the board, portraits, cards or cockpit artwork; retain shared playable/spectator geometry and smaller layouts.
+- [ ] Complete integrated quality, independent review and exact-candidate authenticated browser verification.
+- [ ] Release the verified repair batch under the Owner's existing explicit production authorization and restore the Git deployment lock.
+
 ## Approved battle rails, Chronicle readers and direct commands — 2026-10-03 (released)
 
 The Owner approved equal-size local-character and selected-enemy cards together on the left, full Chronicle on the right with a gold recorded-round header counter, removal of the preview round badge and redundant Latest/header arrow, and Terrain beside Cancel. Current and previous rounds start expanded; earlier chevrons reveal/hide complete history, current cannot collapse, and deliberate history reading survives live updates unless explicitly collapsed. Information popups retain complete compact reports with one reader at a time, no X and outside-click/Escape dismissal. Portrait and Skill artwork sizes remain approved. Shared PvE/PvP/spectator presentation remains the contract.

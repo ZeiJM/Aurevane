@@ -71,6 +71,7 @@ import {
   type BattleRuntime,
 } from './battle-runtime'
 import { BattleCombatantCard } from './battle-combatant-card'
+import { BattleVersusEmblem } from './battle-versus-emblem'
 import { BattleLogPanel } from './battle-log-panel'
 import {
   DEFAULT_COMBAT_KEYBINDS,
@@ -168,7 +169,7 @@ function livingTeamIndexes(
   return result
 }
 
-function describeRecruitTurn(
+export function describeRecruitTurn(
   before: BattleSessionView,
   after: BattleSessionView,
   decisions: RecruitTurnView['decisions'],
@@ -190,6 +191,29 @@ function describeRecruitTurn(
   const afterRecruit = after.snapshot.tactical.battle.combatants.find(
     (combatant) => combatant.id === recruitId,
   )
+  const beforeBattle = before.snapshot.tactical.battle
+  const afterBattle = after.snapshot.tactical.battle
+  const beforeTurn = beforeBattle.currentTurn
+  const economy = beforeRecruit?.temporaryResources.find(
+    (resource) => resource.key === ACTION_ECONOMY_KEY,
+  )
+  if (
+    beforeBattle.lifecycle === 'active' &&
+    beforeTurn?.combatantId === recruitId &&
+    beforeTurn.actionState === 'ready' &&
+    beforeTurn.movementSpent === 0 &&
+    economy &&
+    economy.current === economy.maximum &&
+    (afterBattle.turnNumber > beforeBattle.turnNumber || afterBattle.lifecycle === 'completed') &&
+    decisions.length > 0 &&
+    decisions.every(
+      (decision) =>
+        decision.combatantId === recruitId &&
+        (decision.reason === 'face-threat' || decision.reason === 'safe-end-turn'),
+    )
+  ) {
+    return `${recruitName} stands around and does nothing.`
+  }
   const recruitStatuses =
     after.snapshot.statusState.find((row) => row.combatantId === recruitId)?.statuses ?? []
   const parts: string[] = []
@@ -1933,6 +1957,7 @@ function BattleExperienceContent({
             teamCount={viewModel.teamCount}
             role="local"
           />
+          {localParticipant && enemyParticipant ? <BattleVersusEmblem /> : null}
           <BattleCombatantCard
             participant={enemyParticipant}
             battle={battle}

@@ -5,6 +5,7 @@ import { BattleRouteFrame } from './battle-route-frame'
 import { BattleTerrainToggle } from './battle-terrain-toggle'
 import { battleTerrainName } from './battle-terrain-key-presentation'
 import { BattleCombatantCard } from './battle-combatant-card'
+import { BattleVersusEmblem } from './battle-versus-emblem'
 import { BattleLogPanel } from './battle-log-panel'
 import { BattleChronicleHeading } from './battle-chronicle-heading'
 import type { BattlePresentationParticipant } from './battle-runtime'
@@ -368,10 +369,8 @@ export function PvpSpectatorExperience({
               teamCount={teamCount}
               role="acting"
             />
-            {activeParticipant && participantTitles[activeParticipant.characterId] ? (
-              <small className={styles.actorTitle}>
-                {participantTitles[activeParticipant.characterId]}
-              </small>
+            {presentationParticipants.some((item) => item.teamIndex !== actingTeamIndex) ? (
+              <BattleVersusEmblem />
             ) : null}
             <BattleCombatantCard
               participant={
@@ -501,6 +500,15 @@ export function PvpSpectatorExperience({
           </aside>
           <div className={styles.preview} data-battle-preview-strip="true">
             <div data-battle-spectator-preview-content="true">{inspectContext()}</div>
+            {activeParticipant && participantTitles[activeParticipant.characterId] ? (
+              <small
+                className={styles.actorTitle}
+                role="note"
+                aria-label={`${activeParticipant.characterName} title`}
+              >
+                {participantTitles[activeParticipant.characterId]}
+              </small>
+            ) : null}
           </div>
           <div className={styles.inspectDock} data-battle-command-dock="true">
             <button type="button" aria-pressed={inspectMode} onClick={toggleInspect}>

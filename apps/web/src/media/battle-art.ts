@@ -1,6 +1,20 @@
 /** Original generated battle material candidates for the Owner-authorized review build.
  * Source masters, prompts and deterministic derivative provenance: ART-BATTLE-007. */
+export const BATTLE_VERSUS_ART = {
+  id: 'ui.battle.versus-emblem.v01',
+  kind: 'ui',
+  status: 'approved',
+  requestId: 'ART-BATTLE-VERSUS-20261004',
+  generationRequestId: 'exec-3c82f57d-f290-4a82-8f41-d813e3f3bf10',
+  decorative: true,
+  alt: '',
+  src: '/media/art/battle/versus-emblem-v01.webp',
+  width: 1774,
+  height: 887,
+} as const
+
 export const BATTLE_ART = [
+  BATTLE_VERSUS_ART,
   {
     id: 'ui.battle.cockpit-ornament.v01',
     kind: 'ui',

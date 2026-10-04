@@ -4,7 +4,7 @@ import type { BattleLogEntry } from '@/server/battle/battle-log-service'
 import { renderBattleLogEntry } from './battle-log-presentation'
 
 export type ChronicleFamily =
-  'movement' | 'skill' | 'essence' | 'resonance' | 'ascension' | 'severence'
+  'movement' | 'idle' | 'skill' | 'essence' | 'resonance' | 'ascension' | 'severence'
 export interface ChronicleOutcome {
   key: string
   text: string
@@ -54,6 +54,8 @@ const OMITTED_EVENTS = new Set([
   'ai_turn_timed_out',
   'mp_spent',
   'summon_ability_used',
+  'skill_cooldown_advanced',
+  'skill_cooldown_ready',
 ])
 
 export function chronicleCombatantName(id: string | null, names: ChronicleNames): string {
@@ -66,6 +68,161 @@ export function chronicleCombatantName(id: string | null, names: ChronicleNames)
 
 function eventKey(entry: BattleLogEntry) {
   return `${entry.battleVersion}:${entry.eventIndex}`
+}
+
+/** A missing boundary or unknown history cannot prove that a character did nothing. */
+function completedIdleTurns(entries: readonly BattleLogEntry[]): Set<string> {
+  const idle = new Set<string>()
+  // Surrender hands off the turn before its surrender receipt in the same commit.
+  const surrendered = new Set(
+    entries
+      .filter((entry) => entry.eventType === 'pvp_combatant_surrendered')
+      .map((entry) => `${entry.battleVersion}:${entry.actorCombatantId}`),
+  )
+  let start: BattleLogEntry | null = null
+  let previous: BattleLogEntry | null = null
+  let ended: BattleLogEntry | null = null
+  let roundBoundary: BattleLogEntry | null = null
+  const scheduledRecovery = new Set<string>()
+  const recoveryKey = (entry: BattleLogEntry, resource: string) =>
+    JSON.stringify([entry.actorCombatantId, entry.targetCombatantId, entry.actionId, resource])
+  const periodicActions = new Set([
+    'status.poison',
+    'status.burn',
+    'status.bleed',
+    'status.regeneration',
+    'status.poison.current.v1',
+    'status.burn.current.v1',
+    'status.bleed.current.v1',
+  ])
+  const passive = new Set([
+    'combatant_facing_changed',
+    'final_facing_selected',
+    'combatant_waited',
+    'ai_turn_timed_out',
+    'pvp_turn_timed_out',
+    'status_expired',
+    'terrain_overlay_expired',
+    'resonance_armed',
+    'resonance_expired',
+    'skill_cooldown_advanced',
+    'skill_cooldown_ready',
+  ])
+  const activationOutcomes = new Set([
+    'damage_applied',
+    'healing_applied',
+    'resource_changed',
+    'status_applied',
+    'status_removed',
+    'persistent_effect_applied',
+    'barrier_changed',
+    'recovery_scheduled',
+    'terrain_overlay_changed',
+    'combatant_displaced',
+    'displacement_failed',
+    'combatant_rewound',
+    'temporary_skill_copied',
+  ])
+  for (const entry of entries) {
+    if (
+      entry.eventType === 'recovery_scheduled' &&
+      entry.actorCombatantId &&
+      entry.targetCombatantId &&
+      entry.actionId &&
+      ['HP', 'MP'].includes(entry.templateValues.resource)
+    ) {
+      scheduledRecovery.add(recoveryKey(entry, entry.templateValues.resource))
+    }
+    // Canonical upkeep follows the outgoing end AND the next actor's start in
+    // the same commit. It must not turn that next actor's untouched turn into action.
+    const settlement =
+      ended?.battleVersion === entry.battleVersion &&
+      entry.targetCombatantId === ended.actorCombatantId &&
+      entry.actionId &&
+      ((periodicActions.has(entry.actionId) &&
+        ['damage_applied', 'healing_applied', 'status_removed'].includes(entry.eventType)) ||
+        (entry.eventType === 'healing_applied' &&
+          scheduledRecovery.has(recoveryKey(entry, 'HP'))) ||
+        (entry.eventType === 'resource_changed' &&
+          entry.templateValues.resource === 'MP' &&
+          scheduledRecovery.has(recoveryKey(entry, 'MP'))))
+    const activation =
+      entry.effectActivationRound !== undefined &&
+      roundBoundary?.battleVersion === entry.battleVersion &&
+      roundBoundary.round === entry.effectActivationRound &&
+      start?.round === entry.effectActivationRound &&
+      entry.actionId &&
+      activationOutcomes.has(entry.eventType)
+    if (entry.eventType === 'turn_started') {
+      start =
+        entry.actorCombatantId && entry.turnNumber !== null && entry.round !== null ? entry : null
+    } else if (
+      !previous &&
+      entry.battleVersion === 2 &&
+      entry.eventIndex === 0 &&
+      entry.round === 1 &&
+      entry.turnNumber === 1 &&
+      entry.actorCombatantId &&
+      (entry.eventType === 'final_facing_selected' ||
+        entry.eventType === 'ai_turn_timed_out' ||
+        entry.eventType === 'pvp_turn_timed_out' ||
+        (entry.eventType === 'recruit_ai_decision' &&
+          ['facing the threat', 'ending the turn'].includes(entry.templateValues.reason)))
+    ) {
+      // Creation pins snapshot v1 without events. A first idle-ending command
+      // at v2/index 0 proves the opening turn without inventing a turn marker.
+      start = entry
+    } else if (start) {
+      const continuous =
+        previous &&
+        !previous.historyGapAfter &&
+        ((entry.battleVersion === previous.battleVersion &&
+          entry.eventIndex === previous.eventIndex + 1) ||
+          (entry.battleVersion === previous.battleVersion + 1 && entry.eventIndex === 0))
+      if (!continuous || entry.round !== start.round || entry.turnNumber !== start.turnNumber) {
+        start = null
+      } else if (entry.eventType === 'turn_ended') {
+        if (
+          entry.actorCombatantId === start.actorCombatantId &&
+          // Activation may kill a newly selected actor and force an immediate handoff.
+          entry.effectActivationRound === undefined &&
+          !surrendered.has(`${entry.battleVersion}:${entry.actorCombatantId}`)
+        )
+          idle.add(eventKey(entry))
+        start = null
+      } else if (
+        [
+          'combatant_facing_changed',
+          'final_facing_selected',
+          'combatant_waited',
+          'ai_turn_timed_out',
+          'pvp_turn_timed_out',
+          'skill_cooldown_advanced',
+          'skill_cooldown_ready',
+        ].includes(entry.eventType) &&
+        entry.actorCombatantId !== start.actorCombatantId
+      ) {
+        start = null
+      } else if (
+        !passive.has(entry.eventType) &&
+        !settlement &&
+        !activation &&
+        !(
+          entry.eventType === 'recruit_ai_decision' &&
+          entry.actorCombatantId === start.actorCombatantId &&
+          ['facing the threat', 'ending the turn'].includes(entry.templateValues.reason)
+        )
+      ) {
+        start = null
+      }
+    }
+    if (entry.eventType === 'turn_ended') ended = entry
+    else if (entry.eventType === 'combat_action_used' || entry.eventType === 'hidden_combat_action')
+      ended = null
+    if (entry.eventType === 'round_started') roundBoundary = entry
+    previous = entry
+  }
+  return idle
 }
 
 function family(entry: BattleLogEntry): ChronicleFamily {
@@ -259,6 +416,7 @@ export function buildBattleChronicle(
   const ordered = [...entries].sort(
     (a, b) => a.battleVersion - b.battleVersion || a.eventIndex - b.eventIndex,
   )
+  const idleTurns = completedIdleTurns(ordered)
   const damageTargets = new Set(
     ordered
       .filter((entry) => entry.eventType === 'damage_applied')
@@ -296,7 +454,8 @@ export function buildBattleChronicle(
       entry.eventType === 'turn_ended'
     )
       command = null
-    if (OMITTED_EVENTS.has(entry.eventType)) continue
+    const idle = idleTurns.has(eventKey(entry))
+    if (OMITTED_EVENTS.has(entry.eventType) && !idle) continue
     const roundNumber = entry.round ?? 1
     const round = rounds.get(roundNumber) ?? { round: roundNumber, actors: [] }
     const ownerId: string =
@@ -313,6 +472,16 @@ export function buildBattleChronicle(
       }
       rounds.set(roundNumber, round)
       return group
+    }
+    if (idle) {
+      actorGroup().actions.push({
+        ...action(entry, names, ownerId),
+        family: 'idle',
+        title: '',
+        fallbackNarration: `${chronicleCombatantName(ownerId, names)} stands around and does nothing.`,
+        flavorTemplate: null,
+      })
+      continue
     }
     if (entry.eventType === 'combatant_moved') {
       const key = `${roundNumber}:${ownerId}`

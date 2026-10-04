@@ -3,6 +3,8 @@
 import { useLayoutEffect } from 'react'
 
 const DESKTOP_PVP_TOKEN_QUERY = '(min-width: 821px)'
+const ROOMY_BATTLE_QUERY = '(min-width: 1101px)'
+const CHRONICLE_GUTTER_PROPERTY = '--battle-chronicle-gutter-transfer'
 const PLAYER_TOKEN_SHADOW = '0 0.45rem 1rem rgba(0, 0, 0, 0.35)'
 const DAMAGE_COLOR = '#ff766f'
 const HEALING_COLOR = '#59d39b'
@@ -32,6 +34,10 @@ export function fitBattleBoard(
   return { width: columns * scale, height: rows * scale }
 }
 
+function arenaFootprintColumns(columns: number, rows: number): number {
+  return rows === 7 && [9, 12, 15].includes(columns) ? 15 : columns
+}
+
 /** Standard arenas reserve the widest arena footprint, keeping seven-row tiles the same scale. */
 export function fitBattleArenaBoard(
   columns: number,
@@ -40,8 +46,7 @@ export function fitBattleArenaBoard(
   availableHeight: number,
   gap = 0,
 ) {
-  const standard = rows === 7 && [9, 12, 15].includes(columns)
-  const footprintColumns = standard ? 15 : columns
+  const footprintColumns = arenaFootprintColumns(columns, rows)
   const scale = Math.max(
     0,
     Math.min(
@@ -50,6 +55,27 @@ export function fitBattleArenaBoard(
     ),
   )
   return { width: columns * scale + (columns - 1) * gap, height: rows * scale + (rows - 1) * gap }
+}
+
+/** Reclaim only width beyond the unchanged arena footprint, retaining a comfortable map gutter. */
+export function battleChronicleGutterWidth(
+  columns: number,
+  rows: number,
+  availableWidth: number,
+  availableHeight: number,
+  gap: number,
+  rootFontSize: number,
+): number {
+  const footprint = fitBattleArenaBoard(
+    arenaFootprintColumns(columns, rows),
+    rows,
+    availableWidth,
+    availableHeight,
+    gap,
+  )
+  return Math.floor(
+    Math.max(0, Math.min(10 * rootFontSize, availableWidth - footprint.width - 3 * rootFontSize)),
+  )
 }
 
 function syncBoardScale(): { width: number; height: number } | null {
@@ -67,20 +93,42 @@ function syncBoardScale(): { width: number; height: number } | null {
   // width-only board can have its lower rows clipped when the available viewport height shrinks.
   // This bundle is shared with spectators, so every desktop map uses the same sizing boundary.
   const viewport = board.parentElement
+  const stage = board.closest('#battlefield')?.parentElement
+  const sharedStage = stage?.matches(
+    '[data-unified-battle-content="true"], [data-spectator-broadcast="true"]',
+  )
+    ? stage
+    : null
+  if (!window.matchMedia(ROOMY_BATTLE_QUERY).matches) {
+    sharedStage?.style.removeProperty(CHRONICLE_GUTTER_PROPERTY)
+  }
   if (window.matchMedia(DESKTOP_PVP_TOKEN_QUERY).matches && viewport) {
     const style = getComputedStyle(viewport)
-    const availableWidth =
-      viewport.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
+    const horizontalPadding = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight)
+    let availableWidth = viewport.clientWidth - horizontalPadding
     const availableHeight =
       viewport.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom)
     if (availableWidth <= 0 || availableHeight <= 0) return { width, height }
-    const fitted = fitBattleArenaBoard(
-      width,
-      height,
-      availableWidth,
-      availableHeight,
-      parseFloat(getComputedStyle(board).columnGap) || 0,
-    )
+    const gap = parseFloat(getComputedStyle(board).columnGap) || 0
+    if (sharedStage && window.matchMedia(ROOMY_BATTLE_QUERY).matches) {
+      const previousTransfer =
+        parseFloat(getComputedStyle(sharedStage).getPropertyValue(CHRONICLE_GUTTER_PROPERTY)) || 0
+      // Restore the original width mathematically before sizing. Measuring only the narrowed
+      // viewport would repeatedly consume/release its gutter through the existing ResizeObserver.
+      const transfer = battleChronicleGutterWidth(
+        width,
+        height,
+        availableWidth + previousTransfer,
+        availableHeight,
+        gap,
+        parseFloat(getComputedStyle(document.documentElement).fontSize),
+      )
+      if (previousTransfer !== transfer) {
+        sharedStage.style.setProperty(CHRONICLE_GUTTER_PROPERTY, `${transfer}px`)
+        availableWidth = viewport.clientWidth - horizontalPadding
+      }
+    }
+    const fitted = fitBattleArenaBoard(width, height, availableWidth, availableHeight, gap)
     board.style.setProperty('box-sizing', 'border-box', 'important')
     board.style.setProperty('width', `${fitted.width}px`, 'important')
     board.style.setProperty('max-width', '100%', 'important')
@@ -261,7 +309,16 @@ export function BattleMapTokenPolish({
     })
 
     const boardViewport = battlefield.querySelector('[data-board-auto-fit]')?.parentElement
-    const sizeObserver = new ResizeObserver(polish)
+    let resizeFrame: number | null = null
+    const sizeObserver = new ResizeObserver(() => {
+      if (resizeFrame !== null) return
+      // A gutter transfer resizes this viewport. Write after observer delivery so a real
+      // height/font change cannot create an undelivered ResizeObserver notification loop.
+      resizeFrame = window.requestAnimationFrame(() => {
+        resizeFrame = null
+        polish()
+      })
+    })
     if (boardViewport) sizeObserver.observe(boardViewport)
 
     const commandDeck = document.querySelector(
@@ -279,8 +336,10 @@ export function BattleMapTokenPolish({
     return () => {
       battlefieldObserver.disconnect()
       sizeObserver.disconnect()
+      if (resizeFrame !== null) window.cancelAnimationFrame(resizeFrame)
       commandObserver?.disconnect()
       window.removeEventListener('resize', polish)
+      battlefield.parentElement?.style.removeProperty(CHRONICLE_GUTTER_PROPERTY)
     }
   }, [combatantAccents, playerName])
 
