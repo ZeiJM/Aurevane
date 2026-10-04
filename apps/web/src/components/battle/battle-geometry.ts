@@ -178,12 +178,12 @@ export function buildReachablePaths(
   return result
 }
 
-/** Board Move input presents one legal step; remaining Movement and AP stay authoritative. */
-export function buildImmediateStepPaths(
+/** Every highlighted destination has one complete affordable route from the committed origin. */
+export function buildMovementPaths(
   state: BattleSessionView['snapshot'],
   activePlacement: Placement | null,
   actionEconomy: number,
 ): Map<string, BattleGridPosition[]> {
-  const paths = buildReachablePaths(state, activePlacement, actionEconomy, 1)
-  return new Map([...paths].filter(([, path]) => path.length === 2))
+  const paths = buildReachablePaths(state, activePlacement, actionEconomy)
+  return new Map([...paths].filter(([, path]) => path.length > 1))
 }

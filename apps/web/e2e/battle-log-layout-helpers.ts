@@ -68,7 +68,7 @@ export async function expectReadableBattleLog(
         '[data-board-auto-fit]',
         '[data-unified-command-deck]',
         '[data-battle-preview-strip]',
-        '[data-battle-terrain-key]',
+        'button[aria-label="Terrain"]',
       ]) {
         const region = document.querySelector(selector)
         if (region) stableRegions[selector] = relativeLayout(region)

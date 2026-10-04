@@ -4,6 +4,7 @@
   min-height: 0;
   height: 100%;
   overflow: auto;
+  overflow-anchor: none;
   overscroll-behavior: contain;
   scrollbar-width: thin;
   scrollbar-color: #9b835c #d2c3a5;
@@ -31,6 +32,34 @@
   flex: 1;
   height: 1px;
   background: #9b865854;
+}
+.roundToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 1.7rem;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+}
+.roundToggle:focus-visible {
+  outline: 2px solid #82672e;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+.chevron {
+  font-size: 1.35em;
+  line-height: 1;
+}
+.roundToggle[aria-expanded='true'] .chevron {
+  transform: rotate(90deg);
+}
+.currentRound {
+  padding-block: 0.35rem;
 }
 .actor {
   min-width: 0;

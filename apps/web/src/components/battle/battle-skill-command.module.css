@@ -212,6 +212,9 @@
   .extraControls {
     height: 1.125rem;
   }
+  .extraControls:empty {
+    height: 0;
+  }
   .shell[data-command-card='finish'] {
     min-height: 0;
     padding-bottom: 0;

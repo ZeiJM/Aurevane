@@ -57,5 +57,7 @@ scrolling, surrounding battlefield geometry, and terrain-legend behavior should 
 playable PvP and PvE wherever their mechanics are equivalent. PvE terrain information must not be
 removed merely because the shared log is open.
 
+Owner-approved 2026-10-03 continuation: equal-size local and selected-enemy cards share the left rail; self-targeting does not replace the selected enemy; full Chronicle occupies the right with a gold recorded-round header counter. Current and previous rounds default open, older rounds use labelled keyboard-accessible chevrons, current cannot collapse, and explicit history reading survives live updates unless explicitly collapsed. Terrain sits beside Cancel. Information popups show one compact complete reader at a time with no X and outside-click/Escape dismissal. Preserve approved portrait and Skill artwork dimensions. Deliberate commands submit directly to canonical versioned commit, including full legal one-click movement; forecasts remain informational without a required matching-preview receipt. Preserve server legality and focus/repeat/pending/stale-context guards. Apply applicable changes to desktop/mobile PvE, PvP and spectators through shared authorities.
+
 The goal is simple: an applicable PvP presentation improvement should normally require **one shared
 change**, not a later cleanup ticket to make PvE look the same.

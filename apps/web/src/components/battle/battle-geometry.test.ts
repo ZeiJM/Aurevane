@@ -18,7 +18,8 @@ import {
 import { describe, expect, it } from 'vitest'
 
 import {
-  buildImmediateStepPaths,
+  buildMovementPaths,
+  positionKey,
   buildReachablePaths,
   retractProjectedPath,
 } from './battle-geometry'
@@ -333,7 +334,7 @@ it('keeps a shorter costly route when the cheapest merge route exhausts MOVE bef
   expect(destination.economyCost).toBe(70)
 })
 
-describe('immediate Move destinations', () => {
+describe('full-range Move destinations', () => {
   it('keeps pending rail statuses out of movement and gameplay tag calculations', () => {
     let state = encounter()
     for (const status of ['root', 'airborne', 'covert']) state = withStatus(state, 'actor', status)
@@ -353,20 +354,24 @@ describe('immediate Move destinations', () => {
         sourceCombatantId: 'actor',
       },
     ]
-    const paths = buildImmediateStepPaths(state, state.tactical.placements[0]!, 100)
-    expect([...paths.keys()].sort()).toEqual(['0:1', '1:0'])
-    expect(buildImmediateStepPaths(state, state.tactical.placements[0]!, 29).has('1:0')).toBe(false)
+    const paths = buildMovementPaths(state, state.tactical.placements[0]!, 100)
+    expect(paths.has('0:1')).toBe(true)
+    expect(paths.has('1:0')).toBe(true)
+    expect(buildMovementPaths(state, state.tactical.placements[0]!, 29).has('1:0')).toBe(false)
     expect(hasGameplayTag(state, 'actor', 'Airborne', PV1F_COMBAT_CONTENT)).toBe(false)
     expect(statusIdsForGameplayTag(state, 'actor', 'Airborne', PV1F_COMBAT_CONTENT)).toEqual([])
   })
-  it('offers only legal cardinal steps while keeping the full movement budget', () => {
+  it('offers complete legal routes across the full remaining movement budget', () => {
     const state = encounter()
     const placement = state.tactical.placements[0]!
-    const paths = buildImmediateStepPaths(state, placement, 100)
-    expect([...paths.keys()].sort()).toEqual(['0:1', '1:0'])
-    expect(paths.has('0:0')).toBe(false)
+    const paths = buildMovementPaths(state, placement, 100)
+    expect(paths.has('0:1')).toBe(true)
+    expect(paths.has('1:0')).toBe(true)
+    expect(paths.get('0:0')).toHaveLength(3)
+    expect(paths.has(positionKey(placement.position))).toBe(false)
     for (const path of paths.values()) {
-      expect(path).toHaveLength(2)
+      expect(path.length).toBeGreaterThanOrEqual(2)
+      expect(path.length).toBeLessThanOrEqual(6)
       expect(evaluatePv1fMovement(state, path).movement.legal).toBe(true)
     }
     expect(state.tactical.battle.currentTurn!.movementRemaining).toBe(5)
@@ -381,13 +386,13 @@ describe('immediate Move destinations', () => {
       terrainId: tile.position.x === 0 && tile.position.y === 1 ? 'rough' : 'open',
       elevation: tile.position.x === 1 && tile.position.y === 0 ? 1 : 0,
     }))
-    expect(buildImmediateStepPaths(state, state.tactical.placements[0]!, 39).size).toBe(0)
-    expect([...buildImmediateStepPaths(state, state.tactical.placements[0]!, 40).keys()]).toEqual([
+    expect(buildMovementPaths(state, state.tactical.placements[0]!, 39).size).toBe(0)
+    expect([...buildMovementPaths(state, state.tactical.placements[0]!, 40).keys()]).toEqual([
       '0:1',
     ])
     const rooted = withStatus(state, 'actor', 'root')
-    expect(buildImmediateStepPaths(rooted, rooted.tactical.placements[0]!, 100).size).toBe(0)
+    expect(buildMovementPaths(rooted, rooted.tactical.placements[0]!, 100).size).toBe(0)
     state.tactical.battle.currentTurn!.movementRemaining = 0
-    expect(buildImmediateStepPaths(state, state.tactical.placements[0]!, 100).size).toBe(0)
+    expect(buildMovementPaths(state, state.tactical.placements[0]!, 100).size).toBe(0)
   })
 })

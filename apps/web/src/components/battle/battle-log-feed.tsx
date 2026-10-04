@@ -24,6 +24,7 @@ interface BattleLogFeedProps {
   compactFlow?: boolean
   recentTurnCount?: number
   currentTurnNumber?: number
+  currentRound?: number
   flowView?: BattleLogFlowView
   hideFlowViewControl?: boolean
   onFlowViewChange?: (view: BattleLogFlowView) => void

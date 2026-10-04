@@ -240,6 +240,7 @@ export function BattleSkillCommand({
           label={`About ${label}`}
           title={label}
           trigger="i"
+          consumeOutsideClick
           className={styles.infoTrigger}
         >
           <strong>Parameters</strong>

@@ -67,7 +67,8 @@ const ACTION_COPY: Record<CombatKeybindAction, { label: string; description: str
   },
   confirm: {
     label: 'Execute selected action',
-    description: 'Optional keyboard execution of the current legal preview.',
+    description:
+      'Execute the selected intent through server validation; aim forecasts are informational.',
   },
   cancel: { label: 'Cancel Action', description: 'Clear current planning without committing.' },
   faceNorth: { label: 'Face North', description: 'Finish the turn facing north.' },

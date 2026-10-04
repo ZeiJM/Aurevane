@@ -55,7 +55,8 @@ describe('PvP-first shared battle visual contract', () => {
   it('gives the desktop command deck enough width for commands and contains selected skills', () => {
     const cockpit = compact(readLocalFile('pvp-battle-experience.module.css'))
     const selectedSkills = compact(readLocalFile('battle-selected-skills.module.css'))
-    expect(cockpit).toContain(
+    expect(cockpit).toContain("composes: stage from './battle-approved-layout.module.css'")
+    expect(compact(readLocalFile('battle-approved-layout.module.css'))).toContain(
       "grid-template-areas: 'local board selected' 'local preview selected' 'cockpit cockpit cockpit';",
     )
     expect(selectedSkills).toContain('min-width: 0;')

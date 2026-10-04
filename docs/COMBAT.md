@@ -2,7 +2,7 @@
 
 ## Standard map and readability continuation — Owner-approved 2026-10-03
 
-New standard encounters randomize terrain from server-owned encounter seeds without consuming combat RNG. Default maps favor neutral ground; elevation forms joined groups with legal ground approaches. Explicit PvP size and terrain/elevation biases retain their configured meaning. Authored micro, Guided, Mastery and content-preview scenarios remain authored; stored battle/replay tiles are never regenerated. Shared round counters read the recorded battle round. Chronicle consequence colors use canonical effect identity, with beneficial/recovery green, harmful red and ambiguous effects neutral. Second-hotkey-press self casting reuses legal server preview/commit authority and must preserve ordinary targeting and stale-context guards. Verification/release status: `superpowers/verification/2026-10-03-battle-map-preview-readability.md`.
+New standard encounters randomize terrain from server-owned encounter seeds without consuming combat RNG. Default maps favor neutral ground; elevation forms joined groups with legal ground approaches. Explicit PvP size and terrain/elevation biases retain their configured meaning. Authored micro, Guided, Mastery and content-preview scenarios remain authored; stored battle/replay tiles are never regenerated. Shared round counters read the recorded battle round. Chronicle consequence colors use canonical effect identity, with beneficial/recovery green, harmful red and ambiguous effects neutral. Second-hotkey-press self casting submits deliberate intent directly to canonical versioned server commit and preserves ordinary targeting, focus/repeat, pending-command and stale-context guards. Informational forecasts remain available without becoming a required matching-preview receipt. Earlier map/readability release evidence: `superpowers/verification/2026-10-03-battle-map-preview-readability.md`; current-batch verification: `superpowers/verification/2026-10-03-approved-battle-layout-direct-input.md`, with integrated verification and release tracked in `../TASKS.md`.
 
 ## Guard timing — Owner-approved 2026-10-02
 
@@ -223,7 +223,7 @@ The server owns and validates at minimum:
 - idempotency and duplicate-request handling;
 - rewards, progression and battle terminal state.
 
-Client previews are informational. A preview never spends resources or proves that a later stale command may commit.
+Client previews are informational. A preview never spends resources or proves that a later stale command may commit. Owner-approved 2026-10-03 continuation: deliberate command gestures submit the selected intent and expected battle version directly to canonical commit; a matching completed or in-flight forecast is not required. One-click movement covers the full legal destination range within remaining Movement and AP, using the same server-owned path, terrain, elevation, occupancy and active-status validation. This changes client interaction timing, not combat legality, costs, RNG, duplicate handling or outcomes.
 
 ---
 
@@ -409,7 +409,7 @@ New encounters pin an immutable effect-timing policy version and overrides. The 
 
 A pending effect is shown immediately on its recipient’s rail but cannot influence damage, movement, initiative, resource costs or periodic ticks before activation. At the following round boundary queued effects activate before that round’s initiative calculation. One active turn lasts through the affected character’s entire activation and expires only after its end turn. Manual final-facing/end-turn, timeout and AI paths share this lifecycle. Periodic ticks occur at the affected turn end and before expiry. Dead/skipped characters and terminal encounters cannot create phantom turns or rewards. Cooldowns remain independent.
 
-The text Battle Chronicle uses Round dividers and actor-identity groups, pinned editable short narration and compact actual results. Names/story use charcoal, harm muted crimson, HP/MP recovery moss green, and special-family headings restrained gold. Ordinary movement, facing, end-turn and effect expiry are omitted from this view only; persisted history/export/privacy authority remains complete. Hover/focus/click explains effect identities using the same canonical meanings as rail icons.
+The text Battle Chronicle uses Round dividers and actor-identity groups, pinned editable short narration and compact actual results. Names/story use charcoal, harm muted crimson, HP/MP recovery moss green, and special-family headings restrained gold. The first ordinary movement per character per round remains visible; repeated movement, facing, end-turn and effect expiry are omitted from this view only. Current and previous rounds expand by default, earlier rounds reveal through chevrons, and the current round cannot collapse. Deliberately opened history and a round being read remain expanded across live updates unless explicitly collapsed. The Chronicle header carries the gold recorded-round counter. Persisted history/export/privacy authority remains complete. Hover/focus/click explains effect identities using the same canonical meanings as rail icons.
 
 ## 8. HP, MP, Statuses & Combatant Presentation
 

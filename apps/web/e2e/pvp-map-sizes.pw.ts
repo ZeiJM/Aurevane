@@ -159,10 +159,9 @@ for (const [size, label, width, tiles] of [
           'true',
         )
         for (const page of [host, guest, spectator]) {
-          await expect(page.locator('[data-battle-round-badge]')).toHaveAttribute(
-            'data-battle-round',
-            String(committed.snapshot.tactical.battle.round),
-          )
+          await expect(
+            page.locator('[data-battle-chronicle-heading] [data-battle-round]'),
+          ).toHaveAttribute('data-battle-round', String(committed.snapshot.tactical.battle.round))
         }
       }
       expect(committed.snapshot.tactical.battle.round).toBe(

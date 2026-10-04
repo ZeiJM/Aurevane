@@ -344,7 +344,7 @@ const battleHallArticle: ManualArticle = {
       id: 'battle-chronicle',
       title: 'Reading the Battle Chronicle',
       paragraphs: [
-        'The Battle Chronicle groups short technique scenes and recorded outcomes by character within each round. Damage is crimson, HP/MP recovery green, and Essence or Resonance headings gold. Hover or select a named effect for its standard explanation. Movement, final facing, end turn and fading effects stay on the board and character rails rather than interrupting the story. Scroll back to review earlier rounds; live entries follow only when you are already at the bottom.',
+        'The Battle Chronicle groups short technique scenes and recorded outcomes by character within each round. Damage is crimson, HP/MP recovery green, and Essence or Resonance headings gold. Its header shows the recorded round in gold. Current and previous rounds start expanded; use earlier round chevrons to reveal or hide complete history. The current round stays open, and live updates preserve a round you are reading or deliberately opened. Hover or select a named effect for its standard explanation. The first ordinary movement per character per round remains visible; repeated movement, final facing, end turn and fading effects stay on the board and character rails rather than repeating the story.',
       ],
     },
     {
@@ -352,7 +352,7 @@ const battleHallArticle: ManualArticle = {
       title: 'Elemental setup and payoffs',
       paragraphs: [
         'Scorched, Bleeding and Poisoned are the gameplay tags for Burn, Bleed and Poison. Skills can require tags such as Frozen or Conductive; their details explain which setup is needed before a payoff becomes legal.',
-        'Battle Technique buttons and their skill pickers show target, shape and effect tags from the build committed to that battle. Tags describe the full Technique; the target preview shows its actual legal effects, costs, cooldown legality and requirements before confirmation. Dispel removes listed protection; Cleanse removes listed harmful effects.',
+        'Battle Technique buttons and their skill pickers show target, shape and effect tags from the build committed to that battle. Tags describe the full Technique; the informational target forecast shows its effects, costs, cooldown legality and requirements while you aim. A deliberate execution gesture submits directly to server validation without waiting for a matching forecast. Dispel removes listed protection; Cleanse removes listed harmful effects.',
         'Water Skills can apply Wet. Against Wet or Conductive, the first positive storm hit per target per command gains a bounded 20% bonus. Conductive is consumed; Wet remains. Having both conditions does not double the bonus. Positive fire damage clears Wet and Frozen from the damaged unit.',
       ],
     },
@@ -397,7 +397,7 @@ const battleHallArticle: ManualArticle = {
       id: 'planning',
       title: 'Choose first — nothing is forced',
       paragraphs: [
-        'Choose a cockpit action or press its hotkey to select it and see a server-checked forecast. Click a valid target or use WASD in its direction to execute. For a Skill aimed at yourself, press its hotkey again to cast. The action stays selected while the same turn continues. Move highlights legal adjacent steps; Movement allowance and terrain AP costs still apply.',
+        'Choose a cockpit action or press its hotkey to select it; aim forecasts are informational. Click a valid target or use WASD in its direction to submit the selected intent directly to the server. For a Skill aimed at yourself, press its hotkey again to cast. The server validates the current battle version and every action rule before accepting it. The action stays selected while the same turn continues. Move highlights the full legal destination range and can cover a legal path in one click; Movement allowance, AP, terrain, elevation and active statuses still apply.',
         'Cancel Action clears the selection without committing it. Surrender ends the practice battle as abandoned.',
       ],
     },
