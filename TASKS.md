@@ -1,14 +1,14 @@
 # AUREVANE — Active Task Ledger
 
-## Approved battle rails, Chronicle readers and direct commands — 2026-10-03 (implementation; final verification pending)
+## Approved battle rails, Chronicle readers and direct commands — 2026-10-03 (released)
 
 The Owner approved equal-size local-character and selected-enemy cards together on the left, full Chronicle on the right with a gold recorded-round header counter, removal of the preview round badge and redundant Latest/header arrow, and Terrain beside Cancel. Current and previous rounds start expanded; earlier chevrons reveal/hide complete history, current cannot collapse, and deliberate history reading survives live updates unless explicitly collapsed. Information popups retain complete compact reports with one reader at a time, no X and outside-click/Escape dismissal. Portrait and Skill artwork sizes remain approved. Shared PvE/PvP/spectator presentation remains the contract.
 
 Deliberate target/destination clicks and configured command gestures submit selected intent directly to canonical versioned server commit. Move reaches the full legal destination range in one click within existing AP, Movement, terrain/elevation, occupancy and status limits. Informational aim forecasts remain; completed or in-flight matching-preview receipts are no longer execution prerequisites. Focus/repeat/pending/stale-context guards and all server-owned rules remain. This supersedes the previous client preview-gating wording without changing combat costs, legality, RNG, recorded outcomes or privacy. Current-batch evidence: `docs/superpowers/verification/2026-10-03-approved-battle-layout-direct-input.md`.
 
 - [x] Finish the integrated shared interface and direct-command continuation, with the complete local quality gate passing on `agent/battle-range-compact-readers`.
-- [ ] Finish rendered/authenticated CI verification and record the release receipt. Local gate and independent review pass; see `docs/superpowers/verification/2026-10-03-approved-battle-layout-direct-input.md`.
-- [ ] Track any authorized release separately; this entry does not claim deployment, live behavior or completed testing.
+- [x] Finish rendered/authenticated CI verification and record the release receipt. All five exact-head workflows pass candidate `897a5983c0b018ce5e157be64a9f4ae429119747`: 3,647 Vitest tests plus seven Node checks; six recovery, three early training, 68 focused, 315 full Chromium and ten Edge cases; 48 Desktop experience, 24 Representative Buildcraft and 110 UI layout cases plus the directory case. Independent review has no remaining Critical or Important findings. Artwork and strict geometry checks pass.
+- [x] Complete the Owner-authorized combined release. PR #819 merges the identical tested tree as `8249e8a19633e55b6f7557da3d242f3ce81dff26`. READY deployment `dpl_DNaGsheZvXpWTE6LQ7sLWhvWs7sD` serves https://aurevane.vercel.app/ from that source at `2026-10-04T03:43:14.412Z`. Six public entry/recovery/Manual/Rules/News responses pass; the bounded READY-to-verification warning/error/fatal query is empty. This configuration/docs-only closeout restores the full Git deployment lock. No migration or hosted Auth/content change. Authenticated gameplay and recovery-mail delivery pass in disposable CI; authenticated Production gameplay and Owner visual acceptance remain testing outcomes.
 
 ## Battle map, preview and readability follow-ups — 2026-10-03 (released)
 

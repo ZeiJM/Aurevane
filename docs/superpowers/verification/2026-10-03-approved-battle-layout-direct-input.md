@@ -2,6 +2,8 @@
 
 Owner-approved continuation from Main `2e7614ed815ee10e6409bd4c3d7abd4898d97e7c`, isolated on `agent/battle-range-compact-readers`. This batch follows the already released map/readability work. The Owner requested one combined Production release and explicitly included the spectator-only view.
 
+Released by PR #819 as source `8249e8a19633e55b6f7557da3d242f3ce81dff26`, with the exact tested tree preserved. READY Production deployment `dpl_DNaGsheZvXpWTE6LQ7sLWhvWs7sD` serves https://aurevane.vercel.app/ at `2026-10-04T03:43:14.412Z`. The final receipt below supersedes pending statements in the chronological implementation history.
+
 ## Scope
 
 - Shared playable PvE/PvP and spectator stage: equally sized character and selected-enemy cards on the left, Chronicle alone on the right. Enemy inspection stays independent of self/ally action targeting. The left rail gains a little width while the combined rail footprint stays unchanged, preserving board and map artwork sizing.
@@ -12,7 +14,7 @@ Owner-approved continuation from Main `2e7614ed815ee10e6409bd4c3d7abd4898d97e7c`
 - Full legal movement destination range, visible maximum route length, and one gesture for the entire chosen affordable path. AP, Movement, terrain, elevation, occupancy and statuses retain their existing authority. WASD remains one tile.
 - A deliberate movement/target/self-hotkey command sends the selected intent directly to the existing versioned commit endpoint. Informational aim forecasts remain, but no sequential preview request delays execution. The server independently revalidates authorization, turn, version, idempotency and legality. No optimistic combat results, new balancing rules, migrations or hosted content/Auth changes.
 
-## Verification
+## Implementation and verification history
 
 The movement and held-forecast regressions fail against the original client and pass after the change. Root mounted actual `BattleExperience` with canonical game-core execution in a disposable transport fixture: twelve PvE/PvP cases pass full-range movement, immediate target dispatch while an informational preview is held, duplicate-command suppression during a held commit, reading-panel hotkey suppression, Root movement prevention, and stale-version rejection with unchanged AP. Full-route movement commits once, spends its canonical 60 AP/three movement points and reaches the selected destination; no client movement preview request or animation delay is introduced. These are component/engine receipts, not authenticated Production latency claims.
 
@@ -61,3 +63,23 @@ The failing test assumed every entered tile cost 20 AP. The unchanged authored D
 The frozen terrain-aware test correction passes the complete local quality gate with telemetry disabled: formatting/lint, all eight type tasks, 3,647 Vitest tests plus seven Node checks, all seven test tasks and both Production build tasks. Main remains unchanged at `2e7614ed815ee10e6409bd4c3d7abd4898d97e7c`. Exact-head CI and Production verification remain pending.
 
 Candidate `7f946d9f8e241e1876b13f668f0438eb8c9c88c5` again passes quality/database, Desktop experience, Representative Buildcraft and UI layout review. Its early complete training journey passes desktop and laptop, proving terrain-weighted costs and full victory, but mobile fails to arm Guard after the second turn. The downloaded native trace shows an enabled Guard and local turn, no Guard preview request, and a tap at `(76.79,173.21)` on a narrow clipped fragment at the sticky header boundary; earlier trace actions explicitly report that header intercepting input. It does not establish a command-state defect. The test now centers the real Guard control, verifies its full rectangle below the header and within the viewport plus center hit ownership, then performs exactly one native tap. No force, action retry, arbitrary delay or application change. Independent review finds no Critical/Important issues; the complete local gate and final scoped formatting/lint checks pass. Fresh exact-head CI remains the release gate.
+
+## Final verification and Production release — 2026-10-04
+
+Exact candidate `897a5983c0b018ce5e157be64a9f4ae429119747` passes all five applicable workflows. Its tree `0befc6657236db768771437d361142ff57a042e4` matches the clean local source and merged Main exactly. The complete local quality gate passes formatting, lint, all eight type tasks, 3,647 Vitest tests plus seven Node checks, all seven test tasks and both Production build tasks. Independent review has no remaining Critical or Important findings.
+
+| Workflow                  | Run           | Result                                                                                                                                                    |
+| ------------------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CI                        | `37172555139` | Quality/database authority and both builds pass; worker ready `2026-10-04T02:59:21.513Z`                                                                  |
+| Desktop experience        | `37172555136` | 48 pass; 27 existing project-specific skips                                                                                                               |
+| Representative Buildcraft | `37172555137` | 24 pass; six existing project-specific skips                                                                                                              |
+| UI layout review          | `37172555134` | 110 pass; 61 existing project-specific skips; directory one pass/two skips                                                                                |
+| Browser smoke             | `37172555145` | Six real-mail recovery, three early complete training, 68 focused, 315 full Chromium and ten Edge cases pass; existing focused/full/Edge skips 20/216/two |
+
+The corrected single native mobile Guard tap and complete training victory pass in both the early three-project journey and the complete suite. All enabled scenarios remain present. Strict map stability, summon inspection, complete readers, Chronicle anchors, terrain-weighted AP, direct dispatch under held informational forecasts, reload and spectator journeys pass. Mounted current-only artwork/geometry, larger-text forecast/report and inspection handoff matrices recorded above also pass. Production response timing is not inferred from component dispatch checks.
+
+Immediately before merge, fresh Main remains `2e7614ed815ee10e6409bd4c3d7abd4898d97e7c`, and PR #819 is mergeable with the exact green head. The Owner's earlier instruction to publish the single completed batch authorizes the release. PR #819 merges as `8249e8a19633e55b6f7557da3d242f3ce81dff26`, with the tested tree unchanged. Vercel deployment `dpl_DNaGsheZvXpWTE6LQ7sLWhvWs7sD` is READY at `2026-10-04T03:43:14.412Z`, records that exact Git source and assigns `aurevane.vercel.app` plus the existing project/Main aliases.
+
+Live read-only checks return HTTP 200 with expected public content for `/`, `/?account=recovery`, `/auth/reset-password`, `/manual`, `/rules` and `/news`. Login retains Forgot password; recovery is email-only; a missing/expired reset link shows the safe request-new-link state. The deployment-scoped Production warning/error/fatal query from READY through `2026-10-04T03:43:56.094Z` returns no logs. These are server-response and bounded runtime receipts; authenticated gameplay and real recovery-mail delivery pass in disposable CI, not through live account mutation. Authenticated Production gameplay and Owner visual acceptance remain testing outcomes. No separate Vercel build-log inspection is claimed.
+
+This configuration/documentation closeout restores `git.deploymentEnabled` to `{ "**": false }` and changes no application code. The preceding Nexus/Items headers, management watermarks, effect-tag fixes, beneficial Copy, generated standard maps, battle readability and password recovery remain included. No database migration, hosted Auth/content setting change or additional application release is part of this closeout.
