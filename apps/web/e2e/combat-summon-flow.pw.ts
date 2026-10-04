@@ -307,9 +307,11 @@ test('current Renewing Herbs queues, activates next round, inspects and survives
       inspectCommands++
   })
   await root.getByRole('button', { name: /^Inspect,/ }).click()
-  await expect(summonTile).toHaveAttribute('data-desktop-inspect-combatant', summon!.combatantId)
+  await expect(summonTile).not.toHaveAttribute('data-desktop-inspect-combatant')
   await summonTile.click()
 
+  const localCard = page.locator('[data-battle-combatant-card="local"]')
+  await expect(localCard).toContainText('Verdant Stalker')
   const enemyCard = page.locator('[data-battle-combatant-card="selected"]')
   await expect(enemyCard).toContainText('Recruit')
   await expect(enemyCard).not.toContainText('Verdant Stalker')
@@ -317,6 +319,16 @@ test('current Renewing Herbs queues, activates next round, inspects and survives
     name: 'Verdant Stalker battle details',
     exact: true,
   })
+  await expect(inspect).toHaveCount(0)
+  const summonPortrait = localCard.getByRole('button', {
+    name: 'Inspect Verdant Stalker',
+    exact: true,
+  })
+  await expect(summonPortrait).toHaveAttribute(
+    'data-desktop-inspect-combatant',
+    summon!.combatantId,
+  )
+  await summonPortrait.click()
   await expect(inspect).toBeVisible()
   const summonCombatant = current.snapshot.tactical.battle.combatants.find(
     (entry) => entry.id === summon!.combatantId,
@@ -362,6 +374,8 @@ test('current Renewing Herbs queues, activates next round, inspects and survives
     'true',
   )
   await expect(root).toBeFocused()
+  await expect(localCard).toContainText(characterName)
+  await expect(localCard).not.toContainText('Verdant Stalker')
   await expect(enemyCard).toContainText('Recruit')
   await expect(summonTile).not.toHaveAttribute('data-desktop-inspect-combatant')
   expect(inspectCommands).toBe(0)
@@ -390,17 +404,22 @@ test('current Renewing Herbs queues, activates next round, inspects and survives
       ),
     })
     .click()
-  await expect(enemyCard).toContainText('Recruit')
-  await expect(enemyCard).not.toContainText('Verdant Stalker')
+  await expect(localCard).toContainText('Verdant Stalker')
   const reloadedInspect = page.getByRole('dialog', {
     name: 'Verdant Stalker battle details',
     exact: true,
   })
+  await expect(reloadedInspect).toHaveCount(0)
+  await localCard.getByRole('button', { name: 'Inspect Verdant Stalker', exact: true }).click()
+  await expect(enemyCard).toContainText('Recruit')
+  await expect(enemyCard).not.toContainText('Verdant Stalker')
   await expect(reloadedInspect).toBeVisible()
   await expectPinnedSummonStats(reloadedInspect)
   await expect(reloadedInspect).toContainText(`${remainingTurns}/5 turns`)
   await expect(reloadedInspect).toContainText('Thorn Rake')
   await expect(reloadedInspect).toContainText('Verdant Mend')
+  expect(inspectCommands).toBe(0)
+  expect(await readBattle(page, sessionId)).toEqual(reloaded)
 
   await testInfo.attach(`summon-flow-${testInfo.project.name}`, {
     body: await page.screenshot(),
