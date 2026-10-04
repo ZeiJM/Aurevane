@@ -2,6 +2,12 @@
 
 This file intentionally lives inside the web app project root so documentation-only production redeploys are not skipped by Vercel's monorepo unaffected-project optimization.
 
+## Mobile Profile, idle turns, animated VS and wider Chronicle — authorized release
+
+PR #821 merges the exact verified application tree as `e625853bf64e11c5e54c18aa61ed41764b8bc936` (tree `66fb646e75cb53ad4dbd97f3b409304d46bc79a8`). All seven workflows pass candidate `f92eac4db2ac50ccbca0ae6bc99c90c7209e8265`: quality/database/builds, Skill Engine, Desktop page fit, Desktop experience, Representative Buildcraft, UI layout and Browser smoke. Browser results are six real-mail recovery, three training, 70 focused, 317 full Chromium and ten Edge cases. UI layout passes the native mobile swipe regression, 110 scenarios and the directory check. Final wide playable/spectator and populated-title screenshots are reviewed; existing artwork and map geometry remain preserved. The local and CI quality gates pass 3,706 Vitest tests and seven Node checks.
+
+This configuration-only release enables Main for the Owner's explicitly authorized single production deployment. All other branches remain locked. No application bytes, migrations, hosted Auth/content or production accounts change in this release control. Restore the full Git deployment lock after READY and live smoke verification. Earlier approved battle/tag/Copy/password-recovery changes remain included. Evidence: `docs/superpowers/verification/2026-10-04-profile-idle-versus.md`.
+
 ## Approved battle layout and direct input — released
 
 The Owner-authorized combined release is READY at https://aurevane.vercel.app/. PR #819 merges the identical tested tree as `8249e8a19633e55b6f7557da3d242f3ce81dff26`; deployment `dpl_DNaGsheZvXpWTE6LQ7sLWhvWs7sD` is READY at `2026-10-04T03:43:14.412Z` with the primary alias assigned. All five workflows pass exact candidate `897a5983c0b018ce5e157be64a9f4ae429119747`: quality/database/builds, 48 Desktop experience, 24 Representative Buildcraft, 110 UI layout checks plus the directory scenario, and Browser smoke with six real-mail recovery, three early training, 68 focused, 315 full Chromium and ten Edge checks. Existing project-specific skips remain unchanged.
