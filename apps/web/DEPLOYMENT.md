@@ -2,9 +2,11 @@
 
 This file intentionally lives inside the web app project root so documentation-only production redeploys are not skipped by Vercel's monorepo unaffected-project optimization.
 
-## Approved battle layout and direct input release candidate
+## Approved battle layout and direct input — released
 
-The Owner authorized one combined Production release of the approved shared playable/spectator layout, compact readers, Chronicle disclosures and direct authoritative command interaction. Only Main is temporarily enabled for that gated merge; all other Git deployments remain disabled. Restore the full lock after the exact verified source is READY. No database migration or hosted Auth/content mutation is part of this release. Evidence: `docs/superpowers/verification/2026-10-03-approved-battle-layout-direct-input.md`.
+The Owner-authorized combined release is READY at https://aurevane.vercel.app/. PR #819 merges the identical tested tree as `8249e8a19633e55b6f7557da3d242f3ce81dff26`; deployment `dpl_DNaGsheZvXpWTE6LQ7sLWhvWs7sD` is READY at `2026-10-04T03:43:14.412Z` with the primary alias assigned. All five workflows pass exact candidate `897a5983c0b018ce5e157be64a9f4ae429119747`: quality/database/builds, 48 Desktop experience, 24 Representative Buildcraft, 110 UI layout checks plus the directory scenario, and Browser smoke with six real-mail recovery, three early training, 68 focused, 315 full Chromium and ten Edge checks. Existing project-specific skips remain unchanged.
+
+Shared playable/spectator rails, compact complete readers, round disclosures and direct authoritative command input are included without shrinking cockpit or character artwork. All six live public entry/recovery/Manual/Rules/News responses pass; the warning/error/fatal query scoped to this deployment from READY through `2026-10-04T03:43:56.094Z` returns no logs. This configuration/documentation closeout restores the full deployment lock without another application release. No database migration or hosted Auth/content mutation. Authenticated Production gameplay and Owner visual acceptance remain testing outcomes. Evidence: `docs/superpowers/verification/2026-10-03-approved-battle-layout-direct-input.md`.
 
 ## Previous verified release
 
