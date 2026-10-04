@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
-async function provision(page: Page, prefix: string) {
+async function provision(page: Page, prefix: string, title?: string) {
   const seed = randomUUID()
   const name = `${prefix} ${seed.replace(/[^a-z]/g, '').slice(0, 8)}`
   await provisionAccountAndEnterCharacter({
@@ -12,6 +12,14 @@ async function provision(page: Page, prefix: string) {
     password: 'Spectator-title-disposable-2026!',
     characterName: name,
   })
+  if (title) {
+    await page.goto('/game/account/titles')
+    await page.getByRole('textbox', { name: /^Personal title/ }).fill(title)
+    await page.getByRole('button', { name: 'Review Title' }).click()
+    await page.getByRole('checkbox', { name: /one personal-title choice/ }).check()
+    await page.getByRole('button', { name: 'Confirm Final Title' }).click()
+    await expect(page.getByText('Choice used')).toBeVisible()
+  }
   return name
 }
 
@@ -55,8 +63,10 @@ test('keeps the complete acting title clear of VS without resizing spectator art
   )
   const [host, guest, watcher] = await Promise.all(contexts.map((context) => context.newPage()))
   try {
-    const hostName = await provision(host!, 'TitleHost')
-    const guestName = await provision(guest!, 'TitleGuest')
+    const hostTitle = `WWWWWWWWWWWW${randomUUID().replaceAll('-', '').slice(0, 8)}`
+    const guestTitle = `WWWWWWWWWWWW${randomUUID().replaceAll('-', '').slice(0, 8)}`
+    const hostName = await provision(host!, 'TitleHost', hostTitle)
+    const guestName = await provision(guest!, 'TitleGuest', guestTitle)
     await provision(watcher!, 'TitleWatcher')
     await host!.goto('/game/battle')
     await host!.getByRole('button', { name: 'PVP - Direct', exact: true }).click()
@@ -82,7 +92,6 @@ test('keeps the complete acting title clear of VS without resizing spectator art
     const key = (await host!.locator('[data-pvp-spectator-key] strong').textContent())!.trim()
     await watcher!.goto(`/game/battle/spectate/${key}`)
     await expect(watcher!.locator('[data-battle-versus]')).toBeVisible()
-    const baseline = await stableGeometry(watcher!)
     const response = await watcher!.request.get(`/api/pvp/spectate/${key}`)
     expect(response.ok()).toBe(true)
     const { spectator } = await response.json()
@@ -90,15 +99,22 @@ test('keeps the complete acting title clear of VS without resizing spectator art
     const active = spectator.participants.find(
       (participant: { combatantId: string }) => participant.combatantId === activeId,
     )
-    const title = `WWWWWWWWWWWW${randomUUID().replaceAll('-', '').slice(0, 8)}`
-    expect(title).toHaveLength(20)
-    const actor = active.characterName === hostName ? host! : guest!
     expect([hostName, guestName]).toContain(active.characterName)
-    const saved = await actor.request.post('/api/account/titles/personal', {
-      data: { characterId: active.characterId, title },
-    })
-    expect(saved.ok(), JSON.stringify(await saved.json())).toBe(true)
+    const title = active.characterName === hostName ? hostTitle : guestTitle
+    expect(title).toHaveLength(20)
     const titleNode = watcher!.getByText(title, { exact: true })
+    await expect(titleNode).toBeVisible()
+    // Titles are immutable during battle. Compare the same rendered frame with only
+    // the title hidden, then restore it; no game state or battle authority is changed.
+    const originalStyle = await titleNode.getAttribute('style')
+    await titleNode.evaluate((node) => {
+      node.style.display = 'none'
+    })
+    const baseline = await stableGeometry(watcher!)
+    await titleNode.evaluate((node, style) => {
+      if (style === null) node.removeAttribute('style')
+      else node.setAttribute('style', style)
+    }, originalStyle)
     await expect(titleNode).toBeVisible()
     const titled = await stableGeometry(watcher!)
     expect(titled).toHaveLength(baseline.length)
