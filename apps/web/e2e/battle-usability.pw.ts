@@ -166,7 +166,9 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
   await roughGround.click()
   await expect(commandContext).toContainText('Difficult terrain')
   await page.getByRole('button', { name: new RegExp(`occupied by ${characterName}`) }).click()
-  await expect(page.locator('[data-battle-combatant-card="selected"]')).toContainText(characterName)
+  await expect(page.locator('[data-battle-combatant-card="local"]')).toContainText(characterName)
+  // Self inspection keeps the dedicated selected-enemy summary in place.
+  await expect(page.locator('[data-battle-combatant-card="selected"]')).toContainText('Recruit')
   await expect(page.getByRole('dialog')).toHaveCount(0)
   await page
     .getByRole('button', { name: `Inspect ${characterName}`, exact: true })

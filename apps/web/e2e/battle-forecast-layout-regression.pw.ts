@@ -474,8 +474,11 @@ async function exerciseForecast(
       await check('inspect-enemy')
       await page.locator('#battlefield button:has(> [data-active="true"])').click()
       await check('inspect-self')
+      await expect(page.locator('[data-battle-combatant-card="selected"]')).not.toContainText(
+        await page.locator('[data-battle-combatant-card="local"] header strong').innerText(),
+      )
       await page
-        .locator('[data-battle-combatant-card="selected"]')
+        .locator('[data-battle-combatant-card="local"]')
         .getByRole('button', { name: /^Inspect / })
         .click()
       await expect(page.getByRole('dialog')).toBeVisible()

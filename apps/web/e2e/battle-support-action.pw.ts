@@ -195,16 +195,25 @@ for (const [supportActionId, label, cost] of [
     await page.mouse.move(0, 0)
     await root.focus()
     if (supportActionId !== 'basic.guard') {
-      // Full HP/MP remains blocked by authoritative requirements, even on a deliberate second press.
+      // Full HP/MP remains blocked by authority on a deliberate second press.
+      const beforeBlocked = await readBattle(page)
       const blocked = page.waitForResponse('**/api/battles/*/preview')
       await page.keyboard.press('KeyG')
       expect((await (await blocked).json()).battlePreview.preview).toMatchObject({
         actionId: supportActionId,
         legal: false,
       })
+      const rejected = page.waitForResponse('**/api/battles/*/intents')
       await page.keyboard.press('KeyG')
-      await expect(targetForecast(page)).toContainText(label)
-      expect(commits).toBe(0)
+      const rejectedResponse = await rejected
+      expect(rejectedResponse.status()).toBe(400)
+      expect((await rejectedResponse.json()).error.code).toBe('INVALID_REQUEST')
+      expect(commits).toBe(1)
+      const unchanged = await readBattle(page)
+      expect(unchanged.battleVersion).toBe(beforeBlocked.battleVersion)
+      expect(unchanged.snapshot).toEqual(beforeBlocked.snapshot)
+      await expect(root).toHaveAttribute('data-battle-action-mode', 'none')
+      commits = 0
       await page.getByRole('button', { name: 'Cancel Action' }).click()
       await lowerResources(page, characterId)
     }
