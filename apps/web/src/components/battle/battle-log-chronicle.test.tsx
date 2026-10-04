@@ -61,6 +61,100 @@ function render(entries: readonly BattleLogEntry[]) {
 }
 
 describe('approved Battle Chronicle', () => {
+  it('narrates a completed idle turn in its recorded round and actor group', () => {
+    const entries = [
+      entry(1, 0, 'turn_started', { round: 4, turnNumber: 7, actorCombatantId: enemy }),
+      entry(2, 0, 'combatant_facing_changed', { round: 4, turnNumber: 7, actorCombatantId: enemy }),
+      entry(2, 1, 'final_facing_selected', { round: 4, turnNumber: 7, actorCombatantId: enemy }),
+      entry(2, 2, 'turn_ended', { round: 4, turnNumber: 7, actorCombatantId: enemy }),
+    ]
+    const original = JSON.stringify(entries)
+    const html = render(entries)
+    expect(html).toContain('ROUND 4')
+    expect(html).toContain('data-chronicle-actor="recruit:weon"')
+    expect(html).toContain('Weon stands around and does nothing.')
+    expect(html).not.toContain('Hollow Reflection')
+    expect(html).not.toContain('Action recorded; no effect result available.')
+    expect(JSON.stringify(entries)).toBe(original)
+  })
+
+  it.each([
+    'combatant_moved',
+    'movement_spent',
+    'combat_action_used',
+    'hidden_combat_action',
+    'stat_driven_attack_resolved',
+    'combat_accuracy_resolved',
+    'recovery_scheduled',
+    'status_applied',
+    'unknown_legacy_action',
+  ])('does not call a turn idle when %s is recorded', (eventType) => {
+    expect(
+      render([
+        entry(1, 0, 'turn_started'),
+        entry(2, 0, eventType, { templateValues: { outcome: 'MISSED' } }),
+        entry(3, 0, 'turn_ended'),
+      ]),
+    ).not.toContain('stands around')
+  })
+
+  it.each(['basic.guard', 'basic.recover', 'basic.recover.mp', 'skill.utility'])(
+    'does not call a completed %s use idle when no damage is recorded',
+    (actionId) => {
+      expect(
+        render([
+          entry(1, 0, 'turn_started'),
+          entry(2, 0, 'combat_action_used', { actionId }),
+          entry(3, 0, 'turn_ended'),
+        ]),
+      ).not.toContain('stands around')
+    },
+  )
+
+  it('requires matching, complete turn history before inventing idle narration', () => {
+    const start = entry(1, 0, 'turn_started')
+    const end = entry(2, 0, 'turn_ended')
+    for (const entries of [
+      [end],
+      [start],
+      [start, { ...end, actorCombatantId: enemy }],
+      [start, { ...end, turnNumber: 4 }],
+      [start, { ...end, battleVersion: 3 }],
+      [start, { ...end, eventIndex: 2 }],
+      [
+        start,
+        entry(2, 0, 'combatant_waited', { actorCombatantId: enemy }),
+        entry(3, 0, 'turn_ended'),
+      ],
+      [
+        { ...start, turnNumber: null },
+        { ...end, turnNumber: null },
+      ],
+    ])
+      expect(render(entries)).not.toContain('stands around')
+  })
+
+  it('keeps idle AI decisions and expiry chatter quiet while naming the completed actor', () => {
+    expect(
+      render([
+        entry(1, 0, 'turn_started'),
+        entry(2, 0, 'recruit_ai_decision', { templateValues: { reason: 'facing the threat' } }),
+        entry(2, 1, 'final_facing_selected'),
+        entry(2, 2, 'status_expired', { actorCombatantId: null }),
+        entry(2, 3, 'turn_ended'),
+      ]),
+    ).toContain('Zei stands around and does nothing.')
+    expect(
+      render([
+        entry(1, 0, 'turn_started'),
+        entry(2, 0, 'recruit_ai_decision', {
+          templateValues: { reason: 'a legal tactical option' },
+        }),
+        entry(2, 1, 'turn_ended'),
+      ]),
+    ).not.toContain('stands around')
+  })
+
   it('expands the current and previous round while preserving all older history behind controls', () => {
     const entries = [1, 2, 3, 4].map((round) => ({ ...technique(round), round }))
     const html = renderToStaticMarkup(<BattleLogChronicle entries={entries} currentRound={4} />)

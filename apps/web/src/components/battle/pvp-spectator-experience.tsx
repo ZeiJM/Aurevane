@@ -5,6 +5,7 @@ import { BattleRouteFrame } from './battle-route-frame'
 import { BattleTerrainToggle } from './battle-terrain-toggle'
 import { battleTerrainName } from './battle-terrain-key-presentation'
 import { BattleCombatantCard } from './battle-combatant-card'
+import { BattleVersusEmblem } from './battle-versus-emblem'
 import { BattleLogPanel } from './battle-log-panel'
 import { BattleChronicleHeading } from './battle-chronicle-heading'
 import type { BattlePresentationParticipant } from './battle-runtime'
@@ -368,6 +369,9 @@ export function PvpSpectatorExperience({
               teamCount={teamCount}
               role="acting"
             />
+            {presentationParticipants.some((item) => item.teamIndex !== actingTeamIndex) ? (
+              <BattleVersusEmblem />
+            ) : null}
             {activeParticipant && participantTitles[activeParticipant.characterId] ? (
               <small className={styles.actorTitle}>
                 {participantTitles[activeParticipant.characterId]}

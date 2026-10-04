@@ -172,6 +172,14 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
       rightCardCount: element.querySelectorAll(
         '[data-battle-side="selected"] [data-battle-combatant-card]',
       ).length,
+      versus: {
+        bounds: rect('[data-battle-versus]'),
+        pointerEvents: getComputedStyle(element.querySelector('[data-battle-versus]')!)
+          .pointerEvents,
+        animation: getComputedStyle(element.querySelector('[data-battle-versus-flames]')!)
+          .animationName,
+        reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches,
+      },
       tokens: [...board.querySelectorAll('button[aria-label*="occupied by"] > [data-team]')].map(
         (token) => ({
           token: token.getBoundingClientRect().toJSON(),
@@ -237,6 +245,24 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
   expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.w + 1)
   expect(geometry.leftCardRoles).toEqual(['local', 'selected'])
   expect(geometry.rightCardCount).toBe(0)
+  const [localCard, enemyCard] = geometry.cards
+  const seam = (localCard!.bounds.bottom + enemyCard!.bounds.top) / 2
+  expect(
+    Math.abs(geometry.versus.bounds.top + geometry.versus.bounds.height / 2 - seam),
+    'VS centers on the existing card seam without adding a grid row',
+  ).toBeLessThanOrEqual(1)
+  expect(geometry.versus.bounds.width).toBeLessThanOrEqual(108)
+  expect(geometry.versus.bounds.left).toBeGreaterThanOrEqual(localCard!.bounds.left)
+  expect(geometry.versus.bounds.right).toBeLessThanOrEqual(localCard!.bounds.right)
+  expect(geometry.versus.pointerEvents).toBe('none')
+  expect(geometry.versus.animation === 'none').toBe(geometry.versus.reducedMotion)
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  expect(
+    await root
+      .locator('[data-battle-versus-flames]')
+      .evaluate((node) => getComputedStyle(node).animationName),
+  ).toBe('none')
+  await page.emulateMedia({ reducedMotion: null })
   expect(Math.abs(geometry.tile.width - geometry.tile.height)).toBeLessThanOrEqual(1)
   if (geometry.w > 820) {
     expect(geometry.scrollHeight).toBeLessThanOrEqual(geometry.h + 1)

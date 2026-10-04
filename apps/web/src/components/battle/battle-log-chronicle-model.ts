@@ -4,7 +4,7 @@ import type { BattleLogEntry } from '@/server/battle/battle-log-service'
 import { renderBattleLogEntry } from './battle-log-presentation'
 
 export type ChronicleFamily =
-  'movement' | 'skill' | 'essence' | 'resonance' | 'ascension' | 'severence'
+  'movement' | 'idle' | 'skill' | 'essence' | 'resonance' | 'ascension' | 'severence'
 export interface ChronicleOutcome {
   key: string
   text: string
@@ -66,6 +66,91 @@ export function chronicleCombatantName(id: string | null, names: ChronicleNames)
 
 function eventKey(entry: BattleLogEntry) {
   return `${entry.battleVersion}:${entry.eventIndex}`
+}
+
+/** A missing boundary or unknown history cannot prove that a character did nothing. */
+function completedIdleTurns(entries: readonly BattleLogEntry[]): Set<string> {
+  const idle = new Set<string>()
+  // Surrender hands off the turn before its surrender receipt in the same commit.
+  const surrendered = new Set(
+    entries
+      .filter((entry) => entry.eventType === 'pvp_combatant_surrendered')
+      .map((entry) => `${entry.battleVersion}:${entry.actorCombatantId}`),
+  )
+  let start: BattleLogEntry | null = null
+  let previous: BattleLogEntry | null = null
+  const passive = new Set([
+    'combatant_facing_changed',
+    'final_facing_selected',
+    'combatant_waited',
+    'ai_turn_timed_out',
+    'pvp_turn_timed_out',
+    'status_expired',
+    'terrain_overlay_expired',
+    'resonance_armed',
+    'resonance_expired',
+  ])
+  for (const entry of entries) {
+    if (entry.eventType === 'turn_started') {
+      start =
+        entry.actorCombatantId && entry.turnNumber !== null && entry.round !== null ? entry : null
+    } else if (
+      !previous &&
+      entry.battleVersion === 2 &&
+      entry.eventIndex === 0 &&
+      entry.round === 1 &&
+      entry.turnNumber === 1 &&
+      entry.actorCombatantId &&
+      (entry.eventType === 'final_facing_selected' ||
+        entry.eventType === 'ai_turn_timed_out' ||
+        entry.eventType === 'pvp_turn_timed_out' ||
+        (entry.eventType === 'recruit_ai_decision' &&
+          ['facing the threat', 'ending the turn'].includes(entry.templateValues.reason)))
+    ) {
+      // Creation pins snapshot v1 without events. A first idle-ending command
+      // at v2/index 0 proves the opening turn without inventing a turn marker.
+      start = entry
+    } else if (start) {
+      const continuous =
+        previous &&
+        !previous.historyGapAfter &&
+        ((entry.battleVersion === previous.battleVersion &&
+          entry.eventIndex === previous.eventIndex + 1) ||
+          (entry.battleVersion === previous.battleVersion + 1 && entry.eventIndex === 0))
+      if (!continuous || entry.round !== start.round || entry.turnNumber !== start.turnNumber) {
+        start = null
+      } else if (entry.eventType === 'turn_ended') {
+        if (
+          entry.actorCombatantId === start.actorCombatantId &&
+          !surrendered.has(`${entry.battleVersion}:${entry.actorCombatantId}`)
+        )
+          idle.add(eventKey(entry))
+        start = null
+      } else if (
+        [
+          'combatant_facing_changed',
+          'final_facing_selected',
+          'combatant_waited',
+          'ai_turn_timed_out',
+          'pvp_turn_timed_out',
+        ].includes(entry.eventType) &&
+        entry.actorCombatantId !== start.actorCombatantId
+      ) {
+        start = null
+      } else if (
+        !passive.has(entry.eventType) &&
+        !(
+          entry.eventType === 'recruit_ai_decision' &&
+          entry.actorCombatantId === start.actorCombatantId &&
+          ['facing the threat', 'ending the turn'].includes(entry.templateValues.reason)
+        )
+      ) {
+        start = null
+      }
+    }
+    previous = entry
+  }
+  return idle
 }
 
 function family(entry: BattleLogEntry): ChronicleFamily {
@@ -259,6 +344,7 @@ export function buildBattleChronicle(
   const ordered = [...entries].sort(
     (a, b) => a.battleVersion - b.battleVersion || a.eventIndex - b.eventIndex,
   )
+  const idleTurns = completedIdleTurns(ordered)
   const damageTargets = new Set(
     ordered
       .filter((entry) => entry.eventType === 'damage_applied')
@@ -296,7 +382,8 @@ export function buildBattleChronicle(
       entry.eventType === 'turn_ended'
     )
       command = null
-    if (OMITTED_EVENTS.has(entry.eventType)) continue
+    const idle = idleTurns.has(eventKey(entry))
+    if (OMITTED_EVENTS.has(entry.eventType) && !idle) continue
     const roundNumber = entry.round ?? 1
     const round = rounds.get(roundNumber) ?? { round: roundNumber, actors: [] }
     const ownerId: string =
@@ -313,6 +400,16 @@ export function buildBattleChronicle(
       }
       rounds.set(roundNumber, round)
       return group
+    }
+    if (idle) {
+      actorGroup().actions.push({
+        ...action(entry, names, ownerId),
+        family: 'idle',
+        title: '',
+        fallbackNarration: `${chronicleCombatantName(ownerId, names)} stands around and does nothing.`,
+        flavorTemplate: null,
+      })
+      continue
     }
     if (entry.eventType === 'combatant_moved') {
       const key = `${roundNumber}:${ownerId}`
