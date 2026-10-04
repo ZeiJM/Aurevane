@@ -515,6 +515,10 @@
   }
 }
 @media (max-width: 1100px) and (min-width: 821px) {
+  .content > :global([data-battle-preview-strip]) {
+    /* Leave room for full forecast chips and reader controls at larger text sizes. */
+    grid-template-columns: minmax(0, 5rem) minmax(0, 1fr);
+  }
   .commands {
     gap: var(--battle-command-gap) 0.3rem;
   }

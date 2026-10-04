@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 
 import { createAccountAndEnterCharacter } from './pv1f-test-helpers'
-import { commitGesture, openSelectedCombatantDetails } from './refined-battle-helpers'
+import { commitGesture } from './refined-battle-helpers'
 import { expectRecordedBattleRound } from './battle-round-badge-helpers'
 
 function uniqueCharacterName(): string {
@@ -108,15 +108,17 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
     await expect(combatantDialog).toHaveCount(0)
     await inspectButton.click()
     await playerTile.click()
-    await openSelectedCombatantDetails(page, characterName)
+    await page
+      .locator('[data-battle-combatant-card="local"]')
+      .getByRole('button', { name: `Inspect ${characterName}`, exact: true })
+      .click()
+    await expect(combatantDialog).toBeVisible()
     await expect(combatantDialog.getByText('Initiative', { exact: true })).toBeVisible()
     await page.mouse.click(1, 1)
     await expect(combatantDialog).toHaveCount(0)
     await expect(playerTile).toBeVisible()
     await expect(recruitTile).toBeVisible()
-    await expect(page.locator('[data-battle-combatant-card="selected"]')).toContainText(
-      characterName,
-    )
+    await expect(page.locator('[data-battle-combatant-card="selected"]')).toContainText('Recruit')
   } else {
     await inspectButton.click()
     const playerRail = page.locator('[data-battle-combatant-card="local"]')
@@ -152,15 +154,16 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   // Full AP is not permission to move past the character's server-owned Movement allowance.
   await page.getByRole('button', { name: /Tile 4, 2; open-ground; elevation 0/ }).click()
   await expect(commandContext).toContainText(
-    'Choose a highlighted adjacent tile with enough Movement and AP.',
+    'Choose a highlighted destination within your remaining Movement and AP.',
   )
   await expect(apRemaining).toHaveAttribute('aria-valuenow', '100')
 
-  await chooseReachableTowardRecruit(page, battlefield)
+  const fullMovement = await chooseReachableTowardRecruit(page, battlefield)
+  expect(fullMovement.request().postDataJSON().intent.path).toHaveLength(3)
+  await expect(apRemaining).toHaveAttribute('aria-valuenow', '60')
   await expect(battlefield.getByText('0', { exact: true })).toHaveCount(0)
   await expect(battlefield.locator('[data-path-index]')).toHaveCount(0)
   await expect(moveButton).toHaveAttribute('data-battle-active', 'true')
-  await chooseReachableTowardRecruit(page, battlefield)
 
   await expect(criteriaButton).toHaveAttribute('data-new-progress', 'true')
   await expect(
@@ -184,8 +187,14 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   // Guided Fundamentals uses the full 9x7 Duel Yard. Traverse a second movement turn toward
   // the Recruit before completing Guard/Attack so the lesson remains deterministic at medium scale.
   await moveButton.click()
-  await chooseReachableTowardRecruit(page, battlefield)
-  await chooseReachableTowardRecruit(page, battlefield)
+  const nextFullMovement = await chooseReachableTowardRecruit(page, battlefield)
+  const nextPathLength = nextFullMovement.request().postDataJSON().intent.path.length
+  expect(nextPathLength).toBeGreaterThanOrEqual(2)
+  expect(nextPathLength).toBeLessThanOrEqual(3)
+  await expect(apRemaining).toHaveAttribute(
+    'aria-valuenow',
+    String(100 - 20 * (nextPathLength - 1)),
+  )
   await finishCurrentTurn(finishButton, testInfo.project.name)
   await expect(apRemaining).toHaveAttribute('aria-valuenow', '100', { timeout: 15_000 })
   await expect(commandContext).toContainText('Choose your action', { timeout: 15_000 })
@@ -258,7 +267,7 @@ async function chooseReachableTowardRecruit(
   page: import('@playwright/test').Page,
   battlefield: ReturnType<import('@playwright/test').Page['locator']>,
   adjacentOnly = false,
-): Promise<void> {
+): Promise<import('@playwright/test').Response> {
   const reachable = battlefield.locator('button[data-reachable]')
   await expect.poll(() => reachable.count()).toBeGreaterThan(0)
 
@@ -303,12 +312,16 @@ async function chooseReachableTowardRecruit(
     battlefield.getByRole('button', { name: targetLabel!, exact: true }),
   )
   expect(result.request().postDataJSON().intent.kind).toBe('move')
-  // Wait for the accepted position before reading adjacent candidates for the next step.
+  expect((await result.json()).battle.battleVersion).toBe(
+    result.request().postDataJSON().expectedBattleVersion + 1,
+  )
+  // Wait for the accepted destination before reading the next command's targets.
   await expect(
     battlefield.getByRole('button', {
       name: new RegExp(`^${targetLabel!.split(';')[0]};.*occupied by Wayfarer`),
     }),
   ).toBeVisible()
+  return result
 }
 
 async function finishCurrentTurn(

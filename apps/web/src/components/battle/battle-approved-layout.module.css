@@ -40,6 +40,12 @@
   min-height: 0;
   overflow: visible;
 }
+@media (min-width: 821px) {
+  .stage {
+    /* Give the reserved facing row the existing unused bottom gutter, preserving map size. */
+    padding-bottom: 0;
+  }
+}
 @media (min-width: 821px) and (max-width: 1100px) {
   .stage {
     grid-template-columns: 10rem minmax(0, 1fr) 8rem;

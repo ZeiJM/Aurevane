@@ -35,4 +35,36 @@ describe('shared information reader ownership', () => {
     expect(closed).toBe(false)
     expect(session.isActive('reader')).toBe(true)
   })
+
+  it('releases ownership before synchronously dismissing the active reader', () => {
+    const session = createBattleInfoPopoverSession()
+    let dismissals = 0
+    session.open('reader', () => {
+      expect(session.isActive('reader')).toBe(false)
+      dismissals++
+      session.close('reader')
+    })
+    expect(session).toHaveProperty('dismissActive')
+    session.dismissActive()
+    session.dismissActive()
+    expect(dismissals).toBe(1)
+    expect(session.isActive('reader')).toBe(false)
+  })
+
+  it('preserves a reader opened reentrantly during active dismissal', () => {
+    const session = createBattleInfoPopoverSession()
+    const dismissed: string[] = []
+    session.open('old', () => {
+      dismissed.push('old')
+      session.open('nested', () => dismissed.push('nested'))
+      session.close('old')
+    })
+    expect(session).toHaveProperty('dismissActive')
+    session.dismissActive()
+    expect(dismissed).toEqual(['old'])
+    expect(session.isActive('nested')).toBe(true)
+    session.dismissActive()
+    expect(dismissed).toEqual(['old', 'nested'])
+    expect(session.isActive('nested')).toBe(false)
+  })
 })

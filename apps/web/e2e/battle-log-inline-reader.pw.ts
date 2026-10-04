@@ -72,8 +72,10 @@ test('scrolls the full chronicle and preserves reviewed history after a live com
   const log = page.locator('[data-battle-inline-log]')
   const reader = log.getByRole('region', { name: 'Battle chronicle', exact: true })
   const firstAction = reader.locator('[data-chronicle-action="1:0"]')
+  const currentRound = reader.locator('[data-chronicle-round="1"]')
   await expect(reader.locator('[data-chronicle-action]')).toHaveCount(20)
   await expect(reader).toContainText('ROUND 1')
+  await expect(currentRound).toHaveAttribute('data-chronicle-current-round', 'true')
   await expect(reader.locator('[data-chronicle-actor] > h3')).toHaveText(characterName)
   await expect(reader).toContainText(`${characterName} finds an opening in Recruit’s guard.`)
   await expect(reader).toContainText('20 damage')
@@ -108,7 +110,8 @@ test('scrolls the full chronicle and preserves reviewed history after a live com
     const reader = element.closest('[data-battle-chronicle]')!
     return element.getBoundingClientRect().top - reader.getBoundingClientRect().top
   })
-  entries = [...entries, ...recordedChronicleAction(21, 2)]
+  // Guard spends AP in the same recorded round; it does not advance the battle to Round 2.
+  entries = [...entries, ...recordedChronicleAction(21, 1)]
   const refreshed = page.waitForResponse(
     (response) => response.url().endsWith('/events') && response.request().method() === 'GET',
   )
@@ -120,7 +123,9 @@ test('scrolls the full chronicle and preserves reviewed history after a live com
   )
   await refreshed
   await expect(reader.locator('[data-chronicle-action]')).toHaveCount(21)
-  await expect(reader).toContainText('ROUND 2')
+  await expect(reader).toContainText('ROUND 1')
+  await expect(reader.locator('[data-chronicle-round]')).toHaveCount(1)
+  await expect(currentRound).toHaveAttribute('data-chronicle-current-round', 'true')
   await reader.scrollIntoViewIfNeeded()
   await expect(firstAction).toBeInViewport()
   const refreshedAnchor = await firstAction.evaluate(

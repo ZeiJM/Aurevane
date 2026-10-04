@@ -19,6 +19,7 @@ import {
   statusLabel,
 } from './battle-effect-summary'
 import { useBattleInteractionLifecycle } from './battle-interaction-lifecycle'
+import { battleInfoPopoverSession } from './battle-info-popover-session'
 import styles from './mobile-battle-combatant-popup.module.css'
 
 const ACTION_ECONOMY_KEY = 'pv1f.action-economy'
@@ -167,6 +168,7 @@ export function PvpBattleInspectPopup({
     let requestSequence = 0
 
     async function openCombatant(target: GridPosition | string) {
+      battleInfoPopoverSession.dismissActive()
       const sequence = ++requestSequence
       openRef.current = true
       setOpen(true)

@@ -210,10 +210,8 @@
     row-gap: var(--battle-command-gap);
   }
   .extraControls {
+    /* Reserve facing space before Finish opens so the fitted board stays still. */
     height: 1.125rem;
-  }
-  .extraControls:empty {
-    height: 0;
   }
   .shell[data-command-card='finish'] {
     min-height: 0;

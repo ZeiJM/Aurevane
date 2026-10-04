@@ -2025,6 +2025,14 @@ function BattleExperienceContent({
                     data-path-index={pathIndex >= 0 ? pathIndex : undefined}
                     data-target={targetRelation}
                     data-selected={selected || undefined}
+                    data-desktop-inspect-combatant={
+                      mode === 'inspect' &&
+                      placement &&
+                      participant?.teamIndex === localTeamIndex &&
+                      placement.combatantId !== localCombatantId
+                        ? placement.combatantId
+                        : undefined
+                    }
                     data-preview-tile={
                       (pendingIntent?.kind === 'action' &&
                         pendingIntent.target.kind === 'tile' &&

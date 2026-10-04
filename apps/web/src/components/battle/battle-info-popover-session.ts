@@ -10,6 +10,11 @@ export function createBattleInfoPopoverSession() {
     close(id: string) {
       if (active?.id === id) active = null
     },
+    dismissActive() {
+      const previous = active
+      active = null
+      previous?.dismiss()
+    },
     isActive(id: string) {
       return active?.id === id
     },
