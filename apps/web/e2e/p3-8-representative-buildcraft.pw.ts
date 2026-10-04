@@ -399,7 +399,10 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   const skillDetails = page.getByRole('dialog', { name: 'Barrier', exact: true })
   await expect(skillDetails).toContainText('Guarded [11%] [2 Turns]')
   await expect(skillDetails).toContainText(
-    'Each stack reduces incoming damage by 11%, up to three stacks. Reapplying adds a stack and refreshes the duration.',
+    'Reduces incoming damage by 11% per application. Each use refreshes the duration.',
+  )
+  await expect(skillDetails).not.toContainText(
+    /up to (?:three|\d+) stacks|stack(?:ing)? (?:cap|limit)/i,
   )
   await page.keyboard.press('Escape')
   await expect(skillDetails).toHaveCount(0)
