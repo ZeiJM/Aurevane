@@ -1,8 +1,15 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createPendingBattle, startBattle } from '@aurevane/game-core/combat/battle-state'
 import { createTacticalBattleState } from '@aurevane/game-core/combat/board'
-import { createCombatEncounterState } from '@aurevane/game-core/combat/actions'
-import { createStatDrivenCombatEncounterState } from '@aurevane/game-core/combat/stat-driven-combat'
+import { createCombatEncounterState, executeCombatAction } from '@aurevane/game-core/combat/actions'
+import {
+  createStatDrivenCombatEncounterState,
+  reattachStatDrivenCombatBridge,
+} from '@aurevane/game-core/combat/stat-driven-combat'
+import {
+  applyCurrentPoisonState,
+  applyCurrentBurnState,
+} from '@aurevane/game-core/combat/combat-dots'
 import {
   finishPv1fTurn,
   executePv1fAction,
@@ -106,6 +113,144 @@ describe('idle narration from persisted command events', () => {
     expect(idleNarrations(history)).toEqual([])
     expect(JSON.stringify(buildBattleChronicle(projected))).toContain('surrendered')
   })
+
+  it.each(['poison', 'burn'] as const)(
+    'keeps the next character idle after automatic %s settlement and preserves damage',
+    (kind) => {
+      const initial = encounter()
+      const affected = (kind === 'poison' ? applyCurrentPoisonState : applyCurrentBurnState)(
+        initial,
+        actors[1],
+        actors[0],
+        'test.dot',
+      )
+      const first = finishPv1fTurn(
+        reattachStatDrivenCombatBridge(affected, initial.statBridge),
+        'east',
+      )
+      const second = finishPv1fTurn(first.state, 'west')
+      const history = [...records(first.events, 2), ...records(second.events, 3)]
+      expect(idleNarrations(history)).toEqual([
+        [1, actors[0], 'Zei stands around and does nothing.'],
+        [1, actors[1], 'Weon stands around and does nothing.'],
+      ])
+      const outcomes = buildBattleChronicle(buildBattleLogView('idle', history).entries).flatMap(
+        (round) =>
+          round.actors.flatMap((actor) => actor.actions.flatMap((action) => action.outcomes)),
+      )
+      expect(outcomes.some((outcome) => outcome.tone === 'damage')).toBe(true)
+    },
+  )
+
+  it('still recognizes Guard chosen after the preceding character’s passive settlement', () => {
+    const initial = encounter()
+    const poisoned = applyCurrentPoisonState(initial, actors[1], actors[0], 'test.poison')
+    const first = finishPv1fTurn(
+      reattachStatDrivenCombatBridge(poisoned, initial.statBridge),
+      'east',
+    )
+    const guarded = executePv1fAction(first.state, PV1F_GUARD_ACTION_ID, { kind: 'self' })
+    const second = finishPv1fTurn(guarded.state, 'west')
+    expect(
+      idleNarrations([
+        ...records(first.events, 2),
+        ...records(guarded.events, 3),
+        ...records(second.events, 4),
+      ]),
+    ).toEqual([[1, actors[0], 'Zei stands around and does nothing.']])
+  })
+
+  it.each([
+    {
+      event: 'damage_applied',
+      actionId: 'status.poison.current.v1',
+      sourceCombatantId: actors[0],
+      targetCombatantId: actors[1],
+      amount: 2,
+    },
+    {
+      event: 'damage_applied',
+      actionId: 'status.unknown-legacy',
+      sourceCombatantId: actors[1],
+      targetCombatantId: actors[0],
+      amount: 2,
+    },
+    {
+      event: 'healing_applied',
+      actionId: 'skill.unrecorded-recovery',
+      sourceCombatantId: actors[1],
+      targetCombatantId: actors[0],
+      amount: 2,
+    },
+  ])('requires the outgoing recipient and known passive identity for $actionId', (receipt) => {
+    const first = finishPv1fTurn(encounter(), 'east')
+    const second = finishPv1fTurn(first.state, 'west')
+    expect(
+      idleNarrations([...records([...first.events, receipt], 2), ...records(second.events, 3)]),
+    ).toEqual([[1, actors[0], 'Zei stands around and does nothing.']])
+  })
+
+  it.each(['hp', 'mp'] as const)(
+    'keeps the next character idle after a proven scheduled %s recovery tick',
+    (resource) => {
+      const initial = encounter()
+      initial.tactical.battle.combatants[1].hp = 80
+      initial.tactical.battle.combatants[1].mp = 80
+      const cast = executeCombatAction(
+        initial,
+        {
+          id: 'test.scheduled-recovery',
+          version: 1,
+          sourceType: 'test',
+          tags: ['test'],
+          requirements: [],
+          cost: { spendsAction: false, mp: 0 },
+          target: {
+            kind: 'unit',
+            teamPolicy: 'any',
+            shape: { kind: 'single' },
+            minimumRange: 0,
+            maximumRange: 4,
+            requiresLineOfSight: false,
+            maximumElevationDifference: null,
+            friendlyFire: 'all-units',
+          },
+          effects: [
+            resource === 'hp'
+              ? { type: 'healing', recipient: 'primary-unit', amount: 5, ticks: 3 }
+              : {
+                  type: 'resource-change',
+                  recipient: 'primary-unit',
+                  resource: 'mp',
+                  delta: 5,
+                  ticks: 3,
+                },
+          ],
+        },
+        { kind: 'unit', combatantId: actors[1] },
+        { statuses: [] },
+      )
+      const first = finishPv1fTurn(
+        reattachStatDrivenCombatBridge(cast.state, initial.statBridge),
+        'east',
+      )
+      const second = finishPv1fTurn(first.state, 'west')
+      const third = finishPv1fTurn(second.state, 'south')
+      const history = [
+        ...records(cast.events, 2),
+        ...records(first.events, 3),
+        ...records(second.events, 4),
+        ...records(third.events, 5),
+      ]
+      expect(idleNarrations(history)).toEqual([
+        [1, actors[1], 'Weon stands around and does nothing.'],
+        [2, actors[0], 'Zei stands around and does nothing.'],
+      ])
+      expect(
+        JSON.stringify(buildBattleChronicle(buildBattleLogView('idle', history).entries)),
+      ).toContain(resource === 'hp' ? '+5 HP' : '+5 MP')
+    },
+  )
 
   it('narrates a provable first AI timeout as idle, including the opening turn', () => {
     const timedOut = timeoutAiTurn(encounter())

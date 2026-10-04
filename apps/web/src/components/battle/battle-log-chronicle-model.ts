@@ -79,6 +79,19 @@ function completedIdleTurns(entries: readonly BattleLogEntry[]): Set<string> {
   )
   let start: BattleLogEntry | null = null
   let previous: BattleLogEntry | null = null
+  let ended: BattleLogEntry | null = null
+  const scheduledRecovery = new Set<string>()
+  const recoveryKey = (entry: BattleLogEntry, resource: string) =>
+    JSON.stringify([entry.actorCombatantId, entry.targetCombatantId, entry.actionId, resource])
+  const periodicActions = new Set([
+    'status.poison',
+    'status.burn',
+    'status.bleed',
+    'status.regeneration',
+    'status.poison.current.v1',
+    'status.burn.current.v1',
+    'status.bleed.current.v1',
+  ])
   const passive = new Set([
     'combatant_facing_changed',
     'final_facing_selected',
@@ -91,6 +104,28 @@ function completedIdleTurns(entries: readonly BattleLogEntry[]): Set<string> {
     'resonance_expired',
   ])
   for (const entry of entries) {
+    if (
+      entry.eventType === 'recovery_scheduled' &&
+      entry.actorCombatantId &&
+      entry.targetCombatantId &&
+      entry.actionId &&
+      ['HP', 'MP'].includes(entry.templateValues.resource)
+    ) {
+      scheduledRecovery.add(recoveryKey(entry, entry.templateValues.resource))
+    }
+    // Canonical upkeep follows the outgoing end AND the next actor's start in
+    // the same commit. It must not turn that next actor's untouched turn into action.
+    const settlement =
+      ended?.battleVersion === entry.battleVersion &&
+      entry.targetCombatantId === ended.actorCombatantId &&
+      entry.actionId &&
+      ((periodicActions.has(entry.actionId) &&
+        ['damage_applied', 'healing_applied', 'status_removed'].includes(entry.eventType)) ||
+        (entry.eventType === 'healing_applied' &&
+          scheduledRecovery.has(recoveryKey(entry, 'HP'))) ||
+        (entry.eventType === 'resource_changed' &&
+          entry.templateValues.resource === 'MP' &&
+          scheduledRecovery.has(recoveryKey(entry, 'MP'))))
     if (entry.eventType === 'turn_started') {
       start =
         entry.actorCombatantId && entry.turnNumber !== null && entry.round !== null ? entry : null
@@ -139,6 +174,7 @@ function completedIdleTurns(entries: readonly BattleLogEntry[]): Set<string> {
         start = null
       } else if (
         !passive.has(entry.eventType) &&
+        !settlement &&
         !(
           entry.eventType === 'recruit_ai_decision' &&
           entry.actorCombatantId === start.actorCombatantId &&
@@ -148,6 +184,9 @@ function completedIdleTurns(entries: readonly BattleLogEntry[]): Set<string> {
         start = null
       }
     }
+    if (entry.eventType === 'turn_ended') ended = entry
+    else if (entry.eventType === 'combat_action_used' || entry.eventType === 'hidden_combat_action')
+      ended = null
     previous = entry
   }
   return idle
