@@ -194,6 +194,60 @@ it('does not offer an occupied tile to Skills that explicitly require empty grou
   })
 })
 
+it('offers a corpse tile to empty-tile Skills while living co-occupants still block it', () => {
+  const summon = { ...barrier, id: 'example.summon', targetKind: 'empty-tile' as const }
+  const selectedTile = { x: 1, y: 1 }
+  const target = { kind: 'tile', position: selectedTile }
+  const vacant = { ...selection, selectedTile }
+  expect(selectBattleSkillPreviewIntent(summon, vacant)).toEqual({
+    kind: 'action',
+    actionId: summon.id,
+    target,
+  })
+  expect(
+    selectInitialBattleSkillPreviewIntent(summon, {
+      ...vacant,
+      selectedTile: null,
+      tiles: [selectedTile],
+    })?.target,
+  ).toEqual(target)
+  expect(
+    selectDirectionalBattleSkillPreviewIntent(
+      summon,
+      { ...vacant, tiles: [selectedTile] },
+      { x: 1, y: 0 },
+    )?.target,
+  ).toEqual(target)
+  const living = { combatantId: 'living', teamIndex: 1, hp: 1, position: selectedTile }
+  for (const occupants of [
+    [...combatants, living],
+    [living, ...combatants],
+  ]) {
+    expect(selectBattleSkillPreviewIntent(summon, { ...vacant, combatants: occupants })).toBeNull()
+  }
+})
+
+it.each([undefined, null, NaN, Infinity, -1, '0'])(
+  'keeps empty-tile targeting blocked when occupant HP is malformed (%s)',
+  (hp) => {
+    const summon = { ...barrier, id: 'example.summon', targetKind: 'empty-tile' as const }
+    const selectedTile = { x: 1, y: 1 }
+    const unknown = {
+      combatantId: 'unknown',
+      teamIndex: 1,
+      hp,
+      position: selectedTile,
+    } as unknown as (typeof combatants)[number]
+    expect(
+      selectBattleSkillPreviewIntent(summon, {
+        ...selection,
+        selectedTile,
+        combatants: [...combatants, unknown],
+      }),
+    ).toBeNull()
+  },
+)
+
 it('only commits the exact accepted intent, version and newest preview sequence', () => {
   const intent = {
     kind: 'action' as const,

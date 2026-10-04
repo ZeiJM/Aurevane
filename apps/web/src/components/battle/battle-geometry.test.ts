@@ -19,6 +19,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   buildMovementPaths,
+  buildDisplayedPlacementByTile,
   positionKey,
   buildReachablePaths,
   retractProjectedPath,
@@ -141,6 +142,93 @@ function withStatus<T extends CombatEncounterState>(
 }
 
 describe('authoritative movement highlights', () => {
+  it('highlights paths through and onto defeated units while retaining living blockers', () => {
+    const original = encounter()
+    const state = {
+      ...original,
+      tactical: {
+        ...original.tactical,
+        battle: {
+          ...original.tactical.battle,
+          combatants: original.tactical.battle.combatants.map((combatant) =>
+            combatant.id === 'enemy' ? { ...combatant, hp: 0 } : combatant,
+          ),
+        },
+      },
+    }
+    const paths = buildMovementPaths(state, state.tactical.placements[0]!, 100)
+    expect(paths.get('2:1')).toEqual([
+      { x: 1, y: 1 },
+      { x: 2, y: 1 },
+    ])
+    expect(paths.get('2:2')).toEqual([
+      { x: 1, y: 1 },
+      { x: 2, y: 1 },
+      { x: 2, y: 2 },
+    ])
+    expect(paths.has('3:1')).toBe(false)
+    expect(paths.has('1:2')).toBe(false)
+    for (const path of paths.values()) {
+      expect(evaluatePv1fMovement(state, path).movement.legal).toBe(true)
+    }
+  })
+
+  it.each([false, true])(
+    'shows and selects the living occupant regardless of corpse ordering (%j)',
+    (reverse) => {
+      const state = encounter().tactical
+      const tactical = {
+        ...state,
+        battle: {
+          ...state.battle,
+          combatants: state.battle.combatants.map((row) =>
+            row.id === 'enemy' ? { ...row, hp: 0 } : row,
+          ),
+        },
+        placements: state.placements.map((row) =>
+          row.combatantId === 'enemy' ? { ...row, position: { x: 1, y: 1 } } : row,
+        ),
+      }
+      if (reverse) tactical.placements.reverse()
+      expect(buildDisplayedPlacementByTile(tactical).get('1:1')?.combatantId).toBe('actor')
+      expect(
+        buildReachablePaths(
+          { ...encounter(), tactical },
+          tactical.placements.find((row) => row.combatantId === 'actor')!,
+          100,
+        ).has('1:1'),
+      ).toBe(true)
+      const onlyCorpse = {
+        ...tactical,
+        placements: tactical.placements.filter((row) => row.combatantId !== 'actor'),
+      }
+      expect(buildDisplayedPlacementByTile(onlyCorpse).get('1:1')?.combatantId).toBe('enemy')
+    },
+  )
+
+  it.each([false, true])(
+    'never lets a corpse conceal a living movement blocker (%j)',
+    (reverse) => {
+      const original = encounter()
+      const tactical = {
+        ...original.tactical,
+        battle: {
+          ...original.tactical.battle,
+          combatants: original.tactical.battle.combatants.map((row) =>
+            row.id === 'enemy' ? { ...row, hp: 0 } : row,
+          ),
+        },
+        placements: original.tactical.placements.map((row) =>
+          row.combatantId === 'enemy' ? { ...row, position: { x: 3, y: 1 } } : row,
+        ),
+      }
+      if (reverse) tactical.placements.reverse()
+      const actor = tactical.placements.find((row) => row.combatantId === 'actor')!
+      expect(buildMovementPaths({ ...original, tactical }, actor, 100).has('3:1')).toBe(false)
+      expect(buildDisplayedPlacementByTile(tactical).get('3:1')?.combatantId).toBe('other')
+    },
+  )
+
   it.each([
     [[], true, 20, false],
     [['slow'], false, 20, false],

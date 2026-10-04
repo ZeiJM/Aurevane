@@ -627,6 +627,7 @@ export async function startPvpLobby(
   const encounter = createPvpEncounter(roster, lobby.teamSizes, buildAuthority)
   encounter.effectTimingPolicy = await readCombatEffectTimingPolicy()
   encounter.copyPolicyVersion = CURRENT_COMBAT_COPY_POLICY_VERSION
+  encounter.effectStackingPolicyVersion = 1
   const battle = encounter.tactical.battle
   const supabase = createSupabaseAdminClient()
   const { data, error } = await supabase.rpc('create_pvp_battle_session_v1', {

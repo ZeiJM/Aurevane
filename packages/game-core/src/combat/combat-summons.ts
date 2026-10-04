@@ -5,6 +5,7 @@ import {
   type BattleState,
 } from './battle-state'
 import {
+  getLivingOccupantId,
   validateTacticalBattleState,
   type CombatMovementProfile,
   type CombatPlacement,
@@ -162,7 +163,7 @@ function assertSpawnTile(state: StatDrivenCombatEncounterState, position: GridPo
     positionsEqual(candidate.position, position),
   )
   if (!tile) throw new RangeError('Summon target must be a valid empty battle tile.')
-  if (state.tactical.placements.some((row) => positionsEqual(row.position, position))) {
+  if (getLivingOccupantId(state.tactical, position) !== null) {
     throw new RangeError('Summon target tile is occupied; summons require empty ground.')
   }
   const terrain = state.tactical.terrains.find((candidate) => candidate.id === tile.terrainId)

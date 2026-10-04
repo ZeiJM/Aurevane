@@ -45,7 +45,7 @@ export function skillEffectDescription(
         : ''
       const element =
         effect.element === 'storm'
-          ? ' Storm gains a single 20% bonus against Wet or Conductive once per recipient per command, within the damage cap, and consumes Conductive; Wet remains.'
+          ? ' Storm gains 20% per active Wet or Conductive application once per recipient per command and consumes Conductive; Wet remains.'
           : effect.element === 'fire'
             ? ' Positive fire damage removes Wet and Frozen from units. Fire on affected Frozen tiles replaces them with Steam for two round boundaries, blocking line of sight for both teams.'
             : ''
@@ -60,10 +60,10 @@ export function skillEffectDescription(
     case 'burn': {
       const preview = previewEffect(effect)
       const stages = preview.magnitude!.split('/')
-      return `Apply Burn (Scorched) to ${target}. Burn deals ${stages.join(', then ')} fixed damage at the target's next ${stages.length} ${stages.length === 1 ? 'end-turn boundary' : 'end-turn boundaries'}; reapplication restarts the sequence.`
+      return `Apply Burn (Scorched) to ${target}. Burn deals ${stages.join(', then ')} fixed damage at the target's next ${stages.length} ${stages.length === 1 ? 'end-turn boundary' : 'end-turn boundaries'} for each active application.`
     }
     case 'bleed':
-      return `Apply Bleed (Bleeding) to ${target} for ${effect.ticks} ${effect.ticks === 1 ? 'end-turn tick' : 'end-turn ticks'} at ${effect.damagePerTick} damage per tick. Bleed stacks independently up to three times.`
+      return `Apply Bleed (Bleeding) to ${target} for ${effect.ticks} ${effect.ticks === 1 ? 'end-turn tick' : 'end-turn ticks'} at ${effect.damagePerTick} damage per tick.`
     case 'return-to-turn-start':
       return 'Return to the vacant tile where you started this turn. Root blocks the return. No HP, MP, AP, Movement or past action is refunded.'
     case 'healing':
@@ -74,12 +74,12 @@ export function skillEffectDescription(
       return `${effect.delta >= 0 ? 'Restore up to' : 'Remove'} ${Math.abs(effect.delta)} MP ${effect.delta >= 0 ? 'to' : 'from'} ${target}.${effect.delta >= 0 ? recoveryTiming(effect.ticks) : ''}`
     case 'copy-statuses':
       return effect.mode === 'amplify'
-        ? 'Copy eligible positive active statuses from the selected unit onto yourself. The selected unit keeps its statuses; copied stacks respect caps and remaining durations are not restarted.'
-        : 'Copy eligible negative active statuses from yourself onto the selected unit. You keep the original statuses; copied stacks respect caps and remaining durations are not restarted.'
+        ? 'Copy eligible positive active statuses from the selected unit onto yourself. The selected unit keeps its statuses; remaining durations are not restarted.'
+        : 'Copy eligible negative active statuses from yourself onto the selected unit. You keep the original statuses; remaining durations are not restarted.'
     case 'copy':
       return copyPolicyVersion === null
         ? 'Copy one random eligible regular battle Skill from the selected unit for the rest of this battle. The copied Skill keeps its original MP, targeting, effects and requirements, but costs half AP rounded up.'
-        : 'Copy the selected unit’s active beneficial effect tags onto yourself. The selected unit keeps its effects; copied stacks respect caps and remaining durations are not restarted.'
+        : 'Copy the selected unit’s active beneficial effect tags onto yourself. The selected unit keeps its effects; remaining durations are not restarted.'
     case 'sensory':
       return `Attempt Sensory on ${target}. On a successful hit against Covert, remove eligible positive statuses and Covert, then apply Revealed for ${effect.revealedDurationOwnerTurnStarts} owner-turn starts. Otherwise the Sensory block has no effect.`
     case 'remove-status': {

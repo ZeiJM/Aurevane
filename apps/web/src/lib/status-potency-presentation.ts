@@ -19,13 +19,13 @@ export function statusPotencyDescription(statusId: string, potencyBasisPoints?: 
   const percent = potencyBasisPoints / 100
   switch (statusId) {
     case 'guarded':
-      return `Each stack reduces incoming damage by ${percent}%, up to three stacks. Reapplying adds a stack and refreshes the duration.`
+      return `Reduces incoming damage by ${percent}% per application. Each use refreshes the duration.`
     case 'exposed':
-      return `Take ${percent}% more damage. Reapplying refreshes the duration; does not stack.`
+      return `Take ${percent}% more damage per application. Each use refreshes the duration.`
     case 'lowered-guard':
-      return `Each stack multiplies incoming damage by ${(10000 + potencyBasisPoints) / 10000}×, up to three stacks. Applied after a genuine PvP turn-timer expiry.`
+      return `Each application multiplies incoming damage by ${(10000 + potencyBasisPoints) / 10000}×. Applied after a genuine PvP turn-timer expiry.`
     case 'inspired':
-      return `Deal ${percent}% more damage within the combined damage-modifier cap.`
+      return `Deal ${percent}% more damage per application.`
     case 'hexed':
       return `Receive ${percent}% less healing.`
     case 'mark':

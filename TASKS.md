@@ -1,5 +1,17 @@
 # AUREVANE — Active Task Ledger
 
+## Battle review, ally inspection and unlimited applications — 2026-10-04 (verification in progress)
+
+The Owner requested equal footer thickness, stronger sideways animated VS flames, Terrain without its trailing chevron, quieter successful summons, unlimited mechanical effect stacking and removal of stack-limit copy, full pending round ranges, compact Resonance, thematic actual DoT ticks, clearer Lowered Guard, temporary ally previews, defeated-tile occupancy/facing rules, and automatic in-range enemy forecasts with portraits spanning both lines. This batch retains card/cockpit/map artwork sizes, server authority, viewer privacy, historical encounters and the previously released work below. One combined Production release remains explicitly authorized.
+
+- [x] Implement shared presentation, temporary ally inspection, canonical multi-target previews and Chronicle refinements.
+- [x] Pin the new stacking policy at PvE/PvP creation; remove application/aggregate caps across connected consumers; preserve per-application state, Copy and K3 lineage, and historical behavior.
+- [x] Apply authoritative defeated occupancy across movement, casts, displacement, summons, AI and shared playable/spectator tokens.
+- [ ] Finish integrated quality, independent review and rendered/authenticated exact-candidate CI evidence.
+- [ ] Release the verified current-main-compatible batch once and restore the deployment lock.
+
+Evidence: `docs/superpowers/verification/2026-10-04-battle-review-unlimited-effects.md`. This batch is not yet live.
+
 ## Mobile Profile, idle battle turns, animated VS and wider Chronicle — 2026-10-04 (released)
 
 Owner-requested continuation on `agent/profile-mobile-scroll-20261004`: restore real mobile Profile swipes without changing the desktop frame; completed idle turns say the actor stands around and does nothing in shared Chronicle and Recruit notices; implement the approved metallic gold VS between the left cards with modest border overlap and subtle animated flames, preserving all existing card/portrait/cockpit/map dimensions. Shared PvE/PvP/spectator presentation, recorded history and mechanics remain authoritative. Evidence: `docs/superpowers/verification/2026-10-04-profile-idle-versus.md`.

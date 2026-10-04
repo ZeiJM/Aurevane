@@ -23,7 +23,7 @@
   --av-shell-rail-width: 11.875rem;
   --av-rail-portrait-size: var(--av-navigation-portrait-size);
   --av-shell-header-height: 4rem;
-  --av-shell-footer-height: 2rem;
+  --av-shell-footer-height: var(--av-footer-rail-height);
   display: grid;
   grid-template-columns: var(--av-shell-rail-width) minmax(0, 1fr);
   grid-template-rows: var(--av-shell-header-height) minmax(0, 1fr) var(--av-shell-footer-height);

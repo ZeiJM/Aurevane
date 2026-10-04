@@ -779,8 +779,8 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
           </div>
           <p className={styles.effectNote}>
             On a successful resolution, copies active beneficial effect tags from the selected unit
-            onto the user. The target keeps its effects; stack caps and remaining durations are
-            preserved. Historical battles retain their recorded Copy behavior.
+            onto the user. The target keeps its effects; remaining durations are preserved.
+            Historical battles retain their recorded Copy behavior.
           </p>
         </div>
       )

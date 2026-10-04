@@ -37,8 +37,12 @@ function ChronicleTechnique({ action, actorName }: { action: ChronicleAction; ac
           <span className={styles.actionIcon} aria-hidden="true" data-chronicle-action-start="true">
             ◆
           </span>{' '}
-          {action.family === 'skill' || action.family === 'movement' ? null : (
-            <span>{action.family.toUpperCase()} · </span>
+          {action.family === 'skill' ||
+          action.family === 'movement' ||
+          action.title.toLowerCase() === action.family ? null : (
+            <span>
+              {action.family === 'resonance' ? 'Resonance' : action.family.toUpperCase()} ·{' '}
+            </span>
           )}
           {action.title}
         </h4>
@@ -70,7 +74,7 @@ function ChronicleTechnique({ action, actorName }: { action: ChronicleAction; ac
             </span>
           ))}
         </p>
-      ) : action.family !== 'movement' && action.family !== 'idle' ? (
+      ) : action.family !== 'movement' && action.family !== 'idle' && !action.hasRecordedResult ? (
         <p className={styles.outcomes}>Action recorded; no effect result available.</p>
       ) : null}
       {action.specials.map((special) => (

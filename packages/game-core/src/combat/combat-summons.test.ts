@@ -223,6 +223,38 @@ describe('Combat v5.1 summon runtime state', () => {
     expect(JSON.stringify(state)).toBe(before)
   })
 
+  it('can summon onto a defeated combatant tile and leaves its placement intact', () => {
+    const original = encounter()
+    const state = {
+      ...original,
+      tactical: {
+        ...original.tactical,
+        battle: {
+          ...original.tactical.battle,
+          combatants: original.tactical.battle.combatants.map((combatant) =>
+            combatant.id === 'enemy' ? { ...combatant, hp: 0 } : combatant,
+          ),
+        },
+      },
+    }
+    const transition = spawnCombatSummon(state, {
+      ownerCombatantId: 'player',
+      sourceSkillId: 'wildwarden.renewing-herbs',
+      sourceSkillVersion: 5,
+      profile: summonProfile(),
+      position: { x: 2, y: 0 },
+      facing: 'east',
+    })
+    expect(
+      transition.state.tactical.placements.filter(
+        (row) => row.position.x === 2 && row.position.y === 0,
+      ),
+    ).toHaveLength(2)
+    expect(transition.state.tactical.placements).toContainEqual(
+      state.tactical.placements.find((row) => row.combatantId === 'enemy'),
+    )
+  })
+
   it('adds the summon to deterministic initiative only when the next round begins', () => {
     const spawned = spawn()
     const spawnEvent = spawned.events.find((entry) => entry.event === 'summon_spawned')

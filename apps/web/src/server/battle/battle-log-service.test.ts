@@ -11,6 +11,99 @@ const USER_ID = '11111111-1111-4111-8111-111111111111'
 const SESSION_ID = '33333333-3333-4333-8333-333333333333'
 
 describe('sanitized battle log service', () => {
+  it('retains only valid recorded pending lifetime metadata, never inferring old durations', () => {
+    const entries = buildBattleLogView(
+      SESSION_ID,
+      [
+        { remainingOwnerTurnEnds: 2 },
+        { remainingRoundBoundaries: 3, durationScope: 'rounds' },
+        { durationScope: 'until-removed' },
+        { remainingOwnerTurnEnds: -1, remainingRoundBoundaries: '3', durationScope: 'secret' },
+        {},
+      ].map((timing, eventIndex) => ({
+        battleVersion: 1,
+        eventIndex,
+        createdAt: '2026-10-04T00:00:00Z',
+        event: {
+          event: 'effect_pending',
+          sourceCombatantId: 'character:zei',
+          targetCombatantId: 'recruit:weon',
+          actionId: 'skill.test',
+          effectTag: 'mark',
+          activationRound: 3,
+          ...timing,
+        },
+      })),
+    ).entries
+    expect(entries[0].effectTiming).toEqual({ remainingOwnerTurnEnds: 2 })
+    expect(entries[1].effectTiming).toEqual({
+      remainingRoundBoundaries: 3,
+      durationScope: 'rounds',
+    })
+    expect(entries[2].effectTiming).toEqual({ durationScope: 'until-removed' })
+    expect(entries[3].effectTiming).toBeUndefined()
+    expect(entries[4].effectTiming).toBeUndefined()
+  })
+
+  it('preserves a canonical successful summon receipt with the casting actor and source Skill', () => {
+    const result = buildBattleLogView(SESSION_ID, [
+      {
+        battleVersion: 1,
+        eventIndex: 0,
+        createdAt: '2026-10-04T00:00:00Z',
+        event: {
+          event: 'summon_spawned',
+          combatantId: 'summon:stalker',
+          ownerCombatantId: 'character:zei',
+          sourceSkillId: 'wildwarden.renewing-herbs',
+          sourceSkillVersion: 4,
+          profileId: 'summon.stalker',
+          privatePayload: 'secret',
+        },
+      },
+    ])
+    expect(result.entries[0]).toMatchObject({
+      eventType: 'summon_spawned',
+      actorCombatantId: 'character:zei',
+      targetCombatantId: 'summon:stalker',
+      actionId: 'wildwarden.renewing-herbs',
+    })
+    expect(JSON.stringify(result)).not.toContain('secret')
+  })
+
+  it('retains periodic damage identity and source Skill without altering ordinary damage', () => {
+    const entries = buildBattleLogView(
+      SESSION_ID,
+      [
+        { statusId: 'bleed', sourceActionId: 'skill.severing-cut' },
+        { statusId: 'poison', sourceActionId: 'skill.venom' },
+        { statusId: 'burn', sourceActionId: 'skill.flame' },
+        { statusId: 'unknown-secret', sourceActionId: 'skill.secret' },
+        {},
+      ].map((periodic, eventIndex) => ({
+        battleVersion: 1,
+        eventIndex,
+        createdAt: '2026-10-04T00:00:00Z',
+        event: {
+          event: 'damage_applied',
+          sourceCombatantId: 'character:zei',
+          targetCombatantId: 'recruit:weon',
+          actionId: 'skill.original',
+          amount: 4,
+          ...periodic,
+        },
+      })),
+    ).entries
+    expect(entries.slice(0, 3).map((entry) => [entry.periodicStatusId, entry.actionId])).toEqual([
+      ['bleed', 'skill.severing-cut'],
+      ['poison', 'skill.venom'],
+      ['burn', 'skill.flame'],
+    ])
+    expect(entries[3].periodicStatusId).toBeUndefined()
+    expect(entries[3].actionId).toBe('skill.original')
+    expect(entries[4].periodicStatusId).toBeUndefined()
+    expect(entries[4].actionId).toBe('skill.original')
+  })
   it('retains actual per-target Skill accuracy receipts without exposing RNG or inventing malformed misses', () => {
     const result = buildBattleLogView(
       SESSION_ID,

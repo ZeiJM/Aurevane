@@ -190,6 +190,75 @@ function context(actorId: string, chainId: string): CombatResolutionContext {
 }
 
 describe('Mark and Blind: public-entry contract', () => {
+  it.each([1, 0, -1])(
+    'cancels extreme accuracy totals exactly with a %i-stack residual',
+    (residual) => {
+      const base = world()
+      const count = Number.MAX_SAFE_INTEGER - 1
+      const state = {
+        ...base,
+        effectStackingPolicyVersion: 1 as const,
+        statusState: base.statusState.map((row) => ({
+          ...row,
+          statuses:
+            row.combatantId === 'actor'
+              ? [
+                  {
+                    statusId: BLIND.id,
+                    statusVersion: 1,
+                    stacks: count,
+                    sourceCombatantId: 'actor',
+                    remainingOwnerTurnStarts: 2,
+                  },
+                ]
+              : row.combatantId === 'target'
+                ? [
+                    {
+                      statusId: MARK.id,
+                      statusVersion: 1,
+                      stacks: count + residual,
+                      sourceScopedMark: true as const,
+                      sourceCombatantId: 'actor',
+                      remainingOwnerTurnStarts: 2,
+                    },
+                  ]
+                : [],
+        })),
+      }
+      expect(validateCombatEncounterState(state)).toEqual([])
+      expect(chance(state)).toBe(5000 + residual * 1500)
+    },
+  )
+
+  it.each([MARK, BLIND])(
+    'fails closed when the uncancelled $id accuracy total exceeds safe precision',
+    (definition) => {
+      const base = world()
+      const ownerId = definition === MARK ? 'target' : 'actor'
+      const state = {
+        ...base,
+        effectStackingPolicyVersion: 1 as const,
+        statusState: base.statusState.map((row) => ({
+          ...row,
+          statuses:
+            row.combatantId === ownerId
+              ? [
+                  {
+                    statusId: definition.id,
+                    statusVersion: 1,
+                    stacks: Number.MAX_SAFE_INTEGER,
+                    ...(definition === MARK ? { sourceScopedMark: true as const } : {}),
+                    sourceCombatantId: 'actor',
+                    remainingOwnerTurnStarts: 2,
+                  },
+                ]
+              : [],
+        })),
+      }
+      expect(() => chance(state)).toThrow('safe integer')
+    },
+  )
+
   it.each(['guarded', 'inspired', 'hexed', 'warded', 'mark', 'reckless', 'fortified', 'exposed'])(
     'does not interpret authored %s potency as an actor Blind penalty',
     (statusId) => {

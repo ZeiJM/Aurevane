@@ -22,6 +22,7 @@ import {
 } from './battle-summon-inspect'
 import styles from './desktop-battle-combatant-inspect.module.css'
 import { useBattleInteractionLifecycle } from './battle-interaction-lifecycle'
+import { buildBattleViewModel } from './battle-runtime'
 import { battleInfoPopoverSession } from './battle-info-popover-session'
 import { PvpBattleInspectPopup } from './pvp-battle-inspect-popup'
 
@@ -162,7 +163,19 @@ function readSelectedCombatant(
   const participant = metadata?.participants.find(
     (candidate) => candidate.combatantId === combatantId,
   )
-  const isPlayer = Boolean(playerName && combatantId.startsWith('character:'))
+  const pveParticipants =
+    playerName && !metadata
+      ? buildBattleViewModel(battle, {
+          kind: 'pve',
+          playerName,
+          playerLevel: 1,
+          playerPortraitAssetId: playerPortraitAssetId ?? 'character.portrait.starter.wayfarer-01',
+          playerProfileImageUrl,
+        }).participantByCombatant
+      : null
+  const pveParticipant = pveParticipants?.get(combatantId)
+  const isPlayer =
+    pveParticipant?.local ?? Boolean(playerName && combatantId.startsWith('character:'))
   const summon = readSummonInspectMetadata(battle.snapshot, combatantId)
   const ownerParticipant = summon
     ? metadata?.participants.find((candidate) => candidate.combatantId === summon.ownerCombatantId)
@@ -172,6 +185,7 @@ function readSelectedCombatant(
         ...summon,
         ownerName:
           ownerParticipant?.characterName ??
+          pveParticipants?.get(summon.ownerCombatantId)?.name ??
           displayNameForCombatant(summon.ownerCombatantId, playerName),
       }
     : null
@@ -184,6 +198,7 @@ function readSelectedCombatant(
     name:
       summonWithOwner?.name ??
       participant?.characterName ??
+      pveParticipant?.name ??
       displayNameForCombatant(combatantId, playerName),
     teamLabel: participant
       ? `Team ${participant.teamIndex + 1}`

@@ -24,6 +24,7 @@ export interface ChronicleAction {
   narrator?: NonNullable<BattleLogEntry['actionContext']>['narrator']
   targetName: string
   fallbackNarration: string
+  hasRecordedResult: boolean
   outcomes: ChronicleOutcome[]
   specials: ChronicleAction[]
 }
@@ -138,8 +139,8 @@ function completedIdleTurns(entries: readonly BattleLogEntry[]): Set<string> {
     const settlement =
       ended?.battleVersion === entry.battleVersion &&
       entry.targetCombatantId === ended.actorCombatantId &&
-      entry.actionId &&
-      ((periodicActions.has(entry.actionId) &&
+      (entry.actionId || entry.periodicStatusId) &&
+      ((((entry.actionId && periodicActions.has(entry.actionId)) || entry.periodicStatusId) &&
         ['damage_applied', 'healing_applied', 'status_removed'].includes(entry.eventType)) ||
         (entry.eventType === 'healing_applied' &&
           scheduledRecovery.has(recoveryKey(entry, 'HP'))) ||
@@ -255,24 +256,38 @@ function fallbackNarration(entry: BattleLogEntry, actor: string): string {
 function action(entry: BattleLogEntry, names: ChronicleNames, ownerId: string): ChronicleAction {
   const actorName = chronicleCombatantName(ownerId, names)
   const targetName = chronicleCombatantName(entry.targetCombatantId, names)
+  const loweredGuard = entry.actionId === 'battle.lowered-guard.apply'
   return {
     key: eventKey(entry),
     actorId: ownerId,
-    title: entry.actionContext?.name ?? entry.actionLabel ?? entry.headline,
+    title: loweredGuard
+      ? 'Lowered Guard'
+      : (entry.actionContext?.name ?? entry.actionLabel ?? entry.headline),
     family: family(entry),
     contentId: entry.actionContext?.contentId ?? entry.actionContext?.skillId ?? null,
     contentVersion: entry.actionContext?.contentVersion ?? null,
-    flavorTemplate: entry.actionContext?.battleText ?? entry.actionContext?.flavor ?? null,
-    narrator: entry.actionContext?.narrator,
+    flavorTemplate:
+      loweredGuard && entry.eventType === 'combat_action_used'
+        ? '{actor} lowered {actor.possessive} guard!'
+        : (entry.actionContext?.battleText ?? entry.actionContext?.flavor ?? null),
+    narrator:
+      entry.actionContext?.narrator ??
+      (entry.actorNarrator ? { actor: entry.actorNarrator } : undefined),
     targetName,
     fallbackNarration: fallbackNarration(entry, actorName),
+    hasRecordedResult: entry.eventType === 'resonance_activated',
     outcomes: [],
     specials: [],
   }
 }
 
 function duration(entry: BattleLogEntry): string | undefined {
-  return entry.facts.find((fact) => /^\d+ turns?$/u.test(fact.label))?.label
+  const recorded = entry.facts.find((fact) => /^\d+ turns?$/u.test(fact.label))?.label
+  if (recorded) return recorded
+  const turns = entry.effectTiming?.remainingOwnerTurnEnds
+  if (turns) return `${turns} turn${turns === 1 ? '' : 's'}`
+  const rounds = entry.effectTiming?.remainingRoundBoundaries
+  return rounds ? `${rounds} round${rounds === 1 ? '' : 's'}` : undefined
 }
 
 function attachOutcomeNarrator(action: ChronicleAction, entry: BattleLogEntry) {
@@ -303,29 +318,61 @@ function outcome(entry: BattleLogEntry, names: ChronicleNames): ChronicleOutcome
   const target = chronicleCombatantName(entry.targetCombatantId, names)
   const value = entry.templateValues
   const base = { key: eventKey(entry), tone: 'neutral' as const }
+  if (entry.effectTimingState === 'pending') return null
   switch (entry.eventType) {
     case 'effect_pending': {
       const label =
         value.effect ?? (entry.statusId ? combatStatusDetails(entry.statusId).name : entry.headline)
-      const recordedRound = value.round ?? value.activation?.match(/^ until round ([1-9]\d*)$/)?.[1]
-      const round =
-        recordedRound && /^[1-9]\d*$/.test(recordedRound)
-          ? `round ${recordedRound}`
-          : 'a future round'
+      const candidateRound =
+        value.round ?? value.activation?.match(/^ until round ([1-9]\d*)$/)?.[1]
+      const recordedRound =
+        candidateRound &&
+        /^[1-9]\d*$/.test(candidateRound) &&
+        Number.isSafeInteger(Number(candidateRound))
+          ? Number(candidateRound)
+          : undefined
+      const round = recordedRound ? `round ${recordedRound}` : 'a future round'
+      const remaining =
+        entry.effectTiming?.remainingOwnerTurnEnds ?? entry.effectTiming?.remainingRoundBoundaries
+      const candidateEnd = recordedRound && remaining ? recordedRound + remaining - 1 : undefined
+      const endRound = candidateEnd && Number.isSafeInteger(candidateEnd) ? candidateEnd : undefined
+      const span =
+        remaining && remaining > 1 && endRound
+          ? `during rounds ${recordedRound}–${endRound}`
+          : `at the start of ${round}`
       return {
         ...base,
         tone: effectTone(entry.statusId),
-        text: `${label} will take effect${entry.targetCombatantId ? ` on ${target}` : ''} at the start of ${round}!`,
+        text:
+          remaining && remaining > 1 && endRound
+            ? `${label} will affect ${entry.targetCombatantId ? target : 'the ground'} ${span}!`
+            : `${label} will take effect${entry.targetCombatantId ? ` on ${target}` : ''} ${span}!`,
         ...(entry.statusId ? { statusId: entry.statusId, duration: duration(entry) } : {}),
       }
     }
-    case 'damage_applied':
+    case 'damage_applied': {
+      if (entry.periodicStatusId) {
+        const label = combatStatusDetails(entry.periodicStatusId).name
+        const narration =
+          entry.periodicStatusId === 'bleed'
+            ? `${target}'s wounds reopen`
+            : entry.periodicStatusId === 'poison'
+              ? `Poison courses through ${target}`
+              : `Flames scorch ${target}`
+        return {
+          ...base,
+          text: `${narration} · ${label} deals ${value.amount ?? 'Resolved'} damage`,
+          tone: 'damage',
+          statusId: entry.periodicStatusId,
+        }
+      }
       return {
         ...base,
         text: `${value.amount ?? 'Resolved'} damage`,
         recipient: ` to ${target}`,
         tone: 'damage',
       }
+    }
     case 'healing_applied':
       return {
         ...base,
@@ -358,6 +405,14 @@ function outcome(entry: BattleLogEntry, names: ChronicleNames): ChronicleOutcome
         value.statusId ??
         entry.statusId ??
         (entry.eventType.includes('lowered_guard') ? 'lowered-guard' : undefined)
+      if (statusId === 'lowered-guard')
+        return {
+          ...base,
+          tone: 'harm',
+          statusId,
+          text: `${target} is left wide open to the enemy${turns ? ` for ${turns}` : ''}.${value.stacks && value.stacks !== '1' ? ` · ×${value.stacks}` : ''}`,
+          ...(turns ? { duration: turns } : {}),
+        }
       return {
         ...base,
         tone: effectTone(statusId),
@@ -396,6 +451,7 @@ function outcome(entry: BattleLogEntry, names: ChronicleNames): ChronicleOutcome
       }
     case 'combat_action_used':
     case 'resonance_activated':
+    case 'summon_spawned':
       return null
     default:
       return {
@@ -419,7 +475,7 @@ export function buildBattleChronicle(
   const idleTurns = completedIdleTurns(ordered)
   const damageTargets = new Set(
     ordered
-      .filter((entry) => entry.eventType === 'damage_applied')
+      .filter((entry) => entry.eventType === 'damage_applied' && !entry.periodicStatusId)
       .map((entry) => `${entry.battleVersion}:${entry.targetCombatantId}`),
   )
   const commands = new Map<number, BattleLogEntry>()
@@ -429,8 +485,9 @@ export function buildBattleChronicle(
   const pinnedNames = new Map<string, string>()
   for (const entry of ordered) {
     const narrator = entry.actionContext?.narrator
-    if (entry.actorCombatantId && narrator?.actor.name)
-      pinnedNames.set(entry.actorCombatantId, narrator.actor.name)
+    const actorIdentity = narrator?.actor ?? entry.actorNarrator
+    if (entry.actorCombatantId && actorIdentity?.name)
+      pinnedNames.set(entry.actorCombatantId, actorIdentity.name)
     if (entry.targetCombatantId && narrator?.target?.name)
       pinnedNames.set(entry.targetCombatantId, narrator.target.name)
   }
@@ -441,6 +498,17 @@ export function buildBattleChronicle(
   const moved = new Set<string>()
   const specialContexts = new Map<string, BattleLogEntry>()
   const originKey = (actorId: string, id: string, version: number) => `${actorId}:${id}@${version}`
+  const activations = new Map<string, BattleLogEntry>()
+  for (const entry of ordered) {
+    if (entry.eventType !== 'resonance_activated' || !entry.actorCombatantId) continue
+    const id = entry.actionContext?.contentId ?? entry.actionContext?.skillId
+    const contentVersion = entry.actionContext?.contentVersion
+    if (id && contentVersion !== undefined)
+      activations.set(
+        `${entry.battleVersion}:${originKey(entry.actorCombatantId, id, contentVersion)}`,
+        entry,
+      )
+  }
   let command: ChronicleAction | null = null
   let version = -1
   for (const entry of ordered) {
@@ -501,6 +569,7 @@ export function buildBattleChronicle(
       const committed = action(entry, names, ownerId)
       command = committed
       for (const pending of pendingOutcomes.get(entry.battleVersion) ?? []) {
+        if (pending.eventType === 'summon_spawned') committed.hasRecordedResult = true
         const result = outcome(pending, names)
         if (result) committed.outcomes.push(result)
         attachOutcomeNarrator(committed, pending)
@@ -515,8 +584,32 @@ export function buildBattleChronicle(
       const special = action(entry, names, ownerId)
       if (special.contentId && special.contentVersion !== null)
         specialContexts.set(originKey(ownerId, special.contentId, special.contentVersion), entry)
-      if (command?.actorId === ownerId) command.specials.push(special)
-      else actorGroup().actions.push(special)
+      const actions = command?.actorId === ownerId ? command.specials : actorGroup().actions
+      const existing = actions.find(
+        (item) =>
+          item.family === 'resonance' &&
+          item.contentId === special.contentId &&
+          item.contentVersion === special.contentVersion,
+      )
+      if (existing)
+        Object.assign(existing, { ...special, key: existing.key, outcomes: existing.outcomes })
+      else actions.push(special)
+      continue
+    }
+    if (entry.eventType === 'summon_spawned') {
+      if (
+        command?.actorId === ownerId &&
+        commands.get(entry.battleVersion)?.actionId === entry.actionId
+      )
+        command.hasRecordedResult = true
+      else if (
+        commands.get(entry.battleVersion)?.actorCombatantId === ownerId &&
+        commands.get(entry.battleVersion)?.actionId === entry.actionId
+      ) {
+        const pending = pendingOutcomes.get(entry.battleVersion) ?? []
+        pending.push(entry)
+        pendingOutcomes.set(entry.battleVersion, pending)
+      }
       continue
     }
     if (
@@ -548,9 +641,10 @@ export function buildBattleChronicle(
           item.contentVersion === origin.contentVersion,
       )
       if (!special) {
-        const recordedContext = specialContexts.get(
-          originKey(ownerId, origin.contentId, origin.contentVersion),
-        )
+        const recordedContext =
+          activations.get(
+            `${entry.battleVersion}:${originKey(ownerId, origin.contentId, origin.contentVersion)}`,
+          ) ?? specialContexts.get(originKey(ownerId, origin.contentId, origin.contentVersion))
         special = action(
           {
             ...entry,
@@ -572,6 +666,7 @@ export function buildBattleChronicle(
     }
     if (
       command &&
+      !entry.periodicStatusId &&
       (entry.actorCombatantId === null || entry.actorCombatantId === command.actorId)
     ) {
       command.outcomes.push(result)
@@ -581,6 +676,8 @@ export function buildBattleChronicle(
       }
     } else {
       const standalone = action(entry, names, ownerId)
+      standalone.flavorTemplate = null
+      standalone.fallbackNarration = ''
       standalone.outcomes.push(result)
       actorGroup().actions.push(standalone)
     }

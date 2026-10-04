@@ -240,7 +240,7 @@ export function evaluateCurrentMovementPath(
         break
       }
 
-      const occupyingCombatant = getOccupyingCombatant(state, current)
+      const occupyingCombatant = getLivingOccupantId(state, current)
       if (occupyingCombatant !== null && occupyingCombatant !== turn.combatantId) {
         issues.push({
           code: 'occupied-tile',
@@ -623,11 +623,16 @@ function collectPlacementIssues(issues: TacticalBoardIssue[], state: TacticalBat
     }
     combatantIds.add(placement.combatantId)
 
-    const key = positionKey(placement.position)
-    if (positionKeys.has(key)) {
-      issues.push({ field: `${prefix}.position`, message: 'Two combatants cannot share a tile.' })
+    const combatant = state.battle.combatants.find(
+      (candidate) => candidate.id === placement.combatantId,
+    )
+    if (combatant?.hp !== 0) {
+      const key = positionKey(placement.position)
+      if (positionKeys.has(key)) {
+        issues.push({ field: `${prefix}.position`, message: 'Two combatants cannot share a tile.' })
+      }
+      positionKeys.add(key)
     }
-    positionKeys.add(key)
 
     const tile = state.tiles.find((candidate) =>
       positionsEqual(candidate.position, placement.position),
@@ -719,10 +724,18 @@ function getTile(state: TacticalBattleState, position: GridPosition): CombatTile
   return tile
 }
 
-function getOccupyingCombatant(state: TacticalBattleState, position: GridPosition): string | null {
+/** Defeated placements remain visible but only living combatants reserve board space. */
+export function getLivingOccupantId(
+  state: TacticalBattleState,
+  position: GridPosition,
+): string | null {
   return (
-    state.placements.find((placement) => positionsEqual(placement.position, position))
-      ?.combatantId ?? null
+    state.placements.find(
+      (placement) =>
+        positionsEqual(placement.position, position) &&
+        state.battle.combatants.find((combatant) => combatant.id === placement.combatantId)?.hp !==
+          0,
+    )?.combatantId ?? null
   )
 }
 

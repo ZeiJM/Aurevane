@@ -62,6 +62,11 @@ jobs:
       - name: Install Chromium and Microsoft Edge
         run: pnpm --filter @aurevane/web exec playwright install --with-deps chromium msedge
 
+      - name: Verify shared ally inspection and multi-target previews
+        env:
+          AV_ALLY_INSPECTION_EVIDENCE_DIR: /tmp/battle-ally-inspection-review
+        run: pnpm --filter @aurevane/web exec node scripts/battle-ally-inspection-browser-regression.mjs
+
       - name: Start local Supabase stack
         run: pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
 
@@ -161,6 +166,14 @@ jobs:
         with:
           name: battle-rail-review
           path: /tmp/battle-rail-review
+          retention-days: 7
+
+      - name: Save ally inspection and preview evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: battle-ally-inspection-review
+          path: /tmp/battle-ally-inspection-review
           retention-days: 7
 
       - name: Save browser evidence

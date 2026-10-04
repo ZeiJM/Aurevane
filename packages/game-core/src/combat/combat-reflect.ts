@@ -63,8 +63,10 @@ export function applyCommittedReflect(
     if (!currentAttacker || currentAttacker.hp <= 0) break
     const rate = activeReflectBasisPoints(state, content, defenderId)
     // Reflect floors once per defender, with no Absorb-specific minimum-1 rule.
-    const requested = Number((BigInt(damage) * BigInt(rate)) / BigInt(REFLECT_BASIS_POINTS))
-    const amount = Math.min(currentAttacker.hp, requested)
+    const requested = (BigInt(damage) * BigInt(rate)) / BigInt(REFLECT_BASIS_POINTS)
+    const amount = Number(
+      requested < BigInt(currentAttacker.hp) ? requested : BigInt(currentAttacker.hp),
+    )
     if (amount === 0) continue
     const attempted = consumeCombatTrigger(triggerGuard, {
       instanceId: `reflect:${JSON.stringify([triggerGuard.triggerChainId, command.actionId, attacker.id, defenderId])}`,
@@ -122,7 +124,7 @@ function activeReflectBasisPoints(
   defenderId: string,
 ): number {
   const statuses = state.statusState.find((row) => row.combatantId === defenderId)?.statuses ?? []
-  let rate = 0
+  let rate = 0n
   for (const instance of statuses) {
     if (instance.remainingOwnerTurnStarts <= 0 || instance.stacks <= 0) continue
     const definition = content.statuses.find(
@@ -130,7 +132,12 @@ function activeReflectBasisPoints(
     )
     if (definition?.reflectBasisPoints === undefined) continue
     validateCombatStatusDefinition(definition)
-    rate = Math.min(REFLECT_BASIS_POINTS, rate + definition.reflectBasisPoints * instance.stacks)
+    rate += BigInt(definition.reflectBasisPoints) * BigInt(instance.stacks)
   }
-  return rate
+  if (state.effectStackingPolicyVersion === 1) {
+    if (rate > BigInt(Number.MAX_SAFE_INTEGER))
+      throw new RangeError('Combined Reflect rate exceeds the safe integer range.')
+    return Number(rate)
+  }
+  return Number(rate < BigInt(REFLECT_BASIS_POINTS) ? rate : BigInt(REFLECT_BASIS_POINTS))
 }

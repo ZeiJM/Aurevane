@@ -44,6 +44,8 @@ export interface BattleTurnState {
 }
 
 export interface BattleState {
+  /** Echoes the encounter policy so frozen round offsets retain versioned validation. */
+  effectStackingPolicyVersion?: 1
   schemaVersion: typeof BATTLE_STATE_SCHEMA_VERSION
   battleId: string
   rulesVersion: number
@@ -465,18 +467,24 @@ export function validateBattleState(state: BattleState): readonly BattleInvarian
     combatantIds.add(combatant.id)
   }
 
+  if (state.effectStackingPolicyVersion !== undefined && state.effectStackingPolicyVersion !== 1)
+    issues.push({
+      field: 'effectStackingPolicyVersion',
+      message: 'Unsupported effect stacking policy.',
+    })
   const modifierIds = new Set<string>()
   for (const modifier of state.roundInitiativeModifiers ?? []) {
     if (
       !combatantIds.has(modifier.combatantId) ||
       modifierIds.has(modifier.combatantId) ||
       !Number.isSafeInteger(modifier.amount) ||
-      Math.abs(modifier.amount) > 40 ||
+      (state.effectStackingPolicyVersion !== 1 && Math.abs(modifier.amount) > 40) ||
       state.lifecycle === 'pending'
     ) {
       issues.push({
         field: 'roundInitiativeModifiers',
-        message: 'Round initiative offsets must be unique known combatants and bounded to +/-40.',
+        message:
+          'Round initiative offsets must be safe integers for unique known combatants; historical offsets are bounded to +/-40.',
       })
     }
     modifierIds.add(modifier.combatantId)
@@ -567,12 +575,12 @@ function createInitiativeOrder(
 ): string[] {
   const offsets = new Map(modifiers.map((modifier) => [modifier.combatantId, modifier.amount]))
   const priority = (unit: BattleCombatant) =>
-    Math.min(Number.MAX_SAFE_INTEGER, unit.initiative + (offsets.get(unit.id) ?? 0))
+    BigInt(unit.initiative) + BigInt(offsets.get(unit.id) ?? 0)
   return [...combatants]
     .filter((combatant) => !excludedIds.has(combatant.id))
     .sort((left, right) => {
       if (priority(left) !== priority(right)) {
-        return priority(right) - priority(left)
+        return priority(right) > priority(left) ? 1 : -1
       }
       return compareStableString(left.id, right.id)
     })

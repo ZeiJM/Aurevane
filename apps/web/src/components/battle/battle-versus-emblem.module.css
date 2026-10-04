@@ -12,7 +12,8 @@
   pointer-events: none;
   user-select: none;
   background: var(--battle-versus-art) center / contain no-repeat;
-  contain: paint;
+  /* Fire reaches sideways into the existing seam without enlarging the emblem box. */
+  overflow: visible;
 }
 .flames {
   position: absolute;
@@ -21,29 +22,29 @@
   /* Only the outer fire flickers; the gold lettering stays steady. */
   mask-image: radial-gradient(ellipse 27% 48% at 50% 50%, transparent 96%, #000 100%);
   opacity: 0;
-  filter: brightness(1.35) saturate(1.15);
+  filter: brightness(1.7) saturate(1.4) drop-shadow(0 0 3px #ff761acc);
 }
 @media (prefers-reduced-motion: no-preference) {
   .flames {
-    animation: versusFlames 2.8s ease-in-out infinite;
+    animation: versusFlames 1.6s ease-in-out infinite;
   }
 }
 @keyframes versusFlames {
   0%,
   100% {
-    opacity: 0.1;
-    transform: translateY(0) scale(1);
+    opacity: 0.55;
+    transform: translateY(0) scale(1.18, 1);
   }
   23% {
-    opacity: 0.45;
-    transform: translateY(-0.5px) scale(1.025);
+    opacity: 0.9;
+    transform: translateY(-0.5px) scale(1.29, 1.04);
   }
   47% {
-    opacity: 0.2;
-    transform: translateY(0.3px) scale(1.01);
+    opacity: 0.7;
+    transform: translateY(0.3px) scale(1.23, 1.02);
   }
   72% {
-    opacity: 0.55;
-    transform: translateY(-0.8px) scale(1.035);
+    opacity: 1;
+    transform: translateY(-0.8px) scale(1.34, 1.06);
   }
 }

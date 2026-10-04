@@ -37,6 +37,15 @@ function eventObject(record: BattleEventRecord): Record<string, unknown> | null 
     : null
 }
 
+/** Periodic source IDs reach enrichment only after viewer projection has proven attribution. */
+function recordedActionId(entry: BattleLogEntry, event: Record<string, unknown>): string | null {
+  const candidate =
+    entry.periodicStatusId && event.statusId === entry.periodicStatusId
+      ? (event.sourceActionId ?? event.actionId)
+      : event.actionId
+  return typeof candidate === 'string' ? candidate : null
+}
+
 function recordKey(record: Pick<BattleEventRecord, 'battleVersion' | 'eventIndex'>): string {
   return `${record.battleVersion}:${record.eventIndex}`
 }
@@ -102,14 +111,14 @@ export async function attachRecordedBattleLogSkillContext(
     if (!record || !event) continue
     let reference: SkillReference | undefined
     const grant = copyGrant(record)
-    const copied =
-      typeof event.actionId === 'string' ? parseCopiedSkillCommandId(event.actionId) : null
+    const actionId = recordedActionId(entry, event)
+    const copied = actionId ? parseCopiedSkillCommandId(actionId) : null
     if (grant) {
       reference = grant.reference
     } else if (copied) {
       const provenance = visibleGrants.get(`${entry.actorCombatantId}:${referenceKey(copied)}`)
       if (provenance && precedes(provenance, record)) reference = copied
-    } else if (event.actionId === entry.actionId) {
+    } else if (actionId === entry.actionId) {
       reference = authority.combatants
         .find((combatant) => combatant.combatantId === entry.actorCombatantId)
         ?.disciplineSkills.find((skill) => skill.skillId === entry.actionId)
@@ -201,7 +210,8 @@ export async function attachRecordedBattleLogSkillContext(
         ? verifiedRecordedEffectOrigin(entry, record, authority, visibleGrants)
         : null
       const actorIdentity =
-        entry.actionContext && entry.actorCombatantId
+        (entry.actionContext || entry.actionId === 'battle.lowered-guard.apply') &&
+        entry.actorCombatantId
           ? authority.combatants.find(
               (combatant) => combatant.combatantId === entry.actorCombatantId,
             )?.narratorIdentity
@@ -216,6 +226,9 @@ export async function attachRecordedBattleLogSkillContext(
       return {
         ...entry,
         ...(effectOrigin ? { effectOrigin } : {}),
+        ...(actorIdentity && entry.actionId === 'battle.lowered-guard.apply'
+          ? { actorNarrator: { ...actorIdentity } }
+          : {}),
         ...(actorIdentity && entry.actionContext
           ? {
               actionContext: {
@@ -245,7 +258,8 @@ function verifiedRecordedEffectOrigin(
     !candidate ||
     typeof candidate !== 'object' ||
     Array.isArray(candidate) ||
-    typeof event?.actionId !== 'string' ||
+    !event ||
+    !recordedActionId(entry, event) ||
     !entry.actorCombatantId
   )
     return null
@@ -257,7 +271,8 @@ function verifiedRecordedEffectOrigin(
     (origin.contentVersion as number) < 1
   )
     return null
-  const copied = parseCopiedSkillCommandId(event.actionId)
+  const actionId = recordedActionId(entry, event)!
+  const copied = parseCopiedSkillCommandId(actionId)
   const grant = copied
     ? visibleGrants.get(`${entry.actorCombatantId}:${referenceKey(copied)}`)
     : undefined
@@ -265,7 +280,7 @@ function verifiedRecordedEffectOrigin(
   const build = authority.combatants.find(
     (combatant) => combatant.combatantId === entry.actorCombatantId,
   )
-  const skill = build?.disciplineSkills.find((reference) => reference.skillId === event.actionId)
+  const skill = build?.disciplineSkills.find((reference) => reference.skillId === actionId)
   const essence = build?.extensions.essence
   const resonance = build?.extensions.resonance
   let valid = false
@@ -275,12 +290,12 @@ function verifiedRecordedEffectOrigin(
       reference?.skillId === origin.contentId && reference?.contentVersion === origin.contentVersion
   } else if (origin.family === 'essence') {
     valid =
-      essence?.skillId === event.actionId &&
+      essence?.skillId === actionId &&
       essence?.essenceId === origin.contentId &&
       essence?.contentVersion === origin.contentVersion
   } else if (origin.family === 'resonance') {
     valid =
-      Boolean(skill || validCopy || essence?.skillId === event.actionId) &&
+      Boolean(skill || validCopy || essence?.skillId === actionId) &&
       resonance?.resonanceId === origin.contentId &&
       resonance?.contentVersion === origin.contentVersion
   }
@@ -315,7 +330,11 @@ async function attachRecordedBuildExtensionContext(
     let family: 'essence' | 'resonance'
     let id: string
     let version: number
-    if (essence && event.actionId === essence.skillId && entry.actionId === essence.skillId) {
+    if (
+      essence &&
+      recordedActionId(entry, event) === essence.skillId &&
+      entry.actionId === essence.skillId
+    ) {
       family = 'essence'
       id = essence.essenceId
       version = essence.contentVersion

@@ -33,6 +33,16 @@ export interface BattleLogEntry {
   historyGapAfter?: boolean
   /** Recorded delayed-effect settlement, never inferred from current content. */
   effectActivationRound?: number
+  /** Lifetime recorded when the pending effect was committed; old history may omit it. */
+  effectTiming?: {
+    remainingOwnerTurnEnds?: number
+    remainingRoundBoundaries?: number
+    durationScope?: 'rounds' | 'instant' | 'until-removed' | 'until-spent'
+  }
+  /** Canonical periodic damage, distinct from a fresh cast or effect activation. */
+  periodicStatusId?: 'poison' | 'burn' | 'bleed'
+  effectTimingState?: 'pending'
+  actorNarrator?: BattleNarratorIdentitySnapshot
   occurredAt: string
   eventType: string
   message: string
@@ -182,6 +192,28 @@ function createEntry(
   const activationRound = numberValue(
     (record.event as Record<string, unknown>).effectActivationRound,
   )
+  const raw = record.event as Record<string, unknown>
+  const ownerTurns = numberValue(raw.remainingOwnerTurnEnds)
+  const roundBoundaries = numberValue(raw.remainingRoundBoundaries)
+  const effectTiming: NonNullable<BattleLogEntry['effectTiming']> = {
+    ...(ownerTurns !== null && Number.isSafeInteger(ownerTurns) && ownerTurns > 0
+      ? { remainingOwnerTurnEnds: ownerTurns }
+      : {}),
+    ...(roundBoundaries !== null && Number.isSafeInteger(roundBoundaries) && roundBoundaries > 0
+      ? { remainingRoundBoundaries: roundBoundaries }
+      : {}),
+    ...(['rounds', 'instant', 'until-removed', 'until-spent'].includes(String(raw.durationScope))
+      ? {
+          durationScope: raw.durationScope as NonNullable<
+            BattleLogEntry['effectTiming']
+          >['durationScope'],
+        }
+      : {}),
+  }
+  const periodicStatusId =
+    eventType === 'damage_applied' && ['poison', 'burn', 'bleed'].includes(String(raw.statusId))
+      ? (raw.statusId as NonNullable<BattleLogEntry['periodicStatusId']>)
+      : undefined
   const defaultMessageValues = {
     ...templateValues,
     actor: combatantLabel(actorCombatantId),
@@ -193,6 +225,14 @@ function createEntry(
     eventIndex: record.eventIndex,
     occurredAt: record.createdAt,
     eventType,
+    ...(eventType === 'effect_pending' && Object.keys(effectTiming).length > 0
+      ? { effectTiming }
+      : {}),
+    ...(periodicStatusId ? { periodicStatusId } : {}),
+    ...(['pvp_lowered_guard_applied', 'ai_lowered_guard_applied'].includes(eventType) &&
+    raw.timingState === 'pending'
+      ? { effectTimingState: 'pending' as const }
+      : {}),
     ...(activationRound !== null && Number.isSafeInteger(activationRound) && activationRound > 0
       ? { effectActivationRound: activationRound }
       : {}),
@@ -502,12 +542,36 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
         tone: 'benefit',
       })
     }
+    case 'summon_spawned': {
+      const ownerId = stringValue(event.ownerCombatantId)
+      const combatantId = stringValue(event.combatantId)
+      const sourceSkillId = presentationActionId(event.sourceSkillId)
+      if (!ownerId || !combatantId || !sourceSkillId) return null
+      return createEntry(record, eventType, {
+        messageTemplate: '{actor} summoned an ally.',
+        actorCombatantId: ownerId,
+        targetCombatantId: combatantId,
+        actionId: sourceSkillId,
+        actionLabel: actionLabel(sourceSkillId),
+        kind: 'status',
+        headline: 'Summon',
+        tone: 'benefit',
+      })
+    }
     case 'damage_applied': {
       const actorCombatantId = stringValue(event.sourceCombatantId)
       const targetCombatantId = stringValue(event.targetCombatantId)
-      const actionId = presentationActionId(event.actionId)
+      const periodic = ['poison', 'burn', 'bleed'].includes(String(event.statusId))
+      const actionId = presentationActionId(
+        periodic ? (event.sourceActionId ?? event.actionId) : event.actionId,
+      )
       const amount = numberValue(event.amount)
       const hpAfter = numberValue(event.hpAfter)
+      const label = actionId
+        ? actionLabel(actionId)
+        : periodic
+          ? statusLabel(event.statusId)
+          : 'Damage'
       return createEntry(record, eventType, {
         message: `${combatantLabel(event.targetCombatantId)} took ${amount ?? 'resolved'} damage${hpAfter === null ? '' : ` and has ${hpAfter} HP remaining`}.`,
         messageTemplate: '{target} took {amount} damage.',
@@ -515,9 +579,9 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
         actorCombatantId,
         targetCombatantId,
         actionId,
-        actionLabel: actionId ? actionLabel(actionId) : null,
+        actionLabel: actionId ? actionLabel(actionId) : periodic ? label : null,
         kind: 'offense',
-        headline: actionId ? actionLabel(actionId) : 'Damage',
+        headline: label,
         tone: 'damage',
         facts: [
           ...fact(amount === null ? null : `${amount} DMG`, 'damage'),

@@ -22,6 +22,22 @@ export function positionsEqual(left: BattleGridPosition, right: BattleGridPositi
   return left.x === right.x && left.y === right.y
 }
 
+/** A corpse remains visible on vacant ground; a living occupant receives tile selection priority. */
+export function buildDisplayedPlacementByTile(tactical: Tactical): Map<string, Placement> {
+  const livingIds = new Set(
+    tactical.battle.combatants.filter((row) => row.hp > 0).map((row) => row.id),
+  )
+  const result = new Map<string, Placement>()
+  for (const placement of tactical.placements) {
+    const key = positionKey(placement.position)
+    const existing = result.get(key)
+    if (!existing || livingIds.has(placement.combatantId) || !livingIds.has(existing.combatantId)) {
+      result.set(key, placement)
+    }
+  }
+  return result
+}
+
 /**
  * Returns the shortened projected path when the player selects a tile already contained earlier in
  * the current projection. The committed origin is represented by an empty projected path so the UI
@@ -92,10 +108,13 @@ export function buildReachablePaths(
   const modifiers = pv1fMovementModifiers(state)
   if (modifiers.blocked) return new Map()
   const tiles = new Map(tactical.tiles.map((tile) => [positionKey(tile.position), tile] as const))
+  const defeatedIds = new Set(
+    tactical.battle.combatants.filter((row) => row.hp === 0).map((row) => row.id),
+  )
   const occupied = new Map(
-    tactical.placements.map(
-      (placement) => [positionKey(placement.position), placement.combatantId] as const,
-    ),
+    tactical.placements
+      .filter((placement) => !defeatedIds.has(placement.combatantId))
+      .map((placement) => [positionKey(placement.position), placement.combatantId] as const),
   )
   const result = new Map<string, BattleGridPosition[]>()
   // Neither AP nor Movement dominates the other once tile/status surcharges apply.

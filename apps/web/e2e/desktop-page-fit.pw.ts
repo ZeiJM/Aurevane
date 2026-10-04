@@ -35,6 +35,28 @@ async function expectAboveFooter(page: Page, locator: Locator): Promise<void> {
   await locator.click({ trial: true })
 }
 
+async function expectLoadoutFits(page: Page, label: string): Promise<void> {
+  await settleLayout(page)
+  const geometry = await page.evaluate(() => {
+    const main = document.querySelector<HTMLElement>('#game-main')!
+    const footer = document.querySelector('[data-testid="authenticated-shell"] > footer')!
+    const rootStyle = getComputedStyle(document.documentElement)
+    return {
+      overflowX: document.documentElement.scrollWidth - innerWidth,
+      overflowY: document.documentElement.scrollHeight - innerHeight,
+      mainOverflowY: main.scrollHeight - main.clientHeight,
+      footerHeight: footer.getBoundingClientRect().height,
+      footerRailHeight:
+        parseFloat(rootStyle.getPropertyValue('--av-footer-rail-height')) *
+        parseFloat(rootStyle.fontSize),
+    }
+  })
+  expect(geometry.overflowX, `${label}: document horizontal overflow`).toBeLessThanOrEqual(1)
+  expect(geometry.overflowY, `${label}: document vertical overflow`).toBeLessThanOrEqual(1)
+  expect(geometry.mainOverflowY, `${label}: no extra loadout scrolling`).toBeLessThanOrEqual(1)
+  expect(Math.abs(geometry.footerHeight - geometry.footerRailHeight)).toBeLessThanOrEqual(1)
+}
+
 async function expectHallFits(page: Page, label: string): Promise<void> {
   // Field interaction may legitimately scroll the natural-height Hall on short windows.
   // Measure the layout's baseline, not the previous input's auto-scrolled viewport.
@@ -212,6 +234,7 @@ test('desktop Profile and all Battle Hall setups fit without clipped controls or
     .getByRole('link', { name: 'Loadout', exact: true })
     .click()
   await expect(page).toHaveURL(/\/game\/nexus$/)
+  await expectLoadoutFits(page, 'Nexus 1366x768')
   for (const [panel, name] of [
     ['primary-build-panel', 'Discipline Management'],
     ['skill-build-panel', 'Techniques'],
@@ -222,6 +245,9 @@ test('desktop Profile and all Battle Hall setups fit without clipped controls or
     await dialog.getByRole('button', { name: 'Close', exact: true }).click()
     await expect(dialog).toHaveCount(0)
   }
+  await page.goto('/game/loadout/items')
+  await expect(page.getByRole('heading', { name: 'Items', exact: true })).toBeVisible()
+  await expectLoadoutFits(page, 'Items 1366x768')
 })
 
 test('phone Battle Hall keeps its existing scrolling layout and functional tabs', async ({

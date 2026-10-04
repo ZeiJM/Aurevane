@@ -226,6 +226,24 @@ describe('Chronist authoritative tempo', () => {
     expect(new Set(turns).size).toBe(3)
     expect(turns).not.toContain('enemy')
   })
+
+  it('counts every tempo application under the unlimited policy while keeping the round order deterministic', () => {
+    const base = withStatus(encounter(), 'ally', 'borrowed-hour')
+    const state = {
+      ...base,
+      effectStackingPolicyVersion: 1 as const,
+      statusState: base.statusState.map((row) => ({
+        ...row,
+        statuses: row.statuses.map((status) => ({ ...status, stacks: 3 })),
+      })),
+    }
+    const round = nextRound(state).state
+    expect(round.tactical.battle.roundInitiativeModifiers).toContainEqual({
+      combatantId: 'ally',
+      amount: 120,
+    })
+    expect(round.tactical.battle.initiativeOrder[0]).toBe('ally')
+  })
   it('does not select a tempo-boosted last actor after its lethal end-of-turn tick', () => {
     let state = withStatus(withStatus(encounter(), 'ally', 'borrowed-hour'), 'ally', 'poison')
     state = {

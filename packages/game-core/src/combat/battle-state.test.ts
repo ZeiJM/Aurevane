@@ -50,6 +50,24 @@ function battleInput(): CreatePendingBattleInput {
 }
 
 describe('P2.1 deterministic battle state', () => {
+  it('sorts large current initiative offsets without collapsing distinct priorities into a tie', () => {
+    const input = battleInput()
+    const pending = createPendingBattle({
+      ...input,
+      combatants: input.combatants.map((unit, index) => ({
+        ...unit,
+        initiative: index === 0 ? 100 : 10,
+      })),
+    })
+    let state: BattleState = { ...startBattle(pending).state, effectStackingPolicyVersion: 1 }
+    state = endTurn(selectFinalFacing(state, 'east').state).state
+    state = endTurn(selectFinalFacing(state, 'east').state, [
+      { combatantId: 'wayfarer', amount: Number.MAX_SAFE_INTEGER - 20 },
+      { combatantId: 'recruit', amount: Number.MAX_SAFE_INTEGER },
+    ]).state
+    expect(state.initiativeOrder).toEqual(['wayfarer', 'recruit'])
+  })
+
   it('creates byte-stable equivalent pending snapshots from identical inputs', () => {
     const first = createPendingBattle(battleInput())
     const second = createPendingBattle(battleInput())

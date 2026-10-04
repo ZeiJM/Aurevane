@@ -152,6 +152,32 @@ function encounter(
 }
 
 describe('P2.6 Recruit AI', () => {
+  it('plans through a defeated ally when it is the only ground approach to the enemy', () => {
+    const original = encounter({ allyPosition: { x: 1, y: 0 } })
+    const state = {
+      ...original,
+      tactical: {
+        ...original.tactical,
+        battle: {
+          ...original.tactical.battle,
+          combatants: original.tactical.battle.combatants.map((combatant) =>
+            combatant.id === 'ally' ? { ...combatant, hp: 0 } : combatant,
+          ),
+        },
+      },
+    }
+    const decision = chooseRecruitAiDecision({ state, tieBreakSeed: 42 })
+    expect(decision.intent).toEqual({
+      kind: 'move',
+      path: [
+        { x: 0, y: 0 },
+        { x: 1, y: 0 },
+      ],
+    })
+    if (decision.intent.kind !== 'move') throw new Error('Expected movement through the corpse.')
+    expect(evaluatePv1fMovement(state, decision.intent.path).movement.legal).toBe(true)
+  })
+
   it('takes a legal detour around an ally when every closer tile is occupied', () => {
     const state = encounter({
       height: 3,
