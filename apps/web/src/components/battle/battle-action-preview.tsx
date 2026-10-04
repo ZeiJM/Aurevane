@@ -55,6 +55,10 @@ function InlineTargetForecast({
       0,
     )
   const hitChance = preview.primaryCombatantId === combatantId ? preview.hitChanceBasisPoints : null
+  const chanceLabel =
+    preview.primaryCombatantId === combatantId
+      ? previewChips(preview).find((chip) => chip.tone === 'chance')?.label
+      : null
   const resourceChange = effects
     .filter((effect) => effect.effectType === 'resource-change')
     .reduce(
@@ -66,7 +70,7 @@ function InlineTargetForecast({
       0,
     )
   const result = [
-    hitChance !== null ? `Hit ${Math.round(hitChance / 100)}%` : null,
+    chanceLabel,
     damage > 0 ? `${hitChance !== null && hitChance < 10000 ? 'On hit ' : ''}${damage} dmg` : null,
     healing > 0 ? `Heal +${healing}` : null,
     resourceChange !== 0 ? `Resource ${resourceChange > 0 ? '+' : ''}${resourceChange}` : null,

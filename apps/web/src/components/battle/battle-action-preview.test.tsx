@@ -54,6 +54,37 @@ const attack: ActionPreview = {
 }
 
 describe('current selection forecast', () => {
+  it('keeps automatic success inline for the primary target without inventing secondary chances', () => {
+    const markup = renderToStaticMarkup(
+      <BattleActionPreview
+        preview={{
+          ...attack,
+          actionId: 'guard',
+          primaryCombatantId: 'you',
+          affectedCombatantIds: ['you', 'ally'],
+          hitChanceBasisPoints: null,
+          mitigatedBaseDamage: null,
+          projectedEffects: [
+            { effectType: 'apply-status', combatantId: 'you', before: '', after: 'guarded' },
+            { effectType: 'apply-status', combatantId: 'ally', before: '', after: 'guarded' },
+          ],
+        }}
+        pending={false}
+      />,
+    )
+    const primary = markup.match(
+      /<article[^>]*data-battle-range-forecast="you"[^>]*>(.*?)<\/article>/,
+    )?.[1]
+    const secondary = markup.match(
+      /<article[^>]*data-battle-range-forecast="ally"[^>]*>(.*?)<\/article>/,
+    )?.[1]
+    expect(primary).toBeDefined()
+    expect(primary).toContain('Success 100%')
+    expect(secondary).toBeDefined()
+    expect(secondary).not.toContain('Success')
+    expect(secondary).not.toContain('Hit')
+  })
+
   it.each(['unit', 'ground'])(
     'keeps the selected %s area scope and each actual outcome instead of substituting candidate casts',
     (targetKind) => {

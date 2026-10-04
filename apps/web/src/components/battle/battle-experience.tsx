@@ -12,6 +12,7 @@ import {
 } from './battle-preview-selection'
 import { BattleActionPreview } from './battle-action-preview'
 import { useBattleRangePreviews } from './use-battle-range-previews'
+import { requestBattlePreview } from './battle-preview-request'
 import { BattleChronicleHeading } from './battle-chronicle-heading'
 import { BattleTerrainToggle } from './battle-terrain-toggle'
 import { BattleInfoPopover } from './battle-info-popover'
@@ -845,11 +846,11 @@ function BattleExperienceContent({
       setPendingIntent(intent)
       const result = (async () => {
         try {
-          const response = await fetch(`/api/battles/${battle.battleSessionId}/preview`, {
-            method: 'POST',
+          const response = await requestBattlePreview({
+            battleSessionId: battle.battleSessionId,
+            battleVersion: battle.battleVersion,
+            intent,
             signal: controller.signal,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ expectedBattleVersion: battle.battleVersion, intent }),
           })
           const body = (await response.json()) as {
             battlePreview?: BattlePreviewView

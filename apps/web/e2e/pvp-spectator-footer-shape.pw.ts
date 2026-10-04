@@ -104,6 +104,9 @@ test('keeps Spectator Key and Spectators controls in the same pill family', asyn
         return {
           height: rect.height,
           radius: Number.parseFloat(style.borderTopLeftRadius),
+          overflowY: element.scrollHeight - element.clientHeight,
+          top: rect.top,
+          bottom: rect.bottom,
         }
       })
 
@@ -125,6 +128,13 @@ test('keeps Spectator Key and Spectators controls in the same pill family', asyn
     ).toBeGreaterThanOrEqual(spectatorsShape.height / 2 - 1)
 
     expect(Math.abs(spectatorKeyShape.height - spectatorsShape.height)).toBeLessThanOrEqual(1)
+    const footerBounds = (await footer.boundingBox())!
+    if (!mobile) expect(footerBounds.height).toBeCloseTo(40, 0)
+    for (const shape of [spectatorKeyShape, spectatorsShape]) {
+      expect(shape.overflowY, 'footer control text fits').toBeLessThanOrEqual(1)
+      expect(shape.top).toBeGreaterThanOrEqual(footerBounds.y - 1)
+      expect(shape.bottom).toBeLessThanOrEqual(footerBounds.y + footerBounds.height + 1)
+    }
 
     await expect(spectators).toHaveAttribute('aria-expanded', 'false')
     await spectators.click()

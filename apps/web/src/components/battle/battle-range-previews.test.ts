@@ -41,6 +41,37 @@ const projection = (id: string): BattleActionPreview => ({
 })
 
 describe('automatic canonical range forecasts', () => {
+  it('shares an identical in-flight candidate forecast between readers', async () => {
+    let finish!: (response: Response) => void
+    const fetchPreview = vi.fn<typeof fetch>(
+      () =>
+        new Promise<Response>((resolve) => {
+          finish = resolve
+        }),
+    )
+    const request = {
+      battleSessionId: 'battle',
+      battleVersion: 4,
+      actorId: 'actor',
+      intents: battleRangePreviewIntents(skill, 'actor', combatants).slice(0, 1),
+      fetchPreview,
+    }
+    const first = requestBattleRangePreviews({ ...request, signal: new AbortController().signal })
+    const second = requestBattleRangePreviews({ ...request, signal: new AbortController().signal })
+    expect(fetchPreview).toHaveBeenCalledTimes(1)
+    finish(
+      Response.json({
+        battlePreview: {
+          battleSessionId: 'battle',
+          battleVersion: 4,
+          preview: projection('north'),
+        },
+      }),
+    )
+    expect(await first).toEqual([projection('north')])
+    expect(await second).toEqual([projection('north')])
+  })
+
   it('requests both adjacent living enemies before any target selection', () => {
     const intents = battleRangePreviewIntents(skill, 'actor', combatants)
     expect(intents.map((intent) => intent.target)).toEqual([

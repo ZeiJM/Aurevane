@@ -279,6 +279,12 @@ async function capture(page: Page, testInfo: TestInfo, label: string) {
       readingTriggers: [
         ...(preview?.querySelectorAll('button[data-battle-info-trigger]') ?? []),
       ].map(rect),
+      inlineTargets: [...root.querySelectorAll('[data-battle-range-forecast]')].map((target) => ({
+        rect: rect(target),
+        portrait: rect(target.querySelector(':scope > img, :scope > span[aria-hidden="true"]')),
+        name: rect(target.querySelector(':scope > strong')),
+        result: rect(target.querySelector(':scope > span:last-child')),
+      })),
       targets: [...root.querySelectorAll('[data-battle-target-forecast]')].map((target) => ({
         name: target.querySelector('strong')?.textContent,
         rect: rect(target),
@@ -434,6 +440,16 @@ function expectStable(geometry: Awaited<ReturnType<typeof capture>>, baseline: R
       )
     }
   }
+  for (const target of geometry.inlineTargets) {
+    contained(target.rect!, geometry.preview!)
+    contained(target.portrait!, target.rect!)
+    contained(target.name!, target.rect!)
+    contained(target.result!, target.rect!)
+    expect(target.portrait!.width, 'forecast portrait spans both text lines').toBeCloseTo(32, 0)
+    expect(target.portrait!.height).toBeCloseTo(32, 0)
+    expect(target.portrait!.x + target.portrait!.width).toBeLessThanOrEqual(target.name!.x + 1)
+    expect(target.name!.y + target.name!.height).toBeLessThanOrEqual(target.result!.y + 1)
+  }
   for (const trigger of geometry.readingTriggers) contained(trigger!, geometry.preview!)
   for (const dialog of geometry.dialogs)
     contained(dialog.rect!, { x: 0, y: 0, ...geometry.viewport })
@@ -496,7 +512,9 @@ async function exerciseForecast(
           await expect(
             page
               .getByLabel('Action preview', { exact: true })
-              .locator('[data-battle-preview-lane="outcomes"] [data-battle-preview-chip]')
+              .locator(
+                '[data-battle-preview-lane="outcomes"] :is([data-battle-preview-chip], [data-battle-range-forecast])',
+              )
               .first(),
           ).toBeVisible()
         if (command === 'guard')
@@ -512,7 +530,9 @@ async function exerciseForecast(
         const preview = page.getByLabel('Action preview', { exact: true })
         await expect(
           preview
-            .locator('[data-battle-preview-lane="outcomes"] [data-battle-preview-chip]')
+            .locator(
+              '[data-battle-preview-lane="outcomes"] :is([data-battle-preview-chip], [data-battle-range-forecast])',
+            )
             .first(),
         ).toBeVisible()
         await check(`${name}-ready`)
@@ -631,7 +651,9 @@ async function exerciseForecast(
       await expect(
         page
           .getByLabel('Action preview', { exact: true })
-          .locator('[data-battle-preview-lane="outcomes"] [data-battle-preview-chip]')
+          .locator(
+            '[data-battle-preview-lane="outcomes"] :is([data-battle-preview-chip], [data-battle-range-forecast])',
+          )
           .first(),
       ).toBeVisible()
       await check('essence-armed')
@@ -676,7 +698,9 @@ async function exerciseForecast(
       await expect(
         page
           .getByLabel('Action preview', { exact: true })
-          .locator('[data-battle-preview-lane="outcomes"] [data-battle-preview-chip]')
+          .locator(
+            '[data-battle-preview-lane="outcomes"] :is([data-battle-preview-chip], [data-battle-range-forecast])',
+          )
           .first(),
       ).toBeVisible()
       await check('pending-resolved')

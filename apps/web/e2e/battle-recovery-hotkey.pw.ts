@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process'
 
 import { expect, test, type Page } from '@playwright/test'
 import type { BattleSessionView } from '../src/server/battle/battle-session-service'
+import type { BattleActionPreview } from '../src/server/battle/battle-preview-service'
 
 import { targetForecast } from './refined-battle-helpers'
 
@@ -165,15 +166,23 @@ test('retains default HP Recovery keyboard input without exposing the deferred R
   await page.keyboard.press('KeyR')
   const readyResponse = await readyPreview
   expect(readyResponse.ok()).toBe(true)
-  expect((await readyResponse.json()).battlePreview.preview).toMatchObject({
+  const ready = (await readyResponse.json()).battlePreview.preview as BattleActionPreview
+  expect(ready).toMatchObject({
     legal: true,
     actionId: 'basic.recover',
     actionEconomyCost: 50,
   })
   await expect(targetForecast(page)).toContainText('HP Recovery')
-  await expect(
-    root.locator('[data-battle-preview-lane="outcomes"] [data-battle-preview-chip]').first(),
-  ).toBeVisible()
+  const target = root.locator(`[data-battle-range-forecast="${ready.primaryCombatantId}"]`)
+  await expect(target).toBeVisible()
+  const healing = ready.projectedEffects
+    .filter(
+      (effect) =>
+        effect.combatantId === ready.primaryCombatantId && effect.effectType === 'healing',
+    )
+    .reduce((sum, effect) => sum + Math.max(0, Number(effect.after) - Number(effect.before)), 0)
+  expect(healing).toBeGreaterThan(0)
+  await expect(target).toContainText(`Heal +${healing}`)
   await expect(economy).toHaveAttribute('aria-valuenow', '100')
   await expect(deck.locator('[data-battle-skill-slot]')).toHaveCount(4)
   await expect(root).toBeFocused()

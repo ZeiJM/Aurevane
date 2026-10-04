@@ -1604,6 +1604,10 @@
   }
 }
 @media (min-width: 1001px) and (max-width: 1199px) and (max-height: 699px) {
+  .page:has(.workspace[data-hall-workspace='ai']:not([hidden])) {
+    /* Recover the short desktop budget consumed by the shared 40px footer. */
+    padding-block: calc(0.65rem - 2px);
+  }
   .workspace[data-hall-workspace='ai'] {
     padding: 0.5rem;
   }

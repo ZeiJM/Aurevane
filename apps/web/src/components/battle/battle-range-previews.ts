@@ -2,6 +2,7 @@ import type { BattleIntent } from '@aurevane/validation/combat/battle-session'
 import type { BattleActionPreview, BattlePreviewView } from '@/server/battle/battle-preview-service'
 import type { BattleSkillForecastPresentation } from './battle-runtime'
 import { selectBattleSkillPreviewIntent } from './battle-preview-selection'
+import { requestBattlePreview } from './battle-preview-request'
 
 export type BattleRangePreviewSkill = Pick<
   BattleSkillForecastPresentation,
@@ -51,11 +52,12 @@ export async function requestBattleRangePreviews({
   const results = await Promise.all(
     intents.map(async (intent): Promise<BattleActionPreview | null> => {
       try {
-        const response = await fetchPreview(`/api/battles/${battleSessionId}/preview`, {
-          method: 'POST',
+        const response = await requestBattlePreview({
+          battleSessionId,
+          battleVersion,
+          intent,
           signal,
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ expectedBattleVersion: battleVersion, intent }),
+          fetchPreview,
         })
         const body = (await response.json()) as { battlePreview?: BattlePreviewView }
         const view = body.battlePreview
