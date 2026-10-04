@@ -244,7 +244,7 @@ try {
       await expectName(local, 'Zei')
       await page
         .locator('#battlefield')
-        .getByRole('button', { name: /^Tile 4, 3,/ })
+        .getByRole('button', { name: /^Tile 4, 3;/ })
         .click()
       await page.waitForFunction(() =>
         window.calls.some((call) => call.body?.intent?.kind === 'move'),
