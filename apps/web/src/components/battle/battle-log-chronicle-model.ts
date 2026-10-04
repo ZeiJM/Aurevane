@@ -184,6 +184,8 @@ function completedIdleTurns(entries: readonly BattleLogEntry[]): Set<string> {
       } else if (entry.eventType === 'turn_ended') {
         if (
           entry.actorCombatantId === start.actorCombatantId &&
+          // Activation may kill a newly selected actor and force an immediate handoff.
+          entry.effectActivationRound === undefined &&
           !surrendered.has(`${entry.battleVersion}:${entry.actorCombatantId}`)
         )
           idle.add(eventKey(entry))

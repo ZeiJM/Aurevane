@@ -30,14 +30,14 @@ import { buildBattleLogView } from './battle-log-service'
 import { buildBattleChronicle } from '@/components/battle/battle-log-chronicle-model'
 
 const actors = ['character:zei', 'recruit:weon']
-function encounter() {
+function encounter(combatantIds = actors) {
   const battle = startBattle(
     createPendingBattle({
       battleId: 'battle:idle-history',
       rulesVersion: 1,
       contentVersion: 1,
       rngSeed: 1,
-      combatants: actors.map((id, index) => ({
+      combatants: combatantIds.map((id, index) => ({
         id,
         teamId: id,
         initiative: 20 - index,
@@ -54,16 +54,16 @@ function encounter() {
     createCombatEncounterState(
       createTacticalBattleState({
         battle,
-        width: 2,
+        width: combatantIds.length,
         height: 1,
         terrains: [{ id: 'open-ground', traversalCost: 1 }],
-        tiles: actors.map((_, index) => ({
+        tiles: combatantIds.map((_, index) => ({
           position: { x: index, y: 0 },
           elevation: 0,
           terrainId: 'open-ground',
         })),
         movementProfiles: [{ id: 'ground', maxElevationStep: 0, terrainCostOverrides: [] }],
-        placements: actors.map((combatantId, index) => ({
+        placements: combatantIds.map((combatantId, index) => ({
           combatantId,
           position: { x: index, y: 0 },
           facing: 'north',
@@ -71,7 +71,7 @@ function encounter() {
         })),
       }),
     ),
-    actors.map((combatantId) => ({
+    combatantIds.map((combatantId) => ({
       combatantId,
       provenance: { kind: 'scenario', sourceId: 'scenario:idle-history', sourceRulesVersion: 1 },
       accuracy: 10_000,
@@ -123,6 +123,64 @@ function delayedGuardHistory() {
 }
 
 describe('idle narration from persisted command events', () => {
+  it('does not narrate a newly selected actor killed by delayed damage as completing an idle turn', () => {
+    const roster = [...actors, 'recruit:other']
+    const initial = {
+      ...encounter(roster),
+      effectTimingPolicy: { version: 1, modes: { damage: 'next-round' as const } },
+    }
+    const opening = finishPv1fTurn(initial, 'east')
+    const cast = executeCombatAction(
+      opening.state,
+      {
+        id: 'test.delayed-lethal',
+        version: 1,
+        sourceType: 'test',
+        tags: [],
+        requirements: [],
+        cost: { spendsAction: false, mp: 0 },
+        target: {
+          kind: 'unit',
+          teamPolicy: 'any',
+          shape: { kind: 'single' },
+          minimumRange: 0,
+          maximumRange: 4,
+          requiresLineOfSight: false,
+          maximumElevationDifference: null,
+          friendlyFire: 'all-units',
+        },
+        effects: [{ type: 'damage', recipient: 'primary-unit', amount: 100 }],
+      },
+      { kind: 'unit', combatantId: actors[0] },
+      { statuses: [] },
+    )
+    const first = finishPv1fTurn(
+      reattachStatDrivenCombatBridge(cast.state, opening.state.statBridge),
+      'west',
+    )
+    const second = finishPv1fTurn(first.state, 'south')
+    expect(second.events).toContainEqual(
+      expect.objectContaining({
+        event: 'turn_ended',
+        combatantId: actors[0],
+        effectActivationRound: 2,
+      }),
+    )
+    const history = [
+      ...records(opening.events, 2),
+      ...records(cast.events, 3),
+      ...records(first.events, 4),
+      ...records(second.events, 5),
+    ]
+    expect(idleNarrations(history)).toEqual([
+      [1, actors[0], 'Zei stands around and does nothing.'],
+      [1, roster[2], 'Recruit stands around and does nothing.'],
+    ])
+    expect(
+      JSON.stringify(buildBattleChronicle(buildBattleLogView('idle', history).entries)),
+    ).toContain('100 damage')
+  })
+
   it('retains idle narration after real delayed Guard activation and automatic cooldown upkeep', () => {
     const { history, second } = delayedGuardHistory()
     expect(second.events).toContainEqual(
