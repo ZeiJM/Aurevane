@@ -159,6 +159,39 @@ test('approved Profile and Haven keep the frame fixed and complete controls reac
       expect(fit.textOverflow, `Profile broken or clipped words at ${width}×${height}`).toEqual([])
       expect(fit.graphOverlap, `Profile overlapping graph labels at ${width}×${height}`).toEqual([])
       expect(fit.clipped, `Profile clipped controls at ${width}×${height}`).toEqual([])
+      if (mobile) {
+        await page.evaluate(() => window.scrollTo(0, 0))
+        const swipe = await shell.locator('[data-profile-sheet]').evaluate((sheet) => {
+          const bounds = sheet.getBoundingClientRect()
+          const dock = document.querySelector('[data-av-game-rail]')!.getBoundingClientRect()
+          const x = bounds.left + bounds.width / 2
+          const y = Math.min(innerHeight * 0.6, dock.top - 24)
+          return {
+            x,
+            y,
+            startsOnSheet: sheet.contains(document.elementFromPoint(x, y)),
+            pageRange: document.documentElement.scrollHeight - innerHeight,
+          }
+        })
+        expect(swipe.startsOnSheet).toBe(true)
+        expect(swipe.pageRange).toBeGreaterThan(100)
+        const touch = await page.context().newCDPSession(page)
+        await touch.send('Input.synthesizeScrollGesture', {
+          x: swipe.x,
+          y: swipe.y,
+          yDistance: -400,
+          gestureSourceType: 'touch',
+        })
+        await expect
+          .poll(() => page.evaluate(() => window.scrollY), {
+            message: `A native Profile swipe must scroll the page at ${width}×${height}`,
+          })
+          .toBeGreaterThan(40)
+        await touch.detach()
+        expect(
+          await page.evaluate(() => document.documentElement.scrollWidth - innerWidth),
+        ).toBeLessThanOrEqual(1)
+      }
       if (!mobile) {
         expect(
           fit.graphTop,
