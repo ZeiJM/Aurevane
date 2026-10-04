@@ -5,6 +5,7 @@ import { BattleRouteFrame } from './battle-route-frame'
 import { BattleTerrainToggle } from './battle-terrain-toggle'
 import { battleTerrainName } from './battle-terrain-key-presentation'
 import { BattleCombatantCard } from './battle-combatant-card'
+import { buildDisplayedPlacementByTile } from './battle-geometry'
 import { BattleVersusEmblem } from './battle-versus-emblem'
 import { BattleLogPanel } from './battle-log-panel'
 import { BattleChronicleHeading } from './battle-chronicle-heading'
@@ -122,15 +123,7 @@ export function PvpSpectatorExperience({
     () => ({ participants: spectator.participants }),
     [spectator.participants],
   )
-  const placementByTile = useMemo(
-    () =>
-      new Map(
-        tactical.placements.map(
-          (placement) => [positionKey(placement.position), placement] as const,
-        ),
-      ),
-    [tactical.placements],
-  )
+  const placementByTile = useMemo(() => buildDisplayedPlacementByTile(tactical), [tactical])
   const activeCombatantId = battleState.currentTurn?.combatantId ?? null
   const activeParticipant = activeCombatantId
     ? (participantByCombatant.get(activeCombatantId) ?? null)
@@ -473,7 +466,9 @@ export function PvpSpectatorExperience({
                             sizes="64px"
                             alt=""
                           />
-                          <i>{facingGlyph(placement.facing as Facing)}</i>
+                          {combatant && combatant.hp > 0 ? (
+                            <i>{facingGlyph(placement.facing as Facing)}</i>
+                          ) : null}
                         </span>
                       ) : null}
                     </button>

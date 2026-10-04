@@ -15,6 +15,7 @@ import type { BattleHistoryPrivacyAuthority } from './battle-history-privacy-aut
 import type { BattlePrivacyEventOverride } from './battle-history-privacy'
 import { createViewerSafeBattleLogService } from './battle-log-service'
 import { createSpectatorBattleViewerEntitlement } from './battle-viewer-entitlement'
+import { buildBattleChronicle } from '../../components/battle/battle-log-chronicle-model'
 
 const ACTOR = 'character:actor'
 const OTHER = 'character:other'
@@ -96,6 +97,248 @@ async function getLog(
 }
 
 describe('recorded Battle Log Skill context', () => {
+  it.each(['poison', 'burn'] as const)(
+    'resolves a viewer-visible %s tick to its pinned source Skill title',
+    async (statusId) => {
+      const result = await getLog(
+        [
+          record({ event: 'combat_action_used', actorId: ACTOR, actionId: SKILL }, 0),
+          record(
+            {
+              event: 'persistent_effect_applied',
+              sourceCombatantId: ACTOR,
+              targetCombatantId: OTHER,
+              actionId: SKILL,
+              statusId,
+            },
+            1,
+          ),
+          record(
+            {
+              event: 'damage_applied',
+              sourceCombatantId: ACTOR,
+              targetCombatantId: OTHER,
+              actionId: `status.${statusId}.current.v1`,
+              sourceActionId: SKILL,
+              statusId,
+              amount: 4,
+            },
+            2,
+          ),
+        ],
+        async () => definition(),
+      )
+      const tick = result.entries.find((entry) => entry.periodicStatusId === statusId)!
+      expect(tick.actionContext).toMatchObject({
+        skillId: SKILL,
+        name: 'Forceful Strike',
+        contentVersion: 12,
+      })
+    },
+  )
+
+  it('resolves copied periodic source identity only after its visible versioned grant', async () => {
+    const copiedId = `temporary.copy.${SKILL}.v7`
+    const events = [
+      {
+        event: 'temporary_skill_copied',
+        combatantId: ACTOR,
+        sourceCombatantId: OTHER,
+        skillId: SKILL,
+        contentVersion: 7,
+      },
+      { event: 'combat_action_used', actorId: ACTOR, actionId: copiedId },
+      {
+        event: 'persistent_effect_applied',
+        sourceCombatantId: ACTOR,
+        targetCombatantId: OTHER,
+        actionId: copiedId,
+        statusId: 'poison',
+      },
+      {
+        event: 'damage_applied',
+        sourceCombatantId: ACTOR,
+        targetCombatantId: OTHER,
+        actionId: 'status.poison.current.v1',
+        sourceActionId: copiedId,
+        statusId: 'poison',
+        amount: 4,
+      },
+    ]
+    const resolve = vi.fn(async () => definition({ contentVersion: 7 }))
+    const result = await getLog(
+      events.map((event, index) => record(event, index)),
+      resolve,
+    )
+    const tick = result.entries.find((entry) => entry.periodicStatusId === 'poison')!
+    expect(tick.actionContext).toMatchObject({
+      skillId: SKILL,
+      name: 'Forceful Strike',
+      contentVersion: 7,
+    })
+    const withoutGrant = await getLog(
+      events.slice(1).map((event, index) => record(event, index)),
+      resolve,
+    )
+    expect(
+      withoutGrant.entries.find((entry) => entry.periodicStatusId === 'poison')?.actionContext,
+    ).toBeUndefined()
+  })
+  it('uses the pinned actor pronouns for the canonical Lowered Guard system action', async () => {
+    const build = buildAuthority()
+    build.combatants[0]!.narratorIdentity = { name: 'Zei', pronounPresetId: 'he_him' }
+    const result = await getLog(
+      [
+        record(
+          { event: 'combat_action_used', actorId: ACTOR, actionId: 'battle.lowered-guard.apply' },
+          0,
+        ),
+        record(
+          {
+            event: 'effect_pending',
+            sourceCombatantId: ACTOR,
+            targetCombatantId: ACTOR,
+            actionId: 'battle.lowered-guard.apply',
+            effectTag: 'lowered-guard',
+            activationRound: 3,
+            remainingOwnerTurnEnds: 1,
+          },
+          1,
+        ),
+        record(
+          {
+            event: 'pvp_lowered_guard_applied',
+            combatantId: ACTOR,
+            timingState: 'pending',
+            remainingOwnerTurnStarts: 1,
+          },
+          2,
+        ),
+      ],
+      async () => null,
+      { build },
+    )
+    expect(result.entries[0].actorNarrator).toEqual(build.combatants[0]!.narratorIdentity)
+    expect(result.entries[2].effectTimingState).toBe('pending')
+    const actions = buildBattleChronicle(result.entries)[0].actors[0].actions
+    expect(actions).toHaveLength(1)
+    expect(actions[0]).toMatchObject({
+      title: 'Lowered Guard',
+      flavorTemplate: '{actor} lowered {actor.possessive} guard!',
+    })
+  })
+  it('merges the actual result-before-activation Resonance sequence into one named entry', async () => {
+    const pinned = {
+      ...resolveResonanceForPair('vanguard', 'lifebinder')!,
+      contentVersion: 19,
+      flavorLine: undefined,
+    }
+    const build = buildAuthority()
+    build.combatants[0]!.secondary = { disciplineId: 'lifebinder', definitionVersion: 1 }
+    build.combatants[0]!.extensions.resonance = {
+      resonanceId: pinned.id,
+      contentVersion: 19,
+      disciplinePair: pinned.disciplinePair,
+    }
+    const result = await getLog(
+      [
+        record({ event: 'combat_action_used', actorId: ACTOR, actionId: SKILL }, 0),
+        record(
+          {
+            event: 'damage_applied',
+            sourceCombatantId: ACTOR,
+            targetCombatantId: OTHER,
+            actionId: SKILL,
+            amount: 8,
+          },
+          1,
+        ),
+        record(
+          {
+            event: 'resource_changed',
+            sourceCombatantId: ACTOR,
+            targetCombatantId: ACTOR,
+            actionId: SKILL,
+            resource: 'MP',
+            delta: 0,
+            effectOrigin: { family: 'resonance', contentId: pinned.id, contentVersion: 19 },
+          },
+          2,
+        ),
+        record(
+          {
+            event: 'resonance_activated',
+            actorId: ACTOR,
+            resonanceId: pinned.id,
+            contentVersion: 19,
+            setupActionId: SKILL,
+            triggerActionId: SKILL,
+            payoffActionId: SKILL,
+          },
+          3,
+        ),
+      ],
+      async () => definition(),
+      { build, resolver: { resolvePinnedResonanceDefinition: async () => pinned } },
+    )
+    const chronicle = buildBattleChronicle(result.entries, { combatantNames: { [ACTOR]: 'Zei' } })
+    const specials = chronicle[0].actors[0].actions[0].specials
+    expect(specials).toHaveLength(1)
+    expect(specials[0]).toMatchObject({
+      title: pinned.name,
+      family: 'resonance',
+      fallbackNarration: "Zei's disciplines answer together.",
+      hasRecordedResult: true,
+    })
+    expect(specials[0].outcomes.map((result) => result.text)).toEqual(['+0 MP'])
+  })
+
+  it('does not leak periodic or summon source Skill IDs through public outcomes of hidden casts', async () => {
+    const result = await getLog(
+      [
+        record({ event: 'combat_action_used', actorId: ACTOR, actionId: SKILL }, 0),
+        record(
+          {
+            event: 'damage_applied',
+            sourceCombatantId: ACTOR,
+            targetCombatantId: OTHER,
+            actionId: SKILL,
+            sourceActionId: SKILL,
+            statusId: 'bleed',
+            amount: 4,
+          },
+          1,
+        ),
+        record(
+          {
+            event: 'summon_spawned',
+            ownerCombatantId: ACTOR,
+            combatantId: 'summon:test',
+            sourceSkillId: SKILL,
+            sourceSkillVersion: 12,
+            profileId: 'summon.test',
+          },
+          2,
+        ),
+      ],
+      async () => definition(),
+      {
+        hidden: true,
+        eventVisibilityOverrides: [
+          { eventIndex: 1, visibility: { kind: 'public' } },
+          { eventIndex: 2, visibility: { kind: 'public' } },
+        ],
+      },
+    )
+    expect(JSON.stringify(result)).not.toContain(SKILL)
+    const damage = result.entries.find((entry) => entry.eventType === 'damage_applied')
+    expect(damage).toMatchObject({
+      actionId: null,
+      periodicStatusId: 'bleed',
+      templateValues: { amount: '4' },
+    })
+    expect(damage?.actionContext).toBeUndefined()
+  })
   it('uses only pinned actor identities and explicitly authorized outcome recipients for narration', async () => {
     const build = buildAuthority()
     build.combatants[0]!.narratorIdentity = { name: 'Recorded Ari', pronounPresetId: 'she_her' }
@@ -308,6 +551,28 @@ describe('recorded Battle Log Skill context', () => {
           actionId: pinned.skill.id,
           contentVersion: 99,
         }),
+        record(
+          {
+            event: 'persistent_effect_applied',
+            sourceCombatantId: ACTOR,
+            targetCombatantId: OTHER,
+            actionId: pinned.skill.id,
+            statusId: 'burn',
+          },
+          1,
+        ),
+        record(
+          {
+            event: 'damage_applied',
+            sourceCombatantId: ACTOR,
+            targetCombatantId: OTHER,
+            actionId: 'status.burn.current.v1',
+            sourceActionId: pinned.skill.id,
+            statusId: 'burn',
+            amount: 4,
+          },
+          2,
+        ),
       ],
       skillLookup,
       { build: authority, resolver: { resolvePinnedEssenceDefinition: essenceLookup } },
@@ -321,6 +586,12 @@ describe('recorded Battle Log Skill context', () => {
     })
     expect(essenceLookup).toHaveBeenCalledWith('vanguard', null, pinned.essenceId, 17)
     expect(skillLookup).not.toHaveBeenCalled()
+    expect(result.entries[2].actionContext).toMatchObject({
+      family: 'essence',
+      contentId: pinned.essenceId,
+      contentVersion: 17,
+      name: pinned.name,
+    })
   })
 
   it('projects visible Resonance activation with owner identity and exact pinned metadata, without invented bonus amounts', async () => {

@@ -13,6 +13,7 @@ import {
   createPv1fTemporaryResources,
   evaluatePv1fMovement,
   executePv1fMovement,
+  pv1fMovementModifiers,
   readPv1fActionEconomy,
   PV1F_COMBAT_CONTENT,
 } from './pv1f-action-economy'
@@ -297,6 +298,59 @@ describe('Task 2 variable Push and Pull', () => {
 })
 
 describe('Task 2 Haste and Slow movement AP', () => {
+  it.each([1, 0, -1])(
+    'cancels extreme movement totals exactly with a %i-stack Slow residual',
+    (residual) => {
+      const base = withStatus(withStatus(movementEncounter(), 'actor', 'haste'), 'actor', 'slow')
+      const count = Number.MAX_SAFE_INTEGER - 1
+      const state = {
+        ...base,
+        effectStackingPolicyVersion: 1 as const,
+        statusState: base.statusState.map((row) => ({
+          ...row,
+          statuses: row.statuses.map((status) => ({
+            ...status,
+            stacks: count + (status.statusId === 'slow' ? residual : 0),
+          })),
+        })),
+      }
+      expect(evaluatePv1fMovement(state, path()).economyCost).toBe(20 + residual * 10)
+    },
+  )
+
+  it.each(['haste', 'slow'])(
+    'fails closed when uncancelled %s movement exceeds safe precision',
+    (statusId) => {
+      const base = withStatus(movementEncounter(), 'actor', statusId)
+      const state = {
+        ...base,
+        effectStackingPolicyVersion: 1 as const,
+        statusState: base.statusState.map((row) => ({
+          ...row,
+          statuses: row.statuses.map((status) => ({ ...status, stacks: Number.MAX_SAFE_INTEGER })),
+        })),
+      }
+      expect(() => pv1fMovementModifiers(state)).toThrow('safe integer')
+    },
+  )
+
+  it('counts Slow applications beyond the old surcharge cap and retains minimum movement cost for Haste', () => {
+    for (const [statusId, economyCost] of [
+      ['slow', 60],
+      ['haste', 10],
+    ] as const) {
+      const base = withStatus(movementEncounter(), 'actor', statusId)
+      const state = {
+        ...base,
+        effectStackingPolicyVersion: 1 as const,
+        statusState: base.statusState.map((row) => ({
+          ...row,
+          statuses: row.statuses.map((status) => ({ ...status, stacks: 4 })),
+        })),
+      }
+      expect(evaluatePv1fMovement(state, path()).economyCost).toBe(economyCost)
+    }
+  })
   it('keeps the normal and Slow baselines while Haste reduces AP per entered tile', () => {
     const normal = evaluatePv1fMovement(movementEncounter(), path())
     const haste = evaluatePv1fMovement(withStatus(movementEncounter(), 'actor', 'haste'), path())

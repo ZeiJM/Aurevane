@@ -709,6 +709,7 @@ export function createBattleSessionService({
         ? await readEffectTimingPolicy()
         : defaultCombatEffectTimingPolicy()
       baseEncounter.copyPolicyVersion = CURRENT_COMBAT_COPY_POLICY_VERSION
+      baseEncounter.effectStackingPolicyVersion = 1
       let encounter: BattleAuthoritativeEncounterState = baseEncounter
       if (builds) {
         if (!committedBuildSnapshot) {

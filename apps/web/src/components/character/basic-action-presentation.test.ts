@@ -9,14 +9,14 @@ const values = (id: Parameters<typeof basicActionCharacteristicRows>[0]) =>
   Object.fromEntries(basicActionCharacteristicRows(id))
 
 describe('authoritative inherent action descriptors', () => {
-  it('shows Guard mitigation, expiration and stack cap with its independent cooldown', () => {
+  it('shows Guard mitigation and expiration with its independent cooldown', () => {
     const guard = values('basic.guard')
     expect(guard['Skill Type']).toBe('Utility')
     expect(guard.Cost).toBe('30 AP')
     expect(guard.Cooldown).toBe('2 turns')
     expect(guard.Effects).toBe('Guarded [15%] [2 Turns]')
     expect(guard.Effects).toContain('2 Turns')
-    expect(basicActionEffectExplanation('basic.guard')).toContain('maximum 3 stacks')
+    expect(basicActionEffectExplanation('basic.guard')).toContain('15% per application')
     expect(guard.Target).toBe('Self')
     expect(guard.Range).toBe('N/A')
     expect(guard['Target Elevation']).toBe('N/A')

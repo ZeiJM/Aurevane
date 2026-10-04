@@ -11,6 +11,8 @@ import {
   selectDirectionalBattleSkillPreviewIntent,
 } from './battle-preview-selection'
 import { BattleActionPreview } from './battle-action-preview'
+import { useBattleRangePreviews } from './use-battle-range-previews'
+import { requestBattlePreview } from './battle-preview-request'
 import { BattleChronicleHeading } from './battle-chronicle-heading'
 import { BattleTerrainToggle } from './battle-terrain-toggle'
 import { BattleInfoPopover } from './battle-info-popover'
@@ -56,6 +58,7 @@ import { BattleFacingIndicator } from './battle-facing-indicator'
 import { useBattleInteractionLifecycle } from './battle-interaction-lifecycle'
 import {
   buildMovementPaths,
+  buildDisplayedPlacementByTile,
   facingGlyph,
   meterPercent,
   MOVE_COST_PER_TERRAIN_POINT,
@@ -71,6 +74,10 @@ import {
   type BattleRuntime,
 } from './battle-runtime'
 import { BattleCombatantCard } from './battle-combatant-card'
+import {
+  selectBattleCombatantRails,
+  type BattleAllyInspection,
+} from './battle-combatant-rail-selection'
 import { BattleVersusEmblem } from './battle-versus-emblem'
 import { BattleLogPanel } from './battle-log-panel'
 import {
@@ -285,6 +292,7 @@ function BattleExperienceContent({
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null)
   const [inspectedUnitId, setInspectedUnitId] = useState<string | null>(null)
   const [inspectedEnemyUnitId, setInspectedEnemyUnitId] = useState<string | null>(null)
+  const [allyInspection, setAllyInspection] = useState<BattleAllyInspection | null>(null)
   const [inspectedTile, setInspectedTile] = useState<BattleGridPosition | null>(null)
   const [bindings, setBindings] = useState<CombatKeybindMap>(DEFAULT_COMBAT_KEYBINDS)
   const executionLock = useRef(false)
@@ -486,12 +494,13 @@ function BattleExperienceContent({
     ? (tactical.placements.find((placement) => placement.combatantId === localCombatantId) ?? null)
     : null
   const localTeamIndex = viewModel.localTeamIndex ?? -1
-  const enemyParticipant =
-    [selectedUnitId, inspectedEnemyUnitId]
-      .map((id) => viewModel.participantByCombatant.get(id ?? ''))
-      .find((participant) => participant && participant.teamIndex !== localTeamIndex) ??
-    viewModel.participants.find((participant) => participant.teamIndex !== localTeamIndex) ??
-    null
+  const { local: localRailParticipant, enemy: enemyParticipant } = selectBattleCombatantRails({
+    viewModel,
+    battleVersion: battle.battleVersion,
+    allyInspection,
+    selectedUnitId,
+    inspectedEnemyUnitId,
+  })
   const localTurn = Boolean(
     localCombatantId && battleState.currentTurn?.combatantId === localCombatantId,
   )
@@ -544,15 +553,7 @@ function BattleExperienceContent({
     [battleState.combatants, tactical.placements, viewModel.participantByCombatant],
   )
 
-  const placementByTile = useMemo(
-    () =>
-      new Map(
-        tactical.placements.map(
-          (placement) => [positionKey(placement.position), placement] as const,
-        ),
-      ),
-    [tactical.placements],
-  )
+  const placementByTile = useMemo(() => buildDisplayedPlacementByTile(tactical), [tactical])
   const reachablePaths = useMemo(
     () =>
       localTurn
@@ -619,6 +620,7 @@ function BattleExperienceContent({
       setPendingIntent(null)
       setPreview(null)
       setSelectedUnitId(null)
+      setAllyInspection(null)
       setPreviewPending(false)
     },
     [updatePlanningPath],
@@ -844,11 +846,11 @@ function BattleExperienceContent({
       setPendingIntent(intent)
       const result = (async () => {
         try {
-          const response = await fetch(`/api/battles/${battle.battleSessionId}/preview`, {
-            method: 'POST',
+          const response = await requestBattlePreview({
+            battleSessionId: battle.battleSessionId,
+            battleVersion: battle.battleVersion,
+            intent,
             signal: controller.signal,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ expectedBattleVersion: battle.battleVersion, intent }),
           })
           const body = (await response.json()) as {
             battlePreview?: BattlePreviewView
@@ -1106,6 +1108,7 @@ function BattleExperienceContent({
         return
       if (intent.kind === 'action' && actionCooldownTurns(intent.actionId) > 0) return
       executionLock.current = true
+      setAllyInspection(null)
       setExecutionPending(true)
       previewController.current?.abort()
       previewController.current = null
@@ -1300,6 +1303,17 @@ function BattleExperienceContent({
       : mode === 'guard'
         ? selectedDefenseActionId
         : effectiveHealActionId
+  const { rangePreviews, rangePreviewsPending, rangePreviewActionId } = useBattleRangePreviews({
+    battleSessionId: battle.battleSessionId,
+    battleVersion: battle.battleVersion,
+    actorId: localCombatantId,
+    skill:
+      mode === 'attack' || mode === 'guard' || mode === 'recover'
+        ? actionDescriptor(currentActionId)
+        : null,
+    combatants: previewCombatants,
+    enabled: !planningDisabled,
+  })
   const handleTile = useCallback(
     (position: BattleGridPosition) => {
       const placement = placementByTile.get(positionKey(position))
@@ -1308,6 +1322,17 @@ function BattleExperienceContent({
         viewModel.participantByCombatant.get(placement.combatantId)?.teamIndex !== localTeamIndex
       )
         setInspectedEnemyUnitId(placement.combatantId)
+      // Allied rail inspection is presentation only; armed action targeting still
+      // resolves against the local actor and its authored target policy below.
+      if ((mode === 'none' || mode === 'inspect') && placement) {
+        const participant = viewModel.participantByCombatant.get(placement.combatantId)
+        if (participant?.teamIndex === localTeamIndex) {
+          setAllyInspection({
+            combatantId: placement.combatantId,
+            battleVersion: battle.battleVersion,
+          })
+        }
+      }
       if (mode === 'none') {
         if (placement && placement.combatantId !== localCombatantId)
           setInspectedUnitId(placement.combatantId)
@@ -1351,6 +1376,7 @@ function BattleExperienceContent({
     },
     [
       actionDescriptor,
+      battle.battleVersion,
       clearPlanning,
       currentActionId,
       executeIntent,
@@ -1952,7 +1978,7 @@ function BattleExperienceContent({
 
         <aside data-battle-side="local">
           <BattleCombatantCard
-            participant={localParticipant}
+            participant={localRailParticipant}
             battle={battle}
             teamCount={viewModel.teamCount}
             role="local"
@@ -2050,14 +2076,6 @@ function BattleExperienceContent({
                     data-path-index={pathIndex >= 0 ? pathIndex : undefined}
                     data-target={targetRelation}
                     data-selected={selected || undefined}
-                    data-desktop-inspect-combatant={
-                      mode === 'inspect' &&
-                      placement &&
-                      participant?.teamIndex === localTeamIndex &&
-                      placement.combatantId !== localCombatantId
-                        ? placement.combatantId
-                        : undefined
-                    }
                     data-preview-tile={
                       (pendingIntent?.kind === 'action' &&
                         pendingIntent.target.kind === 'tile' &&
@@ -2115,7 +2133,9 @@ function BattleExperienceContent({
                             {participant.name.charAt(0).toUpperCase()}
                           </span>
                         )}
-                        <BattleFacingIndicator facing={placement.facing} />
+                        {combatant && combatant.hp > 0 ? (
+                          <BattleFacingIndicator facing={placement.facing} />
+                        ) : null}
                         <strong>{participant.name}</strong>
                       </span>
                     ) : null}
@@ -2151,6 +2171,9 @@ function BattleExperienceContent({
           <BattleActionPreview
             preview={preview?.battleVersion === battle.battleVersion ? preview.preview : null}
             pending={previewPending}
+            rangePreviews={rangePreviews}
+            rangePreviewsPending={rangePreviewsPending}
+            rangePreviewActionId={rangePreviewActionId}
             skill={activeTechnique}
             targetTile={
               previewTargetPosition

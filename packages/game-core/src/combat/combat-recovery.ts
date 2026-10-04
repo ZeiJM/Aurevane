@@ -24,10 +24,15 @@ function recoveryKey(row: CombatOngoingRecovery): string {
 export function replaceRecoverySchedule(
   state: CombatEncounterState,
   recovery: CombatOngoingRecovery,
+  previous?: CombatOngoingRecovery,
 ): CombatEncounterState {
   const effects = normalizeCombatEffectState(state.effectState)
   const key = recoveryKey(recovery)
-  const remaining = effects.ongoingRecovery.filter((row) => recoveryKey(row) !== key)
+  const remaining = effects.ongoingRecovery.filter((row) =>
+    previous
+      ? row !== previous
+      : state.effectStackingPolicyVersion === 1 || recoveryKey(row) !== key,
+  )
   const alive = state.tactical.battle.combatants.some(
     (row) => row.id === recovery.targetCombatantId && row.hp > 0,
   )
@@ -74,7 +79,8 @@ export function validateOngoingRecoveryState(
     typeof effects !== 'object' ||
     Array.isArray(effects) ||
     !Array.isArray(effects.ongoingRecovery) ||
-    effects.ongoingRecovery.length > state.tactical.battle.combatants.length * 256
+    (state.effectStackingPolicyVersion !== 1 &&
+      effects.ongoingRecovery.length > state.tactical.battle.combatants.length * 256)
   )
     return invalid
   const ids = new Set(state.tactical.battle.combatants.map((row) => row.id))
@@ -98,7 +104,7 @@ export function validateOngoingRecoveryState(
     )
       return invalid
     const key = recoveryKey(row)
-    if (seen.has(key)) return invalid
+    if (state.effectStackingPolicyVersion !== 1 && seen.has(key)) return invalid
     seen.add(key)
   }
   return []

@@ -8,6 +8,30 @@ import {
 } from './battle-effect-summary'
 
 describe('battle effect summary', () => {
+  it('uses every recorded magnitude in a grouped current effect', () => {
+    expect(
+      summarizeBattleEffects([
+        {
+          statusId: 'guarded',
+          statusVersion: 1,
+          stacks: 2,
+          potencyBasisPoints: 4000,
+          applicationModifiers: [
+            { stacks: 1, sourceCombatantId: 'actor', potencyBasisPoints: 1500 },
+            { stacks: 1, sourceCombatantId: 'actor', potencyBasisPoints: 4000 },
+          ],
+        },
+      ]),
+    ).toEqual([{ label: 'DMG IN', value: '−49%', tone: 'buff' }])
+  })
+  it('finishes huge counts once the rounded reduction stabilizes or the display exceeds safe precision', () => {
+    const status = { statusId: 'guarded', statusVersion: 1, stacks: Number.MAX_SAFE_INTEGER }
+    expect(summarizeBattleEffects([status])[0]!.value).toBe('−100.0%')
+    expect(summarizeBattleEffects([{ ...status, statusId: 'exposed' }])).toEqual([
+      { label: 'DMG IN', value: 'Very high', tone: 'debuff' },
+    ])
+  })
+
   it('compounds recorded Guard/Expose potency instead of the catalog defaults', () => {
     expect(
       summarizeBattleEffects([

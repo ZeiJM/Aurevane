@@ -13,6 +13,7 @@ import {
   classifyFacingRelation,
   createTacticalBattleState,
   evaluateCurrentMovementPath,
+  getLivingOccupantId,
   moveCurrentCombatant,
   selectCurrentFinalFacing,
   validateTacticalBattleState,
@@ -99,6 +100,52 @@ function withBattle(state: TacticalBattleState, battle: BattleState): TacticalBa
 }
 
 describe('P2.2 tactical board legality', () => {
+  it.each([1, 2])('can enter or cross a defeated combatant tile (%i steps)', (steps) => {
+    const original = activeTacticalBattle({ recruitPosition: { x: 1, y: 1 } })
+    const state = {
+      ...original,
+      battle: {
+        ...original.battle,
+        combatants: original.battle.combatants.map((combatant) =>
+          combatant.id === 'recruit' ? { ...combatant, hp: 0 } : combatant,
+        ),
+      },
+    }
+    const path = Array.from({ length: steps + 1 }, (_, x) => ({ x, y: 1 }))
+    expect(evaluateCurrentMovementPath(state, path).legal).toBe(true)
+    const moved = moveCurrentCombatant(state, path).state
+    expect(validateTacticalBattleState(moved)).toEqual([])
+    expect(moved.placements.find((row) => row.combatantId === 'recruit')?.position).toEqual({
+      x: 1,
+      y: 1,
+    })
+    expect(moved.placements.find((row) => row.combatantId === 'wayfarer')?.position).toEqual({
+      x: steps,
+      y: 1,
+    })
+  })
+
+  it('allows defeated overlap but rejects restoring life while a living combatant shares the tile', () => {
+    const original = activeTacticalBattle()
+    const overlap = {
+      ...original,
+      battle: {
+        ...original.battle,
+        combatants: original.battle.combatants.map((combatant) =>
+          combatant.id === 'recruit' ? { ...combatant, hp: 0 } : combatant,
+        ),
+      },
+      placements: original.placements.map((row) => ({ ...row, position: { x: 0, y: 1 } })),
+    }
+    expect(validateTacticalBattleState(overlap)).toEqual([])
+    expect(getLivingOccupantId(overlap, { x: 0, y: 1 })).toBe('wayfarer')
+    const revived = { ...overlap, battle: original.battle }
+    expect(validateTacticalBattleState(revived)).toContainEqual(
+      expect.objectContaining({ message: 'Two combatants cannot share a tile.' }),
+    )
+    expect(() => createTacticalBattleState(revived)).toThrow('Two combatants cannot share a tile')
+  })
+
   it('normalizes board data into stable deterministic ordering', () => {
     const state = createTacticalBattleState({
       battle: startBattle(createPendingBattle(battleInput())).state,

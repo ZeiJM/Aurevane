@@ -157,7 +157,10 @@ export function selectBattleSkillPreviewIntent(
     if (
       skill.targetKind === 'empty-tile' &&
       selection.selectedTile &&
-      selection.combatants.some((row) => positionsEqual(row.position, selection.selectedTile!))
+      selection.combatants.some(
+        // Only recorded zero HP releases occupancy; malformed or unknown HP stays blocking.
+        (row) => row.hp !== 0 && positionsEqual(row.position, selection.selectedTile!),
+      )
     )
       return null
     return selection.selectedTile && inRange(selection.selectedTile)

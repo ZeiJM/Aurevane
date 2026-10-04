@@ -64,6 +64,8 @@ export interface CombatOngoingRecovery {
 }
 
 export interface CombatPoisonInstance {
+  /** Stable identity for independently accumulated applications in stacking policy 1. */
+  applicationOrder?: number
   skipCurrentOwnerTurnEnd?: boolean
   targetCombatantId: string
   sourceCombatantId: string
@@ -92,6 +94,8 @@ export interface CombatBleedStack {
 }
 
 export interface CombatBurnInstance {
+  /** Stable identity for independently accumulated applications in stacking policy 1. */
+  applicationOrder?: number
   skipCurrentOwnerTurnEnd?: boolean
   targetCombatantId: string
   sourceCombatantId: string
@@ -120,6 +124,8 @@ export interface CombatDamageHistoryEntry {
 }
 
 export interface CombatBarrierInstance {
+  /** Stable identity for independent Barrier pools in stacking policy 1. */
+  applicationOrder?: number
   targetCombatantId: string
   sourceCombatantId: string
   sourceActionId: string

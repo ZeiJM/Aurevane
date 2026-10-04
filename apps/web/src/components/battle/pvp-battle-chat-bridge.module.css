@@ -196,6 +196,14 @@
   }
 }
 
+@media (min-width: 821px) {
+  .footerPresenceButton {
+    height: 2rem;
+    min-height: 2rem;
+    padding-block: 0.2rem;
+  }
+}
+
 @media (max-width: 820px) {
   .footerPresence {
     position: relative;

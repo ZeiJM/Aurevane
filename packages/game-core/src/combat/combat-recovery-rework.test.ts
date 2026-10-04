@@ -1,4 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { validateOngoingRecoveryState } from './combat-recovery'
+import { applyCurrentBurnBacklash } from './actions-legacy'
+import { applyCurrentBurnState } from './combat-dots'
 import {
   createCombatEncounterState,
   evaluateCombatAction,
@@ -261,6 +264,126 @@ describe('Heal X and MP Rec X execution', () => {
   it('a one-tick reapplication replaces, rather than keeps, its old schedule', () => {
     let state = cast(encounter(), action([recovery('hp', 4)]))
     state = cast(state, action([recovery('hp', 1)]))
+    expect(pending(state)).toHaveLength(0)
+  })
+
+  it('applies backlash from every active Burn application and preserves legacy replacement', () => {
+    for (const current of [true, false]) {
+      let state: CombatEncounterState = {
+        ...encounter(),
+        ...(current ? { effectStackingPolicyVersion: 1 as const } : {}),
+      }
+      for (let index = 0; index < 3; index += 1)
+        state = applyCurrentBurnState(state, 'target', 'actor', 'flame')
+      const result = applyCurrentBurnBacklash(state, 'actor')
+      expect(value(result.state, 'actor')).toBe(current ? 24 : 28)
+      expect(result.events[0]).toMatchObject({ event: 'damage_applied', amount: current ? 6 : 2 })
+    }
+  })
+  it.each(['cleanse', 'add'] as const)(
+    'keeps command-start Burn backlash when a damaging action changes its own Burn (%s)',
+    (change) => {
+      for (const mature of [false, true]) {
+        let state: CombatEncounterState = { ...encounter(), effectStackingPolicyVersion: 1 }
+        for (let index = 0; index < 3; index += 1)
+          state = applyCurrentBurnState(state, 'target', 'actor', 'flame')
+        const extra: CombatEffectDefinition =
+          change === 'cleanse'
+            ? { type: 'remove-status', recipient: 'actor', statusIds: ['burn'] }
+            : { type: 'burn', recipient: 'actor', power: 1, durationTurns: 2 }
+        const effects: CombatEffectDefinition[] = [
+          { type: 'damage', recipient: 'primary-unit', amount: 1 },
+          extra,
+        ]
+        const base = latestEnabledMatureSkills(P33_REPRESENTATIVE_DISCIPLINE_SKILLS)[0]!
+        const result = mature
+          ? executePv1fMatureSkill(
+              state as StatDrivenCombatEncounterState,
+              {
+                ...base,
+                id: 'test.burn-change',
+                apCost: 25,
+                mpCost: 0,
+                overrides: {},
+                requirements: [],
+                target: action([]).target,
+                effects,
+              },
+              selection,
+            )
+          : executeCombatAction(state, action(effects), selection, PV1F_COMBAT_CONTENT)
+        expect(value(result.state, 'actor')).toBe(24)
+        expect(result.state.effectState!.burn).toHaveLength(change === 'cleanse' ? 0 : 4)
+        expect(result.events).toContainEqual(
+          expect.objectContaining({
+            event: 'damage_applied',
+            actionId: 'status.burn.backlash.current.v1',
+            amount: 6,
+          }),
+        )
+      }
+    },
+  )
+  it('allows more than the historical schedule-count ceiling only under current policy', () => {
+    const base = cast(encounter(), action([recovery('hp', 2)]))
+    const state = {
+      ...base,
+      effectStackingPolicyVersion: 1 as const,
+      effectState: {
+        ...base.effectState!,
+        ongoingRecovery: Array.from({ length: 769 }, (_, index) => ({
+          ...pending(base)[0]!,
+          sourceActionId: `recovery.${index}`,
+        })),
+      },
+    }
+    expect(validateOngoingRecoveryState(state)).toEqual([])
+    expect(
+      validateOngoingRecoveryState({ ...state, effectStackingPolicyVersion: undefined }),
+    ).not.toEqual([])
+  })
+  it('applies each separate Hexed status to HP recovery under current policy', () => {
+    const base = status(encounter(), 'target', 'hexed')
+    const definition = PV1F_COMBAT_CONTENT.statuses.find((row) => row.id === 'hexed')!
+    const state = {
+      ...base,
+      effectStackingPolicyVersion: 1 as const,
+      statusState: base.statusState.map((row) =>
+        row.combatantId === 'target'
+          ? {
+              ...row,
+              statuses: [...row.statuses, { ...row.statuses[0]!, statusId: 'hexed-second' }],
+            }
+          : row,
+      ),
+    }
+    const content = {
+      ...PV1F_COMBAT_CONTENT,
+      statuses: [...PV1F_COMBAT_CONTENT.statuses, { ...definition, id: 'hexed-second' }],
+    }
+    const result = executeCombatAction(state, action([recovery('hp', 1, 100)]), selection, content)
+    expect(value(result.state, 'target')).toBe(86)
+    const legacy = executeCombatAction(
+      { ...state, effectStackingPolicyVersion: undefined },
+      action([recovery('hp', 1, 100)]),
+      selection,
+      content,
+    )
+    expect(value(legacy.state, 'target')).toBe(100)
+  })
+  it('keeps repeated recovery amounts and lifetimes independently under the unlimited policy', () => {
+    let state = cast(
+      { ...encounter(), effectStackingPolicyVersion: 1 },
+      action([recovery('hp', 2, 3)]),
+    )
+    state = cast(state, action([recovery('hp', 3, 7)]))
+    expect(pending(state)).toHaveLength(2)
+    expect(value(state, 'target')).toBe(40)
+    state = end(end(state))
+    expect(value(state, 'target')).toBe(50)
+    expect(pending(state)).toHaveLength(1)
+    state = end(end(end(state)))
+    expect(value(state, 'target')).toBe(57)
     expect(pending(state)).toHaveLength(0)
   })
   it('removes scheduled HP and MP recovery on defeat and never revives', () => {

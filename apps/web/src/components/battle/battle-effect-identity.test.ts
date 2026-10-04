@@ -22,7 +22,7 @@ const pendingFamilies = [
 
 describe('battle effect identity', () => {
   it.each([
-    ['guarded', 'Each stack reduces incoming damage by 11%'],
+    ['guarded', 'Reduces incoming damage by 11%'],
     ['exposed', 'Take 11% more damage'],
     ['inspired', 'Deal 11% more damage'],
     ['hexed', 'Receive 11% less healing'],

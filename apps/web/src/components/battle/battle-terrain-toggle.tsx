@@ -16,7 +16,7 @@ export function BattleTerrainToggle({ snapshot }: { snapshot: BattleTerrainKeySn
       className={styles.trigger}
       trigger={
         <>
-          <span aria-hidden="true">▲</span> Terrain <span aria-hidden="true">⌄</span>
+          <span aria-hidden="true">▲</span> Terrain
         </>
       }
     >

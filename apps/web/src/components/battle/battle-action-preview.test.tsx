@@ -54,6 +54,190 @@ const attack: ActionPreview = {
 }
 
 describe('current selection forecast', () => {
+  it('keeps automatic success inline for the primary target without inventing secondary chances', () => {
+    const markup = renderToStaticMarkup(
+      <BattleActionPreview
+        preview={{
+          ...attack,
+          actionId: 'guard',
+          primaryCombatantId: 'you',
+          affectedCombatantIds: ['you', 'ally'],
+          hitChanceBasisPoints: null,
+          mitigatedBaseDamage: null,
+          projectedEffects: [
+            { effectType: 'apply-status', combatantId: 'you', before: '', after: 'guarded' },
+            { effectType: 'apply-status', combatantId: 'ally', before: '', after: 'guarded' },
+          ],
+        }}
+        pending={false}
+      />,
+    )
+    const primary = markup.match(
+      /<article[^>]*data-battle-range-forecast="you"[^>]*>(.*?)<\/article>/,
+    )?.[1]
+    const secondary = markup.match(
+      /<article[^>]*data-battle-range-forecast="ally"[^>]*>(.*?)<\/article>/,
+    )?.[1]
+    expect(primary).toBeDefined()
+    expect(primary).toContain('Success 100%')
+    expect(secondary).toBeDefined()
+    expect(secondary).not.toContain('Success')
+    expect(secondary).not.toContain('Hit')
+  })
+
+  it.each(['unit', 'ground'])(
+    'keeps the selected %s area scope and each actual outcome instead of substituting candidate casts',
+    (targetKind) => {
+      const area: ActionPreview = {
+        ...attack,
+        affectedCombatantIds: ['enemy', 'secondary-outside-primary-range'],
+        affectedTiles: [
+          { x: 1, y: 0 },
+          { x: 2, y: 0 },
+        ],
+        projectedEffects: [
+          { effectType: 'damage', combatantId: 'enemy', before: 100, after: 83 },
+          {
+            effectType: 'damage',
+            combatantId: 'secondary-outside-primary-range',
+            before: 70,
+            after: 63,
+          },
+        ],
+      }
+      const markup = renderToStaticMarkup(
+        <BattleActionPreview
+          preview={area}
+          pending={false}
+          rangePreviewActionId={attack.actionId}
+          rangePreviews={[
+            {
+              ...attack,
+              projectedEffects: [
+                { effectType: 'damage', combatantId: 'enemy', before: 100, after: 89 },
+              ],
+            },
+            {
+              ...attack,
+              primaryCombatantId: 'unrelated-primary',
+              affectedCombatantIds: ['unrelated-primary'],
+              projectedEffects: [
+                { effectType: 'damage', combatantId: 'unrelated-primary', before: 80, after: 71 },
+              ],
+            },
+          ]}
+          targetTile={
+            targetKind === 'ground'
+              ? { position: { x: 1, y: 0 }, terrainId: 'open', elevation: 0 }
+              : undefined
+          }
+        />,
+      )
+      expect(markup).toContain('data-battle-range-forecast="enemy"')
+      expect(markup).toContain('data-battle-range-forecast="secondary-outside-primary-range"')
+      expect(markup).toContain('Hit 69% · On hit 17 dmg')
+      expect(markup).toContain('>7 dmg</span>')
+      expect(markup).toContain('Damage 7')
+      expect(markup).not.toContain('data-battle-range-forecast="unrelated-primary"')
+      expect(markup).toContain('data-battle-range-forecast-details="unrelated-primary"')
+      expect(markup).not.toContain('data-battle-range-forecast-details="enemy"')
+      expect(markup).not.toContain('On hit 11 dmg')
+      const alternative = markup.slice(
+        markup.indexOf('data-battle-range-forecast-details="unrelated-primary"'),
+      )
+      expect(alternative).toContain('data-battle-target-forecast="unrelated-primary"')
+      expect(alternative).toContain('Damage 9')
+      expect(alternative).not.toContain('secondary-outside-primary-range')
+      expect(alternative).not.toContain('Damage 7')
+    },
+  )
+
+  it('keeps a complete independent reader for the second automatic candidate and its own area recipients', () => {
+    const markup = renderToStaticMarkup(
+      <BattleActionPreview
+        preview={null}
+        pending={false}
+        rangePreviewActionId={attack.actionId}
+        rangePreviews={[
+          attack,
+          {
+            ...attack,
+            primaryCombatantId: 'second',
+            affectedCombatantIds: ['second', 'second-area-only'],
+            hitChanceBasisPoints: 4200,
+            defenseKind: 'ward',
+            defenseRating: 13,
+            projectedEffects: [
+              { effectType: 'damage', combatantId: 'second', before: 80, after: 71 },
+              { effectType: 'healing', combatantId: 'second-area-only', before: 20, after: 25 },
+            ],
+            projectedTerrain: [
+              {
+                position: { x: 1, y: 2 },
+                before: null,
+                after: 'frozen',
+                remainingRoundBoundaries: 2,
+                activationRound: 3,
+              },
+            ],
+          },
+        ]}
+      />,
+    )
+    const alternative = markup.slice(markup.indexOf('data-battle-range-forecast-details="second"'))
+    expect(alternative).toContain('Hit 42%')
+    expect(alternative).not.toContain('Hit 69%')
+    expect(alternative).toContain('data-battle-target-forecast="second-area-only"')
+    expect(alternative).toContain('Heal +5')
+    expect(alternative).toContain('Ward 13')
+    expect(alternative).toContain('Starts round 3')
+    expect(alternative).toContain('Frozen at tile 2,3')
+  })
+
+  it('automatically shows every legal range forecast with its independent hit chance before selecting', () => {
+    const markup = renderToStaticMarkup(
+      <BattleActionPreview
+        preview={null}
+        pending={false}
+        rangePreviewActionId={attack.actionId}
+        rangePreviews={[
+          attack,
+          {
+            ...attack,
+            primaryCombatantId: 'second',
+            affectedCombatantIds: ['second'],
+            hitChanceBasisPoints: 4200,
+            projectedEffects: [
+              { effectType: 'damage', combatantId: 'second', before: 80, after: 71 },
+            ],
+          },
+          { ...attack, legal: false, primaryCombatantId: 'blocked' },
+        ]}
+      />,
+    )
+    expect(markup).toContain('data-battle-preview-has-targets="true"')
+    expect(markup).toContain('data-battle-range-forecast="enemy"')
+    expect(markup).toContain('data-battle-range-forecast="second"')
+    expect(markup).toContain('Hit 69% · On hit 17 dmg')
+    expect(markup).toContain('Hit 42% · On hit 9 dmg')
+    expect(markup).not.toContain('data-battle-range-forecast="blocked"')
+    expect(markup).not.toContain('Success 100%')
+  })
+
+  it('hides previous automatic projections when their action changes or their range request is pending', () => {
+    for (const props of [
+      { rangePreviewActionId: barrier.id, rangePreviews: [attack] },
+      { rangePreviewActionId: attack.actionId, rangePreviews: [], rangePreviewsPending: true },
+    ]) {
+      const markup = renderToStaticMarkup(
+        <BattleActionPreview preview={null} pending={false} {...props} />,
+      )
+      expect(markup).not.toContain('Hit 69%')
+      expect(markup).not.toContain('17 dmg')
+      expect(markup).not.toContain('data-battle-range-forecast="enemy"')
+    }
+  })
+
   it('shows delayed terrain details from the canonical projection without a committed event', () => {
     const markup = renderToStaticMarkup(
       <BattleActionPreview

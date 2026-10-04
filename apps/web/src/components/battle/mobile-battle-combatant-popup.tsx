@@ -13,6 +13,8 @@ import {
   statusLabel,
 } from './battle-effect-summary'
 import { useBattleInteractionLifecycle } from './battle-interaction-lifecycle'
+import { buildBattleViewModel } from './battle-runtime'
+import { buildDisplayedPlacementByTile, positionKey } from './battle-geometry'
 import { battleInfoPopoverSession } from './battle-info-popover-session'
 import {
   readSummonInspectMetadata,
@@ -60,10 +62,6 @@ function parseTilePosition(label: string): GridPosition | null {
   return { x: Number(match[1]) - 1, y: Number(match[2]) - 1 }
 }
 
-function positionsEqual(left: GridPosition, right: GridPosition): boolean {
-  return left.x === right.x && left.y === right.y
-}
-
 function percentFromBasisPoints(value: number): string {
   return `${Math.round(value / 100)}%`
 }
@@ -92,12 +90,13 @@ function inspectModeActive(): boolean {
 
 function readSelectedCombatant(
   battle: BattleSessionView,
-  position: GridPosition,
+  target: GridPosition | string,
   playerName: string,
 ): SelectedCombatant | null {
-  const placement = battle.snapshot.tactical.placements.find((candidate) =>
-    positionsEqual(candidate.position, position),
-  )
+  const placement =
+    typeof target === 'string'
+      ? battle.snapshot.tactical.placements.find((candidate) => candidate.combatantId === target)
+      : buildDisplayedPlacementByTile(battle.snapshot.tactical).get(positionKey(target))
   if (!placement) return null
 
   const combatant = battle.snapshot.tactical.battle.combatants.find(
@@ -112,7 +111,15 @@ function readSelectedCombatant(
   const statuses =
     battle.snapshot.statusState.find((candidate) => candidate.combatantId === combatant.id)
       ?.statuses ?? []
-  const isPlayer = combatant.id.startsWith('character:')
+  const participants = buildBattleViewModel(battle, {
+    kind: 'pve',
+    playerName,
+    playerLevel: 1,
+    playerPortraitAssetId: 'character.portrait.starter.wayfarer-01',
+    playerProfileImageUrl: null,
+  }).participantByCombatant
+  const participant = participants.get(combatant.id)
+  const isPlayer = participant?.local ?? combatant.id.startsWith('character:')
   const economy = combatant.temporaryResources.find(
     (resource) => resource.key === ACTION_ECONOMY_KEY,
   )
@@ -125,6 +132,7 @@ function readSelectedCombatant(
     statuses,
     name:
       summon?.name ??
+      participant?.name ??
       (isPlayer ? playerName : combatant.id.startsWith('recruit:') ? 'Recruit' : 'Combatant'),
     isPlayer,
     active: battle.snapshot.tactical.battle.currentTurn?.combatantId === combatant.id,
@@ -132,11 +140,13 @@ function readSelectedCombatant(
     summon: summon
       ? {
           ...summon,
-          ownerName: summon.ownerCombatantId.startsWith('character:')
-            ? playerName
-            : summon.ownerCombatantId.startsWith('recruit:')
-              ? 'Recruit'
-              : 'Combatant',
+          ownerName:
+            participants.get(summon.ownerCombatantId)?.name ??
+            (summon.ownerCombatantId.startsWith('character:')
+              ? playerName
+              : summon.ownerCombatantId.startsWith('recruit:')
+                ? 'Recruit'
+                : 'Combatant'),
         }
       : null,
   }
@@ -185,12 +195,7 @@ export function MobileBattleCombatantPopup({
           throw new Error(body.error?.message ?? 'Combatant details could not be loaded.')
         }
 
-        const position =
-          typeof target === 'string'
-            ? body.battle.snapshot.tactical.placements.find((row) => row.combatantId === target)
-                ?.position
-            : target
-        const next = position ? readSelectedCombatant(body.battle, position, playerName) : null
+        const next = readSelectedCombatant(body.battle, target, playerName)
         if (!next) throw new Error('That combatant is no longer on this tile.')
         setSelected(next)
       } catch (loadError) {

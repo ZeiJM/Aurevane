@@ -11,6 +11,7 @@ import {
   type CombatResolutionTransition,
   type CombatStatusDefinition,
 } from './actions'
+import { applyCommittedReflect } from './combat-reflect'
 import * as legacy from './actions-legacy'
 import { createPendingBattle, startBattle } from './battle-state'
 import { createTacticalBattleState, selectCurrentFinalFacing } from './board'
@@ -683,5 +684,49 @@ describe('Reflect successor lifecycle regression', () => {
     expect(result.state.tactical.battle.round).toBe(2)
     expect(terrainOverlayAt(result.state, { x: 0, y: 0 })?.remainingRoundBoundaries).toBe(1)
     expect(validateCombatEncounterState(result.state)).toEqual([])
+  })
+})
+
+describe('unlimited Reflect applications', () => {
+  it('reflects all three 50-percent applications with historical aggregate caps preserved', () => {
+    const definition = reflectStatus(5000)
+    const initial = {
+      ...encounter({ stacks: 3, targetStatuses: [definition] }),
+      effectStackingPolicyVersion: 1 as const,
+    }
+    const result = cast(initial, hit(20), [definition])
+    expect(reflected(result)[0]).toMatchObject({ amount: 30 })
+    expect(unit(result, 'actor').hp).toBe(70)
+    const legacy = cast({ ...initial, effectStackingPolicyVersion: undefined }, hit(20), [
+      definition,
+    ])
+    expect(reflected(legacy)[0]).toMatchObject({ amount: 20 })
+    expect(unit(legacy, 'actor').hp).toBe(80)
+  })
+
+  it('fails closed when the combined reflection rate exceeds safe integer authority', () => {
+    const definition = reflectStatus(5000)
+    const initial = {
+      ...encounter({ stacks: Number.MAX_SAFE_INTEGER, targetStatuses: [definition] }),
+      effectStackingPolicyVersion: 1 as const,
+    }
+    expect(() =>
+      applyCommittedReflect(
+        initial,
+        [
+          {
+            event: 'damage_applied',
+            actionId: 'hit',
+            sourceCombatantId: 'actor',
+            targetCombatantId: 'target',
+            amount: 20,
+            hpBefore: 100,
+            hpAfter: 80,
+          },
+        ],
+        { statuses: [definition] },
+        { sourceCombatantId: 'actor', actionId: 'hit' },
+      ),
+    ).toThrow('safe integer')
   })
 })

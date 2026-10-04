@@ -20,6 +20,63 @@
   min-height: 0;
   overflow: visible;
 }
+/* Target portraits occupy both existing forecast lines; the map/cockpit row budget stays fixed. */
+.preview[data-battle-preview-has-targets],
+.preview:has(.targetSummary) {
+  grid-template-columns: max-content minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+}
+.preview[data-battle-preview-has-targets] .parameters,
+.preview:has(.targetSummary) .parameters {
+  grid-column: 1;
+  grid-row: 1;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.preview[data-battle-preview-has-targets] .forecast,
+.preview:has(.targetSummary) .forecast {
+  grid-column: 2;
+  grid-row: 1;
+}
+.preview[data-battle-preview-has-targets] .readingTrigger,
+.preview:has(.targetSummary) .readingTrigger {
+  margin-left: 0;
+}
+.inlineTargets {
+  display: flex;
+  flex: 1 1 auto;
+  gap: 0.5rem;
+  min-width: 0;
+}
+.inlineTarget {
+  display: grid;
+  flex: 1 1 0;
+  grid-template-columns: 2rem minmax(0, 1fr);
+  grid-template-rows: 1rem 1rem;
+  align-items: center;
+  gap: 0 0.35rem;
+  min-width: 0;
+}
+.inlineTarget > :global(img),
+.inlineTarget > .portraitFallback {
+  grid-row: 1 / 3;
+  width: 2rem;
+  height: 2rem;
+  object-fit: cover;
+  border: 1px solid #9e6754;
+}
+.inlineTarget > strong,
+.inlineTarget > span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  line-height: 1.2;
+}
+.inlineTarget > strong {
+  font-family: var(--av-font-display);
+}
 .parameters {
   grid-row: 1;
   font-size: 0.75rem;
@@ -201,6 +258,7 @@
   gap: 0.25rem;
   min-width: 0;
   max-width: 8rem;
+  order: -1;
 }
 .targetSummary > span:last-child {
   overflow: hidden;
@@ -210,13 +268,27 @@
 }
 .targetSummary > :global(img) {
   flex: none;
-  width: 1.125rem;
-  height: 1.125rem;
+  width: 2rem;
+  height: 2rem;
   object-fit: cover;
   border: 1px solid #9e6754;
 }
+.targetSummary > .portraitFallback,
+.targetSummary > .terrainThumbnail {
+  width: 2rem;
+  height: 2rem;
+}
 .details {
   color: #172d3c;
+}
+.alternativeDetails {
+  margin-top: 0.6rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #a8854866;
+}
+.alternativeDetails h4 {
+  margin: 0 0 0.4rem;
+  overflow-wrap: anywhere;
 }
 .detailChips {
   display: flex;
@@ -281,6 +353,27 @@
   }
   .forecast > .instruction {
     white-space: normal;
+  }
+  .preview[data-battle-preview-has-targets],
+  .preview:has(.targetSummary) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto;
+  }
+  .preview[data-battle-preview-has-targets] .parameters,
+  .preview:has(.targetSummary) .parameters {
+    flex-direction: row;
+    align-items: center;
+  }
+  .preview[data-battle-preview-has-targets] .forecast,
+  .preview:has(.targetSummary) .forecast {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .inlineTargets {
+    flex-wrap: wrap;
+  }
+  .inlineTarget {
+    flex-basis: 10rem;
   }
 }
 

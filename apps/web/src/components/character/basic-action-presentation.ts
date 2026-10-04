@@ -143,7 +143,7 @@ export function basicActionIdForCommand(
 /** Explain the single inherent effect separately from its numeric parameter fields. */
 export function basicActionEffectExplanation(id: BasicActionPresentationId): string {
   if (id === PV1F_GUARD_ACTION_ID) {
-    return `Reduces incoming damage by ${(10_000 - PV1F_GUARDED_STATUS.damageTakenMultiplierBasisPoints!) / 100}% per stack, maximum ${PV1F_GUARDED_STATUS.maximumStacks} stacks. Each use refreshes the duration.`
+    return `Reduces incoming damage by ${(10_000 - PV1F_GUARDED_STATUS.damageTakenMultiplierBasisPoints!) / 100}% per application. Each use refreshes the duration.`
   }
   if (id === PV1F_RECOVER_ACTION_ID || id === PV1F_MP_RECOVER_ACTION_ID) {
     return 'Restores the resource up to its maximum when the effect activates. HP and MP Recovery share a cooldown.'

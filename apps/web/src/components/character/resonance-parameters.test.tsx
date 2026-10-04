@@ -82,7 +82,7 @@ describe('shared Resonance parameter report', () => {
     expect(markup).toContain('→ Trigger Skill selected unit')
     expect(markup).toContain('<dt>Requirements</dt><dd>N/A</dd>')
     expect(markup).toContain('Restores HP to you.')
-    expect(markup).toContain('Take 20% more damage.')
+    expect(markup).toContain('Take 20% more damage per application.')
     expect(markup).not.toContain('next Discipline Skill')
   })
 

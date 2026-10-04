@@ -19,6 +19,8 @@ describe('footer terrain reader', () => {
     expect(markup).toContain('aria-expanded="false"')
     expect(markup).toContain('aria-haspopup="dialog"')
     expect(markup).not.toContain('data-battle-terrain-key')
+    expect(markup).toContain('▲')
+    expect(markup).not.toContain('⌄')
   })
 
   it('keeps every terrain explanation inside the same reader with native keyboard disclosures', () => {

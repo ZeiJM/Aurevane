@@ -236,6 +236,10 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
       tile: tile.toJSON(),
       last: last.toJSON(),
       deck: rect('[data-unified-command-deck]'),
+      footer: rect('[data-unified-battle-footer]'),
+      footerRailHeight:
+        parseFloat(getComputedStyle(element).getPropertyValue('--av-footer-rail-height')) *
+        parseFloat(getComputedStyle(document.documentElement).fontSize),
       forecast: rect('[data-battle-preview-strip]'),
       key: rect('button[aria-label="Terrain"]'),
       cancel: rect('[data-battle-footer-actions] > button:nth-child(2)'),
@@ -248,10 +252,17 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
       ).length,
       versus: {
         bounds: rect('[data-battle-versus]'),
+        flames: rect('[data-battle-versus-flames]'),
+        containment: getComputedStyle(element.querySelector('[data-battle-versus]')!).contain,
         pointerEvents: getComputedStyle(element.querySelector('[data-battle-versus]')!)
           .pointerEvents,
         animation: getComputedStyle(element.querySelector('[data-battle-versus-flames]')!)
           .animationName,
+        animationDuration: getComputedStyle(element.querySelector('[data-battle-versus-flames]')!)
+          .animationDuration,
+        flameOpacity: Number(
+          getComputedStyle(element.querySelector('[data-battle-versus-flames]')!).opacity,
+        ),
         reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches,
       },
       tokens: [...board.querySelectorAll('button[aria-label*="occupied by"] > [data-team]')].map(
@@ -330,6 +341,14 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
   expect(geometry.versus.bounds.right).toBeLessThanOrEqual(localCard!.bounds.right)
   expect(geometry.versus.pointerEvents).toBe('none')
   expect(geometry.versus.animation === 'none').toBe(geometry.versus.reducedMotion)
+  expect(geometry.versus.containment).not.toContain('paint')
+  if (!geometry.versus.reducedMotion) {
+    expect(geometry.versus.animationDuration).toBe('1.6s')
+    expect(geometry.versus.flameOpacity).toBeGreaterThanOrEqual(0.55)
+    expect(geometry.versus.flames.width).toBeGreaterThan(geometry.versus.bounds.width * 1.15)
+    expect(geometry.versus.flames.left).toBeGreaterThanOrEqual(localCard!.bounds.left)
+    expect(geometry.versus.flames.right).toBeLessThanOrEqual(localCard!.bounds.right)
+  }
   await page.emulateMedia({ reducedMotion: 'reduce' })
   expect(
     await root
@@ -339,6 +358,7 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
   await page.emulateMedia({ reducedMotion: null })
   expect(Math.abs(geometry.tile.width - geometry.tile.height)).toBeLessThanOrEqual(1)
   if (geometry.w > 820) {
+    expect(Math.abs(geometry.footer.height - geometry.footerRailHeight)).toBeLessThanOrEqual(1)
     expect(geometry.scrollHeight).toBeLessThanOrEqual(geometry.h + 1)
     expect(geometry.board.left).toBeGreaterThanOrEqual(geometry.viewport.left - 1)
     expect(geometry.last.right).toBeLessThanOrEqual(geometry.viewport.right + 1)

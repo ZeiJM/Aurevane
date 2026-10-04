@@ -69,7 +69,7 @@ describe('inherent action characteristics', () => {
           expect(markup).toContain('<span data-compact-effect-label="true">Guarded</span>')
           expect(markup).toContain('<span data-compact-effect-magnitude="true">[15%]</span>')
           expect(markup).toContain('<span data-compact-effect-duration="true">[2 Turns]</span>')
-          expect(markup).toContain('Reduces incoming damage by 15% per stack, maximum 3 stacks.')
+          expect(markup).toContain('Reduces incoming damage by 15% per application.')
         } else {
           expect(markup).toContain('HP and MP Recovery share a cooldown.')
         }

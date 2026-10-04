@@ -500,6 +500,7 @@ it('redacts current Copy forecasts from a concealed hostile donor while keeping 
         sourceCombatantId: donorId,
         sourceActionId: 'concealed.barrier',
         amount: 40,
+        applicationOrder: 1,
       },
     ],
     poison: [],

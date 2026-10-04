@@ -61,3 +61,5 @@ Owner-approved 2026-10-03 continuation: equal-size local and selected-enemy card
 
 The goal is simple: an applicable PvP presentation improvement should normally require **one shared
 change**, not a later cleanup ticket to make PvE look the same.
+
+Owner-approved 2026-10-04 follow-up: match desktop footer thickness; intensify bounded sideways VS flames with static reduced motion; remove only Terrain’s trailing chevron; temporarily preview allies on map inspection without command authority; show all legal in-range candidate forecasts with two-line portraits, complete independent readers and actual selected area recipients. Corpses (`hp === 0`) do not block targeting/movement or display facing; living co-occupants own the visible token. Shared summon, Resonance, DoT and pending-duration Chronicle refinements must retain actual recorded outcomes and viewer-relative source privacy. Preserve existing artwork and viewport geometry.

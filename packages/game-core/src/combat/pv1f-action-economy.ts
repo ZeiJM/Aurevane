@@ -29,7 +29,7 @@ import {
 } from './combat-summons'
 import { isMaterializedCombatEffect, type SummonAbilityDefinition } from './summon-content'
 import { hasGameplayTag } from './gameplay-tags'
-import { advanceCurrentPoisonMovement, currentPoisonEndTurnDamage } from './combat-dots'
+import { advanceCurrentPoisonMovement } from './combat-dots'
 import { terrainOverlayAt, COMBAT_TERRAIN_OVERLAY_DETAILS } from './terrain-overlays'
 import { readBattleAuthorityCombatBuildSnapshot } from './battle-authority-build-snapshot'
 import {
@@ -1165,6 +1165,7 @@ export function executePv1fMatureSkill(
         sourceCombatantId: actorId,
         targetCombatantId: actorId,
         effectTag: 'summon',
+        remainingOwnerTurnEnds: input.profile.lifetimeTurns,
         activationRound: next.tactical.battle.round + 1,
       })
     } else {
@@ -1368,37 +1369,62 @@ export function executePv1fCopiedSkill(
 
 /** Shared by authoritative movement and board highlights; does not spend resources. */
 export function pv1fMovementModifiers(
-  state: Pick<StatDrivenCombatEncounterState, 'statusState' | 'terrainOverlays'> & {
+  state: Pick<
+    StatDrivenCombatEncounterState,
+    'statusState' | 'terrainOverlays' | 'effectStackingPolicyVersion'
+  > & {
     tactical: { battle: Pick<StatDrivenCombatEncounterState['tactical']['battle'], 'currentTurn'> }
   },
 ) {
   const actorId = state.tactical.battle.currentTurn?.combatantId
-  const definitions = (state.statusState.find((row) => row.combatantId === actorId)?.statuses ?? [])
-    .filter((status) => status.timingState !== 'pending')
-    .map((status) =>
-      PV1F_COMBAT_CONTENT.statuses.find(
-        (definition) =>
-          definition.id === status.statusId && definition.version === status.statusVersion,
-      ),
-    )
-  const rooted = definitions.some((definition) => definition?.movement?.blocked)
-  const surcharge = Math.min(
-    20,
-    definitions.reduce(
-      (sum, definition) => sum + (definition?.movement?.additionalApPerTile ?? 0),
-      0,
+  const statuses = (
+    state.statusState.find((row) => row.combatantId === actorId)?.statuses ?? []
+  ).filter((status) => status.timingState !== 'pending')
+  const definitions = statuses.map((status) =>
+    PV1F_COMBAT_CONTENT.statuses.find(
+      (definition) =>
+        definition.id === status.statusId && definition.version === status.statusVersion,
     ),
   )
+  const rooted = definitions.some((definition) => definition?.movement?.blocked)
+  const surcharge =
+    state.effectStackingPolicyVersion === 1
+      ? definitions.reduce(
+          (sum, definition, index) =>
+            sum +
+            BigInt(definition?.movement?.additionalApPerTile ?? 0) *
+              BigInt(statuses[index]!.stacks),
+          0n,
+        )
+      : BigInt(
+          Math.min(
+            20,
+            definitions.reduce(
+              (sum, definition) => sum + (definition?.movement?.additionalApPerTile ?? 0),
+              0,
+            ),
+          ),
+        )
+  const safeDelta = (value: bigint) => {
+    if (value > BigInt(Number.MAX_SAFE_INTEGER) || value < -BigInt(Number.MAX_SAFE_INTEGER))
+      throw new RangeError('Combined movement effect modifier exceeds the safe integer range.')
+    return Number(value)
+  }
+  safeDelta(surcharge)
   const airborne = Boolean(
     actorId && hasGameplayTag(state, actorId, 'Airborne', PV1F_COMBAT_CONTENT),
   )
   return {
     blocked: rooted,
     additionalApAt: (position: GridPosition) =>
-      surcharge +
-      (!airborne && terrainOverlayAt(state, position)?.kind === 'frozen'
-        ? COMBAT_TERRAIN_OVERLAY_DETAILS.frozen.additionalApPerTile
-        : 0),
+      safeDelta(
+        surcharge +
+          BigInt(
+            !airborne && terrainOverlayAt(state, position)?.kind === 'frozen'
+              ? COMBAT_TERRAIN_OVERLAY_DETAILS.frozen.additionalApPerTile
+              : 0,
+          ),
+      ),
   }
 }
 
@@ -1427,7 +1453,14 @@ function forecastPv1fPoisonMovement(
     traversedTiles += 1
     triggeredTicks += advanced.triggeredTicks
     if (advanced.triggeredTicks > 0) {
-      hp = Math.max(0, hp - advanced.triggeredTicks * currentPoisonEndTurnDamage(shadow, actorId))
+      hp = Math.max(
+        0,
+        hp -
+          advanced.ticks.reduce(
+            (total, tick) => total + tick.triggeredTicks * (tick.instance.damagePerTick ?? 2),
+            0,
+          ),
+      )
       if (hp === 0) break
     }
   }

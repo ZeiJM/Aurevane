@@ -155,6 +155,25 @@ describe('approved Battle Chronicle', () => {
     ).not.toContain('stands around')
   })
 
+  it("keeps an unattributed periodic settlement from masquerading as the next actor's chosen action", () => {
+    const html = render([
+      entry(1, 0, 'turn_started', { actorCombatantId: enemy }),
+      entry(2, 0, 'turn_ended', { actorCombatantId: enemy }),
+      entry(2, 1, 'turn_started', { actorCombatantId: actor, turnNumber: 4 }),
+      entry(2, 2, 'damage_applied', {
+        actorCombatantId: actor,
+        targetCombatantId: enemy,
+        turnNumber: 4,
+        actionId: null,
+        periodicStatusId: 'bleed',
+        templateValues: { amount: '4' },
+      }),
+      entry(3, 0, 'turn_ended', { actorCombatantId: actor, turnNumber: 4 }),
+    ])
+    expect(html).toContain('Zei stands around and does nothing.')
+    expect(html).toContain('Bleed deals 4 damage')
+  })
+
   it('expands the current and previous round while preserving all older history behind controls', () => {
     const entries = [1, 2, 3, 4].map((round) => ({ ...technique(round), round }))
     const html = renderToStaticMarkup(<BattleLogChronicle entries={entries} currentRound={4} />)
@@ -528,6 +547,150 @@ describe('approved Battle Chronicle', () => {
     expect(followingRound).not.toContain('Hollow Reflection')
     expect(html).not.toContain('+4 MP')
   })
+
+  it('merges an earlier verified Resonance result with its later named activation', () => {
+    const origin = {
+      family: 'resonance' as const,
+      contentId: 'resonance.quarry-edge',
+      contentVersion: 2,
+    }
+    const activation = entry(1, 3, 'resonance_activated', {
+      actionId: origin.contentId,
+      actionContext: {
+        skillId: origin.contentId,
+        contentId: origin.contentId,
+        contentVersion: 2,
+        family: 'resonance',
+        name: 'Quarry Edge',
+        description: 'Mechanical passive prose.',
+        flavor: null,
+      },
+    })
+    const html = render([
+      technique(1),
+      entry(1, 1, 'damage_applied', { templateValues: { amount: '8' } }),
+      entry(1, 2, 'resource_changed', {
+        targetCombatantId: actor,
+        templateValues: { amount: '0', direction: 'gained', resource: 'MP' },
+        effectOrigin: origin,
+      }),
+      activation,
+    ])
+    expect(html.match(/data-chronicle-family="resonance"/gu)).toHaveLength(1)
+    expect(html).toContain('Resonance · ')
+    expect(html).toMatch(/Quarry Edge[^]*?Zei&#x27;s disciplines answer together\.[^]*?\+0 MP/)
+    expect(html).not.toContain('Action recorded; no effect result available.')
+    expect(html).not.toContain('Mechanical passive prose.')
+    expect(html).toContain('8 damage')
+  })
+
+  it('keeps a successful summon cast and flavor without a missing-result warning', () => {
+    const cast = technique(1, actor, 'Renewing Herbs')
+    const html = render([
+      cast,
+      entry(1, 1, 'summon_spawned', {
+        actionId: cast.actionId,
+        targetCombatantId: 'summon:stalker',
+      }),
+    ])
+    expect(html).toContain('Renewing Herbs')
+    expect(html).toContain('Zei follows a pale plane into the opening.')
+    expect(html).not.toContain('Action recorded; no effect result available.')
+    expect(render([cast])).toContain('Action recorded; no effect result available.')
+    expect(html).not.toContain('summon_spawned')
+    expect(
+      render([
+        { ...cast, actionContext: undefined },
+        entry(1, 1, 'summon_spawned', { actionId: cast.actionId }),
+      ]),
+    ).not.toContain('no effect result available')
+    expect(
+      render([cast, entry(1, 1, 'summon_spawned', { actionId: 'unrelated.skill' })]),
+    ).toContain('no effect result available')
+  })
+
+  it('reports the full recorded affected round range for a pending multi-turn effect', () => {
+    const html = render([
+      technique(1),
+      entry(1, 1, 'effect_pending', {
+        statusId: 'mark',
+        templateValues: { effect: 'Mark', activation: ' until round 3' },
+        effectTiming: { remainingOwnerTurnEnds: 2 },
+      }),
+    ])
+    expect(html).toContain('Mark will affect Weon during rounds 3–4!')
+    expect(html).not.toContain('at the start of round 3!')
+  })
+
+  it('gives Lowered Guard its own truthful pending and activation narration', () => {
+    const cast = entry(1, 0, 'combat_action_used', {
+      actionId: 'battle.lowered-guard.apply',
+      actionContext: undefined,
+      actorNarrator: { name: 'Zei', pronounPresetId: 'he_him' },
+    })
+    const html = render([
+      cast,
+      entry(1, 1, 'effect_pending', {
+        actionId: cast.actionId,
+        targetCombatantId: actor,
+        statusId: 'lowered-guard',
+        templateValues: { effect: 'Lowered Guard', activation: ' until round 3' },
+        effectTiming: { remainingOwnerTurnEnds: 1 },
+      }),
+      entry(1, 2, 'pvp_lowered_guard_applied', {
+        effectTimingState: 'pending',
+        targetCombatantId: actor,
+        facts: [{ label: '1 turn', tone: 'neutral' }],
+        templateValues: { status: 'Lowered Guard' },
+      }),
+      entry(2, 0, 'status_applied', {
+        round: 3,
+        effectActivationRound: 3,
+        actionId: cast.actionId,
+        targetCombatantId: actor,
+        statusId: 'lowered-guard',
+        templateValues: { status: 'Lowered Guard' },
+        facts: [{ label: '1 turn', tone: 'neutral' }],
+      }),
+    ])
+    expect(html).toContain('Zei lowered his guard!')
+    expect(html).toContain('Lowered Guard will take effect on Zei at the start of round 3!')
+    expect(html).toContain('Zei is left wide open to the enemy for 1 turn.')
+    expect(html).not.toContain('Battle Lowered Guard Apply')
+    expect(html).not.toContain('Lowered Guard, 1 turn')
+    expect(html).not.toContain('Action recorded; no effect result available.')
+    expect(html.match(/data-chronicle-action=/gu)).toHaveLength(2)
+  })
+
+  it.each(['bleed', 'poison', 'burn'] as const)(
+    'shows %s settlement and actual ticks without replaying cast prose',
+    (statusId) => {
+      const cast = technique(1, actor, 'Severing Cut')
+      const activation = entry(2, 0, 'persistent_effect_applied', {
+        round: 3,
+        statusId,
+        effectActivationRound: 3,
+        actionContext: cast.actionContext,
+        templateValues: { status: statusId[0].toUpperCase() + statusId.slice(1) },
+        messageTemplate: '{target} gained {status}.',
+      })
+      const tick = entry(3, 0, 'damage_applied', {
+        round: 3,
+        periodicStatusId: statusId,
+        actionContext: cast.actionContext,
+        templateValues: { amount: '4' },
+      })
+      const html = render([cast, activation, tick])
+      const followingRound = html.slice(html.indexOf('aria-label="Round 3"'))
+      expect(followingRound).toContain('Severing Cut')
+      expect(followingRound).not.toContain('follows a pale plane')
+      expect(followingRound).toContain(
+        `${statusId[0].toUpperCase() + statusId.slice(1)} deals 4 damage`,
+      )
+      expect(followingRound).toContain('data-outcome-tone="damage"')
+      expect(render([cast, activation])).not.toContain('deals 4 damage')
+    },
+  )
 
   it('lets readers inspect pending effects and actual Barrier results using the standard meaning', () => {
     const html = render([

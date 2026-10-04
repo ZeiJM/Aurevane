@@ -7,6 +7,7 @@ import type { DerivedStatSnapshot } from '../character/derived-stats'
 import { advanceBattleRng, spendAction, type BattleRngState } from './battle-state'
 import {
   applyCurrentBurnBacklash,
+  currentBurnBacklashApplicationCount,
   evaluateCombatAction,
   removeGameplayTags,
   executeCombatAction,
@@ -502,6 +503,9 @@ export function executeStatDrivenAttack(
     forecast.evaluation.actorId,
     action,
   )
+  const burnBacklashCount = burnBacklashApplies
+    ? currentBurnBacklashApplicationCount(state, forecast.evaluation.actorId)
+    : 0
   const draw = advanceBattleRng(state.tactical.battle.rng)
   const rolledState = withRng(state, draw.state)
   const rollBasisPoints = draw.value % COMBAT_BASIS_POINTS
@@ -558,7 +562,11 @@ export function executeStatDrivenAttack(
     },
   ]
   if (burnBacklashApplies) {
-    const backlash = applyCurrentBurnBacklash(nextState, forecast.evaluation.actorId)
+    const backlash = applyCurrentBurnBacklash(
+      nextState,
+      forecast.evaluation.actorId,
+      burnBacklashCount,
+    )
     nextState = reattachStatDrivenCombatBridge(backlash.state, state.statBridge)
     events.push(...backlash.events)
   }

@@ -395,9 +395,14 @@ function enemyApproachDistances(
   if (!state.tactical.battle.currentTurn?.movementRemaining) return distances
   const actorId = knowledge.activeCombatantId
   const tiles = new Set(knowledge.tiles.map((tile) => positionKey(tile.position)))
+  const defeatedIds = new Set(
+    knowledge.combatants.filter((combatant) => combatant.hp === 0).map((combatant) => combatant.id),
+  )
   const occupied = new Set(
     knowledge.placements
-      .filter((placement) => placement.combatantId !== actorId)
+      .filter(
+        (placement) => placement.combatantId !== actorId && !defeatedIds.has(placement.combatantId),
+      )
       .map((placement) => positionKey(placement.position)),
   )
   const enemySet = new Set(enemyIds)

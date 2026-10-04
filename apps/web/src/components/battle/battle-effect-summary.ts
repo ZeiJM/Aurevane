@@ -29,6 +29,7 @@ export type BattleStatusSummaryInput = Pick<
       | 'sourceScopedMark'
       | 'sourceCombatantId'
       | 'potencyBasisPoints'
+      | 'applicationModifiers'
     >
   >
 
@@ -82,6 +83,7 @@ export function aggregateBattleStatusStacks<T extends BattleStatusSummaryInput>(
       status.remainingOwnerTurnEnds ?? status.remainingOwnerTurnStarts,
       status.sourceScopedMark ? status.sourceCombatantId : undefined,
       status.potencyBasisPoints,
+      status.applicationModifiers,
     ])
     const existing = grouped.get(key)
     if (!existing) {
@@ -114,13 +116,25 @@ export function summarizeBattleEffects(
     )
     if (!definition || definition.damageTakenMultiplierBasisPoints === BASIS_POINTS) continue
 
-    const multiplier = statusDamageMultiplierBasisPoints(
-      definition.damageTakenMultiplierBasisPoints,
-      status.potencyBasisPoints,
-    )
     measuredDamageTaken = true
-    for (let stack = 0; stack < stacks; stack += 1) {
-      damageTakenMultiplier = Math.round((damageTakenMultiplier * multiplier) / BASIS_POINTS)
+    for (const application of status.applicationModifiers ?? [
+      { stacks, potencyBasisPoints: status.potencyBasisPoints },
+    ]) {
+      const multiplier = statusDamageMultiplierBasisPoints(
+        definition.damageTakenMultiplierBasisPoints,
+        application.potencyBasisPoints,
+      )
+      if (multiplier === BASIS_POINTS) continue
+      for (let stack = 0; stack < application.stacks; stack += 1) {
+        const next = Math.round((damageTakenMultiplier * multiplier) / BASIS_POINTS)
+        if (!Number.isSafeInteger(next)) {
+          damageTakenMultiplier = Infinity
+          break
+        }
+        if (next === damageTakenMultiplier) break
+        damageTakenMultiplier = next
+      }
+      if (!Number.isFinite(damageTakenMultiplier)) break
     }
   }
 
@@ -129,7 +143,9 @@ export function summarizeBattleEffects(
     const delta = damageTakenMultiplier - BASIS_POINTS
     summary.push({
       label: 'DMG IN',
-      value: formatIncomingDamageEffect(damageTakenMultiplier),
+      value: Number.isFinite(damageTakenMultiplier)
+        ? formatIncomingDamageEffect(damageTakenMultiplier)
+        : 'Very high',
       tone: delta < 0 ? 'buff' : delta > 0 ? 'debuff' : 'neutral',
     })
   }

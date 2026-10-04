@@ -85,11 +85,9 @@ export function applyCommittedAbsorbRecovery(
 function recoveryAmount(damage: number, basisPoints: number, capacity: number): number {
   if (basisPoints === 0 || capacity <= 0) return 0
   // Integer arithmetic keeps the percentage floor exact before the minimum-1 rule.
-  const requested = Math.max(
-    1,
-    Number((BigInt(damage) * BigInt(basisPoints)) / BigInt(ABSORB_BASIS_POINTS)),
-  )
-  return Math.min(capacity, requested)
+  const requested = (BigInt(damage) * BigInt(basisPoints)) / BigInt(ABSORB_BASIS_POINTS)
+  const positive = requested > 0n ? requested : 1n
+  return Number(positive < BigInt(capacity) ? positive : BigInt(capacity))
 }
 
 function activeAbsorbBasisPoints(
@@ -98,8 +96,8 @@ function activeAbsorbBasisPoints(
   targetId: string,
 ): { hp: number; mp: number } {
   const statuses = state.statusState.find((row) => row.combatantId === targetId)?.statuses ?? []
-  let hp = 0
-  let mp = 0
+  let hp = 0n
+  let mp = 0n
   for (const instance of statuses) {
     if (instance.remainingOwnerTurnStarts <= 0 || instance.stacks <= 0) continue
     const definition = content.statuses.find(
@@ -111,8 +109,16 @@ function activeAbsorbBasisPoints(
     )
       continue
     validateCombatStatusDefinition(definition)
-    hp = Math.min(ABSORB_BASIS_POINTS, hp + (definition.absorbHpBasisPoints ?? 0) * instance.stacks)
-    mp = Math.min(ABSORB_BASIS_POINTS, mp + (definition.absorbMpBasisPoints ?? 0) * instance.stacks)
+    hp += BigInt(definition.absorbHpBasisPoints ?? 0) * BigInt(instance.stacks)
+    mp += BigInt(definition.absorbMpBasisPoints ?? 0) * BigInt(instance.stacks)
   }
-  return { hp, mp }
+  if (state.effectStackingPolicyVersion === 1) {
+    if (hp > BigInt(Number.MAX_SAFE_INTEGER) || mp > BigInt(Number.MAX_SAFE_INTEGER))
+      throw new RangeError('Combined Absorb rate exceeds the safe integer range.')
+    return { hp: Number(hp), mp: Number(mp) }
+  }
+  return {
+    hp: Number(hp < BigInt(ABSORB_BASIS_POINTS) ? hp : BigInt(ABSORB_BASIS_POINTS)),
+    mp: Number(mp < BigInt(ABSORB_BASIS_POINTS) ? mp : BigInt(ABSORB_BASIS_POINTS)),
+  }
 }
