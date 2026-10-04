@@ -1,16 +1,20 @@
 # AUREVANE — Active Task Ledger
 
-## Battle review, ally inspection and unlimited applications — 2026-10-04 (verification in progress)
+## Battle review, ally inspection and unlimited applications — 2026-10-04 (released)
 
 The Owner requested equal footer thickness, stronger sideways animated VS flames, Terrain without its trailing chevron, quieter successful summons, unlimited mechanical effect stacking and removal of stack-limit copy, full pending round ranges, compact Resonance, thematic actual DoT ticks, clearer Lowered Guard, temporary ally previews, defeated-tile occupancy/facing rules, and automatic in-range enemy forecasts with portraits spanning both lines. This batch retains card/cockpit/map artwork sizes, server authority, viewer privacy, historical encounters and the previously released work below. One combined Production release remains explicitly authorized.
 
 - [x] Implement shared presentation, temporary ally inspection, canonical multi-target previews and Chronicle refinements.
 - [x] Pin the new stacking policy at PvE/PvP creation; remove application/aggregate caps across connected consumers; preserve per-application state, Copy and K3 lineage, and historical behavior.
 - [x] Apply authoritative defeated occupancy across movement, casts, displacement, summons, AI and shared playable/spectator tokens.
-- [ ] Finish integrated quality, independent review and rendered/authenticated exact-candidate CI evidence.
-- [ ] Release the verified current-main-compatible batch once and restore the deployment lock.
+- [x] Finish integrated quality, independent review and rendered/authenticated exact-candidate CI evidence.
+- [x] Release the verified current-main-compatible batch once and restore the deployment lock.
 
-Evidence: `docs/superpowers/verification/2026-10-04-battle-review-unlimited-effects.md`. This batch is not yet live.
+Evidence: `docs/superpowers/verification/2026-10-04-battle-review-unlimited-effects.md`. This batch is live.
+
+PR #824 merges the exact tested tree as `bc0dd2456caa7e17d090919d677b0976a362f520` (tree `e1adc3d8b78212ff17a5cfe0f1a35acdb31c772b`). All ten workflows pass candidate `5466ff9bfb5277fc4d24539a966dfa67afd35af8`, including 3,841 Vitest tests plus seven Node checks; four ally/forecast fixture cases, six real-mail recovery, three training, 71 focused, 317 full Chromium and ten Edge cases; eight page-fit, 48 desktop interaction and 24 buildcraft cases; native mobile Profile swiping, 110 layout scenarios and the directory check. Existing project-specific skips remain unchanged. Independent reviews have no remaining blockers, and final playable/spectator, preview/footer and short-desktop captures preserve existing artwork.
+
+Configuration-only PR #825 releases source `5cb082680074d6e6907e074f9173f23ec67fe14a` as READY deployment `dpl_BDP7ZYpArn7j2vbsuwgVBZGkdcg5` at `2026-10-04T22:47:53.006Z`, with https://aurevane.vercel.app/ assigned to that exact SHA. Six public entry/recovery/Manual/Rules/News checks and the VS WebP asset return 200. The deployment-scoped warning/error/fatal scan from READY through `2026-10-04T22:49:44.373Z` returns no logs. This configuration/documentation closeout restores the full deployment lock without another application release. New battles use unlimited effect applications; historical encounters preserve recorded rules. No application bytes, migrations, hosted Auth/content settings or production accounts change in this closeout. Earlier approved work remains included. Authenticated gameplay and recovery-mail delivery pass in disposable CI; authenticated Production gameplay and Owner visual acceptance remain separate outcomes.
 
 ## Mobile Profile, idle battle turns, animated VS and wider Chronicle — 2026-10-04 (released)
 
