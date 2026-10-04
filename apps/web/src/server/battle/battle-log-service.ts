@@ -31,6 +31,8 @@ export interface BattleLogEntry {
   eventIndex: number
   /** Viewer-safe projection omitted an event after this entry; absence cannot prove idle. */
   historyGapAfter?: boolean
+  /** Recorded delayed-effect settlement, never inferred from current content. */
+  effectActivationRound?: number
   occurredAt: string
   eventType: string
   message: string
@@ -177,6 +179,9 @@ function createEntry(
   const actorCombatantId = input.actorCombatantId ?? null
   const targetCombatantId = input.targetCombatantId ?? null
   const templateValues = input.templateValues ?? {}
+  const activationRound = numberValue(
+    (record.event as Record<string, unknown>).effectActivationRound,
+  )
   const defaultMessageValues = {
     ...templateValues,
     actor: combatantLabel(actorCombatantId),
@@ -188,6 +193,9 @@ function createEntry(
     eventIndex: record.eventIndex,
     occurredAt: record.createdAt,
     eventType,
+    ...(activationRound !== null && Number.isSafeInteger(activationRound) && activationRound > 0
+      ? { effectActivationRound: activationRound }
+      : {}),
     message: input.message ?? renderTemplate(input.messageTemplate, defaultMessageValues),
     messageTemplate: input.messageTemplate,
     templateValues,
@@ -420,6 +428,24 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
         kind: 'turn',
         headline: 'Resonance',
       })
+    case 'skill_cooldown_advanced':
+    case 'skill_cooldown_ready': {
+      const actorCombatantId = stringValue(event.combatantId)
+      const ticks = numberValue(event.ticksRemaining)
+      if (
+        !actorCombatantId ||
+        !stringValue(event.cooldownKey) ||
+        (eventType === 'skill_cooldown_advanced' &&
+          (ticks === null || !Number.isSafeInteger(ticks) || ticks <= 0))
+      )
+        return null
+      return createEntry(record, eventType, {
+        actorCombatantId,
+        messageTemplate: '{actor} advances a cooldown.',
+        kind: 'turn',
+        headline: 'Cooldown',
+      })
+    }
     case 'action_spent':
       return null
     case 'temporary_skill_copied': {

@@ -1,11 +1,12 @@
 # AUREVANE — Active Task Ledger
 
-## Mobile Profile, idle battle turns and animated VS — 2026-10-04
+## Mobile Profile, idle battle turns, animated VS and wider Chronicle — 2026-10-04
 
 Owner-requested continuation on `agent/profile-mobile-scroll-20261004`: restore real mobile Profile swipes without changing the desktop frame; completed idle turns say the actor stands around and does nothing in shared Chronicle and Recruit notices; implement the approved metallic gold VS between the left cards with modest border overlap and subtle animated flames, preserving all existing card/portrait/cockpit/map dimensions. Shared PvE/PvP/spectator presentation, recorded history and mechanics remain authoritative. Evidence: `docs/superpowers/verification/2026-10-04-profile-idle-versus.md`.
 
 - [x] Reproduce the native mobile Profile failure before applying the scoped CSS repair; real swipe on test-only candidate leaves page position zero.
 - [x] Verify focused idle narration against actual emitted command events, including opening turns and conservative missing-history guards; add noninteractive reduced-motion-aware VS art with provenance.
+- [ ] Reclaim unused desktop map gutters for the Chronicle without reducing the board, portraits, cards or cockpit artwork; retain shared playable/spectator geometry and smaller layouts.
 - [ ] Complete integrated quality, independent review and exact-candidate authenticated browser verification.
 - [ ] Release the verified repair batch under the Owner's existing explicit production authorization and restore the Git deployment lock.
 

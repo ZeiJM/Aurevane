@@ -102,7 +102,133 @@ function idleNarrations(history: readonly BattleEventRecord[]) {
   )
 }
 
+function delayedGuardHistory() {
+  const initial = { ...encounter(), effectTimingPolicy: { version: 1, modes: {} } }
+  const guarded = executePv1fAction(initial, PV1F_GUARD_ACTION_ID, { kind: 'self' })
+  const first = finishPv1fTurn(guarded.state, 'east')
+  const second = finishPv1fTurn(first.state, 'west')
+  const third = finishPv1fTurn(second.state, 'south')
+  return {
+    guarded,
+    first,
+    second,
+    third,
+    history: [
+      ...records(guarded.events, 2),
+      ...records(first.events, 3),
+      ...records(second.events, 4),
+      ...records(third.events, 5),
+    ],
+  }
+}
+
 describe('idle narration from persisted command events', () => {
+  it('retains idle narration after real delayed Guard activation and automatic cooldown upkeep', () => {
+    const { history, second } = delayedGuardHistory()
+    expect(second.events).toContainEqual(
+      expect.objectContaining({
+        event: 'status_applied',
+        statusId: 'guarded',
+        effectActivationRound: 2,
+      }),
+    )
+    expect(second.events).toContainEqual(
+      expect.objectContaining({ event: 'skill_cooldown_advanced' }),
+    )
+    expect(idleNarrations(history)).toEqual([
+      [1, actors[1], 'Weon stands around and does nothing.'],
+      [2, actors[0], 'Zei stands around and does nothing.'],
+    ])
+    expect(
+      JSON.stringify(buildBattleChronicle(buildBattleLogView('idle', history).entries)),
+    ).toContain('Guarded')
+  })
+
+  it('keeps a truly idle later turn when its existing Guard cooldown becomes ready', () => {
+    const { history, third } = delayedGuardHistory()
+    let state = third.state
+    for (let version = 6; version <= 9; version++) {
+      const finished = finishPv1fTurn(state, 'east')
+      history.push(...records(finished.events, version))
+      state = finished.state
+    }
+    expect(
+      buildBattleLogView('idle', history).entries.some(
+        (entry) => entry.eventType === 'skill_cooldown_ready',
+      ),
+    ).toBe(true)
+    expect(idleNarrations(history)).toContainEqual([
+      4,
+      actors[0],
+      'Zei stands around and does nothing.',
+    ])
+  })
+
+  it('requires the recorded global-round boundary and valid matching cooldown upkeep', () => {
+    const { history } = delayedGuardHistory()
+    const noBoundary = history.filter(
+      (record) => (record.event as { event: string }).event !== 'round_started',
+    )
+    const malformedCooldown = history.map((record) =>
+      (record.event as { event: string }).event === 'skill_cooldown_advanced'
+        ? { ...record, event: { ...(record.event as object), ticksRemaining: 0 } }
+        : record,
+    )
+    const wrongActor = history.map((record) =>
+      (record.event as { event: string }).event === 'skill_cooldown_advanced'
+        ? { ...record, event: { ...(record.event as object), combatantId: actors[1] } }
+        : record,
+    )
+    for (const altered of [noBoundary, malformedCooldown, wrongActor])
+      expect(idleNarrations(altered)).toEqual([
+        [1, actors[1], 'Weon stands around and does nothing.'],
+      ])
+  })
+
+  it.each([undefined, 0, -1, 3, '2', 2.5])(
+    'does not infer automatic activation from malformed or wrong-round marker %s',
+    (marker) => {
+      const { history } = delayedGuardHistory()
+      const altered = history.map((record) => {
+        const event = record.event as { event: string }
+        return event.event === 'status_applied'
+          ? { ...record, event: { ...event, effectActivationRound: marker } }
+          : record
+      })
+      expect(idleNarrations(altered)).toEqual([
+        [1, actors[1], 'Weon stands around and does nothing.'],
+      ])
+    },
+  )
+
+  it('does not hide a chosen action after delayed activation or bridge an unknown event gap', () => {
+    const { guarded, first, second, third } = delayedGuardHistory()
+    const attacked = executePv1fAction(second.state, 'basic.attack.unarmed.basic', {
+      kind: 'unit',
+      combatantId: actors[1],
+    })
+    const finished = finishPv1fTurn(attacked.state, 'south')
+    expect(
+      idleNarrations([
+        ...records(guarded.events, 2),
+        ...records(first.events, 3),
+        ...records(second.events, 4),
+        ...records(attacked.events, 5),
+        ...records(finished.events, 6),
+      ]),
+    ).toEqual([[1, actors[1], 'Weon stands around and does nothing.']])
+    const events = [...second.events]
+    events.splice(events.length - 1, 0, { event: 'unknown_legacy_action' })
+    expect(
+      idleNarrations([
+        ...records(guarded.events, 2),
+        ...records(first.events, 3),
+        ...records(events, 4),
+        ...records(third.events, 5),
+      ]),
+    ).toEqual([[1, actors[1], 'Weon stands around and does nothing.']])
+  })
+
   it('keeps a surrender from being narrated as an idle end turn before its surrender receipt', () => {
     const surrendered = surrenderPvpCombatant(encounter(), actors[0])
     const history = records(surrendered.events, 2)

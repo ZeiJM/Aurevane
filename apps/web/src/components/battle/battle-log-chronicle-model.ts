@@ -54,6 +54,8 @@ const OMITTED_EVENTS = new Set([
   'ai_turn_timed_out',
   'mp_spent',
   'summon_ability_used',
+  'skill_cooldown_advanced',
+  'skill_cooldown_ready',
 ])
 
 export function chronicleCombatantName(id: string | null, names: ChronicleNames): string {
@@ -80,6 +82,7 @@ function completedIdleTurns(entries: readonly BattleLogEntry[]): Set<string> {
   let start: BattleLogEntry | null = null
   let previous: BattleLogEntry | null = null
   let ended: BattleLogEntry | null = null
+  let roundBoundary: BattleLogEntry | null = null
   const scheduledRecovery = new Set<string>()
   const recoveryKey = (entry: BattleLogEntry, resource: string) =>
     JSON.stringify([entry.actorCombatantId, entry.targetCombatantId, entry.actionId, resource])
@@ -102,6 +105,23 @@ function completedIdleTurns(entries: readonly BattleLogEntry[]): Set<string> {
     'terrain_overlay_expired',
     'resonance_armed',
     'resonance_expired',
+    'skill_cooldown_advanced',
+    'skill_cooldown_ready',
+  ])
+  const activationOutcomes = new Set([
+    'damage_applied',
+    'healing_applied',
+    'resource_changed',
+    'status_applied',
+    'status_removed',
+    'persistent_effect_applied',
+    'barrier_changed',
+    'recovery_scheduled',
+    'terrain_overlay_changed',
+    'combatant_displaced',
+    'displacement_failed',
+    'combatant_rewound',
+    'temporary_skill_copied',
   ])
   for (const entry of entries) {
     if (
@@ -126,6 +146,13 @@ function completedIdleTurns(entries: readonly BattleLogEntry[]): Set<string> {
         (entry.eventType === 'resource_changed' &&
           entry.templateValues.resource === 'MP' &&
           scheduledRecovery.has(recoveryKey(entry, 'MP'))))
+    const activation =
+      entry.effectActivationRound !== undefined &&
+      roundBoundary?.battleVersion === entry.battleVersion &&
+      roundBoundary.round === entry.effectActivationRound &&
+      start?.round === entry.effectActivationRound &&
+      entry.actionId &&
+      activationOutcomes.has(entry.eventType)
     if (entry.eventType === 'turn_started') {
       start =
         entry.actorCombatantId && entry.turnNumber !== null && entry.round !== null ? entry : null
@@ -168,6 +195,8 @@ function completedIdleTurns(entries: readonly BattleLogEntry[]): Set<string> {
           'combatant_waited',
           'ai_turn_timed_out',
           'pvp_turn_timed_out',
+          'skill_cooldown_advanced',
+          'skill_cooldown_ready',
         ].includes(entry.eventType) &&
         entry.actorCombatantId !== start.actorCombatantId
       ) {
@@ -175,6 +204,7 @@ function completedIdleTurns(entries: readonly BattleLogEntry[]): Set<string> {
       } else if (
         !passive.has(entry.eventType) &&
         !settlement &&
+        !activation &&
         !(
           entry.eventType === 'recruit_ai_decision' &&
           entry.actorCombatantId === start.actorCombatantId &&
@@ -187,6 +217,7 @@ function completedIdleTurns(entries: readonly BattleLogEntry[]): Set<string> {
     if (entry.eventType === 'turn_ended') ended = entry
     else if (entry.eventType === 'combat_action_used' || entry.eventType === 'hidden_combat_action')
       ended = null
+    if (entry.eventType === 'round_started') roundBoundary = entry
     previous = entry
   }
   return idle

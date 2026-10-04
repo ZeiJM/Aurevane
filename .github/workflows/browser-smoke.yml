@@ -130,6 +130,11 @@ jobs:
             e2e/shell-viewport-fit.pw.ts \
             --project=desktop-chromium --project=mobile-chromium
 
+          # Preserve the shared rail/map screenshots before the complete suite clears its output.
+          mkdir -p /tmp/battle-rail-review
+          find apps/web/test-results -maxdepth 1 -type d \( -name 'ai-grid-legend-regressio*' -o -name 'pvp-map-sizes*' \) \
+            -exec cp -R '{}' /tmp/battle-rail-review/ \;
+
           AUREVANE_ENV=local \
           NEXT_PUBLIC_AUREVANE_ENV=local \
           NEXT_PUBLIC_SUPABASE_URL="$api_url" \
@@ -146,6 +151,14 @@ jobs:
             e2e/battle-self-action-quick-commit.pw.ts \
             e2e/battle-recovery-hotkey.pw.ts e2e/battle-support-action.pw.ts e2e/techniques-support-action.pw.ts \
             --config=playwright.edge.config.ts --output=test-results-edge
+
+      - name: Save focused battle rail evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: battle-rail-review
+          path: /tmp/battle-rail-review
+          retention-days: 7
 
       - name: Save browser evidence
         if: always()

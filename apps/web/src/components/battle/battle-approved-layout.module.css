@@ -3,7 +3,7 @@
   display: grid;
   /* Reallocate the existing rail budget without shrinking map artwork. */
   grid-template-columns: calc(clamp(10rem, 14vw, 14rem) + 1rem) minmax(0, 1fr) calc(
-      clamp(10rem, 14vw, 14rem) - 1rem
+      clamp(10rem, 14vw, 14rem) - 1rem + var(--battle-chronicle-gutter-transfer, 0px)
     );
   grid-template-rows: minmax(0, 1fr) 2.75rem auto;
   grid-template-areas: 'local board selected' 'local preview selected' 'cockpit cockpit cockpit';

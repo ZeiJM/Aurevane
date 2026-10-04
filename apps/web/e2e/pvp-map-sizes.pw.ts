@@ -4,6 +4,7 @@ import { expect, test, type Page } from '@playwright/test'
 import type { BattleSessionView } from '../src/server/battle/battle-session-service'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 import { expectRecordedBattleRound } from './battle-round-badge-helpers'
+import { expectBattleChronicleGutterGeometry } from './battle-reference-layout-helpers'
 
 async function provision(page: Page, prefix: string) {
   const seed = randomUUID()
@@ -133,6 +134,30 @@ for (const [size, label, width, tiles] of [
       expect(seam.delta).toBeLessThanOrEqual(1)
       expect(seam.width).toBeLessThanOrEqual(108)
       expect(seam.pointerEvents).toBe('none')
+      for (const page of [host, guest, spectator]) {
+        await expectBattleChronicleGutterGeometry(page)
+      }
+      if (size === 'large' && testInfo.project.name === 'desktop-chromium') {
+        for (const [label, page] of [
+          ['playable', host],
+          ['spectator', spectator],
+        ] as const) {
+          const originalViewport = page.viewportSize()!
+          await page.setViewportSize({ width: 1920, height: 768 })
+          await page.evaluate(
+            () =>
+              new Promise<void>((resolve) =>
+                requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+              ),
+          )
+          await expectBattleChronicleGutterGeometry(page, true)
+          await testInfo.attach(`wide-chronicle-${label}`, {
+            body: await page.screenshot(),
+            contentType: 'image/png',
+          })
+          await page.setViewportSize(originalViewport)
+        }
+      }
       // Complete both real PvP activations, then compare playable and spectator projections.
       const roundStart = await currentBattle(host)
       let committed = roundStart
