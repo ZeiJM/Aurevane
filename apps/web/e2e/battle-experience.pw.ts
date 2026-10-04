@@ -213,6 +213,26 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await expect(commandContext).toContainText('Choose your action', { timeout: 15_000 })
 
   if (testInfo.project.name === 'mobile-chromium') {
+    // End Turn leaves the earlier row clipped by the sticky economy header.
+    // Expose the full Guard control before one native tap, rather than touching its clipped edge.
+    await guardButton.evaluate((button) =>
+      button.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' }),
+    )
+    await expect
+      .poll(() =>
+        guardButton.evaluate((button) => {
+          const rect = button.getBoundingClientRect()
+          const header = document.querySelector('[data-unified-battle-header="true"]')!
+          const hit = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2)
+          return Boolean(
+            rect.top >= header.getBoundingClientRect().bottom &&
+            rect.bottom <= window.innerHeight &&
+            hit &&
+            button.contains(hit),
+          )
+        }),
+      )
+      .toBe(true)
     await guardButton.tap()
   } else {
     await guardButton.click()
