@@ -1,14 +1,16 @@
 # AUREVANE — Active Task Ledger
 
-## Mobile Profile, idle battle turns, animated VS and wider Chronicle — 2026-10-04
+## Mobile Profile, idle battle turns, animated VS and wider Chronicle — 2026-10-04 (released)
 
 Owner-requested continuation on `agent/profile-mobile-scroll-20261004`: restore real mobile Profile swipes without changing the desktop frame; completed idle turns say the actor stands around and does nothing in shared Chronicle and Recruit notices; implement the approved metallic gold VS between the left cards with modest border overlap and subtle animated flames, preserving all existing card/portrait/cockpit/map dimensions. Shared PvE/PvP/spectator presentation, recorded history and mechanics remain authoritative. Evidence: `docs/superpowers/verification/2026-10-04-profile-idle-versus.md`.
 
 - [x] Reproduce the native mobile Profile failure before applying the scoped CSS repair; real swipe on test-only candidate leaves page position zero.
 - [x] Verify focused idle narration against actual emitted command events, including opening turns and conservative missing-history guards; add noninteractive reduced-motion-aware VS art with provenance.
-- [ ] Reclaim unused desktop map gutters for the Chronicle without reducing the board, portraits, cards or cockpit artwork; retain shared playable/spectator geometry and smaller layouts.
-- [ ] Complete integrated quality, independent review and exact-candidate authenticated browser verification.
-- [ ] Release the verified repair batch under the Owner's existing explicit production authorization and restore the Git deployment lock.
+- [x] Reclaim unused desktop map gutters for the Chronicle without reducing the board, portraits, cards or cockpit artwork; retain shared playable/spectator geometry and smaller layouts.
+- [x] Complete integrated quality, independent review and exact-candidate authenticated browser verification.
+- [x] Release the verified repair batch under the Owner's existing explicit production authorization and restore the Git deployment lock.
+
+PR #821 merges the exact tested tree as `e625853bf64e11c5e54c18aa61ed41764b8bc936`. All seven workflows pass candidate `f92eac4db2ac50ccbca0ae6bc99c90c7209e8265`, including 3,706 Vitest tests plus seven Node checks, six recovery, three training, 70 focused, 317 full Chromium and ten Edge cases; native mobile Profile swipes, 110 UI layout scenarios and the directory check pass. Final playable/spectator and populated-title screenshots are reviewed. Configuration-only PR #822 releases source `feaa933352996c7e22d1f7038103512282f74c75` as READY deployment `dpl_DiDWbNko79RW5VSoUetS2UCH8JSo` at https://aurevane.vercel.app/ on `2026-10-04T15:00:37.881Z`. Six public-page checks and the VS asset return 200; the warning/error/fatal scan through `2026-10-04T15:02:35.621Z` is empty. This documentation/configuration closeout restores the full deployment lock without another application release. No migration, hosted Auth/content change or production-account mutation. Authenticated gameplay and recovery-mail delivery pass in disposable CI; authenticated Production gameplay and Owner visual acceptance remain separate outcomes.
 
 ## Approved battle rails, Chronicle readers and direct commands — 2026-10-03 (released)
 

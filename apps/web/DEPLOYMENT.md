@@ -2,11 +2,11 @@
 
 This file intentionally lives inside the web app project root so documentation-only production redeploys are not skipped by Vercel's monorepo unaffected-project optimization.
 
-## Mobile Profile, idle turns, animated VS and wider Chronicle — authorized release
+## Mobile Profile, idle turns, animated VS and wider Chronicle — released
 
 PR #821 merges the exact verified application tree as `e625853bf64e11c5e54c18aa61ed41764b8bc936` (tree `66fb646e75cb53ad4dbd97f3b409304d46bc79a8`). All seven workflows pass candidate `f92eac4db2ac50ccbca0ae6bc99c90c7209e8265`: quality/database/builds, Skill Engine, Desktop page fit, Desktop experience, Representative Buildcraft, UI layout and Browser smoke. Browser results are six real-mail recovery, three training, 70 focused, 317 full Chromium and ten Edge cases. UI layout passes the native mobile swipe regression, 110 scenarios and the directory check. Final wide playable/spectator and populated-title screenshots are reviewed; existing artwork and map geometry remain preserved. The local and CI quality gates pass 3,706 Vitest tests and seven Node checks.
 
-This configuration-only release enables Main for the Owner's explicitly authorized single production deployment. All other branches remain locked. No application bytes, migrations, hosted Auth/content or production accounts change in this release control. Restore the full Git deployment lock after READY and live smoke verification. Earlier approved battle/tag/Copy/password-recovery changes remain included. Evidence: `docs/superpowers/verification/2026-10-04-profile-idle-versus.md`.
+Configuration-only PR #822 releases source `feaa933352996c7e22d1f7038103512282f74c75` as READY deployment `dpl_DiDWbNko79RW5VSoUetS2UCH8JSo` at `2026-10-04T15:00:37.881Z`, with https://aurevane.vercel.app/ assigned. Six public entry/recovery/Manual/Rules/News checks and the 255,646-byte WebP VS asset return 200. The deployment-scoped warning/error/fatal scan from READY through `2026-10-04T15:02:35.621Z` returns no logs. This configuration/documentation closeout restores the full deployment lock without another application release. No application bytes, migrations, hosted Auth/content or production accounts change in this closeout. Earlier approved battle/tag/Copy/password-recovery changes remain included. Authenticated gameplay and recovery mail pass in disposable CI; authenticated Production gameplay and Owner visual acceptance remain separate outcomes. Evidence: `docs/superpowers/verification/2026-10-04-profile-idle-versus.md`.
 
 ## Approved battle layout and direct input — released
 
