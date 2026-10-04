@@ -112,6 +112,7 @@ jobs:
 
           # Catch shared battle composition regressions before the longer all-page run.
           # A successful candidate still runs the entire suite and the Edge keyboard checks below.
+          focused_status=0
           AUREVANE_ENV=local \
           NEXT_PUBLIC_AUREVANE_ENV=local \
           NEXT_PUBLIC_SUPABASE_URL="$api_url" \
@@ -120,6 +121,7 @@ jobs:
           pnpm --filter @aurevane/web exec playwright test \
             e2e/ai-header-control-shape.pw.ts e2e/ai-grid-legend-regression.pw.ts e2e/ai-sparring-teams.pw.ts \
             e2e/battle-cockpit-skill-slots.pw.ts e2e/pvp-six-combatant-rails.pw.ts e2e/pvp-map-sizes.pw.ts \
+            e2e/pvp-spectator-title-layout.pw.ts \
             e2e/shared-battle-presentation-parity.pw.ts e2e/pvp-battle-log-footer-parity.pw.ts \
             e2e/phase4-ground-targeting.pw.ts \
             e2e/pvp-mobile-unified-battle.pw.ts e2e/discipline-sigil-art.pw.ts \
@@ -128,12 +130,13 @@ jobs:
             e2e/battle-terrain-control-parity.pw.ts e2e/refined-battle-execution.pw.ts e2e/battle-info-popover.pw.ts \
             e2e/battle-recovery-hotkey.pw.ts e2e/battle-support-action.pw.ts e2e/techniques-support-action.pw.ts e2e/technique-preview-layout.pw.ts \
             e2e/shell-viewport-fit.pw.ts \
-            --project=desktop-chromium --project=mobile-chromium
+            --project=desktop-chromium --project=mobile-chromium || focused_status=$?
 
           # Preserve the shared rail/map screenshots before the complete suite clears its output.
           mkdir -p /tmp/battle-rail-review
-          find apps/web/test-results -maxdepth 1 -type d \( -name 'ai-grid-legend-regressio*' -o -name 'pvp-map-sizes*' \) \
+          find apps/web/test-results -maxdepth 1 -type d \( -name 'ai-grid-legend-regressio*' -o -name 'pvp-map-sizes*' -o -name 'pvp-spectator-title-layout*' \) \
             -exec cp -R '{}' /tmp/battle-rail-review/ \;
+          if [ "$focused_status" -ne 0 ]; then exit "$focused_status"; fi
 
           AUREVANE_ENV=local \
           NEXT_PUBLIC_AUREVANE_ENV=local \

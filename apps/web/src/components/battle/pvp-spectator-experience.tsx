@@ -372,11 +372,6 @@ export function PvpSpectatorExperience({
             {presentationParticipants.some((item) => item.teamIndex !== actingTeamIndex) ? (
               <BattleVersusEmblem />
             ) : null}
-            {activeParticipant && participantTitles[activeParticipant.characterId] ? (
-              <small className={styles.actorTitle}>
-                {participantTitles[activeParticipant.characterId]}
-              </small>
-            ) : null}
             <BattleCombatantCard
               participant={
                 presentationParticipants.find(
@@ -505,6 +500,15 @@ export function PvpSpectatorExperience({
           </aside>
           <div className={styles.preview} data-battle-preview-strip="true">
             <div data-battle-spectator-preview-content="true">{inspectContext()}</div>
+            {activeParticipant && participantTitles[activeParticipant.characterId] ? (
+              <small
+                className={styles.actorTitle}
+                role="note"
+                aria-label={`${activeParticipant.characterName} title`}
+              >
+                {participantTitles[activeParticipant.characterId]}
+              </small>
+            ) : null}
           </div>
           <div className={styles.inspectDock} data-battle-command-dock="true">
             <button type="button" aria-pressed={inspectMode} onClick={toggleInspect}>

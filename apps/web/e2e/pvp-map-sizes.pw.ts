@@ -152,7 +152,9 @@ for (const [size, label, width, tiles] of [
           )
           await expectBattleChronicleGutterGeometry(page, true)
           await testInfo.attach(`wide-chronicle-${label}`, {
-            body: await page.screenshot(),
+            body: await page.screenshot({
+              path: testInfo.outputPath(`wide-chronicle-${label}.png`),
+            }),
             contentType: 'image/png',
           })
           await page.setViewportSize(originalViewport)
