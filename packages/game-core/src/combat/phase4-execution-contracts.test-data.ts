@@ -244,7 +244,7 @@ export const PUBLISHED_SKILL_CONTRACTS: readonly PublishedSkillContract[] = [
   {
     id: 'runeblade.aether-cut',
     cost: [35, 2],
-    hp: enemy(-10, -6),
+    hp: enemy(-12, -6),
   },
   { id: 'runeblade.rune-mending', cost: [40, 0], hp: actor(10, 5) },
 
