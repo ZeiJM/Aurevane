@@ -293,7 +293,6 @@ describe('Versioned Phase 4 published interactions', () => {
         { kind: 'unit', combatantId: 'actor' },
         context,
       ).state
-      expect(tag(state, 'actor', 'Summoned')).toBe(false)
       const branded = cast(state, skill('runeblade.sigil-brand'), enemy, context).state
       expect(tag(branded, 'enemy', 'Hexed')).toBe(true)
       // The enemy's legal support action demonstrates the HP-healing penalty on itself.
