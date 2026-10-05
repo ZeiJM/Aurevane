@@ -143,7 +143,8 @@
 /* Preserve this workspace's readable targets over legacy desktop shell compaction. */
 @media (min-width: 981px) {
   :global(#game-main) .panel .row {
-    padding: 0.3rem 0.4rem;
+    /* The reserved Items binding adds an eighth row; keep every 44px target in view. */
+    padding: 0.125rem 0.4rem;
   }
 
   :global(#game-main) .panel .row small {
