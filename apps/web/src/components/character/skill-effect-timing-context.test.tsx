@@ -82,5 +82,3 @@ it('uses a battle’s pinned policy rather than newer Master timing, including l
   expect(timingMarks(section('pinned'))).toHaveLength(0)
   expect(timingMarks(section('legacy'))).toHaveLength(1)
 })
-
-
