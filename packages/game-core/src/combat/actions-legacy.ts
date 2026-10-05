@@ -346,7 +346,6 @@ export interface PendingCombatEffect {
   copyProvenance?: CombatActionProvenance
   sourceCommandVisibility?: CombatSourceCommandVisibility
   copySource?: {
-    beneficialPersistentEffects?: true
     combatantId: string
     statuses: readonly CombatStatusInstance[]
     effectState: CombatEffectState
@@ -872,7 +871,6 @@ export function evaluateCombatAction(
   if (issues.length === 0 && copyEffect?.type === 'copy-statuses' && target.combatantId) {
     if (
       target.combatantId === actorId ||
-      (copyEffect.beneficialEffects === true && state.copyPolicyVersion !== 1) ||
       (() => {
         const plan = planCombatStatusCopies(state, actorId, target.combatantId, copyEffect, content)
         const empty =
@@ -1299,11 +1297,7 @@ function applyCombatRoundBoundary(
     }
     const policy = nextState.effectTimingPolicy
     const sourceBefore = pending.copySource
-      ? captureStatusCopySource(
-          nextState,
-          pending.copySource.combatantId,
-          pending.copySource.beneficialPersistentEffects === true,
-        )
+      ? captureStatusCopySource(nextState, pending.copySource.combatantId)
       : null
     const resolutionState = pending.copySource
       ? withStatusCopySource(nextState, pending.copySource)
@@ -1612,12 +1606,6 @@ export function validateCombatEncounterState(
             throw new Error('Invalid pending identity.')
           validateSourceCommandVisibility(state, pending.sourceCommandVisibility, pending.actorId)
           if (
-            pending.effect.type === 'copy-statuses' &&
-            pending.effect.beneficialEffects === true &&
-            state.copyPolicyVersion !== 1
-          )
-            throw new TypeError('Pending beneficial Copy requires its pinned encounter policy.')
-          if (
             pending.criticalRecipientIds !== undefined &&
             (!Array.isArray(pending.criticalRecipientIds) ||
               pending.criticalRecipientIds.some((id: string) => !pending.recipientIds.includes(id)))
@@ -1629,11 +1617,7 @@ export function validateCombatEncounterState(
               !state.tactical.battle.combatants.some(
                 (unit) => unit.id === pending.copySource!.combatantId,
               ) ||
-              !Array.isArray(pending.copySource.statuses) ||
-              (pending.copySource.beneficialPersistentEffects !== undefined &&
-                pending.copySource.beneficialPersistentEffects !== true) ||
-              (pending.copySource.beneficialPersistentEffects === true &&
-                pending.effect.beneficialEffects !== true)
+              !Array.isArray(pending.copySource.statuses)
             )
               throw new TypeError('Invalid pinned copy source.')
             const snapshot = withStatusCopySource(
@@ -1651,7 +1635,6 @@ export function validateCombatEncounterState(
           if (pending.copyProvenance !== undefined) {
             if (
               pending.effect.type !== 'copy-statuses' ||
-              pending.effect.beneficialEffects !== true ||
               pending.copyProvenance.sourceCombatantId !== pending.actorId ||
               pending.copyProvenance.actionDefinitionId !== pending.actionId
             )
@@ -2287,7 +2270,6 @@ function resolveActionEffects(
                     copySource: captureStatusCopySource(
                       nextState,
                       effect.mode === 'amplify' ? recipientIds[0]! : actorId,
-                      effect.beneficialEffects === true,
                     ),
                   }
                 : {}),
@@ -2350,10 +2332,7 @@ function resolveActionEffects(
             actionId: action.id,
             sourceCombatantId: actorId,
             targetCombatantId,
-            effectTag:
-              effect.type === 'copy-statuses' && effect.beneficialEffects === true
-                ? 'beneficial-copy'
-                : combatEffectTimingTag(effect),
+            effectTag: combatEffectTimingTag(effect),
             activationRound: state.tactical.battle.round + 1,
             ...(timing?.remainingOwnerTurnEnds === undefined
               ? {}
@@ -4432,29 +4411,19 @@ function preparePendingSummonsForRound(
 function captureStatusCopySource(
   state: CombatEncounterState,
   combatantId: string,
-  beneficialPersistentEffects = false,
 ): NonNullable<PendingCombatEffect['copySource']> {
   const effects = normalizeCombatEffectState(state.effectState)
   return JSON.parse(
     JSON.stringify({
       combatantId,
-      ...(beneficialPersistentEffects ? { beneficialPersistentEffects: true } : {}),
       statuses: getStatusRow(state, combatantId).statuses,
       effectState: {
         ...effects,
         poison: effects.poison.filter((row) => row.targetCombatantId === combatantId),
         burn: effects.burn.filter((row) => row.targetCombatantId === combatantId),
         bleed: effects.bleed.filter((row) => row.targetCombatantId === combatantId),
-        ...(beneficialPersistentEffects
-          ? {
-              barriers: (effects.barriers ?? []).filter(
-                (row) => row.targetCombatantId === combatantId,
-              ),
-              ongoingRecovery: effects.ongoingRecovery.filter(
-                (row) => row.targetCombatantId === combatantId,
-              ),
-            }
-          : {}),
+        ongoingRecovery: [],
+        ...(effects.barriers ? { barriers: [] } : {}),
       },
     }),
   ) as NonNullable<PendingCombatEffect['copySource']>
@@ -4471,22 +4440,6 @@ function withStatusCopySource(
     ),
     effectState: {
       ...effects,
-      ...(source.beneficialPersistentEffects === true
-        ? {
-            barriers: [
-              ...(effects.barriers ?? []).filter(
-                (row) => row.targetCombatantId !== source.combatantId,
-              ),
-              ...(source.effectState.barriers ?? []),
-            ],
-            ongoingRecovery: [
-              ...effects.ongoingRecovery.filter(
-                (row) => row.targetCombatantId !== source.combatantId,
-              ),
-              ...source.effectState.ongoingRecovery,
-            ],
-          }
-        : {}),
       poison: [
         ...effects.poison.filter((row) => row.targetCombatantId !== source.combatantId),
         ...source.effectState.poison,
