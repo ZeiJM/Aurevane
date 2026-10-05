@@ -43,7 +43,7 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
   ),
   status(
     'frozen',
-    'Frozen',
+    'Chilled',
     'Debuff',
     'A Frozen setup tag. Fire removes it. Frozen terrain has a separate duration and movement cost.',
     { gameplayTags: ['Frozen'] },
@@ -55,12 +55,12 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
     'Storm damage gains 20% per active Wet or Conductive application, consuming Conductive.',
     { gameplayTags: ['Conductive'] },
   ),
-  status('inspired', 'Inspired', 'Buff', 'Deal 10% more damage per application.', {
+  status('inspired', 'Damage Up', 'Buff', 'Deal 10% more damage per application.', {
     gameplayTags: ['Inspired'],
     amplifyCopyable: true,
     reactionClass: 'ordinary',
   }),
-  status('hexed', 'Hexed', 'Debuff', 'Receive 25% less healing.', {
+  status('hexed', 'Healing Down', 'Debuff', 'Receive 25% less healing.', {
     gameplayTags: ['Hexed'],
     curseCopyable: true,
     reactionClass: 'ordinary',
@@ -72,13 +72,7 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
     'Cannot be selected by hostile direct unit actions. Ground effects can hit. A damaging action or taking damage breaks Invisible.',
     { gameplayTags: ['Invisible'], amplifyCopyable: true, reactionClass: 'ordinary' },
   ),
-  status(
-    'summoned',
-    'Summoned',
-    'Buff',
-    'A temporary spirit grants 15% damage protection. Can be dispelled; adds no actor or turn.',
-    { gameplayTags: ['Summoned'], damageModifiers: [modifier('incoming', 8_500)] },
-  ),
+
   status(
     'airborne',
     'Airborne',
@@ -104,27 +98,9 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
       reactionClass: 'ordinary',
     },
   ),
-  status(
-    'hastened',
-    'Hastened',
-    'Buff',
-    'Gain 20 Initiative for the next round only. Current turns are unchanged; no extra turn is granted.',
-    { nextRoundInitiative: 20 },
-  ),
-  status(
-    'delayed',
-    'Delayed',
-    'Debuff',
-    'Lose 20 Initiative for the next round only. Current turns are unchanged; no turn is skipped.',
-    { nextRoundInitiative: -20 },
-  ),
-  status(
-    'borrowed-hour',
-    'Borrowed Hour',
-    'Buff',
-    'Gain 40 Initiative for the next round only. No extra turn or AP is granted.',
-    { nextRoundInitiative: 40 },
-  ),
+
+
+
   status(
     'burn',
     'Burn',
@@ -146,13 +122,7 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
     'Lose 2 HP at the end of each of your next four turns. Fixed damage; ignores damage modifiers.',
     { durationOwnerTurnStarts: 4, endOfTurn: { type: 'damage', amount: 2 } },
   ),
-  status(
-    'regeneration',
-    'Regeneration',
-    'Buff',
-    'Restore up to 4 HP at the end of each of your next two turns.',
-    { endOfTurn: { type: 'healing', amount: 4 } },
-  ),
+
   status(
     'slow',
     'Slow',
@@ -164,7 +134,7 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
       reactionClass: 'ordinary',
     },
   ),
-  status('root', 'Root', 'Debuff', 'Cannot move. Attacks, Skills and facing remain available.', {
+  status('root', 'Rooted', 'Debuff', 'Cannot move. Attacks, Skills and facing remain available.', {
     movement: { blocked: true },
     curseCopyable: true,
     reactionClass: 'ordinary',
@@ -185,7 +155,7 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
   ),
   status(
     'challenged',
-    'Challenged',
+    'Taunted',
     'Debuff',
     'Deal 25% less damage to anyone except the unit that applied Challenge.',
     {
@@ -195,18 +165,7 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
     },
   ),
   // Historical v1 Mark remains immutable for already-pinned battles.
-  status(
-    'marked',
-    'Marked',
-    'Debuff',
-    'Take 20% more damage from the unit that applied Mark. Other attackers gain no benefit.',
-    {
-      damageModifiers: [
-        modifier('incoming', 12_000, { kind: 'opponent-is-source', matches: true }),
-      ],
-    },
-  ),
-  // Current Mark uses a distinct identity so historical marked v1 is never reinterpreted.
+
   status(
     'mark',
     'Marked',
@@ -219,7 +178,7 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
       effectCategories: ['Debuff', 'Mark'],
     },
   ),
-  status('warded', 'Warded', 'Buff', 'Take 20% less damage from opponents affected by Burn.', {
+  status('warded', 'Burn Ward', 'Buff', 'Take 20% less damage from opponents affected by Burn.', {
     damageModifiers: [modifier('incoming', 8_000, { kind: 'opponent-status', statusId: 'burn' })],
   }),
 ]
@@ -231,7 +190,7 @@ export const CLEANSE_STATUS_IDS = [
   'slow',
   'root',
   'exposed',
-  'marked',
+  'mark',
   'challenged',
 ] as const
 
@@ -251,7 +210,7 @@ const legacyDescriptions: Record<
     description: 'Reduces the target’s MP when the effect activates.',
   },
   'mp-recovery': {
-    name: 'MP Recovery',
+    name: 'MP Restore',
     kind: 'Buff',
     description: 'Restores MP when the effect activates.',
   },
@@ -282,7 +241,7 @@ const legacyDescriptions: Record<
     description: 'Grants a shield that absorbs damage before HP is lost.',
   },
   'return-to-turn-start': {
-    name: 'Return to turn start',
+    name: 'Rewind',
     kind: 'Effect',
     description:
       'Returns the caster to the recorded turn-start position if the destination remains legal.',
@@ -299,7 +258,7 @@ const legacyDescriptions: Record<
       'Copies eligible positive or negative effects through Amplify or Curse when the effect activates.',
   },
   sensory: {
-    name: 'Sensory',
+    name: 'Reveal',
     kind: 'Effect',
     description: 'Removes eligible beneficial effects from Covert targets and applies Revealed.',
   },
@@ -318,29 +277,18 @@ const legacyDescriptions: Record<
     kind: 'Debuff',
     description: 'Counters Covert and increases Skill AP costs.',
   },
-  copy: {
-    name: 'Skill Copy',
-    kind: 'Buff',
-    description: 'Grants temporary access to an exact pinned Skill from the target.',
-  },
-  'beneficial-copy': {
-    name: 'Copy beneficial effects',
-    kind: 'Effect',
-    description:
-      'Copies the selected unit’s active beneficial effect tags onto the user, preserving their remaining durations. The selected unit keeps its effects.',
-  },
   guarded: {
-    name: 'Guarded',
+    name: 'Guard',
     kind: 'Buff',
     description: 'Reduces incoming damage by 15% per application. Each use refreshes the duration.',
   },
   exposed: {
-    name: 'Exposed',
+    name: 'Vulnerable',
     kind: 'Debuff',
     description: 'Take 15% more damage per application. Each use refreshes the duration.',
   },
   'lowered-guard': {
-    name: 'Lowered Guard',
+    name: 'Defenseless',
     kind: 'Debuff',
     description:
       'Each application multiplies incoming damage by 2.5×. Applied after a genuine PvP turn-timer expiry.',
