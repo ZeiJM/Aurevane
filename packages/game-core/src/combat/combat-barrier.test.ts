@@ -205,7 +205,6 @@ describe('P4.K4 direct Barrier primitive', () => {
         poison: [],
         bleed: [],
         burn: [],
-        temporarySkills: [],
         damageHistory: [],
       },
     }
