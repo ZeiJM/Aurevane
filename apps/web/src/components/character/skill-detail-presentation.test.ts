@@ -184,7 +184,9 @@ it('shows the executable element and canonical status names on current Technique
 })
 
 it('keeps Cleanse while no longer inventing retired Summoned dispel behavior', () => {
-  expect(skillTargetTags(resolveMatureSkillVersion('runeblade.aether-cut')!)).not.toContain('Dispel')
+  expect(skillTargetTags(resolveMatureSkillVersion('runeblade.aether-cut')!)).not.toContain(
+    'Dispel',
+  )
   expect(skillTargetTags(resolveMatureSkillVersion('tidecaller.cleansing-rain')!)).toContain(
     'Cleanse',
   )
@@ -267,9 +269,7 @@ it('lists authored magnitudes as effects without leaking design tags', () => {
     skillEffectsSummary(siphon),
   )
   const brand = skillEffectsSummary(resolveMatureSkillVersion('runeblade.sigil-brand')!)
-  expect(brand).toBe(
-    'Dmg [10], Vulnerable [14.26%] [2 Turns], Healing Down [20.74%] [2 Turns]',
-  )
+  expect(brand).toBe('Dmg [10], Vulnerable [14.26%] [2 Turns], Healing Down [20.74%] [2 Turns]')
   expect(skillEffectsSummary(resolveMatureSkillVersion('runeblade.rune-mending')!)).not.toContain(
     'Dmg',
   )
