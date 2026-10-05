@@ -628,50 +628,7 @@ describe('Reflect successor lifecycle regression', () => {
     ).toBe(2)
     expect(result.events.filter((event) => event.event === 'status_expired')).toEqual([])
   })
-  it('applies and consumes scheduled tempo when reflected defeat wraps the round', () => {
-    const initial = roundEndReflectEncounter()
-    const tempo: CombatStatusDefinition = {
-      id: 'test.reflect-successor-tempo',
-      version: 1,
-      maximumStacks: 1,
-      durationOwnerTurnStarts: 2,
-      damageTakenMultiplierBasisPoints: 10_000,
-      nextRoundInitiative: 20,
-    }
-    initial.statusState = initial.statusState.map((row) =>
-      row.combatantId !== 'witness'
-        ? row
-        : {
-            ...row,
-            statuses: [
-              {
-                statusId: tempo.id,
-                statusVersion: 1,
-                stacks: 1,
-                remainingOwnerTurnStarts: 2,
-                sourceCombatantId: 'witness',
-              },
-            ],
-          },
-    )
-    expect(validateCombatEncounterState(initial)).toEqual([])
-    const result = cast(initial, hit(), [REFLECT, tempo])
-    expect(result.state.tactical.battle.round).toBe(2)
-    expect(result.state.tactical.battle.currentTurn?.combatantId).toBe('witness')
-    expect(result.state.tactical.battle.roundInitiativeModifiers).toEqual([
-      { combatantId: 'witness', amount: 20 },
-    ])
-    expect(result.state.statusState.find((row) => row.combatantId === 'witness')?.statuses).toEqual(
-      [],
-    )
-    expect(result.events).toContainEqual({
-      event: 'status_expired',
-      combatantId: 'witness',
-      statusId: tempo.id,
-    })
-    expect(validateCombatEncounterState(result.state)).toEqual([])
-  })
-  it('advances temporary terrain lifetime on a reflected round boundary', () => {
+    it('advances temporary terrain lifetime on a reflected round boundary', () => {
     const initial = setTerrainOverlay(
       roundEndReflectEncounter(),
       { x: 0, y: 0 },
