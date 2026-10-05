@@ -1097,18 +1097,10 @@ export function defeatCombatActionActor(
   actorId: string,
   content: CombatContentCatalog,
 ): CombatResolutionTransition {
-  let defeated = defeatCurrentCombatant(
-    battleForEffectStacking(state),
-    actorId,
-    [],
-  )
+  let defeated = defeatCurrentCombatant(battleForEffectStacking(state), actorId, [])
   const summonBoundary = preparePendingSummonsForRound(state, defeated.state.round)
   if (summonBoundary.state !== state)
-    defeated = defeatCurrentCombatant(
-      battleForEffectStacking(summonBoundary.state),
-      actorId,
-      [],
-    )
+    defeated = defeatCurrentCombatant(battleForEffectStacking(summonBoundary.state), actorId, [])
   const boundary = applyCombatRoundBoundary(
     withBattle(summonBoundary.state, defeated.state),
     state.tactical.battle.round,
