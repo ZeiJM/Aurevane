@@ -70,7 +70,6 @@ export function attachCombatEffectProvenance(
   ) {
     if (!content) throw new TypeError('Copied status provenance requires its pinned catalog.')
     if (
-      copyEffect.beneficialEffects === true &&
       combatEffectTimingMode(
         before.effectTimingPolicy,
         action.effectTimingTags?.[0] ?? combatEffectTimingTag(copyEffect),
@@ -81,7 +80,6 @@ export function attachCombatEffectProvenance(
         pendingEffects: after.pendingEffects?.map((pending, index) =>
           index >= (before.pendingEffects?.length ?? 0) &&
           pending.effect.type === 'copy-statuses' &&
-          pending.effect.beneficialEffects === true &&
           pending.actorId === evaluation.actorId &&
           pending.actionId === action.id
             ? { ...pending, copyProvenance: { ...context.provenance } }
