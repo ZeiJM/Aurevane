@@ -1,9 +1,5 @@
 import { isStarterCharacterPortraitRef } from '@aurevane/game-core/character/starter-options'
 import {
-  copiedSkillApCost,
-  copiedSkillCommandId,
-} from '@aurevane/game-core/combat/combat-skill-copy'
-import {
   DEFAULT_SUPPORT_ACTION_ID,
   parseSupportActionId,
 } from '@aurevane/game-core/combat/support-actions'
@@ -29,7 +25,6 @@ import {
   resolveBattleDisciplineSkillDefinition,
   resolveBattleEssenceDefinition,
   resolveBattleResonanceDefinition,
-  resolveBattleTemporarySkillDefinition,
 } from '@/server/battle/battle-build-authority'
 import { createBattleSessionService } from '@/server/battle/battle-session-service'
 import { getPvpBattleMetadata } from '@/server/battle/pvp-lobby-service'
@@ -121,55 +116,10 @@ async function battleBuildExtensions(
     )
   ).filter((entry): entry is NonNullable<typeof entry> => entry !== null)
 
-  const copiedSkills = authority
-    ? (
-        await Promise.all(
-          (battle.snapshot.effectState?.temporarySkills ?? [])
-            .filter((grant) => grant.combatantId === combatantId)
-            .map(async (grant) => {
-              const definition = await resolveBattleTemporarySkillDefinition(
-                authority,
-                grant,
-                resolver,
-              )
-              if (!definition) return null
-              return {
-                definition,
-                id: copiedSkillCommandId(definition.id, definition.contentVersion),
-                sourceSkillId: definition.id,
-                contentVersion: definition.contentVersion,
-                sourceDisciplineId: definition.sourceDisciplineId,
-                name: titleCase(
-                  definition.id.includes('.')
-                    ? definition.id.slice(definition.id.indexOf('.') + 1)
-                    : definition.id,
-                ),
-                iconKey: definition.media.iconKey,
-                apCost: copiedSkillApCost(definition, authority.combatContext),
-                cooldownOwnerTurns:
-                  definition.cooldown === null
-                    ? null
-                    : (definition.overrides[authority.combatContext]?.cooldownOwnerTurns ??
-                      definition.cooldown.ownerTurns),
-                mpCost: definition.mpCost ?? 0,
-                category: techniqueCategory(definition.tags),
-                targetKind: definition.target.kind,
-                targetTeamPolicy: definition.target.teamPolicy,
-                minimumRange: definition.target.minimumRange,
-                maximumRange: definition.target.maximumRange,
-                tags: [...skillTargetTags(definition), 'Copied'],
-                effectDescriptions: definition.effects.map(skillEffectDescription),
-                requirementDescriptions: definition.requirements.map(skillRequirementDescription),
-              }
-            }),
-        )
-      ).filter((entry): entry is NonNullable<typeof entry> => entry !== null)
-    : []
 
   return {
     supportActionId: parseSupportActionId(build?.supportActionId) ?? DEFAULT_SUPPORT_ACTION_ID,
     techniques,
-    copiedSkills,
     resonance: resonanceDefinition
       ? {
           definition: resonanceDefinition,
@@ -272,7 +222,6 @@ export default async function BattleSessionPage({
             playerName: localParticipant.characterName,
             supportActionId: buildExtensions.supportActionId,
             techniques: buildExtensions.techniques,
-            copiedSkills: buildExtensions.copiedSkills,
             resonance: buildExtensions.resonance,
             essence: buildExtensions.essence,
             metadata: pvpMetadata,
