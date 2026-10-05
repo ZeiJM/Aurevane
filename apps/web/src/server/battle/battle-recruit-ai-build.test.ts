@@ -12,7 +12,6 @@ import {
   type CombatBuildSnapshot,
 } from '@aurevane/game-core/combat/build-snapshot'
 import { createPv1fTemporaryResources } from '@aurevane/game-core/combat/pv1f-action-economy'
-import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 import {
   createStatDrivenCombatEncounterState,
   type StatDrivenCombatEncounterState,
@@ -22,15 +21,11 @@ import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
 
-import type { CombatContentResolver } from '@/server/combat/combat-content-resolver'
-import { createResolvedBattleBuildAuthoritySnapshot } from './battle-build-authority'
-import type { CharacterCommittedBuildSnapshotRecord } from '../character/character-build-service'
 import { createBattleRecruitAiService } from './battle-recruit-ai-service'
 
 const USER_ID = '00000000-0000-4000-8000-000000003741'
 const SESSION_ID = '00000000-0000-4000-8000-000000003742'
 const AI_CHARACTER_ID = '00000000-0000-4000-8000-000000003743'
-const PLAYER_CHARACTER_ID = '00000000-0000-4000-8000-000000003744'
 const AI_ID = `character:${AI_CHARACTER_ID}`
 const PLAYER_ID = `character:${PLAYER_CHARACTER_ID}`
 const CREATED_AT = '2026-09-04T03:40:00.000Z'
@@ -60,28 +55,6 @@ function snapshot(): CombatBuildSnapshot {
         skillId: 'essence.vanguard.unbroken-strike',
         skillContentVersion: 1,
       },
-      equipmentSkills: [],
-      supernatural: null,
-      prestige: null,
-    },
-  }
-}
-
-function committedSnapshot(value: CombatBuildSnapshot): CharacterCommittedBuildSnapshotRecord {
-  return {
-    schemaVersion: value.sourceBuildSchemaVersion,
-    buildVersion: value.sourceBuildVersion,
-    primary: { ...value.primary },
-    secondary: value.secondary ? { ...value.secondary } : null,
-    disciplineSkills: value.disciplineSkills.map((skill) => ({ ...skill })),
-    extensions: {
-      resonance: value.extensions.resonance
-        ? {
-            ...value.extensions.resonance,
-            disciplinePair: [...value.extensions.resonance.disciplinePair] as [string, string],
-          }
-        : null,
-      essence: value.extensions.essence ? { ...value.extensions.essence } : null,
       equipmentSkills: [],
       supernatural: null,
       prestige: null,
@@ -245,4 +218,4 @@ describe('P3.7 live Recruit AI shared build snapshot', () => {
       snapshot().fingerprint,
     )
   })
-  })
+})
