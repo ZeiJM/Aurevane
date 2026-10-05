@@ -1,5 +1,20 @@
 # AUREVANE — Active Task Ledger
 
+## Battle effect vocabulary and legacy cleanup — 2026-10-05 (in progress)
+
+Owner-approved cleanup simplifies player-facing combat tags and removes obsolete compatibility mechanics. Values display as `Dmg [x]` / elemental `Dmg [x]`, `Heal [x]`, `MP Restore [x]`, `MP Drain [x]`; Push/Pull bracket values are tile distance. Approved presentation renames include Rewind, Reveal, HP/MP Leech, Copy Buffs/Copy Debuffs, Vulnerable, Defenseless, Chilled, Damage Up, Healing Down, Invisible, Rooted, Taunted, Burn Ward and Frozen Ground.
+
+- [x] Centralize the approved player-facing tag vocabulary and authored-value display.
+- [x] Remove generic Skill Copy / Copy beneficial effects, copied-Skill state, preview/session/AI authority and dedicated tests.
+- [x] Remove retired Regeneration, Hastened, Delayed, Borrowed Hour status, historical Summoned protection and historical Marked vulnerability paths while retaining the Borrowed Hour Skill name and modern summon combatants.
+- [x] Remove the retired next-round-Initiative status compatibility hook.
+- [x] Reconcile the task branch with current Main without overwriting newer work.
+- [ ] Complete exact-head CI and repair any stale tests/references.
+- [ ] Finalize documentation/verification receipt and Owner review boundary.
+- [ ] Merge only after Owner approval; no Production deployment or migration is authorized by this task.
+
+Draft PR #839. No deployment or migration has occurred.
+
 ## AFK Lowered Guard and Online Users EXP — 2026-10-05 (released)
 
 Owner clarification: manual End Turn never applies Lowered Guard; the first expired participant timer in current AI/PvP battles does, defaulting to the next global round for one affected owner turn. Historical AI snapshots retain the recorded two-miss rule. Owner also requests current Character EXP in Online Users, numeric Level/EXP sorting and Last Seen most recent as the default. Preserve existing layout, portraits, privacy and clock authority.
