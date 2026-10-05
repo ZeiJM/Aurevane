@@ -1104,7 +1104,6 @@ export function defeatCombatActionActor(
   const boundary = applyCombatRoundBoundary(
     withBattle(summonBoundary.state, defeated.state),
     state.tactical.battle.round,
-    content,
   )
   const successorId = boundary.state.tactical.battle.currentTurn?.combatantId
   const successor = successorId
@@ -1125,7 +1124,6 @@ function battleForEffectStacking(state: CombatEncounterState): BattleState {
 function applyCombatRoundBoundary(
   state: CombatEncounterState,
   previousRound: number,
-  content: CombatContentCatalog,
 ): CombatResolutionTransition {
   if (state.tactical.battle.round === previousRound) return { state, events: [] }
   let nextState = state
@@ -1319,7 +1317,7 @@ export function endCombatTurn(
   const ownerExpiry = expireOwnerTurnEndStatuses(nextState, outgoingId)
   nextState = ownerExpiry.state
   events.push(...ownerExpiry.events)
-  const boundary = applyCombatRoundBoundary(nextState, state.tactical.battle.round, content)
+  const boundary = applyCombatRoundBoundary(nextState, state.tactical.battle.round)
   nextState = boundary.state
   events.push(...boundary.events)
   const completed = completeBattleIfResolved(nextState)
@@ -2420,10 +2418,7 @@ function applyEffect(
   actorId: string,
   recipientId: string,
   actionId: string,
-  effect: Exclude<
-    CombatEffectDefinition,
-    { type: 'create-terrain' | 'copy-statuses' | 'sensory' }
-  >,
+  effect: Exclude<CombatEffectDefinition, { type: 'create-terrain' | 'copy-statuses' | 'sensory' }>,
   content: CombatContentCatalog,
   stormRecipients: Set<string>,
   critical: boolean,
@@ -2916,10 +2911,7 @@ function expireOwnerTurnStartStatuses(
 
   for (const status of row.statuses) {
     const definition = getStatusDefinition(content, status.statusId, status.statusVersion)
-    if (
-      status.remainingOwnerTurnEnds !== undefined ||
-      definition.endOfTurn
-    ) {
+    if (status.remainingOwnerTurnEnds !== undefined || definition.endOfTurn) {
       kept.push(status)
       continue
     }
