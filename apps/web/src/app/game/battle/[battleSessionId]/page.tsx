@@ -261,7 +261,6 @@ export default async function BattleSessionPage({
           playerName: character.name,
           supportActionId: buildExtensions.supportActionId,
           techniques: buildExtensions.techniques,
-          copiedSkills: buildExtensions.copiedSkills,
           resonance: buildExtensions.resonance,
           essence: buildExtensions.essence,
           playerLevel: character.level,
