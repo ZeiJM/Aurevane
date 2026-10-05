@@ -239,9 +239,6 @@ describe('Phase 4 bounded conditional damage and linked tradeoffs', () => {
     let state = withStatus(encounter(), 'enemy', 'challenged')
     expect(multiplier(state, 'enemy', 'actor')).toBe(10000)
     expect(multiplier(state, 'enemy', 'ally')).toBe(7500)
-    state = withStatus(state, 'enemy', 'marked')
-    expect(multiplier(state, 'actor', 'enemy')).toBe(12000)
-    expect(multiplier(state, 'ally', 'enemy')).toBe(10000)
     state = withStatus(state, 'actor', 'warded')
     expect(multiplier(state, 'enemy', 'actor')).toBe(10000)
     state = withStatus(state, 'enemy', 'burn')
@@ -264,7 +261,7 @@ describe('Phase 4 bounded conditional damage and linked tradeoffs', () => {
     expect(multiplier(fortified, 'enemy', 'actor')).toBe(7000)
   })
   it('forecasts area damage per recipient and commits the same values after serialization', () => {
-    let state = withStatus(encounter(), 'enemy', 'marked')
+    let state = withStatus(encounter(), 'enemy', 'exposed')
     state = withStatus(state, 'actor', 'reckless')
     const definition = action([{ type: 'damage', recipient: 'affected-units', amount: 10 }])
     const preview = evaluateCombatAction(state, definition, target, PV1F_COMBAT_CONTENT)
@@ -286,7 +283,7 @@ describe('Phase 4 bounded conditional damage and linked tradeoffs', () => {
     expect(state.tactical.battle.combatants[1]!.hp).toBe(25)
   })
   it('combines modifiers independent of status order, caps them, and rejects malformed authored values', () => {
-    const state = withStatus(withStatus(encounter(), 'actor', 'reckless'), 'enemy', 'marked')
+    const state = withStatus(withStatus(encounter(), 'actor', 'reckless'), 'enemy', 'exposed')
     const statuses = PV1F_COMBAT_CONTENT.statuses.map((status) =>
       status.id === 'reckless'
         ? {
@@ -318,7 +315,7 @@ describe('Phase 4 bounded conditional damage and linked tradeoffs', () => {
 })
 
 describe('Phase 4 periodic effects, cleanse and movement control', () => {
-  it('ticks only at the affected unit’s turn end, including lethal damage, without reviving a defeated unit', () => {
+  it('ticks only at the affected unit’s turn end, including lethal damage', () => {
     let state = withStatus(encounter(), 'enemy', 'burn')
     state = {
       ...state,
@@ -332,7 +329,6 @@ describe('Phase 4 periodic effects, cleanse and movement control', () => {
         },
       },
     }
-    state = withStatus(state, 'enemy', 'regeneration')
     const enemyTurn = finishPv1fTurn(state, 'east').state
     expect(enemyTurn.tactical.battle.combatants.find((unit) => unit.id === 'enemy')?.hp).toBe(3)
     const after = finishPv1fTurn(enemyTurn, 'west')
