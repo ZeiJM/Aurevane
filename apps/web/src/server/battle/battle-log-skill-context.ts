@@ -167,9 +167,7 @@ export async function attachRecordedBattleLogSkillContext(
     ...summonView,
     entries: summonView.entries.map((entry) => {
       const record = records.get(recordKey(entry))
-      const effectOrigin = record
-        ? verifiedRecordedEffectOrigin(entry, record, authority)
-        : null
+      const effectOrigin = record ? verifiedRecordedEffectOrigin(entry, record, authority) : null
       const actorIdentity =
         (entry.actionContext || entry.actionId === 'battle.lowered-guard.apply') &&
         entry.actorCombatantId
@@ -239,8 +237,7 @@ function verifiedRecordedEffectOrigin(
   const resonance = build?.extensions.resonance
   let valid = false
   if (origin.family === 'skill') {
-    valid =
-      skill?.skillId === origin.contentId && skill?.contentVersion === origin.contentVersion
+    valid = skill?.skillId === origin.contentId && skill?.contentVersion === origin.contentVersion
   } else if (origin.family === 'essence') {
     valid =
       essence?.skillId === actionId &&
