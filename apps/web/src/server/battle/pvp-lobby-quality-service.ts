@@ -27,7 +27,7 @@ import {
 import { createPvpQualityResources } from '@aurevane/game-core/combat/pvp-quality'
 import {
   createCharacterDerivedCombatProfile,
-  createStatBalancedCombatEncounterState,
+  createDuelBalancedCombatEncounterState,
 } from '@aurevane/game-core/combat/stat-driven-combat'
 import { AurevaneError } from '@aurevane/game-core/errors'
 import { createStandardBattlefieldTiles } from '@aurevane/game-core/combat/standard-battlefield'
@@ -261,7 +261,7 @@ function createPvpEncounter(
   ).state
 
   const encounter = preparePv1fTurnEconomy(
-    createStatBalancedCombatEncounterState(
+    createDuelBalancedCombatEncounterState(
       createCombatEncounterState(
         createTacticalBattleState({
           battle,

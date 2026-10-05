@@ -184,7 +184,7 @@ describe('battle session committed Primary stat authority', () => {
       provenance: {
         kind: 'character-derived',
         sourceId: `character:${CHARACTER_ID}`,
-        sourceRulesVersion: 4,
+        sourceRulesVersion: 5,
       },
       accuracy: 8_875,
       evasion: 375,

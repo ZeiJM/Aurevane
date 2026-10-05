@@ -7,9 +7,12 @@ import {
   P2_3_COMBAT_CONTENT,
   P2_3_UNARMED_ATTACK_PROFILE,
   type CombatActionDefinition,
+  evaluateCombatAction,
+  executeCombatAction,
 } from './actions'
 import {
   createStatBalancedCombatEncounterState,
+  createDuelBalancedCombatEncounterState,
   createStatDrivenCombatEncounterState,
   forecastStatDrivenAttack,
   executeStatDrivenAttack,
@@ -92,6 +95,127 @@ const skill: CombatActionDefinition = {
 }
 
 describe('Owner stat balance policy', () => {
+  it('scales direct damage after defenses in new forecasts and leaves old forecasts intact', () => {
+    const { base, profiles } = fixture()
+    const direct = {
+      ...skill,
+      effects: [{ type: 'damage', recipient: 'primary-unit', amount: 100, defenseKind: 'armor' }],
+    } as CombatActionDefinition
+    const selection = { kind: 'unit', combatantId: 'target' } as const
+    const current = evaluateCombatAction(
+      createDuelBalancedCombatEncounterState(base, profiles),
+      direct,
+      selection,
+      P2_3_COMBAT_CONTENT,
+    )
+    const historical = evaluateCombatAction(
+      createStatBalancedCombatEncounterState(base, profiles),
+      direct,
+      selection,
+      P2_3_COMBAT_CONTENT,
+    )
+    expect(current.projectedEffects).toEqual(
+      expect.arrayContaining([expect.objectContaining({ before: 200, after: 137 })]),
+    )
+    expect(historical.projectedEffects).toEqual(
+      expect.arrayContaining([expect.objectContaining({ before: 200, after: 155 })]),
+    )
+  })
+  it.each([
+    ['west', 7000],
+    ['north', 8000],
+    ['east', 8500],
+  ] as const)(
+    'applies target facing %s to both forecasts and committed hit rolls',
+    (facing, chance) => {
+      const { base, profiles } = fixture(0, 8500, 1000)
+      base.tactical = {
+        ...base.tactical,
+        placements: base.tactical.placements.map((placement) =>
+          placement.combatantId === 'target' ? { ...placement, facing } : placement,
+        ),
+      }
+      const state = createDuelBalancedCombatEncounterState(base, profiles)
+      const before = JSON.parse(JSON.stringify(state))
+      const forecast = forecastStatDrivenAttack(
+        state,
+        attack,
+        { kind: 'unit', combatantId: 'target' },
+        P2_3_COMBAT_CONTENT,
+      )
+      expect(forecast.hitChanceBasisPoints).toBe(chance)
+      expect(
+        forecastCombatSkillAccuracyForTarget(state, skill, 'actor', 'target', P2_3_COMBAT_CONTENT)
+          ?.hitChanceBasisPoints,
+      ).toBe(chance)
+      expect(state).toEqual(before)
+      const skillCommit = executeCombatAction(
+        state,
+        skill,
+        { kind: 'unit', combatantId: 'target' },
+        P2_3_COMBAT_CONTENT,
+      )
+      expect(
+        skillCommit.events.find((event) => event.event === 'combat_accuracy_resolved'),
+      ).toMatchObject({ hitChanceBasisPoints: chance })
+      const committed = executeStatDrivenAttack(
+        state,
+        attack,
+        { kind: 'unit', combatantId: 'target' },
+        P2_3_COMBAT_CONTENT,
+      )
+      expect(
+        committed.events.find((event) => event.event === 'stat_driven_attack_resolved'),
+      ).toMatchObject({ hitChanceBasisPoints: chance })
+      const historical = createStatBalancedCombatEncounterState(base, profiles)
+      expect(
+        forecastStatDrivenAttack(
+          historical,
+          attack,
+          { kind: 'unit', combatantId: 'target' },
+          P2_3_COMBAT_CONTENT,
+        ).hitChanceBasisPoints,
+      ).toBe(7500)
+    },
+  )
+  it.each([
+    [14000, 2500, 'west', 10000],
+    [300, 1000, 'west', 0],
+    [300, 1000, 'east', 300],
+  ] as const)(
+    'combines facing with ratings before clamping %i minus %i from %s',
+    (accuracy, evasion, facing, chance) => {
+      const { base, profiles } = fixture(0, accuracy, evasion)
+      base.tactical = {
+        ...base.tactical,
+        placements: base.tactical.placements.map((placement) =>
+          placement.combatantId === 'target' ? { ...placement, facing } : placement,
+        ),
+      }
+      const state = createDuelBalancedCombatEncounterState(base, profiles)
+      expect(
+        forecastStatDrivenAttack(
+          state,
+          attack,
+          { kind: 'unit', combatantId: 'target' },
+          P2_3_COMBAT_CONTENT,
+        ).hitChanceBasisPoints,
+      ).toBe(chance)
+      expect(
+        forecastCombatSkillAccuracyForTarget(state, skill, 'actor', 'target', P2_3_COMBAT_CONTENT)
+          ?.hitChanceBasisPoints,
+      ).toBe(chance)
+      expect(
+        forecastCombatSkillAccuracyForTarget(
+          state,
+          { ...skill, accuracyMode: 'automatic' },
+          'actor',
+          'target',
+          P2_3_COMBAT_CONTENT,
+        ),
+      ).toBeNull()
+    },
+  )
   it('pins ratings above100% and resistance without replacing bridge4', () => {
     const { base, profiles } = fixture()
     const state = createStatBalancedCombatEncounterState(base, profiles)

@@ -40,7 +40,7 @@ import {
 } from '@aurevane/game-core/combat/pv1f-action-economy'
 import {
   createCharacterDerivedCombatProfile,
-  createStatBalancedCombatEncounterState,
+  createDuelBalancedCombatEncounterState,
   validateStatDrivenCombatEncounterState,
   type StatDrivenCombatEncounterState,
   type StatDrivenCombatProfileV4,
@@ -378,7 +378,7 @@ function createVerticalSliceEncounter(
   )
 
   return preparePv1fTurnEconomy(
-    createStatBalancedCombatEncounterState(encounter, [playerProfile, ...recruitProfiles]),
+    createDuelBalancedCombatEncounterState(encounter, [playerProfile, ...recruitProfiles]),
   )
 }
 

@@ -73,7 +73,12 @@ export async function moveOneStep(
 
 export async function expectRefinedCockpit(page: Page) {
   const deck = page.getByRole('region', { name: 'Command Deck' })
-  await expect(deck.locator('[data-command-card]')).toHaveCount(5)
+  await expect(deck.locator('[data-command-card]')).toHaveCount(6)
+  await expect(deck.locator('[data-battle-command="items"]')).toBeDisabled()
+  await expect(deck.locator('[data-command-card="items"]')).toContainText('Coming soon')
+  await expect(deck.locator('[data-command-card="items"] [data-battle-command-hotkey]')).toHaveText(
+    'P',
+  )
   await expect(deck.locator('[data-battle-skill-slot]')).toHaveCount(4)
   await expect(deck.locator('[data-battle-special]')).toHaveCount(2)
   await expect(
@@ -92,6 +97,7 @@ export async function expectRefinedCockpit(page: Page) {
     ),
   )
   expect(order).toEqual([
+    'items',
     'inspect',
     'move',
     'attack',

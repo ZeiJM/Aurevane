@@ -1,5 +1,7 @@
 # AUREVANE — Build System Rework: Disciplines, Skills, Resonance, Ascension & Severence
 
+Owner-approved 2026-10-05 follow-up supersedes earlier resource endpoints: derivedV5 HP500/650 and MP400/500 at Core40/60; new pinned duel policy1 calibrates direct-pressure Level100 reference mirrors to approximately12rounds and adds front−5/side+5/rear+10 percentage-point hit chance. Shared cockpit adds a locked Items placeholder before Inspect, defaultP, preserving artwork sizes and custom controls. Historical rules/snapshots remain unchanged. Current authority and exact scope: `COMBAT.md` and `superpowers/plans/2026-10-05-duel-resources-facing-items-spec.md`; factual verification/release remains in `../TASKS.md`.
+
 ## Effect timing and Battle Chronicle — Owner-approved 2026-10-03
 
 New battles pin Owner-versioned tag timing: following global round by default, with direct damage and HP/MP recovery instant. Pending icons appear immediately; active durations expire after the affected character completes the specified turns. Master Panel controls tag timing without rewriting existing battles. The shared Battle Chronicle presents actor-grouped short authored scenes and actual outcomes. See `COMBAT.md` and `superpowers/specs/2026-10-03-battle-chronicle-effects.md`.

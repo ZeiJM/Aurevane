@@ -45,13 +45,13 @@ test('creates a slotted character, persists its profile, and resumes it across s
   for (const [attribute, expectedValue] of Object.entries(expectedStarterAttributes)) {
     await expect(page.getByTestId(`profile-attribute-${attribute}`)).toContainText(expectedValue)
   }
-  // Current V4 curves applied to the fixed starter Core values above, without retired offsets.
+  // Current V5 curves applied to the fixed starter Core values above, without retired offsets.
   await expect(page.getByTestId('derived-stat-physicalPower')).toContainText('58')
   await expect(page.getByTestId('derived-stat-mysticPower')).toContainText('46')
   await expect(page.getByTestId('derived-stat-armor')).toContainText('Physical Defense58')
   await expect(page.getByTestId('derived-stat-ward')).toContainText('Mystic Defense54')
-  await expect(page.getByTestId('derived-stat-maxHp')).toContainText('98')
-  await expect(page.getByTestId('derived-stat-maxMp')).toContainText('17')
+  await expect(page.getByTestId('derived-stat-maxHp').locator('strong')).toHaveText('174')
+  await expect(page.getByTestId('derived-stat-maxMp').locator('strong')).toHaveText('44')
   await expect(page.getByTestId('derived-stat-accuracy')).toContainText('87.5%')
   await expect(page.getByTestId('derived-stat-evasion')).toContainText('2.5%')
   await expect(page.getByTestId('derived-stat-criticalChance')).toContainText('1.5%')

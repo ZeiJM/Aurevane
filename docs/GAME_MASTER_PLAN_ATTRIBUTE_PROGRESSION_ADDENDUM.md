@@ -1,5 +1,18 @@
 # AUREVANE — Attribute Progression and Stat Guardrails Addendum
 
+## Resource pools, twelve-round duel benchmark and Items placeholder — Owner-approved 2026-10-05
+
+Current derived ruleset5 preserves all non-resource V4 curves and mathematical bases80HP/16MP. Maximum HP is500 at Vitality40 and650 at60; Maximum MP is400 at Intellect40 and500 at60. Through40 the HP/MP slopes are10.5/9.6 per Core; above40 they are7.5/5. Integer numerators round down once. Effective Primary Core bases and focus60/non-focus40 caps remain. Explicit rulesets1–4 and saved encounters retain their recorded values.
+
+New encounters additionally pin `duelBalancePolicyVersion: 1` alongside stat policy1 and bridge4. Hostile direct damage multiplies post-defense damage by140% (round down), before Critical, relative-Level, authored facing/status/elemental/conditional modifiers and Barrier. This applies once to Basic Attack, Skills, Essence, Resonance, summon strikes and Vengeance direct packets. Periodic ticks, self/friendly damage, healing and resource formulas remain on their own paths. Reflect derives from committed damage without another duel multiplier. Authored1–20/ordinary-Mystic16 potencies remain pre-modifier values.
+
+Hostile Basic Attack and per-target Skill hit chance adds front−5, side+5 or rear+10 percentage points to Accuracy minus Evasion and existing authored/status modifiers, then clamps once to0–100%. Classify from the target's committed facing and source position using the existing directional relation. Evasion itself does not change. Preview, AI and commit share this arithmetic; automatic/self/friendly effects do not gain a hostile roll. Historical encounters without the policy retain their old chance and damage.
+
+The balance standard is approximately12 rounds for equally built Level100, Vitality40/offensive-Core40 direct-pressure mirrors using four selected Skills, normal AP/cooldowns and Basic Attack filler on flat adjacent front-facing tiles. Both reference allocations spend135 effective Core points. Across100 seeds per reference, Vanguard averages11.52 rounds and Aetherist12.68, pooled12.10. Build specialization, HP investment, healing, terrain and tactics can change duration; no turn limit or scripted kill enforces12. Exact fixtures and limitations: `superpowers/plans/2026-10-05-duel-resources-facing-items-spec.md`.
+
+The shared playable cockpit adds locked **Items · Coming soon** immediately before Inspect, default **P**, with identical square/frame/control formatting. Preserve existing artwork variables, image/card sizes and commands; allocate five inherent columns evenly, followed by the four Skills, Essence/Resonance, supernatural placeholder and End Turn. Desktop and mobile PvE/PvP use the same component. Saved customP bindings survive, allocating an available alternative for the new placeholder. The slot and hotkey cannot issue gameplay commands; this does not implement item consumption or storage.
+
+
 **Status:** Owner-approved authoritative addendum to `docs/GAME_MASTER_PLAN.md`.
 
 **Direction approved:** 2026-09-06. **Foundation non-focus cap policy approved:** 2026-09-08. **Level-range adventure scaling and Profile presentation approved:** 2026-09-09. **Level-100 / one-to-one Adventure Stat / combat-power rewrite approved:** 2026-09-20.
@@ -8,13 +21,13 @@ This addendum supersedes conflicting earlier wording about the current Level cap
 
 ## Owner stat and battle reader continuation — 2026-10-05
 
-Derived ruleset4 replaces the current baseline curves; explicit rulesets1–3 remain historical. New encounters pin `statBalancePolicyVersion: 1` independently of bridge4, so saved battles retain their original damage/movement/RNG. Primary Core bases and focus/non-focus caps60/40 remain; legacy Primary Adventure-stat offsets/caps no longer shift the new endpoints. Internal `armor`/`ward` identifiers remain, presented as **Physical Defense/Mystic Defense**.
+Derived ruleset5 replaces current resource curves; explicit rulesets1–4 remain historical. New encounters pin `statBalancePolicyVersion: 1` independently of bridge4, so saved battles retain their original damage/movement/RNG. Primary Core bases and focus/non-focus caps60/40 remain; legacy Primary Adventure-stat offsets/caps no longer shift the new endpoints. Internal `armor`/`ward` identifiers remain, presented as **Physical Defense/Mystic Defense**.
 
 | Adventure Stat | Mathematical base | Core40 | Core60 |
 |---|---:|---:|---:|
 | Physical/Mystic Power and matching Defense |40|120|160|
-| Maximum HP |80|160|200|
-| Maximum MP |16|32|48|
+| Maximum HP |80|500|650|
+| Maximum MP |16|400|500|
 | Accuracy |85%|110%|140%|
 | Evasion |0%|25%|55%|
 | Critical Chance |0%|15%|20%|

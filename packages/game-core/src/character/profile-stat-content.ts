@@ -16,8 +16,10 @@ export const ATTRIBUTE_PROFILE_HELP: Readonly<Record<CharacterAttributeId, strin
 }
 
 export const DERIVED_STAT_PROFILE_HELP: Readonly<Record<DerivedStatId, string>> = {
-  maxHp: 'Your current maximum health before temporary battle effects.',
-  maxMp: 'Your current maximum MP before temporary battle effects.',
+  maxHp:
+    'Maximum health from Vitality: 500 at Core40 and 650 at Core60, before equipment and temporary battle effects.',
+  maxMp:
+    'Maximum MP from Intellect: 400 at Core40 and 500 at Core60, before equipment and temporary battle effects.',
   physicalPower:
     'Physical damage rating from Might. Basic Attack and physical damaging Skills read this rating; relative Character Level then modifies direct combat damage separately.',
   mysticPower:
@@ -25,7 +27,7 @@ export const DERIVED_STAT_PROFILE_HELP: Readonly<Record<DerivedStatId, string>> 
   armor: 'Physical Defense rating from Vitality before equipment, statuses, and battle effects.',
   ward: 'Mystic Defense rating from Resolve before equipment, statuses, and battle effects.',
   accuracy:
-    'Accuracy rating from Finesse, up to 140%. Subtract target Evasion before clamping the final hit chance to 0–100%; terrain, facing, Skills, and battle effects may modify it.',
+    'Accuracy rating from Finesse, up to 140%. Subtract target Evasion before clamping the final hit chance to 0–100%; new battles add −5 percentage points from the front, +5 from the side or +10 from behind; terrain, Skills and battle effects may also modify it.',
   evasion: 'Baseline ability to avoid eligible attacks before battle-specific modifiers.',
   criticalChance:
     'Baseline critical chance from Finesse, capped at 20%, before temporary battle effects.',

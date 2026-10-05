@@ -432,3 +432,5 @@ Mandatory behavior:
 For timer/state-machine defects, explicitly test the no-input/timeout path and terminal-state boundaries. A timeout must not imply victory, completion, reward, or successful action unless the authoritative rule explicitly requires it.
 
 The detailed commands and workflow are authoritative in `docs/CONCURRENT_AGENT_WORKFLOW.md`.
+
+Owner-approved 2026-10-05 follow-up: defaultderivedV5 changes onlyHP/MP curves (500/650 and400/500 at Core40/60), preserving V4 and older history. New encounters pin duelBalancePolicyVersion1 alongside statBalancePolicyVersion1 and bridge4. Apply140% hostile direct damage once after Defense/beforeCritical; front−5,side+5,rear+10pp changes hit chance before the final clamp, never Evasion itself. Shared Basic/Skill previews, AI and commit agree. Never force twelve-round finishes; use legal135-point Level100 Core40 offense/Vitality40 four-Skill mirrors as the12round standard. Items is locked before Inspect, defaultP; preserve all artwork variables/sizes and custom bindings. See docs/COMBAT.md and docs/superpowers/plans/2026-10-05-duel-resources-facing-items-spec.md.

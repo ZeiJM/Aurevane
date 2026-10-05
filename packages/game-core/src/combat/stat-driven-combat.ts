@@ -1,5 +1,6 @@
 import { terrainAdjustedDefense, terrainEvasionBonusBasisPoints } from './combat-stat-balance'
 import { combatAccuracyStatusModifier } from './combat-accuracy-status'
+import { duelBalancedDirectDamage, facingHitChanceModifierBasisPoints } from './combat-duel-balance'
 import { calculateHitChanceBasisPoints } from './combat-skill-accuracy'
 export { calculateHitChanceBasisPoints } from './combat-skill-accuracy'
 import { mitigateDamageByDefense } from './damage-mitigation'
@@ -267,6 +268,14 @@ export function createStatBalancedCombatEncounterState(
   )
 }
 
+/** Current entry point; retaining the old factory avoids reinterpreting historical fixtures. */
+export function createDuelBalancedCombatEncounterState(
+  base: CombatEncounterState,
+  profiles: readonly StatDrivenCombatProfileV4[],
+): StatDrivenCombatEncounterStateV4 {
+  return createStatBalancedCombatEncounterState({ ...base, duelBalancePolicyVersion: 1 }, profiles)
+}
+
 export function createCurrentStatDrivenCombatEncounterState(
   base: CombatEncounterState,
   profiles: readonly StatDrivenCombatProfileV4[],
@@ -515,11 +524,15 @@ export function forecastStatDrivenAttack(
         evasion:
           target.evasion + terrainEvasionBonusBasisPoints(state, baseline.primaryCombatantId),
       },
-      combatAccuracyStatusModifier(state, baseline.actorId, baseline.primaryCombatantId, content),
+      combatAccuracyStatusModifier(state, baseline.actorId, baseline.primaryCombatantId, content) +
+        facingHitChanceModifierBasisPoints(state, baseline.actorId, baseline.primaryCombatantId),
     ),
     defenseKind,
     defenseRating,
-    mitigatedBaseDamage: firstDamageAmount(mitigatedAction),
+    mitigatedBaseDamage:
+      firstDamageAmount(mitigatedAction) === null
+        ? null
+        : duelBalancedDirectDamage(state, firstDamageAmount(mitigatedAction)!),
   }
 }
 

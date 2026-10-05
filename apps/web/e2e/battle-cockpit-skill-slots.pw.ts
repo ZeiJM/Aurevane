@@ -90,7 +90,7 @@ test('keeps square empty Skill slots and consistent cockpit info controls withou
   const before = await deck.boundingBox()
   await expect(page.locator('[data-battle-secondary-actions]')).toHaveCount(0)
   const controls = page.locator('[data-battle-cockpit-controls]')
-  await expect(controls).toHaveCount(11)
+  await expect(controls).toHaveCount(12)
   const geometry = await controls.evaluateAll((rows) =>
     rows.map((row) => {
       const name = row.parentElement!.querySelector(':scope > button > strong, :scope > strong')!

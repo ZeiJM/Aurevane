@@ -92,7 +92,11 @@ import { BattleSelectedSkills } from './battle-selected-skills'
 import { battleActionCooldownTurns } from './battle-action-cooldown'
 
 import { BattleSkillCommand } from './battle-skill-command'
-import { BATTLE_COMMAND_ARTWORK, battleSkillArtwork } from './battle-skill-presentation'
+import {
+  BATTLE_COMMAND_ARTWORK,
+  BATTLE_MISSING_ARTWORK,
+  battleSkillArtwork,
+} from './battle-skill-presentation'
 import { useBattleSkillSelections } from './battle-skill-selection'
 import styles from './pvp-battle-experience.module.css'
 import surrenderStyles from './battle-surrender-dialog.module.css'
@@ -2200,6 +2204,18 @@ function BattleExperienceContent({
             style={COCKPIT_ORNAMENT_STYLE}
           >
             <div className={styles.commands} data-battle-command-group="true">
+              <BattleSkillCommand
+                slot="items"
+                hotkey={formatCombatKeybind(bindings.items)}
+                label="Items"
+                cost="Coming soon"
+                artworkSrc={BATTLE_MISSING_ARTWORK}
+                active={false}
+                disabled
+                onActivate={() => {}}
+              >
+                <small data-battle-items-locked="true">Coming soon</small>
+              </BattleSkillCommand>
               <BattleSkillCommand
                 slot="inspect"
                 hotkey={formatCombatKeybind(bindings.inspect)}

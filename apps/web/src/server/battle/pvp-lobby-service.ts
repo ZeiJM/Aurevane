@@ -26,7 +26,7 @@ import {
 } from '@aurevane/game-core/combat/pv1f-action-economy'
 import {
   createCharacterDerivedCombatProfile,
-  createStatBalancedCombatEncounterState,
+  createDuelBalancedCombatEncounterState,
   validateStatDrivenCombatEncounterState,
   type StatDrivenCombatEncounterState,
 } from '@aurevane/game-core/combat/stat-driven-combat'
@@ -448,7 +448,7 @@ export function createPvpEncounter(
   ).state
 
   const encounter = preparePv1fTurnEconomy(
-    createStatBalancedCombatEncounterState(
+    createDuelBalancedCombatEncounterState(
       createCombatEncounterState(
         createTacticalBattleState({
           battle,

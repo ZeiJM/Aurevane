@@ -1,5 +1,17 @@
 # AUREVANE — Active Task Ledger
 
+## Resource pools, twelve-round duels, positional accuracy and Items — 2026-10-05 (verification in progress)
+
+Owner requests HP500/650 andMP400/500 at Core40/60, twelve-round Level1001v1 balance using ordinary equipped Skills/AP, front−5/side+5/rear+10 percentage-point hit chance, and locked Items before Inspect with defaultP and unchanged artwork sizes. Exact scope: `docs/superpowers/plans/2026-10-05-duel-resources-facing-items-spec.md`.
+
+- [x] Implement versionedV5 resources and preserve historicalV4/older curves.
+- [x] Calibrate real legal four-Skill mirror commands across200seeds: physical11.52,mystic12.68,pooled12.10 rounds.
+- [x] Implement pinned duel policy and shared preview/AI/commit direction/damage arithmetic.
+- [x] Add shared locked Items slot and safe custom-binding migration.
+- [ ] Complete exact-candidate full quality and browser geometry/control checks.
+- [ ] Merge and perform one authorized Production release, verify source/alias/public smoke/logs and restore deployment lock.
+
+
 ## Stat balance, elevation, resistance and shared reader corrections — 2026-10-05 (released)
 
 Owner requests exact Core40/60 anchors, paired Power/Defense, smaller MP economy with mystical tempo, Physical/Mystic Attack parameters, renamed defenses, absolute Jump access with position-derived elevation icons/tradeoffs, ordinary-Skill Status Resistance and special-family bypass; shared Resonance type/head/palette; persistent map focus removal; viewport-fitting victory/loss log readers. Existing artwork, layouts, authority, prior releases and historical battles remain. The authorized combined Production release is complete. Plan/spec: `docs/superpowers/plans/2026-10-05-stat-balance-spec.md` and companion plan.
