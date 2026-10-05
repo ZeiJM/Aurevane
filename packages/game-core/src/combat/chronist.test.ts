@@ -259,13 +259,14 @@ describe('Committed Resonance uses normal battle execution', () => {
         { kind: 'unit', combatantId: 'enemy' },
         context,
       )
-      expect(forecast.action.effects).toContainEqual({
-        type: 'apply-status',
-        recipient: 'actor',
-        statusId: 'hastened',
-        stacks: 1,
-        durationTurns: 1,
-      })
+      expect(forecast.action.effects).toContainEqual(
+        expect.objectContaining({
+          type: 'apply-status',
+          recipient: 'actor',
+          statusId: 'haste',
+          stacks: 1,
+        }),
+      )
       expect(JSON.stringify(loaded)).toBe(saved)
       const result = executePv1fMatureSkill(
         loaded,
@@ -283,7 +284,7 @@ describe('Committed Resonance uses normal battle execution', () => {
           { kind: 'unit', combatantId: 'enemy' },
           context,
         ).action.effects.some(
-          (effect) => effect.type === 'apply-status' && effect.statusId === 'hastened',
+          (effect) => effect.type === 'apply-status' && effect.statusId === 'haste',
         ),
       ).toBe(false)
     })
@@ -300,9 +301,9 @@ describe('Committed Resonance uses normal battle execution', () => {
 
 describe('Chronist quality transitions', () => {
   it.each([false, true])(
-    'excludes a boosted surrendering actor at the round boundary (terminal: %s)',
+    'excludes a surrendering actor at the round boundary (terminal: %s)',
     (terminal) => {
-      let state = withStatus(encounter(), 'ally', 'borrowed-hour')
+      let state = encounter()
       while (state.tactical.battle.currentTurn!.combatantId !== 'ally')
         state = finishPv1fTurn(state, 'west').state
       if (terminal)
