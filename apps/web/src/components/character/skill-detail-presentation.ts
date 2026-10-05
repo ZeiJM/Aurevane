@@ -102,22 +102,21 @@ export function skillRequirementDescription(requirement: CombatUseRequirement): 
     case 'target-tag-present':
       return `Target must have ${requirement.tag}.`
     case 'actor-status-present':
-      return `Requires ${title(requirement.statusId)} on yourself.`
+      return `Requires ${gameplayStatusName(requirement.statusId)} on yourself.`
     case 'actor-status-absent':
-      return `Requires no ${title(requirement.statusId)} on yourself.`
+      return `Requires no ${gameplayStatusName(requirement.statusId)} on yourself.`
     case 'target-status-present':
-      return `Target must have ${title(requirement.statusId)}.`
+      return `Target must have ${gameplayStatusName(requirement.statusId)}.`
     case 'actor-hp-at-most':
       return `Requires your HP at ${requirement.basisPoints / 100}% or below.`
   }
 }
 
 export function skillTargetTags(skill: MatureSkillDefinition): readonly string[] {
-  const tags = combatActionPresentationTags({
+  return combatActionPresentationTags({
     target: skill.target,
     effects: skill.effects.filter(isMaterializedCombatEffect),
   })
-  return skill.effects.some((effect) => effect.type === 'summon') ? [...tags, 'Summon'] : tags
 }
 
 export function skillTypeDescription(
