@@ -319,8 +319,6 @@ export function combatStatusDetails(
 }
 export function combatStatusDuration(id: string): string {
   const status = PHASE4_STATUSES.find((candidate) => candidate.id === id)
-  if (status?.nextRoundInitiative !== undefined)
-    return 'Consumed when the next round starts; the resulting order lasts for that round.'
   if (status?.endOfTurn)
     return `Lasts ${status.durationOwnerTurnStarts} end-of-turn ticks; reapplying refreshes the remaining ticks.`
   return `Expires at the start of the affected unit’s ${status?.durationOwnerTurnStarts === 1 || id === 'lowered-guard' ? 'next' : 'second upcoming'} turn.`
