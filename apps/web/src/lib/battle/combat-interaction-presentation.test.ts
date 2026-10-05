@@ -26,7 +26,7 @@ it('shares terrain duration and both-team rules between forecast and board inspe
     after: 'steam',
     remainingRoundBoundaries: 2,
   }
-  expect(combatInteractionDescription(event)).toContain('Frozen → Steam at tile 2,3')
+  expect(combatInteractionDescription(event)).toContain('Frozen Ground → Steam at tile 2,3')
   expect(combatInteractionDescription(event)).toContain('Blocks line of sight')
 })
 
@@ -48,9 +48,9 @@ it('shows displacement failures and tag consumption without exposing arbitrary p
   expect(combatInteractionDescription({ event: 'status_removed', statusId: 'conductive' })).toBe(
     'Conductive removed.',
   )
-  expect(gameplayStatusName('burn')).toBe('Burn (Scorched)')
-  expect(gameplayStatusName('bleed')).toBe('Bleed (Bleeding)')
-  expect(gameplayStatusName('poison')).toBe('Poison (Poisoned)')
+  expect(gameplayStatusName('burn')).toBe('Burn')
+  expect(gameplayStatusName('bleed')).toBe('Bleed')
+  expect(gameplayStatusName('poison')).toBe('Poison')
 })
 
 it('does not advertise unit statuses when a legal empty-ground action affects no units', () => {
