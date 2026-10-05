@@ -4,6 +4,24 @@ import { describe, expect, it, vi } from 'vitest'
 import { BattleSelectedSkills } from './battle-selected-skills'
 import type { BattleRuntime } from './battle-runtime'
 
+const technique = {
+  id: 'vanguard.forceful-strike',
+  contentVersion: 2,
+  sourceDisciplineId: 'vanguard',
+  name: 'Forceful Strike',
+  apCost: 15,
+  mpCost: 0,
+  cooldownOwnerTurns: 2,
+  category: 'attack' as const,
+  targetKind: 'unit' as const,
+  targetTeamPolicy: 'enemy' as const,
+  minimumRange: 1,
+  maximumRange: 1,
+  tags: ['Enemy', 'Single', 'Dmg [8]'],
+  effectDescriptions: ['Deal damage.'],
+  requirementDescriptions: [],
+}
+
 const runtime: BattleRuntime = {
   kind: 'pve',
   playerName: 'Wayfarer',
@@ -13,45 +31,9 @@ const runtime: BattleRuntime = {
   techniques: [],
   resonance: null,
   essence: null,
-  copiedSkills: [
-    {
-      id: 'temporary.copy.vanguard.forceful-strike.v2',
-      sourceSkillId: 'vanguard.forceful-strike',
-      contentVersion: 2,
-      sourceDisciplineId: 'vanguard',
-      name: 'Forceful Strike',
-      apCost: 15,
-      mpCost: 0,
-      category: 'attack',
-      targetKind: 'unit',
-      targetTeamPolicy: 'enemy',
-      minimumRange: 1,
-      maximumRange: 1,
-      tags: ['Enemy', 'Single', 'Copied'],
-      effectDescriptions: ['Deal damage.'],
-      requirementDescriptions: [],
-    },
-    {
-      id: 'temporary.copy.lifebinder.barrier.v1',
-      sourceSkillId: 'lifebinder.barrier',
-      contentVersion: 1,
-      sourceDisciplineId: 'lifebinder',
-      name: 'Barrier',
-      apCost: 20,
-      mpCost: 0,
-      category: 'defense',
-      targetKind: 'unit',
-      targetTeamPolicy: 'ally',
-      minimumRange: 1,
-      maximumRange: 3,
-      tags: ['Ally', 'Single', 'Copied'],
-      effectDescriptions: ['Grant Barrier.'],
-      requirementDescriptions: [],
-    },
-  ],
 }
 
-describe('battle copied Skill presentation', () => {
+describe('battle Skill presentation', () => {
   it('places click information before the hotkey below every cockpit name, including empty slots', () => {
     const markup = renderToStaticMarkup(
       <BattleSelectedSkills runtime={runtime} disabled actionEconomy={0} onSelect={vi.fn()} />,
@@ -64,15 +46,11 @@ describe('battle copied Skill presentation', () => {
       /<strong>Severance \/ Ascension<\/strong><div[^>]*data-battle-cockpit-controls="true"[^>]*><button[^>]*>i<\/button><span[^>]*>9<\/span>/,
     )
   })
+
   it('renders four hotkey slots followed by power and supernatural information, without replacing basic commands', () => {
     const markup = renderToStaticMarkup(
       <BattleSelectedSkills
-        runtime={{
-          ...runtime,
-          techniques: [
-            { ...runtime.copiedSkills![0]!, id: 'vanguard.forceful-strike', cooldownOwnerTurns: 1 },
-          ],
-        }}
+        runtime={{ ...runtime, techniques: [{ ...technique, cooldownOwnerTurns: 1 }] }}
         disabled={false}
         actionEconomy={100}
         onSelect={vi.fn()}
@@ -86,53 +64,29 @@ describe('battle copied Skill presentation', () => {
     expect(markup).toContain('Severance / Ascension')
     expect(markup).not.toContain('Coming soon')
   })
-  it('renders one compact Copied Skills group instead of extra committed Skill slots', () => {
-    const markup = renderToStaticMarkup(
-      <BattleSelectedSkills
-        runtime={runtime}
-        activeId="temporary.copy.vanguard.forceful-strike.v2"
-        disabled={false}
-        actionEconomy={100}
-        onSelect={vi.fn()}
-      />,
-    )
-
-    expect(markup.match(/data-battle-copied-skills="true"/g)).toHaveLength(1)
-    expect(markup.match(/data-battle-copied-skill-option=/g)).toHaveLength(2)
-    expect(markup).toContain('Copied Skills')
-    expect(markup).toContain('2 battle-only')
-    expect(markup.match(/aria-label="Empty selected Skill slot"/g)).toHaveLength(4)
-  })
 })
 
 describe('selected Skill cooldown presentation', () => {
-  it('blocks Technique, Essence and copied selection but keeps all information accessible', () => {
-    const technique = {
-      ...runtime.copiedSkills![0]!,
-      id: 'vanguard.forceful-strike',
-      cooldownOwnerTurns: 2,
-    }
+  it('blocks Technique and Essence selection but keeps all information accessible', () => {
     const essence = {
       ...technique,
       id: 'essence.fixture',
       name: 'Fixture Essence',
       description: '',
+      cooldownOwnerTurns: 1,
     }
     const markup = renderToStaticMarkup(
       <BattleSelectedSkills
         runtime={{ ...runtime, techniques: [technique], essence }}
         disabled={false}
         actionEconomy={100}
-        cooldowns={{ [technique.id]: 2, [essence.id]: 1, [runtime.copiedSkills![0]!.id]: 2 }}
+        cooldowns={{ [technique.id]: 2, [essence.id]: 1 }}
         onSelect={vi.fn()}
       />,
     )
-    expect(markup.match(/data-battle-cooldown-countdown="true"/g)).toHaveLength(3)
+    expect(markup.match(/data-battle-cooldown-countdown="true"/g)).toHaveLength(2)
     expect(markup).toMatch(/aria-label="Selected Forceful Strike[^>]*disabled/)
     expect(markup).toMatch(/aria-label="Fixture Essence[^>]*disabled/)
-    expect(markup).toMatch(
-      /data-battle-copied-skill-option="temporary.copy.vanguard.forceful-strike.v2"[^>]*disabled/,
-    )
     expect(markup).not.toMatch(/data-battle-info-trigger="true"[^>]*disabled/)
   })
 })
