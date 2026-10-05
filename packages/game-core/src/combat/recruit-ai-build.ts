@@ -55,12 +55,14 @@ export function chooseBuildAwareRecruitAiDecision(input: {
 
   const committed =
     input.skillOptions?.committedSkills ?? committedMatureSkills(input.state, actorId)
-  const skillCandidates = committed.flatMap((definition) =>
-    buildSkillCandidates(input.state, definition, input.profile ?? RECRUIT_STANDARD_PROFILE),
-  ).sort((left, right) => {
-    if (left.utility !== right.utility) return right.utility - left.utility
-    return left.stableKey.localeCompare(right.stableKey)
-  })
+  const skillCandidates = committed
+    .flatMap((definition) =>
+      buildSkillCandidates(input.state, definition, input.profile ?? RECRUIT_STANDARD_PROFILE),
+    )
+    .sort((left, right) => {
+      if (left.utility !== right.utility) return right.utility - left.utility
+      return left.stableKey.localeCompare(right.stableKey)
+    })
   const selected = skillCandidates[0]
   if (!selected || selected.utility <= baseline.utility) {
     return {
