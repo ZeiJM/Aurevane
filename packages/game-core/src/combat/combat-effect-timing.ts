@@ -235,8 +235,6 @@ export function activePersistentCombatStatusRows(
         undefined,
         'until-spent',
       )
-  for (const grant of effects.temporarySkills)
-    append(grant.combatantId, 'copy', grant.sourceCombatantId, undefined, 'battle')
   for (const summon of effects.summons ?? [])
     append(
       summon.combatantId,
