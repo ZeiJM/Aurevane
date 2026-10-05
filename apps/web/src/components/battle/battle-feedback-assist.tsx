@@ -355,7 +355,7 @@ function buildEmojiPicker(form: HTMLFormElement, input: HTMLInputElement, player
 
 function enhanceChat(playerName: string) {
   const footer = document.querySelector<HTMLElement>('main[aria-busy] > footer')
-  if (!footer) return
+  if (!footer || footer.closest('[data-unified-battle="true"]')) return
   const trigger = footer.querySelector<HTMLButtonElement>(':scope > div:first-child > button')
   if (trigger && trigger.dataset.a2ChatLabel !== 'ready') {
     trigger.dataset.a2ChatLabel = 'ready'

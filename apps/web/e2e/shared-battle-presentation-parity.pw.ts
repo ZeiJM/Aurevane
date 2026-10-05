@@ -196,7 +196,10 @@ test('keeps requested PvE presentation parity on desktop and mobile', async ({
   await expectBattleHeaderAndArtworkGeometry(page)
 
   const context = root.getByRole('region', { name: 'Command Deck' })
-  await expect(root.locator('[data-ai-turn-clock="true"]')).toHaveText(/^\d+s$/)
+  // The clock refreshes independently on its five-second watchdog after an AI opening turn.
+  await expect(root.locator('[data-ai-turn-clock="true"]')).toHaveText(/^\d+s$/, {
+    timeout: 15000,
+  })
   await context.getByRole('button', { name: /^Guard,/ }).click()
   const preview = targetForecast(page).locator('[data-react-battle-preview="true"]:visible')
   await expect(targetForecast(page).locator('[aria-label="Action preview"]')).toHaveCount(1)

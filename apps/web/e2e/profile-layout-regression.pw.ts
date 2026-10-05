@@ -421,9 +421,12 @@ test('a populated hybrid loadout keeps all four Techniques and management action
   for (const card of await equippedOverview.all()) {
     await expect(card).not.toContainText('AP')
   }
-  await expect(page.locator('[aria-labelledby="nexus-attunement-heading"]')).toContainText(
-    'Resonance',
-  )
+  const attunement = page.locator('[aria-labelledby="nexus-attunement-heading"]')
+  await expect(attunement.locator('article[data-active="true"] strong')).toHaveText("Mercy's Edge")
+  await expect(
+    attunement.getByRole('button', { name: "Preview Resonance: Mercy's Edge", exact: true }),
+  ).toBeVisible()
+  await expect(attunement).not.toContainText("Resonance: Mercy's Edge")
   await expect(page.getByText('Pronouns', { exact: true })).toHaveCount(0)
   const screenshot = await page.screenshot({ fullPage: true, scale: 'css' })
   const label = `profile-populated-${viewport.width}x${viewport.height}`

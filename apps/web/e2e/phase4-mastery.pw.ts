@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process'
 import { expect, test } from '@playwright/test'
+import { PV1F_BASIC_ATTACK_COST } from '@aurevane/game-core/combat/pv1f-skills'
 import type { BattleSessionView } from '../src/server/battle/battle-session-service'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
@@ -143,7 +144,7 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
     await expect(
       root.getByRole('progressbar', { name: 'Action Economy remaining' }),
     ).toHaveAttribute('aria-valuenow', String(ap))
-    if (!braced && ap >= 35) {
+    if (!braced && distance === 1 && ap >= 35) {
       await root.getByRole('button', { name: 'Selected Brace, 35 AP', exact: true }).click()
       await commit()
       braced = true
@@ -151,7 +152,7 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
       continue
     }
     const nextPrimarySkillCost = 45
-    if (distance === 1 && ap >= (skillCommands < 3 ? nextPrimarySkillCost : 50)) {
+    if (distance === 1 && ap >= (skillCommands < 3 ? nextPrimarySkillCost : PV1F_BASIC_ATTACK_COST)) {
       if (skillCommands === 1) {
         await root
           .getByRole('button', { name: 'Selected Forceful Strike, 45 AP', exact: true })
@@ -205,6 +206,16 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
     expect(turn.status()).toBe(200)
     battle = (await turn.json()).battle
   }
+  console.log(
+    'mastery-trial-result',
+    JSON.stringify({
+      version: battle.battleVersion,
+      lifecycle: battle.snapshot.tactical.battle.lifecycle,
+      round: battle.snapshot.tactical.battle.round,
+      skillCommands,
+      combatants: battle.snapshot.tactical.battle.combatants,
+    }),
+  )
   expect(skillCommands).toBeGreaterThanOrEqual(3)
   const result = page.getByTestId('battle-result-overlay')
   await expect(result.getByRole('heading', { name: 'Victory', exact: true })).toBeVisible()
