@@ -536,18 +536,20 @@ async function expectInlineSkillForecast(page: Page, actionId: string, ground: b
         await expect(result).toContainText(
           scheduledEffectPreviewLabel(effect) ?? gameplayStatusName(effect.after),
         )
-    expect(
-      await target.evaluate(
-        (element) =>
-          [...element.querySelectorAll('img')].some(
-            (image) => image.complete && image.naturalWidth > 0,
-          ) ||
-          Boolean(
-            element.querySelector(':scope > span[aria-hidden="true"]')?.getBoundingClientRect()
-              .width,
-          ),
-      ),
-    ).toBe(true)
+    await expect
+      .poll(() =>
+        target.evaluate(
+          (element) =>
+            [...element.querySelectorAll('img')].some(
+              (image) => image.complete && image.naturalWidth > 0,
+            ) ||
+            Boolean(
+              element.querySelector(':scope > span[aria-hidden="true"]')?.getBoundingClientRect()
+                .width,
+            ),
+        ),
+      )
+      .toBe(true)
   }
   await expect(preview.getByRole('button')).toHaveCount(0)
 }
@@ -568,7 +570,27 @@ async function exerciseForecast(
       commits += 1
   }
   page.on('request', observe)
+  const previewUrl = new URL(
+    `/api/battles/${baselineState.battleSessionId}/preview`,
+    page.url(),
+  ).toString()
+  let heldPreview:
+    { hold: Promise<void>; observed: () => void; handled?: Promise<void> } | undefined
+  const interceptPreview = (route: Route) => {
+    const held = heldPreview
+    if (!held || held.handled) return route.continue()
+    held.handled = (async () => {
+      const response = await route.fetch()
+      held.observed()
+      await held.hold
+      await route.fulfill({ response })
+    })()
+    return held.handled
+  }
   try {
+    // Keep Chromium interception stable while real held responses mount lazy portraits.
+    // Toggling Fetch off between viewports can strand an unrelated image request.
+    await page.route(previewUrl, interceptPreview)
     for (const viewport of viewports) {
       await page.setViewportSize(viewport)
       await page.getByRole('button', { name: 'Cancel Action', exact: true }).click()
@@ -721,21 +743,7 @@ async function exerciseForecast(
       const fetched = new Promise<void>((resolve) => {
         observed = resolve
       })
-      const previewUrl = new URL(
-        `/api/battles/${baselineState.battleSessionId}/preview`,
-        page.url(),
-      ).toString()
-      let handled: Promise<void> | undefined
-      const holdPreview = (route: Route) => {
-        handled = (async () => {
-          const response = await route.fetch()
-          observed()
-          await hold
-          await route.fulfill({ response })
-        })()
-        return handled
-      }
-      await page.route(previewUrl, holdPreview, { times: 1 })
+      heldPreview = { hold, observed }
       try {
         await page.getByRole('button', { name: /^Selected Chilling Mist,/ }).click()
         await fetched
@@ -745,10 +753,8 @@ async function exerciseForecast(
         await check('pending-ground')
       } finally {
         release()
-        // Removing interception can release a paused route itself. Let the held real
-        // response finish exactly once before removing this viewport's handler.
-        await handled
-        await page.unroute(previewUrl, holdPreview)
+        await heldPreview.handled
+        heldPreview = undefined
       }
       await expect(
         page
@@ -763,6 +769,7 @@ async function exerciseForecast(
     expect(commits).toBe(0)
     expect(await readBattle(page)).toEqual(baselineState)
   } finally {
+    await page.unroute(previewUrl, interceptPreview)
     page.off('request', observe)
   }
 }
