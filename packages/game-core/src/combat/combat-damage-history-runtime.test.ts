@@ -305,7 +305,6 @@ describe('P4.K4 authoritative damage-history resolver wiring', () => {
         poison: [],
         bleed: [],
         burn: [],
-        temporarySkills: [],
         damageHistory: [
           { combatantId: 'target', round: 1, amount: 3 },
           { combatantId: 'target', round: 2, amount: 4 },
