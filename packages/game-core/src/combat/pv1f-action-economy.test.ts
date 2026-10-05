@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 
 import { resolveMatureSkillVersion, type MatureSkillDefinition } from './mature-skills'
 
-import { createCombatEncounterState } from './actions'
+import { createCombatEncounterState, executeCombatAction } from './actions'
+import { pendingCombatStatusRows } from './combat-effect-timing'
 import { createPendingBattle, startBattle } from './battle-state'
 import { normalizeCombatEffectState } from './combat-effect-state'
 import { currentSkillDamageScaling } from './damage-scaling'
@@ -22,6 +23,8 @@ import {
   PV1F_ACTION_ECONOMY_RESOURCE_KEY,
   PV1F_BASIC_ATTACK_COST,
   PV1F_BASIC_ATTACK_ID,
+  PV1F_COMBAT_CONTENT,
+  PV1F_GUARD_ACTION,
   PV1F_GUARD_ACTION_ID,
   PV1F_GUARD_COST,
   PV1F_MP_RECOVER_ACTION_ID,
@@ -440,6 +443,134 @@ describe('PV-1F status stacking', () => {
 
     expect(guarded).toMatchObject({ stacks: 2, remainingOwnerTurnStarts: 2 })
     expect(economy?.current).toBe(100 - PV1F_GUARD_COST)
+  })
+})
+
+describe('inherent Guard duration authority', () => {
+  function guarded(state: StatDrivenCombatEncounterState) {
+    return state.statusState
+      .find((row) => row.combatantId === 'player')
+      ?.statuses.find((status) => status.statusId === 'guarded')
+  }
+
+  it('forecasts and commits two complete affected turns after next-round activation', () => {
+    const initial = {
+      ...lethalEncounter('player'),
+      effectTimingPolicy: { version: 1, modes: {} },
+    }
+    const preview = evaluatePv1fAction(initial, PV1F_GUARD_ACTION_ID, { kind: 'self' })
+    expect(preview.evaluation.projectedEffects).toContainEqual(
+      expect.objectContaining({
+        statusId: 'guarded',
+        after: 'pending',
+        activationRound: 2,
+        remainingOwnerTurnEnds: 2,
+      }),
+    )
+    const used = executePv1fAction(initial, PV1F_GUARD_ACTION_ID, { kind: 'self' })
+    expect(guarded(used.state)).toBeUndefined()
+    expect(pendingCombatStatusRows(used.state)[0]?.status).toMatchObject({
+      timingState: 'pending',
+      activationRound: 2,
+      remainingOwnerTurnEnds: 2,
+    })
+    expect(readPv1fActionEconomy(used.state, 'player')?.current).toBe(70)
+    expect(readPv1fActionCooldown(used.state, 'player', PV1F_GUARD_ACTION_ID)).toMatchObject({
+      ownerTurns: 2,
+      ticksRemaining: 3,
+    })
+
+    let state = JSON.parse(JSON.stringify(used.state)) as StatDrivenCombatEncounterState
+    state = finishPv1fTurn(state, 'east').state
+    expect(state.tactical.battle.round).toBe(1)
+    expect(guarded(state)).toBeUndefined()
+    expect(
+      evaluatePv1fAction(state, PV1F_BASIC_ATTACK_ID, { kind: 'unit', combatantId: 'player' })
+        .evaluation.projectedEffects,
+    ).toContainEqual(expect.objectContaining({ effectType: 'damage', before: 50, after: 0 }))
+
+    state = finishPv1fTurn(state, 'west').state
+    expect(state.tactical.battle.round).toBe(2)
+    expect(state.pendingEffects).toHaveLength(0)
+    expect(guarded(state)).toMatchObject({ timingState: 'active', remainingOwnerTurnEnds: 2 })
+    state = finishPv1fTurn(state, 'east').state
+    expect(guarded(state)?.remainingOwnerTurnEnds).toBe(1)
+    expect(
+      evaluatePv1fAction(state, PV1F_BASIC_ATTACK_ID, { kind: 'unit', combatantId: 'player' })
+        .evaluation.projectedEffects,
+    ).toContainEqual(expect.objectContaining({ effectType: 'damage', before: 50, after: 8 }))
+
+    state = JSON.parse(JSON.stringify(state)) as StatDrivenCombatEncounterState
+    state = finishPv1fTurn(state, 'west').state
+    expect(state.tactical.battle.round).toBe(3)
+    expect(guarded(state)?.remainingOwnerTurnEnds).toBe(1)
+    state = finishPv1fTurn(state, 'east').state
+    expect(guarded(state)).toBeUndefined()
+    expect(
+      evaluatePv1fAction(state, PV1F_BASIC_ATTACK_ID, { kind: 'unit', combatantId: 'player' })
+        .evaluation.projectedEffects,
+    ).toContainEqual(expect.objectContaining({ effectType: 'damage', before: 50, after: 0 }))
+  })
+
+  it('preserves instant-policy activation and skips the current partial owner turn', () => {
+    let state = executePv1fAction(
+      {
+        ...lethalEncounter('player'),
+        effectTimingPolicy: { version: 2, modes: { guarded: 'instant' } },
+      },
+      PV1F_GUARD_ACTION_ID,
+      { kind: 'self' },
+    ).state
+    expect(guarded(state)).toMatchObject({
+      remainingOwnerTurnEnds: 2,
+      skipCurrentOwnerTurnEnd: true,
+    })
+    state = finishPv1fTurn(state, 'east').state
+    expect(guarded(state)?.remainingOwnerTurnEnds).toBe(2)
+    state = finishPv1fTurn(state, 'west').state
+    state = finishPv1fTurn(state, 'east').state
+    expect(guarded(state)?.remainingOwnerTurnEnds).toBe(1)
+    state = finishPv1fTurn(state, 'west').state
+    state = finishPv1fTurn(state, 'east').state
+    expect(guarded(state)).toBeUndefined()
+  })
+
+  it('preserves historical immediate activation and two owner-turn-start expiry without a policy', () => {
+    let state = executePv1fAction(lethalEncounter('player'), PV1F_GUARD_ACTION_ID, {
+      kind: 'self',
+    }).state
+    expect(guarded(state)).toMatchObject({ remainingOwnerTurnStarts: 2 })
+    expect(guarded(state)?.remainingOwnerTurnEnds).toBeUndefined()
+    expect(state.pendingEffects).toBeUndefined()
+    state = finishPv1fTurn(state, 'east').state
+    expect(guarded(state)?.remainingOwnerTurnStarts).toBe(2)
+    state = finishPv1fTurn(state, 'west').state
+    expect(guarded(state)?.remainingOwnerTurnStarts).toBe(1)
+    state = finishPv1fTurn(state, 'east').state
+    state = finishPv1fTurn(state, 'west').state
+    expect(guarded(state)).toBeUndefined()
+  })
+
+  it('retains the recorded lifetime of already queued and active legacy Guard applications', () => {
+    const queued = executeCombatAction(
+      { ...lethalEncounter('player'), effectTimingPolicy: { version: 1, modes: {} } },
+      PV1F_GUARD_ACTION,
+      { kind: 'self' },
+      PV1F_COMBAT_CONTENT,
+    ).state as StatDrivenCombatEncounterState
+    const before = JSON.parse(JSON.stringify(queued)) as StatDrivenCombatEncounterState
+    evaluatePv1fAction(queued, PV1F_GUARD_ACTION_ID, { kind: 'self' })
+    expect(queued).toEqual(before)
+    expect(pendingCombatStatusRows(queued)[0]?.status.remainingOwnerTurnEnds).toBe(1)
+    let state = finishPv1fTurn(before, 'east').state
+    state = finishPv1fTurn(state, 'west').state
+    expect(guarded(state)?.remainingOwnerTurnEnds).toBe(1)
+    state = JSON.parse(JSON.stringify(state)) as StatDrivenCombatEncounterState
+    const activeBefore = JSON.parse(JSON.stringify(state)) as StatDrivenCombatEncounterState
+    evaluatePv1fAction(state, PV1F_GUARD_ACTION_ID, { kind: 'self' })
+    expect(state).toEqual(activeBefore)
+    state = finishPv1fTurn(state, 'east').state
+    expect(guarded(state)).toBeUndefined()
   })
 })
 

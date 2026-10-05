@@ -8,6 +8,7 @@ import {
 import {
   forecastResonanceForSkill,
   constrainResonanceForecastToTarget,
+  resonanceTriggerRequiresHit,
   type ResonanceCombatEvent,
   type ResonanceCombatState,
   type AnyResonanceDefinition,
@@ -49,11 +50,8 @@ export function executePv1fMatureSkillWithResonance(input: {
       ...resolution,
       resonanceState: {
         ...input.resonanceState,
-        armedByActionId: committed.forecast.willArm
-          ? input.skill.id
-          : committed.forecast.willActivate || committed.forecast.willExpireArmedSetup
-            ? null
-            : committed.armedByActionId,
+        armedByActionId:
+          committedResonanceForecast(resolution.state, input.skill)?.armedByActionId ?? null,
       },
     }
   }
@@ -70,6 +68,7 @@ export function executePv1fMatureSkillWithResonance(input: {
         effects: [...input.skill.effects, ...forecast.bonusEffects],
       }
     : input.skill
+  const requiresHit = forecast.willActivate && resonanceTriggerRequiresHit(input.resonance)
 
   // Keep all Skill legality, cooldown and Action Economy authority on the canonical PV-1F path.
   // Resonance only contributes the bounded authored payoff effects before that path resolves.
@@ -79,6 +78,7 @@ export function executePv1fMatureSkillWithResonance(input: {
     input.selection,
     input.combatContext,
     {
+      resonanceRequiresHit: requiresHit,
       effectOrigins: resolvedSkill.effects.map((_effect, index): CombatEffectOrigin =>
         index < input.skill.effects.length
           ? {
@@ -94,13 +94,15 @@ export function executePv1fMatureSkillWithResonance(input: {
       ),
     },
   )
+  const activated =
+    forecast.willActivate && (!requiresHit || resolution.hitDependentEffectsActivated === true)
   const actorId = readActionActorId(resolution.events)
   if (!actorId) throw new Error('PV-1F Resonance resolution did not emit a combat action event.')
 
   const resonanceEvents: ResonanceCombatEvent[] = []
   let nextArmedByActionId = input.resonanceState.armedByActionId
 
-  if (forecast.willActivate) {
+  if (activated) {
     resonanceEvents.push({
       event: 'resonance_activated',
       resonanceId: input.resonance.id,

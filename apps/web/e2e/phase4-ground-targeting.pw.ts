@@ -231,6 +231,8 @@ async function castOnEmptyGround(
     const preview = (await response.json()).battlePreview.preview
     if (preview.legal) {
       expect(preview.projectedTerrain.length).toBeGreaterThan(0)
+      for (const terrain of preview.projectedTerrain)
+        expect(terrain).toMatchObject({ after: 'frozen', remainingRoundBoundaries: 2 })
       expect(preview.affectedCombatantIds).toHaveLength(0)
       chosen = candidate
       legal = true
@@ -268,11 +270,10 @@ async function castOnEmptyGround(
   await expect(forecast).toContainText('[2 Turns]')
   await expect(forecast).toContainText('Both teams pay extra movement AP')
   await page.keyboard.press('Escape')
-  await root.getByRole('button', { name: 'Show forecast details', exact: true }).click()
-  const outcomes = page.getByRole('dialog', { name: 'Forecast details', exact: true })
-  await expect(outcomes).toContainText('2 round boundaries')
-  await expect(outcomes).toContainText('either team')
-  await page.keyboard.press('Escape')
+  await expect(forecast).toHaveCount(0)
+  await expect(root.getByLabel('Action preview', { exact: true }).getByRole('button')).toHaveCount(
+    0,
+  )
   // Hold an actual informational forecast; a deliberate tile gesture must still commit directly.
   let releasePreview!: () => void
   const held = new Promise<void>((resolve) => {

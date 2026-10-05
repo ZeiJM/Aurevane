@@ -60,6 +60,7 @@ export function BattleClientBoundary({
       <BattleRuntimeProvider
         playerName={runtime.playerName}
         combatantAccents={combatantAccents}
+        combatantNames={combatantNames}
         opponentNames={viewModel.participants
           .filter((participant) => participant.teamIndex !== viewModel.localParticipant?.teamIndex)
           .map((participant) => participant.name)}

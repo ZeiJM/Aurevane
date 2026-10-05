@@ -104,6 +104,12 @@ export interface CombatResolutionTransition extends Omit<
 > {
   state: CombatEncounterState
   resolution?: CombatResolutionMetadata
+  /** Transient result of an engine-owned effect group; never an authored hit override. */
+  hitDependentEffectsActivated?: boolean
+}
+
+export interface CombatHitDependentEffects {
+  readonly effectOrdinals: readonly number[]
 }
 
 export function evaluateCombatAction(
@@ -144,6 +150,7 @@ export function executeCombatAction(
   selection: legacy.CombatTargetSelection,
   content: legacy.CombatContentCatalog,
   context?: CombatResolutionContext,
+  hitDependentEffects?: CombatHitDependentEffects,
 ): CombatResolutionTransition {
   action = materializeBeneficialCombatCopyAction(state, action)
   validateCombatAccuracyDefinition(action)
@@ -156,6 +163,7 @@ export function executeCombatAction(
   )
   const requiresEvaluation =
     Boolean(context) ||
+    Boolean(hitDependentEffects) ||
     action.accuracyMode === 'per-target' ||
     action.effects.some((effect) => effect.type === 'sensory') ||
     (state.statBridge?.rulesVersion === 4 && hasCriticalEligibleDamage(action))
@@ -163,6 +171,32 @@ export function executeCombatAction(
     ? legacy.evaluateCombatAction(state, previewMaterializedAction, selection, content)
     : null
   const accuracy = rollCombatSkillAccuracy(state, action, evaluation, content)
+  const hitDependentEffectsActivated = hitDependentEffects
+    ? evaluation?.affectedCombatantIds.some((id) => {
+        const actor = state.tactical.battle.combatants.find((unit) => unit.id === actorId)
+        const target = state.tactical.battle.combatants.find((unit) => unit.id === id)
+        return (
+          target &&
+          actor &&
+          target.hp > 0 &&
+          target.teamId !== actor.teamId &&
+          !accuracy.missedCombatantIds.has(id)
+        )
+      }) === true
+    : undefined
+  if (hitDependentEffects && !hitDependentEffectsActivated) {
+    const omitted = new Set(hitDependentEffects.effectOrdinals)
+    action = {
+      ...action,
+      effects: action.effects.filter((_effect, index) => !omitted.has(index)),
+      ...(action.effectOrigins
+        ? { effectOrigins: action.effectOrigins.filter((_origin, index) => !omitted.has(index)) }
+        : {}),
+      ...(action.effectTimingTags
+        ? { effectTimingTags: action.effectTimingTags.filter((_tag, index) => !omitted.has(index)) }
+        : {}),
+    }
+  }
   const csr = materializeCsrCommittedAction({
     state: accuracy.state,
     action,
@@ -223,6 +257,7 @@ export function executeCombatAction(
     ...committed,
     state: covertFiltered.state,
     events: covertFiltered.events as legacy.CombatResolutionEvent[],
+    ...(hitDependentEffects ? { hitDependentEffectsActivated } : {}),
   }
   const preCommitEvents = [...accuracy.events, ...critical.events]
   const transition =
@@ -246,6 +281,7 @@ export function executeCombatAction(
           ),
         }
   return {
+    ...(hitDependentEffects ? { hitDependentEffectsActivated } : {}),
     state: attachCombatEffectProvenance(
       state,
       transition.state,

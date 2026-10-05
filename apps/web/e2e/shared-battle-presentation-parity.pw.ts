@@ -201,7 +201,7 @@ test('keeps requested PvE presentation parity on desktop and mobile', async ({
   await expect(preview).toContainText('Success 100%')
   expect(
     await preview
-      .locator('[data-battle-preview-chip]')
+      .locator('[data-battle-range-forecast] > span:last-child, [data-battle-preview-chip]')
       .first()
       .evaluate((el) => parseFloat(getComputedStyle(el).fontSize)),
   ).toBeGreaterThanOrEqual(12)

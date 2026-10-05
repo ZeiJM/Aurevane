@@ -54,6 +54,139 @@ const attack: ActionPreview = {
 }
 
 describe('current selection forecast', () => {
+  it('has no Details button or forecast popup for any selected action', () => {
+    const markup = renderToStaticMarkup(<BattleActionPreview preview={attack} pending={false} />)
+    expect(markup).not.toContain('>Details</button>')
+    expect(markup).not.toContain('<aside>')
+    expect(markup).toContain('Hit 69% · On hit 17 dmg')
+  })
+
+  it('replaces the old ready notice with the valid forecast but retains blocked-action explanations', () => {
+    const ready = renderToStaticMarkup(
+      <BattleActionPreview preview={attack} pending={false} notice="Attack ready · 30 AP" />,
+    )
+    expect(ready).not.toContain('30 AP')
+    expect(ready).toContain('Hit 69% · On hit 17 dmg')
+    const blocked = renderToStaticMarkup(
+      <BattleActionPreview
+        preview={{
+          ...attack,
+          legal: false,
+          issues: [{ code: 'out-of-range', message: 'Target is out of range.' }],
+        }}
+        pending={false}
+        notice="Target is out of range."
+      />,
+    )
+    expect(blocked).toContain('Target is out of range.')
+    expect(blocked).toContain('Blocked')
+    expect(blocked).not.toContain('17 dmg')
+  })
+
+  it('keeps authoritative status lifetime, recipient interactions and selected terrain without a popup', () => {
+    const markup = renderToStaticMarkup(
+      <BattleActionPreview
+        pending={false}
+        preview={{
+          ...attack,
+          affectedCombatantIds: ['enemy', 'second'],
+          projectedStatuses: [
+            {
+              statusId: 'guarded',
+              durationOwnerTurnStarts: 2,
+              damageTakenMultiplierBasisPoints: 8500,
+            },
+          ],
+          projectedEvents: [
+            {
+              event: 'status_applied',
+              actionId: attack.actionId,
+              sourceCombatantId: 'you',
+              targetCombatantId: 'enemy',
+              statusId: 'guarded',
+              stacks: 1,
+              remainingOwnerTurnStarts: 3,
+              refreshed: false,
+              stacked: false,
+            },
+            {
+              event: 'combatant_displaced',
+              actionId: attack.actionId,
+              sourceCombatantId: 'you',
+              combatantId: 'second',
+              from: { x: 1, y: 0 },
+              to: { x: 2, y: 0 },
+            },
+            {
+              event: 'status_removed',
+              actionId: attack.actionId,
+              sourceCombatantId: 'you',
+              targetCombatantId: 'second',
+              statusId: 'root',
+            },
+          ],
+          projectedTerrain: [
+            {
+              position: { x: 1, y: 0 },
+              before: null,
+              after: 'frozen',
+              remainingRoundBoundaries: 2,
+              activationRound: 3,
+            },
+          ],
+        }}
+      />,
+    )
+    const first = markup.match(
+      /<article[^>]*data-battle-range-forecast="enemy"[^>]*>(.*?)<\/article>/,
+    )?.[1]
+    const second = markup.match(
+      /<article[^>]*data-battle-range-forecast="second"[^>]*>(.*?)<\/article>/,
+    )?.[1]
+    expect(first).toContain('-15% damage')
+    expect(first).toContain('3 turns')
+    expect(first).not.toContain('2 turns')
+    expect(first).toContain('Frozen at tile 2,1')
+    expect(first).toContain('Starts round 3')
+    expect(first).not.toContain('pushed')
+    expect(second).toContain('Target pushed one tile')
+    expect(second).toContain('Root removed')
+    expect(second).not.toContain('-15% damage')
+    expect(second).not.toContain('Frozen at tile')
+    expect(markup).not.toContain('>Details</button>')
+  })
+
+  it('retains ground terrain once when a selected area has unit recipients and no primary', () => {
+    const markup = renderToStaticMarkup(
+      <BattleActionPreview
+        pending={false}
+        preview={{
+          ...attack,
+          primaryCombatantId: null,
+          affectedCombatantIds: ['enemy', 'second'],
+          projectedTerrain: [
+            {
+              position: { x: 1, y: 0 },
+              before: null,
+              after: 'steam',
+              remainingRoundBoundaries: 2,
+              activationRound: 3,
+            },
+          ],
+        }}
+      />,
+    )
+    const first = markup.match(
+      /<article[^>]*data-battle-range-forecast="enemy"[^>]*>(.*?)<\/article>/,
+    )?.[1]
+    const second = markup.match(
+      /<article[^>]*data-battle-range-forecast="second"[^>]*>(.*?)<\/article>/,
+    )?.[1]
+    expect(first).toContain('Steam at tile 2,1')
+    expect(first).toContain('Starts round 3')
+    expect(second).not.toContain('Steam at tile')
+    expect(markup).not.toContain('Hit 69%')
+  })
   it('keeps automatic success inline for the primary target without inventing secondary chances', () => {
     const markup = renderToStaticMarkup(
       <BattleActionPreview
@@ -137,22 +270,14 @@ describe('current selection forecast', () => {
       expect(markup).toContain('data-battle-range-forecast="secondary-outside-primary-range"')
       expect(markup).toContain('Hit 69% · On hit 17 dmg')
       expect(markup).toContain('>7 dmg</span>')
-      expect(markup).toContain('Damage 7')
       expect(markup).not.toContain('data-battle-range-forecast="unrelated-primary"')
-      expect(markup).toContain('data-battle-range-forecast-details="unrelated-primary"')
-      expect(markup).not.toContain('data-battle-range-forecast-details="enemy"')
+      expect(markup).not.toContain('data-battle-range-forecast-details')
       expect(markup).not.toContain('On hit 11 dmg')
-      const alternative = markup.slice(
-        markup.indexOf('data-battle-range-forecast-details="unrelated-primary"'),
-      )
-      expect(alternative).toContain('data-battle-target-forecast="unrelated-primary"')
-      expect(alternative).toContain('Damage 9')
-      expect(alternative).not.toContain('secondary-outside-primary-range')
-      expect(alternative).not.toContain('Damage 7')
+      expect(markup).not.toContain('On hit 9 dmg')
     },
   )
 
-  it('keeps a complete independent reader for the second automatic candidate and its own area recipients', () => {
+  it('keeps each automatic candidate forecast independent without a Details reader', () => {
     const markup = renderToStaticMarkup(
       <BattleActionPreview
         preview={null}
@@ -184,14 +309,13 @@ describe('current selection forecast', () => {
         ]}
       />,
     )
-    const alternative = markup.slice(markup.indexOf('data-battle-range-forecast-details="second"'))
-    expect(alternative).toContain('Hit 42%')
+    const alternative = markup.match(
+      /<article[^>]*data-battle-range-forecast="second"[^>]*>(.*?)<\/article>/,
+    )?.[1]
+    expect(alternative).toContain('Hit 42% · On hit 9 dmg')
     expect(alternative).not.toContain('Hit 69%')
-    expect(alternative).toContain('data-battle-target-forecast="second-area-only"')
-    expect(alternative).toContain('Heal +5')
-    expect(alternative).toContain('Ward 13')
-    expect(alternative).toContain('Starts round 3')
-    expect(alternative).toContain('Frozen at tile 2,3')
+    expect(markup).not.toContain('data-battle-range-forecast="second-area-only"')
+    expect(markup).not.toContain('Details</button>')
   })
 
   it('automatically shows every legal range forecast with its independent hit chance before selecting', () => {
@@ -271,6 +395,7 @@ describe('current selection forecast', () => {
         preview={{
           ...attack,
           mitigatedBaseDamage: null,
+          affectedCombatantIds: ['enemy', 'you'],
           projectedEffects: [
             {
               effectType: 'apply-status',
@@ -298,29 +423,38 @@ describe('current selection forecast', () => {
     expect(markup).toContain('Guard · Starts round 3 · 1 turn')
     expect(markup).toContain('Summon · Starts round 3 · 5 turns')
     expect(markup).not.toContain('>Pending</span>')
-    expect(markup).not.toContain('Damage 17')
+    expect(markup).not.toContain('17 dmg')
   })
 
-  it('keeps all Nexus parameters beside the current server forecast without replacing its costs or outcomes', () => {
-    const definition = resolveMatureSkillVersion('vanguard.forceful-strike', 2)!
-    const skill = { ...barrier, definition, id: definition.id, apCost: 31, mpCost: 6 }
-    const markup = renderToStaticMarkup(
-      <BattleActionPreview
-        preview={{ ...attack, actionId: skill.id }}
-        skill={skill}
-        pending={false}
-      />,
-    )
-    expect(markup).toContain('<dt>Cost</dt><dd>31 AP / 6 MP</dd>')
-    expect(markup).toContain('<dt>Skill Type</dt><dd>Attack</dd>')
-    expect(markup).toContain('<dt>Line of Sight</dt><dd>Not required</dd>')
-    for (const label of ['30 AP', '70 AP left', 'Hit 69%', 'On hit 17 dmg', 'Damage 17'])
-      expect(markup).toContain(label)
-    expect(markup).toContain('data-battle-preview-lane="parameters"')
-    expect(markup).toContain('data-battle-preview-lane="outcomes"')
-  })
+  it.each(['Discipline', 'Support', 'Essence', 'inherent'])(
+    'removes metadata and Details from %s previews while preserving canonical target forecasts',
+    (category) => {
+      const definition = resolveMatureSkillVersion('vanguard.forceful-strike', 2)!
+      const skill =
+        category === 'inherent'
+          ? undefined
+          : { ...barrier, definition, id: `${category}.skill`, apCost: 31, mpCost: 6 }
+      const markup = renderToStaticMarkup(
+        <BattleActionPreview
+          preview={{ ...attack, actionId: skill?.id ?? attack.actionId }}
+          skill={skill}
+          pending={false}
+        />,
+      )
+      const inline = markup.replace(/<aside>[\s\S]*?<\/aside>/g, '')
+      expect(markup).not.toContain('data-battle-preview-lane="parameters"')
+      expect(markup).not.toContain('>Parameters</button>')
+      expect(inline).not.toContain('30 AP')
+      expect(inline).not.toContain('70 AP left')
+      expect(inline).not.toContain('Range:')
+      for (const label of ['Hit 69%', 'On hit 17 dmg']) expect(inline).toContain(label)
+      expect(markup).not.toContain('>Details</button>')
+      expect(markup).not.toContain('<aside>')
+      expect(markup).toContain('data-battle-preview-lane="outcomes"')
+    },
+  )
 
-  it('gives targets without portraits a framed identity and shows the selected ground terrain', () => {
+  it('gives targets without portraits a framed identity and keeps ground-only terrain visible', () => {
     const markup = renderToStaticMarkup(
       <BattleActionPreview
         preview={attack}
@@ -330,19 +464,27 @@ describe('current selection forecast', () => {
       />,
     )
     expect(markup).toContain('data-battle-target-portrait-fallback="true"')
-    expect(markup).toContain('data-battle-ground-target="true"')
-    expect(markup).toContain('terrain-raised-ledge-v02.webp')
-    expect(markup).toContain('Tile 3, 4')
-    expect(markup).toContain('Elevated ground')
-    expect(markup).toContain('Frozen')
-    expect(markup).toContain('Damage 17')
+    expect(markup).toContain('On hit 17 dmg')
+    const groundMarkup = renderToStaticMarkup(
+      <BattleActionPreview
+        preview={{ ...attack, affectedCombatantIds: [], primaryCombatantId: null }}
+        pending={false}
+        targetTile={{ position: { x: 2, y: 3 }, terrainId: 'open', elevation: 1 }}
+        targetOverlay="frozen"
+      />,
+    )
+    expect(groundMarkup).toContain('terrain-raised-ledge-v02.webp')
+    expect(groundMarkup).toContain('Tile 3, 4')
+    expect(groundMarkup).toContain('Elevated ground')
+    expect(groundMarkup).toContain('Frozen')
   })
-  it('shows the authored Discipline skill context before a target without inventing an outcome', () => {
+  it('keeps untargeted Discipline selection quiet without inventing an outcome', () => {
     const markup = renderToStaticMarkup(
       <BattleActionPreview preview={null} pending={false} skill={barrier} />,
     )
-    for (const label of ['Cost: 40 AP', '<dt>Target</dt><dd>Ally</dd>', 'Range: 3'])
-      expect(markup).toContain(label)
+    for (const label of ['Cost: 40 AP', '<dt>Target</dt><dd>Ally</dd>', 'Range: 3', 'Parameters'])
+      expect(markup).not.toContain(label)
+    expect(markup).toContain('Choose a target for the exact forecast.')
     expect(markup).not.toContain('Legal range')
     expect(markup).not.toContain('Success 100%')
     expect(markup).not.toContain('Show forecast details')
@@ -352,7 +494,8 @@ describe('current selection forecast', () => {
     const markup = renderToStaticMarkup(
       <BattleActionPreview preview={attack} pending={false} skill={barrier} />,
     )
-    expect(markup).toContain('40 AP')
+    expect(markup).not.toContain('40 AP')
+    expect(markup).toContain('Choose a target for the exact forecast.')
     expect(markup).not.toContain('Hit 69%')
     expect(markup).not.toContain('17 dmg')
   })
@@ -363,6 +506,8 @@ describe('current selection forecast', () => {
         preview={{
           ...attack,
           actionId: barrier.id,
+          primaryCombatantId: 'ally',
+          affectedCombatantIds: ['ally'],
           actionEconomyCost: 40,
           actionEconomyAfter: 60,
           hitChanceBasisPoints: null,
@@ -376,20 +521,20 @@ describe('current selection forecast', () => {
       />,
     )
     expect(markup).toContain('Guard')
-    // The full Parameters panel preserves the authored effect; the outcome lane
-    // must only display current server-projected status names.
+    // The preview only displays current server-projected status names; authored
+    // parameters remain available through the separate cockpit information reader.
     const outcomes = markup.slice(markup.indexOf('data-battle-preview-lane="outcomes"'))
     expect(outcomes).not.toContain('Guarded')
-    expect(markup).toContain('<dt>Effects</dt><dd>Apply Guarded to the selected ally.</dd>')
+    expect(markup).not.toContain('<dt>Effects</dt>')
     expect(markup).toContain('Success 100%')
     expect(markup).not.toContain('data-battle-info-trigger')
     expect(markup).not.toContain('Skill details')
   })
 
-  it('renders server-projected accuracy, on-hit damage and AP together', () => {
+  it('renders server-projected accuracy and on-hit damage without AP metadata', () => {
     const markup = renderToStaticMarkup(<BattleActionPreview preview={attack} pending={false} />)
-    for (const label of ['Hit 69%', 'On hit 17 dmg', '30 AP', '70 AP left'])
-      expect(markup).toContain(label)
+    for (const label of ['Hit 69%', 'On hit 17 dmg']) expect(markup).toContain(label)
+    for (const label of ['30 AP', '70 AP left']) expect(markup).not.toContain(label)
     expect(markup).not.toContain('data-battle-info-trigger')
   })
 
@@ -452,6 +597,7 @@ describe('current selection forecast', () => {
             defenseRating: null,
             mitigatedBaseDamage: null,
             projectedEffects: [effect],
+            affectedCombatantIds: [effect.combatantId],
           }}
           pending={false}
         />,
@@ -461,10 +607,11 @@ describe('current selection forecast', () => {
     }
   })
 
-  it('keeps the compact forecast bounded while preserving every mixed projection in its reading panel', () => {
+  it('keeps mixed projections recipient-specific in the compact forecast', () => {
     const mixedPreview: ActionPreview = {
       ...attack,
       actionId: 'test.copy-statuses.mixed',
+      affectedCombatantIds: ['enemy', 'you'],
       hitChanceBasisPoints: null,
       defenseKind: null,
       defenseRating: null,
@@ -520,16 +667,16 @@ describe('current selection forecast', () => {
       />,
     )
     for (const label of [
-      'data-battle-target-forecast="enemy"',
-      'data-battle-target-forecast="second"',
-      'data-battle-target-forecast="you"',
-      'Damage 17',
-      'Damage 9',
+      'data-battle-range-forecast="enemy"',
+      'data-battle-range-forecast="second"',
+      'data-battle-range-forecast="you"',
+      'On hit 17 dmg',
+      '9 dmg',
       'Heal +5',
     ])
       expect(markup).toContain(label)
     expect(
-      markup.split('data-battle-target-forecast="second"')[1]?.split('</article>')[0],
+      markup.split('data-battle-range-forecast="second"')[1]?.split('</article>')[0],
     ).not.toContain('Hit 69%')
   })
 

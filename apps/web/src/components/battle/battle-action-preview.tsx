@@ -9,31 +9,45 @@ import { AurevaneImage } from '@/components/media/aurevane-image'
 import {
   combatInteractionDescription,
   combatTerrainProjectionDescription,
-  gameplayStatusName,
 } from '../../lib/battle/combat-interaction-presentation'
-import {
-  battleGroundTargetPresentation,
-  previewChips,
-  skillPreviewChips,
-  scheduledEffectPreviewLabel,
-} from './battle-preview-content'
+import { battleGroundTargetPresentation, previewChips } from './battle-preview-content'
 import type {
   BattlePresentationParticipant,
   BattleSkillForecastPresentation,
 } from './battle-runtime'
 import styles from './battle-action-preview.module.css'
-import { BattleInfoPopover } from './battle-info-popover'
 
 function InlineTargetForecast({
   preview,
   combatantId,
   participant,
+  includeTerrain,
 }: {
   preview: ActionPreview
   combatantId: string
   participant?: BattlePresentationParticipant
+  includeTerrain: boolean
 }) {
   const effects = preview.projectedEffects.filter((effect) => effect.combatantId === combatantId)
+  const recipientEvents = preview.projectedEvents?.filter(
+    (event) =>
+      ('targetCombatantId' in event && event.targetCombatantId === combatantId) ||
+      ('combatantId' in event && event.combatantId === combatantId),
+  )
+  const recipientStatuses = preview.projectedStatuses.flatMap((status) => {
+    const application = recipientEvents?.find(
+      (event) => event.event === 'status_applied' && event.statusId === status.statusId,
+    )
+    if (application?.event === 'status_applied')
+      return [{ ...status, durationOwnerTurnStarts: application.remainingOwnerTurnStarts }]
+    // Older previews may lack events, but an actual recipient projection is still required.
+    return preview.projectedEvents === undefined &&
+      effects.some(
+        (effect) => effect.effectType === 'apply-status' && effect.after === status.statusId,
+      )
+      ? [status]
+      : []
+  })
   const damage = effects
     .filter((effect) => effect.effectType === 'damage')
     .reduce(
@@ -74,11 +88,25 @@ function InlineTargetForecast({
     damage > 0 ? `${hitChance !== null && hitChance < 10000 ? 'On hit ' : ''}${damage} dmg` : null,
     healing > 0 ? `Heal +${healing}` : null,
     resourceChange !== 0 ? `Resource ${resourceChange > 0 ? '+' : ''}${resourceChange}` : null,
-    ...effects
-      .filter((effect) => effect.effectType === 'apply-status' && typeof effect.after === 'string')
-      .map(
-        (effect) => scheduledEffectPreviewLabel(effect) ?? gameplayStatusName(String(effect.after)),
-      ),
+    ...previewChips({
+      ...preview,
+      projectedEffects: effects,
+      projectedStatuses: recipientStatuses,
+      projectedEvents: recipientEvents,
+      projectedTerrain: [],
+      affectedCombatantIds: [combatantId],
+    })
+      .filter(
+        (chip) =>
+          chip.tone === 'effect' &&
+          !chip.label.endsWith('AP left') &&
+          chip.label !== 'Terrain & effect details available',
+      )
+      .map((chip) => chip.label),
+    ...(recipientEvents ?? []).map(combatInteractionDescription),
+    ...(includeTerrain
+      ? (preview.projectedTerrain ?? []).map(combatTerrainProjectionDescription)
+      : []),
   ]
     .filter(Boolean)
     .join(' · ')
@@ -92,7 +120,11 @@ function InlineTargetForecast({
           alt=""
         />
       ) : (
-        <span className={styles.portraitFallback} aria-hidden="true">
+        <span
+          className={styles.portraitFallback}
+          data-battle-target-portrait-fallback="true"
+          aria-hidden="true"
+        >
           {participant?.name.charAt(0) || 'T'}
         </span>
       )}
@@ -172,7 +204,6 @@ export function BattleActionPreview({
           }))
         : []
   const chips = preview ? previewChips(preview) : []
-  const skillChips = skill ? skillPreviewChips(skill) : []
   const ground = targetTile ? battleGroundTargetPresentation(targetTile, targetOverlay) : null
   const interactions =
     preview?.kind === 'action'
@@ -181,246 +212,30 @@ export function BattleActionPreview({
             [
               ...(preview.projectedTerrain ?? []).map(combatTerrainProjectionDescription),
               ...(preview.projectedEvents ?? []).map(combatInteractionDescription),
-            ].filter(Boolean),
+            ].filter((description): description is string => Boolean(description)),
           ),
         ]
       : []
-  const renderTargets = (preview: ActionPreview) =>
-    preview.legal ? (
-      <div className={styles.targets} aria-label="Affected target forecasts">
-        {preview.affectedCombatantIds.map((id, index) => {
-          const participant = participants.find((item) => item.combatantId === id)
-          const effects = preview.projectedEffects.filter((effect) => effect.combatantId === id)
-          const damage = effects
-            .filter((effect) => effect.effectType === 'damage')
-            .reduce(
-              (total, effect) =>
-                total +
-                (typeof effect.before === 'number' && typeof effect.after === 'number'
-                  ? Math.max(0, effect.before - effect.after)
-                  : 0),
-              0,
-            )
-          const healing = effects
-            .filter((effect) => effect.effectType === 'healing')
-            .reduce(
-              (total, effect) =>
-                total +
-                (typeof effect.before === 'number' && typeof effect.after === 'number'
-                  ? Math.max(0, effect.after - effect.before)
-                  : 0),
-              0,
-            )
-          const primary = preview.primaryCombatantId === id
-          return (
-            <article key={id} data-battle-target-forecast={id}>
-              {participant?.portraitAssetId ? (
-                <CharacterPortraitImage
-                  imageUrl={participant.profileImageUrl}
-                  fallbackAssetId={participant.portraitAssetId}
-                  sizes="24px"
-                  alt=""
-                />
-              ) : (
-                <span
-                  className={styles.portraitFallback}
-                  data-battle-target-portrait-fallback="true"
-                  aria-hidden="true"
-                >
-                  {participant?.name.charAt(0) || 'T'}
-                </span>
-              )}
-              <div>
-                <strong>{participant?.name ?? `Target ${index + 1}`}</strong>
-                {primary && preview.hitChanceBasisPoints !== null ? (
-                  <span>Hit {Math.round(preview.hitChanceBasisPoints / 100)}%</span>
-                ) : null}
-                {damage > 0 ? <span data-result="damage">Damage {damage}</span> : null}
-                {healing > 0 ? <span data-result="healing">Heal +{healing}</span> : null}
-                {effects
-                  .filter(
-                    (effect) =>
-                      effect.effectType === 'apply-status' && typeof effect.after === 'string',
-                  )
-                  .map((effect, effectIndex) => (
-                    <span key={effectIndex}>
-                      {scheduledEffectPreviewLabel(effect) ??
-                        gameplayStatusName(String(effect.after))}
-                    </span>
-                  ))}
-                {effects.length === 0 ? <span>Included in affected area</span> : null}
-              </div>
-            </article>
-          )
-        })}
-      </div>
-    ) : null
-  const targets = preview?.kind === 'action' ? renderTargets(preview) : null
-
-  const primaryResults = chips.filter((chip) =>
-    ['chance', 'damage', 'heal', 'blocked'].includes(chip.tone),
+  const keyResults = chips.filter(
+    (chip) =>
+      chip.tone !== 'cost' &&
+      !chip.label.endsWith('AP left') &&
+      chip.label !== 'Terrain & effect details available',
   )
-  const keyResults =
-    preview?.kind !== 'action'
-      ? chips.filter((chip) => chip.tone !== 'cost' && !chip.label.endsWith('AP left'))
-      : [
-          ...primaryResults,
-          ...chips
-            .filter(
-              (chip) =>
-                chip.tone === 'effect' &&
-                chip.label.length <= 20 &&
-                !chip.label.endsWith('AP left'),
-            )
-            .slice(0, Math.max(0, 3 - primaryResults.length)),
-        ]
-  const costs = chips.filter((chip) => chip.tone === 'cost' || chip.label.endsWith('AP left'))
-  const compactParameters = skillChips.filter((chip) => /^Cost:|^Range:/.test(chip.label))
-  const rangeParameter = skillChips.find((chip) => chip.label.startsWith('Range:'))
   const primaryTarget =
     preview?.kind === 'action'
       ? participants.find((item) => item.combatantId === preview.primaryCombatantId)
       : undefined
-  const forecastDetails = (
-    <div className={styles.details}>
-      <div className={styles.detailChips}>
-        {chips.map((chip, index) => (
-          <span key={index} data-battle-preview-chip="true" data-battle-preview-tone={chip.tone}>
-            {chip.label}
-          </span>
-        ))}
-      </div>
-      {preview?.kind === 'action' &&
-      preview.defenseKind !== null &&
-      preview.defenseRating !== null ? (
-        <p>
-          {preview.defenseKind === 'armor' ? 'Armor' : 'Ward'} {preview.defenseRating}
-        </p>
-      ) : null}
-      {ground && targetTile ? (
-        <article
-          className={styles.ground}
-          data-battle-ground-target="true"
-          aria-label={`Target tile ${targetTile.position.x + 1}, ${targetTile.position.y + 1}`}
-        >
-          <span
-            className={styles.terrainThumbnail}
-            data-terrain-overlay={targetOverlay || undefined}
-          >
-            <AurevaneImage assetId={ground.assetId} sizes="24px" />
-            {ground.glyph ? <b aria-hidden="true">{ground.glyph}</b> : null}
-          </span>
-          <span>
-            Tile {targetTile.position.x + 1}, {targetTile.position.y + 1} · {ground.label}
-          </span>
-        </article>
-      ) : null}
-      {targets}
-      {preview?.issues.map((issue, index) => (
-        <p key={issue.code ?? index} data-battle-preview-tone="blocked">
-          {issue.message}
-        </p>
-      ))}
-      {interactions.map((description, index) => (
-        <p key={index}>{description}</p>
-      ))}
-      {eligiblePreviews
-        .filter(
-          (candidate) =>
-            preview?.kind !== 'action' ||
-            candidate.primaryCombatantId !== preview.primaryCombatantId,
-        )
-        .map((candidate) => (
-          <section
-            key={candidate.primaryCombatantId}
-            className={styles.alternativeDetails}
-            data-battle-range-forecast-details={candidate.primaryCombatantId}
-            aria-label={`Alternative forecast for ${participants.find((item) => item.combatantId === candidate.primaryCombatantId)?.name ?? 'target'}`}
-          >
-            <h4>
-              {participants.find((item) => item.combatantId === candidate.primaryCombatantId)
-                ?.name ?? 'Alternative target'}
-            </h4>
-            <div className={styles.detailChips}>
-              {previewChips(candidate).map((chip, index) => (
-                <span
-                  key={index}
-                  data-battle-preview-chip="true"
-                  data-battle-preview-tone={chip.tone}
-                >
-                  {chip.label}
-                </span>
-              ))}
-            </div>
-            {candidate.defenseKind !== null && candidate.defenseRating !== null ? (
-              <p>
-                {candidate.defenseKind === 'armor' ? 'Armor' : 'Ward'} {candidate.defenseRating}
-              </p>
-            ) : null}
-            {renderTargets(candidate)}
-            {[
-              ...new Set(
-                [
-                  ...(candidate.projectedTerrain ?? []).map(combatTerrainProjectionDescription),
-                  ...(candidate.projectedEvents ?? []).map(combatInteractionDescription),
-                ].filter(Boolean),
-              ),
-            ].map((description, index) => (
-              <p key={index}>{description}</p>
-            ))}
-          </section>
-        ))}
-    </div>
-  )
   return (
     <div
       className={styles.preview}
       data-battle-target-preview="true"
       data-react-battle-preview="true"
-      data-battle-preview-has-parameters={skill ? 'true' : undefined}
       data-battle-preview-has-targets={inlineForecasts.length > 0 ? 'true' : undefined}
       aria-label="Action preview"
       aria-live="polite"
     >
-      {preview && notice ? <span className={styles.notice}>{notice}</span> : null}
-      <div
-        className={styles.parameters}
-        data-battle-preview-lane="parameters"
-        aria-label="Skill parameters"
-      >
-        <div className={styles.inlineChips}>
-          {(preview && (!pending || eligiblePreviews.length > 0)
-            ? [...costs, ...(rangeParameter ? [rangeParameter] : [])]
-            : compactParameters
-          ).map((chip, index) => (
-            <span key={index} data-battle-preview-chip="true" data-battle-preview-tone={chip.tone}>
-              {chip.label}
-            </span>
-          ))}
-        </div>
-        {skill ? (
-          <BattleInfoPopover
-            consumeOutsideClick
-            key={skill.id}
-            label={`Show ${skill.name} parameters`}
-            title={`${skill.name} parameters`}
-            trigger="Parameters"
-            className={styles.readingTrigger}
-          >
-            <dl>
-              {skillChips.map((chip, index) => {
-                const separator = chip.label.indexOf(': ')
-                return (
-                  <div key={index}>
-                    <dt>{chip.label.slice(0, separator)}</dt>
-                    <dd>{chip.label.slice(separator + 2)}</dd>
-                  </div>
-                )
-              })}
-            </dl>
-          </BattleInfoPopover>
-        ) : null}
-      </div>
+      {preview && !preview.legal && notice ? <span className={styles.notice}>{notice}</span> : null}
       <div
         className={styles.forecast}
         data-battle-preview-lane="outcomes"
@@ -437,26 +252,33 @@ export function BattleActionPreview({
                   selectedAreaPreview ? 'Affected target forecasts' : 'In-range target forecasts'
                 }
               >
-                {inlineForecasts.map(({ preview: targetPreview, combatantId }) => (
+                {inlineForecasts.map(({ preview: targetPreview, combatantId }, index) => (
                   <InlineTargetForecast
                     key={combatantId}
                     preview={targetPreview}
                     combatantId={combatantId}
+                    includeTerrain={
+                      targetPreview.primaryCombatantId === combatantId ||
+                      (targetPreview.primaryCombatantId === null && index === 0)
+                    }
                     participant={participants.find((item) => item.combatantId === combatantId)}
                   />
                 ))}
               </div>
             ) : (
               <div className={styles.inlineChips}>
-                {keyResults.map((chip, index) => (
-                  <span
-                    key={index}
-                    data-battle-preview-chip="true"
-                    data-battle-preview-tone={chip.tone}
-                  >
-                    {chip.label}
-                  </span>
-                ))}
+                {[...keyResults, ...interactions.map((label) => ({ label, tone: 'effect' }))].map(
+                  (chip, index) => (
+                    <span
+                      key={index}
+                      data-battle-preview-chip="true"
+                      data-battle-preview-tone={chip.tone}
+                      title={chip.label}
+                    >
+                      {chip.label}
+                    </span>
+                  ),
+                )}
               </div>
             )}
             {inlineForecasts.length > 0 ? null : ground ? (
@@ -482,22 +304,17 @@ export function BattleActionPreview({
                     alt=""
                   />
                 ) : (
-                  <span className={styles.portraitFallback} aria-hidden="true">
+                  <span
+                    className={styles.portraitFallback}
+                    data-battle-target-portrait-fallback="true"
+                    aria-hidden="true"
+                  >
                     {primaryTarget.name.charAt(0)}
                   </span>
                 )}
                 <span>{primaryTarget.name}</span>
               </span>
             ) : null}
-            <BattleInfoPopover
-              consumeOutsideClick
-              label="Show forecast details"
-              title="Forecast details"
-              trigger="Details"
-              className={styles.readingTrigger}
-            >
-              {forecastDetails}
-            </BattleInfoPopover>
           </>
         ) : (
           <span className={styles.instruction}>

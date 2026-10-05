@@ -2,10 +2,14 @@ import { execFileSync } from 'node:child_process'
 import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
+import { scheduledEffectPreviewLabel } from '../src/components/battle/battle-preview-content'
+import { gameplayStatusName } from '../src/lib/battle/combat-interaction-presentation'
 import { expectTerrainKey } from './battle-map-key-helpers'
+import { expectNoSkillPreviewMetadata } from './battle-preview-metadata-helpers'
 
 import { expect, test, type Page, type Route, type TestInfo } from '@playwright/test'
 import type { BattleSessionView } from '../src/server/battle/battle-session-service'
+import type { BattleActionPreview } from '../src/server/battle/battle-preview-service'
 import { selectDiscipline } from './discipline-library-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
@@ -26,6 +30,22 @@ const parameterLabels = [
   'Target Elevation',
   'Line of Sight',
 ]
+
+type AuthoredParameterRow = { label: string; value: string | string[] }
+
+/** Read individual effect chips in order instead of relying on sibling text delimiters. */
+function readAuthoredParameterRows(rows: Element[]): AuthoredParameterRow[] {
+  return rows.map((row) => {
+    const value = row.querySelector('dd')!
+    const effects = value.querySelectorAll('[data-compact-skill-effect="true"]')
+    return {
+      label: row.querySelector('dt')!.textContent!,
+      value: effects.length
+        ? Array.from(effects, (effect) => effect.textContent!)
+        : value.textContent!,
+    }
+  })
+}
 
 async function provision(page: Page, prefix: string) {
   const seed = `${Date.now()}${Math.floor(Math.random() * 10000)}`
@@ -73,7 +93,7 @@ async function equipForecastSkills(page: Page) {
     await dialog.getByRole('checkbox', { checked: true }).first().uncheck()
     expect((await saved).ok()).toBe(true)
   }
-  const nexusRows: Record<string, string[]> = {}
+  const nexusRows: Record<string, AuthoredParameterRow[]> = {}
   for (const name of ['Ice Lance', 'Frost Guard', 'Chilling Mist']) {
     const card = dialog
       .locator('[data-technique-card]')
@@ -83,19 +103,7 @@ async function equipForecastSkills(page: Page) {
     nexusRows[name] = await dialog
       .getByTestId('technique-preview')
       .locator('dl > div')
-      .evaluateAll((rows) =>
-        rows.map((row) => {
-          const label = row.querySelector('dt')!.textContent
-          const value = row.querySelector('dd')!
-          const effects = value.querySelectorAll('[data-compact-skill-effect="true"]')
-          // Nexus renders separate effect chips; battle uses a comma-separated value.
-          // Compare every chip, in order, without concatenating their DOM text together.
-          const text = effects.length
-            ? Array.from(effects, (effect) => effect.textContent).join(', ')
-            : value.textContent
-          return `${label}: ${text}`
-        }),
-      )
+      .evaluateAll(readAuthoredParameterRows)
     const saved = page.waitForResponse(
       (response) =>
         response.url().endsWith('/api/character/build/skills') &&
@@ -190,11 +198,6 @@ async function capture(page: Page, testInfo: TestInfo, label: string) {
           }
         : null
     const preview = root.querySelector('[data-react-battle-preview]')
-    const image = (node: Element) => ({
-      rect: rect(node),
-      src: node.getAttribute('src'),
-      loaded: node instanceof HTMLImageElement && node.complete && node.naturalWidth > 0,
-    })
     return {
       cockpit: rect(root.querySelector('[data-unified-command-deck]')),
       commandAlignment: [
@@ -284,16 +287,6 @@ async function capture(page: Page, testInfo: TestInfo, label: string) {
         portrait: rect(target.querySelector(':scope > img, :scope > span[aria-hidden="true"]')),
         name: rect(target.querySelector(':scope > strong')),
         result: rect(target.querySelector(':scope > span:last-child')),
-      })),
-      targets: [...root.querySelectorAll('[data-battle-target-forecast]')].map((target) => ({
-        name: target.querySelector('strong')?.textContent,
-        rect: rect(target),
-        images: [...target.querySelectorAll('img')].map(image),
-        fallback: rect(target.querySelector('[data-battle-target-portrait-fallback]')),
-      })),
-      ground: [...root.querySelectorAll('[data-battle-ground-target]')].map((target) => ({
-        rect: rect(target),
-        images: [...target.querySelectorAll('img')].map(image),
       })),
       dialogs: [...document.querySelectorAll('[role="dialog"]')].map((dialog) => ({
         rect: rect(dialog),
@@ -450,16 +443,122 @@ function expectStable(geometry: Awaited<ReturnType<typeof capture>>, baseline: R
     expect(target.portrait!.x + target.portrait!.width).toBeLessThanOrEqual(target.name!.x + 1)
     expect(target.name!.y + target.name!.height).toBeLessThanOrEqual(target.result!.y + 1)
   }
-  for (const trigger of geometry.readingTriggers) contained(trigger!, geometry.preview!)
+  expect(geometry.readingTriggers, 'forecasts have no popup controls').toHaveLength(0)
   for (const dialog of geometry.dialogs)
     contained(dialog.rect!, { x: 0, y: 0, ...geometry.viewport })
+}
+
+async function expectInlineSkillForecast(page: Page, actionId: string, ground: boolean) {
+  const battle = await readBattle(page)
+  const preview = page.getByLabel('Action preview', { exact: true })
+  const targets = preview.locator('[data-battle-range-forecast]')
+  await expect(targets.first()).toBeVisible()
+  const ids = await targets.evaluateAll((rows) =>
+    rows.map((row) => row.getAttribute('data-battle-range-forecast')!),
+  )
+  expect(new Set(ids).size).toBe(ids.length)
+  let selectedGround: { x: number; y: number } | undefined
+  if (ground) {
+    const tile = page.locator('#battlefield [data-preview-tile="true"]')
+    await expect(tile).toHaveCount(1)
+    const coordinate = (await tile.getAttribute('aria-label'))!.match(/^Tile (\d+), (\d+)/)!
+    selectedGround = { x: Number(coordinate[1]) - 1, y: Number(coordinate[2]) - 1 }
+  }
+  // Read-only authority checks validate each cast, rather than borrowing an alternative's results.
+  const forecasts: BattleActionPreview[] = []
+  for (const id of ground ? [ids[0]!] : ids) {
+    const response = await page.request.post(`/api/battles/${battle.battleSessionId}/preview`, {
+      data: {
+        expectedBattleVersion: battle.battleVersion,
+        intent: {
+          kind: 'action',
+          actionId,
+          target: selectedGround
+            ? { kind: 'tile', position: selectedGround }
+            : actionId === 'frostweaver.frost-guard'
+              ? { kind: 'self' }
+              : { kind: 'unit', combatantId: id },
+        },
+      },
+    })
+    expect(response.status()).toBe(200)
+    const authority = (await response.json()).battlePreview
+    expect(authority.battleVersion).toBe(battle.battleVersion)
+    expect(authority.preview).toMatchObject({ kind: 'action', actionId, legal: true })
+    forecasts.push(authority.preview)
+  }
+  if (ground) {
+    expect([...ids].sort(), 'selected area excludes unrelated alternative casts').toEqual(
+      [...forecasts[0]!.affectedCombatantIds].sort(),
+    )
+    expect(forecasts[0]!.affectedTiles).toContainEqual(selectedGround)
+    expect(forecasts[0]!.affectedTiles.length).toBeGreaterThan(1)
+  }
+  for (const id of ids) {
+    const authority = ground
+      ? forecasts[0]!
+      : forecasts.find((candidate) => candidate.primaryCombatantId === id)!
+    expect(authority).toBeTruthy()
+    const target = preview.locator(`[data-battle-range-forecast="${id}"]`)
+    await expect(target).toHaveCount(1)
+    await expect(target.locator(':scope > strong')).not.toBeEmpty()
+    const result = target.locator(':scope > span:last-child')
+    if (authority.primaryCombatantId === id && authority.hitChanceBasisPoints !== null)
+      await expect(result).toContainText(`Hit ${Math.round(authority.hitChanceBasisPoints / 100)}%`)
+    else await expect(result).not.toContainText(/Hit \d+%/)
+    if (authority.primaryCombatantId !== id)
+      await expect(result).not.toContainText(/(?:Hit|Success) \d+%/)
+    const effects = authority.projectedEffects.filter((effect) => effect.combatantId === id)
+    const damage = effects
+      .filter((effect) => effect.effectType === 'damage')
+      .reduce(
+        (total, effect) =>
+          total +
+          (typeof effect.before === 'number' && typeof effect.after === 'number'
+            ? Math.max(0, effect.before - effect.after)
+            : 0),
+        0,
+      )
+    if (damage > 0) await expect(result).toContainText(`${damage} dmg`)
+    const healing = effects
+      .filter((effect) => effect.effectType === 'healing')
+      .reduce(
+        (total, effect) =>
+          total +
+          (typeof effect.before === 'number' && typeof effect.after === 'number'
+            ? Math.max(0, effect.after - effect.before)
+            : 0),
+        0,
+      )
+    if (healing > 0) await expect(result).toContainText(`Heal +${healing}`)
+    for (const effect of effects)
+      if (effect.effectType === 'apply-status' && typeof effect.after === 'string')
+        await expect(result).toContainText(
+          scheduledEffectPreviewLabel(effect) ?? gameplayStatusName(effect.after),
+        )
+    await expect
+      .poll(() =>
+        target.evaluate(
+          (element) =>
+            [...element.querySelectorAll('img')].some(
+              (image) => image.complete && image.naturalWidth > 0,
+            ) ||
+            Boolean(
+              element.querySelector(':scope > span[aria-hidden="true"]')?.getBoundingClientRect()
+                .width,
+            ),
+        ),
+      )
+      .toBe(true)
+  }
+  await expect(preview.getByRole('button')).toHaveCount(0)
 }
 
 async function exerciseForecast(
   page: Page,
   testInfo: TestInfo,
   kind: string,
-  nexusRows: Record<string, string[]>,
+  nexusRows: Record<string, AuthoredParameterRow[]>,
 ) {
   const baselineState = await readBattle(page)
   let commits = 0
@@ -471,7 +570,27 @@ async function exerciseForecast(
       commits += 1
   }
   page.on('request', observe)
+  const previewUrl = new URL(
+    `/api/battles/${baselineState.battleSessionId}/preview`,
+    page.url(),
+  ).toString()
+  let heldPreview:
+    { hold: Promise<void>; observed: () => void; handled?: Promise<void> } | undefined
+  const interceptPreview = (route: Route) => {
+    const held = heldPreview
+    if (!held || held.handled) return route.continue()
+    held.handled = (async () => {
+      const response = await route.fetch()
+      held.observed()
+      await held.hold
+      await route.fulfill({ response })
+    })()
+    return held.handled
+  }
   try {
+    // Keep Chromium interception stable while real held responses mount lazy portraits.
+    // Toggling Fetch off between viewports can strand an unrelated image request.
+    await page.route(previewUrl, interceptPreview)
     for (const viewport of viewports) {
       await page.setViewportSize(viewport)
       await page.getByRole('button', { name: 'Cancel Action', exact: true }).click()
@@ -518,7 +637,7 @@ async function exerciseForecast(
               .first(),
           ).toBeVisible()
         if (command === 'guard')
-          await expect(page.getByLabel('Action preview', { exact: true })).toContainText('30 AP')
+          await expectNoSkillPreviewMetadata(page.getByLabel('Action preview', { exact: true }))
         await check(`${command}-armed`)
       }
       await page.locator('button[data-battle-command="finish"]').click()
@@ -536,18 +655,15 @@ async function exerciseForecast(
             .first(),
         ).toBeVisible()
         await check(`${name}-ready`)
-        await preview.getByRole('button', { name: `Show ${name} parameters`, exact: true }).click()
-        const parameters = page.getByRole('dialog', { name: `${name} parameters`, exact: true })
+        await expectNoSkillPreviewMetadata(preview)
+        const informationTrigger = page.getByRole('button', { name: `About ${name}`, exact: true })
+        await informationTrigger.click()
+        const parameters = page.getByRole('dialog', { name, exact: true })
         await expect(parameters).toBeVisible()
         const tags = await parameters
-          .locator('dl > div')
-          .evaluateAll((rows) =>
-            rows.map(
-              (row) =>
-                `${row.querySelector('dt')!.textContent}: ${row.querySelector('dd')!.textContent}`,
-            ),
-          )
-        expect(tags.map((tag) => tag.split(':')[0])).toEqual(parameterLabels)
+          .locator('[data-battle-skill-parameters] dl > div')
+          .evaluateAll(readAuthoredParameterRows)
+        expect(tags.map((row) => row.label)).toEqual(parameterLabels)
         expect(tags).toEqual(nexusRows[name])
         await check(`${name}-parameters`)
         await page.keyboard.press('w')
@@ -555,50 +671,20 @@ async function exerciseForecast(
         expect(commits).toBe(0)
         await page.keyboard.press('Escape')
         await expect(parameters).toHaveCount(0)
-        await expect(
-          preview.getByRole('button', { name: `Show ${name} parameters`, exact: true }),
-        ).toBeFocused()
-        await preview.getByRole('button', { name: 'Show forecast details', exact: true }).click()
-        const forecastDetails = page.getByRole('dialog', { name: 'Forecast details', exact: true })
-        await expect(forecastDetails).toBeVisible()
-        if (name === 'Ice Lance') {
-          const target = forecastDetails.locator('[data-battle-target-forecast]')
-          await expect(target).toHaveCount(1)
-          const identity = await target.evaluate((element) => ({
-            name: element.querySelector('strong')?.textContent,
-            fallback: element
-              .querySelector('[data-battle-target-portrait-fallback]')
-              ?.getBoundingClientRect()
-              .toJSON(),
-            loaded: [...element.querySelectorAll('img')].some(
-              (image) => image.complete && image.naturalWidth > 0,
-            ),
-          }))
-          expect(identity.name).toBeTruthy()
-          expect(
-            identity.loaded ||
-              Boolean(
-                identity.fallback && identity.fallback.width > 0 && identity.fallback.height > 0,
-              ),
-          ).toBe(true)
-          if (kind === 'pve') {
-            await expect(target.locator('[data-battle-target-portrait-fallback]')).toBeVisible()
-            await expect(target.locator('img')).toHaveCount(0)
-          }
-        }
-        if (name === 'Chilling Mist') {
-          const ground = forecastDetails.locator('[data-battle-ground-target]')
-          await expect(ground).toHaveCount(1)
-          expect(
-            await ground
-              .locator('img')
-              .evaluate(
-                (image) =>
-                  image instanceof HTMLImageElement && image.complete && image.naturalWidth > 0,
-              ),
-          ).toBe(true)
-        }
-        await check(`${name}-forecast-details`)
+        await expect(informationTrigger).toBeFocused()
+        await expectInlineSkillForecast(
+          page,
+          `frostweaver.${name.toLowerCase().replaceAll(' ', '-')}`,
+          name === 'Chilling Mist',
+        )
+        await check(`${name}-inline-forecast`)
+        await informationTrigger.click()
+        const popup = page.getByRole('dialog', { name, exact: true })
+        await expect(popup).toBeVisible()
+        await check(`${name}-about`)
+        expect(await popup.locator('[data-battle-skill-parameters] dt').allTextContents()).toEqual(
+          parameterLabels,
+        )
         // A click outside the reader dismisses it without executing an action.
         const outsideTileIndex = await page
           .locator('#battlefield button[aria-label^="Tile "]')
@@ -626,28 +712,19 @@ async function exerciseForecast(
             .click()
         } else {
           // Complete reports can cover the whole board; the viewport margin remains dismissible.
-          const readerBounds = await forecastDetails.boundingBox()
+          const readerBounds = await popup.boundingBox()
           expect(readerBounds!.x > 1 || readerBounds!.y > 1).toBe(true)
           await page.mouse.click(1, 1)
         }
-        await expect(forecastDetails).toHaveCount(0)
-        expect(commits).toBe(0)
-        await page.getByRole('button', { name: 'About ' + name, exact: true }).click()
-        const popup = page.getByRole('dialog', { name, exact: true })
-        await expect(popup).toBeVisible()
-        await check(`${name}-details`)
-        expect(await popup.locator('[data-battle-skill-parameters] dt').allTextContents()).toEqual(
-          parameterLabels,
-        )
-        await page.keyboard.press('Escape')
         await expect(popup).toHaveCount(0)
+        expect(commits).toBe(0)
       }
       await page.locator('[data-battle-special="essence"] > button[aria-pressed]').click()
       await expect(
         page
           .getByLabel('Action preview', { exact: true })
           .locator('[data-battle-preview-lane="parameters"]'),
-      ).toBeVisible()
+      ).toHaveCount(0)
       await expect(
         page
           .getByLabel('Action preview', { exact: true })
@@ -666,21 +743,7 @@ async function exerciseForecast(
       const fetched = new Promise<void>((resolve) => {
         observed = resolve
       })
-      const previewUrl = new URL(
-        `/api/battles/${baselineState.battleSessionId}/preview`,
-        page.url(),
-      ).toString()
-      let handled: Promise<void> | undefined
-      const holdPreview = (route: Route) => {
-        handled = (async () => {
-          const response = await route.fetch()
-          observed()
-          await hold
-          await route.fulfill({ response })
-        })()
-        return handled
-      }
-      await page.route(previewUrl, holdPreview, { times: 1 })
+      heldPreview = { hold, observed }
       try {
         await page.getByRole('button', { name: /^Selected Chilling Mist,/ }).click()
         await fetched
@@ -690,10 +753,8 @@ async function exerciseForecast(
         await check('pending-ground')
       } finally {
         release()
-        // Removing interception can release a paused route itself. Let the held real
-        // response finish exactly once before removing this viewport's handler.
-        await handled
-        await page.unroute(previewUrl, holdPreview)
+        await heldPreview.handled
+        heldPreview = undefined
       }
       await expect(
         page
@@ -708,11 +769,12 @@ async function exerciseForecast(
     expect(commits).toBe(0)
     expect(await readBattle(page)).toEqual(baselineState)
   } finally {
+    await page.unroute(previewUrl, interceptPreview)
     page.off('request', observe)
   }
 }
 
-test('AI forecast arming, targets, keyboard reading and details keep the desktop board fixed', async ({
+test('AI forecast arming, inline targets and cockpit reading keep the desktop board fixed', async ({
   page,
 }, testInfo) => {
   test.skip(
