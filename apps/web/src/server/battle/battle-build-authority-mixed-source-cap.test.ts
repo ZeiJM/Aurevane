@@ -217,6 +217,5 @@ describe('battle build authority mixed Technique source capacity', () => {
       ['vanguard.brace', 4],
       ['lifebinder.barrier', 4],
     ])
-
   })
 })
