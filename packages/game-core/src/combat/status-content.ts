@@ -45,7 +45,7 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
     'frozen',
     'Chilled',
     'Debuff',
-    'A Frozen setup tag. Fire removes it. Frozen terrain has a separate duration and movement cost.',
+    'A Chilled setup tag. Fire removes it. Frozen Ground has a separate duration and movement cost.',
     { gameplayTags: ['Frozen'] },
   ),
   status(
@@ -77,7 +77,7 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
     'airborne',
     'Airborne',
     'Buff',
-    'Ignore the Frozen terrain AP surcharge. Board bounds, elevation, obstacles, occupancy, Root and Movement allowance still apply.',
+    'Ignore the Frozen Ground AP surcharge. Board bounds, elevation, obstacles, occupancy, Rooted and Movement allowance still apply.',
     { gameplayTags: ['Airborne'] },
   ),
   status(
@@ -157,15 +157,13 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
     'challenged',
     'Taunted',
     'Debuff',
-    'Deal 25% less damage to anyone except the unit that applied Challenge.',
+    'Deal 25% less damage to anyone except the unit that applied Taunt.',
     {
       damageModifiers: [
         modifier('outgoing', 7_500, { kind: 'opponent-is-source', matches: false }),
       ],
     },
   ),
-  // Historical v1 Mark remains immutable for already-pinned battles.
-
   status(
     'mark',
     'Marked',
@@ -255,7 +253,7 @@ const legacyDescriptions: Record<
     name: 'Effect Copy',
     kind: 'Effect',
     description:
-      'Copies eligible positive or negative effects through Amplify or Curse when the effect activates.',
+      'Copies eligible positive or negative effects through Copy Buffs or Copy Debuffs when the effect activates.',
   },
   sensory: {
     name: 'Reveal',
