@@ -860,22 +860,22 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
               .replace(/(\.\d*[1-9])0+$/u, '$1')}× damage`
       return createEntry(record, eventType, {
         message: stacked
-          ? `${combatantLabel(event.combatantId)} stacked Lowered Guard${stacks === null ? '' : ` to ×${stacks}`} after the turn timer expired.`
-          : `${combatantLabel(event.combatantId)} gained Lowered Guard after the turn timer expired.`,
+          ? `${combatantLabel(event.combatantId)} stacked Defenseless${stacks === null ? '' : ` to ×${stacks}`} after the turn timer expired.`
+          : `${combatantLabel(event.combatantId)} gained Defenseless after the turn timer expired.`,
         messageTemplate: stacked
           ? "{target}'s {status} stacks to ×{stacks}."
-          : '{target} gained Lowered Guard.',
+          : '{target} gained Defenseless.',
         templateValues: {
-          status: 'Lowered Guard',
+          status: 'Defenseless',
           statusChange: stacked ? 'STACKED' : 'APPLIED',
           ...(stacks === null ? {} : { stacks: String(stacks) }),
         },
         targetCombatantId,
         kind: 'status',
-        headline: 'Lowered Guard',
+        headline: 'Defenseless',
         tone: 'warning',
         facts: [
-          ...fact('Lowered Guard', 'warning'),
+          ...fact('Defenseless', 'warning'),
           ...fact(stacks !== null && stacks > 1 ? `×${stacks} stacks` : null),
           ...fact(remaining === null ? null : `${remaining} turn${remaining === 1 ? '' : 's'}`),
           ...fact(multiplierLabel, 'warning'),
