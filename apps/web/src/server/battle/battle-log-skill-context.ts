@@ -83,8 +83,7 @@ export async function attachRecordedBattleLogSkillContext(
 
   const contexts = new Map<string, SkillContext>()
   const sourceDisciplines = new Map<string, string>()
-  // At most one lookup per visible pinned identity (four build slots per actor plus
-  // recorded copied grants). Four workers bound fan-out across the complete history.
+  // At most one lookup per visible pinned identity. Four workers bound fan-out across the complete history.
   const pending = [...uniqueReferences.values()]
   let nextIndex = 0
   await Promise.all(
