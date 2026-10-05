@@ -1,6 +1,6 @@
 # AUREVANE — Active Task Ledger
 
-## Resource pools, twelve-round duels, positional accuracy and Items — 2026-10-05 (verification in progress)
+## Resource pools, twelve-round duels, positional accuracy and Items — 2026-10-05 (production release in progress)
 
 Owner requests HP500/650 andMP400/500 at Core40/60, twelve-round Level1001v1 balance using ordinary equipped Skills/AP, front−5/side+5/rear+10 percentage-point hit chance, and locked Items before Inspect with defaultP and unchanged artwork sizes. Exact scope: `docs/superpowers/plans/2026-10-05-duel-resources-facing-items-spec.md`.
 
@@ -8,8 +8,10 @@ Owner requests HP500/650 andMP400/500 at Core40/60, twelve-round Level1001v1 bal
 - [x] Calibrate real legal four-Skill mirror commands across200seeds: physical11.52,mystic12.68,pooled12.10 rounds.
 - [x] Implement pinned duel policy and shared preview/AI/commit direction/damage arithmetic.
 - [x] Add shared locked Items slot and safe custom-binding migration.
-- [ ] Complete exact-candidate full quality and browser geometry/control checks.
+- [x] Complete exact-candidate full quality and browser geometry/control checks.
 - [ ] Merge and perform one authorized Production release, verify source/alias/public smoke/logs and restore deployment lock.
+
+All eleven workflows pass exact candidate `add69fa3bb28a34da1e22d683eba0acab9d15415`, tree `b75f1f754b2986cc37e10d61cdb650a11222149a`. PR #833 merges the identical tested tree as `6b67389fab84d31b82854ab943063413b448bd27`. Full quality passes4,019 Vitest tests, seven Node checks, lint/types/builds and database authority. Browser passes four ally previews, palette,28 elevation/privacy,54 completion,28 command/input,6 mail recovery,3 training,71 focused,317 full Chromium and10 Edge cases. Layout passes native mobile Profile swiping,110 scenarios and the directory check; Desktop interactions48 and Buildcraft24. Independent review has no remaining findings, actual caption/Controls captures fit, and existing skips remain unchanged. This configuration/docs-only step enables the one Owner-authorized Production release; exact READY/source/alias/public smoke/log and restored-lock receipts remain pending. No migration or hosted Auth/content/account changes.
 
 
 ## Stat balance, elevation, resistance and shared reader corrections — 2026-10-05 (released)
