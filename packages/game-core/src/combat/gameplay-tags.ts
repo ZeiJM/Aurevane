@@ -320,7 +320,7 @@ function effectPresentationTags(effect: PresentationEffect): readonly string[] {
       : []
     return [ids.length > 0 && ids.every((id) => POSITIVE_STATUS_IDS.has(id)) ? 'Dispel' : 'Cleanse']
   }
-  if (effect.type === 'return-to-turn-start' || effect.type === 'revert') return ['Revert']
+  if (effect.type === 'return-to-turn-start' || effect.type === 'revert') return ['Rewind']
   if (effect.type === 'create-terrain' || effect.type === 'freeze-ground') return ['Freeze Ground']
   if (effect.type === 'displace') {
     const direction = effect.direction === 'pull' ? 'Pull' : 'Push'
