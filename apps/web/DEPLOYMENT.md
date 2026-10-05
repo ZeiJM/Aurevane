@@ -1,5 +1,13 @@
 # Web deployment note
 
+## AFK Lowered Guard and Online Users EXP — verified release
+
+The Owner’s standing combined Production request covers this follow-up. PR #836 merges as `6d0b6101b1f7ab3a310a637aa0b1c8a6016787d8`, identical to candidate `989d84ae0d1063e0cea3ecd8f131f75423c6311a`, tree `2d9ee9675bda59641b022deacc58052c04c35117`. All eleven workflows pass. Local quality passes4,027 Vitest tests, seven Node checks, formatting, lint, types and builds. Browser passes6 recovery,3 training,71 focused,317 full Chromium and10 Edge cases; layout passes110 scenarios, native Profile swipe and the directory check, Desktop48 and Buildcraft24. Independent reviews have no blockers.
+
+Manual End Turn stays exempt; current AI/PvP timer expiry applies Lowered Guard from the next round for one affected turn. Online Users adds EXP beside Level, numeric Level/EXP sorting in both views and Last Seen most recent initially. Public identity reads use bounded batches. Production migration `20261005194142` (`online_character_experience_projection`) applies the verified service-only XP/portrait SELECT contract; browser authority hash and the security-advisor baseline are unchanged. No hosted Auth/content or Production-account changes.
+
+This configuration/documentation-only release permits Main for one Production deployment. Branch previews remain disabled. Restore the full lock after READY, alias/source verification and bounded public/runtime checks. Authenticated browser/API proof uses disposable CI; authenticated Production gameplay and Owner visual acceptance remain separate outcomes.
+
 This file intentionally lives inside the web app project root so documentation-only production redeploys are not skipped by Vercel's monorepo unaffected-project optimization.
 
 ## Resource pools, positional hit chance and Items — released
