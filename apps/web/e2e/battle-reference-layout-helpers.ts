@@ -343,7 +343,7 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
   expect(geometry.versus.animation === 'none').toBe(geometry.versus.reducedMotion)
   expect(geometry.versus.containment).not.toContain('paint')
   if (!geometry.versus.reducedMotion) {
-    expect(geometry.versus.animationDuration).toBe('1.6s')
+    expect(geometry.versus.animationDuration).toBe('7s')
     expect(geometry.versus.flameOpacity).toBeGreaterThanOrEqual(0.55)
     expect(geometry.versus.flames.width).toBeGreaterThan(geometry.versus.bounds.width * 1.15)
     expect(geometry.versus.flames.left).toBeGreaterThanOrEqual(localCard!.bounds.left)

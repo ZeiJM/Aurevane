@@ -30,6 +30,22 @@ const parameterLabels = [
   'Line of Sight',
 ]
 
+type AuthoredParameterRow = { label: string; value: string | string[] }
+
+/** Read individual effect chips in order instead of relying on sibling text delimiters. */
+function readAuthoredParameterRows(rows: Element[]): AuthoredParameterRow[] {
+  return rows.map((row) => {
+    const value = row.querySelector('dd')!
+    const effects = value.querySelectorAll('[data-compact-skill-effect="true"]')
+    return {
+      label: row.querySelector('dt')!.textContent!,
+      value: effects.length
+        ? Array.from(effects, (effect) => effect.textContent!)
+        : value.textContent!,
+    }
+  })
+}
+
 async function provision(page: Page, prefix: string) {
   const seed = `${Date.now()}${Math.floor(Math.random() * 10000)}`
   const name = `${prefix} ${seed
@@ -76,7 +92,7 @@ async function equipForecastSkills(page: Page) {
     await dialog.getByRole('checkbox', { checked: true }).first().uncheck()
     expect((await saved).ok()).toBe(true)
   }
-  const nexusRows: Record<string, string[]> = {}
+  const nexusRows: Record<string, AuthoredParameterRow[]> = {}
   for (const name of ['Ice Lance', 'Frost Guard', 'Chilling Mist']) {
     const card = dialog
       .locator('[data-technique-card]')
@@ -86,19 +102,7 @@ async function equipForecastSkills(page: Page) {
     nexusRows[name] = await dialog
       .getByTestId('technique-preview')
       .locator('dl > div')
-      .evaluateAll((rows) =>
-        rows.map((row) => {
-          const label = row.querySelector('dt')!.textContent
-          const value = row.querySelector('dd')!
-          const effects = value.querySelectorAll('[data-compact-skill-effect="true"]')
-          // Nexus renders separate effect chips; battle uses a comma-separated value.
-          // Compare every chip, in order, without concatenating their DOM text together.
-          const text = effects.length
-            ? Array.from(effects, (effect) => effect.textContent).join(', ')
-            : value.textContent
-          return `${label}: ${text}`
-        }),
-      )
+      .evaluateAll(readAuthoredParameterRows)
     const saved = page.waitForResponse(
       (response) =>
         response.url().endsWith('/api/character/build/skills') &&
@@ -551,7 +555,7 @@ async function exerciseForecast(
   page: Page,
   testInfo: TestInfo,
   kind: string,
-  nexusRows: Record<string, string[]>,
+  nexusRows: Record<string, AuthoredParameterRow[]>,
 ) {
   const baselineState = await readBattle(page)
   let commits = 0
@@ -638,13 +642,8 @@ async function exerciseForecast(
         await expect(parameters).toBeVisible()
         const tags = await parameters
           .locator('[data-battle-skill-parameters] dl > div')
-          .evaluateAll((rows) =>
-            rows.map(
-              (row) =>
-                `${row.querySelector('dt')!.textContent}: ${row.querySelector('dd')!.textContent}`,
-            ),
-          )
-        expect(tags.map((tag) => tag.split(':')[0])).toEqual(parameterLabels)
+          .evaluateAll(readAuthoredParameterRows)
+        expect(tags.map((row) => row.label)).toEqual(parameterLabels)
         expect(tags).toEqual(nexusRows[name])
         await check(`${name}-parameters`)
         await page.keyboard.press('w')
