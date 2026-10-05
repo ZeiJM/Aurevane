@@ -732,9 +732,9 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
       controls = (
         <div className={styles.typedGrid}>
           <label className={styles.field}>
-            <span>Status copy mode</span>
+            <span>Copy mode</span>
             <select
-              aria-label="Status copy mode"
+              aria-label="Copy mode"
               value={value.mode}
               onChange={(event) =>
                 onChange({
@@ -743,8 +743,8 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
                 })
               }
             >
-              <option value="amplify">Amplify</option>
-              <option value="curse">Curse</option>
+              <option value="amplify">Copy Buffs</option>
+              <option value="curse">Copy Debuffs</option>
             </select>
           </label>
           <label className={styles.checkField}>
