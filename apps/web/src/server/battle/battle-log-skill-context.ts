@@ -1,7 +1,6 @@
 import 'server-only'
 
 import type { BattleEventRecord } from '@aurevane/db/battle-session'
-import { parseCopiedSkillCommandId } from '@aurevane/game-core/combat/combat-skill-copy'
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 import {
   battleFlavorTemplateIssues,
@@ -54,54 +53,15 @@ function referenceKey(reference: SkillReference): string {
   return `${reference.skillId}@${reference.contentVersion}`
 }
 
-function copyGrant(
-  record: BattleEventRecord,
-): { actorId: string; reference: SkillReference } | null {
-  const event = eventObject(record)
-  if (
-    event?.event !== 'temporary_skill_copied' ||
-    typeof event.combatantId !== 'string' ||
-    typeof event.skillId !== 'string' ||
-    typeof event.contentVersion !== 'number' ||
-    !Number.isSafeInteger(event.contentVersion) ||
-    event.contentVersion < 1
-  )
-    return null
-  return {
-    actorId: event.combatantId,
-    reference: { skillId: event.skillId, contentVersion: event.contentVersion },
-  }
-}
-
-function precedes(
-  grant: Pick<BattleEventRecord, 'battleVersion' | 'eventIndex'>,
-  record: Pick<BattleEventRecord, 'battleVersion' | 'eventIndex'>,
-): boolean {
-  return (
-    grant.battleVersion < record.battleVersion ||
-    (grant.battleVersion === record.battleVersion && grant.eventIndex <= record.eventIndex)
-  )
-}
-
 /** Enrichment receives only projected history; hidden commands cannot trigger content reads. */
 export async function attachRecordedBattleLogSkillContext(
   view: BattleLogView,
   projected: readonly BattleEventRecord[],
   authority: BattleBuildAuthoritySnapshot | undefined,
   resolver?: ContextResolver,
-  copyPolicyVersion: number | null = null,
 ): Promise<BattleLogView> {
   if (!authority) return view
   const records = new Map(projected.map((record) => [recordKey(record), record]))
-  const visibleGrants = new Map<string, BattleEventRecord>()
-  for (const record of projected) {
-    const grant = copyGrant(record)
-    if (!grant) continue
-    const key = `${grant.actorId}:${referenceKey(grant.reference)}`
-    const previous = visibleGrants.get(key)
-    if (!previous || precedes(record, previous)) visibleGrants.set(key, record)
-  }
-
   const referencesByEntry = new Map<BattleLogEntry, SkillReference>()
   const uniqueReferences = new Map<string, SkillReference>()
   for (const entry of view.entries) {
@@ -109,20 +69,13 @@ export async function attachRecordedBattleLogSkillContext(
     const record = records.get(recordKey(entry))
     const event = record ? eventObject(record) : null
     if (!record || !event) continue
-    let reference: SkillReference | undefined
-    const grant = copyGrant(record)
     const actionId = recordedActionId(entry, event)
-    const copied = actionId ? parseCopiedSkillCommandId(actionId) : null
-    if (grant) {
-      reference = grant.reference
-    } else if (copied) {
-      const provenance = visibleGrants.get(`${entry.actorCombatantId}:${referenceKey(copied)}`)
-      if (provenance && precedes(provenance, record)) reference = copied
-    } else if (actionId === entry.actionId) {
-      reference = authority.combatants
-        .find((combatant) => combatant.combatantId === entry.actorCombatantId)
-        ?.disciplineSkills.find((skill) => skill.skillId === entry.actionId)
-    }
+    const reference =
+      actionId === entry.actionId
+        ? authority.combatants
+            .find((combatant) => combatant.combatantId === entry.actorCombatantId)
+            ?.disciplineSkills.find((skill) => skill.skillId === entry.actionId)
+        : undefined
     if (!reference || reference.skillId !== entry.actionId) continue
     referencesByEntry.set(entry, reference)
     uniqueReferences.set(referenceKey(reference), reference)
@@ -159,10 +112,9 @@ export async function attachRecordedBattleLogSkillContext(
             contentVersion: definition.contentVersion,
             name: skillDisplayName(definition),
             description: definition.effects
-              .map((effect, index) =>
-                effect.type === 'copy'
-                  ? skillEffectDescription(effect, copyPolicyVersion)
-                  : (definition.effectDescriptions?.[index] ?? skillEffectDescription(effect)),
+              .map(
+                (effect, index) =>
+                  definition.effectDescriptions?.[index] ?? skillEffectDescription(effect),
               )
               .join(' '),
             flavor: safeFlavor(definition.flavorLine),
@@ -170,7 +122,7 @@ export async function attachRecordedBattleLogSkillContext(
           })
           sourceDisciplines.set(referenceKey(reference), definition.sourceDisciplineId)
         } catch {
-          // Optional historical copy must not make recorded authoritative results unavailable.
+          // Optional content enrichment must not make recorded authoritative results unavailable.
         }
       }
     }),
@@ -207,7 +159,7 @@ export async function attachRecordedBattleLogSkillContext(
     entries: summonView.entries.map((entry) => {
       const record = records.get(recordKey(entry))
       const effectOrigin = record
-        ? verifiedRecordedEffectOrigin(entry, record, authority, visibleGrants)
+        ? verifiedRecordedEffectOrigin(entry, record, authority)
         : null
       const actorIdentity =
         (entry.actionContext || entry.actionId === 'battle.lowered-guard.apply') &&
@@ -216,9 +168,8 @@ export async function attachRecordedBattleLogSkillContext(
               (combatant) => combatant.combatantId === entry.actorCombatantId,
             )?.narratorIdentity
           : undefined
-      // Copy's recorded source is its donor, not the recipient of an authored action.
       const targetIdentity =
-        actorIdentity && entry.targetCombatantId && entry.eventType !== 'temporary_skill_copied'
+        actorIdentity && entry.targetCombatantId
           ? authority.combatants.find(
               (combatant) => combatant.combatantId === entry.targetCombatantId,
             )?.narratorIdentity
@@ -250,7 +201,6 @@ function verifiedRecordedEffectOrigin(
   entry: BattleLogEntry,
   record: BattleEventRecord,
   authority: BattleBuildAuthoritySnapshot,
-  visibleGrants: ReadonlyMap<string, BattleEventRecord>,
 ): CombatEffectOrigin | null {
   const event = eventObject(record)
   const candidate = event?.effectOrigin
@@ -272,11 +222,6 @@ function verifiedRecordedEffectOrigin(
   )
     return null
   const actionId = recordedActionId(entry, event)!
-  const copied = parseCopiedSkillCommandId(actionId)
-  const grant = copied
-    ? visibleGrants.get(`${entry.actorCombatantId}:${referenceKey(copied)}`)
-    : undefined
-  const validCopy = copied && grant && precedes(grant, record) ? copied : null
   const build = authority.combatants.find(
     (combatant) => combatant.combatantId === entry.actorCombatantId,
   )
@@ -285,9 +230,8 @@ function verifiedRecordedEffectOrigin(
   const resonance = build?.extensions.resonance
   let valid = false
   if (origin.family === 'skill') {
-    const reference = validCopy ?? skill
     valid =
-      reference?.skillId === origin.contentId && reference?.contentVersion === origin.contentVersion
+      skill?.skillId === origin.contentId && skill?.contentVersion === origin.contentVersion
   } else if (origin.family === 'essence') {
     valid =
       essence?.skillId === actionId &&
@@ -295,7 +239,7 @@ function verifiedRecordedEffectOrigin(
       essence?.contentVersion === origin.contentVersion
   } else if (origin.family === 'resonance') {
     valid =
-      Boolean(skill || validCopy || essence?.skillId === actionId) &&
+      Boolean(skill || essence?.skillId === actionId) &&
       resonance?.resonanceId === origin.contentId &&
       resonance?.contentVersion === origin.contentVersion
   }
