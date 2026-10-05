@@ -86,9 +86,6 @@ function targetReachFactor(definition: MatureSkillDefinition): number {
 function defaultStatusDuration(statusId: string): number {
   switch (statusId) {
     case 'root':
-    case 'hastened':
-    case 'delayed':
-    case 'borrowed-hour':
     case 'displaced':
       return 1
     case 'burn':
@@ -140,7 +137,6 @@ function defaultStatusPotencyBasisPoints(
     case 'hexed':
       return clamp(scaled + 500, 1_500, 2_500)
     case 'inspired':
-    case 'summoned':
     case 'warded':
       return clamp(scaled, 800, 1_800)
     default:
