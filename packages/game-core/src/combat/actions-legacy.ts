@@ -278,8 +278,6 @@ export interface CombatStatusDefinition {
   gameplayTags?: readonly GameplayTag[]
   endOfTurn?: { type: 'damage' | 'healing'; amount: number }
   movement?: { blocked?: boolean; additionalApPerTile?: number }
-  /** Consumed at the next round boundary; never adds or skips turns. */
-  nextRoundInitiative?: number
 }
 
 export interface CombatContentCatalog {
@@ -1132,45 +1130,6 @@ function battleForEffectStacking(state: CombatEncounterState): BattleState {
     : state.tactical.battle
 }
 
-function collectNextRoundInitiativeModifiers(
-  state: CombatEncounterState,
-  content: CombatContentCatalog,
-): NonNullable<BattleState['roundInitiativeModifiers']> {
-  return state.statusState.flatMap((row) => {
-    const unlimited = state.effectStackingPolicyVersion === 1
-    let total = 0n
-    for (const status of row.statuses)
-      total +=
-        BigInt(
-          getStatusDefinition(content, status.statusId, status.statusVersion).nextRoundInitiative ??
-            0,
-        ) * BigInt(unlimited ? status.stacks : 1)
-    for (const pending of state.pendingEffects ?? []) {
-      if (
-        pending.activationRound !== state.tactical.battle.round + 1 ||
-        !pending.recipientIds.includes(row.combatantId) ||
-        pending.effect.type !== 'apply-status'
-      )
-        continue
-      total +=
-        BigInt(
-          pending.content.statuses.find(
-            (definition) => definition.id === (pending.effect as { statusId: string }).statusId,
-          )?.nextRoundInitiative ?? 0,
-        ) * BigInt(unlimited ? pending.effect.stacks : 1)
-    }
-    if (
-      unlimited &&
-      (total > BigInt(Number.MAX_SAFE_INTEGER) || total < -BigInt(Number.MAX_SAFE_INTEGER))
-    )
-      throw new RangeError('Initiative effect total exceeds the safe integer range.')
-    const amount = unlimited
-      ? Number(total)
-      : Number(total > 40n ? 40n : total < -40n ? -40n : total)
-    return amount === 0 ? [] : [{ combatantId: row.combatantId, amount }]
-  })
-}
-
 function applyCombatRoundBoundary(
   state: CombatEncounterState,
   previousRound: number,
@@ -1182,26 +1141,6 @@ function applyCombatRoundBoundary(
   const expiredTerrain = expireTerrainOverlays(nextState)
   nextState = expiredTerrain.state
   events.push(...expiredTerrain.events)
-  // Consume scheduled tempo once. The committed order remains frozen for the full round.
-  for (const row of nextState.statusState) {
-    const consumed = row.statuses.filter(
-      (status) =>
-        getStatusDefinition(content, status.statusId, status.statusVersion).nextRoundInitiative !==
-        undefined,
-    )
-    nextState = removeStatuses(
-      nextState,
-      row.combatantId,
-      consumed.map((status) => status.statusId),
-    )
-    events.push(
-      ...consumed.map((status) => ({
-        event: 'status_expired' as const,
-        combatantId: row.combatantId,
-        statusId: status.statusId,
-      })),
-    )
-  }
   const ready = (nextState.pendingEffects ?? []).filter(
     (effect) => effect.activationRound <= nextState.tactical.battle.round,
   )
@@ -1318,21 +1257,6 @@ function applyCombatRoundBoundary(
           : {}),
       })),
     )
-    if (
-      pending.effect.type === 'apply-status' &&
-      pending.content.statuses.find(
-        (definition) => definition.id === (pending.effect as { statusId: string }).statusId,
-      )?.nextRoundInitiative !== undefined
-    ) {
-      for (const recipientId of pending.recipientIds) {
-        nextState = removeStatuses(nextState, recipientId, [pending.effect.statusId])
-        events.push({
-          event: 'status_expired',
-          combatantId: recipientId,
-          statusId: pending.effect.statusId,
-        })
-      }
-    }
   }
   return { state: nextState, events }
 }
@@ -1350,7 +1274,6 @@ export function endCombatTurn(
     throw new Error('End Turn requires an active battle.')
   }
 
-  const roundModifiers = collectNextRoundInitiativeModifiers(state, content)
   const outgoingId = state.tactical.battle.currentTurn!.combatantId
   const outgoing = getCombatant(state.tactical.battle, outgoingId)
   // Predict the existing deterministic ticks for selection only. They are committed below.
@@ -1378,14 +1301,14 @@ export function endCombatTurn(
   )
   let ended = endTurn(
     battleForEffectStacking(state),
-    roundModifiers,
+    [],
     outgoingDefeatedAtTurnEnd || outgoingHpAfterTicks === 0,
   )
   const summonBoundary = preparePendingSummonsForRound(state, ended.state.round)
   if (summonBoundary.state !== state)
     ended = endTurn(
       battleForEffectStacking(summonBoundary.state),
-      roundModifiers,
+      [],
       outgoingDefeatedAtTurnEnd || outgoingHpAfterTicks === 0,
     )
   let nextState = withBattle(summonBoundary.state, ended.state)
@@ -3003,8 +2926,7 @@ function expireOwnerTurnStartStatuses(
     const definition = getStatusDefinition(content, status.statusId, status.statusVersion)
     if (
       status.remainingOwnerTurnEnds !== undefined ||
-      definition.endOfTurn ||
-      definition.nextRoundInitiative !== undefined
+      definition.endOfTurn
     ) {
       kept.push(status)
       continue
@@ -3618,17 +3540,6 @@ function validateCombatContentCatalog(content: CombatContentCatalog): void {
     }
     if (status.damageModifiers?.length && status.maximumStacks !== 1)
       throw new TypeError('Conditional damage statuses must be single-stack.')
-    if (
-      status.nextRoundInitiative !== undefined &&
-      (!Number.isSafeInteger(status.nextRoundInitiative) ||
-        Math.abs(status.nextRoundInitiative) > 40 ||
-        status.nextRoundInitiative === 0 ||
-        status.maximumStacks !== 1 ||
-        status.endOfTurn)
-    )
-      throw new RangeError(
-        'Round initiative status must be single-stack, non-periodic and bounded to +/-40.',
-      )
     if (status.endOfTurn) {
       assertKnownString(status.endOfTurn.type, ['damage', 'healing'], 'periodic effect')
       assertPositiveSafeInteger(status.endOfTurn.amount, 'periodic amount')
