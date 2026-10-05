@@ -309,7 +309,6 @@ describe('unlimited independent DoT applications', () => {
     expect(copied.statusState[0]!.statuses).toEqual([first, second])
   })
 
-  
   it('assigns distinct Curse lineage to each copied application without reattributing recipient effects', () => {
     const provenance = createCombatActionProvenance({
       rulesetVersion: 2,
