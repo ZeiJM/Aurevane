@@ -1071,7 +1071,6 @@ function BattleExperienceContent({
       handleApiFailure,
       localCombatantId,
       localTurn,
-      router,
       runtime,
       viewModel,
     ],
