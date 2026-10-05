@@ -150,7 +150,6 @@ describe('combat authoring validation boundary', () => {
     ).not.toThrow()
   })
 
-  
   it('rejects malformed accuracy authoring', () => {
     expect(() =>
       validateCombatActionDefinition({
