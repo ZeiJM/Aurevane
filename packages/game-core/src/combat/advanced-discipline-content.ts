@@ -834,10 +834,7 @@ export const ADVANCED_DISCIPLINE_ESSENCES: readonly EssenceDefinition[] = [
     'Restore an ally over time and reduce their movement AP costs with Haste.',
     60,
     ally,
-    [
-      { type: 'healing', recipient: 'primary-unit', amount: 5, ticks: 2 },
-      effect('haste'),
-    ],
+    [{ type: 'healing', recipient: 'primary-unit', amount: 5, ticks: 2 }, effect('haste')],
     ['heal', 'support', 'tempo', 'mystic'],
   ),
   essence(
