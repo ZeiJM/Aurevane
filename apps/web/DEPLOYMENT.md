@@ -2,13 +2,13 @@
 
 This file intentionally lives inside the web app project root so documentation-only production redeploys are not skipped by Vercel's monorepo unaffected-project optimization.
 
-## Resource pools, positional hit chance and Items — authorized release
+## Resource pools, positional hit chance and Items — released
 
 All eleven workflows pass candidate `add69fa3bb28a34da1e22d683eba0acab9d15415`, tree `b75f1f754b2986cc37e10d61cdb650a11222149a`. PR #833 merges the identical tested tree as `6b67389fab84d31b82854ab943063413b448bd27`. Quality passes4,019 Vitest tests, seven Node checks, lint/types/builds and database authority; Browser passes6 mail recovery,3 training,71 focused,317 full Chromium and10 Edge cases, plus shared ally/palette/elevation/completion/input regressions. Layout passes110 scenarios and the directory check, Desktop interactions48 and Buildcraft24. Independent application review has no remaining findings.
 
 Current derivedV5 resources reach HP500/650 andMP400/500 at Core40/60. New encounters pin duelBalancePolicyVersion1 independently of bridge4/statBalancePolicyVersion1: calibrated hostile direct damage and front−5/side+5/rear+10 percentage-point hit modifiers. Real200seed legal four-Skill Level100 mirrors average12.10 rounds; builds/rotations can differ. Saved encounters retain recorded rules. The locked Items slot precedes Inspect, defaults toP and preserves existing artwork/custom bindings; desktop spacing fits the extra slot/binding.
 
-This configuration/documentation-only step enables Main deployment for the single Owner-authorized Production release. Exact source/READY/alias/public smoke/log and full-lock closeout receipts will be recorded after verification. No additional application bytes, migration, hosted Auth/content setting or production-account mutation are included in this release step.
+Configuration/docs-only PR #834 releases source `6852e4507e39c71b373ab530c2a5fc77ef1920a1` as READY deployment `dpl_F3tRVQcQzxXEC5m7RoaPNW9H5QmK` at `2026-10-05T15:36:21.674Z`. https://aurevane.vercel.app/ points to that exact source. Eight public checks pass: entry, recovery, Manual/index/search/current resource article, Rules, News and VS artwork; the live article contains500/650HP and400/500MP. The deployment-scoped warning/error/fatal scan through `2026-10-05T15:38:44.731Z` has no matching logs. This configuration/documentation-only closeout restores the full deployment lock without another application release. Application bytes equal the tested candidate. No migration, hosted Auth/content setting or production-account changes. Earlier approved work remains included; authenticated gameplay/mail pass in disposable CI, with authenticated Production gameplay and Owner visual acceptance separate outcomes.
 
 ## Stat balance, elevation, resistance and shared readers — released
 
