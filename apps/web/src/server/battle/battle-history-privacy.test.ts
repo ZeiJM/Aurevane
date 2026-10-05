@@ -238,7 +238,6 @@ describe('CSR-3 commit-time privacy metadata', () => {
     }
   })
 
-  
   it('samples command-start Covert before command mutations and hides only ordinary action identity', () => {
     const before = encounter({ actorStatuses: [status('covert', ACTOR, 3)] })
     const after = encounter()
@@ -443,10 +442,8 @@ describe('CSR-3 viewer-relative historical projection', () => {
     expect(projectBattleHistoryForViewer(records, [journal], spectator)).toHaveLength(3)
   })
 
-  
   it('keeps legacy versions public when no journal row exists', () => {
     const opponent = deriveParticipantBattleViewerEntitlement(combatants, [TARGET])
     expect(projectBattleHistoryForViewer(records, [], opponent)).toEqual(records)
   })
 })
-
