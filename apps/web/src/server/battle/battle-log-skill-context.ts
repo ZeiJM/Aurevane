@@ -53,6 +53,16 @@ function referenceKey(reference: SkillReference): string {
   return `${reference.skillId}@${reference.contentVersion}`
 }
 
+function precedes(
+  earlier: Pick<BattleEventRecord, 'battleVersion' | 'eventIndex'>,
+  later: Pick<BattleEventRecord, 'battleVersion' | 'eventIndex'>,
+): boolean {
+  return (
+    earlier.battleVersion < later.battleVersion ||
+    (earlier.battleVersion === later.battleVersion && earlier.eventIndex <= later.eventIndex)
+  )
+}
+
 /** Enrichment receives only projected history; hidden commands cannot trigger content reads. */
 export async function attachRecordedBattleLogSkillContext(
   view: BattleLogView,
