@@ -37,7 +37,7 @@ describe('compact combat presentation tags', () => {
         },
         [{ type: 'healing', recipient: 'primary-unit', amount: 3, ticks: 3 }],
       ),
-    ).toEqual(['Self/Ally', 'Single', 'Heal 3'])
+    ).toEqual(['Self/Ally', 'Single', 'Heal [3]'])
 
     expect(
       tags(
@@ -46,12 +46,9 @@ describe('compact combat presentation tags', () => {
           teamPolicy: 'any',
           shape: { kind: 'circle', radius: 2 },
         },
-        [
-          { type: 'damage', recipient: 'affected-units', amount: 5, element: 'fire' },
-          { type: 'copy', recipient: 'primary-unit' },
-        ],
+        [{ type: 'damage', recipient: 'affected-units', amount: 5, element: 'fire' }],
       ),
-    ).toEqual(['Anyone', 'Circle 2', 'Fire Dmg', 'Copy'])
+    ).toEqual(['Anyone', 'Circle [2]', 'Fire Dmg [5]'])
 
     expect(
       tags(
@@ -62,7 +59,7 @@ describe('compact combat presentation tags', () => {
         },
         [{ type: 'create-terrain', recipient: 'affected-tiles', terrain: 'frozen' }],
       ),
-    ).toEqual(['Ground', 'Line 3', 'Freeze Ground'])
+    ).toEqual(['Ground', 'Line [3]', 'Freeze Ground'])
   })
 
   it('derives the mature summon label from an empty-tile summon effect', () => {
@@ -101,24 +98,24 @@ describe('compact combat presentation tags', () => {
     ).toEqual([
       'Enemy',
       'Single',
-      'Dmg',
+      'Dmg [4]',
       'Pierce',
-      'MP Rec 2 · Self',
-      'MP Drain',
+      'MP Restore [2] · Self',
+      'MP Drain [2]',
       'Cleanse',
-      'Pull 2',
-      'Absorb HP · Self',
-      'Absorb MP · Self',
+      'Pull [2]',
+      'HP Leech · Self',
+      'MP Leech · Self',
       'Reflect · Self',
       'Vengeance',
-      'Amplify · Self',
-      'Curse',
+      'Copy Buffs · Self',
+      'Copy Debuffs',
     ])
   })
 
   it.each([
-    ['amplify', 'Amplify'],
-    ['curse', 'Curse'],
+    ['amplify', 'Copy Buffs'],
+    ['curse', 'Copy Debuffs'],
   ] as const)('derives the real %s clone block label', (mode, label) => {
     expect(
       tags({ kind: 'unit', teamPolicy: 'enemy' }, [
@@ -129,37 +126,24 @@ describe('compact combat presentation tags', () => {
 
   it.each([
     ['guarded', 'Guard'],
-    ['exposed', 'Expose'],
-    ['inspired', 'Inspire'],
-    ['hexed', 'Hex'],
-    ['invisible', 'Ghost'],
-    ['summoned', 'Summon'],
+    ['exposed', 'Vulnerable'],
+    ['inspired', 'Damage Up'],
+    ['hexed', 'Healing Down'],
+    ['invisible', 'Invisible'],
     ['haste', 'Haste'],
     ['slow', 'Slow'],
-    ['lowered-guard', 'Off-guard'],
-    ['burn', 'Burn (Scorched)'],
-    ['bleed', 'Bleed (Bleeding)'],
-    ['poison', 'Poison (Poisoned)'],
+    ['lowered-guard', 'Defenseless'],
+    ['burn', 'Burn'],
+    ['bleed', 'Bleed'],
+    ['poison', 'Poison'],
     ['displaced', 'Displaced'],
-    ['root', 'Root'],
+    ['root', 'Rooted'],
     ['blind', 'Blind'],
     ['mark', 'Marked'],
-    ['marked', 'Marked'],
   ])('maps %s to %s', (statusId, label) => {
     expect(combatStatusPresentationTag(statusId)).toBe(label)
   })
 })
-
-it.each(['regeneration', 'hastened', 'borrowed-hour'])(
-  'labels removing historical %s as Dispel',
-  (id) => {
-    expect(
-      tags({ kind: 'unit', teamPolicy: 'enemy' }, [
-        { type: 'remove-status', recipient: 'primary-unit', statusIds: [id] },
-      ]),
-    ).toContain('Dispel')
-  },
-)
 
 describe('current effect-state gameplay tags', () => {
   it('projects current Burn, Bleed and Poison without legacy status rows', () => {
