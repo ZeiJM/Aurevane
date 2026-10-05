@@ -785,16 +785,7 @@ function applyNamedPhase4Rebalance(definition: MatureSkillDefinition): MatureSki
           {
             type: 'remove-status',
             recipient: 'actor',
-            statusIds: [
-              'burn',
-              'bleed',
-              'poison',
-              'slow',
-              'root',
-              'exposed',
-              'mark',
-              'challenged',
-            ],
+            statusIds: ['burn', 'bleed', 'poison', 'slow', 'root', 'exposed', 'mark', 'challenged'],
           },
         ],
         ai: {
