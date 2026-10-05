@@ -98,8 +98,8 @@ const identities: readonly SequenceIdentity[] = [
     setupName: 'healing Skill',
     prefix: 'Renewing',
     suffix: 'Tide',
-    payoff: { type: 'apply-status', recipient: 'actor', statusId: 'regeneration', stacks: 1 },
-    result: 'grant the attacker Regeneration',
+    payoff: { type: 'healing', recipient: 'actor', amount: 4, ticks: 2 },
+    result: 'restore the attacker over two healing applications',
   },
   {
     discipline: 'chronist',
@@ -107,8 +107,8 @@ const identities: readonly SequenceIdentity[] = [
     setupName: 'tempo Skill',
     prefix: 'Measured',
     suffix: 'Hour',
-    payoff: { type: 'apply-status', recipient: 'actor', statusId: 'hastened', stacks: 1 },
-    result: 'grant the attacker Hastened for the next round',
+    payoff: { type: 'apply-status', recipient: 'actor', statusId: 'haste', stacks: 1 },
+    result: 'grant the attacker Haste',
   },
 ]
 const foundations = [
