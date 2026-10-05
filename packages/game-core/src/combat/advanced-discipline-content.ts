@@ -163,7 +163,7 @@ const authoredSkills: readonly MatureSkillDefinition[] = [
     'temporal-ward',
     40,
     self,
-    [effect('guarded', 'actor'), effect('hastened', 'actor')],
+    [effect('guarded', 'actor'), effect('haste', 'actor')],
     ['defense', 'tempo', 'mystic'],
   ),
   skill(
@@ -686,7 +686,7 @@ const authoredSkills: readonly MatureSkillDefinition[] = [
     'springwater',
     35,
     ally,
-    [effect('regeneration')],
+    [heal(3, 'primary-unit')],
     ['heal', 'support', 'setup'],
   ),
   skill('tidecaller', 'still-water', 35, self, [heal(6), mp(5)], ['heal', 'recovery']),
