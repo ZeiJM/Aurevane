@@ -1,5 +1,6 @@
 import { combatInteractionDescription } from '../../lib/battle/combat-interaction-presentation'
 import { combatStatusDetails, PHASE4_STATUSES } from '@aurevane/game-core/combat/status-content'
+import { combatStatusPresentationTag } from '@aurevane/game-core/combat/gameplay-tags'
 import type { CombatEffectOrigin } from '@aurevane/game-core/combat/actions'
 import 'server-only'
 
@@ -120,14 +121,8 @@ function actionKind(value: unknown): BattleLogKind {
 }
 
 function statusLabel(value: unknown): string {
-  if (value === 'guarded') return 'Guard'
-  if (value === 'lowered-guard') return 'Defenseless'
   if (typeof value !== 'string' || value.length === 0) return 'Status'
-  return value
-    .split(/[._-]+/u)
-    .filter(Boolean)
-    .map((part) => part[0]?.toUpperCase() + part.slice(1))
-    .join(' ')
+  return combatStatusPresentationTag(value)
 }
 
 function recruitReasonLabel(value: unknown): string {
