@@ -477,4 +477,3 @@ it('transports scheduled Guard identity and lifetime without committing or chang
   expect(snapshot).toEqual(before)
   expect(battles.commitBattleIntent).not.toHaveBeenCalled()
 })
-
