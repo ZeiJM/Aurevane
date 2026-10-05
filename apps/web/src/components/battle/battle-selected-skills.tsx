@@ -221,61 +221,6 @@ export function BattleSelectedSkills({
           <p>This supernatural path is coming soon. No combat ability is equipped here yet.</p>
         </SkillControls>
       </article>
-      {(runtime.copiedSkills?.length ?? 0) > 0 ? (
-        <details className={styles.copied} data-battle-copied-skills="true">
-          <summary
-            aria-label={`Copied Skills · ${runtime.copiedSkills!.length} battle-only`}
-            title={`Copied Skills · ${runtime.copiedSkills!.length} battle-only`}
-          >
-            <strong>Copied</strong>
-            <small>{runtime.copiedSkills!.length}</small>
-          </summary>
-          <div className={styles.copiedMenu} role="group" aria-label="Copied Skills">
-            {runtime.copiedSkills!.map((skill) => (
-              <div key={skill.id}>
-                <button
-                  type="button"
-                  data-battle-copied-skill-option={skill.id}
-                  aria-pressed={activeId === skill.id}
-                  aria-label={`${skill.name}, ${skill.apCost} AP, ${skill.mpCost} MP${battleCooldownLabel(cooldowns[skill.id] ?? 0)}`}
-                  disabled={
-                    disabled || actionEconomy < skill.apCost || (cooldowns[skill.id] ?? 0) > 0
-                  }
-                  onClick={() => onSelect(skill.id, skill.category)}
-                >
-                  <span
-                    className={styles.copiedArtwork}
-                    data-battle-skill-cooldown={cooldowns[skill.id] || undefined}
-                  >
-                    <Image
-                      src={battleSkillArtwork(skill.sourceSkillId, skill.iconKey)}
-                      width={96}
-                      height={96}
-                      alt=""
-                      unoptimized
-                    />
-                    <BattleSkillCooldown turns={cooldowns[skill.id] ?? 0} />
-                  </span>
-                  <span>
-                    <strong>{skill.name}</strong>
-                    <small>
-                      {skill.apCost} AP · {skill.mpCost} MP
-                    </small>
-                  </span>
-                </button>
-                <BattleInfoPopover
-                  label={`About copied ${skill.name}`}
-                  title={skill.name}
-                  trigger="i"
-                  consumeOutsideClick
-                >
-                  <BattleSkillParameters skill={skill} />
-                </BattleInfoPopover>
-              </div>
-            ))}
-          </div>
-        </details>
-      ) : null}
     </div>
   )
 }
