@@ -22,8 +22,8 @@ const balancedAttributes = {
 }
 
 const currentAnchors: Record<DerivedStatId, readonly [number, number, number]> = {
-  maxHp: [80, 160, 200],
-  maxMp: [16, 32, 48],
+  maxHp: [80, 500, 650],
+  maxMp: [16, 400, 500],
   physicalPower: [40, 120, 160],
   mysticPower: [40, 120, 160],
   armor: [40, 120, 160],
@@ -38,7 +38,7 @@ const currentAnchors: Record<DerivedStatId, readonly [number, number, number]> =
 }
 
 describe('current Core-driven derived curves', () => {
-  it('uses V4 with exact mathematical intercepts and Core40/Core60 anchors', () => {
+  it('uses current resources with exact mathematical intercepts and Core40/Core60 anchors', () => {
     for (const [core, anchor] of [
       [1, 0],
       [40, 1],
@@ -55,7 +55,7 @@ describe('current Core-driven derived curves', () => {
         },
         level: 1,
       })
-      expect(snapshot.rulesVersion).toBe(4)
+      expect(snapshot.rulesVersion).toBe(5)
       for (const stat of Object.values(snapshot.stats)) {
         // Core0 is a mathematical intercept, never an illegal character input.
         const value =
@@ -71,11 +71,11 @@ describe('current Core-driven derived curves', () => {
   })
 
   it.each([
-    [39, 31, 10937, 2437, 1462, 97],
-    [40, 32, 11000, 2500, 1500, 100],
-    [41, 32, 11150, 2650, 1525, 101],
-    [59, 47, 13850, 5350, 1975, 119],
-    [60, 48, 14000, 5500, 2000, 120],
+    [39, 390, 10937, 2437, 1462, 97],
+    [40, 400, 11000, 2500, 1500, 100],
+    [41, 405, 11150, 2650, 1525, 101],
+    [59, 495, 13850, 5350, 1975, 119],
+    [60, 500, 14000, 5500, 2000, 120],
   ])(
     'rounds the correct side of the Core40 breakpoint at Core%i',
     (core, mp, accuracy, evasion, critical, initiative) => {
@@ -208,6 +208,27 @@ describe('current Core-driven derived curves', () => {
 })
 
 describe('derived stat framework', () => {
+  it.each([
+    [40, 160, 32],
+    [60, 200, 48],
+  ])('preserves V4 resources at Core%i for pinned snapshots', (core, hp, mp) => {
+    const snapshot = calculateDerivedStats(
+      {
+        attributes: {
+          might: core,
+          finesse: core,
+          vitality: core,
+          agility: core,
+          intellect: core,
+          resolve: core,
+        },
+        level: 100,
+      },
+      DERIVED_STAT_RULESET_V4,
+    )
+    expect(snapshot.stats.maxHp.value).toBe(hp)
+    expect(snapshot.stats.maxMp.value).toBe(mp)
+  })
   it('preserves the historical V3 balanced Level-1 profile', () => {
     const snapshot = calculateDerivedStats(
       { attributes: balancedAttributes, level: 1 },

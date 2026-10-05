@@ -193,6 +193,8 @@ try {
   for (const mode of ['pve', 'pvp', 'spectator']) {
     for (const viewport of [
       { width: 1366, height: 768 },
+      { width: 1024, height: 768 },
+      { width: 821, height: 768 },
       { width: 390, height: 844 },
     ]) {
       for (const gesture of mode === 'spectator'
@@ -228,6 +230,60 @@ try {
           )
           continue
         }
+        const items = page.locator('button[data-command-slot="items"]')
+        assert.equal(await items.isDisabled(), true, 'Items stays locked in each playable mode')
+        assert.equal(await items.locator('strong').innerText(), 'Items')
+        const deck = page.locator('[data-unified-command-deck]')
+        assert.equal(
+          await deck.locator('[data-command-slot]').first().getAttribute('data-command-slot'),
+          'items',
+        )
+        assert.equal(
+          await deck.locator('[data-command-slot]').nth(1).getAttribute('data-command-slot'),
+          'inspect',
+        )
+        const geometry = await page.evaluate(() => {
+          const deck = document.querySelector('[data-unified-command-deck]')
+          const probe = document.createElement('span')
+          probe.style.cssText =
+            'position:absolute;visibility:hidden;width:var(--av-cockpit-art-size);height:1px'
+          deck.append(probe)
+          const expected = probe.getBoundingClientRect().width
+          probe.remove()
+          const frames = [...deck.querySelectorAll('[data-av-square-media="true"]')]
+            .filter((element) => element.getBoundingClientRect().width > 0)
+            .map((element) => element.getBoundingClientRect())
+          return {
+            expected,
+            frames: frames.map(({ width, height }) => ({ width, height })),
+            overflows: document.documentElement.scrollWidth > innerWidth,
+          }
+        })
+        assert.equal(geometry.overflows, false, 'Items introduces no horizontal page overflow')
+        for (const frame of geometry.frames) {
+          assert.ok(
+            Math.abs(frame.width - geometry.expected) <= 1,
+            'Cockpit artwork preserves its existing shared size',
+          )
+          assert.ok(Math.abs(frame.width - frame.height) <= 1, 'Every artwork frame stays square')
+        }
+        await deck.locator('[data-command-slot="inspect"]').focus()
+        const beforeItemsKey = await page.evaluate(
+          () =>
+            window.calls.filter((call) => /\/(commit|intents|final-turn|preview)$/.test(call.path))
+              .length,
+        )
+        await page.keyboard.press('p')
+        assert.equal(
+          await page.evaluate(
+            () =>
+              window.calls.filter((call) =>
+                /\/(commit|intents|final-turn|preview)$/.test(call.path),
+              ).length,
+          ),
+          beforeItemsKey,
+          'The locked Items key issues no command or preview',
+        )
         // Hold only transport boundaries. The production component owns selection, execution,
         // request startup and locks; no fake interaction controller is mounted.
         await page.evaluate(() => {

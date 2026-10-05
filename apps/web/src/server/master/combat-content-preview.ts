@@ -18,7 +18,7 @@ import {
   readPv1fActionEconomy,
 } from '@aurevane/game-core/combat/pv1f-action-economy'
 import {
-  createStatBalancedCombatEncounterState,
+  createDuelBalancedCombatEncounterState,
   type StatDrivenCombatEncounterState,
   type StatDrivenCombatProfileV4,
 } from '@aurevane/game-core/combat/stat-driven-combat'
@@ -261,7 +261,7 @@ function previewState(
   }
 
   return {
-    state: createStatBalancedCombatEncounterState(withFixtureState, [
+    state: createDuelBalancedCombatEncounterState(withFixtureState, [
       profile(ACTOR_ID),
       profile(ALLY_ID),
       profile(ENEMY_ID, { evasion: 1_500 }),

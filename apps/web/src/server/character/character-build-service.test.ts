@@ -170,13 +170,13 @@ describe('character build service', () => {
     const context = await loadCharacterBuildContext(userId, source, repository())
 
     expect(context.current.definition.id).toBe('vanguard')
-    expect(context.current.derived.rulesVersion).toBe(4)
-    expect(context.current.derived.stats.maxHp.value).toBe(98)
+    expect(context.current.derived.rulesVersion).toBe(5)
+    expect(context.current.derived.stats.maxHp.value).toBe(174)
     expect(context.current.derived.stats.armor.value).toBe(58)
     expect(context.current.derived.stats.maxHp.contributions.at(-1)).toMatchObject({
       sourceId: 'character.attribute.vitality',
       inputValue: 9,
-      coefficient: 2,
+      coefficient: 21,
     })
     expect(
       context.current.derived.stats.maxHp.contributions.some(
@@ -230,9 +230,9 @@ describe('character build service', () => {
 
     expect(result.current.definition.id).toBe('vanguard')
     expect(result.proposed.definition.id).toBe('aetherist')
-    expect(result.current.derived.stats.maxMp.value).toBe(17)
-    expect(result.proposed.derived.stats.maxMp.value).toBe(20)
-    expect(result.proposed.derived.stats.maxHp.value).toBe(92)
+    expect(result.current.derived.stats.maxMp.value).toBe(44)
+    expect(result.proposed.derived.stats.maxMp.value).toBe(112)
+    expect(result.proposed.derived.stats.maxHp.value).toBe(143)
     expect(result.proposed.derived.stats.physicalPower.value).toBe(48)
     expect(result.proposed.derived.stats.mysticPower.value).toBe(60)
     expect(result.proposed.derived.stats.ward.value).toBe(60)

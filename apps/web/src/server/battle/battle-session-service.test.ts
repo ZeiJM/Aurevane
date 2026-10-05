@@ -395,16 +395,16 @@ describe('P2.4 battle session service', () => {
     expect(player).toMatchObject({
       initiative: 23,
       baseMovementBudget: 2,
-      hp: 92,
-      maxHp: 92,
-      mp: 18,
-      maxMp: 18,
+      hp: 143,
+      maxHp: 143,
+      mp: 73,
+      maxMp: 73,
     })
     expect(playerProfile).toMatchObject({
       provenance: {
         kind: 'character-derived',
         sourceId: `character:${CHARACTER_ID}`,
-        sourceRulesVersion: 4,
+        sourceRulesVersion: 5,
       },
       accuracy: 8_875,
       evasion: 375,
@@ -594,10 +594,10 @@ describe('P2.4 battle session service', () => {
     expect(player).toMatchObject({
       initiative: 23,
       baseMovementBudget: 2,
-      hp: 92,
-      maxHp: 92,
-      mp: 18,
-      maxMp: 18,
+      hp: 143,
+      maxHp: 143,
+      mp: 64,
+      maxMp: 64,
     })
     expect(profile).toMatchObject({
       accuracy: 9_062,

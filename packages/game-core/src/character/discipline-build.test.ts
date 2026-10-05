@@ -126,7 +126,7 @@ describe('Primary Discipline build calculation', () => {
       primaryDefinition: vanguard,
       primaryProfile: { disciplineId: 'vanguard', profileVersion: 1, statOffsets: { maxHp: 20 } },
     })
-    expect(result.stats.maxHp.value).toBe(94)
+    expect(result.stats.maxHp.value).toBe(153)
     expect(result.stats.physicalPower.value).toBe(54)
     expect(result.stats.ward.value).toBe(52)
   })
@@ -138,7 +138,7 @@ describe('Primary Discipline build calculation', () => {
       primaryDefinition: vanguard,
       primaryProfile: { disciplineId: 'vanguard', profileVersion: 1, statOffsets: {} },
     })
-    expect(result.rulesVersion).toBe(4)
+    expect(result.rulesVersion).toBe(5)
   })
 
   it('is deterministic for the same versioned build inputs', () => {

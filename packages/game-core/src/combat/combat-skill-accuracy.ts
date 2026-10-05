@@ -1,4 +1,5 @@
 import { terrainEvasionBonusBasisPoints } from './combat-stat-balance'
+import { facingHitChanceModifierBasisPoints } from './combat-duel-balance'
 import { advanceBattleRng } from './battle-state'
 import { combatAccuracyStatusModifier } from './combat-accuracy-status'
 import type {
@@ -94,6 +95,7 @@ export function forecastCombatSkillAccuracyForTarget(
           ),
       },
       (action.accuracyModifierBasisPoints ?? 0) +
+        facingHitChanceModifierBasisPoints(state, actorId, targetCombatantId) +
         combatAccuracyStatusModifier(state, actorId, targetCombatantId, content),
     ),
   }

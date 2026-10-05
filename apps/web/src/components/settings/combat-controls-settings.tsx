@@ -20,6 +20,10 @@ interface CombatControlsSettingsProps {
 }
 
 const ACTION_COPY: Record<CombatKeybindAction, { label: string; description: string }> = {
+  items: {
+    label: 'Items',
+    description: 'Reserved for the upcoming battle Items update; currently locked.',
+  },
   inspect: { label: 'Inspect', description: 'Open optional terrain and combatant inspection.' },
   move: {
     label: 'Move',

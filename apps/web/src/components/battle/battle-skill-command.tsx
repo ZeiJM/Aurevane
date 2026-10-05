@@ -37,7 +37,8 @@ import {
 import styles from './battle-skill-command.module.css'
 import { BATTLE_MISSING_ARTWORK } from './battle-skill-presentation'
 
-export type BattleCommandSlot = 'inspect' | 'move' | 'attack' | 'guard' | 'recover' | 'finish'
+export type BattleCommandSlot =
+  'items' | 'inspect' | 'move' | 'attack' | 'guard' | 'recover' | 'finish'
 
 export interface BattleSkillSelectorOption {
   id: string
@@ -210,7 +211,7 @@ export function BattleSkillCommand({
         data-battle-command={slot}
         data-command-slot={slot}
         data-action-cost={cost}
-        disabled={disabled || cooldownTurns > 0}
+        disabled={slot === 'items' || disabled || cooldownTurns > 0}
         data-battle-cooldown-active={cooldownTurns > 0 || undefined}
         onClick={onActivate}
         aria-label={`${label}, ${cost}${battleCooldownLabel(cooldownTurns)}`}
@@ -223,14 +224,32 @@ export function BattleSkillCommand({
           data-av-square-media-fit="contain"
           aria-hidden="true"
         >
-          <Image
-            width={192}
-            height={192}
-            unoptimized
-            src={artworkSrc}
-            alt=""
-            onError={fallbackBrokenArtwork}
-          />
+          {slot === 'items' ? (
+            <svg viewBox="0 0 100 100" width="100%" height="100%" fill="none" aria-hidden="true">
+              <path d="M34 44V32a16 16 0 0 1 32 0v12" stroke="#c4a56c" strokeWidth="5" />
+              <rect
+                x="23"
+                y="43"
+                width="54"
+                height="40"
+                rx="6"
+                stroke="#c4a56c"
+                strokeWidth="3"
+                fill="#c4a56c18"
+              />
+              <circle cx="50" cy="59" r="5" fill="#c4a56c" />
+              <path d="M50 63v9" stroke="#c4a56c" strokeWidth="4" />
+            </svg>
+          ) : (
+            <Image
+              width={192}
+              height={192}
+              unoptimized
+              src={artworkSrc}
+              alt=""
+              onError={fallbackBrokenArtwork}
+            />
+          )}
           <BattleSkillCooldown turns={cooldownTurns} />
         </span>
         <strong>{label}</strong>
@@ -259,13 +278,15 @@ export function BattleSkillCommand({
             </div>
           ) : (
             <p>
-              {slot === 'inspect'
-                ? 'Select a character or tile to inspect it for free.'
-                : slot === 'move'
-                  ? 'Arm Move, then click a reachable tile or use a direction to move. The server checks the path and AP cost.'
-                  : slot === 'finish'
-                    ? 'Choose your final facing on the map, then finish your turn.'
-                    : 'Arm this action to see its target forecast. Then click a target or use a direction to execute it.'}
+              {slot === 'items'
+                ? 'Battle Items are coming soon. This slot is locked and cannot issue a command.'
+                : slot === 'inspect'
+                  ? 'Select a character or tile to inspect it for free.'
+                  : slot === 'move'
+                    ? 'Arm Move, then click a reachable tile or use a direction to move. The server checks the path and AP cost.'
+                    : slot === 'finish'
+                      ? 'Choose your final facing on the map, then finish your turn.'
+                      : 'Arm this action to see its target forecast. Then click a target or use a direction to execute it.'}
             </p>
           )}
           {tags.length > 0 ? (

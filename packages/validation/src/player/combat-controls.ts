@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 export const COMBAT_KEYBIND_ACTIONS = [
+  'items',
   'inspect',
   'move',
   'basicAttack',
@@ -69,6 +70,7 @@ export type CombatKeybind = z.infer<typeof combatKeybindSchema>
 export type CombatKeybindMap = z.infer<typeof combatKeybindMapSchema>
 
 export const DEFAULT_COMBAT_KEYBINDS: CombatKeybindMap = {
+  items: { code: 'KeyP', shift: false },
   inspect: { code: 'KeyI', shift: false },
   move: { code: 'Digit1', shift: false },
   basicAttack: { code: 'Digit2', shift: false },
@@ -142,6 +144,28 @@ export function parseCombatKeybindMap(input: unknown): CombatKeybindMap | null {
       used.add(combatKeybindChord(available))
     }
     normalized = legacy
+  }
+  // Introducing a locked slot must never discard a player's existing custom P chord.
+  if (
+    normalized &&
+    typeof normalized === 'object' &&
+    !Array.isArray(normalized) &&
+    !('items' in normalized)
+  ) {
+    const existing = normalized as Record<string, unknown>
+    const used = new Set(
+      Object.values(existing).flatMap((binding) => {
+        const parsed = combatKeybindSchema.safeParse(binding)
+        return parsed.success ? [combatKeybindChord(parsed.data)] : []
+      }),
+    )
+    const available = [
+      DEFAULT_COMBAT_KEYBINDS.items,
+      { code: 'KeyP', shift: true },
+      ...Array.from({ length: 24 }, (_, index) => ({ code: `F${index + 1}`, shift: false })),
+    ].find((binding) => !used.has(combatKeybindChord(binding)))
+    if (!available) return null
+    normalized = { ...existing, items: available }
   }
   const candidate =
     normalized && typeof normalized === 'object' && !Array.isArray(normalized)

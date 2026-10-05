@@ -602,6 +602,30 @@ export const DERIVED_STAT_RULESET_V4: DerivedStatRuleset = {
   ],
 }
 
+/** Current resource rebalance; previous rules remain available for pinned histories. */
+export const DERIVED_STAT_RULESET_V5: DerivedStatRuleset = {
+  version: 5,
+  rules: DERIVED_STAT_RULESET_V4.rules.map((rule) => {
+    if (rule.id === 'maxHp') {
+      return {
+        ...rule,
+        baseNumerator: 160,
+        attributeWeights: { vitality: 21 },
+        attributeBreakpoints: { vitality: { at: 40, weightAbove: 15 } },
+        divisor: 2,
+      }
+    }
+    if (rule.id === 'maxMp') {
+      return {
+        ...rule,
+        attributeWeights: { intellect: 48 },
+        attributeBreakpoints: { intellect: { at: 40, weightAbove: 25 } },
+      }
+    }
+    return rule
+  }),
+}
+
 export function validateDerivedStatRuleset(
   ruleset: DerivedStatRuleset,
 ): readonly DerivedStatRulesetIssue[] {
@@ -706,7 +730,7 @@ export function validateDerivedStatRuleset(
 
 export function calculateDerivedStats(
   input: DerivedStatInput,
-  ruleset: DerivedStatRuleset = DERIVED_STAT_RULESET_V4,
+  ruleset: DerivedStatRuleset = DERIVED_STAT_RULESET_V5,
 ): DerivedStatSnapshot {
   const issues = validateDerivedStatRuleset(ruleset)
   if (issues.length > 0) {
@@ -722,7 +746,7 @@ export function calculateDerivedStats(
     if (!Number.isInteger(value) || value < 1) {
       throw new RangeError(`${attributeId} must be a positive whole number.`)
     }
-    if (ruleset.version === 4 && value > 60) {
+    if (ruleset.version >= 4 && value > 60) {
       throw new RangeError(`${attributeId} must not exceed the current Core maximum of 60.`)
     }
   }

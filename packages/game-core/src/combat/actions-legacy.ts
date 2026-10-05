@@ -1,4 +1,5 @@
 import { terrainAdjustedDefense } from './combat-stat-balance'
+import { duelBalancedDirectDamage } from './combat-duel-balance'
 import type {
   CombatStatusResistanceResolvedEvent,
   CombatResistedEffectOrdinals,
@@ -372,6 +373,8 @@ export interface PendingCombatEffect {
 }
 
 export interface CombatEncounterState {
+  /** New direct-damage and positional accuracy balance; omitted snapshots keep old rules. */
+  duelBalancePolicyVersion?: 1
   /** Omitted historical encounters retain delta Jump and no ordinary debuff resistance. */
   statBalancePolicyVersion?: 1
   /** New encounters accumulate repeated effects; omitted historical snapshots retain their rules. */
@@ -1546,6 +1549,14 @@ export function validateCombatEncounterState(
     issues.push({
       field: 'effectStackingPolicyVersion',
       message: 'Round initiative policy must match its encounter.',
+    })
+  if (
+    state.duelBalancePolicyVersion !== undefined &&
+    (state.duelBalancePolicyVersion !== 1 || state.statBalancePolicyVersion !== 1)
+  )
+    issues.push({
+      field: 'duelBalancePolicyVersion',
+      message: 'Invalid pinned duel balance policy.',
     })
   if (state.statBalancePolicyVersion !== undefined && state.statBalancePolicyVersion !== 1)
     issues.push({
@@ -2931,6 +2942,13 @@ function resolveDamageAmount(
     if (defense === undefined)
       throw new TypeError('Stat-driven Skill damage requires recipient defenses.')
     amount = mitigateDamageByDefense(amount, terrainAdjustedDefense(state, recipientId, defense))
+  }
+
+  if (
+    getCombatant(state.tactical.battle, actorId).teamId !==
+    getCombatant(state.tactical.battle, recipientId).teamId
+  ) {
+    amount = duelBalancedDirectDamage(state, amount)
   }
 
   if (critical && amount > 0) {

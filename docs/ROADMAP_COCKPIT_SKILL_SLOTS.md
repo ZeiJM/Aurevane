@@ -1,5 +1,7 @@
 # AUREVANE Cockpit Skill Slot Roadmap
 
+Owner-approved 2026-10-05 follow-up supersedes earlier resource endpoints: derivedV5 HP500/650 and MP400/500 at Core40/60; new pinned duel policy1 calibrates direct-pressure Level100 reference mirrors to approximately12rounds and adds front−5/side+5/rear+10 percentage-point hit chance. Shared cockpit adds a locked Items placeholder before Inspect, defaultP, preserving artwork sizes and custom controls. Historical rules/snapshots remain unchanged. Current authority and exact scope: `COMBAT.md` and `superpowers/plans/2026-10-05-duel-resources-facing-items-spec.md`; factual verification/release remains in `../TASKS.md`.
+
 ## Purpose
 
 The battle cockpit exposes four **battle-facing operational selectors** alongside the two system commands, Inspect and Finish Turn. This document records the contract that later content, Discipline, loadout, and editor work must preserve.
