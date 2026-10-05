@@ -398,7 +398,6 @@ describe('Task 2 Haste and Slow movement AP', () => {
     expect(airborneHaste.economyCost).toBe(10)
   })
 
-
   it('Root still blocks movement regardless of Haste', () => {
     const state = withStatus(withStatus(movementEncounter(), 'actor', 'haste'), 'actor', 'root')
     const preview = evaluatePv1fMovement(state, path())
