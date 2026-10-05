@@ -2,6 +2,7 @@ import React from 'react'
 import { createRoot } from 'react-dom/client'
 import { BattleExperience } from '@/components/battle/battle-experience'
 import { BattlefieldPresentationBundle } from '@/components/battle/battlefield-presentation-bundle'
+import { AudioProvider } from '@/components/audio/audio-provider'
 import { PvpSpectatorExperience } from '@/components/battle/pvp-spectator-experience'
 import { DesktopBattleCombatantInspect } from '@/components/battle/desktop-battle-combatant-inspect'
 import { MobileBattleCombatantPopup } from '@/components/battle/mobile-battle-combatant-popup'
@@ -188,7 +189,7 @@ window.advanceBattle = (nextActor = 'character:player') => {
 const fixtureRoot = createRoot(document.getElementById('root'))
 window.unmountBattle = () => fixtureRoot.unmount()
 fixtureRoot.render(
-  <>
+  <AudioProvider>
     <BattlefieldPresentationBundle
       battleSessionId="fixture"
       initialVersion={initialBattle.battleVersion}
@@ -224,5 +225,5 @@ fixtureRoot.render(
         ) : null}
       </BattleInteractionLifecycleProvider>
     )}
-  </>,
+  </AudioProvider>,
 )
