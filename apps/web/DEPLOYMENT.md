@@ -2,6 +2,16 @@
 
 This file intentionally lives inside the web app project root so documentation-only production redeploys are not skipped by Vercel's monorepo unaffected-project optimization.
 
+## Stat balance, elevation, resistance and shared readers — release requested
+
+The Owner authorized one combined Production release. PR #830 merges as `dc7156b5be183b141ab607d298e899337b2c1ae9`, exactly matching tested tree `5d96a54910b864395d8320969ef6bc6dffedba37` from candidate `c4225fa1522f74c3e68204192f13ec6f0e4804ff`. All13 required exact-head workflows pass; complete receipts are recorded in `docs/superpowers/verification/2026-10-05-stat-balance-and-readers.md`. The final quality gate passes formatting, lint, types,4,006 Vitest tests,seven Node checks, builds and database authority. Independent reviews have no remaining blockers.
+
+Browser smoke passes four ally previews, shared parameter palette,28 elevation/privacy,54 completion,14 command/input,6 real-mail recovery,3 training,71 focused,317 full Chromium and10 Edge cases. Layout passes native mobile Profile swiping,110 scenarios and the directory check; Desktop page fit passes8, Desktop experience48 and Representative Buildcraft24. Existing project-specific skips remain unchanged. Trial Victory, earned XP and claim/replay eligibility are verified through real gameplay.
+
+New encounters pin derived ruleset4 and statBalancePolicyVersion1 for the approved Core40/60 curves, paired Physical/Mystic Defense, absolute Jump and elevation tradeoffs, ordinary harmful-tag resistance and special-family bypass. Shared readers use red [Physical], green [Mystic], bare names, Skill Type: Resonance and consistent Discipline effect colors. Completion logs fit their viewport; unwanted native map focus outlines are suppressed. Historical encounters retain recorded rules. Existing artwork and earlier releases remain included.
+
+This configuration/documentation-only release enables main once while every other branch stays locked. Production source/alias/public checks and bounded runtime scan remain pending until READY; a subsequent documentation/configuration closeout restores the full lock without a second application release. No migration, hosted Auth/content settings or production-account mutation.
+
 ## Battle input, timing, Chronicle copy and previews — released
 
 The Owner explicitly authorized one combined Production release. PR #827 merges as `d0d320e257b782d9dc60cc366e755b3890199196`, exactly matching tested tree `c1b7cca72b374fe63f4434ecaf98cf40945066d7` from candidate `f1e84bbc53456a8fc6883dac83bbc03e07ced46c`. All nine workflows pass: CI, Skill Engine, Shared Build Snapshots, Essence Build, Resonance Build, Discipline Build DB, Representative Buildcraft, UI layout review and Browser smoke. The final local quality gate passes formatting, lint, types, 3,873 Vitest tests, seven Node checks and production builds. Independent reviews have no remaining blockers.
