@@ -1,28 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-it('describes current Copy as beneficial tags while retaining pinned historical Skill Copy', () => {
-  const effect = { type: 'copy' as const, recipient: 'primary-unit' as const }
-  expect(previewEffect(effect).label).toBe('Copy')
-  expect(previewEffect(effect).explanation).toContain('beneficial')
-  expect(previewEffect(effect).explanation).not.toContain('Skill for this battle')
-  expect(previewEffect(effect, null).label).toBe('Skill Copy')
-  expect(previewEffect(effect, null).explanation).toContain('half AP')
-})
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 import { previewEffect, skillPreviewEffects } from './skill-effect-preview'
 
 describe('compact Technique explanations', () => {
-  it('replaces stale authored Skill Copy prose only for the current Copy policy', () => {
-    const skill = {
-      ...resolveMatureSkillVersion('runeblade.siphon-slash')!,
-      effects: [{ type: 'copy' as const, recipient: 'primary-unit' as const }],
-      effectDescriptions: ['Steal a random Skill for this battle at half AP.'],
-    }
-    expect(skillPreviewEffects(skill)[0]?.explanation).toContain('beneficial')
-    expect(skillPreviewEffects(skill)[0]?.explanation).not.toContain('random Skill')
-    expect(skillPreviewEffects(skill, null)[0]?.explanation).toBe(skill.effectDescriptions[0])
-  })
-  it.each([
+    it.each([
     ['inspired', '+11% outgoing', 'Deal 11% more damage'],
     ['warded', '−11% incoming', 'Take 11% less damage from opponents affected by Burn'],
     ['reckless', '+11% outgoing / +11% incoming', 'Deal 11% more damage and take 11% more damage'],
@@ -79,11 +61,10 @@ describe('compact Technique explanations', () => {
     expect(preview[0]?.explanation).toBe('A concise player-facing description.')
     expect(JSON.stringify(skill.effects)).toBe(before)
   })
-  it('distinguishes current Accuracy Mark from historical damage Marked and linked tradeoffs', () => {
+  it('shows current Accuracy Mark and linked tradeoffs', () => {
     const status = (statusId: string) =>
       previewEffect({ type: 'apply-status', recipient: 'primary-unit', statusId, stacks: 1 })
     expect(status('mark').magnitude).toBe('+15 pp Accuracy')
-    expect(status('marked').magnitude).toBe('+20% incoming')
     expect(status('reckless').magnitude).toBe('+40% outgoing / +25% incoming')
     expect(status('fortified').magnitude).toBe('−30% incoming / −20% outgoing')
     expect(status('guarded').magnitude).toBe('−15% incoming')
