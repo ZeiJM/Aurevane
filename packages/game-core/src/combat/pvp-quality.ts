@@ -87,7 +87,8 @@ export function timeoutAiTurn(state: StatDrivenCombatEncounterState): PvpQuality
     timeoutEvent: 'ai_turn_timed_out',
     loweredGuardEvent: 'ai_lowered_guard_applied',
     label: 'AI battle',
-    loweredGuardEveryTimeout: false,
+    // Current battles penalize every AFK timeout; legacy snapshots retain their two-miss rule.
+    loweredGuardEveryTimeout: state.effectTimingPolicy !== undefined,
     loweredGuardDurationOwnerTurnStarts: 1,
   })
 }

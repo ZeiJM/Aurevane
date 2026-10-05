@@ -1,5 +1,20 @@
 # AUREVANE — Active Task Ledger
 
+## AFK Lowered Guard and Online Users EXP — 2026-10-05 (verification in progress)
+
+Owner clarification: manual End Turn never applies Lowered Guard; the first expired participant timer in current AI/PvP battles does, defaulting to the next global round for one affected owner turn. Historical AI snapshots retain the recorded two-miss rule. Owner also requests current Character EXP in Online Users, numeric Level/EXP sorting and Last Seen most recent as the default. Preserve existing layout, portraits, privacy and clock authority.
+
+- [x] Reproduce the missing first-AI-timeout debuff and missing Chronicle outcome with failing real-engine tests.
+- [x] Correct only the current AI timeout eligibility; verify manual exemption, round 3→4 activation, one-turn expiry and actual damage vulnerability.
+- [x] Add the server-projected EXP column and numeric sorting in both directory views, with compact mobile text and honest unavailable EXP.
+- [x] Add browser regressions for real disposable-database EXP/API data, sorting, column alignment and viewport fit.
+- [x] Obtain independent blocker-free review of both changes.
+- [x] Complete combined local quality gate: `pnpm check` passes with 4,025 Vitest checks plus seven Node checks.
+- [ ] Complete exact-head CI/browser checks.
+- [ ] Merge verified current-Main-compatible source and perform the standing authorized combined release with bounded Production evidence and full lock restoration.
+
+Evidence: `docs/superpowers/verification/2026-10-05-afk-lowered-guard-and-online-exp.md`. Earlier approved releases remain included; no schema, hosted Auth/content or Production-account changes.
+
 ## Resource pools, twelve-round duels, positional accuracy and Items — 2026-10-05 (released)
 
 Owner requests HP500/650 andMP400/500 at Core40/60, twelve-round Level1001v1 balance using ordinary equipped Skills/AP, front−5/side+5/rear+10 percentage-point hit chance, and locked Items before Inspect with defaultP and unchanged artwork sizes. Exact scope: `docs/superpowers/plans/2026-10-05-duel-resources-facing-items-spec.md`.
