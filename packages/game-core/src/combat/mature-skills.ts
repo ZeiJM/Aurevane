@@ -727,7 +727,7 @@ function applyNamedPhase4Rebalance(definition: MatureSkillDefinition): MatureSki
         effects: [{ type: 'healing', recipient: 'primary-unit', amount: 4, ticks: 2 }],
         ai: {
           ...definition.ai,
-          purposeTags: rebalancePurposeTags(definition, ['heal', 'recovery', 'summon']),
+          purposeTags: rebalancePurposeTags(definition, ['heal', 'recovery']),
         },
       }
     case 'edgedancer.severing-cut':
