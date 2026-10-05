@@ -18,9 +18,9 @@ import {
   readPv1fActionEconomy,
 } from '@aurevane/game-core/combat/pv1f-action-economy'
 import {
-  createStatDrivenCombatEncounterState,
+  createStatBalancedCombatEncounterState,
   type StatDrivenCombatEncounterState,
-  type StatDrivenCombatProfileV2,
+  type StatDrivenCombatProfileV4,
 } from '@aurevane/game-core/combat/stat-driven-combat'
 
 const ACTOR_ID = 'master-preview-actor'
@@ -97,8 +97,8 @@ function previewSelection(
 
 function profile(
   combatantId: string,
-  overrides: Partial<Pick<StatDrivenCombatProfileV2, 'accuracy' | 'evasion'>> = {},
-): StatDrivenCombatProfileV2 {
+  overrides: Partial<Pick<StatDrivenCombatProfileV4, 'accuracy' | 'evasion'>> = {},
+): StatDrivenCombatProfileV4 {
   return {
     combatantId,
     provenance: {
@@ -106,13 +106,16 @@ function profile(
       sourceId: `scenario:master-panel-preview:${combatantId}`,
       sourceRulesVersion: 2,
     },
-    accuracy: overrides.accuracy ?? 7_000,
+    accuracy: overrides.accuracy ?? 8_500,
     evasion: overrides.evasion ?? 0,
     armor: 0,
     ward: 0,
     jump: 1,
     physicalPower: 30,
     mysticPower: 30,
+    level: 1,
+    criticalChance: 0,
+    statusResistance: 0,
   }
 }
 
@@ -258,7 +261,7 @@ function previewState(
   }
 
   return {
-    state: createStatDrivenCombatEncounterState(withFixtureState, [
+    state: createStatBalancedCombatEncounterState(withFixtureState, [
       profile(ACTOR_ID),
       profile(ALLY_ID),
       profile(ENEMY_ID, { evasion: 1_500 }),

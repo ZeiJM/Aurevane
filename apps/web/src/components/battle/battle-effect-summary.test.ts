@@ -3,11 +3,35 @@ import { describe, expect, it } from 'vitest'
 import {
   aggregateBattleStatusStacks,
   statusLabel,
+  statusIsBeneficial,
+  statusDurationLabel,
   formatStatusStackCount,
   summarizeBattleEffects,
 } from './battle-effect-summary'
 
 describe('battle effect summary', () => {
+  it('keeps positional lifetime separate and provides legacy adapter labels without a turn count', () => {
+    const terrain = {
+      statusId: 'terrain-evasion',
+      statusVersion: 1,
+      stacks: 1,
+      potencyBasisPoints: 1500,
+      remainingOwnerTurnStarts: 1,
+      presentationDuration: 'while-elevated' as const,
+    }
+    const unknown = { ...terrain, presentationDuration: undefined }
+    expect(aggregateBattleStatusStacks([terrain, unknown])).toEqual([terrain, unknown])
+    expect(statusLabel(terrain.statusId, terrain)).toBe('Elevation Evasion')
+    expect(statusIsBeneficial(terrain.statusId, terrain)).toBe(true)
+    expect(statusDurationLabel(terrain)).toBe('While on elevated terrain')
+    expect(statusDurationLabel(unknown)).toBe('1 turn remaining')
+    expect(
+      summarizeBattleEffects([
+        terrain,
+        { ...terrain, statusId: 'terrain-defense', potencyBasisPoints: 2000 },
+      ]),
+    ).toEqual([])
+  })
   it('uses every recorded magnitude in a grouped current effect', () => {
     expect(
       summarizeBattleEffects([

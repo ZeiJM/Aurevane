@@ -14,10 +14,23 @@ import {
   PV1F_COVERT_STATUS,
 } from '@aurevane/game-core/combat/pv1f-action-economy'
 import type { StatDrivenCombatEncounterState } from '@aurevane/game-core/combat/stat-driven-combat'
+import {
+  terrainAdjustedDefense,
+  terrainEvasionBonusBasisPoints,
+} from '@aurevane/game-core/combat/combat-stat-balance'
+import {
+  terrainBattleEffectPresentation,
+  TERRAIN_DEFENSE_STATUS_ID,
+  TERRAIN_EVASION_STATUS_ID,
+  type BattlePresentedStatus,
+} from '../../lib/battle/battle-elevation-effects'
 
 import { battleViewerRelationship, type BattleViewerEntitlement } from './battle-viewer-entitlement'
 
-type BattleStatusState = StatDrivenCombatEncounterState['statusState']
+type BattleStatusState = readonly {
+  combatantId: string
+  statuses: readonly BattlePresentedStatus[]
+}[]
 
 function statusDefinitionKey(statusId: string, statusVersion: number): string {
   return `${statusId}@${statusVersion}`
@@ -33,6 +46,7 @@ export function projectBattleStatusStateForViewer(
   state: Pick<
     StatDrivenCombatEncounterState,
     | 'statusState'
+    | 'statBalancePolicyVersion'
     | 'tactical'
     | 'effectState'
     | 'terrainOverlays'
@@ -48,16 +62,41 @@ export function projectBattleStatusStateForViewer(
 
   const pending = [...pendingCombatStatusRows(state), ...activePersistentCombatStatusRows(state)]
   return state.statusState.map((activeRow) => {
+    const combatant = combatantById.get(activeRow.combatantId)
+    const terrainBonus =
+      combatant && combatant.hp > 0
+        ? terrainEvasionBonusBasisPoints(state, activeRow.combatantId)
+        : 0
+    const terrainStatuses: BattlePresentedStatus[] =
+      terrainBonus > 0
+        ? [
+            { statusId: TERRAIN_EVASION_STATUS_ID, potencyBasisPoints: terrainBonus },
+            {
+              statusId: TERRAIN_DEFENSE_STATUS_ID,
+              potencyBasisPoints:
+                10000 - terrainAdjustedDefense(state, activeRow.combatantId, 10000),
+            },
+          ].map((effect) => ({
+            ...effect,
+            statusVersion: 1,
+            stacks: 1,
+            // Compatibility field only; presentationDuration supplies the positional lifetime.
+            remainingOwnerTurnStarts: 1,
+            sourceCombatantId: activeRow.combatantId,
+            timingState: 'active',
+            presentationDuration: 'while-elevated',
+          }))
+        : []
     const row = {
       ...activeRow,
       statuses: [
         ...activeRow.statuses,
+        ...terrainStatuses,
         ...pending
           .filter((item) => item.combatantId === activeRow.combatantId)
           .map((item) => item.status),
       ],
     }
-    const combatant = combatantById.get(row.combatantId)
     // Validated snapshots should always resolve this row; omission is safer than disclosure if they do not.
     if (!combatant) return { ...row, statuses: [] }
 
@@ -84,6 +123,8 @@ export function projectBattleStatusStateForViewer(
     return {
       ...row,
       statuses: row.statuses.filter((status) => {
+        const terrainEffect = terrainBattleEffectPresentation(status)
+        if (terrainEffect) return terrainEffect.kind !== 'Buff'
         const definition = STATUS_DEFINITION_BY_KEY.get(
           statusDefinitionKey(status.statusId, status.statusVersion),
         )

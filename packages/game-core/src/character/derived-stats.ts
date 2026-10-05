@@ -32,6 +32,8 @@ export interface DerivedStatRule {
   baseNumerator: number
   perLevelNumerator: number
   attributeWeights: Partial<Record<CharacterAttributeId, number>>
+  /** Integer numerator weights: the ordinary weight applies through `at`, then `weightAbove`. */
+  attributeBreakpoints?: Partial<Record<CharacterAttributeId, { at: number; weightAbove: number }>>
   divisor: number
   minimum?: number
   maximum?: number
@@ -446,6 +448,160 @@ export const DERIVED_STAT_RULESET_V3: DerivedStatRuleset = {
   ],
 }
 
+/**
+ * Owner-approved Core-driven balance. Base values are mathematical intercepts; actual Core
+ * attributes remain positive and include the Primary's fixed Core base. Level affects combat
+ * matchups separately. Breakpoint coefficients use the same integer numerator as all other
+ * contributions, and the complete numerator is rounded down only once.
+ */
+export const DERIVED_STAT_RULESET_V4: DerivedStatRuleset = {
+  version: 4,
+  rules: [
+    {
+      id: 'maxHp',
+      label: 'Maximum HP',
+      unit: 'points',
+      baseNumerator: 80,
+      perLevelNumerator: 0,
+      attributeWeights: { vitality: 2 },
+      divisor: 1,
+      minimum: 1,
+    },
+    {
+      id: 'maxMp',
+      label: 'Maximum MP',
+      unit: 'points',
+      baseNumerator: 80,
+      perLevelNumerator: 0,
+      attributeWeights: { intellect: 2 },
+      attributeBreakpoints: { intellect: { at: 40, weightAbove: 4 } },
+      divisor: 5,
+      minimum: 0,
+    },
+    {
+      id: 'physicalPower',
+      label: 'Physical Power',
+      unit: 'rating',
+      baseNumerator: 40,
+      perLevelNumerator: 0,
+      attributeWeights: { might: 2 },
+      divisor: 1,
+      minimum: 0,
+    },
+    {
+      id: 'mysticPower',
+      label: 'Mystic Power',
+      unit: 'rating',
+      baseNumerator: 40,
+      perLevelNumerator: 0,
+      attributeWeights: { intellect: 2 },
+      divisor: 1,
+      minimum: 0,
+    },
+    {
+      id: 'armor',
+      label: 'Physical Defense',
+      unit: 'rating',
+      baseNumerator: 40,
+      perLevelNumerator: 0,
+      attributeWeights: { vitality: 2 },
+      divisor: 1,
+      minimum: 0,
+    },
+    {
+      id: 'ward',
+      label: 'Mystic Defense',
+      unit: 'rating',
+      baseNumerator: 40,
+      perLevelNumerator: 0,
+      attributeWeights: { resolve: 2 },
+      divisor: 1,
+      minimum: 0,
+    },
+    {
+      id: 'accuracy',
+      label: 'Accuracy',
+      unit: 'basisPoints',
+      baseNumerator: 17000,
+      perLevelNumerator: 0,
+      attributeWeights: { finesse: 125 },
+      attributeBreakpoints: { finesse: { at: 40, weightAbove: 300 } },
+      divisor: 2,
+      minimum: 0,
+      maximum: 14000,
+    },
+    {
+      id: 'evasion',
+      label: 'Evasion',
+      unit: 'basisPoints',
+      baseNumerator: 0,
+      perLevelNumerator: 0,
+      attributeWeights: { agility: 125 },
+      attributeBreakpoints: { agility: { at: 40, weightAbove: 300 } },
+      divisor: 2,
+      minimum: 0,
+      maximum: 5500,
+    },
+    {
+      id: 'criticalChance',
+      label: 'Critical Chance',
+      unit: 'basisPoints',
+      baseNumerator: 0,
+      perLevelNumerator: 0,
+      attributeWeights: { finesse: 75 },
+      attributeBreakpoints: { finesse: { at: 40, weightAbove: 50 } },
+      divisor: 2,
+      minimum: 0,
+      maximum: 2000,
+    },
+    {
+      id: 'initiative',
+      label: 'Initiative',
+      unit: 'rating',
+      baseNumerator: 40,
+      perLevelNumerator: 0,
+      attributeWeights: { agility: 9 },
+      attributeBreakpoints: { agility: { at: 40, weightAbove: 4 } },
+      divisor: 4,
+      minimum: 0,
+      maximum: 120,
+    },
+    {
+      id: 'movement',
+      label: 'Movement',
+      unit: 'steps',
+      baseNumerator: 40,
+      perLevelNumerator: 0,
+      attributeWeights: { agility: 1 },
+      divisor: 20,
+      minimum: 2,
+      maximum: 4,
+    },
+    {
+      id: 'jump',
+      label: 'Jump',
+      unit: 'height',
+      baseNumerator: 0,
+      perLevelNumerator: 0,
+      attributeWeights: { agility: 3 },
+      divisor: 40,
+      minimum: 0,
+      maximum: 3,
+    },
+    {
+      id: 'statusResistance',
+      label: 'Status Resistance',
+      unit: 'basisPoints',
+      baseNumerator: 0,
+      perLevelNumerator: 0,
+      attributeWeights: { resolve: 25 },
+      divisor: 1,
+      minimum: 0,
+      maximum: 1500,
+    },
+  ],
+}
+
 export function validateDerivedStatRuleset(
   ruleset: DerivedStatRuleset,
 ): readonly DerivedStatRulesetIssue[] {
@@ -512,6 +668,31 @@ export function validateDerivedStatRuleset(
         })
       }
     }
+
+    for (const [attributeId, breakpoint] of Object.entries(rule.attributeBreakpoints ?? {})) {
+      const field = `${prefix}.attributeBreakpoints.${attributeId}`
+      if (
+        !CHARACTER_ATTRIBUTE_IDS.includes(attributeId as CharacterAttributeId) ||
+        rule.attributeWeights[attributeId as CharacterAttributeId] === undefined
+      ) {
+        issues.push({
+          field,
+          message: 'Breakpoint requires an existing character attribute weight.',
+        })
+      }
+      if (!Number.isSafeInteger(breakpoint.at) || breakpoint.at < 1) {
+        issues.push({
+          field: `${field}.at`,
+          message: 'Breakpoint must be a positive safe integer.',
+        })
+      }
+      if (!Number.isSafeInteger(breakpoint.weightAbove)) {
+        issues.push({
+          field: `${field}.weightAbove`,
+          message: 'Breakpoint weight must be a safe integer.',
+        })
+      }
+    }
   }
 
   for (const id of DERIVED_STAT_IDS) {
@@ -525,7 +706,7 @@ export function validateDerivedStatRuleset(
 
 export function calculateDerivedStats(
   input: DerivedStatInput,
-  ruleset: DerivedStatRuleset = DERIVED_STAT_RULESET_V3,
+  ruleset: DerivedStatRuleset = DERIVED_STAT_RULESET_V4,
 ): DerivedStatSnapshot {
   const issues = validateDerivedStatRuleset(ruleset)
   if (issues.length > 0) {
@@ -540,6 +721,9 @@ export function calculateDerivedStats(
     const value = input.attributes[attributeId]
     if (!Number.isInteger(value) || value < 1) {
       throw new RangeError(`${attributeId} must be a positive whole number.`)
+    }
+    if (ruleset.version === 4 && value > 60) {
+      throw new RangeError(`${attributeId} must not exceed the current Core maximum of 60.`)
     }
   }
 
@@ -569,15 +753,28 @@ export function calculateDerivedStats(
 
     for (const attributeId of CHARACTER_ATTRIBUTE_IDS) {
       const coefficient = rule.attributeWeights[attributeId]
-      if (coefficient === undefined || coefficient === 0) continue
+      const breakpoint = rule.attributeBreakpoints?.[attributeId]
+      if (coefficient === undefined || (coefficient === 0 && !breakpoint)) continue
+      const attributeValue = input.attributes[attributeId]
+      const inputValue = breakpoint ? Math.min(attributeValue, breakpoint.at) : attributeValue
 
       contributions.push({
         sourceKind: 'attribute',
         sourceId: `character.attribute.${attributeId}`,
-        inputValue: input.attributes[attributeId],
+        inputValue,
         coefficient,
-        numeratorAmount: input.attributes[attributeId] * coefficient,
+        numeratorAmount: inputValue * coefficient,
       })
+      if (breakpoint && attributeValue > breakpoint.at) {
+        const aboveValue = attributeValue - breakpoint.at
+        contributions.push({
+          sourceKind: 'attribute',
+          sourceId: `character.attribute.${attributeId}.above.${breakpoint.at}`,
+          inputValue: aboveValue,
+          coefficient: breakpoint.weightAbove,
+          numeratorAmount: aboveValue * breakpoint.weightAbove,
+        })
+      }
     }
 
     const numerator = contributions.reduce(

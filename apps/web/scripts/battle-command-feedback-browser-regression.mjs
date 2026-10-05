@@ -121,6 +121,12 @@ async function verifyTabGuard(page) {
         true,
         `${key} keeps focus on the current battlefield/control/text entry`,
       )
+      if (control === map)
+        assert.equal(
+          await map.evaluate((tile) => getComputedStyle(tile).outlineStyle),
+          'none',
+          'Keyboard input cannot paint an unrelated rectangle on an unselected map tile',
+        )
     }
   }
   await input.fill('Entry remains available')
@@ -269,7 +275,7 @@ try {
         await page.keyboard.press('Shift')
         await destination.focus()
         const outline = await destination.evaluate((tile) => getComputedStyle(tile).outlineStyle)
-        assert.notEqual(outline, 'none', 'Actionable keyboard focus stays visible')
+        assert.equal(outline, 'none', 'Ready commands do not paint a tile focus rectangle')
         // Register after arming has refreshed the native key listener. Recording at the end
         // of the same input event rejects timer/frame/forecast waits before fetch starts.
         await page.evaluate((directional) => {
@@ -366,10 +372,10 @@ try {
           () => !document.querySelector('main').hasAttribute('data-battle-execution-pending'),
         )
         await destination.focus()
-        assert.notEqual(
+        assert.equal(
           await destination.evaluate((tile) => getComputedStyle(tile).outlineStyle),
           'none',
-          'Keyboard focus returns after the authoritative response settles',
+          'The tile focus rectangle stays absent after the authoritative response settles',
         )
         await page.evaluate(() => window.releaseForecast())
         await page.locator('[data-battle-command="inspect"]').click()

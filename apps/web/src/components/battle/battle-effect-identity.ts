@@ -1,7 +1,10 @@
-import type { CombatStatusInstance } from '@aurevane/game-core/combat/actions'
 import { combatStatusDetails, PHASE4_STATUSES } from '@aurevane/game-core/combat/status-content'
 import { statusLabel } from './battle-effect-summary'
 import { statusPotencyDescription } from '../../lib/status-potency-presentation'
+import {
+  terrainBattleEffectPresentation,
+  type BattlePresentedStatus,
+} from '../../lib/battle/battle-elevation-effects'
 
 /** Stable reading codes preserve distinct identities, including historical Mark. */
 const identifiers: Readonly<Record<string, string>> = {
@@ -62,7 +65,17 @@ export function battleEffectIdentity(statusId: string) {
   }
 }
 
-export function describeBattleEffect(effect: CombatStatusInstance) {
+export function describeBattleEffect(effect: BattlePresentedStatus) {
+  const terrainEffect = terrainBattleEffectPresentation(effect)
+  if (terrainEffect)
+    return {
+      ...terrainEffect,
+      count: null,
+      counterLabel: terrainEffect.duration,
+      timing: 'Active',
+      timingState: 'active',
+      explanation: `${terrainEffect.kind} · ${terrainEffect.description} Active · ${terrainEffect.duration}.`,
+    }
   const identity = {
     ...battleEffectIdentity(effect.statusId),
     description: statusPotencyDescription(effect.statusId, effect.potencyBasisPoints),

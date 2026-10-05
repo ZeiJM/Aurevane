@@ -2,6 +2,10 @@ import 'server-only'
 
 import { createHash } from 'node:crypto'
 
+import {
+  foundationDisciplineAttributePolicy,
+  projectAllocationForPrimaryDisciplineChange,
+} from '@aurevane/game-core/character/attribute-allocation'
 import type { PersistedCharacter } from '@aurevane/game-core/character/persistence'
 import {
   buildPrimaryDisciplinePreview,
@@ -227,9 +231,10 @@ export interface BuildSelectionInput {
 function calculatePreview(
   character: PersistedCharacter,
   entry: PrimaryDisciplineCatalogEntry,
+  attributes: PersistedCharacter['attributes'] = character.attributes,
 ): PrimaryDisciplinePreview {
   return buildPrimaryDisciplinePreview({
-    attributes: character.attributes,
+    attributes,
     level: character.level,
     primaryDefinition: entry.definition,
     primaryProfile: entry.profile,
@@ -545,14 +550,38 @@ export async function previewCharacterDisciplines(
     )
   }
 
+  const changesPrimary = primary.definition.id !== context.current.definition.id
+  let proposedAttributes = character.attributes
+  if (changesPrimary) {
+    const currentPolicy = foundationDisciplineAttributePolicy(context.current.definition.id)
+    const proposedPolicy = foundationDisciplineAttributePolicy(primary.definition.id)
+    if (!currentPolicy || !proposedPolicy) {
+      throw new AurevaneError('INVALID_REQUEST', 'The selected Primary Discipline is unavailable.')
+    }
+    const projection = projectAllocationForPrimaryDisciplineChange({
+      attributes: character.attributes,
+      level: character.level,
+      currentPolicy,
+      proposedPolicy,
+    })
+    if (projection.issues.length > 0) {
+      throw new AurevaneError(
+        'INVALID_REQUEST',
+        projection.issues[0]?.message ??
+          'That Primary Discipline cannot use the current Core Stats.',
+      )
+    }
+    proposedAttributes = projection.attributes
+  }
+
   return {
     current: context.current,
     currentSecondary: context.currentSecondary,
-    proposed: calculatePreview(character, primary),
+    proposed: calculatePreview(character, primary, proposedAttributes),
     proposedSecondary: secondary,
     buildVersion: context.build.buildVersion,
     changes: {
-      primary: primary.definition.id !== context.current.definition.id,
+      primary: changesPrimary,
       secondary: (secondary?.id ?? null) !== (context.currentSecondary?.id ?? null),
     },
     attunement: context.attunement,

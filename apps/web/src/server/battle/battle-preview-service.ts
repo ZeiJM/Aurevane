@@ -72,6 +72,7 @@ export interface BattleActionPreview {
   affectedTiles: readonly { x: number; y: number }[]
   affectedCombatantIds: readonly string[]
   projectedEffects: readonly CombatEffectProjection[]
+  targetStatusResistances?: CombatActionEvaluation['targetStatusResistances']
   projectedTerrain?: readonly CombatTerrainProjection[]
   projectedEvents?: readonly CombatResolutionEvent[]
   projectedStatuses: readonly {
@@ -176,6 +177,15 @@ function assertControlledTurn(
 
 function issue(code: string, message: string): BattlePreviewIssue {
   return { code, message }
+}
+
+/** Public forecast probabilities only; never expose the authoritative future RNG draw. */
+export function projectBattleStatusResistanceForecast(evaluation: CombatActionEvaluation) {
+  return evaluation.targetStatusResistances?.map((row) => ({
+    targetCombatantId: row.targetCombatantId,
+    resistanceChanceBasisPoints: row.resistanceChanceBasisPoints,
+    eligibleEffectOrdinals: [...row.eligibleEffectOrdinals],
+  }))
 }
 
 /** Preview must not turn an uncommitted Copy into inspection of a concealed hostile donor. */
@@ -382,6 +392,9 @@ async function previewIntent(
       affectedTiles: evaluation.affectedTiles,
       affectedCombatantIds: evaluation.affectedCombatantIds,
       projectedEffects: resourceIssue ? [] : visibleCopyPreview.projectedEffects,
+      targetStatusResistances: resourceIssue
+        ? []
+        : projectBattleStatusResistanceForecast(evaluation),
       projectedStatuses,
       projectedTerrain: resourceIssue ? [] : evaluation.projectedTerrain,
       projectedEvents: resourceIssue ? [] : visibleCopyPreview.projectedEvents,

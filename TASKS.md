@@ -1,5 +1,19 @@
 # AUREVANE — Active Task Ledger
 
+## Stat balance, elevation, resistance and shared reader corrections — 2026-10-05 (in progress)
+
+Owner requests exact Core40/60 anchors, paired Power/Defense, smaller MP economy with mystical tempo, Physical/Mystic Attack parameters, renamed defenses, absolute Jump access with position-derived elevation icons/tradeoffs, ordinary-Skill Status Resistance and special-family bypass; shared Resonance type/head/palette; persistent map focus removal; viewport-fitting victory/loss log readers. Existing artwork, layouts, authority, prior releases and historical battles remain. One combined Production release remains explicitly requested. Plan/spec: `docs/superpowers/plans/2026-10-05-stat-balance-spec.md` and companion plan.
+
+- [x] Reproduce keyboard focus and completion overflow with actual CI red.
+- [x] Implement shared reader/parameter corrections; actual browser palette and original36 completion cases pass intermediate candidate7f5a3a6.
+- [x] Implement/test derivedV4 curves, explicit historical preservation and Primary offset retirement.
+- [x] Complete new encounter policy, terrain access/forecasts/mitigation, resistance/origin/pending/AI/summon integration and viewer-safe icons.
+- [x] Complete current stats/resource fixtures, full local `pnpm check` (4,006 Vitest + seven Node checks), and independent final core/helper review with no findings.
+- [ ] Verify54 result cases,28 elevated rail cases,all input modes and complete exact-candidate CI/browser quality.
+- [ ] Merge frozen current-Main-compatible combined candidate and perform one Production release; verify exactsource/alias/publicsmoke/logs and restore full lock.
+
+Prior completed releases below remain live. Intermediate test/UI branch commits are not a Production release. No migration, hosted Auth/content setting or production-account changes are part of this batch.
+
 ## Battle input, timing, Chronicle copy and preview corrections — 2026-10-04 (released)
 
 The Owner requests smooth, slower VS flames; removal of AP/AP remaining/Range metadata and Parameters/Details buttons from all battle skill previews; inherent Guard lasting its authored two affected turns; hit-dependent Resonances withheld on a miss while retaining earned setup; removal of transient pre-command map boxes; Copy Full Log matching the displayed Chronicle; and removal of plain Tab/Shift+Tab focus cycling on battle pages. Existing portraits, skill artwork, viewport geometry, movement-range guidance, full cockpit information, server authority and privacy remain authoritative. Apply shared presentation to desktop/mobile PvE, PvP and spectators. Preserve historical Guard/status payloads and ordinary Skill costs/cooldowns. One combined Production release remains covered by the Owner’s standing request.

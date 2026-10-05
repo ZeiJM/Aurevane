@@ -1,4 +1,9 @@
 import {
+  forecastCombatStatusResistance,
+  rollCombatStatusResistance,
+  type CombatTargetStatusResistance,
+} from './combat-status-resistance'
+import {
   validateCombatAccuracyDefinition,
   forecastCombatSkillAccuracy,
   rollCombatSkillAccuracy,
@@ -75,6 +80,7 @@ export interface CombatEncounterState extends Omit<legacy.CombatEncounterState, 
       evasion?: number
       level?: number
       criticalChance?: number
+      statusResistance?: number
     }[]
   }
 }
@@ -83,6 +89,7 @@ export interface CombatActionEvaluation extends legacy.CombatActionEvaluation {
   vengeanceBasis?: readonly CombatVengeanceBasis[]
   targetHitChances?: readonly CombatTargetHitChance[]
   targetCriticalChances?: readonly CombatTargetCriticalChance[]
+  targetStatusResistances?: readonly CombatTargetStatusResistance[]
   projectionsAssumeHits?: true
   skillCopy?: CombatSkillCopyPreview
 }
@@ -121,13 +128,33 @@ export function evaluateCombatAction(
   action = materializeBeneficialCombatCopyAction(state, action)
   validateCombatAccuracyDefinition(action)
   const csrPreviewAction = materializeCsrPreviewAction(action)
-  const materialized = materializeVengeanceDamage(state, csrPreviewAction)
-  const evaluation = legacy.evaluateCombatAction(
+  let materialized = materializeVengeanceDamage(state, csrPreviewAction)
+  let evaluation = legacy.evaluateCombatAction(
     state,
     materializeStatScaledDamage(state, materialized.action),
     selection,
     content,
   )
+  const csrForecast =
+    state.statBalancePolicyVersion === 1 && evaluation.legal
+      ? materializeCsrCommittedAction({
+          state,
+          action,
+          selection,
+          evaluation,
+          content,
+          missedCombatantIds: new Set(),
+        })
+      : { action: csrPreviewAction, content }
+  if (state.statBalancePolicyVersion === 1 && evaluation.legal) {
+    materialized = materializeVengeanceDamage(state, csrForecast.action)
+    evaluation = legacy.evaluateCombatAction(
+      state,
+      materializeStatScaledDamage(state, materialized.action),
+      selection,
+      csrForecast.content,
+    )
+  }
   const preview =
     evaluation.legal && materialized.basis.length > 0
       ? { ...evaluation, vengeanceBasis: materialized.basis }
@@ -135,13 +162,25 @@ export function evaluateCombatAction(
   const accuracyPreview = forecastCombatSkillAccuracy(state, action, preview, content)
   const criticalPreview = forecastCombatCritical(
     state,
-    csrPreviewAction,
+    csrForecast.action,
     accuracyPreview,
     new Set(),
   )
-  return criticalPreview.targetCriticalChances.length > 0
-    ? { ...accuracyPreview, targetCriticalChances: criticalPreview.targetCriticalChances }
-    : accuracyPreview
+  const result =
+    criticalPreview.targetCriticalChances.length > 0
+      ? { ...accuracyPreview, targetCriticalChances: criticalPreview.targetCriticalChances }
+      : accuracyPreview
+  return state.statBalancePolicyVersion === 1
+    ? {
+        ...result,
+        targetStatusResistances: forecastCombatStatusResistance(
+          state,
+          csrForecast.action,
+          result,
+          csrForecast.content,
+        ),
+      }
+    : result
 }
 
 export function executeCombatAction(
@@ -162,6 +201,7 @@ export function executeCombatAction(
     materializeVengeanceDamage(state, previewAction).action,
   )
   const requiresEvaluation =
+    state.statBalancePolicyVersion === 1 ||
     Boolean(context) ||
     Boolean(hitDependentEffects) ||
     action.accuracyMode === 'per-target' ||
@@ -205,8 +245,15 @@ export function executeCombatAction(
     content,
     missedCombatantIds: accuracy.missedCombatantIds,
   })
-  const critical = rollCombatCritical(
+  const resistance = rollCombatStatusResistance(
     accuracy.state,
+    csr.action,
+    evaluation,
+    csr.content,
+    accuracy.missedCombatantIds,
+  )
+  const critical = rollCombatCritical(
+    resistance.state,
     csr.action,
     evaluation,
     accuracy.missedCombatantIds,
@@ -247,6 +294,7 @@ export function executeCombatAction(
     },
     accuracy.missedCombatantIds,
     critical.criticalEffectOrdinalsByTarget,
+    resistance.resistedEffectOrdinalsByTarget,
   )
   const covertFiltered = filterBlockedCovertApplication({
     before: critical.state,
@@ -259,7 +307,7 @@ export function executeCombatAction(
     events: covertFiltered.events as legacy.CombatResolutionEvent[],
     ...(hitDependentEffects ? { hitDependentEffectsActivated } : {}),
   }
-  const preCommitEvents = [...accuracy.events, ...critical.events]
+  const preCommitEvents = [...accuracy.events, ...resistance.events, ...critical.events]
   const transition =
     preCommitEvents.length > 0
       ? { ...committedTransition, events: [...preCommitEvents, ...committedTransition.events] }
@@ -289,6 +337,7 @@ export function executeCombatAction(
       provenanceEvaluation,
       context,
       csr.content,
+      resistance.resistedEffectOrdinalsByTarget,
     ),
     events: transition.events,
     resolution: {

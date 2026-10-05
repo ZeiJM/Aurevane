@@ -246,8 +246,8 @@
   outline: 2px solid #fff2cb;
   outline-offset: 1px;
 }
-/* A submitted command needs no extra tile-selection frame while waiting for authority.
-   Keep the keyboard ring whenever the battlefield is available for another gesture. */
+/* Submitted commands keep tiles quiet while waiting for authority.
+   The shared battlefield bundle also suppresses unrelated focus rings when ready. */
 .shell[data-battle-execution-pending='true'] .tile:focus-visible {
   outline: none;
 }

@@ -234,8 +234,8 @@ export function SummonProfileEditor({ value, onChange }: SummonProfileEditorProp
           [
             ['accuracy', 'Accuracy'],
             ['evasion', 'Evasion'],
-            ['armor', 'Armor'],
-            ['ward', 'Ward'],
+            ['armor', 'Physical Defense'],
+            ['ward', 'Mystic Defense'],
             ['jump', 'Jump'],
             ['physicalPower', 'Physical power'],
             ['mysticPower', 'Mystic power'],

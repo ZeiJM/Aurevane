@@ -190,7 +190,7 @@ export const manualArticles: readonly ManualArticle[] = [
         bullets: [
           'Maximum HP and Maximum MP',
           'Physical Power and Mystic Power',
-          'Armor and Ward',
+          'Physical Defense and Mystic Defense',
           'Accuracy and Evasion',
           'Critical Chance',
           'Initiative',

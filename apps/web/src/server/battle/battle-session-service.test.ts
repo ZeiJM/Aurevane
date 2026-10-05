@@ -369,6 +369,7 @@ describe('P2.4 battle session service', () => {
 
     const persistedSnapshot = input.initialSnapshot as StatDrivenCombatEncounterState
     expect(persistedSnapshot.copyPolicyVersion).toBe(1)
+    expect(persistedSnapshot.statBalancePolicyVersion).toBe(1)
     expect(persistedSnapshot.effectStackingPolicyVersion).toBe(1)
     expect(result.snapshot.effectStackingPolicyVersion).toBe(1)
     expect(result.snapshot.copyPolicyVersion).toBe(1)
@@ -392,32 +393,34 @@ describe('P2.4 battle session service', () => {
     expect(persistedSnapshot.tactical.battle.rng.seed).toBeLessThanOrEqual(0xffff_ffff)
     expect(persistedSnapshot.tactical.battle.lifecycle).toBe('active')
     expect(player).toMatchObject({
-      initiative: 14,
+      initiative: 23,
       baseMovementBudget: 2,
-      hp: 164,
-      maxHp: 164,
-      mp: 90,
-      maxMp: 90,
+      hp: 92,
+      maxHp: 92,
+      mp: 18,
+      maxMp: 18,
     })
     expect(playerProfile).toMatchObject({
       provenance: {
         kind: 'character-derived',
         sourceId: `character:${CHARACTER_ID}`,
-        sourceRulesVersion: 3,
+        sourceRulesVersion: 4,
       },
-      accuracy: 6_650,
-      evasion: 170,
-      armor: 23,
-      ward: 23,
+      accuracy: 8_875,
+      evasion: 375,
+      armor: 52,
+      ward: 52,
       jump: 0,
-      criticalChance: 250,
+      criticalChance: 225,
+      statusResistance: 150,
     })
     expect(recruitProfile).toMatchObject({
       provenance: { kind: 'scenario' },
       level: 1,
-      physicalPower: 32,
-      mysticPower: 32,
-      criticalChance: 225,
+      physicalPower: 50,
+      mysticPower: 50,
+      criticalChance: 187,
+      statusResistance: 125,
     })
     expect(playerMovementProfile?.maxElevationStep).toBe(0)
     expect(
@@ -589,18 +592,18 @@ describe('P2.4 battle session service', () => {
     )
 
     expect(player).toMatchObject({
-      initiative: 14,
+      initiative: 23,
       baseMovementBudget: 2,
-      hp: 164,
-      maxHp: 164,
-      mp: 82,
-      maxMp: 82,
+      hp: 92,
+      maxHp: 92,
+      mp: 18,
+      maxMp: 18,
     })
     expect(profile).toMatchObject({
-      accuracy: 6_875,
-      evasion: 170,
-      armor: 23,
-      ward: 21,
+      accuracy: 9_062,
+      evasion: 375,
+      armor: 52,
+      ward: 50,
       jump: 0,
     })
   })
@@ -621,7 +624,7 @@ describe('P2.4 battle session service', () => {
 
     expect(player?.baseMovementBudget).toBe(4)
     expect(persistedSnapshot.tactical.battle.currentTurn?.movementRemaining).toBe(4)
-    expect(recruit?.baseMovementBudget).toBe(10)
+    expect(recruit?.baseMovementBudget).toBe(2)
   })
 
   it('resolves a legal move on the server before persisting the next snapshot', async () => {
@@ -725,9 +728,9 @@ describe('P2.4 battle session service', () => {
       event: 'stat_driven_attack_resolved',
       actorId: `character:${CHARACTER_ID}`,
       targetId: 'recruit:p2-4-1',
-      hitChanceBasisPoints: 6_340,
+      hitChanceBasisPoints: 8_563,
       defenseKind: 'armor',
-      defenseRating: 20,
+      defenseRating: 50,
       rulesVersion: 4,
     })
 
@@ -738,7 +741,7 @@ describe('P2.4 battle session service', () => {
           event: 'combat_critical_resolved',
           sourceCombatantId: `character:${CHARACTER_ID}`,
           targetCombatantId: 'recruit:p2-4-1',
-          criticalChanceBasisPoints: 593,
+          criticalChanceBasisPoints: 225,
           criticalRulesVersion: 1,
         }),
       )

@@ -139,6 +139,18 @@ export function skillTypeDescription(
   return recoversHpOrMp ? 'Recovery' : 'Utility'
 }
 
+/** The mature Skill executor chooses Mystic Defense for mystic tags, Physical otherwise. */
+export function attackSkillTypeDescription(tags: readonly string[]): string {
+  return `Attack [${tags.includes('mystic') ? 'Mystic' : 'Physical'}]`
+}
+
+export function skillParameterTypeDescription(
+  skill: Pick<MatureSkillDefinition, 'tags' | 'effects'>,
+): string {
+  const type = skillTypeDescription(skill)
+  return type === 'Attack' ? attackSkillTypeDescription(skill.tags) : type
+}
+
 export function skillCostDescription(
   skill: Pick<MatureSkillDefinition, 'apCost' | 'mpCost'>,
 ): string {
@@ -158,7 +170,7 @@ export function skillParameterRows(
   copyPolicyVersion: number | null = 1,
 ): readonly (readonly [string, string])[] {
   return skillInformationRows({
-    'Skill Type': skillTypeDescription(skill),
+    'Skill Type': skillParameterTypeDescription(skill),
     Cost: skillCostDescription({ ...skill, ...costs }),
     Cooldown: skillCooldownDescription(skill, costs.cooldownOwnerTurns),
     Requirements: skillRequirementsSummary(skill),

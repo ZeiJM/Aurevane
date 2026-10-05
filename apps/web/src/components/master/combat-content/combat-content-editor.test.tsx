@@ -132,6 +132,8 @@ describe('Master Panel combat content editor shell', () => {
     )
 
     expect(markup).toContain('aria-label="Player-facing Skill information"')
+    expect(markup).toContain('data-skill-attack-family="physical"')
+    expect(markup).toContain('>[Physical]</span>')
     for (const label of [
       'Skill Type',
       'Cost',

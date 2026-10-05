@@ -1,3 +1,4 @@
+import { terrainEvasionBonusBasisPoints } from './combat-stat-balance'
 import { advanceBattleRng } from './battle-state'
 import { combatAccuracyStatusModifier } from './combat-accuracy-status'
 import type {
@@ -83,7 +84,15 @@ export function forecastCombatSkillAccuracyForTarget(
     targetCombatantId,
     hitChanceBasisPoints: calculateHitChanceBasisPoints(
       { accuracy: committedRating(state, actorId, 'accuracy') },
-      { evasion: committedRating(state, targetCombatantId, 'evasion') },
+      {
+        evasion:
+          committedRating(state, targetCombatantId, 'evasion') +
+          terrainEvasionBonusBasisPoints(
+            state,
+            targetCombatantId,
+            action.target.maximumElevationDifference,
+          ),
+      },
       (action.accuracyModifierBasisPoints ?? 0) +
         combatAccuracyStatusModifier(state, actorId, targetCombatantId, content),
     ),
@@ -237,7 +246,7 @@ function committedRating(
     typeof value !== 'number' ||
     !Number.isSafeInteger(value) ||
     value < 0 ||
-    value > BASIS_POINTS
+    value > (state.statBalancePolicyVersion === 1 && field === 'accuracy' ? 14_000 : BASIS_POINTS)
   ) {
     throw new RangeError(
       `Combat accuracy ${field} must be an integer between 0 and 10000 basis points.`,

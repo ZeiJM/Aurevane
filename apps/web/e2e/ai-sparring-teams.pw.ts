@@ -42,6 +42,10 @@ test('AI Sparring links team counts and persists six combatants on exactly two t
     const { battle } = await response.json()
     await expect(page).toHaveURL(new RegExp(`/game/battle/${battle.battleSessionId}$`))
     await expect(page.getByRole('region', { name: 'Tactical battlefield' })).toBeVisible()
+    const root = page.locator('main[data-unified-battle="true"]')
+    await expect(root).toHaveAttribute('data-local-turn', 'true')
+    await expect(root).not.toHaveAttribute('aria-busy', 'true')
+    await expect(root).not.toHaveAttribute('data-battle-execution-pending', 'true')
     const persisted = await page.evaluate(async (sessionId) => {
       const response = await fetch(`/api/battles/${sessionId}`, { cache: 'no-store' })
       return { status: response.status, body: await response.json() }
@@ -90,6 +94,12 @@ test('AI Sparring links team counts and persists six combatants on exactly two t
     const rematch = (await rematchResponse.json()).battle
     expect(rematch.snapshot.tactical.battle.combatants).toHaveLength(6)
     await expect(page).toHaveURL(new RegExp(`/game/battle/${rematch.battleSessionId}$`))
+    await expect(root).toHaveAttribute('data-local-turn', 'true')
+    await expect(root).not.toHaveAttribute('aria-busy', 'true')
+    await expect(root).not.toHaveAttribute('data-battle-execution-pending', 'true')
+    const rematchState = await page.request.get(`/api/battles/${rematch.battleSessionId}`)
+    expect(rematchState.status()).toBe(200)
+    const currentRematch = (await rematchState.json()).battle
     const aborted = await page.evaluate(
       async ({ sessionId, version }) => {
         const response = await fetch(`/api/battles/${sessionId}/abort`, {
@@ -102,7 +112,7 @@ test('AI Sparring links team counts and persists six combatants on exactly two t
         })
         return response.status
       },
-      { sessionId: rematch.battleSessionId, version: rematch.battleVersion },
+      { sessionId: rematch.battleSessionId, version: currentRematch.battleVersion },
     )
     expect(aborted).toBe(200)
   }

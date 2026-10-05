@@ -135,7 +135,7 @@ const overrides: Record<string, ManualArticle> = {
         bullets: [
           'Maximum HP and Maximum MP',
           'Physical Power and Mystic Power',
-          'Armor and Ward',
+          'Physical Defense and Mystic Defense',
           'Accuracy and Evasion',
           'Critical Chance',
           'Initiative',
@@ -147,10 +147,11 @@ const overrides: Record<string, ManualArticle> = {
         id: 'relationships',
         title: 'How the new split works',
         paragraphs: [
-          'Might → Physical Power. Finesse → Accuracy and Critical Chance. Vitality → Maximum HP and Armor. Agility → Initiative, Movement, Jump and Evasion. Intellect → Maximum MP and Mystic Power. Resolve → Ward and Status Resistance.',
-          'Character Level matures survivability, reliability and mobility across Levels 1–100, but it does not increase Physical Power or Mystic Power directly. Instead, relative Level modifies direct combat damage: opponents within 20 Levels stay close to even, while larger gaps ramp more sharply.',
+          'Might → Physical Power. Finesse → Accuracy and Critical Chance. Vitality → Maximum HP and Physical Defense. Agility → Initiative, Movement, Jump and Evasion. Intellect → Maximum MP and Mystic Power. Resolve → Mystic Defense and Status Resistance.',
+          'Core Stats determine the current baseline Adventure Stats independently of Level. Relative Level separately modifies direct combat damage: opponents within 20 Levels stay close to even, while larger gaps ramp more sharply.',
           techniquePowerSummary,
-          'Critical Chance caps at 30%, Evasion at 15%, Movement at 5 and Jump at 3. Primary focus Core Stats currently cap at 60; non-focus Core Stats currently cap at 40.',
+          'At Core 40/60, Accuracy is 110%/140%, Evasion 25%/55%, Critical Chance 15%/20%, Initiative 100/120 and Status Resistance 10%/15%. Accuracy starts at 85%; Evasion and Status Resistance start at 0. Movement starts at 2 and reaches its cap 4 at Core 40; Jump starts at 0 and reaches its cap 3 at Core 40. Primary focus Core Stats currently cap at 60; non-focus Core Stats currently cap at 40.',
+          'Power and matching Defense each start at 40 and gain 2 per relevant Core. Maximum HP starts at 80 and gains 2 per Vitality. Maximum MP starts at 16, gains 0.4 per Intellect through 40 and 0.8 thereafter, with final values rounded down. The Core 40/60 HP endpoints are 160/200 and MP 32/48. MP recovery and drain remain deliberate tempo tools with their authored AP, cooldown and targeting limits.',
           'Attribute Management lets you spend earned points or reset your full personal allocation, including creation points. Five resets replenish together 30 days after the first reset in a fresh window. Your Primary’s fixed base remains separate.',
         ],
       },
@@ -380,7 +381,7 @@ const battleHallArticle: ManualArticle = {
       id: 'ap',
       title: 'Action Economy',
       paragraphs: [
-        `A turn starts with 100 AP. Normal ground costs ${PV1F_MOVEMENT_COST_PER_TERRAIN_POINT} AP per tile; rough ground has terrain weight 2 and costs ${2 * PV1F_MOVEMENT_COST_PER_TERRAIN_POINT} AP. Basic Attack and Guard cost 30 AP; Recover costs 50 AP. Every tile entered spends 1 Movement, including rough or Frozen terrain; terrain, Haste and Slow change AP cost, not the number of Movement steps. Movement also obeys your remaining Movement allowance, even when AP remains. Movement starts at 2 and caps at 5; Jump starts at 0 and caps at 3.`,
+        `A turn starts with 100 AP. Normal ground costs ${PV1F_MOVEMENT_COST_PER_TERRAIN_POINT} AP per tile; rough ground has terrain weight 2 and costs ${2 * PV1F_MOVEMENT_COST_PER_TERRAIN_POINT} AP. Basic Attack and Guard cost 30 AP; Recover costs 50 AP. Every tile entered spends 1 Movement, including rough or Frozen terrain; terrain, Haste and Slow change AP cost, not the number of Movement steps. Movement also obeys your remaining Movement allowance, even when AP remains. Movement starts at 2 and caps at 4; Jump starts at 0 and caps at 3.`,
         'Guard has its own two-owner-turn cooldown. HP Recovery and MP Recovery share a separate two-turn cooldown. A successful use starts that action’s cooldown; server turn progression makes it available again. Recovery immediately restores 10% of the maximum resource, capped at its maximum.',
         'Selecting a legal action proposes the AP spend before commitment. The AP bar shows the proposed segment with a temporary glow; after confirmation the authoritative committed value becomes the new solid remainder.',
       ],
@@ -412,7 +413,9 @@ const battleHallArticle: ManualArticle = {
       id: 'reading-battle',
       title: 'Reading the battlefield',
       paragraphs: [
-        'Combatant cards keep only high-value information visible by default. Click a combatant to inspect Initiative, Movement, Jump, Armor, Evasion, and current facing. Status icons open above the battle layer so their details stay readable.',
+        'Combatant cards keep only high-value information visible by default. Click a combatant to inspect Initiative, Movement, Jump, Physical Defense, Mystic Defense, Evasion, and current facing. Status icons open above the battle layer so their details stay readable.',
+        'In new battles, entering a raised tile requires Jump at least equal to its absolute height. Height 1/2/3 grants 15/20/25 percentage points of Evasion and reduces both defenses by 20% while you remain there. Skill Target Elevation at least equal to target height bypasses only the terrain Evasion bonus. Active rail icons explain these effects; leaving the tile removes them.',
+        'Hit chance is Accuracy minus target Evasion, with authored accuracy/status modifiers and a final 0–100% clamp. Status Resistance can cancel ordinary hostile Skill debuffs while damage still applies. Essence, Resonance, Ascension and Severance effects bypass it. Saved historical battles keep their pinned rules.',
         'The Combat Log groups the sibling events from one committed action into a single action entry. Solo Battle Chat is also available for self-notes and interface testing.',
       ],
     },

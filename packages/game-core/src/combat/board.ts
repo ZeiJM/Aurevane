@@ -164,6 +164,7 @@ export function evaluateCurrentMovementPath(
   state: TacticalBattleState,
   path: readonly GridPosition[],
   allowanceCostMode: MovementAllowanceCostMode = 'terrain-weight',
+  statBalancePolicyVersion?: 1,
 ): MovementPathPreview {
   assertValidTacticalBattleState(state)
 
@@ -231,7 +232,14 @@ export function evaluateCurrentMovementPath(
         break
       }
 
-      if (Math.abs(currentTile.elevation - previousTile.elevation) > profile.maxElevationStep) {
+      if (
+        !canEnterElevation(
+          previousTile.elevation,
+          currentTile.elevation,
+          profile.maxElevationStep,
+          statBalancePolicyVersion,
+        )
+      ) {
         issues.push({
           code: 'elevation-step-too-high',
           stepIndex: index,
@@ -295,8 +303,14 @@ export function moveCurrentCombatant(
   state: TacticalBattleState,
   path: readonly GridPosition[],
   allowanceCostMode: MovementAllowanceCostMode = 'terrain-weight',
+  statBalancePolicyVersion?: 1,
 ): TacticalBattleTransition {
-  const preview = evaluateCurrentMovementPath(state, path, allowanceCostMode)
+  const preview = evaluateCurrentMovementPath(
+    state,
+    path,
+    allowanceCostMode,
+    statBalancePolicyVersion,
+  )
   if (!preview.legal) {
     const issue = preview.issues[0]
     if (!issue) {
@@ -705,7 +719,7 @@ function getPlacement(state: TacticalBattleState, combatantId: string): CombatPl
   return placement
 }
 
-function getMovementProfile(
+export function getMovementProfile(
   state: TacticalBattleState,
   movementProfileId: string,
 ): CombatMovementProfile {
@@ -835,4 +849,16 @@ function compareStableString(left: string, right: string): number {
   if (left < right) return -1
   if (left > right) return 1
   return 0
+}
+
+/** Current Jump gates absolute raised entry; descent cannot strand a combatant. */
+export function canEnterElevation(
+  currentHeight: number,
+  destinationHeight: number,
+  jump: number,
+  statBalancePolicyVersion?: 1,
+): boolean {
+  return statBalancePolicyVersion === 1
+    ? destinationHeight < currentHeight || destinationHeight <= jump
+    : Math.abs(destinationHeight - currentHeight) <= jump
 }

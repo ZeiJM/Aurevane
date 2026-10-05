@@ -37,9 +37,13 @@ test('keeps the authoritative mobile PvE turn clock in the shared economy header
   const title = root.locator('[data-battle-instruction-title]')
   const slot = root.locator('[data-battle-turn-clock-slot]')
   const timer = slot.locator('[data-ai-turn-clock="true"]')
+  // Recruit Initiative can grant the opening turn; the shared title is not turn ownership.
+  await expect(root).toHaveAttribute('data-local-turn', 'true', { timeout: 15000 })
+  await expect(root.getByRole('button', { name: /^End Turn,/ })).toBeEnabled({ timeout: 15000 })
   await expect(title).toHaveText(/^Choose your action$/i)
   await expect(timer).toBeVisible()
-  await expect(timer).toHaveText(/^\d+s$/)
+  // The independent clock reports the committed handoff on its five-second watchdog.
+  await expect(timer).toHaveText(/^\d+s$/, { timeout: 15000 })
   await expect(timer).toHaveAttribute('aria-live', 'polite')
   await expect(timer).toHaveAttribute('title', /Each player turn lasts 60 seconds/)
 

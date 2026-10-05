@@ -781,6 +781,23 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
         headline: 'Turn End',
       })
     }
+    case 'combat_status_resistance_resolved': {
+      const actorCombatantId = stringValue(event.sourceCombatantId)
+      const targetCombatantId = stringValue(event.targetCombatantId)
+      const actionId = presentationActionId(event.actionId)
+      if (event.resisted !== true || !actorCombatantId || !targetCombatantId || !actionId)
+        return null
+      return createEntry(record, eventType, {
+        messageTemplate: '{target} resists the harmful effect tags.',
+        actorCombatantId,
+        targetCombatantId,
+        actionId,
+        actionLabel: actionLabel(actionId),
+        kind: 'status',
+        headline: 'Status Resistance',
+        tone: 'benefit',
+      })
+    }
     case 'combat_accuracy_resolved': {
       const actorCombatantId = stringValue(event.sourceCombatantId)
       const targetCombatantId = stringValue(event.targetCombatantId)

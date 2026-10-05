@@ -30,7 +30,7 @@ function EssenceHoverPreview({ essence }: { essence: EssenceDefinition }) {
   return (
     <BattleInfoPopover
       label={`Preview Essence: ${essence.name}`}
-      title={`Essence: ${essence.name}`}
+      title={essence.name}
       className={styles.attunementPreviewAnchor}
       hover
       trigger={
@@ -52,7 +52,7 @@ function ResonanceHoverPreview({ resonance }: { resonance: AnyResonanceDefinitio
   return (
     <BattleInfoPopover
       label={`Preview Resonance: ${resonance.name}`}
-      title={`Resonance: ${resonance.name}`}
+      title={resonance.name}
       className={styles.attunementPreviewAnchor}
       hover
       trigger={
@@ -356,7 +356,7 @@ export function CharacterArsenalShell({
                   <EssenceHoverPreview essence={essence} />
                   <div>
                     <div className={styles.attunementIdentity}>
-                      <strong>{`Essence: ${essence.name}`}</strong>
+                      <strong>{essence.name}</strong>
                       <b>● Active</b>
                     </div>
                     <p>
@@ -374,7 +374,7 @@ export function CharacterArsenalShell({
                   <ResonanceHoverPreview resonance={resonance} />
                   <div>
                     <div className={styles.attunementIdentity}>
-                      <strong>{`Resonance: ${resonance.name}`}</strong>
+                      <strong>{resonance.name}</strong>
                       <b>● Active</b>
                     </div>
                     <p>

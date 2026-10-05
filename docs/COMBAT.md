@@ -1,5 +1,32 @@
 # AUREVANE Combat Design Bible
 
+## Owner stat and battle reader continuation — 2026-10-05
+
+Derived ruleset4 replaces the current baseline curves; explicit rulesets1–3 remain historical. New encounters pin `statBalancePolicyVersion: 1` independently of bridge4, so saved battles retain their original damage/movement/RNG. Primary Core bases and focus/non-focus caps60/40 remain; legacy Primary Adventure-stat offsets/caps no longer shift the new endpoints. Internal `armor`/`ward` identifiers remain, presented as **Physical Defense/Mystic Defense**.
+
+| Adventure Stat | Mathematical base | Core40 | Core60 |
+|---|---:|---:|---:|
+| Physical/Mystic Power and matching Defense |40|120|160|
+| Maximum HP |80|160|200|
+| Maximum MP |16|32|48|
+| Accuracy |85%|110%|140%|
+| Evasion |0%|25%|55%|
+| Critical Chance |0%|15%|20%|
+| Initiative |10|100|120|
+| Movement |2|4|4|
+| Jump |0|3|3|
+| Status Resistance |0%|10%|15%|
+
+The relevant effective Core determines each baseline; Level does not add to these curves, while relative-Level combat damage scaling remains. Accuracy is a rating: subtract Evasion before clamping final probability to0–100%. Existing authored/status Accuracy modifiers remain. Piecewise formulas, provenance and delegated Power/Defense/HP/MP reasoning are recorded in `superpowers/plans/2026-10-05-stat-balance-spec.md`.
+
+New-policy movement requires Jump at least equal to destination absolute height for raised entry; descending remains possible. Raised height1/2/3 grants15/20/25 percentage points Evasion and reduces both Defense ratings20% before mitigation. Skill Target Elevation at least equal to target absolute height bypasses only terrain Evasion. Existing delta-based targeting legality remains. Rail icons are viewer-relative position-derived effects, never persisted, copied or cleansed, and end on leaving.
+
+Status Resistance draws once per successfully hit living hostile recipient with eligible ordinary Skill debuffs, filters resisted effect ordinals before scheduling, retains damage/costs/cooldowns and never rerolls on activation. Negative ordinary statuses/Poison/Burn/Bleed/hostile Curse qualify; beneficial effects, damage, MP drain, cleanses, terrain, displacement, rewind and self-costs do not. Per-effect Essence/Resonance/Ascension/Severance origins bypass. AI previews use the same conditional probability. Chronicle records an explicit resisted-tags line without exposing RNG.
+
+Physical authored damage generally ranges1–20 per packet; ordinary Mystic generally caps16 in exchange for stronger tempo. These are authored values, not final HP damage caps. Preserve published immutable exceptions, including Judgmentv4(18) and Verdant Rupture Essencev5(19), rather than rejecting historical versions. MP recovery/drain retain authored Power/AP scaling, AP/cooldown/Requirement limits and real resource caps; a finite starting pool does not promise a finite number of total casts.
+
+Parameter readers show `Attack [Physical]` in red or `Attack [Mystic]` in green. Resonance type is exactly Resonance and headings use the bare canonical name, with the Discipline white/gold/teal effect palette. Shared playable/spectator map focus no longer paints unrelated unselected rectangles. Open result logs fit the window with complete internally readable summary/log, visible controls/footer and unchanged artwork. Short mobile landscape is included in validation. Release/verification remains tracked in `../TASKS.md`.
+
 ## Battle review and unlimited effect applications — Owner-approved 2026-10-04
 
 New PvE and PvP encounters pin `effectStackingPolicyVersion: 1`. All effect applications accumulate without authored stack-count caps or a shared aggregate modifier ceiling. This supersedes older cap/replacement wording below for encounters with this policy. Snapshots without it retain recorded historical resolution; do not retrofit ongoing historical battles or rewrite immutable authored content.
@@ -265,7 +292,7 @@ Final Facing                    0 AP and ends the turn
 
 These values are confirmed by the current server-authoritative `pv1f-action-economy` implementation and current Battle Hall UI. They are versioned balance values, but they are the current rules until deliberately changed.
 
-Movement and actions draw from the **same** 0–100 Action Economy. Movement additionally obeys the committed character Movement allowance (baseline 2, maximum 5). Enough AP does not authorize movement beyond that allowance. Jump starts at 0 and caps at 3. The retired binary `Action Ready / Action Spent` model remains retired.
+Movement and actions draw from the **same** 0–100 Action Economy. Movement additionally obeys the committed character Movement allowance (baseline 2, maximum 4 for new-policy battles; historical maximum 5). Enough AP does not authorize movement beyond that allowance. Jump starts at 0 and caps at 3. The retired binary `Action Ready / Action Spent` model remains retired.
 
 Multiple legal commands may occur during one turn while enough AP remains. For example:
 
@@ -320,7 +347,7 @@ Future movement profiles may include heavy/agile ground movement, flying, burrow
 
 ### Inspect — 0 AP
 
-Inspect is optional utility. It can reveal contextual information such as tile position, terrain/traversal cost, elevation, reachability, combatant Initiative/Movement/Jump/Armor/Evasion, facing and statuses.
+Inspect is optional utility. It can reveal contextual information such as tile position, terrain/traversal cost, elevation, reachability, combatant Initiative/Movement/Jump/Physical Defense/Mystic Defense/Evasion, facing and statuses.
 
 Inspect does not commit battle state and does not spend AP.
 
@@ -435,7 +462,7 @@ The text Battle Chronicle uses Round dividers and actor-identity groups, pinned 
 
 HP and MP are represented visually on combatant rails/cards rather than redundantly repeated everywhere.
 
-Compact combatant summaries may surface Initiative, Movement, Jump, Armor, Evasion, facing and status icons.
+Compact combatant summaries may surface Initiative, Movement, Jump, Physical Defense, Mystic Defense, Evasion, facing and status icons.
 
 Statuses use compact readable icons. Positive/negative state must not rely on color alone; color may reinforce meaning but accessibility requires text/icon context.
 

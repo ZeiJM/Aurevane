@@ -65,7 +65,9 @@
     "./combat/combat-summons": "./src/combat/combat-summons.ts",
     "./combat/summon-ai": "./src/combat/summon-ai.ts",
     "./combat/support-actions": "./src/combat/support-actions.ts",
-    "./combat/combat-effect-timing": "./src/combat/combat-effect-timing.ts"
+    "./combat/combat-effect-timing": "./src/combat/combat-effect-timing.ts",
+    "./combat/combat-stat-balance": "./src/combat/combat-stat-balance.ts",
+    "./combat/combat-status-resistance": "./src/combat/combat-status-resistance.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

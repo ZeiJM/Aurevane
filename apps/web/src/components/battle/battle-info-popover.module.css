@@ -82,15 +82,8 @@
 .panel [data-compact-skill-effect] {
   display: block;
   margin: 2px 0;
-}
-.panel
-  :is(
-    [data-compact-effect-magnitude],
-    [data-compact-effect-duration],
-    [data-compact-effect-timing]
-  ) {
-  color: #775019;
-  font-weight: 650;
+  background: #0a202b;
+  box-decoration-break: clone;
 }
 
 /* Pinned battle, Nexus and Chronicle readers share one paper report. Inline Nexus stays unchanged. */
@@ -125,16 +118,6 @@
 .panel :global([data-resonance-parameters]) :is(ul, ol) {
   margin: 4px 0;
   padding-left: 17px;
-}
-.panel
-  :global([data-resonance-parameters])
-  dl
-  :is(
-    [data-compact-effect-magnitude],
-    [data-compact-effect-duration],
-    [data-compact-effect-timing]
-  ) {
-  color: #775019;
 }
 .panel[data-battle-info-layout='wide'] {
   --battle-info-width: min(760px, calc(100% - 16px));

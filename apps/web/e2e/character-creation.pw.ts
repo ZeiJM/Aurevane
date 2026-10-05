@@ -45,15 +45,20 @@ test('creates a slotted character, persists its profile, and resumes it across s
   for (const [attribute, expectedValue] of Object.entries(expectedStarterAttributes)) {
     await expect(page.getByTestId(`profile-attribute-${attribute}`)).toContainText(expectedValue)
   }
-  await expect(page.getByTestId('derived-stat-maxHp')).toContainText('220')
-  await expect(page.getByTestId('derived-stat-maxMp')).toContainText('66')
-  await expect(page.getByTestId('derived-stat-accuracy')).toContainText('65%')
-  await expect(page.getByTestId('derived-stat-evasion')).toContainText('1.3%')
-  await expect(page.getByTestId('derived-stat-criticalChance')).toContainText('2%')
-  await expect(page.getByTestId('derived-stat-initiative')).toContainText('10')
+  // Current V4 curves applied to the fixed starter Core values above, without retired offsets.
+  await expect(page.getByTestId('derived-stat-physicalPower')).toContainText('58')
+  await expect(page.getByTestId('derived-stat-mysticPower')).toContainText('46')
+  await expect(page.getByTestId('derived-stat-armor')).toContainText('Physical Defense58')
+  await expect(page.getByTestId('derived-stat-ward')).toContainText('Mystic Defense54')
+  await expect(page.getByTestId('derived-stat-maxHp')).toContainText('98')
+  await expect(page.getByTestId('derived-stat-maxMp')).toContainText('17')
+  await expect(page.getByTestId('derived-stat-accuracy')).toContainText('87.5%')
+  await expect(page.getByTestId('derived-stat-evasion')).toContainText('2.5%')
+  await expect(page.getByTestId('derived-stat-criticalChance')).toContainText('1.5%')
+  await expect(page.getByTestId('derived-stat-initiative')).toContainText('19')
   await expect(page.getByTestId('derived-stat-movement')).toContainText('2')
   await expect(page.getByTestId('derived-stat-jump')).toContainText('0')
-  await expect(page.getByTestId('derived-stat-statusResistance')).toContainText('4.9%')
+  await expect(page.getByTestId('derived-stat-statusResistance')).toContainText('1.75%')
 
   const levelProgress = page.getByTestId('authenticated-shell').getByTestId('rail-level-progress')
   await expect(levelProgress).toContainText('Character Level 1')

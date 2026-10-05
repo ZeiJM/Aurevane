@@ -54,7 +54,7 @@ export function resonanceCharacteristicRows(
   const mechanics = normalizedResonanceMechanics(definition)
   const recipients = [...new Set(mechanics.resultEffects.map(resonanceResultRecipient))]
   return skillInformationRows<string | readonly string[]>({
-    'Skill Type': 'Passive · Resonance',
+    'Skill Type': 'Resonance',
     Cost: 'N/A',
     Cooldown: 'N/A',
     Requirements: mechanics.setup ? resonanceMatcher(mechanics.setup) : 'N/A',

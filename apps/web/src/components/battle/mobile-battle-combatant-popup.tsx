@@ -11,6 +11,7 @@ import {
   formatStatusStackCount,
   statusIsBeneficial,
   statusLabel,
+  statusDurationLabel,
 } from './battle-effect-summary'
 import { useBattleInteractionLifecycle } from './battle-interaction-lifecycle'
 import { buildBattleViewModel } from './battle-runtime'
@@ -20,6 +21,7 @@ import {
   readSummonInspectMetadata,
   type BattleSummonInspectMetadata,
 } from './battle-summon-inspect'
+import { terrainAdjustedBattleProfile } from '../../lib/battle/battle-elevation-stats'
 import styles from './mobile-battle-combatant-popup.module.css'
 
 const DESKTOP_POINTER_QUERY = '(any-hover: hover) and (any-pointer: fine)'
@@ -128,7 +130,7 @@ function readSelectedCombatant(
   return {
     combatant,
     placement,
-    profile,
+    profile: terrainAdjustedBattleProfile(battle.snapshot, combatant.id, profile, statuses),
     statuses,
     name:
       summon?.name ??
@@ -367,11 +369,11 @@ export function MobileBattleCombatantPopup({
                 <dd>{selected.profile ? percentFromBasisPoints(selected.profile.evasion) : '—'}</dd>
               </div>
               <div>
-                <dt>Armor</dt>
+                <dt>Physical Defense</dt>
                 <dd>{selected.profile?.armor ?? '—'}</dd>
               </div>
               <div>
-                <dt>Ward</dt>
+                <dt>Mystic Defense</dt>
                 <dd>{selected.profile?.ward ?? '—'}</dd>
               </div>
               <div>
@@ -417,16 +419,13 @@ export function MobileBattleCombatantPopup({
                   {effectStatuses.map((status) => (
                     <li
                       key={`${status.statusId}:${status.statusVersion}`}
-                      data-tone={statusIsBeneficial(status.statusId) ? 'buff' : 'debuff'}
+                      data-tone={statusIsBeneficial(status.statusId, status) ? 'buff' : 'debuff'}
                     >
                       <strong>
-                        {statusLabel(status.statusId)}
+                        {statusLabel(status.statusId, status)}
                         <b>{formatStatusStackCount(status.statusId, status.stacks)}</b>
                       </strong>
-                      <small>
-                        {status.remainingOwnerTurnStarts} turn
-                        {status.remainingOwnerTurnStarts === 1 ? '' : 's'} remaining
-                      </small>
+                      <small>{statusDurationLabel(status)}</small>
                     </li>
                   ))}
                 </ul>

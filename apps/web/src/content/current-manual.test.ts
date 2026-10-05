@@ -98,7 +98,9 @@ it('publishes the Techniques guide and removes the obsolete fixed Power budget',
   expect(text).toContain('0.01%')
   expect(text).toContain('65 AP')
   expect(text).toContain('4.64%')
-  expect(text).toContain('Armor')
+  expect(text).toContain('Physical Defense')
+  expect(text).toContain('Mystic Defense')
+  expect(text).not.toContain('Apply Armor or Ward')
   expect(text).toContain('bounded authored power scale from 1 to 20')
   expect(articleText('attributes-derived-stats')).not.toContain(
     'Skill-wide Power contribution is 25%',

@@ -104,7 +104,10 @@ try {
         hasTouch: viewport.width < 821,
       })
       page.setDefaultTimeout(5000)
-      page.on('pageerror', (error) => errors.push(error.message))
+      page.on('pageerror', (error) => {
+        errors.push(error.message)
+        console.error(`${mode} ${viewport.width}: ${error.message}`)
+      })
       await page.goto(server.resolvedUrls.local[0] + `?mode=${mode}`)
       const local = page.locator('[data-battle-combatant-card="local"]')
       const enemy = page.locator('[data-battle-combatant-card="selected"]')

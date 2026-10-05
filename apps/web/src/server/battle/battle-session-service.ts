@@ -40,10 +40,10 @@ import {
 } from '@aurevane/game-core/combat/pv1f-action-economy'
 import {
   createCharacterDerivedCombatProfile,
-  createStatDrivenCombatEncounterState,
+  createStatBalancedCombatEncounterState,
   validateStatDrivenCombatEncounterState,
   type StatDrivenCombatEncounterState,
-  type StatDrivenCombatProfile,
+  type StatDrivenCombatProfileV4,
 } from '@aurevane/game-core/combat/stat-driven-combat'
 import {
   getTacticalHallArena,
@@ -98,7 +98,6 @@ import {
 
 const PV1F_RULES_VERSION = 3
 const PV1F_CONTENT_VERSION = 2
-const PV1F_RECRUIT_MOVEMENT_UNITS = 10
 const PV1F_RECRUIT_OFFENSIVE_BENCHMARK = calculateDerivedStats({
   attributes: {
     might: 5,
@@ -119,7 +118,11 @@ type ProjectedBattleState = Omit<BattleAuthoritativeEncounterState['tactical']['
 type ProjectedTacticalState = Omit<BattleAuthoritativeEncounterState['tactical'], 'battle'> & {
   battle: ProjectedBattleState
 }
-export type BattleSessionProjection = Omit<BattleAuthoritativeEncounterState, 'tactical'> & {
+export type BattleSessionProjection = Omit<
+  BattleAuthoritativeEncounterState,
+  'tactical' | 'statusState'
+> & {
+  statusState: ReturnType<typeof projectBattleStatusStateForViewer>
   tactical: ProjectedTacticalState
 }
 
@@ -200,7 +203,7 @@ function recruitScenarioProfile(
   difficulty: BattleAiDifficulty,
   battleHallRecordId: BattleHallRecordId,
   level: number,
-): Omit<StatDrivenCombatProfile, 'combatantId'> {
+): Omit<StatDrivenCombatProfileV4, 'combatantId'> {
   return {
     provenance: {
       kind: 'scenario',
@@ -208,15 +211,16 @@ function recruitScenarioProfile(
       sourceRulesVersion: PV1F_CONTENT_VERSION,
     },
     // Difficulty changes decision quality only. All three Recruit tiers obey the same visible stats.
-    accuracy: 7_000,
-    evasion: 800,
-    armor: 20,
-    ward: 20,
-    jump: 1,
+    accuracy: PV1F_RECRUIT_OFFENSIVE_BENCHMARK.stats.accuracy.value,
+    evasion: PV1F_RECRUIT_OFFENSIVE_BENCHMARK.stats.evasion.value,
+    armor: PV1F_RECRUIT_OFFENSIVE_BENCHMARK.stats.armor.value,
+    ward: PV1F_RECRUIT_OFFENSIVE_BENCHMARK.stats.ward.value,
+    jump: PV1F_RECRUIT_OFFENSIVE_BENCHMARK.stats.jump.value,
     level,
     physicalPower: PV1F_RECRUIT_OFFENSIVE_BENCHMARK.stats.physicalPower.value,
     mysticPower: PV1F_RECRUIT_OFFENSIVE_BENCHMARK.stats.mysticPower.value,
     criticalChance: PV1F_RECRUIT_OFFENSIVE_BENCHMARK.stats.criticalChance.value,
+    statusResistance: PV1F_RECRUIT_OFFENSIVE_BENCHMARK.stats.statusResistance.value,
   }
 }
 
@@ -263,7 +267,7 @@ function createVerticalSliceEncounter(
     character.level,
     derived,
   )
-  const recruitProfiles: StatDrivenCombatProfile[] = recruits.map(({ id }) => ({
+  const recruitProfiles: StatDrivenCombatProfileV4[] = recruits.map(({ id }) => ({
     combatantId: id,
     ...recruitScenarioProfile(arenaId, aiDifficulty, battleHallRecordId, character.level),
   }))
@@ -300,12 +304,12 @@ function createVerticalSliceEncounter(
         ...recruits.map(({ id, teamId }) => ({
           id,
           teamId,
-          initiative: 5,
-          baseMovementBudget: PV1F_RECRUIT_MOVEMENT_UNITS,
-          hp: 80,
-          maxHp: 80,
-          mp: 25,
-          maxMp: 25,
+          initiative: PV1F_RECRUIT_OFFENSIVE_BENCHMARK.stats.initiative.value,
+          baseMovementBudget: PV1F_RECRUIT_OFFENSIVE_BENCHMARK.stats.movement.value,
+          hp: PV1F_RECRUIT_OFFENSIVE_BENCHMARK.stats.maxHp.value,
+          maxHp: PV1F_RECRUIT_OFFENSIVE_BENCHMARK.stats.maxHp.value,
+          mp: PV1F_RECRUIT_OFFENSIVE_BENCHMARK.stats.maxMp.value,
+          maxMp: PV1F_RECRUIT_OFFENSIVE_BENCHMARK.stats.maxMp.value,
           temporaryResources: createPv1fTemporaryResources(recruitAttackDamage),
         })),
       ],
@@ -354,7 +358,13 @@ function createVerticalSliceEncounter(
               ],
             })
           : arena.tiles,
-      movementProfiles: [playerMovementProfile, P2_2_ORDINARY_GROUND_PROFILE],
+      movementProfiles: [
+        playerMovementProfile,
+        {
+          ...P2_2_ORDINARY_GROUND_PROFILE,
+          maxElevationStep: PV1F_RECRUIT_OFFENSIVE_BENCHMARK.stats.jump.value,
+        },
+      ],
       placements: [
         {
           combatantId: playerCombatantId,
@@ -368,7 +378,7 @@ function createVerticalSliceEncounter(
   )
 
   return preparePv1fTurnEconomy(
-    createStatDrivenCombatEncounterState(encounter, [playerProfile, ...recruitProfiles]),
+    createStatBalancedCombatEncounterState(encounter, [playerProfile, ...recruitProfiles]),
   )
 }
 

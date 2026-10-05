@@ -114,8 +114,8 @@ function damageEditor(value: DamageEffect, onChange: (next: CombatEffectDefiniti
           }}
         >
           <option value="">None</option>
-          <option value="armor">Armor</option>
-          <option value="ward">Ward</option>
+          <option value="armor">Physical Defense</option>
+          <option value="ward">Mystic Defense</option>
         </select>
       </label>
 

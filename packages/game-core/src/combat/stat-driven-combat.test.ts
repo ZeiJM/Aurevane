@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { calculateDerivedStats } from '../character/derived-stats'
+import { calculateDerivedStats, DERIVED_STAT_RULESET_V3 } from '../character/derived-stats'
 import { createPendingBattle, startBattle } from './battle-state'
 import {
   createCombatEncounterState,
@@ -161,6 +161,29 @@ function encounter(
 }
 
 describe('stat-driven Phase 2 combat bridge', () => {
+  it('can still construct historical V3 derived profiles without current resistance policy', () => {
+    const derived = calculateDerivedStats(
+      {
+        attributes: {
+          might: 40,
+          finesse: 40,
+          vitality: 40,
+          agility: 40,
+          intellect: 40,
+          resolve: 40,
+        },
+        level: 1,
+      },
+      DERIVED_STAT_RULESET_V3,
+    )
+    expect(derived.stats.statusResistance.value).toBe(2800)
+    const historical = createCharacterDerivedCombatProfile('player', 'historical', 1, derived)
+    expect(historical.statusResistance).toBeUndefined()
+    const state = encounter(historical)
+    expect(state.statBalancePolicyVersion).toBeUndefined()
+    expect(validateStatDrivenCombatEncounterState(state)).toEqual([])
+    expect(state.statBridge.combatants[0]?.provenance.sourceRulesVersion).toBe(3)
+  })
   it('uses accuracy minus evasion as the versioned hit-chance forecast', () => {
     const actor = profile('player', { accuracy: 7_750 })
     const target = profile('recruit', { evasion: 1_120 })

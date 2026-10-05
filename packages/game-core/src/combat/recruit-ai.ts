@@ -432,7 +432,14 @@ function enemyApproachDistances(
           placement.combatantId === actorId ? { ...placement, position: from } : placement,
         ),
       }
-      if (!evaluateCurrentMovementPath(planningBoard, [from, destination], 'entered-tiles').legal)
+      if (
+        !evaluateCurrentMovementPath(
+          planningBoard,
+          [from, destination],
+          'entered-tiles',
+          state.statBalancePolicyVersion,
+        ).legal
+      )
         continue
       distances.set(key, distance + 1)
       queue.push(from)

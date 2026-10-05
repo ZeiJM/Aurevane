@@ -58,9 +58,9 @@ describe('character profile read model', () => {
   it('calculates derived stats and Level progress from authoritative state plus curve config', () => {
     const profile = buildCharacterProfileReadModel(character, levelCurve)
 
-    expect(profile.derived.rulesVersion).toBe(3)
-    expect(profile.derived.stats.maxHp.value).toBe(164)
-    expect(profile.derived.stats.accuracy.value).toBe(6650)
+    expect(profile.derived.rulesVersion).toBe(4)
+    expect(profile.derived.stats.maxHp.value).toBe(92)
+    expect(profile.derived.stats.accuracy.value).toBe(8875)
     expect(profile.derived.stats.movement.value).toBe(2)
     expect(profile.progression.progress).toMatchObject({
       curveVersion: 1,

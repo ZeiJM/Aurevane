@@ -1,9 +1,10 @@
+import { terrainAdjustedDefense, terrainEvasionBonusBasisPoints } from './combat-stat-balance'
 import { combatAccuracyStatusModifier } from './combat-accuracy-status'
 import { calculateHitChanceBasisPoints } from './combat-skill-accuracy'
 export { calculateHitChanceBasisPoints } from './combat-skill-accuracy'
 import { mitigateDamageByDefense } from './damage-mitigation'
 export { mitigateDamageByDefense } from './damage-mitigation'
-import type { DerivedStatSnapshot } from '../character/derived-stats'
+import { DERIVED_STAT_RULESET_V4, type DerivedStatSnapshot } from '../character/derived-stats'
 import { advanceBattleRng, spendAction, type BattleRngState } from './battle-state'
 import {
   applyCurrentBurnBacklash,
@@ -57,6 +58,7 @@ export interface StatDrivenCombatProfile extends StatDrivenCombatProfileV1 {
   mysticPower?: number
   level?: number
   criticalChance?: number
+  statusResistance?: number
 }
 
 export interface StatDrivenCombatProfileV2 extends StatDrivenCombatProfileV1 {
@@ -70,6 +72,7 @@ export interface StatDrivenCombatProfileV3 extends StatDrivenCombatProfileV2 {
 
 export interface StatDrivenCombatProfileV4 extends StatDrivenCombatProfileV3 {
   criticalChance: number
+  statusResistance?: number
 }
 
 /** Broad persisted boundary. Validation pairs schema/rules versions and row shape. */
@@ -185,6 +188,9 @@ export function createCharacterDerivedCombatProfile(
     physicalPower: snapshot.stats.physicalPower.value,
     mysticPower: snapshot.stats.mysticPower.value,
     criticalChance: snapshot.stats.criticalChance.value,
+    ...(snapshot.rulesVersion >= DERIVED_STAT_RULESET_V4.version
+      ? { statusResistance: snapshot.stats.statusResistance.value }
+      : {}),
   }
 }
 
@@ -248,6 +254,17 @@ export function createStatDrivenCombatEncounterState(
   }
   assertValidStatDrivenCombatEncounterState(state)
   return state
+}
+
+/** New encounters opt in explicitly; historical bridge4 snapshots retain their semantics. */
+export function createStatBalancedCombatEncounterState(
+  base: CombatEncounterState,
+  profiles: readonly StatDrivenCombatProfileV4[],
+): StatDrivenCombatEncounterStateV4 {
+  return createCurrentStatDrivenCombatEncounterState(
+    { ...base, statBalancePolicyVersion: 1 },
+    profiles.map((profile) => ({ ...profile, statusResistance: profile.statusResistance ?? 0 })),
+  )
 }
 
 export function createCurrentStatDrivenCombatEncounterState(
@@ -372,11 +389,31 @@ export function validateStatDrivenCombatEncounterState(
     if (profile.provenance.kind !== 'character-derived' && profile.provenance.kind !== 'scenario') {
       issues.push({ field: `${prefix}.provenance.kind`, message: 'Unknown stat provenance kind.' })
     }
-    collectBasisPointIssue(issues, profile.accuracy, `${prefix}.accuracy`)
+    collectBasisPointIssue(
+      issues,
+      profile.accuracy,
+      `${prefix}.accuracy`,
+      state.statBalancePolicyVersion === 1 ? 14_000 : COMBAT_BASIS_POINTS,
+    )
     collectBasisPointIssue(issues, profile.evasion, `${prefix}.evasion`)
     collectNonNegativeIntegerIssue(issues, profile.armor, `${prefix}.armor`)
     collectNonNegativeIntegerIssue(issues, profile.ward, `${prefix}.ward`)
     collectNonNegativeIntegerIssue(issues, profile.jump, `${prefix}.jump`)
+    if (state.statBalancePolicyVersion === 1) {
+      collectBasisPointIssue(
+        issues,
+        profile.statusResistance ?? -1,
+        `${prefix}.statusResistance`,
+        1_500,
+      )
+      if (profile.jump > 3)
+        issues.push({ field: `${prefix}.jump`, message: 'Jump must be from 0 to 3.' })
+      if (!isV4)
+        issues.push({
+          field: 'statBalancePolicyVersion',
+          message: 'Stat balance requires complete bridge4 profiles.',
+        })
+    }
     if (seen.has(profile.combatantId)) {
       issues.push({
         field: `${prefix}.combatantId`,
@@ -462,7 +499,11 @@ export function forecastStatDrivenAttack(
 
   const actor = getStatDrivenCombatProfile(state, baseline.actorId)
   const target = getStatDrivenCombatProfile(state, baseline.primaryCombatantId)
-  const defenseRating = target[defenseKind]
+  const defenseRating = terrainAdjustedDefense(
+    state,
+    baseline.primaryCombatantId,
+    target[defenseKind],
+  )
   const mitigatedAction = withMitigatedDamage(action, defenseRating)
   const evaluation = evaluateCombatAction(state, mitigatedAction, selection, content)
 
@@ -470,7 +511,10 @@ export function forecastStatDrivenAttack(
     evaluation,
     hitChanceBasisPoints: calculateHitChanceBasisPoints(
       actor,
-      target,
+      {
+        evasion:
+          target.evasion + terrainEvasionBonusBasisPoints(state, baseline.primaryCombatantId),
+      },
       combatAccuracyStatusModifier(state, baseline.actorId, baseline.primaryCombatantId, content),
     ),
     defenseKind,
@@ -700,9 +744,13 @@ function collectBasisPointIssue(
   issues: StatDrivenCombatIssue[],
   value: number,
   field: string,
+  maximum: number = COMBAT_BASIS_POINTS,
 ): void {
-  if (!Number.isSafeInteger(value) || value < 0 || value > COMBAT_BASIS_POINTS) {
-    issues.push({ field, message: 'Value must be a safe integer from 0 to 10000 basis points.' })
+  if (!Number.isSafeInteger(value) || value < 0 || value > maximum) {
+    issues.push({
+      field,
+      message: `Value must be a safe integer from 0 to ${maximum} basis points.`,
+    })
   }
 }
 

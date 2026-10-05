@@ -2,7 +2,7 @@ import type { CharacterAttributes } from './creation'
 import {
   calculateDerivedStats,
   DERIVED_STAT_IDS,
-  DERIVED_STAT_RULESET_V3,
+  DERIVED_STAT_RULESET_V4,
   type DerivedStatId,
   type DerivedStatRuleset,
   type DerivedStatSnapshot,
@@ -82,7 +82,7 @@ export function validatePrimaryDisciplineBaseProfile(
 
 export function calculateCharacterBuildDerivedStats(
   input: CharacterBuildDerivedStatInput,
-  ruleset: DerivedStatRuleset = DERIVED_STAT_RULESET_V3,
+  ruleset: DerivedStatRuleset = DERIVED_STAT_RULESET_V4,
 ): DerivedStatSnapshot {
   if (validateDisciplineDefinition(input.primaryDefinition).length > 0) {
     throw new TypeError('Primary Discipline definition is invalid.')
@@ -98,30 +98,35 @@ export function calculateCharacterBuildDerivedStats(
   }
 
   const base = calculateDerivedStats({ attributes: input.attributes, level: input.level }, ruleset)
-  const primaryModifiers: BuildDerivedStatModifier[] = DERIVED_STAT_IDS.flatMap((statId) => {
-    const amount = input.primaryProfile.statOffsets[statId]
-    return amount === undefined || amount === 0
+  // V4 consumes the effective Core attributes (including the Primary Core base). Its exact
+  // anchors retire the older Adventure-stat offsets/caps, while explicit equipment remains.
+  const primaryModifiers: BuildDerivedStatModifier[] =
+    ruleset.version === 4
       ? []
-      : [
-          {
-            sourceId: `discipline.primary.${input.primaryDefinition.id}.profile.${input.primaryProfile.profileVersion}`,
-            statId,
-            amount,
-          },
-        ]
-  })
+      : DERIVED_STAT_IDS.flatMap((statId) => {
+          const amount = input.primaryProfile.statOffsets[statId]
+          return amount === undefined || amount === 0
+            ? []
+            : [
+                {
+                  sourceId: `discipline.primary.${input.primaryDefinition.id}.profile.${input.primaryProfile.profileVersion}`,
+                  statId,
+                  amount,
+                },
+              ]
+        })
 
   return applyBuildDerivedStatModifiers(
     base,
     [...primaryModifiers, ...(input.modifiers ?? [])],
     ruleset,
-    input.primaryProfile.statCaps ?? {},
+    ruleset.version === 4 ? {} : (input.primaryProfile.statCaps ?? {}),
   )
 }
 
 export function buildPrimaryDisciplinePreview(
   input: CharacterBuildDerivedStatInput,
-  ruleset: DerivedStatRuleset = DERIVED_STAT_RULESET_V3,
+  ruleset: DerivedStatRuleset = DERIVED_STAT_RULESET_V4,
 ): PrimaryDisciplinePreview {
   return {
     definition: input.primaryDefinition,

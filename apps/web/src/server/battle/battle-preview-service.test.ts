@@ -340,7 +340,7 @@ describe('P2.5 authoritative battle preview service', () => {
       primaryCombatantId: 'recruit:p2-4-1',
       hitChanceBasisPoints: expect.any(Number),
       defenseKind: 'armor',
-      defenseRating: 20,
+      defenseRating: 50,
       mitigatedBaseDamage: expect.any(Number),
       issues: [],
     })
@@ -424,6 +424,29 @@ describe('P2.5 authoritative battle preview service', () => {
   })
 })
 
+it('projects only safe resistance probabilities without mutable ordinals or RNG fields', () => {
+  const evaluation = {
+    legal: true,
+    targetStatusResistances: [
+      {
+        targetCombatantId: 'target',
+        resistanceChanceBasisPoints: 1500,
+        eligibleEffectOrdinals: [1],
+        rollBasisPoints: 123,
+        resisted: true,
+      },
+    ],
+  } as unknown as Parameters<typeof previewServiceExports.projectBattleStatusResistanceForecast>[0]
+  const projected = previewServiceExports.projectBattleStatusResistanceForecast(evaluation)
+  expect(projected).toEqual([
+    { targetCombatantId: 'target', resistanceChanceBasisPoints: 1500, eligibleEffectOrdinals: [1] },
+  ])
+  expect(projected?.[0]?.eligibleEffectOrdinals).not.toBe(
+    evaluation.targetStatusResistances?.[0]?.eligibleEffectOrdinals,
+  )
+  expect(JSON.stringify(projected)).not.toMatch(/rollBasisPoints|resisted/)
+})
+
 it('transports scheduled Guard identity and lifetime without committing or changing stored mechanics', async () => {
   const { battles, service, snapshot } = await createFixture()
   const before = structuredClone(snapshot)
@@ -447,6 +470,7 @@ it('transports scheduled Guard identity and lifetime without committing or chang
     ]),
   })
   if (result.preview.kind !== 'action') throw new Error('Expected action preview')
+  expect(result.preview.targetStatusResistances).toEqual([])
   expect(result.preview.projectedEvents?.some((event) => event.event === 'status_applied')).toBe(
     false,
   )

@@ -8,7 +8,10 @@ import {
 } from '../../lib/battle/combat-interaction-presentation'
 import type { BattlePreviewView } from '@/server/battle/battle-preview-service'
 import type { BattleSkillForecastPresentation } from './battle-runtime'
-import { skillParameterRows } from '../character/skill-detail-presentation'
+import {
+  attackSkillTypeDescription,
+  skillParameterRows,
+} from '../character/skill-detail-presentation'
 import type { ImageAssetId } from '@/media/registry'
 import { battleTerrainName, BATTLE_TERRAIN_KEY_DETAILS } from './battle-terrain-key-presentation'
 type IntentPreview = BattlePreviewView['preview']
@@ -58,7 +61,9 @@ export function battleSkillParameterRows(
   // Legacy presentations may not retain an immutable definition. Never infer missing
   // mechanics from a current catalogue or silently describe unknown fields as inapplicable.
   return skillInformationRows({
-    'Skill Type': skill.tags.includes('attack') ? 'Attack' : 'Unavailable',
+    'Skill Type': skill.tags.includes('attack')
+      ? attackSkillTypeDescription(skill.tags)
+      : 'Unavailable',
     Cost: `${skill.apCost} AP${skill.mpCost > 0 ? ` / ${skill.mpCost} MP` : ''}`,
     Cooldown:
       skill.cooldownOwnerTurns === undefined
@@ -303,6 +308,17 @@ function actionPreviewChips(preview: ActionPreview): PreviewChip[] {
         : `Hit ${Math.round(preview.hitChanceBasisPoints / 100)}%`,
     tone: 'chance',
   })
+
+  for (const resistance of preview.targetStatusResistances ?? []) {
+    if (
+      resistance.resistanceChanceBasisPoints > 0 &&
+      resistance.eligibleEffectOrdinals.length > 0 &&
+      preview.affectedCombatantIds.includes(resistance.targetCombatantId)
+    ) {
+      const label = `Debuff resistance ${Math.round(resistance.resistanceChanceBasisPoints / 100)}% on hit`
+      if (!chips.some((chip) => chip.label === label)) chips.push({ label, tone: 'effect' })
+    }
+  }
 
   for (const effect of preview.projectedEffects) {
     const scheduled = scheduledEffectPreviewLabel(effect)

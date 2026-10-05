@@ -91,6 +91,9 @@ function InlineTargetForecast({
     ...previewChips({
       ...preview,
       projectedEffects: effects,
+      targetStatusResistances: preview.targetStatusResistances?.filter(
+        (row) => row.targetCombatantId === combatantId,
+      ),
       projectedStatuses: recipientStatuses,
       projectedEvents: recipientEvents,
       projectedTerrain: [],

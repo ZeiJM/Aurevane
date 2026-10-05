@@ -9,7 +9,11 @@ import {
   type CharacterAttributeId,
   type CharacterAttributes,
 } from '../character/creation'
-import { calculateDerivedStats, type DerivedStatSnapshot } from '../character/derived-stats'
+import {
+  calculateDerivedStats,
+  DERIVED_STAT_RULESET_V3,
+  type DerivedStatSnapshot,
+} from '../character/derived-stats'
 import { FOUNDATION_DISCIPLINES } from '../character/foundation-disciplines'
 import type { CombatEffectDefinition, CombatUseRequirement } from './actions'
 import { calculateScaledRawDamage, currentSkillDamageScaling } from './damage-scaling'
@@ -146,7 +150,8 @@ function buildScenario(
   allocation: Phase4BalanceAllocation,
 ): Phase4BalanceScenario {
   const attributes = representativeAttributes(policy, level, allocation, damageSource)
-  const stats = calculateDerivedStats({ attributes, level })
+  // Retain the Phase4 roster benchmark; policy1 economy has separate current fixtures.
+  const stats = calculateDerivedStats({ attributes, level }, DERIVED_STAT_RULESET_V3)
   return {
     level,
     allocation,
@@ -485,7 +490,10 @@ function buildEssenceReport(
       controlApSwing: 0,
     }
   }
-  const stats = calculateDerivedStats({ attributes: scenario.attributes, level: scenario.level })
+  const stats = calculateDerivedStats(
+    { attributes: scenario.attributes, level: scenario.level },
+    DERIVED_STAT_RULESET_V3,
+  )
   const metric = skillMetric(essence.skill, stats, 'pve')
   return {
     essenceId: essence.essenceId,

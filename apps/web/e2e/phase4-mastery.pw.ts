@@ -1,5 +1,11 @@
 import { execFileSync } from 'node:child_process'
 import { expect, test } from '@playwright/test'
+import { PV1F_BASIC_ATTACK_COST, PV1F_RECOVER_COST } from '@aurevane/game-core/combat/pv1f-skills'
+import {
+  PV1F_RECOVER_PERCENT,
+  PV1F_RECOVERY_COOLDOWN,
+} from '@aurevane/game-core/combat/pv1f-action-economy'
+import { readSkillCooldown } from '@aurevane/game-core/combat/skill-cooldowns'
 import type { BattleSessionView } from '../src/server/battle/battle-session-service'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
@@ -86,13 +92,21 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
   let battle: BattleSessionView = (await creation.json()).battle
   const root = page.locator("main[data-unified-battle='true'][data-battle-kind='pve']")
   await expect(root).toBeVisible()
+  const finish = root.getByRole('button', { name: /^End Turn,/ })
+  await expect(root).toHaveAttribute('data-local-turn', 'true')
+  await expect(finish).toBeEnabled({ timeout: 15000 })
+  // Initiative may give the Recruit the opening turn. Read the canonical state
+  // after that automatic handoff instead of reusing the creation snapshot.
+  const current = await page.request.get(`/api/battles/${battle.battleSessionId}`)
+  expect(current.status()).toBe(200)
+  battle = (await current.json()).battle
   const playerId = battle.snapshot.tactical.battle.combatants.find(
     (unit) => unit.teamId === 'players',
   )!.id
   const enemyId = battle.snapshot.tactical.battle.combatants.find(
     (unit) => unit.teamId === 'opponents',
   )!.id
-  const finish = root.getByRole('button', { name: /^End Turn,/ })
+  expect(battle.snapshot.tactical.battle.currentTurn!.combatantId).toBe(playerId)
   let skillCommands = 0
   let braced = false
   const commit = async (
@@ -105,6 +119,7 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
     const result = await response
     expect(result.status()).toBe(200)
     battle = (await result.json()).battle
+    return result.request().postDataJSON().intent
   }
   for (
     let command = 0;
@@ -121,24 +136,61 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
     })
     await expect(root).toHaveAttribute('data-local-turn', 'true')
     await expect(enemyTile).toBeVisible()
+    await expect(
+      root.getByRole('button', {
+        name: new RegExp(`^Tile ${player.x + 1}, ${player.y + 1};.*occupied by Earned ${suffix}`),
+      }),
+    ).toBeVisible()
     const distance = Math.abs(player.x - enemy.x) + Math.abs(player.y - enemy.y)
-    const ap = tactical.battle.combatants
-      .find((unit) => unit.id === playerId)!
-      .temporaryResources.find((resource) => resource.key === 'pv1f.action-economy')!.current
+    const actor = tactical.battle.combatants.find((unit) => unit.id === playerId)!
+    const ap = actor.temporaryResources.find(
+      (resource) => resource.key === 'pv1f.action-economy',
+    )!.current
     // A response can arrive before React renders its board/AP state. Follow the
     // committed budget and wait for its visible projection before the next input.
     await expect(
       root.getByRole('progressbar', { name: 'Action Economy remaining' }),
     ).toHaveAttribute('aria-valuenow', String(ap))
-    if (!braced && ap >= 35) {
+    if (!braced && distance === 1 && ap >= 35) {
       await root.getByRole('button', { name: 'Selected Brace, 35 AP', exact: true }).click()
       await commit()
       braced = true
       skillCommands++
       continue
     }
+    // Survive through normal inputs, observing the shared two-turn recovery cooldown.
+    // No HP, AP, placements or victory state is injected into the acquisition run.
+    if (
+      skillCommands >= 3 &&
+      actor.hp <= Math.floor((actor.maxHp * 2) / 3) &&
+      ap >= PV1F_RECOVER_COST &&
+      !readSkillCooldown(actor, PV1F_RECOVERY_COOLDOWN).active
+    ) {
+      await root.focus()
+      await page.keyboard.press('KeyR')
+      await expect(root).toHaveAttribute('data-battle-action-mode', 'recover')
+      expect(await commit()).toMatchObject({
+        kind: 'action',
+        actionId: 'basic.recover',
+        target: { kind: 'self' },
+      })
+      const healed = battle.snapshot.tactical.battle.combatants.find(
+        (unit) => unit.id === playerId,
+      )!
+      expect(healed.hp).toBe(
+        Math.min(actor.maxHp, actor.hp + Math.round((actor.maxHp * PV1F_RECOVER_PERCENT) / 100)),
+      )
+      expect(
+        healed.temporaryResources.find((resource) => resource.key === 'pv1f.action-economy')!
+          .current,
+      ).toBe(ap - PV1F_RECOVER_COST)
+      continue
+    }
     const nextPrimarySkillCost = 45
-    if (distance === 1 && ap >= (skillCommands < 3 ? nextPrimarySkillCost : 50)) {
+    if (
+      distance === 1 &&
+      ap >= (skillCommands < 3 ? nextPrimarySkillCost : PV1F_BASIC_ATTACK_COST)
+    ) {
       if (skillCommands === 1) {
         await root
           .getByRole('button', { name: 'Selected Forceful Strike, 45 AP', exact: true })
@@ -146,7 +198,25 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
       } else if (skillCommands === 2) {
         await root.getByRole('button', { name: 'Selected Shield Bash, 45 AP', exact: true }).click()
       } else {
-        await root.locator('[data-battle-command="attack"]').click()
+        // Reuse ready equipped attacks, including Shield Bash's protection, instead
+        // of abandoning the build after its three required demonstrations.
+        const readyAttack = ['Shield Bash', 'Forceful Strike'].find(
+          (name) =>
+            ap >= nextPrimarySkillCost &&
+            !actor.temporaryResources.some(
+              (resource) =>
+                resource.key ===
+                  `p3.skill-cooldown.vanguard.${name === 'Shield Bash' ? 'shield-bash' : 'forceful-strike'}` &&
+                resource.current > 0,
+            ),
+        )
+        if (readyAttack) {
+          await root
+            .getByRole('button', { name: `Selected ${readyAttack}, 45 AP`, exact: true })
+            .click()
+        } else {
+          await root.locator('[data-battle-command="attack"]').click()
+        }
       }
       await expect(enemyTile).toHaveAttribute('data-target', 'enemy')
       await commit(enemyTile)
@@ -192,6 +262,16 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
     expect(turn.status()).toBe(200)
     battle = (await turn.json()).battle
   }
+  console.log(
+    'mastery-trial-result',
+    JSON.stringify({
+      version: battle.battleVersion,
+      lifecycle: battle.snapshot.tactical.battle.lifecycle,
+      round: battle.snapshot.tactical.battle.round,
+      skillCommands,
+      combatants: battle.snapshot.tactical.battle.combatants,
+    }),
+  )
   expect(skillCommands).toBeGreaterThanOrEqual(3)
   const result = page.getByTestId('battle-result-overlay')
   await expect(result.getByRole('heading', { name: 'Victory', exact: true })).toBeVisible()

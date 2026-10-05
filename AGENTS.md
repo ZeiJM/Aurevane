@@ -242,6 +242,8 @@ Do not restore the earlier four-attribute model.
 
 ## 7. Current combat authority
 
+Owner-approved 2026-10-05: current derived ruleset4 uses exact Core40/60 endpoints and current Physical Defense/Mystic Defense labels while retaining internal armor/ward keys. Preserve Primary effective Core bases and focus60/non-focus40 caps; omit retired Primary Adventure offsets/caps underV4. New encounters explicitly pin statBalancePolicyVersion1 independently of bridge4; no policy means historical movement/damage/hit/RNG. Accuracy can reach140% before Evasion subtraction; final chance clamps0–100%. Movement base2/cap4 and Jump base0/cap3. New raised entry requires Jump>=absoluteheight (descent permitted). Height1/2/3 grants15/20/25pp Evasion and −20% both Defense; sufficient authored Target Elevation bypasses only terrain Evasion. Derive viewer-safe rail icons without persistence/Copy/Cleanse. Ordinary hostile debuffs may resist once per successful cast/recipient before pending scheduling, retaining damage/costs; per-effect Essence/Resonance/Ascension/Severance always bypass. Never reroll activation. Canonical Skill Type family colors and bare Resonance headings share the existing Discipline palette. Complete victory/loss logs fit the viewport with inner readers and unchanged art; suppress unrelated map focus rectangles across modes. Exact formulas/catalog caveats: docs/superpowers/plans/2026-10-05-stat-balance-spec.md. Track factual checks/release inTASKS; standing combined release authorization is recorded in this conversation.
+
 `docs/COMBAT.md` is definitive.
 
 Owner-approved 2026-10-04 additional review: new PvE/PvP encounters pin `effectStackingPolicyVersion: 1` for unlimited applications across ordinary modifiers, independent DoTs, Barrier, reactive rates, recovery, Copy and initiative. Preserve each application’s magnitude/source and independent periodic counters/lineage, real resource maxima, authoring constraints and technical arithmetic/reaction safeguards. Historical encounters without the policy keep their recorded resolution. Only `hp === 0` frees a tile; corpses have no facing and living co-occupants own the visible token. Match desktop footer thickness, intensify sideways VS flames without resizing art, remove Terrain’s trailing chevron, temporarily inspect allies without changing command authority, and automatically show complete legal in-range forecasts with portraits spanning both lines. Keep selected area recipients and complete alternative readers. Condense summon/Resonance/pending/DoT/Lowered Guard Chronicle text while preserving actual outcomes and viewer privacy. See current `docs/COMBAT.md` and the active ledger.
@@ -268,7 +270,7 @@ Recover                        50 AP
 Final Facing                    0 AP and ends turn
 ```
 
-Multiple legal commands may occur while AP remains. Movement also obeys the committed character Movement allowance (baseline 2, maximum 5); spare AP cannot bypass it. Jump starts at 0 and caps at 3.
+Multiple legal commands may occur while AP remains. Movement also obeys the committed character Movement allowance (baseline 2, maximum 4 for new-policy encounters; historical maximum 5); spare AP cannot bypass it. Jump starts at 0 and caps at 3.
 
 Never restore the retired Movement Budget + one Action model from historical Phase-2 tickets.
 

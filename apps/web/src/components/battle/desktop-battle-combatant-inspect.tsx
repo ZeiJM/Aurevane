@@ -14,12 +14,14 @@ import {
   formatStatusStackCount,
   statusIsBeneficial,
   statusLabel,
+  statusDurationLabel,
   summarizeBattleEffects,
 } from './battle-effect-summary'
 import {
   readSummonInspectMetadata,
   type BattleSummonInspectMetadata,
 } from './battle-summon-inspect'
+import { terrainAdjustedBattleProfile } from '../../lib/battle/battle-elevation-stats'
 import styles from './desktop-battle-combatant-inspect.module.css'
 import { useBattleInteractionLifecycle } from './battle-interaction-lifecycle'
 import { buildBattleViewModel } from './battle-runtime'
@@ -193,7 +195,7 @@ function readSelectedCombatant(
   return {
     combatant,
     placement,
-    profile,
+    profile: terrainAdjustedBattleProfile(battle.snapshot, combatantId, profile, statuses),
     statuses,
     name:
       summonWithOwner?.name ??
@@ -478,11 +480,11 @@ export function DesktopBattleCombatantInspect({
                 <dd>{percentFromBasisPoints(selected.profile?.evasion)}</dd>
               </div>
               <div>
-                <dt>Armor</dt>
+                <dt>Physical Defense</dt>
                 <dd>{selected.profile?.armor ?? '—'}</dd>
               </div>
               <div>
-                <dt>Ward</dt>
+                <dt>Mystic Defense</dt>
                 <dd>{selected.profile?.ward ?? '—'}</dd>
               </div>
               <div>
@@ -550,16 +552,16 @@ export function DesktopBattleCombatantInspect({
               ) : (
                 <div className={styles.effectIcons}>
                   {effectStatuses.map((status) => {
-                    const label = statusLabel(status.statusId)
-                    const beneficial = statusIsBeneficial(status.statusId)
+                    const label = statusLabel(status.statusId, status)
+                    const beneficial = statusIsBeneficial(status.statusId, status)
                     const stackCount = formatStatusStackCount(status.statusId, status.stacks)
                     return (
                       <button
                         type="button"
                         key={`${status.statusId}:${status.statusVersion}`}
                         className={beneficial ? styles.buff : styles.debuff}
-                        title={`${label} ${stackCount} · ${status.remainingOwnerTurnStarts} turn${status.remainingOwnerTurnStarts === 1 ? '' : 's'} remaining`}
-                        aria-label={`${beneficial ? 'Buff' : 'Debuff'}: ${label}, ${stackCount}, ${status.remainingOwnerTurnStarts} turn${status.remainingOwnerTurnStarts === 1 ? '' : 's'} remaining`}
+                        title={`${label} ${stackCount} · ${statusDurationLabel(status)}`}
+                        aria-label={`${beneficial ? 'Buff' : 'Debuff'}: ${label}, ${stackCount}, ${statusDurationLabel(status)}`}
                       >
                         <span>{label}</span>
                         <strong>{stackCount}</strong>

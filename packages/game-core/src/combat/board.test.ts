@@ -523,3 +523,63 @@ describe('P2.2 tactical board legality', () => {
     )
   })
 })
+
+describe('pinned absolute-height Jump access', () => {
+  it('rejects climbing a height-two stair with Jump one while historical delta access remains', () => {
+    const state = activeTacticalBattle({
+      wayfarerPosition: { x: 0, y: 1 },
+      tiles: rectangularTiles().map((entry) =>
+        entry.position.y === 1 && entry.position.x < 3
+          ? { ...entry, elevation: entry.position.x + 1 }
+          : entry,
+      ),
+    })
+    const path = [
+      { x: 0, y: 1 },
+      { x: 1, y: 1 },
+    ]
+    expect(evaluateCurrentMovementPath(state, path).legal).toBe(true)
+    expect(evaluateCurrentMovementPath(state, path, 'entered-tiles', 1).legal).toBe(false)
+    expect(() => moveCurrentCombatant(state, path, 'entered-tiles', 1)).toThrow()
+  })
+  it('requires absolute Jump for sideways raised entry', () => {
+    const state = activeTacticalBattle({
+      tiles: rectangularTiles().map((entry) =>
+        entry.position.y === 1 && entry.position.x < 2 ? { ...entry, elevation: 2 } : entry,
+      ),
+    })
+    expect(
+      evaluateCurrentMovementPath(
+        state,
+        [
+          { x: 0, y: 1 },
+          { x: 1, y: 1 },
+        ],
+        'entered-tiles',
+        1,
+      ).legal,
+    ).toBe(false)
+  })
+  it('allows Jump zero to descend from height three and enter flat tiles', () => {
+    const state = {
+      ...activeTacticalBattle({
+        tiles: rectangularTiles().map((entry) =>
+          entry.position.x === 0 && entry.position.y === 1 ? { ...entry, elevation: 3 } : entry,
+        ),
+      }),
+      movementProfiles: [{ ...P2_2_ORDINARY_GROUND_PROFILE, maxElevationStep: 0 }],
+    }
+    const path = [
+      { x: 0, y: 1 },
+      { x: 1, y: 1 },
+      { x: 2, y: 1 },
+    ]
+    expect(evaluateCurrentMovementPath(state, path).legal).toBe(false)
+    expect(evaluateCurrentMovementPath(state, path, 'entered-tiles', 1).legal).toBe(true)
+    expect(
+      moveCurrentCombatant(state, path, 'entered-tiles', 1).state.placements.find(
+        (entry) => entry.combatantId === 'wayfarer',
+      )?.position,
+    ).toEqual({ x: 2, y: 1 })
+  })
+})

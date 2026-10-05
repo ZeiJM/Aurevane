@@ -204,73 +204,81 @@ export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
         className={styles.panel}
         aria-labelledby="battle-hall-result-title"
         data-testid="tactical-hall-result"
+        data-log-open={logOpen || undefined}
         data-result={guidedTrainingSucceeded ? 'complete' : result.toLowerCase()}
       >
-        <div className={styles.resultHero}>
-          <span className={styles.resultSeal} aria-hidden="true">
-            <svg viewBox="0 0 40 40" fill="none">
-              <path d="M20 4 24 16 36 20 24 24 20 36 16 24 4 20 16 16Z" />
-              <circle cx="20" cy="20" r="4" />
-            </svg>
-          </span>
-          <p className={styles.eyebrow}>
-            Battle Hall ·{' '}
-            {guidedTraining
-              ? guidedTrainingSucceeded
-                ? 'Guided Exercise Complete'
-                : 'Guided Exercise Result'
-              : 'Practice Result'}
-          </p>
-          <h2 id="battle-hall-result-title">{headline}</h2>
-          <p>
-            {guidedTrainingSucceeded
-              ? `All Guided Fundamentals criteria were verified from the committed battle record in Round ${battleState.round}.`
-              : guidedTraining
-                ? `The Wayfarer was defeated in Round ${battleState.round}, so the Guided Fundamentals exercise ended in defeat.`
-                : `The exercise concluded in Round ${battleState.round}. The committed battle history remains available for review.`}
-          </p>
-        </div>
-
-        <dl className={styles.record} aria-label="Battle Hall practice result">
-          <div>
-            <dt>Exercise</dt>
-            <dd>
+        <div
+          className={styles.resultSummary}
+          role="region"
+          aria-label="Battle result summary"
+          tabIndex={logOpen ? 0 : undefined}
+        >
+          <div className={styles.resultHero}>
+            <span className={styles.resultSeal} aria-hidden="true">
+              <svg viewBox="0 0 40 40" fill="none">
+                <path d="M20 4 24 16 36 20 24 24 20 36 16 24 4 20 16 16Z" />
+                <circle cx="20" cy="20" r="4" />
+              </svg>
+            </span>
+            <p className={styles.eyebrow}>
+              Battle Hall ·{' '}
               {guidedTraining
-                ? 'Guided Fundamentals'
-                : recordId === 'mastery-trial'
-                  ? 'Discipline Mastery Trial'
-                  : 'AI Sparring'}
-            </dd>
+                ? guidedTrainingSucceeded
+                  ? 'Guided Exercise Complete'
+                  : 'Guided Exercise Result'
+                : 'Practice Result'}
+            </p>
+            <h2 id="battle-hall-result-title">{headline}</h2>
+            <p>
+              {guidedTrainingSucceeded
+                ? `All Guided Fundamentals criteria were verified from the committed battle record in Round ${battleState.round}.`
+                : guidedTraining
+                  ? `The Wayfarer was defeated in Round ${battleState.round}, so the Guided Fundamentals exercise ended in defeat.`
+                  : `The exercise concluded in Round ${battleState.round}. The committed battle history remains available for review.`}
+            </p>
           </div>
-          <div>
-            <dt>Arena</dt>
-            <dd>
-              {arena.name} · {arena.width}×{arena.height}
-            </dd>
-          </div>
-          <div>
-            <dt>Wayfarer HP</dt>
-            <dd>{player ? `${player.hp}/${player.maxHp}` : '—'}</dd>
-          </div>
-          <div>
-            <dt>Recruit HP</dt>
-            <dd>{recruit ? `${recruit.hp}/${recruit.maxHp}` : '—'}</dd>
-          </div>
-        </dl>
 
-        <div className={styles.outcomeNote}>
-          <strong>
-            {guidedTraining
-              ? guidedTrainingSucceeded
-                ? 'Lesson objective achieved'
-                : 'Lesson failed'
-              : 'Practice battle concluded'}
-          </strong>
-          <p>
-            {recordId === 'mastery-trial'
-              ? 'A qualifying victory awards up to 50 Primary Discipline Mastery XP. Use two different Primary Skills across three Skill commands, win without a player timeout, then claim your result.'
-              : 'Practice grants no Character XP, Mastery, loot, Crowns, PvP rating, or normal progression reward. Your committed battle history remains available for review.'}
-          </p>
+          <dl className={styles.record} aria-label="Battle Hall practice result">
+            <div>
+              <dt>Exercise</dt>
+              <dd>
+                {guidedTraining
+                  ? 'Guided Fundamentals'
+                  : recordId === 'mastery-trial'
+                    ? 'Discipline Mastery Trial'
+                    : 'AI Sparring'}
+              </dd>
+            </div>
+            <div>
+              <dt>Arena</dt>
+              <dd>
+                {arena.name} · {arena.width}×{arena.height}
+              </dd>
+            </div>
+            <div>
+              <dt>Wayfarer HP</dt>
+              <dd>{player ? `${player.hp}/${player.maxHp}` : '—'}</dd>
+            </div>
+            <div>
+              <dt>Recruit HP</dt>
+              <dd>{recruit ? `${recruit.hp}/${recruit.maxHp}` : '—'}</dd>
+            </div>
+          </dl>
+
+          <div className={styles.outcomeNote}>
+            <strong>
+              {guidedTraining
+                ? guidedTrainingSucceeded
+                  ? 'Lesson objective achieved'
+                  : 'Lesson failed'
+                : 'Practice battle concluded'}
+            </strong>
+            <p>
+              {recordId === 'mastery-trial'
+                ? 'A qualifying victory awards up to 50 Primary Discipline Mastery XP. Use two different Primary Skills across three Skill commands, win without a player timeout, then claim your result.'
+                : 'Practice grants no Character XP, Mastery, loot, Crowns, PvP rating, or normal progression reward. Your committed battle history remains available for review.'}
+            </p>
+          </div>
         </div>
 
         {recordId === 'mastery-trial' && result === 'Victory' ? (
