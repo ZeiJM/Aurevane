@@ -7,9 +7,5 @@ import { useSkillEffectTimingPolicy } from './skill-effect-timing-context'
 
 export function SkillParameters({ skill }: { skill: MatureSkillDefinition }) {
   const timingPolicy = useSkillEffectTimingPolicy()
-  return (
-    <SkillCharacteristicRows
-      rows={skillParameterRows(skill, skill, timingPolicy)}
-    />
-  )
+  return <SkillCharacteristicRows rows={skillParameterRows(skill, skill, timingPolicy)} />
 }
