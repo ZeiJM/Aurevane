@@ -30,7 +30,7 @@ function EssenceHoverPreview({ essence }: { essence: EssenceDefinition }) {
   return (
     <BattleInfoPopover
       label={`Preview Essence: ${essence.name}`}
-      title={`Essence: ${essence.name}`}
+      title={essence.name}
       className={styles.attunementPreviewAnchor}
       hover
       trigger={
@@ -52,7 +52,7 @@ function ResonanceHoverPreview({ resonance }: { resonance: AnyResonanceDefinitio
   return (
     <BattleInfoPopover
       label={`Preview Resonance: ${resonance.name}`}
-      title={`Resonance: ${resonance.name}`}
+      title={resonance.name}
       className={styles.attunementPreviewAnchor}
       hover
       trigger={

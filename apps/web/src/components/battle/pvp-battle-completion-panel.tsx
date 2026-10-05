@@ -121,36 +121,44 @@ export function PvpBattleCompletionPanel({
       <section
         className={styles.panel}
         aria-labelledby="pvp-battle-result-title"
+        data-log-open={logOpen || undefined}
         data-result={result.toLowerCase()}
       >
-        <div className={styles.resultHero}>
-          <span className={styles.resultSeal} aria-hidden="true">
-            <svg viewBox="0 0 40 40" fill="none">
-              <path d="M20 4 24 16 36 20 24 24 20 36 16 24 4 20 16 16Z" />
-              <circle cx="20" cy="20" r="4" />
-            </svg>
-          </span>
-          <p className={styles.eyebrow}>Battle Hall · PvP Result</p>
-          <h2 id="pvp-battle-result-title">{result}</h2>
-          <p>
-            The match concluded in Round {round}. Review the battle history or return to the hall.
-          </p>
-        </div>
+        <div
+          className={styles.resultSummary}
+          role="region"
+          aria-label="Battle result summary"
+          tabIndex={logOpen ? 0 : undefined}
+        >
+          <div className={styles.resultHero}>
+            <span className={styles.resultSeal} aria-hidden="true">
+              <svg viewBox="0 0 40 40" fill="none">
+                <path d="M20 4 24 16 36 20 24 24 20 36 16 24 4 20 16 16Z" />
+                <circle cx="20" cy="20" r="4" />
+              </svg>
+            </span>
+            <p className={styles.eyebrow}>Battle Hall · PvP Result</p>
+            <h2 id="pvp-battle-result-title">{result}</h2>
+            <p>
+              The match concluded in Round {round}. Review the battle history or return to the hall.
+            </p>
+          </div>
 
-        <dl className={`${styles.record} ${styles.pvpRecord}`} aria-label="PvP battle result">
-          <div>
-            <dt>Format</dt>
-            <dd>{metadata.mode.toUpperCase()}</dd>
-          </div>
-          <div>
-            <dt>Round</dt>
-            <dd>{round}</dd>
-          </div>
-          <div>
-            <dt>Combatants</dt>
-            <dd>{metadata.participants.length}</dd>
-          </div>
-        </dl>
+          <dl className={`${styles.record} ${styles.pvpRecord}`} aria-label="PvP battle result">
+            <div>
+              <dt>Format</dt>
+              <dd>{metadata.mode.toUpperCase()}</dd>
+            </div>
+            <div>
+              <dt>Round</dt>
+              <dd>{round}</dd>
+            </div>
+            <div>
+              <dt>Combatants</dt>
+              <dd>{metadata.participants.length}</dd>
+            </div>
+          </dl>
+        </div>
 
         <div className={styles.logActions}>
           <button type="button" className={styles.secondary} onClick={() => void toggleBattleLog()}>

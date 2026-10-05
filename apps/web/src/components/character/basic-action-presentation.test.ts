@@ -38,7 +38,7 @@ describe('authoritative inherent action descriptors', () => {
 
   it('uses the Basic Attack targeting contract and current physical power coefficient', () => {
     const attack = values('basic.attack.unarmed.basic')
-    expect(attack['Skill Type']).toBe('Attack')
+    expect(attack['Skill Type']).toBe('Attack [Physical]')
     expect(attack.Effects).toContain('6 + floor(15% Physical Power)')
     expect(attack.Effects).not.toMatch(/Instant|Immediate/)
     expect(attack.Range).toBe('1')

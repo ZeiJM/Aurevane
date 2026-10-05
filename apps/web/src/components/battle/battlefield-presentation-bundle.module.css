@@ -2,6 +2,17 @@
   display: none;
 }
 
+/* Keyboard shortcuts can make a previously clicked tile match :focus-visible.
+   Unselected tiles must not acquire a second, unrelated selection rectangle.
+   Keep deliberate inspection selections and every action/terrain cue intact. */
+:global(
+  main[data-battle-concept='true']
+    section#battlefield
+    button[aria-label^='Tile ']:focus-visible:not([data-selected])
+) {
+  outline: none !important;
+}
+
 /* The current round belongs to the Chronicle header. Preview keeps its original two lanes. */
 :global([data-battle-spectator-preview-content='true']) {
   display: flex;

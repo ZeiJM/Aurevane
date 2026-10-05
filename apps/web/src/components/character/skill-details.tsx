@@ -13,6 +13,7 @@ import {
   skillTargetTags,
 } from './skill-detail-presentation'
 import styles from './skill-details.module.css'
+import { SkillCharacteristicRows } from './skill-characteristic-rows'
 
 function SkillDetailBody({ skill }: { skill: MatureSkillDefinition }) {
   const timingPolicy = useSkillEffectTimingPolicy()
@@ -20,12 +21,9 @@ function SkillDetailBody({ skill }: { skill: MatureSkillDefinition }) {
   return (
     <>
       <dl>
-        {skillParameterRows(skill, skill, timingPolicy, copyPolicyVersion).map(([label, value]) => (
-          <div key={label}>
-            <dt>{label}</dt>
-            <dd>{value}</dd>
-          </div>
-        ))}
+        <SkillCharacteristicRows
+          rows={skillParameterRows(skill, skill, timingPolicy, copyPolicyVersion)}
+        />
         {skill.overrides.pvp?.apCost !== undefined &&
         skill.overrides.pvp.apCost !== skill.apCost ? (
           <div>

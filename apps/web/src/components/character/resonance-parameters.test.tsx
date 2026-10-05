@@ -25,7 +25,7 @@ describe('shared Resonance parameter report', () => {
     expect([...markup.matchAll(/<dt>(.*?)<\/dt>/g)].slice(0, 10).map((match) => match[1])).toEqual(
       fields,
     )
-    expect(markup).toContain('<dt>Skill Type</dt><dd>Passive · Resonance</dd>')
+    expect(markup).toContain('<dt>Skill Type</dt><dd>Resonance</dd>')
     for (const label of [
       'Cost',
       'Cooldown',

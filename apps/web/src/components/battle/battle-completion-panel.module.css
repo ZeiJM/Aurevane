@@ -52,6 +52,53 @@
     0 1.5rem 4rem #061a1c70;
 }
 
+.resultSummary {
+  display: contents;
+}
+
+/* Opening history reserves visible space for its own reader and the result controls.
+   Short viewports can scroll the complete summary without moving the result window. */
+.overlay:has(.panel[data-log-open='true']) {
+  overflow: hidden;
+}
+
+.panel[data-log-open='true'] {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  max-height: 100%;
+  gap: 0.5rem;
+  overflow: hidden;
+  scrollbar-gutter: auto;
+}
+
+.panel[data-log-open='true'] .resultSummary {
+  display: grid;
+  flex: 0 1 auto;
+  min-height: 4rem;
+  gap: clamp(0.8rem, 1.5vw, 1rem);
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.panel[data-log-open='true'] .logReview {
+  flex: 1 0 6rem;
+  min-height: 6rem;
+  max-height: none;
+}
+
+.panel[data-log-open='true'] .logActions,
+.panel[data-log-open='true'] .actions,
+.panel[data-log-open='true'] .error {
+  flex: 0 0 auto;
+}
+
+.resultSummary:focus-visible {
+  outline: 2px solid #436f69;
+  outline-offset: -2px;
+}
+
 .panel[data-result='victory'],
 .panel[data-result='complete'] {
   --result-accent: #47613c;

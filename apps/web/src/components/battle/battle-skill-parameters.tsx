@@ -8,6 +8,7 @@ import { CompactSkillEffectSummary } from '../character/compact-skill-effect-sum
 import { battleSkillParameterRows } from './battle-preview-content'
 import { skillPreviewEffects } from '../character/skill-effect-preview'
 import type { BattleSkillForecastPresentation } from './battle-runtime'
+import { SkillCharacteristicRows } from '../character/skill-characteristic-rows'
 
 /** Uses the same pinned definitions and parameter/effect renderers as Skill Management. */
 export function BattleSkillParameters({ skill }: { skill: BattleSkillForecastPresentation }) {
@@ -19,22 +20,20 @@ export function BattleSkillParameters({ skill }: { skill: BattleSkillForecastPre
     <div data-battle-skill-parameters="true">
       <strong>Parameters</strong>
       <dl>
-        {rows.map(([label, value]) => (
-          <div key={label}>
-            <dt>{label}</dt>
-            <dd>
-              {label === 'Effects' && definition
-                ? definition.effects.length > 0
-                  ? definition.effects.map((effect, index) => (
-                      <div key={index}>
-                        <CompactSkillEffectSummary effect={effect} />
-                      </div>
-                    ))
-                  : 'N/A'
-                : value}
-            </dd>
-          </div>
-        ))}
+        <SkillCharacteristicRows
+          rows={rows}
+          effectSummary={
+            definition
+              ? definition.effects.length > 0
+                ? definition.effects.map((effect, index) => (
+                    <div key={index}>
+                      <CompactSkillEffectSummary effect={effect} />
+                    </div>
+                  ))
+                : 'N/A'
+              : undefined
+          }
+        />
       </dl>
       {definition ? (
         <ul aria-label="Effect explanations">

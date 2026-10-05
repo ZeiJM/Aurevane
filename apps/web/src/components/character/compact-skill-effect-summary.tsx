@@ -10,6 +10,7 @@ import {
   compactSkillEffectSummaryParts,
   type CompactSkillEffectSummaryParts,
 } from './skill-detail-presentation'
+import styles from './compact-skill-effect-summary.module.css'
 
 export function CompactSkillEffectSummary({ effect }: { effect: MatureSkillEffectDefinition }) {
   const timingPolicy = useSkillEffectTimingPolicy()
@@ -22,23 +23,31 @@ export function CompactSkillEffectSummary({ effect }: { effect: MatureSkillEffec
 export function CompactEffectSummary({ parts }: { parts: CompactSkillEffectSummaryParts }) {
   return (
     <span data-compact-skill-effect="true">
-      <span data-compact-effect-label="true">{parts.label}</span>
+      <span className={styles.label} data-compact-effect-label="true">
+        {parts.label}
+      </span>
       {parts.magnitude ? (
         <>
           {' '}
-          <span data-compact-effect-magnitude="true">[{parts.magnitude}]</span>
+          <span className={styles.magnitude} data-compact-effect-magnitude="true">
+            [{parts.magnitude}]
+          </span>
         </>
       ) : null}
       {parts.duration ? (
         <>
           {' '}
-          <span data-compact-effect-duration="true">[{parts.duration}]</span>
+          <span className={styles.timing} data-compact-effect-duration="true">
+            [{parts.duration}]
+          </span>
         </>
       ) : null}
       {parts.timing ? (
         <>
           {' '}
-          <span data-compact-effect-timing="true">[{parts.timing}]</span>
+          <span className={styles.timing} data-compact-effect-timing="true">
+            [{parts.timing}]
+          </span>
         </>
       ) : null}
     </span>

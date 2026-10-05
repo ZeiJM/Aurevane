@@ -15,7 +15,7 @@ describe('Combat v5 Nexus and Technique presentation contracts', () => {
       'skillParameterRows( focusedSkill.definition, focusedSkill.definition, timingPolicy, copyPolicyVersion,',
     )
     const parameters = readFileSync(join(here, 'skill-detail-presentation.ts'), 'utf8')
-    expect(parameters).toContain("'Skill Type': skillTypeDescription(skill)")
+    expect(parameters).toContain("'Skill Type': skillParameterTypeDescription(skill)")
     expect(parameters).toContain(
       'Cooldown: skillCooldownDescription(skill, costs.cooldownOwnerTurns)',
     )

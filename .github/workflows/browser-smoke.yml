@@ -67,6 +67,11 @@ jobs:
           AV_ALLY_INSPECTION_EVIDENCE_DIR: /tmp/battle-ally-inspection-review
         run: pnpm --filter @aurevane/web exec node scripts/battle-ally-inspection-browser-regression.mjs
 
+      - name: Verify standardized skill parameter colors and readers
+        env:
+          AV_SKILL_PARAMETER_PALETTE_EVIDENCE_DIR: /tmp/skill-parameter-palette-review
+        run: pnpm --filter @aurevane/web exec node scripts/skill-parameter-palette-browser-regression.mjs
+
       - name: Verify completion windows fit the viewport
         env:
           AV_COMPLETION_FIT_EVIDENCE_DIR: /tmp/battle-completion-fit-review
@@ -184,6 +189,14 @@ jobs:
         with:
           name: battle-ally-inspection-review
           path: /tmp/battle-ally-inspection-review
+          retention-days: 7
+
+      - name: Save skill parameter palette evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: skill-parameter-palette-review
+          path: /tmp/skill-parameter-palette-review
           retention-days: 7
 
       - name: Save completion window fit evidence

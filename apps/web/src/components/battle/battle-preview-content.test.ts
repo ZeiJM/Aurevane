@@ -54,7 +54,7 @@ describe('copy-statuses player forecast presentation', () => {
       requirementDescriptions: [],
     }).map((chip) => chip.label)
     expect(result).toEqual([
-      'Skill Type: Attack',
+      'Skill Type: Attack [Physical]',
       'Cost: 31 AP / 6 MP',
       'Cooldown: 2 turns',
       'Requirements: None',
