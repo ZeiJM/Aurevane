@@ -1,5 +1,4 @@
 import { combatInteractionDescription } from '../../lib/battle/combat-interaction-presentation'
-import { parseCopiedSkillCommandId } from '@aurevane/game-core/combat/combat-skill-copy'
 import { combatStatusDetails, PHASE4_STATUSES } from '@aurevane/game-core/combat/status-content'
 import type { CombatEffectOrigin } from '@aurevane/game-core/combat/actions'
 import 'server-only'
@@ -96,9 +95,7 @@ function combatantLabel(value: unknown): string {
 }
 
 function presentationActionId(value: unknown): string | null {
-  const actionId = stringValue(value)
-  if (!actionId) return null
-  return parseCopiedSkillCommandId(actionId)?.skillId ?? actionId
+  return stringValue(value)
 }
 
 function actionLabel(value: unknown): string {
@@ -123,9 +120,8 @@ function actionKind(value: unknown): BattleLogKind {
 }
 
 function statusLabel(value: unknown): string {
-  if (value === 'beneficial-copy') return combatStatusDetails(value).name
-  if (value === 'guarded') return 'Guarded'
-  if (value === 'lowered-guard') return 'Lowered Guard'
+  if (value === 'guarded') return 'Guard'
+  if (value === 'lowered-guard') return 'Defenseless'
   if (typeof value !== 'string' || value.length === 0) return 'Status'
   return value
     .split(/[._-]+/u)
@@ -488,31 +484,6 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
     }
     case 'action_spent':
       return null
-    case 'temporary_skill_copied': {
-      const actorCombatantId = stringValue(event.combatantId)
-      const sourceCombatantId = stringValue(event.sourceCombatantId)
-      const skillId = stringValue(event.skillId)
-      const contentVersion = numberValue(event.contentVersion)
-      if (!skillId || contentVersion === null) return null
-      const label = actionLabel(skillId)
-      const version = `v${contentVersion}`
-      return createEntry(record, eventType, {
-        message: `${combatantLabel(actorCombatantId)} copied ${label} (${version}) for this battle.`,
-        messageTemplate: '{actor} copied {action} ({version}) for this battle.',
-        templateValues: { action: label, version },
-        actorCombatantId,
-        targetCombatantId: sourceCombatantId,
-        actionId: skillId,
-        actionLabel: label,
-        kind: 'system',
-        headline: 'Copied Skill',
-        tone: 'benefit',
-        facts: [
-          { label, tone: 'benefit' },
-          { label: version, tone: 'neutral' },
-        ],
-      })
-    }
     case 'combat_action_used': {
       const actorCombatantId = stringValue(event.actorId)
       const actionId = presentationActionId(event.actionId)
@@ -1090,7 +1061,6 @@ export function createViewerSafeBattleLogService(
         projected,
         authority.buildAuthority,
         resolver,
-        authority.copyPolicyVersion ?? null,
       )
     },
   }
