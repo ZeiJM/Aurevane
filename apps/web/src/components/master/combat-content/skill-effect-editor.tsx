@@ -759,28 +759,7 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
             <span>Allow empty status copy on composed command</span>
           </label>
           <p className={styles.effectNote}>
-            Amplify/Curse clone their eligible active statuses. Copy transfers beneficial effect
-            tags from the target to the user.
-          </p>
-        </div>
-      )
-      break
-
-    case 'copy':
-      controls = (
-        <div className={styles.effectStaticGrid}>
-          <div className={styles.effectStatic}>
-            <span>Effect</span>
-            <strong>Copy beneficial effect tags</strong>
-          </div>
-          <div className={styles.effectStatic}>
-            <span>Source</span>
-            <strong>Selected primary unit</strong>
-          </div>
-          <p className={styles.effectNote}>
-            On a successful resolution, copies active beneficial effect tags from the selected unit
-            onto the user. The target keeps its effects; remaining durations are preserved.
-            Historical battles retain their recorded Copy behavior.
+            Copy Buffs/Copy Debuffs clone their eligible active statuses.
           </p>
         </div>
       )
@@ -828,7 +807,6 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
     'displace',
     'barrier-change',
     'copy-statuses',
-    'copy',
     'sensory',
   ].includes(value.type)
   const fixedTerrain = value.type === 'create-terrain'
