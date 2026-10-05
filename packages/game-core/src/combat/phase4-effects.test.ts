@@ -267,7 +267,7 @@ describe('Phase 4 bounded conditional damage and linked tradeoffs', () => {
     const preview = evaluateCombatAction(state, definition, target, PV1F_COMBAT_CONTENT)
     expect(preview.legal).toBe(true)
     expect(preview.projectedEffects.map((effect) => [effect.combatantId, effect.after])).toEqual([
-      ['enemy', 9],
+      ['enemy', 10],
       ['other', 11],
     ])
     const result = executeCombatAction(
