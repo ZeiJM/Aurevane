@@ -4,7 +4,7 @@ import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-ski
 import { previewEffect, skillPreviewEffects } from './skill-effect-preview'
 
 describe('compact Technique explanations', () => {
-    it.each([
+  it.each([
     ['inspired', '+11% outgoing', 'Deal 11% more damage'],
     ['warded', '−11% incoming', 'Take 11% less damage from opponents affected by Burn'],
     ['reckless', '+11% outgoing / +11% incoming', 'Deal 11% more damage and take 11% more damage'],
