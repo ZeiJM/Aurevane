@@ -18,7 +18,6 @@ export const COMBAT_EFFECT_TIMING_TAGS = [
     'return-to-turn-start',
     'remove-status',
     'copy-statuses',
-    'copy',
     'sensory',
     'summon',
     'guarded',
@@ -81,13 +80,11 @@ export function pendingCombatStatusRows(
   const pendingRows = (state.pendingEffects ?? []).flatMap((pending) => {
     const effect = pending.effect
     const statusId =
-      effect.type === 'copy-statuses' && effect.beneficialEffects === true
-        ? 'beneficial-copy'
-        : effect.type === 'apply-status'
-          ? effect.statusId
-          : effect.type === 'barrier-change'
-            ? 'barrier'
-            : combatEffectTimingTag(effect)
+      effect.type === 'apply-status'
+        ? effect.statusId
+        : effect.type === 'barrier-change'
+          ? 'barrier'
+          : combatEffectTimingTag(effect)
     const definition = pending.content.statuses.find((status) => status.id === statusId)
     const tuning = effect as typeof effect & {
       durationTurns?: number
