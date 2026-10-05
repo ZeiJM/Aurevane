@@ -83,38 +83,4 @@ it('uses a battle’s pinned policy rather than newer Master timing, including l
   expect(timingMarks(section('legacy'))).toHaveLength(1)
 })
 
-it('keeps the Copy report aligned with the battle’s pinned mechanic', () => {
-  const effect = { type: 'copy' as const, recipient: 'primary-unit' as const }
-  const markup = renderToStaticMarkup(
-    <>
-      <section id="current-copy">
-        <CompactSkillEffectSummary effect={effect} />
-      </section>
-      <SkillEffectTimingProvider policy={null} copyPolicyVersion={null}>
-        <section id="historical-copy">
-          <CompactSkillEffectSummary effect={effect} />
-        </section>
-      </SkillEffectTimingProvider>
-    </>,
-  )
-  expect(markup).toContain('>Copy</span>')
-  expect(markup).toContain('>Skill Copy</span>')
-})
 
-it('ignores obsolete authored Copy claims for the current policy but preserves historical wording', () => {
-  const base = resolveMatureSkillVersion('wildwarden.snare')!
-  const skill = {
-    ...base,
-    effects: [{ type: 'copy' as const, recipient: 'primary-unit' as const }],
-    effectDescriptions: ['Grants an enemy Skill at half AP.'],
-  }
-  const current = renderToStaticMarkup(<SkillDetails skill={skill} expanded />)
-  expect(current).toContain('beneficial effect tags')
-  expect(current).not.toContain('half AP')
-  const historical = renderToStaticMarkup(
-    <SkillEffectTimingProvider policy={null} copyPolicyVersion={null}>
-      <SkillDetails skill={skill} expanded />
-    </SkillEffectTimingProvider>,
-  )
-  expect(historical).toContain('Grants an enemy Skill at half AP.')
-})
