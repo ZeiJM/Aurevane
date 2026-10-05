@@ -200,12 +200,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
         : titleCase(focusedSkill.definition.sourceDisciplineId)
     : null
   const focusedCharacteristics: readonly SkillCharacteristic[] = focusedSkill
-    ? skillParameterRows(
-        focusedSkill.definition,
-        focusedSkill.definition,
-        timingPolicy,
-        copyPolicyVersion,
-      )
+    ? skillParameterRows(focusedSkill.definition, focusedSkill.definition, timingPolicy)
     : []
 
   useEffect(() => {
