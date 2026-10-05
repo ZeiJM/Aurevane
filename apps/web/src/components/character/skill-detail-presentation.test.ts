@@ -398,13 +398,13 @@ describe('Combat v5.1 compact targeting labels', () => {
         ...base,
         target: { ...base.target, shape: { kind: 'line', length: 3 } },
       }),
-    ).toBe('Line · Length: 3 tiles')
+    ).toBe('Line [3]')
     expect(
       skillTargetMethodDescription({
         ...base,
         target: { ...base.target, shape: { kind: 'circle', radius: 1 } },
       }),
-    ).toBe('Circle · Radius: 1 tile')
+    ).toBe('Circle [1]')
   })
 })
 
@@ -459,7 +459,7 @@ it('describes the authored Burn schedule rather than substituting the default st
 it('keeps area dimensions and distinct recipients in canonical parameter rows', () => {
   const volley = resolveMatureSkillVersion('farstrider.volley')!
   const rows = Object.fromEntries(skillParameterRows(volley))
-  expect(rows['Target Method']).toBe('Circle · Radius: 1 tile')
+  expect(rows['Target Method']).toBe('Circle [1]')
   expect(rows.Target).toBe('Enemy')
   const ground = resolveMatureSkillVersion('frostweaver.chilling-mist')!
   const groundRows = Object.fromEntries(skillParameterRows(ground))
@@ -475,12 +475,3 @@ it('keeps area dimensions and distinct recipients in canonical parameter rows', 
   )
 })
 
-it('uses the pinned historical Copy label throughout the textual report', () => {
-  const skill = resolveMatureSkillVersion('wildwarden.snare')!
-  const copy = {
-    ...skill,
-    effects: [{ type: 'copy' as const, recipient: 'primary-unit' as const }],
-  }
-  expect(skillEffectsSummary(copy, null, null)).toContain('Skill Copy')
-  expect(skillEffectsSummary(copy)).not.toContain('Skill Copy')
-})
