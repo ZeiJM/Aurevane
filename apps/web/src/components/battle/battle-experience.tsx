@@ -272,10 +272,7 @@ export function BattleExperience(props: {
 }) {
   useBattleTabCyclePrevention()
   return (
-    <SkillEffectTimingProvider
-      policy={props.initialBattle.snapshot.effectTimingPolicy ?? null}
-      copyPolicyVersion={props.initialBattle.snapshot.copyPolicyVersion ?? null}
-    >
+    <SkillEffectTimingProvider policy={props.initialBattle.snapshot.effectTimingPolicy ?? null}>
       <BattleExperienceContent {...props} />
     </SkillEffectTimingProvider>
   )
@@ -367,10 +364,7 @@ function BattleExperienceContent({
     BATTLE_SKILL_CATEGORIES,
   )
   const selectedHealActionId = selectedSkillId('heal')
-  const selectableTechniques = useMemo(
-    () => [...(runtime.techniques ?? []), ...(runtime.copiedSkills ?? [])],
-    [runtime.copiedSkills, runtime.techniques],
-  )
+  const selectableTechniques = useMemo(() => [...(runtime.techniques ?? [])], [runtime.techniques])
   const attackTechniques = selectableTechniques.filter(
     (technique) => technique.category === 'attack',
   )
@@ -379,10 +373,7 @@ function BattleExperienceContent({
   )
   const healTechniques = selectableTechniques.filter((technique) => technique.category === 'heal')
   const skillArtwork = (technique: (typeof selectableTechniques)[number]) =>
-    battleSkillArtwork(
-      'sourceSkillId' in technique ? technique.sourceSkillId : technique.id,
-      technique.iconKey,
-    )
+    battleSkillArtwork(technique.id, technique.iconKey)
   const [selectedAttackActionId, setSelectedAttackActionId] = useState<string>(BASIC_ATTACK_ID)
   const supportActionId = parseSupportActionId(runtime.supportActionId) ?? DEFAULT_SUPPORT_ACTION_ID
   const supportSkill = pv1fSkillByActionId(supportActionId)!
@@ -982,17 +973,6 @@ function BattleExperienceContent({
           return
         }
 
-        const priorCopiedSkills = new Set(
-          (before.snapshot.effectState?.temporarySkills ?? [])
-            .filter((grant) => grant.combatantId === localCombatantId)
-            .map((grant) => `${grant.skillId}@${grant.contentVersion}`),
-        )
-        const gainedCopiedSkill = (body.battle.snapshot.effectState?.temporarySkills ?? []).some(
-          (grant) =>
-            grant.combatantId === localCombatantId &&
-            !priorCopiedSkills.has(`${grant.skillId}@${grant.contentVersion}`),
-        )
-
         battleRef.current = body.battle
         setBattle(body.battle)
         const nextLocalCombatant = localCombatantId
@@ -1075,7 +1055,6 @@ function BattleExperienceContent({
             setNotice(`Recovered ${restored} MP. ${remaining} AP remains.`)
           }
         }
-        if (gainedCopiedSkill) router.refresh()
       } catch (error) {
         clearPlanning()
         setNotice(error instanceof Error ? error.message : 'That action could not be committed.')
