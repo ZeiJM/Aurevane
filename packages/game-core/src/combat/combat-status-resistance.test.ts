@@ -803,7 +803,6 @@ it('rolls resistance only for the successful hostile area recipient', () => {
   expect(result.state.tactical.battle.rng).toEqual(advanceBattleRng(hitTarget.state).state)
 })
 
-
 it('filters scheduled Poison at cast time and does not reroll when resistance rises before activation', () => {
   const state = resistingWorld()
   state.effectTimingPolicy = { version: 1, modes: { poison: 'next-round' } }
