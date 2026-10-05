@@ -187,7 +187,6 @@ function effectWeight(effect: MatureSkillEffectDefinition): number {
     case 'create-terrain':
     case 'return-to-turn-start':
     case 'copy-statuses':
-    case 'copy':
     case 'sensory':
       return 1.3 + duration * 0.25
     case 'healing':
