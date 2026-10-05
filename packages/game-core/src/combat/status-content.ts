@@ -99,8 +99,6 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
     },
   ),
 
-
-
   status(
     'burn',
     'Burn',
