@@ -1,6 +1,6 @@
 # AUREVANE — Active Task Ledger
 
-## Battle input, timing, Chronicle copy and preview corrections — 2026-10-04 (verification in progress)
+## Battle input, timing, Chronicle copy and preview corrections — 2026-10-04 (released)
 
 The Owner requests smooth, slower VS flames; removal of AP/AP remaining/Range metadata and Parameters/Details buttons from all battle skill previews; inherent Guard lasting its authored two affected turns; hit-dependent Resonances withheld on a miss while retaining earned setup; removal of transient pre-command map boxes; Copy Full Log matching the displayed Chronicle; and removal of plain Tab/Shift+Tab focus cycling on battle pages. Existing portraits, skill artwork, viewport geometry, movement-range guidance, full cockpit information, server authority and privacy remain authoritative. Apply shared presentation to desktop/mobile PvE, PvP and spectators. Preserve historical Guard/status payloads and ordinary Skill costs/cooldowns. One combined Production release remains covered by the Owner’s standing request.
 
@@ -8,8 +8,12 @@ The Owner requests smooth, slower VS flames; removal of AP/AP remaining/Range me
 - [x] Remove preview metadata and Forecast details popup while retaining recipient-specific outcomes and complete cockpit readers.
 - [x] Correct Guard timing and hit-confirmed Resonance payoff through canonical execution, with meaningful red/green regression tests.
 - [x] Remove transient map feedback, disable scoped Tab cycling with cleanup, and align full-history copy with the viewer-safe Chronicle.
-- [ ] Complete frozen local quality, exact-candidate browser/layout checks and independent review.
-- [ ] Publish the verified corrections together, check Production and restore the deployment lock. This follow-up is not yet live.
+- [x] Complete frozen local quality, exact-candidate browser/layout checks and independent review.
+- [x] Publish the verified corrections together, check Production and restore the deployment lock.
+
+PR #827 merges as `d0d320e257b782d9dc60cc366e755b3890199196`, exactly matching tested tree `c1b7cca72b374fe63f4434ecaf98cf40945066d7` from candidate `f1e84bbc53456a8fc6883dac83bbc03e07ced46c`. All nine workflows and the final local quality gate pass, including 3,873 Vitest tests plus seven Node checks. Browser smoke passes four ally/forecast fixtures, 14 command/Tab cases, six real-mail recovery, three training, 71 focused, 317 full Chromium and ten Edge cases. Layout review passes native mobile Profile swiping, 110 scenarios and the directory check; final screenshots/video and independent reviews pass without artwork or geometry reductions. Existing project-specific skips remain unchanged.
+
+Configuration-only PR #828 releases source `837289b4c9a03e4f928031b53e6373b0f69155ec` as READY deployment `dpl_H3snH7K9kyQNnGLKe9PLYAZVDcb5` at `2026-10-05T04:10:59.889Z`, with https://aurevane.vercel.app/ assigned to that exact source. Six public entry/recovery/Manual/Rules/News checks and the VS WebP asset return 200. The deployment-scoped warning/error/fatal scan from READY through `2026-10-05T04:12:03.700Z` returns no logs. This documentation/configuration closeout restores the full deployment lock without a second application release. Earlier approved releases remain included. No application bytes, migrations, hosted Auth/content settings or production accounts change in this closeout. Authenticated gameplay and recovery mail pass in disposable CI; authenticated Production gameplay and Owner visual acceptance remain separate outcomes. Evidence: `docs/superpowers/verification/2026-10-04-battle-input-timing-preview-corrections.md`.
 
 ## Battle review, ally inspection and unlimited applications — 2026-10-04 (released)
 
