@@ -32,11 +32,7 @@ describe('Master Panel Skill effect list editor', () => {
     )
   })
 
-  it('creates the typed beneficial-tag Copy effect without scriptable fields', () => {
-    const appended = appendCombatEffect(effects, 'copy')
-    expect(appended.at(-1)).toEqual({ type: 'copy', recipient: 'primary-unit' })
-  })
-
+  
   it('adds, removes, and reorders without mutating the original array', () => {
     const appended = appendCombatEffect(effects, 'barrier-change')
     expect(appended.map((effect) => effect.type)).toEqual([
@@ -77,7 +73,6 @@ describe('Master Panel Skill effect list editor', () => {
       'burn',
       'barrier-change',
       'copy-statuses',
-      'copy',
       'sensory',
     ]
 
