@@ -35,4 +35,4 @@
 - [x] Write Chronicle integration test for pending round 4 and one-turn exposure; observe missing Lowered Guard failure.
 - [x] Select every-timeout AI behavior only for timing-policy encounters, reusing existing status application.
 - [x] Verify actual vulnerability and expiry, adjacent suites and full `pnpm check`.
-- [ ] Obtain independent review, publish the exact verified tree, complete required CI and the standing authorized release.
+- [x] Obtain independent review, publish the exact verified tree, complete all eleven CI workflows and the standing authorized release.
