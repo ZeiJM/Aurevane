@@ -332,8 +332,7 @@ export function buildBattlePrivacyJournalInput(input: {
 
     const targetCombatantId = lifecycleTarget(event)
     if (!targetCombatantId) return
-    const targetWasCovert =
-      hasCovert(statusesByCombatant, targetCombatantId)
+    const targetWasCovert = hasCovert(statusesByCombatant, targetCombatantId)
     const identity = statusLifecycleIdentityBeforeOrAfter({
       event,
       targetCombatantId,
