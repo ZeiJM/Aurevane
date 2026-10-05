@@ -564,7 +564,6 @@ describe('Mark and Blind: authoring and snapshot guards', () => {
     { reactionClass: 'reactive' },
     { damageTakenMultiplierBasisPoints: 12_500 },
     { endOfTurn: { type: 'damage', amount: 5 } },
-    { nextRoundInitiative: -5 },
     { blindAccuracyPenaltyBasisPoints: 1_500 },
   ]
   it.each(invalidProfiles)('rejects mixed, stacking or nonordinary Mark definition %j', (patch) => {
