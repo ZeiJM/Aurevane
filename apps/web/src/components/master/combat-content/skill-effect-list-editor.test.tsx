@@ -32,7 +32,6 @@ describe('Master Panel Skill effect list editor', () => {
     )
   })
 
-  
   it('adds, removes, and reorders without mutating the original array', () => {
     const appended = appendCombatEffect(effects, 'barrier-change')
     expect(appended.map((effect) => effect.type)).toEqual([
