@@ -1513,7 +1513,12 @@ export function evaluatePv1fMovement(
   path: readonly GridPosition[],
 ) {
   const prepared = preparePv1fTurnEconomy(state)
-  let movement = evaluateCurrentMovementPath(prepared.tactical, path, 'entered-tiles')
+  let movement = evaluateCurrentMovementPath(
+    prepared.tactical,
+    path,
+    'entered-tiles',
+    prepared.statBalancePolicyVersion,
+  )
   const modifiers = pv1fMovementModifiers(prepared)
   if (modifiers.blocked) {
     movement.legal = false
@@ -1535,6 +1540,7 @@ export function evaluatePv1fMovement(
       prepared.tactical,
       path.slice(0, poisonForecast.traversedTiles + 1),
       'entered-tiles',
+      prepared.statBalancePolicyVersion,
     )
   }
   // Retain the terrain-weight preview contract, including a validated prefix of an illegal path.
@@ -1565,7 +1571,12 @@ export function executePv1fMovement(
   }
   const actorId = prepared.tactical.battle.currentTurn?.combatantId
   if (!actorId) throw new Error('PV-1F movement requires an active turn.')
-  const moved = moveCurrentCombatant(prepared.tactical, movement.path, 'entered-tiles')
+  const moved = moveCurrentCombatant(
+    prepared.tactical,
+    movement.path,
+    'entered-tiles',
+    prepared.statBalancePolicyVersion,
+  )
   let next = reattachStatDrivenCombatBridge(
     { ...prepared, ...createCombatEncounterState(moved.state, prepared.statusState) },
     prepared.statBridge,

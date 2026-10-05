@@ -37,6 +37,28 @@ function labels(preview: BattleActionPreview): string[] {
 }
 
 describe('copy-statuses player forecast presentation', () => {
+  it('states recipient-specific resistance without replacing damage or exposing a roll', () => {
+    const preview = actionPreview(
+      [{ effectType: 'damage', combatantId: 'target', before: 100, after: 80 }],
+      {
+        targetStatusResistances: [
+          {
+            targetCombatantId: 'target',
+            resistanceChanceBasisPoints: 1500,
+            eligibleEffectOrdinals: [1],
+          },
+        ],
+      },
+    )
+    expect(labels(preview)).toContain('Debuff resistance 15% on hit')
+    expect(labels(preview)).toContain('20 dmg')
+    expect(labels({ ...preview, affectedCombatantIds: ['other'] })).not.toContain(
+      'Debuff resistance 15% on hit',
+    )
+    expect(labels({ ...preview, targetStatusResistances: [] })).not.toContain(
+      'Debuff resistance 15% on hit',
+    )
+  })
   it('uses Nexus parameter names and pinned values with current battle costs before a forecast', () => {
     const definition = resolveMatureSkillVersion('vanguard.forceful-strike', 2)!
     const result = skillPreviewChips({

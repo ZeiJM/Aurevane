@@ -302,26 +302,45 @@ export function projectedCombatEffectUtility(
       state.tactical.battle.combatants.find((unit) => unit.id === effect.combatantId)?.teamId ===
       actorTeam
     const sign = ally ? 1 : -1
+    const resistance = evaluation.targetStatusResistances?.find(
+      (row) => row.targetCombatantId === effect.combatantId,
+    )
+    const debuffProbability =
+      effect.effectOrdinal !== undefined &&
+      resistance?.eligibleEffectOrdinals.includes(effect.effectOrdinal)
+        ? (10000 - resistance.resistanceChanceBasisPoints) / 10000
+        : 1
     if (typeof effect.before !== 'number' || typeof effect.after !== 'number') {
       if (effect.before === effect.after) return utility
       if (effect.effectType === 'copy-statuses') {
         if (!copyMode) return utility
         // Clone projections already passed authoritative legality/eligibility. Reuse the
         // ordinary status utility magnitude and score only the actual projected recipient.
-        return utility + (copyMode === 'amplify' ? 8 * sign : -8 * sign)
+        return utility + (copyMode === 'amplify' ? 8 * sign : -8 * sign * debuffProbability)
       }
+      if (
+        state.statBalancePolicyVersion === 1 &&
+        ['poison', 'burn', 'bleed'].includes(effect.effectType)
+      )
+        return utility - 8 * sign * debuffProbability
       if (effect.effectType === 'remove-status')
         return utility + (effect.before === 'none' ? 0 : 8 * sign)
       if (effect.effectType === 'apply-status' && typeof effect.after === 'string') {
         const kind = combatStatusDetails(effect.after.split(':')[0]!).kind
         // Coupled tradeoffs are deliberately neutral here; their authored utility is
         // not inflated as if the drawback were another beneficial status.
-        return utility + (kind === 'Buff' ? 8 * sign : kind === 'Debuff' ? -8 * sign : 0)
+        return (
+          utility +
+          (kind === 'Buff' ? 8 * sign : kind === 'Debuff' ? -8 * sign * debuffProbability : 0)
+        )
       }
       return utility
     }
     const change = effect.after - effect.before
-    return utility + change * sign * (effect.effectType === 'resource-change' ? 1 : 2)
+    return (
+      utility +
+      change * sign * (effect.effectType === 'resource-change' ? 1 : 2) * debuffProbability
+    )
   }, 0)
 }
 

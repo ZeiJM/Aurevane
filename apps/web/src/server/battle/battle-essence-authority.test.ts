@@ -429,7 +429,7 @@ describe('P3.6 battle Essence authority', () => {
     if (!committed) throw new Error('Expected the Essence battle commit.')
     const next = committed.nextSnapshot as BattleAuthoritativeEncounterState
     expect(readPv1fActionEconomy(next, PLAYER_ID)?.current).toBe(45)
-    expect(next.tactical.battle.combatants.find((row) => row.id === 'recruit:p2-4-1')?.hp).toBe(56) // Physical Power now scales the pinned Essence before Armor mitigates each hit.
+    expect(next.tactical.battle.combatants.find((row) => row.id === 'recruit:p2-4-1')?.hp).toBe(68) // Physical Power now scales the pinned Essence before Armor mitigates each hit.
     expect(committed.events).toContainEqual(
       expect.objectContaining({
         event: 'skill_cooldown_started',

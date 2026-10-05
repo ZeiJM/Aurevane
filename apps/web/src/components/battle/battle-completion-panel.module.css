@@ -484,3 +484,25 @@
     font-size: 0.85rem;
   }
 }
+
+@media (max-height: 450px) {
+  .overlay:has(.panel[data-log-open='true']) {
+    padding-top: max(0.35rem, env(safe-area-inset-top));
+    padding-bottom: max(0.35rem, env(safe-area-inset-bottom));
+  }
+
+  .panel[data-log-open='true'] {
+    gap: 0.2rem;
+    padding-top: 0.35rem;
+    padding-bottom: 0.35rem;
+  }
+
+  .panel[data-log-open='true'] .error {
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+  }
+
+  .panel[data-log-open='true'] .actions {
+    padding-top: 0.5rem;
+  }
+}

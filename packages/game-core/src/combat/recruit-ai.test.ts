@@ -17,6 +17,7 @@ import {
 } from './recruit-ai'
 import {
   createStatDrivenCombatEncounterState,
+  createStatBalancedCombatEncounterState,
   type StatDrivenCombatEncounterState,
   type StatDrivenCombatProfile,
 } from './stat-driven-combat'
@@ -375,4 +376,42 @@ describe('P3.3 Recruit AI cooldown parity', () => {
     })
     expect(during.intent).not.toMatchObject({ kind: 'action', actionId: PV1F_RECOVER_ACTION_ID })
   })
+})
+
+it('plans a current-policy descent from height three with Jump zero', () => {
+  const initial = encounter()
+  const balanced = createStatBalancedCombatEncounterState(
+    initial,
+    initial.statBridge.combatants.map((row) => ({
+      ...row,
+      jump: 0,
+      physicalPower: 0,
+      mysticPower: 0,
+      level: 1,
+      criticalChance: 0,
+      statusResistance: 0,
+    })),
+  )
+  const state = {
+    ...balanced,
+    tactical: {
+      ...balanced.tactical,
+      tiles: balanced.tactical.tiles.map((tile) => ({
+        ...tile,
+        elevation: tile.position.x === 0 ? 3 : 0,
+      })),
+    },
+  }
+  const before = JSON.stringify(state)
+  const decision = chooseRecruitAiDecision({ state, tieBreakSeed: 42 })
+  expect(decision.intent).toEqual({
+    kind: 'move',
+    path: [
+      { x: 0, y: 0 },
+      { x: 1, y: 0 },
+    ],
+  })
+  if (decision.intent.kind !== 'move') throw new Error('Expected a legal descent route.')
+  expect(evaluatePv1fMovement(state, decision.intent.path).movement.legal).toBe(true)
+  expect(JSON.stringify(state)).toBe(before)
 })

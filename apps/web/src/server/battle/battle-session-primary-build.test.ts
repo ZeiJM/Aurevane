@@ -103,7 +103,7 @@ function committedSnapshot(): CharacterCommittedBuildSnapshotRecord {
 }
 
 describe('battle session committed Primary stat authority', () => {
-  it('uses the committed Primary profile for Movement and other derived battle values', async () => {
+  it('pins current Core-derived battle values without legacy Primary offsets', async () => {
     const characterRecord = character()
     const characters: CharacterRepository = {
       findByOwnerSlot: vi.fn(async () => characterRecord),
@@ -175,11 +175,26 @@ describe('battle session committed Primary stat authority', () => {
       (candidate) => candidate.combatantId === `character:${CHARACTER_ID}`,
     )
 
-    // All Level-1 characters start at Movement 2; legacy profile offsets cannot bypass that rule.
-    // Other committed Primary modifiers must still reach the battle snapshot.
+    // Current derived curves use effective Core; the pinned Primary's legacy offsets are retired.
+    expect(state.statBalancePolicyVersion).toBe(1)
+    expect(state.statBridge).toMatchObject({ schemaVersion: 4, rulesVersion: 4 })
     expect(player?.baseMovementBudget).toBe(2)
     expect(state.tactical.battle.currentTurn?.movementRemaining).toBe(2)
-    expect(profile?.accuracy).toBe(6_950)
-    expect(profile?.evasion).toBe(320)
+    expect(profile).toMatchObject({
+      provenance: {
+        kind: 'character-derived',
+        sourceId: `character:${CHARACTER_ID}`,
+        sourceRulesVersion: 4,
+      },
+      accuracy: 8_875,
+      evasion: 375,
+      physicalPower: 52,
+      mysticPower: 52,
+      armor: 52,
+      ward: 52,
+      jump: 0,
+      criticalChance: 225,
+      statusResistance: 150,
+    })
   })
 })

@@ -95,12 +95,12 @@ function Panel({
           {effectStatuses.length > 0 ? (
             effectStatuses.map((status) => {
               const loweredGuard = status.statusId === 'lowered-guard'
-              const label = statusLabel(status.statusId)
+              const label = statusLabel(status.statusId, status)
               const stackCount = formatStatusStackCount(status.statusId, status.stacks)
               return (
                 <b
                   key={`${status.statusId}:${status.statusVersion}`}
-                  data-debuff={!statusIsBeneficial(status.statusId) || undefined}
+                  data-debuff={!statusIsBeneficial(status.statusId, status) || undefined}
                   title={
                     loweredGuard
                       ? `${label} ${stackCount} · each stack multiplies incoming damage by 2.5×`

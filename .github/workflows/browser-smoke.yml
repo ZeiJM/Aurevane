@@ -72,6 +72,11 @@ jobs:
           AV_SKILL_PARAMETER_PALETTE_EVIDENCE_DIR: /tmp/skill-parameter-palette-review
         run: pnpm --filter @aurevane/web exec node scripts/skill-parameter-palette-browser-regression.mjs
 
+      - name: Verify elevated rail effects and viewer privacy
+        env:
+          AV_ELEVATED_RAIL_EVIDENCE_DIR: /tmp/battle-elevated-rail-review
+        run: pnpm --filter @aurevane/web exec node scripts/battle-elevated-rail-browser-regression.mjs
+
       - name: Verify completion windows fit the viewport
         env:
           AV_COMPLETION_FIT_EVIDENCE_DIR: /tmp/battle-completion-fit-review
@@ -197,6 +202,14 @@ jobs:
         with:
           name: skill-parameter-palette-review
           path: /tmp/skill-parameter-palette-review
+          retention-days: 7
+
+      - name: Save elevated rail effect evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: battle-elevated-rail-review
+          path: /tmp/battle-elevated-rail-review
           retention-days: 7
 
       - name: Save completion window fit evidence

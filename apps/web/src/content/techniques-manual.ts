@@ -88,7 +88,7 @@ export const techniquesManualArticle: ManualArticle = {
       paragraphs: [
         techniquePowerSummary,
         `For a normally scaled direct-damage block: coefficientBP = floor(AP cost × ${CURRENT_SKILL_POWER_SCALING_PER_AP_BASIS_POINTS} ÷ number of normally scaled damage blocks); Power bonus = floor(matching Power × coefficientBP ÷ 10,000); raw damage = authored damage power + Power bonus. A basis point is 0.01%. Explicitly authored scaling is retained; Vengeance uses its recorded-damage rule instead of receiving another automatic Power budget.`,
-        'The 1–20 authored number and the AP-linked Power contribution are separate. More AP generally raises the authored budget and the Power coefficient, while area coverage, secondary utility, multiple hits, effect potency and duration reduce how much of that budget can be concentrated into one damage block.',
+        'Ordinary Physical damage uses an authored 1–20 packet; ordinary Mystic damage generally caps at 16 and trades some direct force for stronger tempo effects. Rare and existing pinned exceptions retain their authored versions. This authored number and the AP-linked Power contribution are separate. More AP generally raises the authored budget and the Power coefficient, while area coverage, secondary utility, multiple hits, effect potency and duration reduce how much of that budget can be concentrated into one damage block.',
       ],
       table: {
         caption: 'Current AP-linked Power contribution per direct-damage block',
@@ -120,7 +120,7 @@ export const techniquesManualArticle: ManualArticle = {
       ],
       bullets: [
         '1. Add floor(matching Power × coefficientBP ÷ 10,000) to the authored base damage.',
-        '2. Apply Armor or Ward: floor(raw damage × 100 ÷ (100 + defense)), with a minimum of one for positive raw damage. Piercing skips this defense step.',
+        '2. Apply Physical Defense or Mystic Defense (reduced 20% while on elevated terrain in new battles): floor(raw damage × 100 ÷ (100 + defense)), with a minimum of one for positive raw damage. Piercing skips this defense step.',
         `3. On an eligible critical hit, multiply by ${COMBAT_CRITICAL_DAMAGE_BASIS_POINTS / 10_000} and round down. One critical result is shared by all eligible damage blocks against the same target in that command.`,
         '4. Apply the attacker-versus-defender Level multiplier below, rounding down. Self-damage does not receive this relative-Level adjustment.',
         '5. Apply any authored front/side/rear damage multiplier, rounding down. Only a Skill that specifies a facing multiplier receives one.',
@@ -133,7 +133,7 @@ export const techniquesManualArticle: ManualArticle = {
       id: 'damage-example',
       title: 'A worked hit',
       paragraphs: [
-        'Example: a physical 40 AP Skill has one damage block with authored power 10, the attacker has Physical Power 40, and the defender has Armor 25. At equal Levels, with no critical, facing bonus, status modifiers or Barrier: coefficient = 20%; Power bonus = floor(40 × 0.20) = 8; raw damage = 18; after Armor = floor(18 × 100 ÷ 125) = 14 HP.',
+        'Example: a physical 40 AP Skill has one damage block with authored power 10, the attacker has Physical Power 40, and the defender has Physical Defense 25. At equal Levels, with no critical, facing bonus, status modifiers or Barrier: coefficient = 20%; Power bonus = floor(40 × 0.20) = 8; raw damage = 18; after Physical Defense = floor(18 × 100 ÷ 125) = 14 HP.',
         'A higher-AP attack can receive more damage budget, but adding an area shape, a strong status, another effect or a longer duration redirects part of that budget away from direct damage.',
       ],
     },

@@ -36,11 +36,12 @@ function character(): PersistedCharacter {
     starterAppearanceRef: 'appearance.starter.roadworn',
     foundationDisciplineId: 'vanguard',
     attributes: {
-      might: 7,
-      finesse: 6,
-      vitality: 5,
-      agility: 6,
-      intellect: 5,
+      // Vanguard's fixed31 Core points plus five player-owned creation points.
+      might: 9,
+      finesse: 4,
+      vitality: 9,
+      agility: 4,
+      intellect: 3,
       resolve: 7,
     },
     level: 12,
@@ -169,10 +170,19 @@ describe('character build service', () => {
     const context = await loadCharacterBuildContext(userId, source, repository())
 
     expect(context.current.definition.id).toBe('vanguard')
+    expect(context.current.derived.rulesVersion).toBe(4)
+    expect(context.current.derived.stats.maxHp.value).toBe(98)
+    expect(context.current.derived.stats.armor.value).toBe(58)
     expect(context.current.derived.stats.maxHp.contributions.at(-1)).toMatchObject({
-      sourceId: 'discipline.primary.vanguard.profile.1',
-      inputValue: 20,
+      sourceId: 'character.attribute.vitality',
+      inputValue: 9,
+      coefficient: 2,
     })
+    expect(
+      context.current.derived.stats.maxHp.contributions.some(
+        (entry) => entry.sourceKind === 'modifier',
+      ),
+    ).toBe(false)
     expect(context.currentSecondary).toBeNull()
     expect(context.availableSecondaries.map((candidate) => candidate.definition.id)).toEqual([
       'aetherist',
@@ -214,14 +224,68 @@ describe('character build service', () => {
   it('previews a legal proposed Primary without writing it', async () => {
     const change = vi.fn(async () => ({ build: build(aetherist, 2), replayed: false }))
     const repo = repository({ changeDisciplines: change })
-    const result = await previewCharacterPrimaryDiscipline(userId, character(), 'aetherist', repo)
+    const source = character()
+    const before = structuredClone(source)
+    const result = await previewCharacterPrimaryDiscipline(userId, source, 'aetherist', repo)
 
     expect(result.current.definition.id).toBe('vanguard')
     expect(result.proposed.definition.id).toBe('aetherist')
-    expect(result.proposed.derived.stats.maxMp.value).toBeGreaterThan(
-      result.current.derived.stats.maxMp.value,
-    )
+    expect(result.current.derived.stats.maxMp.value).toBe(17)
+    expect(result.proposed.derived.stats.maxMp.value).toBe(20)
+    expect(result.proposed.derived.stats.maxHp.value).toBe(92)
+    expect(result.proposed.derived.stats.physicalPower.value).toBe(48)
+    expect(result.proposed.derived.stats.mysticPower.value).toBe(60)
+    expect(result.proposed.derived.stats.ward.value).toBe(60)
+    expect(source).toEqual(before)
     expect(change).not.toHaveBeenCalled()
+  })
+
+  it('rebases only the fixed Primary Core base while preserving every personal point in a combined preview', async () => {
+    const source = character()
+    const before = structuredClone(source)
+    const repo = repository()
+    const result = await previewCharacterDisciplines(
+      userId,
+      source,
+      { primaryDisciplineId: 'aetherist', secondaryDisciplineId: 'lifebinder' },
+      repo,
+    )
+    const expectedCoreByStat = {
+      physicalPower: 4,
+      accuracy: 3,
+      maxHp: 6,
+      evasion: 3,
+      mysticPower: 10,
+      ward: 10,
+    } as const
+    for (const [statId, core] of Object.entries(expectedCoreByStat))
+      expect(
+        result.proposed.derived.stats[statId as keyof typeof expectedCoreByStat].contributions.at(
+          -1,
+        )?.inputValue,
+        statId,
+      ).toBe(core)
+    expect(result.proposedSecondary?.id).toBe('lifebinder')
+    expect(result.changes).toEqual({ primary: true, secondary: true })
+    expect(source).toEqual(before)
+    expect(repo.changeDisciplines).not.toHaveBeenCalled()
+    expect(repo.saveDisciplineSkills).not.toHaveBeenCalled()
+    expect(repo.saveSupportAction).not.toHaveBeenCalled()
+  })
+
+  it('rejects a projected off-focus cap violation before presenting impossible Primary stats', async () => {
+    const source = {
+      ...character(),
+      level: 100,
+      attributes: { ...character().attributes, might: 60 },
+    }
+    const before = structuredClone(source)
+    const repo = repository()
+    await expect(
+      previewCharacterPrimaryDiscipline(userId, source, 'aetherist', repo),
+    ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+    expect(source).toEqual(before)
+    expect(repo.changeDisciplines).not.toHaveBeenCalled()
   })
 
   it('previews a mastered Secondary without adding a second base-stat profile or starting a timer', async () => {

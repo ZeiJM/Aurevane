@@ -82,7 +82,7 @@ function battleRepository() {
   return { repository, createBattleSession }
 }
 
-describe('Level-100 live stat-scaled potency snapshots', () => {
+describe('live stat-scaled potency snapshots', () => {
   it('persists bridge v4 with authoritative player and canonical recruit combat ratings', async () => {
     const battles = battleRepository()
     const service = createBattleSessionService({
@@ -101,21 +101,39 @@ describe('Level-100 live stat-scaled potency snapshots', () => {
     const state = input.initialSnapshot as StatDrivenCombatEncounterState
 
     expect(state.statBridge).toMatchObject({ schemaVersion: 4, rulesVersion: 4 })
+    expect(state.statBalancePolicyVersion).toBe(1)
     expect(
       state.statBridge.combatants.find(
         (profile) => profile.combatantId === `character:${CHARACTER_ID}`,
       ),
     ).toMatchObject({
-      physicalPower: 34,
-      mysticPower: 34,
-      criticalChance: 250,
+      provenance: {
+        kind: 'character-derived',
+        sourceId: `character:${CHARACTER_ID}`,
+        sourceRulesVersion: 4,
+      },
+      accuracy: 8_875,
+      evasion: 375,
+      physicalPower: 52,
+      mysticPower: 52,
+      armor: 52,
+      ward: 52,
+      jump: 0,
+      criticalChance: 225,
+      statusResistance: 150,
     })
     expect(
       state.statBridge.combatants.find((profile) => profile.combatantId === 'recruit:p2-4-1'),
     ).toMatchObject({
-      physicalPower: 32,
-      mysticPower: 32,
-      criticalChance: 225,
+      accuracy: 8_812,
+      evasion: 312,
+      physicalPower: 50,
+      mysticPower: 50,
+      armor: 50,
+      ward: 50,
+      jump: 0,
+      criticalChance: 187,
+      statusResistance: 125,
     })
   })
 })

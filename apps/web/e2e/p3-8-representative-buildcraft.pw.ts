@@ -139,7 +139,7 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
 
   const resonancePreviewAnchor = mixedAttunement.getByLabel(/Preview Resonance: Mercy's Edge/)
   await resonancePreviewAnchor.hover()
-  const resonancePreview = page.getByRole('dialog', { name: "Resonance: Mercy's Edge" })
+  const resonancePreview = page.getByRole('dialog', { name: "Mercy's Edge" })
   await expect(resonancePreview).toBeVisible()
   await resonancePreviewAnchor.press('Enter')
   if (testInfo.project.name === 'desktop-chromium') {

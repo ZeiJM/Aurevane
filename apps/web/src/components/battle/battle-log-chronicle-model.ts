@@ -425,6 +425,8 @@ function outcome(entry: BattleLogEntry, names: ChronicleNames): ChronicleOutcome
         ...(turns ? { duration: turns } : {}),
       }
     }
+    case 'combat_status_resistance_resolved':
+      return { ...base, text: `${target} resists the harmful effect tags.`, tone: 'benefit' }
     case 'stat_driven_attack_resolved':
     case 'combat_accuracy_resolved':
       return {

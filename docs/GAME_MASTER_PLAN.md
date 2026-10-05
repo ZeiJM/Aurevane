@@ -1,5 +1,7 @@
 AUREVANE
 
+Owner-approved 2026-10-05 stat continuation is authoritative over earlier numerical formulas: derived ruleset4 and newly pinned `statBalancePolicyVersion: 1` implement the requested 40/60 endpoints, Physical/Mystic Defense, absolute Jump access, position-derived elevation tradeoffs and ordinary-Skill Status Resistance with Essence/Resonance/Ascension/Severance bypass. Preserve historical snapshots, Primary Core bases/caps, published ability versions and server authority. See `GAME_MASTER_PLAN_ATTRIBUTE_PROGRESSION_ADDENDUM.md`, `COMBAT.md` and `superpowers/plans/2026-10-05-stat-balance-spec.md`; verification/release remains in `../TASKS.md`.
+
 ## Current Guard timing — Owner-approved 2026-10-02
 
 Guard now has an independent two-owner-turn cooldown. HP/MP Recovery retain their existing shared two-turn cooldown. This inherent-action timing applies on the next successful use in new or resumed battles without changing AP costs, Guarded effects or pinned authored definitions. See `COMBAT.md` and `superpowers/specs/2026-10-02-roster-discipline-live-fixes.md`.

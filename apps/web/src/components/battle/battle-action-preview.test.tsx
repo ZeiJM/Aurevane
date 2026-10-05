@@ -54,6 +54,40 @@ const attack: ActionPreview = {
 }
 
 describe('current selection forecast', () => {
+  it('keeps resistance chances on their own affected recipients in an area preview', () => {
+    const markup = renderToStaticMarkup(
+      <BattleActionPreview
+        pending={false}
+        preview={{
+          ...attack,
+          affectedCombatantIds: ['enemy', 'other'],
+          projectedEffects: [
+            ...attack.projectedEffects,
+            { effectType: 'damage', combatantId: 'other', before: 100, after: 90 },
+          ],
+          targetStatusResistances: [
+            {
+              targetCombatantId: 'enemy',
+              resistanceChanceBasisPoints: 1500,
+              eligibleEffectOrdinals: [1],
+            },
+            {
+              targetCombatantId: 'other',
+              resistanceChanceBasisPoints: 1000,
+              eligibleEffectOrdinals: [1],
+            },
+          ],
+        }}
+      />,
+    )
+    const first = markup.split('data-battle-range-forecast="enemy"')[1]?.split('</article>')[0]
+    const second = markup.split('data-battle-range-forecast="other"')[1]?.split('</article>')[0]
+    expect(first).toContain('Debuff resistance 15% on hit')
+    expect(first).not.toContain('Debuff resistance 10% on hit')
+    expect(second).toContain('Debuff resistance 10% on hit')
+    expect(second).not.toContain('Debuff resistance 15% on hit')
+    expect(markup).toContain('On hit 17 dmg')
+  })
   it('has no Details button or forecast popup for any selected action', () => {
     const markup = renderToStaticMarkup(<BattleActionPreview preview={attack} pending={false} />)
     expect(markup).not.toContain('>Details</button>')

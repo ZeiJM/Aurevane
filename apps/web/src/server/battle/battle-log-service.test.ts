@@ -11,6 +11,75 @@ const USER_ID = '11111111-1111-4111-8111-111111111111'
 const SESSION_ID = '33333333-3333-4333-8333-333333333333'
 
 describe('sanitized battle log service', () => {
+  it('shows a resisted ordinary debuff beneath its cast without exposing RNG or suppressing damage', () => {
+    const result = buildBattleLogView(
+      SESSION_ID,
+      [
+        {
+          event: 'combat_status_resistance_resolved',
+          sourceCombatantId: 'character:zei',
+          targetCombatantId: 'recruit:weon',
+          actionId: 'skill.root',
+          resisted: true,
+          rollBasisPoints: 19,
+          resistanceChanceBasisPoints: 1000,
+          eligibleEffectOrdinals: [1],
+          privatePayload: 'secret',
+        },
+        {
+          event: 'damage_applied',
+          sourceCombatantId: 'character:zei',
+          targetCombatantId: 'recruit:weon',
+          actionId: 'skill.root',
+          amount: 14,
+        },
+        {
+          event: 'combat_action_used',
+          actorId: 'character:zei',
+          actionId: 'skill.root',
+          targetCombatantIds: ['recruit:weon'],
+        },
+        {
+          event: 'combat_status_resistance_resolved',
+          sourceCombatantId: 'character:zei',
+          targetCombatantId: 'recruit:weon',
+          actionId: 'skill.root',
+          resisted: false,
+        },
+        {
+          event: 'combat_status_resistance_resolved',
+          sourceCombatantId: 'character:zei',
+          targetCombatantId: 'recruit:weon',
+          actionId: 'skill.root',
+          resisted: 'yes',
+        },
+      ].map((event, eventIndex) => ({
+        battleVersion: 1,
+        eventIndex,
+        createdAt: '2026-10-05T00:00:00Z',
+        event,
+      })),
+    )
+    expect(
+      result.entries.filter((entry) => entry.eventType === 'combat_status_resistance_resolved'),
+    ).toHaveLength(1)
+    const chronicle = buildBattleChronicle(result.entries, {
+      combatantNames: { 'character:zei': 'Zei', 'recruit:weon': 'Weon' },
+    })
+    const outcomes = chronicle.flatMap((round) =>
+      round.actors.flatMap((actor) => actor.actions.flatMap((action) => action.outcomes)),
+    )
+    expect(outcomes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ text: 'Weon resists the harmful effect tags.', tone: 'benefit' }),
+        expect.objectContaining({ tone: 'damage' }),
+      ]),
+    )
+    expect(JSON.stringify(result)).not.toMatch(
+      /secret|rollBasisPoints|eligibleEffectOrdinals|resistanceChanceBasisPoints/,
+    )
+  })
+
   it('retains only valid recorded pending lifetime metadata, never inferring old durations', () => {
     const entries = buildBattleLogView(
       SESSION_ID,

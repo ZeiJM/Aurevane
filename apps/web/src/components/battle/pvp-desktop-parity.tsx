@@ -9,7 +9,8 @@ import { getStarterPortraitImageAssetId } from '@/media/character'
 import type { PvpBattleMetadata, PvpBattleParticipantView } from '@/server/battle/pvp-lobby-service'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
-import { statusLabel, statusIsBeneficial } from './battle-effect-summary'
+import { statusLabel, statusIsBeneficial, statusDurationLabel } from './battle-effect-summary'
+import { terrainAdjustedBattleProfile } from '../../lib/battle/battle-elevation-stats'
 import styles from './pvp-desktop-parity.module.css'
 
 type BattleSnapshot = BattleSessionView['snapshot']
@@ -75,7 +76,12 @@ function participantState(
   return {
     combatant,
     placement,
-    profile,
+    profile: terrainAdjustedBattleProfile(
+      battle.snapshot,
+      participant.combatantId,
+      profile,
+      statuses,
+    ),
     statuses,
     active: battle.snapshot.tactical.battle.currentTurn?.combatantId === participant.combatantId,
   }
@@ -184,15 +190,15 @@ function BattleRailCard({
           <span className={styles.noStatus}>No effects</span>
         ) : (
           statuses.map((status) => {
-            const label = statusLabel(status.statusId)
-            const beneficial = statusIsBeneficial(status.statusId)
+            const label = statusLabel(status.statusId, status)
+            const beneficial = statusIsBeneficial(status.statusId, status)
             return (
               <button
                 type="button"
                 key={`${status.statusId}:${status.sourceCombatantId}`}
                 className={beneficial ? styles.buff : styles.debuff}
                 title={`${label}${status.stacks > 1 ? ` ×${status.stacks}` : ''}`}
-                aria-label={`${label}, ${status.stacks} stack${status.stacks === 1 ? '' : 's'}, ${status.remainingOwnerTurnStarts} turn${status.remainingOwnerTurnStarts === 1 ? '' : 's'} remaining`}
+                aria-label={`${label}, ${status.stacks} stack${status.stacks === 1 ? '' : 's'}, ${statusDurationLabel(status)}`}
               >
                 {beneficial ? '+' : '!'}
                 {status.stacks > 1 ? status.stacks : null}
@@ -267,11 +273,11 @@ function BattleRailCard({
               <dd>{percentFromBasisPoints(profile?.evasion)}</dd>
             </div>
             <div>
-              <dt>Armor</dt>
+              <dt>Physical Defense</dt>
               <dd>{profile?.armor ?? '—'}</dd>
             </div>
             <div>
-              <dt>Ward</dt>
+              <dt>Mystic Defense</dt>
               <dd>{profile?.ward ?? '—'}</dd>
             </div>
           </dl>

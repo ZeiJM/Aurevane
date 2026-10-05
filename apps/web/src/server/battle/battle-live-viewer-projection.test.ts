@@ -184,6 +184,148 @@ function committed(
 }
 
 describe('CSR-2 live viewer-relative status projection', () => {
+  it.each([
+    [1, 1500],
+    [2, 2000],
+    [3, 2500],
+  ])(
+    'derives height %i rail effects with %i Evasion basis points without persistent mutations',
+    (height, evasion) => {
+      const state = elevatedEncounter(PLAYER, height)
+      const before = structuredClone(state)
+      const owner = deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, [
+        PLAYER,
+      ])
+      const projected = { statusState: projectBattleStatusStateForViewer(state, owner) }
+      expect(rowStatuses(projected, PLAYER)).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            statusId: 'terrain-evasion',
+            potencyBasisPoints: evasion,
+            timingState: 'active',
+            presentationDuration: 'while-elevated',
+          }),
+          expect.objectContaining({
+            statusId: 'terrain-defense',
+            potencyBasisPoints: 2000,
+            timingState: 'active',
+            presentationDuration: 'while-elevated',
+          }),
+        ]),
+      )
+      expect(state).toEqual(before)
+      expect(PV1F_COMBAT_CONTENT.statuses.some((status) => status.id.startsWith('terrain-'))).toBe(
+        false,
+      )
+    },
+  )
+
+  it('removes position-derived effects immediately on leaving elevated terrain and preserves historical policy', () => {
+    const state = elevatedEncounter(PLAIN_ENEMY, 2)
+    const spectator = createSpectatorBattleViewerEntitlement()
+    const project = (snapshot: typeof state) =>
+      rowStatuses(
+        { statusState: projectBattleStatusStateForViewer(snapshot, spectator) },
+        PLAIN_ENEMY,
+      ).filter((status) => status.statusId.startsWith('terrain-'))
+    expect(project(state)).toHaveLength(2)
+    const exited = {
+      ...state,
+      tactical: {
+        ...state.tactical,
+        tiles: [
+          ...state.tactical.tiles,
+          { position: { x: 4, y: 0 }, elevation: 0, terrainId: 'open' },
+        ],
+        width: 5,
+        placements: state.tactical.placements.map((row) =>
+          row.combatantId === PLAIN_ENEMY ? { ...row, position: { x: 4, y: 0 } } : row,
+        ),
+      },
+    }
+    expect(project(exited)).toEqual([])
+    const historical = { ...state }
+    delete historical.statBalancePolicyVersion
+    expect(project(historical)).toEqual([])
+  })
+
+  it('keeps allied elevated positives visible while Covert hides them from opponents and spectators', () => {
+    const state = elevatedEncounter(ALLY, 3)
+    const ids = (viewer: ReturnType<typeof createSpectatorBattleViewerEntitlement>) =>
+      rowStatuses({ statusState: projectBattleStatusStateForViewer(state, viewer) }, ALLY).map(
+        (status) => status.statusId,
+      )
+    expect(
+      ids(deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, [PLAYER])),
+    ).toEqual(expect.arrayContaining(['terrain-evasion', 'terrain-defense']))
+    for (const viewer of [
+      deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, [ENEMY]),
+      createSpectatorBattleViewerEntitlement(),
+    ]) {
+      expect(ids(viewer)).toContain('terrain-defense')
+      expect(ids(viewer)).not.toContain('terrain-evasion')
+    }
+  })
+
+  it('carries viewer-only terrain rows through the canonical committed-session projection', () => {
+    const state = elevatedEncounter(ALLY, 2)
+    const before = structuredClone(state)
+    const own = projectCommittedBattleSession(committed(state), [PLAYER]).snapshot
+    expect(
+      rowStatuses(own, ALLY).filter((status) => status.statusId.startsWith('terrain-')),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          statusId: 'terrain-evasion',
+          presentationDuration: 'while-elevated',
+        }),
+        expect.objectContaining({
+          statusId: 'terrain-defense',
+          presentationDuration: 'while-elevated',
+        }),
+      ]),
+    )
+    const opponent = projectCommittedBattleSession(committed(state), [ENEMY]).snapshot
+    expect(
+      rowStatuses(opponent, ALLY)
+        .filter((status) => status.statusId.startsWith('terrain-'))
+        .map((status) => status.statusId),
+    ).toEqual(['terrain-defense'])
+    expect(state).toEqual(before)
+    expect(own.tactical.battle).not.toHaveProperty('rng')
+  })
+
+  it('omits elevated effects for dead or unplaced combatants', () => {
+    const state = elevatedEncounter(PLAIN_ENEMY, 3)
+    const viewer = createSpectatorBattleViewerEntitlement()
+    const dead = {
+      ...state,
+      tactical: {
+        ...state.tactical,
+        battle: {
+          ...state.tactical.battle,
+          combatants: state.tactical.battle.combatants.map((row) =>
+            row.id === PLAIN_ENEMY ? { ...row, hp: 0 } : row,
+          ),
+        },
+      },
+    }
+    const unplaced = {
+      ...state,
+      tactical: {
+        ...state.tactical,
+        placements: state.tactical.placements.filter((row) => row.combatantId !== PLAIN_ENEMY),
+      },
+    }
+    for (const snapshot of [dead, unplaced])
+      expect(
+        rowStatuses(
+          { statusState: projectBattleStatusStateForViewer(snapshot, viewer) },
+          PLAIN_ENEMY,
+        ).some((status) => status.statusId.startsWith('terrain-')),
+      ).toBe(false)
+  })
+
   it('preserves Covert privacy after a current Copy transfers allied beneficial tags', () => {
     const before = encounter()
     before.copyPolicyVersion = 1
@@ -378,6 +520,36 @@ describe('CSR-2 live viewer-relative status projection', () => {
     expect(authoritative.effectState).toEqual(before)
   })
 })
+
+function elevatedEncounter(combatantId: string, elevation: number) {
+  const state = encounter() as StatDrivenCombatEncounterState & { statBalancePolicyVersion?: 1 }
+  state.statBalancePolicyVersion = 1
+  state.statBridge = {
+    schemaVersion: 4,
+    rulesVersion: 4,
+    combatants: state.statBridge.combatants.map((profile) => ({
+      ...profile,
+      provenance: { ...profile.provenance, sourceRulesVersion: 4 },
+      physicalPower: 120,
+      mysticPower: 120,
+      level: 1,
+      criticalChance: 1500,
+      statusResistance: 1000,
+    })),
+  }
+  const position = state.tactical.placements.find(
+    (row) => row.combatantId === combatantId,
+  )!.position
+  state.tactical = {
+    ...state.tactical,
+    tiles: state.tactical.tiles.map((tile) =>
+      tile.position.x === position.x && tile.position.y === position.y
+        ? { ...tile, elevation }
+        : tile,
+    ),
+  }
+  return state
+}
 
 it('shows pending icons without exposing queued effect definitions', () => {
   const state = encounter()

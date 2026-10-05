@@ -6,6 +6,7 @@ import { BattleInfoPopover } from './battle-info-popover'
 import { describeBattleEffect } from './battle-effect-identity'
 import { statusDamageMultiplierBasisPoints } from '../../lib/status-potency-presentation'
 import styles from './battle-combatant-effects.module.css'
+import type { BattlePresentedStatus } from '../../lib/battle/battle-elevation-effects'
 
 function effectDefinition(effect: CombatStatusInstance) {
   return PHASE4_STATUSES.find(
@@ -61,7 +62,7 @@ export function BattleCombatantEffects({
   compact = false,
 }: {
   name: string
-  statuses: readonly CombatStatusInstance[]
+  statuses: readonly BattlePresentedStatus[]
   compact?: boolean
 }) {
   const effects = aggregateBattleStatusStacks(statuses)

@@ -19,6 +19,37 @@ function render(statusId?: string, stacks = 1) {
   return renderToStaticMarkup(<BattleCombatantEffects name="Archer" statuses={statuses} />)
 }
 describe('combatant effect presentation', () => {
+  it.each([1500, 2000, 2500])(
+    'explains position-derived elevation effects with %i Evasion and no turn counter',
+    (potencyBasisPoints) => {
+      const statuses = [
+        { statusId: 'terrain-evasion', potencyBasisPoints },
+        { statusId: 'terrain-defense', potencyBasisPoints: 2000 },
+      ].map((effect) => ({
+        ...effect,
+        statusVersion: 1,
+        stacks: 1,
+        remainingOwnerTurnStarts: 1,
+        sourceCombatantId: 'Archer',
+        timingState: 'active' as const,
+        presentationDuration: 'while-elevated' as const,
+      }))
+      for (const compact of [false, true]) {
+        const markup = renderToStaticMarkup(
+          <BattleCombatantEffects compact={compact} name="Archer" statuses={statuses} />,
+        )
+        expect(markup).toContain(`Evasion +${potencyBasisPoints / 100}%`)
+        expect(markup).toContain('Physical Defense −20%; Mystic Defense −20%')
+        expect(markup).toContain('While on elevated terrain')
+        expect(markup).toContain('cannot be copied or cleansed')
+        expect(markup).not.toContain('data-effect-duration="true"')
+        expect(markup).not.toContain('turn start')
+        expect(markup).toContain('data-tone="positive"')
+        expect(markup).toContain('data-tone="negative"')
+      }
+    },
+  )
+
   it('shows recorded conditional and linked outgoing/incoming potency in shared battle readers', () => {
     for (const compact of [false, true]) {
       const statuses = ['warded', 'reckless'].map((statusId) => ({

@@ -6,7 +6,11 @@ import type {
 } from '@aurevane/db/battle-session'
 import type { CharacterRecord, CharacterRepository } from '@aurevane/db/character'
 import { P2_3_COMBAT_CONTENT, endCombatTurn } from '@aurevane/game-core/combat/actions'
-import { selectCurrentFinalFacing } from '@aurevane/game-core/combat/board'
+import {
+  canEnterElevation,
+  movementTraversalCostAt,
+  selectCurrentFinalFacing,
+} from '@aurevane/game-core/combat/board'
 import { createBattleRngState } from '@aurevane/game-core/combat/battle-state'
 import { createStandardBattlefieldTiles } from '@aurevane/game-core/combat/standard-battlefield'
 import { spawnCombatSummon } from '@aurevane/game-core/combat/combat-summons'
@@ -295,7 +299,7 @@ function createStatefulRepository(
       )!
       const distance = (p: { x: number; y: number }) =>
         Math.abs(p.x - player.position.x) + Math.abs(p.y - player.position.y)
-      if (distance(actor.position) !== 1) return false
+      if (distance(actor.position) < 1) return false
       for (const destination of [
         { x: actor.position.x, y: actor.position.y - 1 },
         { x: actor.position.x + 1, y: actor.position.y },
@@ -325,6 +329,52 @@ function createStatefulRepository(
       state = finishPv1fTurn(state, 'east').state
     },
   }
+}
+
+/** Ignore temporary occupancy for the bounded travel budget, but retain every terrain/Jump gate. */
+function groundApproachDistance(
+  state: StatDrivenCombatEncounterState,
+  actorId: string,
+  enemyPosition: { x: number; y: number },
+): number {
+  const placement = state.tactical.placements.find((row) => row.combatantId === actorId)!
+  const profile = state.tactical.movementProfiles.find(
+    (row) => row.id === placement.movementProfileId,
+  )!
+  const key = (position: { x: number; y: number }) => `${position.x},${position.y}`
+  const tiles = new Map(state.tactical.tiles.map((tile) => [key(tile.position), tile]))
+  const queue = [{ position: placement.position, distance: 0 }]
+  const visited = new Set([key(placement.position)])
+  for (let index = 0; index < queue.length; index++) {
+    const { position, distance } = queue[index]!
+    if (Math.abs(position.x - enemyPosition.x) + Math.abs(position.y - enemyPosition.y) === 1)
+      return distance
+    const tile = tiles.get(key(position))!
+    for (const neighbor of [
+      { x: position.x - 1, y: position.y },
+      { x: position.x + 1, y: position.y },
+      { x: position.x, y: position.y - 1 },
+      { x: position.x, y: position.y + 1 },
+    ]) {
+      const next = tiles.get(key(neighbor))
+      if (
+        !next ||
+        visited.has(key(neighbor)) ||
+        key(neighbor) === key(enemyPosition) ||
+        movementTraversalCostAt(state.tactical, actorId, neighbor) === null ||
+        !canEnterElevation(
+          tile.elevation,
+          next.elevation,
+          profile.maxElevationStep,
+          state.statBalancePolicyVersion,
+        )
+      )
+        continue
+      visited.add(key(neighbor))
+      queue.push({ position: neighbor, distance: distance + 1 })
+    }
+  }
+  throw new Error(`No legal ground route for ${actorId} to the opposing player.`)
 }
 
 describe('P2.6 authoritative Recruit AI turn service', () => {
@@ -395,7 +445,28 @@ describe('P2.6 authoritative Recruit AI turn service', () => {
           }
         }
       }
-      for (let turn = 0; turn < 72; turn++) {
+      const playerSpawn = durable.tactical.placements.find(
+        (row) => row.combatantId === `character:${CHARACTER_ID}`,
+      )!.position
+      const recruitIds = durable.tactical.battle.combatants
+        .filter((unit) => unit.id.startsWith('recruit:'))
+        .map((unit) => unit.id)
+      const initialTravelRounds = Math.max(
+        ...recruitIds.map((id) => {
+          const movement = durable.tactical.battle.combatants.find(
+            (unit) => unit.id === id,
+          )!.baseMovementBudget
+          expect(movement).toBeGreaterThan(0)
+          return Math.ceil(groundApproachDistance(durable, id, playerSpawn) / movement)
+        }),
+      )
+      const approachRoundBudget =
+        initialTravelRounds + durable.tactical.battle.combatants.length * 2
+      for (
+        let turn = 0;
+        turn < approachRoundBudget * durable.tactical.battle.combatants.length;
+        turn++
+      ) {
         if (
           fixture.currentState().tactical.battle.currentTurn?.combatantId ===
           `character:${CHARACTER_ID}`
@@ -416,12 +487,52 @@ describe('P2.6 authoritative Recruit AI turn service', () => {
       if (teams.allyCount > 0) {
         expect([...attacked].sort()).toEqual(aiIds)
       } else {
-        // Four melee slots fit around one surrounded player; the fifth must wait.
-        expect(attacked.size).toBe(4)
+        // Crowded recruits must wait when every reachable ground melee slot is occupied.
+        const crowded = fixture.currentState()
+        const player = crowded.tactical.placements.find(
+          (row) => row.combatantId === `character:${CHARACTER_ID}`,
+        )!
+        const availableMeleeTiles = crowded.tactical.tiles.filter(
+          (tile) =>
+            Math.abs(tile.position.x - player.position.x) +
+              Math.abs(tile.position.y - player.position.y) ===
+              1 &&
+            tile.elevation === 0 &&
+            movementTraversalCostAt(crowded.tactical, aiIds[0]!, tile.position) !== null,
+        )
+        expect(availableMeleeTiles.length).toBeGreaterThan(0)
+        expect(availableMeleeTiles.length).toBeLessThan(aiIds.length)
+        // Raised neighbors cannot be occupied by Jump0 recruits. Saturate actual legal
+        // melee slots instead of assuming every generated player position has four.
+        for (const tile of availableMeleeTiles) {
+          const occupant = crowded.tactical.placements.find(
+            (row) => row.position.x === tile.position.x && row.position.y === tile.position.y,
+          )
+          expect(
+            occupant,
+            `Expected the legal melee slot ${tile.position.x},${tile.position.y} to be occupied`,
+          ).toBeDefined()
+          expect(attacked.has(occupant!.combatantId)).toBe(true)
+        }
+        const slowestMovement = Math.min(
+          ...crowded.tactical.battle.combatants
+            .filter((unit) => aiIds.includes(unit.id))
+            .map((unit) => unit.baseMovementBudget),
+        )
+        expect(slowestMovement).toBeGreaterThan(0)
+        const longestApproach = Math.max(
+          ...aiIds.map((id) => groundApproachDistance(crowded, id, player.position)),
+        )
+        const flankRoundBudget = Math.ceil(longestApproach / slowestMovement) + aiIds.length + 2
         // Open a flank through legal movement on the blocking actor's own turn.
         // The waiting AI must resume pursuit and attack when space becomes available.
         let openedFlank = false
-        for (let turn = 0; turn < 24 && attacked.size < 5; turn++) {
+        for (
+          let turn = 0;
+          turn < flankRoundBudget * crowded.tactical.battle.combatants.length &&
+          attacked.size < aiIds.length;
+          turn++
+        ) {
           const actorId = fixture.currentState().tactical.battle.currentTurn!.combatantId
           if (actorId === `character:${CHARACTER_ID}`) {
             fixture.playPlayerTurn()

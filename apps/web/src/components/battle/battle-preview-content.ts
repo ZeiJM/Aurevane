@@ -309,6 +309,17 @@ function actionPreviewChips(preview: ActionPreview): PreviewChip[] {
     tone: 'chance',
   })
 
+  for (const resistance of preview.targetStatusResistances ?? []) {
+    if (
+      resistance.resistanceChanceBasisPoints > 0 &&
+      resistance.eligibleEffectOrdinals.length > 0 &&
+      preview.affectedCombatantIds.includes(resistance.targetCombatantId)
+    ) {
+      const label = `Debuff resistance ${Math.round(resistance.resistanceChanceBasisPoints / 100)}% on hit`
+      if (!chips.some((chip) => chip.label === label)) chips.push({ label, tone: 'effect' })
+    }
+  }
+
   for (const effect of preview.projectedEffects) {
     const scheduled = scheduledEffectPreviewLabel(effect)
     if (scheduled) {

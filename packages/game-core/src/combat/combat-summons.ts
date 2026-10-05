@@ -256,7 +256,10 @@ export function spawnCombatSummon(
       ...state.statBridge,
       combatants: [
         ...(state.statBridge.combatants as readonly StatDrivenCombatProfileV4[]),
-        summonStatProfile(combatantId, profile),
+        {
+          ...summonStatProfile(combatantId, profile),
+          ...(state.statBalancePolicyVersion === 1 ? { statusResistance: 0 } : {}),
+        },
       ].sort((left, right) => stableCompare(left.combatantId, right.combatantId)),
     },
     statusState: [...state.statusState, { combatantId, statuses: [] }].sort((left, right) =>

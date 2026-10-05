@@ -96,6 +96,8 @@ const viewports = [
   { width: 1536, height: 614 },
   { width: 390, height: 844 },
   { width: 320, height: 568 },
+  { width: 844, height: 390 },
+  { width: 844, height: 400 },
 ]
 const scenarios = [
   ...['victory', 'defeat'].flatMap((result) =>
@@ -209,8 +211,8 @@ try {
       const label = `${scenario.mode}-${scenario.record || 'match'}-${scenario.result}-${viewport.width}x${viewport.height}`
       const page = await browser.newPage({
         viewport,
-        isMobile: viewport.width < 821,
-        hasTouch: viewport.width < 821,
+        isMobile: viewport.width < 821 || viewport.height <= 450,
+        hasTouch: viewport.width < 821 || viewport.height <= 450,
       })
       page.setDefaultTimeout(5000)
       page.on('pageerror', (error) => errors.push(`${label}: ${error.message}`))
@@ -229,6 +231,8 @@ try {
           headline,
         )
         const initial = await readGeometry(overlay)
+        const summary = overlay.getByRole('region', { name: 'Battle result summary', exact: true })
+        const summaryText = (await summary.innerText()).replace(/\s+/g, ' ').trim()
         const review = overlay.getByRole('button', { name: 'Review Battle Log', exact: true })
         const returnButton = overlay.getByRole('button', {
           name: 'Return to Battle Hall',
@@ -287,6 +291,38 @@ try {
         )
         checkFit(await readGeometry(overlay), `${label}-open`, initial.seal)
         await page.screenshot({ path: resolve(output, `${label}.png`), fullPage: true })
+        assert.equal(
+          (await summary.innerText()).replace(/\s+/g, ' ').trim(),
+          summaryText,
+          'Opening the log preserves every result summary field and explanation',
+        )
+        const summaryReading = await summary.evaluate((element) => {
+          const overflow = element.scrollHeight > element.clientHeight + 1
+          element.scrollTop = element.scrollHeight
+          const bounds = element.getBoundingClientRect()
+          const last = element.lastElementChild.getBoundingClientRect()
+          return {
+            overflow,
+            scrolled: element.scrollTop > 0,
+            height: element.clientHeight,
+            finalContentVisible: last.bottom <= bounds.bottom + 1 && last.bottom > bounds.top,
+          }
+        })
+        assert.ok(
+          summaryReading.height >= 52,
+          'Summary reader retains room for complete text lines',
+        )
+        assert.equal(
+          summaryReading.finalContentVisible,
+          true,
+          'Final summary content remains reachable',
+        )
+        if (summaryReading.overflow)
+          assert.equal(summaryReading.scrolled, true, 'Long summary scrolls internally')
+        checkFit(await readGeometry(overlay), `${label}-summary-read`, initial.seal)
+        await summary.evaluate((element) => {
+          element.scrollTop = 0
+        })
         // Exercise real internal log scrolling, with no ancestor movement.
         const scrolled = await log.evaluate((element) => {
           const nodes = [element, ...element.querySelectorAll('*')]

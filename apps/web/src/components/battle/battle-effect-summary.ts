@@ -3,6 +3,10 @@ import { gameplayStatusName } from '../../lib/battle/combat-interaction-presenta
 import { combatStatusDetails } from '@aurevane/game-core/combat/status-content'
 import { PV1F_COMBAT_CONTENT } from '@aurevane/game-core/combat/pv1f-action-economy'
 import { statusDamageMultiplierBasisPoints } from '../../lib/status-potency-presentation'
+import {
+  terrainBattleEffectPresentation,
+  type BattlePresentedStatus,
+} from '../../lib/battle/battle-elevation-effects'
 
 const BASIS_POINTS = 10_000
 
@@ -31,7 +35,8 @@ export type BattleStatusSummaryInput = Pick<
       | 'potencyBasisPoints'
       | 'applicationModifiers'
     >
-  >
+  > &
+  Pick<BattlePresentedStatus, 'presentationDuration'>
 
 function compactPercent(value: number): string {
   const percent = Math.abs(value) / 100
@@ -53,12 +58,22 @@ export function formatIncomingDamageEffect(multiplierBasisPoints: number): strin
   return `${delta > 0 ? '+' : '−'}${compactPercent(delta)}%`
 }
 
-export function statusIsBeneficial(statusId: string): boolean {
+export function statusIsBeneficial(statusId: string, effect?: BattleStatusSummaryInput): boolean {
+  const terrain = effect ? terrainBattleEffectPresentation(effect) : null
+  if (terrain) return terrain.kind === 'Buff'
   return combatStatusDetails(statusId).kind === 'Buff' || statusId.startsWith('buff.')
 }
 
-export function statusLabel(statusId: string): string {
+export function statusLabel(statusId: string, effect?: BattleStatusSummaryInput): string {
+  const terrain = effect ? terrainBattleEffectPresentation(effect) : null
+  if (terrain) return terrain.label
   return gameplayStatusName(statusId)
+}
+
+export function statusDurationLabel(effect: BattleStatusSummaryInput): string {
+  const terrain = terrainBattleEffectPresentation(effect)
+  if (terrain) return terrain.duration
+  return `${effect.remainingOwnerTurnStarts} turn${effect.remainingOwnerTurnStarts === 1 ? '' : 's'} remaining`
 }
 
 export function formatStatusStackCount(statusId: string, stacks: number): string {
@@ -79,6 +94,7 @@ export function aggregateBattleStatusStacks<T extends BattleStatusSummaryInput>(
       status.timingState ?? 'active',
       status.activationRound,
       status.durationScope,
+      status.presentationDuration,
       status.remainingRoundBoundaries,
       status.remainingOwnerTurnEnds ?? status.remainingOwnerTurnStarts,
       status.sourceScopedMark ? status.sourceCombatantId : undefined,

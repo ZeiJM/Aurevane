@@ -171,6 +171,28 @@ function spawn(state = encounter(), summon = summonProfile()) {
 }
 
 describe('Combat v5.1 summon runtime state', () => {
+  it('preserves the new stat policy with an explicit zero-resistance summon profile', () => {
+    const base = encounter()
+    const current = {
+      ...base,
+      statBalancePolicyVersion: 1 as const,
+      statBridge: {
+        ...base.statBridge,
+        combatants: base.statBridge.combatants.map((row) => ({ ...row, statusResistance: 1000 })),
+      },
+    }
+    const spawned = spawn(current)
+    expect(spawned.state.statBalancePolicyVersion).toBe(1)
+    expect(validateStatDrivenCombatEncounterState(spawned.state)).toEqual([])
+    expect(
+      spawned.state.statBridge.combatants.find(
+        (row) => row.combatantId !== 'player' && row.combatantId !== 'enemy',
+      )?.statusResistance,
+    ).toBe(0)
+    const restored = JSON.parse(JSON.stringify(spawned.state))
+    expect(validateStatDrivenCombatEncounterState(restored)).toEqual([])
+  })
+
   it('atomically spawns a friendly summon on empty ground without changing current-round initiative', () => {
     const state = encounter()
     const beforeOrder = [...state.tactical.battle.initiativeOrder]

@@ -1,3 +1,4 @@
+import type { CombatResistedEffectOrdinals } from './combat-status-resistance'
 import { attachCombatStatusCopyProvenance } from './combat-status-copy'
 import { combatEffectTimingMode, combatEffectTimingTag } from './combat-effect-timing'
 import type {
@@ -57,11 +58,16 @@ export function attachCombatEffectProvenance(
   evaluation: CombatActionEvaluation,
   context: CombatResolutionContext,
   content?: CombatContentCatalog,
+  resistedEffectOrdinalsByTarget?: CombatResistedEffectOrdinals,
 ): CombatEncounterState {
   if (!evaluation.actorId) return after
   const copyEffect = action.effects[0]
   let provenanceAfter = after
-  if (copyEffect?.type === 'copy-statuses' && evaluation.primaryCombatantId) {
+  if (
+    copyEffect?.type === 'copy-statuses' &&
+    evaluation.primaryCombatantId &&
+    !resistedEffectOrdinalsByTarget?.get(evaluation.primaryCombatantId)?.has(0)
+  ) {
     if (!content) throw new TypeError('Copied status provenance requires its pinned catalog.')
     if (
       copyEffect.beneficialEffects === true &&
@@ -151,6 +157,7 @@ export function attachCombatEffectProvenance(
                 : []
       if (kinds.length === 0 || effect.recipient === 'affected-tiles') continue
       for (const targetCombatantId of resolveRecipients(evaluation, effect.recipient)) {
+        if (resistedEffectOrdinalsByTarget?.get(targetCombatantId)?.has(effectOrdinal)) continue
         for (const kind of kinds) {
           const key = JSON.stringify([targetCombatantId, kind])
           const application = independentApplications.get(key) ?? {
@@ -173,7 +180,9 @@ export function attachCombatEffectProvenance(
   const lastBleedClearOrdinalByTarget = new Map<string, number>()
   for (const [effectOrdinal, effect] of action.effects.entries()) {
     if (effect.type !== 'bleed' && effect.type !== 'remove-status') continue
-    const recipients = resolveRecipients(evaluation, effect.recipient)
+    const recipients = resolveRecipients(evaluation, effect.recipient).filter(
+      (id) => !resistedEffectOrdinalsByTarget?.get(id)?.has(effectOrdinal),
+    )
     if (effect.type === 'remove-status') {
       if (!effect.statusIds.includes('bleed')) continue
       for (const targetCombatantId of recipients) {
@@ -198,6 +207,7 @@ export function attachCombatEffectProvenance(
     }
 
     for (const targetCombatantId of resolveRecipients(evaluation, effect.recipient)) {
+      if (resistedEffectOrdinalsByTarget?.get(targetCombatantId)?.has(effectOrdinal)) continue
       const provenance = provenanceFor(targetCombatantId, effectOrdinal)
 
       if (effect.type === 'apply-status') {

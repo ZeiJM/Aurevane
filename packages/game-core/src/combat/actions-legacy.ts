@@ -1,3 +1,8 @@
+import { terrainAdjustedDefense } from './combat-stat-balance'
+import type {
+  CombatStatusResistanceResolvedEvent,
+  CombatResistedEffectOrdinals,
+} from './combat-status-resistance'
 import { applyCommittedAbsorbRecovery } from './combat-absorb-recovery'
 import { combatStatusApplications } from './combat-status-applications'
 import { applyCommittedReflect } from './combat-reflect'
@@ -128,6 +133,9 @@ import {
   type BattleState,
 } from './battle-state'
 import {
+  canEnterElevation,
+  getMovementProfile,
+  movementTraversalCostAt,
   getLivingOccupantId,
   classifyFacingRelation,
   createTacticalBattleState,
@@ -239,7 +247,7 @@ export type CombatEffectDefinition =
     }
 
 export interface CombatEffectOrigin {
-  family: 'skill' | 'essence' | 'resonance' | 'basic'
+  family: 'skill' | 'essence' | 'resonance' | 'basic' | 'ascension' | 'severance'
   contentId: string
   contentVersion: number
 }
@@ -364,6 +372,8 @@ export interface PendingCombatEffect {
 }
 
 export interface CombatEncounterState {
+  /** Omitted historical encounters retain delta Jump and no ordinary debuff resistance. */
+  statBalancePolicyVersion?: 1
   /** New encounters accumulate repeated effects; omitted historical snapshots retain their rules. */
   effectStackingPolicyVersion?: 1
   /** Version 1 copies beneficial active tags; omitted historical battles grant a temporary Skill. */
@@ -391,6 +401,7 @@ export interface CombatEncounterState {
       ward: number
       level?: number
       criticalChance?: number
+      statusResistance?: number
     }[]
   }
   statusState: readonly CombatantStatusState[]
@@ -429,6 +440,8 @@ export interface CombatActionIssue {
 }
 
 export interface CombatEffectProjection {
+  /** Current-policy ordinal links conditional debuff forecasts to their pinned origins. */
+  effectOrdinal?: number
   /** Forecast metadata describes scheduled application, never a committed result. */
   activationRound?: number
   statusId?: string
@@ -458,6 +471,7 @@ export interface CombatActionEvaluation {
 }
 
 export type CombatResolutionEvent = (
+  | CombatStatusResistanceResolvedEvent
   | {
       event: 'persistent_effect_applied'
       actionId: string
@@ -794,7 +808,8 @@ export function evaluateCombatAction(
       !tile ||
       state.tactical.terrains.find((terrain) => terrain.id === tile.terrainId)?.traversalCost ==
         null ||
-      getLivingOccupantId(state.tactical, origin.position) !== null
+      getLivingOccupantId(state.tactical, origin.position) !== null ||
+      !canRewindIntoTile(state, actorId, origin.position)
     ) {
       issues.push({
         code: 'requirement-not-met',
@@ -986,6 +1001,7 @@ export function executeCombatAction(
   ) => CombatResolutionTransition,
   missedCombatantIds?: ReadonlySet<string>,
   criticalEffectOrdinalsByTarget?: ReadonlyMap<string, ReadonlySet<number>>,
+  resistedEffectOrdinalsByTarget?: CombatResistedEffectOrdinals,
 ): CombatResolutionTransition {
   const evaluation = evaluateCombatAction(state, action, selection, content)
   if (!evaluation.legal || !evaluation.actorId) {
@@ -1037,6 +1053,8 @@ export function executeCombatAction(
     content,
     missedCombatantIds,
     criticalEffectOrdinalsByTarget,
+    false,
+    resistedEffectOrdinalsByTarget,
   )
   nextState = applied.state
   events.push(...applied.events)
@@ -1277,7 +1295,12 @@ function applyCombatRoundBoundary(
     if (pending.effect.type !== 'create-terrain' && !recipients.length) continue
     if (pending.effect.type === 'return-to-turn-start') {
       const destination = pending.turnOrigin?.position
-      if (!destination || getLivingOccupantId(nextState.tactical, destination) !== null) continue
+      if (
+        !destination ||
+        getLivingOccupantId(nextState.tactical, destination) !== null ||
+        !canRewindIntoTile(nextState, pending.actorId, destination)
+      )
+        continue
     }
     const policy = nextState.effectTimingPolicy
     const sourceBefore = pending.copySource
@@ -1524,6 +1547,29 @@ export function validateCombatEncounterState(
       field: 'effectStackingPolicyVersion',
       message: 'Round initiative policy must match its encounter.',
     })
+  if (state.statBalancePolicyVersion !== undefined && state.statBalancePolicyVersion !== 1)
+    issues.push({
+      field: 'statBalancePolicyVersion',
+      message: 'Invalid pinned stat balance policy.',
+    })
+  if (state.statBalancePolicyVersion === 1 && state.statBridge?.rulesVersion !== 4)
+    issues.push({
+      field: 'statBridge',
+      message: 'Current stat balance requires bridge rules version 4.',
+    })
+  for (const unit of state.tactical.battle.combatants) {
+    const profile = state.statBridge?.combatants.find((row) => row.combatantId === unit.id)
+    const resistance = profile?.statusResistance
+    if (
+      (state.statBalancePolicyVersion === 1 && resistance === undefined) ||
+      (resistance !== undefined &&
+        (!Number.isSafeInteger(resistance) || resistance < 0 || resistance > 1500))
+    )
+      issues.push({
+        field: `statBridge.${unit.id}.statusResistance`,
+        message: 'Invalid pinned Status Resistance.',
+      })
+  }
   if (state.copyPolicyVersion !== undefined && state.copyPolicyVersion !== 1)
     issues.push({ field: 'copyPolicyVersion', message: 'Invalid pinned Copy policy.' })
   if (state.effectStackingPolicyVersion !== undefined && state.effectStackingPolicyVersion !== 1)
@@ -1635,7 +1681,12 @@ export function validateCombatEncounterState(
               id: pending.actionId,
               target: {
                 ...P2_3_GUARD_ACTION.target,
-                kind: pending.effect.type === 'create-terrain' ? 'ground-tile' : 'unit',
+                kind:
+                  pending.effect.type === 'create-terrain'
+                    ? 'ground-tile'
+                    : pending.effect.type === 'return-to-turn-start'
+                      ? 'self'
+                      : 'unit',
               },
               effects: [
                 pending.effect.type === 'copy-statuses'
@@ -2160,6 +2211,7 @@ function resolveActionEffects(
   missedCombatantIds?: ReadonlySet<string>,
   criticalEffectOrdinalsByTarget?: ReadonlyMap<string, ReadonlySet<number>>,
   resolvingPending = false,
+  resistedEffectOrdinalsByTarget?: CombatResistedEffectOrdinals,
 ): CombatResolutionTransition & {
   projections: CombatEffectProjection[]
   terrain: CombatTerrainProjection[]
@@ -2183,6 +2235,7 @@ function resolveActionEffects(
   }
   for (const [effectOrdinal, effect] of action.effects.entries()) {
     const firstEvent = events.length
+    const firstProjection = projections.length
     try {
       if (effect.type === 'sensory') {
         throw new TypeError('Sensory must be materialized before legacy effect resolution.')
@@ -2206,7 +2259,11 @@ function resolveActionEffects(
                 affectedCombatantIds,
                 effect.recipient,
               )
-        ).filter((id) => !missedCombatantIds?.has(id))
+        ).filter(
+          (id) =>
+            !missedCombatantIds?.has(id) &&
+            !resistedEffectOrdinalsByTarget?.get(id)?.has(effectOrdinal),
+        )
         if (!recipientIds.length && effect.type !== 'create-terrain') continue
         nextState = {
           ...nextState,
@@ -2347,7 +2404,11 @@ function resolveActionEffects(
         effect.recipient,
       )) {
         // Engine-owned target roll gates every unit effect, not just damage packets.
-        if (missedCombatantIds?.has(recipientId)) continue
+        if (
+          missedCombatantIds?.has(recipientId) ||
+          resistedEffectOrdinalsByTarget?.get(recipientId)?.has(effectOrdinal)
+        )
+          continue
         if (effect.type === 'copy-statuses') {
           const copied = applyCombatStatusCopies(
             nextState,
@@ -2511,6 +2572,9 @@ function resolveActionEffects(
             ),
           }
       }
+      if (state.statBalancePolicyVersion === 1)
+        for (let index = firstProjection; index < projections.length; index++)
+          projections[index] = { ...projections[index]!, effectOrdinal }
       const origin = action.effectOrigins?.[effectOrdinal]
       if (origin)
         for (let index = firstEvent; index < events.length; index += 1)
@@ -2798,6 +2862,27 @@ function applyEffect(
   }
 }
 
+/** The versioned tile-entry gate also runs at delayed activation against live placement. */
+function canRewindIntoTile(
+  state: CombatEncounterState,
+  actorId: string,
+  destination: GridPosition,
+): boolean {
+  if (state.statBalancePolicyVersion !== 1) return true
+  const placement = getPlacement(state.tactical, actorId)
+  const tile = state.tactical.tiles.find((entry) => samePosition(entry.position, destination))
+  return Boolean(
+    tile &&
+    movementTraversalCostAt(state.tactical, actorId, destination) !== null &&
+    canEnterElevation(
+      getTile(state.tactical, placement.position).elevation,
+      tile.elevation,
+      getMovementProfile(state.tactical, placement.movementProfileId).maxElevationStep,
+      state.statBalancePolicyVersion,
+    ),
+  )
+}
+
 function rewindToTurnOrigin(state: CombatEncounterState, actorId: string): CombatEncounterState {
   return {
     ...state,
@@ -2845,7 +2930,7 @@ function resolveDamageAmount(
     ]
     if (defense === undefined)
       throw new TypeError('Stat-driven Skill damage requires recipient defenses.')
-    amount = mitigateDamageByDefense(amount, defense)
+    amount = mitigateDamageByDefense(amount, terrainAdjustedDefense(state, recipientId, defense))
   }
 
   if (critical && amount > 0) {
@@ -3474,7 +3559,9 @@ function validateCombatActionDefinition(
     for (const origin of action.effectOrigins) {
       if (!origin) continue
       if (
-        !['skill', 'essence', 'resonance', 'basic'].includes(origin.family) ||
+        !['skill', 'essence', 'resonance', 'basic', 'ascension', 'severance'].includes(
+          origin.family,
+        ) ||
         typeof origin.contentId !== 'string' ||
         !origin.contentId.trim() ||
         origin.contentId !== origin.contentId.trim() ||
@@ -3975,8 +4062,12 @@ function applyDisplacement(
     else if (terrainCost == null) stopReason = 'blocked-terrain'
     else if (getLivingOccupantId(nextState.tactical, to) !== null) stopReason = 'occupied-tile'
     else if (
-      Math.abs(tile.elevation - getTile(nextState.tactical, current).elevation) >
-      profile.maxElevationStep
+      !canEnterElevation(
+        getTile(nextState.tactical, current).elevation,
+        tile.elevation,
+        profile.maxElevationStep,
+        nextState.statBalancePolicyVersion,
+      )
     )
       stopReason = 'elevation-step-too-high'
 

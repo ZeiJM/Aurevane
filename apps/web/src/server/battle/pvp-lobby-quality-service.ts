@@ -27,7 +27,7 @@ import {
 import { createPvpQualityResources } from '@aurevane/game-core/combat/pvp-quality'
 import {
   createCharacterDerivedCombatProfile,
-  createStatDrivenCombatEncounterState,
+  createStatBalancedCombatEncounterState,
 } from '@aurevane/game-core/combat/stat-driven-combat'
 import { AurevaneError } from '@aurevane/game-core/errors'
 import { createStandardBattlefieldTiles } from '@aurevane/game-core/combat/standard-battlefield'
@@ -53,7 +53,6 @@ import { getPvpLobby, type PvpLobbyMemberView } from './pvp-lobby-service'
 
 const PVP_RULES_VERSION = 2
 const PVP_CONTENT_VERSION = 2
-const PVP_BASE_MOVEMENT_UNITS = 10
 
 export interface PvpLobbyMapSettings {
   mapSize: PvpMapSize
@@ -239,7 +238,7 @@ function createPvpEncounter(
       id: combatantId,
       teamId: `team:${member.teamIndex}`,
       initiative: derived.stats.initiative.value,
-      baseMovementBudget: PVP_BASE_MOVEMENT_UNITS,
+      baseMovementBudget: derived.stats.movement.value,
       hp: derived.stats.maxHp.value,
       maxHp: derived.stats.maxHp.value,
       mp: derived.stats.maxMp.value,
@@ -262,7 +261,7 @@ function createPvpEncounter(
   ).state
 
   const encounter = preparePv1fTurnEconomy(
-    createStatDrivenCombatEncounterState(
+    createStatBalancedCombatEncounterState(
       createCombatEncounterState(
         createTacticalBattleState({
           battle,
