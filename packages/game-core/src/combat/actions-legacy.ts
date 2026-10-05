@@ -9,7 +9,6 @@ import { combatStatusApplications } from './combat-status-applications'
 import { applyCommittedReflect } from './combat-reflect'
 import { filterBlockedCovertApplication } from './covert-sensory-revealed'
 import { validateSummonProfileDefinition } from './summon-content'
-import type { CombatSkillCopiedEvent } from './combat-skill-copy'
 import {
   spawnCombatSummon,
   type SpawnCombatSummonInput,
@@ -191,14 +190,8 @@ export interface FacingDamageModifiers {
   rear: number
 }
 
-export interface CombatSkillCopyEffect {
-  type: 'copy'
-  recipient: 'primary-unit'
-}
-
 export type CombatEffectDefinition =
   | CombatStatusCopyEffect
-  | CombatSkillCopyEffect
   | {
       type: 'damage'
       recipient: CombatEffectRecipient
@@ -495,7 +488,6 @@ export type CombatResolutionEvent = (
     }
   | CombatSkillAccuracyResolvedEvent
   | CombatCriticalResolvedEvent
-  | CombatSkillCopiedEvent
   | CombatSummonEvent
   | TacticalBattleEvent
   | CombatTerrainEvent
@@ -2251,9 +2243,6 @@ function resolveActionEffects(
       if (effect.type === 'sensory') {
         throw new TypeError('Sensory must be materialized before legacy effect resolution.')
       }
-      if (effect.type === 'copy') {
-        throw new TypeError('Copy must be materialized before legacy effect resolution.')
-      }
       if (
         !resolvingPending &&
         combatEffectTimingMode(
@@ -2626,7 +2615,7 @@ function applyEffect(
   actionId: string,
   effect: Exclude<
     CombatEffectDefinition,
-    { type: 'create-terrain' | 'copy-statuses' | 'copy' | 'sensory' }
+    { type: 'create-terrain' | 'copy-statuses' | 'sensory' }
   >,
   content: CombatContentCatalog,
   stormRecipients: Set<string>,
@@ -3636,17 +3625,10 @@ function validateCombatActionDefinition(
         'burn',
         'barrier-change',
         'copy-statuses',
-        'copy',
       ],
       'effect type',
     )
     if (effect.type === 'create-terrain') {
-      continue
-    }
-    if (effect.type === 'copy') {
-      if (effect.recipient !== 'primary-unit') {
-        throw new TypeError('Copy requires the selected primary unit.')
-      }
       continue
     }
     if (effect.type === 'displace') {
