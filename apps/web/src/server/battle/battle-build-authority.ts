@@ -24,7 +24,6 @@ import {
   type MatureSkillCombatContext,
   type MatureSkillDefinition,
 } from '@aurevane/game-core/combat/mature-skills'
-import type { CombatTemporarySkillGrant } from '@aurevane/game-core/combat/combat-effect-state'
 import {
   resonanceSnapshotReference,
   resolveResonanceForPair,
@@ -583,29 +582,6 @@ export async function resolveBattleDisciplineSkillDefinitions(
     definitions.push(definition)
   }
   return definitions
-}
-
-export async function resolveBattleTemporarySkillDefinition(
-  authority: BattleBuildAuthoritySnapshot | null | undefined,
-  grant: CombatTemporarySkillGrant,
-  resolver?: CombatContentResolver,
-): Promise<MatureSkillDefinition | null> {
-  const sourceBuild = battleBuildAuthorityForCombatant(authority, grant.sourceCombatantId)
-  const sourceReference = sourceBuild?.disciplineSkills.find(
-    (reference) =>
-      reference.skillId === grant.skillId && reference.contentVersion === grant.contentVersion,
-  )
-  if (!sourceReference) return null
-
-  const definition = await resolvePinnedBattleSkillDefinition(
-    authority,
-    grant.skillId,
-    grant.contentVersion,
-    resolver,
-  )
-  if (!definition || definition.sourceDisciplineId !== sourceReference.sourceDisciplineId)
-    return null
-  return definition
 }
 
 export function resolveBattleEssenceDefinition(
