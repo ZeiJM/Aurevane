@@ -26,7 +26,7 @@ export type CombatTerrainEvent =
 
 export const COMBAT_TERRAIN_OVERLAY_DETAILS = {
   frozen: {
-    name: 'Frozen',
+    name: 'Frozen Ground',
     description:
       'Adds 10 AP per entered tile for either team. Airborne ignores this surcharge; Movement allowance is unchanged.',
     additionalApPerTile: 10,
