@@ -76,9 +76,6 @@ export function resonanceSupplementalRows(
   if (!definition) return []
   const mechanics = normalizedResonanceMechanics(definition)
   return [
-    [
-      'Result details',
-      mechanics.resultEffects.map((effect) => previewEffect(effect).explanation),
-    ],
+    ['Result details', mechanics.resultEffects.map((effect) => previewEffect(effect).explanation)],
   ]
 }
