@@ -32,7 +32,7 @@ function recipient(effect: MatureSkillEffectDefinition): string {
 
 export function skillEffectDescription(
   effect: MatureSkillEffectDefinition,
-  copyPolicyVersion: number | null = 1,
+  _copyPolicyVersion: number | null = 1,
 ): string {
   const target = recipient(effect)
   switch (effect.type) {
@@ -76,10 +76,6 @@ export function skillEffectDescription(
       return effect.mode === 'amplify'
         ? 'Copy eligible positive active statuses from the selected unit onto yourself. The selected unit keeps its statuses; remaining durations are not restarted.'
         : 'Copy eligible negative active statuses from yourself onto the selected unit. You keep the original statuses; remaining durations are not restarted.'
-    case 'copy':
-      return copyPolicyVersion === null
-        ? 'Copy one random eligible regular battle Skill from the selected unit for the rest of this battle. The copied Skill keeps its original MP, targeting, effects and requirements, but costs half AP rounded up.'
-        : 'Copy the selected unit’s active beneficial effect tags onto yourself. The selected unit keeps its effects; remaining durations are not restarted.'
     case 'sensory':
       return `Attempt Reveal on ${target}. On a successful hit against Covert, remove eligible positive statuses and Covert, then apply Revealed for ${effect.revealedDurationOwnerTurnStarts} owner-turn starts. Otherwise Reveal has no effect.`
     case 'remove-status': {
@@ -167,14 +163,14 @@ export function skillParameterRows(
     cooldownOwnerTurns?: number | null
   } = skill,
   timingPolicy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
-  copyPolicyVersion: number | null = 1,
+  _copyPolicyVersion: number | null = 1,
 ): readonly (readonly [string, string])[] {
   return skillInformationRows({
     'Skill Type': skillParameterTypeDescription(skill),
     Cost: skillCostDescription({ ...skill, ...costs }),
     Cooldown: skillCooldownDescription(skill, costs.cooldownOwnerTurns),
     Requirements: skillRequirementsSummary(skill),
-    Effects: skillEffectsSummary(skill, timingPolicy, copyPolicyVersion),
+    Effects: skillEffectsSummary(skill, timingPolicy),
     Range: skillCompactRangeDescription(skill),
     Target: skillTargetRecipientDescription(skill),
     'Target Method': skillTargetMethodDescription(skill),
@@ -223,9 +219,9 @@ function compactMagnitude(effect: MatureSkillEffectDefinition): string | null {
 export function compactSkillEffectSummaryParts(
   effect: MatureSkillEffectDefinition,
   timingPolicy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
-  copyPolicyVersion: number | null = 1,
+  _copyPolicyVersion: number | null = 1,
 ): CompactSkillEffectSummaryParts {
-  const preview = previewEffect(effect, copyPolicyVersion)
+  const preview = previewEffect(effect)
   const timing = skillEffectInstantTiming(effect, timingPolicy)
   return {
     label: preview.label,
@@ -238,12 +234,10 @@ export function compactSkillEffectSummaryParts(
 function compactEffectSummary(
   effect: MatureSkillEffectDefinition,
   timingPolicy: SkillEffectTimingPolicy,
-  copyPolicyVersion: number | null,
 ): string {
   const { label, magnitude, duration, timing } = compactSkillEffectSummaryParts(
     effect,
     timingPolicy,
-    copyPolicyVersion,
   )
   return [
     label,
@@ -258,19 +252,19 @@ function compactEffectSummary(
 export function skillEffectSummaries(
   skill: Pick<MatureSkillDefinition, 'effects'>,
   timingPolicy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
-  copyPolicyVersion: number | null = 1,
+  _copyPolicyVersion: number | null = 1,
 ): readonly string[] {
   return skill.effects.map((effect) =>
-    compactEffectSummary(effect, timingPolicy, copyPolicyVersion),
+    compactEffectSummary(effect, timingPolicy),
   )
 }
 
 export function skillEffectsSummary<Skill extends Pick<MatureSkillDefinition, 'effects'>>(
   skill: Skill,
   timingPolicy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
-  copyPolicyVersion: number | null = 1,
+  _copyPolicyVersion: number | null = 1,
 ): string {
-  return skillEffectSummaries(skill, timingPolicy, copyPolicyVersion).join(', ') || 'N/A'
+  return skillEffectSummaries(skill, timingPolicy).join(', ') || 'N/A'
 }
 
 export function skillRequirementsSummary(
