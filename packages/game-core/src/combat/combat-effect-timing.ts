@@ -72,10 +72,7 @@ export function combatEffectTimingMode(
 }
 /** Presentation only: pending payloads never enter engine status rows. */
 export function pendingCombatStatusRows(
-  state: Pick<
-    CombatEncounterState,
-    'pendingEffects' | 'pendingSummons' | 'pendingSkillGrants' | 'tactical'
-  >,
+  state: Pick<CombatEncounterState, 'pendingEffects' | 'pendingSummons' | 'tactical'>,
 ): { combatantId: string; status: CombatStatusInstance }[] {
   const pendingRows = (state.pendingEffects ?? []).flatMap((pending) => {
     const effect = pending.effect
@@ -150,19 +147,6 @@ export function pendingCombatStatusRows(
   })
   return [
     ...pendingRows,
-    ...(state.pendingSkillGrants ?? []).map((row) => ({
-      combatantId: row.grant.combatantId,
-      status: {
-        statusId: 'copy',
-        durationScope: 'battle' as const,
-        statusVersion: 1,
-        stacks: 1,
-        sourceCombatantId: row.grant.sourceCombatantId,
-        remainingOwnerTurnStarts: 1,
-        activationRound: row.activationRound,
-        timingState: 'pending' as const,
-      },
-    })),
     ...(state.pendingSummons ?? []).map((row) => ({
       combatantId: row.input.ownerCombatantId,
       status: {
