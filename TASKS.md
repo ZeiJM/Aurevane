@@ -1,6 +1,6 @@
 # AUREVANE — Active Task Ledger
 
-## Resource pools, twelve-round duels, positional accuracy and Items — 2026-10-05 (production release in progress)
+## Resource pools, twelve-round duels, positional accuracy and Items — 2026-10-05 (released)
 
 Owner requests HP500/650 andMP400/500 at Core40/60, twelve-round Level1001v1 balance using ordinary equipped Skills/AP, front−5/side+5/rear+10 percentage-point hit chance, and locked Items before Inspect with defaultP and unchanged artwork sizes. Exact scope: `docs/superpowers/plans/2026-10-05-duel-resources-facing-items-spec.md`.
 
@@ -9,9 +9,11 @@ Owner requests HP500/650 andMP400/500 at Core40/60, twelve-round Level1001v1 bal
 - [x] Implement pinned duel policy and shared preview/AI/commit direction/damage arithmetic.
 - [x] Add shared locked Items slot and safe custom-binding migration.
 - [x] Complete exact-candidate full quality and browser geometry/control checks.
-- [ ] Merge and perform one authorized Production release, verify source/alias/public smoke/logs and restore deployment lock.
+- [x] Merge and perform one authorized Production release, verify source/alias/public smoke/logs and restore deployment lock.
 
-All eleven workflows pass exact candidate `add69fa3bb28a34da1e22d683eba0acab9d15415`, tree `b75f1f754b2986cc37e10d61cdb650a11222149a`. PR #833 merges the identical tested tree as `6b67389fab84d31b82854ab943063413b448bd27`. Full quality passes4,019 Vitest tests, seven Node checks, lint/types/builds and database authority. Browser passes four ally previews, palette,28 elevation/privacy,54 completion,28 command/input,6 mail recovery,3 training,71 focused,317 full Chromium and10 Edge cases. Layout passes native mobile Profile swiping,110 scenarios and the directory check; Desktop interactions48 and Buildcraft24. Independent review has no remaining findings, actual caption/Controls captures fit, and existing skips remain unchanged. This configuration/docs-only step enables the one Owner-authorized Production release; exact READY/source/alias/public smoke/log and restored-lock receipts remain pending. No migration or hosted Auth/content/account changes.
+All eleven workflows pass exact candidate `add69fa3bb28a34da1e22d683eba0acab9d15415`, tree `b75f1f754b2986cc37e10d61cdb650a11222149a`. PR #833 merges the identical tested tree as `6b67389fab84d31b82854ab943063413b448bd27`. Full quality passes4,019 Vitest tests, seven Node checks, lint/types/builds and database authority. Browser passes four ally previews, palette,28 elevation/privacy,54 completion,28 command/input,6 mail recovery,3 training,71 focused,317 full Chromium and10 Edge cases. Layout passes native mobile Profile swiping,110 scenarios and the directory check; Desktop interactions48 and Buildcraft24. Independent review has no remaining findings, actual caption/Controls captures fit, and existing skips remain unchanged.
+
+Configuration/docs-only PR #834 releases source `6852e4507e39c71b373ab530c2a5fc77ef1920a1` as `dpl_F3tRVQcQzxXEC5m7RoaPNW9H5QmK`, READY at `2026-10-05T15:36:21.674Z`. https://aurevane.vercel.app/ points to that exact source. All eight public checks pass, including the live Manual500/650HP and400/500MP text and VS artwork. The deployment-scoped warning/error/fatal scan through `2026-10-05T15:38:44.731Z` returns no matching logs. This configuration/docs-only closeout restores the full deployment lock without another application release; application bytes equal the tested candidate. No migration, hosted Auth/content setting or production-account changes. Earlier approved changes remain included. Authenticated gameplay/mail pass in disposable CI; authenticated Production gameplay and Owner visual acceptance remain separate outcomes. Evidence: `docs/superpowers/verification/2026-10-05-duel-resources-facing-items.md`.
 
 
 ## Stat balance, elevation, resistance and shared reader corrections — 2026-10-05 (released)
