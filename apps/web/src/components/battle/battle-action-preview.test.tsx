@@ -61,6 +61,28 @@ describe('current selection forecast', () => {
     expect(markup).toContain('Hit 69% · On hit 17 dmg')
   })
 
+  it('replaces the old ready notice with the valid forecast but retains blocked-action explanations', () => {
+    const ready = renderToStaticMarkup(
+      <BattleActionPreview preview={attack} pending={false} notice="Attack ready · 30 AP" />,
+    )
+    expect(ready).not.toContain('30 AP')
+    expect(ready).toContain('Hit 69% · On hit 17 dmg')
+    const blocked = renderToStaticMarkup(
+      <BattleActionPreview
+        preview={{
+          ...attack,
+          legal: false,
+          issues: [{ code: 'out-of-range', message: 'Target is out of range.' }],
+        }}
+        pending={false}
+        notice="Target is out of range."
+      />,
+    )
+    expect(blocked).toContain('Target is out of range.')
+    expect(blocked).toContain('Blocked')
+    expect(blocked).not.toContain('17 dmg')
+  })
+
   it('keeps authoritative status lifetime, recipient interactions and selected terrain without a popup', () => {
     const markup = renderToStaticMarkup(
       <BattleActionPreview

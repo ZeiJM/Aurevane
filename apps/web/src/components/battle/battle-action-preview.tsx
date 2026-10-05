@@ -235,7 +235,7 @@ export function BattleActionPreview({
       aria-label="Action preview"
       aria-live="polite"
     >
-      {preview && notice ? <span className={styles.notice}>{notice}</span> : null}
+      {preview && !preview.legal && notice ? <span className={styles.notice}>{notice}</span> : null}
       <div
         className={styles.forecast}
         data-battle-preview-lane="outcomes"
