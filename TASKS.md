@@ -13,7 +13,7 @@ Owner clarification: manual End Turn never applies Lowered Guard; the first expi
 - [ ] Complete exact-head CI/browser checks.
 - [ ] Merge verified current-Main-compatible source and perform the standing authorized combined release with bounded Production evidence and full lock restoration.
 
-Evidence: `docs/superpowers/verification/2026-10-05-afk-lowered-guard-and-online-exp.md`. Earlier approved releases remain included; no schema, hosted Auth/content or Production-account changes.
+Evidence: `docs/superpowers/verification/2026-10-05-afk-lowered-guard-and-online-exp.md`. Earlier approved releases remain included. One additive service-only SELECT-column migration aligns clean installs with the existing Production EXP/portrait read contract; browser grants, RLS and write authority remain unchanged. No hosted Auth/content or Production-account changes.
 
 ## Resource pools, twelve-round duels, positional accuracy and Items — 2026-10-05 (released)
 

@@ -1,4 +1,5 @@
 import { mkdir, writeFile } from 'node:fs/promises'
+import { randomUUID } from 'node:crypto'
 import path from 'node:path'
 import { expect, test, type Page, type TestInfo } from '@playwright/test'
 import { createClient } from '@supabase/supabase-js'
@@ -27,7 +28,21 @@ async function enter(page: Page, info: TestInfo) {
       auth: { autoRefreshToken: false, persistSession: false },
     },
   )
-  const { error } = await admin.from('characters').update({ xp: 12345 }).eq('name', characterName)
+  const selected = (await page.context().cookies()).find(
+    (cookie) => cookie.name === 'aurevane_selected_character',
+  )
+  if (!selected) throw new Error('The directory test character is unavailable.')
+  const idempotencyKey = randomUUID()
+  const { error } = await admin.rpc('grant_character_xp_v1', {
+    p_character_id: selected.value,
+    p_idempotency_key: idempotencyKey,
+    p_request_fingerprint: `browser.directory-exp:${idempotencyKey}`,
+    p_authority_key: 'system:browser-directory-exp-proof',
+    p_source_kind: 'system',
+    p_source_id: 'browser.directory-exp-proof',
+    p_reason_tag: 'progression.directory-exp-proof',
+    p_amount: 10,
+  })
   expect(error).toBeNull()
   await page.goto('/game/online')
   await expect(page.getByRole('heading', { name: 'Online Users', exact: true })).toBeVisible()
@@ -70,11 +85,11 @@ test('Adventurers roster preserves browsing and public-profile privacy in the ne
     const response = await page.request.get(url)
     expect(response.ok()).toBe(true)
     const payload = await response.json()
-    expect(payload[key].find((row: { name: string }) => row.name === characterName)?.xp).toBe(12345)
+    expect(payload[key].find((row: { name: string }) => row.name === characterName)?.xp).toBe(10)
   }
   await expect(
     page.getByRole('button').filter({ has: page.locator('strong', { hasText: characterName }) }),
-  ).toContainText('12,345')
+  ).toContainText('10')
   await expect(page.getByRole('combobox', { name: 'Sort', exact: true })).toHaveValue('recent')
   const hero = page.locator('[data-online-users-heading="true"]')
   const showAllButton = hero.getByRole('button', { name: 'Show all characters', exact: true })
