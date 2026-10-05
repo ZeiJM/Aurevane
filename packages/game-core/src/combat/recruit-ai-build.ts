@@ -13,17 +13,12 @@ import {
   resolveMatureSkillVersion,
   type MatureSkillDefinition,
 } from './mature-skills'
-import { copiedSkillCommandId } from './combat-skill-copy'
-import { usesBeneficialCombatCopy } from './combat-status-copy'
 import {
   committedResonanceForecast,
   executePv1fAction,
-  executePv1fCopiedSkill,
   executePv1fMatureSkill,
-  evaluatePv1fCopiedSkill,
   evaluatePv1fMatureSkill,
   readPv1fActionEconomy,
-  type Pv1fMatureSkillCopyContext,
   type Pv1fTransition,
 } from './pv1f-action-economy'
 import {
@@ -47,8 +42,6 @@ interface BuildSkillCandidate {
 
 export interface BuildAwareRecruitAiSkillOptions {
   committedSkills?: readonly MatureSkillDefinition[]
-  copiedSkills?: readonly MatureSkillDefinition[]
-  copyContextsBySource?: Readonly<Record<string, Pv1fMatureSkillCopyContext>>
 }
 
 export function chooseBuildAwareRecruitAiDecision(input: {
@@ -63,27 +56,9 @@ export function chooseBuildAwareRecruitAiDecision(input: {
 
   const committed =
     input.skillOptions?.committedSkills ?? committedMatureSkills(input.state, actorId)
-  const copied = input.skillOptions?.copiedSkills ?? []
-  const skillCandidates = [
-    ...committed.flatMap((definition) =>
-      buildSkillCandidates(
-        input.state,
-        definition,
-        input.profile ?? RECRUIT_STANDARD_PROFILE,
-        false,
-        input.skillOptions?.copyContextsBySource,
-      ),
-    ),
-    ...copied.flatMap((definition) =>
-      buildSkillCandidates(
-        input.state,
-        definition,
-        input.profile ?? RECRUIT_STANDARD_PROFILE,
-        true,
-        input.skillOptions?.copyContextsBySource,
-      ),
-    ),
-  ].sort((left, right) => {
+  const skillCandidates = committed.flatMap((definition) =>
+    buildSkillCandidates(input.state, definition, input.profile ?? RECRUIT_STANDARD_PROFILE),
+  ).sort((left, right) => {
     if (left.utility !== right.utility) return right.utility - left.utility
     return left.stableKey.localeCompare(right.stableKey)
   })
@@ -118,33 +93,11 @@ export function executeBuildAwareRecruitAiAction(
 ): Pv1fTransition {
   const actorId = state.tactical.battle.currentTurn?.combatantId
   if (!actorId) throw new Error('Build-aware Recruit AI action requires an active turn.')
-  const copied = (skillOptions.copiedSkills ?? []).find(
-    (candidate) => copiedSkillCommandId(candidate.id, candidate.contentVersion) === actionId,
-  )
-  if (copied) {
-    const copyContext =
-      copied.effects.some((effect) => effect.type === 'copy') && target.kind === 'unit'
-        ? skillOptions.copyContextsBySource?.[target.combatantId]
-        : undefined
-    return executePv1fCopiedSkill(state, copied, target, 'pve', copyContext)
-  }
-
   const definition = (skillOptions.committedSkills ?? committedMatureSkills(state, actorId)).find(
     (candidate) => candidate.id === actionId,
   )
   if (definition) {
-    const copyContext =
-      definition.effects.some((effect) => effect.type === 'copy') && target.kind === 'unit'
-        ? skillOptions.copyContextsBySource?.[target.combatantId]
-        : undefined
-    return executePv1fMatureSkill(
-      state,
-      definition,
-      target,
-      'pve',
-      copyContext ? { copyContext } : {},
-    )
-  }
+    return executePv1fMatureSkill(state, definition, target, 'pve')
   return executePv1fAction(state, actionId, target)
 }
 
@@ -195,27 +148,13 @@ function buildSkillCandidates(
   state: StatDrivenCombatEncounterState,
   definition: MatureSkillDefinition,
   profile: RecruitAiProfile,
-  copied: boolean,
-  copyContextsBySource?: Readonly<Record<string, Pv1fMatureSkillCopyContext>>,
 ): BuildSkillCandidate[] {
   if (!definition.enabled || !definition.ai.enabled) return []
   const candidates: BuildSkillCandidate[] = []
   for (const target of targetSelections(state, definition)) {
     let evaluated
     try {
-      const copyContext =
-        definition.effects.some((effect) => effect.type === 'copy') && target.kind === 'unit'
-          ? copyContextsBySource?.[target.combatantId]
-          : undefined
-      evaluated = copied
-        ? evaluatePv1fCopiedSkill(state, definition, target, 'pve', copyContext)
-        : evaluatePv1fMatureSkill(
-            state,
-            definition,
-            target,
-            'pve',
-            copyContext ? { copyContext } : {},
-          )
+      evaluated = evaluatePv1fMatureSkill(state, definition, target, 'pve')
     } catch {
       continue
     }
@@ -243,8 +182,6 @@ function buildSkillCandidates(
       : resonance?.forecast.willArm
         ? (resonanceMechanics?.aiSetupUtilityBonus ?? 0)
         : 0
-    const originalCost = resolveMatureSkillForContext(definition, 'pve').apCost
-    const copiedApDiscountUtility = copied ? Math.max(0, originalCost - evaluated.cost) : 0
     candidates.push({
       actionId: evaluated.action.id,
       definition,
@@ -261,8 +198,7 @@ function buildSkillCandidates(
           definition.effects.filter(isMaterializedCombatEffect),
         ) +
         terrainOverlayAiUtility(state, evaluated.evaluation) +
-        resonanceUtility +
-        copiedApDiscountUtility,
+        resonanceUtility,
       stableKey: `${evaluated.action.id}:${targetKey(target)}`,
     })
   }
@@ -289,11 +225,7 @@ export function projectedCombatEffectUtility(
   state: StatDrivenCombatEncounterState,
   effects: readonly CombatEffectDefinition[],
 ): number {
-  const copyMode =
-    effects.find((effect) => effect.type === 'copy-statuses')?.mode ??
-    (usesBeneficialCombatCopy(state) && effects.some((effect) => effect.type === 'copy')
-      ? 'amplify'
-      : undefined)
+  const copyMode = effects.find((effect) => effect.type === 'copy-statuses')?.mode
   const actorTeam = state.tactical.battle.combatants.find(
     (unit) => unit.id === evaluation.actorId,
   )?.teamId
