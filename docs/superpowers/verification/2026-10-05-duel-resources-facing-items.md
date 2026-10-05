@@ -14,7 +14,9 @@ Real-source reference mirrors use500HP and theirV5 MP pools, correct temporary B
 
 Independent review caught and verified repairs to an accidental fifth final-facing column and insufficient custom-key fallback candidates. Final application review has no remaining actionable findings. Serialization/normalization/resumed commands preserve the policy; current creation, AI/preview, critical, periodic/reactive, summon and Copy paths agree on scope.
 
-## Browser and hosted verification pending
+## Browser and hosted verification
+
+Initial candidate affba935bb0854fc4f2f5fa3d7bf3a04c013e3d3 passes full CI quality/database gates and the expanded desktop/tablet/mobile command geometry/control fixture. Desktop experience identifies one stale character-creation assertion on each of its three viewports: expected historical98HP, actual current174HP for starterVitality9. Update the current V5 starter expectations to174HP/44MP for Intellect3, with exact numeric readers. No application formula/layout change is needed. Final corrected-candidate hosted verification remains pending.
 
 Chromium installation in this workspace returned truncated/empty archives; the local browser script could not launch because the executable was absent. This is not a passing browser receipt. Existing CI browser infrastructure installs actualChromium/Edge. Extended command fixture covers desktop1366, tablet1024/821 and mobile390 for PvE/PvP plus read-only spectators, preserving artwork square dimensions, ordering, no overflow, inertP and existing direct-command/Tab guards. Full exact-head CI/browser/database checks must pass before merge/release.
 
