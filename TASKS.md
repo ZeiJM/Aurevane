@@ -1,5 +1,20 @@
 # AUREVANE — Active Task Ledger
 
+## AFK Lowered Guard and Online Users EXP — 2026-10-05 (released)
+
+Owner clarification: manual End Turn never applies Lowered Guard; the first expired participant timer in current AI/PvP battles does, defaulting to the next global round for one affected owner turn. Historical AI snapshots retain the recorded two-miss rule. Owner also requests current Character EXP in Online Users, numeric Level/EXP sorting and Last Seen most recent as the default. Preserve existing layout, portraits, privacy and clock authority.
+
+- [x] Reproduce the missing first-AI-timeout debuff and missing Chronicle outcome with failing real-engine tests.
+- [x] Correct only the current AI timeout eligibility; verify manual exemption, round 3→4 activation, one-turn expiry and actual damage vulnerability.
+- [x] Add the server-projected EXP column and numeric sorting in both directory views, with compact mobile text and honest unavailable EXP.
+- [x] Add browser regressions for real disposable-database EXP/API data, sorting, column alignment and viewport fit.
+- [x] Obtain independent blocker-free review of both changes.
+- [x] Complete combined local quality gate: `pnpm check` passes with 4,027 Vitest checks plus seven Node checks.
+- [x] Complete exact-head CI/browser checks: all eleven workflows pass candidate `989d84ae0d1063e0cea3ecd8f131f75423c6311a`.
+- [x] Merge verified source as PR #836; apply the read-column migration with unchanged browser/security baseline; release READY deployment `dpl_2A6Wb7Qvwpx1TcPmxKhuL9UoMvor` through PR #837. Exact primary alias, eight public checks and bounded runtime scan pass; this docs/config closeout restores the full lock.
+
+Evidence: `docs/superpowers/verification/2026-10-05-afk-lowered-guard-and-online-exp.md`. Earlier approved releases remain included. One additive service-only SELECT-column migration aligns clean installs with the existing Production EXP/portrait read contract; browser grants, RLS and write authority remain unchanged. No hosted Auth/content or Production-account changes.
+
 ## Resource pools, twelve-round duels, positional accuracy and Items — 2026-10-05 (released)
 
 Owner requests HP500/650 andMP400/500 at Core40/60, twelve-round Level1001v1 balance using ordinary equipped Skills/AP, front−5/side+5/rear+10 percentage-point hit chance, and locked Items before Inspect with defaultP and unchanged artwork sizes. Exact scope: `docs/superpowers/plans/2026-10-05-duel-resources-facing-items-spec.md`.
@@ -14,7 +29,6 @@ Owner requests HP500/650 andMP400/500 at Core40/60, twelve-round Level1001v1 bal
 All eleven workflows pass exact candidate `add69fa3bb28a34da1e22d683eba0acab9d15415`, tree `b75f1f754b2986cc37e10d61cdb650a11222149a`. PR #833 merges the identical tested tree as `6b67389fab84d31b82854ab943063413b448bd27`. Full quality passes4,019 Vitest tests, seven Node checks, lint/types/builds and database authority. Browser passes four ally previews, palette,28 elevation/privacy,54 completion,28 command/input,6 mail recovery,3 training,71 focused,317 full Chromium and10 Edge cases. Layout passes native mobile Profile swiping,110 scenarios and the directory check; Desktop interactions48 and Buildcraft24. Independent review has no remaining findings, actual caption/Controls captures fit, and existing skips remain unchanged.
 
 Configuration/docs-only PR #834 releases source `6852e4507e39c71b373ab530c2a5fc77ef1920a1` as `dpl_F3tRVQcQzxXEC5m7RoaPNW9H5QmK`, READY at `2026-10-05T15:36:21.674Z`. https://aurevane.vercel.app/ points to that exact source. All eight public checks pass, including the live Manual500/650HP and400/500MP text and VS artwork. The deployment-scoped warning/error/fatal scan through `2026-10-05T15:38:44.731Z` returns no matching logs. This configuration/docs-only closeout restores the full deployment lock without another application release; application bytes equal the tested candidate. No migration, hosted Auth/content setting or production-account changes. Earlier approved changes remain included. Authenticated gameplay/mail pass in disposable CI; authenticated Production gameplay and Owner visual acceptance remain separate outcomes. Evidence: `docs/superpowers/verification/2026-10-05-duel-resources-facing-items.md`.
-
 
 ## Stat balance, elevation, resistance and shared reader corrections — 2026-10-05 (released)
 

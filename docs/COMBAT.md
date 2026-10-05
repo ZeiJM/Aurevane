@@ -388,7 +388,11 @@ The duration follows authoritative turn progression, not client animation timing
 a two-owner-turn cooldown independent of Recovery. Both effects and cooldowns advance on the server.
 
 Released buffs and debuffs use their authored stack cap rather than a universal one-stack block.
-Lowered Guard uses the same three-stack cap and retains its one-owner-turn-start duration.
+Historical encounters retain their recorded Lowered Guard stacking and owner-turn-start duration.
+
+### AFK Lowered Guard — Owner clarification 2026-10-05
+
+In current AI and PvP battles with a pinned effect-timing policy, every expired participant turn timer applies Lowered Guard, including the first AFK timeout. Manually ending a turn, even without acting, does not apply it. The default timing queues the debuff for the following global round for one completed affected owner turn: a timeout in round 3 takes effect in round 4 and expires at the affected character's turn end. Existing pinned Master tag-timing overrides remain authoritative. Lowered Guard increases incoming damage to 250% and uses the encounter's existing stacking policy. Historical AI snapshots without a timing policy keep their two-consecutive-timeout rule.
 
 ### Recover — 50 AP
 

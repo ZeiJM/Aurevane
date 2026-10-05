@@ -399,6 +399,8 @@ Character Profile remains the build headquarters; battle screens consume committ
 
 ## 15. Documentation drift rule
 
+Owner clarification 2026-10-05: current timing-policy AI and PvP encounters apply Lowered Guard on every expired participant turn timer, including the first AFK timeout, defaulting to the next global round for one affected owner turn. Manual End Turn never applies it; historical AI snapshots without timing policy retain the two-miss rule. Online Users may display current Character EXP beside Level and in compact mobile rows, with numeric Level/EXP sort directions and Last Seen most recent initially selected. Keep private progression receipts excluded.
+
 When a newer Owner-approved design replaces an older term/mechanic:
 
 1. update the Master Plan/addendum where appropriate;

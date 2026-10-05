@@ -1,6 +1,8 @@
 import { mkdir, writeFile } from 'node:fs/promises'
+import { randomUUID } from 'node:crypto'
 import path from 'node:path'
 import { expect, test, type Page, type TestInfo } from '@playwright/test'
+import { createClient } from '@supabase/supabase-js'
 
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
@@ -12,14 +14,39 @@ async function enter(page: Page, info: TestInfo) {
     .split('')
     .map((digit) => String.fromCharCode(65 + Number(digit)))
     .join('')
+  const characterName = `Liora ${suffix}`
   await provisionAccountAndEnterCharacter({
     page,
     email: `adventurers-${info.project.name}-${Date.now()}@example.test`,
     password: 'Disposable-roster-review-2026!',
-    characterName: `Liora ${suffix}`,
+    characterName,
   })
+  const admin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SECRET_KEY!,
+    {
+      auth: { autoRefreshToken: false, persistSession: false },
+    },
+  )
+  const selected = (await page.context().cookies()).find(
+    (cookie) => cookie.name === 'aurevane_selected_character',
+  )
+  if (!selected) throw new Error('The directory test character is unavailable.')
+  const idempotencyKey = randomUUID()
+  const { error } = await admin.rpc('grant_character_xp_v1', {
+    p_character_id: selected.value,
+    p_idempotency_key: idempotencyKey,
+    p_request_fingerprint: `browser.directory-exp:${idempotencyKey}`,
+    p_authority_key: 'system:browser-directory-exp-proof',
+    p_source_kind: 'system',
+    p_source_id: 'browser.directory-exp-proof',
+    p_reason_tag: 'progression.directory-exp-proof',
+    p_amount: 10,
+  })
+  expect(error).toBeNull()
   await page.goto('/game/online')
   await expect(page.getByRole('heading', { name: 'Online Users', exact: true })).toBeVisible()
+  return characterName
 }
 
 async function capture(page: Page, info: TestInfo, state: string) {
@@ -50,7 +77,20 @@ test('Adventurers roster preserves browsing and public-profile privacy in the ne
   await page.setViewportSize(viewport)
   const pageErrors: string[] = []
   page.on('pageerror', (error) => pageErrors.push(error.message))
-  await enter(page, info)
+  const characterName = await enter(page, info)
+  for (const [url, key] of [
+    ['/api/presence', 'online'],
+    ['/api/presence/directory', 'characters'],
+  ] as const) {
+    const response = await page.request.get(url)
+    expect(response.ok()).toBe(true)
+    const payload = await response.json()
+    expect(payload[key].find((row: { name: string }) => row.name === characterName)?.xp).toBe(10)
+  }
+  await expect(
+    page.getByRole('button').filter({ has: page.locator('strong', { hasText: characterName }) }),
+  ).toContainText('10')
+  await expect(page.getByRole('combobox', { name: 'Sort', exact: true })).toHaveValue('recent')
   const hero = page.locator('[data-online-users-heading="true"]')
   const showAllButton = hero.getByRole('button', { name: 'Show all characters', exact: true })
   await expect(showAllButton).toBeVisible()
@@ -70,14 +110,15 @@ test('Adventurers roster preserves browsing and public-profile privacy in the ne
   if (!mobile) {
     const onlineRoster = page.getByRole('region', { name: 'Online character roster' })
     const headings = onlineRoster.locator('div[aria-hidden="true"]').filter({
-      hasText: 'CharacterLevelDisciplinePresence',
+      hasText: 'CharacterLevelEXPDisciplinePresence',
     })
     const firstRow = onlineRoster.locator('[data-directory-character]').first()
     const headingCells = headings.locator(':scope > span')
     const rowCells = firstRow.locator(':scope > span')
     for (const [headingIndex, rowIndex, label] of [
       [1, 2, 'Level'],
-      [2, 3, 'Discipline'],
+      [2, 3, 'EXP'],
+      [3, 4, 'Discipline'],
     ] as const) {
       const headingBox = await headingCells.nth(headingIndex).boundingBox()
       const rowBox = await rowCells.nth(rowIndex).boundingBox()
@@ -89,8 +130,8 @@ test('Adventurers roster preserves browsing and public-profile privacy in the ne
       ).toBeLessThanOrEqual(1)
     }
 
-    const presenceHeadingBox = await headingCells.nth(3).boundingBox()
-    const presenceValueBox = await rowCells.nth(4).boundingBox()
+    const presenceHeadingBox = await headingCells.nth(4).boundingBox()
+    const presenceValueBox = await rowCells.nth(5).boundingBox()
     expect(presenceHeadingBox, 'Presence heading geometry').not.toBeNull()
     expect(presenceValueBox, 'Presence value geometry').not.toBeNull()
     expect(
@@ -106,6 +147,7 @@ test('Adventurers roster preserves browsing and public-profile privacy in the ne
     characterId: `20000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
     name: `Adventurer ${String(index + 1).padStart(2, '0')}`,
     level: 1 + (index % 50),
+    xp: index * 1000,
     lastSeenAt: index === 59 ? null : new Date(Date.now() - index * 60000).toISOString(),
     portraitRef: null,
     disciplineId: index % 2 === 0 ? 'vanguard' : 'lifebinder',
@@ -125,6 +167,19 @@ test('Adventurers roster preserves browsing and public-profile privacy in the ne
   await expect(list.locator('[data-directory-character]')).toHaveCount(60)
   await expect(hero.getByRole('combobox', { name: 'Class', exact: true })).toBeVisible()
   await expect(hero.getByRole('combobox', { name: 'Sort', exact: true })).toBeVisible()
+  const sort = hero.getByRole('combobox', { name: 'Sort', exact: true })
+  await expect(sort).toHaveValue('recent')
+  await sort.selectOption('level-desc')
+  await expect(list.locator('strong').first()).toHaveText('Adventurer 50')
+  await sort.selectOption('level-asc')
+  await expect(list.locator('strong').first()).toHaveText('Adventurer 01')
+  await sort.selectOption('exp-desc')
+  await expect(list.locator('strong').first()).toHaveText('Adventurer 60')
+  await expect(list.getByRole('button').first()).toContainText('59,000')
+  await sort.selectOption('exp-asc')
+  await expect(list.locator('strong').first()).toHaveText('Adventurer 01')
+  await sort.selectOption('recent')
+  await expect(list.locator('strong').first()).toHaveText('Adventurer 01')
   const showOnlineOnlyButton = hero.getByRole('button', { name: 'Show online only', exact: true })
   await expect(showOnlineOnlyButton).toBeVisible()
   const showOnlineOnlyButtonBox = await showOnlineOnlyButton.boundingBox()

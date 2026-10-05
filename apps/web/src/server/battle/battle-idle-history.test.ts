@@ -123,6 +123,44 @@ function delayedGuardHistory() {
 }
 
 describe('idle narration from persisted command events', () => {
+  it('shows the first current AI timeout as Lowered Guard pending for round 4 and exposed for one turn', () => {
+    let state: ReturnType<typeof encounter> = {
+      ...encounter(),
+      effectTimingPolicy: { version: 1, modes: {} },
+    }
+    const history: BattleEventRecord[] = []
+    for (let index = 0; index < 4; index += 1) {
+      const finished = finishPv1fTurn(state, 'east')
+      history.push(...records(finished.events, index + 2))
+      state = finished.state
+    }
+    const timedOut = timeoutAiTurn(state)
+    history.push(...records(timedOut.events, 6))
+    const chronicle = buildBattleChronicle(buildBattleLogView('idle', history).entries, {
+      combatantNames: { [actors[0]]: 'Zei', [actors[1]]: 'Weon' },
+    })
+    const actions = chronicle.find((round) => round.round === 3)?.actors[0]?.actions
+    expect(actions).toHaveLength(1)
+    expect(actions?.[0]).toMatchObject({
+      title: 'Lowered Guard',
+      outcomes: [
+        expect.objectContaining({
+          statusId: 'lowered-guard',
+          text: 'Lowered Guard will take effect on Zei at the start of round 4!',
+          duration: '1 turn',
+        }),
+      ],
+    })
+    const activated = finishPv1fTurn(timedOut.state, 'west')
+    const activeChronicle = buildBattleChronicle(
+      buildBattleLogView('idle', [...history, ...records(activated.events, 7)]).entries,
+      { combatantNames: { [actors[0]]: 'Zei', [actors[1]]: 'Weon' } },
+    )
+    expect(JSON.stringify(activeChronicle.find((round) => round.round === 4))).toContain(
+      'Zei is left wide open to the enemy for 1 turn.',
+    )
+  })
+
   it('does not narrate a newly selected actor killed by delayed damage as completing an idle turn', () => {
     const roster = [...actors, 'recruit:other']
     const initial = {

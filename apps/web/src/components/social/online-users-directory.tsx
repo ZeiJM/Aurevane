@@ -9,30 +9,16 @@ import type {
 } from '@/server/presence/character-presence-service'
 
 import {
-  compareLastSeenAt,
+  compareDirectoryCharacters,
   formatLastSeenAt,
   readableDisciplinePair,
   readableIdentity,
-  type LastSeenSortOrder,
+  type DirectorySortOrder,
 } from './online-users-directory-utils'
 import { PublicCharacterPortrait, PublicCharacterProfile } from './public-character-profile'
 import styles from './online-users-directory.module.css'
 
 type PresenceCharacter = OnlineCharacter | CharacterPresenceDirectoryEntry
-type DirectorySortOrder = LastSeenSortOrder | 'alphabetical'
-
-function onlineNameBucket(name: string): number {
-  const first = name.trim().charAt(0)
-  if (/^[A-Za-z]$/.test(first)) return 0
-  if (/^[0-9]$/.test(first)) return 1
-  return 2
-}
-
-function compareNames(left: PresenceCharacter, right: PresenceCharacter): number {
-  const bucketDifference = onlineNameBucket(left.name) - onlineNameBucket(right.name)
-  if (bucketDifference !== 0) return bucketDifference
-  return left.name.localeCompare(right.name, 'en', { sensitivity: 'base', numeric: true })
-}
 
 function isOnline(character: PresenceCharacter): boolean {
   return 'isOnline' in character ? character.isOnline : true
@@ -70,13 +56,7 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
           )
         : source
 
-    return [...filtered].sort((left, right) => {
-      if (showAll && sortOrder !== 'alphabetical') {
-        const lastSeenDifference = compareLastSeenAt(left.lastSeenAt, right.lastSeenAt, sortOrder)
-        if (lastSeenDifference !== 0) return lastSeenDifference
-      }
-      return compareNames(left, right)
-    })
+    return [...filtered].sort((left, right) => compareDirectoryCharacters(left, right, sortOrder))
   }, [characters, classFilter, directory, showAll, sortOrder])
 
   useEffect(() => {
@@ -131,11 +111,15 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
         </div>
 
         <div
-          className={`${styles.heroControls} ${showAll ? styles.heroControlsExpanded : ''}`}
+          className={`${styles.heroControls} ${styles.heroControlsExpanded}`}
           data-directory-controls="true"
         >
-          {showAll ? (
-            <div className={styles.filters} aria-label="Character directory filters">
+          <div
+            className={styles.filters}
+            data-online-only={!showAll || undefined}
+            aria-label="Character directory filters"
+          >
+            {showAll ? (
               <label>
                 <span>Class</span>
                 <select
@@ -151,20 +135,24 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
                   ))}
                 </select>
               </label>
-              <label>
-                <span>Sort</span>
-                <select
-                  value={sortOrder}
-                  disabled={!directory}
-                  onChange={(event) => setSortOrder(event.target.value as DirectorySortOrder)}
-                >
-                  <option value="recent">Last seen: most recent</option>
-                  <option value="oldest">Last seen: least recent</option>
-                  <option value="alphabetical">Alphabetical: A to Z</option>
-                </select>
-              </label>
-            </div>
-          ) : null}
+            ) : null}
+            <label>
+              <span>Sort</span>
+              <select
+                value={sortOrder}
+                disabled={showAll && !directory}
+                onChange={(event) => setSortOrder(event.target.value as DirectorySortOrder)}
+              >
+                <option value="recent">Last seen: most recent</option>
+                <option value="oldest">Last seen: least recent</option>
+                <option value="alphabetical">Alphabetical: A to Z</option>
+                <option value="level-desc">Level: highest first</option>
+                <option value="level-asc">Level: lowest first</option>
+                <option value="exp-desc">EXP: highest first</option>
+                <option value="exp-asc">EXP: lowest first</option>
+              </select>
+            </label>
+          </div>
           <button
             type="button"
             className={styles.toggleButton}
@@ -211,6 +199,7 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
           <div className={styles.columnHeadings} aria-hidden="true">
             <span>Character</span>
             <span>Level</span>
+            <span>EXP</span>
             <span>Discipline</span>
             <span>Presence</span>
           </div>
@@ -249,11 +238,15 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
                     ) : null}
                     <small>
                       Level {character.level}
+                      {` · ${character.xp === null ? 'EXP unavailable' : `${character.xp.toLocaleString('en-US')} EXP`}`}
                       {discipline ? ` · ${discipline}` : ''}
                     </small>
                   </span>
                   <span className={styles.level} aria-hidden="true">
                     {character.level}
+                  </span>
+                  <span className={styles.experience} aria-hidden="true">
+                    {character.xp === null ? '—' : character.xp.toLocaleString('en-US')}
                   </span>
                   <span className={styles.discipline} aria-hidden="true">
                     {discipline ?? 'Not displayed'}
