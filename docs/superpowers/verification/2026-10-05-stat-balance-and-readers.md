@@ -63,3 +63,29 @@ The remaining test treated the shared “Choose your action” title as local-tu
 Candidate `99d8b4c47a14fbfac71614137cd17ff2cf8e9788` passes11 completed gates including quality, desktop and layout; Browser smoke remains running and Representative Buildcraft fails2 of24. One real randomized map leaves the Recruit two tiles away after the fixture's fixed three-turn approach; the fixture now waits for settled local ownership and bounds approach by the rendered board's tile count. Exact original player spawn, flat melee adjacency, handoff versions, complete shared parameters and skill commit/CAS assertions remain required.
 
 The acquisition trial legitimately ends in Defeat at round8 with enemy HP1. Its scripted strategy had abandoned equipped attacks after three demonstrations and never recovered. It now reuses ready Shield Bash/Forceful Strike through ordinary inputs and uses normal HP Recovery when injured, observing the canonical shared recovery cooldown. Recovery action identity, exact approved percentage healing and50AP spending are asserted. The three required Primary Skills, actual Victory, earned50XP, claim-once/reload replay and Bastion release eligibility remain unchanged. No resources, positions or win are injected, and no product combat, AI, balance or reward behavior is changed. These test-only changes require fresh exact-head quality/browser gates and independent review before the single authorized release.
+
+## Final combined candidate
+
+Exact candidate `c4225fa1522f74c3e68204192f13ec6f0e4804ff`, tree `5d96a54910b864395d8320969ef6bc6dffedba37`, remains based on Main `9ad3b3ddf9db6684ab63183a8a5b7536146c8453`. Independent final review has no remaining concrete blockers. The final CI formatter correction changes only one import. All followup gameplay changes are confined to tests; product source remains the reviewed implementation.
+
+Exact-head quality passes formatting, lint, types,4,006 Vitest tests,seven Node checks, worker boot/build, optimized web build and database authority. Desktop page fit passes8 cases; Desktop experience passes48 with27 existing project skips; Layout review passes native mobile Profile swiping,110 scenarios with61 existing project skips, and the populated directory check. Representative Buildcraft passes24, including actual trial Victory at round7 with actor HP47/98, enemy HP0, three required Primary Skills and exact reward/replay assertions.
+
+Browser smoke passes6 real-mail recovery,3 training,71 focused,317 full Chromium and10 Edge cases. Existing project-specific skips remain21 focused,217 full and2 Edge. It also passes four ally previews, shared parameter palette,28 elevation/privacy cases,54 completion-window cases and14 command/input cases. The execution workspace disconnected after the frozen local quality gate, so followup bytes are validated through exact GitHub readback, CI and independent remote-source review.
+
+All13 exact-head workflow gates pass at `2026-10-05T09:31:43.573Z`:
+
+- [Essence Build](https://github.com/ZeiJM/Aurevane/actions/runs/37284285267): success.
+- [Resonance Build](https://github.com/ZeiJM/Aurevane/actions/runs/37284285008): success.
+- [Skill Engine](https://github.com/ZeiJM/Aurevane/actions/runs/37284285565): success.
+- [Shared Build Snapshots](https://github.com/ZeiJM/Aurevane/actions/runs/37284285126): success.
+- [Profile Skill Build](https://github.com/ZeiJM/Aurevane/actions/runs/37284285000): success.
+- [UI layout review](https://github.com/ZeiJM/Aurevane/actions/runs/37284285019): success.
+- [Attribute Allocation](https://github.com/ZeiJM/Aurevane/actions/runs/37284285252): success.
+- [Discipline Build DB](https://github.com/ZeiJM/Aurevane/actions/runs/37284285039): success.
+- [CI](https://github.com/ZeiJM/Aurevane/actions/runs/37284285178): success.
+- [Desktop experience](https://github.com/ZeiJM/Aurevane/actions/runs/37284284980): success.
+- [Desktop page fit](https://github.com/ZeiJM/Aurevane/actions/runs/37284284856): success.
+- [Representative Buildcraft](https://github.com/ZeiJM/Aurevane/actions/runs/37284285114): success.
+- [Browser smoke](https://github.com/ZeiJM/Aurevane/actions/runs/37284285006): success.
+
+PR #830 merges as `dc7156b5be183b141ab607d298e899337b2c1ae9`, exactly matching tested tree `5d96a54910b864395d8320969ef6bc6dffedba37`; Main freshness and the exact virtual/actual merge trees are checked before release. The Owner's standing request authorizes one combined Production release. Production verification remains pending until the configuration-only release is READY and its source/primary alias, public smoke and bounded runtime scan are confirmed.
