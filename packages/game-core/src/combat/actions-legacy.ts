@@ -1100,14 +1100,14 @@ export function defeatCombatActionActor(
   let defeated = defeatCurrentCombatant(
     battleForEffectStacking(state),
     actorId,
-    collectNextRoundInitiativeModifiers(state, content),
+    [],
   )
   const summonBoundary = preparePendingSummonsForRound(state, defeated.state.round)
   if (summonBoundary.state !== state)
     defeated = defeatCurrentCombatant(
       battleForEffectStacking(summonBoundary.state),
       actorId,
-      collectNextRoundInitiativeModifiers(summonBoundary.state, content),
+      [],
     )
   const boundary = applyCombatRoundBoundary(
     withBattle(summonBoundary.state, defeated.state),
