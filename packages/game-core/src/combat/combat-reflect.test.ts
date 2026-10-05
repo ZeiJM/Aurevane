@@ -628,7 +628,7 @@ describe('Reflect successor lifecycle regression', () => {
     ).toBe(2)
     expect(result.events.filter((event) => event.event === 'status_expired')).toEqual([])
   })
-    it('advances temporary terrain lifetime on a reflected round boundary', () => {
+  it('advances temporary terrain lifetime on a reflected round boundary', () => {
     const initial = setTerrainOverlay(
       roundEndReflectEncounter(),
       { x: 0, y: 0 },
