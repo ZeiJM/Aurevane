@@ -17,7 +17,6 @@ export function battleActionCooldownTurns(
   if (!actor) return 0
   const skill = [
     ...(runtime.techniques ?? []),
-    ...(runtime.copiedSkills ?? []),
     ...(runtime.essence ? [runtime.essence] : []),
   ].find((row) => row.id === actionId)
   const definition =
