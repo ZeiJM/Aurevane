@@ -152,7 +152,10 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
       continue
     }
     const nextPrimarySkillCost = 45
-    if (distance === 1 && ap >= (skillCommands < 3 ? nextPrimarySkillCost : PV1F_BASIC_ATTACK_COST)) {
+    if (
+      distance === 1 &&
+      ap >= (skillCommands < 3 ? nextPrimarySkillCost : PV1F_BASIC_ATTACK_COST)
+    ) {
       if (skillCommands === 1) {
         await root
           .getByRole('button', { name: 'Selected Forceful Strike, 45 AP', exact: true })
