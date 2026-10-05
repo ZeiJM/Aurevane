@@ -104,8 +104,8 @@ export function describeBattleEffect(effect: BattlePresentedStatus) {
       (item) => item.id === effect.statusId && item.version === effect.statusVersion,
     )
     duration = definition?.endOfTurn
-        ? `${count} affected-turn-end tick${count === 1 ? '' : 's'} remaining`
-        : `${count} affected-unit turn start${count === 1 ? '' : 's'} remaining`
+      ? `${count} affected-turn-end tick${count === 1 ? '' : 's'} remaining`
+      : `${count} affected-unit turn start${count === 1 ? '' : 's'} remaining`
   }
   return {
     ...identity,
