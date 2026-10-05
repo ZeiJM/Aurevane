@@ -470,7 +470,9 @@ async function expectInlineSkillForecast(page: Page, actionId: string, ground: b
           actionId,
           target: selectedGround
             ? { kind: 'tile', position: selectedGround }
-            : { kind: 'unit', combatantId: id },
+            : actionId === 'frostweaver.frost-guard'
+              ? { kind: 'self' }
+              : { kind: 'unit', combatantId: id },
         },
       },
     })
