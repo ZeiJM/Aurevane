@@ -2,6 +2,14 @@
 
 This file intentionally lives inside the web app project root so documentation-only production redeploys are not skipped by Vercel's monorepo unaffected-project optimization.
 
+## Resource pools, positional hit chance and Items — authorized release
+
+All eleven workflows pass candidate `add69fa3bb28a34da1e22d683eba0acab9d15415`, tree `b75f1f754b2986cc37e10d61cdb650a11222149a`. PR #833 merges the identical tested tree as `6b67389fab84d31b82854ab943063413b448bd27`. Quality passes4,019 Vitest tests, seven Node checks, lint/types/builds and database authority; Browser passes6 mail recovery,3 training,71 focused,317 full Chromium and10 Edge cases, plus shared ally/palette/elevation/completion/input regressions. Layout passes110 scenarios and the directory check, Desktop interactions48 and Buildcraft24. Independent application review has no remaining findings.
+
+Current derivedV5 resources reach HP500/650 andMP400/500 at Core40/60. New encounters pin duelBalancePolicyVersion1 independently of bridge4/statBalancePolicyVersion1: calibrated hostile direct damage and front−5/side+5/rear+10 percentage-point hit modifiers. Real200seed legal four-Skill Level100 mirrors average12.10 rounds; builds/rotations can differ. Saved encounters retain recorded rules. The locked Items slot precedes Inspect, defaults toP and preserves existing artwork/custom bindings; desktop spacing fits the extra slot/binding.
+
+This configuration/documentation-only step enables Main deployment for the single Owner-authorized Production release. Exact source/READY/alias/public smoke/log and full-lock closeout receipts will be recorded after verification. No additional application bytes, migration, hosted Auth/content setting or production-account mutation are included in this release step.
+
 ## Stat balance, elevation, resistance and shared readers — released
 
 The Owner authorized one combined Production release. PR #830 merges as `dc7156b5be183b141ab607d298e899337b2c1ae9`, exactly matching tested tree `5d96a54910b864395d8320969ef6bc6dffedba37` from candidate `c4225fa1522f74c3e68204192f13ec6f0e4804ff`. All13 required exact-head workflows pass; complete receipts are recorded in `docs/superpowers/verification/2026-10-05-stat-balance-and-readers.md`. The final quality gate passes formatting, lint, types,4,006 Vitest tests,seven Node checks, builds and database authority. Independent reviews have no remaining blockers.
