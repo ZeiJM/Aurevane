@@ -116,7 +116,6 @@ async function battleBuildExtensions(
     )
   ).filter((entry): entry is NonNullable<typeof entry> => entry !== null)
 
-
   return {
     supportActionId: parseSupportActionId(build?.supportActionId) ?? DEFAULT_SUPPORT_ACTION_ID,
     techniques,
