@@ -86,13 +86,21 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
   let battle: BattleSessionView = (await creation.json()).battle
   const root = page.locator("main[data-unified-battle='true'][data-battle-kind='pve']")
   await expect(root).toBeVisible()
+  const finish = root.getByRole('button', { name: /^End Turn,/ })
+  await expect(root).toHaveAttribute('data-local-turn', 'true')
+  await expect(finish).toBeEnabled({ timeout: 15000 })
+  // Initiative may give the Recruit the opening turn. Read the canonical state
+  // after that automatic handoff instead of reusing the creation snapshot.
+  const current = await page.request.get(`/api/battles/${battle.battleSessionId}`)
+  expect(current.status()).toBe(200)
+  battle = (await current.json()).battle
   const playerId = battle.snapshot.tactical.battle.combatants.find(
     (unit) => unit.teamId === 'players',
   )!.id
   const enemyId = battle.snapshot.tactical.battle.combatants.find(
     (unit) => unit.teamId === 'opponents',
   )!.id
-  const finish = root.getByRole('button', { name: /^End Turn,/ })
+  expect(battle.snapshot.tactical.battle.currentTurn!.combatantId).toBe(playerId)
   let skillCommands = 0
   let braced = false
   const commit = async (
@@ -121,6 +129,11 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
     })
     await expect(root).toHaveAttribute('data-local-turn', 'true')
     await expect(enemyTile).toBeVisible()
+    await expect(
+      root.getByRole('button', {
+        name: new RegExp(`^Tile ${player.x + 1}, ${player.y + 1};.*occupied by Earned ${suffix}`),
+      }),
+    ).toBeVisible()
     const distance = Math.abs(player.x - enemy.x) + Math.abs(player.y - enemy.y)
     const ap = tactical.battle.combatants
       .find((unit) => unit.id === playerId)!

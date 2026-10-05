@@ -124,12 +124,24 @@ async function lowerResources(page: Page, characterId: string) {
   const host = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://invalid').hostname
   if (!['localhost', '127.0.0.1'].includes(host))
     throw new Error('Resource preparation requires disposable local Supabase.')
+  const root = page.locator('main[data-unified-battle="true"]')
+  const isPve = (await root.getAttribute('data-battle-kind')) === 'pve'
+  if (isPve) {
+    await expect(root).toHaveAttribute('data-local-turn', 'true')
+    await expect(root.getByRole('button', { name: /^End Turn,/ })).toBeEnabled()
+  }
   const before = await readBattle(page)
   const actorIndex = before.snapshot.tactical.battle.combatants.findIndex(
     (unit) => unit.id === `character:${characterId}`,
   )
   expect(actorIndex).toBeGreaterThanOrEqual(0)
-  expect(before.battleVersion).toBe(1)
+  expect(Number.isSafeInteger(before.battleVersion)).toBe(true)
+  expect(before.battleVersion).toBeGreaterThan(0)
+  expect(before.snapshot.tactical.battle.lifecycle).toBe('active')
+  if (isPve)
+    expect(before.snapshot.tactical.battle.currentTurn!.combatantId).toBe(
+      `character:${characterId}`,
+    )
   const actor = before.snapshot.tactical.battle.combatants[actorIndex]!
   const container = execFileSync(
     'docker',
@@ -157,7 +169,11 @@ async function lowerResources(page: Page, characterId: string) {
       set current_snapshot = jsonb_set(
         jsonb_set(current_snapshot, '{tactical,battle,combatants,${actorIndex},hp}', '${Math.floor(actor.maxHp / 2)}'::jsonb),
         '{tactical,battle,combatants,${actorIndex},mp}', '${Math.floor(actor.maxMp / 2)}'::jsonb)
-      where id = '${before.battleSessionId}'::uuid and current_version = 1
+      where id = '${before.battleSessionId}'::uuid and current_version = ${before.battleVersion}
+        and lifecycle = 'active'
+        and current_snapshot #>> '{tactical,battle,turnNumber}' = '${before.snapshot.tactical.battle.turnNumber}'
+        and current_snapshot #> '{tactical,battle,currentTurn}' = '${JSON.stringify(before.snapshot.tactical.battle.currentTurn)}'::jsonb
+        and current_snapshot #>> '{tactical,battle,combatants,${actorIndex},id}' = '${actor.id}'
       returning id, current_version, current_snapshot
     ), prepared_snapshot as (
       update app_private.battle_snapshots snapshot set snapshot = session.current_snapshot
@@ -169,7 +185,13 @@ async function lowerResources(page: Page, characterId: string) {
   )
   expect(JSON.parse(updated.trim())).toEqual({ sessions: 1, snapshots: 1 })
   await page.reload()
-  return readBattle(page)
+  const prepared = await readBattle(page)
+  const expectedSnapshot = structuredClone(before.snapshot)
+  expectedSnapshot.tactical.battle.combatants[actorIndex]!.hp = Math.floor(actor.maxHp / 2)
+  expectedSnapshot.tactical.battle.combatants[actorIndex]!.mp = Math.floor(actor.maxMp / 2)
+  expect(prepared.battleVersion).toBe(before.battleVersion)
+  expect(prepared.snapshot).toEqual(expectedSnapshot)
+  return prepared
 }
 
 for (const [supportActionId, label, cost] of [

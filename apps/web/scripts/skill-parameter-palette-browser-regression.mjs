@@ -209,6 +209,16 @@ try {
         name: `Preview ${attunement === 'resonance' ? 'Resonance' : 'Essence'}: ${name}`,
         exact: true,
       })
+      const cardName = await trigger
+        .locator('xpath=ancestor::article[1]')
+        .locator('strong')
+        .textContent()
+      assert.equal(cardName, name)
+      const prefixedName = page.getByText(
+        `${attunement === 'resonance' ? 'Resonance' : 'Essence'}: ${name}`,
+        { exact: true },
+      )
+      assert.equal(await prefixedName.count(), 0)
       await trigger.click()
       const popup = page.getByRole('dialog', { name, exact: true })
       await popup.waitFor()

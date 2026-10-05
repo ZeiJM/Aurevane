@@ -126,6 +126,9 @@ async function readBattle(page: Page): Promise<BattleSessionView> {
 // Disposable local database setup keeps the real pinned build/preview authority intact.
 // Adjacent combatants let all enemy forecasts render without spending AP on movement.
 async function arrangeAdjacentCombatants(page: Page) {
+  // Wait out any automatic opening opponent turn before changing this local fixture.
+  await expect(page.locator('main[data-unified-battle]')).toHaveAttribute('data-local-turn', 'true')
+  await expect(page.locator('button[data-battle-command="finish"]')).toBeEnabled()
   const before = await readBattle(page)
   const tactical = before.snapshot.tactical
   const actor = tactical.placements.find(

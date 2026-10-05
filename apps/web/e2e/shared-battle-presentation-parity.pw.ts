@@ -190,6 +190,8 @@ test('keeps requested PvE presentation parity on desktop and mobile', async ({
 
   const root = page.locator("main[data-unified-battle='true'][data-battle-kind='pve']")
   await expect(root).toBeVisible()
+  await expect(root).toHaveAttribute('data-local-turn', 'true')
+  await expect(root.getByRole('button', { name: /^End Turn,/ })).toBeEnabled()
   await expectSharedHeader(root)
   await expectBattleHeaderAndArtworkGeometry(page)
 
@@ -234,9 +236,13 @@ test('keeps requested PvE presentation parity on desktop and mobile', async ({
     const chronicle = inline.getByRole('region', { name: 'Battle chronicle', exact: true })
     await expect(chronicle).toContainText('Guard')
     await expect(chronicle).toContainText('Guarded')
-    await expect(chronicle.locator('[data-chronicle-actor] h3')).toContainText(
-      identity.characterName,
-    )
+    await expect(
+      chronicle.getByRole('heading', {
+        level: 3,
+        name: identity.characterName,
+        exact: true,
+      }),
+    ).toBeVisible()
     await expect(
       chronicle.getByRole('button', { name: 'Explain Guarded', exact: true }),
     ).toBeVisible()

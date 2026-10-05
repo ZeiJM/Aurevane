@@ -98,7 +98,29 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
   await expect(
     page.getByRole('button', { name: new RegExp(`Tile 2, 4;.*occupied by ${characterName}`) }),
   ).toBeVisible()
-  await expect(page.getByRole('button', { name: /Tile 8, 4;.*occupied by Recruit/ })).toBeVisible()
+  // The new Initiative curve can give the Recruit the opening turn.
+  // Check its committed position after the automatic handoff, not its spawn.
+  await expect(page.locator('main[data-unified-battle="true"]')).toHaveAttribute(
+    'data-local-turn',
+    'true',
+  )
+  const sessionId = new URL(page.url()).pathname.split('/').at(-1)!
+  const current = await page.request.get(`/api/battles/${sessionId}`)
+  expect(current.status()).toBe(200)
+  const battle: import('../src/server/battle/battle-session-service').BattleSessionView = (
+    await current.json()
+  ).battle
+  const opponent = battle.snapshot.tactical.battle.combatants.find(
+    (unit) => unit.teamId === 'opponents',
+  )!
+  const position = battle.snapshot.tactical.placements.find(
+    (unit) => unit.combatantId === opponent.id,
+  )!.position
+  await expect(
+    page.getByRole('button', {
+      name: new RegExp(`Tile ${position.x + 1}, ${position.y + 1};.*occupied by Recruit`),
+    }),
+  ).toBeVisible()
   // Standard maps vary; inspect actual terrain instead of restoring historical fixed tiles.
   const roughGround = page
     .getByRole('button', { name: /^Tile \d+, \d+; rough-ground; elevation 0/ })

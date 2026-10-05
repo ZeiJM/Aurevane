@@ -356,7 +356,7 @@ export function CharacterArsenalShell({
                   <EssenceHoverPreview essence={essence} />
                   <div>
                     <div className={styles.attunementIdentity}>
-                      <strong>{`Essence: ${essence.name}`}</strong>
+                      <strong>{essence.name}</strong>
                       <b>● Active</b>
                     </div>
                     <p>
@@ -374,7 +374,7 @@ export function CharacterArsenalShell({
                   <ResonanceHoverPreview resonance={resonance} />
                   <div>
                     <div className={styles.attunementIdentity}>
-                      <strong>{`Resonance: ${resonance.name}`}</strong>
+                      <strong>{resonance.name}</strong>
                       <b>● Active</b>
                     </div>
                     <p>

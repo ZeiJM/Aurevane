@@ -52,6 +52,24 @@ async function captureBattleScaleGeometry(page: Page): Promise<BattleScaleGeomet
     ),
   ).toBeVisible()
   await page.evaluate(() => document.fonts.ready)
+  console.log(
+    'terrain-control-style',
+    await footer.getByRole('button', { name: 'Terrain', exact: true }).evaluate((button) => {
+      const style = getComputedStyle(button)
+      return {
+        markup: button.outerHTML,
+        root: button.closest('main')?.outerHTML.split('>')[0],
+        font: style.font,
+        gap: style.gap,
+        padding: style.padding,
+        children: Array.from(button.children, (child) => ({
+          text: child.textContent,
+          display: getComputedStyle(child).display,
+          width: child.getBoundingClientRect().width,
+        })),
+      }
+    }),
+  )
   const surfaces = {
     root,
     header,

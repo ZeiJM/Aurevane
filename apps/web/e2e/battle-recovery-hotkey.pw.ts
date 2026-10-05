@@ -21,17 +21,24 @@ async function prepareInjuredActor(page: Page) {
   const host = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://invalid').hostname
   if (!['localhost', '127.0.0.1'].includes(host))
     throw new Error('Recovery setup requires disposable local Supabase.')
+  const root = page.locator("main[data-unified-battle='true'][data-battle-kind='pve']")
+  await expect(root).toHaveAttribute('data-local-turn', 'true')
+  await expect(root.getByRole('button', { name: /^End Turn,/ })).toBeEnabled()
   const sessionId = new URL(page.url()).pathname.split('/').at(-1)!
   expect(sessionId).toMatch(/^[0-9a-f-]{36}$/i)
   const response = await page.request.get(`/api/battles/${sessionId}`)
   expect(response.ok()).toBe(true)
   const before = (await response.json()).battle as BattleSessionView
-  expect(before.battleVersion).toBe(1)
+  expect(Number.isSafeInteger(before.battleVersion)).toBe(true)
+  expect(before.battleVersion).toBeGreaterThan(0)
+  expect(before.snapshot.tactical.battle.lifecycle).toBe('active')
   const actorIndex = before.snapshot.tactical.battle.combatants.findIndex(
     (unit) => unit.id === before.snapshot.tactical.battle.currentTurn?.combatantId,
   )
   expect(actorIndex).toBeGreaterThanOrEqual(0)
   const actor = before.snapshot.tactical.battle.combatants[actorIndex]!
+  expect(actor.id).toMatch(/^character:/)
+  expect(actor.teamId).toBe('players')
   const hp = Math.floor(actor.maxHp / 2)
   expect(hp).toBeGreaterThan(0)
   const container = execFileSync(
@@ -42,7 +49,7 @@ async function prepareInjuredActor(page: Page) {
     .trim()
     .split('\n')[0]
   if (!container) throw new Error('Disposable local Supabase database is required.')
-  // Keep the disposable initial snapshot and current state coherent for commit provenance.
+  // Keep the disposable current-version snapshot and current state coherent for commit provenance.
   // Change only actor HP; retain the pinned rules/build and original battle version.
   const updated = execFileSync(
     'docker',
@@ -60,7 +67,11 @@ async function prepareInjuredActor(page: Page) {
       `with prepared_session as (
         update app_private.battle_sessions
         set current_snapshot = jsonb_set(current_snapshot, '{tactical,battle,combatants,${actorIndex},hp}', '${hp}'::jsonb)
-        where id = '${sessionId}'::uuid and current_version = 1
+        where id = '${sessionId}'::uuid and current_version = ${before.battleVersion}
+          and lifecycle = 'active'
+          and current_snapshot #>> '{tactical,battle,turnNumber}' = '${before.snapshot.tactical.battle.turnNumber}'
+          and current_snapshot #> '{tactical,battle,currentTurn}' = '${JSON.stringify(before.snapshot.tactical.battle.currentTurn)}'::jsonb
+          and current_snapshot #>> '{tactical,battle,combatants,${actorIndex},id}' = '${actor.id}'
         returning id, current_version, current_snapshot
       ), prepared_snapshot as (
         update app_private.battle_snapshots snapshot
@@ -83,7 +94,9 @@ async function prepareInjuredActor(page: Page) {
   expect(prepared.ok()).toBe(true)
   const battle = (await prepared.json()).battle as BattleSessionView
   expect(battle.battleVersion).toBe(before.battleVersion)
-  expect(battle.snapshot.tactical.battle.combatants[actorIndex]!.hp).toBe(hp)
+  const expectedSnapshot = structuredClone(before.snapshot)
+  expectedSnapshot.tactical.battle.combatants[actorIndex]!.hp = hp
+  expect(battle.snapshot).toEqual(expectedSnapshot)
   return battle
 }
 
@@ -106,6 +119,8 @@ test('retains default HP Recovery keyboard input without exposing the deferred R
 
   const root = page.locator("main[data-unified-battle='true'][data-battle-kind='pve']")
   await expect(root).toBeVisible()
+  await expect(root).toHaveAttribute('data-local-turn', 'true')
+  await expect(root.getByRole('button', { name: /^End Turn,/ })).toBeEnabled()
   const deck = root.getByRole('region', { name: 'Command Deck' })
   const economy = root.getByRole('progressbar', { name: 'Action Economy remaining' })
   await expect(root.locator('[data-battle-secondary-actions]')).toHaveCount(0)

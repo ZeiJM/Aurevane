@@ -34,3 +34,11 @@ All18 generated map/team/seed AI routes pass with current Movement2/Jump0. Tests
 ## Frozen candidate and release
 
 Root frozen local `pnpm check` passes: formatting, lint, typecheck, 4,006 Vitest tests and seven Node checks, worker build and optimized web build. Independent final review reports no remaining Critical/Important/Minor findings; final delta checks pass118 core and85 web tests. Elevated rail production fixture compiles92 modules. Exact-head CI/browser and one Production release remain pending. Deployment remains locked while verification runs. No DB migration, hosted Auth/content settings, production-account mutation, or unrelated Phase5 work is included.
+
+## Exact-head browser continuation
+
+Candidate `7d068f238b2e8486b95de27a1b32f89cc8fefb5a` passes the full CI quality/database gate (4,006 Vitest and seven Node checks), eight specialized workflow gates and Desktop page fit. All early production-renderer fixtures pass: four ally previews, shared parameter palette, 28 elevation/privacy cases, 54 completion-window cases and 14 input cases. The full browser/layout suites find remaining test assumptions tied to the retired starter stats and player-first Initiative; those suites are not claimed green.
+
+The V4 Vanguard Initiative19 is below Recruit21. The automatic opening Recruit turn is therefore real committed gameplay. Fixture setup must wait for local turn ownership, read its canonical snapshot and retain exact relative versions, AP, command counts, legal placements and reward idempotency. Current starter-profile expectations must follow the approved curves. The visible Nexus Essence/Resonance card headings now also use bare names, with a browser assertion independent of popup naming.
+
+The execution workspace disconnected after the complete frozen local quality gate. Source was already committed in GitHub; subsequent corrections use exact remote file contents and are verified by exact-head CI. New followup bytes have not been claimed locally tested. Production remains locked until every required workflow passes the final candidate.
