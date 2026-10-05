@@ -23,12 +23,10 @@ import {
 } from './combat-vengeance'
 import { applyCommittedReflect } from './combat-reflect'
 import type { CombatDamageScaling } from './damage-scaling'
-import type { CombatSkillCopyPreview } from './combat-skill-copy'
 import { calculateScaledRawDamage, validateCombatDamageScaling } from './damage-scaling'
 import { applyCommittedAbsorbRecovery } from './combat-absorb-recovery'
 import { recordCommittedDamageHistory } from './combat-damage-history'
 import { attachCombatEffectProvenance } from './combat-effect-provenance'
-import { materializeBeneficialCombatCopyAction } from './combat-status-copy'
 import {
   filterBlockedCovertApplication,
   materializeCsrCommittedAction,
@@ -91,7 +89,6 @@ export interface CombatActionEvaluation extends legacy.CombatActionEvaluation {
   targetCriticalChances?: readonly CombatTargetCriticalChance[]
   targetStatusResistances?: readonly CombatTargetStatusResistance[]
   projectionsAssumeHits?: true
-  skillCopy?: CombatSkillCopyPreview
 }
 
 export interface CombatResolutionContext {
@@ -125,7 +122,6 @@ export function evaluateCombatAction(
   selection: legacy.CombatTargetSelection,
   content: legacy.CombatContentCatalog,
 ): CombatActionEvaluation {
-  action = materializeBeneficialCombatCopyAction(state, action)
   validateCombatAccuracyDefinition(action)
   const csrPreviewAction = materializeCsrPreviewAction(action)
   let materialized = materializeVengeanceDamage(state, csrPreviewAction)
@@ -191,7 +187,6 @@ export function executeCombatAction(
   context?: CombatResolutionContext,
   hitDependentEffects?: CombatHitDependentEffects,
 ): CombatResolutionTransition {
-  action = materializeBeneficialCombatCopyAction(state, action)
   validateCombatAccuracyDefinition(action)
   const round = state.tactical.battle.round
   const actorId = state.tactical.battle.currentTurn?.combatantId ?? null
@@ -402,9 +397,6 @@ function materializeStatScaledDamage(
   const effects: legacy.CombatEffectDefinition[] = action.effects.map((effect) => {
     if (effect.type === 'sensory') {
       throw new TypeError('Sensory must be materialized before legacy effect resolution.')
-    }
-    if (effect.type === 'copy') {
-      throw new TypeError('Copy must be materialized by the mature Skill execution layer.')
     }
     if (effect.type !== 'damage') return effect
 
