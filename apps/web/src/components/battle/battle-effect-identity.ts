@@ -111,12 +111,9 @@ export function describeBattleEffect(effect: BattlePresentedStatus) {
     const definition = PHASE4_STATUSES.find(
       (item) => item.id === effect.statusId && item.version === effect.statusVersion,
     )
-    duration =
-      definition?.nextRoundInitiative !== undefined
-        ? 'Until the next round starts'
-        : definition?.endOfTurn
-          ? `${count} affected-turn-end tick${count === 1 ? '' : 's'} remaining`
-          : `${count} affected-unit turn start${count === 1 ? '' : 's'} remaining`
+    duration = definition?.endOfTurn
+        ? `${count} affected-turn-end tick${count === 1 ? '' : 's'} remaining`
+        : `${count} affected-unit turn start${count === 1 ? '' : 's'} remaining`
   }
   return {
     ...identity,
