@@ -1,5 +1,9 @@
 import { execFileSync } from 'node:child_process'
 import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test'
+import {
+  terrainAdjustedDefense,
+  terrainEvasionBonusBasisPoints,
+} from '@aurevane/game-core/combat/combat-stat-balance'
 
 import type { BattleSessionView } from '../src/server/battle/battle-session-service'
 import { selectDiscipline } from './discipline-library-helpers'
@@ -344,9 +348,18 @@ test('current Renewing Herbs queues, activates next round, inspects and survives
       ['Movement', String(summonCombatant.baseMovementBudget)],
       ['Jump', String(summonStats.jump)],
       ['Accuracy', `${Math.round(summonStats.accuracy / 100)}%`],
-      ['Evasion', `${Math.round(summonStats.evasion / 100)}%`],
-      ['Armor', String(summonStats.armor)],
-      ['Ward', String(summonStats.ward)],
+      [
+        'Evasion',
+        `${Math.round((summonStats.evasion + terrainEvasionBonusBasisPoints(current.snapshot, summon!.combatantId)) / 100)}%`,
+      ],
+      [
+        'Physical Defense',
+        String(terrainAdjustedDefense(current.snapshot, summon!.combatantId, summonStats.armor)),
+      ],
+      [
+        'Mystic Defense',
+        String(terrainAdjustedDefense(current.snapshot, summon!.combatantId, summonStats.ward)),
+      ],
     ] as const) {
       await expect(
         details
