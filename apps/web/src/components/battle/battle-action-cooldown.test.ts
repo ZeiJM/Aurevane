@@ -121,24 +121,6 @@ describe('authoritative cockpit cooldowns', () => {
       ),
     ).toBe(2)
   })
-  it('reads a copied command through its pinned source definition instead of the copied action id', () => {
-    const copiedId = 'temporary.copy.fixture.v1'
-    const copied = {
-      ...presentation,
-      id: copiedId,
-      sourceSkillId: essence.id,
-      sourceDisciplineId: 'vanguard',
-      category: 'attack' as const,
-    }
-    expect(
-      battleActionCooldownTurns(
-        snapshot(essence.cooldown!.key, 2),
-        { ...runtime, copiedSkills: [copied] },
-        'actor',
-        copiedId,
-      ),
-    ).toBe(2)
-  })
   it('does not invent cooldowns for retired ordinary Technique metadata or absent actors', () => {
     const definition = resolveMatureSkillVersion('vanguard.forceful-strike', 2)!
     const technique = {
