@@ -254,9 +254,7 @@ export function skillEffectSummaries(
   timingPolicy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
   _copyPolicyVersion: number | null = 1,
 ): readonly string[] {
-  return skill.effects.map((effect) =>
-    compactEffectSummary(effect, timingPolicy),
-  )
+  return skill.effects.map((effect) => compactEffectSummary(effect, timingPolicy))
 }
 
 export function skillEffectsSummary<Skill extends Pick<MatureSkillDefinition, 'effects'>>(
