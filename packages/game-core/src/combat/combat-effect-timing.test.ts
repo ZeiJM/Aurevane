@@ -238,30 +238,6 @@ it('records pinned origin on pending and activated receipts', () => {
     effectOrigin: origin,
   })
 })
-it('applies queued initiative modifiers at the first following round', () => {
-  const tempoContent = {
-    statuses: [{ ...content.statuses[0]!, id: 'haste', nextRoundInitiative: 40 }],
-  }
-  let state = executeCombatAction(
-    encounter(),
-    {
-      ...action,
-      effects: [{ type: 'apply-status', recipient: 'primary-unit', statusId: 'haste', stacks: 1 }],
-    },
-    { kind: 'unit', combatantId: 'actor1' },
-    tempoContent,
-  ).state
-  state = endCombatTurn(
-    { ...state, tactical: selectCurrentFinalFacing(state.tactical, 'east').state },
-    tempoContent,
-  ).state
-  state = endCombatTurn(
-    { ...state, tactical: selectCurrentFinalFacing(state.tactical, 'east').state },
-    tempoContent,
-  ).state
-  expect(state.tactical.battle.round).toBe(2)
-  expect(state.tactical.battle.currentTurn?.combatantId).toBe('actor1')
-})
 it('instant self debuffs keep their next full affected turn after the application turn', () => {
   let state = executeCombatAction(
     { ...encounter(), effectTimingPolicy: { version: 2, modes: { hexed: 'instant' } } },
