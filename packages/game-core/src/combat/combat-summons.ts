@@ -308,9 +308,6 @@ function cleanupEffectState(
     burn: effectState.burn.filter(
       (row) => row.sourceCombatantId !== combatantId && row.targetCombatantId !== combatantId,
     ),
-    temporarySkills: effectState.temporarySkills.filter(
-      (row) => row.combatantId !== combatantId && row.sourceCombatantId !== combatantId,
-    ),
     damageHistory: effectState.damageHistory.filter((row) => row.combatantId !== combatantId),
     ...(effectState.barriers === undefined
       ? {}
@@ -401,15 +398,6 @@ export function removeCombatSummon(
               ? [{ ...pending, recipientIds }]
               : []
           }),
-        }),
-    ...(state.pendingSkillGrants === undefined
-      ? {}
-      : {
-          pendingSkillGrants: state.pendingSkillGrants.filter(
-            (pending) =>
-              pending.grant.combatantId !== combatantId &&
-              pending.grant.sourceCombatantId !== combatantId,
-          ),
         }),
     ...(state.pendingSummons === undefined
       ? {}
