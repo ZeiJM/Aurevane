@@ -56,16 +56,16 @@ export function skillEffectDescription(
     case 'displace':
       return `${effect.direction === 'pull' ? 'Pull' : 'Push'} ${target} up to ${effect.distance} ${effect.distance === 1 ? 'tile' : 'tiles'} ${effect.direction === 'pull' ? 'toward you' : 'away'}, one legal tile at a time. Stops before occupied, blocked or illegal-elevation tiles. Pull never enters your tile. Root prevents displacement. Failure grants no refund.`
     case 'poison':
-      return `Apply Poison (Poisoned) to ${target}.`
+      return `Apply Poison to ${target}.`
     case 'burn': {
       const preview = previewEffect(effect)
       const stages = preview.magnitude!.split('/')
-      return `Apply Burn (Scorched) to ${target}. Burn deals ${stages.join(', then ')} fixed damage at the target's next ${stages.length} ${stages.length === 1 ? 'end-turn boundary' : 'end-turn boundaries'} for each active application.`
+      return `Apply Burn to ${target}. Burn deals ${stages.join(', then ')} fixed damage at the target's next ${stages.length} ${stages.length === 1 ? 'end-turn boundary' : 'end-turn boundaries'} for each active application.`
     }
     case 'bleed':
-      return `Apply Bleed (Bleeding) to ${target} for ${effect.ticks} ${effect.ticks === 1 ? 'end-turn tick' : 'end-turn ticks'} at ${effect.damagePerTick} damage per tick.`
+      return `Apply Bleed to ${target} for ${effect.ticks} ${effect.ticks === 1 ? 'end-turn tick' : 'end-turn ticks'} at ${effect.damagePerTick} damage per tick.`
     case 'return-to-turn-start':
-      return 'Return to the vacant tile where you started this turn. Root blocks the return. No HP, MP, AP, Movement or past action is refunded.'
+      return 'Rewind to the vacant tile where you started this turn. Rooted blocks the return. No HP, MP, AP, Movement or past action is refunded.'
     case 'healing':
       return `Restore up to ${effect.amount} HP to ${target}.${recoveryTiming(effect.ticks)}`
     case 'barrier-change':
@@ -81,7 +81,7 @@ export function skillEffectDescription(
         ? 'Copy one random eligible regular battle Skill from the selected unit for the rest of this battle. The copied Skill keeps its original MP, targeting, effects and requirements, but costs half AP rounded up.'
         : 'Copy the selected unit’s active beneficial effect tags onto yourself. The selected unit keeps its effects; remaining durations are not restarted.'
     case 'sensory':
-      return `Attempt Sensory on ${target}. On a successful hit against Covert, remove eligible positive statuses and Covert, then apply Revealed for ${effect.revealedDurationOwnerTurnStarts} owner-turn starts. Otherwise the Sensory block has no effect.`
+      return `Attempt Reveal on ${target}. On a successful hit against Covert, remove eligible positive statuses and Covert, then apply Revealed for ${effect.revealedDurationOwnerTurnStarts} owner-turn starts. Otherwise Reveal has no effect.`
     case 'remove-status': {
       const statusNames = [...new Set(effect.statusIds.map((id) => combatStatusDetails(id).name))]
       return `Remove ${statusNames.join(', ')} from ${target}.`
@@ -343,9 +343,9 @@ export function skillTargetMethodDescription(skill: Pick<MatureSkillDefinition, 
     case 'single':
       return 'Single'
     case 'circle':
-      return `Circle · Radius: ${skill.target.shape.radius} ${skill.target.shape.radius === 1 ? 'tile' : 'tiles'}`
+      return `Circle [${skill.target.shape.radius}]`
     case 'line':
-      return `Line · Length: ${skill.target.shape.length} ${skill.target.shape.length === 1 ? 'tile' : 'tiles'}`
+      return `Line [${skill.target.shape.length}]`
   }
 }
 
