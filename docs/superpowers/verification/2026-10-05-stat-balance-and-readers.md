@@ -89,3 +89,13 @@ All13 exact-head workflow gates pass at `2026-10-05T09:31:43.573Z`:
 - [Browser smoke](https://github.com/ZeiJM/Aurevane/actions/runs/37284285006): success.
 
 PR #830 merges as `dc7156b5be183b141ab607d298e899337b2c1ae9`, exactly matching tested tree `5d96a54910b864395d8320969ef6bc6dffedba37`; Main freshness and the exact virtual/actual merge trees are checked before release. The Owner's standing request authorizes one combined Production release. Production verification remains pending until the configuration-only release is READY and its source/primary alias, public smoke and bounded runtime scan are confirmed.
+
+## Production release receipt
+
+The Owner-authorized single release is live. Configuration/documentation-only [PR #831](https://github.com/ZeiJM/Aurevane/pull/831) merges as `fd5ceeb418cb5b9704a30b260d641250ec00545b` and creates exactly one Production deployment, `dpl_9As751VRtxLxsxjByeJfRu12jt85`, READY at `2026-10-05T09:34:54.408Z`. The primary alias https://aurevane.vercel.app/ resolves to that exact deployment and commit.
+
+All seven public checks return200: entry, `/auth/reset-password`, Manual, movement-search Manual, Rules, News and the unchanged VS WebP (`image/webp`). The deployment-scoped warning/error/fatal scan from READY through `2026-10-05T09:36:07.659Z` returns no matching logs.
+
+The configuration/documentation-only closeout restores `apps/web/vercel.json` to the full `**: false` lock. Application source remains identical to the tested PR #830 tree; this closeout does not request a second application deployment. No migrations, hosted Auth/content settings or production-account mutations. Authenticated gameplay and recovery mail pass in disposable CI; authenticated Production gameplay and Owner visual acceptance are separate outcomes and are not claimed here. No root review of new CI screenshots is claimed after the workspace disconnected; exact automated renderer geometry/palette/artwork assertions and independent source review are recorded above.
+
+New stat/elevation/resistance rules apply to newly created encounters. Historical encounters retain their recorded policies. The shared reader, viewport-fitting completion and focus corrections apply to current views without reducing skill/portrait artwork.
