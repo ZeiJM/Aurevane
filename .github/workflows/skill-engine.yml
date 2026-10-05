@@ -29,20 +29,6 @@ jobs:
           corepack prepare pnpm@11.17.0 --activate
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Temporary exact-format diagnostic
-        run: |
-          pnpm exec prettier --write \
-            packages/game-core/src/combat/actions-legacy.ts \
-            packages/game-core/src/combat/mature-skills.ts \
-            packages/game-core/src/combat/recruit-ai-build.ts \
-            apps/web/src/server/battle/battle-recruit-ai-build.test.ts \
-            apps/web/src/components/character/character-skill-build-panel.tsx
-          git diff -- \
-            packages/game-core/src/combat/actions-legacy.ts \
-            packages/game-core/src/combat/mature-skills.ts \
-            packages/game-core/src/combat/recruit-ai-build.ts \
-            apps/web/src/server/battle/battle-recruit-ai-build.test.ts \
-            apps/web/src/components/character/character-skill-build-panel.tsx
       - name: Focused formatting
         run: |
           pnpm exec prettier --check \
