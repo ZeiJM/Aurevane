@@ -78,7 +78,7 @@ function statusPreview(id: string, potencyBasisPoints?: number): PreviewEffect {
 
 export function previewEffect(
   effect: MatureSkillEffectDefinition,
-  copyPolicyVersion: number | null = 1,
+  _copyPolicyVersion: number | null = 1,
 ): PreviewEffect {
   const target =
     effect.recipient === 'actor'
@@ -193,14 +193,6 @@ export function previewEffect(
             ? 'Copies eligible positive statuses from the target to you.'
             : 'Copies eligible negative statuses from you to the target.',
       }
-    case 'copy':
-      return {
-        label: copyPolicyVersion === null ? 'Skill Copy' : 'Copy',
-        explanation:
-          copyPolicyVersion === null
-            ? 'Copies one eligible enemy Skill for this battle at half AP, rounded up.'
-            : 'Copies the target’s active beneficial effect tags onto you. The target keeps its effects; remaining durations are not restarted.',
-      }
     case 'sensory':
       return {
         label: 'Reveal',
@@ -211,14 +203,11 @@ export function previewEffect(
 
 export function skillPreviewEffects(
   skill: MatureSkillDefinition,
-  copyPolicyVersion: number | null = 1,
+  _copyPolicyVersion: number | null = 1,
 ): readonly PreviewEffect[] {
   return skill.effects.map((effect, index) => {
-    const entry = previewEffect(effect, copyPolicyVersion)
-    const override =
-      effect.type === 'copy' && copyPolicyVersion !== null
-        ? undefined
-        : skill.effectDescriptions?.[index]?.trim()
+    const entry = previewEffect(effect)
+    const override = skill.effectDescriptions?.[index]?.trim()
     return override ? { ...entry, explanation: override } : entry
   })
 }
