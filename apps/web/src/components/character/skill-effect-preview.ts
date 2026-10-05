@@ -96,13 +96,20 @@ export function previewEffect(
       }
     case 'damage':
       return {
-        label: 'Dmg',
+        label:
+          effect.element === 'water'
+            ? 'Water Dmg'
+            : effect.element === 'storm'
+              ? 'Storm Dmg'
+              : effect.element === 'fire'
+                ? 'Fire Dmg'
+                : 'Dmg',
         magnitude: String(effect.amount),
         explanation: `Deals base${effect.element ? ` ${effect.element}` : ''} damage before Power, Level and defenses.${effect.facingModifiersBasisPoints ? ` Facing: front ${effect.facingModifiersBasisPoints.front / 100}%, side ${effect.facingModifiersBasisPoints.side / 100}%, rear ${effect.facingModifiersBasisPoints.rear / 100}%.` : ''}`,
       }
     case 'healing':
       return {
-        label: 'Healing',
+        label: 'Heal',
         magnitude: String(effect.amount),
         explanation: `Restores HP to ${target}${effect.ticks && effect.ticks > 1 ? ` per application, ${effect.ticks} times (first when the effect activates)` : ''}.`,
       }
@@ -126,8 +133,8 @@ export function previewEffect(
     case 'displace':
       return {
         label: effect.direction === 'pull' ? 'Pull' : 'Push',
-        magnitude: `${effect.distance} ${effect.distance === 1 ? 'tile' : 'tiles'}`,
-        explanation: `Moves ${target} ${effect.direction === 'pull' ? 'toward you' : 'away'}; stops at blocked tiles or Root.`,
+        magnitude: String(effect.distance),
+        explanation: `Moves ${target} ${effect.direction === 'pull' ? 'toward you' : 'away'}; stops at blocked tiles or Rooted.`,
       }
     case 'burn': {
       const turns = effect.durationTurns ?? CURRENT_BURN_DAMAGE_BY_STAGE.length
@@ -169,18 +176,18 @@ export function previewEffect(
     }
     case 'create-terrain':
       return {
-        label: 'Frozen Terrain',
+        label: 'Frozen Ground',
         magnitude: `+${COMBAT_TERRAIN_OVERLAY_DETAILS.frozen.additionalApPerTile} AP/tile`,
         explanation: 'Both teams pay extra movement AP; fire turns it into sight-blocking Steam.',
       }
     case 'return-to-turn-start':
       return {
-        label: 'Return',
+        label: 'Rewind',
         explanation: 'Returns you to your turn-start tile if legal; refunds no resources.',
       }
     case 'copy-statuses':
       return {
-        label: effect.mode === 'amplify' ? 'Amplify' : 'Curse',
+        label: effect.mode === 'amplify' ? 'Copy Buffs' : 'Copy Debuffs',
         explanation:
           effect.mode === 'amplify'
             ? 'Copies eligible positive statuses from the target to you.'
@@ -196,7 +203,7 @@ export function previewEffect(
       }
     case 'sensory':
       return {
-        label: 'Sensory',
+        label: 'Reveal',
         explanation: 'On a hit against Covert, strips eligible buffs and applies Revealed.',
       }
   }
