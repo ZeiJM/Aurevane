@@ -30,13 +30,12 @@ export type CombatElement = 'water' | 'storm' | 'fire'
 const STATUS_TAG_ALIASES: Readonly<Record<string, GameplayTag>> = {
   burn: 'Scorched',
   scorched: 'Scorched',
-  frozen: 'Frozen',
+  frozen: 'Chilled',
   conductive: 'Conductive',
   wet: 'Wet',
   bleed: 'Bleeding',
   bleeding: 'Bleeding',
   mark: 'Marked',
-  marked: 'Marked',
   guarded: 'Guarded',
   inspired: 'Inspired',
   hexed: 'Hexed',
@@ -51,49 +50,43 @@ const STATUS_TAG_ALIASES: Readonly<Record<string, GameplayTag>> = {
 }
 
 const STATUS_PRESENTATION_TAGS: Readonly<Record<string, string>> = {
-  'beneficial-copy': 'Copy beneficial effects',
   guarded: 'Guard',
-  exposed: 'Expose',
+  exposed: 'Vulnerable',
   wet: 'Wet',
   frozen: 'Frozen',
   conductive: 'Conductive',
-  inspired: 'Inspire',
-  hexed: 'Hex',
-  invisible: 'Ghost',
-  summoned: 'Summon',
+  inspired: 'Damage Up',
+  hexed: 'Healing Down',
+  invisible: 'Invisible',
   airborne: 'Airborne',
   displaced: 'Displaced',
   haste: 'Haste',
   slow: 'Slow',
-  burn: 'Burn (Scorched)',
-  bleed: 'Bleed (Bleeding)',
-  poison: 'Poison (Poisoned)',
+  burn: 'Burn',
+  bleed: 'Bleed',
+  poison: 'Poison',
   reckless: 'Reckless',
   fortified: 'Fortified',
-  challenged: 'Challenged',
+  challenged: 'Taunted',
   mark: 'Marked',
   marked: 'Marked',
-  warded: 'Warded',
-  'lowered-guard': 'Off-guard',
-  root: 'Root',
+  warded: 'Burn Ward',
+  'lowered-guard': 'Defenseless',
+  root: 'Rooted',
   blind: 'Blind',
-  'absorb-hp': 'Absorb HP',
-  'absorb-mp': 'Absorb MP',
+  'absorb-hp': 'HP Leech',
+  'absorb-mp': 'MP Leech',
   reflect: 'Reflect',
-  amplify: 'Amplify',
-  curse: 'Curse',
+  amplify: 'Copy Buffs',
+  curse: 'Copy Debuffs',
 }
 
 const POSITIVE_STATUS_IDS = new Set([
   'guarded',
   'inspired',
   'invisible',
-  'summoned',
   'airborne',
   'haste',
-  'regeneration',
-  'hastened',
-  'borrowed-hour',
   'fortified',
   'warded',
   'absorb-hp',
@@ -299,8 +292,8 @@ function targetPresentationTag(action: Pick<CombatActionDefinition, 'target'>): 
 function shapePresentationTag(action: Pick<CombatActionDefinition, 'target'>): string {
   const shape = action.target.shape
   if (shape.kind === 'single') return 'Single'
-  if (shape.kind === 'circle') return `Circle ${shape.radius}`
-  return `Line ${shape.length}`
+  if (shape.kind === 'circle') return `Circle [${shape.radius}]`
+  return `Line [${shape.length}]`
 }
 
 function effectPresentationTags(effect: PresentationEffect): readonly string[] {
@@ -313,13 +306,14 @@ function effectPresentationTags(effect: PresentationEffect): readonly string[] {
           : effect.element === 'fire'
             ? 'Fire Dmg'
             : 'Dmg'
-    return effect.piercing === true ? [element, 'Pierce'] : [element]
+    const label = `${element} [${positiveDisplayInteger(effect.amount, 1)}]`
+    return effect.piercing === true ? [label, 'Pierce'] : [label]
   }
-  if (effect.type === 'healing') return [`Heal ${positiveDisplayInteger(effect.ticks, 1)}`]
+  if (effect.type === 'healing') return [`Heal [${positiveDisplayInteger(effect.amount, 1)}]`]
   if (effect.type === 'resource-change') {
     return typeof effect.delta === 'number' && effect.delta < 0
-      ? ['MP Drain']
-      : [`MP Rec ${positiveDisplayInteger(effect.ticks, 1)}`]
+      ? [`MP Drain [${positiveDisplayInteger(Math.abs(effect.delta), 1)}]`]
+      : [`MP Restore [${positiveDisplayInteger(effect.delta, 1)}]`]
   }
   if (effect.type === 'remove-status') {
     const ids = Array.isArray(effect.statusIds)
@@ -331,36 +325,35 @@ function effectPresentationTags(effect: PresentationEffect): readonly string[] {
   if (effect.type === 'create-terrain' || effect.type === 'freeze-ground') return ['Freeze Ground']
   if (effect.type === 'displace') {
     const direction = effect.direction === 'pull' ? 'Pull' : 'Push'
-    return [`${direction} ${positiveDisplayInteger(effect.distance, 1)}`]
+    return [`${direction} [${positiveDisplayInteger(effect.distance, 1)}]`]
   }
   if (effect.type === 'apply-status' && typeof effect.statusId === 'string') {
     return [combatStatusPresentationTag(effect.statusId)]
   }
   if (effect.type === 'copy-statuses') {
-    if (effect.mode === 'amplify') return ['Amplify']
-    if (effect.mode === 'curse') return ['Curse']
+    if (effect.mode === 'amplify') return ['Copy Buffs']
+    if (effect.mode === 'curse') return ['Copy Debuffs']
     return []
   }
 
   const directLabels: Readonly<Record<string, string>> = {
     'barrier-change': 'Barrier',
-    copy: 'Copy',
-    'absorb-hp': 'Absorb HP',
-    'absorb-mp': 'Absorb MP',
+    'absorb-hp': 'HP Leech',
+    'absorb-mp': 'MP Leech',
     reflect: 'Reflect',
     vengeance: 'Vengeance',
-    amplify: 'Amplify',
-    curse: 'Curse',
+    amplify: 'Copy Buffs',
+    curse: 'Copy Debuffs',
     cleanse: 'Cleanse',
     dispel: 'Dispel',
-    sensory: 'Sensory',
+    sensory: 'Reveal',
     summon: 'Summon',
-    'apply-burn': 'Burn (Scorched)',
-    'apply-bleed': 'Bleed (Bleeding)',
-    'apply-poison': 'Poison (Poisoned)',
-    burn: 'Burn (Scorched)',
-    bleed: 'Bleed (Bleeding)',
-    poison: 'Poison (Poisoned)',
+    'apply-burn': 'Burn',
+    'apply-bleed': 'Bleed',
+    'apply-poison': 'Poison',
+    burn: 'Burn',
+    bleed: 'Bleed',
+    poison: 'Poison',
   }
   return directLabels[effect.type] ? [directLabels[effect.type]!] : []
 }
