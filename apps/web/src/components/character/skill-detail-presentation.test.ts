@@ -474,4 +474,3 @@ it('keeps area dimensions and distinct recipients in canonical parameter rows', 
     'Enemy · All units, including allies',
   )
 })
-
