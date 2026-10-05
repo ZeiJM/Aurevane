@@ -9,7 +9,6 @@ import type {
 import { readBattleAuthorityCombatBuildSnapshot } from './battle-authority-build-snapshot'
 import { resolveEssenceForBuild } from './essence'
 import {
-  resolveMatureSkillForContext,
   resolveMatureSkillVersion,
   type MatureSkillDefinition,
 } from './mature-skills'
@@ -98,6 +97,7 @@ export function executeBuildAwareRecruitAiAction(
   )
   if (definition) {
     return executePv1fMatureSkill(state, definition, target, 'pve')
+  }
   return executePv1fAction(state, actionId, target)
 }
 
