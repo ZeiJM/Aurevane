@@ -494,6 +494,10 @@
   .commands > article strong {
     font-size: max(0.625rem, calc(var(--battle-command-name-font) * 0.923));
   }
+  .commands [data-battle-items-locked] {
+    font-size: var(--battle-command-name-font);
+    white-space: nowrap;
+  }
   .facingRow button {
     height: 1.125rem;
   }

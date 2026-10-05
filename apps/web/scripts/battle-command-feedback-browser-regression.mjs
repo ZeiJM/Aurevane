@@ -253,13 +253,19 @@ try {
           const frames = [...deck.querySelectorAll('[data-av-square-media="true"]')]
             .filter((element) => element.getBoundingClientRect().width > 0)
             .map((element) => element.getBoundingClientRect())
+          const itemsCaption = deck.querySelector('[data-battle-items-locked]')
           return {
             expected,
             frames: frames.map(({ width, height }) => ({ width, height })),
             overflows: document.documentElement.scrollWidth > innerWidth,
+            itemsCaptionFits:
+              itemsCaption.scrollWidth <= itemsCaption.clientWidth + 1 &&
+              itemsCaption.getBoundingClientRect().bottom <=
+                deck.getBoundingClientRect().bottom + 1,
           }
         })
         assert.equal(geometry.overflows, false, 'Items introduces no horizontal page overflow')
+        assert.equal(geometry.itemsCaptionFits, true, 'Coming soon stays fully inside the cockpit')
         for (const frame of geometry.frames) {
           assert.ok(
             Math.abs(frame.width - geometry.expected) <= 1,
