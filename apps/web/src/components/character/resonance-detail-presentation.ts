@@ -35,7 +35,6 @@ export function resonanceMatcher(value: {
 export function resonanceCharacteristicRows(
   definition: AnyResonanceDefinition | null | undefined,
   timingPolicy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
-  copyPolicyVersion: number | null = 1,
 ): readonly SkillCharacteristic[] {
   if (!definition) {
     return skillInformationRows({
@@ -58,11 +57,7 @@ export function resonanceCharacteristicRows(
     Cost: 'N/A',
     Cooldown: 'N/A',
     Requirements: mechanics.setup ? resonanceMatcher(mechanics.setup) : 'N/A',
-    Effects: skillEffectSummaries(
-      { effects: mechanics.resultEffects },
-      timingPolicy,
-      copyPolicyVersion,
-    ).map(
+    Effects: skillEffectSummaries({ effects: mechanics.resultEffects }, timingPolicy).map(
       (summary, index) =>
         `${resonanceMatcher(mechanics.trigger)}: ${summary}${mechanics.resultEffects[index]!.recipient === 'actor' ? '' : ` → ${resonanceResultRecipient(mechanics.resultEffects[index]!)}`}`,
     ),
@@ -77,14 +72,13 @@ export function resonanceCharacteristicRows(
 /** Effect explanations follow the shared ten-field report. */
 export function resonanceSupplementalRows(
   definition: AnyResonanceDefinition | null | undefined,
-  copyPolicyVersion: number | null = 1,
 ): readonly SkillCharacteristic[] {
   if (!definition) return []
   const mechanics = normalizedResonanceMechanics(definition)
   return [
     [
       'Result details',
-      mechanics.resultEffects.map((effect) => previewEffect(effect, copyPolicyVersion).explanation),
+      mechanics.resultEffects.map((effect) => previewEffect(effect).explanation),
     ],
   ]
 }
