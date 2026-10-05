@@ -287,6 +287,8 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   const moveAction = commandDeck.locator('button[data-command-slot="move"]')
   const finishAction = commandDeck.locator('button[data-command-slot="finish"]')
   const actionEconomy = page.getByRole('progressbar', { name: 'Action Economy remaining' })
+  await expect(battleRoot).toHaveAttribute('data-local-turn', 'true')
+  await expect(finishAction).toBeEnabled()
 
   if (testInfo.project.name === 'desktop-chromium') {
     // Reports remain readable on a locked battle route even in a short landscape viewport.
@@ -414,7 +416,12 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   })
   const playerSpawn = tileCoordinates(await playerTile.getAttribute('aria-label'))
   expect(playerSpawn).not.toBeNull()
-  for (let approachTurn = 0; approachTurn < 3; approachTurn += 1) {
+  // Current Movement2 and randomized terrain can require more than three turns.
+  // Bound the approach by the rendered board size, retaining the exact spawn and
+  // flat melee-adjacency assertions rather than relocating either combatant.
+  const approachTurnBudget = await battlefield.getByRole('button', { name: /^Tile / }).count()
+  expect(approachTurnBudget).toBeGreaterThan(0)
+  for (let approachTurn = 0; approachTurn < approachTurnBudget; approachTurn += 1) {
     const recruitTile = battlefield.getByRole('button', { name: /occupied by Recruit/ })
     const playerPosition = tileCoordinates(await playerTile.getAttribute('aria-label'))
     const recruitPosition = tileCoordinates(await recruitTile.getAttribute('aria-label'))

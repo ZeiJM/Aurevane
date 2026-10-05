@@ -1,6 +1,14 @@
 import { execFileSync } from 'node:child_process'
 import { expect, test } from '@playwright/test'
-import { PV1F_BASIC_ATTACK_COST } from '@aurevane/game-core/combat/pv1f-skills'
+import {
+  PV1F_BASIC_ATTACK_COST,
+  PV1F_RECOVER_COST,
+} from '@aurevane/game-core/combat/pv1f-skills'
+import {
+  PV1F_RECOVER_PERCENT,
+  PV1F_RECOVERY_COOLDOWN,
+} from '@aurevane/game-core/combat/pv1f-action-economy'
+import { readSkillCooldown } from '@aurevane/game-core/combat/skill-cooldowns'
 import type { BattleSessionView } from '../src/server/battle/battle-session-service'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
@@ -114,6 +122,7 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
     const result = await response
     expect(result.status()).toBe(200)
     battle = (await result.json()).battle
+    return result.request().postDataJSON().intent
   }
   for (
     let command = 0;
@@ -136,9 +145,10 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
       }),
     ).toBeVisible()
     const distance = Math.abs(player.x - enemy.x) + Math.abs(player.y - enemy.y)
-    const ap = tactical.battle.combatants
-      .find((unit) => unit.id === playerId)!
-      .temporaryResources.find((resource) => resource.key === 'pv1f.action-economy')!.current
+    const actor = tactical.battle.combatants.find((unit) => unit.id === playerId)!
+    const ap = actor.temporaryResources.find(
+      (resource) => resource.key === 'pv1f.action-economy',
+    )!.current
     // A response can arrive before React renders its board/AP state. Follow the
     // committed budget and wait for its visible projection before the next input.
     await expect(
@@ -149,6 +159,34 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
       await commit()
       braced = true
       skillCommands++
+      continue
+    }
+    // Survive through normal inputs, observing the shared two-turn recovery cooldown.
+    // No HP, AP, placements or victory state is injected into the acquisition run.
+    if (
+      skillCommands >= 3 &&
+      actor.hp <= Math.floor((actor.maxHp * 2) / 3) &&
+      ap >= PV1F_RECOVER_COST &&
+      !readSkillCooldown(actor, PV1F_RECOVERY_COOLDOWN).active
+    ) {
+      await root.focus()
+      await page.keyboard.press('KeyR')
+      await expect(root).toHaveAttribute('data-battle-action-mode', 'recover')
+      expect(await commit()).toMatchObject({
+        kind: 'action',
+        actionId: 'basic.recover',
+        target: { kind: 'self' },
+      })
+      const healed = battle.snapshot.tactical.battle.combatants.find(
+        (unit) => unit.id === playerId,
+      )!
+      expect(healed.hp).toBe(
+        Math.min(actor.maxHp, actor.hp + Math.round((actor.maxHp * PV1F_RECOVER_PERCENT) / 100)),
+      )
+      expect(
+        healed.temporaryResources.find((resource) => resource.key === 'pv1f.action-economy')!
+          .current,
+      ).toBe(ap - PV1F_RECOVER_COST)
       continue
     }
     const nextPrimarySkillCost = 45
@@ -163,7 +201,25 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
       } else if (skillCommands === 2) {
         await root.getByRole('button', { name: 'Selected Shield Bash, 45 AP', exact: true }).click()
       } else {
-        await root.locator('[data-battle-command="attack"]').click()
+        // Reuse ready equipped attacks, including Shield Bash's protection, instead
+        // of abandoning the build after its three required demonstrations.
+        const readyAttack = ['Shield Bash', 'Forceful Strike'].find(
+          (name) =>
+            ap >= nextPrimarySkillCost &&
+            !actor.temporaryResources.some(
+              (resource) =>
+                resource.key ===
+                  `p3.skill-cooldown.vanguard.${name === 'Shield Bash' ? 'shield-bash' : 'forceful-strike'}` &&
+                resource.current > 0,
+            ),
+        )
+        if (readyAttack) {
+          await root
+            .getByRole('button', { name: `Selected ${readyAttack}, 45 AP`, exact: true })
+            .click()
+        } else {
+          await root.locator('[data-battle-command="attack"]').click()
+        }
       }
       await expect(enemyTile).toHaveAttribute('data-target', 'enemy')
       await commit(enemyTile)
