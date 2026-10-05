@@ -9,7 +9,7 @@ Owner clarification: manual End Turn never applies Lowered Guard; the first expi
 - [x] Add the server-projected EXP column and numeric sorting in both directory views, with compact mobile text and honest unavailable EXP.
 - [x] Add browser regressions for real disposable-database EXP/API data, sorting, column alignment and viewport fit.
 - [x] Obtain independent blocker-free review of both changes.
-- [x] Complete combined local quality gate: `pnpm check` passes with 4,025 Vitest checks plus seven Node checks.
+- [x] Complete combined local quality gate: `pnpm check` passes with 4,027 Vitest checks plus seven Node checks.
 - [ ] Complete exact-head CI/browser checks.
 - [ ] Merge verified current-Main-compatible source and perform the standing authorized combined release with bounded Production evidence and full lock restoration.
 

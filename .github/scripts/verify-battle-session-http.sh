@@ -41,8 +41,8 @@ character_id="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres 
     'portrait.starter.wayfarer-01',
     'appearance.starter.roadworn',
     'vanguard',
-    -- Preserve the 36-Core fixture budget and give the player higher Initiative than the recruit.
-    12, 4, 4, 7, 3, 6
+    -- Preserve Vanguard's base minima and 36-Core budget; player Initiative exceeds the recruit.
+    9, 4, 7, 7, 3, 6
   );")"
 test -n "$character_id"
 

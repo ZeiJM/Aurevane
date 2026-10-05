@@ -164,6 +164,23 @@ async function loadPublicCharacterIdentityMap(
   return identityMap
 }
 
+async function loadPublicCharacterPresentationMaps(characterIds: readonly string[]) {
+  const identities = new Map<string, PublicCharacterIdentity>()
+  const images = new Map<string, string>()
+  // Keep UUID filters below gateway URL limits and each read below the Data API row limit.
+  // Sequential batches bound load while the independent identity/image reads run together.
+  for (let offset = 0; offset < characterIds.length; offset += 100) {
+    const ids = characterIds.slice(offset, offset + 100)
+    const [identityMap, imageMap] = await Promise.all([
+      loadPublicCharacterIdentityMap(ids),
+      loadPublicCharacterProfileImageMap(ids).catch(() => new Map<string, string>()),
+    ])
+    for (const [id, identity] of identityMap) identities.set(id, identity)
+    for (const [id, image] of imageMap) images.set(id, image)
+  }
+  return [identities, images] as const
+}
+
 export async function listOnlineCharacters(): Promise<OnlineCharacter[]> {
   const supabase = createSupabaseAdminClient()
   const { data, error } = await supabase.rpc('list_online_characters_v1')
@@ -176,10 +193,7 @@ export async function listOnlineCharacters(): Promise<OnlineCharacter[]> {
   // Public online identity is deliberately shallow: portrait/title plus the current committed
   // Primary/Secondary Discipline pair and Owner-approved current Character EXP only. Never expose
   // stats, skills, account identifiers, currencies, inventory or private progression receipts.
-  const [identityMap, imageMap] = await Promise.all([
-    loadPublicCharacterIdentityMap(ids),
-    loadPublicCharacterProfileImageMap(ids).catch(() => new Map<string, string>()),
-  ])
+  const [identityMap, imageMap] = await loadPublicCharacterPresentationMaps(ids)
 
   return base
     .map((row) => {
@@ -232,10 +246,7 @@ export async function listCharacterPresenceDirectory(): Promise<CharacterPresenc
   if (base.length === 0) return base
   const ids = base.map((row) => row.characterId)
 
-  const [identityMap, imageMap] = await Promise.all([
-    loadPublicCharacterIdentityMap(ids),
-    loadPublicCharacterProfileImageMap(ids).catch(() => new Map<string, string>()),
-  ])
+  const [identityMap, imageMap] = await loadPublicCharacterPresentationMaps(ids)
 
   return base.map((row) => {
     const identity = identityMap.get(row.characterId)
