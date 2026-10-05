@@ -8,10 +8,7 @@ import type {
 } from './actions'
 import { readBattleAuthorityCombatBuildSnapshot } from './battle-authority-build-snapshot'
 import { resolveEssenceForBuild } from './essence'
-import {
-  resolveMatureSkillVersion,
-  type MatureSkillDefinition,
-} from './mature-skills'
+import { resolveMatureSkillVersion, type MatureSkillDefinition } from './mature-skills'
 import {
   committedResonanceForecast,
   executePv1fAction,
