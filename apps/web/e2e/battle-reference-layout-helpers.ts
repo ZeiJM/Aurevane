@@ -148,7 +148,7 @@ export async function expectBattleHeaderAndArtworkGeometry(page: Page) {
       'Essence or Resonance does not overlap the future group',
     ).toBeLessThanOrEqual(future!.left)
   }
-  expect(geometry.standards).toHaveLength(5)
+  expect(geometry.standards).toHaveLength(6)
   expect(
     geometry.selected.length,
     'authored selected Skill or Essence artwork provides the size baseline',

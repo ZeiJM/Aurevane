@@ -28,7 +28,7 @@ async function expectStableCompactDesktopCockpit(page: Page) {
   const facingPad = deck.locator('[data-unified-facing-pad="true"]')
 
   await expect(deck).toBeVisible()
-  await expect(commands).toHaveCount(5)
+  await expect(commands).toHaveCount(6)
   await expect(facingPad).toBeHidden()
 
   await expectRefinedCockpit(page)

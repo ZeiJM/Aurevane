@@ -23,6 +23,12 @@ async function enterBattle(page: Page) {
   await page.getByRole('button', { name: 'Enter Battle' }).click()
   await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
   await expect(page.locator('[data-battle-layout="refined"]')).toBeVisible()
+  // Initiative may let the Recruit open; shortcuts correctly ignore an opponent's turn.
+  await expect(page.locator('main[data-unified-battle="true"]')).toHaveAttribute(
+    'data-local-turn',
+    'true',
+  )
+  await expect(page.locator('[data-battle-command="guard"]')).toBeEnabled()
   return page.getByRole('button', { name: new RegExp(`occupied by ${name}`) })
 }
 
