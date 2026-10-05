@@ -246,6 +246,11 @@
   outline: 2px solid #fff2cb;
   outline-offset: 1px;
 }
+/* A submitted command needs no extra tile-selection frame while waiting for authority.
+   Keep the keyboard ring whenever the battlefield is available for another gesture. */
+.shell[data-battle-execution-pending='true'] .tile:focus-visible {
+  outline: none;
+}
 .tileMeta {
   position: absolute;
   top: 2px;

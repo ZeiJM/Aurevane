@@ -3,6 +3,7 @@
 import { SkillEffectTimingProvider } from '../character/skill-effect-timing-context'
 
 import { isBattleShortcutBlocked as isTextEntryTarget } from './battle-keyboard-scope'
+import { useBattleTabCyclePrevention } from './battle-tab-cycle-prevention'
 
 import {
   isCurrentBattlePreview,
@@ -265,6 +266,7 @@ export function BattleExperience(props: {
   initialBattle: BattleSessionView
   runtime: BattleRuntime
 }) {
+  useBattleTabCyclePrevention()
   return (
     <SkillEffectTimingProvider
       policy={props.initialBattle.snapshot.effectTimingPolicy ?? null}
@@ -1351,7 +1353,6 @@ function BattleExperienceContent({
           setNotice('Choose a highlighted destination within your remaining Movement and AP.')
           return
         }
-        updatePlanningPath(nextPath)
         void executeIntent({ kind: 'move', path: nextPath })
       } else if (mode === 'attack' || mode === 'guard' || mode === 'recover') {
         const descriptor = actionDescriptor(currentActionId)
@@ -1387,7 +1388,6 @@ function BattleExperienceContent({
       planningDisabled,
       reachablePaths,
       selection,
-      updatePlanningPath,
       viewModel.participantByCombatant,
     ],
   )
@@ -1792,6 +1792,7 @@ function BattleExperienceContent({
       data-pvp-battle={runtime.kind === 'pvp' ? 'true' : undefined}
       data-local-turn={localTurn || undefined}
       data-battle-keyboard-focus-root="true"
+      data-battle-execution-pending={executionPending || commitPending || undefined}
       tabIndex={-1}
       aria-busy={recruitPending || undefined}
     >
@@ -2059,7 +2060,7 @@ function BattleExperienceContent({
                         ? 'enemy'
                         : 'illegal'
                       : undefined
-                const selected = selectedUnitId === placement?.combatantId
+                const selected = mode === 'inspect' && selectedUnitId === placement?.combatantId
                 const terrain = tile.terrainId === 'rough-ground' ? 'rough' : 'open'
                 const overlay = terrainOverlayAt(battle.snapshot, tile.position)
 

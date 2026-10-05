@@ -1,6 +1,7 @@
 import React from 'react'
 import { createRoot } from 'react-dom/client'
 import { BattleExperience } from '@/components/battle/battle-experience'
+import { PvpSpectatorExperience } from '@/components/battle/pvp-spectator-experience'
 import { DesktopBattleCombatantInspect } from '@/components/battle/desktop-battle-combatant-inspect'
 import { MobileBattleCombatantPopup } from '@/components/battle/mobile-battle-combatant-popup'
 import { BattleInteractionLifecycleProvider } from '@/components/battle/battle-interaction-lifecycle'
@@ -183,22 +184,36 @@ window.advanceBattle = (nextActor = 'character:player') => {
     }),
   )
 }
-createRoot(document.getElementById('root')).render(
-  <BattleInteractionLifecycleProvider>
-    <BattleExperience initialBattle={initialBattle} runtime={runtime} />
-    <DesktopBattleCombatantInspect
-      battleSessionId="fixture"
-      pvpMetadata={mode === 'pvp' ? metadata : null}
-      playerName="Zei"
-      playerPortraitAssetId="character.adventure.male-01"
-      battleView={initialBattle}
+const fixtureRoot = createRoot(document.getElementById('root'))
+window.unmountBattle = () => fixtureRoot.unmount()
+fixtureRoot.render(
+  mode === 'spectator' ? (
+    <PvpSpectatorExperience
+      initialSpectator={{
+        battle: initialBattle,
+        mode: '2v2',
+        battleKey: metadata.battleKey,
+        participants,
+      }}
+      initialParticipantTitles={{}}
     />
-    {mode === 'pve' ? (
-      <MobileBattleCombatantPopup
+  ) : (
+    <BattleInteractionLifecycleProvider>
+      <BattleExperience initialBattle={initialBattle} runtime={runtime} />
+      <DesktopBattleCombatantInspect
         battleSessionId="fixture"
+        pvpMetadata={mode === 'pvp' ? metadata : null}
         playerName="Zei"
         playerPortraitAssetId="character.adventure.male-01"
+        battleView={initialBattle}
       />
-    ) : null}
-  </BattleInteractionLifecycleProvider>,
+      {mode === 'pve' ? (
+        <MobileBattleCombatantPopup
+          battleSessionId="fixture"
+          playerName="Zei"
+          playerPortraitAssetId="character.adventure.male-01"
+        />
+      ) : null}
+    </BattleInteractionLifecycleProvider>
+  ),
 )

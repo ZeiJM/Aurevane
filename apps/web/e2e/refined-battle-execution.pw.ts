@@ -1,6 +1,7 @@
 import { PV1F_ACTION_ECONOMY_RESOURCE_KEY } from '@aurevane/game-core/combat/pv1f-action-economy'
 import { expect, test, type Page } from '@playwright/test'
 import type { BattleSessionView } from '../src/server/battle/battle-session-service'
+import type { BattlePreviewView } from '../src/server/battle/battle-preview-service'
 import { buildMovementPaths } from '../src/components/battle/battle-geometry'
 import { createAccountAndEnterCharacter } from './pv1f-test-helpers'
 
@@ -36,7 +37,10 @@ test('single target input executes Guard once and repeated keys do not dispatch'
   })
   await page.keyboard.press('Digit3')
   await expect(page.locator('[data-battle-combatant-card="selected"]')).toContainText('Recruit')
-  await expect(page.getByLabel('Action preview', { exact: true })).toContainText('30 AP')
+  await expect(page.getByLabel('Action preview', { exact: true })).not.toContainText(/\d+ AP/)
+  await expect(
+    page.getByLabel('Action preview', { exact: true }).locator('[data-battle-range-forecast]'),
+  ).toContainText('Guard')
   expect(commits).toBe(0)
   await page.evaluate(() =>
     window.dispatchEvent(
@@ -130,7 +134,10 @@ test('Guard clears its armed mode and blocks deliberate inputs during its author
   await page.keyboard.press('Digit3')
   const initialVersion = (await initialPreview).request().postDataJSON()
     .expectedBattleVersion as number
-  await expect(page.getByLabel('Action preview', { exact: true })).toContainText('30 AP')
+  await expect(page.getByLabel('Action preview', { exact: true })).not.toContainText(/\d+ AP/)
+  await expect(
+    page.getByLabel('Action preview', { exact: true }).locator('[data-battle-range-forecast]'),
+  ).toContainText('Guard')
   expect(commits).toBe(0)
 
   const committed = page.waitForResponse(
@@ -280,7 +287,10 @@ test('a second pointer or hotkey during a pending commit cannot queue another ac
   await page.keyboard.press('Digit3')
   const initialVersion = (await initialPreview).request().postDataJSON()
     .expectedBattleVersion as number
-  await expect(page.getByLabel('Action preview', { exact: true })).toContainText('30 AP')
+  await expect(page.getByLabel('Action preview', { exact: true })).not.toContainText(/\d+ AP/)
+  await expect(
+    page.getByLabel('Action preview', { exact: true }).locator('[data-battle-range-forecast]'),
+  ).toContainText('Guard')
   const committed = page.waitForResponse(
     (response) =>
       response.request().method() === 'POST' &&
@@ -415,8 +425,13 @@ test('a rapid second Basic Attack commits without waiting for an informational f
   const initialPreview = page.waitForResponse('**/api/battles/*/preview')
   await page.keyboard.press('Digit2')
   const initial = await initialPreview
-  expect((await initial.json()).battlePreview.preview.legal).toBe(true)
-  await expect(page.getByLabel('Action preview', { exact: true })).toContainText('30 AP')
+  const initialAction = (await initial.json()).battlePreview.preview
+  expect(initialAction.legal).toBe(true)
+  expect(initialAction.hitChanceBasisPoints).not.toBeNull()
+  await expect(page.getByLabel('Action preview', { exact: true })).toContainText(
+    `Hit ${Math.round(initialAction.hitChanceBasisPoints / 100)}%`,
+  )
+  await expect(page.getByLabel('Action preview', { exact: true })).not.toContainText(/\d+ AP/)
   const initialVersion = initial.request().postDataJSON().expectedBattleVersion as number
   let releasePreview!: () => void
   let informationalReady!: () => void
@@ -427,6 +442,7 @@ test('a rapid second Basic Attack commits without waiting for an informational f
     informationalReady = resolve
   })
   let held = false
+  let heldForecast: BattlePreviewView | undefined
   const handlers: Promise<void>[] = []
   await page.route('**/api/battles/*/preview', async (route) => {
     const payload = route.request().postDataJSON()
@@ -440,6 +456,7 @@ test('a rapid second Basic Attack commits without waiting for an informational f
     )
     try {
       const response = await route.fetch()
+      heldForecast = (await response.json()).battlePreview
       informationalReady()
       await hold
       await route.fulfill({ response }).catch(() => undefined)
@@ -495,12 +512,43 @@ test('a rapid second Basic Attack commits without waiting for an informational f
         .map((request) => request.version),
     ).toEqual([initialVersion, initialVersion + 1])
     expect(acceptedVersion).toBe(initialVersion + 2)
-    const freshForecast = (await (await latestPreview).json()).battlePreview
+    const freshForecast = (await (await latestPreview).json()).battlePreview as BattlePreviewView
     expect(freshForecast.battleVersion).toBe(acceptedVersion)
     expect(freshForecast.preview).toMatchObject({ actionEconomyBefore: 40, actionEconomyAfter: 10 })
     const forecast = page.getByLabel('Action preview', { exact: true })
-    await expect(forecast).toContainText('10 AP left')
-    await expect(forecast).not.toContainText('40 AP left')
+    await expect(forecast).not.toContainText(/\d+ AP left/)
+    expect(heldForecast).toMatchObject({
+      battleVersion: initialVersion + 1,
+      preview: { actionEconomyBefore: 70, actionEconomyAfter: 40 },
+    })
+    const freshAction = freshForecast.preview
+    if (freshAction.kind !== 'action') throw new Error('Expected an authoritative action forecast')
+    expect(freshAction.primaryCombatantId).toBe(targetId)
+    const targetForecast = forecast.locator(`[data-battle-range-forecast="${targetId}"]`)
+    const expectLatestInlineResult = async () => {
+      await expect(targetForecast).toHaveCount(1)
+      const result = targetForecast.locator(':scope > span:last-child')
+      if (freshAction.hitChanceBasisPoints !== null)
+        await expect(result).toContainText(
+          `Hit ${Math.round(freshAction.hitChanceBasisPoints / 100)}%`,
+        )
+      else await expect(result).not.toContainText(/Hit \d+%/)
+      const damage = freshAction.projectedEffects
+        .filter((effect) => effect.combatantId === targetId && effect.effectType === 'damage')
+        .reduce(
+          (total, effect) =>
+            total +
+            (typeof effect.before === 'number' && typeof effect.after === 'number'
+              ? Math.max(0, effect.before - effect.after)
+              : 0),
+          0,
+        )
+      expect(damage).toBeGreaterThan(0)
+      await expect(result).toContainText(`${damage} dmg`)
+      await expect(forecast.getByRole('button')).toHaveCount(0)
+      await expect(forecast).not.toContainText(/\d+ AP left/)
+    }
+    await expectLatestInlineResult()
     await Promise.all(handlers)
     await page.evaluate(
       () =>
@@ -508,8 +556,7 @@ test('a rapid second Basic Attack commits without waiting for an informational f
           requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
         ),
     )
-    await expect(forecast).toContainText('10 AP left')
-    await expect(forecast).not.toContainText('40 AP left')
+    await expectLatestInlineResult()
     await expect
       .poll(() =>
         requests

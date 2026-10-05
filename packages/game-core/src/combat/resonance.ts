@@ -376,6 +376,11 @@ export function resonanceAiUtilityBonus(
   return 0
 }
 
+/** Attack-triggered Results use the command's authoritative hit decision, including zero-HP-damage hits. */
+export function resonanceTriggerRequiresHit(definition: AnyResonanceDefinition): boolean {
+  return normalizedResonanceMechanics(definition).trigger.requiredTags.includes('attack')
+}
+
 export function executeMatureSkillWithResonance(input: {
   readonly state: CombatEncounterState
   readonly resonance: AnyResonanceDefinition
@@ -398,14 +403,30 @@ export function executeMatureSkillWithResonance(input: {
     ? { ...baseAction, effects: [...baseAction.effects, ...forecast.bonusEffects] }
     : baseAction
 
-  const resolution = executeCombatAction(input.state, action, input.selection, input.content)
+  const requiresHit = forecast.willActivate && resonanceTriggerRequiresHit(input.resonance)
+  const resolution = executeCombatAction(
+    input.state,
+    action,
+    input.selection,
+    input.content,
+    undefined,
+    requiresHit
+      ? {
+          effectOrdinals: forecast.bonusEffects.map(
+            (_effect, index) => baseAction.effects.length + index,
+          ),
+        }
+      : undefined,
+  )
+  const activated =
+    forecast.willActivate && (!requiresHit || resolution.hitDependentEffectsActivated === true)
   const actorId = resolution.events.find((event) => event.event === 'combat_action_used')?.actorId
   if (!actorId) throw new Error('Resonance Skill resolution did not emit a combat action event.')
 
   const resonanceEvents: ResonanceCombatEvent[] = []
   let nextArmedByActionId = input.resonanceState.armedByActionId
 
-  if (forecast.willActivate) {
+  if (activated) {
     resonanceEvents.push({
       event: 'resonance_activated',
       resonanceId: input.resonance.id,

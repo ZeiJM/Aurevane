@@ -16,7 +16,7 @@ import styles from './battle-completion-panel.module.css'
 import { formatBattleLogForClipboard } from './battle-log-clipboard'
 import { BattleLogFeed, countBattleLogActions } from './battle-log-feed'
 import { battleSparringTeamCounts } from './battle-runtime'
-import { useBattlePlayerName } from './battle-runtime-context'
+import { useBattleCombatantNames, useBattlePlayerName } from './battle-runtime-context'
 
 interface BattleCompletionPanelProps {
   battle: BattleSessionView
@@ -61,6 +61,7 @@ function readAiDifficulty(sourceId: string | null): 'easy' | 'standard' | 'high'
 export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
   const router = useRouter()
   const playerName = useBattlePlayerName()
+  const combatantNames = useBattleCombatantNames()
   const [masteryNotice, setMasteryNotice] = useState<string | null>(null)
   const [claimPending, setClaimPending] = useState(false)
   const [retryPending, setRetryPending] = useState(false)
@@ -79,6 +80,11 @@ export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
     'recruit-sparring'
   const aiDifficulty = readAiDifficulty(scenarioSourceId)
   const battleState = battle.snapshot.tactical.battle
+  const logOptions = {
+    playerName: playerName ?? undefined,
+    combatantNames,
+    currentRound: battleState.round,
+  }
   const player = battleState.combatants.find((combatant) => combatant.teamId === 'players')
   const recruit = battleState.combatants.find((combatant) => combatant.teamId === 'opponents')
   const guidedTraining = recordId === 'guided-fundamentals'
@@ -146,9 +152,7 @@ export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
     const current = await loadBattleLog()
     if (!current) return
     try {
-      await navigator.clipboard.writeText(
-        formatBattleLogForClipboard(current.entries, { playerName: playerName ?? undefined }),
-      )
+      await navigator.clipboard.writeText(formatBattleLogForClipboard(current.entries, logOptions))
       setCopyNotice('Full battle log copied')
       window.setTimeout(() => setCopyNotice(null), 1800)
     } catch {
@@ -302,7 +306,7 @@ export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
               <div className={styles.logTranscript}>
                 <BattleLogFeed
                   entries={log.entries}
-                  playerName={playerName ?? undefined}
+                  {...logOptions}
                   emptyMessage="No committed battle actions were recorded."
                 />
               </div>

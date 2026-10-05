@@ -1,5 +1,16 @@
 # AUREVANE — Active Task Ledger
 
+## Battle input, timing, Chronicle copy and preview corrections — 2026-10-04 (verification in progress)
+
+The Owner requests smooth, slower VS flames; removal of AP/AP remaining/Range metadata and Parameters/Details buttons from all battle skill previews; inherent Guard lasting its authored two affected turns; hit-dependent Resonances withheld on a miss while retaining earned setup; removal of transient pre-command map boxes; Copy Full Log matching the displayed Chronicle; and removal of plain Tab/Shift+Tab focus cycling on battle pages. Existing portraits, skill artwork, viewport geometry, movement-range guidance, full cockpit information, server authority and privacy remain authoritative. Apply shared presentation to desktop/mobile PvE, PvP and spectators. Preserve historical Guard/status payloads and ordinary Skill costs/cooldowns. One combined Production release remains covered by the Owner’s standing request.
+
+- [x] Implement the smooth seven-second shared VS glow without geometry or artwork changes.
+- [x] Remove preview metadata and Forecast details popup while retaining recipient-specific outcomes and complete cockpit readers.
+- [x] Correct Guard timing and hit-confirmed Resonance payoff through canonical execution, with meaningful red/green regression tests.
+- [x] Remove transient map feedback, disable scoped Tab cycling with cleanup, and align full-history copy with the viewer-safe Chronicle.
+- [ ] Complete frozen local quality, exact-candidate browser/layout checks and independent review.
+- [ ] Publish the verified corrections together, check Production and restore the deployment lock. This follow-up is not yet live.
+
 ## Battle review, ally inspection and unlimited applications — 2026-10-04 (released)
 
 The Owner requested equal footer thickness, stronger sideways animated VS flames, Terrain without its trailing chevron, quieter successful summons, unlimited mechanical effect stacking and removal of stack-limit copy, full pending round ranges, compact Resonance, thematic actual DoT ticks, clearer Lowered Guard, temporary ally previews, defeated-tile occupancy/facing rules, and automatic in-range enemy forecasts with portraits spanning both lines. This batch retains card/cockpit/map artwork sizes, server authority, viewer privacy, historical encounters and the previously released work below. One combined Production release remains explicitly authorized.

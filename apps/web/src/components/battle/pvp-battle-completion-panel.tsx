@@ -7,17 +7,11 @@ import type { BattleLogView } from '@/server/battle/battle-log-service'
 import type { PvpBattleMetadata } from '@/server/battle/pvp-lobby-service'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
-import styles from './battle-completion-panel.module.css'
+import { formatBattleLogForClipboard } from './battle-log-clipboard'
+import { BattleLogFeed, countBattleLogActions } from './battle-log-feed'
+import { useBattleCombatantNames, useBattlePlayerName } from './battle-runtime-context'
 
-function formatFullLog(log: BattleLogView): string {
-  return [...log.entries]
-    .reverse()
-    .map((entry) => {
-      const when = new Date(entry.occurredAt).toISOString()
-      return `[${when}] v${entry.battleVersion}.${entry.eventIndex} ${entry.message}`
-    })
-    .join('\n')
-}
+import styles from './battle-completion-panel.module.css'
 
 function resultForLocalPlayer(
   battle: BattleSessionView,
@@ -50,6 +44,8 @@ export function PvpBattleCompletionPanel({
   metadata: PvpBattleMetadata
 }) {
   const router = useRouter()
+  const playerName = useBattlePlayerName()
+  const combatantNames = useBattleCombatantNames()
   const [battle, setBattle] = useState(initialBattle)
   const [error, setError] = useState<string | null>(null)
   const [logOpen, setLogOpen] = useState(false)
@@ -59,6 +55,7 @@ export function PvpBattleCompletionPanel({
   const result = useMemo(() => resultForLocalPlayer(battle, metadata), [battle, metadata])
   const battleState = battle.snapshot.tactical.battle
   const round = battleState.round
+  const logOptions = { playerName: playerName ?? undefined, combatantNames, currentRound: round }
 
   useEffect(() => {
     const receiveBattleState = (event: Event) => {
@@ -109,7 +106,7 @@ export function PvpBattleCompletionPanel({
     const current = await loadBattleLog()
     if (!current) return
     try {
-      await navigator.clipboard.writeText(formatFullLog(current))
+      await navigator.clipboard.writeText(formatBattleLogForClipboard(current.entries, logOptions))
       setCopyNotice('Full battle log copied')
       window.setTimeout(() => setCopyNotice(null), 1800)
     } catch {
@@ -169,19 +166,16 @@ export function PvpBattleCompletionPanel({
           <section className={styles.logReview} aria-label="Committed PvP battle log review">
             <div className={styles.logHeader}>
               <strong>Battle Log</strong>
-              <span>{log?.entries.length ?? 0} events</span>
+              <span>{log ? countBattleLogActions(log.entries) : 0} actions</span>
             </div>
             {log && log.entries.length > 0 ? (
-              <ol>
-                {[...log.entries].reverse().map((entry) => (
-                  <li key={`${entry.battleVersion}:${entry.eventIndex}`}>
-                    <small>
-                      v{entry.battleVersion}.{entry.eventIndex}
-                    </small>
-                    <span>{entry.message}</span>
-                  </li>
-                ))}
-              </ol>
+              <div className={styles.logTranscript}>
+                <BattleLogFeed
+                  entries={log.entries}
+                  {...logOptions}
+                  emptyMessage="No committed battle actions were recorded."
+                />
+              </div>
             ) : (
               <p>No battle events were recorded.</p>
             )}

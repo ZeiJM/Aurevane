@@ -356,19 +356,18 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   await expect(actionEconomy).toHaveAttribute('aria-valuenow', '100')
   await commandDeck.getByRole('button', { name: 'Selected Barrier, 40 AP', exact: true }).click()
   const forecast = page.locator('[data-battle-preview-strip] [aria-label="Action preview"]')
-  await expect(forecast).toContainText('40 AP')
+  await expect(forecast).not.toContainText(/\d+ AP|Range:/)
+  await expect(forecast.locator('[data-battle-preview-lane="parameters"]')).toHaveCount(0)
   await expect(
-    forecast.locator('[data-battle-preview-chip]').filter({ hasText: /^Range:/ }),
-  ).toHaveText('Range: 3')
+    forecast.getByRole('button', { name: 'Show Barrier parameters', exact: true }),
+  ).toHaveCount(0)
   await expect(forecast).not.toContainText('Success 100%')
   await expect(battlefield.locator('button[data-target="friendly"]')).toHaveCount(0)
-  const parameterTrigger = forecast.getByRole('button', {
-    name: 'Show Barrier parameters',
-    exact: true,
-  })
-  await parameterTrigger.click()
-  const barrierParameters = page.getByRole('dialog', { name: 'Barrier parameters', exact: true })
-  await expect(barrierParameters).toBeVisible()
+  const informationTrigger = commandDeck.getByRole('button', { name: 'About Barrier', exact: true })
+  await informationTrigger.click()
+  const skillDetails = page.getByRole('dialog', { name: 'Barrier', exact: true })
+  await expect(skillDetails).toBeVisible()
+  const barrierParameters = skillDetails.locator('[data-battle-skill-parameters]')
   await expect(
     barrierParameters
       .locator('dl > div')
@@ -391,12 +390,7 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
         ),
       ),
   ).toEqual(nexusBarrierParameters)
-  await page.keyboard.press('Escape')
-  await expect(barrierParameters).toHaveCount(0)
-  await expect(parameterTrigger).toBeFocused()
   await expect(actionEconomy).toHaveAttribute('aria-valuenow', '100')
-  await commandDeck.getByRole('button', { name: 'About Barrier', exact: true }).click()
-  const skillDetails = page.getByRole('dialog', { name: 'Barrier', exact: true })
   await expect(skillDetails).toContainText('Guarded [11%] [2 Turns]')
   await expect(skillDetails).toContainText(
     'Reduces incoming damage by 11% per application. Each use refreshes the duration.',
@@ -406,6 +400,7 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   )
   await page.keyboard.press('Escape')
   await expect(skillDetails).toHaveCount(0)
+  await expect(informationTrigger).toBeFocused()
   await commandDeck.getByRole('button', { name: 'Guard, 30 AP', exact: true }).click()
   await expect(forecast).toContainText('Success 100%')
   await expectBattlePreviewFits(page)

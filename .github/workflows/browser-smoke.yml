@@ -67,6 +67,11 @@ jobs:
           AV_ALLY_INSPECTION_EVIDENCE_DIR: /tmp/battle-ally-inspection-review
         run: pnpm --filter @aurevane/web exec node scripts/battle-ally-inspection-browser-regression.mjs
 
+      - name: Verify immediate battle command feedback and Tab prevention
+        env:
+          AV_COMMAND_FEEDBACK_EVIDENCE_DIR: /tmp/battle-command-feedback-review
+        run: pnpm --filter @aurevane/web exec node scripts/battle-command-feedback-browser-regression.mjs
+
       - name: Start local Supabase stack
         run: pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
 
@@ -174,6 +179,14 @@ jobs:
         with:
           name: battle-ally-inspection-review
           path: /tmp/battle-ally-inspection-review
+          retention-days: 7
+
+      - name: Save command feedback and Tab evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: battle-command-feedback-review
+          path: /tmp/battle-command-feedback-review
           retention-days: 7
 
       - name: Save browser evidence

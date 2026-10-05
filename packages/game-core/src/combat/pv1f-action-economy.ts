@@ -36,6 +36,7 @@ import {
   forecastResonanceForSkill,
   resolveResonanceForPair,
   constrainResonanceForecastToTarget,
+  resonanceTriggerRequiresHit,
 } from './resonance'
 import { PHASE4_STATUSES } from './status-content'
 import {
@@ -206,9 +207,21 @@ export const PV1F_GUARD_ACTION: CombatActionDefinition = {
   effects: [{ type: 'apply-status', recipient: 'actor', statusId: 'guarded', stacks: 1 }],
 }
 
+// The legacy owner-start count converts to one completed turn under the timing policy.
+// Current inherent Guard explicitly grants two; historical actions and queued payloads stay pinned.
+const PV1F_TIMED_GUARD_ACTION: CombatActionDefinition = {
+  ...PV1F_GUARD_ACTION,
+  version: 2,
+  effects: PV1F_GUARD_ACTION.effects.map((effect) => ({
+    ...effect,
+    durationTurns: PV1F_GUARDED_STATUS.durationOwnerTurnStarts,
+  })),
+}
+
 export interface Pv1fTransition {
   state: StatDrivenCombatEncounterState
   events: readonly unknown[]
+  hitDependentEffectsActivated?: boolean
 }
 
 export function calculatePv1fBasicAttackDamage(input: { physicalPower: number }): number {
@@ -823,6 +836,8 @@ export interface Pv1fMatureSkillOptions {
   copyContext?: Pv1fMatureSkillCopyContext
   /** Internal per-authored-effect provenance for an explicitly merged Resonance. */
   effectOrigins?: readonly (CombatEffectOrigin | undefined)[]
+  /** Internal merged Resonance effects require the command's existing hostile hit decision. */
+  resonanceRequiresHit?: boolean
 }
 
 export function evaluatePv1fMatureSkill(
@@ -1112,7 +1127,26 @@ export function executePv1fMatureSkill(
     dedicatedCopyAccuracy.state,
     prepared.statBridge,
   )
-  const resolved = executeCombatAction(executionState, action, target, PV1F_COMBAT_CONTENT)
+  const resonanceRequiresHit =
+    (resonance?.forecast.willActivate && resonanceTriggerRequiresHit(resonance.definition)) ||
+    options.resonanceRequiresHit
+  const resolved = executeCombatAction(
+    executionState,
+    action,
+    target,
+    PV1F_COMBAT_CONTENT,
+    undefined,
+    resonanceRequiresHit
+      ? {
+          effectOrdinals: (action.effectOrigins ?? []).flatMap((origin, index) =>
+            origin?.family === 'resonance' ? [index] : [],
+          ),
+        }
+      : undefined,
+  )
+  const resonanceActivated =
+    resonance?.forecast.willActivate &&
+    (!resonanceRequiresHit || resolved.hitDependentEffectsActivated === true)
   const resolutionEvents = dedicatedCopyAccuracy.event
     ? [dedicatedCopyAccuracy.event, ...resolved.events]
     : resolved.events
@@ -1245,9 +1279,7 @@ export function executePv1fMatureSkill(
 
   if (
     resonance &&
-    (resonance.forecast.willActivate ||
-      resonance.forecast.willExpireArmedSetup ||
-      resonance.forecast.willArm)
+    (resonanceActivated || resonance.forecast.willExpireArmedSetup || resonance.forecast.willArm)
   ) {
     const actor = getCombatant(next, actorId)
     const resources = actor.temporaryResources.filter(
@@ -1263,11 +1295,14 @@ export function executePv1fMatureSkill(
   const remaining = readPv1fActionEconomy(next, actorId)?.current ?? 0
   return {
     state: next,
+    ...(resonanceRequiresHit
+      ? { hitDependentEffectsActivated: resolved.hitDependentEffectsActivated }
+      : {}),
     events: [
       ...mediaResolutionEvents,
       ...summonEvents,
       ...defeatedSummons.events,
-      ...(resonance?.forecast.willActivate
+      ...(resonanceActivated
         ? [
             {
               event: 'resonance_activated',
@@ -1612,7 +1647,8 @@ export function resolvePv1fActionDefinition(
   if (actionId === PV1F_BASIC_ATTACK_ID) {
     return createPv1fBasicAttackDefinition(readPv1fBasicAttackDamage(state, actorId))
   }
-  if (actionId === PV1F_GUARD_ACTION_ID) return PV1F_GUARD_ACTION
+  if (actionId === PV1F_GUARD_ACTION_ID)
+    return state.effectTimingPolicy ? PV1F_TIMED_GUARD_ACTION : PV1F_GUARD_ACTION
   if (actionId === PV1F_RECOVER_ACTION_ID) return createPv1fRecoverAction(actor.maxHp)
   if (actionId === PV1F_MP_RECOVER_ACTION_ID) return createPv1fMpRecoveryAction(actor.maxMp)
   throw new Error(`Unsupported PV-1F action ${actionId}.`)

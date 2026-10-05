@@ -442,7 +442,7 @@ it('transports scheduled Guard identity and lifetime without committing or chang
         statusId: 'guarded',
         after: 'pending',
         activationRound: 2,
-        remainingOwnerTurnEnds: 1,
+        remainingOwnerTurnEnds: 2,
       }),
     ]),
   })

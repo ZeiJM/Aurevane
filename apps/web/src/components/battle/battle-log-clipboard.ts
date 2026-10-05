@@ -2,76 +2,53 @@ import type { SkillNarrationTemplate } from '@aurevane/game-core/combat/battle-n
 
 import type { BattleLogView } from '@/server/battle/battle-log-service'
 
-import { buildBattleLogActionNumbers, buildBattleLogTranscriptLines } from './battle-log-feed'
 import {
-  buildBattleLogPresentation,
-  type BattleLogSegment,
-  type PresentedBattleLogRound,
-} from './battle-log-presentation'
-import { summarizeConsecutiveBattleLogMovement } from './battle-log-movement-summary'
-import { consolidatePresentedBattleLogRounds } from './battle-log-round-groups'
+  buildBattleChronicle,
+  type ChronicleAction,
+  type ChronicleNames,
+} from './battle-log-chronicle-model'
+import {
+  chronicleActionNarration,
+  chronicleActionTitle,
+  chronicleMissingResult,
+} from './battle-log-chronicle-text'
 
-interface BattleLogClipboardOptions {
-  playerName?: string
-  combatantNames?: Readonly<Record<string, string>>
+interface BattleLogClipboardOptions extends ChronicleNames {
+  currentRound?: number
+  /** Retained for existing callers; Chronicle narration comes from viewer-safe pinned history. */
   skillNarrations?: Readonly<Record<string, SkillNarrationTemplate>>
 }
 
-function segmentText(segments: readonly BattleLogSegment[], secondary = false): string {
-  return segments
-    .map((segment, index) =>
-      secondary && index === 0 && segment.text === '↳ ' ? '- ' : segment.text,
-    )
-    .join('')
-    .trimEnd()
+function actionLines(action: ChronicleAction, actorName: string): string[] {
+  const title = chronicleActionTitle(action)
+  const narration = chronicleActionNarration(action, actorName)
+  const missingResult = chronicleMissingResult(action)
+  const outcomes = action.outcomes
+    .map((result) => `${result.text}${result.recipient ?? ''}`)
+    .join(' · ')
+  return [
+    ...(title ? [title] : []),
+    ...(narration ? [narration] : []),
+    ...(outcomes ? [outcomes] : []),
+    ...(missingResult ? [missingResult] : []),
+    ...action.specials.flatMap((special) => actionLines(special, actorName)),
+  ]
 }
 
-function firstActionNumber(
-  round: PresentedBattleLogRound,
-  actionNumbers: ReadonlyMap<string, number>,
-): number {
-  return Math.min(...round.actions.map((action) => actionNumbers.get(action.key) ?? Infinity))
-}
-
-/**
- * Formats the authoritative event stream through the same player-facing presentation pipeline used
- * by the in-battle log. Raw event versions, coordinates, AI planning chatter, and internal timing
- * stay available to the server but are intentionally omitted from clipboard output.
- */
+/** Copy every round from the same viewer-safe model as the reader, even when collapsed. */
 export function formatBattleLogForClipboard(
   entries: BattleLogView['entries'],
   options: BattleLogClipboardOptions = {},
 ): string {
-  const presented = buildBattleLogPresentation(entries, options)
-  const consolidated = consolidatePresentedBattleLogRounds(presented)
-  const rounds = summarizeConsecutiveBattleLogMovement(consolidated, entries)
-  const actionNumbers = buildBattleLogActionNumbers(rounds)
-  const chronologicalRounds = [...rounds].sort(
-    (left, right) =>
-      firstActionNumber(left, actionNumbers) - firstActionNumber(right, actionNumbers),
-  )
-
-  const blocks = chronologicalRounds.map((round) => {
-    const roundLabel = round.round === null ? 'Battle' : `Round ${round.round}`
-    const actions = [...round.actions].sort(
-      (left, right) =>
-        (actionNumbers.get(left.key) ?? Infinity) - (actionNumbers.get(right.key) ?? Infinity),
+  return buildBattleChronicle(entries, options)
+    .map((round) =>
+      [
+        `ROUND ${round.round}`,
+        ...round.actors.flatMap((actor) => [
+          actor.name,
+          ...actor.actions.flatMap((action) => actionLines(action, actor.name)),
+        ]),
+      ].join('\n'),
     )
-    const lines = [roundLabel]
-
-    for (const action of actions) {
-      const actionNumber = actionNumbers.get(action.key)
-      if (!actionNumber) continue
-
-      const transcript = buildBattleLogTranscriptLines(action)
-      lines.push(`#${actionNumber}: ${segmentText(transcript.primary)}`)
-      for (const secondary of transcript.secondaryLines) {
-        lines.push(`   ${segmentText(secondary, true)}`)
-      }
-    }
-
-    return lines.join('\n')
-  })
-
-  return blocks.join('\n\n')
+    .join('\n\n')
 }

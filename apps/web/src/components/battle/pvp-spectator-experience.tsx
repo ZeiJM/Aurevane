@@ -1,6 +1,7 @@
 'use client'
 
 import { BattleRouteFrame } from './battle-route-frame'
+import { useBattleTabCyclePrevention } from './battle-tab-cycle-prevention'
 
 import { BattleTerrainToggle } from './battle-terrain-toggle'
 import { battleTerrainName } from './battle-terrain-key-presentation'
@@ -76,6 +77,7 @@ export function PvpSpectatorExperience({
   initialSpectator: PvpSpectatorView
   initialParticipantTitles: Record<string, string | null>
 }) {
+  useBattleTabCyclePrevention()
   const [spectator, setSpectator] = useState(initialSpectator)
   const [participantTitles, setParticipantTitles] = useState(initialParticipantTitles)
   const [connectionNote, setConnectionNote] = useState<string | null>(null)

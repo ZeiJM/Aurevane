@@ -1,7 +1,6 @@
 'use client'
 
 import { useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { renderBattleFlavorTemplate } from '@aurevane/game-core/combat/battle-narration'
 import { combatStatusDetails } from '@aurevane/game-core/combat/status-content'
 
 import type { BattleLogEntry } from '@/server/battle/battle-log-service'
@@ -12,39 +11,29 @@ import {
   type ChronicleAction,
   type ChronicleNames,
 } from './battle-log-chronicle-model'
+import {
+  chronicleActionNarration,
+  chronicleActionTitle,
+  chronicleMissingResult,
+} from './battle-log-chronicle-text'
 import styles from './battle-log-chronicle.module.css'
 
-function story(action: ChronicleAction, actorName: string): string {
-  return (
-    renderBattleFlavorTemplate(action.flavorTemplate, {
-      actor: { name: actorName, ...action.narrator?.actor },
-      target: { name: action.targetName, ...action.narrator?.target },
-      ability: action.title,
-    }) ?? action.fallbackNarration
-  )
-}
-
 function ChronicleTechnique({ action, actorName }: { action: ChronicleAction; actorName: string }) {
-  const narration = story(action, actorName)
+  const narration = chronicleActionNarration(action, actorName)
+  const title = chronicleActionTitle(action)
+  const missingResult = chronicleMissingResult(action)
   return (
     <article
       className={styles.technique}
       data-chronicle-family={action.family}
       data-chronicle-action={action.key}
     >
-      {action.title ? (
+      {title ? (
         <h4>
           <span className={styles.actionIcon} aria-hidden="true" data-chronicle-action-start="true">
             ◆
           </span>{' '}
-          {action.family === 'skill' ||
-          action.family === 'movement' ||
-          action.title.toLowerCase() === action.family ? null : (
-            <span>
-              {action.family === 'resonance' ? 'Resonance' : action.family.toUpperCase()} ·{' '}
-            </span>
-          )}
-          {action.title}
+          {title}
         </h4>
       ) : null}
       {narration ? <p className={styles.narration}>{narration}</p> : null}
@@ -74,8 +63,8 @@ function ChronicleTechnique({ action, actorName }: { action: ChronicleAction; ac
             </span>
           ))}
         </p>
-      ) : action.family !== 'movement' && action.family !== 'idle' && !action.hasRecordedResult ? (
-        <p className={styles.outcomes}>Action recorded; no effect result available.</p>
+      ) : missingResult ? (
+        <p className={styles.outcomes}>{missingResult}</p>
       ) : null}
       {action.specials.map((special) => (
         <ChronicleTechnique key={special.key} action={special} actorName={actorName} />
