@@ -1,9 +1,6 @@
 import { execFileSync } from 'node:child_process'
 import { expect, test } from '@playwright/test'
-import {
-  PV1F_BASIC_ATTACK_COST,
-  PV1F_RECOVER_COST,
-} from '@aurevane/game-core/combat/pv1f-skills'
+import { PV1F_BASIC_ATTACK_COST, PV1F_RECOVER_COST } from '@aurevane/game-core/combat/pv1f-skills'
 import {
   PV1F_RECOVER_PERCENT,
   PV1F_RECOVERY_COOLDOWN,
