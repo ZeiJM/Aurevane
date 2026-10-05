@@ -2,7 +2,7 @@
 
 This file intentionally lives inside the web app project root so documentation-only production redeploys are not skipped by Vercel's monorepo unaffected-project optimization.
 
-## Stat balance, elevation, resistance and shared readers — release requested
+## Stat balance, elevation, resistance and shared readers — released
 
 The Owner authorized one combined Production release. PR #830 merges as `dc7156b5be183b141ab607d298e899337b2c1ae9`, exactly matching tested tree `5d96a54910b864395d8320969ef6bc6dffedba37` from candidate `c4225fa1522f74c3e68204192f13ec6f0e4804ff`. All13 required exact-head workflows pass; complete receipts are recorded in `docs/superpowers/verification/2026-10-05-stat-balance-and-readers.md`. The final quality gate passes formatting, lint, types,4,006 Vitest tests,seven Node checks, builds and database authority. Independent reviews have no remaining blockers.
 
@@ -10,7 +10,9 @@ Browser smoke passes four ally previews, shared parameter palette,28 elevation/p
 
 New encounters pin derived ruleset4 and statBalancePolicyVersion1 for the approved Core40/60 curves, paired Physical/Mystic Defense, absolute Jump and elevation tradeoffs, ordinary harmful-tag resistance and special-family bypass. Shared readers use red [Physical], green [Mystic], bare names, Skill Type: Resonance and consistent Discipline effect colors. Completion logs fit their viewport; unwanted native map focus outlines are suppressed. Historical encounters retain recorded rules. Existing artwork and earlier releases remain included.
 
-This configuration/documentation-only release enables main once while every other branch stays locked. Production source/alias/public checks and bounded runtime scan remain pending until READY; a subsequent documentation/configuration closeout restores the full lock without a second application release. No migration, hosted Auth/content settings or production-account mutation.
+Configuration/documentation-only PR #831 releases source `fd5ceeb418cb5b9704a30b260d641250ec00545b` as READY deployment `dpl_9As751VRtxLxsxjByeJfRu12jt85` at `2026-10-05T09:34:54.408Z`, with https://aurevane.vercel.app/ assigned to that exact source. All seven public entry/recovery/Manual/Rules/News/VS artwork checks return200. The deployment-scoped warning/error/fatal scan from READY through `2026-10-05T09:36:07.659Z` returns no matching logs. This configuration/documentation-only closeout restores the full deployment lock without a second application release.
+
+No application bytes, migrations, hosted Auth/content settings or production accounts change in the closeout. The execution workspace disconnected after the frozen local quality gate; followup exact bytes pass CI and independent source review. Authenticated gameplay and recovery mail pass in disposable CI; authenticated Production gameplay and Owner visual acceptance remain separate outcomes.
 
 ## Battle input, timing, Chronicle copy and previews — released
 

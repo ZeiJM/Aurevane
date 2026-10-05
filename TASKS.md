@@ -1,18 +1,20 @@
 # AUREVANE — Active Task Ledger
 
-## Stat balance, elevation, resistance and shared reader corrections — 2026-10-05 (in progress)
+## Stat balance, elevation, resistance and shared reader corrections — 2026-10-05 (released)
 
-Owner requests exact Core40/60 anchors, paired Power/Defense, smaller MP economy with mystical tempo, Physical/Mystic Attack parameters, renamed defenses, absolute Jump access with position-derived elevation icons/tradeoffs, ordinary-Skill Status Resistance and special-family bypass; shared Resonance type/head/palette; persistent map focus removal; viewport-fitting victory/loss log readers. Existing artwork, layouts, authority, prior releases and historical battles remain. One combined Production release remains explicitly requested. Plan/spec: `docs/superpowers/plans/2026-10-05-stat-balance-spec.md` and companion plan.
+Owner requests exact Core40/60 anchors, paired Power/Defense, smaller MP economy with mystical tempo, Physical/Mystic Attack parameters, renamed defenses, absolute Jump access with position-derived elevation icons/tradeoffs, ordinary-Skill Status Resistance and special-family bypass; shared Resonance type/head/palette; persistent map focus removal; viewport-fitting victory/loss log readers. Existing artwork, layouts, authority, prior releases and historical battles remain. The authorized combined Production release is complete. Plan/spec: `docs/superpowers/plans/2026-10-05-stat-balance-spec.md` and companion plan.
 
 - [x] Reproduce keyboard focus and completion overflow with actual CI red.
 - [x] Implement shared reader/parameter corrections; actual browser palette and original36 completion cases pass intermediate candidate7f5a3a6.
 - [x] Implement/test derivedV4 curves, explicit historical preservation and Primary offset retirement.
 - [x] Complete new encounter policy, terrain access/forecasts/mitigation, resistance/origin/pending/AI/summon integration and viewer-safe icons.
 - [x] Complete current stats/resource fixtures, full local `pnpm check` (4,006 Vitest + seven Node checks), and independent final core/helper review with no findings.
-- [ ] Verify54 result cases,28 elevated rail cases,all input modes and complete exact-candidate CI/browser quality.
-- [ ] Merge frozen current-Main-compatible combined candidate and perform one Production release; verify exactsource/alias/publicsmoke/logs and restore full lock.
+- [x] Verify54 result cases,28 elevated rail cases,all input modes and complete exact-candidate CI/browser quality.
+- [x] Merge frozen current-Main-compatible combined candidate and perform one Production release; verify exactsource/alias/publicsmoke/logs and restore full lock.
 
-Prior completed releases below remain live. Intermediate test/UI branch commits are not a Production release. No migration, hosted Auth/content setting or production-account changes are part of this batch.
+All13 exact-head workflows pass for candidate `c4225fa1522f74c3e68204192f13ec6f0e4804ff`, tree `5d96a54910b864395d8320969ef6bc6dffedba37`; independent review is blocker-free. PR #830 merges exact tested tree as `dc7156b5be183b141ab607d298e899337b2c1ae9`. Release-only PR #831 deploys `fd5ceeb418cb5b9704a30b260d641250ec00545b` as `dpl_9As751VRtxLxsxjByeJfRu12jt85`, READY `2026-10-05T09:34:54.408Z`, verified at the primary alias. Seven public checks return200 and the bounded runtime scan has no matching warning/error/fatal logs. The config/docs closeout restores the full deployment lock without a second application release.
+
+Prior completed releases below remain included. No migration, hosted Auth/content setting or production-account changes are part of this batch. New stat rules apply to new encounters; historical policies remain pinned. Complete CI/source/runtime/limitations receipts: `docs/superpowers/verification/2026-10-05-stat-balance-and-readers.md`.
 
 ## Battle input, timing, Chronicle copy and preview corrections — 2026-10-04 (released)
 
