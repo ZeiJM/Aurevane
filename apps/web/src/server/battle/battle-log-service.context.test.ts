@@ -135,7 +135,7 @@ describe('recorded Battle Log Skill context', () => {
     },
   )
 
-    it('uses the pinned actor pronouns for the canonical Lowered Guard system action', async () => {
+  it('uses the pinned actor pronouns for the canonical Lowered Guard system action', async () => {
     const build = buildAuthority()
     build.combatants[0]!.narratorIdentity = { name: 'Zei', pronounPresetId: 'he_him' }
     const result = await getLog(
@@ -338,7 +338,7 @@ describe('recorded Battle Log Skill context', () => {
     expect(JSON.stringify(concealed)).not.toContain('Recorded Bryn')
   })
 
-    it('projects only recorded Barrier grants, absorption and scheduled recovery quantities', async () => {
+  it('projects only recorded Barrier grants, absorption and scheduled recovery quantities', async () => {
     const result = await getLog(
       [
         record(
@@ -746,7 +746,6 @@ describe('recorded Battle Log Skill context', () => {
     expect(JSON.stringify(result)).not.toContain('private_build')
   })
 
-  
   it('projects pending and actual persistent effects distinctly without authored magnitude substitution', async () => {
     const result = await getLog(
       [
@@ -849,8 +848,6 @@ describe('recorded Battle Log Skill context', () => {
     expect(resolve).not.toHaveBeenCalled()
   })
 
-  
-  
   it('does not borrow another combatant pinned Skill for an unmatched actor', async () => {
     const resolve = vi.fn(async () => definition())
     const result = await getLog(
@@ -1005,4 +1002,3 @@ describe('in-battle Skill text', () => {
     ).toEqual(build.combatants[0]!.narratorIdentity)
   })
 })
-
