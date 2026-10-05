@@ -150,7 +150,6 @@ describe('Chronist authoritative tempo', () => {
     ])
   })
 
-
   it('rejects malformed schedule offsets and wrong initiative permutations', () => {
     const battle = encounter().tactical.battle
     expect(
