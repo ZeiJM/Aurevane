@@ -33,54 +33,11 @@ import {
 import { currentBarrierAmount, grantBarrier } from './combat-barrier'
 import { replaceRecoverySchedule } from './combat-recovery'
 import { createCombatEffectInstanceProvenance } from './combat-kernel-types'
-import { combatEffectTimingTag } from './combat-effect-timing'
-
-export const CURRENT_COMBAT_COPY_POLICY_VERSION = 1 as const
-
-/** Absence retains the historical random temporary-Skill contract. */
-export function usesBeneficialCombatCopy(
-  state: Pick<CombatEncounterState, 'copyPolicyVersion'>,
-): boolean {
-  return state.copyPolicyVersion === CURRENT_COMBAT_COPY_POLICY_VERSION
-}
-
-/** Reuse the status transfer kernel without rewriting immutable authored Skill definitions. */
-export function materializeBeneficialCombatCopyAction(
-  state: Pick<CombatEncounterState, 'copyPolicyVersion'>,
-  action: CombatActionDefinition,
-): CombatActionDefinition {
-  if (!usesBeneficialCombatCopy(state) || !action.effects.some((effect) => effect.type === 'copy'))
-    return action
-  const rows = action.effects.map((effect, index) => ({
-    effect:
-      effect.type === 'copy'
-        ? {
-            type: 'copy-statuses' as const,
-            recipient: effect.recipient,
-            mode: 'amplify' as const,
-            beneficialEffects: true,
-          }
-        : effect,
-    origin: action.effectOrigins?.[index],
-    timingTag: action.effectTimingTags?.[index] ?? combatEffectTimingTag(effect),
-    copy: effect.type === 'copy',
-  }))
-  // The shared transfer operation executes first; all other authored effects retain their order.
-  const ordered = [...rows.filter((row) => row.copy), ...rows.filter((row) => !row.copy)]
-  return {
-    ...action,
-    effects: ordered.map((row) => row.effect),
-    effectOrigins: ordered.map((row) => row.origin),
-    effectTimingTags: ordered.map((row) => row.timingTag),
-  }
-}
 
 export interface CombatStatusCopyEffect {
   type: 'copy-statuses'
   recipient: 'primary-unit'
   mode: 'amplify' | 'curse'
-  /** Current Copy includes positive named buffs beyond the historical Amplify opt-in list. */
-  beneficialEffects?: boolean
   /** Composed commands may explicitly permit an empty clone block while later effects still matter. */
   allowNoEligibleEffects?: boolean
 }
@@ -101,12 +58,6 @@ export function validateCombatStatusCopyAction(action: CombatActionDefinition): 
   const entry = copyEntries[0]!
   const effect = entry.effect
   if (
-    (effect.beneficialEffects !== undefined && typeof effect.beneficialEffects !== 'boolean') ||
-    (effect.beneficialEffects === true && effect.mode !== 'amplify')
-  ) {
-    throw new TypeError('Beneficial effect copying requires a boolean Amplify policy.')
-  }
-  if (
     effect.allowNoEligibleEffects !== undefined &&
     typeof effect.allowNoEligibleEffects !== 'boolean'
   ) {
@@ -118,9 +69,8 @@ export function validateCombatStatusCopyAction(action: CombatActionDefinition): 
   if (
     entry.index !== 0 ||
     action.sourceType === 'basic-attack' ||
-    (effect.beneficialEffects === true
-      ? !['unit', 'ground-tile'].includes(action.target.kind)
-      : action.target.kind !== 'unit' || action.target.shape.kind !== 'single') ||
+    action.target.kind !== 'unit' ||
+    action.target.shape.kind !== 'single' ||
     effect.recipient !== 'primary-unit' ||
     (effect.mode !== 'amplify' && effect.mode !== 'curse')
   ) {
@@ -134,7 +84,7 @@ function isCopyable(definition: CombatStatusDefinition, effect: CombatStatusCopy
   const mode = effect.mode
   const permitted = mode === 'amplify' ? definition.amplifyCopyable : definition.curseCopyable
   return (
-    (effect.beneficialEffects === true || permitted === true) &&
+    permitted === true &&
     definition.polarity === (mode === 'amplify' ? 'positive' : 'negative') &&
     (definition.reactionClass === undefined ||
       definition.reactionClass === 'ordinary' ||
@@ -294,7 +244,7 @@ interface CombatCopyPlan {
   recovery: readonly { donor: CombatOngoingRecovery; previous: CombatOngoingRecovery | undefined }[]
 }
 
-/** Current Copy includes persistent benefits; historical modes keep their pinned eligibility. */
+/** Copy Buffs and Copy Debuffs preserve the authored Amplify/Curse eligibility contract. */
 export function planCombatStatusCopies(
   state: CombatEncounterState,
   actorId: string,
@@ -370,9 +320,6 @@ export function planCombatStatusCopies(
         ...(donor.sourceScopedMark === true ? { sourceScopedMark: true as const } : {}),
         statusId: donor.statusId,
         statusVersion: donor.statusVersion,
-        ...(effect.beneficialEffects === true && donor.potencyBasisPoints !== undefined
-          ? { potencyBasisPoints: donor.potencyBasisPoints }
-          : {}),
         stacks,
         ...(usesUnlimitedCombatEffectStacking(state)
           ? {
@@ -448,81 +395,8 @@ export function planCombatStatusCopies(
   const burn = burns[0]
   const bleed = planBleedCopies(state, donorId, receiverId, effect.mode)
   const persistent = normalizeCombatEffectState(state.effectState)
-  let barrierCapacity =
-    effect.beneficialEffects === true
-      ? Math.max(
-          0,
-          (state.tactical.battle.combatants.find((row) => row.id === receiverId)?.maxHp ?? 0) -
-            currentBarrierAmount(state, receiverId),
-        )
-      : 0
-  let barrierTotal = BigInt(currentBarrierAmount(state, receiverId))
-  let nextBarrierOrder: number | undefined
-  const barriers =
-    effect.beneficialEffects === true
-      ? (persistent.barriers ?? [])
-          .filter((row) => row.targetCombatantId === donorId && row.amount > 0)
-          .sort(
-            (left, right) =>
-              left.sourceActionId.localeCompare(right.sourceActionId) ||
-              left.sourceCombatantId.localeCompare(right.sourceCombatantId) ||
-              (left.applicationOrder ?? 0) - (right.applicationOrder ?? 0),
-          )
-          .map((donor, index) => {
-            const appliedAmount = independent
-              ? donor.amount
-              : Math.min(donor.amount, barrierCapacity)
-            if (independent) {
-              barrierTotal += BigInt(appliedAmount)
-              if (barrierTotal > BigInt(Number.MAX_SAFE_INTEGER))
-                throw new RangeError('Copied Barrier total exceeds the safe integer range.')
-              nextBarrierOrder ??= nextCombatDotApplicationOrder(persistent.barriers ?? [])
-              if (!Number.isSafeInteger(nextBarrierOrder + index))
-                throw new RangeError(
-                  'Copied Barrier application order exceeds the safe integer range.',
-                )
-            } else barrierCapacity -= appliedAmount
-            return {
-              donor,
-              appliedAmount,
-              ...(independent ? { applicationOrder: nextBarrierOrder! + index } : {}),
-              previous: independent
-                ? undefined
-                : persistent.barriers?.find(
-                    (row) =>
-                      row.targetCombatantId === receiverId &&
-                      row.sourceCombatantId === actorId &&
-                      row.sourceActionId === donor.sourceActionId,
-                  ),
-            }
-          })
-      : []
-  const recovery =
-    effect.beneficialEffects === true
-      ? persistent.ongoingRecovery
-          .filter(
-            (row) =>
-              row.targetCombatantId === donorId &&
-              row.remainingFutureTicks > 0 &&
-              row.amountPerTick > 0,
-          )
-          .sort(
-            (left, right) =>
-              left.kind.localeCompare(right.kind) ||
-              left.sourceActionId.localeCompare(right.sourceActionId),
-          )
-          .map((donor) => ({
-            donor,
-            previous: independent
-              ? undefined
-              : persistent.ongoingRecovery.find(
-                  (row) =>
-                    row.targetCombatantId === receiverId &&
-                    row.kind === donor.kind &&
-                    row.sourceActionId === donor.sourceActionId,
-                ),
-          }))
-      : []
+  const barriers: CombatCopyPlan['barriers'] = []
+  const recovery: CombatCopyPlan['recovery'] = []
   return { receiverId, copies, poison, burn, poisons, burns, bleed, barriers, recovery }
 }
 
