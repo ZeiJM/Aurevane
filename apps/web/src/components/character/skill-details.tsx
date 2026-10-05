@@ -17,9 +17,7 @@ function SkillDetailBody({ skill }: { skill: MatureSkillDefinition }) {
   return (
     <>
       <dl>
-        <SkillCharacteristicRows
-          rows={skillParameterRows(skill, skill, timingPolicy)}
-        />
+        <SkillCharacteristicRows rows={skillParameterRows(skill, skill, timingPolicy)} />
         {skill.overrides.pvp?.apCost !== undefined &&
         skill.overrides.pvp.apCost !== skill.apCost ? (
           <div>
