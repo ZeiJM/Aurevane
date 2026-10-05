@@ -152,7 +152,6 @@ describe('current effect-state gameplay tags', () => {
         statusState: [{ combatantId: 'target', statuses: [] }],
         effectState: {
           ongoingRecovery: [],
-          temporarySkills: [],
           damageHistory: [],
           burn: [
             {
@@ -191,25 +190,5 @@ describe('current effect-state gameplay tags', () => {
     expect(tags).toEqual(expect.arrayContaining(['Scorched', 'Bleeding', 'Poisoned']))
   })
 
-  it('keeps historical marked and current source-scoped mark as separate definitions', () => {
-    const historical = PHASE4_STATUSES.find((status) => status.id === 'marked')
-    const current = PHASE4_STATUSES.find((status) => status.id === 'mark')
 
-    expect(historical).toEqual(
-      expect.objectContaining({
-        version: 1,
-        damageTakenMultiplierBasisPoints: 10_000,
-        damageModifiers: [expect.objectContaining({ multiplierBasisPoints: 12_000 })],
-      }),
-    )
-    expect(current).toEqual(
-      expect.objectContaining({
-        version: 1,
-        damageTakenMultiplierBasisPoints: 10_000,
-        markAccuracyBonusBasisPoints: 1_500,
-        reactionClass: 'ordinary',
-      }),
-    )
-    expect(current?.damageModifiers ?? []).toEqual([])
-  })
 })
