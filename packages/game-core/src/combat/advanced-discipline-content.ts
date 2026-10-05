@@ -132,7 +132,7 @@ function skill(
 const authoredSkills: readonly MatureSkillDefinition[] = [
   // Chronist changes next-round ordering, never duplicates turns or refunds past commands.
   skill('chronist', 'temporal-bolt', 35, ranged, [damage(10)], ['attack', 'mystic', 'ranged']),
-  skill('chronist', 'haste', 30, ally, [effect('hastened')], ['support', 'tempo', 'mystic']),
+  skill('chronist', 'haste', 30, ally, [effect('haste')], ['support', 'tempo', 'mystic']),
   skill(
     'chronist',
     'slow',
@@ -141,7 +141,7 @@ const authoredSkills: readonly MatureSkillDefinition[] = [
     [damage(4), effect('slow')],
     ['attack', 'mystic', 'control'],
   ),
-  skill('chronist', 'delay', 35, ranged, [effect('delayed')], ['control', 'tempo', 'mystic']),
+  skill('chronist', 'delay', 35, ranged, [effect('slow')], ['control', 'tempo', 'mystic']),
   skill(
     'chronist',
     'rewind-step',
@@ -155,7 +155,7 @@ const authoredSkills: readonly MatureSkillDefinition[] = [
     'time-lock',
     50,
     ranged,
-    [effect('root'), effect('delayed')],
+    [effect('root'), effect('slow')],
     ['control', 'tempo', 'mystic'],
   ),
   skill(
@@ -173,7 +173,7 @@ const authoredSkills: readonly MatureSkillDefinition[] = [
     ranged,
     [damage(17), mp(3)],
     ['attack', 'mystic', 'finisher'],
-    targetStatus('delayed'),
+    targetStatus('slow'),
   ),
 
   // Bastion trades personal pressure for protection and target-sensitive threat control.
@@ -347,7 +347,7 @@ const authoredSkills: readonly MatureSkillDefinition[] = [
   ),
   // Wildwarden combines range control, attrition and a mark limited to its own source.
   skill('wildwarden', 'snare', 40, ranged, [effect('root')], ['control', 'setup']),
-  skill('wildwarden', 'hunters-mark', 25, ranged, [effect('marked')], ['mark', 'setup']),
+  skill('wildwarden', 'hunters-mark', 25, ranged, [effect('mark')], ['mark', 'setup']),
   skill(
     'wildwarden',
     'venom-shot',
@@ -379,7 +379,7 @@ const authoredSkills: readonly MatureSkillDefinition[] = [
     'renewing-herbs',
     30,
     ally,
-    [effect('regeneration')],
+    [heal(4, 'primary-unit')],
     ['heal', 'support', 'setup'],
   ),
   skill(
@@ -482,7 +482,7 @@ const authoredSkills: readonly MatureSkillDefinition[] = [
     'renewal',
     35,
     self,
-    [effect('regeneration', 'actor'), cleanse()],
+    [heal(4, 'actor'), cleanse()],
     ['heal', 'cleanse', 'setup'],
   ),
   skill(
@@ -633,7 +633,7 @@ const authoredSkills: readonly MatureSkillDefinition[] = [
     'grounding',
     30,
     self,
-    [{ type: 'remove-status', recipient: 'actor', statusIds: ['slow', 'root', 'marked'] }, mp(3)],
+    [{ type: 'remove-status', recipient: 'actor', statusIds: ['slow', 'root', 'mark'] }, mp(3)],
     ['cleanse', 'recovery'],
   ),
   skill(
@@ -773,13 +773,10 @@ const interactionUpdates: Readonly<Record<string, Partial<MatureSkillDefinition>
     ],
   },
   'frostweaver.shatter': { requirements: [{ kind: 'target-tag-present', tag: 'Frozen' }] },
-  'wildwarden.renewing-herbs': { effects: [effect('regeneration'), effect('summoned')] },
+  'wildwarden.renewing-herbs': { effects: [heal(4, 'primary-unit')] },
   'runeblade.sigil-brand': { effects: [damage(5), effect('exposed'), effect('hexed')] },
   'runeblade.aether-cut': {
-    effects: [
-      damage(12),
-      { type: 'remove-status', recipient: 'primary-unit', statusIds: ['summoned'] },
-    ],
+    effects: [damage(12)],
   },
   'dawnshield.sacred-guard': {
     effects: [effect('guarded'), heal(4, 'primary-unit'), effect('inspired')],
@@ -834,10 +831,13 @@ export const ADVANCED_DISCIPLINE_ESSENCES: readonly EssenceDefinition[] = [
     'chronist',
     'borrowed-hour',
     'Borrowed Hour',
-    'Restore an ally and prepare +40 Initiative for the next round. No extra turn, AP or battle reset.',
+    'Restore an ally over time and reduce their movement AP costs with Haste.',
     60,
     ally,
-    [heal(10, 'primary-unit'), effect('borrowed-hour')],
+    [
+      { type: 'healing', recipient: 'primary-unit', amount: 5, ticks: 2 },
+      effect('haste'),
+    ],
     ['heal', 'support', 'tempo', 'mystic'],
   ),
   essence(
@@ -940,7 +940,7 @@ export const ADVANCED_DISCIPLINE_ESSENCES: readonly EssenceDefinition[] = [
     [
       cleanse('affected-units'),
       heal(10, 'affected-units'),
-      effect('regeneration', 'affected-units'),
+      { type: 'healing', recipient: 'affected-units', amount: 4, ticks: 2 },
     ],
     ['heal', 'area', 'support'],
   ),
