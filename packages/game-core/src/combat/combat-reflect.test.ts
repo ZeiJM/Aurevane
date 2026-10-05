@@ -413,7 +413,6 @@ describe('Reflect committed-command contract', () => {
       poison: [],
       bleed: [],
       burn: [],
-      temporarySkills: [],
       damageHistory: [],
     }
     const result = cast(initial)
