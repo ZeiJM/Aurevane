@@ -12,9 +12,6 @@ import {
   type CombatBuildSnapshot,
 } from '@aurevane/game-core/combat/build-snapshot'
 import { createPv1fTemporaryResources } from '@aurevane/game-core/combat/pv1f-action-economy'
-import {
-  copiedSkillApCost,
-  copiedSkillCommandId,
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 import {
   createStatDrivenCombatEncounterState,
