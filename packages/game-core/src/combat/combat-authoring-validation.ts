@@ -282,19 +282,6 @@ export function validateCombatStatusDefinition(status: CombatStatusDefinition): 
     throw new TypeError('Conditional damage statuses must be single-stack.')
   }
 
-  if (
-    status.nextRoundInitiative !== undefined &&
-    (!Number.isSafeInteger(status.nextRoundInitiative) ||
-      Math.abs(status.nextRoundInitiative) > 40 ||
-      status.nextRoundInitiative === 0 ||
-      status.maximumStacks !== 1 ||
-      status.endOfTurn)
-  ) {
-    throw new RangeError(
-      'Round initiative status must be single-stack, non-periodic and bounded to +/-40.',
-    )
-  }
-
   if (status.endOfTurn) {
     knownString(status.endOfTurn.type, ['damage', 'healing'], 'periodic effect')
     positiveSafeInteger(status.endOfTurn.amount, 'periodic amount')
