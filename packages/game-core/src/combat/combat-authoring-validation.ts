@@ -27,10 +27,6 @@ export function validateCombatActionDefinition(
   action: CombatActionDefinition,
   content?: CombatContentCatalog,
 ): void {
-  const copyEffects = action.effects.filter((effect) => effect.type === 'copy')
-  if (copyEffects.length > 1) {
-    throw new TypeError('A combat action may contain at most one Copy effect.')
-  }
   validateCombatStatusCopyAction(action)
   validateVengeanceActionDefinition(action)
   validateCsrActionDefinition(action)
@@ -128,7 +124,6 @@ export function validateCombatActionDefinition(
         'burn',
         'barrier-change',
         'copy-statuses',
-        'copy',
         'sensory',
       ],
       'effect type',
@@ -136,18 +131,6 @@ export function validateCombatActionDefinition(
 
     if (effect.type === 'create-terrain') continue
 
-    if (effect.type === 'copy') {
-      if (
-        effect.recipient !== 'primary-unit' ||
-        (action.target.kind !== 'unit' && action.target.kind !== 'ground-tile') ||
-        action.target.teamPolicy === 'self'
-      ) {
-        throw new TypeError(
-          'Copy requires a selected non-self unit or an occupied ground tile as its Skill source.',
-        )
-      }
-      continue
-    }
 
     if (effect.type === 'displace' && content) statusById(content, 'displaced')
 
