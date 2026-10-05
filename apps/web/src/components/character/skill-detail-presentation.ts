@@ -30,10 +30,7 @@ function recipient(effect: MatureSkillEffectDefinition): string {
   return 'the selected unit'
 }
 
-export function skillEffectDescription(
-  effect: MatureSkillEffectDefinition,
-  _copyPolicyVersion: number | null = 1,
-): string {
+export function skillEffectDescription(effect: MatureSkillEffectDefinition): string {
   const target = recipient(effect)
   switch (effect.type) {
     case 'summon':
@@ -163,7 +160,6 @@ export function skillParameterRows(
     cooldownOwnerTurns?: number | null
   } = skill,
   timingPolicy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
-  _copyPolicyVersion: number | null = 1,
 ): readonly (readonly [string, string])[] {
   return skillInformationRows({
     'Skill Type': skillParameterTypeDescription(skill),
@@ -219,7 +215,6 @@ function compactMagnitude(effect: MatureSkillEffectDefinition): string | null {
 export function compactSkillEffectSummaryParts(
   effect: MatureSkillEffectDefinition,
   timingPolicy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
-  _copyPolicyVersion: number | null = 1,
 ): CompactSkillEffectSummaryParts {
   const preview = previewEffect(effect)
   const timing = skillEffectInstantTiming(effect, timingPolicy)
@@ -252,7 +247,6 @@ function compactEffectSummary(
 export function skillEffectSummaries(
   skill: Pick<MatureSkillDefinition, 'effects'>,
   timingPolicy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
-  _copyPolicyVersion: number | null = 1,
 ): readonly string[] {
   return skill.effects.map((effect) => compactEffectSummary(effect, timingPolicy))
 }
@@ -260,7 +254,6 @@ export function skillEffectSummaries(
 export function skillEffectsSummary<Skill extends Pick<MatureSkillDefinition, 'effects'>>(
   skill: Skill,
   timingPolicy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
-  _copyPolicyVersion: number | null = 1,
 ): string {
   return skillEffectSummaries(skill, timingPolicy).join(', ') || 'N/A'
 }
