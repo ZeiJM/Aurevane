@@ -31,9 +31,9 @@ describe('battle Inspect terrain context', () => {
 
 it('includes temporary terrain duration and both-team rules in empty tile Inspect', () => {
   const frozen = describeTerrainLabel(
-    'Tile 4, 4; open-ground; elevation 0; Frozen terrain; 2 round boundaries remaining; Adds 10 AP per entered tile for either team. Airborne ignores this surcharge; Movement allowance is unchanged.',
+    'Tile 4, 4; open-ground; elevation 0; Frozen Ground terrain; 2 round boundaries remaining; Adds 10 AP per entered tile for either team. Airborne ignores this surcharge; Movement allowance is unchanged.',
   )!
-  expect(frozen.description).toContain('Frozen terrain')
+  expect(frozen.description).toContain('Frozen Ground terrain')
   expect(frozen.description).toContain('2 round boundaries remaining')
   expect(frozen.description).toContain('Airborne')
   const steam = describeTerrainLabel(
