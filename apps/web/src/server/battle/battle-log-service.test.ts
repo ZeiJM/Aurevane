@@ -367,7 +367,6 @@ describe('sanitized battle log service', () => {
     expect(serialized).not.toContain('raw')
   })
 
-
   it('translates timeout and Defenseless internals into player-facing facts', async () => {
     const repository: BattleEventRepository = {
       findBattleEvents: vi.fn(async () => [
