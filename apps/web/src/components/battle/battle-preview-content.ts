@@ -53,10 +53,9 @@ export interface PreviewChip {
 export function battleSkillParameterRows(
   skill: BattleSkillForecastPresentation,
   timingPolicy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
-  copyPolicyVersion: number | null = 1,
 ): readonly (readonly [string, string])[] {
   if (skill.definition) {
-    return skillParameterRows(skill.definition, skill, timingPolicy, copyPolicyVersion)
+    return skillParameterRows(skill.definition, skill, timingPolicy)
   }
   // Legacy presentations may not retain an immutable definition. Never infer missing
   // mechanics from a current catalogue or silently describe unknown fields as inapplicable.
