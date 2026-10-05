@@ -131,7 +131,6 @@ export function validateCombatActionDefinition(
 
     if (effect.type === 'create-terrain') continue
 
-
     if (effect.type === 'displace' && content) statusById(content, 'displaced')
 
     knownString(effect.recipient, ['actor', 'primary-unit', 'affected-units'], 'effect recipient')
