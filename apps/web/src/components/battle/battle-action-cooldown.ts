@@ -15,10 +15,9 @@ export function battleActionCooldownTurns(
 ): number {
   const actor = battle.snapshot.tactical.battle.combatants.find((row) => row.id === actorId)
   if (!actor) return 0
-  const skill = [
-    ...(runtime.techniques ?? []),
-    ...(runtime.essence ? [runtime.essence] : []),
-  ].find((row) => row.id === actionId)
+  const skill = [...(runtime.techniques ?? []), ...(runtime.essence ? [runtime.essence] : [])].find(
+    (row) => row.id === actionId,
+  )
   const definition =
     pv1fCooldownForAction(actionId) ??
     (skill?.definition
