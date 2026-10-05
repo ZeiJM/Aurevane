@@ -64,7 +64,6 @@ async function getLog(
   resolvePinnedSkillDefinition: CombatContentResolver['resolvePinnedSkillDefinition'],
   options: {
     hidden?: boolean
-    copyPolicyVersion?: 1
     legacy?: boolean
     build?: BattleBuildAuthoritySnapshot
     resolver?: Partial<CombatContentResolver>
@@ -73,7 +72,6 @@ async function getLog(
 ) {
   const authority: BattleHistoryPrivacyAuthority = {
     viewer: createSpectatorBattleViewerEntitlement(),
-    ...(options.copyPolicyVersion ? { copyPolicyVersion: options.copyPolicyVersion } : {}),
     journals: [
       {
         schemaVersion: 1,
@@ -316,16 +314,6 @@ describe('recorded Battle Log Skill context', () => {
         },
         1,
       ),
-      record(
-        {
-          event: 'temporary_skill_copied',
-          combatantId: ACTOR,
-          sourceCombatantId: OTHER,
-          skillId: SKILL,
-          contentVersion: 12,
-        },
-        2,
-      ),
     ]
     const visible = await getLog(events, async () => definition(), { build })
     expect(visible.entries[0]?.actionContext?.narrator).toEqual({
@@ -335,7 +323,6 @@ describe('recorded Battle Log Skill context', () => {
       name: 'Recorded Bryn',
       pronounPresetId: 'he_him',
     })
-    expect(visible.entries[2]?.actionContext?.narrator?.target).toBeUndefined()
     build.combatants[0]!.narratorIdentity!.name = 'Later rename'
     expect(visible.entries[0]?.actionContext?.narrator?.actor.name).toBe('Recorded Ari')
     const concealed = await getLog(events, async () => definition(), {
