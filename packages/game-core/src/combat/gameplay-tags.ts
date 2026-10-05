@@ -19,7 +19,6 @@ export const GAMEPLAY_TAGS = [
   'Exposed',
   'Poisoned',
   'Fortified',
-  'Summoned',
   'Airborne',
   'Displaced',
 ] as const
@@ -44,7 +43,6 @@ const STATUS_TAG_ALIASES: Readonly<Record<string, GameplayTag>> = {
   poison: 'Poisoned',
   poisoned: 'Poisoned',
   fortified: 'Fortified',
-  summoned: 'Summoned',
   airborne: 'Airborne',
   displaced: 'Displaced',
 }
