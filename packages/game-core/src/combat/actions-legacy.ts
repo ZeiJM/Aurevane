@@ -80,12 +80,7 @@ import {
   validateCurrentBurnEffect,
   validateCurrentPoisonEffect,
 } from './combat-dots'
-import {
-  normalizeCombatEffectState,
-  validateCombatTemporarySkillState,
-  type CombatEffectState,
-  type CombatTemporarySkillGrant,
-} from './combat-effect-state'
+import { normalizeCombatEffectState, type CombatEffectState } from './combat-effect-state'
 import {
   validateCombatEffectInstanceProvenance,
   createCombatActionProvenance,
@@ -371,13 +366,6 @@ export interface CombatEncounterState {
   statBalancePolicyVersion?: 1
   /** New encounters accumulate repeated effects; omitted historical snapshots retain their rules. */
   effectStackingPolicyVersion?: 1
-  /** Version 1 copies beneficial active tags; omitted historical battles grant a temporary Skill. */
-  copyPolicyVersion?: 1
-  pendingSkillGrants?: readonly {
-    grant: CombatTemporarySkillGrant
-    activationRound: number
-    sourceCommandVisibility?: CombatSourceCommandVisibility
-  }[]
   pendingSummons?: readonly {
     input: SpawnCombatSummonInput
     activationRound: number
@@ -1214,42 +1202,6 @@ function applyCombatRoundBoundary(
       })),
     )
   }
-  if (nextState.pendingSkillGrants?.length) {
-    const readyGrants = nextState.pendingSkillGrants.filter(
-      (row) => row.activationRound <= nextState.tactical.battle.round,
-    )
-    nextState = {
-      ...nextState,
-      pendingSkillGrants: nextState.pendingSkillGrants.filter(
-        (row) => row.activationRound > nextState.tactical.battle.round,
-      ),
-    }
-    const normalizedEffects = normalizeCombatEffectState(nextState.effectState)
-    const effectState = {
-      ...normalizedEffects,
-      temporarySkills: [...normalizedEffects.temporarySkills],
-    }
-    for (const pending of readyGrants) {
-      if (getCombatant(nextState.tactical.battle, pending.grant.combatantId).hp <= 0) continue
-      if (
-        !effectState.temporarySkills.some(
-          (grant) =>
-            grant.combatantId === pending.grant.combatantId &&
-            grant.skillId === pending.grant.skillId &&
-            grant.contentVersion === pending.grant.contentVersion,
-        )
-      )
-        effectState.temporarySkills.push({ ...pending.grant })
-      events.push({
-        event: 'temporary_skill_copied',
-        ...pending.grant,
-        ...(pending.sourceCommandVisibility
-          ? { sourceCommandVisibility: pending.sourceCommandVisibility }
-          : {}),
-      })
-    }
-    nextState = { ...nextState, effectState }
-  }
   const ready = (nextState.pendingEffects ?? []).filter(
     (effect) => effect.activationRound <= nextState.tactical.battle.round,
   )
@@ -1526,7 +1478,6 @@ export function validateCombatEncounterState(
     ...validateOngoingRecoveryState(state),
     ...validateBarrierState(state),
     ...validateCombatDotState(state),
-    ...validateCombatTemporarySkillState(state),
   ]
   if (
     state.tactical.battle.effectStackingPolicyVersion === 1 &&
@@ -1567,8 +1518,6 @@ export function validateCombatEncounterState(
         message: 'Invalid pinned Status Resistance.',
       })
   }
-  if (state.copyPolicyVersion !== undefined && state.copyPolicyVersion !== 1)
-    issues.push({ field: 'copyPolicyVersion', message: 'Invalid pinned Copy policy.' })
   if (state.effectStackingPolicyVersion !== undefined && state.effectStackingPolicyVersion !== 1)
     issues.push({
       field: 'effectStackingPolicyVersion',
@@ -1624,7 +1573,6 @@ export function validateCombatEncounterState(
               {
                 ...state,
                 pendingEffects: undefined,
-                pendingSkillGrants: undefined,
                 pendingSummons: undefined,
               },
               pending.copySource,
@@ -1726,41 +1674,6 @@ export function validateCombatEncounterState(
           })
         }
       }
-  }
-  if (state.pendingSkillGrants !== undefined) {
-    if (!Array.isArray(state.pendingSkillGrants) || !state.effectTimingPolicy)
-      issues.push({
-        field: 'pendingSkillGrants',
-        message: 'Queued Skill grants require an array and pinned policy.',
-      })
-    else {
-      for (const pending of state.pendingSkillGrants) {
-        try {
-          validateSourceCommandVisibility(
-            state,
-            pending.sourceCommandVisibility,
-            pending.grant.combatantId,
-          )
-        } catch {
-          issues.push({ field: 'pendingSkillGrants', message: 'Invalid pinned grant visibility.' })
-        }
-      }
-      for (const pending of state.pendingSkillGrants)
-        if (!Number.isSafeInteger(pending.activationRound) || pending.activationRound < 1)
-          issues.push({
-            field: 'pendingSkillGrants',
-            message: 'Queued Skill activation round must be positive.',
-          })
-      issues.push(
-        ...validateCombatTemporarySkillState({
-          ...state,
-          effectState: {
-            ...normalizeCombatEffectState(state.effectState),
-            temporarySkills: state.pendingSkillGrants.map((row) => row.grant),
-          },
-        }),
-      )
-    }
   }
   collectPersistentProvenanceIssues(state, issues)
 
