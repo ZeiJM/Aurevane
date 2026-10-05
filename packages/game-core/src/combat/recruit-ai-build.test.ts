@@ -213,7 +213,6 @@ describe('P3.7 build-aware Recruit AI', () => {
     )
   })
 
-  
   it('fails closed when an uncommitted mature Skill is requested', () => {
     expect(() =>
       executeBuildAwareRecruitAiAction(encounter(), 'lifebinder.mending-light', { kind: 'self' }),
