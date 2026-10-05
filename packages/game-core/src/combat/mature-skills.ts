@@ -579,43 +579,12 @@ function currentRequirement(requirement: CombatUseRequirement): CombatUseRequire
     }
   }
 
-  if (requirement.statusId === 'delayed') {
-    return { ...requirement, statusId: 'slow' }
-  }
-  if (requirement.statusId === 'hastened') {
-    return { ...requirement, statusId: 'haste' }
-  }
-  if (requirement.statusId === 'marked') {
-    return { ...requirement, statusId: 'mark' }
-  }
   return requirement
 }
 
 function currentEffect(effect: CombatEffectDefinition): CombatEffectDefinition {
-  if (effect.type === 'remove-status') {
-    return effect.statusIds.includes('marked') && !effect.statusIds.includes('mark')
-      ? { ...effect, statusIds: [...effect.statusIds, 'mark'] }
-      : effect
-  }
   if (effect.type !== 'apply-status') return effect
 
-  if (effect.statusId === 'hastened') {
-    return { ...effect, statusId: 'haste' }
-  }
-  if (effect.statusId === 'delayed') {
-    return { ...effect, statusId: 'slow' }
-  }
-  if (effect.statusId === 'marked') {
-    return { ...effect, statusId: 'mark' }
-  }
-  if (effect.statusId === 'regeneration') {
-    return {
-      type: 'healing',
-      recipient: effect.recipient,
-      amount: 4,
-      ticks: 2,
-    }
-  }
   if (effect.statusId === 'poison') {
     return {
       type: 'poison',
@@ -755,10 +724,7 @@ function applyNamedPhase4Rebalance(definition: MatureSkillDefinition): MatureSki
       return {
         ...definition,
         apCost: 35,
-        effects: [
-          { type: 'healing', recipient: 'primary-unit', amount: 4, ticks: 2 },
-          { type: 'apply-status', recipient: 'primary-unit', statusId: 'summoned', stacks: 1 },
-        ],
+        effects: [{ type: 'healing', recipient: 'primary-unit', amount: 4, ticks: 2 }],
         ai: {
           ...definition.ai,
           purposeTags: rebalancePurposeTags(definition, ['heal', 'recovery', 'summon']),
@@ -827,7 +793,6 @@ function applyNamedPhase4Rebalance(definition: MatureSkillDefinition): MatureSki
               'root',
               'exposed',
               'mark',
-              'marked',
               'challenged',
             ],
           },
