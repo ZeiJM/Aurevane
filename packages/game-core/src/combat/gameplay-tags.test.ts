@@ -189,6 +189,4 @@ describe('current effect-state gameplay tags', () => {
 
     expect(tags).toEqual(expect.arrayContaining(['Scorched', 'Bleeding', 'Poisoned']))
   })
-
-
 })
