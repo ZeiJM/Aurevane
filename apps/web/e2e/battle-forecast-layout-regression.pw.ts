@@ -5,6 +5,7 @@ import path from 'node:path'
 import { scheduledEffectPreviewLabel } from '../src/components/battle/battle-preview-content'
 import { gameplayStatusName } from '../src/lib/battle/combat-interaction-presentation'
 import { expectTerrainKey } from './battle-map-key-helpers'
+import { expectNoSkillPreviewMetadata } from './battle-preview-metadata-helpers'
 
 import { expect, test, type Page, type Route, type TestInfo } from '@playwright/test'
 import type { BattleSessionView } from '../src/server/battle/battle-session-service'
@@ -614,9 +615,7 @@ async function exerciseForecast(
               .first(),
           ).toBeVisible()
         if (command === 'guard')
-          await expect(page.getByLabel('Action preview', { exact: true })).not.toContainText(
-            '30 AP',
-          )
+          await expectNoSkillPreviewMetadata(page.getByLabel('Action preview', { exact: true }))
         await check(`${command}-armed`)
       }
       await page.locator('button[data-battle-command="finish"]').click()
@@ -634,8 +633,7 @@ async function exerciseForecast(
             .first(),
         ).toBeVisible()
         await check(`${name}-ready`)
-        await expect(preview.locator('[data-battle-preview-lane="parameters"]')).toHaveCount(0)
-        await expect(preview).not.toContainText(/\d+ AP|Range:/)
+        await expectNoSkillPreviewMetadata(preview)
         const informationTrigger = page.getByRole('button', { name: `About ${name}`, exact: true })
         await informationTrigger.click()
         const parameters = page.getByRole('dialog', { name, exact: true })

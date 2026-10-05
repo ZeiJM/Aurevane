@@ -1,4 +1,5 @@
 import { expectBattlePreviewFits } from './battle-reference-layout-helpers'
+import { expectNoSkillPreviewMetadata } from './battle-preview-metadata-helpers'
 import { expect, test, type Locator, type Page } from '@playwright/test'
 
 import { selectDiscipline } from './discipline-library-helpers'
@@ -356,8 +357,7 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   await expect(actionEconomy).toHaveAttribute('aria-valuenow', '100')
   await commandDeck.getByRole('button', { name: 'Selected Barrier, 40 AP', exact: true }).click()
   const forecast = page.locator('[data-battle-preview-strip] [aria-label="Action preview"]')
-  await expect(forecast).not.toContainText(/\d+ AP|Range:/)
-  await expect(forecast.locator('[data-battle-preview-lane="parameters"]')).toHaveCount(0)
+  await expectNoSkillPreviewMetadata(forecast)
   await expect(
     forecast.getByRole('button', { name: 'Show Barrier parameters', exact: true }),
   ).toHaveCount(0)

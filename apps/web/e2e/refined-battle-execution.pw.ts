@@ -4,6 +4,7 @@ import type { BattleSessionView } from '../src/server/battle/battle-session-serv
 import type { BattlePreviewView } from '../src/server/battle/battle-preview-service'
 import { buildMovementPaths } from '../src/components/battle/battle-geometry'
 import { createAccountAndEnterCharacter } from './pv1f-test-helpers'
+import { expectNoSkillPreviewMetadata } from './battle-preview-metadata-helpers'
 
 async function enterBattle(page: Page) {
   const name = `Wayfarer ${Date.now()
@@ -37,7 +38,7 @@ test('single target input executes Guard once and repeated keys do not dispatch'
   })
   await page.keyboard.press('Digit3')
   await expect(page.locator('[data-battle-combatant-card="selected"]')).toContainText('Recruit')
-  await expect(page.getByLabel('Action preview', { exact: true })).not.toContainText(/\d+ AP/)
+  await expectNoSkillPreviewMetadata(page.getByLabel('Action preview', { exact: true }))
   await expect(
     page.getByLabel('Action preview', { exact: true }).locator('[data-battle-range-forecast]'),
   ).toContainText('Guard')
@@ -134,7 +135,7 @@ test('Guard clears its armed mode and blocks deliberate inputs during its author
   await page.keyboard.press('Digit3')
   const initialVersion = (await initialPreview).request().postDataJSON()
     .expectedBattleVersion as number
-  await expect(page.getByLabel('Action preview', { exact: true })).not.toContainText(/\d+ AP/)
+  await expectNoSkillPreviewMetadata(page.getByLabel('Action preview', { exact: true }))
   await expect(
     page.getByLabel('Action preview', { exact: true }).locator('[data-battle-range-forecast]'),
   ).toContainText('Guard')
@@ -287,7 +288,7 @@ test('a second pointer or hotkey during a pending commit cannot queue another ac
   await page.keyboard.press('Digit3')
   const initialVersion = (await initialPreview).request().postDataJSON()
     .expectedBattleVersion as number
-  await expect(page.getByLabel('Action preview', { exact: true })).not.toContainText(/\d+ AP/)
+  await expectNoSkillPreviewMetadata(page.getByLabel('Action preview', { exact: true }))
   await expect(
     page.getByLabel('Action preview', { exact: true }).locator('[data-battle-range-forecast]'),
   ).toContainText('Guard')
@@ -431,7 +432,7 @@ test('a rapid second Basic Attack commits without waiting for an informational f
   await expect(page.getByLabel('Action preview', { exact: true })).toContainText(
     `Hit ${Math.round(initialAction.hitChanceBasisPoints / 100)}%`,
   )
-  await expect(page.getByLabel('Action preview', { exact: true })).not.toContainText(/\d+ AP/)
+  await expectNoSkillPreviewMetadata(page.getByLabel('Action preview', { exact: true }))
   const initialVersion = initial.request().postDataJSON().expectedBattleVersion as number
   let releasePreview!: () => void
   let informationalReady!: () => void
