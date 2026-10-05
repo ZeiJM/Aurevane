@@ -73,7 +73,7 @@ describe('Player-facing Skill targeting and effects', () => {
     expect(skillCompactRangeDescription(volley)).toBe('5')
     expect(Object.fromEntries(skillParameterRows(volley)).Target).toBe('Enemy')
     const breath = resolveMatureSkillVersion('ironfist.focus-breath')!
-    expect(skillTargetTags(breath)).toEqual(['Self', 'Single', 'Heal [7]', 'MP Restore [5]'])
+    expect(skillTargetTags(breath)).toEqual(['Self', 'Single', 'Heal [12]', 'MP Restore [7]'])
     expect(skillCompactRangeDescription(breath)).toBe('N/A')
     expect(JSON.stringify(volley)).toBe(before)
   })

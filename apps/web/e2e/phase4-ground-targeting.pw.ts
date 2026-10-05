@@ -182,7 +182,7 @@ async function castOnEmptyGround(
   )!
   await root.getByRole('button', { name: 'About Chilling Mist', exact: true }).click()
   const details = page.getByRole('dialog', { name: 'Chilling Mist', exact: true })
-  for (const label of ['Ground', 'Frozen Terrain', 'Slow', '45 AP'])
+  for (const label of ['Ground', 'Frozen Ground', 'Slow', '45 AP'])
     await expect(details).toContainText(label)
   const fit = await details.evaluate((element) => {
     const rect = element.getBoundingClientRect()

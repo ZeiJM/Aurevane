@@ -233,7 +233,7 @@ function usefulActionLabel(entries: readonly BattleLogEntry[]): string | null {
 function statusName(entry: BattleLogEntry): string {
   const explicit = entry.templateValues.status?.trim()
   if (explicit) return explicit
-  if (entry.eventType === 'pvp_lowered_guard_applied') return 'Lowered Guard'
+  if (entry.eventType === 'pvp_lowered_guard_applied') return 'Defenseless'
   if (entry.headline && !internalActionLabel(entry.headline)) return entry.headline
   return 'Status'
 }

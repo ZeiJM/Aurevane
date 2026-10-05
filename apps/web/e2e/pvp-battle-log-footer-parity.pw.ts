@@ -195,9 +195,7 @@ test('keeps the desktop PvP battle flow beside compact commands without resizing
     await expect(history).toContainText('Guard')
     await expect(history.locator('[data-chronicle-actor]')).toHaveCount(1)
     await expect(history.locator('[data-chronicle-actor] > h3')).toHaveText(activeName)
-    await expect(
-      history.getByRole('button', { name: 'Explain Guarded', exact: true }),
-    ).toBeVisible()
+    await expect(history.getByRole('button', { name: 'Explain Guard', exact: true })).toBeVisible()
 
     await expect(root.locator('[data-battle-inline-log]')).toBeVisible()
     await expectTerrainKey(host)

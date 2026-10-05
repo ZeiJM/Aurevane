@@ -144,7 +144,7 @@ describe('combat content authoring service', () => {
     expect(service.validateSkillDefinition(staticSkill())).toEqual({
       valid: true,
       issues: [],
-      derivedTags: ['Enemy', 'Single', 'Dmg'],
+      derivedTags: ['Enemy', 'Single', 'Dmg [15]'],
     })
   })
 
@@ -217,8 +217,8 @@ describe('combat content authoring service', () => {
   })
 
   it.each([
-    ['amplify', 'Amplify'],
-    ['curse', 'Curse'],
+    ['amplify', 'Copy Buffs'],
+    ['curse', 'Copy Debuffs'],
   ] as const)('validates a publishable %s clone block with derived tags', (mode, label) => {
     const { service } = serviceFixture()
     const base = staticSkill()

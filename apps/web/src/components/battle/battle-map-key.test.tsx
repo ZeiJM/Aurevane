@@ -85,7 +85,7 @@ describe('live battle terrain key', () => {
     expect(markup).not.toContain('Map Key')
     expect(markup).not.toContain('Full terrain key')
     expect(markup).not.toContain('Open ground')
-    expect(markup).toContain('aria-label="Frozen"')
+    expect(markup).toContain('aria-label="Frozen Ground"')
     expect(markup).toContain('aria-label="Steam"')
     const steamMarkup = renderToStaticMarkup(
       createElement(BattleMapKey, {
@@ -109,7 +109,7 @@ describe('live battle terrain key', () => {
         createElement(BattleMapKey, { snapshot: { ...board(), terrainOverlays: overlays } }),
       )
       for (const [label, active] of [
-        ['Frozen', frozen],
+        ['Frozen Ground', frozen],
         ['Steam', steam],
       ] as const) {
         const entry = markup.match(

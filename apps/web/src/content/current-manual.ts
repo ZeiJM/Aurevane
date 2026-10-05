@@ -338,8 +338,8 @@ const battleHallArticle: ManualArticle = {
         'New battles calibrate hostile direct damage for approximately twelve-round level-100 direct-pressure reference duels. Hit chance adds −5 percentage points against a target facing you, +5 from the side and +10 from behind before clamping to 0–100%. Builds, terrain, healing and tactics still change fight duration.',
         'Items is the locked coming-soon slot before Inspect, default P. It does not execute a battle action. Existing custom hotkeys are preserved.',
         'New battles pin their effect timing. Effects default to the following global round; direct damage and HP/MP recovery happen instantly. Delayed icons appear immediately as Pending, then become Active. An active effect expires after the affected character completes its stated number of turns. Hover or select its icon for the meaning and turns remaining. Older battles keep their original timing.',
-        'Technique tags show who a Skill targets, its single/area/line shape and its effects. Expand Skill details for exact recipients, range, AP/MP cost and requirements. Burn, Bleed and Poison cause fixed damage at affected turn end; Regeneration restores HP then. Slow raises movement AP cost; Root prevents movement while leaving other commands available. Cleanse removes its listed negative effects.',
-        'Current Mark gives its source +15 percentage points Accuracy against the marked target. Historical Marked versions increased incoming damage only from their source. Challenged reduces damage dealt to anyone except its source. Warded reduces damage taken from burning opponents. The rare Reckless effect increases both damage dealt and damage taken; Fortified reduces both. Each tradeoff keeps its benefit and drawback together when it expires or is removed.',
+        'Technique tags show who a Skill targets, its single/area/line shape and its effects. Expand Skill details for exact recipients, range, AP/MP cost and requirements. Burn, Bleed and Poison cause fixed damage at affected turn end; Repeated Heal effects restore HP at affected turn end. Slow raises movement AP cost; Rooted prevents movement while leaving other commands available. Cleanse removes its listed negative effects.',
+        'Current Mark gives its source +15 percentage points Accuracy against the marked target. Taunted reduces damage dealt to anyone except its source. Burn Ward reduces damage taken from burning opponents. The rare Reckless effect increases both damage dealt and damage taken; Fortified reduces both. Each tradeoff keeps its benefit and drawback together when it expires or is removed.',
         'Skill damage checks armor for physical attacks and ward for mystic attacks, separately for each hit and affected unit. Current effect power is authored on a bounded 1–20 scale where applicable, and persistent duration is part of the Skill’s balance budget. Percentage-based statuses can use per-Skill potency overrides; the preview shows the actual value for that Skill version. Conditional modifiers remain bounded to a safe combined range.',
       ],
     },
@@ -354,9 +354,9 @@ const battleHallArticle: ManualArticle = {
       id: 'elemental-tags',
       title: 'Elemental setup and payoffs',
       paragraphs: [
-        'Scorched, Bleeding and Poisoned are the gameplay tags for Burn, Bleed and Poison. Skills can require tags such as Frozen or Conductive; their details explain which setup is needed before a payoff becomes legal.',
+        'Burn, Bleed and Poison are damage-over-time tags. Chilled applies to units; Frozen Ground applies to terrain. Skills can require tags such as Chilled or Conductive; their details explain which setup is needed before a payoff becomes legal.',
         'Battle Technique buttons and their skill pickers show target, shape and effect tags from the build committed to that battle. Tags describe the full Technique; the informational target forecast shows its effects, costs, cooldown legality and requirements while you aim. A deliberate execution gesture submits directly to server validation without waiting for a matching forecast. Dispel removes listed protection; Cleanse removes listed harmful effects.',
-        'Water Skills can apply Wet. Against Wet or Conductive, the first positive storm hit per target per command gains a bounded 20% bonus. Conductive is consumed; Wet remains. Having both conditions does not double the bonus. Positive fire damage clears Wet and Frozen from the damaged unit.',
+        'Water Skills can apply Wet. Against Wet or Conductive, the first positive storm hit per target per command gains a bounded 20% bonus. Conductive is consumed; Wet remains. Having both conditions does not double the bonus. Positive fire damage clears Wet and Chilled from the damaged unit.',
       ],
     },
     {
@@ -365,7 +365,7 @@ const battleHallArticle: ManualArticle = {
       paragraphs: [
         'Ground Skills select a tile, including empty ground. Choose the Skill, select its tile and review the affected area before confirming. Previews spend no AP or MP and stay silent. A Skill’s affected-team rule governs its unit effects; temporary terrain affects either team.',
         `${COMBAT_TERRAIN_OVERLAY_DETAILS.frozen.name} terrain: ${COMBAT_TERRAIN_OVERLAY_DETAILS.frozen.description} Fire on affected Frozen tiles converts them to Steam, including empty tiles. ${COMBAT_TERRAIN_OVERLAY_DETAILS.steam.name}: ${COMBAT_TERRAIN_OVERLAY_DETAILS.steam.description} Both overlays last ${COMBAT_TERRAIN_OVERLAY_DETAILS.frozen.roundBoundaries} round boundaries. Refreshing an overlay renews its duration without stacking it.`,
-        'Slow and base-terrain AP costs still apply with Airborne, and Root still prevents movement. Inspect the tile and movement preview for its current cost and remaining duration. Your Movement allowance remains a separate limit even when AP is available.',
+        'Slow and base-terrain AP costs still apply with Airborne, and Rooted still prevents movement. Inspect the tile and movement preview for its current cost and remaining duration. Your Movement allowance remains a separate limit even when AP is available.',
         'Single-unit Resonance payoffs wait for a unit-targeted Skill. Ground casts preserve that setup for a later eligible action, and empty ground cannot generate an actor reward. Current Skill versions use authored 1–3 turn cooldowns rather than the retired consecutive-repeat falloff. Cooling-down actions show grey artwork and a remaining-turn number in the cockpit. They cannot be selected or cast by click or hotkey until the authoritative cooldown clears; the number advances on your turns, not on a wall-clock timer.',
         'The Terrain Key lists every terrain type, one per row. A green dot marks Active terrain present on the battlefield; a red dot and greyed texture mark Inactive terrain. These markers update as terrain overlays appear or expire. Select a terrain to read its effects.',
       ],
@@ -374,16 +374,16 @@ const battleHallArticle: ManualArticle = {
       id: 'protection-and-position',
       title: 'Protection, concealment and displacement',
       paragraphs: [
-        'Inspired adds 10% outgoing damage within the conditional modifier budget. Hexed reduces incoming direct and periodic healing by 25%. Summoned is temporary spirit protection that reduces incoming damage by 15% within the same budget and can be dispelled; it grants no extra combatant or turn.',
+        'Damage Up adds 10% outgoing damage within the conditional modifier budget. Healing Down reduces incoming direct and periodic healing by 25%. Summon Skills create actual allied summon combatants with their own turns.',
         'Invisible prevents hostile direct unit selection. Ground and area effects can still hit the concealed unit. Taking positive damage or making a damaging command breaks concealment, including a missed basic attack.',
-        'A push moves its target one tile away if the destination is within the board, passable, vacant and legal for its elevation. Root resists it. A successful push applies Displaced briefly; a blocked push keeps the action’s cost and leaves the target in place. The preview and combat log show the result.',
+        'A push moves its target one tile away if the destination is within the board, passable, vacant and legal for its elevation. Rooted resists it. A successful push applies Displaced briefly; a blocked push keeps the action’s cost and leaves the target in place. The preview and combat log show the result.',
       ],
     },
     {
       id: 'ap',
       title: 'Action Economy',
       paragraphs: [
-        `A turn starts with 100 AP. Normal ground costs ${PV1F_MOVEMENT_COST_PER_TERRAIN_POINT} AP per tile; rough ground has terrain weight 2 and costs ${2 * PV1F_MOVEMENT_COST_PER_TERRAIN_POINT} AP. Basic Attack and Guard cost 30 AP; Recover costs 50 AP. Every tile entered spends 1 Movement, including rough or Frozen terrain; terrain, Haste and Slow change AP cost, not the number of Movement steps. Movement also obeys your remaining Movement allowance, even when AP remains. Movement starts at 2 and caps at 4; Jump starts at 0 and caps at 3.`,
+        `A turn starts with 100 AP. Normal ground costs ${PV1F_MOVEMENT_COST_PER_TERRAIN_POINT} AP per tile; rough ground has terrain weight 2 and costs ${2 * PV1F_MOVEMENT_COST_PER_TERRAIN_POINT} AP. Basic Attack and Guard cost 30 AP; Recover costs 50 AP. Every tile entered spends 1 Movement, including rough or Frozen Ground; terrain, Haste and Slow change AP cost, not the number of Movement steps. Movement also obeys your remaining Movement allowance, even when AP remains. Movement starts at 2 and caps at 4; Jump starts at 0 and caps at 3.`,
         'Guard has its own two-owner-turn cooldown. HP Recovery and MP Recovery share a separate two-turn cooldown. A successful use starts that action’s cooldown; server turn progression makes it available again. Recovery immediately restores 10% of the maximum resource, capped at its maximum.',
         'Selecting a legal action proposes the AP spend before commitment. The AP bar shows the proposed segment with a temporary glow; after confirmation the authoritative committed value becomes the new solid remainder.',
       ],

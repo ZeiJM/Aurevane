@@ -475,6 +475,25 @@ describe('Status copying: fail-closed eligibility and staged scope', () => {
     expect(() => validateCombatActionDefinition(action, CONTENT)).toThrow()
     expect(() => executeCombatAction(world(), action, TARGET, CONTENT)).toThrow()
   })
+  it('rejects persisted generic Copy even when the donor has eligible Buffs', () => {
+    const state = world([{ combatantId: 'target', statuses: [row(POSITIVE)] }])
+    const before = JSON.stringify(state)
+    const action = {
+      ...copying('amplify'),
+      effects: [
+        {
+          type: 'copy-statuses',
+          recipient: 'primary-unit',
+          mode: 'amplify',
+          beneficialEffects: true,
+        },
+      ],
+    } as unknown as CombatActionDefinition
+    expect(() => executeCombatAction(state, action, TARGET, CONTENT)).toThrow(
+      'Retired beneficial-effects Copy',
+    )
+    expect(JSON.stringify(state)).toBe(before)
+  })
   it('rejects copy blocks placed after another authored effect', () => {
     const action = {
       ...copying('amplify'),

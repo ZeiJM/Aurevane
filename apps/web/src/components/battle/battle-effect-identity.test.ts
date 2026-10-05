@@ -14,8 +14,6 @@ const pendingFamilies = [
   'copy-statuses',
   'sensory',
   'summon',
-  'copy',
-  'beneficial-copy',
   'damage',
   'healing',
 ]
@@ -29,7 +27,6 @@ describe('battle effect identity', () => {
     ['mark', '+11 percentage points Accuracy'],
     ['blind', 'Lose 11 percentage points Accuracy'],
     ['warded', 'Take 11% less damage from opponents affected by Burn'],
-    ['marked', 'Take 11% more damage from the unit that applied Mark'],
   ])(
     'describes recorded %s potency in both active and pending readers',
     (statusId, description) => {
@@ -51,7 +48,7 @@ describe('battle effect identity', () => {
   )
 
   it('retains canonical descriptions when historical instances have no recorded potency', () => {
-    for (const statusId of ['guarded', 'warded', 'marked', 'hexed', 'inspired', 'fortified']) {
+    for (const statusId of ['guarded', 'warded', 'mark', 'hexed', 'inspired', 'fortified']) {
       expect(
         describeBattleEffect({
           statusId,
@@ -122,29 +119,6 @@ describe('battle effect identity', () => {
       expect(details.duration).toBe('2 round boundaries remaining')
       expect(details.counterLabel).toBe('2r')
       expect(details.explanation).not.toContain('affected-unit turn')
-    },
-  )
-
-  it.each(['pending', 'active'] as const)(
-    'describes %s battle-long copied access without a turn counter',
-    (timingState) => {
-      const effect: CombatStatusInstance = {
-        statusId: 'copy',
-        statusVersion: 1,
-        stacks: 1,
-        remainingOwnerTurnStarts: 1,
-        sourceCombatantId: 'archer',
-        durationScope: 'battle',
-        timingState,
-        activationRound: 4,
-      }
-      const details = describeBattleEffect(effect)
-      expect(details.count).toBeNull()
-      expect(details.duration).toBe('Until battle ends')
-      expect(details.explanation).not.toContain('turn remaining')
-      if (timingState === 'pending')
-        expect(details.timing).toContain('Activates at the start of round 4')
-      else expect(details.timing).toBe('Active')
     },
   )
 })

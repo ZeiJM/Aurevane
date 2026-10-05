@@ -238,7 +238,7 @@ test('keeps requested PvE presentation parity on desktop and mobile', async ({
     const inline = root.locator('[data-battle-inline-log]')
     const chronicle = inline.getByRole('region', { name: 'Battle chronicle', exact: true })
     await expect(chronicle).toContainText('Guard')
-    await expect(chronicle).toContainText('Guarded')
+    await expect(chronicle).toContainText('Guard')
     await expect(
       chronicle.getByRole('heading', {
         level: 3,
@@ -247,7 +247,7 @@ test('keeps requested PvE presentation parity on desktop and mobile', async ({
       }),
     ).toBeVisible()
     await expect(
-      chronicle.getByRole('button', { name: 'Explain Guarded', exact: true }),
+      chronicle.getByRole('button', { name: 'Explain Guard', exact: true }),
     ).toBeVisible()
     await expect(inline.locator(':scope > header')).toHaveCount(0)
     await expect(inline.getByRole('button', { name: /Switch to/ })).toHaveCount(0)

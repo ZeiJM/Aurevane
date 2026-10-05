@@ -44,7 +44,7 @@ it('shows configured Instant tags across current Skill, Support and Resonance re
       <ResonanceParameters definition={resonance} />
     </SkillEffectTimingProvider>,
   )
-  expect(markup).toContain('Root [1 Turn] [Instant]')
+  expect(markup).toContain('Rooted [1 Turn] [Instant]')
   expect(timingMarks(markup)).toHaveLength(2) // Snare and HP Recovery; MP recovery is configured delayed.
   expect(JSON.stringify({ definition, resonance })).toBe(before)
 })

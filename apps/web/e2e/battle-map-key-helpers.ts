@@ -49,7 +49,7 @@ export async function expectTerrainKey(page: Page) {
         expected.add('Difficult terrain')
       } else expected.add('Neutral ground')
       if (Number(label.match(/; elevation (\d+)/)?.[1] ?? 0) > 0) expected.add('Elevated ground')
-      if (tile.dataset.terrainOverlay === 'frozen') expected.add('Frozen')
+      if (tile.dataset.terrainOverlay === 'frozen') expected.add('Frozen Ground')
       if (tile.dataset.terrainOverlay === 'steam') expected.add('Steam')
     }
     const actual = Array.from(document.querySelectorAll('[data-battle-terrain-key="true"] summary'))
@@ -68,7 +68,7 @@ export async function expectTerrainKey(page: Page) {
       'Difficult terrain',
       'Elevated ground',
       'Blocked terrain',
-      'Frozen',
+      'Frozen Ground',
       'Steam',
     ].sort(),
   )

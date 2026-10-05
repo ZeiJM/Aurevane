@@ -135,7 +135,7 @@ describe('recorded Battle Log Skill context', () => {
     },
   )
 
-  it('uses the pinned actor pronouns for the canonical Lowered Guard system action', async () => {
+  it('uses the pinned actor pronouns for the canonical Defenseless system action', async () => {
     const build = buildAuthority()
     build.combatants[0]!.narratorIdentity = { name: 'Zei', pronounPresetId: 'he_him' }
     const result = await getLog(
@@ -174,7 +174,7 @@ describe('recorded Battle Log Skill context', () => {
     const actions = buildBattleChronicle(result.entries)[0].actors[0].actions
     expect(actions).toHaveLength(1)
     expect(actions[0]).toMatchObject({
-      title: 'Lowered Guard',
+      title: 'Defenseless',
       flavorTemplate: '{actor} lowered {actor.possessive} guard!',
     })
   })

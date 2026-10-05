@@ -2,7 +2,6 @@ import 'server-only'
 import type {
   CombatEffectProjection,
   CombatResolutionEvent,
-  CombatActionDefinition,
   CombatActionEvaluation,
 } from '@aurevane/game-core/combat/actions'
 import type { CombatTerrainProjection } from '@aurevane/game-core/combat/terrain-overlays'

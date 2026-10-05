@@ -16,14 +16,14 @@ const EFFECT_TYPES: readonly { value: CombatEffectType; label: string }[] = [
   { value: 'apply-status', label: 'Apply status' },
   { value: 'remove-status', label: 'Remove status' },
   { value: 'return-to-turn-start', label: 'Return to turn start' },
-  { value: 'create-terrain', label: 'Create Frozen terrain' },
+  { value: 'create-terrain', label: 'Create Frozen Ground' },
   { value: 'displace', label: 'Displace' },
   { value: 'poison', label: 'Poison' },
   { value: 'bleed', label: 'Bleed' },
   { value: 'burn', label: 'Burn' },
   { value: 'barrier-change', label: 'Barrier' },
   { value: 'copy-statuses', label: 'Copy Buffs / Copy Debuffs' },
-  { value: 'sensory', label: 'Sensory / Revealed' },
+  { value: 'sensory', label: 'Reveal / Revealed' },
 ]
 
 function assertNever(value: never): never {
@@ -263,7 +263,7 @@ export function SkillEffectListEditor({
         Effect order is authoritative.
         {maxEffects === undefined ? '' : ` This section allows at most ${maxEffects} effects.`}
         {
-          ' Validation catches composition rules such as status Copy placement, Sensory targeting, and Rewind self-only requirements.'
+          ' Validation catches composition rules such as Copy Buffs/Copy Debuffs placement, Reveal targeting, and Rewind self-only requirements.'
         }
       </p>
     </fieldset>

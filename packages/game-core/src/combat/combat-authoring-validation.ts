@@ -1,3 +1,4 @@
+import { assertCurrentCombatStatusId } from './retired-combat-statuses'
 import { validateCombatStatusCopyAction } from './combat-status-copy'
 import { validateCombatAccuracyDefinition } from './combat-skill-accuracy'
 import { validateVengeanceActionDefinition } from './combat-vengeance'
@@ -97,6 +98,7 @@ export function validateCombatActionDefinition(
     )
     if ('statusId' in requirement) {
       requiredIdentity(requirement.statusId, 'requirement status ID')
+      assertCurrentCombatStatusId(requirement.statusId)
       if (content) statusById(content, requirement.statusId)
     }
     if ('tag' in requirement) validateGameplayTag(requirement.tag)
@@ -174,6 +176,7 @@ export function validateCombatActionDefinition(
       }
       for (const id of effect.statusIds) {
         requiredIdentity(id, 'removed status ID')
+        assertCurrentCombatStatusId(id)
         if (content) statusById(content, id)
       }
     }
@@ -185,6 +188,7 @@ export function validateCombatActionDefinition(
     }
     if (effect.type === 'apply-status') {
       requiredIdentity(effect.statusId, 'effect status ID')
+      assertCurrentCombatStatusId(effect.statusId)
       positiveSafeInteger(effect.stacks, 'effect status stacks')
       if (content) statusById(content, effect.statusId)
       validateBleedAuthoring(effect)
@@ -195,6 +199,7 @@ export function validateCombatActionDefinition(
 export function validateCombatStatusDefinition(status: CombatStatusDefinition): void {
   validateCombatAccuracyStatusDefinition(status)
   requiredIdentity(status.id, 'status id')
+  assertCurrentCombatStatusId(status.id)
   positiveSafeInteger(status.version, 'status version')
   positiveSafeInteger(status.maximumStacks, 'status maximum stacks')
   positiveSafeInteger(status.durationOwnerTurnStarts, 'status duration')

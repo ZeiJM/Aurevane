@@ -496,7 +496,7 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
               onChange={(event) => onChange({ ...value, statusId: event.currentTarget.value })}
             />
             <small className={styles.fieldHint}>
-              Includes authored statuses such as Covert; Revealed is Sensory-owned.
+              Includes authored statuses such as Covert; Revealed is Reveal-owned.
             </small>
           </label>
           <label className={styles.field}>
@@ -567,7 +567,7 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
         <div className={styles.effectStaticGrid}>
           <div className={styles.effectStatic}>
             <span>Terrain</span>
-            <strong>Frozen terrain</strong>
+            <strong>Frozen Ground</strong>
           </div>
           <div className={styles.effectStatic}>
             <span>Recipient</span>
@@ -789,7 +789,7 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
             />
           </label>
           <p className={styles.effectNote}>
-            Sensory conditionally purges eligible positive statuses, removes Covert, and applies
+            Reveal conditionally purges eligible positive statuses, removes Covert, and applies
             Revealed only on a successful hit against a Covert target.
           </p>
         </div>
@@ -867,7 +867,7 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
             {fixedImmediate
               ? 'Immediate effect; [0 Turns] is intentionally omitted in player-facing details.'
               : fixedTerrain
-                ? 'Frozen terrain uses the engine-owned two-round duration.'
+                ? 'Frozen Ground uses the engine-owned two-round duration.'
                 : 'Positive durations persist through that many future turns.'}
           </small>
         </label>
@@ -912,7 +912,7 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
               }
             />
             <small className={styles.fieldHint}>
-              Used by percentage-based statuses such as Guarded or Exposed. 15 = 15%.
+              Used by percentage-based statuses such as Guard or Vulnerable. 15 = 15%.
             </small>
           </label>
         ) : null}

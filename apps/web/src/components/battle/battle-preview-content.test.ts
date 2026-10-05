@@ -131,7 +131,7 @@ describe('copy-statuses player forecast presentation', () => {
       ]),
     )
 
-    expect(result).toContain('Copied Poison (Poisoned) · movement progress 3')
+    expect(result).toContain('Copied Poison · movement progress 3')
     expect(result.join(' ')).not.toContain('poison:3')
   })
 
@@ -157,8 +157,8 @@ describe('copy-statuses player forecast presentation', () => {
       ]),
     )
 
-    expect(newBurn).toContain('Copied Burn (Scorched) · stage 2')
-    expect(replacedBurn).toContain('Copied Burn (Scorched) · stage 2→0')
+    expect(newBurn).toContain('Copied Burn · stage 2')
+    expect(replacedBurn).toContain('Copied Burn · stage 2→0')
   })
 
   it('preserves authoritative Bleed projection order and exposes damage and remaining ticks', () => {
@@ -180,8 +180,8 @@ describe('copy-statuses player forecast presentation', () => {
     ).filter((label) => label.startsWith('Copied Bleed'))
 
     expect(result).toEqual([
-      'Copied Bleed (Bleeding) · 2 dmg × 4 ticks',
-      'Copied Bleed (Bleeding) · 1 dmg × 1 tick → 3 dmg × 2 ticks',
+      'Copied Bleed · 2 dmg × 4 ticks',
+      'Copied Bleed · 1 dmg × 1 tick → 3 dmg × 2 ticks',
     ])
   })
 
@@ -198,7 +198,7 @@ describe('copy-statuses player forecast presentation', () => {
       ]),
     )
 
-    expect(result).toContain('Copied Hex · 1 stack · 2 turns')
+    expect(result).toContain('Copied Healing Down · 1 stack · 2 turns')
     expect(result).toContain('7 dmg')
   })
 
@@ -216,7 +216,7 @@ describe('copy-statuses player forecast presentation', () => {
       ]),
     )
 
-    expect(result).toContain('Copied Inspire · 1 stack · 2 turns')
+    expect(result).toContain('Copied Damage Up · 1 stack · 2 turns')
     expect(result).toContain('Heal +5')
     expect(result).toContain('Resource +2')
   })
@@ -350,73 +350,18 @@ it('keeps legacy rows complete without inferring missing pinned mechanics', () =
   })
 })
 
-it('humanizes copied Barrier and remaining HP/MP recovery schedules from authoritative projections', () => {
+it.each([
+  { after: 'barrier:8' },
+  { after: 'recovery:hp:4:2' },
+  { after: 'recovery:mp:3:2' },
+  { after: 'concealed', statusId: 'beneficial-copy' },
+])('does not present retired generic Copy projections $after', ({ after, ...metadata }) => {
   const result = labels(
     actionPreview([
-      {
-        effectType: 'copy-statuses',
-        combatantId: 'actor',
-        before: 'barrier:2',
-        after: 'barrier:8',
-      },
-      {
-        effectType: 'copy-statuses',
-        combatantId: 'actor',
-        before: 'none',
-        after: 'recovery:hp:4:2',
-      },
-      {
-        effectType: 'copy-statuses',
-        combatantId: 'actor',
-        before: 'recovery:mp:1:1',
-        after: 'recovery:mp:3:2',
-      },
+      { effectType: 'copy-statuses', combatantId: 'actor', before: 'none', after, ...metadata },
     ]),
   )
-  expect(result).toContain('Copied Barrier · 2→8 shield')
-  expect(result).toContain('Copied HP Recovery · 4 HP × 2 ticks')
-  expect(result).toContain('Copied MP Recovery · 1 MP × 1 tick → 3 MP × 2 ticks')
-  expect(result.join(' ')).not.toMatch(/barrier:|recovery:/u)
-})
-
-it.each(['barrier:NaN', 'barrier:-1', 'recovery:hp:4', 'recovery:xp:4:2', 'recovery:mp:4:NaN'])(
-  'does not expose malformed copied persistent-state encoding %s',
-  (after) => {
-    const result = labels(
-      actionPreview([{ effectType: 'copy-statuses', combatantId: 'actor', before: 'none', after }]),
-    )
-    expect(result.join(' ')).not.toContain(after)
-  },
-)
-
-it('uses a generic Copy forecast when opposing Covert hides donor benefits', () => {
-  const result = labels(
-    actionPreview([
-      {
-        effectType: 'copy-statuses',
-        combatantId: 'actor',
-        before: 'none',
-        after: 'concealed',
-        statusId: 'beneficial-copy',
-      },
-    ]),
+  expect(result.join(' ')).not.toMatch(
+    /Copied|Copy beneficial effects|barrier:|recovery:|concealed/u,
   )
-  expect(result).toContain('Copy beneficial effects · Details hidden by Covert')
-  expect(result.join(' ')).not.toContain('concealed')
-})
-
-it('retains recorded activation timing in a concealed Copy forecast', () => {
-  const result = labels(
-    actionPreview([
-      {
-        effectType: 'copy-statuses',
-        combatantId: 'actor',
-        before: 'none',
-        after: 'concealed',
-        statusId: 'beneficial-copy',
-        activationRound: 6,
-      },
-    ]),
-  )
-  expect(result).toContain('Copy beneficial effects · Starts round 6 · Details hidden by Covert')
 })

@@ -174,7 +174,7 @@ describe('Master Panel Skill effect editor', () => {
       recipient: 'affected-tiles',
       terrain: 'frozen',
     })
-    expect(terrain).toContain('Frozen terrain')
+    expect(terrain).toContain('Frozen Ground')
     expect(terrain).toContain('Affected tiles')
 
     const bleed = render({

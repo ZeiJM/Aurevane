@@ -110,10 +110,10 @@ describe('combatant effect presentation', () => {
     expect(markup).toContain('data-battle-effect-kind="Effect"')
   })
   it('labels conditional values and preserves the explanation and remaining duration', () => {
-    const markup = render('marked')
+    const markup = render('warded')
     expect(markup).toContain('conditional')
-    expect(markup).toContain('+20%')
-    expect(markup).toContain('from the unit that applied Mark')
+    expect(markup).toContain('−20%')
+    expect(markup).toContain('from opponents affected by Burn')
     expect(markup).toContain('2 affected-unit turn starts remaining')
   })
   it('shows compounded Guarded stacks without inventing an outgoing bonus', () => {
@@ -122,7 +122,7 @@ describe('combatant effect presentation', () => {
     expect(markup).not.toContain('Damage dealt')
   })
   it('keeps every compact effect reachable by focus, hover or touch instead of truncating the card', () => {
-    const statuses = ['guarded', 'marked', 'fortified'].map((statusId) => ({
+    const statuses = ['guarded', 'mark', 'fortified'].map((statusId) => ({
       statusId,
       statusVersion: 1,
       stacks: 1,
@@ -139,21 +139,19 @@ describe('combatant effect presentation', () => {
     expect(markup).not.toContain('All 3')
   })
   it('keeps duration visible inside a stacked icon and identifies each effect', () => {
-    const statuses = ['guarded', 'regeneration', 'reckless', 'haste', 'hastened'].map(
-      (statusId) => ({
-        statusId,
-        statusVersion: 1,
-        stacks: 3,
-        remainingOwnerTurnStarts: 2,
-        sourceCombatantId: 'opponent',
-      }),
-    )
+    const statuses = ['guarded', 'hexed', 'reckless', 'haste', 'slow'].map((statusId) => ({
+      statusId,
+      statusVersion: 1,
+      stacks: 3,
+      remainingOwnerTurnStarts: 2,
+      sourceCombatantId: 'opponent',
+    }))
     const markup = renderToStaticMarkup(
       <BattleCombatantEffects compact name="Archer" statuses={statuses} />,
     )
     expect(markup.match(/data-effect-duration="true">2<\/small>/g)).toHaveLength(5)
     expect(markup).not.toContain('>×3</small>')
-    for (const glyph of ['GUA', 'REG', 'REC', 'HST', 'HSN'])
+    for (const glyph of ['GUA', 'HEX', 'REC', 'HST', 'SLO'])
       expect(markup).toContain(`>${glyph}</i>`)
   })
   it('keeps custom effects with the same prefix visually distinct and stable', () => {
@@ -388,9 +386,9 @@ describe('combatant effect presentation', () => {
     expect(new Set(glyphs).size).toBe(statuses.length)
     expect(markup).toContain(`Scroll for all ${statuses.length} effects`)
   })
-  it('uses affected-unit timing for periodic effects and explicit next-round timing for tempo effects', () => {
+  it('uses affected-unit timing for periodic effects and current Haste', () => {
     expect(render('burn')).toContain('2 affected-turn-end ticks remaining')
-    expect(render('hastened')).toContain('Until the next round starts')
+    expect(render('haste')).toContain('2 affected-unit turn starts remaining')
     expect(render('root')).not.toContain('rounds remaining')
   })
   it('does not claim bonuses when no effect is active', () => {

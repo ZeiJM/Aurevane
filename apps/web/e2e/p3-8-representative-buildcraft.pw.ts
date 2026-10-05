@@ -218,7 +218,7 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   await expect(resonancePreview.locator('dt', { hasText: /^(Mode|Setup|Trigger)$/ })).toHaveCount(0)
   await expect(resonanceField('Effects').locator(':scope > div')).toHaveText([
     'Vanguard · attack + melee: Dmg [6] → Trigger Skill selected unit',
-    'Vanguard · attack + melee: Healing [4] [Instant]',
+    'Vanguard · attack + melee: Heal [4] [Instant]',
   ])
   await expect(resonancePreview.getByRole('list', { name: 'Effect explanations' })).toContainText(
     'Restores HP to you.',
@@ -393,7 +393,7 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
       ),
   ).toEqual(nexusBarrierParameters)
   await expect(actionEconomy).toHaveAttribute('aria-valuenow', '100')
-  await expect(skillDetails).toContainText('Guarded [11%] [2 Turns]')
+  await expect(skillDetails).toContainText('Guard [11%] [2 Turns]')
   await expect(skillDetails).toContainText(
     'Reduces incoming damage by 11% per application. Each use refreshes the duration.',
   )

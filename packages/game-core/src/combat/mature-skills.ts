@@ -1170,6 +1170,8 @@ export function validateMatureSkillDefinition(
       issues.push(`effects[${index}].durationTurns`)
     }
     if (effect.type === 'summon') continue
+    if (effect.type === 'copy-statuses' && 'beneficialEffects' in effect)
+      issues.push(`effects[${index}].beneficialEffects`)
     if (
       effect.potencyBasisPoints !== undefined &&
       (!Number.isSafeInteger(effect.potencyBasisPoints) ||

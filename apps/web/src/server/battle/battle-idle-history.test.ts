@@ -123,7 +123,7 @@ function delayedGuardHistory() {
 }
 
 describe('idle narration from persisted command events', () => {
-  it('shows the first current AI timeout as Lowered Guard pending for round 4 and exposed for one turn', () => {
+  it('shows the first current AI timeout as Defenseless pending for round 4 and exposed for one turn', () => {
     let state: ReturnType<typeof encounter> = {
       ...encounter(),
       effectTimingPolicy: { version: 1, modes: {} },
@@ -142,11 +142,11 @@ describe('idle narration from persisted command events', () => {
     const actions = chronicle.find((round) => round.round === 3)?.actors[0]?.actions
     expect(actions).toHaveLength(1)
     expect(actions?.[0]).toMatchObject({
-      title: 'Lowered Guard',
+      title: 'Defenseless',
       outcomes: [
         expect.objectContaining({
           statusId: 'lowered-guard',
-          text: 'Lowered Guard will take effect on Zei at the start of round 4!',
+          text: 'Defenseless will take effect on Zei at the start of round 4!',
           duration: '1 turn',
         }),
       ],
@@ -237,7 +237,7 @@ describe('idle narration from persisted command events', () => {
     ])
     expect(
       JSON.stringify(buildBattleChronicle(buildBattleLogView('idle', history).entries)),
-    ).toContain('Guarded')
+    ).toContain('Guard')
   })
 
   it('keeps a truly idle later turn when its existing Guard cooldown becomes ready', () => {
@@ -498,7 +498,7 @@ describe('idle narration from persisted command events', () => {
   })
 
   it.each(['pvp', 'repeat-ai'] as const)(
-    'retains the actual Lowered Guard action and outcome on %s timeout',
+    'retains the actual Defenseless action and outcome on %s timeout',
     (kind) => {
       const state = encounter()
       state.tactical.battle.combatants[0].temporaryResources =
@@ -516,7 +516,7 @@ describe('idle narration from persisted command events', () => {
             action.outcomes.some((outcome) => outcome.statusId === 'lowered-guard'),
           ),
       ).toBe(true)
-      expect(JSON.stringify(chronicle)).toContain('Lowered Guard')
+      expect(JSON.stringify(chronicle)).toContain('Defenseless')
     },
   )
 

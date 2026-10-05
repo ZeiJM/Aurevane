@@ -339,7 +339,6 @@ describe('CSR-2 live viewer-relative status projection', () => {
     expect(rowStatuses(projected, ALLY).map((entry) => entry.statusId)).toEqual([
       'covert',
       'guarded',
-      'copy',
     ])
     expect(rowStatuses(projected, ENEMY).map((entry) => entry.statusId)).toEqual(['exposed'])
     expect(rowStatuses(projected, PLAIN_ENEMY).map((entry) => entry.statusId)).toEqual(['guarded'])

@@ -706,7 +706,7 @@ describe('approved Battle Chronicle', () => {
         templateValues: { amount: '9' },
       }),
     ])
-    expect(html).toContain('aria-label="Explain Root"')
+    expect(html).toContain('aria-label="Explain Rooted"')
     expect(html).toContain('aria-label="Explain Barrier"')
     expect(html).toContain('Root will take effect on Weon at the start of round 3!')
     expect(html).not.toContain('Root pending')

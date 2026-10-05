@@ -1,3 +1,4 @@
+import { assertCurrentCombatStatusId, isRetiredCombatStatusId } from './retired-combat-statuses'
 import { terrainAdjustedDefense } from './combat-stat-balance'
 import { duelBalancedDirectDamage } from './combat-duel-balance'
 import type {
@@ -860,12 +861,7 @@ export function evaluateCombatAction(
       (() => {
         const plan = planCombatStatusCopies(state, actorId, target.combatantId, copyEffect, content)
         const empty =
-          plan.copies.length === 0 &&
-          !plan.poison &&
-          !plan.burn &&
-          plan.bleed.length === 0 &&
-          plan.barriers.length === 0 &&
-          plan.recovery.length === 0
+          plan.copies.length === 0 && !plan.poison && !plan.burn && plan.bleed.length === 0
         return empty && copyEffect.allowNoEligibleEffects !== true
       })()
     ) {
@@ -1648,6 +1644,11 @@ export function validateCombatEncounterState(
     for (const [statusIndex, status] of row.statuses.entries()) {
       const statusPrefix = `${prefix}.statuses.${statusIndex}`
       collectIdentityIssue(issues, status.statusId, `${statusPrefix}.statusId`)
+      if (isRetiredCombatStatusId(status.statusId))
+        issues.push({
+          field: `${statusPrefix}.statusId`,
+          message: 'Retired combat status is unsupported.',
+        })
       collectIdentityIssue(issues, status.sourceCombatantId, `${statusPrefix}.sourceCombatantId`)
       collectPositiveIntegerIssue(issues, status.statusVersion, `${statusPrefix}.statusVersion`)
       collectPositiveIntegerIssue(issues, status.stacks, `${statusPrefix}.stacks`)
@@ -2222,7 +2223,6 @@ function resolveActionEffects(
             action.id,
             effect,
             content,
-            resolvingPending,
           )
           nextState = copied.state
           events.push(...copied.events)
@@ -3397,8 +3397,10 @@ function validateCombatActionDefinition(
       ],
       'requirement kind',
     )
-    if ('statusId' in requirement)
+    if ('statusId' in requirement) {
       collectRequiredIdentity(requirement.statusId, 'requirement status ID')
+      assertCurrentCombatStatusId(requirement.statusId)
+    }
     if (requirement.kind === 'actor-hp-at-most') {
       assertBasisPoints(requirement.basisPoints, 'actor HP threshold')
     }
@@ -3467,6 +3469,7 @@ function validateCombatActionDefinition(
         throw new TypeError('Status removal requires one to sixteen distinct IDs.')
       for (const id of effect.statusIds) {
         collectRequiredIdentity(id, 'removed status ID')
+        assertCurrentCombatStatusId(id)
         if (content) getStatusDefinitionById(content, id)
       }
     }
@@ -3477,6 +3480,7 @@ function validateCombatActionDefinition(
       throw new TypeError('Rewind is a self-only effect.')
     if (effect.type === 'apply-status') {
       collectRequiredIdentity(effect.statusId, 'effect status ID')
+      assertCurrentCombatStatusId(effect.statusId)
       assertPositiveSafeInteger(effect.stacks, 'effect status stacks')
       if (content) getStatusDefinitionById(content, effect.statusId)
     }
@@ -3508,6 +3512,7 @@ function validateCombatContentCatalog(content: CombatContentCatalog): void {
   for (const status of content.statuses) {
     validateCombatAccuracyStatusDefinition(status)
     collectRequiredIdentity(status.id, 'status id')
+    assertCurrentCombatStatusId(status.id)
     assertPositiveSafeInteger(status.version, 'status version')
     assertPositiveSafeInteger(status.maximumStacks, 'status maximum stacks')
     assertPositiveSafeInteger(status.durationOwnerTurnStarts, 'status duration')

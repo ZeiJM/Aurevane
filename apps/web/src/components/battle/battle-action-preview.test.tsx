@@ -180,13 +180,13 @@ describe('current selection forecast', () => {
     expect(first).toContain('-15% damage')
     expect(first).toContain('3 turns')
     expect(first).not.toContain('2 turns')
-    expect(first).toContain('Frozen at tile 2,1')
+    expect(first).toContain('Frozen Ground at tile 2,1')
     expect(first).toContain('Starts round 3')
     expect(first).not.toContain('pushed')
     expect(second).toContain('Target pushed one tile')
-    expect(second).toContain('Root removed')
+    expect(second).toContain('Rooted removed')
     expect(second).not.toContain('-15% damage')
-    expect(second).not.toContain('Frozen at tile')
+    expect(second).not.toContain('Frozen Ground at tile')
     expect(markup).not.toContain('>Details</button>')
   })
 
@@ -418,7 +418,7 @@ describe('current selection forecast', () => {
       />,
     )
     expect(markup).toContain('Starts round 3')
-    expect(markup).toContain('Frozen at tile 2,3')
+    expect(markup).toContain('Frozen Ground at tile 2,3')
     expect(markup).toContain('2 round boundaries')
     expect(markup).toContain('either team')
   })
@@ -595,7 +595,7 @@ describe('current selection forecast', () => {
           before: 'none',
           after: 'poison:3',
         },
-        label: 'Copied Poison (Poisoned) · movement progress 3',
+        label: 'Copied Poison · movement progress 3',
         machineText: 'poison:3',
       },
       {
@@ -605,7 +605,7 @@ describe('current selection forecast', () => {
           before: 'burn:2',
           after: 'burn:0',
         },
-        label: 'Copied Burn (Scorched) · stage 2→0',
+        label: 'Copied Burn · stage 2→0',
         machineText: 'burn:2',
       },
       {
@@ -615,7 +615,7 @@ describe('current selection forecast', () => {
           before: 'bleed:1:1',
           after: 'bleed:3:2',
         },
-        label: 'Copied Bleed (Bleeding) · 1 dmg × 1 tick → 3 dmg × 2 ticks',
+        label: 'Copied Bleed · 1 dmg × 1 tick → 3 dmg × 2 ticks',
         machineText: 'bleed:1:1',
       },
     ]
@@ -666,14 +666,19 @@ describe('current selection forecast', () => {
       <BattleActionPreview preview={mixedPreview} pending={false} />,
     )
 
-    for (const label of ['Copied Inspire · 1 stack · 2 turns', '7 dmg', 'Heal +5']) {
+    for (const label of ['Copied Damage Up · 1 stack · 2 turns', '7 dmg', 'Heal +5']) {
       expect(markup).toContain(label)
     }
     expect(markup).not.toContain('data-battle-info-trigger')
     expect(markup).not.toContain('status.inspired:1:2')
 
     const detailLabels = previewChips(mixedPreview).map((chip) => chip.label)
-    for (const label of ['Copied Inspire · 1 stack · 2 turns', '7 dmg', 'Heal +5', 'Resource +2']) {
+    for (const label of [
+      'Copied Damage Up · 1 stack · 2 turns',
+      '7 dmg',
+      'Heal +5',
+      'Resource +2',
+    ]) {
       expect(detailLabels).toContain(label)
     }
   })
