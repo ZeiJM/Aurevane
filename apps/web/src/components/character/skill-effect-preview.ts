@@ -76,10 +76,7 @@ function statusPreview(id: string, potencyBasisPoints?: number): PreviewEffect {
   return result
 }
 
-export function previewEffect(
-  effect: MatureSkillEffectDefinition,
-  _copyPolicyVersion: number | null = 1,
-): PreviewEffect {
+export function previewEffect(effect: MatureSkillEffectDefinition): PreviewEffect {
   const target =
     effect.recipient === 'actor'
       ? 'you'
@@ -201,10 +198,7 @@ export function previewEffect(
   }
 }
 
-export function skillPreviewEffects(
-  skill: MatureSkillDefinition,
-  _copyPolicyVersion: number | null = 1,
-): readonly PreviewEffect[] {
+export function skillPreviewEffects(skill: MatureSkillDefinition): readonly PreviewEffect[] {
   return skill.effects.map((effect, index) => {
     const entry = previewEffect(effect)
     const override = skill.effectDescriptions?.[index]?.trim()
