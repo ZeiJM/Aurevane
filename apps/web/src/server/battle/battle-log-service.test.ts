@@ -368,8 +368,7 @@ describe('sanitized battle log service', () => {
   })
 
 
-
-  it('translates timeout and Lowered Guard internals into player-facing facts', async () => {
+  it('translates timeout and Defenseless internals into player-facing facts', async () => {
     const repository: BattleEventRepository = {
       findBattleEvents: vi.fn(async () => [
         {
