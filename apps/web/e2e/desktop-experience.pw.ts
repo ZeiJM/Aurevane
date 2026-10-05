@@ -751,6 +751,7 @@ test('a large desktop character directory stays inside the page and every entry 
     characterId: `10000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
     name: `Adventurer ${String(index + 1).padStart(2, '0')}`,
     level: 10,
+    xp: index * 1000,
     lastSeenAt: directoryTimestamp,
     portraitRef: null,
     disciplineId: index % 2 === 0 ? 'vanguard' : 'lifebinder',

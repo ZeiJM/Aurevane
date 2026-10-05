@@ -68,4 +68,17 @@ browser_privileges="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U pos
     (select relrowsecurity from pg_class where oid = 'public.characters'::regclass)::text;")"
 test "$browser_privileges" = 'false|true|false|false|true'
 
+# Exercise the exact Online Users identity/EXP selection under the server role.
+# Reapplying the additive column grant must not alter browser authority.
+browser_authority_before="$(browser_character_authority)"
+docker exec -i "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres \
+  < supabase/migrations/20261005170919_online_character_experience_projection.sql
+test "$(browser_character_authority)" = "$browser_authority_before"
+docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+  begin;
+  set local role service_role;
+  select id, xp, portrait_ref, personal_title from public.characters
+  where id in ('00000000-0000-4000-8000-000000000000'::uuid);
+  rollback;"
+
 echo 'Spectator title server-read and browser authority checks passed.'

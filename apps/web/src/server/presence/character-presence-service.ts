@@ -9,6 +9,7 @@ export interface OnlineCharacter {
   characterId: string
   name: string
   level: number
+  xp: number | null
   lastSeenAt: string
   portraitRef: string | null
   disciplineId: string | null
@@ -21,6 +22,7 @@ export interface CharacterPresenceDirectoryEntry {
   characterId: string
   name: string
   level: number
+  xp: number | null
   lastSeenAt: string | null
   portraitRef: string | null
   disciplineId: string | null
@@ -65,6 +67,7 @@ function parseOnlineCharacters(data: unknown[]): OnlineCharacter[] {
         characterId: candidate.character_id,
         name: candidate.character_name,
         level,
+        xp: null,
         lastSeenAt: candidate.last_seen_at,
         portraitRef: null,
         disciplineId: null,
@@ -102,6 +105,7 @@ export async function countOnlineCharacters(): Promise<number> {
 }
 
 interface PublicCharacterIdentity {
+  xp: number | null
   portraitRef: string | null
   disciplineId: string | null
   secondaryDisciplineId: string | null
@@ -118,7 +122,7 @@ async function loadPublicCharacterIdentityMap(
     await Promise.all([
       supabase
         .from('characters')
-        .select('id, portrait_ref, personal_title')
+        .select('id, xp, portrait_ref, personal_title')
         .in('id', [...characterIds]),
       supabase.rpc('get_character_public_active_disciplines_v1', {
         p_character_ids: [...characterIds],
@@ -147,6 +151,8 @@ async function loadPublicCharacterIdentityMap(
       if (!row || typeof row.id !== 'string') continue
       const build = buildMap.get(row.id)
       identityMap.set(row.id, {
+        xp:
+          typeof row.xp === 'number' && Number.isSafeInteger(row.xp) && row.xp >= 0 ? row.xp : null,
         portraitRef: typeof row.portrait_ref === 'string' ? row.portrait_ref : null,
         disciplineId: build?.disciplineId ?? null,
         secondaryDisciplineId: build?.secondaryDisciplineId ?? null,
@@ -156,6 +162,23 @@ async function loadPublicCharacterIdentityMap(
   }
 
   return identityMap
+}
+
+async function loadPublicCharacterPresentationMaps(characterIds: readonly string[]) {
+  const identities = new Map<string, PublicCharacterIdentity>()
+  const images = new Map<string, string>()
+  // Keep UUID filters below gateway URL limits and each read below the Data API row limit.
+  // Sequential batches bound load while the independent identity/image reads run together.
+  for (let offset = 0; offset < characterIds.length; offset += 100) {
+    const ids = characterIds.slice(offset, offset + 100)
+    const [identityMap, imageMap] = await Promise.all([
+      loadPublicCharacterIdentityMap(ids),
+      loadPublicCharacterProfileImageMap(ids).catch(() => new Map<string, string>()),
+    ])
+    for (const [id, identity] of identityMap) identities.set(id, identity)
+    for (const [id, image] of imageMap) images.set(id, image)
+  }
+  return [identities, images] as const
 }
 
 export async function listOnlineCharacters(): Promise<OnlineCharacter[]> {
@@ -168,18 +191,16 @@ export async function listOnlineCharacters(): Promise<OnlineCharacter[]> {
   const ids = base.map((row) => row.characterId)
 
   // Public online identity is deliberately shallow: portrait/title plus the current committed
-  // Primary/Secondary Discipline pair only. Never expose stats, skills, account identifiers,
-  // currencies, inventory, progression, or other private build data.
-  const [identityMap, imageMap] = await Promise.all([
-    loadPublicCharacterIdentityMap(ids),
-    loadPublicCharacterProfileImageMap(ids).catch(() => new Map<string, string>()),
-  ])
+  // Primary/Secondary Discipline pair and Owner-approved current Character EXP only. Never expose
+  // stats, skills, account identifiers, currencies, inventory or private progression receipts.
+  const [identityMap, imageMap] = await loadPublicCharacterPresentationMaps(ids)
 
   return base
     .map((row) => {
       const identity = identityMap.get(row.characterId)
       return {
         ...row,
+        xp: identity?.xp ?? null,
         portraitRef: identity?.portraitRef ?? null,
         disciplineId: identity?.disciplineId ?? null,
         secondaryDisciplineId: identity?.secondaryDisciplineId ?? null,
@@ -210,6 +231,7 @@ export async function listCharacterPresenceDirectory(): Promise<CharacterPresenc
         characterId: row.character_id,
         name: row.character_name,
         level: row.character_level,
+        xp: null,
         lastSeenAt: row.last_seen_at,
         portraitRef: null,
         disciplineId: null,
@@ -224,15 +246,13 @@ export async function listCharacterPresenceDirectory(): Promise<CharacterPresenc
   if (base.length === 0) return base
   const ids = base.map((row) => row.characterId)
 
-  const [identityMap, imageMap] = await Promise.all([
-    loadPublicCharacterIdentityMap(ids),
-    loadPublicCharacterProfileImageMap(ids).catch(() => new Map<string, string>()),
-  ])
+  const [identityMap, imageMap] = await loadPublicCharacterPresentationMaps(ids)
 
   return base.map((row) => {
     const identity = identityMap.get(row.characterId)
     return {
       ...row,
+      xp: identity?.xp ?? null,
       portraitRef: identity?.portraitRef ?? null,
       disciplineId: identity?.disciplineId ?? null,
       secondaryDisciplineId: identity?.secondaryDisciplineId ?? null,
