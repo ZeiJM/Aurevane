@@ -1,4 +1,5 @@
 import { combatInteractionDescription } from '../../lib/battle/combat-interaction-presentation'
+import { battleDamageLabel } from '../../lib/battle/battle-damage-type'
 import { combatStatusDetails, PHASE4_STATUSES } from '@aurevane/game-core/combat/status-content'
 import { combatStatusPresentationTag } from '@aurevane/game-core/combat/gameplay-tags'
 import type { CombatEffectOrigin } from '@aurevane/game-core/combat/actions'
@@ -533,15 +534,17 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
       )
       const amount = numberValue(event.amount)
       const hpAfter = numberValue(event.hpAfter)
+      const damageLabel = battleDamageLabel(event.element)
+      const element = damageLabel === 'damage' ? undefined : String(event.element)
       const label = actionId
         ? actionLabel(actionId)
         : periodic
           ? statusLabel(event.statusId)
           : 'Damage'
       return createEntry(record, eventType, {
-        message: `${combatantLabel(event.targetCombatantId)} took ${amount ?? 'resolved'} damage${hpAfter === null ? '' : ` and has ${hpAfter} HP remaining`}.`,
-        messageTemplate: '{target} took {amount} damage.',
-        templateValues: { amount: String(amount ?? 'resolved') },
+        message: `${combatantLabel(event.targetCombatantId)} took ${amount ?? 'resolved'} ${damageLabel}${hpAfter === null ? '' : ` and has ${hpAfter} HP remaining`}.`,
+        messageTemplate: `{target} took {amount} ${damageLabel}.`,
+        templateValues: { amount: String(amount ?? 'resolved'), ...(element ? { element } : {}) },
         actorCombatantId,
         targetCombatantId,
         actionId,
@@ -768,6 +771,24 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
         kind: 'status',
         headline: 'Status Resistance',
         tone: 'benefit',
+      })
+    }
+    case 'combat_critical_resolved': {
+      const actorCombatantId = stringValue(event.sourceCombatantId)
+      const targetCombatantId = stringValue(event.targetCombatantId)
+      const actionId = presentationActionId(event.actionId)
+      if (event.critical !== true || !actorCombatantId || !targetCombatantId || !actionId)
+        return null
+      return createEntry(record, eventType, {
+        messageTemplate: 'Critical hit on {target}!',
+        templateValues: { outcome: 'CRITICAL' },
+        actorCombatantId,
+        targetCombatantId,
+        actionId,
+        actionLabel: actionLabel(actionId),
+        kind: 'offense',
+        headline: 'Critical Hit',
+        tone: 'damage',
       })
     }
     case 'combat_accuracy_resolved': {

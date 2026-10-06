@@ -78,6 +78,34 @@ function expectDisplayParity(entries: readonly BattleLogEntry[], expected: reado
 }
 
 describe('Battle Chronicle clipboard transcript', () => {
+  it('shows a recorded critical before the command beneath that attack in both the reader and copy', () => {
+    const entries = [
+      entry(1, 0, 'combat_critical_resolved', { templateValues: { outcome: 'CRITICAL' } }),
+      technique(1, { eventIndex: 1 }),
+      entry(1, 2, 'damage_applied', { templateValues: { amount: '23', element: 'fire' } }),
+      technique(2),
+      entry(2, 1, 'damage_applied', { templateValues: { amount: '15' } }),
+    ]
+    const copied = formatBattleLogForClipboard(entries, options)
+    expect(copied).toContain('Critical hit on Weon!')
+    expect(copied).toContain('23 fire damage to Weon')
+    expect(copied).toContain('15 damage to Weon')
+    expect(copied.match(/Critical hit/g)).toHaveLength(1)
+    expect(copied.match(/^Hollow Reflection$/gm)).toHaveLength(2)
+    expect(copied.split('\n').filter(Boolean)).toEqual(displayedLines(entries))
+  })
+  it.each(['fire', 'water', 'storm'])(
+    'copies the same %s damage type shown in the Chronicle',
+    (element) => {
+      const entries = [
+        technique(1),
+        entry(1, 1, 'damage_applied', { templateValues: { amount: '21', element } }),
+      ]
+      const copied = formatBattleLogForClipboard(entries, options)
+      expect(copied).toContain(`21 ${element} damage to Weon`)
+      expect(copied.split('\n').filter(Boolean)).toEqual(displayedLines(entries))
+    },
+  )
   it('copies the actor-grouped displayed wording and all rounds, including collapsed history', () => {
     const entries = [
       entry(1, 0, 'combatant_moved'),

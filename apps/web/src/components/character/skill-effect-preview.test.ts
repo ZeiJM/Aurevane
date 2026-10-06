@@ -4,6 +4,17 @@ import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-ski
 import { previewEffect, skillPreviewEffects } from './skill-effect-preview'
 
 describe('compact Technique explanations', () => {
+  it.each(['bastion.steady-footing', 'frostweaver.thaw', 'stormsinger.grounding'])(
+    'describes the complete canonical Cleanse on %s',
+    (id) => {
+      const skill = resolveMatureSkillVersion(id)!
+      const effect = skill.effects.find((entry) => entry.type === 'remove-status')!
+      expect(previewEffect(effect)).toMatchObject({
+        label: 'Cleanse',
+        explanation: 'Removes Burn, Bleed, Poison, Slow, Rooted, Vulnerable, Marked, Taunted.',
+      })
+    },
+  )
   it.each([
     ['fire', 'removes Wet and Frozen'],
     ['storm', 'consumes Conductive; Wet remains'],

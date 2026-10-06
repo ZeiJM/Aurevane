@@ -543,6 +543,19 @@ function BattleExperienceContent({
         : mode === 'recover'
           ? selectedHealTechnique
           : null
+  const armedActionId =
+    pendingIntent?.kind === 'action'
+      ? pendingIntent.actionId
+      : mode === 'guard'
+        ? selectedDefenseActionId
+        : mode === 'recover'
+          ? effectiveHealActionId
+          : null
+  const healingSelection = activeTechnique?.definition
+    ? activeTechnique.definition.effects.some(
+        (effect) => effect.type === 'healing' && effect.amount > 0,
+      )
+    : armedActionId === RECOVER_ID
   const previewCombatants = useMemo(
     () =>
       tactical.placements.flatMap((placement) => {
@@ -2082,6 +2095,9 @@ function BattleExperienceContent({
                       (targetRelation === 'friendly' &&
                         placement?.combatantId === localCombatantId) ||
                       undefined
+                    }
+                    data-heal-target={
+                      (targetRelation === 'friendly' && healingSelection) || undefined
                     }
                     data-terrain={terrain}
                     data-terrain-overlay={overlay?.kind}

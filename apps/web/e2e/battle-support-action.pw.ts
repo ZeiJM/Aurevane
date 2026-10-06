@@ -65,6 +65,31 @@ async function readBattle(page: Page): Promise<BattleSessionView> {
   return (await response.json()).battle as BattleSessionView
 }
 
+async function expectSupportSelectionFill(page: Page, actionId: string) {
+  const tile = page.locator('#battlefield button[data-self-target="true"]').first()
+  await expect(tile).toBeVisible()
+  const isHealing = actionId === 'basic.recover'
+  if (isHealing) await expect(tile).toHaveAttribute('data-heal-target', 'true')
+  else await expect(tile).not.toHaveAttribute('data-heal-target', 'true')
+  const fill = await tile.evaluate((node) => {
+    const overlay = getComputedStyle(node, '::after')
+    const token = node.querySelector<HTMLElement>(':scope > [data-team]')!
+    return {
+      background: overlay.backgroundColor,
+      inset: overlay.inset,
+      overlayLayer: Number(overlay.zIndex),
+      tokenLayer: Number(getComputedStyle(token).zIndex),
+      ring: getComputedStyle(token).borderColor,
+      pointerEvents: overlay.pointerEvents,
+    }
+  })
+  expect(fill.background).toBe(isHealing ? 'rgba(102, 218, 143, 0.5)' : 'rgba(108, 145, 198, 0.5)')
+  expect(fill.inset).toBe('0px')
+  expect(fill.tokenLayer).toBeGreaterThan(fill.overlayLayer)
+  expect(fill.ring).toBe('rgb(208, 170, 98)')
+  expect(fill.pointerEvents).toBe('none')
+}
+
 for (const supportActionId of ['basic.recover', 'basic.recover.mp'] as const) {
   test(`Guided Guard practice remains available with ${supportActionId} and full resources`, async ({
     page,
@@ -270,6 +295,7 @@ for (const [supportActionId, label, cost] of [
       'data-battle-action-mode',
       supportActionId === 'basic.guard' ? 'guard' : 'recover',
     )
+    await expectSupportSelectionFill(page, supportActionId)
     await page.evaluate(() =>
       window.dispatchEvent(
         new KeyboardEvent('keydown', { code: 'KeyG', key: 'g', repeat: true, bubbles: true }),
@@ -425,6 +451,7 @@ test('PvP pins independent HP/MP Support Actions into the shared slot 3', async 
       legal: true,
       actionId,
     })
+    await expectSupportSelectionFill(actorPage, actionId)
     const committed = actorPage.waitForResponse('**/api/battles/*/commit', { timeout: 10_000 })
     await actorPage.keyboard.press('KeyG')
     const response = await committed

@@ -137,6 +137,16 @@ describe('Master Panel Skill effect editor', () => {
     })
     expect(removed).toContain('aria-label="Status IDs"')
     expect(removed).toContain('value="burn, poison"')
+    expect(removed).toContain('Use standard Cleanse')
+    expect(removed).toContain(
+      'Cleanse removes Burn, Bleed, Poison, Slow, Rooted, Vulnerable, Marked and Taunted.',
+    )
+    const dispel = render({
+      type: 'remove-status',
+      recipient: 'primary-unit',
+      statusIds: ['guarded'],
+    })
+    expect(dispel).not.toContain('Use standard Cleanse')
 
     const copy = render({
       type: 'copy-statuses',

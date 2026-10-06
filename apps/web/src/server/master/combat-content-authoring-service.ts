@@ -9,6 +9,10 @@ import type {
 import { CombatContentConflictError } from '@aurevane/db/combat-content'
 import { validateCombatActionDefinition } from '@aurevane/game-core/combat/combat-authoring-validation'
 import {
+  hasCanonicalCleanseStatuses,
+  isCleanseEffect,
+} from '@aurevane/game-core/combat/combat-cleanse'
+import {
   resolveEssenceForBuild,
   validateEssenceDefinition as validateCanonicalEssenceDefinition,
   type EssenceDefinition,
@@ -259,6 +263,19 @@ function validateSkillDefinition(definition: unknown): CombatContentValidationRe
       code: 'INVALID_MATURE_SKILL_SHAPE',
       message: normalizeMessage(error),
     })
+  }
+
+  if (issues.length === 0) {
+    for (const [index, effect] of candidate.effects.entries()) {
+      if (isCleanseEffect(effect) && !hasCanonicalCleanseStatuses(effect.statusIds)) {
+        issues.push({
+          path: `effects[${index}].statusIds`,
+          code: 'INCONSISTENT_CLEANSE',
+          message:
+            'Cleanse must remove Burn, Bleed, Poison, Slow, Rooted, Vulnerable, Marked and Taunted. Use the standard Cleanse list.',
+        })
+      }
+    }
   }
 
   if (issues.length === 0) {

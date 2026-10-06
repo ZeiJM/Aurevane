@@ -1,5 +1,34 @@
 # AUREVANE — Active Task Ledger
 
+## Healing target fill — 2026-10-06
+
+Owner requests healing target highlights to fill the visible tile around the portrait and identity border like the stronger blue self-selection. Shared battlefield CSS paints a 50% green overlay below token artwork for friendly HP-healing candidates. Guard and MP Recovery retain blue, damaging paths retain red, and overlays do not intercept clicks. Actual HP/MP Support Action browser flows verify fill/layering and the retained gold identity ring in PvE and PvP.
+
+- [x] Implement shared full-tile green healing overlay and recipient marker from the armed action's actual effects.
+- [x] Pass focused shared-style regression; add real Support Action browser assertions.
+- [ ] Complete combined full quality and exact-head browser gates before authorized release.
+
+
+## Chronicle damage types — 2026-10-06
+
+Owner requests actual elemental hits to say, for example, `21 fire damage` instead of `21 damage`. Record the element on each authoritative direct-damage receipt; shared Chronicle, compact presentation and Copy Full Log consume that receipt without inferring from current Skill definitions or names. Historical/untyped hits retain generic wording. Shared desktop/mobile PvE, PvP and spectator presentation remains aligned.
+
+- [x] Reproduce missing elemental receipts and generic displayed/copied wording with failing regressions.
+- [x] Preserve Fire/Water/Storm receipt metadata through immediate multi-hit and stored delayed activation; sanitize unknown element values and retain viewer privacy.
+- [x] Pass focused core timing/interaction and log/context/privacy/clipboard/presentation regressions.
+- [ ] Complete full quality and exact-head release checks; publish the verified source under standing Owner authorization.
+
+## Canonical Cleanse — 2026-10-06
+
+Owner confirms Cleanse always removes Burn, Bleed, Poison, Slow, Rooted, Vulnerable, Marked and Taunted. Steady Footing, Thaw and Grounding previously authored partial lists. Append corrected versions without changing AP/MP, range, other effects, cooldown or historical definitions; all eight current Discipline Cleanses and two Essences share the same removal contract and generated descriptions. Preserve unrelated positive/neutral effects and Dispel's separate authored-positive-status behavior.
+
+- [x] Reproduce partial mechanics/descriptions and inconsistent Master Panel validation with failing regressions.
+- [x] Centralize the canonical status list, append the three corrected current versions, and use canonical Master Panel defaults and server validation.
+- [x] Exercise actual removal of all eight statuses and every typed Bleed application for each current Cleanse, preserving unrelated states.
+- [x] Inspect current published content read-only: no Skill/Essence DoT or remove-status overrides require a Production content conversion.
+- [ ] Complete full quality and exact-head release gates; release under standing Owner authorization.
+
+
 ## Battle-tag follow-up access repair — 2026-10-06
 
 Production Nexus logs identify `effect_timing` persistence recovery. Read-only inspection confirms the published version-3 policy still contains obsolete `copy` and `summoned` timing overrides alongside the current `summon` override. Rejecting those inert keys blocked shared policy loading and saved-battle validation after the cleanup.
@@ -576,3 +605,9 @@ Owner requested a larger, more impactful lobby VS and clarified that adjacent ra
 Owner-approved 2026-10-06 damage explanation follow-up: compact Skill and Essence damage explanations include the same existing Fire/Storm interactions as expanded reports, using one shared presentation helper. Retain the 1–20 power scale explanation and the bracketed authored magnitude; remove the redundant per-effect power sentence. Water damage does not implicitly apply Wet. Focused presentation regressions cover interactions, unchanged magnitudes and untyped/Water exclusions.
 
 Owner clarification 2026-10-06 targeting follow-up supersedes the earlier recipient-only rule: armed damaging moves show their potential hit tiles even without a detected target or an informational forecast. Basic Attack shows its four cardinal neighbors. Pinned Skills/Essences use their authored range and the shared combat shape resolver; aimed line/circle moves retain their complete footprint, including empty tiles, like Phoenix Wake. Direct damage and Burn/Bleed/Poison qualify; non-damaging moves do not paint red. This is informational reach, not a promise of legality: server requirements, resources, elevation, line of sight and target policy still govern commits. Self-target tiles use a filled blue overlay beneath the portrait and participant identity border. Real mounted Basic Attack/Guard and missing-forecast regressions verify footprint and paint ordering without injecting targeting attributes.
+
+### 2026-10-06 — Damage Up report: expose recorded critical hits
+
+- Owner reported Sacred Guard followed by 23 and 15 damage. Read-only inspection of the matching persisted battle confirms the first hit was critical and the second was normal; Damage Up remained active and increased a 14-damage normal hit to 15. No damage arithmetic change is justified by this report.
+- Preserve confirmed critical results through the sanitized shared Chronicle, compact log, and clipboard transcript without exposing RNG or chance internals. Match compact critical narration to the recorded source, action and recipient; queue pre-command receipts beneath their actual command.
+- Focused regressions pass for repeated Damage Up attacks (normal 15 / critical 23), confirmed versus malformed critical receipts, recipient matching, pre-command ordering, elemental wording and reader/copy parity. Final combined full gate and exact-head CI still pending.

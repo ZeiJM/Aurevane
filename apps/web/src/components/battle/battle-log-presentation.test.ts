@@ -71,6 +71,43 @@ function attackEntries(overrides: Partial<BattleLogEntry> = {}): BattleLogEntry[
 }
 
 describe('Battle Log V2 presentation', () => {
+  it('identifies the matching recorded critical in the compact damage beat', () => {
+    const rounds = buildBattleLogPresentation(
+      [
+        entry(),
+        entry({
+          eventIndex: 1,
+          eventType: 'combat_critical_resolved',
+          templateValues: { outcome: 'CRITICAL' },
+          targetCombatantId: 'character:storm',
+        }),
+        ...attackEntries().map((item) => ({ ...item, eventIndex: item.eventIndex + 1 })),
+      ],
+      { combatantNames: names },
+    )
+    expect(JSON.stringify(rounds)).toContain('Critical hit')
+  })
+  it('does not apply another recipient’s critical to ordinary damage', () => {
+    const rounds = buildBattleLogPresentation(
+      [
+        entry(),
+        entry({
+          eventIndex: 1,
+          eventType: 'combat_critical_resolved',
+          templateValues: { outcome: 'CRITICAL' },
+          targetCombatantId: 'character:other',
+        }),
+        ...attackEntries().map((item) => ({ ...item, eventIndex: item.eventIndex + 1 })),
+      ],
+      { combatantNames: names },
+    )
+    expect(
+      rounds
+        .flatMap((round) => round.actions)
+        .map((action) => sentence(action.primary))
+        .join(' '),
+    ).not.toContain('Critical hit')
+  })
   it('turns a hit, damage, and status consequence into one readable combat beat', () => {
     const rounds = buildBattleLogPresentation(
       [

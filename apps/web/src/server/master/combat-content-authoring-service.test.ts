@@ -106,6 +106,36 @@ function invalidVariant(mutator: (definition: Record<string, unknown>) => void):
 }
 
 describe('combat content authoring service', () => {
+  it('rejects partial Cleanse publication while preserving Dispel and canonical Cleanse', () => {
+    const { service } = serviceFixture()
+    const base = staticSkill('runeblade.unbinding-rune')
+    expect(service.validateSkillDefinition(base)).toMatchObject({ valid: true })
+    const partial = {
+      ...base,
+      effects: [{ type: 'remove-status', recipient: 'actor', statusIds: ['slow', 'root'] }],
+    }
+    expect(service.validateSkillDefinition(partial)).toMatchObject({
+      valid: false,
+      issues: expect.arrayContaining([expect.objectContaining({ code: 'INCONSISTENT_CLEANSE' })]),
+    })
+    const dispel = {
+      ...base,
+      effects: [{ type: 'remove-status', recipient: 'primary-unit', statusIds: ['guarded'] }],
+    }
+    expect(service.validateSkillDefinition(dispel)).toMatchObject({ valid: true })
+    const essence = resolveEssenceForBuild('dawnshield', null)!
+    expect(service.validateEssenceDefinition(essence)).toMatchObject({ valid: true })
+    const partialEssence = {
+      ...essence,
+      skill: {
+        ...essence.skill,
+        effects: essence.skill.effects.map((effect) =>
+          effect.type === 'remove-status' ? { ...effect, statusIds: ['slow'] } : effect,
+        ),
+      },
+    }
+    expect(service.validateEssenceDefinition(partialEssence)).toMatchObject({ valid: false })
+  })
   it('denies users who are not explicit Master Panel operators', async () => {
     const { service } = serviceFixture()
 

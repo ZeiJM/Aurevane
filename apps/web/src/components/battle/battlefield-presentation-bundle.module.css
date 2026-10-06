@@ -25,7 +25,9 @@
 :global(
   main[data-battle-concept='true']
     section#battlefield
-    button[aria-label^='Tile '][data-self-target='true']:not([data-attack-path='true'])
+    button[aria-label^='Tile '][data-self-target='true']:not([data-attack-path='true']):not(
+      [data-heal-target='true']
+    )
 )::after {
   content: '';
   position: absolute;
@@ -37,6 +39,25 @@
   box-shadow:
     inset 0 0 14px #6c91c699,
     0 0 8px #6c91c680;
+  pointer-events: none;
+}
+
+/* Healing shares the full-tile fill, including allied recipients, below identity artwork. */
+:global(
+  main[data-battle-concept='true']
+    section#battlefield
+    button[aria-label^='Tile '][data-heal-target='true']:not([data-attack-path='true'])
+)::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border: 2px solid #66da8f;
+  border-radius: inherit;
+  background: #66da8f80;
+  box-shadow:
+    inset 0 0 14px #66da8f99,
+    0 0 8px #66da8f80;
   pointer-events: none;
 }
 

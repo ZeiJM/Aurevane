@@ -2,6 +2,7 @@ import {
   isSkillNarrationVariantValid,
   type SkillNarrationTemplate,
 } from '@aurevane/game-core/combat/battle-narration'
+import { battleDamageLabel } from '../../lib/battle/battle-damage-type'
 
 import type {
   BattleLogEntry,
@@ -582,7 +583,20 @@ function presentAction(group: ActionGroup, options: PresentationOptions): Presen
     const actor = combatantName(damage.actorCombatantId, options)
     const target = combatantName(damage.targetCombatantId, options)
     const amount = damage.templateValues.amount?.trim()
-    const outcome = amount ? `${amount} damage` : 'Damage dealt'
+    const critical =
+      !damage.periodicStatusId &&
+      group.entries.some(
+        (entry) =>
+          entry.eventType === 'combat_critical_resolved' &&
+          entry.templateValues.outcome === 'CRITICAL' &&
+          entry.actorCombatantId === damage.actorCombatantId &&
+          entry.targetCombatantId === damage.targetCombatantId &&
+          entry.actionId === damage.actionId,
+      )
+    const damageOutcome = amount
+      ? `${amount} ${battleDamageLabel(damage.templateValues.element)}`
+      : 'Damage dealt'
+    const outcome = critical ? `Critical hit · ${damageOutcome}` : damageOutcome
     const selfDamage =
       damage.actorCombatantId !== null &&
       damage.targetCombatantId !== null &&
@@ -604,7 +618,7 @@ function presentAction(group: ActionGroup, options: PresentationOptions): Presen
         actionLabel,
         outcome,
         'damage',
-        'hit',
+        critical ? 'critical' : 'hit',
         options,
       )
     }

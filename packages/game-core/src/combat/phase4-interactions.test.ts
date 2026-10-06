@@ -33,8 +33,16 @@ import {
 } from './stat-driven-combat'
 import {
   P33_REPRESENTATIVE_DISCIPLINE_SKILLS,
+  latestEnabledMatureSkills,
+  resolveMatureSkillVersion,
   validateMatureSkillDefinition,
 } from './mature-skills'
+import { resolveEssenceForBuild } from './essence'
+import {
+  applyCurrentPoisonState,
+  applyCurrentBurnState,
+  applyCurrentBleedState,
+} from './combat-dots'
 import { surrenderPvpCombatant, timeoutPvpTurn, createPvpQualityResources } from './pvp-quality'
 function encounter(): StatDrivenCombatEncounterState {
   const ids = ['actor', 'enemy', 'other', 'ally']
@@ -115,7 +123,10 @@ function withStatus<T extends CombatEncounterState>(
               ...row.statuses.filter((status) => status.statusId !== statusId),
               {
                 statusId,
-                statusVersion: 1,
+                statusVersion: definition?.version ?? 1,
+                ...(definition?.markAccuracyBonusBasisPoints !== undefined
+                  ? { sourceScopedMark: true }
+                  : {}),
                 stacks: 1,
                 remainingOwnerTurnStarts: definition?.durationOwnerTurnStarts ?? 2,
                 sourceCombatantId: source,
@@ -160,6 +171,107 @@ const ground = (effects: readonly CombatEffectDefinition[]): CombatActionDefinit
 const tile = { kind: 'tile' as const, position: { x: 0, y: 1 } }
 
 describe('Phase 4 gameplay interactions', () => {
+  it('keeps distinct damage types on separate hits in one command', () => {
+    const result = executeCombatAction(
+      encounter(),
+      action([
+        { type: 'damage', recipient: 'primary-unit', amount: 5, element: 'fire' },
+        { type: 'damage', recipient: 'primary-unit', amount: 6, element: 'water' },
+        { type: 'damage', recipient: 'primary-unit', amount: 7 },
+      ]),
+      target,
+      PV1F_COMBAT_CONTENT,
+    )
+    expect(
+      result.events
+        .filter((event) => event.event === 'damage_applied')
+        .map((event) => ({
+          amount: event.amount,
+          element: event.element,
+        })),
+    ).toEqual([
+      { amount: 5, element: 'fire' },
+      { amount: 6, element: 'water' },
+      { amount: 7, element: undefined },
+    ])
+  })
+  it.each(['fire', 'water', 'storm'] as const)(
+    'records %s on the actual damage receipt',
+    (element) => {
+      const result = executeCombatAction(
+        encounter(),
+        action([{ type: 'damage', recipient: 'primary-unit', amount: 5, element }]),
+        target,
+        PV1F_COMBAT_CONTENT,
+      )
+      const damage = result.events.find((event) => event.event === 'damage_applied')
+      expect(damage).toMatchObject({ element, amount: 5 })
+      expect(JSON.parse(JSON.stringify(damage))).toMatchObject({ element })
+      const ordinary = executeCombatAction(
+        encounter(),
+        action([{ type: 'damage', recipient: 'primary-unit', amount: 5 }]),
+        target,
+        PV1F_COMBAT_CONTENT,
+      )
+      expect(ordinary.events.find((event) => event.event === 'damage_applied')).not.toHaveProperty(
+        'element',
+      )
+    },
+  )
+  const cleanseIds = ['burn', 'bleed', 'poison', 'slow', 'root', 'exposed', 'mark', 'challenged']
+  const currentCleanses = [
+    ...latestEnabledMatureSkills().filter((skill) => skill.tags.includes('cleanse')),
+    ...['dawnshield', 'tidecaller'].map((id) => resolveEssenceForBuild(id, null)!.skill),
+  ]
+  it.each(currentCleanses.map((skill) => [skill.id, skill] as const))(
+    '%s removes every canonical Cleanse effect and preserves unrelated states',
+    (_id, skill) => {
+      const removal = skill.effects.find((effect) => effect.type === 'remove-status')!
+      expect(removal.type).toBe('remove-status')
+      if (removal.type !== 'remove-status') throw new Error('Expected Cleanse effect')
+      expect(removal.statusIds).toEqual(cleanseIds)
+      let state: CombatEncounterState = encounter()
+      for (const id of ['slow', 'root', 'exposed', 'mark', 'challenged', 'guarded', 'wet'])
+        state = withStatus(state, 'enemy', id)
+      state = applyCurrentPoisonState(state, 'actor', 'enemy', 'test.poison')
+      state = applyCurrentBurnState(state, 'actor', 'enemy', 'test.burn')
+      state = applyCurrentBleedState(state, 'actor', 'enemy', 'test.bleed', 2, 3)
+      state = applyCurrentBleedState(state, 'other', 'enemy', 'test.bleed', 1, 2)
+      const result = executeCombatAction(
+        state,
+        action([{ ...removal, recipient: 'primary-unit' }]),
+        target,
+        PV1F_COMBAT_CONTENT,
+      )
+      expect(statuses(result.state)).toEqual(['guarded', 'wet'])
+      expect(result.state.effectState).toMatchObject({ poison: [], burn: [], bleed: [] })
+      expect(
+        result.events
+          .filter((event) => event.event === 'status_removed')
+          .map((event) => event.statusId)
+          .sort(),
+      ).toEqual([...cleanseIds].sort())
+      expect(statuses(state)).toContain('root')
+    },
+  )
+  it.each(['bastion.steady-footing', 'frostweaver.thaw', 'stormsinger.grounding'])(
+    'appends a new %s version while preserving its historical removal contract',
+    (id) => {
+      const old = resolveMatureSkillVersion(id, 4)!
+      const current = resolveMatureSkillVersion(id)!
+      expect(current.contentVersion).toBe(5)
+      expect(old.effects.find((effect) => effect.type === 'remove-status')).not.toMatchObject({
+        statusIds: cleanseIds,
+      })
+      expect(current).toMatchObject({
+        apCost: old.apCost,
+        mpCost: old.mpCost,
+        cooldown: old.cooldown,
+        target: old.target,
+        media: old.media,
+      })
+    },
+  )
   it('uses legacy status aliases in typed requirements without replacing saved IDs', () => {
     const state = withStatus(encounter(), 'enemy', 'bleed')
     const skill = {
