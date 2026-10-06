@@ -307,7 +307,7 @@ describe('battle turn quality rules', () => {
   })
 })
 it.each(['ai', 'pvp'] as const)(
-  'penalizes the first %s AFK timeout in round 3 for one affected turn in round 4, while manual ends remain exempt',
+  'penalizes the first %s AFK timeout in round 3 through the complete round 4, while manual ends remain exempt',
   (kind) => {
     let state: ReturnType<typeof encounter> = {
       ...encounter(kind),
@@ -343,8 +343,11 @@ it.each(['ai', 'pvp'] as const)(
       remainingOwnerTurnEnds: 1,
     })
     const endedAffectedTurn = finishPv1fTurn(roundFour.state, 'east')
-    expect(loweredGuard(endedAffectedTurn.state, 'player')).toBeUndefined()
+    expect(loweredGuard(endedAffectedTurn.state, 'player')?.remainingRoundBoundaries).toBe(1)
     expect(endedAffectedTurn.state.pendingEffects ?? []).toHaveLength(0)
+    const roundFive = finishPv1fTurn(endedAffectedTurn.state, 'west').state
+    expect(roundFive.tactical.battle.round).toBe(5)
+    expect(loweredGuard(roundFive, 'player')).toBeUndefined()
   },
 )
 
@@ -391,7 +394,7 @@ it('applies the AFK damage vulnerability for the next affected turn when the tim
   ).toBe(65)
 })
 
-it('runs six participant timeout boundaries with pending effects and full affected turns', () => {
+it('runs six participant timeout boundaries with pending effects lasting full rounds', () => {
   const ids = ['player', 'opponent', 'third', 'fourth', 'fifth', 'sixth']
   const resources = [...createPv1fTemporaryResources(10), ...createPvpQualityResources()].sort(
     (a, b) => a.key.localeCompare(b.key),
@@ -440,6 +443,10 @@ it('runs six participant timeout boundaries with pending effects and full affect
   expect(initial.tactical.battle.currentTurn?.combatantId).toBe('player')
   expect(loweredGuard(initial, 'player')?.remainingOwnerTurnEnds).toBe(1)
   initial = timeoutPvpTurn(initial).state
-  expect(loweredGuard(initial, 'player')).toBeUndefined()
+  expect(loweredGuard(initial, 'player')?.remainingRoundBoundaries).toBe(1)
   expect(loweredGuard(initial, 'opponent')?.remainingOwnerTurnEnds).toBe(1)
+  for (let index = 0; index < 5; index++) initial = finishPv1fTurn(initial, 'east').state
+  expect(initial.tactical.battle.round).toBe(3)
+  expect(loweredGuard(initial, 'player')?.remainingRoundBoundaries).toBe(1)
+  expect(loweredGuard(initial, 'opponent')).toBeUndefined()
 })

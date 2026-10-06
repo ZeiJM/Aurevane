@@ -282,7 +282,7 @@ function action(entry: BattleLogEntry, names: ChronicleNames, ownerId: string): 
 }
 
 function duration(entry: BattleLogEntry): string | undefined {
-  const recorded = entry.facts.find((fact) => /^\d+ turns?$/u.test(fact.label))?.label
+  const recorded = entry.facts.find((fact) => /^\d+ (?:turns?|rounds?)$/u.test(fact.label))?.label
   if (recorded) return recorded
   const turns = entry.effectTiming?.remainingOwnerTurnEnds
   if (turns) return `${turns} turn${turns === 1 ? '' : 's'}`
@@ -683,6 +683,33 @@ export function buildBattleChronicle(
       standalone.outcomes.push(result)
       actorGroup().actions.push(standalone)
     }
+  }
+  for (const round of rounds.values()) {
+    const turnOrder = new Map<string, number>()
+    for (const [index, entry] of ordered.entries()) {
+      if (
+        entry.round !== round.round ||
+        !entry.actorCombatantId ||
+        ![
+          'turn_started',
+          'turn_ended',
+          'combat_action_used',
+          'combatant_moved',
+          'final_facing_selected',
+        ].includes(entry.eventType)
+      )
+        continue
+      const rank = (entry.turnNumber ?? Number.MAX_SAFE_INTEGER / 100000) * 100000 + index
+      turnOrder.set(
+        entry.actorCombatantId,
+        Math.min(turnOrder.get(entry.actorCombatantId) ?? Infinity, rank),
+      )
+    }
+    round.actors.sort(
+      (a, b) =>
+        (turnOrder.get(a.actorId) ?? Number.MAX_SAFE_INTEGER) -
+        (turnOrder.get(b.actorId) ?? Number.MAX_SAFE_INTEGER),
+    )
   }
   return [...rounds.values()].sort((a, b) => a.round - b.round)
 }

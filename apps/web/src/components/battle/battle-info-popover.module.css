@@ -82,8 +82,7 @@
 .panel [data-compact-skill-effect] {
   display: block;
   margin: 2px 0;
-  background: #0a202b;
-  box-decoration-break: clone;
+  background: transparent;
 }
 
 /* Pinned battle, Nexus and Chronicle readers share one paper report. Inline Nexus stays unchanged. */
@@ -141,4 +140,15 @@
   height: auto !important;
   overflow-y: auto !important;
   overscroll-behavior-y: auto !important;
+}
+
+.panel [data-compact-effect-label] {
+  color: inherit;
+}
+.panel [data-compact-effect-magnitude],
+.panel [data-compact-effect-duration] {
+  color: #79551c;
+}
+.panel [data-compact-effect-timing] {
+  color: #17675e;
 }

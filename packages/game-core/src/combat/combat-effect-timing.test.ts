@@ -167,7 +167,7 @@ describe('pinned next global round effect timing', () => {
       expect(JSON.stringify(retired)).toBe(before)
     },
   )
-  it('keeps a one-turn debuff pending through six turns then active for its full affected turn', () => {
+  it('keeps a one-turn debuff pending through six turns then active for its complete activation round', () => {
     let state = executeCombatAction(
       encounter(6),
       action,
@@ -189,6 +189,9 @@ describe('pinned next global round effect timing', () => {
     expect(state.tactical.battle.currentTurn?.combatantId).toBe('actor1')
     expect(state.statusState.find((r) => r.combatantId === 'actor1')?.statuses).toHaveLength(1)
     state = end(state)
+    expect(state.statusState.find((r) => r.combatantId === 'actor1')?.statuses).toHaveLength(1)
+    for (let i = 0; i < 4; i++) state = end(state)
+    expect(state.tactical.battle.round).toBe(3)
     expect(state.statusState.find((r) => r.combatantId === 'actor1')?.statuses).toHaveLength(0)
   })
   it('keeps damage and HP/MP recovery immediate while barrier and MP drain wait', () => {
@@ -623,3 +626,68 @@ it('retains authored status potency in the pending icon projection', () => {
   )
   expect(pendingCombatStatusRows(cast.state)[0]?.status.potencyBasisPoints).toBe(2500)
 })
+
+it.each([
+  ['guarded', 8500, 2, 17],
+  ['lowered-guard', 25000, 1, 50],
+  ['exposed', 11500, 2, 23],
+] as const)(
+  '%s applies its damage multiplier through the whole final round',
+  (statusId, multiplier, turns, damage) => {
+    const catalog = {
+      statuses: [
+        { ...content.statuses[0]!, id: statusId, damageTakenMultiplierBasisPoints: multiplier },
+      ],
+    }
+    const buff = {
+      ...action,
+      target: { ...action.target, kind: 'self' as const, teamPolicy: 'self' as const },
+      effects: [
+        {
+          type: 'apply-status' as const,
+          recipient: 'actor' as const,
+          statusId,
+          stacks: 1,
+          durationTurns: turns,
+        },
+      ],
+    }
+    for (const recipient of ['actor0', 'actor1']) {
+      let state = encounter()
+      const advance = () => {
+        state = endCombatTurn(
+          { ...state, tactical: selectCurrentFinalFacing(state.tactical, 'east').state },
+          catalog,
+        ).state
+      }
+      if (recipient === 'actor1') advance()
+      state = executeCombatAction(state, buff, { kind: 'self' }, catalog).state
+      while (state.tactical.battle.round === 1) advance()
+      const attack = {
+        ...action,
+        effects: [{ type: 'damage' as const, recipient: 'primary-unit' as const, amount: 20 }],
+      }
+      for (let round = 2; round < 2 + turns; round++) {
+        for (let turn = 0; turn < 2; turn++) {
+          expect(state.tactical.battle.round).toBe(round)
+          if (state.tactical.battle.currentTurn?.combatantId !== recipient)
+            expect(
+              evaluateCombatAction(state, attack, { kind: 'unit', combatantId: recipient }, catalog)
+                .projectedEffects,
+            ).toContainEqual(
+              expect.objectContaining({ effectType: 'damage', before: 100, after: 100 - damage }),
+            )
+          advance()
+        }
+      }
+      expect(state.statusState.find((row) => row.combatantId === recipient)?.statuses).toHaveLength(
+        0,
+      )
+      if (state.tactical.battle.currentTurn?.combatantId === recipient) advance()
+      expect(
+        evaluateCombatAction(state, attack, { kind: 'unit', combatantId: recipient }, catalog)
+          .projectedEffects,
+      ).toContainEqual(expect.objectContaining({ effectType: 'damage', before: 100, after: 80 }))
+    }
+  },
+)

@@ -31,7 +31,7 @@ Retired player-facing terms such as Current Discipline, Legacy Discipline, Art a
 
 ---
 
-2026-10-03 battle effects: new battles show delayed effects as pending immediately, activate them at the following global round, and expire active durations after the affected character finishes the specified turns. Damage and HP/MP recovery default instant. The Battle Chronicle groups short scenes and results by character and retains the first ordinary movement per character per round; repeated movement, facing and expiry remain visible through board/rail state rather than repeated story chatter.
+2026-10-03 battle effects: new battles show delayed effects as pending immediately, activate them at the following global round, and keep newly queued non-instant status durations active for the specified number of complete rounds, regardless of initiative. Instant effects and previously stored lifetimes retain their recorded timing. Damage and HP/MP recovery default instant. The Battle Chronicle groups short scenes and results by character and retains the first ordinary movement per character per round; repeated movement, facing and expiry remain visible through board/rail state rather than repeated story chatter.
 
 ## 1. Goals
 
@@ -402,3 +402,6 @@ Current Manual copy must prioritize what is actually playable now—character/ac
 ## 22. Definition of Success
 
 The Manual succeeds when new players can learn AUREVANE without an external wiki, advanced players can verify exact current rules, terminology is consistent across UI/manual/tutorial/errors, six attributes and current AP combat are documented correctly, pure/mixed build rules are understandable, Resonance and Essence are distinct/spoiler-safe, Passive Training/Battle Hall behavior matches the real product, unreleased systems are not presented as already playable, documentation updates with live rules, staff can operate systems safely, spoilers/privileged information remain protected, and historical rules remain identifiable as historical rather than silently overriding the current game.
+
+
+2026-10-06 Owner battle fixes: Basic Attack uses your higher Physical or Mystic Attack stat, defaulting to Physical on ties. Move reports 20 AP, Move [1] [Instant], your Move range and Jump elevation reach; terrain can increase its actual AP cost. Damaging attacks glow red along their canonical forecast area only when a living character can be hit. Chronicle characters follow recorded turn order in each round. New battle raised platforms use heights 1 (60%), 2 (30%) or 3 (10%); saved maps retain their heights. Essence previews include effect explanations, and the lobby shares the battle’s animated VS artwork.

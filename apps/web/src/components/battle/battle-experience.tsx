@@ -91,6 +91,7 @@ import {
 import { BattleSelectedSkills } from './battle-selected-skills'
 import { battleActionCooldownTurns } from './battle-action-cooldown'
 
+import { battleAttackPathTiles } from './battle-attack-path'
 import { BattleSkillCommand } from './battle-skill-command'
 import {
   BATTLE_COMMAND_ARTWORK,
@@ -487,6 +488,15 @@ function BattleExperienceContent({
       ),
     [battle, localCombatantId, runtime, selectableTechniques],
   )
+  const localProfile = battle.snapshot.statBridge.combatants.find(
+    (row) => row.combatantId === localCombatantId,
+  )
+  const characterStats = {
+    move: localCombatant?.baseMovementBudget,
+    jump: localProfile?.jump,
+    physicalPower: localProfile?.physicalPower,
+    mysticPower: localProfile?.mysticPower,
+  }
   const localPlacement = localCombatantId
     ? (tactical.placements.find((placement) => placement.combatantId === localCombatantId) ?? null)
     : null
@@ -562,26 +572,6 @@ function BattleExperienceContent({
     0,
     ...Array.from(reachablePaths.values(), (path) => path.length - 1),
   )
-  const attackRange = useMemo(() => {
-    const result = new Set<string>()
-    if (!localPlacement) return result
-    for (const position of [
-      { x: localPlacement.position.x + 1, y: localPlacement.position.y },
-      { x: localPlacement.position.x - 1, y: localPlacement.position.y },
-      { x: localPlacement.position.x, y: localPlacement.position.y + 1 },
-      { x: localPlacement.position.x, y: localPlacement.position.y - 1 },
-    ]) {
-      if (
-        position.x >= 0 &&
-        position.x < tactical.width &&
-        position.y >= 0 &&
-        position.y < tactical.height
-      ) {
-        result.add(positionKey(position))
-      }
-    }
-    return result
-  }, [localPlacement, tactical.height, tactical.width])
 
   const selectedParticipant = selectedUnitId
     ? (viewModel.participantByCombatant.get(selectedUnitId) ?? null)
@@ -1298,6 +1288,20 @@ function BattleExperienceContent({
     combatants: previewCombatants,
     enabled: !planningDisabled,
   })
+  const selectedActionPreview =
+    preview?.battleVersion === battle.battleVersion &&
+    preview.preview.kind === 'action' &&
+    preview.preview.actionId === currentActionId
+      ? preview.preview
+      : null
+  const attackPath =
+    mode === 'attack' || mode === 'guard' || mode === 'recover'
+      ? battleAttackPathTiles(
+          selectedActionPreview ? [selectedActionPreview] : rangePreviews,
+          battleState.combatants,
+          tactical.placements,
+        )
+      : new Set<string>()
   const handleTile = useCallback(
     (position: BattleGridPosition) => {
       const placement = placementByTile.get(positionKey(position))
@@ -2000,7 +2004,7 @@ function BattleExperienceContent({
                   : null
                 const pathIndex = path.findIndex((point) => positionsEqual(point, tile.position))
                 const reachable = mode === 'move' && reachablePaths.has(key) && pathIndex < 0
-                const inAttackRange = mode === 'attack' && attackRange.has(key)
+                const inAttackRange = attackPath.has(key)
                 const legalEnemy = Boolean(
                   inAttackRange &&
                   participant &&
@@ -2051,6 +2055,7 @@ function BattleExperienceContent({
                     type="button"
                     key={key}
                     className={styles.tile}
+                    data-attack-path={attackPath.has(key) || undefined}
                     data-terrain={terrain}
                     data-terrain-overlay={overlay?.kind}
                     data-elevation={tile.elevation > 0 || undefined}
@@ -2183,6 +2188,7 @@ function BattleExperienceContent({
           >
             <div className={styles.commands} data-battle-command-group="true">
               <BattleSkillCommand
+                characterStats={characterStats}
                 slot="items"
                 hotkey={formatCombatKeybind(bindings.items)}
                 label="Items"
@@ -2195,6 +2201,7 @@ function BattleExperienceContent({
                 <small data-battle-items-locked="true">Coming soon</small>
               </BattleSkillCommand>
               <BattleSkillCommand
+                characterStats={characterStats}
                 slot="inspect"
                 hotkey={formatCombatKeybind(bindings.inspect)}
                 label="Inspect"
@@ -2205,6 +2212,7 @@ function BattleExperienceContent({
                 onActivate={() => chooseMode('inspect')}
               />
               <BattleSkillCommand
+                characterStats={characterStats}
                 slot="move"
                 hotkey={formatCombatKeybind(bindings.move)}
                 label="Move"
@@ -2215,6 +2223,7 @@ function BattleExperienceContent({
                 onActivate={() => chooseMode('move')}
               />
               <BattleSkillCommand
+                characterStats={characterStats}
                 slot="attack"
                 hotkey={formatCombatKeybind(bindings.basicAttack)}
                 label="Basic Attack"
@@ -2225,6 +2234,7 @@ function BattleExperienceContent({
                 onActivate={() => chooseMode('attack')}
               />
               <BattleSkillCommand
+                characterStats={characterStats}
                 slot="guard"
                 hotkey={formatCombatKeybind(bindings.guard)}
                 label={supportSkill.name}
@@ -2246,6 +2256,7 @@ function BattleExperienceContent({
               onSelect={selectAction}
             />
             <BattleSkillCommand
+              characterStats={characterStats}
               slot="finish"
               hotkey={formatCombatKeybind(bindings.endTurn)}
               label="End Turn"

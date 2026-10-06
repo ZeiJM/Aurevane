@@ -14,7 +14,7 @@ Owner-approved 2026-10-02. This is the minimum report for **every full Skill det
 | Range | Maximum tile range, matching the current compact parameter design. Self-only and untargeted passive actions use `N/A`. Movement states its remaining allowance. Owner refinement 2026-10-02: omit the duplicate Legal range prose from full detail views; engine targeting constraints remain authoritative. |
 | Target | Actual target policy/recipient: Self, Enemy, Ally, Any Unit, Ground or Empty Ground. Passive reports identify result recipients instead of pretending the passive has a separate selection. |
 | Target Method | Single, Circle or Line for authored targeting; Path/Facing where appropriate to an inherent command. Untargeted passives use `N/A`. |
-| Target Elevation | Authored maximum elevation difference; `N/A` when no independent elevation constraint applies. Movement states its committed Jump/profile rule. |
+| Target Elevation | Authored maximum elevation difference; `N/A` when no independent elevation constraint applies. Move reports the committed character Jump stat. |
 | Line of Sight | Required or Not required for targeted actions; `N/A` for self-only actions or passives with no independent targeting. |
 
 All ten labels must appear exactly once, in this order. Area geometry belongs in Target Method (including radius/length), and distinct recipients/friendly-fire behavior belongs in Target. Applicable effect explanations, trigger timing, caps, repeat-use rules and mode overrides follow the fields. Do not add a redundant targeting-summary paragraph below the table. A compact action bar, forecast or card may summarize information, but its full detail view must provide the complete minimum report. Do not enlarge or reflow the fixed battle cockpit/forecast to hold this report.
@@ -35,3 +35,6 @@ The Master Panel must retain typed mechanics as the source of truth. These repor
 
 
 Owner refinement 2026-10-03: append `[Instant]` to applicable effect values when their canonical timing tag resolves to instant under the current Master policy. Direct `Dmg` omits the label. Retain authored magnitude and duration. Discipline, Support, Essence, Resonance and Master draft reports share this rule; battle reports use the encounter's pinned policy, and historical encounters without a timing policy retain legacy timing. Copy reports likewise use the pinned Copy policy, preserving historical temporary-Skill wording only for historical encounters.
+
+
+Owner-approved 2026-10-06: Move’s report is Cost 20 AP, Requirements N/A, Effects Move [1] [Instant], Range committed Move stat, and Target Elevation committed Jump stat. Its concise explanation notes reachable tiles and terrain AP costs. Basic Attack’s family and formula follow the higher committed Physical/Mystic Attack stat (Physical ties). Essence readers include the same effect explanations as Techniques. Damage explanations distinguish authored Skill power (1–20) from final HP damage. Battle information readers use the paper background without dark Effects blocks or redundant arm-action instructions.

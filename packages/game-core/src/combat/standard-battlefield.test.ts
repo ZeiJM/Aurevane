@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createStandardBattlefieldTiles } from './standard-battlefield'
+import { createStandardBattlefieldTiles, randomizeRaisedTileHeights } from './standard-battlefield'
 import type { CombatTile } from './board'
 
 function connectedGround(tiles: readonly CombatTile[]): boolean {
@@ -67,7 +67,7 @@ describe('seeded standard battlefields', () => {
               tile.position.y < 7,
           ),
         ).toBe(true)
-        expect(tiles.every((tile) => tile.elevation === 0 || tile.elevation === 1)).toBe(true)
+        expect(tiles.every((tile) => [0, 1, 2, 3].includes(tile.elevation))).toBe(true)
         expect(
           tiles.every(
             (tile) => tile.terrainId === 'open-ground' || tile.terrainId === 'rough-ground',
@@ -133,6 +133,27 @@ describe('seeded standard battlefields', () => {
     expect(neutral.raised).toBeLessThan(more.raised)
   })
 
+  it('draws raised platform heights at 60 / 30 / 10 percent across seeds', () => {
+    const counts = [0, 0, 0, 0]
+    for (let seed = 1; seed <= 1000; seed++) {
+      for (const tile of createStandardBattlefieldTiles({
+        width: 15,
+        height: 7,
+        seed,
+        spawns: [],
+        elevationBias: 'more',
+      }))
+        counts[tile.elevation]!++
+    }
+    const raised = counts[1]! + counts[2]! + counts[3]!
+    for (const [height, probability] of [
+      [1, 0.6],
+      [2, 0.3],
+      [3, 0.1],
+    ])
+      expect(counts[height!]! / raised).toBeCloseTo(probability!, 1)
+  })
+
   it('leaves tiny or fully protected maps flat without orphan platforms', () => {
     expect(
       createStandardBattlefieldTiles({ width: 2, height: 1, seed: 1, spawns: [{ x: 0, y: 0 }] }),
@@ -141,4 +162,28 @@ describe('seeded standard battlefields', () => {
       { position: { x: 1, y: 0 }, elevation: 0, terrainId: 'open-ground' },
     ])
   })
+})
+
+it('randomizes authored raised heights only when instantiating a new map', () => {
+  const tiles = [0, 1, 1].map((elevation, x) => ({
+    position: { x, y: 0 },
+    elevation,
+    terrainId: 'open-ground',
+  }))
+  const original = JSON.parse(JSON.stringify(tiles)) as typeof tiles
+  const counts = [0, 0, 0, 0]
+  for (let seed = 1; seed <= 1000; seed++) {
+    const map = randomizeRaisedTileHeights(tiles, seed)
+    expect(map).toEqual(randomizeRaisedTileHeights(tiles, seed))
+    expect(map[0]).toEqual(tiles[0])
+    expect(map[1]!.elevation).toBe(map[2]!.elevation)
+    counts[map[1]!.elevation]!++
+  }
+  expect(tiles).toEqual(original)
+  for (const [height, probability] of [
+    [1, 0.6],
+    [2, 0.3],
+    [3, 0.1],
+  ])
+    expect(counts[height!]! / 1000).toBeCloseTo(probability!, 1)
 })

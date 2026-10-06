@@ -102,7 +102,7 @@ export function previewEffect(effect: MatureSkillEffectDefinition): PreviewEffec
                 ? 'Fire Dmg'
                 : 'Dmg',
         magnitude: String(effect.amount),
-        explanation: `Deals base${effect.element ? ` ${effect.element}` : ''} damage before Power, Level and defenses.${effect.facingModifiersBasisPoints ? ` Facing: front ${effect.facingModifiersBasisPoints.front / 100}%, side ${effect.facingModifiersBasisPoints.side / 100}%, rear ${effect.facingModifiersBasisPoints.rear / 100}%.` : ''}`,
+        explanation: `Skill power ranges from 1 to 20. This effect has ${effect.amount} power${effect.element ? ` (${effect.element})` : ''}. Final HP damage depends on your attack stat, Level and the target’s defenses and effects.${effect.facingModifiersBasisPoints ? ` Facing: front ${effect.facingModifiersBasisPoints.front / 100}%, side ${effect.facingModifiersBasisPoints.side / 100}%, rear ${effect.facingModifiersBasisPoints.rear / 100}%.` : ''}`,
       }
     case 'healing':
       return {

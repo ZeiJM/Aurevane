@@ -123,7 +123,7 @@ function delayedGuardHistory() {
 }
 
 describe('idle narration from persisted command events', () => {
-  it('shows the first current AI timeout as Defenseless pending for round 4 and exposed for one turn', () => {
+  it('shows the first current AI timeout as Defenseless pending for round 4 and exposed for one complete round', () => {
     let state: ReturnType<typeof encounter> = {
       ...encounter(),
       effectTimingPolicy: { version: 1, modes: {} },
@@ -157,7 +157,7 @@ describe('idle narration from persisted command events', () => {
       { combatantNames: { [actors[0]]: 'Zei', [actors[1]]: 'Weon' } },
     )
     expect(JSON.stringify(activeChronicle.find((round) => round.round === 4))).toContain(
-      'Zei is left wide open to the enemy for 1 turn.',
+      'Zei is left wide open to the enemy for 1 round.',
     )
   })
 

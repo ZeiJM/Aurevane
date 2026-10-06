@@ -11,6 +11,7 @@ import { readSkillCooldown } from './skill-cooldowns'
 import { createTacticalBattleState } from './board'
 import {
   calculatePv1fBasicAttackDamage,
+  resolvePv1fActionDefinition,
   createPv1fTemporaryResources,
   evaluatePv1fAction,
   evaluatePv1fMatureSkill,
@@ -34,6 +35,7 @@ import {
 } from './pv1f-action-economy'
 import {
   createStatDrivenCombatEncounterState,
+  forecastStatDrivenAttack,
   STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_VERSION,
   STAT_DRIVEN_COMBAT_RULES_VERSION,
   type StatDrivenCombatEncounterState,
@@ -453,7 +455,7 @@ describe('inherent Guard duration authority', () => {
       ?.statuses.find((status) => status.statusId === 'guarded')
   }
 
-  it('forecasts and commits two complete affected turns after next-round activation', () => {
+  it('forecasts and commits two complete rounds after next-round activation', () => {
     const initial = {
       ...lethalEncounter('player'),
       effectTimingPolicy: { version: 1, modes: {} },
@@ -494,7 +496,7 @@ describe('inherent Guard duration authority', () => {
     expect(state.pendingEffects).toHaveLength(0)
     expect(guarded(state)).toMatchObject({ timingState: 'active', remainingOwnerTurnEnds: 2 })
     state = finishPv1fTurn(state, 'east').state
-    expect(guarded(state)?.remainingOwnerTurnEnds).toBe(1)
+    expect(guarded(state)?.remainingOwnerTurnEnds).toBe(2)
     expect(
       evaluatePv1fAction(state, PV1F_BASIC_ATTACK_ID, { kind: 'unit', combatantId: 'player' })
         .evaluation.projectedEffects,
@@ -505,7 +507,11 @@ describe('inherent Guard duration authority', () => {
     expect(state.tactical.battle.round).toBe(3)
     expect(guarded(state)?.remainingOwnerTurnEnds).toBe(1)
     state = finishPv1fTurn(state, 'east').state
+    expect(guarded(state)?.remainingRoundBoundaries).toBe(1)
+    state = finishPv1fTurn(state, 'west').state
+    expect(state.tactical.battle.round).toBe(4)
     expect(guarded(state)).toBeUndefined()
+    state = finishPv1fTurn(state, 'east').state
     expect(
       evaluatePv1fAction(state, PV1F_BASIC_ATTACK_ID, { kind: 'unit', combatantId: 'player' })
         .evaluation.projectedEffects,
@@ -558,6 +564,8 @@ describe('inherent Guard duration authority', () => {
       { kind: 'self' },
       PV1F_COMBAT_CONTENT,
     ).state as StatDrivenCombatEncounterState
+    // Simulate a persisted pending application created before round duration metadata.
+    for (const pending of queued.pendingEffects ?? []) delete pending.statusDurationScope
     const before = JSON.parse(JSON.stringify(queued)) as StatDrivenCombatEncounterState
     evaluatePv1fAction(queued, PV1F_GUARD_ACTION_ID, { kind: 'self' })
     expect(queued).toEqual(before)
@@ -842,3 +850,27 @@ describe('P3.3 mature Skill Action Economy integration', () => {
     )
   })
 })
+
+it.each([
+  [20, 40, 'mystic', 12],
+  [40, 20, 'physical', 12],
+  [40, 40, 'physical', 12],
+] as const)(
+  'Basic Attack with physical %s and mystic %s uses %s',
+  (physicalPower, mysticPower, family, damage) => {
+    const state = currentPowerEncounter()
+    const actor = state.statBridge.combatants.find((row) => row.combatantId === 'player')!
+    Object.assign(actor, { physicalPower, mysticPower })
+    const action = resolvePv1fActionDefinition(state, 'player', PV1F_BASIC_ATTACK_ID)
+    expect(action.tags).toContain(family)
+    expect(action.effects[0]).toMatchObject({ type: 'damage', amount: damage })
+    const target = { kind: 'unit' as const, combatantId: 'recruit' }
+    const defense = family === 'mystic' ? 'ward' : 'armor'
+    expect(forecastStatDrivenAttack(state, action, target, PV1F_COMBAT_CONTENT).defenseKind).toBe(
+      defense,
+    )
+    expect(executePv1fAction(state, PV1F_BASIC_ATTACK_ID, target).events).toContainEqual(
+      expect.objectContaining({ event: 'stat_driven_attack_resolved', defenseKind: defense }),
+    )
+  },
+)

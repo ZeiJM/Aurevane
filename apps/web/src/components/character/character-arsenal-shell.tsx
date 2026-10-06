@@ -18,6 +18,7 @@ import { CharacterSkillBuildPanel } from '@/components/character/character-skill
 import { FoundationDisciplineSigil } from '@/components/character/foundation-discipline-sigil'
 import { LoadoutHeader } from '@/components/character/loadout-header'
 
+import { skillPreviewEffects } from './skill-effect-preview'
 import { skillDisplayName } from './skill-detail-presentation'
 import { ResonanceParameters } from './resonance-parameters'
 import { SkillParameters } from './skill-parameters'
@@ -43,6 +44,13 @@ function EssenceHoverPreview({ essence }: { essence: EssenceDefinition }) {
         <dl>
           <SkillParameters skill={skill} />
         </dl>
+        <ul aria-label="Effect explanations">
+          {skillPreviewEffects(skill).map((effect) => (
+            <li key={JSON.stringify(effect)}>
+              <strong>{effect.label}</strong> — {effect.explanation}
+            </li>
+          ))}
+        </ul>
       </aside>
     </BattleInfoPopover>
   )

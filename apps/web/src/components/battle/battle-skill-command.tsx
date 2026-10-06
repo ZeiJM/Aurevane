@@ -22,6 +22,7 @@ import { BattleSkillCooldown } from './battle-skill-cooldown'
 import {
   commandCharacteristicRows,
   basicActionIdForCommand,
+  type BasicActionCharacterStats,
 } from '../character/basic-action-presentation'
 import {
   BasicActionEffectExplanations,
@@ -94,6 +95,7 @@ export function BattleSkillCommand({
   selector,
   tags = [],
   children,
+  characterStats,
 }: {
   slot: BattleCommandSlot
   hotkey: string
@@ -106,6 +108,7 @@ export function BattleSkillCommand({
   onActivate: () => void
   selector?: BattleSkillSelectorConfig
   tags?: readonly string[]
+  characterStats?: BasicActionCharacterStats
   children?: ReactNode
 }) {
   const timingPolicy = useSkillEffectTimingPolicy()
@@ -265,8 +268,12 @@ export function BattleSkillCommand({
           <strong>Parameters</strong>
           <dl>
             <SkillCharacteristicRows
-              rows={commandCharacteristicRows(slot, label, cost, timingPolicy)}
-              effectSummary={basicActionId ? <BasicActionEffectSummary id={basicActionId} /> : null}
+              rows={commandCharacteristicRows(slot, label, cost, timingPolicy, characterStats)}
+              effectSummary={
+                basicActionId ? (
+                  <BasicActionEffectSummary id={basicActionId} stats={characterStats} />
+                ) : null
+              }
             />
           </dl>
           {basicActionId ? <BasicActionEffectExplanations id={basicActionId} /> : null}
@@ -282,18 +289,11 @@ export function BattleSkillCommand({
                 ? 'Battle Items are coming soon. This slot is locked and cannot issue a command.'
                 : slot === 'inspect'
                   ? 'Select a character or tile to inspect it for free.'
-                  : slot === 'move'
-                    ? 'Arm Move, then click a reachable tile or use a direction to move. The server checks the path and AP cost.'
-                    : slot === 'finish'
-                      ? 'Choose your final facing on the map, then finish your turn.'
-                      : 'Arm this action to see its target forecast. Then click a target or use a direction to execute it.'}
+                  : slot === 'finish'
+                    ? 'Choose your final facing on the map, then finish your turn.'
+                    : null}
             </p>
           )}
-          {tags.length > 0 ? (
-            <p>
-              Arm this action to see its forecast, then use a deliberate target input to execute it.
-            </p>
-          ) : null}
         </BattleInfoPopover>
         <span className={styles.hotkey} data-battle-command-hotkey="true">
           {hotkey}

@@ -1,5 +1,7 @@
 'use client'
 
+import { BattleVersusEmblem } from './battle-versus-emblem'
+
 import type { CharacterPortraitRef } from '@aurevane/game-core/character/creation'
 import type { PvpMapBias, PvpMapSize, PvpTurnTimerSeconds } from '@aurevane/validation/combat/pvp'
 import { useRouter } from 'next/navigation'
@@ -392,7 +394,7 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
             <div className={styles.teamWrap} key={teamIndex}>
               {teamIndex > 0 ? (
                 <div className={styles.vs} data-pvp-versus="true" role="img" aria-label="Versus">
-                  <span aria-hidden="true">VS</span>
+                  <BattleVersusEmblem placement="lobby" />
                 </div>
               ) : null}
               <section className={styles.team} data-team={teamIndex}>
