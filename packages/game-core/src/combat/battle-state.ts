@@ -54,6 +54,8 @@ export interface BattleState {
   rng: BattleRngState
   combatants: readonly BattleCombatant[]
   initiativeOrder: readonly string[]
+  /** Seeded tie priority chosen once at battle start; absent on historical snapshots. */
+  initiativeTieOrder?: readonly string[]
   /** Combatants spawned mid-round join deterministic initiative at the next round boundary. */
   deferredInitiativeCombatantIds?: readonly string[]
   /** Frozen offsets for this round only; absent on legacy snapshots. */
@@ -190,13 +192,19 @@ export function startBattle(state: BattleState): BattleTransition {
     throw new Error('A battle requires at least two active teams to start.')
   }
 
-  const first = findFirstEligibleCombatant(state)
+  const initiativeTieOrder = shuffleInitiativeTies(state)
+  const orderedState = {
+    ...state,
+    initiativeTieOrder,
+    initiativeOrder: createInitiativeOrder(state.combatants, [], new Set(), initiativeTieOrder),
+  }
+  const first = findFirstEligibleCombatant(orderedState)
   if (!first) {
     throw new Error('No eligible combatant is available to start the battle.')
   }
 
   const nextState: BattleState = {
-    ...state,
+    ...orderedState,
     lifecycle: 'active',
     round: 1,
     turnNumber: 1,
@@ -316,7 +324,12 @@ export function endTurn(
   const roundState = wrappedRound
     ? {
         ...state,
-        initiativeOrder: createInitiativeOrder(state.combatants, nextRoundModifiers),
+        initiativeOrder: createInitiativeOrder(
+          state.combatants,
+          nextRoundModifiers,
+          new Set(),
+          state.initiativeTieOrder,
+        ),
         deferredInitiativeCombatantIds: [],
         ...(nextRoundModifiers.length || state.roundInitiativeModifiers
           ? { roundInitiativeModifiers: nextRoundModifiers.map((modifier) => ({ ...modifier })) }
@@ -406,7 +419,12 @@ export function defeatCurrentCombatant(
   const roundState = wrappedRound
     ? {
         ...defeatedState,
-        initiativeOrder: createInitiativeOrder(defeatedState.combatants, nextRoundModifiers),
+        initiativeOrder: createInitiativeOrder(
+          defeatedState.combatants,
+          nextRoundModifiers,
+          new Set(),
+          state.initiativeTieOrder,
+        ),
         deferredInitiativeCombatantIds: [],
         ...(nextRoundModifiers.length || state.roundInitiativeModifiers
           ? { roundInitiativeModifiers: nextRoundModifiers.map((modifier) => ({ ...modifier })) }
@@ -500,10 +518,21 @@ export function validateBattleState(state: BattleState): readonly BattleInvarian
       message: 'Deferred initiative IDs must be unique known combatants in an active battle.',
     })
   }
+  if (
+    state.initiativeTieOrder &&
+    (new Set(state.initiativeTieOrder).size !== state.initiativeTieOrder.length ||
+      state.initiativeTieOrder.some((id) => !combatantIds.has(id)) ||
+      state.lifecycle === 'pending')
+  )
+    issues.push({
+      field: 'initiativeTieOrder',
+      message: 'Tie priorities must be unique known combatants chosen after battle start.',
+    })
   const expectedInitiativeOrder = createInitiativeOrder(
     state.combatants,
     state.roundInitiativeModifiers,
     deferredIds,
+    state.initiativeTieOrder,
   )
   if (!arraysEqual(state.initiativeOrder, expectedInitiativeOrder)) {
     issues.push({
@@ -568,11 +597,30 @@ function normalizeCombatant(input: CreateBattleCombatantInput): BattleCombatant 
   }
 }
 
+/** Separate seeded stream keeps tie selection independent of damage and map rolls. */
+function shuffleInitiativeTies(state: BattleState): string[] {
+  const ids = state.combatants.map((unit) => unit.id).sort(compareStableString)
+  // Avalanche neighboring encounter seeds before drawing the first tie choice.
+  let seed = (state.rng.seed ^ 0x9e3779b9) >>> 0
+  seed = Math.imul(seed ^ (seed >>> 16), 0x85ebca6b) >>> 0
+  seed = Math.imul(seed ^ (seed >>> 13), 0xc2b2ae35) >>> 0
+  let rng = createBattleRngState((seed ^ (seed >>> 16)) >>> 0 || 1)
+  for (let index = ids.length - 1; index > 0; index--) {
+    const draw = advanceBattleRng(rng)
+    rng = draw.state
+    const selected = Math.floor((draw.value / 0x1_0000_0000) * (index + 1))
+    ;[ids[index], ids[selected]] = [ids[selected], ids[index]]
+  }
+  return ids
+}
+
 function createInitiativeOrder(
   combatants: readonly BattleCombatant[],
   modifiers: NonNullable<BattleState['roundInitiativeModifiers']> = [],
   excludedIds: ReadonlySet<string> = new Set(),
+  tieOrder: readonly string[] = [],
 ): string[] {
+  const tieRanks = new Map(tieOrder.map((id, rank) => [id, rank]))
   const offsets = new Map(modifiers.map((modifier) => [modifier.combatantId, modifier.amount]))
   const priority = (unit: BattleCombatant) =>
     BigInt(unit.initiative) + BigInt(offsets.get(unit.id) ?? 0)
@@ -582,7 +630,10 @@ function createInitiativeOrder(
       if (priority(left) !== priority(right)) {
         return priority(right) > priority(left) ? 1 : -1
       }
-      return compareStableString(left.id, right.id)
+      const tieDifference =
+        (tieRanks.get(left.id) ?? Number.MAX_SAFE_INTEGER) -
+        (tieRanks.get(right.id) ?? Number.MAX_SAFE_INTEGER)
+      return tieDifference || compareStableString(left.id, right.id)
     })
     .map((combatant) => combatant.id)
 }

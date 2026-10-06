@@ -408,3 +408,5 @@ The Manual succeeds when new players can learn AUREVANE without an external wiki
 
 
 Lowered Guard only follows a timed-out turn where you did nothing. If you successfully moved or used an action before the timer expired, that turn is exempt. Previewing or attempting an illegal command does not count as acting.
+
+2026-10-06 Initiative follow-up: equal initiative is randomly ordered when a new battle starts. That tie order stays fixed across reloads; changes to initiative still change who moves first.
